@@ -1,6 +1,5 @@
 import Phaser from 'phaser';
-
-const FACTIONS = ['Aggro', 'Tank', 'Control', 'Swarm'];
+import { getFactionKeys } from '../data/factions';
 
 export default class FactionSelectScene extends Phaser.Scene {
   constructor() {
@@ -9,6 +8,7 @@ export default class FactionSelectScene extends Phaser.Scene {
 
   create() {
     const { width, height } = this.scale;
+    const factions = getFactionKeys();
 
     this.add
       .text(width / 2, height * 0.16, 'Select Faction', {
@@ -21,7 +21,7 @@ export default class FactionSelectScene extends Phaser.Scene {
     const baseY = height * 0.3;
     const stepY = 90;
 
-    FACTIONS.forEach((faction, index) => {
+    factions.forEach((faction, index) => {
       const button = this.add
         .text(width / 2, baseY + index * stepY, faction, {
           fontFamily: 'Arial, sans-serif',
