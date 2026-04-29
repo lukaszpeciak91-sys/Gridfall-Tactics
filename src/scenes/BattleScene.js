@@ -1,4 +1,6 @@
 import Phaser from 'phaser';
+import { getFactionByKey } from '../data/factions';
+import { createInitialBattleState, drawCards } from '../systems/GameState';
 
 export default class BattleScene extends Phaser.Scene {
   constructor() {
@@ -7,25 +9,40 @@ export default class BattleScene extends Phaser.Scene {
 
   create(data) {
     const { width, height } = this.scale;
-    const faction = data?.faction ?? 'Unknown';
+    const factionKey = data?.faction ?? 'Aggro';
+    const factionData = getFactionByKey(factionKey) ?? { name: 'Unknown', deck: [] };
+
+    this.gameState = createInitialBattleState(factionData);
+    drawCards(this.gameState, 3);
 
     this.add
-      .text(width / 2, height * 0.1, 'Battle Scene', {
+      .text(width / 2, height * 0.08, 'Battle Scene', {
         fontFamily: 'Arial, sans-serif',
         fontSize: '38px',
         color: '#f9fafb',
       })
       .setOrigin(0.5);
 
-    this.add
-      .text(width / 2, height * 0.17, `Faction: ${faction}`, {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '28px',
-        color: '#fde68a',
-      })
-      .setOrigin(0.5);
+    this.drawPlaceholderGrid(width / 2, height * 0.5, 90);
+    this.renderDebugInfo(width * 0.08, height * 0.72);
+  }
 
-    this.drawPlaceholderGrid(width / 2, height * 0.55, 90);
+  renderDebugInfo(x, y) {
+    const handCardNames = this.gameState.player.hand.map((card) => card.name).join(', ') || '(none)';
+
+    const debugText = [
+      `Faction: ${this.gameState.player.factionName}`,
+      `Deck Remaining: ${this.gameState.player.deck.length}`,
+      `Hand Size: ${this.gameState.player.hand.length}`,
+      `Hand Cards: ${handCardNames}`,
+    ].join('\n');
+
+    this.add.text(x, y, debugText, {
+      fontFamily: 'Courier New, monospace',
+      fontSize: '20px',
+      color: '#e5e7eb',
+      lineSpacing: 10,
+    });
   }
 
   drawPlaceholderGrid(centerX, centerY, cellSize) {
