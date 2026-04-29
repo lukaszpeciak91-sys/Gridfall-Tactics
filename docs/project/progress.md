@@ -3,7 +3,9 @@
 ## Current Status
 - Project initialized.
 - Phaser skeleton planned.
+- BattleScene MVP UI skeleton implemented with locked portrait layout zones, placeholder interactions, and frame fallback support.
 
 ## Next Milestones
-- Set up Phaser project skeleton and baseline scene structure.
-- Define data structures for board state, units, and turn flow.
+- Wire placeholder battle interactions into real turn/state systems.
+- Implement card/unit data models and board resolution logic.
+- Add faction-specific UI frame assets beyond `frame_default`.
