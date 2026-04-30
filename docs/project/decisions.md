@@ -20,3 +20,9 @@
 
 ## Notes
 - These decisions are intentionally constrained to reduce implementation risk and improve iteration speed.
+
+
+## Merge Integration Consistency (2026-04-30)
+- Standardize faction selection + battle handoff on `factionKey` values (not faction display names).
+- Treat `getFactionByKey` and `getFactionKeys` as the canonical faction API; avoid legacy map access in scenes.
+- Normalize faction JSON imports to lowercase filenames for Linux/Vite case-sensitive resolution safety.
