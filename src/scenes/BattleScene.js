@@ -12,7 +12,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   preload() {
-    this.load.image(FRAME_KEY, 'assets/ui/frame_default.png');
+    // this.load.image(FRAME_KEY, 'assets/ui/frame_default.png');
   }
 
   create(data) {

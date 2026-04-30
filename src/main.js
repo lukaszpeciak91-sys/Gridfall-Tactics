@@ -6,7 +6,20 @@ import BattleScene from './scenes/BattleScene.js';
 const appRoot = document.getElementById('app');
 
 if (appRoot) {
-  appRoot.textContent = 'Gridfall booting...';
+  appRoot.innerHTML = 'BOOTING...';
+}
+
+window.onerror = function onGlobalError(e) {
+  const root = document.getElementById('app');
+  if (root) {
+    root.innerHTML = `ERROR: ${e}`;
+  }
+  return false;
+};
+
+console.log('BOOT START');
+
+if (appRoot) {
   appRoot.style.color = '#f9fafb';
   appRoot.style.fontFamily = 'Arial, sans-serif';
   appRoot.style.fontSize = '24px';
@@ -27,9 +40,4 @@ const config = {
   scene: [StartScene, FactionSelectScene, BattleScene],
 };
 
-try {
-  window.__gridfallGame = new Phaser.Game(config);
-  console.log('Gridfall boot: Phaser.Game created');
-} catch (error) {
-  console.error('Gridfall boot failed before Phaser render', error);
-}
+window.__gridfallGame = new Phaser.Game(config);
