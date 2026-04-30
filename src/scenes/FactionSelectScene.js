@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { factions } from '../data/factions';
+import { getFactionKeys } from '../data/factions';
 
 export default class FactionSelectScene extends Phaser.Scene {
   constructor() {
@@ -8,6 +8,7 @@ export default class FactionSelectScene extends Phaser.Scene {
 
   create() {
     const { width, height } = this.scale;
+    const factions = getFactionKeys();
 
     this.add
       .text(width / 2, height * 0.16, 'Select Faction', {

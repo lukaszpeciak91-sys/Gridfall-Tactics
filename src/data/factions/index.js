@@ -1,10 +1,19 @@
-import aggro from './aggro.json';
-import tank from './tank.json';
-import control from './control.json';
-import swarm from './swarm.json';
+import aggro from './Aggro.json';
+import tank from './Tank.json';
+import control from './Control.json';
+import swarm from './Swarm.json';
 
-export const factions = [aggro, tank, control, swarm];
+const FACTIONS = {
+  Aggro: aggro,
+  Tank: tank,
+  Control: control,
+  Swarm: swarm,
+};
 
-export const factionMap = Object.fromEntries(
-  factions.map((faction) => [faction.name, faction])
-);
+export function getFactionByKey(factionKey) {
+  return FACTIONS[factionKey] ?? null;
+}
+
+export function getFactionKeys() {
+  return Object.keys(FACTIONS);
+}

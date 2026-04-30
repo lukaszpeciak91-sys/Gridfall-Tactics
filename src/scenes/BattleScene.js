@@ -2,6 +2,8 @@ import Phaser from 'phaser';
 import { factionMap } from '../data/factions';
 
 const FRAME_KEY = 'frame_default';
+import { getFactionByKey } from '../data/factions';
+import { createInitialBattleState, drawCards } from '../systems/GameState';
 
 export default class BattleScene extends Phaser.Scene {
   constructor() {
@@ -23,6 +25,14 @@ export default class BattleScene extends Phaser.Scene {
 
     this.statusText = this.add
       .text(width * 0.5, height * 0.96, 'Ready: Select a card', {
+    const factionKey = data?.faction ?? 'Aggro';
+    const factionData = getFactionByKey(factionKey) ?? { name: 'Unknown', deck: [] };
+
+    this.gameState = createInitialBattleState(factionData);
+    drawCards(this.gameState, 3);
+
+    this.add
+      .text(width / 2, height * 0.08, 'Battle Scene', {
         fontFamily: 'Arial, sans-serif',
         fontSize: '18px',
         color: '#e5e7eb',
