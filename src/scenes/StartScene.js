@@ -9,7 +9,7 @@ export default class StartScene extends Phaser.Scene {
     console.log('StartScene create');
     const { width, height } = this.scale;
 
-
+    this.cameras.main.setBackgroundColor('#111827');
     this.add
       .text(width / 2, height * 0.08, 'StartScene loaded', {
         fontFamily: 'Arial, sans-serif',
