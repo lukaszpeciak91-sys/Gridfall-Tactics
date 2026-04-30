@@ -41,3 +41,25 @@ const config = {
 };
 
 window.__gridfallGame = new Phaser.Game(config);
+
+window.setTimeout(() => {
+  const root = document.getElementById('app');
+  const canvas = root?.querySelector('canvas');
+
+  if (canvas) {
+    console.log('Canvas mounted', {
+      width: canvas.width,
+      height: canvas.height,
+      clientWidth: canvas.clientWidth,
+      clientHeight: canvas.clientHeight,
+    });
+    return;
+  }
+
+  console.error('Canvas not found under #app after boot timeout');
+  if (root) {
+    root.innerHTML = 'Canvas not created. Open DevTools console for boot errors.';
+    root.style.padding = '16px';
+    root.style.textAlign = 'center';
+  }
+}, 2000);

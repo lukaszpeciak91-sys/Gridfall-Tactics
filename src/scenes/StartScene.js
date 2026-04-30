@@ -6,6 +6,7 @@ export default class StartScene extends Phaser.Scene {
   }
 
   create() {
+    console.log('StartScene loaded');
     console.log('START SCENE CREATE');
     this.cameras.main.setBackgroundColor('#111827');
     this.add.text(100, 100, 'START OK', { color: '#ffffff' });
