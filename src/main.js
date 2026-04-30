@@ -1,78 +1,8 @@
-import Phaser from 'phaser';
-import StartScene from './scenes/StartScene.js';
-import FactionSelectScene from './scenes/FactionSelectScene.js';
-import BattleScene from './scenes/BattleScene.js';
+document.body.insertAdjacentHTML(
+  'beforeend',
+  '<div style="position:fixed;top:40px;left:0;background:blue;color:white;z-index:9999;padding:10px;">JS OK</div>'
+);
 
-const appRoot = document.getElementById('app');
-
-if (appRoot) {
-  appRoot.innerHTML = 'BOOTING...';
-}
-
-window.onerror = function onGlobalError(e) {
-  const root = document.getElementById('app');
-  if (root) {
-    root.innerHTML = `ERROR: ${e}`;
-  }
-  return false;
-};
-
-console.log('BOOT START');
-
-if (appRoot) {
-  appRoot.style.color = '#f9fafb';
-  appRoot.style.fontFamily = 'Arial, sans-serif';
-  appRoot.style.fontSize = '24px';
-}
-
-console.log('Gridfall boot: main.js executing');
-
-
-const bootOverlay = document.createElement('div');
-bootOverlay.textContent = 'GRIDFALL JS BOOT OK';
-bootOverlay.style.position = 'fixed';
-bootOverlay.style.top = '10px';
-bootOverlay.style.left = '10px';
-bootOverlay.style.zIndex = '999999';
-bootOverlay.style.color = '#ffffff';
-bootOverlay.style.background = '#dc2626';
-bootOverlay.style.padding = '6px 10px';
-bootOverlay.style.fontFamily = 'Arial, sans-serif';
-document.body.appendChild(bootOverlay);
-
-const config = {
-  type: Phaser.CANVAS,
-  parent: 'app',
-  width: 390,
-  height: 844,
-  backgroundColor: '#111827',
-  scale: {
-    mode: Phaser.Scale.FIT,
-    autoCenter: Phaser.Scale.CENTER_BOTH,
-  },
-  scene: [StartScene, FactionSelectScene, BattleScene],
-};
-
-window.__gridfallGame = new Phaser.Game(config);
-
-window.setTimeout(() => {
-  const root = document.getElementById('app');
-  const canvas = root?.querySelector('canvas');
-
-  if (canvas) {
-    console.log('Canvas mounted', {
-      width: canvas.width,
-      height: canvas.height,
-      clientWidth: canvas.clientWidth,
-      clientHeight: canvas.clientHeight,
-    });
-    return;
-  }
-
-  console.error('Canvas not found under #app after boot timeout');
-  if (root) {
-    root.innerHTML = 'Canvas not created. Open DevTools console for boot errors.';
-    root.style.padding = '16px';
-    root.style.textAlign = 'center';
-  }
-}, 2000);
+// Phaser boot is intentionally paused for this diagnostic step.
+// import Phaser from 'phaser';
+// window.__gridfallGame = new Phaser.Game(config);
