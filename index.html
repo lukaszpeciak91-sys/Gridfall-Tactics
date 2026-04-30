@@ -1,9 +1,28 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
-    <title>FORCE TEST 999</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gridfall Tactics</title>
   </head>
-  <body style="background:red;color:white;font-size:40px;">
-    FORCE TEST 999
+  <body>
+    <div
+      id="fallback"
+      style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        background: red;
+        color: white;
+        z-index: 9999;
+        padding: 10px;
+      "
+    >
+      HTML OK
+    </div>
+
+    <div id="app"></div>
+
+    <script type="module" src="./src/main.js"></script>
   </body>
 </html>

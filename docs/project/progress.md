@@ -25,3 +25,8 @@
 - Replaced mixed `faction`/`factionKey` scene payload with a consistent `factionKey` handoff.
 - Removed conflicting faction import casing by using lowercase JSON module paths in `src/data/factions/index.js`.
 - Verified no remaining merge conflict markers and no remaining `factionMap` references in `src/`.
+
+## Vite Boot Diagnostic Step (2026-04-30)
+- Confirmed static root `index.html` test worked on GitHub Pages (visible red screen), which validates Pages is serving the correct root file.
+- Narrowed blank-screen root cause to the Vite/JavaScript/Phaser boot layer rather than static hosting.
+- Current diagnostic checkpoint restores minimal Vite module loading with visible fallbacks: `HTML OK` (red) + `JS OK` (blue), with Phaser game creation intentionally disabled.

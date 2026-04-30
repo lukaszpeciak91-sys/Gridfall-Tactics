@@ -26,3 +26,8 @@
 - Standardize faction selection + battle handoff on `factionKey` values (not faction display names).
 - Treat `getFactionByKey` and `getFactionKeys` as the canonical faction API; avoid legacy map access in scenes.
 - Normalize faction JSON imports to lowercase filenames for Linux/Vite case-sensitive resolution safety.
+
+## Boot Isolation Diagnostic (2026-04-30)
+- Use a staged boot recovery flow: first prove static HTML render, then prove Vite/JS module execution, then re-enable Phaser boot.
+- Keep always-visible fallback overlays during diagnostics (`HTML OK` + `JS OK`) to prevent silent blank-screen regressions.
+- Defer scene-level changes until core boot path is confirmed stable again.
