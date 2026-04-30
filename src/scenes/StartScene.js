@@ -8,6 +8,15 @@ export default class StartScene extends Phaser.Scene {
   create() {
     const { width, height } = this.scale;
 
+
+    this.add
+      .text(width / 2, height * 0.08, 'StartScene loaded', {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '20px',
+        color: '#facc15',
+      })
+      .setOrigin(0.5);
+
     this.add
       .text(width / 2, height * 0.35, 'Gridfall Tactics', {
         fontFamily: 'Arial, sans-serif',
