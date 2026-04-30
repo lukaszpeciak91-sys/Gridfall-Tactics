@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { getFactionKeys } from '../data/factions';
+import { getFactionKeys } from '../data/factions/index.js';
 
 export default class FactionSelectScene extends Phaser.Scene {
   constructor() {

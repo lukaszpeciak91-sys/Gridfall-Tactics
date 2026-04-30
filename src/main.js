@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
-import StartScene from './scenes/StartScene';
-import FactionSelectScene from './scenes/FactionSelectScene';
-import BattleScene from './scenes/BattleScene';
+import StartScene from './scenes/StartScene.js';
+import FactionSelectScene from './scenes/FactionSelectScene.js';
+import BattleScene from './scenes/BattleScene.js';
 
 const config = {
   type: Phaser.AUTO,

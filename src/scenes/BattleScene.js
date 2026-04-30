@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
-import { getFactionByKey } from '../data/factions';
-import { createInitialBattleState, drawCards } from '../systems/GameState';
+import { getFactionByKey } from '../data/factions/index.js';
+import { createInitialBattleState, drawCards } from '../systems/GameState.js';
 
 const FRAME_KEY = 'frame_default';
 
