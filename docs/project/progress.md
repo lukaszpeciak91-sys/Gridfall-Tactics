@@ -30,3 +30,8 @@
 - Confirmed static root `index.html` test worked on GitHub Pages (visible red screen), which validates Pages is serving the correct root file.
 - Narrowed blank-screen root cause to the Vite/JavaScript/Phaser boot layer rather than static hosting.
 - Current diagnostic checkpoint restores minimal Vite module loading with visible fallbacks: `HTML OK` (red) + `JS OK` (blue), with Phaser game creation intentionally disabled.
+
+## GitHub Pages Marker Verification (2026-04-30)
+- Confirmed `HTML OK` marker renders on live GitHub Pages.
+- Confirmed `JS OK` marker renders on live GitHub Pages.
+- Next step: verify minimal Phaser boot on GitHub Pages with in-scene `PHASER OK` text before restoring scene/game systems.
