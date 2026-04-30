@@ -27,8 +27,21 @@ if (appRoot) {
 
 console.log('Gridfall boot: main.js executing');
 
+
+const bootOverlay = document.createElement('div');
+bootOverlay.textContent = 'GRIDFALL JS BOOT OK';
+bootOverlay.style.position = 'fixed';
+bootOverlay.style.top = '10px';
+bootOverlay.style.left = '10px';
+bootOverlay.style.zIndex = '999999';
+bootOverlay.style.color = '#ffffff';
+bootOverlay.style.background = '#dc2626';
+bootOverlay.style.padding = '6px 10px';
+bootOverlay.style.fontFamily = 'Arial, sans-serif';
+document.body.appendChild(bootOverlay);
+
 const config = {
-  type: Phaser.AUTO,
+  type: Phaser.CANVAS,
   parent: 'app',
   width: 390,
   height: 844,
