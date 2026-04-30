@@ -1,9 +1,8 @@
 import Phaser from 'phaser';
-import { factionMap } from '../data/factions';
-
-const FRAME_KEY = 'frame_default';
 import { getFactionByKey } from '../data/factions';
 import { createInitialBattleState, drawCards } from '../systems/GameState';
+
+const FRAME_KEY = 'frame_default';
 
 export default class BattleScene extends Phaser.Scene {
   constructor() {
@@ -18,18 +17,21 @@ export default class BattleScene extends Phaser.Scene {
 
   create(data) {
     const { width, height } = this.scale;
-    const factionName = data?.faction ?? 'Unknown';
-    const faction = factionMap[factionName];
+    const factionKey = data?.factionKey ?? 'Aggro';
+    const factionData = getFactionByKey(factionKey) ?? { name: 'Unknown', deck: [] };
+
+    this.gameState = createInitialBattleState(factionData);
+    drawCards(this.gameState, 3);
 
     this.cameras.main.setBackgroundColor('#0b1220');
 
     this.statusText = this.add
       .text(width * 0.5, height * 0.96, 'Ready: Select a card', {
-    const factionKey = data?.faction ?? 'Aggro';
-    const factionData = getFactionByKey(factionKey) ?? { name: 'Unknown', deck: [] };
-
-    this.gameState = createInitialBattleState(factionData);
-    drawCards(this.gameState, 3);
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '20px',
+        color: '#e5e7eb',
+      })
+      .setOrigin(0.5);
 
     this.add
       .text(width / 2, height * 0.08, 'Battle Scene', {
@@ -39,14 +41,14 @@ export default class BattleScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    this.drawTopBar(width, height, factionName);
+    this.drawTopBar(width, height, factionKey);
     this.drawBoard(width, height);
     this.drawActionZone(width, height);
     this.drawHand(width, height);
-    this.drawFrame(width, height, faction);
+    this.drawFrame(width, height, factionData);
   }
 
-  drawTopBar(width, height, factionName) {
+  drawTopBar(width, height, factionKey) {
     const topY = 0;
     const barHeight = height * 0.1;
 
@@ -60,7 +62,7 @@ export default class BattleScene extends Phaser.Scene {
       .setOrigin(0, 0.5);
 
     this.add
-      .text(width * 0.92, topY + barHeight * 0.5, `Faction: ${factionName}`, {
+      .text(width * 0.92, topY + barHeight * 0.5, `Faction: ${factionKey}`, {
         fontFamily: 'Arial, sans-serif',
         fontSize: '18px',
         color: '#bfdbfe',
@@ -174,8 +176,8 @@ export default class BattleScene extends Phaser.Scene {
     this.statusText.setText(`Selected Card ${cardId}`);
   }
 
-  drawFrame(width, height, faction) {
-    const frameKey = faction?.frameImage ?? FRAME_KEY;
+  drawFrame(width, height, factionData) {
+    const frameKey = factionData?.frameImage ?? FRAME_KEY;
     const hasFrame = this.textures.exists(frameKey);
 
     if (hasFrame) {

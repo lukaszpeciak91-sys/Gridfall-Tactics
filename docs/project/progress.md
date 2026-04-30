@@ -18,3 +18,10 @@
 - Implement first gameplay actions and consume the turn action flag.
 - Add card UI for displaying and selecting hand cards.
 - Add board interactions and unit placement rules.
+
+
+## Merge Diagnostics + Stabilization (2026-04-30)
+- Diagnosed and removed post-merge API mismatches between `FactionSelectScene`, `BattleScene`, and `GameState` initialization flow.
+- Replaced mixed `faction`/`factionKey` scene payload with a consistent `factionKey` handoff.
+- Removed conflicting faction import casing by using lowercase JSON module paths in `src/data/factions/index.js`.
+- Verified no remaining merge conflict markers and no remaining `factionMap` references in `src/`.

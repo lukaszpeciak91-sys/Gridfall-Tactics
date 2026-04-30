@@ -1,7 +1,7 @@
-import aggro from './Aggro.json';
-import tank from './Tank.json';
-import control from './Control.json';
-import swarm from './Swarm.json';
+import aggro from './aggro.json';
+import tank from './tank.json';
+import control from './control.json';
+import swarm from './swarm.json';
 
 const FACTIONS = {
   Aggro: aggro,
