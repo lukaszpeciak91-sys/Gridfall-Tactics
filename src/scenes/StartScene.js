@@ -6,6 +6,7 @@ export default class StartScene extends Phaser.Scene {
   }
 
   create() {
+    console.log('StartScene create');
     const { width, height } = this.scale;
 
 
