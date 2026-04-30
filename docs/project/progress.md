@@ -3,6 +3,12 @@
 ## Current Status
 - Project initialized.
 - Phaser skeleton planned.
+- BattleScene MVP UI skeleton implemented with locked portrait layout zones, placeholder interactions, and frame fallback support.
+
+## Next Milestones
+- Wire placeholder battle interactions into real turn/state systems.
+- Implement card/unit data models and board resolution logic.
+- Add faction-specific UI frame assets beyond `frame_default`.
 - Basic scene flow implemented: `StartScene` → `FactionSelectScene` → `BattleScene`.
 - Added initial faction data and a minimal battle `GameState` system.
 - `BattleScene` now initializes deck/hand/discard state and draws a 3-card starting hand.

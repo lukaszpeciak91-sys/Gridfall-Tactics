@@ -23,7 +23,7 @@ export default class FactionSelectScene extends Phaser.Scene {
 
     factions.forEach((faction, index) => {
       const button = this.add
-        .text(width / 2, baseY + index * stepY, faction, {
+        .text(width / 2, baseY + index * stepY, faction.name, {
           fontFamily: 'Arial, sans-serif',
           fontSize: '30px',
           color: '#111827',
@@ -34,7 +34,7 @@ export default class FactionSelectScene extends Phaser.Scene {
         .setInteractive({ useHandCursor: true });
 
       button.on('pointerup', () => {
-        this.scene.start('BattleScene', { faction });
+        this.scene.start('BattleScene', { faction: faction.name });
       });
     });
   }
