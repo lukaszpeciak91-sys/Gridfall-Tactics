@@ -1,3 +1,4 @@
+console.log('Gridfall boot');
 import Phaser from 'phaser';
 import StartScene from './scenes/StartScene.js';
 import FactionSelectScene from './scenes/FactionSelectScene.js';
