@@ -12,3 +12,6 @@
 - Update `docs/project/progress.md` when milestones start, complete, or are re-scoped.
 - Update `docs/project/workflow.md` when collaboration rules evolve.
 - **Codex must update these files when making significant changes.**
+
+## Gameplay Specification Rule
+- Codex must read `docs/battle_mvp_v1.md` before implementing gameplay systems.
