@@ -1,5 +1,47 @@
 {
   "id": "control",
   "name": "Control",
-  "frameImage": "frame_default"
+  "frameImage": "frame_default",
+  "deck": [
+    {
+      "id": "control_seer_1",
+      "name": "Seer"
+    },
+    {
+      "id": "control_hexbinder_1",
+      "name": "Hexbinder"
+    },
+    {
+      "id": "control_mindlash_1",
+      "name": "Mindlash"
+    },
+    {
+      "id": "control_seer2_1",
+      "name": "Seer"
+    },
+    {
+      "id": "control_freeze_1",
+      "name": "Freeze"
+    },
+    {
+      "id": "control_null_adept_1",
+      "name": "Null Adept"
+    },
+    {
+      "id": "control_disrupt_1",
+      "name": "Disrupt"
+    },
+    {
+      "id": "control_oracle_1",
+      "name": "Oracle"
+    },
+    {
+      "id": "control_scheme_1",
+      "name": "Scheme"
+    },
+    {
+      "id": "control_dominate_1",
+      "name": "Dominate"
+    }
+  ]
 }

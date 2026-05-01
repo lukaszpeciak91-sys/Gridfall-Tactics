@@ -1,5 +1,47 @@
 {
   "id": "tank",
   "name": "Tank",
-  "frameImage": "frame_default"
+  "frameImage": "frame_default",
+  "deck": [
+    {
+      "id": "tank_bulwark_1",
+      "name": "Bulwark"
+    },
+    {
+      "id": "tank_shieldbearer_1",
+      "name": "Shieldbearer"
+    },
+    {
+      "id": "tank_bastion_1",
+      "name": "Bastion"
+    },
+    {
+      "id": "tank_bulwark2_1",
+      "name": "Bulwark"
+    },
+    {
+      "id": "tank_fortify_1",
+      "name": "Fortify"
+    },
+    {
+      "id": "tank_sentinel_1",
+      "name": "Sentinel"
+    },
+    {
+      "id": "tank_hold_the_line_1",
+      "name": "Hold the Line"
+    },
+    {
+      "id": "tank_warden_1",
+      "name": "Warden"
+    },
+    {
+      "id": "tank_salvage_1",
+      "name": "Salvage"
+    },
+    {
+      "id": "tank_iron_wall_1",
+      "name": "Iron Wall"
+    }
+  ]
 }

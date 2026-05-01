@@ -1,5 +1,47 @@
 {
   "id": "swarm",
   "name": "Swarm",
-  "frameImage": "frame_default"
+  "frameImage": "frame_default",
+  "deck": [
+    {
+      "id": "swarm_drone_1",
+      "name": "Drone"
+    },
+    {
+      "id": "swarm_skitter_1",
+      "name": "Skitter"
+    },
+    {
+      "id": "swarm_hiveguard_1",
+      "name": "Hiveguard"
+    },
+    {
+      "id": "swarm_drone2_1",
+      "name": "Drone"
+    },
+    {
+      "id": "swarm_infest_1",
+      "name": "Infest"
+    },
+    {
+      "id": "swarm_broodling_1",
+      "name": "Broodling"
+    },
+    {
+      "id": "swarm_overrun_1",
+      "name": "Overrun"
+    },
+    {
+      "id": "swarm_hive_queen_1",
+      "name": "Hive Queen"
+    },
+    {
+      "id": "swarm_consume_1",
+      "name": "Consume"
+    },
+    {
+      "id": "swarm_tide_of_flesh_1",
+      "name": "Tide of Flesh"
+    }
+  ]
 }

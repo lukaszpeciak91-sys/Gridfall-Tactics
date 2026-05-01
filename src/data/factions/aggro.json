@@ -1,5 +1,17 @@
 {
   "id": "aggro",
   "name": "Aggro",
-  "frameImage": "frame_default"
+  "frameImage": "frame_default",
+  "deck": [
+    { "id": "aggro_grunt_1", "name": "Grunt" },
+    { "id": "aggro_spitter_1", "name": "Spitter" },
+    { "id": "aggro_rusher_1", "name": "Rusher" },
+    { "id": "aggro_grunt_2", "name": "Grunt" },
+    { "id": "aggro_spawn_1", "name": "Spawn" },
+    { "id": "aggro_brood_1", "name": "Brood" },
+    { "id": "aggro_swarm_attack_1", "name": "Swarm Attack" },
+    { "id": "aggro_alpha_1", "name": "Alpha" },
+    { "id": "aggro_recycle_1", "name": "Recycle" },
+    { "id": "aggro_flood_1", "name": "Flood" }
+  ]
 }
