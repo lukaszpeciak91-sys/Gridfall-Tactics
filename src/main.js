@@ -26,26 +26,42 @@ window.onunhandledrejection = function (e) {
   document.body.appendChild(div);
 };
 
-import Phaser from 'phaser';
-
 document.body.insertAdjacentHTML(
   'beforeend',
-  '<div style="position:fixed;top:40px;left:0;background:blue;color:white;z-index:9999;padding:10px;">JS OK</div>'
+  '<div style="position:fixed;top:40px;left:0;background:blue;color:white;z-index:9999;padding:10px;">JS BEFORE PHASER IMPORT OK</div>'
 );
 
-const config = {
-  type: Phaser.AUTO,
-  width: 300,
-  height: 200,
-  parent: document.body,
-  scene: {
-    create() {
-      this.add.text(50, 80, 'PHASER OK', {
-        color: '#00ff00',
-        fontSize: '20px'
-      });
-    }
-  }
-};
+import('phaser')
+  .then((module) => {
+    document.body.insertAdjacentHTML(
+      'beforeend',
+      '<div style="position:fixed;top:80px;left:0;background:green;color:white;z-index:9999;padding:10px;">PHASER IMPORT OK</div>'
+    );
 
-new Phaser.Game(config);
+    const Phaser = module.default;
+
+    const config = {
+      type: Phaser.AUTO,
+      width: 300,
+      height: 200,
+      parent: document.body,
+      scene: {
+        create() {
+          this.add.text(50, 80, 'PHASER OK', {
+            color: '#00ff00',
+            fontSize: '20px'
+          });
+        }
+      }
+    };
+
+    new Phaser.Game(config);
+  })
+  .catch((err) => {
+    document.body.insertAdjacentHTML(
+      'beforeend',
+      '<pre style="position:fixed;top:80px;left:0;background:black;color:red;z-index:9999;white-space:pre-wrap;padding:10px;">PHASER IMPORT ERROR: ' +
+        err +
+        '</pre>'
+    );
+  });
