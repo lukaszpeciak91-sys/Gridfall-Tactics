@@ -76,3 +76,8 @@
 - GitHub Pages must deploy `dist/` only.
 - Root `index.html` is build input, not production output.
 
+
+## Battle UI Mobile Readability Pass (2026-05-01)
+- Refined `BattleScene` layout zones for portrait mobile readability using responsive scale width/height percentages.
+- Kept existing card selection and unit placement interactions intact while improving board/card tap targets and spacing.
+- Added a compact hand-area deck indicator (`Deck xN`) and retained a single `EXECUTE TURN` action button.
