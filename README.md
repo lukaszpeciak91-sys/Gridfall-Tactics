@@ -4,4 +4,4 @@ Simple, mobile-first, tactical, not locked to one setting. MVP target: one compl
 
 https://lukaszpeciak91-sys.github.io/Gridfall-Tactics/
 
-lukaszpeciak91-sys.github.io/Gridfall-Tactics/
+https://lukaszpeciak91-sys.github.io/Gridfall-Tactics/?v=999
