@@ -126,7 +126,7 @@ export default class BattleScene extends Phaser.Scene {
     const cardWidth = Math.min(96, width * 0.2);
     const cardHeight = Math.min(140, zoneHeight * 0.72);
     const gap = Math.max(8, width * 0.02);
-    const cards = 5;
+    const cards = this.gameState.player.maxHandSize;
     const totalWidth = cards * cardWidth + (cards - 1) * gap;
     const startX = width / 2 - totalWidth / 2;
     const centerY = zoneY + zoneHeight * 0.5;
@@ -135,13 +135,17 @@ export default class BattleScene extends Phaser.Scene {
 
     for (let index = 0; index < cards; index += 1) {
       const x = startX + index * (cardWidth + gap) + cardWidth / 2;
-      const cardId = index + 1;
+      const card = this.gameState.player.hand[index] ?? null;
+      const cardId = card?.id ?? `slot-${index}`;
+      const cardName = card?.name ?? '';
       const background = this.add.rectangle(x, centerY, cardWidth, cardHeight, 0x334155, 1).setStrokeStyle(3, 0x64748b);
       const label = this.add
-        .text(x, centerY, `Card ${cardId}`, {
+        .text(x, centerY, cardName || 'Empty', {
           fontFamily: 'Arial, sans-serif',
-          fontSize: '18px',
+          fontSize: '16px',
           color: '#f8fafc',
+          align: 'center',
+          wordWrap: { width: cardWidth - 12 },
         })
         .setOrigin(0.5);
 
@@ -151,9 +155,9 @@ export default class BattleScene extends Phaser.Scene {
 
       hitArea.on('pointerup', () => this.onCardTap(cardId));
 
-      this.cardViews.push({ cardId, background, label });
+      this.cardViews.push({ cardId, background, label, hitArea });
 
-      if (index >= 3) {
+      if (!card) {
         background.setAlpha(0.65);
         label.setAlpha(0.65);
       }
@@ -161,8 +165,13 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   onCardTap(cardId) {
+    const card = this.gameState.player.hand.find((item) => item.id === cardId);
+    if (!card) {
+      return;
+    }
+
     if (this.selectedCardId === cardId) {
-      this.statusText.setText('Card played placeholder');
+      this.playCard(cardId);
       return;
     }
 
@@ -170,10 +179,32 @@ export default class BattleScene extends Phaser.Scene {
     this.cardViews.forEach((card) => {
       const isSelected = card.cardId === cardId;
       card.background.setStrokeStyle(4, isSelected ? 0xfacc15 : 0x64748b);
-      card.background.setFillStyle(isSelected ? 0x475569 : 0x334155, isSelected ? 1 : card.cardId > 3 ? 0.65 : 1);
+      const viewCard = this.gameState.player.hand.find((item) => item.id === card.cardId);
+      card.background.setFillStyle(isSelected ? 0x475569 : 0x334155, isSelected ? 1 : viewCard ? 1 : 0.65);
     });
 
-    this.statusText.setText(`Selected Card ${cardId}`);
+    this.statusText.setText(`Selected: ${card.name}`);
+  }
+
+  playCard(cardId) {
+    const handIndex = this.gameState.player.hand.findIndex((card) => card.id === cardId);
+    if (handIndex === -1) {
+      return;
+    }
+
+    const [playedCard] = this.gameState.player.hand.splice(handIndex, 1);
+    this.gameState.player.discard.push(playedCard);
+    drawCards(this.gameState, 1);
+
+    this.selectedCardId = null;
+    this.cardViews.forEach((view) => {
+      view.background.destroy();
+      view.label.destroy();
+      view.hitArea.destroy();
+    });
+    this.cardViews = [];
+    this.drawHand(this.scale.width, this.scale.height);
+    this.statusText.setText(`Played: ${playedCard.name}`);
   }
 
   drawFrame(width, height, factionData) {
