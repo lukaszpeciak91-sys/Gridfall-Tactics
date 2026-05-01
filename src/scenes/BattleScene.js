@@ -9,6 +9,7 @@ export default class BattleScene extends Phaser.Scene {
     super('BattleScene');
     this.selectedCardId = null;
     this.cardViews = [];
+    this.boardCells = [];
   }
 
   preload() {
@@ -80,11 +81,30 @@ export default class BattleScene extends Phaser.Scene {
     const startY = centerY - boardSize / 2;
 
     this.add.rectangle(width / 2, centerY, boardSize + 20, boardSize + 20, 0x1f2937, 1);
-    const graphics = this.add.graphics({ lineStyle: { width: 4, color: 0x9ca3af } });
+    this.boardCells = [];
 
-    for (let i = 0; i <= 3; i += 1) {
-      graphics.lineBetween(startX + i * cellSize, startY, startX + i * cellSize, startY + boardSize);
-      graphics.lineBetween(startX, startY + i * cellSize, startX + boardSize, startY + i * cellSize);
+    for (let row = 0; row < 3; row += 1) {
+      for (let col = 0; col < 3; col += 1) {
+        const x = startX + col * cellSize + cellSize / 2;
+        const y = startY + row * cellSize + cellSize / 2;
+        const boardIndex = row * 3 + col;
+        const background = this.add
+          .rectangle(x, y, cellSize - 6, cellSize - 6, 0x1f2937, 1)
+          .setStrokeStyle(2, 0x9ca3af)
+          .setInteractive({ useHandCursor: true });
+        const label = this.add
+          .text(x, y, '', {
+            fontFamily: 'Arial, sans-serif',
+            fontSize: '16px',
+            color: '#f8fafc',
+            align: 'center',
+            wordWrap: { width: cellSize - 14 },
+          })
+          .setOrigin(0.5);
+
+        background.on('pointerup', () => this.onBoardCellTap(boardIndex));
+        this.boardCells.push({ index: boardIndex, row, background, label });
+      }
     }
 
     ['Enemy Row', 'Neutral Row', 'Player Row'].forEach((label, index) => {
@@ -171,22 +191,57 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     if (this.selectedCardId === cardId) {
-      this.playCard(cardId);
+      this.selectedCardId = null;
+      this.resetCardHighlights();
+      this.statusText.setText('Ready: Select a card');
       return;
     }
 
     this.selectedCardId = cardId;
-    this.cardViews.forEach((card) => {
-      const isSelected = card.cardId === cardId;
-      card.background.setStrokeStyle(4, isSelected ? 0xfacc15 : 0x64748b);
-      const viewCard = this.gameState.player.hand.find((item) => item.id === card.cardId);
-      card.background.setFillStyle(isSelected ? 0x475569 : 0x334155, isSelected ? 1 : viewCard ? 1 : 0.65);
-    });
+    this.resetCardHighlights();
 
     this.statusText.setText(`Selected: ${card.name}`);
   }
 
-  playCard(cardId) {
+  onBoardCellTap(boardIndex) {
+    if (!this.selectedCardId) {
+      return;
+    }
+
+    const selectedCard = this.gameState.player.hand.find((card) => card.id === this.selectedCardId);
+    if (!selectedCard) {
+      this.selectedCardId = null;
+      this.resetCardHighlights();
+      return;
+    }
+
+    if (!this.isUnitCard(selectedCard)) {
+      this.playCard(this.selectedCardId, `Played: ${selectedCard.name}`);
+      return;
+    }
+
+    const targetCell = this.boardCells.find((cell) => cell.index === boardIndex);
+    if (!targetCell || targetCell.row !== 2) {
+      this.statusText.setText('Units can only be placed in Player Row');
+      return;
+    }
+
+    if (this.gameState.board[boardIndex]) {
+      this.statusText.setText('That board cell is occupied');
+      return;
+    }
+
+    this.gameState.board[boardIndex] = {
+      cardId: selectedCard.id,
+      name: selectedCard.name,
+      owner: 'player',
+      kind: 'unit',
+    };
+    targetCell.label.setText(selectedCard.name);
+    this.playCard(this.selectedCardId, `Placed: ${selectedCard.name}`);
+  }
+
+  playCard(cardId, statusText) {
     const handIndex = this.gameState.player.hand.findIndex((card) => card.id === cardId);
     if (handIndex === -1) {
       return;
@@ -204,7 +259,37 @@ export default class BattleScene extends Phaser.Scene {
     });
     this.cardViews = [];
     this.drawHand(this.scale.width, this.scale.height);
-    this.statusText.setText(`Played: ${playedCard.name}`);
+    this.statusText.setText(statusText ?? `Played: ${playedCard.name}`);
+  }
+
+  resetCardHighlights() {
+    this.cardViews.forEach((card) => {
+      const isSelected = card.cardId === this.selectedCardId;
+      card.background.setStrokeStyle(4, isSelected ? 0xfacc15 : 0x64748b);
+      const viewCard = this.gameState.player.hand.find((item) => item.id === card.cardId);
+      card.background.setFillStyle(isSelected ? 0x475569 : 0x334155, isSelected ? 1 : viewCard ? 1 : 0.65);
+    });
+  }
+
+  isUnitCard(card) {
+    const nonUnitNames = new Set([
+      'Swarm Attack',
+      'Spawn',
+      'Recycle',
+      'Flood',
+      'Mindlash',
+      'Freeze',
+      'Disrupt',
+      'Scheme',
+      'Dominate',
+      'Fortify',
+      'Stability',
+      'Reinforce',
+      'Last Stand',
+      'Repair Kit',
+    ]);
+
+    return !nonUnitNames.has(card?.name);
   }
 
   drawFrame(width, height, factionData) {
