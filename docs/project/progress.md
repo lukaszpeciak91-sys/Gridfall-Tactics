@@ -77,7 +77,30 @@
 - Root `index.html` is build input, not production output.
 
 
-## Battle UI Mobile Readability Pass (2026-05-01)
-- Refined `BattleScene` layout zones for portrait mobile readability using responsive scale width/height percentages.
-- Kept existing card selection and unit placement interactions intact while improving board/card tap targets and spacing.
-- Added a compact hand-area deck indicator (`Deck xN`) and retained a single `EXECUTE TURN` action button.
+## Battle UI Layout Pass (Mobile-First)
+
+### Goal
+Improve readability and usability on mobile without changing gameplay.
+
+### Changes
+- Introduced structured vertical layout:
+  - Top info (~10%)
+  - Board (~52%)
+  - Action button (~8%)
+  - Hand (~25%)
+  - Bottom/status (~5%)
+- Board made dominant gameplay element.
+- Cards sized for thumb interaction.
+- Hand supports up to 5 cards with horizontal layout.
+- Added deck indicator (right side, count only).
+- Kept UI Phaser-only (no HTML overlay).
+
+### Constraints
+- No scroll on mobile.
+- No gameplay changes.
+- No drag-and-drop.
+- No visual polish yet.
+
+### Result
+- Battle screen is readable and usable on phone.
+- UI ready for future visual polish and assets.
