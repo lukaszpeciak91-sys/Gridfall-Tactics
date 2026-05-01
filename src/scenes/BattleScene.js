@@ -47,11 +47,11 @@ export default class BattleScene extends Phaser.Scene {
     const margin = Math.max(10, Math.round(width * 0.03));
     const contentWidth = width - margin * 2;
 
-    const topHeight = height * 0.1;
-    const boardHeight = height * 0.52;
+    const topHeight = height * 0.08;
+    const boardHeight = height * 0.54;
     const actionHeight = height * 0.08;
-    const handHeight = height * 0.25;
-    const statusHeight = height * 0.05;
+    const handHeight = height * 0.26;
+    const statusHeight = height * 0.04;
 
     const topY = 0;
     const boardY = topY + topHeight;
@@ -59,17 +59,25 @@ export default class BattleScene extends Phaser.Scene {
     const handY = actionY + actionHeight;
     const statusY = handY + handHeight;
 
-    const handCardCount = this.gameState.player.maxHandSize;
-    const targetCardWidthByHeight = handHeight * 0.62;
-    const targetCardWidthBySlots = (contentWidth * 0.8) / handCardCount;
-    const cardWidth = Math.max(56, Math.min(targetCardWidthByHeight, targetCardWidthBySlots));
+    const handCardCount = Math.min(5, this.gameState.player.maxHandSize);
+    const deckAreaWidth = contentWidth * 0.22;
+    const handTrackWidth = contentWidth - deckAreaWidth - margin * 0.6;
+    const targetCardWidthByHeight = handHeight * 0.58;
+    const targetCardWidthBySlots = handTrackWidth / handCardCount;
+    const cardWidth = Math.max(56, Math.min(targetCardWidthByHeight, targetCardWidthBySlots * 1.02));
     const cardHeight = cardWidth * 1.34;
-    const handTrackWidth = contentWidth * 0.82;
     const step = handCardCount > 1 ? (handTrackWidth - cardWidth) / (handCardCount - 1) : 0;
-    const overlap = step < cardWidth;
 
-    const boardSize = Math.min(contentWidth * 0.95, boardHeight * 0.88);
-    const cellSize = boardSize / 3;
+    const boardWidth = Math.min(contentWidth * 0.9, contentWidth);
+    const cardRatio = cardHeight / cardWidth;
+    const slotWidth = cardWidth * 1.12;
+    const slotHeight = slotWidth * cardRatio;
+    const totalGridHeight = slotHeight * 3;
+    const boardScale = Math.min(1, (boardHeight * 0.9) / totalGridHeight, boardWidth / (slotWidth * 3));
+    const cellWidth = slotWidth * boardScale;
+    const cellHeight = slotHeight * boardScale;
+    const boardDrawWidth = cellWidth * 3;
+    const boardDrawHeight = cellHeight * 3;
 
     return {
       width,
@@ -77,9 +85,9 @@ export default class BattleScene extends Phaser.Scene {
       margin,
       contentWidth,
       top: { y: topY, h: topHeight, centerY: topY + topHeight / 2 },
-      board: { y: boardY, h: boardHeight, centerY: boardY + boardHeight / 2, size: boardSize, cellSize },
+      board: { y: boardY, h: boardHeight, centerY: boardY + boardHeight / 2, width: boardDrawWidth, height: boardDrawHeight, cellWidth, cellHeight },
       action: { y: actionY, h: actionHeight, centerY: actionY + actionHeight / 2 },
-      hand: { y: handY, h: handHeight, centerY: handY + handHeight / 2, cardWidth, cardHeight, step, overlap },
+      hand: { y: handY, h: handHeight, centerY: handY + handHeight / 2, cardWidth, cardHeight, step, deckAreaWidth, handTrackWidth, cardsVisible: handCardCount },
       status: { y: statusY, h: statusHeight, centerY: statusY + statusHeight / 2, fontSize: Math.max(14, Math.floor(statusHeight * 0.45)) },
     };
   }
@@ -107,30 +115,36 @@ export default class BattleScene extends Phaser.Scene {
 
   drawBoard() {
     const { width, board } = this.layout;
-    const boardSize = board.size;
-    const cellSize = board.cellSize;
-    const startX = width / 2 - boardSize / 2;
-    const startY = board.centerY - boardSize / 2;
+    const boardWidth = board.width;
+    const boardHeight = board.height;
+    const cellWidth = board.cellWidth;
+    const cellHeight = board.cellHeight;
+    const startX = width / 2 - boardWidth / 2;
+    const startY = board.centerY - boardHeight / 2;
 
-    this.add.rectangle(width / 2, board.centerY, boardSize + 12, boardSize + 12, 0x1f2937, 1);
+    this.add.rectangle(width / 2, board.centerY, boardWidth + 12, boardHeight + 12, 0x1f2937, 1);
     this.boardCells = [];
 
     for (let row = 0; row < 3; row += 1) {
       for (let col = 0; col < 3; col += 1) {
-        const x = startX + col * cellSize + cellSize / 2;
-        const y = startY + row * cellSize + cellSize / 2;
+        const x = startX + col * cellWidth + cellWidth / 2;
+        const y = startY + row * cellHeight + cellHeight / 2;
         const boardIndex = row * 3 + col;
+        const isMiddleRow = row === 1;
         const background = this.add
-          .rectangle(x, y, cellSize - 5, cellSize - 5, 0x1f2937, 1)
-          .setStrokeStyle(2, 0x9ca3af)
+          .rectangle(x, y, cellWidth - 5, cellHeight - 5, 0x1f2937, isMiddleRow ? 0.82 : 1)
+          .setStrokeStyle(isMiddleRow ? 1 : 2, 0x9ca3af, isMiddleRow ? 0.45 : 0.85)
           .setInteractive({ useHandCursor: true });
+        if (isMiddleRow) {
+          background.setLineDash([8, 6]);
+        }
         const label = this.add
           .text(x, y, '', {
             fontFamily: 'Arial, sans-serif',
-            fontSize: `${Math.max(12, Math.floor(cellSize * 0.17))}px`,
+            fontSize: `${Math.max(12, Math.floor(cellWidth * 0.16))}px`,
             color: '#f8fafc',
             align: 'center',
-            wordWrap: { width: cellSize - 14 },
+            wordWrap: { width: cellWidth - 14 },
           })
           .setOrigin(0.5);
 
@@ -141,10 +155,10 @@ export default class BattleScene extends Phaser.Scene {
 
     ['Enemy', 'Neutral', 'Player'].forEach((label, index) => {
       this.add
-        .text(startX + 6, startY + cellSize * index + 6, label, {
+        .text(startX + 6, startY + cellHeight * index + 6, label, {
           fontFamily: 'Arial, sans-serif',
-          fontSize: `${Math.max(11, Math.floor(cellSize * 0.14))}px`,
-          color: '#d1d5db',
+          fontSize: `${Math.max(11, Math.floor(cellWidth * 0.14))}px`,
+          color: index === 1 ? '#9ca3af' : '#d1d5db',
         })
         .setOrigin(0, 0);
     });
@@ -153,13 +167,16 @@ export default class BattleScene extends Phaser.Scene {
   drawActionZone() {
     const { width, action } = this.layout;
 
+    const buttonWidth = Math.floor(width * 0.56);
     const button = this.add
       .text(width * 0.5, action.centerY, 'EXECUTE TURN', {
         fontFamily: 'Arial, sans-serif',
         fontSize: `${Math.max(18, Math.floor(action.h * 0.42))}px`,
         color: '#f9fafb',
         backgroundColor: '#1d4ed8',
-        padding: { x: Math.max(18, Math.floor(width * 0.03)), y: Math.max(8, Math.floor(action.h * 0.12)) },
+        align: 'center',
+        fixedWidth: buttonWidth,
+        padding: { x: 0, y: Math.max(8, Math.floor(action.h * 0.12)) },
       })
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
@@ -171,23 +188,27 @@ export default class BattleScene extends Phaser.Scene {
 
   drawHand() {
     const { width, hand, margin } = this.layout;
-    const cards = this.gameState.player.maxHandSize;
+    const cards = hand.cardsVisible;
     const centerY = hand.centerY;
     const handLeft = margin;
+    const handTrackLeft = handLeft + hand.cardWidth / 2;
+    const deckCenterX = width - margin - hand.deckAreaWidth / 2;
 
     this.add.rectangle(width * 0.5, centerY, width - margin * 2, hand.h, 0x111827, 0.96);
+    this.add.rectangle(deckCenterX, centerY, hand.deckAreaWidth, hand.h * 0.86, 0x1f2937, 0.95).setStrokeStyle(2, 0x475569, 0.9);
+    this.add.rectangle(deckCenterX, centerY - hand.h * 0.08, hand.cardWidth * 0.72, hand.cardHeight * 0.7, 0x334155, 0.95).setStrokeStyle(2, 0x94a3b8, 0.75);
 
     const deckCount = this.gameState.player.deck.length;
     this.add
-      .text(width - margin - 4, centerY, `Deck x${deckCount}`, {
+      .text(deckCenterX, centerY + hand.h * 0.24, `DECK x${deckCount}`, {
         fontFamily: 'Arial, sans-serif',
         fontSize: `${Math.max(13, Math.floor(hand.h * 0.15))}px`,
         color: '#cbd5e1',
       })
-      .setOrigin(1, 0.5);
+      .setOrigin(0.5, 0.5);
 
     for (let index = 0; index < cards; index += 1) {
-      const x = handLeft + hand.cardWidth / 2 + index * hand.step;
+      const x = handTrackLeft + index * hand.step;
       const card = this.gameState.player.hand[index] ?? null;
       const cardId = card?.id ?? `slot-${index}`;
       const cardName = card?.name ?? '';
