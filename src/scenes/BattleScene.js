@@ -18,8 +18,17 @@ export default class BattleScene extends Phaser.Scene {
 
   create(data) {
     const { width, height } = this.scale;
-    const factionKey = data?.factionKey ?? 'Aggro';
-    const factionData = getFactionByKey(factionKey) ?? { name: 'Unknown', deck: [] };
+    this.add
+      .text(width * 0.5, height * 0.04, 'BattleScene create start', {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '16px',
+        color: '#86efac',
+      })
+      .setOrigin(0.5, 0);
+    console.log('[BattleScene] create start with data:', data);
+
+    const factionKey = typeof data?.factionKey === 'string' && data.factionKey ? data.factionKey : 'Aggro';
+    const factionData = getFactionByKey(factionKey) ?? { name: `Unknown (${factionKey})`, deck: [] };
 
     this.gameState = createInitialBattleState(factionData);
     drawCards(this.gameState, 3);
@@ -135,7 +144,7 @@ export default class BattleScene extends Phaser.Scene {
           .rectangle(x, y, cellWidth - 5, cellHeight - 5, 0x1f2937, isMiddleRow ? 0.82 : 1)
           .setStrokeStyle(isMiddleRow ? 1 : 2, 0x9ca3af, isMiddleRow ? 0.45 : 0.85)
           .setInteractive({ useHandCursor: true });
-        if (isMiddleRow) {
+        if (isMiddleRow && typeof background.setLineDash === 'function') {
           background.setLineDash([8, 6]);
         }
         const label = this.add
