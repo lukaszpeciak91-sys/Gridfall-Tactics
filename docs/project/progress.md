@@ -4,6 +4,7 @@
 - Project initialized.
 - Phaser skeleton planned.
 - BattleScene MVP UI skeleton implemented with locked portrait layout zones, placeholder interactions, and frame fallback support.
+- Battle UI layout v1 locked and implemented; board/hand/deck/action areas now follow mobile-first proportions.
 
 ## Next Milestones
 - Wire placeholder battle interactions into real turn/state systems.
