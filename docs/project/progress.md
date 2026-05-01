@@ -35,3 +35,44 @@
 - Confirmed `HTML OK` marker renders on live GitHub Pages.
 - Confirmed `JS OK` marker renders on live GitHub Pages.
 - Next step: verify minimal Phaser boot on GitHub Pages with in-scene `PHASER OK` text before restoring scene/game systems.
+
+## GitHub Pages Deploy Issue (Resolved)
+
+### Problem
+- GitHub Pages showed blank/gray screen.
+- Later debug showed:
+  - HTML OK
+  - JS OK
+  - Phaser import failed: "Failed to resolve module specifier 'phaser'"
+
+### Root Cause
+- GitHub Pages was serving root `index.html` (dev mode).
+- That file loads `/src/main.js`.
+- Browser cannot resolve `phaser` without Vite bundling.
+- Production must use Vite build output (`dist`).
+
+### What Was Done
+- Verified HTML and JS execution separately.
+- Added debug markers (`HTML OK` / `JS OK` / `START OK`).
+- Confirmed Phaser failure was a runtime import issue.
+- Replaced GitHub Pages deploy with a GitHub Actions workflow.
+- Configured workflow to:
+  - run `npm run build`
+  - upload `dist/`
+  - deploy `dist` as artifact
+- Ensured `vite.config.js` uses `base: './'`.
+
+### Result
+- GitHub Pages now serves `dist/index.html`.
+- Assets load from `./assets/*.js`.
+- Phaser boots correctly.
+- `StartScene` renders (`START OK`).
+
+### Key Lesson
+- Never deploy raw source with Vite projects.
+- Always deploy `dist` build to GitHub Pages.
+
+### Rule (Permanent)
+- GitHub Pages must deploy `dist/` only.
+- Root `index.html` is build input, not production output.
+

@@ -15,3 +15,10 @@
 
 ## Gameplay Specification Rule
 - Codex must read `docs/battle_mvp_v1.md` before implementing gameplay systems.
+
+### GitHub Pages Deploy Rule
+
+- Always deploy Vite projects using `dist/` build.
+- Never deploy raw `src/` files to GitHub Pages.
+- Use GitHub Actions with build + `upload-pages-artifact`.
+
