@@ -2,8 +2,6 @@ import Phaser from 'phaser';
 import { getFactionByKey } from '../data/factions/index.js';
 import { createInitialBattleState, drawCards } from '../systems/GameState.js';
 
-const FRAME_KEY = 'frame_default';
-
 export default class BattleScene extends Phaser.Scene {
   constructor() {
     super('BattleScene');
@@ -13,20 +11,11 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   preload() {
-    // this.load.image(FRAME_KEY, 'assets/ui/frame_default.png');
+    // no-op
   }
 
   create(data) {
     const { width, height } = this.scale;
-    this.add
-      .text(width * 0.5, height * 0.04, 'BattleScene create start', {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '16px',
-        color: '#86efac',
-      })
-      .setOrigin(0.5, 0);
-    console.log('[BattleScene] create start with data:', data);
-
     const factionKey = typeof data?.factionKey === 'string' && data.factionKey ? data.factionKey : 'Aggro';
     const factionData = getFactionByKey(factionKey) ?? { name: `Unknown (${factionKey})`, deck: [] };
 
@@ -49,11 +38,10 @@ export default class BattleScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.drawHand();
-    this.drawFrame(width, height, factionData);
   }
 
   getLayoutMetrics(width, height) {
-    const margin = Math.max(10, Math.round(width * 0.03));
+    const margin = Math.max(6, Math.round(width * 0.015));
     const contentWidth = width - margin * 2;
 
     const topHeight = height * 0.08;
@@ -69,20 +57,19 @@ export default class BattleScene extends Phaser.Scene {
     const statusY = handY + handHeight;
 
     const handCardCount = Math.min(5, this.gameState.player.maxHandSize);
-    const deckAreaWidth = contentWidth * 0.22;
-    const handTrackWidth = contentWidth - deckAreaWidth - margin * 0.6;
-    const targetCardWidthByHeight = handHeight * 0.58;
-    const targetCardWidthBySlots = handTrackWidth / handCardCount;
-    const cardWidth = Math.max(56, Math.min(targetCardWidthByHeight, targetCardWidthBySlots * 1.02));
+    const deckAreaWidth = contentWidth * 0.19;
+    const handTrackWidth = contentWidth - deckAreaWidth - margin * 1.2;
+    const targetCardWidthByHeight = handHeight * 0.72;
+    const targetCardWidthBySlots = handTrackWidth / 3.15;
+    const cardWidth = Math.max(64, Math.min(targetCardWidthByHeight, targetCardWidthBySlots));
     const cardHeight = cardWidth * 1.34;
     const step = handCardCount > 1 ? (handTrackWidth - cardWidth) / (handCardCount - 1) : 0;
 
     const boardWidth = Math.min(contentWidth * 0.9, contentWidth);
-    const cardRatio = cardHeight / cardWidth;
-    const slotWidth = cardWidth * 1.12;
-    const slotHeight = slotWidth * cardRatio;
+    const slotWidth = boardWidth / 3;
+    const slotHeight = slotWidth * 1.32;
     const totalGridHeight = slotHeight * 3;
-    const boardScale = Math.min(1, (boardHeight * 0.9) / totalGridHeight, boardWidth / (slotWidth * 3));
+    const boardScale = Math.min(1, (boardHeight * 0.94) / totalGridHeight);
     const cellWidth = slotWidth * boardScale;
     const cellHeight = slotHeight * boardScale;
     const boardDrawWidth = cellWidth * 3;
@@ -131,7 +118,7 @@ export default class BattleScene extends Phaser.Scene {
     const startX = width / 2 - boardWidth / 2;
     const startY = board.centerY - boardHeight / 2;
 
-    this.add.rectangle(width / 2, board.centerY, boardWidth + 12, boardHeight + 12, 0x1f2937, 1);
+    this.add.rectangle(width / 2, board.centerY, boardWidth + 6, boardHeight + 6, 0x1f2937, 0.95).setStrokeStyle(1, 0x334155, 0.7);
     this.boardCells = [];
 
     for (let row = 0; row < 3; row += 1) {
@@ -141,8 +128,8 @@ export default class BattleScene extends Phaser.Scene {
         const boardIndex = row * 3 + col;
         const isMiddleRow = row === 1;
         const background = this.add
-          .rectangle(x, y, cellWidth - 5, cellHeight - 5, 0x1f2937, isMiddleRow ? 0.82 : 1)
-          .setStrokeStyle(isMiddleRow ? 1 : 2, 0x9ca3af, isMiddleRow ? 0.45 : 0.85)
+          .rectangle(x, y, cellWidth - 6, cellHeight - 6, 0x1f2937, isMiddleRow ? 0.72 : 0.98)
+          .setStrokeStyle(isMiddleRow ? 1 : 2, 0x9ca3af, isMiddleRow ? 0.35 : 0.85)
           .setInteractive({ useHandCursor: true });
         if (isMiddleRow && typeof background.setLineDash === 'function') {
           background.setLineDash([8, 6]);
@@ -199,13 +186,13 @@ export default class BattleScene extends Phaser.Scene {
     const { width, hand, margin } = this.layout;
     const cards = hand.cardsVisible;
     const centerY = hand.centerY;
-    const handLeft = margin;
+    const handLeft = margin + 2;
     const handTrackLeft = handLeft + hand.cardWidth / 2;
     const deckCenterX = width - margin - hand.deckAreaWidth / 2;
 
-    this.add.rectangle(width * 0.5, centerY, width - margin * 2, hand.h, 0x111827, 0.96);
-    this.add.rectangle(deckCenterX, centerY, hand.deckAreaWidth, hand.h * 0.86, 0x1f2937, 0.95).setStrokeStyle(2, 0x475569, 0.9);
-    this.add.rectangle(deckCenterX, centerY - hand.h * 0.08, hand.cardWidth * 0.72, hand.cardHeight * 0.7, 0x334155, 0.95).setStrokeStyle(2, 0x94a3b8, 0.75);
+    this.add.rectangle(width * 0.5, centerY, width - margin * 2, hand.h, 0x111827, 0.96).setStrokeStyle(1, 0x334155, 0.55);
+    this.add.rectangle(deckCenterX, centerY, hand.deckAreaWidth, hand.h * 0.9, 0x1f2937, 0.95).setStrokeStyle(1, 0x64748b, 0.9);
+    this.add.rectangle(deckCenterX, centerY - hand.h * 0.1, hand.cardWidth * 0.68, hand.cardHeight * 0.66, 0x334155, 0.95).setStrokeStyle(2, 0x94a3b8, 0.75);
 
     const deckCount = this.gameState.player.deck.length;
     this.add
@@ -227,7 +214,7 @@ export default class BattleScene extends Phaser.Scene {
       const label = this.add
         .text(x, centerY, cardName || 'Empty', {
           fontFamily: 'Arial, sans-serif',
-          fontSize: `${Math.max(12, Math.floor(hand.cardWidth * 0.2))}px`,
+          fontSize: `${Math.max(12, Math.floor(hand.cardWidth * 0.17))}px`,
           color: '#f8fafc',
           align: 'center',
           wordWrap: { width: hand.cardWidth - 12 },
@@ -320,13 +307,4 @@ export default class BattleScene extends Phaser.Scene {
     return !nonUnitNames.has(card?.name);
   }
 
-  drawFrame(width, height, factionData) {
-    const frameKey = factionData?.frameImage ?? FRAME_KEY;
-    const hasFrame = this.textures.exists(frameKey);
-    if (hasFrame) {
-      this.add.image(width / 2, height / 2, frameKey).setDisplaySize(width, height);
-      return;
-    }
-    this.add.rectangle(width / 2, height / 2, width * 0.985, height * 0.985).setStrokeStyle(2, 0x334155, 1);
-  }
 }
