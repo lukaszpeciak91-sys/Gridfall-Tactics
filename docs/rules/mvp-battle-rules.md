@@ -23,11 +23,13 @@ If any other document conflicts with this file, this file wins.
 - **No unit placement** is allowed in the middle row.
 - Middle row does not create extra combat lanes or extra deployment capacity.
 
-## 3) Combat Rules
+## 3) Combat Rules (Column Attack)
 
 - Units attack only in the **same column**.
 - **No diagonal attacks**.
 - If the opposing slot in the same column is empty, the unit attacks the opposing hero HP.
+- Combat resolves for all 3 columns after both sides have taken their turn action for the round.
+- Both sides in a column can deal damage in the same combat resolution.
 
 ## 4) Deck and Hand Rules
 
@@ -38,15 +40,27 @@ If any other document conflicts with this file, this file wins.
 - Mulligan Lite at battle start: replace **1** card.
 - No extra deck size rules for MVP.
 
-## 5) Turn and Action Economy
+## 5) Turn and Action Economy (Auto-Turn)
 
 - Each side gets **one action per turn**.
+- There is **no END TURN button/action**.
+- The battle loop is **auto-turn**:
+  1. Player takes one action.
+  2. Enemy takes one action.
+  3. Combat resolves.
+  4. Player draws 1 card.
+  5. Next player action begins.
 - Valid player actions are:
   - Play card
   - Use effect/special
   - Swap two friendly board units
   - Redeploy from hand onto occupied friendly slot
   - Pass
+
+### PASS
+
+- `PASS` spends the player's one action for the turn.
+- After `PASS`, enemy action and combat resolution still occur in the normal auto-turn flow.
 
 ## 6) Redeploy Rule (Locked)
 
@@ -58,14 +72,27 @@ Redeploy means:
 4. Redeploy consumes the full turn action.
 5. Redeploy is blocked if hand is already full.
 
-## 7) Hard MVP Exclusions
+## 7) Swap Rule (Locked)
+
+- Swap exchanges positions of **two friendly units** on the same side's combat row.
+- Swap is only valid when both selected slots contain friendly units.
+- Swap consumes the full turn action.
+
+## 8) Hard MVP Exclusions
 
 - No matchup bonuses.
 - No diagonal attack rules.
-- No middle-row gameplay placement.
+- No middle-row gameplay placement (middle row remains visual-only).
 - No extra deck-size systems.
+- No END TURN flow.
 
-## 8) Document Authority and References
+## 9) Win Condition (Locked)
+
+- Hero HP is the only MVP win/loss condition.
+- Battle ends immediately when a hero reaches `0` HP.
+- Unit wipeouts alone do not end the battle unless hero HP also reaches `0`.
+
+## 10) Document Authority and References
 
 - Canonical rules: `docs/rules/mvp-battle-rules.md` (this file).
 - Historical/spec context only:

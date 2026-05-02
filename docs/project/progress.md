@@ -13,14 +13,19 @@
 - Basic scene flow implemented: `StartScene` → `FactionSelectScene` → `BattleScene`.
 - Added initial faction data and a minimal battle `GameState` system.
 - `BattleScene` initializes deck/hand/discard state and draws a 3-card starting hand.
+- MVP battle loop implemented and verified in code:
+  - auto-turn flow (no END TURN)
+  - `PASS` action
+  - hero HP `12/12` with hero-HP-zero win condition
+  - column attack resolution
+  - redeploy (occupied friendly slot returns old unit to hand)
+  - swap between two friendly row units
 
 ## Next Milestones
-- Wire placeholder battle interactions into real turn/state systems.
-- Implement card/unit data models and board resolution logic.
 - Add faction-specific UI frame assets beyond `frame_default`.
-- Implement first gameplay actions and consume the turn action flag.
 - Add card UI for displaying and selecting hand cards.
-- Add board interactions and unit placement rules.
+- Expand enemy action logic beyond placeholder deployment AI.
+- Add explicit UX feedback for invalid actions (e.g., redeploy blocked/full hand).
 
 ## Merge Diagnostics + Stabilization (2026-04-30)
 - Diagnosed and removed post-merge API mismatches between `FactionSelectScene`, `BattleScene`, and `GameState` initialization flow.

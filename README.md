@@ -1,5 +1,9 @@
 # Gridfall-Tactics
-Simple, mobile-first, tactical, not locked to one setting. MVP target: one complete playable battle: 3x3 board → draw hand → play cards → enemy turn → win/lose.
+Simple, mobile-first, tactical, not locked to one setting.
+
+MVP battle loop currently implemented as: **auto-turn** (no END TURN) → player action (`play`, `redeploy`, `swap`, `PASS`) → enemy action → column combat resolution → draw.
+
+Hero health is **12 / 12**, middle row is visual-only, and win/loss is based on hero HP reaching 0.
 
 ## MVP Rules Canonical Source
 

@@ -33,3 +33,9 @@
 - Use a staged boot recovery flow: first prove static HTML render, then prove Vite/JS module execution, then re-enable Phaser boot.
 - Keep always-visible fallback overlays during diagnostics (`HTML OK` + `JS OK`) to prevent silent blank-screen regressions.
 - Defer scene-level changes until core boot path is confirmed stable again.
+
+## MVP Battle Loop Lock (2026-05-02)
+- Locked rules source to `docs/rules/mvp-battle-rules.md` as single source of truth for gameplay behavior.
+- Confirmed auto-turn loop (no END TURN action), `PASS` action, `redeploy`, and `swap` as the implemented MVP action model.
+- Confirmed hero HP (`12/12`) and hero HP zero as the only MVP win condition.
+- Confirmed column-only combat lanes and middle row as visual-only (non-playable).
