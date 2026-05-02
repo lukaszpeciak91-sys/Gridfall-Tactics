@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { getFactionByKey } from '../data/factions/index.js';
-import { createInitialBattleState, drawCards } from '../systems/GameState.js';
+import { createInitialBattleState, drawCards, canPass, playOrRedeployUnit, performSwap, resolveCombat } from '../systems/GameState.js';
 
 export default class BattleScene extends Phaser.Scene {
   constructor() {
@@ -20,7 +20,7 @@ export default class BattleScene extends Phaser.Scene {
     const factionData = getFactionByKey(factionKey) ?? { name: `Unknown (${factionKey})`, deck: [] };
 
     this.gameState = createInitialBattleState(factionData);
-    drawCards(this.gameState, 3);
+    drawCards(this.gameState.player, 3);
 
     this.cameras.main.setBackgroundColor('#05080f');
     this.layout = this.getLayoutMetrics(width, height);
@@ -28,10 +28,11 @@ export default class BattleScene extends Phaser.Scene {
     this.drawBattleFrame();
     this.drawBoard();
     this.drawHeroPanels();
+    this.refreshHeroHP();
     this.drawActionZone();
     this.drawHand();
 
-    this.statusMessage = 'Ready: Select a card';
+    this.setStatusMessage('Ready: Select a card');
   }
 
   getLayoutMetrics(width, height) {
@@ -116,6 +117,13 @@ export default class BattleScene extends Phaser.Scene {
     this.add.text(width * 0.16, status.centerY, 'MENU', { fontFamily: 'Arial, sans-serif', fontSize: `${labelSize}px`, color: '#94a3b8', fontStyle: 'bold' }).setOrigin(0.5);
     this.add.text(width * 0.5, status.centerY, 'FULLSCREEN', { fontFamily: 'Arial, sans-serif', fontSize: `${labelSize}px`, color: '#94a3b8', fontStyle: 'bold' }).setOrigin(0.5);
     this.add.text(width * 0.84, status.centerY, 'SETTINGS', { fontFamily: 'Arial, sans-serif', fontSize: `${labelSize}px`, color: '#94a3b8', fontStyle: 'bold' }).setOrigin(0.5);
+    this.statusText = this.add.text(width * 0.5, status.centerY, '', {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: `${labelSize}px`,
+      color: '#f8fafc',
+      fontStyle: 'bold',
+      align: 'center',
+    }).setOrigin(0.5);
   }
 
   drawHeroPanels() {
@@ -132,7 +140,7 @@ export default class BattleScene extends Phaser.Scene {
       fontStyle: 'bold',
     }).setOrigin(0.5, 0.5);
 
-    this.add.text(enemyPanel.x, enemyPanel.y + topHero.h * 0.2, '12 / 12', {
+    this.add.text(enemyPanel.x, enemyPanel.y + topHero.h * 0.2, '--', {
       fontFamily: 'Arial, sans-serif',
       fontSize: `${Math.max(18, Math.floor(topHero.h * 0.38))}px`,
       color: '#f8fafc',
@@ -146,7 +154,7 @@ export default class BattleScene extends Phaser.Scene {
       fontStyle: 'bold',
     }).setOrigin(0.5, 0.5);
 
-    this.add.text(playerPanel.x, playerPanel.y + playerHero.h * 0.2, '12 / 12', {
+    this.add.text(playerPanel.x, playerPanel.y + playerHero.h * 0.2, '--', {
       fontFamily: 'Arial, sans-serif',
       fontSize: `${Math.max(16, Math.floor(playerHero.h * 0.36))}px`,
       color: '#f8fafc',
@@ -197,7 +205,7 @@ export default class BattleScene extends Phaser.Scene {
     const { width, action } = this.layout;
 
     const button = this.add
-      .text(width * 0.5, action.centerY, 'END TURN', {
+      .text(width * 0.5, action.centerY, 'PASS', {
         fontFamily: 'Arial, sans-serif',
         fontSize: `${Math.max(18, Math.floor(action.h * 0.52))}px`,
         color: '#f9fafb',
@@ -211,7 +219,7 @@ export default class BattleScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true });
 
     button.on('pointerup', () => {
-      this.setStatusMessage('Turn executed placeholder');
+      this.executeFullTurn({ type: 'pass' });
     });
   }
 
@@ -264,7 +272,7 @@ export default class BattleScene extends Phaser.Scene {
     }
   }
 
-  onCardTap(cardId) { /* unchanged below */
+  onCardTap(cardId) {
     const card = this.gameState.player.hand.find((item) => item.id === cardId);
     if (!card) return;
     if (this.selectedCardId === cardId) {
@@ -279,38 +287,58 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   onBoardCellTap(boardIndex) {
-    if (!this.selectedCardId) return;
+    if (!this.selectedCardId) {
+      const unit = this.gameState.board[boardIndex];
+      if (!unit || unit.owner !== 'player') return;
+      if (this.pendingSwapIndex === undefined) {
+        this.pendingSwapIndex = boardIndex;
+        this.setStatusMessage('Select second friendly unit to swap');
+        return;
+      }
+      const result = performSwap(this.gameState, 'player', this.pendingSwapIndex, boardIndex);
+      this.pendingSwapIndex = undefined;
+      if (!result.ok) {
+        this.setStatusMessage(result.reason);
+        return;
+      }
+      this.executeFullTurn({ type: 'swap', message: 'Swapped friendly units' });
+      return;
+    }
     const selectedCard = this.gameState.player.hand.find((card) => card.id === this.selectedCardId);
-    if (!selectedCard) {
-      this.selectedCardId = null;
-      this.resetCardHighlights();
+    if (!selectedCard || !this.isUnitCard(selectedCard)) return;
+    const result = playOrRedeployUnit(this.gameState, 'player', this.selectedCardId, boardIndex);
+    if (!result.ok) {
+      this.setStatusMessage(result.reason);
       return;
     }
-    if (!this.isUnitCard(selectedCard)) {
-      this.playCard(this.selectedCardId, `Played: ${selectedCard.name}`);
-      return;
-    }
-    const targetCell = this.boardCells.find((cell) => cell.index === boardIndex);
-    if (!targetCell || targetCell.row !== 2) {
-      this.setStatusMessage('Units can only be placed in Player Row');
-      return;
-    }
-    if (this.gameState.board[boardIndex]) {
-      this.setStatusMessage('That board cell is occupied');
-      return;
-    }
-    this.gameState.board[boardIndex] = { cardId: selectedCard.id, name: selectedCard.name, owner: 'player', kind: 'unit' };
-    targetCell.label.setText(selectedCard.name);
-    this.playCard(this.selectedCardId, `Placed: ${selectedCard.name}`);
+    this.executeFullTurn({ type: result.type, message: `${result.type === 'redeploy' ? 'Redeployed' : 'Played'} ${selectedCard.name}` });
   }
 
-  playCard(cardId, statusText) {
-    const handIndex = this.gameState.player.hand.findIndex((card) => card.id === cardId);
-    if (handIndex === -1) return;
-    const [playedCard] = this.gameState.player.hand.splice(handIndex, 1);
-    this.gameState.player.discard.push(playedCard);
-    drawCards(this.gameState, 1);
+  executeFullTurn(actionResult) {
+    if (this.gameState.winner) return;
+    if (actionResult?.type === 'pass' && !canPass(this.gameState)) return;
+
+    this.enemyTakeAction();
+    resolveCombat(this.gameState);
+    drawCards(this.gameState.player, 1);
     this.selectedCardId = null;
+    this.refreshBoardLabels();
+    this.redrawHand();
+    this.refreshHeroHP();
+    if (this.gameState.winner) {
+      this.setStatusMessage(`Battle ended: ${this.gameState.winner.toUpperCase()} wins`);
+      return;
+    }
+    this.setStatusMessage(actionResult?.message ?? 'Passed turn');
+  }
+
+  enemyTakeAction() {
+    const openIndex = [0, 1, 2].find((index) => !this.gameState.board[index]);
+    if (openIndex === undefined) return;
+    this.gameState.board[openIndex] = { cardId: `enemy_${Date.now()}_${openIndex}`, name: 'Enemy Unit', owner: 'enemy', kind: 'unit', attack: 1, hp: 1 };
+  }
+
+  redrawHand() {
     this.cardViews.forEach((view) => {
       view.background.destroy();
       view.label.destroy();
@@ -318,7 +346,23 @@ export default class BattleScene extends Phaser.Scene {
     });
     this.cardViews = [];
     this.drawHand();
-    this.setStatusMessage(statusText ?? `Played: ${playedCard.name}`);
+  }
+
+  refreshBoardLabels() {
+    this.boardCells.forEach((cell) => {
+      const unit = this.gameState.board[cell.index];
+      cell.label.setText(unit ? unit.name : '');
+    });
+  }
+
+  refreshHeroHP() {
+    if (!this.enemyHpText || !this.playerHpText) {
+      const { width, topHero, playerHero } = this.layout;
+      this.enemyHpText = this.add.text(width * 0.5, topHero.centerY + topHero.h * 0.2, '', { fontFamily: 'Arial, sans-serif', fontSize: `${Math.max(18, Math.floor(topHero.h * 0.38))}px`, color: '#f8fafc', fontStyle: 'bold' }).setOrigin(0.5);
+      this.playerHpText = this.add.text(width * 0.5, playerHero.centerY + playerHero.h * 0.2, '', { fontFamily: 'Arial, sans-serif', fontSize: `${Math.max(16, Math.floor(playerHero.h * 0.36))}px`, color: '#f8fafc', fontStyle: 'bold' }).setOrigin(0.5);
+    }
+    this.enemyHpText.setText(`${this.gameState.enemyHP} / 12`);
+    this.playerHpText.setText(`${this.gameState.playerHP} / 12`);
   }
 
   resetCardHighlights() {
@@ -343,6 +387,7 @@ export default class BattleScene extends Phaser.Scene {
 
   setStatusMessage(message) {
     this.statusMessage = message;
+    if (this.statusText) this.statusText.setText(message);
   }
 
   isUnitCard(card) {
