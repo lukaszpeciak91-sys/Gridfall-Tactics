@@ -1,25 +1,26 @@
 # Project Progress
 
+> **Doc role (2026-05-02):** Progress log only. Not a normative gameplay rules source.
+>
+> Canonical MVP battle rules live in:
+> - `docs/rules/mvp-battle-rules.md`
+
 ## Current Status
 - Project initialized.
 - Phaser skeleton planned.
 - BattleScene MVP UI skeleton implemented with locked portrait layout zones, placeholder interactions, and frame fallback support.
 - Battle UI layout v1 locked and implemented; board/hand/deck/action areas now follow mobile-first proportions.
+- Basic scene flow implemented: `StartScene` → `FactionSelectScene` → `BattleScene`.
+- Added initial faction data and a minimal battle `GameState` system.
+- `BattleScene` initializes deck/hand/discard state and draws a 3-card starting hand.
 
 ## Next Milestones
 - Wire placeholder battle interactions into real turn/state systems.
 - Implement card/unit data models and board resolution logic.
 - Add faction-specific UI frame assets beyond `frame_default`.
-- Basic scene flow implemented: `StartScene` → `FactionSelectScene` → `BattleScene`.
-- Added initial faction data and a minimal battle `GameState` system.
-- `BattleScene` now initializes deck/hand/discard state and draws a 3-card starting hand.
-- Battle debug info is rendered in-scene (faction, deck remaining, hand size, hand card names).
-
-## Next Milestones
 - Implement first gameplay actions and consume the turn action flag.
 - Add card UI for displaying and selecting hand cards.
 - Add board interactions and unit placement rules.
-
 
 ## Merge Diagnostics + Stabilization (2026-04-30)
 - Diagnosed and removed post-merge API mismatches between `FactionSelectScene`, `BattleScene`, and `GameState` initialization flow.
@@ -27,82 +28,11 @@
 - Removed conflicting faction import casing by using lowercase JSON module paths in `src/data/factions/index.js`.
 - Verified no remaining merge conflict markers and no remaining `factionMap` references in `src/`.
 
-## Vite Boot Diagnostic Step (2026-04-30)
-- Confirmed static root `index.html` test worked on GitHub Pages (visible red screen), which validates Pages is serving the correct root file.
-- Narrowed blank-screen root cause to the Vite/JavaScript/Phaser boot layer rather than static hosting.
-- Current diagnostic checkpoint restores minimal Vite module loading with visible fallbacks: `HTML OK` (red) + `JS OK` (blue), with Phaser game creation intentionally disabled.
-
-## GitHub Pages Marker Verification (2026-04-30)
-- Confirmed `HTML OK` marker renders on live GitHub Pages.
-- Confirmed `JS OK` marker renders on live GitHub Pages.
-- Next step: verify minimal Phaser boot on GitHub Pages with in-scene `PHASER OK` text before restoring scene/game systems.
-
-## GitHub Pages Deploy Issue (Resolved)
-
-### Problem
-- GitHub Pages showed blank/gray screen.
-- Later debug showed:
-  - HTML OK
-  - JS OK
-  - Phaser import failed: "Failed to resolve module specifier 'phaser'"
-
-### Root Cause
-- GitHub Pages was serving root `index.html` (dev mode).
-- That file loads `/src/main.js`.
-- Browser cannot resolve `phaser` without Vite bundling.
-- Production must use Vite build output (`dist`).
-
-### What Was Done
-- Verified HTML and JS execution separately.
-- Added debug markers (`HTML OK` / `JS OK` / `START OK`).
-- Confirmed Phaser failure was a runtime import issue.
-- Replaced GitHub Pages deploy with a GitHub Actions workflow.
-- Configured workflow to:
-  - run `npm run build`
-  - upload `dist/`
-  - deploy `dist` as artifact
-- Ensured `vite.config.js` uses `base: './'`.
-
-### Result
-- GitHub Pages now serves `dist/index.html`.
-- Assets load from `./assets/*.js`.
-- Phaser boots correctly.
-- `StartScene` renders (`START OK`).
-
-### Key Lesson
-- Never deploy raw source with Vite projects.
-- Always deploy `dist` build to GitHub Pages.
-
-### Rule (Permanent)
-- GitHub Pages must deploy `dist/` only.
-- Root `index.html` is build input, not production output.
-
+## Vite/GitHub Pages Diagnostics (2026-04-30)
+- Confirmed static root `index.html` diagnostics and isolated Vite/Phaser boot issues.
+- Switched Pages deployment flow to build/deploy `dist/` artifact.
+- Confirmed Phaser boot and `StartScene` render after deployment corrections.
 
 ## Battle UI Layout Pass (Mobile-First)
-
-### Goal
-Improve readability and usability on mobile without changing gameplay.
-
-### Changes
-- Introduced structured vertical layout:
-  - Top info (~10%)
-  - Board (~52%)
-  - Action button (~8%)
-  - Hand (~25%)
-  - Bottom/status (~5%)
-- Board made dominant gameplay element.
-- Cards sized for thumb interaction.
-- Hand supports up to 5 cards with horizontal layout.
-- Added deck indicator (right side, count only).
-- Kept UI Phaser-only (no HTML overlay).
-
-### Constraints
-- No scroll on mobile.
-- No gameplay changes.
-- No drag-and-drop.
-- No visual polish yet.
-
-### Result
-- Battle screen is readable and usable on phone.
-- UI ready for future visual polish and assets.
-- Refined BattleScene layout to match portrait reference composition: hero HP panels (12/12), centered 3x3 board hierarchy, END TURN control, and structured hand/deck panel while preserving tap-to-play interactions.
+- Established structured portrait layout with top info, board, action, hand, and status regions.
+- Improved readability/usability on mobile while keeping gameplay scope unchanged.
