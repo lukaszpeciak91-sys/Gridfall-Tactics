@@ -32,7 +32,7 @@ export default class BattleScene extends Phaser.Scene {
     this.drawHand();
 
     this.statusText = this.add
-      .text(this.layout.width * 0.5, this.layout.status.centerY, 'Ready: Select a card', {
+      .text(this.layout.width * 0.5, this.layout.status.centerY - this.layout.status.h * 0.18, 'Ready: Select a card', {
         fontFamily: 'Arial, sans-serif',
         fontSize: `${this.layout.status.fontSize}px`,
         color: '#cbd5e1',
@@ -42,30 +42,31 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   getLayoutMetrics(width, height) {
-    const margin = Math.max(10, Math.round(width * 0.025));
+    const margin = Math.max(8, Math.round(width * 0.025));
     const contentWidth = width - margin * 2;
 
     const sectionRatios = {
-      topHero: 0.08,
-      board: 0.5,
-      playerHero: 0.08,
-      action: 0.08,
-      hand: 0.22,
-      status: 0.04,
+      topHero: 0.06,
+      board: 0.54,
+      playerHero: 0.06,
+      action: 0.05,
+      hand: 0.24,
+      status: 0.05,
     };
-    const gapRatio = 0.012;
-    const topBottomPadRatio = 0.012;
+    const gapRatio = 0.008;
+    const topBottomPadRatio = 0.008;
     const sectionCount = Object.keys(sectionRatios).length;
-    const totalGapRatio = gapRatio * (sectionCount - 1);
-    const totalPadRatio = topBottomPadRatio * 2;
-    const availableRatio = Math.max(0, 1 - totalGapRatio - totalPadRatio);
+    const totalGapHeight = height * gapRatio * (sectionCount - 1);
+    const totalPadHeight = height * topBottomPadRatio * 2;
+    const usableHeight = Math.max(0, height - totalGapHeight - totalPadHeight);
+    const totalSectionRatio = Object.values(sectionRatios).reduce((sum, ratio) => sum + ratio, 0);
 
-    const topHeroHeight = height * sectionRatios.topHero * availableRatio;
-    const boardHeight = height * sectionRatios.board * availableRatio;
-    const playerHeroHeight = height * sectionRatios.playerHero * availableRatio;
-    const actionHeight = height * sectionRatios.action * availableRatio;
-    const handHeight = height * sectionRatios.hand * availableRatio;
-    const statusHeight = height * sectionRatios.status * availableRatio;
+    const topHeroHeight = usableHeight * (sectionRatios.topHero / totalSectionRatio);
+    const boardHeight = usableHeight * (sectionRatios.board / totalSectionRatio);
+    const playerHeroHeight = usableHeight * (sectionRatios.playerHero / totalSectionRatio);
+    const actionHeight = usableHeight * (sectionRatios.action / totalSectionRatio);
+    const handHeight = usableHeight * (sectionRatios.hand / totalSectionRatio);
+    const statusHeight = usableHeight * (sectionRatios.status / totalSectionRatio);
 
     const gapHeight = height * gapRatio;
     const topBottomPad = height * topBottomPadRatio;
@@ -83,16 +84,16 @@ export default class BattleScene extends Phaser.Scene {
     cursorY += handHeight + gapHeight;
     const statusY = cursorY;
 
-    const boardWidth = Math.min(contentWidth * 0.92, contentWidth);
+    const boardWidth = Math.min(contentWidth * 0.985, contentWidth);
     const slotWidth = boardWidth / 3;
     const slotHeight = slotWidth * 1.34;
     const boardScale = Math.min(1, boardHeight / (slotHeight * 3));
     const cellWidth = slotWidth * boardScale;
     const cellHeight = slotHeight * boardScale;
 
-    const handCardWidth = Math.min(contentWidth * 0.23, handHeight * 0.68);
+    const handCardWidth = Math.min(contentWidth * 0.27, handHeight * 0.78);
     const handCardHeight = handCardWidth * 1.34;
-    const deckAreaWidth = contentWidth * 0.24;
+    const deckAreaWidth = contentWidth * 0.29;
     const handTrackWidth = contentWidth - deckAreaWidth - margin * 0.8;
     const cardsVisible = Math.min(3, this.gameState.player.maxHandSize);
     const step = cardsVisible > 1 ? (handTrackWidth - handCardWidth) / (cardsVisible - 1) : 0;
@@ -112,8 +113,14 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   drawBattleFrame() {
-    const { width, height } = this.layout;
+    const { width, height, status } = this.layout;
     this.add.rectangle(width * 0.5, height * 0.5, width, height, 0x05080f, 1);
+    this.add.rectangle(width * 0.5, status.centerY, width, status.h, 0x020617, 0.95).setStrokeStyle(1, 0x334155, 0.8);
+
+    const labelSize = Math.max(11, Math.floor(status.h * 0.34));
+    this.add.text(width * 0.16, status.centerY, 'MENU', { fontFamily: 'Arial, sans-serif', fontSize: `${labelSize}px`, color: '#94a3b8', fontStyle: 'bold' }).setOrigin(0.5);
+    this.add.text(width * 0.5, status.centerY, 'FULLSCREEN', { fontFamily: 'Arial, sans-serif', fontSize: `${labelSize}px`, color: '#94a3b8', fontStyle: 'bold' }).setOrigin(0.5);
+    this.add.text(width * 0.84, status.centerY, 'SETTINGS', { fontFamily: 'Arial, sans-serif', fontSize: `${labelSize}px`, color: '#94a3b8', fontStyle: 'bold' }).setOrigin(0.5);
   }
 
   drawHeroPanels() {
