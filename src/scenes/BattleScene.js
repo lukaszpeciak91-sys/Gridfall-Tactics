@@ -31,14 +31,7 @@ export default class BattleScene extends Phaser.Scene {
     this.drawActionZone();
     this.drawHand();
 
-    this.statusText = this.add
-      .text(this.layout.width * 0.5, this.layout.status.centerY - this.layout.status.h * 0.18, 'Ready: Select a card', {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: `${this.layout.status.fontSize}px`,
-        color: '#cbd5e1',
-      })
-      .setOrigin(0.5)
-      .setAlpha(0.8);
+    this.statusMessage = 'Ready: Select a card';
   }
 
   getLayoutMetrics(width, height) {
@@ -218,7 +211,7 @@ export default class BattleScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true });
 
     button.on('pointerup', () => {
-      this.statusText.setText('Turn executed placeholder');
+      this.setStatusMessage('Turn executed placeholder');
     });
   }
 
@@ -277,7 +270,7 @@ export default class BattleScene extends Phaser.Scene {
     if (this.selectedCardId === cardId) {
       this.selectedCardId = null;
       this.resetCardHighlights();
-      this.statusText.setText('Ready: Select a card');
+      this.setStatusMessage('Ready: Select a card');
       return;
     }
     this.selectedCardId = cardId;
@@ -299,11 +292,11 @@ export default class BattleScene extends Phaser.Scene {
     }
     const targetCell = this.boardCells.find((cell) => cell.index === boardIndex);
     if (!targetCell || targetCell.row !== 2) {
-      this.statusText.setText('Units can only be placed in Player Row');
+      this.setStatusMessage('Units can only be placed in Player Row');
       return;
     }
     if (this.gameState.board[boardIndex]) {
-      this.statusText.setText('That board cell is occupied');
+      this.setStatusMessage('That board cell is occupied');
       return;
     }
     this.gameState.board[boardIndex] = { cardId: selectedCard.id, name: selectedCard.name, owner: 'player', kind: 'unit' };
@@ -325,7 +318,7 @@ export default class BattleScene extends Phaser.Scene {
     });
     this.cardViews = [];
     this.drawHand();
-    this.statusText.setText(statusText ?? `Played: ${playedCard.name}`);
+    this.setStatusMessage(statusText ?? `Played: ${playedCard.name}`);
   }
 
   resetCardHighlights() {
@@ -345,6 +338,11 @@ export default class BattleScene extends Phaser.Scene {
       card.label.setDepth(topDepth + 1);
       card.hitArea.setDepth(topDepth + 2);
     });
+  }
+
+
+  setStatusMessage(message) {
+    this.statusMessage = message;
   }
 
   isUnitCard(card) {
