@@ -91,12 +91,14 @@ export default class BattleScene extends Phaser.Scene {
     const cellWidth = slotWidth * boardScale;
     const cellHeight = slotHeight * boardScale;
 
-    const handCardWidth = Math.min(contentWidth * 0.27, handHeight * 0.78);
+    const handCardWidth = Math.min(contentWidth * 0.31, handHeight * 0.94);
     const handCardHeight = handCardWidth * 1.34;
-    const deckAreaWidth = contentWidth * 0.29;
+    const deckAreaWidth = contentWidth * 0.2;
     const handTrackWidth = contentWidth - deckAreaWidth - margin * 0.8;
     const cardsVisible = Math.min(3, this.gameState.player.maxHandSize);
-    const step = cardsVisible > 1 ? (handTrackWidth - handCardWidth) / (cardsVisible - 1) : 0;
+    const fittedStep = cardsVisible > 1 ? (handTrackWidth - handCardWidth) / (cardsVisible - 1) : 0;
+    const overlapStep = handCardWidth * 0.82;
+    const step = cardsVisible > 1 ? Math.min(fittedStep, overlapStep) : 0;
 
     return {
       width,
@@ -229,25 +231,9 @@ export default class BattleScene extends Phaser.Scene {
 
     this.add.rectangle(width * 0.5, centerY, width - margin * 2, hand.h, 0x0f172a, 0.5).setStrokeStyle(2, 0x334155, 0.8);
 
-    this.add.text(handLeft + 8, hand.y + hand.h * 0.1, 'YOUR HAND', {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: `${Math.max(14, Math.floor(hand.h * 0.12))}px`,
-      color: '#d1d5db',
-      fontStyle: 'bold',
-    }).setOrigin(0, 0.5);
-
-    this.add.line(width - margin - hand.deckAreaWidth, centerY, 0, -hand.h * 0.38, 0, hand.h * 0.38, 0x334155, 0.8).setLineWidth(2);
-
-    this.add.text(deckCenterX, hand.y + hand.h * 0.1, 'DECK', {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: `${Math.max(14, Math.floor(hand.h * 0.12))}px`,
-      color: '#d1d5db',
-      fontStyle: 'bold',
-    }).setOrigin(0.5, 0.5);
-
     const deckCount = this.gameState.player.deck.length;
-    this.add.rectangle(deckCenterX, centerY, hand.cardWidth * 0.72, hand.cardHeight * 0.86, 0x111827, 0.45).setStrokeStyle(3, 0x94a3b8, 0.6);
-    this.add.text(deckCenterX, centerY + hand.cardHeight * 0.6, `DECK x${deckCount}`, {
+    this.add.rectangle(deckCenterX, centerY + hand.h * 0.06, hand.cardWidth * 0.76, hand.cardHeight * 0.92, 0x111827, 0.45).setStrokeStyle(3, 0x94a3b8, 0.6);
+    this.add.text(deckCenterX, centerY + hand.h * 0.36, `x${deckCount}`, {
       fontFamily: 'Arial, sans-serif',
       fontSize: `${Math.max(14, Math.floor(hand.h * 0.12))}px`,
       color: '#f8fafc',
@@ -271,7 +257,12 @@ export default class BattleScene extends Phaser.Scene {
       const hitArea = this.add.rectangle(x, centerY + hand.h * 0.06, hand.cardWidth, hand.cardHeight, 0x000000, 0).setInteractive({ useHandCursor: true });
       hitArea.on('pointerup', () => this.onCardTap(cardId));
 
-      this.cardViews.push({ cardId, background, label, hitArea });
+      const baseDepth = 20 + index * 3;
+      background.setDepth(baseDepth);
+      label.setDepth(baseDepth + 1);
+      hitArea.setDepth(baseDepth + 2);
+
+      this.cardViews.push({ cardId, background, label, hitArea, baseY: centerY + hand.h * 0.06, labelBaseY: centerY + hand.h * 0.1, baseDepth });
 
       if (!card) {
         background.setAlpha(0.42);
@@ -291,7 +282,7 @@ export default class BattleScene extends Phaser.Scene {
     }
     this.selectedCardId = cardId;
     this.resetCardHighlights();
-    this.statusText.setText(`Selected: ${card.name}`);
+    this.statusText.setText(`Ready: ${card.name} selected`);
   }
 
   onBoardCellTap(boardIndex) {
@@ -343,6 +334,16 @@ export default class BattleScene extends Phaser.Scene {
       card.background.setStrokeStyle(4, isSelected ? 0xfacc15 : 0x94a3b8, isSelected ? 1 : 0.7);
       const viewCard = this.gameState.player.hand.find((item) => item.id === card.cardId);
       card.background.setFillStyle(isSelected ? 0x334155 : 0x111827, isSelected ? 0.78 : viewCard ? 0.55 : 0.42);
+
+      const raisedOffset = isSelected ? this.layout.hand.h * 0.08 : 0;
+      card.background.setY(card.baseY - raisedOffset);
+      card.label.setY(card.labelBaseY - raisedOffset);
+      card.hitArea.setY(card.baseY - raisedOffset);
+
+      const topDepth = isSelected ? 100 : card.baseDepth;
+      card.background.setDepth(topDepth);
+      card.label.setDepth(topDepth + 1);
+      card.hitArea.setDepth(topDepth + 2);
     });
   }
 
