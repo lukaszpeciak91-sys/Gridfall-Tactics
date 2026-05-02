@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { getFactionByKey } from '../data/factions/index.js';
 import { createInitialBattleState, drawCards, canPass, playOrRedeployUnit, performSwap, resolveCombat } from '../systems/GameState.js';
+import { chooseEnemyAction } from '../systems/enemyDecision.js';
 
 export default class BattleScene extends Phaser.Scene {
   constructor() {
@@ -399,9 +400,13 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   enemyTakeAction() {
-    const openIndex = [0, 1, 2].find((index) => !this.gameState.board[index]);
-    if (openIndex === undefined) return;
-    this.gameState.board[openIndex] = { cardId: `enemy_${Date.now()}_${openIndex}`, name: 'Enemy Unit', owner: 'enemy', kind: 'unit', attack: 1, hp: 1 };
+    const action = chooseEnemyAction(this.gameState);
+    if (action.type !== 'play') return;
+
+    this.gameState.board[action.slotIndex] = {
+      cardId: `enemy_${Date.now()}_${action.slotIndex}`,
+      ...action.unit,
+    };
   }
 
   redrawHand() {
