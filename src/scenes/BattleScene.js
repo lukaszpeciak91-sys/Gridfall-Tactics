@@ -32,7 +32,7 @@ export default class BattleScene extends Phaser.Scene {
     this.drawHand();
 
     this.statusText = this.add
-      .text(this.layout.width * 0.5, this.layout.playerHero.y - this.layout.playerHero.h * 0.65, 'Ready: Select a card', {
+      .text(this.layout.width * 0.5, this.layout.status.centerY, 'Ready: Select a card', {
         fontFamily: 'Arial, sans-serif',
         fontSize: `${this.layout.status.fontSize}px`,
         color: '#cbd5e1',
@@ -45,18 +45,43 @@ export default class BattleScene extends Phaser.Scene {
     const margin = Math.max(10, Math.round(width * 0.025));
     const contentWidth = width - margin * 2;
 
-    const topHeroHeight = height * 0.065;
-    const boardHeight = height * 0.57;
-    const playerHeroHeight = height * 0.06;
-    const actionHeight = height * 0.055;
-    const handHeight = height * 0.235;
-    const statusHeight = height * 0.025;
+    const sectionRatios = {
+      topHero: 0.08,
+      board: 0.5,
+      playerHero: 0.08,
+      action: 0.08,
+      hand: 0.22,
+      status: 0.04,
+    };
+    const gapRatio = 0.012;
+    const topBottomPadRatio = 0.012;
+    const sectionCount = Object.keys(sectionRatios).length;
+    const totalGapRatio = gapRatio * (sectionCount - 1);
+    const totalPadRatio = topBottomPadRatio * 2;
+    const availableRatio = Math.max(0, 1 - totalGapRatio - totalPadRatio);
 
-    const topHeroY = height * 0.03;
-    const boardY = topHeroY + topHeroHeight + height * 0.012;
-    const playerHeroY = boardY + boardHeight + height * 0.006;
-    const actionY = playerHeroY + playerHeroHeight + height * 0.01;
-    const handY = actionY + actionHeight + height * 0.012;
+    const topHeroHeight = height * sectionRatios.topHero * availableRatio;
+    const boardHeight = height * sectionRatios.board * availableRatio;
+    const playerHeroHeight = height * sectionRatios.playerHero * availableRatio;
+    const actionHeight = height * sectionRatios.action * availableRatio;
+    const handHeight = height * sectionRatios.hand * availableRatio;
+    const statusHeight = height * sectionRatios.status * availableRatio;
+
+    const gapHeight = height * gapRatio;
+    const topBottomPad = height * topBottomPadRatio;
+
+    let cursorY = topBottomPad;
+    const topHeroY = cursorY;
+    cursorY += topHeroHeight + gapHeight;
+    const boardY = cursorY;
+    cursorY += boardHeight + gapHeight;
+    const playerHeroY = cursorY;
+    cursorY += playerHeroHeight + gapHeight;
+    const actionY = cursorY;
+    cursorY += actionHeight + gapHeight;
+    const handY = cursorY;
+    cursorY += handHeight + gapHeight;
+    const statusY = cursorY;
 
     const boardWidth = Math.min(contentWidth * 0.92, contentWidth);
     const slotWidth = boardWidth / 3;
@@ -82,7 +107,7 @@ export default class BattleScene extends Phaser.Scene {
       playerHero: { y: playerHeroY, h: playerHeroHeight, centerY: playerHeroY + playerHeroHeight / 2 },
       action: { y: actionY, h: actionHeight, centerY: actionY + actionHeight / 2 },
       hand: { y: handY, h: handHeight, centerY: handY + handHeight / 2, cardWidth: handCardWidth, cardHeight: handCardHeight, deckAreaWidth, handTrackWidth, cardsVisible, step },
-      status: { fontSize: Math.max(11, Math.floor(statusHeight * 0.78)) },
+      status: { y: statusY, h: statusHeight, centerY: statusY + statusHeight / 2, fontSize: Math.max(11, Math.floor(statusHeight * 0.78)) },
     };
   }
 
