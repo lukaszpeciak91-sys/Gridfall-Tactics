@@ -275,7 +275,7 @@ export default class BattleScene extends Phaser.Scene {
     }
     this.selectedCardId = cardId;
     this.resetCardHighlights();
-    this.setStatusMessage(`Ready: ${card.name} selected`);
+    this.statusText.setText(`Ready: ${card.name} selected`);
   }
 
   onBoardCellTap(boardIndex) {
