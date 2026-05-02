@@ -34,7 +34,6 @@ export default class BattleScene extends Phaser.Scene {
     this.drawStatusText();
     this.drawBottomUtilityBar();
 
-    this.setStatusMessage('Ready: Select a card');
   }
 
   getLayoutMetrics(width, height) {
@@ -309,12 +308,10 @@ export default class BattleScene extends Phaser.Scene {
     if (this.selectedCardId === cardId) {
       this.selectedCardId = null;
       this.resetCardHighlights();
-      this.setStatusMessage('Ready: Select a card');
       return;
     }
     this.selectedCardId = cardId;
     this.resetCardHighlights();
-    this.setStatusMessage(`Ready: ${card.name} selected`);
   }
 
   onBoardCellTap(boardIndex) {
@@ -323,26 +320,23 @@ export default class BattleScene extends Phaser.Scene {
       if (!unit || unit.owner !== 'player') return;
       if (this.pendingSwapIndex === undefined) {
         this.pendingSwapIndex = boardIndex;
-        this.setStatusMessage('Select second friendly unit to swap');
         return;
       }
       const result = performSwap(this.gameState, 'player', this.pendingSwapIndex, boardIndex);
       this.pendingSwapIndex = undefined;
       if (!result.ok) {
-        this.setStatusMessage(result.reason);
         return;
       }
-      this.executeFullTurn({ type: 'swap', message: 'Swapped friendly units' });
+      this.executeFullTurn({ type: 'swap' });
       return;
     }
     const selectedCard = this.gameState.player.hand.find((card) => card.id === this.selectedCardId);
     if (!selectedCard || !this.isUnitCard(selectedCard)) return;
     const result = playOrRedeployUnit(this.gameState, 'player', this.selectedCardId, boardIndex);
     if (!result.ok) {
-      this.setStatusMessage(result.reason);
       return;
     }
-    this.executeFullTurn({ type: result.type, message: `${result.type === 'redeploy' ? 'Redeployed' : 'Played'} ${selectedCard.name}` });
+    this.executeFullTurn({ type: result.type });
   }
 
   executeFullTurn(actionResult) {
@@ -357,10 +351,8 @@ export default class BattleScene extends Phaser.Scene {
     this.redrawHand();
     this.refreshHeroHP();
     if (this.gameState.winner) {
-      this.setStatusMessage(`Battle ended: ${this.gameState.winner.toUpperCase()} wins`);
       return;
     }
-    this.setStatusMessage(actionResult?.message ?? 'Passed turn');
   }
 
   enemyTakeAction() {
@@ -415,11 +407,6 @@ export default class BattleScene extends Phaser.Scene {
     });
   }
 
-
-  setStatusMessage(message) {
-    this.statusMessage = message;
-    if (this.statusText) this.statusText.setText(message);
-  }
 
   isUnitCard(card) {
     const nonUnitNames = new Set(['Swarm Attack', 'Spawn', 'Recycle', 'Flood', 'Mindlash', 'Freeze', 'Disrupt', 'Scheme', 'Dominate', 'Fortify', 'Stability', 'Reinforce', 'Last Stand', 'Repair Kit']);
