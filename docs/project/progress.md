@@ -106,4 +106,3 @@ Improve readability and usability on mobile without changing gameplay.
 - Battle screen is readable and usable on phone.
 - UI ready for future visual polish and assets.
 - Refined BattleScene layout to match portrait reference composition: hero HP panels (12/12), centered 3x3 board hierarchy, END TURN control, and structured hand/deck panel while preserving tap-to-play interactions.
-- Fixed BattleScene vertical scaling with strict safe-area zone stacking (8/50/7/7/23/5) so hand, deck, and tip bar remain fully visible across viewport heights.

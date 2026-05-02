@@ -30,31 +30,33 @@ export default class BattleScene extends Phaser.Scene {
     this.drawHeroPanels();
     this.drawActionZone();
     this.drawHand();
-    this.drawTipBar();
+
+    this.statusText = this.add
+      .text(this.layout.width * 0.5, this.layout.playerHero.y - this.layout.playerHero.h * 0.65, 'Ready: Select a card', {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: `${this.layout.status.fontSize}px`,
+        color: '#cbd5e1',
+      })
+      .setOrigin(0.5)
+      .setAlpha(0.8);
   }
 
   getLayoutMetrics(width, height) {
-    const W = width;
-    const H = height;
-    const PADDING = H * 0.02;
-    const safeHeight = H - (PADDING * 2);
-    const marginX = Math.max(10, Math.round(W * 0.025));
-    const contentWidth = W - marginX * 2;
+    const margin = Math.max(10, Math.round(width * 0.025));
+    const contentWidth = width - margin * 2;
 
-    const topHeroHeight = safeHeight * 0.08;
-    const boardHeight = safeHeight * 0.5;
-    const playerHeroHeight = safeHeight * 0.07;
-    const actionHeight = safeHeight * 0.07;
-    const handHeight = safeHeight * 0.23;
-    const tipHeight = safeHeight * 0.05;
+    const topHeroHeight = height * 0.065;
+    const boardHeight = height * 0.57;
+    const playerHeroHeight = height * 0.06;
+    const actionHeight = height * 0.055;
+    const handHeight = height * 0.235;
+    const statusHeight = height * 0.025;
 
-    let y = PADDING;
-    const topHeroY = y; y += topHeroHeight;
-    const boardY = y; y += boardHeight;
-    const playerHeroY = y; y += playerHeroHeight;
-    const actionY = y; y += actionHeight;
-    const handY = y; y += handHeight;
-    const tipY = y;
+    const topHeroY = height * 0.03;
+    const boardY = topHeroY + topHeroHeight + height * 0.012;
+    const playerHeroY = boardY + boardHeight + height * 0.006;
+    const actionY = playerHeroY + playerHeroHeight + height * 0.01;
+    const handY = actionY + actionHeight + height * 0.012;
 
     const boardWidth = Math.min(contentWidth * 0.92, contentWidth);
     const slotWidth = boardWidth / 3;
@@ -63,14 +65,12 @@ export default class BattleScene extends Phaser.Scene {
     const cellWidth = slotWidth * boardScale;
     const cellHeight = slotHeight * boardScale;
 
-    const cardHeight = handHeight * 0.88;
-    const cardWidth = cardHeight / 1.34;
+    const handCardWidth = Math.min(contentWidth * 0.23, handHeight * 0.68);
+    const handCardHeight = handCardWidth * 1.34;
     const deckAreaWidth = contentWidth * 0.24;
-    const handTrackWidth = contentWidth - deckAreaWidth - marginX * 0.8;
+    const handTrackWidth = contentWidth - deckAreaWidth - margin * 0.8;
     const cardsVisible = Math.min(3, this.gameState.player.maxHandSize);
-    const fittedCardWidth = Math.min(cardWidth, handTrackWidth / (cardsVisible + 0.3));
-    const fittedCardHeight = fittedCardWidth * 1.34;
-    const step = cardsVisible > 1 ? (handTrackWidth - fittedCardWidth) / (cardsVisible - 1) : 0;
+    const step = cardsVisible > 1 ? (handTrackWidth - handCardWidth) / (cardsVisible - 1) : 0;
 
     return {
       width: W,
@@ -82,8 +82,8 @@ export default class BattleScene extends Phaser.Scene {
       board: { y: boardY, h: boardHeight, centerY: boardY + boardHeight / 2, cellWidth, cellHeight, width: cellWidth * 3, height: cellHeight * 3 },
       playerHero: { y: playerHeroY, h: playerHeroHeight, centerY: playerHeroY + playerHeroHeight / 2 },
       action: { y: actionY, h: actionHeight, centerY: actionY + actionHeight / 2 },
-      hand: { y: handY, h: handHeight, centerY: handY + handHeight / 2, cardWidth: fittedCardWidth, cardHeight: fittedCardHeight, deckAreaWidth, handTrackWidth, cardsVisible, step },
-      tip: { y: tipY, h: tipHeight, centerY: tipY + tipHeight / 2, fontSize: Math.max(11, Math.floor(tipHeight * 0.45)) },
+      hand: { y: handY, h: handHeight, centerY: handY + handHeight / 2, cardWidth: handCardWidth, cardHeight: handCardHeight, deckAreaWidth, handTrackWidth, cardsVisible, step },
+      status: { fontSize: Math.max(11, Math.floor(statusHeight * 0.78)) },
     };
   }
 
@@ -96,60 +96,155 @@ export default class BattleScene extends Phaser.Scene {
     const { width, topHero, playerHero, contentWidth } = this.layout;
     const panelWidth = contentWidth * 0.72;
 
-    const enemyPanel = this.add.rectangle(width * 0.5, topHero.centerY, panelWidth, topHero.h * 0.92, 0x111827, 0.45).setStrokeStyle(2, 0xf87171, 0.6);
-    const playerPanel = this.add.rectangle(width * 0.5, playerHero.centerY, panelWidth, playerHero.h * 0.9, 0x111827, 0.45).setStrokeStyle(2, 0x60a5fa, 0.6);
+    const enemyPanel = this.add.rectangle(width * 0.5, topHero.centerY, panelWidth, topHero.h, 0x111827, 0.45).setStrokeStyle(2, 0xf87171, 0.6);
+    const playerPanel = this.add.rectangle(width * 0.5, playerHero.centerY, panelWidth, playerHero.h, 0x111827, 0.45).setStrokeStyle(2, 0x60a5fa, 0.6);
 
-    this.add.text(enemyPanel.x, enemyPanel.y - topHero.h * 0.13, 'ENEMY HERO', { fontFamily: 'Arial, sans-serif', fontSize: `${Math.max(13, Math.floor(topHero.h * 0.3))}px`, color: '#f87171', fontStyle: 'bold' }).setOrigin(0.5);
-    this.add.text(enemyPanel.x, enemyPanel.y + topHero.h * 0.2, '12 / 12', { fontFamily: 'Arial, sans-serif', fontSize: `${Math.max(16, Math.floor(topHero.h * 0.36))}px`, color: '#f8fafc', fontStyle: 'bold' }).setOrigin(0.5);
-    this.add.text(playerPanel.x, playerPanel.y - playerHero.h * 0.13, 'PLAYER HERO', { fontFamily: 'Arial, sans-serif', fontSize: `${Math.max(12, Math.floor(playerHero.h * 0.28))}px`, color: '#60a5fa', fontStyle: 'bold' }).setOrigin(0.5);
-    this.add.text(playerPanel.x, playerPanel.y + playerHero.h * 0.2, '12 / 12', { fontFamily: 'Arial, sans-serif', fontSize: `${Math.max(14, Math.floor(playerHero.h * 0.34))}px`, color: '#f8fafc', fontStyle: 'bold' }).setOrigin(0.5);
+    this.add.text(enemyPanel.x, enemyPanel.y - topHero.h * 0.14, 'ENEMY HERO', {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: `${Math.max(16, Math.floor(topHero.h * 0.32))}px`,
+      color: '#f87171',
+      fontStyle: 'bold',
+    }).setOrigin(0.5, 0.5);
+
+    this.add.text(enemyPanel.x, enemyPanel.y + topHero.h * 0.2, '12 / 12', {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: `${Math.max(18, Math.floor(topHero.h * 0.38))}px`,
+      color: '#f8fafc',
+      fontStyle: 'bold',
+    }).setOrigin(0.5, 0.5);
+
+    this.add.text(playerPanel.x, playerPanel.y - playerHero.h * 0.14, 'PLAYER HERO', {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: `${Math.max(14, Math.floor(playerHero.h * 0.3))}px`,
+      color: '#60a5fa',
+      fontStyle: 'bold',
+    }).setOrigin(0.5, 0.5);
+
+    this.add.text(playerPanel.x, playerPanel.y + playerHero.h * 0.2, '12 / 12', {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: `${Math.max(16, Math.floor(playerHero.h * 0.36))}px`,
+      color: '#f8fafc',
+      fontStyle: 'bold',
+    }).setOrigin(0.5, 0.5);
   }
 
-  drawBoard() { const { width, board } = this.layout; const startX = width / 2 - board.width / 2; const startY = board.y + (board.h - board.height) / 2; this.boardCells = [];
-    for (let row = 0; row < 3; row += 1) { for (let col = 0; col < 3; col += 1) {
-      const x = startX + col * board.cellWidth + board.cellWidth / 2; const y = startY + row * board.cellHeight + board.cellHeight / 2; const boardIndex = row * 3 + col; const isMiddleRow = row === 1;
-      const background = this.add.rectangle(x, y, board.cellWidth - 10, board.cellHeight - 10, 0x111827, isMiddleRow ? 0.18 : 0.4).setStrokeStyle(isMiddleRow ? 2 : 3, isMiddleRow ? 0x94a3b8 : 0xcbd5e1, isMiddleRow ? 0.3 : 0.55).setInteractive({ useHandCursor: true });
-      if (isMiddleRow && typeof background.setLineDash === 'function') background.setLineDash([6, 7]);
-      const label = this.add.text(x, y, '', { fontFamily: 'Arial, sans-serif', fontSize: `${Math.max(11, Math.floor(board.cellWidth * 0.14))}px`, color: '#f8fafc', align: 'center', wordWrap: { width: board.cellWidth - 16 } }).setOrigin(0.5);
-      background.on('pointerup', () => this.onBoardCellTap(boardIndex)); this.boardCells.push({ index: boardIndex, row, background, label });
-    }}
+  drawBoard() {
+    const { width, board } = this.layout;
+    const startX = width / 2 - board.width / 2;
+    const startY = board.centerY - board.height / 2;
+
+    this.boardCells = [];
+
+    for (let row = 0; row < 3; row += 1) {
+      for (let col = 0; col < 3; col += 1) {
+        const x = startX + col * board.cellWidth + board.cellWidth / 2;
+        const y = startY + row * board.cellHeight + board.cellHeight / 2;
+        const boardIndex = row * 3 + col;
+        const isMiddleRow = row === 1;
+
+        const background = this.add
+          .rectangle(x, y, board.cellWidth - 10, board.cellHeight - 10, 0x111827, isMiddleRow ? 0.18 : 0.4)
+          .setStrokeStyle(isMiddleRow ? 2 : 3, isMiddleRow ? 0x94a3b8 : 0xcbd5e1, isMiddleRow ? 0.3 : 0.55)
+          .setInteractive({ useHandCursor: true });
+
+        if (isMiddleRow && typeof background.setLineDash === 'function') {
+          background.setLineDash([6, 7]);
+        }
+
+        const label = this.add
+          .text(x, y, '', {
+            fontFamily: 'Arial, sans-serif',
+            fontSize: `${Math.max(13, Math.floor(board.cellWidth * 0.14))}px`,
+            color: '#f8fafc',
+            align: 'center',
+            wordWrap: { width: board.cellWidth - 16 },
+          })
+          .setOrigin(0.5);
+
+        background.on('pointerup', () => this.onBoardCellTap(boardIndex));
+        this.boardCells.push({ index: boardIndex, row, background, label });
+      }
+    }
   }
 
   drawActionZone() {
     const { width, action } = this.layout;
-    const button = this.add.text(width * 0.5, action.centerY, 'END TURN', {
-      fontFamily: 'Arial, sans-serif', fontSize: `${Math.max(16, Math.floor(action.h * 0.5))}px`, color: '#f9fafb', backgroundColor: '#111827', align: 'center', fixedWidth: Math.floor(width * 0.46), padding: { x: 0, y: Math.max(6, Math.floor(action.h * 0.15)) },
-    }).setOrigin(0.5).setStroke('#64748b', 2).setInteractive({ useHandCursor: true });
-    button.on('pointerup', () => { this.statusText.setText('Turn executed placeholder'); });
+
+    const button = this.add
+      .text(width * 0.5, action.centerY, 'END TURN', {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: `${Math.max(18, Math.floor(action.h * 0.52))}px`,
+        color: '#f9fafb',
+        backgroundColor: '#111827',
+        align: 'center',
+        fixedWidth: Math.floor(width * 0.46),
+        padding: { x: 0, y: Math.max(8, Math.floor(action.h * 0.18)) },
+      })
+      .setOrigin(0.5)
+      .setStroke('#64748b', 2)
+      .setInteractive({ useHandCursor: true });
+
+    button.on('pointerup', () => {
+      this.statusText.setText('Turn executed placeholder');
+    });
   }
 
   drawHand() {
-    const { width, hand, marginX } = this.layout;
-    const handLeft = marginX;
-    const deckCenterX = width - marginX - hand.deckAreaWidth / 2;
+    const { width, hand, margin } = this.layout;
+    const centerY = hand.centerY;
+    const handLeft = margin;
+    const deckCenterX = width - margin - hand.deckAreaWidth / 2;
     const handTrackLeft = handLeft + hand.cardWidth / 2;
-    const cardCenterY = hand.y + hand.h * 0.57;
 
-    this.add.rectangle(width * 0.5, hand.centerY, width - marginX * 2, hand.h, 0x0f172a, 0.5).setStrokeStyle(2, 0x334155, 0.8);
-    this.add.text(handLeft + 8, hand.y + hand.h * 0.12, 'YOUR HAND', { fontFamily: 'Arial, sans-serif', fontSize: `${Math.max(12, Math.floor(hand.h * 0.1))}px`, color: '#d1d5db', fontStyle: 'bold' }).setOrigin(0, 0.5);
-    this.add.line(width - marginX - hand.deckAreaWidth, hand.centerY, 0, -hand.h * 0.42, 0, hand.h * 0.42, 0x334155, 0.8).setLineWidth(2);
-    this.add.text(deckCenterX, hand.y + hand.h * 0.12, 'DECK', { fontFamily: 'Arial, sans-serif', fontSize: `${Math.max(12, Math.floor(hand.h * 0.1))}px`, color: '#d1d5db', fontStyle: 'bold' }).setOrigin(0.5);
+    this.add.rectangle(width * 0.5, centerY, width - margin * 2, hand.h, 0x0f172a, 0.5).setStrokeStyle(2, 0x334155, 0.8);
+
+    this.add.text(handLeft + 8, hand.y + hand.h * 0.1, 'YOUR HAND', {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: `${Math.max(14, Math.floor(hand.h * 0.12))}px`,
+      color: '#d1d5db',
+      fontStyle: 'bold',
+    }).setOrigin(0, 0.5);
+
+    this.add.line(width - margin - hand.deckAreaWidth, centerY, 0, -hand.h * 0.38, 0, hand.h * 0.38, 0x334155, 0.8).setLineWidth(2);
+
+    this.add.text(deckCenterX, hand.y + hand.h * 0.1, 'DECK', {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: `${Math.max(14, Math.floor(hand.h * 0.12))}px`,
+      color: '#d1d5db',
+      fontStyle: 'bold',
+    }).setOrigin(0.5, 0.5);
 
     const deckCount = this.gameState.player.deck.length;
-    this.add.rectangle(deckCenterX, cardCenterY, hand.cardWidth * 0.72, hand.cardHeight * 0.92, 0x111827, 0.45).setStrokeStyle(3, 0x94a3b8, 0.6);
-    this.add.text(deckCenterX, hand.y + hand.h * 0.86, `DECK x${deckCount}`, { fontFamily: 'Arial, sans-serif', fontSize: `${Math.max(11, Math.floor(hand.h * 0.09))}px`, color: '#f8fafc', fontStyle: 'bold' }).setOrigin(0.5);
+    this.add.rectangle(deckCenterX, centerY, hand.cardWidth * 0.72, hand.cardHeight * 0.86, 0x111827, 0.45).setStrokeStyle(3, 0x94a3b8, 0.6);
+    this.add.text(deckCenterX, centerY + hand.cardHeight * 0.6, `DECK x${deckCount}`, {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: `${Math.max(14, Math.floor(hand.h * 0.12))}px`,
+      color: '#f8fafc',
+      fontStyle: 'bold',
+    }).setOrigin(0.5);
 
     for (let index = 0; index < hand.cardsVisible; index += 1) {
       const x = handTrackLeft + index * hand.step;
       const card = this.gameState.player.hand[index] ?? null;
       const cardId = card?.id ?? `slot-${index}`;
       const cardName = card?.name ?? '';
-      const background = this.add.rectangle(x, cardCenterY, hand.cardWidth, hand.cardHeight, 0x111827, 0.55).setStrokeStyle(3, 0x94a3b8, 0.7);
-      const label = this.add.text(x, cardCenterY, cardName || 'Empty', { fontFamily: 'Arial, sans-serif', fontSize: `${Math.max(13, Math.floor(hand.cardWidth * 0.16))}px`, color: '#f8fafc', align: 'center', wordWrap: { width: hand.cardWidth - 14 } }).setOrigin(0.5);
-      const hitArea = this.add.rectangle(x, cardCenterY, hand.cardWidth, hand.cardHeight, 0x000000, 0).setInteractive({ useHandCursor: true });
+      const background = this.add.rectangle(x, centerY + hand.h * 0.06, hand.cardWidth, hand.cardHeight, 0x111827, 0.55).setStrokeStyle(3, 0x94a3b8, 0.7);
+      const label = this.add.text(x, centerY + hand.h * 0.1, cardName || 'Empty', {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: `${Math.max(16, Math.floor(hand.cardWidth * 0.17))}px`,
+        color: '#f8fafc',
+        align: 'center',
+        wordWrap: { width: hand.cardWidth - 14 },
+      }).setOrigin(0.5);
+
+      const hitArea = this.add.rectangle(x, centerY + hand.h * 0.06, hand.cardWidth, hand.cardHeight, 0x000000, 0).setInteractive({ useHandCursor: true });
       hitArea.on('pointerup', () => this.onCardTap(cardId));
       this.cardViews.push({ cardId, background, label, hitArea });
-      if (!card) { background.setAlpha(0.42); label.setAlpha(0.45); }
+
+      if (!card) {
+        background.setAlpha(0.42);
+        label.setAlpha(0.45);
+      }
     }
   }
 
