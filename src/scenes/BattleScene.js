@@ -51,8 +51,6 @@ export default class BattleScene extends Phaser.Scene {
 
   getLayoutMetrics(width, height) {
     const margin = Math.max(10, Math.round(width * 0.025));
-    const padding = margin;
-    const marginX = margin;
     const contentWidth = width - margin * 2;
 
     const topHeroHeight = height * 0.065;
@@ -83,9 +81,9 @@ export default class BattleScene extends Phaser.Scene {
     const step = cardsVisible > 1 ? (handTrackWidth - handCardWidth) / (cardsVisible - 1) : 0;
 
     return {
-      width,
-      height,
-      padding,
+      width: W,
+      height: H,
+      padding: PADDING,
       marginX,
       contentWidth,
       topHero: { y: topHeroY, h: topHeroHeight, centerY: topHeroY + topHeroHeight / 2 },
