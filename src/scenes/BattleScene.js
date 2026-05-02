@@ -73,9 +73,10 @@ export default class BattleScene extends Phaser.Scene {
     const step = cardsVisible > 1 ? (handTrackWidth - handCardWidth) / (cardsVisible - 1) : 0;
 
     return {
-      width,
-      height,
-      margin,
+      width: W,
+      height: H,
+      padding: PADDING,
+      marginX,
       contentWidth,
       topHero: { y: topHeroY, h: topHeroHeight, centerY: topHeroY + topHeroHeight / 2 },
       board: { y: boardY, h: boardHeight, centerY: boardY + boardHeight / 2, cellWidth, cellHeight, width: cellWidth * 3, height: cellHeight * 3 },
@@ -238,7 +239,6 @@ export default class BattleScene extends Phaser.Scene {
 
       const hitArea = this.add.rectangle(x, centerY + hand.h * 0.06, hand.cardWidth, hand.cardHeight, 0x000000, 0).setInteractive({ useHandCursor: true });
       hitArea.on('pointerup', () => this.onCardTap(cardId));
-
       this.cardViews.push({ cardId, background, label, hitArea });
 
       if (!card) {
@@ -246,6 +246,14 @@ export default class BattleScene extends Phaser.Scene {
         label.setAlpha(0.45);
       }
     }
+  }
+
+  drawTipBar() {
+    const { width, tip, marginX } = this.layout;
+    this.add.rectangle(width * 0.5, tip.centerY, width - marginX * 2, tip.h, 0x0b1220, 0.65).setStrokeStyle(1, 0x334155, 0.9);
+    this.statusText = this.add.text(width * 0.5, tip.centerY, 'Ready: Select a card', {
+      fontFamily: 'Arial, sans-serif', fontSize: `${tip.fontSize}px`, color: '#cbd5e1',
+    }).setOrigin(0.5).setAlpha(0.9);
   }
 
   onCardTap(cardId) { /* unchanged below */
@@ -265,24 +273,11 @@ export default class BattleScene extends Phaser.Scene {
   onBoardCellTap(boardIndex) {
     if (!this.selectedCardId) return;
     const selectedCard = this.gameState.player.hand.find((card) => card.id === this.selectedCardId);
-    if (!selectedCard) {
-      this.selectedCardId = null;
-      this.resetCardHighlights();
-      return;
-    }
-    if (!this.isUnitCard(selectedCard)) {
-      this.playCard(this.selectedCardId, `Played: ${selectedCard.name}`);
-      return;
-    }
+    if (!selectedCard) { this.selectedCardId = null; this.resetCardHighlights(); return; }
+    if (!this.isUnitCard(selectedCard)) { this.playCard(this.selectedCardId, `Played: ${selectedCard.name}`); return; }
     const targetCell = this.boardCells.find((cell) => cell.index === boardIndex);
-    if (!targetCell || targetCell.row !== 2) {
-      this.statusText.setText('Units can only be placed in Player Row');
-      return;
-    }
-    if (this.gameState.board[boardIndex]) {
-      this.statusText.setText('That board cell is occupied');
-      return;
-    }
+    if (!targetCell || targetCell.row !== 2) { this.statusText.setText('Units can only be placed in Player Row'); return; }
+    if (this.gameState.board[boardIndex]) { this.statusText.setText('That board cell is occupied'); return; }
     this.gameState.board[boardIndex] = { cardId: selectedCard.id, name: selectedCard.name, owner: 'player', kind: 'unit' };
     targetCell.label.setText(selectedCard.name);
     this.playCard(this.selectedCardId, `Placed: ${selectedCard.name}`);
@@ -295,11 +290,7 @@ export default class BattleScene extends Phaser.Scene {
     this.gameState.player.discard.push(playedCard);
     drawCards(this.gameState, 1);
     this.selectedCardId = null;
-    this.cardViews.forEach((view) => {
-      view.background.destroy();
-      view.label.destroy();
-      view.hitArea.destroy();
-    });
+    this.cardViews.forEach((view) => { view.background.destroy(); view.label.destroy(); view.hitArea.destroy(); });
     this.cardViews = [];
     this.drawHand();
     this.statusText.setText(statusText ?? `Played: ${playedCard.name}`);
@@ -318,5 +309,4 @@ export default class BattleScene extends Phaser.Scene {
     const nonUnitNames = new Set(['Swarm Attack', 'Spawn', 'Recycle', 'Flood', 'Mindlash', 'Freeze', 'Disrupt', 'Scheme', 'Dominate', 'Fortify', 'Stability', 'Reinforce', 'Last Stand', 'Repair Kit']);
     return !nonUnitNames.has(card?.name);
   }
-
 }
