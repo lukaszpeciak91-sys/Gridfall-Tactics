@@ -31,6 +31,14 @@ export default class BattleScene extends Phaser.Scene {
     this.drawActionZone();
     this.drawHand();
 
+    this.add
+      .text(this.layout.width * 0.5, this.layout.topHero.y * 0.4 + 12, `Faction: ${factionKey}`, {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '18px',
+        color: '#fde68a',
+      })
+      .setOrigin(0.5);
+
     this.statusText = this.add
       .text(this.layout.width * 0.5, this.layout.playerHero.y - this.layout.playerHero.h * 0.65, 'Ready: Select a card', {
         fontFamily: 'Arial, sans-serif',
@@ -43,6 +51,8 @@ export default class BattleScene extends Phaser.Scene {
 
   getLayoutMetrics(width, height) {
     const margin = Math.max(10, Math.round(width * 0.025));
+    const padding = margin;
+    const marginX = margin;
     const contentWidth = width - margin * 2;
 
     const topHeroHeight = height * 0.065;
@@ -73,9 +83,9 @@ export default class BattleScene extends Phaser.Scene {
     const step = cardsVisible > 1 ? (handTrackWidth - handCardWidth) / (cardsVisible - 1) : 0;
 
     return {
-      width: W,
-      height: H,
-      padding: PADDING,
+      width,
+      height,
+      padding,
       marginX,
       contentWidth,
       topHero: { y: topHeroY, h: topHeroHeight, centerY: topHeroY + topHeroHeight / 2 },
