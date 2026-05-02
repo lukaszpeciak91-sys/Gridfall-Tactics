@@ -30,6 +30,7 @@ export default class BattleScene extends Phaser.Scene {
     this.drawHeroPanels();
     this.drawActionZone();
     this.drawHand();
+    this.drawBottomUtilityBar();
 
     this.statusMessage = 'Ready: Select a card';
   }
@@ -108,16 +109,35 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   drawBattleFrame() {
-    const { width, height, status } = this.layout;
+    const { width, height } = this.layout;
     this.add.rectangle(width * 0.5, height * 0.5, width, height, 0x05080f, 1);
-    this.add.rectangle(width * 0.5, status.centerY, width, status.h, 0x020617, 0.95).setStrokeStyle(1, 0x334155, 0.8);
-
-    const labelSize = Math.max(11, Math.floor(status.h * 0.34));
-    this.add.text(width * 0.16, status.centerY, 'MENU', { fontFamily: 'Arial, sans-serif', fontSize: `${labelSize}px`, color: '#94a3b8', fontStyle: 'bold' }).setOrigin(0.5);
-    this.add.text(width * 0.5, status.centerY, 'FULLSCREEN', { fontFamily: 'Arial, sans-serif', fontSize: `${labelSize}px`, color: '#94a3b8', fontStyle: 'bold' }).setOrigin(0.5);
-    this.add.text(width * 0.84, status.centerY, 'SETTINGS', { fontFamily: 'Arial, sans-serif', fontSize: `${labelSize}px`, color: '#94a3b8', fontStyle: 'bold' }).setOrigin(0.5);
   }
 
+
+  drawBottomUtilityBar() {
+    const { width, height, margin } = this.layout;
+    const barHeight = height * 0.05;
+    const centerY = height - barHeight / 2;
+    const iconStyle = {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: `${Math.max(20, Math.floor(barHeight * 0.72))}px`,
+      color: '#cbd5e1',
+      fontStyle: 'bold',
+    };
+
+    const leftIcon = this.add.text(margin, centerY, '←', iconStyle).setOrigin(0, 0.5);
+    const centerIcon = this.add.text(width * 0.5, centerY, '≡', iconStyle).setOrigin(0.5);
+    const rightIcon = this.add.text(width - margin, centerY, '⛶', iconStyle).setOrigin(1, 0.5);
+
+    [leftIcon, centerIcon, rightIcon].forEach((icon) => {
+      icon.setInteractive({ useHandCursor: true });
+      icon.setDepth(200);
+    });
+
+    leftIcon.on('pointerup', () => console.log('BACK'));
+    centerIcon.on('pointerup', () => console.log('MENU'));
+    rightIcon.on('pointerup', () => console.log('FULLSCREEN'));
+  }
   drawHeroPanels() {
     const { width, topHero, playerHero, contentWidth } = this.layout;
     const panelWidth = contentWidth * 0.72;
