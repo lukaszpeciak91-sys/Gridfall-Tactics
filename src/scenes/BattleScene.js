@@ -17,6 +17,7 @@ export default class BattleScene extends Phaser.Scene {
   create(data) {
     const { width, height } = this.scale;
     const factionKey = typeof data?.factionKey === 'string' && data.factionKey ? data.factionKey : 'Aggro';
+    this.factionKey = factionKey;
     const factionData = getFactionByKey(factionKey) ?? { name: `Unknown (${factionKey})`, deck: [] };
 
     this.gameState = createInitialBattleState(factionData);
@@ -33,6 +34,11 @@ export default class BattleScene extends Phaser.Scene {
     this.drawHand();
     this.drawStatusText();
     this.drawBottomUtilityBar();
+
+    this.scale.on('enterfullscreen', this.onFullscreenChanged, this);
+    this.scale.on('leavefullscreen', this.onFullscreenChanged, this);
+    this.scale.on('resize', this.onViewportChanged, this);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this);
 
   }
 
@@ -111,7 +117,7 @@ export default class BattleScene extends Phaser.Scene {
 
   drawBattleFrame() {
     const { width, height } = this.layout;
-    this.add.rectangle(width * 0.5, height * 0.5, width, height, 0x05080f, 1);
+    this.battleFrame = this.add.rectangle(width * 0.5, height * 0.5, width, height, 0x05080f, 1);
   }
 
 
@@ -135,10 +141,47 @@ export default class BattleScene extends Phaser.Scene {
       icon.setDepth(200);
     });
 
-    leftIcon.on('pointerup', () => console.log('BACK'));
-    centerIcon.on('pointerup', () => console.log('MENU'));
-    rightIcon.on('pointerup', () => console.log('FULLSCREEN'));
+    leftIcon.on('pointerup', () => this.scene.start('FactionSelectScene'));
+    centerIcon.on('pointerup', () => this.scene.start('BattleMenuScene', { factionKey: this.factionKey }));
+    rightIcon.on('pointerup', () => this.toggleFullscreen());
   }
+
+
+  toggleFullscreen() {
+    if (!this.scale.fullscreen.available) {
+      return;
+    }
+
+    if (this.scale.isFullscreen) {
+      this.scale.stopFullscreen();
+      return;
+    }
+
+    this.scale.startFullscreen();
+  }
+
+  onFullscreenChanged() {
+    this.onViewportChanged();
+  }
+
+  onViewportChanged() {
+    const width = this.scale.gameSize.width;
+    const height = this.scale.gameSize.height;
+
+    this.layout = this.getLayoutMetrics(width, height);
+
+    if (this.battleFrame) {
+      this.battleFrame.setPosition(width * 0.5, height * 0.5);
+      this.battleFrame.setSize(width, height);
+    }
+  }
+
+  shutdown() {
+    this.scale.off('enterfullscreen', this.onFullscreenChanged, this);
+    this.scale.off('leavefullscreen', this.onFullscreenChanged, this);
+    this.scale.off('resize', this.onViewportChanged, this);
+  }
+
   drawHeroPanels() {
     const { width, topHero, playerHero, contentWidth } = this.layout;
     const panelWidth = contentWidth * 0.72;
