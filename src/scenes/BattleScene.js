@@ -37,7 +37,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   getLayoutMetrics(width, height) {
-    const margin = Math.max(4, Math.round(width * 0.01));
+    const margin = Math.max(8, Math.round(width * 0.025));
     const contentWidth = width - margin * 2;
 
     const sectionRatios = {
