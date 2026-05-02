@@ -31,7 +31,7 @@ export default class BattleScene extends Phaser.Scene {
     this.refreshHeroHP();
     this.drawActionZone();
     this.drawHand();
-    this.drawStatusZone();
+    this.drawStatusText();
     this.drawBottomUtilityBar();
 
     this.setStatusMessage('Ready: Select a card');
@@ -286,19 +286,21 @@ export default class BattleScene extends Phaser.Scene {
     }
   }
 
-  drawStatusZone() {
-    const { width, status, margin } = this.layout;
-    this.add
-      .rectangle(width * 0.5, status.centerY, width - margin * 2, status.h, 0x0b1220, 0.7)
-      .setStrokeStyle(2, 0x334155, 0.75);
+  drawStatusText() {
+    const { width, board, playerHero, margin } = this.layout;
+    const boardBottomY = board.y + board.h;
+    const gapCenterY = boardBottomY + ((playerHero.y - boardBottomY) / 2);
 
-    this.statusText = this.add.text(width * 0.5, status.centerY, this.statusMessage ?? '', {
+    this.statusText = this.add.text(width * 0.5, gapCenterY, this.statusMessage ?? '', {
       fontFamily: 'Arial, sans-serif',
-      fontSize: `${status.fontSize}px`,
-      color: '#e2e8f0',
+      fontSize: `${Math.max(10, Math.floor(board.cellHeight * 0.11))}px`,
+      color: '#cbd5e1',
       align: 'center',
       wordWrap: { width: width - margin * 2 - 20 },
     }).setOrigin(0.5);
+
+    this.statusText.setAlpha(0.6);
+    this.statusText.setDepth(120);
   }
 
   onCardTap(cardId) {
