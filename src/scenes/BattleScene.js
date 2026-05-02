@@ -31,6 +31,7 @@ export default class BattleScene extends Phaser.Scene {
     this.refreshHeroHP();
     this.drawActionZone();
     this.drawHand();
+    this.drawStatusText();
     this.drawBottomUtilityBar();
 
   }
@@ -284,6 +285,22 @@ export default class BattleScene extends Phaser.Scene {
     }
   }
 
+  drawStatusText() {
+    const { width, board, playerHero, margin } = this.layout;
+    const boardBottomY = board.y + board.h;
+    const gapCenterY = boardBottomY + ((playerHero.y - boardBottomY) / 2);
+
+    this.statusText = this.add.text(width * 0.5, gapCenterY, this.statusMessage ?? '', {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: `${Math.max(10, Math.floor(board.cellHeight * 0.11))}px`,
+      color: '#cbd5e1',
+      align: 'center',
+      wordWrap: { width: width - margin * 2 - 20 },
+    }).setOrigin(0.5);
+
+    this.statusText.setAlpha(0.6);
+    this.statusText.setDepth(120);
+  }
 
   onCardTap(cardId) {
     const card = this.gameState.player.hand.find((item) => item.id === cardId);
