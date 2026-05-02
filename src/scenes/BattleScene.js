@@ -9,6 +9,8 @@ export default class BattleScene extends Phaser.Scene {
     this.selectedCardId = null;
     this.cardViews = [];
     this.boardCells = [];
+    this.pendingSwapIndex = null;
+    this.statusMessage = '';
   }
 
   preload() {
@@ -349,11 +351,15 @@ export default class BattleScene extends Phaser.Scene {
   onCardTap(cardId) {
     const card = this.gameState.player.hand.find((item) => item.id === cardId);
     if (!card) return;
+
+    this.pendingSwapIndex = null;
+
     if (this.selectedCardId === cardId) {
       this.selectedCardId = null;
       this.resetCardHighlights();
       return;
     }
+
     this.selectedCardId = cardId;
     this.resetCardHighlights();
   }
@@ -361,25 +367,43 @@ export default class BattleScene extends Phaser.Scene {
   onBoardCellTap(boardIndex) {
     if (!this.selectedCardId) {
       const unit = this.gameState.board[boardIndex];
-      if (!unit || unit.owner !== 'player') return;
-      if (this.pendingSwapIndex === undefined) {
+
+      if (!unit || unit.owner !== 'player') {
+        if (this.pendingSwapIndex !== null) {
+          this.pendingSwapIndex = null;
+          this.setStatusMessage('Invalid swap.');
+        }
+        return;
+      }
+
+      if (this.pendingSwapIndex === null) {
         this.pendingSwapIndex = boardIndex;
+        this.setStatusMessage('Swap: pick second unit.');
         return;
       }
+
       const result = performSwap(this.gameState, 'player', this.pendingSwapIndex, boardIndex);
-      this.pendingSwapIndex = undefined;
+      this.pendingSwapIndex = null;
+
       if (!result.ok) {
+        this.setStatusMessage('Invalid swap.');
         return;
       }
+
       this.executeFullTurn({ type: 'swap' });
       return;
     }
+
     const selectedCard = this.gameState.player.hand.find((card) => card.id === this.selectedCardId);
     if (!selectedCard || !this.isUnitCard(selectedCard)) return;
+
     const result = playOrRedeployUnit(this.gameState, 'player', this.selectedCardId, boardIndex);
     if (!result.ok) {
+      this.pendingSwapIndex = null;
+      this.setStatusMessage('Invalid placement.');
       return;
     }
+
     this.executeFullTurn({ type: result.type });
   }
 
@@ -387,26 +411,50 @@ export default class BattleScene extends Phaser.Scene {
     if (this.gameState.winner) return;
     if (actionResult?.type === 'pass' && !canPass(this.gameState)) return;
 
+    if (actionResult?.type === 'pass') {
+      this.setStatusMessage('Pass used.');
+    }
+
     this.enemyTakeAction();
     resolveCombat(this.gameState);
     drawCards(this.gameState.player, 1);
+
     this.selectedCardId = null;
+    this.pendingSwapIndex = null;
+
     this.refreshBoardLabels();
     this.redrawHand();
     this.refreshHeroHP();
+
     if (this.gameState.winner) {
+      this.setStatusMessage('Battle over.');
       return;
     }
+
+    this.setStatusMessage('Turn resolved. Your action.');
   }
 
   enemyTakeAction() {
     const action = chooseEnemyAction(this.gameState);
-    if (action.type !== 'play') return;
+    if (action.type !== 'play') {
+      this.setStatusMessage('Enemy acted.');
+      return;
+    }
 
     this.gameState.board[action.slotIndex] = {
       cardId: `enemy_${Date.now()}_${action.slotIndex}`,
       ...action.unit,
     };
+
+    this.setStatusMessage('Enemy acted.');
+  }
+
+
+  setStatusMessage(message) {
+    this.statusMessage = message;
+    if (this.statusText) {
+      this.statusText.setText(message);
+    }
   }
 
   redrawHand() {
