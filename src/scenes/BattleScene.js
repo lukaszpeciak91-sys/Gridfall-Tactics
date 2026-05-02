@@ -30,8 +30,8 @@ export default class BattleScene extends Phaser.Scene {
     this.drawHeroPanels();
     this.refreshHeroHP();
     this.drawActionZone();
-    this.drawHand();
     this.drawStatusZone();
+    this.drawHand();
     this.drawBottomUtilityBar();
 
     this.setStatusMessage('Ready: Select a card');
@@ -46,8 +46,7 @@ export default class BattleScene extends Phaser.Scene {
       board: 0.54,
       playerHero: 0.06,
       action: 0.05,
-      hand: 0.24,
-      status: 0.05,
+      hand: 0.28,
     };
     const gapRatio = 0.008;
     const topBottomPadRatio = 0.008;
@@ -62,7 +61,6 @@ export default class BattleScene extends Phaser.Scene {
     const playerHeroHeight = usableHeight * (sectionRatios.playerHero / totalSectionRatio);
     const actionHeight = usableHeight * (sectionRatios.action / totalSectionRatio);
     const handHeight = usableHeight * (sectionRatios.hand / totalSectionRatio);
-    const statusHeight = usableHeight * (sectionRatios.status / totalSectionRatio);
 
     const gapHeight = height * gapRatio;
     const topBottomPad = height * topBottomPadRatio;
@@ -77,8 +75,6 @@ export default class BattleScene extends Phaser.Scene {
     const actionY = cursorY;
     cursorY += actionHeight + gapHeight;
     const handY = cursorY;
-    cursorY += handHeight + gapHeight;
-    const statusY = cursorY;
 
     const boardWidth = Math.min(contentWidth * 0.985, contentWidth);
     const slotWidth = boardWidth / 3;
@@ -106,7 +102,6 @@ export default class BattleScene extends Phaser.Scene {
       playerHero: { y: playerHeroY, h: playerHeroHeight, centerY: playerHeroY + playerHeroHeight / 2 },
       action: { y: actionY, h: actionHeight, centerY: actionY + actionHeight / 2 },
       hand: { y: handY, h: handHeight, centerY: handY + handHeight / 2, cardWidth: handCardWidth, cardHeight: handCardHeight, deckAreaWidth, handTrackWidth, cardsVisible, step },
-      status: { y: statusY, h: statusHeight, centerY: statusY + statusHeight / 2, fontSize: Math.max(11, Math.floor(statusHeight * 0.78)) },
     };
   }
 
@@ -287,18 +282,22 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   drawStatusZone() {
-    const { width, status, margin } = this.layout;
-    this.add
-      .rectangle(width * 0.5, status.centerY, width - margin * 2, status.h, 0x0b1220, 0.7)
-      .setStrokeStyle(2, 0x334155, 0.75);
+    const { width, action, margin } = this.layout;
+    const statusHeight = Math.max(22, Math.floor(action.h * 0.7));
+    const statusY = action.y - statusHeight * 0.7;
 
-    this.statusText = this.add.text(width * 0.5, status.centerY, this.statusMessage ?? '', {
+    this.add
+      .rectangle(width * 0.5, statusY, width - margin * 2, statusHeight, 0x0b1220, 0.7)
+      .setStrokeStyle(2, 0x334155, 0.75)
+      .setDepth(30);
+
+    this.statusText = this.add.text(width * 0.5, statusY, this.statusMessage ?? '', {
       fontFamily: 'Arial, sans-serif',
-      fontSize: `${status.fontSize}px`,
+      fontSize: `${Math.max(11, Math.floor(statusHeight * 0.55))}px`,
       color: '#e2e8f0',
       align: 'center',
       wordWrap: { width: width - margin * 2 - 20 },
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setDepth(31);
   }
 
   onCardTap(cardId) {
@@ -312,7 +311,7 @@ export default class BattleScene extends Phaser.Scene {
     }
     this.selectedCardId = cardId;
     this.resetCardHighlights();
-    this.setStatusMessage(`Ready: ${card.name} selected`);
+    this.setStatusMessage(`Selected: ${card.name}`);
   }
 
   onBoardCellTap(boardIndex) {
