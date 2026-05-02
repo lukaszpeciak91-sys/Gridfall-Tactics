@@ -31,14 +31,6 @@ export default class BattleScene extends Phaser.Scene {
     this.drawActionZone();
     this.drawHand();
 
-    this.add
-      .text(this.layout.width * 0.5, this.layout.topHero.y * 0.4 + 12, `Faction: ${factionKey}`, {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '18px',
-        color: '#fde68a',
-      })
-      .setOrigin(0.5);
-
     this.statusText = this.add
       .text(this.layout.width * 0.5, this.layout.playerHero.y - this.layout.playerHero.h * 0.65, 'Ready: Select a card', {
         fontFamily: 'Arial, sans-serif',
