@@ -17,6 +17,8 @@ The following assumptions are obsolete for MVP implementation and replaced by th
 - Win condition based on "destroy all enemy units" or "enemy cannot act".
 - Any implied middle-row gameplay usage beyond visual/effects support.
 - Older combat framing not aligned to locked MVP column-only attack flow.
+- END TURN-driven flow assumptions (MVP now uses auto-turn).
+- Any terminology drifting from locked action names: `PASS`, `redeploy`, `swap`.
 
 ## Historical notes
 
