@@ -3,6 +3,72 @@ const ENEMY_ROW = [0, 1, 2];
 const PLAYER_ROW = [6, 7, 8];
 const HERO_START_HP = 12;
 
+function getRowForOwner(owner) {
+  return owner === 'player' ? PLAYER_ROW : ENEMY_ROW;
+}
+
+function getOpponentOwner(owner) {
+  return owner === 'player' ? 'enemy' : 'player';
+}
+
+function removeDefeatedUnits(state, boardIndexes) {
+  boardIndexes.forEach((index) => {
+    if (state.board[index] && state.board[index].hp <= 0) {
+      state.board[index] = null;
+    }
+  });
+}
+
+function applyEffectById(state, owner, effectId) {
+  switch (effectId) {
+    case 'damage_all_enemies_1': {
+      const enemyIndexes = getRowForOwner(getOpponentOwner(owner));
+      enemyIndexes.forEach((index) => {
+        if (state.board[index]) {
+          state.board[index].hp -= 1;
+        }
+      });
+      removeDefeatedUnits(state, enemyIndexes);
+      break;
+    }
+    case 'heal_2': {
+      const hpKey = owner === 'player' ? 'playerHP' : 'enemyHP';
+      const maxHpKey = owner === 'player' ? 'playerMaxHP' : 'enemyMaxHP';
+      state[hpKey] = Math.min(state[maxHpKey], state[hpKey] + 2);
+      break;
+    }
+    case 'buff_all_atk_1': {
+      const friendlyIndexes = getRowForOwner(owner);
+      friendlyIndexes.forEach((index) => {
+        if (state.board[index]) {
+          state.board[index].attack += 1;
+        }
+      });
+      break;
+    }
+    case 'summon_grunt_empty_slot': {
+      const friendlyIndexes = getRowForOwner(owner);
+      const emptySlot = friendlyIndexes.find((index) => state.board[index] === null);
+      if (emptySlot === undefined) {
+        break;
+      }
+      state.board[emptySlot] = {
+        cardId: `${owner}_summoned_grunt_${Date.now()}_${emptySlot}`,
+        name: 'Grunt',
+        owner,
+        type: 'unit',
+        attack: 1,
+        hp: 1,
+        maxHp: 1,
+        effectId: null,
+      };
+      break;
+    }
+    default:
+      break;
+  }
+}
+
 export function createInitialBattleState(factionData) {
   const deck = Array.isArray(factionData?.deck) ? [...factionData.deck] : [];
 
@@ -10,6 +76,8 @@ export function createInitialBattleState(factionData) {
     board: Array(BOARD_SIZE).fill(null),
     playerHP: HERO_START_HP,
     enemyHP: HERO_START_HP,
+    playerMaxHP: HERO_START_HP,
+    enemyMaxHP: HERO_START_HP,
     winner: null,
     player: {
       factionName: factionData?.name ?? 'Unknown',
@@ -88,6 +156,7 @@ export function playEffectCard(state, owner, handCardId) {
   }
 
   side.discard.push(card);
+  applyEffectById(state, owner, card.effectId ?? null);
   return { ok: true, type: 'effect', card };
 }
 
