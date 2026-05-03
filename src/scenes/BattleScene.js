@@ -515,12 +515,20 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     const action = chooseEnemyAction(this.gameState);
-    if (action.type !== 'play') {
+
+    if (action.type === 'play-unit') {
+      playOrRedeployUnit(this.gameState, 'enemy', action.cardId, action.slotIndex);
       return;
     }
 
-    playOrRedeployUnit(this.gameState, 'enemy', action.cardId, action.slotIndex);
+    if (action.type === 'play-effect') {
+      playEffectCard(this.gameState, 'enemy', action.cardId);
+      return;
+    }
 
+    if (action.type === 'play-targeted-effect') {
+      resolveTargetedEffectCard(this.gameState, 'enemy', action.cardId, action.targetIndex, [action.targetIndex]);
+    }
   }
 
 
