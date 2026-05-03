@@ -32,11 +32,48 @@ function createCardFromBoardUnit(unit) {
 }
 
 function removeDefeatedUnits(state, boardIndexes) {
+  cleanupDefeatedUnitsWithTriggers(state, boardIndexes);
+}
+
+function triggerUnitDeathEffects(state, index, unit) {
+  if (!unit) return;
+  const owner = unit.owner;
+  const enemyOwner = getOpponentOwner(owner);
+
+  if (unit.effectId === 'death_damage_enemy_hero_1') {
+    const hpKey = enemyOwner === 'player' ? 'playerHP' : 'enemyHP';
+    state[hpKey] = Math.max(0, state[hpKey] - 1);
+  }
+
+  if (unit.effectId === 'on_death_summon_grunt' && state.board[index] === null) {
+    state.board[index] = createBoardUnitFromCard({
+      id: `${owner}_death_grunt_${Date.now()}_${index}`,
+      name: 'Grunt',
+      type: 'unit',
+      attack: 1,
+      hp: 1,
+      armor: 0,
+      effectId: null,
+    }, owner);
+  }
+}
+
+function cleanupDefeatedUnitsWithTriggers(state, boardIndexes) {
   boardIndexes.forEach((index) => {
-    if (state.board[index] && state.board[index].hp <= 0) {
-      state.board[index] = null;
-    }
+    const unit = state.board[index];
+    if (!unit || unit.hp > 0) return;
+    state.board[index] = null;
+    triggerUnitDeathEffects(state, index, unit);
   });
+}
+
+function applyDamageToUnit(state, index, amount) {
+  const unit = state.board[index];
+  if (!unit || amount <= 0) return;
+  unit.hp -= amount;
+  if (unit.hp > 0 && unit.effectId === 'gain_atk_when_damaged') {
+    unit.attack += 1;
+  }
 }
 
 function applyEffectById(state, owner, effectId) {
@@ -315,6 +352,14 @@ export function playOrRedeployUnit(state, owner, handCardId, boardIndex) {
 
   state.board[boardIndex] = createBoardUnitFromCard(card, owner);
 
+  if (card.effectId === 'on_play_lane_damage_1') {
+    const enemyIndex = owner === 'player' ? boardIndex - 6 : boardIndex + 6;
+    if (state.board[enemyIndex] && state.board[enemyIndex].owner !== owner) {
+      applyDamageToUnit(state, enemyIndex, 1);
+      cleanupDefeatedUnitsWithTriggers(state, [enemyIndex]);
+    }
+  }
+
   side.discard.push(card);
   return { ok: true, type: validation.type, card };
 }
@@ -347,21 +392,33 @@ export function resolveCombat(state) {
     const player = state.board[playerIndex];
 
     if (player) {
-      if (enemy) enemy.hp -= getMitigatedDamage(player, enemy);
-      else state.enemyHP -= player.attack;
+      const playerAttack = player.effectId === 'cannot_attack' ? 0 : (player.attack ?? 0);
+      if (enemy) {
+        applyDamageToUnit(state, enemyIndex, getMitigatedDamage({ ...player, attack: playerAttack }, enemy));
+      } else {
+        state.enemyHP -= playerAttack;
+      }
+      if (player.effectId === 'self_damage_after_attack') {
+        applyDamageToUnit(state, playerIndex, 1);
+      }
     }
 
     if (enemy) {
-      if (player) player.hp -= getMitigatedDamage(enemy, player);
-      else state.playerHP -= enemy.attack;
+      const enemyAttack = enemy.effectId === 'cannot_attack' ? 0 : (enemy.attack ?? 0);
+      if (player) {
+        applyDamageToUnit(state, playerIndex, getMitigatedDamage({ ...enemy, attack: enemyAttack }, player));
+      } else {
+        state.playerHP -= enemyAttack;
+      }
+      if (enemy.effectId === 'self_damage_after_attack') {
+        applyDamageToUnit(state, enemyIndex, 1);
+      }
     }
+
+    cleanupDefeatedUnitsWithTriggers(state, [enemyIndex, playerIndex]);
   }
 
-  [...ENEMY_ROW, ...PLAYER_ROW].forEach((index) => {
-    if (state.board[index] && state.board[index].hp <= 0) {
-      state.board[index] = null;
-    }
-  });
+  cleanupDefeatedUnitsWithTriggers(state, [...ENEMY_ROW, ...PLAYER_ROW]);
 
   state.playerHP = Math.max(0, state.playerHP);
   state.enemyHP = Math.max(0, state.enemyHP);
