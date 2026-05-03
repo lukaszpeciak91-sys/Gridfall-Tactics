@@ -300,14 +300,14 @@ export default class BattleScene extends Phaser.Scene {
       const x = handTrackLeft + index * hand.step;
       const card = this.gameState.player.hand[index] ?? null;
       const cardId = card?.id ?? `slot-${index}`;
-      const cardName = card?.name ?? '';
+      const cardLabel = this.getHandCardLabel(card);
       const background = this.add.rectangle(x, centerY + hand.h * 0.06, hand.cardWidth, hand.cardHeight, 0x111827, 0.55).setStrokeStyle(3, 0x94a3b8, 0.7);
-      const label = this.add.text(x, centerY + hand.h * 0.1, cardName || 'Empty', {
+      const label = this.add.text(x, centerY + hand.h * 0.1, cardLabel, {
         fontFamily: 'Arial, sans-serif',
-        fontSize: `${Math.max(16, Math.floor(hand.cardWidth * 0.17))}px`,
+        fontSize: `${Math.max(12, Math.floor(hand.cardWidth * 0.108))}px`,
         color: '#f8fafc',
         align: 'center',
-        wordWrap: { width: hand.cardWidth - 14 },
+        wordWrap: { width: hand.cardWidth - 16 },
       }).setOrigin(0.5);
 
       const hitArea = this.add.rectangle(x, centerY + hand.h * 0.06, hand.cardWidth, hand.cardHeight, 0x000000, 0).setInteractive({ useHandCursor: true });
@@ -325,6 +325,24 @@ export default class BattleScene extends Phaser.Scene {
         label.setAlpha(0.45);
       }
     }
+  }
+
+  getHandCardLabel(card) {
+    if (!card) {
+      return 'Empty';
+    }
+
+    const description = typeof card.textShort === 'string' ? card.textShort.trim() : '';
+    const hasUnitStats = card.type === 'unit';
+    const atk = Number.isFinite(card.attack) ? card.attack : 0;
+    const hp = Number.isFinite(card.hp) ? card.hp : 0;
+    const armor = Number.isFinite(card.armor) ? card.armor : 0;
+
+    const statLine = hasUnitStats ? `${atk}/${hp} ARM ${armor}` : '';
+    const lines = [card.name];
+    if (statLine) lines.push(statLine);
+    if (description) lines.push(description);
+    return lines.join('\n');
   }
 
 

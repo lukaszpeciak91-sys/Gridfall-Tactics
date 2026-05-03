@@ -57,12 +57,46 @@ function applyEffectById(state, owner, effectId) {
       state[hpKey] = Math.min(state[maxHpKey], state[hpKey] + 2);
       break;
     }
+    case 'heal_3': {
+      const hpKey = owner === 'player' ? 'playerHP' : 'enemyHP';
+      const maxHpKey = owner === 'player' ? 'playerMaxHP' : 'enemyMaxHP';
+      state[hpKey] = Math.min(state[maxHpKey], state[hpKey] + 3);
+      break;
+    }
+    case 'heal_all_1': {
+      const friendlyIndexes = getRowForOwner(owner);
+      friendlyIndexes.forEach((index) => {
+        const unit = state.board[index];
+        if (!unit) return;
+        const hpCap = Number.isFinite(unit.maxHp) ? unit.maxHp : unit.hp;
+        unit.hp = Math.min(hpCap, unit.hp + 1);
+      });
+      break;
+    }
     case 'buff_all_atk_1': {
       const friendlyIndexes = getRowForOwner(owner);
       friendlyIndexes.forEach((index) => {
         if (state.board[index]) {
           state.board[index].attack += 1;
         }
+      });
+      break;
+    }
+    case 'buff_all_armor_1': {
+      const friendlyIndexes = getRowForOwner(owner);
+      friendlyIndexes.forEach((index) => {
+        const unit = state.board[index];
+        if (!unit) return;
+        unit.armor = (unit.armor ?? 0) + 1;
+      });
+      break;
+    }
+    case 'enemy_all_atk_minus_1': {
+      const enemyIndexes = getRowForOwner(getOpponentOwner(owner));
+      enemyIndexes.forEach((index) => {
+        const enemyUnit = state.board[index];
+        if (!enemyUnit) return;
+        enemyUnit.attack = Math.max(0, (enemyUnit.attack ?? 0) - 1);
       });
       break;
     }
@@ -83,6 +117,25 @@ function applyEffectById(state, owner, effectId) {
       }, owner);
       break;
     }
+    case 'fill_empty_slots_1hp': {
+      const friendlyIndexes = getRowForOwner(owner);
+      friendlyIndexes.forEach((index) => {
+        if (state.board[index]) return;
+        state.board[index] = createBoardUnitFromCard({
+          id: `${owner}_flood_token_${Date.now()}_${index}`,
+          name: 'Token',
+          type: 'unit',
+          attack: 0,
+          hp: 1,
+          armor: 0,
+          effectId: null,
+        }, owner);
+      });
+      break;
+    }
+    // Deferred by design: one meaningful player action per turn.
+    case 'extra_action_once':
+      break;
     default:
       break;
   }
