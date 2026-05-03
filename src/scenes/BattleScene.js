@@ -543,10 +543,28 @@ export default class BattleScene extends Phaser.Scene {
     this.drawHand();
   }
 
+  getBoardUnitLabel(unit) {
+    if (!unit) return '';
+
+    const name = unit.name ?? 'Unit';
+    const atk = Number.isFinite(unit.attack) ? unit.attack : 0;
+    const hp = Number.isFinite(unit.hp) ? unit.hp : 0;
+    const armor = Number.isFinite(unit.armor) ? unit.armor : 0;
+
+    const statParts = [`ATK ${atk}`];
+    if (armor > 0) {
+      statParts.push(`ARM ${armor}`);
+    }
+    statParts.push(`HP ${hp}`);
+
+    return `${name}
+${statParts.join(' | ')}`;
+  }
+
   refreshBoardLabels() {
     this.boardCells.forEach((cell) => {
       const unit = this.gameState.board[cell.index];
-      cell.label.setText(unit ? unit.name : '');
+      cell.label.setText(this.getBoardUnitLabel(unit));
     });
   }
 
