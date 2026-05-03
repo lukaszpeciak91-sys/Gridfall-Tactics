@@ -24,7 +24,8 @@ export default class BattleScene extends Phaser.Scene {
     const factionData = getFactionByKey(factionKey) ?? { name: `Unknown (${factionKey})`, deck: [] };
 
     this.gameState = createInitialBattleState(factionData);
-    drawCards(this.gameState.player, 4);
+    const STARTING_HAND_SIZE = 4;
+    drawCards(this.gameState.player, STARTING_HAND_SIZE);
 
     this.cameras.main.setBackgroundColor('#05080f');
     this.layout = this.getLayoutMetrics(width, height);
@@ -90,13 +91,13 @@ export default class BattleScene extends Phaser.Scene {
     const cellWidth = slotWidth * boardScale;
     const cellHeight = slotHeight * boardScale;
 
-    const handCardWidth = Math.min(contentWidth * 0.31, handHeight * 0.94);
+    const handCardWidth = Math.min(contentWidth * 0.27, handHeight * 0.9);
     const handCardHeight = handCardWidth * 1.34;
     const deckAreaWidth = contentWidth * 0.2;
     const handTrackWidth = contentWidth - deckAreaWidth - margin * 0.8;
-    const cardsVisible = Math.min(3, this.gameState.player.maxHandSize);
+    const cardsVisible = Math.min(5, this.gameState.player.maxHandSize);
     const fittedStep = cardsVisible > 1 ? (handTrackWidth - handCardWidth) / (cardsVisible - 1) : 0;
-    const overlapStep = handCardWidth * 0.82;
+    const overlapStep = handCardWidth * 1.08;
     const step = cardsVisible > 1 ? Math.min(fittedStep, overlapStep) : 0;
 
     return {
