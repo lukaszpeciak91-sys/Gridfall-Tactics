@@ -209,6 +209,12 @@ export function performSwap(state, owner, fromIndex, toIndex) {
 }
 
 export function resolveCombat(state) {
+  const getMitigatedDamage = (attacker, defender) => {
+    const attackDamage = attacker?.attack ?? 0;
+    const armor = defender?.armor ?? 0;
+    return Math.max(0, attackDamage - armor);
+  };
+
   for (let col = 0; col < 3; col += 1) {
     const enemyIndex = ENEMY_ROW[col];
     const playerIndex = PLAYER_ROW[col];
@@ -216,12 +222,12 @@ export function resolveCombat(state) {
     const player = state.board[playerIndex];
 
     if (player) {
-      if (enemy) enemy.hp -= player.attack;
+      if (enemy) enemy.hp -= getMitigatedDamage(player, enemy);
       else state.enemyHP -= player.attack;
     }
 
     if (enemy) {
-      if (player) player.hp -= enemy.attack;
+      if (player) player.hp -= getMitigatedDamage(enemy, player);
       else state.playerHP -= enemy.attack;
     }
   }
