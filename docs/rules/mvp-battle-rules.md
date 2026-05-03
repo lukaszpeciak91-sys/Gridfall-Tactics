@@ -34,7 +34,7 @@ If any other document conflicts with this file, this file wins.
 ## 4) Deck and Hand Rules
 
 - Deck size: **10 cards**.
-- Starting hand: **3 cards**.
+- Starting hand: **4 cards**.
 - Draw: **1 card per turn**.
 - Max hand size: **5 cards**.
 - Mulligan Lite at battle start: replace **1** card.
@@ -43,13 +43,13 @@ If any other document conflicts with this file, this file wins.
 ## 5) Turn and Action Economy (Auto-Turn)
 
 - Each side gets **one action per turn**.
-- There is **no END TURN button/action**.
-- The battle loop is **auto-turn**:
-  1. Player takes one action.
-  2. Enemy takes one action.
-  3. Combat resolves.
-  4. Player draws 1 card.
-  5. Next player action begins.
+- Player may take **one meaningful action** per turn, then must press **PASS / RESOLVE TURN**.
+- `PASS` is always allowed, even if no meaningful action was taken.
+- Turn resolves on `PASS` in this order:
+  1. Enemy takes one action.
+  2. Combat resolves.
+  3. Player draws 1 card.
+  4. New player turn begins.
 - Valid player actions are:
   - Play card
   - Use effect/special
@@ -59,8 +59,8 @@ If any other document conflicts with this file, this file wins.
 
 ### PASS
 
-- `PASS` spends the player's one action for the turn.
-- After `PASS`, enemy action and combat resolution still occur in the normal auto-turn flow.
+- `PASS` / `RESOLVE TURN` ends the player turn and runs enemy action, combat, then draw 1.
+- `PASS` is valid both with and without a prior meaningful action in the turn.
 
 ## 6) Redeploy Rule (Locked)
 

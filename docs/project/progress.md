@@ -12,7 +12,7 @@
 - Battle UI layout v1 locked and implemented; board/hand/deck/action areas now follow mobile-first proportions.
 - Basic scene flow implemented: `StartScene` → `FactionSelectScene` → `BattleScene`.
 - Added initial faction data and a minimal battle `GameState` system.
-- `BattleScene` initializes deck/hand/discard state and draws a 3-card starting hand.
+- `BattleScene` initializes deck/hand/discard state and draws a 4-card starting hand.
 - MVP battle loop implemented and verified in code:
   - auto-turn flow (no END TURN)
   - `PASS` action
@@ -41,3 +41,9 @@
 ## Battle UI Layout Pass (Mobile-First)
 - Established structured portrait layout with top info, board, action, hand, and status regions.
 - Improved readability/usability on mobile while keeping gameplay scope unchanged.
+
+
+## Turn Flow Fix (2026-05-03)
+- Updated `BattleScene` to enforce one meaningful player action per turn using a minimal per-turn action-used flag.
+- PASS now explicitly resolves turn sequencing (enemy action, combat, draw 1) and resets transient selection/swap input state for the next turn.
+- Added action blocking feedback when attempting a second meaningful action before PASS.

@@ -21,7 +21,7 @@
 ## Game State Initialization (MVP)
 - Introduce a dedicated `GameState` system to initialize battle state from a selected faction deck.
 - Keep battle state minimal for now: 9-cell board, player deck/hand/discard zones, and turn flags.
-- Draw a **3-card starting hand** at battle start.
+- Draw a **4-card starting hand** at battle start.
 - Use debug text in `BattleScene` to visualize state values before card UI/gameplay is added.
 
 ## Merge Integration Consistency (2026-04-30)
@@ -39,3 +39,10 @@
 - Confirmed auto-turn loop (no END TURN action), `PASS` action, `redeploy`, and `swap` as the implemented MVP action model.
 - Confirmed hero HP (`12/12`) and hero HP zero as the only MVP win condition.
 - Confirmed column-only combat lanes and middle row as visual-only (non-playable).
+
+
+## MVP Turn Flow Lock Update (2026-05-03)
+- Locked player flow to: one meaningful action maximum per player turn, then `PASS`/`RESOLVE TURN` to advance resolution.
+- Enemy action and combat no longer trigger immediately after a player action; they trigger only during PASS/RESOLVE.
+- PASS remains valid even if the player takes no meaningful action.
+- Turn resolution order locked to enemy action -> combat -> player draw 1 -> new player turn.
