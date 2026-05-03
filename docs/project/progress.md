@@ -47,3 +47,7 @@
 - Updated `BattleScene` to enforce one meaningful player action per turn using a minimal per-turn action-used flag.
 - PASS now explicitly resolves turn sequencing (enemy action, combat, draw 1) and resets transient selection/swap input state for the next turn.
 - Added action blocking feedback when attempting a second meaningful action before PASS.
+
+## UI Cleanup Guardrail Added (2026-05-03)
+- Added a permanent documentation guardrail forbidding visible debug/test labels in playable UI unless explicitly requested.
+- Verified no `Battle Test` string remains in `src/` or `docs/`.

@@ -46,3 +46,7 @@
 - Enemy action and combat no longer trigger immediately after a player action; they trigger only during PASS/RESOLVE.
 - PASS remains valid even if the player takes no meaningful action.
 - Turn resolution order locked to enemy action -> combat -> player draw 1 -> new player turn.
+
+## Playable UI Debug Text Guardrail (2026-05-03)
+- Permanent rule: no visible debug/test labels in playable UI unless explicitly requested for a scoped task.
+- Forbidden examples unless requested: `Battle Test`, debug overlays, temporary scene labels, and hidden/background debug text that appears behind gameplay UI.
