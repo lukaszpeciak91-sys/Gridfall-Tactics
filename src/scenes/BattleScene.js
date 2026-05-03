@@ -26,6 +26,7 @@ export default class BattleScene extends Phaser.Scene {
     this.gameState = createInitialBattleState(factionData);
     const STARTING_HAND_SIZE = 4;
     drawCards(this.gameState.player, STARTING_HAND_SIZE);
+    drawCards(this.gameState.enemy, STARTING_HAND_SIZE);
 
     this.cameras.main.setBackgroundColor('#05080f');
     this.layout = this.getLayoutMetrics(width, height);
@@ -432,15 +433,16 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   enemyTakeAction() {
+    if (!this.gameState.enemy.hand.length) {
+      drawCards(this.gameState.enemy, 1);
+    }
+
     const action = chooseEnemyAction(this.gameState);
     if (action.type !== 'play') {
       return;
     }
 
-    this.gameState.board[action.slotIndex] = {
-      cardId: `enemy_${Date.now()}_${action.slotIndex}`,
-      ...action.unit,
-    };
+    playOrRedeployUnit(this.gameState, 'enemy', action.cardId, action.slotIndex);
 
   }
 
