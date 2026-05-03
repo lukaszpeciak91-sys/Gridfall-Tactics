@@ -100,16 +100,26 @@ export function playOrRedeployUnit(state, owner, handCardId, boardIndex) {
   const [card] = side.hand.splice(handIndex, 1);
 
   if (validation.type === 'redeploy') {
-    side.hand.push({ id: `${state.board[boardIndex].cardId}_returned`, name: state.board[boardIndex].name });
+    const displacedUnit = state.board[boardIndex];
+    side.hand.push({
+      id: displacedUnit.cardId,
+      name: displacedUnit.name,
+      type: displacedUnit.type ?? 'unit',
+      attack: displacedUnit.attack,
+      hp: displacedUnit.maxHp ?? displacedUnit.hp,
+      effectId: displacedUnit.effectId ?? null,
+    });
   }
 
   state.board[boardIndex] = {
     cardId: card.id,
     name: card.name,
     owner,
-    kind: 'unit',
-    attack: 1,
-    hp: 1,
+    type: card.type ?? 'unit',
+    attack: card.attack,
+    hp: card.hp,
+    maxHp: card.hp,
+    effectId: card.effectId ?? null,
   };
 
   side.discard.push(card);
