@@ -161,7 +161,7 @@ export default class BattleScene extends Phaser.Scene {
     });
 
     leftIcon.on('pointerup', () => {
-      this.scene.stop('FactionSelectScene');
+      this.scene.stop('BattleScene');
       this.scene.start('FactionSelectScene');
     });
     centerIcon.on('pointerup', () => this.scene.start('BattleMenuScene', { factionKey: this.factionKey }));

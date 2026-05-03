@@ -12,6 +12,12 @@ export default class FactionSelectScene extends Phaser.Scene {
   }
 
   create() {
+    this.cleanupScene();
+
+    if (this.children) {
+      this.children.removeAll(true);
+    }
+
     const { width, height } = this.scale;
     const factionKeys = getFactionKeys();
 
@@ -46,7 +52,7 @@ export default class FactionSelectScene extends Phaser.Scene {
       button.on('pointerover', () => button.setBackgroundColor('#bfdbfe'));
       button.on('pointerout', () => button.setBackgroundColor('#93c5fd'));
       button.on('pointerup', () => {
-        this.scene.stop('BattleScene');
+        this.scene.stop('FactionSelectScene');
         this.scene.start('BattleScene', { factionKey });
       });
 
