@@ -3,15 +3,15 @@
   "name": "Aggro",
   "frameImage": "frame_default",
   "deck": [
-    { "id": "aggro_grunt_1", "name": "Grunt" },
-    { "id": "aggro_spitter_1", "name": "Spitter" },
-    { "id": "aggro_rusher_1", "name": "Rusher" },
-    { "id": "aggro_grunt_2", "name": "Grunt" },
-    { "id": "aggro_spawn_1", "name": "Spawn" },
-    { "id": "aggro_brood_1", "name": "Brood" },
-    { "id": "aggro_swarm_attack_1", "name": "Swarm Attack" },
-    { "id": "aggro_alpha_1", "name": "Alpha" },
-    { "id": "aggro_recycle_1", "name": "Recycle" },
-    { "id": "aggro_flood_1", "name": "Flood" }
+    { "id": "aggro_runner_1", "name": "Runner", "type": "unit", "targeting": "lane", "effectId": "lane_empty_bonus_damage", "textShort": "If lane empty: +1 hero dmg.", "attack": 2, "hp": 1, "armor": 0 },
+    { "id": "aggro_striker_1", "name": "Striker", "type": "unit", "targeting": "lane", "effectId": null, "textShort": "Reliable fighter.", "attack": 2, "hp": 2, "armor": 0 },
+    { "id": "aggro_glass_cannon_1", "name": "Glass Cannon", "type": "unit", "targeting": "lane", "effectId": "self_damage_after_attack", "textShort": "After attack: lose 1 HP.", "attack": 3, "hp": 1, "armor": 0 },
+    { "id": "aggro_flanker_1", "name": "Flanker", "type": "unit", "targeting": "lane", "effectId": "empty_adjacent_bonus_atk", "textShort": "If adjacent slot empty: +1 ATK.", "attack": 1, "hp": 2, "armor": 0 },
+    { "id": "aggro_scout_1", "name": "Scout", "type": "unit", "targeting": "enemy", "effectId": "peek_enemy_slot", "textShort": "On play: reveal enemy slot.", "attack": 1, "hp": 1, "armor": 0 },
+    { "id": "aggro_full_attack_1", "name": "Full Attack", "type": "order", "targeting": "all_friendly_units", "effectId": "buff_all_atk_1", "textShort": "All allies +1 ATK this turn." },
+    { "id": "aggro_rush_1", "name": "Rush", "type": "order", "targeting": "friendly_unit", "effectId": "swap_adjacent_then_resolve", "textShort": "Swap adjacent, then resolve." },
+    { "id": "aggro_pierce_strike_1", "name": "Pierce Strike", "type": "order", "targeting": "friendly_unit", "effectId": "ignore_armor_next_attack", "textShort": "Next attack ignores armor." },
+    { "id": "aggro_adrenaline_1", "name": "Adrenaline", "type": "special", "targeting": "self", "effectId": "extra_action_once", "textShort": "Take 1 extra action now." },
+    { "id": "aggro_quick_fix_1", "name": "Quick Fix", "type": "utility", "targeting": "friendly_unit", "effectId": "heal_2", "textShort": "Heal a unit 2." }
   ]
 }

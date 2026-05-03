@@ -3,45 +3,15 @@
   "name": "Swarm",
   "frameImage": "frame_default",
   "deck": [
-    {
-      "id": "swarm_drone_1",
-      "name": "Drone"
-    },
-    {
-      "id": "swarm_skitter_1",
-      "name": "Skitter"
-    },
-    {
-      "id": "swarm_hiveguard_1",
-      "name": "Hiveguard"
-    },
-    {
-      "id": "swarm_drone2_1",
-      "name": "Drone"
-    },
-    {
-      "id": "swarm_infest_1",
-      "name": "Infest"
-    },
-    {
-      "id": "swarm_broodling_1",
-      "name": "Broodling"
-    },
-    {
-      "id": "swarm_overrun_1",
-      "name": "Overrun"
-    },
-    {
-      "id": "swarm_hive_queen_1",
-      "name": "Hive Queen"
-    },
-    {
-      "id": "swarm_consume_1",
-      "name": "Consume"
-    },
-    {
-      "id": "swarm_tide_of_flesh_1",
-      "name": "Tide of Flesh"
-    }
+    { "id": "swarm_grunt_1", "name": "Grunt", "type": "unit", "targeting": "lane", "effectId": null, "textShort": "Small fighter.", "attack": 1, "hp": 1, "armor": 0 },
+    { "id": "swarm_spitter_1", "name": "Spitter", "type": "unit", "targeting": "lane", "effectId": "on_play_lane_damage_1", "textShort": "On play: deal 1 in lane.", "attack": 1, "hp": 1, "armor": 0 },
+    { "id": "swarm_brood_1", "name": "Brood", "type": "unit", "targeting": "lane", "effectId": "on_death_summon_grunt", "textShort": "On death: summon 1/1.", "attack": 1, "hp": 2, "armor": 0 },
+    { "id": "swarm_rusher_1", "name": "Rusher", "type": "unit", "targeting": "lane", "effectId": null, "textShort": "Fast pressure unit.", "attack": 2, "hp": 1, "armor": 0 },
+    { "id": "swarm_alpha_1", "name": "Alpha", "type": "unit", "targeting": "lane", "effectId": "adjacent_allies_atk_plus_1", "textShort": "Adjacent allies +1 ATK.", "attack": 2, "hp": 2, "armor": 0 },
+    { "id": "swarm_spawn_1", "name": "Spawn", "type": "order", "targeting": "empty_friendly_slot", "effectId": "summon_grunt_empty_slot", "textShort": "Summon 1/1 to empty slot." },
+    { "id": "swarm_swarm_attack_1", "name": "Swarm Attack", "type": "order", "targeting": "all_friendly_units", "effectId": "buff_all_atk_1", "textShort": "All allies +1 ATK this turn." },
+    { "id": "swarm_regrow_1", "name": "Regrow", "type": "order", "targeting": "friendly_discard", "effectId": "revive_friendly_1hp", "textShort": "Revive a friendly at 1 HP." },
+    { "id": "swarm_flood_1", "name": "Flood", "type": "special", "targeting": "empty_friendly_slots", "effectId": "fill_empty_slots_1hp", "textShort": "Fill empty slots with 1 HP units." },
+    { "id": "swarm_recycle_1", "name": "Recycle", "type": "utility", "targeting": "friendly_unit", "effectId": "destroy_friendly_draw_2", "textShort": "Destroy ally. Draw 2." }
   ]
 }
