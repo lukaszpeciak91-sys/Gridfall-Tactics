@@ -415,7 +415,24 @@ export default class BattleScene extends Phaser.Scene {
         return;
       }
 
-      const result = resolveTargetedEffectCard(this.gameState, 'player', this.selectedCardId, boardIndex);
+      const targetIndexes = [...(this.targetingState.targetIndexes ?? [])];
+      if (this.targetingState.requiredTargets > 1) {
+        if (!targetIndexes.includes(boardIndex)) {
+          targetIndexes.push(boardIndex);
+        }
+      } else {
+        targetIndexes.splice(0, targetIndexes.length, boardIndex);
+      }
+
+      const result = resolveTargetedEffectCard(this.gameState, 'player', this.selectedCardId, boardIndex, targetIndexes);
+      if (result.ok && result.type === 'targeted-effect-pending') {
+        this.targetingState = {
+          ...this.targetingState,
+          targetIndexes,
+        };
+        this.resetCardHighlights();
+        return;
+      }
       if (!result.ok) return;
       this.playerActionUsed = true;
       this.refreshAfterPlayerAction();
@@ -558,7 +575,13 @@ export default class BattleScene extends Phaser.Scene {
   getTargetingStateForCard(card) {
     if (!card) return null;
     if (card.effectId === 'return_friendly_draw_1' || card.effectId === 'destroy_friendly_draw_2') {
-      return { cardId: card.id, targetType: 'friendly-unit' };
+      return { cardId: card.id, targetType: 'friendly-unit', requiredTargets: 1, targetIndexes: [] };
+    }
+    if (card.effectId === 'enemy_lane_atk_minus_1' || card.effectId === 'ignore_armor_next_attack') {
+      return { cardId: card.id, targetType: 'enemy-unit', requiredTargets: 1, targetIndexes: [] };
+    }
+    if (card.effectId === 'swap_two_enemy_units') {
+      return { cardId: card.id, targetType: 'enemy-unit', requiredTargets: 2, targetIndexes: [] };
     }
     return null;
   }
