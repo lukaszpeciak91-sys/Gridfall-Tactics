@@ -62,6 +62,7 @@ export function canPlayOrRedeploy(state, owner, handCardId, boardIndex) {
 
   const card = side.hand.find((item) => item.id === handCardId);
   if (!card) return { ok: false, reason: 'Card not in hand' };
+  if (card.type && card.type !== 'unit') return { ok: false, reason: 'Only unit cards can be placed on board' };
 
   const occupyingUnit = state.board[boardIndex];
   if (!occupyingUnit) return { ok: true, type: 'play' };
@@ -72,6 +73,22 @@ export function canPlayOrRedeploy(state, owner, handCardId, boardIndex) {
   }
 
   return { ok: true, type: 'redeploy' };
+}
+
+export function playEffectCard(state, owner, handCardId) {
+  if (!state || state.winner) return { ok: false, reason: 'Battle is over' };
+  const side = owner === 'player' ? state.player : state.enemy;
+  const handIndex = side.hand.findIndex((item) => item.id === handCardId);
+  if (handIndex < 0) return { ok: false, reason: 'Card not in hand' };
+
+  const [card] = side.hand.splice(handIndex, 1);
+  if (card.type === 'unit') {
+    side.hand.splice(handIndex, 0, card);
+    return { ok: false, reason: 'Unit cards must be placed on board' };
+  }
+
+  side.discard.push(card);
+  return { ok: true, type: 'effect', card };
 }
 
 export function playOrRedeployUnit(state, owner, handCardId, boardIndex) {
