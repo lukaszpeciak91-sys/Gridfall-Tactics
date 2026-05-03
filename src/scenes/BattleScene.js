@@ -18,6 +18,25 @@ export default class BattleScene extends Phaser.Scene {
     // no-op
   }
 
+  init() {
+    this.resetRuntimeState();
+  }
+
+  resetRuntimeState() {
+    this.selectedCardId = null;
+    this.cardViews = [];
+    this.boardCells = [];
+    this.pendingSwapIndex = null;
+    this.playerActionUsed = false;
+    this.targetingState = null;
+    this.gameState = null;
+    this.factionKey = null;
+    this.layout = null;
+    this.battleFrame = null;
+    this.enemyHpText = null;
+    this.playerHpText = null;
+  }
+
   create(data) {
     const { width, height } = this.scale;
     const factionKey = typeof data?.factionKey === 'string' && data.factionKey ? data.factionKey : 'Aggro';
