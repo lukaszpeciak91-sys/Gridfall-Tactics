@@ -46,6 +46,7 @@ export default class FactionSelectScene extends Phaser.Scene {
       button.on('pointerover', () => button.setBackgroundColor('#bfdbfe'));
       button.on('pointerout', () => button.setBackgroundColor('#93c5fd'));
       button.on('pointerup', () => {
+        this.scene.stop('BattleScene');
         this.scene.start('BattleScene', { factionKey });
       });
 
