@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { getFactionByKey } from '../data/factions/index.js';
+import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
 import { createInitialBattleState, drawCards, canPass, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard } from '../systems/GameState.js';
 import { chooseEnemyAction } from '../systems/enemyDecision.js';
 
@@ -39,11 +39,17 @@ export default class BattleScene extends Phaser.Scene {
 
   create(data) {
     const { width, height } = this.scale;
-    const factionKey = typeof data?.factionKey === 'string' && data.factionKey ? data.factionKey : 'Aggro';
-    this.factionKey = factionKey;
-    const factionData = getFactionByKey(factionKey) ?? { name: `Unknown (${factionKey})`, deck: [] };
+    const playerFactionKey = typeof data?.factionKey === 'string' && data.factionKey ? data.factionKey : 'Aggro';
+    this.factionKey = playerFactionKey;
+    const enemyFactionKey = this.selectEnemyFactionKey(playerFactionKey);
+    this.enemyFactionKey = enemyFactionKey;
 
-    this.gameState = createInitialBattleState(factionData);
+    const playerFactionData = getFactionByKey(playerFactionKey) ?? { name: `Unknown (${playerFactionKey})`, deck: [] };
+    const enemyFactionData = getFactionByKey(enemyFactionKey) ?? { name: `Unknown (${enemyFactionKey})`, deck: [] };
+
+    this.gameState = createInitialBattleState(playerFactionData, enemyFactionData);
+    this.gameState.player.factionKey = playerFactionKey;
+    this.gameState.enemy.factionKey = enemyFactionKey;
     const STARTING_HAND_SIZE = 4;
     drawCards(this.gameState.player, STARTING_HAND_SIZE);
     drawCards(this.gameState.enemy, STARTING_HAND_SIZE);
@@ -64,6 +70,24 @@ export default class BattleScene extends Phaser.Scene {
     this.scale.on('resize', this.onViewportChanged, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this);
 
+  }
+
+  selectEnemyFactionKey(playerFactionKey) {
+    const factionKeys = getFactionKeys();
+    if (factionKeys.length === 0) {
+      return playerFactionKey;
+    }
+
+    const enemyOptions = factionKeys.length > 1
+      ? factionKeys.filter((key) => key !== playerFactionKey)
+      : factionKeys;
+
+    if (enemyOptions.length === 0) {
+      return playerFactionKey;
+    }
+
+    const randomIndex = Phaser.Math.Between(0, enemyOptions.length - 1);
+    return enemyOptions[randomIndex];
   }
 
   getLayoutMetrics(width, height) {
