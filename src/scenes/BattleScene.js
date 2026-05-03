@@ -11,6 +11,7 @@ export default class BattleScene extends Phaser.Scene {
     this.boardCells = [];
     this.pendingSwapIndex = null;
     this.statusMessage = '';
+    this.playerActionUsed = false;
   }
 
   preload() {
@@ -24,7 +25,7 @@ export default class BattleScene extends Phaser.Scene {
     const factionData = getFactionByKey(factionKey) ?? { name: `Unknown (${factionKey})`, deck: [] };
 
     this.gameState = createInitialBattleState(factionData);
-    drawCards(this.gameState.player, 3);
+    drawCards(this.gameState.player, 4);
 
     this.cameras.main.setBackgroundColor('#05080f');
     this.layout = this.getLayoutMetrics(width, height);
@@ -278,7 +279,7 @@ export default class BattleScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true });
 
     button.on('pointerup', () => {
-      this.executeFullTurn({ type: 'pass' });
+      this.resolvePassTurn();
     });
   }
 
@@ -349,6 +350,11 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   onCardTap(cardId) {
+    if (this.playerActionUsed) {
+      this.setStatusMessage('Only 1 action per turn. Press PASS.');
+      return;
+    }
+
     const card = this.gameState.player.hand.find((item) => item.id === cardId);
     if (!card) return;
 
@@ -365,6 +371,11 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   onBoardCellTap(boardIndex) {
+    if (this.playerActionUsed) {
+      this.setStatusMessage('Only 1 action per turn. Press PASS.');
+      return;
+    }
+
     if (!this.selectedCardId) {
       const unit = this.gameState.board[boardIndex];
 
@@ -390,7 +401,9 @@ export default class BattleScene extends Phaser.Scene {
         return;
       }
 
-      this.executeFullTurn({ type: 'swap' });
+      this.playerActionUsed = true;
+      this.refreshAfterPlayerAction();
+      this.setStatusMessage('Action used. Press PASS to resolve.');
       return;
     }
 
@@ -404,34 +417,42 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
-    this.executeFullTurn({ type: result.type });
+    this.playerActionUsed = true;
+    this.refreshAfterPlayerAction();
+    this.setStatusMessage('Action used. Press PASS to resolve.');
   }
 
-  executeFullTurn(actionResult) {
-    if (this.gameState.winner) return;
-    if (actionResult?.type === 'pass' && !canPass(this.gameState)) return;
-
-    if (actionResult?.type === 'pass') {
-      this.setStatusMessage('Pass used.');
-    }
+  resolvePassTurn() {
+    if (this.gameState.winner || !canPass(this.gameState)) return;
 
     this.enemyTakeAction();
     resolveCombat(this.gameState);
     drawCards(this.gameState.player, 1);
 
+    this.playerActionUsed = false;
     this.selectedCardId = null;
     this.pendingSwapIndex = null;
 
     this.refreshBoardLabels();
     this.redrawHand();
     this.refreshHeroHP();
+    this.resetCardHighlights();
 
     if (this.gameState.winner) {
       this.setStatusMessage('Battle over.');
       return;
     }
 
-    this.setStatusMessage('Turn resolved. Your action.');
+    this.setStatusMessage('New turn. Choose 1 action.');
+  }
+
+  refreshAfterPlayerAction() {
+    this.selectedCardId = null;
+    this.pendingSwapIndex = null;
+    this.refreshBoardLabels();
+    this.redrawHand();
+    this.refreshHeroHP();
+    this.resetCardHighlights();
   }
 
   enemyTakeAction() {
