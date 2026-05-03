@@ -11,7 +11,6 @@ export default class BattleScene extends Phaser.Scene {
     this.boardCells = [];
     this.pendingSwapIndex = null;
     this.playerActionUsed = false;
-    this.effectFeedbackText = null;
   }
 
   preload() {
@@ -345,7 +344,6 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     this.selectedCardId = cardId;
-    this.showEffectFeedback(null);
     this.resetCardHighlights();
   }
 
@@ -388,7 +386,6 @@ export default class BattleScene extends Phaser.Scene {
       const result = playEffectCard(this.gameState, 'player', this.selectedCardId);
       if (!result.ok) return;
       this.playerActionUsed = true;
-      this.showEffectFeedback(`${selectedCard.name} activated`);
       this.refreshAfterPlayerAction();
       return;
     }
@@ -493,20 +490,6 @@ export default class BattleScene extends Phaser.Scene {
       card.label.setDepth(topDepth + 1);
       card.hitArea.setDepth(topDepth + 2);
     });
-  }
-
-
-  showEffectFeedback(message) {
-    if (!this.effectFeedbackText) {
-      const { width, action } = this.layout;
-      this.effectFeedbackText = this.add.text(width * 0.5, action.centerY, '', {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: `${Math.max(14, Math.floor(action.h * 0.55))}px`,
-        color: '#fcd34d',
-        fontStyle: 'bold',
-      }).setOrigin(0.5).setDepth(150);
-    }
-    this.effectFeedbackText.setText(message ?? '');
   }
 
   isUnitCard(card) {
