@@ -11,6 +11,26 @@ function getOpponentOwner(owner) {
   return owner === 'player' ? 'enemy' : 'player';
 }
 
+function createBoardUnitFromCard(card, owner, cardIdOverride = null) {
+  const boardUnit = {
+    ...card,
+    cardId: cardIdOverride ?? card.id,
+    owner,
+    maxHp: card.hp,
+  };
+  return boardUnit;
+}
+
+function createCardFromBoardUnit(unit) {
+  const card = { ...unit };
+  delete card.owner;
+  delete card.cardId;
+  delete card.maxHp;
+  card.id = unit.id ?? unit.cardId;
+  card.hp = unit.maxHp ?? unit.hp;
+  return card;
+}
+
 function removeDefeatedUnits(state, boardIndexes) {
   boardIndexes.forEach((index) => {
     if (state.board[index] && state.board[index].hp <= 0) {
@@ -52,16 +72,15 @@ function applyEffectById(state, owner, effectId) {
       if (emptySlot === undefined) {
         break;
       }
-      state.board[emptySlot] = {
-        cardId: `${owner}_summoned_grunt_${Date.now()}_${emptySlot}`,
+      state.board[emptySlot] = createBoardUnitFromCard({
+        id: `${owner}_summoned_grunt_${Date.now()}_${emptySlot}`,
         name: 'Grunt',
-        owner,
         type: 'unit',
         attack: 1,
         hp: 1,
-        maxHp: 1,
+        armor: 0,
         effectId: null,
-      };
+      }, owner);
       break;
     }
     default:
@@ -87,7 +106,7 @@ export function createInitialBattleState(factionData) {
       maxHandSize: 5,
     },
     enemy: {
-      deck: [],
+      deck: [...deck],
       hand: [],
       discard: [],
       maxHandSize: 5,
@@ -170,26 +189,10 @@ export function playOrRedeployUnit(state, owner, handCardId, boardIndex) {
 
   if (validation.type === 'redeploy') {
     const displacedUnit = state.board[boardIndex];
-    side.hand.push({
-      id: displacedUnit.cardId,
-      name: displacedUnit.name,
-      type: displacedUnit.type ?? 'unit',
-      attack: displacedUnit.attack,
-      hp: displacedUnit.maxHp ?? displacedUnit.hp,
-      effectId: displacedUnit.effectId ?? null,
-    });
+    side.hand.push(createCardFromBoardUnit(displacedUnit));
   }
 
-  state.board[boardIndex] = {
-    cardId: card.id,
-    name: card.name,
-    owner,
-    type: card.type ?? 'unit',
-    attack: card.attack,
-    hp: card.hp,
-    maxHp: card.hp,
-    effectId: card.effectId ?? null,
-  };
+  state.board[boardIndex] = createBoardUnitFromCard(card, owner);
 
   side.discard.push(card);
   return { ok: true, type: validation.type, card };

@@ -7,15 +7,11 @@ export function chooseEnemyAction(state) {
     return { type: 'pass' };
   }
 
-  return {
-    type: 'play',
-    slotIndex: openSlotIndex,
-    unit: {
-      name: 'Enemy Unit',
-      owner: 'enemy',
-      kind: 'unit',
-      attack: 1,
-      hp: 1,
-    },
-  };
+  const enemyHand = Array.isArray(state?.enemy?.hand) ? state.enemy.hand : [];
+  const firstUnitCard = enemyHand.find((card) => card?.type === 'unit');
+  if (!firstUnitCard) {
+    return { type: 'pass' };
+  }
+
+  return { type: 'play', slotIndex: openSlotIndex, cardId: firstUnitCard.id };
 }
