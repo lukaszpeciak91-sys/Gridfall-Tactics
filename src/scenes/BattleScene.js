@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { getFactionByKey } from '../data/factions/index.js';
-import { createInitialBattleState, drawCards, canPass, playOrRedeployUnit, performSwap, resolveCombat } from '../systems/GameState.js';
+import { createInitialBattleState, drawCards, canPass, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat } from '../systems/GameState.js';
 import { chooseEnemyAction } from '../systems/enemyDecision.js';
 
 export default class BattleScene extends Phaser.Scene {
@@ -11,6 +11,7 @@ export default class BattleScene extends Phaser.Scene {
     this.boardCells = [];
     this.pendingSwapIndex = null;
     this.playerActionUsed = false;
+    this.effectFeedbackText = null;
   }
 
   preload() {
@@ -344,6 +345,7 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     this.selectedCardId = cardId;
+    this.showEffectFeedback(null);
     this.resetCardHighlights();
   }
 
@@ -380,7 +382,16 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     const selectedCard = this.gameState.player.hand.find((card) => card.id === this.selectedCardId);
-    if (!selectedCard || !this.isUnitCard(selectedCard)) return;
+    if (!selectedCard) return;
+
+    if (!this.isUnitCard(selectedCard)) {
+      const result = playEffectCard(this.gameState, 'player', this.selectedCardId);
+      if (!result.ok) return;
+      this.playerActionUsed = true;
+      this.showEffectFeedback(`${selectedCard.name} activated`);
+      this.refreshAfterPlayerAction();
+      return;
+    }
 
     const result = playOrRedeployUnit(this.gameState, 'player', this.selectedCardId, boardIndex);
     if (!result.ok) {
@@ -485,9 +496,21 @@ export default class BattleScene extends Phaser.Scene {
   }
 
 
+  showEffectFeedback(message) {
+    if (!this.effectFeedbackText) {
+      const { width, action } = this.layout;
+      this.effectFeedbackText = this.add.text(width * 0.5, action.centerY, '', {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: `${Math.max(14, Math.floor(action.h * 0.55))}px`,
+        color: '#fcd34d',
+        fontStyle: 'bold',
+      }).setOrigin(0.5).setDepth(150);
+    }
+    this.effectFeedbackText.setText(message ?? '');
+  }
+
   isUnitCard(card) {
-    const nonUnitNames = new Set(['Swarm Attack', 'Spawn', 'Recycle', 'Flood', 'Mindlash', 'Freeze', 'Disrupt', 'Scheme', 'Dominate', 'Fortify', 'Stability', 'Reinforce', 'Last Stand', 'Repair Kit']);
-    return !nonUnitNames.has(card?.name);
+    return card?.type === 'unit';
   }
 
 }
