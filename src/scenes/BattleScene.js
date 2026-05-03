@@ -10,7 +10,6 @@ export default class BattleScene extends Phaser.Scene {
     this.cardViews = [];
     this.boardCells = [];
     this.pendingSwapIndex = null;
-    this.statusMessage = '';
     this.playerActionUsed = false;
   }
 
@@ -36,7 +35,6 @@ export default class BattleScene extends Phaser.Scene {
     this.refreshHeroHP();
     this.drawActionZone();
     this.drawHand();
-    this.drawStatusText();
     this.drawBottomUtilityBar();
 
     this.scale.on('enterfullscreen', this.onFullscreenChanged, this);
@@ -56,7 +54,6 @@ export default class BattleScene extends Phaser.Scene {
       playerHero: 0.06,
       action: 0.05,
       hand: 0.24,
-      status: 0.05,
     };
     const gapRatio = 0.008;
     const topBottomPadRatio = 0.008;
@@ -71,7 +68,6 @@ export default class BattleScene extends Phaser.Scene {
     const playerHeroHeight = usableHeight * (sectionRatios.playerHero / totalSectionRatio);
     const actionHeight = usableHeight * (sectionRatios.action / totalSectionRatio);
     const handHeight = usableHeight * (sectionRatios.hand / totalSectionRatio);
-    const statusHeight = usableHeight * (sectionRatios.status / totalSectionRatio);
 
     const gapHeight = height * gapRatio;
     const topBottomPad = height * topBottomPadRatio;
@@ -86,8 +82,6 @@ export default class BattleScene extends Phaser.Scene {
     const actionY = cursorY;
     cursorY += actionHeight + gapHeight;
     const handY = cursorY;
-    cursorY += handHeight + gapHeight;
-    const statusY = cursorY;
 
     const boardWidth = Math.min(contentWidth * 0.985, contentWidth);
     const slotWidth = boardWidth / 3;
@@ -115,7 +109,6 @@ export default class BattleScene extends Phaser.Scene {
       playerHero: { y: playerHeroY, h: playerHeroHeight, centerY: playerHeroY + playerHeroHeight / 2 },
       action: { y: actionY, h: actionHeight, centerY: actionY + actionHeight / 2 },
       hand: { y: handY, h: handHeight, centerY: handY + handHeight / 2, cardWidth: handCardWidth, cardHeight: handCardHeight, deckAreaWidth, handTrackWidth, cardsVisible, step },
-      status: { y: statusY, h: statusHeight, centerY: statusY + statusHeight / 2, fontSize: Math.max(11, Math.floor(statusHeight * 0.78)) },
     };
   }
 
@@ -332,26 +325,9 @@ export default class BattleScene extends Phaser.Scene {
     }
   }
 
-  drawStatusText() {
-    const { width, board, playerHero, margin } = this.layout;
-    const boardBottomY = board.y + board.h;
-    const gapCenterY = boardBottomY + ((playerHero.y - boardBottomY) / 2);
-
-    this.statusText = this.add.text(width * 0.5, gapCenterY, this.statusMessage ?? '', {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: `${Math.max(10, Math.floor(board.cellHeight * 0.11))}px`,
-      color: '#cbd5e1',
-      align: 'center',
-      wordWrap: { width: width - margin * 2 - 20 },
-    }).setOrigin(0.5);
-
-    this.statusText.setAlpha(0.6);
-    this.statusText.setDepth(120);
-  }
 
   onCardTap(cardId) {
     if (this.playerActionUsed) {
-      this.setStatusMessage('Only 1 action per turn. Press PASS.');
       return;
     }
 
@@ -372,7 +348,6 @@ export default class BattleScene extends Phaser.Scene {
 
   onBoardCellTap(boardIndex) {
     if (this.playerActionUsed) {
-      this.setStatusMessage('Only 1 action per turn. Press PASS.');
       return;
     }
 
@@ -382,14 +357,12 @@ export default class BattleScene extends Phaser.Scene {
       if (!unit || unit.owner !== 'player') {
         if (this.pendingSwapIndex !== null) {
           this.pendingSwapIndex = null;
-          this.setStatusMessage('Invalid swap.');
         }
         return;
       }
 
       if (this.pendingSwapIndex === null) {
         this.pendingSwapIndex = boardIndex;
-        this.setStatusMessage('Swap: pick second unit.');
         return;
       }
 
@@ -397,13 +370,11 @@ export default class BattleScene extends Phaser.Scene {
       this.pendingSwapIndex = null;
 
       if (!result.ok) {
-        this.setStatusMessage('Invalid swap.');
         return;
       }
 
       this.playerActionUsed = true;
       this.refreshAfterPlayerAction();
-      this.setStatusMessage('Action used. Press PASS to resolve.');
       return;
     }
 
@@ -413,13 +384,11 @@ export default class BattleScene extends Phaser.Scene {
     const result = playOrRedeployUnit(this.gameState, 'player', this.selectedCardId, boardIndex);
     if (!result.ok) {
       this.pendingSwapIndex = null;
-      this.setStatusMessage('Invalid placement.');
       return;
     }
 
     this.playerActionUsed = true;
     this.refreshAfterPlayerAction();
-    this.setStatusMessage('Action used. Press PASS to resolve.');
   }
 
   resolvePassTurn() {
@@ -439,11 +408,9 @@ export default class BattleScene extends Phaser.Scene {
     this.resetCardHighlights();
 
     if (this.gameState.winner) {
-      this.setStatusMessage('Battle over.');
       return;
     }
 
-    this.setStatusMessage('New turn. Choose 1 action.');
   }
 
   refreshAfterPlayerAction() {
@@ -458,7 +425,6 @@ export default class BattleScene extends Phaser.Scene {
   enemyTakeAction() {
     const action = chooseEnemyAction(this.gameState);
     if (action.type !== 'play') {
-      this.setStatusMessage('Enemy acted.');
       return;
     }
 
@@ -467,16 +433,9 @@ export default class BattleScene extends Phaser.Scene {
       ...action.unit,
     };
 
-    this.setStatusMessage('Enemy acted.');
   }
 
 
-  setStatusMessage(message) {
-    this.statusMessage = message;
-    if (this.statusText) {
-      this.statusText.setText(message);
-    }
-  }
 
   redrawHand() {
     this.cardViews.forEach((view) => {
