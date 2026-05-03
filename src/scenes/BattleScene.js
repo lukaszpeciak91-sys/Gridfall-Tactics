@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { getFactionByKey } from '../data/factions/index.js';
-import { createInitialBattleState, drawCards, canPass, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat } from '../systems/GameState.js';
+import { createInitialBattleState, drawCards, canPass, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard } from '../systems/GameState.js';
 import { chooseEnemyAction } from '../systems/enemyDecision.js';
 
 export default class BattleScene extends Phaser.Scene {
@@ -11,6 +11,7 @@ export default class BattleScene extends Phaser.Scene {
     this.boardCells = [];
     this.pendingSwapIndex = null;
     this.playerActionUsed = false;
+    this.targetingState = null;
   }
 
   preload() {
@@ -355,6 +356,7 @@ export default class BattleScene extends Phaser.Scene {
     if (!card) return;
 
     this.pendingSwapIndex = null;
+    this.targetingState = null;
 
     if (this.selectedCardId === cardId) {
       this.selectedCardId = null;
@@ -363,6 +365,7 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     this.selectedCardId = cardId;
+    this.targetingState = this.getTargetingStateForCard(card);
     this.resetCardHighlights();
   }
 
@@ -372,6 +375,9 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     if (!this.selectedCardId) {
+      if (this.targetingState) {
+        this.targetingState = null;
+      }
       const unit = this.gameState.board[boardIndex];
 
       if (!unit || unit.owner !== 'player') {
@@ -401,6 +407,18 @@ export default class BattleScene extends Phaser.Scene {
     const selectedCard = this.gameState.player.hand.find((card) => card.id === this.selectedCardId);
     if (!selectedCard) return;
 
+    if (this.targetingState) {
+      if (!this.isValidTarget(boardIndex, this.targetingState.targetType)) {
+        return;
+      }
+
+      const result = resolveTargetedEffectCard(this.gameState, 'player', this.selectedCardId, boardIndex);
+      if (!result.ok) return;
+      this.playerActionUsed = true;
+      this.refreshAfterPlayerAction();
+      return;
+    }
+
     if (!this.isUnitCard(selectedCard)) {
       const result = playEffectCard(this.gameState, 'player', this.selectedCardId);
       if (!result.ok) return;
@@ -429,6 +447,7 @@ export default class BattleScene extends Phaser.Scene {
     this.playerActionUsed = false;
     this.selectedCardId = null;
     this.pendingSwapIndex = null;
+    this.targetingState = null;
 
     this.refreshBoardLabels();
     this.redrawHand();
@@ -444,6 +463,7 @@ export default class BattleScene extends Phaser.Scene {
   refreshAfterPlayerAction() {
     this.selectedCardId = null;
     this.pendingSwapIndex = null;
+    this.targetingState = null;
     this.refreshBoardLabels();
     this.redrawHand();
     this.refreshHeroHP();
@@ -510,10 +530,42 @@ export default class BattleScene extends Phaser.Scene {
       card.label.setDepth(topDepth + 1);
       card.hitArea.setDepth(topDepth + 2);
     });
+
+    this.boardCells.forEach((cell) => {
+      const isValidFriendlyTarget = this.isValidTarget(cell.index, 'friendly-unit');
+      const isValidEnemyTarget = this.isValidTarget(cell.index, 'enemy-unit');
+      let strokeColor = cell.row === 1 ? 0x94a3b8 : 0xcbd5e1;
+      let strokeAlpha = cell.row === 1 ? 0.3 : 0.55;
+
+      if (this.targetingState?.targetType === 'friendly-unit' && isValidFriendlyTarget) {
+        strokeColor = 0x22c55e;
+        strokeAlpha = 1;
+      } else if (this.targetingState?.targetType === 'enemy-unit' && isValidEnemyTarget) {
+        strokeColor = 0xef4444;
+        strokeAlpha = 1;
+      }
+      cell.background.setStrokeStyle(cell.row === 1 ? 2 : 3, strokeColor, strokeAlpha);
+    });
   }
 
   isUnitCard(card) {
     return card?.type === 'unit';
+  }
+
+  getTargetingStateForCard(card) {
+    if (!card) return null;
+    if (card.effectId === 'return_friendly_draw_1' || card.effectId === 'destroy_friendly_draw_2') {
+      return { cardId: card.id, targetType: 'friendly-unit' };
+    }
+    return null;
+  }
+
+  isValidTarget(boardIndex, targetType) {
+    const unit = this.gameState.board[boardIndex];
+    if (!unit) return false;
+    if (targetType === 'friendly-unit') return unit.owner === 'player';
+    if (targetType === 'enemy-unit') return unit.owner === 'enemy';
+    return false;
   }
 
 }

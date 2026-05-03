@@ -232,6 +232,44 @@ export function playEffectCard(state, owner, handCardId) {
   return { ok: true, type: 'effect', card };
 }
 
+export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex) {
+  if (!state || state.winner) return { ok: false, reason: 'Battle is over' };
+  const side = owner === 'player' ? state.player : state.enemy;
+  const handIndex = side.hand.findIndex((item) => item.id === handCardId);
+  if (handIndex < 0) return { ok: false, reason: 'Card not in hand' };
+
+  const card = side.hand[handIndex];
+  if (!card || card.type === 'unit') {
+    return { ok: false, reason: 'Only effect cards can use targeted resolution' };
+  }
+
+  const targetUnit = state.board[boardIndex];
+  if (!targetUnit) return { ok: false, reason: 'No target at selected slot' };
+
+  switch (card.effectId) {
+    case 'return_friendly_draw_1': {
+      if (targetUnit.owner !== owner) return { ok: false, reason: 'Target must be friendly' };
+      if (side.hand.length >= side.maxHandSize) return { ok: false, reason: 'Hand is full' };
+      side.hand.push(createCardFromBoardUnit(targetUnit));
+      state.board[boardIndex] = null;
+      drawCards(side, 1);
+      break;
+    }
+    case 'destroy_friendly_draw_2': {
+      if (targetUnit.owner !== owner) return { ok: false, reason: 'Target must be friendly' };
+      state.board[boardIndex] = null;
+      drawCards(side, 2);
+      break;
+    }
+    default:
+      return { ok: false, reason: 'Effect does not support targeted resolution' };
+  }
+
+  const [playedCard] = side.hand.splice(handIndex, 1);
+  side.discard.push(playedCard);
+  return { ok: true, type: 'targeted-effect', card: playedCard };
+}
+
 export function playOrRedeployUnit(state, owner, handCardId, boardIndex) {
   const validation = canPlayOrRedeploy(state, owner, handCardId, boardIndex);
   if (!validation.ok) return validation;
