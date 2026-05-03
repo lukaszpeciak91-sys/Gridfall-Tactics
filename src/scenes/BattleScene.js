@@ -140,7 +140,10 @@ export default class BattleScene extends Phaser.Scene {
       icon.setDepth(200);
     });
 
-    leftIcon.on('pointerup', () => this.scene.start('FactionSelectScene'));
+    leftIcon.on('pointerup', () => {
+      this.scene.stop('FactionSelectScene');
+      this.scene.start('FactionSelectScene');
+    });
     centerIcon.on('pointerup', () => this.scene.start('BattleMenuScene', { factionKey: this.factionKey }));
     rightIcon.on('pointerup', () => this.toggleFullscreen());
   }
