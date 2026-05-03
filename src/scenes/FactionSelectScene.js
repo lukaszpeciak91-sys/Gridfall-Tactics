@@ -4,19 +4,27 @@ import { getFactionKeys } from '../data/factions/index.js';
 export default class FactionSelectScene extends Phaser.Scene {
   constructor() {
     super('FactionSelectScene');
+    this.uiElements = [];
+  }
+
+  init() {
+    this.cleanupScene();
   }
 
   create() {
     const { width, height } = this.scale;
     const factionKeys = getFactionKeys();
 
-    this.add
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.cleanupScene, this);
+
+    const title = this.add
       .text(width / 2, height * 0.16, 'Select Faction', {
         fontFamily: 'Arial, sans-serif',
         fontSize: '36px',
         color: '#f9fafb',
       })
       .setOrigin(0.5);
+    this.uiElements.push(title);
 
     const baseY = height * 0.3;
     const stepY = 90;
@@ -40,6 +48,23 @@ export default class FactionSelectScene extends Phaser.Scene {
       button.on('pointerup', () => {
         this.scene.start('BattleScene', { factionKey });
       });
+
+      this.uiElements.push(button);
     });
   }
+
+  cleanupScene() {
+    if (this.input) {
+      this.input.removeAllListeners();
+    }
+
+    this.uiElements.forEach((element) => {
+      if (element && element.active) {
+        element.removeAllListeners?.();
+        element.destroy();
+      }
+    });
+    this.uiElements = [];
+  }
 }
+
