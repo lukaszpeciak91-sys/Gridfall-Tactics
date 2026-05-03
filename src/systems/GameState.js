@@ -141,8 +141,9 @@ function applyEffectById(state, owner, effectId) {
   }
 }
 
-export function createInitialBattleState(factionData) {
-  const deck = Array.isArray(factionData?.deck) ? [...factionData.deck] : [];
+export function createInitialBattleState(playerFactionData, enemyFactionData = playerFactionData) {
+  const playerDeck = Array.isArray(playerFactionData?.deck) ? [...playerFactionData.deck] : [];
+  const enemyDeck = Array.isArray(enemyFactionData?.deck) ? [...enemyFactionData.deck] : [];
 
   return {
     board: Array(BOARD_SIZE).fill(null),
@@ -152,14 +153,15 @@ export function createInitialBattleState(factionData) {
     enemyMaxHP: HERO_START_HP,
     winner: null,
     player: {
-      factionName: factionData?.name ?? 'Unknown',
-      deck,
+      factionName: playerFactionData?.name ?? 'Unknown',
+      deck: playerDeck,
       hand: [],
       discard: [],
       maxHandSize: 5,
     },
     enemy: {
-      deck: [...deck],
+      factionName: enemyFactionData?.name ?? 'Unknown',
+      deck: enemyDeck,
       hand: [],
       discard: [],
       maxHandSize: 5,
