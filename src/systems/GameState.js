@@ -232,7 +232,7 @@ export function playEffectCard(state, owner, handCardId) {
   return { ok: true, type: 'effect', card };
 }
 
-export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex) {
+export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, targetIndexes = [boardIndex]) {
   if (!state || state.winner) return { ok: false, reason: 'Battle is over' };
   const side = owner === 'player' ? state.player : state.enemy;
   const handIndex = side.hand.findIndex((item) => item.id === handCardId);
@@ -259,6 +259,34 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex) 
       if (targetUnit.owner !== owner) return { ok: false, reason: 'Target must be friendly' };
       state.board[boardIndex] = null;
       drawCards(side, 2);
+      break;
+    }
+    case 'enemy_lane_atk_minus_1': {
+      if (targetUnit.owner !== getOpponentOwner(owner)) return { ok: false, reason: 'Target must be enemy' };
+      targetUnit.attack = Math.max(0, (targetUnit.attack ?? 0) - 1);
+      break;
+    }
+    case 'ignore_armor_next_attack': {
+      if (targetUnit.owner !== getOpponentOwner(owner)) return { ok: false, reason: 'Target must be enemy' };
+      targetUnit.ignoreArmorNext = true;
+      break;
+    }
+    case 'swap_two_enemy_units': {
+      const selectedTargets = Array.isArray(targetIndexes) ? targetIndexes : [boardIndex];
+      if (targetUnit.owner !== getOpponentOwner(owner)) return { ok: false, reason: 'Target must be enemy' };
+      if (selectedTargets.length < 2) {
+        return { ok: true, type: 'targeted-effect-pending' };
+      }
+      const [firstIndex, secondIndex] = selectedTargets;
+      if (firstIndex === secondIndex) return { ok: false, reason: 'Select two different enemy targets' };
+      const firstUnit = state.board[firstIndex];
+      const secondUnit = state.board[secondIndex];
+      if (!firstUnit || !secondUnit) return { ok: false, reason: 'Both targets must contain units' };
+      if (firstUnit.owner !== getOpponentOwner(owner) || secondUnit.owner !== getOpponentOwner(owner)) {
+        return { ok: false, reason: 'Targets must be enemies' };
+      }
+      state.board[firstIndex] = secondUnit;
+      state.board[secondIndex] = firstUnit;
       break;
     }
     default:
@@ -302,6 +330,10 @@ export function performSwap(state, owner, fromIndex, toIndex) {
 export function resolveCombat(state) {
   const getMitigatedDamage = (attacker, defender) => {
     const attackDamage = attacker?.attack ?? 0;
+    if (defender?.ignoreArmorNext) {
+      defender.ignoreArmorNext = false;
+      return Math.max(0, attackDamage);
+    }
     const armor = defender?.armor ?? 0;
     return Math.max(0, attackDamage - armor);
   };
