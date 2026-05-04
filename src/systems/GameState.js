@@ -195,8 +195,9 @@ function applyEffectById(state, owner, effectId) {
     }
     case 'fill_empty_slots_0_1': {
       const friendlyIndexes = getRowForOwner(owner);
+      let summoned = 0;
       friendlyIndexes.forEach((index) => {
-        if (state.board[index]) return;
+        if (summoned >= 2 || state.board[index]) return;
         state.board[index] = createBoardUnitFromCard({
           id: `${owner}_flood_token_${Date.now()}_${index}`,
           name: 'Token',
@@ -206,6 +207,7 @@ function applyEffectById(state, owner, effectId) {
           armor: 0,
           effectId: null,
         }, owner);
+        summoned += 1;
       });
       break;
     }
