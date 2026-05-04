@@ -13,6 +13,9 @@ const TARGETED_EFFECT_IDS = new Set([
   'swap_two_enemy_units',
   'return_friendly_draw_1',
   'destroy_friendly_draw_2',
+  'control_enemy_unit_this_turn',
+  'heal_2',
+  'heal_3',
 ]);
 
 function getLaneScore(state, enemyIndex) {
@@ -56,7 +59,7 @@ function getFirstValidTargetIndex(state, owner, effectId) {
   const friendlyOwner = isEnemyOwner ? 'enemy' : 'player';
   const opponentOwner = isEnemyOwner ? 'player' : 'enemy';
 
-  if (effectId === 'return_friendly_draw_1' || effectId === 'destroy_friendly_draw_2') {
+  if (effectId === 'return_friendly_draw_1' || effectId === 'destroy_friendly_draw_2' || effectId === 'heal_2' || effectId === 'heal_3') {
     return board.findIndex((unit) => unit?.owner === friendlyOwner);
   }
 
