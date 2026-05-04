@@ -199,7 +199,7 @@ function applyEffectById(state, owner, effectId) {
       friendlyIndexes.forEach((index) => {
         if (summoned >= 2 || state.board[index]) return;
         state.board[index] = createBoardUnitFromCard({
-          id: `${owner}_flood_token_${Date.now()}_${index}`,
+          id: `${owner}_flood_token_${index}_${summoned}`,
           name: 'Token',
           type: 'unit',
           attack: 0,
