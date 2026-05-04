@@ -296,9 +296,15 @@ export default class BattleScene extends Phaser.Scene {
             wordWrap: { width: board.cellWidth - 16 },
           })
           .setOrigin(0.5);
+        const blockedMarker = this.add.text(x + board.cellWidth * 0.34, y - board.cellHeight * 0.35, '', {
+          fontFamily: 'Arial, sans-serif',
+          fontSize: `${Math.max(12, Math.floor(board.cellWidth * 0.18))}px`,
+          color: '#ef4444',
+          fontStyle: 'bold',
+        }).setOrigin(0.5);
 
         background.on('pointerup', () => this.onBoardCellTap(boardIndex));
-        this.boardCells.push({ index: boardIndex, row, background, label });
+        this.boardCells.push({ index: boardIndex, row, background, label, blockedMarker });
       }
     }
   }
@@ -477,12 +483,22 @@ export default class BattleScene extends Phaser.Scene {
         return;
       }
       if (!result.ok) return;
+      if (result.type === 'targeted-effect' && this.gameState.cancelEnemyOrderThisTurn?.enemy) {
+        this.gameState.cancelEnemyOrderThisTurn.enemy = false;
+        this.refreshAfterPlayerAction();
+        return;
+      }
       this.playerActionUsed = true;
       this.refreshAfterPlayerAction();
       return;
     }
 
     if (!this.isUnitCard(selectedCard)) {
+      if (this.gameState.cancelEnemyOrderThisTurn?.enemy) {
+        this.gameState.cancelEnemyOrderThisTurn.enemy = false;
+        this.refreshAfterPlayerAction();
+        return;
+      }
       const result = playEffectCard(this.gameState, 'player', this.selectedCardId);
       if (!result.ok) return;
       this.playerActionUsed = true;
@@ -546,7 +562,6 @@ export default class BattleScene extends Phaser.Scene {
 
     if (action.type === 'play-unit') {
       playOrRedeployUnit(this.gameState, 'enemy', action.cardId, action.slotIndex);
-      this.gameState.cancelEnemyOrderThisTurn.player = false;
       return;
     }
 
@@ -562,7 +577,6 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
-    this.gameState.cancelEnemyOrderThisTurn.player = false;
   }
 
 
@@ -599,6 +613,12 @@ ${statParts.join(' | ')}`;
     this.boardCells.forEach((cell) => {
       const unit = this.gameState.board[cell.index];
       cell.label.setText(this.getBoardUnitLabel(unit));
+      if (cell.row === 2) {
+        const lane = cell.index % 3;
+        cell.blockedMarker.setText(this.gameState.playerLanePlayBlockedThisTurn?.[lane] ? '✕' : '');
+      } else {
+        cell.blockedMarker.setText('');
+      }
     });
   }
 

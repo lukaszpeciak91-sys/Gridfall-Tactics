@@ -12,15 +12,16 @@ function getOpponentOwner(owner) {
 }
 
 function ensureLanePlayBlocks(state) {
-  if (!state.enemyLanePlayBlockedThisTurn) {
-    state.enemyLanePlayBlockedThisTurn = [false, false, false];
-  }
+  if (!state.enemyLanePlayBlockedThisTurn) state.enemyLanePlayBlockedThisTurn = [false, false, false];
+  if (!state.playerLanePlayBlockedThisTurn) state.playerLanePlayBlockedThisTurn = [false, false, false];
 }
 
 function isLanePlayBlockedForOwner(state, owner, boardIndex) {
   ensureLanePlayBlocks(state);
   const lane = boardIndex % 3;
-  return owner === 'enemy' ? Boolean(state.enemyLanePlayBlockedThisTurn[lane]) : false;
+  if (owner === 'enemy') return Boolean(state.enemyLanePlayBlockedThisTurn[lane]);
+  if (owner === 'player') return Boolean(state.playerLanePlayBlockedThisTurn[lane]);
+  return false;
 }
 
 function createBoardUnitFromCard(card, owner, cardIdOverride = null) {
@@ -553,11 +554,14 @@ function resolveUnitOnPlayEffect(state, owner, boardIndex, card) {
       // MVP safe no-op until reveal UI exists.
       break;
     case 'block_enemy_lane_play_this_turn': {
-      if (owner === 'player') {
-        ensureLanePlayBlocks(state);
-        const lane = boardIndex % 3;
-        state.enemyLanePlayBlockedThisTurn[lane] = true;
-      }
+      ensureLanePlayBlocks(state);
+      const lane = boardIndex % 3;
+      if (owner === 'player') state.enemyLanePlayBlockedThisTurn[lane] = true;
+      if (owner === 'enemy') state.playerLanePlayBlockedThisTurn[lane] = true;
+      break;
+    }
+    case 'cancel_enemy_order': {
+      applyEffectById(state, owner, 'cancel_enemy_order');
       break;
     }
     default:
@@ -775,6 +779,13 @@ export function resolveCombat(state) {
   }
   if (state.enemyLanePlayBlockedThisTurn) {
     state.enemyLanePlayBlockedThisTurn = [false, false, false];
+  }
+  if (state.playerLanePlayBlockedThisTurn) {
+    state.playerLanePlayBlockedThisTurn = [false, false, false];
+  }
+  if (state.cancelEnemyOrderThisTurn) {
+    state.cancelEnemyOrderThisTurn.player = false;
+    state.cancelEnemyOrderThisTurn.enemy = false;
   }
 
   if (state.immuneMoveDisableThisTurn) {
