@@ -52,8 +52,8 @@
       "name": "Scout",
       "type": "unit",
       "targeting": "enemy",
-      "effectId": "peek_enemy_slot",
-      "textShort": "On play: reveal enemy slot.",
+      "effectId": "block_enemy_lane_play_this_turn",
+      "textShort": "On play: enemy can't play units in this lane this turn.",
       "attack": 1,
       "hp": 1,
       "armor": 0

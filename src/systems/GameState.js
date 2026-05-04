@@ -11,6 +11,18 @@ function getOpponentOwner(owner) {
   return owner === 'player' ? 'enemy' : 'player';
 }
 
+function ensureLanePlayBlocks(state) {
+  if (!state.enemyLanePlayBlockedThisTurn) {
+    state.enemyLanePlayBlockedThisTurn = [false, false, false];
+  }
+}
+
+function isLanePlayBlockedForOwner(state, owner, boardIndex) {
+  ensureLanePlayBlocks(state);
+  const lane = boardIndex % 3;
+  return owner === 'enemy' ? Boolean(state.enemyLanePlayBlockedThisTurn[lane]) : false;
+}
+
 function createBoardUnitFromCard(card, owner, cardIdOverride = null) {
   const boardUnit = {
     ...card,
@@ -241,6 +253,7 @@ export function createInitialBattleState(playerFactionData, enemyFactionData = p
       player: false,
       enemy: false,
     },
+    enemyLanePlayBlockedThisTurn: [false, false, false],
   };
 }
 
@@ -282,6 +295,9 @@ export function canPlayOrRedeploy(state, owner, handCardId, boardIndex) {
   if (card.type && card.type !== 'unit') return { ok: false, reason: 'Only unit cards can be placed on board' };
 
   const occupyingUnit = state.board[boardIndex];
+  if (!occupyingUnit && isLanePlayBlockedForOwner(state, owner, boardIndex)) {
+    return { ok: false, reason: 'Lane is blocked for unit placement this turn' };
+  }
   if (!occupyingUnit) return { ok: true, type: 'play' };
   if (occupyingUnit.owner !== owner) return { ok: false, reason: 'Slot is occupied by opponent' };
 
@@ -485,6 +501,14 @@ function resolveUnitOnPlayEffect(state, owner, boardIndex, card) {
     case 'peek_enemy_slot':
       // MVP safe no-op until reveal UI exists.
       break;
+    case 'block_enemy_lane_play_this_turn': {
+      if (owner === 'player') {
+        ensureLanePlayBlocks(state);
+        const lane = boardIndex % 3;
+        state.enemyLanePlayBlockedThisTurn[lane] = true;
+      }
+      break;
+    }
     default:
       break;
   }
@@ -694,6 +718,9 @@ export function resolveCombat(state) {
   if (state.cannotDropBelowOneThisTurn) {
     state.cannotDropBelowOneThisTurn.player = false;
     state.cannotDropBelowOneThisTurn.enemy = false;
+  }
+  if (state.enemyLanePlayBlockedThisTurn) {
+    state.enemyLanePlayBlockedThisTurn = [false, false, false];
   }
 
   state.board.forEach((unit) => {
