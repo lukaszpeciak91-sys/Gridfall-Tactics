@@ -22,3 +22,7 @@
 - Always deploy Vite projects using `dist/` build.
 - Never deploy raw `src/` files to GitHub Pages.
 - Use GitHub Actions with build + `upload-pages-artifact`.
+
+
+## Rules Parity Guardrail
+- Codex must read `docs/rules/mvp-battle-rules.md` before gameplay or card-behavior changes and keep docs in parity with implemented code paths.

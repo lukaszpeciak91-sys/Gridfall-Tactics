@@ -51,3 +51,10 @@
 ## UI Cleanup Guardrail Added (2026-05-03)
 - Added a permanent documentation guardrail forbidding visible debug/test labels in playable UI unless explicitly requested.
 - Verified no `Battle Test` string remains in `src/` or `docs/`.
+
+
+## Docs Parity Audit Complete (2026-05-04)
+- Audited runtime behavior across `GameState`, `enemyDecision`, `BattleScene`, and faction card data.
+- Updated canonical rules doc to align turn flow, draw timing, card typing, targeting, and effect behavior to implemented code.
+- Added explicit implemented-vs-deferred section and MVP simplification notes (deterministic targeting, non-unit-as-effect, no mulligan, no peek UI).
+- Documented active Flood cap (up to 2 tokens) and current balance monitoring notes.

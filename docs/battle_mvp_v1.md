@@ -24,3 +24,11 @@ The following assumptions are obsolete for MVP implementation and replaced by th
 
 Earlier versions described archetype identity and card concept examples (Aggro/Tank/Control/Swarm).
 Faction flavor remains useful for thematic reference, but gameplay implementation must follow the canonical rules doc.
+
+
+## Additional stale assumptions removed (2026-05-04)
+
+- Any implication of END TURN sequencing or multi-action turns.
+- Any implication that non-unit card types (order/special/utility) use distinct runtime pipelines. In MVP code, non-unit cards are all effect cards.
+- Any implication that mulligan is active in MVP.
+- Any implication that Flood fills all 3 lanes; code currently caps Flood at up to 2 tokens.

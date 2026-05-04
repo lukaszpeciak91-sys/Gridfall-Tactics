@@ -50,3 +50,11 @@
 ## Playable UI Debug Text Guardrail (2026-05-03)
 - Permanent rule: no visible debug/test labels in playable UI unless explicitly requested for a scoped task.
 - Forbidden examples unless requested: `Battle Test`, debug overlays, temporary scene labels, and hidden/background debug text that appears behind gameplay UI.
+
+
+## Rules/Card Parity Audit Lock (2026-05-04)
+- Reconfirmed canonical action economy: player may take at most one meaningful action, then PASS resolves enemy action -> combat -> player draw 1 -> enemy draw 1.
+- Reconfirmed runtime typing model: only `type: unit` is deployable; all non-unit cards execute as effect cards.
+- Reconfirmed deterministic MVP behavior: Sniper targets lowest-HP enemy (index tiebreak), Controller on-play swaps first two enemy units by index order.
+- Reconfirmed Flood nerf is active in code: `fill_empty_slots_0_1` summons up to 2 tokens left-to-right.
+- Reconfirmed mulligan remains deferred/not active in MVP.
