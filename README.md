@@ -15,3 +15,20 @@ Project notes in `docs/project/*` and `docs/battle_mvp_v1.md` are historical/con
 https://lukaszpeciak91-sys.github.io/Gridfall-Tactics/
 
 https://lukaszpeciak91-sys.github.io/Gridfall-Tactics/?v=999
+
+
+## Battle Simulation Runner
+
+Run AI-vs-AI batch simulations (no Phaser/UI):
+
+```bash
+npm run simulate:battles
+```
+
+Optional game count per matchup (default is 100):
+
+```bash
+node scripts/simulate-battles.mjs 20
+```
+
+The runner evaluates all faction pairings, applies a 50-turn cap to prevent infinite loops, and reports matchup plus aggregate faction win rates.
