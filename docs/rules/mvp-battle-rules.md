@@ -37,7 +37,7 @@ If any other document conflicts with this file, this file wins.
 - Starting hand: **4 cards**.
 - Draw: **1 card per turn**.
 - Max hand size: **5 cards**.
-- Mulligan Lite at battle start: replace **1** card.
+- Mulligan Lite: **deferred (not implemented in MVP)**.
 - No extra deck size rules for MVP.
 
 ## 5) Turn and Action Economy (Auto-Turn)
@@ -49,7 +49,8 @@ If any other document conflicts with this file, this file wins.
   1. Enemy takes one action.
   2. Combat resolves.
   3. Player draws 1 card.
-  4. New player turn begins.
+  4. Enemy draws 1 card.
+  5. New player turn begins.
 - Valid player actions are:
   - Play card
   - Use effect/special
@@ -59,7 +60,7 @@ If any other document conflicts with this file, this file wins.
 
 ### PASS
 
-- `PASS` / `RESOLVE TURN` ends the player turn and runs enemy action, combat, then draw 1.
+- `PASS` / `RESOLVE TURN` ends the player turn and runs enemy action, combat, then both sides draw 1.
 - `PASS` is valid both with and without a prior meaningful action in the turn.
 
 ## 6) Redeploy Rule (Locked)

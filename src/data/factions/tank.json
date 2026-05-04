@@ -3,7 +3,7 @@
   "name": "Tank",
   "frameImage": "frame_default",
   "deck": [
-    { "id": "tank_shieldbearer_1", "name": "Shieldbearer", "type": "unit", "targeting": "lane", "effectId": "lane_armor_aura_1", "textShort": "Allies in lane gain +1 armor.", "attack": 1, "hp": 3, "armor": 0 },
+    { "id": "tank_shieldbearer_1", "name": "Shieldbearer", "type": "unit", "targeting": "lane", "effectId": "lane_armor_aura_1", "textShort": "Adjacent allies gain +1 armor.", "attack": 1, "hp": 3, "armor": 0 },
     { "id": "tank_heavy_1", "name": "Heavy", "type": "unit", "targeting": "lane", "effectId": null, "textShort": "Heavy durable unit.", "attack": 2, "hp": 4, "armor": 0 },
     { "id": "tank_guardian_1", "name": "Guardian", "type": "unit", "targeting": "lane", "effectId": "intercept_lane_damage", "textShort": "Takes lane damage for ally.", "attack": 1, "hp": 3, "armor": 0 },
     { "id": "tank_wall_1", "name": "Wall", "type": "unit", "targeting": "lane", "effectId": "cannot_attack", "textShort": "Blocks lane. Cannot attack.", "attack": 0, "hp": 5, "armor": 0 },

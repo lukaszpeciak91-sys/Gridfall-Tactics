@@ -669,9 +669,12 @@ function resolveCombatLane(state, col, combatContext = null) {
     if (!unit) return 0;
     const baseArmor = unit.armor ?? 0;
     const lane = unit.owner === 'player' ? (unit.__index - 6) : unit.__index;
-    const allyIndex = (unit.owner === 'player' ? 6 : 0) + lane;
-    const allyInLane = state.board[allyIndex];
-    const aura = allyInLane?.effectId === 'lane_armor_aura_1' ? 1 : 0;
+    const rowStart = unit.owner === 'player' ? 6 : 0;
+    let aura = 0;
+    const left = lane > 0 ? state.board[rowStart + lane - 1] : null;
+    const right = lane < 2 ? state.board[rowStart + lane + 1] : null;
+    if (left?.effectId === 'lane_armor_aura_1') aura += 1;
+    if (right?.effectId === 'lane_armor_aura_1') aura += 1;
     return baseArmor + aura;
   };
 

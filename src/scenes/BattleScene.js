@@ -506,6 +506,7 @@ export default class BattleScene extends Phaser.Scene {
     this.enemyTakeAction();
     resolveCombat(this.gameState);
     drawCards(this.gameState.player, 1);
+    drawCards(this.gameState.enemy, 1);
 
     this.playerActionUsed = false;
     this.selectedCardId = null;
@@ -534,10 +535,6 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   enemyTakeAction() {
-    if (!this.gameState.enemy.hand.length) {
-      drawCards(this.gameState.enemy, 1);
-    }
-
     const action = chooseEnemyAction(this.gameState);
     const cancelEnemyOrder = Boolean(this.gameState.cancelEnemyOrderThisTurn?.player);
     const isEnemyNonUnitAction = action.type === 'play-effect' || action.type === 'play-targeted-effect';
