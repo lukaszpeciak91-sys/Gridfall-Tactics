@@ -659,7 +659,7 @@ ${statParts.join(' | ')}`;
       return { cardId: card.id, targetType: 'any-unit', requiredTargets: 2, targetIndexes: [] };
     }
     if (card.effectId === 'swap_adjacent_then_resolve') {
-      return { cardId: card.id, targetType: 'friendly-unit', requiredTargets: 2, targetIndexes: [] };
+      return { cardId: card.id, targetType: 'friendly-unit', requiredTargets: 1, targetIndexes: [] };
     }
     return null;
   }

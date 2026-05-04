@@ -383,21 +383,31 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
     }
     case 'swap_adjacent_then_resolve': {
       if (targetUnit.owner !== owner) return { ok: false, reason: 'Target must be friendly' };
-      const selectedTargets = Array.isArray(targetIndexes) ? targetIndexes : [boardIndex];
-      if (selectedTargets.length < 2) {
-        return { ok: true, type: 'targeted-effect-pending' };
+      const leftIndex = boardIndex - 1;
+      const rightIndex = boardIndex + 1;
+      const sameRow = (candidateIndex) => Math.floor(candidateIndex / 3) === Math.floor(boardIndex / 3);
+      const isFriendlyAdjacent = (candidateIndex) => (
+        candidateIndex >= 0
+        && candidateIndex < BOARD_SIZE
+        && sameRow(candidateIndex)
+        && state.board[candidateIndex]?.owner === owner
+      );
+
+      let swapIndex = null;
+      if (isFriendlyAdjacent(leftIndex)) {
+        swapIndex = leftIndex;
+      } else if (isFriendlyAdjacent(rightIndex)) {
+        swapIndex = rightIndex;
       }
-      const [firstIndex, secondIndex] = selectedTargets;
-      if (firstIndex === secondIndex) return { ok: false, reason: 'Select an adjacent friendly unit' };
-      const firstUnit = state.board[firstIndex];
-      const secondUnit = state.board[secondIndex];
-      if (!firstUnit || !secondUnit) return { ok: false, reason: 'Both targets must contain friendly units' };
-      if (firstUnit.owner !== owner || secondUnit.owner !== owner) return { ok: false, reason: 'Targets must be friendly' };
-      if (Math.abs(firstIndex - secondIndex) !== 1) return { ok: false, reason: 'Targets must be adjacent' };
-      if (Math.floor(firstIndex / 3) !== Math.floor(secondIndex / 3)) return { ok: false, reason: 'Targets must be in same row' };
-      state.board[firstIndex] = secondUnit;
-      state.board[secondIndex] = firstUnit;
-      resolveCombatLane(state, firstIndex % 3);
+
+      if (swapIndex === null) return { ok: false, reason: 'No adjacent friendly unit to swap with' };
+
+      const targetLane = swapIndex % 3;
+      const selectedUnit = state.board[boardIndex];
+      const adjacentUnit = state.board[swapIndex];
+      state.board[boardIndex] = adjacentUnit;
+      state.board[swapIndex] = selectedUnit;
+      resolveCombatLane(state, targetLane);
       break;
     }
     case 'swap_two_enemy_units': {
