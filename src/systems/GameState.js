@@ -102,18 +102,9 @@ function applyEffectById(state, owner, effectId) {
       removeDefeatedUnits(state, enemyIndexes);
       break;
     }
-    case 'heal_2': {
-      const hpKey = owner === 'player' ? 'playerHP' : 'enemyHP';
-      const maxHpKey = owner === 'player' ? 'playerMaxHP' : 'enemyMaxHP';
-      state[hpKey] = Math.min(state[maxHpKey], state[hpKey] + 2);
+    case 'heal_2':
+    case 'heal_3':
       break;
-    }
-    case 'heal_3': {
-      const hpKey = owner === 'player' ? 'playerHP' : 'enemyHP';
-      const maxHpKey = owner === 'player' ? 'playerMaxHP' : 'enemyMaxHP';
-      state[hpKey] = Math.min(state[maxHpKey], state[hpKey] + 3);
-      break;
-    }
     case 'heal_all_1': {
       const friendlyIndexes = getRowForOwner(owner);
       friendlyIndexes.forEach((index) => {
@@ -168,7 +159,7 @@ function applyEffectById(state, owner, effectId) {
       }, owner);
       break;
     }
-    case 'fill_empty_slots_1hp': {
+    case 'fill_empty_slots_0_1': {
       const friendlyIndexes = getRowForOwner(owner);
       friendlyIndexes.forEach((index) => {
         if (state.board[index]) return;
@@ -336,6 +327,14 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
       targetUnit.ignoreArmorNext = true;
       break;
     }
+    case 'heal_2':
+    case 'heal_3': {
+      if (targetUnit.owner !== owner) return { ok: false, reason: 'Target must be friendly' };
+      const amount = card.effectId === 'heal_3' ? 3 : 2;
+      const hpCap = Number.isFinite(targetUnit.maxHp) ? targetUnit.maxHp : targetUnit.hp;
+      targetUnit.hp = Math.min(hpCap, targetUnit.hp + amount);
+      break;
+    }
     case 'swap_two_enemy_units': {
       const selectedTargets = Array.isArray(targetIndexes) ? targetIndexes : [boardIndex];
       if (targetUnit.owner !== getOpponentOwner(owner)) return { ok: false, reason: 'Target must be enemy' };
@@ -413,27 +412,65 @@ export function performSwap(state, owner, fromIndex, toIndex) {
 }
 
 function resolveCombatLane(state, col) {
+  const getAttackWithCombatBonuses = (unit, unitIndex) => {
+    if (!unit) return 0;
+    let attack = unit.effectId === 'cannot_attack' ? 0 : (unit.attack ?? 0);
+    if (unit.effectId === 'empty_adjacent_bonus_atk') {
+      const rowStart = unit.owner === 'player' ? 6 : 0;
+      const lane = unitIndex % 3;
+      const adjacentIndexes = [];
+      if (lane > 0) adjacentIndexes.push(rowStart + lane - 1);
+      if (lane < 2) adjacentIndexes.push(rowStart + lane + 1);
+      const hasEmptyAdjacent = adjacentIndexes.some((idx) => state.board[idx] === null);
+      if (hasEmptyAdjacent) attack += 1;
+    }
+    return Math.max(0, attack);
+  };
+
+  const getAuraBonusAttack = (unit) => {
+    if (!unit) return 0;
+    const lane = unit.owner === 'player' ? (unit.__index - 6) : unit.__index;
+    const rowStart = unit.owner === 'player' ? 6 : 0;
+    let bonus = 0;
+    const left = lane > 0 ? state.board[rowStart + lane - 1] : null;
+    const right = lane < 2 ? state.board[rowStart + lane + 1] : null;
+    if (left?.effectId === 'adjacent_allies_atk_plus_1') bonus += 1;
+    if (right?.effectId === 'adjacent_allies_atk_plus_1') bonus += 1;
+    return bonus;
+  };
+
+  const getArmorWithAura = (unit) => {
+    if (!unit) return 0;
+    const baseArmor = unit.armor ?? 0;
+    const lane = unit.owner === 'player' ? (unit.__index - 6) : unit.__index;
+    const allyIndex = (unit.owner === 'player' ? 6 : 0) + lane;
+    const allyInLane = state.board[allyIndex];
+    const aura = allyInLane?.effectId === 'lane_armor_aura_1' ? 1 : 0;
+    return baseArmor + aura;
+  };
+
   const getMitigatedDamage = (attacker, defender) => {
     const attackDamage = getUnitAttack(attacker);
     if (defender?.ignoreArmorNext) {
       defender.ignoreArmorNext = false;
       return Math.max(0, attackDamage);
     }
-    const armor = getUnitArmor(defender);
+    const armor = getArmorWithAura(defender);
     return Math.max(0, attackDamage - armor);
   };
 
   const enemyIndex = ENEMY_ROW[col];
   const playerIndex = PLAYER_ROW[col];
-  const enemy = state.board[enemyIndex];
-  const player = state.board[playerIndex];
+  const enemy = state.board[enemyIndex] ? { ...state.board[enemyIndex], __index: enemyIndex } : null;
+  const player = state.board[playerIndex] ? { ...state.board[playerIndex], __index: playerIndex } : null;
 
   if (player) {
-    const playerAttack = player.effectId === 'cannot_attack' ? 0 : getUnitAttack(player);
+    const playerAttack = getAttackWithCombatBonuses(player, playerIndex) + getAuraBonusAttack(player);
     if (enemy) {
       applyDamageToUnit(state, enemyIndex, getMitigatedDamage({ ...player, attack: playerAttack }, enemy));
     } else {
-      state.enemyHP -= playerAttack;
+      const laneBonus = player.effectId === 'lane_empty_bonus_damage' ? 1 : 0;
+      state.enemyHP -= playerAttack + laneBonus;
     }
     if (player.effectId === 'self_damage_after_attack') {
       applyDamageToUnit(state, playerIndex, 1);
@@ -441,14 +478,15 @@ function resolveCombatLane(state, col) {
   }
 
   if (enemy) {
-    const enemyAttack = enemy.effectId === 'cannot_attack' ? 0 : getUnitAttack(enemy);
+    const enemyAttack = getAttackWithCombatBonuses(enemy, enemyIndex) + getAuraBonusAttack(enemy);
     const controlledToHero = Boolean(enemy.controlledAttackThisTurn);
     if (controlledToHero) {
       state.enemyHP -= enemyAttack;
     } else if (player) {
       applyDamageToUnit(state, playerIndex, getMitigatedDamage({ ...enemy, attack: enemyAttack }, player));
     } else {
-      state.playerHP -= enemyAttack;
+      const laneBonus = enemy.effectId === 'lane_empty_bonus_damage' ? 1 : 0;
+      state.playerHP -= enemyAttack + laneBonus;
     }
     if (enemy.effectId === 'self_damage_after_attack') {
       applyDamageToUnit(state, enemyIndex, 1);

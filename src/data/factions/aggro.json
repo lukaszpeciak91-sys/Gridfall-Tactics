@@ -78,9 +78,9 @@
       "id": "aggro_pierce_strike_1",
       "name": "Pierce Strike",
       "type": "order",
-      "targeting": "friendly_unit",
+      "targeting": "enemy_unit",
       "effectId": "ignore_armor_next_attack",
-      "textShort": "Next attack ignores armor."
+      "textShort": "Target enemy: next attack against it ignores armor."
     },
     {
       "id": "aggro_adrenaline_1",
