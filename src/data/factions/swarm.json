@@ -11,7 +11,7 @@
     { "id": "swarm_spawn_1", "name": "Spawn", "type": "order", "targeting": "empty_friendly_slot", "effectId": "summon_grunt_empty_slot", "textShort": "Summon 1/1 to empty slot." },
     { "id": "swarm_swarm_attack_1", "name": "Swarm Attack", "type": "order", "targeting": "all_friendly_units", "effectId": "buff_all_atk_1", "textShort": "All allies +1 ATK this turn." },
     { "id": "swarm_regrow_1", "name": "Regrow", "type": "order", "targeting": "friendly_discard", "effectId": "revive_friendly_1hp", "textShort": "Revive a friendly at 1 HP." },
-    { "id": "swarm_flood_1", "name": "Flood", "type": "special", "targeting": "empty_friendly_slots", "effectId": "fill_empty_slots_0_1", "textShort": "Summon up to 2 0/1 tokens left to right." },
+    { "id": "swarm_flood_1", "name": "Flood", "type": "special", "targeting": "empty_friendly_slots", "effectId": "fill_empty_slots_0_1", "textShort": "Summon up to 2 Grunts (1/1) in empty slots from left to right." },
     { "id": "swarm_recycle_1", "name": "Recycle", "type": "utility", "targeting": "friendly_unit", "effectId": "destroy_friendly_draw_2", "textShort": "Destroy ally. Draw 2." }
   ]
 }
