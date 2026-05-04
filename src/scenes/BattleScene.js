@@ -539,20 +539,33 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     const action = chooseEnemyAction(this.gameState);
+    const cancelEnemyOrder = Boolean(this.gameState.cancelEnemyOrderThisTurn?.player);
+    const isEnemyNonUnitAction = action.type === 'play-effect' || action.type === 'play-targeted-effect';
+
+    if (cancelEnemyOrder && isEnemyNonUnitAction) {
+      this.gameState.cancelEnemyOrderThisTurn.player = false;
+      return;
+    }
 
     if (action.type === 'play-unit') {
       playOrRedeployUnit(this.gameState, 'enemy', action.cardId, action.slotIndex);
+      this.gameState.cancelEnemyOrderThisTurn.player = false;
       return;
     }
 
     if (action.type === 'play-effect') {
       playEffectCard(this.gameState, 'enemy', action.cardId);
+      this.gameState.cancelEnemyOrderThisTurn.player = false;
       return;
     }
 
     if (action.type === 'play-targeted-effect') {
       resolveTargetedEffectCard(this.gameState, 'enemy', action.cardId, action.targetIndex, [action.targetIndex]);
+      this.gameState.cancelEnemyOrderThisTurn.player = false;
+      return;
     }
+
+    this.gameState.cancelEnemyOrderThisTurn.player = false;
   }
 
 

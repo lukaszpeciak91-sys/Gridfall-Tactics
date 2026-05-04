@@ -96,6 +96,22 @@ export function getUnitArmor(unit) {
   return Math.max(0, baseArmor + tempArmor);
 }
 
+function isMoveEffectId(effectId) {
+  return effectId === 'swap_any_two_units' || effectId === 'swap_two_enemy_units' || effectId === 'swap_adjacent_then_resolve';
+}
+
+function isDisableEffectId(effectId) {
+  if (!effectId) return false;
+  if (effectId === 'control_enemy_unit_this_turn' || effectId === 'cannot_attack') return true;
+  return effectId.includes('disable');
+}
+
+function hasMoveDisableImmunity(state, protectedOwner, actingOwner, effectId) {
+  if (!state?.immuneMoveDisableThisTurn?.[protectedOwner]) return false;
+  return getOpponentOwner(actingOwner) === protectedOwner
+    && (isMoveEffectId(effectId) || isDisableEffectId(effectId));
+}
+
 function applyEffectById(state, owner, effectId) {
   switch (effectId) {
     case 'damage_all_enemies_1': {
@@ -192,6 +208,20 @@ function applyEffectById(state, owner, effectId) {
       state.cannotDropBelowOneThisTurn[owner] = true;
       break;
     }
+    case 'cancel_enemy_order': {
+      if (!state.cancelEnemyOrderThisTurn) {
+        state.cancelEnemyOrderThisTurn = { player: false, enemy: false };
+      }
+      state.cancelEnemyOrderThisTurn[owner] = true;
+      break;
+    }
+    case 'immune_move_disable_this_turn': {
+      if (!state.immuneMoveDisableThisTurn) {
+        state.immuneMoveDisableThisTurn = { player: false, enemy: false };
+      }
+      state.immuneMoveDisableThisTurn[owner] = true;
+      break;
+    }
     case 'revive_friendly_1hp': {
       const friendlyIndexes = getRowForOwner(owner);
       const emptySlot = friendlyIndexes.find((index) => state.board[index] === null);
@@ -238,6 +268,14 @@ export function createInitialBattleState(playerFactionData, enemyFactionData = p
       maxHandSize: 5,
     },
     cannotDropBelowOneThisTurn: {
+      player: false,
+      enemy: false,
+    },
+    cancelEnemyOrderThisTurn: {
+      player: false,
+      enemy: false,
+    },
+    immuneMoveDisableThisTurn: {
       player: false,
       enemy: false,
     },
@@ -305,8 +343,12 @@ export function playEffectCard(state, owner, handCardId) {
   }
 
   side.discard.push(card);
-  applyEffectById(state, owner, card.effectId ?? null);
-  return { ok: true, type: 'effect', card };
+  const protectedOwner = getOpponentOwner(owner);
+  const blockedByImmunity = hasMoveDisableImmunity(state, protectedOwner, owner, card.effectId ?? null);
+  if (!blockedByImmunity) {
+    applyEffectById(state, owner, card.effectId ?? null);
+  }
+  return { ok: true, type: blockedByImmunity ? 'effect-blocked' : 'effect', card };
 }
 
 export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, targetIndexes = [boardIndex]) {
@@ -322,6 +364,14 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
 
   const targetUnit = state.board[boardIndex];
   if (!targetUnit) return { ok: false, reason: 'No target at selected slot' };
+
+  const protectedOwner = targetUnit.owner;
+  const blockedByImmunity = hasMoveDisableImmunity(state, protectedOwner, owner, card.effectId);
+  if (blockedByImmunity) {
+    const [playedCard] = side.hand.splice(handIndex, 1);
+    side.discard.push(playedCard);
+    return { ok: true, type: 'targeted-effect-blocked', card: playedCard };
+  }
 
   switch (card.effectId) {
     case 'return_friendly_draw_1': {
@@ -694,6 +744,11 @@ export function resolveCombat(state) {
   if (state.cannotDropBelowOneThisTurn) {
     state.cannotDropBelowOneThisTurn.player = false;
     state.cannotDropBelowOneThisTurn.enemy = false;
+  }
+
+  if (state.immuneMoveDisableThisTurn) {
+    state.immuneMoveDisableThisTurn.player = false;
+    state.immuneMoveDisableThisTurn.enemy = false;
   }
 
   state.board.forEach((unit) => {
