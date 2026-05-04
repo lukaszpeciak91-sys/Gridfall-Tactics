@@ -439,6 +439,47 @@ export function resolveQuickStrike(state, owner, boardIndex) {
   return { ok: true, type: 'quick-strike', lane };
 }
 
+
+function resolveUnitOnPlayEffect(state, owner, boardIndex, card) {
+  if (!state || !card) return;
+  const enemyOwner = getOpponentOwner(owner);
+
+  switch (card.effectId) {
+    case 'on_play_lane_damage_1': {
+      const enemyIndex = owner === 'player' ? boardIndex - 6 : boardIndex + 6;
+      const enemyUnit = state.board[enemyIndex];
+      if (enemyUnit && enemyUnit.owner === enemyOwner) {
+        applyDamageToUnit(state, enemyIndex, 1);
+        cleanupDefeatedUnitsWithTriggers(state, [enemyIndex]);
+      }
+      break;
+    }
+    case 'enemy_lane_atk_minus_1': {
+      const enemyIndex = owner === 'player' ? boardIndex - 6 : boardIndex + 6;
+      const enemyUnit = state.board[enemyIndex];
+      if (enemyUnit && enemyUnit.owner === enemyOwner) {
+        enemyUnit.tempAttackMod = (enemyUnit.tempAttackMod ?? 0) - 1;
+      }
+      break;
+    }
+    case 'swap_two_enemy_units': {
+      const enemyIndexes = getRowForOwner(enemyOwner).filter((index) => state.board[index]?.owner === enemyOwner);
+      if (enemyIndexes.length >= 2) {
+        const [firstIndex, secondIndex] = enemyIndexes;
+        const firstUnit = state.board[firstIndex];
+        state.board[firstIndex] = state.board[secondIndex];
+        state.board[secondIndex] = firstUnit;
+      }
+      break;
+    }
+    case 'peek_enemy_slot':
+      // MVP safe no-op until reveal UI exists.
+      break;
+    default:
+      break;
+  }
+}
+
 export function playOrRedeployUnit(state, owner, handCardId, boardIndex) {
   const validation = canPlayOrRedeploy(state, owner, handCardId, boardIndex);
   if (!validation.ok) return validation;
@@ -453,14 +494,7 @@ export function playOrRedeployUnit(state, owner, handCardId, boardIndex) {
   }
 
   state.board[boardIndex] = createBoardUnitFromCard(card, owner);
-
-  if (card.effectId === 'on_play_lane_damage_1') {
-    const enemyIndex = owner === 'player' ? boardIndex - 6 : boardIndex + 6;
-    if (state.board[enemyIndex] && state.board[enemyIndex].owner !== owner) {
-      applyDamageToUnit(state, enemyIndex, 1);
-      cleanupDefeatedUnitsWithTriggers(state, [enemyIndex]);
-    }
-  }
+  resolveUnitOnPlayEffect(state, owner, boardIndex, card);
 
   side.discard.push(card);
   return { ok: true, type: validation.type, card };
