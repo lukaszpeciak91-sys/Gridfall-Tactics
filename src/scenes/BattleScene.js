@@ -643,10 +643,10 @@ ${statParts.join(' | ')}`;
 
   getTargetingStateForCard(card) {
     if (!card) return null;
-    if (card.effectId === 'return_friendly_draw_1' || card.effectId === 'destroy_friendly_draw_2') {
+    if (card.effectId === 'return_friendly_draw_1' || card.effectId === 'destroy_friendly_draw_2' || card.effectId === 'quick_strike') {
       return { cardId: card.id, targetType: 'friendly-unit', requiredTargets: 1, targetIndexes: [] };
     }
-    if (card.effectId === 'enemy_lane_atk_minus_1' || card.effectId === 'ignore_armor_next_attack') {
+    if (card.effectId === 'enemy_lane_atk_minus_1' || card.effectId === 'ignore_armor_next_attack' || card.effectId === 'control_enemy_unit_this_turn') {
       return { cardId: card.id, targetType: 'enemy-unit', requiredTargets: 1, targetIndexes: [] };
     }
     if (card.effectId === 'swap_two_enemy_units') {

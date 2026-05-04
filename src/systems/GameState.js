@@ -170,8 +170,9 @@ function applyEffectById(state, owner, effectId) {
       });
       break;
     }
-    // Deferred by design: one meaningful player action per turn.
-    case 'extra_action_once':
+    // Quick Strike and Control Override are targeted and handled via resolveTargetedEffectCard.
+    case 'quick_strike':
+    case 'control_enemy_unit_this_turn':
       break;
     default:
       break;
@@ -305,6 +306,17 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
       targetUnit.attack = Math.max(0, (targetUnit.attack ?? 0) - 1);
       break;
     }
+    case 'quick_strike': {
+      if (targetUnit.owner !== owner) return { ok: false, reason: 'Target must be friendly' };
+      const lane = boardIndex % 3;
+      resolveCombatLane(state, lane);
+      break;
+    }
+    case 'control_enemy_unit_this_turn': {
+      if (targetUnit.owner !== getOpponentOwner(owner)) return { ok: false, reason: 'Target must be enemy' };
+      targetUnit.controlledAttackThisTurn = true;
+      break;
+    }
     case 'ignore_armor_next_attack': {
       if (targetUnit.owner !== getOpponentOwner(owner)) return { ok: false, reason: 'Target must be enemy' };
       targetUnit.ignoreArmorNext = true;
@@ -335,6 +347,18 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
   const [playedCard] = side.hand.splice(handIndex, 1);
   side.discard.push(playedCard);
   return { ok: true, type: 'targeted-effect', card: playedCard };
+}
+
+
+export function resolveQuickStrike(state, owner, boardIndex) {
+  if (!state || state.winner) return { ok: false, reason: 'Battle is over' };
+  const targetUnit = state.board[boardIndex];
+  if (!targetUnit || targetUnit.owner !== owner) {
+    return { ok: false, reason: 'Target must be friendly' };
+  }
+  const lane = boardIndex % 3;
+  resolveCombatLane(state, lane);
+  return { ok: true, type: 'quick-strike', lane };
 }
 
 export function playOrRedeployUnit(state, owner, handCardId, boardIndex) {
@@ -374,7 +398,7 @@ export function performSwap(state, owner, fromIndex, toIndex) {
   return { ok: true };
 }
 
-export function resolveCombat(state) {
+function resolveCombatLane(state, col) {
   const getMitigatedDamage = (attacker, defender) => {
     const attackDamage = attacker?.attack ?? 0;
     if (defender?.ignoreArmorNext) {
@@ -385,40 +409,53 @@ export function resolveCombat(state) {
     return Math.max(0, attackDamage - armor);
   };
 
-  for (let col = 0; col < 3; col += 1) {
-    const enemyIndex = ENEMY_ROW[col];
-    const playerIndex = PLAYER_ROW[col];
-    const enemy = state.board[enemyIndex];
-    const player = state.board[playerIndex];
+  const enemyIndex = ENEMY_ROW[col];
+  const playerIndex = PLAYER_ROW[col];
+  const enemy = state.board[enemyIndex];
+  const player = state.board[playerIndex];
 
-    if (player) {
-      const playerAttack = player.effectId === 'cannot_attack' ? 0 : (player.attack ?? 0);
-      if (enemy) {
-        applyDamageToUnit(state, enemyIndex, getMitigatedDamage({ ...player, attack: playerAttack }, enemy));
-      } else {
-        state.enemyHP -= playerAttack;
-      }
-      if (player.effectId === 'self_damage_after_attack') {
-        applyDamageToUnit(state, playerIndex, 1);
-      }
-    }
-
+  if (player) {
+    const playerAttack = player.effectId === 'cannot_attack' ? 0 : (player.attack ?? 0);
     if (enemy) {
-      const enemyAttack = enemy.effectId === 'cannot_attack' ? 0 : (enemy.attack ?? 0);
-      if (player) {
-        applyDamageToUnit(state, playerIndex, getMitigatedDamage({ ...enemy, attack: enemyAttack }, player));
-      } else {
-        state.playerHP -= enemyAttack;
-      }
-      if (enemy.effectId === 'self_damage_after_attack') {
-        applyDamageToUnit(state, enemyIndex, 1);
-      }
+      applyDamageToUnit(state, enemyIndex, getMitigatedDamage({ ...player, attack: playerAttack }, enemy));
+    } else {
+      state.enemyHP -= playerAttack;
     }
+    if (player.effectId === 'self_damage_after_attack') {
+      applyDamageToUnit(state, playerIndex, 1);
+    }
+  }
 
-    cleanupDefeatedUnitsWithTriggers(state, [enemyIndex, playerIndex]);
+  if (enemy) {
+    const enemyAttack = enemy.effectId === 'cannot_attack' ? 0 : (enemy.attack ?? 0);
+    const controlledToHero = Boolean(enemy.controlledAttackThisTurn);
+    if (controlledToHero) {
+      state.enemyHP -= enemyAttack;
+    } else if (player) {
+      applyDamageToUnit(state, playerIndex, getMitigatedDamage({ ...enemy, attack: enemyAttack }, player));
+    } else {
+      state.playerHP -= enemyAttack;
+    }
+    if (enemy.effectId === 'self_damage_after_attack') {
+      applyDamageToUnit(state, enemyIndex, 1);
+    }
+  }
+
+  cleanupDefeatedUnitsWithTriggers(state, [enemyIndex, playerIndex]);
+}
+
+export function resolveCombat(state) {
+  for (let col = 0; col < 3; col += 1) {
+    resolveCombatLane(state, col);
   }
 
   cleanupDefeatedUnitsWithTriggers(state, [...ENEMY_ROW, ...PLAYER_ROW]);
+
+  state.board.forEach((unit) => {
+    if (unit?.controlledAttackThisTurn) {
+      delete unit.controlledAttackThisTurn;
+    }
+  });
 
   state.playerHP = Math.max(0, state.playerHP);
   state.enemyHP = Math.max(0, state.enemyHP);

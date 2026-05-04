@@ -3,15 +3,100 @@
   "name": "Control",
   "frameImage": "frame_default",
   "deck": [
-    { "id": "control_hacker_1", "name": "Hacker", "type": "unit", "targeting": "lane", "effectId": "enemy_lane_atk_minus_1", "textShort": "Enemy in lane -1 ATK this turn.", "attack": 1, "hp": 2, "armor": 0 },
-    { "id": "control_disruptor_1", "name": "Disruptor", "type": "unit", "targeting": "enemy", "effectId": "cancel_enemy_order", "textShort": "Cancel enemy order this turn.", "attack": 1, "hp": 2, "armor": 0 },
-    { "id": "control_sniper_1", "name": "Sniper", "type": "unit", "targeting": "any_enemy_unit", "effectId": "can_hit_any_lane", "textShort": "Can hit any lane.", "attack": 2, "hp": 1, "armor": 0 },
-    { "id": "control_controller_1", "name": "Controller", "type": "unit", "targeting": "enemy_units", "effectId": "swap_two_enemy_units", "textShort": "On play: swap two enemies.", "attack": 1, "hp": 2, "armor": 0 },
-    { "id": "control_drone_1", "name": "Drone", "type": "unit", "targeting": "lane", "effectId": "death_damage_enemy_hero_1", "textShort": "On death: enemy hero takes 1.", "attack": 1, "hp": 1, "armor": 0 },
-    { "id": "control_swap_1", "name": "Swap", "type": "order", "targeting": "any_units", "effectId": "swap_any_two_units", "textShort": "Swap any two units." },
-    { "id": "control_jam_signal_1", "name": "Jam Signal", "type": "order", "targeting": "all_enemy_units", "effectId": "enemy_all_atk_minus_1", "textShort": "All enemies -1 ATK this turn." },
-    { "id": "control_pulse_wave_1", "name": "Pulse Wave", "type": "order", "targeting": "all_enemy_units", "effectId": "damage_all_enemies_1", "textShort": "Deal 1 to all enemies." },
-    { "id": "control_system_override_1", "name": "System Override", "type": "special", "targeting": "enemy_unit", "effectId": "control_enemy_unit_this_turn", "textShort": "Control enemy unit this turn." },
-    { "id": "control_recall_1", "name": "Recall", "type": "utility", "targeting": "friendly_unit", "effectId": "return_friendly_draw_1", "textShort": "Return ally to hand. Draw 1." }
+    {
+      "id": "control_hacker_1",
+      "name": "Hacker",
+      "type": "unit",
+      "targeting": "lane",
+      "effectId": "enemy_lane_atk_minus_1",
+      "textShort": "Enemy in lane -1 ATK this turn.",
+      "attack": 1,
+      "hp": 2,
+      "armor": 0
+    },
+    {
+      "id": "control_disruptor_1",
+      "name": "Disruptor",
+      "type": "unit",
+      "targeting": "enemy",
+      "effectId": "cancel_enemy_order",
+      "textShort": "Cancel enemy order this turn.",
+      "attack": 1,
+      "hp": 2,
+      "armor": 0
+    },
+    {
+      "id": "control_sniper_1",
+      "name": "Sniper",
+      "type": "unit",
+      "targeting": "any_enemy_unit",
+      "effectId": "can_hit_any_lane",
+      "textShort": "Can hit any lane.",
+      "attack": 2,
+      "hp": 1,
+      "armor": 0
+    },
+    {
+      "id": "control_controller_1",
+      "name": "Controller",
+      "type": "unit",
+      "targeting": "enemy_units",
+      "effectId": "swap_two_enemy_units",
+      "textShort": "On play: swap two enemies.",
+      "attack": 1,
+      "hp": 2,
+      "armor": 0
+    },
+    {
+      "id": "control_drone_1",
+      "name": "Drone",
+      "type": "unit",
+      "targeting": "lane",
+      "effectId": "death_damage_enemy_hero_1",
+      "textShort": "On death: enemy hero takes 1.",
+      "attack": 1,
+      "hp": 1,
+      "armor": 0
+    },
+    {
+      "id": "control_swap_1",
+      "name": "Swap",
+      "type": "order",
+      "targeting": "any_units",
+      "effectId": "swap_any_two_units",
+      "textShort": "Swap any two units."
+    },
+    {
+      "id": "control_jam_signal_1",
+      "name": "Jam Signal",
+      "type": "order",
+      "targeting": "all_enemy_units",
+      "effectId": "enemy_all_atk_minus_1",
+      "textShort": "All enemies -1 ATK this turn."
+    },
+    {
+      "id": "control_pulse_wave_1",
+      "name": "Pulse Wave",
+      "type": "order",
+      "targeting": "all_enemy_units",
+      "effectId": "damage_all_enemies_1",
+      "textShort": "Deal 1 to all enemies."
+    },
+    {
+      "id": "control_system_override_1",
+      "name": "System Override",
+      "type": "special",
+      "targeting": "enemy_unit",
+      "effectId": "control_enemy_unit_this_turn",
+      "textShort": "Enemy attacks its own hero in next combat."
+    },
+    {
+      "id": "control_recall_1",
+      "name": "Recall",
+      "type": "utility",
+      "targeting": "friendly_unit",
+      "effectId": "return_friendly_draw_1",
+      "textShort": "Return ally to hand. Draw 1."
+    }
   ]
 }
