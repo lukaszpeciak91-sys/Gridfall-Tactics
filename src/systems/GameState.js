@@ -464,17 +464,21 @@ function resolveCombatLane(state, col) {
   const enemy = state.board[enemyIndex] ? { ...state.board[enemyIndex], __index: enemyIndex } : null;
   const player = state.board[playerIndex] ? { ...state.board[playerIndex], __index: playerIndex } : null;
 
+  const pendingUnitDamage = new Map();
+  const addPendingUnitDamage = (index, amount) => {
+    if (!amount || amount <= 0) return;
+    pendingUnitDamage.set(index, (pendingUnitDamage.get(index) ?? 0) + amount);
+  };
+
   if (player) {
     const playerAttack = getAttackWithCombatBonuses(player, playerIndex) + getAuraBonusAttack(player);
     if (enemy) {
-      applyDamageToUnit(state, enemyIndex, getMitigatedDamage({ ...player, attack: playerAttack }, enemy));
+      addPendingUnitDamage(enemyIndex, getMitigatedDamage({ ...player, attack: playerAttack }, enemy));
     } else {
       const laneBonus = player.effectId === 'lane_empty_bonus_damage' ? 1 : 0;
       state.enemyHP -= playerAttack + laneBonus;
     }
-    if (player.effectId === 'self_damage_after_attack') {
-      applyDamageToUnit(state, playerIndex, 1);
-    }
+    if (player.effectId === 'self_damage_after_attack') addPendingUnitDamage(playerIndex, 1);
   }
 
   if (enemy) {
@@ -483,15 +487,17 @@ function resolveCombatLane(state, col) {
     if (controlledToHero) {
       state.enemyHP -= enemyAttack;
     } else if (player) {
-      applyDamageToUnit(state, playerIndex, getMitigatedDamage({ ...enemy, attack: enemyAttack }, player));
+      addPendingUnitDamage(playerIndex, getMitigatedDamage({ ...enemy, attack: enemyAttack }, player));
     } else {
       const laneBonus = enemy.effectId === 'lane_empty_bonus_damage' ? 1 : 0;
       state.playerHP -= enemyAttack + laneBonus;
     }
-    if (enemy.effectId === 'self_damage_after_attack') {
-      applyDamageToUnit(state, enemyIndex, 1);
-    }
+    if (enemy.effectId === 'self_damage_after_attack') addPendingUnitDamage(enemyIndex, 1);
   }
+
+  pendingUnitDamage.forEach((amount, index) => {
+    applyDamageToUnit(state, index, amount);
+  });
 
   cleanupDefeatedUnitsWithTriggers(state, [enemyIndex, playerIndex]);
 }
