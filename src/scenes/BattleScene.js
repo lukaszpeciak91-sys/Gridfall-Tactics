@@ -411,7 +411,7 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     this.selectedCardId = cardId;
-    this.targetingState = this.getTargetingStateForCard(card);
+    this.targetingState = this.isUnitCard(card) ? null : this.getTargetingStateForCard(card);
     this.resetCardHighlights();
   }
 
@@ -645,7 +645,7 @@ ${statParts.join(' | ')}`;
   }
 
   getTargetingStateForCard(card) {
-    if (!card) return null;
+    if (!card || this.isUnitCard(card)) return null;
     if (card.effectId === 'return_friendly_draw_1' || card.effectId === 'destroy_friendly_draw_2' || card.effectId === 'quick_strike' || card.effectId === 'heal_2' || card.effectId === 'heal_3') {
       return { cardId: card.id, targetType: 'friendly-unit', requiredTargets: 1, targetIndexes: [] };
     }
