@@ -510,7 +510,51 @@ export function performSwap(state, owner, fromIndex, toIndex) {
   return { ok: true };
 }
 
-function resolveCombatLane(state, col) {
+function resolveCombatLane(state, col, combatContext = null) {
+
+  const context = combatContext ?? { guardiansUsed: new Set() };
+
+  const findSniperTargetIndex = (attackerOwner) => {
+    const enemyIndexes = getRowForOwner(getOpponentOwner(attackerOwner));
+    let bestIndex = null;
+    let bestHp = Infinity;
+    enemyIndexes.forEach((index) => {
+      const unit = state.board[index];
+      if (!unit) return;
+      const hp = Number.isFinite(unit.hp) ? unit.hp : 0;
+      if (hp < bestHp || (hp === bestHp && (bestIndex === null || index < bestIndex))) {
+        bestHp = hp;
+        bestIndex = index;
+      }
+    });
+    return bestIndex;
+  };
+
+  const findGuardianInterceptIndex = (defenderIndex) => {
+    const defender = state.board[defenderIndex];
+    if (!defender) return null;
+    const defenderOwner = defender.owner;
+    const rowStart = defenderOwner === 'player' ? 6 : 0;
+    const lane = defenderIndex % 3;
+    const candidateIndexes = [];
+    if (lane > 0) candidateIndexes.push(rowStart + lane - 1);
+    if (lane < 2) candidateIndexes.push(rowStart + lane + 1);
+
+    let chosen = null;
+    candidateIndexes.forEach((index) => {
+      const guardian = state.board[index];
+      if (!guardian || guardian.owner !== defenderOwner) return;
+      if (guardian.effectId !== 'intercept_lane_damage') return;
+      if (guardian.hp <= 0) return;
+      if (context.guardiansUsed.has(index)) return;
+      if (chosen === null || index < chosen) {
+        chosen = index;
+      }
+    });
+
+    return chosen;
+  };
+
   const getAttackWithCombatBonuses = (unit, unitIndex) => {
     if (!unit) return 0;
     let attack = unit.effectId === 'cannot_attack' ? 0 : (unit.attack ?? 0);
@@ -571,8 +615,22 @@ function resolveCombatLane(state, col) {
 
   if (player) {
     const playerAttack = getAttackWithCombatBonuses(player, playerIndex) + getAuraBonusAttack(player);
-    if (enemy) {
-      addPendingUnitDamage(enemyIndex, getMitigatedDamage({ ...player, attack: playerAttack }, enemy));
+    const canHitAnyLane = player.effectId === 'can_hit_any_lane';
+    const sniperTargetIndex = canHitAnyLane ? findSniperTargetIndex(player.owner) : null;
+    if (sniperTargetIndex !== null) {
+      const sniperTarget = state.board[sniperTargetIndex];
+      if (sniperTarget) {
+        addPendingUnitDamage(sniperTargetIndex, getMitigatedDamage({ ...player, attack: playerAttack }, sniperTarget));
+      }
+    } else if (enemy) {
+      const damage = getMitigatedDamage({ ...player, attack: playerAttack }, enemy);
+      const interceptIndex = findGuardianInterceptIndex(enemyIndex);
+      if (interceptIndex !== null) {
+        addPendingUnitDamage(interceptIndex, damage);
+        context.guardiansUsed.add(interceptIndex);
+      } else {
+        addPendingUnitDamage(enemyIndex, damage);
+      }
     } else {
       const laneBonus = player.effectId === 'lane_empty_bonus_damage' ? 1 : 0;
       state.enemyHP -= playerAttack + laneBonus;
@@ -583,10 +641,24 @@ function resolveCombatLane(state, col) {
   if (enemy) {
     const enemyAttack = getAttackWithCombatBonuses(enemy, enemyIndex) + getAuraBonusAttack(enemy);
     const controlledToHero = Boolean(enemy.controlledAttackThisTurn);
+    const canHitAnyLane = enemy.effectId === 'can_hit_any_lane';
+    const sniperTargetIndex = !controlledToHero && canHitAnyLane ? findSniperTargetIndex(enemy.owner) : null;
     if (controlledToHero) {
       state.enemyHP -= enemyAttack;
+    } else if (sniperTargetIndex !== null) {
+      const sniperTarget = state.board[sniperTargetIndex];
+      if (sniperTarget) {
+        addPendingUnitDamage(sniperTargetIndex, getMitigatedDamage({ ...enemy, attack: enemyAttack }, sniperTarget));
+      }
     } else if (player) {
-      addPendingUnitDamage(playerIndex, getMitigatedDamage({ ...enemy, attack: enemyAttack }, player));
+      const damage = getMitigatedDamage({ ...enemy, attack: enemyAttack }, player);
+      const interceptIndex = findGuardianInterceptIndex(playerIndex);
+      if (interceptIndex !== null) {
+        addPendingUnitDamage(interceptIndex, damage);
+        context.guardiansUsed.add(interceptIndex);
+      } else {
+        addPendingUnitDamage(playerIndex, damage);
+      }
     } else {
       const laneBonus = enemy.effectId === 'lane_empty_bonus_damage' ? 1 : 0;
       state.playerHP -= enemyAttack + laneBonus;
@@ -602,8 +674,9 @@ function resolveCombatLane(state, col) {
 }
 
 export function resolveCombat(state) {
+  const combatContext = { guardiansUsed: new Set() };
   for (let col = 0; col < 3; col += 1) {
-    resolveCombatLane(state, col);
+    resolveCombatLane(state, col, combatContext);
   }
 
   cleanupDefeatedUnitsWithTriggers(state, [...ENEMY_ROW, ...PLAYER_ROW]);
