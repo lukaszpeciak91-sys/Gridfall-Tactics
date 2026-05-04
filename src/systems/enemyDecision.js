@@ -1,3 +1,4 @@
+import { canPlayOrRedeploy } from './GameState.js';
 const ENEMY_ROW_INDEXES = [0, 1, 2];
 const PLAYER_ROW_INDEXES = [6, 7, 8];
 
@@ -21,15 +22,15 @@ const TARGETED_EFFECT_IDS = new Set([
   'heal_3',
 ]);
 
-function getLaneScore(state, enemyIndex) {
+function getLaneScore(state, enemyIndex, unitCardId) {
   const lane = ENEMY_ROW_INDEXES.indexOf(enemyIndex);
   if (lane < 0) return Number.NEGATIVE_INFINITY;
 
   const playerIndex = PLAYER_ROW_INDEXES[lane];
-  const enemyUnit = state?.board?.[enemyIndex] ?? null;
   const playerUnit = state?.board?.[playerIndex] ?? null;
 
-  if (enemyUnit) return Number.NEGATIVE_INFINITY;
+  const canPlayHere = canPlayOrRedeploy(state, 'enemy', unitCardId, enemyIndex);
+  if (!canPlayHere.ok || canPlayHere.type !== 'play') return Number.NEGATIVE_INFINITY;
   if (!playerUnit) return 2;
 
   const playerAttack = playerUnit.attack ?? 0;
@@ -41,12 +42,12 @@ function getLaneScore(state, enemyIndex) {
   return 0;
 }
 
-function findBestLaneForUnit(state) {
+function findBestLaneForUnit(state, unitCardId) {
   let bestLaneIndex = null;
   let bestScore = Number.NEGATIVE_INFINITY;
 
   ENEMY_ROW_INDEXES.forEach((enemyIndex) => {
-    const score = getLaneScore(state, enemyIndex);
+    const score = getLaneScore(state, enemyIndex, unitCardId);
     if (score > bestScore) {
       bestScore = score;
       bestLaneIndex = enemyIndex;
@@ -74,8 +75,8 @@ export function chooseEnemyAction(state) {
 
   const firstUnitCard = enemyHand.find((card) => card?.type === 'unit');
   if (firstUnitCard) {
-    const bestLaneIndex = findBestLaneForUnit(state);
-    if (bestLaneIndex !== null && state?.board?.[bestLaneIndex] == null) {
+    const bestLaneIndex = findBestLaneForUnit(state, firstUnitCard.id);
+    if (bestLaneIndex !== null) {
       return { type: 'play-unit', slotIndex: bestLaneIndex, cardId: firstUnitCard.id };
     }
   }
