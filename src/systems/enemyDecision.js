@@ -5,6 +5,9 @@ const SIMPLE_EFFECT_IDS = new Set([
   'damage_all_enemies_1',
   'enemy_all_atk_minus_1',
   'buff_all_atk_1',
+  'cancel_enemy_order',
+  'immune_move_disable_this_turn',
+  'peek_enemy_slot',
 ]);
 
 const TARGETED_EFFECT_IDS = new Set([
