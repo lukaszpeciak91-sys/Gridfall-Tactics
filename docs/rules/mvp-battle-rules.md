@@ -63,6 +63,15 @@ Meaningful player actions:
 - Both sides can deal damage during same combat step.
 - Temporary turn-based modifiers/effects are reset after combat resolution.
 
+## 6.1) Effect Duration Taxonomy (MVP)
+
+- **This turn window**: Expires after PASS/combat resolution cleanup.
+  - Examples: lane play blocks, `cancel_enemy_order`, temporary ATK/ARM modifiers.
+- **Until consumed**: Lasts until a one-time trigger is used, then clears.
+  - Example: `ignore_armor_next_attack`.
+- **While on board**: Passive/auras only active while source unit remains on board.
+  - Examples: adjacency aura effects like `lane_armor_aura_1`, `adjacent_allies_atk_plus_1`.
+
 ## 7) Targeting Model (MVP)
 
 - Manual targeting is only used where the UI/logic currently supports targeted effect resolution.
@@ -81,14 +90,14 @@ Meaningful player actions:
 | Aggro | Striker | unit | 2/2/0 | null | No special behavior. | Lane combat | Baseline unit. |
 | Aggro | Glass Cannon | unit | 3/1/0 | self_damage_after_attack | Takes 1 self damage after attack resolves. | Lane combat | Implemented as pending self-damage. |
 | Aggro | Flanker | unit | 1/2/0 | empty_adjacent_bonus_atk | +1 ATK if adjacent friendly slot is empty. | Lane combat | Adjacent check is board-state based. |
-| Aggro | Scout | unit | 1/1/0 | block_enemy_lane_play_this_turn | On play, blocks enemy unit placement in same lane this turn. | On-play lane | Player-owned implementation currently sets block flags. |
+| Aggro | Scout | unit | 1/1/0 | block_enemy_lane_play_this_turn | On play, blocks enemy unit placement in same lane this turn. | On-play lane | Symmetric for player/enemy; clears at PASS/combat cleanup. |
 | Aggro | Full Attack | order | - | buff_all_atk_1 | Friendly units get temp +1 ATK this turn. | Non-targeted effect | Expires after combat. |
 | Aggro | Rush | order | - | swap_adjacent_then_resolve | Swap with adjacent friendly (prefers left), resolve that lane combat immediately. | Targeted friendly | Fails if no adjacent friendly. |
 | Aggro | Pierce Strike | order | - | ignore_armor_next_attack | Marks enemy target so next hit ignores armor once. | Targeted enemy | Consumes ignore flag on first mitigated hit. |
 | Aggro | Adrenaline | special | - | quick_strike | Resolve selected friendly unit's lane combat immediately. | Targeted friendly | Lane-only immediate combat slice. |
 | Aggro | Quick Fix | utility | - | heal_2 | Heal targeted friendly by 2 (capped by max HP). | Targeted friendly | Implemented via targeted resolution. |
 | Control | Hacker | unit | 1/2/0 | enemy_lane_atk_minus_1 | On play: opposing lane unit gets temp -1 ATK this turn. | Lane on-play | Also available as targeted effectId path. |
-| Control | Disruptor | unit | 1/2/0 | cancel_enemy_order | Sets cancel flag to negate enemy next non-unit action this turn window. | Non-targeted effect | Acts as effect when played as non-unit is not applicable (unit card); on-board unit has no extra combat hook. |
+| Control | Disruptor | unit | 1/2/0 | cancel_enemy_order | **On play unit trigger**: cancel next enemy non-unit/effect action this turn window. | On-play non-targeted | Cancels at most one enemy non-unit action; expires at PASS/combat cleanup if unused; not a persistent aura. |
 | Control | Sniper | unit | 2/1/0 | can_hit_any_lane | Attacks lowest-HP enemy unit across lanes. | Deterministic auto-target | Tie-break: lowest index. |
 | Control | Controller | unit | 1/2/0 | swap_two_enemy_units | On play: swap first two enemy units if at least two exist. | Deterministic on-play | Not manual two-pick UI for this unit trigger. |
 | Control | Drone | unit | 1/1/0 | death_damage_enemy_hero_1 | On death, enemy hero takes 1. | Death trigger | Applies after unit removed. |
