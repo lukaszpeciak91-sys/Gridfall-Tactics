@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
-import { createInitialBattleState, drawCards, canPass, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard } from '../systems/GameState.js';
+import { createInitialBattleState, drawCards, canPass, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, getUnitAttack, getUnitArmor } from '../systems/GameState.js';
 import { chooseEnemyAction } from '../systems/enemyDecision.js';
 
 export default class BattleScene extends Phaser.Scene {
@@ -571,9 +571,9 @@ export default class BattleScene extends Phaser.Scene {
     if (!unit) return '';
 
     const name = unit.name ?? 'Unit';
-    const atk = Number.isFinite(unit.attack) ? unit.attack : 0;
+    const atk = getUnitAttack(unit);
     const hp = Number.isFinite(unit.hp) ? unit.hp : 0;
-    const armor = Number.isFinite(unit.armor) ? unit.armor : 0;
+    const armor = getUnitArmor(unit);
 
     const statParts = [`ATK ${atk}`];
     if (armor > 0) {

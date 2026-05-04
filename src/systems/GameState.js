@@ -72,8 +72,22 @@ function applyDamageToUnit(state, index, amount) {
   if (!unit || amount <= 0) return;
   unit.hp -= amount;
   if (unit.hp > 0 && unit.effectId === 'gain_atk_when_damaged') {
-    unit.attack += 1;
+    unit.tempAttackMod = (unit.tempAttackMod ?? 0) + 1;
   }
+}
+
+export function getUnitAttack(unit) {
+  if (!unit) return 0;
+  const baseAttack = unit.attack ?? 0;
+  const tempAttack = unit.tempAttackMod ?? 0;
+  return Math.max(0, baseAttack + tempAttack);
+}
+
+export function getUnitArmor(unit) {
+  if (!unit) return 0;
+  const baseArmor = unit.armor ?? 0;
+  const tempArmor = unit.tempArmorMod ?? 0;
+  return Math.max(0, baseArmor + tempArmor);
 }
 
 function applyEffectById(state, owner, effectId) {
@@ -105,7 +119,7 @@ function applyEffectById(state, owner, effectId) {
       const friendlyIndexes = getRowForOwner(owner);
       friendlyIndexes.forEach((index) => {
         if (state.board[index]) {
-          state.board[index].attack += 1;
+          state.board[index].tempAttackMod = (state.board[index].tempAttackMod ?? 0) + 1;
         }
       });
       break;
@@ -115,7 +129,7 @@ function applyEffectById(state, owner, effectId) {
       friendlyIndexes.forEach((index) => {
         const unit = state.board[index];
         if (!unit) return;
-        unit.armor = (unit.armor ?? 0) + 1;
+        unit.tempArmorMod = (unit.tempArmorMod ?? 0) + 1;
       });
       break;
     }
@@ -124,7 +138,7 @@ function applyEffectById(state, owner, effectId) {
       enemyIndexes.forEach((index) => {
         const enemyUnit = state.board[index];
         if (!enemyUnit) return;
-        enemyUnit.attack = Math.max(0, (enemyUnit.attack ?? 0) - 1);
+        enemyUnit.tempAttackMod = (enemyUnit.tempAttackMod ?? 0) - 1;
       });
       break;
     }
@@ -294,7 +308,7 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
     }
     case 'enemy_lane_atk_minus_1': {
       if (targetUnit.owner !== getOpponentOwner(owner)) return { ok: false, reason: 'Target must be enemy' };
-      targetUnit.attack = Math.max(0, (targetUnit.attack ?? 0) - 1);
+      targetUnit.tempAttackMod = (targetUnit.tempAttackMod ?? 0) - 1;
       break;
     }
     case 'quick_strike': {
@@ -436,7 +450,7 @@ function resolveCombatLane(state, col) {
   };
 
   const getMitigatedDamage = (attacker, defender) => {
-    const attackDamage = attacker?.attack ?? 0;
+    const attackDamage = getUnitAttack(attacker);
     if (defender?.ignoreArmorNext) {
       defender.ignoreArmorNext = false;
       return Math.max(0, attackDamage);
@@ -492,6 +506,12 @@ export function resolveCombat(state) {
   state.board.forEach((unit) => {
     if (unit?.controlledAttackThisTurn) {
       delete unit.controlledAttackThisTurn;
+    }
+    if (unit?.tempAttackMod) {
+      delete unit.tempAttackMod;
+    }
+    if (unit?.tempArmorMod) {
+      delete unit.tempArmorMod;
     }
   });
 
