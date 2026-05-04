@@ -202,7 +202,7 @@ function applyEffectById(state, owner, effectId) {
           id: `${owner}_flood_token_${index}_${summoned}`,
           name: 'Token',
           type: 'unit',
-          attack: 0,
+          attack: 1,
           hp: 1,
           armor: 0,
           effectId: null,
