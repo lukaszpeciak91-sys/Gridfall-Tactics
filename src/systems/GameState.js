@@ -71,6 +71,12 @@ function applyDamageToUnit(state, index, amount) {
   const unit = state.board[index];
   if (!unit || amount <= 0) return;
   unit.hp -= amount;
+
+  const minOneProtection = Boolean(state.cannotDropBelowOneThisTurn?.[unit.owner]);
+  if (minOneProtection && unit.hp < 1) {
+    unit.hp = 1;
+  }
+
   if (unit.hp > 0 && unit.effectId === 'gain_atk_when_damaged') {
     unit.tempAttackMod = (unit.tempAttackMod ?? 0) + 1;
   }
@@ -179,6 +185,28 @@ function applyEffectById(state, owner, effectId) {
     case 'quick_strike':
     case 'control_enemy_unit_this_turn':
       break;
+    case 'cannot_drop_below_1_this_turn': {
+      if (!state.cannotDropBelowOneThisTurn) {
+        state.cannotDropBelowOneThisTurn = { player: false, enemy: false };
+      }
+      state.cannotDropBelowOneThisTurn[owner] = true;
+      break;
+    }
+    case 'revive_friendly_1hp': {
+      const friendlyIndexes = getRowForOwner(owner);
+      const emptySlot = friendlyIndexes.find((index) => state.board[index] === null);
+      if (emptySlot === undefined) break;
+      const discard = owner === 'player' ? state.player.discard : state.enemy.discard;
+      const reviveIndex = discard.findIndex((card) => card?.type === 'unit');
+      if (reviveIndex < 0) break;
+      const [reviveCard] = discard.splice(reviveIndex, 1);
+      const revivedUnit = createBoardUnitFromCard(reviveCard, owner);
+      revivedUnit.hp = 1;
+      revivedUnit.maxHp = Number.isFinite(revivedUnit.maxHp) ? revivedUnit.maxHp : reviveCard.hp;
+      state.board[emptySlot] = revivedUnit;
+      break;
+    }
+
     default:
       break;
   }
@@ -208,6 +236,10 @@ export function createInitialBattleState(playerFactionData, enemyFactionData = p
       hand: [],
       discard: [],
       maxHandSize: 5,
+    },
+    cannotDropBelowOneThisTurn: {
+      player: false,
+      enemy: false,
     },
   };
 }
@@ -333,6 +365,39 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
       const amount = card.effectId === 'heal_3' ? 3 : 2;
       const hpCap = Number.isFinite(targetUnit.maxHp) ? targetUnit.maxHp : targetUnit.hp;
       targetUnit.hp = Math.min(hpCap, targetUnit.hp + amount);
+      break;
+    }
+    case 'swap_any_two_units': {
+      const selectedTargets = Array.isArray(targetIndexes) ? targetIndexes : [boardIndex];
+      if (selectedTargets.length < 2) {
+        return { ok: true, type: 'targeted-effect-pending' };
+      }
+      const [firstIndex, secondIndex] = selectedTargets;
+      if (firstIndex === secondIndex) return { ok: false, reason: 'Select two different targets' };
+      const firstUnit = state.board[firstIndex];
+      const secondUnit = state.board[secondIndex];
+      if (!firstUnit || !secondUnit) return { ok: false, reason: 'Both targets must contain units' };
+      state.board[firstIndex] = secondUnit;
+      state.board[secondIndex] = firstUnit;
+      break;
+    }
+    case 'swap_adjacent_then_resolve': {
+      if (targetUnit.owner !== owner) return { ok: false, reason: 'Target must be friendly' };
+      const selectedTargets = Array.isArray(targetIndexes) ? targetIndexes : [boardIndex];
+      if (selectedTargets.length < 2) {
+        return { ok: true, type: 'targeted-effect-pending' };
+      }
+      const [firstIndex, secondIndex] = selectedTargets;
+      if (firstIndex === secondIndex) return { ok: false, reason: 'Select an adjacent friendly unit' };
+      const firstUnit = state.board[firstIndex];
+      const secondUnit = state.board[secondIndex];
+      if (!firstUnit || !secondUnit) return { ok: false, reason: 'Both targets must contain friendly units' };
+      if (firstUnit.owner !== owner || secondUnit.owner !== owner) return { ok: false, reason: 'Targets must be friendly' };
+      if (Math.abs(firstIndex - secondIndex) !== 1) return { ok: false, reason: 'Targets must be adjacent' };
+      if (Math.floor(firstIndex / 3) !== Math.floor(secondIndex / 3)) return { ok: false, reason: 'Targets must be in same row' };
+      state.board[firstIndex] = secondUnit;
+      state.board[secondIndex] = firstUnit;
+      resolveCombatLane(state, firstIndex % 3);
       break;
     }
     case 'swap_two_enemy_units': {
@@ -508,6 +573,11 @@ export function resolveCombat(state) {
   }
 
   cleanupDefeatedUnitsWithTriggers(state, [...ENEMY_ROW, ...PLAYER_ROW]);
+
+  if (state.cannotDropBelowOneThisTurn) {
+    state.cannotDropBelowOneThisTurn.player = false;
+    state.cannotDropBelowOneThisTurn.enemy = false;
+  }
 
   state.board.forEach((unit) => {
     if (unit?.controlledAttackThisTurn) {

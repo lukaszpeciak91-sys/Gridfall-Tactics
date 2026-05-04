@@ -632,6 +632,9 @@ ${statParts.join(' | ')}`;
       } else if (this.targetingState?.targetType === 'enemy-unit' && isValidEnemyTarget) {
         strokeColor = 0xef4444;
         strokeAlpha = 1;
+      } else if (this.targetingState?.targetType === 'any-unit' && (isValidFriendlyTarget || isValidEnemyTarget)) {
+        strokeColor = 0xa855f7;
+        strokeAlpha = 1;
       }
       cell.background.setStrokeStyle(cell.row === 1 ? 2 : 3, strokeColor, strokeAlpha);
     });
@@ -652,6 +655,12 @@ ${statParts.join(' | ')}`;
     if (card.effectId === 'swap_two_enemy_units') {
       return { cardId: card.id, targetType: 'enemy-unit', requiredTargets: 2, targetIndexes: [] };
     }
+    if (card.effectId === 'swap_any_two_units') {
+      return { cardId: card.id, targetType: 'any-unit', requiredTargets: 2, targetIndexes: [] };
+    }
+    if (card.effectId === 'swap_adjacent_then_resolve') {
+      return { cardId: card.id, targetType: 'friendly-unit', requiredTargets: 2, targetIndexes: [] };
+    }
     return null;
   }
 
@@ -660,6 +669,7 @@ ${statParts.join(' | ')}`;
     if (!unit) return false;
     if (targetType === 'friendly-unit') return unit.owner === 'player';
     if (targetType === 'enemy-unit') return unit.owner === 'enemy';
+    if (targetType === 'any-unit') return true;
     return false;
   }
 
