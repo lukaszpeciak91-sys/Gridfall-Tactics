@@ -424,7 +424,12 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
     }
     case 'ignore_armor_next_attack': {
       if (targetUnit.owner !== getOpponentOwner(owner)) return { ok: false, reason: 'Target must be enemy' };
-      targetUnit.ignoreArmorNext = true;
+      applyDamageToUnit(state, boardIndex, 1);
+      cleanupDefeatedUnitsWithTriggers(state, [boardIndex]);
+      const updatedTarget = state.board[boardIndex];
+      if (updatedTarget && updatedTarget.owner === getOpponentOwner(owner)) {
+        updatedTarget.ignoreArmorNext = true;
+      }
       break;
     }
     case 'heal_2':
