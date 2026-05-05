@@ -606,7 +606,8 @@ export function performSwap(state, owner, fromIndex, toIndex) {
 
 function resolveCombatLane(state, col, combatContext = null) {
 
-  const context = combatContext ?? { guardiansUsed: new Set() };
+  const context = combatContext ?? { guardiansUsed: new Set(), events: [] };
+  if (!Array.isArray(context.events)) context.events = [];
 
   const findSniperTargetIndex = (attackerOwner) => {
     const enemyIndexes = getRowForOwner(getOpponentOwner(attackerOwner));
@@ -709,6 +710,48 @@ function resolveCombatLane(state, col, combatContext = null) {
     if (!amount || amount <= 0) return;
     pendingUnitDamage.set(index, (pendingUnitDamage.get(index) ?? 0) + amount);
   };
+  const wouldUnitDamageBeLethal = (index, amount) => {
+    const target = state.board[index];
+    if (!target || amount <= 0) return false;
+    const accumulatedDamage = pendingUnitDamage.get(index) ?? 0;
+    const projectedHp = target.hp - accumulatedDamage - amount;
+    const minOneProtection = Boolean(state.cannotDropBelowOneThisTurn?.[target.owner]);
+    return !minOneProtection && projectedHp <= 0;
+  };
+  const recordCombatEvent = ({ attackerSide, targetType, targetSide, damage, openLane, lethal = false }) => {
+    // Read-only feedback payload for BattleScene; combat mutations remain below.
+    context.events.push({
+      lane: col,
+      attackerSide,
+      targetType,
+      targetSide,
+      damage,
+      openLane,
+      lethal,
+    });
+  };
+  const recordUnitAttack = (attackerSide, targetIndex, damage) => {
+    const target = state.board[targetIndex];
+    if (!target) return;
+    recordCombatEvent({
+      attackerSide,
+      targetType: 'unit',
+      targetSide: target.owner,
+      damage,
+      openLane: false,
+      lethal: wouldUnitDamageBeLethal(targetIndex, damage),
+    });
+  };
+  const recordHeroAttack = (attackerSide, targetSide, damage, openLane) => {
+    recordCombatEvent({
+      attackerSide,
+      targetType: 'hero',
+      targetSide,
+      damage,
+      openLane,
+      lethal: false,
+    });
+  };
 
   if (player) {
     const playerAttack = getAttackWithCombatBonuses(player, playerIndex) + getAuraBonusAttack(player);
@@ -717,20 +760,26 @@ function resolveCombatLane(state, col, combatContext = null) {
     if (sniperTargetIndex !== null) {
       const sniperTarget = state.board[sniperTargetIndex];
       if (sniperTarget) {
-        addPendingUnitDamage(sniperTargetIndex, getMitigatedDamage({ ...player, attack: playerAttack }, sniperTarget));
+        const damage = getMitigatedDamage({ ...player, attack: playerAttack }, sniperTarget);
+        recordUnitAttack('player', sniperTargetIndex, damage);
+        addPendingUnitDamage(sniperTargetIndex, damage);
       }
     } else if (enemy) {
       const damage = getMitigatedDamage({ ...player, attack: playerAttack }, enemy);
       const interceptIndex = findGuardianInterceptIndex(enemyIndex);
       if (interceptIndex !== null) {
+        recordUnitAttack('player', interceptIndex, damage);
         addPendingUnitDamage(interceptIndex, damage);
         context.guardiansUsed.add(interceptIndex);
       } else {
+        recordUnitAttack('player', enemyIndex, damage);
         addPendingUnitDamage(enemyIndex, damage);
       }
     } else {
       const laneBonus = player.effectId === 'lane_empty_bonus_damage' ? 1 : 0;
-      state.enemyHP -= playerAttack + laneBonus;
+      const damage = playerAttack + laneBonus;
+      recordHeroAttack('player', 'enemy', damage, true);
+      state.enemyHP -= damage;
     }
     if (player.effectId === 'self_damage_after_attack') addPendingUnitDamage(playerIndex, 1);
   }
@@ -741,24 +790,31 @@ function resolveCombatLane(state, col, combatContext = null) {
     const canHitAnyLane = enemy.effectId === 'can_hit_any_lane';
     const sniperTargetIndex = !controlledToHero && canHitAnyLane ? findSniperTargetIndex(enemy.owner) : null;
     if (controlledToHero) {
+      recordHeroAttack('enemy', 'enemy', enemyAttack, false);
       state.enemyHP -= enemyAttack;
     } else if (sniperTargetIndex !== null) {
       const sniperTarget = state.board[sniperTargetIndex];
       if (sniperTarget) {
-        addPendingUnitDamage(sniperTargetIndex, getMitigatedDamage({ ...enemy, attack: enemyAttack }, sniperTarget));
+        const damage = getMitigatedDamage({ ...enemy, attack: enemyAttack }, sniperTarget);
+        recordUnitAttack('enemy', sniperTargetIndex, damage);
+        addPendingUnitDamage(sniperTargetIndex, damage);
       }
     } else if (player) {
       const damage = getMitigatedDamage({ ...enemy, attack: enemyAttack }, player);
       const interceptIndex = findGuardianInterceptIndex(playerIndex);
       if (interceptIndex !== null) {
+        recordUnitAttack('enemy', interceptIndex, damage);
         addPendingUnitDamage(interceptIndex, damage);
         context.guardiansUsed.add(interceptIndex);
       } else {
+        recordUnitAttack('enemy', playerIndex, damage);
         addPendingUnitDamage(playerIndex, damage);
       }
     } else {
       const laneBonus = enemy.effectId === 'lane_empty_bonus_damage' ? 1 : 0;
-      state.playerHP -= enemyAttack + laneBonus;
+      const damage = enemyAttack + laneBonus;
+      recordHeroAttack('enemy', 'player', damage, true);
+      state.playerHP -= damage;
     }
     if (enemy.effectId === 'self_damage_after_attack') addPendingUnitDamage(enemyIndex, 1);
   }
@@ -768,10 +824,12 @@ function resolveCombatLane(state, col, combatContext = null) {
   });
 
   cleanupDefeatedUnitsWithTriggers(state, [enemyIndex, playerIndex]);
+
+  return context.events;
 }
 
 export function resolveCombat(state) {
-  const combatContext = { guardiansUsed: new Set() };
+  const combatContext = { guardiansUsed: new Set(), events: [] };
   for (let col = 0; col < 3; col += 1) {
     resolveCombatLane(state, col, combatContext);
   }
@@ -816,5 +874,5 @@ export function resolveCombat(state) {
     state.winner = state.playerHP === 0 && state.enemyHP === 0 ? 'draw' : (state.playerHP === 0 ? 'enemy' : 'player');
   }
 
-  return state;
+  return combatContext.events;
 }

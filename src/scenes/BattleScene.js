@@ -520,7 +520,11 @@ export default class BattleScene extends Phaser.Scene {
     if (this.gameState.winner || !canPass(this.gameState)) return;
 
     this.enemyTakeAction();
-    resolveCombat(this.gameState);
+    const combatEvents = resolveCombat(this.gameState);
+    this.lastCombatEvents = combatEvents;
+    if (combatEvents.length > 0) {
+      console.debug('Combat feedback events', combatEvents);
+    }
     drawCards(this.gameState.player, 1);
     drawCards(this.gameState.enemy, 1);
 
