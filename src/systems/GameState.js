@@ -48,6 +48,26 @@ function removeDefeatedUnits(state, boardIndexes) {
   cleanupDefeatedUnitsWithTriggers(state, boardIndexes);
 }
 
+function cleanupAllDefeatedUnitsWithTriggers(state) {
+  cleanupDefeatedUnitsWithTriggers(state, [...ENEMY_ROW, ...PLAYER_ROW]);
+}
+
+function clampHeroHpAndResolveWinner(state) {
+  state.playerHP = Math.max(0, state.playerHP);
+  state.enemyHP = Math.max(0, state.enemyHP);
+
+  if (state.playerHP === 0 || state.enemyHP === 0) {
+    state.winner = state.playerHP === 0 && state.enemyHP === 0
+      ? 'draw'
+      : (state.playerHP === 0 ? 'enemy' : 'player');
+  }
+}
+
+function finalizeImmediateLaneCombat(state) {
+  cleanupAllDefeatedUnitsWithTriggers(state);
+  clampHeroHpAndResolveWinner(state);
+}
+
 function triggerUnitDeathEffects(state, index, unit) {
   if (!unit) return;
   const owner = unit.owner;
@@ -415,6 +435,7 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
       if (targetUnit.owner !== owner) return { ok: false, reason: 'Target must be friendly' };
       const lane = boardIndex % 3;
       resolveCombatLane(state, lane);
+      finalizeImmediateLaneCombat(state);
       break;
     }
     case 'control_enemy_unit_this_turn': {
@@ -519,6 +540,7 @@ export function resolveQuickStrike(state, owner, boardIndex) {
   }
   const lane = boardIndex % 3;
   resolveCombatLane(state, lane);
+  finalizeImmediateLaneCombat(state);
   return { ok: true, type: 'quick-strike', lane };
 }
 
@@ -810,11 +832,7 @@ export function resolveCombat(state) {
     }
   });
 
-  state.playerHP = Math.max(0, state.playerHP);
-  state.enemyHP = Math.max(0, state.enemyHP);
-  if (state.playerHP === 0 || state.enemyHP === 0) {
-    state.winner = state.playerHP === 0 && state.enemyHP === 0 ? 'draw' : (state.playerHP === 0 ? 'enemy' : 'player');
-  }
+  clampHeroHpAndResolveWinner(state);
 
   return state;
 }
