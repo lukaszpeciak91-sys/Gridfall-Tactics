@@ -178,23 +178,37 @@ export function chooseEnemyAction(state) {
   return chooseBattleAction(state, 'enemy');
 }
 
-export function chooseBattleAction(state, owner = 'enemy') {
+export function chooseBattleAction(state, owner = 'enemy', options = {}) {
   const side = owner === 'enemy' ? state?.enemy : state?.player;
   const hand = Array.isArray(side?.hand) ? side.hand : [];
   const actions = buildActionCandidates(state, owner, hand);
 
   if (actions.length === 0) return { type: 'pass' };
 
-  let bestAction = null;
-  let bestScore = Number.NEGATIVE_INFINITY;
+  const scoredActions = actions
+    .map((action) => ({ action, score: scoreAction(state, owner, action) }))
+    .filter(({ score }) => Number.isFinite(score));
 
-  actions.forEach((action) => {
-    const score = scoreAction(state, owner, action);
-    if (score > bestScore) {
-      bestScore = score;
-      bestAction = action;
-    }
-  });
+  if (scoredActions.length === 0) return { type: 'pass' };
 
-  return bestAction ?? { type: 'pass' };
+  const bestScore = scoredActions.reduce((max, entry) => Math.max(max, entry.score), Number.NEGATIVE_INFINITY);
+  const tiedBest = scoredActions.filter((entry) => entry.score === bestScore).map((entry) => entry.action);
+
+  if (tiedBest.length === 1) return tiedBest[0];
+
+  const randomFn = typeof options.randomFn === 'function' ? options.randomFn : null;
+  const tieBreakPolicy = options.tieBreakPolicy ?? 'first';
+
+  if (tieBreakPolicy === 'seeded-random' && randomFn) {
+    const index = Math.floor(randomFn() * tiedBest.length);
+    return tiedBest[Math.max(0, Math.min(tiedBest.length - 1, index))];
+  }
+
+  if (tieBreakPolicy === 'rotation') {
+    const rotationIndex = Number.isInteger(options.tieBreakIndex) ? options.tieBreakIndex : 0;
+    const normalized = ((rotationIndex % tiedBest.length) + tiedBest.length) % tiedBest.length;
+    return tiedBest[normalized];
+  }
+
+  return tiedBest[0];
 }
