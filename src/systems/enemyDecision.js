@@ -1,26 +1,6 @@
-import { canPlayOrRedeploy } from './GameState.js';
+import { canPlayOrRedeploy, playEffectCard, resolveTargetedEffectCard } from './GameState.js';
 const ENEMY_ROW_INDEXES = [0, 1, 2];
 const PLAYER_ROW_INDEXES = [6, 7, 8];
-
-const SIMPLE_EFFECT_IDS = new Set([
-  'damage_all_enemies_1',
-  'enemy_all_atk_minus_1',
-  'buff_all_atk_1',
-  'cancel_enemy_order',
-  'immune_move_disable_this_turn',
-  'peek_enemy_slot',
-]);
-
-const TARGETED_EFFECT_IDS = new Set([
-  'enemy_lane_atk_minus_1',
-  'ignore_armor_next_attack',
-  'swap_two_enemy_units',
-  'return_friendly_draw_1',
-  'destroy_friendly_draw_2',
-  'control_enemy_unit_this_turn',
-  'heal_2',
-  'heal_3',
-]);
 
 function findBestLaneForOwner(state, owner, unitCardId) {
   const rowIndexes = owner === 'enemy' ? ENEMY_ROW_INDEXES : PLAYER_ROW_INDEXES;
@@ -59,17 +39,58 @@ function getLaneScoreForOwner(state, owner, slotIndex, unitCardId) {
   return 0;
 }
 
-function getFirstValidTargetIndex(state, owner, effectId) {
+function cloneState(state) {
+  return JSON.parse(JSON.stringify(state));
+}
+
+function getCandidateTargetIndexes(state, owner, effectId) {
   const board = Array.isArray(state?.board) ? state.board : [];
   const isEnemyOwner = owner === 'enemy';
   const friendlyOwner = isEnemyOwner ? 'enemy' : 'player';
   const opponentOwner = isEnemyOwner ? 'player' : 'enemy';
 
-  if (effectId === 'return_friendly_draw_1' || effectId === 'destroy_friendly_draw_2' || effectId === 'heal_2' || effectId === 'heal_3') {
-    return board.findIndex((unit) => unit?.owner === friendlyOwner);
+  switch (effectId) {
+    case 'return_friendly_draw_1':
+    case 'destroy_friendly_draw_2':
+    case 'heal_2':
+    case 'heal_3':
+    case 'quick_strike':
+    case 'swap_adjacent_then_resolve':
+      return board.map((unit, index) => (unit?.owner === friendlyOwner ? index : -1)).filter((index) => index >= 0);
+    case 'control_enemy_unit_this_turn':
+    case 'ignore_armor_next_attack':
+    case 'enemy_lane_atk_minus_1':
+    case 'swap_two_enemy_units':
+      return board.map((unit, index) => (unit?.owner === opponentOwner ? index : -1)).filter((index) => index >= 0);
+    case 'swap_any_two_units':
+      return board.map((unit, index) => (unit ? index : -1)).filter((index) => index >= 0);
+    default:
+      return board.map((_, index) => index);
+  }
+}
+
+function choosePlayableEffectAction(state, owner, hand) {
+  const nonUnitCards = hand.filter((card) => card?.type !== 'unit');
+
+  for (const card of nonUnitCards) {
+    const effectId = card?.effectId ?? null;
+    if (!effectId) continue;
+
+    const simpleProbe = playEffectCard(cloneState(state), owner, card.id);
+    if (simpleProbe.ok && simpleProbe.type !== 'effect-blocked') {
+      return { type: 'play-effect', cardId: card.id };
+    }
+
+    const candidateTargets = getCandidateTargetIndexes(state, owner, effectId);
+    for (const targetIndex of candidateTargets) {
+      const targetedProbe = resolveTargetedEffectCard(cloneState(state), owner, card.id, targetIndex, [targetIndex]);
+      if (targetedProbe.ok && targetedProbe.type !== 'targeted-effect-pending' && targetedProbe.type !== 'targeted-effect-blocked') {
+        return { type: 'play-targeted-effect', cardId: card.id, targetIndex };
+      }
+    }
   }
 
-  return board.findIndex((unit) => unit?.owner === opponentOwner);
+  return null;
 }
 
 export function chooseEnemyAction(state) {
@@ -88,14 +109,8 @@ export function chooseBattleAction(state, owner = 'enemy') {
     }
   }
 
-  const simpleEffectCard = hand.find((card) => card?.type !== 'unit' && SIMPLE_EFFECT_IDS.has(card?.effectId));
-  if (simpleEffectCard) return { type: 'play-effect', cardId: simpleEffectCard.id };
-
-  const targetedCard = hand.find((card) => card?.type !== 'unit' && TARGETED_EFFECT_IDS.has(card?.effectId));
-  if (targetedCard) {
-    const targetIndex = getFirstValidTargetIndex(state, owner, targetedCard.effectId);
-    if (targetIndex >= 0) return { type: 'play-targeted-effect', cardId: targetedCard.id, targetIndex };
-  }
+  const effectAction = choosePlayableEffectAction(state, owner, hand);
+  if (effectAction) return effectAction;
 
   return { type: 'pass' };
 }
