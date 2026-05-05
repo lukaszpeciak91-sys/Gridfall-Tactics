@@ -80,7 +80,7 @@
       "type": "order",
       "targeting": "enemy_unit",
       "effectId": "ignore_armor_next_attack",
-      "textShort": "Target enemy: next attack against it ignores armor."
+      "textShort": "Deal 1 to enemy; next hit on it ignores armor."
     },
     {
       "id": "aggro_adrenaline_1",
