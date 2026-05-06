@@ -48,3 +48,44 @@ test('Fortify grants all friendly units +1 temporary armor for combat', () => {
   assert.equal(state.board[6].tempArmorMod, undefined);
   assert.equal(fortify.textShort, 'All allies +1 armor this turn.');
 });
+
+test('Full Attack grants all Aggro friendly units +2 temporary attack for combat', () => {
+  const aggro = loadFaction('src/data/factions/aggro.json');
+  const fullAttack = aggro.deck.find((card) => card.id === 'aggro_full_attack_1');
+  const state = createInitialBattleState({ name: 'Test', deck: [] });
+
+  state.player.hand.push({ ...fullAttack });
+  state.board[6] = unit('player', { attack: 1, hp: 2, maxHp: 2 });
+  state.board[7] = unit('player', { attack: 2, hp: 2, maxHp: 2 });
+
+  const result = playEffectCard(state, 'player', fullAttack.id);
+  assert.equal(result.ok, true);
+  assert.equal(state.board[6].tempAttackMod, 2);
+  assert.equal(state.board[7].tempAttackMod, 2);
+  assert.equal(fullAttack.effectId, 'aggro_buff_all_atk_2');
+  assert.equal(fullAttack.textShort, 'All allies +2 ATK this turn.');
+
+  resolveCombat(state);
+
+  assert.equal(state.board[6].tempAttackMod, undefined);
+  assert.equal(state.board[7].tempAttackMod, undefined);
+});
+
+test('Swarm Attack remains a +1 temporary attack buff', () => {
+  const swarm = loadFaction('src/data/factions/swarm.json');
+  const swarmAttack = swarm.deck.find((card) => card.id === 'swarm_swarm_attack_1');
+  const state = createInitialBattleState({ name: 'Test', deck: [] });
+
+  state.player.hand.push({ ...swarmAttack });
+  state.board[6] = unit('player', { attack: 1, hp: 2, maxHp: 2 });
+
+  const result = playEffectCard(state, 'player', swarmAttack.id);
+  assert.equal(result.ok, true);
+  assert.equal(state.board[6].tempAttackMod, 1);
+  assert.equal(swarmAttack.effectId, 'buff_all_atk_1');
+  assert.equal(swarmAttack.textShort, 'All allies +1 ATK this turn.');
+
+  resolveCombat(state);
+
+  assert.equal(state.board[6].tempAttackMod, undefined);
+});
