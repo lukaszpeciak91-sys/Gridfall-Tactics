@@ -79,3 +79,10 @@
 - This is an MVP anti-stall/pacing solution, not the final long-term tournament or overtime system.
 - Primary motivation: Swarm mirrors were producing excessive empty-board exhaustion draws under the old automatic draw-at-cap rule.
 - Simulation and sanity runners must use the same shared turn-cap resolution helper as live gameplay; no special-case simulation behavior.
+
+
+## Simple Opening Mulligan MVP (2026-05-06)
+- Added a single opening mulligan only at battle start to improve opening-hand consistency without adding in-match redraw systems.
+- Limit is up to 2 replaced cards from the 4-card starting hand; hand size, deck size, hero HP, action economy, mana/energy assumptions, and combat flow remain unchanged.
+- AI-controlled sides use the shared deterministic evaluator for parity between live enemy behavior and simulation mirrors.
+- The evaluator intentionally stays simple: value playable early units, penalize no-board/low-tempo effects, and replace the lowest-scoring opening cards only when they fall at or below the opening threshold.

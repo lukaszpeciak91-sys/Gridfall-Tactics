@@ -35,7 +35,11 @@ If any other document conflicts with this file, this file wins.
 - Starting hand: **4 cards** (player and enemy both draw at battle start).
 - Max hand size: **5**.
 - Draw timing in loop: after both sides act/pass and combat resolves, **player draws 1 then enemy draws 1**.
-- No mulligan in MVP (deferred / not implemented).
+- Opening mulligan: once at battle start, before the first turn begins, each side may replace up to **2** cards from the 4-card starting hand.
+  - Replaced cards are shuffled back into that side's deck.
+  - The side draws the same number of replacement cards, preserving the starting hand size.
+  - The mulligan window closes once used/kept or once the battle starts; there are no mulligans/redraws during the match.
+  - Live enemy AI and AI-vs-AI simulations use the same deterministic opening-hand evaluator, preferring to replace low-tempo cards and cards with poor opening synergy.
 
 ## 4) Turn Flow, Initiative, and Action Economy (Auto-Turn)
 
@@ -43,6 +47,7 @@ If any other document conflicts with this file, this file wins.
 - Purpose: reduce fixed second-actor reaction advantage observed in simulations.
 - This is not necessarily the final long-term turn system.
 - At battle start, `firstActor` is randomly selected as `player` or `enemy`.
+- Before the first turn starts, both sides draw 4 cards and resolve their one opening mulligan/keep decision. The live player chooses manually in the minimal hand UI; the live enemy and simulation mirrors choose via the shared opening mulligan evaluator.
 - After each full turn resolution, `firstActor` toggles so initiative alternates player → enemy → player, or enemy → player → enemy.
 - Each side gets at most **1 meaningful action/pass** per full turn.
 - PASS counts as the player's action for that turn.
@@ -160,9 +165,9 @@ Implemented now:
 - Deterministic Sniper targeting.
 - Deterministic Controller on-play enemy swap.
 - Flood capped at up to 2 tokens.
+- One-time opening mulligan with up to 2 replacements before game start.
 
 Deferred / intentionally simplified:
-- Mulligan flow.
 - Hidden-info peek UI (`peek_enemy_slot` no-op).
 - Rich manual targeting UX for unit passive triggers not already implemented.
 
@@ -171,6 +176,7 @@ Deferred / intentionally simplified:
 
 - Live enemy AI calls `chooseEnemyAction`, which is a wrapper around the owner-agnostic `chooseBattleAction(state, 'enemy')` scorer.
 - AI-vs-AI mirror/batch simulations call the same `chooseBattleAction` scorer for both `player` and `enemy` owners, so mirror bots and the live enemy share action generation and scoring rules.
+- Opening mulligans use shared `selectOpeningMulliganCardIds` evaluation for AI-controlled sides in live and simulation flows, replacing up to two low-tempo/low-synergy cards before turn 1.
 - The scorer considers legal unit plays, redeploys, adjacent friendly swaps, non-targeted effects, and fully resolved targeted effects; it rejects pending/blocked/no-op targets and avoids recently repeated redeploy/swap loops.
 - The behavior is intentionally simple but rule-aware: it prioritizes lethal hero damage, immediate hero damage, open-lane pressure, reducing opposing pressure, kills, and meaningful board improvements.
 - Known MVP simplification: it evaluates the current action's immediate board/pressure result rather than searching multiple future turns.

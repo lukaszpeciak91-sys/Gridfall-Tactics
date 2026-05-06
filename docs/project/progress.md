@@ -81,3 +81,10 @@
 - Added a shared UI targeting helper plus regression coverage for Quick Fix and two-target swap selection metadata.
 - Updated canonical card matrix stats and Pierce Strike behavior to match current faction JSON and `GameState` implementation.
 - Documented that AI mirror simulations and the live enemy share the same `chooseBattleAction` decision engine; simulation differs only in seeded-random tie-breaking for audit repeatability.
+
+
+## 2026-05-06 — Simple Opening Mulligan
+- Implemented the one-time opening mulligan window after the 4-card starting hand and before the first turn begins.
+- Player may keep or replace up to 2 starting-hand cards; replacements are shuffled back into deck and the same number of cards are drawn.
+- Live enemy AI and AI-vs-AI simulations now use the same deterministic opening mulligan evaluator, which prefers replacing low-tempo and low-synergy opening cards.
+- Simulation and sanity reports now include mulligan usage by faction alongside stability and pacing telemetry.

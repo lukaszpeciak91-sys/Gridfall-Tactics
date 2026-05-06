@@ -4,6 +4,8 @@ import { fileURLToPath } from 'node:url';
 import {
   createInitialBattleState,
   drawCards,
+  performOpeningMulligan,
+  STARTING_HAND_SIZE,
   playOrRedeployUnit,
   performSwap,
   playEffectCard,
@@ -13,7 +15,7 @@ import {
   resolveTurnCapWinner,
   MAX_TURNS,
 } from '../src/systems/GameState.js';
-import { chooseBattleAction, recordBattleActionUse } from '../src/systems/enemyDecision.js';
+import { chooseBattleAction, recordBattleActionUse, selectOpeningMulliganCardIds } from '../src/systems/enemyDecision.js';
 
 const GAMES_PER_PLAYER_FACTION = 20;
 const BASE_SEED = 20260505;
@@ -74,6 +76,27 @@ function pickEnemyFaction(factionKeys, playerKey, gameIndex) {
   return others[gameIndex % others.length];
 }
 
+
+function recordMulliganTelemetry(metrics, factionName, replaced) {
+  metrics.mulliganByFaction ??= {};
+  metrics.mulliganByFaction[factionName] ??= { games: 0, used: 0, cardsReplaced: 0 };
+  const row = metrics.mulliganByFaction[factionName];
+  row.games += 1;
+  if (replaced > 0) row.used += 1;
+  row.cardsReplaced += replaced;
+}
+
+function applyAiOpeningMulligan(state, owner, randomFn, metrics) {
+  const side = owner === 'player' ? state.player : state.enemy;
+  const selectedIds = selectOpeningMulliganCardIds(side);
+  const result = performOpeningMulligan(state, owner, selectedIds, randomFn);
+  if (!result.ok) {
+    metrics.invalidActions += 1;
+    return;
+  }
+  recordMulliganTelemetry(metrics, side.factionName ?? 'Unknown', result.replaced);
+}
+
 function applyAction(state, owner, metrics, rng) {
   const action = chooseBattleAction(state, owner, { randomFn: rng, tieBreakPolicy: 'seeded-random', telemetry: metrics });
   if (action.type === 'pass') {
@@ -131,8 +154,10 @@ function simulateGame(playerFaction, enemyFaction, gameIndex, playerKey, enemyKe
     shuffleDeck(state.enemy.deck, gameRng);
   }
 
-  drawCards(state.player, 4);
-  drawCards(state.enemy, 4);
+  drawCards(state.player, STARTING_HAND_SIZE);
+  drawCards(state.enemy, STARTING_HAND_SIZE);
+  applyAiOpeningMulligan(state, 'player', gameRng, metrics);
+  applyAiOpeningMulligan(state, 'enemy', gameRng, metrics);
 
   let turns = 0;
   while (!state.winner && turns < MAX_TURNS) {
@@ -176,6 +201,7 @@ function run() {
     pointlessGameplayActions: 0,
     openLaneImprovements: 0,
     repeatedLoopPreventions: 0,
+    mulliganByFaction: {},
   };
 
   const perFaction = new Map(factionKeys.map((key) => [key, {
@@ -239,7 +265,18 @@ function run() {
   console.log('\n4) Game ending breakdown');
   console.table(Object.entries(endingCounts).map(([type, count]) => ({ type, count, 'percent %': pct(count, totalGames) })));
 
-  console.log('\n5) Gameplay-action parity telemetry');
+  console.log('\n5) Opening mulligan usage by faction');
+  console.table(factionKeys.map((key) => {
+    const row = metrics.mulliganByFaction[key] ?? { games: 0, used: 0, cardsReplaced: 0 };
+    return {
+      faction: key,
+      games: row.games,
+      'usage %': pct(row.used, row.games),
+      'avg cards replaced': row.games ? (row.cardsReplaced / row.games).toFixed(2) : '0.00',
+    };
+  }));
+
+  console.log('\n6) Gameplay-action parity telemetry');
   console.table([
     { metric: 'replace actions used', count: metrics.replaceUsed },
     { metric: 'reposition actions used', count: metrics.repositionUsed },
@@ -249,7 +286,7 @@ function run() {
     { metric: 'repeated-loop preventions', count: metrics.repeatedLoopPreventions },
   ]);
 
-  console.log('\n6) Quick stability check');
+  console.log('\n7) Quick stability check');
   console.table([
     { metric: 'crashes', count: metrics.crashes },
     { metric: 'exceptions', count: metrics.exceptions },
