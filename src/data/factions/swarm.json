@@ -7,7 +7,7 @@
     { "id": "swarm_spitter_1", "name": "Spitter", "type": "unit", "targeting": "lane", "effectId": "on_play_lane_damage_1", "textShort": "On play: deal 1 in lane.", "attack": 1, "hp": 1, "armor": 0 },
     { "id": "swarm_brood_1", "name": "Brood", "type": "unit", "targeting": "lane", "effectId": "on_death_summon_grunt", "textShort": "On death: summon 1/1.", "attack": 1, "hp": 2, "armor": 0 },
     { "id": "swarm_rusher_1", "name": "Rusher", "type": "unit", "targeting": "lane", "effectId": null, "textShort": "Fast pressure unit.", "attack": 2, "hp": 1, "armor": 0 },
-    { "id": "swarm_alpha_1", "name": "Alpha", "type": "unit", "targeting": "lane", "effectId": "adjacent_allies_atk_plus_1", "textShort": "Adjacent allies +1 ATK.", "attack": 2, "hp": 2, "armor": 0 },
+    { "id": "swarm_alpha_1", "name": "Alpha", "type": "unit", "targeting": "lane", "effectId": "adjacent_allies_atk_plus_1", "textShort": "Adjacent allies +1 ATK.", "attack": 1, "hp": 2, "armor": 0 },
     { "id": "swarm_spawn_1", "name": "Spawn", "type": "order", "targeting": "empty_friendly_slot", "effectId": "summon_grunt_empty_slot", "textShort": "Summon 1/1 to empty slot." },
     { "id": "swarm_swarm_attack_1", "name": "Swarm Attack", "type": "order", "targeting": "all_friendly_units", "effectId": "buff_all_atk_1", "textShort": "All allies +1 ATK this turn." },
     { "id": "swarm_regrow_1", "name": "Regrow", "type": "order", "targeting": "friendly_discard", "effectId": "revive_friendly_1hp", "textShort": "Revive a friendly at 1 HP." },

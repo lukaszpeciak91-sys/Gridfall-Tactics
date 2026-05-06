@@ -184,7 +184,7 @@ function applyEffectById(state, owner, effectId) {
       friendlyIndexes.forEach((index) => {
         const unit = state.board[index];
         if (!unit) return;
-        unit.tempArmorMod = (unit.tempArmorMod ?? 0) + 1;
+        unit.tempArmorMod = (unit.tempArmorMod ?? 0) + 2;
       });
       break;
     }
@@ -716,7 +716,7 @@ function resolveCombatLane(state, col, combatContext = null) {
 
   const getArmorWithAura = (unit) => {
     if (!unit) return 0;
-    const baseArmor = unit.armor ?? 0;
+    const baseArmor = getUnitArmor(unit);
     const lane = unit.owner === 'player' ? (unit.__index - 6) : unit.__index;
     const rowStart = unit.owner === 'player' ? 6 : 0;
     let aura = 0;
