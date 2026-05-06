@@ -8,7 +8,7 @@
     { "id": "tank_guardian_1", "name": "Guardian", "type": "unit", "targeting": "lane", "effectId": "intercept_lane_damage", "textShort": "Takes lane damage for ally.", "attack": 1, "hp": 3, "armor": 0 },
     { "id": "tank_wall_1", "name": "Wall", "type": "unit", "targeting": "lane", "effectId": "cannot_attack", "textShort": "Blocks lane. Cannot attack.", "attack": 0, "hp": 4, "armor": 0 },
     { "id": "tank_bruiser_1", "name": "Bruiser", "type": "unit", "targeting": "lane", "effectId": "gain_atk_when_damaged", "textShort": "When damaged: +1 ATK this turn.", "attack": 2, "hp": 3, "armor": 0 },
-    { "id": "tank_fortify_1", "name": "Fortify", "type": "order", "targeting": "all_friendly_units", "effectId": "buff_all_armor_1", "textShort": "All allies +1 armor this turn." },
+    { "id": "tank_fortify_1", "name": "Fortify", "type": "order", "targeting": "all_friendly_units", "effectId": "buff_all_armor_1", "textShort": "All allies +2 armor this turn." },
     { "id": "tank_stability_1", "name": "Stability", "type": "order", "targeting": "all_friendly_units", "effectId": "immune_move_disable_this_turn", "textShort": "Allies can't be moved/disabled." },
     { "id": "tank_reinforce_1", "name": "Reinforce", "type": "order", "targeting": "all_friendly_units", "effectId": "heal_all_1", "textShort": "Heal all allies 1." },
     { "id": "tank_last_stand_1", "name": "Last Stand", "type": "special", "targeting": "all_friendly_units", "effectId": "cannot_drop_below_1_this_turn", "textShort": "Allies stay at min 1 HP." },

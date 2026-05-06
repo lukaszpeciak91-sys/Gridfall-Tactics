@@ -123,7 +123,7 @@ Meaningful player actions:
 | Swarm | Spitter | unit | 1/1/0 | on_play_lane_damage_1 | On play, deal 1 to opposing lane enemy unit. | Lane on-play | No hero damage from this trigger. |
 | Swarm | Brood | unit | 1/2/0 | on_death_summon_grunt | On death, summon 1/1 Grunt in same slot if now empty. | Death trigger | Uses generated token cardId. |
 | Swarm | Rusher | unit | 2/1/0 | null | No special behavior. | Lane combat | Baseline attacker. |
-| Swarm | Alpha | unit | 2/2/0 | adjacent_allies_atk_plus_1 | Adjacent allies gain +1 attack in combat. | Passive adjacency aura | Calculated at combat time. |
+| Swarm | Alpha | unit | 1/2/0 | adjacent_allies_atk_plus_1 | Adjacent allies gain +1 attack in combat. | Passive adjacency aura | Calculated at combat time. |
 | Swarm | Spawn | order | - | summon_grunt_empty_slot | Summon 1/1 Grunt to first empty friendly slot. | Non-targeted effect | Fizzles if no empty slot. |
 | Swarm | Swarm Attack | order | - | buff_all_atk_1 | Friendly units get temp +1 ATK this turn. | Non-targeted effect | Same shared effect as Aggro Full Attack. |
 | Swarm | Regrow | order | - | revive_friendly_1hp | Revive first unit found in discard to empty slot at 1 HP. | Non-targeted effect | First empty slot + first unit in discard. |
@@ -134,7 +134,7 @@ Meaningful player actions:
 | Tank | Guardian | unit | 1/3/0 | intercept_lane_damage | Intercepts lane damage for adjacent ally once per combat cycle. | Deterministic adjacency intercept | One guardian intercept per index per resolve pass. |
 | Tank | Wall | unit | 0/4/0 | cannot_attack | Cannot attack (ATK forced to 0). | Lane combat | Still can receive buffs/debuffs. |
 | Tank | Bruiser | unit | 2/3/0 | gain_atk_when_damaged | Gains temp +1 ATK when damaged. | Damage trigger | Stacks within turn; reset after combat. |
-| Tank | Fortify | order | - | buff_all_armor_1 | Friendly units get temp +1 armor this turn. | Non-targeted effect | Temp armor reset after combat. |
+| Tank | Fortify | order | - | buff_all_armor_1 | Friendly units get temp +2 armor this turn. | Non-targeted effect | Temp armor reset after combat. |
 | Tank | Stability | order | - | immune_move_disable_this_turn | Grants immunity vs move/disable effects this turn. | Non-targeted effect | Blocks swap/disable effects by opponent. |
 | Tank | Reinforce | order | - | heal_all_1 | Heal all friendly units by 1 (to max HP). | Non-targeted effect | Uses unit max HP cap. |
 | Tank | Last Stand | special | - | cannot_drop_below_1_this_turn | Friendly units cannot drop below 1 HP this turn. | Non-targeted effect | Reset after combat resolve. |
