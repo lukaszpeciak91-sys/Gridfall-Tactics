@@ -43,6 +43,7 @@ function getCandidateTargetIndexes(state, owner, effectId) {
     case 'return_friendly_draw_1':
     case 'destroy_friendly_draw_2':
     case 'heal_2':
+    case 'heal_2_atk_1_this_turn':
     case 'heal_3':
     case 'quick_strike':
     case 'swap_adjacent_then_resolve':
@@ -76,6 +77,7 @@ function isTargetedOnlyEffect(effectId) {
     || effectId === 'return_friendly_draw_1'
     || effectId === 'destroy_friendly_draw_2'
     || effectId === 'heal_2'
+    || effectId === 'heal_2_atk_1_this_turn'
     || effectId === 'heal_3'
     || effectId === 'quick_strike'
     || effectId === 'swap_adjacent_then_resolve'
@@ -255,6 +257,18 @@ function scoreAction(state, owner, action) {
 
   if ((action.effectId === 'heal_2' || action.effectId === 'heal_3') && hpSaved <= 0) {
     score -= 2000;
+  }
+
+  if (action.effectId === 'heal_2_atk_1_this_turn') {
+    const { friendly, opposing } = getRowsForOwner(owner);
+    const lane = friendly.indexOf(action.targetIndex);
+    const targetUnit = nextState.board[action.targetIndex];
+    const targetCanPressureHero = targetUnit
+      && targetUnit.owner === owner
+      && lane >= 0
+      && !nextState.board[opposing[lane]];
+    score += 250;
+    if (targetCanPressureHero) score += 500;
   }
 
   if (action.effectId === 'buff_all_atk_1' || action.effectId === 'aggro_buff_all_atk_2' || action.effectId === 'buff_all_armor_1') {

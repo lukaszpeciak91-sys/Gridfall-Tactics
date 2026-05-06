@@ -145,6 +145,11 @@ function hasMoveDisableImmunity(state, protectedOwner, actingOwner, effectId) {
     && (isMoveEffectId(effectId) || isDisableEffectId(effectId));
 }
 
+function applyTargetedHeal(unit, amount) {
+  const hpCap = Number.isFinite(unit.maxHp) ? unit.maxHp : unit.hp;
+  unit.hp = Math.min(hpCap, unit.hp + amount);
+}
+
 function applyEffectById(state, owner, effectId) {
   switch (effectId) {
     case 'damage_all_enemies_1': {
@@ -158,6 +163,7 @@ function applyEffectById(state, owner, effectId) {
       break;
     }
     case 'heal_2':
+    case 'heal_2_atk_1_this_turn':
     case 'heal_3':
       break;
     case 'heal_all_1': {
@@ -234,7 +240,7 @@ function applyEffectById(state, owner, effectId) {
       });
       break;
     }
-    // Quick Strike and Control Override are targeted and handled via resolveTargetedEffectCard.
+    // Quick Strike, Quick Fix, and Control Override are targeted and handled via resolveTargetedEffectCard.
     case 'quick_strike':
     case 'control_enemy_unit_this_turn':
       break;
@@ -471,11 +477,14 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
       break;
     }
     case 'heal_2':
+    case 'heal_2_atk_1_this_turn':
     case 'heal_3': {
       if (targetUnit.owner !== owner) return { ok: false, reason: 'Target must be friendly' };
       const amount = card.effectId === 'heal_3' ? 3 : 2;
-      const hpCap = Number.isFinite(targetUnit.maxHp) ? targetUnit.maxHp : targetUnit.hp;
-      targetUnit.hp = Math.min(hpCap, targetUnit.hp + amount);
+      applyTargetedHeal(targetUnit, amount);
+      if (card.effectId === 'heal_2_atk_1_this_turn') {
+        targetUnit.tempAttackMod = (targetUnit.tempAttackMod ?? 0) + 1;
+      }
       break;
     }
     case 'swap_any_two_units': {
