@@ -5,6 +5,7 @@ import {
   createInitialBattleState,
   drawCards,
   playOrRedeployUnit,
+  performSwap,
   playEffectCard,
   resolveTargetedEffectCard,
   resolveCombat,
@@ -12,7 +13,7 @@ import {
   resolveTurnCapWinner,
   MAX_TURNS,
 } from '../src/systems/GameState.js';
-import { chooseBattleAction } from '../src/systems/enemyDecision.js';
+import { chooseBattleAction, recordBattleActionUse } from '../src/systems/enemyDecision.js';
 
 const GAMES_PER_PLAYER_FACTION = 20;
 const BASE_SEED = 20260505;
@@ -74,7 +75,7 @@ function pickEnemyFaction(factionKeys, playerKey, gameIndex) {
 }
 
 function applyAction(state, owner, metrics, rng) {
-  const action = chooseBattleAction(state, owner, { randomFn: rng, tieBreakPolicy: 'seeded-random' });
+  const action = chooseBattleAction(state, owner, { randomFn: rng, tieBreakPolicy: 'seeded-random', telemetry: metrics });
   if (action.type === 'pass') {
     metrics.passByOwner[owner] += 1;
     return;
@@ -94,20 +95,29 @@ function applyAction(state, owner, metrics, rng) {
     const side = owner === 'player' ? state.player : state.enemy;
     const card = side.hand.find((c) => c.id === action.cardId);
     if (card?.effectId) metrics.effectUsage.set(card.effectId, (metrics.effectUsage.get(card.effectId) ?? 0) + 1);
-    playOrRedeployUnit(state, owner, action.cardId, action.slotIndex);
+    const result = playOrRedeployUnit(state, owner, action.cardId, action.slotIndex);
+    if (!result.ok) { metrics.invalidActions += 1; return; }
+    recordBattleActionUse(state, owner, action, metrics);
+  }
+  if (action.type === 'swap-units') {
+    const result = performSwap(state, owner, action.fromIndex, action.toIndex);
+    if (!result.ok) { metrics.invalidActions += 1; return; }
+    recordBattleActionUse(state, owner, action, metrics);
   }
   if (action.type === 'play-effect') {
-    playEffectCard(state, owner, action.cardId);
+    const result = playEffectCard(state, owner, action.cardId);
+    if (!result.ok) { metrics.invalidActions += 1; return; }
     state.cancelEnemyOrderThisTurn[cancelKey] = false;
   }
   if (action.type === 'play-targeted-effect') {
-    resolveTargetedEffectCard(
+    const result = resolveTargetedEffectCard(
       state,
       owner,
       action.cardId,
       action.targetIndex,
       action.targetIndexes ?? [action.targetIndex],
     );
+    if (!result.ok) { metrics.invalidActions += 1; return; }
     state.cancelEnemyOrderThisTurn[cancelKey] = false;
   }
 }
@@ -160,6 +170,12 @@ function run() {
     crashes: 0,
     exceptions: 0,
     invalidActions: 0,
+    replaceUsed: 0,
+    repositionUsed: 0,
+    meaningfulGameplayActions: 0,
+    pointlessGameplayActions: 0,
+    openLaneImprovements: 0,
+    repeatedLoopPreventions: 0,
   };
 
   const perFaction = new Map(factionKeys.map((key) => [key, {
@@ -223,7 +239,17 @@ function run() {
   console.log('\n4) Game ending breakdown');
   console.table(Object.entries(endingCounts).map(([type, count]) => ({ type, count, 'percent %': pct(count, totalGames) })));
 
-  console.log('\n5) Quick stability check');
+  console.log('\n5) Gameplay-action parity telemetry');
+  console.table([
+    { metric: 'replace actions used', count: metrics.replaceUsed },
+    { metric: 'reposition actions used', count: metrics.repositionUsed },
+    { metric: 'meaningful replace/reposition uses', count: metrics.meaningfulGameplayActions },
+    { metric: 'pointless replace/reposition uses', count: metrics.pointlessGameplayActions },
+    { metric: 'open-lane improvements', count: metrics.openLaneImprovements },
+    { metric: 'repeated-loop preventions', count: metrics.repeatedLoopPreventions },
+  ]);
+
+  console.log('\n6) Quick stability check');
   console.table([
     { metric: 'crashes', count: metrics.crashes },
     { metric: 'exceptions', count: metrics.exceptions },

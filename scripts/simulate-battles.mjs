@@ -5,6 +5,7 @@ import {
   createInitialBattleState,
   drawCards,
   playOrRedeployUnit,
+  performSwap,
   playEffectCard,
   resolveTargetedEffectCard,
   resolveCombat,
@@ -12,7 +13,7 @@ import {
   resolveTurnCapWinner,
   MAX_TURNS,
 } from '../src/systems/GameState.js';
-import { chooseBattleAction } from '../src/systems/enemyDecision.js';
+import { chooseBattleAction, recordBattleActionUse } from '../src/systems/enemyDecision.js';
 
 const DEFAULT_MATCH_COUNT = 100;
 const DEFAULT_BASE_SEED = 1337;
@@ -60,8 +61,8 @@ function shuffleDeck(deck, rng) {
   }
 }
 
-function applyAction(state, owner, passStats, decisionOptions) {
-  const action = chooseBattleAction(state, owner, decisionOptions);
+function applyAction(state, owner, passStats, decisionOptions, telemetry) {
+  const action = chooseBattleAction(state, owner, { ...decisionOptions, telemetry });
   const cancelKey = owner === 'enemy' ? 'player' : 'enemy';
   const nonUnit = action.type === 'play-effect' || action.type === 'play-targeted-effect';
   if (action.type === 'pass') {
@@ -73,13 +74,15 @@ function applyAction(state, owner, passStats, decisionOptions) {
     passStats.cancelled = (passStats.cancelled ?? 0) + 1;
     return;
   }
-  if (action.type === 'play-unit') playOrRedeployUnit(state, owner, action.cardId, action.slotIndex);
+  let result = { ok: true };
+  if (action.type === 'play-unit') result = playOrRedeployUnit(state, owner, action.cardId, action.slotIndex);
+  if (action.type === 'swap-units') result = performSwap(state, owner, action.fromIndex, action.toIndex);
   if (action.type === 'play-effect') {
-    playEffectCard(state, owner, action.cardId);
+    result = playEffectCard(state, owner, action.cardId);
     state.cancelEnemyOrderThisTurn[cancelKey] = false;
   }
   if (action.type === 'play-targeted-effect') {
-    resolveTargetedEffectCard(
+    result = resolveTargetedEffectCard(
       state,
       owner,
       action.cardId,
@@ -88,9 +91,15 @@ function applyAction(state, owner, passStats, decisionOptions) {
     );
     state.cancelEnemyOrderThisTurn[cancelKey] = false;
   }
+  if (!result.ok) {
+    telemetry.invalidActions = (telemetry.invalidActions ?? 0) + 1;
+    return;
+  }
+  recordBattleActionUse(state, owner, action, telemetry);
 }
 
-function runSingleGame(playerFaction, enemyFaction, passStats, gameSeed, gameIndex, playerKey, enemyKey) {
+
+function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, gameSeed, gameIndex, playerKey, enemyKey) {
   const gameRng = createSeededRng(gameSeed);
   const state = createInitialBattleState(playerFaction, enemyFaction, { randomFn: gameRng });
 
@@ -115,8 +124,8 @@ function runSingleGame(playerFaction, enemyFaction, passStats, gameSeed, gameInd
     const firstActor = state.firstActor;
     const secondActor = firstActor === 'player' ? 'enemy' : 'player';
 
-    applyAction(state, firstActor, passStats, firstDecisionOptions);
-    applyAction(state, secondActor, passStats, secondDecisionOptions);
+    applyAction(state, firstActor, passStats, firstDecisionOptions, telemetry);
+    applyAction(state, secondActor, passStats, secondDecisionOptions, telemetry);
     resolveCombat(state);
     drawCards(state.player, 1);
     drawCards(state.enemy, 1);
@@ -162,6 +171,7 @@ function main() {
   const aggregate = new Map(factionKeys.map((key) => [key, { wins: 0, games: 0, draws: 0, turnCaps: 0, turnCapWins: 0 }]));
   const matchupRows = [];
   const passStats = { pass: 0, cancelled: 0 };
+  const telemetry = { replaceUsed: 0, repositionUsed: 0, meaningfulGameplayActions: 0, pointlessGameplayActions: 0, openLaneImprovements: 0, repeatedLoopPreventions: 0, invalidActions: 0, crashes: 0 };
   const audit = { games: 0, draws: 0, turnCaps: 0, aggroTurnCapWins: 0, aggroGames: 0, nonSwarmGames: 0, nonSwarmDraws: 0, nonSwarmTurnCaps: 0, swarmMirrorGames: 0, swarmMirrorDraws: 0 };
 
   for (let playerIndex = 0; playerIndex < factionKeys.length; playerIndex += 1) for (let enemyIndex = 0; enemyIndex < factionKeys.length; enemyIndex += 1) {
@@ -172,7 +182,7 @@ function main() {
     let playerWins = 0; let enemyWins = 0; let draws = 0; let turnCaps = 0; let playerTurnCapWins = 0; let enemyTurnCapWins = 0; let totalTurns = 0; let totalPlayerHP = 0; let totalEnemyHP = 0;
     for (let i = 0; i < gamesForMatchup; i += 1) {
       const gameSeed = buildGameSeed(baseSeed, playerKey, enemyKey, i);
-      const result = runSingleGame(factions[playerKey], factions[enemyKey], passStats, gameSeed, i, playerKey, enemyKey);
+      const result = runSingleGame(factions[playerKey], factions[enemyKey], passStats, telemetry, gameSeed, i, playerKey, enemyKey);
       totalTurns += result.turns; totalPlayerHP += result.playerHP; totalEnemyHP += result.enemyHP;
       if (result.winner === 'player') playerWins += 1; else if (result.winner === 'enemy') enemyWins += 1; else draws += 1;
       if (result.endingReason === 'turn-cap') {
@@ -204,6 +214,17 @@ function main() {
     { metric: 'non-Swarm draw %', value: percent(audit.nonSwarmDraws, audit.nonSwarmGames), count: `${audit.nonSwarmDraws}/${audit.nonSwarmGames}` },
     { metric: 'non-Swarm turn-cap %', value: percent(audit.nonSwarmTurnCaps, audit.nonSwarmGames), count: `${audit.nonSwarmTurnCaps}/${audit.nonSwarmGames}` },
     { metric: 'Aggro chip timeout win %', value: percent(audit.aggroTurnCapWins, audit.aggroGames), count: `${audit.aggroTurnCapWins}/${audit.aggroGames}` },
+  ]);
+  console.log('\nAI gameplay-action telemetry:');
+  console.table([
+    { metric: 'replace actions used', count: telemetry.replaceUsed },
+    { metric: 'reposition actions used', count: telemetry.repositionUsed },
+    { metric: 'meaningful replace/reposition uses', count: telemetry.meaningfulGameplayActions },
+    { metric: 'pointless replace/reposition uses', count: telemetry.pointlessGameplayActions },
+    { metric: 'open-lane improvements', count: telemetry.openLaneImprovements },
+    { metric: 'repeated-loop preventions', count: telemetry.repeatedLoopPreventions },
+    { metric: 'invalid actions', count: telemetry.invalidActions },
+    { metric: 'crashes', count: telemetry.crashes },
   ]);
   console.log('\nPASS reason counts:');
   console.table(Object.entries(passStats).map(([reason, count]) => ({ reason, count })));
