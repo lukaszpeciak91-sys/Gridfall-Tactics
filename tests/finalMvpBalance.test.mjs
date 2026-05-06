@@ -123,6 +123,32 @@ test('Quick Fix heals a friendly unit and grants +1 temporary attack for combat'
   assert.equal(state.board[6].tempAttackMod, undefined);
 });
 
+test('Jam Signal applies -1 temporary attack to up to two enemy units', () => {
+  const control = loadFaction('src/data/factions/control.json');
+  const jamSignal = control.deck.find((card) => card.id === 'control_jam_signal_1');
+  const state = createInitialBattleState({ name: 'Test', deck: [] });
+
+  state.player.hand.push({ ...jamSignal });
+  state.board[0] = unit('enemy', { attack: 2, hp: 2, maxHp: 2 });
+  state.board[1] = unit('enemy', { attack: 2, hp: 2, maxHp: 2 });
+  state.board[2] = unit('enemy', { attack: 2, hp: 2, maxHp: 2 });
+
+  const result = playEffectCard(state, 'player', jamSignal.id);
+  assert.equal(result.ok, true);
+  assert.equal(state.board[0].tempAttackMod, -1);
+  assert.equal(state.board[1].tempAttackMod, -1);
+  assert.equal(state.board[2].tempAttackMod, undefined);
+  assert.equal(jamSignal.targeting, 'all_enemy_units');
+  assert.equal(jamSignal.effectId, 'enemy_all_atk_minus_1');
+  assert.equal(jamSignal.textShort, 'Up to 2 enemies -1 ATK this turn.');
+
+  resolveCombat(state);
+
+  assert.equal(state.board[0]?.tempAttackMod, undefined);
+  assert.equal(state.board[1]?.tempAttackMod, undefined);
+  assert.equal(state.board[2]?.tempAttackMod, undefined);
+});
+
 test('Swarm Attack remains a +1 temporary attack buff', () => {
   const swarm = loadFaction('src/data/factions/swarm.json');
   const swarmAttack = swarm.deck.find((card) => card.id === 'swarm_swarm_attack_1');
