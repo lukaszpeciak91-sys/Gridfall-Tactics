@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
-import { createInitialBattleState, drawCards, canPass, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, getUnitAttack, getUnitArmor, toggleFirstActor, resolveTurnCapWinner, performOpeningMulligan, STARTING_HAND_SIZE, MAX_OPENING_MULLIGAN_CARDS } from '../systems/GameState.js';
+import { createInitialBattleState, drawCards, canPass, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, getUnitAttack, getUnitArmor, toggleFirstActor, resolveTurnCapWinner, resolveNoProgressStallWinner, recordPassAction, performOpeningMulligan, STARTING_HAND_SIZE, MAX_OPENING_MULLIGAN_CARDS } from '../systems/GameState.js';
 import { chooseEnemyAction, recordBattleActionUse, selectOpeningMulliganCardIds } from '../systems/enemyDecision.js';
 import { getTargetingStateForEffect } from '../systems/cardTargeting.js';
 
@@ -616,6 +616,7 @@ export default class BattleScene extends Phaser.Scene {
   resolvePassTurn() {
     if (this.isFlowResolving) return;
     if (this.gameState.winner || !canPass(this.gameState) || this.playerActionUsed) return;
+    recordPassAction(this.gameState, 'player');
     this.completePlayerAction();
   }
 
@@ -682,10 +683,17 @@ export default class BattleScene extends Phaser.Scene {
     this.refreshBoardLabels();
     this.refreshHeroHP();
 
+    this.gameState.turnsCompleted += 1;
+    resolveNoProgressStallWinner(this.gameState);
+    if (this.gameState.winner) {
+      this.isFlowResolving = false;
+      this.updateInitiativeIndicator();
+      return;
+    }
+
     await this.delay(500);
     drawCards(this.gameState.player, 1);
     drawCards(this.gameState.enemy, 1);
-    this.gameState.turnsCompleted += 1;
     resolveTurnCapWinner(this.gameState, this.gameState.turnsCompleted);
 
     this.refreshBoardLabels();
@@ -799,6 +807,7 @@ export default class BattleScene extends Phaser.Scene {
       return result;
     }
 
+    recordPassAction(this.gameState, 'enemy');
     return { ok: true, type: 'pass' };
   }
 

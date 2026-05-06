@@ -3,8 +3,105 @@ const ENEMY_ROW = [0, 1, 2];
 const PLAYER_ROW = [6, 7, 8];
 const HERO_START_HP = 12;
 export const MAX_TURNS = 50;
+export const NO_PROGRESS_STALL_ROUNDS = 3;
 export const STARTING_HAND_SIZE = 4;
 export const MAX_OPENING_MULLIGAN_CARDS = 2;
+
+
+function createNoProgressSnapshot(state) {
+  return {
+    playerHP: state?.playerHP ?? null,
+    enemyHP: state?.enemyHP ?? null,
+    board: Array.isArray(state?.board)
+      ? state.board.map((unit) => {
+        if (!unit) return null;
+        return {
+          owner: unit.owner ?? null,
+          id: unit.cardId ?? unit.id ?? null,
+          hp: unit.hp ?? null,
+          maxHp: unit.maxHp ?? null,
+          attack: unit.attack ?? null,
+          armor: unit.armor ?? null,
+          tempAttackMod: unit.tempAttackMod ?? null,
+          tempArmorMod: unit.tempArmorMod ?? null,
+          effectId: unit.effectId ?? null,
+          controlledAttackThisTurn: Boolean(unit.controlledAttackThisTurn),
+          ignoreArmorNext: Boolean(unit.ignoreArmorNext),
+        };
+      })
+      : [],
+  };
+}
+
+function createNoProgressRoundState(state) {
+  return {
+    consecutiveRounds: 0,
+    currentRoundActions: { player: null, enemy: null },
+    roundStartSnapshot: createNoProgressSnapshot(state),
+  };
+}
+
+function ensureNoProgressStallState(state) {
+  if (!state) return null;
+  state.noProgressStall ??= createNoProgressRoundState(state);
+  state.noProgressStall.currentRoundActions ??= { player: null, enemy: null };
+  state.noProgressStall.roundStartSnapshot ??= createNoProgressSnapshot(state);
+  state.noProgressStall.consecutiveRounds ??= 0;
+  return state.noProgressStall;
+}
+
+function areNoProgressSnapshotsEqual(first, second) {
+  return JSON.stringify(first) === JSON.stringify(second);
+}
+
+function resolveHeroHpTiebreakWinner(state, endingReason, resolvedByKey) {
+  if (state.playerHP > state.enemyHP) state.winner = 'player';
+  else if (state.enemyHP > state.playerHP) state.winner = 'enemy';
+  else state.winner = 'draw';
+
+  state.endingReason = endingReason;
+  state[resolvedByKey] = state.winner === 'draw' ? 'equal-hero-hp' : 'remaining-hero-hp';
+  return state.winner;
+}
+
+export function recordPassAction(state, owner) {
+  if (!state || state.winner || (owner !== 'player' && owner !== 'enemy')) return;
+  const stallState = ensureNoProgressStallState(state);
+  stallState.currentRoundActions[owner] = 'pass';
+}
+
+function recordProgressAction(state, owner, actionType = 'progress') {
+  if (!state || state.winner || (owner !== 'player' && owner !== 'enemy')) return;
+  const stallState = ensureNoProgressStallState(state);
+  stallState.currentRoundActions[owner] = actionType;
+  stallState.consecutiveRounds = 0;
+}
+
+export function resolveNoProgressStallWinner(state, maxNoProgressRounds = NO_PROGRESS_STALL_ROUNDS) {
+  if (!state || state.winner) return state?.winner ?? null;
+  const stallState = ensureNoProgressStallState(state);
+  const actions = stallState.currentRoundActions;
+  const bothPassedOnly = actions.player === 'pass' && actions.enemy === 'pass';
+  const noBoardOrHpProgress = areNoProgressSnapshotsEqual(
+    stallState.roundStartSnapshot,
+    createNoProgressSnapshot(state),
+  );
+
+  if (bothPassedOnly && noBoardOrHpProgress) {
+    stallState.consecutiveRounds += 1;
+  } else {
+    stallState.consecutiveRounds = 0;
+  }
+
+  stallState.currentRoundActions = { player: null, enemy: null };
+  stallState.roundStartSnapshot = createNoProgressSnapshot(state);
+
+  if (stallState.consecutiveRounds >= maxNoProgressRounds) {
+    return resolveHeroHpTiebreakWinner(state, 'no-progress-stall', 'noProgressStallResolvedBy');
+  }
+
+  return null;
+}
 
 function getRowForOwner(owner) {
   return owner === 'player' ? PLAYER_ROW : ENEMY_ROW;
@@ -57,14 +154,7 @@ function cleanupAllDefeatedUnitsWithTriggers(state) {
 
 export function resolveTurnCapWinner(state, turnsCompleted, maxTurns = MAX_TURNS) {
   if (!state || state.winner || turnsCompleted < maxTurns) return state?.winner ?? null;
-
-  if (state.playerHP > state.enemyHP) state.winner = 'player';
-  else if (state.enemyHP > state.playerHP) state.winner = 'enemy';
-  else state.winner = 'draw';
-
-  state.endingReason = 'turn-cap';
-  state.turnCapResolvedBy = state.winner === 'draw' ? 'equal-hero-hp' : 'remaining-hero-hp';
-  return state.winner;
+  return resolveHeroHpTiebreakWinner(state, 'turn-cap', 'turnCapResolvedBy');
 }
 
 function clampHeroHpAndResolveWinner(state) {
@@ -330,6 +420,7 @@ export function createInitialBattleState(playerFactionData, enemyFactionData = p
     winner: null,
     endingReason: null,
     turnCapResolvedBy: null,
+    noProgressStallResolvedBy: null,
     turnsCompleted: 0,
     firstActor,
     player: {
@@ -358,6 +449,11 @@ export function createInitialBattleState(playerFactionData, enemyFactionData = p
       player: false,
       enemy: false,
     },
+    noProgressStall: createNoProgressRoundState({
+      playerHP: HERO_START_HP,
+      enemyHP: HERO_START_HP,
+      board: Array(BOARD_SIZE).fill(null),
+    }),
     mulligan: {
       playerUsed: false,
       enemyUsed: false,
@@ -516,6 +612,7 @@ export function playEffectCard(state, owner, handCardId) {
   if (!blockedByImmunity) {
     applyEffectById(state, owner, card.effectId ?? null);
   }
+  recordProgressAction(state, owner, blockedByImmunity ? 'effect-blocked' : 'effect');
   return { ok: true, type: blockedByImmunity ? 'effect-blocked' : 'effect', card };
 }
 
@@ -538,6 +635,7 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
   if (blockedByImmunity) {
     const [playedCard] = side.hand.splice(handIndex, 1);
     side.discard.push(playedCard);
+    recordProgressAction(state, owner, 'targeted-effect-blocked');
     return { ok: true, type: 'targeted-effect-blocked', card: playedCard };
   }
 
@@ -669,6 +767,7 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
 
   const [playedCard] = side.hand.splice(handIndex, 1);
   side.discard.push(playedCard);
+  recordProgressAction(state, owner, 'targeted-effect');
   return { ok: true, type: 'targeted-effect', card: playedCard };
 }
 
@@ -682,6 +781,7 @@ export function resolveQuickStrike(state, owner, boardIndex) {
   const lane = boardIndex % 3;
   resolveCombatLane(state, lane);
   finalizeImmediateLaneCombat(state);
+  recordProgressAction(state, owner, 'quick-strike');
   return { ok: true, type: 'quick-strike', lane };
 }
 
@@ -754,6 +854,7 @@ export function playOrRedeployUnit(state, owner, handCardId, boardIndex) {
   resolveUnitOnPlayEffect(state, owner, boardIndex, card);
 
   side.discard.push(card);
+  recordProgressAction(state, owner, validation.type);
   return { ok: true, type: validation.type, card };
 }
 
@@ -764,6 +865,7 @@ export function performSwap(state, owner, fromIndex, toIndex) {
   const temp = state.board[fromIndex];
   state.board[fromIndex] = state.board[toIndex];
   state.board[toIndex] = temp;
+  recordProgressAction(state, owner, 'swap');
   return { ok: true };
 }
 
