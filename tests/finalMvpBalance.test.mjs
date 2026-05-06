@@ -26,14 +26,73 @@ const unit = (owner, overrides = {}) => ({
   ...overrides,
 });
 
-test('Alpha is a 1/2 unit with the same adjacent attack aura', () => {
+test('Alpha is a 1/2 unit with the adjacent attack and anti-armor aura', () => {
   const swarm = loadFaction('src/data/factions/swarm.json');
   const alpha = swarm.deck.find((card) => card.id === 'swarm_alpha_1');
 
   assert.equal(alpha.attack, 1);
   assert.equal(alpha.hp, 2);
-  assert.equal(alpha.effectId, 'adjacent_allies_atk_plus_1');
-  assert.equal(alpha.textShort, 'Adjacent allies +1 ATK.');
+  assert.equal(alpha.effectId, 'adjacent_allies_atk_plus_1_ignore_armor_1');
+  assert.equal(alpha.textShort, 'Adjacent allies +1 ATK and ignore 1 armor.');
+});
+
+test('Alpha still gives adjacent friendly units +1 ATK in combat', () => {
+  const state = createInitialBattleState({ name: 'Test', deck: [] });
+
+  state.board[6] = unit('player', { id: 'alpha', name: 'Alpha', attack: 1, hp: 2, maxHp: 2, effectId: 'adjacent_allies_atk_plus_1_ignore_armor_1' });
+  state.board[7] = unit('player', { id: 'adjacent', attack: 1, hp: 2, maxHp: 2 });
+  state.board[1] = unit('enemy', { id: 'target', attack: 0, hp: 3, maxHp: 3 });
+
+  resolveCombat(state);
+
+  assert.equal(state.board[1].hp, 1);
+});
+
+test('Alpha lets adjacent friendly units ignore exactly 1 armor during combat damage', () => {
+  const state = createInitialBattleState({ name: 'Test', deck: [] });
+
+  state.board[6] = unit('player', { id: 'alpha', name: 'Alpha', attack: 1, hp: 2, maxHp: 2, effectId: 'adjacent_allies_atk_plus_1_ignore_armor_1' });
+  state.board[7] = unit('player', { id: 'adjacent', attack: 1, hp: 2, maxHp: 2 });
+  state.board[1] = unit('enemy', { id: 'armored-target', attack: 0, hp: 3, maxHp: 3, armor: 1 });
+
+  resolveCombat(state);
+
+  assert.equal(state.board[1].hp, 1);
+});
+
+test('Alpha does not let non-adjacent friendly units ignore armor', () => {
+  const state = createInitialBattleState({ name: 'Test', deck: [] });
+
+  state.board[6] = unit('player', { id: 'alpha', name: 'Alpha', attack: 1, hp: 2, maxHp: 2, effectId: 'adjacent_allies_atk_plus_1_ignore_armor_1' });
+  state.board[8] = unit('player', { id: 'distant', attack: 2, hp: 2, maxHp: 2 });
+  state.board[2] = unit('enemy', { id: 'armored-target', attack: 0, hp: 3, maxHp: 3, armor: 1 });
+
+  resolveCombat(state);
+
+  assert.equal(state.board[2].hp, 2);
+});
+
+test('Alpha itself does not ignore armor by default', () => {
+  const state = createInitialBattleState({ name: 'Test', deck: [] });
+
+  state.board[6] = unit('player', { id: 'alpha', name: 'Alpha', attack: 1, hp: 2, maxHp: 2, effectId: 'adjacent_allies_atk_plus_1_ignore_armor_1' });
+  state.board[0] = unit('enemy', { id: 'armored-target', attack: 0, hp: 3, maxHp: 3, armor: 1 });
+
+  resolveCombat(state);
+
+  assert.equal(state.board[0].hp, 3);
+});
+
+test('Alpha aura ignores only 1 armor and remaining armor reduces combat damage', () => {
+  const state = createInitialBattleState({ name: 'Test', deck: [] });
+
+  state.board[6] = unit('player', { id: 'alpha', name: 'Alpha', attack: 1, hp: 2, maxHp: 2, effectId: 'adjacent_allies_atk_plus_1_ignore_armor_1' });
+  state.board[7] = unit('player', { id: 'adjacent', attack: 1, hp: 2, maxHp: 2 });
+  state.board[1] = unit('enemy', { id: 'heavily-armored-target', attack: 0, hp: 3, maxHp: 3, armor: 2 });
+
+  resolveCombat(state);
+
+  assert.equal(state.board[1].hp, 2);
 });
 
 test('Flanker is a 2/2 Aggro unit with the same empty-adjacent attack role', () => {

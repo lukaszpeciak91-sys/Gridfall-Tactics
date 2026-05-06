@@ -2,6 +2,11 @@ const BOARD_SIZE = 9;
 const ENEMY_ROW = [0, 1, 2];
 const PLAYER_ROW = [6, 7, 8];
 const HERO_START_HP = 12;
+const SWARM_ALPHA_AURA_EFFECT_ID = 'adjacent_allies_atk_plus_1_ignore_armor_1';
+
+function hasSwarmAlphaAura(unit) {
+  return unit?.effectId === SWARM_ALPHA_AURA_EFFECT_ID;
+}
 export const MAX_TURNS = 50;
 export const STARTING_HAND_SIZE = 4;
 export const MAX_OPENING_MULLIGAN_CARDS = 2;
@@ -835,8 +840,8 @@ function resolveCombatLane(state, col, combatContext = null) {
     let bonus = 0;
     const left = lane > 0 ? state.board[rowStart + lane - 1] : null;
     const right = lane < 2 ? state.board[rowStart + lane + 1] : null;
-    if (left?.effectId === 'adjacent_allies_atk_plus_1') bonus += 1;
-    if (right?.effectId === 'adjacent_allies_atk_plus_1') bonus += 1;
+    if (hasSwarmAlphaAura(left)) bonus += 1;
+    if (hasSwarmAlphaAura(right)) bonus += 1;
     return bonus;
   };
 
@@ -853,13 +858,22 @@ function resolveCombatLane(state, col, combatContext = null) {
     return baseArmor + aura;
   };
 
+  const getAuraArmorIgnore = (unit) => {
+    if (!unit) return 0;
+    const lane = unit.owner === 'player' ? (unit.__index - 6) : unit.__index;
+    const rowStart = unit.owner === 'player' ? 6 : 0;
+    const left = lane > 0 ? state.board[rowStart + lane - 1] : null;
+    const right = lane < 2 ? state.board[rowStart + lane + 1] : null;
+    return hasSwarmAlphaAura(left) || hasSwarmAlphaAura(right) ? 1 : 0;
+  };
+
   const getMitigatedDamage = (attacker, defender) => {
     const attackDamage = getUnitAttack(attacker);
     if (defender?.ignoreArmorNext) {
       defender.ignoreArmorNext = false;
       return Math.max(0, attackDamage);
     }
-    const armor = getArmorWithAura(defender);
+    const armor = Math.max(0, getArmorWithAura(defender) - getAuraArmorIgnore(attacker));
     return Math.max(0, attackDamage - armor);
   };
 

@@ -98,7 +98,7 @@ Meaningful player actions:
 - **Until consumed**: Lasts until a one-time trigger is used, then clears.
   - Example: `ignore_armor_next_attack`.
 - **While on board**: Passive/auras only active while source unit remains on board.
-  - Examples: adjacency aura effects like `lane_armor_aura_1`, `adjacent_allies_atk_plus_1`.
+  - Examples: adjacency aura effects like `lane_armor_aura_1`, `adjacent_allies_atk_plus_1_ignore_armor_1`.
 
 ## 7) Targeting Model (MVP)
 
@@ -138,7 +138,7 @@ Meaningful player actions:
 | Swarm | Spitter | unit | 1/1/0 | on_play_lane_damage_1 | On play, deal 1 to opposing lane enemy unit. | Lane on-play | No hero damage from this trigger. |
 | Swarm | Brood | unit | 1/2/0 | on_death_summon_grunt | On death, summon 1/1 Grunt in same slot if now empty. | Death trigger | Uses generated token cardId. |
 | Swarm | Rusher | unit | 2/1/0 | null | No special behavior. | Lane combat | Baseline attacker. |
-| Swarm | Alpha | unit | 1/2/0 | adjacent_allies_atk_plus_1 | Adjacent allies gain +1 attack in combat. | Passive adjacency aura | Calculated at combat time. |
+| Swarm | Alpha | unit | 1/2/0 | adjacent_allies_atk_plus_1_ignore_armor_1 | Adjacent allies gain +1 attack in combat and ignore exactly 1 armor when dealing combat damage. | Passive adjacency aura | Calculated at combat time; Alpha only benefits if adjacent to another Alpha. |
 | Swarm | Spawn | order | - | summon_grunt_empty_slot | Summon 1/1 Grunt to first empty friendly slot. | Non-targeted effect | Fizzles if no empty slot. |
 | Swarm | Swarm Attack | order | - | buff_all_atk_1 | Friendly units get temp +1 ATK this turn. | Non-targeted effect | Swarm-specific behavior remains unchanged. |
 | Swarm | Regrow | order | - | revive_friendly_1hp | Revive first unit found in discard to empty slot at 1 HP. | Non-targeted effect | First empty slot + first unit in discard. |
