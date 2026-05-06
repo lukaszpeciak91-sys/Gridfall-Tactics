@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
-import { createInitialBattleState, drawCards, canPass, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, getUnitAttack, getUnitArmor, toggleFirstActor, resolveTurnCapWinner, performOpeningMulligan, STARTING_HAND_SIZE, MAX_OPENING_MULLIGAN_CARDS } from '../systems/GameState.js';
+import { createInitialBattleState, drawCards, canPass, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, getUnitAttack, getUnitArmor, toggleFirstActor, resolveTurnCapWinner, performOpeningMulligan, shuffleDeck, STARTING_HAND_SIZE, MAX_OPENING_MULLIGAN_CARDS } from '../systems/GameState.js';
 import { chooseEnemyAction, recordBattleActionUse, selectOpeningMulliganCardIds } from '../systems/enemyDecision.js';
 import { getTargetingStateForEffect } from '../systems/cardTargeting.js';
 
@@ -19,6 +19,8 @@ export default class BattleScene extends Phaser.Scene {
     this.actionButton = null;
     this.isFlowResolving = false;
     this.enemyActionBanner = null;
+    this.battleResultModal = null;
+    this.battleResultModalShown = false;
   }
 
   preload() {
@@ -42,6 +44,8 @@ export default class BattleScene extends Phaser.Scene {
     this.actionButton = null;
     this.isFlowResolving = false;
     this.enemyActionBanner = null;
+    this.battleResultModal = null;
+    this.battleResultModalShown = false;
     this.gameState = null;
     this.factionKey = null;
     this.layout = null;
@@ -53,13 +57,15 @@ export default class BattleScene extends Phaser.Scene {
     this.enemyInitiativeIcon = null;
     this.playerInitiativeIcon = null;
     this.lastCombatEvents = [];
+    this.enemyFactionKey = null;
   }
 
   create(data) {
     const { width, height } = this.scale;
     const playerFactionKey = typeof data?.factionKey === 'string' && data.factionKey ? data.factionKey : 'Aggro';
     this.factionKey = playerFactionKey;
-    const enemyFactionKey = this.selectEnemyFactionKey(playerFactionKey);
+    const requestedEnemyFactionKey = typeof data?.enemyFactionKey === 'string' && data.enemyFactionKey ? data.enemyFactionKey : null;
+    const enemyFactionKey = requestedEnemyFactionKey ?? this.selectEnemyFactionKey(playerFactionKey);
     this.enemyFactionKey = enemyFactionKey;
 
     const playerFactionData = getFactionByKey(playerFactionKey) ?? { name: `Unknown (${playerFactionKey})`, deck: [] };
@@ -68,6 +74,8 @@ export default class BattleScene extends Phaser.Scene {
     this.gameState = createInitialBattleState(playerFactionData, enemyFactionData);
     this.gameState.player.factionKey = playerFactionKey;
     this.gameState.enemy.factionKey = enemyFactionKey;
+    shuffleDeck(this.gameState.player.deck);
+    shuffleDeck(this.gameState.enemy.deck);
     drawCards(this.gameState.player, STARTING_HAND_SIZE);
     drawCards(this.gameState.enemy, STARTING_HAND_SIZE);
     this.applyEnemyOpeningMulligan();
@@ -213,6 +221,152 @@ export default class BattleScene extends Phaser.Scene {
   }
 
 
+  getBattleResultText() {
+    if (!this.gameState?.winner) return '';
+    if (this.gameState.winner === 'player') return 'YOU WIN';
+    if (this.gameState.winner === 'enemy') return 'YOU LOSE';
+    return 'DRAW';
+  }
+
+  scheduleBattleResultModal() {
+    if (!this.gameState?.winner || this.battleResultModalShown) return;
+    this.time.delayedCall(500, () => this.showBattleResultModal());
+  }
+
+  showBattleResultModal() {
+    if (!this.gameState?.winner || this.battleResultModalShown) return;
+
+    this.battleResultModalShown = true;
+    this.isFlowResolving = false;
+    this.selectedCardId = null;
+    this.pendingSwapIndex = null;
+    this.targetingState = null;
+    this.resetCardHighlights();
+
+    const { width, height } = this.scale.gameSize;
+    const modalWidth = Math.min(width * 0.78, 460);
+    const modalHeight = Math.min(height * 0.34, 260);
+    const centerX = width * 0.5;
+    const centerY = height * 0.5;
+    const resultText = this.getBattleResultText();
+    const resultColor = this.gameState.winner === 'player'
+      ? '#bbf7d0'
+      : (this.gameState.winner === 'enemy' ? '#fecaca' : '#fde68a');
+
+    const overlay = this.add.rectangle(centerX, centerY, width, height, 0x000000, 0.58)
+      .setInteractive()
+      .setDepth(900);
+    const panel = this.add.rectangle(centerX, centerY, modalWidth, modalHeight, 0x0f172a, 0.96)
+      .setStrokeStyle(4, 0xe2e8f0, 0.85)
+      .setDepth(901);
+    const title = this.add.text(centerX, centerY - modalHeight * 0.24, resultText, {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: `${Math.max(34, Math.floor(modalHeight * 0.2))}px`,
+      color: resultColor,
+      fontStyle: 'bold',
+      align: 'center',
+    }).setOrigin(0.5).setDepth(902);
+    const subtitle = this.add.text(centerX, centerY - modalHeight * 0.02, 'Battle Complete', {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: `${Math.max(16, Math.floor(modalHeight * 0.07))}px`,
+      color: '#cbd5e1',
+      align: 'center',
+    }).setOrigin(0.5).setDepth(902);
+
+    const buttonY = centerY + modalHeight * 0.26;
+    const buttonWidth = Math.min(170, modalWidth * 0.34);
+    const buttonHeight = Math.max(54, modalHeight * 0.22);
+    const gap = Math.max(24, modalWidth * 0.08);
+    const exitButton = this.createResultModalButton(
+      centerX - buttonWidth / 2 - gap / 2,
+      buttonY,
+      buttonWidth,
+      buttonHeight,
+      '←\nEXIT',
+      () => this.exitBattleToFactionSelect(),
+    );
+    const retryButton = this.createResultModalButton(
+      centerX + buttonWidth / 2 + gap / 2,
+      buttonY,
+      buttonWidth,
+      buttonHeight,
+      '↻\nRETRY',
+      () => this.retryBattle(),
+    );
+
+    this.battleResultModal = {
+      overlay,
+      panel,
+      title,
+      subtitle,
+      buttons: [exitButton, retryButton],
+    };
+  }
+
+  createResultModalButton(x, y, width, height, label, onClick) {
+    const background = this.add.rectangle(x, y, width, height, 0x1e293b, 1)
+      .setStrokeStyle(3, 0x94a3b8, 0.95)
+      .setInteractive({ useHandCursor: true })
+      .setDepth(902);
+    const text = this.add.text(x, y, label, {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: `${Math.max(16, Math.floor(height * 0.28))}px`,
+      color: '#f8fafc',
+      fontStyle: 'bold',
+      align: 'center',
+      lineSpacing: -2,
+    }).setOrigin(0.5).setDepth(903);
+
+    const setHover = (isHovering) => {
+      background.setFillStyle(isHovering ? 0x334155 : 0x1e293b, 1);
+      background.setStrokeStyle(3, isHovering ? 0xfacc15 : 0x94a3b8, isHovering ? 1 : 0.95);
+      text.setScale(isHovering ? 1.04 : 1);
+    };
+
+    background.on('pointerover', () => setHover(true));
+    background.on('pointerout', () => setHover(false));
+    background.on('pointerdown', () => {
+      background.setFillStyle(0x475569, 1);
+      text.setScale(0.96);
+    });
+    background.on('pointerup', () => {
+      setHover(false);
+      onClick();
+    });
+
+    return { background, text };
+  }
+
+  destroyBattleResultModal() {
+    if (!this.battleResultModal) return;
+    const items = [
+      this.battleResultModal.overlay,
+      this.battleResultModal.panel,
+      this.battleResultModal.title,
+      this.battleResultModal.subtitle,
+      ...this.battleResultModal.buttons.flatMap((button) => [button.background, button.text]),
+    ];
+    items.forEach((item) => {
+      item?.removeAllListeners?.();
+      item?.destroy?.();
+    });
+    this.battleResultModal = null;
+  }
+
+  exitBattleToFactionSelect() {
+    this.destroyBattleResultModal();
+    this.scene.stop('BattleScene');
+    this.scene.start('FactionSelectScene');
+  }
+
+  retryBattle() {
+    const factionKey = this.factionKey;
+    const enemyFactionKey = this.enemyFactionKey;
+    this.destroyBattleResultModal();
+    this.scene.restart({ factionKey, enemyFactionKey });
+  }
+
+
   toggleFullscreen() {
     if (!this.scale.fullscreen.available) {
       return;
@@ -243,6 +397,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   shutdown() {
+    this.destroyBattleResultModal();
     this.scale.off('enterfullscreen', this.onFullscreenChanged, this);
     this.scale.off('leavefullscreen', this.onFullscreenChanged, this);
     this.scale.off('resize', this.onViewportChanged, this);
@@ -438,6 +593,10 @@ export default class BattleScene extends Phaser.Scene {
 
 
   onCardTap(cardId) {
+    if (this.battleResultModalShown) {
+      return;
+    }
+
     if (this.isFlowResolving) {
       return;
     }
@@ -469,6 +628,10 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   onBoardCellTap(boardIndex) {
+    if (this.battleResultModalShown) {
+      return;
+    }
+
     if (this.isFlowResolving) {
       return;
     }
@@ -614,7 +777,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   resolvePassTurn() {
-    if (this.isFlowResolving) return;
+    if (this.battleResultModalShown || this.isFlowResolving) return;
     if (this.gameState.winner || !canPass(this.gameState) || this.playerActionUsed) return;
     this.completePlayerAction();
   }
@@ -622,6 +785,7 @@ export default class BattleScene extends Phaser.Scene {
   startTurn() {
     if (!this.gameState || this.gameState.winner) {
       this.updateInitiativeIndicator();
+      this.scheduleBattleResultModal();
       return;
     }
 
@@ -644,6 +808,13 @@ export default class BattleScene extends Phaser.Scene {
     this.isFlowResolving = true;
     this.refreshAfterPlayerAction();
     await this.playBuffFeedback(beforeStats, 'player');
+    if (this.gameState.winner) {
+      await this.delay(500);
+      this.isFlowResolving = false;
+      this.updateInitiativeIndicator();
+      this.showBattleResultModal();
+      return;
+    }
     this.isFlowResolving = false;
     this.finishTurnAfterBothActions();
   }
@@ -654,6 +825,13 @@ export default class BattleScene extends Phaser.Scene {
     this.isFlowResolving = true;
     await this.delay(650);
     await this.revealAndApplyEnemyAction();
+    if (this.gameState.winner) {
+      await this.delay(500);
+      this.isFlowResolving = false;
+      this.updateInitiativeIndicator();
+      this.showBattleResultModal();
+      return;
+    }
     this.isFlowResolving = false;
     this.resetCardHighlights();
   }
@@ -661,6 +839,7 @@ export default class BattleScene extends Phaser.Scene {
   async finishTurnAfterBothActions() {
     if (!this.gameState || this.gameState.winner) {
       this.updateInitiativeIndicator();
+      this.scheduleBattleResultModal();
       return;
     }
 
@@ -669,6 +848,13 @@ export default class BattleScene extends Phaser.Scene {
     if (!this.enemyActionUsed) {
       await this.delay(650);
       await this.revealAndApplyEnemyAction();
+      if (this.gameState.winner) {
+        await this.delay(500);
+        this.isFlowResolving = false;
+        this.updateInitiativeIndicator();
+        this.showBattleResultModal();
+        return;
+      }
     }
 
     await this.delay(500);
@@ -696,6 +882,7 @@ export default class BattleScene extends Phaser.Scene {
     if (this.gameState.winner) {
       this.isFlowResolving = false;
       this.updateInitiativeIndicator();
+      this.showBattleResultModal();
       return;
     }
 
