@@ -59,6 +59,79 @@ function getCandidateTargetIndexes(state, owner, effectId) {
   }
 }
 
+
+function getActionTargetIndexes(action) {
+  if (Array.isArray(action?.targetIndexes) && action.targetIndexes.length > 0) {
+    return action.targetIndexes;
+  }
+  return [action.targetIndex];
+}
+
+function isTwoTargetSwapEffect(effectId) {
+  return effectId === 'swap_any_two_units' || effectId === 'swap_two_enemy_units';
+}
+
+function isTargetedOnlyEffect(effectId) {
+  return isTwoTargetSwapEffect(effectId)
+    || effectId === 'return_friendly_draw_1'
+    || effectId === 'destroy_friendly_draw_2'
+    || effectId === 'heal_2'
+    || effectId === 'heal_3'
+    || effectId === 'quick_strike'
+    || effectId === 'swap_adjacent_then_resolve'
+    || effectId === 'control_enemy_unit_this_turn'
+    || effectId === 'ignore_armor_next_attack'
+    || effectId === 'enemy_lane_atk_minus_1';
+}
+
+function getBoardPressureSignature(state, owner) {
+  const opponent = owner === 'enemy' ? 'player' : 'enemy';
+  return JSON.stringify({
+    ownerPressure: getGuaranteedHeroDamage(state, owner),
+    opponentPressure: getGuaranteedHeroDamage(state, opponent),
+    board: (Array.isArray(state?.board) ? state.board : []).map((unit) => {
+      if (!unit) return null;
+      return {
+        owner: unit.owner ?? null,
+        id: unit.cardId ?? unit.id ?? null,
+        attack: getUnitAttack(unit),
+        hp: unit.hp ?? null,
+        armor: unit.armor ?? null,
+        effectId: unit.effectId ?? null,
+      };
+    }),
+  });
+}
+
+function hasMeaningfulBoardOrPressureChange(beforeState, afterState, owner) {
+  return getBoardPressureSignature(beforeState, owner) !== getBoardPressureSignature(afterState, owner);
+}
+
+function addTwoTargetSwapCandidates(actions, state, owner, card) {
+  const targets = getCandidateTargetIndexes(state, owner, card.effectId ?? null);
+  for (let first = 0; first < targets.length - 1; first += 1) {
+    for (let second = first + 1; second < targets.length; second += 1) {
+      const targetIndexes = [targets[first], targets[second]];
+      if (!state.board[targetIndexes[0]] || !state.board[targetIndexes[1]]) continue;
+
+      const probeState = cloneState(state);
+      const targetedProbe = resolveTargetedEffectCard(probeState, owner, card.id, targetIndexes[0], targetIndexes);
+      if (!targetedProbe.ok || targetedProbe.type === 'targeted-effect-pending' || targetedProbe.type === 'targeted-effect-blocked') {
+        continue;
+      }
+      if (!hasMeaningfulBoardOrPressureChange(state, probeState, owner)) continue;
+
+      actions.push({
+        type: 'play-targeted-effect',
+        cardId: card.id,
+        targetIndex: targetIndexes[0],
+        targetIndexes,
+        effectId: card.effectId ?? null,
+      });
+    }
+  }
+}
+
 function buildActionCandidates(state, owner, hand) {
   const actions = [];
 
@@ -75,16 +148,29 @@ function buildActionCandidates(state, owner, hand) {
       return;
     }
 
-    const simpleProbe = playEffectCard(cloneState(state), owner, card.id);
-    if (simpleProbe.ok && simpleProbe.type !== 'effect-blocked') {
-      actions.push({ type: 'play-effect', cardId: card.id, effectId: card.effectId ?? null });
+    if (isTwoTargetSwapEffect(card.effectId ?? null)) {
+      addTwoTargetSwapCandidates(actions, state, owner, card);
+      return;
+    }
+
+    if (!isTargetedOnlyEffect(card.effectId ?? null)) {
+      const simpleProbe = playEffectCard(cloneState(state), owner, card.id);
+      if (simpleProbe.ok && simpleProbe.type !== 'effect-blocked') {
+        actions.push({ type: 'play-effect', cardId: card.id, effectId: card.effectId ?? null });
+      }
     }
 
     const targets = getCandidateTargetIndexes(state, owner, card.effectId ?? null);
     targets.forEach((targetIndex) => {
       const targetedProbe = resolveTargetedEffectCard(cloneState(state), owner, card.id, targetIndex, [targetIndex]);
       if (targetedProbe.ok && targetedProbe.type !== 'targeted-effect-pending' && targetedProbe.type !== 'targeted-effect-blocked') {
-        actions.push({ type: 'play-targeted-effect', cardId: card.id, targetIndex, effectId: card.effectId ?? null });
+        actions.push({
+          type: 'play-targeted-effect',
+          cardId: card.id,
+          targetIndex,
+          targetIndexes: [targetIndex],
+          effectId: card.effectId ?? null,
+        });
       }
     });
   });
@@ -97,6 +183,7 @@ function scoreAction(state, owner, action) {
   const currentOpponentHp = state?.[getOpponentHpKey(owner)] ?? 0;
   const currentOwnHp = state?.[getHeroHpKey(owner)] ?? 0;
   const currentHeroPressure = getGuaranteedHeroDamage(state, owner);
+  const currentOpponentPressure = getGuaranteedHeroDamage(state, owner === 'enemy' ? 'player' : 'enemy');
 
   if (action.type === 'play-unit') {
     const canPlay = canPlayOrRedeploy(nextState, owner, action.cardId, action.slotIndex);
@@ -115,7 +202,8 @@ function scoreAction(state, owner, action) {
     const result = playEffectCard(nextState, owner, action.cardId);
     if (!result.ok || result.type === 'effect-blocked') return Number.NEGATIVE_INFINITY;
   } else if (action.type === 'play-targeted-effect') {
-    const result = resolveTargetedEffectCard(nextState, owner, action.cardId, action.targetIndex, [action.targetIndex]);
+    const targetIndexes = getActionTargetIndexes(action);
+    const result = resolveTargetedEffectCard(nextState, owner, action.cardId, action.targetIndex, targetIndexes);
     if (!result.ok || result.type === 'targeted-effect-pending' || result.type === 'targeted-effect-blocked') {
       return Number.NEGATIVE_INFINITY;
     }
@@ -125,12 +213,17 @@ function scoreAction(state, owner, action) {
   const nextOwnHp = nextState?.[getHeroHpKey(owner)] ?? 0;
   const immediateHeroDamage = Math.max(0, currentOpponentHp - nextOpponentHp);
   const heroPressureGain = Math.max(0, getGuaranteedHeroDamage(nextState, owner) - currentHeroPressure);
+  const opponentPressureReduced = Math.max(
+    0,
+    currentOpponentPressure - getGuaranteedHeroDamage(nextState, owner === 'enemy' ? 'player' : 'enemy'),
+  );
 
   let score = 0;
 
   if (nextOpponentHp <= 0) score += 100000;
   if (immediateHeroDamage > 0) score += 30000 + immediateHeroDamage * 300;
   if (heroPressureGain > 0) score += 800 + heroPressureGain * 80;
+  if (opponentPressureReduced > 0) score += 700 + opponentPressureReduced * 70;
 
   const hpSaved = Math.max(0, nextOwnHp - currentOwnHp);
   if (hpSaved > 0) score += 700 + hpSaved * 120;

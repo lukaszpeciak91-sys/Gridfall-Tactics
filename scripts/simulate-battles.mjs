@@ -78,7 +78,13 @@ function applyAction(state, owner, passStats, decisionOptions) {
     state.cancelEnemyOrderThisTurn[cancelKey] = false;
   }
   if (action.type === 'play-targeted-effect') {
-    resolveTargetedEffectCard(state, owner, action.cardId, action.targetIndex, [action.targetIndex]);
+    resolveTargetedEffectCard(
+      state,
+      owner,
+      action.cardId,
+      action.targetIndex,
+      action.targetIndexes ?? [action.targetIndex],
+    );
     state.cancelEnemyOrderThisTurn[cancelKey] = false;
   }
 }

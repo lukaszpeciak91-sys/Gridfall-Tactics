@@ -654,7 +654,13 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     if (action.type === 'play-targeted-effect') {
-      resolveTargetedEffectCard(this.gameState, 'enemy', action.cardId, action.targetIndex, [action.targetIndex]);
+      resolveTargetedEffectCard(
+        this.gameState,
+        'enemy',
+        action.cardId,
+        action.targetIndex,
+        action.targetIndexes ?? [action.targetIndex],
+      );
       this.gameState.cancelEnemyOrderThisTurn.player = false;
       return;
     }
