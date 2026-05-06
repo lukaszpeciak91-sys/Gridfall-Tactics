@@ -3,6 +3,81 @@ import { canPlayOrRedeploy, canSwap, performSwap, playEffectCard, playOrRedeploy
 const ENEMY_ROW_INDEXES = [0, 1, 2];
 const PLAYER_ROW_INDEXES = [6, 7, 8];
 
+
+const LOW_TEMPO_EFFECTS = new Set([
+  'heal_2',
+  'heal_3',
+  'heal_all_1',
+  'cannot_drop_below_1_this_turn',
+  'immune_move_disable_this_turn',
+  'return_friendly_draw_1',
+  'destroy_friendly_draw_2',
+  'revive_friendly_1hp',
+]);
+
+const BOARD_SYNERGY_EFFECTS = new Set([
+  'aggro_buff_all_atk_2',
+  'buff_all_atk_1',
+  'buff_all_armor_1',
+  'quick_strike',
+  'swap_adjacent_then_resolve',
+  'heal_2_atk_1_this_turn',
+]);
+
+function scoreOpeningCard(card, hand, factionName = '') {
+  if (!card) return Number.NEGATIVE_INFINITY;
+  const unitsInHand = hand.filter((item) => item?.type === 'unit').length;
+  const nonUnitCount = hand.length - unitsInHand;
+  const faction = String(factionName ?? '').toLowerCase();
+
+  if (card.type === 'unit') {
+    const attack = Number.isFinite(card.attack) ? card.attack : 0;
+    const hp = Number.isFinite(card.hp) ? card.hp : 0;
+    const armor = Number.isFinite(card.armor) ? card.armor : 0;
+    let score = 60 + attack * 18 + hp * 9 + armor * 10;
+    if (attack <= 0 || card.effectId === 'cannot_attack') score -= 42;
+    if (attack >= 2) score += 16;
+    if (card.effectId === 'lane_empty_bonus_damage') score += 22;
+    if (card.effectId === 'empty_adjacent_bonus_atk') score += 14;
+    if (card.effectId === 'on_play_lane_damage_1') score += 12;
+    if (card.effectId === 'adjacent_allies_atk_plus_1') score += unitsInHand >= 2 ? 18 : -4;
+    if (faction === 'aggro') score += attack >= 2 ? 14 : -8;
+    if (faction === 'control' && attack <= 1 && hp <= 1) score -= 10;
+    return score;
+  }
+
+  let score = 26;
+  if (unitsInHand === 0) score -= 90;
+  else if (unitsInHand === 1) score -= 48;
+  else if (nonUnitCount >= 3) score -= 30;
+
+  if (LOW_TEMPO_EFFECTS.has(card.effectId)) score -= 36;
+  if (BOARD_SYNERGY_EFFECTS.has(card.effectId)) score += unitsInHand >= 2 ? 18 : -28;
+  if (card.effectId === 'damage_all_enemies_1' || card.effectId === 'enemy_all_atk_minus_1') score -= 12;
+  if (card.effectId === 'summon_grunt_empty_slot' || card.effectId === 'fill_empty_slots_0_1') score += 22;
+  if (card.effectId === 'ignore_armor_next_attack' || card.effectId === 'control_enemy_unit_this_turn') score -= 16;
+  if (faction === 'aggro' && card.effectId === 'aggro_buff_all_atk_2') score += unitsInHand >= 2 ? 18 : -24;
+  return score;
+}
+
+export function selectOpeningMulliganCardIds(sideState, options = {}) {
+  const hand = Array.isArray(sideState?.hand) ? sideState.hand : [];
+  const factionName = options.factionName ?? sideState?.factionName ?? '';
+  const unitCount = hand.filter((card) => card?.type === 'unit').length;
+  const replaceThreshold = unitCount <= 1 ? 70 : 44;
+
+  return hand
+    .map((card, index) => ({
+      card,
+      index,
+      score: scoreOpeningCard(card, hand, factionName),
+    }))
+    .filter(({ score }) => score <= replaceThreshold)
+    .sort((a, b) => (a.score - b.score) || (a.index - b.index))
+    .slice(0, 2)
+    .map(({ card }) => card.id);
+}
+
 function cloneState(state) {
   return JSON.parse(JSON.stringify(state));
 }

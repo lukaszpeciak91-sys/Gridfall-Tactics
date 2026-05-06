@@ -4,6 +4,8 @@ import { fileURLToPath } from 'node:url';
 import {
   createInitialBattleState,
   drawCards,
+  performOpeningMulligan,
+  STARTING_HAND_SIZE,
   playOrRedeployUnit,
   performSwap,
   playEffectCard,
@@ -13,7 +15,7 @@ import {
   resolveTurnCapWinner,
   MAX_TURNS,
 } from '../src/systems/GameState.js';
-import { chooseBattleAction, recordBattleActionUse } from '../src/systems/enemyDecision.js';
+import { chooseBattleAction, recordBattleActionUse, selectOpeningMulliganCardIds } from '../src/systems/enemyDecision.js';
 
 const DEFAULT_MATCH_COUNT = 100;
 const DEFAULT_BASE_SEED = 1337;
@@ -59,6 +61,27 @@ function shuffleDeck(deck, rng) {
     const j = Math.floor(rng() * (i + 1));
     [deck[i], deck[j]] = [deck[j], deck[i]];
   }
+}
+
+
+function recordMulliganTelemetry(telemetry, factionName, replaced) {
+  telemetry.mulliganByFaction ??= {};
+  telemetry.mulliganByFaction[factionName] ??= { games: 0, used: 0, cardsReplaced: 0 };
+  const row = telemetry.mulliganByFaction[factionName];
+  row.games += 1;
+  if (replaced > 0) row.used += 1;
+  row.cardsReplaced += replaced;
+}
+
+function applyAiOpeningMulligan(state, owner, randomFn, telemetry) {
+  const side = owner === 'player' ? state.player : state.enemy;
+  const selectedIds = selectOpeningMulliganCardIds(side);
+  const result = performOpeningMulligan(state, owner, selectedIds, randomFn);
+  if (!result.ok) {
+    telemetry.invalidActions = (telemetry.invalidActions ?? 0) + 1;
+    return;
+  }
+  recordMulliganTelemetry(telemetry, side.factionName ?? 'Unknown', result.replaced);
 }
 
 function applyAction(state, owner, passStats, decisionOptions, telemetry) {
@@ -108,8 +131,10 @@ function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, gameSe
     shuffleDeck(state.enemy.deck, gameRng);
   }
 
-  drawCards(state.player, 4);
-  drawCards(state.enemy, 4);
+  drawCards(state.player, STARTING_HAND_SIZE);
+  drawCards(state.enemy, STARTING_HAND_SIZE);
+  applyAiOpeningMulligan(state, 'player', gameRng, telemetry);
+  applyAiOpeningMulligan(state, 'enemy', gameRng, telemetry);
   let turns = 0;
 
   const initialFirstActor = state.firstActor;
@@ -259,7 +284,7 @@ function main() {
   const combinedPairs = new Map();
   const orderedMatchups = new Map();
   const passStats = { pass: 0, cancelled: 0 };
-  const telemetry = { replaceUsed: 0, repositionUsed: 0, meaningfulGameplayActions: 0, pointlessGameplayActions: 0, openLaneImprovements: 0, repeatedLoopPreventions: 0, invalidActions: 0, crashes: 0 };
+  const telemetry = { replaceUsed: 0, repositionUsed: 0, meaningfulGameplayActions: 0, pointlessGameplayActions: 0, openLaneImprovements: 0, repeatedLoopPreventions: 0, invalidActions: 0, crashes: 0, mulliganByFaction: {} };
   const audit = { games: 0, draws: 0, turnCaps: 0, aggroTurnCapWins: 0, aggroGames: 0, nonSwarmGames: 0, nonSwarmDraws: 0, nonSwarmTurnCaps: 0, swarmMirrorGames: 0, swarmMirrorDraws: 0 };
 
   for (let playerIndex = 0; playerIndex < factionKeys.length; playerIndex += 1) for (let enemyIndex = 0; enemyIndex < factionKeys.length; enemyIndex += 1) {
@@ -465,6 +490,17 @@ Battle simulation complete (${matchCount} games per matchup, max ${MAX_TURNS} tu
     { metric: 'non-Swarm turn-cap %', value: percent(audit.nonSwarmTurnCaps, audit.nonSwarmGames), count: `${audit.nonSwarmTurnCaps}/${audit.nonSwarmGames}` },
     { metric: 'Aggro chip timeout win %', value: percent(audit.aggroTurnCapWins, audit.aggroGames), count: `${audit.aggroTurnCapWins}/${audit.aggroGames}` },
   ]);
+  console.log('\nOpening mulligan usage by faction:');
+  console.table(factionKeys.map((key) => {
+    const row = telemetry.mulliganByFaction[key] ?? { games: 0, used: 0, cardsReplaced: 0 };
+    return {
+      faction: key,
+      games: row.games,
+      'usage %': percent(row.used, row.games),
+      'avg cards replaced': avg(row.cardsReplaced, row.games),
+    };
+  }));
+
   console.log('\nAI gameplay-action telemetry:');
   console.table([
     { metric: 'replace actions used', count: telemetry.replaceUsed },

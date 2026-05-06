@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
-import { createInitialBattleState, drawCards, canPass, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, getUnitAttack, getUnitArmor, toggleFirstActor, resolveTurnCapWinner } from '../systems/GameState.js';
-import { chooseEnemyAction, recordBattleActionUse } from '../systems/enemyDecision.js';
+import { createInitialBattleState, drawCards, canPass, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, getUnitAttack, getUnitArmor, toggleFirstActor, resolveTurnCapWinner, performOpeningMulligan, STARTING_HAND_SIZE, MAX_OPENING_MULLIGAN_CARDS } from '../systems/GameState.js';
+import { chooseEnemyAction, recordBattleActionUse, selectOpeningMulliganCardIds } from '../systems/enemyDecision.js';
 import { getTargetingStateForEffect } from '../systems/cardTargeting.js';
 
 export default class BattleScene extends Phaser.Scene {
@@ -14,6 +14,9 @@ export default class BattleScene extends Phaser.Scene {
     this.playerActionUsed = false;
     this.enemyActionUsed = false;
     this.targetingState = null;
+    this.openingMulliganPending = false;
+    this.selectedMulliganCardIds = [];
+    this.actionButton = null;
   }
 
   preload() {
@@ -32,6 +35,9 @@ export default class BattleScene extends Phaser.Scene {
     this.playerActionUsed = false;
     this.enemyActionUsed = false;
     this.targetingState = null;
+    this.openingMulliganPending = false;
+    this.selectedMulliganCardIds = [];
+    this.actionButton = null;
     this.gameState = null;
     this.factionKey = null;
     this.layout = null;
@@ -57,9 +63,10 @@ export default class BattleScene extends Phaser.Scene {
     this.gameState = createInitialBattleState(playerFactionData, enemyFactionData);
     this.gameState.player.factionKey = playerFactionKey;
     this.gameState.enemy.factionKey = enemyFactionKey;
-    const STARTING_HAND_SIZE = 4;
     drawCards(this.gameState.player, STARTING_HAND_SIZE);
     drawCards(this.gameState.enemy, STARTING_HAND_SIZE);
+    this.applyEnemyOpeningMulligan();
+    this.openingMulliganPending = true;
 
     this.cameras.main.setBackgroundColor('#05080f');
     this.layout = this.getLayoutMetrics(width, height);
@@ -71,7 +78,7 @@ export default class BattleScene extends Phaser.Scene {
     this.drawActionZone();
     this.drawHand();
     this.drawBottomUtilityBar();
-    this.startTurn();
+    this.updateActionButtonLabel();
 
     this.scale.on('enterfullscreen', this.onFullscreenChanged, this);
     this.scale.on('leavefullscreen', this.onFullscreenChanged, this);
@@ -347,7 +354,12 @@ export default class BattleScene extends Phaser.Scene {
       .setStroke('#64748b', 2)
       .setInteractive({ useHandCursor: true });
 
+    this.actionButton = button;
     button.on('pointerup', () => {
+      if (this.openingMulliganPending) {
+        this.confirmOpeningMulligan();
+        return;
+      }
       this.resolvePassTurn();
     });
   }
@@ -421,6 +433,11 @@ export default class BattleScene extends Phaser.Scene {
 
 
   onCardTap(cardId) {
+    if (this.openingMulliganPending) {
+      this.toggleOpeningMulliganCard(cardId);
+      return;
+    }
+
     if (this.playerActionUsed) {
       return;
     }
@@ -531,6 +548,51 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     this.completePlayerAction();
+  }
+
+
+  applyEnemyOpeningMulligan() {
+    if (!this.gameState?.enemy) return;
+    const selectedIds = selectOpeningMulliganCardIds(this.gameState.enemy);
+    performOpeningMulligan(this.gameState, 'enemy', selectedIds);
+  }
+
+  toggleOpeningMulliganCard(cardId) {
+    const card = this.gameState.player.hand.find((item) => item.id === cardId);
+    if (!card) return;
+
+    if (this.selectedMulliganCardIds.includes(cardId)) {
+      this.selectedMulliganCardIds = this.selectedMulliganCardIds.filter((id) => id !== cardId);
+    } else if (this.selectedMulliganCardIds.length < MAX_OPENING_MULLIGAN_CARDS) {
+      this.selectedMulliganCardIds.push(cardId);
+    }
+
+    this.updateActionButtonLabel();
+    this.resetCardHighlights();
+  }
+
+  confirmOpeningMulligan() {
+    const selectedIds = [...this.selectedMulliganCardIds];
+    const result = performOpeningMulligan(this.gameState, 'player', selectedIds);
+    if (!result.ok) return;
+
+    this.openingMulliganPending = false;
+    this.selectedMulliganCardIds = [];
+    this.selectedCardId = null;
+    this.redrawHand();
+    this.updateActionButtonLabel();
+    this.resetCardHighlights();
+    this.startTurn();
+  }
+
+  updateActionButtonLabel() {
+    if (!this.actionButton) return;
+    if (this.openingMulliganPending) {
+      const count = this.selectedMulliganCardIds.length;
+      this.actionButton.setText(count > 0 ? `MULLIGAN ${count}` : 'KEEP HAND');
+      return;
+    }
+    this.actionButton.setText('PASS');
   }
 
   resolvePassTurn() {
@@ -732,7 +794,8 @@ ${statParts.join(' | ')}`;
 
   resetCardHighlights() {
     this.cardViews.forEach((card) => {
-      const isSelected = card.cardId === this.selectedCardId;
+      const isMulliganSelected = this.openingMulliganPending && this.selectedMulliganCardIds.includes(card.cardId);
+      const isSelected = card.cardId === this.selectedCardId || isMulliganSelected;
       card.background.setStrokeStyle(4, isSelected ? 0xfacc15 : 0x94a3b8, isSelected ? 1 : 0.7);
       const viewCard = this.gameState.player.hand.find((item) => item.id === card.cardId);
       card.background.setFillStyle(isSelected ? 0x334155 : 0x111827, isSelected ? 0.78 : viewCard ? 0.55 : 0.42);

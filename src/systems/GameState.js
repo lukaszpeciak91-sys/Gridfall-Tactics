@@ -3,6 +3,8 @@ const ENEMY_ROW = [0, 1, 2];
 const PLAYER_ROW = [6, 7, 8];
 const HERO_START_HP = 12;
 export const MAX_TURNS = 50;
+export const STARTING_HAND_SIZE = 4;
+export const MAX_OPENING_MULLIGAN_CARDS = 2;
 
 function getRowForOwner(owner) {
   return owner === 'player' ? PLAYER_ROW : ENEMY_ROW;
@@ -354,7 +356,67 @@ export function createInitialBattleState(playerFactionData, enemyFactionData = p
       player: false,
       enemy: false,
     },
+    mulligan: {
+      playerUsed: false,
+      enemyUsed: false,
+      playerReplaced: 0,
+      enemyReplaced: 0,
+    },
   };
+}
+
+
+export function shuffleDeck(deck, randomFn = Math.random) {
+  if (!Array.isArray(deck)) return deck;
+  const rng = typeof randomFn === 'function' ? randomFn : Math.random;
+  for (let i = deck.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(rng() * (i + 1));
+    [deck[i], deck[j]] = [deck[j], deck[i]];
+  }
+  return deck;
+}
+
+function isOpeningMulliganWindow(state) {
+  if (!state || state.winner) return false;
+  if (state.turnsCompleted !== 0) return false;
+  if (!Array.isArray(state.board) || state.board.some(Boolean)) return false;
+  if ((state.player?.discard?.length ?? 0) > 0 || (state.enemy?.discard?.length ?? 0) > 0) return false;
+  return true;
+}
+
+export function canOpeningMulligan(state, owner) {
+  if (owner !== 'player' && owner !== 'enemy') return false;
+  if (!isOpeningMulliganWindow(state)) return false;
+  return !Boolean(state.mulligan?.[`${owner}Used`]);
+}
+
+export function performOpeningMulligan(state, owner, cardIds = [], randomFn = Math.random) {
+  if (!canOpeningMulligan(state, owner)) {
+    return { ok: false, reason: 'Opening mulligan is not available' };
+  }
+
+  const side = owner === 'player' ? state.player : state.enemy;
+  const uniqueIds = [...new Set(Array.isArray(cardIds) ? cardIds : [])].slice(0, MAX_OPENING_MULLIGAN_CARDS);
+  const replacedCards = [];
+
+  uniqueIds.forEach((cardId) => {
+    const handIndex = side.hand.findIndex((card) => card.id === cardId);
+    if (handIndex < 0) return;
+    const [card] = side.hand.splice(handIndex, 1);
+    replacedCards.push(card);
+  });
+
+  if (replacedCards.length > 0) {
+    side.deck.push(...replacedCards);
+    shuffleDeck(side.deck, randomFn);
+    drawCards(side, replacedCards.length);
+  }
+
+  state.mulligan ??= {};
+  state.mulligan[`${owner}Used`] = true;
+  state.mulligan[`${owner}Replaced`] = replacedCards.length;
+
+  return { ok: true, type: 'opening-mulligan', replaced: replacedCards.length, cardIds: replacedCards.map((card) => card.id) };
 }
 
 export function drawCards(sideState, count) {
