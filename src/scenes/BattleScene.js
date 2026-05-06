@@ -212,10 +212,7 @@ export default class BattleScene extends Phaser.Scene {
       icon.setDepth(200);
     });
 
-    leftIcon.on('pointerup', () => {
-      this.scene.stop('BattleScene');
-      this.scene.start('FactionSelectScene');
-    });
+    leftIcon.on('pointerup', () => this.exitBattleToFactionSelect());
     centerIcon.on('pointerup', () => this.scene.start('BattleMenuScene', { factionKey: this.factionKey }));
     rightIcon.on('pointerup', () => this.toggleFullscreen());
   }
@@ -338,7 +335,10 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   destroyBattleResultModal() {
-    if (!this.battleResultModal) return;
+    if (!this.battleResultModal) {
+      this.battleResultModalShown = false;
+      return;
+    }
     const items = [
       this.battleResultModal.overlay,
       this.battleResultModal.panel,
@@ -351,11 +351,16 @@ export default class BattleScene extends Phaser.Scene {
       item?.destroy?.();
     });
     this.battleResultModal = null;
+    this.battleResultModalShown = false;
   }
 
   exitBattleToFactionSelect() {
     this.destroyBattleResultModal();
-    this.scene.stop('BattleScene');
+    this.isFlowResolving = false;
+    this.selectedCardId = null;
+    this.pendingSwapIndex = null;
+    this.targetingState = null;
+    this.openingMulliganPending = false;
     this.scene.start('FactionSelectScene');
   }
 
@@ -363,6 +368,11 @@ export default class BattleScene extends Phaser.Scene {
     const factionKey = this.factionKey;
     const enemyFactionKey = this.enemyFactionKey;
     this.destroyBattleResultModal();
+    this.isFlowResolving = false;
+    this.selectedCardId = null;
+    this.pendingSwapIndex = null;
+    this.targetingState = null;
+    this.openingMulliganPending = false;
     this.scene.restart({ factionKey, enemyFactionKey });
   }
 
@@ -401,6 +411,7 @@ export default class BattleScene extends Phaser.Scene {
     this.scale.off('enterfullscreen', this.onFullscreenChanged, this);
     this.scale.off('leavefullscreen', this.onFullscreenChanged, this);
     this.scale.off('resize', this.onViewportChanged, this);
+    this.resetRuntimeState();
   }
 
   drawHeroPanels() {
