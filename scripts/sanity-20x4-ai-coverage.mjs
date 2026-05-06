@@ -9,11 +9,12 @@ import {
   resolveTargetedEffectCard,
   resolveCombat,
   toggleFirstActor,
+  resolveTurnCapWinner,
+  MAX_TURNS,
 } from '../src/systems/GameState.js';
 import { chooseBattleAction } from '../src/systems/enemyDecision.js';
 
 const GAMES_PER_PLAYER_FACTION = 20;
-const MAX_TURNS = 50;
 const BASE_SEED = 20260505;
 const SHUFFLE_DECKS = true;
 
@@ -135,10 +136,12 @@ function simulateGame(playerFaction, enemyFaction, gameIndex, playerKey, enemyKe
     drawCards(state.player, 1);
     drawCards(state.enemy, 1);
     turns += 1;
+    state.turnsCompleted = turns;
+    resolveTurnCapWinner(state, turns);
     if (!state.winner) toggleFirstActor(state);
   }
 
-  const endedByTurnCap = !state.winner && turns >= MAX_TURNS;
+  const endedByTurnCap = state.endingReason === 'turn-cap';
   const endingType = endedByTurnCap ? 'turn cap' : ((state.playerHP === 0 || state.enemyHP === 0) ? 'hero damage' : 'unit attrition');
   return {
     winner: state.winner ?? 'draw',

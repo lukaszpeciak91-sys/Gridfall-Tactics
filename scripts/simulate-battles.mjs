@@ -9,11 +9,12 @@ import {
   resolveTargetedEffectCard,
   resolveCombat,
   toggleFirstActor,
+  resolveTurnCapWinner,
+  MAX_TURNS,
 } from '../src/systems/GameState.js';
 import { chooseBattleAction } from '../src/systems/enemyDecision.js';
 
 const DEFAULT_MATCH_COUNT = 100;
-const MAX_TURNS = 50;
 const DEFAULT_BASE_SEED = 1337;
 const SHUFFLE_DECKS = true;
 const FIRST_ACTOR_POLICY = 'random-initial-then-alternating';
@@ -120,44 +121,90 @@ function runSingleGame(playerFaction, enemyFaction, passStats, gameSeed, gameInd
     drawCards(state.player, 1);
     drawCards(state.enemy, 1);
     turns += 1;
+    state.turnsCompleted = turns;
+    resolveTurnCapWinner(state, turns);
     if (!state.winner) toggleFirstActor(state);
   }
-  return { winner: state.winner ?? 'draw', turns, playerHP: state.playerHP, enemyHP: state.enemyHP, firstActor: initialFirstActor };
+  return {
+    winner: state.winner ?? 'draw',
+    turns,
+    playerHP: state.playerHP,
+    enemyHP: state.enemyHP,
+    firstActor: initialFirstActor,
+    endingReason: state.endingReason,
+    turnCapResolvedBy: state.turnCapResolvedBy,
+  };
 }
 
 const percent = (count, total) => ((count / total) * 100).toFixed(1);
 const avg = (value, count) => (count > 0 ? (value / count).toFixed(2) : '0.00');
 
+function getMatchupCount(playerIndex, enemyIndex, factionCount, requestedTotal) {
+  if (!requestedTotal) return null;
+  const matchupCount = factionCount * factionCount;
+  const ordinal = playerIndex * factionCount + enemyIndex;
+  const base = Math.floor(requestedTotal / matchupCount);
+  const remainder = requestedTotal % matchupCount;
+  return base + (ordinal < remainder ? 1 : 0);
+}
+
 function main() {
-  const parsedCount = Number.parseInt(process.argv[2] ?? `${DEFAULT_MATCH_COUNT}`, 10);
+  const totalArg = process.argv.find((arg) => arg.startsWith('--total='));
+  const requestedTotal = totalArg ? Number.parseInt(totalArg.split('=')[1], 10) : null;
+  const positionalArgs = process.argv.slice(2).filter((arg) => !arg.startsWith('--'));
+  const parsedCount = Number.parseInt(positionalArgs[0] ?? `${DEFAULT_MATCH_COUNT}`, 10);
   const matchCount = Number.isInteger(parsedCount) && parsedCount > 0 ? parsedCount : DEFAULT_MATCH_COUNT;
-  const parsedSeed = Number.parseInt(process.argv[3] ?? `${DEFAULT_BASE_SEED}`, 10);
+  const parsedSeed = Number.parseInt(positionalArgs[1] ?? `${DEFAULT_BASE_SEED}`, 10);
   const baseSeed = Number.isInteger(parsedSeed) ? parsedSeed >>> 0 : DEFAULT_BASE_SEED;
 
   const factions = loadFactions();
   const factionKeys = Object.keys(factions);
-  const aggregate = new Map(factionKeys.map((key) => [key, { wins: 0, games: 0, draws: 0 }]));
+  const aggregate = new Map(factionKeys.map((key) => [key, { wins: 0, games: 0, draws: 0, turnCaps: 0, turnCapWins: 0 }]));
   const matchupRows = [];
   const passStats = { pass: 0, cancelled: 0 };
+  const audit = { games: 0, draws: 0, turnCaps: 0, aggroTurnCapWins: 0, aggroGames: 0, nonSwarmGames: 0, nonSwarmDraws: 0, nonSwarmTurnCaps: 0, swarmMirrorGames: 0, swarmMirrorDraws: 0 };
 
-  for (const playerKey of factionKeys) for (const enemyKey of factionKeys) {
-    let playerWins = 0; let enemyWins = 0; let draws = 0; let totalTurns = 0; let totalPlayerHP = 0; let totalEnemyHP = 0;
-    for (let i = 0; i < matchCount; i += 1) {
+  for (let playerIndex = 0; playerIndex < factionKeys.length; playerIndex += 1) for (let enemyIndex = 0; enemyIndex < factionKeys.length; enemyIndex += 1) {
+    const playerKey = factionKeys[playerIndex];
+    const enemyKey = factionKeys[enemyIndex];
+    const gamesForMatchup = getMatchupCount(playerIndex, enemyIndex, factionKeys.length, requestedTotal) ?? matchCount;
+    if (gamesForMatchup <= 0) continue;
+    let playerWins = 0; let enemyWins = 0; let draws = 0; let turnCaps = 0; let playerTurnCapWins = 0; let enemyTurnCapWins = 0; let totalTurns = 0; let totalPlayerHP = 0; let totalEnemyHP = 0;
+    for (let i = 0; i < gamesForMatchup; i += 1) {
       const gameSeed = buildGameSeed(baseSeed, playerKey, enemyKey, i);
       const result = runSingleGame(factions[playerKey], factions[enemyKey], passStats, gameSeed, i, playerKey, enemyKey);
       totalTurns += result.turns; totalPlayerHP += result.playerHP; totalEnemyHP += result.enemyHP;
       if (result.winner === 'player') playerWins += 1; else if (result.winner === 'enemy') enemyWins += 1; else draws += 1;
+      if (result.endingReason === 'turn-cap') {
+        turnCaps += 1;
+        if (result.winner === 'player') playerTurnCapWins += 1;
+        if (result.winner === 'enemy') enemyTurnCapWins += 1;
+      }
     }
-    aggregate.get(playerKey).wins += playerWins; aggregate.get(playerKey).games += matchCount; aggregate.get(playerKey).draws += draws;
-    aggregate.get(enemyKey).wins += enemyWins; aggregate.get(enemyKey).games += matchCount; aggregate.get(enemyKey).draws += draws;
-    matchupRows.push({ matchup: `${playerKey} vs ${enemyKey}`, games: matchCount, 'player win %': percent(playerWins, matchCount), 'enemy win %': percent(enemyWins, matchCount), 'draw %': percent(draws, matchCount), 'avg turns': avg(totalTurns, matchCount), 'avg remaining HP': `${avg(totalPlayerHP, matchCount)} / ${avg(totalEnemyHP, matchCount)}` });
+    aggregate.get(playerKey).wins += playerWins; aggregate.get(playerKey).games += gamesForMatchup; aggregate.get(playerKey).draws += draws; aggregate.get(playerKey).turnCaps += turnCaps; aggregate.get(playerKey).turnCapWins += playerTurnCapWins;
+    aggregate.get(enemyKey).wins += enemyWins; aggregate.get(enemyKey).games += gamesForMatchup; aggregate.get(enemyKey).draws += draws; aggregate.get(enemyKey).turnCaps += turnCaps; aggregate.get(enemyKey).turnCapWins += enemyTurnCapWins;
+    audit.games += gamesForMatchup; audit.draws += draws; audit.turnCaps += turnCaps;
+    if (playerKey === 'Aggro') { audit.aggroGames += gamesForMatchup; audit.aggroTurnCapWins += playerTurnCapWins; }
+    if (enemyKey === 'Aggro') { audit.aggroGames += gamesForMatchup; audit.aggroTurnCapWins += enemyTurnCapWins; }
+    if (playerKey !== 'Swarm' && enemyKey !== 'Swarm') { audit.nonSwarmGames += gamesForMatchup; audit.nonSwarmDraws += draws; audit.nonSwarmTurnCaps += turnCaps; }
+    if (playerKey === 'Swarm' && enemyKey === 'Swarm') { audit.swarmMirrorGames += gamesForMatchup; audit.swarmMirrorDraws += draws; }
+    matchupRows.push({ matchup: `${playerKey} vs ${enemyKey}`, games: gamesForMatchup, 'player win %': percent(playerWins, gamesForMatchup), 'enemy win %': percent(enemyWins, gamesForMatchup), 'draw %': percent(draws, gamesForMatchup), 'turn cap %': percent(turnCaps, gamesForMatchup), 'turn-cap P/E wins': `${playerTurnCapWins} / ${enemyTurnCapWins}`, 'avg turns': avg(totalTurns, gamesForMatchup), 'avg remaining HP': `${avg(totalPlayerHP, gamesForMatchup)} / ${avg(totalEnemyHP, gamesForMatchup)}` });
   }
 
-  console.log(`\nBattle simulation complete (${matchCount} games per matchup, max ${MAX_TURNS} turns).`);
+  console.log(requestedTotal ? `\nBattle simulation complete (${audit.games} total games, max ${MAX_TURNS} turns).` : `\nBattle simulation complete (${matchCount} games per matchup, max ${MAX_TURNS} turns).`);
   console.log(`Base seed: ${baseSeed}`);
   console.table(matchupRows);
   console.log('\nAggregate faction win rate:');
-  console.table(factionKeys.map((key) => ({ faction: key, games: aggregate.get(key).games, 'win %': percent(aggregate.get(key).wins, aggregate.get(key).games), 'draw %': percent(aggregate.get(key).draws, aggregate.get(key).games) })));
+  console.table(factionKeys.map((key) => ({ faction: key, games: aggregate.get(key).games, 'win %': percent(aggregate.get(key).wins, aggregate.get(key).games), 'draw %': percent(aggregate.get(key).draws, aggregate.get(key).games), 'turn cap %': percent(aggregate.get(key).turnCaps, aggregate.get(key).games), 'turn-cap win %': percent(aggregate.get(key).turnCapWins, aggregate.get(key).games) })));
+  console.log('\nAudit pacing summary:');
+  console.table([
+    { metric: 'total draw %', value: percent(audit.draws, audit.games), count: `${audit.draws}/${audit.games}` },
+    { metric: 'Swarm vs Swarm draw %', value: percent(audit.swarmMirrorDraws, audit.swarmMirrorGames), count: `${audit.swarmMirrorDraws}/${audit.swarmMirrorGames}` },
+    { metric: 'turn-cap %', value: percent(audit.turnCaps, audit.games), count: `${audit.turnCaps}/${audit.games}` },
+    { metric: 'non-Swarm draw %', value: percent(audit.nonSwarmDraws, audit.nonSwarmGames), count: `${audit.nonSwarmDraws}/${audit.nonSwarmGames}` },
+    { metric: 'non-Swarm turn-cap %', value: percent(audit.nonSwarmTurnCaps, audit.nonSwarmGames), count: `${audit.nonSwarmTurnCaps}/${audit.nonSwarmGames}` },
+    { metric: 'Aggro chip timeout win %', value: percent(audit.aggroTurnCapWins, audit.aggroGames), count: `${audit.aggroTurnCapWins}/${audit.aggroGames}` },
+  ]);
   console.log('\nPASS reason counts:');
   console.table(Object.entries(passStats).map(([reason, count]) => ({ reason, count })));
   console.log('\nSimulation parity and validity notes:');

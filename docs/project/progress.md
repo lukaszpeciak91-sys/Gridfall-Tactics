@@ -67,3 +67,10 @@
 - Added random initial first actor selection, per-turn initiative toggling after combat/draw cleanup, and enemy-first handling that waits for the player action/PASS before resolving combat.
 - Added a minimal initiative UI indicator using a subtle active hero-frame glow plus a small ▶ icon near the side acting first this turn.
 - Updated simulation scripts to use the same random-initial, alternating-first-actor turn order as live gameplay.
+
+
+## Turn-Cap Remaining Hero HP MVP Pacing Fix (2026-05-06)
+- Replaced automatic draw at the 50-turn cap with remaining-hero-HP winner resolution.
+- Equal HP at the cap still remains a draw, preserving true parity cases.
+- Added the rule as an MVP anti-stall measure, especially for Swarm mirrors that created excessive empty-board exhaustion draws.
+- Updated live battle flow plus simulation/audit/sanity runners to share the same turn-cap winner logic.

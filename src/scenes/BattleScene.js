@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
-import { createInitialBattleState, drawCards, canPass, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, getUnitAttack, getUnitArmor, toggleFirstActor } from '../systems/GameState.js';
+import { createInitialBattleState, drawCards, canPass, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, getUnitAttack, getUnitArmor, toggleFirstActor, resolveTurnCapWinner } from '../systems/GameState.js';
 import { chooseEnemyAction } from '../systems/enemyDecision.js';
 
 export default class BattleScene extends Phaser.Scene {
@@ -590,6 +590,8 @@ export default class BattleScene extends Phaser.Scene {
     }
     drawCards(this.gameState.player, 1);
     drawCards(this.gameState.enemy, 1);
+    this.gameState.turnsCompleted += 1;
+    resolveTurnCapWinner(this.gameState, this.gameState.turnsCompleted);
 
     this.refreshBoardLabels();
     this.redrawHand();

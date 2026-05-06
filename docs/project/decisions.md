@@ -70,3 +70,12 @@
 - After each complete turn (both sides act/pass, combat resolves, both sides draw), `firstActor` toggles for the next turn.
 - Enemy-first turns execute enemy AI at turn start, then wait for the player action/PASS before combat resolves.
 - Playable UI may show only a minimal initiative indicator (subtle hero-frame glow and small ▶ icon); no banners, debug text, or layout redesign.
+
+
+## Turn-Cap Remaining Hero HP MVP Rule (2026-05-06)
+- Added a 50-completed-turn cap resolution that compares remaining hero HP when no winner exists.
+- Higher remaining player hero HP wins for the player; higher remaining enemy hero HP wins for the enemy.
+- Equal remaining hero HP still produces a true draw.
+- This is an MVP anti-stall/pacing solution, not the final long-term tournament or overtime system.
+- Primary motivation: Swarm mirrors were producing excessive empty-board exhaustion draws under the old automatic draw-at-cap rule.
+- Simulation and sanity runners must use the same shared turn-cap resolution helper as live gameplay; no special-case simulation behavior.

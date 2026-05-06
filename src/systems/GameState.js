@@ -2,6 +2,7 @@ const BOARD_SIZE = 9;
 const ENEMY_ROW = [0, 1, 2];
 const PLAYER_ROW = [6, 7, 8];
 const HERO_START_HP = 12;
+export const MAX_TURNS = 50;
 
 function getRowForOwner(owner) {
   return owner === 'player' ? PLAYER_ROW : ENEMY_ROW;
@@ -50,6 +51,18 @@ function removeDefeatedUnits(state, boardIndexes) {
 
 function cleanupAllDefeatedUnitsWithTriggers(state) {
   cleanupDefeatedUnitsWithTriggers(state, [...ENEMY_ROW, ...PLAYER_ROW]);
+}
+
+export function resolveTurnCapWinner(state, turnsCompleted, maxTurns = MAX_TURNS) {
+  if (!state || state.winner || turnsCompleted < maxTurns) return state?.winner ?? null;
+
+  if (state.playerHP > state.enemyHP) state.winner = 'player';
+  else if (state.enemyHP > state.playerHP) state.winner = 'enemy';
+  else state.winner = 'draw';
+
+  state.endingReason = 'turn-cap';
+  state.turnCapResolvedBy = state.winner === 'draw' ? 'equal-hero-hp' : 'remaining-hero-hp';
+  return state.winner;
 }
 
 function clampHeroHpAndResolveWinner(state) {
@@ -310,6 +323,9 @@ export function createInitialBattleState(playerFactionData, enemyFactionData = p
     playerMaxHP: HERO_START_HP,
     enemyMaxHP: HERO_START_HP,
     winner: null,
+    endingReason: null,
+    turnCapResolvedBy: null,
+    turnsCompleted: 0,
     firstActor,
     player: {
       factionName: playerFactionData?.name ?? 'Unknown',
