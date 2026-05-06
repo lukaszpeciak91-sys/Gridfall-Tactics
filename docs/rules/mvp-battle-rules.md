@@ -153,7 +153,7 @@ Meaningful player actions:
 | Tank | Stability | order | - | immune_move_disable_this_turn | Grants immunity vs move/disable effects this turn. | Non-targeted effect | Blocks swap/disable effects by opponent. |
 | Tank | Reinforce | order | - | heal_all_1 | Heal all friendly units by 1 (to max HP). | Non-targeted effect | Uses unit max HP cap. |
 | Tank | Last Stand | special | - | cannot_drop_below_1_this_turn | Friendly units cannot drop below 1 HP this turn. | Non-targeted effect | Reset after combat resolve. |
-| Tank | Repair Kit | utility | - | heal_3 | Heal targeted friendly by 3 (max HP cap). | Targeted friendly | Implemented via targeted resolution. |
+| Tank | Reactive Plating | utility | - | temp_armor_1 | Targeted friendly gains temp +1 armor this combat. | Targeted friendly | Stacks with armor normally and resets with combat cleanup; does not heal HP. |
 
 ## 9) Implemented vs Deferred (Explicit)
 

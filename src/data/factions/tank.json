@@ -12,6 +12,6 @@
     { "id": "tank_stability_1", "name": "Stability", "type": "order", "targeting": "all_friendly_units", "effectId": "immune_move_disable_this_turn", "textShort": "Allies can't be moved/disabled." },
     { "id": "tank_reinforce_1", "name": "Reinforce", "type": "order", "targeting": "all_friendly_units", "effectId": "heal_all_1", "textShort": "Heal all allies 1." },
     { "id": "tank_last_stand_1", "name": "Last Stand", "type": "special", "targeting": "all_friendly_units", "effectId": "cannot_drop_below_1_this_turn", "textShort": "Allies stay at min 1 HP." },
-    { "id": "tank_repair_kit_1", "name": "Repair Kit", "type": "utility", "targeting": "friendly_unit", "effectId": "heal_3", "textShort": "Heal a unit 3." }
+    { "id": "tank_repair_kit_1", "name": "Reactive Plating", "type": "utility", "targeting": "friendly_unit", "effectId": "temp_armor_1", "textShort": "Target ally +1 armor this combat." }
   ]
 }

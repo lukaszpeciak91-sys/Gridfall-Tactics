@@ -1,4 +1,4 @@
-import { canPlayOrRedeploy, canSwap, performSwap, playEffectCard, playOrRedeployUnit, resolveTargetedEffectCard, getUnitAttack } from './GameState.js';
+import { canPlayOrRedeploy, canSwap, performSwap, playEffectCard, playOrRedeployUnit, resolveTargetedEffectCard, getUnitAttack, getUnitArmor } from './GameState.js';
 
 const ENEMY_ROW_INDEXES = [0, 1, 2];
 const PLAYER_ROW_INDEXES = [6, 7, 8];
@@ -7,6 +7,7 @@ const PLAYER_ROW_INDEXES = [6, 7, 8];
 const LOW_TEMPO_EFFECTS = new Set([
   'heal_2',
   'heal_3',
+  'temp_armor_1',
   'heal_all_1',
   'cannot_drop_below_1_this_turn',
   'immune_move_disable_this_turn',
@@ -116,7 +117,7 @@ function getUnitId(unit) {
 
 function getEffectiveHp(unit) {
   if (!unit) return 0;
-  return (Number.isFinite(unit.hp) ? unit.hp : 0) + (Number.isFinite(unit.armor) ? unit.armor : 0);
+  return (Number.isFinite(unit.hp) ? unit.hp : 0) + getUnitArmor(unit);
 }
 
 function getOpenLaneStats(state, owner) {
@@ -219,6 +220,7 @@ function getCandidateTargetIndexes(state, owner, effectId) {
     case 'heal_2':
     case 'heal_1_atk_1_draw_on_kill_this_turn':
     case 'heal_3':
+    case 'temp_armor_1':
     case 'quick_strike':
     case 'swap_adjacent_then_resolve':
       return board.map((unit, index) => (unit?.owner === friendlyOwner ? index : -1)).filter((index) => index >= 0);
@@ -253,6 +255,7 @@ function isTargetedOnlyEffect(effectId) {
     || effectId === 'heal_2'
     || effectId === 'heal_1_atk_1_draw_on_kill_this_turn'
     || effectId === 'heal_3'
+    || effectId === 'temp_armor_1'
     || effectId === 'quick_strike'
     || effectId === 'swap_adjacent_then_resolve'
     || effectId === 'control_enemy_unit_this_turn'
@@ -487,6 +490,12 @@ function scoreAction(state, owner, action) {
 
   if ((action.effectId === 'heal_2' || action.effectId === 'heal_3') && hpSaved <= 0) {
     score -= 2000;
+  }
+
+  if (action.effectId === 'temp_armor_1') {
+    const targetUnit = nextState.board[action.targetIndex];
+    const armorGain = Math.max(0, getUnitArmor(targetUnit) - getUnitArmor(state.board[action.targetIndex]));
+    score += armorGain > 0 ? 700 + armorGain * 140 : -2000;
   }
 
   if (action.effectId === 'heal_1_atk_1_draw_on_kill_this_turn') {
