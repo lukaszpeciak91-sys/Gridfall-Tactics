@@ -1,7 +1,7 @@
 # MVP Battle Rules (Canonical)
 
 **Status:** Frozen for MVP implementation  
-**Last Updated:** 2026-05-04  
+**Last Updated:** 2026-05-05
 **Scope:** Gameplay rules for the MVP battle loop
 
 This is the **single canonical source of truth** for MVP battle rules.
@@ -27,20 +27,33 @@ If any other document conflicts with this file, this file wins.
 - Deck size: **10 cards** per faction deck JSON.
 - Starting hand: **4 cards** (player and enemy both draw at battle start).
 - Max hand size: **5**.
-- Draw timing in loop: on PASS resolution, **player draws 1 then enemy draws 1**.
+- Draw timing in loop: after both sides act/pass and combat resolves, **player draws 1 then enemy draws 1**.
 - No mulligan in MVP (deferred / not implemented).
 
-## 4) Turn Flow and Action Economy (Auto-Turn)
+## 4) Turn Flow, Initiative, and Action Economy (Auto-Turn)
 
-- MVP uses **PASS-based auto-turn flow**.
-- Player gets at most **1 meaningful action** before PASS.
-- PASS is always legal (even if player took no meaningful action).
-- PASS resolves in this fixed order:
-  1. Enemy takes one action.
-  2. Combat resolves across all 3 lanes.
-  3. Player draws 1.
-  4. Enemy draws 1.
-  5. New player turn begins.
+- **Alternating initiative is a temporary MVP balancing aid.**
+- Purpose: reduce fixed second-actor reaction advantage observed in simulations.
+- This is not necessarily the final long-term turn system.
+- At battle start, `firstActor` is randomly selected as `player` or `enemy`.
+- After each full turn resolution, `firstActor` toggles so initiative alternates player → enemy → player, or enemy → player → enemy.
+- Each side gets at most **1 meaningful action/pass** per full turn.
+- PASS counts as the player's action for that turn.
+- Combat resolves only after both sides have acted or passed.
+- If `firstActor` is `player`, the full turn order is:
+  1. Player takes one meaningful action or PASS.
+  2. Enemy takes one action or passes.
+  3. Combat resolves across all 3 lanes.
+  4. Player draws 1.
+  5. Enemy draws 1.
+  6. Initiative toggles for the next turn.
+- If `firstActor` is `enemy`, the full turn order is:
+  1. Enemy takes one automatic action or passes.
+  2. Player takes one meaningful action or PASS.
+  3. Combat resolves across all 3 lanes.
+  4. Player draws 1.
+  5. Enemy draws 1.
+  6. Initiative toggles for the next turn.
 
 Meaningful player actions:
 - Play a unit card to a friendly combat slot.

@@ -58,3 +58,12 @@
 - Updated canonical rules doc to align turn flow, draw timing, card typing, targeting, and effect behavior to implemented code.
 - Added explicit implemented-vs-deferred section and MVP simplification notes (deterministic targeting, non-unit-as-effect, no mulligan, no peek UI).
 - Documented active Flood cap (up to 2 tokens) and current balance monitoring notes.
+
+
+## Alternating Initiative MVP (2026-05-05)
+- Implemented temporary alternating initiative as an MVP balancing aid.
+- Purpose: reduce fixed second-actor reaction advantage observed in simulations.
+- This is not necessarily the final long-term turn system.
+- Added random initial first actor selection, per-turn initiative toggling after combat/draw cleanup, and enemy-first handling that waits for the player action/PASS before resolving combat.
+- Added a minimal initiative UI indicator using a subtle active hero-frame glow plus a small ▶ icon near the side acting first this turn.
+- Updated simulation scripts to use the same random-initial, alternating-first-actor turn order as live gameplay.

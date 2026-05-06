@@ -8,6 +8,7 @@ import {
   playEffectCard,
   resolveTargetedEffectCard,
   resolveCombat,
+  toggleFirstActor,
 } from '../src/systems/GameState.js';
 import { chooseBattleAction } from '../src/systems/enemyDecision.js';
 
@@ -15,7 +16,7 @@ const DEFAULT_MATCH_COUNT = 100;
 const MAX_TURNS = 50;
 const DEFAULT_BASE_SEED = 1337;
 const SHUFFLE_DECKS = true;
-const FIRST_ACTOR_POLICY = 'alternate-by-game-index';
+const FIRST_ACTOR_POLICY = 'random-initial-then-alternating';
 const TIE_BREAK_POLICY = 'seeded-random';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -83,8 +84,8 @@ function applyAction(state, owner, passStats, decisionOptions) {
 }
 
 function runSingleGame(playerFaction, enemyFaction, passStats, gameSeed, gameIndex, playerKey, enemyKey) {
-  const state = createInitialBattleState(playerFaction, enemyFaction);
   const gameRng = createSeededRng(gameSeed);
+  const state = createInitialBattleState(playerFaction, enemyFaction, { randomFn: gameRng });
 
   if (SHUFFLE_DECKS) {
     shuffleDeck(state.player.deck, gameRng);
@@ -95,15 +96,17 @@ function runSingleGame(playerFaction, enemyFaction, passStats, gameSeed, gameInd
   drawCards(state.enemy, 4);
   let turns = 0;
 
-  const firstActor = gameIndex % 2 === 0 ? 'player' : 'enemy';
-  const secondActor = firstActor === 'player' ? 'enemy' : 'player';
+  const initialFirstActor = state.firstActor;
 
   while (!state.winner && turns < MAX_TURNS) {
     const decisionContext = `${playerKey}|${enemyKey}|${gameIndex}|${turns}`;
-    const decisionSeed = buildGameSeed(gameSeed, decisionContext, firstActor, turns + 7);
+    const decisionSeed = buildGameSeed(gameSeed, decisionContext, state.firstActor, turns + 7);
     const turnRng = createSeededRng(decisionSeed);
     const firstDecisionOptions = { randomFn: turnRng, tieBreakPolicy: TIE_BREAK_POLICY };
     const secondDecisionOptions = { randomFn: turnRng, tieBreakPolicy: TIE_BREAK_POLICY };
+
+    const firstActor = state.firstActor;
+    const secondActor = firstActor === 'player' ? 'enemy' : 'player';
 
     applyAction(state, firstActor, passStats, firstDecisionOptions);
     applyAction(state, secondActor, passStats, secondDecisionOptions);
@@ -111,8 +114,9 @@ function runSingleGame(playerFaction, enemyFaction, passStats, gameSeed, gameInd
     drawCards(state.player, 1);
     drawCards(state.enemy, 1);
     turns += 1;
+    if (!state.winner) toggleFirstActor(state);
   }
-  return { winner: state.winner ?? 'draw', turns, playerHP: state.playerHP, enemyHP: state.enemyHP, firstActor };
+  return { winner: state.winner ?? 'draw', turns, playerHP: state.playerHP, enemyHP: state.enemyHP, firstActor: initialFirstActor };
 }
 
 const percent = (count, total) => ((count / total) * 100).toFixed(1);
@@ -153,7 +157,7 @@ function main() {
   console.log('\nSimulation parity and validity notes:');
   console.log(`- baseSeed: ${baseSeed}`);
   console.log(`- decks shuffled: ${SHUFFLE_DECKS ? 'yes (seeded Fisher-Yates per game)' : 'no'}`);
-  console.log(`- first actor policy: ${FIRST_ACTOR_POLICY} (even game index = player first, odd = enemy first)`);
+  console.log(`- first actor policy: ${FIRST_ACTOR_POLICY} (seeded random at battle start, toggles after each full turn)`);
   console.log(`- tie-break policy: ${TIE_BREAK_POLICY}`);
   console.log('- previous deterministic reports are invalid because fixed deck order and fixed first actor introduced structural bias.');
 }

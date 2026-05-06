@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
-import { createInitialBattleState, drawCards, canPass, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, getUnitAttack, getUnitArmor } from '../systems/GameState.js';
+import { createInitialBattleState, drawCards, canPass, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, getUnitAttack, getUnitArmor, toggleFirstActor } from '../systems/GameState.js';
 import { chooseEnemyAction } from '../systems/enemyDecision.js';
 
 export default class BattleScene extends Phaser.Scene {
@@ -11,6 +11,7 @@ export default class BattleScene extends Phaser.Scene {
     this.boardCells = [];
     this.pendingSwapIndex = null;
     this.playerActionUsed = false;
+    this.enemyActionUsed = false;
     this.targetingState = null;
   }
 
@@ -28,6 +29,7 @@ export default class BattleScene extends Phaser.Scene {
     this.boardCells = [];
     this.pendingSwapIndex = null;
     this.playerActionUsed = false;
+    this.enemyActionUsed = false;
     this.targetingState = null;
     this.gameState = null;
     this.factionKey = null;
@@ -35,6 +37,10 @@ export default class BattleScene extends Phaser.Scene {
     this.battleFrame = null;
     this.enemyHpText = null;
     this.playerHpText = null;
+    this.enemyHeroPanel = null;
+    this.playerHeroPanel = null;
+    this.enemyInitiativeIcon = null;
+    this.playerInitiativeIcon = null;
   }
 
   create(data) {
@@ -64,6 +70,7 @@ export default class BattleScene extends Phaser.Scene {
     this.drawActionZone();
     this.drawHand();
     this.drawBottomUtilityBar();
+    this.startTurn();
 
     this.scale.on('enterfullscreen', this.onFullscreenChanged, this);
     this.scale.on('leavefullscreen', this.onFullscreenChanged, this);
@@ -234,6 +241,19 @@ export default class BattleScene extends Phaser.Scene {
 
     const enemyPanel = this.add.rectangle(width * 0.5, topHero.centerY, panelWidth, topHero.h, 0x111827, 0.45).setStrokeStyle(2, 0xf87171, 0.6);
     const playerPanel = this.add.rectangle(width * 0.5, playerHero.centerY, panelWidth, playerHero.h, 0x111827, 0.45).setStrokeStyle(2, 0x60a5fa, 0.6);
+    this.enemyHeroPanel = enemyPanel;
+    this.playerHeroPanel = playerPanel;
+
+    const iconStyle = {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: `${Math.max(16, Math.floor(topHero.h * 0.38))}px`,
+      color: '#facc15',
+      fontStyle: 'bold',
+    };
+    this.enemyInitiativeIcon = this.add.text(enemyPanel.x + panelWidth * 0.44, enemyPanel.y, '▶', iconStyle).setOrigin(0.5).setVisible(false);
+    this.playerInitiativeIcon = this.add.text(playerPanel.x - panelWidth * 0.44, playerPanel.y, '▶', iconStyle).setOrigin(0.5).setVisible(false);
+    this.enemyInitiativeIcon.setDepth(120);
+    this.playerInitiativeIcon.setDepth(120);
 
     this.add.text(enemyPanel.x, enemyPanel.y - topHero.h * 0.14, 'ENEMY HERO', {
       fontFamily: 'Arial, sans-serif',
@@ -451,8 +471,7 @@ export default class BattleScene extends Phaser.Scene {
         return;
       }
 
-      this.playerActionUsed = true;
-      this.refreshAfterPlayerAction();
+      this.completePlayerAction();
       return;
     }
 
@@ -488,8 +507,7 @@ export default class BattleScene extends Phaser.Scene {
         this.refreshAfterPlayerAction();
         return;
       }
-      this.playerActionUsed = true;
-      this.refreshAfterPlayerAction();
+      this.completePlayerAction();
       return;
     }
 
@@ -501,8 +519,7 @@ export default class BattleScene extends Phaser.Scene {
       }
       const result = playEffectCard(this.gameState, 'player', this.selectedCardId);
       if (!result.ok) return;
-      this.playerActionUsed = true;
-      this.refreshAfterPlayerAction();
+      this.completePlayerAction();
       return;
     }
 
@@ -512,12 +529,13 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
-    this.playerActionUsed = true;
-    this.refreshAfterPlayerAction();
+    this.completePlayerAction();
   }
 
   resolvePassTurn() {
-    if (this.gameState.winner || !canPass(this.gameState)) return;
+    if (this.gameState.winner || !canPass(this.gameState) || this.playerActionUsed) return;
+    this.completePlayerAction();
+  }
 
     this.enemyTakeAction();
     const combatEvents = resolveCombat(this.gameState);
@@ -529,9 +547,48 @@ export default class BattleScene extends Phaser.Scene {
     drawCards(this.gameState.enemy, 1);
 
     this.playerActionUsed = false;
+    this.enemyActionUsed = false;
     this.selectedCardId = null;
     this.pendingSwapIndex = null;
     this.targetingState = null;
+    this.updateInitiativeIndicator();
+
+    if (this.gameState.firstActor === 'enemy') {
+      this.enemyTakeAction();
+      this.enemyActionUsed = true;
+      this.refreshBoardLabels();
+      this.redrawHand();
+      this.refreshHeroHP();
+      this.resetCardHighlights();
+      this.updateInitiativeIndicator();
+    }
+  }
+
+  completePlayerAction() {
+    if (this.playerActionUsed || this.gameState.winner) return;
+
+    this.playerActionUsed = true;
+    this.refreshAfterPlayerAction();
+    this.finishTurnAfterBothActions();
+  }
+
+  finishTurnAfterBothActions() {
+    if (!this.gameState || this.gameState.winner) {
+      this.updateInitiativeIndicator();
+      return;
+    }
+
+    if (!this.enemyActionUsed) {
+      this.enemyTakeAction();
+      this.enemyActionUsed = true;
+      this.refreshBoardLabels();
+      this.redrawHand();
+      this.refreshHeroHP();
+    }
+
+    resolveCombat(this.gameState);
+    drawCards(this.gameState.player, 1);
+    drawCards(this.gameState.enemy, 1);
 
     this.refreshBoardLabels();
     this.redrawHand();
@@ -539,9 +596,29 @@ export default class BattleScene extends Phaser.Scene {
     this.resetCardHighlights();
 
     if (this.gameState.winner) {
+      this.updateInitiativeIndicator();
       return;
     }
 
+    toggleFirstActor(this.gameState);
+    this.startTurn();
+  }
+
+  updateInitiativeIndicator() {
+    const active = this.gameState && !this.gameState.winner ? this.gameState.firstActor : null;
+    const playerActive = active === 'player';
+    const enemyActive = active === 'enemy';
+
+    if (this.playerHeroPanel) {
+      this.playerHeroPanel.setStrokeStyle(playerActive ? 4 : 2, playerActive ? 0xfacc15 : 0x60a5fa, playerActive ? 0.95 : 0.6);
+      this.playerHeroPanel.setFillStyle(0x111827, playerActive ? 0.62 : 0.45);
+    }
+    if (this.enemyHeroPanel) {
+      this.enemyHeroPanel.setStrokeStyle(enemyActive ? 4 : 2, enemyActive ? 0xfacc15 : 0xf87171, enemyActive ? 0.95 : 0.6);
+      this.enemyHeroPanel.setFillStyle(0x111827, enemyActive ? 0.62 : 0.45);
+    }
+    if (this.playerInitiativeIcon) this.playerInitiativeIcon.setVisible(playerActive);
+    if (this.enemyInitiativeIcon) this.enemyInitiativeIcon.setVisible(enemyActive);
   }
 
   refreshAfterPlayerAction() {
