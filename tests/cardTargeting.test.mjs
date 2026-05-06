@@ -25,3 +25,8 @@ test('two-target swap effects expose the required target counts for UI selection
     targetIndexes: [],
   });
 });
+
+
+test('Pulse Wave remains a deterministic non-manual effect in UI targeting metadata', () => {
+  assert.equal(getTargetingStateForEffect('damage_up_to_2_enemies_1', 'control_pulse_wave_1'), null);
+});

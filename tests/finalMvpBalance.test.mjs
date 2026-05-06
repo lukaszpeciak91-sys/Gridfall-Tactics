@@ -244,6 +244,44 @@ test('Jam Signal applies -1 temporary attack to up to two enemy units', () => {
   assert.equal(state.board[2]?.tempAttackMod, undefined);
 });
 
+
+test('Pulse Wave damages only the two leftmost occupied enemy lanes', () => {
+  const control = loadFaction('src/data/factions/control.json');
+  const pulseWave = control.deck.find((card) => card.id === 'control_pulse_wave_1');
+  const state = createInitialBattleState({ name: 'Test', deck: [] });
+
+  state.player.hand.push({ ...pulseWave });
+  state.board[0] = unit('enemy', { id: 'left-enemy', hp: 1, maxHp: 1 });
+  state.board[1] = unit('enemy', { id: 'middle-enemy', hp: 2, maxHp: 2 });
+  state.board[2] = unit('enemy', { id: 'right-enemy', hp: 1, maxHp: 1 });
+
+  const result = playEffectCard(state, 'player', pulseWave.id);
+
+  assert.equal(result.ok, true);
+  assert.equal(state.board[0], null);
+  assert.equal(state.board[1].hp, 1);
+  assert.equal(state.board[2].hp, 1);
+  assert.equal(pulseWave.targeting, 'all_enemy_units');
+  assert.equal(pulseWave.effectId, 'damage_up_to_2_enemies_1');
+  assert.equal(pulseWave.textShort, 'Deal 1 to up to 2 enemies.');
+});
+
+test('Pulse Wave skips empty lanes and damages a single enemy if only one exists', () => {
+  const control = loadFaction('src/data/factions/control.json');
+  const pulseWave = control.deck.find((card) => card.id === 'control_pulse_wave_1');
+  const state = createInitialBattleState({ name: 'Test', deck: [] });
+
+  state.player.hand.push({ ...pulseWave });
+  state.board[2] = unit('enemy', { id: 'right-only-enemy', hp: 2, maxHp: 2 });
+
+  const result = playEffectCard(state, 'player', pulseWave.id);
+
+  assert.equal(result.ok, true);
+  assert.equal(state.board[0], null);
+  assert.equal(state.board[1], null);
+  assert.equal(state.board[2].hp, 1);
+});
+
 test('Swarm Attack remains a +1 temporary attack buff', () => {
   const swarm = loadFaction('src/data/factions/swarm.json');
   const swarmAttack = swarm.deck.find((card) => card.id === 'swarm_swarm_attack_1');

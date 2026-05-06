@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { createInitialBattleState, resolveTargetedEffectCard } from '../src/systems/GameState.js';
+import { createInitialBattleState, playEffectCard, resolveTargetedEffectCard } from '../src/systems/GameState.js';
 import { chooseBattleAction } from '../src/systems/enemyDecision.js';
 
 const swapCard = {
@@ -82,4 +82,33 @@ test('AI can legally target updated Quick Fix on a friendly unit', () => {
   assert.equal(result.ok, true);
   assert.equal(state.board[0].hp, 2);
   assert.equal(state.board[0].tempAttackMod, 1);
+});
+
+
+const pulseWaveCard = {
+  id: 'control_pulse_wave_1',
+  name: 'Pulse Wave',
+  type: 'order',
+  targeting: 'all_enemy_units',
+  effectId: 'damage_up_to_2_enemies_1',
+  textShort: 'Deal 1 to up to 2 enemies.',
+};
+
+test('AI models Pulse Wave as deterministic left-to-right damage on up to two occupied enemy lanes', () => {
+  const state = createInitialBattleState({ name: 'Player', deck: [] }, { name: 'Enemy', deck: [] }, { firstActor: 'enemy' });
+  state.enemy.hand.push({ ...pulseWaveCard });
+  state.board[6] = unit('player', { id: 'left-target', cardId: 'left-target', hp: 1, maxHp: 1 });
+  state.board[7] = unit('player', { id: 'middle-target', cardId: 'middle-target', hp: 1, maxHp: 1 });
+  state.board[8] = unit('player', { id: 'right-safe', cardId: 'right-safe', hp: 1, maxHp: 1 });
+
+  const action = chooseBattleAction(state, 'enemy');
+
+  assert.equal(action.type, 'play-effect');
+  assert.equal(action.effectId, 'damage_up_to_2_enemies_1');
+
+  const result = playEffectCard(state, 'enemy', action.cardId);
+  assert.equal(result.ok, true);
+  assert.equal(state.board[6], null);
+  assert.equal(state.board[7], null);
+  assert.equal(state.board[8].cardId, 'right-safe');
 });

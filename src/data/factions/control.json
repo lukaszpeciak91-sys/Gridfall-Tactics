@@ -79,8 +79,8 @@
       "name": "Pulse Wave",
       "type": "order",
       "targeting": "all_enemy_units",
-      "effectId": "damage_all_enemies_1",
-      "textShort": "Deal 1 to all enemies."
+      "effectId": "damage_up_to_2_enemies_1",
+      "textShort": "Deal 1 to up to 2 enemies."
     },
     {
       "id": "control_system_override_1",
