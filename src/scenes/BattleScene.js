@@ -537,14 +537,11 @@ export default class BattleScene extends Phaser.Scene {
     this.completePlayerAction();
   }
 
-    this.enemyTakeAction();
-    const combatEvents = resolveCombat(this.gameState);
-    this.lastCombatEvents = combatEvents;
-    if (combatEvents.length > 0) {
-      console.debug('Combat feedback events', combatEvents);
+  startTurn() {
+    if (!this.gameState || this.gameState.winner) {
+      this.updateInitiativeIndicator();
+      return;
     }
-    drawCards(this.gameState.player, 1);
-    drawCards(this.gameState.enemy, 1);
 
     this.playerActionUsed = false;
     this.enemyActionUsed = false;
@@ -586,7 +583,11 @@ export default class BattleScene extends Phaser.Scene {
       this.refreshHeroHP();
     }
 
-    resolveCombat(this.gameState);
+    const combatEvents = resolveCombat(this.gameState);
+    this.lastCombatEvents = combatEvents;
+    if (combatEvents.length > 0) {
+      console.debug('Combat feedback events', combatEvents);
+    }
     drawCards(this.gameState.player, 1);
     drawCards(this.gameState.enemy, 1);
 
