@@ -2,7 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-import { createInitialBattleState, playEffectCard, resolveCombat } from '../src/systems/GameState.js';
+import {
+  createInitialBattleState,
+  getUnitAttack,
+  playEffectCard,
+  resolveCombat,
+  resolveTargetedEffectCard,
+} from '../src/systems/GameState.js';
 
 const loadFaction = (path) => JSON.parse(fs.readFileSync(path, 'utf8'));
 
@@ -69,6 +75,28 @@ test('Full Attack grants all Aggro friendly units +2 temporary attack for combat
 
   assert.equal(state.board[6].tempAttackMod, undefined);
   assert.equal(state.board[7].tempAttackMod, undefined);
+});
+
+test('Quick Fix heals a friendly unit and grants +1 temporary attack for combat', () => {
+  const aggro = loadFaction('src/data/factions/aggro.json');
+  const quickFix = aggro.deck.find((card) => card.id === 'aggro_quick_fix_1');
+  const state = createInitialBattleState({ name: 'Test', deck: [] });
+
+  state.player.hand.push({ ...quickFix });
+  state.board[6] = unit('player', { attack: 2, hp: 1, maxHp: 3 });
+
+  const result = resolveTargetedEffectCard(state, 'player', quickFix.id, 6, [6]);
+  assert.equal(result.ok, true);
+  assert.equal(state.board[6].hp, 3);
+  assert.equal(state.board[6].tempAttackMod, 1);
+  assert.equal(getUnitAttack(state.board[6]), 3);
+  assert.equal(quickFix.effectId, 'heal_2_atk_1_this_turn');
+  assert.equal(quickFix.targeting, 'friendly_unit');
+  assert.equal(quickFix.textShort, 'Heal a unit 2. It gets +1 ATK this turn.');
+
+  resolveCombat(state);
+
+  assert.equal(state.board[6].tempAttackMod, undefined);
 });
 
 test('Swarm Attack remains a +1 temporary attack buff', () => {

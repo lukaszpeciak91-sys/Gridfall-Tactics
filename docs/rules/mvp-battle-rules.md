@@ -108,7 +108,7 @@ Meaningful player actions:
 | Aggro | Rush | order | - | swap_adjacent_then_resolve | Swap with adjacent friendly (prefers left), resolve that lane combat immediately. | Targeted friendly | Fails if no adjacent friendly. |
 | Aggro | Pierce Strike | order | - | ignore_armor_next_attack | Marks enemy target so next hit ignores armor once. | Targeted enemy | Consumes ignore flag on first mitigated hit. |
 | Aggro | Adrenaline | special | - | quick_strike | Resolve selected friendly unit's lane combat immediately. | Targeted friendly | Lane-only immediate combat slice. |
-| Aggro | Quick Fix | utility | - | heal_2 | Heal targeted friendly by 2 (capped by max HP). | Targeted friendly | Implemented via targeted resolution. |
+| Aggro | Quick Fix | utility | - | heal_2_atk_1_this_turn | Heal targeted friendly by 2 (capped by max HP), then grant it +1 ATK this turn. | Targeted friendly | Uses targeted heal resolution plus temporary attack modifier cleanup after combat. |
 | Control | Hacker | unit | 1/2/0 | enemy_lane_atk_minus_1 | On play: opposing lane unit gets temp -1 ATK this turn. | Lane on-play | Also available as targeted effectId path. |
 | Control | Disruptor | unit | 1/2/0 | cancel_enemy_order | **On play unit trigger**: cancel next enemy non-unit/effect action this turn window. | On-play non-targeted | Cancels at most one enemy non-unit action; expires at PASS/combat cleanup if unused; not a persistent aura. |
 | Control | Sniper | unit | 2/1/0 | can_hit_any_lane | Attacks lowest-HP enemy unit across lanes. | Deterministic auto-target | Tie-break: lowest index. |
