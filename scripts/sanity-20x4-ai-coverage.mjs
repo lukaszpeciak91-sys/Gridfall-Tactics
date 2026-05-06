@@ -8,6 +8,7 @@ import {
   playEffectCard,
   resolveTargetedEffectCard,
   resolveCombat,
+  toggleFirstActor,
 } from '../src/systems/GameState.js';
 import { chooseBattleAction } from '../src/systems/enemyDecision.js';
 
@@ -105,9 +106,9 @@ function applyAction(state, owner, metrics, rng) {
 }
 
 function simulateGame(playerFaction, enemyFaction, gameIndex, playerKey, enemyKey, metrics) {
-  const state = createInitialBattleState(playerFaction, enemyFaction);
   const gameSeed = buildSeed(playerKey, enemyKey, gameIndex);
   const gameRng = createSeededRng(gameSeed);
+  const state = createInitialBattleState(playerFaction, enemyFaction, { randomFn: gameRng });
   if (SHUFFLE_DECKS) {
     shuffleDeck(state.player.deck, gameRng);
     shuffleDeck(state.enemy.deck, gameRng);
@@ -116,18 +117,19 @@ function simulateGame(playerFaction, enemyFaction, gameIndex, playerKey, enemyKe
   drawCards(state.player, 4);
   drawCards(state.enemy, 4);
 
-  const firstActor = gameIndex % 2 === 0 ? 'player' : 'enemy';
-  const secondActor = firstActor === 'player' ? 'enemy' : 'player';
-
   let turns = 0;
   while (!state.winner && turns < MAX_TURNS) {
     const turnRng = createSeededRng(buildSeed(gameSeed, turns));
+    const firstActor = state.firstActor;
+    const secondActor = firstActor === 'player' ? 'enemy' : 'player';
+
     applyAction(state, firstActor, metrics, turnRng);
     applyAction(state, secondActor, metrics, turnRng);
     resolveCombat(state);
     drawCards(state.player, 1);
     drawCards(state.enemy, 1);
     turns += 1;
+    if (!state.winner) toggleFirstActor(state);
   }
 
   const endedByTurnCap = !state.winner && turns >= MAX_TURNS;

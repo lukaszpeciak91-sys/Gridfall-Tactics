@@ -257,9 +257,23 @@ function applyEffectById(state, owner, effectId) {
   }
 }
 
-export function createInitialBattleState(playerFactionData, enemyFactionData = playerFactionData) {
+export function getRandomFirstActor(randomFn = Math.random) {
+  const roll = typeof randomFn === 'function' ? randomFn() : Math.random();
+  return roll < 0.5 ? 'player' : 'enemy';
+}
+
+export function toggleFirstActor(state) {
+  if (!state) return null;
+  state.firstActor = state.firstActor === 'player' ? 'enemy' : 'player';
+  return state.firstActor;
+}
+
+export function createInitialBattleState(playerFactionData, enemyFactionData = playerFactionData, options = {}) {
   const playerDeck = Array.isArray(playerFactionData?.deck) ? [...playerFactionData.deck] : [];
   const enemyDeck = Array.isArray(enemyFactionData?.deck) ? [...enemyFactionData.deck] : [];
+  const firstActor = options.firstActor === 'player' || options.firstActor === 'enemy'
+    ? options.firstActor
+    : getRandomFirstActor(options.randomFn);
 
   return {
     board: Array(BOARD_SIZE).fill(null),
@@ -268,6 +282,7 @@ export function createInitialBattleState(playerFactionData, enemyFactionData = p
     playerMaxHP: HERO_START_HP,
     enemyMaxHP: HERO_START_HP,
     winner: null,
+    firstActor,
     player: {
       factionName: playerFactionData?.name ?? 'Unknown',
       deck: playerDeck,

@@ -42,10 +42,11 @@
 
 
 ## MVP Turn Flow Lock Update (2026-05-03)
-- Locked player flow to: one meaningful action maximum per player turn, then `PASS`/`RESOLVE TURN` to advance resolution.
-- Enemy action and combat no longer trigger immediately after a player action; they trigger only during PASS/RESOLVE.
+- Superseded on 2026-05-05 by temporary alternating initiative for turn order.
+- Historical lock: one meaningful action maximum per player turn, then `PASS`/`RESOLVE TURN` advanced resolution.
+- Historical lock: enemy action and combat triggered only during PASS/RESOLVE.
 - PASS remains valid even if the player takes no meaningful action.
-- Turn resolution order locked to enemy action -> combat -> player draw 1 -> new player turn.
+- Current canonical turn order is documented in `docs/rules/mvp-battle-rules.md`.
 
 ## Playable UI Debug Text Guardrail (2026-05-03)
 - Permanent rule: no visible debug/test labels in playable UI unless explicitly requested for a scoped task.
@@ -53,8 +54,19 @@
 
 
 ## Rules/Card Parity Audit Lock (2026-05-04)
-- Reconfirmed canonical action economy: player may take at most one meaningful action, then PASS resolves enemy action -> combat -> player draw 1 -> enemy draw 1.
+- Superseded on 2026-05-05 by temporary alternating initiative for turn order.
+- Historical action economy at audit time: player could take at most one meaningful action, then PASS resolved enemy action -> combat -> player draw 1 -> enemy draw 1.
 - Reconfirmed runtime typing model: only `type: unit` is deployable; all non-unit cards execute as effect cards.
 - Reconfirmed deterministic MVP behavior: Sniper targets lowest-HP enemy (index tiebreak), Controller on-play swaps first two enemy units by index order.
 - Reconfirmed Flood nerf is active in code: `fill_empty_slots_0_1` summons up to 2 tokens left-to-right.
 - Reconfirmed mulligan remains deferred/not active in MVP.
+
+
+## Temporary Alternating Initiative MVP (2026-05-05)
+- Alternating initiative is a temporary MVP balancing aid.
+- Purpose: reduce fixed second-actor reaction advantage observed in simulations.
+- This is not necessarily the final long-term turn system.
+- Runtime state now tracks `firstActor` as `player` or `enemy`; battle start chooses it randomly.
+- After each complete turn (both sides act/pass, combat resolves, both sides draw), `firstActor` toggles for the next turn.
+- Enemy-first turns execute enemy AI at turn start, then wait for the player action/PASS before combat resolves.
+- Playable UI may show only a minimal initiative indicator (subtle hero-frame glow and small ▶ icon); no banners, debug text, or layout redesign.
