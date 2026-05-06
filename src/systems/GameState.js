@@ -279,6 +279,7 @@ function applyEffectById(state, owner, effectId) {
     case 'heal_2':
     case 'heal_1_atk_1_draw_on_kill_this_turn':
     case 'heal_3':
+    case 'temp_armor_1':
       break;
     case 'heal_all_1': {
       const friendlyIndexes = getRowForOwner(owner);
@@ -702,6 +703,11 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
           triggered: false,
         });
       }
+      break;
+    }
+    case 'temp_armor_1': {
+      if (targetUnit.owner !== owner) return { ok: false, reason: 'Target must be friendly' };
+      targetUnit.tempArmorMod = (targetUnit.tempArmorMod ?? 0) + 1;
       break;
     }
     case 'swap_any_two_units': {

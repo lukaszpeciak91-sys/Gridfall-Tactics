@@ -5,6 +5,7 @@ const FRIENDLY_SINGLE_TARGET_EFFECTS = new Set([
   'heal_2',
   'heal_1_atk_1_draw_on_kill_this_turn',
   'heal_3',
+  'temp_armor_1',
   'swap_adjacent_then_resolve',
 ]);
 
