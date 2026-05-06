@@ -184,7 +184,7 @@ function applyEffectById(state, owner, effectId) {
       friendlyIndexes.forEach((index) => {
         const unit = state.board[index];
         if (!unit) return;
-        unit.tempArmorMod = (unit.tempArmorMod ?? 0) + 2;
+        unit.tempArmorMod = (unit.tempArmorMod ?? 0) + 1;
       });
       break;
     }
