@@ -517,6 +517,7 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
       state.board[boardIndex] = adjacentUnit;
       state.board[swapIndex] = selectedUnit;
       resolveCombatLane(state, targetLane);
+      finalizeImmediateLaneCombat(state);
       break;
     }
     case 'swap_two_enemy_units': {
