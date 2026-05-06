@@ -13,6 +13,8 @@ import {
   resolveCombat,
   toggleFirstActor,
   resolveTurnCapWinner,
+  resolveNoProgressStallWinner,
+  recordPassAction,
   MAX_TURNS,
 } from '../src/systems/GameState.js';
 import { chooseBattleAction, recordBattleActionUse, selectOpeningMulliganCardIds } from '../src/systems/enemyDecision.js';
@@ -101,6 +103,7 @@ function applyAction(state, owner, metrics, rng) {
   const action = chooseBattleAction(state, owner, { randomFn: rng, tieBreakPolicy: 'seeded-random', telemetry: metrics });
   if (action.type === 'pass') {
     metrics.passByOwner[owner] += 1;
+    recordPassAction(state, owner);
     return;
   }
 
@@ -168,16 +171,21 @@ function simulateGame(playerFaction, enemyFaction, gameIndex, playerKey, enemyKe
     applyAction(state, firstActor, metrics, turnRng);
     applyAction(state, secondActor, metrics, turnRng);
     resolveCombat(state);
-    drawCards(state.player, 1);
-    drawCards(state.enemy, 1);
     turns += 1;
     state.turnsCompleted = turns;
+    resolveNoProgressStallWinner(state);
+    if (state.winner) break;
+    drawCards(state.player, 1);
+    drawCards(state.enemy, 1);
     resolveTurnCapWinner(state, turns);
     if (!state.winner) toggleFirstActor(state);
   }
 
   const endedByTurnCap = state.endingReason === 'turn-cap';
-  const endingType = endedByTurnCap ? 'turn cap' : ((state.playerHP === 0 || state.enemyHP === 0) ? 'hero damage' : 'unit attrition');
+  const endedByNoProgressStall = state.endingReason === 'no-progress-stall';
+  const endingType = endedByNoProgressStall
+    ? 'no-progress stall'
+    : (endedByTurnCap ? 'turn cap' : ((state.playerHP === 0 || state.enemyHP === 0) ? 'hero damage' : 'unit attrition'));
   return {
     winner: state.winner ?? 'draw',
     turns,
@@ -207,7 +215,7 @@ function run() {
   const perFaction = new Map(factionKeys.map((key) => [key, {
     games: 0, wins: 0, losses: 0, draws: 0, totalTurns: 0, turnCaps: 0,
   }]));
-  const endingCounts = { 'hero damage': 0, 'unit attrition': 0, 'turn cap': 0 };
+  const endingCounts = { 'hero damage': 0, 'unit attrition': 0, 'turn cap': 0, 'no-progress stall': 0 };
 
   factionKeys.forEach((playerKey) => {
     for (let i = 0; i < GAMES_PER_PLAYER_FACTION; i += 1) {

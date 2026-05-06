@@ -40,7 +40,7 @@ function scoreOpeningCard(card, hand, factionName = '') {
     if (card.effectId === 'lane_empty_bonus_damage') score += 22;
     if (card.effectId === 'empty_adjacent_bonus_atk') score += 14;
     if (card.effectId === 'on_play_lane_damage_1') score += 12;
-    if (card.effectId === 'adjacent_allies_atk_plus_1') score += unitsInHand >= 2 ? 18 : -4;
+    if (card.effectId === 'adjacent_allies_atk_plus_1_ignore_armor_1') score += unitsInHand >= 2 ? 18 : -4;
     if (faction === 'aggro') score += attack >= 2 ? 14 : -8;
     if (faction === 'control' && attack <= 1 && hp <= 1) score -= 10;
     return score;
