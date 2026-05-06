@@ -12,6 +12,12 @@ If any other document conflicts with this file, this file wins.
 - Player Hero HP: **12**
 - Enemy Hero HP: **12**
 - Battle ends immediately when either hero reaches **0 HP**.
+- MVP turn cap: **50 completed full turns**.
+- At the turn cap, if no winner already exists, the winner is decided by remaining hero HP:
+  - Higher player hero HP -> **player wins**.
+  - Higher enemy hero HP -> **enemy wins**.
+  - Equal hero HP -> **draw**.
+- This is an **MVP anti-stall pacing rule**, not a final tournament/overtime system. It was added mainly because Swarm mirrors produced excessive empty-board/exhaustion draws.
 
 ## 2) Board Model
 
@@ -46,14 +52,16 @@ If any other document conflicts with this file, this file wins.
   3. Combat resolves across all 3 lanes.
   4. Player draws 1.
   5. Enemy draws 1.
-  6. Initiative toggles for the next turn.
+  6. If this was completed turn 50 and no winner exists, apply the remaining-hero-HP turn-cap rule.
+  7. Initiative toggles for the next turn if the battle is still active.
 - If `firstActor` is `enemy`, the full turn order is:
   1. Enemy takes one automatic action or passes.
   2. Player takes one meaningful action or PASS.
   3. Combat resolves across all 3 lanes.
   4. Player draws 1.
   5. Enemy draws 1.
-  6. Initiative toggles for the next turn.
+  6. If this was completed turn 50 and no winner exists, apply the remaining-hero-HP turn-cap rule.
+  7. Initiative toggles for the next turn if the battle is still active.
 
 Meaningful player actions:
 - Play a unit card to a friendly combat slot.
