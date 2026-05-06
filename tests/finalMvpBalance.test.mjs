@@ -35,6 +35,17 @@ test('Alpha is a 1/2 unit with the same adjacent attack aura', () => {
   assert.equal(alpha.textShort, 'Adjacent allies +1 ATK.');
 });
 
+test('Flanker is a 2/2 Aggro unit with the same empty-adjacent attack role', () => {
+  const aggro = loadFaction('src/data/factions/aggro.json');
+  const flanker = aggro.deck.find((card) => card.id === 'aggro_flanker_1');
+
+  assert.equal(flanker.attack, 2);
+  assert.equal(flanker.hp, 2);
+  assert.equal(flanker.armor, 0);
+  assert.equal(flanker.effectId, 'empty_adjacent_bonus_atk');
+  assert.equal(flanker.targeting, 'lane');
+  assert.equal(flanker.textShort, 'If adjacent slot empty: +1 ATK.');
+});
 
 test('Scout is a 2/1 Aggro unit with the same lane-block role', () => {
   const aggro = loadFaction('src/data/factions/aggro.json');

@@ -112,7 +112,7 @@ Meaningful player actions:
 | Aggro | Runner | unit | 2/1/0 | lane_empty_bonus_damage | +1 hero damage if opposing lane empty during attack. | Lane combat | Implemented in combat resolver. |
 | Aggro | Striker | unit | 2/2/0 | null | No special behavior. | Lane combat | Baseline unit. |
 | Aggro | Glass Cannon | unit | 3/1/0 | self_damage_after_attack | Takes 1 self damage after attack resolves. | Lane combat | Implemented as pending self-damage. |
-| Aggro | Flanker | unit | 1/2/0 | empty_adjacent_bonus_atk | +1 ATK if adjacent friendly slot is empty. | Lane combat | Adjacent check is board-state based. |
+| Aggro | Flanker | unit | 2/2/0 | empty_adjacent_bonus_atk | +1 ATK if adjacent friendly slot is empty. | Lane combat | Adjacent check is board-state based. |
 | Aggro | Scout | unit | 2/1/0 | block_enemy_lane_play_this_turn | On play, blocks enemy unit placement in same lane this turn. | On-play lane | Symmetric for player/enemy; clears at PASS/combat cleanup. |
 | Aggro | Full Attack | order | - | aggro_buff_all_atk_2 | Friendly units get temp +2 ATK this turn. | Non-targeted effect | Expires after combat. |
 | Aggro | Rush | order | - | swap_adjacent_then_resolve | Swap with adjacent friendly (prefers left), resolve that lane combat immediately. | Targeted friendly | Fails if no adjacent friendly. |

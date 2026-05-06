@@ -43,7 +43,7 @@
       "targeting": "lane",
       "effectId": "empty_adjacent_bonus_atk",
       "textShort": "If adjacent slot empty: +1 ATK.",
-      "attack": 1,
+      "attack": 2,
       "hp": 2,
       "armor": 0
     },
