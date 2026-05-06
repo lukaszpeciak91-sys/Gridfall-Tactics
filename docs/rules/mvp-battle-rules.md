@@ -120,7 +120,7 @@ Meaningful player actions:
 | Aggro | Adrenaline | special | - | quick_strike | Resolve selected friendly unit's lane combat immediately. | Targeted friendly | Lane-only immediate combat slice. |
 | Aggro | Quick Fix | utility | - | heal_2_atk_1_this_turn | Heal targeted friendly by 2 (capped by max HP), then grant it +1 ATK this turn. | Targeted friendly | Uses targeted heal resolution plus temporary attack modifier cleanup after combat. |
 | Control | Hacker | unit | 1/2/0 | enemy_lane_atk_minus_1 | On play: opposing lane unit gets temp -1 ATK this turn. | Lane on-play | Also available as targeted effectId path. |
-| Control | Disruptor | unit | 1/3/0 | cancel_enemy_order | **On play unit trigger**: cancel next enemy non-unit/effect action this turn window. | On-play non-targeted | Cancels at most one enemy non-unit action; expires at PASS/combat cleanup if unused; not a persistent aura. |
+| Control | Disruptor | unit | 1/2/0 | cancel_enemy_order | **On play unit trigger**: cancel next enemy non-unit/effect action this turn window. | On-play non-targeted | Cancels at most one enemy non-unit action; expires at PASS/combat cleanup if unused; not a persistent aura. |
 | Control | Sniper | unit | 2/1/0 | can_hit_any_lane | Attacks lowest-HP enemy unit across lanes. | Deterministic auto-target | Tie-break: lowest index. |
 | Control | Controller | unit | 1/2/0 | swap_two_enemy_units | On play: swap first two enemy units if at least two exist. | Deterministic on-play | Not manual two-pick UI for this unit trigger. |
 | Control | Drone | unit | 1/1/0 | death_damage_enemy_hero_1 | On death, enemy hero takes 1. | Death trigger | Applies after unit removed. |

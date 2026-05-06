@@ -22,7 +22,7 @@
       "effectId": "cancel_enemy_order",
       "textShort": "Cancel enemy order this turn.",
       "attack": 1,
-      "hp": 3,
+      "hp": 2,
       "armor": 0
     },
     {

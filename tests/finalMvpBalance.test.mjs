@@ -47,6 +47,18 @@ test('Flanker is a 2/2 Aggro unit with the same empty-adjacent attack role', () 
   assert.equal(flanker.textShort, 'If adjacent slot empty: +1 ATK.');
 });
 
+test('Disruptor is a 1/2 Control unit with the same order-cancel role', () => {
+  const control = loadFaction('src/data/factions/control.json');
+  const disruptor = control.deck.find((card) => card.id === 'control_disruptor_1');
+
+  assert.equal(disruptor.attack, 1);
+  assert.equal(disruptor.hp, 2);
+  assert.equal(disruptor.armor, 0);
+  assert.equal(disruptor.effectId, 'cancel_enemy_order');
+  assert.equal(disruptor.targeting, 'enemy');
+  assert.equal(disruptor.textShort, 'Cancel enemy order this turn.');
+});
+
 test('Scout is a 2/1 Aggro unit with the same lane-block role', () => {
   const aggro = loadFaction('src/data/factions/aggro.json');
   const scout = aggro.deck.find((card) => card.id === 'aggro_scout_1');
