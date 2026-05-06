@@ -3,7 +3,7 @@ const FRIENDLY_SINGLE_TARGET_EFFECTS = new Set([
   'destroy_friendly_draw_2',
   'quick_strike',
   'heal_2',
-  'heal_2_atk_1_this_turn',
+  'heal_1_atk_1_draw_on_kill_this_turn',
   'heal_3',
   'swap_adjacent_then_resolve',
 ]);

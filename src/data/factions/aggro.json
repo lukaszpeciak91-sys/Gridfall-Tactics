@@ -95,8 +95,8 @@
       "name": "Quick Fix",
       "type": "utility",
       "targeting": "friendly_unit",
-      "effectId": "heal_2_atk_1_this_turn",
-      "textShort": "Heal a unit 2. It gets +1 ATK this turn."
+      "effectId": "heal_1_atk_1_draw_on_kill_this_turn",
+      "textShort": "Heal a unit 1. +1 ATK this turn. Draw 1 if it destroys a unit."
     }
   ]
 }

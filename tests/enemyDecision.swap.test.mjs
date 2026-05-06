@@ -63,8 +63,8 @@ const quickFixCard = {
   name: 'Quick Fix',
   type: 'utility',
   targeting: 'friendly_unit',
-  effectId: 'heal_2_atk_1_this_turn',
-  textShort: 'Heal a unit 2. It gets +1 ATK this turn.',
+  effectId: 'heal_1_atk_1_draw_on_kill_this_turn',
+  textShort: 'Heal a unit 1. +1 ATK this turn. Draw 1 if it destroys a unit.',
 };
 
 test('AI can legally target updated Quick Fix on a friendly unit', () => {
@@ -75,11 +75,11 @@ test('AI can legally target updated Quick Fix on a friendly unit', () => {
   const action = chooseBattleAction(state, 'enemy');
 
   assert.equal(action.type, 'play-targeted-effect');
-  assert.equal(action.effectId, 'heal_2_atk_1_this_turn');
+  assert.equal(action.effectId, 'heal_1_atk_1_draw_on_kill_this_turn');
   assert.equal(action.targetIndex, 0);
 
   const result = resolveTargetedEffectCard(state, 'enemy', action.cardId, action.targetIndex, action.targetIndexes);
   assert.equal(result.ok, true);
-  assert.equal(state.board[0].hp, 3);
+  assert.equal(state.board[0].hp, 2);
   assert.equal(state.board[0].tempAttackMod, 1);
 });
