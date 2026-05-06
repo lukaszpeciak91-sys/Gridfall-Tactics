@@ -1,4 +1,4 @@
-import { canPlayOrRedeploy, playEffectCard, resolveTargetedEffectCard, getUnitAttack } from './GameState.js';
+import { canPlayOrRedeploy, canSwap, performSwap, playEffectCard, playOrRedeployUnit, resolveTargetedEffectCard, getUnitAttack } from './GameState.js';
 
 const ENEMY_ROW_INDEXES = [0, 1, 2];
 const PLAYER_ROW_INDEXES = [6, 7, 8];
@@ -32,6 +32,105 @@ function getGuaranteedHeroDamage(state, owner) {
     total += getUnitAttack(attacker) + laneBonus;
   });
   return total;
+}
+
+
+function getUnitId(unit) {
+  return unit?.cardId ?? unit?.id ?? unit?.name ?? 'unit';
+}
+
+function getEffectiveHp(unit) {
+  if (!unit) return 0;
+  return (Number.isFinite(unit.hp) ? unit.hp : 0) + (Number.isFinite(unit.armor) ? unit.armor : 0);
+}
+
+function getOpenLaneStats(state, owner) {
+  const { friendly, opposing } = getRowsForOwner(owner);
+  let lanes = 0;
+  let damage = 0;
+  friendly.forEach((friendlyIndex, lane) => {
+    const unit = state?.board?.[friendlyIndex];
+    if (!unit || state?.board?.[opposing[lane]]) return;
+    lanes += 1;
+    damage += getUnitAttack(unit) + (unit.effectId === 'lane_empty_bonus_damage' ? 1 : 0);
+  });
+  return { lanes, damage };
+}
+
+function getBoardPressureValue(state, owner) {
+  const { friendly, opposing } = getRowsForOwner(owner);
+  let value = getGuaranteedHeroDamage(state, owner) * 250;
+  friendly.forEach((friendlyIndex, lane) => {
+    const friendlyUnit = state?.board?.[friendlyIndex];
+    const enemyUnit = state?.board?.[opposing[lane]];
+    if (friendlyUnit && !enemyUnit) {
+      value += getUnitAttack(friendlyUnit) * 110 + getEffectiveHp(friendlyUnit) * 12;
+      if (friendlyUnit.effectId === 'lane_empty_bonus_damage') value += 80;
+      return;
+    }
+    if (!friendlyUnit && enemyUnit) {
+      value -= getUnitAttack(enemyUnit) * 130 + getEffectiveHp(enemyUnit) * 8;
+      return;
+    }
+    if (friendlyUnit && enemyUnit) {
+      const friendlyAttack = getUnitAttack(friendlyUnit);
+      const enemyAttack = getUnitAttack(enemyUnit);
+      const friendlyCanKill = friendlyAttack >= getEffectiveHp(enemyUnit);
+      const enemyCanKill = enemyAttack >= getEffectiveHp(friendlyUnit);
+      if (friendlyCanKill) value += 220;
+      if (enemyCanKill) value -= 160;
+      value += (friendlyAttack - enemyAttack) * 35;
+      value += (getEffectiveHp(friendlyUnit) - getEffectiveHp(enemyUnit)) * 8;
+    }
+  });
+  return value;
+}
+
+function getActionLoopKey(state, owner, action) {
+  if (action?.aiEvaluation?.loopKey) return action.aiEvaluation.loopKey;
+  if (action?.type === 'swap-units') {
+    const first = Math.min(action.fromIndex, action.toIndex);
+    const second = Math.max(action.fromIndex, action.toIndex);
+    const firstId = getUnitId(state?.board?.[first]);
+    const secondId = getUnitId(state?.board?.[second]);
+    return `reposition:${owner}:${first}:${second}:${[firstId, secondId].sort().join('|')}`;
+  }
+  if (action?.placementType === 'redeploy') {
+    const displaced = getUnitId(state?.board?.[action.slotIndex]);
+    return `replace:${owner}:${action.slotIndex}:${action.cardId}:${displaced}`;
+  }
+  return null;
+}
+
+function wasRecentlyLooped(state, owner, action) {
+  const key = getActionLoopKey(state, owner, action);
+  if (!key) return false;
+  const recent = state?.aiDecisionMemory?.[owner]?.recentLoopKeys;
+  return Array.isArray(recent) && recent.includes(key);
+}
+
+export function recordBattleActionUse(state, owner, action, telemetry = null) {
+  if (!state || !action) return;
+  const key = getActionLoopKey(state, owner, action);
+  if (key) {
+    state.aiDecisionMemory ??= {};
+    state.aiDecisionMemory[owner] ??= { recentLoopKeys: [] };
+    const recent = state.aiDecisionMemory[owner].recentLoopKeys;
+    recent.unshift(key);
+    state.aiDecisionMemory[owner].recentLoopKeys = recent.slice(0, 6);
+  }
+
+  if (!telemetry || !action.aiEvaluation) return;
+  const kind = action.aiEvaluation.kind;
+  if (kind === 'replace') telemetry.replaceUsed = (telemetry.replaceUsed ?? 0) + 1;
+  if (kind === 'reposition') telemetry.repositionUsed = (telemetry.repositionUsed ?? 0) + 1;
+  if (kind === 'replace' || kind === 'reposition') {
+    if (action.aiEvaluation.meaningful) telemetry.meaningfulGameplayActions = (telemetry.meaningfulGameplayActions ?? 0) + 1;
+    else telemetry.pointlessGameplayActions = (telemetry.pointlessGameplayActions ?? 0) + 1;
+    if ((action.aiEvaluation.openLaneImprovement ?? 0) > 0) {
+      telemetry.openLaneImprovements = (telemetry.openLaneImprovements ?? 0) + 1;
+    }
+  }
 }
 
 function getCandidateTargetIndexes(state, owner, effectId) {
@@ -134,8 +233,25 @@ function addTwoTargetSwapCandidates(actions, state, owner, card) {
   }
 }
 
-function buildActionCandidates(state, owner, hand) {
+function addRepositionCandidates(actions, state, owner, telemetry = null) {
+  const { friendly } = getRowsForOwner(owner);
+  for (let lane = 0; lane < friendly.length - 1; lane += 1) {
+    const fromIndex = friendly[lane];
+    const toIndex = friendly[lane + 1];
+    if (!canSwap(state, fromIndex, toIndex, owner)) continue;
+    const action = { type: 'swap-units', fromIndex, toIndex };
+    if (wasRecentlyLooped(state, owner, action)) {
+      if (telemetry) telemetry.repeatedLoopPreventions = (telemetry.repeatedLoopPreventions ?? 0) + 1;
+      continue;
+    }
+    actions.push(action);
+  }
+}
+
+function buildActionCandidates(state, owner, hand, telemetry = null) {
   const actions = [];
+
+  addRepositionCandidates(actions, state, owner, telemetry);
 
   hand.forEach((card) => {
     if (!card) return;
@@ -143,8 +259,13 @@ function buildActionCandidates(state, owner, hand) {
       const { friendly } = getRowsForOwner(owner);
       friendly.forEach((slotIndex) => {
         const canPlay = canPlayOrRedeploy(state, owner, card.id, slotIndex);
-        if (canPlay.ok && canPlay.type === 'play') {
-          actions.push({ type: 'play-unit', cardId: card.id, slotIndex });
+        if (canPlay.ok && (canPlay.type === 'play' || canPlay.type === 'redeploy')) {
+          const action = { type: 'play-unit', cardId: card.id, slotIndex, placementType: canPlay.type };
+          if (canPlay.type === 'redeploy' && wasRecentlyLooped(state, owner, action)) {
+            if (telemetry) telemetry.repeatedLoopPreventions = (telemetry.repeatedLoopPreventions ?? 0) + 1;
+            return;
+          }
+          actions.push(action);
         }
       });
       return;
@@ -186,20 +307,16 @@ function scoreAction(state, owner, action) {
   const currentOwnHp = state?.[getHeroHpKey(owner)] ?? 0;
   const currentHeroPressure = getGuaranteedHeroDamage(state, owner);
   const currentOpponentPressure = getGuaranteedHeroDamage(state, owner === 'enemy' ? 'player' : 'enemy');
+  const currentBoardPressure = getBoardPressureValue(state, owner);
+  const currentOpenLaneStats = getOpenLaneStats(state, owner);
 
   if (action.type === 'play-unit') {
-    const canPlay = canPlayOrRedeploy(nextState, owner, action.cardId, action.slotIndex);
-    if (!canPlay.ok) return Number.NEGATIVE_INFINITY;
-    const side = owner === 'enemy' ? nextState.enemy : nextState.player;
-    const handIndex = side.hand.findIndex((card) => card?.id === action.cardId);
-    if (handIndex < 0) return Number.NEGATIVE_INFINITY;
-    const [card] = side.hand.splice(handIndex, 1);
-    nextState.board[action.slotIndex] = {
-      ...card,
-      owner,
-      maxHp: card.hp,
-      cardId: card.id,
-    };
+    const result = playOrRedeployUnit(nextState, owner, action.cardId, action.slotIndex);
+    if (!result.ok) return Number.NEGATIVE_INFINITY;
+    action.placementType = result.type;
+  } else if (action.type === 'swap-units') {
+    const result = performSwap(nextState, owner, action.fromIndex, action.toIndex);
+    if (!result.ok) return Number.NEGATIVE_INFINITY;
   } else if (action.type === 'play-effect') {
     const result = playEffectCard(nextState, owner, action.cardId);
     if (!result.ok || result.type === 'effect-blocked') return Number.NEGATIVE_INFINITY;
@@ -219,6 +336,10 @@ function scoreAction(state, owner, action) {
     0,
     currentOpponentPressure - getGuaranteedHeroDamage(nextState, owner === 'enemy' ? 'player' : 'enemy'),
   );
+  const boardPressureGain = getBoardPressureValue(nextState, owner) - currentBoardPressure;
+  const nextOpenLaneStats = getOpenLaneStats(nextState, owner);
+  const openLaneImprovement = (nextOpenLaneStats.damage - currentOpenLaneStats.damage)
+    + Math.max(0, nextOpenLaneStats.lanes - currentOpenLaneStats.lanes);
 
   let score = 0;
 
@@ -229,6 +350,8 @@ function scoreAction(state, owner, action) {
 
   const hpSaved = Math.max(0, nextOwnHp - currentOwnHp);
   if (hpSaved > 0) score += 700 + hpSaved * 120;
+  if (boardPressureGain > 0) score += 220 + boardPressureGain;
+  if (openLaneImprovement > 0) score += 650 + openLaneImprovement * 120;
 
   if (action.type === 'play-unit') {
     const { friendly, opposing } = getRowsForOwner(owner);
@@ -243,13 +366,45 @@ function scoreAction(state, owner, action) {
         if (incomingDamage > 0) score += 1000 + incomingDamage * 120;
       }
     }
-    score += 150;
+    if (action.placementType === 'redeploy') {
+      const meaningful = boardPressureGain > 20 || heroPressureGain > 0 || opponentPressureReduced > 0 || openLaneImprovement > 0;
+      action.aiEvaluation = {
+        kind: 'replace',
+        meaningful,
+        pressureGain: boardPressureGain,
+        heroPressureGain,
+        openLaneImprovement,
+        loopKey: getActionLoopKey(state, owner, action),
+      };
+      if (!meaningful) return Number.NEGATIVE_INFINITY;
+      score += 450;
+    } else {
+      score += 150;
+    }
+  }
+
+  if (action.type === 'swap-units') {
+    const meaningful = boardPressureGain > 20 || heroPressureGain > 0 || opponentPressureReduced > 0 || openLaneImprovement > 0;
+    action.aiEvaluation = {
+      kind: 'reposition',
+      meaningful,
+      pressureGain: boardPressureGain,
+      heroPressureGain,
+      openLaneImprovement,
+      loopKey: getActionLoopKey(state, owner, action),
+    };
+    if (!meaningful) return Number.NEGATIVE_INFINITY;
+    score += 380;
   }
 
   const enemyBoardBefore = state.board.filter((unit) => unit && unit.owner !== owner).length;
   const enemyBoardAfter = nextState.board.filter((unit) => unit && unit.owner !== owner).length;
   const kills = Math.max(0, enemyBoardBefore - enemyBoardAfter);
   if (kills > 0) score += 1400 + kills * 350;
+
+  if (isTwoTargetSwapEffect(action.effectId ?? null)) {
+    score += 900;
+  }
 
   if (action.effectId === 'quick_strike') {
     score += immediateHeroDamage > 0 || kills > 0 ? 2000 : -2500;
@@ -288,7 +443,7 @@ export function chooseEnemyAction(state) {
 export function chooseBattleAction(state, owner = 'enemy', options = {}) {
   const side = owner === 'enemy' ? state?.enemy : state?.player;
   const hand = Array.isArray(side?.hand) ? side.hand : [];
-  const actions = buildActionCandidates(state, owner, hand);
+  const actions = buildActionCandidates(state, owner, hand, options.telemetry ?? null);
 
   if (actions.length === 0) return { type: 'pass' };
 

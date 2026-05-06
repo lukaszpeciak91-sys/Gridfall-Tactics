@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
 import { createInitialBattleState, drawCards, canPass, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, getUnitAttack, getUnitArmor, toggleFirstActor, resolveTurnCapWinner } from '../systems/GameState.js';
-import { chooseEnemyAction } from '../systems/enemyDecision.js';
+import { chooseEnemyAction, recordBattleActionUse } from '../systems/enemyDecision.js';
 
 export default class BattleScene extends Phaser.Scene {
   constructor() {
@@ -645,7 +645,14 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     if (action.type === 'play-unit') {
-      playOrRedeployUnit(this.gameState, 'enemy', action.cardId, action.slotIndex);
+      const result = playOrRedeployUnit(this.gameState, 'enemy', action.cardId, action.slotIndex);
+      if (result.ok) recordBattleActionUse(this.gameState, 'enemy', action);
+      return;
+    }
+
+    if (action.type === 'swap-units') {
+      const result = performSwap(this.gameState, 'enemy', action.fromIndex, action.toIndex);
+      if (result.ok) recordBattleActionUse(this.gameState, 'enemy', action);
       return;
     }
 
