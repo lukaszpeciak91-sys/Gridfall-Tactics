@@ -257,7 +257,7 @@ function scoreAction(state, owner, action) {
     score -= 2000;
   }
 
-  if (action.effectId === 'buff_all_atk_1' || action.effectId === 'buff_all_armor_1') {
+  if (action.effectId === 'buff_all_atk_1' || action.effectId === 'aggro_buff_all_atk_2' || action.effectId === 'buff_all_armor_1') {
     const friendlyUnits = nextState.board.filter((unit) => unit && unit.owner === owner).length;
     if (friendlyUnits <= 1) score -= 1200;
     else score += friendlyUnits * 120;

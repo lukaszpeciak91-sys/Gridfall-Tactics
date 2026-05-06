@@ -1,7 +1,7 @@
 # MVP Battle Rules (Canonical)
 
 **Status:** Frozen for MVP implementation  
-**Last Updated:** 2026-05-05
+**Last Updated:** 2026-05-06
 **Scope:** Gameplay rules for the MVP battle loop
 
 This is the **single canonical source of truth** for MVP battle rules.
@@ -104,7 +104,7 @@ Meaningful player actions:
 | Aggro | Glass Cannon | unit | 3/1/0 | self_damage_after_attack | Takes 1 self damage after attack resolves. | Lane combat | Implemented as pending self-damage. |
 | Aggro | Flanker | unit | 1/2/0 | empty_adjacent_bonus_atk | +1 ATK if adjacent friendly slot is empty. | Lane combat | Adjacent check is board-state based. |
 | Aggro | Scout | unit | 1/1/0 | block_enemy_lane_play_this_turn | On play, blocks enemy unit placement in same lane this turn. | On-play lane | Symmetric for player/enemy; clears at PASS/combat cleanup. |
-| Aggro | Full Attack | order | - | buff_all_atk_1 | Friendly units get temp +1 ATK this turn. | Non-targeted effect | Expires after combat. |
+| Aggro | Full Attack | order | - | aggro_buff_all_atk_2 | Friendly units get temp +2 ATK this turn. | Non-targeted effect | Expires after combat. |
 | Aggro | Rush | order | - | swap_adjacent_then_resolve | Swap with adjacent friendly (prefers left), resolve that lane combat immediately. | Targeted friendly | Fails if no adjacent friendly. |
 | Aggro | Pierce Strike | order | - | ignore_armor_next_attack | Marks enemy target so next hit ignores armor once. | Targeted enemy | Consumes ignore flag on first mitigated hit. |
 | Aggro | Adrenaline | special | - | quick_strike | Resolve selected friendly unit's lane combat immediately. | Targeted friendly | Lane-only immediate combat slice. |
@@ -125,7 +125,7 @@ Meaningful player actions:
 | Swarm | Rusher | unit | 2/1/0 | null | No special behavior. | Lane combat | Baseline attacker. |
 | Swarm | Alpha | unit | 1/2/0 | adjacent_allies_atk_plus_1 | Adjacent allies gain +1 attack in combat. | Passive adjacency aura | Calculated at combat time. |
 | Swarm | Spawn | order | - | summon_grunt_empty_slot | Summon 1/1 Grunt to first empty friendly slot. | Non-targeted effect | Fizzles if no empty slot. |
-| Swarm | Swarm Attack | order | - | buff_all_atk_1 | Friendly units get temp +1 ATK this turn. | Non-targeted effect | Same shared effect as Aggro Full Attack. |
+| Swarm | Swarm Attack | order | - | buff_all_atk_1 | Friendly units get temp +1 ATK this turn. | Non-targeted effect | Swarm-specific behavior remains unchanged. |
 | Swarm | Regrow | order | - | revive_friendly_1hp | Revive first unit found in discard to empty slot at 1 HP. | Non-targeted effect | First empty slot + first unit in discard. |
 | Swarm | Flood | special | - | fill_empty_slots_0_1 | Summon up to **2** 0/1 Tokens in empty friendly slots, left-to-right. | Non-targeted effect | **Flood nerf is active in code** (not 3 tokens). |
 | Swarm | Recycle | utility | - | destroy_friendly_draw_2 | Destroy targeted friendly unit, draw 2. | Targeted friendly | Immediate destroy, then draw. |

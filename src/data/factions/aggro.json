@@ -63,8 +63,8 @@
       "name": "Full Attack",
       "type": "order",
       "targeting": "all_friendly_units",
-      "effectId": "buff_all_atk_1",
-      "textShort": "All allies +1 ATK this turn."
+      "effectId": "aggro_buff_all_atk_2",
+      "textShort": "All allies +2 ATK this turn."
     },
     {
       "id": "aggro_rush_1",

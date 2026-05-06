@@ -170,11 +170,13 @@ function applyEffectById(state, owner, effectId) {
       });
       break;
     }
-    case 'buff_all_atk_1': {
+    case 'buff_all_atk_1':
+    case 'aggro_buff_all_atk_2': {
+      const attackBonus = effectId === 'aggro_buff_all_atk_2' ? 2 : 1;
       const friendlyIndexes = getRowForOwner(owner);
       friendlyIndexes.forEach((index) => {
         if (state.board[index]) {
-          state.board[index].tempAttackMod = (state.board[index].tempAttackMod ?? 0) + 1;
+          state.board[index].tempAttackMod = (state.board[index].tempAttackMod ?? 0) + attackBonus;
         }
       });
       break;
