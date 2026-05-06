@@ -35,6 +35,19 @@ test('Alpha is a 1/2 unit with the same adjacent attack aura', () => {
   assert.equal(alpha.textShort, 'Adjacent allies +1 ATK.');
 });
 
+
+test('Scout is a 2/1 Aggro unit with the same lane-block role', () => {
+  const aggro = loadFaction('src/data/factions/aggro.json');
+  const scout = aggro.deck.find((card) => card.id === 'aggro_scout_1');
+
+  assert.equal(scout.attack, 2);
+  assert.equal(scout.hp, 1);
+  assert.equal(scout.armor, 0);
+  assert.equal(scout.effectId, 'block_enemy_lane_play_this_turn');
+  assert.equal(scout.targeting, 'enemy');
+  assert.equal(scout.textShort, "On play: enemy can't play units in this lane this turn.");
+});
+
 test('Fortify grants all friendly units +1 temporary armor for combat', () => {
   const tank = loadFaction('src/data/factions/tank.json');
   const fortify = tank.deck.find((card) => card.id === 'tank_fortify_1');
