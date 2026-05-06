@@ -29,22 +29,22 @@ test('Alpha is a 1/2 unit with the same adjacent attack aura', () => {
   assert.equal(alpha.textShort, 'Adjacent allies +1 ATK.');
 });
 
-test('Fortify grants all friendly units +2 temporary armor for combat', () => {
+test('Fortify grants all friendly units +1 temporary armor for combat', () => {
   const tank = loadFaction('src/data/factions/tank.json');
   const fortify = tank.deck.find((card) => card.id === 'tank_fortify_1');
   const state = createInitialBattleState({ name: 'Test', deck: [] });
 
   state.player.hand.push({ ...fortify });
-  state.board[0] = unit('enemy', { attack: 2, hp: 2, maxHp: 2 });
+  state.board[0] = unit('enemy', { attack: 1, hp: 2, maxHp: 2 });
   state.board[6] = unit('player', { attack: 0, hp: 2, maxHp: 2 });
 
   const result = playEffectCard(state, 'player', fortify.id);
   assert.equal(result.ok, true);
-  assert.equal(state.board[6].tempArmorMod, 2);
+  assert.equal(state.board[6].tempArmorMod, 1);
 
   resolveCombat(state);
 
   assert.equal(state.board[6].hp, 2);
   assert.equal(state.board[6].tempArmorMod, undefined);
-  assert.equal(fortify.textShort, 'All allies +2 armor this turn.');
+  assert.equal(fortify.textShort, 'All allies +1 armor this turn.');
 });

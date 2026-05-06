@@ -134,7 +134,7 @@ Meaningful player actions:
 | Tank | Guardian | unit | 1/3/0 | intercept_lane_damage | Intercepts lane damage for adjacent ally once per combat cycle. | Deterministic adjacency intercept | One guardian intercept per index per resolve pass. |
 | Tank | Wall | unit | 0/4/0 | cannot_attack | Cannot attack (ATK forced to 0). | Lane combat | Still can receive buffs/debuffs. |
 | Tank | Bruiser | unit | 2/3/0 | gain_atk_when_damaged | Gains temp +1 ATK when damaged. | Damage trigger | Stacks within turn; reset after combat. |
-| Tank | Fortify | order | - | buff_all_armor_1 | Friendly units get temp +2 armor this turn. | Non-targeted effect | Temp armor reset after combat. |
+| Tank | Fortify | order | - | buff_all_armor_1 | Friendly units get temp +1 armor this turn. | Non-targeted effect | Temp armor reset after combat. |
 | Tank | Stability | order | - | immune_move_disable_this_turn | Grants immunity vs move/disable effects this turn. | Non-targeted effect | Blocks swap/disable effects by opponent. |
 | Tank | Reinforce | order | - | heal_all_1 | Heal all friendly units by 1 (to max HP). | Non-targeted effect | Uses unit max HP cap. |
 | Tank | Last Stand | special | - | cannot_drop_below_1_this_turn | Friendly units cannot drop below 1 HP this turn. | Non-targeted effect | Reset after combat resolve. |
