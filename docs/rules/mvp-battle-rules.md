@@ -111,7 +111,7 @@ Meaningful player actions:
 | Aggro | Striker | unit | 2/2/0 | null | No special behavior. | Lane combat | Baseline unit. |
 | Aggro | Glass Cannon | unit | 3/1/0 | self_damage_after_attack | Takes 1 self damage after attack resolves. | Lane combat | Implemented as pending self-damage. |
 | Aggro | Flanker | unit | 1/2/0 | empty_adjacent_bonus_atk | +1 ATK if adjacent friendly slot is empty. | Lane combat | Adjacent check is board-state based. |
-| Aggro | Scout | unit | 1/1/0 | block_enemy_lane_play_this_turn | On play, blocks enemy unit placement in same lane this turn. | On-play lane | Symmetric for player/enemy; clears at PASS/combat cleanup. |
+| Aggro | Scout | unit | 2/1/0 | block_enemy_lane_play_this_turn | On play, blocks enemy unit placement in same lane this turn. | On-play lane | Symmetric for player/enemy; clears at PASS/combat cleanup. |
 | Aggro | Full Attack | order | - | aggro_buff_all_atk_2 | Friendly units get temp +2 ATK this turn. | Non-targeted effect | Expires after combat. |
 | Aggro | Rush | order | - | swap_adjacent_then_resolve | Swap with adjacent friendly (prefers left), resolve that lane combat immediately. | Targeted friendly | Fails if no adjacent friendly. |
 | Aggro | Pierce Strike | order | - | ignore_armor_next_attack | Marks enemy target so next hit ignores armor once. | Targeted enemy | Consumes ignore flag on first mitigated hit. |
@@ -140,7 +140,7 @@ Meaningful player actions:
 | Tank | Shieldbearer | unit | 1/3/0 | lane_armor_aura_1 | Adjacent allies gain +1 armor in combat. | Passive adjacency aura | Calculated during damage mitigation. |
 | Tank | Heavy | unit | 2/4/0 | null | No special behavior. | Lane combat | Baseline durable unit. |
 | Tank | Guardian | unit | 1/3/0 | intercept_lane_damage | Intercepts lane damage for adjacent ally once per combat cycle. | Deterministic adjacency intercept | One guardian intercept per index per resolve pass. |
-| Tank | Wall | unit | 0/4/0 | cannot_attack | Cannot attack (ATK forced to 0). | Lane combat | Still can receive buffs/debuffs. |
+| Tank | Wall | unit | 0/3/0 | cannot_attack | Cannot attack (ATK forced to 0). | Lane combat | Still can receive buffs/debuffs. |
 | Tank | Bruiser | unit | 2/3/0 | gain_atk_when_damaged | Gains temp +1 ATK when damaged. | Damage trigger | Stacks within turn; reset after combat. |
 | Tank | Fortify | order | - | buff_all_armor_1 | Friendly units get temp +1 armor this turn. | Non-targeted effect | Temp armor reset after combat. |
 | Tank | Stability | order | - | immune_move_disable_this_turn | Grants immunity vs move/disable effects this turn. | Non-targeted effect | Blocks swap/disable effects by opponent. |
@@ -168,7 +168,7 @@ Deferred / intentionally simplified:
 
 - Flood nerf status: **active** (`fill_empty_slots_0_1` summons up to 2).
 - Swarm no longer fills all 3 slots with Flood in current code.
-- Tank/Wall/Shieldbearer package remains under observation for balance.
+- Tank/Shieldbearer package remains under observation for balance after Wall moved to 0/3.
 - No Hero HP increase currently (still 12).
 - No deck-size increase currently (still 10).
 
