@@ -2,6 +2,7 @@
 
 **Status:** Frozen for MVP implementation  
 **Last Updated:** 2026-05-06
+
 **Scope:** Gameplay rules for the MVP battle loop
 
 This is the **single canonical source of truth** for MVP battle rules.
@@ -75,6 +76,7 @@ Meaningful player actions:
 - `type: "unit"` cards are board units and must be placed/redeployed onto valid friendly combat slots.
 - **All non-unit cards** are treated by gameplay logic as **effect cards**.
 - `order`, `special`, and `utility` currently behave as **descriptive taxonomy labels** in card data; gameplay execution path is non-unit effect resolution unless a specific effectId says otherwise.
+- Hand-card UI labels render card name, unit stats, and `textShort` directly from the current card data object, so the visible player hand follows the faction JSON values plus any card object returned from redeploy/recall.
 
 ## 6) Combat Rules
 
@@ -99,7 +101,7 @@ Meaningful player actions:
 - Deterministic simplifications currently in code:
   - **Sniper (`can_hit_any_lane`)** targets the lowest-HP enemy unit; ties break to lower board index.
   - **Controller (`swap_two_enemy_units`)** on-play picks first two enemy units by lane/index order.
-  - Enemy AI targeted effects choose first valid target index.
+  - AI-controlled sides evaluate legal targeted actions, immediate effects, redeploys, and adjacent swaps with the same `chooseBattleAction` scorer used by AI-vs-AI simulation bots and the live enemy. Ties are deterministic in live enemy turns and seeded-random in simulation runs.
 - No hidden-information peek UI; `peek_enemy_slot` is a no-op.
 - No general manual targeting UI for unit passive abilities beyond implemented hooks.
 
@@ -114,11 +116,11 @@ Meaningful player actions:
 | Aggro | Scout | unit | 2/1/0 | block_enemy_lane_play_this_turn | On play, blocks enemy unit placement in same lane this turn. | On-play lane | Symmetric for player/enemy; clears at PASS/combat cleanup. |
 | Aggro | Full Attack | order | - | aggro_buff_all_atk_2 | Friendly units get temp +2 ATK this turn. | Non-targeted effect | Expires after combat. |
 | Aggro | Rush | order | - | swap_adjacent_then_resolve | Swap with adjacent friendly (prefers left), resolve that lane combat immediately. | Targeted friendly | Fails if no adjacent friendly. |
-| Aggro | Pierce Strike | order | - | ignore_armor_next_attack | Marks enemy target so next hit ignores armor once. | Targeted enemy | Consumes ignore flag on first mitigated hit. |
+| Aggro | Pierce Strike | order | - | ignore_armor_next_attack | Deal 1 damage to targeted enemy; if it survives, the next hit on it ignores armor once. | Targeted enemy | Consumes ignore flag on first mitigated hit. |
 | Aggro | Adrenaline | special | - | quick_strike | Resolve selected friendly unit's lane combat immediately. | Targeted friendly | Lane-only immediate combat slice. |
 | Aggro | Quick Fix | utility | - | heal_2_atk_1_this_turn | Heal targeted friendly by 2 (capped by max HP), then grant it +1 ATK this turn. | Targeted friendly | Uses targeted heal resolution plus temporary attack modifier cleanup after combat. |
 | Control | Hacker | unit | 1/2/0 | enemy_lane_atk_minus_1 | On play: opposing lane unit gets temp -1 ATK this turn. | Lane on-play | Also available as targeted effectId path. |
-| Control | Disruptor | unit | 1/2/0 | cancel_enemy_order | **On play unit trigger**: cancel next enemy non-unit/effect action this turn window. | On-play non-targeted | Cancels at most one enemy non-unit action; expires at PASS/combat cleanup if unused; not a persistent aura. |
+| Control | Disruptor | unit | 1/3/0 | cancel_enemy_order | **On play unit trigger**: cancel next enemy non-unit/effect action this turn window. | On-play non-targeted | Cancels at most one enemy non-unit action; expires at PASS/combat cleanup if unused; not a persistent aura. |
 | Control | Sniper | unit | 2/1/0 | can_hit_any_lane | Attacks lowest-HP enemy unit across lanes. | Deterministic auto-target | Tie-break: lowest index. |
 | Control | Controller | unit | 1/2/0 | swap_two_enemy_units | On play: swap first two enemy units if at least two exist. | Deterministic on-play | Not manual two-pick UI for this unit trigger. |
 | Control | Drone | unit | 1/1/0 | death_damage_enemy_hero_1 | On death, enemy hero takes 1. | Death trigger | Applies after unit removed. |
@@ -137,8 +139,8 @@ Meaningful player actions:
 | Swarm | Regrow | order | - | revive_friendly_1hp | Revive first unit found in discard to empty slot at 1 HP. | Non-targeted effect | First empty slot + first unit in discard. |
 | Swarm | Flood | special | - | fill_empty_slots_0_1 | Summon up to **2** 0/1 Tokens in empty friendly slots, left-to-right. | Non-targeted effect | **Flood nerf is active in code** (not 3 tokens). |
 | Swarm | Recycle | utility | - | destroy_friendly_draw_2 | Destroy targeted friendly unit, draw 2. | Targeted friendly | Immediate destroy, then draw. |
-| Tank | Shieldbearer | unit | 1/3/0 | lane_armor_aura_1 | Adjacent allies gain +1 armor in combat. | Passive adjacency aura | Calculated during damage mitigation. |
-| Tank | Heavy | unit | 2/4/0 | null | No special behavior. | Lane combat | Baseline durable unit. |
+| Tank | Shieldbearer | unit | 1/2/0 | lane_armor_aura_1 | Adjacent allies gain +1 armor in combat. | Passive adjacency aura | Calculated during damage mitigation. |
+| Tank | Heavy | unit | 2/3/0 | null | No special behavior. | Lane combat | Baseline durable unit. |
 | Tank | Guardian | unit | 1/3/0 | intercept_lane_damage | Intercepts lane damage for adjacent ally once per combat cycle. | Deterministic adjacency intercept | One guardian intercept per index per resolve pass. |
 | Tank | Wall | unit | 0/3/0 | cannot_attack | Cannot attack (ATK forced to 0). | Lane combat | Still can receive buffs/debuffs. |
 | Tank | Bruiser | unit | 2/3/0 | gain_atk_when_damaged | Gains temp +1 ATK when damaged. | Damage trigger | Stacks within turn; reset after combat. |
@@ -154,7 +156,7 @@ Implemented now:
 - PASS auto-turn loop.
 - 1 meaningful action cap per player turn.
 - Unit/effect split by `type === unit` vs non-unit.
-- Targeted/non-targeted effect pipelines.
+- Targeted/non-targeted effect pipelines, including UI targeting for every targeted hand effect currently implemented in `GameState`.
 - Deterministic Sniper targeting.
 - Deterministic Controller on-play enemy swap.
 - Flood capped at up to 2 tokens.
@@ -164,7 +166,16 @@ Deferred / intentionally simplified:
 - Hidden-info peek UI (`peek_enemy_slot` no-op).
 - Rich manual targeting UX for unit passive triggers not already implemented.
 
-## 10) Balance Notes (MVP Tracking)
+
+## 10) AI Parity and Behavior Notes
+
+- Live enemy AI calls `chooseEnemyAction`, which is a wrapper around the owner-agnostic `chooseBattleAction(state, 'enemy')` scorer.
+- AI-vs-AI mirror/batch simulations call the same `chooseBattleAction` scorer for both `player` and `enemy` owners, so mirror bots and the live enemy share action generation and scoring rules.
+- The scorer considers legal unit plays, redeploys, adjacent friendly swaps, non-targeted effects, and fully resolved targeted effects; it rejects pending/blocked/no-op targets and avoids recently repeated redeploy/swap loops.
+- The behavior is intentionally simple but rule-aware: it prioritizes lethal hero damage, immediate hero damage, open-lane pressure, reducing opposing pressure, kills, and meaningful board improvements.
+- Known MVP simplification: it evaluates the current action's immediate board/pressure result rather than searching multiple future turns.
+
+## 11) Balance Notes (MVP Tracking)
 
 - Flood nerf status: **active** (`fill_empty_slots_0_1` summons up to 2).
 - Swarm no longer fills all 3 slots with Flood in current code.
@@ -172,7 +183,7 @@ Deferred / intentionally simplified:
 - No Hero HP increase currently (still 12).
 - No deck-size increase currently (still 10).
 
-## 11) Document Authority and References
+## 12) Document Authority and References
 
 - Canonical rules: `docs/rules/mvp-battle-rules.md` (this file).
 - Supporting historical/progress context:

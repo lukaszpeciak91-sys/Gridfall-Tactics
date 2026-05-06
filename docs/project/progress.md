@@ -74,3 +74,10 @@
 - Equal HP at the cap still remains a draw, preserving true parity cases.
 - Added the rule as an MVP anti-stall measure, especially for Swarm mirrors that created excessive empty-board exhaustion draws.
 - Updated live battle flow plus simulation/audit/sanity runners to share the same turn-cap winner logic.
+
+## Documentation/UI Parity Cleanup (2026-05-06)
+- Re-audited card data, UI targeting, canonical rules, and AI simulation/live-enemy paths after the latest balance and AI changes.
+- Fixed player UI targeting parity for Aggro Quick Fix (`heal_2_atk_1_this_turn`) so the card now uses the targeted friendly-unit flow that the gameplay resolver and AI already used.
+- Added a shared UI targeting helper plus regression coverage for Quick Fix and two-target swap selection metadata.
+- Updated canonical card matrix stats and Pierce Strike behavior to match current faction JSON and `GameState` implementation.
+- Documented that AI mirror simulations and the live enemy share the same `chooseBattleAction` decision engine; simulation differs only in seeded-random tie-breaking for audit repeatability.

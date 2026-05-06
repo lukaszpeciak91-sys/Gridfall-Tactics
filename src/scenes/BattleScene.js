@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
 import { createInitialBattleState, drawCards, canPass, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, getUnitAttack, getUnitArmor, toggleFirstActor, resolveTurnCapWinner } from '../systems/GameState.js';
 import { chooseEnemyAction, recordBattleActionUse } from '../systems/enemyDecision.js';
+import { getTargetingStateForEffect } from '../systems/cardTargeting.js';
 
 export default class BattleScene extends Phaser.Scene {
   constructor() {
@@ -773,22 +774,7 @@ ${statParts.join(' | ')}`;
 
   getTargetingStateForCard(card) {
     if (!card || this.isUnitCard(card)) return null;
-    if (card.effectId === 'return_friendly_draw_1' || card.effectId === 'destroy_friendly_draw_2' || card.effectId === 'quick_strike' || card.effectId === 'heal_2' || card.effectId === 'heal_3') {
-      return { cardId: card.id, targetType: 'friendly-unit', requiredTargets: 1, targetIndexes: [] };
-    }
-    if (card.effectId === 'enemy_lane_atk_minus_1' || card.effectId === 'ignore_armor_next_attack' || card.effectId === 'control_enemy_unit_this_turn') {
-      return { cardId: card.id, targetType: 'enemy-unit', requiredTargets: 1, targetIndexes: [] };
-    }
-    if (card.effectId === 'swap_two_enemy_units') {
-      return { cardId: card.id, targetType: 'enemy-unit', requiredTargets: 2, targetIndexes: [] };
-    }
-    if (card.effectId === 'swap_any_two_units') {
-      return { cardId: card.id, targetType: 'any-unit', requiredTargets: 2, targetIndexes: [] };
-    }
-    if (card.effectId === 'swap_adjacent_then_resolve') {
-      return { cardId: card.id, targetType: 'friendly-unit', requiredTargets: 1, targetIndexes: [] };
-    }
-    return null;
+    return getTargetingStateForEffect(card.effectId, card.id);
   }
 
   isValidTarget(boardIndex, targetType) {
