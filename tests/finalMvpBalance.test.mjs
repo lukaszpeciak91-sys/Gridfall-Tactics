@@ -48,6 +48,19 @@ test('Flanker is a 2/2 Aggro unit with the same empty-adjacent attack role', () 
   assert.equal(flanker.textShort, 'If adjacent slot empty: +1 ATK.');
 });
 
+
+test('Hacker is a 1/1 Control unit with the same lane attack debuff role', () => {
+  const control = loadFaction('src/data/factions/control.json');
+  const hacker = control.deck.find((card) => card.id === 'control_hacker_1');
+
+  assert.equal(hacker.attack, 1);
+  assert.equal(hacker.hp, 1);
+  assert.equal(hacker.armor, 0);
+  assert.equal(hacker.effectId, 'enemy_lane_atk_minus_1');
+  assert.equal(hacker.targeting, 'lane');
+  assert.equal(hacker.textShort, 'Enemy in lane -1 ATK this turn.');
+});
+
 test('Disruptor is a 1/2 Control unit with the same order-cancel role', () => {
   const control = loadFaction('src/data/factions/control.json');
   const disruptor = control.deck.find((card) => card.id === 'control_disruptor_1');

@@ -11,7 +11,7 @@
       "effectId": "enemy_lane_atk_minus_1",
       "textShort": "Enemy in lane -1 ATK this turn.",
       "attack": 1,
-      "hp": 2,
+      "hp": 1,
       "armor": 0
     },
     {
