@@ -118,6 +118,9 @@ function applyAction(state, owner, passStats, decisionOptions, telemetry) {
     telemetry.invalidActions = (telemetry.invalidActions ?? 0) + 1;
     return;
   }
+  if (result.card?.id === 'aggro_quick_fix_1') {
+    telemetry.quickFixUses = (telemetry.quickFixUses ?? 0) + 1;
+  }
   recordBattleActionUse(state, owner, action, telemetry);
 }
 
@@ -167,6 +170,7 @@ function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, gameSe
     firstActor: initialFirstActor,
     endingReason: state.endingReason,
     turnCapResolvedBy: state.turnCapResolvedBy,
+    quickFixTempoDraws: state.quickFixTempoDraws ?? 0,
   };
 }
 
@@ -284,7 +288,7 @@ function main() {
   const combinedPairs = new Map();
   const orderedMatchups = new Map();
   const passStats = { pass: 0, cancelled: 0 };
-  const telemetry = { replaceUsed: 0, repositionUsed: 0, meaningfulGameplayActions: 0, pointlessGameplayActions: 0, openLaneImprovements: 0, repeatedLoopPreventions: 0, invalidActions: 0, crashes: 0, mulliganByFaction: {} };
+  const telemetry = { replaceUsed: 0, repositionUsed: 0, meaningfulGameplayActions: 0, pointlessGameplayActions: 0, openLaneImprovements: 0, repeatedLoopPreventions: 0, invalidActions: 0, crashes: 0, quickFixUses: 0, quickFixTriggers: 0, mulliganByFaction: {} };
   const audit = { games: 0, draws: 0, turnCaps: 0, aggroTurnCapWins: 0, aggroGames: 0, nonSwarmGames: 0, nonSwarmDraws: 0, nonSwarmTurnCaps: 0, swarmMirrorGames: 0, swarmMirrorDraws: 0 };
 
   for (let playerIndex = 0; playerIndex < factionKeys.length; playerIndex += 1) for (let enemyIndex = 0; enemyIndex < factionKeys.length; enemyIndex += 1) {
@@ -299,6 +303,7 @@ function main() {
     for (let i = 0; i < gamesForMatchup; i += 1) {
       const gameSeed = buildGameSeed(baseSeed, playerKey, enemyKey, i);
       const result = runSingleGame(factions[playerKey], factions[enemyKey], passStats, telemetry, gameSeed, i, playerKey, enemyKey);
+      telemetry.quickFixTriggers += result.quickFixTempoDraws ?? 0;
       const wasDraw = result.winner === 'draw';
       const wasTurnCap = result.endingReason === 'turn-cap';
       addOrderedResult(orderedStats, result);
@@ -511,6 +516,9 @@ Battle simulation complete (${matchCount} games per matchup, max ${MAX_TURNS} tu
     { metric: 'repeated-loop preventions', count: telemetry.repeatedLoopPreventions },
     { metric: 'invalid actions', count: telemetry.invalidActions },
     { metric: 'crashes', count: telemetry.crashes },
+    { metric: 'Quick Fix uses', count: telemetry.quickFixUses },
+    { metric: 'Quick Fix triggered draws', count: telemetry.quickFixTriggers },
+    { metric: 'Quick Fix trigger rate', count: `${percent(telemetry.quickFixTriggers, telemetry.quickFixUses)}%` },
   ]);
   console.log('\nPASS reason counts:');
   console.table(Object.entries(passStats).map(([reason, count]) => ({ reason, count })));

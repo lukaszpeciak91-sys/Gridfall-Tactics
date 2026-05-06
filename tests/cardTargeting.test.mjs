@@ -3,7 +3,7 @@ import test from 'node:test';
 import { getTargetingStateForEffect } from '../src/systems/cardTargeting.js';
 
 test('Quick Fix uses the same friendly-unit targeting state in UI as its gameplay resolver', () => {
-  assert.deepEqual(getTargetingStateForEffect('heal_2_atk_1_this_turn', 'aggro_quick_fix_1'), {
+  assert.deepEqual(getTargetingStateForEffect('heal_1_atk_1_draw_on_kill_this_turn', 'aggro_quick_fix_1'), {
     cardId: 'aggro_quick_fix_1',
     targetType: 'friendly-unit',
     requiredTargets: 1,

@@ -7,6 +7,7 @@ import {
   getUnitAttack,
   playEffectCard,
   resolveCombat,
+  resolveQuickStrike,
   resolveTargetedEffectCard,
 } from '../src/systems/GameState.js';
 
@@ -113,7 +114,7 @@ test('Full Attack grants all Aggro friendly units +2 temporary attack for combat
   assert.equal(state.board[7].tempAttackMod, undefined);
 });
 
-test('Quick Fix heals a friendly unit and grants +1 temporary attack for combat', () => {
+test('Quick Fix heals a friendly unit by 1 and grants +1 temporary attack for combat', () => {
   const aggro = loadFaction('src/data/factions/aggro.json');
   const quickFix = aggro.deck.find((card) => card.id === 'aggro_quick_fix_1');
   const state = createInitialBattleState({ name: 'Test', deck: [] });
@@ -123,16 +124,85 @@ test('Quick Fix heals a friendly unit and grants +1 temporary attack for combat'
 
   const result = resolveTargetedEffectCard(state, 'player', quickFix.id, 6, [6]);
   assert.equal(result.ok, true);
-  assert.equal(state.board[6].hp, 3);
+  assert.equal(state.board[6].hp, 2);
   assert.equal(state.board[6].tempAttackMod, 1);
   assert.equal(getUnitAttack(state.board[6]), 3);
-  assert.equal(quickFix.effectId, 'heal_2_atk_1_this_turn');
+  assert.equal(quickFix.effectId, 'heal_1_atk_1_draw_on_kill_this_turn');
   assert.equal(quickFix.targeting, 'friendly_unit');
-  assert.equal(quickFix.textShort, 'Heal a unit 2. It gets +1 ATK this turn.');
+  assert.equal(quickFix.textShort, 'Heal a unit 1. +1 ATK this turn. Draw 1 if it destroys a unit.');
 
   resolveCombat(state);
 
   assert.equal(state.board[6].tempAttackMod, undefined);
+});
+
+
+test('Quick Fix draws once when the buffed unit destroys an enemy in combat', () => {
+  const aggro = loadFaction('src/data/factions/aggro.json');
+  const quickFix = aggro.deck.find((card) => card.id === 'aggro_quick_fix_1');
+  const state = createInitialBattleState({ name: 'Test', deck: [] });
+  const drawCard = { id: 'drawn-card', name: 'Drawn Card', type: 'unit', attack: 1, hp: 1, armor: 0, effectId: null };
+
+  state.player.hand.push({ ...quickFix });
+  state.player.deck.push(drawCard);
+  state.board[6] = unit('player', { attack: 1, hp: 2, maxHp: 3 });
+  state.board[0] = unit('enemy', { attack: 0, hp: 2, maxHp: 2 });
+
+  const result = resolveTargetedEffectCard(state, 'player', quickFix.id, 6, [6]);
+  assert.equal(result.ok, true);
+
+  resolveCombat(state);
+
+  assert.equal(state.board[0], null);
+  assert.equal(state.player.hand.length, 1);
+  assert.equal(state.player.hand[0].id, 'drawn-card');
+  assert.equal(state.quickFixTempoDraws, 1);
+});
+
+
+test('Quick Fix draw trigger does not duplicate across immediate and later combat', () => {
+  const aggro = loadFaction('src/data/factions/aggro.json');
+  const quickFix = aggro.deck.find((card) => card.id === 'aggro_quick_fix_1');
+  const state = createInitialBattleState({ name: 'Test', deck: [] });
+
+  state.player.hand.push({ ...quickFix });
+  state.player.deck.push(
+    { id: 'first-draw', name: 'First Draw', type: 'unit', attack: 1, hp: 1, armor: 0, effectId: null },
+    { id: 'second-draw', name: 'Second Draw', type: 'unit', attack: 1, hp: 1, armor: 0, effectId: null },
+  );
+  state.board[6] = unit('player', { attack: 1, hp: 3, maxHp: 3 });
+  state.board[0] = unit('enemy', { attack: 0, hp: 2, maxHp: 2 });
+
+  const quickFixResult = resolveTargetedEffectCard(state, 'player', quickFix.id, 6, [6]);
+  assert.equal(quickFixResult.ok, true);
+  const quickStrikeResult = resolveQuickStrike(state, 'player', 6);
+  assert.equal(quickStrikeResult.ok, true);
+  assert.equal(state.player.hand.map((card) => card.id).join(','), 'first-draw');
+
+  state.board[0] = unit('enemy', { attack: 0, hp: 2, maxHp: 2 });
+  resolveCombat(state);
+
+  assert.equal(state.player.hand.map((card) => card.id).join(','), 'first-draw');
+  assert.equal(state.quickFixTempoDraws, 1);
+});
+
+test('Quick Fix does not draw when the buffed unit fails to destroy an enemy', () => {
+  const aggro = loadFaction('src/data/factions/aggro.json');
+  const quickFix = aggro.deck.find((card) => card.id === 'aggro_quick_fix_1');
+  const state = createInitialBattleState({ name: 'Test', deck: [] });
+
+  state.player.hand.push({ ...quickFix });
+  state.player.deck.push({ id: 'undrawn-card', name: 'Undrawn Card', type: 'unit', attack: 1, hp: 1, armor: 0, effectId: null });
+  state.board[6] = unit('player', { attack: 1, hp: 2, maxHp: 3 });
+  state.board[0] = unit('enemy', { attack: 0, hp: 3, maxHp: 3 });
+
+  const result = resolveTargetedEffectCard(state, 'player', quickFix.id, 6, [6]);
+  assert.equal(result.ok, true);
+
+  resolveCombat(state);
+
+  assert.equal(state.player.hand.length, 0);
+  assert.equal(state.quickFixTempoDraws ?? 0, 0);
 });
 
 test('Jam Signal applies -1 temporary attack to up to two enemy units', () => {

@@ -21,7 +21,7 @@ const BOARD_SYNERGY_EFFECTS = new Set([
   'buff_all_armor_1',
   'quick_strike',
   'swap_adjacent_then_resolve',
-  'heal_2_atk_1_this_turn',
+  'heal_1_atk_1_draw_on_kill_this_turn',
 ]);
 
 function scoreOpeningCard(card, hand, factionName = '') {
@@ -217,7 +217,7 @@ function getCandidateTargetIndexes(state, owner, effectId) {
     case 'return_friendly_draw_1':
     case 'destroy_friendly_draw_2':
     case 'heal_2':
-    case 'heal_2_atk_1_this_turn':
+    case 'heal_1_atk_1_draw_on_kill_this_turn':
     case 'heal_3':
     case 'quick_strike':
     case 'swap_adjacent_then_resolve':
@@ -251,7 +251,7 @@ function isTargetedOnlyEffect(effectId) {
     || effectId === 'return_friendly_draw_1'
     || effectId === 'destroy_friendly_draw_2'
     || effectId === 'heal_2'
-    || effectId === 'heal_2_atk_1_this_turn'
+    || effectId === 'heal_1_atk_1_draw_on_kill_this_turn'
     || effectId === 'heal_3'
     || effectId === 'quick_strike'
     || effectId === 'swap_adjacent_then_resolve'
@@ -489,7 +489,7 @@ function scoreAction(state, owner, action) {
     score -= 2000;
   }
 
-  if (action.effectId === 'heal_2_atk_1_this_turn') {
+  if (action.effectId === 'heal_1_atk_1_draw_on_kill_this_turn') {
     const { friendly, opposing } = getRowsForOwner(owner);
     const lane = friendly.indexOf(action.targetIndex);
     const targetUnit = nextState.board[action.targetIndex];

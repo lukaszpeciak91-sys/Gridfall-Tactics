@@ -178,7 +178,7 @@ function applyEffectById(state, owner, effectId) {
       break;
     }
     case 'heal_2':
-    case 'heal_2_atk_1_this_turn':
+    case 'heal_1_atk_1_draw_on_kill_this_turn':
     case 'heal_3':
       break;
     case 'heal_all_1': {
@@ -435,6 +435,32 @@ export function drawCards(sideState, count) {
   return sideState;
 }
 
+function triggerQuickFixDrawsFromCombatEvents(state, combatEvents) {
+  if (!state || !Array.isArray(combatEvents)) return;
+
+  combatEvents.forEach((event) => {
+    if (!event?.lethal || event.targetType !== 'unit') return;
+    const attackerIndex = event.attackerIndex;
+    const targetIndex = event.targetIndex;
+    const attacker = state.board[attackerIndex];
+    const target = state.board[targetIndex];
+    if (!attacker || !target || target.hp > 0 || attacker.owner === target.owner) return;
+
+    const pendingTriggers = Array.isArray(attacker.quickFixDrawTriggers)
+      ? attacker.quickFixDrawTriggers.filter((trigger) => trigger && !trigger.triggered && trigger.owner === attacker.owner)
+      : [];
+    if (pendingTriggers.length === 0) return;
+
+    const side = attacker.owner === 'player' ? state.player : state.enemy;
+    pendingTriggers.forEach((trigger) => {
+      if (trigger.triggered) return;
+      trigger.triggered = true;
+      drawCards(side, 1);
+      state.quickFixTempoDraws = (state.quickFixTempoDraws ?? 0) + 1;
+    });
+  });
+}
+
 export function canPass(state) {
   return Boolean(state) && !state.winner;
 }
@@ -556,13 +582,20 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
       break;
     }
     case 'heal_2':
-    case 'heal_2_atk_1_this_turn':
+    case 'heal_1_atk_1_draw_on_kill_this_turn':
     case 'heal_3': {
       if (targetUnit.owner !== owner) return { ok: false, reason: 'Target must be friendly' };
-      const amount = card.effectId === 'heal_3' ? 3 : 2;
+      const amount = card.effectId === 'heal_3' ? 3 : (card.effectId === 'heal_2' ? 2 : 1);
       applyTargetedHeal(targetUnit, amount);
-      if (card.effectId === 'heal_2_atk_1_this_turn') {
+      if (card.effectId === 'heal_1_atk_1_draw_on_kill_this_turn') {
         targetUnit.tempAttackMod = (targetUnit.tempAttackMod ?? 0) + 1;
+        state.nextQuickFixDrawTriggerId = (state.nextQuickFixDrawTriggerId ?? 0) + 1;
+        targetUnit.quickFixDrawTriggers ??= [];
+        targetUnit.quickFixDrawTriggers.push({
+          id: state.nextQuickFixDrawTriggerId,
+          owner,
+          triggered: false,
+        });
       }
       break;
     }
@@ -846,9 +879,9 @@ function resolveCombatLane(state, col, combatContext = null) {
     const minOneProtection = Boolean(state.cannotDropBelowOneThisTurn?.[target.owner]);
     return !minOneProtection && projectedHp <= 0;
   };
-  const recordCombatEvent = ({ attackerSide, targetType, targetSide, damage, openLane, lethal = false }) => {
+  const recordCombatEvent = ({ attackerSide, attackerIndex = null, targetType, targetSide, targetIndex = null, damage, openLane, lethal = false }) => {
     // Read-only feedback payload for BattleScene; combat mutations remain below.
-    context.events.push({
+    const event = {
       lane: col,
       attackerSide,
       targetType,
@@ -856,15 +889,22 @@ function resolveCombatLane(state, col, combatContext = null) {
       damage,
       openLane,
       lethal,
+    };
+    Object.defineProperties(event, {
+      attackerIndex: { value: attackerIndex, enumerable: false },
+      targetIndex: { value: targetIndex, enumerable: false },
     });
+    context.events.push(event);
   };
-  const recordUnitAttack = (attackerSide, targetIndex, damage) => {
+  const recordUnitAttack = (attackerSide, attackerIndex, targetIndex, damage) => {
     const target = state.board[targetIndex];
     if (!target) return;
     recordCombatEvent({
       attackerSide,
+      attackerIndex,
       targetType: 'unit',
       targetSide: target.owner,
+      targetIndex,
       damage,
       openLane: false,
       lethal: wouldUnitDamageBeLethal(targetIndex, damage),
@@ -889,18 +929,18 @@ function resolveCombatLane(state, col, combatContext = null) {
       const sniperTarget = state.board[sniperTargetIndex];
       if (sniperTarget) {
         const damage = getMitigatedDamage({ ...player, attack: playerAttack }, sniperTarget);
-        recordUnitAttack('player', sniperTargetIndex, damage);
+        recordUnitAttack('player', playerIndex, sniperTargetIndex, damage);
         addPendingUnitDamage(sniperTargetIndex, damage);
       }
     } else if (enemy) {
       const damage = getMitigatedDamage({ ...player, attack: playerAttack }, enemy);
       const interceptIndex = findGuardianInterceptIndex(enemyIndex);
       if (interceptIndex !== null) {
-        recordUnitAttack('player', interceptIndex, damage);
+        recordUnitAttack('player', playerIndex, interceptIndex, damage);
         addPendingUnitDamage(interceptIndex, damage);
         context.guardiansUsed.add(interceptIndex);
       } else {
-        recordUnitAttack('player', enemyIndex, damage);
+        recordUnitAttack('player', playerIndex, enemyIndex, damage);
         addPendingUnitDamage(enemyIndex, damage);
       }
     } else {
@@ -924,18 +964,18 @@ function resolveCombatLane(state, col, combatContext = null) {
       const sniperTarget = state.board[sniperTargetIndex];
       if (sniperTarget) {
         const damage = getMitigatedDamage({ ...enemy, attack: enemyAttack }, sniperTarget);
-        recordUnitAttack('enemy', sniperTargetIndex, damage);
+        recordUnitAttack('enemy', enemyIndex, sniperTargetIndex, damage);
         addPendingUnitDamage(sniperTargetIndex, damage);
       }
     } else if (player) {
       const damage = getMitigatedDamage({ ...enemy, attack: enemyAttack }, player);
       const interceptIndex = findGuardianInterceptIndex(playerIndex);
       if (interceptIndex !== null) {
-        recordUnitAttack('enemy', interceptIndex, damage);
+        recordUnitAttack('enemy', enemyIndex, interceptIndex, damage);
         addPendingUnitDamage(interceptIndex, damage);
         context.guardiansUsed.add(interceptIndex);
       } else {
-        recordUnitAttack('enemy', playerIndex, damage);
+        recordUnitAttack('enemy', enemyIndex, playerIndex, damage);
         addPendingUnitDamage(playerIndex, damage);
       }
     } else {
@@ -950,6 +990,8 @@ function resolveCombatLane(state, col, combatContext = null) {
   pendingUnitDamage.forEach((amount, index) => {
     applyDamageToUnit(state, index, amount);
   });
+
+  triggerQuickFixDrawsFromCombatEvents(state, context.events);
 
   cleanupDefeatedUnitsWithTriggers(state, [enemyIndex, playerIndex]);
 
@@ -993,6 +1035,9 @@ export function resolveCombat(state) {
     }
     if (unit?.tempArmorMod) {
       delete unit.tempArmorMod;
+    }
+    if (unit?.quickFixDrawTriggers) {
+      delete unit.quickFixDrawTriggers;
     }
   });
 
