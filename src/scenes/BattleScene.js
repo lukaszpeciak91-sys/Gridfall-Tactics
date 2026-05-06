@@ -17,6 +17,8 @@ export default class BattleScene extends Phaser.Scene {
     this.openingMulliganPending = false;
     this.selectedMulliganCardIds = [];
     this.actionButton = null;
+    this.isFlowResolving = false;
+    this.enemyActionBanner = null;
   }
 
   preload() {
@@ -38,6 +40,8 @@ export default class BattleScene extends Phaser.Scene {
     this.openingMulliganPending = false;
     this.selectedMulliganCardIds = [];
     this.actionButton = null;
+    this.isFlowResolving = false;
+    this.enemyActionBanner = null;
     this.gameState = null;
     this.factionKey = null;
     this.layout = null;
@@ -48,6 +52,7 @@ export default class BattleScene extends Phaser.Scene {
     this.playerHeroPanel = null;
     this.enemyInitiativeIcon = null;
     this.playerInitiativeIcon = null;
+    this.lastCombatEvents = [];
   }
 
   create(data) {
@@ -433,6 +438,10 @@ export default class BattleScene extends Phaser.Scene {
 
 
   onCardTap(cardId) {
+    if (this.isFlowResolving) {
+      return;
+    }
+
     if (this.openingMulliganPending) {
       this.toggleOpeningMulliganCard(cardId);
       return;
@@ -460,6 +469,10 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   onBoardCellTap(boardIndex) {
+    if (this.isFlowResolving) {
+      return;
+    }
+
     if (this.playerActionUsed) {
       return;
     }
@@ -510,6 +523,7 @@ export default class BattleScene extends Phaser.Scene {
         targetIndexes.splice(0, targetIndexes.length, boardIndex);
       }
 
+      const beforeStats = this.captureBoardStats();
       const result = resolveTargetedEffectCard(this.gameState, 'player', this.selectedCardId, boardIndex, targetIndexes);
       if (result.ok && result.type === 'targeted-effect-pending') {
         this.targetingState = {
@@ -525,7 +539,7 @@ export default class BattleScene extends Phaser.Scene {
         this.refreshAfterPlayerAction();
         return;
       }
-      this.completePlayerAction();
+      this.completePlayerAction(beforeStats);
       return;
     }
 
@@ -535,19 +549,21 @@ export default class BattleScene extends Phaser.Scene {
         this.refreshAfterPlayerAction();
         return;
       }
+      const beforeStats = this.captureBoardStats();
       const result = playEffectCard(this.gameState, 'player', this.selectedCardId);
       if (!result.ok) return;
-      this.completePlayerAction();
+      this.completePlayerAction(beforeStats);
       return;
     }
 
+    const beforeStats = this.captureBoardStats();
     const result = playOrRedeployUnit(this.gameState, 'player', this.selectedCardId, boardIndex);
     if (!result.ok) {
       this.pendingSwapIndex = null;
       return;
     }
 
-    this.completePlayerAction();
+    this.completePlayerAction(beforeStats);
   }
 
 
@@ -572,6 +588,8 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   confirmOpeningMulligan() {
+    if (this.isFlowResolving) return;
+
     const selectedIds = [...this.selectedMulliganCardIds];
     const result = performOpeningMulligan(this.gameState, 'player', selectedIds);
     if (!result.ok) return;
@@ -596,6 +614,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   resolvePassTurn() {
+    if (this.isFlowResolving) return;
     if (this.gameState.winner || !canPass(this.gameState) || this.playerActionUsed) return;
     this.completePlayerAction();
   }
@@ -614,43 +633,56 @@ export default class BattleScene extends Phaser.Scene {
     this.updateInitiativeIndicator();
 
     if (this.gameState.firstActor === 'enemy') {
-      this.enemyTakeAction();
-      this.enemyActionUsed = true;
-      this.refreshBoardLabels();
-      this.redrawHand();
-      this.refreshHeroHP();
-      this.resetCardHighlights();
-      this.updateInitiativeIndicator();
+      this.resolveEnemyFirstTurnOpening();
     }
   }
 
-  completePlayerAction() {
-    if (this.playerActionUsed || this.gameState.winner) return;
+  async completePlayerAction(beforeStats = null) {
+    if (this.playerActionUsed || this.gameState.winner || this.isFlowResolving) return;
 
     this.playerActionUsed = true;
+    this.isFlowResolving = true;
     this.refreshAfterPlayerAction();
+    await this.playBuffFeedback(beforeStats, 'player');
+    this.isFlowResolving = false;
     this.finishTurnAfterBothActions();
   }
 
-  finishTurnAfterBothActions() {
+  async resolveEnemyFirstTurnOpening() {
+    if (this.isFlowResolving || this.enemyActionUsed || !this.gameState || this.gameState.winner) return;
+
+    this.isFlowResolving = true;
+    await this.delay(650);
+    await this.revealAndApplyEnemyAction();
+    this.isFlowResolving = false;
+    this.resetCardHighlights();
+  }
+
+  async finishTurnAfterBothActions() {
     if (!this.gameState || this.gameState.winner) {
       this.updateInitiativeIndicator();
       return;
     }
 
+    this.isFlowResolving = true;
+
     if (!this.enemyActionUsed) {
-      this.enemyTakeAction();
-      this.enemyActionUsed = true;
-      this.refreshBoardLabels();
-      this.redrawHand();
-      this.refreshHeroHP();
+      await this.delay(650);
+      await this.revealAndApplyEnemyAction();
     }
 
+    await this.delay(500);
+    const preCombatBoard = this.captureBoardSnapshot();
     const combatEvents = resolveCombat(this.gameState);
     this.lastCombatEvents = combatEvents;
     if (combatEvents.length > 0) {
       console.debug('Combat feedback events', combatEvents);
     }
+    await this.playCombatAnimations(combatEvents, preCombatBoard);
+    this.refreshBoardLabels();
+    this.refreshHeroHP();
+
+    await this.delay(500);
     drawCards(this.gameState.player, 1);
     drawCards(this.gameState.enemy, 1);
     this.gameState.turnsCompleted += 1;
@@ -662,11 +694,13 @@ export default class BattleScene extends Phaser.Scene {
     this.resetCardHighlights();
 
     if (this.gameState.winner) {
+      this.isFlowResolving = false;
       this.updateInitiativeIndicator();
       return;
     }
 
     toggleFirstActor(this.gameState);
+    this.isFlowResolving = false;
     this.startTurn();
   }
 
@@ -697,36 +731,64 @@ export default class BattleScene extends Phaser.Scene {
     this.resetCardHighlights();
   }
 
-  enemyTakeAction() {
+  async revealAndApplyEnemyAction() {
     const action = chooseEnemyAction(this.gameState);
+    const card = action.cardId ? this.gameState.enemy.hand.find((item) => item.id === action.cardId) : null;
+    this.showEnemyActionBanner(this.getEnemyActionMessage(action, card));
+    await this.delay(650);
+
+    const beforeStats = this.captureBoardStats();
+    this.enemyTakeAction(action);
+    this.enemyActionUsed = true;
+    this.refreshBoardLabels();
+    this.redrawHand();
+    this.refreshHeroHP();
+    this.updateInitiativeIndicator();
+    await this.playBuffFeedback(beforeStats, 'enemy');
+    await this.delay(150);
+  }
+
+  getEnemyActionMessage(action, card) {
+    if (!action || action.type === 'pass') return 'ENEMY PASS';
+    const cardName = card?.name ?? 'Unknown Card';
+    if (action.type === 'play-unit') return `ENEMY PLAYS\n${cardName}`;
+    if (action.type === 'play-effect' || action.type === 'play-targeted-effect') {
+      const effect = card?.textShort ? `\n${card.textShort}` : '';
+      return `ENEMY PLAYS\n${cardName}${effect}`;
+    }
+    if (action.type === 'swap-units') return 'ENEMY REPOSITIONS';
+    return 'ENEMY ACTION';
+  }
+
+  enemyTakeAction(action = chooseEnemyAction(this.gameState)) {
     const cancelEnemyOrder = Boolean(this.gameState.cancelEnemyOrderThisTurn?.player);
     const isEnemyNonUnitAction = action.type === 'play-effect' || action.type === 'play-targeted-effect';
 
     if (cancelEnemyOrder && isEnemyNonUnitAction) {
       this.gameState.cancelEnemyOrderThisTurn.player = false;
-      return;
+      return { ok: true, type: 'cancelled' };
     }
 
     if (action.type === 'play-unit') {
       const result = playOrRedeployUnit(this.gameState, 'enemy', action.cardId, action.slotIndex);
       if (result.ok) recordBattleActionUse(this.gameState, 'enemy', action);
-      return;
+      return result;
     }
 
     if (action.type === 'swap-units') {
       const result = performSwap(this.gameState, 'enemy', action.fromIndex, action.toIndex);
       if (result.ok) recordBattleActionUse(this.gameState, 'enemy', action);
-      return;
+      return result;
     }
 
     if (action.type === 'play-effect') {
-      playEffectCard(this.gameState, 'enemy', action.cardId);
+      const result = playEffectCard(this.gameState, 'enemy', action.cardId);
       this.gameState.cancelEnemyOrderThisTurn.player = false;
-      return;
+      return result;
     }
 
     if (action.type === 'play-targeted-effect') {
-      resolveTargetedEffectCard(
+      const result = resolveTargetedEffectCard(
         this.gameState,
         'enemy',
         action.cardId,
@@ -734,11 +796,230 @@ export default class BattleScene extends Phaser.Scene {
         action.targetIndexes ?? [action.targetIndex],
       );
       this.gameState.cancelEnemyOrderThisTurn.player = false;
+      return result;
+    }
+
+    return { ok: true, type: 'pass' };
+  }
+
+  delay(ms) {
+    return new Promise((resolve) => {
+      this.time.delayedCall(ms, resolve);
+    });
+  }
+
+  showEnemyActionBanner(message) {
+    if (this.enemyActionBanner) {
+      this.enemyActionBanner.destroy();
+    }
+
+    const { width, topHero } = this.layout;
+    this.enemyActionBanner = this.add.text(width * 0.5, topHero.centerY + topHero.h * 0.82, message, {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: `${Math.max(14, Math.floor(topHero.h * 0.26))}px`,
+      color: '#fee2e2',
+      backgroundColor: '#7f1d1d',
+      align: 'center',
+      padding: { x: 14, y: 8 },
+      wordWrap: { width: width * 0.7 },
+    }).setOrigin(0.5).setDepth(220).setAlpha(0);
+
+    this.tweens.add({
+      targets: this.enemyActionBanner,
+      alpha: 1,
+      y: this.enemyActionBanner.y + 8,
+      duration: 120,
+      yoyo: true,
+      hold: 900,
+      onComplete: () => {
+        if (this.enemyActionBanner) {
+          this.enemyActionBanner.destroy();
+          this.enemyActionBanner = null;
+        }
+      },
+    });
+  }
+
+
+  captureBoardStats() {
+    return this.gameState.board.map((unit) => (unit ? {
+      owner: unit.owner,
+      attack: getUnitAttack(unit),
+      armor: getUnitArmor(unit),
+    } : null));
+  }
+
+  captureBoardSnapshot() {
+    return this.gameState.board.map((unit) => (unit ? { ...unit } : null));
+  }
+
+  getCellByIndex(index) {
+    return this.boardCells.find((cell) => cell.index === index) ?? null;
+  }
+
+  getHeroPanel(side) {
+    return side === 'player' ? this.playerHeroPanel : this.enemyHeroPanel;
+  }
+
+  async playBuffFeedback(beforeStats, owner) {
+    if (!Array.isArray(beforeStats)) return;
+
+    const feedback = [];
+    this.gameState.board.forEach((unit, index) => {
+      if (!unit || unit.owner !== owner) return;
+      const before = beforeStats[index];
+      if (!before || before.owner !== owner) return;
+      const attackDelta = getUnitAttack(unit) - before.attack;
+      const armorDelta = getUnitArmor(unit) - before.armor;
+      const parts = [];
+      if (attackDelta > 0) parts.push(`+${attackDelta} ATK`);
+      if (armorDelta > 0) parts.push(`+${armorDelta} ARM`);
+      if (parts.length === 0) return;
+      feedback.push({ index, label: parts.join('\n') });
+    });
+
+    if (feedback.length === 0) return;
+    this.refreshBoardLabels();
+
+    const animations = feedback.map(({ index, label }) => {
+      const cell = this.getCellByIndex(index);
+      if (!cell) return Promise.resolve();
+      cell.background.setStrokeStyle(4, 0x22c55e, 1);
+      const floating = this.add.text(cell.background.x, cell.background.y - this.layout.board.cellHeight * 0.34, label, {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: `${Math.max(13, Math.floor(this.layout.board.cellWidth * 0.12))}px`,
+        color: '#bbf7d0',
+        fontStyle: 'bold',
+        align: 'center',
+      }).setOrigin(0.5).setDepth(230);
+
+      return Promise.all([
+        this.tweenToPromise({ targets: cell.label, scaleX: 1.12, scaleY: 1.12, duration: 160, yoyo: true, repeat: 1 }),
+        this.tweenToPromise({ targets: floating, y: floating.y - 28, alpha: 0, duration: 760, ease: 'Cubic.easeOut' }),
+      ]).then(() => floating.destroy());
+    });
+
+    await Promise.all(animations);
+    this.resetCardHighlights();
+  }
+
+  tweenToPromise(config) {
+    return new Promise((resolve) => {
+      this.tweens.add({
+        ...config,
+        onComplete: (...args) => {
+          if (typeof config.onComplete === 'function') config.onComplete(...args);
+          resolve();
+        },
+      });
+    });
+  }
+
+  async playCombatAnimations(combatEvents, preCombatBoard) {
+    if (!Array.isArray(combatEvents) || combatEvents.length === 0) return;
+
+    const eventsByLane = new Map();
+    combatEvents.forEach((event) => {
+      if (!eventsByLane.has(event.lane)) eventsByLane.set(event.lane, []);
+      eventsByLane.get(event.lane).push(event);
+    });
+
+    for (const lane of [0, 1, 2]) {
+      const laneEvents = eventsByLane.get(lane) ?? [];
+      if (laneEvents.length === 0) continue;
+      await this.playLaneCombatAnimation(lane, laneEvents, preCombatBoard);
+      await this.delay(320);
+    }
+  }
+
+  async playLaneCombatAnimation(lane, laneEvents, preCombatBoard) {
+    const enemyIndex = lane;
+    const playerIndex = 6 + lane;
+    const hadOpposedUnits = preCombatBoard[enemyIndex] && preCombatBoard[playerIndex];
+
+    if (hadOpposedUnits && laneEvents.some((event) => event.targetType === 'unit')) {
+      await this.animateUnitClash(enemyIndex, playerIndex);
+      this.showLaneDamageText(laneEvents.filter((event) => event.targetType === 'unit'));
       return;
     }
 
+    for (const event of laneEvents) {
+      if (event.targetType === 'hero') {
+        if (event.damage > 0) await this.animateHeroStrike(event);
+      } else if (Number.isInteger(event.attackerIndex) && Number.isInteger(event.targetIndex)) {
+        await this.animateUnitClash(event.attackerIndex, event.targetIndex);
+      }
+    }
   }
 
+  async animateUnitClash(firstIndex, secondIndex) {
+    const first = this.getCellByIndex(firstIndex);
+    const second = this.getCellByIndex(secondIndex);
+    if (!first || !second) return;
+
+    const firstStartY = first.label.y;
+    const secondStartY = second.label.y;
+    const laneMidY = (firstStartY + secondStartY) / 2;
+    const firstClashY = firstStartY < secondStartY ? laneMidY - 18 : laneMidY + 18;
+    const secondClashY = secondStartY < firstStartY ? laneMidY - 18 : laneMidY + 18;
+
+    await Promise.all([
+      this.tweenToPromise({ targets: [first.label, first.background], y: firstClashY, duration: 170, ease: 'Quad.easeOut' }),
+      this.tweenToPromise({ targets: [second.label, second.background], y: secondClashY, duration: 170, ease: 'Quad.easeOut' }),
+    ]);
+    await Promise.all([
+      this.tweenToPromise({ targets: first.label, scaleX: 1.08, scaleY: 1.08, duration: 80, yoyo: true }),
+      this.tweenToPromise({ targets: second.label, scaleX: 1.08, scaleY: 1.08, duration: 80, yoyo: true }),
+    ]);
+    await Promise.all([
+      this.tweenToPromise({ targets: [first.label, first.background], y: firstStartY, duration: 170, ease: 'Quad.easeIn' }),
+      this.tweenToPromise({ targets: [second.label, second.background], y: secondStartY, duration: 170, ease: 'Quad.easeIn' }),
+    ]);
+  }
+
+  async animateHeroStrike(event) {
+    const attackerIndex = Number.isInteger(event.attackerIndex)
+      ? event.attackerIndex
+      : (event.attackerSide === 'player' ? 6 + event.lane : event.lane);
+    const attacker = this.getCellByIndex(attackerIndex);
+    const hero = this.getHeroPanel(event.targetSide);
+    if (!attacker || !hero) return;
+
+    const startY = attacker.label.y;
+    const direction = event.attackerSide === 'player' ? -1 : 1;
+    const strikeY = startY + direction * Math.min(this.layout.board.cellHeight * 0.48, 90);
+    await this.tweenToPromise({ targets: [attacker.label, attacker.background], y: strikeY, duration: 180, ease: 'Quad.easeOut' });
+    this.showHeroDamage(event.targetSide, event.damage);
+    await this.tweenToPromise({ targets: [attacker.label, attacker.background], y: startY, duration: 180, ease: 'Quad.easeIn' });
+  }
+
+  showHeroDamage(side, damage) {
+    const hero = this.getHeroPanel(side);
+    if (!hero) return;
+    const damageText = this.add.text(hero.x + hero.width * 0.34, hero.y, `-${damage}`, {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: '22px',
+      color: '#fca5a5',
+      fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(240);
+    this.tweens.add({ targets: hero, scaleX: 1.04, scaleY: 1.04, duration: 90, yoyo: true });
+    this.tweens.add({ targets: damageText, y: damageText.y - 30, alpha: 0, duration: 720, onComplete: () => damageText.destroy() });
+  }
+
+  showLaneDamageText(events) {
+    events.forEach((event) => {
+      if (!Number.isInteger(event.targetIndex) || event.damage <= 0) return;
+      const target = this.getCellByIndex(event.targetIndex);
+      if (!target) return;
+      const damageText = this.add.text(target.background.x, target.background.y - 12, `-${event.damage}`, {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '18px',
+        color: event.lethal ? '#fecaca' : '#fde68a',
+        fontStyle: 'bold',
+      }).setOrigin(0.5).setDepth(240);
+      this.tweens.add({ targets: damageText, y: damageText.y - 24, alpha: 0, duration: 650, onComplete: () => damageText.destroy() });
+    });
+  }
 
 
   redrawHand() {
