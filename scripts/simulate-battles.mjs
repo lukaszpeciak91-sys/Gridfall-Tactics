@@ -13,6 +13,8 @@ import {
   resolveCombat,
   toggleFirstActor,
   resolveTurnCapWinner,
+  resolveNoProgressStallWinner,
+  recordPassAction,
   MAX_TURNS,
 } from '../src/systems/GameState.js';
 import { chooseBattleAction, recordBattleActionUse, selectOpeningMulliganCardIds } from '../src/systems/enemyDecision.js';
@@ -90,6 +92,7 @@ function applyAction(state, owner, passStats, decisionOptions, telemetry) {
   const nonUnit = action.type === 'play-effect' || action.type === 'play-targeted-effect';
   if (action.type === 'pass') {
     passStats.pass = (passStats.pass ?? 0) + 1;
+    recordPassAction(state, owner);
     return;
   }
   if (state.cancelEnemyOrderThisTurn?.[cancelKey] && nonUnit) {
@@ -155,10 +158,12 @@ function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, gameSe
     applyAction(state, firstActor, passStats, firstDecisionOptions, telemetry);
     applyAction(state, secondActor, passStats, secondDecisionOptions, telemetry);
     resolveCombat(state);
-    drawCards(state.player, 1);
-    drawCards(state.enemy, 1);
     turns += 1;
     state.turnsCompleted = turns;
+    resolveNoProgressStallWinner(state);
+    if (state.winner) break;
+    drawCards(state.player, 1);
+    drawCards(state.enemy, 1);
     resolveTurnCapWinner(state, turns);
     if (!state.winner) toggleFirstActor(state);
   }
