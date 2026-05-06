@@ -53,7 +53,7 @@ function scoreOpeningCard(card, hand, factionName = '') {
 
   if (LOW_TEMPO_EFFECTS.has(card.effectId)) score -= 36;
   if (BOARD_SYNERGY_EFFECTS.has(card.effectId)) score += unitsInHand >= 2 ? 18 : -28;
-  if (card.effectId === 'damage_all_enemies_1' || card.effectId === 'enemy_all_atk_minus_1') score -= 12;
+  if (card.effectId === 'damage_up_to_2_enemies_1' || card.effectId === 'enemy_all_atk_minus_1') score -= 12;
   if (card.effectId === 'summon_grunt_empty_slot' || card.effectId === 'fill_empty_slots_0_1') score += 22;
   if (card.effectId === 'ignore_armor_next_attack' || card.effectId === 'control_enemy_unit_this_turn') score -= 16;
   if (faction === 'aggro' && card.effectId === 'aggro_buff_all_atk_2') score += unitsInHand >= 2 ? 18 : -24;

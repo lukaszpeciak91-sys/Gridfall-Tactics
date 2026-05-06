@@ -165,14 +165,18 @@ function applyTargetedHeal(unit, amount) {
   unit.hp = Math.min(hpCap, unit.hp + amount);
 }
 
+function getLeftmostOccupiedRowIndexes(state, rowIndexes, limit) {
+  return rowIndexes
+    .filter((index) => state.board[index])
+    .slice(0, limit);
+}
+
 function applyEffectById(state, owner, effectId) {
   switch (effectId) {
-    case 'damage_all_enemies_1': {
-      const enemyIndexes = getRowForOwner(getOpponentOwner(owner));
+    case 'damage_up_to_2_enemies_1': {
+      const enemyIndexes = getLeftmostOccupiedRowIndexes(state, getRowForOwner(getOpponentOwner(owner)), 2);
       enemyIndexes.forEach((index) => {
-        if (state.board[index]) {
-          state.board[index].hp -= 1;
-        }
+        state.board[index].hp -= 1;
       });
       removeDefeatedUnits(state, enemyIndexes);
       break;
@@ -212,9 +216,7 @@ function applyEffectById(state, owner, effectId) {
       break;
     }
     case 'enemy_all_atk_minus_1': {
-      const enemyIndexes = getRowForOwner(getOpponentOwner(owner))
-        .filter((index) => state.board[index])
-        .slice(0, 2);
+      const enemyIndexes = getLeftmostOccupiedRowIndexes(state, getRowForOwner(getOpponentOwner(owner)), 2);
       enemyIndexes.forEach((index) => {
         const enemyUnit = state.board[index];
         enemyUnit.tempAttackMod = (enemyUnit.tempAttackMod ?? 0) - 1;
