@@ -125,7 +125,7 @@ Meaningful player actions:
 | Control | Controller | unit | 1/2/0 | swap_two_enemy_units | On play: swap first two enemy units if at least two exist. | Deterministic on-play | Not manual two-pick UI for this unit trigger. |
 | Control | Drone | unit | 1/1/0 | death_damage_enemy_hero_1 | On death, enemy hero takes 1. | Death trigger | Applies after unit removed. |
 | Control | Swap | order | - | swap_any_two_units | Swap two selected units anywhere on board. | Two-target targeted effect | Requires two distinct occupied slots. |
-| Control | Jam Signal | order | - | enemy_all_atk_minus_1 | All enemy units get temp -1 ATK this turn. | Non-targeted effect | Expires after combat. |
+| Control | Jam Signal | order | - | enemy_all_atk_minus_1 | Up to 2 enemy units get temp -1 ATK this turn. | Non-targeted effect | Picks occupied enemy lanes from left to right; expires after combat. |
 | Control | Pulse Wave | order | - | damage_all_enemies_1 | Deal 1 damage to all enemy row units. | Non-targeted effect | Defeated units cleaned up immediately. |
 | Control | System Override | special | - | control_enemy_unit_this_turn | Target enemy attacks its own hero in next combat. | Targeted enemy | Clears after combat cleanup. |
 | Control | Recall | utility | - | return_friendly_draw_1 | Return friendly unit to hand, then draw 1. | Targeted friendly | Blocked if hand already full. |

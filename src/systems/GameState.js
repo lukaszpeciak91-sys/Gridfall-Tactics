@@ -210,10 +210,11 @@ function applyEffectById(state, owner, effectId) {
       break;
     }
     case 'enemy_all_atk_minus_1': {
-      const enemyIndexes = getRowForOwner(getOpponentOwner(owner));
+      const enemyIndexes = getRowForOwner(getOpponentOwner(owner))
+        .filter((index) => state.board[index])
+        .slice(0, 2);
       enemyIndexes.forEach((index) => {
         const enemyUnit = state.board[index];
-        if (!enemyUnit) return;
         enemyUnit.tempAttackMod = (enemyUnit.tempAttackMod ?? 0) - 1;
       });
       break;

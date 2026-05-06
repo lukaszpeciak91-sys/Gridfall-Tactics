@@ -72,7 +72,7 @@
       "type": "order",
       "targeting": "all_enemy_units",
       "effectId": "enemy_all_atk_minus_1",
-      "textShort": "All enemies -1 ATK this turn."
+      "textShort": "Up to 2 enemies -1 ATK this turn."
     },
     {
       "id": "control_pulse_wave_1",
