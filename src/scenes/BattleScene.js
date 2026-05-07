@@ -21,6 +21,7 @@ export default class BattleScene extends Phaser.Scene {
     this.enemyActionBanner = null;
     this.battleResultModal = null;
     this.battleResultModalShown = false;
+    this.battleResultTimer = null;
   }
 
   preload() {
@@ -46,6 +47,7 @@ export default class BattleScene extends Phaser.Scene {
     this.enemyActionBanner = null;
     this.battleResultModal = null;
     this.battleResultModalShown = false;
+    this.battleResultTimer = null;
     this.gameState = null;
     this.factionKey = null;
     this.layout = null;
@@ -212,10 +214,7 @@ export default class BattleScene extends Phaser.Scene {
       icon.setDepth(200);
     });
 
-    leftIcon.on('pointerup', () => {
-      this.scene.stop('BattleScene');
-      this.scene.start('FactionSelectScene');
-    });
+    leftIcon.on('pointerup', () => this.exitBattleToFactionSelect());
     centerIcon.on('pointerup', () => this.scene.start('BattleMenuScene', { factionKey: this.factionKey }));
     rightIcon.on('pointerup', () => this.toggleFullscreen());
   }
@@ -229,8 +228,20 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   scheduleBattleResultModal() {
-    if (!this.gameState?.winner || this.battleResultModalShown) return;
-    this.time.delayedCall(500, () => this.showBattleResultModal());
+    if (!this.gameState?.winner || this.battleResultModalShown || this.battleResultTimer) return;
+    this.battleResultTimer = this.time.delayedCall(500, () => {
+      this.battleResultTimer = null;
+      this.showBattleResultModal();
+    });
+  }
+
+  clearBattleResultTimer() {
+    if (!this.battleResultTimer) {
+      return;
+    }
+
+    this.battleResultTimer.remove(false);
+    this.battleResultTimer = null;
   }
 
   showBattleResultModal() {
@@ -338,7 +349,12 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   destroyBattleResultModal() {
-    if (!this.battleResultModal) return;
+    this.clearBattleResultTimer();
+
+    if (!this.battleResultModal) {
+      this.battleResultModalShown = false;
+      return;
+    }
     const items = [
       this.battleResultModal.overlay,
       this.battleResultModal.panel,
@@ -351,11 +367,20 @@ export default class BattleScene extends Phaser.Scene {
       item?.destroy?.();
     });
     this.battleResultModal = null;
+    this.battleResultModalShown = false;
+  }
+
+  resetTransientInputState() {
+    this.isFlowResolving = false;
+    this.selectedCardId = null;
+    this.pendingSwapIndex = null;
+    this.targetingState = null;
+    this.openingMulliganPending = false;
   }
 
   exitBattleToFactionSelect() {
     this.destroyBattleResultModal();
-    this.scene.stop('BattleScene');
+    this.resetTransientInputState();
     this.scene.start('FactionSelectScene');
   }
 
@@ -363,6 +388,7 @@ export default class BattleScene extends Phaser.Scene {
     const factionKey = this.factionKey;
     const enemyFactionKey = this.enemyFactionKey;
     this.destroyBattleResultModal();
+    this.resetTransientInputState();
     this.scene.restart({ factionKey, enemyFactionKey });
   }
 
@@ -401,6 +427,7 @@ export default class BattleScene extends Phaser.Scene {
     this.scale.off('enterfullscreen', this.onFullscreenChanged, this);
     this.scale.off('leavefullscreen', this.onFullscreenChanged, this);
     this.scale.off('resize', this.onViewportChanged, this);
+    this.resetRuntimeState();
   }
 
   drawHeroPanels() {

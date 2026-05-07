@@ -5,9 +5,13 @@ export default class FactionSelectScene extends Phaser.Scene {
   constructor() {
     super('FactionSelectScene');
     this.uiElements = [];
+    this.isStartingBattle = false;
+    this.transitionWatchdog = null;
   }
 
   init() {
+    this.isStartingBattle = false;
+    this.clearTransitionWatchdog();
     this.cleanupScene();
   }
 
@@ -51,20 +55,43 @@ export default class FactionSelectScene extends Phaser.Scene {
 
       button.on('pointerover', () => button.setBackgroundColor('#bfdbfe'));
       button.on('pointerout', () => button.setBackgroundColor('#93c5fd'));
-      button.on('pointerup', () => {
-        this.scene.stop('FactionSelectScene');
-        this.scene.start('BattleScene', { factionKey });
-      });
+      button.on('pointerup', () => this.startBattle(factionKey));
 
       this.uiElements.push(button);
     });
   }
 
-  cleanupScene() {
-    if (this.input) {
-      this.input.removeAllListeners();
+  startBattle(factionKey) {
+    if (this.isStartingBattle) {
+      return;
     }
 
+    const factionKeys = getFactionKeys();
+    if (!factionKeys.includes(factionKey)) {
+      return;
+    }
+
+    this.isStartingBattle = true;
+    this.scene.start('BattleScene', { factionKey });
+    this.transitionWatchdog = this.time.delayedCall(250, () => {
+      if (this.scene.isActive('FactionSelectScene') && !this.scene.isActive('BattleScene')) {
+        this.isStartingBattle = false;
+      }
+      this.transitionWatchdog = null;
+    });
+  }
+
+  clearTransitionWatchdog() {
+    if (!this.transitionWatchdog) {
+      return;
+    }
+
+    this.transitionWatchdog.remove(false);
+    this.transitionWatchdog = null;
+  }
+
+  cleanupScene() {
+    this.clearTransitionWatchdog();
     this.uiElements.forEach((element) => {
       if (element && element.active) {
         element.removeAllListeners?.();

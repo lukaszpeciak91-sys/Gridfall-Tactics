@@ -17,4 +17,19 @@ const config = {
   scene: [StartScene, FactionSelectScene, BattleScene, BattleMenuScene],
 };
 
-new Phaser.Game(config);
+const existingGame = globalThis.__GRIDFALL_TACTICS_GAME__;
+if (existingGame) {
+  existingGame.destroy(true);
+}
+
+const game = new Phaser.Game(config);
+globalThis.__GRIDFALL_TACTICS_GAME__ = game;
+
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    game.destroy(true);
+    if (globalThis.__GRIDFALL_TACTICS_GAME__ === game) {
+      delete globalThis.__GRIDFALL_TACTICS_GAME__;
+    }
+  });
+}
