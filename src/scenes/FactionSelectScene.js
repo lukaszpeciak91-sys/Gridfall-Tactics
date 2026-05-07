@@ -71,7 +71,90 @@ export default class FactionSelectScene extends Phaser.Scene {
 
     this.isStartingBattle = true;
     this.uiElements.forEach((element) => element?.disableInteractive?.());
-    this.scene.start('BattleScene', { factionKey });
+
+    const transitionDiagnostics = this.getBattleTransitionDiagnostics(factionKey);
+    if (transitionDiagnostics.blockedReason) {
+      console.warn('Faction select battle transition blocked', transitionDiagnostics);
+      this.resetStartBattleGuard();
+      return;
+    }
+
+    this.stopStaleBattleScenes(transitionDiagnostics);
+
+    try {
+      this.scene.start('BattleScene', { factionKey });
+    } catch (error) {
+      console.error('Faction select battle transition threw before BattleScene start', {
+        error,
+        diagnostics: this.getBattleTransitionDiagnostics(factionKey),
+      });
+      this.resetStartBattleGuard();
+      return;
+    }
+
+    globalThis.setTimeout(() => {
+      if (!this.scene.isActive('BattleScene')) {
+        console.warn('Faction select battle transition did not activate BattleScene', this.getBattleTransitionDiagnostics(factionKey));
+        this.resetStartBattleGuard();
+      }
+    }, 0);
+  }
+
+  getBattleTransitionDiagnostics(factionKey) {
+    const sceneKeys = ['FactionSelectScene', 'BattleScene', 'BattleMenuScene'];
+    const sceneStates = Object.fromEntries(sceneKeys.map((key) => [key, {
+      active: this.scene.isActive(key),
+      sleeping: this.scene.isSleeping(key),
+      paused: this.scene.isPaused(key),
+      visible: this.scene.isVisible(key),
+    }]));
+    const battleScene = this.scene.get('BattleScene');
+
+    return {
+      factionKey,
+      factionExists: Boolean(getFactionKeys().includes(factionKey)),
+      battleSceneExists: Boolean(battleScene),
+      sceneStates,
+      inputEnabled: Boolean(this.input?.enabled),
+      staleInteractiveObjects: this.getStaleInteractiveObjects(),
+      blockedReason: battleScene ? null : 'missing BattleScene',
+    };
+  }
+
+  getStaleInteractiveObjects() {
+    const currentSceneObjects = new Set();
+    this.children?.each((child) => currentSceneObjects.add(child));
+
+    return (this.input?.manager?.pointers ?? [])
+      .flatMap((pointer) => pointer._temp ?? [])
+      .filter((gameObject) => !currentSceneObjects.has(gameObject))
+      .map((gameObject) => ({
+        type: gameObject?.type ?? 'unknown',
+        name: gameObject?.name ?? '',
+        active: gameObject?.active,
+        visible: gameObject?.visible,
+        depth: gameObject?.depth,
+        sceneKey: gameObject?.scene?.scene?.key,
+      }));
+  }
+
+  stopStaleBattleScenes(transitionDiagnostics) {
+    ['BattleScene', 'BattleMenuScene'].forEach((sceneKey) => {
+      const state = transitionDiagnostics.sceneStates[sceneKey];
+      if (state?.active || state?.sleeping || state?.paused) {
+        console.warn(`Stopping stale ${sceneKey} before faction-select battle start`, transitionDiagnostics);
+        this.scene.stop(sceneKey);
+      }
+    });
+  }
+
+  resetStartBattleGuard() {
+    this.isStartingBattle = false;
+    this.uiElements.forEach((element) => {
+      if (element?.active) {
+        element.setInteractive?.({ useHandCursor: true });
+      }
+    });
   }
 
   cleanupScene() {

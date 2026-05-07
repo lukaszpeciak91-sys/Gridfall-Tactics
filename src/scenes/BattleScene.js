@@ -28,6 +28,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   init() {
+    this.cleanupSceneObjects();
     this.resetRuntimeState();
   }
 
@@ -60,7 +61,22 @@ export default class BattleScene extends Phaser.Scene {
     this.enemyFactionKey = null;
   }
 
+  cleanupSceneObjects() {
+    this.destroyBattleResultModal();
+    this.tweens?.killAll?.();
+    this.time?.removeAllEvents?.();
+
+    if (this.children) {
+      this.children.each((child) => {
+        child?.removeAllListeners?.();
+      });
+      this.children.removeAll(true);
+    }
+  }
+
   create(data) {
+    this.cleanupSceneObjects();
+
     const { width, height } = this.scale;
     const playerFactionKey = typeof data?.factionKey === 'string' && data.factionKey ? data.factionKey : 'Aggro';
     this.factionKey = playerFactionKey;
@@ -376,7 +392,6 @@ export default class BattleScene extends Phaser.Scene {
     this.scene.restart({ factionKey, enemyFactionKey });
   }
 
-
   toggleFullscreen() {
     if (!this.scale.fullscreen.available) {
       return;
@@ -407,7 +422,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   shutdown() {
-    this.destroyBattleResultModal();
+    this.cleanupSceneObjects();
     this.scale.off('enterfullscreen', this.onFullscreenChanged, this);
     this.scale.off('leavefullscreen', this.onFullscreenChanged, this);
     this.scale.off('resize', this.onViewportChanged, this);
