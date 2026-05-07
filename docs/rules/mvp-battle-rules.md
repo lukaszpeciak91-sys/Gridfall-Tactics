@@ -1,7 +1,7 @@
 # MVP Battle Rules (Canonical)
 
 **Status:** Frozen for MVP implementation  
-**Last Updated:** 2026-05-06
+**Last Updated:** 2026-05-07
 
 **Scope:** Gameplay rules for the MVP battle loop
 
@@ -18,7 +18,11 @@ If any other document conflicts with this file, this file wins.
   - Higher player hero HP -> **player wins**.
   - Higher enemy hero HP -> **enemy wins**.
   - Equal hero HP -> **draw**.
-- This is an **MVP anti-stall pacing rule**, not a final tournament/overtime system. It was added mainly because Swarm mirrors produced excessive empty-board/exhaustion draws.
+- Immediate no-progress end: if both sides have no meaningful remaining card/action, combat can no longer change hero HP, and no remaining action can realistically affect the outcome, the battle ends immediately by remaining hero HP:
+  - Higher player hero HP -> **player wins**.
+  - Higher enemy hero HP -> **enemy wins**.
+  - Equal hero HP -> **draw**.
+- There is no repeated-PASS or 3-pass stall counter; dead games end as soon as the locked outcome is detected.
 
 ## 2) Board Model
 
@@ -56,18 +60,22 @@ If any other document conflicts with this file, this file wins.
   1. Player takes one meaningful action or PASS.
   2. Enemy takes one action or passes.
   3. Combat resolves across all 3 lanes.
-  4. Player draws 1.
-  5. Enemy draws 1.
-  6. If this was completed turn 50 and no winner exists, apply the remaining-hero-HP turn-cap rule.
-  7. Initiative toggles for the next turn if the battle is still active.
+  4. If no-progress deadlock is detected, end immediately by remaining hero HP.
+  5. Player draws 1.
+  6. Enemy draws 1.
+  7. If no-progress deadlock is detected after draws, end immediately by remaining hero HP.
+  8. If this was completed turn 50 and no winner exists, apply the remaining-hero-HP turn-cap rule.
+  9. Initiative toggles for the next turn if the battle is still active.
 - If `firstActor` is `enemy`, the full turn order is:
   1. Enemy takes one automatic action or passes.
   2. Player takes one meaningful action or PASS.
   3. Combat resolves across all 3 lanes.
-  4. Player draws 1.
-  5. Enemy draws 1.
-  6. If this was completed turn 50 and no winner exists, apply the remaining-hero-HP turn-cap rule.
-  7. Initiative toggles for the next turn if the battle is still active.
+  4. If no-progress deadlock is detected, end immediately by remaining hero HP.
+  5. Player draws 1.
+  6. Enemy draws 1.
+  7. If no-progress deadlock is detected after draws, end immediately by remaining hero HP.
+  8. If this was completed turn 50 and no winner exists, apply the remaining-hero-HP turn-cap rule.
+  9. Initiative toggles for the next turn if the battle is still active.
 
 Meaningful player actions:
 - Play a unit card to a friendly combat slot.

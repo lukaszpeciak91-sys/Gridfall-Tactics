@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
-import { createInitialBattleState, drawCards, shuffleDeck, canPass, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, getUnitAttack, getUnitArmor, toggleFirstActor, resolveTurnCapWinner, resolveNoProgressStallWinner, recordPassAction, performOpeningMulligan, STARTING_HAND_SIZE, MAX_OPENING_MULLIGAN_CARDS } from '../systems/GameState.js';
+import { createInitialBattleState, drawCards, shuffleDeck, canPass, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, getUnitAttack, getUnitArmor, toggleFirstActor, resolveTurnCapWinner, resolveImmediateNoProgressWinner, recordPassAction, performOpeningMulligan, STARTING_HAND_SIZE, MAX_OPENING_MULLIGAN_CARDS } from '../systems/GameState.js';
 import { chooseEnemyAction, recordBattleActionUse, selectOpeningMulliganCardIds } from '../systems/enemyDecision.js';
 import { getTargetingStateForEffect } from '../systems/cardTargeting.js';
 
@@ -830,6 +830,13 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
+    resolveImmediateNoProgressWinner(this.gameState);
+    if (this.gameState.winner) {
+      this.updateInitiativeIndicator();
+      this.scheduleBattleResultModal();
+      return;
+    }
+
     this.playerActionUsed = false;
     this.enemyActionUsed = false;
     this.selectedCardId = null;
@@ -901,7 +908,7 @@ export default class BattleScene extends Phaser.Scene {
     this.refreshHeroHP();
 
     this.gameState.turnsCompleted += 1;
-    resolveNoProgressStallWinner(this.gameState);
+    resolveImmediateNoProgressWinner(this.gameState);
     if (this.gameState.winner) {
       this.completeBattleFlow(500);
       return;
@@ -910,6 +917,7 @@ export default class BattleScene extends Phaser.Scene {
     await this.delay(500);
     drawCards(this.gameState.player, 1);
     drawCards(this.gameState.enemy, 1);
+    resolveImmediateNoProgressWinner(this.gameState);
     resolveTurnCapWinner(this.gameState, this.gameState.turnsCompleted);
 
     this.refreshBoardLabels();

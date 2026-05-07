@@ -13,7 +13,7 @@ import {
   resolveCombat,
   toggleFirstActor,
   resolveTurnCapWinner,
-  resolveNoProgressStallWinner,
+  resolveImmediateNoProgressWinner,
   recordPassAction,
   MAX_TURNS,
 } from '../src/systems/GameState.js';
@@ -160,7 +160,7 @@ function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, gameSe
     resolveCombat(state);
     turns += 1;
     state.turnsCompleted = turns;
-    resolveNoProgressStallWinner(state);
+    resolveImmediateNoProgressWinner(state);
     if (state.winner) break;
     drawCards(state.player, 1);
     drawCards(state.enemy, 1);

@@ -9,56 +9,9 @@ function hasSwarmAlphaAura(unit) {
   return unit?.effectId === SWARM_ALPHA_AURA_EFFECT_ID;
 }
 export const MAX_TURNS = 50;
-export const NO_PROGRESS_STALL_ROUNDS = 3;
 export const STARTING_HAND_SIZE = 4;
 export const MAX_OPENING_MULLIGAN_CARDS = 2;
 
-
-function createNoProgressSnapshot(state) {
-  return {
-    playerHP: state?.playerHP ?? null,
-    enemyHP: state?.enemyHP ?? null,
-    board: Array.isArray(state?.board)
-      ? state.board.map((unit) => {
-        if (!unit) return null;
-        return {
-          owner: unit.owner ?? null,
-          id: unit.cardId ?? unit.id ?? null,
-          hp: unit.hp ?? null,
-          maxHp: unit.maxHp ?? null,
-          attack: unit.attack ?? null,
-          armor: unit.armor ?? null,
-          tempAttackMod: unit.tempAttackMod ?? null,
-          tempArmorMod: unit.tempArmorMod ?? null,
-          effectId: unit.effectId ?? null,
-          controlledAttackThisTurn: Boolean(unit.controlledAttackThisTurn),
-          ignoreArmorNext: Boolean(unit.ignoreArmorNext),
-        };
-      })
-      : [],
-  };
-}
-
-function createNoProgressRoundState(state) {
-  return {
-    consecutiveRounds: 0,
-    currentRoundActions: { player: null, enemy: null },
-    roundStartSnapshot: createNoProgressSnapshot(state),
-  };
-}
-
-function ensureNoProgressStallState(state) {
-  if (!state) return null;
-  state.noProgressStall ??= createNoProgressRoundState(state);
-  state.noProgressStall.currentRoundActions ??= { player: null, enemy: null };
-  state.noProgressStall.roundStartSnapshot ??= createNoProgressSnapshot(state);
-  state.noProgressStall.consecutiveRounds ??= 0;
-  return state.noProgressStall;
-}
-
-function areNoProgressSnapshotsEqual(first, second) {
-  return JSON.stringify(first) === JSON.stringify(second);
-}
 
 function resolveHeroHpTiebreakWinner(state, endingReason, resolvedByKey) {
   if (state.playerHP > state.enemyHP) state.winner = 'player';
@@ -70,43 +23,157 @@ function resolveHeroHpTiebreakWinner(state, endingReason, resolvedByKey) {
   return state.winner;
 }
 
-export function recordPassAction(state, owner) {
-  if (!state || state.winner || (owner !== 'player' && owner !== 'enemy')) return;
-  const stallState = ensureNoProgressStallState(state);
-  stallState.currentRoundActions[owner] = 'pass';
+export function recordPassAction() {
+  // PASS no longer feeds any counter; dead games are resolved by board/resource state.
 }
 
-function recordProgressAction(state, owner, actionType = 'progress') {
-  if (!state || state.winner || (owner !== 'player' && owner !== 'enemy')) return;
-  const stallState = ensureNoProgressStallState(state);
-  stallState.currentRoundActions[owner] = actionType;
-  stallState.consecutiveRounds = 0;
+function recordProgressAction() {
+  // Meaningful-action tracking is no longer counter-based.
 }
 
-export function resolveNoProgressStallWinner(state, maxNoProgressRounds = NO_PROGRESS_STALL_ROUNDS) {
+function cardCanRealisticallyAffectOutcome(card, state, owner) {
+  if (!card) return false;
+
+  if (card.type === 'unit') {
+    if ((card.attack ?? 0) > 0) return true;
+    return [
+      'lane_empty_bonus_damage',
+      'on_play_lane_damage_1',
+      'death_damage_enemy_hero_1',
+      'on_death_summon_grunt',
+      'adjacent_allies_atk_plus_1_ignore_armor_1',
+      'gain_atk_when_damaged',
+      'can_hit_any_lane',
+    ].includes(card.effectId);
+  }
+
+  const friendlyUnits = getRowForOwner(owner).map((index) => state.board[index]).filter(Boolean);
+  const enemyUnits = getRowForOwner(getOpponentOwner(owner)).map((index) => state.board[index]).filter(Boolean);
+  const friendlyEmptySlots = getRowForOwner(owner).some((index) => state.board[index] === null);
+  const friendlyDiscardUnits = (owner === 'player' ? state.player.discard : state.enemy.discard)
+    .some((discardedCard) => discardedCard?.type === 'unit' && cardCanRealisticallyAffectOutcome(discardedCard, state, owner));
+
+  switch (card.effectId) {
+    case 'aggro_buff_all_atk_2':
+    case 'buff_all_atk_1':
+    case 'heal_1_atk_1_draw_on_kill_this_turn':
+      return friendlyUnits.length > 0;
+    case 'quick_strike':
+    case 'swap_adjacent_then_resolve':
+      return friendlyUnits.some((unit) => getUnitAttack(unit) > 0);
+    case 'ignore_armor_next_attack':
+    case 'damage_up_to_2_enemies_1':
+    case 'control_enemy_unit_this_turn':
+      return enemyUnits.length > 0;
+    case 'swap_any_two_units':
+      return state.board.filter(Boolean).length >= 2;
+    case 'summon_grunt_empty_slot':
+      return friendlyEmptySlots;
+    case 'revive_friendly_1hp':
+      return friendlyEmptySlots && friendlyDiscardUnits;
+    case 'fill_empty_slots_0_1':
+      return false;
+    case 'destroy_friendly_draw_2':
+    case 'return_friendly_draw_1':
+      return friendlyUnits.length > 0
+        && (owner === 'player' ? state.player.deck : state.enemy.deck)
+          .some((deckCard) => cardCanRealisticallyAffectOutcome(deckCard, state, owner));
+    case 'enemy_all_atk_minus_1':
+    case 'enemy_lane_atk_minus_1':
+    case 'buff_all_armor_1':
+    case 'heal_all_1':
+    case 'cannot_drop_below_1_this_turn':
+    case 'temp_armor_1':
+    case 'immune_move_disable_this_turn':
+    case 'cancel_enemy_order':
+      return false;
+    default:
+      return false;
+  }
+}
+
+function ownerHasMeaningfulRemainingCard(state, owner) {
+  const side = owner === 'player' ? state.player : state.enemy;
+  return [...(side?.hand ?? []), ...(side?.deck ?? [])]
+    .some((card) => cardCanRealisticallyAffectOutcome(card, state, owner));
+}
+
+function ownerHasMeaningfulSwapAction(state, owner) {
+  const row = getRowForOwner(owner);
+  const occupied = row.filter((index) => state.board[index]?.owner === owner);
+  if (occupied.length < 2) return false;
+
+  for (let i = 0; i < occupied.length - 1; i += 1) {
+    for (let j = i + 1; j < occupied.length; j += 1) {
+      const simulation = cloneStateForDeadGameCheck(state);
+      const temp = simulation.board[occupied[i]];
+      simulation.board[occupied[i]] = simulation.board[occupied[j]];
+      simulation.board[occupied[j]] = temp;
+      if (canCombatEverChangeHeroHp(simulation)) return true;
+    }
+  }
+
+  return false;
+}
+
+function cloneStateForDeadGameCheck(state) {
+  return JSON.parse(JSON.stringify({
+    ...state,
+    winner: null,
+    endingReason: null,
+  }));
+}
+
+function createDeadGameCombatSnapshot(state) {
+  return JSON.stringify({
+    playerHP: state.playerHP,
+    enemyHP: state.enemyHP,
+    board: state.board.map((unit) => {
+      if (!unit) return null;
+      return {
+        owner: unit.owner,
+        id: unit.cardId ?? unit.id,
+        hp: unit.hp,
+        maxHp: unit.maxHp,
+        attack: unit.attack,
+        armor: unit.armor,
+        effectId: unit.effectId,
+      };
+    }),
+  });
+}
+
+function canCombatEverChangeHeroHp(state, maxCombatRounds = 20) {
+  const simulation = cloneStateForDeadGameCheck(state);
+  const seen = new Set();
+
+  for (let round = 0; round < maxCombatRounds; round += 1) {
+    const snapshot = createDeadGameCombatSnapshot(simulation);
+    if (seen.has(snapshot)) return false;
+    seen.add(snapshot);
+
+    const playerHP = simulation.playerHP;
+    const enemyHP = simulation.enemyHP;
+    resolveCombat(simulation);
+
+    if (simulation.playerHP !== playerHP || simulation.enemyHP !== enemyHP) return true;
+    if (simulation.winner) return true;
+  }
+
+  return false;
+}
+
+export function resolveImmediateNoProgressWinner(state) {
   if (!state || state.winner) return state?.winner ?? null;
-  const stallState = ensureNoProgressStallState(state);
-  const actions = stallState.currentRoundActions;
-  const bothPassedOnly = actions.player === 'pass' && actions.enemy === 'pass';
-  const noBoardOrHpProgress = areNoProgressSnapshotsEqual(
-    stallState.roundStartSnapshot,
-    createNoProgressSnapshot(state),
-  );
+  if (canCombatEverChangeHeroHp(state)) return null;
+  if (ownerHasMeaningfulRemainingCard(state, 'player') || ownerHasMeaningfulRemainingCard(state, 'enemy')) return null;
+  if (ownerHasMeaningfulSwapAction(state, 'player') || ownerHasMeaningfulSwapAction(state, 'enemy')) return null;
 
-  if (bothPassedOnly && noBoardOrHpProgress) {
-    stallState.consecutiveRounds += 1;
-  } else {
-    stallState.consecutiveRounds = 0;
-  }
+  return resolveHeroHpTiebreakWinner(state, 'no-progress-deadlock', 'noProgressResolvedBy');
+}
 
-  stallState.currentRoundActions = { player: null, enemy: null };
-  stallState.roundStartSnapshot = createNoProgressSnapshot(state);
-
-  if (stallState.consecutiveRounds >= maxNoProgressRounds) {
-    return resolveHeroHpTiebreakWinner(state, 'no-progress-stall', 'noProgressStallResolvedBy');
-  }
-
-  return null;
+export function resolveNoProgressDeadlockWinner(state) {
+  return resolveImmediateNoProgressWinner(state);
 }
 
 function getRowForOwner(owner) {
@@ -427,7 +494,7 @@ export function createInitialBattleState(playerFactionData, enemyFactionData = p
     winner: null,
     endingReason: null,
     turnCapResolvedBy: null,
-    noProgressStallResolvedBy: null,
+    noProgressResolvedBy: null,
     turnsCompleted: 0,
     firstActor,
     player: {
@@ -456,11 +523,6 @@ export function createInitialBattleState(playerFactionData, enemyFactionData = p
       player: false,
       enemy: false,
     },
-    noProgressStall: createNoProgressRoundState({
-      playerHP: HERO_START_HP,
-      enemyHP: HERO_START_HP,
-      board: Array(BOARD_SIZE).fill(null),
-    }),
     mulligan: {
       playerUsed: false,
       enemyUsed: false,
