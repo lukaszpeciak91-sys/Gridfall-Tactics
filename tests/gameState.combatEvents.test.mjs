@@ -142,3 +142,109 @@ test('Quick Strike finalizes immediate lane combat and resolves only its target 
   assert.equal(state.playerHP, 12);
   assert.equal(state.board[0].id, 'unresolved-enemy');
 });
+
+test('Runner deals +2 extra hero damage through an empty opposing lane', () => {
+  const state = makeState();
+  state.board[6] = unit('player', { attack: 2, effectId: 'lane_empty_bonus_damage' });
+
+  const events = resolveCombat(state);
+
+  assert.deepEqual(events, [
+    {
+      lane: 0,
+      attackerSide: 'player',
+      targetType: 'hero',
+      targetSide: 'enemy',
+      damage: 4,
+      openLane: true,
+      lethal: false,
+    },
+  ]);
+  assert.equal(state.enemyHP, 8);
+});
+
+test('Runner behaves normally when an enemy unit is present', () => {
+  const state = makeState();
+  state.board[6] = unit('player', { attack: 2, effectId: 'lane_empty_bonus_damage' });
+  state.board[0] = unit('enemy', { attack: 0, hp: 3, maxHp: 3 });
+
+  const events = resolveCombat(state);
+
+  assert.deepEqual(events, [
+    {
+      lane: 0,
+      attackerSide: 'player',
+      targetType: 'unit',
+      targetSide: 'enemy',
+      damage: 2,
+      openLane: false,
+      lethal: false,
+    },
+    {
+      lane: 0,
+      attackerSide: 'enemy',
+      targetType: 'unit',
+      targetSide: 'player',
+      damage: 0,
+      openLane: false,
+      lethal: false,
+    },
+  ]);
+  assert.equal(state.enemyHP, 12);
+  assert.equal(state.board[0].hp, 1);
+});
+
+test('Runner open-lane bonus affects hero only, not units', () => {
+  const state = makeState();
+  state.board[7] = unit('player', { attack: 2, effectId: 'lane_empty_bonus_damage' });
+  state.board[1] = unit('enemy', { attack: 0, hp: 4, maxHp: 4 });
+
+  resolveCombat(state);
+
+  assert.equal(state.enemyHP, 12);
+  assert.equal(state.board[1].hp, 2);
+});
+
+test('Runner keeps existing combat timing and simultaneous open-lane order', () => {
+  const state = makeState();
+  state.playerHP = 4;
+  state.enemyHP = 4;
+  state.board[6] = unit('player', { attack: 2, effectId: 'lane_empty_bonus_damage' });
+  state.board[1] = unit('enemy', { attack: 2, effectId: 'lane_empty_bonus_damage' });
+
+  const events = resolveCombat(state);
+
+  assert.deepEqual(events, [
+    {
+      lane: 0,
+      attackerSide: 'player',
+      targetType: 'hero',
+      targetSide: 'enemy',
+      damage: 4,
+      openLane: true,
+      lethal: false,
+    },
+    {
+      lane: 1,
+      attackerSide: 'enemy',
+      targetType: 'hero',
+      targetSide: 'player',
+      damage: 4,
+      openLane: true,
+      lethal: false,
+    },
+  ]);
+  assert.equal(state.winner, 'draw');
+});
+
+test('Multiple Runner attacks resolve consistently', () => {
+  const state = makeState();
+  state.board[6] = unit('player', { attack: 2, effectId: 'lane_empty_bonus_damage' });
+  state.board[8] = unit('player', { attack: 2, effectId: 'lane_empty_bonus_damage' });
+
+  const events = resolveCombat(state);
+
+  assert.deepEqual(events.map((event) => event.damage), [4, 4]);
+  assert.deepEqual(events.map((event) => event.lane), [0, 2]);
+  assert.equal(state.enemyHP, 4);
+});

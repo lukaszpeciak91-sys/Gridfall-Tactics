@@ -9,7 +9,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": "lane_empty_bonus_damage",
-      "textShort": "If lane empty: +1 hero dmg.",
+      "textShort": "If lane empty: +2 hero dmg.",
       "attack": 2,
       "hp": 1,
       "armor": 0

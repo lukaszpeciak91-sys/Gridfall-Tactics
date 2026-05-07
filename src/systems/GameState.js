@@ -3,6 +3,7 @@ const ENEMY_ROW = [0, 1, 2];
 const PLAYER_ROW = [6, 7, 8];
 const HERO_START_HP = 12;
 const SWARM_ALPHA_AURA_EFFECT_ID = 'adjacent_allies_atk_plus_1_ignore_armor_1';
+export const RUNNER_OPEN_LANE_HERO_BONUS = 2;
 
 function hasSwarmAlphaAura(unit) {
   return unit?.effectId === SWARM_ALPHA_AURA_EFFECT_ID;
@@ -1068,7 +1069,7 @@ function resolveCombatLane(state, col, combatContext = null) {
         addPendingUnitDamage(enemyIndex, damage);
       }
     } else {
-      const laneBonus = player.effectId === 'lane_empty_bonus_damage' ? 1 : 0;
+      const laneBonus = player.effectId === 'lane_empty_bonus_damage' ? RUNNER_OPEN_LANE_HERO_BONUS : 0;
       const damage = playerAttack + laneBonus;
       recordHeroAttack('player', 'enemy', damage, true);
       state.enemyHP -= damage;
@@ -1103,7 +1104,7 @@ function resolveCombatLane(state, col, combatContext = null) {
         addPendingUnitDamage(playerIndex, damage);
       }
     } else {
-      const laneBonus = enemy.effectId === 'lane_empty_bonus_damage' ? 1 : 0;
+      const laneBonus = enemy.effectId === 'lane_empty_bonus_damage' ? RUNNER_OPEN_LANE_HERO_BONUS : 0;
       const damage = enemyAttack + laneBonus;
       recordHeroAttack('enemy', 'player', damage, true);
       state.playerHP -= damage;
