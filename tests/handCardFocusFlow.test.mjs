@@ -20,3 +20,18 @@ test('focused hand card render movement is edge-clamped while the invisible hit 
   assert.match(source, /card\.hitArea\.setDepth\(card\.baseDepth \+ 3\);/);
   assert.doesNotMatch(source, /const bodyTargets = \[card\.glow, card\.background, card\.hitArea\]/);
 });
+
+test('hand card focus state stays separate from gameplay and mulligan selection state', () => {
+  assert.match(source, /this\.focusedCardId = null;\s*this\.focusedCardView = null;\s*this\.selectedCardId = null;/);
+  assert.match(source, /if \(this\.openingMulliganPending\) \{\s*this\.focusHandCard\(cardId\);\s*this\.toggleOpeningMulliganCard\(cardId\);\s*return;\s*\}/);
+  assert.match(source, /this\.selectedMulliganCardIds\.length < MAX_OPENING_MULLIGAN_CARDS/);
+  assert.match(source, /const isMulliganSelected = this\.openingMulliganPending && this\.selectedMulliganCardIds\.includes\(card\.cardId\);/);
+  assert.match(source, /const isGameplaySelected = !this\.openingMulliganPending && card\.cardId === this\.selectedCardId;/);
+  assert.match(source, /const isFocused = card\.cardId === this\.focusedCardId \|\| isGameplaySelected;/);
+});
+
+test('interactive card, board, and pass handlers stop scene-level outside-tap clearing', () => {
+  assert.match(source, /background\.on\('pointerup', \(pointer, localX, localY, event\) => \{\s*event\?\.stopPropagation\?\.\(\);\s*this\.onBoardCellTap\(boardIndex\);\s*\}\);/);
+  assert.match(source, /button\.on\('pointerup', \(pointer, localX, localY, event\) => \{\s*event\?\.stopPropagation\?\.\(\);/);
+  assert.match(source, /hitArea\.on\('pointerup', \(pointer, localX, localY, event\) => \{\s*event\?\.stopPropagation\?\.\(\);\s*this\.onCardTap\(cardId\);\s*\}\);/);
+});
