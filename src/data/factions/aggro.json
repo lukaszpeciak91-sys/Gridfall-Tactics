@@ -15,12 +15,12 @@
       "armor": 0
     },
     {
-      "id": "aggro_striker_1",
-      "name": "Striker",
+      "id": "aggro_berserker_1",
+      "name": "Berserker",
       "type": "unit",
       "targeting": "lane",
-      "effectId": null,
-      "textShort": "Reliable fighter.",
+      "effectId": "wounded_atk_plus_1",
+      "textShort": "While damaged: +1 ATK.",
       "attack": 2,
       "hp": 2,
       "armor": 0

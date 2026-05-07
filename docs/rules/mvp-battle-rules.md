@@ -123,7 +123,7 @@ Meaningful player actions:
 | Faction | Card | Type | Stats | effectId | Implemented behavior | Targeting model | MVP simplifications / notes |
 |---|---|---|---|---|---|---|---|
 | Aggro | Runner | unit | 2/1/0 | lane_empty_bonus_damage | +2 hero damage if opposing lane empty during attack. | Lane combat | Implemented in combat resolver. |
-| Aggro | Striker | unit | 2/2/0 | null | No special behavior. | Lane combat | Baseline unit. |
+| Aggro | Berserker | unit | 2/2/0 | wounded_atk_plus_1 | +1 ATK while current HP is below max HP. | Lane combat | Continuous card-local wounded check; bonus disappears when healed to full HP. |
 | Aggro | Glass Cannon | unit | 3/1/0 | self_damage_after_attack | Takes 1 self damage after attack resolves. | Lane combat | Implemented as pending self-damage. |
 | Aggro | Flanker | unit | 2/2/0 | empty_adjacent_bonus_atk | +1 ATK if adjacent friendly slot is empty. | Lane combat | Adjacent check is board-state based. |
 | Aggro | Scout | unit | 2/1/0 | block_enemy_lane_play_this_turn | On play, blocks enemy unit placement in same lane this turn. | On-play lane | Symmetric for player/enemy; clears at PASS/combat cleanup. |

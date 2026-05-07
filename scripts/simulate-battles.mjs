@@ -124,6 +124,9 @@ function applyAction(state, owner, passStats, decisionOptions, telemetry) {
   if (result.card?.id === 'aggro_quick_fix_1') {
     telemetry.quickFixUses = (telemetry.quickFixUses ?? 0) + 1;
   }
+  if (result.card?.id === 'aggro_berserker_1') {
+    telemetry.berserkerUses = (telemetry.berserkerUses ?? 0) + 1;
+  }
   recordBattleActionUse(state, owner, action, telemetry);
 }
 
@@ -522,6 +525,8 @@ Battle simulation complete (${matchCount} games per matchup, max ${MAX_TURNS} tu
     { metric: 'invalid actions', count: telemetry.invalidActions },
     { metric: 'crashes', count: telemetry.crashes },
     { metric: 'Quick Fix uses', count: telemetry.quickFixUses },
+    { metric: 'Berserker uses', count: telemetry.berserkerUses },
+    { metric: 'Berserker usage frequency', count: `${percent(telemetry.berserkerUses, audit.aggroGames)}% of Aggro seats` },
     { metric: 'Quick Fix triggered draws', count: telemetry.quickFixTriggers },
     { metric: 'Quick Fix trigger rate', count: `${percent(telemetry.quickFixTriggers, telemetry.quickFixUses)}%` },
   ]);

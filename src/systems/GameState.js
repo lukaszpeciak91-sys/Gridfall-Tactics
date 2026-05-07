@@ -43,6 +43,7 @@ function cardCanRealisticallyAffectOutcome(card, state, owner) {
       'on_death_summon_grunt',
       'adjacent_allies_atk_plus_1_ignore_armor_1',
       'gain_atk_when_damaged',
+      'wounded_atk_plus_1',
       'can_hit_any_lane',
     ].includes(card.effectId);
   }
@@ -297,7 +298,8 @@ export function getUnitAttack(unit) {
   if (!unit) return 0;
   const baseAttack = unit.attack ?? 0;
   const tempAttack = unit.tempAttackMod ?? 0;
-  return Math.max(0, baseAttack + tempAttack);
+  const woundedAttack = unit.effectId === 'wounded_atk_plus_1' && unit.hp < (unit.maxHp ?? unit.hp) ? 1 : 0;
+  return Math.max(0, baseAttack + tempAttack + woundedAttack);
 }
 
 export function getUnitArmor(unit) {

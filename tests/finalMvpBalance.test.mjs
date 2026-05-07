@@ -39,6 +39,82 @@ test('Runner remains a 2/1 Aggro unit with +2 open-lane hero damage text', () =>
   assert.equal(runner.textShort, 'If lane empty: +2 hero dmg.');
 });
 
+
+test('Berserker replaces Striker as a 2/2 Aggro wounded attacker in the same deck slot', () => {
+  const aggro = loadFaction('src/data/factions/aggro.json');
+  const berserker = aggro.deck[1];
+
+  assert.equal(berserker.id, 'aggro_berserker_1');
+  assert.equal(berserker.name, 'Berserker');
+  assert.equal(berserker.attack, 2);
+  assert.equal(berserker.hp, 2);
+  assert.equal(berserker.armor, 0);
+  assert.equal(berserker.effectId, 'wounded_atk_plus_1');
+  assert.equal(berserker.targeting, 'lane');
+  assert.equal(berserker.textShort, 'While damaged: +1 ATK.');
+});
+
+test('Berserker gains +1 ATK while damaged and only for itself', () => {
+  const berserker = unit('player', { attack: 2, hp: 1, maxHp: 2, effectId: 'wounded_atk_plus_1' });
+  const otherUnit = unit('player', { attack: 2, hp: 1, maxHp: 2, effectId: null });
+
+  assert.equal(getUnitAttack(berserker), 3);
+  assert.equal(getUnitAttack(otherUnit), 2);
+});
+
+test('Berserker loses the wounded attack bonus when fully healed', () => {
+  const tank = loadFaction('src/data/factions/tank.json');
+  const reinforce = tank.deck.find((card) => card.id === 'tank_reinforce_1');
+  const state = createInitialBattleState({ name: 'Test', deck: [] });
+
+  state.player.hand.push({ ...reinforce });
+  state.board[6] = unit('player', { attack: 2, hp: 1, maxHp: 2, effectId: 'wounded_atk_plus_1' });
+
+  assert.equal(getUnitAttack(state.board[6]), 3);
+  const result = playEffectCard(state, 'player', reinforce.id);
+
+  assert.equal(result.ok, true);
+  assert.equal(state.board[6].hp, 2);
+  assert.equal(getUnitAttack(state.board[6]), 2);
+});
+
+test('Berserker does not gain wounded attack bonus at full HP', () => {
+  const berserker = unit('player', { attack: 2, hp: 2, maxHp: 2, effectId: 'wounded_atk_plus_1' });
+
+  assert.equal(getUnitAttack(berserker), 2);
+});
+
+test('Berserker wounded bonus stacks with temporary attack buffs', () => {
+  const aggro = loadFaction('src/data/factions/aggro.json');
+  const fullAttack = aggro.deck.find((card) => card.id === 'aggro_full_attack_1');
+  const state = createInitialBattleState({ name: 'Test', deck: [] });
+
+  state.player.hand.push({ ...fullAttack });
+  state.board[6] = unit('player', { attack: 2, hp: 1, maxHp: 2, effectId: 'wounded_atk_plus_1' });
+
+  const result = playEffectCard(state, 'player', fullAttack.id);
+
+  assert.equal(result.ok, true);
+  assert.equal(getUnitAttack(state.board[6]), 5);
+});
+
+test('Berserker combat damage updates after taking damage without changing same-step combat timing', () => {
+  const state = createInitialBattleState({ name: 'Test', deck: [] });
+
+  state.board[6] = unit('player', { attack: 2, hp: 2, maxHp: 2, effectId: 'wounded_atk_plus_1' });
+  state.board[0] = unit('enemy', { attack: 1, hp: 4, maxHp: 4 });
+
+  resolveCombat(state);
+
+  assert.equal(state.board[6].hp, 1);
+  assert.equal(getUnitAttack(state.board[6]), 3);
+  assert.equal(state.board[0].hp, 2);
+
+  resolveCombat(state);
+
+  assert.equal(state.board[0], null);
+});
+
 test('Alpha is a 1/2 unit with the adjacent attack and anti-armor aura', () => {
   const swarm = loadFaction('src/data/factions/swarm.json');
   const alpha = swarm.deck.find((card) => card.id === 'swarm_alpha_1');
