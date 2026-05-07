@@ -59,11 +59,43 @@ test('BattleScene lifecycle destroys stale interactive objects, overlays, timers
   assert.match(source, /init\(\) \{\s*this\.cleanupSceneObjects\(\);\s*this\.resetRuntimeState\(\);\s*\}/);
   assert.match(source, /create\(data\) \{\s*this\.cleanupSceneObjects\(\);/);
   assert.match(source, /shutdown\(\) \{\s*this\.cleanupSceneObjects\(\);/);
-  assert.match(source, /cleanupSceneObjects\(\) \{[\s\S]*this\.destroyBattleResultModal\(\);[\s\S]*this\.tweens\?\.killAll\?\.\(\);[\s\S]*this\.time\?\.removeAllEvents\?\.\(\);[\s\S]*this\.children\.removeAll\(true\);[\s\S]*\}/);
+  assert.match(source, /cleanupSceneObjects\(\{ preserveTimers = false, preserveTweens = false \} = \{\}\) \{[\s\S]*this\.destroyBattleResultModal\(\);[\s\S]*if \(!preserveTweens\) \{[\s\S]*this\.tweens\?\.killAll\?\.\(\);[\s\S]*if \(!preserveTimers\) \{[\s\S]*this\.time\?\.removeAllEvents\?\.\(\);[\s\S]*this\.children\.removeAll\(true\);[\s\S]*\}/);
   assert.match(source, /destroyBattleResultModal\(\) \{[\s\S]*overlay[\s\S]*buttons[\s\S]*item\?\.removeAllListeners\?\.\(\);[\s\S]*item\?\.destroy\?\.\(\);[\s\S]*\}/);
   assert.equal(expectedFiveLoopCoverage.length, 5);
 });
 
+
+test('Battle menu pauses and resumes the existing BattleScene instead of recreating battle state', () => {
+  const battleSource = readScene('src/scenes/BattleScene.js');
+  const menuSource = readScene('src/scenes/BattleMenuScene.js');
+
+  assert.match(battleSource, /centerIcon\.on\('pointerup', \(\) => this\.openBattleMenu\(\)\)/);
+  assert.match(battleSource, /openBattleMenu\(\) \{[\s\S]*this\.scene\.launch\('BattleMenuScene', \{ factionKey: this\.factionKey \}\);[\s\S]*this\.scene\.pause\(\);[\s\S]*\}/);
+  assert.match(battleSource, /resumeFromBattleMenu\(\) \{[\s\S]*this\.scene\.resume\(\);[\s\S]*this\.recoverFromLifecycle\('battle-menu-return'\);[\s\S]*\}/);
+  assert.match(menuSource, /battleScene\.resumeFromBattleMenu\(\)/);
+  assert.match(menuSource, /battleScene\.resumeFromBattleMenu\(\);\s*return;[\s\S]*this\.scene\.start\('BattleScene', \{ factionKey \}\)/);
+});
+
+test('runtime session lifecycle listens for browser visibility, fullscreen, Phaser pause/resume, and WebGL restore', () => {
+  const mainSource = readScene('src/main.js');
+  const lifecycleSource = readScene('src/systems/sessionLifecycle.js');
+  const battleSource = readScene('src/scenes/BattleScene.js');
+
+  assert.match(mainSource, /installSessionLifecycle\(game\)/);
+  assert.match(lifecycleSource, /'visibilitychange'/);
+  assert.match(lifecycleSource, /'fullscreenchange'/);
+  assert.match(lifecycleSource, /'blur'/);
+  assert.match(lifecycleSource, /'focus'/);
+  assert.match(lifecycleSource, /'pagehide'/);
+  assert.match(lifecycleSource, /'pageshow'/);
+  assert.match(lifecycleSource, /Phaser\.Core\.Events\.PAUSE/);
+  assert.match(lifecycleSource, /Phaser\.Core\.Events\.RESUME/);
+  assert.match(lifecycleSource, /'webglcontextlost'/);
+  assert.match(lifecycleSource, /'webglcontextrestored'/);
+  assert.match(battleSource, /recoverFromLifecycle\(reason = 'unknown', diagnostics = null\)/);
+  assert.match(battleSource, /rendererContextLost: Boolean\(gl\?\.isContextLost\?\.\(\)\)/);
+  assert.match(battleSource, /this\.rebuildBattleView\(reason\)/);
+});
 
 test('BattleScene routes every winner branch through delayed result modal completion', () => {
   const source = readScene('src/scenes/BattleScene.js');

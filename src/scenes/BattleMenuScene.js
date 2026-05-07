@@ -40,6 +40,12 @@ export default class BattleMenuScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true });
 
     backButton.on('pointerup', () => {
+      const battleScene = this.scene.get('BattleScene');
+      this.scene.stop();
+      if (battleScene?.resumeFromBattleMenu) {
+        battleScene.resumeFromBattleMenu();
+        return;
+      }
       this.scene.start('BattleScene', { factionKey });
     });
   }
