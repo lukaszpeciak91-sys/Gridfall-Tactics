@@ -13,7 +13,7 @@ import {
   resolveCombat,
   toggleFirstActor,
   resolveTurnCapWinner,
-  resolveNoProgressStallWinner,
+  resolveNoProgressDeadlockWinner,
   recordPassAction,
   MAX_TURNS,
 } from '../src/systems/GameState.js';
@@ -173,7 +173,7 @@ function simulateGame(playerFaction, enemyFaction, gameIndex, playerKey, enemyKe
     resolveCombat(state);
     turns += 1;
     state.turnsCompleted = turns;
-    resolveNoProgressStallWinner(state);
+    resolveNoProgressDeadlockWinner(state);
     if (state.winner) break;
     drawCards(state.player, 1);
     drawCards(state.enemy, 1);
@@ -182,9 +182,9 @@ function simulateGame(playerFaction, enemyFaction, gameIndex, playerKey, enemyKe
   }
 
   const endedByTurnCap = state.endingReason === 'turn-cap';
-  const endedByNoProgressStall = state.endingReason === 'no-progress-stall';
-  const endingType = endedByNoProgressStall
-    ? 'no-progress stall'
+  const endedByNoProgressDeadlock = state.endingReason === 'no-progress-deadlock';
+  const endingType = endedByNoProgressDeadlock
+    ? 'no-progress deadlock'
     : (endedByTurnCap ? 'turn cap' : ((state.playerHP === 0 || state.enemyHP === 0) ? 'hero damage' : 'unit attrition'));
   return {
     winner: state.winner ?? 'draw',
@@ -215,7 +215,7 @@ function run() {
   const perFaction = new Map(factionKeys.map((key) => [key, {
     games: 0, wins: 0, losses: 0, draws: 0, totalTurns: 0, turnCaps: 0,
   }]));
-  const endingCounts = { 'hero damage': 0, 'unit attrition': 0, 'turn cap': 0, 'no-progress stall': 0 };
+  const endingCounts = { 'hero damage': 0, 'unit attrition': 0, 'turn cap': 0, 'no-progress deadlock': 0 };
 
   factionKeys.forEach((playerKey) => {
     for (let i = 0; i < GAMES_PER_PLAYER_FACTION; i += 1) {
