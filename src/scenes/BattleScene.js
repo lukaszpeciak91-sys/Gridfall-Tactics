@@ -744,7 +744,7 @@ export default class BattleScene extends Phaser.Scene {
       label.setDepth(baseDepth + 2);
       hitArea.setDepth(baseDepth + 3);
 
-      this.cardViews.push({ cardId, glow, background, label, hitArea, baseY, labelBaseY, baseDepth, baseFontSize, focusedFontSize });
+      this.cardViews.push({ cardId, glow, background, label, hitArea, baseX: x, baseY, labelBaseX: x, labelBaseY, baseDepth, baseFontSize, focusedFontSize });
 
       if (!card) {
         background.setAlpha(0.42);
@@ -1480,6 +1480,49 @@ ${statParts.join(' | ')}`;
     this.playerHpText.setText(`${this.gameState.playerHP} / 12`);
   }
 
+  getHandCardFocusTarget(card, isSelected) {
+    const focusScale = isSelected ? this.handCardFocusScale : 1;
+    if (!isSelected) {
+      return {
+        scale: focusScale,
+        x: card.baseX,
+        y: card.baseY,
+        labelX: card.labelBaseX,
+        labelY: card.labelBaseY,
+      };
+    }
+
+    const { width, height, margin, hand } = this.layout;
+    const scaledWidth = hand.cardWidth * focusScale;
+    const scaledHeight = hand.cardHeight * focusScale;
+    const horizontalPadding = Math.max(4, margin * 0.5);
+    const minX = horizontalPadding + scaledWidth / 2;
+    const maxX = width - horizontalPadding - scaledWidth / 2;
+    const targetX = minX <= maxX
+      ? Phaser.Math.Clamp(card.baseX, minX, maxX)
+      : width * 0.5;
+
+    const raisedOffset = hand.h * 0.16;
+    const preferredY = card.baseY - raisedOffset;
+    const handTop = hand.y;
+    const handBottom = Math.min(height, hand.y + hand.h);
+    const handMinY = handTop + scaledHeight / 2;
+    const handMaxY = handBottom - scaledHeight / 2;
+    const canvasMinY = horizontalPadding + scaledHeight / 2;
+    const canvasMaxY = height - horizontalPadding - scaledHeight / 2;
+    const targetY = handMinY <= handMaxY
+      ? Phaser.Math.Clamp(preferredY, handMinY, handMaxY)
+      : Phaser.Math.Clamp(preferredY, Math.min(canvasMinY, canvasMaxY), Math.max(canvasMinY, canvasMaxY));
+
+    return {
+      scale: focusScale,
+      x: targetX,
+      y: targetY,
+      labelX: targetX,
+      labelY: card.labelBaseY + (targetY - card.baseY),
+    };
+  }
+
   resetCardHighlights() {
     const hasFocusedCard = Boolean(this.selectedCardId)
       || (this.openingMulliganPending && this.selectedMulliganCardIds.length > 0);
@@ -1489,13 +1532,10 @@ ${statParts.join(' | ')}`;
       const isSelected = card.cardId === this.selectedCardId || isMulliganSelected;
       const viewCard = this.gameState.player.hand.find((item) => item.id === card.cardId);
       const isDimmed = hasFocusedCard && !isSelected && Boolean(viewCard);
-      const focusScale = isSelected ? this.handCardFocusScale : 1;
-      const raisedOffset = isSelected ? this.layout.hand.h * 0.16 : 0;
-      const targetY = card.baseY - raisedOffset;
-      const labelTargetY = card.labelBaseY - raisedOffset;
+      const focusTarget = this.getHandCardFocusTarget(card, isSelected);
       const tweenDuration = isSelected ? HAND_CARD_FOCUS_TWEEN_MS : HAND_CARD_UNFOCUS_TWEEN_MS;
-      const bodyTargets = [card.glow, card.background, card.hitArea].filter(Boolean);
-      const allTargets = [...bodyTargets, card.label].filter(Boolean);
+      const renderTargets = [card.glow, card.background].filter(Boolean);
+      const allTargets = [...renderTargets, card.label, card.hitArea].filter(Boolean);
 
       this.tweens.killTweensOf(allTargets);
       card.background.setStrokeStyle(isSelected ? 5 : 3, isSelected ? 0xfacc15 : 0x94a3b8, isSelected ? 1 : 0.7);
@@ -1509,26 +1549,30 @@ ${statParts.join(' | ')}`;
       card.background.setAlpha(isDimmed ? 0.32 : viewCard ? 1 : 0.42);
       card.label.setAlpha(targetAlpha);
       card.hitArea.setAlpha(0);
+      card.hitArea.setPosition(card.baseX, card.baseY);
+      card.hitArea.setScale(1);
 
       const topDepth = isSelected ? 300 : card.baseDepth;
       card.glow.setDepth(topDepth);
       card.background.setDepth(topDepth + 1);
       card.label.setDepth(topDepth + 2);
-      card.hitArea.setDepth(topDepth + 3);
+      card.hitArea.setDepth(card.baseDepth + 3);
 
       this.tweens.add({
-        targets: bodyTargets,
-        y: targetY,
-        scaleX: focusScale,
-        scaleY: focusScale,
+        targets: renderTargets,
+        x: focusTarget.x,
+        y: focusTarget.y,
+        scaleX: focusTarget.scale,
+        scaleY: focusTarget.scale,
         duration: tweenDuration,
         ease: isSelected ? 'Back.Out' : 'Sine.Out',
       });
       this.tweens.add({
         targets: card.label,
-        y: labelTargetY,
-        scaleX: focusScale,
-        scaleY: focusScale,
+        x: focusTarget.labelX,
+        y: focusTarget.labelY,
+        scaleX: focusTarget.scale,
+        scaleY: focusTarget.scale,
         duration: tweenDuration,
         ease: isSelected ? 'Back.Out' : 'Sine.Out',
       });
