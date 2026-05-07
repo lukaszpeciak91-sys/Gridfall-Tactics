@@ -64,7 +64,7 @@ const quickFixCard = {
   type: 'utility',
   targeting: 'friendly_unit',
   effectId: 'heal_1_atk_1_draw_on_kill_this_turn',
-  textShort: 'Heal a unit 1. +1 ATK this turn. Draw 1 if it destroys a unit.',
+  textShort: 'Ally: heal 1, +1 ATK this turn. Draw if it kills.',
 };
 
 test('AI can legally target updated Quick Fix on a friendly unit', () => {
@@ -91,7 +91,7 @@ const pulseWaveCard = {
   type: 'order',
   targeting: 'all_enemy_units',
   effectId: 'damage_up_to_2_enemies_1',
-  textShort: 'Deal 1 to up to 2 enemies.',
+  textShort: 'Deal 1 to leftmost 2 enemies.',
 };
 
 test('AI models Pulse Wave as deterministic left-to-right damage on up to two occupied enemy lanes', () => {

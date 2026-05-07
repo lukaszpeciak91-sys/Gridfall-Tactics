@@ -41,7 +41,7 @@ test('Reactive Plating keeps the Tank deck slot and friendly targeting metadata'
   assert.equal(reactivePlating.name, 'Reactive Plating');
   assert.equal(reactivePlating.targeting, 'friendly_unit');
   assert.equal(reactivePlating.effectId, 'temp_armor_1');
-  assert.equal(reactivePlating.textShort, 'Target ally +1 armor this combat.');
+  assert.equal(reactivePlating.textShort, 'Target ally +1 ARM until combat ends.');
   assert.deepEqual(getTargetingStateForEffect(reactivePlating.effectId, reactivePlating.id), {
     cardId: 'tank_repair_kit_1',
     targetType: 'friendly-unit',

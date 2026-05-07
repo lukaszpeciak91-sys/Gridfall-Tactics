@@ -36,7 +36,7 @@ test('Runner remains a 2/1 Aggro unit with +2 open-lane hero damage text', () =>
   assert.equal(runner.armor, 0);
   assert.equal(runner.effectId, 'lane_empty_bonus_damage');
   assert.equal(runner.targeting, 'lane');
-  assert.equal(runner.textShort, 'If lane empty: +2 hero dmg.');
+  assert.equal(runner.textShort, 'Open enemy lane: +2 hero dmg.');
 });
 
 
@@ -122,7 +122,7 @@ test('Alpha is a 1/2 unit with the adjacent attack and anti-armor aura', () => {
   assert.equal(alpha.attack, 1);
   assert.equal(alpha.hp, 2);
   assert.equal(alpha.effectId, 'adjacent_allies_atk_plus_1_ignore_armor_1');
-  assert.equal(alpha.textShort, 'Adjacent allies +1 ATK and ignore 1 armor.');
+  assert.equal(alpha.textShort, 'Adjacent allies +1 ATK, ignore 1 ARM.');
 });
 
 test('Alpha still gives adjacent friendly units +1 ATK in combat', () => {
@@ -193,7 +193,7 @@ test('Flanker is a 2/2 Aggro unit with the same empty-adjacent attack role', () 
   assert.equal(flanker.armor, 0);
   assert.equal(flanker.effectId, 'empty_adjacent_bonus_atk');
   assert.equal(flanker.targeting, 'lane');
-  assert.equal(flanker.textShort, 'If adjacent slot empty: +1 ATK.');
+  assert.equal(flanker.textShort, 'If nearby ally slot empty: +1 ATK.');
 });
 
 
@@ -218,7 +218,7 @@ test('Disruptor is a 1/2 Control unit with the same order-cancel role', () => {
   assert.equal(disruptor.armor, 0);
   assert.equal(disruptor.effectId, 'cancel_enemy_order');
   assert.equal(disruptor.targeting, 'enemy');
-  assert.equal(disruptor.textShort, 'Cancel enemy order this turn.');
+  assert.equal(disruptor.textShort, 'On play: cancel next enemy effect this turn.');
 });
 
 test('Scout is a 2/1 Aggro unit with the same lane-block role', () => {
@@ -230,7 +230,7 @@ test('Scout is a 2/1 Aggro unit with the same lane-block role', () => {
   assert.equal(scout.armor, 0);
   assert.equal(scout.effectId, 'block_enemy_lane_play_this_turn');
   assert.equal(scout.targeting, 'enemy');
-  assert.equal(scout.textShort, "On play: enemy can't play units in this lane this turn.");
+  assert.equal(scout.textShort, "On play: block enemy unit play here this turn.");
 });
 
 test('Fortify grants all friendly units +1 temporary armor for combat', () => {
@@ -290,7 +290,7 @@ test('Quick Fix heals a friendly unit by 1 and grants +1 temporary attack for co
   assert.equal(getUnitAttack(state.board[6]), 3);
   assert.equal(quickFix.effectId, 'heal_1_atk_1_draw_on_kill_this_turn');
   assert.equal(quickFix.targeting, 'friendly_unit');
-  assert.equal(quickFix.textShort, 'Heal a unit 1. +1 ATK this turn. Draw 1 if it destroys a unit.');
+  assert.equal(quickFix.textShort, 'Ally: heal 1, +1 ATK this turn. Draw if it kills.');
 
   resolveCombat(state);
 
@@ -383,7 +383,7 @@ test('Jam Signal applies -1 temporary attack to up to two enemy units', () => {
   assert.equal(state.board[2].tempAttackMod, undefined);
   assert.equal(jamSignal.targeting, 'all_enemy_units');
   assert.equal(jamSignal.effectId, 'enemy_all_atk_minus_1');
-  assert.equal(jamSignal.textShort, 'Up to 2 enemies -1 ATK this turn.');
+  assert.equal(jamSignal.textShort, 'Leftmost 2 enemies -1 ATK this turn.');
 
   resolveCombat(state);
 
@@ -411,7 +411,7 @@ test('Pulse Wave damages only the two leftmost occupied enemy lanes', () => {
   assert.equal(state.board[2].hp, 1);
   assert.equal(pulseWave.targeting, 'all_enemy_units');
   assert.equal(pulseWave.effectId, 'damage_up_to_2_enemies_1');
-  assert.equal(pulseWave.textShort, 'Deal 1 to up to 2 enemies.');
+  assert.equal(pulseWave.textShort, 'Deal 1 to leftmost 2 enemies.');
 });
 
 test('Pulse Wave skips empty lanes and damages a single enemy if only one exists', () => {
