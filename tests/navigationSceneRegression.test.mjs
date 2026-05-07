@@ -63,3 +63,23 @@ test('BattleScene lifecycle destroys stale interactive objects, overlays, timers
   assert.match(source, /destroyBattleResultModal\(\) \{[\s\S]*overlay[\s\S]*buttons[\s\S]*item\?\.removeAllListeners\?\.\(\);[\s\S]*item\?\.destroy\?\.\(\);[\s\S]*\}/);
   assert.equal(expectedFiveLoopCoverage.length, 5);
 });
+
+
+test('BattleScene routes every winner branch through delayed result modal completion', () => {
+  const source = readScene('src/scenes/BattleScene.js');
+
+  assert.match(source, /completeBattleFlow\(delayMs = 500\) \{[\s\S]*this\.updateInitiativeIndicator\(\);[\s\S]*this\.scheduleBattleResultModal\(delayMs\);[\s\S]*\}/);
+  assert.match(source, /scheduleBattleResultModal\(delayMs = 500\) \{[\s\S]*this\.battleResultModalPending = true;[\s\S]*this\.time\.delayedCall\(delayMs, \(\) => this\.showBattleResultModal\(\)\);[\s\S]*\}/);
+  assert.match(source, /resolveNoProgressStallWinner\(this\.gameState\);\s*if \(this\.gameState\.winner\) \{\s*this\.completeBattleFlow\(500\);\s*return;\s*\}/);
+  assert.match(source, /resolveTurnCapWinner\(this\.gameState, this\.gameState\.turnsCompleted\);[\s\S]*if \(this\.gameState\.winner\) \{\s*this\.completeBattleFlow\(500\);\s*return;\s*\}/);
+});
+
+test('BattleScene still opens the result modal when a player action sets winner', () => {
+  const source = readScene('src/scenes/BattleScene.js');
+  const completePlayerActionStart = source.indexOf('async completePlayerAction');
+  const finishTurnStart = source.indexOf('async finishTurnAfterBothActions');
+  const completePlayerActionSource = source.slice(completePlayerActionStart, finishTurnStart);
+
+  assert.doesNotMatch(completePlayerActionSource, /this\.gameState\.winner \|\| this\.isFlowResolving/);
+  assert.match(completePlayerActionSource, /await this\.playBuffFeedback\(beforeStats, 'player'\);\s*if \(this\.gameState\.winner\) \{\s*this\.completeBattleFlow\(500\);\s*return;\s*\}/);
+});

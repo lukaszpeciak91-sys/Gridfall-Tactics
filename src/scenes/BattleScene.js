@@ -21,6 +21,7 @@ export default class BattleScene extends Phaser.Scene {
     this.enemyActionBanner = null;
     this.battleResultModal = null;
     this.battleResultModalShown = false;
+    this.battleResultModalPending = false;
   }
 
   preload() {
@@ -47,6 +48,7 @@ export default class BattleScene extends Phaser.Scene {
     this.enemyActionBanner = null;
     this.battleResultModal = null;
     this.battleResultModalShown = false;
+    this.battleResultModalPending = false;
     this.gameState = null;
     this.factionKey = null;
     this.layout = null;
@@ -241,12 +243,22 @@ export default class BattleScene extends Phaser.Scene {
     return 'DRAW';
   }
 
-  scheduleBattleResultModal() {
-    if (!this.gameState?.winner || this.battleResultModalShown) return;
-    this.time.delayedCall(500, () => this.showBattleResultModal());
+  scheduleBattleResultModal(delayMs = 500) {
+    if (!this.gameState?.winner || this.battleResultModalShown || this.battleResultModalPending) return;
+    this.battleResultModalPending = true;
+    this.isFlowResolving = true;
+    this.time.delayedCall(delayMs, () => this.showBattleResultModal());
+  }
+
+  completeBattleFlow(delayMs = 500) {
+    if (!this.gameState?.winner || this.battleResultModalShown) return false;
+    this.updateInitiativeIndicator();
+    this.scheduleBattleResultModal(delayMs);
+    return true;
   }
 
   showBattleResultModal() {
+    this.battleResultModalPending = false;
     if (!this.gameState?.winner || this.battleResultModalShown) return;
 
     this.battleResultModalShown = true;
@@ -353,6 +365,7 @@ export default class BattleScene extends Phaser.Scene {
   destroyBattleResultModal() {
     if (!this.battleResultModal) {
       this.battleResultModalShown = false;
+      this.battleResultModalPending = false;
       return;
     }
     const items = [
@@ -368,6 +381,7 @@ export default class BattleScene extends Phaser.Scene {
     });
     this.battleResultModal = null;
     this.battleResultModalShown = false;
+    this.battleResultModalPending = false;
   }
 
   exitBattleToFactionSelect() {
@@ -829,17 +843,14 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   async completePlayerAction(beforeStats = null) {
-    if (this.playerActionUsed || this.gameState.winner || this.isFlowResolving) return;
+    if (!this.gameState || this.playerActionUsed || this.isFlowResolving) return;
 
     this.playerActionUsed = true;
     this.isFlowResolving = true;
     this.refreshAfterPlayerAction();
     await this.playBuffFeedback(beforeStats, 'player');
     if (this.gameState.winner) {
-      await this.delay(500);
-      this.isFlowResolving = false;
-      this.updateInitiativeIndicator();
-      this.showBattleResultModal();
+      this.completeBattleFlow(500);
       return;
     }
     this.isFlowResolving = false;
@@ -853,10 +864,7 @@ export default class BattleScene extends Phaser.Scene {
     await this.delay(650);
     await this.revealAndApplyEnemyAction();
     if (this.gameState.winner) {
-      await this.delay(500);
-      this.isFlowResolving = false;
-      this.updateInitiativeIndicator();
-      this.showBattleResultModal();
+      this.completeBattleFlow(500);
       return;
     }
     this.isFlowResolving = false;
@@ -876,10 +884,7 @@ export default class BattleScene extends Phaser.Scene {
       await this.delay(650);
       await this.revealAndApplyEnemyAction();
       if (this.gameState.winner) {
-        await this.delay(500);
-        this.isFlowResolving = false;
-        this.updateInitiativeIndicator();
-        this.showBattleResultModal();
+        this.completeBattleFlow(500);
         return;
       }
     }
@@ -898,8 +903,7 @@ export default class BattleScene extends Phaser.Scene {
     this.gameState.turnsCompleted += 1;
     resolveNoProgressStallWinner(this.gameState);
     if (this.gameState.winner) {
-      this.isFlowResolving = false;
-      this.updateInitiativeIndicator();
+      this.completeBattleFlow(500);
       return;
     }
 
@@ -914,9 +918,7 @@ export default class BattleScene extends Phaser.Scene {
     this.resetCardHighlights();
 
     if (this.gameState.winner) {
-      this.isFlowResolving = false;
-      this.updateInitiativeIndicator();
-      this.showBattleResultModal();
+      this.completeBattleFlow(500);
       return;
     }
 
