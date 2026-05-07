@@ -26,6 +26,19 @@ const unit = (owner, overrides = {}) => ({
   ...overrides,
 });
 
+
+test('Runner remains a 2/1 Aggro unit with +2 open-lane hero damage text', () => {
+  const aggro = loadFaction('src/data/factions/aggro.json');
+  const runner = aggro.deck.find((card) => card.id === 'aggro_runner_1');
+
+  assert.equal(runner.attack, 2);
+  assert.equal(runner.hp, 1);
+  assert.equal(runner.armor, 0);
+  assert.equal(runner.effectId, 'lane_empty_bonus_damage');
+  assert.equal(runner.targeting, 'lane');
+  assert.equal(runner.textShort, 'If lane empty: +2 hero dmg.');
+});
+
 test('Alpha is a 1/2 unit with the adjacent attack and anti-armor aura', () => {
   const swarm = loadFaction('src/data/factions/swarm.json');
   const alpha = swarm.deck.find((card) => card.id === 'swarm_alpha_1');

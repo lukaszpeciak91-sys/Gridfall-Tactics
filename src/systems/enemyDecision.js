@@ -1,4 +1,4 @@
-import { canPlayOrRedeploy, canSwap, performSwap, playEffectCard, playOrRedeployUnit, resolveTargetedEffectCard, getUnitAttack, getUnitArmor } from './GameState.js';
+import { canPlayOrRedeploy, canSwap, performSwap, playEffectCard, playOrRedeployUnit, resolveTargetedEffectCard, getUnitAttack, getUnitArmor, RUNNER_OPEN_LANE_HERO_BONUS } from './GameState.js';
 
 const ENEMY_ROW_INDEXES = [0, 1, 2];
 const PLAYER_ROW_INDEXES = [6, 7, 8];
@@ -104,7 +104,7 @@ function getGuaranteedHeroDamage(state, owner) {
     const attacker = state?.board?.[friendlyIndex];
     const blocker = state?.board?.[opposing[lane]];
     if (!attacker || blocker) return;
-    const laneBonus = attacker.effectId === 'lane_empty_bonus_damage' ? 1 : 0;
+    const laneBonus = attacker.effectId === 'lane_empty_bonus_damage' ? RUNNER_OPEN_LANE_HERO_BONUS : 0;
     total += getUnitAttack(attacker) + laneBonus;
   });
   return total;
@@ -128,7 +128,7 @@ function getOpenLaneStats(state, owner) {
     const unit = state?.board?.[friendlyIndex];
     if (!unit || state?.board?.[opposing[lane]]) return;
     lanes += 1;
-    damage += getUnitAttack(unit) + (unit.effectId === 'lane_empty_bonus_damage' ? 1 : 0);
+    damage += getUnitAttack(unit) + (unit.effectId === 'lane_empty_bonus_damage' ? RUNNER_OPEN_LANE_HERO_BONUS : 0);
   });
   return { lanes, damage };
 }
