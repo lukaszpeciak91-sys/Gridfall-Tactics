@@ -1608,8 +1608,8 @@ ${statParts.join(' | ')}`;
       const isDimmed = hasFocusedCard && !isHighlighted && Boolean(viewCard);
       const focusTarget = this.getHandCardFocusTarget(card, isFocused);
       const tweenDuration = isFocused ? HAND_CARD_FOCUS_TWEEN_MS : HAND_CARD_UNFOCUS_TWEEN_MS;
-      const renderTargets = [card.glow, card.background].filter(Boolean);
-      const allTargets = [...renderTargets, card.label, card.hitArea].filter(Boolean);
+      const bodyTargets = [card.glow, card.background, card.hitArea].filter(Boolean);
+      const allTargets = [...bodyTargets, card.label].filter(Boolean);
 
       this.tweens.killTweensOf(allTargets);
       card.background.setStrokeStyle(isHighlighted ? 5 : 3, isHighlighted ? 0xfacc15 : 0x94a3b8, isHighlighted ? 1 : 0.7);
@@ -1630,10 +1630,10 @@ ${statParts.join(' | ')}`;
       card.glow.setDepth(topDepth);
       card.background.setDepth(topDepth + 1);
       card.label.setDepth(topDepth + 2);
-      card.hitArea.setDepth(card.baseDepth + 3);
+      card.hitArea.setDepth(topDepth + 3);
 
       this.tweens.add({
-        targets: renderTargets,
+        targets: bodyTargets,
         x: focusTarget.x,
         y: focusTarget.y,
         scaleX: focusTarget.scale,

@@ -11,14 +11,15 @@ test('focused hand card selection still routes board cells through existing play
   assert.match(source, /const result = playOrRedeployUnit\(this\.gameState, 'player', this\.selectedCardId, boardIndex\);/);
 });
 
-test('focused hand card render movement is edge-clamped while the invisible hit area stays unscaled in the hand', () => {
+test('focused hand card render movement is edge-clamped while the invisible hit area follows the playable card body', () => {
   assert.match(source, /getHandCardFocusTarget\(card, isSelected\) \{/);
   assert.match(source, /Phaser\.Math\.Clamp\(card\.baseX, minX, maxX\)/);
   assert.match(source, /Phaser\.Math\.Clamp\(preferredY,[\s\S]*canvasMaxY\)\)/);
-  assert.match(source, /const renderTargets = \[card\.glow, card\.background\]\.filter\(Boolean\);/);
+  assert.match(source, /const bodyTargets = \[card\.glow, card\.background, card\.hitArea\]\.filter\(Boolean\);/);
   assert.match(source, /card\.hitArea\.setPosition\(card\.baseX, card\.baseY\);\s*card\.hitArea\.setScale\(1\);/);
-  assert.match(source, /card\.hitArea\.setDepth\(card\.baseDepth \+ 3\);/);
-  assert.doesNotMatch(source, /const bodyTargets = \[card\.glow, card\.background, card\.hitArea\]/);
+  assert.match(source, /card\.hitArea\.setDepth\(topDepth \+ 3\);/);
+  assert.match(source, /targets: bodyTargets,\s*x: focusTarget\.x,\s*y: focusTarget\.y,\s*scaleX: focusTarget\.scale,\s*scaleY: focusTarget\.scale,/);
+  assert.doesNotMatch(source, /card\.hitArea\.setDepth\(card\.baseDepth \+ 3\);/);
 });
 
 test('hand card focus state stays separate from gameplay and mulligan selection state', () => {
