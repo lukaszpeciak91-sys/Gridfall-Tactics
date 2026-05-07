@@ -12,6 +12,8 @@ const HAND_CARD_UNFOCUS_TWEEN_MS = 105;
 export default class BattleScene extends Phaser.Scene {
   constructor() {
     super('BattleScene');
+    this.focusedCardId = null;
+    this.focusedCardView = null;
     this.selectedCardId = null;
     this.cardViews = [];
     this.boardCells = [];
@@ -42,6 +44,8 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   resetRuntimeState() {
+    this.focusedCardId = null;
+    this.focusedCardView = null;
     this.selectedCardId = null;
     this.cardViews = [];
     this.boardCells = [];
@@ -691,7 +695,10 @@ export default class BattleScene extends Phaser.Scene {
           fontStyle: 'bold',
         }).setOrigin(0.5);
 
-        background.on('pointerup', () => this.onBoardCellTap(boardIndex));
+        background.on('pointerup', (pointer, localX, localY, event) => {
+          event?.stopPropagation?.();
+          this.onBoardCellTap(boardIndex);
+        });
         this.boardCells.push({ index: boardIndex, row, background, label, blockedMarker });
       }
     }
@@ -715,7 +722,8 @@ export default class BattleScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true });
 
     this.actionButton = button;
-    button.on('pointerup', () => {
+    button.on('pointerup', (pointer, localX, localY, event) => {
+      event?.stopPropagation?.();
       if (this.openingMulliganPending) {
         this.confirmOpeningMulligan();
         return;
@@ -765,7 +773,10 @@ export default class BattleScene extends Phaser.Scene {
 
       const hitArea = this.add.rectangle(x, baseY, hand.cardWidth, hand.cardHeight, 0x000000, 0)
         .setInteractive({ useHandCursor: true });
-      hitArea.on('pointerup', () => this.onCardTap(cardId));
+      hitArea.on('pointerup', (pointer, localX, localY, event) => {
+        event?.stopPropagation?.();
+        this.onCardTap(cardId);
+      });
 
       const baseDepth = 20 + index * 4;
       glow.setDepth(baseDepth);
@@ -811,6 +822,7 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     if (this.openingMulliganPending) {
+      this.focusHandCard(cardId);
       this.toggleOpeningMulliganCard(cardId);
       return;
     }
@@ -821,11 +833,12 @@ export default class BattleScene extends Phaser.Scene {
 
     const card = this.gameState.player.hand.find((item) => item.id === cardId);
     if (!card) {
-      this.unfocusSelectedCard();
+      this.clearHandCardSelection();
       return;
     }
 
     this.pendingSwapIndex = null;
+    this.focusHandCard(cardId);
 
     if (this.selectedCardId === cardId) {
       this.playFocusedCard(card);
@@ -854,11 +867,24 @@ export default class BattleScene extends Phaser.Scene {
     this.completePlayerAction(beforeStats);
   }
 
-  unfocusSelectedCard() {
-    if (!this.selectedCardId && !this.targetingState) return;
+  focusHandCard(cardId) {
+    const focusedCardView = this.cardViews.find((view) => view.cardId === cardId) ?? null;
+    const focusedCard = this.gameState?.player?.hand?.find((card) => card.id === cardId) ?? null;
+    this.focusedCardId = focusedCard ? cardId : null;
+    this.focusedCardView = focusedCard ? focusedCardView : null;
+  }
+
+  clearHandCardSelection() {
+    const hadState = Boolean(this.selectedCardId || this.focusedCardId || this.focusedCardView || this.targetingState);
     this.selectedCardId = null;
+    this.focusedCardId = null;
+    this.focusedCardView = null;
     this.targetingState = null;
-    this.resetCardHighlights();
+    if (hadState) this.resetCardHighlights();
+  }
+
+  unfocusSelectedCard() {
+    this.clearHandCardSelection();
   }
 
   onScenePointerUp(pointer, gameObjects = []) {
@@ -1002,7 +1028,7 @@ export default class BattleScene extends Phaser.Scene {
 
     this.openingMulliganPending = false;
     this.selectedMulliganCardIds = [];
-    this.selectedCardId = null;
+    this.clearHandCardSelection();
     this.redrawHand();
     this.updateActionButtonLabel();
     this.resetCardHighlights();
@@ -1043,6 +1069,8 @@ export default class BattleScene extends Phaser.Scene {
     this.playerActionUsed = false;
     this.enemyActionUsed = false;
     this.selectedCardId = null;
+    this.focusedCardId = null;
+    this.focusedCardView = null;
     this.pendingSwapIndex = null;
     this.targetingState = null;
     this.updateInitiativeIndicator();
@@ -1157,6 +1185,8 @@ export default class BattleScene extends Phaser.Scene {
 
   refreshAfterPlayerAction() {
     this.selectedCardId = null;
+    this.focusedCardId = null;
+    this.focusedCardView = null;
     this.pendingSwapIndex = null;
     this.targetingState = null;
     this.refreshBoardLabels();
@@ -1553,25 +1583,28 @@ ${statParts.join(' | ')}`;
   }
 
   resetCardHighlights() {
-    const hasFocusedCard = Boolean(this.selectedCardId)
+    const hasFocusedCard = Boolean(this.focusedCardId || this.selectedCardId)
       || (this.openingMulliganPending && this.selectedMulliganCardIds.length > 0);
 
     this.cardViews.forEach((card) => {
       const isMulliganSelected = this.openingMulliganPending && this.selectedMulliganCardIds.includes(card.cardId);
-      const isSelected = card.cardId === this.selectedCardId || isMulliganSelected;
+      const isGameplaySelected = !this.openingMulliganPending && card.cardId === this.selectedCardId;
+      const isFocused = card.cardId === this.focusedCardId || isGameplaySelected;
+      const isSelected = isGameplaySelected || isMulliganSelected;
+      const isHighlighted = isSelected || isFocused;
       const viewCard = this.gameState.player.hand.find((item) => item.id === card.cardId);
-      const isDimmed = hasFocusedCard && !isSelected && Boolean(viewCard);
-      const focusTarget = this.getHandCardFocusTarget(card, isSelected);
-      const tweenDuration = isSelected ? HAND_CARD_FOCUS_TWEEN_MS : HAND_CARD_UNFOCUS_TWEEN_MS;
+      const isDimmed = hasFocusedCard && !isHighlighted && Boolean(viewCard);
+      const focusTarget = this.getHandCardFocusTarget(card, isFocused);
+      const tweenDuration = isFocused ? HAND_CARD_FOCUS_TWEEN_MS : HAND_CARD_UNFOCUS_TWEEN_MS;
       const renderTargets = [card.glow, card.background].filter(Boolean);
       const allTargets = [...renderTargets, card.label, card.hitArea].filter(Boolean);
 
       this.tweens.killTweensOf(allTargets);
-      card.background.setStrokeStyle(isSelected ? 5 : 3, isSelected ? 0xfacc15 : 0x94a3b8, isSelected ? 1 : 0.7);
-      card.background.setFillStyle(isSelected ? 0x334155 : 0x111827, isSelected ? 0.9 : viewCard ? 0.55 : 0.42);
-      card.glow.setStrokeStyle(isSelected ? 5 : 0, 0xfacc15, isSelected ? 0.65 : 0);
-      card.glow.setFillStyle(0xfacc15, isSelected ? 0.12 : 0);
-      card.label.setFontSize(isSelected ? card.focusedFontSize : card.baseFontSize);
+      card.background.setStrokeStyle(isHighlighted ? 5 : 3, isHighlighted ? 0xfacc15 : 0x94a3b8, isHighlighted ? 1 : 0.7);
+      card.background.setFillStyle(isHighlighted ? 0x334155 : 0x111827, isHighlighted ? 0.9 : viewCard ? 0.55 : 0.42);
+      card.glow.setStrokeStyle(isHighlighted ? 5 : 0, 0xfacc15, isHighlighted ? 0.65 : 0);
+      card.glow.setFillStyle(0xfacc15, isHighlighted ? 0.12 : 0);
+      card.label.setFontSize(isFocused ? card.focusedFontSize : card.baseFontSize);
       card.label.setColor(isDimmed ? '#cbd5e1' : '#f8fafc');
 
       const targetAlpha = isDimmed ? 0.34 : viewCard ? 1 : 0.45;
@@ -1581,7 +1614,7 @@ ${statParts.join(' | ')}`;
       card.hitArea.setPosition(card.baseX, card.baseY);
       card.hitArea.setScale(1);
 
-      const topDepth = isSelected ? 300 : card.baseDepth;
+      const topDepth = isFocused ? 300 : isHighlighted ? 220 : card.baseDepth;
       card.glow.setDepth(topDepth);
       card.background.setDepth(topDepth + 1);
       card.label.setDepth(topDepth + 2);
@@ -1594,7 +1627,7 @@ ${statParts.join(' | ')}`;
         scaleX: focusTarget.scale,
         scaleY: focusTarget.scale,
         duration: tweenDuration,
-        ease: isSelected ? 'Back.Out' : 'Sine.Out',
+        ease: isFocused ? 'Back.Out' : 'Sine.Out',
       });
       this.tweens.add({
         targets: card.label,
@@ -1603,7 +1636,7 @@ ${statParts.join(' | ')}`;
         scaleX: focusTarget.scale,
         scaleY: focusTarget.scale,
         duration: tweenDuration,
-        ease: isSelected ? 'Back.Out' : 'Sine.Out',
+        ease: isFocused ? 'Back.Out' : 'Sine.Out',
       });
     });
 
