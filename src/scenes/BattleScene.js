@@ -3,6 +3,7 @@ import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
 import { createInitialBattleState, drawCards, shuffleDeck, canPass, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, getUnitAttack, getUnitArmor, toggleFirstActor, resolveTurnCapWinner, resolveImmediateNoProgressWinner, recordPassAction, performOpeningMulligan, STARTING_HAND_SIZE, MAX_OPENING_MULLIGAN_CARDS } from '../systems/GameState.js';
 import { chooseEnemyAction, recordBattleActionUse, selectOpeningMulliganCardIds } from '../systems/enemyDecision.js';
 import { getTargetingStateForEffect } from '../systems/cardTargeting.js';
+import { BATTLE_BACKGROUND_FALLBACK_COLOR, BATTLE_BACKGROUND_FALLBACK_COLOR_HEX, getBattleBackgroundAsset, hasLoadedBattleBackground, preloadBattleBackgroundArt } from '../rendering/backgroundArt.js';
 
 const HAND_CARD_FOCUS_SCALE = 1.42;
 const HAND_CARD_FOCUS_TWEEN_MS = 120;
@@ -27,10 +28,12 @@ export default class BattleScene extends Phaser.Scene {
     this.battleResultModalShown = false;
     this.battleResultModalPending = false;
     this.handCardFocusScale = HAND_CARD_FOCUS_SCALE;
+    this.backgroundArtAsset = null;
+    this.backgroundLayer = null;
   }
 
   preload() {
-    // no-op
+    preloadBattleBackgroundArt(this);
   }
 
   init() {
@@ -67,6 +70,8 @@ export default class BattleScene extends Phaser.Scene {
     this.lastCombatEvents = [];
     this.enemyFactionKey = null;
     this.handCardFocusScale = HAND_CARD_FOCUS_SCALE;
+    this.backgroundArtAsset = null;
+    this.backgroundLayer = null;
   }
 
   cleanupSceneObjects({ preserveTimers = false, preserveTweens = false } = {}) {
@@ -109,9 +114,11 @@ export default class BattleScene extends Phaser.Scene {
     this.applyEnemyOpeningMulligan();
     this.openingMulliganPending = true;
 
-    this.cameras.main.setBackgroundColor('#05080f');
+    this.cameras.main.setBackgroundColor(BATTLE_BACKGROUND_FALLBACK_COLOR_HEX);
     this.layout = this.getLayoutMetrics(width, height);
+    this.backgroundArtAsset = getBattleBackgroundAsset({ playerFactionKey, enemyFactionKey });
 
+    this.drawBattleBackground();
     this.drawBattleFrame();
     this.drawBoard();
     this.drawHeroPanels();
@@ -215,9 +222,29 @@ export default class BattleScene extends Phaser.Scene {
     };
   }
 
+  drawBattleBackground() {
+    const { width, height } = this.layout;
+    const centerX = width * 0.5;
+    const centerY = height * 0.5;
+
+    if (hasLoadedBattleBackground(this, this.backgroundArtAsset)) {
+      const background = this.add.image(centerX, centerY, this.backgroundArtAsset.key)
+        .setOrigin(0.5)
+        .setDepth(-1000);
+      const coverScale = Math.max(width / background.width, height / background.height);
+      background.setScale(coverScale);
+      this.backgroundLayer = background;
+      return;
+    }
+
+    this.backgroundLayer = this.add.rectangle(centerX, centerY, width, height, BATTLE_BACKGROUND_FALLBACK_COLOR, 1)
+      .setDepth(-1000);
+  }
+
   drawBattleFrame() {
     const { width, height } = this.layout;
-    this.battleFrame = this.add.rectangle(width * 0.5, height * 0.5, width, height, 0x05080f, 1);
+    this.battleFrame = this.add.rectangle(width * 0.5, height * 0.5, width, height, 0x05080f, 0.72);
+    this.battleFrame.setDepth(-900);
   }
 
 
@@ -463,7 +490,7 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
-    this.cameras.main.setBackgroundColor('#05080f');
+    this.cameras.main.setBackgroundColor(BATTLE_BACKGROUND_FALLBACK_COLOR_HEX);
 
     if (this.shouldRebuildBattleView(reason, recoveryDiagnostics)) {
       this.rebuildBattleView(reason);
@@ -533,8 +560,10 @@ export default class BattleScene extends Phaser.Scene {
     const resultModalWasShown = this.battleResultModalShown;
     this.cleanupSceneObjects({ preserveTimers: true, preserveTweens: true });
     this.layout = this.getLayoutMetrics(width, height);
-    this.cameras.main.setBackgroundColor('#05080f');
+    this.cameras.main.setBackgroundColor(BATTLE_BACKGROUND_FALLBACK_COLOR_HEX);
+    this.backgroundArtAsset = getBattleBackgroundAsset({ playerFactionKey: this.factionKey, enemyFactionKey: this.enemyFactionKey });
 
+    this.drawBattleBackground();
     this.drawBattleFrame();
     this.drawBoard();
     this.drawHeroPanels();
