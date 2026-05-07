@@ -822,7 +822,11 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     if (this.openingMulliganPending) {
-      this.focusHandCard(cardId);
+      this.selectedCardId = null;
+      this.focusedCardId = null;
+      this.focusedCardView = null;
+      this.targetingState = null;
+      this.pendingSwapIndex = null;
       this.toggleOpeningMulliganCard(cardId);
       return;
     }
@@ -1026,13 +1030,21 @@ export default class BattleScene extends Phaser.Scene {
     const result = performOpeningMulligan(this.gameState, 'player', selectedIds);
     if (!result.ok) return;
 
+    this.resetOpeningMulliganInputState();
     this.openingMulliganPending = false;
-    this.selectedMulliganCardIds = [];
-    this.clearHandCardSelection();
     this.redrawHand();
     this.updateActionButtonLabel();
     this.resetCardHighlights();
     this.startTurn();
+  }
+
+  resetOpeningMulliganInputState() {
+    this.selectedMulliganCardIds = [];
+    this.selectedCardId = null;
+    this.focusedCardId = null;
+    this.focusedCardView = null;
+    this.targetingState = null;
+    this.pendingSwapIndex = null;
   }
 
   updateActionButtonLabel() {
@@ -1589,7 +1601,7 @@ ${statParts.join(' | ')}`;
     this.cardViews.forEach((card) => {
       const isMulliganSelected = this.openingMulliganPending && this.selectedMulliganCardIds.includes(card.cardId);
       const isGameplaySelected = !this.openingMulliganPending && card.cardId === this.selectedCardId;
-      const isFocused = card.cardId === this.focusedCardId || isGameplaySelected;
+      const isFocused = !this.openingMulliganPending && (card.cardId === this.focusedCardId || isGameplaySelected);
       const isSelected = isGameplaySelected || isMulliganSelected;
       const isHighlighted = isSelected || isFocused;
       const viewCard = this.gameState.player.hand.find((item) => item.id === card.cardId);
