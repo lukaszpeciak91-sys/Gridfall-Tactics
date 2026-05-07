@@ -3,6 +3,7 @@ import StartScene from './scenes/StartScene.js';
 import FactionSelectScene from './scenes/FactionSelectScene.js';
 import BattleScene from './scenes/BattleScene.js';
 import BattleMenuScene from './scenes/BattleMenuScene.js';
+import { installSessionLifecycle } from './systems/sessionLifecycle.js';
 
 const config = {
   type: Phaser.AUTO,
@@ -17,4 +18,5 @@ const config = {
   scene: [StartScene, FactionSelectScene, BattleScene, BattleMenuScene],
 };
 
-new Phaser.Game(config);
+const game = new Phaser.Game(config);
+installSessionLifecycle(game);

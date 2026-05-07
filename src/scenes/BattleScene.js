@@ -63,10 +63,14 @@ export default class BattleScene extends Phaser.Scene {
     this.enemyFactionKey = null;
   }
 
-  cleanupSceneObjects() {
+  cleanupSceneObjects({ preserveTimers = false, preserveTweens = false } = {}) {
     this.destroyBattleResultModal();
-    this.tweens?.killAll?.();
-    this.time?.removeAllEvents?.();
+    if (!preserveTweens) {
+      this.tweens?.killAll?.();
+    }
+    if (!preserveTimers) {
+      this.time?.removeAllEvents?.();
+    }
 
     if (this.children) {
       this.children.each((child) => {
@@ -231,7 +235,7 @@ export default class BattleScene extends Phaser.Scene {
     });
 
     leftIcon.on('pointerup', () => this.exitBattleToFactionSelect());
-    centerIcon.on('pointerup', () => this.scene.start('BattleMenuScene', { factionKey: this.factionKey }));
+    centerIcon.on('pointerup', () => this.openBattleMenu());
     rightIcon.on('pointerup', () => this.toggleFullscreen());
   }
 
@@ -394,6 +398,16 @@ export default class BattleScene extends Phaser.Scene {
     this.scene.start('FactionSelectScene');
   }
 
+  openBattleMenu() {
+    this.scene.launch('BattleMenuScene', { factionKey: this.factionKey });
+    this.scene.pause();
+  }
+
+  resumeFromBattleMenu() {
+    this.scene.resume();
+    this.recoverFromLifecycle('battle-menu-return');
+  }
+
   retryBattle() {
     const factionKey = this.factionKey;
     const enemyFactionKey = this.enemyFactionKey;
@@ -420,19 +434,128 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   onFullscreenChanged() {
-    this.onViewportChanged();
+    this.recoverFromLifecycle(this.scale.isFullscreen ? 'enterfullscreen' : 'leavefullscreen');
   }
 
   onViewportChanged() {
+    if (!this.gameState) return;
+    this.rebuildBattleView('viewport-change');
+  }
+
+  recoverFromLifecycle(reason = 'unknown', diagnostics = null) {
+    const recoveryDiagnostics = this.getLifecycleDiagnostics(reason, diagnostics);
+    console.debug('BattleScene lifecycle recovery diagnostics', recoveryDiagnostics);
+
+    if (!this.gameState) {
+      console.warn('BattleScene lifecycle recovery skipped: missing GameState', recoveryDiagnostics);
+      return;
+    }
+
+    if (!this.scene.isActive() && !this.scene.isPaused()) {
+      console.warn('BattleScene lifecycle recovery skipped: scene is not active or paused', recoveryDiagnostics);
+      return;
+    }
+
+    this.cameras.main.setBackgroundColor('#05080f');
+
+    if (this.shouldRebuildBattleView(reason, recoveryDiagnostics)) {
+      this.rebuildBattleView(reason);
+    } else {
+      this.refreshBoardLabels();
+      this.refreshHeroHP();
+      this.updateActionButtonLabel();
+      this.updateInitiativeIndicator();
+      this.resetCardHighlights();
+    }
+
+    this.game.renderer?.resetTextures?.();
+    this.game.renderer?.snapshotArea?.(0, 0, 1, 1, () => {});
+    this.game.canvas?.focus?.();
+  }
+
+  shouldRebuildBattleView(reason, diagnostics) {
+    const structuralRecoveryReasons = new Set([
+      'enterfullscreen',
+      'leavefullscreen',
+      'fullscreenchange',
+      'webkitfullscreenchange',
+      'webglcontextrestored',
+      'viewport-change',
+      'battle-menu-return',
+    ]);
+
+    return structuralRecoveryReasons.has(reason)
+      || diagnostics.rendererContextLost
+      || this.children.length === 0
+      || !this.battleFrame?.active
+      || this.boardCells.length !== 9
+      || !this.actionButton?.active
+      || this.cardViews.length === 0;
+  }
+
+  getLifecycleDiagnostics(reason, externalDiagnostics = null) {
+    const renderer = this.game?.renderer ?? null;
+    const gl = renderer?.gl ?? null;
+    const sceneKeys = ['StartScene', 'FactionSelectScene', 'BattleScene', 'BattleMenuScene'];
+
+    return {
+      reason,
+      externalDiagnostics,
+      activeScene: this.scene.key,
+      battleSceneActive: this.scene.isActive(),
+      battleScenePaused: this.scene.isPaused(),
+      battleSceneSleeping: this.scene.isSleeping(),
+      gameStateExists: Boolean(this.gameState),
+      rendererExists: Boolean(renderer),
+      rendererContextLost: Boolean(gl?.isContextLost?.()),
+      canvasExists: Boolean(this.game?.canvas),
+      canvasConnected: Boolean(this.game?.canvas?.isConnected),
+      sceneStates: Object.fromEntries(sceneKeys.map((key) => [key, {
+        active: this.scene.isActive(key),
+        paused: this.scene.isPaused(key),
+        sleeping: this.scene.isSleeping(key),
+        visible: this.scene.isVisible(key),
+      }])),
+    };
+  }
+
+  rebuildBattleView(reason = 'unknown') {
     const width = this.scale.gameSize.width;
     const height = this.scale.gameSize.height;
 
+    const resultModalWasShown = this.battleResultModalShown;
+    this.cleanupSceneObjects({ preserveTimers: true, preserveTweens: true });
     this.layout = this.getLayoutMetrics(width, height);
+    this.cameras.main.setBackgroundColor('#05080f');
 
-    if (this.battleFrame) {
-      this.battleFrame.setPosition(width * 0.5, height * 0.5);
-      this.battleFrame.setSize(width, height);
+    this.drawBattleFrame();
+    this.drawBoard();
+    this.drawHeroPanels();
+    this.enemyHpText = null;
+    this.playerHpText = null;
+    this.refreshBoardLabels();
+    this.refreshHeroHP();
+    this.drawActionZone();
+    this.drawHand();
+    this.drawBottomUtilityBar();
+    this.updateActionButtonLabel();
+    this.updateInitiativeIndicator();
+    this.resetCardHighlights();
+
+    if (this.gameState?.winner && resultModalWasShown) {
+      this.battleResultModalShown = false;
+      this.showBattleResultModal();
     }
+
+    console.debug('BattleScene view rebuilt from runtime GameState', {
+      reason,
+      playerHP: this.gameState.playerHP,
+      enemyHP: this.gameState.enemyHP,
+      playerHandSize: this.gameState.player?.hand?.length ?? 0,
+      enemyHandSize: this.gameState.enemy?.hand?.length ?? 0,
+      turnsCompleted: this.gameState.turnsCompleted,
+      firstActor: this.gameState.firstActor,
+    });
   }
 
   shutdown() {
