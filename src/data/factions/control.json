@@ -20,7 +20,7 @@
       "type": "unit",
       "targeting": "enemy",
       "effectId": "cancel_enemy_order",
-      "textShort": "Cancel enemy order this turn.",
+      "textShort": "On play: cancel next enemy effect this turn.",
       "attack": 1,
       "hp": 2,
       "armor": 0
@@ -31,7 +31,7 @@
       "type": "unit",
       "targeting": "any_enemy_unit",
       "effectId": "can_hit_any_lane",
-      "textShort": "Can hit any lane.",
+      "textShort": "Attacks lowest-HP enemy unit.",
       "attack": 2,
       "hp": 1,
       "armor": 0
@@ -42,7 +42,7 @@
       "type": "unit",
       "targeting": "enemy_units",
       "effectId": "swap_two_enemy_units",
-      "textShort": "On play: swap two enemies.",
+      "textShort": "On play: swap first 2 enemies.",
       "attack": 1,
       "hp": 2,
       "armor": 0
@@ -72,7 +72,7 @@
       "type": "order",
       "targeting": "all_enemy_units",
       "effectId": "enemy_all_atk_minus_1",
-      "textShort": "Up to 2 enemies -1 ATK this turn."
+      "textShort": "Leftmost 2 enemies -1 ATK this turn."
     },
     {
       "id": "control_pulse_wave_1",
@@ -80,7 +80,7 @@
       "type": "order",
       "targeting": "all_enemy_units",
       "effectId": "damage_up_to_2_enemies_1",
-      "textShort": "Deal 1 to up to 2 enemies."
+      "textShort": "Deal 1 to leftmost 2 enemies."
     },
     {
       "id": "control_system_override_1",
@@ -88,7 +88,7 @@
       "type": "special",
       "targeting": "enemy_unit",
       "effectId": "control_enemy_unit_this_turn",
-      "textShort": "Enemy attacks its own hero in next combat."
+      "textShort": "Target enemy hits its own hero next combat."
     },
     {
       "id": "control_recall_1",

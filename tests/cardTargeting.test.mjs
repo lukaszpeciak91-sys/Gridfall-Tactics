@@ -11,7 +11,7 @@ test('Quick Fix uses the same friendly-unit targeting state in UI as its gamepla
   });
 });
 
-test('two-target swap effects expose the required target counts for UI selection', () => {
+test('two-target effect metadata exposes required target counts without changing unit on-play determinism', () => {
   assert.deepEqual(getTargetingStateForEffect('swap_any_two_units', 'control_swap_1'), {
     cardId: 'control_swap_1',
     targetType: 'any-unit',
