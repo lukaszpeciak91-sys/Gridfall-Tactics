@@ -12,7 +12,7 @@ const factionFiles = ['aggro.json', 'control.json', 'swarm.json', 'tank.json'];
 const expectedTextShort = new Map(Object.entries({
   aggro_runner_1: 'Open enemy lane: +2 hero dmg.',
   aggro_flanker_1: 'If nearby ally slot empty: +1 ATK.',
-  aggro_scout_1: 'On play: block enemy unit play here this turn.',
+  aggro_scout_1: 'On play: block unit here. Open lane: +1 ATK.',
   aggro_rush_1: 'Swap with adjacent ally; fight that lane.',
   aggro_pierce_strike_1: 'Deal 1. Next combat hit ignores its armor.',
   aggro_quick_fix_1: 'Ally: heal 1, +1 ATK this turn. Draw if it kills.',

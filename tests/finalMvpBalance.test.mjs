@@ -6,6 +6,7 @@ import {
   createInitialBattleState,
   getUnitAttack,
   playEffectCard,
+  playOrRedeployUnit,
   resolveCombat,
   resolveQuickStrike,
   resolveTargetedEffectCard,
@@ -230,7 +231,62 @@ test('Scout is a 2/1 Aggro unit with the same lane-block role', () => {
   assert.equal(scout.armor, 0);
   assert.equal(scout.effectId, 'block_enemy_lane_play_this_turn');
   assert.equal(scout.targeting, 'enemy');
-  assert.equal(scout.textShort, "On play: block enemy unit play here this turn.");
+  assert.equal(scout.textShort, 'On play: block unit here. Open lane: +1 ATK.');
+});
+
+test('Scout keeps the same lane-block behavior on play', () => {
+  const aggro = loadFaction('src/data/factions/aggro.json');
+  const scout = aggro.deck.find((card) => card.id === 'aggro_scout_1');
+  const enemyUnit = aggro.deck.find((card) => card.id === 'aggro_runner_1');
+  const state = createInitialBattleState({ name: 'Test', deck: [] });
+
+  state.player.hand.push({ ...scout });
+  state.enemy.hand.push({ ...enemyUnit });
+
+  const scoutResult = playOrRedeployUnit(state, 'player', scout.id, 7);
+  const blockedResult = playOrRedeployUnit(state, 'enemy', enemyUnit.id, 1);
+
+  assert.equal(scoutResult.ok, true);
+  assert.equal(blockedResult.ok, false);
+  assert.equal(blockedResult.reason, 'Lane is blocked for unit placement this turn');
+});
+
+test('Scout gets +1 ATK when attacking an empty opposing lane', () => {
+  const state = createInitialBattleState({ name: 'Test', deck: [] });
+  state.board[7] = unit('player', { id: 'aggro_scout_1', cardId: 'aggro_scout_1', name: 'Scout', attack: 2, hp: 1, maxHp: 1, effectId: 'block_enemy_lane_play_this_turn' });
+
+  resolveCombat(state);
+
+  assert.equal(state.enemyHP, 9);
+});
+
+test('Scout does not get +1 ATK when an opposing unit is present', () => {
+  const state = createInitialBattleState({ name: 'Test', deck: [] });
+  state.board[7] = unit('player', { id: 'aggro_scout_1', cardId: 'aggro_scout_1', name: 'Scout', attack: 2, hp: 1, maxHp: 1, effectId: 'block_enemy_lane_play_this_turn' });
+  state.board[1] = unit('enemy', { attack: 0, hp: 4, maxHp: 4 });
+
+  resolveCombat(state);
+
+  assert.equal(state.board[1].hp, 2);
+  assert.equal(state.enemyHP, 12);
+});
+
+test('Scout open-lane attack bonus does not apply to other Aggro units', () => {
+  const state = createInitialBattleState({ name: 'Test', deck: [] });
+  state.board[7] = unit('player', { id: 'aggro_berserker_1', cardId: 'aggro_berserker_1', name: 'Berserker', attack: 2, hp: 2, maxHp: 2, effectId: 'wounded_atk_plus_1' });
+
+  resolveCombat(state);
+
+  assert.equal(state.enemyHP, 10);
+});
+
+test('Scout open-lane attack bonus stacks with temporary ATK buffs for that attack', () => {
+  const state = createInitialBattleState({ name: 'Test', deck: [] });
+  state.board[7] = unit('player', { id: 'aggro_scout_1', cardId: 'aggro_scout_1', name: 'Scout', attack: 2, hp: 1, maxHp: 1, effectId: 'block_enemy_lane_play_this_turn', tempAttackMod: 2 });
+
+  resolveCombat(state);
+
+  assert.equal(state.enemyHP, 7);
 });
 
 test('Fortify grants all friendly units +1 temporary armor for combat', () => {

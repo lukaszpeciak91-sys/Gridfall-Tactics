@@ -53,7 +53,7 @@
       "type": "unit",
       "targeting": "enemy",
       "effectId": "block_enemy_lane_play_this_turn",
-      "textShort": "On play: block enemy unit play here this turn.",
+      "textShort": "On play: block unit here. Open lane: +1 ATK.",
       "attack": 2,
       "hp": 1,
       "armor": 0

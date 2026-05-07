@@ -4,6 +4,30 @@ const PLAYER_ROW = [6, 7, 8];
 const HERO_START_HP = 12;
 const SWARM_ALPHA_AURA_EFFECT_ID = 'adjacent_allies_atk_plus_1_ignore_armor_1';
 export const RUNNER_OPEN_LANE_HERO_BONUS = 2;
+export const SCOUT_OPEN_LANE_ATTACK_BONUS = 1;
+
+function isScoutUnit(unit) {
+  return unit?.cardId === 'aggro_scout_1' || unit?.id === 'aggro_scout_1';
+}
+
+export function isOpposingLaneEmpty(state, unit, unitIndex) {
+  if (!state || !unit || !Number.isInteger(unitIndex)) return false;
+  const lane = unitIndex % 3;
+  const opposingIndex = unit.owner === 'player' ? ENEMY_ROW[lane] : PLAYER_ROW[lane];
+  return state.board?.[opposingIndex] === null;
+}
+
+export function getScoutOpenLaneAttackBonus(state, unit, unitIndex) {
+  if (!isScoutUnit(unit)) return 0;
+  return isOpposingLaneEmpty(state, unit, unitIndex) ? SCOUT_OPEN_LANE_ATTACK_BONUS : 0;
+}
+
+function getScoutOpenLaneCombatAttackAdjustment(state, unit, unitIndex) {
+  if (!getScoutOpenLaneAttackBonus(state, unit, unitIndex)) return 0;
+  const baseAttack = unit?.effectId === 'cannot_attack' ? 0 : (unit?.attack ?? 0);
+  const temporaryAndContinuousAttack = getUnitAttack(unit) - baseAttack;
+  return Math.max(0, temporaryAndContinuousAttack) + SCOUT_OPEN_LANE_ATTACK_BONUS;
+}
 
 function hasSwarmAlphaAura(unit) {
   return unit?.effectId === SWARM_ALPHA_AURA_EFFECT_ID;
@@ -1003,6 +1027,7 @@ function resolveCombatLane(state, col, combatContext = null) {
       const hasEmptyAdjacent = adjacentIndexes.some((idx) => state.board[idx] === null);
       if (hasEmptyAdjacent) attack += 1;
     }
+    attack += getScoutOpenLaneCombatAttackAdjustment(state, unit, unitIndex);
     return Math.max(0, attack);
   };
 

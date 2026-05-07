@@ -140,7 +140,7 @@ Meaningful player actions:
 | Aggro | Berserker | unit | 2/2/0 | wounded_atk_plus_1 | +1 ATK while current HP is below max HP. | Lane combat | Continuous card-local wounded check; bonus disappears when healed to full HP. |
 | Aggro | Glass Cannon | unit | 3/1/0 | self_damage_after_attack | Takes 1 self damage after attack resolves. | Lane combat | Implemented as pending self-damage. |
 | Aggro | Flanker | unit | 2/2/0 | empty_adjacent_bonus_atk | If nearby ally slot empty: +1 ATK. | Lane combat | Adjacent check is board-state based. |
-| Aggro | Scout | unit | 2/1/0 | block_enemy_lane_play_this_turn | On play: block enemy unit play here this turn. | On-play lane | Symmetric for player/enemy; clears at PASS/combat cleanup. |
+| Aggro | Scout | unit | 2/1/0 | block_enemy_lane_play_this_turn | On play: block enemy unit play here this turn. If the opposing enemy lane is empty during combat, Scout gets +1 ATK for that attack. | On-play lane; lane combat | Lane block is symmetric for player/enemy and clears at PASS/combat cleanup. Open-lane attack bonus is Scout-only, applies only against empty opposing lanes, and stacks with temporary ATK buffs for that attack. |
 | Aggro | Full Attack | order | - | aggro_buff_all_atk_2 | Friendly units get temp +2 ATK this turn. | Non-targeted effect | Expires after combat. |
 | Aggro | Rush | order | - | swap_adjacent_then_resolve | Swap with adjacent ally; fight that lane. | Targeted friendly | Fails if no adjacent friendly; prefers left if both sides are available. |
 | Aggro | Pierce Strike | order | - | ignore_armor_next_attack | Deal 1. Next combat hit ignores its armor. | Targeted enemy | If the target survives, consumes ignore flag on first mitigated hit. |
