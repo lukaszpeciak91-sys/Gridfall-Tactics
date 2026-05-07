@@ -27,6 +27,14 @@ test('faction selection diagnoses blocked transitions and clears stale battle/me
   assert.match(source, /resetStartBattleGuard\(\)/);
 });
 
+test('BattleScene imports every GameState helper used during create', () => {
+  const source = readScene('src/scenes/BattleScene.js');
+
+  assert.match(source, /import \{[^}]*\bshuffleDeck\b[^}]*\} from '\.\.\/systems\/GameState\.js';/s);
+  assert.match(source, /shuffleDeck\(this\.gameState\.player\.deck\)/);
+  assert.match(source, /shuffleDeck\(this\.gameState\.enemy\.deck\)/);
+});
+
 test('BattleScene returns to faction select through a cleanup path and retry stays in BattleScene', () => {
   const source = readScene('src/scenes/BattleScene.js');
 
