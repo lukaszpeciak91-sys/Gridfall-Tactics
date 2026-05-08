@@ -6,15 +6,10 @@ import { getTargetingStateForEffect } from '../systems/cardTargeting.js';
 import { BATTLE_BACKGROUND_FALLBACK_COLOR, BATTLE_BACKGROUND_FALLBACK_COLOR_HEX, getBattleBackgroundAsset, hasLoadedBattleBackground, preloadBattleBackgroundArt } from '../rendering/backgroundArt.js';
 import { getBuildMarkerText } from '../buildInfo.js';
 
-const HAND_CARD_FOCUS_SCALE = 1.42;
-const HAND_CARD_FOCUS_TWEEN_MS = 120;
-const HAND_CARD_UNFOCUS_TWEEN_MS = 105;
 
 export default class BattleScene extends Phaser.Scene {
   constructor() {
     super('BattleScene');
-    this.focusedCardId = null;
-    this.focusedCardView = null;
     this.selectedCardId = null;
     this.cardViews = [];
     this.boardCells = [];
@@ -30,7 +25,6 @@ export default class BattleScene extends Phaser.Scene {
     this.battleResultModal = null;
     this.battleResultModalShown = false;
     this.battleResultModalPending = false;
-    this.handCardFocusScale = HAND_CARD_FOCUS_SCALE;
     this.backgroundArtAsset = null;
     this.backgroundLayer = null;
   }
@@ -45,8 +39,6 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   resetRuntimeState() {
-    this.focusedCardId = null;
-    this.focusedCardView = null;
     this.selectedCardId = null;
     this.cardViews = [];
     this.boardCells = [];
@@ -74,7 +66,6 @@ export default class BattleScene extends Phaser.Scene {
     this.playerInitiativeIcon = null;
     this.lastCombatEvents = [];
     this.enemyFactionKey = null;
-    this.handCardFocusScale = HAND_CARD_FOCUS_SCALE;
     this.backgroundArtAsset = null;
     this.backgroundLayer = null;
   }
@@ -137,7 +128,6 @@ export default class BattleScene extends Phaser.Scene {
     this.scale.on('enterfullscreen', this.onFullscreenChanged, this);
     this.scale.on('leavefullscreen', this.onFullscreenChanged, this);
     this.scale.on('resize', this.onViewportChanged, this);
-    this.input.on('pointerup', this.onScenePointerUp, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this);
 
   }
@@ -618,7 +608,6 @@ export default class BattleScene extends Phaser.Scene {
     this.scale.off('enterfullscreen', this.onFullscreenChanged, this);
     this.scale.off('leavefullscreen', this.onFullscreenChanged, this);
     this.scale.off('resize', this.onViewportChanged, this);
-    this.input?.off('pointerup', this.onScenePointerUp, this);
     this.resetRuntimeState();
   }
 
@@ -773,7 +762,6 @@ export default class BattleScene extends Phaser.Scene {
       const baseY = centerY + hand.h * 0.06;
       const labelBaseY = centerY + hand.h * 0.1;
       const baseFontSize = Math.max(12, Math.floor(hand.cardWidth * 0.108));
-      const focusedFontSize = Math.max(baseFontSize + 1, Math.floor(baseFontSize * 1.08));
       const glow = this.add.rectangle(x, baseY, hand.cardWidth + 8, hand.cardHeight + 8, 0xfacc15, 0)
         .setStrokeStyle(5, 0xfacc15, 0);
       const background = this.add.rectangle(x, baseY, hand.cardWidth, hand.cardHeight, 0x111827, 0.55)
@@ -799,7 +787,7 @@ export default class BattleScene extends Phaser.Scene {
       label.setDepth(baseDepth + 2);
       hitArea.setDepth(baseDepth + 3);
 
-      this.cardViews.push({ cardId, glow, background, label, hitArea, baseX: x, baseY, labelBaseX: x, labelBaseY, baseDepth, baseFontSize, focusedFontSize });
+      this.cardViews.push({ cardId, glow, background, label, hitArea, baseX: x, baseY, labelBaseX: x, labelBaseY, baseDepth, baseFontSize });
 
       if (!card) {
         background.setAlpha(0.42);
@@ -838,8 +826,6 @@ export default class BattleScene extends Phaser.Scene {
 
     if (this.openingMulliganPending) {
       this.selectedCardId = null;
-      this.focusedCardId = null;
-      this.focusedCardView = null;
       this.targetingState = null;
       this.pendingSwapIndex = null;
       this.toggleOpeningMulliganCard(cardId);
@@ -857,60 +843,16 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     this.pendingSwapIndex = null;
-    this.focusHandCard(cardId);
-
-    if (this.selectedCardId === cardId) {
-      this.playFocusedCard(card);
-      return;
-    }
-
     this.selectedCardId = cardId;
     this.targetingState = this.isUnitCard(card) ? null : this.getTargetingStateForCard(card);
     this.resetCardHighlights();
   }
 
-  playFocusedCard(card) {
-    if (!card || this.isUnitCard(card) || this.targetingState) {
-      return;
-    }
-
-    if (this.gameState.cancelEnemyOrderThisTurn?.enemy) {
-      this.gameState.cancelEnemyOrderThisTurn.enemy = false;
-      this.refreshAfterPlayerAction();
-      return;
-    }
-
-    const beforeStats = this.captureBoardStats();
-    const result = playEffectCard(this.gameState, 'player', card.id);
-    if (!result.ok) return;
-    this.completePlayerAction(beforeStats);
-  }
-
-  focusHandCard(cardId) {
-    const focusedCardView = this.cardViews.find((view) => view.cardId === cardId) ?? null;
-    const focusedCard = this.gameState?.player?.hand?.find((card) => card.id === cardId) ?? null;
-    this.focusedCardId = focusedCard ? cardId : null;
-    this.focusedCardView = focusedCard ? focusedCardView : null;
-  }
-
   clearHandCardSelection() {
-    const hadState = Boolean(this.selectedCardId || this.focusedCardId || this.focusedCardView || this.targetingState);
+    const hadState = Boolean(this.selectedCardId || this.targetingState);
     this.selectedCardId = null;
-    this.focusedCardId = null;
-    this.focusedCardView = null;
     this.targetingState = null;
     if (hadState) this.resetCardHighlights();
-  }
-
-  unfocusSelectedCard() {
-    this.clearHandCardSelection();
-  }
-
-  onScenePointerUp(pointer, gameObjects = []) {
-    if (this.openingMulliganPending || this.battleResultModalShown || this.isFlowResolving) return;
-    if (!this.selectedCardId) return;
-    if (Array.isArray(gameObjects) && gameObjects.length > 0) return;
-    this.unfocusSelectedCard();
   }
 
   onBoardCellTap(boardIndex) {
@@ -960,7 +902,7 @@ export default class BattleScene extends Phaser.Scene {
 
     if (this.targetingState) {
       if (!this.isValidTarget(boardIndex, this.targetingState.targetType)) {
-        this.unfocusSelectedCard();
+        this.clearHandCardSelection();
         return;
       }
 
@@ -1010,7 +952,7 @@ export default class BattleScene extends Phaser.Scene {
     const result = playOrRedeployUnit(this.gameState, 'player', this.selectedCardId, boardIndex);
     if (!result.ok) {
       this.pendingSwapIndex = null;
-      this.unfocusSelectedCard();
+      this.clearHandCardSelection();
       return;
     }
 
@@ -1056,8 +998,6 @@ export default class BattleScene extends Phaser.Scene {
   resetOpeningMulliganInputState() {
     this.selectedMulliganCardIds = [];
     this.selectedCardId = null;
-    this.focusedCardId = null;
-    this.focusedCardView = null;
     this.targetingState = null;
     this.pendingSwapIndex = null;
   }
@@ -1096,8 +1036,6 @@ export default class BattleScene extends Phaser.Scene {
     this.playerActionUsed = false;
     this.enemyActionUsed = false;
     this.selectedCardId = null;
-    this.focusedCardId = null;
-    this.focusedCardView = null;
     this.pendingSwapIndex = null;
     this.targetingState = null;
     this.updateInitiativeIndicator();
@@ -1212,8 +1150,6 @@ export default class BattleScene extends Phaser.Scene {
 
   refreshAfterPlayerAction() {
     this.selectedCardId = null;
-    this.focusedCardId = null;
-    this.focusedCardView = null;
     this.pendingSwapIndex = null;
     this.targetingState = null;
     this.refreshBoardLabels();
@@ -1566,105 +1502,31 @@ ${statParts.join(' | ')}`;
     this.playerHpText.setText(`${this.gameState.playerHP} / 12`);
   }
 
-  getHandCardFocusTarget(card, isSelected) {
-    const focusScale = isSelected ? this.handCardFocusScale : 1;
-    if (!isSelected) {
-      return {
-        scale: focusScale,
-        x: card.baseX,
-        y: card.baseY,
-        labelX: card.labelBaseX,
-        labelY: card.labelBaseY,
-      };
-    }
-
-    const { width, height, margin, hand } = this.layout;
-    const scaledWidth = hand.cardWidth * focusScale;
-    const scaledHeight = hand.cardHeight * focusScale;
-    const horizontalPadding = Math.max(4, margin * 0.5);
-    const minX = horizontalPadding + scaledWidth / 2;
-    const maxX = width - horizontalPadding - scaledWidth / 2;
-    const targetX = minX <= maxX
-      ? Phaser.Math.Clamp(card.baseX, minX, maxX)
-      : width * 0.5;
-
-    const raisedOffset = hand.h * 0.16;
-    const preferredY = card.baseY - raisedOffset;
-    const handTop = hand.y;
-    const handBottom = Math.min(height, hand.y + hand.h);
-    const handMinY = handTop + scaledHeight / 2;
-    const handMaxY = handBottom - scaledHeight / 2;
-    const canvasMinY = horizontalPadding + scaledHeight / 2;
-    const canvasMaxY = height - horizontalPadding - scaledHeight / 2;
-    const targetY = handMinY <= handMaxY
-      ? Phaser.Math.Clamp(preferredY, handMinY, handMaxY)
-      : Phaser.Math.Clamp(preferredY, Math.min(canvasMinY, canvasMaxY), Math.max(canvasMinY, canvasMaxY));
-
-    return {
-      scale: focusScale,
-      x: targetX,
-      y: targetY,
-      labelX: targetX,
-      labelY: card.labelBaseY + (targetY - card.baseY),
-    };
-  }
 
   resetCardHighlights() {
-    const hasFocusedCard = Boolean(this.focusedCardId || this.selectedCardId)
-      || (this.openingMulliganPending && this.selectedMulliganCardIds.length > 0);
-
     this.cardViews.forEach((card) => {
       const isMulliganSelected = this.openingMulliganPending && this.selectedMulliganCardIds.includes(card.cardId);
       const isGameplaySelected = !this.openingMulliganPending && card.cardId === this.selectedCardId;
-      const isFocused = !this.openingMulliganPending && (card.cardId === this.focusedCardId || isGameplaySelected);
-      const isSelected = isGameplaySelected || isMulliganSelected;
-      const isHighlighted = isSelected || isFocused;
+      const isHighlighted = isGameplaySelected || isMulliganSelected;
       const viewCard = this.gameState.player.hand.find((item) => item.id === card.cardId);
-      const isDimmed = hasFocusedCard && !isHighlighted && Boolean(viewCard);
-      const focusTarget = this.getHandCardFocusTarget(card, isFocused);
-      const tweenDuration = isFocused ? HAND_CARD_FOCUS_TWEEN_MS : HAND_CARD_UNFOCUS_TWEEN_MS;
-      const bodyTargets = [card.glow, card.background, card.hitArea].filter(Boolean);
-      const allTargets = [...bodyTargets, card.label].filter(Boolean);
+      const allTargets = [card.glow, card.background, card.hitArea, card.label].filter(Boolean);
 
       this.tweens.killTweensOf(allTargets);
       card.background.setStrokeStyle(isHighlighted ? 5 : 3, isHighlighted ? 0xfacc15 : 0x94a3b8, isHighlighted ? 1 : 0.7);
       card.background.setFillStyle(isHighlighted ? 0x334155 : 0x111827, isHighlighted ? 0.9 : viewCard ? 0.55 : 0.42);
       card.glow.setStrokeStyle(isHighlighted ? 5 : 0, 0xfacc15, isHighlighted ? 0.65 : 0);
       card.glow.setFillStyle(0xfacc15, isHighlighted ? 0.12 : 0);
-      card.label.setFontSize(isFocused ? card.focusedFontSize : card.baseFontSize);
-      card.label.setColor(isDimmed ? '#cbd5e1' : '#f8fafc');
+      card.label.setFontSize(card.baseFontSize);
+      card.label.setColor('#f8fafc');
 
-      const targetAlpha = isDimmed ? 0.34 : viewCard ? 1 : 0.45;
-      card.background.setAlpha(isDimmed ? 0.32 : viewCard ? 1 : 0.42);
-      card.label.setAlpha(targetAlpha);
+      card.background.setAlpha(viewCard ? 1 : 0.42);
+      card.label.setAlpha(viewCard ? 1 : 0.45);
       card.hitArea.setAlpha(0);
-      card.hitArea.setPosition(card.baseX, card.baseY);
-      card.hitArea.setScale(1);
 
-      const topDepth = isFocused ? 300 : isHighlighted ? 220 : card.baseDepth;
-      card.glow.setDepth(topDepth);
-      card.background.setDepth(topDepth + 1);
-      card.label.setDepth(topDepth + 2);
-      card.hitArea.setDepth(topDepth + 3);
-
-      this.tweens.add({
-        targets: bodyTargets,
-        x: focusTarget.x,
-        y: focusTarget.y,
-        scaleX: focusTarget.scale,
-        scaleY: focusTarget.scale,
-        duration: tweenDuration,
-        ease: isFocused ? 'Back.Out' : 'Sine.Out',
-      });
-      this.tweens.add({
-        targets: card.label,
-        x: focusTarget.labelX,
-        y: focusTarget.labelY,
-        scaleX: focusTarget.scale,
-        scaleY: focusTarget.scale,
-        duration: tweenDuration,
-        ease: isFocused ? 'Back.Out' : 'Sine.Out',
-      });
+      card.glow.setPosition(card.baseX, card.baseY).setScale(1).setDepth(card.baseDepth);
+      card.background.setPosition(card.baseX, card.baseY).setScale(1).setDepth(card.baseDepth + 1);
+      card.label.setPosition(card.labelBaseX, card.labelBaseY).setScale(1).setDepth(card.baseDepth + 2);
+      card.hitArea.setPosition(card.baseX, card.baseY).setScale(1).setDepth(card.baseDepth + 3);
     });
 
     this.boardCells.forEach((cell) => {
