@@ -774,7 +774,10 @@ export default class BattleScene extends Phaser.Scene {
         wordWrap: { width: hand.cardWidth - 16 },
       }).setOrigin(0.5);
 
-      const hitArea = this.add.rectangle(x, baseY, hand.cardWidth, hand.cardHeight, 0x000000, 0)
+      const previousBoundaryX = index === 0 ? x - hand.cardWidth / 2 : x - hand.step / 2;
+      const nextBoundaryX = index === hand.cardsVisible - 1 ? x + hand.cardWidth / 2 : x + hand.step / 2;
+      const hitAreaWidth = Math.max(1, nextBoundaryX - previousBoundaryX);
+      const hitArea = this.add.rectangle(x, baseY, hitAreaWidth, hand.cardHeight, 0x000000, 0)
         .setInteractive({ useHandCursor: true });
       hitArea.on('pointerup', (pointer, localX, localY, event) => {
         event?.stopPropagation?.();
@@ -843,6 +846,14 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     this.pendingSwapIndex = null;
+    this.targetingState = null;
+
+    if (this.selectedCardId === cardId) {
+      this.selectedCardId = null;
+      this.resetCardHighlights();
+      return;
+    }
+
     this.selectedCardId = cardId;
     this.targetingState = this.isUnitCard(card) ? null : this.getTargetingStateForCard(card);
     this.resetCardHighlights();
