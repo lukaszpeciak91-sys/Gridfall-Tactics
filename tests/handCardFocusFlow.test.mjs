@@ -6,7 +6,7 @@ const source = fs.readFileSync('src/scenes/BattleScene.js', 'utf8');
 
 test('hand card input uses simple selection and existing board play/targeting routes', () => {
   assert.doesNotMatch(source, /focusedCardId|focusedCardView|focusHandCard|playFocusedCard|HAND_CARD_FOCUS|getHandCardFocusTarget/);
-  assert.match(source, /this\.pendingSwapIndex = null;\s*this\.selectedCardId = cardId;\s*this\.targetingState = this\.isUnitCard\(card\) \? null : this\.getTargetingStateForCard\(card\);\s*this\.resetCardHighlights\(\);/);
+  assert.match(source, /this\.pendingSwapIndex = null;\s*this\.targetingState = null;\s*if \(this\.selectedCardId === cardId\) \{\s*this\.selectedCardId = null;\s*this\.resetCardHighlights\(\);\s*return;\s*\}\s*this\.selectedCardId = cardId;\s*this\.targetingState = this\.isUnitCard\(card\) \? null : this\.getTargetingStateForCard\(card\);\s*this\.resetCardHighlights\(\);/);
   assert.match(source, /const result = resolveTargetedEffectCard\(this\.gameState, 'player', this\.selectedCardId, boardIndex, targetIndexes\);/);
   assert.match(source, /const result = playEffectCard\(this\.gameState, 'player', this\.selectedCardId\);/);
   assert.match(source, /const result = playOrRedeployUnit\(this\.gameState, 'player', this\.selectedCardId, boardIndex\);/);
@@ -19,6 +19,13 @@ test('hand card rendering keeps cards fixed at their base hit area, size, and de
   assert.match(source, /card\.hitArea\.setPosition\(card\.baseX, card\.baseY\)\.setScale\(1\)\.setDepth\(card\.baseDepth \+ 3\);/);
   assert.match(source, /card\.label\.setFontSize\(card\.baseFontSize\);/);
   assert.doesNotMatch(source, /this\.tweens\.add\(\{\s*targets: \[?card|scaleX: focusTarget\.scale|raisedOffset|topDepth/);
+});
+
+test('overlapped hand visuals use partitioned hit areas so adjacent cards receive distinct taps', () => {
+  assert.match(source, /const previousBoundaryX = index === 0 \? x - hand\.cardWidth \/ 2 : x - hand\.step \/ 2;/);
+  assert.match(source, /const nextBoundaryX = index === hand\.cardsVisible - 1 \? x \+ hand\.cardWidth \/ 2 : x \+ hand\.step \/ 2;/);
+  assert.match(source, /const hitAreaWidth = Math\.max\(1, nextBoundaryX - previousBoundaryX\);/);
+  assert.match(source, /const hitArea = this\.add\.rectangle\(x, baseY, hitAreaWidth, hand\.cardHeight, 0x000000, 0\)\s*\.setInteractive\(\{ useHandCursor: true \}\);/);
 });
 
 test('mulligan tap toggles only mulligan selection and caps selection count', () => {
