@@ -276,27 +276,61 @@ export default class BattleScene extends Phaser.Scene {
 
   drawBottomUtilityBar() {
     const { width, height, margin } = this.layout;
-    const barHeight = height * 0.05;
-    const centerY = height - barHeight / 2;
-    const iconStyle = {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: `${Math.max(20, Math.floor(barHeight * 0.72))}px`,
-      color: '#cbd5e1',
-      fontStyle: 'bold',
-    };
+    const touchSize = Math.max(48, Math.min(58, height * 0.066));
+    const centerY = height - margin - touchSize / 2;
+    const controlGap = Math.max(8, Math.floor(touchSize * 0.18));
+    const fullscreenX = width - margin - touchSize / 2;
+    const deckX = fullscreenX - touchSize - controlGap;
+    const backX = margin + touchSize / 2;
+    const deckCount = this.gameState.player.deck.length;
 
-    const leftIcon = this.add.text(margin, centerY, '←', iconStyle).setOrigin(0, 0.5);
-    const centerIcon = this.add.text(width * 0.5, centerY, '≡', iconStyle).setOrigin(0.5);
-    const rightIcon = this.add.text(width - margin, centerY, '⛶', iconStyle).setOrigin(1, 0.5);
+    const leftIcon = this.createFloatingControl(backX, centerY, touchSize, '←').backing;
+    const centerIcon = this.createFloatingControl(width * 0.5, centerY, touchSize, '≡', null, { fontScale: 0.46 }).backing;
+    this.createFloatingControl(deckX, centerY, touchSize, `x${deckCount}`, null, { fontScale: 0.36 });
+    const rightIcon = this.createFloatingControl(fullscreenX, centerY, touchSize, '⛶').backing;
 
     [leftIcon, centerIcon, rightIcon].forEach((icon) => {
       icon.setInteractive({ useHandCursor: true });
-      icon.setDepth(200);
     });
 
     leftIcon.on('pointerup', () => this.exitBattleToFactionSelect());
     centerIcon.on('pointerup', () => this.openBattleMenu());
     rightIcon.on('pointerup', () => this.toggleFullscreen());
+  }
+
+  createFloatingControl(x, y, size, label, onPointerUp, { fontScale = 0.5 } = {}) {
+    const halo = this.add.circle(x, y, size * 0.55, 0x38bdf8, 0.08)
+      .setStrokeStyle(1, 0x7dd3fc, 0.18)
+      .setDepth(198);
+    const backing = this.add.rectangle(x, y, size, size, 0x020617, 0.62)
+      .setStrokeStyle(1, 0x94a3b8, 0.58)
+      .setDepth(199);
+    const text = this.add.text(x, y, label, {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: `${Math.max(16, Math.floor(size * fontScale))}px`,
+      color: '#f8fafc',
+      fontStyle: 'bold',
+      align: 'center',
+    }).setOrigin(0.5).setDepth(200);
+
+    if (onPointerUp) {
+      backing.setInteractive({ useHandCursor: true });
+      text.setInteractive({ useHandCursor: true });
+      backing.on('pointerover', () => {
+        backing.setFillStyle(0x0f172a, 0.72);
+        backing.setStrokeStyle(1, 0x7dd3fc, 0.82);
+        halo.setAlpha(0.18);
+      });
+      backing.on('pointerout', () => {
+        backing.setFillStyle(0x020617, 0.62);
+        backing.setStrokeStyle(1, 0x94a3b8, 0.58);
+        halo.setAlpha(1);
+      });
+      backing.on('pointerup', onPointerUp);
+      text.on('pointerup', onPointerUp);
+    }
+
+    return { halo, backing, text };
   }
 
 
@@ -760,16 +794,12 @@ export default class BattleScene extends Phaser.Scene {
     const deckCenterX = width - margin - hand.deckAreaWidth / 2;
     const handTrackLeft = handLeft + hand.cardWidth / 2;
 
-    this.add.rectangle(width * 0.5, centerY, width - margin * 2, hand.h, 0x0f172a, 0.5).setStrokeStyle(2, 0x334155, 0.8);
+    this.add.rectangle(width * 0.5, centerY, width - margin * 2, hand.h, 0x0f172a, 0.2)
+      .setStrokeStyle(1, 0x334155, 0.38);
+    this.add.rectangle(width * 0.5, centerY - hand.h / 2, width - margin * 2, 1, 0x38bdf8, 0.16);
 
-    const deckCount = this.gameState.player.deck.length;
-    this.add.rectangle(deckCenterX, centerY + hand.h * 0.06, hand.cardWidth * 0.76, hand.cardHeight * 0.92, 0x111827, 0.45).setStrokeStyle(3, 0x94a3b8, 0.6);
-    this.add.text(deckCenterX, centerY + hand.h * 0.36, `x${deckCount}`, {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: `${Math.max(14, Math.floor(hand.h * 0.12))}px`,
-      color: '#f8fafc',
-      fontStyle: 'bold',
-    }).setOrigin(0.5);
+    this.add.rectangle(deckCenterX, centerY + hand.h * 0.06, hand.cardWidth * 0.74, hand.cardHeight * 0.9, 0x020617, 0.16)
+      .setStrokeStyle(1, 0x94a3b8, 0.22);
 
     for (let index = 0; index < hand.cardsVisible; index += 1) {
       const x = handTrackLeft + index * hand.step;
