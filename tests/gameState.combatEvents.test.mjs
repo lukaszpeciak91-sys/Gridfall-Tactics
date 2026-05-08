@@ -248,3 +248,89 @@ test('Multiple Runner attacks resolve consistently', () => {
   assert.deepEqual(events.map((event) => event.lane), [0, 2]);
   assert.equal(state.enemyHP, 4);
 });
+
+test('simultaneous lethal uses raw overkill depth so -1 HP beats -4 HP', () => {
+  const state = makeState();
+  state.playerHP = 5;
+  state.enemyHP = 1;
+  state.board[6] = unit('player', { attack: 5 });
+  state.board[1] = unit('enemy', { attack: 6 });
+
+  const events = resolveCombat(state);
+
+  assert.deepEqual(events.map((event) => [event.lane, event.attackerSide, event.targetSide, event.damage]), [
+    [0, 'player', 'enemy', 5],
+    [1, 'enemy', 'player', 6],
+  ]);
+  assert.equal(state.heroDeathResolution.simultaneousLethal, true);
+  assert.equal(state.heroDeathResolution.rawPlayerHP, -1);
+  assert.equal(state.heroDeathResolution.rawEnemyHP, -4);
+  assert.equal(state.heroDeathResolution.resolvedBy, 'higher-raw-hero-hp');
+  assert.equal(state.playerHP, 0);
+  assert.equal(state.enemyHP, 0);
+  assert.equal(state.winner, 'player');
+});
+
+test('simultaneous lethal with equal raw overkill depth remains a draw', () => {
+  const state = makeState();
+  state.playerHP = 2;
+  state.enemyHP = 2;
+  state.board[6] = unit('player', { attack: 4 });
+  state.board[1] = unit('enemy', { attack: 4 });
+
+  resolveCombat(state);
+
+  assert.equal(state.heroDeathResolution.simultaneousLethal, true);
+  assert.equal(state.heroDeathResolution.rawPlayerHP, -2);
+  assert.equal(state.heroDeathResolution.rawEnemyHP, -2);
+  assert.equal(state.heroDeathResolution.resolvedBy, 'equal-raw-hero-hp');
+  assert.equal(state.winner, 'draw');
+});
+
+test('single-hero combat lethal is unchanged', () => {
+  const state = makeState();
+  state.enemyHP = 3;
+  state.board[6] = unit('player', { attack: 5 });
+
+  resolveCombat(state);
+
+  assert.equal(state.heroDeathResolution.simultaneousLethal, false);
+  assert.equal(state.heroDeathResolution.resolvedBy, 'single-hero-lethal');
+  assert.equal(state.playerHP, 12);
+  assert.equal(state.enemyHP, 0);
+  assert.equal(state.winner, 'player');
+});
+
+test('non-lethal combat remains unresolved and preserves final hero HP', () => {
+  const state = makeState();
+  state.playerHP = 9;
+  state.enemyHP = 10;
+  state.board[6] = unit('player', { attack: 2 });
+  state.board[1] = unit('enemy', { attack: 3 });
+
+  resolveCombat(state);
+
+  assert.equal(state.heroDeathResolution.simultaneousLethal, false);
+  assert.equal(state.heroDeathResolution.resolvedBy, null);
+  assert.equal(state.playerHP, 6);
+  assert.equal(state.enemyHP, 8);
+  assert.equal(state.winner, null);
+});
+
+test('simultaneous lethal still applies both hero attacks before winner resolution', () => {
+  const state = makeState();
+  state.playerHP = 4;
+  state.enemyHP = 4;
+  state.board[6] = unit('player', { attack: 6 });
+  state.board[1] = unit('enemy', { attack: 5 });
+
+  const events = resolveCombat(state);
+
+  assert.deepEqual(events.map((event) => [event.lane, event.attackerSide, event.targetSide, event.damage]), [
+    [0, 'player', 'enemy', 6],
+    [1, 'enemy', 'player', 5],
+  ]);
+  assert.equal(state.heroDeathResolution.rawPlayerHP, -1);
+  assert.equal(state.heroDeathResolution.rawEnemyHP, -2);
+  assert.equal(state.winner, 'player');
+});

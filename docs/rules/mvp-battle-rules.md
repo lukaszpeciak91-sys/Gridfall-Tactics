@@ -1,7 +1,7 @@
 # MVP Battle Rules (Canonical)
 
 **Status:** Frozen for MVP implementation  
-**Last Updated:** 2026-05-07
+**Last Updated:** 2026-05-08
 
 **Scope:** Gameplay rules for the MVP battle loop
 
@@ -13,6 +13,11 @@ If any other document conflicts with this file, this file wins.
 - Player Hero HP: **12**
 - Enemy Hero HP: **12**
 - Battle ends immediately when either hero reaches **0 HP**.
+- If both heroes reach **0 or lower HP during the same combat pass**, resolve the combat winner from the raw final hero HP values before clamping/finalization:
+  - Higher raw player hero HP -> **player wins** (for example, player at -1 beats enemy at -4).
+  - Higher raw enemy hero HP -> **enemy wins**.
+  - Equal raw hero HP -> **draw** (for example, -3 vs -3 remains a draw).
+  - This tiebreak changes only winner assignment after simultaneous lethal; combat order, lane order, damage timing, attack timing, and damage events are unchanged.
 - MVP turn cap: **50 completed full turns**.
 - At the turn cap, if no winner already exists, the winner is decided by remaining hero HP:
   - Higher player hero HP -> **player wins**.
