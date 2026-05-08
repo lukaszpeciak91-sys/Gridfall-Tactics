@@ -4,6 +4,7 @@ import { createInitialBattleState, drawCards, shuffleDeck, canPass, playEffectCa
 import { chooseEnemyAction, recordBattleActionUse, selectOpeningMulliganCardIds } from '../systems/enemyDecision.js';
 import { getTargetingStateForEffect } from '../systems/cardTargeting.js';
 import { BATTLE_BACKGROUND_FALLBACK_COLOR, BATTLE_BACKGROUND_FALLBACK_COLOR_HEX, getBattleBackgroundAsset, hasLoadedBattleBackground, preloadBattleBackgroundArt } from '../rendering/backgroundArt.js';
+import { getBuildMarkerText } from '../buildInfo.js';
 
 const HAND_CARD_FOCUS_SCALE = 1.42;
 const HAND_CARD_FOCUS_TWEEN_MS = 120;
@@ -130,6 +131,7 @@ export default class BattleScene extends Phaser.Scene {
     this.drawActionZone();
     this.drawHand();
     this.drawBottomUtilityBar();
+    this.drawBuildMarker();
     this.updateActionButtonLabel();
 
     this.scale.on('enterfullscreen', this.onFullscreenChanged, this);
@@ -251,6 +253,18 @@ export default class BattleScene extends Phaser.Scene {
     this.battleFrame.setDepth(-900);
   }
 
+
+
+  drawBuildMarker() {
+    const { width, height } = this.layout;
+    this.add.text(width - 8, height - 8, getBuildMarkerText(), {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: '12px',
+      color: '#facc15',
+      backgroundColor: '#111827',
+      padding: { x: 5, y: 3 },
+    }).setOrigin(1, 1).setDepth(1000);
+  }
 
   drawBottomUtilityBar() {
     const { width, height, margin } = this.layout;
@@ -578,6 +592,7 @@ export default class BattleScene extends Phaser.Scene {
     this.drawActionZone();
     this.drawHand();
     this.drawBottomUtilityBar();
+    this.drawBuildMarker();
     this.updateActionButtonLabel();
     this.updateInitiativeIndicator();
     this.resetCardHighlights();

@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { getFactionKeys } from '../data/factions/index.js';
+import { getBuildMarkerText } from '../buildInfo.js';
 
 export default class FactionSelectScene extends Phaser.Scene {
   constructor() {
@@ -33,6 +34,18 @@ export default class FactionSelectScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
     this.uiElements.push(title);
+
+    const buildMarker = this.add
+      .text(width - 8, height - 8, getBuildMarkerText(), {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '12px',
+        color: '#facc15',
+        backgroundColor: '#111827',
+        padding: { x: 5, y: 3 },
+      })
+      .setOrigin(1, 1)
+      .setDepth(1000);
+    this.uiElements.push(buildMarker);
 
     const baseY = height * 0.3;
     const stepY = 90;
