@@ -3,18 +3,18 @@ import fs from 'node:fs';
 import test from 'node:test';
 
 const source = fs.readFileSync('src/scenes/BattleScene.js', 'utf8');
-const zoomPreviewMethod = source.slice(
-  source.indexOf('  showSelectedCardZoomPreview()'),
+const zoomMethod = source.slice(
+  source.indexOf('  showSelectedHandCardZoom()'),
   source.indexOf('  resetCardHighlights()'),
 );
 
-test('hand card zoom preview is visual-only and avoids focus gameplay state', () => {
+test('hand card zoom is visual-only and avoids focus gameplay state', () => {
   assert.doesNotMatch(source, /focusedCardId|focusedCardView|focusHandCard|playFocusedCard|HAND_CARD_FOCUS|getHandCardFocusTarget/);
-  assert.match(source, /this\.cardZoomPreview = null;/);
-  assert.match(source, /destroyCardZoomPreview\(\) \{/);
-  assert.match(source, /showSelectedCardZoomPreview\(\) \{/);
+  assert.match(source, /this\.selectedHandCardZoom = null;/);
+  assert.match(source, /destroySelectedHandCardZoom\(\) \{/);
+  assert.match(source, /showSelectedHandCardZoom\(\) \{/);
   assert.match(source, /if \(this\.openingMulliganPending \|\| !this\.selectedCardId\) return;/);
-  assert.doesNotMatch(zoomPreviewMethod, /setInteractive/);
+  assert.doesNotMatch(zoomMethod, /setInteractive/);
   assert.doesNotMatch(source, /hitArea|previousBoundaryX|nextBoundaryX|hitAreaWidth/);
 });
 
@@ -43,9 +43,10 @@ test('outside taps clear selection without intercepting board, pass, or card inp
   assert.match(source, /background\.on\('pointerup', \(\) => \{\s*this\.onBoardCellTap\(boardIndex\);\s*\}\);/);
 });
 
-test('zoom preview shifts toward screen center and clamps inside the canvas', () => {
-  assert.match(source, /const targetX = cardView\.baseX \+ \(width \* 0\.5 - cardView\.baseX\) \* 0\.45;/);
-  assert.match(source, /const targetY = cardView\.baseY \+ \(height \* 0\.5 - cardView\.baseY\) \* 0\.68;/);
+test('zoom shifts modestly toward screen center and clamps inside the canvas', () => {
+  assert.match(source, /const SELECTED_HAND_CARD_ZOOM_SCALE = 1\.22;/);
+  assert.match(source, /const nudgeX = \(width \* 0\.5 - cardView\.baseX\) \* SELECTED_HAND_CARD_CENTER_NUDGE_RATIO;/);
+  assert.match(source, /const targetY = cardView\.baseY - hand\.cardHeight \* SELECTED_HAND_CARD_RAISE_RATIO;/);
   assert.match(source, /x: Phaser\.Math\.Clamp\(targetX, minX, maxX\),/);
   assert.match(source, /y: Phaser\.Math\.Clamp\(targetY, minY, maxY\),/);
 });
