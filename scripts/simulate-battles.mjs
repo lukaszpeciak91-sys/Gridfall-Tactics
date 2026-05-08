@@ -178,6 +178,7 @@ function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, gameSe
     firstActor: initialFirstActor,
     endingReason: state.endingReason,
     turnCapResolvedBy: state.turnCapResolvedBy,
+    heroDeathResolution: state.heroDeathResolution,
     quickFixTempoDraws: state.quickFixTempoDraws ?? 0,
   };
 }
@@ -297,7 +298,7 @@ function main() {
   const orderedMatchups = new Map();
   const passStats = { pass: 0, cancelled: 0 };
   const telemetry = { replaceUsed: 0, repositionUsed: 0, meaningfulGameplayActions: 0, pointlessGameplayActions: 0, openLaneImprovements: 0, repeatedLoopPreventions: 0, invalidActions: 0, crashes: 0, quickFixUses: 0, quickFixTriggers: 0, mulliganByFaction: {} };
-  const audit = { games: 0, draws: 0, turnCaps: 0, aggroTurnCapWins: 0, aggroGames: 0, nonSwarmGames: 0, nonSwarmDraws: 0, nonSwarmTurnCaps: 0, swarmMirrorGames: 0, swarmMirrorDraws: 0 };
+  const audit = { games: 0, draws: 0, turnCaps: 0, aggroTurnCapWins: 0, aggroGames: 0, nonSwarmGames: 0, nonSwarmDraws: 0, nonSwarmTurnCaps: 0, swarmMirrorGames: 0, swarmMirrorDraws: 0, simultaneousLethals: 0, simultaneousLethalDrawsAfter: 0 };
 
   for (let playerIndex = 0; playerIndex < factionKeys.length; playerIndex += 1) for (let enemyIndex = 0; enemyIndex < factionKeys.length; enemyIndex += 1) {
     const playerKey = factionKeys[playerIndex];
@@ -335,6 +336,10 @@ function main() {
       audit.games += 1;
       if (wasDraw) audit.draws += 1;
       if (wasTurnCap) audit.turnCaps += 1;
+      if (result.heroDeathResolution?.simultaneousLethal) {
+        audit.simultaneousLethals += 1;
+        if (wasDraw) audit.simultaneousLethalDrawsAfter += 1;
+      }
       if (playerKey === 'Aggro') audit.aggroGames += 1;
       if (enemyKey === 'Aggro') audit.aggroGames += 1;
       if (playerKey !== 'Swarm' && enemyKey !== 'Swarm') {
@@ -502,6 +507,9 @@ Battle simulation complete (${matchCount} games per matchup, max ${MAX_TURNS} tu
     { metric: 'non-Swarm draw %', value: percent(audit.nonSwarmDraws, audit.nonSwarmGames), count: `${audit.nonSwarmDraws}/${audit.nonSwarmGames}` },
     { metric: 'non-Swarm turn-cap %', value: percent(audit.nonSwarmTurnCaps, audit.nonSwarmGames), count: `${audit.nonSwarmTurnCaps}/${audit.nonSwarmGames}` },
     { metric: 'Aggro chip timeout win %', value: percent(audit.aggroTurnCapWins, audit.aggroGames), count: `${audit.aggroTurnCapWins}/${audit.aggroGames}` },
+    { metric: 'simultaneous lethal count', value: audit.simultaneousLethals, count: `${audit.simultaneousLethals}/${audit.games}` },
+    { metric: 'simultaneous lethal draws before rule', value: audit.simultaneousLethals, count: `${audit.simultaneousLethals}/${audit.simultaneousLethals}` },
+    { metric: 'simultaneous lethal draws after rule', value: audit.simultaneousLethalDrawsAfter, count: `${audit.simultaneousLethalDrawsAfter}/${audit.simultaneousLethals}` },
   ]);
   console.log('\nOpening mulligan usage by faction:');
   console.table(factionKeys.map((key) => {

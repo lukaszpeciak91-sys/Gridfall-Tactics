@@ -232,19 +232,51 @@ export function resolveTurnCapWinner(state, turnsCompleted, maxTurns = MAX_TURNS
 }
 
 function clampHeroHpAndResolveWinner(state) {
-  state.playerHP = Math.max(0, state.playerHP);
-  state.enemyHP = Math.max(0, state.enemyHP);
+  const rawPlayerHP = state.playerHP;
+  const rawEnemyHP = state.enemyHP;
+  const playerDead = rawPlayerHP <= 0;
+  const enemyDead = rawEnemyHP <= 0;
 
-  if (state.playerHP === 0 || state.enemyHP === 0) {
-    state.winner = state.playerHP === 0 && state.enemyHP === 0
-      ? 'draw'
-      : (state.playerHP === 0 ? 'enemy' : 'player');
+  state.heroDeathResolution = {
+    rawPlayerHP,
+    rawEnemyHP,
+    simultaneousLethal: playerDead && enemyDead,
+    resolvedBy: null,
+  };
+
+  if (playerDead || enemyDead) {
+    if (playerDead && enemyDead) {
+      if (rawPlayerHP > rawEnemyHP) state.winner = 'player';
+      else if (rawEnemyHP > rawPlayerHP) state.winner = 'enemy';
+      else state.winner = 'draw';
+      state.heroDeathResolution.resolvedBy = state.winner === 'draw'
+        ? 'equal-raw-hero-hp'
+        : 'higher-raw-hero-hp';
+    } else {
+      state.winner = playerDead ? 'enemy' : 'player';
+      state.heroDeathResolution.resolvedBy = 'single-hero-lethal';
+    }
   }
+
+  state.playerHP = Math.max(0, rawPlayerHP);
+  state.enemyHP = Math.max(0, rawEnemyHP);
 }
 
 function finalizeImmediateLaneCombat(state) {
   cleanupAllDefeatedUnitsWithTriggers(state);
   clampHeroHpAndResolveWinner(state);
+}
+
+function resolveCombatWithRawHeroDamage(state, callback) {
+  const previousPreserveRawHeroHP = state.preserveRawHeroHPUntilCombatFinalization;
+  state.preserveRawHeroHPUntilCombatFinalization = true;
+  const result = callback();
+  if (previousPreserveRawHeroHP) {
+    state.preserveRawHeroHPUntilCombatFinalization = previousPreserveRawHeroHP;
+  } else {
+    delete state.preserveRawHeroHPUntilCombatFinalization;
+  }
+  return result;
 }
 
 function triggerUnitDeathEffects(state, index, unit) {
@@ -254,7 +286,9 @@ function triggerUnitDeathEffects(state, index, unit) {
 
   if (unit.effectId === 'death_damage_enemy_hero_1') {
     const hpKey = enemyOwner === 'player' ? 'playerHP' : 'enemyHP';
-    state[hpKey] = Math.max(0, state[hpKey] - 1);
+    state[hpKey] = state.preserveRawHeroHPUntilCombatFinalization
+      ? state[hpKey] - 1
+      : Math.max(0, state[hpKey] - 1);
   }
 
   if (unit.effectId === 'on_death_summon_grunt' && state.board[index] === null) {
@@ -733,8 +767,10 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
     case 'quick_strike': {
       if (targetUnit.owner !== owner) return { ok: false, reason: 'Target must be friendly' };
       const lane = boardIndex % 3;
-      resolveCombatLane(state, lane);
-      finalizeImmediateLaneCombat(state);
+      resolveCombatWithRawHeroDamage(state, () => {
+        resolveCombatLane(state, lane);
+        finalizeImmediateLaneCombat(state);
+      });
       break;
     }
     case 'control_enemy_unit_this_turn': {
@@ -815,8 +851,10 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
       const adjacentUnit = state.board[swapIndex];
       state.board[boardIndex] = adjacentUnit;
       state.board[swapIndex] = selectedUnit;
-      resolveCombatLane(state, targetLane);
-      finalizeImmediateLaneCombat(state);
+      resolveCombatWithRawHeroDamage(state, () => {
+        resolveCombatLane(state, targetLane);
+        finalizeImmediateLaneCombat(state);
+      });
       break;
     }
     case 'swap_two_enemy_units': {
@@ -855,8 +893,10 @@ export function resolveQuickStrike(state, owner, boardIndex) {
     return { ok: false, reason: 'Target must be friendly' };
   }
   const lane = boardIndex % 3;
-  resolveCombatLane(state, lane);
-  finalizeImmediateLaneCombat(state);
+  resolveCombatWithRawHeroDamage(state, () => {
+    resolveCombatLane(state, lane);
+    finalizeImmediateLaneCombat(state);
+  });
   recordProgressAction(state, owner, 'quick-strike');
   return { ok: true, type: 'quick-strike', lane };
 }
@@ -1189,6 +1229,9 @@ function resolveCombatLane(state, col, combatContext = null) {
 
 export function resolveCombat(state) {
   const combatContext = { guardiansUsed: new Set(), events: [] };
+  const previousPreserveRawHeroHP = state.preserveRawHeroHPUntilCombatFinalization;
+  state.preserveRawHeroHPUntilCombatFinalization = true;
+
   for (let col = 0; col < 3; col += 1) {
     resolveCombatLane(state, col, combatContext);
   }
@@ -1231,6 +1274,12 @@ export function resolveCombat(state) {
   });
 
   clampHeroHpAndResolveWinner(state);
+
+  if (previousPreserveRawHeroHP) {
+    state.preserveRawHeroHPUntilCombatFinalization = previousPreserveRawHeroHP;
+  } else {
+    delete state.preserveRawHeroHPUntilCombatFinalization;
+  }
 
   return combatContext.events;
 }
