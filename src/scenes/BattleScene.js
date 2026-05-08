@@ -16,8 +16,9 @@ const SELECTED_HAND_CARD_ZOOM_SCALE = 1.22;
 const SELECTED_HAND_CARD_RAISE_RATIO = 0.16;
 const SELECTED_HAND_CARD_CENTER_NUDGE_RATIO = 0.18;
 const SELECTED_HAND_CARD_DEPTH = 180;
-const MULLIGAN_HAND_CARD_PREVIEW_SCALE = 1.16;
-const MULLIGAN_HAND_CARD_RAISE_RATIO = 0.72;
+const MULLIGAN_HAND_CARD_PREVIEW_SCALE = 1.08;
+const MULLIGAN_HAND_CARD_RAISE_RATIO = 0.06;
+const HAND_CARD_PREVIEW_TWEEN_MS = 110;
 
 export default class BattleScene extends Phaser.Scene {
   constructor() {
@@ -41,6 +42,7 @@ export default class BattleScene extends Phaser.Scene {
     this.backgroundArtAsset = null;
     this.backgroundLayer = null;
     this.selectedHandCardZoom = null;
+    this.pressedHandCardId = null;
   }
 
   preload() {
@@ -84,6 +86,7 @@ export default class BattleScene extends Phaser.Scene {
     this.backgroundArtAsset = null;
     this.backgroundLayer = null;
     this.selectedHandCardZoom = null;
+    this.pressedHandCardId = null;
   }
 
   cleanupSceneObjects({ preserveTimers = false, preserveTweens = false } = {}) {
@@ -794,8 +797,11 @@ export default class BattleScene extends Phaser.Scene {
 
       if (card) {
         background.setInteractive({ useHandCursor: true });
+        background.on('pointerdown', () => {
+          this.onCardPointerDown(cardId);
+        });
         background.on('pointerup', () => {
-          this.onCardTap(cardId);
+          this.onCardPointerUp(cardId);
         });
       }
 
@@ -837,7 +843,9 @@ export default class BattleScene extends Phaser.Scene {
   }
 
 
-  onCardTap(cardId) {
+  onCardPointerDown(cardId) {
+    this.pressedHandCardId = cardId;
+
     if (this.battleResultModalShown) {
       return;
     }
@@ -850,8 +858,8 @@ export default class BattleScene extends Phaser.Scene {
       this.selectedCardId = null;
       this.targetingState = null;
       this.pendingSwapIndex = null;
-      this.previewedMulliganCardId = cardId;
-      this.toggleOpeningMulliganCard(cardId);
+      this.previewedMulliganCardId = null;
+      this.toggleOpeningMulliganCard(cardId, { showPreview: false });
       return;
     }
 
@@ -874,13 +882,35 @@ export default class BattleScene extends Phaser.Scene {
       this.selectedCardId = cardId;
       this.targetingState = this.isUnitCard(card) ? null : this.getTargetingStateForCard(card);
     }
-    this.resetCardHighlights();
+    this.resetCardHighlights({ showPreview: false });
+  }
+
+  onCardPointerUp(cardId) {
+    if (this.pressedHandCardId !== cardId) {
+      return;
+    }
+
+    if (this.battleResultModalShown || this.isFlowResolving) {
+      this.pressedHandCardId = null;
+      return;
+    }
+
+    if (this.openingMulliganPending) {
+      this.previewedMulliganCardId = this.selectedMulliganCardIds.includes(cardId) ? cardId : null;
+      this.resetCardHighlights({ showPreview: true });
+      this.pressedHandCardId = null;
+      return;
+    }
+
+    this.resetCardHighlights({ showPreview: true });
+    this.pressedHandCardId = null;
   }
 
   onScenePointerUp(pointer, currentlyOver = []) {
     if (this.openingMulliganPending || this.battleResultModalShown || this.isFlowResolving) return;
     if (!this.selectedCardId && !this.targetingState) return;
     if (Array.isArray(currentlyOver) && currentlyOver.length > 0) return;
+    this.pressedHandCardId = null;
     this.clearHandCardSelection();
   }
 
@@ -1002,7 +1032,7 @@ export default class BattleScene extends Phaser.Scene {
     performOpeningMulligan(this.gameState, 'enemy', selectedIds);
   }
 
-  toggleOpeningMulliganCard(cardId) {
+  toggleOpeningMulliganCard(cardId, { showPreview = true } = {}) {
     const card = this.gameState.player.hand.find((item) => item.id === cardId);
     if (!card) return;
 
@@ -1013,7 +1043,7 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     this.updateActionButtonLabel();
-    this.resetCardHighlights();
+    this.resetCardHighlights({ showPreview });
   }
 
   confirmOpeningMulligan() {
@@ -1558,7 +1588,9 @@ ${statParts.join(' | ')}`;
     const targetY = cardView.baseY - hand.cardHeight * raiseRatio;
     const minX = margin + zoomWidth / 2;
     const maxX = width - margin - zoomWidth / 2;
-    const minY = margin + zoomHeight / 2;
+    const minY = isMulliganPreview
+      ? this.layout.action.y + this.layout.action.h + zoomHeight / 2 + 6
+      : margin + zoomHeight / 2;
     const maxY = height - margin - zoomHeight / 2;
 
     return {
@@ -1587,24 +1619,54 @@ ${statParts.join(' | ')}`;
     const label = this.getHandCardLabel(card);
     const fontSize = Math.max(cardView.baseFontSize, Math.floor(cardView.baseFontSize * transform.scale));
 
-    const glow = this.add.rectangle(transform.x, transform.y, zoomWidth + 8, zoomHeight + 8, 0xfacc15, 0.12)
+    const startX = cardView.baseX;
+    const startY = cardView.baseY;
+    const startLabelY = startY + zoomHeight * 0.03;
+    const targetLabelY = transform.y + zoomHeight * 0.03;
+    const previewItems = [];
+
+    const glow = this.add.rectangle(startX, startY, zoomWidth + 8, zoomHeight + 8, 0xfacc15, 0.12)
       .setStrokeStyle(5, 0xfacc15, 0.65)
+      .setAlpha(0)
+      .setScale(0.96)
       .setDepth(SELECTED_HAND_CARD_DEPTH);
-    const background = this.add.rectangle(transform.x, transform.y, zoomWidth, zoomHeight, 0x334155, 0.9)
+    const background = this.add.rectangle(startX, startY, zoomWidth, zoomHeight, 0x334155, 0.9)
       .setStrokeStyle(5, accentColor, 1)
+      .setAlpha(0)
+      .setScale(0.96)
       .setDepth(SELECTED_HAND_CARD_DEPTH + 1);
-    const labelText = this.add.text(transform.x, transform.y + zoomHeight * 0.03, label, {
+    const labelText = this.add.text(startX, startLabelY, label, {
       fontFamily: 'Arial, sans-serif',
       fontSize: `${fontSize}px`,
       color: '#f8fafc',
       align: 'center',
       wordWrap: { width: zoomWidth - 18 },
-    }).setOrigin(0.5).setDepth(SELECTED_HAND_CARD_DEPTH + 2);
+    }).setOrigin(0.5).setAlpha(0).setScale(0.96).setDepth(SELECTED_HAND_CARD_DEPTH + 2);
 
-    this.selectedHandCardZoom = { glow, background, label: labelText };
+    previewItems.push(glow, background, labelText);
+    this.tweens.add({
+      targets: [glow, background],
+      x: transform.x,
+      y: transform.y,
+      scale: 1,
+      alpha: 1,
+      duration: HAND_CARD_PREVIEW_TWEEN_MS,
+      ease: 'Quad.easeOut',
+    });
+    this.tweens.add({
+      targets: labelText,
+      x: transform.x,
+      y: targetLabelY,
+      scale: 1,
+      alpha: 1,
+      duration: HAND_CARD_PREVIEW_TWEEN_MS,
+      ease: 'Quad.easeOut',
+    });
+
+    this.selectedHandCardZoom = { glow, background, label: labelText, previewItems };
   }
 
-  resetCardHighlights() {
+  resetCardHighlights({ showPreview = true } = {}) {
     this.cardViews.forEach((card) => {
       const isMulliganSelected = this.openingMulliganPending && this.selectedMulliganCardIds.includes(card.cardId);
       const isGameplaySelected = !this.openingMulliganPending && card.cardId === this.selectedCardId;
@@ -1630,7 +1692,11 @@ ${statParts.join(' | ')}`;
       card.label.setPosition(card.labelBaseX, card.labelBaseY).setScale(1).setDepth(card.baseDepth + 2);
     });
 
-    this.showSelectedHandCardZoom();
+    if (showPreview) {
+      this.showSelectedHandCardZoom();
+    } else {
+      this.destroySelectedHandCardZoom();
+    }
 
     this.boardCells.forEach((cell) => {
       const isValidFriendlyTarget = this.isValidTarget(cell.index, 'friendly-unit');
