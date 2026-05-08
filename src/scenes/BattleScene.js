@@ -16,6 +16,8 @@ const SELECTED_HAND_CARD_ZOOM_SCALE = 1.22;
 const SELECTED_HAND_CARD_RAISE_RATIO = 0.16;
 const SELECTED_HAND_CARD_CENTER_NUDGE_RATIO = 0.18;
 const SELECTED_HAND_CARD_DEPTH = 180;
+const MULLIGAN_HAND_CARD_PREVIEW_SCALE = 1.16;
+const MULLIGAN_HAND_CARD_RAISE_RATIO = 0.72;
 
 export default class BattleScene extends Phaser.Scene {
   constructor() {
@@ -29,6 +31,7 @@ export default class BattleScene extends Phaser.Scene {
     this.targetingState = null;
     this.openingMulliganPending = false;
     this.selectedMulliganCardIds = [];
+    this.previewedMulliganCardId = null;
     this.actionButton = null;
     this.isFlowResolving = false;
     this.enemyActionBanner = null;
@@ -59,6 +62,7 @@ export default class BattleScene extends Phaser.Scene {
     this.targetingState = null;
     this.openingMulliganPending = false;
     this.selectedMulliganCardIds = [];
+    this.previewedMulliganCardId = null;
     this.actionButton = null;
     this.isFlowResolving = false;
     this.enemyActionBanner = null;
@@ -846,6 +850,7 @@ export default class BattleScene extends Phaser.Scene {
       this.selectedCardId = null;
       this.targetingState = null;
       this.pendingSwapIndex = null;
+      this.previewedMulliganCardId = cardId;
       this.toggleOpeningMulliganCard(cardId);
       return;
     }
@@ -1028,6 +1033,7 @@ export default class BattleScene extends Phaser.Scene {
 
   resetOpeningMulliganInputState() {
     this.selectedMulliganCardIds = [];
+    this.previewedMulliganCardId = null;
     this.selectedCardId = null;
     this.targetingState = null;
     this.pendingSwapIndex = null;
@@ -1541,14 +1547,15 @@ ${statParts.join(' | ')}`;
     this.selectedHandCardZoom = null;
   }
 
-  getSelectedHandCardTransform(cardView) {
+  getSelectedHandCardTransform(cardView, { isMulliganPreview = false } = {}) {
     const { width, height, hand, margin } = this.layout;
-    const zoomScale = SELECTED_HAND_CARD_ZOOM_SCALE;
+    const zoomScale = isMulliganPreview ? MULLIGAN_HAND_CARD_PREVIEW_SCALE : SELECTED_HAND_CARD_ZOOM_SCALE;
     const zoomWidth = hand.cardWidth * zoomScale;
     const zoomHeight = hand.cardHeight * zoomScale;
-    const nudgeX = (width * 0.5 - cardView.baseX) * SELECTED_HAND_CARD_CENTER_NUDGE_RATIO;
+    const nudgeX = isMulliganPreview ? 0 : (width * 0.5 - cardView.baseX) * SELECTED_HAND_CARD_CENTER_NUDGE_RATIO;
     const targetX = cardView.baseX + nudgeX;
-    const targetY = cardView.baseY - hand.cardHeight * SELECTED_HAND_CARD_RAISE_RATIO;
+    const raiseRatio = isMulliganPreview ? MULLIGAN_HAND_CARD_RAISE_RATIO : SELECTED_HAND_CARD_RAISE_RATIO;
+    const targetY = cardView.baseY - hand.cardHeight * raiseRatio;
     const minX = margin + zoomWidth / 2;
     const maxX = width - margin - zoomWidth / 2;
     const minY = margin + zoomHeight / 2;
@@ -1563,14 +1570,17 @@ ${statParts.join(' | ')}`;
 
   showSelectedHandCardZoom() {
     this.destroySelectedHandCardZoom();
-    if (this.openingMulliganPending || !this.selectedCardId) return;
 
-    const cardView = this.cardViews.find((view) => view.cardId === this.selectedCardId);
-    const card = this.gameState.player.hand.find((item) => item.id === this.selectedCardId);
+    const isMulliganPreview = this.openingMulliganPending;
+    const previewCardId = isMulliganPreview ? this.previewedMulliganCardId : this.selectedCardId;
+    if (!previewCardId) return;
+
+    const cardView = this.cardViews.find((view) => view.cardId === previewCardId);
+    const card = this.gameState.player.hand.find((item) => item.id === previewCardId);
     if (!cardView || !card) return;
 
     const { hand } = this.layout;
-    const transform = this.getSelectedHandCardTransform(cardView);
+    const transform = this.getSelectedHandCardTransform(cardView, { isMulliganPreview });
     const accentColor = this.getHandCardAccentColor(card);
     const zoomWidth = hand.cardWidth * transform.scale;
     const zoomHeight = hand.cardHeight * transform.scale;
