@@ -6,6 +6,11 @@ import { getTargetingStateForEffect } from '../systems/cardTargeting.js';
 import { BATTLE_BACKGROUND_FALLBACK_COLOR, BATTLE_BACKGROUND_FALLBACK_COLOR_HEX, getBattleBackgroundAsset, hasLoadedBattleBackground, preloadBattleBackgroundArt } from '../rendering/backgroundArt.js';
 import { getBuildMarkerText } from '../buildInfo.js';
 
+const HAND_CARD_ACCENT_COLORS = Object.freeze({
+  unit: 0x4da6ff,
+  effect: 0xb06cff,
+  default: 0x94a3b8,
+});
 
 export default class BattleScene extends Phaser.Scene {
   constructor() {
@@ -760,10 +765,11 @@ export default class BattleScene extends Phaser.Scene {
       const baseY = centerY + hand.h * 0.06;
       const labelBaseY = centerY + hand.h * 0.1;
       const baseFontSize = Math.max(12, Math.floor(hand.cardWidth * 0.108));
+      const accentColor = this.getHandCardAccentColor(card);
       const glow = this.add.rectangle(x, baseY, hand.cardWidth + 8, hand.cardHeight + 8, 0xfacc15, 0)
         .setStrokeStyle(5, 0xfacc15, 0);
       const background = this.add.rectangle(x, baseY, hand.cardWidth, hand.cardHeight, 0x111827, 0.55)
-        .setStrokeStyle(3, 0x94a3b8, 0.7);
+        .setStrokeStyle(3, accentColor, card ? 0.82 : 0.7);
       const label = this.add.text(x, labelBaseY, cardLabel, {
         fontFamily: 'Arial, sans-serif',
         fontSize: `${baseFontSize}px`,
@@ -790,6 +796,12 @@ export default class BattleScene extends Phaser.Scene {
         label.setAlpha(0.45);
       }
     }
+  }
+
+  getHandCardAccentColor(card) {
+    if (card?.type === 'unit') return HAND_CARD_ACCENT_COLORS.unit;
+    if (card?.type === 'effect') return HAND_CARD_ACCENT_COLORS.effect;
+    return HAND_CARD_ACCENT_COLORS.default;
   }
 
   getHandCardLabel(card) {
@@ -1508,8 +1520,10 @@ ${statParts.join(' | ')}`;
       const viewCard = this.gameState.player.hand.find((item) => item.id === card.cardId);
       const allTargets = [card.glow, card.background, card.label].filter(Boolean);
 
+      const accentColor = this.getHandCardAccentColor(viewCard);
+
       this.tweens.killTweensOf(allTargets);
-      card.background.setStrokeStyle(isHighlighted ? 5 : 3, isHighlighted ? 0xfacc15 : 0x94a3b8, isHighlighted ? 1 : 0.7);
+      card.background.setStrokeStyle(isHighlighted ? 5 : 3, isHighlighted ? 0xfacc15 : accentColor, isHighlighted ? 1 : viewCard ? 0.82 : 0.7);
       card.background.setFillStyle(isHighlighted ? 0x334155 : 0x111827, isHighlighted ? 0.9 : viewCard ? 0.55 : 0.42);
       card.glow.setStrokeStyle(isHighlighted ? 5 : 0, 0xfacc15, isHighlighted ? 0.65 : 0);
       card.glow.setFillStyle(0xfacc15, isHighlighted ? 0.12 : 0);
