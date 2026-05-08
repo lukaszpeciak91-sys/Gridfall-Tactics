@@ -12,6 +12,11 @@ const HAND_CARD_ACCENT_COLORS = Object.freeze({
   default: 0x94a3b8,
 });
 
+const SELECTED_HAND_CARD_ZOOM_SCALE = 1.22;
+const SELECTED_HAND_CARD_RAISE_RATIO = 0.16;
+const SELECTED_HAND_CARD_CENTER_NUDGE_RATIO = 0.18;
+const SELECTED_HAND_CARD_DEPTH = 180;
+
 export default class BattleScene extends Phaser.Scene {
   constructor() {
     super('BattleScene');
@@ -32,7 +37,7 @@ export default class BattleScene extends Phaser.Scene {
     this.battleResultModalPending = false;
     this.backgroundArtAsset = null;
     this.backgroundLayer = null;
-    this.cardZoomPreview = null;
+    this.selectedHandCardZoom = null;
   }
 
   preload() {
@@ -74,12 +79,12 @@ export default class BattleScene extends Phaser.Scene {
     this.enemyFactionKey = null;
     this.backgroundArtAsset = null;
     this.backgroundLayer = null;
-    this.cardZoomPreview = null;
+    this.selectedHandCardZoom = null;
   }
 
   cleanupSceneObjects({ preserveTimers = false, preserveTweens = false } = {}) {
     this.destroyBattleResultModal();
-    this.destroyCardZoomPreview();
+    this.destroySelectedHandCardZoom();
     if (!preserveTweens) {
       this.tweens?.killAll?.();
     }
@@ -1528,25 +1533,26 @@ ${statParts.join(' | ')}`;
   }
 
 
-  destroyCardZoomPreview() {
-    if (!this.cardZoomPreview) return;
-    const previewItems = [this.cardZoomPreview.glow, this.cardZoomPreview.background, this.cardZoomPreview.label];
-    this.tweens?.killTweensOf?.(previewItems.filter(Boolean));
-    previewItems.forEach((item) => item?.destroy?.());
-    this.cardZoomPreview = null;
+  destroySelectedHandCardZoom() {
+    if (!this.selectedHandCardZoom) return;
+    const zoomItems = [this.selectedHandCardZoom.glow, this.selectedHandCardZoom.background, this.selectedHandCardZoom.label];
+    this.tweens?.killTweensOf?.(zoomItems.filter(Boolean));
+    zoomItems.forEach((item) => item?.destroy?.());
+    this.selectedHandCardZoom = null;
   }
 
-  getZoomPreviewPosition(cardView) {
+  getSelectedHandCardTransform(cardView) {
     const { width, height, hand, margin } = this.layout;
-    const zoomScale = 1.55;
-    const previewWidth = hand.cardWidth * zoomScale;
-    const previewHeight = hand.cardHeight * zoomScale;
-    const targetX = cardView.baseX + (width * 0.5 - cardView.baseX) * 0.45;
-    const targetY = cardView.baseY + (height * 0.5 - cardView.baseY) * 0.68;
-    const minX = margin + previewWidth / 2;
-    const maxX = width - margin - previewWidth / 2;
-    const minY = margin + previewHeight / 2;
-    const maxY = height - margin - previewHeight / 2;
+    const zoomScale = SELECTED_HAND_CARD_ZOOM_SCALE;
+    const zoomWidth = hand.cardWidth * zoomScale;
+    const zoomHeight = hand.cardHeight * zoomScale;
+    const nudgeX = (width * 0.5 - cardView.baseX) * SELECTED_HAND_CARD_CENTER_NUDGE_RATIO;
+    const targetX = cardView.baseX + nudgeX;
+    const targetY = cardView.baseY - hand.cardHeight * SELECTED_HAND_CARD_RAISE_RATIO;
+    const minX = margin + zoomWidth / 2;
+    const maxX = width - margin - zoomWidth / 2;
+    const minY = margin + zoomHeight / 2;
+    const maxY = height - margin - zoomHeight / 2;
 
     return {
       x: Phaser.Math.Clamp(targetX, minX, maxX),
@@ -1555,8 +1561,8 @@ ${statParts.join(' | ')}`;
     };
   }
 
-  showSelectedCardZoomPreview() {
-    this.destroyCardZoomPreview();
+  showSelectedHandCardZoom() {
+    this.destroySelectedHandCardZoom();
     if (this.openingMulliganPending || !this.selectedCardId) return;
 
     const cardView = this.cardViews.find((view) => view.cardId === this.selectedCardId);
@@ -1564,29 +1570,28 @@ ${statParts.join(' | ')}`;
     if (!cardView || !card) return;
 
     const { hand } = this.layout;
-    const position = this.getZoomPreviewPosition(cardView);
+    const transform = this.getSelectedHandCardTransform(cardView);
     const accentColor = this.getHandCardAccentColor(card);
-    const previewDepth = 260;
-    const previewWidth = hand.cardWidth * position.scale;
-    const previewHeight = hand.cardHeight * position.scale;
+    const zoomWidth = hand.cardWidth * transform.scale;
+    const zoomHeight = hand.cardHeight * transform.scale;
     const label = this.getHandCardLabel(card);
-    const fontSize = Math.max(cardView.baseFontSize + 4, Math.floor(cardView.baseFontSize * position.scale));
+    const fontSize = Math.max(cardView.baseFontSize, Math.floor(cardView.baseFontSize * transform.scale));
 
-    const glow = this.add.rectangle(position.x, position.y, previewWidth + 10, previewHeight + 10, 0xfacc15, 0.14)
-      .setStrokeStyle(5, 0xfacc15, 0.68)
-      .setDepth(previewDepth);
-    const background = this.add.rectangle(position.x, position.y, previewWidth, previewHeight, 0x111827, 0.94)
-      .setStrokeStyle(4, accentColor, 1)
-      .setDepth(previewDepth + 1);
-    const labelText = this.add.text(position.x, position.y + previewHeight * 0.03, label, {
+    const glow = this.add.rectangle(transform.x, transform.y, zoomWidth + 8, zoomHeight + 8, 0xfacc15, 0.12)
+      .setStrokeStyle(5, 0xfacc15, 0.65)
+      .setDepth(SELECTED_HAND_CARD_DEPTH);
+    const background = this.add.rectangle(transform.x, transform.y, zoomWidth, zoomHeight, 0x334155, 0.9)
+      .setStrokeStyle(5, accentColor, 1)
+      .setDepth(SELECTED_HAND_CARD_DEPTH + 1);
+    const labelText = this.add.text(transform.x, transform.y + zoomHeight * 0.03, label, {
       fontFamily: 'Arial, sans-serif',
       fontSize: `${fontSize}px`,
       color: '#f8fafc',
       align: 'center',
-      wordWrap: { width: previewWidth - 20 },
-    }).setOrigin(0.5).setDepth(previewDepth + 2);
+      wordWrap: { width: zoomWidth - 18 },
+    }).setOrigin(0.5).setDepth(SELECTED_HAND_CARD_DEPTH + 2);
 
-    this.cardZoomPreview = { glow, background, label: labelText };
+    this.selectedHandCardZoom = { glow, background, label: labelText };
   }
 
   resetCardHighlights() {
@@ -1615,7 +1620,7 @@ ${statParts.join(' | ')}`;
       card.label.setPosition(card.labelBaseX, card.labelBaseY).setScale(1).setDepth(card.baseDepth + 2);
     });
 
-    this.showSelectedCardZoomPreview();
+    this.showSelectedHandCardZoom();
 
     this.boardCells.forEach((cell) => {
       const isValidFriendlyTarget = this.isValidTarget(cell.index, 'friendly-unit');
