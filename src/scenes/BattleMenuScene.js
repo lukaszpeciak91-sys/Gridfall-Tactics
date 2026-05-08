@@ -8,6 +8,9 @@ export default class BattleMenuScene extends Phaser.Scene {
   create(data) {
     const { width, height } = this.scale;
     const factionKey = typeof data?.factionKey === 'string' && data.factionKey ? data.factionKey : 'Aggro';
+    const returnSceneKey = typeof data?.returnSceneKey === 'string' && data.returnSceneKey
+      ? data.returnSceneKey
+      : 'BattleScene';
 
     this.cameras.main.setBackgroundColor('#05080f');
 
@@ -40,10 +43,10 @@ export default class BattleMenuScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true });
 
     backButton.on('pointerup', () => {
-      const battleScene = this.scene.get('BattleScene');
+      const returnScene = this.scene.get(returnSceneKey);
       this.scene.stop();
-      if (battleScene?.resumeFromBattleMenu) {
-        battleScene.resumeFromBattleMenu();
+      if (returnScene?.resumeFromBattleMenu) {
+        returnScene.resumeFromBattleMenu();
         return;
       }
       this.scene.start('BattleScene', { factionKey });

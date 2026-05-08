@@ -38,7 +38,7 @@ test('BattleScene imports every GameState helper used during create', () => {
 test('BattleScene returns to faction select through a cleanup path and retry stays in BattleScene', () => {
   const source = readScene('src/scenes/BattleScene.js');
 
-  assert.match(source, /leftIcon\.on\('pointerup', \(\) => this\.exitBattleToFactionSelect\(\)\)/);
+  assert.match(source, /onBack: \(\) => this\.exitBattleToFactionSelect\(\)/);
   assert.match(source, /this\.scene\.start\('FactionSelectScene'\)/);
   assert.match(source, /this\.scene\.restart\(\{ factionKey, enemyFactionKey \}\)/);
   assert.match(source, /exitBattleToFactionSelect\(\) \{[\s\S]*this\.scene\.start\('FactionSelectScene'\)/);
@@ -69,11 +69,29 @@ test('Battle menu pauses and resumes the existing BattleScene instead of recreat
   const battleSource = readScene('src/scenes/BattleScene.js');
   const menuSource = readScene('src/scenes/BattleMenuScene.js');
 
-  assert.match(battleSource, /centerIcon\.on\('pointerup', \(\) => this\.openBattleMenu\(\)\)/);
-  assert.match(battleSource, /openBattleMenu\(\) \{[\s\S]*this\.scene\.launch\('BattleMenuScene', \{ factionKey: this\.factionKey \}\);[\s\S]*this\.scene\.pause\(\);[\s\S]*\}/);
+  assert.match(battleSource, /onMenu: \(\) => this\.openBattleMenu\(\)/);
+  assert.match(battleSource, /openBattleMenu\(\) \{[\s\S]*this\.scene\.launch\('BattleMenuScene', \{ factionKey: this\.factionKey, returnSceneKey: 'BattleScene' \}\);[\s\S]*this\.scene\.pause\(\);[\s\S]*\}/);
   assert.match(battleSource, /resumeFromBattleMenu\(\) \{[\s\S]*this\.scene\.resume\(\);[\s\S]*this\.recoverFromLifecycle\('battle-menu-return'\);[\s\S]*\}/);
-  assert.match(menuSource, /battleScene\.resumeFromBattleMenu\(\)/);
-  assert.match(menuSource, /battleScene\.resumeFromBattleMenu\(\);\s*return;[\s\S]*this\.scene\.start\('BattleScene', \{ factionKey \}\)/);
+  assert.match(menuSource, /const returnScene = this\.scene\.get\(returnSceneKey\)/);
+  assert.match(menuSource, /returnScene\?\.resumeFromBattleMenu/);
+  assert.match(menuSource, /returnScene\.resumeFromBattleMenu\(\);\s*return;[\s\S]*this\.scene\.start\('BattleScene', \{ factionKey \}\)/);
+});
+
+test('FactionSelectScene uses shared bottom navigation controls for start, menu, and fullscreen', () => {
+  const factionSource = readScene('src/scenes/FactionSelectScene.js');
+  const battleSource = readScene('src/scenes/BattleScene.js');
+  const helperSource = readScene('src/ui/navigationControls.js');
+  const menuSource = readScene('src/scenes/BattleMenuScene.js');
+
+  assert.match(factionSource, /import \{ createBottomNavigationControls, toggleSceneFullscreen \} from '\.\.\/ui\/navigationControls\.js';/);
+  assert.match(battleSource, /import \{ createBottomNavigationControls, toggleSceneFullscreen \} from '\.\.\/ui\/navigationControls\.js';/);
+  assert.match(helperSource, /export function createBottomNavigationControls/);
+  assert.match(helperSource, /export function createFloatingControl/);
+  assert.match(factionSource, /drawNavigationControls\(\) \{[\s\S]*createBottomNavigationControls\(this, \{[\s\S]*onBack: \(\) => this\.returnToStart\(\),[\s\S]*onMenu: \(\) => this\.openBattleMenu\(\),[\s\S]*onFullscreen: \(\) => this\.toggleFullscreen\(\),[\s\S]*\}\)/);
+  assert.match(factionSource, /returnToStart\(\) \{[\s\S]*this\.scene\.start\('StartScene'\)/);
+  assert.match(factionSource, /openBattleMenu\(\) \{[\s\S]*this\.scene\.launch\('BattleMenuScene', \{ returnSceneKey: 'FactionSelectScene' \}\);[\s\S]*this\.scene\.pause\(\);[\s\S]*\}/);
+  assert.match(factionSource, /toggleFullscreen\(\) \{[\s\S]*toggleSceneFullscreen\(this\);[\s\S]*\}/);
+  assert.match(menuSource, /const returnSceneKey = typeof data\?\.returnSceneKey === 'string'/);
 });
 
 test('runtime session lifecycle listens for browser visibility, fullscreen, Phaser pause/resume, and WebGL restore', () => {

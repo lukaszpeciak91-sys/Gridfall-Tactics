@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { getFactionKeys } from '../data/factions/index.js';
 import { getBuildMarkerText } from '../buildInfo.js';
+import { createBottomNavigationControls, toggleSceneFullscreen } from '../ui/navigationControls.js';
 
 export default class FactionSelectScene extends Phaser.Scene {
   constructor() {
@@ -25,6 +26,8 @@ export default class FactionSelectScene extends Phaser.Scene {
     const factionKeys = getFactionKeys();
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.cleanupScene, this);
+    this.scale.on('enterfullscreen', this.onFullscreenChanged, this);
+    this.scale.on('leavefullscreen', this.onFullscreenChanged, this);
 
     const title = this.add
       .text(width / 2, height * 0.16, 'Select Faction', {
@@ -51,6 +54,8 @@ export default class FactionSelectScene extends Phaser.Scene {
     const stepY = 90;
 
 
+    this.drawNavigationControls();
+
     factionKeys.forEach((factionKey, index) => {
       const y = baseY + index * stepY;
       const button = this.add
@@ -70,6 +75,42 @@ export default class FactionSelectScene extends Phaser.Scene {
 
       this.uiElements.push(button);
     });
+  }
+
+
+  drawNavigationControls() {
+    const controls = createBottomNavigationControls(this, {
+      onBack: () => this.returnToStart(),
+      onMenu: () => this.openBattleMenu(),
+      onFullscreen: () => this.toggleFullscreen(),
+    });
+
+    [controls.back, controls.menu, controls.fullscreen].forEach((control) => {
+      this.uiElements.push(control.halo, control.backing, control.text);
+    });
+  }
+
+  returnToStart() {
+    this.scene.start('StartScene');
+  }
+
+  openBattleMenu() {
+    this.scene.launch('BattleMenuScene', { returnSceneKey: 'FactionSelectScene' });
+    this.scene.pause();
+  }
+
+  resumeFromBattleMenu() {
+    this.scene.resume();
+  }
+
+  toggleFullscreen() {
+    toggleSceneFullscreen(this);
+  }
+
+  onFullscreenChanged() {
+    if (this.scene.isActive('FactionSelectScene')) {
+      this.scene.restart();
+    }
   }
 
   startBattle(factionKey) {
@@ -171,6 +212,9 @@ export default class FactionSelectScene extends Phaser.Scene {
   }
 
   cleanupScene() {
+    this.scale?.off('enterfullscreen', this.onFullscreenChanged, this);
+    this.scale?.off('leavefullscreen', this.onFullscreenChanged, this);
+
     this.uiElements.forEach((element) => {
       if (element && element.active) {
         element.removeAllListeners?.();
