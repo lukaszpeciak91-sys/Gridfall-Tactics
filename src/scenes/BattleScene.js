@@ -125,6 +125,9 @@ export default class BattleScene extends Phaser.Scene {
     this.drawBuildMarker();
     this.updateActionButtonLabel();
 
+    this.input.off('pointerup', this.onScenePointerUp, this);
+    this.input.on('pointerup', this.onScenePointerUp, this);
+
     this.scale.on('enterfullscreen', this.onFullscreenChanged, this);
     this.scale.on('leavefullscreen', this.onFullscreenChanged, this);
     this.scale.on('resize', this.onViewportChanged, this);
@@ -605,6 +608,7 @@ export default class BattleScene extends Phaser.Scene {
 
   shutdown() {
     this.cleanupSceneObjects();
+    this.input.off('pointerup', this.onScenePointerUp, this);
     this.scale.off('enterfullscreen', this.onFullscreenChanged, this);
     this.scale.off('leavefullscreen', this.onFullscreenChanged, this);
     this.scale.off('resize', this.onViewportChanged, this);
@@ -857,6 +861,14 @@ export default class BattleScene extends Phaser.Scene {
     this.selectedCardId = cardId;
     this.targetingState = this.isUnitCard(card) ? null : this.getTargetingStateForCard(card);
     this.resetCardHighlights();
+  }
+
+  onScenePointerUp() {
+    if (this.openingMulliganPending || this.battleResultModalShown || this.isFlowResolving) {
+      return;
+    }
+
+    this.clearHandCardSelection();
   }
 
   clearHandCardSelection() {
@@ -1538,6 +1550,16 @@ ${statParts.join(' | ')}`;
       card.background.setPosition(card.baseX, card.baseY).setScale(1).setDepth(card.baseDepth + 1);
       card.label.setPosition(card.labelBaseX, card.labelBaseY).setScale(1).setDepth(card.baseDepth + 2);
       card.hitArea.setPosition(card.baseX, card.baseY).setScale(1).setDepth(card.baseDepth + 3);
+
+      if (isGameplaySelected && viewCard) {
+        const zoomScale = 1.12;
+        const raisedY = Math.max(card.baseY - this.layout.hand.cardHeight * 0.08, this.layout.hand.y + this.layout.hand.cardHeight * 0.52);
+        const topDepth = 160;
+
+        card.glow.setPosition(card.baseX, raisedY).setScale(zoomScale).setDepth(topDepth);
+        card.background.setPosition(card.baseX, raisedY).setScale(zoomScale).setDepth(topDepth + 1);
+        card.label.setPosition(card.labelBaseX, raisedY + (card.labelBaseY - card.baseY)).setScale(zoomScale).setDepth(topDepth + 2);
+      }
     });
 
     this.boardCells.forEach((cell) => {
