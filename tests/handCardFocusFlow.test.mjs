@@ -12,13 +12,16 @@ test('hand card input uses simple selection and existing board play/targeting ro
   assert.match(source, /const result = playOrRedeployUnit\(this\.gameState, 'player', this\.selectedCardId, boardIndex\);/);
 });
 
-test('hand card rendering keeps cards fixed at their base hit area, size, and depth', () => {
+test('hand card rendering keeps mulligan cards fixed while gameplay selection can zoom visually only', () => {
   assert.match(source, /card\.glow\.setPosition\(card\.baseX, card\.baseY\)\.setScale\(1\)\.setDepth\(card\.baseDepth\);/);
   assert.match(source, /card\.background\.setPosition\(card\.baseX, card\.baseY\)\.setScale\(1\)\.setDepth\(card\.baseDepth \+ 1\);/);
   assert.match(source, /card\.label\.setPosition\(card\.labelBaseX, card\.labelBaseY\)\.setScale\(1\)\.setDepth\(card\.baseDepth \+ 2\);/);
   assert.match(source, /card\.hitArea\.setPosition\(card\.baseX, card\.baseY\)\.setScale\(1\)\.setDepth\(card\.baseDepth \+ 3\);/);
   assert.match(source, /card\.label\.setFontSize\(card\.baseFontSize\);/);
-  assert.doesNotMatch(source, /this\.tweens\.add\(\{\s*targets: \[?card|scaleX: focusTarget\.scale|raisedOffset|topDepth/);
+  assert.match(source, /if \(isGameplaySelected && viewCard\) \{\s*const zoomScale = 1\.12;/);
+  assert.match(source, /card\.background\.setPosition\(card\.baseX, raisedY\)\.setScale\(zoomScale\)\.setDepth\(topDepth \+ 1\);/);
+  assert.doesNotMatch(source, /focusedCardId|focusedCardView|focusHandCard|playFocusedCard|HAND_CARD_FOCUS|getHandCardFocusTarget/);
+  assert.doesNotMatch(source, /if \(isMulliganSelected && viewCard\) \{\s*const zoomScale|this\.tweens\.add\(\{\s*targets: \[?card|scaleX: focusTarget\.scale/);
 });
 
 test('overlapped hand visuals use partitioned hit areas so adjacent cards receive distinct taps', () => {
@@ -43,8 +46,9 @@ test('opening mulligan cleanup resets transient input without focus state or han
   assert.match(source, /button\.on\('pointerup', \(pointer, localX, localY, event\) => \{\s*event\?\.stopPropagation\?\.\(\);\s*if \(this\.openingMulliganPending\) \{\s*this\.confirmOpeningMulligan\(\);\s*return;\s*\}\s*this\.resolvePassTurn\(\);\s*\}\);/);
 });
 
-test('interactive card, board, and pass handlers stop propagation without scene-level outside-tap clearing', () => {
-  assert.doesNotMatch(source, /this\.input\.on\('pointerup', this\.onScenePointerUp, this\)|onScenePointerUp\(/);
+test('interactive card, board, and pass handlers stop propagation while outside-tap clearing is gated after mulligan', () => {
+  assert.match(source, /this\.input\.on\('pointerup', this\.onScenePointerUp, this\);/);
+  assert.match(source, /onScenePointerUp\(\) \{\s*if \(this\.openingMulliganPending \|\| this\.battleResultModalShown \|\| this\.isFlowResolving\) \{\s*return;\s*\}\s*this\.clearHandCardSelection\(\);\s*\}/);
   assert.match(source, /background\.on\('pointerup', \(pointer, localX, localY, event\) => \{\s*event\?\.stopPropagation\?\.\(\);\s*this\.onBoardCellTap\(boardIndex\);\s*\}\);/);
   assert.match(source, /button\.on\('pointerup', \(pointer, localX, localY, event\) => \{\s*event\?\.stopPropagation\?\.\(\);/);
   assert.match(source, /hitArea\.on\('pointerup', \(pointer, localX, localY, event\) => \{\s*event\?\.stopPropagation\?\.\(\);\s*this\.onCardTap\(cardId\);\s*\}\);/);
