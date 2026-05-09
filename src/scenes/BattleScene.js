@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
-import { createInitialBattleState, drawCards, shuffleDeck, canPass, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, getUnitAttack, getUnitArmor, toggleFirstActor, resolveTurnCapWinner, resolveImmediateNoProgressWinner, recordPassAction, performOpeningMulligan, STARTING_HAND_SIZE, MAX_OPENING_MULLIGAN_CARDS } from '../systems/GameState.js';
+import { createInitialBattleState, drawCards, shuffleDeck, canPass, canPlayOrRedeploy, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, getUnitAttack, getUnitArmor, toggleFirstActor, resolveTurnCapWinner, resolveImmediateNoProgressWinner, recordPassAction, performOpeningMulligan, STARTING_HAND_SIZE, MAX_OPENING_MULLIGAN_CARDS } from '../systems/GameState.js';
 import { chooseEnemyAction, recordBattleActionUse, selectOpeningMulliganCardIds } from '../systems/enemyDecision.js';
 import { getTargetingStateForEffect } from '../systems/cardTargeting.js';
 import { BATTLE_BACKGROUND_FALLBACK_COLOR, BATTLE_BACKGROUND_FALLBACK_COLOR_HEX, getBattleBackgroundAsset, hasLoadedBattleBackground, preloadBattleBackgroundArt } from '../rendering/backgroundArt.js';
@@ -35,6 +35,7 @@ export default class BattleScene extends Phaser.Scene {
     this.selectedMulliganCardIds = [];
     this.previewedMulliganCardId = null;
     this.actionButton = null;
+    this.bottomControlViews = [];
     this.isFlowResolving = false;
     this.enemyActionBanner = null;
     this.battleResultModal = null;
@@ -67,6 +68,7 @@ export default class BattleScene extends Phaser.Scene {
     this.selectedMulliganCardIds = [];
     this.previewedMulliganCardId = null;
     this.actionButton = null;
+    this.bottomControlViews = [];
     this.isFlowResolving = false;
     this.enemyActionBanner = null;
     this.battleResultModal = null;
@@ -309,15 +311,47 @@ export default class BattleScene extends Phaser.Scene {
     const { hand, margin } = this.layout;
     const deckCount = this.gameState.player.deck.length;
 
-    createBottomNavigationControls(this, {
-      onBack: () => this.exitBattleToFactionSelect(),
-      onMenu: () => this.openBattleMenu(),
-      onFullscreen: () => this.toggleFullscreen(),
-      deckLabel: `x${deckCount}`,
-      centerY: hand.controlCenterY,
-      touchSize: hand.controlTouchSize,
-      margin,
-    });
+    const backControl = this.createFloatingControl(backX, centerY, touchSize, '←', () => this.exitBattleToFactionSelect());
+    const menuControl = this.createFloatingControl(width * 0.5, centerY, touchSize, '≡', () => this.openBattleMenu(), { fontScale: 0.46 });
+    const deckControl = this.createFloatingControl(deckX, centerY, touchSize, `x${deckCount}`, null, { fontScale: 0.36 });
+    const fullscreenControl = this.createFloatingControl(fullscreenX, centerY, touchSize, '⛶', () => this.toggleFullscreen());
+
+    this.bottomControlViews = [backControl, menuControl, deckControl, fullscreenControl];
+  }
+
+  createFloatingControl(x, y, size, label, onPointerUp, { fontScale = 0.5 } = {}) {
+    const halo = this.add.circle(x, y, size * 0.55, 0x38bdf8, 0.08)
+      .setStrokeStyle(1, 0x7dd3fc, 0.18)
+      .setDepth(198);
+    const backing = this.add.rectangle(x, y, size, size, 0x020617, 0.62)
+      .setStrokeStyle(1, 0x94a3b8, 0.58)
+      .setDepth(199);
+    const text = this.add.text(x, y, label, {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: `${Math.max(16, Math.floor(size * fontScale))}px`,
+      color: '#f8fafc',
+      fontStyle: 'bold',
+      align: 'center',
+    }).setOrigin(0.5).setDepth(200);
+
+    if (onPointerUp) {
+      backing.setInteractive({ useHandCursor: true });
+      text.setInteractive({ useHandCursor: true });
+      backing.on('pointerover', () => {
+        backing.setFillStyle(0x0f172a, 0.72);
+        backing.setStrokeStyle(1, 0x7dd3fc, 0.82);
+        halo.setAlpha(0.18);
+      });
+      backing.on('pointerout', () => {
+        backing.setFillStyle(0x020617, 0.62);
+        backing.setStrokeStyle(1, 0x94a3b8, 0.58);
+        halo.setAlpha(1);
+      });
+      backing.on('pointerup', onPointerUp);
+      text.on('pointerup', onPointerUp);
+    }
+
+    return { halo, backing, text };
   }
 
 
@@ -912,9 +946,56 @@ export default class BattleScene extends Phaser.Scene {
   onScenePointerUp(pointer, currentlyOver = []) {
     if (this.openingMulliganPending || this.battleResultModalShown || this.isFlowResolving) return;
     if (!this.selectedCardId && !this.targetingState) return;
-    if (Array.isArray(currentlyOver) && currentlyOver.length > 0) return;
+    if (this.isPointerUpReservedForUi(pointer, currentlyOver)) return;
+
+    const boardCell = this.getBoardCellFromPointerUp(pointer, currentlyOver);
+    if (boardCell) {
+      const selectedCard = this.gameState.player.hand.find((card) => card.id === this.selectedCardId);
+      if (!selectedCard || this.isBoardCellTapReservedForCardAction(boardCell.index, selectedCard)) return;
+    }
+
     this.pressedHandCardId = null;
     this.clearHandCardSelection();
+  }
+
+  normalizePointerUpObjects(currentlyOver = []) {
+    return Array.isArray(currentlyOver) ? currentlyOver : [];
+  }
+
+  isPointerInsideGameObject(pointer, gameObject) {
+    if (!pointer || !gameObject?.getBounds) return false;
+    return gameObject.getBounds().contains(pointer.x, pointer.y);
+  }
+
+  isPointerUpReservedForUi(pointer, currentlyOver = []) {
+    const overObjects = this.normalizePointerUpObjects(currentlyOver);
+    const isOverHandCard = this.cardViews.some((view) => overObjects.includes(view.background));
+    if (isOverHandCard) return true;
+
+    if (this.actionButton && (overObjects.includes(this.actionButton) || this.isPointerInsideGameObject(pointer, this.actionButton))) {
+      return true;
+    }
+
+    return this.bottomControlViews.some((control) => [control.backing, control.text]
+      .some((item) => overObjects.includes(item) || this.isPointerInsideGameObject(pointer, item)));
+  }
+
+  getBoardCellFromPointerUp(pointer, currentlyOver = []) {
+    const overObjects = this.normalizePointerUpObjects(currentlyOver);
+    return this.boardCells.find((cell) => overObjects.includes(cell.background)
+      || this.isPointerInsideGameObject(pointer, cell.background)) ?? null;
+  }
+
+  isBoardCellTapReservedForCardAction(boardIndex, selectedCard) {
+    if (this.targetingState) {
+      return this.isValidTarget(boardIndex, this.targetingState.targetType);
+    }
+
+    if (!this.isUnitCard(selectedCard)) {
+      return true;
+    }
+
+    return canPlayOrRedeploy(this.gameState, 'player', selectedCard.id, boardIndex).ok;
   }
 
   clearHandCardSelection() {

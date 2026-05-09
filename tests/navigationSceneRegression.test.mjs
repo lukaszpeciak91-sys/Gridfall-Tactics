@@ -38,7 +38,7 @@ test('BattleScene imports every GameState helper used during create', () => {
 test('BattleScene returns to faction select through a cleanup path and retry stays in BattleScene', () => {
   const source = readScene('src/scenes/BattleScene.js');
 
-  assert.match(source, /onBack: \(\) => this\.exitBattleToFactionSelect\(\)/);
+  assert.match(source, /const backControl = this\.createFloatingControl\(backX, centerY, touchSize, '←', \(\) => this\.exitBattleToFactionSelect\(\)\);/);
   assert.match(source, /this\.scene\.start\('FactionSelectScene'\)/);
   assert.match(source, /this\.scene\.restart\(\{ factionKey, enemyFactionKey \}\)/);
   assert.match(source, /exitBattleToFactionSelect\(\) \{[\s\S]*this\.scene\.start\('FactionSelectScene'\)/);
@@ -69,8 +69,8 @@ test('Battle menu pauses and resumes the existing BattleScene instead of recreat
   const battleSource = readScene('src/scenes/BattleScene.js');
   const menuSource = readScene('src/scenes/BattleMenuScene.js');
 
-  assert.match(battleSource, /onMenu: \(\) => this\.openBattleMenu\(\)/);
-  assert.match(battleSource, /openBattleMenu\(\) \{[\s\S]*this\.scene\.launch\('BattleMenuScene', \{ factionKey: this\.factionKey, returnSceneKey: 'BattleScene' \}\);[\s\S]*this\.scene\.pause\(\);[\s\S]*\}/);
+  assert.match(battleSource, /const menuControl = this\.createFloatingControl\(width \* 0\.5, centerY, touchSize, '≡', \(\) => this\.openBattleMenu\(\), \{ fontScale: 0\.46 \}\);/);
+  assert.match(battleSource, /openBattleMenu\(\) \{[\s\S]*this\.scene\.launch\('BattleMenuScene', \{ factionKey: this\.factionKey \}\);[\s\S]*this\.scene\.pause\(\);[\s\S]*\}/);
   assert.match(battleSource, /resumeFromBattleMenu\(\) \{[\s\S]*this\.scene\.resume\(\);[\s\S]*this\.recoverFromLifecycle\('battle-menu-return'\);[\s\S]*\}/);
   assert.match(menuSource, /const returnScene = this\.scene\.get\(returnSceneKey\)/);
   assert.match(menuSource, /returnScene\?\.resumeFromBattleMenu/);
