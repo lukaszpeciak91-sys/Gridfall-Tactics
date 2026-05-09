@@ -45,6 +45,25 @@
         background: #111827;
       }
 
+      #app:fullscreen,
+      #app:-webkit-full-screen {
+        width: 100vw;
+        height: 100vh;
+        width: 100dvw;
+        height: 100dvh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        box-sizing: border-box;
+      }
+
+      #app[data-forced-landscape-fullscreen="true"] canvas {
+        flex: 0 0 auto;
+        max-width: var(--forced-landscape-fit-width);
+        max-height: var(--forced-landscape-fit-height);
+      }
+
       #app canvas {
         display: block;
       }
@@ -79,6 +98,18 @@
           max-height: 100dvh;
           aspect-ratio: var(--game-portrait-width) / var(--game-portrait-height);
           box-shadow: 0 0 32px rgba(0, 0, 0, 0.42);
+        }
+
+        #app:fullscreen,
+        #app:-webkit-full-screen {
+          width: 100vw;
+          height: 100vh;
+          width: 100dvw;
+          height: 100dvh;
+          max-width: none;
+          max-height: none;
+          aspect-ratio: auto;
+          box-shadow: none;
         }
 
         #orientation-message {
