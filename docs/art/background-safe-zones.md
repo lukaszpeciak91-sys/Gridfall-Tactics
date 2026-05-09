@@ -1,8 +1,33 @@
-# Battle Background Safe Zones (9:16 Mobile)
+# Background Safe Zones (9:16 Mobile)
 
-This project is prepared for full-screen portrait battlefield illustrations without changing the gameplay layout.
+This project is prepared for full-screen portrait illustrations without changing gameplay layout.
 
-## Target artwork
+## Menu/start background
+
+The start and faction-select scenes are wired to use this exact runtime file when present:
+
+```text
+public/assets/backgrounds/menu-background.webp
+```
+
+- Runtime URL: `/assets/backgrounds/menu-background.webp`.
+- Required filename currently supported by code: `menu-background.webp`.
+- Preferred format: WebP.
+- Recommended size: 1440 × 2560 px.
+- PNG/JPG are acceptable only if the code is updated to load that filename/extension.
+- The user/artist will manually upload the final file to the repo/GitHub; do not add generated placeholder images.
+- If the file is missing or fails to load, the menu screens use the existing solid dark fallback.
+- The image is drawn behind all UI and uses centered cover scaling, so edges may crop safely.
+
+### Menu central UI safe area
+
+- Keep the central ~70% of the image lower contrast for title and button readability.
+- Avoid critical focal points behind the title band around the top ~10–25% of the canvas.
+- Avoid critical focal points behind the START button band around ~58–65% of screen height.
+- Faction select places centered buttons through the middle of the screen, so keep ~25–70% vertically text-friendly.
+- Put decorative, high-detail elements closer to side edges or behind naturally darker/vignetted regions.
+
+## Battle background target artwork
 
 - Primary aspect ratio: 9:16 portrait.
 - Recommended master: 1440 × 2560 px.
@@ -19,7 +44,7 @@ Approximate important center band:
 - Decorative side margins: outer ~0–2.5% per side are safest for edge-only art today, with wider future device margins possible when the 9:16 image is cover-cropped.
 - Vertical: keep the full center column readable because the board, hero panels, action button, hand, and utility bar stack vertically.
 
-## Current UI occupancy by vertical region
+## Current battle UI occupancy by vertical region
 
 Approximate regions are expressed as percentages of canvas height:
 

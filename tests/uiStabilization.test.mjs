@@ -62,3 +62,21 @@ test('UI implementation notes cover the mobile regression checklist and remainin
   assert.match(notes, /Remaining UI risks/);
   requiredChecklistItems.forEach((item) => assert.match(notes, new RegExp(item)));
 });
+
+test('start and faction select use optional menu background art with dark fallback', () => {
+  const backgroundSource = read('src/rendering/backgroundArt.js');
+  const startSource = read('src/scenes/StartScene.js');
+  const factionSource = read('src/scenes/FactionSelectScene.js');
+  const backgroundDocs = read('public/assets/backgrounds/README.md');
+
+  assert.match(backgroundSource, /MENU_BACKGROUND_ASSET = \{[\s\S]*path: '\/assets\/backgrounds\/menu-background\.webp'/);
+  assert.match(backgroundSource, /export function createCoverBackground/);
+  assert.match(backgroundSource, /Math\.max\(width \/ background\.width, height \/ background\.height\)/);
+  assert.match(startSource, /height \* 0\.61/);
+  assert.match(startSource, /START_TRANSITION_MS = 320/);
+  assert.match(startSource, /this\.scene\.start\('FactionSelectScene'\)/);
+  assert.match(factionSource, /preloadMenuBackgroundArt\(this\)/);
+  assert.match(factionSource, /createCoverBackground\(this, \{/);
+  assert.match(backgroundDocs, /public\/assets\/backgrounds\/menu-background\.webp/);
+  assert.match(backgroundDocs, /1440 × 2560 px/);
+});

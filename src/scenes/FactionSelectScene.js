@@ -2,12 +2,17 @@ import Phaser from 'phaser';
 import { getFactionKeys } from '../data/factions/index.js';
 import { createBuildMarker } from '../ui/buildMarker.js';
 import { createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
+import { MENU_BACKGROUND_FALLBACK_COLOR, MENU_BACKGROUND_FALLBACK_COLOR_HEX, createCoverBackground, getMenuBackgroundAsset, preloadMenuBackgroundArt } from '../rendering/backgroundArt.js';
 
 export default class FactionSelectScene extends Phaser.Scene {
   constructor() {
     super('FactionSelectScene');
     this.uiElements = [];
     this.isStartingBattle = false;
+  }
+
+  preload() {
+    preloadMenuBackgroundArt(this);
   }
 
   init() {
@@ -24,6 +29,14 @@ export default class FactionSelectScene extends Phaser.Scene {
 
     const { width, height } = this.scale;
     const factionKeys = getFactionKeys();
+
+    this.cameras.main.setBackgroundColor(MENU_BACKGROUND_FALLBACK_COLOR_HEX);
+    createCoverBackground(this, {
+      asset: getMenuBackgroundAsset(),
+      fallbackColor: MENU_BACKGROUND_FALLBACK_COLOR,
+      width,
+      height,
+    });
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.cleanupScene, this);
     this.scale.on('enterfullscreen', this.onFullscreenChanged, this);
