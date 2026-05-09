@@ -6,29 +6,29 @@ import { MENU_BACKGROUND_FALLBACK_COLOR, MENU_BACKGROUND_FALLBACK_COLOR_HEX, cre
 
 const FACTION_CARD_DETAILS = {
   Aggro: {
-    description: 'Fast pressure and burst turns that race the enemy hero before they stabilize.',
-    tags: ['Fast pressure', 'Burst damage'],
+    description: 'Fast pressure.',
+    tags: ['Rush', 'Burst'],
     accentColor: 0xf97316,
     fallbackTopColor: 0x7c2d12,
     fallbackBottomColor: 0x0f172a,
   },
   Tank: {
-    description: 'Armor sustain and durable units that survive combat while grinding out value.',
-    tags: ['Armor sustain', 'Durable front'],
+    description: 'Armor and sustain.',
+    tags: ['Armor', 'Sustain'],
     accentColor: 0x38bdf8,
     fallbackTopColor: 0x164e63,
     fallbackBottomColor: 0x0f172a,
   },
   Control: {
-    description: 'Control tools, disables, and precision damage that reshape enemy lanes.',
-    tags: ['Control tools', 'Disruption'],
+    description: 'Disrupt and reposition.',
+    tags: ['Disrupt', 'Move'],
     accentColor: 0xa78bfa,
     fallbackTopColor: 0x4c1d95,
     fallbackBottomColor: 0x0f172a,
   },
   Swarm: {
-    description: 'Swarm board tactics that flood lanes, recycle bodies, and stack wide buffs.',
-    tags: ['Swarm board', 'Wide buffs'],
+    description: 'Board swarm tactics.',
+    tags: ['Tokens', 'Buffs'],
     accentColor: 0x84cc16,
     fallbackTopColor: 0x365314,
     fallbackBottomColor: 0x0f172a,
@@ -99,18 +99,20 @@ export default class FactionSelectScene extends Phaser.Scene {
     this.scale.on('leavefullscreen', this.onFullscreenChanged, this);
 
     const title = this.add
-      .text(width / 2, 52, 'Select Faction', {
+      .text(width / 2, 48, 'Choose Your Faction', {
         fontFamily: 'Arial, sans-serif',
-        fontSize: '34px',
-        color: '#f9fafb',
+        fontSize: '30px',
+        color: '#f8fafc',
+        fontStyle: 'bold',
+        letterSpacing: 0.8,
       })
       .setOrigin(0.5);
     this.uiElements.push(title);
 
     const subtitle = this.add
-      .text(width / 2, 86, 'Tap a card to start battle', {
+      .text(width / 2, 78, 'Tap a faction to begin battle', {
         fontFamily: 'Arial, sans-serif',
-        fontSize: '15px',
+        fontSize: '13px',
         color: '#cbd5e1',
       })
       .setOrigin(0.5);
@@ -125,10 +127,10 @@ export default class FactionSelectScene extends Phaser.Scene {
 
 
   drawFactionCards(factionKeys, { width, height }) {
-    const cardWidth = Math.min(width - 36, 354);
-    const cardHeight = 258;
-    const gap = 18;
-    const viewportTop = 116;
+    const cardWidth = Math.min(width - 24, 382);
+    const cardHeight = 164;
+    const gap = 12;
+    const viewportTop = 106;
     const viewportBottom = Math.max(viewportTop + cardHeight, height - 88);
     const viewportHeight = viewportBottom - viewportTop;
     const contentHeight = factionKeys.length * cardHeight + Math.max(0, factionKeys.length - 1) * gap;
@@ -175,22 +177,22 @@ export default class FactionSelectScene extends Phaser.Scene {
     const faction = getFactionByKey(factionKey);
     const details = FACTION_CARD_DETAILS[factionKey] ?? FACTION_CARD_DETAILS.Aggro;
     const x = -cardWidth / 2;
-    const artMargin = 14;
+    const artMargin = 10;
     const artWidth = cardWidth - artMargin * 2;
-    const artHeight = Math.round(artWidth * 9 / 16);
+    const artHeight = Math.round(cardHeight * 0.58);
     const artY = y + artMargin;
 
     const shadow = this.add.graphics();
-    shadow.fillStyle(0x020617, 0.42);
-    shadow.fillRoundedRect(x + 3, y + 5, cardWidth, cardHeight, 22);
+    shadow.fillStyle(0x020617, 0.38);
+    shadow.fillRoundedRect(x + 2, y + 4, cardWidth, cardHeight, 18);
     content.add(shadow);
     this.uiElements.push(shadow);
 
     const card = this.add.graphics();
-    card.fillStyle(0x111827, 0.96);
-    card.fillRoundedRect(x, y, cardWidth, cardHeight, 22);
-    card.lineStyle(2, details.accentColor, 0.72);
-    card.strokeRoundedRect(x + 1, y + 1, cardWidth - 2, cardHeight - 2, 21);
+    card.fillStyle(0x0f172a, 0.95);
+    card.fillRoundedRect(x, y, cardWidth, cardHeight, 18);
+    card.lineStyle(1, details.accentColor, 0.62);
+    card.strokeRoundedRect(x + 1, y + 1, cardWidth - 2, cardHeight - 2, 17);
     content.add(card);
     this.uiElements.push(card);
 
@@ -201,39 +203,54 @@ export default class FactionSelectScene extends Phaser.Scene {
       height: artHeight,
     });
 
+    const titleScrim = this.add.graphics();
+    titleScrim.fillGradientStyle(0x020617, 0x020617, 0x020617, 0x020617, 0, 0, 0.74, 0.74);
+    titleScrim.fillRect(x + artMargin, artY + artHeight - 42, artWidth, 42);
+    content.add(titleScrim);
+    this.uiElements.push(titleScrim);
+
     const name = this.add
-      .text(x + 18, artY + artHeight + 14, faction?.name ?? factionKey, {
+      .text(x + artMargin + 12, artY + artHeight - 31, faction?.name ?? factionKey, {
         fontFamily: 'Arial, sans-serif',
-        fontSize: '26px',
-        color: '#f9fafb',
+        fontSize: '22px',
+        color: '#f8fafc',
         fontStyle: 'bold',
       })
       .setOrigin(0, 0);
     content.add(name);
     this.uiElements.push(name);
 
+    const infoTop = artY + artHeight + 9;
     const description = this.add
-      .text(x + 18, artY + artHeight + 48, details.description, {
+      .text(x + 16, infoTop, details.description, {
         fontFamily: 'Arial, sans-serif',
         fontSize: '14px',
-        color: '#d1d5db',
-        lineSpacing: 3,
-        wordWrap: { width: cardWidth - 36 },
+        color: '#e5e7eb',
       })
       .setOrigin(0, 0);
     content.add(description);
     this.uiElements.push(description);
 
     this.drawFactionTags(content, details.tags, {
-      x: x + 18,
-      y: y + cardHeight - 34,
+      x: x + 16,
+      y: y + cardHeight - 32,
       accentColor: details.accentColor,
     });
+
+    const pressOverlay = this.add.graphics();
+    pressOverlay.fillStyle(0xffffff, 0.08);
+    pressOverlay.fillRoundedRect(x, y, cardWidth, cardHeight, 18);
+    pressOverlay.setVisible(false);
+    content.add(pressOverlay);
+    this.uiElements.push(pressOverlay);
 
     const button = this.add
       .zone(0, y + cardHeight / 2, cardWidth, cardHeight)
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
+    button.on('pointerdown', () => pressOverlay.setVisible(true));
+    button.on('pointerout', () => pressOverlay.setVisible(false));
+    button.on('pointerup', () => pressOverlay.setVisible(false));
     button.on('pointerup', () => this.startBattle(factionKey));
     content.add(button);
     this.uiElements.push(button);
@@ -243,9 +260,25 @@ export default class FactionSelectScene extends Phaser.Scene {
   drawFactionPreview(content, factionKey, details, { x, y, width, height }) {
     const textureKey = getFactionPreviewTextureKey(factionKey);
     if (this.textures.exists(textureKey)) {
-      const image = this.add.image(x + width / 2, y + height / 2, textureKey).setDisplaySize(width, height);
+      const texture = this.textures.get(textureKey);
+      const source = texture.getSourceImage();
+      const sourceWidth = source?.width ?? width;
+      const sourceHeight = source?.height ?? height;
+      const targetRatio = width / height;
+      const sourceRatio = sourceWidth / sourceHeight;
+      const cropWidth = sourceRatio > targetRatio ? sourceHeight * targetRatio : sourceWidth;
+      const cropHeight = sourceRatio > targetRatio ? sourceHeight : sourceWidth / targetRatio;
+      const image = this.add.image(x + width / 2, y + height / 2, textureKey)
+        .setCrop((sourceWidth - cropWidth) / 2, (sourceHeight - cropHeight) / 2, cropWidth, cropHeight)
+        .setDisplaySize(width, height);
       content.add(image);
       this.uiElements.push(image);
+
+      const frame = this.add.graphics();
+      frame.lineStyle(1, details.accentColor, 0.48);
+      frame.strokeRoundedRect(x + 0.5, y + 0.5, width - 1, height - 1, 14);
+      content.add(frame);
+      this.uiElements.push(frame);
     } else {
       const fallback = this.add.graphics();
       fallback.fillGradientStyle(
@@ -260,18 +293,6 @@ export default class FactionSelectScene extends Phaser.Scene {
       fallback.strokeRoundedRect(x + 1, y + 1, width - 2, height - 2, 15);
       content.add(fallback);
       this.uiElements.push(fallback);
-
-      const label = this.add
-        .text(x + width / 2, y + height / 2, 'PREVIEW ART\nCOMING SOON', {
-          fontFamily: 'Arial, sans-serif',
-          fontSize: '13px',
-          align: 'center',
-          color: '#e5e7eb',
-          lineSpacing: 4,
-        })
-        .setOrigin(0.5);
-      content.add(label);
-      this.uiElements.push(label);
     }
   }
 
