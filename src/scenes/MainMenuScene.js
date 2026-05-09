@@ -6,6 +6,7 @@ import {
   getMenuBackgroundAsset,
   preloadMenuBackgroundArt,
 } from '../rendering/backgroundArt.js';
+import { createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
 
 const BUTTON_STYLE = {
   fontFamily: 'Arial, sans-serif',
@@ -23,6 +24,10 @@ export default class MainMenuScene extends Phaser.Scene {
     this.statusText = null;
   }
 
+  init() {
+    this.cleanupScene();
+  }
+
   preload() {
     preloadMenuBackgroundArt(this);
   }
@@ -38,28 +43,24 @@ export default class MainMenuScene extends Phaser.Scene {
       height,
     });
 
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.cleanupScene, this);
+    this.scale.on('enterfullscreen', this.onFullscreenChanged, this);
+    this.scale.on('leavefullscreen', this.onFullscreenChanged, this);
+
     this.add
-      .text(width / 2, height * 0.11, 'GRIDFALL TACTICS', {
+      .text(width / 2, height * 0.13, 'GRIDFALL TACTICS', {
         fontFamily: 'Arial, sans-serif',
-        fontSize: '32px',
+        fontSize: '30px',
         fontStyle: 'bold',
         color: '#f8fafc',
         align: 'center',
-        wordWrap: { width: width * 0.9 },
-      })
-      .setOrigin(0.5);
-
-    this.add
-      .text(width / 2, height * 0.17, 'Main Menu', {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '16px',
-        color: '#cbd5e1',
+        wordWrap: { width: width * 0.86 },
       })
       .setOrigin(0.5);
 
     const buttonWidth = Math.min(width - 64, 292);
     const buttonGap = 76;
-    const startY = height * 0.34;
+    const startY = height * 0.31;
 
     this.createMenuButton(width / 2, startY, buttonWidth, 'ARENA', () => {
       this.scene.start('FactionSelectScene');
@@ -87,6 +88,48 @@ export default class MainMenuScene extends Phaser.Scene {
       })
       .setOrigin(0.5)
       .setAlpha(0);
+
+    this.drawNavigationControls();
+  }
+
+  drawNavigationControls() {
+    createBottomNavigationControls(this, {
+      onBack: () => this.returnToStartScene(),
+      onRules: () => this.openRulesPanel(),
+      onFullscreen: () => this.toggleFullscreen(),
+    });
+  }
+
+  returnToStartScene() {
+    this.scene.start('StartScene');
+  }
+
+  openRulesPanel() {
+    this.scene.launch('RulesPanelScene', { returnSceneKey: 'MainMenuScene' });
+    this.scene.pause();
+  }
+
+  resumeFromRulesPanel() {
+    this.scene.resume();
+  }
+
+  toggleFullscreen() {
+    toggleSceneFullscreen(this);
+  }
+
+  onFullscreenChanged() {
+    if (this.scale.isFullscreen) {
+      requestPortraitOrientationLock();
+    }
+
+    if (this.scene.isActive('MainMenuScene')) {
+      this.scene.restart();
+    }
+  }
+
+  cleanupScene() {
+    this.scale?.off('enterfullscreen', this.onFullscreenChanged, this);
+    this.scale?.off('leavefullscreen', this.onFullscreenChanged, this);
   }
 
   createMenuButton(x, y, width, label, onPointerUp) {

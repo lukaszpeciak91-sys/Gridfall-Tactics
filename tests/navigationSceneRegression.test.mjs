@@ -110,6 +110,24 @@ test('deck info panel follows shared mobile overlay dismissal rules', () => {
   assert.match(deckInfoSource, /contentContainer\.setMask\(scrollMask\)/);
 });
 
+test('MainMenuScene keeps primary buttons and uses shared bottom navigation controls', () => {
+  const source = readScene('src/scenes/MainMenuScene.js');
+
+  assert.match(source, /import \{ createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen \} from '\.\.\/ui\/navigationControls\.js';/);
+  assert.match(source, /\.text\(width \/ 2, height \* 0\.13, 'GRIDFALL TACTICS'/);
+  assert.doesNotMatch(source, /'Main Menu'/);
+  assert.match(source, /this\.createMenuButton\(width \/ 2, startY, buttonWidth, 'ARENA', \(\) => \{[\s\S]*this\.scene\.start\('FactionSelectScene'\)/);
+  assert.match(source, /this\.createMenuButton\(width \/ 2, startY \+ buttonGap, buttonWidth, 'TUTORIAL', \(\) => \{[\s\S]*Tutorial coming soon/);
+  assert.match(source, /this\.createMenuButton\(width \/ 2, startY \+ buttonGap \* 2, buttonWidth, 'COLLECTION', \(\) => \{[\s\S]*this\.scene\.start\('CollectionScene'\)/);
+  assert.match(source, /this\.createMenuButton\(width \/ 2, startY \+ buttonGap \* 3, buttonWidth, 'SETTINGS', \(\) => \{[\s\S]*this\.scene\.start\('SettingsScene'\)/);
+  assert.match(source, /drawNavigationControls\(\) \{[\s\S]*createBottomNavigationControls\(this, \{[\s\S]*onBack: \(\) => this\.returnToStartScene\(\),[\s\S]*onRules: \(\) => this\.openRulesPanel\(\),[\s\S]*onFullscreen: \(\) => this\.toggleFullscreen\(\),[\s\S]*\}\)/);
+  assert.match(source, /returnToStartScene\(\) \{[\s\S]*this\.scene\.start\('StartScene'\)/);
+  assert.match(source, /openRulesPanel\(\) \{[\s\S]*this\.scene\.launch\('RulesPanelScene', \{ returnSceneKey: 'MainMenuScene' \}\);[\s\S]*this\.scene\.pause\(\);[\s\S]*\}/);
+  assert.match(source, /resumeFromRulesPanel\(\) \{[\s\S]*this\.scene\.resume\(\);[\s\S]*\}/);
+  assert.match(source, /toggleFullscreen\(\) \{[\s\S]*toggleSceneFullscreen\(this\);[\s\S]*\}/);
+  assert.match(source, /onFullscreenChanged\(\) \{[\s\S]*this\.scale\.isFullscreen[\s\S]*requestPortraitOrientationLock\(\);[\s\S]*this\.scene\.restart\(\);[\s\S]*\}/);
+});
+
 test('FactionSelectScene uses shared bottom navigation controls for main menu, rules, and fullscreen', () => {
   const factionSource = readScene('src/scenes/FactionSelectScene.js');
   const battleSource = readScene('src/scenes/BattleScene.js');
