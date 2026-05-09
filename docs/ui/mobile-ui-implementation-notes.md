@@ -56,7 +56,10 @@ Safe cleanup completed in this pass intentionally stayed small:
 - Fullscreen toggles Phaser fullscreen and requests portrait orientation when entering fullscreen.
 - A compact `DECK N` gameplay counter sits to the right of the action button in the action band, away from the hand and bottom navigation controls.
 - Tapping `DECK N` opens a read-only Deck Info panel for the player cards. It groups card status as In Deck, In Hand, Played / Discarded, and On Board; each entry shows card name, Unit/Effect type, and count.
-- The Deck Info panel can be dismissed with the close button or by tapping outside the panel, can be viewed during the opening mulligan, and is blocked while battle flow animations are resolving.
+- In-game overlays, including Rules / How To Play and Deck Info, dim gameplay behind the panel, reserve pointer input while open, and restore gameplay input only after dismissal.
+- In-game overlays do not use top-right `X` close controls. The standard dismissal pattern is a centered, bottom-aligned `BACK` button sized for mobile tapping plus tap/click outside the panel.
+- Tapping outside an in-game overlay closes only that overlay; the dimmed overlay layer consumes the tap so underlying gameplay controls do not also act on it.
+- Deck Info can be viewed during the opening mulligan, is blocked while battle flow animations are resolving, and keeps masked scrolling available when card groups exceed the reduced panel height.
 - The action button reads `KEEP HAND`/`MULLIGAN N` during the opening mulligan and `PASS` afterward.
 
 ## Regression checklist coverage
@@ -67,7 +70,7 @@ Use this checklist for manual smoke testing before art/canvas changes, and keep 
 - [ ] Mulligan select/unselect/confirm keeps selection visual, replaces up to two cards, and enters the first turn.
 - [ ] post-Mulligan card select/play keeps pointer-down selection and pointer-up preview behavior intact.
 - [ ] PASS consumes the player action only when passing is legal.
-- [ ] `DECK N` appears to the right of PASS/KEEP HAND, opens the Deck Info panel, and closes from either the close button or outside overlay.
+- [ ] `DECK N` appears to the right of PASS/KEEP HAND, opens the Deck Info panel, blocks gameplay input, and closes from either the bottom `BACK` button or an outside overlay tap.
 - [ ] fullscreen enter/exit preserves the active battle state and rebuilds the view from `GameState`.
 - [ ] retry/back clean up result modal and transient input state before restarting or exiting.
 - [ ] win/loss modal appears through delayed battle completion and its retry/exit buttons remain tappable.

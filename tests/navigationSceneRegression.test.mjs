@@ -88,10 +88,26 @@ test('rules panel opens from the middle bottom icon and resumes the existing sce
   assert.match(battleSource, /openRulesPanel\(\) \{[\s\S]*this\.scene\.launch\('RulesPanelScene', \{ returnSceneKey: 'BattleScene' \}\);[\s\S]*this\.scene\.pause\(\);[\s\S]*\}/);
   assert.match(battleSource, /resumeFromRulesPanel\(\) \{[\s\S]*this\.scene\.resume\(\);[\s\S]*this\.recoverFromLifecycle\('rules-panel-return'\);[\s\S]*\}/);
   assert.match(factionSource, /openRulesPanel\(\) \{[\s\S]*this\.scene\.launch\('RulesPanelScene', \{ returnSceneKey: 'FactionSelectScene' \}\);[\s\S]*this\.scene\.pause\(\);[\s\S]*\}/);
-  assert.match(rulesSource, /closeButton\.on\('pointerup', \(\) => this\.closePanel\(\)\)/);
-  assert.match(rulesSource, /backButton\.on\('pointerup', \(\) => this\.closePanel\(\)\)/);
+  assert.doesNotMatch(rulesSource, /closeButton|['"]×['"]/);
+  assert.match(rulesSource, /overlay\.on\('pointerup', \(\) => this\.closePanel\(\)\)/);
+  assert.match(rulesSource, /createModalBackButton\(this, \{[\s\S]*onPointerUp: \(\) => this\.closePanel\(\)/);
   assert.match(rulesSource, /returnScene\?\.resumeFromRulesPanel/);
   assert.match(mainSource, /RulesPanelScene/);
+});
+
+
+test('deck info panel follows shared mobile overlay dismissal rules', () => {
+  const source = readScene('src/scenes/BattleScene.js');
+  const start = source.indexOf('  openDeckInfoPanel() {');
+  const end = source.indexOf('  getDeckInfoPanelText() {');
+  const deckInfoSource = source.slice(start, end);
+
+  assert.doesNotMatch(deckInfoSource, /closeBacking|closeText|['"]×['"]/);
+  assert.match(deckInfoSource, /overlay\.on\('pointerup', \(\) => this\.destroyDeckInfoPanel\(\)\)/);
+  assert.match(deckInfoSource, /createModalBackButton\(this, \{[\s\S]*onPointerUp: \(\) => this\.destroyDeckInfoPanel\(\)/);
+  assert.match(deckInfoSource, /const panelWidth = Math\.min\(width \* 0\.84, 470\)/);
+  assert.match(deckInfoSource, /const panelHeight = Math\.min\(height \* 0\.64, 530\)/);
+  assert.match(deckInfoSource, /contentContainer\.setMask\(scrollMask\)/);
 });
 
 test('FactionSelectScene uses shared bottom navigation controls for start, rules, and fullscreen', () => {
