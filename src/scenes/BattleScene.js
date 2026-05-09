@@ -311,12 +311,17 @@ export default class BattleScene extends Phaser.Scene {
     const { hand, margin } = this.layout;
     const deckCount = this.gameState.player.deck.length;
 
-    const backControl = this.createFloatingControl(backX, centerY, touchSize, '←', () => this.exitBattleToFactionSelect());
-    const menuControl = this.createFloatingControl(width * 0.5, centerY, touchSize, '≡', () => this.openBattleMenu(), { fontScale: 0.46 });
-    const deckControl = this.createFloatingControl(deckX, centerY, touchSize, `x${deckCount}`, null, { fontScale: 0.36 });
-    const fullscreenControl = this.createFloatingControl(fullscreenX, centerY, touchSize, '⛶', () => this.toggleFullscreen());
+    const controls = createBottomNavigationControls(this, {
+      onBack: () => this.exitBattleToFactionSelect(),
+      onMenu: () => this.openBattleMenu(),
+      onFullscreen: () => this.toggleFullscreen(),
+      deckLabel: `x${deckCount}`,
+      centerY: hand.controlCenterY,
+      touchSize: hand.controlTouchSize,
+      margin,
+    });
 
-    this.bottomControlViews = [backControl, menuControl, deckControl, fullscreenControl];
+    this.bottomControlViews = [controls.back, controls.menu, controls.deck, controls.fullscreen].filter(Boolean);
   }
 
   createFloatingControl(x, y, size, label, onPointerUp, { fontScale = 0.5 } = {}) {
