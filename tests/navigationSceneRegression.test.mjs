@@ -110,7 +110,7 @@ test('deck info panel follows shared mobile overlay dismissal rules', () => {
   assert.match(deckInfoSource, /contentContainer\.setMask\(scrollMask\)/);
 });
 
-test('FactionSelectScene uses shared bottom navigation controls for start, rules, and fullscreen', () => {
+test('FactionSelectScene uses shared bottom navigation controls for main menu, rules, and fullscreen', () => {
   const factionSource = readScene('src/scenes/FactionSelectScene.js');
   const battleSource = readScene('src/scenes/BattleScene.js');
   const helperSource = readScene('src/ui/navigationControls.js');
@@ -121,8 +121,8 @@ test('FactionSelectScene uses shared bottom navigation controls for start, rules
   assert.match(helperSource, /export function createBottomNavigationControls/);
   assert.match(helperSource, /export function createFloatingControl/);
   assert.match(helperSource, /export function requestPortraitOrientationLock/);
-  assert.match(factionSource, /drawNavigationControls\(\) \{[\s\S]*createBottomNavigationControls\(this, \{[\s\S]*onBack: \(\) => this\.returnToStart\(\),[\s\S]*onRules: \(\) => this\.openRulesPanel\(\),[\s\S]*onFullscreen: \(\) => this\.toggleFullscreen\(\),[\s\S]*\}\)/);
-  assert.match(factionSource, /returnToStart\(\) \{[\s\S]*this\.scene\.start\('StartScene'\)/);
+  assert.match(factionSource, /drawNavigationControls\(\) \{[\s\S]*createBottomNavigationControls\(this, \{[\s\S]*onBack: \(\) => this\.returnToMainMenu\(\),[\s\S]*onRules: \(\) => this\.openRulesPanel\(\),[\s\S]*onFullscreen: \(\) => this\.toggleFullscreen\(\),[\s\S]*\}\)/);
+  assert.match(factionSource, /returnToMainMenu\(\) \{[\s\S]*this\.scene\.start\('MainMenuScene'\)/);
   assert.match(factionSource, /openRulesPanel\(\) \{[\s\S]*this\.scene\.launch\('RulesPanelScene', \{ returnSceneKey: 'FactionSelectScene' \}\);[\s\S]*this\.scene\.pause\(\);[\s\S]*\}/);
   assert.match(factionSource, /toggleFullscreen\(\) \{[\s\S]*toggleSceneFullscreen\(this\);[\s\S]*\}/);
   assert.match(factionSource, /onFullscreenChanged\(\) \{[\s\S]*this\.scale\.isFullscreen[\s\S]*requestPortraitOrientationLock\(\);[\s\S]*this\.scene\.restart\(\);[\s\S]*\}/);
