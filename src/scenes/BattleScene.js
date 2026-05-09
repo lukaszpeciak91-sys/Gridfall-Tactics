@@ -5,7 +5,7 @@ import { chooseEnemyAction, recordBattleActionUse, selectOpeningMulliganCardIds 
 import { getTargetingStateForEffect } from '../systems/cardTargeting.js';
 import { BATTLE_BACKGROUND_FALLBACK_COLOR, BATTLE_BACKGROUND_FALLBACK_COLOR_HEX, getBattleBackgroundAsset, hasLoadedBattleBackground, preloadBattleBackgroundArt } from '../rendering/backgroundArt.js';
 import { getBuildMarkerText } from '../buildInfo.js';
-import { createBottomNavigationControls, toggleSceneFullscreen } from '../ui/navigationControls.js';
+import { createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
 
 const HAND_CARD_ACCENT_COLORS = Object.freeze({
   unit: 0x4da6ff,
@@ -545,6 +545,10 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   onFullscreenChanged() {
+    if (this.scale.isFullscreen) {
+      requestPortraitOrientationLock();
+    }
+
     this.recoverFromLifecycle(this.scale.isFullscreen ? 'enterfullscreen' : 'leavefullscreen');
   }
 

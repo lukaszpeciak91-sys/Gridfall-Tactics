@@ -93,15 +93,33 @@ test('FactionSelectScene uses shared bottom navigation controls for start, menu,
   const helperSource = readScene('src/ui/navigationControls.js');
   const menuSource = readScene('src/scenes/BattleMenuScene.js');
 
-  assert.match(factionSource, /import \{ createBottomNavigationControls, toggleSceneFullscreen \} from '\.\.\/ui\/navigationControls\.js';/);
-  assert.match(battleSource, /import \{ createBottomNavigationControls, toggleSceneFullscreen \} from '\.\.\/ui\/navigationControls\.js';/);
+  assert.match(factionSource, /import \{ createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen \} from '\.\.\/ui\/navigationControls\.js';/);
+  assert.match(battleSource, /import \{ createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen \} from '\.\.\/ui\/navigationControls\.js';/);
   assert.match(helperSource, /export function createBottomNavigationControls/);
   assert.match(helperSource, /export function createFloatingControl/);
+  assert.match(helperSource, /export function requestPortraitOrientationLock/);
   assert.match(factionSource, /drawNavigationControls\(\) \{[\s\S]*createBottomNavigationControls\(this, \{[\s\S]*onBack: \(\) => this\.returnToStart\(\),[\s\S]*onMenu: \(\) => this\.openBattleMenu\(\),[\s\S]*onFullscreen: \(\) => this\.toggleFullscreen\(\),[\s\S]*\}\)/);
   assert.match(factionSource, /returnToStart\(\) \{[\s\S]*this\.scene\.start\('StartScene'\)/);
   assert.match(factionSource, /openBattleMenu\(\) \{[\s\S]*this\.scene\.launch\('BattleMenuScene', \{ returnSceneKey: 'FactionSelectScene' \}\);[\s\S]*this\.scene\.pause\(\);[\s\S]*\}/);
   assert.match(factionSource, /toggleFullscreen\(\) \{[\s\S]*toggleSceneFullscreen\(this\);[\s\S]*\}/);
+  assert.match(factionSource, /onFullscreenChanged\(\) \{[\s\S]*this\.scale\.isFullscreen[\s\S]*requestPortraitOrientationLock\(\);[\s\S]*this\.scene\.restart\(\);[\s\S]*\}/);
+  assert.match(battleSource, /onFullscreenChanged\(\) \{[\s\S]*this\.scale\.isFullscreen[\s\S]*requestPortraitOrientationLock\(\);[\s\S]*this\.recoverFromLifecycle\(this\.scale\.isFullscreen \? 'enterfullscreen' : 'leavefullscreen'\);[\s\S]*\}/);
   assert.match(menuSource, /const returnSceneKey = typeof data\?\.returnSceneKey === 'string'/);
+});
+
+
+test('shell requests portrait orientation and keeps landscape fallback centered', () => {
+  const indexSource = readScene('index.html');
+  const manifestSource = readScene('public/manifest.webmanifest');
+
+  assert.match(indexSource, /name="viewport"/);
+  assert.match(indexSource, /viewport-fit=cover/);
+  assert.match(indexSource, /user-scalable=no/);
+  assert.match(indexSource, /<link rel="manifest" href="\/manifest\.webmanifest" \/>/);
+  assert.match(indexSource, /@media \(orientation: landscape\)/);
+  assert.match(indexSource, /aspect-ratio: var\(--game-portrait-width\) \/ var\(--game-portrait-height\)/);
+  assert.match(indexSource, /Rotate device to portrait/);
+  assert.match(manifestSource, /"orientation": "portrait"/);
 });
 
 test('runtime session lifecycle listens for browser visibility, fullscreen, Phaser pause/resume, and WebGL restore', () => {
