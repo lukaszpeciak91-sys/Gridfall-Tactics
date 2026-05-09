@@ -79,6 +79,37 @@ export function createBottomNavigationControls(scene, {
   return controls;
 }
 
+export function requestPortraitOrientationLock() {
+  const orientation = globalThis.screen?.orientation;
+
+  if (orientation?.lock) {
+    try {
+      return Promise.resolve(orientation.lock('portrait')).catch((error) => {
+        console.debug('Portrait orientation lock unavailable or rejected.', error);
+        return false;
+      });
+    } catch (error) {
+      console.debug('Portrait orientation lock unavailable or rejected.', error);
+      return Promise.resolve(false);
+    }
+  }
+
+  const legacyLock = globalThis.screen?.lockOrientation
+    ?? globalThis.screen?.mozLockOrientation
+    ?? globalThis.screen?.msLockOrientation;
+
+  if (legacyLock) {
+    try {
+      return Promise.resolve(Boolean(legacyLock.call(globalThis.screen, 'portrait')));
+    } catch (error) {
+      console.debug('Legacy portrait orientation lock unavailable or rejected.', error);
+      return Promise.resolve(false);
+    }
+  }
+
+  return Promise.resolve(false);
+}
+
 export function toggleSceneFullscreen(scene) {
   if (!scene.scale.fullscreen.available) {
     return;

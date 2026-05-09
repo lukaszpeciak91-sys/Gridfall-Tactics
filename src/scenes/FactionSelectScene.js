@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { getFactionKeys } from '../data/factions/index.js';
 import { getBuildMarkerText } from '../buildInfo.js';
-import { createBottomNavigationControls, toggleSceneFullscreen } from '../ui/navigationControls.js';
+import { createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
 
 export default class FactionSelectScene extends Phaser.Scene {
   constructor() {
@@ -108,6 +108,10 @@ export default class FactionSelectScene extends Phaser.Scene {
   }
 
   onFullscreenChanged() {
+    if (this.scale.isFullscreen) {
+      requestPortraitOrientationLock();
+    }
+
     if (this.scene.isActive('FactionSelectScene')) {
       this.scene.restart();
     }
