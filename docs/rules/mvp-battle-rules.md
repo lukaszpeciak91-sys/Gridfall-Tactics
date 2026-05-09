@@ -1,7 +1,7 @@
 # MVP Battle Rules (Canonical)
 
 **Status:** Frozen for MVP implementation  
-**Last Updated:** 2026-05-08
+**Last Updated:** 2026-05-09
 
 **Scope:** Gameplay rules for the MVP battle loop
 
@@ -10,10 +10,15 @@ If any other document conflicts with this file, this file wins.
 
 ## 1) Battle Outcome and Hero HP
 
-- Player Hero HP: **12**
-- Enemy Hero HP: **12**
-- Battle ends immediately when either hero reaches **0 HP**.
-- If both heroes reach **0 or lower HP during the same combat pass**, resolve the combat winner from the raw final hero HP values before clamping/finalization:
+- Player Hero HP: **12**.
+- Enemy Hero HP: **12**.
+- Battle-end checks are code-driven and occur during combat finalization, no-progress checks, and the turn-cap check.
+- Hero death:
+  - If only the player hero is at **0 or lower HP** when hero death is finalized, the **enemy wins**.
+  - If only the enemy hero is at **0 or lower HP** when hero death is finalized, the **player wins**.
+  - Hero HP is clamped to 0 after winner assignment for display.
+- Simultaneous lethal / hero-death draw:
+  - If both heroes are at **0 or lower HP during the same combat/finalization window**, resolve the combat winner from the raw final hero HP values before clamping.
   - Higher raw player hero HP -> **player wins** (for example, player at -1 beats enemy at -4).
   - Higher raw enemy hero HP -> **enemy wins**.
   - Equal raw hero HP -> **draw** (for example, -3 vs -3 remains a draw).
@@ -27,7 +32,26 @@ If any other document conflicts with this file, this file wins.
   - Higher player hero HP -> **player wins**.
   - Higher enemy hero HP -> **enemy wins**.
   - Equal hero HP -> **draw**.
+- Empty board + no meaningful playable cards is a no-progress deadlock and ends immediately by remaining hero HP. Empty board + any future card that can realistically affect hero HP or create future pressure does **not** immediately end.
 - There is no repeated-PASS or 3-pass stall counter; dead games end as soon as the locked outcome is detected.
+
+### 1.1) Meaningful Actions for No-Progress Detection
+
+For the no-progress/dead-game detector, a remaining action is meaningful only if it can realistically change the eventual winner or cause hero HP to change. This detector examines the current board plus each side's hand and deck.
+
+Meaningful for this detector includes:
+- Combat that can ever change either hero's HP from the current board, including open-lane attackers.
+- A hand/deck unit with attack greater than 0.
+- A hand/deck unit with an outcome-affecting special such as Runner open-lane bonus damage, Spitter lane damage, Brood death summon, Alpha aura, Bruiser/Berserker attack growth, or Sniper lane flexibility.
+- A non-unit effect that currently has useful targets and can create pressure or damage, such as attack buffs with friendly units, Quick Strike/Rush with attacking friendly units, Pierce/Pulse/System Override with enemy units, Spawn/Regrow with an empty friendly slot and valid source, or draw effects that can reach a future meaningful card.
+- A friendly swap only if simulating that swap allows combat to eventually change hero HP.
+
+Not meaningful for this detector includes:
+- PASS by itself.
+- Purely defensive/no-op effects in a locked board state, such as armor, heal, cannot-drop-below-1, lane play block, move immunity, or cancel-order effects when they cannot create future hero-pressure changes.
+- A draw/recall/recycle effect whose available deck cards are themselves not meaningful.
+
+Runner-only edge cases follow these same rules: an unblocked Runner in combat can change hero HP because an open enemy lane adds +2 hero damage, so the game continues until hero death, another no-progress state, or the turn cap. If both sides deliver lethal Runner/open-lane damage in the same combat pass, the simultaneous-lethal raw-HP tiebreak above decides the result.
 
 ## 2) Board Model
 
@@ -54,7 +78,7 @@ If any other document conflicts with this file, this file wins.
 
 - Cards have **no cost** in MVP.
 - There is **no mana, energy, or other resource system**.
-- The card economy is intentionally limited by the action economy: each side gets at most **1 meaningful action/pass per full turn**.
+- The card economy is intentionally limited by the action economy: each side gets at most **1 action or PASS per full turn**.
 - The absence of card cost fields in faction JSON is intentional and is **not** a missing data field.
 
 ## 4) Turn Flow, Initiative, and Action Economy (Auto-Turn)
@@ -63,13 +87,13 @@ If any other document conflicts with this file, this file wins.
 - Purpose: reduce fixed second-actor reaction advantage observed in simulations.
 - This is not necessarily the final long-term turn system.
 - At battle start, `firstActor` is randomly selected as `player` or `enemy`.
-- Before the first turn starts, both sides draw 4 cards and resolve their one opening mulligan/keep decision. The live player chooses manually in the minimal hand UI; the live enemy and simulation mirrors choose via the shared opening mulligan evaluator.
+- Before the first turn starts, both sides draw 4 cards and resolve their one opening mulligan/keep decision. The live enemy resolves its automatic mulligan immediately after opening draw; the live player then chooses `KEEP HAND` or selects up to 2 cards and confirms `MULLIGAN`. Simulation mirrors use the shared opening mulligan evaluator.
 - After each full turn resolution, `firstActor` toggles so initiative alternates player → enemy → player, or enemy → player → enemy.
-- Each side gets at most **1 meaningful action/pass** per full turn.
-- PASS counts as the player's action for that turn.
+- Each side gets at most **1 action or PASS** per full turn. In UI flow, PASS is only available while the player has not already used their turn action.
+- PASS counts as that side's action for the turn, advances the auto-turn sequence, and does **not** increment any stall/pass counter.
 - Combat resolves only after both sides have acted or passed.
 - If `firstActor` is `player`, the full turn order is:
-  1. Player takes one meaningful action or PASS.
+  1. Player takes one action or PASS.
   2. Enemy takes one action or passes.
   3. Combat resolves across all 3 lanes.
   4. If no-progress deadlock is detected, end immediately by remaining hero HP.
@@ -80,7 +104,7 @@ If any other document conflicts with this file, this file wins.
   9. Initiative toggles for the next turn if the battle is still active.
 - If `firstActor` is `enemy`, the full turn order is:
   1. Enemy takes one automatic action or passes.
-  2. Player takes one meaningful action or PASS.
+  2. Player takes one action or PASS.
   3. Combat resolves across all 3 lanes.
   4. If no-progress deadlock is detected, end immediately by remaining hero HP.
   5. Player draws 1.
@@ -89,12 +113,22 @@ If any other document conflicts with this file, this file wins.
   8. If this was completed turn 50 and no winner exists, apply the remaining-hero-HP turn-cap rule.
   9. Initiative toggles for the next turn if the battle is still active.
 
-Meaningful player actions:
+Player turn actions that spend the one action for the turn:
 - Play a unit card to a friendly combat slot.
 - Play a non-unit effect card.
 - Resolve a targeted effect.
 - Swap two friendly units.
-- Redeploy a unit from hand onto occupied friendly slot.
+- Redeploy a unit from hand onto an occupied friendly slot.
+- PASS without taking another action.
+
+The no-progress detector uses the stricter "meaningful for outcome" definition in section 1.1; not every legal turn action is considered outcome-meaningful in a locked board state.
+
+
+## 4.1) Result Modal, Retry, and Back-to-Faction-Select Flow
+
+- When a battle ends, the result modal displays **YOU WIN**, **YOU LOSE**, or **DRAW**.
+- **RETRY** destroys the result modal, clears transient battle input/flow flags, and restarts `BattleScene` with the same player faction key and the same enemy faction key. The restarted battle creates a fresh battle state, reshuffles decks, redraws opening hands, and opens the normal mulligan flow again.
+- **EXIT** destroys the result modal, clears transient battle input/flow flags, and starts `FactionSelectScene`.
 
 ## 5) Card-Type Handling Rules (Implementation Truth)
 
