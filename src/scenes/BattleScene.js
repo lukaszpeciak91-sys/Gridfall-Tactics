@@ -313,7 +313,7 @@ export default class BattleScene extends Phaser.Scene {
 
     const controls = createBottomNavigationControls(this, {
       onBack: () => this.exitBattleToFactionSelect(),
-      onMenu: () => this.openBattleMenu(),
+      onRules: () => this.openRulesPanel(),
       onFullscreen: () => this.toggleFullscreen(),
       deckLabel: `x${deckCount}`,
       centerY: hand.controlCenterY,
@@ -321,7 +321,7 @@ export default class BattleScene extends Phaser.Scene {
       margin,
     });
 
-    this.bottomControlViews = [controls.back, controls.menu, controls.deck, controls.fullscreen].filter(Boolean);
+    this.bottomControlViews = [controls.back, controls.rules, controls.deck, controls.fullscreen].filter(Boolean);
   }
 
   createFloatingControl(x, y, size, label, onPointerUp, { fontScale = 0.5 } = {}) {
@@ -518,9 +518,19 @@ export default class BattleScene extends Phaser.Scene {
     this.scene.start('FactionSelectScene');
   }
 
+  openRulesPanel() {
+    this.scene.launch('RulesPanelScene', { returnSceneKey: 'BattleScene' });
+    this.scene.pause();
+  }
+
   openBattleMenu() {
     this.scene.launch('BattleMenuScene', { factionKey: this.factionKey, returnSceneKey: 'BattleScene' });
     this.scene.pause();
+  }
+
+  resumeFromRulesPanel() {
+    this.scene.resume();
+    this.recoverFromLifecycle('rules-panel-return');
   }
 
   resumeFromBattleMenu() {
@@ -597,6 +607,7 @@ export default class BattleScene extends Phaser.Scene {
       'webglcontextrestored',
       'viewport-change',
       'battle-menu-return',
+      'rules-panel-return',
     ]);
 
     return structuralRecoveryReasons.has(reason)
