@@ -36,6 +36,8 @@ export default class BattleScene extends Phaser.Scene {
     this.selectedMulliganCardIds = [];
     this.previewedMulliganCardId = null;
     this.actionButton = null;
+    this.deckCounterView = null;
+    this.deckInfoPanel = null;
     this.bottomControlViews = [];
     this.isFlowResolving = false;
     this.enemyActionBanner = null;
@@ -69,6 +71,8 @@ export default class BattleScene extends Phaser.Scene {
     this.selectedMulliganCardIds = [];
     this.previewedMulliganCardId = null;
     this.actionButton = null;
+    this.deckCounterView = null;
+    this.deckInfoPanel = null;
     this.bottomControlViews = [];
     this.isFlowResolving = false;
     this.enemyActionBanner = null;
@@ -95,6 +99,8 @@ export default class BattleScene extends Phaser.Scene {
 
   cleanupSceneObjects({ preserveTimers = false, preserveTweens = false } = {}) {
     this.destroyBattleResultModal();
+    this.destroyDeckInfoPanel();
+    this.destroyDeckCounterView();
     this.destroySelectedHandCardZoom();
     if (!preserveTweens) {
       this.tweens?.killAll?.();
@@ -144,6 +150,7 @@ export default class BattleScene extends Phaser.Scene {
     this.drawHeroPanels();
     this.refreshHeroHP();
     this.drawActionZone();
+    this.drawDeckCounter();
     this.drawHand();
     this.drawBottomUtilityBar();
     this.drawBuildMarker();
@@ -277,19 +284,17 @@ export default class BattleScene extends Phaser.Scene {
 
   drawBottomUtilityBar() {
     const { hand, margin } = this.layout;
-    const deckCount = this.gameState.player.deck.length;
 
     const controls = createBottomNavigationControls(this, {
       onBack: () => this.exitBattleToFactionSelect(),
       onRules: () => this.openRulesPanel(),
       onFullscreen: () => this.toggleFullscreen(),
-      deckLabel: `x${deckCount}`,
       centerY: hand.controlCenterY,
       touchSize: hand.controlTouchSize,
       margin,
     });
 
-    this.bottomControlViews = [controls.back, controls.rules, controls.deck, controls.fullscreen].filter(Boolean);
+    this.bottomControlViews = [controls.back, controls.rules, controls.fullscreen].filter(Boolean);
   }
 
   getBattleResultText() {
@@ -596,6 +601,7 @@ export default class BattleScene extends Phaser.Scene {
     this.refreshBoardLabels();
     this.refreshHeroHP();
     this.drawActionZone();
+    this.drawDeckCounter();
     this.drawHand();
     this.drawBottomUtilityBar();
     this.drawBuildMarker();
@@ -749,6 +755,198 @@ export default class BattleScene extends Phaser.Scene {
       }
       this.resolvePassTurn();
     });
+  }
+
+  drawDeckCounter() {
+    this.destroyDeckCounterView();
+    if (!this.gameState?.player || !this.layout) return;
+
+    const { width, action, margin } = this.layout;
+    const deckCount = this.gameState.player.deck.length;
+    const buttonRight = width * 0.5 + width * 0.46 / 2;
+    const counterWidth = Math.min(Math.max(76, width * 0.19), 104);
+    const counterHeight = Math.min(Math.max(34, action.h * 0.8), 46);
+    const x = Phaser.Math.Clamp(
+      buttonRight + Math.max(12, margin) + counterWidth / 2,
+      margin + counterWidth / 2,
+      width - margin - counterWidth / 2,
+    );
+    const y = action.centerY;
+
+    const backing = this.add.rectangle(x, y, counterWidth, counterHeight, 0x082f49, 0.82)
+      .setStrokeStyle(2, 0x38bdf8, 0.9)
+      .setDepth(150)
+      .setInteractive({ useHandCursor: true });
+    const text = this.add.text(x, y, `DECK ${deckCount}`, {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: `${Math.max(13, Math.floor(counterHeight * 0.34))}px`,
+      color: '#e0f2fe',
+      fontStyle: 'bold',
+      align: 'center',
+    }).setOrigin(0.5).setDepth(151).setInteractive({ useHandCursor: true });
+
+    const openPanel = () => this.openDeckInfoPanel();
+    backing.on('pointerover', () => {
+      backing.setFillStyle(0x0c4a6e, 0.9);
+      backing.setStrokeStyle(2, 0x7dd3fc, 1);
+    });
+    backing.on('pointerout', () => {
+      backing.setFillStyle(0x082f49, 0.82);
+      backing.setStrokeStyle(2, 0x38bdf8, 0.9);
+    });
+    backing.on('pointerup', openPanel);
+    text.on('pointerup', openPanel);
+
+    this.deckCounterView = { backing, text };
+  }
+
+  refreshDeckCounter() {
+    if (!this.deckCounterView?.text || !this.gameState?.player) return;
+    this.deckCounterView.text.setText(`DECK ${this.gameState.player.deck.length}`);
+    if (this.deckInfoPanel?.contentText) {
+      this.deckInfoPanel.contentText.setText(this.getDeckInfoPanelText());
+    }
+  }
+
+  destroyDeckCounterView() {
+    if (!this.deckCounterView) return;
+    [this.deckCounterView.backing, this.deckCounterView.text].forEach((item) => {
+      item?.removeAllListeners?.();
+      item?.destroy?.();
+    });
+    this.deckCounterView = null;
+  }
+
+  openDeckInfoPanel() {
+    if (!this.gameState?.player || this.battleResultModalShown || this.isFlowResolving) return;
+
+    this.destroyDeckInfoPanel();
+    this.selectedCardId = null;
+    this.targetingState = null;
+    this.pendingSwapIndex = null;
+    this.resetCardHighlights({ showPreview: false });
+
+    const { width, height } = this.scale.gameSize;
+    const panelWidth = Math.min(width * 0.88, 500);
+    const panelHeight = Math.min(height * 0.74, 610);
+    const centerX = width * 0.5;
+    const centerY = height * 0.48;
+    const overlay = this.add.rectangle(centerX, height * 0.5, width, height, 0x000000, 0.42)
+      .setInteractive()
+      .setDepth(760);
+    const panel = this.add.rectangle(centerX, centerY, panelWidth, panelHeight, 0x0f172a, 0.97)
+      .setStrokeStyle(3, 0x38bdf8, 0.86)
+      .setInteractive()
+      .setDepth(761);
+    const title = this.add.text(centerX, centerY - panelHeight * 0.44, 'Deck Info', {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: `${Math.max(20, Math.floor(panelHeight * 0.045))}px`,
+      color: '#e0f2fe',
+      fontStyle: 'bold',
+      align: 'center',
+    }).setOrigin(0.5).setDepth(762);
+    const subtitle = this.add.text(centerX, centerY - panelHeight * 0.39, 'Player cards • read-only', {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: `${Math.max(12, Math.floor(panelHeight * 0.026))}px`,
+      color: '#94a3b8',
+      align: 'center',
+    }).setOrigin(0.5).setDepth(762);
+
+    const closeSize = Math.max(34, Math.min(44, panelWidth * 0.09));
+    const closeX = centerX + panelWidth / 2 - closeSize * 0.72;
+    const closeY = centerY - panelHeight / 2 + closeSize * 0.72;
+    const closeBacking = this.add.rectangle(closeX, closeY, closeSize, closeSize, 0x1e293b, 0.96)
+      .setStrokeStyle(2, 0x94a3b8, 0.9)
+      .setInteractive({ useHandCursor: true })
+      .setDepth(763);
+    const closeText = this.add.text(closeX, closeY, '×', {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: `${Math.floor(closeSize * 0.64)}px`,
+      color: '#f8fafc',
+      fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(764).setInteractive({ useHandCursor: true });
+
+    const contentText = this.add.text(
+      centerX - panelWidth * 0.43,
+      centerY - panelHeight * 0.32,
+      this.getDeckInfoPanelText(),
+      {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: `${Math.max(12, Math.floor(panelHeight * 0.024))}px`,
+        color: '#f8fafc',
+        lineSpacing: Math.max(2, Math.floor(panelHeight * 0.004)),
+        wordWrap: { width: panelWidth * 0.86 },
+      },
+    ).setOrigin(0, 0).setDepth(762);
+
+    overlay.on('pointerup', () => this.destroyDeckInfoPanel());
+    const closePanel = () => this.destroyDeckInfoPanel();
+    closeBacking.on('pointerup', closePanel);
+    closeText.on('pointerup', closePanel);
+
+    this.deckInfoPanel = {
+      overlay,
+      panel,
+      title,
+      subtitle,
+      closeBacking,
+      closeText,
+      contentText,
+    };
+  }
+
+  destroyDeckInfoPanel() {
+    if (!this.deckInfoPanel) return;
+    [
+      this.deckInfoPanel.overlay,
+      this.deckInfoPanel.panel,
+      this.deckInfoPanel.title,
+      this.deckInfoPanel.subtitle,
+      this.deckInfoPanel.closeBacking,
+      this.deckInfoPanel.closeText,
+      this.deckInfoPanel.contentText,
+    ].forEach((item) => {
+      item?.removeAllListeners?.();
+      item?.destroy?.();
+    });
+    this.deckInfoPanel = null;
+  }
+
+  getDeckInfoPanelText() {
+    const player = this.gameState?.player ?? { deck: [], hand: [], discard: [] };
+    const onBoard = (this.gameState?.board ?? []).filter((card) => card?.owner === 'player');
+    const groups = [
+      ['In Deck', player.deck],
+      ['In Hand', player.hand],
+      ['Played / Discarded', player.discard],
+      ['On Board', onBoard],
+    ];
+
+    return groups.map(([heading, cards]) => this.formatDeckInfoGroup(heading, cards)).join('\n\n');
+  }
+
+  formatDeckInfoGroup(heading, cards) {
+    const entries = this.summarizeCardEntries(cards);
+    const total = Array.isArray(cards) ? cards.length : 0;
+    if (entries.length === 0) return `${heading} (${total})\n• None`;
+    return [
+      `${heading} (${total})`,
+      ...entries.map((entry) => `• ${entry.name} — ${entry.typeLabel} ×${entry.count}`),
+    ].join('\n');
+  }
+
+  summarizeCardEntries(cards) {
+    const summary = new Map();
+    (Array.isArray(cards) ? cards : []).forEach((card) => {
+      if (!card) return;
+      const name = card.name ?? 'Unknown Card';
+      const typeLabel = card.type === 'effect' ? 'Effect' : 'Unit';
+      const key = `${name}|${typeLabel}`;
+      const existing = summary.get(key) ?? { name, typeLabel, count: 0 };
+      existing.count += 1;
+      summary.set(key, existing);
+    });
+    return [...summary.values()].sort((a, b) => a.name.localeCompare(b.name) || a.typeLabel.localeCompare(b.typeLabel));
   }
 
   drawHand() {
@@ -928,6 +1126,13 @@ export default class BattleScene extends Phaser.Scene {
       return true;
     }
 
+    if (this.deckCounterView && [this.deckCounterView.backing, this.deckCounterView.text]
+      .some((item) => overObjects.includes(item) || this.isPointerInsideGameObject(pointer, item))) {
+      return true;
+    }
+
+    if (this.deckInfoPanel) return true;
+
     return this.bottomControlViews.some((control) => [control.backing, control.text]
       .some((item) => overObjects.includes(item) || this.isPointerInsideGameObject(pointer, item)));
   }
@@ -1093,6 +1298,7 @@ export default class BattleScene extends Phaser.Scene {
     this.openingMulliganPending = false;
     this.redrawHand();
     this.updateActionButtonLabel();
+    this.refreshDeckCounter();
     this.resetCardHighlights();
     this.startTurn();
   }
@@ -1222,6 +1428,7 @@ export default class BattleScene extends Phaser.Scene {
     this.refreshBoardLabels();
     this.redrawHand();
     this.refreshHeroHP();
+    this.refreshDeckCounter();
     this.resetCardHighlights();
 
     if (this.gameState.winner) {
@@ -1258,6 +1465,7 @@ export default class BattleScene extends Phaser.Scene {
     this.refreshBoardLabels();
     this.redrawHand();
     this.refreshHeroHP();
+    this.refreshDeckCounter();
     this.resetCardHighlights();
   }
 

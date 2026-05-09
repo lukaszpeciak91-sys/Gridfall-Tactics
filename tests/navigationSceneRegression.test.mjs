@@ -69,7 +69,7 @@ test('BattleScene lifecycle destroys stale interactive objects, overlays, timers
 test('BattleScene bottom navigation uses resolved layout metrics before entering battle', () => {
   const source = readScene('src/scenes/BattleScene.js');
 
-  assert.match(source, /drawBottomUtilityBar\(\) \{[\s\S]*const \{ hand, margin \} = this\.layout;[\s\S]*const controls = createBottomNavigationControls\(this, \{[\s\S]*centerY: hand\.controlCenterY,[\s\S]*touchSize: hand\.controlTouchSize,[\s\S]*margin,[\s\S]*\}\);[\s\S]*this\.bottomControlViews = \[controls\.back, controls\.rules, controls\.deck, controls\.fullscreen\]\.filter\(Boolean\);[\s\S]*\}/);
+  assert.match(source, /drawBottomUtilityBar\(\) \{[\s\S]*const \{ hand, margin \} = this\.layout;[\s\S]*const controls = createBottomNavigationControls\(this, \{[\s\S]*centerY: hand\.controlCenterY,[\s\S]*touchSize: hand\.controlTouchSize,[\s\S]*margin,[\s\S]*\}\);[\s\S]*this\.bottomControlViews = \[controls\.back, controls\.rules, controls\.fullscreen\]\.filter\(Boolean\);[\s\S]*\}/);
   assert.doesNotMatch(source, /createFloatingControl\(backX, centerY, touchSize/);
   assert.doesNotMatch(source, /createFloatingControl\(width \* 0\.5, centerY, touchSize/);
   assert.doesNotMatch(source, /createFloatingControl\(fullscreenX, centerY, touchSize/);
@@ -83,7 +83,8 @@ test('rules panel opens from the middle bottom icon and resumes the existing sce
   const mainSource = readScene('src/main.js');
 
   assert.match(helperSource, /rules: createFloatingControl\(scene, metrics\.width \* 0\.5, metrics\.centerY, metrics\.touchSize, '\?', middleAction/);
-  assert.match(battleSource, /drawBottomUtilityBar\(\) \{[\s\S]*createBottomNavigationControls\(this, \{[\s\S]*onRules: \(\) => this\.openRulesPanel\(\),[\s\S]*deckLabel: `x\$\{deckCount\}`,[\s\S]*\}\)/);
+  assert.match(battleSource, /drawBottomUtilityBar\(\) \{[\s\S]*createBottomNavigationControls\(this, \{[\s\S]*onRules: \(\) => this\.openRulesPanel\(\),[\s\S]*onFullscreen: \(\) => this\.toggleFullscreen\(\),[\s\S]*\}\)/);
+  assert.doesNotMatch(battleSource, /deckLabel: `x\$\{deckCount\}`/);
   assert.match(battleSource, /openRulesPanel\(\) \{[\s\S]*this\.scene\.launch\('RulesPanelScene', \{ returnSceneKey: 'BattleScene' \}\);[\s\S]*this\.scene\.pause\(\);[\s\S]*\}/);
   assert.match(battleSource, /resumeFromRulesPanel\(\) \{[\s\S]*this\.scene\.resume\(\);[\s\S]*this\.recoverFromLifecycle\('rules-panel-return'\);[\s\S]*\}/);
   assert.match(factionSource, /openRulesPanel\(\) \{[\s\S]*this\.scene\.launch\('RulesPanelScene', \{ returnSceneKey: 'FactionSelectScene' \}\);[\s\S]*this\.scene\.pause\(\);[\s\S]*\}/);
