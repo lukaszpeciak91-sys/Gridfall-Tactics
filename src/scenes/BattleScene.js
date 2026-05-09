@@ -4,7 +4,8 @@ import { createInitialBattleState, drawCards, shuffleDeck, canPass, canPlayOrRed
 import { chooseEnemyAction, recordBattleActionUse, selectOpeningMulliganCardIds } from '../systems/enemyDecision.js';
 import { getTargetingStateForEffect } from '../systems/cardTargeting.js';
 import { BATTLE_BACKGROUND_FALLBACK_COLOR, BATTLE_BACKGROUND_FALLBACK_COLOR_HEX, getBattleBackgroundAsset, hasLoadedBattleBackground, preloadBattleBackgroundArt } from '../rendering/backgroundArt.js';
-import { getBuildMarkerText } from '../buildInfo.js';
+import { createBuildMarker } from '../ui/buildMarker.js';
+import { calculateHandLayoutMetrics } from '../ui/handLayout.js';
 import { createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
 
 const HAND_CARD_ACCENT_COLORS = Object.freeze({
@@ -220,25 +221,14 @@ export default class BattleScene extends Phaser.Scene {
     const cellWidth = slotWidth * boardScale;
     const cellHeight = slotHeight * boardScale;
 
-    const controlTouchSize = Math.max(48, Math.min(58, height * 0.066));
-    const handControlBottomInset = Math.max(6, Math.round(handHeight * 0.035));
-    const handControlTopInset = Math.max(4, Math.round(handHeight * 0.02));
-    const handControlRowHeight = controlTouchSize + handControlBottomInset + handControlTopInset;
-    const handCardTopInset = Math.max(6, Math.round(handHeight * 0.03));
-    const handCardControlGap = Math.max(8, Math.round(handHeight * 0.04));
-    const handCardRowHeight = Math.max(0, handHeight - handControlRowHeight);
-    const maxHandCardHeight = Math.max(0, handCardRowHeight - handCardTopInset - handCardControlGap);
-    const handCardWidth = Math.min(contentWidth * 0.27, maxHandCardHeight / 1.34, handHeight * 0.9);
-    const handCardHeight = handCardWidth * 1.34;
-    const handTrackWidth = contentWidth;
-    const cardsVisible = Math.min(5, this.gameState.player.maxHandSize);
-    const fittedStep = cardsVisible > 1 ? (handTrackWidth - handCardWidth) / (cardsVisible - 1) : 0;
-    const overlapStep = handCardWidth * 1.08;
-    const step = cardsVisible > 1 ? Math.min(fittedStep, overlapStep) : 0;
-    const usedHandTrackWidth = handCardWidth + step * Math.max(0, cardsVisible - 1);
-    const handTrackLeft = margin + (contentWidth - usedHandTrackWidth) / 2;
-    const handCardCenterY = handY + handCardTopInset + handCardHeight / 2;
-    const handControlCenterY = handY + handHeight - handControlBottomInset - controlTouchSize / 2;
+    const handLayout = calculateHandLayoutMetrics({
+      contentWidth,
+      margin,
+      handY,
+      handHeight,
+      viewportHeight: height,
+      maxHandSize: this.gameState.player.maxHandSize,
+    });
 
     return {
       width,
@@ -249,23 +239,7 @@ export default class BattleScene extends Phaser.Scene {
       board: { y: boardY, h: boardHeight, centerY: boardY + boardHeight / 2, cellWidth, cellHeight, width: cellWidth * 3, height: cellHeight * 3 },
       playerHero: { y: playerHeroY, h: playerHeroHeight, centerY: playerHeroY + playerHeroHeight / 2 },
       action: { y: actionY, h: actionHeight, centerY: actionY + actionHeight / 2 },
-      hand: {
-        y: handY,
-        h: handHeight,
-        centerY: handY + handHeight / 2,
-        cardRowHeight: handCardRowHeight,
-        controlRowHeight: handControlRowHeight,
-        controlTopInset: handControlTopInset,
-        cardCenterY: handCardCenterY,
-        controlCenterY: handControlCenterY,
-        controlTouchSize,
-        cardWidth: handCardWidth,
-        cardHeight: handCardHeight,
-        handTrackWidth,
-        handTrackLeft,
-        cardsVisible,
-        step,
-      },
+      hand: handLayout,
     };
   }
 
@@ -298,13 +272,7 @@ export default class BattleScene extends Phaser.Scene {
 
   drawBuildMarker() {
     const { width, height } = this.layout;
-    this.add.text(width - 8, height - 8, getBuildMarkerText(), {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: '12px',
-      color: '#facc15',
-      backgroundColor: '#111827',
-      padding: { x: 5, y: 3 },
-    }).setOrigin(1, 1).setDepth(1000);
+    createBuildMarker(this, { width, height });
   }
 
   drawBottomUtilityBar() {
@@ -323,42 +291,6 @@ export default class BattleScene extends Phaser.Scene {
 
     this.bottomControlViews = [controls.back, controls.rules, controls.deck, controls.fullscreen].filter(Boolean);
   }
-
-  createFloatingControl(x, y, size, label, onPointerUp, { fontScale = 0.5 } = {}) {
-    const halo = this.add.circle(x, y, size * 0.55, 0x38bdf8, 0.08)
-      .setStrokeStyle(1, 0x7dd3fc, 0.18)
-      .setDepth(198);
-    const backing = this.add.rectangle(x, y, size, size, 0x020617, 0.62)
-      .setStrokeStyle(1, 0x94a3b8, 0.58)
-      .setDepth(199);
-    const text = this.add.text(x, y, label, {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: `${Math.max(16, Math.floor(size * fontScale))}px`,
-      color: '#f8fafc',
-      fontStyle: 'bold',
-      align: 'center',
-    }).setOrigin(0.5).setDepth(200);
-
-    if (onPointerUp) {
-      backing.setInteractive({ useHandCursor: true });
-      text.setInteractive({ useHandCursor: true });
-      backing.on('pointerover', () => {
-        backing.setFillStyle(0x0f172a, 0.72);
-        backing.setStrokeStyle(1, 0x7dd3fc, 0.82);
-        halo.setAlpha(0.18);
-      });
-      backing.on('pointerout', () => {
-        backing.setFillStyle(0x020617, 0.62);
-        backing.setStrokeStyle(1, 0x94a3b8, 0.58);
-        halo.setAlpha(1);
-      });
-      backing.on('pointerup', onPointerUp);
-      text.on('pointerup', onPointerUp);
-    }
-
-    return { halo, backing, text };
-  }
-
 
   getBattleResultText() {
     if (!this.gameState?.winner) return '';
