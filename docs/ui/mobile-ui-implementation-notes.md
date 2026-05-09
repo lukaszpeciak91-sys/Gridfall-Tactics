@@ -7,7 +7,7 @@ _Last updated: UI stabilization pass before final art/canvas polish._
 `BattleScene` still owns a mix of runtime gameplay flow and UI rendering. The main mixed responsibilities are:
 
 - Battle state setup, mulligan state, turn sequencing, enemy action reveal, combat resolution timing, and result routing.
-- Board, hero panels, action button, hand frame, hand card previews, bottom navigation, result modal, feedback banners, and combat/buff animations.
+- Board, hero panels, action button, gameplay deck counter/info panel, hand frame, hand card previews, bottom navigation, result modal, feedback banners, and combat/buff animations.
 - Lifecycle recovery for fullscreen, viewport resize, rules/menu overlays, and WebGL restore.
 
 Safe cleanup completed in this pass intentionally stayed small:
@@ -42,7 +42,7 @@ Safe cleanup completed in this pass intentionally stayed small:
 - Opening mulligan uses `selectedMulliganCardIds` and `previewedMulliganCardId`; it must not set gameplay `selectedCardId`.
 - Normal gameplay card selection uses `selectedCardId`; pointer-up only reveals a visual zoom preview and does not create a separate focus/input mode.
 - Tapping a selected hand card again toggles it off during gameplay.
-- Tapping outside the hand clears selection only when the pointer-up is not reserved for a card, board cell action, PASS/action button, or bottom navigation control.
+- Tapping outside the hand clears selection only when the pointer-up is not reserved for a card, board cell action, PASS/action button, gameplay deck counter/info panel, or bottom navigation control.
 - Mulligan selection state is highlighted independently from gameplay card selection.
 - Empty hand slots remain non-interactive and visually muted.
 
@@ -50,10 +50,13 @@ Safe cleanup completed in this pass intentionally stayed small:
 
 - Bottom navigation controls are shared across faction select and battle screens.
 - Battle bottom controls are anchored to the hand control row so they do not drift into the card row.
+- Battle bottom controls contain only Back, Rules/Help, and Fullscreen; gameplay card/deck state is not shown in this navigation row.
 - Back exits battle through cleanup and returns to faction select.
 - Rules opens `RulesPanelScene` over the current scene and resumes the same battle state afterward.
 - Fullscreen toggles Phaser fullscreen and requests portrait orientation when entering fullscreen.
-- The deck count in battle is informational and non-interactive.
+- A compact `DECK N` gameplay counter sits to the right of the action button in the action band, away from the hand and bottom navigation controls.
+- Tapping `DECK N` opens a read-only Deck Info panel for the player cards. It groups card status as In Deck, In Hand, Played / Discarded, and On Board; each entry shows card name, Unit/Effect type, and count.
+- The Deck Info panel can be dismissed with the close button or by tapping outside the panel, can be viewed during the opening mulligan, and is blocked while battle flow animations are resolving.
 - The action button reads `KEEP HAND`/`MULLIGAN N` during the opening mulligan and `PASS` afterward.
 
 ## Regression checklist coverage
@@ -64,6 +67,7 @@ Use this checklist for manual smoke testing before art/canvas changes, and keep 
 - [ ] Mulligan select/unselect/confirm keeps selection visual, replaces up to two cards, and enters the first turn.
 - [ ] post-Mulligan card select/play keeps pointer-down selection and pointer-up preview behavior intact.
 - [ ] PASS consumes the player action only when passing is legal.
+- [ ] `DECK N` appears to the right of PASS/KEEP HAND, opens the Deck Info panel, and closes from either the close button or outside overlay.
 - [ ] fullscreen enter/exit preserves the active battle state and rebuilds the view from `GameState`.
 - [ ] retry/back clean up result modal and transient input state before restarting or exiting.
 - [ ] win/loss modal appears through delayed battle completion and its retry/exit buttons remain tappable.

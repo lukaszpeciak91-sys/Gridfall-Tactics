@@ -55,14 +55,12 @@ export function createBottomNavigationControls(scene, {
   onRules,
   onMenu,
   onFullscreen,
-  deckLabel = null,
   centerY = null,
   touchSize = null,
   margin = null,
 } = {}) {
   const metrics = getBottomNavigationMetrics(scene, { centerY, touchSize, margin });
   const fullscreenX = metrics.width - metrics.margin - metrics.touchSize / 2;
-  const deckX = fullscreenX - metrics.touchSize - metrics.controlGap;
   const backX = metrics.margin + metrics.touchSize / 2;
 
   const middleAction = onRules ?? onMenu;
@@ -72,16 +70,10 @@ export function createBottomNavigationControls(scene, {
     rules: createFloatingControl(scene, metrics.width * 0.5, metrics.centerY, metrics.touchSize, '?', middleAction, { fontScale: 0.52 }),
     menu: null,
     fullscreen: createFloatingControl(scene, fullscreenX, metrics.centerY, metrics.touchSize, '⛶', onFullscreen),
-    deck: null,
     metrics,
   };
 
   controls.menu = controls.rules;
-
-  if (deckLabel !== null && deckLabel !== undefined) {
-    controls.deck = createFloatingControl(scene, deckX, metrics.centerY, metrics.touchSize, deckLabel, null, { fontScale: 0.36 });
-  }
-
   return controls;
 }
 
