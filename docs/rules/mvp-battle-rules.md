@@ -73,7 +73,7 @@ Runner-only edge cases follow these same rules: an unblocked Runner in combat ca
   - The side draws the same number of replacement cards, preserving the starting hand size.
   - The mulligan window closes once used/kept or once the battle starts; there are no mulligans/redraws during the match.
   - Live enemy AI and AI-vs-AI simulations use the same deterministic opening-hand evaluator, preferring to replace low-tempo cards and cards with poor opening synergy.
-- Battle UI card-state visibility: the bottom navigation row contains only Back, Rules/Help, and Fullscreen. The live player deck count is shown as a compact `DECK N` control beside the action button, and tapping it opens a read-only Deck Info panel grouped by **In Deck**, **In Hand**, **Played / Discarded**, and **On Board**. The panel lists each card name with its Unit/Effect type and count, closes from its close button or outside overlay, remains view-only during opening mulligan, and does not open during unsafe flow animations.
+- Battle UI card-state visibility: the bottom navigation row contains only Back, Rules/Help, and Fullscreen. The live player deck count is shown as a compact `DECK N` control beside the action button, and tapping it opens a read-only Deck Info panel grouped by **In Deck**, **In Hand**, **Played / Discarded**, and **On Board**. The panel lists each card name with its Unit/Effect type and count, closes from the shared bottom BACK button or an outside overlay tap, remains view-only during opening mulligan, and does not open during unsafe flow animations.
 
 ## 3.1) Card Economy (No Cost in MVP)
 

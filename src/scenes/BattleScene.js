@@ -7,6 +7,7 @@ import { BATTLE_BACKGROUND_FALLBACK_COLOR, BATTLE_BACKGROUND_FALLBACK_COLOR_HEX,
 import { createBuildMarker } from '../ui/buildMarker.js';
 import { calculateHandLayoutMetrics } from '../ui/handLayout.js';
 import { createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
+import { createModalBackButton } from '../ui/modalControls.js';
 
 const HAND_CARD_ACCENT_COLORS = Object.freeze({
   unit: 0x4da6ff,
@@ -827,84 +828,169 @@ export default class BattleScene extends Phaser.Scene {
     this.resetCardHighlights({ showPreview: false });
 
     const { width, height } = this.scale.gameSize;
-    const panelWidth = Math.min(width * 0.88, 500);
-    const panelHeight = Math.min(height * 0.74, 610);
+    const panelWidth = Math.min(width * 0.84, 470);
+    const panelHeight = Math.min(height * 0.64, 530);
     const centerX = width * 0.5;
-    const centerY = height * 0.48;
-    const overlay = this.add.rectangle(centerX, height * 0.5, width, height, 0x000000, 0.42)
+    const centerY = height * 0.49;
+    const panelTop = centerY - panelHeight / 2;
+    const panelLeft = centerX - panelWidth / 2;
+    const padding = Math.max(16, Math.floor(panelWidth * 0.045));
+    const headerHeight = Math.max(72, Math.floor(panelHeight * 0.14));
+    const footerHeight = 68;
+    const contentX = panelLeft + padding;
+    const contentY = panelTop + headerHeight;
+    const contentWidth = panelWidth - padding * 2;
+    const contentHeight = panelHeight - headerHeight - footerHeight;
+
+    const overlay = this.add.rectangle(centerX, height * 0.5, width, height, 0x000000, 0.58)
       .setInteractive()
       .setDepth(760);
     const panel = this.add.rectangle(centerX, centerY, panelWidth, panelHeight, 0x0f172a, 0.97)
       .setStrokeStyle(3, 0x38bdf8, 0.86)
       .setInteractive()
       .setDepth(761);
-    const title = this.add.text(centerX, centerY - panelHeight * 0.44, 'Deck Info', {
+    const title = this.add.text(centerX, panelTop + 28, 'Deck Info', {
       fontFamily: 'Arial, sans-serif',
-      fontSize: `${Math.max(20, Math.floor(panelHeight * 0.045))}px`,
+      fontSize: `${Math.max(20, Math.floor(panelHeight * 0.05))}px`,
       color: '#e0f2fe',
       fontStyle: 'bold',
       align: 'center',
     }).setOrigin(0.5).setDepth(762);
-    const subtitle = this.add.text(centerX, centerY - panelHeight * 0.39, 'Player cards • read-only', {
+    const subtitle = this.add.text(centerX, panelTop + 54, 'Player cards • read-only', {
       fontFamily: 'Arial, sans-serif',
-      fontSize: `${Math.max(12, Math.floor(panelHeight * 0.026))}px`,
+      fontSize: `${Math.max(12, Math.floor(panelHeight * 0.03))}px`,
       color: '#94a3b8',
       align: 'center',
     }).setOrigin(0.5).setDepth(762);
 
-    const closeSize = Math.max(34, Math.min(44, panelWidth * 0.09));
-    const closeX = centerX + panelWidth / 2 - closeSize * 0.72;
-    const closeY = centerY - panelHeight / 2 + closeSize * 0.72;
-    const closeBacking = this.add.rectangle(closeX, closeY, closeSize, closeSize, 0x1e293b, 0.96)
-      .setStrokeStyle(2, 0x94a3b8, 0.9)
-      .setInteractive({ useHandCursor: true })
-      .setDepth(763);
-    const closeText = this.add.text(closeX, closeY, '×', {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: `${Math.floor(closeSize * 0.64)}px`,
-      color: '#f8fafc',
-      fontStyle: 'bold',
-    }).setOrigin(0.5).setDepth(764).setInteractive({ useHandCursor: true });
-
     const contentText = this.add.text(
-      centerX - panelWidth * 0.43,
-      centerY - panelHeight * 0.32,
+      contentX,
+      contentY,
       this.getDeckInfoPanelText(),
       {
         fontFamily: 'Arial, sans-serif',
-        fontSize: `${Math.max(12, Math.floor(panelHeight * 0.024))}px`,
+        fontSize: `${Math.max(12, Math.floor(panelHeight * 0.027))}px`,
         color: '#f8fafc',
         lineSpacing: Math.max(2, Math.floor(panelHeight * 0.004)),
-        wordWrap: { width: panelWidth * 0.86 },
+        wordWrap: { width: contentWidth },
       },
-    ).setOrigin(0, 0).setDepth(762);
+    ).setOrigin(0, 0);
+    const contentContainer = this.add.container(0, 0, [contentText]).setDepth(762);
+
+    const maskShape = this.make.graphics({ x: 0, y: 0, add: false });
+    maskShape.fillStyle(0xffffff);
+    maskShape.fillRect(contentX, contentY, contentWidth, contentHeight);
+    const scrollMask = maskShape.createGeometryMask();
+    contentContainer.setMask(scrollMask);
+
+    const scrollArea = this.add.zone(contentX, contentY, contentWidth, contentHeight)
+      .setOrigin(0, 0)
+      .setDepth(763)
+      .setInteractive();
+
+    const contentBottom = contentY + contentText.height;
+    const maxScrollY = Math.max(0, contentBottom - contentY - contentHeight + 8);
+    const scrollHint = this.add.text(panelLeft + padding, panelTop + panelHeight - 58, maxScrollY > 0 ? 'Swipe or mouse wheel to scroll' : 'No scrolling needed', {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: '12px',
+      color: '#94a3b8',
+    }).setDepth(762);
+
+    const backButton = createModalBackButton(this, {
+      x: centerX,
+      y: panelTop + panelHeight - 30,
+      depth: 763,
+      onPointerUp: () => this.destroyDeckInfoPanel(),
+    });
 
     overlay.on('pointerup', () => this.destroyDeckInfoPanel());
-    const closePanel = () => this.destroyDeckInfoPanel();
-    closeBacking.on('pointerup', closePanel);
-    closeText.on('pointerup', closePanel);
 
     this.deckInfoPanel = {
       overlay,
       panel,
       title,
       subtitle,
-      closeBacking,
-      closeText,
+      contentContainer,
       contentText,
+      maskShape,
+      scrollMask,
+      scrollArea,
+      scrollHint,
+      backButton,
+      scrollY: 0,
+      maxScrollY,
+      dragStartY: null,
+      dragStartScrollY: 0,
+      wheelHandler: null,
+      pointerMoveHandler: null,
+      pointerUpHandler: null,
+      keyUpHandler: null,
+      keyDownHandler: null,
     };
+
+    this.bindDeckInfoScrollHandlers(contentHeight);
+  }
+
+  bindDeckInfoScrollHandlers(contentHeight) {
+    if (!this.deckInfoPanel || this.deckInfoPanel.maxScrollY <= 0) return;
+
+    const panelState = this.deckInfoPanel;
+    panelState.wheelHandler = (_pointer, _gameObjects, _deltaX, deltaY) => {
+      if (this.deckInfoPanel !== panelState) return;
+      this.setDeckInfoScrollY(panelState.scrollY + deltaY * 0.45);
+    };
+    panelState.pointerMoveHandler = (pointer) => {
+      if (this.deckInfoPanel !== panelState || panelState.dragStartY === null || !pointer.isDown) return;
+      this.setDeckInfoScrollY(panelState.dragStartScrollY + panelState.dragStartY - pointer.y);
+    };
+    panelState.pointerUpHandler = () => {
+      if (this.deckInfoPanel === panelState) {
+        panelState.dragStartY = null;
+      }
+    };
+
+    panelState.keyUpHandler = () => this.setDeckInfoScrollY(panelState.scrollY - contentHeight * 0.18);
+    panelState.keyDownHandler = () => this.setDeckInfoScrollY(panelState.scrollY + contentHeight * 0.18);
+
+    this.input.on('wheel', panelState.wheelHandler);
+    this.input.on('pointermove', panelState.pointerMoveHandler);
+    this.input.on('pointerup', panelState.pointerUpHandler);
+    panelState.scrollArea.on('pointerdown', (pointer) => {
+      panelState.dragStartY = pointer.y;
+      panelState.dragStartScrollY = panelState.scrollY;
+    });
+    this.input.keyboard?.on('keydown-UP', panelState.keyUpHandler);
+    this.input.keyboard?.on('keydown-DOWN', panelState.keyDownHandler);
+  }
+
+  setDeckInfoScrollY(value) {
+    if (!this.deckInfoPanel) return;
+    this.deckInfoPanel.scrollY = Phaser.Math.Clamp(value, 0, this.deckInfoPanel.maxScrollY);
+    if (this.deckInfoPanel.contentContainer) {
+      this.deckInfoPanel.contentContainer.y = -this.deckInfoPanel.scrollY;
+    }
   }
 
   destroyDeckInfoPanel() {
     if (!this.deckInfoPanel) return;
+    const panelState = this.deckInfoPanel;
+    if (panelState.wheelHandler) this.input.off('wheel', panelState.wheelHandler);
+    if (panelState.pointerMoveHandler) this.input.off('pointermove', panelState.pointerMoveHandler);
+    if (panelState.pointerUpHandler) this.input.off('pointerup', panelState.pointerUpHandler);
+    if (panelState.keyUpHandler) this.input.keyboard?.off('keydown-UP', panelState.keyUpHandler);
+    if (panelState.keyDownHandler) this.input.keyboard?.off('keydown-DOWN', panelState.keyDownHandler);
     [
-      this.deckInfoPanel.overlay,
-      this.deckInfoPanel.panel,
-      this.deckInfoPanel.title,
-      this.deckInfoPanel.subtitle,
-      this.deckInfoPanel.closeBacking,
-      this.deckInfoPanel.closeText,
-      this.deckInfoPanel.contentText,
+      panelState.overlay,
+      panelState.panel,
+      panelState.title,
+      panelState.subtitle,
+      panelState.contentContainer,
+      panelState.contentText,
+      panelState.maskShape,
+      panelState.scrollArea,
+      panelState.scrollHint,
+      panelState.backButton?.backing,
+      panelState.backButton?.text,
     ].forEach((item) => {
       item?.removeAllListeners?.();
       item?.destroy?.();

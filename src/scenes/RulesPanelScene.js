@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { createModalBackButton } from '../ui/modalControls.js';
 
 // Player-facing summary derived from docs/rules/mvp-battle-rules.md.
 const RULE_SECTIONS = Object.freeze([
@@ -75,9 +76,10 @@ export default class RulesPanelScene extends Phaser.Scene {
 
     this.cameras.main.setBackgroundColor('rgba(0,0,0,0)');
 
-    this.add.rectangle(width / 2, height / 2, width, height, 0x020617, 0.78)
+    const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x020617, 0.78)
       .setDepth(0)
       .setInteractive();
+    overlay.on('pointerup', () => this.closePanel());
 
     const panelWidth = Math.min(width - 24, 430);
     const panelHeight = Math.min(height - 42, 720);
@@ -95,7 +97,8 @@ export default class RulesPanelScene extends Phaser.Scene {
 
     this.add.rectangle(panelX, panelY, panelWidth, panelHeight, 0x0f172a, 0.98)
       .setStrokeStyle(2, 0x7dd3fc, 0.7)
-      .setDepth(1);
+      .setDepth(1)
+      .setInteractive();
 
     this.add.text(panelLeft + padding, panelTop + 18, 'Rules / How To Play', {
       fontFamily: 'Arial, sans-serif',
@@ -104,17 +107,6 @@ export default class RulesPanelScene extends Phaser.Scene {
       fontStyle: 'bold',
     }).setDepth(2);
 
-    const closeButton = this.add.text(panelLeft + panelWidth - padding, panelTop + 16, '×', {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: '30px',
-      color: '#f8fafc',
-      fontStyle: 'bold',
-      padding: { x: 8, y: 0 },
-    })
-      .setOrigin(1, 0)
-      .setDepth(3)
-      .setInteractive({ useHandCursor: true });
-    closeButton.on('pointerup', () => this.closePanel());
 
     this.scrollArea = this.add.zone(viewportX, viewportY, viewportWidth, viewportHeight)
       .setOrigin(0, 0)
@@ -134,18 +126,11 @@ export default class RulesPanelScene extends Phaser.Scene {
     this.addScrollHint(panelLeft, panelTop, panelWidth, panelHeight, padding, this.maxScrollY > 0);
     this.bindScrollHandlers(viewportHeight);
 
-    const backButton = this.add.text(panelX, panelTop + panelHeight - 28, 'BACK', {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: '18px',
-      color: '#0f172a',
-      backgroundColor: '#93c5fd',
-      fontStyle: 'bold',
-      padding: { x: 22, y: 9 },
-    })
-      .setOrigin(0.5)
-      .setDepth(3)
-      .setInteractive({ useHandCursor: true });
-    backButton.on('pointerup', () => this.closePanel());
+    createModalBackButton(this, {
+      x: panelX,
+      y: panelTop + panelHeight - 28,
+      onPointerUp: () => this.closePanel(),
+    });
 
     this.input.keyboard?.once('keydown-ESC', () => this.closePanel());
   }
