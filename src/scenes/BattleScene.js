@@ -5,6 +5,7 @@ import { chooseEnemyAction, recordBattleActionUse, selectOpeningMulliganCardIds 
 import { getTargetingStateForEffect } from '../systems/cardTargeting.js';
 import { BATTLE_BACKGROUND_FALLBACK_COLOR, BATTLE_BACKGROUND_FALLBACK_COLOR_HEX, getBattleBackgroundAsset, hasLoadedBattleBackground, preloadBattleBackgroundArt } from '../rendering/backgroundArt.js';
 import { getBuildMarkerText } from '../buildInfo.js';
+import { createBottomNavigationControls, toggleSceneFullscreen } from '../ui/navigationControls.js';
 
 const HAND_CARD_ACCENT_COLORS = Object.freeze({
   unit: 0x4da6ff,
@@ -219,14 +220,25 @@ export default class BattleScene extends Phaser.Scene {
     const cellWidth = slotWidth * boardScale;
     const cellHeight = slotHeight * boardScale;
 
-    const handCardWidth = Math.min(contentWidth * 0.27, handHeight * 0.9);
+    const controlTouchSize = Math.max(48, Math.min(58, height * 0.066));
+    const handControlBottomInset = Math.max(6, Math.round(handHeight * 0.035));
+    const handControlTopInset = Math.max(4, Math.round(handHeight * 0.02));
+    const handControlRowHeight = controlTouchSize + handControlBottomInset + handControlTopInset;
+    const handCardTopInset = Math.max(6, Math.round(handHeight * 0.03));
+    const handCardControlGap = Math.max(8, Math.round(handHeight * 0.04));
+    const handCardRowHeight = Math.max(0, handHeight - handControlRowHeight);
+    const maxHandCardHeight = Math.max(0, handCardRowHeight - handCardTopInset - handCardControlGap);
+    const handCardWidth = Math.min(contentWidth * 0.27, maxHandCardHeight / 1.34, handHeight * 0.9);
     const handCardHeight = handCardWidth * 1.34;
-    const deckAreaWidth = contentWidth * 0.2;
-    const handTrackWidth = contentWidth - deckAreaWidth - margin * 0.8;
+    const handTrackWidth = contentWidth;
     const cardsVisible = Math.min(5, this.gameState.player.maxHandSize);
     const fittedStep = cardsVisible > 1 ? (handTrackWidth - handCardWidth) / (cardsVisible - 1) : 0;
     const overlapStep = handCardWidth * 1.08;
     const step = cardsVisible > 1 ? Math.min(fittedStep, overlapStep) : 0;
+    const usedHandTrackWidth = handCardWidth + step * Math.max(0, cardsVisible - 1);
+    const handTrackLeft = margin + (contentWidth - usedHandTrackWidth) / 2;
+    const handCardCenterY = handY + handCardTopInset + handCardHeight / 2;
+    const handControlCenterY = handY + handHeight - handControlBottomInset - controlTouchSize / 2;
 
     return {
       width,
@@ -237,7 +249,23 @@ export default class BattleScene extends Phaser.Scene {
       board: { y: boardY, h: boardHeight, centerY: boardY + boardHeight / 2, cellWidth, cellHeight, width: cellWidth * 3, height: cellHeight * 3 },
       playerHero: { y: playerHeroY, h: playerHeroHeight, centerY: playerHeroY + playerHeroHeight / 2 },
       action: { y: actionY, h: actionHeight, centerY: actionY + actionHeight / 2 },
-      hand: { y: handY, h: handHeight, centerY: handY + handHeight / 2, cardWidth: handCardWidth, cardHeight: handCardHeight, deckAreaWidth, handTrackWidth, cardsVisible, step },
+      hand: {
+        y: handY,
+        h: handHeight,
+        centerY: handY + handHeight / 2,
+        cardRowHeight: handCardRowHeight,
+        controlRowHeight: handControlRowHeight,
+        controlTopInset: handControlTopInset,
+        cardCenterY: handCardCenterY,
+        controlCenterY: handControlCenterY,
+        controlTouchSize,
+        cardWidth: handCardWidth,
+        cardHeight: handCardHeight,
+        handTrackWidth,
+        handTrackLeft,
+        cardsVisible,
+        step,
+      },
     };
   }
 
@@ -280,13 +308,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   drawBottomUtilityBar() {
-    const { width, height, margin } = this.layout;
-    const touchSize = Math.max(48, Math.min(58, height * 0.066));
-    const centerY = height - margin - touchSize / 2;
-    const controlGap = Math.max(8, Math.floor(touchSize * 0.18));
-    const fullscreenX = width - margin - touchSize / 2;
-    const deckX = fullscreenX - touchSize - controlGap;
-    const backX = margin + touchSize / 2;
+    const { hand, margin } = this.layout;
     const deckCount = this.gameState.player.deck.length;
 
     const backControl = this.createFloatingControl(backX, centerY, touchSize, '←', () => this.exitBattleToFactionSelect());
@@ -492,7 +514,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   openBattleMenu() {
-    this.scene.launch('BattleMenuScene', { factionKey: this.factionKey });
+    this.scene.launch('BattleMenuScene', { factionKey: this.factionKey, returnSceneKey: 'BattleScene' });
     this.scene.pause();
   }
 
@@ -514,16 +536,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   toggleFullscreen() {
-    if (!this.scale.fullscreen.available) {
-      return;
-    }
-
-    if (this.scale.isFullscreen) {
-      this.scale.stopFullscreen();
-      return;
-    }
-
-    this.scale.startFullscreen();
+    toggleSceneFullscreen(this);
   }
 
   onFullscreenChanged() {
@@ -789,24 +802,22 @@ export default class BattleScene extends Phaser.Scene {
   drawHand() {
     const { width, hand, margin } = this.layout;
     const centerY = hand.centerY;
-    const handLeft = margin;
-    const deckCenterX = width - margin - hand.deckAreaWidth / 2;
-    const handTrackLeft = handLeft + hand.cardWidth / 2;
+    const cardBaseY = hand.cardCenterY;
+    const controlDividerY = hand.y + hand.cardRowHeight;
+    const handTrackLeft = hand.handTrackLeft + hand.cardWidth / 2;
 
     this.add.rectangle(width * 0.5, centerY, width - margin * 2, hand.h, 0x0f172a, 0.2)
       .setStrokeStyle(1, 0x334155, 0.38);
     this.add.rectangle(width * 0.5, centerY - hand.h / 2, width - margin * 2, 1, 0x38bdf8, 0.16);
-
-    this.add.rectangle(deckCenterX, centerY + hand.h * 0.06, hand.cardWidth * 0.74, hand.cardHeight * 0.9, 0x020617, 0.16)
-      .setStrokeStyle(1, 0x94a3b8, 0.22);
+    this.add.rectangle(width * 0.5, controlDividerY, width - margin * 2, 1, 0x38bdf8, 0.12);
 
     for (let index = 0; index < hand.cardsVisible; index += 1) {
       const x = handTrackLeft + index * hand.step;
       const card = this.gameState.player.hand[index] ?? null;
       const cardId = card?.id ?? `slot-${index}`;
       const cardLabel = this.getHandCardLabel(card);
-      const baseY = centerY + hand.h * 0.06;
-      const labelBaseY = centerY + hand.h * 0.1;
+      const baseY = cardBaseY;
+      const labelBaseY = cardBaseY + hand.cardHeight * 0.04;
       const baseFontSize = Math.max(12, Math.floor(hand.cardWidth * 0.108));
       const accentColor = this.getHandCardAccentColor(card);
       const glow = this.add.rectangle(x, baseY, hand.cardWidth + 8, hand.cardHeight + 8, 0xfacc15, 0)
