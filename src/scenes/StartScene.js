@@ -96,7 +96,7 @@ export default class StartScene extends Phaser.Scene {
       duration: START_TRANSITION_MS,
       ease: 'Sine.easeInOut',
       onComplete: () => {
-        this.scene.start('FactionSelectScene');
+        this.scene.start('MainMenuScene');
       },
     });
   }

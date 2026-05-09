@@ -380,7 +380,7 @@ export default class FactionSelectScene extends Phaser.Scene {
 
   drawNavigationControls() {
     const controls = createBottomNavigationControls(this, {
-      onBack: () => this.returnToStart(),
+      onBack: () => this.returnToMainMenu(),
       onRules: () => this.openRulesPanel(),
       onFullscreen: () => this.toggleFullscreen(),
     });
@@ -391,8 +391,8 @@ export default class FactionSelectScene extends Phaser.Scene {
     });
   }
 
-  returnToStart() {
-    this.scene.start('StartScene');
+  returnToMainMenu() {
+    this.scene.start('MainMenuScene');
   }
 
   openRulesPanel() {

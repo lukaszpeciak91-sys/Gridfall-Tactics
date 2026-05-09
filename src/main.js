@@ -1,6 +1,9 @@
 import Phaser from 'phaser';
 import StartScene from './scenes/StartScene.js';
+import MainMenuScene from './scenes/MainMenuScene.js';
 import FactionSelectScene from './scenes/FactionSelectScene.js';
+import CollectionScene from './scenes/CollectionScene.js';
+import SettingsScene from './scenes/SettingsScene.js';
 import BattleScene from './scenes/BattleScene.js';
 import BattleMenuScene from './scenes/BattleMenuScene.js';
 import RulesPanelScene from './scenes/RulesPanelScene.js';
@@ -18,7 +21,7 @@ const config = {
     autoCenter: Phaser.Scale.CENTER_BOTH,
     fullscreenTarget: 'app',
   },
-  scene: [StartScene, FactionSelectScene, BattleScene, BattleMenuScene, RulesPanelScene],
+  scene: [StartScene, MainMenuScene, FactionSelectScene, CollectionScene, SettingsScene, BattleScene, BattleMenuScene, RulesPanelScene],
 };
 
 const game = new Phaser.Game(config);
