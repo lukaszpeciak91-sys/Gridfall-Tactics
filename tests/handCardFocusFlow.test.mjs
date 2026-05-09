@@ -47,7 +47,7 @@ test('outside taps clear selection without intercepting board, pass, or card inp
   assert.match(source, /this\.input\.on\('pointerup', this\.onScenePointerUp, this\);/);
   assert.match(source, /this\.input\.off\('pointerup', this\.onScenePointerUp, this\);/);
   assert.match(source, /this\.bottomControlViews = \[\];/);
-  assert.match(source, /this\.bottomControlViews = \[controls\.back, controls\.menu, controls\.deck, controls\.fullscreen\]\.filter\(Boolean\);/);
+  assert.match(source, /this\.bottomControlViews = \[controls\.back, controls\.rules, controls\.deck, controls\.fullscreen\]\.filter\(Boolean\);/);
   assert.match(source, /onScenePointerUp\(pointer, currentlyOver = \[\]\) \{\s*if \(this\.openingMulliganPending \|\| this\.battleResultModalShown \|\| this\.isFlowResolving\) return;\s*if \(!this\.selectedCardId && !this\.targetingState\) return;\s*if \(this\.isPointerUpReservedForUi\(pointer, currentlyOver\)\) return;/);
   assert.match(source, /const boardCell = this\.getBoardCellFromPointerUp\(pointer, currentlyOver\);\s*if \(boardCell\) \{\s*const selectedCard = this\.gameState\.player\.hand\.find\(\(card\) => card\.id === this\.selectedCardId\);\s*if \(!selectedCard \|\| this\.isBoardCellTapReservedForCardAction\(boardCell\.index, selectedCard\)\) return;\s*\}/);
   assert.match(source, /this\.pressedHandCardId = null;\s*this\.clearHandCardSelection\(\);/);

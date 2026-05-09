@@ -24,13 +24,30 @@ export default class BattleMenuScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(width * 0.5, height * 0.5, 'Menu options coming soon.', {
+      .text(width * 0.5, height * 0.42, 'Menu options coming soon.', {
         fontFamily: 'Arial, sans-serif',
         fontSize: '24px',
         color: '#cbd5e1',
         align: 'center',
       })
       .setOrigin(0.5);
+
+    const rulesButton = this.add
+      .text(width * 0.5, height * 0.56, 'HOW TO PLAY', {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '22px',
+        color: '#0f172a',
+        backgroundColor: '#93c5fd',
+        fontStyle: 'bold',
+        padding: { x: 20, y: 10 },
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+
+    rulesButton.on('pointerup', () => {
+      this.scene.launch('RulesPanelScene', { returnSceneKey: 'BattleMenuScene' });
+      this.scene.pause();
+    });
 
     const backButton = this.add
       .text(width * 0.08, height * 0.94, '←', {
@@ -51,5 +68,9 @@ export default class BattleMenuScene extends Phaser.Scene {
       }
       this.scene.start('BattleScene', { factionKey });
     });
+  }
+
+  resumeFromRulesPanel() {
+    this.scene.resume();
   }
 }

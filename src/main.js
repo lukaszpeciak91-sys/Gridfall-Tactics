@@ -3,6 +3,7 @@ import StartScene from './scenes/StartScene.js';
 import FactionSelectScene from './scenes/FactionSelectScene.js';
 import BattleScene from './scenes/BattleScene.js';
 import BattleMenuScene from './scenes/BattleMenuScene.js';
+import RulesPanelScene from './scenes/RulesPanelScene.js';
 import { installSessionLifecycle } from './systems/sessionLifecycle.js';
 
 const config = {
@@ -15,7 +16,7 @@ const config = {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
-  scene: [StartScene, FactionSelectScene, BattleScene, BattleMenuScene],
+  scene: [StartScene, FactionSelectScene, BattleScene, BattleMenuScene, RulesPanelScene],
 };
 
 const game = new Phaser.Game(config);

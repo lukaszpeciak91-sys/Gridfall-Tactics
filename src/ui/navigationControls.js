@@ -52,6 +52,7 @@ export function createFloatingControl(scene, x, y, size, label, onPointerUp, { f
 
 export function createBottomNavigationControls(scene, {
   onBack,
+  onRules,
   onMenu,
   onFullscreen,
   deckLabel = null,
@@ -64,13 +65,18 @@ export function createBottomNavigationControls(scene, {
   const deckX = fullscreenX - metrics.touchSize - metrics.controlGap;
   const backX = metrics.margin + metrics.touchSize / 2;
 
+  const middleAction = onRules ?? onMenu;
+
   const controls = {
     back: createFloatingControl(scene, backX, metrics.centerY, metrics.touchSize, '←', onBack),
-    menu: createFloatingControl(scene, metrics.width * 0.5, metrics.centerY, metrics.touchSize, '≡', onMenu, { fontScale: 0.46 }),
+    rules: createFloatingControl(scene, metrics.width * 0.5, metrics.centerY, metrics.touchSize, '?', middleAction, { fontScale: 0.52 }),
+    menu: null,
     fullscreen: createFloatingControl(scene, fullscreenX, metrics.centerY, metrics.touchSize, '⛶', onFullscreen),
     deck: null,
     metrics,
   };
+
+  controls.menu = controls.rules;
 
   if (deckLabel !== null && deckLabel !== undefined) {
     controls.deck = createFloatingControl(scene, deckX, metrics.centerY, metrics.touchSize, deckLabel, null, { fontScale: 0.36 });

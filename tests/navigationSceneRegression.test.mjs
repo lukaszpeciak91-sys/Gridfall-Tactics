@@ -69,25 +69,31 @@ test('BattleScene lifecycle destroys stale interactive objects, overlays, timers
 test('BattleScene bottom navigation uses resolved layout metrics before entering battle', () => {
   const source = readScene('src/scenes/BattleScene.js');
 
-  assert.match(source, /drawBottomUtilityBar\(\) \{[\s\S]*const \{ hand, margin \} = this\.layout;[\s\S]*const controls = createBottomNavigationControls\(this, \{[\s\S]*centerY: hand\.controlCenterY,[\s\S]*touchSize: hand\.controlTouchSize,[\s\S]*margin,[\s\S]*\}\);[\s\S]*this\.bottomControlViews = \[controls\.back, controls\.menu, controls\.deck, controls\.fullscreen\]\.filter\(Boolean\);[\s\S]*\}/);
+  assert.match(source, /drawBottomUtilityBar\(\) \{[\s\S]*const \{ hand, margin \} = this\.layout;[\s\S]*const controls = createBottomNavigationControls\(this, \{[\s\S]*centerY: hand\.controlCenterY,[\s\S]*touchSize: hand\.controlTouchSize,[\s\S]*margin,[\s\S]*\}\);[\s\S]*this\.bottomControlViews = \[controls\.back, controls\.rules, controls\.deck, controls\.fullscreen\]\.filter\(Boolean\);[\s\S]*\}/);
   assert.doesNotMatch(source, /createFloatingControl\(backX, centerY, touchSize/);
   assert.doesNotMatch(source, /createFloatingControl\(width \* 0\.5, centerY, touchSize/);
   assert.doesNotMatch(source, /createFloatingControl\(fullscreenX, centerY, touchSize/);
 });
 
-test('Battle menu pauses and resumes the existing BattleScene instead of recreating battle state', () => {
+test('rules panel opens from the middle bottom icon and resumes the existing scene', () => {
   const battleSource = readScene('src/scenes/BattleScene.js');
-  const menuSource = readScene('src/scenes/BattleMenuScene.js');
+  const factionSource = readScene('src/scenes/FactionSelectScene.js');
+  const rulesSource = readScene('src/scenes/RulesPanelScene.js');
+  const helperSource = readScene('src/ui/navigationControls.js');
+  const mainSource = readScene('src/main.js');
 
-  assert.match(battleSource, /drawBottomUtilityBar\(\) \{[\s\S]*createBottomNavigationControls\(this, \{[\s\S]*onMenu: \(\) => this\.openBattleMenu\(\),[\s\S]*deckLabel: `x\$\{deckCount\}`,[\s\S]*\}\)/);
-  assert.match(battleSource, /openBattleMenu\(\) \{[\s\S]*this\.scene\.launch\('BattleMenuScene', \{ factionKey: this\.factionKey, returnSceneKey: 'BattleScene' \}\);[\s\S]*this\.scene\.pause\(\);[\s\S]*\}/);
-  assert.match(battleSource, /resumeFromBattleMenu\(\) \{[\s\S]*this\.scene\.resume\(\);[\s\S]*this\.recoverFromLifecycle\('battle-menu-return'\);[\s\S]*\}/);
-  assert.match(menuSource, /const returnScene = this\.scene\.get\(returnSceneKey\)/);
-  assert.match(menuSource, /returnScene\?\.resumeFromBattleMenu/);
-  assert.match(menuSource, /returnScene\.resumeFromBattleMenu\(\);\s*return;[\s\S]*this\.scene\.start\('BattleScene', \{ factionKey \}\)/);
+  assert.match(helperSource, /rules: createFloatingControl\(scene, metrics\.width \* 0\.5, metrics\.centerY, metrics\.touchSize, '\?', middleAction/);
+  assert.match(battleSource, /drawBottomUtilityBar\(\) \{[\s\S]*createBottomNavigationControls\(this, \{[\s\S]*onRules: \(\) => this\.openRulesPanel\(\),[\s\S]*deckLabel: `x\$\{deckCount\}`,[\s\S]*\}\)/);
+  assert.match(battleSource, /openRulesPanel\(\) \{[\s\S]*this\.scene\.launch\('RulesPanelScene', \{ returnSceneKey: 'BattleScene' \}\);[\s\S]*this\.scene\.pause\(\);[\s\S]*\}/);
+  assert.match(battleSource, /resumeFromRulesPanel\(\) \{[\s\S]*this\.scene\.resume\(\);[\s\S]*this\.recoverFromLifecycle\('rules-panel-return'\);[\s\S]*\}/);
+  assert.match(factionSource, /openRulesPanel\(\) \{[\s\S]*this\.scene\.launch\('RulesPanelScene', \{ returnSceneKey: 'FactionSelectScene' \}\);[\s\S]*this\.scene\.pause\(\);[\s\S]*\}/);
+  assert.match(rulesSource, /closeButton\.on\('pointerup', \(\) => this\.closePanel\(\)\)/);
+  assert.match(rulesSource, /backButton\.on\('pointerup', \(\) => this\.closePanel\(\)\)/);
+  assert.match(rulesSource, /returnScene\?\.resumeFromRulesPanel/);
+  assert.match(mainSource, /RulesPanelScene/);
 });
 
-test('FactionSelectScene uses shared bottom navigation controls for start, menu, and fullscreen', () => {
+test('FactionSelectScene uses shared bottom navigation controls for start, rules, and fullscreen', () => {
   const factionSource = readScene('src/scenes/FactionSelectScene.js');
   const battleSource = readScene('src/scenes/BattleScene.js');
   const helperSource = readScene('src/ui/navigationControls.js');
@@ -98,9 +104,9 @@ test('FactionSelectScene uses shared bottom navigation controls for start, menu,
   assert.match(helperSource, /export function createBottomNavigationControls/);
   assert.match(helperSource, /export function createFloatingControl/);
   assert.match(helperSource, /export function requestPortraitOrientationLock/);
-  assert.match(factionSource, /drawNavigationControls\(\) \{[\s\S]*createBottomNavigationControls\(this, \{[\s\S]*onBack: \(\) => this\.returnToStart\(\),[\s\S]*onMenu: \(\) => this\.openBattleMenu\(\),[\s\S]*onFullscreen: \(\) => this\.toggleFullscreen\(\),[\s\S]*\}\)/);
+  assert.match(factionSource, /drawNavigationControls\(\) \{[\s\S]*createBottomNavigationControls\(this, \{[\s\S]*onBack: \(\) => this\.returnToStart\(\),[\s\S]*onRules: \(\) => this\.openRulesPanel\(\),[\s\S]*onFullscreen: \(\) => this\.toggleFullscreen\(\),[\s\S]*\}\)/);
   assert.match(factionSource, /returnToStart\(\) \{[\s\S]*this\.scene\.start\('StartScene'\)/);
-  assert.match(factionSource, /openBattleMenu\(\) \{[\s\S]*this\.scene\.launch\('BattleMenuScene', \{ returnSceneKey: 'FactionSelectScene' \}\);[\s\S]*this\.scene\.pause\(\);[\s\S]*\}/);
+  assert.match(factionSource, /openRulesPanel\(\) \{[\s\S]*this\.scene\.launch\('RulesPanelScene', \{ returnSceneKey: 'FactionSelectScene' \}\);[\s\S]*this\.scene\.pause\(\);[\s\S]*\}/);
   assert.match(factionSource, /toggleFullscreen\(\) \{[\s\S]*toggleSceneFullscreen\(this\);[\s\S]*\}/);
   assert.match(factionSource, /onFullscreenChanged\(\) \{[\s\S]*this\.scale\.isFullscreen[\s\S]*requestPortraitOrientationLock\(\);[\s\S]*this\.scene\.restart\(\);[\s\S]*\}/);
   assert.match(battleSource, /onFullscreenChanged\(\) \{[\s\S]*this\.scale\.isFullscreen[\s\S]*requestPortraitOrientationLock\(\);[\s\S]*this\.recoverFromLifecycle\(this\.scale\.isFullscreen \? 'enterfullscreen' : 'leavefullscreen'\);[\s\S]*\}/);
@@ -160,4 +166,22 @@ test('BattleScene still opens the result modal when a player action sets winner'
 
   assert.doesNotMatch(completePlayerActionSource, /this\.gameState\.winner \|\| this\.isFlowResolving/);
   assert.match(completePlayerActionSource, /await this\.playBuffFeedback\(beforeStats, 'player'\);\s*if \(this\.gameState\.winner\) \{\s*this\.completeBattleFlow\(500\);\s*return;\s*\}/);
+});
+
+test('rules panel contains the current short player-facing MVP rules summary', () => {
+  const source = readScene('src/scenes/RulesPanelScene.js');
+
+  assert.match(source, /Both heroes start at 12 HP/);
+  assert.match(source, /The fight has 3 lanes/);
+  assert.match(source, /mulligan up to 2 cards once/);
+  assert.match(source, /initiative alternates each turn/);
+  assert.match(source, /Each side gets 1 action/);
+  assert.match(source, /Cards have no mana, energy, or cost system/);
+  assert.match(source, /combat resolves automatically/);
+  assert.match(source, /After combat, you draw 1 card/);
+  assert.match(source, /A battle can end when a hero is defeated/);
+  assert.match(source, /neither side can make meaningful progress/);
+  assert.match(source, /turn limit is reached/);
+  assert.doesNotMatch(source, /stall/i);
+  assert.doesNotMatch(source, /telemetry/i);
 });
