@@ -46,6 +46,20 @@ Safe cleanup completed in this pass intentionally stayed small:
 - Mulligan selection state is highlighted independently from gameplay card selection.
 - Empty hand slots remain non-interactive and visually muted.
 
+
+## Faction select cards and preview assets
+
+- `FactionSelectScene` uses large, vertical, mobile-friendly faction cards instead of prototype text buttons. Each card reserves a 16:9 artwork area at the top, then shows the faction name, a short playstyle description, and compact tag pills such as Fast pressure, Armor sustain, Control tools, and Swarm board.
+- Tapping anywhere on a faction card starts a battle with that faction. The card list is vertically scrollable so the layout can remain portrait-friendly on shorter mobile screens.
+- The scene attempts to load each preview image from `public/assets/factions/<faction-id>/preview.webp`, where the current faction folders are `aggro`, `tank`, `control`, and `swarm`. Expected future files are:
+  - `public/assets/factions/aggro/preview.webp`
+  - `public/assets/factions/tank/preview.webp`
+  - `public/assets/factions/control/preview.webp`
+  - `public/assets/factions/swarm/preview.webp`
+- Faction preview image spec: filename `preview.webp`; WebP format; recommended size `1024x576 px`; `16:9` landscape aspect ratio; keep important center content visible even if scaled or cropped; avoid important text inside the image.
+- If a preview image is missing, the card draws a clean faction-colored gradient fallback panel with no broken image icon and no gameplay crash.
+- Codex only created text documentation and directory keepers for this asset pipeline; no binary faction artwork or placeholder images are included.
+
 ## Controls behavior
 
 - Bottom navigation controls are shared across faction select and battle screens.
