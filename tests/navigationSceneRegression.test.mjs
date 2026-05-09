@@ -38,7 +38,7 @@ test('BattleScene imports every GameState helper used during create', () => {
 test('BattleScene returns to faction select through a cleanup path and retry stays in BattleScene', () => {
   const source = readScene('src/scenes/BattleScene.js');
 
-  assert.match(source, /const backControl = this\.createFloatingControl\(backX, centerY, touchSize, '←', \(\) => this\.exitBattleToFactionSelect\(\)\);/);
+  assert.match(source, /drawBottomUtilityBar\(\) \{[\s\S]*createBottomNavigationControls\(this, \{[\s\S]*onBack: \(\) => this\.exitBattleToFactionSelect\(\),[\s\S]*centerY: hand\.controlCenterY,[\s\S]*touchSize: hand\.controlTouchSize,[\s\S]*margin,[\s\S]*\}\)/);
   assert.match(source, /this\.scene\.start\('FactionSelectScene'\)/);
   assert.match(source, /this\.scene\.restart\(\{ factionKey, enemyFactionKey \}\)/);
   assert.match(source, /exitBattleToFactionSelect\(\) \{[\s\S]*this\.scene\.start\('FactionSelectScene'\)/);
@@ -65,12 +65,22 @@ test('BattleScene lifecycle destroys stale interactive objects, overlays, timers
 });
 
 
+
+test('BattleScene bottom navigation uses resolved layout metrics before entering battle', () => {
+  const source = readScene('src/scenes/BattleScene.js');
+
+  assert.match(source, /drawBottomUtilityBar\(\) \{[\s\S]*const \{ hand, margin \} = this\.layout;[\s\S]*const controls = createBottomNavigationControls\(this, \{[\s\S]*centerY: hand\.controlCenterY,[\s\S]*touchSize: hand\.controlTouchSize,[\s\S]*margin,[\s\S]*\}\);[\s\S]*this\.bottomControlViews = \[controls\.back, controls\.menu, controls\.deck, controls\.fullscreen\]\.filter\(Boolean\);[\s\S]*\}/);
+  assert.doesNotMatch(source, /createFloatingControl\(backX, centerY, touchSize/);
+  assert.doesNotMatch(source, /createFloatingControl\(width \* 0\.5, centerY, touchSize/);
+  assert.doesNotMatch(source, /createFloatingControl\(fullscreenX, centerY, touchSize/);
+});
+
 test('Battle menu pauses and resumes the existing BattleScene instead of recreating battle state', () => {
   const battleSource = readScene('src/scenes/BattleScene.js');
   const menuSource = readScene('src/scenes/BattleMenuScene.js');
 
-  assert.match(battleSource, /const menuControl = this\.createFloatingControl\(width \* 0\.5, centerY, touchSize, '≡', \(\) => this\.openBattleMenu\(\), \{ fontScale: 0\.46 \}\);/);
-  assert.match(battleSource, /openBattleMenu\(\) \{[\s\S]*this\.scene\.launch\('BattleMenuScene', \{ factionKey: this\.factionKey \}\);[\s\S]*this\.scene\.pause\(\);[\s\S]*\}/);
+  assert.match(battleSource, /drawBottomUtilityBar\(\) \{[\s\S]*createBottomNavigationControls\(this, \{[\s\S]*onMenu: \(\) => this\.openBattleMenu\(\),[\s\S]*deckLabel: `x\$\{deckCount\}`,[\s\S]*\}\)/);
+  assert.match(battleSource, /openBattleMenu\(\) \{[\s\S]*this\.scene\.launch\('BattleMenuScene', \{ factionKey: this\.factionKey, returnSceneKey: 'BattleScene' \}\);[\s\S]*this\.scene\.pause\(\);[\s\S]*\}/);
   assert.match(battleSource, /resumeFromBattleMenu\(\) \{[\s\S]*this\.scene\.resume\(\);[\s\S]*this\.recoverFromLifecycle\('battle-menu-return'\);[\s\S]*\}/);
   assert.match(menuSource, /const returnScene = this\.scene\.get\(returnSceneKey\)/);
   assert.match(menuSource, /returnScene\?\.resumeFromBattleMenu/);
