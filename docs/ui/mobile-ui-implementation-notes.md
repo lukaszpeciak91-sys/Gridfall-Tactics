@@ -49,16 +49,24 @@ Safe cleanup completed in this pass intentionally stayed small:
 
 ## Faction select cards and preview assets
 
-- `FactionSelectScene` uses large, vertical, mobile-friendly faction cards instead of prototype text buttons. Each card reserves a 16:9 artwork area at the top, then shows the faction name, a short playstyle description, and compact tag pills such as Fast pressure, Armor sustain, Control tools, and Swarm board.
-- Tapping anywhere on a faction card starts a battle with that faction. The card list is vertically scrollable so the layout can remain portrait-friendly on shorter mobile screens.
+- `FactionSelectScene` uses compact mobile faction cards with the header copy `Choose Your Faction` and the subtitle `Tap a faction to begin battle`. The header is intentionally smaller and more cinematic than the earlier prototype label.
+- Each faction card is wider and noticeably shorter than the previous tall layout: cards are up to `382 px` wide, `164 px` tall, and separated by a `12 px` vertical gap. This reduces card height by roughly 36% from the previous `258 px` card while keeping the full card as the tap target.
+- The card layout is banner-first: the top artwork/banner area uses about 58% of the card height, the faction name is overlaid on the lower part of the banner, and the lower info area contains one short playstyle line plus two compact chips.
+- Current mobile descriptions are intentionally concise: `Fast pressure.`, `Armor and sustain.`, `Disrupt and reposition.`, and `Board swarm tactics.` Tags are two short chips per faction to avoid paragraph-like card text.
+- Tapping anywhere on a faction card starts a battle with that faction. A subtle press overlay provides tap feedback, and the list remains vertically scrollable for shorter portrait screens.
 - The scene attempts to load each preview image from `public/assets/factions/<faction-id>/preview.webp`, where the current faction folders are `aggro`, `tank`, `control`, and `swarm`. Expected future files are:
   - `public/assets/factions/aggro/preview.webp`
   - `public/assets/factions/tank/preview.webp`
   - `public/assets/factions/control/preview.webp`
   - `public/assets/factions/swarm/preview.webp`
-- Faction preview image spec: filename `preview.webp`; WebP format; recommended size `1024x576 px`; `16:9` landscape aspect ratio; keep important center content visible even if scaled or cropped; avoid important text inside the image.
-- If a preview image is missing, the card draws a clean faction-colored gradient fallback panel with no broken image icon and no gameplay crash.
-- Codex only created text documentation and directory keepers for this asset pipeline; no binary faction artwork or placeholder images are included.
+- Future folder structure is reserved as:
+  - `public/assets/factions/aggro/cards/`
+  - `public/assets/factions/tank/cards/`
+  - `public/assets/factions/control/cards/`
+  - `public/assets/factions/swarm/cards/`
+- Faction preview/banner image spec: filename `preview.webp`; WebP format; recommended size `1024x576 px`; landscape banner style; keep important content centered so compact banner crops stay safe; avoid baked-in text unless intentional.
+- If a preview image loads, it renders as a cover-cropped banner. If `preview.webp` is missing, the card draws a clean faction-colored gradient fallback with no broken-image icon and no gameplay crash.
+- Artwork will be manually uploaded later by the user. Codex only created text documentation and empty directory keepers for this asset pipeline; no binary faction artwork or placeholder images are included.
 
 ## Controls behavior
 
