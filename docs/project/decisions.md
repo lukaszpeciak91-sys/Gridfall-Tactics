@@ -37,7 +37,7 @@
 ## MVP Battle Loop Lock (2026-05-02)
 - Locked rules source to `docs/rules/mvp-battle-rules.md` as single source of truth for gameplay behavior.
 - Confirmed auto-turn loop (no END TURN action), `PASS` action, `redeploy`, and `swap` as the implemented MVP action model.
-- Confirmed hero HP (`12/12`) and hero HP zero as the only MVP win condition.
+- Historical lock at this date: hero HP (`12/12`) and hero HP zero drove battle wins; current battle-end rules also include no-progress and turn-cap HP tiebreaks in the canonical rules doc.
 - Confirmed column-only combat lanes and middle row as visual-only (non-playable).
 
 
@@ -46,7 +46,7 @@
 - Historical lock: one meaningful action maximum per player turn, then `PASS`/`RESOLVE TURN` advanced resolution.
 - Historical lock: enemy action and combat triggered only during PASS/RESOLVE.
 - PASS remains valid even if the player takes no meaningful action.
-- Current canonical turn order is documented in `docs/rules/mvp-battle-rules.md`.
+- Current canonical turn order and battle-end checks are documented in `docs/rules/mvp-battle-rules.md`.
 
 ## Playable UI Debug Text Guardrail (2026-05-03)
 - Permanent rule: no visible debug/test labels in playable UI unless explicitly requested for a scoped task.
@@ -59,7 +59,7 @@
 - Reconfirmed runtime typing model: only `type: unit` is deployable; all non-unit cards execute as effect cards.
 - Reconfirmed deterministic MVP behavior: Sniper targets lowest-HP enemy (index tiebreak), Controller on-play swaps first two enemy units by index order.
 - Reconfirmed Flood nerf is active in code: `fill_empty_slots_0_1` summons up to 2 tokens left-to-right.
-- Reconfirmed mulligan remains deferred/not active in MVP.
+- Historical note: mulligan was deferred/not active at this audit time; superseded on 2026-05-06 by the Simple Opening Mulligan MVP decision below.
 
 
 ## Temporary Alternating Initiative MVP (2026-05-05)
@@ -79,6 +79,7 @@
 - This is an MVP anti-stall/pacing solution, not the final long-term tournament or overtime system.
 - Primary motivation: Swarm mirrors were producing excessive empty-board exhaustion draws under the old automatic draw-at-cap rule.
 - Simulation and sanity runners must use the same shared turn-cap resolution helper as live gameplay; no special-case simulation behavior.
+- Later no-progress deadlock handling replaced any repeated-PASS/3-pass stall-counter assumptions; locked outcomes are resolved from board/resource state instead of pass counts.
 
 
 ## Simple Opening Mulligan MVP (2026-05-06)

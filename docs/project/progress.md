@@ -56,7 +56,7 @@
 ## Docs Parity Audit Complete (2026-05-04)
 - Audited runtime behavior across `GameState`, `enemyDecision`, `BattleScene`, and faction card data.
 - Updated canonical rules doc to align turn flow, draw timing, card typing, targeting, and effect behavior to implemented code.
-- Added explicit implemented-vs-deferred section and MVP simplification notes (deterministic targeting, non-unit-as-effect, no mulligan, no peek UI).
+- Added explicit implemented-vs-deferred section and MVP simplification notes as of that audit (deterministic targeting, non-unit-as-effect, no mulligan at that time, no peek UI); the mulligan note was superseded by the 2026-05-06 Simple Opening Mulligan update below.
 - Documented active Flood cap (up to 2 tokens) and current balance monitoring notes.
 
 

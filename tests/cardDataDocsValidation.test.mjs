@@ -123,3 +123,27 @@ test('Controller unit on-play stays deterministic even though its effectId has d
   assert.equal(state.board[1].id, 'enemy-left');
   assert.equal(state.board[2].id, 'enemy-right');
 });
+
+
+test('battle-end documentation names current stall, mulligan, retry, and tiebreak rules', () => {
+  const read = (file) => fs.readFileSync(file, 'utf8');
+  const readme = read('README.md');
+  const rules = read('docs/rules/mvp-battle-rules.md');
+  const historicalSpec = read('docs/battle_mvp_v1.md');
+  const decisions = read('docs/project/decisions.md');
+  const combined = [readme, rules, historicalSpec, decisions].join('\n');
+
+  assert.match(readme, /Battles end by hero death, no-progress deadlock, or the 50 completed-turn cap/);
+  assert.match(rules, /There is no repeated-PASS or 3-pass stall counter/);
+  assert.match(rules, /Meaningful Actions for No-Progress Detection/);
+  assert.match(rules, /Empty board \+ no meaningful playable cards is a no-progress deadlock/);
+  assert.match(rules, /Runner-only edge cases follow these same rules/);
+  assert.match(rules, /RETRY.*same player faction key and the same enemy faction key/s);
+  assert.match(rules, /EXIT.*starts `FactionSelectScene`/s);
+  assert.match(historicalSpec, /Any implication that there is no opening mulligan/);
+  assert.match(decisions, /superseded on 2026-05-06 by the Simple Opening Mulligan MVP decision/);
+
+  assert.doesNotMatch(combined, /mulligan remains deferred\/not active in MVP\./);
+  assert.doesNotMatch(combined, /Any implication that mulligan is active in MVP\./);
+  assert.doesNotMatch(combined, /3x pass/i);
+});

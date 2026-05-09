@@ -30,5 +30,6 @@ Faction flavor remains useful for thematic reference, but gameplay implementatio
 
 - Any implication of END TURN sequencing or multi-action turns.
 - Any implication that non-unit card types (order/special/utility) use distinct runtime pipelines. In MVP code, non-unit cards are all effect cards.
-- Any implication that mulligan is active in MVP.
+- Any implication that there is no opening mulligan. Current MVP code has one opening keep/replace decision before turn 1; see the canonical rules doc.
 - Any implication that Flood fills all 3 lanes; code currently caps Flood at up to 2 tokens.
+- Any repeated-PASS/3-pass stall-counter assumptions. Current MVP code resolves dead games from board/resource state, not pass counts.
