@@ -3,6 +3,7 @@ import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
 import { createInitialBattleState, drawCards, shuffleDeck, canPass, canPlayOrRedeploy, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, getUnitAttack, getUnitArmor, toggleFirstActor, resolveTurnCapWinner, resolveImmediateNoProgressWinner, recordPassAction, performOpeningMulligan, STARTING_HAND_SIZE, MAX_OPENING_MULLIGAN_CARDS } from '../systems/GameState.js';
 import { chooseEnemyAction, recordBattleActionUse, selectOpeningMulliganCardIds } from '../systems/enemyDecision.js';
 import { getTargetingStateForEffect } from '../systems/cardTargeting.js';
+import { getCombatEventAttackerIndex, shouldAnimateCombatAttacker } from '../systems/combatAnimation.js';
 import { BATTLE_BACKGROUND_FALLBACK_COLOR, BATTLE_BACKGROUND_FALLBACK_COLOR_HEX, getBattleBackgroundAsset, hasLoadedBattleBackground, preloadBattleBackgroundArt } from '../rendering/backgroundArt.js';
 import { createBuildMarker } from '../ui/buildMarker.js';
 import { calculateHandLayoutMetrics } from '../ui/handLayout.js';
@@ -1519,12 +1520,13 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     await this.delay(ENEMY_ACTION_PRE_COMBAT_DELAY_MS);
+    const preCombatBoardSnapshot = this.captureBoardSnapshot();
     const combatEvents = resolveCombat(this.gameState);
     this.lastCombatEvents = combatEvents;
     if (combatEvents.length > 0) {
       console.debug('Combat feedback events', combatEvents);
     }
-    await this.playCombatAnimations(combatEvents);
+    await this.playCombatAnimations(combatEvents, preCombatBoardSnapshot);
     this.refreshBoardLabels();
     this.refreshHeroHP();
 
@@ -1814,7 +1816,7 @@ export default class BattleScene extends Phaser.Scene {
     });
   }
 
-  async playCombatAnimations(combatEvents) {
+  async playCombatAnimations(combatEvents, preCombatBoardSnapshot = null) {
     if (!Array.isArray(combatEvents) || combatEvents.length === 0) return;
 
     const eventsByLane = new Map();
@@ -1826,20 +1828,20 @@ export default class BattleScene extends Phaser.Scene {
     for (const lane of [0, 1, 2]) {
       const laneEvents = eventsByLane.get(lane) ?? [];
       if (laneEvents.length === 0) continue;
-      await this.playLaneCombatAnimation(lane, laneEvents);
+      await this.playLaneCombatAnimation(lane, laneEvents, preCombatBoardSnapshot);
       await this.delay(320);
     }
   }
 
-  async playLaneCombatAnimation(lane, laneEvents) {
+  async playLaneCombatAnimation(lane, laneEvents, preCombatBoardSnapshot = null) {
     const laneHighlight = this.highlightActiveLane(lane);
 
     try {
       for (const event of laneEvents) {
         if (event.targetType === 'hero') {
-          await this.animateHeroStrike(event);
+          await this.animateHeroStrike(event, preCombatBoardSnapshot);
         } else {
-          await this.animateUnitAttackOnlyIfEventExists(event);
+          await this.animateUnitAttackOnlyIfEventExists(event, preCombatBoardSnapshot);
         }
       }
     } finally {
@@ -1847,14 +1849,11 @@ export default class BattleScene extends Phaser.Scene {
     }
   }
 
-  getCombatAttackerVisual(event) {
+  getCombatAttackerVisual(event, preCombatBoardSnapshot = null) {
     if (!event || !Number.isInteger(event.lane)) return null;
+    if (!shouldAnimateCombatAttacker(event, preCombatBoardSnapshot)) return null;
 
-    const attackerIndex = Number.isInteger(event.attackerIndex)
-      ? event.attackerIndex
-      : (event.attackerSide === 'player' ? 6 + event.lane : event.lane);
-    if (!Number.isInteger(attackerIndex)) return null;
-
+    const attackerIndex = getCombatEventAttackerIndex(event);
     const cell = this.getCellByIndex(attackerIndex);
     if (!cell?.label || !cell?.background) return null;
     return { type: 'unit', index: attackerIndex, cell };
@@ -1877,10 +1876,10 @@ export default class BattleScene extends Phaser.Scene {
     return { type: 'unit', index: targetIndex, cell };
   }
 
-  async animateUnitAttackOnlyIfEventExists(event) {
-    const attacker = this.getCombatAttackerVisual(event);
+  async animateUnitAttackOnlyIfEventExists(event, preCombatBoardSnapshot = null) {
+    const attacker = this.getCombatAttackerVisual(event, preCombatBoardSnapshot);
     const target = this.getCombatTargetVisual(event);
-    if (!attacker || target?.type !== 'unit' || event.damage <= 0) {
+    if (!attacker || target?.type !== 'unit') {
       await this.playCombatEventFeedback([event]);
       return;
     }
@@ -1908,14 +1907,14 @@ export default class BattleScene extends Phaser.Scene {
     }
   }
 
-  async animateHeroStrike(event) {
+  async animateHeroStrike(event, preCombatBoardSnapshot = null) {
     if (event.openLane) {
-      await this.animateOpenLaneHeroStrike(event);
+      await this.animateOpenLaneHeroStrike(event, preCombatBoardSnapshot);
       return;
     }
 
-    const attacker = this.getCombatAttackerVisual(event);
-    if (!attacker || event.damage <= 0) {
+    const attacker = this.getCombatAttackerVisual(event, preCombatBoardSnapshot);
+    if (!attacker) {
       await this.playCombatEventFeedback([event]);
       return;
     }
@@ -1937,10 +1936,10 @@ export default class BattleScene extends Phaser.Scene {
     }
   }
 
-  async animateOpenLaneHeroStrike(event) {
-    const attacker = this.getCombatAttackerVisual(event);
+  async animateOpenLaneHeroStrike(event, preCombatBoardSnapshot = null) {
+    const attacker = this.getCombatAttackerVisual(event, preCombatBoardSnapshot);
     const target = this.getCombatTargetVisual(event);
-    if (!attacker || target?.type !== 'hero' || event.damage <= 0) {
+    if (!attacker || target?.type !== 'hero') {
       await this.playCombatEventFeedback([event]);
       return;
     }

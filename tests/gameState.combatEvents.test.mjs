@@ -94,6 +94,20 @@ test('resolveCombat returns an enemy open-lane hero attack event', () => {
 });
 
 
+
+test('resolveCombat includes non-enumerable attacker indexes for hero attack animation', () => {
+  const state = makeState();
+  state.board[7] = unit('player', { attack: 2 });
+  state.board[2] = unit('enemy', { attack: 3 });
+
+  const events = resolveCombat(state);
+
+  assert.equal(events[0].attackerIndex, 7);
+  assert.equal(Object.prototype.propertyIsEnumerable.call(events[0], 'attackerIndex'), false);
+  assert.equal(events[1].attackerIndex, 2);
+  assert.equal(Object.prototype.propertyIsEnumerable.call(events[1], 'attackerIndex'), false);
+});
+
 test('Rush finalizes immediate lane combat after resolving only the swapped lane', () => {
   const state = makeState();
   const rush = {
