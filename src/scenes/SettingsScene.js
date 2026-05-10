@@ -18,8 +18,8 @@ const LANGUAGE_OPTIONS = [
   { value: 'en', label: 'English' },
   { value: 'pl', label: 'Polish' },
 ];
-const SPEAKER_ICON = '🔊';
-const MUTED_ICON = '🔇';
+const MUTE_ENABLED_LABEL = 'Sound Enabled';
+const MUTE_MUTED_LABEL = 'Sound Muted';
 
 const LABEL_STYLE = {
   fontFamily: 'Arial, sans-serif',
@@ -36,7 +36,8 @@ export default class SettingsScene extends Phaser.Scene {
     this.languageMenuOpen = false;
     this.musicValueText = null;
     this.sfxValueText = null;
-    this.muteButtonText = null;
+    this.muteToggleHitArea = null;
+    this.muteIconGraphic = null;
     this.muteStatusText = null;
   }
 
@@ -328,38 +329,75 @@ export default class SettingsScene extends Phaser.Scene {
   }
 
   createMuteToggle(x, y) {
-    this.muteButtonText = this.add
-      .text(x, y, this.settings.muted ? MUTED_ICON : SPEAKER_ICON, {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '34px',
-        color: '#111827',
-        backgroundColor: '#93c5fd',
-        fontStyle: 'bold',
-        padding: { x: 18, y: 10 },
-      })
+    const toggleWidth = 228;
+    const toggleHeight = 46;
+    const iconX = x - 62;
+    const labelX = x - 28;
+
+    this.muteToggleHitArea = this.add
+      .rectangle(x, y, toggleWidth, toggleHeight, 0x1e293b, 0.36)
+      .setStrokeStyle(1, 0x334155, 0.9)
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
 
-    this.muteStatusText = this.add
-      .text(x, y + 50, this.settings.muted ? 'Muted' : 'Audio active', {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '14px',
-        color: '#fde68a',
-      })
-      .setOrigin(0.5);
+    this.muteIconGraphic = this.add.graphics();
 
-    this.muteButtonText.on('pointerover', () => this.muteButtonText.setBackgroundColor('#bfdbfe'));
-    this.muteButtonText.on('pointerout', () => this.muteButtonText.setBackgroundColor('#93c5fd'));
-    this.muteButtonText.on('pointerup', () => {
+    this.muteStatusText = this.add
+      .text(labelX, y, '', {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '15px',
+        color: '#e5e7eb',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0, 0.5);
+
+    const toggleMute = () => {
       this.settings.muted = !this.settings.muted;
       this.saveSettings();
       this.updateMuteToggle();
+    };
+
+    [this.muteToggleHitArea, this.muteStatusText].forEach((target) => {
+      target.setInteractive({ useHandCursor: true });
+      target.on('pointerover', () => this.muteToggleHitArea.setFillStyle(0x334155, 0.5));
+      target.on('pointerout', () => this.muteToggleHitArea.setFillStyle(0x1e293b, 0.36));
+      target.on('pointerup', toggleMute);
     });
+
+    this.muteToggleIconPosition = { x: iconX, y };
+    this.updateMuteToggle();
   }
 
   updateMuteToggle() {
-    this.muteButtonText.setText(this.settings.muted ? MUTED_ICON : SPEAKER_ICON);
-    this.muteStatusText.setText(this.settings.muted ? 'Muted' : 'Audio active');
+    this.drawMuteIcon(this.muteToggleIconPosition.x, this.muteToggleIconPosition.y, this.settings.muted);
+    this.muteStatusText.setText(this.settings.muted ? MUTE_MUTED_LABEL : MUTE_ENABLED_LABEL);
+  }
+
+  drawMuteIcon(x, y, muted) {
+    this.muteIconGraphic.clear();
+    this.muteIconGraphic.fillStyle(0xf8fafc, 1);
+    this.muteIconGraphic.fillRect(x - 13, y - 7, 6, 14);
+    this.muteIconGraphic.fillTriangle(x - 7, y - 9, x + 4, y - 16, x + 4, y + 16);
+    this.muteIconGraphic.lineStyle(3, 0x93c5fd, 1);
+    this.muteIconGraphic.beginPath();
+    this.muteIconGraphic.moveTo(x + 9, y - 10);
+    this.muteIconGraphic.quadraticCurveTo(x + 18, y, x + 9, y + 10);
+    this.muteIconGraphic.strokePath();
+
+    if (!muted) {
+      this.muteIconGraphic.lineStyle(3, 0xbfdbfe, 0.86);
+      this.muteIconGraphic.beginPath();
+      this.muteIconGraphic.moveTo(x + 15, y - 15);
+      this.muteIconGraphic.quadraticCurveTo(x + 29, y, x + 15, y + 15);
+      this.muteIconGraphic.strokePath();
+      return;
+    }
+
+    this.muteIconGraphic.lineStyle(4, 0xfde68a, 1);
+    this.muteIconGraphic.beginPath();
+    this.muteIconGraphic.moveTo(x - 15, y + 17);
+    this.muteIconGraphic.lineTo(x + 29, y - 17);
+    this.muteIconGraphic.strokePath();
   }
 
   createBackButton(width, height) {
