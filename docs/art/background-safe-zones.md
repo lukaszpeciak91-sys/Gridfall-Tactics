@@ -58,6 +58,7 @@ Approximate regions are expressed as percentages of canvas height:
 ## Art direction guidance
 
 - Keep the central board and text regions lower contrast or naturally vignetted for readability.
+- Keep artwork language-neutral: avoid embedding readable words, slogans, UI copy, or card text in illustrations so future localization can swap UI strings without requiring art variants.
 - Extend non-critical environment details into side margins to visually remove empty side margins.
 - Avoid placing faces, logos, faction emblems, or other critical focal points directly under board text, cards, hero HP, action labels, or the player hand.
 - Treat the outer edges and upper/lower background behind panels as decorative-only areas.
