@@ -138,9 +138,9 @@ The no-progress detector uses the stricter "meaningful for outcome" definition i
 - `order`, `special`, and `utility` currently behave as **descriptive taxonomy labels** in card data; gameplay execution path is non-unit effect resolution unless a specific effectId says otherwise.
 - Card JSON remains the single card data source. It still uses `name` and `textShort` as the canonical visible strings for now; do not add translation files, `nameKey`, or `textKey` until the later localization migration.
 - Card display strings flow through `src/localization/cardDisplay.js`, and UI-specific labels are separated by explicit render-mode helpers in `src/rendering/cardRenderModes.js`. This keeps one data source while allowing multiple UI render modes for hand/full cards, board/compact units, collection rows/details, and deck summaries.
-- Deck Info summary entries and Collection row/detail labels are routed through the render-mode helpers and currently preserve the same English output.
-- Hand-card UI labels still render the existing full layout of card name, unit stats, and `textShort`; hand rendering is intentionally not routed yet.
-- Board cards must stay compact: board unit labels show only the unit name plus ATK/HP/ARM-style combat stats and must not show long rules text or `textShort`.
+- Deck Info summary entries, Collection row/detail labels, and hand-card UI labels are routed through the render-mode helpers and currently preserve the same English output.
+- Hand-card UI labels use the HAND/FULL render mode: card name, unit stats when relevant, and `textShort`.
+- Board cards are not routed through the HAND/FULL render mode yet and must stay compact: board unit labels show only the unit name plus ATK/HP/ARM-style combat stats and must not show long rules text or `textShort`.
 - Artwork remains language-neutral. Future localization should swap text through display adapters/render modes rather than baking language into card art.
 - A future board tap or long-press affordance can open a full card preview when players need long rules text, without putting that text directly on board units.
 - Future localization migration is expected to add `nameKey` / `textKey` while keeping gameplay data stable and avoiding behavior changes.

@@ -7,9 +7,10 @@ const read = (path) => fs.readFileSync(path, 'utf8');
 test('SettingsScene exposes future-ready language, audio, and persistence controls', () => {
   const source = read('src/scenes/SettingsScene.js');
 
-  assert.match(source, /const LANGUAGE_OPTIONS = \[/);
-  assert.match(source, /\{ value: 'en', label: 'English' \}/);
-  assert.match(source, /\{ value: 'pl', label: 'Polish' \}/);
+  assert.match(source, /import \{ SETTINGS_STORAGE_KEY, getSupportedLocales, normalizeLocale, setActiveLocale \} from '\.\.\/localization\/localeService\.js';/);
+  assert.match(source, /en: 'English'/);
+  assert.match(source, /pl: 'Polish'/);
+  assert.match(source, /const LANGUAGE_OPTIONS = getSupportedLocales\(\)\.map/);
   assert.match(source, /text\(width \/ 2, height \* 0\.1, 'SETTINGS'/);
   assert.match(source, /text\(width \/ 2, height \* 0\.15, 'Preferences are saved locally'/);
   assert.match(source, /createLanguageSelect\(width \/ 2, height \* 0\.32, panelWidth - 74\)/);
@@ -30,11 +31,13 @@ test('SettingsScene exposes future-ready language, audio, and persistence contro
   assert.match(source, /createMuteToggle\(x, y, size\) \{/);
   assert.match(source, /drawSpeakerIcon\(icon, size, isMuted\)/);
   assert.match(source, /this\.settings\.muted = !this\.settings\.muted/);
+  assert.match(source, /this\.settings\.language = setActiveLocale\(option\.value\)/);
+  assert.match(source, /normalizeLocale\(settings\.language\)/);
   assert.match(source, /this\.saveSettings\(\)/);
   assert.doesNotMatch(source, /Audio ON/);
   assert.doesNotMatch(source, /backgroundColor: '#93c5fd'/);
 
-  assert.match(source, /SETTINGS_STORAGE_KEY = 'gridfall:tactics:settings:v1'/);
+  assert.match(source, /SETTINGS_STORAGE_KEY/);
   assert.match(source, /storage\.getItem\(SETTINGS_STORAGE_KEY\)/);
   assert.match(source, /storage\.setItem\(SETTINGS_STORAGE_KEY, JSON\.stringify\(this\.settings\)\)/);
   assert.match(source, /returnToMainMenu\(\) \{[\s\S]*this\.scene\.start\('MainMenuScene'\)/);
