@@ -404,7 +404,7 @@ export default class SettingsScene extends Phaser.Scene {
   createBackButton(width, height) {
     createModalBackButton(this, {
       x: width / 2,
-      y: height - 54,
+      y: height - 96,
       width: 156,
       height: 48,
       onPointerUp: () => this.scene.start('MainMenuScene'),
