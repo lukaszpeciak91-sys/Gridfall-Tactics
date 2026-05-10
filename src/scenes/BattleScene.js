@@ -9,7 +9,7 @@ import { createBuildMarker } from '../ui/buildMarker.js';
 import { calculateHandLayoutMetrics } from '../ui/handLayout.js';
 import { createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
 import { createModalBackButton } from '../ui/modalControls.js';
-import { formatDeckSummaryEntry } from '../rendering/cardRenderModes.js';
+import { formatDeckSummaryEntry, formatHandCardLabel } from '../rendering/cardRenderModes.js';
 
 const HAND_CARD_ACCENT_COLORS = Object.freeze({
   unit: 0x4da6ff,
@@ -1230,21 +1230,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   getHandCardLabel(card) {
-    if (!card) {
-      return 'Empty';
-    }
-
-    const description = typeof card.textShort === 'string' ? card.textShort.trim() : '';
-    const hasUnitStats = card.type === 'unit';
-    const atk = Number.isFinite(card.attack) ? card.attack : 0;
-    const hp = Number.isFinite(card.hp) ? card.hp : 0;
-    const armor = Number.isFinite(card.armor) ? card.armor : 0;
-
-    const statLine = hasUnitStats ? `${atk}/${hp} ARM ${armor}` : '';
-    const lines = [card.name];
-    if (statLine) lines.push(statLine);
-    if (description) lines.push(description);
-    return lines.join('\n');
+    return formatHandCardLabel(card, 'en');
   }
 
 
