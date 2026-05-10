@@ -6,6 +6,7 @@ import {
   getMenuBackgroundAsset,
   preloadMenuBackgroundArt,
 } from '../rendering/backgroundArt.js';
+import { createBuildMarker } from '../ui/buildMarker.js';
 import { createModalBackButton } from '../ui/modalControls.js';
 
 const SETTINGS_STORAGE_KEY = 'gridfall:tactics:settings:v1';
@@ -21,6 +22,9 @@ const LANGUAGE_OPTIONS = [
 ];
 const MUTE_ENABLED_LABEL = 'Sound Enabled';
 const MUTE_MUTED_LABEL = 'Sound Muted';
+const SETTINGS_PANEL_DEPTH = 0;
+const SETTINGS_BACK_BUTTON_DEPTH = 1001;
+const SETTINGS_BACK_DEBUG_DEPTH = SETTINGS_BACK_BUTTON_DEPTH + 2;
 
 const LABEL_STYLE = {
   fontFamily: 'Arial, sans-serif',
@@ -40,6 +44,8 @@ export default class SettingsScene extends Phaser.Scene {
     this.muteToggleHitArea = null;
     this.muteIconGraphic = null;
     this.muteStatusText = null;
+    this.settingsBackButton = null;
+    this.settingsBackDebugText = null;
   }
 
   preload() {
@@ -86,7 +92,9 @@ export default class SettingsScene extends Phaser.Scene {
     this.createVolumeSlider(width / 2, height * 0.61, panelWidth - 76, 'SFX Volume', 'sfxVolume');
     this.createMuteToggle(width / 2, height * 0.72);
 
+    const buildMarker = createBuildMarker(this, { width, height });
     this.createBackButton(width, height);
+    this.children.bringToTop(buildMarker);
   }
 
   loadSettings() {
@@ -155,8 +163,8 @@ export default class SettingsScene extends Phaser.Scene {
   }
 
   addPanel(x, y, width, height, title) {
-    this.add.rectangle(x + 2, y + 4, width, height, 0x020617, 0.36).setOrigin(0.5);
-    this.add.rectangle(x, y, width, height, 0x0f172a, 0.88).setStrokeStyle(1, 0x334155, 0.9).setOrigin(0.5);
+    this.add.rectangle(x + 2, y + 4, width, height, 0x020617, 0.36).setOrigin(0.5).setDepth(SETTINGS_PANEL_DEPTH);
+    this.add.rectangle(x, y, width, height, 0x0f172a, 0.88).setStrokeStyle(1, 0x334155, 0.9).setOrigin(0.5).setDepth(SETTINGS_PANEL_DEPTH);
     this.add
       .text(x, y - height / 2 + 22, title, {
         fontFamily: 'Arial, sans-serif',
@@ -164,7 +172,8 @@ export default class SettingsScene extends Phaser.Scene {
         color: '#93c5fd',
         fontStyle: 'bold',
       })
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setDepth(SETTINGS_PANEL_DEPTH);
   }
 
   createLanguageSelect(x, y, width) {
@@ -402,12 +411,28 @@ export default class SettingsScene extends Phaser.Scene {
   }
 
   createBackButton(width, height) {
-    createModalBackButton(this, {
+    const buttonY = Math.min(height - 72, Math.max(height * 0.82, 420));
+
+    this.settingsBackButton = createModalBackButton(this, {
       x: width / 2,
-      y: height - 96,
+      y: buttonY,
+      depth: SETTINGS_BACK_BUTTON_DEPTH,
       width: 156,
       height: 48,
       onPointerUp: () => this.scene.start('MainMenuScene'),
     });
+
+    const debugX = Math.min(width - 96, width / 2 + 104);
+
+    this.settingsBackDebugText = this.add
+      .text(debugX, buttonY, 'BACK DEBUG', {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '12px',
+        color: '#fde68a',
+        backgroundColor: '#7f1d1d',
+        padding: { x: 4, y: 2 },
+      })
+      .setOrigin(0, 0.5)
+      .setDepth(SETTINGS_BACK_DEBUG_DEPTH);
   }
 }
