@@ -12,6 +12,7 @@ const LOW_TEMPO_EFFECTS = new Set([
   'cannot_drop_below_1_this_turn',
   'immune_move_disable_this_turn',
   'return_friendly_draw_1',
+  'destroy_friendly_draw_2',
   'destroy_friendly_draw_1',
   'revive_friendly_1hp',
   'friendly_immovable_this_turn',
@@ -46,6 +47,11 @@ function scoreOpeningCard(card, hand, factionName = '') {
     if (card.effectId === 'lane_empty_bonus_damage') score += 22;
     if (card.effectId === 'empty_adjacent_bonus_atk') score += 14;
     if (card.effectId === 'on_play_lane_damage_1') score += 12;
+    if (card.effectId === 'combat_death_damage_enemy_lane_1') score += 8;
+    if (card.effectId === 'combat_death_summon_grunt') score += 12;
+    if (card.effectId === 'leech_heal_hero_on_combat_kill') score += 10;
+    if (card.effectId === 'rotcaller_adjacent_death_atk_1') score += unitsInHand >= 2 ? 12 : -2;
+    if (card.effectId === 'combat_death_damage_both_heroes_1') score += 10;
     if (card.effectId === 'warden_defensive_friction_self') score += 18;
     if (card.effectId === 'warden_defensive_friction_adjacent') score += unitsInHand >= 2 ? 20 : 8;
     if (card.effectId === 'opposing_lane_atk_plus_1') score += 12;
@@ -63,7 +69,8 @@ function scoreOpeningCard(card, hand, factionName = '') {
   if (LOW_TEMPO_EFFECTS.has(card.effectId)) score -= 36;
   if (BOARD_SYNERGY_EFFECTS.has(card.effectId)) score += unitsInHand >= 2 ? 18 : -28;
   if (card.effectId === 'damage_up_to_2_enemies_1' || card.effectId === 'enemy_all_atk_minus_1') score -= 12;
-  if (card.effectId === 'summon_grunt_empty_slot' || card.effectId === 'fill_empty_slots_0_1') score += 22;
+  if (card.effectId === 'summon_grunt_empty_slot' || card.effectId === 'fill_empty_slots_0_1' || card.effectId === 'grave_call') score += 22;
+  if (card.effectId === 'funeral_pyre') score += unitsInHand >= 2 ? -4 : -34;
   if (card.effectId === 'ignore_armor_next_attack' || card.effectId === 'control_enemy_unit_this_turn') score -= 16;
   if (faction === 'aggro' && card.effectId === 'aggro_buff_all_atk_2') score += unitsInHand >= 2 ? 18 : -24;
   return score;
@@ -141,6 +148,18 @@ function getOpenLaneStats(state, owner) {
   return { lanes, damage };
 }
 
+function getLikelyFriendlyCombatDeaths(state, owner) {
+  const { friendly, opposing } = getRowsForOwner(owner);
+  let deaths = 0;
+  friendly.forEach((friendlyIndex, lane) => {
+    const friendlyUnit = state?.board?.[friendlyIndex];
+    const enemyUnit = state?.board?.[opposing[lane]];
+    if (!friendlyUnit || !enemyUnit) return;
+    if (getUnitAttack(enemyUnit) >= getEffectiveHp(friendlyUnit)) deaths += 1;
+  });
+  return deaths;
+}
+
 function getBoardPressureValue(state, owner) {
   const { friendly, opposing } = getRowsForOwner(owner);
   let value = getGuaranteedHeroDamage(state, owner) * 250;
@@ -150,6 +169,11 @@ function getBoardPressureValue(state, owner) {
     if (friendlyUnit && !enemyUnit) {
       value += getUnitAttack(friendlyUnit) * 110 + getEffectiveHp(friendlyUnit) * 12;
       if (friendlyUnit.effectId === 'lane_empty_bonus_damage') value += 80;
+      if (friendlyUnit.effectId === 'combat_death_damage_enemy_lane_1') value += 20;
+      if (friendlyUnit.effectId === 'combat_death_summon_grunt') value += 35;
+      if (friendlyUnit.effectId === 'leech_heal_hero_on_combat_kill') value += 30;
+      if (friendlyUnit.effectId === 'rotcaller_adjacent_death_atk_1') value += 25;
+      if (friendlyUnit.effectId === 'combat_death_damage_both_heroes_1') value += 35;
       if (friendlyUnit.effectId === 'warden_defensive_friction_self') value += 35;
       if (friendlyUnit.effectId === 'warden_defensive_friction_adjacent') value += 30;
       return;
@@ -169,6 +193,11 @@ function getBoardPressureValue(state, owner) {
       value += (getEffectiveHp(friendlyUnit) - getEffectiveHp(enemyUnit)) * 8;
       if (friendlyUnit.effectId === 'warden_defensive_friction_self') value += 40;
       if (friendlyUnit.effectId === 'warden_defensive_friction_adjacent') value += 35;
+      if (friendlyUnit.effectId === 'combat_death_damage_enemy_lane_1') value += enemyCanKill ? 35 : 10;
+      if (friendlyUnit.effectId === 'combat_death_summon_grunt') value += enemyCanKill ? 45 : 15;
+      if (friendlyUnit.effectId === 'leech_heal_hero_on_combat_kill') value += friendlyCanKill ? 40 : 10;
+      if (friendlyUnit.effectId === 'rotcaller_adjacent_death_atk_1') value += 20;
+      if (friendlyUnit.effectId === 'combat_death_damage_both_heroes_1') value += enemyCanKill ? 35 : 15;
     }
   });
   return value;
@@ -229,6 +258,7 @@ function getCandidateTargetIndexes(state, owner, effectId) {
 
   switch (effectId) {
     case 'return_friendly_draw_1':
+    case 'destroy_friendly_draw_2':
     case 'destroy_friendly_draw_1':
     case 'heal_2':
     case 'heal_1_atk_1_draw_on_kill_this_turn':
@@ -239,6 +269,7 @@ function getCandidateTargetIndexes(state, owner, effectId) {
       return board.map((unit, index) => (unit?.owner === friendlyOwner ? index : -1)).filter((index) => index >= 0);
     case 'control_enemy_unit_this_turn':
     case 'ignore_armor_next_attack':
+    case 'infect_damage_1_opposite_ally_atk_1':
     case 'enemy_lane_atk_minus_1':
     case 'swap_two_enemy_units':
       return board.map((unit, index) => (unit?.owner === opponentOwner ? index : -1)).filter((index) => index >= 0);
@@ -264,6 +295,7 @@ function isTwoTargetSwapEffect(effectId) {
 function isTargetedOnlyEffect(effectId) {
   return isTwoTargetSwapEffect(effectId)
     || effectId === 'return_friendly_draw_1'
+    || effectId === 'destroy_friendly_draw_2'
     || effectId === 'destroy_friendly_draw_1'
     || effectId === 'heal_2'
     || effectId === 'heal_1_atk_1_draw_on_kill_this_turn'
@@ -273,6 +305,7 @@ function isTargetedOnlyEffect(effectId) {
     || effectId === 'swap_adjacent_then_resolve'
     || effectId === 'control_enemy_unit_this_turn'
     || effectId === 'ignore_armor_next_attack'
+    || effectId === 'infect_damage_1_opposite_ally_atk_1'
     || effectId === 'enemy_lane_atk_minus_1';
 }
 
@@ -299,10 +332,12 @@ function hasMeaningfulBoardOrPressureChange(beforeState, afterState, owner) {
   return getBoardPressureSignature(beforeState, owner) !== getBoardPressureSignature(afterState, owner);
 }
 
-function addTwoTargetSwapCandidates(actions, state, owner, card) {
+function addTwoTargetCandidates(actions, state, owner, card) {
   const targets = getCandidateTargetIndexes(state, owner, card.effectId ?? null);
-  for (let first = 0; first < targets.length - 1; first += 1) {
-    for (let second = first + 1; second < targets.length; second += 1) {
+  for (let first = 0; first < targets.length; first += 1) {
+    for (let second = 0; second < targets.length; second += 1) {
+      if (first === second) continue;
+      if (isTwoTargetSwapEffect(card.effectId ?? null) && second < first) continue;
       const targetIndexes = [targets[first], targets[second]];
       if (!state.board[targetIndexes[0]] || !state.board[targetIndexes[1]]) continue;
 
@@ -363,7 +398,7 @@ function buildActionCandidates(state, owner, hand, telemetry = null) {
     }
 
     if (isTwoTargetSwapEffect(card.effectId ?? null)) {
-      addTwoTargetSwapCandidates(actions, state, owner, card);
+      addTwoTargetCandidates(actions, state, owner, card);
       return;
     }
 
@@ -518,6 +553,39 @@ function scoreAction(state, owner, action) {
       total + Math.max(0, getUnitArmor(nextState.board[index]) - getUnitArmor(state.board[index]))
     ), 0);
     score += armorGain > 0 ? 620 + armorGain * 120 : -2000;
+  }
+
+  if (action.effectId === 'funeral_pyre') {
+    const likelyDeaths = Math.min(2, getLikelyFriendlyCombatDeaths(state, owner));
+    action.aiEvaluation = { kind: 'funeral-pyre', likelyDeaths };
+    if (likelyDeaths <= 0) score -= 2600;
+    else score += 300 + likelyDeaths * 450;
+  }
+
+  if (action.effectId === 'grave_call') {
+    const { friendly } = getRowsForOwner(owner);
+    const emptySlots = friendly.filter((index) => !state.board[index]).length;
+    const friendlyUnits = friendly.filter((index) => state.board[index]?.owner === owner).length;
+    if (emptySlots <= 0) score -= 5000;
+    else score += (friendlyUnits === 0 ? 900 : 450) + Math.min(emptySlots, friendlyUnits === 0 ? 2 : 1) * 160;
+  }
+
+  if (action.effectId === 'revive_friendly_1hp') {
+    const { friendly } = getRowsForOwner(owner);
+    const side = owner === 'enemy' ? state.enemy : state.player;
+    const hasEmpty = friendly.some((index) => !state.board[index]);
+    const hasUnitDiscard = side.discard?.some((card) => card?.type === 'unit');
+    if (!hasEmpty || !hasUnitDiscard) score -= 5000;
+    else score += 500;
+  }
+
+  if (action.effectId === 'infect_damage_1_opposite_ally_atk_1') {
+    const target = state.board[action.targetIndex];
+    const lethal = target && target.hp <= 1;
+    const { opposing } = getRowsForOwner(owner);
+    const lane = opposing.indexOf(action.targetIndex);
+    const oppositeAlly = lane >= 0 ? state.board[getRowsForOwner(owner).friendly[lane]] : null;
+    score += lethal ? 650 : (oppositeAlly?.owner === owner ? 780 : 120);
   }
 
   if (action.effectId === 'quick_strike') {

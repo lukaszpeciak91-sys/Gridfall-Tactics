@@ -7,7 +7,7 @@ import { getTargetingStateForEffect } from '../src/systems/cardTargeting.js';
 import { createInitialBattleState, playOrRedeployUnit } from '../src/systems/GameState.js';
 
 const factionDir = 'src/data/factions';
-const factionFiles = ['aggro.json', 'control.json', 'swarm.json', 'tank.json', 'wardens.json'];
+const factionFiles = ['aggro.json', 'attrition-swarm.json', 'control.json', 'swarm.json', 'tank.json', 'wardens.json'];
 
 const expectedTextShort = new Map(Object.entries({
   aggro_runner_1: 'Open enemy lane: +2 hero dmg.',
@@ -43,6 +43,16 @@ const expectedTextShort = new Map(Object.entries({
   wardens_stand_firm_1: 'All allies can’t be moved this turn.',
   wardens_reinforce_line_1: 'Leftmost ally +1 ARM until combat ends.',
   wardens_hold_the_line_1: 'Leftmost 2 allies +1 ARM until combat ends.',
+  attrition_swarm_husk_1: 'Combat death: deal 1 to enemy in lane.',
+  attrition_swarm_carrier_1: 'Combat death: summon 1/1 here.',
+  attrition_swarm_leech_1: 'Combat kill and survive: heal hero 1.',
+  attrition_swarm_rotcaller_1: 'First adjacent ally combat death: +1 ATK.',
+  attrition_swarm_abomination_1: 'Combat death: both heroes take 1.',
+  attrition_swarm_funeral_pyre_1: 'First 2 ally combat deaths hit enemy in lane 1.',
+  attrition_swarm_infect_1: 'Deal 1 to enemy. If survives, opposite ally +1 ATK.',
+  attrition_swarm_feast_1: 'Destroy ally. Draw 1.',
+  attrition_swarm_rise_again_1: 'Revive first discarded unit at 1 HP.',
+  attrition_swarm_grave_call_1: 'Summon 1/1. If no allies, summon 2.',
 }));
 
 function loadFactions() {
@@ -114,6 +124,9 @@ test('deterministic effects remain outside manual targeting metadata', () => {
     ['leftmost_friendly_temp_armor_1', 'wardens_reinforce_line_1'],
     ['friendly_immovable_this_turn', 'wardens_stand_firm_1'],
     ['leftmost_2_friendly_temp_armor_1', 'wardens_hold_the_line_1'],
+    ['funeral_pyre', 'attrition_swarm_funeral_pyre_1'],
+    ['revive_friendly_1hp', 'attrition_swarm_rise_again_1'],
+    ['grave_call', 'attrition_swarm_grave_call_1'],
   ]) {
     assert.equal(getTargetingStateForEffect(effectId, cardId), null, `${cardId} should not open manual targeting`);
   }

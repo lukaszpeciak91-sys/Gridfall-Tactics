@@ -127,6 +127,9 @@ function applyAction(state, owner, passStats, decisionOptions, telemetry) {
   if (result.card?.id === 'aggro_berserker_1') {
     telemetry.berserkerUses = (telemetry.berserkerUses ?? 0) + 1;
   }
+  if (result.card?.id === 'attrition_swarm_funeral_pyre_1') {
+    telemetry.funeralPyreUses = (telemetry.funeralPyreUses ?? 0) + 1;
+  }
   recordBattleActionUse(state, owner, action, telemetry);
 }
 
@@ -181,6 +184,13 @@ function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, gameSe
     heroDeathResolution: state.heroDeathResolution,
     quickFixTempoDraws: state.quickFixTempoDraws ?? 0,
     defensiveFrictionApplications: state.wardenDefensiveFrictionApplications ?? 0,
+    funeralPyreCombatTriggers: state.funeralPyreCombatTriggers ?? 0,
+    funeralPyreLaneDamageTriggers: state.funeralPyreLaneDamageTriggers ?? 0,
+    combatOnlyDeathHeroTriggers: state.combatOnlyDeathHeroTriggers ?? 0,
+    combatOnlyDeathLaneDamageTriggers: state.combatOnlyDeathLaneDamageTriggers ?? 0,
+    combatOnlyDeathSummons: state.combatOnlyDeathSummons ?? 0,
+    leechCombatHeals: state.leechCombatHeals ?? 0,
+    rotcallerCombatTriggers: state.rotcallerCombatTriggers ?? 0,
   };
 }
 
@@ -298,7 +308,7 @@ function main() {
   const combinedPairs = new Map();
   const orderedMatchups = new Map();
   const passStats = { pass: 0, cancelled: 0 };
-  const telemetry = { replaceUsed: 0, repositionUsed: 0, meaningfulGameplayActions: 0, pointlessGameplayActions: 0, openLaneImprovements: 0, repeatedLoopPreventions: 0, invalidActions: 0, crashes: 0, quickFixUses: 0, quickFixTriggers: 0, shieldPushUses: 0, defensiveFrictionApplications: 0, mulliganByFaction: {} };
+  const telemetry = { replaceUsed: 0, repositionUsed: 0, meaningfulGameplayActions: 0, pointlessGameplayActions: 0, openLaneImprovements: 0, repeatedLoopPreventions: 0, invalidActions: 0, crashes: 0, quickFixUses: 0, quickFixTriggers: 0, shieldPushUses: 0, defensiveFrictionApplications: 0, funeralPyreUses: 0, funeralPyreTriggers: 0, funeralPyreLaneDamageTriggers: 0, combatOnlyDeathHeroTriggers: 0, combatOnlyDeathLaneDamageTriggers: 0, combatOnlyDeathSummons: 0, leechCombatHeals: 0, rotcallerCombatTriggers: 0, mulliganByFaction: {} };
   const audit = { games: 0, draws: 0, turnCaps: 0, aggroTurnCapWins: 0, aggroGames: 0, nonSwarmGames: 0, nonSwarmDraws: 0, nonSwarmTurnCaps: 0, swarmMirrorGames: 0, swarmMirrorDraws: 0, simultaneousLethals: 0, simultaneousLethalDrawsAfter: 0 };
 
   for (let playerIndex = 0; playerIndex < factionKeys.length; playerIndex += 1) for (let enemyIndex = 0; enemyIndex < factionKeys.length; enemyIndex += 1) {
@@ -315,6 +325,13 @@ function main() {
       const result = runSingleGame(factions[playerKey], factions[enemyKey], passStats, telemetry, gameSeed, i, playerKey, enemyKey);
       telemetry.quickFixTriggers += result.quickFixTempoDraws ?? 0;
       telemetry.defensiveFrictionApplications += result.defensiveFrictionApplications ?? 0;
+      telemetry.funeralPyreTriggers += result.funeralPyreCombatTriggers ?? 0;
+      telemetry.funeralPyreLaneDamageTriggers += result.funeralPyreLaneDamageTriggers ?? 0;
+      telemetry.combatOnlyDeathHeroTriggers += result.combatOnlyDeathHeroTriggers ?? 0;
+      telemetry.combatOnlyDeathLaneDamageTriggers += result.combatOnlyDeathLaneDamageTriggers ?? 0;
+      telemetry.combatOnlyDeathSummons += result.combatOnlyDeathSummons ?? 0;
+      telemetry.leechCombatHeals += result.leechCombatHeals ?? 0;
+      telemetry.rotcallerCombatTriggers += result.rotcallerCombatTriggers ?? 0;
       const wasDraw = result.winner === 'draw';
       const wasTurnCap = result.endingReason === 'turn-cap';
       addOrderedResult(orderedStats, result);
@@ -541,6 +558,15 @@ Battle simulation complete (${matchCount} games per matchup, max ${MAX_TURNS} tu
     { metric: 'Quick Fix trigger rate', count: `${percent(telemetry.quickFixTriggers, telemetry.quickFixUses)}%` },
     { metric: 'Shield Push uses', count: telemetry.shieldPushUses },
     { metric: 'defensive friction applications', count: telemetry.defensiveFrictionApplications },
+    { metric: 'Funeral Pyre uses', count: telemetry.funeralPyreUses },
+    { metric: 'Funeral Pyre combat triggers', count: telemetry.funeralPyreTriggers },
+    { metric: 'Funeral Pyre trigger rate', count: `${percent(telemetry.funeralPyreTriggers, telemetry.funeralPyreUses)}%` },
+    { metric: 'Funeral Pyre lane-damage triggers', count: telemetry.funeralPyreLaneDamageTriggers },
+    { metric: 'combat-only death hero triggers', count: telemetry.combatOnlyDeathHeroTriggers },
+    { metric: 'combat-only death lane-damage triggers', count: telemetry.combatOnlyDeathLaneDamageTriggers },
+    { metric: 'combat-only death summons', count: telemetry.combatOnlyDeathSummons },
+    { metric: 'Leech combat heals', count: telemetry.leechCombatHeals },
+    { metric: 'Rotcaller combat triggers', count: telemetry.rotcallerCombatTriggers },
   ]);
   console.log('\nPASS reason counts:');
   console.table(Object.entries(passStats).map(([reason, count]) => ({ reason, count })));

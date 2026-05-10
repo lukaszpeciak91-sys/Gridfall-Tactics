@@ -190,6 +190,11 @@ function simulateGame(playerFaction, enemyFaction, gameIndex, playerKey, enemyKe
     winner: state.winner ?? 'draw',
     turns,
     endingType,
+    funeralPyreCombatTriggers: state.funeralPyreCombatTriggers ?? 0,
+    funeralPyreLaneDamageTriggers: state.funeralPyreLaneDamageTriggers ?? 0,
+    combatOnlyDeathHeroTriggers: state.combatOnlyDeathHeroTriggers ?? 0,
+    combatOnlyDeathLaneDamageTriggers: state.combatOnlyDeathLaneDamageTriggers ?? 0,
+    combatOnlyDeathSummons: state.combatOnlyDeathSummons ?? 0,
   };
 }
 
