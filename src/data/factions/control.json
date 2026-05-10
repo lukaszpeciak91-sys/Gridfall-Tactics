@@ -88,7 +88,7 @@
       "type": "special",
       "targeting": "enemy_unit",
       "effectId": "control_enemy_unit_this_turn",
-      "textShort": "Target enemy hits its own hero next combat."
+      "textShort": "Target enemy attacks its own hero in next combat, then takes 1 damage."
     },
     {
       "id": "control_recall_1",

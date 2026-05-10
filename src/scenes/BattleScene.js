@@ -40,7 +40,7 @@ const ENEMY_EFFECT_SUMMARY_OVERRIDES = Object.freeze({
   swap_any_two_units: 'Swap two units',
   enemy_all_atk_minus_1: 'Leftmost enemies -1 ATK',
   damage_up_to_2_enemies_1: 'Damage leftmost enemies',
-  control_enemy_unit_this_turn: 'Enemy hits own hero',
+  control_enemy_unit_this_turn: 'Enemy attacks own hero, takes 1',
   return_friendly_draw_1: 'Return ally, draw 1',
   buff_all_armor_1: 'All allies +1 ARM',
   immune_move_disable_this_turn: 'Block move effects',
