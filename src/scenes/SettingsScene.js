@@ -88,9 +88,12 @@ export default class SettingsScene extends Phaser.Scene {
     this.addPanel(width / 2, height * 0.3, panelWidth, 154, 'LANGUAGE');
     this.createLanguageSelect(width / 2, height * 0.32, panelWidth - 74);
 
-    this.addPanel(width / 2, height * 0.57, panelWidth, 220, 'AUDIO');
+    const audioPanelHeight = 244;
+    const audioPanelY = height * 0.57 + (audioPanelHeight - 220) / 2;
+    this.addPanel(width / 2, audioPanelY, panelWidth, audioPanelHeight, 'AUDIO');
     this.createVolumeSlider(width / 2, height * 0.53, panelWidth - 76, 'Music Volume', 'musicVolume');
     this.createVolumeSlider(width / 2, height * 0.65, panelWidth - 76, 'SFX Volume', 'sfxVolume');
+    this.createMuteToggle(width / 2, audioPanelY + audioPanelHeight / 2 - 32, 44);
 
     const buildMarker = createBuildMarker(this, { width, height });
     this.drawNavigationControls();
@@ -328,6 +331,80 @@ export default class SettingsScene extends Phaser.Scene {
     }
 
     this.updateSliderVisuals({ x, width, fill, knob, valueText, settingKey });
+  }
+
+  createMuteToggle(x, y, size) {
+    const button = this.add.container(x, y);
+    const halo = this.add
+      .circle(0, 0, size * 0.58, 0x38bdf8, this.settings.muted ? 0.16 : 0.08)
+      .setStrokeStyle(1, 0x7dd3fc, this.settings.muted ? 0.34 : 0.18);
+    const backing = this.add
+      .rectangle(0, 0, size, size, 0x020617, 0.66)
+      .setStrokeStyle(1, this.settings.muted ? 0x93c5fd : 0x94a3b8, this.settings.muted ? 0.9 : 0.58);
+    const icon = this.add.graphics();
+
+    button.add([halo, backing, icon]);
+    button.setSize(size, size);
+    button.setDepth(2);
+
+    const refreshButton = (isHovering = false) => {
+      const isMuted = this.settings.muted;
+      backing.setFillStyle(isMuted ? 0x0f2742 : (isHovering ? 0x0f172a : 0x020617), isMuted ? 0.82 : (isHovering ? 0.72 : 0.66));
+      backing.setStrokeStyle(1, isMuted || isHovering ? 0x7dd3fc : 0x94a3b8, isMuted ? 0.95 : (isHovering ? 0.82 : 0.58));
+      halo.setFillStyle(isMuted ? 0x60a5fa : 0x38bdf8, isMuted ? 0.2 : (isHovering ? 0.18 : 0.08));
+      halo.setStrokeStyle(1, 0x7dd3fc, isMuted ? 0.38 : (isHovering ? 0.3 : 0.18));
+      this.drawSpeakerIcon(icon, size, isMuted);
+    };
+
+    button.setInteractive({ useHandCursor: true });
+    button.on('pointerover', () => refreshButton(true));
+    button.on('pointerout', () => refreshButton(false));
+    button.on('pointerup', () => {
+      this.settings.muted = !this.settings.muted;
+      this.saveSettings();
+      refreshButton(false);
+    });
+
+    refreshButton(false);
+  }
+
+  drawSpeakerIcon(icon, size, isMuted) {
+    const iconColor = isMuted ? 0xbfdbfe : 0xf8fafc;
+    const slashColor = 0xf87171;
+    const unit = size / 44;
+
+    icon.clear();
+    icon.fillStyle(iconColor, 1);
+    icon.lineStyle(2.4 * unit, iconColor, 1);
+    icon.beginPath();
+    icon.moveTo(-13 * unit, -6 * unit);
+    icon.lineTo(-7 * unit, -6 * unit);
+    icon.lineTo(1 * unit, -13 * unit);
+    icon.lineTo(1 * unit, 13 * unit);
+    icon.lineTo(-7 * unit, 6 * unit);
+    icon.lineTo(-13 * unit, 6 * unit);
+    icon.closePath();
+    icon.fillPath();
+
+    if (isMuted) {
+      icon.lineStyle(2.8 * unit, slashColor, 1);
+      icon.beginPath();
+      icon.moveTo(8 * unit, -10 * unit);
+      icon.lineTo(17 * unit, 10 * unit);
+      icon.strokePath();
+      icon.beginPath();
+      icon.moveTo(17 * unit, -10 * unit);
+      icon.lineTo(8 * unit, 10 * unit);
+      icon.strokePath();
+      return;
+    }
+
+    icon.beginPath();
+    icon.arc(6 * unit, 0, 7 * unit, -0.82, 0.82);
+    icon.strokePath();
+    icon.beginPath();
+    icon.arc(6 * unit, 0, 12 * unit, -0.62, 0.62);
+    icon.strokePath();
   }
 
   updateSliderVisuals({ x, width, fill, knob, valueText, settingKey }) {
