@@ -71,13 +71,25 @@ export default class SettingsScene extends Phaser.Scene {
     this.scale.on('leavefullscreen', this.onFullscreenChanged, this);
 
     this.add
-      .text(width / 2, 54, 'SETTINGS', {
+      .text(width / 2, 54, 'SETTINGS DEBUG', {
         fontFamily: 'Arial, sans-serif',
         fontSize: '34px',
         color: '#f8fafc',
         fontStyle: 'bold',
       })
       .setOrigin(0.5);
+
+    this.add
+      .text(width / 2, height / 2, 'SETTINGS RUNTIME DEBUG', {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '28px',
+        color: '#fde047',
+        fontStyle: 'bold',
+        backgroundColor: '#7f1d1d',
+        padding: { x: 12, y: 8 },
+      })
+      .setOrigin(0.5)
+      .setDepth(9999);
 
     this.add
       .text(width / 2, 98, 'Preferences are saved locally', {
