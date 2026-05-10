@@ -6,6 +6,7 @@ const SWARM_ALPHA_AURA_EFFECT_ID = 'adjacent_allies_atk_plus_1_ignore_armor_1';
 const WARDEN_SELF_FRICTION_EFFECT_ID = 'warden_defensive_friction_self';
 const WARDEN_SPEARWALL_EFFECT_ID = 'warden_defensive_friction_adjacent';
 const WARDEN_FRICTION_CAP = 1;
+const FUNERAL_PYRE_TRIGGER_CAP = 2;
 export const RUNNER_OPEN_LANE_HERO_BONUS = 2;
 
 function hasSwarmAlphaAura(unit) {
@@ -43,7 +44,12 @@ function cardCanRealisticallyAffectOutcome(card, state, owner) {
       'lane_empty_bonus_damage',
       'on_play_lane_damage_1',
       'death_damage_enemy_hero_1',
+      'combat_death_damage_enemy_lane_1',
       'on_death_summon_grunt',
+      'combat_death_summon_grunt',
+      'leech_heal_hero_on_combat_kill',
+      'rotcaller_adjacent_death_atk_1',
+      'combat_death_damage_both_heroes_1',
       'adjacent_allies_atk_plus_1_ignore_armor_1',
       'gain_atk_when_damaged',
       'wounded_atk_plus_1',
@@ -76,12 +82,18 @@ function cardCanRealisticallyAffectOutcome(card, state, owner) {
       return ownersWithTwoUnits;
     }
     case 'summon_grunt_empty_slot':
+    case 'grave_call':
       return friendlyEmptySlots;
+    case 'funeral_pyre':
+      return friendlyUnits.length > 0;
     case 'revive_friendly_1hp':
       return friendlyEmptySlots && friendlyDiscardUnits;
     case 'fill_empty_slots_0_1':
       return false;
+    case 'infect_damage_1_opposite_ally_atk_1':
+      return enemyUnits.length > 0;
     case 'destroy_friendly_draw_2':
+    case 'destroy_friendly_draw_1':
     case 'return_friendly_draw_1':
       return friendlyUnits.length > 0
         && (owner === 'player' ? state.player.deck : state.enemy.deck)
@@ -237,8 +249,8 @@ function removeDefeatedUnits(state, boardIndexes) {
   cleanupDefeatedUnitsWithTriggers(state, boardIndexes);
 }
 
-function cleanupAllDefeatedUnitsWithTriggers(state) {
-  cleanupDefeatedUnitsWithTriggers(state, [...ENEMY_ROW, ...PLAYER_ROW]);
+function cleanupAllDefeatedUnitsWithTriggers(state, options = {}) {
+  cleanupDefeatedUnitsWithTriggers(state, [...ENEMY_ROW, ...PLAYER_ROW], options);
 }
 
 export function resolveTurnCapWinner(state, turnsCompleted, maxTurns = MAX_TURNS) {
@@ -278,7 +290,9 @@ function clampHeroHpAndResolveWinner(state) {
 }
 
 function finalizeImmediateLaneCombat(state) {
-  cleanupAllDefeatedUnitsWithTriggers(state);
+  cleanupAllDefeatedUnitsWithTriggers(state, { combat: true });
+  delete state.funeralPyreThisCombat;
+
   clampHeroHpAndResolveWinner(state);
 }
 
@@ -294,37 +308,130 @@ function resolveCombatWithRawHeroDamage(state, callback) {
   return result;
 }
 
-function triggerUnitDeathEffects(state, index, unit) {
+function ensureFuneralPyreState(state) {
+  state.funeralPyreThisCombat ??= {
+    player: { active: false, triggers: 0 },
+    enemy: { active: false, triggers: 0 },
+  };
+  state.funeralPyreThisCombat.player ??= { active: false, triggers: 0 };
+  state.funeralPyreThisCombat.enemy ??= { active: false, triggers: 0 };
+  return state.funeralPyreThisCombat;
+}
+
+function damageHero(state, owner, amount) {
+  if (!state || amount <= 0) return;
+  const hpKey = owner === 'player' ? 'playerHP' : 'enemyHP';
+  state[hpKey] = state.preserveRawHeroHPUntilCombatFinalization
+    ? state[hpKey] - amount
+    : Math.max(0, state[hpKey] - amount);
+}
+
+function healHero(state, owner, amount) {
+  if (!state || amount <= 0) return;
+  const hpKey = owner === 'player' ? 'playerHP' : 'enemyHP';
+  const maxKey = owner === 'player' ? 'playerMaxHP' : 'enemyMaxHP';
+  const maxHp = Number.isFinite(state[maxKey]) ? state[maxKey] : HERO_START_HP;
+  state[hpKey] = Math.min(maxHp, state[hpKey] + amount);
+}
+
+function createGruntCard(id, name = 'Grunt', attack = 1, hp = 1) {
+  return {
+    id,
+    name,
+    type: 'unit',
+    attack,
+    hp,
+    armor: 0,
+    effectId: null,
+  };
+}
+
+function summonGruntAt(state, index, owner, idPrefix = 'summoned_grunt') {
+  if (state.board[index] !== null) return false;
+  const tokenId = `${owner}_${idPrefix}_${index}_${state.nextTokenId ?? 0}`;
+  state.nextTokenId = (state.nextTokenId ?? 0) + 1;
+  state.board[index] = createBoardUnitFromCard(createGruntCard(tokenId), owner);
+  return true;
+}
+
+function triggerAdjacentRotcallers(state, deadIndex, deadOwner) {
+  const row = getRowForOwner(deadOwner);
+  if (!row.includes(deadIndex)) return;
+  const lane = deadIndex % 3;
+  const adjacentIndexes = [];
+  if (lane > 0) adjacentIndexes.push(row[lane - 1]);
+  if (lane < 2) adjacentIndexes.push(row[lane + 1]);
+  adjacentIndexes.forEach((index) => {
+    const rotcaller = state.board[index];
+    if (!rotcaller || rotcaller.owner !== deadOwner || rotcaller.hp <= 0) return;
+    if (rotcaller.effectId !== 'rotcaller_adjacent_death_atk_1') return;
+    if (rotcaller.rotcallerTriggeredThisCombat) return;
+    rotcaller.rotcallerTriggeredThisCombat = true;
+    rotcaller.tempAttackMod = (rotcaller.tempAttackMod ?? 0) + 1;
+    state.rotcallerCombatTriggers = (state.rotcallerCombatTriggers ?? 0) + 1;
+  });
+}
+
+function dealCombatDeathLaneDamage(state, deadIndex, deadOwner, telemetryKey) {
+  const enemyOwner = getOpponentOwner(deadOwner);
+  const opposingIndex = deadOwner === 'player' ? deadIndex - 6 : deadIndex + 6;
+  const opposingUnit = state.board[opposingIndex];
+  if (opposingUnit?.owner !== enemyOwner) return false;
+  state[telemetryKey] = (state[telemetryKey] ?? 0) + 1;
+  applyDamageToUnit(state, opposingIndex, 1);
+  cleanupDefeatedUnitsWithTriggers(state, [opposingIndex], { combat: true });
+  return true;
+}
+
+function triggerFuneralPyre(state, deadIndex, deadOwner) {
+  const funeralState = ensureFuneralPyreState(state)[deadOwner];
+  if (!funeralState?.active || funeralState.triggers >= FUNERAL_PYRE_TRIGGER_CAP) return;
+  funeralState.triggers += 1;
+  state.funeralPyreCombatTriggers = (state.funeralPyreCombatTriggers ?? 0) + 1;
+  dealCombatDeathLaneDamage(state, deadIndex, deadOwner, 'funeralPyreLaneDamageTriggers');
+}
+
+function triggerUnitDeathEffects(state, index, unit, options = {}) {
   if (!unit) return;
   const owner = unit.owner;
   const enemyOwner = getOpponentOwner(owner);
+  const isCombatDeath = Boolean(options.combat);
+
+  if (isCombatDeath) {
+    triggerAdjacentRotcallers(state, index, owner);
+    triggerFuneralPyre(state, index, owner);
+  }
 
   if (unit.effectId === 'death_damage_enemy_hero_1') {
-    const hpKey = enemyOwner === 'player' ? 'playerHP' : 'enemyHP';
-    state[hpKey] = state.preserveRawHeroHPUntilCombatFinalization
-      ? state[hpKey] - 1
-      : Math.max(0, state[hpKey] - 1);
+    damageHero(state, enemyOwner, 1);
+  }
+
+  if (isCombatDeath && unit.effectId === 'combat_death_damage_enemy_lane_1') {
+    dealCombatDeathLaneDamage(state, index, owner, 'combatOnlyDeathLaneDamageTriggers');
+  }
+
+  if (isCombatDeath && unit.effectId === 'combat_death_damage_both_heroes_1') {
+    state.combatOnlyDeathHeroTriggers = (state.combatOnlyDeathHeroTriggers ?? 0) + 1;
+    damageHero(state, 'player', 1);
+    damageHero(state, 'enemy', 1);
   }
 
   if (unit.effectId === 'on_death_summon_grunt' && state.board[index] === null) {
-    state.board[index] = createBoardUnitFromCard({
-      id: `${owner}_death_grunt_${Date.now()}_${index}`,
-      name: 'Grunt',
-      type: 'unit',
-      attack: 1,
-      hp: 1,
-      armor: 0,
-      effectId: null,
-    }, owner);
+    summonGruntAt(state, index, owner, 'death_grunt');
+  }
+
+  if (isCombatDeath && unit.effectId === 'combat_death_summon_grunt' && state.board[index] === null) {
+    state.combatOnlyDeathSummons = (state.combatOnlyDeathSummons ?? 0) + 1;
+    summonGruntAt(state, index, owner, 'combat_death_grunt');
   }
 }
 
-function cleanupDefeatedUnitsWithTriggers(state, boardIndexes) {
+function cleanupDefeatedUnitsWithTriggers(state, boardIndexes, options = {}) {
   boardIndexes.forEach((index) => {
     const unit = state.board[index];
     if (!unit || unit.hp > 0) return;
     state.board[index] = null;
-    triggerUnitDeathEffects(state, index, unit);
+    triggerUnitDeathEffects(state, index, unit, options);
   });
 }
 
@@ -415,6 +522,13 @@ function canApplyEffectById(state, owner, effectId) {
     case 'leftmost_friendly_temp_armor_1':
     case 'leftmost_2_friendly_temp_armor_1':
       return getRowForOwner(owner).some((index) => state.board[index]?.owner === owner);
+    case 'grave_call':
+      return getRowForOwner(owner).some((index) => state.board[index] === null);
+    case 'revive_friendly_1hp': {
+      const side = owner === 'player' ? state.player : state.enemy;
+      return getRowForOwner(owner).some((index) => state.board[index] === null)
+        && side.discard.some((card) => card?.type === 'unit');
+    }
     default:
       return true;
   }
@@ -506,15 +620,25 @@ function applyEffectById(state, owner, effectId) {
       if (emptySlot === undefined) {
         break;
       }
-      state.board[emptySlot] = createBoardUnitFromCard({
-        id: `${owner}_summoned_grunt_${Date.now()}_${emptySlot}`,
-        name: 'Grunt',
-        type: 'unit',
-        attack: 1,
-        hp: 1,
-        armor: 0,
-        effectId: null,
-      }, owner);
+      summonGruntAt(state, emptySlot, owner, 'summoned_grunt');
+      break;
+    }
+    case 'grave_call': {
+      const friendlyIndexes = getRowForOwner(owner);
+      const hasAlly = friendlyIndexes.some((index) => state.board[index]?.owner === owner);
+      const summonLimit = hasAlly ? 1 : 2;
+      let summoned = 0;
+      friendlyIndexes.forEach((index) => {
+        if (summoned >= summonLimit || state.board[index]) return;
+        if (summonGruntAt(state, index, owner, 'grave_call_grunt')) summoned += 1;
+      });
+      break;
+    }
+    case 'funeral_pyre': {
+      const funeralState = ensureFuneralPyreState(state)[owner];
+      funeralState.active = true;
+      funeralState.triggers = Math.min(funeralState.triggers ?? 0, FUNERAL_PYRE_TRIGGER_CAP);
+      state.funeralPyreUses = (state.funeralPyreUses ?? 0) + 1;
       break;
     }
     case 'fill_empty_slots_0_1': {
@@ -730,6 +854,23 @@ export function drawCards(sideState, count) {
   return sideState;
 }
 
+function triggerLeechHealsFromCombatEvents(state, combatEvents) {
+  if (!state || !Array.isArray(combatEvents)) return;
+
+  combatEvents.forEach((event) => {
+    if (!event?.lethal || event.targetType !== 'unit') return;
+    const attackerIndex = event.attackerIndex;
+    const targetIndex = event.targetIndex;
+    const attacker = state.board[attackerIndex];
+    const target = state.board[targetIndex];
+    if (!attacker || attacker.effectId !== 'leech_heal_hero_on_combat_kill') return;
+    if (!target || target.hp > 0 || attacker.owner === target.owner) return;
+    if (attacker.hp <= 0) return;
+    healHero(state, attacker.owner, 1);
+    state.leechCombatHeals = (state.leechCombatHeals ?? 0) + 1;
+  });
+}
+
 function triggerQuickFixDrawsFromCombatEvents(state, combatEvents) {
   if (!state || !Array.isArray(combatEvents)) return;
 
@@ -850,10 +991,11 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
       drawCards(side, 1);
       break;
     }
-    case 'destroy_friendly_draw_2': {
+    case 'destroy_friendly_draw_2':
+    case 'destroy_friendly_draw_1': {
       if (targetUnit.owner !== owner) return { ok: false, reason: 'Target must be friendly' };
       state.board[boardIndex] = null;
-      drawCards(side, 2);
+      drawCards(side, card.effectId === 'destroy_friendly_draw_1' ? 1 : 2);
       break;
     }
     case 'enemy_lane_atk_minus_1': {
@@ -873,6 +1015,20 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
     case 'control_enemy_unit_this_turn': {
       if (targetUnit.owner !== getOpponentOwner(owner)) return { ok: false, reason: 'Target must be enemy' };
       targetUnit.controlledAttackThisTurn = true;
+      break;
+    }
+    case 'infect_damage_1_opposite_ally_atk_1': {
+      if (targetUnit.owner !== getOpponentOwner(owner)) return { ok: false, reason: 'Target must be enemy' };
+      applyDamageToUnit(state, boardIndex, 1);
+      cleanupDefeatedUnitsWithTriggers(state, [boardIndex]);
+      const updatedTarget = state.board[boardIndex];
+      if (updatedTarget?.owner === getOpponentOwner(owner) && updatedTarget.hp > 0) {
+        const oppositeIndex = owner === 'player' ? boardIndex + 6 : boardIndex - 6;
+        const oppositeAlly = state.board[oppositeIndex];
+        if (oppositeAlly?.owner === owner) {
+          oppositeAlly.tempAttackMod = (oppositeAlly.tempAttackMod ?? 0) + 1;
+        }
+      }
       break;
     }
     case 'ignore_armor_next_attack': {
@@ -1341,9 +1497,10 @@ function resolveCombatLane(state, col, combatContext = null) {
     applyDamageToUnit(state, index, amount);
   });
 
+  triggerLeechHealsFromCombatEvents(state, context.events);
   triggerQuickFixDrawsFromCombatEvents(state, context.events);
 
-  cleanupDefeatedUnitsWithTriggers(state, [enemyIndex, playerIndex]);
+  cleanupDefeatedUnitsWithTriggers(state, [enemyIndex, playerIndex], { combat: true });
 
   return context.events;
 }
@@ -1357,7 +1514,7 @@ export function resolveCombat(state) {
     resolveCombatLane(state, col, combatContext);
   }
 
-  cleanupDefeatedUnitsWithTriggers(state, [...ENEMY_ROW, ...PLAYER_ROW]);
+  cleanupDefeatedUnitsWithTriggers(state, [...ENEMY_ROW, ...PLAYER_ROW], { combat: true });
 
   if (state.cannotDropBelowOneThisTurn) {
     state.cannotDropBelowOneThisTurn.player = false;
@@ -1397,7 +1554,12 @@ export function resolveCombat(state) {
     if (unit?.quickFixDrawTriggers) {
       delete unit.quickFixDrawTriggers;
     }
+    if (unit?.rotcallerTriggeredThisCombat) {
+      delete unit.rotcallerTriggeredThisCombat;
+    }
   });
+
+  delete state.funeralPyreThisCombat;
 
   clampHeroHpAndResolveWinner(state);
 

@@ -49,6 +49,7 @@ const ENEMY_EFFECT_SUMMARY_OVERRIDES = Object.freeze({
   revive_friendly_1hp: 'Revive a unit at 1 HP',
   fill_empty_slots_0_1: 'Fill slots with Tokens',
   destroy_friendly_draw_2: 'Destroy ally, draw 2',
+  destroy_friendly_draw_1: 'Destroy ally, draw 1',
 });
 
 export default class BattleScene extends Phaser.Scene {

@@ -1,6 +1,7 @@
 const FRIENDLY_SINGLE_TARGET_EFFECTS = new Set([
   'return_friendly_draw_1',
   'destroy_friendly_draw_2',
+  'destroy_friendly_draw_1',
   'quick_strike',
   'heal_2',
   'heal_1_atk_1_draw_on_kill_this_turn',
@@ -13,6 +14,7 @@ const ENEMY_SINGLE_TARGET_EFFECTS = new Set([
   'enemy_lane_atk_minus_1',
   'ignore_armor_next_attack',
   'control_enemy_unit_this_turn',
+  'infect_damage_1_opposite_ally_atk_1',
 ]);
 
 export function getTargetingStateForEffect(effectId, cardId) {
