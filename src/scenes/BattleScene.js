@@ -3,7 +3,7 @@ import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
 import { createInitialBattleState, drawCards, shuffleDeck, canPass, canPlayOrRedeploy, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, getUnitAttack, getUnitArmor, toggleFirstActor, resolveTurnCapWinner, resolveImmediateNoProgressWinner, recordPassAction, performOpeningMulligan, STARTING_HAND_SIZE, MAX_OPENING_MULLIGAN_CARDS } from '../systems/GameState.js';
 import { chooseEnemyAction, recordBattleActionUse, selectOpeningMulliganCardIds } from '../systems/enemyDecision.js';
 import { getTargetingStateForEffect } from '../systems/cardTargeting.js';
-import { getCombatEventAttackerIndex, shouldAnimateCombatAttacker } from '../systems/combatAnimation.js';
+import { getCombatEventAttackerIndex, getCombatEventTargetIndex, getLaneLethalTargetIndexes, getLaneSimultaneousUnitClash, shouldAnimateCombatAttacker } from '../systems/combatAnimation.js';
 import { BATTLE_BACKGROUND_FALLBACK_COLOR, BATTLE_BACKGROUND_FALLBACK_COLOR_HEX, getBattleBackgroundAsset, hasLoadedBattleBackground, preloadBattleBackgroundArt } from '../rendering/backgroundArt.js';
 import { createBuildMarker } from '../ui/buildMarker.js';
 import { calculateHandLayoutMetrics } from '../ui/handLayout.js';
@@ -1835,10 +1835,23 @@ export default class BattleScene extends Phaser.Scene {
 
   async playLaneCombatAnimation(lane, laneEvents, preCombatBoardSnapshot = null) {
     const laneHighlight = this.highlightActiveLane(lane);
+    const simultaneousClash = getLaneSimultaneousUnitClash(lane, laneEvents, preCombatBoardSnapshot);
+    const clashEvents = new Set(simultaneousClash?.events ?? []);
+    const lethalTargetIndexes = getLaneLethalTargetIndexes(laneEvents);
 
     try {
+      if (simultaneousClash) {
+        await this.animateSimultaneousUnitClash(simultaneousClash);
+      }
+
       for (const event of laneEvents) {
-        if (event.targetType === 'hero') {
+        if (clashEvents.has(event)) continue;
+
+        const attackerIndex = getCombatEventAttackerIndex(event);
+        const attackerWasDefeatedInThisLane = Number.isInteger(attackerIndex) && lethalTargetIndexes.has(attackerIndex);
+        if (attackerWasDefeatedInThisLane) {
+          await this.playCombatEventFeedback([event]);
+        } else if (event.targetType === 'hero') {
           await this.animateHeroStrike(event, preCombatBoardSnapshot);
         } else {
           await this.animateUnitAttackOnlyIfEventExists(event, preCombatBoardSnapshot);
@@ -1876,6 +1889,73 @@ export default class BattleScene extends Phaser.Scene {
     return { type: 'unit', index: targetIndex, cell };
   }
 
+  getUnitLungeConfig(attackerCell, targetCell, meetAtMiddle = false) {
+    const startY = attackerCell.label.y;
+    const backgroundStartY = attackerCell.background.y;
+    const direction = targetCell.background.y > startY ? 1 : -1;
+    const separation = Math.abs(targetCell.background.y - startY);
+    const lungeDistance = Math.max(
+      this.layout.board.cellHeight * 0.26,
+      Math.min(separation * 0.5, this.layout.board.cellHeight * 0.56),
+    );
+    const midpointY = (attackerCell.background.y + targetCell.background.y) / 2;
+    const strikeY = meetAtMiddle ? midpointY : startY + direction * lungeDistance;
+
+    return {
+      cell: attackerCell,
+      startY,
+      backgroundStartY,
+      strikeY,
+      targets: [attackerCell.label, attackerCell.background],
+    };
+  }
+
+  async animateSimultaneousUnitClash(clash) {
+    const lungeConfigs = (clash?.attackers ?? [])
+      .map((attacker) => {
+        const attackerCell = this.getCellByIndex(attacker.index);
+        const targetIndex = getCombatEventTargetIndex(attacker.event);
+        const targetCell = this.getCellByIndex(targetIndex);
+        if (!attackerCell?.label || !attackerCell?.background || !targetCell?.background) return null;
+        return {
+          ...this.getUnitLungeConfig(attackerCell, targetCell, true),
+          attackerIndex: attacker.index,
+        };
+      })
+      .filter(Boolean);
+
+    if (lungeConfigs.length === 0) {
+      await this.playCombatEventFeedback(clash?.events ?? []);
+      return;
+    }
+
+    try {
+      await Promise.all(lungeConfigs.map((config) => this.tweenToPromise({
+        targets: config.targets,
+        y: config.strikeY,
+        duration: 145,
+        ease: 'Quad.easeOut',
+      })));
+
+      await this.playCombatEventFeedback(clash.events);
+
+      await Promise.all(lungeConfigs
+        .filter((config) => !clash.lethalTargetIndexes?.has(config.attackerIndex))
+        .map((config) => this.tweenToPromise({
+          targets: config.targets,
+          y: config.startY,
+          duration: 135,
+          ease: 'Quad.easeIn',
+        })));
+    } finally {
+      lungeConfigs.forEach((config) => {
+        if (clash.lethalTargetIndexes?.has(config.attackerIndex)) return;
+        config.cell.label?.setY?.(config.startY);
+        config.cell.background?.setY?.(config.backgroundStartY);
+      });
+    }
+  }
+
   async animateUnitAttackOnlyIfEventExists(event, preCombatBoardSnapshot = null) {
     const attacker = this.getCombatAttackerVisual(event, preCombatBoardSnapshot);
     const target = this.getCombatTargetVisual(event);
@@ -1886,24 +1966,15 @@ export default class BattleScene extends Phaser.Scene {
 
     const attackerCell = attacker.cell;
     const targetCell = target.cell;
-    const startY = attackerCell.label.y;
-    const backgroundStartY = attackerCell.background.y;
-    const direction = targetCell.background.y > startY ? 1 : -1;
-    const separation = Math.abs(targetCell.background.y - startY);
-    const lungeDistance = Math.max(
-      this.layout.board.cellHeight * 0.26,
-      Math.min(separation * 0.5, this.layout.board.cellHeight * 0.56),
-    );
-    const strikeY = startY + direction * lungeDistance;
-    const targets = [attackerCell.label, attackerCell.background];
+    const lungeConfig = this.getUnitLungeConfig(attackerCell, targetCell);
 
     try {
-      await this.tweenToPromise({ targets, y: strikeY, duration: 145, ease: 'Quad.easeOut' });
+      await this.tweenToPromise({ targets: lungeConfig.targets, y: lungeConfig.strikeY, duration: 145, ease: 'Quad.easeOut' });
       await this.playCombatEventFeedback([event]);
-      await this.tweenToPromise({ targets, y: startY, duration: 135, ease: 'Quad.easeIn' });
+      await this.tweenToPromise({ targets: lungeConfig.targets, y: lungeConfig.startY, duration: 135, ease: 'Quad.easeIn' });
     } finally {
-      attackerCell.label?.setY?.(startY);
-      attackerCell.background?.setY?.(backgroundStartY);
+      attackerCell.label?.setY?.(lungeConfig.startY);
+      attackerCell.background?.setY?.(lungeConfig.backgroundStartY);
     }
   }
 
@@ -2025,11 +2096,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   getCombatEventTargetIndex(event) {
-    if (Number.isInteger(event.targetIndex)) return event.targetIndex;
-    if (!Number.isInteger(event.lane)) return null;
-    if (event.targetSide === 'player') return 6 + event.lane;
-    if (event.targetSide === 'enemy') return event.lane;
-    return null;
+    return getCombatEventTargetIndex(event);
   }
 
   showHeroDamage(side, damage) {

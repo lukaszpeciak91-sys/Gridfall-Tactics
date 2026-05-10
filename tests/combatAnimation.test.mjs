@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { shouldAnimateCombatAttacker } from '../src/systems/combatAnimation.js';
+import { getLaneLethalTargetIndexes, getLaneSimultaneousUnitClash, shouldAnimateCombatAttacker } from '../src/systems/combatAnimation.js';
 
 const unit = (owner, overrides = {}) => ({
   id: `${owner}-unit`,
@@ -50,4 +50,63 @@ test('combat attack animation blocks 0 ATK units but allows blocked positive-ATK
   assert.equal(shouldAnimateCombatAttacker(event({ damage: 0 }), snapshot(unit('player', { attack: 1 }))), true);
   assert.equal(shouldAnimateCombatAttacker(event(), snapshot(unit('player', { attack: 0 }))), false);
   assert.equal(shouldAnimateCombatAttacker(event(), snapshot(unit('player', { attack: 3 }))), true);
+});
+
+const eventWithHiddenIndexes = (overrides = {}) => {
+  const visible = event(overrides);
+  const withIndexes = { ...visible };
+  const attackerIndex = Object.hasOwn(overrides, 'attackerIndex') ? overrides.attackerIndex : visible.attackerIndex;
+  const targetIndex = Object.hasOwn(overrides, 'targetIndex') ? overrides.targetIndex : visible.targetIndex;
+  Object.defineProperties(withIndexes, {
+    attackerIndex: { value: attackerIndex, enumerable: false },
+    targetIndex: { value: targetIndex, enumerable: false },
+  });
+  return withIndexes;
+};
+
+test('lane simultaneous clash groups opposing valid unit attacks in the same lane', () => {
+  const playerAttack = eventWithHiddenIndexes({ attackerIndex: 6, targetIndex: 0, lethal: true });
+  const enemyAttack = eventWithHiddenIndexes({ attackerSide: 'enemy', attackerIndex: 0, targetSide: 'player', targetIndex: 6 });
+  const board = snapshot();
+  board[0] = unit('enemy');
+
+  const clash = getLaneSimultaneousUnitClash(0, [playerAttack, enemyAttack], board);
+
+  assert.deepEqual(clash.events, [playerAttack, enemyAttack]);
+  assert.deepEqual(clash.attackers.map((attacker) => attacker.index), [6, 0]);
+  assert.equal(clash.lethalTargetIndexes.has(0), true);
+});
+
+test('lane simultaneous clash rejects one-sided or passive unit exchanges', () => {
+  const playerAttack = eventWithHiddenIndexes({ attackerIndex: 6, targetIndex: 0 });
+  const enemyZeroAttack = eventWithHiddenIndexes({ attackerSide: 'enemy', attackerIndex: 0, targetSide: 'player', targetIndex: 6 });
+  const board = snapshot();
+  board[0] = unit('enemy', { attack: 0 });
+
+  assert.equal(getLaneSimultaneousUnitClash(0, [playerAttack, enemyZeroAttack], board), null);
+  assert.equal(getLaneSimultaneousUnitClash(0, [playerAttack], board), null);
+});
+
+test('lane simultaneous clash ignores off-lane targets and hero attacks', () => {
+  const sniperAttack = eventWithHiddenIndexes({ attackerIndex: 6, targetIndex: 1 });
+  const enemyAttack = eventWithHiddenIndexes({ attackerSide: 'enemy', attackerIndex: 0, targetSide: 'player', targetIndex: 6 });
+  const heroAttack = eventWithHiddenIndexes({ attackerSide: 'enemy', attackerIndex: 0, targetType: 'hero', targetSide: 'player', targetIndex: undefined });
+  const board = snapshot();
+  board[0] = unit('enemy');
+  board[1] = unit('enemy');
+
+  assert.equal(getLaneSimultaneousUnitClash(0, [sniperAttack, enemyAttack], board), null);
+  assert.equal(getLaneSimultaneousUnitClash(0, [sniperAttack, heroAttack], board), null);
+});
+
+test('lane lethal target index collection uses event target indexes and lane fallbacks', () => {
+  const lethalEnemy = eventWithHiddenIndexes({ targetIndex: 0, lethal: true });
+  const lethalPlayerFallback = eventWithHiddenIndexes({ targetSide: 'player', targetIndex: undefined, lethal: true });
+  const nonLethal = eventWithHiddenIndexes({ targetIndex: 1, lethal: false });
+
+  const lethalIndexes = getLaneLethalTargetIndexes([lethalEnemy, lethalPlayerFallback, nonLethal]);
+
+  assert.equal(lethalIndexes.has(0), true);
+  assert.equal(lethalIndexes.has(6), true);
+  assert.equal(lethalIndexes.has(1), false);
 });
