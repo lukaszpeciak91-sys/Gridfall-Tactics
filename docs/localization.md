@@ -35,13 +35,15 @@ No Polish dictionary is included yet. Requests for `pl` translation keys current
 
 ## Card migration status
 
-Card JSON still owns the live display fields (`name` and `textShort`). Do not add `nameKey` or `textKey` to cards until the dedicated card-data migration happens later.
+Card JSON still owns gameplay/source fields (`id`, `name`, `effectId`, targeting, stats, and `textShort`). Presentation metadata in `src/data/presentation/factionPresentation.js` is additive UI metadata only and must not replace or mutate gameplay card objects. Do not add `nameKey` or `textKey` to cards until the dedicated card-data migration happens later.
 
 Card display helpers are ready for future keys:
 
-- `card.nameKey` resolves through `translate()` when present.
+- Card names first pass through `getCardPresentationName(card, locale)`, which currently activates English presentation-name overrides and falls back to the original `card.name`.
+- Polish presentation names remain metadata-only until the broader Polish runtime migration is activated; `pl` requests still render English presentation names for now.
+- `card.nameKey` can still resolve through `translate()` when present before presentation naming is applied.
 - `card.textKey` resolves through `translate()` when present.
-- Missing keys fall back to the existing `card.name` and `card.textShort` fields, preserving the current UI output.
+- Missing keys fall back to the existing `card.name` and `card.textShort` fields.
 
 ## Art localization
 
@@ -49,4 +51,4 @@ Card art and frame assets remain language-neutral. Future localization work shou
 
 ## Render-helper readiness
 
-Card display and render helpers already accept a locale argument. Low-risk scene call sites pass `getActiveLocale()` into those helpers, but output remains unchanged because current card JSON has no `nameKey` or `textKey` fields and the helpers continue to read the existing English card fields.
+Card display and render helpers already accept a locale argument. Low-risk scene call sites pass `getActiveLocale()` into those helpers. Safe UI surfaces now consume English presentation names through the display helpers while preserving gameplay ids, `effectId`, targeting, AI behavior, and source card JSON names. The localization migration remains in progress: runtime translation switching beyond the existing English fallback is not expanded here.

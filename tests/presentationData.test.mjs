@@ -37,13 +37,13 @@ test('every presentation card override points at an existing card id', () => {
   assert.deepEqual(missingCardIds, []);
 });
 
-test('presentation helper returns locale override names without replacing gameplay card names', () => {
+test('presentation helper returns English override names without replacing gameplay card names', () => {
   const cardsById = new Map(allCards().map(({ card }) => [card.id, card]));
   const runner = cardsById.get('aggro_runner_1');
 
   assert.equal(runner.name, 'Runner');
   assert.equal(getCardPresentationName(runner), 'Ballroom Duelist');
-  assert.equal(getCardPresentationName(runner, 'pl'), 'Balowy Pojedynkowicz');
+  assert.equal(getCardPresentationName(runner, 'pl'), 'Ballroom Duelist');
   assert.equal(runner.name, 'Runner');
 });
 

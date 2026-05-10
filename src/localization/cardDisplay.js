@@ -1,3 +1,4 @@
+import { getCardPresentationName } from '../data/presentation/factionPresentation.js';
 import { translate } from './localeService.js';
 
 const STAT_LABELS_EN = Object.freeze({
@@ -18,7 +19,8 @@ function translateCardField(key, locale, fallbackValue) {
 }
 
 export function getCardDisplayName(card, locale = 'en') {
-  return translateCardField(card?.nameKey, locale, card?.name);
+  const localizedName = translateCardField(card?.nameKey, locale, card?.name);
+  return getCardPresentationName({ ...card, name: localizedName }, locale);
 }
 
 export function getCardTextShort(card, locale = 'en') {

@@ -324,7 +324,8 @@ export function getCardPresentationName(card, locale = 'en') {
   for (const faction of Object.values(factionPresentation)) {
     const override = faction.cardNameOverrides[cardId];
     if (override) {
-      return locale === 'pl' ? override.namePl : override.nameEn;
+      // Polish names are intentionally metadata-only until runtime Polish rendering is activated.
+      return override.nameEn;
     }
   }
 
