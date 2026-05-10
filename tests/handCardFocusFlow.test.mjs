@@ -21,9 +21,11 @@ test('hand card zoom is visual-only and avoids focus gameplay state', () => {
 });
 
 test('mulligan tap toggles only mulligan selection and uses separate preview state', () => {
-  assert.match(source, /if \(this\.openingMulliganPending\) \{\s*this\.selectedCardId = null;\s*this\.targetingState = null;\s*this\.pendingSwapIndex = null;\s*this\.previewedMulliganCardId = null;\s*this\.toggleOpeningMulliganCard\(cardId, \{ showPreview: false \}\);\s*return;\s*\}/);
-  assert.match(source, /this\.previewedMulliganCardId = this\.selectedMulliganCardIds\.includes\(cardId\) \? cardId : null;/);
-  assert.match(source, /this\.resetCardHighlights\(\{ showPreview: true \}\);/);
+  assert.match(source, /const MULLIGAN_CARD_LONG_PRESS_MS = 360;/);
+  assert.match(source, /if \(this\.openingMulliganPending\) \{\s*this\.beginMulliganCardPress\(cardId\);\s*return;\s*\}/);
+  assert.match(source, /this\.mulliganPreviewHoldEvent = this\.time\.delayedCall\(MULLIGAN_CARD_LONG_PRESS_MS, \(\) => \{/);
+  assert.match(source, /this\.previewedMulliganCardId = cardId;\s*this\.resetCardHighlights\(\{ showPreview: true \}\);/);
+  assert.match(source, /const wasLongPressPreview = this\.mulliganPreviewLongPressActive;\s*this\.hideMulliganCardPreview\(\{ clearPressed: true \}\);\s*if \(!wasLongPressPreview\) \{\s*this\.toggleOpeningMulliganCard\(cardId, \{ showPreview: false \}\);\s*\}/);
   assert.match(source, /if \(this\.selectedMulliganCardIds\.includes\(cardId\)\) \{\s*this\.selectedMulliganCardIds = this\.selectedMulliganCardIds\.filter\(\(id\) => id !== cardId\);\s*\} else if \(this\.selectedMulliganCardIds\.length < MAX_OPENING_MULLIGAN_CARDS\) \{\s*this\.selectedMulliganCardIds\.push\(cardId\);\s*\}/);
   assert.match(source, /const isMulliganSelected = this\.openingMulliganPending && this\.selectedMulliganCardIds\.includes\(card\.cardId\);/);
   assert.match(source, /const isGameplaySelected = !this\.openingMulliganPending && card\.cardId === this\.selectedCardId;/);
@@ -33,6 +35,8 @@ test('mulligan tap toggles only mulligan selection and uses separate preview sta
 test('normal gameplay card pointerdown toggles selection and pointerup reveals preview', () => {
   assert.match(source, /background\.on\('pointerdown', \(\) => \{\s*this\.onCardPointerDown\(cardId\);\s*\}\);/);
   assert.match(source, /background\.on\('pointerup', \(\) => \{\s*this\.onCardPointerUp\(cardId\);\s*\}\);/);
+  assert.match(source, /background\.on\('pointerout', \(\) => \{\s*this\.onCardPointerOut\(cardId\);\s*\}\);/);
+  assert.match(source, /background\.on\('pointercancel', \(\) => \{\s*this\.onCardPointerCancel\(cardId\);\s*\}\);/);
   assert.match(source, /this\.pendingSwapIndex = null;\s*this\.targetingState = null;\s*if \(this\.selectedCardId === cardId\) \{\s*this\.selectedCardId = null;\s*\} else \{\s*this\.selectedCardId = cardId;\s*this\.targetingState = this\.isUnitCard\(card\) \? null : this\.getTargetingStateForCard\(card\);\s*\}\s*this\.resetCardHighlights\(\{ showPreview: false \}\);/);
   assert.match(source, /onCardPointerUp\(cardId\) \{[\s\S]*this\.resetCardHighlights\(\{ showPreview: true \}\);/);
   assert.match(source, /const cardView = this\.cardViews\.find\(\(view\) => view\.cardId === previewCardId\);/);
@@ -48,10 +52,10 @@ test('outside taps clear selection without intercepting board, pass, or card inp
   assert.match(source, /this\.input\.off\('pointerup', this\.onScenePointerUp, this\);/);
   assert.match(source, /this\.bottomControlViews = \[\];/);
   assert.match(source, /this\.bottomControlViews = \[controls\.back, controls\.rules, controls\.fullscreen\]\.filter\(Boolean\);/);
-  assert.match(source, /onScenePointerUp\(pointer, currentlyOver = \[\]\) \{\s*if \(this\.openingMulliganPending \|\| this\.battleResultModalShown \|\| this\.isFlowResolving\) return;\s*if \(!this\.selectedCardId && !this\.targetingState\) return;\s*if \(this\.isPointerUpReservedForUi\(pointer, currentlyOver\)\) return;/);
+  assert.match(source, /onScenePointerUp\(pointer, currentlyOver = \[\]\) \{\s*if \(this\.openingMulliganPending\) \{\s*if \(!this\.isPointerOverHandCard\(pointer, currentlyOver\)\) \{\s*this\.hideMulliganCardPreview\(\{ clearPressed: true \}\);\s*\}\s*return;\s*\}\s*if \(this\.battleResultModalShown \|\| this\.isFlowResolving\) return;\s*if \(!this\.selectedCardId && !this\.targetingState\) return;\s*if \(this\.isPointerUpReservedForUi\(pointer, currentlyOver\)\) return;/);
   assert.match(source, /const boardCell = this\.getBoardCellFromPointerUp\(pointer, currentlyOver\);\s*if \(boardCell\) \{\s*const selectedCard = this\.gameState\.player\.hand\.find\(\(card\) => card\.id === this\.selectedCardId\);\s*if \(!selectedCard \|\| this\.isBoardCellTapReservedForCardAction\(boardCell\.index, selectedCard\)\) return;\s*\}/);
   assert.match(source, /this\.pressedHandCardId = null;\s*this\.clearHandCardSelection\(\);/);
-  assert.match(source, /isPointerUpReservedForUi\(pointer, currentlyOver = \[\]\) \{[\s\S]*this\.cardViews\.some\(\(view\) => overObjects\.includes\(view\.background\)\);/);
+  assert.match(source, /isPointerOverHandCard\(pointer, currentlyOver = \[\]\) \{[\s\S]*this\.cardViews\.some\(\(view\) => overObjects\.includes\(view\.background\) \|\| this\.isPointerInsideGameObject\(pointer, view\.background\)\);/);
   assert.match(source, /this\.actionButton && \(overObjects\.includes\(this\.actionButton\) \|\| this\.isPointerInsideGameObject\(pointer, this\.actionButton\)\)/);
   assert.match(source, /this\.deckCounterView && \[this\.deckCounterView\.backing, this\.deckCounterView\.text\]/);
   assert.match(source, /this\.bottomControlViews\.some\(\(control\) => \[control\.backing, control\.text\]/);
