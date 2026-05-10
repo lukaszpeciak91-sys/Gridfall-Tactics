@@ -7,7 +7,7 @@ import {
   preloadMenuBackgroundArt,
 } from '../rendering/backgroundArt.js';
 import { createBuildMarker } from '../ui/buildMarker.js';
-import { createModalBackButton } from '../ui/modalControls.js';
+import { createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
 
 const SETTINGS_STORAGE_KEY = 'gridfall:tactics:settings:v1';
 const DEFAULT_SETTINGS = {
@@ -23,8 +23,6 @@ const LANGUAGE_OPTIONS = [
 const MUTE_ENABLED_LABEL = 'Sound Enabled';
 const MUTE_MUTED_LABEL = 'Sound Muted';
 const SETTINGS_PANEL_DEPTH = 0;
-const SETTINGS_BACK_BUTTON_DEPTH = 1001;
-const SETTINGS_BACK_DEBUG_DEPTH = SETTINGS_BACK_BUTTON_DEPTH + 2;
 
 const LABEL_STYLE = {
   fontFamily: 'Arial, sans-serif',
@@ -44,8 +42,10 @@ export default class SettingsScene extends Phaser.Scene {
     this.muteToggleHitArea = null;
     this.muteIconGraphic = null;
     this.muteStatusText = null;
-    this.settingsBackButton = null;
-    this.settingsBackDebugText = null;
+  }
+
+  init() {
+    this.cleanupScene();
   }
 
   preload() {
@@ -65,6 +65,10 @@ export default class SettingsScene extends Phaser.Scene {
       width,
       height,
     });
+
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.cleanupScene, this);
+    this.scale.on('enterfullscreen', this.onFullscreenChanged, this);
+    this.scale.on('leavefullscreen', this.onFullscreenChanged, this);
 
     this.add
       .text(width / 2, 54, 'SETTINGS', {
@@ -93,7 +97,7 @@ export default class SettingsScene extends Phaser.Scene {
     this.createMuteToggle(width / 2, height * 0.72);
 
     const buildMarker = createBuildMarker(this, { width, height });
-    this.createBackButton(width, height);
+    this.drawNavigationControls();
     this.children.bringToTop(buildMarker);
   }
 
@@ -410,29 +414,43 @@ export default class SettingsScene extends Phaser.Scene {
     this.muteIconGraphic.strokePath();
   }
 
-  createBackButton(width, height) {
-    const buttonY = Math.min(height - 72, Math.max(height * 0.82, 420));
-
-    this.settingsBackButton = createModalBackButton(this, {
-      x: width / 2,
-      y: buttonY,
-      depth: SETTINGS_BACK_BUTTON_DEPTH,
-      width: 156,
-      height: 48,
-      onPointerUp: () => this.scene.start('MainMenuScene'),
+  drawNavigationControls() {
+    createBottomNavigationControls(this, {
+      onBack: () => this.returnToMainMenu(),
+      onRules: () => this.openRulesPanel(),
+      onFullscreen: () => this.toggleFullscreen(),
     });
+  }
 
-    const debugX = Math.min(width - 96, width / 2 + 104);
+  returnToMainMenu() {
+    this.scene.start('MainMenuScene');
+  }
 
-    this.settingsBackDebugText = this.add
-      .text(debugX, buttonY, 'BACK DEBUG', {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '12px',
-        color: '#fde68a',
-        backgroundColor: '#7f1d1d',
-        padding: { x: 4, y: 2 },
-      })
-      .setOrigin(0, 0.5)
-      .setDepth(SETTINGS_BACK_DEBUG_DEPTH);
+  openRulesPanel() {
+    this.scene.launch('RulesPanelScene', { returnSceneKey: 'SettingsScene' });
+    this.scene.pause();
+  }
+
+  resumeFromRulesPanel() {
+    this.scene.resume();
+  }
+
+  toggleFullscreen() {
+    toggleSceneFullscreen(this);
+  }
+
+  onFullscreenChanged() {
+    if (this.scale.isFullscreen) {
+      requestPortraitOrientationLock();
+    }
+
+    if (this.scene.isActive('SettingsScene')) {
+      this.scene.restart();
+    }
+  }
+
+  cleanupScene() {
+    this.scale?.off('enterfullscreen', this.onFullscreenChanged, this);
+    this.scale?.off('leavefullscreen', this.onFullscreenChanged, this);
   }
 }
