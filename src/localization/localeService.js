@@ -1,7 +1,12 @@
+import enTranslations from './translations/en.json' with { type: 'json' };
+
 export const DEFAULT_LOCALE = 'en';
 export const SETTINGS_STORAGE_KEY = 'gridfall:tactics:settings:v1';
 
 const SUPPORTED_LOCALES = Object.freeze(['en', 'pl']);
+const TRANSLATIONS = Object.freeze({
+  en: enTranslations,
+});
 let activeLocale = DEFAULT_LOCALE;
 
 function getLocalStorage() {
@@ -46,6 +51,19 @@ function writeStoredLocale(locale) {
   }
 }
 
+function lookupTranslation(dictionary, key) {
+  if (!dictionary || typeof key !== 'string' || key.length === 0) {
+    return undefined;
+  }
+
+  return key.split('.').reduce((value, segment) => {
+    if (value && typeof value === 'object' && Object.prototype.hasOwnProperty.call(value, segment)) {
+      return value[segment];
+    }
+    return undefined;
+  }, dictionary);
+}
+
 export function normalizeLocale(locale) {
   return SUPPORTED_LOCALES.includes(locale) ? locale : DEFAULT_LOCALE;
 }
@@ -64,4 +82,19 @@ export function setActiveLocale(locale) {
   activeLocale = normalizeLocale(locale);
   writeStoredLocale(activeLocale);
   return activeLocale;
+}
+
+export function translate(key, locale = DEFAULT_LOCALE, fallbackValue) {
+  const normalizedLocale = normalizeLocale(locale);
+  const localizedValue = lookupTranslation(TRANSLATIONS[normalizedLocale], key);
+  if (typeof localizedValue === 'string') {
+    return localizedValue;
+  }
+
+  const englishValue = lookupTranslation(TRANSLATIONS[DEFAULT_LOCALE], key);
+  if (typeof englishValue === 'string') {
+    return englishValue;
+  }
+
+  return fallbackValue ?? key;
 }

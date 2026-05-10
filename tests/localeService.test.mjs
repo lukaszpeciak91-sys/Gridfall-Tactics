@@ -7,6 +7,7 @@ import {
   getSupportedLocales,
   normalizeLocale,
   setActiveLocale,
+  translate,
 } from '../src/localization/localeService.js';
 
 function createMemoryStorage(initialValues = {}) {
@@ -88,4 +89,21 @@ test('supported locale list returns en and pl as a safe copy', () => {
 
   locales.push('de');
   assert.deepEqual(getSupportedLocales(), ['en', 'pl']);
+});
+
+test('English translation lookup returns base dictionary values', () => {
+  assert.equal(translate('cards.aggro_runner_1.name', 'en'), 'Runner');
+  assert.equal(translate('cards.aggro_runner_1.textShort', 'en'), 'Open enemy lane: +2 hero dmg.');
+  assert.equal(translate('stats.armor', 'en'), 'ARM');
+});
+
+test('translation lookup falls back to English for invalid or missing locale dictionaries', () => {
+  assert.equal(translate('cards.aggro_runner_1.name', 'de'), 'Runner');
+  assert.equal(translate('cards.aggro_runner_1.name', 'pl'), 'Runner');
+});
+
+test('missing translation keys fall back safely to provided fallback or key', () => {
+  assert.equal(translate('cards.missing.name', 'en', 'Existing Name'), 'Existing Name');
+  assert.equal(translate('cards.missing.name', 'en'), 'cards.missing.name');
+  assert.equal(translate(undefined, 'en', 'Existing Field'), 'Existing Field');
 });
