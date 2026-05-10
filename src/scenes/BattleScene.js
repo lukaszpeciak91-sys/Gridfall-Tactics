@@ -23,7 +23,6 @@ const SELECTED_HAND_CARD_DEPTH = 180;
 const MULLIGAN_HAND_CARD_PREVIEW_SCALE = 1.08;
 const MULLIGAN_HAND_CARD_RAISE_RATIO = 0.06;
 const HAND_CARD_PREVIEW_TWEEN_MS = 110;
-const MULLIGAN_CARD_LONG_PRESS_MS = 360;
 const ENEMY_ACTION_NOTIFICATION_FADE_IN_MS = 110;
 const ENEMY_ACTION_NOTIFICATION_HOLD_MS = 650;
 const ENEMY_ACTION_NOTIFICATION_FADE_OUT_MS = 140;
@@ -66,8 +65,6 @@ export default class BattleScene extends Phaser.Scene {
     this.openingMulliganPending = false;
     this.selectedMulliganCardIds = [];
     this.previewedMulliganCardId = null;
-    this.mulliganPreviewHoldEvent = null;
-    this.mulliganPreviewLongPressActive = false;
     this.actionButton = null;
     this.deckCounterView = null;
     this.deckInfoPanel = null;
@@ -104,8 +101,6 @@ export default class BattleScene extends Phaser.Scene {
     this.openingMulliganPending = false;
     this.selectedMulliganCardIds = [];
     this.previewedMulliganCardId = null;
-    this.mulliganPreviewHoldEvent = null;
-    this.mulliganPreviewLongPressActive = false;
     this.actionButton = null;
     this.deckCounterView = null;
     this.deckInfoPanel = null;
@@ -139,12 +134,6 @@ export default class BattleScene extends Phaser.Scene {
     this.destroyBattleResultModal();
     this.destroyDeckInfoPanel();
     this.destroyDeckCounterView();
-    this.clearMulliganPreviewHold();
-    if (this.openingMulliganPending) {
-      this.previewedMulliganCardId = null;
-      this.mulliganPreviewLongPressActive = false;
-      this.pressedHandCardId = null;
-    }
     this.destroySelectedHandCardZoom();
     if (!preserveTweens) {
       this.tweens?.killAll?.();
@@ -1119,12 +1108,6 @@ export default class BattleScene extends Phaser.Scene {
         background.on('pointerup', () => {
           this.onCardPointerUp(cardId);
         });
-        background.on('pointerout', () => {
-          this.onCardPointerOut(cardId);
-        });
-        background.on('pointercancel', () => {
-          this.onCardPointerCancel(cardId);
-        });
       }
 
       const baseDepth = 20 + index * 4;
@@ -1177,7 +1160,11 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     if (this.openingMulliganPending) {
-      this.beginMulliganCardPress(cardId);
+      this.selectedCardId = null;
+      this.targetingState = null;
+      this.pendingSwapIndex = null;
+      this.previewedMulliganCardId = null;
+      this.toggleOpeningMulliganCard(cardId, { showPreview: false });
       return;
     }
 
@@ -1203,59 +1190,20 @@ export default class BattleScene extends Phaser.Scene {
     this.resetCardHighlights({ showPreview: false });
   }
 
-  beginMulliganCardPress(cardId) {
-    this.selectedCardId = null;
-    this.targetingState = null;
-    this.pendingSwapIndex = null;
-    this.previewedMulliganCardId = null;
-    this.mulliganPreviewLongPressActive = false;
-    this.clearMulliganPreviewHold();
-    this.destroySelectedHandCardZoom();
-
-    this.mulliganPreviewHoldEvent = this.time.delayedCall(MULLIGAN_CARD_LONG_PRESS_MS, () => {
-      if (!this.openingMulliganPending || this.pressedHandCardId !== cardId) return;
-      this.mulliganPreviewHoldEvent = null;
-      this.mulliganPreviewLongPressActive = true;
-      this.previewedMulliganCardId = cardId;
-      this.resetCardHighlights({ showPreview: true });
-    });
-  }
-
-  clearMulliganPreviewHold() {
-    if (!this.mulliganPreviewHoldEvent) return;
-    this.mulliganPreviewHoldEvent.remove(false);
-    this.mulliganPreviewHoldEvent = null;
-  }
-
-  hideMulliganCardPreview({ clearPressed = false } = {}) {
-    if (!this.openingMulliganPending && !this.previewedMulliganCardId && !this.mulliganPreviewHoldEvent) {
-      if (clearPressed) this.pressedHandCardId = null;
-      return;
-    }
-
-    this.clearMulliganPreviewHold();
-    this.previewedMulliganCardId = null;
-    this.mulliganPreviewLongPressActive = false;
-    this.destroySelectedHandCardZoom();
-    if (clearPressed) this.pressedHandCardId = null;
-  }
-
   onCardPointerUp(cardId) {
     if (this.pressedHandCardId !== cardId) {
       return;
     }
 
     if (this.battleResultModalShown || this.isFlowResolving) {
-      this.hideMulliganCardPreview({ clearPressed: true });
+      this.pressedHandCardId = null;
       return;
     }
 
     if (this.openingMulliganPending) {
-      const wasLongPressPreview = this.mulliganPreviewLongPressActive;
-      this.hideMulliganCardPreview({ clearPressed: true });
-      if (!wasLongPressPreview) {
-        this.toggleOpeningMulliganCard(cardId, { showPreview: false });
-      }
+      this.previewedMulliganCardId = this.selectedMulliganCardIds.includes(cardId) ? cardId : null;
+      this.resetCardHighlights({ showPreview: true });
+      this.pressedHandCardId = null;
       return;
     }
 
@@ -1263,25 +1211,8 @@ export default class BattleScene extends Phaser.Scene {
     this.pressedHandCardId = null;
   }
 
-  onCardPointerOut(cardId) {
-    if (!this.openingMulliganPending || this.pressedHandCardId !== cardId) return;
-    this.hideMulliganCardPreview({ clearPressed: true });
-  }
-
-  onCardPointerCancel(cardId) {
-    if (!this.openingMulliganPending || this.pressedHandCardId !== cardId) return;
-    this.hideMulliganCardPreview({ clearPressed: true });
-  }
-
   onScenePointerUp(pointer, currentlyOver = []) {
-    if (this.openingMulliganPending) {
-      if (!this.isPointerOverHandCard(pointer, currentlyOver)) {
-        this.hideMulliganCardPreview({ clearPressed: true });
-      }
-      return;
-    }
-
-    if (this.battleResultModalShown || this.isFlowResolving) return;
+    if (this.openingMulliganPending || this.battleResultModalShown || this.isFlowResolving) return;
     if (!this.selectedCardId && !this.targetingState) return;
     if (this.isPointerUpReservedForUi(pointer, currentlyOver)) return;
 
@@ -1304,14 +1235,10 @@ export default class BattleScene extends Phaser.Scene {
     return gameObject.getBounds().contains(pointer.x, pointer.y);
   }
 
-  isPointerOverHandCard(pointer, currentlyOver = []) {
-    const overObjects = this.normalizePointerUpObjects(currentlyOver);
-    return this.cardViews.some((view) => overObjects.includes(view.background) || this.isPointerInsideGameObject(pointer, view.background));
-  }
-
   isPointerUpReservedForUi(pointer, currentlyOver = []) {
     const overObjects = this.normalizePointerUpObjects(currentlyOver);
-    if (this.isPointerOverHandCard(pointer, currentlyOver)) return true;
+    const isOverHandCard = this.cardViews.some((view) => overObjects.includes(view.background));
+    if (isOverHandCard) return true;
 
     if (this.actionButton && (overObjects.includes(this.actionButton) || this.isPointerInsideGameObject(pointer, this.actionButton))) {
       return true;
@@ -1485,7 +1412,6 @@ export default class BattleScene extends Phaser.Scene {
     const result = performOpeningMulligan(this.gameState, 'player', selectedIds);
     if (!result.ok) return;
 
-    this.hideMulliganCardPreview({ clearPressed: true });
     this.resetOpeningMulliganInputState();
     this.openingMulliganPending = false;
     this.redrawHand();
@@ -1496,11 +1422,8 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   resetOpeningMulliganInputState() {
-    this.clearMulliganPreviewHold();
     this.selectedMulliganCardIds = [];
     this.previewedMulliganCardId = null;
-    this.mulliganPreviewLongPressActive = false;
-    this.pressedHandCardId = null;
     this.selectedCardId = null;
     this.targetingState = null;
     this.pendingSwapIndex = null;
