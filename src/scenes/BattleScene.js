@@ -1213,7 +1213,13 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   onScenePointerUp(pointer, currentlyOver = []) {
-    if (this.openingMulliganPending || this.battleResultModalShown || this.isFlowResolving) return;
+    if (this.battleResultModalShown || this.isFlowResolving) return;
+
+    if (this.openingMulliganPending) {
+      this.clearOpeningMulliganPreviewFromOutsideTap(pointer, currentlyOver);
+      return;
+    }
+
     if (!this.selectedCardId && !this.targetingState) return;
     if (this.isPointerUpReservedForUi(pointer, currentlyOver)) return;
 
@@ -1225,6 +1231,37 @@ export default class BattleScene extends Phaser.Scene {
 
     this.pressedHandCardId = null;
     this.clearHandCardSelection();
+  }
+
+  clearOpeningMulliganPreviewFromOutsideTap(pointer, currentlyOver = []) {
+    if (!this.previewedMulliganCardId && !this.selectedHandCardZoom) return;
+    if (this.isPointerInsideMulliganHandOrPreview(pointer, currentlyOver)) return;
+
+    this.previewedMulliganCardId = null;
+    this.pressedHandCardId = null;
+    this.resetCardHighlights({ showPreview: false });
+  }
+
+  isPointerInsideMulliganHandOrPreview(pointer, currentlyOver = []) {
+    const overObjects = this.normalizePointerUpObjects(currentlyOver);
+    const handObjects = this.cardViews.flatMap((view) => [view.glow, view.background, view.label].filter(Boolean));
+    const previewObjects = this.selectedHandCardZoom
+      ? [this.selectedHandCardZoom.glow, this.selectedHandCardZoom.background, this.selectedHandCardZoom.label].filter(Boolean)
+      : [];
+
+    if ([...handObjects, ...previewObjects].some((item) => overObjects.includes(item) || this.isPointerInsideGameObject(pointer, item))) {
+      return true;
+    }
+
+    if (!pointer || !this.layout?.hand) return false;
+
+    const { width, margin, hand } = this.layout;
+    const handLeft = margin;
+    const handRight = width - margin;
+    const handTop = hand.y;
+    const handBottom = hand.y + hand.h;
+
+    return pointer.x >= handLeft && pointer.x <= handRight && pointer.y >= handTop && pointer.y <= handBottom;
   }
 
   normalizePointerUpObjects(currentlyOver = []) {
