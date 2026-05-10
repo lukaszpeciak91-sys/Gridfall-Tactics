@@ -17,9 +17,10 @@ SettingsScene is currently a shell for preferences that can be wired into full l
   - Music Volume
   - SFX Volume
 - Each slider displays its value as a percentage, for example `50%`.
-- The mute control is temporarily hidden while the settings layout is restored. The saved `muted` preference is still normalized for compatibility, but no mute button is drawn.
+- The mute control is a compact icon button centered below the SFX slider inside the taller audio panel.
+- The unmuted state draws a speaker icon; the muted state draws a crossed speaker icon with a subtle active highlight so the muted preference is immediately readable.
 - This keeps the audio panel clean so the mute control does not overlap the `AUDIO` title or the sliders.
-- Sliders remain visible and keep their stored values. These controls update visual state only; they are placeholders for a future audio system and should not be treated as proof that playback exists.
+- Sliders and the mute button remain visible and keep their stored values. These controls update visual state only; they are placeholders for a future audio system and should not be treated as proof that playback exists.
 
 ## Persistence
 
