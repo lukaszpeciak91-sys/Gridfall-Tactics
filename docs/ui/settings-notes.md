@@ -17,10 +17,10 @@ SettingsScene is currently a shell for preferences that can be wired into full l
   - Music Volume
   - SFX Volume
 - Each slider displays its value as a percentage, for example `50%`.
-- The mute control is a toggle button:
-  - Speaker icon means audio is active.
-  - Crossed speaker icon means audio is muted.
-- These controls update visual state only. They are placeholders for a future audio system and should not be treated as proof that playback exists.
+- The mute control is a row-style toggle with a unified, vector-drawn speaker icon and text label:
+  - `Sound Enabled` means audio is active.
+  - `Sound Muted` means audio is muted and uses the same speaker icon crossed by a slash.
+- The full toggle row remains tappable, and these controls update visual state only. They are placeholders for a future audio system and should not be treated as proof that playback exists.
 
 ## Persistence
 
