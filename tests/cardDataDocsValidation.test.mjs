@@ -7,7 +7,7 @@ import { getTargetingStateForEffect } from '../src/systems/cardTargeting.js';
 import { createInitialBattleState, playOrRedeployUnit } from '../src/systems/GameState.js';
 
 const factionDir = 'src/data/factions';
-const factionFiles = ['aggro.json', 'control.json', 'swarm.json', 'tank.json'];
+const factionFiles = ['aggro.json', 'control.json', 'swarm.json', 'tank.json', 'wardens.json'];
 
 const expectedTextShort = new Map(Object.entries({
   aggro_runner_1: 'Open enemy lane: +2 hero dmg.',
@@ -34,6 +34,14 @@ const expectedTextShort = new Map(Object.entries({
   tank_stability_1: 'Allies can’t be moved/disabled this turn.',
   tank_last_stand_1: 'Allies can’t drop below 1 HP this turn.',
   tank_repair_kit_1: 'Target ally +1 ARM until combat ends.',
+  wardens_sentinel_1: 'Enemy attacking this: -1 ATK.',
+  wardens_spearwall_1: 'Adjacent allies: attackers -1 ATK.',
+  wardens_halberdier_1: 'Enemy in lane: +1 ATK.',
+  wardens_brace_1: 'Target ally +1 ARM until combat ends.',
+  wardens_shield_push_1: 'Swap leftmost adjacent enemies.',
+  wardens_stand_firm_1: 'All allies can’t be moved this turn.',
+  wardens_reinforce_line_1: 'Leftmost ally +1 ARM until combat ends.',
+  wardens_hold_the_line_1: 'Leftmost 2 allies +1 ARM until combat ends.',
 }));
 
 function loadFactions() {
@@ -101,6 +109,10 @@ test('deterministic effects remain outside manual targeting metadata', () => {
     ['can_hit_any_lane', 'control_sniper_1'],
     ['enemy_all_atk_minus_1', 'control_jam_signal_1'],
     ['damage_up_to_2_enemies_1', 'control_pulse_wave_1'],
+    ['swap_leftmost_adjacent_enemies', 'wardens_shield_push_1'],
+    ['leftmost_friendly_temp_armor_1', 'wardens_reinforce_line_1'],
+    ['friendly_immovable_this_turn', 'wardens_stand_firm_1'],
+    ['leftmost_2_friendly_temp_armor_1', 'wardens_hold_the_line_1'],
   ]) {
     assert.equal(getTargetingStateForEffect(effectId, cardId), null, `${cardId} should not open manual targeting`);
   }

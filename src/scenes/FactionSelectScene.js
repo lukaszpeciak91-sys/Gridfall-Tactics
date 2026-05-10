@@ -33,6 +33,13 @@ const FACTION_CARD_DETAILS = {
     fallbackTopColor: 0x365314,
     fallbackBottomColor: 0x0f172a,
   },
+  Wardens: {
+    description: 'Defensive friction and zone control.',
+    tags: ['Friction', 'Armor'],
+    accentColor: 0xfacc15,
+    fallbackTopColor: 0x713f12,
+    fallbackBottomColor: 0x0f172a,
+  },
 };
 
 const CARD_SCROLL_DRAG_THRESHOLD = 8;

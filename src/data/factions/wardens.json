@@ -1,0 +1,102 @@
+{
+  "id": "wardens",
+  "name": "Wardens",
+  "frameImage": "frame_default",
+  "deck": [
+    {
+      "id": "wardens_sentinel_1",
+      "name": "Sentinel",
+      "type": "unit",
+      "targeting": "lane",
+      "effectId": "warden_defensive_friction_self",
+      "textShort": "Enemy attacking this: -1 ATK.",
+      "attack": 2,
+      "hp": 2,
+      "armor": 0
+    },
+    {
+      "id": "wardens_spearwall_1",
+      "name": "Spearwall",
+      "type": "unit",
+      "targeting": "lane",
+      "effectId": "warden_defensive_friction_adjacent",
+      "textShort": "Adjacent allies: attackers -1 ATK.",
+      "attack": 1,
+      "hp": 1,
+      "armor": 0
+    },
+    {
+      "id": "wardens_halberdier_1",
+      "name": "Halberdier",
+      "type": "unit",
+      "targeting": "lane",
+      "effectId": "opposing_lane_atk_plus_1",
+      "textShort": "Enemy in lane: +1 ATK.",
+      "attack": 2,
+      "hp": 1,
+      "armor": 0
+    },
+    {
+      "id": "wardens_bastion_guard_1",
+      "name": "Bastion Guard",
+      "type": "unit",
+      "targeting": "lane",
+      "effectId": null,
+      "textShort": "Durable guard.",
+      "attack": 1,
+      "hp": 3,
+      "armor": 0
+    },
+    {
+      "id": "wardens_watch_captain_1",
+      "name": "Watch Captain",
+      "type": "unit",
+      "targeting": "lane",
+      "effectId": null,
+      "textShort": "Line leader.",
+      "attack": 2,
+      "hp": 2,
+      "armor": 0
+    },
+    {
+      "id": "wardens_brace_1",
+      "name": "Brace",
+      "type": "utility",
+      "targeting": "friendly_unit",
+      "effectId": "temp_armor_1",
+      "textShort": "Target ally +1 ARM until combat ends."
+    },
+    {
+      "id": "wardens_shield_push_1",
+      "name": "Shield Push",
+      "type": "order",
+      "targeting": "none",
+      "effectId": "swap_leftmost_adjacent_enemies",
+      "textShort": "Swap leftmost adjacent enemies."
+    },
+    {
+      "id": "wardens_stand_firm_1",
+      "name": "Stand Firm",
+      "type": "order",
+      "targeting": "none",
+      "effectId": "friendly_immovable_this_turn",
+      "textShort": "All allies can’t be moved this turn."
+    },
+    {
+      "id": "wardens_reinforce_line_1",
+      "name": "Reinforce Line",
+      "type": "order",
+      "targeting": "none",
+      "effectId": "leftmost_friendly_temp_armor_1",
+      "textShort": "Leftmost ally +1 ARM until combat ends."
+    },
+    {
+      "id": "wardens_hold_the_line_1",
+      "name": "Hold The Line",
+      "type": "order",
+      "targeting": "none",
+      "effectId": "leftmost_2_friendly_temp_armor_1",
+      "textShort": "Leftmost 2 allies +1 ARM until combat ends."
+    }
+  ]
+}

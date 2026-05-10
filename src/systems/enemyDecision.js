@@ -14,6 +14,9 @@ const LOW_TEMPO_EFFECTS = new Set([
   'return_friendly_draw_1',
   'destroy_friendly_draw_2',
   'revive_friendly_1hp',
+  'friendly_immovable_this_turn',
+  'leftmost_friendly_temp_armor_1',
+  'leftmost_2_friendly_temp_armor_1',
 ]);
 
 const BOARD_SYNERGY_EFFECTS = new Set([
@@ -23,6 +26,8 @@ const BOARD_SYNERGY_EFFECTS = new Set([
   'quick_strike',
   'swap_adjacent_then_resolve',
   'heal_1_atk_1_draw_on_kill_this_turn',
+  'leftmost_friendly_temp_armor_1',
+  'leftmost_2_friendly_temp_armor_1',
 ]);
 
 function scoreOpeningCard(card, hand, factionName = '') {
@@ -41,6 +46,9 @@ function scoreOpeningCard(card, hand, factionName = '') {
     if (card.effectId === 'lane_empty_bonus_damage') score += 22;
     if (card.effectId === 'empty_adjacent_bonus_atk') score += 14;
     if (card.effectId === 'on_play_lane_damage_1') score += 12;
+    if (card.effectId === 'warden_defensive_friction_self') score += 18;
+    if (card.effectId === 'warden_defensive_friction_adjacent') score += unitsInHand >= 2 ? 20 : 8;
+    if (card.effectId === 'opposing_lane_atk_plus_1') score += 12;
     if (card.effectId === 'adjacent_allies_atk_plus_1_ignore_armor_1') score += unitsInHand >= 2 ? 18 : -4;
     if (faction === 'aggro') score += attack >= 2 ? 14 : -8;
     if (faction === 'control' && attack <= 1 && hp <= 1) score -= 10;
@@ -142,6 +150,8 @@ function getBoardPressureValue(state, owner) {
     if (friendlyUnit && !enemyUnit) {
       value += getUnitAttack(friendlyUnit) * 110 + getEffectiveHp(friendlyUnit) * 12;
       if (friendlyUnit.effectId === 'lane_empty_bonus_damage') value += 80;
+      if (friendlyUnit.effectId === 'warden_defensive_friction_self') value += 35;
+      if (friendlyUnit.effectId === 'warden_defensive_friction_adjacent') value += 30;
       return;
     }
     if (!friendlyUnit && enemyUnit) {
@@ -157,6 +167,8 @@ function getBoardPressureValue(state, owner) {
       if (enemyCanKill) value -= 160;
       value += (friendlyAttack - enemyAttack) * 35;
       value += (getEffectiveHp(friendlyUnit) - getEffectiveHp(enemyUnit)) * 8;
+      if (friendlyUnit.effectId === 'warden_defensive_friction_self') value += 40;
+      if (friendlyUnit.effectId === 'warden_defensive_friction_adjacent') value += 35;
     }
   });
   return value;
@@ -200,6 +212,7 @@ export function recordBattleActionUse(state, owner, action, telemetry = null) {
   const kind = action.aiEvaluation.kind;
   if (kind === 'replace') telemetry.replaceUsed = (telemetry.replaceUsed ?? 0) + 1;
   if (kind === 'reposition') telemetry.repositionUsed = (telemetry.repositionUsed ?? 0) + 1;
+  if (kind === 'shield-push') telemetry.shieldPushUses = (telemetry.shieldPushUses ?? 0) + 1;
   if (kind === 'replace' || kind === 'reposition') {
     if (action.aiEvaluation.meaningful) telemetry.meaningfulGameplayActions = (telemetry.meaningfulGameplayActions ?? 0) + 1;
     else telemetry.pointlessGameplayActions = (telemetry.pointlessGameplayActions ?? 0) + 1;
@@ -484,6 +497,29 @@ function scoreAction(state, owner, action) {
     score += 900;
   }
 
+  if (action.effectId === 'swap_leftmost_adjacent_enemies') {
+    const meaningful = boardPressureGain > 20 || heroPressureGain > 0 || opponentPressureReduced > 0 || openLaneImprovement > 0;
+    action.aiEvaluation = {
+      kind: 'shield-push',
+      meaningful,
+      pressureGain: boardPressureGain,
+      heroPressureGain,
+      openLaneImprovement,
+    };
+    if (!meaningful) return Number.NEGATIVE_INFINITY;
+    score += 760;
+  }
+
+  if (action.effectId === 'leftmost_friendly_temp_armor_1' || action.effectId === 'leftmost_2_friendly_temp_armor_1') {
+    const { friendly } = getRowsForOwner(owner);
+    const limit = action.effectId === 'leftmost_2_friendly_temp_armor_1' ? 2 : 1;
+    const targetIndexes = friendly.filter((index) => state.board[index]?.owner === owner).slice(0, limit);
+    const armorGain = targetIndexes.reduce((total, index) => (
+      total + Math.max(0, getUnitArmor(nextState.board[index]) - getUnitArmor(state.board[index]))
+    ), 0);
+    score += armorGain > 0 ? 620 + armorGain * 120 : -2000;
+  }
+
   if (action.effectId === 'quick_strike') {
     score += immediateHeroDamage > 0 || kills > 0 ? 2000 : -2500;
   }
@@ -514,6 +550,16 @@ function scoreAction(state, owner, action) {
     const friendlyUnits = nextState.board.filter((unit) => unit && unit.owner === owner).length;
     if (friendlyUnits <= 1) score -= 1200;
     else score += friendlyUnits * 120;
+  }
+
+  if (action.effectId === 'friendly_immovable_this_turn') {
+    const hasEnemyMoveCard = (owner === 'enemy' ? state.player?.hand : state.enemy?.hand)?.some((card) => (
+      card?.effectId === 'swap_any_two_units'
+      || card?.effectId === 'swap_two_enemy_units'
+      || card?.effectId === 'swap_adjacent_then_resolve'
+      || card?.effectId === 'swap_leftmost_adjacent_enemies'
+    ));
+    score += hasEnemyMoveCard ? 260 : -600;
   }
 
   if (action.type !== 'pass') score += 20;

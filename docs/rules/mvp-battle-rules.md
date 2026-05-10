@@ -1,7 +1,7 @@
 # MVP Battle Rules (Canonical)
 
 **Status:** Frozen for MVP implementation  
-**Last Updated:** 2026-05-09
+**Last Updated:** 2026-05-10
 
 **Scope:** Gameplay rules for the MVP battle loop
 
@@ -148,7 +148,9 @@ The no-progress detector uses the stricter "meaningful for outcome" definition i
 - If opposing lane is empty, attacker hits opposing hero.
 - Both sides can deal damage during same combat step.
 - Temporary turn-based modifiers/effects are reset after combat resolution.
-- Temporary armor from Reactive Plating (`temp_armor_1`) lasts until full turn/combat cleanup; wording should use “until combat ends” and must not imply immediate lane-combat cleanup.
+- Temporary armor from Reactive Plating (`temp_armor_1`) and Wardens armor orders lasts until full turn/combat cleanup; wording should use “until combat ends” and must not imply immediate lane-combat cleanup.
+- Wardens defensive friction means: “When affected unit is attacked, attacker has -1 ATK for that combat damage calculation.” It applies only to unit-vs-unit combat damage calculations, does not create persistent temp state, does not reduce open-lane hero damage, and does not reduce non-combat damage.
+- Wardens defensive friction is capped at **-1 ATK total** per attack even if Sentinel and one or more Spearwalls would all apply. This MVP cap avoids zero-damage lockouts.
 
 ## 6.1) Effect Duration Taxonomy (MVP)
 
@@ -168,6 +170,8 @@ The no-progress detector uses the stricter "meaningful for outcome" definition i
 - Deterministic simplifications currently in code:
   - **Sniper (`can_hit_any_lane`)** targets the lowest-HP enemy unit; ties break to lower board index.
   - **Controller (`swap_two_enemy_units`)** on-play picks first two enemy units by lane/index order.
+  - **Shield Push (`swap_leftmost_adjacent_enemies`)** swaps the leftmost legal adjacent enemy pair in the opponent row only; it never crosses sides and never changes ownership. If no adjacent enemy pair exists, it has no legal deterministic resolution and is rejected rather than discarded.
+  - **Reinforce Line (`leftmost_friendly_temp_armor_1`)** gives +1 temporary ARM to the leftmost friendly unit only; if no friendly unit exists, it has no legal deterministic resolution and is rejected rather than discarded.
   - AI-controlled sides evaluate legal targeted actions, immediate effects, redeploys, and adjacent swaps with the same `chooseBattleAction` scorer used by AI-vs-AI simulation bots and the live enemy. Ties are deterministic in live enemy turns and seeded-random in simulation runs.
 - No hidden-information peek UI; `peek_enemy_slot` is a no-op.
 - No general manual targeting UI for unit passive abilities beyond implemented hooks.
@@ -216,6 +220,16 @@ The no-progress detector uses the stricter "meaningful for outcome" definition i
 | Tank | Reinforce | order | - | heal_all_1 | Heal all friendly units by 1 (to max HP). | Non-targeted effect | Uses unit max HP cap. |
 | Tank | Last Stand | special | - | cannot_drop_below_1_this_turn | Allies can’t drop below 1 HP this turn. | Non-targeted effect | Reset after combat resolve. |
 | Tank | Reactive Plating | utility | - | temp_armor_1 | Target ally +1 ARM until combat ends. | Targeted friendly | Stacks with armor normally and resets at full turn/combat cleanup; does not heal HP. |
+| Wardens | Sentinel | unit | 2/2/0 | warden_defensive_friction_self | Enemy attacking this has -1 ATK. | Lane combat defensive friction | Combat-time only; capped with all Wardens friction at -1 total. |
+| Wardens | Spearwall | unit | 1/1/0 | warden_defensive_friction_adjacent | Adjacent allies: attackers -1 ATK. | Passive adjacency aura | Same-row adjacency only; does not protect itself unless adjacent to another Spearwall; capped with all Wardens friction at -1 total. |
+| Wardens | Halberdier | unit | 2/1/0 | opposing_lane_atk_plus_1 | +1 ATK while an enemy unit is in the opposing lane. | Lane combat | Board-state check only; no history or moved-this-turn logic. |
+| Wardens | Bastion Guard | unit | 1/3/0 | null | No special behavior. | Lane combat | Baseline durable unit. |
+| Wardens | Watch Captain | unit | 2/2/0 | null | No special behavior. | Lane combat | Baseline leader unit. |
+| Wardens | Brace | utility | - | temp_armor_1 | Target ally +1 ARM until combat ends. | Targeted friendly | Reuses temporary armor cleanup; no costs. |
+| Wardens | Shield Push | order | - | swap_leftmost_adjacent_enemies | Swap leftmost adjacent enemies. | Non-targeted deterministic effect | Same enemy row only; no cross-side movement; no ownership changes; rejected if no legal adjacent enemy pair. |
+| Wardens | Stand Firm | order | - | friendly_immovable_this_turn | All allies can’t be moved this turn. | Non-targeted effect | Move-only protection; unlike Tank Stability, it does not block disable effects. |
+| Wardens | Reinforce Line | order | - | leftmost_friendly_temp_armor_1 | Leftmost ally +1 ARM until combat ends. | Non-targeted deterministic effect | Leftmost friendly unit by row/index order; rejected if no friendly unit exists; no lane targeting UI. |
+| Wardens | Hold The Line | order | - | leftmost_2_friendly_temp_armor_1 | Leftmost 2 allies +1 ARM until combat ends. | Non-targeted deterministic effect | Picks up to 2 friendly units by row/index order; reuses temporary armor cleanup; no costs or manual targeting UI. |
 
 ## 9) Implemented vs Deferred (Explicit)
 
@@ -227,6 +241,7 @@ Implemented now:
 - Deterministic Sniper targeting.
 - Deterministic Controller on-play enemy swap.
 - Flood capped at up to 2 tokens.
+- Wardens defensive friction, Halberdier opposing-lane bonus, Shield Push, Stand Firm, and Reinforce Line.
 - One-time opening mulligan with up to 2 replacements before game start.
 
 Deferred / intentionally simplified:

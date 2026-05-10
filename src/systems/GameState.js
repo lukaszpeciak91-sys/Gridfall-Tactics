@@ -3,6 +3,9 @@ const ENEMY_ROW = [0, 1, 2];
 const PLAYER_ROW = [6, 7, 8];
 const HERO_START_HP = 12;
 const SWARM_ALPHA_AURA_EFFECT_ID = 'adjacent_allies_atk_plus_1_ignore_armor_1';
+const WARDEN_SELF_FRICTION_EFFECT_ID = 'warden_defensive_friction_self';
+const WARDEN_SPEARWALL_EFFECT_ID = 'warden_defensive_friction_adjacent';
+const WARDEN_FRICTION_CAP = 1;
 export const RUNNER_OPEN_LANE_HERO_BONUS = 2;
 
 function hasSwarmAlphaAura(unit) {
@@ -45,6 +48,7 @@ function cardCanRealisticallyAffectOutcome(card, state, owner) {
       'gain_atk_when_damaged',
       'wounded_atk_plus_1',
       'can_hit_any_lane',
+      'opposing_lane_atk_plus_1',
     ].includes(card.effectId);
   }
 
@@ -88,8 +92,16 @@ function cardCanRealisticallyAffectOutcome(card, state, owner) {
     case 'heal_all_1':
     case 'cannot_drop_below_1_this_turn':
     case 'temp_armor_1':
+    case 'swap_leftmost_adjacent_enemies': {
+      const simulation = cloneStateForDeadGameCheck(state);
+      if (!applyLeftmostAdjacentEnemySwap(simulation, owner)) return false;
+      return canCombatEverChangeHeroHp(simulation);
+    }
     case 'immune_move_disable_this_turn':
+    case 'friendly_immovable_this_turn':
     case 'cancel_enemy_order':
+    case 'leftmost_friendly_temp_armor_1':
+    case 'leftmost_2_friendly_temp_armor_1':
       return false;
     default:
       return false;
@@ -347,7 +359,10 @@ export function getUnitArmor(unit) {
 }
 
 function isMoveEffectId(effectId) {
-  return effectId === 'swap_any_two_units' || effectId === 'swap_two_enemy_units' || effectId === 'swap_adjacent_then_resolve';
+  return effectId === 'swap_any_two_units'
+    || effectId === 'swap_two_enemy_units'
+    || effectId === 'swap_adjacent_then_resolve'
+    || effectId === 'swap_leftmost_adjacent_enemies';
 }
 
 function isDisableEffectId(effectId) {
@@ -357,9 +372,52 @@ function isDisableEffectId(effectId) {
 }
 
 function hasMoveDisableImmunity(state, protectedOwner, actingOwner, effectId) {
-  if (!state?.immuneMoveDisableThisTurn?.[protectedOwner]) return false;
-  return getOpponentOwner(actingOwner) === protectedOwner
+  if (getOpponentOwner(actingOwner) !== protectedOwner) return false;
+  const moveBlocked = Boolean(state?.immovableThisTurn?.[protectedOwner]) && isMoveEffectId(effectId);
+  const moveDisableBlocked = Boolean(state?.immuneMoveDisableThisTurn?.[protectedOwner])
     && (isMoveEffectId(effectId) || isDisableEffectId(effectId));
+  return moveBlocked || moveDisableBlocked;
+}
+
+function findLeftmostAdjacentEnemyPair(state, owner) {
+  const enemyOwner = getOpponentOwner(owner);
+  const enemyRow = getRowForOwner(enemyOwner);
+  for (let lane = 0; lane < enemyRow.length - 1; lane += 1) {
+    const firstIndex = enemyRow[lane];
+    const secondIndex = enemyRow[lane + 1];
+    if (state.board[firstIndex]?.owner === enemyOwner && state.board[secondIndex]?.owner === enemyOwner) {
+      return [firstIndex, secondIndex];
+    }
+  }
+  return null;
+}
+
+function applyLeftmostAdjacentEnemySwap(state, owner) {
+  const pair = findLeftmostAdjacentEnemyPair(state, owner);
+  if (!pair) return false;
+  const [firstIndex, secondIndex] = pair;
+  const firstUnit = state.board[firstIndex];
+  const secondUnit = state.board[secondIndex];
+  if (hasMoveDisableImmunity(state, firstUnit.owner, owner, 'swap_leftmost_adjacent_enemies')
+    || hasMoveDisableImmunity(state, secondUnit.owner, owner, 'swap_leftmost_adjacent_enemies')) {
+    return false;
+  }
+  state.board[firstIndex] = secondUnit;
+  state.board[secondIndex] = firstUnit;
+  return true;
+}
+
+function canApplyEffectById(state, owner, effectId) {
+  switch (effectId) {
+    case 'swap_leftmost_adjacent_enemies':
+      return Boolean(findLeftmostAdjacentEnemyPair(state, owner))
+        && !hasMoveDisableImmunity(state, getOpponentOwner(owner), owner, effectId);
+    case 'leftmost_friendly_temp_armor_1':
+    case 'leftmost_2_friendly_temp_armor_1':
+      return getRowForOwner(owner).some((index) => state.board[index]?.owner === owner);
+    default:
+      return true;
+  }
 }
 
 function applyTargetedHeal(unit, amount) {
@@ -416,6 +474,22 @@ function applyEffectById(state, owner, effectId) {
         if (!unit) return;
         unit.tempArmorMod = (unit.tempArmorMod ?? 0) + 1;
       });
+      break;
+    }
+    case 'leftmost_2_friendly_temp_armor_1': {
+      const friendlyIndexes = getLeftmostOccupiedRowIndexes(state, getRowForOwner(owner), 2);
+      friendlyIndexes.forEach((index) => {
+        const unit = state.board[index];
+        if (!unit) return;
+        unit.tempArmorMod = (unit.tempArmorMod ?? 0) + 1;
+      });
+      break;
+    }
+    case 'leftmost_friendly_temp_armor_1': {
+      const friendlyIndex = getRowForOwner(owner).find((index) => state.board[index]?.owner === owner);
+      if (friendlyIndex === undefined) break;
+      const unit = state.board[friendlyIndex];
+      unit.tempArmorMod = (unit.tempArmorMod ?? 0) + 1;
       break;
     }
     case 'enemy_all_atk_minus_1': {
@@ -484,6 +558,17 @@ function applyEffectById(state, owner, effectId) {
         state.immuneMoveDisableThisTurn = { player: false, enemy: false };
       }
       state.immuneMoveDisableThisTurn[owner] = true;
+      break;
+    }
+    case 'friendly_immovable_this_turn': {
+      if (!state.immovableThisTurn) {
+        state.immovableThisTurn = { player: false, enemy: false };
+      }
+      state.immovableThisTurn[owner] = true;
+      break;
+    }
+    case 'swap_leftmost_adjacent_enemies': {
+      applyLeftmostAdjacentEnemySwap(state, owner);
       break;
     }
     case 'revive_friendly_1hp': {
@@ -559,6 +644,10 @@ export function createInitialBattleState(playerFactionData, enemyFactionData = p
       enemy: false,
     },
     immuneMoveDisableThisTurn: {
+      player: false,
+      enemy: false,
+    },
+    immovableThisTurn: {
       player: false,
       enemy: false,
     },
@@ -708,20 +797,25 @@ export function playEffectCard(state, owner, handCardId) {
   const handIndex = side.hand.findIndex((item) => item.id === handCardId);
   if (handIndex < 0) return { ok: false, reason: 'Card not in hand' };
 
-  const [card] = side.hand.splice(handIndex, 1);
-  if (card.type === 'unit') {
-    side.hand.splice(handIndex, 0, card);
+  const card = side.hand[handIndex];
+  if (!canApplyEffectById(state, owner, card.effectId ?? null)) {
+    return { ok: false, reason: 'Effect has no legal deterministic resolution' };
+  }
+
+  const [playedCard] = side.hand.splice(handIndex, 1);
+  if (playedCard.type === 'unit') {
+    side.hand.splice(handIndex, 0, playedCard);
     return { ok: false, reason: 'Unit cards must be placed on board' };
   }
 
-  side.discard.push(card);
+  side.discard.push(playedCard);
   const protectedOwner = getOpponentOwner(owner);
-  const blockedByImmunity = hasMoveDisableImmunity(state, protectedOwner, owner, card.effectId ?? null);
+  const blockedByImmunity = hasMoveDisableImmunity(state, protectedOwner, owner, playedCard.effectId ?? null);
   if (!blockedByImmunity) {
-    applyEffectById(state, owner, card.effectId ?? null);
+    applyEffectById(state, owner, playedCard.effectId ?? null);
   }
   recordProgressAction(state, owner, blockedByImmunity ? 'effect-blocked' : 'effect');
-  return { ok: true, type: blockedByImmunity ? 'effect-blocked' : 'effect', card };
+  return { ok: true, type: blockedByImmunity ? 'effect-blocked' : 'effect', card: playedCard };
 }
 
 export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, targetIndexes = [boardIndex]) {
@@ -1040,6 +1134,10 @@ function resolveCombatLane(state, col, combatContext = null) {
   const getAttackWithCombatBonuses = (unit, unitIndex) => {
     if (!unit) return 0;
     let attack = unit.effectId === 'cannot_attack' ? 0 : (unit.attack ?? 0);
+    if (unit.effectId === 'opposing_lane_atk_plus_1') {
+      const opposingIndex = unit.owner === 'player' ? unitIndex - 6 : unitIndex + 6;
+      if (state.board[opposingIndex]?.owner === getOpponentOwner(unit.owner)) attack += 1;
+    }
     if (unit.effectId === 'empty_adjacent_bonus_atk') {
       const rowStart = unit.owner === 'player' ? 6 : 0;
       const lane = unitIndex % 3;
@@ -1086,8 +1184,25 @@ function resolveCombatLane(state, col, combatContext = null) {
     return hasSwarmAlphaAura(left) || hasSwarmAlphaAura(right) ? 1 : 0;
   };
 
+  const getDefensiveFrictionPenalty = (defender) => {
+    if (!defender) return 0;
+    let penalty = 0;
+    if (defender.effectId === WARDEN_SELF_FRICTION_EFFECT_ID) penalty += 1;
+    const lane = defender.owner === 'player' ? (defender.__index - 6) : defender.__index;
+    const rowStart = defender.owner === 'player' ? 6 : 0;
+    const left = lane > 0 ? state.board[rowStart + lane - 1] : null;
+    const right = lane < 2 ? state.board[rowStart + lane + 1] : null;
+    if (left?.owner === defender.owner && left.effectId === WARDEN_SPEARWALL_EFFECT_ID) penalty += 1;
+    if (right?.owner === defender.owner && right.effectId === WARDEN_SPEARWALL_EFFECT_ID) penalty += 1;
+    return Math.min(WARDEN_FRICTION_CAP, penalty);
+  };
+
   const getMitigatedDamage = (attacker, defender) => {
-    const attackDamage = getUnitAttack(attacker);
+    const frictionPenalty = getDefensiveFrictionPenalty(defender);
+    const attackDamage = Math.max(0, getUnitAttack(attacker) - frictionPenalty);
+    if (frictionPenalty > 0) {
+      state.wardenDefensiveFrictionApplications = (state.wardenDefensiveFrictionApplications ?? 0) + 1;
+    }
     if (defender?.ignoreArmorNext) {
       defender.ignoreArmorNext = false;
       return Math.max(0, attackDamage);
@@ -1262,6 +1377,11 @@ export function resolveCombat(state) {
   if (state.immuneMoveDisableThisTurn) {
     state.immuneMoveDisableThisTurn.player = false;
     state.immuneMoveDisableThisTurn.enemy = false;
+  }
+
+  if (state.immovableThisTurn) {
+    state.immovableThisTurn.player = false;
+    state.immovableThisTurn.enemy = false;
   }
 
   state.board.forEach((unit) => {
