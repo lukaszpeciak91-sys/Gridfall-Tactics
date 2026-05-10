@@ -47,3 +47,19 @@ test('settings notes document current settings shell behavior and future audio p
   assert.match(notes, /public\/assets\/audio\/music\//);
   assert.match(notes, /public\/assets\/audio\/sfx\//);
 });
+
+
+test('SettingsScene creates a stored high-depth modal back button with visible debug marker', () => {
+  const source = read('src/scenes/SettingsScene.js');
+
+  assert.match(source, /import \{ createBuildMarker \} from '\.\.\/ui\/buildMarker\.js';/);
+  assert.match(source, /const SETTINGS_PANEL_DEPTH = 0/);
+  assert.match(source, /const SETTINGS_BACK_BUTTON_DEPTH = 1001/);
+  assert.match(source, /const SETTINGS_BACK_DEBUG_DEPTH = SETTINGS_BACK_BUTTON_DEPTH \+ 2/);
+  assert.match(source, /const buildMarker = createBuildMarker\(this, \{ width, height \}\);/);
+  assert.match(source, /this\.createBackButton\(width, height\);/);
+  assert.match(source, /this\.settingsBackButton = createModalBackButton\(this, \{/);
+  assert.match(source, /depth: SETTINGS_BACK_BUTTON_DEPTH/);
+  assert.match(source, /this\.settingsBackDebugText = this\.add[\s\S]*'BACK DEBUG'/);
+  assert.match(source, /\.setDepth\(SETTINGS_BACK_DEBUG_DEPTH\)/);
+});
