@@ -64,15 +64,18 @@ test('outside taps clear selection without intercepting board, pass, or card inp
 });
 
 test('gameplay zoom nudges to center while mulligan preview stays above its hand slot', () => {
-  assert.match(source, /const SELECTED_HAND_CARD_ZOOM_SCALE = 1\.22;/);
+  assert.match(source, /const SELECTED_HAND_CARD_ZOOM_SCALE = 1\.34;/);
   assert.match(source, /const MULLIGAN_HAND_CARD_PREVIEW_SCALE = 1\.08;/);
   assert.match(source, /const MULLIGAN_HAND_CARD_RAISE_RATIO = 0\.06;/);
   assert.match(source, /const HAND_CARD_PREVIEW_TWEEN_MS = 110;/);
   assert.match(source, /const nudgeX = isMulliganPreview \? 0 : \(width \* 0\.5 - cardView\.baseX\) \* SELECTED_HAND_CARD_CENTER_NUDGE_RATIO;/);
   assert.match(source, /const raiseRatio = isMulliganPreview \? MULLIGAN_HAND_CARD_RAISE_RATIO : SELECTED_HAND_CARD_RAISE_RATIO;/);
   assert.match(source, /const targetY = cardView\.baseY - hand\.cardHeight \* raiseRatio;/);
+  assert.match(source, /const SELECTED_HAND_CARD_PLAYER_HERO_CLEARANCE = 6;/);
   assert.match(source, /this\.layout\.action\.y \+ this\.layout\.action\.h \+ zoomHeight \/ 2 \+ 6/);
+  assert.match(source, /this\.layout\.playerHero\.y[\s\S]*\+ this\.layout\.playerHero\.h[\s\S]*\+ SELECTED_HAND_CARD_PLAYER_HERO_CLEARANCE/);
+  assert.match(source, /const clampedY = minY <= maxY \? Phaser\.Math\.Clamp\(targetY, minY, maxY\) : maxY;/);
   assert.match(source, /this\.tweens\.add\(\{\s*targets: \[glow, background\]/);
   assert.match(source, /x: Phaser\.Math\.Clamp\(targetX, minX, maxX\),/);
-  assert.match(source, /y: Phaser\.Math\.Clamp\(targetY, minY, maxY\),/);
+  assert.match(source, /y: clampedY,/);
 });
