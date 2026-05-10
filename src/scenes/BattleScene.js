@@ -16,8 +16,9 @@ const HAND_CARD_ACCENT_COLORS = Object.freeze({
   default: 0x94a3b8,
 });
 
-const SELECTED_HAND_CARD_ZOOM_SCALE = 1.22;
+const SELECTED_HAND_CARD_ZOOM_SCALE = 1.34;
 const SELECTED_HAND_CARD_RAISE_RATIO = 0.16;
+const SELECTED_HAND_CARD_PLAYER_HERO_CLEARANCE = 6;
 const SELECTED_HAND_CARD_CENTER_NUDGE_RATIO = 0.18;
 const SELECTED_HAND_CARD_DEPTH = 180;
 const MULLIGAN_HAND_CARD_PREVIEW_SCALE = 1.08;
@@ -2344,14 +2345,19 @@ ${statParts.join(' | ')}`;
     const targetY = cardView.baseY - hand.cardHeight * raiseRatio;
     const minX = margin + zoomWidth / 2;
     const maxX = width - margin - zoomWidth / 2;
+    const heroSafeMinY = this.layout.playerHero.y
+      + this.layout.playerHero.h
+      + SELECTED_HAND_CARD_PLAYER_HERO_CLEARANCE
+      + zoomHeight / 2;
     const minY = isMulliganPreview
       ? this.layout.action.y + this.layout.action.h + zoomHeight / 2 + 6
-      : margin + zoomHeight / 2;
+      : Math.max(margin + zoomHeight / 2, heroSafeMinY);
     const maxY = height - margin - zoomHeight / 2;
+    const clampedY = minY <= maxY ? Phaser.Math.Clamp(targetY, minY, maxY) : maxY;
 
     return {
       x: Phaser.Math.Clamp(targetX, minX, maxX),
-      y: Phaser.Math.Clamp(targetY, minY, maxY),
+      y: clampedY,
       scale: zoomScale,
     };
   }
