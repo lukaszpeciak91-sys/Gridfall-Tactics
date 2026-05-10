@@ -620,7 +620,7 @@ export default class BattleScene extends Phaser.Scene {
     const height = this.scale.gameSize.height;
 
     const resultModalWasShown = this.battleResultModalShown;
-    this.cleanupSceneObjects({ preserveTimers: true, preserveTweens: true });
+    this.cleanupSceneObjects({ preserveTimers: true });
     this.layout = this.getLayoutMetrics(width, height);
     this.cameras.main.setBackgroundColor(BATTLE_BACKGROUND_FALLBACK_COLOR_HEX);
     this.backgroundArtAsset = getBattleBackgroundAsset({ playerFactionKey: this.factionKey, enemyFactionKey: this.enemyFactionKey });
@@ -1806,14 +1806,59 @@ export default class BattleScene extends Phaser.Scene {
 
   tweenToPromise(config) {
     return new Promise((resolve) => {
+      const targets = Array.isArray(config?.targets) ? config.targets.filter(Boolean) : [config?.targets].filter(Boolean);
+      if (targets.length === 0) {
+        resolve();
+        return;
+      }
+
+      let resolved = false;
+      const finish = (...args) => {
+        if (resolved) return;
+        resolved = true;
+        resolve(...args);
+      };
+
       this.tweens.add({
         ...config,
+        targets,
         onComplete: (...args) => {
           if (typeof config.onComplete === 'function') config.onComplete(...args);
-          resolve();
+          finish();
+        },
+        onStop: (...args) => {
+          if (typeof config.onStop === 'function') config.onStop(...args);
+          finish();
         },
       });
     });
+  }
+
+  captureUnitVisualState(cell) {
+    const label = cell?.label;
+    if (!label) return null;
+
+    return {
+      label,
+      x: label.x,
+      y: label.y,
+      scaleX: label.scaleX,
+      scaleY: label.scaleY,
+    };
+  }
+
+  restoreUnitVisualState(state) {
+    if (!state?.label?.active) return;
+    state.label.setPosition(state.x, state.y);
+    state.label.setScale(state.scaleX, state.scaleY);
+  }
+
+  getUnitLungeTargets(cell) {
+    return cell?.label ? [cell.label] : [];
+  }
+
+  prepareUnitLungeTargets(targets) {
+    this.tweens?.killTweensOf?.(targets);
   }
 
   async playCombatAnimations(combatEvents, preCombatBoardSnapshot = null) {
@@ -1890,8 +1935,10 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   getUnitLungeConfig(attackerCell, targetCell, meetAtMiddle = false) {
-    const startY = attackerCell.label.y;
-    const backgroundStartY = attackerCell.background.y;
+    const visualState = this.captureUnitVisualState(attackerCell);
+    if (!visualState || !targetCell?.background) return null;
+
+    const startY = visualState.y;
     const direction = targetCell.background.y > startY ? 1 : -1;
     const separation = Math.abs(targetCell.background.y - startY);
     const lungeDistance = Math.max(
@@ -1904,9 +1951,9 @@ export default class BattleScene extends Phaser.Scene {
     return {
       cell: attackerCell,
       startY,
-      backgroundStartY,
+      visualState,
       strikeY,
-      targets: [attackerCell.label, attackerCell.background],
+      targets: this.getUnitLungeTargets(attackerCell),
     };
   }
 
@@ -1917,8 +1964,10 @@ export default class BattleScene extends Phaser.Scene {
         const targetIndex = getCombatEventTargetIndex(attacker.event);
         const targetCell = this.getCellByIndex(targetIndex);
         if (!attackerCell?.label || !attackerCell?.background || !targetCell?.background) return null;
+        const lungeConfig = this.getUnitLungeConfig(attackerCell, targetCell, true);
+        if (!lungeConfig) return null;
         return {
-          ...this.getUnitLungeConfig(attackerCell, targetCell, true),
+          ...lungeConfig,
           attackerIndex: attacker.index,
         };
       })
@@ -1930,6 +1979,7 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     try {
+      lungeConfigs.forEach((config) => this.prepareUnitLungeTargets(config.targets));
       await Promise.all(lungeConfigs.map((config) => this.tweenToPromise({
         targets: config.targets,
         y: config.strikeY,
@@ -1949,9 +1999,7 @@ export default class BattleScene extends Phaser.Scene {
         })));
     } finally {
       lungeConfigs.forEach((config) => {
-        if (clash.lethalTargetIndexes?.has(config.attackerIndex)) return;
-        config.cell.label?.setY?.(config.startY);
-        config.cell.background?.setY?.(config.backgroundStartY);
+        this.restoreUnitVisualState(config.visualState);
       });
     }
   }
@@ -1967,14 +2015,18 @@ export default class BattleScene extends Phaser.Scene {
     const attackerCell = attacker.cell;
     const targetCell = target.cell;
     const lungeConfig = this.getUnitLungeConfig(attackerCell, targetCell);
+    if (!lungeConfig) {
+      await this.playCombatEventFeedback([event]);
+      return;
+    }
 
     try {
+      this.prepareUnitLungeTargets(lungeConfig.targets);
       await this.tweenToPromise({ targets: lungeConfig.targets, y: lungeConfig.strikeY, duration: 145, ease: 'Quad.easeOut' });
       await this.playCombatEventFeedback([event]);
       await this.tweenToPromise({ targets: lungeConfig.targets, y: lungeConfig.startY, duration: 135, ease: 'Quad.easeIn' });
     } finally {
-      attackerCell.label?.setY?.(lungeConfig.startY);
-      attackerCell.background?.setY?.(lungeConfig.backgroundStartY);
+      this.restoreUnitVisualState(lungeConfig.visualState);
     }
   }
 
@@ -1991,19 +2043,24 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     const attackerCell = attacker.cell;
-    const startY = attackerCell.label.y;
-    const backgroundStartY = attackerCell.background.y;
+    const visualState = this.captureUnitVisualState(attackerCell);
+    if (!visualState) {
+      await this.playCombatEventFeedback([event]);
+      return;
+    }
+
+    const startY = visualState.y;
     const direction = event.attackerSide === 'player' ? -1 : 1;
     const strikeY = startY + direction * Math.min(this.layout.board.cellHeight * 0.48, 90);
-    const targets = [attackerCell.label, attackerCell.background];
+    const targets = this.getUnitLungeTargets(attackerCell);
 
     try {
+      this.prepareUnitLungeTargets(targets);
       await this.tweenToPromise({ targets, y: strikeY, duration: 160, ease: 'Quad.easeOut' });
       await this.playCombatEventFeedback([event]);
       await this.tweenToPromise({ targets, y: startY, duration: 140, ease: 'Quad.easeIn' });
     } finally {
-      attackerCell.label?.setY?.(startY);
-      attackerCell.background?.setY?.(backgroundStartY);
+      this.restoreUnitVisualState(visualState);
     }
   }
 
@@ -2017,8 +2074,13 @@ export default class BattleScene extends Phaser.Scene {
 
     const attackerCell = attacker.cell;
     const hero = target.hero;
-    const startY = attackerCell.label.y;
-    const backgroundStartY = attackerCell.background.y;
+    const visualState = this.captureUnitVisualState(attackerCell);
+    if (!visualState) {
+      await this.playCombatEventFeedback([event]);
+      return;
+    }
+
+    const startY = visualState.y;
     const direction = event.attackerSide === 'player' ? -1 : 1;
     const heroEdgeY = event.targetSide === 'enemy'
       ? hero.y + hero.height * 0.5
@@ -2032,15 +2094,15 @@ export default class BattleScene extends Phaser.Scene {
     const maxTravel = Math.max(this.layout.board.cellHeight * 0.62, fallbackDistance);
     const travel = Math.min(Math.abs(desiredY - startY), maxTravel);
     const strikeY = startY + direction * travel;
-    const targets = [attackerCell.label, attackerCell.background];
+    const targets = this.getUnitLungeTargets(attackerCell);
 
     try {
+      this.prepareUnitLungeTargets(targets);
       await this.tweenToPromise({ targets, y: strikeY, duration: 165, ease: 'Quad.easeOut' });
       await this.playCombatEventFeedback([event]);
       await this.tweenToPromise({ targets, y: startY, duration: 145, ease: 'Quad.easeIn' });
     } finally {
-      attackerCell.label?.setY?.(startY);
-      attackerCell.background?.setY?.(backgroundStartY);
+      this.restoreUnitVisualState(visualState);
     }
   }
 
@@ -2061,14 +2123,11 @@ export default class BattleScene extends Phaser.Scene {
 
     return {
       clear: async () => {
-        await Promise.all(previousStyles.map(({ cell, lineWidth, strokeColor, strokeAlpha }) => (
-          this.tweenToPromise({
-            targets: cell.background,
-            duration: 90,
-            alpha: cell.background.alpha,
-            onComplete: () => cell.background.setStrokeStyle(lineWidth, strokeColor, strokeAlpha),
-          })
-        )));
+        await this.delay(90);
+        previousStyles.forEach(({ cell, lineWidth, strokeColor, strokeAlpha }) => {
+          if (!cell?.background?.active) return;
+          cell.background.setStrokeStyle(lineWidth, strokeColor, strokeAlpha);
+        });
       },
     };
   }
