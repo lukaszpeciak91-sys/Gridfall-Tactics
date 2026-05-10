@@ -10,22 +10,19 @@ test('SettingsScene exposes future-ready language, audio, and persistence contro
   assert.match(source, /const LANGUAGE_OPTIONS = \[/);
   assert.match(source, /\{ value: 'en', label: 'English' \}/);
   assert.match(source, /\{ value: 'pl', label: 'Polish' \}/);
-  assert.match(source, /createLanguageSelect\(width \/ 2, height \* 0\.29, panelWidth - 74\)/);
+  assert.match(source, /text\(width \/ 2, height \* 0\.1, 'SETTINGS'/);
+  assert.match(source, /text\(width \/ 2, height \* 0\.15, 'Preferences are saved locally'/);
+  assert.match(source, /createLanguageSelect\(width \/ 2, height \* 0\.32, panelWidth - 74\)/);
   assert.doesNotMatch(source, /createChoiceButton\(width \/ 2 - 76[\s\S]*English/);
 
   assert.match(source, /musicVolume: 50/);
   assert.match(source, /sfxVolume: 50/);
   assert.match(source, /muted: false/);
-  assert.match(source, /createVolumeSlider\(width \/ 2, height \* 0\.49, panelWidth - 76, 'Music Volume', 'musicVolume'\)/);
-  assert.match(source, /createVolumeSlider\(width \/ 2, height \* 0\.61, panelWidth - 76, 'SFX Volume', 'sfxVolume'\)/);
-  assert.match(source, /const MUTE_ON_STATE = 'Audio ON'/);
-  assert.match(source, /const MUTE_MUTED_STATE = 'Muted'/);
-  assert.match(source, /this\.createMuteToggle\(width \/ 2, height \* 0\.41\)/);
-  assert.match(source, /const toggleSize = 52/);
-  assert.match(source, /createFloatingControl\(this, x, y, toggleSize, '', toggleMute\)/);
-  assert.match(source, /this\.muteIconGraphic = this\.add\.graphics\(\)\.setDepth\(201\)/);
-  assert.match(source, /drawMuteIcon\(this\.muteToggleIconPosition\.x, this\.muteToggleIconPosition\.y, muted\)/);
-  assert.match(source, /this\.muteIconGraphic\.lineTo\(x \+ 28, y - 18\)/);
+  assert.match(source, /addPanel\(width \/ 2, height \* 0\.57, panelWidth, 220, 'AUDIO'\)/);
+  assert.match(source, /createVolumeSlider\(width \/ 2, height \* 0\.53, panelWidth - 76, 'Music Volume', 'musicVolume'\)/);
+  assert.match(source, /createVolumeSlider\(width \/ 2, height \* 0\.65, panelWidth - 76, 'SFX Volume', 'sfxVolume'\)/);
+  assert.doesNotMatch(source, /createMuteToggle/);
+  assert.doesNotMatch(source, /muteIconGraphic/);
   assert.doesNotMatch(source, /backgroundColor: '#93c5fd'/);
 
   assert.match(source, /SETTINGS_STORAGE_KEY = 'gridfall:tactics:settings:v1'/);
@@ -42,9 +39,8 @@ test('settings notes document current settings shell behavior and future audio p
   assert.match(notes, /Polish \(`pl`\)/);
   assert.match(notes, /Music Volume/);
   assert.match(notes, /SFX Volume/);
-  assert.match(notes, /compact centered mute toggle/);
-  assert.match(notes, /`Audio ON` means audio is active/);
-  assert.match(notes, /`Muted` means audio is muted/);
+  assert.match(notes, /temporarily hidden/);
+  assert.match(notes, /mute control does not overlap/);
   assert.match(notes, /Sliders remain visible and keep their stored values/);
   assert.match(notes, /public\/assets\/audio\/music\//);
   assert.match(notes, /public\/assets\/audio\/sfx\//);
@@ -55,7 +51,7 @@ test('SettingsScene uses shared full-screen bottom navigation controls', () => {
   const source = read('src/scenes/SettingsScene.js');
 
   assert.match(source, /import \{ createBuildMarker \} from '\.\.\/ui\/buildMarker\.js';/);
-  assert.match(source, /import \{ createBottomNavigationControls, createFloatingControl, requestPortraitOrientationLock, toggleSceneFullscreen \} from '\.\.\/ui\/navigationControls\.js';/);
+  assert.match(source, /import \{ createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen \} from '\.\.\/ui\/navigationControls\.js';/);
   assert.match(source, /const SETTINGS_PANEL_DEPTH = 0/);
   assert.match(source, /const buildMarker = createBuildMarker\(this, \{ width, height \}\);/);
   assert.match(source, /this\.drawNavigationControls\(\);/);
