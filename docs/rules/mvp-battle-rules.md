@@ -136,6 +136,9 @@ The no-progress detector uses the stricter "meaningful for outcome" definition i
 - `type: "unit"` cards are board units and must be placed/redeployed onto valid friendly combat slots.
 - **All non-unit cards** are treated by gameplay logic as **effect cards**.
 - `order`, `special`, and `utility` currently behave as **descriptive taxonomy labels** in card data; gameplay execution path is non-unit effect resolution unless a specific effectId says otherwise.
+- The Deck Info panel routes card names, card type labels, and the unknown-card fallback through `src/localization/cardDisplay.js`. This adapter is the first future localization seam and currently preserves the same English output.
+- Card JSON still uses `name` and `textShort` as the canonical visible strings for now. Do not add translation files, `nameKey`, or `textKey` until the later localization migration.
+- Future localization migration is expected to add `nameKey` / `textKey` while keeping gameplay data stable and avoiding behavior changes.
 - Hand-card UI labels render card name, unit stats, and `textShort` directly from the current card data object, so the visible player hand follows the faction JSON values plus any card object returned from redeploy/recall.
 
 - Individual card objects in faction JSON do **not** need a `faction` field; cards inherit faction identity from the top-level faction JSON file (`id` / `name`).

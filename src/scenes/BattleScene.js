@@ -9,6 +9,7 @@ import { createBuildMarker } from '../ui/buildMarker.js';
 import { calculateHandLayoutMetrics } from '../ui/handLayout.js';
 import { createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
 import { createModalBackButton } from '../ui/modalControls.js';
+import { getCardDisplayName, getCardTypeLabel } from '../localization/cardDisplay.js';
 
 const HAND_CARD_ACCENT_COLORS = Object.freeze({
   unit: 0x4da6ff,
@@ -1155,8 +1156,8 @@ export default class BattleScene extends Phaser.Scene {
     const summary = new Map();
     (Array.isArray(cards) ? cards : []).forEach((card) => {
       if (!card) return;
-      const name = card.name ?? 'Unknown Card';
-      const typeLabel = card.type === 'effect' ? 'Effect' : 'Unit';
+      const name = getCardDisplayName(card) ?? 'Unknown Card';
+      const typeLabel = getCardTypeLabel(card);
       const key = `${name}|${typeLabel}`;
       const existing = summary.get(key) ?? { name, typeLabel, count: 0 };
       existing.count += 1;
