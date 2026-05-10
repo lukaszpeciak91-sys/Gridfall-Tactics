@@ -21,8 +21,6 @@ const expectedTextShort = new Map(Object.entries({
   control_controller_1: 'On play: swap first 2 enemies.',
   control_jam_signal_1: 'Leftmost 2 enemies -1 ATK this turn.',
   control_pulse_wave_1: 'Deal 1 to all enemies ignoring armor.',
-  control_system_override_1: 'Target enemy hits its own hero next combat.',
-  control_pulse_wave_1: 'Deal 1 to leftmost 2 enemies.',
   control_system_override_1: 'Target enemy attacks its own hero in next combat, then takes 1 damage.',
   swarm_spitter_1: 'On play: deal 1 to enemy in lane.',
   swarm_brood_1: 'On death: summon 1/1 here.',

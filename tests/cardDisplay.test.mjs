@@ -14,17 +14,44 @@ import {
   formatDeckSummaryEntry,
   formatHandCardLabel,
 } from '../src/rendering/cardRenderModes.js';
+import { getFactionByKey, getFactionKeys } from '../src/data/factions/index.js';
 
-test('card display helper falls back to current card name fields without translation data', () => {
+test('card display helper falls back to current card name fields when card keys are absent', () => {
   assert.equal(getCardDisplayName({ name: 'Shield Drone' }), 'Shield Drone');
   assert.equal(getCardDisplayName({ name: 'Shield Drone' }, 'pl'), 'Shield Drone');
   assert.equal(getCardDisplayName({}), undefined);
 });
 
-test('card display helper falls back to current textShort fields without translation data', () => {
+test('card display helper falls back to current textShort fields when card keys are absent', () => {
   assert.equal(getCardTextShort({ textShort: 'Target ally +1 ARM until combat ends.' }), 'Target ally +1 ARM until combat ends.');
   assert.equal(getCardTextShort({ textShort: 'Target ally +1 ARM until combat ends.' }, 'pl'), 'Target ally +1 ARM until combat ends.');
   assert.equal(getCardTextShort({}), undefined);
+});
+
+test('card display helper can resolve future nameKey and textKey fields through English dictionary', () => {
+  const keyedCard = {
+    name: 'Legacy Runner Name',
+    nameKey: 'cards.aggro_runner_1.name',
+    textShort: 'Legacy Runner Text',
+    textKey: 'cards.aggro_runner_1.textShort',
+  };
+
+  assert.equal(getCardDisplayName(keyedCard, 'en'), 'Runner');
+  assert.equal(getCardTextShort(keyedCard, 'en'), 'Open enemy lane: +2 hero dmg.');
+  assert.equal(getCardDisplayName(keyedCard, 'pl'), 'Runner');
+  assert.equal(getCardTextShort(keyedCard, 'pl'), 'Open enemy lane: +2 hero dmg.');
+});
+
+test('card display helper uses existing card fields when future translation keys are missing', () => {
+  const keyedCard = {
+    name: 'Fallback Name',
+    nameKey: 'cards.missing.name',
+    textShort: 'Fallback text.',
+    textKey: 'cards.missing.textShort',
+  };
+
+  assert.equal(getCardDisplayName(keyedCard, 'en'), 'Fallback Name');
+  assert.equal(getCardTextShort(keyedCard, 'en'), 'Fallback text.');
 });
 
 test('card display helper keeps current English type and stat labels', () => {
@@ -69,7 +96,6 @@ test('card render mode helpers keep compact and full card text separate', () => 
     'Blocks lane. Cannot attack.',
   ]);
 });
-
 
 test('hand/full formatter includes textShort and preserves unit stat line output', () => {
   const card = {
@@ -161,4 +187,16 @@ test('deck info panel output templates remain unchanged', () => {
   assert.match(deckInfoFormattingSource, /return `\$\{heading\} \(\$\{total\}\)\\n• None`;/);
   assert.match(deckInfoFormattingSource, /`• \$\{entry\.name\} — \$\{entry\.typeLabel\} ×\$\{entry\.count\}`/);
   assert.match(source, /return groups\.map\(\(\[heading, cards\]\) => this\.formatDeckInfoGroup\(heading, cards\)\)\.join\('\\n\\n'\);/);
+});
+
+test('current faction card output remains unchanged without nameKey/textKey migration', () => {
+  for (const factionKey of getFactionKeys()) {
+    const faction = getFactionByKey(factionKey);
+    for (const card of faction.deck) {
+      assert.equal(getCardDisplayName(card, 'en'), card.name);
+      assert.equal(getCardDisplayName(card, 'pl'), card.name);
+      assert.equal(getCardTextShort(card, 'en'), card.textShort);
+      assert.equal(getCardTextShort(card, 'pl'), card.textShort);
+    }
+  }
 });
