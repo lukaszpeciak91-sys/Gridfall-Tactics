@@ -209,7 +209,7 @@ The no-progress detector uses the stricter "meaningful for outcome" definition i
 | Swarm | Swarm Attack | order | - | buff_all_atk_1 | Friendly units get temp +1 ATK this turn. | Non-targeted effect | Swarm-specific behavior remains unchanged. |
 | Swarm | Regrow | order | - | revive_friendly_1hp | Revive first discarded unit at 1 HP. | Non-targeted deterministic effect | First empty slot + first unit in discard; no manual target UI. |
 | Swarm | Flood | special | - | fill_empty_slots_0_1 | Fill 2 empty ally slots with 0/1 Tokens. | Non-targeted deterministic effect | Fills up to 2 empty friendly slots, left-to-right; no manual target UI. |
-| Swarm | Recycle | utility | - | destroy_friendly_draw_2 | Destroy targeted friendly unit, draw 2. | Targeted friendly | Immediate destroy, then draw. |
+| Swarm | Recycle | utility | - | destroy_friendly_draw_1 | Destroy targeted friendly unit, draw 1. | Targeted friendly | Immediate destroy, then draw. |
 | Tank | Shieldbearer | unit | 1/2/0 | lane_armor_aura_1 | Adjacent allies have +1 ARM in combat. | Passive adjacency aura | Calculated during damage mitigation. |
 | Tank | Heavy | unit | 2/3/0 | null | No special behavior. | Lane combat | Baseline durable unit. |
 | Tank | Guardian | unit | 1/3/0 | intercept_lane_damage | Intercepts combat damage for adjacent ally. | Deterministic adjacency intercept | One guardian intercept per index per resolve pass. |

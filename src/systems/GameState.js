@@ -81,7 +81,7 @@ function cardCanRealisticallyAffectOutcome(card, state, owner) {
       return friendlyEmptySlots && friendlyDiscardUnits;
     case 'fill_empty_slots_0_1':
       return false;
-    case 'destroy_friendly_draw_2':
+    case 'destroy_friendly_draw_1':
     case 'return_friendly_draw_1':
       return friendlyUnits.length > 0
         && (owner === 'player' ? state.player.deck : state.enemy.deck)
@@ -850,10 +850,10 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
       drawCards(side, 1);
       break;
     }
-    case 'destroy_friendly_draw_2': {
+    case 'destroy_friendly_draw_1': {
       if (targetUnit.owner !== owner) return { ok: false, reason: 'Target must be friendly' };
       state.board[boardIndex] = null;
-      drawCards(side, 2);
+      drawCards(side, 1);
       break;
     }
     case 'enemy_lane_atk_minus_1': {
