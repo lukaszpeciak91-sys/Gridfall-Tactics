@@ -1,6 +1,5 @@
 const FRIENDLY_SINGLE_TARGET_EFFECTS = new Set([
   'return_friendly_draw_1',
-  'destroy_friendly_draw_2',
   'destroy_friendly_draw_1',
   'quick_strike',
   'heal_2',
