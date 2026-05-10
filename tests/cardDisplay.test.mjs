@@ -53,7 +53,7 @@ test('card render mode helpers keep compact and full card text separate', () => 
 
   assert.equal(formatBoardUnitLabel(card), 'Shield Drone\nATK 1 / HP 4 / ARM 2');
   assert.doesNotMatch(formatBoardUnitLabel(card), /Blocks lane|Cannot attack|long rules description|textShort/);
-  assert.match(formatHandCardLabel(card), /Blocks lane\. Cannot attack\./);
+  assert.equal(formatHandCardLabel(card), 'Shield Drone\n1/4 ARM 2\nBlocks lane. Cannot attack.');
   assert.deepEqual(formatCollectionRowLabel(card), {
     name: 'Shield Drone',
     typeStats: 'unit • ATK 1 / HP 4',
@@ -70,6 +70,61 @@ test('card render mode helpers keep compact and full card text separate', () => 
   ]);
 });
 
+
+test('hand/full formatter includes textShort and preserves unit stat line output', () => {
+  const card = {
+    name: 'Shield Drone',
+    type: 'unit',
+    attack: 1,
+    hp: 4,
+    armor: 2,
+    textShort: ' Blocks lane. Cannot attack. ',
+  };
+
+  assert.equal(formatHandCardLabel(card), 'Shield Drone\n1/4 ARM 2\nBlocks lane. Cannot attack.');
+});
+
+test('hand/full formatter includes effect card textShort without unit stats', () => {
+  const card = {
+    name: 'Repair Kit',
+    type: 'effect',
+    attack: 99,
+    hp: 99,
+    armor: 99,
+    textShort: 'Heal 3.',
+  };
+
+  assert.equal(formatHandCardLabel(card), 'Repair Kit\nHeal 3.');
+});
+
+test('battle hand labels route through HAND/FULL formatter and preserve visible output', () => {
+  const source = fs.readFileSync('src/scenes/BattleScene.js', 'utf8');
+  const start = source.indexOf('  getHandCardLabel(card) {');
+  const end = source.indexOf('  onCardPointerDown(cardId) {');
+  const handLabelSource = source.slice(start, end);
+  const unitCard = {
+    name: 'Shield Drone',
+    type: 'unit',
+    attack: 1,
+    hp: 4,
+    armor: 2,
+    textShort: ' Blocks lane. Cannot attack. ',
+  };
+  const effectCard = {
+    name: 'Repair Kit',
+    type: 'effect',
+    textShort: 'Heal 3.',
+  };
+
+  assert.match(source, /import \{ formatDeckSummaryEntry, formatHandCardLabel \} from '\.\.\/rendering\/cardRenderModes\.js';/);
+  assert.match(handLabelSource, /return formatHandCardLabel\(card, 'en'\);/);
+  assert.doesNotMatch(handLabelSource, /card\.textShort/);
+  assert.doesNotMatch(handLabelSource, /`\$\{atk\}\/\$\{hp\} ARM \$\{armor\}`/);
+  assert.equal(formatHandCardLabel(unitCard), 'Shield Drone\n1/4 ARM 2\nBlocks lane. Cannot attack.');
+  assert.equal(formatHandCardLabel(effectCard), 'Repair Kit\nHeal 3.');
+  assert.equal(formatHandCardLabel(null), 'Empty');
+});
+
 test('card render mode helpers preserve English fallback behavior for future locales', () => {
   const card = { name: 'Shield Drone', type: 'effect', textShort: 'Target ally +1 ARM until combat ends.' };
 
@@ -84,7 +139,7 @@ test('deck info panel routes card summary entries through render mode formatter'
   const end = source.indexOf('  drawHand() {');
   const deckInfoSummarySource = source.slice(start, end);
 
-  assert.match(source, /import \{ formatDeckSummaryEntry \} from '\.\.\/rendering\/cardRenderModes\.js';/);
+  assert.match(source, /import \{ formatDeckSummaryEntry, formatHandCardLabel \} from '\.\.\/rendering\/cardRenderModes\.js';/);
   assert.match(deckInfoSummarySource, /const entry = formatDeckSummaryEntry\(card\);/);
   assert.doesNotMatch(deckInfoSummarySource, /const name = card\.name \?\? 'Unknown Card'/);
   assert.doesNotMatch(deckInfoSummarySource, /card\.type === 'effect' \? 'Effect' : 'Unit'/);
