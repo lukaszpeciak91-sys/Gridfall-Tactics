@@ -95,8 +95,8 @@
       "name": "Recycle",
       "type": "utility",
       "targeting": "friendly_unit",
-      "effectId": "destroy_friendly_draw_2",
-      "textShort": "Destroy ally. Draw 2."
+      "effectId": "destroy_friendly_draw_1",
+      "textShort": "Destroy ally. Draw 1."
     }
   ]
 }

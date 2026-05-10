@@ -448,3 +448,33 @@ test('Swarm Attack remains a +1 temporary attack buff', () => {
 
   assert.equal(state.board[6].tempAttackMod, undefined);
 });
+
+test('Recycle destroys only a friendly unit and draws exactly one card', () => {
+  const swarm = loadFaction('src/data/factions/swarm.json');
+  const recycle = swarm.deck.find((card) => card.id === 'swarm_recycle_1');
+  const nextCard = swarm.deck.find((card) => card.id === 'swarm_grunt_1');
+  const state = createInitialBattleState({ name: 'Test', deck: [{ ...nextCard }] });
+
+  state.player.hand.push({ ...recycle });
+  state.board[6] = unit('player', { id: 'friendly-sacrifice' });
+  state.board[0] = unit('enemy', { id: 'enemy-unit' });
+
+  const enemyResult = resolveTargetedEffectCard(state, 'player', recycle.id, 0);
+  assert.equal(enemyResult.ok, false);
+  assert.equal(enemyResult.reason, 'Target must be friendly');
+  assert.equal(state.board[0].id, 'enemy-unit');
+  assert.equal(state.board[6].id, 'friendly-sacrifice');
+  assert.equal(state.player.hand.length, 1);
+  assert.equal(state.player.deck.length, 1);
+
+  const friendlyResult = resolveTargetedEffectCard(state, 'player', recycle.id, 6);
+  assert.equal(friendlyResult.ok, true);
+  assert.equal(state.board[6], null);
+  assert.equal(state.board[0].id, 'enemy-unit');
+  assert.deepEqual(state.player.hand.map((card) => card.id), [nextCard.id]);
+  assert.equal(state.player.deck.length, 0);
+  assert.equal(state.player.discard.map((card) => card.id).includes(recycle.id), true);
+  assert.equal(recycle.targeting, 'friendly_unit');
+  assert.equal(recycle.effectId, 'destroy_friendly_draw_1');
+  assert.equal(recycle.textShort, 'Destroy ally. Draw 1.');
+});
