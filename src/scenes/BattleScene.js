@@ -122,6 +122,8 @@ export default class BattleScene extends Phaser.Scene {
     this.playerHeroPanel = null;
     this.enemyInitiativeIcon = null;
     this.playerInitiativeIcon = null;
+    this.enemyActionSlotBadge = null;
+    this.playerActionSlotBadge = null;
     this.lastCombatEvents = [];
     this.enemyFactionKey = null;
     this.backgroundArtAsset = null;
@@ -342,6 +344,7 @@ export default class BattleScene extends Phaser.Scene {
     if (!this.gameState?.winner || this.battleResultModalShown || this.battleResultModalPending) return;
     this.battleResultModalPending = true;
     this.isFlowResolving = true;
+    this.updateActionSlotBadge();
     this.time.delayedCall(delayMs, () => this.showBattleResultModal());
   }
 
@@ -358,6 +361,7 @@ export default class BattleScene extends Phaser.Scene {
 
     this.battleResultModalShown = true;
     this.isFlowResolving = false;
+    this.updateActionSlotBadge();
     this.selectedCardId = null;
     this.pendingSwapIndex = null;
     this.targetingState = null;
@@ -461,6 +465,7 @@ export default class BattleScene extends Phaser.Scene {
     if (!this.battleResultModal) {
       this.battleResultModalShown = false;
       this.battleResultModalPending = false;
+      this.updateActionSlotBadge();
       return;
     }
     const items = [
@@ -477,6 +482,7 @@ export default class BattleScene extends Phaser.Scene {
     this.battleResultModal = null;
     this.battleResultModalShown = false;
     this.battleResultModalPending = false;
+    this.updateActionSlotBadge();
   }
 
   exitBattleToFactionSelect() {
@@ -688,6 +694,19 @@ export default class BattleScene extends Phaser.Scene {
     this.enemyInitiativeIcon.setDepth(120);
     this.playerInitiativeIcon.setDepth(120);
 
+    this.enemyActionSlotBadge = this.createActionSlotBadge({
+      panel: enemyPanel,
+      panelWidth,
+      panelHeight: topHero.h,
+      align: 'left',
+    });
+    this.playerActionSlotBadge = this.createActionSlotBadge({
+      panel: playerPanel,
+      panelWidth,
+      panelHeight: playerHero.h,
+      align: 'right',
+    });
+
     this.add.text(enemyPanel.x, enemyPanel.y - topHero.h * 0.14, 'ENEMY HERO', {
       fontFamily: 'Arial, sans-serif',
       fontSize: `${Math.max(16, Math.floor(topHero.h * 0.32))}px`,
@@ -715,6 +734,84 @@ export default class BattleScene extends Phaser.Scene {
       color: '#f8fafc',
       fontStyle: 'bold',
     }).setOrigin(0.5, 0.5);
+
+    this.updateActionSlotBadge();
+  }
+
+  createActionSlotBadge({ panel, panelWidth, panelHeight, align }) {
+    const badgeWidth = Math.max(58, Math.min(82, panelWidth * 0.2));
+    const badgeHeight = Math.max(20, Math.min(28, panelHeight * 0.48));
+    const insetX = Math.max(8, panelWidth * 0.045);
+    const x = align === 'left'
+      ? panel.x - panelWidth / 2 + insetX + badgeWidth / 2
+      : panel.x + panelWidth / 2 - insetX - badgeWidth / 2;
+    const y = panel.y;
+
+    const backing = this.add.rectangle(x, y, badgeWidth, badgeHeight, 0x1e293b, 0.92)
+      .setStrokeStyle(2, 0xfacc15, 0.9)
+      .setDepth(121)
+      .setVisible(false);
+    const text = this.add.text(x, y, 'ACT 1/2', {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: `${Math.max(10, Math.floor(badgeHeight * 0.48))}px`,
+      color: '#fde68a',
+      fontStyle: 'bold',
+      align: 'center',
+    }).setOrigin(0.5).setDepth(122).setVisible(false);
+
+    return { backing, text };
+  }
+
+  getActionSlotBadgeState() {
+    if (!this.gameState
+      || this.gameState.winner
+      || this.battleResultModalShown
+      || this.battleResultModalPending
+      || this.openingMulliganPending) {
+      return null;
+    }
+
+    const firstActor = this.gameState.firstActor;
+    const firstActorUsed = firstActor === 'player' ? this.playerActionUsed : this.enemyActionUsed;
+    const secondActor = firstActor === 'player' ? 'enemy' : 'player';
+    const secondActorUsed = secondActor === 'player' ? this.playerActionUsed : this.enemyActionUsed;
+
+    if (this.isFlowResolving) {
+      if (!firstActorUsed && firstActor === 'enemy') {
+        return { side: firstActor, label: 'ACT 1/2' };
+      }
+
+      if (firstActorUsed && !secondActorUsed && secondActor === 'enemy') {
+        return { side: secondActor, label: 'ACT 2/2' };
+      }
+
+      return null;
+    }
+
+    if (!firstActorUsed) {
+      return { side: firstActor, label: 'ACT 1/2' };
+    }
+
+    if (!secondActorUsed) {
+      return { side: secondActor, label: 'ACT 2/2' };
+    }
+
+    return null;
+  }
+
+  updateActionSlotBadge() {
+    const badgeState = this.getActionSlotBadgeState();
+
+    [
+      ['player', this.playerActionSlotBadge],
+      ['enemy', this.enemyActionSlotBadge],
+    ].forEach(([side, badge]) => {
+      if (!badge) return;
+      const isVisible = badgeState?.side === side;
+      badge.backing.setVisible(isVisible);
+      badge.text.setVisible(isVisible);
+      if (isVisible) badge.text.setText(badgeState.label);
+    });
   }
 
   drawBoard() {
@@ -1536,6 +1633,7 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
     this.isFlowResolving = false;
+    this.updateActionSlotBadge();
     this.resetCardHighlights();
   }
 
@@ -1612,6 +1710,7 @@ export default class BattleScene extends Phaser.Scene {
     }
     if (this.playerInitiativeIcon) this.playerInitiativeIcon.setVisible(playerActive);
     if (this.enemyInitiativeIcon) this.enemyInitiativeIcon.setVisible(enemyActive);
+    this.updateActionSlotBadge();
   }
 
   refreshAfterPlayerAction() {
@@ -1623,6 +1722,7 @@ export default class BattleScene extends Phaser.Scene {
     this.refreshHeroHP();
     this.refreshDeckCounter();
     this.resetCardHighlights();
+    this.updateActionSlotBadge();
   }
 
   async revealAndApplyEnemyAction() {
