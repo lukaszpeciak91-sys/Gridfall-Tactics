@@ -88,12 +88,16 @@ export default class SettingsScene extends Phaser.Scene {
     this.addPanel(width / 2, height * 0.3, panelWidth, 154, 'LANGUAGE');
     this.createLanguageSelect(width / 2, height * 0.32, panelWidth - 74);
 
-    const audioPanelHeight = 244;
-    const audioPanelY = height * 0.57 + (audioPanelHeight - 220) / 2;
+    const audioPanelHeight = 300;
+    const audioPanelTop = height * 0.44;
+    const audioPanelY = audioPanelTop + audioPanelHeight / 2;
+    const muteToggleY = audioPanelTop + 70;
+    const musicSliderY = audioPanelTop + 132;
+    const sfxSliderY = audioPanelTop + 222;
     this.addPanel(width / 2, audioPanelY, panelWidth, audioPanelHeight, 'AUDIO');
-    this.createVolumeSlider(width / 2, height * 0.53, panelWidth - 76, 'Music Volume', 'musicVolume');
-    this.createVolumeSlider(width / 2, height * 0.65, panelWidth - 76, 'SFX Volume', 'sfxVolume');
-    this.createMuteToggle(width / 2, audioPanelY + audioPanelHeight / 2 - 32, 44);
+    this.createMuteToggle(width / 2, muteToggleY, 44);
+    this.createVolumeSlider(width / 2, musicSliderY, panelWidth - 76, 'Music Volume', 'musicVolume');
+    this.createVolumeSlider(width / 2, sfxSliderY, panelWidth - 76, 'SFX Volume', 'sfxVolume');
 
     const buildMarker = createBuildMarker(this, { width, height });
     this.drawNavigationControls();
