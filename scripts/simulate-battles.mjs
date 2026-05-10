@@ -130,6 +130,9 @@ function applyAction(state, owner, passStats, decisionOptions, telemetry) {
   if (result.card?.id === 'attrition_swarm_funeral_pyre_1') {
     telemetry.funeralPyreUses = (telemetry.funeralPyreUses ?? 0) + 1;
   }
+  if (result.card?.id === 'control_system_override_1') {
+    telemetry.systemOverrideUses = (telemetry.systemOverrideUses ?? 0) + 1;
+  }
   recordBattleActionUse(state, owner, action, telemetry);
 }
 
@@ -308,7 +311,7 @@ function main() {
   const combinedPairs = new Map();
   const orderedMatchups = new Map();
   const passStats = { pass: 0, cancelled: 0 };
-  const telemetry = { replaceUsed: 0, repositionUsed: 0, meaningfulGameplayActions: 0, pointlessGameplayActions: 0, openLaneImprovements: 0, repeatedLoopPreventions: 0, invalidActions: 0, crashes: 0, quickFixUses: 0, quickFixTriggers: 0, shieldPushUses: 0, defensiveFrictionApplications: 0, funeralPyreUses: 0, funeralPyreTriggers: 0, funeralPyreLaneDamageTriggers: 0, combatOnlyDeathHeroTriggers: 0, combatOnlyDeathLaneDamageTriggers: 0, combatOnlyDeathSummons: 0, leechCombatHeals: 0, rotcallerCombatTriggers: 0, mulliganByFaction: {} };
+  const telemetry = { replaceUsed: 0, repositionUsed: 0, meaningfulGameplayActions: 0, pointlessGameplayActions: 0, openLaneImprovements: 0, repeatedLoopPreventions: 0, invalidActions: 0, crashes: 0, quickFixUses: 0, quickFixTriggers: 0, shieldPushUses: 0, defensiveFrictionApplications: 0, funeralPyreUses: 0, systemOverrideUses: 0, funeralPyreTriggers: 0, funeralPyreLaneDamageTriggers: 0, combatOnlyDeathHeroTriggers: 0, combatOnlyDeathLaneDamageTriggers: 0, combatOnlyDeathSummons: 0, leechCombatHeals: 0, rotcallerCombatTriggers: 0, mulliganByFaction: {} };
   const audit = { games: 0, draws: 0, turnCaps: 0, aggroTurnCapWins: 0, aggroGames: 0, nonSwarmGames: 0, nonSwarmDraws: 0, nonSwarmTurnCaps: 0, swarmMirrorGames: 0, swarmMirrorDraws: 0, simultaneousLethals: 0, simultaneousLethalDrawsAfter: 0 };
 
   for (let playerIndex = 0; playerIndex < factionKeys.length; playerIndex += 1) for (let enemyIndex = 0; enemyIndex < factionKeys.length; enemyIndex += 1) {
@@ -559,6 +562,7 @@ Battle simulation complete (${matchCount} games per matchup, max ${MAX_TURNS} tu
     { metric: 'Shield Push uses', count: telemetry.shieldPushUses },
     { metric: 'defensive friction applications', count: telemetry.defensiveFrictionApplications },
     { metric: 'Funeral Pyre uses', count: telemetry.funeralPyreUses },
+    { metric: 'System Override uses', count: telemetry.systemOverrideUses },
     { metric: 'Funeral Pyre combat triggers', count: telemetry.funeralPyreTriggers },
     { metric: 'Funeral Pyre trigger rate', count: `${percent(telemetry.funeralPyreTriggers, telemetry.funeralPyreUses)}%` },
     { metric: 'Funeral Pyre lane-damage triggers', count: telemetry.funeralPyreLaneDamageTriggers },

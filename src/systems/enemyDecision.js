@@ -585,6 +585,13 @@ function scoreAction(state, owner, action) {
     score += lethal ? 650 : (oppositeAlly?.owner === owner ? 780 : 120);
   }
 
+  if (action.effectId === 'control_enemy_unit_this_turn') {
+    const target = state.board[action.targetIndex];
+    const targetAttack = getUnitAttack(target);
+    score += 900 + targetAttack * 220;
+    if ((target?.hp ?? 0) <= 1) score += 650;
+  }
+
   if (action.effectId === 'quick_strike') {
     score += immediateHeroDamage > 0 || kills > 0 ? 2000 : -2500;
   }

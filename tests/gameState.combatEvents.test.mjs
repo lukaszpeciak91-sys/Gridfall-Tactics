@@ -263,6 +263,57 @@ test('Multiple Runner attacks resolve consistently', () => {
   assert.equal(state.enemyHP, 4);
 });
 
+
+test('System Override makes the targeted enemy attack its own hero, then take 1 damage', () => {
+  const state = makeState();
+  const systemOverride = {
+    id: 'system-override-test-card',
+    name: 'System Override',
+    type: 'special',
+    targeting: 'enemy_unit',
+    effectId: 'control_enemy_unit_this_turn',
+  };
+  state.player.hand.push(systemOverride);
+  state.board[0] = unit('enemy', { id: 'overridden-enemy', attack: 2, hp: 2, maxHp: 2 });
+  state.board[6] = unit('player', { attack: 0, hp: 2, maxHp: 2 });
+
+  const result = resolveTargetedEffectCard(state, 'player', systemOverride.id, 0);
+  const events = resolveCombat(state);
+
+  assert.equal(result.ok, true);
+  assert.deepEqual(events.map((event) => [event.lane, event.attackerSide, event.targetSide, event.damage, event.openLane]), [
+    [0, 'player', 'enemy', 0, false],
+    [0, 'enemy', 'enemy', 2, false],
+  ]);
+  assert.equal(state.enemyHP, 10);
+  assert.equal(state.playerHP, 12);
+  assert.equal(state.board[0].hp, 1);
+  assert.equal(state.board[0].controlledAttackThisTurn, undefined);
+});
+
+test('System Override self-damage uses normal defeated-unit cleanup after combat', () => {
+  const state = makeState();
+  const systemOverride = {
+    id: 'system-override-test-card',
+    name: 'System Override',
+    type: 'special',
+    targeting: 'enemy_unit',
+    effectId: 'control_enemy_unit_this_turn',
+  };
+  state.player.hand.push(systemOverride);
+  state.board[1] = unit('enemy', { id: 'fragile-overridden-enemy', attack: 1, hp: 1, maxHp: 1 });
+
+  const result = resolveTargetedEffectCard(state, 'player', systemOverride.id, 1);
+  const events = resolveCombat(state);
+
+  assert.equal(result.ok, true);
+  assert.deepEqual(events.map((event) => [event.lane, event.attackerSide, event.targetSide, event.damage, event.openLane]), [
+    [1, 'enemy', 'enemy', 1, false],
+  ]);
+  assert.equal(state.enemyHP, 11);
+  assert.equal(state.board[1], null);
+});
+
 test('simultaneous lethal uses raw overkill depth so -1 HP beats -4 HP', () => {
   const state = makeState();
   state.playerHP = 5;

@@ -1430,9 +1430,14 @@ function resolveCombatLane(state, col, combatContext = null) {
 
   if (player) {
     const playerAttack = getAttackWithCombatBonuses(player, playerIndex) + getAuraBonusAttack(player);
+    const controlledToHero = Boolean(player.controlledAttackThisTurn);
     const canHitAnyLane = player.effectId === 'can_hit_any_lane';
-    const sniperTargetIndex = canHitAnyLane ? findSniperTargetIndex(player.owner) : null;
-    if (sniperTargetIndex !== null) {
+    const sniperTargetIndex = !controlledToHero && canHitAnyLane ? findSniperTargetIndex(player.owner) : null;
+    if (controlledToHero) {
+      recordHeroAttack('player', playerIndex, 'player', playerAttack, false);
+      state.playerHP -= playerAttack;
+      addPendingUnitDamage(playerIndex, 1);
+    } else if (sniperTargetIndex !== null) {
       const sniperTarget = state.board[sniperTargetIndex];
       if (sniperTarget) {
         const damage = getMitigatedDamage({ ...player, attack: playerAttack }, sniperTarget);
@@ -1467,6 +1472,7 @@ function resolveCombatLane(state, col, combatContext = null) {
     if (controlledToHero) {
       recordHeroAttack('enemy', enemyIndex, 'enemy', enemyAttack, false);
       state.enemyHP -= enemyAttack;
+      addPendingUnitDamage(enemyIndex, 1);
     } else if (sniperTargetIndex !== null) {
       const sniperTarget = state.board[sniperTargetIndex];
       if (sniperTarget) {
