@@ -8,6 +8,7 @@ import {
   preloadMenuBackgroundArt,
 } from '../rendering/backgroundArt.js';
 import { formatCardDetailLines, formatCollectionRowLabel } from '../rendering/cardRenderModes.js';
+import { getActiveLocale } from '../localization/localeService.js';
 
 const CARD_SCROLL_DRAG_THRESHOLD = 8;
 
@@ -141,7 +142,7 @@ export default class CollectionScene extends Phaser.Scene {
   }
 
   drawCardRow(content, card, { x, y, width, height }) {
-    const rowLabel = formatCollectionRowLabel(card);
+    const rowLabel = formatCollectionRowLabel(card, getActiveLocale());
 
     const row = this.add.graphics();
     row.fillStyle(0x0f172a, 0.92);
@@ -213,7 +214,7 @@ export default class CollectionScene extends Phaser.Scene {
       .setDepth(101)
       .setInteractive();
 
-    const detailLines = formatCardDetailLines(card);
+    const detailLines = formatCardDetailLines(card, getActiveLocale());
 
     const title = this.add
       .text(width / 2, height / 2 - panelHeight / 2 + 30, detailLines[0], {

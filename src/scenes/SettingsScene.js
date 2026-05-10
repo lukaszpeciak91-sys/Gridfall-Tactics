@@ -8,18 +8,21 @@ import {
 } from '../rendering/backgroundArt.js';
 import { createBuildMarker } from '../ui/buildMarker.js';
 import { createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
-
-const SETTINGS_STORAGE_KEY = 'gridfall:tactics:settings:v1';
+import { SETTINGS_STORAGE_KEY, getSupportedLocales, normalizeLocale, setActiveLocale } from '../localization/localeService.js';
 const DEFAULT_SETTINGS = {
   language: 'en',
   musicVolume: 50,
   sfxVolume: 50,
   muted: false,
 };
-const LANGUAGE_OPTIONS = [
-  { value: 'en', label: 'English' },
-  { value: 'pl', label: 'Polish' },
-];
+const LANGUAGE_LABELS = Object.freeze({
+  en: 'English',
+  pl: 'Polish',
+});
+const LANGUAGE_OPTIONS = getSupportedLocales().map((locale) => ({
+  value: locale,
+  label: LANGUAGE_LABELS[locale] ?? locale,
+}));
 const SETTINGS_PANEL_DEPTH = 0;
 
 const LABEL_STYLE = {
@@ -151,9 +154,8 @@ export default class SettingsScene extends Phaser.Scene {
   }
 
   normalizeSettings(settings) {
-    const languageValues = LANGUAGE_OPTIONS.map((option) => option.value);
     return {
-      language: languageValues.includes(settings.language) ? settings.language : DEFAULT_SETTINGS.language,
+      language: normalizeLocale(settings.language),
       musicVolume: this.clampVolume(settings.musicVolume),
       sfxVolume: this.clampVolume(settings.sfxVolume),
       muted: Boolean(settings.muted),
@@ -254,7 +256,7 @@ export default class SettingsScene extends Phaser.Scene {
         .setInteractive({ useHandCursor: true });
 
       const selectLanguage = () => {
-        this.settings.language = option.value;
+        this.settings.language = setActiveLocale(option.value);
         this.saveSettings();
         this.languageValueText.setText(option.label);
         statusText.setText(`Language: ${option.label}`);

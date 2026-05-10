@@ -9,7 +9,9 @@ SettingsScene is currently a shell for preferences that can be wired into full l
   - English (`en`)
   - Polish (`pl`)
 - The selected language is saved locally so the shell can restore the choice after a browser refresh.
-- Future languages should be added by extending the SettingsScene language option list rather than adding new one-off buttons.
+- The language dropdown is the source of truth for the active locale exposed by `src/localization/localeService.js`.
+- The locale service currently supports `en` and `pl`, normalizes invalid values back to `en`, and reuses the existing SettingsScene storage object instead of creating a separate localization key.
+- Future languages should be added to the locale service supported-locale list and given a SettingsScene label rather than adding new one-off buttons.
 
 ## Audio controls
 
@@ -24,14 +26,20 @@ SettingsScene is currently a shell for preferences that can be wired into full l
 
 ## Persistence
 
-SettingsScene stores the following preferences in `localStorage` when browser storage is available:
+SettingsScene stores the following preferences in `localStorage` under `gridfall:tactics:settings:v1` when browser storage is available:
 
 - `language`
 - `musicVolume`
 - `sfxVolume`
 - `muted`
 
-If local storage is unavailable or blocked, SettingsScene falls back to in-memory defaults for the current session.
+If local storage is unavailable or blocked, SettingsScene falls back to in-memory defaults for the current session. The locale service reads and writes the same settings object so the Settings language option remains the active-locale source of truth.
+
+## Localization foundation
+
+- Translation dictionaries are not implemented yet; do not add `en.json` or `pl.json` until the project intentionally starts text localization.
+- UI strings and card text remain unchanged.
+- Card render helpers are ready to receive a locale and now have low-risk scene call sites passing the active locale, while current output remains English fallback text.
 
 ## Future audio asset paths
 
