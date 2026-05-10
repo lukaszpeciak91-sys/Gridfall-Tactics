@@ -136,10 +136,14 @@ The no-progress detector uses the stricter "meaningful for outcome" definition i
 - `type: "unit"` cards are board units and must be placed/redeployed onto valid friendly combat slots.
 - **All non-unit cards** are treated by gameplay logic as **effect cards**.
 - `order`, `special`, and `utility` currently behave as **descriptive taxonomy labels** in card data; gameplay execution path is non-unit effect resolution unless a specific effectId says otherwise.
-- The Deck Info panel routes card names, card type labels, and the unknown-card fallback through `src/localization/cardDisplay.js`. This adapter is the first future localization seam and currently preserves the same English output.
-- Card JSON still uses `name` and `textShort` as the canonical visible strings for now. Do not add translation files, `nameKey`, or `textKey` until the later localization migration.
+- Card JSON remains the single card data source. It still uses `name` and `textShort` as the canonical visible strings for now; do not add translation files, `nameKey`, or `textKey` until the later localization migration.
+- Card display strings flow through `src/localization/cardDisplay.js`, and UI-specific labels are separated by explicit render-mode helpers in `src/rendering/cardRenderModes.js`. This keeps one data source while allowing multiple UI render modes for hand/full cards, board/compact units, collection rows/details, and deck summaries.
+- Deck Info summary entries and Collection row/detail labels are routed through the render-mode helpers and currently preserve the same English output.
+- Hand-card UI labels still render the existing full layout of card name, unit stats, and `textShort`; hand rendering is intentionally not routed yet.
+- Board cards must stay compact: board unit labels show only the unit name plus ATK/HP/ARM-style combat stats and must not show long rules text or `textShort`.
+- Artwork remains language-neutral. Future localization should swap text through display adapters/render modes rather than baking language into card art.
+- A future board tap or long-press affordance can open a full card preview when players need long rules text, without putting that text directly on board units.
 - Future localization migration is expected to add `nameKey` / `textKey` while keeping gameplay data stable and avoiding behavior changes.
-- Hand-card UI labels render card name, unit stats, and `textShort` directly from the current card data object, so the visible player hand follows the faction JSON values plus any card object returned from redeploy/recall.
 
 - Individual card objects in faction JSON do **not** need a `faction` field; cards inherit faction identity from the top-level faction JSON file (`id` / `name`).
 - The canonical behavior matrix may list faction for readability, but source card data must not duplicate that value per card.

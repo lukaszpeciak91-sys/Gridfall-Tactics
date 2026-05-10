@@ -7,17 +7,9 @@ import {
   getMenuBackgroundAsset,
   preloadMenuBackgroundArt,
 } from '../rendering/backgroundArt.js';
+import { formatCardDetailLines, formatCollectionRowLabel } from '../rendering/cardRenderModes.js';
 
 const CARD_SCROLL_DRAG_THRESHOLD = 8;
-const DETAIL_FIELDS = ['targeting', 'effectId'];
-
-function isUnitCard(card) {
-  return card?.type === 'unit' || (Number.isFinite(card?.attack) && Number.isFinite(card?.hp));
-}
-
-function getStatsLabel(card) {
-  return isUnitCard(card) ? `ATK ${card.attack ?? '-'} / HP ${card.hp ?? '-'}` : null;
-}
 
 export default class CollectionScene extends Phaser.Scene {
   constructor() {
@@ -149,6 +141,8 @@ export default class CollectionScene extends Phaser.Scene {
   }
 
   drawCardRow(content, card, { x, y, width, height }) {
+    const rowLabel = formatCollectionRowLabel(card);
+
     const row = this.add.graphics();
     row.fillStyle(0x0f172a, 0.92);
     row.fillRoundedRect(x, y, width, height, 12);
@@ -158,7 +152,7 @@ export default class CollectionScene extends Phaser.Scene {
     this.uiElements.push(row);
 
     const name = this.add
-      .text(x + 12, y + 10, card.name, {
+      .text(x + 12, y + 10, rowLabel.name, {
         fontFamily: 'Arial, sans-serif',
         fontSize: '17px',
         color: '#f8fafc',
@@ -168,9 +162,8 @@ export default class CollectionScene extends Phaser.Scene {
     content.add(name);
     this.uiElements.push(name);
 
-    const statsLabel = getStatsLabel(card);
     const typeStats = this.add
-      .text(x + 12, y + 34, statsLabel ? `${card.type} • ${statsLabel}` : card.type, {
+      .text(x + 12, y + 34, rowLabel.typeStats, {
         fontFamily: 'Arial, sans-serif',
         fontSize: '12px',
         color: '#cbd5e1',
@@ -180,7 +173,7 @@ export default class CollectionScene extends Phaser.Scene {
     this.uiElements.push(typeStats);
 
     const textShort = this.add
-      .text(x + 122, y + 12, card.textShort ?? '', {
+      .text(x + 122, y + 12, rowLabel.textShort, {
         fontFamily: 'Arial, sans-serif',
         fontSize: '12px',
         color: '#e5e7eb',
@@ -220,8 +213,10 @@ export default class CollectionScene extends Phaser.Scene {
       .setDepth(101)
       .setInteractive();
 
+    const detailLines = formatCardDetailLines(card);
+
     const title = this.add
-      .text(width / 2, height / 2 - panelHeight / 2 + 30, card.name, {
+      .text(width / 2, height / 2 - panelHeight / 2 + 30, detailLines[0], {
         fontFamily: 'Arial, sans-serif',
         fontSize: '24px',
         color: '#f8fafc',
@@ -232,13 +227,7 @@ export default class CollectionScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setDepth(102);
 
-    const lines = [
-      `Type: ${card.type}`,
-      ...(isUnitCard(card) ? [`ATK/HP: ${card.attack ?? '-'} / ${card.hp ?? '-'}`] : []),
-      ...DETAIL_FIELDS.map((field) => `${field}: ${card[field] ?? 'none'}`),
-      '',
-      card.textShort ?? '',
-    ];
+    const lines = detailLines.slice(1);
 
     const body = this.add
       .text(width / 2 - panelWidth / 2 + 22, height / 2 - panelHeight / 2 + 76, lines.join('\n'), {

@@ -77,7 +77,9 @@ Safe cleanup completed in this pass intentionally stayed small:
 - Rules opens `RulesPanelScene` over the current scene and resumes the same battle state afterward.
 - Fullscreen toggles Phaser fullscreen and requests portrait orientation when entering fullscreen.
 - A compact `DECK N` gameplay counter sits to the right of the action button in the action band, away from the hand and bottom navigation controls.
-- Tapping `DECK N` opens a read-only Deck Info panel for the player cards. It groups card status as In Deck, In Hand, Played / Discarded, and On Board; each entry shows card name, Unit/Effect type, and count.
+- Tapping `DECK N` opens a read-only Deck Info panel for the player cards. It groups card status as In Deck, In Hand, Played / Discarded, and On Board; each entry shows card name, Unit/Effect type, and count through the deck-summary render mode so localization can later change labels without changing gameplay data.
+- Card UI uses one card data source with multiple display modes: full hand/detail labels can include short rules text, while board/compact labels must remain name plus ATK/HP/ARM-style stats only. Future board tap or long-press previews can expose full rules text without crowding the combat board.
+- Card artwork remains language-neutral; localized strings should come from display adapters and render-mode formatting rather than from art assets.
 - In-game overlays, including Rules / How To Play and Deck Info, dim gameplay behind the panel, reserve pointer input while open, and restore gameplay input only after dismissal.
 - In-game overlays do not use top-right `X` close controls. The standard dismissal pattern is a centered, bottom-aligned `BACK` button sized for mobile tapping plus tap/click outside the panel.
 - Tapping outside an in-game overlay closes only that overlay; the dimmed overlay layer consumes the tap so underlying gameplay controls do not also act on it.
