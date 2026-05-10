@@ -6,7 +6,8 @@ import {
   getMenuBackgroundAsset,
   preloadMenuBackgroundArt,
 } from '../rendering/backgroundArt.js';
-import { createModalBackButton } from '../ui/modalControls.js';
+import { createBuildMarker } from '../ui/buildMarker.js';
+import { createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
 
 const SETTINGS_STORAGE_KEY = 'gridfall:tactics:settings:v1';
 const DEFAULT_SETTINGS = {
@@ -19,8 +20,7 @@ const LANGUAGE_OPTIONS = [
   { value: 'en', label: 'English' },
   { value: 'pl', label: 'Polish' },
 ];
-const MUTE_ENABLED_LABEL = 'Sound Enabled';
-const MUTE_MUTED_LABEL = 'Sound Muted';
+const SETTINGS_PANEL_DEPTH = 0;
 
 const LABEL_STYLE = {
   fontFamily: 'Arial, sans-serif',
@@ -37,9 +37,10 @@ export default class SettingsScene extends Phaser.Scene {
     this.languageMenuOpen = false;
     this.musicValueText = null;
     this.sfxValueText = null;
-    this.muteToggleHitArea = null;
-    this.muteIconGraphic = null;
-    this.muteStatusText = null;
+  }
+
+  init() {
+    this.cleanupScene();
   }
 
   preload() {
@@ -60,17 +61,23 @@ export default class SettingsScene extends Phaser.Scene {
       height,
     });
 
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.cleanupScene, this);
+    this.scale.on('enterfullscreen', this.onFullscreenChanged, this);
+    this.scale.on('leavefullscreen', this.onFullscreenChanged, this);
+
     this.add
-      .text(width / 2, 54, 'SETTINGS', {
+      .text(width / 2, height * 0.1, 'SETTINGS', {
         fontFamily: 'Arial, sans-serif',
-        fontSize: '34px',
-        color: '#f8fafc',
+        fontSize: '30px',
         fontStyle: 'bold',
+        color: '#f8fafc',
+        align: 'center',
+        wordWrap: { width: width * 0.86 },
       })
       .setOrigin(0.5);
 
     this.add
-      .text(width / 2, 98, 'Preferences are saved locally', {
+      .text(width / 2, height * 0.15, 'Preferences are saved locally', {
         fontFamily: 'Arial, sans-serif',
         fontSize: '14px',
         color: '#cbd5e1',
@@ -78,15 +85,23 @@ export default class SettingsScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     const panelWidth = Math.min(width - 32, 342);
-    this.addPanel(width / 2, height * 0.27, panelWidth, 154, 'LANGUAGE');
-    this.createLanguageSelect(width / 2, height * 0.29, panelWidth - 74);
+    this.addPanel(width / 2, height * 0.3, panelWidth, 154, 'LANGUAGE');
+    this.createLanguageSelect(width / 2, height * 0.32, panelWidth - 74);
 
-    this.addPanel(width / 2, height * 0.55, panelWidth, 288, 'AUDIO');
-    this.createVolumeSlider(width / 2, height * 0.49, panelWidth - 76, 'Music Volume', 'musicVolume');
-    this.createVolumeSlider(width / 2, height * 0.61, panelWidth - 76, 'SFX Volume', 'sfxVolume');
-    this.createMuteToggle(width / 2, height * 0.72);
+    const audioPanelHeight = 300;
+    const audioPanelTop = height * 0.44;
+    const audioPanelY = audioPanelTop + audioPanelHeight / 2;
+    const muteToggleY = audioPanelTop + 70;
+    const musicSliderY = audioPanelTop + 132;
+    const sfxSliderY = audioPanelTop + 222;
+    this.addPanel(width / 2, audioPanelY, panelWidth, audioPanelHeight, 'AUDIO');
+    this.createMuteToggle(width / 2, muteToggleY, 44);
+    this.createVolumeSlider(width / 2, musicSliderY, panelWidth - 76, 'Music Volume', 'musicVolume');
+    this.createVolumeSlider(width / 2, sfxSliderY, panelWidth - 76, 'SFX Volume', 'sfxVolume');
 
-    this.createBackButton(width, height);
+    const buildMarker = createBuildMarker(this, { width, height });
+    this.drawNavigationControls();
+    this.children.bringToTop(buildMarker);
   }
 
   loadSettings() {
@@ -155,8 +170,8 @@ export default class SettingsScene extends Phaser.Scene {
   }
 
   addPanel(x, y, width, height, title) {
-    this.add.rectangle(x + 2, y + 4, width, height, 0x020617, 0.36).setOrigin(0.5);
-    this.add.rectangle(x, y, width, height, 0x0f172a, 0.88).setStrokeStyle(1, 0x334155, 0.9).setOrigin(0.5);
+    this.add.rectangle(x + 2, y + 4, width, height, 0x020617, 0.36).setOrigin(0.5).setDepth(SETTINGS_PANEL_DEPTH);
+    this.add.rectangle(x, y, width, height, 0x0f172a, 0.88).setStrokeStyle(1, 0x334155, 0.9).setOrigin(0.5).setDepth(SETTINGS_PANEL_DEPTH);
     this.add
       .text(x, y - height / 2 + 22, title, {
         fontFamily: 'Arial, sans-serif',
@@ -164,7 +179,8 @@ export default class SettingsScene extends Phaser.Scene {
         color: '#93c5fd',
         fontStyle: 'bold',
       })
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setDepth(SETTINGS_PANEL_DEPTH);
   }
 
   createLanguageSelect(x, y, width) {
@@ -321,6 +337,80 @@ export default class SettingsScene extends Phaser.Scene {
     this.updateSliderVisuals({ x, width, fill, knob, valueText, settingKey });
   }
 
+  createMuteToggle(x, y, size) {
+    const button = this.add.container(x, y);
+    const halo = this.add
+      .circle(0, 0, size * 0.58, 0x38bdf8, this.settings.muted ? 0.16 : 0.08)
+      .setStrokeStyle(1, 0x7dd3fc, this.settings.muted ? 0.34 : 0.18);
+    const backing = this.add
+      .rectangle(0, 0, size, size, 0x020617, 0.66)
+      .setStrokeStyle(1, this.settings.muted ? 0x93c5fd : 0x94a3b8, this.settings.muted ? 0.9 : 0.58);
+    const icon = this.add.graphics();
+
+    button.add([halo, backing, icon]);
+    button.setSize(size, size);
+    button.setDepth(2);
+
+    const refreshButton = (isHovering = false) => {
+      const isMuted = this.settings.muted;
+      backing.setFillStyle(isMuted ? 0x0f2742 : (isHovering ? 0x0f172a : 0x020617), isMuted ? 0.82 : (isHovering ? 0.72 : 0.66));
+      backing.setStrokeStyle(1, isMuted || isHovering ? 0x7dd3fc : 0x94a3b8, isMuted ? 0.95 : (isHovering ? 0.82 : 0.58));
+      halo.setFillStyle(isMuted ? 0x60a5fa : 0x38bdf8, isMuted ? 0.2 : (isHovering ? 0.18 : 0.08));
+      halo.setStrokeStyle(1, 0x7dd3fc, isMuted ? 0.38 : (isHovering ? 0.3 : 0.18));
+      this.drawSpeakerIcon(icon, size, isMuted);
+    };
+
+    button.setInteractive({ useHandCursor: true });
+    button.on('pointerover', () => refreshButton(true));
+    button.on('pointerout', () => refreshButton(false));
+    button.on('pointerup', () => {
+      this.settings.muted = !this.settings.muted;
+      this.saveSettings();
+      refreshButton(false);
+    });
+
+    refreshButton(false);
+  }
+
+  drawSpeakerIcon(icon, size, isMuted) {
+    const iconColor = isMuted ? 0xbfdbfe : 0xf8fafc;
+    const slashColor = 0xf87171;
+    const unit = size / 44;
+
+    icon.clear();
+    icon.fillStyle(iconColor, 1);
+    icon.lineStyle(2.4 * unit, iconColor, 1);
+    icon.beginPath();
+    icon.moveTo(-13 * unit, -6 * unit);
+    icon.lineTo(-7 * unit, -6 * unit);
+    icon.lineTo(1 * unit, -13 * unit);
+    icon.lineTo(1 * unit, 13 * unit);
+    icon.lineTo(-7 * unit, 6 * unit);
+    icon.lineTo(-13 * unit, 6 * unit);
+    icon.closePath();
+    icon.fillPath();
+
+    if (isMuted) {
+      icon.lineStyle(2.8 * unit, slashColor, 1);
+      icon.beginPath();
+      icon.moveTo(8 * unit, -10 * unit);
+      icon.lineTo(17 * unit, 10 * unit);
+      icon.strokePath();
+      icon.beginPath();
+      icon.moveTo(17 * unit, -10 * unit);
+      icon.lineTo(8 * unit, 10 * unit);
+      icon.strokePath();
+      return;
+    }
+
+    icon.beginPath();
+    icon.arc(6 * unit, 0, 7 * unit, -0.82, 0.82);
+    icon.strokePath();
+    icon.beginPath();
+    icon.arc(6 * unit, 0, 12 * unit, -0.62, 0.62);
+    icon.strokePath();
+  }
+
   updateSliderVisuals({ x, width, fill, knob, valueText, settingKey }) {
     const percent = this.settings[settingKey];
     const fillWidth = width * (percent / 100);
@@ -329,85 +419,43 @@ export default class SettingsScene extends Phaser.Scene {
     valueText.setText(`${percent}%`);
   }
 
-  createMuteToggle(x, y) {
-    const toggleWidth = 228;
-    const toggleHeight = 46;
-    const iconX = x - 62;
-    const labelX = x - 28;
-
-    this.muteToggleHitArea = this.add
-      .rectangle(x, y, toggleWidth, toggleHeight, 0x1e293b, 0.36)
-      .setStrokeStyle(1, 0x334155, 0.9)
-      .setOrigin(0.5)
-      .setInteractive({ useHandCursor: true });
-
-    this.muteIconGraphic = this.add.graphics();
-
-    this.muteStatusText = this.add
-      .text(labelX, y, '', {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '15px',
-        color: '#e5e7eb',
-        fontStyle: 'bold',
-      })
-      .setOrigin(0, 0.5);
-
-    const toggleMute = () => {
-      this.settings.muted = !this.settings.muted;
-      this.saveSettings();
-      this.updateMuteToggle();
-    };
-
-    [this.muteToggleHitArea, this.muteStatusText].forEach((target) => {
-      target.setInteractive({ useHandCursor: true });
-      target.on('pointerover', () => this.muteToggleHitArea.setFillStyle(0x334155, 0.5));
-      target.on('pointerout', () => this.muteToggleHitArea.setFillStyle(0x1e293b, 0.36));
-      target.on('pointerup', toggleMute);
+  drawNavigationControls() {
+    createBottomNavigationControls(this, {
+      onBack: () => this.returnToMainMenu(),
+      onRules: () => this.openRulesPanel(),
+      onFullscreen: () => this.toggleFullscreen(),
     });
-
-    this.muteToggleIconPosition = { x: iconX, y };
-    this.updateMuteToggle();
   }
 
-  updateMuteToggle() {
-    this.drawMuteIcon(this.muteToggleIconPosition.x, this.muteToggleIconPosition.y, this.settings.muted);
-    this.muteStatusText.setText(this.settings.muted ? MUTE_MUTED_LABEL : MUTE_ENABLED_LABEL);
+  returnToMainMenu() {
+    this.scene.start('MainMenuScene');
   }
 
-  drawMuteIcon(x, y, muted) {
-    this.muteIconGraphic.clear();
-    this.muteIconGraphic.fillStyle(0xf8fafc, 1);
-    this.muteIconGraphic.fillRect(x - 13, y - 7, 6, 14);
-    this.muteIconGraphic.fillTriangle(x - 7, y - 9, x + 4, y - 16, x + 4, y + 16);
-    this.muteIconGraphic.lineStyle(3, 0x93c5fd, 1);
-    this.muteIconGraphic.beginPath();
-    this.muteIconGraphic.moveTo(x + 9, y - 10);
-    this.muteIconGraphic.quadraticCurveTo(x + 18, y, x + 9, y + 10);
-    this.muteIconGraphic.strokePath();
+  openRulesPanel() {
+    this.scene.launch('RulesPanelScene', { returnSceneKey: 'SettingsScene' });
+    this.scene.pause();
+  }
 
-    if (!muted) {
-      this.muteIconGraphic.lineStyle(3, 0xbfdbfe, 0.86);
-      this.muteIconGraphic.beginPath();
-      this.muteIconGraphic.moveTo(x + 15, y - 15);
-      this.muteIconGraphic.quadraticCurveTo(x + 29, y, x + 15, y + 15);
-      this.muteIconGraphic.strokePath();
-      return;
+  resumeFromRulesPanel() {
+    this.scene.resume();
+  }
+
+  toggleFullscreen() {
+    toggleSceneFullscreen(this);
+  }
+
+  onFullscreenChanged() {
+    if (this.scale.isFullscreen) {
+      requestPortraitOrientationLock();
     }
 
-    this.muteIconGraphic.lineStyle(4, 0xfde68a, 1);
-    this.muteIconGraphic.beginPath();
-    this.muteIconGraphic.moveTo(x - 15, y + 17);
-    this.muteIconGraphic.lineTo(x + 29, y - 17);
-    this.muteIconGraphic.strokePath();
+    if (this.scene.isActive('SettingsScene')) {
+      this.scene.restart();
+    }
   }
 
-  createBackButton(width, height) {
-    createModalBackButton(this, {
-      x: width / 2,
-      y: height - 54,
-      width: 156,
-      height: 48,
-      onPointerUp: () => this.scene.start('MainMenuScene'),
-    });
+  cleanupScene() {
+    this.scale?.off('enterfullscreen', this.onFullscreenChanged, this);
+    this.scale?.off('leavefullscreen', this.onFullscreenChanged, this);
   }
 }

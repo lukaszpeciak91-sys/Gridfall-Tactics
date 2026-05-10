@@ -229,6 +229,7 @@ The no-progress detector uses the stricter "meaningful for outcome" definition i
 | Attrition Swarm | Feast | utility | - | destroy_friendly_draw_1 | Destroy ally. Draw 1. | Targeted friendly | Reuses Recycle-style non-combat destruction and does not trigger combat-only death effects. |
 | Attrition Swarm | Rise Again | order | - | revive_friendly_1hp | Revive first discarded unit at 1 HP. | Non-targeted deterministic effect | First empty friendly slot + first unit in discard; no manual target UI. |
 | Attrition Swarm | Grave Call | order | - | grave_call | Summon 1/1. If no allies, summon 2. | Non-targeted deterministic effect | Fills first empty friendly slot, or up to 2 left-to-right if the owner has no allies; rejected if no empty slot exists. |
+| Swarm | Recycle | utility | - | destroy_friendly_draw_1 | Destroy targeted friendly unit, draw 1. | Targeted friendly | Immediate destroy, then draw. |
 | Tank | Shieldbearer | unit | 1/2/0 | lane_armor_aura_1 | Adjacent allies have +1 ARM in combat. | Passive adjacency aura | Calculated during damage mitigation. |
 | Tank | Heavy | unit | 2/3/0 | null | No special behavior. | Lane combat | Baseline durable unit. |
 | Tank | Guardian | unit | 1/3/0 | intercept_lane_damage | Intercepts combat damage for adjacent ally. | Deterministic adjacency intercept | One guardian intercept per index per resolve pass. |

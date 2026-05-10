@@ -3,6 +3,7 @@ import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
 import { createInitialBattleState, drawCards, shuffleDeck, canPass, canPlayOrRedeploy, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, getUnitAttack, getUnitArmor, toggleFirstActor, resolveTurnCapWinner, resolveImmediateNoProgressWinner, recordPassAction, performOpeningMulligan, STARTING_HAND_SIZE, MAX_OPENING_MULLIGAN_CARDS } from '../systems/GameState.js';
 import { chooseEnemyAction, recordBattleActionUse, selectOpeningMulliganCardIds } from '../systems/enemyDecision.js';
 import { getTargetingStateForEffect } from '../systems/cardTargeting.js';
+import { getCombatEventAttackerIndex, getCombatEventTargetIndex, getLaneLethalTargetIndexes, getLaneSimultaneousUnitClash, shouldAnimateCombatAttacker } from '../systems/combatAnimation.js';
 import { BATTLE_BACKGROUND_FALLBACK_COLOR, BATTLE_BACKGROUND_FALLBACK_COLOR_HEX, getBattleBackgroundAsset, hasLoadedBattleBackground, preloadBattleBackgroundArt } from '../rendering/backgroundArt.js';
 import { createBuildMarker } from '../ui/buildMarker.js';
 import { calculateHandLayoutMetrics } from '../ui/handLayout.js';
@@ -620,7 +621,7 @@ export default class BattleScene extends Phaser.Scene {
     const height = this.scale.gameSize.height;
 
     const resultModalWasShown = this.battleResultModalShown;
-    this.cleanupSceneObjects({ preserveTimers: true, preserveTweens: true });
+    this.cleanupSceneObjects({ preserveTimers: true });
     this.layout = this.getLayoutMetrics(width, height);
     this.cameras.main.setBackgroundColor(BATTLE_BACKGROUND_FALLBACK_COLOR_HEX);
     this.backgroundArtAsset = getBattleBackgroundAsset({ playerFactionKey: this.factionKey, enemyFactionKey: this.enemyFactionKey });
@@ -1520,13 +1521,13 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     await this.delay(ENEMY_ACTION_PRE_COMBAT_DELAY_MS);
-    const preCombatBoard = this.captureBoardSnapshot();
+    const preCombatBoardSnapshot = this.captureBoardSnapshot();
     const combatEvents = resolveCombat(this.gameState);
     this.lastCombatEvents = combatEvents;
     if (combatEvents.length > 0) {
       console.debug('Combat feedback events', combatEvents);
     }
-    await this.playCombatAnimations(combatEvents, preCombatBoard);
+    await this.playCombatAnimations(combatEvents, preCombatBoardSnapshot);
     this.refreshBoardLabels();
     this.refreshHeroHP();
 
@@ -1806,17 +1807,62 @@ export default class BattleScene extends Phaser.Scene {
 
   tweenToPromise(config) {
     return new Promise((resolve) => {
+      const targets = Array.isArray(config?.targets) ? config.targets.filter(Boolean) : [config?.targets].filter(Boolean);
+      if (targets.length === 0) {
+        resolve();
+        return;
+      }
+
+      let resolved = false;
+      const finish = (...args) => {
+        if (resolved) return;
+        resolved = true;
+        resolve(...args);
+      };
+
       this.tweens.add({
         ...config,
+        targets,
         onComplete: (...args) => {
           if (typeof config.onComplete === 'function') config.onComplete(...args);
-          resolve();
+          finish();
+        },
+        onStop: (...args) => {
+          if (typeof config.onStop === 'function') config.onStop(...args);
+          finish();
         },
       });
     });
   }
 
-  async playCombatAnimations(combatEvents, preCombatBoard) {
+  captureUnitVisualState(cell) {
+    const label = cell?.label;
+    if (!label) return null;
+
+    return {
+      label,
+      x: label.x,
+      y: label.y,
+      scaleX: label.scaleX,
+      scaleY: label.scaleY,
+    };
+  }
+
+  restoreUnitVisualState(state) {
+    if (!state?.label?.active) return;
+    state.label.setPosition(state.x, state.y);
+    state.label.setScale(state.scaleX, state.scaleY);
+  }
+
+  getUnitLungeTargets(cell) {
+    return cell?.label ? [cell.label] : [];
+  }
+
+  prepareUnitLungeTargets(targets) {
+    this.tweens?.killTweensOf?.(targets);
+  }
+
+  async playCombatAnimations(combatEvents, preCombatBoardSnapshot = null) {
     if (!Array.isArray(combatEvents) || combatEvents.length === 0) return;
 
     const eventsByLane = new Map();
@@ -1828,97 +1874,364 @@ export default class BattleScene extends Phaser.Scene {
     for (const lane of [0, 1, 2]) {
       const laneEvents = eventsByLane.get(lane) ?? [];
       if (laneEvents.length === 0) continue;
-      await this.playLaneCombatAnimation(lane, laneEvents, preCombatBoard);
+      await this.playLaneCombatAnimation(lane, laneEvents, preCombatBoardSnapshot);
       await this.delay(320);
     }
   }
 
-  async playLaneCombatAnimation(lane, laneEvents, preCombatBoard) {
-    const enemyIndex = lane;
-    const playerIndex = 6 + lane;
-    const hadOpposedUnits = preCombatBoard[enemyIndex] && preCombatBoard[playerIndex];
+  async playLaneCombatAnimation(lane, laneEvents, preCombatBoardSnapshot = null) {
+    const laneHighlight = this.highlightActiveLane(lane);
+    const simultaneousClash = getLaneSimultaneousUnitClash(lane, laneEvents, preCombatBoardSnapshot);
+    const clashEvents = new Set(simultaneousClash?.events ?? []);
+    const lethalTargetIndexes = getLaneLethalTargetIndexes(laneEvents);
 
-    if (hadOpposedUnits && laneEvents.some((event) => event.targetType === 'unit')) {
-      await this.animateUnitClash(enemyIndex, playerIndex);
-      this.showLaneDamageText(laneEvents.filter((event) => event.targetType === 'unit'));
+    try {
+      if (simultaneousClash) {
+        await this.animateSimultaneousUnitClash(simultaneousClash);
+      }
+
+      for (const event of laneEvents) {
+        if (clashEvents.has(event)) continue;
+
+        const attackerIndex = getCombatEventAttackerIndex(event);
+        const attackerWasDefeatedInThisLane = Number.isInteger(attackerIndex) && lethalTargetIndexes.has(attackerIndex);
+        if (attackerWasDefeatedInThisLane) {
+          await this.playCombatEventFeedback([event]);
+        } else if (event.targetType === 'hero') {
+          await this.animateHeroStrike(event, preCombatBoardSnapshot);
+        } else {
+          await this.animateUnitAttackOnlyIfEventExists(event, preCombatBoardSnapshot);
+        }
+      }
+    } finally {
+      await laneHighlight?.clear?.();
+    }
+  }
+
+  getCombatAttackerVisual(event, preCombatBoardSnapshot = null) {
+    if (!event || !Number.isInteger(event.lane)) return null;
+    if (!shouldAnimateCombatAttacker(event, preCombatBoardSnapshot)) return null;
+
+    const attackerIndex = getCombatEventAttackerIndex(event);
+    const cell = this.getCellByIndex(attackerIndex);
+    if (!cell?.label || !cell?.background) return null;
+    return { type: 'unit', index: attackerIndex, cell };
+  }
+
+  getCombatTargetVisual(event) {
+    if (!event) return null;
+
+    if (event.targetType === 'hero') {
+      const hero = this.getHeroPanel(event.targetSide);
+      if (!hero) return null;
+      return { type: 'hero', side: event.targetSide, hero };
+    }
+
+    const targetIndex = this.getCombatEventTargetIndex(event);
+    if (!Number.isInteger(targetIndex)) return null;
+
+    const cell = this.getCellByIndex(targetIndex);
+    if (!cell?.label || !cell?.background) return null;
+    return { type: 'unit', index: targetIndex, cell };
+  }
+
+  getUnitLungeConfig(attackerCell, targetCell, meetAtMiddle = false) {
+    const visualState = this.captureUnitVisualState(attackerCell);
+    if (!visualState || !targetCell?.background) return null;
+
+    const startY = visualState.y;
+    const direction = targetCell.background.y > startY ? 1 : -1;
+    const separation = Math.abs(targetCell.background.y - startY);
+    const lungeDistance = Math.max(
+      this.layout.board.cellHeight * 0.26,
+      Math.min(separation * 0.5, this.layout.board.cellHeight * 0.56),
+    );
+    const midpointY = (attackerCell.background.y + targetCell.background.y) / 2;
+    const strikeY = meetAtMiddle ? midpointY : startY + direction * lungeDistance;
+
+    return {
+      cell: attackerCell,
+      startY,
+      visualState,
+      strikeY,
+      targets: this.getUnitLungeTargets(attackerCell),
+    };
+  }
+
+  async animateSimultaneousUnitClash(clash) {
+    const lungeConfigs = (clash?.attackers ?? [])
+      .map((attacker) => {
+        const attackerCell = this.getCellByIndex(attacker.index);
+        const targetIndex = getCombatEventTargetIndex(attacker.event);
+        const targetCell = this.getCellByIndex(targetIndex);
+        if (!attackerCell?.label || !attackerCell?.background || !targetCell?.background) return null;
+        const lungeConfig = this.getUnitLungeConfig(attackerCell, targetCell, true);
+        if (!lungeConfig) return null;
+        return {
+          ...lungeConfig,
+          attackerIndex: attacker.index,
+        };
+      })
+      .filter(Boolean);
+
+    if (lungeConfigs.length === 0) {
+      await this.playCombatEventFeedback(clash?.events ?? []);
       return;
     }
 
-    for (const event of laneEvents) {
-      if (event.targetType === 'hero') {
-        if (event.damage > 0) await this.animateHeroStrike(event);
-      } else if (Number.isInteger(event.attackerIndex) && Number.isInteger(event.targetIndex)) {
-        await this.animateUnitClash(event.attackerIndex, event.targetIndex);
-      }
+    try {
+      lungeConfigs.forEach((config) => this.prepareUnitLungeTargets(config.targets));
+      await Promise.all(lungeConfigs.map((config) => this.tweenToPromise({
+        targets: config.targets,
+        y: config.strikeY,
+        duration: 145,
+        ease: 'Quad.easeOut',
+      })));
+
+      await this.playCombatEventFeedback(clash.events);
+
+      await Promise.all(lungeConfigs
+        .filter((config) => !clash.lethalTargetIndexes?.has(config.attackerIndex))
+        .map((config) => this.tweenToPromise({
+          targets: config.targets,
+          y: config.startY,
+          duration: 135,
+          ease: 'Quad.easeIn',
+        })));
+    } finally {
+      lungeConfigs.forEach((config) => {
+        this.restoreUnitVisualState(config.visualState);
+      });
     }
   }
 
-  async animateUnitClash(firstIndex, secondIndex) {
-    const first = this.getCellByIndex(firstIndex);
-    const second = this.getCellByIndex(secondIndex);
-    if (!first || !second) return;
+  async animateUnitAttackOnlyIfEventExists(event, preCombatBoardSnapshot = null) {
+    const attacker = this.getCombatAttackerVisual(event, preCombatBoardSnapshot);
+    const target = this.getCombatTargetVisual(event);
+    if (!attacker || target?.type !== 'unit') {
+      await this.playCombatEventFeedback([event]);
+      return;
+    }
 
-    const firstStartY = first.label.y;
-    const secondStartY = second.label.y;
-    const laneMidY = (firstStartY + secondStartY) / 2;
-    const firstClashY = firstStartY < secondStartY ? laneMidY - 18 : laneMidY + 18;
-    const secondClashY = secondStartY < firstStartY ? laneMidY - 18 : laneMidY + 18;
+    const attackerCell = attacker.cell;
+    const targetCell = target.cell;
+    const lungeConfig = this.getUnitLungeConfig(attackerCell, targetCell);
+    if (!lungeConfig) {
+      await this.playCombatEventFeedback([event]);
+      return;
+    }
 
-    await Promise.all([
-      this.tweenToPromise({ targets: [first.label, first.background], y: firstClashY, duration: 170, ease: 'Quad.easeOut' }),
-      this.tweenToPromise({ targets: [second.label, second.background], y: secondClashY, duration: 170, ease: 'Quad.easeOut' }),
-    ]);
-    await Promise.all([
-      this.tweenToPromise({ targets: first.label, scaleX: 1.08, scaleY: 1.08, duration: 80, yoyo: true }),
-      this.tweenToPromise({ targets: second.label, scaleX: 1.08, scaleY: 1.08, duration: 80, yoyo: true }),
-    ]);
-    await Promise.all([
-      this.tweenToPromise({ targets: [first.label, first.background], y: firstStartY, duration: 170, ease: 'Quad.easeIn' }),
-      this.tweenToPromise({ targets: [second.label, second.background], y: secondStartY, duration: 170, ease: 'Quad.easeIn' }),
-    ]);
+    try {
+      this.prepareUnitLungeTargets(lungeConfig.targets);
+      await this.tweenToPromise({ targets: lungeConfig.targets, y: lungeConfig.strikeY, duration: 145, ease: 'Quad.easeOut' });
+      await this.playCombatEventFeedback([event]);
+      await this.tweenToPromise({ targets: lungeConfig.targets, y: lungeConfig.startY, duration: 135, ease: 'Quad.easeIn' });
+    } finally {
+      this.restoreUnitVisualState(lungeConfig.visualState);
+    }
   }
 
-  async animateHeroStrike(event) {
-    const attackerIndex = Number.isInteger(event.attackerIndex)
-      ? event.attackerIndex
-      : (event.attackerSide === 'player' ? 6 + event.lane : event.lane);
-    const attacker = this.getCellByIndex(attackerIndex);
-    const hero = this.getHeroPanel(event.targetSide);
-    if (!attacker || !hero) return;
+  async animateHeroStrike(event, preCombatBoardSnapshot = null) {
+    if (event.openLane) {
+      await this.animateOpenLaneHeroStrike(event, preCombatBoardSnapshot);
+      return;
+    }
 
-    const startY = attacker.label.y;
+    const attacker = this.getCombatAttackerVisual(event, preCombatBoardSnapshot);
+    if (!attacker) {
+      await this.playCombatEventFeedback([event]);
+      return;
+    }
+
+    const attackerCell = attacker.cell;
+    const visualState = this.captureUnitVisualState(attackerCell);
+    if (!visualState) {
+      await this.playCombatEventFeedback([event]);
+      return;
+    }
+
+    const startY = visualState.y;
     const direction = event.attackerSide === 'player' ? -1 : 1;
     const strikeY = startY + direction * Math.min(this.layout.board.cellHeight * 0.48, 90);
-    await this.tweenToPromise({ targets: [attacker.label, attacker.background], y: strikeY, duration: 180, ease: 'Quad.easeOut' });
-    this.showHeroDamage(event.targetSide, event.damage);
-    await this.tweenToPromise({ targets: [attacker.label, attacker.background], y: startY, duration: 180, ease: 'Quad.easeIn' });
+    const targets = this.getUnitLungeTargets(attackerCell);
+
+    try {
+      this.prepareUnitLungeTargets(targets);
+      await this.tweenToPromise({ targets, y: strikeY, duration: 160, ease: 'Quad.easeOut' });
+      await this.playCombatEventFeedback([event]);
+      await this.tweenToPromise({ targets, y: startY, duration: 140, ease: 'Quad.easeIn' });
+    } finally {
+      this.restoreUnitVisualState(visualState);
+    }
+  }
+
+  async animateOpenLaneHeroStrike(event, preCombatBoardSnapshot = null) {
+    const attacker = this.getCombatAttackerVisual(event, preCombatBoardSnapshot);
+    const target = this.getCombatTargetVisual(event);
+    if (!attacker || target?.type !== 'hero') {
+      await this.playCombatEventFeedback([event]);
+      return;
+    }
+
+    const attackerCell = attacker.cell;
+    const hero = target.hero;
+    const visualState = this.captureUnitVisualState(attackerCell);
+    if (!visualState) {
+      await this.playCombatEventFeedback([event]);
+      return;
+    }
+
+    const startY = visualState.y;
+    const direction = event.attackerSide === 'player' ? -1 : 1;
+    const heroEdgeY = event.targetSide === 'enemy'
+      ? hero.y + hero.height * 0.5
+      : hero.y - hero.height * 0.5;
+    const heroMargin = Math.max(8, this.layout.board.cellHeight * 0.08);
+    const panelConnectionY = heroEdgeY - direction * heroMargin;
+    const fallbackDistance = Math.min(this.layout.board.cellHeight * 0.92, 150);
+    const desiredY = Number.isFinite(panelConnectionY)
+      ? panelConnectionY
+      : startY + direction * fallbackDistance;
+    const maxTravel = Math.max(this.layout.board.cellHeight * 0.62, fallbackDistance);
+    const travel = Math.min(Math.abs(desiredY - startY), maxTravel);
+    const strikeY = startY + direction * travel;
+    const targets = this.getUnitLungeTargets(attackerCell);
+
+    try {
+      this.prepareUnitLungeTargets(targets);
+      await this.tweenToPromise({ targets, y: strikeY, duration: 165, ease: 'Quad.easeOut' });
+      await this.playCombatEventFeedback([event]);
+      await this.tweenToPromise({ targets, y: startY, duration: 145, ease: 'Quad.easeIn' });
+    } finally {
+      this.restoreUnitVisualState(visualState);
+    }
+  }
+
+  highlightActiveLane(lane) {
+    const laneCells = this.boardCells.filter((cell) => cell.index % 3 === lane);
+    if (laneCells.length === 0) return null;
+
+    const previousStyles = laneCells.map((cell) => ({
+      cell,
+      lineWidth: cell.background.lineWidth ?? (cell.row === 1 ? 2 : 3),
+      strokeColor: cell.background.strokeColor ?? (cell.row === 1 ? 0x94a3b8 : 0xcbd5e1),
+      strokeAlpha: cell.background.strokeAlpha ?? (cell.row === 1 ? 0.3 : 0.55),
+    }));
+
+    laneCells.forEach((cell) => {
+      cell.background.setStrokeStyle(cell.row === 1 ? 3 : 4, 0xfacc15, cell.row === 1 ? 0.65 : 0.85);
+    });
+
+    return {
+      clear: async () => {
+        await this.delay(90);
+        previousStyles.forEach(({ cell, lineWidth, strokeColor, strokeAlpha }) => {
+          if (!cell?.background?.active) return;
+          cell.background.setStrokeStyle(lineWidth, strokeColor, strokeAlpha);
+        });
+      },
+    };
+  }
+
+  async playCombatEventFeedback(events) {
+    const feedback = events.map((event) => {
+      if (event.targetType === 'hero') {
+        this.showHeroDamage(event.targetSide, event.damage);
+        return this.flashHeroHit(event.targetSide);
+      }
+
+      const targetIndex = this.getCombatEventTargetIndex(event);
+      if (!Number.isInteger(targetIndex)) return Promise.resolve();
+
+      const target = this.getCellByIndex(targetIndex);
+      if (!target) return Promise.resolve();
+
+      this.showUnitCombatText(target, event);
+      const animations = [this.flashCellHit(target, event)];
+      if (event.lethal) animations.push(this.playLethalFade(target));
+      return Promise.all(animations);
+    });
+
+    await Promise.all(feedback);
+  }
+
+  getCombatEventTargetIndex(event) {
+    return getCombatEventTargetIndex(event);
   }
 
   showHeroDamage(side, damage) {
     const hero = this.getHeroPanel(side);
     if (!hero) return;
-    const damageText = this.add.text(hero.x + hero.width * 0.34, hero.y, `-${damage}`, {
+    const isBlocked = damage <= 0;
+    const damageText = this.add.text(hero.x + hero.width * 0.34, hero.y, isBlocked ? 'BLOCK' : `-${damage}`, {
       fontFamily: 'Arial, sans-serif',
-      fontSize: '22px',
-      color: '#fca5a5',
+      fontSize: isBlocked ? '18px' : '22px',
+      color: isBlocked ? '#bfdbfe' : '#fca5a5',
       fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(240);
     this.tweens.add({ targets: hero, scaleX: 1.04, scaleY: 1.04, duration: 90, yoyo: true });
     this.tweens.add({ targets: damageText, y: damageText.y - 30, alpha: 0, duration: 720, onComplete: () => damageText.destroy() });
   }
 
-  showLaneDamageText(events) {
-    events.forEach((event) => {
-      if (!Number.isInteger(event.targetIndex) || event.damage <= 0) return;
-      const target = this.getCellByIndex(event.targetIndex);
-      if (!target) return;
-      const damageText = this.add.text(target.background.x, target.background.y - 12, `-${event.damage}`, {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '18px',
-        color: event.lethal ? '#fecaca' : '#fde68a',
-        fontStyle: 'bold',
-      }).setOrigin(0.5).setDepth(240);
-      this.tweens.add({ targets: damageText, y: damageText.y - 24, alpha: 0, duration: 650, onComplete: () => damageText.destroy() });
+  showUnitCombatText(target, event) {
+    const isBlocked = event.damage <= 0;
+    const damageText = this.add.text(target.background.x, target.background.y - this.layout.board.cellHeight * 0.14, isBlocked ? 'BLOCK' : `-${event.damage}`, {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: `${Math.max(15, Math.floor(this.layout.board.cellWidth * (isBlocked ? 0.13 : 0.15)))}px`,
+      color: isBlocked ? '#bfdbfe' : (event.lethal ? '#fecaca' : '#fde68a'),
+      fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(240);
+    this.tweens.add({ targets: damageText, y: damageText.y - 24, alpha: 0, duration: 650, ease: 'Cubic.easeOut', onComplete: () => damageText.destroy() });
+  }
+
+  async flashCellHit(cell, event) {
+    if (!cell?.background || !cell?.label) return;
+
+    const strokeColor = event.damage <= 0 ? 0x93c5fd : (event.lethal ? 0xfca5a5 : 0xfde68a);
+    const previousStyle = {
+      lineWidth: cell.background.lineWidth ?? (cell.row === 1 ? 2 : 3),
+      strokeColor: cell.background.strokeColor ?? (cell.row === 1 ? 0x94a3b8 : 0xcbd5e1),
+      strokeAlpha: cell.background.strokeAlpha ?? (cell.row === 1 ? 0.3 : 0.55),
+      labelScaleX: cell.label.scaleX,
+      labelScaleY: cell.label.scaleY,
+    };
+
+    cell.background.setStrokeStyle(4, strokeColor, 1);
+    await this.tweenToPromise({ targets: cell.label, scaleX: 1.1, scaleY: 1.1, duration: 55, yoyo: true });
+    cell.background.setStrokeStyle(previousStyle.lineWidth, previousStyle.strokeColor, previousStyle.strokeAlpha);
+    cell.label.setScale(previousStyle.labelScaleX, previousStyle.labelScaleY);
+  }
+
+  async flashHeroHit(side) {
+    const hero = this.getHeroPanel(side);
+    if (!hero) return;
+
+    const previousStyle = {
+      lineWidth: hero.lineWidth ?? 2,
+      strokeColor: hero.strokeColor ?? (side === 'player' ? 0x60a5fa : 0xf87171),
+      strokeAlpha: hero.strokeAlpha ?? 0.6,
+      fillColor: hero.fillColor ?? 0x111827,
+      fillAlpha: hero.fillAlpha ?? 0.45,
+    };
+
+    hero.setFillStyle(0x7f1d1d, Math.max(previousStyle.fillAlpha, 0.58));
+    hero.setStrokeStyle(Math.max(previousStyle.lineWidth, 3), 0xfca5a5, 0.95);
+    await this.delay(100);
+    hero.setFillStyle(previousStyle.fillColor, previousStyle.fillAlpha);
+    hero.setStrokeStyle(previousStyle.lineWidth, previousStyle.strokeColor, previousStyle.strokeAlpha);
+  }
+
+  async playLethalFade(cell) {
+    if (!cell?.label) return;
+
+    await this.delay(70);
+    await this.tweenToPromise({
+      targets: cell.label,
+      alpha: 0.18,
+      scaleX: 0.92,
+      scaleY: 0.92,
+      duration: 180,
+      ease: 'Quad.easeIn',
     });
   }
 
@@ -1954,6 +2267,7 @@ ${statParts.join(' | ')}`;
   refreshBoardLabels() {
     this.boardCells.forEach((cell) => {
       const unit = this.gameState.board[cell.index];
+      cell.label.setAlpha(1).setScale(1);
       cell.label.setText(this.getBoardUnitLabel(unit));
       if (cell.row === 2) {
         const lane = cell.index % 3;
