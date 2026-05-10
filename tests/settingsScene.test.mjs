@@ -29,7 +29,7 @@ test('SettingsScene exposes future-ready language, audio, and persistence contro
   assert.match(source, /SETTINGS_STORAGE_KEY = 'gridfall:tactics:settings:v1'/);
   assert.match(source, /storage\.getItem\(SETTINGS_STORAGE_KEY\)/);
   assert.match(source, /storage\.setItem\(SETTINGS_STORAGE_KEY, JSON\.stringify\(this\.settings\)\)/);
-  assert.match(source, /this\.scene\.start\('MainMenuScene'\)/);
+  assert.match(source, /returnToMainMenu\(\) \{[\s\S]*this\.scene\.start\('MainMenuScene'\)/);
 });
 
 test('settings notes document current settings shell behavior and future audio paths', () => {
@@ -49,17 +49,22 @@ test('settings notes document current settings shell behavior and future audio p
 });
 
 
-test('SettingsScene creates a stored high-depth modal back button with visible debug marker', () => {
+test('SettingsScene uses shared full-screen bottom navigation controls', () => {
   const source = read('src/scenes/SettingsScene.js');
 
   assert.match(source, /import \{ createBuildMarker \} from '\.\.\/ui\/buildMarker\.js';/);
+  assert.match(source, /import \{ createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen \} from '\.\.\/ui\/navigationControls\.js';/);
   assert.match(source, /const SETTINGS_PANEL_DEPTH = 0/);
-  assert.match(source, /const SETTINGS_BACK_BUTTON_DEPTH = 1001/);
-  assert.match(source, /const SETTINGS_BACK_DEBUG_DEPTH = SETTINGS_BACK_BUTTON_DEPTH \+ 2/);
   assert.match(source, /const buildMarker = createBuildMarker\(this, \{ width, height \}\);/);
-  assert.match(source, /this\.createBackButton\(width, height\);/);
-  assert.match(source, /this\.settingsBackButton = createModalBackButton\(this, \{/);
-  assert.match(source, /depth: SETTINGS_BACK_BUTTON_DEPTH/);
-  assert.match(source, /this\.settingsBackDebugText = this\.add[\s\S]*'BACK DEBUG'/);
-  assert.match(source, /\.setDepth\(SETTINGS_BACK_DEBUG_DEPTH\)/);
+  assert.match(source, /this\.drawNavigationControls\(\);/);
+  assert.match(source, /drawNavigationControls\(\) \{[\s\S]*createBottomNavigationControls\(this, \{[\s\S]*onBack: \(\) => this\.returnToMainMenu\(\),[\s\S]*onRules: \(\) => this\.openRulesPanel\(\),[\s\S]*onFullscreen: \(\) => this\.toggleFullscreen\(\),[\s\S]*\}\)/);
+  assert.match(source, /returnToMainMenu\(\) \{[\s\S]*this\.scene\.start\('MainMenuScene'\)/);
+  assert.match(source, /openRulesPanel\(\) \{[\s\S]*this\.scene\.launch\('RulesPanelScene', \{ returnSceneKey: 'SettingsScene' \}\);[\s\S]*this\.scene\.pause\(\);[\s\S]*\}/);
+  assert.match(source, /resumeFromRulesPanel\(\) \{[\s\S]*this\.scene\.resume\(\);[\s\S]*\}/);
+  assert.match(source, /toggleFullscreen\(\) \{[\s\S]*toggleSceneFullscreen\(this\);[\s\S]*\}/);
+  assert.match(source, /onFullscreenChanged\(\) \{[\s\S]*this\.scale\.isFullscreen[\s\S]*requestPortraitOrientationLock\(\);[\s\S]*this\.scene\.restart\(\);[\s\S]*\}/);
+  assert.doesNotMatch(source, /createModalBackButton/);
+  assert.doesNotMatch(source, /createBackButton/);
+  assert.doesNotMatch(source, /BACK DEBUG/);
+  assert.doesNotMatch(source, /SETTINGS_BACK_/);
 });
