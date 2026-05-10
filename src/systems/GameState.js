@@ -73,7 +73,7 @@ function cardCanRealisticallyAffectOutcome(card, state, owner) {
     case 'swap_adjacent_then_resolve':
       return friendlyUnits.some((unit) => getUnitAttack(unit) > 0);
     case 'ignore_armor_next_attack':
-    case 'damage_up_to_2_enemies_1':
+    case 'damage_all_enemies_1_ignore_armor':
     case 'control_enemy_unit_this_turn':
       return enemyUnits.length > 0;
     case 'swap_any_two_units': {
@@ -546,9 +546,11 @@ function getLeftmostOccupiedRowIndexes(state, rowIndexes, limit) {
 
 function applyEffectById(state, owner, effectId) {
   switch (effectId) {
-    case 'damage_up_to_2_enemies_1': {
-      const enemyIndexes = getLeftmostOccupiedRowIndexes(state, getRowForOwner(getOpponentOwner(owner)), 2);
+    case 'damage_all_enemies_1_ignore_armor': {
+      const enemyIndexes = getRowForOwner(getOpponentOwner(owner))
+        .filter((index) => state.board[index]);
       enemyIndexes.forEach((index) => {
+        // Pulse Wave deals direct unit damage and intentionally bypasses armor.
         state.board[index].hp -= 1;
       });
       removeDefeatedUnits(state, enemyIndexes);
