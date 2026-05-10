@@ -1260,9 +1260,10 @@ function resolveCombatLane(state, col, combatContext = null) {
       lethal: wouldUnitDamageBeLethal(targetIndex, damage),
     });
   };
-  const recordHeroAttack = (attackerSide, targetSide, damage, openLane) => {
+  const recordHeroAttack = (attackerSide, attackerIndex, targetSide, damage, openLane) => {
     recordCombatEvent({
       attackerSide,
+      attackerIndex,
       targetType: 'hero',
       targetSide,
       damage,
@@ -1296,7 +1297,7 @@ function resolveCombatLane(state, col, combatContext = null) {
     } else {
       const laneBonus = player.effectId === 'lane_empty_bonus_damage' ? RUNNER_OPEN_LANE_HERO_BONUS : 0;
       const damage = playerAttack + laneBonus;
-      recordHeroAttack('player', 'enemy', damage, true);
+      recordHeroAttack('player', playerIndex, 'enemy', damage, true);
       state.enemyHP -= damage;
     }
     if (player.effectId === 'self_damage_after_attack') addPendingUnitDamage(playerIndex, 1);
@@ -1308,7 +1309,7 @@ function resolveCombatLane(state, col, combatContext = null) {
     const canHitAnyLane = enemy.effectId === 'can_hit_any_lane';
     const sniperTargetIndex = !controlledToHero && canHitAnyLane ? findSniperTargetIndex(enemy.owner) : null;
     if (controlledToHero) {
-      recordHeroAttack('enemy', 'enemy', enemyAttack, false);
+      recordHeroAttack('enemy', enemyIndex, 'enemy', enemyAttack, false);
       state.enemyHP -= enemyAttack;
     } else if (sniperTargetIndex !== null) {
       const sniperTarget = state.board[sniperTargetIndex];
@@ -1331,7 +1332,7 @@ function resolveCombatLane(state, col, combatContext = null) {
     } else {
       const laneBonus = enemy.effectId === 'lane_empty_bonus_damage' ? RUNNER_OPEN_LANE_HERO_BONUS : 0;
       const damage = enemyAttack + laneBonus;
-      recordHeroAttack('enemy', 'player', damage, true);
+      recordHeroAttack('enemy', enemyIndex, 'player', damage, true);
       state.playerHP -= damage;
     }
     if (enemy.effectId === 'self_damage_after_attack') addPendingUnitDamage(enemyIndex, 1);
