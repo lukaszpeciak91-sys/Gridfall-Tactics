@@ -213,7 +213,7 @@ The no-progress detector uses the stricter "meaningful for outcome" definition i
 | Control | Drone | unit | 1/1/0 | death_damage_enemy_hero_1 | On death, enemy hero takes 1. | Death trigger | Applies after unit removed. |
 | Control | Swap | order | - | swap_any_two_units | Swap two selected units on one side. | Two-target targeted effect | Requires two distinct occupied slots with the same owner; cannot trade units between sides. |
 | Control | Jam Signal | order | - | enemy_all_atk_minus_1 | Leftmost 2 enemies -1 ATK this turn. | Non-targeted deterministic effect | Picks occupied enemy lanes from left to right; expires after combat. |
-| Control | Pulse Wave | order | - | damage_up_to_2_enemies_1 | Deal 1 to leftmost 2 enemies. | Non-targeted deterministic effect | Picks occupied enemy lanes from left to right; defeated units cleaned up immediately. |
+| Control | Pulse Wave | order | - | damage_all_enemies_1_ignore_armor | Deal 1 to all enemies ignoring armor. | Non-targeted deterministic effect | Damages occupied enemy lanes only, ignores armor, never damages heroes, and cleans up defeated units after all Pulse Wave damage is applied. |
 | Control | System Override | special | - | control_enemy_unit_this_turn | Target enemy hits its own hero next combat. | Targeted enemy | Clears after combat cleanup. |
 | Control | Recall | utility | - | return_friendly_draw_1 | Return friendly unit to hand, then draw 1. | Targeted friendly | Blocked if hand already full. |
 | Swarm | Grunt | unit | 1/1/0 | null | No special behavior. | Lane combat | Baseline token-like unit. |

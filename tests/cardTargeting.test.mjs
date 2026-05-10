@@ -28,5 +28,5 @@ test('two-target effect metadata exposes required target counts without changing
 
 
 test('Pulse Wave remains a deterministic non-manual effect in UI targeting metadata', () => {
-  assert.equal(getTargetingStateForEffect('damage_up_to_2_enemies_1', 'control_pulse_wave_1'), null);
+  assert.equal(getTargetingStateForEffect('damage_all_enemies_1_ignore_armor', 'control_pulse_wave_1'), null);
 });

@@ -39,6 +39,8 @@ const ENEMY_EFFECT_SUMMARY_OVERRIDES = Object.freeze({
   heal_1_atk_1_draw_on_kill_this_turn: 'Heal, +1 ATK, draw on kill',
   swap_any_two_units: 'Swap two units',
   enemy_all_atk_minus_1: 'Leftmost enemies -1 ATK',
+  damage_all_enemies_1_ignore_armor: 'Damage all enemies',
+  control_enemy_unit_this_turn: 'Enemy hits own hero',
   damage_up_to_2_enemies_1: 'Damage leftmost enemies',
   control_enemy_unit_this_turn: 'Enemy attacks own hero, takes 1',
   return_friendly_draw_1: 'Return ally, draw 1',

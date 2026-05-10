@@ -393,25 +393,29 @@ test('Jam Signal applies -1 temporary attack to up to two enemy units', () => {
 });
 
 
-test('Pulse Wave damages only the two leftmost occupied enemy lanes', () => {
+test('Pulse Wave damages all occupied enemy lanes and ignores armor without hitting heroes', () => {
   const control = loadFaction('src/data/factions/control.json');
   const pulseWave = control.deck.find((card) => card.id === 'control_pulse_wave_1');
   const state = createInitialBattleState({ name: 'Test', deck: [] });
 
   state.player.hand.push({ ...pulseWave });
-  state.board[0] = unit('enemy', { id: 'left-enemy', hp: 1, maxHp: 1 });
-  state.board[1] = unit('enemy', { id: 'middle-enemy', hp: 2, maxHp: 2 });
-  state.board[2] = unit('enemy', { id: 'right-enemy', hp: 1, maxHp: 1 });
+  state.board[0] = unit('enemy', { id: 'left-enemy', hp: 1, maxHp: 1, armor: 3 });
+  state.board[1] = unit('enemy', { id: 'middle-enemy', hp: 2, maxHp: 2, armor: 1 });
+  state.board[2] = unit('enemy', { id: 'right-enemy', hp: 1, maxHp: 1, armor: 2 });
+  state.playerHP = 5;
+  state.enemyHP = 5;
 
   const result = playEffectCard(state, 'player', pulseWave.id);
 
   assert.equal(result.ok, true);
   assert.equal(state.board[0], null);
   assert.equal(state.board[1].hp, 1);
-  assert.equal(state.board[2].hp, 1);
+  assert.equal(state.board[2], null);
+  assert.equal(state.playerHP, 5);
+  assert.equal(state.enemyHP, 5);
   assert.equal(pulseWave.targeting, 'all_enemy_units');
-  assert.equal(pulseWave.effectId, 'damage_up_to_2_enemies_1');
-  assert.equal(pulseWave.textShort, 'Deal 1 to leftmost 2 enemies.');
+  assert.equal(pulseWave.effectId, 'damage_all_enemies_1_ignore_armor');
+  assert.equal(pulseWave.textShort, 'Deal 1 to all enemies ignoring armor.');
 });
 
 test('Pulse Wave skips empty lanes and damages a single enemy if only one exists', () => {
@@ -420,7 +424,7 @@ test('Pulse Wave skips empty lanes and damages a single enemy if only one exists
   const state = createInitialBattleState({ name: 'Test', deck: [] });
 
   state.player.hand.push({ ...pulseWave });
-  state.board[2] = unit('enemy', { id: 'right-only-enemy', hp: 2, maxHp: 2 });
+  state.board[2] = unit('enemy', { id: 'right-only-enemy', hp: 2, maxHp: 2, armor: 4 });
 
   const result = playEffectCard(state, 'player', pulseWave.id);
 

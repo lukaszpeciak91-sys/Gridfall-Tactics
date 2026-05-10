@@ -105,25 +105,25 @@ const pulseWaveCard = {
   name: 'Pulse Wave',
   type: 'order',
   targeting: 'all_enemy_units',
-  effectId: 'damage_up_to_2_enemies_1',
-  textShort: 'Deal 1 to leftmost 2 enemies.',
+  effectId: 'damage_all_enemies_1_ignore_armor',
+  textShort: 'Deal 1 to all enemies ignoring armor.',
 };
 
-test('AI models Pulse Wave as deterministic left-to-right damage on up to two occupied enemy lanes', () => {
+test('AI models Pulse Wave as deterministic armor-ignoring damage on all occupied enemy lanes', () => {
   const state = createInitialBattleState({ name: 'Player', deck: [] }, { name: 'Enemy', deck: [] }, { firstActor: 'enemy' });
   state.enemy.hand.push({ ...pulseWaveCard });
   state.board[6] = unit('player', { id: 'left-target', cardId: 'left-target', hp: 1, maxHp: 1 });
   state.board[7] = unit('player', { id: 'middle-target', cardId: 'middle-target', hp: 1, maxHp: 1 });
-  state.board[8] = unit('player', { id: 'right-safe', cardId: 'right-safe', hp: 1, maxHp: 1 });
+  state.board[8] = unit('player', { id: 'right-target', cardId: 'right-target', hp: 1, maxHp: 1, armor: 2 });
 
   const action = chooseBattleAction(state, 'enemy');
 
   assert.equal(action.type, 'play-effect');
-  assert.equal(action.effectId, 'damage_up_to_2_enemies_1');
+  assert.equal(action.effectId, 'damage_all_enemies_1_ignore_armor');
 
   const result = playEffectCard(state, 'enemy', action.cardId);
   assert.equal(result.ok, true);
   assert.equal(state.board[6], null);
   assert.equal(state.board[7], null);
-  assert.equal(state.board[8].cardId, 'right-safe');
+  assert.equal(state.board[8], null);
 });
