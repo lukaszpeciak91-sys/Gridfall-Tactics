@@ -44,7 +44,7 @@
       "effectId": "cannot_attack",
       "textShort": "Blocks lane. Cannot attack.",
       "attack": 0,
-      "hp": 3,
+      "hp": 2,
       "armor": 0
     },
     {
