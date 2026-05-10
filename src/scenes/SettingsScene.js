@@ -6,6 +6,7 @@ import {
   getMenuBackgroundAsset,
   preloadMenuBackgroundArt,
 } from '../rendering/backgroundArt.js';
+import { createFloatingControl, getBottomNavigationMetrics } from '../ui/navigationControls.js';
 
 const SETTINGS_STORAGE_KEY = 'gridfall:tactics:settings:v1';
 const DEFAULT_SETTINGS = {
@@ -18,8 +19,6 @@ const LANGUAGE_OPTIONS = [
   { value: 'en', label: 'English' },
   { value: 'pl', label: 'Polish' },
 ];
-const MUTE_ENABLED_LABEL = 'Sound Enabled';
-const MUTE_MUTED_LABEL = 'Sound Muted';
 
 const LABEL_STYLE = {
   fontFamily: 'Arial, sans-serif',
@@ -38,7 +37,7 @@ export default class SettingsScene extends Phaser.Scene {
     this.sfxValueText = null;
     this.muteToggleHitArea = null;
     this.muteIconGraphic = null;
-    this.muteStatusText = null;
+    this.muteButtonControls = null;
   }
 
   preload() {
@@ -77,15 +76,27 @@ export default class SettingsScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     const panelWidth = Math.min(width - 32, 342);
-    this.addPanel(width / 2, height * 0.27, panelWidth, 154, 'LANGUAGE');
-    this.createLanguageSelect(width / 2, height * 0.29, panelWidth - 74);
+    const navMetrics = getBottomNavigationMetrics(this);
+    const navTop = navMetrics.centerY - navMetrics.touchSize / 2;
+    const contentTop = Math.max(126, height * 0.21);
+    const panelGap = height < 640 ? 10 : 16;
+    const availablePanelHeight = navTop - contentTop - 18;
+    const languagePanelHeight = Phaser.Math.Clamp(Math.round(availablePanelHeight * 0.34), 124, 146);
+    const audioPanelHeight = Phaser.Math.Clamp(availablePanelHeight - languagePanelHeight - panelGap, 236, 288);
+    const languagePanelY = contentTop + languagePanelHeight / 2;
+    const languageSelectY = languagePanelY + Math.min(26, languagePanelHeight * 0.18);
+    const audioPanelY = languagePanelY + languagePanelHeight / 2 + panelGap + audioPanelHeight / 2;
+    const audioTitleY = audioPanelY - audioPanelHeight / 2 + 22;
 
-    this.addPanel(width / 2, height * 0.55, panelWidth, 288, 'AUDIO');
-    this.createVolumeSlider(width / 2, height * 0.49, panelWidth - 76, 'Music Volume', 'musicVolume');
-    this.createVolumeSlider(width / 2, height * 0.61, panelWidth - 76, 'SFX Volume', 'sfxVolume');
-    this.createMuteToggle(width / 2, height * 0.72);
+    this.addPanel(width / 2, languagePanelY, panelWidth, languagePanelHeight, 'LANGUAGE');
+    this.createLanguageSelect(width / 2, languageSelectY, panelWidth - 74);
 
-    this.createBackButton(width, height);
+    this.addPanel(width / 2, audioPanelY, panelWidth, audioPanelHeight, 'AUDIO');
+    this.createMuteToggle(width / 2, audioTitleY + 38);
+    this.createVolumeSlider(width / 2, audioPanelY - 15, panelWidth - 76, 'Music Volume', 'musicVolume');
+    this.createVolumeSlider(width / 2, audioPanelY + audioPanelHeight / 2 - 70, panelWidth - 76, 'SFX Volume', 'sfxVolume');
+
+    this.createBackButton();
   }
 
   loadSettings() {
@@ -329,92 +340,97 @@ export default class SettingsScene extends Phaser.Scene {
   }
 
   createMuteToggle(x, y) {
-    const toggleWidth = 228;
-    const toggleHeight = 46;
-    const iconX = x - 62;
-    const labelX = x - 28;
+    const muteButtonSize = 50;
 
-    this.muteToggleHitArea = this.add
-      .rectangle(x, y, toggleWidth, toggleHeight, 0x1e293b, 0.36)
-      .setStrokeStyle(1, 0x334155, 0.9)
-      .setOrigin(0.5)
-      .setInteractive({ useHandCursor: true });
+    this.muteButtonControls = createFloatingControl(
+      this,
+      x,
+      y,
+      muteButtonSize,
+      '',
+      () => {
+        this.settings.muted = !this.settings.muted;
+        this.saveSettings();
+        this.updateMuteToggle();
+      },
+      { fontScale: 0.48 },
+    );
 
-    this.muteIconGraphic = this.add.graphics();
+    this.muteToggleHitArea = this.muteButtonControls.backing;
+    this.muteIconGraphic = this.add.graphics().setDepth(201);
 
-    this.muteStatusText = this.add
-      .text(labelX, y, '', {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '15px',
-        color: '#e5e7eb',
-        fontStyle: 'bold',
-      })
-      .setOrigin(0, 0.5);
-
-    const toggleMute = () => {
-      this.settings.muted = !this.settings.muted;
-      this.saveSettings();
-      this.updateMuteToggle();
+    const applyHoverState = () => {
+      const muted = this.settings.muted;
+      this.muteButtonControls.backing.setFillStyle(muted ? 0x0f172a : 0x1e293b, muted ? 0.58 : 0.82);
+      this.muteButtonControls.backing.setStrokeStyle(1, muted ? 0x94a3b8 : 0xbfdbfe, muted ? 0.58 : 0.95);
+      this.muteButtonControls.halo.setAlpha(muted ? 0.64 : 1);
     };
 
-    [this.muteToggleHitArea, this.muteStatusText].forEach((target) => {
-      target.setInteractive({ useHandCursor: true });
-      target.on('pointerover', () => this.muteToggleHitArea.setFillStyle(0x334155, 0.5));
-      target.on('pointerout', () => this.muteToggleHitArea.setFillStyle(0x1e293b, 0.36));
-      target.on('pointerup', toggleMute);
+    [this.muteButtonControls.backing, this.muteButtonControls.text].forEach((target) => {
+      target.on('pointerover', applyHoverState);
+      target.on('pointerout', () => this.updateMuteToggle());
     });
 
-    this.muteToggleIconPosition = { x: iconX, y };
+    this.muteToggleIconPosition = { x, y };
     this.updateMuteToggle();
   }
 
   updateMuteToggle() {
-    this.drawMuteIcon(this.muteToggleIconPosition.x, this.muteToggleIconPosition.y, this.settings.muted);
-    this.muteStatusText.setText(this.settings.muted ? MUTE_MUTED_LABEL : MUTE_ENABLED_LABEL);
+    const muted = this.settings.muted;
+    this.muteButtonControls.backing.setFillStyle(muted ? 0x020617 : 0x0f172a, muted ? 0.48 : 0.72);
+    this.muteButtonControls.backing.setStrokeStyle(1, muted ? 0x64748b : 0x7dd3fc, muted ? 0.46 : 0.82);
+    this.muteButtonControls.halo.setAlpha(muted ? 0.5 : 1);
+    this.muteButtonControls.text.setAlpha(0);
+    this.drawMuteIcon(this.muteToggleIconPosition.x, this.muteToggleIconPosition.y, muted);
   }
 
   drawMuteIcon(x, y, muted) {
+    const bodyColor = muted ? 0x94a3b8 : 0xf8fafc;
+    const waveColor = muted ? 0x64748b : 0xbfdbfe;
+    const slashColor = muted ? 0xfca5a5 : 0xfde68a;
+    const iconAlpha = muted ? 0.68 : 1;
+
     this.muteIconGraphic.clear();
-    this.muteIconGraphic.fillStyle(0xf8fafc, 1);
-    this.muteIconGraphic.fillRect(x - 13, y - 7, 6, 14);
-    this.muteIconGraphic.fillTriangle(x - 7, y - 9, x + 4, y - 16, x + 4, y + 16);
-    this.muteIconGraphic.lineStyle(3, 0x93c5fd, 1);
+    this.muteIconGraphic.fillStyle(bodyColor, iconAlpha);
+    this.muteIconGraphic.fillRect(x - 14, y - 7, 6, 14);
+    this.muteIconGraphic.fillTriangle(x - 8, y - 9, x + 4, y - 16, x + 4, y + 16);
+    this.muteIconGraphic.lineStyle(3, waveColor, muted ? 0.48 : 0.9);
     this.muteIconGraphic.beginPath();
     this.muteIconGraphic.moveTo(x + 9, y - 10);
     this.muteIconGraphic.quadraticCurveTo(x + 18, y, x + 9, y + 10);
     this.muteIconGraphic.strokePath();
 
     if (!muted) {
-      this.muteIconGraphic.lineStyle(3, 0xbfdbfe, 0.86);
+      this.muteIconGraphic.lineStyle(3, waveColor, 0.72);
       this.muteIconGraphic.beginPath();
       this.muteIconGraphic.moveTo(x + 15, y - 15);
-      this.muteIconGraphic.quadraticCurveTo(x + 29, y, x + 15, y + 15);
+      this.muteIconGraphic.quadraticCurveTo(x + 28, y, x + 15, y + 15);
       this.muteIconGraphic.strokePath();
       return;
     }
 
-    this.muteIconGraphic.lineStyle(4, 0xfde68a, 1);
+    this.muteIconGraphic.lineStyle(4, slashColor, 0.86);
     this.muteIconGraphic.beginPath();
-    this.muteIconGraphic.moveTo(x - 15, y + 17);
-    this.muteIconGraphic.lineTo(x + 29, y - 17);
+    this.muteIconGraphic.moveTo(x - 16, y + 17);
+    this.muteIconGraphic.lineTo(x + 28, y - 17);
     this.muteIconGraphic.strokePath();
   }
 
-  createBackButton(width, height) {
-    const backButton = this.add
-      .text(width / 2, height - 54, 'BACK', {
+  createBackButton() {
+    const { margin, touchSize, centerY } = getBottomNavigationMetrics(this);
+    const backX = margin + touchSize / 2;
+    const backControl = createFloatingControl(this, backX, centerY, touchSize, '←', () => this.scene.start('MainMenuScene'));
+
+    this.add
+      .text(backX, centerY + touchSize * 0.62, 'BACK', {
         fontFamily: 'Arial, sans-serif',
-        fontSize: '20px',
-        color: '#f8fafc',
-        backgroundColor: '#334155',
+        fontSize: '11px',
+        color: '#cbd5e1',
         fontStyle: 'bold',
-        padding: { x: 24, y: 10 },
       })
       .setOrigin(0.5)
-      .setInteractive({ useHandCursor: true });
+      .setDepth(200);
 
-    backButton.on('pointerover', () => backButton.setBackgroundColor('#475569'));
-    backButton.on('pointerout', () => backButton.setBackgroundColor('#334155'));
-    backButton.on('pointerup', () => this.scene.start('MainMenuScene'));
+    return backControl;
   }
 }
