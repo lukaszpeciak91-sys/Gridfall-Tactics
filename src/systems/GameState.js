@@ -92,7 +92,6 @@ function cardCanRealisticallyAffectOutcome(card, state, owner) {
       return false;
     case 'infect_damage_1_opposite_ally_atk_1':
       return enemyUnits.length > 0;
-    case 'destroy_friendly_draw_2':
     case 'destroy_friendly_draw_1':
     case 'return_friendly_draw_1':
       return friendlyUnits.length > 0
@@ -991,11 +990,6 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
       drawCards(side, 1);
       break;
     }
-    case 'destroy_friendly_draw_2':
-    case 'destroy_friendly_draw_1': {
-      if (targetUnit.owner !== owner) return { ok: false, reason: 'Target must be friendly' };
-      state.board[boardIndex] = null;
-      drawCards(side, card.effectId === 'destroy_friendly_draw_1' ? 1 : 2);
     case 'destroy_friendly_draw_1': {
       if (targetUnit.owner !== owner) return { ok: false, reason: 'Target must be friendly' };
       state.board[boardIndex] = null;

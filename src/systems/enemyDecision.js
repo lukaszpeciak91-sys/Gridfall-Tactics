@@ -12,7 +12,6 @@ const LOW_TEMPO_EFFECTS = new Set([
   'cannot_drop_below_1_this_turn',
   'immune_move_disable_this_turn',
   'return_friendly_draw_1',
-  'destroy_friendly_draw_2',
   'destroy_friendly_draw_1',
   'revive_friendly_1hp',
   'friendly_immovable_this_turn',
@@ -258,7 +257,6 @@ function getCandidateTargetIndexes(state, owner, effectId) {
 
   switch (effectId) {
     case 'return_friendly_draw_1':
-    case 'destroy_friendly_draw_2':
     case 'destroy_friendly_draw_1':
     case 'heal_2':
     case 'heal_1_atk_1_draw_on_kill_this_turn':
@@ -295,7 +293,6 @@ function isTwoTargetSwapEffect(effectId) {
 function isTargetedOnlyEffect(effectId) {
   return isTwoTargetSwapEffect(effectId)
     || effectId === 'return_friendly_draw_1'
-    || effectId === 'destroy_friendly_draw_2'
     || effectId === 'destroy_friendly_draw_1'
     || effectId === 'heal_2'
     || effectId === 'heal_1_atk_1_draw_on_kill_this_turn'

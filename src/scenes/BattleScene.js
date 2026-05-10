@@ -49,7 +49,6 @@ const ENEMY_EFFECT_SUMMARY_OVERRIDES = Object.freeze({
   buff_all_atk_1: 'All allies +1 ATK',
   revive_friendly_1hp: 'Revive a unit at 1 HP',
   fill_empty_slots_0_1: 'Fill slots with Tokens',
-  destroy_friendly_draw_2: 'Destroy ally, draw 2',
   destroy_friendly_draw_1: 'Destroy ally, draw 1',
 });
 
