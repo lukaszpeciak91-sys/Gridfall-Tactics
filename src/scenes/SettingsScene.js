@@ -6,6 +6,7 @@ import {
   getMenuBackgroundAsset,
   preloadMenuBackgroundArt,
 } from '../rendering/backgroundArt.js';
+import { createModalBackButton } from '../ui/modalControls.js';
 
 const SETTINGS_STORAGE_KEY = 'gridfall:tactics:settings:v1';
 const DEFAULT_SETTINGS = {
@@ -401,20 +402,12 @@ export default class SettingsScene extends Phaser.Scene {
   }
 
   createBackButton(width, height) {
-    const backButton = this.add
-      .text(width / 2, height - 54, 'BACK', {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '20px',
-        color: '#f8fafc',
-        backgroundColor: '#334155',
-        fontStyle: 'bold',
-        padding: { x: 24, y: 10 },
-      })
-      .setOrigin(0.5)
-      .setInteractive({ useHandCursor: true });
-
-    backButton.on('pointerover', () => backButton.setBackgroundColor('#475569'));
-    backButton.on('pointerout', () => backButton.setBackgroundColor('#334155'));
-    backButton.on('pointerup', () => this.scene.start('MainMenuScene'));
+    createModalBackButton(this, {
+      x: width / 2,
+      y: height - 54,
+      width: 156,
+      height: 48,
+      onPointerUp: () => this.scene.start('MainMenuScene'),
+    });
   }
 }
