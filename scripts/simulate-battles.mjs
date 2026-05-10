@@ -180,6 +180,7 @@ function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, gameSe
     turnCapResolvedBy: state.turnCapResolvedBy,
     heroDeathResolution: state.heroDeathResolution,
     quickFixTempoDraws: state.quickFixTempoDraws ?? 0,
+    defensiveFrictionApplications: state.wardenDefensiveFrictionApplications ?? 0,
   };
 }
 
@@ -297,7 +298,7 @@ function main() {
   const combinedPairs = new Map();
   const orderedMatchups = new Map();
   const passStats = { pass: 0, cancelled: 0 };
-  const telemetry = { replaceUsed: 0, repositionUsed: 0, meaningfulGameplayActions: 0, pointlessGameplayActions: 0, openLaneImprovements: 0, repeatedLoopPreventions: 0, invalidActions: 0, crashes: 0, quickFixUses: 0, quickFixTriggers: 0, mulliganByFaction: {} };
+  const telemetry = { replaceUsed: 0, repositionUsed: 0, meaningfulGameplayActions: 0, pointlessGameplayActions: 0, openLaneImprovements: 0, repeatedLoopPreventions: 0, invalidActions: 0, crashes: 0, quickFixUses: 0, quickFixTriggers: 0, shieldPushUses: 0, defensiveFrictionApplications: 0, mulliganByFaction: {} };
   const audit = { games: 0, draws: 0, turnCaps: 0, aggroTurnCapWins: 0, aggroGames: 0, nonSwarmGames: 0, nonSwarmDraws: 0, nonSwarmTurnCaps: 0, swarmMirrorGames: 0, swarmMirrorDraws: 0, simultaneousLethals: 0, simultaneousLethalDrawsAfter: 0 };
 
   for (let playerIndex = 0; playerIndex < factionKeys.length; playerIndex += 1) for (let enemyIndex = 0; enemyIndex < factionKeys.length; enemyIndex += 1) {
@@ -313,6 +314,7 @@ function main() {
       const gameSeed = buildGameSeed(baseSeed, playerKey, enemyKey, i);
       const result = runSingleGame(factions[playerKey], factions[enemyKey], passStats, telemetry, gameSeed, i, playerKey, enemyKey);
       telemetry.quickFixTriggers += result.quickFixTempoDraws ?? 0;
+      telemetry.defensiveFrictionApplications += result.defensiveFrictionApplications ?? 0;
       const wasDraw = result.winner === 'draw';
       const wasTurnCap = result.endingReason === 'turn-cap';
       addOrderedResult(orderedStats, result);
@@ -537,6 +539,8 @@ Battle simulation complete (${matchCount} games per matchup, max ${MAX_TURNS} tu
     { metric: 'Berserker usage frequency', count: `${percent(telemetry.berserkerUses, audit.aggroGames)}% of Aggro seats` },
     { metric: 'Quick Fix triggered draws', count: telemetry.quickFixTriggers },
     { metric: 'Quick Fix trigger rate', count: `${percent(telemetry.quickFixTriggers, telemetry.quickFixUses)}%` },
+    { metric: 'Shield Push uses', count: telemetry.shieldPushUses },
+    { metric: 'defensive friction applications', count: telemetry.defensiveFrictionApplications },
   ]);
   console.log('\nPASS reason counts:');
   console.table(Object.entries(passStats).map(([reason, count]) => ({ reason, count })));
