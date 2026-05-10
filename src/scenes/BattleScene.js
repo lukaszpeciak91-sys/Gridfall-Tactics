@@ -22,6 +22,34 @@ const SELECTED_HAND_CARD_DEPTH = 180;
 const MULLIGAN_HAND_CARD_PREVIEW_SCALE = 1.08;
 const MULLIGAN_HAND_CARD_RAISE_RATIO = 0.06;
 const HAND_CARD_PREVIEW_TWEEN_MS = 110;
+const ENEMY_ACTION_NOTIFICATION_FADE_IN_MS = 110;
+const ENEMY_ACTION_NOTIFICATION_HOLD_MS = 650;
+const ENEMY_ACTION_NOTIFICATION_FADE_OUT_MS = 140;
+const ENEMY_ACTION_APPLY_DELAY_MS = 500;
+const ENEMY_ACTION_PRE_COMBAT_DELAY_MS = 400;
+const ENEMY_EFFECT_SUMMARY_MAX_CHARS = 34;
+const ENEMY_EFFECT_SUMMARY_OVERRIDES = Object.freeze({
+  aggro_buff_all_atk_2: 'All allies +2 ATK',
+  swap_adjacent_then_resolve: 'Swap ally, fight lane',
+  ignore_armor_next_attack: 'Damage and pierce armor',
+  quick_strike: 'Resolve lane combat now',
+  heal_1_atk_1_draw_on_kill_this_turn: 'Heal, +1 ATK, draw on kill',
+  swap_any_two_units: 'Swap two units',
+  enemy_all_atk_minus_1: 'Leftmost enemies -1 ATK',
+  damage_up_to_2_enemies_1: 'Damage leftmost enemies',
+  control_enemy_unit_this_turn: 'Enemy hits own hero',
+  return_friendly_draw_1: 'Return ally, draw 1',
+  buff_all_armor_1: 'All allies +1 ARM',
+  immune_move_disable_this_turn: 'Block move effects',
+  heal_all_1: 'Heal all allies 1',
+  cannot_drop_below_1_this_turn: 'Allies survive at 1 HP',
+  temp_armor_1: 'Target ally +1 ARM',
+  summon_grunt_empty_slot: 'Summon a Grunt',
+  buff_all_atk_1: 'All allies +1 ATK',
+  revive_friendly_1hp: 'Revive a unit at 1 HP',
+  fill_empty_slots_0_1: 'Fill slots with Tokens',
+  destroy_friendly_draw_2: 'Destroy ally, draw 2',
+});
 
 export default class BattleScene extends Phaser.Scene {
   constructor() {
@@ -42,6 +70,7 @@ export default class BattleScene extends Phaser.Scene {
     this.bottomControlViews = [];
     this.isFlowResolving = false;
     this.enemyActionBanner = null;
+    this.enemyActionBannerFadeOutEvent = null;
     this.battleResultModal = null;
     this.battleResultModalShown = false;
     this.battleResultModalPending = false;
@@ -77,6 +106,7 @@ export default class BattleScene extends Phaser.Scene {
     this.bottomControlViews = [];
     this.isFlowResolving = false;
     this.enemyActionBanner = null;
+    this.enemyActionBannerFadeOutEvent = null;
     this.battleResultModal = null;
     this.battleResultModalShown = false;
     this.battleResultModalPending = false;
@@ -99,6 +129,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   cleanupSceneObjects({ preserveTimers = false, preserveTweens = false } = {}) {
+    this.destroyEnemyActionBanner();
     this.destroyBattleResultModal();
     this.destroyDeckInfoPanel();
     this.destroyDeckCounterView();
@@ -1487,7 +1518,7 @@ export default class BattleScene extends Phaser.Scene {
       }
     }
 
-    await this.delay(500);
+    await this.delay(ENEMY_ACTION_PRE_COMBAT_DELAY_MS);
     const preCombatBoard = this.captureBoardSnapshot();
     const combatEvents = resolveCombat(this.gameState);
     this.lastCombatEvents = combatEvents;
@@ -1559,7 +1590,7 @@ export default class BattleScene extends Phaser.Scene {
     const action = chooseEnemyAction(this.gameState);
     const card = action.cardId ? this.gameState.enemy.hand.find((item) => item.id === action.cardId) : null;
     this.showEnemyActionBanner(this.getEnemyActionMessage(action, card));
-    await this.delay(650);
+    await this.delay(ENEMY_ACTION_APPLY_DELAY_MS);
 
     const beforeStats = this.captureBoardStats();
     this.enemyTakeAction(action);
@@ -1577,11 +1608,28 @@ export default class BattleScene extends Phaser.Scene {
     const cardName = card?.name ?? 'Unknown Card';
     if (action.type === 'play-unit') return `ENEMY PLAYS\n${cardName}`;
     if (action.type === 'play-effect' || action.type === 'play-targeted-effect') {
-      const effect = card?.textShort ? `\n${card.textShort}` : '';
-      return `ENEMY PLAYS\n${cardName}${effect}`;
+      return `ENEMY PLAYS\n${cardName}\n${this.getEnemyEffectSummary(card)}`;
     }
     if (action.type === 'swap-units') return 'ENEMY REPOSITIONS';
     return 'ENEMY ACTION';
+  }
+
+  getEnemyEffectSummary(card) {
+    if (!card) return 'Effect';
+    const override = ENEMY_EFFECT_SUMMARY_OVERRIDES[card.effectId];
+    if (override) return override;
+
+    const textShort = typeof card.textShort === 'string' ? card.textShort.trim() : '';
+    const cleaned = textShort
+      .replace(/^On play:\s*/i, '')
+      .replace(/^Pick ally:\s*/i, '')
+      .replace(/\s+this turn\.?$/i, '')
+      .replace(/\s+until combat ends\.?$/i, '')
+      .replace(/\.$/, '');
+
+    if (cleaned && cleaned.length <= ENEMY_EFFECT_SUMMARY_MAX_CHARS) return cleaned;
+    if (!cleaned) return 'Effect';
+    return `${cleaned.slice(0, ENEMY_EFFECT_SUMMARY_MAX_CHARS - 1).trimEnd()}…`;
   }
 
   enemyTakeAction(action = chooseEnemyAction(this.gameState)) {
@@ -1634,35 +1682,62 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   showEnemyActionBanner(message) {
-    if (this.enemyActionBanner) {
-      this.enemyActionBanner.destroy();
-    }
+    this.destroyEnemyActionBanner();
 
-    const { width, topHero } = this.layout;
-    this.enemyActionBanner = this.add.text(width * 0.5, topHero.centerY + topHero.h * 0.82, message, {
+    const { width, board } = this.layout;
+    const maxWidth = board.width * 0.9;
+    const startY = board.centerY + 6;
+    this.enemyActionBanner = this.add.text(width * 0.5, startY, message, {
       fontFamily: 'Arial, sans-serif',
-      fontSize: `${Math.max(14, Math.floor(topHero.h * 0.26))}px`,
+      fontSize: `${Math.max(13, Math.floor(board.cellWidth * 0.12))}px`,
       color: '#fee2e2',
       backgroundColor: '#7f1d1d',
       align: 'center',
-      padding: { x: 14, y: 8 },
-      wordWrap: { width: width * 0.7 },
-    }).setOrigin(0.5).setDepth(220).setAlpha(0);
+      padding: { x: 14, y: 7 },
+      wordWrap: { width: maxWidth },
+    }).setOrigin(0.5).setDepth(220).setAlpha(0).setScale(0.98);
 
+    const banner = this.enemyActionBanner;
     this.tweens.add({
-      targets: this.enemyActionBanner,
+      targets: banner,
       alpha: 1,
-      y: this.enemyActionBanner.y + 8,
-      duration: 120,
-      yoyo: true,
-      hold: 900,
-      onComplete: () => {
-        if (this.enemyActionBanner) {
-          this.enemyActionBanner.destroy();
-          this.enemyActionBanner = null;
-        }
-      },
+      y: board.centerY,
+      scaleX: 1,
+      scaleY: 1,
+      duration: ENEMY_ACTION_NOTIFICATION_FADE_IN_MS,
+      ease: 'Quad.easeOut',
     });
+
+    this.enemyActionBannerFadeOutEvent = this.time.delayedCall(
+      ENEMY_ACTION_NOTIFICATION_FADE_IN_MS + ENEMY_ACTION_NOTIFICATION_HOLD_MS,
+      () => {
+        if (this.enemyActionBanner !== banner) return;
+        this.enemyActionBannerFadeOutEvent = null;
+        this.tweens.add({
+          targets: banner,
+          alpha: 0,
+          y: board.centerY - 6,
+          scaleX: 0.98,
+          scaleY: 0.98,
+          duration: ENEMY_ACTION_NOTIFICATION_FADE_OUT_MS,
+          ease: 'Quad.easeIn',
+          onComplete: () => {
+            if (this.enemyActionBanner === banner) this.destroyEnemyActionBanner();
+          },
+        });
+      },
+    );
+  }
+
+  destroyEnemyActionBanner() {
+    if (this.enemyActionBannerFadeOutEvent) {
+      this.enemyActionBannerFadeOutEvent.remove(false);
+      this.enemyActionBannerFadeOutEvent = null;
+    }
+    if (!this.enemyActionBanner) return;
+    this.tweens?.killTweensOf?.(this.enemyActionBanner);
+    this.enemyActionBanner.destroy();
+    this.enemyActionBanner = null;
   }
 
 
