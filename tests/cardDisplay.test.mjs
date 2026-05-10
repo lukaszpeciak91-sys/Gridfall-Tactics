@@ -30,15 +30,16 @@ test('card display helper falls back to current textShort fields when card keys 
 
 test('card display helper can resolve future nameKey and textKey fields through English dictionary', () => {
   const keyedCard = {
+    id: 'aggro_runner_1',
     name: 'Legacy Runner Name',
     nameKey: 'cards.aggro_runner_1.name',
     textShort: 'Legacy Runner Text',
     textKey: 'cards.aggro_runner_1.textShort',
   };
 
-  assert.equal(getCardDisplayName(keyedCard, 'en'), 'Runner');
+  assert.equal(getCardDisplayName(keyedCard, 'en'), 'Ballroom Duelist');
   assert.equal(getCardTextShort(keyedCard, 'en'), 'Open enemy lane: +2 hero dmg.');
-  assert.equal(getCardDisplayName(keyedCard, 'pl'), 'Runner');
+  assert.equal(getCardDisplayName(keyedCard, 'pl'), 'Ballroom Duelist');
   assert.equal(getCardTextShort(keyedCard, 'pl'), 'Open enemy lane: +2 hero dmg.');
 });
 
@@ -189,14 +190,41 @@ test('deck info panel output templates remain unchanged', () => {
   assert.match(source, /return groups\.map\(\(\[heading, cards\]\) => this\.formatDeckInfoGroup\(heading, cards\)\)\.join\('\\n\\n'\);/);
 });
 
-test('current faction card output remains unchanged without nameKey/textKey migration', () => {
+test('current faction card display names use English presentation overrides without mutating gameplay card names', () => {
   for (const factionKey of getFactionKeys()) {
     const faction = getFactionByKey(factionKey);
     for (const card of faction.deck) {
-      assert.equal(getCardDisplayName(card, 'en'), card.name);
-      assert.equal(getCardDisplayName(card, 'pl'), card.name);
+      const before = JSON.stringify(card);
+      const displayNameEn = getCardDisplayName(card, 'en');
+      const displayNamePl = getCardDisplayName(card, 'pl');
+      assert.equal(typeof displayNameEn, 'string');
+      assert.equal(displayNameEn, displayNamePl);
+      assert.equal(card.id, JSON.parse(before).id);
+      assert.equal(card.name, JSON.parse(before).name);
+      assert.equal(JSON.stringify(card), before);
       assert.equal(getCardTextShort(card, 'en'), card.textShort);
       assert.equal(getCardTextShort(card, 'pl'), card.textShort);
     }
   }
+});
+
+
+test('presentation overrides resolve through render modes and preserve gameplay ids', () => {
+  const faction = getFactionByKey('Aggro');
+  const runner = faction.deck.find((card) => card.id === 'aggro_runner_1');
+  const before = JSON.stringify(runner);
+
+  assert.equal(runner.name, 'Runner');
+  assert.equal(getCardDisplayName(runner, 'en'), 'Ballroom Duelist');
+  assert.equal(formatHandCardLabel(runner, 'en').split('\n')[0], 'Ballroom Duelist');
+  assert.equal(formatBoardUnitLabel(runner, 'en').split('\n')[0], 'Ballroom Duelist');
+  assert.deepEqual(formatCollectionRowLabel(runner, 'en'), {
+    name: 'Ballroom Duelist',
+    typeStats: 'unit • ATK 2 / HP 1',
+    textShort: 'Open enemy lane: +2 hero dmg.',
+  });
+  assert.equal(formatDeckSummaryEntry(runner, 'en').name, 'Ballroom Duelist');
+  assert.equal(runner.id, 'aggro_runner_1');
+  assert.equal(runner.name, 'Runner');
+  assert.equal(JSON.stringify(runner), before);
 });

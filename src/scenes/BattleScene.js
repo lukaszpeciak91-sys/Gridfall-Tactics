@@ -10,6 +10,7 @@ import { calculateHandLayoutMetrics } from '../ui/handLayout.js';
 import { createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
 import { createModalBackButton } from '../ui/modalControls.js';
 import { formatDeckSummaryEntry, formatHandCardLabel } from '../rendering/cardRenderModes.js';
+import { getCardDisplayName } from '../localization/cardDisplay.js';
 import { getActiveLocale } from '../localization/localeService.js';
 
 const HAND_CARD_ACCENT_COLORS = Object.freeze({
@@ -1733,7 +1734,7 @@ export default class BattleScene extends Phaser.Scene {
 
   getEnemyActionMessage(action, card) {
     if (!action || action.type === 'pass') return 'ENEMY PASS';
-    const cardName = card?.name ?? 'Unknown Card';
+    const cardName = getCardDisplayName(card, getActiveLocale()) ?? 'Unknown Card';
     if (action.type === 'play-unit') return `ENEMY PLAYS\n${cardName}`;
     if (action.type === 'play-effect' || action.type === 'play-targeted-effect') {
       return `ENEMY PLAYS\n${cardName}\n${this.getEnemyEffectSummary(card)}`;
@@ -2375,7 +2376,7 @@ export default class BattleScene extends Phaser.Scene {
   getBoardUnitLabel(unit) {
     if (!unit) return '';
 
-    const name = unit.name ?? 'Unit';
+    const name = getCardDisplayName(unit, getActiveLocale()) ?? 'Unit';
     const atk = getUnitAttack(unit);
     const hp = Number.isFinite(unit.hp) ? unit.hp : 0;
     const armor = getUnitArmor(unit);

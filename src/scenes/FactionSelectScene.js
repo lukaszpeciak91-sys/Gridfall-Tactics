@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
+import { getFactionPresentation } from '../data/presentation/factionPresentation.js';
 import { createBuildMarker } from '../ui/buildMarker.js';
 import { createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
 import { MENU_BACKGROUND_FALLBACK_COLOR, MENU_BACKGROUND_FALLBACK_COLOR_HEX, createCoverBackground, getMenuBackgroundAsset, preloadMenuBackgroundArt } from '../rendering/backgroundArt.js';
@@ -183,6 +184,8 @@ export default class FactionSelectScene extends Phaser.Scene {
   drawFactionCard(content, factionKey, { y, cardWidth, cardHeight }) {
     const faction = getFactionByKey(factionKey);
     const details = FACTION_CARD_DETAILS[factionKey] ?? FACTION_CARD_DETAILS.Aggro;
+    const presentation = getFactionPresentation(faction?.id);
+    const displayName = presentation?.displayNameEn ?? faction?.name ?? factionKey;
     const x = -cardWidth / 2;
     const artMargin = 10;
     const artWidth = cardWidth - artMargin * 2;
@@ -217,7 +220,7 @@ export default class FactionSelectScene extends Phaser.Scene {
     this.uiElements.push(titleScrim);
 
     const name = this.add
-      .text(x + artMargin + 12, artY + artHeight - 31, faction?.name ?? factionKey, {
+      .text(x + artMargin + 12, artY + artHeight - 31, displayName, {
         fontFamily: 'Arial, sans-serif',
         fontSize: '22px',
         color: '#f8fafc',
