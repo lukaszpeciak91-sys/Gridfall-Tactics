@@ -191,7 +191,7 @@ The no-progress detector uses the stricter "meaningful for outcome" definition i
 | Control | Sniper | unit | 2/1/0 | can_hit_any_lane | Attacks lowest-HP enemy unit. | Deterministic auto-target | Tie-break: lowest index; no manual target UI. |
 | Control | Controller | unit | 1/2/0 | swap_two_enemy_units | On play: swap first 2 enemies. | Deterministic on-play | Picks first two enemy units by index order; not manual two-pick UI for this unit trigger. |
 | Control | Drone | unit | 1/1/0 | death_damage_enemy_hero_1 | On death, enemy hero takes 1. | Death trigger | Applies after unit removed. |
-| Control | Swap | order | - | swap_any_two_units | Swap two selected units anywhere on board. | Two-target targeted effect | Requires two distinct occupied slots. |
+| Control | Swap | order | - | swap_any_two_units | Swap two selected units on one side. | Two-target targeted effect | Requires two distinct occupied slots with the same owner; cannot trade units between sides. |
 | Control | Jam Signal | order | - | enemy_all_atk_minus_1 | Leftmost 2 enemies -1 ATK this turn. | Non-targeted deterministic effect | Picks occupied enemy lanes from left to right; expires after combat. |
 | Control | Pulse Wave | order | - | damage_up_to_2_enemies_1 | Deal 1 to leftmost 2 enemies. | Non-targeted deterministic effect | Picks occupied enemy lanes from left to right; defeated units cleaned up immediately. |
 | Control | System Override | special | - | control_enemy_unit_this_turn | Target enemy hits its own hero next combat. | Targeted enemy | Clears after combat cleanup. |

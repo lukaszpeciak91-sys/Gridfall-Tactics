@@ -66,8 +66,11 @@ function cardCanRealisticallyAffectOutcome(card, state, owner) {
     case 'damage_up_to_2_enemies_1':
     case 'control_enemy_unit_this_turn':
       return enemyUnits.length > 0;
-    case 'swap_any_two_units':
-      return state.board.filter(Boolean).length >= 2;
+    case 'swap_any_two_units': {
+      const ownersWithTwoUnits = ['player', 'enemy']
+        .some((unitOwner) => state.board.filter((unit) => unit?.owner === unitOwner).length >= 2);
+      return ownersWithTwoUnits;
+    }
     case 'summon_grunt_empty_slot':
       return friendlyEmptySlots;
     case 'revive_friendly_1hp':
@@ -821,6 +824,9 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
       const firstUnit = state.board[firstIndex];
       const secondUnit = state.board[secondIndex];
       if (!firstUnit || !secondUnit) return { ok: false, reason: 'Both targets must contain units' };
+      if (firstUnit.owner !== secondUnit.owner) {
+        return { ok: false, reason: 'Swap targets must be on the same side' };
+      }
       state.board[firstIndex] = secondUnit;
       state.board[secondIndex] = firstUnit;
       break;

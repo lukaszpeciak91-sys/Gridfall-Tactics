@@ -10,7 +10,7 @@ const swapCard = {
   type: 'order',
   targeting: 'any_units',
   effectId: 'swap_any_two_units',
-  textShort: 'Swap any two units.',
+  textShort: 'Swap any two units on one side.',
 };
 
 const unit = (owner, overrides = {}) => ({
@@ -55,6 +55,21 @@ test('AI does not play swap_any_two_units as a one-target pending probe', () => 
   const action = chooseBattleAction(state, 'enemy');
 
   assert.equal(action.type, 'pass');
+  assert.equal(state.enemy.hand.length, 1);
+});
+
+test('swap_any_two_units cannot trade units between enemy and player sides', () => {
+  const state = createInitialBattleState({ name: 'Player', deck: [] }, { name: 'Enemy', deck: [] }, { firstActor: 'enemy' });
+  state.enemy.hand.push({ ...swapCard });
+  state.board[0] = unit('enemy', { id: 'enemy-controller', cardId: 'enemy-controller', name: 'Controller' });
+  state.board[6] = unit('player', { id: 'player-bruiser', cardId: 'player-bruiser', name: 'Bruiser' });
+
+  const result = resolveTargetedEffectCard(state, 'enemy', swapCard.id, 0, [0, 6]);
+
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'Swap targets must be on the same side');
+  assert.equal(state.board[0].cardId, 'enemy-controller');
+  assert.equal(state.board[6].cardId, 'player-bruiser');
   assert.equal(state.enemy.hand.length, 1);
 });
 

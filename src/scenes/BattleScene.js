@@ -1294,7 +1294,7 @@ export default class BattleScene extends Phaser.Scene {
     if (!selectedCard) return;
 
     if (this.targetingState) {
-      if (!this.isValidTarget(boardIndex, this.targetingState.targetType)) {
+      if (!this.isValidTarget(boardIndex, this.targetingState.targetType, this.targetingState.targetIndexes)) {
         this.clearHandCardSelection();
         return;
       }
@@ -2029,8 +2029,10 @@ ${statParts.join(' | ')}`;
     }
 
     this.boardCells.forEach((cell) => {
-      const isValidFriendlyTarget = this.isValidTarget(cell.index, 'friendly-unit');
-      const isValidEnemyTarget = this.isValidTarget(cell.index, 'enemy-unit');
+      const selectedTargetIndexes = this.targetingState?.targetIndexes ?? [];
+      const isValidFriendlyTarget = this.isValidTarget(cell.index, 'friendly-unit', selectedTargetIndexes);
+      const isValidEnemyTarget = this.isValidTarget(cell.index, 'enemy-unit', selectedTargetIndexes);
+      const isValidAnyTarget = this.isValidTarget(cell.index, 'any-unit', selectedTargetIndexes);
       let strokeColor = cell.row === 1 ? 0x94a3b8 : 0xcbd5e1;
       let strokeAlpha = cell.row === 1 ? 0.3 : 0.55;
 
@@ -2040,7 +2042,7 @@ ${statParts.join(' | ')}`;
       } else if (this.targetingState?.targetType === 'enemy-unit' && isValidEnemyTarget) {
         strokeColor = 0xef4444;
         strokeAlpha = 1;
-      } else if (this.targetingState?.targetType === 'any-unit' && (isValidFriendlyTarget || isValidEnemyTarget)) {
+      } else if (this.targetingState?.targetType === 'any-unit' && isValidAnyTarget) {
         strokeColor = 0xa855f7;
         strokeAlpha = 1;
       }
@@ -2057,12 +2059,16 @@ ${statParts.join(' | ')}`;
     return getTargetingStateForEffect(card.effectId, card.id);
   }
 
-  isValidTarget(boardIndex, targetType) {
+  isValidTarget(boardIndex, targetType, selectedTargetIndexes = []) {
     const unit = this.gameState.board[boardIndex];
     if (!unit) return false;
     if (targetType === 'friendly-unit') return unit.owner === 'player';
     if (targetType === 'enemy-unit') return unit.owner === 'enemy';
-    if (targetType === 'any-unit') return true;
+    if (targetType === 'any-unit') {
+      const firstSelectedIndex = selectedTargetIndexes[0];
+      const firstSelectedUnit = this.gameState.board[firstSelectedIndex];
+      return !firstSelectedUnit || firstSelectedUnit.owner === unit.owner;
+    }
     return false;
   }
 
