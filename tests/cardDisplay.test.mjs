@@ -117,7 +117,8 @@ test('battle hand labels route through HAND/FULL formatter and preserve visible 
   };
 
   assert.match(source, /import \{ formatDeckSummaryEntry, formatHandCardLabel \} from '\.\.\/rendering\/cardRenderModes\.js';/);
-  assert.match(handLabelSource, /return formatHandCardLabel\(card, 'en'\);/);
+  assert.match(source, /import \{ getActiveLocale \} from '\.\.\/localization\/localeService\.js';/);
+  assert.match(handLabelSource, /return formatHandCardLabel\(card, getActiveLocale\(\)\);/);
   assert.doesNotMatch(handLabelSource, /card\.textShort/);
   assert.doesNotMatch(handLabelSource, /`\$\{atk\}\/\$\{hp\} ARM \$\{armor\}`/);
   assert.equal(formatHandCardLabel(unitCard), 'Shield Drone\n1/4 ARM 2\nBlocks lane. Cannot attack.');
@@ -140,7 +141,7 @@ test('deck info panel routes card summary entries through render mode formatter'
   const deckInfoSummarySource = source.slice(start, end);
 
   assert.match(source, /import \{ formatDeckSummaryEntry, formatHandCardLabel \} from '\.\.\/rendering\/cardRenderModes\.js';/);
-  assert.match(deckInfoSummarySource, /const entry = formatDeckSummaryEntry\(card\);/);
+  assert.match(deckInfoSummarySource, /const entry = formatDeckSummaryEntry\(card, getActiveLocale\(\)\);/);
   assert.doesNotMatch(deckInfoSummarySource, /const name = card\.name \?\? 'Unknown Card'/);
   assert.doesNotMatch(deckInfoSummarySource, /card\.type === 'effect' \? 'Effect' : 'Unit'/);
 });
