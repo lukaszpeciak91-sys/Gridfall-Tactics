@@ -1,8 +1,10 @@
 import Phaser from 'phaser';
 import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
-import { getFactionPresentation } from '../data/presentation/factionPresentation.js';
+import { getFactionPresentationName } from '../data/presentation/factionPresentation.js';
 import { createBuildMarker } from '../ui/buildMarker.js';
 import { createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
+import { MENU_BACKGROUND_FALLBACK_COLOR, MENU_BACKGROUND_FALLBACK_COLOR_HEX, createCoverBackground, getMenuBackgroundAsset, preloadMenuBackgroundArt } from '../rendering/backgroundArt.js';
+import { getActiveLocale } from '../localization/localeService.js';
 import {
   MENU_BACKGROUND_FALLBACK_COLOR,
   MENU_BACKGROUND_FALLBACK_COLOR_HEX,
@@ -197,8 +199,7 @@ export default class FactionSelectScene extends Phaser.Scene {
   drawFactionCard(content, factionKey, { y, cardWidth, cardHeight }) {
     const faction = getFactionByKey(factionKey);
     const details = FACTION_CARD_DETAILS[factionKey] ?? FACTION_CARD_DETAILS.Aggro;
-    const presentation = getFactionPresentation(faction?.id);
-    const displayName = presentation?.displayNameEn ?? faction?.name ?? factionKey;
+    const displayName = getFactionPresentationName(faction?.id, getActiveLocale()) ?? faction?.name ?? factionKey;
     const x = -cardWidth / 2;
     const artMargin = 10;
     const artWidth = cardWidth - artMargin * 2;

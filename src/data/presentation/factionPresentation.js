@@ -315,6 +315,27 @@ export function getFactionPresentation(factionId) {
   return factionPresentation[factionId] ?? null;
 }
 
+function isNonEmptyString(value) {
+  return typeof value === 'string' && value.length > 0;
+}
+
+export function getFactionPresentationName(factionId, locale = 'en') {
+  const presentation = getFactionPresentation(factionId);
+  if (!presentation) {
+    return null;
+  }
+
+  if (locale === 'pl' && isNonEmptyString(presentation.displayNamePl)) {
+    return presentation.displayNamePl;
+  }
+
+  if (isNonEmptyString(presentation.displayNameEn)) {
+    return presentation.displayNameEn;
+  }
+
+  return isNonEmptyString(presentation.displayNamePl) ? presentation.displayNamePl : null;
+}
+
 export function getCardPresentationName(card, locale = 'en') {
   const cardId = card?.id;
   if (typeof cardId !== 'string') {
@@ -324,8 +345,15 @@ export function getCardPresentationName(card, locale = 'en') {
   for (const faction of Object.values(factionPresentation)) {
     const override = faction.cardNameOverrides[cardId];
     if (override) {
-      // Polish names are intentionally metadata-only until runtime Polish rendering is activated.
-      return override.nameEn;
+      if (locale === 'pl' && isNonEmptyString(override.namePl)) {
+        return override.namePl;
+      }
+
+      if (isNonEmptyString(override.nameEn)) {
+        return override.nameEn;
+      }
+
+      return card?.name;
     }
   }
 
