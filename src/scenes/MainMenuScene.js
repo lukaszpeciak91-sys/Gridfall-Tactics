@@ -5,10 +5,26 @@ import {
   createCoverBackground,
   createMenuArenaLightSweep,
   getMenuBackgroundAsset,
+  preloadImageAsset,
   preloadMenuBackgroundArt,
+  resolvePublicAssetPath,
 } from '../rendering/backgroundArt.js';
 import { createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
 import { translateActive } from '../localization/localeService.js';
+
+const MAIN_MENU_TITLE_TEXT = 'GRIDFALL TACTICS';
+const MAIN_MENU_LOGO_PUBLIC_PATH = 'assets/ui/gridfall-logo.webp';
+const MAIN_MENU_LOGO_ASSET = {
+  key: 'ui.logo.gridfall',
+  path: resolvePublicAssetPath(MAIN_MENU_LOGO_PUBLIC_PATH),
+};
+const MAIN_MENU_TITLE_DEPTH = 5;
+const MAIN_MENU_LOGO_LAYOUT = {
+  centerYRatio: 0.13,
+  maxWidthRatio: 0.68,
+  maxHeightRatio: 0.095,
+  maxDisplayHeight: 84,
+};
 
 const BUTTON_STYLE = {
   fontFamily: 'Arial, sans-serif',
@@ -24,6 +40,7 @@ export default class MainMenuScene extends Phaser.Scene {
   constructor() {
     super('MainMenuScene');
     this.statusText = null;
+    this.title = null;
   }
 
   init() {
@@ -32,6 +49,9 @@ export default class MainMenuScene extends Phaser.Scene {
 
   preload() {
     preloadMenuBackgroundArt(this);
+    preloadImageAsset(this, MAIN_MENU_LOGO_ASSET, {
+      onError: (asset) => console.warn(`Main menu logo failed to load: ${asset.path}`),
+    });
   }
 
   create() {
@@ -50,16 +70,7 @@ export default class MainMenuScene extends Phaser.Scene {
     this.scale.on('enterfullscreen', this.onFullscreenChanged, this);
     this.scale.on('leavefullscreen', this.onFullscreenChanged, this);
 
-    this.add
-      .text(width / 2, height * 0.13, translateActive('ui.mainMenu.title', 'GRIDFALL TACTICS'), {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '30px',
-        fontStyle: 'bold',
-        color: '#f8fafc',
-        align: 'center',
-        wordWrap: { width: width * 0.86 },
-      })
-      .setOrigin(0.5);
+    this.title = this.createTitle(width, height);
 
     const buttonWidth = Math.min(width - 64, 292);
     const buttonGap = 76;
@@ -92,7 +103,62 @@ export default class MainMenuScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setAlpha(0);
 
+    this.scale.on('resize', this.layoutMainMenuScene, this);
     this.drawNavigationControls();
+  }
+
+  createTitle(width, height) {
+    if (this.textures.exists(MAIN_MENU_LOGO_ASSET.key)) {
+      const logo = this.add
+        .image(width / 2, height * MAIN_MENU_LOGO_LAYOUT.centerYRatio, MAIN_MENU_LOGO_ASSET.key)
+        .setOrigin(0.5)
+        .setDepth(MAIN_MENU_TITLE_DEPTH);
+
+      logo.disableInteractive();
+      this.scaleLogoToFit(logo, width, height);
+      return logo;
+    }
+
+    return this.add
+      .text(width / 2, height * MAIN_MENU_LOGO_LAYOUT.centerYRatio, translateActive('ui.mainMenu.title', MAIN_MENU_TITLE_TEXT), {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '30px',
+        fontStyle: 'bold',
+        color: '#f8fafc',
+        align: 'center',
+        wordWrap: { width: width * 0.86 },
+      })
+      .setOrigin(0.5)
+      .setDepth(MAIN_MENU_TITLE_DEPTH)
+      .disableInteractive();
+  }
+
+  layoutMainMenuScene(gameSize) {
+    const width = gameSize?.width ?? this.scale.width;
+    const height = gameSize?.height ?? this.scale.height;
+
+    if (this.title) {
+      this.title.setPosition(width / 2, height * MAIN_MENU_LOGO_LAYOUT.centerYRatio);
+      if (this.title.type === 'Image') {
+        this.scaleLogoToFit(this.title, width, height);
+      } else if (this.title.setWordWrapWidth) {
+        this.title.setWordWrapWidth(width * 0.86);
+      }
+    }
+  }
+
+  scaleLogoToFit(logo, width, height) {
+    const maxLogoWidth = width * MAIN_MENU_LOGO_LAYOUT.maxWidthRatio;
+    const maxLogoHeight = Math.min(
+      height * MAIN_MENU_LOGO_LAYOUT.maxHeightRatio,
+      MAIN_MENU_LOGO_LAYOUT.maxDisplayHeight,
+    );
+    if (!logo.width || !logo.height) {
+      return;
+    }
+
+    const logoScale = Math.min(maxLogoWidth / logo.width, maxLogoHeight / logo.height);
+    logo.setScale(logoScale);
   }
 
   drawNavigationControls() {
@@ -133,6 +199,7 @@ export default class MainMenuScene extends Phaser.Scene {
   cleanupScene() {
     this.scale?.off('enterfullscreen', this.onFullscreenChanged, this);
     this.scale?.off('leavefullscreen', this.onFullscreenChanged, this);
+    this.scale?.off('resize', this.layoutMainMenuScene, this);
   }
 
   createMenuButton(x, y, width, label, onPointerUp) {

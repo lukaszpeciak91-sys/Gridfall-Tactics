@@ -114,7 +114,7 @@ test('MainMenuScene keeps primary buttons and uses shared bottom navigation cont
   const source = readScene('src/scenes/MainMenuScene.js');
 
   assert.match(source, /import \{ createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen \} from '\.\.\/ui\/navigationControls\.js';/);
-  assert.match(source, /\.text\(width \/ 2, height \* 0\.13, translateActive\('ui\.mainMenu\.title', 'GRIDFALL TACTICS'\)/);
+  assert.match(source, /this\.title = this\.createTitle\(width, height\)/);
   assert.doesNotMatch(source, /'Main Menu'/);
   assert.match(source, /this\.createMenuButton\(width \/ 2, startY, buttonWidth, translateActive\('ui\.mainMenu\.arena', 'ARENA'\), \(\) => \{[\s\S]*this\.scene\.start\('FactionSelectScene'\)/);
   assert.match(source, /this\.createMenuButton\(width \/ 2, startY \+ buttonGap, buttonWidth, translateActive\('ui\.mainMenu\.tutorial', 'TUTORIAL'\), \(\) => \{[\s\S]*ui.mainMenu.tutorialComingSoon/);

@@ -146,6 +146,10 @@ export default class StartScene extends Phaser.Scene {
       height * START_LOGO_LAYOUT.maxHeightRatio,
       START_LOGO_LAYOUT.maxDisplayHeight,
     );
+    if (!logo.width || !logo.height) {
+      return;
+    }
+
     const logoScale = Math.min(maxLogoWidth / logo.width, maxLogoHeight / logo.height);
     logo.setScale(logoScale);
   }

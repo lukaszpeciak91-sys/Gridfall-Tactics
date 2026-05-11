@@ -86,6 +86,22 @@ test('StartScene uses optional logo art with text fallback and responsive layout
   assert.match(startSource, /Math\.min\(maxLogoWidth \/ logo\.width, maxLogoHeight \/ logo\.height\)/);
   assert.match(startSource, /this\.scale\.on\('resize', this\.layoutStartScene, this\)/);
   assert.match(startSource, /this\.startButton\.setPosition\(width \/ 2, height \* 0\.61\)/);
+
+  const mainMenuSource = read('src/scenes/MainMenuScene.js');
+  assert.match(mainMenuSource, /MAIN_MENU_LOGO_PUBLIC_PATH = 'assets\/ui\/gridfall-logo\.webp'/);
+  assert.match(mainMenuSource, /path: resolvePublicAssetPath\(MAIN_MENU_LOGO_PUBLIC_PATH\)/);
+  assert.match(mainMenuSource, /preloadImageAsset\(this, MAIN_MENU_LOGO_ASSET/);
+  assert.match(mainMenuSource, /Main menu logo failed to load: \${asset\.path}/);
+  assert.match(mainMenuSource, /this\.textures\.exists\(MAIN_MENU_LOGO_ASSET\.key\)/);
+  assert.match(mainMenuSource, /this\.title = this\.createTitle\(width, height\)/);
+  assert.match(mainMenuSource, /translateActive\('ui\.mainMenu\.title', MAIN_MENU_TITLE_TEXT\)/);
+  assert.match(mainMenuSource, /MAIN_MENU_TITLE_DEPTH = 5/);
+  assert.match(mainMenuSource, /logo\.disableInteractive\(\)/);
+  assert.match(mainMenuSource, /maxWidthRatio: 0\.68/);
+  assert.match(mainMenuSource, /maxHeightRatio: 0\.095/);
+  assert.match(mainMenuSource, /Math\.min\(maxLogoWidth \/ logo\.width, maxLogoHeight \/ logo\.height\)/);
+  assert.match(mainMenuSource, /this\.scale\.on\('resize', this\.layoutMainMenuScene, this\)/);
+
   assert.match(logoDocs, /public\/assets\/ui\/gridfall-logo\.webp/);
   assert.match(logoDocs, /assets\/ui\/gridfall-logo\.webp/);
 });
