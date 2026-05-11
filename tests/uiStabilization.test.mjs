@@ -63,6 +63,26 @@ test('UI implementation notes cover the mobile regression checklist and remainin
   requiredChecklistItems.forEach((item) => assert.match(notes, new RegExp(item)));
 });
 
+
+test('StartScene uses optional logo art with text fallback and responsive layout', () => {
+  const startSource = read('src/scenes/StartScene.js');
+  const logoDocs = read('public/assets/ui/README.md');
+
+  assert.match(startSource, /START_LOGO_PUBLIC_PATH = 'assets\/ui\/gridfall-logo\.webp'/);
+  assert.match(startSource, /path: resolvePublicAssetPath\(START_LOGO_PUBLIC_PATH\)/);
+  assert.match(startSource, /preloadImageAsset\(this, START_LOGO_ASSET/);
+  assert.match(startSource, /Start logo failed to load: \${asset\.path}/);
+  assert.match(startSource, /this\.textures\.exists\(START_LOGO_ASSET\.key\)/);
+  assert.match(startSource, /START_TITLE_TEXT = 'GRIDFALL TACTICS'/);
+  assert.match(startSource, /maxWidthRatio: 0\.82/);
+  assert.match(startSource, /maxHeightRatio: 0\.18/);
+  assert.match(startSource, /Math\.min\(maxLogoWidth \/ logo\.width, maxLogoHeight \/ logo\.height\)/);
+  assert.match(startSource, /this\.scale\.on\('resize', this\.layoutStartScene, this\)/);
+  assert.match(startSource, /this\.startButton\.setPosition\(width \/ 2, height \* 0\.61\)/);
+  assert.match(logoDocs, /public\/assets\/ui\/gridfall-logo\.webp/);
+  assert.match(logoDocs, /assets\/ui\/gridfall-logo\.webp/);
+});
+
 test('start, main menu, and faction select use optional menu background art with dark fallback', () => {
   const backgroundSource = read('src/rendering/backgroundArt.js');
   const startSource = read('src/scenes/StartScene.js');

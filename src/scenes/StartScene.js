@@ -5,20 +5,39 @@ import {
   createCoverBackground,
   createMenuArenaLightSweep,
   getMenuBackgroundAsset,
+  preloadImageAsset,
   preloadMenuBackgroundArt,
+  resolvePublicAssetPath,
 } from '../rendering/backgroundArt.js';
 import { translateActive } from '../localization/localeService.js';
 
 const START_TRANSITION_MS = 320;
+const START_TITLE_TEXT = 'GRIDFALL TACTICS';
+const START_LOGO_PUBLIC_PATH = 'assets/ui/gridfall-logo.webp';
+const START_LOGO_ASSET = {
+  key: 'ui.logo.gridfall',
+  path: resolvePublicAssetPath(START_LOGO_PUBLIC_PATH),
+};
+const START_LOGO_LAYOUT = {
+  topRatio: 0.15,
+  maxWidthRatio: 0.82,
+  maxHeightRatio: 0.18,
+  maxDisplayHeight: 150,
+};
 
 export default class StartScene extends Phaser.Scene {
   constructor() {
     super('StartScene');
     this.isTransitioning = false;
+    this.title = null;
+    this.startButton = null;
   }
 
   preload() {
     preloadMenuBackgroundArt(this);
+    preloadImageAsset(this, START_LOGO_ASSET, {
+      onError: (asset) => console.warn(`Start logo failed to load: ${asset.path}`),
+    });
   }
 
   create() {
@@ -59,21 +78,82 @@ export default class StartScene extends Phaser.Scene {
       .setDepth(10)
       .setInteractive({ useHandCursor: true });
 
-    startButton.on('pointerover', () => {
+    this.startButton.on('pointerover', () => {
       if (!this.isTransitioning) {
-        startButton.setBackgroundColor('#bfdbfe');
+        this.startButton.setBackgroundColor('#bfdbfe');
       }
     });
 
-    startButton.on('pointerout', () => {
+    this.startButton.on('pointerout', () => {
       if (!this.isTransitioning) {
-        startButton.setBackgroundColor('#93c5fd');
+        this.startButton.setBackgroundColor('#93c5fd');
       }
     });
 
-    startButton.on('pointerup', () => {
-      this.playStartTransition(title, startButton);
+    this.startButton.on('pointerup', () => {
+      this.playStartTransition(this.title, this.startButton);
     });
+
+    this.scale.on('resize', this.layoutStartScene, this);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.scale.off('resize', this.layoutStartScene, this);
+    });
+  }
+
+  createTitle(width, height) {
+    if (this.textures.exists(START_LOGO_ASSET.key)) {
+      const logo = this.add
+        .image(width / 2, height * START_LOGO_LAYOUT.topRatio, START_LOGO_ASSET.key)
+        .setOrigin(0.5, 0)
+        .setDepth(10);
+
+      this.scaleLogoToFit(logo, width, height);
+      return logo;
+    }
+
+    return this.add
+      .text(width / 2, height * START_LOGO_LAYOUT.topRatio, START_TITLE_TEXT, {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '40px',
+        fontStyle: 'bold',
+        color: '#f9fafb',
+        align: 'center',
+        wordWrap: { width: width * 0.9 },
+      })
+      .setOrigin(0.5, 0)
+      .setDepth(10);
+  }
+
+  layoutStartScene(gameSize) {
+    if (this.isTransitioning) {
+      return;
+    }
+
+    const width = gameSize?.width ?? this.scale.width;
+    const height = gameSize?.height ?? this.scale.height;
+
+    if (this.title) {
+      this.title.setPosition(width / 2, height * START_LOGO_LAYOUT.topRatio);
+      if (this.title.type === 'Image') {
+        this.scaleLogoToFit(this.title, width, height);
+      } else if (this.title.setWordWrapWidth) {
+        this.title.setWordWrapWidth(width * 0.9);
+      }
+    }
+
+    if (this.startButton) {
+      this.startButton.setPosition(width / 2, height * 0.61);
+    }
+  }
+
+  scaleLogoToFit(logo, width, height) {
+    const maxLogoWidth = width * START_LOGO_LAYOUT.maxWidthRatio;
+    const maxLogoHeight = Math.min(
+      height * START_LOGO_LAYOUT.maxHeightRatio,
+      START_LOGO_LAYOUT.maxDisplayHeight,
+    );
+    const logoScale = Math.min(maxLogoWidth / logo.width, maxLogoHeight / logo.height);
+    logo.setScale(logoScale);
   }
 
   playStartTransition(title, startButton) {
