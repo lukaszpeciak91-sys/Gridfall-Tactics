@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
+import { getFactionPresentationName } from '../data/presentation/factionPresentation.js';
 import {
   MENU_BACKGROUND_FALLBACK_COLOR,
   MENU_BACKGROUND_FALLBACK_COLOR_HEX,
@@ -117,7 +118,7 @@ export default class CollectionScene extends Phaser.Scene {
 
   drawFactionSection(content, factionKey, faction, { x, y, cardWidth }) {
     const header = this.add
-      .text(x, y, faction?.name ?? factionKey, {
+      .text(x, y, getFactionPresentationName(faction?.id, getActiveLocale()) ?? faction?.name ?? factionKey, {
         fontFamily: 'Arial, sans-serif',
         fontSize: '21px',
         color: '#93c5fd',

@@ -7,6 +7,7 @@ import {
   factionPresentation,
   getCardPresentationName,
   getFactionPresentation,
+  getFactionPresentationName,
 } from '../src/data/presentation/factionPresentation.js';
 
 const factionDir = 'src/data/factions';
@@ -37,14 +38,34 @@ test('every presentation card override points at an existing card id', () => {
   assert.deepEqual(missingCardIds, []);
 });
 
-test('presentation helper returns English override names without replacing gameplay card names', () => {
+test('presentation helper resolves English and Polish override names without replacing gameplay card names', () => {
   const cardsById = new Map(allCards().map(({ card }) => [card.id, card]));
   const runner = cardsById.get('aggro_runner_1');
 
   assert.equal(runner.name, 'Runner');
   assert.equal(getCardPresentationName(runner), 'Ballroom Duelist');
-  assert.equal(getCardPresentationName(runner, 'pl'), 'Ballroom Duelist');
+  assert.equal(getCardPresentationName(runner, 'en'), 'Ballroom Duelist');
+  assert.equal(getCardPresentationName(runner, 'pl'), 'Balowy Pojedynkowicz');
+  assert.equal(getCardPresentationName(runner, 'de'), 'Ballroom Duelist');
   assert.equal(runner.name, 'Runner');
+});
+
+test('presentation helper falls back from missing Polish names to English overrides', async () => {
+  const source = fs
+    .readFileSync('src/data/presentation/factionPresentation.js', 'utf8')
+    .replace("aggro_runner_1: { nameEn: 'Ballroom Duelist', namePl: 'Balowy Pojedynkowicz' }", "aggro_runner_1: { nameEn: 'Ballroom Duelist' }");
+  const moduleUrl = `data:text/javascript;charset=utf-8,${encodeURIComponent(source)}`;
+  const { getCardPresentationName: getFixtureCardPresentationName } = await import(moduleUrl);
+
+  assert.equal(getFixtureCardPresentationName({ id: 'aggro_runner_1', name: 'Runner' }, 'pl'), 'Ballroom Duelist');
+});
+
+test('faction presentation names resolve by locale with safe fallbacks', () => {
+  assert.equal(getFactionPresentationName('aggro', 'en'), 'Porcelain Court');
+  assert.equal(getFactionPresentationName('aggro'), 'Porcelain Court');
+  assert.equal(getFactionPresentationName('aggro', 'pl'), 'Porcelanowy Dwór');
+  assert.equal(getFactionPresentationName('aggro', 'de'), 'Porcelain Court');
+  assert.equal(getFactionPresentationName('missing-faction', 'pl'), null);
 });
 
 test('presentation helper falls back to original card.name when no override exists', () => {

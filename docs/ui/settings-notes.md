@@ -37,9 +37,9 @@ If local storage is unavailable or blocked, SettingsScene falls back to in-memor
 
 ## Localization foundation
 
-- Translation dictionaries are not implemented yet; do not add `en.json` or `pl.json` until the project intentionally starts text localization.
-- UI strings and card text remain unchanged.
-- Card render helpers are ready to receive a locale and now have low-risk scene call sites passing the active locale, while current output remains English fallback text.
+- Full UI translation dictionaries are not implemented yet; do not add `pl.json` until the project intentionally starts broad text localization.
+- General UI strings and card effect text remain English.
+- Existing Polish presentation metadata is active for card and faction names when the selected locale is `pl`; missing Polish presentation names fall back to English presentation names, then source gameplay names.
 
 ## Future audio asset paths
 

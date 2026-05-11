@@ -39,7 +39,7 @@ test('card display helper can resolve future nameKey and textKey fields through 
 
   assert.equal(getCardDisplayName(keyedCard, 'en'), 'Ballroom Duelist');
   assert.equal(getCardTextShort(keyedCard, 'en'), 'Open enemy lane: +2 hero dmg.');
-  assert.equal(getCardDisplayName(keyedCard, 'pl'), 'Ballroom Duelist');
+  assert.equal(getCardDisplayName(keyedCard, 'pl'), 'Balowy Pojedynkowicz');
   assert.equal(getCardTextShort(keyedCard, 'pl'), 'Open enemy lane: +2 hero dmg.');
 });
 
@@ -190,7 +190,7 @@ test('deck info panel output templates remain unchanged', () => {
   assert.match(source, /return groups\.map\(\(\[heading, cards\]\) => this\.formatDeckInfoGroup\(heading, cards\)\)\.join\('\\n\\n'\);/);
 });
 
-test('current faction card display names use English presentation overrides without mutating gameplay card names', () => {
+test('current faction card display names use locale presentation overrides without mutating gameplay card names', () => {
   for (const factionKey of getFactionKeys()) {
     const faction = getFactionByKey(factionKey);
     for (const card of faction.deck) {
@@ -198,7 +198,8 @@ test('current faction card display names use English presentation overrides with
       const displayNameEn = getCardDisplayName(card, 'en');
       const displayNamePl = getCardDisplayName(card, 'pl');
       assert.equal(typeof displayNameEn, 'string');
-      assert.equal(displayNameEn, displayNamePl);
+      assert.notEqual(displayNameEn.length, 0);
+      assert.notEqual(displayNamePl.length, 0);
       assert.equal(card.id, JSON.parse(before).id);
       assert.equal(card.name, JSON.parse(before).name);
       assert.equal(JSON.stringify(card), before);
@@ -224,6 +225,15 @@ test('presentation overrides resolve through render modes and preserve gameplay 
     textShort: 'Open enemy lane: +2 hero dmg.',
   });
   assert.equal(formatDeckSummaryEntry(runner, 'en').name, 'Ballroom Duelist');
+  assert.equal(getCardDisplayName(runner, 'pl'), 'Balowy Pojedynkowicz');
+  assert.equal(formatHandCardLabel(runner, 'pl').split('\n')[0], 'Balowy Pojedynkowicz');
+  assert.equal(formatBoardUnitLabel(runner, 'pl').split('\n')[0], 'Balowy Pojedynkowicz');
+  assert.deepEqual(formatCollectionRowLabel(runner, 'pl'), {
+    name: 'Balowy Pojedynkowicz',
+    typeStats: 'unit • ATK 2 / HP 1',
+    textShort: 'Open enemy lane: +2 hero dmg.',
+  });
+  assert.equal(formatDeckSummaryEntry(runner, 'pl').name, 'Balowy Pojedynkowicz');
   assert.equal(runner.id, 'aggro_runner_1');
   assert.equal(runner.name, 'Runner');
   assert.equal(JSON.stringify(runner), before);
