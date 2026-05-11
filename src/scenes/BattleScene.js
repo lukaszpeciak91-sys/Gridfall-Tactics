@@ -10,7 +10,7 @@ import { calculateHandLayoutMetrics } from '../ui/handLayout.js';
 import { createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
 import { createModalBackButton } from '../ui/modalControls.js';
 import { formatDeckSummaryEntry, formatHandCardLabel } from '../rendering/cardRenderModes.js';
-import { getCardDisplayName } from '../localization/cardDisplay.js';
+import { getCardDisplayName, getCardTextShort } from '../localization/cardDisplay.js';
 import { getActiveLocale, translateActive } from '../localization/localeService.js';
 
 const HAND_CARD_ACCENT_COLORS = Object.freeze({
@@ -1748,7 +1748,8 @@ export default class BattleScene extends Phaser.Scene {
     const override = ENEMY_EFFECT_SUMMARY_OVERRIDES[card.effectId];
     if (override) return translateActive(`ui.battle.effectSummaries.${card.effectId}`, override);
 
-    const textShort = typeof card.textShort === 'string' ? card.textShort.trim() : '';
+    const localizedTextShort = getCardTextShort(card, getActiveLocale());
+    const textShort = typeof localizedTextShort === 'string' ? localizedTextShort.trim() : '';
     const cleaned = textShort
       .replace(/^On play:\s*/i, '')
       .replace(/^Pick ally:\s*/i, '')

@@ -6,6 +6,11 @@ import {
 } from '../localization/cardDisplay.js';
 import { translate } from '../localization/localeService.js';
 
+function getTargetingLabel(targeting, locale = 'en') {
+  const normalizedTargeting = typeof targeting === 'string' && targeting.length > 0 ? targeting : 'none';
+  return translate(`ui.cardDetails.targetingLabels.${normalizedTargeting}`, locale, normalizedTargeting);
+}
+
 const UNKNOWN_CARD_LABEL = 'Unknown Card';
 
 function isUnitCard(card) {
@@ -79,8 +84,7 @@ export function formatCardDetailLines(card, locale = 'en') {
     name,
     `${translate('ui.cardDetails.type', locale, 'Type')}: ${getCardTypeLabel(card, locale)}`,
     ...(isUnitCard(card) ? [`${translate('ui.cardDetails.atkHp', locale, 'ATK/HP')}: ${card.attack ?? '-'} / ${card.hp ?? '-'}`] : []),
-    `${translate('ui.cardDetails.targeting', locale, 'targeting')}: ${card?.targeting ?? translate('ui.cardDetails.none', locale, 'none')}`,
-    `${translate('ui.cardDetails.effectId', locale, 'effectId')}: ${card?.effectId ?? translate('ui.cardDetails.none', locale, 'none')}`, 
+    `${translate('ui.cardDetails.targeting', locale, 'Target')}: ${getTargetingLabel(card?.targeting, locale)}`,
     '',
     getCardTextShort(card, locale) ?? '',
   ];

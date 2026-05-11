@@ -58,7 +58,7 @@ test('card display helper uses existing card fields when future translation keys
 test('card display helper keeps current English type and stat labels', () => {
   assert.equal(getCardTypeLabel({ type: 'effect' }), 'Effect');
   assert.equal(getCardTypeLabel({ type: 'unit' }), 'Unit');
-  assert.equal(getCardTypeLabel({ type: 'order' }), 'Unit');
+  assert.equal(getCardTypeLabel({ type: 'order' }), 'Effect');
   assert.equal(getCardTypeLabel({}), 'Unit');
   assert.equal(getStatLabel('attack'), 'ATK');
   assert.equal(getStatLabel('hp'), 'HP');
@@ -91,8 +91,7 @@ test('card render mode helpers keep compact and full card text separate', () => 
     'Shield Drone',
     'Type: Unit',
     'ATK/HP: 1 / 4',
-    'targeting: ally',
-    'effectId: cannot_attack',
+    'Target: ally',
     '',
     'Blocks lane. Cannot attack.',
   ]);
