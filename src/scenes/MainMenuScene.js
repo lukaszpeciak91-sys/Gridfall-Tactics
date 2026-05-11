@@ -13,7 +13,7 @@ import { createBottomNavigationControls, requestPortraitOrientationLock, toggleS
 import { translateActive } from '../localization/localeService.js';
 
 const MAIN_MENU_TITLE_TEXT = 'GRIDFALL TACTICS';
-const MAIN_MENU_LOGO_PUBLIC_PATH = 'assets/ui/gridfall-logo.webp';
+const MAIN_MENU_LOGO_PUBLIC_PATH = 'assets/ui/gridfall-logo.png';
 const MAIN_MENU_LOGO_ASSET = {
   key: 'ui.logo.gridfall',
   path: resolvePublicAssetPath(MAIN_MENU_LOGO_PUBLIC_PATH),
@@ -21,9 +21,9 @@ const MAIN_MENU_LOGO_ASSET = {
 const MAIN_MENU_TITLE_DEPTH = 5;
 const MAIN_MENU_LOGO_LAYOUT = {
   centerYRatio: 0.13,
-  maxWidthRatio: 0.68,
-  maxHeightRatio: 0.14,
-  maxDisplayHeight: 120,
+  maxWidthRatio: 0.72,
+  maxHeightRatio: 0.18,
+  maxDisplayHeight: 160,
 };
 
 const BUTTON_STYLE = {
