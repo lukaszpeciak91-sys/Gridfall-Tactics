@@ -81,12 +81,15 @@ test('StartScene uses optional logo art with text fallback and responsive layout
   assert.match(startSource, /START_TITLE_DEPTH = 5/);
   assert.match(startSource, /START_BUTTON_DEPTH = 10/);
   assert.match(startSource, /logo\.disableInteractive\(\)/);
-  assert.match(startSource, /maxWidthRatio: 0\.86/);
-  assert.match(startSource, /maxHeightRatio: 0\.34/);
-  assert.match(startSource, /maxDisplayHeight: 320/);
+  assert.match(startSource, /maxWidthRatio: 0\.89/);
+  assert.match(startSource, /maxHeightRatio: 0\.38/);
+  assert.match(startSource, /maxDisplayHeight: 360/);
+  assert.match(startSource, /minButtonGap: 28/);
+  assert.match(startSource, /safeLogoHeight/);
   assert.match(startSource, /Math\.min\(maxLogoWidth \/ logo\.width, maxLogoHeight \/ logo\.height\)/);
   assert.match(startSource, /this\.scale\.on\('resize', this\.layoutStartScene, this\)/);
-  assert.match(startSource, /this\.startButton\.setPosition\(width \/ 2, height \* 0\.61\)/);
+  assert.match(startSource, /START_BUTTON_Y_RATIO = 0\.61/);
+  assert.match(startSource, /this\.startButton\.setPosition\(width \/ 2, height \* START_BUTTON_Y_RATIO\)/);
 
   const mainMenuSource = read('src/scenes/MainMenuScene.js');
   assert.match(mainMenuSource, /MAIN_MENU_LOGO_PUBLIC_PATH = 'assets\/ui\/gridfall-logo\.png'/);
@@ -98,9 +101,11 @@ test('StartScene uses optional logo art with text fallback and responsive layout
   assert.match(mainMenuSource, /translateActive\('ui\.mainMenu\.title', MAIN_MENU_TITLE_TEXT\)/);
   assert.match(mainMenuSource, /MAIN_MENU_TITLE_DEPTH = 5/);
   assert.match(mainMenuSource, /logo\.disableInteractive\(\)/);
-  assert.match(mainMenuSource, /maxWidthRatio: 0\.72/);
-  assert.match(mainMenuSource, /maxHeightRatio: 0\.18/);
-  assert.match(mainMenuSource, /maxDisplayHeight: 160/);
+  assert.match(mainMenuSource, /maxWidthRatio: 0\.75/);
+  assert.match(mainMenuSource, /maxHeightRatio: 0\.23/);
+  assert.match(mainMenuSource, /maxDisplayHeight: 220/);
+  assert.match(mainMenuSource, /minButtonGap: 18/);
+  assert.match(mainMenuSource, /safeLogoHeight/);
   assert.match(mainMenuSource, /Math\.min\(maxLogoWidth \/ logo\.width, maxLogoHeight \/ logo\.height\)/);
   assert.match(mainMenuSource, /this\.scale\.on\('resize', this\.layoutMainMenuScene, this\)/);
 
@@ -127,7 +132,7 @@ test('start, main menu, and faction select use optional menu background art with
   assert.match(backgroundSource, /export function createMenuArenaLightSweep/);
   assert.match(backgroundSource, /duration = 12000/);
   assert.match(backgroundSource, /Math\.max\(width \/ background\.width, height \/ background\.height\)/);
-  assert.match(startSource, /height \* 0\.61/);
+  assert.match(startSource, /START_BUTTON_Y_RATIO = 0\.61/);
   assert.match(startSource, /START_TRANSITION_MS = 320/);
   assert.match(startSource, /this\.scene\.start\('MainMenuScene'\)/);
   assert.match(startSource, /createMenuArenaLightSweep\(this, \{ width, height \}\)/);

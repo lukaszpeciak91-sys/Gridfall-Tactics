@@ -19,11 +19,14 @@ const MAIN_MENU_LOGO_ASSET = {
   path: resolvePublicAssetPath(MAIN_MENU_LOGO_PUBLIC_PATH),
 };
 const MAIN_MENU_TITLE_DEPTH = 5;
+const MAIN_MENU_FIRST_BUTTON_Y_RATIO = 0.31;
+const MAIN_MENU_BUTTON_HALF_HEIGHT = 27;
 const MAIN_MENU_LOGO_LAYOUT = {
-  centerYRatio: 0.13,
-  maxWidthRatio: 0.72,
-  maxHeightRatio: 0.18,
-  maxDisplayHeight: 160,
+  centerYRatio: 0.14,
+  maxWidthRatio: 0.75,
+  maxHeightRatio: 0.23,
+  maxDisplayHeight: 220,
+  minButtonGap: 18,
 };
 
 const BUTTON_STYLE = {
@@ -74,7 +77,7 @@ export default class MainMenuScene extends Phaser.Scene {
 
     const buttonWidth = Math.min(width - 64, 292);
     const buttonGap = 76;
-    const startY = height * 0.31;
+    const startY = height * MAIN_MENU_FIRST_BUTTON_Y_RATIO;
 
     this.createMenuButton(width / 2, startY, buttonWidth, translateActive('ui.mainMenu.arena', 'ARENA'), () => {
       this.scene.start('FactionSelectScene');
@@ -149,9 +152,13 @@ export default class MainMenuScene extends Phaser.Scene {
 
   scaleLogoToFit(logo, width, height) {
     const maxLogoWidth = width * MAIN_MENU_LOGO_LAYOUT.maxWidthRatio;
+    const logoCenterY = height * MAIN_MENU_LOGO_LAYOUT.centerYRatio;
+    const firstButtonSafeTop = height * MAIN_MENU_FIRST_BUTTON_Y_RATIO - MAIN_MENU_BUTTON_HALF_HEIGHT;
+    const safeLogoHeight = Math.max(0, (firstButtonSafeTop - logoCenterY - MAIN_MENU_LOGO_LAYOUT.minButtonGap) * 2);
     const maxLogoHeight = Math.min(
       height * MAIN_MENU_LOGO_LAYOUT.maxHeightRatio,
       MAIN_MENU_LOGO_LAYOUT.maxDisplayHeight,
+      safeLogoHeight,
     );
     if (!logo.width || !logo.height) {
       return;
