@@ -1,6 +1,6 @@
 # Background Art Assets
 
-Background assets live under this folder so Phaser can load them from `/assets/backgrounds/...` at runtime.
+Background assets live under this folder so Phaser can load them from the Vite public asset URL at runtime.
 
 ## Start/menu background path
 
@@ -13,7 +13,7 @@ public/assets/backgrounds/menu-background.webp
 Runtime URL used by the code:
 
 ```text
-/assets/backgrounds/menu-background.webp
+./assets/backgrounds/menu-background.webp
 ```
 
 Do not commit generated placeholder art. The expected workflow is for the user/artist to manually upload the final file to the repo/GitHub at the path above.
@@ -25,7 +25,7 @@ Do not commit generated placeholder art. The expected workflow is for the user/a
 - Recommended size: 1440 × 2560 px.
 - Primary aspect ratio: 9:16 portrait.
 - PNG/JPG are acceptable art source formats only if the code is changed to point at a supported `.png` or `.jpg` runtime file.
-- Runtime behavior: Start and faction-select scenes attempt to load the WebP; if it is missing or fails to load, both screens fall back to the current solid dark background.
+- Runtime behavior: Start, main menu, and faction-select scenes attempt to load the WebP; if it is missing or fails to load, all three screens fall back to the current solid dark background.
 - Scaling behavior: full-canvas cover scale, centered, rendered behind all UI. Edge content may be cropped on non-9:16 viewports.
 
 ## Central UI safe area guidance
@@ -56,13 +56,13 @@ Keep source art high enough resolution for mobile portrait screens. The renderer
 Background definitions are in `src/rendering/backgroundArt.js`. The menu background is already wired to:
 
 ```js
-path: '/assets/backgrounds/menu-background.webp'
+path: './assets/backgrounds/menu-background.webp'
 ```
 
 Future battle image files can be added under this folder, then wired by setting the matching battle asset `path` to a served URL such as:
 
 ```js
-path: '/assets/backgrounds/default/battlefield.png'
+path: './assets/backgrounds/default/battlefield.png'
 ```
 
-If `path` is `null` or the image is not loaded, the relevant scene keeps the safe solid dark fallback.
+The leading `./` is produced from Vite's `base: './'` setting so GitHub Pages repo-path deployments resolve the URL under the current page path instead of the domain root. If `path` is `null` or the image is not loaded, the relevant scene keeps the safe solid dark fallback.

@@ -70,7 +70,9 @@ test('start, main menu, and faction select use optional menu background art with
   const mainMenuSource = read('src/scenes/MainMenuScene.js');
   const backgroundDocs = read('public/assets/backgrounds/README.md');
 
-  assert.match(backgroundSource, /MENU_BACKGROUND_ASSET = \{[\s\S]*path: '\/assets\/backgrounds\/menu-background\.webp'/);
+  assert.match(backgroundSource, /MENU_BACKGROUND_PUBLIC_PATH = 'assets\/backgrounds\/menu-background\.webp'/);
+  assert.match(backgroundSource, /path: resolvePublicAssetPath\(MENU_BACKGROUND_PUBLIC_PATH\)/);
+  assert.match(backgroundSource, /Menu background failed to load: \${asset\.path}/);
   assert.match(backgroundSource, /export function createCoverBackground/);
   assert.match(backgroundSource, /Math\.max\(width \/ background\.width, height \/ background\.height\)/);
   assert.match(startSource, /height \* 0\.61/);
