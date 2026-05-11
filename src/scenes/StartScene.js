@@ -3,6 +3,7 @@ import {
   MENU_BACKGROUND_FALLBACK_COLOR,
   MENU_BACKGROUND_FALLBACK_COLOR_HEX,
   createCoverBackground,
+  createMenuArenaLightSweep,
   getMenuBackgroundAsset,
   preloadMenuBackgroundArt,
 } from '../rendering/backgroundArt.js';
@@ -30,6 +31,7 @@ export default class StartScene extends Phaser.Scene {
       width,
       height,
     });
+    createMenuArenaLightSweep(this, { width, height });
 
     const title = this.add
       .text(width / 2, height * 0.15, 'GRIDFALL TACTICS', {

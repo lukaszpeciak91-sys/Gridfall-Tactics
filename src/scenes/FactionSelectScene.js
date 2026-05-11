@@ -5,6 +5,14 @@ import { createBuildMarker } from '../ui/buildMarker.js';
 import { createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
 import { MENU_BACKGROUND_FALLBACK_COLOR, MENU_BACKGROUND_FALLBACK_COLOR_HEX, createCoverBackground, getMenuBackgroundAsset, preloadMenuBackgroundArt } from '../rendering/backgroundArt.js';
 import { getActiveLocale } from '../localization/localeService.js';
+import {
+  MENU_BACKGROUND_FALLBACK_COLOR,
+  MENU_BACKGROUND_FALLBACK_COLOR_HEX,
+  createCoverBackground,
+  createMenuArenaLightSweep,
+  getMenuBackgroundAsset,
+  preloadMenuBackgroundArt,
+} from '../rendering/backgroundArt.js';
 
 const FACTION_CARD_DETAILS = {
   Aggro: {
@@ -101,6 +109,12 @@ export default class FactionSelectScene extends Phaser.Scene {
       fallbackColor: MENU_BACKGROUND_FALLBACK_COLOR,
       width,
       height,
+    });
+    createMenuArenaLightSweep(this, {
+      width,
+      height,
+      opacity: 0.075,
+      y: height * 0.24,
     });
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.cleanupScene, this);

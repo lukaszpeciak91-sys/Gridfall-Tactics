@@ -74,13 +74,18 @@ test('start, main menu, and faction select use optional menu background art with
   assert.match(backgroundSource, /path: resolvePublicAssetPath\(MENU_BACKGROUND_PUBLIC_PATH\)/);
   assert.match(backgroundSource, /Menu background failed to load: \${asset\.path}/);
   assert.match(backgroundSource, /export function createCoverBackground/);
+  assert.match(backgroundSource, /export function createMenuArenaLightSweep/);
+  assert.match(backgroundSource, /duration = 12000/);
   assert.match(backgroundSource, /Math\.max\(width \/ background\.width, height \/ background\.height\)/);
   assert.match(startSource, /height \* 0\.61/);
   assert.match(startSource, /START_TRANSITION_MS = 320/);
   assert.match(startSource, /this\.scene\.start\('MainMenuScene'\)/);
+  assert.match(startSource, /createMenuArenaLightSweep\(this, \{ width, height \}\)/);
   assert.match(mainMenuSource, /this\.scene\.start\('FactionSelectScene'\)/);
+  assert.match(mainMenuSource, /createMenuArenaLightSweep\(this, \{ width, height \}\)/);
   assert.match(factionSource, /preloadMenuBackgroundArt\(this\)/);
   assert.match(factionSource, /createCoverBackground\(this, \{/);
+  assert.match(factionSource, /createMenuArenaLightSweep\(this, \{/);
   assert.match(backgroundDocs, /public\/assets\/backgrounds\/menu-background\.webp/);
   assert.match(backgroundDocs, /1440 × 2560 px/);
 });
