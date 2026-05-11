@@ -4,13 +4,13 @@ This project is prepared for full-screen portrait illustrations without changing
 
 ## Menu/start background
 
-The start and faction-select scenes are wired to use this exact runtime file when present:
+The start, main menu, and faction-select scenes are wired to use this exact runtime file when present:
 
 ```text
 public/assets/backgrounds/menu-background.webp
 ```
 
-- Runtime URL: `/assets/backgrounds/menu-background.webp`.
+- Runtime URL: `./assets/backgrounds/menu-background.webp`.
 - Required filename currently supported by code: `menu-background.webp`.
 - Preferred format: WebP.
 - Recommended size: 1440 × 2560 px.

@@ -9,9 +9,17 @@ export const BACKGROUND_ART_TARGET = {
   largerSourceResolution: { width: 2160, height: 3840 },
 };
 
+const MENU_BACKGROUND_PUBLIC_PATH = 'assets/backgrounds/menu-background.webp';
+
+export function resolvePublicAssetPath(path) {
+  const base = import.meta.env?.BASE_URL || './';
+  const normalizedBase = base.endsWith('/') ? base : `${base}/`;
+  return `${normalizedBase}${path}`;
+}
+
 export const MENU_BACKGROUND_ASSET = {
   key: 'background.menu.start',
-  path: '/assets/backgrounds/menu-background.webp',
+  path: resolvePublicAssetPath(MENU_BACKGROUND_PUBLIC_PATH),
 };
 
 export const BATTLE_BACKGROUND_ASSETS = {
@@ -41,12 +49,34 @@ export function preloadBattleBackgroundArt(scene) {
 }
 
 export function preloadMenuBackgroundArt(scene) {
-  preloadImageAsset(scene, MENU_BACKGROUND_ASSET);
+  preloadImageAsset(scene, MENU_BACKGROUND_ASSET, {
+    onError: (asset) => console.warn(`Menu background failed to load: ${asset.path}`),
+  });
 }
 
-export function preloadImageAsset(scene, asset) {
+export function preloadImageAsset(scene, asset, { onError = null } = {}) {
   if (!asset?.path || !asset?.key || scene.textures.exists(asset.key)) {
     return;
+  }
+
+  if (onError) {
+    const removeLoadListeners = () => {
+      scene.load.off('filecomplete', removeOnComplete);
+      scene.load.off('loaderror', warnOnLoadError);
+    };
+    const removeOnComplete = (key) => {
+      if (key === asset.key) {
+        removeLoadListeners();
+      }
+    };
+    const warnOnLoadError = (file) => {
+      if (file?.key === asset.key) {
+        removeLoadListeners();
+        onError(asset);
+      }
+    };
+    scene.load.on('filecomplete', removeOnComplete);
+    scene.load.on('loaderror', warnOnLoadError);
   }
 
   scene.load.image(asset.key, asset.path);
