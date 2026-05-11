@@ -18,6 +18,8 @@ const START_LOGO_ASSET = {
   key: 'ui.logo.gridfall',
   path: resolvePublicAssetPath(START_LOGO_PUBLIC_PATH),
 };
+const START_TITLE_DEPTH = 5;
+const START_BUTTON_DEPTH = 10;
 const START_LOGO_LAYOUT = {
   topRatio: 0.15,
   maxWidthRatio: 0.82,
@@ -53,19 +55,9 @@ export default class StartScene extends Phaser.Scene {
     });
     createMenuArenaLightSweep(this, { width, height });
 
-    const title = this.add
-      .text(width / 2, height * 0.15, translateActive('ui.start.title', 'GRIDFALL TACTICS'), {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '40px',
-        fontStyle: 'bold',
-        color: '#f9fafb',
-        align: 'center',
-        wordWrap: { width: width * 0.9 },
-      })
-      .setOrigin(0.5, 0)
-      .setDepth(10);
+    this.title = this.createTitle(width, height);
 
-    const startButton = this.add
+    this.startButton = this.add
       .text(width / 2, height * 0.61, translateActive('ui.start.start', 'START'), {
         fontFamily: 'Arial, sans-serif',
         fontSize: '36px',
@@ -75,7 +67,7 @@ export default class StartScene extends Phaser.Scene {
         padding: { x: 28, y: 14 },
       })
       .setOrigin(0.5)
-      .setDepth(10)
+      .setDepth(START_BUTTON_DEPTH)
       .setInteractive({ useHandCursor: true });
 
     this.startButton.on('pointerover', () => {
@@ -105,14 +97,15 @@ export default class StartScene extends Phaser.Scene {
       const logo = this.add
         .image(width / 2, height * START_LOGO_LAYOUT.topRatio, START_LOGO_ASSET.key)
         .setOrigin(0.5, 0)
-        .setDepth(10);
+        .setDepth(START_TITLE_DEPTH);
 
+      logo.disableInteractive();
       this.scaleLogoToFit(logo, width, height);
       return logo;
     }
 
     return this.add
-      .text(width / 2, height * START_LOGO_LAYOUT.topRatio, START_TITLE_TEXT, {
+      .text(width / 2, height * START_LOGO_LAYOUT.topRatio, translateActive('ui.start.title', START_TITLE_TEXT), {
         fontFamily: 'Arial, sans-serif',
         fontSize: '40px',
         fontStyle: 'bold',
@@ -121,7 +114,8 @@ export default class StartScene extends Phaser.Scene {
         wordWrap: { width: width * 0.9 },
       })
       .setOrigin(0.5, 0)
-      .setDepth(10);
+      .setDepth(START_TITLE_DEPTH)
+      .disableInteractive();
   }
 
   layoutStartScene(gameSize) {
