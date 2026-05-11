@@ -374,7 +374,14 @@
         "buff_all_atk_1": "Wszyscy sojusznicy +1 ATK",
         "revive_friendly_1hp": "Wskrześ jednostkę z 1 HP",
         "fill_empty_slots_0_1": "Wypełnij sloty Tokenami",
-        "destroy_friendly_draw_1": "Zniszcz sojusznika, dobierz 1"
+        "destroy_friendly_draw_1": "Zniszcz sojusznika, dobierz 1",
+        "friendly_immovable_this_turn": "Sojusznicy nie mogą być przesuwani",
+        "funeral_pyre": "Pierwsze 2 śmierci sojuszników zadają 1",
+        "grave_call": "Przyzwij 1/1; 2, jeśli jesteś sam",
+        "infect_damage_1_opposite_ally_atk_1": "Zadaj 1, wzmocnij przeciwnego sojusznika",
+        "leftmost_2_friendly_temp_armor_1": "2 najbardziej lewych sojuszników +1 PANC",
+        "leftmost_friendly_temp_armor_1": "Najbardziej lewy sojusznik +1 PANC",
+        "swap_leftmost_adjacent_enemies": "Zamień najbardziej lewych sąsiednich wrogów"
       }
     },
     "rules": {
@@ -435,9 +442,24 @@
     "cardDetails": {
       "type": "Typ",
       "atkHp": "ATK/HP",
-      "targeting": "celowanie",
-      "effectId": "effectId",
-      "none": "brak"
+      "targeting": "Cel",
+      "effectId": "Identyfikator efektu",
+      "none": "brak",
+      "targetingLabels": {
+        "all_enemy_units": "Wszystkie wrogie jednostki",
+        "all_friendly_units": "Wszystkie sojusznicze jednostki",
+        "any_enemy_unit": "Dowolna wroga jednostka",
+        "any_units": "Dowolna jednostka",
+        "empty_friendly_slot": "Pusty slot sojusznika",
+        "empty_friendly_slots": "Puste sloty sojuszników",
+        "enemy": "Wróg",
+        "enemy_unit": "Wroga jednostka",
+        "enemy_units": "Wrogie jednostki",
+        "friendly_discard": "Odrzucona karta sojusznika",
+        "friendly_unit": "Sojusznicza jednostka",
+        "lane": "Aleja",
+        "none": "Brak"
+      }
     }
   }
 }

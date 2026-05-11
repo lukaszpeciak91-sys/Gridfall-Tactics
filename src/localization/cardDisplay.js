@@ -35,7 +35,7 @@ export function getCardTextShort(card, locale = 'en') {
 }
 
 export function getCardTypeLabel(card, locale = 'en') {
-  return card?.type === 'effect'
+  return card?.type && card.type !== 'unit'
     ? translate('cardTypes.effect', locale, 'Effect')
     : translate('cardTypes.unit', locale, 'Unit');
 }

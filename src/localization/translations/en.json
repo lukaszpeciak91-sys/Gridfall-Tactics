@@ -374,7 +374,14 @@
         "buff_all_atk_1": "All allies +1 ATK",
         "revive_friendly_1hp": "Revive a unit at 1 HP",
         "fill_empty_slots_0_1": "Fill slots with Tokens",
-        "destroy_friendly_draw_1": "Destroy ally, draw 1"
+        "destroy_friendly_draw_1": "Destroy ally, draw 1",
+        "friendly_immovable_this_turn": "Allies cannot be moved",
+        "funeral_pyre": "First 2 ally deaths deal 1",
+        "grave_call": "Summon 1/1; 2 if alone",
+        "infect_damage_1_opposite_ally_atk_1": "Deal 1, empower opposite ally",
+        "leftmost_2_friendly_temp_armor_1": "Leftmost 2 allies +1 ARM",
+        "leftmost_friendly_temp_armor_1": "Leftmost ally +1 ARM",
+        "swap_leftmost_adjacent_enemies": "Swap leftmost adjacent enemies"
       }
     },
     "rules": {
@@ -435,9 +442,24 @@
     "cardDetails": {
       "type": "Type",
       "atkHp": "ATK/HP",
-      "targeting": "targeting",
+      "targeting": "Target",
       "effectId": "effectId",
-      "none": "none"
+      "none": "none",
+      "targetingLabels": {
+        "all_enemy_units": "All enemy units",
+        "all_friendly_units": "All friendly units",
+        "any_enemy_unit": "Any enemy unit",
+        "any_units": "Any unit",
+        "empty_friendly_slot": "Empty friendly slot",
+        "empty_friendly_slots": "Empty friendly slots",
+        "enemy": "Enemy",
+        "enemy_unit": "Enemy unit",
+        "enemy_units": "Enemy units",
+        "friendly_discard": "Friendly discard",
+        "friendly_unit": "Friendly unit",
+        "lane": "Lane",
+        "none": "None"
+      }
     }
   },
   "diagnostics": {
