@@ -73,7 +73,14 @@ test('StartScene uses optional logo art with text fallback and responsive layout
   assert.match(startSource, /preloadImageAsset\(this, START_LOGO_ASSET/);
   assert.match(startSource, /Start logo failed to load: \${asset\.path}/);
   assert.match(startSource, /this\.textures\.exists\(START_LOGO_ASSET\.key\)/);
+  assert.match(startSource, /this\.title = this\.createTitle\(width, height\)/);
+  assert.match(startSource, /this\.startButton = this\.add[\s\S]*setInteractive\(\{ useHandCursor: true \}\)/);
   assert.match(startSource, /START_TITLE_TEXT = 'GRIDFALL TACTICS'/);
+  assert.match(startSource, /translateActive\('ui\.start\.start', 'START'\)/);
+  assert.match(startSource, /translateActive\('ui\.start\.title', START_TITLE_TEXT\)/);
+  assert.match(startSource, /START_TITLE_DEPTH = 5/);
+  assert.match(startSource, /START_BUTTON_DEPTH = 10/);
+  assert.match(startSource, /logo\.disableInteractive\(\)/);
   assert.match(startSource, /maxWidthRatio: 0\.82/);
   assert.match(startSource, /maxHeightRatio: 0\.18/);
   assert.match(startSource, /Math\.min\(maxLogoWidth \/ logo\.width, maxLogoHeight \/ logo\.height\)/);
