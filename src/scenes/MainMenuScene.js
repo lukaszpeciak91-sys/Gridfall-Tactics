@@ -3,6 +3,7 @@ import {
   MENU_BACKGROUND_FALLBACK_COLOR,
   MENU_BACKGROUND_FALLBACK_COLOR_HEX,
   createCoverBackground,
+  createMenuArenaLightSweep,
   getMenuBackgroundAsset,
   preloadMenuBackgroundArt,
 } from '../rendering/backgroundArt.js';
@@ -42,6 +43,7 @@ export default class MainMenuScene extends Phaser.Scene {
       width,
       height,
     });
+    createMenuArenaLightSweep(this, { width, height });
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.cleanupScene, this);
     this.scale.on('enterfullscreen', this.onFullscreenChanged, this);
