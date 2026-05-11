@@ -22,8 +22,8 @@ const MAIN_MENU_TITLE_DEPTH = 5;
 const MAIN_MENU_LOGO_LAYOUT = {
   centerYRatio: 0.13,
   maxWidthRatio: 0.68,
-  maxHeightRatio: 0.095,
-  maxDisplayHeight: 84,
+  maxHeightRatio: 0.14,
+  maxDisplayHeight: 120,
 };
 
 const BUTTON_STYLE = {

@@ -82,7 +82,8 @@ test('StartScene uses optional logo art with text fallback and responsive layout
   assert.match(startSource, /START_BUTTON_DEPTH = 10/);
   assert.match(startSource, /logo\.disableInteractive\(\)/);
   assert.match(startSource, /maxWidthRatio: 0\.82/);
-  assert.match(startSource, /maxHeightRatio: 0\.18/);
+  assert.match(startSource, /maxHeightRatio: 0\.28/);
+  assert.match(startSource, /maxDisplayHeight: 220/);
   assert.match(startSource, /Math\.min\(maxLogoWidth \/ logo\.width, maxLogoHeight \/ logo\.height\)/);
   assert.match(startSource, /this\.scale\.on\('resize', this\.layoutStartScene, this\)/);
   assert.match(startSource, /this\.startButton\.setPosition\(width \/ 2, height \* 0\.61\)/);
@@ -98,12 +99,18 @@ test('StartScene uses optional logo art with text fallback and responsive layout
   assert.match(mainMenuSource, /MAIN_MENU_TITLE_DEPTH = 5/);
   assert.match(mainMenuSource, /logo\.disableInteractive\(\)/);
   assert.match(mainMenuSource, /maxWidthRatio: 0\.68/);
-  assert.match(mainMenuSource, /maxHeightRatio: 0\.095/);
+  assert.match(mainMenuSource, /maxHeightRatio: 0\.14/);
+  assert.match(mainMenuSource, /maxDisplayHeight: 120/);
   assert.match(mainMenuSource, /Math\.min\(maxLogoWidth \/ logo\.width, maxLogoHeight \/ logo\.height\)/);
   assert.match(mainMenuSource, /this\.scale\.on\('resize', this\.layoutMainMenuScene, this\)/);
 
   assert.match(logoDocs, /public\/assets\/ui\/gridfall-logo\.webp/);
   assert.match(logoDocs, /assets\/ui\/gridfall-logo\.webp/);
+  assert.match(logoDocs, /transparent background/);
+  assert.match(logoDocs, /Crop tightly around the visible logo/);
+  assert.match(logoDocs, /1200–1800 px/);
+  assert.match(logoDocs, /WebP quality: 90–95/);
+  assert.match(logoDocs, /PNG is acceptable/);
 });
 
 test('start, main menu, and faction select use optional menu background art with dark fallback', () => {

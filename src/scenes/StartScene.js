@@ -23,8 +23,8 @@ const START_BUTTON_DEPTH = 10;
 const START_LOGO_LAYOUT = {
   topRatio: 0.15,
   maxWidthRatio: 0.82,
-  maxHeightRatio: 0.18,
-  maxDisplayHeight: 150,
+  maxHeightRatio: 0.28,
+  maxDisplayHeight: 220,
 };
 
 export default class StartScene extends Phaser.Scene {
