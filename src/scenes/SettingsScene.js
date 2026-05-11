@@ -213,7 +213,7 @@ export default class SettingsScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     const statusText = this.add
-      .text(x, y + 54, 'Select display language for future localization', {
+      .text(x, y + 54, 'Select display language for card and faction names', {
         fontFamily: 'Arial, sans-serif',
         fontSize: '13px',
         color: '#fde68a',

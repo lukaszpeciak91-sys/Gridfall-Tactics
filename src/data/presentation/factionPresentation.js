@@ -319,10 +319,15 @@ function isNonEmptyString(value) {
   return typeof value === 'string' && value.length > 0;
 }
 
-export function getFactionPresentationName(factionId, locale = 'en') {
+export function getFactionPresentationName(factionId, locale = 'en', fallbackName) {
+  const safeFallback = isNonEmptyString(fallbackName)
+    ? fallbackName
+    : isNonEmptyString(factionId)
+      ? factionId
+      : null;
   const presentation = getFactionPresentation(factionId);
   if (!presentation) {
-    return null;
+    return safeFallback;
   }
 
   if (locale === 'pl' && isNonEmptyString(presentation.displayNamePl)) {
@@ -333,7 +338,7 @@ export function getFactionPresentationName(factionId, locale = 'en') {
     return presentation.displayNameEn;
   }
 
-  return isNonEmptyString(presentation.displayNamePl) ? presentation.displayNamePl : null;
+  return safeFallback;
 }
 
 export function getCardPresentationName(card, locale = 'en') {

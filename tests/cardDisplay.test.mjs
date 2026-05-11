@@ -190,6 +190,22 @@ test('deck info panel output templates remain unchanged', () => {
   assert.match(source, /return groups\.map\(\(\[heading, cards\]\) => this\.formatDeckInfoGroup\(heading, cards\)\)\.join\('\\n\\n'\);/);
 });
 
+
+test('visible UI surfaces route names through active-locale presentation helpers', () => {
+  const battleSource = fs.readFileSync('src/scenes/BattleScene.js', 'utf8');
+  const collectionSource = fs.readFileSync('src/scenes/CollectionScene.js', 'utf8');
+  const factionSelectSource = fs.readFileSync('src/scenes/FactionSelectScene.js', 'utf8');
+
+  assert.match(battleSource, /getEnemyActionMessage\(action, card\) \{[\s\S]*const cardName = getCardDisplayName\(card, getActiveLocale\(\)\) \?\? 'Unknown Card';/);
+  assert.match(battleSource, /getBoardUnitLabel\(unit\) \{[\s\S]*const name = getCardDisplayName\(unit, getActiveLocale\(\)\) \?\? 'Unit';/);
+  assert.match(battleSource, /getHandCardLabel\(card\) \{[\s\S]*return formatHandCardLabel\(card, getActiveLocale\(\)\);/);
+  assert.match(battleSource, /showSelectedHandCardZoom\(\) \{[\s\S]*const label = this\.getHandCardLabel\(card\);/);
+  assert.match(collectionSource, /formatCollectionRowLabel\(card, getActiveLocale\(\)\)/);
+  assert.match(collectionSource, /formatCardDetailLines\(card, getActiveLocale\(\)\)/);
+  assert.match(collectionSource, /getFactionPresentationName\(faction\?\.id, getActiveLocale\(\), faction\?\.name \?\? factionKey\)/);
+  assert.match(factionSelectSource, /getFactionPresentationName\(faction\?\.id, getActiveLocale\(\), faction\?\.name \?\? factionKey\)/);
+});
+
 test('current faction card display names use locale presentation overrides without mutating gameplay card names', () => {
   for (const factionKey of getFactionKeys()) {
     const faction = getFactionByKey(factionKey);

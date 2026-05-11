@@ -60,12 +60,35 @@ test('presentation helper falls back from missing Polish names to English overri
   assert.equal(getFixtureCardPresentationName({ id: 'aggro_runner_1', name: 'Runner' }, 'pl'), 'Ballroom Duelist');
 });
 
+test('presentation helper falls back from missing English override to original card name', async () => {
+  const source = fs
+    .readFileSync('src/data/presentation/factionPresentation.js', 'utf8')
+    .replace("aggro_runner_1: { nameEn: 'Ballroom Duelist', namePl: 'Balowy Pojedynkowicz' }", "aggro_runner_1: { namePl: 'Balowy Pojedynkowicz' }");
+  const moduleUrl = `data:text/javascript;charset=utf-8,${encodeURIComponent(source)}`;
+  const { getCardPresentationName: getFixtureCardPresentationName } = await import(moduleUrl);
+
+  assert.equal(getFixtureCardPresentationName({ id: 'aggro_runner_1', name: 'Runner' }, 'en'), 'Runner');
+});
+
 test('faction presentation names resolve by locale with safe fallbacks', () => {
   assert.equal(getFactionPresentationName('aggro', 'en'), 'Porcelain Court');
   assert.equal(getFactionPresentationName('aggro'), 'Porcelain Court');
   assert.equal(getFactionPresentationName('aggro', 'pl'), 'Porcelanowy Dwór');
   assert.equal(getFactionPresentationName('aggro', 'de'), 'Porcelain Court');
-  assert.equal(getFactionPresentationName('missing-faction', 'pl'), null);
+  assert.equal(getFactionPresentationName('missing-faction', 'pl'), 'missing-faction');
+  assert.equal(getFactionPresentationName('missing-faction', 'pl', 'Raw Faction Name'), 'Raw Faction Name');
+});
+
+test('faction presentation helper falls back safely when display metadata is incomplete', async () => {
+  const source = fs
+    .readFileSync('src/data/presentation/factionPresentation.js', 'utf8')
+    .replace("displayNameEn: 'Porcelain Court',", "")
+    .replace("displayNamePl: 'Porcelanowy Dwór',", "");
+  const moduleUrl = `data:text/javascript;charset=utf-8,${encodeURIComponent(source)}`;
+  const { getFactionPresentationName: getFixtureFactionPresentationName } = await import(moduleUrl);
+
+  assert.equal(getFixtureFactionPresentationName('aggro', 'pl', 'Aggro'), 'Aggro');
+  assert.equal(getFixtureFactionPresentationName('aggro', 'en'), 'aggro');
 });
 
 test('presentation helper falls back to original card.name when no override exists', () => {

@@ -118,7 +118,7 @@ export default class CollectionScene extends Phaser.Scene {
 
   drawFactionSection(content, factionKey, faction, { x, y, cardWidth }) {
     const header = this.add
-      .text(x, y, getFactionPresentationName(faction?.id, getActiveLocale()) ?? faction?.name ?? factionKey, {
+      .text(x, y, getFactionPresentationName(faction?.id, getActiveLocale(), faction?.name ?? factionKey), {
         fontFamily: 'Arial, sans-serif',
         fontSize: '21px',
         color: '#93c5fd',
