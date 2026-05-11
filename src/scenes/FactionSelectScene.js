@@ -198,7 +198,7 @@ export default class FactionSelectScene extends Phaser.Scene {
   drawFactionCard(content, factionKey, { y, cardWidth, cardHeight }) {
     const faction = getFactionByKey(factionKey);
     const details = FACTION_CARD_DETAILS[factionKey] ?? FACTION_CARD_DETAILS.Aggro;
-    const displayName = getFactionPresentationName(faction?.id, getActiveLocale()) ?? faction?.name ?? factionKey;
+    const displayName = getFactionPresentationName(faction?.id, getActiveLocale(), faction?.name ?? factionKey);
     const x = -cardWidth / 2;
     const artMargin = 10;
     const artWidth = cardWidth - artMargin * 2;

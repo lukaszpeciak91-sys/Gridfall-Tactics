@@ -41,7 +41,7 @@ Card display helpers are ready for future keys:
 
 - Card names first pass through `getCardPresentationName(card, locale)`, which activates presentation-name overrides and falls back to the original `card.name`.
 - Polish card presentation names now render from existing `namePl` metadata when the active locale is `pl`; missing Polish names fall back to `nameEn`, then to `card.name`.
-- Faction presentation names are resolved through `getFactionPresentationName(factionId, locale)`, using `displayNamePl` for `pl`, `displayNameEn` by default, and scene-level raw faction-name fallbacks when metadata is missing.
+- Faction presentation names are resolved through `getFactionPresentationName(factionId, locale)`, using `displayNamePl` for `pl`, `displayNameEn` by default, then a provided raw faction name or the faction id when metadata is missing.
 - `card.nameKey` can still resolve through `translate()` when present before presentation naming is applied.
 - `card.textKey` resolves through `translate()` when present.
 - Missing keys fall back to the existing `card.name` and `card.textShort` fields.
@@ -52,4 +52,4 @@ Card art and frame assets remain language-neutral. Future localization work shou
 
 ## Render-helper readiness
 
-Card display and render helpers accept a locale argument. Low-risk scene call sites pass `getActiveLocale()` into those helpers. Safe UI surfaces now consume locale-aware presentation names for cards, and FactionSelect plus Collection faction section headers consume locale-aware faction presentation names while preserving gameplay ids, `effectId`, targeting, AI behavior, and source card JSON names. General UI labels, rules text, action words, Deck Info headings, and card `textShort` effect text remain English until a future full-translation PR.
+Card display and render helpers accept a locale argument. Low-risk scene call sites pass `getActiveLocale()` into those helpers. Safe UI surfaces now consume locale-aware presentation names for cards, and FactionSelect plus Collection faction section headers consume locale-aware faction presentation names while preserving gameplay ids, `effectId`, targeting, AI behavior, and source card JSON names. General UI labels, buttons, rules text, enemy action words, Deck Info headings, and card `textShort` effect text remain English until a future full-translation PR.
