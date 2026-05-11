@@ -8,21 +8,19 @@ import {
 } from '../rendering/backgroundArt.js';
 import { createBuildMarker } from '../ui/buildMarker.js';
 import { createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
-import { SETTINGS_STORAGE_KEY, getSupportedLocales, normalizeLocale, setActiveLocale } from '../localization/localeService.js';
+import { SETTINGS_STORAGE_KEY, getSupportedLocales, normalizeLocale, setActiveLocale, translateActive, translate } from '../localization/localeService.js';
 const DEFAULT_SETTINGS = {
   language: 'en',
   musicVolume: 50,
   sfxVolume: 50,
   muted: false,
 };
-const LANGUAGE_LABELS = Object.freeze({
-  en: 'English',
-  pl: 'Polish',
-});
-const LANGUAGE_OPTIONS = getSupportedLocales().map((locale) => ({
-  value: locale,
-  label: LANGUAGE_LABELS[locale] ?? locale,
-}));
+function getLanguageOptions(displayLocale) {
+  return getSupportedLocales().map((locale) => ({
+    value: locale,
+    label: translate(`ui.settings.languages.${locale}`, displayLocale, locale),
+  }));
+}
 const SETTINGS_PANEL_DEPTH = 0;
 
 const LABEL_STYLE = {
@@ -69,7 +67,7 @@ export default class SettingsScene extends Phaser.Scene {
     this.scale.on('leavefullscreen', this.onFullscreenChanged, this);
 
     this.add
-      .text(width / 2, height * 0.1, 'SETTINGS', {
+      .text(width / 2, height * 0.1, translateActive('ui.settings.title', 'SETTINGS'), {
         fontFamily: 'Arial, sans-serif',
         fontSize: '30px',
         fontStyle: 'bold',
@@ -80,7 +78,7 @@ export default class SettingsScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(width / 2, height * 0.15, 'Preferences are saved locally', {
+      .text(width / 2, height * 0.15, translateActive('ui.settings.subtitle', 'Preferences are saved locally'), {
         fontFamily: 'Arial, sans-serif',
         fontSize: '14px',
         color: '#cbd5e1',
@@ -88,7 +86,7 @@ export default class SettingsScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     const panelWidth = Math.min(width - 32, 342);
-    this.addPanel(width / 2, height * 0.3, panelWidth, 154, 'LANGUAGE');
+    this.addPanel(width / 2, height * 0.3, panelWidth, 154, translateActive('ui.settings.languagePanel', 'LANGUAGE'));
     this.createLanguageSelect(width / 2, height * 0.32, panelWidth - 74);
 
     const audioPanelHeight = 300;
@@ -97,10 +95,10 @@ export default class SettingsScene extends Phaser.Scene {
     const muteToggleY = audioPanelTop + 70;
     const musicSliderY = audioPanelTop + 132;
     const sfxSliderY = audioPanelTop + 222;
-    this.addPanel(width / 2, audioPanelY, panelWidth, audioPanelHeight, 'AUDIO');
+    this.addPanel(width / 2, audioPanelY, panelWidth, audioPanelHeight, translateActive('ui.settings.audioPanel', 'AUDIO'));
     this.createMuteToggle(width / 2, muteToggleY, 44);
-    this.createVolumeSlider(width / 2, musicSliderY, panelWidth - 76, 'Music Volume', 'musicVolume');
-    this.createVolumeSlider(width / 2, sfxSliderY, panelWidth - 76, 'SFX Volume', 'sfxVolume');
+    this.createVolumeSlider(width / 2, musicSliderY, panelWidth - 76, translateActive('ui.settings.musicVolume', 'Music Volume'), 'musicVolume');
+    this.createVolumeSlider(width / 2, sfxSliderY, panelWidth - 76, translateActive('ui.settings.sfxVolume', 'SFX Volume'), 'sfxVolume');
 
     const buildMarker = createBuildMarker(this, { width, height });
     this.drawNavigationControls();
@@ -213,7 +211,7 @@ export default class SettingsScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     const statusText = this.add
-      .text(x, y + 54, 'Select display language for card and faction names', {
+      .text(x, y + 54, translateActive('ui.settings.languageHelp', 'Select display language for card and faction names'), {
         fontFamily: 'Arial, sans-serif',
         fontSize: '13px',
         color: '#fde68a',
@@ -234,7 +232,7 @@ export default class SettingsScene extends Phaser.Scene {
       target.on('pointerup', toggleMenu);
     });
 
-    LANGUAGE_OPTIONS.forEach((option, index) => {
+    getLanguageOptions(this.settings.language).forEach((option, index) => {
       const itemY = y + buttonHeight + index * 39;
       const optionBackground = this.add
         .rectangle(x, itemY, width, 38, option.value === this.settings.language ? 0x93c5fd : 0x1e293b, 1)
@@ -254,12 +252,13 @@ export default class SettingsScene extends Phaser.Scene {
         .setDepth(11)
         .setVisible(false)
         .setInteractive({ useHandCursor: true });
+      optionText.localeValue = option.value;
 
       const selectLanguage = () => {
         this.settings.language = setActiveLocale(option.value);
         this.saveSettings();
         this.languageValueText.setText(option.label);
-        statusText.setText(`Language: ${option.label}`);
+        statusText.setText(translateActive('ui.settings.languageStatus', 'Language: {language}', { language: option.label }));
         this.languageMenuOpen = false;
         arrowText.setText('▾');
         this.refreshLanguageMenuItems();
@@ -278,13 +277,15 @@ export default class SettingsScene extends Phaser.Scene {
   }
 
   refreshLanguageMenuItems() {
+    const languageOptions = getLanguageOptions(this.settings.language);
     this.languageMenuItems.forEach((item) => {
-      const matchingOption = LANGUAGE_OPTIONS.find((option) => item.text === option.label);
+      const matchingOption = languageOptions.find((option) => item.localeValue === option.value);
       if (!matchingOption) {
         item.setVisible(this.languageMenuOpen);
         return;
       }
 
+      item.setText?.(matchingOption.label);
       item.setColor(matchingOption.value === this.settings.language ? '#111827' : '#f8fafc');
       item.setVisible(this.languageMenuOpen);
     });
@@ -292,14 +293,15 @@ export default class SettingsScene extends Phaser.Scene {
     this.languageMenuItems
       .filter((item) => item.type === 'Rectangle')
       .forEach((item, index) => {
-        const option = LANGUAGE_OPTIONS[index];
+        const option = languageOptions[index];
         item.setFillStyle(option.value === this.settings.language ? 0x93c5fd : 0x1e293b, 1);
         item.setVisible(this.languageMenuOpen);
       });
   }
 
   getSelectedLanguageOption() {
-    return LANGUAGE_OPTIONS.find((option) => option.value === this.settings.language) ?? LANGUAGE_OPTIONS[0];
+    const languageOptions = getLanguageOptions(this.settings.language);
+    return languageOptions.find((option) => option.value === this.settings.language) ?? languageOptions[0];
   }
 
   createVolumeSlider(x, y, width, label, settingKey) {

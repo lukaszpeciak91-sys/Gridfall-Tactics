@@ -1,3 +1,4 @@
+import { translateActive } from '../localization/localeService.js';
 export function createModalBackButton(scene, {
   x,
   y,
@@ -5,7 +6,7 @@ export function createModalBackButton(scene, {
   depth = 3,
   width = 132,
   height = 44,
-  label = 'BACK',
+  label = translateActive('ui.common.back', 'BACK'),
 } = {}) {
   const backing = scene.add.rectangle(x, y, width, height, 0x93c5fd, 1)
     .setStrokeStyle(2, 0xe0f2fe, 0.9)

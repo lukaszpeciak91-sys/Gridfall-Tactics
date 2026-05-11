@@ -1,4 +1,5 @@
 import enTranslations from './translations/en.json' with { type: 'json' };
+import plTranslations from './translations/pl.json' with { type: 'json' };
 
 export const DEFAULT_LOCALE = 'en';
 export const SETTINGS_STORAGE_KEY = 'gridfall:tactics:settings:v1';
@@ -6,6 +7,7 @@ export const SETTINGS_STORAGE_KEY = 'gridfall:tactics:settings:v1';
 const SUPPORTED_LOCALES = Object.freeze(['en', 'pl']);
 const TRANSLATIONS = Object.freeze({
   en: enTranslations,
+  pl: plTranslations,
 });
 let activeLocale = DEFAULT_LOCALE;
 
@@ -84,17 +86,52 @@ export function setActiveLocale(locale) {
   return activeLocale;
 }
 
-export function translate(key, locale = DEFAULT_LOCALE, fallbackValue) {
+export function formatTranslation(template, replacements = {}) {
+  if (typeof template !== 'string') {
+    return template;
+  }
+
+  return template.replace(/\{([^{}]+)\}/g, (match, token) => {
+    const value = replacements[token];
+    return value === undefined || value === null ? match : String(value);
+  });
+}
+
+export function translate(key, locale = DEFAULT_LOCALE, fallbackValue, replacements = {}) {
   const normalizedLocale = normalizeLocale(locale);
   const localizedValue = lookupTranslation(TRANSLATIONS[normalizedLocale], key);
   if (typeof localizedValue === 'string') {
-    return localizedValue;
+    return formatTranslation(localizedValue, replacements);
   }
 
   const englishValue = lookupTranslation(TRANSLATIONS[DEFAULT_LOCALE], key);
   if (typeof englishValue === 'string') {
+    return formatTranslation(englishValue, replacements);
+  }
+
+  return formatTranslation(fallbackValue ?? key, replacements);
+}
+
+export function translateActive(key, fallbackValue, replacements = {}) {
+  return translate(key, getActiveLocale(), fallbackValue, replacements);
+}
+
+export function translateList(key, locale = DEFAULT_LOCALE, fallbackValue = []) {
+  const normalizedLocale = normalizeLocale(locale);
+  const localizedValue = lookupTranslation(TRANSLATIONS[normalizedLocale], key);
+  if (Array.isArray(localizedValue)) {
+    return localizedValue;
+  }
+
+  const englishValue = lookupTranslation(TRANSLATIONS[DEFAULT_LOCALE], key);
+  if (Array.isArray(englishValue)) {
     return englishValue;
   }
 
-  return fallbackValue ?? key;
+  return fallbackValue;
 }
+
+export function translateActiveList(key, fallbackValue = []) {
+  return translateList(key, getActiveLocale(), fallbackValue);
+}
+

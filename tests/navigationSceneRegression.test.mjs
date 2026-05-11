@@ -114,12 +114,12 @@ test('MainMenuScene keeps primary buttons and uses shared bottom navigation cont
   const source = readScene('src/scenes/MainMenuScene.js');
 
   assert.match(source, /import \{ createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen \} from '\.\.\/ui\/navigationControls\.js';/);
-  assert.match(source, /\.text\(width \/ 2, height \* 0\.13, 'GRIDFALL TACTICS'/);
+  assert.match(source, /\.text\(width \/ 2, height \* 0\.13, translateActive\('ui\.mainMenu\.title', 'GRIDFALL TACTICS'\)/);
   assert.doesNotMatch(source, /'Main Menu'/);
-  assert.match(source, /this\.createMenuButton\(width \/ 2, startY, buttonWidth, 'ARENA', \(\) => \{[\s\S]*this\.scene\.start\('FactionSelectScene'\)/);
-  assert.match(source, /this\.createMenuButton\(width \/ 2, startY \+ buttonGap, buttonWidth, 'TUTORIAL', \(\) => \{[\s\S]*Tutorial coming soon/);
-  assert.match(source, /this\.createMenuButton\(width \/ 2, startY \+ buttonGap \* 2, buttonWidth, 'COLLECTION', \(\) => \{[\s\S]*this\.scene\.start\('CollectionScene'\)/);
-  assert.match(source, /this\.createMenuButton\(width \/ 2, startY \+ buttonGap \* 3, buttonWidth, 'SETTINGS', \(\) => \{[\s\S]*this\.scene\.start\('SettingsScene'\)/);
+  assert.match(source, /this\.createMenuButton\(width \/ 2, startY, buttonWidth, translateActive\('ui\.mainMenu\.arena', 'ARENA'\), \(\) => \{[\s\S]*this\.scene\.start\('FactionSelectScene'\)/);
+  assert.match(source, /this\.createMenuButton\(width \/ 2, startY \+ buttonGap, buttonWidth, translateActive\('ui\.mainMenu\.tutorial', 'TUTORIAL'\), \(\) => \{[\s\S]*ui.mainMenu.tutorialComingSoon/);
+  assert.match(source, /this\.createMenuButton\(width \/ 2, startY \+ buttonGap \* 2, buttonWidth, translateActive\('ui\.mainMenu\.collection', 'COLLECTION'\), \(\) => \{[\s\S]*this\.scene\.start\('CollectionScene'\)/);
+  assert.match(source, /this\.createMenuButton\(width \/ 2, startY \+ buttonGap \* 3, buttonWidth, translateActive\('ui\.mainMenu\.settings', 'SETTINGS'\), \(\) => \{[\s\S]*this\.scene\.start\('SettingsScene'\)/);
   assert.match(source, /drawNavigationControls\(\) \{[\s\S]*createBottomNavigationControls\(this, \{[\s\S]*onBack: \(\) => this\.returnToStartScene\(\),[\s\S]*onRules: \(\) => this\.openRulesPanel\(\),[\s\S]*onFullscreen: \(\) => this\.toggleFullscreen\(\),[\s\S]*\}\)/);
   assert.match(source, /returnToStartScene\(\) \{[\s\S]*this\.scene\.start\('StartScene'\)/);
   assert.match(source, /openRulesPanel\(\) \{[\s\S]*this\.scene\.launch\('RulesPanelScene', \{ returnSceneKey: 'MainMenuScene' \}\);[\s\S]*this\.scene\.pause\(\);[\s\S]*\}/);

@@ -10,21 +10,28 @@ const STAT_LABELS_EN = Object.freeze({
   arm: 'ARM',
 });
 
+const MISSING_CARD_FIELD = Symbol('missing-card-field');
+
 function translateCardField(key, locale, fallbackValue) {
   if (typeof key !== 'string' || key.length === 0) {
     return fallbackValue;
   }
 
-  return translate(key, locale, fallbackValue);
+  const value = translate(key, locale, MISSING_CARD_FIELD);
+  return value === MISSING_CARD_FIELD ? fallbackValue : value;
 }
 
 export function getCardDisplayName(card, locale = 'en') {
-  const localizedName = translateCardField(card?.nameKey, locale, card?.name);
+  const idNameKey = typeof card?.id === 'string' ? `cards.${card.id}.name` : null;
+  const keyedName = translateCardField(card?.nameKey, locale, undefined);
+  const localizedName = keyedName ?? translateCardField(idNameKey, locale, card?.name);
   return getCardPresentationName({ ...card, name: localizedName }, locale);
 }
 
 export function getCardTextShort(card, locale = 'en') {
-  return translateCardField(card?.textKey, locale, card?.textShort);
+  const idTextKey = typeof card?.id === 'string' ? `cards.${card.id}.textShort` : null;
+  const keyedText = translateCardField(card?.textKey, locale, undefined);
+  return keyedText ?? translateCardField(idTextKey, locale, card?.textShort);
 }
 
 export function getCardTypeLabel(card, locale = 'en') {

@@ -1,0 +1,443 @@
+{
+  "cards": {
+    "aggro_runner_1": {
+      "name": "Biegacz",
+      "textShort": "Otwarta aleja wroga: +2 obr. bohatera."
+    },
+    "aggro_berserker_1": {
+      "name": "Berserker",
+      "textShort": "Gdy uszkodzony: +1 ATK."
+    },
+    "aggro_glass_cannon_1": {
+      "name": "Szklane Działo",
+      "textShort": "Po ataku: traci 1 HP."
+    },
+    "aggro_flanker_1": {
+      "name": "Flanker",
+      "textShort": "Jeśli sąsiedni slot sojusznika pusty: +1 ATK."
+    },
+    "aggro_scout_1": {
+      "name": "Zwiadowca",
+      "textShort": "Po zagraniu: blokuje zagranie wrogiej jednostki tutaj w tej turze."
+    },
+    "aggro_full_attack_1": {
+      "name": "Pełny Atak",
+      "textShort": "Wszyscy sojusznicy +2 ATK w tej turze."
+    },
+    "aggro_rush_1": {
+      "name": "Szarża",
+      "textShort": "Zamień z sąsiednim sojusznikiem; rozegraj walkę w tej alei."
+    },
+    "aggro_pierce_strike_1": {
+      "name": "Przebijające Uderzenie",
+      "textShort": "Zadaj 1. Następne trafienie w walce ignoruje pancerz."
+    },
+    "aggro_adrenaline_1": {
+      "name": "Adrenalina",
+      "textShort": "Wybierz sojusznika: rozegraj teraz walkę w jego alei."
+    },
+    "aggro_quick_fix_1": {
+      "name": "Szybka Naprawa",
+      "textShort": "Sojusznik: ulecz 1, +1 ATK w tej turze. Dobierz, jeśli zabije."
+    },
+    "attrition_swarm_husk_1": {
+      "name": "Łupina",
+      "textShort": "Śmierć w walce: zadaj 1 wrogowi w alei."
+    },
+    "attrition_swarm_carrier_1": {
+      "name": "Nosiciel",
+      "textShort": "Śmierć w walce: przyzwij tutaj 1/1."
+    },
+    "attrition_swarm_leech_1": {
+      "name": "Pijawka",
+      "textShort": "Zabije w walce i przetrwa: ulecz bohatera o 1."
+    },
+    "attrition_swarm_rotcaller_1": {
+      "name": "Zew Rozkładu",
+      "textShort": "Pierwsza śmierć sąsiedniego sojusznika w walce: +1 ATK."
+    },
+    "attrition_swarm_abomination_1": {
+      "name": "Abominacja",
+      "textShort": "Śmierć w walce: obaj bohaterowie otrzymują 1."
+    },
+    "attrition_swarm_funeral_pyre_1": {
+      "name": "Stos Pogrzebowy",
+      "textShort": "Pierwsze 2 śmierci sojuszników w walce trafiają wroga w alei za 1."
+    },
+    "attrition_swarm_infect_1": {
+      "name": "Infekcja",
+      "textShort": "Zadaj 1 wrogowi. Jeśli przetrwa, przeciwny sojusznik +1 ATK."
+    },
+    "attrition_swarm_feast_1": {
+      "name": "Uczta",
+      "textShort": "Zniszcz sojusznika. Dobierz 1."
+    },
+    "attrition_swarm_rise_again_1": {
+      "name": "Powstań Znowu",
+      "textShort": "Wskrześ pierwszą odrzuconą jednostkę z 1 HP."
+    },
+    "attrition_swarm_grave_call_1": {
+      "name": "Zew Grobu",
+      "textShort": "Przyzwij 1/1. Jeśli nie masz sojuszników, przyzwij 2."
+    },
+    "control_hacker_1": {
+      "name": "Haker",
+      "textShort": "Wróg w alei -1 ATK w tej turze."
+    },
+    "control_disruptor_1": {
+      "name": "Zakłócacz",
+      "textShort": "Po zagraniu: anuluj następny efekt wroga w tej turze."
+    },
+    "control_sniper_1": {
+      "name": "Snajper",
+      "textShort": "Atakuje wrogą jednostkę z najniższym HP."
+    },
+    "control_controller_1": {
+      "name": "Kontroler",
+      "textShort": "Po zagraniu: zamień pierwszych 2 wrogów."
+    },
+    "control_drone_1": {
+      "name": "Dron",
+      "textShort": "Po śmierci: wrogi bohater otrzymuje 1."
+    },
+    "control_swap_1": {
+      "name": "Zamiana",
+      "textShort": "Zamień dowolne dwie jednostki po jednej stronie."
+    },
+    "control_jam_signal_1": {
+      "name": "Zagłusz Sygnał",
+      "textShort": "2 najbardziej lewe jednostki wroga -1 ATK w tej turze."
+    },
+    "control_pulse_wave_1": {
+      "name": "Fala Pulsu",
+      "textShort": "Zadaj 1 wszystkim wrogom, ignorując pancerz."
+    },
+    "control_system_override_1": {
+      "name": "Przejęcie Systemu",
+      "textShort": "Celowany wróg atakuje własnego bohatera w następnej walce, potem otrzymuje 1 obrażenie."
+    },
+    "control_recall_1": {
+      "name": "Odwołanie",
+      "textShort": "Przywróć sojusznika na rękę. Dobierz 1."
+    },
+    "swarm_grunt_1": {
+      "name": "Rekrut",
+      "textShort": "Mały wojownik."
+    },
+    "swarm_spitter_1": {
+      "name": "Plujka",
+      "textShort": "Po zagraniu: zadaj 1 wrogowi w alei."
+    },
+    "swarm_brood_1": {
+      "name": "Miot",
+      "textShort": "Po śmierci: przyzwij tutaj 1/1."
+    },
+    "swarm_rusher_1": {
+      "name": "Napastnik",
+      "textShort": "Szybka jednostka nacisku."
+    },
+    "swarm_alpha_1": {
+      "name": "Alfa",
+      "textShort": "Sąsiedni sojusznicy +1 ATK, ignorują 1 ARM."
+    },
+    "swarm_spawn_1": {
+      "name": "Pomiot",
+      "textShort": "Przyzwij 1/1 w pierwszym pustym slocie sojusznika."
+    },
+    "swarm_swarm_attack_1": {
+      "name": "Atak Roju",
+      "textShort": "Wszyscy sojusznicy +1 ATK w tej turze."
+    },
+    "swarm_regrow_1": {
+      "name": "Odrost",
+      "textShort": "Wskrześ pierwszą odrzuconą jednostkę z 1 HP."
+    },
+    "swarm_flood_1": {
+      "name": "Zalew",
+      "textShort": "Wypełnij 2 puste sloty sojuszników Tokenami 0/1."
+    },
+    "swarm_recycle_1": {
+      "name": "Recykling",
+      "textShort": "Zniszcz sojusznika. Dobierz 1."
+    },
+    "tank_shieldbearer_1": {
+      "name": "Tarczownik",
+      "textShort": "Sąsiedni sojusznicy mają +1 ARM w walce."
+    },
+    "tank_heavy_1": {
+      "name": "Ciężki",
+      "textShort": "Wytrzymała ciężka jednostka."
+    },
+    "tank_guardian_1": {
+      "name": "Strażnik",
+      "textShort": "Przechwytuje obrażenia w walce za sąsiedniego sojusznika."
+    },
+    "tank_wall_1": {
+      "name": "Mur",
+      "textShort": "Blokuje aleję. Nie może atakować."
+    },
+    "tank_bruiser_1": {
+      "name": "Zabijaka",
+      "textShort": "Gdy uszkodzony i przetrwa: +1 ATK w tej turze."
+    },
+    "tank_fortify_1": {
+      "name": "Fortyfikacja",
+      "textShort": "Wszyscy sojusznicy +1 pancerza w tej turze."
+    },
+    "tank_stability_1": {
+      "name": "Stabilność",
+      "textShort": "Sojusznicy nie mogą być przesuwani/wyłączani w tej turze."
+    },
+    "tank_reinforce_1": {
+      "name": "Wzmocnienie",
+      "textShort": "Ulecz wszystkich sojuszników o 1."
+    },
+    "tank_last_stand_1": {
+      "name": "Ostatni Bastion",
+      "textShort": "Sojusznicy nie mogą spaść poniżej 1 HP w tej turze."
+    },
+    "tank_repair_kit_1": {
+      "name": "Reaktywne Opancerzenie",
+      "textShort": "Wybrany sojusznik +1 ARM do końca walki."
+    },
+    "wardens_sentinel_1": {
+      "name": "Wartownik",
+      "textShort": "Wróg atakujący tę jednostkę: -1 ATK."
+    },
+    "wardens_spearwall_1": {
+      "name": "Ściana Włóczni",
+      "textShort": "Sąsiedni sojusznicy: atakujący -1 ATK."
+    },
+    "wardens_halberdier_1": {
+      "name": "Halabardnik",
+      "textShort": "Wróg w alei: +1 ATK."
+    },
+    "wardens_bastion_guard_1": {
+      "name": "Straż Bastionu",
+      "textShort": "Wytrzymały strażnik."
+    },
+    "wardens_watch_captain_1": {
+      "name": "Kapitan Warty",
+      "textShort": "Dowódca linii."
+    },
+    "wardens_brace_1": {
+      "name": "Zapora",
+      "textShort": "Wybrany sojusznik +1 ARM do końca walki."
+    },
+    "wardens_shield_push_1": {
+      "name": "Pchnięcie Tarczą",
+      "textShort": "Zamień najbardziej lewych sąsiednich wrogów."
+    },
+    "wardens_stand_firm_1": {
+      "name": "Stać Twardo",
+      "textShort": "Sojusznicy nie mogą być przesuwani w tej turze."
+    },
+    "wardens_reinforce_line_1": {
+      "name": "Wzmocnij Linię",
+      "textShort": "Najbardziej lewy sojusznik +1 ARM do końca walki."
+    },
+    "wardens_hold_the_line_1": {
+      "name": "Utrzymać Linię",
+      "textShort": "2 najbardziej lewi sojusznicy +1 ARM do końca walki."
+    }
+  },
+  "cardTypes": {
+    "effect": "Efekt",
+    "unit": "Jednostka"
+  },
+  "stats": {
+    "attack": "ATK",
+    "atk": "ATK",
+    "hp": "HP",
+    "health": "HP",
+    "armor": "PANC",
+    "arm": "PANC"
+  },
+  "ui": {
+    "common": {
+      "back": "WRÓĆ",
+      "exit": "WYJDŹ",
+      "retry": "SPRÓBUJ PONOWNIE",
+      "pass": "PAS",
+      "fullscreen": "Pełny ekran",
+      "help": "Pomoc",
+      "menu": "Menu",
+      "comingSoon": "Wkrótce",
+      "swipeScroll": "Przesuń lub użyj kółka myszy, aby przewijać",
+      "noScroll": "Przewijanie niepotrzebne",
+      "none": "Brak",
+      "empty": "Pusto",
+      "unknownCard": "Nieznana karta",
+      "unit": "Jednostka"
+    },
+    "start": {
+      "title": "GRIDFALL TACTICS",
+      "start": "START"
+    },
+    "mainMenu": {
+      "title": "GRIDFALL TACTICS",
+      "arena": "ARENA",
+      "tutorial": "SAMOUCZEK",
+      "collection": "KOLEKCJA",
+      "settings": "USTAWIENIA",
+      "tutorialComingSoon": "Samouczek wkrótce"
+    },
+    "factionSelect": {
+      "title": "Wybierz frakcję",
+      "subtitle": "Dotknij frakcji, aby rozpocząć bitwę",
+      "descriptions": {
+        "Aggro": "Szybka presja.",
+        "Tank": "Pancerz i wytrzymałość.",
+        "Control": "Zakłócenia i przestawianie.",
+        "Swarm": "Taktyka roju na planszy.",
+        "Wardens": "Obrona i kontrola stref."
+      },
+      "tags": {
+        "Rush": "Szarża",
+        "Burst": "Wybuch",
+        "Armor": "Pancerz",
+        "Sustain": "Utrzymanie",
+        "Disrupt": "Zakłócenia",
+        "Move": "Ruch",
+        "Tokens": "Tokeny",
+        "Buffs": "Wzmocnienia",
+        "Friction": "Tarcie"
+      }
+    },
+    "settings": {
+      "title": "USTAWIENIA",
+      "subtitle": "Preferencje są zapisywane lokalnie",
+      "languagePanel": "JĘZYK",
+      "audioPanel": "DŹWIĘK",
+      "languageHelp": "Wybierz język wyświetlania nazw kart i frakcji",
+      "languageStatus": "Język: {language}",
+      "musicVolume": "Głośność muzyki",
+      "sfxVolume": "Głośność efektów",
+      "languages": {
+        "en": "Angielski",
+        "pl": "Polski"
+      }
+    },
+    "collection": {
+      "title": "KOLEKCJA",
+      "subtitle": "Dotknij karty, aby zobaczyć szczegóły"
+    },
+    "battleMenu": {
+      "title": "MENU",
+      "comingSoon": "Opcje menu wkrótce.",
+      "howToPlay": "JAK GRAĆ"
+    },
+    "battle": {
+      "enemyHero": "BOHATER WROGA",
+      "playerHero": "TWÓJ BOHATER",
+      "actOne": "AKCJA 1/2",
+      "actTwo": "AKCJA 2/2",
+      "deckCounter": "TALIA {count}",
+      "deckInfo": {
+        "title": "Informacje o talii",
+        "subtitle": "Karty gracza • tylko podgląd",
+        "inDeck": "W talii",
+        "inHand": "Na ręce",
+        "playedDiscarded": "Zagrane / odrzucone",
+        "onBoard": "Na planszy"
+      },
+      "mulligan": "WYMIANA {count}",
+      "keepHand": "ZOSTAW RĘKĘ",
+      "battleComplete": "Bitwa zakończona",
+      "youWin": "WYGRANA",
+      "youLose": "PORAŻKA",
+      "draw": "REMIS",
+      "enemyPass": "WRÓG PASUJE",
+      "enemyPlays": "WRÓG GRA",
+      "enemyRepositions": "WRÓG ZMIENIA POZYCJE",
+      "enemyAction": "AKCJA WROGA",
+      "effect": "Efekt",
+      "block": "BLOK",
+      "effectSummaries": {
+        "aggro_buff_all_atk_2": "Wszyscy sojusznicy +2 ATK",
+        "swap_adjacent_then_resolve": "Zamień sojusznika, walcz w alei",
+        "ignore_armor_next_attack": "Obrażenia i przebicie pancerza",
+        "quick_strike": "Rozegraj walkę w alei teraz",
+        "heal_1_atk_1_draw_on_kill_this_turn": "Ulecz, +1 ATK, dobierz po zabiciu",
+        "swap_any_two_units": "Zamień dwie jednostki",
+        "enemy_all_atk_minus_1": "Najbardziej lewi wrogowie -1 ATK",
+        "damage_all_enemies_1_ignore_armor": "Obrażenia wszystkim wrogom",
+        "control_enemy_unit_this_turn": "Wróg atakuje własnego bohatera i dostaje 1",
+        "damage_up_to_2_enemies_1": "Obrażenia najbardziej lewym wrogom",
+        "return_friendly_draw_1": "Cofnij sojusznika, dobierz 1",
+        "buff_all_armor_1": "Wszyscy sojusznicy +1 PANC",
+        "immune_move_disable_this_turn": "Blokuje efekty ruchu",
+        "heal_all_1": "Ulecz wszystkich sojuszników o 1",
+        "cannot_drop_below_1_this_turn": "Sojusznicy przetrwają z 1 HP",
+        "temp_armor_1": "Wybrany sojusznik +1 PANC",
+        "summon_grunt_empty_slot": "Przyzwij Rekruta",
+        "buff_all_atk_1": "Wszyscy sojusznicy +1 ATK",
+        "revive_friendly_1hp": "Wskrześ jednostkę z 1 HP",
+        "fill_empty_slots_0_1": "Wypełnij sloty Tokenami",
+        "destroy_friendly_draw_1": "Zniszcz sojusznika, dobierz 1"
+      }
+    },
+    "rules": {
+      "title": "Zasady / Jak grać",
+      "sections": [
+        {
+          "heading": "Cel",
+          "lines": [
+            "Obaj bohaterowie zaczynają z 12 HP.",
+            "Chroń swojego bohatera i zredukuj HP wrogiego bohatera do 0."
+          ]
+        },
+        {
+          "heading": "Plansza / Aleje",
+          "lines": [
+            "Walka ma 3 aleje.",
+            "Zagrywaj jednostki do swoich slotów alei. Środkowy rząd jest tylko wizualny.",
+            "Jeśli jednostka atakuje otwartą aleję, trafia wrogiego bohatera."
+          ]
+        },
+        {
+          "heading": "Przebieg tury",
+          "lines": [
+            "Na początku bitwy dobierz 4 karty i raz wymień do 2 kart.",
+            "Jedna strona działa pierwsza, potem inicjatywa zmienia się co turę.",
+            "Każda strona ma 1 akcję albo może spasować.",
+            "Po działaniu lub pasie obu stron walka rozstrzyga się automatycznie.",
+            "Po walce dobierasz 1 kartę, potem wróg dobiera 1 kartę."
+          ]
+        },
+        {
+          "heading": "Akcje",
+          "lines": [
+            "Karty nie mają many, energii ani kosztów.",
+            "Twoja akcja może zagrać jednostkę, zagrać efekt, użyć efektu celowanego, zamienić sojusznicze jednostki, przestawić jednostkę albo spasować."
+          ]
+        },
+        {
+          "heading": "Walka",
+          "lines": [
+            "Walka odbywa się aleja po alei, bez ataków po skosie.",
+            "Jednostki walczą z jednostkami naprzeciwko w swojej alei.",
+            "Ataki w otwartą aleję zadają obrażenia przeciwnemu bohaterowi.",
+            "Obie strony mogą zadawać obrażenia w tym samym kroku walki."
+          ]
+        },
+        {
+          "heading": "Zwycięstwo",
+          "lines": [
+            "Bitwa może zakończyć się, gdy bohater zostanie pokonany.",
+            "Jeśli żadna strona nie może zrobić znaczącego postępu, wynik ustala pozostałe HP bohaterów.",
+            "Jeśli osiągnięto limit tur, wynik ustala pozostałe HP bohaterów.",
+            "Jeśli pozostałe HP bohaterów jest równe, bitwa kończy się remisem."
+          ]
+        }
+      ]
+    },
+    "cardDetails": {
+      "type": "Typ",
+      "atkHp": "ATK/HP",
+      "targeting": "celowanie",
+      "effectId": "effectId",
+      "none": "brak"
+    }
+  }
+}

@@ -7,12 +7,11 @@ const read = (path) => fs.readFileSync(path, 'utf8');
 test('SettingsScene exposes future-ready language, audio, and persistence controls', () => {
   const source = read('src/scenes/SettingsScene.js');
 
-  assert.match(source, /import \{ SETTINGS_STORAGE_KEY, getSupportedLocales, normalizeLocale, setActiveLocale \} from '\.\.\/localization\/localeService\.js';/);
-  assert.match(source, /en: 'English'/);
-  assert.match(source, /pl: 'Polish'/);
-  assert.match(source, /const LANGUAGE_OPTIONS = getSupportedLocales\(\)\.map/);
-  assert.match(source, /text\(width \/ 2, height \* 0\.1, 'SETTINGS'/);
-  assert.match(source, /text\(width \/ 2, height \* 0\.15, 'Preferences are saved locally'/);
+  assert.match(source, /import \{ SETTINGS_STORAGE_KEY, getSupportedLocales, normalizeLocale, setActiveLocale, translateActive, translate \} from '\.\.\/localization\/localeService\.js';/);
+  assert.match(source, /function getLanguageOptions\(displayLocale\)/);
+  assert.match(source, /translate\(`ui\.settings\.languages\.\$\{locale\}`/);
+  assert.match(source, /text\(width \/ 2, height \* 0\.1, translateActive\('ui\.settings\.title', 'SETTINGS'\)/);
+  assert.match(source, /text\(width \/ 2, height \* 0\.15, translateActive\('ui\.settings\.subtitle', 'Preferences are saved locally'\)/);
   assert.match(source, /createLanguageSelect\(width \/ 2, height \* 0\.32, panelWidth - 74\)/);
   assert.doesNotMatch(source, /createChoiceButton\(width \/ 2 - 76[\s\S]*English/);
 
@@ -24,10 +23,10 @@ test('SettingsScene exposes future-ready language, audio, and persistence contro
   assert.match(source, /const muteToggleY = audioPanelTop \+ 70/);
   assert.match(source, /const musicSliderY = audioPanelTop \+ 132/);
   assert.match(source, /const sfxSliderY = audioPanelTop \+ 222/);
-  assert.match(source, /addPanel\(width \/ 2, audioPanelY, panelWidth, audioPanelHeight, 'AUDIO'\)/);
+  assert.match(source, /addPanel\(width \/ 2, audioPanelY, panelWidth, audioPanelHeight, translateActive\('ui\.settings\.audioPanel', 'AUDIO'\)\)/);
   assert.match(source, /createMuteToggle\(width \/ 2, muteToggleY, 44\)/);
-  assert.match(source, /createVolumeSlider\(width \/ 2, musicSliderY, panelWidth - 76, 'Music Volume', 'musicVolume'\)/);
-  assert.match(source, /createVolumeSlider\(width \/ 2, sfxSliderY, panelWidth - 76, 'SFX Volume', 'sfxVolume'\)/);
+  assert.match(source, /createVolumeSlider\(width \/ 2, musicSliderY, panelWidth - 76, translateActive\('ui\.settings\.musicVolume', 'Music Volume'\), 'musicVolume'\)/);
+  assert.match(source, /createVolumeSlider\(width \/ 2, sfxSliderY, panelWidth - 76, translateActive\('ui\.settings\.sfxVolume', 'SFX Volume'\), 'sfxVolume'\)/);
   assert.match(source, /createMuteToggle\(x, y, size\) \{/);
   assert.match(source, /drawSpeakerIcon\(icon, size, isMuted\)/);
   assert.match(source, /this\.settings\.muted = !this\.settings\.muted/);

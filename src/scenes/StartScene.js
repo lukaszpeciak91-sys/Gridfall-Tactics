@@ -7,6 +7,7 @@ import {
   getMenuBackgroundAsset,
   preloadMenuBackgroundArt,
 } from '../rendering/backgroundArt.js';
+import { translateActive } from '../localization/localeService.js';
 
 const START_TRANSITION_MS = 320;
 
@@ -34,7 +35,7 @@ export default class StartScene extends Phaser.Scene {
     createMenuArenaLightSweep(this, { width, height });
 
     const title = this.add
-      .text(width / 2, height * 0.15, 'GRIDFALL TACTICS', {
+      .text(width / 2, height * 0.15, translateActive('ui.start.title', 'GRIDFALL TACTICS'), {
         fontFamily: 'Arial, sans-serif',
         fontSize: '40px',
         fontStyle: 'bold',
@@ -46,7 +47,7 @@ export default class StartScene extends Phaser.Scene {
       .setDepth(10);
 
     const startButton = this.add
-      .text(width / 2, height * 0.61, 'START', {
+      .text(width / 2, height * 0.61, translateActive('ui.start.start', 'START'), {
         fontFamily: 'Arial, sans-serif',
         fontSize: '36px',
         fontStyle: 'bold',

@@ -8,6 +8,7 @@ import {
   preloadMenuBackgroundArt,
 } from '../rendering/backgroundArt.js';
 import { createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
+import { translateActive } from '../localization/localeService.js';
 
 const BUTTON_STYLE = {
   fontFamily: 'Arial, sans-serif',
@@ -50,7 +51,7 @@ export default class MainMenuScene extends Phaser.Scene {
     this.scale.on('leavefullscreen', this.onFullscreenChanged, this);
 
     this.add
-      .text(width / 2, height * 0.13, 'GRIDFALL TACTICS', {
+      .text(width / 2, height * 0.13, translateActive('ui.mainMenu.title', 'GRIDFALL TACTICS'), {
         fontFamily: 'Arial, sans-serif',
         fontSize: '30px',
         fontStyle: 'bold',
@@ -64,20 +65,20 @@ export default class MainMenuScene extends Phaser.Scene {
     const buttonGap = 76;
     const startY = height * 0.31;
 
-    this.createMenuButton(width / 2, startY, buttonWidth, 'ARENA', () => {
+    this.createMenuButton(width / 2, startY, buttonWidth, translateActive('ui.mainMenu.arena', 'ARENA'), () => {
       this.scene.start('FactionSelectScene');
     });
 
-    this.createMenuButton(width / 2, startY + buttonGap, buttonWidth, 'TUTORIAL', () => {
-      this.statusText.setText('Tutorial coming soon');
+    this.createMenuButton(width / 2, startY + buttonGap, buttonWidth, translateActive('ui.mainMenu.tutorial', 'TUTORIAL'), () => {
+      this.statusText.setText(translateActive('ui.mainMenu.tutorialComingSoon', 'Tutorial coming soon'));
       this.tweens.add({ targets: this.statusText, alpha: 1, duration: 120 });
     });
 
-    this.createMenuButton(width / 2, startY + buttonGap * 2, buttonWidth, 'COLLECTION', () => {
+    this.createMenuButton(width / 2, startY + buttonGap * 2, buttonWidth, translateActive('ui.mainMenu.collection', 'COLLECTION'), () => {
       this.scene.start('CollectionScene');
     });
 
-    this.createMenuButton(width / 2, startY + buttonGap * 3, buttonWidth, 'SETTINGS', () => {
+    this.createMenuButton(width / 2, startY + buttonGap * 3, buttonWidth, translateActive('ui.mainMenu.settings', 'SETTINGS'), () => {
       this.scene.start('SettingsScene');
     });
 
