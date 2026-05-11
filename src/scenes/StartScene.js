@@ -20,11 +20,14 @@ const START_LOGO_ASSET = {
 };
 const START_TITLE_DEPTH = 5;
 const START_BUTTON_DEPTH = 10;
+const START_BUTTON_Y_RATIO = 0.61;
+const START_BUTTON_SAFE_TOP_OFFSET = 38;
 const START_LOGO_LAYOUT = {
-  topRatio: 0.13,
-  maxWidthRatio: 0.86,
-  maxHeightRatio: 0.34,
-  maxDisplayHeight: 320,
+  topRatio: 0.148,
+  maxWidthRatio: 0.89,
+  maxHeightRatio: 0.38,
+  maxDisplayHeight: 360,
+  minButtonGap: 28,
 };
 
 export default class StartScene extends Phaser.Scene {
@@ -58,7 +61,7 @@ export default class StartScene extends Phaser.Scene {
     this.title = this.createTitle(width, height);
 
     this.startButton = this.add
-      .text(width / 2, height * 0.61, translateActive('ui.start.start', 'START'), {
+      .text(width / 2, height * START_BUTTON_Y_RATIO, translateActive('ui.start.start', 'START'), {
         fontFamily: 'Arial, sans-serif',
         fontSize: '36px',
         fontStyle: 'bold',
@@ -136,15 +139,19 @@ export default class StartScene extends Phaser.Scene {
     }
 
     if (this.startButton) {
-      this.startButton.setPosition(width / 2, height * 0.61);
+      this.startButton.setPosition(width / 2, height * START_BUTTON_Y_RATIO);
     }
   }
 
   scaleLogoToFit(logo, width, height) {
     const maxLogoWidth = width * START_LOGO_LAYOUT.maxWidthRatio;
+    const logoTop = height * START_LOGO_LAYOUT.topRatio;
+    const buttonSafeTop = height * START_BUTTON_Y_RATIO - START_BUTTON_SAFE_TOP_OFFSET;
+    const safeLogoHeight = Math.max(0, buttonSafeTop - logoTop - START_LOGO_LAYOUT.minButtonGap);
     const maxLogoHeight = Math.min(
       height * START_LOGO_LAYOUT.maxHeightRatio,
       START_LOGO_LAYOUT.maxDisplayHeight,
+      safeLogoHeight,
     );
     if (!logo.width || !logo.height) {
       return;
