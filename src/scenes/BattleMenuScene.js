@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { translateActive } from '../localization/localeService.js';
 
 export default class BattleMenuScene extends Phaser.Scene {
   constructor() {
@@ -15,7 +16,7 @@ export default class BattleMenuScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor('#05080f');
 
     this.add
-      .text(width * 0.5, height * 0.18, 'MENU', {
+      .text(width * 0.5, height * 0.18, translateActive('ui.battleMenu.title', 'MENU'), {
         fontFamily: 'Arial, sans-serif',
         fontSize: '42px',
         color: '#f8fafc',
@@ -24,7 +25,7 @@ export default class BattleMenuScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(width * 0.5, height * 0.42, 'Menu options coming soon.', {
+      .text(width * 0.5, height * 0.42, translateActive('ui.battleMenu.comingSoon', 'Menu options coming soon.'), {
         fontFamily: 'Arial, sans-serif',
         fontSize: '24px',
         color: '#cbd5e1',
@@ -33,7 +34,7 @@ export default class BattleMenuScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     const rulesButton = this.add
-      .text(width * 0.5, height * 0.56, 'HOW TO PLAY', {
+      .text(width * 0.5, height * 0.56, translateActive('ui.battleMenu.howToPlay', 'HOW TO PLAY'), {
         fontFamily: 'Arial, sans-serif',
         fontSize: '22px',
         color: '#0f172a',

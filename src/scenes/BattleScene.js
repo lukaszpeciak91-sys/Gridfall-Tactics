@@ -11,7 +11,7 @@ import { createBottomNavigationControls, requestPortraitOrientationLock, toggleS
 import { createModalBackButton } from '../ui/modalControls.js';
 import { formatDeckSummaryEntry, formatHandCardLabel } from '../rendering/cardRenderModes.js';
 import { getCardDisplayName } from '../localization/cardDisplay.js';
-import { getActiveLocale } from '../localization/localeService.js';
+import { getActiveLocale, translateActive } from '../localization/localeService.js';
 
 const HAND_CARD_ACCENT_COLORS = Object.freeze({
   unit: 0x4da6ff,
@@ -340,9 +340,9 @@ export default class BattleScene extends Phaser.Scene {
 
   getBattleResultText() {
     if (!this.gameState?.winner) return '';
-    if (this.gameState.winner === 'player') return 'YOU WIN';
-    if (this.gameState.winner === 'enemy') return 'YOU LOSE';
-    return 'DRAW';
+    if (this.gameState.winner === 'player') return translateActive('ui.battle.youWin', 'YOU WIN');
+    if (this.gameState.winner === 'enemy') return translateActive('ui.battle.youLose', 'YOU LOSE');
+    return translateActive('ui.battle.draw', 'DRAW');
   }
 
   scheduleBattleResultModal(delayMs = 500) {
@@ -395,7 +395,7 @@ export default class BattleScene extends Phaser.Scene {
       fontStyle: 'bold',
       align: 'center',
     }).setOrigin(0.5).setDepth(902);
-    const subtitle = this.add.text(centerX, centerY - modalHeight * 0.02, 'Battle Complete', {
+    const subtitle = this.add.text(centerX, centerY - modalHeight * 0.02, translateActive('ui.battle.battleComplete', 'Battle Complete'), {
       fontFamily: 'Arial, sans-serif',
       fontSize: `${Math.max(16, Math.floor(modalHeight * 0.07))}px`,
       color: '#cbd5e1',
@@ -411,7 +411,7 @@ export default class BattleScene extends Phaser.Scene {
       buttonY,
       buttonWidth,
       buttonHeight,
-      '←\nEXIT',
+      `←\n${translateActive('ui.common.exit', 'EXIT')}`,
       () => this.exitBattleToFactionSelect(),
     );
     const retryButton = this.createResultModalButton(
@@ -419,7 +419,7 @@ export default class BattleScene extends Phaser.Scene {
       buttonY,
       buttonWidth,
       buttonHeight,
-      '↻\nRETRY',
+      `↻\n${translateActive('ui.common.retry', 'RETRY')}`,
       () => this.retryBattle(),
     );
 
@@ -712,7 +712,7 @@ export default class BattleScene extends Phaser.Scene {
       align: 'right',
     });
 
-    this.add.text(enemyPanel.x, enemyPanel.y - topHero.h * 0.14, 'ENEMY HERO', {
+    this.add.text(enemyPanel.x, enemyPanel.y - topHero.h * 0.14, translateActive('ui.battle.enemyHero', 'ENEMY HERO'), {
       fontFamily: 'Arial, sans-serif',
       fontSize: `${Math.max(16, Math.floor(topHero.h * 0.32))}px`,
       color: '#f87171',
@@ -726,7 +726,7 @@ export default class BattleScene extends Phaser.Scene {
       fontStyle: 'bold',
     }).setOrigin(0.5, 0.5);
 
-    this.add.text(playerPanel.x, playerPanel.y - playerHero.h * 0.14, 'PLAYER HERO', {
+    this.add.text(playerPanel.x, playerPanel.y - playerHero.h * 0.14, translateActive('ui.battle.playerHero', 'PLAYER HERO'), {
       fontFamily: 'Arial, sans-serif',
       fontSize: `${Math.max(14, Math.floor(playerHero.h * 0.3))}px`,
       color: '#60a5fa',
@@ -756,7 +756,7 @@ export default class BattleScene extends Phaser.Scene {
       .setStrokeStyle(2, 0xfacc15, 0.9)
       .setDepth(121)
       .setVisible(false);
-    const text = this.add.text(x, y, 'ACT 1/2', {
+    const text = this.add.text(x, y, translateActive('ui.battle.actOne', 'ACT 1/2'), {
       fontFamily: 'Arial, sans-serif',
       fontSize: `${Math.max(10, Math.floor(badgeHeight * 0.48))}px`,
       color: '#fde68a',
@@ -783,22 +783,22 @@ export default class BattleScene extends Phaser.Scene {
 
     if (this.isFlowResolving) {
       if (!firstActorUsed && firstActor === 'enemy') {
-        return { side: firstActor, label: 'ACT 1/2' };
+        return { side: firstActor, label: translateActive('ui.battle.actOne', 'ACT 1/2') };
       }
 
       if (firstActorUsed && !secondActorUsed && secondActor === 'enemy') {
-        return { side: secondActor, label: 'ACT 2/2' };
+        return { side: secondActor, label: translateActive('ui.battle.actTwo', 'ACT 2/2') };
       }
 
       return null;
     }
 
     if (!firstActorUsed) {
-      return { side: firstActor, label: 'ACT 1/2' };
+      return { side: firstActor, label: translateActive('ui.battle.actOne', 'ACT 1/2') };
     }
 
     if (!secondActorUsed) {
-      return { side: secondActor, label: 'ACT 2/2' };
+      return { side: secondActor, label: translateActive('ui.battle.actTwo', 'ACT 2/2') };
     }
 
     return null;
@@ -870,7 +870,7 @@ export default class BattleScene extends Phaser.Scene {
     const { width, action } = this.layout;
 
     const button = this.add
-      .text(width * 0.5, action.centerY, 'PASS', {
+      .text(width * 0.5, action.centerY, translateActive('ui.common.pass', 'PASS'), {
         fontFamily: 'Arial, sans-serif',
         fontSize: `${Math.max(18, Math.floor(action.h * 0.52))}px`,
         color: '#f9fafb',
@@ -913,7 +913,7 @@ export default class BattleScene extends Phaser.Scene {
       .setStrokeStyle(2, 0x38bdf8, 0.9)
       .setDepth(150)
       .setInteractive({ useHandCursor: true });
-    const text = this.add.text(x, y, `DECK ${deckCount}`, {
+    const text = this.add.text(x, y, translateActive('ui.battle.deckCounter', 'DECK {count}', { count: deckCount }), {
       fontFamily: 'Arial, sans-serif',
       fontSize: `${Math.max(13, Math.floor(counterHeight * 0.34))}px`,
       color: '#e0f2fe',
@@ -938,7 +938,7 @@ export default class BattleScene extends Phaser.Scene {
 
   refreshDeckCounter() {
     if (!this.deckCounterView?.text || !this.gameState?.player) return;
-    this.deckCounterView.text.setText(`DECK ${this.gameState.player.deck.length}`);
+    this.deckCounterView.text.setText(translateActive('ui.battle.deckCounter', 'DECK {count}', { count: this.gameState.player.deck.length }));
     if (this.deckInfoPanel?.contentText) {
       this.deckInfoPanel.contentText.setText(this.getDeckInfoPanelText());
     }
@@ -984,14 +984,14 @@ export default class BattleScene extends Phaser.Scene {
       .setStrokeStyle(3, 0x38bdf8, 0.86)
       .setInteractive()
       .setDepth(761);
-    const title = this.add.text(centerX, panelTop + 28, 'Deck Info', {
+    const title = this.add.text(centerX, panelTop + 28, translateActive('ui.battle.deckInfo.title', 'Deck Info'), {
       fontFamily: 'Arial, sans-serif',
       fontSize: `${Math.max(20, Math.floor(panelHeight * 0.05))}px`,
       color: '#e0f2fe',
       fontStyle: 'bold',
       align: 'center',
     }).setOrigin(0.5).setDepth(762);
-    const subtitle = this.add.text(centerX, panelTop + 54, 'Player cards • read-only', {
+    const subtitle = this.add.text(centerX, panelTop + 54, translateActive('ui.battle.deckInfo.subtitle', 'Player cards • read-only'), {
       fontFamily: 'Arial, sans-serif',
       fontSize: `${Math.max(12, Math.floor(panelHeight * 0.03))}px`,
       color: '#94a3b8',
@@ -1025,7 +1025,7 @@ export default class BattleScene extends Phaser.Scene {
 
     const contentBottom = contentY + contentText.height;
     const maxScrollY = Math.max(0, contentBottom - contentY - contentHeight + 8);
-    const scrollHint = this.add.text(panelLeft + padding, panelTop + panelHeight - 58, maxScrollY > 0 ? 'Swipe or mouse wheel to scroll' : 'No scrolling needed', {
+    const scrollHint = this.add.text(panelLeft + padding, panelTop + panelHeight - 58, maxScrollY > 0 ? translateActive('ui.common.swipeScroll', 'Swipe or mouse wheel to scroll') : translateActive('ui.common.noScroll', 'No scrolling needed'), {
       fontFamily: 'Arial, sans-serif',
       fontSize: '12px',
       color: '#94a3b8',
@@ -1137,10 +1137,10 @@ export default class BattleScene extends Phaser.Scene {
     const player = this.gameState?.player ?? { deck: [], hand: [], discard: [] };
     const onBoard = (this.gameState?.board ?? []).filter((card) => card?.owner === 'player');
     const groups = [
-      ['In Deck', player.deck],
-      ['In Hand', player.hand],
-      ['Played / Discarded', player.discard],
-      ['On Board', onBoard],
+      [translateActive('ui.battle.deckInfo.inDeck', 'In Deck'), player.deck],
+      [translateActive('ui.battle.deckInfo.inHand', 'In Hand'), player.hand],
+      [translateActive('ui.battle.deckInfo.playedDiscarded', 'Played / Discarded'), player.discard],
+      [translateActive('ui.battle.deckInfo.onBoard', 'On Board'), onBoard],
     ];
 
     return groups.map(([heading, cards]) => this.formatDeckInfoGroup(heading, cards)).join('\n\n');
@@ -1149,7 +1149,7 @@ export default class BattleScene extends Phaser.Scene {
   formatDeckInfoGroup(heading, cards) {
     const entries = this.summarizeCardEntries(cards);
     const total = Array.isArray(cards) ? cards.length : 0;
-    if (entries.length === 0) return `${heading} (${total})\n• None`;
+    if (entries.length === 0) return `${heading} (${total})\n• ${translateActive('ui.common.none', 'None')}`;
     return [
       `${heading} (${total})`,
       ...entries.map((entry) => `• ${entry.name} — ${entry.typeLabel} ×${entry.count}`),
@@ -1558,10 +1558,10 @@ export default class BattleScene extends Phaser.Scene {
     if (!this.actionButton) return;
     if (this.openingMulliganPending) {
       const count = this.selectedMulliganCardIds.length;
-      this.actionButton.setText(count > 0 ? `MULLIGAN ${count}` : 'KEEP HAND');
+      this.actionButton.setText(count > 0 ? translateActive('ui.battle.mulligan', 'MULLIGAN {count}', { count }) : translateActive('ui.battle.keepHand', 'KEEP HAND'));
       return;
     }
-    this.actionButton.setText('PASS');
+    this.actionButton.setText(translateActive('ui.common.pass', 'PASS'));
   }
 
   resolvePassTurn() {
@@ -1733,20 +1733,20 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   getEnemyActionMessage(action, card) {
-    if (!action || action.type === 'pass') return 'ENEMY PASS';
-    const cardName = getCardDisplayName(card, getActiveLocale()) ?? 'Unknown Card';
-    if (action.type === 'play-unit') return `ENEMY PLAYS\n${cardName}`;
+    if (!action || action.type === 'pass') return translateActive('ui.battle.enemyPass', 'ENEMY PASS');
+    const cardName = getCardDisplayName(card, getActiveLocale()) ?? translateActive('ui.common.unknownCard', 'Unknown Card');
+    if (action.type === 'play-unit') return `${translateActive('ui.battle.enemyPlays', 'ENEMY PLAYS')}\n${cardName}`;
     if (action.type === 'play-effect' || action.type === 'play-targeted-effect') {
-      return `ENEMY PLAYS\n${cardName}\n${this.getEnemyEffectSummary(card)}`;
+      return `${translateActive('ui.battle.enemyPlays', 'ENEMY PLAYS')}\n${cardName}\n${this.getEnemyEffectSummary(card)}`;
     }
-    if (action.type === 'swap-units') return 'ENEMY REPOSITIONS';
-    return 'ENEMY ACTION';
+    if (action.type === 'swap-units') return translateActive('ui.battle.enemyRepositions', 'ENEMY REPOSITIONS');
+    return translateActive('ui.battle.enemyAction', 'ENEMY ACTION');
   }
 
   getEnemyEffectSummary(card) {
-    if (!card) return 'Effect';
+    if (!card) return translateActive('ui.battle.effect', 'Effect');
     const override = ENEMY_EFFECT_SUMMARY_OVERRIDES[card.effectId];
-    if (override) return override;
+    if (override) return translateActive(`ui.battle.effectSummaries.${card.effectId}`, override);
 
     const textShort = typeof card.textShort === 'string' ? card.textShort.trim() : '';
     const cleaned = textShort
@@ -1757,7 +1757,7 @@ export default class BattleScene extends Phaser.Scene {
       .replace(/\.$/, '');
 
     if (cleaned && cleaned.length <= ENEMY_EFFECT_SUMMARY_MAX_CHARS) return cleaned;
-    if (!cleaned) return 'Effect';
+    if (!cleaned) return translateActive('ui.battle.effect', 'Effect');
     return `${cleaned.slice(0, ENEMY_EFFECT_SUMMARY_MAX_CHARS - 1).trimEnd()}…`;
   }
 
@@ -2290,7 +2290,7 @@ export default class BattleScene extends Phaser.Scene {
     const hero = this.getHeroPanel(side);
     if (!hero) return;
     const isBlocked = damage <= 0;
-    const damageText = this.add.text(hero.x + hero.width * 0.34, hero.y, isBlocked ? 'BLOCK' : `-${damage}`, {
+    const damageText = this.add.text(hero.x + hero.width * 0.34, hero.y, isBlocked ? translateActive('ui.battle.block', 'BLOCK') : `-${damage}`, {
       fontFamily: 'Arial, sans-serif',
       fontSize: isBlocked ? '18px' : '22px',
       color: isBlocked ? '#bfdbfe' : '#fca5a5',
@@ -2302,7 +2302,7 @@ export default class BattleScene extends Phaser.Scene {
 
   showUnitCombatText(target, event) {
     const isBlocked = event.damage <= 0;
-    const damageText = this.add.text(target.background.x, target.background.y - this.layout.board.cellHeight * 0.14, isBlocked ? 'BLOCK' : `-${event.damage}`, {
+    const damageText = this.add.text(target.background.x, target.background.y - this.layout.board.cellHeight * 0.14, isBlocked ? translateActive('ui.battle.block', 'BLOCK') : `-${event.damage}`, {
       fontFamily: 'Arial, sans-serif',
       fontSize: `${Math.max(15, Math.floor(this.layout.board.cellWidth * (isBlocked ? 0.13 : 0.15)))}px`,
       color: isBlocked ? '#bfdbfe' : (event.lethal ? '#fecaca' : '#fde68a'),
@@ -2376,16 +2376,16 @@ export default class BattleScene extends Phaser.Scene {
   getBoardUnitLabel(unit) {
     if (!unit) return '';
 
-    const name = getCardDisplayName(unit, getActiveLocale()) ?? 'Unit';
+    const name = getCardDisplayName(unit, getActiveLocale()) ?? translateActive('ui.common.unit', 'Unit');
     const atk = getUnitAttack(unit);
     const hp = Number.isFinite(unit.hp) ? unit.hp : 0;
     const armor = getUnitArmor(unit);
 
-    const statParts = [`ATK ${atk}`];
+    const statParts = [`${translateActive('stats.attack', 'ATK')} ${atk}`];
     if (armor > 0) {
-      statParts.push(`ARM ${armor}`);
+      statParts.push(`${translateActive('stats.armor', 'ARM')} ${armor}`);
     }
-    statParts.push(`HP ${hp}`);
+    statParts.push(`${translateActive('stats.hp', 'HP')} ${hp}`);
 
     return `${name}
 ${statParts.join(' | ')}`;

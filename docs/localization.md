@@ -1,55 +1,89 @@
-# Localization Foundation
+# Localization
 
-Gridfall Tactics has a central active-locale read service at `src/localization/localeService.js` and a base English dictionary at `src/localization/translations/en.json`.
+Gridfall Tactics routes player-facing UI copy through the localization service in `src/localization/localeService.js`.
 
-## Locale service API
+## Supported languages
 
-- `getActiveLocale()` reads the currently selected language.
-- `setActiveLocale(locale)` normalizes and persists a selected language.
-- `normalizeLocale(locale)` returns a supported locale or falls back to `en`.
-- `getSupportedLocales()` returns a safe copy of the currently supported locale list.
-- `translate(key, locale, fallbackValue)` reads a dotted translation key from the requested locale, falls back to English, and then falls back to the provided value or the key itself.
+- English (`en`) — base and required fallback language.
+- Polish (`pl`) — full UI dictionary for the current player-facing surfaces.
 
-Supported locales are currently:
+The active language is selected in Settings and stored in the existing settings object at `gridfall:tactics:settings:v1` under the `language` field.
 
-- `en`
-- `pl`
+## Runtime behavior
 
-Any missing, malformed, or unsupported locale falls back to `en`. English is the required fallback language for all future dictionaries.
+- `getActiveLocale()` reads the saved language and normalizes unsupported values to `en`.
+- `setActiveLocale(locale)` persists a normalized language value.
+- `translate(key, locale, fallbackValue, replacements)` resolves dotted keys, falls back to English, then falls back to the provided value or the key itself.
+- `translateActive(key, fallbackValue, replacements)` is the active-locale convenience wrapper for UI code.
+- `translateList()` / `translateActiveList()` resolve array entries such as rules sections.
+- Placeholder replacements use `{name}` style tokens, for example `DECK {count}`.
 
-## Source of truth
+Missing Polish keys fall back to English. Missing keys do not crash the UI; they render the explicit fallback or the key name.
 
-The Settings screen language option is the source of truth for the selected language. The locale service reuses the existing SettingsScene localStorage settings key (`gridfall:tactics:settings:v1`) and reads/writes the `language` field inside that settings object so there is no competing localization storage key.
+## Dictionaries
 
-## Translation dictionaries
+Dictionaries live in:
 
-`src/localization/translations/en.json` is the base dictionary. It currently stores English card display strings and shared label strings in a nested structure:
+- `src/localization/translations/en.json`
+- `src/localization/translations/pl.json`
+
+Current groups:
 
 - `cards.<cardId>.name`
 - `cards.<cardId>.textShort`
-- `cardTypes.effect`
-- `cardTypes.unit`
-- `stats.<statKey>`
+- `cardTypes.unit` / `cardTypes.effect`
+- `stats.attack`, `stats.hp`, `stats.armor`, and aliases
+- `ui.common.*`
+- `ui.start.*`
+- `ui.mainMenu.*`
+- `ui.factionSelect.*`
+- `ui.settings.*`
+- `ui.collection.*`
+- `ui.battleMenu.*`
+- `ui.battle.*`
+- `ui.rules.*`
+- `ui.cardDetails.*`
 
-No Polish dictionary is included yet. Requests for `pl` translation keys currently fall back to English. Polish runtime output is limited to existing presentation metadata for card and faction names.
+## Localized UI surfaces
 
-## Card migration status
+The current dictionaries cover and the routed UI includes:
 
-Card JSON still owns gameplay/source fields (`id`, `name`, `effectId`, targeting, stats, and `textShort`). Presentation metadata in `src/data/presentation/factionPresentation.js` is additive UI metadata only and must not replace or mutate gameplay card objects. Do not add `nameKey` or `textKey` to cards until the dedicated card-data migration happens later.
+- Start screen title and Start button.
+- Main menu title, Arena, Tutorial, Collection, Settings, and “coming soon” status text.
+- Faction select title, subtitle, faction descriptions, and tag pills.
+- Settings title, help text, language labels, language status, audio panel labels, and volume labels.
+- Collection title, subtitle, card detail back buttons, card type labels, stats, and card effect snippets.
+- Rules / How To Play title, sections, bullets, scroll hints, and back button.
+- Battle menu title, “coming soon” text, and How To Play button.
+- Battle UI labels including hero labels, action badges, PASS, mulligan/keep hand, deck counter, Deck Info panel headings, empty-group labels, result modal win/lose/draw/retry/exit text, enemy action banners, effect summaries, block text, card type labels, and stat labels.
 
-Card display helpers are ready for future keys:
+## Card text
 
-- Card names first pass through `getCardPresentationName(card, locale)`, which activates presentation-name overrides and falls back to the original `card.name`.
-- Polish card presentation names now render from existing `namePl` metadata when the active locale is `pl`; missing Polish names fall back to `nameEn`, then to `card.name`.
-- Faction presentation names are resolved through `getFactionPresentationName(factionId, locale)`, using `displayNamePl` for `pl`, `displayNameEn` by default, then a provided raw faction name or the faction id when metadata is missing.
-- `card.nameKey` can still resolve through `translate()` when present before presentation naming is applied.
-- `card.textKey` resolves through `translate()` when present.
-- Missing keys fall back to the existing `card.name` and `card.textShort` fields.
+Card names still prefer presentation metadata for the visible card name so existing English/Polish presentation names continue to render without mutating gameplay card data. Card `textShort` copy now resolves through `cards.<cardId>.textShort` when a card id is present, while preserving support for future `textKey` fields and falling back to the card’s source `textShort` if a dictionary key is missing.
+
+Gameplay card JSON remains the source for ids, stats, `effectId`, targeting, and behavior. Do not change card ids, faction ids, stats, or rules as part of localization-only work.
 
 ## Art localization
 
-Card art and frame assets remain language-neutral. Future localization work should translate display text through dictionaries rather than creating language-specific card art.
+Card art and frame/background assets remain language-neutral. UI renders text dynamically from dictionaries and presentation metadata. Do not create separate image files per language for UI text.
 
-## Render-helper readiness
+## Key naming conventions
 
-Card display and render helpers accept a locale argument. Low-risk scene call sites pass `getActiveLocale()` into those helpers. Safe UI surfaces now consume locale-aware presentation names for cards, and FactionSelect plus Collection faction section headers consume locale-aware faction presentation names while preserving gameplay ids, `effectId`, targeting, AI behavior, and source card JSON names. General UI labels, buttons, rules text, enemy action words, Deck Info headings, and card `textShort` effect text remain English until a future full-translation PR.
+- Use lowercase camelCase for UI key names: `ui.mainMenu.tutorialComingSoon`.
+- Use stable scene/group prefixes: `ui.<surface>.<label>`.
+- Use existing gameplay ids for card dictionary entries: `cards.aggro_runner_1.textShort`.
+- Use semantic keys instead of literal placement keys when text is reused: `ui.common.back`.
+- Use placeholders for dynamic values: `ui.battle.deckCounter = "DECK {count}"`.
+
+## Adding a language
+
+1. Add a new dictionary file under `src/localization/translations/<locale>.json` with the same UI groups as `en.json`.
+2. Import the dictionary in `src/localization/localeService.js`.
+3. Add the locale code to `SUPPORTED_LOCALES` and to `ui.settings.languages` in every supported dictionary.
+4. Add or update tests so major UI groups, card type/stat labels, and card display entries exist for the new language.
+5. Verify `npm test` and `npm run build`.
+
+## Future work
+
+- Add richer long-form card rules text if a future card detail design needs copy beyond `textShort`.
+- Continue moving any newly introduced UI literals into `ui.*` keys as new screens are added.

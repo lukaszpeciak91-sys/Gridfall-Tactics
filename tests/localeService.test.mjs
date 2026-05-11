@@ -97,9 +97,18 @@ test('English translation lookup returns base dictionary values', () => {
   assert.equal(translate('stats.armor', 'en'), 'ARM');
 });
 
-test('translation lookup falls back to English for invalid or missing locale dictionaries', () => {
+test('translation lookup falls back to English for invalid locales', () => {
   assert.equal(translate('cards.aggro_runner_1.name', 'de'), 'Runner');
-  assert.equal(translate('cards.aggro_runner_1.name', 'pl'), 'Runner');
+});
+
+test('Polish translation lookup returns Polish dictionary values', () => {
+  assert.equal(translate('cards.aggro_runner_1.name', 'pl'), 'Biegacz');
+  assert.equal(translate('cards.aggro_runner_1.textShort', 'pl'), 'Otwarta aleja wroga: +2 obr. bohatera.');
+  assert.equal(translate('ui.mainMenu.collection', 'pl'), 'KOLEKCJA');
+});
+
+test('missing Polish keys fall back to English', () => {
+  assert.equal(translate('diagnostics.englishFallbackOnly', 'pl'), 'English fallback only');
 });
 
 test('missing translation keys fall back safely to provided fallback or key', () => {
@@ -107,3 +116,4 @@ test('missing translation keys fall back safely to provided fallback or key', ()
   assert.equal(translate('cards.missing.name', 'en'), 'cards.missing.name');
   assert.equal(translate(undefined, 'en', 'Existing Field'), 'Existing Field');
 });
+

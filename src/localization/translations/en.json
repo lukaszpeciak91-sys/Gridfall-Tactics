@@ -252,5 +252,195 @@
     "health": "HP",
     "armor": "ARM",
     "arm": "ARM"
+  },
+  "ui": {
+    "common": {
+      "back": "BACK",
+      "exit": "EXIT",
+      "retry": "RETRY",
+      "pass": "PASS",
+      "fullscreen": "Fullscreen",
+      "help": "Help",
+      "menu": "Menu",
+      "comingSoon": "Coming soon",
+      "swipeScroll": "Swipe or mouse wheel to scroll",
+      "noScroll": "No scrolling needed",
+      "none": "None",
+      "empty": "Empty",
+      "unknownCard": "Unknown Card",
+      "unit": "Unit"
+    },
+    "start": {
+      "title": "GRIDFALL TACTICS",
+      "start": "START"
+    },
+    "mainMenu": {
+      "title": "GRIDFALL TACTICS",
+      "arena": "ARENA",
+      "tutorial": "TUTORIAL",
+      "collection": "COLLECTION",
+      "settings": "SETTINGS",
+      "tutorialComingSoon": "Tutorial coming soon"
+    },
+    "factionSelect": {
+      "title": "Choose Your Faction",
+      "subtitle": "Tap a faction to begin battle",
+      "descriptions": {
+        "Aggro": "Fast pressure.",
+        "Tank": "Armor and sustain.",
+        "Control": "Disrupt and reposition.",
+        "Swarm": "Board swarm tactics.",
+        "Wardens": "Defensive friction and zone control."
+      },
+      "tags": {
+        "Rush": "Rush",
+        "Burst": "Burst",
+        "Armor": "Armor",
+        "Sustain": "Sustain",
+        "Disrupt": "Disrupt",
+        "Move": "Move",
+        "Tokens": "Tokens",
+        "Buffs": "Buffs",
+        "Friction": "Friction"
+      }
+    },
+    "settings": {
+      "title": "SETTINGS",
+      "subtitle": "Preferences are saved locally",
+      "languagePanel": "LANGUAGE",
+      "audioPanel": "AUDIO",
+      "languageHelp": "Select display language for card and faction names",
+      "languageStatus": "Language: {language}",
+      "musicVolume": "Music Volume",
+      "sfxVolume": "SFX Volume",
+      "languages": {
+        "en": "English",
+        "pl": "Polish"
+      }
+    },
+    "collection": {
+      "title": "COLLECTION",
+      "subtitle": "Tap a card for details"
+    },
+    "battleMenu": {
+      "title": "MENU",
+      "comingSoon": "Menu options coming soon.",
+      "howToPlay": "HOW TO PLAY"
+    },
+    "battle": {
+      "enemyHero": "ENEMY HERO",
+      "playerHero": "PLAYER HERO",
+      "actOne": "ACT 1/2",
+      "actTwo": "ACT 2/2",
+      "deckCounter": "DECK {count}",
+      "deckInfo": {
+        "title": "Deck Info",
+        "subtitle": "Player cards • read-only",
+        "inDeck": "In Deck",
+        "inHand": "In Hand",
+        "playedDiscarded": "Played / Discarded",
+        "onBoard": "On Board"
+      },
+      "mulligan": "MULLIGAN {count}",
+      "keepHand": "KEEP HAND",
+      "battleComplete": "Battle Complete",
+      "youWin": "YOU WIN",
+      "youLose": "YOU LOSE",
+      "draw": "DRAW",
+      "enemyPass": "ENEMY PASS",
+      "enemyPlays": "ENEMY PLAYS",
+      "enemyRepositions": "ENEMY REPOSITIONS",
+      "enemyAction": "ENEMY ACTION",
+      "effect": "Effect",
+      "block": "BLOCK",
+      "effectSummaries": {
+        "aggro_buff_all_atk_2": "All allies +2 ATK",
+        "swap_adjacent_then_resolve": "Swap ally, fight lane",
+        "ignore_armor_next_attack": "Damage and pierce armor",
+        "quick_strike": "Resolve lane combat now",
+        "heal_1_atk_1_draw_on_kill_this_turn": "Heal, +1 ATK, draw on kill",
+        "swap_any_two_units": "Swap two units",
+        "enemy_all_atk_minus_1": "Leftmost enemies -1 ATK",
+        "damage_all_enemies_1_ignore_armor": "Damage all enemies",
+        "control_enemy_unit_this_turn": "Enemy attacks own hero, takes 1",
+        "damage_up_to_2_enemies_1": "Damage leftmost enemies",
+        "return_friendly_draw_1": "Return ally, draw 1",
+        "buff_all_armor_1": "All allies +1 ARM",
+        "immune_move_disable_this_turn": "Block move effects",
+        "heal_all_1": "Heal all allies 1",
+        "cannot_drop_below_1_this_turn": "Allies survive at 1 HP",
+        "temp_armor_1": "Target ally +1 ARM",
+        "summon_grunt_empty_slot": "Summon a Grunt",
+        "buff_all_atk_1": "All allies +1 ATK",
+        "revive_friendly_1hp": "Revive a unit at 1 HP",
+        "fill_empty_slots_0_1": "Fill slots with Tokens",
+        "destroy_friendly_draw_1": "Destroy ally, draw 1"
+      }
+    },
+    "rules": {
+      "title": "Rules / How To Play",
+      "sections": [
+        {
+          "heading": "Goal",
+          "lines": [
+            "Both heroes start at 12 HP.",
+            "Protect your hero and reduce the enemy hero to 0 HP."
+          ]
+        },
+        {
+          "heading": "Board / Lanes",
+          "lines": [
+            "The fight has 3 lanes.",
+            "Play units into your lane slots. The middle row is only for visuals.",
+            "If a unit attacks an open lane, it hits the enemy hero."
+          ]
+        },
+        {
+          "heading": "Turn Flow",
+          "lines": [
+            "At battle start, draw 4 cards and mulligan up to 2 cards once.",
+            "One side acts first, then initiative alternates each turn.",
+            "Each side gets 1 action or may pass.",
+            "After both sides act or pass, combat resolves automatically.",
+            "After combat, you draw 1 card, then the enemy draws 1 card."
+          ]
+        },
+        {
+          "heading": "Actions",
+          "lines": [
+            "Cards have no mana, energy, or cost system.",
+            "Your action can play a unit, play an effect, use a targeted effect, swap friendly units, redeploy a unit, or pass."
+          ]
+        },
+        {
+          "heading": "Combat",
+          "lines": [
+            "Combat happens lane by lane with no diagonal attacks.",
+            "Units fight opposing units in their lane.",
+            "Open lane attacks damage the opposing hero instead.",
+            "Both sides can deal damage during the same combat step."
+          ]
+        },
+        {
+          "heading": "Winning",
+          "lines": [
+            "A battle can end when a hero is defeated.",
+            "If neither side can make meaningful progress, remaining hero HP decides the result.",
+            "If the turn limit is reached, remaining hero HP decides the result.",
+            "If remaining hero HP is tied, the battle is a draw."
+          ]
+        }
+      ]
+    },
+    "cardDetails": {
+      "type": "Type",
+      "atkHp": "ATK/HP",
+      "targeting": "targeting",
+      "effectId": "effectId",
+      "none": "none"
+    }
+  },
+  "diagnostics": {
+    "englishFallbackOnly": "English fallback only"
   }
 }

@@ -3,7 +3,7 @@ import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
 import { getFactionPresentationName } from '../data/presentation/factionPresentation.js';
 import { createBuildMarker } from '../ui/buildMarker.js';
 import { createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
-import { getActiveLocale } from '../localization/localeService.js';
+import { getActiveLocale, translateActive } from '../localization/localeService.js';
 import {
   MENU_BACKGROUND_FALLBACK_COLOR,
   MENU_BACKGROUND_FALLBACK_COLOR_HEX,
@@ -121,7 +121,7 @@ export default class FactionSelectScene extends Phaser.Scene {
     this.scale.on('leavefullscreen', this.onFullscreenChanged, this);
 
     const title = this.add
-      .text(width / 2, 48, 'Choose Your Faction', {
+      .text(width / 2, 48, translateActive('ui.factionSelect.title', 'Choose Your Faction'), {
         fontFamily: 'Arial, sans-serif',
         fontSize: '30px',
         color: '#f8fafc',
@@ -132,7 +132,7 @@ export default class FactionSelectScene extends Phaser.Scene {
     this.uiElements.push(title);
 
     const subtitle = this.add
-      .text(width / 2, 78, 'Tap a faction to begin battle', {
+      .text(width / 2, 78, translateActive('ui.factionSelect.subtitle', 'Tap a faction to begin battle'), {
         fontFamily: 'Arial, sans-serif',
         fontSize: '13px',
         color: '#cbd5e1',
@@ -245,7 +245,7 @@ export default class FactionSelectScene extends Phaser.Scene {
 
     const infoTop = artY + artHeight + 9;
     const description = this.add
-      .text(x + 16, infoTop, details.description, {
+      .text(x + 16, infoTop, translateActive(`ui.factionSelect.descriptions.${factionKey}`, details.description), {
         fontFamily: 'Arial, sans-serif',
         fontSize: '14px',
         color: '#e5e7eb',
@@ -323,7 +323,7 @@ export default class FactionSelectScene extends Phaser.Scene {
     let currentX = x;
     tags.forEach((tag) => {
       const text = this.add
-        .text(currentX + 10, y + 4, tag, {
+        .text(currentX + 10, y + 4, translateActive(`ui.factionSelect.tags.${tag}`, tag), {
           fontFamily: 'Arial, sans-serif',
           fontSize: '11px',
           color: '#f8fafc',

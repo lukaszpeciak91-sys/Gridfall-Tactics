@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { createModalBackButton } from '../ui/modalControls.js';
+import { translateActive, translateActiveList } from '../localization/localeService.js';
 
 // Player-facing summary derived from docs/rules/mvp-battle-rules.md.
 const RULE_SECTIONS = Object.freeze([
@@ -100,7 +101,7 @@ export default class RulesPanelScene extends Phaser.Scene {
       .setDepth(1)
       .setInteractive();
 
-    this.add.text(panelLeft + padding, panelTop + 18, 'Rules / How To Play', {
+    this.add.text(panelLeft + padding, panelTop + 18, translateActive('ui.rules.title', 'Rules / How To Play'), {
       fontFamily: 'Arial, sans-serif',
       fontSize: `${Math.max(21, Math.floor(panelWidth * 0.055))}px`,
       color: '#f8fafc',
@@ -142,7 +143,7 @@ export default class RulesPanelScene extends Phaser.Scene {
     const headingFontSize = Math.max(16, Math.floor(panelWidth * 0.044));
     const bodyWrapWidth = width - 18;
 
-    RULE_SECTIONS.forEach((section, sectionIndex) => {
+    translateActiveList('ui.rules.sections', RULE_SECTIONS).forEach((section, sectionIndex) => {
       if (sectionIndex > 0) y += 12;
 
       const heading = this.add.text(x, y, section.heading, {
@@ -176,7 +177,9 @@ export default class RulesPanelScene extends Phaser.Scene {
   }
 
   addScrollHint(panelLeft, panelTop, panelWidth, panelHeight, padding, isScrollable) {
-    const hint = isScrollable ? 'Swipe or mouse wheel to scroll' : 'No scrolling needed';
+    const hint = isScrollable
+      ? translateActive('ui.common.swipeScroll', 'Swipe or mouse wheel to scroll')
+      : translateActive('ui.common.noScroll', 'No scrolling needed');
     this.add.text(panelLeft + padding, panelTop + panelHeight - 48, hint, {
       fontFamily: 'Arial, sans-serif',
       fontSize: '12px',

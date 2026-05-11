@@ -40,7 +40,7 @@ test('card display helper can resolve future nameKey and textKey fields through 
   assert.equal(getCardDisplayName(keyedCard, 'en'), 'Ballroom Duelist');
   assert.equal(getCardTextShort(keyedCard, 'en'), 'Open enemy lane: +2 hero dmg.');
   assert.equal(getCardDisplayName(keyedCard, 'pl'), 'Balowy Pojedynkowicz');
-  assert.equal(getCardTextShort(keyedCard, 'pl'), 'Open enemy lane: +2 hero dmg.');
+  assert.equal(getCardTextShort(keyedCard, 'pl'), 'Otwarta aleja wroga: +2 obr. bohatera.');
 });
 
 test('card display helper uses existing card fields when future translation keys are missing', () => {
@@ -84,12 +84,12 @@ test('card render mode helpers keep compact and full card text separate', () => 
   assert.equal(formatHandCardLabel(card), 'Shield Drone\n1/4 ARM 2\nBlocks lane. Cannot attack.');
   assert.deepEqual(formatCollectionRowLabel(card), {
     name: 'Shield Drone',
-    typeStats: 'unit • ATK 1 / HP 4',
+    typeStats: 'Unit • ATK 1 / HP 4',
     textShort: 'Blocks lane. Cannot attack.',
   });
   assert.deepEqual(formatCardDetailLines(card), [
     'Shield Drone',
-    'Type: unit',
+    'Type: Unit',
     'ATK/HP: 1 / 4',
     'targeting: ally',
     'effectId: cannot_attack',
@@ -144,7 +144,7 @@ test('battle hand labels route through HAND/FULL formatter and preserve visible 
   };
 
   assert.match(source, /import \{ formatDeckSummaryEntry, formatHandCardLabel \} from '\.\.\/rendering\/cardRenderModes\.js';/);
-  assert.match(source, /import \{ getActiveLocale \} from '\.\.\/localization\/localeService\.js';/);
+  assert.match(source, /import \{ getActiveLocale, translateActive \} from '\.\.\/localization\/localeService\.js';/);
   assert.match(handLabelSource, /return formatHandCardLabel\(card, getActiveLocale\(\)\);/);
   assert.doesNotMatch(handLabelSource, /card\.textShort/);
   assert.doesNotMatch(handLabelSource, /`\$\{atk\}\/\$\{hp\} ARM \$\{armor\}`/);
@@ -157,8 +157,8 @@ test('card render mode helpers preserve English fallback behavior for future loc
   const card = { name: 'Shield Drone', type: 'effect', textShort: 'Target ally +1 ARM until combat ends.' };
 
   assert.equal(formatHandCardLabel(card, 'pl'), 'Shield Drone\nTarget ally +1 ARM until combat ends.');
-  assert.deepEqual(formatDeckSummaryEntry(card, 'pl'), { name: 'Shield Drone', typeLabel: 'Effect', count: 1 });
-  assert.deepEqual(formatDeckSummaryEntry({}, 'pl'), { name: 'Unknown Card', typeLabel: 'Unit', count: 1 });
+  assert.deepEqual(formatDeckSummaryEntry(card, 'pl'), { name: 'Shield Drone', typeLabel: 'Efekt', count: 1 });
+  assert.deepEqual(formatDeckSummaryEntry({}, 'pl'), { name: 'Nieznana karta', typeLabel: 'Jednostka', count: 1 });
 });
 
 test('deck info panel routes card summary entries through render mode formatter', () => {
@@ -185,7 +185,7 @@ test('deck info panel output templates remain unchanged', () => {
   const end = source.indexOf('  summarizeCardEntries(cards) {');
   const deckInfoFormattingSource = source.slice(start, end);
 
-  assert.match(deckInfoFormattingSource, /return `\$\{heading\} \(\$\{total\}\)\\n• None`;/);
+  assert.match(deckInfoFormattingSource, /translateActive\('ui\.common\.none', 'None'\)/);
   assert.match(deckInfoFormattingSource, /`• \$\{entry\.name\} — \$\{entry\.typeLabel\} ×\$\{entry\.count\}`/);
   assert.match(source, /return groups\.map\(\(\[heading, cards\]\) => this\.formatDeckInfoGroup\(heading, cards\)\)\.join\('\\n\\n'\);/);
 });
@@ -196,8 +196,8 @@ test('visible UI surfaces route names through active-locale presentation helpers
   const collectionSource = fs.readFileSync('src/scenes/CollectionScene.js', 'utf8');
   const factionSelectSource = fs.readFileSync('src/scenes/FactionSelectScene.js', 'utf8');
 
-  assert.match(battleSource, /getEnemyActionMessage\(action, card\) \{[\s\S]*const cardName = getCardDisplayName\(card, getActiveLocale\(\)\) \?\? 'Unknown Card';/);
-  assert.match(battleSource, /getBoardUnitLabel\(unit\) \{[\s\S]*const name = getCardDisplayName\(unit, getActiveLocale\(\)\) \?\? 'Unit';/);
+  assert.match(battleSource, /getEnemyActionMessage\(action, card\) \{[\s\S]*const cardName = getCardDisplayName\(card, getActiveLocale\(\)\) \?\? translateActive\('ui\.common\.unknownCard', 'Unknown Card'\);/);
+  assert.match(battleSource, /getBoardUnitLabel\(unit\) \{[\s\S]*const name = getCardDisplayName\(unit, getActiveLocale\(\)\) \?\? translateActive\('ui\.common\.unit', 'Unit'\);/);
   assert.match(battleSource, /getHandCardLabel\(card\) \{[\s\S]*return formatHandCardLabel\(card, getActiveLocale\(\)\);/);
   assert.match(battleSource, /showSelectedHandCardZoom\(\) \{[\s\S]*const label = this\.getHandCardLabel\(card\);/);
   assert.match(collectionSource, /formatCollectionRowLabel\(card, getActiveLocale\(\)\)/);
@@ -220,7 +220,7 @@ test('current faction card display names use locale presentation overrides witho
       assert.equal(card.name, JSON.parse(before).name);
       assert.equal(JSON.stringify(card), before);
       assert.equal(getCardTextShort(card, 'en'), card.textShort);
-      assert.equal(getCardTextShort(card, 'pl'), card.textShort);
+      assert.equal(typeof getCardTextShort(card, 'pl'), 'string');
     }
   }
 });
@@ -237,7 +237,7 @@ test('presentation overrides resolve through render modes and preserve gameplay 
   assert.equal(formatBoardUnitLabel(runner, 'en').split('\n')[0], 'Ballroom Duelist');
   assert.deepEqual(formatCollectionRowLabel(runner, 'en'), {
     name: 'Ballroom Duelist',
-    typeStats: 'unit • ATK 2 / HP 1',
+    typeStats: 'Unit • ATK 2 / HP 1',
     textShort: 'Open enemy lane: +2 hero dmg.',
   });
   assert.equal(formatDeckSummaryEntry(runner, 'en').name, 'Ballroom Duelist');
@@ -246,8 +246,8 @@ test('presentation overrides resolve through render modes and preserve gameplay 
   assert.equal(formatBoardUnitLabel(runner, 'pl').split('\n')[0], 'Balowy Pojedynkowicz');
   assert.deepEqual(formatCollectionRowLabel(runner, 'pl'), {
     name: 'Balowy Pojedynkowicz',
-    typeStats: 'unit • ATK 2 / HP 1',
-    textShort: 'Open enemy lane: +2 hero dmg.',
+    typeStats: 'Jednostka • ATK 2 / HP 1',
+    textShort: 'Otwarta aleja wroga: +2 obr. bohatera.',
   });
   assert.equal(formatDeckSummaryEntry(runner, 'pl').name, 'Balowy Pojedynkowicz');
   assert.equal(runner.id, 'aggro_runner_1');

@@ -9,7 +9,7 @@ import {
   preloadMenuBackgroundArt,
 } from '../rendering/backgroundArt.js';
 import { formatCardDetailLines, formatCollectionRowLabel } from '../rendering/cardRenderModes.js';
-import { getActiveLocale } from '../localization/localeService.js';
+import { getActiveLocale, translateActive } from '../localization/localeService.js';
 
 const CARD_SCROLL_DRAG_THRESHOLD = 8;
 
@@ -46,7 +46,7 @@ export default class CollectionScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.cleanupScene, this);
 
     const title = this.add
-      .text(width / 2, 42, 'COLLECTION', {
+      .text(width / 2, 42, translateActive('ui.collection.title', 'COLLECTION'), {
         fontFamily: 'Arial, sans-serif',
         fontSize: '32px',
         color: '#f8fafc',
@@ -56,7 +56,7 @@ export default class CollectionScene extends Phaser.Scene {
     this.uiElements.push(title);
 
     const subtitle = this.add
-      .text(width / 2, 72, 'Tap a card for details', {
+      .text(width / 2, 72, translateActive('ui.collection.subtitle', 'Tap a card for details'), {
         fontFamily: 'Arial, sans-serif',
         fontSize: '13px',
         color: '#cbd5e1',
@@ -243,7 +243,7 @@ export default class CollectionScene extends Phaser.Scene {
       .setDepth(102);
 
     const backButton = this.add
-      .text(width / 2, height / 2 + panelHeight / 2 - 36, 'BACK', {
+      .text(width / 2, height / 2 + panelHeight / 2 - 36, translateActive('ui.common.back', 'BACK'), {
         fontFamily: 'Arial, sans-serif',
         fontSize: '18px',
         color: '#111827',
@@ -269,7 +269,7 @@ export default class CollectionScene extends Phaser.Scene {
 
   createBackButton(width, height) {
     const backButton = this.add
-      .text(width / 2, height - 48, 'BACK', {
+      .text(width / 2, height - 48, translateActive('ui.common.back', 'BACK'), {
         fontFamily: 'Arial, sans-serif',
         fontSize: '20px',
         color: '#f8fafc',

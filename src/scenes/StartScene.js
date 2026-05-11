@@ -9,6 +9,7 @@ import {
   preloadMenuBackgroundArt,
   resolvePublicAssetPath,
 } from '../rendering/backgroundArt.js';
+import { translateActive } from '../localization/localeService.js';
 
 const START_TRANSITION_MS = 320;
 const START_TITLE_TEXT = 'GRIDFALL TACTICS';
@@ -52,10 +53,20 @@ export default class StartScene extends Phaser.Scene {
     });
     createMenuArenaLightSweep(this, { width, height });
 
-    this.title = this.createTitle(width, height);
+    const title = this.add
+      .text(width / 2, height * 0.15, translateActive('ui.start.title', 'GRIDFALL TACTICS'), {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '40px',
+        fontStyle: 'bold',
+        color: '#f9fafb',
+        align: 'center',
+        wordWrap: { width: width * 0.9 },
+      })
+      .setOrigin(0.5, 0)
+      .setDepth(10);
 
-    this.startButton = this.add
-      .text(width / 2, height * 0.61, 'START', {
+    const startButton = this.add
+      .text(width / 2, height * 0.61, translateActive('ui.start.start', 'START'), {
         fontFamily: 'Arial, sans-serif',
         fontSize: '36px',
         fontStyle: 'bold',
