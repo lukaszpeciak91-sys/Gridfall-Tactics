@@ -3,25 +3,24 @@
 Place the shared StartScene and MainMenuScene logo at:
 
 ```text
-public/assets/ui/gridfall-logo.webp
+public/assets/ui/gridfall-logo.png
 ```
 
 It is loaded at runtime from:
 
 ```text
-assets/ui/gridfall-logo.webp
+assets/ui/gridfall-logo.png
 ```
 
-When present, StartScene renders it as the large centered title treatment, and MainMenuScene renders the same asset as the smaller top title treatment. If the asset is missing or fails to load, both scenes keep their localized text fallback.
+When present, StartScene renders it as the large centered title treatment, and MainMenuScene renders the same asset as the smaller top title treatment. If the PNG asset is missing or fails to load, both scenes keep their localized text fallback and their buttons remain usable.
 
 ## Manual logo export rules
 
-Use these settings when uploading or replacing `public/assets/ui/gridfall-logo.webp`:
+Use these settings when uploading or replacing `public/assets/ui/gridfall-logo.png`:
 
-- Export with a transparent background.
+- Export as a transparent PNG with a transparent background.
 - Crop tightly around the visible logo.
 - Keep minimal empty padding so in-game width scaling is not wasted on transparent pixels.
-- Use a recommended source/export width of 1200–1800 px.
-- Use WebP quality: 90–95 for logo assets.
-- Avoid lossy low-quality compression for text/logos because it can create visible lettering artifacts.
-- If WebP text artifacts remain visible at quality 90–95, PNG is acceptable for logo assets.
+- Use a recommended source/export width of 1600–2400 px.
+- Do not use lossy compression.
+- Avoid blur or resampling artifacts, especially around logo text and sharp edges.

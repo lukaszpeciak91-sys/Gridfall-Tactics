@@ -13,7 +13,7 @@ import { translateActive } from '../localization/localeService.js';
 
 const START_TRANSITION_MS = 320;
 const START_TITLE_TEXT = 'GRIDFALL TACTICS';
-const START_LOGO_PUBLIC_PATH = 'assets/ui/gridfall-logo.webp';
+const START_LOGO_PUBLIC_PATH = 'assets/ui/gridfall-logo.png';
 const START_LOGO_ASSET = {
   key: 'ui.logo.gridfall',
   path: resolvePublicAssetPath(START_LOGO_PUBLIC_PATH),
@@ -21,10 +21,10 @@ const START_LOGO_ASSET = {
 const START_TITLE_DEPTH = 5;
 const START_BUTTON_DEPTH = 10;
 const START_LOGO_LAYOUT = {
-  topRatio: 0.15,
-  maxWidthRatio: 0.82,
-  maxHeightRatio: 0.28,
-  maxDisplayHeight: 220,
+  topRatio: 0.13,
+  maxWidthRatio: 0.86,
+  maxHeightRatio: 0.34,
+  maxDisplayHeight: 320,
 };
 
 export default class StartScene extends Phaser.Scene {

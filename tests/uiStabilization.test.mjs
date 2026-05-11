@@ -68,7 +68,7 @@ test('StartScene uses optional logo art with text fallback and responsive layout
   const startSource = read('src/scenes/StartScene.js');
   const logoDocs = read('public/assets/ui/README.md');
 
-  assert.match(startSource, /START_LOGO_PUBLIC_PATH = 'assets\/ui\/gridfall-logo\.webp'/);
+  assert.match(startSource, /START_LOGO_PUBLIC_PATH = 'assets\/ui\/gridfall-logo\.png'/);
   assert.match(startSource, /path: resolvePublicAssetPath\(START_LOGO_PUBLIC_PATH\)/);
   assert.match(startSource, /preloadImageAsset\(this, START_LOGO_ASSET/);
   assert.match(startSource, /Start logo failed to load: \${asset\.path}/);
@@ -81,15 +81,15 @@ test('StartScene uses optional logo art with text fallback and responsive layout
   assert.match(startSource, /START_TITLE_DEPTH = 5/);
   assert.match(startSource, /START_BUTTON_DEPTH = 10/);
   assert.match(startSource, /logo\.disableInteractive\(\)/);
-  assert.match(startSource, /maxWidthRatio: 0\.82/);
-  assert.match(startSource, /maxHeightRatio: 0\.28/);
-  assert.match(startSource, /maxDisplayHeight: 220/);
+  assert.match(startSource, /maxWidthRatio: 0\.86/);
+  assert.match(startSource, /maxHeightRatio: 0\.34/);
+  assert.match(startSource, /maxDisplayHeight: 320/);
   assert.match(startSource, /Math\.min\(maxLogoWidth \/ logo\.width, maxLogoHeight \/ logo\.height\)/);
   assert.match(startSource, /this\.scale\.on\('resize', this\.layoutStartScene, this\)/);
   assert.match(startSource, /this\.startButton\.setPosition\(width \/ 2, height \* 0\.61\)/);
 
   const mainMenuSource = read('src/scenes/MainMenuScene.js');
-  assert.match(mainMenuSource, /MAIN_MENU_LOGO_PUBLIC_PATH = 'assets\/ui\/gridfall-logo\.webp'/);
+  assert.match(mainMenuSource, /MAIN_MENU_LOGO_PUBLIC_PATH = 'assets\/ui\/gridfall-logo\.png'/);
   assert.match(mainMenuSource, /path: resolvePublicAssetPath\(MAIN_MENU_LOGO_PUBLIC_PATH\)/);
   assert.match(mainMenuSource, /preloadImageAsset\(this, MAIN_MENU_LOGO_ASSET/);
   assert.match(mainMenuSource, /Main menu logo failed to load: \${asset\.path}/);
@@ -98,19 +98,19 @@ test('StartScene uses optional logo art with text fallback and responsive layout
   assert.match(mainMenuSource, /translateActive\('ui\.mainMenu\.title', MAIN_MENU_TITLE_TEXT\)/);
   assert.match(mainMenuSource, /MAIN_MENU_TITLE_DEPTH = 5/);
   assert.match(mainMenuSource, /logo\.disableInteractive\(\)/);
-  assert.match(mainMenuSource, /maxWidthRatio: 0\.68/);
-  assert.match(mainMenuSource, /maxHeightRatio: 0\.14/);
-  assert.match(mainMenuSource, /maxDisplayHeight: 120/);
+  assert.match(mainMenuSource, /maxWidthRatio: 0\.72/);
+  assert.match(mainMenuSource, /maxHeightRatio: 0\.18/);
+  assert.match(mainMenuSource, /maxDisplayHeight: 160/);
   assert.match(mainMenuSource, /Math\.min\(maxLogoWidth \/ logo\.width, maxLogoHeight \/ logo\.height\)/);
   assert.match(mainMenuSource, /this\.scale\.on\('resize', this\.layoutMainMenuScene, this\)/);
 
-  assert.match(logoDocs, /public\/assets\/ui\/gridfall-logo\.webp/);
-  assert.match(logoDocs, /assets\/ui\/gridfall-logo\.webp/);
+  assert.match(logoDocs, /public\/assets\/ui\/gridfall-logo\.png/);
+  assert.match(logoDocs, /assets\/ui\/gridfall-logo\.png/);
   assert.match(logoDocs, /transparent background/);
   assert.match(logoDocs, /Crop tightly around the visible logo/);
-  assert.match(logoDocs, /1200–1800 px/);
-  assert.match(logoDocs, /WebP quality: 90–95/);
-  assert.match(logoDocs, /PNG is acceptable/);
+  assert.match(logoDocs, /1600–2400 px/);
+  assert.match(logoDocs, /Do not use lossy compression/);
+  assert.match(logoDocs, /Avoid blur or resampling artifacts/);
 });
 
 test('start, main menu, and faction select use optional menu background art with dark fallback', () => {
