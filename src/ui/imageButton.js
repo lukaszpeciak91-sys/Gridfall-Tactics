@@ -10,10 +10,11 @@ export const SECONDARY_BUTTON_ASSET = {
 export const SECONDARY_BUTTON_RUNTIME_URL = SECONDARY_BUTTON_PUBLIC_PATH;
 
 const DEFAULT_TEXT_STYLE = {
-  fontFamily: 'Arial, sans-serif',
-  fontStyle: 'bold',
-  color: '#f8fafc',
+  fontFamily: '"Montserrat", "Inter", "Segoe UI", Arial, sans-serif',
+  fontStyle: '600',
+  color: '#f4f1e6',
   align: 'center',
+  letterSpacing: 1.15,
 };
 
 export function preloadSecondaryButtonAsset(scene) {
@@ -35,7 +36,8 @@ export function createImageButton(scene, {
   fallbackFill = 0x334155,
   fallbackStroke = 0x94a3b8,
   fallbackStrokeAlpha = 0.75,
-  shadowAlpha = 0.35,
+  shadowAlpha = 0.32,
+  textOffsetY = 1,
   hoverScale = 1.02,
   downScale = 0.98,
 } = {}) {
@@ -56,14 +58,14 @@ export function createImageButton(scene, {
 
   backing.setOrigin(0.5).setDepth(depth);
 
-  const text = scene.add.text(x, y, normalizedLabel, {
+  const text = scene.add.text(x, y + textOffsetY, normalizedLabel, {
     ...DEFAULT_TEXT_STYLE,
     fontSize,
     ...textStyle,
   })
     .setOrigin(0.5)
     .setDepth(depth + 1)
-    .setShadow(0, 2, '#020617', 4, true, true);
+    .setShadow(0, 2, 'rgba(2, 12, 32, 0.72)', 3, true, true);
 
   const hitZone = scene.add.zone(x, y, width, height)
     .setOrigin(0.5)

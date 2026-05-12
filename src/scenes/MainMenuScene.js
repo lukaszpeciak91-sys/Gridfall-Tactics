@@ -23,7 +23,7 @@ const MAIN_MENU_TITLE_DEPTH = 5;
 const MAIN_MENU_REVEAL_DELAY_MS = 120;
 const MAIN_MENU_REVEAL_MS = 260;
 
-const MAIN_MENU_BUTTON_HEIGHT = 62;
+const MAIN_MENU_BUTTON_HEIGHT = 70;
 
 
 export default class MainMenuScene extends Phaser.Scene {
@@ -67,7 +67,7 @@ export default class MainMenuScene extends Phaser.Scene {
     this.title = this.createTitle(width, height);
 
     const buttonWidth = Math.min(width - 64, Math.max(292, Math.round(width * 0.8)), 320);
-    const buttonGap = 76;
+    const buttonGap = 82;
     const startY = height * MAIN_MENU_FIRST_BUTTON_Y_RATIO;
 
     this.createMenuButton(width / 2, startY, buttonWidth, translateActive('ui.mainMenu.arena', 'ARENA'), () => {
@@ -206,8 +206,11 @@ export default class MainMenuScene extends Phaser.Scene {
       label,
       onPointerUp,
       depth: 4,
-      fontSize: '24px',
-      textStyle: { color: '#f8fafc' },
+      fontSize: '32px',
+      textStyle: {
+        color: '#f4f1e6',
+        fontStyle: '600',
+      },
       fallbackFill: 0x93c5fd,
       fallbackStroke: 0xbfdbfe,
       fallbackStrokeAlpha: 0.7,
