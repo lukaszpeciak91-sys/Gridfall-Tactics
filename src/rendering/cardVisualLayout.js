@@ -1,10 +1,10 @@
 import { getCardDisplayName, getCardTextShort } from '../localization/cardDisplay.js';
 
 export const CARD_ZONE_RATIOS = Object.freeze({
-  statBar: 0.14,
-  art: 0.54,
-  name: 0.11,
-  text: 0.21,
+  statBar: 0.13,
+  art: 0.535,
+  name: 0.115,
+  text: 0.22,
 });
 
 export const CARD_CORNER_RADIUS_RATIO = 0.055;
@@ -25,9 +25,24 @@ export const CARD_COLORS = Object.freeze({
 });
 
 export const CARD_STAT_STYLES = Object.freeze({
-  attack: Object.freeze({ color: 0x2dd4bf, label: 'attack' }),
-  armor: Object.freeze({ color: 0x3b82f6, label: 'armor' }),
-  health: Object.freeze({ color: 0xef4444, label: 'health' }),
+  attack: Object.freeze({
+    color: 0x24c6a7,
+    glow: 0x6ee7d8,
+    shadow: 0x0f766e,
+    label: 'attack',
+  }),
+  armor: Object.freeze({
+    color: 0x3d63c7,
+    glow: 0x93b4ff,
+    shadow: 0x1e3a8a,
+    label: 'armor',
+  }),
+  health: Object.freeze({
+    color: 0xd24b5f,
+    glow: 0xffb4a8,
+    shadow: 0x8f2638,
+    label: 'health',
+  }),
 });
 
 export function isCardUnit(card) {
@@ -48,7 +63,7 @@ export function getCardStatValues(card) {
 
 export function getCardLayoutZones(width, height) {
   const pad = Math.max(4, Math.round(width * 0.055));
-  const gap = Math.max(2, Math.round(height * 0.008));
+  const gap = Math.max(2, Math.round(height * 0.007));
   const innerWidth = Math.max(1, width - pad * 2);
   const innerHeight = Math.max(1, height - pad * 2);
   const statBarHeight = Math.round(innerHeight * CARD_ZONE_RATIOS.statBar);
@@ -77,52 +92,103 @@ export function getCardLayoutZones(width, height) {
 
 export function getCardTypography(width, height) {
   return {
-    stat: Math.max(11, Math.floor(width * 0.13)),
-    name: Math.max(10, Math.floor(width * 0.105)),
+    stat: Math.max(10, Math.floor(width * 0.108)),
+    name: Math.max(10, Math.floor(width * 0.102)),
     type: Math.max(8, Math.floor(width * 0.065)),
-    body: Math.max(9, Math.floor(width * 0.078)),
+    body: Math.max(9, Math.floor(width * 0.076)),
   };
 }
 
 export function drawStatSymbol(scene, x, y, size, statKey, color, alpha = 1) {
   if (statKey === 'attack') {
-    return scene.add.triangle(x, y, 0, size * 0.48, size * 0.5, -size * 0.42, size, size * 0.48, color, alpha)
+    return scene.add.triangle(x, y, 0, size * 0.5, size * 0.5, -size * 0.45, size, size * 0.5, color, alpha)
       .setOrigin(0.5);
   }
 
   if (statKey === 'armor') {
-    return scene.add.rectangle(x, y, size * 0.78, size * 0.78, color, alpha)
+    return scene.add.rectangle(x, y, size * 0.76, size * 0.76, color, alpha)
       .setRotation(Math.PI / 4);
   }
 
-  return scene.add.circle(x, y, size * 0.42, color, alpha);
+  return scene.add.circle(x, y, size * 0.43, color, alpha);
+}
+
+function getStatHitAreaSize(height, width) {
+  return Math.max(18, Math.min(height * 0.86, width * 0.24));
+}
+
+function createStatGlyph(scene, x, y, size, key, value, style, isKnown, fontSize) {
+  const glyph = scene.add.container(x, y);
+  const valueText = isKnown ? String(value) : '–';
+  const symbolAlpha = isKnown ? 0.96 : 0.24;
+  const strokeAlpha = isKnown ? 0.58 : 0.18;
+  const glow = drawStatSymbol(scene, 0, 0, size * 1.08, key, style.glow, isKnown ? 0.16 : 0.04);
+  const shadow = drawStatSymbol(scene, 0, size * 0.045, size * 1.02, key, style.shadow, isKnown ? 0.42 : 0.14);
+  const symbol = drawStatSymbol(scene, 0, 0, size, key, style.color, symbolAlpha);
+  const glass = drawStatSymbol(scene, -size * 0.08, -size * 0.15, size * 0.5, key, 0xffffff, isKnown ? 0.12 : 0.03);
+  const text = scene.add.text(0, key === 'attack' ? size * 0.055 : 0, valueText, {
+    fontFamily: 'Arial, sans-serif',
+    fontSize: `${fontSize}px`,
+    color: isKnown ? CARD_COLORS.ivoryText : '#94a3b8',
+    fontStyle: 'bold',
+    align: 'center',
+    fixedWidth: Math.ceil(size * 0.88),
+    fixedHeight: Math.ceil(size * 0.72),
+  }).setOrigin(0.5);
+
+  if (symbol.setStrokeStyle) {
+    symbol.setStrokeStyle(Math.max(1, Math.round(size * 0.055)), 0xffffff, strokeAlpha);
+  }
+
+  glyph.add([glow, shadow, symbol, glass, text]);
+  glyph.statFeedback = {
+    key,
+    baseColor: style.color,
+    glow,
+    shadow,
+    symbol,
+    glass,
+    valueText: text,
+    setDimmed(dimmed = true) {
+      glyph.setAlpha(dimmed ? 0.48 : 1);
+    },
+  };
+
+  return glyph;
 }
 
 export function createStatBar(scene, x, y, width, height, stats, depth = 0) {
   const container = scene.add.container(x, y).setDepth(depth);
-  const slotWidth = width / 3;
-  const symbolSize = Math.max(9, Math.min(height * 0.68, slotWidth * 0.3));
-  const fontSize = Math.max(10, Math.floor(height * 0.54));
   const keys = ['attack', 'armor', 'health'];
+  const stripWidth = Math.min(width, Math.max(width * 0.64, height * 4.2));
+  const slotWidth = stripWidth / 3;
+  const symbolSize = getStatHitAreaSize(height, width);
+  const fontSize = Math.max(10, Math.floor(symbolSize * 0.52));
+  const back = scene.add.rectangle(0, 0, stripWidth, height * 0.9, 0x020617, 0.52)
+    .setStrokeStyle(1, 0x7dd3fc, 0.18);
+  const spine = scene.add.rectangle(0, height * 0.32, stripWidth * 0.88, 1, 0xffffff, 0.06);
+  const statGlyphs = {};
 
   keys.forEach((key, index) => {
-    const slotCenterX = -width / 2 + slotWidth * (index + 0.5);
+    const slotCenterX = -stripWidth / 2 + slotWidth * (index + 0.5);
     const statStyle = CARD_STAT_STYLES[key];
     const value = stats[key];
     const isKnown = value !== null && value !== undefined;
-    const slot = scene.add.rectangle(slotCenterX, 0, slotWidth - 2, height, 0x020617, 0.34)
-      .setStrokeStyle(1, statStyle.color, isKnown ? 0.24 : 0.12);
-    const symbol = drawStatSymbol(scene, slotCenterX - slotWidth * 0.14, 0, symbolSize, key, statStyle.color, isKnown ? 0.95 : 0.25);
-    const text = scene.add.text(slotCenterX + slotWidth * 0.18, 0, isKnown ? String(value) : '—', {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: `${fontSize}px`,
-      color: isKnown ? CARD_COLORS.ivoryText : '#64748b',
-      fontStyle: 'bold',
-      align: 'center',
-    }).setOrigin(0.5);
+    const slotGlow = scene.add.rectangle(slotCenterX, 0, slotWidth * 0.9, height * 0.72, statStyle.color, isKnown ? 0.045 : 0.015);
+    const glyph = createStatGlyph(scene, slotCenterX, 0, symbolSize, key, value, statStyle, isKnown, fontSize);
 
-    container.add([slot, symbol, text]);
+    statGlyphs[key] = glyph.statFeedback;
+    container.add([slotGlow, glyph]);
+
+    if (index > 0) {
+      const divider = scene.add.rectangle(slotCenterX - slotWidth / 2, 0, 1, height * 0.48, 0xffffff, 0.08);
+      container.add(divider);
+    }
   });
+
+  container.addAt(back, 0);
+  container.addAt(spine, 1);
+  container.statFeedback = statGlyphs;
 
   return container;
 }
