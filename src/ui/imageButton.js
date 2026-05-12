@@ -29,6 +29,31 @@ const SECONDARY_BUTTON_VISIBLE_FRAME = Object.freeze({
 const SECONDARY_BUTTON_ASPECT_RATIO = SECONDARY_BUTTON_VISIBLE_FRAME.width / SECONDARY_BUTTON_VISIBLE_FRAME.height;
 const DEFAULT_MIN_TOUCH_HEIGHT = 54;
 
+function storeBaseScale(target) {
+  target?.setData?.('baseScaleX', target.scaleX ?? 1);
+  target?.setData?.('baseScaleY', target.scaleY ?? 1);
+  return target;
+}
+
+function getBaseScale(target) {
+  const baseScaleX = target?.getData?.('baseScaleX');
+  const baseScaleY = target?.getData?.('baseScaleY');
+
+  return {
+    x: Number.isFinite(baseScaleX) ? baseScaleX : (target?.scaleX ?? 1),
+    y: Number.isFinite(baseScaleY) ? baseScaleY : (target?.scaleY ?? 1),
+  };
+}
+
+function setTargetScaleFromBase(target, stateScale = 1) {
+  if (!target?.setScale) {
+    return;
+  }
+
+  const baseScale = getBaseScale(target);
+  target.setScale(baseScale.x * stateScale, baseScale.y * stateScale);
+}
+
 export function calculateSecondaryButtonHeight(width) {
   return Math.round(width / SECONDARY_BUTTON_ASPECT_RATIO);
 }
@@ -86,15 +111,16 @@ export function createImageButton(scene, {
     ? Math.round(width / SECONDARY_BUTTON_ASPECT_RATIO)
     : height;
   const hitHeight = Math.max(visualHeight, minTouchHeight);
-  const shadow = scene.add.rectangle(x, y + Math.max(3, visualHeight * 0.09), width * 0.72, visualHeight * 0.22, 0x020617, shadowAlpha)
+  const shadow = storeBaseScale(scene.add.rectangle(x, y + Math.max(3, visualHeight * 0.09), width * 0.72, visualHeight * 0.22, 0x020617, shadowAlpha)
     .setOrigin(0.5)
-    .setDepth(depth - 1);
+    .setDepth(depth - 1));
 
   const backing = hasButtonTexture
     ? scene.add.image(x, y, SECONDARY_BUTTON_ASSET.key, buttonFrame).setDisplaySize(width, visualHeight)
     : scene.add.rectangle(x, y, width, visualHeight, fallbackFill, 0.94).setStrokeStyle(1, fallbackStroke, fallbackStrokeAlpha);
 
   backing.setOrigin(0.5).setDepth(depth);
+  storeBaseScale(backing);
 
   const text = scene.add.text(x, y + textOffsetY, normalizedLabel, {
     ...DEFAULT_TEXT_STYLE,
@@ -104,6 +130,7 @@ export function createImageButton(scene, {
     .setOrigin(0.5)
     .setDepth(depth + 1)
     .setShadow(0, 1, 'rgba(1, 10, 26, 0.52)', 1, true, true);
+  storeBaseScale(text);
 
   const hitZone = scene.add.zone(x, y, width, hitHeight)
     .setOrigin(0.5)
@@ -112,7 +139,7 @@ export function createImageButton(scene, {
 
   const scalableTargets = [shadow, backing, text].filter(Boolean);
   const setVisualState = ({ scale = 1, alpha = 1, textAlpha = 1, tint = null, textGlow = false } = {}) => {
-    scalableTargets.forEach((target) => target.setScale(scale));
+    scalableTargets.forEach((target) => setTargetScaleFromBase(target, scale));
     backing.setAlpha(alpha);
     if (tint && backing.setTint) {
       backing.setTint(tint);
@@ -150,7 +177,7 @@ export function resetImageButtonState(button, { interactive = true } = {}) {
 
   [button.shadow, button.backing, button.text].forEach((item) => {
     item?.setAlpha?.(1);
-    item?.setScale?.(1);
+    setTargetScaleFromBase(item, 1);
     item?.setVisible?.(true);
   });
   button.backing?.clearTint?.();
