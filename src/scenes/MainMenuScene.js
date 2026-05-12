@@ -9,6 +9,7 @@ import {
   preloadMenuBackgroundArt,
 } from '../rendering/backgroundArt.js';
 import { createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
+import { createImageButton, preloadSecondaryButtonAsset } from '../ui/imageButton.js';
 import { translateActive } from '../localization/localeService.js';
 import {
   GRIDFALL_LOGO_ASSET,
@@ -22,15 +23,8 @@ const MAIN_MENU_TITLE_DEPTH = 5;
 const MAIN_MENU_REVEAL_DELAY_MS = 120;
 const MAIN_MENU_REVEAL_MS = 260;
 
-const BUTTON_STYLE = {
-  fontFamily: 'Arial, sans-serif',
-  fontSize: '26px',
-  fontStyle: 'bold',
-  color: '#111827',
-  backgroundColor: '#93c5fd',
-  align: 'center',
-  padding: { x: 20, y: 12 },
-};
+const MAIN_MENU_BUTTON_HEIGHT = 62;
+
 
 export default class MainMenuScene extends Phaser.Scene {
   constructor() {
@@ -49,6 +43,7 @@ export default class MainMenuScene extends Phaser.Scene {
     preloadImageAsset(this, GRIDFALL_LOGO_ASSET, {
       onError: (asset) => console.warn(`Main menu logo failed to load: ${asset.path}`),
     });
+    preloadSecondaryButtonAsset(this);
   }
 
   create(data = {}) {
@@ -71,7 +66,7 @@ export default class MainMenuScene extends Phaser.Scene {
 
     this.title = this.createTitle(width, height);
 
-    const buttonWidth = Math.min(width - 64, 292);
+    const buttonWidth = Math.min(width - 64, Math.max(292, Math.round(width * 0.8)), 320);
     const buttonGap = 76;
     const startY = height * MAIN_MENU_FIRST_BUTTON_Y_RATIO;
 
@@ -203,26 +198,21 @@ export default class MainMenuScene extends Phaser.Scene {
   }
 
   createMenuButton(x, y, width, label, onPointerUp) {
-    const shadow = this.add.rectangle(x + 2, y + 3, width, 54, 0x020617, 0.32).setOrigin(0.5);
-    const backing = this.add
-      .rectangle(x, y, width, 54, 0x93c5fd, 1)
-      .setStrokeStyle(1, 0xbfdbfe, 0.7)
-      .setOrigin(0.5)
-      .setInteractive({ useHandCursor: true });
-    const text = this.add.text(x, y, label, BUTTON_STYLE).setOrigin(0.5).setInteractive({ useHandCursor: true });
-
-    const setHover = (isHovering) => {
-      backing.setFillStyle(isHovering ? 0xbfdbfe : 0x93c5fd, 1);
-      text.setBackgroundColor(isHovering ? '#bfdbfe' : '#93c5fd');
-      shadow.setAlpha(isHovering ? 0.48 : 1);
-    };
-
-    [backing, text].forEach((target) => {
-      target.on('pointerover', () => setHover(true));
-      target.on('pointerout', () => setHover(false));
-      target.on('pointerup', onPointerUp);
+    const button = createImageButton(this, {
+      x,
+      y,
+      width,
+      height: MAIN_MENU_BUTTON_HEIGHT,
+      label,
+      onPointerUp,
+      depth: 4,
+      fontSize: '24px',
+      textStyle: { color: '#f8fafc' },
+      fallbackFill: 0x93c5fd,
+      fallbackStroke: 0xbfdbfe,
+      fallbackStrokeAlpha: 0.7,
     });
 
-    this.menuButtonViews.push([shadow, backing, text]);
+    this.menuButtonViews.push(button.items);
   }
 }

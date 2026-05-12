@@ -10,6 +10,8 @@ import {
 } from '../rendering/backgroundArt.js';
 import { formatCardDetailLines, formatCollectionRowLabel } from '../rendering/cardRenderModes.js';
 import { getActiveLocale, translateActive } from '../localization/localeService.js';
+import { createModalBackButton } from '../ui/modalControls.js';
+import { preloadSecondaryButtonAsset } from '../ui/imageButton.js';
 
 const CARD_SCROLL_DRAG_THRESHOLD = 8;
 
@@ -24,6 +26,7 @@ export default class CollectionScene extends Phaser.Scene {
 
   preload() {
     preloadMenuBackgroundArt(this);
+    preloadSecondaryButtonAsset(this);
   }
 
   init() {
@@ -242,24 +245,16 @@ export default class CollectionScene extends Phaser.Scene {
       .setOrigin(0, 0)
       .setDepth(102);
 
-    const backButton = this.add
-      .text(width / 2, height / 2 + panelHeight / 2 - 36, translateActive('ui.common.back', 'BACK'), {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '18px',
-        color: '#111827',
-        backgroundColor: '#93c5fd',
-        fontStyle: 'bold',
-        padding: { x: 22, y: 9 },
-      })
-      .setOrigin(0.5)
-      .setDepth(102)
-      .setInteractive({ useHandCursor: true });
+    const backButton = createModalBackButton(this, {
+      x: width / 2,
+      y: height / 2 + panelHeight / 2 - 36,
+      depth: 102,
+      width: Math.min(210, Math.max(160, Math.round(width * 0.48))),
+      height: 52,
+      onPointerUp: () => this.destroyDetailPanel(),
+    });
 
-    backButton.on('pointerover', () => backButton.setBackgroundColor('#bfdbfe'));
-    backButton.on('pointerout', () => backButton.setBackgroundColor('#93c5fd'));
-    backButton.on('pointerup', () => this.destroyDetailPanel());
-
-    this.detailPanel = [overlay, panel, title, body, backButton];
+    this.detailPanel = [overlay, panel, title, body, ...backButton.items];
   }
 
   destroyDetailPanel() {
@@ -268,28 +263,20 @@ export default class CollectionScene extends Phaser.Scene {
   }
 
   createBackButton(width, height) {
-    const backButton = this.add
-      .text(width / 2, height - 48, translateActive('ui.common.back', 'BACK'), {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '20px',
-        color: '#f8fafc',
-        backgroundColor: '#334155',
-        fontStyle: 'bold',
-        padding: { x: 24, y: 10 },
-      })
-      .setOrigin(0.5)
-      .setInteractive({ useHandCursor: true });
-
-    backButton.on('pointerover', () => backButton.setBackgroundColor('#475569'));
-    backButton.on('pointerout', () => backButton.setBackgroundColor('#334155'));
-    backButton.on('pointerup', () => {
-      if (this.detailPanel) {
-        this.destroyDetailPanel();
-        return;
-      }
-      this.scene.start('MainMenuScene');
+    const backButton = createModalBackButton(this, {
+      x: width / 2,
+      y: height - 48,
+      width: Math.min(220, Math.max(160, Math.round(width * 0.48))),
+      height: 54,
+      onPointerUp: () => {
+        if (this.detailPanel) {
+          this.destroyDetailPanel();
+          return;
+        }
+        this.scene.start('MainMenuScene');
+      },
     });
-    this.uiElements.push(backButton);
+    this.uiElements.push(...backButton.items);
   }
 
   wasScrollDragging() {
