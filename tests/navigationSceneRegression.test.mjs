@@ -117,7 +117,7 @@ test('MainMenuScene keeps primary buttons and uses shared bottom navigation cont
   assert.match(source, /this\.title = this\.createTitle\(width, height\)/);
   assert.doesNotMatch(source, /'Main Menu'/);
   assert.match(source, /this\.createMenuButton\(width \/ 2, startY, buttonWidth, translateActive\('ui\.mainMenu\.arena', 'ARENA'\), \(\) => \{[\s\S]*this\.scene\.start\('FactionSelectScene'\)/);
-  assert.match(source, /this\.createMenuButton\(width \/ 2, startY \+ buttonGap, buttonWidth, translateActive\('ui\.mainMenu\.tutorial', 'TUTORIAL'\), \(\) => \{[\s\S]*ui.mainMenu.tutorialComingSoon/);
+  assert.match(source, /this\.createMenuButton\(width \/ 2, startY \+ buttonGap, buttonWidth, translateActive\('ui\.mainMenu\.tutorial', 'TUTORIAL'\), \(\) => \{[\s\S]*this\.scene\.start\('TutorialScene'\)/);
   assert.match(source, /this\.createMenuButton\(width \/ 2, startY \+ buttonGap \* 2, buttonWidth, translateActive\('ui\.mainMenu\.collection', 'COLLECTION'\), \(\) => \{[\s\S]*this\.scene\.start\('CollectionScene'\)/);
   assert.match(source, /this\.createMenuButton\(width \/ 2, startY \+ buttonGap \* 3, buttonWidth, translateActive\('ui\.mainMenu\.settings', 'SETTINGS'\), \(\) => \{[\s\S]*this\.scene\.start\('SettingsScene'\)/);
   assert.match(source, /drawNavigationControls\(\) \{[\s\S]*createBottomNavigationControls\(this, \{[\s\S]*onBack: \(\) => this\.returnToStartScene\(\),[\s\S]*onRules: \(\) => this\.openRulesPanel\(\),[\s\S]*onFullscreen: \(\) => this\.toggleFullscreen\(\),[\s\S]*\}\)/);
@@ -126,6 +126,34 @@ test('MainMenuScene keeps primary buttons and uses shared bottom navigation cont
   assert.match(source, /resumeFromRulesPanel\(\) \{[\s\S]*this\.scene\.resume\(\);[\s\S]*\}/);
   assert.match(source, /toggleFullscreen\(\) \{[\s\S]*toggleSceneFullscreen\(this\);[\s\S]*\}/);
   assert.match(source, /onFullscreenChanged\(\) \{[\s\S]*this\.scale\.isFullscreen[\s\S]*requestPortraitOrientationLock\(\);[\s\S]*this\.scene\.restart\(\);[\s\S]*\}/);
+});
+
+
+test('MainMenuScene restores full menu state for direct returns and abandoned start-logo transitions', () => {
+  const source = readScene('src/scenes/MainMenuScene.js');
+  const imageButtonSource = readScene('src/ui/imageButton.js');
+
+  assert.match(source, /resetMainMenuDisplayList\(\) \{[\s\S]*this\.children\?\.removeAll\?\.\(true\)/);
+  assert.match(source, /else \{[\s\S]*this\.restoreMainMenuInteractivity\(\);[\s\S]*\}/);
+  assert.match(source, /MAIN_MENU_SHARED_REVEAL_FALLBACK_MS = 1400/);
+  assert.match(source, /prepareSharedLogoReveal\(\) \{[\s\S]*this\.sharedLogoRevealFallbackEvent = this\.time\.delayedCall/);
+  assert.match(source, /restoreMainMenuInteractivity\(\) \{[\s\S]*this\.title\?\.setAlpha\?\.\(1\);[\s\S]*resetImageButtonState\(button, \{ interactive: true \}\)/);
+  assert.match(source, /item\.setData\?\.\('mainMenuBaseX', item\.x\);[\s\S]*item\.setData\?\.\('mainMenuBaseY', item\.y\);/);
+  assert.match(imageButtonSource, /export function resetImageButtonState/);
+  assert.match(imageButtonSource, /button\.hitZone\?\.setInteractive\?\.\(\{ useHandCursor: true \}\)/);
+});
+
+test('TutorialScene returns to a fully recreated MainMenuScene with shared navigation controls', () => {
+  const mainSource = readScene('src/main.js');
+  const menuSource = readScene('src/scenes/MainMenuScene.js');
+  const tutorialSource = readScene('src/scenes/TutorialScene.js');
+
+  assert.match(mainSource, /import TutorialScene from '\.\/scenes\/TutorialScene\.js';/);
+  assert.match(mainSource, /SettingsScene, TutorialScene, BattleScene/);
+  assert.match(menuSource, /this\.scene\.start\('TutorialScene'\)/);
+  assert.match(tutorialSource, /createBottomNavigationControls\(this, \{[\s\S]*onBack: \(\) => this\.returnToMainMenu\(\),[\s\S]*onRules: \(\) => this\.openRulesPanel\(\),[\s\S]*onFullscreen: \(\) => this\.toggleFullscreen\(\),[\s\S]*\}\)/);
+  assert.match(tutorialSource, /returnToMainMenu\(\) \{[\s\S]*this\.scene\.start\('MainMenuScene'\)/);
+  assert.match(tutorialSource, /openRulesPanel\(\) \{[\s\S]*this\.scene\.launch\('RulesPanelScene', \{ returnSceneKey: 'TutorialScene' \}\);[\s\S]*this\.scene\.pause\(\);[\s\S]*\}/);
 });
 
 test('FactionSelectScene uses shared bottom navigation controls for main menu, rules, and fullscreen', () => {
