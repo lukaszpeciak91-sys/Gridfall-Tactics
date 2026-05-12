@@ -74,6 +74,8 @@ test('faction presentation names resolve by locale with safe fallbacks', () => {
   assert.equal(getFactionPresentationName('aggro', 'en'), 'Porcelain Court');
   assert.equal(getFactionPresentationName('aggro'), 'Porcelain Court');
   assert.equal(getFactionPresentationName('aggro', 'pl'), 'Porcelanowy Dwór');
+  assert.equal(getFactionPresentationName('attrition-swarm', 'en'), 'Gravehearts');
+  assert.equal(getFactionPresentationName('attrition-swarm', 'pl'), 'Gravehearts');
   assert.equal(getFactionPresentationName('aggro', 'de'), 'Porcelain Court');
   assert.equal(getFactionPresentationName('missing-faction', 'pl'), 'missing-faction');
   assert.equal(getFactionPresentationName('missing-faction', 'pl', 'Raw Faction Name'), 'Raw Faction Name');

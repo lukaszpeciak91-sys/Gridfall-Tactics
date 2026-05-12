@@ -161,8 +161,8 @@ const presentation = {
     },
   },
   'attrition-swarm': {
-    displayNameEn: 'Society of the Last Farewell',
-    displayNamePl: 'Towarzystwo Ostatniego Pożegnania',
+    displayNameEn: 'Gravehearts',
+    displayNamePl: 'Gravehearts',
     shortConcept: 'A tragicomic funerary society of undead lovers, coffin bearers, and graveyard dancers turns mourning into repeatable value.',
     tone: 'Romantic, melancholic, gothic, funny-sad, and grotesquely devoted.',
     styleTags: [

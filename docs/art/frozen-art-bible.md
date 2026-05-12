@@ -110,7 +110,7 @@ Discovered asset sizing guidance from the audit:
 
 **Color notes:** bioluminescent cyan, ultraviolet violet, fungal orange, wet moss green, coral pink, and luminous spore haze.
 
-### attrition-swarm — Society of the Last Farewell / Towarzystwo Ostatniego Pożegnania
+### attrition-swarm — Gravehearts
 
 **Style:** Gothic romance, necro-rockabilly, funeral swing, romantic necromancy, tragicomic horror, cemetery culture, undead lovers, melancholic grotesque, burtonesque death fantasy, graveyard elegance, eternal mourning, undead devotion, psychotronic horror, love beyond death.
 
@@ -141,7 +141,7 @@ These are presentation feelings only. They describe how art should support exist
 - **aggro / Porcelain Court:** fast tempo, burst aggression, theatrical attacks, stylish violence, chaotic pressure.
 - **control / Orden der Glasköpfe:** manipulation, disruption, tactical control, debuffs, forced positioning, system interference.
 - **swarm / Spore Choir:** expansion, multiplication, collective growth, spreading organism, organic pressure, swarm saturation.
-- **attrition-swarm / Society of the Last Farewell:** death value, recurring units, sacrificial advantage, lingering pressure, emotional attrition, undead persistence.
+- **attrition-swarm / Gravehearts:** death value, recurring units, sacrificial advantage, lingering pressure, emotional attrition, undead persistence.
 - **tank / Golden Dinosaur Empire:** immovable defense, sustain, armored advance, imperial resilience, heavy battlefield presence, survival through attrition.
 - **wardens / Mammoth Riders:** defensive line, endurance, fortified positions, holding ground, defensive friction, lane denial.
 
@@ -162,6 +162,6 @@ Use these as modular prompt helpers. Combine global tags with one faction set an
 - **Porcelain Court:** `rococo chaos, powdered aristocracy, porcelain automata, ballroom violence, cracked porcelain, gold trim, lace uniforms, rose garden, candlelit carnage, pastel luxury`
 - **Orden der Glasköpfe:** `techno-occult Reich, brain in glass cylinder, cold technocracy, neural cables, red optics, steel walkers, surveillance towers, industrial paranoia, machine theology`
 - **Spore Choir:** `psychedelic biology, cosmic mycelium, beautiful bio-horror, glowing spores, wet organic textures, bioluminescent fungi, translucent flesh, dreamlike forest`
-- **Society of the Last Farewell:** `gothic romance, necro-rockabilly, funeral swing, undead lovers, velvet coffins, funeral roses, moonlit graveyard, cemetery neon, melancholic grotesque`
+- **Gravehearts:** `gothic romance, necro-rockabilly, funeral swing, undead lovers, velvet coffins, funeral roses, moonlit graveyard, cemetery neon, melancholic grotesque`
 - **Golden Dinosaur Empire:** `solar dinosaur empire, gold armor, obsidian weapons, basalt fortress, feathered raptors, sun worship symbols, ceremonial war culture, ancient monuments`
 - **Mammoth Riders:** `ice age empire, mammoth cavalry, fur armor, frozen fortress, bone weapons, snow storm, heavy spears, ice shields, tundra camp, glacial cliffs`
