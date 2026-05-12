@@ -17,7 +17,7 @@ export const START_HERO_LOGO_LAYOUT = {
 };
 
 export const MAIN_MENU_FIRST_BUTTON_Y_RATIO = 0.31;
-export const MAIN_MENU_BUTTON_HALF_HEIGHT = 35;
+export const MAIN_MENU_BUTTON_HALF_HEIGHT = 42;
 export const MAIN_MENU_LOGO_LAYOUT = {
   centerYRatio: 0.14,
   maxWidthRatio: 0.75,
