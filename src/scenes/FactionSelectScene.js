@@ -121,7 +121,7 @@ export default class FactionSelectScene extends Phaser.Scene {
     this.scale.on('leavefullscreen', this.onFullscreenChanged, this);
 
     const title = this.add
-      .text(width / 2, 48, translateActive('ui.factionSelect.title', 'Choose Your Faction'), {
+      .text(width / 2, 48, translateActive('ui.factionSelect.title', 'SELECT YOUR CONTENDER'), {
         fontFamily: 'Arial, sans-serif',
         fontSize: '30px',
         color: '#f8fafc',

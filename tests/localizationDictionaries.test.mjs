@@ -28,6 +28,11 @@ test('major UI-facing localization groups exist in English and Polish dictionari
   }
 });
 
+test('faction select title copy is localized for English and Polish', () => {
+  assert.equal(getPath(en, 'ui.factionSelect.title'), 'SELECT YOUR CONTENDER');
+  assert.equal(getPath(pl, 'ui.factionSelect.title'), 'WYBIERZ SWOJEGO CZEMPIONA');
+});
+
 test('card type and stat labels exist in English and Polish dictionaries', () => {
   for (const key of ['cardTypes.unit', 'cardTypes.effect', 'stats.attack', 'stats.hp', 'stats.armor']) {
     assert.equal(typeof getPath(en, key), 'string', `missing English ${key}`);
