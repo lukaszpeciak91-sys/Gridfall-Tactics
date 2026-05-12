@@ -1230,32 +1230,32 @@ export default class BattleScene extends Phaser.Scene {
       .setStrokeStyle(5, 0xfacc15, 0);
     const background = this.add.rectangle(0, 0, width, height, CARD_COLORS.frame, card ? 0.84 : 0.48)
       .setStrokeStyle(3, accentColor, card ? 0.82 : 0.7);
-    const inner = this.add.rectangle(0, 0, width - zones.pad * 0.9, height - zones.pad * 0.9, CARD_COLORS.innerPanel, 0.42)
-      .setStrokeStyle(1, 0xffffff, 0.04);
+    const inner = this.add.rectangle(0, 0, width - zones.pad * 0.9, height - zones.pad * 0.9, CARD_COLORS.innerPanel, 0.36)
+      .setStrokeStyle(1, 0xffffff, 0.055);
     const statBar = createStatBar(this, zones.statBar.centerX, zones.statBar.centerY, zones.statBar.width, zones.statBar.height, stats);
     const art = createArtPlaceholder(this, zones.art);
-    const namePanel = this.add.rectangle(zones.name.centerX, zones.name.centerY, zones.name.width, zones.name.height, CARD_COLORS.namePanel, 0.9)
-      .setStrokeStyle(1, accentColor, card ? 0.32 : 0.14);
+    const namePanel = this.add.rectangle(zones.name.centerX, zones.name.centerY, zones.name.width, zones.name.height, CARD_COLORS.namePanel, 0.93)
+      .setStrokeStyle(1, accentColor, card ? 0.38 : 0.14);
     const nameText = this.add.text(zones.name.centerX, zones.name.centerY, content.name || '—', {
       fontFamily: 'Arial, sans-serif',
       fontSize: `${typography.name}px`,
       color: card ? CARD_COLORS.ivoryText : CARD_COLORS.mutedText,
       fontStyle: 'bold',
       align: 'center',
-      wordWrap: { width: zones.name.width - 8 },
+      wordWrap: { width: zones.name.width - 10 },
     }).setOrigin(0.5);
-    const textPanel = this.add.rectangle(zones.text.centerX, zones.text.centerY, zones.text.width, zones.text.height, CARD_COLORS.textPanel, 0.88)
-      .setStrokeStyle(1, 0x94a3b8, 0.16);
-    const bodyText = this.add.text(zones.text.centerX, zones.text.y + Math.max(3, zones.text.height * 0.12), content.body || content.type, {
+    const textPanel = this.add.rectangle(zones.text.centerX, zones.text.centerY, zones.text.width, zones.text.height, CARD_COLORS.textPanel, 0.9)
+      .setStrokeStyle(1, 0x94a3b8, 0.18);
+    const bodyText = this.add.text(zones.text.centerX, zones.text.y + Math.max(4, zones.text.height * 0.14), content.body || content.type, {
       fontFamily: 'Arial, sans-serif',
       fontSize: `${typography.body}px`,
       color: card ? CARD_COLORS.bodyText : CARD_COLORS.mutedText,
       align: 'center',
-      lineSpacing: -1,
-      wordWrap: { width: zones.text.width - 10 },
+      lineSpacing: 0,
+      wordWrap: { width: zones.text.width - 12 },
     }).setOrigin(0.5, 0);
     const dividers = [zones.art.y - zones.gap / 2, zones.name.y - zones.gap / 2, zones.text.y - zones.gap / 2]
-      .map((dividerY) => this.add.rectangle(0, dividerY, zones.outer.width - zones.pad * 2, 1, CARD_COLORS.divider, 0.18));
+      .map((dividerY) => this.add.rectangle(0, dividerY, zones.outer.width - zones.pad * 2.15, 1, CARD_COLORS.divider, 0.22));
 
     root.add([glow, background, inner, statBar, art, namePanel, nameText, textPanel, bodyText, ...dividers]);
 
