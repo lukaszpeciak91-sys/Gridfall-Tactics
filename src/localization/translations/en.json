@@ -284,7 +284,6 @@
     },
     "factionSelect": {
       "title": "SELECT YOUR CONTENDER",
-      "subtitle": "Tap a faction to begin battle",
       "descriptions": {
         "Aggro": "Fast pressure.",
         "Tank": "Armor and sustain.",

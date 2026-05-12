@@ -211,8 +211,8 @@ const presentation = {
     },
   },
   tank: {
-    displayNameEn: 'Golden Dinosaur Empire',
-    displayNamePl: 'Złote Imperium Dinozaurów',
+    displayNameEn: 'Empire of the Golden Sun',
+    displayNamePl: 'Imperium Złotego Słońca',
     shortConcept: 'A solar reptilian imperium in decline advances under gold armor, obsidian weapons, and the unbearable weight of extinct glory.',
     tone: 'Monumental, ceremonial, ancient, proud, heavy, and doomed.',
     styleTags: [

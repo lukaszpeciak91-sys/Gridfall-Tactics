@@ -118,7 +118,7 @@ Discovered asset sizing guidance from the audit:
 
 **Color notes:** moonlit blue, funeral black, velvet burgundy, bone white, wilted rose pink, graveyard green, and neon cemetery accents.
 
-### tank — Golden Dinosaur Empire / Złote Imperium Dinozaurów
+### tank — Empire of the Golden Sun / Imperium Złotego Słońca
 
 **Style:** Solar dinosaur empire, fallen golden age, reptilian imperium, ancient super civilization, imperial decay, monumental warfare, obsidian dynasty, sun worship empire, prehistoric empire, armored raptors, ancient military order, ceremonial war culture, extinct glory.
 
@@ -142,7 +142,7 @@ These are presentation feelings only. They describe how art should support exist
 - **control / Orden der Glasköpfe:** manipulation, disruption, tactical control, debuffs, forced positioning, system interference.
 - **swarm / Spore Choir:** expansion, multiplication, collective growth, spreading organism, organic pressure, swarm saturation.
 - **attrition-swarm / Gravehearts:** death value, recurring units, sacrificial advantage, lingering pressure, emotional attrition, undead persistence.
-- **tank / Golden Dinosaur Empire:** immovable defense, sustain, armored advance, imperial resilience, heavy battlefield presence, survival through attrition.
+- **tank / Empire of the Golden Sun:** immovable defense, sustain, armored advance, imperial resilience, heavy battlefield presence, survival through attrition.
 - **wardens / Mammoth Riders:** defensive line, endurance, fortified positions, holding ground, defensive friction, lane denial.
 
 ## Prompt Helper Tags
@@ -163,5 +163,5 @@ Use these as modular prompt helpers. Combine global tags with one faction set an
 - **Orden der Glasköpfe:** `techno-occult Reich, brain in glass cylinder, cold technocracy, neural cables, red optics, steel walkers, surveillance towers, industrial paranoia, machine theology`
 - **Spore Choir:** `psychedelic biology, cosmic mycelium, beautiful bio-horror, glowing spores, wet organic textures, bioluminescent fungi, translucent flesh, dreamlike forest`
 - **Gravehearts:** `gothic romance, necro-rockabilly, funeral swing, undead lovers, velvet coffins, funeral roses, moonlit graveyard, cemetery neon, melancholic grotesque`
-- **Golden Dinosaur Empire:** `solar dinosaur empire, gold armor, obsidian weapons, basalt fortress, feathered raptors, sun worship symbols, ceremonial war culture, ancient monuments`
+- **Empire of the Golden Sun:** `solar dinosaur empire, gold armor, obsidian weapons, basalt fortress, feathered raptors, sun worship symbols, ceremonial war culture, ancient monuments`
 - **Mammoth Riders:** `ice age empire, mammoth cavalry, fur armor, frozen fortress, bone weapons, snow storm, heavy spears, ice shields, tundra camp, glacial cliffs`
