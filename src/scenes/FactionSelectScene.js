@@ -52,6 +52,21 @@ const FACTION_CARD_DETAILS = {
 };
 
 const CARD_SCROLL_DRAG_THRESHOLD = 8;
+const TITLE_SAFE_SIDE_MARGIN = 18;
+
+export function getFactionSelectTitleStyle({ width, height }) {
+  const isNarrowPortrait = height >= width && width <= 420;
+  const isExtraNarrowPortrait = height >= width && width <= 360;
+  const safeWidth = Math.max(240, width - TITLE_SAFE_SIDE_MARGIN * 2);
+
+  return {
+    y: isNarrowPortrait ? 44 : 48,
+    safeWidth,
+    fontSize: isExtraNarrowPortrait ? 24 : (isNarrowPortrait ? 26 : 30),
+    letterSpacing: isExtraNarrowPortrait ? 0.2 : (isNarrowPortrait ? 0.45 : 0.8),
+    lineSpacing: isNarrowPortrait ? 2 : 0,
+  };
+}
 
 function getFactionAssetSlug(factionKey) {
   const faction = getFactionByKey(factionKey);
@@ -120,25 +135,22 @@ export default class FactionSelectScene extends Phaser.Scene {
     this.scale.on('enterfullscreen', this.onFullscreenChanged, this);
     this.scale.on('leavefullscreen', this.onFullscreenChanged, this);
 
+    const titleStyle = getFactionSelectTitleStyle({ width, height });
     const title = this.add
-      .text(width / 2, 48, translateActive('ui.factionSelect.title', 'SELECT YOUR CONTENDER'), {
+      .text(width / 2, titleStyle.y, translateActive('ui.factionSelect.title', 'SELECT YOUR CONTENDER'), {
         fontFamily: 'Arial, sans-serif',
-        fontSize: '30px',
+        fontSize: `${titleStyle.fontSize}px`,
         color: '#f8fafc',
         fontStyle: 'bold',
-        letterSpacing: 0.8,
+        letterSpacing: titleStyle.letterSpacing,
+        align: 'center',
+        fixedWidth: titleStyle.safeWidth,
+        lineSpacing: titleStyle.lineSpacing,
+        maxLines: 2,
+        wordWrap: { width: titleStyle.safeWidth, useAdvancedWrap: true },
       })
       .setOrigin(0.5);
     this.uiElements.push(title);
-
-    const subtitle = this.add
-      .text(width / 2, 78, translateActive('ui.factionSelect.subtitle', 'Tap a faction to begin battle'), {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '13px',
-        color: '#cbd5e1',
-      })
-      .setOrigin(0.5);
-    this.uiElements.push(subtitle);
 
     const buildMarker = createBuildMarker(this, { width, height });
     this.uiElements.push(buildMarker);

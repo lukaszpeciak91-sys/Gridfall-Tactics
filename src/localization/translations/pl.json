@@ -284,7 +284,6 @@
     },
     "factionSelect": {
       "title": "WYBIERZ SWOJEGO CZEMPIONA",
-      "subtitle": "Dotknij frakcji, aby rozpocząć bitwę",
       "descriptions": {
         "Aggro": "Szybka presja.",
         "Tank": "Pancerz i wytrzymałość.",
