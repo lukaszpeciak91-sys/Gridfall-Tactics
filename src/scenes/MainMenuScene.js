@@ -7,28 +7,20 @@ import {
   getMenuBackgroundAsset,
   preloadImageAsset,
   preloadMenuBackgroundArt,
-  resolvePublicAssetPath,
 } from '../rendering/backgroundArt.js';
 import { createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
 import { translateActive } from '../localization/localeService.js';
-import { getTextureSourceSize, setCrispLogoDisplaySize } from '../rendering/logoRendering.js';
+import {
+  GRIDFALL_LOGO_ASSET,
+  MAIN_MENU_FIRST_BUTTON_Y_RATIO,
+  createLogoFallbackText,
+  getMainMenuLogoPosition,
+  setMainMenuLogoDisplaySize,
+} from '../ui/menuLogoLayout.js';
 
-const MAIN_MENU_TITLE_TEXT = 'GRIDFALL TACTICS';
-const MAIN_MENU_LOGO_PUBLIC_PATH = 'assets/ui/gridfall-logo.png';
-const MAIN_MENU_LOGO_ASSET = {
-  key: 'ui.logo.gridfall',
-  path: resolvePublicAssetPath(MAIN_MENU_LOGO_PUBLIC_PATH),
-};
 const MAIN_MENU_TITLE_DEPTH = 5;
-const MAIN_MENU_FIRST_BUTTON_Y_RATIO = 0.31;
-const MAIN_MENU_BUTTON_HALF_HEIGHT = 27;
-const MAIN_MENU_LOGO_LAYOUT = {
-  centerYRatio: 0.14,
-  maxWidthRatio: 0.75,
-  maxHeightRatio: 0.23,
-  maxDisplayHeight: 220,
-  minButtonGap: 18,
-};
+const MAIN_MENU_REVEAL_DELAY_MS = 120;
+const MAIN_MENU_REVEAL_MS = 260;
 
 const BUTTON_STYLE = {
   fontFamily: 'Arial, sans-serif',
@@ -45,6 +37,7 @@ export default class MainMenuScene extends Phaser.Scene {
     super('MainMenuScene');
     this.statusText = null;
     this.title = null;
+    this.menuButtonViews = [];
   }
 
   init() {
@@ -53,13 +46,15 @@ export default class MainMenuScene extends Phaser.Scene {
 
   preload() {
     preloadMenuBackgroundArt(this);
-    preloadImageAsset(this, MAIN_MENU_LOGO_ASSET, {
+    preloadImageAsset(this, GRIDFALL_LOGO_ASSET, {
       onError: (asset) => console.warn(`Main menu logo failed to load: ${asset.path}`),
     });
   }
 
-  create() {
+  create(data = {}) {
     const { width, height } = this.scale;
+    const revealFromStart = Boolean(data.revealFromStart);
+    this.menuButtonViews = [];
 
     this.cameras.main.setBackgroundColor(MENU_BACKGROUND_FALLBACK_COLOR_HEX);
     createCoverBackground(this, {
@@ -107,32 +102,26 @@ export default class MainMenuScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setAlpha(0);
 
+    if (revealFromStart) {
+      this.revealMenuButtons();
+    }
+
     this.scale.on('resize', this.layoutMainMenuScene, this);
     this.drawNavigationControls();
   }
 
   createTitle(width, height) {
-    if (this.textures.exists(MAIN_MENU_LOGO_ASSET.key)) {
-      const logo = this.add
-        .image(width / 2, height * MAIN_MENU_LOGO_LAYOUT.centerYRatio, MAIN_MENU_LOGO_ASSET.key)
-        .setOrigin(0.5)
-        .setDepth(MAIN_MENU_TITLE_DEPTH);
+    const position = getMainMenuLogoPosition(width, height);
+
+    if (this.textures.exists(GRIDFALL_LOGO_ASSET.key)) {
+      const logo = this.add.image(position.x, position.y, GRIDFALL_LOGO_ASSET.key).setOrigin(0.5).setDepth(MAIN_MENU_TITLE_DEPTH);
 
       logo.disableInteractive();
       this.scaleLogoToFit(logo, width, height);
       return logo;
     }
 
-    return this.add
-      .text(width / 2, height * MAIN_MENU_LOGO_LAYOUT.centerYRatio, translateActive('ui.mainMenu.title', MAIN_MENU_TITLE_TEXT), {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '30px',
-        fontStyle: 'bold',
-        color: '#f8fafc',
-        align: 'center',
-        wordWrap: { width: width * 0.86 },
-      })
-      .setOrigin(0.5)
+    return createLogoFallbackText(this, position.x, position.y, 'ui.mainMenu.title', '30px', width * 0.86)
       .setDepth(MAIN_MENU_TITLE_DEPTH)
       .disableInteractive();
   }
@@ -142,7 +131,8 @@ export default class MainMenuScene extends Phaser.Scene {
     const height = gameSize?.height ?? this.scale.height;
 
     if (this.title) {
-      this.title.setPosition(width / 2, height * MAIN_MENU_LOGO_LAYOUT.centerYRatio);
+      const position = getMainMenuLogoPosition(width, height);
+      this.title.setPosition(position.x, position.y);
       if (this.title.type === 'Image') {
         this.scaleLogoToFit(this.title, width, height);
       } else if (this.title.setWordWrapWidth) {
@@ -152,24 +142,23 @@ export default class MainMenuScene extends Phaser.Scene {
   }
 
   scaleLogoToFit(logo, width, height) {
-    const maxLogoWidth = width * MAIN_MENU_LOGO_LAYOUT.maxWidthRatio;
-    const logoCenterY = height * MAIN_MENU_LOGO_LAYOUT.centerYRatio;
-    const firstButtonSafeTop = height * MAIN_MENU_FIRST_BUTTON_Y_RATIO - MAIN_MENU_BUTTON_HALF_HEIGHT;
-    const safeLogoHeight = Math.max(0, (firstButtonSafeTop - logoCenterY - MAIN_MENU_LOGO_LAYOUT.minButtonGap) * 2);
-    const maxLogoHeight = Math.min(
-      height * MAIN_MENU_LOGO_LAYOUT.maxHeightRatio,
-      MAIN_MENU_LOGO_LAYOUT.maxDisplayHeight,
-      safeLogoHeight,
-    );
-    const sourceSize = getTextureSourceSize(this, MAIN_MENU_LOGO_ASSET.key);
-    if (!sourceSize.width || !sourceSize.height) {
-      return;
-    }
+    setMainMenuLogoDisplaySize(this, logo, width, height);
+  }
 
-    const logoScale = Math.min(maxLogoWidth / sourceSize.width, maxLogoHeight / sourceSize.height);
-    const displayWidth = sourceSize.width * logoScale;
-    const displayHeight = sourceSize.height * logoScale;
-    setCrispLogoDisplaySize(this, logo, MAIN_MENU_LOGO_ASSET.key, displayWidth, displayHeight, 'main-menu');
+  revealMenuButtons() {
+    this.menuButtonViews.flat().forEach((item) => {
+      item.setAlpha(0);
+      item.y += 16;
+    });
+
+    this.tweens.add({
+      targets: this.menuButtonViews.flat(),
+      alpha: 1,
+      y: '-=16',
+      delay: MAIN_MENU_REVEAL_DELAY_MS,
+      duration: MAIN_MENU_REVEAL_MS,
+      ease: 'Sine.easeOut',
+    });
   }
 
   drawNavigationControls() {
@@ -233,5 +222,7 @@ export default class MainMenuScene extends Phaser.Scene {
       target.on('pointerout', () => setHover(false));
       target.on('pointerup', onPointerUp);
     });
+
+    this.menuButtonViews.push([shadow, backing, text]);
   }
 }
