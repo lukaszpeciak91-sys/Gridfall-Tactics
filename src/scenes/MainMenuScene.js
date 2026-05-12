@@ -20,10 +20,10 @@ import {
 } from '../ui/menuLogoLayout.js';
 
 const MAIN_MENU_TITLE_DEPTH = 5;
-const MAIN_MENU_REVEAL_DELAY_MS = 120;
-const MAIN_MENU_REVEAL_MS = 260;
+const MAIN_MENU_REVEAL_DELAY_MS = 80;
+const MAIN_MENU_REVEAL_MS = 320;
 
-const MAIN_MENU_BUTTON_HEIGHT = 70;
+const MAIN_MENU_BUTTON_HEIGHT = 76;
 
 
 export default class MainMenuScene extends Phaser.Scene {
@@ -32,6 +32,7 @@ export default class MainMenuScene extends Phaser.Scene {
     this.statusText = null;
     this.title = null;
     this.menuButtonViews = [];
+    this.menuButtons = [];
   }
 
   init() {
@@ -49,7 +50,9 @@ export default class MainMenuScene extends Phaser.Scene {
   create(data = {}) {
     const { width, height } = this.scale;
     const revealFromStart = Boolean(data.revealFromStart);
+    const awaitSharedLogo = Boolean(data.awaitSharedLogo);
     this.menuButtonViews = [];
+    this.menuButtons = [];
 
     this.cameras.main.setBackgroundColor(MENU_BACKGROUND_FALLBACK_COLOR_HEX);
     createCoverBackground(this, {
@@ -67,7 +70,7 @@ export default class MainMenuScene extends Phaser.Scene {
     this.title = this.createTitle(width, height);
 
     const buttonWidth = Math.min(width - 64, Math.max(292, Math.round(width * 0.8)), 320);
-    const buttonGap = 82;
+    const buttonGap = 88;
     const startY = height * MAIN_MENU_FIRST_BUTTON_Y_RATIO;
 
     this.createMenuButton(width / 2, startY, buttonWidth, translateActive('ui.mainMenu.arena', 'ARENA'), () => {
@@ -89,7 +92,7 @@ export default class MainMenuScene extends Phaser.Scene {
 
     this.statusText = this.add
       .text(width / 2, Math.min(height - 112, startY + buttonGap * 3 + 70), '', {
-        fontFamily: 'Arial, sans-serif',
+        fontFamily: '"Rajdhani", "Exo 2", "Montserrat", "Segoe UI", sans-serif',
         fontSize: '15px',
         color: '#fde68a',
         align: 'center',
@@ -97,7 +100,9 @@ export default class MainMenuScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setAlpha(0);
 
-    if (revealFromStart) {
+    if (awaitSharedLogo) {
+      this.prepareSharedLogoReveal();
+    } else if (revealFromStart) {
       this.revealMenuButtons();
     }
 
@@ -140,11 +145,31 @@ export default class MainMenuScene extends Phaser.Scene {
     setMainMenuLogoDisplaySize(this, logo, width, height);
   }
 
-  revealMenuButtons() {
+  prepareSharedLogoReveal() {
+    this.title?.setAlpha(0);
+    this.setMenuButtonsInteractive(false);
     this.menuButtonViews.flat().forEach((item) => {
       item.setAlpha(0);
       item.y += 16;
     });
+  }
+
+  completeStartLogoTransition() {
+    if (this.title) {
+      this.title.setAlpha(1);
+    }
+
+    this.setMenuButtonsInteractive(true);
+    this.revealMenuButtons({ alreadyPrepared: true });
+  }
+
+  revealMenuButtons({ alreadyPrepared = false } = {}) {
+    if (!alreadyPrepared) {
+      this.menuButtonViews.flat().forEach((item) => {
+        item.setAlpha(0);
+        item.y += 16;
+      });
+    }
 
     this.tweens.add({
       targets: this.menuButtonViews.flat(),
@@ -153,6 +178,16 @@ export default class MainMenuScene extends Phaser.Scene {
       delay: MAIN_MENU_REVEAL_DELAY_MS,
       duration: MAIN_MENU_REVEAL_MS,
       ease: 'Sine.easeOut',
+    });
+  }
+
+  setMenuButtonsInteractive(isInteractive) {
+    this.menuButtons.forEach((button) => {
+      if (isInteractive) {
+        button.hitZone?.setInteractive({ useHandCursor: true });
+      } else {
+        button.hitZone?.disableInteractive();
+      }
     });
   }
 
@@ -206,10 +241,12 @@ export default class MainMenuScene extends Phaser.Scene {
       label,
       onPointerUp,
       depth: 4,
-      fontSize: '32px',
+      fontSize: '30px',
       textStyle: {
-        color: '#f4f1e6',
+        color: '#fff8e7',
+        fontFamily: '"Rajdhani", "Exo 2", "Montserrat", "Segoe UI", sans-serif',
         fontStyle: '600',
+        letterSpacing: 1.6,
       },
       fallbackFill: 0x93c5fd,
       fallbackStroke: 0xbfdbfe,
@@ -217,5 +254,6 @@ export default class MainMenuScene extends Phaser.Scene {
     });
 
     this.menuButtonViews.push(button.items);
+    this.menuButtons.push(button);
   }
 }

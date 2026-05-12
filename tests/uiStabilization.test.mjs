@@ -86,18 +86,18 @@ test('StartScene uses optional logo art as the primary CTA with shared responsiv
   assert.match(logoLayoutSource, /GRIDFALL_LOGO_TEXT = 'GRIDFALL TACTICS'/);
   assert.match(logoLayoutSource, /translateActive\(translationKey, GRIDFALL_LOGO_TEXT\)/);
   assert.match(startSource, /START_TITLE_DEPTH = 5/);
-  assert.match(startSource, /START_HOVER_SCALE = 1\.035/);
-  assert.match(startSource, /START_PRESS_SCALE = 0\.975/);
+  assert.match(startSource, /START_HOVER_SCALE = 1\.04/);
+  assert.match(startSource, /START_PRESS_SCALE = 0\.965/);
   assert.match(startSource, /START_HIT_MIN_WIDTH = 320/);
   assert.match(startSource, /START_HIT_MIN_HEIGHT = 120/);
   assert.match(startSource, /START_HIT_HEIGHT_MULTIPLIER = 1\.45/);
   assert.doesNotMatch(startSource, /titleGlow/);
   assert.doesNotMatch(startSource, /START_LOGO_GLOW_DEPTH/);
   assert.doesNotMatch(startSource, /startLogoIdleMotion/);
-  assert.match(logoLayoutSource, /centerYRatio: 0\.4/);
-  assert.match(logoLayoutSource, /maxWidthRatio: 0\.98/);
-  assert.match(logoLayoutSource, /maxHeightRatio: 0\.62/);
-  assert.match(logoLayoutSource, /maxDisplayHeight: 720/);
+  assert.match(logoLayoutSource, /centerYRatio: 0\.39/);
+  assert.match(logoLayoutSource, /maxWidthRatio: 1\.22/);
+  assert.match(logoLayoutSource, /maxHeightRatio: 0\.76/);
+  assert.match(logoLayoutSource, /maxDisplayHeight: 920/);
   assert.match(logoLayoutSource, /getTextureSourceSize\(scene, GRIDFALL_LOGO_ASSET\.key\)/);
   assert.match(logoLayoutSource, /Math\.min\(maxLogoWidth \/ sourceSize\.width, maxLogoHeight \/ sourceSize\.height\)/);
   assert.match(logoLayoutSource, /setCrispLogoDisplaySize\(scene, logo, GRIDFALL_LOGO_ASSET\.key, displaySize\.width, displaySize\.height, 'start-hero'\)/);
@@ -105,8 +105,10 @@ test('StartScene uses optional logo art as the primary CTA with shared responsiv
   assert.match(startSource, /calculateMainMenuLogoDisplaySize\(this, this\.scale\.width, this\.scale\.height\)/);
   assert.match(startSource, /x: mainMenuPosition\.x/);
   assert.match(startSource, /y: mainMenuPosition\.y/);
-  assert.match(startSource, /alpha: 0/);
-  assert.match(startSource, /this\.scene\.start\('MainMenuScene', \{ revealFromStart: true \}\)/);
+  assert.match(startSource, /alpha: 0\.18/);
+  assert.match(startSource, /this\.scene\.launch\('MainMenuScene', \{ revealFromStart: true, awaitSharedLogo: true \}\)/);
+  assert.match(startSource, /this\.scene\.bringToTop\('StartScene'\)/);
+  assert.match(startSource, /completeStartLogoTransition/);
 
   assert.match(mainMenuSource, /preloadImageAsset\(this, GRIDFALL_LOGO_ASSET/);
   assert.match(mainMenuSource, /Main menu logo failed to load: \$\{asset\.path}/);
@@ -114,6 +116,8 @@ test('StartScene uses optional logo art as the primary CTA with shared responsiv
   assert.match(mainMenuSource, /this\.title = this\.createTitle\(width, height\)/);
   assert.match(mainMenuSource, /create\(data = \{\}\)/);
   assert.match(mainMenuSource, /const revealFromStart = Boolean\(data\.revealFromStart\)/);
+  assert.match(mainMenuSource, /const awaitSharedLogo = Boolean\(data\.awaitSharedLogo\)/);
+  assert.match(mainMenuSource, /this\.prepareSharedLogoReveal\(\)/);
   assert.match(mainMenuSource, /this\.revealMenuButtons\(\)/);
   assert.match(mainMenuSource, /MAIN_MENU_TITLE_DEPTH = 5/);
   assert.match(mainMenuSource, /logo\.disableInteractive\(\)/);
@@ -148,8 +152,8 @@ test('start, main menu, and faction select use optional menu background art with
   assert.match(backgroundSource, /export function createMenuArenaLightSweep/);
   assert.match(backgroundSource, /duration = 12000/);
   assert.match(backgroundSource, /Math\.max\(width \/ background\.width, height \/ background\.height\)/);
-  assert.match(startSource, /START_TRANSITION_MS = 680/);
-  assert.match(startSource, /this\.scene\.start\('MainMenuScene', \{ revealFromStart: true \}\)/);
+  assert.match(startSource, /START_TRANSITION_MS = 720/);
+  assert.match(startSource, /this\.scene\.launch\('MainMenuScene', \{ revealFromStart: true, awaitSharedLogo: true \}\)/);
   assert.match(startSource, /createMenuArenaLightSweep\(this, \{ width, height \}\)/);
   assert.match(mainMenuSource, /this\.scene\.start\('FactionSelectScene'\)/);
   assert.match(mainMenuSource, /createMenuArenaLightSweep\(this, \{ width, height \}\)/);
