@@ -14,7 +14,7 @@ export const PREMIUM_BROADCAST_FONT_STACK = '"Rajdhani", "Orbitron", "Exo 2", "S
 const DEFAULT_TEXT_STYLE = {
   fontFamily: PREMIUM_BROADCAST_FONT_STACK,
   fontStyle: '700',
-  color: '#f3eedf',
+  color: '#f5f1e6',
   align: 'center',
   letterSpacing: 2.1,
 };
@@ -27,6 +27,7 @@ const SECONDARY_BUTTON_VISIBLE_FRAME = Object.freeze({
   height: 360,
 });
 const SECONDARY_BUTTON_ASPECT_RATIO = SECONDARY_BUTTON_VISIBLE_FRAME.width / SECONDARY_BUTTON_VISIBLE_FRAME.height;
+const SECONDARY_BUTTON_DISPLAY_HEIGHT_SCALE = 1.09;
 const DEFAULT_MIN_TOUCH_HEIGHT = 54;
 
 function storeBaseScale(target) {
@@ -55,7 +56,7 @@ function setTargetScaleFromBase(target, stateScale = 1) {
 }
 
 export function calculateSecondaryButtonHeight(width) {
-  return Math.round(width / SECONDARY_BUTTON_ASPECT_RATIO);
+  return Math.round((width / SECONDARY_BUTTON_ASPECT_RATIO) * SECONDARY_BUTTON_DISPLAY_HEIGHT_SCALE);
 }
 
 function getSecondaryButtonFrame(scene) {
@@ -108,7 +109,7 @@ export function createImageButton(scene, {
   const buttonFrame = getSecondaryButtonFrame(scene);
   const hasButtonTexture = Boolean(buttonFrame);
   const visualHeight = hasButtonTexture && preserveImageAspect
-    ? Math.round(width / SECONDARY_BUTTON_ASPECT_RATIO)
+    ? Math.round((width / SECONDARY_BUTTON_ASPECT_RATIO) * SECONDARY_BUTTON_DISPLAY_HEIGHT_SCALE)
     : height;
   const hitHeight = Math.max(visualHeight, minTouchHeight);
   const shadow = storeBaseScale(scene.add.rectangle(x, y + Math.max(3, visualHeight * 0.09), width * 0.72, visualHeight * 0.22, 0x020617, shadowAlpha)
@@ -122,6 +123,11 @@ export function createImageButton(scene, {
   backing.setOrigin(0.5).setDepth(depth);
   storeBaseScale(backing);
 
+  const centerGlow = storeBaseScale(scene.add.ellipse(x, y, width * 0.58, visualHeight * 0.34, 0xf5f1e6, 0)
+    .setOrigin(0.5)
+    .setDepth(depth + 0.5));
+  centerGlow.setBlendMode?.('ADD');
+
   const text = scene.add.text(x, y + textOffsetY, normalizedLabel, {
     ...DEFAULT_TEXT_STYLE,
     fontSize,
@@ -129,7 +135,7 @@ export function createImageButton(scene, {
   })
     .setOrigin(0.5)
     .setDepth(depth + 1)
-    .setShadow(0, 1, 'rgba(1, 10, 26, 0.52)', 1, true, true);
+    .setShadow(0, 1, 'rgba(3, 17, 40, 0.58)', 1, true, true);
   storeBaseScale(text);
 
   const hitZone = scene.add.zone(x, y, width, hitHeight)
@@ -137,8 +143,8 @@ export function createImageButton(scene, {
     .setDepth(depth + 2)
     .setInteractive({ useHandCursor: true });
 
-  const scalableTargets = [shadow, backing, text].filter(Boolean);
-  const setVisualState = ({ scale = 1, alpha = 1, textAlpha = 1, tint = null, textGlow = false } = {}) => {
+  const scalableTargets = [shadow, backing, centerGlow, text].filter(Boolean);
+  const setVisualState = ({ scale = 1, alpha = 1, textAlpha = 1, tint = null, glowAlpha = 0, textGlow = false } = {}) => {
     scalableTargets.forEach((target) => setTargetScaleFromBase(target, scale));
     backing.setAlpha(alpha);
     if (tint && backing.setTint) {
@@ -146,15 +152,16 @@ export function createImageButton(scene, {
     } else if (backing.clearTint) {
       backing.clearTint();
     }
+    centerGlow.setAlpha(glowAlpha);
     text.setAlpha(textAlpha);
-    text.setShadow(0, 1, textGlow ? 'rgba(243, 238, 223, 0.26)' : 'rgba(1, 10, 26, 0.64)', textGlow ? 3 : 1, true, true);
+    text.setShadow(0, 1, textGlow ? 'rgba(245, 241, 230, 0.24)' : 'rgba(3, 17, 40, 0.62)', textGlow ? 2 : 1, true, true);
   };
 
-  hitZone.on('pointerover', () => setVisualState({ scale: hoverScale, alpha: 1, tint: hasButtonTexture ? 0xfffbef : null, textGlow: true }));
+  hitZone.on('pointerover', () => setVisualState({ scale: hoverScale, alpha: 1, tint: hasButtonTexture ? 0xfffbef : null, glowAlpha: 0.08, textGlow: true }));
   hitZone.on('pointerout', () => setVisualState({ scale: 1, alpha: 1, textAlpha: 1 }));
   hitZone.on('pointerdown', () => setVisualState({ scale: downScale, alpha: 0.9, textAlpha: 0.94 }));
   hitZone.on('pointerup', () => {
-    setVisualState({ scale: hoverScale, alpha: hasButtonTexture ? 1 : 0.96, tint: hasButtonTexture ? 0xfffbef : null, textGlow: true });
+    setVisualState({ scale: hoverScale, alpha: hasButtonTexture ? 1 : 0.96, tint: hasButtonTexture ? 0xfffbef : null, glowAlpha: 0.08, textGlow: true });
     if (typeof onPointerUp === 'function') {
       onPointerUp();
     }
@@ -165,7 +172,8 @@ export function createImageButton(scene, {
     backing,
     text,
     hitZone,
-    items: [shadow, backing, text, hitZone].filter(Boolean),
+    centerGlow,
+    items: [shadow, backing, centerGlow, text, hitZone].filter(Boolean),
     usesImage: hasButtonTexture,
   };
 }
@@ -181,7 +189,8 @@ export function resetImageButtonState(button, { interactive = true } = {}) {
     item?.setVisible?.(true);
   });
   button.backing?.clearTint?.();
-  button.text?.setShadow?.(0, 1, 'rgba(1, 10, 26, 0.64)', 1, true, true);
+  button.centerGlow?.setAlpha?.(0);
+  button.text?.setShadow?.(0, 1, 'rgba(3, 17, 40, 0.62)', 1, true, true);
   button.hitZone?.setAlpha?.(1);
   button.hitZone?.setScale?.(1);
   button.hitZone?.setVisible?.(true);

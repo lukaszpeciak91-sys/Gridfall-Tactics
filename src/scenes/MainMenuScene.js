@@ -32,7 +32,7 @@ const MAIN_MENU_SHARED_REVEAL_FALLBACK_MS = 1400;
 
 const MAIN_MENU_BUTTON_WIDTH_RATIO = 0.72;
 const MAIN_MENU_BUTTON_VERTICAL_GAP = 14;
-const MAIN_MENU_BUTTON_FONT_SIZE = 29;
+const MAIN_MENU_BUTTON_FONT_SIZE = 27;
 
 
 export default class MainMenuScene extends Phaser.Scene {
@@ -319,7 +319,7 @@ export default class MainMenuScene extends Phaser.Scene {
       depth: 4,
       fontSize: `${MAIN_MENU_BUTTON_FONT_SIZE}px`,
       textStyle: {
-        color: '#f3eedf',
+        color: '#f5f1e6',
         fontFamily: PREMIUM_BROADCAST_FONT_STACK,
         fontStyle: '700',
         letterSpacing: 2.2,

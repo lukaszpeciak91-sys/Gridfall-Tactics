@@ -18,9 +18,9 @@ export function createModalBackButton(scene, {
     label,
     onPointerUp,
     depth,
-    fontSize: '19px',
+    fontSize: '18px',
     textStyle: {
-      color: '#f3eedf',
+      color: '#f5f1e6',
       fontFamily: PREMIUM_BROADCAST_FONT_STACK,
       fontStyle: '700',
       letterSpacing: 1.9,

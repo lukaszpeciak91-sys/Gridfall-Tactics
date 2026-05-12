@@ -25,10 +25,11 @@ export function createFloatingControl(scene, x, y, size, label, onPointerUp, { f
   const text = scene.add.text(x, y, label, {
     fontFamily: 'Arial, sans-serif',
     fontSize: `${Math.max(16, Math.floor(size * fontScale))}px`,
-    color: '#f8fafc',
+    color: '#f5f1e6',
     fontStyle: 'bold',
     align: 'center',
-  }).setOrigin(0.5).setDepth(200);
+  }).setOrigin(0.5).setDepth(200)
+    .setShadow(0, 1, 'rgba(3, 17, 40, 0.62)', 1, true, true);
 
   if (onPointerUp) {
     backing.setInteractive({ useHandCursor: true });
