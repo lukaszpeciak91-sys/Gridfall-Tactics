@@ -1,32 +1,27 @@
 import { translateActive } from '../localization/localeService.js';
+import { createImageButton } from './imageButton.js';
+
 export function createModalBackButton(scene, {
   x,
   y,
   onPointerUp,
   depth = 3,
-  width = 132,
-  height = 44,
+  width = Math.min(210, Math.max(150, Math.round((scene.scale.gameSize?.width ?? scene.scale.width) * 0.46))),
+  height = 54,
   label = translateActive('ui.common.back', 'BACK'),
 } = {}) {
-  const backing = scene.add.rectangle(x, y, width, height, 0x93c5fd, 1)
-    .setStrokeStyle(2, 0xe0f2fe, 0.9)
-    .setDepth(depth)
-    .setInteractive({ useHandCursor: true });
-
-  const text = scene.add.text(x, y, label, {
-    fontFamily: 'Arial, sans-serif',
+  return createImageButton(scene, {
+    x,
+    y,
+    width,
+    height,
+    label,
+    onPointerUp,
+    depth,
     fontSize: '18px',
-    color: '#0f172a',
-    fontStyle: 'bold',
-  })
-    .setOrigin(0.5)
-    .setDepth(depth + 1)
-    .setInteractive({ useHandCursor: true });
-
-  if (typeof onPointerUp === 'function') {
-    backing.on('pointerup', onPointerUp);
-    text.on('pointerup', onPointerUp);
-  }
-
-  return { backing, text };
+    textStyle: { color: '#f8fafc' },
+    fallbackFill: 0x93c5fd,
+    fallbackStroke: 0xe0f2fe,
+    fallbackStrokeAlpha: 0.9,
+  });
 }

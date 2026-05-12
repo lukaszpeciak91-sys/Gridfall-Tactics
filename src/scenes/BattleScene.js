@@ -9,6 +9,7 @@ import { createBuildMarker } from '../ui/buildMarker.js';
 import { calculateHandLayoutMetrics } from '../ui/handLayout.js';
 import { createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
 import { createModalBackButton } from '../ui/modalControls.js';
+import { preloadSecondaryButtonAsset } from '../ui/imageButton.js';
 import { formatDeckSummaryEntry, formatHandCardLabel } from '../rendering/cardRenderModes.js';
 import { getCardDisplayName, getCardTextShort } from '../localization/cardDisplay.js';
 import { getActiveLocale, translateActive } from '../localization/localeService.js';
@@ -89,6 +90,7 @@ export default class BattleScene extends Phaser.Scene {
 
   preload() {
     preloadBattleBackgroundArt(this);
+    preloadSecondaryButtonAsset(this);
   }
 
   init() {

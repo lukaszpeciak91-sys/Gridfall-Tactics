@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { createModalBackButton } from '../ui/modalControls.js';
+import { preloadSecondaryButtonAsset } from '../ui/imageButton.js';
 import { translateActive, translateActiveList } from '../localization/localeService.js';
 
 // Player-facing summary derived from docs/rules/mvp-battle-rules.md.
@@ -67,6 +68,10 @@ export default class RulesPanelScene extends Phaser.Scene {
     this.maxScrollY = 0;
     this.dragStartY = null;
     this.dragStartScrollY = 0;
+  }
+
+  preload() {
+    preloadSecondaryButtonAsset(this);
   }
 
   create(data) {
