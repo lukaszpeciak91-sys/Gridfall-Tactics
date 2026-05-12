@@ -10,15 +10,24 @@ import {
 } from '../rendering/backgroundArt.js';
 import {
   GRIDFALL_LOGO_ASSET,
+  calculateMainMenuLogoDisplaySize,
   createLogoFallbackText,
+  getMainMenuLogoPosition,
   getStartHeroLogoPosition,
   setStartHeroLogoDisplaySize,
 } from '../ui/menuLogoLayout.js';
 
-const START_TRANSITION_MS = 360;
+const START_TRANSITION_MS = 680;
 const START_TITLE_DEPTH = 5;
+const START_HIT_AREA_DEPTH = START_TITLE_DEPTH + 1;
 const START_HOVER_SCALE = 1.035;
-const START_PRESS_SCALE = 0.985;
+const START_PRESS_SCALE = 0.975;
+const START_HIT_MIN_WIDTH = 320;
+const START_HIT_MIN_HEIGHT = 120;
+const START_HIT_HEIGHT_MULTIPLIER = 1.45;
+const START_IDLE_PULSE_ALPHA = 0.94;
+const START_IDLE_PULSE_MS = 1800;
+const START_FEEDBACK_MS = 130;
 
 export default class StartScene extends Phaser.Scene {
   constructor() {
@@ -28,6 +37,8 @@ export default class StartScene extends Phaser.Scene {
     this.titleBaseScale = { x: 1, y: 1 };
     this.titleBaseY = 0;
     this.titleHovering = false;
+    this.logoHitArea = null;
+    this.logoIdleTween = null;
   }
 
   preload() {
@@ -52,7 +63,10 @@ export default class StartScene extends Phaser.Scene {
     createMenuArenaLightSweep(this, { width, height });
 
     this.title = this.createTitle(width, height);
-    this.configureLogoActivation(this.title);
+    this.logoHitArea = this.add.zone(0, 0, START_HIT_MIN_WIDTH, START_HIT_MIN_HEIGHT).setOrigin(0.5).setDepth(START_HIT_AREA_DEPTH);
+    this.configureLogoActivation();
+    this.positionLogoHitArea();
+    this.startLogoIdlePulse();
 
     this.scale.on('resize', this.layoutStartScene, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
@@ -74,13 +88,13 @@ export default class StartScene extends Phaser.Scene {
       .setShadow(0, 0, '#93c5fd', 14, true, true);
   }
 
-  configureLogoActivation(title) {
+  configureLogoActivation() {
     this.captureLogoBaseTransform();
-    title.setInteractive({ useHandCursor: true });
-    title.on('pointerover', () => this.setLogoHoverState(true));
-    title.on('pointerout', () => this.setLogoHoverState(false));
-    title.on('pointerdown', () => this.setLogoHoverState(true, START_PRESS_SCALE));
-    title.on('pointerup', () => this.playStartTransition());
+    this.logoHitArea.setInteractive({ useHandCursor: true });
+    this.logoHitArea.on('pointerover', () => this.setLogoHoverState(true));
+    this.logoHitArea.on('pointerout', () => this.setLogoHoverState(false));
+    this.logoHitArea.on('pointerdown', () => this.setLogoPressState());
+    this.logoHitArea.on('pointerup', () => this.playStartTransition());
   }
 
   captureLogoBaseTransform() {
@@ -92,20 +106,75 @@ export default class StartScene extends Phaser.Scene {
     this.titleBaseY = this.title.y;
   }
 
-  setLogoHoverState(isHovering, scaleMultiplier = START_HOVER_SCALE) {
+  positionLogoHitArea() {
+    if (!this.title || !this.logoHitArea) {
+      return;
+    }
+
+    const hitWidth = Math.max(this.title.displayWidth, START_HIT_MIN_WIDTH);
+    const hitHeight = Math.max(this.title.displayHeight * START_HIT_HEIGHT_MULTIPLIER, START_HIT_MIN_HEIGHT);
+    this.logoHitArea.setPosition(this.title.x, this.title.y);
+    this.logoHitArea.setSize(hitWidth, hitHeight);
+    this.logoHitArea.input.hitArea.setTo(0, 0, hitWidth, hitHeight);
+  }
+
+  startLogoIdlePulse() {
+    if (!this.title || this.isTransitioning) {
+      return;
+    }
+
+    this.logoIdleTween?.stop();
+    this.logoIdleTween = this.tweens.add({
+      targets: this.title,
+      alpha: START_IDLE_PULSE_ALPHA,
+      duration: START_IDLE_PULSE_MS,
+      ease: 'Sine.easeInOut',
+      yoyo: true,
+      repeat: -1,
+    });
+  }
+
+  stopLogoIdlePulse() {
+    this.logoIdleTween?.stop();
+    this.logoIdleTween = null;
+  }
+
+  setLogoHoverState(isHovering) {
     if (this.isTransitioning || !this.title) {
       return;
     }
 
     this.titleHovering = isHovering;
-    const multiplier = isHovering ? scaleMultiplier : 1;
+    this.applyLogoFeedback(isHovering ? START_HOVER_SCALE : 1, isHovering ? 1 : START_IDLE_PULSE_ALPHA, isHovering ? 0xf8fbff : 0xffffff);
+
+    if (!isHovering) {
+      this.startLogoIdlePulse();
+    }
+  }
+
+  setLogoPressState() {
+    if (this.isTransitioning || !this.title) {
+      return;
+    }
+
+    this.titleHovering = true;
+    this.applyLogoFeedback(START_PRESS_SCALE, 0.96, 0xe8eef8);
+  }
+
+  applyLogoFeedback(scaleMultiplier, alpha, tint) {
+    this.stopLogoIdlePulse();
+    this.tweens.killTweensOf(this.title);
+
+    if (this.title.setTint) {
+      this.title.setTint(tint);
+    }
 
     this.tweens.add({
       targets: this.title,
-      scaleX: this.titleBaseScale.x * multiplier,
-      scaleY: this.titleBaseScale.y * multiplier,
-      alpha: 1,
-      duration: 120,
+      scaleX: this.titleBaseScale.x * scaleMultiplier,
+      scaleY: this.titleBaseScale.y * scaleMultiplier,
+      alpha,
+      duration: START_FEEDBACK_MS,
       ease: 'Sine.easeOut',
     });
   }
@@ -127,6 +196,7 @@ export default class StartScene extends Phaser.Scene {
         this.title.setWordWrapWidth(width * 0.9);
       }
       this.captureLogoBaseTransform();
+      this.positionLogoHitArea();
     }
   }
 
@@ -140,15 +210,43 @@ export default class StartScene extends Phaser.Scene {
     }
 
     this.isTransitioning = true;
-    this.title.disableInteractive();
+    this.logoHitArea?.disableInteractive();
+    this.stopLogoIdlePulse();
     this.tweens.killTweensOf(this.title);
+
+    if (this.title.clearTint) {
+      this.title.clearTint();
+    }
+
+    const mainMenuPosition = getMainMenuLogoPosition(this.scale.width, this.scale.height);
+    const mainMenuLogoSize = calculateMainMenuLogoDisplaySize(this, this.scale.width, this.scale.height);
+    const targetScaleMultiplier = mainMenuLogoSize && this.title.displayWidth
+      ? mainMenuLogoSize.width / this.title.displayWidth
+      : 0.58;
+
     this.title.setAlpha(1);
     this.title.setPosition(this.scale.width / 2, this.titleBaseY);
     this.title.setScale(this.titleBaseScale.x, this.titleBaseScale.y);
 
-    this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
-      this.scene.start('MainMenuScene', { revealFromStart: true });
+    this.tweens.add({
+      targets: this.title,
+      x: mainMenuPosition.x,
+      y: mainMenuPosition.y,
+      scaleX: this.titleBaseScale.x * targetScaleMultiplier,
+      scaleY: this.titleBaseScale.y * targetScaleMultiplier,
+      duration: START_TRANSITION_MS,
+      ease: 'Sine.easeInOut',
     });
-    this.cameras.main.fadeOut(START_TRANSITION_MS, 2, 6, 23);
+
+    this.tweens.add({
+      targets: this.title,
+      alpha: 0,
+      delay: Math.round(START_TRANSITION_MS * 0.62),
+      duration: Math.round(START_TRANSITION_MS * 0.38),
+      ease: 'Sine.easeInOut',
+      onComplete: () => {
+        this.scene.start('MainMenuScene', { revealFromStart: true });
+      },
+    });
   }
 }
