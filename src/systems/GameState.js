@@ -921,7 +921,7 @@ export function canPlayOrRedeploy(state, owner, handCardId, boardIndex) {
 
   const occupyingUnit = state.board[boardIndex];
   if (!occupyingUnit && isLanePlayBlockedForOwner(state, owner, boardIndex)) {
-    return { ok: false, reason: 'Lane is blocked for unit placement this turn' };
+    return { ok: false, reason: 'Line is blocked for unit placement this turn' };
   }
   if (!occupyingUnit) return { ok: true, type: 'play' };
   if (occupyingUnit.owner !== owner) return { ok: false, reason: 'Slot is occupied by opponent' };

@@ -38,9 +38,9 @@ test('card display helper can resolve future nameKey and textKey fields through 
   };
 
   assert.equal(getCardDisplayName(keyedCard, 'en'), 'Ballroom Duelist');
-  assert.equal(getCardTextShort(keyedCard, 'en'), 'Open enemy lane: +2 hero dmg.');
+  assert.equal(getCardTextShort(keyedCard, 'en'), 'Open enemy line: +2 hero dmg.');
   assert.equal(getCardDisplayName(keyedCard, 'pl'), 'Balowy Pojedynkowicz');
-  assert.equal(getCardTextShort(keyedCard, 'pl'), 'Otwarta aleja wroga: +2 obr. bohatera.');
+  assert.equal(getCardTextShort(keyedCard, 'pl'), 'Otwarta linia wroga: +2 obr. bohatera.');
 });
 
 test('card display helper uses existing card fields when future translation keys are missing', () => {
@@ -73,19 +73,19 @@ test('card render mode helpers keep compact and full card text separate', () => 
     attack: 1,
     hp: 4,
     armor: 2,
-    textShort: 'Blocks lane. Cannot attack.',
+    textShort: 'Blocks line. This unit can’t attack.',
     description: 'A long rules description that must stay off compact board units.',
     targeting: 'ally',
     effectId: 'cannot_attack',
   };
 
   assert.equal(formatBoardUnitLabel(card), 'Shield Drone\nATK 1 / HP 4 / ARM 2');
-  assert.doesNotMatch(formatBoardUnitLabel(card), /Blocks lane|Cannot attack|long rules description|textShort/);
-  assert.equal(formatHandCardLabel(card), 'Shield Drone\n1/4 ARM 2\nBlocks lane. Cannot attack.');
+  assert.doesNotMatch(formatBoardUnitLabel(card), /Blocks line|can’t attack|long rules description|textShort/);
+  assert.equal(formatHandCardLabel(card), 'Shield Drone\n1/4 ARM 2\nBlocks line. This unit can’t attack.');
   assert.deepEqual(formatCollectionRowLabel(card), {
     name: 'Shield Drone',
     typeStats: 'Unit • ATK 1 / HP 4',
-    textShort: 'Blocks lane. Cannot attack.',
+    textShort: 'Blocks line. This unit can’t attack.',
   });
   assert.deepEqual(formatCardDetailLines(card), [
     'Shield Drone',
@@ -93,7 +93,7 @@ test('card render mode helpers keep compact and full card text separate', () => 
     'ATK/HP: 1 / 4',
     'Target: ally',
     '',
-    'Blocks lane. Cannot attack.',
+    'Blocks line. This unit can’t attack.',
   ]);
 });
 
@@ -104,10 +104,10 @@ test('hand/full formatter includes textShort and preserves unit stat line output
     attack: 1,
     hp: 4,
     armor: 2,
-    textShort: ' Blocks lane. Cannot attack. ',
+    textShort: ' Blocks line. This unit can’t attack. ',
   };
 
-  assert.equal(formatHandCardLabel(card), 'Shield Drone\n1/4 ARM 2\nBlocks lane. Cannot attack.');
+  assert.equal(formatHandCardLabel(card), 'Shield Drone\n1/4 ARM 2\nBlocks line. This unit can’t attack.');
 });
 
 test('hand/full formatter includes effect card textShort without unit stats', () => {
@@ -131,7 +131,7 @@ test('battle hand cards route content through card visual layout helpers and pre
     attack: 1,
     hp: 4,
     armor: 2,
-    textShort: ' Blocks lane. Cannot attack. ',
+    textShort: ' Blocks line. This unit can’t attack. ',
   };
   const effectCard = {
     name: 'Repair Kit',
@@ -144,7 +144,7 @@ test('battle hand cards route content through card visual layout helpers and pre
   assert.match(source, /getCardStatValues\(card\)/);
   assert.doesNotMatch(source, /card\.textShort/);
   assert.doesNotMatch(source, /`\$\{atk\}\/\$\{hp\} ARM \$\{armor\}`/);
-  assert.equal(formatHandCardLabel(unitCard), 'Shield Drone\n1/4 ARM 2\nBlocks lane. Cannot attack.');
+  assert.equal(formatHandCardLabel(unitCard), 'Shield Drone\n1/4 ARM 2\nBlocks line. This unit can’t attack.');
   assert.equal(formatHandCardLabel(effectCard), 'Repair Kit\nHeal 3.');
   assert.equal(formatHandCardLabel(null), 'Empty');
 });
@@ -234,7 +234,7 @@ test('presentation overrides resolve through render modes and preserve gameplay 
   assert.deepEqual(formatCollectionRowLabel(runner, 'en'), {
     name: 'Ballroom Duelist',
     typeStats: 'Unit • ATK 2 / HP 1',
-    textShort: 'Open enemy lane: +2 hero dmg.',
+    textShort: 'Open enemy line: +2 hero dmg.',
   });
   assert.equal(formatDeckSummaryEntry(runner, 'en').name, 'Ballroom Duelist');
   assert.equal(getCardDisplayName(runner, 'pl'), 'Balowy Pojedynkowicz');
@@ -243,7 +243,7 @@ test('presentation overrides resolve through render modes and preserve gameplay 
   assert.deepEqual(formatCollectionRowLabel(runner, 'pl'), {
     name: 'Balowy Pojedynkowicz',
     typeStats: 'Jednostka • ATK 2 / HP 1',
-    textShort: 'Otwarta aleja wroga: +2 obr. bohatera.',
+    textShort: 'Otwarta linia wroga: +2 obr. bohatera.',
   });
   assert.equal(formatDeckSummaryEntry(runner, 'pl').name, 'Balowy Pojedynkowicz');
   assert.equal(runner.id, 'aggro_runner_1');

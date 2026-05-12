@@ -93,7 +93,7 @@ test('supported locale list returns en and pl as a safe copy', () => {
 
 test('English translation lookup returns base dictionary values', () => {
   assert.equal(translate('cards.aggro_runner_1.name', 'en'), 'Runner');
-  assert.equal(translate('cards.aggro_runner_1.textShort', 'en'), 'Open enemy lane: +2 hero dmg.');
+  assert.equal(translate('cards.aggro_runner_1.textShort', 'en'), 'Open enemy line: +2 hero dmg.');
   assert.equal(translate('stats.armor', 'en'), 'ARM');
 });
 
@@ -103,7 +103,7 @@ test('translation lookup falls back to English for invalid locales', () => {
 
 test('Polish translation lookup returns Polish dictionary values', () => {
   assert.equal(translate('cards.aggro_runner_1.name', 'pl'), 'Biegacz');
-  assert.equal(translate('cards.aggro_runner_1.textShort', 'pl'), 'Otwarta aleja wroga: +2 obr. bohatera.');
+  assert.equal(translate('cards.aggro_runner_1.textShort', 'pl'), 'Otwarta linia wroga: +2 obr. bohatera.');
   assert.equal(translate('ui.mainMenu.collection', 'pl'), 'KOLEKCJA');
 });
 

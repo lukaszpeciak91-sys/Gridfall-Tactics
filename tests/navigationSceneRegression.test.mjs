@@ -235,7 +235,7 @@ test('rules panel contains the current short player-facing MVP rules summary', (
   const source = readScene('src/scenes/RulesPanelScene.js');
 
   assert.match(source, /Both heroes start at 12 HP/);
-  assert.match(source, /The fight has 3 lanes/);
+  assert.match(source, /The fight has 3 lines/);
   assert.match(source, /mulligan up to 2 cards once/);
   assert.match(source, /initiative alternates each turn/);
   assert.match(source, /Each side gets 1 action/);

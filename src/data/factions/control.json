@@ -9,7 +9,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": "enemy_lane_atk_minus_1",
-      "textShort": "Enemy in lane -1 ATK this turn.",
+      "textShort": "Opposing enemy -1 ATK this turn.",
       "attack": 1,
       "hp": 1,
       "armor": 0
@@ -80,7 +80,7 @@
       "type": "order",
       "targeting": "all_enemy_units",
       "effectId": "damage_all_enemies_1_ignore_armor",
-      "textShort": "Deal 1 to all enemies ignoring armor."
+      "textShort": "Deal 1 to all enemy units, ignoring ARM."
     },
     {
       "id": "control_system_override_1",
