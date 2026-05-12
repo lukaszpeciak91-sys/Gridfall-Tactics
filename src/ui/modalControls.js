@@ -7,7 +7,7 @@ export function createModalBackButton(scene, {
   onPointerUp,
   depth = 3,
   width = Math.round((scene.scale.gameSize?.width ?? scene.scale.width) * 0.46),
-  height = 54,
+  height = 52,
   label = translateActive('ui.common.back', 'BACK'),
 } = {}) {
   return createImageButton(scene, {
@@ -18,18 +18,18 @@ export function createModalBackButton(scene, {
     label,
     onPointerUp,
     depth,
-    fontSize: '20px',
+    fontSize: '19px',
     textStyle: {
-      color: '#eef7ff',
+      color: '#f3eedf',
       fontFamily: PREMIUM_BROADCAST_FONT_STACK,
       fontStyle: '700',
-      letterSpacing: 1.5,
+      letterSpacing: 1.9,
     },
     fallbackFill: 0x93c5fd,
     fallbackStroke: 0xe0f2fe,
     fallbackStrokeAlpha: 0.9,
     shadowAlpha: 0.22,
-    hoverScale: 1.018,
-    downScale: 0.982,
+    hoverScale: 1.03,
+    downScale: 0.98,
   });
 }
