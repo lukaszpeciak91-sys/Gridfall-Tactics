@@ -31,7 +31,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": "opposing_lane_atk_plus_1",
-      "textShort": "Enemy in lane: +1 ATK.",
+      "textShort": "If opposed: +1 ATK.",
       "attack": 2,
       "hp": 1,
       "armor": 0

@@ -13,7 +13,7 @@ import { translateActive, translateActiveList } from '../localization/localeServ
 
 const TUTORIAL_STEPS = Object.freeze([
   'Pick a faction in Arena.',
-  'Play units into lanes to pressure the enemy hero.',
+  'Play units into lines to pressure the enemy hero.',
   'Use effect cards and swaps to control combat timing.',
   'End your turn after spending your action.',
   'Reduce the enemy hero to 0 HP to win.',

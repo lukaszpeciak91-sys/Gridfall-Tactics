@@ -13,11 +13,11 @@ const RULE_SECTIONS = Object.freeze([
     ],
   },
   {
-    heading: 'Board / Lanes',
+    heading: 'Board / Lines',
     lines: [
-      'The fight has 3 lanes.',
-      'Play units into your lane slots. The middle row is only for visuals.',
-      'If a unit attacks an open lane, it hits the enemy hero.',
+      'The fight has 3 lines.',
+      'Play units into your line slots. The middle row is only for visuals.',
+      'If a unit attacks an open line, it hits the enemy hero.',
     ],
   },
   {
@@ -40,9 +40,9 @@ const RULE_SECTIONS = Object.freeze([
   {
     heading: 'Combat',
     lines: [
-      'Combat happens lane by lane with no diagonal attacks.',
-      'Units fight opposing units in their lane.',
-      'Open lane attacks damage the opposing hero instead.',
+      'Combat happens line by line with no diagonal attacks.',
+      'Units fight opposing units in their line.',
+      'Open line attacks damage the opposing hero instead.',
       'Both sides can deal damage during the same combat step.',
     ],
   },

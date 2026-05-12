@@ -292,7 +292,7 @@ const presentation = {
       'wool and leather',
       'massive beasts',
     ],
-    gameplayFeel: 'Defensive line, endurance, fortified positions, holding ground, defensive friction, lane denial.',
+    gameplayFeel: 'Defensive line, endurance, fortified positions, holding ground, defensive friction, line denial.',
     colorNotes: 'Glacier blue, snow white, mammoth brown, leather tan, bone ivory, storm gray, and cold banner red.',
     cardNameOverrides: {
       wardens_sentinel_1: { nameEn: 'Mammoth Sentinel', namePl: 'Strażnik Mamutów' },

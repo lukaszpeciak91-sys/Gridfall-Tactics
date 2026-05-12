@@ -37,9 +37,9 @@ const ENEMY_ACTION_PRE_COMBAT_DELAY_MS = 400;
 const ENEMY_EFFECT_SUMMARY_MAX_CHARS = 34;
 const ENEMY_EFFECT_SUMMARY_OVERRIDES = Object.freeze({
   aggro_buff_all_atk_2: 'All allies +2 ATK',
-  swap_adjacent_then_resolve: 'Swap ally, fight lane',
+  swap_adjacent_then_resolve: 'Swap ally, fight line',
   ignore_armor_next_attack: 'Damage and pierce armor',
-  quick_strike: 'Resolve lane combat now',
+  quick_strike: 'Resolve line combat now',
   heal_1_atk_1_draw_on_kill_this_turn: 'Heal, +1 ATK, draw on kill',
   swap_any_two_units: 'Swap two units',
   enemy_all_atk_minus_1: 'Leftmost enemies -1 ATK',

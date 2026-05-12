@@ -2,7 +2,7 @@
   "cards": {
     "aggro_runner_1": {
       "name": "Biegacz",
-      "textShort": "Otwarta aleja wroga: +2 obr. bohatera."
+      "textShort": "Otwarta linia wroga: +2 obr. bohatera."
     },
     "aggro_berserker_1": {
       "name": "Berserker",
@@ -26,7 +26,7 @@
     },
     "aggro_rush_1": {
       "name": "Szarża",
-      "textShort": "Zamień z sąsiednim sojusznikiem; rozegraj walkę w tej alei."
+      "textShort": "Zamień z pierwszym sąsiednim sojusznikiem; walcz w tej linii."
     },
     "aggro_pierce_strike_1": {
       "name": "Przebijające Uderzenie",
@@ -34,7 +34,7 @@
     },
     "aggro_adrenaline_1": {
       "name": "Adrenalina",
-      "textShort": "Wybierz sojusznika: rozegraj teraz walkę w jego alei."
+      "textShort": "Sojusznik: walcz teraz w jego linii."
     },
     "aggro_quick_fix_1": {
       "name": "Szybka Naprawa",
@@ -42,7 +42,7 @@
     },
     "attrition_swarm_husk_1": {
       "name": "Łupina",
-      "textShort": "Śmierć w walce: zadaj 1 wrogowi w alei."
+      "textShort": "Śmierć w walce: zadaj 1 wrogowi naprzeciw."
     },
     "attrition_swarm_carrier_1": {
       "name": "Nosiciel",
@@ -62,7 +62,7 @@
     },
     "attrition_swarm_funeral_pyre_1": {
       "name": "Stos Pogrzebowy",
-      "textShort": "Pierwsze 2 śmierci sojuszników w walce trafiają wroga w alei za 1."
+      "textShort": "Pierwsze 2 śmierci sojuszników w walce: 1 wrogowi naprzeciw."
     },
     "attrition_swarm_infect_1": {
       "name": "Infekcja",
@@ -82,7 +82,7 @@
     },
     "control_hacker_1": {
       "name": "Haker",
-      "textShort": "Wróg w alei -1 ATK w tej turze."
+      "textShort": "Wróg naprzeciw -1 ATK w tej turze."
     },
     "control_disruptor_1": {
       "name": "Zakłócacz",
@@ -110,7 +110,7 @@
     },
     "control_pulse_wave_1": {
       "name": "Fala Pulsu",
-      "textShort": "Zadaj 1 wszystkim wrogom, ignorując pancerz."
+      "textShort": "Zadaj 1 wszystkim wrogom, ignorując ARM."
     },
     "control_system_override_1": {
       "name": "Przejęcie Systemu",
@@ -126,7 +126,7 @@
     },
     "swarm_spitter_1": {
       "name": "Plujka",
-      "textShort": "Po zagraniu: zadaj 1 wrogowi w alei."
+      "textShort": "Po zagraniu: zadaj 1 wrogowi naprzeciw."
     },
     "swarm_brood_1": {
       "name": "Miot",
@@ -174,7 +174,7 @@
     },
     "tank_wall_1": {
       "name": "Mur",
-      "textShort": "Blokuje aleję. Nie może atakować."
+      "textShort": "Blokuje linię. Ta jednostka nie atakuje."
     },
     "tank_bruiser_1": {
       "name": "Zabijaka",
@@ -210,7 +210,7 @@
     },
     "wardens_halberdier_1": {
       "name": "Halabardnik",
-      "textShort": "Wróg w alei: +1 ATK."
+      "textShort": "Gdy naprzeciw jest wróg: +1 ATK."
     },
     "wardens_bastion_guard_1": {
       "name": "Straż Bastionu",
@@ -354,9 +354,9 @@
       "block": "BLOK",
       "effectSummaries": {
         "aggro_buff_all_atk_2": "Wszyscy sojusznicy +2 ATK",
-        "swap_adjacent_then_resolve": "Zamień sojusznika, walcz w alei",
+        "swap_adjacent_then_resolve": "Zamień sojusznika, walcz w linii",
         "ignore_armor_next_attack": "Obrażenia i przebicie pancerza",
-        "quick_strike": "Rozegraj walkę w alei teraz",
+        "quick_strike": "Rozegraj walkę w linii teraz",
         "heal_1_atk_1_draw_on_kill_this_turn": "Ulecz, +1 ATK, dobierz po zabiciu",
         "swap_any_two_units": "Zamień dwie jednostki",
         "enemy_all_atk_minus_1": "Najbardziej lewi wrogowie -1 ATK",
@@ -394,11 +394,11 @@
           ]
         },
         {
-          "heading": "Plansza / Aleje",
+          "heading": "Plansza / Linie",
           "lines": [
-            "Walka ma 3 aleje.",
-            "Zagrywaj jednostki do swoich slotów alei. Środkowy rząd jest tylko wizualny.",
-            "Jeśli jednostka atakuje otwartą aleję, trafia wrogiego bohatera."
+            "Walka ma 3 linie.",
+            "Zagrywaj jednostki do swoich slotów linii. Środkowy rząd jest tylko wizualny.",
+            "Jeśli jednostka atakuje otwartą linię, trafia wrogiego bohatera."
           ]
         },
         {
@@ -421,9 +421,9 @@
         {
           "heading": "Walka",
           "lines": [
-            "Walka odbywa się aleja po alei, bez ataków po skosie.",
-            "Jednostki walczą z jednostkami naprzeciwko w swojej alei.",
-            "Ataki w otwartą aleję zadają obrażenia przeciwnemu bohaterowi.",
+            "Walka odbywa się linia po linii, bez ataków po skosie.",
+            "Jednostki walczą z jednostkami naprzeciwko w swojej linii.",
+            "Ataki w otwartą linię zadają obrażenia przeciwnemu bohaterowi.",
             "Obie strony mogą zadawać obrażenia w tym samym kroku walki."
           ]
         },
@@ -456,7 +456,7 @@
         "enemy_units": "Wrogie jednostki",
         "friendly_discard": "Odrzucona karta sojusznika",
         "friendly_unit": "Sojusznicza jednostka",
-        "lane": "Aleja",
+        "lane": "Linia",
         "none": "Brak"
       }
     },

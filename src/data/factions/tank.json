@@ -42,7 +42,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": "cannot_attack",
-      "textShort": "Blocks lane. Cannot attack.",
+      "textShort": "Blocks line. This unit can’t attack.",
       "attack": 0,
       "hp": 2,
       "armor": 0

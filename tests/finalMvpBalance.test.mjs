@@ -36,7 +36,7 @@ test('Runner remains a 2/1 Aggro unit with +2 open-lane hero damage text', () =>
   assert.equal(runner.armor, 0);
   assert.equal(runner.effectId, 'lane_empty_bonus_damage');
   assert.equal(runner.targeting, 'lane');
-  assert.equal(runner.textShort, 'Open enemy lane: +2 hero dmg.');
+  assert.equal(runner.textShort, 'Open enemy line: +2 hero dmg.');
 });
 
 
@@ -206,7 +206,7 @@ test('Hacker is a 1/1 Control unit with the same lane attack debuff role', () =>
   assert.equal(hacker.armor, 0);
   assert.equal(hacker.effectId, 'enemy_lane_atk_minus_1');
   assert.equal(hacker.targeting, 'lane');
-  assert.equal(hacker.textShort, 'Enemy in lane -1 ATK this turn.');
+  assert.equal(hacker.textShort, 'Opposing enemy -1 ATK this turn.');
 });
 
 test('Disruptor is a 1/2 Control unit with the same order-cancel role', () => {
@@ -415,7 +415,7 @@ test('Pulse Wave damages all occupied enemy lanes and ignores armor without hitt
   assert.equal(state.enemyHP, 5);
   assert.equal(pulseWave.targeting, 'all_enemy_units');
   assert.equal(pulseWave.effectId, 'damage_all_enemies_1_ignore_armor');
-  assert.equal(pulseWave.textShort, 'Deal 1 to all enemies ignoring armor.');
+  assert.equal(pulseWave.textShort, 'Deal 1 to all enemy units, ignoring ARM.');
 });
 
 test('Pulse Wave skips empty lanes and damages a single enemy if only one exists', () => {

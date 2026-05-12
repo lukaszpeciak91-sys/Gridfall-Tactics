@@ -106,7 +106,7 @@ const pulseWaveCard = {
   type: 'order',
   targeting: 'all_enemy_units',
   effectId: 'damage_all_enemies_1_ignore_armor',
-  textShort: 'Deal 1 to all enemies ignoring armor.',
+  textShort: 'Deal 1 to all enemy units, ignoring ARM.',
 };
 
 test('AI models Pulse Wave as deterministic armor-ignoring damage on all occupied enemy lanes', () => {
