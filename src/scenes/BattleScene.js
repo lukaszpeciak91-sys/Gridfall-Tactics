@@ -10,7 +10,8 @@ import { calculateHandLayoutMetrics } from '../ui/handLayout.js';
 import { createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
 import { createModalBackButton } from '../ui/modalControls.js';
 import { preloadSecondaryButtonAsset } from '../ui/imageButton.js';
-import { formatDeckSummaryEntry, formatHandCardLabel } from '../rendering/cardRenderModes.js';
+import { formatDeckSummaryEntry } from '../rendering/cardRenderModes.js';
+import { CARD_COLORS, createArtPlaceholder, createStatBar, getCardDisplayContent, getCardLayoutZones, getCardStatValues, getCardTypography } from '../rendering/cardVisualLayout.js';
 import { getCardDisplayName, getCardTextShort } from '../localization/cardDisplay.js';
 import { getActiveLocale, translateActive } from '../localization/localeService.js';
 
@@ -1187,44 +1188,94 @@ export default class BattleScene extends Phaser.Scene {
       const x = handTrackLeft + index * hand.step;
       const card = this.gameState.player.hand[index] ?? null;
       const cardId = card?.id ?? `slot-${index}`;
-      const cardLabel = this.getHandCardLabel(card);
       const baseY = cardBaseY;
-      const labelBaseY = cardBaseY + hand.cardHeight * 0.04;
-      const baseFontSize = Math.max(12, Math.floor(hand.cardWidth * 0.108));
       const accentColor = this.getHandCardAccentColor(card);
-      const glow = this.add.rectangle(x, baseY, hand.cardWidth + 8, hand.cardHeight + 8, 0xfacc15, 0)
-        .setStrokeStyle(5, 0xfacc15, 0);
-      const background = this.add.rectangle(x, baseY, hand.cardWidth, hand.cardHeight, 0x111827, 0.55)
-        .setStrokeStyle(3, accentColor, card ? 0.82 : 0.7);
-      const label = this.add.text(x, labelBaseY, cardLabel, {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: `${baseFontSize}px`,
-        color: '#f8fafc',
-        align: 'center',
-        wordWrap: { width: hand.cardWidth - 16 },
-      }).setOrigin(0.5);
+      const baseDepth = 20 + index * 4;
+      const cardView = this.createHandCardView({
+        card,
+        cardId,
+        x,
+        y: baseY,
+        width: hand.cardWidth,
+        height: hand.cardHeight,
+        accentColor,
+        depth: baseDepth,
+      });
 
       if (card) {
-        background.setInteractive({ useHandCursor: true });
-        background.on('pointerdown', () => {
+        cardView.background.setInteractive({ useHandCursor: true });
+        cardView.background.on('pointerdown', () => {
           this.onCardPointerDown(cardId);
         });
-        background.on('pointerup', () => {
+        cardView.background.on('pointerup', () => {
           this.onCardPointerUp(cardId);
         });
       }
 
-      const baseDepth = 20 + index * 4;
-      glow.setDepth(baseDepth);
-      background.setDepth(baseDepth + 1);
-      label.setDepth(baseDepth + 2);
-      this.cardViews.push({ cardId, glow, background, label, baseX: x, baseY, labelBaseX: x, labelBaseY, baseDepth, baseFontSize });
+      this.cardViews.push(cardView);
 
       if (!card) {
-        background.setAlpha(0.42);
-        label.setAlpha(0.45);
+        cardView.root.setAlpha(0.45);
       }
     }
+  }
+
+  createHandCardView({ card, cardId, x, y, width, height, accentColor, depth }) {
+    const zones = getCardLayoutZones(width, height);
+    const typography = getCardTypography(width, height);
+    const content = getCardDisplayContent(card, getActiveLocale());
+    const stats = getCardStatValues(card);
+    const root = this.add.container(x, y).setDepth(depth);
+    const glow = this.add.rectangle(0, 0, width + 8, height + 8, 0xfacc15, 0)
+      .setStrokeStyle(5, 0xfacc15, 0);
+    const background = this.add.rectangle(0, 0, width, height, CARD_COLORS.frame, card ? 0.84 : 0.48)
+      .setStrokeStyle(3, accentColor, card ? 0.82 : 0.7);
+    const inner = this.add.rectangle(0, 0, width - zones.pad * 0.9, height - zones.pad * 0.9, CARD_COLORS.innerPanel, 0.42)
+      .setStrokeStyle(1, 0xffffff, 0.04);
+    const statBar = createStatBar(this, zones.statBar.centerX, zones.statBar.centerY, zones.statBar.width, zones.statBar.height, stats);
+    const art = createArtPlaceholder(this, zones.art);
+    const namePanel = this.add.rectangle(zones.name.centerX, zones.name.centerY, zones.name.width, zones.name.height, CARD_COLORS.namePanel, 0.9)
+      .setStrokeStyle(1, accentColor, card ? 0.32 : 0.14);
+    const nameText = this.add.text(zones.name.centerX, zones.name.centerY, content.name || '—', {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: `${typography.name}px`,
+      color: card ? CARD_COLORS.ivoryText : CARD_COLORS.mutedText,
+      fontStyle: 'bold',
+      align: 'center',
+      wordWrap: { width: zones.name.width - 8 },
+    }).setOrigin(0.5);
+    const textPanel = this.add.rectangle(zones.text.centerX, zones.text.centerY, zones.text.width, zones.text.height, CARD_COLORS.textPanel, 0.88)
+      .setStrokeStyle(1, 0x94a3b8, 0.16);
+    const bodyText = this.add.text(zones.text.centerX, zones.text.y + Math.max(3, zones.text.height * 0.12), content.body || content.type, {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: `${typography.body}px`,
+      color: card ? CARD_COLORS.bodyText : CARD_COLORS.mutedText,
+      align: 'center',
+      lineSpacing: -1,
+      wordWrap: { width: zones.text.width - 10 },
+    }).setOrigin(0.5, 0);
+    const dividers = [zones.art.y - zones.gap / 2, zones.name.y - zones.gap / 2, zones.text.y - zones.gap / 2]
+      .map((dividerY) => this.add.rectangle(0, dividerY, zones.outer.width - zones.pad * 2, 1, CARD_COLORS.divider, 0.18));
+
+    root.add([glow, background, inner, statBar, art, namePanel, nameText, textPanel, bodyText, ...dividers]);
+
+    return {
+      cardId,
+      root,
+      glow,
+      background,
+      label: nameText,
+      nameText,
+      bodyText,
+      statBar,
+      art,
+      baseX: x,
+      baseY: y,
+      labelBaseX: x,
+      labelBaseY: y,
+      baseDepth: depth,
+      baseFontSize: typography.name,
+    };
   }
 
   getHandCardAccentColor(card) {
@@ -1232,11 +1283,6 @@ export default class BattleScene extends Phaser.Scene {
     if (card?.type === 'effect') return HAND_CARD_ACCENT_COLORS.effect;
     return HAND_CARD_ACCENT_COLORS.default;
   }
-
-  getHandCardLabel(card) {
-    return formatHandCardLabel(card, getActiveLocale());
-  }
-
 
   onCardPointerDown(cardId) {
     this.pressedHandCardId = cardId;
@@ -2368,9 +2414,7 @@ export default class BattleScene extends Phaser.Scene {
 
   redrawHand() {
     this.cardViews.forEach((view) => {
-      view.glow?.destroy();
-      view.background.destroy();
-      view.label.destroy();
+      view.root?.destroy();
     });
     this.cardViews = [];
     this.drawHand();
@@ -2421,9 +2465,9 @@ ${statParts.join(' | ')}`;
 
   destroySelectedHandCardZoom() {
     if (!this.selectedHandCardZoom) return;
-    const zoomItems = [this.selectedHandCardZoom.glow, this.selectedHandCardZoom.background, this.selectedHandCardZoom.label];
+    const zoomItems = [this.selectedHandCardZoom.root, this.selectedHandCardZoom.glow, this.selectedHandCardZoom.background, this.selectedHandCardZoom.label];
     this.tweens?.killTweensOf?.(zoomItems.filter(Boolean));
-    zoomItems.forEach((item) => item?.destroy?.());
+    this.selectedHandCardZoom.root?.destroy();
     this.selectedHandCardZoom = null;
   }
 
@@ -2471,36 +2515,25 @@ ${statParts.join(' | ')}`;
     const accentColor = this.getHandCardAccentColor(card);
     const zoomWidth = hand.cardWidth * transform.scale;
     const zoomHeight = hand.cardHeight * transform.scale;
-    const label = this.getHandCardLabel(card);
-    const fontSize = Math.max(cardView.baseFontSize, Math.floor(cardView.baseFontSize * transform.scale));
+    const previewView = this.createHandCardView({
+      card,
+      cardId: previewCardId,
+      x: cardView.baseX,
+      y: cardView.baseY,
+      width: zoomWidth,
+      height: zoomHeight,
+      accentColor,
+      depth: SELECTED_HAND_CARD_DEPTH,
+    });
 
-    const startX = cardView.baseX;
-    const startY = cardView.baseY;
-    const startLabelY = startY + zoomHeight * 0.03;
-    const targetLabelY = transform.y + zoomHeight * 0.03;
-    const previewItems = [];
+    previewView.root.setAlpha(0).setScale(0.96);
+    previewView.glow.setFillStyle(0xfacc15, 0.12);
+    previewView.glow.setStrokeStyle(5, 0xfacc15, 0.65);
+    previewView.background.setFillStyle(CARD_COLORS.frameSelected, 0.92);
+    previewView.background.setStrokeStyle(5, accentColor, 1);
 
-    const glow = this.add.rectangle(startX, startY, zoomWidth + 8, zoomHeight + 8, 0xfacc15, 0.12)
-      .setStrokeStyle(5, 0xfacc15, 0.65)
-      .setAlpha(0)
-      .setScale(0.96)
-      .setDepth(SELECTED_HAND_CARD_DEPTH);
-    const background = this.add.rectangle(startX, startY, zoomWidth, zoomHeight, 0x334155, 0.9)
-      .setStrokeStyle(5, accentColor, 1)
-      .setAlpha(0)
-      .setScale(0.96)
-      .setDepth(SELECTED_HAND_CARD_DEPTH + 1);
-    const labelText = this.add.text(startX, startLabelY, label, {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: `${fontSize}px`,
-      color: '#f8fafc',
-      align: 'center',
-      wordWrap: { width: zoomWidth - 18 },
-    }).setOrigin(0.5).setAlpha(0).setScale(0.96).setDepth(SELECTED_HAND_CARD_DEPTH + 2);
-
-    previewItems.push(glow, background, labelText);
     this.tweens.add({
-      targets: [glow, background],
+      targets: previewView.root,
       x: transform.x,
       y: transform.y,
       scale: 1,
@@ -2508,17 +2541,8 @@ ${statParts.join(' | ')}`;
       duration: HAND_CARD_PREVIEW_TWEEN_MS,
       ease: 'Quad.easeOut',
     });
-    this.tweens.add({
-      targets: labelText,
-      x: transform.x,
-      y: targetLabelY,
-      scale: 1,
-      alpha: 1,
-      duration: HAND_CARD_PREVIEW_TWEEN_MS,
-      ease: 'Quad.easeOut',
-    });
 
-    this.selectedHandCardZoom = { glow, background, label: labelText, previewItems };
+    this.selectedHandCardZoom = { ...previewView, previewItems: [previewView.root] };
   }
 
   resetCardHighlights({ showPreview = true } = {}) {
@@ -2527,24 +2551,20 @@ ${statParts.join(' | ')}`;
       const isGameplaySelected = !this.openingMulliganPending && card.cardId === this.selectedCardId;
       const isHighlighted = isGameplaySelected || isMulliganSelected;
       const viewCard = this.gameState.player.hand.find((item) => item.id === card.cardId);
-      const allTargets = [card.glow, card.background, card.label].filter(Boolean);
+      const allTargets = [card.root, card.glow, card.background, card.label].filter(Boolean);
 
       const accentColor = this.getHandCardAccentColor(viewCard);
 
       this.tweens.killTweensOf(allTargets);
       card.background.setStrokeStyle(isHighlighted ? 5 : 3, isHighlighted ? 0xfacc15 : accentColor, isHighlighted ? 1 : viewCard ? 0.82 : 0.7);
-      card.background.setFillStyle(isHighlighted ? 0x334155 : 0x111827, isHighlighted ? 0.9 : viewCard ? 0.55 : 0.42);
+      card.background.setFillStyle(isHighlighted ? CARD_COLORS.frameSelected : CARD_COLORS.frame, isHighlighted ? 0.92 : viewCard ? 0.84 : 0.48);
       card.glow.setStrokeStyle(isHighlighted ? 5 : 0, 0xfacc15, isHighlighted ? 0.65 : 0);
       card.glow.setFillStyle(0xfacc15, isHighlighted ? 0.12 : 0);
       card.label.setFontSize(card.baseFontSize);
-      card.label.setColor('#f8fafc');
+      card.label.setColor(viewCard ? CARD_COLORS.ivoryText : CARD_COLORS.mutedText);
 
-      card.background.setAlpha(viewCard ? 1 : 0.42);
-      card.label.setAlpha(viewCard ? 1 : 0.45);
-
-      card.glow.setPosition(card.baseX, card.baseY).setScale(1).setDepth(card.baseDepth);
-      card.background.setPosition(card.baseX, card.baseY).setScale(1).setDepth(card.baseDepth + 1);
-      card.label.setPosition(card.labelBaseX, card.labelBaseY).setScale(1).setDepth(card.baseDepth + 2);
+      card.root.setAlpha(viewCard ? 1 : 0.45);
+      card.root.setPosition(card.baseX, card.baseY).setScale(1).setDepth(card.baseDepth);
     });
 
     if (showPreview) {

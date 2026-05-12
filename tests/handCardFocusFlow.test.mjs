@@ -5,7 +5,7 @@ import test from 'node:test';
 const source = fs.readFileSync('src/scenes/BattleScene.js', 'utf8');
 const zoomMethod = source.slice(
   source.indexOf('  showSelectedHandCardZoom()'),
-  source.indexOf('  resetCardHighlights()'),
+  source.indexOf('  resetCardHighlights({ showPreview = true } = {})'),
 );
 
 test('hand card zoom is visual-only and avoids focus gameplay state', () => {
@@ -75,7 +75,7 @@ test('gameplay zoom nudges to center while mulligan preview stays above its hand
   assert.match(source, /this\.layout\.action\.y \+ this\.layout\.action\.h \+ zoomHeight \/ 2 \+ 6/);
   assert.match(source, /this\.layout\.playerHero\.y[\s\S]*\+ this\.layout\.playerHero\.h[\s\S]*\+ SELECTED_HAND_CARD_PLAYER_HERO_CLEARANCE/);
   assert.match(source, /const clampedY = minY <= maxY \? Phaser\.Math\.Clamp\(targetY, minY, maxY\) : maxY;/);
-  assert.match(source, /this\.tweens\.add\(\{\s*targets: \[glow, background\]/);
+  assert.match(source, /this\.tweens\.add\(\{\s*targets: previewView\.root/);
   assert.match(source, /x: Phaser\.Math\.Clamp\(targetX, minX, maxX\),/);
   assert.match(source, /y: clampedY,/);
 });
