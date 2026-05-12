@@ -9,6 +9,7 @@ import BattleMenuScene from './scenes/BattleMenuScene.js';
 import RulesPanelScene from './scenes/RulesPanelScene.js';
 import { installSessionLifecycle } from './systems/sessionLifecycle.js';
 import { installFullscreenPortraitFit } from './systems/fullscreenPortraitFit.js';
+import { installHighDpiCanvas } from './rendering/highDpiCanvas.js';
 
 const config = {
   type: Phaser.AUTO,
@@ -21,9 +22,15 @@ const config = {
     autoCenter: Phaser.Scale.CENTER_BOTH,
     fullscreenTarget: 'app',
   },
+  render: {
+    antialias: true,
+    antialiasGL: true,
+    pixelArt: false,
+  },
   scene: [StartScene, MainMenuScene, FactionSelectScene, CollectionScene, SettingsScene, BattleScene, BattleMenuScene, RulesPanelScene],
 };
 
 const game = new Phaser.Game(config);
+installHighDpiCanvas(game);
 installSessionLifecycle(game);
 installFullscreenPortraitFit(game);

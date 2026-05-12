@@ -11,6 +11,7 @@ import {
 } from '../rendering/backgroundArt.js';
 import { createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
 import { translateActive } from '../localization/localeService.js';
+import { getTextureSourceSize, setCrispLogoDisplaySize } from '../rendering/logoRendering.js';
 
 const MAIN_MENU_TITLE_TEXT = 'GRIDFALL TACTICS';
 const MAIN_MENU_LOGO_PUBLIC_PATH = 'assets/ui/gridfall-logo.png';
@@ -160,12 +161,15 @@ export default class MainMenuScene extends Phaser.Scene {
       MAIN_MENU_LOGO_LAYOUT.maxDisplayHeight,
       safeLogoHeight,
     );
-    if (!logo.width || !logo.height) {
+    const sourceSize = getTextureSourceSize(this, MAIN_MENU_LOGO_ASSET.key);
+    if (!sourceSize.width || !sourceSize.height) {
       return;
     }
 
-    const logoScale = Math.min(maxLogoWidth / logo.width, maxLogoHeight / logo.height);
-    logo.setScale(logoScale);
+    const logoScale = Math.min(maxLogoWidth / sourceSize.width, maxLogoHeight / sourceSize.height);
+    const displayWidth = sourceSize.width * logoScale;
+    const displayHeight = sourceSize.height * logoScale;
+    setCrispLogoDisplaySize(this, logo, MAIN_MENU_LOGO_ASSET.key, displayWidth, displayHeight, 'main-menu');
   }
 
   drawNavigationControls() {

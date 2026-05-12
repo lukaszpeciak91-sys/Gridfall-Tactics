@@ -86,7 +86,9 @@ test('StartScene uses optional logo art with text fallback and responsive layout
   assert.match(startSource, /maxDisplayHeight: 360/);
   assert.match(startSource, /minButtonGap: 28/);
   assert.match(startSource, /safeLogoHeight/);
-  assert.match(startSource, /Math\.min\(maxLogoWidth \/ logo\.width, maxLogoHeight \/ logo\.height\)/);
+  assert.match(startSource, /getTextureSourceSize\(this, START_LOGO_ASSET\.key\)/);
+  assert.match(startSource, /Math\.min\(maxLogoWidth \/ sourceSize\.width, maxLogoHeight \/ sourceSize\.height\)/);
+  assert.match(startSource, /setCrispLogoDisplaySize\(this, logo, START_LOGO_ASSET\.key, displayWidth, displayHeight, 'start'\)/);
   assert.match(startSource, /this\.scale\.on\('resize', this\.layoutStartScene, this\)/);
   assert.match(startSource, /START_BUTTON_Y_RATIO = 0\.61/);
   assert.match(startSource, /this\.startButton\.setPosition\(width \/ 2, height \* START_BUTTON_Y_RATIO\)/);
@@ -106,7 +108,9 @@ test('StartScene uses optional logo art with text fallback and responsive layout
   assert.match(mainMenuSource, /maxDisplayHeight: 220/);
   assert.match(mainMenuSource, /minButtonGap: 18/);
   assert.match(mainMenuSource, /safeLogoHeight/);
-  assert.match(mainMenuSource, /Math\.min\(maxLogoWidth \/ logo\.width, maxLogoHeight \/ logo\.height\)/);
+  assert.match(mainMenuSource, /getTextureSourceSize\(this, MAIN_MENU_LOGO_ASSET\.key\)/);
+  assert.match(mainMenuSource, /Math\.min\(maxLogoWidth \/ sourceSize\.width, maxLogoHeight \/ sourceSize\.height\)/);
+  assert.match(mainMenuSource, /setCrispLogoDisplaySize\(this, logo, MAIN_MENU_LOGO_ASSET\.key, displayWidth, displayHeight, 'main-menu'\)/);
   assert.match(mainMenuSource, /this\.scale\.on\('resize', this\.layoutMainMenuScene, this\)/);
 
   assert.match(logoDocs, /public\/assets\/ui\/gridfall-logo\.png/);

@@ -10,6 +10,7 @@ import {
   resolvePublicAssetPath,
 } from '../rendering/backgroundArt.js';
 import { translateActive } from '../localization/localeService.js';
+import { getTextureSourceSize, setCrispLogoDisplaySize } from '../rendering/logoRendering.js';
 
 const START_TRANSITION_MS = 320;
 const START_TITLE_TEXT = 'GRIDFALL TACTICS';
@@ -153,12 +154,15 @@ export default class StartScene extends Phaser.Scene {
       START_LOGO_LAYOUT.maxDisplayHeight,
       safeLogoHeight,
     );
-    if (!logo.width || !logo.height) {
+    const sourceSize = getTextureSourceSize(this, START_LOGO_ASSET.key);
+    if (!sourceSize.width || !sourceSize.height) {
       return;
     }
 
-    const logoScale = Math.min(maxLogoWidth / logo.width, maxLogoHeight / logo.height);
-    logo.setScale(logoScale);
+    const logoScale = Math.min(maxLogoWidth / sourceSize.width, maxLogoHeight / sourceSize.height);
+    const displayWidth = sourceSize.width * logoScale;
+    const displayHeight = sourceSize.height * logoScale;
+    setCrispLogoDisplaySize(this, logo, START_LOGO_ASSET.key, displayWidth, displayHeight, 'start');
   }
 
   playStartTransition(title, startButton) {
