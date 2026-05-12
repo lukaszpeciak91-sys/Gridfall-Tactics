@@ -16,18 +16,20 @@ import {
   getStartHeroLogoPosition,
   setStartHeroLogoDisplaySize,
 } from '../ui/menuLogoLayout.js';
+import { preloadSecondaryButtonAsset } from '../ui/imageButton.js';
 
-const START_TRANSITION_MS = 680;
+const START_TRANSITION_MS = 720;
 const START_TITLE_DEPTH = 5;
 const START_HIT_AREA_DEPTH = START_TITLE_DEPTH + 1;
-const START_HOVER_SCALE = 1.035;
-const START_PRESS_SCALE = 0.975;
+const START_HOVER_SCALE = 1.04;
+const START_PRESS_SCALE = 0.965;
 const START_HIT_MIN_WIDTH = 320;
 const START_HIT_MIN_HEIGHT = 120;
 const START_HIT_HEIGHT_MULTIPLIER = 1.45;
-const START_IDLE_PULSE_ALPHA = 0.94;
+const START_IDLE_PULSE_ALPHA = 0.96;
 const START_IDLE_PULSE_MS = 1800;
-const START_FEEDBACK_MS = 130;
+const START_FEEDBACK_MS = 120;
+const START_MENU_REVEAL_LAG_MS = 90;
 
 export default class StartScene extends Phaser.Scene {
   constructor() {
@@ -46,6 +48,7 @@ export default class StartScene extends Phaser.Scene {
     preloadImageAsset(this, GRIDFALL_LOGO_ASSET, {
       onError: (asset) => console.warn(`Start logo failed to load: ${asset.path}`),
     });
+    preloadSecondaryButtonAsset(this);
   }
 
   create() {
@@ -204,6 +207,18 @@ export default class StartScene extends Phaser.Scene {
     setStartHeroLogoDisplaySize(this, logo, width, height);
   }
 
+  revealMainMenuAfterSharedLogo() {
+    const mainMenu = this.scene.get('MainMenuScene');
+
+    if (mainMenu?.completeStartLogoTransition) {
+      mainMenu.completeStartLogoTransition();
+    }
+
+    this.time.delayedCall(START_MENU_REVEAL_LAG_MS, () => {
+      this.scene.stop('StartScene');
+    });
+  }
+
   playStartTransition() {
     if (this.isTransitioning || !this.title) {
       return;
@@ -217,6 +232,9 @@ export default class StartScene extends Phaser.Scene {
     if (this.title.clearTint) {
       this.title.clearTint();
     }
+
+    this.scene.launch('MainMenuScene', { revealFromStart: true, awaitSharedLogo: true });
+    this.scene.bringToTop('StartScene');
 
     const mainMenuPosition = getMainMenuLogoPosition(this.scale.width, this.scale.height);
     const mainMenuLogoSize = calculateMainMenuLogoDisplaySize(this, this.scale.width, this.scale.height);
@@ -240,12 +258,12 @@ export default class StartScene extends Phaser.Scene {
 
     this.tweens.add({
       targets: this.title,
-      alpha: 0,
-      delay: Math.round(START_TRANSITION_MS * 0.62),
-      duration: Math.round(START_TRANSITION_MS * 0.38),
+      alpha: 0.18,
+      delay: Math.round(START_TRANSITION_MS * 0.72),
+      duration: Math.round(START_TRANSITION_MS * 0.28),
       ease: 'Sine.easeInOut',
       onComplete: () => {
-        this.scene.start('MainMenuScene', { revealFromStart: true });
+        this.revealMainMenuAfterSharedLogo();
       },
     });
   }

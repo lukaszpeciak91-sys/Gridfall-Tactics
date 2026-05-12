@@ -10,10 +10,10 @@ export const GRIDFALL_LOGO_ASSET = {
 };
 
 export const START_HERO_LOGO_LAYOUT = {
-  centerYRatio: 0.4,
-  maxWidthRatio: 0.98,
-  maxHeightRatio: 0.62,
-  maxDisplayHeight: 720,
+  centerYRatio: 0.39,
+  maxWidthRatio: 1.22,
+  maxHeightRatio: 0.76,
+  maxDisplayHeight: 920,
 };
 
 export const MAIN_MENU_FIRST_BUTTON_Y_RATIO = 0.31;
@@ -102,7 +102,7 @@ export function setMainMenuLogoDisplaySize(scene, logo, width, height) {
 export function createLogoFallbackText(scene, x, y, translationKey, fontSize, wordWrapWidth) {
   return scene.add
     .text(x, y, translateActive(translationKey, GRIDFALL_LOGO_TEXT), {
-      fontFamily: 'Arial, sans-serif',
+      fontFamily: '"Rajdhani", "Exo 2", "Montserrat", "Segoe UI", sans-serif',
       fontSize,
       fontStyle: 'bold',
       color: '#f8fafc',
