@@ -86,16 +86,20 @@ test('StartScene uses optional logo art as the primary CTA with shared responsiv
   assert.match(logoLayoutSource, /translateActive\(translationKey, GRIDFALL_LOGO_TEXT\)/);
   assert.match(startSource, /START_TITLE_DEPTH = 5/);
   assert.match(startSource, /START_HOVER_SCALE = 1\.035/);
-  assert.match(startSource, /START_IDLE_SCALE = 1\.008/);
-  assert.match(logoLayoutSource, /centerYRatio: 0\.27/);
-  assert.match(logoLayoutSource, /maxWidthRatio: 0\.96/);
-  assert.match(logoLayoutSource, /maxHeightRatio: 0\.52/);
-  assert.match(logoLayoutSource, /maxDisplayHeight: 520/);
+  assert.match(startSource, /START_PRESS_SCALE = 0\.985/);
+  assert.doesNotMatch(startSource, /titleGlow/);
+  assert.doesNotMatch(startSource, /START_LOGO_GLOW_DEPTH/);
+  assert.doesNotMatch(startSource, /startLogoIdleMotion/);
+  assert.match(logoLayoutSource, /centerYRatio: 0\.35/);
+  assert.match(logoLayoutSource, /maxWidthRatio: 0\.92/);
+  assert.match(logoLayoutSource, /maxHeightRatio: 0\.56/);
+  assert.match(logoLayoutSource, /maxDisplayHeight: 620/);
   assert.match(logoLayoutSource, /getTextureSourceSize\(scene, GRIDFALL_LOGO_ASSET\.key\)/);
   assert.match(logoLayoutSource, /Math\.min\(maxLogoWidth \/ sourceSize\.width, maxLogoHeight \/ sourceSize\.height\)/);
   assert.match(logoLayoutSource, /setCrispLogoDisplaySize\(scene, logo, GRIDFALL_LOGO_ASSET\.key, displaySize\.width, displaySize\.height, 'start-hero'\)/);
   assert.match(startSource, /this\.scale\.on\('resize', this\.layoutStartScene, this\)/);
-  assert.match(startSource, /calculateMainMenuLogoDisplaySize\(this, width, height\)/);
+  assert.doesNotMatch(startSource, /calculateMainMenuLogoDisplaySize\(this, width, height\)/);
+  assert.match(startSource, /this\.cameras\.main\.fadeOut\(START_TRANSITION_MS, 2, 6, 23\)/);
   assert.match(startSource, /this\.scene\.start\('MainMenuScene', \{ revealFromStart: true \}\)/);
 
   assert.match(mainMenuSource, /preloadImageAsset\(this, GRIDFALL_LOGO_ASSET/);

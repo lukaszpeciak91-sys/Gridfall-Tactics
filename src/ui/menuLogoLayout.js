@@ -10,10 +10,10 @@ export const GRIDFALL_LOGO_ASSET = {
 };
 
 export const START_HERO_LOGO_LAYOUT = {
-  centerYRatio: 0.27,
-  maxWidthRatio: 0.96,
-  maxHeightRatio: 0.52,
-  maxDisplayHeight: 520,
+  centerYRatio: 0.35,
+  maxWidthRatio: 0.92,
+  maxHeightRatio: 0.56,
+  maxDisplayHeight: 620,
 };
 
 export const MAIN_MENU_FIRST_BUTTON_Y_RATIO = 0.31;
