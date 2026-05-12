@@ -4,6 +4,7 @@ import MainMenuScene from './scenes/MainMenuScene.js';
 import FactionSelectScene from './scenes/FactionSelectScene.js';
 import CollectionScene from './scenes/CollectionScene.js';
 import SettingsScene from './scenes/SettingsScene.js';
+import TutorialScene from './scenes/TutorialScene.js';
 import BattleScene from './scenes/BattleScene.js';
 import BattleMenuScene from './scenes/BattleMenuScene.js';
 import RulesPanelScene from './scenes/RulesPanelScene.js';
@@ -27,7 +28,7 @@ const config = {
     antialiasGL: true,
     pixelArt: false,
   },
-  scene: [StartScene, MainMenuScene, FactionSelectScene, CollectionScene, SettingsScene, BattleScene, BattleMenuScene, RulesPanelScene],
+  scene: [StartScene, MainMenuScene, FactionSelectScene, CollectionScene, SettingsScene, TutorialScene, BattleScene, BattleMenuScene, RulesPanelScene],
 };
 
 const game = new Phaser.Game(config);

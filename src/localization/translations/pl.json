@@ -459,6 +459,17 @@
         "lane": "Aleja",
         "none": "Brak"
       }
+    },
+    "tutorial": {
+      "title": "SAMOUCZEK",
+      "subtitle": "Podstawy bitwy",
+      "steps": [
+        "Wybierz frakcję w Arenie.",
+        "Zagrywaj jednostki na linie, aby naciskać wrogiego bohatera.",
+        "Używaj kart efektów i zamian, aby kontrolować tempo walki.",
+        "Zakończ turę po wykorzystaniu akcji.",
+        "Obniż PŻ wrogiego bohatera do 0, aby wygrać."
+      ]
     }
   }
 }

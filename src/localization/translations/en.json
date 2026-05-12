@@ -459,6 +459,17 @@
         "lane": "Lane",
         "none": "None"
       }
+    },
+    "tutorial": {
+      "title": "TUTORIAL",
+      "subtitle": "Battle basics",
+      "steps": [
+        "Pick a faction in Arena.",
+        "Play units into lanes to pressure the enemy hero.",
+        "Use effect cards and swaps to control combat timing.",
+        "End your turn after spending your action.",
+        "Reduce the enemy hero to 0 HP to win."
+      ]
     }
   },
   "diagnostics": {

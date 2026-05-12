@@ -106,6 +106,30 @@ export function createImageButton(scene, {
   };
 }
 
+export function resetImageButtonState(button, { interactive = true } = {}) {
+  if (!button) {
+    return;
+  }
+
+  [button.shadow, button.core, button.backing, button.text].forEach((item) => {
+    item?.setAlpha?.(1);
+    item?.setScale?.(1);
+    item?.setVisible?.(true);
+  });
+  button.glow?.setAlpha?.(0);
+  button.glow?.setScale?.(1);
+  button.glow?.setVisible?.(true);
+  button.hitZone?.setAlpha?.(1);
+  button.hitZone?.setScale?.(1);
+  button.hitZone?.setVisible?.(true);
+
+  if (interactive) {
+    button.hitZone?.setInteractive?.({ useHandCursor: true });
+  } else {
+    button.hitZone?.disableInteractive?.();
+  }
+}
+
 export function destroyImageButton(button) {
   button?.items?.forEach((item) => item?.destroy?.());
 }
