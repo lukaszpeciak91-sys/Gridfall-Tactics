@@ -123,11 +123,8 @@ test('hand/full formatter includes effect card textShort without unit stats', ()
   assert.equal(formatHandCardLabel(card), 'Repair Kit\nHeal 3.');
 });
 
-test('battle hand labels route through HAND/FULL formatter and preserve visible output', () => {
+test('battle hand cards route content through card visual layout helpers and preserve formatter output', () => {
   const source = fs.readFileSync('src/scenes/BattleScene.js', 'utf8');
-  const start = source.indexOf('  getHandCardLabel(card) {');
-  const end = source.indexOf('  onCardPointerDown(cardId) {');
-  const handLabelSource = source.slice(start, end);
   const unitCard = {
     name: 'Shield Drone',
     type: 'unit',
@@ -142,11 +139,11 @@ test('battle hand labels route through HAND/FULL formatter and preserve visible 
     textShort: 'Heal 3.',
   };
 
-  assert.match(source, /import \{ formatDeckSummaryEntry, formatHandCardLabel \} from '\.\.\/rendering\/cardRenderModes\.js';/);
-  assert.match(source, /import \{ getActiveLocale, translateActive \} from '\.\.\/localization\/localeService\.js';/);
-  assert.match(handLabelSource, /return formatHandCardLabel\(card, getActiveLocale\(\)\);/);
-  assert.doesNotMatch(handLabelSource, /card\.textShort/);
-  assert.doesNotMatch(handLabelSource, /`\$\{atk\}\/\$\{hp\} ARM \$\{armor\}`/);
+  assert.match(source, /import \{ formatDeckSummaryEntry \} from '\.\.\/rendering\/cardRenderModes\.js';/);
+  assert.match(source, /getCardDisplayContent\(card, getActiveLocale\(\)\)/);
+  assert.match(source, /getCardStatValues\(card\)/);
+  assert.doesNotMatch(source, /card\.textShort/);
+  assert.doesNotMatch(source, /`\$\{atk\}\/\$\{hp\} ARM \$\{armor\}`/);
   assert.equal(formatHandCardLabel(unitCard), 'Shield Drone\n1/4 ARM 2\nBlocks lane. Cannot attack.');
   assert.equal(formatHandCardLabel(effectCard), 'Repair Kit\nHeal 3.');
   assert.equal(formatHandCardLabel(null), 'Empty');
@@ -166,7 +163,7 @@ test('deck info panel routes card summary entries through render mode formatter'
   const end = source.indexOf('  drawHand() {');
   const deckInfoSummarySource = source.slice(start, end);
 
-  assert.match(source, /import \{ formatDeckSummaryEntry, formatHandCardLabel \} from '\.\.\/rendering\/cardRenderModes\.js';/);
+  assert.match(source, /import \{ formatDeckSummaryEntry \} from '\.\.\/rendering\/cardRenderModes\.js';/);
   assert.match(deckInfoSummarySource, /const entry = formatDeckSummaryEntry\(card, getActiveLocale\(\)\);/);
   assert.doesNotMatch(deckInfoSummarySource, /const name = card\.name \?\? 'Unknown Card'/);
   assert.doesNotMatch(deckInfoSummarySource, /card\.type === 'effect' \? 'Effect' : 'Unit'/);
@@ -197,8 +194,8 @@ test('visible UI surfaces route names through active-locale presentation helpers
 
   assert.match(battleSource, /getEnemyActionMessage\(action, card\) \{[\s\S]*const cardName = getCardDisplayName\(card, getActiveLocale\(\)\) \?\? translateActive\('ui\.common\.unknownCard', 'Unknown Card'\);/);
   assert.match(battleSource, /getBoardUnitLabel\(unit\) \{[\s\S]*const name = getCardDisplayName\(unit, getActiveLocale\(\)\) \?\? translateActive\('ui\.common\.unit', 'Unit'\);/);
-  assert.match(battleSource, /getHandCardLabel\(card\) \{[\s\S]*return formatHandCardLabel\(card, getActiveLocale\(\)\);/);
-  assert.match(battleSource, /showSelectedHandCardZoom\(\) \{[\s\S]*const label = this\.getHandCardLabel\(card\);/);
+  assert.match(battleSource, /createHandCardView\(\{ card, cardId, x, y, width, height, accentColor, depth \}\) \{[\s\S]*getCardDisplayContent\(card, getActiveLocale\(\)\)/);
+  assert.match(battleSource, /showSelectedHandCardZoom\(\) \{[\s\S]*this\.createHandCardView\(\{/);
   assert.match(collectionSource, /formatCollectionRowLabel\(card, getActiveLocale\(\)\)/);
   assert.match(collectionSource, /formatCardDetailLines\(card, getActiveLocale\(\)\)/);
   assert.match(collectionSource, /getFactionPresentationName\(faction\?\.id, getActiveLocale\(\), faction\?\.name \?\? factionKey\)/);

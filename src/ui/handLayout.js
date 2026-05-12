@@ -1,5 +1,5 @@
 export const MAX_VISIBLE_HAND_CARDS = 5;
-export const HAND_CARD_ASPECT_RATIO = 1.34;
+export const HAND_CARD_ASPECT_RATIO = 1.46;
 export const MIN_HAND_CONTROL_TOUCH_SIZE = 48;
 export const MAX_HAND_CONTROL_TOUCH_SIZE = 58;
 
