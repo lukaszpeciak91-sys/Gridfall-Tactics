@@ -9,7 +9,12 @@ import {
   preloadMenuBackgroundArt,
 } from '../rendering/backgroundArt.js';
 import { createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
-import { createImageButton, preloadSecondaryButtonAsset, resetImageButtonState } from '../ui/imageButton.js';
+import {
+  PREMIUM_BROADCAST_FONT_STACK,
+  createImageButton,
+  preloadSecondaryButtonAsset,
+  resetImageButtonState,
+} from '../ui/imageButton.js';
 import { translateActive } from '../localization/localeService.js';
 import {
   GRIDFALL_LOGO_ASSET,
@@ -24,7 +29,10 @@ const MAIN_MENU_REVEAL_DELAY_MS = 80;
 const MAIN_MENU_REVEAL_MS = 320;
 const MAIN_MENU_SHARED_REVEAL_FALLBACK_MS = 1400;
 
-const MAIN_MENU_BUTTON_HEIGHT = 76;
+const MAIN_MENU_BUTTON_WIDTH_RATIO = 0.73;
+const MAIN_MENU_BUTTON_HEIGHT = 58;
+const MAIN_MENU_BUTTON_VERTICAL_GAP = 28;
+const MAIN_MENU_BUTTON_FONT_SIZE = 32;
 
 
 export default class MainMenuScene extends Phaser.Scene {
@@ -74,8 +82,8 @@ export default class MainMenuScene extends Phaser.Scene {
 
     this.title = this.createTitle(width, height);
 
-    const buttonWidth = Math.min(width - 64, Math.max(292, Math.round(width * 0.8)), 320);
-    const buttonGap = 88;
+    const buttonWidth = Math.round(width * MAIN_MENU_BUTTON_WIDTH_RATIO);
+    const buttonGap = MAIN_MENU_BUTTON_HEIGHT + MAIN_MENU_BUTTON_VERTICAL_GAP;
     const startY = height * MAIN_MENU_FIRST_BUTTON_Y_RATIO;
 
     this.createMenuButton(width / 2, startY, buttonWidth, translateActive('ui.mainMenu.arena', 'ARENA'), () => {
@@ -96,7 +104,7 @@ export default class MainMenuScene extends Phaser.Scene {
 
     this.statusText = this.add
       .text(width / 2, Math.min(height - 112, startY + buttonGap * 3 + 70), '', {
-        fontFamily: '"Rajdhani", "Exo 2", "Montserrat", "Segoe UI", sans-serif',
+        fontFamily: PREMIUM_BROADCAST_FONT_STACK,
         fontSize: '15px',
         color: '#fde68a',
         align: 'center',
@@ -303,16 +311,19 @@ export default class MainMenuScene extends Phaser.Scene {
       label,
       onPointerUp,
       depth: 4,
-      fontSize: '30px',
+      fontSize: `${MAIN_MENU_BUTTON_FONT_SIZE}px`,
       textStyle: {
-        color: '#fff8e7',
-        fontFamily: '"Rajdhani", "Exo 2", "Montserrat", "Segoe UI", sans-serif',
-        fontStyle: '600',
-        letterSpacing: 1.6,
+        color: '#f5f1e6',
+        fontFamily: PREMIUM_BROADCAST_FONT_STACK,
+        fontStyle: '700',
+        letterSpacing: 1.8,
       },
       fallbackFill: 0x93c5fd,
       fallbackStroke: 0xbfdbfe,
       fallbackStrokeAlpha: 0.7,
+      shadowAlpha: 0.24,
+      hoverScale: 1.02,
+      downScale: 0.98,
     });
 
     button.items.forEach((item) => {
