@@ -7,41 +7,37 @@ import {
   getMenuBackgroundAsset,
   preloadImageAsset,
   preloadMenuBackgroundArt,
-  resolvePublicAssetPath,
 } from '../rendering/backgroundArt.js';
-import { translateActive } from '../localization/localeService.js';
-import { getTextureSourceSize, setCrispLogoDisplaySize } from '../rendering/logoRendering.js';
+import {
+  GRIDFALL_LOGO_ASSET,
+  calculateMainMenuLogoDisplaySize,
+  createLogoFallbackText,
+  getMainMenuLogoPosition,
+  getStartHeroLogoPosition,
+  setStartHeroLogoDisplaySize,
+} from '../ui/menuLogoLayout.js';
 
-const START_TRANSITION_MS = 320;
-const START_TITLE_TEXT = 'GRIDFALL TACTICS';
-const START_LOGO_PUBLIC_PATH = 'assets/ui/gridfall-logo.png';
-const START_LOGO_ASSET = {
-  key: 'ui.logo.gridfall',
-  path: resolvePublicAssetPath(START_LOGO_PUBLIC_PATH),
-};
+const START_TRANSITION_MS = 360;
 const START_TITLE_DEPTH = 5;
-const START_BUTTON_DEPTH = 10;
-const START_BUTTON_Y_RATIO = 0.61;
-const START_BUTTON_SAFE_TOP_OFFSET = 38;
-const START_LOGO_LAYOUT = {
-  topRatio: 0.148,
-  maxWidthRatio: 0.89,
-  maxHeightRatio: 0.38,
-  maxDisplayHeight: 360,
-  minButtonGap: 28,
-};
+const START_LOGO_GLOW_DEPTH = START_TITLE_DEPTH - 1;
+const START_HOVER_SCALE = 1.035;
+const START_IDLE_SCALE = 1.008;
+const START_IDLE_FLOAT_PX = 4;
 
 export default class StartScene extends Phaser.Scene {
   constructor() {
     super('StartScene');
     this.isTransitioning = false;
     this.title = null;
-    this.startButton = null;
+    this.titleGlow = null;
+    this.titleBaseScale = { x: 1, y: 1 };
+    this.titleBaseY = 0;
+    this.titleHovering = false;
   }
 
   preload() {
     preloadMenuBackgroundArt(this);
-    preloadImageAsset(this, START_LOGO_ASSET, {
+    preloadImageAsset(this, GRIDFALL_LOGO_ASSET, {
       onError: (asset) => console.warn(`Start logo failed to load: ${asset.path}`),
     });
   }
@@ -49,6 +45,7 @@ export default class StartScene extends Phaser.Scene {
   create() {
     const { width, height } = this.scale;
     this.isTransitioning = false;
+    this.titleHovering = false;
 
     this.cameras.main.setBackgroundColor(MENU_BACKGROUND_FALLBACK_COLOR_HEX);
     createCoverBackground(this, {
@@ -60,35 +57,8 @@ export default class StartScene extends Phaser.Scene {
     createMenuArenaLightSweep(this, { width, height });
 
     this.title = this.createTitle(width, height);
-
-    this.startButton = this.add
-      .text(width / 2, height * START_BUTTON_Y_RATIO, translateActive('ui.start.start', 'START'), {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '36px',
-        fontStyle: 'bold',
-        color: '#111827',
-        backgroundColor: '#93c5fd',
-        padding: { x: 28, y: 14 },
-      })
-      .setOrigin(0.5)
-      .setDepth(START_BUTTON_DEPTH)
-      .setInteractive({ useHandCursor: true });
-
-    this.startButton.on('pointerover', () => {
-      if (!this.isTransitioning) {
-        this.startButton.setBackgroundColor('#bfdbfe');
-      }
-    });
-
-    this.startButton.on('pointerout', () => {
-      if (!this.isTransitioning) {
-        this.startButton.setBackgroundColor('#93c5fd');
-      }
-    });
-
-    this.startButton.on('pointerup', () => {
-      this.playStartTransition(this.title, this.startButton);
-    });
+    this.configureLogoActivation(this.title);
+    this.startLogoIdleMotion();
 
     this.scale.on('resize', this.layoutStartScene, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
@@ -97,29 +67,108 @@ export default class StartScene extends Phaser.Scene {
   }
 
   createTitle(width, height) {
-    if (this.textures.exists(START_LOGO_ASSET.key)) {
-      const logo = this.add
-        .image(width / 2, height * START_LOGO_LAYOUT.topRatio, START_LOGO_ASSET.key)
-        .setOrigin(0.5, 0)
-        .setDepth(START_TITLE_DEPTH);
+    const position = getStartHeroLogoPosition(width, height);
 
-      logo.disableInteractive();
+    if (this.textures.exists(GRIDFALL_LOGO_ASSET.key)) {
+      this.titleGlow = this.add
+        .image(position.x, position.y, GRIDFALL_LOGO_ASSET.key)
+        .setOrigin(0.5)
+        .setDepth(START_LOGO_GLOW_DEPTH)
+        .setAlpha(0.16)
+        .setTint(0x93c5fd)
+        .setBlendMode(Phaser.BlendModes.ADD);
+
+      const logo = this.add.image(position.x, position.y, GRIDFALL_LOGO_ASSET.key).setOrigin(0.5).setDepth(START_TITLE_DEPTH);
       this.scaleLogoToFit(logo, width, height);
+      this.scaleLogoGlowToMatch();
       return logo;
     }
 
-    return this.add
-      .text(width / 2, height * START_LOGO_LAYOUT.topRatio, translateActive('ui.start.title', START_TITLE_TEXT), {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '40px',
-        fontStyle: 'bold',
-        color: '#f9fafb',
-        align: 'center',
-        wordWrap: { width: width * 0.9 },
-      })
-      .setOrigin(0.5, 0)
+    return createLogoFallbackText(this, position.x, position.y, 'ui.start.title', '48px', width * 0.9)
       .setDepth(START_TITLE_DEPTH)
-      .disableInteractive();
+      .setShadow(0, 0, '#93c5fd', 14, true, true);
+  }
+
+  configureLogoActivation(title) {
+    this.captureLogoBaseTransform();
+    title.setInteractive({ useHandCursor: true });
+    title.on('pointerover', () => this.setLogoHoverState(true));
+    title.on('pointerout', () => this.setLogoHoverState(false));
+    title.on('pointerdown', () => this.setLogoHoverState(true, 1.018));
+    title.on('pointerup', () => this.playStartTransition());
+  }
+
+  captureLogoBaseTransform() {
+    if (!this.title) {
+      return;
+    }
+
+    this.titleBaseScale = { x: this.title.scaleX, y: this.title.scaleY };
+    this.titleBaseY = this.title.y;
+  }
+
+  setLogoHoverState(isHovering, scaleMultiplier = START_HOVER_SCALE) {
+    if (this.isTransitioning || !this.title) {
+      return;
+    }
+
+    this.titleHovering = isHovering;
+    const multiplier = isHovering ? scaleMultiplier : START_IDLE_SCALE;
+    const glowAlpha = isHovering ? 0.28 : 0.16;
+    const logoAlpha = isHovering ? 1 : 0.96;
+
+    this.tweens.add({
+      targets: this.title,
+      scaleX: this.titleBaseScale.x * multiplier,
+      scaleY: this.titleBaseScale.y * multiplier,
+      alpha: logoAlpha,
+      duration: 120,
+      ease: 'Sine.easeOut',
+    });
+
+    if (this.titleGlow) {
+      this.tweens.add({
+        targets: this.titleGlow,
+        scaleX: this.titleBaseScale.x * multiplier * 1.04,
+        scaleY: this.titleBaseScale.y * multiplier * 1.04,
+        alpha: glowAlpha,
+        duration: 120,
+        ease: 'Sine.easeOut',
+      });
+    }
+  }
+
+  startLogoIdleMotion() {
+    if (!this.title) {
+      return;
+    }
+
+    this.title.setAlpha(0.96);
+    this.tweens.add({
+      targets: this.title,
+      y: this.titleBaseY + START_IDLE_FLOAT_PX,
+      scaleX: this.titleBaseScale.x * START_IDLE_SCALE,
+      scaleY: this.titleBaseScale.y * START_IDLE_SCALE,
+      alpha: 1,
+      duration: 2600,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
+    });
+
+    if (this.titleGlow) {
+      this.tweens.add({
+        targets: this.titleGlow,
+        y: this.titleBaseY + START_IDLE_FLOAT_PX,
+        scaleX: this.titleBaseScale.x * 1.05,
+        scaleY: this.titleBaseScale.y * 1.05,
+        alpha: 0.24,
+        duration: 2600,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+      });
+    }
   }
 
   layoutStartScene(gameSize) {
@@ -129,67 +178,77 @@ export default class StartScene extends Phaser.Scene {
 
     const width = gameSize?.width ?? this.scale.width;
     const height = gameSize?.height ?? this.scale.height;
+    const position = getStartHeroLogoPosition(width, height);
 
     if (this.title) {
-      this.title.setPosition(width / 2, height * START_LOGO_LAYOUT.topRatio);
+      this.title.setPosition(position.x, position.y);
       if (this.title.type === 'Image') {
         this.scaleLogoToFit(this.title, width, height);
+        this.scaleLogoGlowToMatch();
       } else if (this.title.setWordWrapWidth) {
         this.title.setWordWrapWidth(width * 0.9);
       }
-    }
-
-    if (this.startButton) {
-      this.startButton.setPosition(width / 2, height * START_BUTTON_Y_RATIO);
+      this.captureLogoBaseTransform();
     }
   }
 
   scaleLogoToFit(logo, width, height) {
-    const maxLogoWidth = width * START_LOGO_LAYOUT.maxWidthRatio;
-    const logoTop = height * START_LOGO_LAYOUT.topRatio;
-    const buttonSafeTop = height * START_BUTTON_Y_RATIO - START_BUTTON_SAFE_TOP_OFFSET;
-    const safeLogoHeight = Math.max(0, buttonSafeTop - logoTop - START_LOGO_LAYOUT.minButtonGap);
-    const maxLogoHeight = Math.min(
-      height * START_LOGO_LAYOUT.maxHeightRatio,
-      START_LOGO_LAYOUT.maxDisplayHeight,
-      safeLogoHeight,
-    );
-    const sourceSize = getTextureSourceSize(this, START_LOGO_ASSET.key);
-    if (!sourceSize.width || !sourceSize.height) {
+    setStartHeroLogoDisplaySize(this, logo, width, height);
+  }
+
+  scaleLogoGlowToMatch() {
+    if (!this.title || !this.titleGlow) {
       return;
     }
 
-    const logoScale = Math.min(maxLogoWidth / sourceSize.width, maxLogoHeight / sourceSize.height);
-    const displayWidth = sourceSize.width * logoScale;
-    const displayHeight = sourceSize.height * logoScale;
-    setCrispLogoDisplaySize(this, logo, START_LOGO_ASSET.key, displayWidth, displayHeight, 'start');
+    this.titleGlow.setTexture(this.title.texture.key);
+    this.titleGlow.setPosition(this.title.x, this.title.y);
+    this.titleGlow.setScale(this.title.scaleX * 1.04, this.title.scaleY * 1.04);
   }
 
-  playStartTransition(title, startButton) {
-    if (this.isTransitioning) {
+  playStartTransition() {
+    if (this.isTransitioning || !this.title) {
       return;
     }
 
     this.isTransitioning = true;
-    startButton.disableInteractive();
+    this.title.disableInteractive();
+    this.tweens.killTweensOf(this.title);
+    if (this.titleGlow) {
+      this.tweens.killTweensOf(this.titleGlow);
+    }
+
+    const { width, height } = this.scale;
+    const targetPosition = getMainMenuLogoPosition(width, height);
+    const targetDisplaySize = this.title.type === 'Image' ? calculateMainMenuLogoDisplaySize(this, width, height) : null;
+    const targetTitleScaleX = targetDisplaySize ? targetDisplaySize.width / this.title.width : this.titleBaseScale.x * 0.72;
+    const targetTitleScaleY = targetDisplaySize ? targetDisplaySize.height / this.title.height : this.titleBaseScale.y * 0.72;
 
     this.tweens.add({
-      targets: title,
-      y: title.y - this.scale.height * 0.035,
-      alpha: 0,
-      duration: START_TRANSITION_MS,
-      ease: 'Sine.easeInOut',
-    });
-
-    this.tweens.add({
-      targets: startButton,
-      y: startButton.y + this.scale.height * 0.035,
-      alpha: 0,
+      targets: this.title,
+      x: targetPosition.x,
+      y: targetPosition.y,
+      scaleX: targetTitleScaleX,
+      scaleY: targetTitleScaleY,
+      alpha: 1,
       duration: START_TRANSITION_MS,
       ease: 'Sine.easeInOut',
       onComplete: () => {
-        this.scene.start('MainMenuScene');
+        this.scene.start('MainMenuScene', { revealFromStart: true });
       },
     });
+
+    if (this.titleGlow) {
+      this.tweens.add({
+        targets: this.titleGlow,
+        x: targetPosition.x,
+        y: targetPosition.y,
+        scaleX: targetTitleScaleX * 1.04,
+        scaleY: targetTitleScaleY * 1.04,
+        alpha: 0.12,
+        duration: START_TRANSITION_MS,
+        ease: 'Sine.easeInOut',
+      });
+    }
   }
 }
