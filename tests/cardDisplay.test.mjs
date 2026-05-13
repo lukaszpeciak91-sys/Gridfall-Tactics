@@ -120,7 +120,7 @@ test('hand/full formatter includes effect card textShort without unit stats', ()
     textShort: 'Heal 3.',
   };
 
-  assert.equal(formatHandCardLabel(card), 'Repair Kit\nHeal 3.');
+  assert.equal(formatHandCardLabel(card), 'Repair Kit\nHeal +3 ●.');
 });
 
 test('battle hand cards route content through card visual layout helpers and preserve formatter output', () => {
@@ -145,7 +145,7 @@ test('battle hand cards route content through card visual layout helpers and pre
   assert.doesNotMatch(source, /card\.textShort/);
   assert.doesNotMatch(source, /`\$\{atk\}\/\$\{hp\} ARM \$\{armor\}`/);
   assert.equal(formatHandCardLabel(unitCard), 'Shield Drone\n1/4 ARM 2\nBlocks line. This unit can’t attack.');
-  assert.equal(formatHandCardLabel(effectCard), 'Repair Kit\nHeal 3.');
+  assert.equal(formatHandCardLabel(effectCard), 'Repair Kit\nHeal +3 ●.');
   assert.equal(formatHandCardLabel(null), 'Empty');
 });
 

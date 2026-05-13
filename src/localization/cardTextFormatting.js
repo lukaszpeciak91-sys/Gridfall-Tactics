@@ -20,6 +20,8 @@ const STAT_TERM_ALIASES = Object.freeze({
   health: Object.freeze(['HP']),
 });
 
+const HEALTH_SYMBOL = CARD_EFFECT_STAT_SYMBOLS.health;
+
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -44,14 +46,48 @@ function replaceStatTerms(text, terms, symbol) {
   return text.replace(statTermPattern, (match, prefix) => `${prefix}${symbol}`);
 }
 
+function signedHealthAmount(amount, sign = '') {
+  return `${sign}${amount} ${HEALTH_SYMBOL}`;
+}
+
+function formatEnglishHealthEffectPhrases(text) {
+  return text
+    .replace(/\b(heal(?:s)?(?:\s+(?:the\s+)?(?:(?:all|friendly)\s+)?(?:hero|heroes|ally|allies|unit|units|self|it|target))?\s+)(\d+)(?!\s*●)\b/giu, (match, prefix, amount) => `${prefix}${signedHealthAmount(amount, '+')}`)
+    .replace(/\b(gain(?:s)?\s+)(\d+)\s+HP\b(?!\s*●)/giu, (match, prefix, amount) => `${prefix}${signedHealthAmount(amount, '+')}`)
+    .replace(/\b(lose(?:s)?\s+)(\d+)\s+HP\b(?!\s*●)/giu, (match, prefix, amount) => `${prefix}${signedHealthAmount(amount, '-')}`)
+    .replace(/\b((?:(?:both|all)\s+)?(?:(?:enemy|friendly|opposing|allied)\s+)?(?:hero|heroes)\s+take(?:s)?\s+)(\d+)(?!\s*●)\b/giu, (match, prefix, amount) => `${prefix}${signedHealthAmount(amount)}`)
+    .replace(/\b(take(?:s)?\s+)(\d+)\s+damage\b(?!\s*●)/giu, (match, prefix, amount) => `${prefix}${signedHealthAmount(amount)}`)
+    .replace(/\b(deal(?:s)?\s+)(\d+)(\s+to\s+(?:(?:the|an|a)\s+)?(?:opposing\s+)?(?:enemy|enemies|hero|heroes|unit|units|ally|allies)\b)(?!\s*●)/giu, (match, prefix, amount, suffix) => `${prefix}${signedHealthAmount(amount)}${suffix}`);
+}
+
+function formatPolishHealthEffectPhrases(text) {
+  return text
+    .replace(/\b(ulecz\s+)(\d+)(?!\s*●)\b/giu, (match, prefix, amount) => `${prefix}${signedHealthAmount(amount, '+')}`)
+    .replace(/\b(ulecz\b[^.,;:!?]*?\bo\s+)(\d+)(?!\s*●)\b/giu, (match, prefix, amount) => `${prefix}${signedHealthAmount(amount, '+')}`)
+    .replace(/\b((?:traci|tracą)\s+)(\d+)\s+HP\b(?!\s*●)/giu, (match, prefix, amount) => `${prefix}${signedHealthAmount(amount, '-')}`)
+    .replace(/\b((?:(?:obaj|wszyscy)\s+)?(?:(?:wrogi|własny|przeciwny|sojuszniczy)\s+)?bohater(?:owie)?\s+otrzymuj(?:e|ą)\s+)(\d+)(?!\s*●)\b/giu, (match, prefix, amount) => `${prefix}${signedHealthAmount(amount)}`)
+    .replace(/\b((?:zadaj|zadaje|zadają)\s+)(\d+)\s+(?:obrażeń|obrażenia|obrażenie|obr\.)\b(?!\s*●)/giu, (match, prefix, amount) => `${prefix}${signedHealthAmount(amount)}`)
+    .replace(/\b((?:zadaj|zadaje|zadają)\s+)(\d+)(\s+(?:wrogowi|wrogom|bohaterowi|bohaterom|jednostce|jednostkom)\b)(?!\s*●)/giu, (match, prefix, amount, suffix) => `${prefix}${signedHealthAmount(amount)}${suffix}`)
+    .replace(/([:;]\s*)(\d+)(\s+(?:wrogowi|wrogom|bohaterowi|bohaterom|jednostce|jednostkom)\b)(?!\s*●)/giu, (match, prefix, amount, suffix) => `${prefix}${signedHealthAmount(amount)}${suffix}`)
+    .replace(/\b(\d+)\s+(obrażeń|obrażenia|obrażenie|obr\.)\b(?!\s*●)/giu, (match, amount) => signedHealthAmount(amount));
+}
+
+function formatHealthEffectPhrases(text, locale) {
+  return locale === 'pl'
+    ? formatPolishHealthEffectPhrases(text)
+    : formatEnglishHealthEffectPhrases(text);
+}
+
 export function formatCardEffectTextShort(textShort, locale = 'en') {
   if (typeof textShort !== 'string') {
     return textShort;
   }
 
+  const healthFormattedText = formatHealthEffectPhrases(textShort, locale);
+
   return [
     ['attack', CARD_EFFECT_STAT_SYMBOLS.attack],
     ['armor', CARD_EFFECT_STAT_SYMBOLS.armor],
     ['health', CARD_EFFECT_STAT_SYMBOLS.health],
-  ].reduce((formatted, [statKey, symbol]) => replaceStatTerms(formatted, getLocalizedStatTerms(statKey, locale), symbol), textShort);
+  ].reduce((formatted, [statKey, symbol]) => replaceStatTerms(formatted, getLocalizedStatTerms(statKey, locale), symbol), healthFormattedText);
 }
