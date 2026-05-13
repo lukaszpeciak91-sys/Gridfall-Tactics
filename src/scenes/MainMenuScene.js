@@ -17,6 +17,7 @@ import {
   resetImageButtonState,
 } from '../ui/imageButton.js';
 import { translateActive } from '../localization/localeService.js';
+import { applyAudioSettings, loadSettings } from '../systems/settingsState.js';
 import {
   GRIDFALL_LOGO_ASSET,
   MAIN_MENU_FIRST_BUTTON_Y_RATIO,
@@ -66,6 +67,7 @@ export default class MainMenuScene extends Phaser.Scene {
     const awaitSharedLogo = Boolean(data.awaitSharedLogo);
     this.menuButtonViews = [];
     this.menuButtons = [];
+    applyAudioSettings(this, loadSettings());
 
     this.cameras.main.setBackgroundColor(MENU_BACKGROUND_FALLBACK_COLOR_HEX);
     createCoverBackground(this, {
@@ -248,7 +250,7 @@ export default class MainMenuScene extends Phaser.Scene {
 
   drawNavigationControls() {
     createBottomNavigationControls(this, {
-      onBack: () => this.returnToStartScene(),
+      onMute: () => {},
       onRules: () => this.openRulesPanel(),
       onFullscreen: () => this.toggleFullscreen(),
     });
