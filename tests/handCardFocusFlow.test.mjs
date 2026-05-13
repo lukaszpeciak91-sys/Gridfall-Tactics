@@ -75,7 +75,8 @@ test('inspect zoom centers, dims gameplay, stays bounded, and animates in/out', 
   assert.match(source, /const INSPECT_CARD_OVERLAY_DEPTH = 840;/);
   assert.match(source, /const INSPECT_CARD_DEPTH = 850;/);
   assert.match(source, /const INSPECT_CARD_TWEEN_IN_MS = 150;/);
-  assert.match(source, /const INSPECT_CARD_TWEEN_OUT_MS = 125;/);
+  assert.match(source, /const INSPECT_CARD_TWEEN_OUT_MS = 95;/);
+  assert.match(source, /const INSPECT_DRAG_START_THRESHOLD_PX = 10;/);
   assert.match(source, /const targetScale = Math\.min\([\s\S]*INSPECT_CARD_TARGET_SCALE,[\s\S]*maxInspectWidth \/ hand\.cardWidth,[\s\S]*maxInspectHeight \/ hand\.cardHeight,[\s\S]*\);/);
   assert.match(source, /x: Phaser\.Math\.Clamp\(width \* 0\.5, minX, maxX\),/);
   assert.match(source, /y: Phaser\.Math\.Clamp\(height \* INSPECT_CARD_CENTER_Y_RATIO, minY, maxY\),/);
