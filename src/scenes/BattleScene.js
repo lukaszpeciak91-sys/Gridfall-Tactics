@@ -36,6 +36,32 @@ const ENEMY_ACTION_NOTIFICATION_HOLD_MS = 650;
 const ENEMY_ACTION_NOTIFICATION_FADE_OUT_MS = 140;
 const ENEMY_ACTION_APPLY_DELAY_MS = 500;
 const ENEMY_ACTION_PRE_COMBAT_DELAY_MS = 400;
+const ENEMY_ACTION_PACING = Object.freeze({
+  pass: {
+    applyDelayMs: Math.round(ENEMY_ACTION_APPLY_DELAY_MS * 0.65),
+    bannerHoldMs: Math.round(ENEMY_ACTION_NOTIFICATION_HOLD_MS * 0.7),
+    postActionDelayMs: 120,
+    preCombatDelayMs: Math.round(ENEMY_ACTION_PRE_COMBAT_DELAY_MS * 0.75),
+  },
+  unit: {
+    applyDelayMs: ENEMY_ACTION_APPLY_DELAY_MS,
+    bannerHoldMs: ENEMY_ACTION_NOTIFICATION_HOLD_MS,
+    postActionDelayMs: 180,
+    preCombatDelayMs: ENEMY_ACTION_PRE_COMBAT_DELAY_MS,
+  },
+  effect: {
+    applyDelayMs: ENEMY_ACTION_APPLY_DELAY_MS,
+    bannerHoldMs: ENEMY_ACTION_NOTIFICATION_HOLD_MS + 120,
+    postActionDelayMs: 220,
+    preCombatDelayMs: ENEMY_ACTION_PRE_COMBAT_DELAY_MS,
+  },
+  reposition: {
+    applyDelayMs: Math.round(ENEMY_ACTION_APPLY_DELAY_MS * 0.85),
+    bannerHoldMs: ENEMY_ACTION_NOTIFICATION_HOLD_MS,
+    postActionDelayMs: 160,
+    preCombatDelayMs: ENEMY_ACTION_PRE_COMBAT_DELAY_MS,
+  },
+});
 const ENEMY_EFFECT_SUMMARY_MAX_CHARS = 34;
 const ENEMY_EFFECT_SUMMARY_OVERRIDES = Object.freeze({
   aggro_buff_all_atk_2: 'All allies +2 ATK',
@@ -1457,9 +1483,21 @@ export default class BattleScene extends Phaser.Scene {
     const boardCell = this.getBoardCellFromPointerUp(pointer, currentlyOver);
     if (boardCell) {
       const selectedCard = this.gameState.player.hand.find((card) => card.id === this.selectedCardId);
-      if (!selectedCard || this.isBoardCellTapReservedForCardAction(boardCell.index, selectedCard)) return;
+      if (!selectedCard) {
+        this.pressedHandCardId = null;
+        this.clearHandCardSelection();
+        return;
+      }
+
+      if (this.isBoardCellTapReservedForCardAction(boardCell.index, selectedCard)) {
+        this.inspectDragState = null;
+        this.pressedHandCardId = null;
+        this.onBoardCellTap(boardCell.index);
+        return;
+      }
     }
 
+    this.inspectDragState = null;
     this.pressedHandCardId = null;
     this.clearHandCardSelection();
   }
@@ -1817,7 +1855,7 @@ export default class BattleScene extends Phaser.Scene {
       }
     }
 
-    await this.delay(enemyActionPacing?.preCombatDelayMs ?? ENEMY_ACTION_DEFAULT_PRE_COMBAT_DELAY_MS);
+    await this.delay(enemyActionPacing?.preCombatDelayMs ?? ENEMY_ACTION_PRE_COMBAT_DELAY_MS);
     const preCombatBoardSnapshot = this.captureBoardSnapshot();
     const combatEvents = resolveCombat(this.gameState);
     this.lastCombatEvents = combatEvents;
