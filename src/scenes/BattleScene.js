@@ -29,7 +29,8 @@ const INSPECT_CARD_OVERLAY_ALPHA = 0.22;
 const INSPECT_CARD_OVERLAY_DEPTH = 840;
 const INSPECT_CARD_DEPTH = 850;
 const INSPECT_CARD_TWEEN_IN_MS = 150;
-const INSPECT_CARD_TWEEN_OUT_MS = 125;
+const INSPECT_CARD_TWEEN_OUT_MS = 95;
+const INSPECT_DRAG_START_THRESHOLD_PX = 10;
 const ENEMY_ACTION_NOTIFICATION_FADE_IN_MS = 110;
 const ENEMY_ACTION_NOTIFICATION_HOLD_MS = 650;
 const ENEMY_ACTION_NOTIFICATION_FADE_OUT_MS = 140;
@@ -90,6 +91,7 @@ export default class BattleScene extends Phaser.Scene {
     this.hoverInspectCardId = null;
     this.boardInspectIndex = null;
     this.pressedHandCardId = null;
+    this.inspectDragState = null;
   }
 
   preload() {
@@ -143,6 +145,7 @@ export default class BattleScene extends Phaser.Scene {
     this.hoverInspectCardId = null;
     this.boardInspectIndex = null;
     this.pressedHandCardId = null;
+    this.inspectDragState = null;
   }
 
   cleanupSceneObjects({ preserveTimers = false, preserveTweens = false } = {}) {
@@ -209,6 +212,7 @@ export default class BattleScene extends Phaser.Scene {
     this.scale.on('leavefullscreen', this.onFullscreenChanged, this);
     this.scale.on('resize', this.onViewportChanged, this);
     this.input.on('pointerup', this.onScenePointerUp, this);
+    this.input.on('pointermove', this.onScenePointerMove, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this);
 
   }
@@ -684,6 +688,7 @@ export default class BattleScene extends Phaser.Scene {
     this.scale.off('leavefullscreen', this.onFullscreenChanged, this);
     this.scale.off('resize', this.onViewportChanged, this);
     this.input.off('pointerup', this.onScenePointerUp, this);
+    this.input.off('pointermove', this.onScenePointerMove, this);
     this.resetRuntimeState();
   }
 
@@ -1345,6 +1350,8 @@ export default class BattleScene extends Phaser.Scene {
     this.pressedHandCardId = cardId;
     this.hoverInspectCardId = null;
     this.boardInspectIndex = null;
+    this.inspectDragState = null;
+    this.destroySelectedHandCardZoom({ animate: true });
 
     if (this.battleResultModalShown) {
       return;
@@ -1404,6 +1411,36 @@ export default class BattleScene extends Phaser.Scene {
 
     this.resetCardHighlights({ showPreview: true });
     this.pressedHandCardId = null;
+  }
+
+  startInspectDragCandidate(pointer) {
+    if (!pointer || this.battleResultModalShown || this.isFlowResolving) return;
+    if (!this.selectedHandCardZoom) return;
+
+    this.inspectDragState = {
+      pointerId: pointer.id,
+      startX: pointer.x,
+      startY: pointer.y,
+      dragStarted: false,
+    };
+  }
+
+  onScenePointerMove(pointer) {
+    const dragState = this.inspectDragState;
+    if (!dragState || dragState.dragStarted || !pointer?.isDown) return;
+    if (dragState.pointerId !== undefined && pointer.id !== dragState.pointerId) return;
+
+    const distance = Phaser.Math.Distance.Between(dragState.startX, dragState.startY, pointer.x, pointer.y);
+    if (distance < INSPECT_DRAG_START_THRESHOLD_PX) return;
+
+    dragState.dragStarted = true;
+    this.enterPlayModeFromInspect();
+  }
+
+  enterPlayModeFromInspect() {
+    this.hoverInspectCardId = null;
+    this.boardInspectIndex = null;
+    this.destroySelectedHandCardZoom({ animate: true });
   }
 
   onScenePointerUp(pointer, currentlyOver = []) {
@@ -2666,7 +2703,12 @@ ${statParts.join(' | ')}`;
     const overlay = this.add.rectangle(width * 0.5, height * 0.5, width, height, 0x000000, 0)
       .setDepth(INSPECT_CARD_OVERLAY_DEPTH)
       .setInteractive();
+    overlay.on('pointerdown', (pointer) => {
+      this.startInspectDragCandidate(pointer);
+    });
     overlay.on('pointerup', () => {
+      if (this.inspectDragState?.dragStarted) return;
+      this.inspectDragState = null;
       this.hoverInspectCardId = null;
       this.boardInspectIndex = null;
       this.pendingSwapIndex = null;
@@ -2691,7 +2733,12 @@ ${statParts.join(' | ')}`;
 
     previewView.root.setAlpha(0).setScale(0.92);
     previewView.background.setInteractive({ useHandCursor: true });
-    previewView.background.on('pointerup', () => {});
+    previewView.background.on('pointerdown', (pointer) => {
+      this.startInspectDragCandidate(pointer);
+    });
+    previewView.background.on('pointerup', () => {
+      if (!this.inspectDragState?.dragStarted) this.inspectDragState = null;
+    });
     previewView.glow.setFillStyle(0xfacc15, 0.12);
     previewView.glow.setStrokeStyle(5, 0xfacc15, 0.65);
     previewView.background.setFillStyle(CARD_COLORS.frameSelected, 0.94);
