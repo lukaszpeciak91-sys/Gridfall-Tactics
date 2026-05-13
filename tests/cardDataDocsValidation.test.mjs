@@ -27,7 +27,7 @@ const expectedTextShort = new Map(Object.entries({
   swarm_alpha_1: 'Adjacent allies +1 ATK, ignore 1 ARM.',
   swarm_spawn_1: 'Summon 1/1 in first empty ally slot.',
   swarm_regrow_1: 'Revive first discarded unit at 1 HP.',
-  swarm_flood_1: 'Fill 2 empty ally slots with 0/1 Tokens.',
+  swarm_flood_1: 'Fill up to 2 empty ally slots with temporary 1/1 Tokens.',
   swarm_recycle_1: 'Destroy ally. Draw 1.',
   tank_shieldbearer_1: 'Adjacent allies have +1 ARM in combat.',
   tank_guardian_1: 'Intercepts combat damage for adjacent ally.',

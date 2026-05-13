@@ -154,7 +154,7 @@
     },
     "swarm_flood_1": {
       "name": "Flood",
-      "textShort": "Fill 2 empty ally slots with 0/1 Tokens."
+      "textShort": "Fill up to 2 empty ally slots with temporary 1/1 Tokens."
     },
     "swarm_recycle_1": {
       "name": "Recycle",

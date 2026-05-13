@@ -88,7 +88,7 @@
       "type": "special",
       "targeting": "empty_friendly_slots",
       "effectId": "fill_empty_slots_0_1",
-      "textShort": "Fill 2 empty ally slots with 0/1 Tokens."
+      "textShort": "Fill up to 2 empty ally slots with temporary 1/1 Tokens."
     },
     {
       "id": "swarm_recycle_1",

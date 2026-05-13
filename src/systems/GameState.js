@@ -89,7 +89,7 @@ function cardCanRealisticallyAffectOutcome(card, state, owner) {
     case 'revive_friendly_1hp':
       return friendlyEmptySlots && friendlyDiscardUnits;
     case 'fill_empty_slots_0_1':
-      return false;
+      return friendlyEmptySlots;
     case 'infect_damage_1_opposite_ally_atk_1':
       return enemyUnits.length > 0;
     case 'destroy_friendly_draw_1':
@@ -391,7 +391,7 @@ function triggerFuneralPyre(state, deadIndex, deadOwner) {
 }
 
 function triggerUnitDeathEffects(state, index, unit, options = {}) {
-  if (!unit) return;
+  if (!unit || unit.temporaryFloodToken) return;
   const owner = unit.owner;
   const enemyOwner = getOpponentOwner(owner);
   const isCombatDeath = Boolean(options.combat);
@@ -430,7 +430,7 @@ function cleanupDefeatedUnitsWithTriggers(state, boardIndexes, options = {}) {
     const unit = state.board[index];
     if (!unit || unit.hp > 0) return;
     state.board[index] = null;
-    triggerUnitDeathEffects(state, index, unit, options);
+    if (!unit.temporaryFloodToken) triggerUnitDeathEffects(state, index, unit, options);
   });
 }
 
@@ -651,10 +651,11 @@ function applyEffectById(state, owner, effectId) {
           id: `${owner}_flood_token_${index}_${summoned}`,
           name: 'Token',
           type: 'unit',
-          attack: 0,
+          attack: 1,
           hp: 1,
           armor: 0,
           effectId: null,
+          temporaryFloodToken: true,
         }, owner);
         summoned += 1;
       });
@@ -1548,7 +1549,11 @@ export function resolveCombat(state) {
     state.immovableThisTurn.enemy = false;
   }
 
-  state.board.forEach((unit) => {
+  state.board.forEach((unit, index) => {
+    if (unit?.temporaryFloodToken) {
+      state.board[index] = null;
+      return;
+    }
     if (unit?.controlledAttackThisTurn) {
       delete unit.controlledAttackThisTurn;
     }

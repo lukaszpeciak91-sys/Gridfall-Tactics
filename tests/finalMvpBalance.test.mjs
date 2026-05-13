@@ -453,6 +453,54 @@ test('Swarm Attack remains a +1 temporary attack buff', () => {
   assert.equal(state.board[6].tempAttackMod, undefined);
 });
 
+
+test('Flood creates temporary 1/1 Tokens that attack and vanish after combat', () => {
+  const swarm = loadFaction('src/data/factions/swarm.json');
+  const flood = swarm.deck.find((card) => card.id === 'swarm_flood_1');
+  const state = createInitialBattleState({ name: 'Test', deck: [] });
+
+  state.player.hand.push({ ...flood });
+
+  const result = playEffectCard(state, 'player', flood.id);
+  assert.equal(result.ok, true);
+  assert.equal(state.board[6].attack, 1);
+  assert.equal(state.board[7].attack, 1);
+  assert.equal(state.board[6].hp, 1);
+  assert.equal(state.board[7].hp, 1);
+  assert.equal(state.board[6].temporaryFloodToken, true);
+  assert.equal(state.board[7].temporaryFloodToken, true);
+
+  resolveCombat(state);
+
+  assert.equal(state.enemyHP, 10);
+  assert.equal(state.board[6], null);
+  assert.equal(state.board[7], null);
+  assert.deepEqual(state.player.discard.map((card) => card.id), [flood.id]);
+  assert.equal(flood.textShort, 'Fill up to 2 empty ally slots with temporary 1/1 Tokens.');
+});
+
+test('Flood temporary Tokens skip combat death trigger paths', () => {
+  const swarm = loadFaction('src/data/factions/swarm.json');
+  const flood = swarm.deck.find((card) => card.id === 'swarm_flood_1');
+  const state = createInitialBattleState({ name: 'Test', deck: [] });
+
+  state.player.hand.push({ ...flood });
+  state.board[0] = unit('enemy', { id: 'opposing-unit', attack: 1, hp: 2, maxHp: 2 });
+
+  const result = playEffectCard(state, 'player', flood.id);
+  assert.equal(result.ok, true);
+  state.funeralPyreThisCombat = {
+    player: { active: true, triggers: 0 },
+    enemy: { active: false, triggers: 0 },
+  };
+
+  resolveCombat(state);
+
+  assert.equal(state.board[6], null);
+  assert.equal(state.board[0].hp, 1);
+  assert.equal(state.funeralPyreCombatTriggers ?? 0, 0);
+});
+
 test('Recycle destroys only a friendly unit and draws exactly one card', () => {
   const swarm = loadFaction('src/data/factions/swarm.json');
   const recycle = swarm.deck.find((card) => card.id === 'swarm_recycle_1');

@@ -154,7 +154,7 @@
     },
     "swarm_flood_1": {
       "name": "Zalew",
-      "textShort": "Wypełnij 2 puste sloty sojuszników Tokenami 0/1."
+      "textShort": "Wypełnij do 2 pustych slotów sojuszników tymczasowymi Tokenami 1/1."
     },
     "swarm_recycle_1": {
       "name": "Recykling",
