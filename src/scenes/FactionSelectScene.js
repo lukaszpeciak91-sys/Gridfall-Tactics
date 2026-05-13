@@ -137,7 +137,7 @@ export default class FactionSelectScene extends Phaser.Scene {
 
     const titleStyle = getFactionSelectTitleStyle({ width, height });
     const title = this.add
-      .text(width / 2, titleStyle.y, translateActive('ui.factionSelect.title', 'SELECT YOUR CONTENDER'), {
+      .text(width / 2, titleStyle.y, translateActive('ui.factionSelect.title', 'SELECT YOUR TEAM'), {
         fontFamily: 'Arial, sans-serif',
         fontSize: `${titleStyle.fontSize}px`,
         color: '#f8fafc',

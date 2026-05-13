@@ -29,8 +29,13 @@ test('major UI-facing localization groups exist in English and Polish dictionari
 });
 
 test('faction select title copy is localized for English and Polish', () => {
-  assert.equal(getPath(en, 'ui.factionSelect.title'), 'SELECT YOUR CONTENDER');
-  assert.equal(getPath(pl, 'ui.factionSelect.title'), 'WYBIERZ SWOJEGO CZEMPIONA');
+  assert.equal(getPath(en, 'ui.factionSelect.title'), 'SELECT YOUR TEAM');
+  assert.equal(getPath(pl, 'ui.factionSelect.title'), 'WYBIERZ DRUŻYNĘ');
+});
+
+test('retry button copy stays short in Polish without changing English', () => {
+  assert.equal(getPath(en, 'ui.common.retry'), 'RETRY');
+  assert.equal(getPath(pl, 'ui.common.retry'), 'PONÓW');
 });
 
 test('card type and stat labels exist in English and Polish dictionaries', () => {

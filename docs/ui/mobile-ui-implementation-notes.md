@@ -49,7 +49,7 @@ Safe cleanup completed in this pass intentionally stayed small:
 
 ## Faction select cards and preview assets
 
-- `FactionSelectScene` uses compact mobile faction cards with the header copy `SELECT YOUR CONTENDER` and the subtitle `Tap a faction to begin battle`. The header is intentionally smaller and more cinematic than the earlier prototype label.
+- `FactionSelectScene` uses compact mobile faction cards with the header copy `SELECT YOUR TEAM` and the subtitle `Tap a faction to begin battle`. The header is intentionally smaller and more cinematic than the earlier prototype label.
 - Each faction card is wider and noticeably shorter than the previous tall layout: cards are up to `382 px` wide, `164 px` tall, and separated by a `12 px` vertical gap. This reduces card height by roughly 36% from the previous `258 px` card while keeping the full card as the tap target.
 - The card layout is banner-first: the top artwork/banner area uses about 58% of the card height, the faction name is overlaid on the lower part of the banner, and the lower info area contains one short playstyle line plus two compact chips.
 - Current mobile descriptions are intentionally concise: `Fast pressure.`, `Armor and sustain.`, `Disrupt and reposition.`, and `Board swarm tactics.` Tags are two short chips per faction to avoid paragraph-like card text.
