@@ -30,6 +30,8 @@ const INSPECT_CARD_OVERLAY_DEPTH = 840;
 const INSPECT_CARD_DEPTH = 850;
 const INSPECT_CARD_TWEEN_IN_MS = 150;
 const INSPECT_CARD_TWEEN_OUT_MS = 95;
+const HAND_CARD_STAT_BADGE_SCALE = 1.1;
+const INSPECT_CARD_STAT_BADGE_SCALE = 1.18;
 const ENEMY_ACTION_NOTIFICATION_FADE_IN_MS = 110;
 const ENEMY_ACTION_NOTIFICATION_HOLD_MS = 650;
 const ENEMY_ACTION_NOTIFICATION_FADE_OUT_MS = 140;
@@ -1252,7 +1254,7 @@ export default class BattleScene extends Phaser.Scene {
     }
   }
 
-  createHandCardView({ card, cardId, x, y, width, height, accentColor, depth }) {
+  createHandCardView({ card, cardId, x, y, width, height, accentColor, depth, statBadgeScale = HAND_CARD_STAT_BADGE_SCALE }) {
     const zones = getCardLayoutZones(width, height);
     const typography = getCardTypography(width, height);
     const content = getCardDisplayContent(card, getActiveLocale());
@@ -1264,7 +1266,20 @@ export default class BattleScene extends Phaser.Scene {
       .setStrokeStyle(3, accentColor, card ? 0.82 : 0.7);
     const inner = this.add.rectangle(0, 0, width - zones.pad * 0.9, height - zones.pad * 0.9, CARD_COLORS.innerPanel, 0.36)
       .setStrokeStyle(1, 0xffffff, 0.055);
-    const statBadges = createStatBadges(this, zones.statBadges.centerX, zones.statBadges.centerY, zones.statBadges.width, zones.statBadges.height, stats);
+    const statBadges = createStatBadges(
+      this,
+      zones.statBadges.centerX,
+      zones.statBadges.centerY,
+      zones.statBadges.width,
+      zones.statBadges.height,
+      stats,
+      0,
+      {
+        sizeScale: statBadgeScale,
+        maxGroupWidthRatio: 0.88,
+        spacingScale: 1.05,
+      },
+    );
     const art = createArtPlaceholder(this, zones.art);
     const namePanel = this.add.rectangle(zones.name.centerX, zones.name.centerY, zones.name.width, zones.name.height, CARD_COLORS.namePanel, 0.93)
       .setStrokeStyle(1, accentColor, card ? 0.38 : 0.14);
@@ -2804,6 +2819,7 @@ export default class BattleScene extends Phaser.Scene {
       height: transform.height,
       accentColor,
       depth: INSPECT_CARD_DEPTH,
+      statBadgeScale: INSPECT_CARD_STAT_BADGE_SCALE,
     });
 
     previewView.root.setAlpha(0).setScale(0.92);

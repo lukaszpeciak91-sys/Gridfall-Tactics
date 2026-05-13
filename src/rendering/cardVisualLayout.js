@@ -263,8 +263,9 @@ export function drawStatSymbol(scene, x, y, size, statKey, color, alpha = 1) {
 }
 
 
-function getStatBadgeSize(height, width) {
-  return Math.max(18, Math.min(24, height * 0.9, width * 0.2));
+function getStatBadgeSize(height, width, scale = 1) {
+  const baseSize = Math.max(18, Math.min(24, height * 0.9, width * 0.2));
+  return baseSize * scale;
 }
 
 function createStatGlyph(scene, x, y, size, key, value, style, isKnown, fontSize) {
@@ -304,12 +305,18 @@ function createStatGlyph(scene, x, y, size, key, value, style, isKnown, fontSize
   return glyph;
 }
 
-export function createStatBadges(scene, x, y, width, height, stats, depth = 0) {
+export function createStatBadges(scene, x, y, width, height, stats, depth = 0, options = {}) {
   const container = scene.add.container(x, y).setDepth(depth);
   const keys = ['attack', 'armor', 'health'];
-  const symbolSize = getStatBadgeSize(height, width);
-  const fontSize = Math.max(10, Math.floor(symbolSize * 0.54));
-  const groupWidth = Math.min(width * 0.82, symbolSize * 4.15);
+  const {
+    sizeScale = 1,
+    fontScale = 1,
+    spacingScale = 1,
+    maxGroupWidthRatio = 0.82,
+  } = options;
+  const symbolSize = getStatBadgeSize(height, width, sizeScale);
+  const fontSize = Math.max(10, Math.floor(symbolSize * 0.56 * fontScale));
+  const groupWidth = Math.min(width * maxGroupWidthRatio, symbolSize * 4.15 * spacingScale);
   const slotWidth = groupWidth / 3;
   const statGlyphs = {};
 
