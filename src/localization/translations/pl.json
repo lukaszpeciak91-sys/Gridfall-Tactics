@@ -257,7 +257,7 @@
     "common": {
       "back": "WRÓĆ",
       "exit": "WYJDŹ",
-      "retry": "SPRÓBUJ PONOWNIE",
+      "retry": "PONÓW",
       "pass": "PAS",
       "fullscreen": "Pełny ekran",
       "help": "Pomoc",
@@ -283,7 +283,7 @@
       "tutorialComingSoon": "Samouczek wkrótce"
     },
     "factionSelect": {
-      "title": "WYBIERZ SWOJEGO CZEMPIONA",
+      "title": "WYBIERZ DRUŻYNĘ",
       "descriptions": {
         "Aggro": "Szybka presja.",
         "Tank": "Pancerz i wytrzymałość.",
