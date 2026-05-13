@@ -54,7 +54,7 @@ test('outside taps clear selection without intercepting board, pass, or card inp
   assert.match(source, /this\.input\.off\('pointerup', this\.onScenePointerUp, this\);/);
   assert.match(source, /this\.bottomControlViews = \[\];/);
   assert.match(source, /this\.bottomControlViews = \[controls\.back, controls\.rules, controls\.fullscreen\]\.filter\(Boolean\);/);
-  assert.match(source, /onScenePointerUp\(pointer, currentlyOver = \[\]\) \{\s*if \(this\.battleResultModalShown \|\| this\.isFlowResolving\) return;\s*if \(this\.openingMulliganPending\) \{\s*this\.clearOpeningMulliganPreviewFromOutsideTap\(pointer, currentlyOver\);\s*return;\s*\}\s*if \(!this\.selectedCardId && !this\.targetingState\) return;\s*if \(this\.isPointerUpReservedForUi\(pointer, currentlyOver\)\) return;/);
+  assert.match(source, /onScenePointerUp\(pointer, currentlyOver = \[\]\) \{\s*if \(this\.battleResultModalShown \|\| this\.isFlowResolving\) return;\s*if \(this\.openingMulliganPending\) \{\s*this\.clearOpeningMulliganPreviewFromOutsideTap\(pointer, currentlyOver\);\s*return;\s*\}\s*if \(!this\.selectedCardId && !this\.targetingState\) \{\s*this\.clearBoardInspectFromOutsideTap\(pointer, currentlyOver\);\s*return;\s*\}\s*if \(this\.isPointerUpReservedForUi\(pointer, currentlyOver\)\) return;/);
   assert.match(source, /clearOpeningMulliganPreviewFromOutsideTap\(pointer, currentlyOver = \[\]\) \{\s*if \(!this\.previewedMulliganCardId && !this\.selectedHandCardZoom\) return;\s*if \(this\.isPointerInsideMulliganHandOrPreview\(pointer, currentlyOver\)\) return;\s*this\.previewedMulliganCardId = null;[\s\S]*this\.pressedHandCardId = null;\s*this\.resetCardHighlights\(\{ showPreview: false \}\);\s*\}/);
   assert.match(source, /isPointerInsideMulliganHandOrPreview\(pointer, currentlyOver = \[\]\) \{[\s\S]*const handTop = hand\.y;[\s\S]*return pointer\.x >= handLeft && pointer\.x <= handRight && pointer\.y >= handTop && pointer\.y <= handBottom;/);
   assert.match(source, /const boardCell = this\.getBoardCellFromPointerUp\(pointer, currentlyOver\);\s*if \(boardCell\) \{\s*const selectedCard = this\.gameState\.player\.hand\.find\(\(card\) => card\.id === this\.selectedCardId\);/);
@@ -92,14 +92,17 @@ test('inspect zoom anchors above player lanes, dims gameplay, stays bounded, and
   assert.match(source, /duration: INSPECT_CARD_TWEEN_OUT_MS,/);
 });
 
-test('board cards stay visual-only and do not open inspect overlays', () => {
+test('board unit inspect opens from occupied slots and reuses the full hand-card renderer', () => {
+  assert.match(source, /background\.on\('pointerup', \(\) => \{\s*this\.onBoardCellTap\(boardIndex\);\s*\}\);/);
   assert.doesNotMatch(source, /background\.on\('pointerover', \(\) => \{\s*this\.onBoardCellPointerOver\(boardIndex\);\s*\}\);/);
-  assert.match(source, /background\.on\('pointerout', \(\) => \{\s*this\.onBoardCellPointerOut\(boardIndex\);\s*\}\);/);
-  assert.match(source, /onBoardCellPointerOver\(\) \{\s*\/\/ Board unit inspect is intentionally disabled until that feature is ready\./);
-  assert.doesNotMatch(source, /if \(this\.boardInspectIndex !== null\) \{\s*const card = this\.gameState\.board\[this\.boardInspectIndex\];/);
-  assert.match(source, /if \(!this\.selectedCardId\) \{\s*this\.hoverInspectCardId = null;\s*this\.boardInspectIndex = null;\s*this\.destroySelectedHandCardZoom\(\{ animate: true \}\);/);
+  assert.match(source, /onBoardCellPointerOut\(\) \{\s*\/\/ Board inspect is tap-driven and stays open until an outside tap or state change clears it\./);
+  assert.match(source, /showBoardUnitInspect\(boardIndex\) \{\s*if \(this\.selectedCardId \|\| this\.targetingState \|\| this\.pressedHandCardId\) return false;\s*const unit = this\.gameState\?\.board\?\.\[boardIndex\] \?\? null;\s*if \(!unit\) return false;\s*this\.hoverInspectCardId = null;\s*this\.boardInspectIndex = boardIndex;\s*this\.showSelectedHandCardZoom\(\);\s*return true;\s*\}/);
+  assert.match(source, /if \(!this\.selectedCardId && !this\.targetingState\) \{\s*const unit = this\.gameState\.board\[boardIndex\];[\s\S]*this\.showBoardUnitInspect\(boardIndex\);\s*return;\s*\}/);
+  assert.match(source, /if \(this\.boardInspectIndex !== null\) \{\s*const unit = this\.gameState\.board\[this\.boardInspectIndex\];\s*const cell = this\.getCellByIndex\(this\.boardInspectIndex\);/);
+  assert.match(source, /card: unit,\s*cardId: unit\.cardId \?\? unit\.id \?\? `board-\$\{this\.boardInspectIndex\}-unit`,\s*sourceX: cell\.background\.x,\s*sourceY: cell\.background\.y,/);
+  assert.match(source, /clearBoardInspectFromOutsideTap\(pointer, currentlyOver = \[\]\) \{[\s\S]*this\.clearBoardInspect\(\{ animate: true \}\);\s*\}/);
   assert.match(inspectMethod, /this\.createHandCardView\(\{/);
   assert.match(source, /cell\.label\.add\(this\.createBoardUnitView\(cell, unit\)\);/);
   assert.match(source, /createBoardUnitView\(cell, unit\) \{[\s\S]*createStatBadges\(this, 0, statY, artWidth, statHeight, this\.getBoardUnitStats\(unit\)\)/);
-  assert.doesNotMatch(source, /getBoardUnitLabel\(unit\)/);
+  assert.doesNotMatch(source.slice(source.indexOf('  createBoardUnitView(cell, unit) {'), source.indexOf('  refreshBoardLabels() {')), /getCardTextShort|getCardDisplayContent|createInlineStatText|bodyText|textPanel|setInteractive/);
 });
