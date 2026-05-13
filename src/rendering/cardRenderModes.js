@@ -5,6 +5,7 @@ import {
   getStatLabel,
 } from '../localization/cardDisplay.js';
 import { translate } from '../localization/localeService.js';
+import { formatCardEffectTextShort } from '../localization/cardTextFormatting.js';
 
 function getTargetingLabel(targeting, locale = 'en') {
   const normalizedTargeting = typeof targeting === 'string' && targeting.length > 0 ? targeting : 'none';
@@ -31,7 +32,7 @@ function compactUnitStats(card, locale = 'en') {
 
 function shortTextLine(card, locale = 'en') {
   const textShort = getCardTextShort(card, locale);
-  return typeof textShort === 'string' ? textShort.trim() : '';
+  return typeof textShort === 'string' ? formatCardEffectTextShort(textShort, locale).trim() : '';
 }
 
 export function formatHandCardLabel(card, locale = 'en') {
@@ -69,7 +70,7 @@ export function formatCollectionRowLabel(card, locale = 'en') {
   const stats = isUnitCard(card)
     ? `${getStatLabel('attack', locale)} ${card.attack ?? '-'} / ${getStatLabel('hp', locale)} ${card.hp ?? '-'}`
     : null;
-  const textShort = getCardTextShort(card, locale) ?? '';
+  const textShort = formatCardEffectTextShort(getCardTextShort(card, locale) ?? '', locale);
 
   return {
     name,
@@ -86,7 +87,7 @@ export function formatCardDetailLines(card, locale = 'en') {
     ...(isUnitCard(card) ? [`${translate('ui.cardDetails.atkHp', locale, 'ATK/HP')}: ${card.attack ?? '-'} / ${card.hp ?? '-'}`] : []),
     `${translate('ui.cardDetails.targeting', locale, 'Target')}: ${getTargetingLabel(card?.targeting, locale)}`,
     '',
-    getCardTextShort(card, locale) ?? '',
+    formatCardEffectTextShort(getCardTextShort(card, locale) ?? '', locale),
   ];
 }
 

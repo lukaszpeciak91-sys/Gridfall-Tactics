@@ -152,7 +152,7 @@ test('battle hand cards route content through card visual layout helpers and pre
 test('card render mode helpers preserve English fallback behavior for future locales', () => {
   const card = { name: 'Shield Drone', type: 'effect', textShort: 'Target ally +1 ARM until combat ends.' };
 
-  assert.equal(formatHandCardLabel(card, 'pl'), 'Shield Drone\nTarget ally +1 ARM until combat ends.');
+  assert.equal(formatHandCardLabel(card, 'pl'), 'Shield Drone\nTarget ally +1 ◆ until combat ends.');
   assert.deepEqual(formatDeckSummaryEntry(card, 'pl'), { name: 'Shield Drone', typeLabel: 'Efekt', count: 1 });
   assert.deepEqual(formatDeckSummaryEntry({}, 'pl'), { name: 'Nieznana karta', typeLabel: 'Jednostka', count: 1 });
 });
