@@ -1807,16 +1807,17 @@ export default class BattleScene extends Phaser.Scene {
 
     this.isFlowResolving = true;
 
+    let enemyActionPacing = null;
     if (!this.enemyActionUsed) {
       await this.delay(650);
-      await this.revealAndApplyEnemyAction();
+      enemyActionPacing = await this.revealAndApplyEnemyAction();
       if (this.gameState.winner) {
         this.completeBattleFlow(500);
         return;
       }
     }
 
-    await this.delay(ENEMY_ACTION_PRE_COMBAT_DELAY_MS);
+    await this.delay(enemyActionPacing?.preCombatDelayMs ?? ENEMY_ACTION_DEFAULT_PRE_COMBAT_DELAY_MS);
     const preCombatBoardSnapshot = this.captureBoardSnapshot();
     const combatEvents = resolveCombat(this.gameState);
     this.lastCombatEvents = combatEvents;
@@ -1892,8 +1893,9 @@ export default class BattleScene extends Phaser.Scene {
   async revealAndApplyEnemyAction() {
     const action = chooseEnemyAction(this.gameState);
     const card = action.cardId ? this.gameState.enemy.hand.find((item) => item.id === action.cardId) : null;
-    this.showEnemyActionBanner(this.getEnemyActionMessage(action, card));
-    await this.delay(ENEMY_ACTION_APPLY_DELAY_MS);
+    const pacing = this.getEnemyActionPacing(action);
+    this.showEnemyActionBanner(this.getEnemyActionMessage(action, card), pacing);
+    await this.delay(pacing.applyDelayMs);
 
     const beforeStats = this.captureBoardStats();
     this.enemyTakeAction(action);
@@ -1903,7 +1905,16 @@ export default class BattleScene extends Phaser.Scene {
     this.refreshHeroHP();
     this.updateInitiativeIndicator();
     await this.playBuffFeedback(beforeStats, 'enemy');
-    await this.delay(150);
+    await this.delay(pacing.postActionDelayMs);
+    return pacing;
+  }
+
+  getEnemyActionPacing(action) {
+    if (!action || action.type === 'pass') return ENEMY_ACTION_PACING.pass;
+    if (action.type === 'swap-units') return ENEMY_ACTION_PACING.reposition;
+    if (action.type === 'play-unit') return ENEMY_ACTION_PACING.unit;
+    if (action.type === 'play-effect' || action.type === 'play-targeted-effect') return ENEMY_ACTION_PACING.effect;
+    return ENEMY_ACTION_PACING.pass;
   }
 
   getEnemyActionMessage(action, card) {
@@ -1985,19 +1996,20 @@ export default class BattleScene extends Phaser.Scene {
     });
   }
 
-  showEnemyActionBanner(message) {
+  showEnemyActionBanner(message, pacing = ENEMY_ACTION_PACING.unit) {
     this.destroyEnemyActionBanner();
 
-    const { width, board } = this.layout;
-    const maxWidth = board.width * 0.9;
+    const { width, height, board } = this.layout;
+    const maxWidth = board.width * 0.94;
+    const fontSize = Math.min(20, Math.max(15, Math.floor(Math.max(board.cellWidth * 0.14, height * 0.018))));
     const startY = board.centerY + 6;
     this.enemyActionBanner = this.add.text(width * 0.5, startY, message, {
       fontFamily: 'Arial, sans-serif',
-      fontSize: `${Math.max(13, Math.floor(board.cellWidth * 0.12))}px`,
+      fontSize: `${fontSize}px`,
       color: '#fee2e2',
       backgroundColor: '#7f1d1d',
       align: 'center',
-      padding: { x: 14, y: 7 },
+      padding: { x: 16, y: 9 },
       wordWrap: { width: maxWidth },
     }).setOrigin(0.5).setDepth(220).setAlpha(0).setScale(0.98);
 
@@ -2013,7 +2025,7 @@ export default class BattleScene extends Phaser.Scene {
     });
 
     this.enemyActionBannerFadeOutEvent = this.time.delayedCall(
-      ENEMY_ACTION_NOTIFICATION_FADE_IN_MS + ENEMY_ACTION_NOTIFICATION_HOLD_MS,
+      ENEMY_ACTION_NOTIFICATION_FADE_IN_MS + pacing.bannerHoldMs,
       () => {
         if (this.enemyActionBanner !== banner) return;
         this.enemyActionBannerFadeOutEvent = null;
