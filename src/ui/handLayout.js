@@ -1,7 +1,7 @@
 export const MAX_VISIBLE_HAND_CARDS = 5;
-export const HAND_CARD_ASPECT_RATIO = 1.46;
+export const HAND_CARD_ASPECT_RATIO = 1.62;
 export const MIN_HAND_CONTROL_TOUCH_SIZE = 48;
-export const MAX_HAND_CONTROL_TOUCH_SIZE = 58;
+export const MAX_HAND_CONTROL_TOUCH_SIZE = 54;
 
 export function calculateHandLayoutMetrics({
   contentWidth,
@@ -13,13 +13,13 @@ export function calculateHandLayoutMetrics({
 }) {
   const controlTouchSize = Math.max(
     MIN_HAND_CONTROL_TOUCH_SIZE,
-    Math.min(MAX_HAND_CONTROL_TOUCH_SIZE, viewportHeight * 0.066),
+    Math.min(MAX_HAND_CONTROL_TOUCH_SIZE, viewportHeight * 0.061),
   );
-  const controlBottomInset = Math.max(6, Math.round(handHeight * 0.035));
-  const controlTopInset = Math.max(4, Math.round(handHeight * 0.02));
+  const controlBottomInset = Math.max(5, Math.round(handHeight * 0.026));
+  const controlTopInset = Math.max(3, Math.round(handHeight * 0.015));
   const controlRowHeight = controlTouchSize + controlBottomInset + controlTopInset;
-  const cardTopInset = Math.max(6, Math.round(handHeight * 0.03));
-  const cardControlGap = Math.max(8, Math.round(handHeight * 0.04));
+  const cardTopInset = Math.max(5, Math.round(handHeight * 0.024));
+  const cardControlGap = Math.max(6, Math.round(handHeight * 0.03));
   const cardRowHeight = Math.max(0, handHeight - controlRowHeight);
   const maxCardHeight = Math.max(0, cardRowHeight - cardTopInset - cardControlGap);
   const cardWidth = Math.min(contentWidth * 0.27, maxCardHeight / HAND_CARD_ASPECT_RATIO, handHeight * 0.9);

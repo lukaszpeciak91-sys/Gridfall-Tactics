@@ -235,7 +235,7 @@ export default class BattleScene extends Phaser.Scene {
       board: 0.54,
       playerHero: 0.06,
       action: 0.05,
-      hand: 0.24,
+      hand: 0.255,
     };
     const gapRatio = 0.008;
     const topBottomPadRatio = 0.008;
@@ -1246,13 +1246,17 @@ export default class BattleScene extends Phaser.Scene {
     }).setOrigin(0.5);
     const textPanel = this.add.rectangle(zones.text.centerX, zones.text.centerY, zones.text.width, zones.text.height, CARD_COLORS.textPanel, 0.9)
       .setStrokeStyle(1, 0x94a3b8, 0.18);
-    const bodyText = createInlineStatText(this, zones.text.centerX, zones.text.y + Math.max(4, zones.text.height * 0.14), content.body || content.type, {
+    const bodyTopPadding = Math.max(5, zones.text.height * 0.12);
+    const bodyBottomPadding = Math.max(5, zones.text.height * 0.12);
+    const bodyText = createInlineStatText(this, zones.text.centerX, zones.text.y + bodyTopPadding, content.body || content.type, {
       fontFamily: 'Arial, sans-serif',
       fontSize: typography.body,
+      minFontSize: Math.max(8, typography.body - 2),
       color: card ? CARD_COLORS.bodyText : CARD_COLORS.mutedText,
       align: 'center',
-      lineSpacing: 0,
+      lineSpacing: 1,
       maxWidth: zones.text.width - 12,
+      maxHeight: zones.text.height - bodyTopPadding - bodyBottomPadding,
     });
     const dividers = [zones.art.y - zones.gap / 2, zones.name.y - zones.gap / 2, zones.text.y - zones.gap / 2]
       .map((dividerY) => this.add.rectangle(0, dividerY, zones.outer.width - zones.pad * 2.15, 1, CARD_COLORS.divider, 0.22));

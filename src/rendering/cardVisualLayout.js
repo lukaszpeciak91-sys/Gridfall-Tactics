@@ -2,10 +2,10 @@ import { getCardDisplayName, getCardTextShort } from '../localization/cardDispla
 import { formatCardEffectTextShort } from '../localization/cardTextFormatting.js';
 
 export const CARD_ZONE_RATIOS = Object.freeze({
-  statBadges: 0.13,
-  art: 0.535,
-  name: 0.115,
-  text: 0.22,
+  statBadges: 0.105,
+  art: 0.54,
+  name: 0.105,
+  text: 0.25,
 });
 
 export const CARD_CORNER_RADIUS_RATIO = 0.055;
@@ -124,25 +124,48 @@ export function layoutInlineStatText(text, { maxWidth, measureTokenWidth }) {
 export function createInlineStatText(scene, x, y, text, {
   fontFamily = 'Arial, sans-serif',
   fontSize = 12,
+  minFontSize = 9,
   color = CARD_COLORS.bodyText,
   statFontStyle = 'bold',
   align = 'center',
   maxWidth = 160,
+  maxHeight = null,
   lineSpacing = 0,
 } = {}) {
   const container = scene.add.container(x, y);
-  const baseStyle = {
+  let fittedFontSize = fontSize;
+  const measureText = scene.add.text(0, 0, '', {
     fontFamily,
-    fontSize: `${fontSize}px`,
+    fontSize: `${fittedFontSize}px`,
     color,
-  };
-  const measureText = scene.add.text(0, 0, '', baseStyle).setVisible(false);
+  }).setVisible(false);
   const measureTokenWidth = (value) => {
     measureText.setText(value);
     return measureText.width;
   };
-  const lines = layoutInlineStatText(text, { maxWidth, measureTokenWidth });
-  const lineHeight = Math.ceil(fontSize * 1.12) + lineSpacing;
+  const layoutForFontSize = (size) => {
+    measureText.setFontSize(size);
+    const linesForSize = layoutInlineStatText(text, { maxWidth, measureTokenWidth });
+    const lineHeightForSize = Math.ceil(size * 1.12) + lineSpacing;
+    return {
+      lines: linesForSize,
+      lineHeight: lineHeightForSize,
+      height: Math.max(size, linesForSize.length * lineHeightForSize - lineSpacing),
+    };
+  };
+  let fittedLayout = layoutForFontSize(fittedFontSize);
+
+  while (Number.isFinite(maxHeight) && fittedLayout.height > maxHeight && fittedFontSize > minFontSize) {
+    fittedFontSize -= 1;
+    fittedLayout = layoutForFontSize(fittedFontSize);
+  }
+
+  const baseStyle = {
+    fontFamily,
+    fontSize: `${fittedFontSize}px`,
+    color,
+  };
+  const { lines, lineHeight } = fittedLayout;
 
   lines.forEach((line, lineIndex) => {
     const startX = align === 'center' ? -line.width / 2 : 0;
@@ -162,7 +185,8 @@ export function createInlineStatText(scene, x, y, text, {
   container.inlineTextMetrics = {
     lineCount: lines.length,
     width: Math.max(0, ...lines.map((line) => line.width)),
-    height: Math.max(fontSize, lines.length * lineHeight - lineSpacing),
+    height: fittedLayout.height,
+    fontSize: fittedFontSize,
   };
   return container;
 }
