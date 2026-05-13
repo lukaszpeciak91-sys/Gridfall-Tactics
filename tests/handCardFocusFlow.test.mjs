@@ -3,20 +3,23 @@ import fs from 'node:fs';
 import test from 'node:test';
 
 const source = fs.readFileSync('src/scenes/BattleScene.js', 'utf8');
-const zoomMethod = source.slice(
+const inspectMethod = source.slice(
   source.indexOf('  showSelectedHandCardZoom()'),
   source.indexOf('  resetCardHighlights({ showPreview = true } = {})'),
 );
 
-test('hand card zoom is visual-only and avoids focus gameplay state', () => {
+test('card inspect is visual-only and avoids focus gameplay state', () => {
   assert.doesNotMatch(source, /focusedCardId|focusedCardView|focusHandCard|playFocusedCard|HAND_CARD_FOCUS|getHandCardFocusTarget/);
   assert.match(source, /this\.selectedHandCardZoom = null;/);
   assert.match(source, /this\.previewedMulliganCardId = null;/);
-  assert.match(source, /destroySelectedHandCardZoom\(\) \{/);
+  assert.match(source, /this\.hoverInspectCardId = null;/);
+  assert.match(source, /this\.boardInspectIndex = null;/);
+  assert.match(source, /destroySelectedHandCardZoom\(\{ animate = false \} = \{\}\) \{/);
   assert.match(source, /showSelectedHandCardZoom\(\) \{/);
-  assert.match(zoomMethod, /const isMulliganPreview = this\.openingMulliganPending;/);
-  assert.match(zoomMethod, /const previewCardId = isMulliganPreview \? this\.previewedMulliganCardId : this\.selectedCardId;/);
-  assert.doesNotMatch(zoomMethod, /setInteractive/);
+  assert.match(source, /getCurrentInspectCardRequest\(\) \{/);
+  assert.match(inspectMethod, /const inspectRequest = this\.getCurrentInspectCardRequest\(\);/);
+  assert.match(inspectMethod, /this\.createHandCardView\(\{/);
+  assert.match(inspectMethod, /card: inspectRequest\.card,/);
   assert.doesNotMatch(source, /hitArea|previousBoundaryX|nextBoundaryX|hitAreaWidth/);
 });
 
@@ -30,13 +33,15 @@ test('mulligan tap toggles only mulligan selection and uses separate preview sta
   assert.match(source, /const isHighlighted = isGameplaySelected \|\| isMulliganSelected;/);
 });
 
-test('normal gameplay card pointerdown toggles selection and pointerup reveals preview', () => {
+test('normal gameplay card pointerdown toggles selection and pointerup reveals inspect preview', () => {
   assert.match(source, /background\.on\('pointerdown', \(\) => \{\s*this\.onCardPointerDown\(cardId\);\s*\}\);/);
   assert.match(source, /background\.on\('pointerup', \(\) => \{\s*this\.onCardPointerUp\(cardId\);\s*\}\);/);
+  assert.match(source, /background\.on\('pointerover', \(\) => \{\s*this\.onHandCardPointerOver\(cardId\);\s*\}\);/);
   assert.match(source, /this\.pendingSwapIndex = null;\s*this\.targetingState = null;\s*if \(this\.selectedCardId === cardId\) \{\s*this\.selectedCardId = null;\s*\} else \{\s*this\.selectedCardId = cardId;\s*this\.targetingState = this\.isUnitCard\(card\) \? null : this\.getTargetingStateForCard\(card\);\s*\}\s*this\.resetCardHighlights\(\{ showPreview: false \}\);/);
   assert.match(source, /onCardPointerUp\(cardId\) \{[\s\S]*this\.resetCardHighlights\(\{ showPreview: true \}\);/);
-  assert.match(source, /const cardView = this\.cardViews\.find\(\(view\) => view\.cardId === previewCardId\);/);
-  assert.match(source, /const card = this\.gameState\.player\.hand\.find\(\(item\) => item\.id === previewCardId\);/);
+  assert.match(source, /const handCardId = isMulliganPreview\s*\? this\.previewedMulliganCardId\s*: \(this\.selectedCardId \?\? this\.hoverInspectCardId\);/);
+  assert.match(source, /const cardView = this\.cardViews\.find\(\(view\) => view\.cardId === handCardId\);/);
+  assert.match(source, /const card = this\.gameState\.player\.hand\.find\(\(item\) => item\.id === handCardId\);/);
   assert.match(source, /const result = resolveTargetedEffectCard\(this\.gameState, 'player', this\.selectedCardId, boardIndex, targetIndexes\);/);
   assert.match(source, /const result = playEffectCard\(this\.gameState, 'player', this\.selectedCardId\);/);
   assert.match(source, /const result = playOrRedeployUnit\(this\.gameState, 'player', this\.selectedCardId, boardIndex\);/);
@@ -49,11 +54,12 @@ test('outside taps clear selection without intercepting board, pass, or card inp
   assert.match(source, /this\.bottomControlViews = \[\];/);
   assert.match(source, /this\.bottomControlViews = \[controls\.back, controls\.rules, controls\.fullscreen\]\.filter\(Boolean\);/);
   assert.match(source, /onScenePointerUp\(pointer, currentlyOver = \[\]\) \{\s*if \(this\.battleResultModalShown \|\| this\.isFlowResolving\) return;\s*if \(this\.openingMulliganPending\) \{\s*this\.clearOpeningMulliganPreviewFromOutsideTap\(pointer, currentlyOver\);\s*return;\s*\}\s*if \(!this\.selectedCardId && !this\.targetingState\) return;\s*if \(this\.isPointerUpReservedForUi\(pointer, currentlyOver\)\) return;/);
-  assert.match(source, /clearOpeningMulliganPreviewFromOutsideTap\(pointer, currentlyOver = \[\]\) \{\s*if \(!this\.previewedMulliganCardId && !this\.selectedHandCardZoom\) return;\s*if \(this\.isPointerInsideMulliganHandOrPreview\(pointer, currentlyOver\)\) return;\s*this\.previewedMulliganCardId = null;\s*this\.pressedHandCardId = null;\s*this\.resetCardHighlights\(\{ showPreview: false \}\);\s*\}/);
+  assert.match(source, /clearOpeningMulliganPreviewFromOutsideTap\(pointer, currentlyOver = \[\]\) \{\s*if \(!this\.previewedMulliganCardId && !this\.selectedHandCardZoom\) return;\s*if \(this\.isPointerInsideMulliganHandOrPreview\(pointer, currentlyOver\)\) return;\s*this\.previewedMulliganCardId = null;[\s\S]*this\.pressedHandCardId = null;\s*this\.resetCardHighlights\(\{ showPreview: false \}\);\s*\}/);
   assert.match(source, /isPointerInsideMulliganHandOrPreview\(pointer, currentlyOver = \[\]\) \{[\s\S]*const handTop = hand\.y;[\s\S]*return pointer\.x >= handLeft && pointer\.x <= handRight && pointer\.y >= handTop && pointer\.y <= handBottom;/);
   assert.match(source, /const boardCell = this\.getBoardCellFromPointerUp\(pointer, currentlyOver\);\s*if \(boardCell\) \{\s*const selectedCard = this\.gameState\.player\.hand\.find\(\(card\) => card\.id === this\.selectedCardId\);\s*if \(!selectedCard \|\| this\.isBoardCellTapReservedForCardAction\(boardCell\.index, selectedCard\)\) return;\s*\}/);
   assert.match(source, /this\.pressedHandCardId = null;\s*this\.clearHandCardSelection\(\);/);
   assert.match(source, /isPointerUpReservedForUi\(pointer, currentlyOver = \[\]\) \{[\s\S]*this\.cardViews\.some\(\(view\) => overObjects\.includes\(view\.background\)\);/);
+  assert.match(source, /this\.isPointerInsideInspectCard\(pointer, overObjects\)/);
   assert.match(source, /this\.actionButton && \(overObjects\.includes\(this\.actionButton\) \|\| this\.isPointerInsideGameObject\(pointer, this\.actionButton\)\)/);
   assert.match(source, /this\.deckCounterView && \[this\.deckCounterView\.backing, this\.deckCounterView\.text\]/);
   assert.match(source, /this\.bottomControlViews\.some\(\(control\) => \[control\.backing, control\.text\]/);
@@ -63,19 +69,27 @@ test('outside taps clear selection without intercepting board, pass, or card inp
   assert.match(source, /background\.on\('pointerup', \(\) => \{\s*this\.onBoardCellTap\(boardIndex\);\s*\}\);/);
 });
 
-test('gameplay zoom nudges to center while mulligan preview stays above its hand slot', () => {
-  assert.match(source, /const SELECTED_HAND_CARD_ZOOM_SCALE = 1\.34;/);
-  assert.match(source, /const MULLIGAN_HAND_CARD_PREVIEW_SCALE = 1\.08;/);
-  assert.match(source, /const MULLIGAN_HAND_CARD_RAISE_RATIO = 0\.06;/);
-  assert.match(source, /const HAND_CARD_PREVIEW_TWEEN_MS = 110;/);
-  assert.match(source, /const nudgeX = isMulliganPreview \? 0 : \(width \* 0\.5 - cardView\.baseX\) \* SELECTED_HAND_CARD_CENTER_NUDGE_RATIO;/);
-  assert.match(source, /const raiseRatio = isMulliganPreview \? MULLIGAN_HAND_CARD_RAISE_RATIO : SELECTED_HAND_CARD_RAISE_RATIO;/);
-  assert.match(source, /const targetY = cardView\.baseY - hand\.cardHeight \* raiseRatio;/);
-  assert.match(source, /const SELECTED_HAND_CARD_PLAYER_HERO_CLEARANCE = 6;/);
-  assert.match(source, /this\.layout\.action\.y \+ this\.layout\.action\.h \+ zoomHeight \/ 2 \+ 6/);
-  assert.match(source, /this\.layout\.playerHero\.y[\s\S]*\+ this\.layout\.playerHero\.h[\s\S]*\+ SELECTED_HAND_CARD_PLAYER_HERO_CLEARANCE/);
-  assert.match(source, /const clampedY = minY <= maxY \? Phaser\.Math\.Clamp\(targetY, minY, maxY\) : maxY;/);
-  assert.match(source, /this\.tweens\.add\(\{\s*targets: previewView\.root/);
-  assert.match(source, /x: Phaser\.Math\.Clamp\(targetX, minX, maxX\),/);
-  assert.match(source, /y: clampedY,/);
+test('inspect zoom centers, dims gameplay, stays bounded, and animates in/out', () => {
+  assert.match(source, /const INSPECT_CARD_TARGET_SCALE = 1\.58;/);
+  assert.match(source, /const INSPECT_CARD_OVERLAY_ALPHA = 0\.22;/);
+  assert.match(source, /const INSPECT_CARD_OVERLAY_DEPTH = 840;/);
+  assert.match(source, /const INSPECT_CARD_DEPTH = 850;/);
+  assert.match(source, /const INSPECT_CARD_TWEEN_IN_MS = 150;/);
+  assert.match(source, /const INSPECT_CARD_TWEEN_OUT_MS = 125;/);
+  assert.match(source, /const targetScale = Math\.min\([\s\S]*INSPECT_CARD_TARGET_SCALE,[\s\S]*maxInspectWidth \/ hand\.cardWidth,[\s\S]*maxInspectHeight \/ hand\.cardHeight,[\s\S]*\);/);
+  assert.match(source, /x: Phaser\.Math\.Clamp\(width \* 0\.5, minX, maxX\),/);
+  assert.match(source, /y: Phaser\.Math\.Clamp\(height \* INSPECT_CARD_CENTER_Y_RATIO, minY, maxY\),/);
+  assert.match(inspectMethod, /const overlay = this\.add\.rectangle\(width \* 0\.5, height \* 0\.5, width, height, 0x000000, 0\)/);
+  assert.match(inspectMethod, /alpha: INSPECT_CARD_OVERLAY_ALPHA,/);
+  assert.match(inspectMethod, /duration: INSPECT_CARD_TWEEN_IN_MS,/);
+  assert.match(source, /duration: INSPECT_CARD_TWEEN_OUT_MS,/);
+});
+
+test('board card inspect reuses full hand card layout without adding board text', () => {
+  assert.match(source, /background\.on\('pointerover', \(\) => \{\s*this\.onBoardCellPointerOver\(boardIndex\);\s*\}\);/);
+  assert.match(source, /background\.on\('pointerout', \(\) => \{\s*this\.onBoardCellPointerOut\(boardIndex\);\s*\}\);/);
+  assert.match(source, /if \(this\.boardInspectIndex !== null\) \{\s*const card = this\.gameState\.board\[this\.boardInspectIndex\];\s*const cell = this\.getBoardCellByIndex\(this\.boardInspectIndex\);/);
+  assert.match(source, /sourceX: cell\.background\.x,\s*sourceY: cell\.background\.y,/);
+  assert.match(inspectMethod, /this\.createHandCardView\(\{/);
+  assert.match(source, /cell\.label\.setText\(this\.getBoardUnitLabel\(unit\)\);/);
 });
