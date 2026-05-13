@@ -10,6 +10,7 @@ export const BACKGROUND_ART_TARGET = {
 };
 
 const MENU_BACKGROUND_PUBLIC_PATH = 'assets/backgrounds/menu-background.webp';
+const DEFAULT_BATTLE_BACKGROUND_PUBLIC_PATH = 'assets/backgrounds/default/battlefield.webp';
 const ARENA_LIGHT_SWEEP_TEXTURE_KEY = 'effect.arena-light-sweep.soft-gradient';
 const ARENA_LIGHT_SWEEP_TEXTURE_SIZE = 512;
 
@@ -27,7 +28,7 @@ export const MENU_BACKGROUND_ASSET = {
 export const BATTLE_BACKGROUND_ASSETS = {
   default: {
     key: 'background.default.battlefield',
-    path: null,
+    path: resolvePublicAssetPath(DEFAULT_BATTLE_BACKGROUND_PUBLIC_PATH),
   },
   factions: {},
 };
@@ -47,7 +48,9 @@ export function preloadBattleBackgroundArt(scene) {
     ...Object.values(BATTLE_BACKGROUND_ASSETS.factions),
   ].filter((asset) => asset?.path && asset?.key);
 
-  assets.forEach((asset) => preloadImageAsset(scene, asset));
+  assets.forEach((asset) => preloadImageAsset(scene, asset, {
+    onError: (failedAsset) => console.warn(`Battle background failed to load: ${failedAsset.path}`),
+  }));
 }
 
 export function preloadMenuBackgroundArt(scene) {

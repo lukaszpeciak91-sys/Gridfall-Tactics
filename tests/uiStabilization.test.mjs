@@ -163,3 +163,21 @@ test('start, main menu, and faction select use optional menu background art with
   assert.match(backgroundDocs, /public\/assets\/backgrounds\/menu-background\.webp/);
   assert.match(backgroundDocs, /1440 × 2560 px/);
 });
+
+test('BattleScene preloads and renders the default battlefield background with dark fallback', () => {
+  const backgroundSource = read('src/rendering/backgroundArt.js');
+  const battleSource = read('src/scenes/BattleScene.js');
+  const backgroundDocs = read('public/assets/backgrounds/README.md');
+
+  assert.ok(fs.existsSync('public/assets/backgrounds/default/battlefield.webp'));
+  assert.match(backgroundSource, /DEFAULT_BATTLE_BACKGROUND_PUBLIC_PATH = 'assets\/backgrounds\/default\/battlefield\.webp'/);
+  assert.match(backgroundSource, /key: 'background\.default\.battlefield'/);
+  assert.match(backgroundSource, /path: resolvePublicAssetPath\(DEFAULT_BATTLE_BACKGROUND_PUBLIC_PATH\)/);
+  assert.match(backgroundSource, /Battle background failed to load: \$\{failedAsset\.path}/);
+  assert.match(battleSource, /preloadBattleBackgroundArt\(this\)/);
+  assert.match(battleSource, /createCoverBackground\(this, \{/);
+  assert.match(battleSource, /asset: this\.backgroundArtAsset/);
+  assert.match(battleSource, /fallbackColor: BATTLE_BACKGROUND_FALLBACK_COLOR/);
+  assert.match(battleSource, /depth: -1000/);
+  assert.match(backgroundDocs, /assets\/backgrounds\/default\/battlefield\.webp/);
+});
