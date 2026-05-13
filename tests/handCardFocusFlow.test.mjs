@@ -92,11 +92,12 @@ test('inspect zoom anchors above player lanes, dims gameplay, stays bounded, and
   assert.match(source, /duration: INSPECT_CARD_TWEEN_OUT_MS,/);
 });
 
-test('board card inspect reuses full hand card layout without adding board text', () => {
-  assert.match(source, /background\.on\('pointerover', \(\) => \{\s*this\.onBoardCellPointerOver\(boardIndex\);\s*\}\);/);
+test('board cards stay visual-only and do not open inspect overlays', () => {
+  assert.doesNotMatch(source, /background\.on\('pointerover', \(\) => \{\s*this\.onBoardCellPointerOver\(boardIndex\);\s*\}\);/);
   assert.match(source, /background\.on\('pointerout', \(\) => \{\s*this\.onBoardCellPointerOut\(boardIndex\);\s*\}\);/);
-  assert.match(source, /if \(this\.boardInspectIndex !== null\) \{\s*const card = this\.gameState\.board\[this\.boardInspectIndex\];\s*const cell = this\.getBoardCellByIndex\(this\.boardInspectIndex\);/);
-  assert.match(source, /sourceX: cell\.background\.x,\s*sourceY: cell\.background\.y,/);
+  assert.match(source, /onBoardCellPointerOver\(\) \{\s*\/\/ Board unit inspect is intentionally disabled until that feature is ready\./);
+  assert.doesNotMatch(source, /if \(this\.boardInspectIndex !== null\) \{\s*const card = this\.gameState\.board\[this\.boardInspectIndex\];/);
+  assert.match(source, /if \(!this\.selectedCardId\) \{\s*this\.hoverInspectCardId = null;\s*this\.boardInspectIndex = null;\s*this\.destroySelectedHandCardZoom\(\{ animate: true \}\);/);
   assert.match(inspectMethod, /this\.createHandCardView\(\{/);
   assert.match(source, /cell\.label\.add\(this\.createBoardUnitView\(cell, unit\)\);/);
   assert.match(source, /createBoardUnitView\(cell, unit\) \{[\s\S]*createStatBadges\(this, 0, statY, artWidth, statHeight, this\.getBoardUnitStats\(unit\)\)/);
