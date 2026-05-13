@@ -876,15 +876,7 @@ export default class BattleScene extends Phaser.Scene {
           background.setLineDash([6, 7]);
         }
 
-        const label = this.add
-          .text(x, y, '', {
-            fontFamily: 'Arial, sans-serif',
-            fontSize: `${Math.max(13, Math.floor(board.cellWidth * 0.14))}px`,
-            color: '#f8fafc',
-            align: 'center',
-            wordWrap: { width: board.cellWidth - 16 },
-          })
-          .setOrigin(0.5);
+        const label = this.add.container(x, y);
         const blockedMarker = this.add.text(x + board.cellWidth * 0.34, y - board.cellHeight * 0.35, '', {
           fontFamily: 'Arial, sans-serif',
           fontSize: `${Math.max(12, Math.floor(board.cellWidth * 0.18))}px`,
@@ -2559,29 +2551,50 @@ export default class BattleScene extends Phaser.Scene {
     this.drawHand();
   }
 
-  getBoardUnitLabel(unit) {
-    if (!unit) return '';
+  getBoardUnitStats(unit) {
+    if (!unit) return { attack: null, armor: null, health: null };
 
-    const name = getCardDisplayName(unit, getActiveLocale()) ?? translateActive('ui.common.unit', 'Unit');
-    const atk = getUnitAttack(unit);
-    const hp = Number.isFinite(unit.hp) ? unit.hp : 0;
-    const armor = getUnitArmor(unit);
+    return {
+      attack: getUnitAttack(unit),
+      armor: getUnitArmor(unit),
+      health: Number.isFinite(unit.hp) ? unit.hp : 0,
+    };
+  }
 
-    const statParts = [`${translateActive('stats.attack', 'ATK')} ${atk}`];
-    if (armor > 0) {
-      statParts.push(`${translateActive('stats.armor', 'ARM')} ${armor}`);
-    }
-    statParts.push(`${translateActive('stats.hp', 'HP')} ${hp}`);
+  createBoardUnitView(cell, unit) {
+    const { board } = this.layout;
+    const unitWidth = Math.max(1, cell.background.width - 8);
+    const unitHeight = Math.max(1, cell.background.height - 8);
+    const pad = Math.max(5, Math.round(unitWidth * 0.06));
+    const gap = Math.max(3, Math.round(unitHeight * 0.025));
+    const statHeight = Math.max(22, Math.min(32, Math.round(unitHeight * 0.18)));
+    const artWidth = Math.max(1, unitWidth - pad * 2);
+    const artHeight = Math.max(1, unitHeight - pad * 2 - statHeight - gap);
+    const statY = -unitHeight / 2 + pad + statHeight / 2;
+    const artY = statY + statHeight / 2 + gap + artHeight / 2;
+    const ownerAccent = unit.owner === 'enemy' ? 0xf87171 : 0x60a5fa;
 
-    return `${name}
-${statParts.join(' | ')}`;
+    const cardBack = this.add.rectangle(0, 0, unitWidth, unitHeight, CARD_COLORS.frame, 0.72)
+      .setStrokeStyle(2, ownerAccent, 0.62);
+    const inner = this.add.rectangle(0, 0, unitWidth - pad, unitHeight - pad, CARD_COLORS.innerPanel, 0.32)
+      .setStrokeStyle(1, 0xffffff, 0.045);
+    const stats = createStatBadges(this, 0, statY, artWidth, statHeight, this.getBoardUnitStats(unit));
+    const artBack = this.add.rectangle(0, artY, artWidth, artHeight, CARD_COLORS.artBottom, 0.96)
+      .setStrokeStyle(1, 0x38bdf8, 0.12);
+    const artShade = this.add.rectangle(0, artY - artHeight * 0.18, artWidth, artHeight * 0.48, CARD_COLORS.artTop, 0.46);
+    const artGround = this.add.rectangle(0, artY + artHeight * 0.3, artWidth * 0.86, Math.max(1, board.cellHeight * 0.006), 0x67e8f9, 0.12);
+
+    return [cardBack, inner, artBack, artShade, artGround, stats];
   }
 
   refreshBoardLabels() {
     this.boardCells.forEach((cell) => {
       const unit = this.gameState.board[cell.index];
+      cell.label.removeAll(true);
       cell.label.setAlpha(1).setScale(1);
-      cell.label.setText(this.getBoardUnitLabel(unit));
+      if (unit) {
+        cell.label.add(this.createBoardUnitView(cell, unit));
+      }
       if (cell.row === 2) {
         const lane = cell.index % 3;
         cell.blockedMarker.setText(this.gameState.playerLanePlayBlockedThisTurn?.[lane] ? '✕' : '');
