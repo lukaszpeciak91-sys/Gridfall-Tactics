@@ -6,8 +6,11 @@ const read = (path) => fs.readFileSync(path, 'utf8');
 
 test('SettingsScene exposes future-ready language, audio, and persistence controls', () => {
   const source = read('src/scenes/SettingsScene.js');
+  const settingsState = read('src/systems/settingsState.js');
+  const navigationControls = read('src/ui/navigationControls.js');
 
-  assert.match(source, /import \{ SETTINGS_STORAGE_KEY, getSupportedLocales, normalizeLocale, setActiveLocale, translateActive, translate \} from '\.\.\/localization\/localeService\.js';/);
+  assert.match(source, /import \{ getSupportedLocales, setActiveLocale, translateActive, translate \} from '\.\.\/localization\/localeService\.js';/);
+  assert.match(source, /import \{ DEFAULT_SETTINGS, applyAudioSettings, loadSettings, saveSettings, updateSettings \} from '\.\.\/systems\/settingsState\.js';/);
   assert.match(source, /function getLanguageOptions\(displayLocale\)/);
   assert.match(source, /translate\(`ui\.settings\.languages\.\$\{locale\}`/);
   assert.match(source, /text\(width \/ 2, height \* 0\.1, translateActive\('ui\.settings\.title', 'SETTINGS'\)/);
@@ -15,30 +18,31 @@ test('SettingsScene exposes future-ready language, audio, and persistence contro
   assert.match(source, /createLanguageSelect\(width \/ 2, height \* 0\.32, panelWidth - 74\)/);
   assert.doesNotMatch(source, /createChoiceButton\(width \/ 2 - 76[\s\S]*English/);
 
-  assert.match(source, /musicVolume: 50/);
-  assert.match(source, /sfxVolume: 50/);
-  assert.match(source, /muted: false/);
+  assert.match(settingsState, /musicVolume: 50/);
+  assert.match(settingsState, /sfxVolume: 50/);
+  assert.match(settingsState, /muted: false/);
   assert.match(source, /const audioPanelHeight = 300/);
   assert.match(source, /const audioPanelTop = height \* 0\.44/);
   assert.match(source, /const muteToggleY = audioPanelTop \+ 70/);
   assert.match(source, /const musicSliderY = audioPanelTop \+ 132/);
   assert.match(source, /const sfxSliderY = audioPanelTop \+ 222/);
   assert.match(source, /addPanel\(width \/ 2, audioPanelY, panelWidth, audioPanelHeight, translateActive\('ui\.settings\.audioPanel', 'AUDIO'\)\)/);
-  assert.match(source, /createMuteToggle\(width \/ 2, muteToggleY, 44\)/);
+  assert.match(source, /createMuteToggleControl\(this, width \/ 2, muteToggleY, 44/);
   assert.match(source, /createVolumeSlider\(width \/ 2, musicSliderY, panelWidth - 76, translateActive\('ui\.settings\.musicVolume', 'Music Volume'\), 'musicVolume'\)/);
   assert.match(source, /createVolumeSlider\(width \/ 2, sfxSliderY, panelWidth - 76, translateActive\('ui\.settings\.sfxVolume', 'SFX Volume'\), 'sfxVolume'\)/);
-  assert.match(source, /createMuteToggle\(x, y, size\) \{/);
-  assert.match(source, /drawSpeakerIcon\(icon, size, isMuted\)/);
-  assert.match(source, /this\.settings\.muted = !this\.settings\.muted/);
+  assert.match(navigationControls, /createMuteToggleControl\(scene, x, y, size/);
+  assert.match(navigationControls, /drawSpeakerIcon\(icon, size, isMuted\)/);
+  assert.match(settingsState, /setMuted\(scene, muted\)/);
+  assert.match(settingsState, /toggleMuted\(scene\)/);
   assert.match(source, /this\.settings\.language = setActiveLocale\(option\.value\)/);
-  assert.match(source, /normalizeLocale\(settings\.language\)/);
+  assert.match(settingsState, /normalizeLocale\(settings\.language\)/);
   assert.match(source, /this\.saveSettings\(\)/);
   assert.doesNotMatch(source, /Audio ON/);
   assert.doesNotMatch(source, /backgroundColor: '#93c5fd'/);
 
-  assert.match(source, /SETTINGS_STORAGE_KEY/);
-  assert.match(source, /storage\.getItem\(SETTINGS_STORAGE_KEY\)/);
-  assert.match(source, /storage\.setItem\(SETTINGS_STORAGE_KEY, JSON\.stringify\(this\.settings\)\)/);
+  assert.match(settingsState, /SETTINGS_STORAGE_KEY/);
+  assert.match(settingsState, /storage\.getItem\(SETTINGS_STORAGE_KEY\)/);
+  assert.match(settingsState, /storage\.setItem\(SETTINGS_STORAGE_KEY, JSON\.stringify\(normalizedSettings\)\)/);
   assert.match(source, /returnToMainMenu\(\) \{[\s\S]*this\.scene\.start\('MainMenuScene'\)/);
 });
 
@@ -63,7 +67,7 @@ test('SettingsScene uses shared full-screen bottom navigation controls', () => {
   const source = read('src/scenes/SettingsScene.js');
 
   assert.match(source, /import \{ createBuildMarker \} from '\.\.\/ui\/buildMarker\.js';/);
-  assert.match(source, /import \{ createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen \} from '\.\.\/ui\/navigationControls\.js';/);
+  assert.match(source, /import \{ createBottomNavigationControls, createMuteToggleControl, requestPortraitOrientationLock, toggleSceneFullscreen \} from '\.\.\/ui\/navigationControls\.js';/);
   assert.match(source, /const SETTINGS_PANEL_DEPTH = 0/);
   assert.match(source, /const buildMarker = createBuildMarker\(this, \{ width, height \}\);/);
   assert.match(source, /this\.drawNavigationControls\(\);/);

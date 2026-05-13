@@ -7,14 +7,9 @@ import {
   preloadMenuBackgroundArt,
 } from '../rendering/backgroundArt.js';
 import { createBuildMarker } from '../ui/buildMarker.js';
-import { createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
-import { SETTINGS_STORAGE_KEY, getSupportedLocales, normalizeLocale, setActiveLocale, translateActive, translate } from '../localization/localeService.js';
-const DEFAULT_SETTINGS = {
-  language: 'en',
-  musicVolume: 50,
-  sfxVolume: 50,
-  muted: false,
-};
+import { createBottomNavigationControls, createMuteToggleControl, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
+import { getSupportedLocales, setActiveLocale, translateActive, translate } from '../localization/localeService.js';
+import { DEFAULT_SETTINGS, applyAudioSettings, loadSettings, saveSettings, updateSettings } from '../systems/settingsState.js';
 function getLanguageOptions(displayLocale) {
   return getSupportedLocales().map((locale) => ({
     value: locale,
@@ -51,6 +46,7 @@ export default class SettingsScene extends Phaser.Scene {
   create() {
     const { width, height } = this.scale;
     this.settings = this.loadSettings();
+    applyAudioSettings(this, this.settings);
     this.languageMenuItems = [];
     this.languageMenuOpen = false;
 
@@ -96,7 +92,12 @@ export default class SettingsScene extends Phaser.Scene {
     const musicSliderY = audioPanelTop + 132;
     const sfxSliderY = audioPanelTop + 222;
     this.addPanel(width / 2, audioPanelY, panelWidth, audioPanelHeight, translateActive('ui.settings.audioPanel', 'AUDIO'));
-    this.createMuteToggle(width / 2, muteToggleY, 44);
+    createMuteToggleControl(this, width / 2, muteToggleY, 44, {
+      onToggle: (settings) => {
+        this.settings = settings;
+      },
+      depth: 2,
+    });
     this.createVolumeSlider(width / 2, musicSliderY, panelWidth - 76, translateActive('ui.settings.musicVolume', 'Music Volume'), 'musicVolume');
     this.createVolumeSlider(width / 2, sfxSliderY, panelWidth - 76, translateActive('ui.settings.sfxVolume', 'SFX Volume'), 'sfxVolume');
 
@@ -106,67 +107,12 @@ export default class SettingsScene extends Phaser.Scene {
   }
 
   loadSettings() {
-    const stored = this.readStoredSettings();
-    return this.normalizeSettings({ ...DEFAULT_SETTINGS, ...stored });
-  }
-
-  readStoredSettings() {
-    const storage = this.getLocalStorage();
-    if (!storage) {
-      return {};
-    }
-
-    try {
-      const rawSettings = storage.getItem(SETTINGS_STORAGE_KEY);
-      return rawSettings ? JSON.parse(rawSettings) : {};
-    } catch (error) {
-      console.warn('Settings localStorage read failed; defaults will be used.', error);
-      return {};
-    }
+    return loadSettings();
   }
 
   saveSettings() {
-    const storage = this.getLocalStorage();
-    if (!storage) {
-      return;
-    }
-
-    try {
-      storage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(this.settings));
-    } catch (error) {
-      console.warn('Settings localStorage write failed; changes remain in memory only.', error);
-    }
-  }
-
-  getLocalStorage() {
-    if (typeof window === 'undefined') {
-      return null;
-    }
-
-    try {
-      return window.localStorage;
-    } catch (error) {
-      console.warn('Settings localStorage is unavailable; changes remain in memory only.', error);
-      return null;
-    }
-  }
-
-  normalizeSettings(settings) {
-    return {
-      language: normalizeLocale(settings.language),
-      musicVolume: this.clampVolume(settings.musicVolume),
-      sfxVolume: this.clampVolume(settings.sfxVolume),
-      muted: Boolean(settings.muted),
-    };
-  }
-
-  clampVolume(value) {
-    const numericValue = Number(value);
-    if (!Number.isFinite(numericValue)) {
-      return DEFAULT_SETTINGS.musicVolume;
-    }
-
-    return Phaser.Math.Clamp(Math.round(numericValue), 0, 100);
+    this.settings = saveSettings(this.settings);
+    applyAudioSettings(this, this.settings);
   }
 
   addPanel(x, y, width, height, title) {
@@ -323,8 +269,7 @@ export default class SettingsScene extends Phaser.Scene {
 
     const setValueFromX = (pointerX) => {
       const percent = Phaser.Math.Clamp(Math.round(((pointerX - (x - width / 2)) / width) * 100), 0, 100);
-      this.settings[settingKey] = percent;
-      this.saveSettings();
+      this.settings = updateSettings(this, { ...this.settings, [settingKey]: percent });
       this.updateSliderVisuals({ x, width, fill, knob, valueText, settingKey });
     };
 
@@ -339,80 +284,6 @@ export default class SettingsScene extends Phaser.Scene {
     }
 
     this.updateSliderVisuals({ x, width, fill, knob, valueText, settingKey });
-  }
-
-  createMuteToggle(x, y, size) {
-    const button = this.add.container(x, y);
-    const halo = this.add
-      .circle(0, 0, size * 0.58, 0x38bdf8, this.settings.muted ? 0.16 : 0.08)
-      .setStrokeStyle(1, 0x7dd3fc, this.settings.muted ? 0.34 : 0.18);
-    const backing = this.add
-      .rectangle(0, 0, size, size, 0x020617, 0.66)
-      .setStrokeStyle(1, this.settings.muted ? 0x93c5fd : 0x94a3b8, this.settings.muted ? 0.9 : 0.58);
-    const icon = this.add.graphics();
-
-    button.add([halo, backing, icon]);
-    button.setSize(size, size);
-    button.setDepth(2);
-
-    const refreshButton = (isHovering = false) => {
-      const isMuted = this.settings.muted;
-      backing.setFillStyle(isMuted ? 0x0f2742 : (isHovering ? 0x0f172a : 0x020617), isMuted ? 0.82 : (isHovering ? 0.72 : 0.66));
-      backing.setStrokeStyle(1, isMuted || isHovering ? 0x7dd3fc : 0x94a3b8, isMuted ? 0.95 : (isHovering ? 0.82 : 0.58));
-      halo.setFillStyle(isMuted ? 0x60a5fa : 0x38bdf8, isMuted ? 0.2 : (isHovering ? 0.18 : 0.08));
-      halo.setStrokeStyle(1, 0x7dd3fc, isMuted ? 0.38 : (isHovering ? 0.3 : 0.18));
-      this.drawSpeakerIcon(icon, size, isMuted);
-    };
-
-    button.setInteractive({ useHandCursor: true });
-    button.on('pointerover', () => refreshButton(true));
-    button.on('pointerout', () => refreshButton(false));
-    button.on('pointerup', () => {
-      this.settings.muted = !this.settings.muted;
-      this.saveSettings();
-      refreshButton(false);
-    });
-
-    refreshButton(false);
-  }
-
-  drawSpeakerIcon(icon, size, isMuted) {
-    const iconColor = isMuted ? 0xbfdbfe : 0xf8fafc;
-    const slashColor = 0xf87171;
-    const unit = size / 44;
-
-    icon.clear();
-    icon.fillStyle(iconColor, 1);
-    icon.lineStyle(2.4 * unit, iconColor, 1);
-    icon.beginPath();
-    icon.moveTo(-13 * unit, -6 * unit);
-    icon.lineTo(-7 * unit, -6 * unit);
-    icon.lineTo(1 * unit, -13 * unit);
-    icon.lineTo(1 * unit, 13 * unit);
-    icon.lineTo(-7 * unit, 6 * unit);
-    icon.lineTo(-13 * unit, 6 * unit);
-    icon.closePath();
-    icon.fillPath();
-
-    if (isMuted) {
-      icon.lineStyle(2.8 * unit, slashColor, 1);
-      icon.beginPath();
-      icon.moveTo(8 * unit, -10 * unit);
-      icon.lineTo(17 * unit, 10 * unit);
-      icon.strokePath();
-      icon.beginPath();
-      icon.moveTo(17 * unit, -10 * unit);
-      icon.lineTo(8 * unit, 10 * unit);
-      icon.strokePath();
-      return;
-    }
-
-    icon.beginPath();
-    icon.arc(6 * unit, 0, 7 * unit, -0.82, 0.82);
-    icon.strokePath();
-    icon.beginPath();
-    icon.arc(6 * unit, 0, 12 * unit, -0.62, 0.62);
-    icon.strokePath();
   }
 
   updateSliderVisuals({ x, width, fill, knob, valueText, settingKey }) {

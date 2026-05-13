@@ -4,6 +4,7 @@ import { getFactionPresentationName } from '../data/presentation/factionPresenta
 import { createBuildMarker } from '../ui/buildMarker.js';
 import { createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
 import { getActiveLocale, translateActive } from '../localization/localeService.js';
+import { applyAudioSettings, loadSettings } from '../systems/settingsState.js';
 import {
   MENU_BACKGROUND_FALLBACK_COLOR,
   MENU_BACKGROUND_FALLBACK_COLOR_HEX,
@@ -115,6 +116,7 @@ export default class FactionSelectScene extends Phaser.Scene {
     }
 
     const { width, height } = this.scale;
+    applyAudioSettings(this, loadSettings());
     const factionKeys = getFactionKeys();
 
     this.cameras.main.setBackgroundColor(MENU_BACKGROUND_FALLBACK_COLOR_HEX);
@@ -415,14 +417,14 @@ export default class FactionSelectScene extends Phaser.Scene {
 
   drawNavigationControls() {
     const controls = createBottomNavigationControls(this, {
-      onBack: () => this.returnToMainMenu(),
+      onMute: () => {},
       onRules: () => this.openRulesPanel(),
       onFullscreen: () => this.toggleFullscreen(),
     });
 
-    [controls.back, controls.rules, controls.fullscreen].forEach((control) => {
-      this.uiElements.push(control.halo, control.backing, control.text);
-      this.interactiveElements.push(control.backing, control.text);
+    [controls.mute, controls.rules, controls.fullscreen].filter(Boolean).forEach((control) => {
+      this.uiElements.push(control.button ?? control.halo, control.backing, control.text);
+      this.interactiveElements.push(control.button ?? control.backing, control.text);
     });
   }
 

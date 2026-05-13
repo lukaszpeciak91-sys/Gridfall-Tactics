@@ -17,6 +17,8 @@ import {
   setStartHeroLogoDisplaySize,
 } from '../ui/menuLogoLayout.js';
 import { preloadSecondaryButtonAsset } from '../ui/imageButton.js';
+import { createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
+import { applyAudioSettings, loadSettings } from '../systems/settingsState.js';
 
 const START_TRANSITION_MS = 720;
 const START_TITLE_DEPTH = 5;
@@ -55,6 +57,7 @@ export default class StartScene extends Phaser.Scene {
     const { width, height } = this.scale;
     this.isTransitioning = false;
     this.titleHovering = false;
+    applyAudioSettings(this, loadSettings());
 
     this.cameras.main.setBackgroundColor(MENU_BACKGROUND_FALLBACK_COLOR_HEX);
     createCoverBackground(this, {
@@ -70,10 +73,15 @@ export default class StartScene extends Phaser.Scene {
     this.configureLogoActivation();
     this.positionLogoHitArea();
     this.startLogoIdlePulse();
+    this.drawNavigationControls();
 
     this.scale.on('resize', this.layoutStartScene, this);
+    this.scale.on('enterfullscreen', this.onFullscreenChanged, this);
+    this.scale.on('leavefullscreen', this.onFullscreenChanged, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.scale.off('resize', this.layoutStartScene, this);
+      this.scale.off('enterfullscreen', this.onFullscreenChanged, this);
+      this.scale.off('leavefullscreen', this.onFullscreenChanged, this);
     });
   }
 
@@ -201,10 +209,46 @@ export default class StartScene extends Phaser.Scene {
       this.captureLogoBaseTransform();
       this.positionLogoHitArea();
     }
+
+    this.navigationControls?.forEach((control) => {
+      if (control.destroy) {
+        control.destroy();
+        return;
+      }
+
+      control.button?.destroy?.();
+      control.halo?.destroy?.();
+      control.backing?.destroy?.();
+      control.text?.destroy?.();
+    });
+    this.drawNavigationControls();
   }
 
   scaleLogoToFit(logo, width, height) {
     setStartHeroLogoDisplaySize(this, logo, width, height);
+  }
+
+
+  drawNavigationControls() {
+    const controls = createBottomNavigationControls(this, {
+      onMute: () => {},
+      onFullscreen: () => this.toggleFullscreen(),
+    });
+    this.navigationControls = [controls.mute, controls.fullscreen].filter(Boolean);
+  }
+
+  toggleFullscreen() {
+    toggleSceneFullscreen(this);
+  }
+
+  onFullscreenChanged() {
+    if (this.scale.isFullscreen) {
+      requestPortraitOrientationLock();
+    }
+
+    if (this.scene.isActive('StartScene')) {
+      this.scene.restart();
+    }
   }
 
   revealMainMenuAfterSharedLogo() {
