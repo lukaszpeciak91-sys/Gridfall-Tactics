@@ -207,7 +207,7 @@ The no-progress detector uses the stricter "meaningful for outcome" definition i
 | Aggro | Pierce Strike | order | - | ignore_armor_next_attack | Deal 1. Next combat hit ignores its armor. | Targeted enemy | If the target survives, consumes ignore flag on first mitigated hit. |
 | Aggro | Adrenaline | special | - | quick_strike | Resolve selected friendly unit's lane combat immediately. | Targeted friendly | Lane-only immediate combat slice. |
 | Aggro | Quick Fix | utility | - | heal_1_atk_1_draw_on_kill_this_turn | Ally: heal 1, +1 ATK this turn. Draw if it kills. | Targeted friendly | Heal is capped by max HP; draw uses one-shot combat kill tracking and temporary trigger cleanup after combat. |
-| Control | Hacker | unit | 1/1/0 | enemy_lane_atk_minus_1 | On play: opposing lane unit gets temp -1 ATK this turn. | Lane on-play | Also available as targeted effectId path. |
+| Control | Hacker | unit | 1/2/0 | enemy_lane_atk_minus_1 | On play: opposing lane unit gets temp -1 ATK this turn. | Lane on-play | Also available as targeted effectId path. |
 | Control | Disruptor | unit | 1/2/0 | cancel_enemy_order | On play: cancel next enemy effect this turn. | On-play non-targeted | Cancels at most one enemy non-unit action; expires at PASS/combat cleanup if unused; not a persistent aura. |
 | Control | Sniper | unit | 2/1/0 | can_hit_any_lane | Attacks lowest-HP enemy unit. | Deterministic auto-target | Tie-break: lowest index; no manual target UI. |
 | Control | Controller | unit | 1/2/0 | swap_two_enemy_units | On play: swap first 2 enemies. | Deterministic on-play | Picks first two enemy units by index order; not manual two-pick UI for this unit trigger. |
