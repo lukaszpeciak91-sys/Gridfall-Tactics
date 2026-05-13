@@ -195,7 +195,7 @@ test('visible UI surfaces route names through active-locale presentation helpers
   assert.match(battleSource, /getEnemyActionMessage\(action, card\) \{[\s\S]*const cardName = getCardDisplayName\(card, getActiveLocale\(\)\) \?\? translateActive\('ui\.common\.unknownCard', 'Unknown Card'\);/);
   assert.match(battleSource, /createBoardUnitView\(cell, unit\) \{[\s\S]*createStatBadges\(this, 0, statY, artWidth, statHeight, this\.getBoardUnitStats\(unit\)\)/);
   assert.doesNotMatch(battleSource, /getBoardUnitLabel\(unit\)/);
-  assert.match(battleSource, /createHandCardView\(\{ card, cardId, x, y, width, height, accentColor, depth \}\) \{[\s\S]*getCardDisplayContent\(card, getActiveLocale\(\)\)/);
+  assert.match(battleSource, /createHandCardView\(\{ card, cardId, x, y, width, height, accentColor, depth[\s\S]*\}\) \{[\s\S]*getCardDisplayContent\(card, getActiveLocale\(\)\)/);
   assert.match(battleSource, /showSelectedHandCardZoom\(\) \{[\s\S]*this\.createHandCardView\(\{/);
   assert.match(collectionSource, /formatCollectionRowLabel\(card, getActiveLocale\(\)\)/);
   assert.match(collectionSource, /formatCardDetailLines\(card, getActiveLocale\(\)\)/);
