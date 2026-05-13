@@ -11,7 +11,7 @@ import { createBottomNavigationControls, requestPortraitOrientationLock, toggleS
 import { createModalBackButton } from '../ui/modalControls.js';
 import { preloadSecondaryButtonAsset } from '../ui/imageButton.js';
 import { formatDeckSummaryEntry } from '../rendering/cardRenderModes.js';
-import { CARD_COLORS, createArtPlaceholder, createStatBar, getCardDisplayContent, getCardLayoutZones, getCardStatValues, getCardTypography } from '../rendering/cardVisualLayout.js';
+import { CARD_COLORS, createArtPlaceholder, createStatBadges, getCardDisplayContent, getCardLayoutZones, getCardStatValues, getCardTypography } from '../rendering/cardVisualLayout.js';
 import { getCardDisplayName, getCardTextShort } from '../localization/cardDisplay.js';
 import { getActiveLocale, translateActive } from '../localization/localeService.js';
 
@@ -1232,7 +1232,7 @@ export default class BattleScene extends Phaser.Scene {
       .setStrokeStyle(3, accentColor, card ? 0.82 : 0.7);
     const inner = this.add.rectangle(0, 0, width - zones.pad * 0.9, height - zones.pad * 0.9, CARD_COLORS.innerPanel, 0.36)
       .setStrokeStyle(1, 0xffffff, 0.055);
-    const statBar = createStatBar(this, zones.statBar.centerX, zones.statBar.centerY, zones.statBar.width, zones.statBar.height, stats);
+    const statBadges = createStatBadges(this, zones.statBadges.centerX, zones.statBadges.centerY, zones.statBadges.width, zones.statBadges.height, stats);
     const art = createArtPlaceholder(this, zones.art);
     const namePanel = this.add.rectangle(zones.name.centerX, zones.name.centerY, zones.name.width, zones.name.height, CARD_COLORS.namePanel, 0.93)
       .setStrokeStyle(1, accentColor, card ? 0.38 : 0.14);
@@ -1257,7 +1257,7 @@ export default class BattleScene extends Phaser.Scene {
     const dividers = [zones.art.y - zones.gap / 2, zones.name.y - zones.gap / 2, zones.text.y - zones.gap / 2]
       .map((dividerY) => this.add.rectangle(0, dividerY, zones.outer.width - zones.pad * 2.15, 1, CARD_COLORS.divider, 0.22));
 
-    root.add([glow, background, inner, statBar, art, namePanel, nameText, textPanel, bodyText, ...dividers]);
+    root.add([glow, background, inner, statBadges, art, namePanel, nameText, textPanel, bodyText, ...dividers]);
 
     return {
       cardId,
@@ -1267,7 +1267,8 @@ export default class BattleScene extends Phaser.Scene {
       label: nameText,
       nameText,
       bodyText,
-      statBar,
+      statBar: statBadges,
+      statBadges,
       art,
       baseX: x,
       baseY: y,
