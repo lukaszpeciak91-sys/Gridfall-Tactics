@@ -35,6 +35,19 @@ test('BattleScene imports every GameState helper used during create', () => {
   assert.match(source, /shuffleDeck\(this\.gameState\.enemy\.deck\)/);
 });
 
+
+test('BattleScene enemy action pacing constants resolve during turn flow', () => {
+  const source = readScene('src/scenes/BattleScene.js');
+
+  assert.match(source, /const ENEMY_ACTION_PACING = Object\.freeze\(\{/);
+  assert.match(source, /pass: \{[\s\S]*applyDelayMs:[\s\S]*bannerHoldMs:[\s\S]*postActionDelayMs:[\s\S]*preCombatDelayMs:/);
+  assert.match(source, /unit: \{[\s\S]*applyDelayMs: ENEMY_ACTION_APPLY_DELAY_MS,[\s\S]*preCombatDelayMs: ENEMY_ACTION_PRE_COMBAT_DELAY_MS/);
+  assert.match(source, /effect: \{[\s\S]*bannerHoldMs: ENEMY_ACTION_NOTIFICATION_HOLD_MS \+ 120,[\s\S]*preCombatDelayMs: ENEMY_ACTION_PRE_COMBAT_DELAY_MS/);
+  assert.match(source, /reposition: \{[\s\S]*applyDelayMs: Math\.round\(ENEMY_ACTION_APPLY_DELAY_MS \* 0\.85\),[\s\S]*preCombatDelayMs: ENEMY_ACTION_PRE_COMBAT_DELAY_MS/);
+  assert.match(source, /enemyActionPacing\?\.preCombatDelayMs \?\? ENEMY_ACTION_PRE_COMBAT_DELAY_MS/);
+  assert.doesNotMatch(source, /ENEMY_ACTION_DEFAULT_PRE_COMBAT_DELAY_MS/);
+});
+
 test('BattleScene returns to faction select through a cleanup path and retry stays in BattleScene', () => {
   const source = readScene('src/scenes/BattleScene.js');
 
