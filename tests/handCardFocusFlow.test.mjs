@@ -70,7 +70,7 @@ test('outside taps clear selection without intercepting board, pass, or card inp
 });
 
 test('inspect zoom centers, dims gameplay, stays bounded, and animates in/out', () => {
-  assert.match(source, /const INSPECT_CARD_TARGET_SCALE = 1\.58;/);
+  assert.match(source, /const INSPECT_CARD_TARGET_SCALE = 1\.76;/);
   assert.match(source, /const INSPECT_CARD_OVERLAY_ALPHA = 0\.22;/);
   assert.match(source, /const INSPECT_CARD_OVERLAY_DEPTH = 840;/);
   assert.match(source, /const INSPECT_CARD_DEPTH = 850;/);
