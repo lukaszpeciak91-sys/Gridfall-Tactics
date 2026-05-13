@@ -203,6 +203,21 @@ test('visible UI surfaces route names through active-locale presentation helpers
   assert.match(factionSelectSource, /getFactionPresentationName\(faction\?\.id, getActiveLocale\(\), faction\?\.name \?\? factionKey\)/);
 });
 
+test('board unit compact view keeps top stats, art space, and a bottom name strip without effect text', () => {
+  const source = fs.readFileSync('src/scenes/BattleScene.js', 'utf8');
+  const start = source.indexOf('  createBoardUnitView(cell, unit) {');
+  const end = source.indexOf('  refreshBoardLabels() {');
+  const boardUnitViewSource = source.slice(start, end);
+
+  assert.match(boardUnitViewSource, /const statHeight = Math\.max\(22, Math\.min\(32, Math\.round\(unitHeight \* 0\.18\)\)\);/);
+  assert.match(boardUnitViewSource, /const nameHeight = Math\.max\(18, Math\.min\(30, Math\.round\(unitHeight \* 0\.19\)\)\);/);
+  assert.match(boardUnitViewSource, /const displayName = getCardDisplayName\(unit, getActiveLocale\(\)\) \?\? translateActive\('ui\.common\.unit', 'Unit'\);/);
+  assert.match(boardUnitViewSource, /const stats = createStatBadges\(this, 0, statY, artWidth, statHeight, this\.getBoardUnitStats\(unit\)\);/);
+  assert.match(boardUnitViewSource, /const namePanel = this\.add\.rectangle\(0, nameY, artWidth, nameHeight, CARD_COLORS\.namePanel, 0\.9\)/);
+  assert.match(boardUnitViewSource, /const nameText = this\.createBoardUnitNameText\(0, nameY, artWidth, nameHeight, displayName\);/);
+  assert.doesNotMatch(boardUnitViewSource, /getCardTextShort|getCardDisplayContent|createInlineStatText|bodyText|textPanel/);
+});
+
 test('current faction card display names use locale presentation overrides without mutating gameplay card names', () => {
   for (const factionKey of getFactionKeys()) {
     const faction = getFactionByKey(factionKey);
