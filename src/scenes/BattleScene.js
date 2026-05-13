@@ -21,14 +21,15 @@ const HAND_CARD_ACCENT_COLORS = Object.freeze({
   default: 0x94a3b8,
 });
 
-const SELECTED_HAND_CARD_ZOOM_SCALE = 1.34;
-const SELECTED_HAND_CARD_RAISE_RATIO = 0.16;
-const SELECTED_HAND_CARD_PLAYER_HERO_CLEARANCE = 6;
-const SELECTED_HAND_CARD_CENTER_NUDGE_RATIO = 0.18;
-const SELECTED_HAND_CARD_DEPTH = 180;
-const MULLIGAN_HAND_CARD_PREVIEW_SCALE = 1.08;
-const MULLIGAN_HAND_CARD_RAISE_RATIO = 0.06;
-const HAND_CARD_PREVIEW_TWEEN_MS = 110;
+const INSPECT_CARD_TARGET_SCALE = 1.58;
+const INSPECT_CARD_MAX_HEIGHT_RATIO = 0.62;
+const INSPECT_CARD_MAX_WIDTH_RATIO = 0.78;
+const INSPECT_CARD_CENTER_Y_RATIO = 0.545;
+const INSPECT_CARD_OVERLAY_ALPHA = 0.22;
+const INSPECT_CARD_OVERLAY_DEPTH = 840;
+const INSPECT_CARD_DEPTH = 850;
+const INSPECT_CARD_TWEEN_IN_MS = 150;
+const INSPECT_CARD_TWEEN_OUT_MS = 125;
 const ENEMY_ACTION_NOTIFICATION_FADE_IN_MS = 110;
 const ENEMY_ACTION_NOTIFICATION_HOLD_MS = 650;
 const ENEMY_ACTION_NOTIFICATION_FADE_OUT_MS = 140;
@@ -86,6 +87,8 @@ export default class BattleScene extends Phaser.Scene {
     this.backgroundArtAsset = null;
     this.backgroundLayer = null;
     this.selectedHandCardZoom = null;
+    this.hoverInspectCardId = null;
+    this.boardInspectIndex = null;
     this.pressedHandCardId = null;
   }
 
@@ -137,6 +140,8 @@ export default class BattleScene extends Phaser.Scene {
     this.backgroundArtAsset = null;
     this.backgroundLayer = null;
     this.selectedHandCardZoom = null;
+    this.hoverInspectCardId = null;
+    this.boardInspectIndex = null;
     this.pressedHandCardId = null;
   }
 
@@ -864,6 +869,12 @@ export default class BattleScene extends Phaser.Scene {
         background.on('pointerup', () => {
           this.onBoardCellTap(boardIndex);
         });
+        background.on('pointerover', () => {
+          this.onBoardCellPointerOver(boardIndex);
+        });
+        background.on('pointerout', () => {
+          this.onBoardCellPointerOut(boardIndex);
+        });
         this.boardCells.push({ index: boardIndex, row, background, label, blockedMarker });
       }
     }
@@ -1210,6 +1221,12 @@ export default class BattleScene extends Phaser.Scene {
         cardView.background.on('pointerup', () => {
           this.onCardPointerUp(cardId);
         });
+        cardView.background.on('pointerover', () => {
+          this.onHandCardPointerOver(cardId);
+        });
+        cardView.background.on('pointerout', () => {
+          this.onHandCardPointerOut(cardId);
+        });
       }
 
       this.cardViews.push(cardView);
@@ -1289,8 +1306,45 @@ export default class BattleScene extends Phaser.Scene {
     return HAND_CARD_ACCENT_COLORS.default;
   }
 
+  onHandCardPointerOver(cardId) {
+    if (this.battleResultModalShown || this.isFlowResolving || this.selectedCardId || this.targetingState) return;
+    const card = this.gameState?.player?.hand?.find((item) => item.id === cardId);
+    if (!card) return;
+
+    this.hoverInspectCardId = cardId;
+    this.boardInspectIndex = null;
+    this.showSelectedHandCardZoom();
+  }
+
+  onHandCardPointerOut(cardId) {
+    if (this.hoverInspectCardId !== cardId) return;
+    this.hoverInspectCardId = null;
+    if (!this.selectedCardId && !this.previewedMulliganCardId) {
+      this.destroySelectedHandCardZoom({ animate: true });
+    }
+  }
+
+  onBoardCellPointerOver(boardIndex) {
+    if (this.battleResultModalShown || this.isFlowResolving || this.selectedCardId || this.targetingState) return;
+    if (!this.gameState?.board?.[boardIndex]) return;
+
+    this.boardInspectIndex = boardIndex;
+    this.hoverInspectCardId = null;
+    this.showSelectedHandCardZoom();
+  }
+
+  onBoardCellPointerOut(boardIndex) {
+    if (this.boardInspectIndex !== boardIndex || this.pendingSwapIndex === boardIndex) return;
+    this.boardInspectIndex = null;
+    if (!this.selectedCardId && !this.previewedMulliganCardId) {
+      this.destroySelectedHandCardZoom({ animate: true });
+    }
+  }
+
   onCardPointerDown(cardId) {
     this.pressedHandCardId = cardId;
+    this.hoverInspectCardId = null;
+    this.boardInspectIndex = null;
 
     if (this.battleResultModalShown) {
       return;
@@ -1378,6 +1432,8 @@ export default class BattleScene extends Phaser.Scene {
     if (this.isPointerInsideMulliganHandOrPreview(pointer, currentlyOver)) return;
 
     this.previewedMulliganCardId = null;
+    this.hoverInspectCardId = null;
+    this.boardInspectIndex = null;
     this.pressedHandCardId = null;
     this.resetCardHighlights({ showPreview: false });
   }
@@ -1413,10 +1469,19 @@ export default class BattleScene extends Phaser.Scene {
     return gameObject.getBounds().contains(pointer.x, pointer.y);
   }
 
+  isPointerInsideInspectCard(pointer, overObjects = []) {
+    const inspect = this.selectedHandCardZoom;
+    if (!inspect) return false;
+    const inspectObjects = [inspect.background, inspect.glow, inspect.label, inspect.nameText, inspect.bodyText].filter(Boolean);
+    return inspectObjects.some((item) => overObjects.includes(item) || this.isPointerInsideGameObject(pointer, item));
+  }
+
   isPointerUpReservedForUi(pointer, currentlyOver = []) {
     const overObjects = this.normalizePointerUpObjects(currentlyOver);
     const isOverHandCard = this.cardViews.some((view) => overObjects.includes(view.background));
     if (isOverHandCard) return true;
+
+    if (this.isPointerInsideInspectCard(pointer, overObjects)) return true;
 
     if (this.actionButton && (overObjects.includes(this.actionButton) || this.isPointerInsideGameObject(pointer, this.actionButton))) {
       return true;
@@ -1452,9 +1517,11 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   clearHandCardSelection() {
-    const hadState = Boolean(this.selectedCardId || this.targetingState);
+    const hadState = Boolean(this.selectedCardId || this.targetingState || this.hoverInspectCardId || this.boardInspectIndex !== null);
     this.selectedCardId = null;
     this.targetingState = null;
+    this.hoverInspectCardId = null;
+    this.boardInspectIndex = null;
     if (hadState) this.resetCardHighlights();
   }
 
@@ -1472,6 +1539,14 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     if (!this.selectedCardId) {
+      const inspectedUnit = this.gameState.board[boardIndex];
+      this.hoverInspectCardId = null;
+      this.boardInspectIndex = inspectedUnit ? boardIndex : null;
+      if (inspectedUnit) {
+        this.showSelectedHandCardZoom();
+      } else {
+        this.destroySelectedHandCardZoom({ animate: true });
+      }
       if (this.targetingState) {
         this.targetingState = null;
       }
@@ -1605,6 +1680,9 @@ export default class BattleScene extends Phaser.Scene {
     this.selectedCardId = null;
     this.targetingState = null;
     this.pendingSwapIndex = null;
+    this.hoverInspectCardId = null;
+    this.boardInspectIndex = null;
+    this.destroySelectedHandCardZoom({ animate: true });
   }
 
   updateActionButtonLabel() {
@@ -1643,6 +1721,9 @@ export default class BattleScene extends Phaser.Scene {
     this.selectedCardId = null;
     this.pendingSwapIndex = null;
     this.targetingState = null;
+    this.hoverInspectCardId = null;
+    this.boardInspectIndex = null;
+    this.destroySelectedHandCardZoom({ animate: true });
     this.updateInitiativeIndicator();
 
     if (this.gameState.firstActor === 'enemy') {
@@ -1760,6 +1841,9 @@ export default class BattleScene extends Phaser.Scene {
     this.selectedCardId = null;
     this.pendingSwapIndex = null;
     this.targetingState = null;
+    this.hoverInspectCardId = null;
+    this.boardInspectIndex = null;
+    this.destroySelectedHandCardZoom({ animate: true });
     this.refreshBoardLabels();
     this.redrawHand();
     this.refreshHeroHP();
@@ -2468,86 +2552,174 @@ ${statParts.join(' | ')}`;
   }
 
 
-  destroySelectedHandCardZoom() {
+  destroySelectedHandCardZoom({ animate = false } = {}) {
     if (!this.selectedHandCardZoom) return;
-    const zoomItems = [this.selectedHandCardZoom.root, this.selectedHandCardZoom.glow, this.selectedHandCardZoom.background, this.selectedHandCardZoom.label];
-    this.tweens?.killTweensOf?.(zoomItems.filter(Boolean));
-    this.selectedHandCardZoom.root?.destroy();
+
+    const inspect = this.selectedHandCardZoom;
+    const items = [inspect.root, inspect.overlay, inspect.glow, inspect.background, inspect.label].filter(Boolean);
+    this.tweens?.killTweensOf?.(items);
     this.selectedHandCardZoom = null;
+
+    const destroyItems = () => {
+      inspect.overlay?.removeAllListeners?.();
+      inspect.overlay?.destroy?.();
+      inspect.root?.destroy?.();
+    };
+
+    if (!animate || !inspect.root?.active) {
+      destroyItems();
+      return;
+    }
+
+    this.tweens.add({
+      targets: inspect.root,
+      x: inspect.sourceX,
+      y: inspect.sourceY,
+      scale: 0.96,
+      alpha: 0,
+      duration: INSPECT_CARD_TWEEN_OUT_MS,
+      ease: 'Quad.easeIn',
+      onComplete: destroyItems,
+    });
+
+    if (inspect.overlay?.active) {
+      this.tweens.add({
+        targets: inspect.overlay,
+        alpha: 0,
+        duration: INSPECT_CARD_TWEEN_OUT_MS,
+        ease: 'Quad.easeIn',
+      });
+    }
   }
 
-  getSelectedHandCardTransform(cardView, { isMulliganPreview = false } = {}) {
+  getInspectCardTransform() {
     const { width, height, hand, margin } = this.layout;
-    const zoomScale = isMulliganPreview ? MULLIGAN_HAND_CARD_PREVIEW_SCALE : SELECTED_HAND_CARD_ZOOM_SCALE;
-    const zoomWidth = hand.cardWidth * zoomScale;
-    const zoomHeight = hand.cardHeight * zoomScale;
-    const nudgeX = isMulliganPreview ? 0 : (width * 0.5 - cardView.baseX) * SELECTED_HAND_CARD_CENTER_NUDGE_RATIO;
-    const targetX = cardView.baseX + nudgeX;
-    const raiseRatio = isMulliganPreview ? MULLIGAN_HAND_CARD_RAISE_RATIO : SELECTED_HAND_CARD_RAISE_RATIO;
-    const targetY = cardView.baseY - hand.cardHeight * raiseRatio;
-    const minX = margin + zoomWidth / 2;
-    const maxX = width - margin - zoomWidth / 2;
-    const heroSafeMinY = this.layout.playerHero.y
-      + this.layout.playerHero.h
-      + SELECTED_HAND_CARD_PLAYER_HERO_CLEARANCE
-      + zoomHeight / 2;
-    const minY = isMulliganPreview
-      ? this.layout.action.y + this.layout.action.h + zoomHeight / 2 + 6
-      : Math.max(margin + zoomHeight / 2, heroSafeMinY);
-    const maxY = height - margin - zoomHeight / 2;
-    const clampedY = minY <= maxY ? Phaser.Math.Clamp(targetY, minY, maxY) : maxY;
+    const maxInspectWidth = Math.min(width * INSPECT_CARD_MAX_WIDTH_RATIO, width - margin * 2);
+    const maxInspectHeight = Math.min(height * INSPECT_CARD_MAX_HEIGHT_RATIO, height - margin * 2);
+    const targetScale = Math.min(
+      INSPECT_CARD_TARGET_SCALE,
+      maxInspectWidth / hand.cardWidth,
+      maxInspectHeight / hand.cardHeight,
+    );
+    const inspectWidth = hand.cardWidth * targetScale;
+    const inspectHeight = hand.cardHeight * targetScale;
+    const minX = margin + inspectWidth / 2;
+    const maxX = width - margin - inspectWidth / 2;
+    const minY = margin + inspectHeight / 2;
+    const maxY = height - margin - inspectHeight / 2;
 
     return {
-      x: Phaser.Math.Clamp(targetX, minX, maxX),
-      y: clampedY,
-      scale: zoomScale,
+      x: Phaser.Math.Clamp(width * 0.5, minX, maxX),
+      y: Phaser.Math.Clamp(height * INSPECT_CARD_CENTER_Y_RATIO, minY, maxY),
+      width: inspectWidth,
+      height: inspectHeight,
     };
   }
 
+  getCurrentInspectCardRequest() {
+    const isMulliganPreview = this.openingMulliganPending;
+    const handCardId = isMulliganPreview
+      ? this.previewedMulliganCardId
+      : (this.selectedCardId ?? this.hoverInspectCardId);
+
+    if (handCardId) {
+      const cardView = this.cardViews.find((view) => view.cardId === handCardId);
+      const card = this.gameState.player.hand.find((item) => item.id === handCardId);
+      if (cardView && card) {
+        return {
+          card,
+          cardId: handCardId,
+          sourceX: cardView.baseX,
+          sourceY: cardView.baseY,
+        };
+      }
+    }
+
+    if (this.boardInspectIndex !== null) {
+      const card = this.gameState.board[this.boardInspectIndex];
+      const cell = this.getBoardCellByIndex(this.boardInspectIndex);
+      if (card && cell) {
+        return {
+          card,
+          cardId: `board-${this.boardInspectIndex}-${card.id ?? card.name ?? 'unit'}`,
+          sourceX: cell.background.x,
+          sourceY: cell.background.y,
+        };
+      }
+    }
+
+    return null;
+  }
+
   showSelectedHandCardZoom() {
+    const inspectRequest = this.getCurrentInspectCardRequest();
+    if (!inspectRequest) {
+      this.destroySelectedHandCardZoom({ animate: true });
+      return;
+    }
+
     this.destroySelectedHandCardZoom();
 
-    const isMulliganPreview = this.openingMulliganPending;
-    const previewCardId = isMulliganPreview ? this.previewedMulliganCardId : this.selectedCardId;
-    if (!previewCardId) return;
-
-    const cardView = this.cardViews.find((view) => view.cardId === previewCardId);
-    const card = this.gameState.player.hand.find((item) => item.id === previewCardId);
-    if (!cardView || !card) return;
-
-    const { hand } = this.layout;
-    const transform = this.getSelectedHandCardTransform(cardView, { isMulliganPreview });
-    const accentColor = this.getHandCardAccentColor(card);
-    const zoomWidth = hand.cardWidth * transform.scale;
-    const zoomHeight = hand.cardHeight * transform.scale;
-    const previewView = this.createHandCardView({
-      card,
-      cardId: previewCardId,
-      x: cardView.baseX,
-      y: cardView.baseY,
-      width: zoomWidth,
-      height: zoomHeight,
-      accentColor,
-      depth: SELECTED_HAND_CARD_DEPTH,
+    const { width, height } = this.layout;
+    const transform = this.getInspectCardTransform();
+    const accentColor = this.getHandCardAccentColor(inspectRequest.card);
+    const overlay = this.add.rectangle(width * 0.5, height * 0.5, width, height, 0x000000, 0)
+      .setDepth(INSPECT_CARD_OVERLAY_DEPTH)
+      .setInteractive();
+    overlay.on('pointerup', () => {
+      this.hoverInspectCardId = null;
+      this.boardInspectIndex = null;
+      this.pendingSwapIndex = null;
+      if (this.openingMulliganPending) this.previewedMulliganCardId = null;
+      if (!this.openingMulliganPending) {
+        this.selectedCardId = null;
+        this.targetingState = null;
+      }
+      this.resetCardHighlights({ showPreview: false });
     });
 
-    previewView.root.setAlpha(0).setScale(0.96);
+    const previewView = this.createHandCardView({
+      card: inspectRequest.card,
+      cardId: inspectRequest.cardId,
+      x: inspectRequest.sourceX,
+      y: inspectRequest.sourceY,
+      width: transform.width,
+      height: transform.height,
+      accentColor,
+      depth: INSPECT_CARD_DEPTH,
+    });
+
+    previewView.root.setAlpha(0).setScale(0.92);
+    previewView.background.setInteractive({ useHandCursor: true });
+    previewView.background.on('pointerup', () => {});
     previewView.glow.setFillStyle(0xfacc15, 0.12);
     previewView.glow.setStrokeStyle(5, 0xfacc15, 0.65);
-    previewView.background.setFillStyle(CARD_COLORS.frameSelected, 0.92);
+    previewView.background.setFillStyle(CARD_COLORS.frameSelected, 0.94);
     previewView.background.setStrokeStyle(5, accentColor, 1);
 
+    this.tweens.add({
+      targets: overlay,
+      alpha: INSPECT_CARD_OVERLAY_ALPHA,
+      duration: INSPECT_CARD_TWEEN_IN_MS,
+      ease: 'Quad.easeOut',
+    });
     this.tweens.add({
       targets: previewView.root,
       x: transform.x,
       y: transform.y,
       scale: 1,
       alpha: 1,
-      duration: HAND_CARD_PREVIEW_TWEEN_MS,
+      duration: INSPECT_CARD_TWEEN_IN_MS,
       ease: 'Quad.easeOut',
     });
 
-    this.selectedHandCardZoom = { ...previewView, previewItems: [previewView.root] };
+    this.selectedHandCardZoom = {
+      ...previewView,
+      overlay,
+      sourceX: inspectRequest.sourceX,
+      sourceY: inspectRequest.sourceY,
+      previewItems: [previewView.root, overlay],
+    };
   }
 
   resetCardHighlights({ showPreview = true } = {}) {
@@ -2575,7 +2747,7 @@ ${statParts.join(' | ')}`;
     if (showPreview) {
       this.showSelectedHandCardZoom();
     } else {
-      this.destroySelectedHandCardZoom();
+      this.destroySelectedHandCardZoom({ animate: true });
     }
 
     this.boardCells.forEach((cell) => {
