@@ -59,10 +59,10 @@ Background definitions are in `src/rendering/backgroundArt.js`. The menu backgro
 path: './assets/backgrounds/menu-background.webp'
 ```
 
-Future battle image files can be added under this folder, then wired by setting the matching battle asset `path` to a served URL such as:
+Battle background art is wired to the default battlefield WebP:
 
 ```js
-path: './assets/backgrounds/default/battlefield.png'
+path: './assets/backgrounds/default/battlefield.webp'
 ```
 
-The leading `./` is produced from Vite's `base: './'` setting so GitHub Pages repo-path deployments resolve the URL under the current page path instead of the domain root. If `path` is `null` or the image is not loaded, the relevant scene keeps the safe solid dark fallback.
+The leading `./` is produced from Vite's `base: './'` setting so GitHub Pages repo-path deployments resolve the URL under the current page path instead of the domain root. If the image is not loaded or fails to load, the relevant scene keeps the safe solid dark fallback.

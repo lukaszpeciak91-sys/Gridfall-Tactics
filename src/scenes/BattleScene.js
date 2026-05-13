@@ -4,7 +4,7 @@ import { createInitialBattleState, drawCards, shuffleDeck, canPass, canPlayOrRed
 import { chooseEnemyAction, recordBattleActionUse, selectOpeningMulliganCardIds } from '../systems/enemyDecision.js';
 import { getTargetingStateForEffect } from '../systems/cardTargeting.js';
 import { getCombatEventAttackerIndex, getCombatEventTargetIndex, getLaneLethalTargetIndexes, getLaneSimultaneousUnitClash, shouldAnimateCombatAttacker } from '../systems/combatAnimation.js';
-import { BATTLE_BACKGROUND_FALLBACK_COLOR, BATTLE_BACKGROUND_FALLBACK_COLOR_HEX, getBattleBackgroundAsset, hasLoadedBattleBackground, preloadBattleBackgroundArt } from '../rendering/backgroundArt.js';
+import { BATTLE_BACKGROUND_FALLBACK_COLOR, BATTLE_BACKGROUND_FALLBACK_COLOR_HEX, createCoverBackground, getBattleBackgroundAsset, preloadBattleBackgroundArt } from '../rendering/backgroundArt.js';
 import { createBuildMarker } from '../ui/buildMarker.js';
 import { calculateHandLayoutMetrics } from '../ui/handLayout.js';
 import { createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
@@ -329,21 +329,14 @@ export default class BattleScene extends Phaser.Scene {
 
   drawBattleBackground() {
     const { width, height } = this.layout;
-    const centerX = width * 0.5;
-    const centerY = height * 0.5;
 
-    if (hasLoadedBattleBackground(this, this.backgroundArtAsset)) {
-      const background = this.add.image(centerX, centerY, this.backgroundArtAsset.key)
-        .setOrigin(0.5)
-        .setDepth(-1000);
-      const coverScale = Math.max(width / background.width, height / background.height);
-      background.setScale(coverScale);
-      this.backgroundLayer = background;
-      return;
-    }
-
-    this.backgroundLayer = this.add.rectangle(centerX, centerY, width, height, BATTLE_BACKGROUND_FALLBACK_COLOR, 1)
-      .setDepth(-1000);
+    this.backgroundLayer = createCoverBackground(this, {
+      asset: this.backgroundArtAsset,
+      fallbackColor: BATTLE_BACKGROUND_FALLBACK_COLOR,
+      depth: -1000,
+      width,
+      height,
+    });
   }
 
   drawBattleFrame() {
