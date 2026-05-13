@@ -98,5 +98,7 @@ test('board card inspect reuses full hand card layout without adding board text'
   assert.match(source, /if \(this\.boardInspectIndex !== null\) \{\s*const card = this\.gameState\.board\[this\.boardInspectIndex\];\s*const cell = this\.getBoardCellByIndex\(this\.boardInspectIndex\);/);
   assert.match(source, /sourceX: cell\.background\.x,\s*sourceY: cell\.background\.y,/);
   assert.match(inspectMethod, /this\.createHandCardView\(\{/);
-  assert.match(source, /cell\.label\.setText\(this\.getBoardUnitLabel\(unit\)\);/);
+  assert.match(source, /cell\.label\.add\(this\.createBoardUnitView\(cell, unit\)\);/);
+  assert.match(source, /createBoardUnitView\(cell, unit\) \{[\s\S]*createStatBadges\(this, 0, statY, artWidth, statHeight, this\.getBoardUnitStats\(unit\)\)/);
+  assert.doesNotMatch(source, /getBoardUnitLabel\(unit\)/);
 });

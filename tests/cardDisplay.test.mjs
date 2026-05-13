@@ -193,7 +193,8 @@ test('visible UI surfaces route names through active-locale presentation helpers
   const factionSelectSource = fs.readFileSync('src/scenes/FactionSelectScene.js', 'utf8');
 
   assert.match(battleSource, /getEnemyActionMessage\(action, card\) \{[\s\S]*const cardName = getCardDisplayName\(card, getActiveLocale\(\)\) \?\? translateActive\('ui\.common\.unknownCard', 'Unknown Card'\);/);
-  assert.match(battleSource, /getBoardUnitLabel\(unit\) \{[\s\S]*const name = getCardDisplayName\(unit, getActiveLocale\(\)\) \?\? translateActive\('ui\.common\.unit', 'Unit'\);/);
+  assert.match(battleSource, /createBoardUnitView\(cell, unit\) \{[\s\S]*createStatBadges\(this, 0, statY, artWidth, statHeight, this\.getBoardUnitStats\(unit\)\)/);
+  assert.doesNotMatch(battleSource, /getBoardUnitLabel\(unit\)/);
   assert.match(battleSource, /createHandCardView\(\{ card, cardId, x, y, width, height, accentColor, depth \}\) \{[\s\S]*getCardDisplayContent\(card, getActiveLocale\(\)\)/);
   assert.match(battleSource, /showSelectedHandCardZoom\(\) \{[\s\S]*this\.createHandCardView\(\{/);
   assert.match(collectionSource, /formatCollectionRowLabel\(card, getActiveLocale\(\)\)/);
