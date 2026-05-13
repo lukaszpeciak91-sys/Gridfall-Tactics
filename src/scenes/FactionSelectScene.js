@@ -417,12 +417,12 @@ export default class FactionSelectScene extends Phaser.Scene {
 
   drawNavigationControls() {
     const controls = createBottomNavigationControls(this, {
-      onMute: () => {},
+      onBack: () => this.returnToMainMenu(),
       onRules: () => this.openRulesPanel(),
       onFullscreen: () => this.toggleFullscreen(),
     });
 
-    [controls.mute, controls.rules, controls.fullscreen].filter(Boolean).forEach((control) => {
+    [controls.back, controls.rules, controls.fullscreen].filter(Boolean).forEach((control) => {
       this.uiElements.push(control.button ?? control.halo, control.backing, control.text);
       this.interactiveElements.push(control.button ?? control.backing, control.text);
     });
