@@ -225,7 +225,7 @@ The no-progress detector uses the stricter "meaningful for outcome" definition i
 | Swarm | Spawn | order | - | summon_grunt_empty_slot | Summon 1/1 in first empty ally slot. | Non-targeted deterministic effect | Fizzles if no empty slot; no manual target UI. |
 | Swarm | Swarm Attack | order | - | buff_all_atk_1 | Friendly units get temp +1 ATK this turn. | Non-targeted effect | Swarm-specific behavior remains unchanged. |
 | Swarm | Regrow | order | - | revive_friendly_1hp | Revive first discarded unit at 1 HP. | Non-targeted deterministic effect | First empty slot + first unit in discard; no manual target UI. |
-| Swarm | Flood | special | - | fill_empty_slots_0_1 | Fill 2 empty ally slots with 0/1 Tokens. | Non-targeted deterministic effect | Fills up to 2 empty friendly slots, left-to-right; no manual target UI. |
+| Swarm | Flood | special | - | fill_empty_slots_0_1 | Fill up to 2 empty ally slots with temporary 1/1 Tokens. | Non-targeted deterministic effect | Fills up to 2 empty friendly slots left-to-right with temporary 1/1 Tokens; they vanish after combat, do not enter discard, and do not trigger death effects. |
 | Swarm | Recycle | utility | - | destroy_friendly_draw_1 | Destroy ally. Draw 1. | Targeted friendly | Immediate non-combat destroy, then draw 1. |
 | Attrition Swarm | Husk | unit | 1/1/0 | combat_death_damage_enemy_lane_1 | Combat death: deal 1 to enemy in lane. | Combat-only death trigger | Damages only an opposing enemy unit in the same lane; no hero fallback; does not trigger from Feast, redeploy, return, or non-combat damage cleanup. |
 | Attrition Swarm | Carrier | unit | 1/2/0 | combat_death_summon_grunt | Combat death: summon 1/1 here. | Combat-only death trigger | Summons a same-owner 1/1 in the same slot only after combat death and only if the slot is empty. |
@@ -267,7 +267,7 @@ Implemented now:
 - Targeted/non-targeted effect pipelines, including UI targeting for every targeted hand effect currently implemented in `GameState`.
 - Deterministic Sniper targeting.
 - Deterministic Controller on-play enemy swap.
-- Flood capped at up to 2 tokens.
+- Flood capped at up to 2 temporary 1/1 Tokens that vanish after combat and do not trigger death effects.
 - Wardens defensive friction, Halberdier opposing-lane bonus, Shield Push, Stand Firm, and Reinforce Line.
 - Attrition Swarm combat-only death triggers, Funeral Pyre cap-2 death pressure, Infect, Feast, Rise Again, and Grave Call.
 - One-time opening mulligan with up to 2 replacements before game start.
@@ -288,8 +288,8 @@ Deferred / intentionally simplified:
 
 ## 11) Balance Notes (MVP Tracking)
 
-- Flood nerf status: **active** (`fill_empty_slots_0_1` summons up to 2).
-- Swarm no longer fills all 3 slots with Flood in current code.
+- Flood tempo candidate status: **active** (`fill_empty_slots_0_1` summons up to 2 temporary 1/1 Tokens).
+- Swarm no longer fills all 3 slots with Flood in current code; Flood Tokens vanish after combat and skip death effects/discard paths.
 - Tank/Shieldbearer package remains under observation for balance after Wall moved to 0/3.
 - No Hero HP increase currently (still 12).
 - No deck-size increase currently (still 10).
