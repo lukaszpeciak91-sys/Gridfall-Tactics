@@ -24,7 +24,7 @@ const HAND_CARD_ACCENT_COLORS = Object.freeze({
 const INSPECT_CARD_TARGET_SCALE = 1.76;
 const INSPECT_CARD_MAX_HEIGHT_RATIO = 0.62;
 const INSPECT_CARD_MAX_WIDTH_RATIO = 0.78;
-const INSPECT_CARD_CENTER_Y_RATIO = 0.465;
+const INSPECT_CARD_PLAYER_ROW_GAP_RATIO = 0.08;
 const INSPECT_CARD_OVERLAY_ALPHA = 0.22;
 const INSPECT_CARD_OVERLAY_DEPTH = 840;
 const INSPECT_CARD_DEPTH = 850;
@@ -2642,7 +2642,7 @@ ${statParts.join(' | ')}`;
   }
 
   getInspectCardTransform() {
-    const { width, height, hand, margin } = this.layout;
+    const { width, height, hand, margin, board } = this.layout;
     const maxInspectWidth = Math.min(width * INSPECT_CARD_MAX_WIDTH_RATIO, width - margin * 2);
     const maxInspectHeight = Math.min(height * INSPECT_CARD_MAX_HEIGHT_RATIO, height - margin * 2);
     const targetScale = Math.min(
@@ -2657,9 +2657,14 @@ ${statParts.join(' | ')}`;
     const minY = margin + inspectHeight / 2;
     const maxY = height - margin - inspectHeight / 2;
 
+    const boardTopY = board.centerY - board.height / 2;
+    const playerRowTopY = boardTopY + board.cellHeight * 2;
+    const playerRowGap = Math.max(8, Math.min(24, board.cellHeight * INSPECT_CARD_PLAYER_ROW_GAP_RATIO));
+    const targetY = playerRowTopY - playerRowGap - inspectHeight / 2;
+
     return {
       x: Phaser.Math.Clamp(width * 0.5, minX, maxX),
-      y: Phaser.Math.Clamp(height * INSPECT_CARD_CENTER_Y_RATIO, minY, maxY),
+      y: Phaser.Math.Clamp(targetY, minY, maxY),
       width: inspectWidth,
       height: inspectHeight,
     };

@@ -69,7 +69,7 @@ test('outside taps clear selection without intercepting board, pass, or card inp
   assert.match(source, /background\.on\('pointerup', \(\) => \{\s*this\.onBoardCellTap\(boardIndex\);\s*\}\);/);
 });
 
-test('inspect zoom centers, dims gameplay, stays bounded, and animates in/out', () => {
+test('inspect zoom anchors above player lanes, dims gameplay, stays bounded, and animates in/out', () => {
   assert.match(source, /const INSPECT_CARD_TARGET_SCALE = 1\.76;/);
   assert.match(source, /const INSPECT_CARD_OVERLAY_ALPHA = 0\.22;/);
   assert.match(source, /const INSPECT_CARD_OVERLAY_DEPTH = 840;/);
@@ -79,7 +79,10 @@ test('inspect zoom centers, dims gameplay, stays bounded, and animates in/out', 
   assert.match(source, /const INSPECT_DRAG_START_THRESHOLD_PX = 10;/);
   assert.match(source, /const targetScale = Math\.min\([\s\S]*INSPECT_CARD_TARGET_SCALE,[\s\S]*maxInspectWidth \/ hand\.cardWidth,[\s\S]*maxInspectHeight \/ hand\.cardHeight,[\s\S]*\);/);
   assert.match(source, /x: Phaser\.Math\.Clamp\(width \* 0\.5, minX, maxX\),/);
-  assert.match(source, /y: Phaser\.Math\.Clamp\(height \* INSPECT_CARD_CENTER_Y_RATIO, minY, maxY\),/);
+  assert.match(source, /const INSPECT_CARD_PLAYER_ROW_GAP_RATIO = 0\.08;/);
+  assert.match(source, /const playerRowTopY = boardTopY \+ board\.cellHeight \* 2;/);
+  assert.match(source, /const targetY = playerRowTopY - playerRowGap - inspectHeight \/ 2;/);
+  assert.match(source, /y: Phaser\.Math\.Clamp\(targetY, minY, maxY\),/);
   assert.match(inspectMethod, /const overlay = this\.add\.rectangle\(width \* 0\.5, height \* 0\.5, width, height, 0x000000, 0\)/);
   assert.match(inspectMethod, /alpha: INSPECT_CARD_OVERLAY_ALPHA,/);
   assert.match(inspectMethod, /duration: INSPECT_CARD_TWEEN_IN_MS,/);
