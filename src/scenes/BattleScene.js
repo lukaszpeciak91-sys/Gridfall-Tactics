@@ -1339,17 +1339,29 @@ export default class BattleScene extends Phaser.Scene {
     }
   }
 
-  onBoardCellPointerOver() {
-    // Board unit inspect is intentionally disabled until that feature is ready.
-    // Keeping hover visual-only prevents full-scene inspect overlays from board cards.
+  clearBoardInspect({ animate = true } = {}) {
+    if (this.boardInspectIndex === null) return;
+
+    this.boardInspectIndex = null;
+    if (!this.selectedCardId && !this.previewedMulliganCardId && !this.hoverInspectCardId) {
+      this.destroySelectedHandCardZoom({ animate });
+    }
   }
 
-  onBoardCellPointerOut(boardIndex) {
-    if (this.boardInspectIndex !== boardIndex) return;
-    this.boardInspectIndex = null;
-    if (!this.selectedCardId && !this.previewedMulliganCardId) {
-      this.destroySelectedHandCardZoom({ animate: true });
-    }
+  showBoardUnitInspect(boardIndex) {
+    if (this.selectedCardId || this.targetingState || this.pressedHandCardId) return false;
+
+    const unit = this.gameState?.board?.[boardIndex] ?? null;
+    if (!unit) return false;
+
+    this.hoverInspectCardId = null;
+    this.boardInspectIndex = boardIndex;
+    this.showSelectedHandCardZoom();
+    return true;
+  }
+
+  onBoardCellPointerOut() {
+    // Board inspect is tap-driven and stays open until an outside tap or state change clears it.
   }
 
   onCardPointerDown(cardId) {
@@ -1436,7 +1448,10 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
-    if (!this.selectedCardId && !this.targetingState) return;
+    if (!this.selectedCardId && !this.targetingState) {
+      this.clearBoardInspectFromOutsideTap(pointer, currentlyOver);
+      return;
+    }
     if (this.isPointerUpReservedForUi(pointer, currentlyOver)) return;
 
     const boardCell = this.getBoardCellFromPointerUp(pointer, currentlyOver);
@@ -1501,6 +1516,24 @@ export default class BattleScene extends Phaser.Scene {
     return gameObject.getBounds().contains(pointer.x, pointer.y);
   }
 
+  clearBoardInspectFromOutsideTap(pointer, currentlyOver = []) {
+    if (this.boardInspectIndex === null) return;
+    if (this.isPointerUpReservedForUi(pointer, currentlyOver)) return;
+    if (this.getBoardCellFromPointerUp(pointer, currentlyOver)) return;
+    if (this.isPointerInsideSelectedHandCardZoom(pointer, currentlyOver)) return;
+
+    this.clearBoardInspect({ animate: true });
+  }
+
+  isPointerInsideSelectedHandCardZoom(pointer, currentlyOver = []) {
+    if (!this.selectedHandCardZoom) return false;
+
+    const overObjects = this.normalizePointerUpObjects(currentlyOver);
+    return [this.selectedHandCardZoom.background, this.selectedHandCardZoom.label, this.selectedHandCardZoom.glow]
+      .filter(Boolean)
+      .some((item) => overObjects.includes(item) || this.isPointerInsideGameObject(pointer, item));
+  }
+
   isPointerUpReservedForUi(pointer, currentlyOver = []) {
     const overObjects = this.normalizePointerUpObjects(currentlyOver);
     const isOverHandCard = this.cardViews.some((view) => overObjects.includes(view.background));
@@ -1561,35 +1594,30 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
-    if (!this.selectedCardId) {
-      this.hoverInspectCardId = null;
-      this.boardInspectIndex = null;
-      this.destroySelectedHandCardZoom({ animate: true });
-      if (this.targetingState) {
-        this.targetingState = null;
-      }
+    if (!this.selectedCardId && !this.targetingState) {
       const unit = this.gameState.board[boardIndex];
 
-      if (!unit || unit.owner !== 'player') {
-        if (this.pendingSwapIndex !== null) {
+      if (this.pendingSwapIndex !== null) {
+        this.hoverInspectCardId = null;
+        this.clearBoardInspect({ animate: true });
+
+        if (!unit || unit.owner !== 'player') {
           this.pendingSwapIndex = null;
+          return;
         }
+
+        const result = performSwap(this.gameState, 'player', this.pendingSwapIndex, boardIndex);
+        this.pendingSwapIndex = null;
+
+        if (!result.ok) {
+          return;
+        }
+
+        this.completePlayerAction();
         return;
       }
 
-      if (this.pendingSwapIndex === null) {
-        this.pendingSwapIndex = boardIndex;
-        return;
-      }
-
-      const result = performSwap(this.gameState, 'player', this.pendingSwapIndex, boardIndex);
-      this.pendingSwapIndex = null;
-
-      if (!result.ok) {
-        return;
-      }
-
-      this.completePlayerAction();
+      this.showBoardUnitInspect(boardIndex);
       return;
     }
 
@@ -2617,6 +2645,10 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   refreshBoardLabels() {
+    if (this.boardInspectIndex !== null && !this.gameState.board[this.boardInspectIndex]) {
+      this.clearBoardInspect({ animate: true });
+    }
+
     this.boardCells.forEach((cell) => {
       const unit = this.gameState.board[cell.index];
       cell.label.removeAll(true);
@@ -2728,6 +2760,19 @@ export default class BattleScene extends Phaser.Scene {
           cardId: handCardId,
           sourceX: cardView.baseX,
           sourceY: cardView.baseY,
+        };
+      }
+    }
+
+    if (this.boardInspectIndex !== null) {
+      const unit = this.gameState.board[this.boardInspectIndex];
+      const cell = this.getCellByIndex(this.boardInspectIndex);
+      if (unit && cell) {
+        return {
+          card: unit,
+          cardId: unit.cardId ?? unit.id ?? `board-${this.boardInspectIndex}-unit`,
+          sourceX: cell.background.x,
+          sourceY: cell.background.y,
         };
       }
     }
