@@ -1,4 +1,5 @@
 import { getCardDisplayName, getCardTextShort } from '../localization/cardDisplay.js';
+import { formatCardEffectTextShort } from '../localization/cardTextFormatting.js';
 
 export const CARD_ZONE_RATIOS = Object.freeze({
   statBadges: 0.13,
@@ -212,7 +213,7 @@ export function getCardDisplayContent(card, locale = 'en') {
 
   return {
     name: getCardDisplayName(card, locale) ?? '',
-    body: typeof getCardTextShort(card, locale) === 'string' ? getCardTextShort(card, locale).trim() : '',
+    body: typeof getCardTextShort(card, locale) === 'string' ? formatCardEffectTextShort(getCardTextShort(card, locale), locale).trim() : '',
     type: card?.type ? String(card.type).toUpperCase() : '',
   };
 }
