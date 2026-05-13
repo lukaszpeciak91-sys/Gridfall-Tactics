@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 import { formatCardEffectTextShort } from '../src/localization/cardTextFormatting.js';
 import { formatCardDetailLines } from '../src/rendering/cardRenderModes.js';
-import { getCardDisplayContent } from '../src/rendering/cardVisualLayout.js';
+import { getCardDisplayContent, getInlineStatSymbolColor, layoutInlineStatText, tokenizeInlineStatText } from '../src/rendering/cardVisualLayout.js';
 
 test('formats English stat abbreviations in card effect text as compact symbols', () => {
   assert.equal(formatCardEffectTextShort('+1 ATK', 'en'), '+1 ▲');
@@ -45,4 +45,37 @@ test('detail text uses the same compact formatter as card textShort display', ()
   };
 
   assert.equal(formatCardDetailLines(card, 'en').at(-1), 'Ally: heal 1, +1 ▲ this turn.');
+});
+
+
+test('inline stat text renderer maps compact symbols to top badge colors', () => {
+  assert.equal(getInlineStatSymbolColor('▲'), '#24c6a7');
+  assert.equal(getInlineStatSymbolColor('◆'), '#3d63c7');
+  assert.equal(getInlineStatSymbolColor('●'), '#d24b5f');
+  assert.equal(getInlineStatSymbolColor('x'), null);
+});
+
+test('inline stat text tokenizer preserves localized copy while tagging stat symbols', () => {
+  assert.deepEqual(tokenizeInlineStatText('Sojusznik +1 ◆ i 1 ●.').filter((token) => token.type !== 'space'), [
+    { type: 'text', text: 'Sojusznik' },
+    { type: 'text', text: '+1' },
+    { type: 'statSymbol', text: '◆' },
+    { type: 'text', text: 'i' },
+    { type: 'text', text: '1' },
+    { type: 'statSymbol', text: '●' },
+    { type: 'text', text: '.' },
+  ]);
+});
+
+test('inline stat text layout wraps by measured token width and keeps stat symbols inline', () => {
+  const lines = layoutInlineStatText('Ally +1 ▲ this turn.', {
+    maxWidth: 10,
+    measureTokenWidth: (token) => token.length,
+  });
+
+  assert.deepEqual(lines.map((line) => line.segments.map((segment) => segment.text).join('')), [
+    'Ally+1▲',
+    'thisturn.',
+  ]);
+  assert.equal(lines[0].segments.at(-1).type, 'statSymbol');
 });

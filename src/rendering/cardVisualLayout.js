@@ -46,6 +46,127 @@ export const CARD_STAT_STYLES = Object.freeze({
   }),
 });
 
+const CARD_STAT_SYMBOL_KEYS = Object.freeze({
+  '▲': 'attack',
+  '◆': 'armor',
+  '●': 'health',
+});
+
+function colorNumberToCss(color) {
+  return `#${color.toString(16).padStart(6, '0')}`;
+}
+
+export function getInlineStatSymbolColor(symbol) {
+  const statKey = CARD_STAT_SYMBOL_KEYS[symbol];
+  return statKey ? colorNumberToCss(CARD_STAT_STYLES[statKey].color) : null;
+}
+
+export function tokenizeInlineStatText(text) {
+  if (typeof text !== 'string' || text.length === 0) return [];
+  return text
+    .split(/(▲|◆|●|\n|\s+)/u)
+    .filter((token) => token.length > 0)
+    .map((token) => {
+      if (token === '\n') return { type: 'newline', text: token };
+      if (/^\s+$/u.test(token)) return { type: 'space', text: token };
+      return {
+        type: getInlineStatSymbolColor(token) ? 'statSymbol' : 'text',
+        text: token,
+      };
+    });
+}
+
+export function layoutInlineStatText(text, { maxWidth, measureTokenWidth }) {
+  const tokens = tokenizeInlineStatText(text);
+  const lines = [];
+  let currentLine = [];
+  let currentWidth = 0;
+  let pendingSpaceWidth = 0;
+
+  const pushLine = () => {
+    lines.push({ segments: currentLine, width: currentWidth });
+    currentLine = [];
+    currentWidth = 0;
+    pendingSpaceWidth = 0;
+  };
+
+  tokens.forEach((token) => {
+    if (token.type === 'newline') {
+      pushLine();
+      return;
+    }
+
+    const width = measureTokenWidth(token.text);
+    if (token.type === 'space') {
+      if (currentLine.length === 0) return;
+      pendingSpaceWidth += width;
+      return;
+    }
+
+    const nextX = currentWidth + pendingSpaceWidth;
+    if (currentLine.length > 0 && nextX + width > maxWidth) {
+      pushLine();
+    }
+
+    const segmentX = currentLine.length > 0 ? currentWidth + pendingSpaceWidth : 0;
+    currentLine.push({ ...token, x: segmentX, width });
+    currentWidth = segmentX + width;
+    pendingSpaceWidth = 0;
+  });
+
+  if (currentLine.length > 0 || lines.length === 0) {
+    pushLine();
+  }
+
+  return lines;
+}
+
+export function createInlineStatText(scene, x, y, text, {
+  fontFamily = 'Arial, sans-serif',
+  fontSize = 12,
+  color = CARD_COLORS.bodyText,
+  statFontStyle = 'bold',
+  align = 'center',
+  maxWidth = 160,
+  lineSpacing = 0,
+} = {}) {
+  const container = scene.add.container(x, y);
+  const baseStyle = {
+    fontFamily,
+    fontSize: `${fontSize}px`,
+    color,
+  };
+  const measureText = scene.add.text(0, 0, '', baseStyle).setVisible(false);
+  const measureTokenWidth = (value) => {
+    measureText.setText(value);
+    return measureText.width;
+  };
+  const lines = layoutInlineStatText(text, { maxWidth, measureTokenWidth });
+  const lineHeight = Math.ceil(fontSize * 1.12) + lineSpacing;
+
+  lines.forEach((line, lineIndex) => {
+    const startX = align === 'center' ? -line.width / 2 : 0;
+    const baselineY = lineIndex * lineHeight;
+    line.segments.forEach((segment) => {
+      const statColor = getInlineStatSymbolColor(segment.text);
+      const segmentText = scene.add.text(startX + segment.x, baselineY, segment.text, {
+        ...baseStyle,
+        color: statColor ?? color,
+        fontStyle: statColor ? statFontStyle : undefined,
+      }).setOrigin(0, 0);
+      container.add(segmentText);
+    });
+  });
+
+  measureText.destroy();
+  container.inlineTextMetrics = {
+    lineCount: lines.length,
+    width: Math.max(0, ...lines.map((line) => line.width)),
+    height: Math.max(fontSize, lines.length * lineHeight - lineSpacing),
+  };
+  return container;
+}
+
 export function isCardUnit(card) {
   return card?.type === 'unit' || (Number.isFinite(card?.attack) && Number.isFinite(card?.hp));
 }
