@@ -887,9 +887,6 @@ export default class BattleScene extends Phaser.Scene {
         background.on('pointerup', () => {
           this.onBoardCellTap(boardIndex);
         });
-        background.on('pointerover', () => {
-          this.onBoardCellPointerOver(boardIndex);
-        });
         background.on('pointerout', () => {
           this.onBoardCellPointerOut(boardIndex);
         });
@@ -1342,17 +1339,13 @@ export default class BattleScene extends Phaser.Scene {
     }
   }
 
-  onBoardCellPointerOver(boardIndex) {
-    if (this.battleResultModalShown || this.isFlowResolving || this.selectedCardId || this.targetingState) return;
-    if (!this.gameState?.board?.[boardIndex]) return;
-
-    this.boardInspectIndex = boardIndex;
-    this.hoverInspectCardId = null;
-    this.showSelectedHandCardZoom();
+  onBoardCellPointerOver() {
+    // Board unit inspect is intentionally disabled until that feature is ready.
+    // Keeping hover visual-only prevents full-scene inspect overlays from board cards.
   }
 
   onBoardCellPointerOut(boardIndex) {
-    if (this.boardInspectIndex !== boardIndex || this.pendingSwapIndex === boardIndex) return;
+    if (this.boardInspectIndex !== boardIndex) return;
     this.boardInspectIndex = null;
     if (!this.selectedCardId && !this.previewedMulliganCardId) {
       this.destroySelectedHandCardZoom({ animate: true });
@@ -1569,14 +1562,9 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     if (!this.selectedCardId) {
-      const inspectedUnit = this.gameState.board[boardIndex];
       this.hoverInspectCardId = null;
-      this.boardInspectIndex = inspectedUnit ? boardIndex : null;
-      if (inspectedUnit) {
-        this.showSelectedHandCardZoom();
-      } else {
-        this.destroySelectedHandCardZoom({ animate: true });
-      }
+      this.boardInspectIndex = null;
+      this.destroySelectedHandCardZoom({ animate: true });
       if (this.targetingState) {
         this.targetingState = null;
       }
@@ -2740,19 +2728,6 @@ export default class BattleScene extends Phaser.Scene {
           cardId: handCardId,
           sourceX: cardView.baseX,
           sourceY: cardView.baseY,
-        };
-      }
-    }
-
-    if (this.boardInspectIndex !== null) {
-      const card = this.gameState.board[this.boardInspectIndex];
-      const cell = this.getBoardCellByIndex(this.boardInspectIndex);
-      if (card && cell) {
-        return {
-          card,
-          cardId: `board-${this.boardInspectIndex}-${card.id ?? card.name ?? 'unit'}`,
-          sourceX: cell.background.x,
-          sourceY: cell.background.y,
         };
       }
     }
