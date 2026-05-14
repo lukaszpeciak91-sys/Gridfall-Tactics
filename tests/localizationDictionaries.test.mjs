@@ -38,6 +38,11 @@ test('retry button copy stays short in Polish without changing English', () => {
   assert.equal(getPath(pl, 'ui.common.retry'), 'PONÓW');
 });
 
+test('player effect confirmation banner copy is localized for English and Polish', () => {
+  assert.equal(getPath(en, 'ui.battle.playerPlayed'), 'YOU PLAYED');
+  assert.equal(getPath(pl, 'ui.battle.playerPlayed'), 'ZAGRANO');
+});
+
 test('card type and stat labels exist in English and Polish dictionaries', () => {
   for (const key of ['cardTypes.unit', 'cardTypes.effect', 'stats.attack', 'stats.hp', 'stats.armor']) {
     assert.equal(typeof getPath(en, key), 'string', `missing English ${key}`);

@@ -42,10 +42,14 @@ test('BattleScene enemy action pacing constants resolve during turn flow', () =>
   assert.match(source, /const ENEMY_ACTION_PACING = Object\.freeze\(\{/);
   assert.match(source, /pass: \{[\s\S]*applyDelayMs:[\s\S]*bannerHoldMs:[\s\S]*postActionDelayMs:[\s\S]*preCombatDelayMs:/);
   assert.match(source, /unit: \{[\s\S]*applyDelayMs: ENEMY_ACTION_APPLY_DELAY_MS,[\s\S]*preCombatDelayMs: ENEMY_ACTION_PRE_COMBAT_DELAY_MS/);
-  assert.match(source, /effect: \{[\s\S]*bannerHoldMs: ENEMY_ACTION_NOTIFICATION_HOLD_MS \+ 120,[\s\S]*preCombatDelayMs: ENEMY_ACTION_PRE_COMBAT_DELAY_MS/);
+  assert.match(source, /effect: \{[\s\S]*applyDelayMs: ENEMY_EFFECT_ACTION_APPLY_DELAY_MS,[\s\S]*bannerHoldMs: ENEMY_EFFECT_ACTION_BANNER_HOLD_MS,[\s\S]*preCombatDelayMs: ENEMY_ACTION_PRE_COMBAT_DELAY_MS/);
   assert.match(source, /reposition: \{[\s\S]*applyDelayMs: Math\.round\(ENEMY_ACTION_APPLY_DELAY_MS \* 0\.85\),[\s\S]*preCombatDelayMs: ENEMY_ACTION_PRE_COMBAT_DELAY_MS/);
   assert.match(source, /enemyActionPacing\?\.preCombatDelayMs \?\? ENEMY_ACTION_PRE_COMBAT_DELAY_MS/);
   assert.doesNotMatch(source, /ENEMY_ACTION_DEFAULT_PRE_COMBAT_DELAY_MS/);
+
+  assert.match(source, /const PLAYER_EFFECT_CONFIRMATION_FADE_IN_MS = 90/);
+  assert.match(source, /showPlayerEffectConfirmation\(selectedCard\);/);
+  assert.match(source, /translateActive\('ui\.battle\.playerPlayed', 'YOU PLAYED'\)/);
 });
 
 test('BattleScene returns to faction select through a cleanup path and retry stays in BattleScene', () => {

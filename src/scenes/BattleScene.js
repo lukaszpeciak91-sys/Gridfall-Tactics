@@ -59,7 +59,12 @@ const ENEMY_ACTION_NOTIFICATION_FADE_IN_MS = 110;
 const ENEMY_ACTION_NOTIFICATION_HOLD_MS = 650;
 const ENEMY_ACTION_NOTIFICATION_FADE_OUT_MS = 140;
 const ENEMY_ACTION_APPLY_DELAY_MS = 500;
+const ENEMY_EFFECT_ACTION_APPLY_DELAY_MS = 750;
+const ENEMY_EFFECT_ACTION_BANNER_HOLD_MS = 1020;
 const ENEMY_ACTION_PRE_COMBAT_DELAY_MS = 400;
+const PLAYER_EFFECT_CONFIRMATION_FADE_IN_MS = 90;
+const PLAYER_EFFECT_CONFIRMATION_HOLD_MS = 520;
+const PLAYER_EFFECT_CONFIRMATION_FADE_OUT_MS = 120;
 const ENEMY_ACTION_PACING = Object.freeze({
   pass: {
     applyDelayMs: Math.round(ENEMY_ACTION_APPLY_DELAY_MS * 0.65),
@@ -74,8 +79,8 @@ const ENEMY_ACTION_PACING = Object.freeze({
     preCombatDelayMs: ENEMY_ACTION_PRE_COMBAT_DELAY_MS,
   },
   effect: {
-    applyDelayMs: ENEMY_ACTION_APPLY_DELAY_MS,
-    bannerHoldMs: ENEMY_ACTION_NOTIFICATION_HOLD_MS + 120,
+    applyDelayMs: ENEMY_EFFECT_ACTION_APPLY_DELAY_MS,
+    bannerHoldMs: ENEMY_EFFECT_ACTION_BANNER_HOLD_MS,
     postActionDelayMs: 220,
     preCombatDelayMs: ENEMY_ACTION_PRE_COMBAT_DELAY_MS,
   },
@@ -132,6 +137,8 @@ export default class BattleScene extends Phaser.Scene {
     this.isFlowResolving = false;
     this.enemyActionBanner = null;
     this.enemyActionBannerFadeOutEvent = null;
+    this.playerActionBanner = null;
+    this.playerActionBannerFadeOutEvent = null;
     this.battleResultModal = null;
     this.battleResultModalShown = false;
     this.battleResultModalPending = false;
@@ -172,6 +179,8 @@ export default class BattleScene extends Phaser.Scene {
     this.isFlowResolving = false;
     this.enemyActionBanner = null;
     this.enemyActionBannerFadeOutEvent = null;
+    this.playerActionBanner = null;
+    this.playerActionBannerFadeOutEvent = null;
     this.battleResultModal = null;
     this.battleResultModalShown = false;
     this.battleResultModalPending = false;
@@ -200,6 +209,7 @@ export default class BattleScene extends Phaser.Scene {
 
   cleanupSceneObjects({ preserveTimers = false, preserveTweens = false } = {}) {
     this.destroyEnemyActionBanner();
+    this.destroyPlayerActionBanner();
     this.destroyBattleResultModal();
     this.destroyDeckInfoPanel();
     this.destroyDeckCounterView();
@@ -1774,6 +1784,7 @@ export default class BattleScene extends Phaser.Scene {
         this.refreshAfterPlayerAction();
         return;
       }
+      this.showPlayerEffectConfirmation(selectedCard);
       this.completePlayerAction(beforeStats);
       return;
     }
@@ -1787,6 +1798,7 @@ export default class BattleScene extends Phaser.Scene {
       const beforeStats = this.captureBoardStats();
       const result = playEffectCard(this.gameState, 'player', this.selectedCardId);
       if (!result.ok) return;
+      this.showPlayerEffectConfirmation(selectedCard);
       this.completePlayerAction(beforeStats);
       return;
     }
@@ -2124,7 +2136,65 @@ export default class BattleScene extends Phaser.Scene {
     });
   }
 
+
+  getPlayerEffectConfirmationMessage(card) {
+    const cardName = getCardDisplayName(card, getActiveLocale()) ?? translateActive('ui.common.unknownCard', 'Unknown Card');
+    return `${translateActive('ui.battle.playerPlayed', 'YOU PLAYED')}\n${cardName}\n${this.getEnemyEffectSummary(card)}`;
+  }
+
+  showPlayerEffectConfirmation(card) {
+    if (!card || this.isUnitCard(card)) return;
+    this.destroyPlayerActionBanner();
+
+    const { width, height, board } = this.layout;
+    const maxWidth = board.width * 0.88;
+    const fontSize = Math.min(18, Math.max(14, Math.floor(Math.max(board.cellWidth * 0.125, height * 0.016))));
+    const targetY = board.centerY + board.cellHeight * 0.55;
+    const startY = targetY + 5;
+    this.playerActionBanner = this.add.text(width * 0.5, startY, this.getPlayerEffectConfirmationMessage(card), {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: `${fontSize}px`,
+      color: '#dcfce7',
+      backgroundColor: '#14532d',
+      align: 'center',
+      padding: { x: 14, y: 8 },
+      wordWrap: { width: maxWidth },
+    }).setOrigin(0.5).setDepth(219).setAlpha(0).setScale(0.98);
+
+    const banner = this.playerActionBanner;
+    this.tweens.add({
+      targets: banner,
+      alpha: 1,
+      y: targetY,
+      scaleX: 1,
+      scaleY: 1,
+      duration: PLAYER_EFFECT_CONFIRMATION_FADE_IN_MS,
+      ease: 'Quad.easeOut',
+    });
+
+    this.playerActionBannerFadeOutEvent = this.time.delayedCall(
+      PLAYER_EFFECT_CONFIRMATION_FADE_IN_MS + PLAYER_EFFECT_CONFIRMATION_HOLD_MS,
+      () => {
+        if (this.playerActionBanner !== banner) return;
+        this.playerActionBannerFadeOutEvent = null;
+        this.tweens.add({
+          targets: banner,
+          alpha: 0,
+          y: targetY - 5,
+          scaleX: 0.98,
+          scaleY: 0.98,
+          duration: PLAYER_EFFECT_CONFIRMATION_FADE_OUT_MS,
+          ease: 'Quad.easeIn',
+          onComplete: () => {
+            if (this.playerActionBanner === banner) this.destroyPlayerActionBanner();
+          },
+        });
+      },
+    );
+  }
+
   showEnemyActionBanner(message, pacing = ENEMY_ACTION_PACING.unit) {
+    this.destroyPlayerActionBanner();
     this.destroyEnemyActionBanner();
 
     const { width, height, board } = this.layout;
@@ -2182,6 +2252,18 @@ export default class BattleScene extends Phaser.Scene {
     this.tweens?.killTweensOf?.(this.enemyActionBanner);
     this.enemyActionBanner.destroy();
     this.enemyActionBanner = null;
+  }
+
+
+  destroyPlayerActionBanner() {
+    if (this.playerActionBannerFadeOutEvent) {
+      this.playerActionBannerFadeOutEvent.remove(false);
+      this.playerActionBannerFadeOutEvent = null;
+    }
+    if (!this.playerActionBanner) return;
+    this.tweens?.killTweensOf?.(this.playerActionBanner);
+    this.playerActionBanner.destroy();
+    this.playerActionBanner = null;
   }
 
 
