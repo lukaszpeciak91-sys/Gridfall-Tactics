@@ -5,6 +5,7 @@ import { createBuildMarker } from '../ui/buildMarker.js';
 import { createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
 import { getActiveLocale, translateActive } from '../localization/localeService.js';
 import { applyAudioSettings, loadSettings } from '../systems/settingsState.js';
+import { saveLastUiRoute } from '../systems/uiRouteState.js';
 import {
   MENU_BACKGROUND_FALLBACK_COLOR,
   MENU_BACKGROUND_FALLBACK_COLOR_HEX,
@@ -109,6 +110,7 @@ export default class FactionSelectScene extends Phaser.Scene {
   }
 
   create() {
+    saveLastUiRoute('FactionSelectScene');
     this.cleanupScene();
 
     if (this.children) {
