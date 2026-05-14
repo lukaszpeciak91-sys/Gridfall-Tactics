@@ -158,8 +158,14 @@ test('MainMenuScene restores full menu state for direct returns and abandoned st
   assert.match(source, /resetMainMenuDisplayList\(\) \{[\s\S]*this\.children\?\.removeAll\?\.\(true\)/);
   assert.match(source, /else \{[\s\S]*this\.restoreMainMenuInteractivity\(\);[\s\S]*\}/);
   assert.match(source, /MAIN_MENU_SHARED_REVEAL_FALLBACK_MS = 1400/);
-  assert.match(source, /prepareSharedLogoReveal\(\) \{[\s\S]*this\.sharedLogoRevealFallbackEvent = this\.time\.delayedCall/);
-  assert.match(source, /restoreMainMenuInteractivity\(\) \{[\s\S]*this\.title\?\.setAlpha\?\.\(1\);[\s\S]*resetImageButtonState\(button, \{ interactive: true \}\)/);
+  assert.match(source, /this\.ensureTitleExistsAndVisible\(\{ forceVisible: !awaitSharedLogo, width, height \}\)/);
+  assert.match(source, /ensureTitleExistsAndVisible\(\{ forceVisible = !this\.isAwaitingSharedLogo/);
+  assert.match(source, /if \(!this\.isTitleUsable\(\)\) \{[\s\S]*this\.title = this\.createTitle\(resolvedWidth, resolvedHeight\)/);
+  assert.match(source, /this\.title\.setDepth\?\.\(MAIN_MENU_TITLE_DEPTH\)/);
+  assert.match(source, /ensureTitleHasDisplaySize\(title, width\) \{[\s\S]*title\.displayWidth > 0[\s\S]*title\.displayHeight > 0/);
+  assert.match(source, /else if \(this\.isAwaitingSharedLogo\) \{[\s\S]*this\.title\.setAlpha\?\.\(0\)/);
+  assert.match(source, /prepareSharedLogoReveal\(\) \{[\s\S]*this\.isAwaitingSharedLogo = true;[\s\S]*this\.sharedLogoRevealFallbackEvent = this\.time\.delayedCall/);
+  assert.match(source, /restoreMainMenuInteractivity\(\) \{[\s\S]*this\.ensureTitleExistsAndVisible\(\{ forceVisible: true \}\);[\s\S]*this\.title\?\.setAlpha\?\.\(1\);[\s\S]*resetImageButtonState\(button, \{ interactive: true \}\)/);
   assert.match(source, /item\.setData\?\.\('mainMenuBaseX', item\.x\);[\s\S]*item\.setData\?\.\('mainMenuBaseY', item\.y\);/);
   assert.match(imageButtonSource, /export function resetImageButtonState/);
   assert.match(imageButtonSource, /button\.hitZone\?\.setInteractive\?\.\(\{ useHandCursor: true \}\)/);
