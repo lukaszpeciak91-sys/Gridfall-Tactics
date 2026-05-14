@@ -7,7 +7,7 @@ import { getCombatEventAttackerIndex, getCombatEventTargetIndex, getLaneLethalTa
 import { BATTLE_BACKGROUND_FALLBACK_COLOR, BATTLE_BACKGROUND_FALLBACK_COLOR_HEX, createCoverBackground, getBattleBackgroundAsset, preloadBattleBackgroundArt } from '../rendering/backgroundArt.js';
 import { createBuildMarker } from '../ui/buildMarker.js';
 import { calculateHandLayoutMetrics } from '../ui/handLayout.js';
-import { createBottomNavigationControls, createFloatingControl, createMuteToggleControl, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
+import { createFloatingControl, createMuteToggleControl, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
 import { createModalBackButton } from '../ui/modalControls.js';
 import { preloadSecondaryButtonAsset } from '../ui/imageButton.js';
 import { formatDeckSummaryEntry } from '../rendering/cardRenderModes.js';
@@ -268,7 +268,7 @@ export default class BattleScene extends Phaser.Scene {
     this.drawActionZone();
     this.drawDeckCounter();
     this.drawHand();
-    this.drawBottomUtilityBar();
+    this.drawActionRowUtilityMenuTrigger();
     this.drawBuildMarker();
     this.updateActionButtonLabel();
 
@@ -450,27 +450,37 @@ export default class BattleScene extends Phaser.Scene {
     createBuildMarker(this, { width, height });
   }
 
-  drawBottomUtilityBar() {
-    const { hand, margin } = this.layout;
-    const menuX = margin + hand.controlTouchSize / 2;
+  getActionRowUtilityMenuMetrics() {
+    const { width, action, margin } = this.layout;
+    const actionButtonWidth = width * 0.46;
+    const actionButtonLeft = width * 0.5 - actionButtonWidth / 2;
+    const touchSize = Math.min(Math.max(34, action.h * 0.8), 46);
+    const gap = Math.max(12, margin);
+
+    return {
+      x: Phaser.Math.Clamp(
+        actionButtonLeft - gap - touchSize / 2,
+        margin + touchSize / 2,
+        width - margin - touchSize / 2,
+      ),
+      y: action.centerY,
+      touchSize,
+    };
+  }
+
+  drawActionRowUtilityMenuTrigger() {
+    const { x, y, touchSize } = this.getActionRowUtilityMenuMetrics();
     const menu = createFloatingControl(
       this,
-      menuX,
-      hand.controlCenterY,
-      hand.controlTouchSize,
+      x,
+      y,
+      touchSize,
       '☰',
       () => this.toggleUtilityMenuPanel(),
       { fontScale: 0.5 },
     );
 
-    const controls = createBottomNavigationControls(this, {
-      onFullscreen: () => this.toggleFullscreen(),
-      centerY: hand.controlCenterY,
-      touchSize: hand.controlTouchSize,
-      margin,
-    });
-
-    this.bottomControlViews = [menu, controls.fullscreen].filter(Boolean);
+    this.bottomControlViews = [menu];
   }
 
   toggleUtilityMenuPanel() {
@@ -485,14 +495,13 @@ export default class BattleScene extends Phaser.Scene {
   showUtilityMenuPanel() {
     this.destroyUtilityMenuPanel();
 
-    const { width, height, hand, margin } = this.layout;
-    const touchSize = hand.controlTouchSize;
+    const { width, height, margin } = this.layout;
+    const { x: triggerX, y: triggerY, touchSize } = this.getActionRowUtilityMenuMetrics();
     const panelWidth = Math.min(236, width - margin * 2);
     const panelHeight = 278;
     const panelX = margin + panelWidth / 2;
-    const triggerX = margin + touchSize / 2;
     const gapAboveTrigger = Math.max(10, Math.round(touchSize * 0.22));
-    const panelY = Math.max(margin + panelHeight / 2, hand.controlCenterY - touchSize / 2 - gapAboveTrigger - panelHeight / 2);
+    const panelY = Math.max(margin + panelHeight / 2, triggerY - touchSize / 2 - gapAboveTrigger - panelHeight / 2);
     const panelTop = panelY - panelHeight / 2;
     const rowY = panelTop + 48;
     const buttonWidth = panelWidth - 28;
@@ -507,7 +516,7 @@ export default class BattleScene extends Phaser.Scene {
       .setDepth(depth);
     outsideCatcher.on('pointerup', () => this.destroyUtilityMenuPanel());
 
-    const triggerControl = createFloatingControl(this, triggerX, hand.controlCenterY, touchSize, '☰', () => {
+    const triggerControl = createFloatingControl(this, triggerX, triggerY, touchSize, '☰', () => {
       this.destroyUtilityMenuPanel();
     }, { fontScale: 0.5 });
 
@@ -947,7 +956,7 @@ export default class BattleScene extends Phaser.Scene {
     this.drawActionZone();
     this.drawDeckCounter();
     this.drawHand();
-    this.drawBottomUtilityBar();
+    this.drawActionRowUtilityMenuTrigger();
     this.drawBuildMarker();
     this.updateActionButtonLabel();
     this.updateInitiativeIndicator();
