@@ -43,6 +43,22 @@ Keep the central column clear and readable because title/buttons are centered ov
 - `default/` — shared battlefield/background art for all battles.
 - `factions/` — reserved for later per-faction background variants.
 
+## Battle background path
+
+Manually upload the default battle background file to this exact repo path:
+
+```text
+public/assets/backgrounds/default/battlefield.webp
+```
+
+Runtime URL used by the code:
+
+```text
+./assets/backgrounds/default/battlefield.webp
+```
+
+If this file is missing or fails to load, battles keep the safe solid dark fallback instead of crashing.
+
 ## Battle target artwork format
 
 - Primary format: portrait 9:16.

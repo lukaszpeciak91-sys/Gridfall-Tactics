@@ -29,6 +29,16 @@ public/assets/backgrounds/menu-background.webp
 
 ## Battle background target artwork
 
+The default battle background is wired to this repo path when present:
+
+```text
+public/assets/backgrounds/default/battlefield.webp
+```
+
+- Runtime URL: `./assets/backgrounds/default/battlefield.webp`.
+- Asset key: `background.default.battlefield`.
+- If the file is missing or fails to load, BattleScene uses the existing dark fallback rectangle.
+
 - Primary aspect ratio: 9:16 portrait.
 - Recommended master: 1440 × 2560 px.
 - Acceptable larger source: 2160 × 3840 px.

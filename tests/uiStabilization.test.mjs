@@ -179,5 +179,8 @@ test('BattleScene preloads and renders the default battlefield background with d
   assert.match(battleSource, /asset: this\.backgroundArtAsset/);
   assert.match(battleSource, /fallbackColor: BATTLE_BACKGROUND_FALLBACK_COLOR/);
   assert.match(battleSource, /depth: -1000/);
+  assert.match(battleSource, /BATTLE_FRAME_OVERLAY_ALPHA = 0\.45/);
+  assert.match(battleSource, /BATTLE_FRAME_OVERLAY_COLOR, BATTLE_FRAME_OVERLAY_ALPHA/);
+  assert.match(backgroundDocs, /public\/assets\/backgrounds\/default\/battlefield\.webp/);
   assert.match(backgroundDocs, /assets\/backgrounds\/default\/battlefield\.webp/);
 });
