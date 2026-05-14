@@ -28,10 +28,20 @@ const INSPECT_CARD_PLAYER_ROW_GAP_RATIO = 0.08;
 const INSPECT_CARD_OVERLAY_ALPHA = 0.22;
 const BATTLE_FRAME_OVERLAY_COLOR = 0x05080f;
 const BATTLE_FRAME_OVERLAY_ALPHA = 0.26;
-const BOARD_SLOT_FILL_ALPHA = 0.3;
-const BOARD_SLOT_STROKE_ALPHA = 0.46;
-const BOARD_GUIDE_SLOT_FILL_ALPHA = 0.12;
-const BOARD_GUIDE_SLOT_STROKE_ALPHA = 0.25;
+const BOARD_SLOT_FILL_ALPHA = 0.22;
+const BOARD_SLOT_STROKE_ALPHA = 0.36;
+const BOARD_GUIDE_SLOT_FILL_ALPHA = 0.08;
+const BOARD_GUIDE_SLOT_STROKE_ALPHA = 0.18;
+const BOARD_TARGET_STROKE_ALPHA = 0.9;
+const BOARD_LANE_HIGHLIGHT_STROKE_ALPHA = 0.72;
+const BOARD_GUIDE_LANE_HIGHLIGHT_STROKE_ALPHA = 0.52;
+const BOARD_FEEDBACK_STROKE_ALPHA = 0.88;
+const HERO_PANEL_FILL_ALPHA = 0.38;
+const HERO_PANEL_ACTIVE_FILL_ALPHA = 0.54;
+const HERO_PANEL_STROKE_ALPHA = 0.5;
+const HERO_PANEL_ACTIVE_STROKE_ALPHA = 0.82;
+const HERO_PANEL_HIT_FILL_ALPHA = 0.52;
+const HERO_PANEL_HIT_STROKE_ALPHA = 0.86;
 const BATTLEFIELD_CENTER_LIGHT_TEXTURE_KEY = 'effect.battlefield-center-light.readability-grade';
 const BATTLEFIELD_CENTER_LIGHT_TEXTURE_SIZE = 512;
 const BATTLEFIELD_CENTER_LIGHT_DEPTH = -875;
@@ -785,8 +795,8 @@ export default class BattleScene extends Phaser.Scene {
     const { width, topHero, playerHero, contentWidth } = this.layout;
     const panelWidth = contentWidth * 0.72;
 
-    const enemyPanel = this.add.rectangle(width * 0.5, topHero.centerY, panelWidth, topHero.h, 0x111827, 0.45).setStrokeStyle(2, 0xf87171, 0.6);
-    const playerPanel = this.add.rectangle(width * 0.5, playerHero.centerY, panelWidth, playerHero.h, 0x111827, 0.45).setStrokeStyle(2, 0x60a5fa, 0.6);
+    const enemyPanel = this.add.rectangle(width * 0.5, topHero.centerY, panelWidth, topHero.h, 0x111827, HERO_PANEL_FILL_ALPHA).setStrokeStyle(2, 0xf87171, HERO_PANEL_STROKE_ALPHA);
+    const playerPanel = this.add.rectangle(width * 0.5, playerHero.centerY, panelWidth, playerHero.h, 0x111827, HERO_PANEL_FILL_ALPHA).setStrokeStyle(2, 0x60a5fa, HERO_PANEL_STROKE_ALPHA);
     this.enemyHeroPanel = enemyPanel;
     this.playerHeroPanel = playerPanel;
 
@@ -855,7 +865,7 @@ export default class BattleScene extends Phaser.Scene {
     const y = panel.y;
 
     const backing = this.add.rectangle(x, y, badgeWidth, badgeHeight, 0x1e293b, 0.92)
-      .setStrokeStyle(2, 0xfacc15, 0.9)
+      .setStrokeStyle(2, 0xfacc15, 0.78)
       .setDepth(121)
       .setVisible(false);
     const text = this.add.text(x, y, translateActive('ui.battle.actOne', 'ACT 1/2'), {
@@ -1953,12 +1963,12 @@ export default class BattleScene extends Phaser.Scene {
     const enemyActive = active === 'enemy';
 
     if (this.playerHeroPanel) {
-      this.playerHeroPanel.setStrokeStyle(playerActive ? 4 : 2, playerActive ? 0xfacc15 : 0x60a5fa, playerActive ? 0.95 : 0.6);
-      this.playerHeroPanel.setFillStyle(0x111827, playerActive ? 0.62 : 0.45);
+      this.playerHeroPanel.setStrokeStyle(playerActive ? 4 : 2, playerActive ? 0xfacc15 : 0x60a5fa, playerActive ? HERO_PANEL_ACTIVE_STROKE_ALPHA : HERO_PANEL_STROKE_ALPHA);
+      this.playerHeroPanel.setFillStyle(0x111827, playerActive ? HERO_PANEL_ACTIVE_FILL_ALPHA : HERO_PANEL_FILL_ALPHA);
     }
     if (this.enemyHeroPanel) {
-      this.enemyHeroPanel.setStrokeStyle(enemyActive ? 4 : 2, enemyActive ? 0xfacc15 : 0xf87171, enemyActive ? 0.95 : 0.6);
-      this.enemyHeroPanel.setFillStyle(0x111827, enemyActive ? 0.62 : 0.45);
+      this.enemyHeroPanel.setStrokeStyle(enemyActive ? 4 : 2, enemyActive ? 0xfacc15 : 0xf87171, enemyActive ? HERO_PANEL_ACTIVE_STROKE_ALPHA : HERO_PANEL_STROKE_ALPHA);
+      this.enemyHeroPanel.setFillStyle(0x111827, enemyActive ? HERO_PANEL_ACTIVE_FILL_ALPHA : HERO_PANEL_FILL_ALPHA);
     }
     if (this.playerInitiativeIcon) this.playerInitiativeIcon.setVisible(playerActive);
     if (this.enemyInitiativeIcon) this.enemyInitiativeIcon.setVisible(enemyActive);
@@ -2190,7 +2200,7 @@ export default class BattleScene extends Phaser.Scene {
     const animations = feedback.map(({ index, label }) => {
       const cell = this.getCellByIndex(index);
       if (!cell) return Promise.resolve();
-      cell.background.setStrokeStyle(4, 0x22c55e, 1);
+      cell.background.setStrokeStyle(4, 0x22c55e, BOARD_FEEDBACK_STROKE_ALPHA);
       const floating = this.add.text(cell.background.x, cell.background.y - this.layout.board.cellHeight * 0.34, label, {
         fontFamily: 'Arial, sans-serif',
         fontSize: `${Math.max(13, Math.floor(this.layout.board.cellWidth * 0.12))}px`,
@@ -2523,7 +2533,7 @@ export default class BattleScene extends Phaser.Scene {
     }));
 
     laneCells.forEach((cell) => {
-      cell.background.setStrokeStyle(cell.row === 1 ? 3 : 4, 0xfacc15, cell.row === 1 ? 0.65 : 0.85);
+      cell.background.setStrokeStyle(cell.row === 1 ? 3 : 4, 0xfacc15, cell.row === 1 ? BOARD_GUIDE_LANE_HIGHLIGHT_STROKE_ALPHA : BOARD_LANE_HIGHLIGHT_STROKE_ALPHA);
     });
 
     return {
@@ -2600,7 +2610,7 @@ export default class BattleScene extends Phaser.Scene {
       labelScaleY: cell.label.scaleY,
     };
 
-    cell.background.setStrokeStyle(4, strokeColor, 1);
+    cell.background.setStrokeStyle(4, strokeColor, BOARD_FEEDBACK_STROKE_ALPHA);
     await this.tweenToPromise({ targets: cell.label, scaleX: 1.1, scaleY: 1.1, duration: 55, yoyo: true });
     cell.background.setStrokeStyle(previousStyle.lineWidth, previousStyle.strokeColor, previousStyle.strokeAlpha);
     cell.label.setScale(previousStyle.labelScaleX, previousStyle.labelScaleY);
@@ -2613,13 +2623,13 @@ export default class BattleScene extends Phaser.Scene {
     const previousStyle = {
       lineWidth: hero.lineWidth ?? 2,
       strokeColor: hero.strokeColor ?? (side === 'player' ? 0x60a5fa : 0xf87171),
-      strokeAlpha: hero.strokeAlpha ?? 0.6,
+      strokeAlpha: hero.strokeAlpha ?? HERO_PANEL_STROKE_ALPHA,
       fillColor: hero.fillColor ?? 0x111827,
-      fillAlpha: hero.fillAlpha ?? 0.45,
+      fillAlpha: hero.fillAlpha ?? HERO_PANEL_FILL_ALPHA,
     };
 
-    hero.setFillStyle(0x7f1d1d, Math.max(previousStyle.fillAlpha, 0.58));
-    hero.setStrokeStyle(Math.max(previousStyle.lineWidth, 3), 0xfca5a5, 0.95);
+    hero.setFillStyle(0x7f1d1d, Math.max(previousStyle.fillAlpha, HERO_PANEL_HIT_FILL_ALPHA));
+    hero.setStrokeStyle(Math.max(previousStyle.lineWidth, 3), 0xfca5a5, HERO_PANEL_HIT_STROKE_ALPHA);
     await this.delay(100);
     hero.setFillStyle(previousStyle.fillColor, previousStyle.fillAlpha);
     hero.setStrokeStyle(previousStyle.lineWidth, previousStyle.strokeColor, previousStyle.strokeAlpha);
@@ -2957,13 +2967,13 @@ export default class BattleScene extends Phaser.Scene {
 
       if (this.targetingState?.targetType === 'friendly-unit' && isValidFriendlyTarget) {
         strokeColor = 0x22c55e;
-        strokeAlpha = 1;
+        strokeAlpha = BOARD_TARGET_STROKE_ALPHA;
       } else if (this.targetingState?.targetType === 'enemy-unit' && isValidEnemyTarget) {
         strokeColor = 0xef4444;
-        strokeAlpha = 1;
+        strokeAlpha = BOARD_TARGET_STROKE_ALPHA;
       } else if (this.targetingState?.targetType === 'any-unit' && isValidAnyTarget) {
         strokeColor = 0xa855f7;
-        strokeAlpha = 1;
+        strokeAlpha = BOARD_TARGET_STROKE_ALPHA;
       }
       cell.background.setStrokeStyle(cell.row === 1 ? 2 : 3, strokeColor, strokeAlpha);
     });
