@@ -18,7 +18,6 @@ import {
 } from '../ui/imageButton.js';
 import { translateActive } from '../localization/localeService.js';
 import { applyAudioSettings, loadSettings } from '../systems/settingsState.js';
-import { saveLastUiRoute } from '../systems/uiRouteState.js';
 import {
   GRIDFALL_LOGO_ASSET,
   MAIN_MENU_FIRST_BUTTON_Y_RATIO,
@@ -63,7 +62,6 @@ export default class MainMenuScene extends Phaser.Scene {
   }
 
   create(data = {}) {
-    saveLastUiRoute('MainMenuScene');
     this.resetMainMenuDisplayList();
 
     const { width, height } = this.scale;

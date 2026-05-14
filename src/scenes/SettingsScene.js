@@ -10,7 +10,6 @@ import { createBuildMarker } from '../ui/buildMarker.js';
 import { createBottomNavigationControls, createMuteToggleControl, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
 import { getSupportedLocales, setActiveLocale, translateActive, translate } from '../localization/localeService.js';
 import { DEFAULT_SETTINGS, applyAudioSettings, loadSettings, saveSettings, updateSettings } from '../systems/settingsState.js';
-import { saveLastUiRoute } from '../systems/uiRouteState.js';
 function getLanguageOptions(displayLocale) {
   return getSupportedLocales().map((locale) => ({
     value: locale,
@@ -45,8 +44,6 @@ export default class SettingsScene extends Phaser.Scene {
   }
 
   create() {
-    saveLastUiRoute('SettingsScene');
-
     const { width, height } = this.scale;
     this.settings = this.loadSettings();
     applyAudioSettings(this, this.settings);
