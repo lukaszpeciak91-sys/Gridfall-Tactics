@@ -1,8 +1,9 @@
 export const MAX_VISIBLE_HAND_CARDS = 5;
 export const HAND_CARD_ASPECT_RATIO = 1.62;
-export const HAND_CARD_READABILITY_SCALE = 1.25;
+export const HAND_CARD_READABILITY_SCALE = 1.35;
 export const MIN_HAND_CONTROL_TOUCH_SIZE = 48;
 export const MAX_HAND_CONTROL_TOUCH_SIZE = 54;
+export const HAND_CARD_MAX_WIDTH_RATIO = 0.31;
 
 export function calculateHandLayoutMetrics({
   contentWidth,
@@ -24,7 +25,7 @@ export function calculateHandLayoutMetrics({
   const cardRowHeight = Math.max(0, handHeight - controlRowHeight);
   const maxCardHeight = Math.max(0, cardRowHeight - cardTopInset - cardControlGap * 0.35);
   const baseCardWidth = Math.min(contentWidth * 0.27, maxCardHeight / HAND_CARD_ASPECT_RATIO, handHeight * 0.9);
-  const cardWidth = Math.min(baseCardWidth * HAND_CARD_READABILITY_SCALE, contentWidth * 0.29, maxCardHeight / HAND_CARD_ASPECT_RATIO);
+  const cardWidth = Math.min(baseCardWidth * HAND_CARD_READABILITY_SCALE, contentWidth * HAND_CARD_MAX_WIDTH_RATIO, maxCardHeight / HAND_CARD_ASPECT_RATIO);
   const cardHeight = cardWidth * HAND_CARD_ASPECT_RATIO;
   const trackWidth = contentWidth;
   const cardsVisible = Math.min(MAX_VISIBLE_HAND_CARDS, maxHandSize);
