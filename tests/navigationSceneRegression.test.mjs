@@ -55,7 +55,7 @@ test('BattleScene enemy action pacing constants resolve during turn flow', () =>
 test('BattleScene returns to faction select through a cleanup path and retry stays in BattleScene', () => {
   const source = readScene('src/scenes/BattleScene.js');
 
-  assert.match(source, /drawBottomUtilityBar\(\) \{[\s\S]*createFloatingControl\([\s\S]*'☰',[\s\S]*\(\) => this\.toggleUtilityMenuPanel\(\),[\s\S]*createBottomNavigationControls\(this, \{[\s\S]*onFullscreen: \(\) => this\.toggleFullscreen\(\),[\s\S]*centerY: hand\.controlCenterY,[\s\S]*touchSize: hand\.controlTouchSize,[\s\S]*margin,[\s\S]*\}\)/);
+  assert.match(source, /drawActionRowUtilityMenuTrigger\(\) \{[\s\S]*getActionRowUtilityMenuMetrics\(\);[\s\S]*createFloatingControl\([\s\S]*'☰',[\s\S]*\(\) => this\.toggleUtilityMenuPanel\(\),[\s\S]*this\.bottomControlViews = \[menu\];[\s\S]*\}/);
   assert.match(source, /this\.scene\.start\('FactionSelectScene'\)/);
   assert.match(source, /this\.scene\.restart\(\{ factionKey, enemyFactionKey \}\)/);
   assert.match(source, /exitBattleToFactionSelect\(\) \{[\s\S]*this\.scene\.start\('FactionSelectScene'\)/);
@@ -83,12 +83,14 @@ test('BattleScene lifecycle destroys stale interactive objects, overlays, timers
 
 
 
-test('BattleScene bottom navigation uses resolved layout metrics before entering battle', () => {
+test('BattleScene action row utility menu uses resolved action metrics and no bottom fullscreen control', () => {
   const source = readScene('src/scenes/BattleScene.js');
 
-  assert.match(source, /drawBottomUtilityBar\(\) \{[\s\S]*const \{ hand, margin \} = this\.layout;[\s\S]*const menuX = margin \+ hand\.controlTouchSize \/ 2;[\s\S]*createFloatingControl\([\s\S]*menuX,[\s\S]*hand\.controlCenterY,[\s\S]*hand\.controlTouchSize,[\s\S]*'☰',[\s\S]*const controls = createBottomNavigationControls\(this, \{[\s\S]*centerY: hand\.controlCenterY,[\s\S]*touchSize: hand\.controlTouchSize,[\s\S]*margin,[\s\S]*\}\);[\s\S]*this\.bottomControlViews = \[menu, controls\.fullscreen\]\.filter\(Boolean\);[\s\S]*\}/);
-  assert.doesNotMatch(source, /createFloatingControl\(backX, centerY, touchSize/);
-  assert.doesNotMatch(source, /createFloatingControl\(width \* 0\.5, centerY, touchSize/);
+  assert.match(source, /getActionRowUtilityMenuMetrics\(\) \{[\s\S]*const \{ width, action, margin \} = this\.layout;[\s\S]*const actionButtonWidth = width \* 0\.46;[\s\S]*const actionButtonLeft = width \* 0\.5 - actionButtonWidth \/ 2;[\s\S]*x: Phaser\.Math\.Clamp\([\s\S]*actionButtonLeft - gap - touchSize \/ 2,[\s\S]*y: action\.centerY,[\s\S]*touchSize,[\s\S]*\}/);
+  assert.match(source, /drawActionRowUtilityMenuTrigger\(\) \{[\s\S]*const \{ x, y, touchSize \} = this\.getActionRowUtilityMenuMetrics\(\);[\s\S]*createFloatingControl\([\s\S]*x,[\s\S]*y,[\s\S]*touchSize,[\s\S]*'☰',[\s\S]*this\.bottomControlViews = \[menu\];[\s\S]*\}/);
+  assert.doesNotMatch(source, /drawBottomUtilityBar/);
+  assert.doesNotMatch(source, /controls\.fullscreen/);
+  assert.doesNotMatch(source, /onFullscreen: \(\) => this\.toggleFullscreen\(\)/);
   assert.doesNotMatch(source, /createFloatingControl\(fullscreenX, centerY, touchSize/);
 });
 
@@ -100,7 +102,7 @@ test('battle utility menu opens panel actions and rules resume the existing scen
   const mainSource = readScene('src/main.js');
 
   assert.match(helperSource, /rules: middleAction \? createFloatingControl\(scene, metrics\.width \* 0\.5, metrics\.centerY, metrics\.touchSize, '\?', middleAction/);
-  assert.match(battleSource, /drawBottomUtilityBar\(\) \{[\s\S]*'☰',[\s\S]*\(\) => this\.toggleUtilityMenuPanel\(\),[\s\S]*onFullscreen: \(\) => this\.toggleFullscreen\(\),[\s\S]*\}\)/);
+  assert.match(battleSource, /drawActionRowUtilityMenuTrigger\(\) \{[\s\S]*'☰',[\s\S]*\(\) => this\.toggleUtilityMenuPanel\(\),[\s\S]*this\.bottomControlViews = \[menu\];[\s\S]*\}/);
   assert.match(battleSource, /showUtilityMenuPanel\(\) \{[\s\S]*outsideCatcher\.on\('pointerup', \(\) => this\.destroyUtilityMenuPanel\(\)\);[\s\S]*createMuteToggleControl\(this,[\s\S]*translateActive\('ui\.common\.rules', 'Rules'\), \(\) => this\.openRulesPanel\(\)\),[\s\S]*translateActive\('ui\.common\.settings', 'Settings'\), \(\) => this\.openSettingsScene\(\)\),[\s\S]*translateActive\('ui\.battle\.returnToFactionSelect', 'Return \/ Back'\), \(\) => this\.exitBattleToFactionSelect\(\)\),[\s\S]*translateActive\('ui\.battle\.exitToMainMenu', 'Exit Battle \/ Main Menu'\), \(\) => this\.exitBattleToMainMenu\(\)\),[\s\S]*\}/);
   assert.match(battleSource, /openSettingsScene\(\) \{[\s\S]*this\.scene\.start\('SettingsScene'\);[\s\S]*\}/);
   assert.match(battleSource, /exitBattleToMainMenu\(\) \{[\s\S]*this\.scene\.start\('MainMenuScene'\);[\s\S]*\}/);
@@ -198,7 +200,7 @@ test('FactionSelectScene uses shared bottom navigation controls for back, rules,
   const menuSource = readScene('src/scenes/BattleMenuScene.js');
 
   assert.match(factionSource, /import \{ createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen \} from '\.\.\/ui\/navigationControls\.js';/);
-  assert.match(battleSource, /import \{ createBottomNavigationControls, createFloatingControl, createMuteToggleControl, requestPortraitOrientationLock, toggleSceneFullscreen \} from '\.\.\/ui\/navigationControls\.js';/);
+  assert.match(battleSource, /import \{ createFloatingControl, createMuteToggleControl, requestPortraitOrientationLock, toggleSceneFullscreen \} from '\.\.\/ui\/navigationControls\.js';/);
   assert.match(helperSource, /export function createBottomNavigationControls/);
   assert.match(helperSource, /export function createFloatingControl/);
   assert.match(helperSource, /export function requestPortraitOrientationLock/);
