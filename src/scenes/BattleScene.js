@@ -32,6 +32,10 @@ const BOARD_SLOT_FILL_ALPHA = 0.3;
 const BOARD_SLOT_STROKE_ALPHA = 0.46;
 const BOARD_GUIDE_SLOT_FILL_ALPHA = 0.12;
 const BOARD_GUIDE_SLOT_STROKE_ALPHA = 0.25;
+const BATTLEFIELD_CENTER_LIGHT_TEXTURE_KEY = 'effect.battlefield-center-light.readability-grade';
+const BATTLEFIELD_CENTER_LIGHT_TEXTURE_SIZE = 512;
+const BATTLEFIELD_CENTER_LIGHT_DEPTH = -875;
+const BATTLEFIELD_CENTER_LIGHT_ALPHA = 0.14;
 const INSPECT_CARD_OVERLAY_DEPTH = 840;
 const INSPECT_CARD_DEPTH = 850;
 const INSPECT_CARD_TWEEN_IN_MS = 150;
@@ -120,6 +124,7 @@ export default class BattleScene extends Phaser.Scene {
     this.battleResultModalPending = false;
     this.backgroundArtAsset = null;
     this.backgroundLayer = null;
+    this.battlefieldCenterLight = null;
     this.selectedHandCardZoom = null;
     this.hoverInspectCardId = null;
     this.boardInspectIndex = null;
@@ -173,6 +178,7 @@ export default class BattleScene extends Phaser.Scene {
     this.enemyFactionKey = null;
     this.backgroundArtAsset = null;
     this.backgroundLayer = null;
+    this.battlefieldCenterLight = null;
     this.selectedHandCardZoom = null;
     this.hoverInspectCardId = null;
     this.boardInspectIndex = null;
@@ -229,6 +235,7 @@ export default class BattleScene extends Phaser.Scene {
 
     this.drawBattleBackground();
     this.drawBattleFrame();
+    this.drawBattlefieldCenterLight();
     this.drawBoard();
     this.drawHeroPanels();
     this.refreshHeroHP();
@@ -351,7 +358,66 @@ export default class BattleScene extends Phaser.Scene {
     this.battleFrame.setDepth(-900);
   }
 
+  drawBattlefieldCenterLight() {
+    const { width, height, board } = this.layout;
+    this.ensureBattlefieldCenterLightTexture();
 
+    const light = this.add.image(width * 0.5, board.centerY, BATTLEFIELD_CENTER_LIGHT_TEXTURE_KEY)
+      .setOrigin(0.5)
+      .setDepth(BATTLEFIELD_CENTER_LIGHT_DEPTH)
+      .setAlpha(BATTLEFIELD_CENTER_LIGHT_ALPHA);
+
+    const displayWidth = Math.min(width * 1.18, Math.max(board.width * 1.38, width * 0.74));
+    const displayHeight = Math.min(height * 0.72, Math.max(board.height * 1.24, height * 0.44));
+    light.setDisplaySize(displayWidth, displayHeight);
+
+    if (light.setBlendMode) {
+      light.setBlendMode(Phaser.BlendModes.ADD);
+    }
+
+    this.battlefieldCenterLight = light;
+  }
+
+  ensureBattlefieldCenterLightTexture() {
+    if (this.textures.exists(BATTLEFIELD_CENTER_LIGHT_TEXTURE_KEY)) {
+      return;
+    }
+
+    const texture = this.textures.createCanvas(
+      BATTLEFIELD_CENTER_LIGHT_TEXTURE_KEY,
+      BATTLEFIELD_CENTER_LIGHT_TEXTURE_SIZE,
+      BATTLEFIELD_CENTER_LIGHT_TEXTURE_SIZE,
+    );
+    const canvas = texture.getSourceImage();
+    const context = canvas.getContext('2d');
+    const size = BATTLEFIELD_CENTER_LIGHT_TEXTURE_SIZE;
+    const center = size * 0.5;
+
+    context.clearRect(0, 0, size, size);
+
+    const centerLane = context.createRadialGradient(center, center, size * 0.06, center, center, size * 0.52);
+    centerLane.addColorStop(0, 'rgba(230,238,255,1)');
+    centerLane.addColorStop(0.28, 'rgba(190,212,255,0.72)');
+    centerLane.addColorStop(0.58, 'rgba(120,154,220,0.26)');
+    centerLane.addColorStop(1, 'rgba(120,154,220,0)');
+
+    context.fillStyle = centerLane;
+    context.fillRect(0, 0, size, size);
+
+    context.globalCompositeOperation = 'destination-in';
+    const verticalFeather = context.createLinearGradient(0, 0, 0, size);
+    verticalFeather.addColorStop(0, 'rgba(255,255,255,0)');
+    verticalFeather.addColorStop(0.18, 'rgba(255,255,255,0.2)');
+    verticalFeather.addColorStop(0.44, 'rgba(255,255,255,0.95)');
+    verticalFeather.addColorStop(0.56, 'rgba(255,255,255,0.95)');
+    verticalFeather.addColorStop(0.82, 'rgba(255,255,255,0.2)');
+    verticalFeather.addColorStop(1, 'rgba(255,255,255,0)');
+    context.fillStyle = verticalFeather;
+    context.fillRect(0, 0, size, size);
+    context.globalCompositeOperation = 'source-over';
+
+    texture.refresh();
+  }
 
   drawBuildMarker() {
     const { width, height } = this.layout;
@@ -674,6 +740,7 @@ export default class BattleScene extends Phaser.Scene {
 
     this.drawBattleBackground();
     this.drawBattleFrame();
+    this.drawBattlefieldCenterLight();
     this.drawBoard();
     this.drawHeroPanels();
     this.enemyHpText = null;

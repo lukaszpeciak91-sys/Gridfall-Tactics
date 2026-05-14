@@ -181,6 +181,11 @@ test('BattleScene preloads and renders the default battlefield background with d
   assert.match(battleSource, /depth: -1000/);
   assert.match(battleSource, /BATTLE_FRAME_OVERLAY_ALPHA = 0\.26/);
   assert.match(battleSource, /BATTLE_FRAME_OVERLAY_COLOR, BATTLE_FRAME_OVERLAY_ALPHA/);
+  assert.match(battleSource, /BATTLEFIELD_CENTER_LIGHT_ALPHA = 0\.14/);
+  assert.match(battleSource, /drawBattlefieldCenterLight\(\)/);
+  assert.match(battleSource, /setDepth\(BATTLEFIELD_CENTER_LIGHT_DEPTH\)/);
+  assert.match(battleSource, /setBlendMode\(Phaser\.BlendModes\.ADD\)/);
+  assert.match(battleSource, /Math\.max\(board\.height \* 1\.24, height \* 0\.44\)/);
   assert.match(backgroundDocs, /public\/assets\/backgrounds\/default\/battlefield\.webp/);
   assert.match(backgroundDocs, /assets\/backgrounds\/default\/battlefield\.webp/);
 });
