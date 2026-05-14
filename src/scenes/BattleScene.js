@@ -26,6 +26,8 @@ const INSPECT_CARD_MAX_HEIGHT_RATIO = 0.62;
 const INSPECT_CARD_MAX_WIDTH_RATIO = 0.78;
 const INSPECT_CARD_PLAYER_ROW_GAP_RATIO = 0.08;
 const INSPECT_CARD_OVERLAY_ALPHA = 0.22;
+const BATTLE_FRAME_OVERLAY_COLOR = 0x05080f;
+const BATTLE_FRAME_OVERLAY_ALPHA = 0.45;
 const INSPECT_CARD_OVERLAY_DEPTH = 840;
 const INSPECT_CARD_DEPTH = 850;
 const INSPECT_CARD_TWEEN_IN_MS = 150;
@@ -341,7 +343,7 @@ export default class BattleScene extends Phaser.Scene {
 
   drawBattleFrame() {
     const { width, height } = this.layout;
-    this.battleFrame = this.add.rectangle(width * 0.5, height * 0.5, width, height, 0x05080f, 0.72);
+    this.battleFrame = this.add.rectangle(width * 0.5, height * 0.5, width, height, BATTLE_FRAME_OVERLAY_COLOR, BATTLE_FRAME_OVERLAY_ALPHA);
     this.battleFrame.setDepth(-900);
   }
 
