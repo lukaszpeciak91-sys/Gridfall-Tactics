@@ -11,6 +11,31 @@ import RulesPanelScene from './scenes/RulesPanelScene.js';
 import { installSessionLifecycle } from './systems/sessionLifecycle.js';
 import { installFullscreenPortraitFit } from './systems/fullscreenPortraitFit.js';
 import { installHighDpiCanvas } from './rendering/highDpiCanvas.js';
+import { getRestorableUiRouteScene } from './systems/uiRouteState.js';
+
+// Scene boot order preserves SettingsScene, TutorialScene, BattleScene registration sequence.
+const SCENE_BOOT_ORDER = [
+  ['StartScene', StartScene],
+  ['MainMenuScene', MainMenuScene],
+  ['FactionSelectScene', FactionSelectScene],
+  ['CollectionScene', CollectionScene],
+  ['SettingsScene', SettingsScene],
+  ['TutorialScene', TutorialScene],
+  ['BattleScene', BattleScene],
+  ['BattleMenuScene', BattleMenuScene],
+  ['RulesPanelScene', RulesPanelScene],
+];
+const SCENE_CLASSES = Object.fromEntries(SCENE_BOOT_ORDER);
+
+const DEFAULT_INITIAL_SCENE = 'StartScene';
+const initialSceneKey = getRestorableUiRouteScene() ?? DEFAULT_INITIAL_SCENE;
+const initialSceneClass = SCENE_CLASSES[initialSceneKey] ?? StartScene;
+const sceneList = [
+  initialSceneClass,
+  ...SCENE_BOOT_ORDER
+    .filter(([sceneKey]) => sceneKey !== initialSceneKey)
+    .map(([, sceneClass]) => sceneClass),
+];
 
 const config = {
   type: Phaser.AUTO,
@@ -28,7 +53,7 @@ const config = {
     antialiasGL: true,
     pixelArt: false,
   },
-  scene: [StartScene, MainMenuScene, FactionSelectScene, CollectionScene, SettingsScene, TutorialScene, BattleScene, BattleMenuScene, RulesPanelScene],
+  scene: sceneList,
 };
 
 const game = new Phaser.Game(config);

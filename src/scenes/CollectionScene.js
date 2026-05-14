@@ -12,6 +12,7 @@ import { formatCardDetailLines, formatCollectionRowLabel } from '../rendering/ca
 import { getActiveLocale, translateActive } from '../localization/localeService.js';
 import { createModalBackButton } from '../ui/modalControls.js';
 import { preloadSecondaryButtonAsset } from '../ui/imageButton.js';
+import { saveLastUiRoute } from '../systems/uiRouteState.js';
 
 const CARD_SCROLL_DRAG_THRESHOLD = 8;
 
@@ -34,6 +35,7 @@ export default class CollectionScene extends Phaser.Scene {
   }
 
   create() {
+    saveLastUiRoute('CollectionScene');
     this.cleanupScene();
 
     const { width, height } = this.scale;
