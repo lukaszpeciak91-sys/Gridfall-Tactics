@@ -234,11 +234,11 @@
     },
     "wardens_reinforce_line_1": {
       "name": "Reinforce Line",
-      "textShort": "Leftmost ally +1 ARM until combat ends."
+      "textShort": "Adjacent allies +1 ARM until combat ends."
     },
     "wardens_hold_the_line_1": {
       "name": "Hold The Line",
-      "textShort": "Leftmost 2 allies +1 ARM until combat ends."
+      "textShort": "Adjacent allies +1 ARM until combat ends."
     }
   },
   "cardTypes": {
@@ -379,8 +379,7 @@
         "funeral_pyre": "First 2 ally deaths deal 1",
         "grave_call": "Summon 1/1; 2 if alone",
         "infect_damage_1_opposite_ally_atk_1": "Deal 1, empower opposite ally",
-        "leftmost_2_friendly_temp_armor_1": "Leftmost 2 allies +1 ARM",
-        "leftmost_friendly_temp_armor_1": "Leftmost ally +1 ARM",
+        "adjacent_allies_temp_armor_1": "Adjacent allies +1 ARM",
         "swap_leftmost_adjacent_enemies": "Swap leftmost adjacent enemies"
       }
     },

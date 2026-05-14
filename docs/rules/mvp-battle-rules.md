@@ -156,7 +156,7 @@ The no-progress detector uses the stricter "meaningful for outcome" definition i
 - If opposing lane is empty, attacker hits opposing hero.
 - Both sides can deal damage during same combat step.
 - Temporary turn-based modifiers/effects are reset after combat resolution.
-- Temporary armor from Reactive Plating (`temp_armor_1`) and Wardens armor orders lasts until full turn/combat cleanup; wording should use “until combat ends” and must not imply immediate lane-combat cleanup.
+- Temporary armor from Reactive Plating (`temp_armor_1`) and Wardens formation armor orders lasts until full turn/combat cleanup; wording should use “until combat ends” and must not imply immediate lane-combat cleanup.
 - Wardens defensive friction means: “When affected unit is attacked, attacker has -1 ATK for that combat damage calculation.” It applies only to unit-vs-unit combat damage calculations, does not create persistent temp state, does not reduce open-lane hero damage, and does not reduce non-combat damage.
 - Wardens defensive friction is capped at **-1 ATK total** per attack even if Sentinel and one or more Spearwalls would all apply. This MVP cap avoids zero-damage lockouts.
 
@@ -179,7 +179,7 @@ The no-progress detector uses the stricter "meaningful for outcome" definition i
   - **Sniper (`can_hit_any_lane`)** targets the lowest-HP enemy unit; ties break to lower board index.
   - **Controller (`swap_two_enemy_units`)** on-play picks first two enemy units by lane/index order.
   - **Shield Push (`swap_leftmost_adjacent_enemies`)** swaps the leftmost legal adjacent enemy pair in the opponent row only; it never crosses sides and never changes ownership. If no adjacent enemy pair exists, it has no legal deterministic resolution and is rejected rather than discarded.
-  - **Reinforce Line (`leftmost_friendly_temp_armor_1`)** gives +1 temporary ARM to the leftmost friendly unit only; if no friendly unit exists, it has no legal deterministic resolution and is rejected rather than discarded.
+  - **Reinforce Line / Hold The Line (`adjacent_allies_temp_armor_1`)** give +1 temporary ARM to friendly units with same-row adjacent allies; isolated friendly units have no legal deterministic resolution and the order is rejected rather than discarded.
   - AI-controlled sides evaluate legal targeted actions, immediate effects, redeploys, and adjacent swaps with the same `chooseBattleAction` scorer used by AI-vs-AI simulation bots and the live enemy. Ties are deterministic in live enemy turns and seeded-random in simulation runs.
 - No hidden-information peek UI; `peek_enemy_slot` is a no-op.
 - No general manual targeting UI for unit passive abilities beyond implemented hooks.
@@ -255,8 +255,8 @@ The no-progress detector uses the stricter "meaningful for outcome" definition i
 | Wardens | Brace | utility | - | temp_armor_1 | Target ally +1 ARM until combat ends. | Targeted friendly | Reuses temporary armor cleanup; no costs. |
 | Wardens | Shield Push | order | - | swap_leftmost_adjacent_enemies | Swap leftmost adjacent enemies. | Non-targeted deterministic effect | Same enemy row only; no cross-side movement; no ownership changes; rejected if no legal adjacent enemy pair. |
 | Wardens | Stand Firm | order | - | friendly_immovable_this_turn | All allies can’t be moved this turn. | Non-targeted effect | Move-only protection; unlike Tank Stability, it does not block disable effects. |
-| Wardens | Reinforce Line | order | - | leftmost_friendly_temp_armor_1 | Leftmost ally +1 ARM until combat ends. | Non-targeted deterministic effect | Leftmost friendly unit by row/index order; rejected if no friendly unit exists; no lane targeting UI. |
-| Wardens | Hold The Line | order | - | leftmost_2_friendly_temp_armor_1 | Leftmost 2 allies +1 ARM until combat ends. | Non-targeted deterministic effect | Picks up to 2 friendly units by row/index order; reuses temporary armor cleanup; no costs or manual targeting UI. |
+| Wardens | Reinforce Line | order | - | adjacent_allies_temp_armor_1 | Adjacent allies +1 ARM until combat ends. | Non-targeted formation effect | Same-row friendly units with adjacent allies gain +1 temporary ARM; isolated allies have no legal deterministic resolution; no lane targeting UI. |
+| Wardens | Hold The Line | order | - | adjacent_allies_temp_armor_1 | Adjacent allies +1 ARM until combat ends. | Non-targeted formation effect | Same adjacency behavior as Reinforce Line; reinforces Wardens shield-wall formation identity and reuses temporary armor cleanup. |
 
 ## 9) Implemented vs Deferred (Explicit)
 

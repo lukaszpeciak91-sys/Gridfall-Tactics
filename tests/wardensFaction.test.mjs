@@ -138,7 +138,7 @@ test('Halberdier gets +1 ATK only when opposing lane has enemy', () => {
   assert.equal(open.enemyHP, 10);
 });
 
-test('Brace, Reinforce Line, and Hold The Line grant temporary armor that cleans up after combat', () => {
+test('Brace, Reinforce Line, and Hold The Line grant adjacent temporary armor that cleans up after combat', () => {
   const state = createWardensState();
   state.player.hand.push({ ...card('wardens_brace_1') }, { ...card('wardens_reinforce_line_1') }, { ...card('wardens_hold_the_line_1') });
   state.board[6] = unit({ id: 'left', owner: 'player', attack: 0, hp: 3 });
@@ -149,10 +149,12 @@ test('Brace, Reinforce Line, and Hold The Line grant temporary armor that cleans
   assert.equal(state.board[7].tempArmorMod, 1);
   assert.equal(playEffectCard(state, 'player', 'wardens_reinforce_line_1').ok, true);
   assert.equal(state.board[6].tempArmorMod, 1);
+  assert.equal(state.board[7].tempArmorMod, 2);
+  assert.equal(state.board[8].tempArmorMod, 1);
   assert.equal(playEffectCard(state, 'player', 'wardens_hold_the_line_1').ok, true);
   assert.equal(state.board[6].tempArmorMod, 2);
-  assert.equal(state.board[7].tempArmorMod, 2);
-  assert.equal(state.board[8].tempArmorMod, undefined);
+  assert.equal(state.board[7].tempArmorMod, 3);
+  assert.equal(state.board[8].tempArmorMod, 2);
 
   resolveCombat(state);
   assert.equal(state.board[6].tempArmorMod, undefined);
@@ -160,12 +162,34 @@ test('Brace, Reinforce Line, and Hold The Line grant temporary armor that cleans
   assert.equal(state.board[8].tempArmorMod, undefined);
 });
 
-test('Reinforce Line is rejected without a friendly unit and does not discard', () => {
+test('Wardens adjacent armor orders buff one adjacent ally from an edge pair and preserve ownership', () => {
   const state = createWardensState();
   state.player.hand.push({ ...card('wardens_reinforce_line_1') });
-  const result = playEffectCard(state, 'player', 'wardens_reinforce_line_1');
-  assert.equal(result.ok, false);
-  assert.equal(state.player.hand.length, 1);
+  state.board[6] = unit({ id: 'left', owner: 'player', attack: 0, hp: 3 });
+  state.board[7] = unit({ id: 'mid', owner: 'player', attack: 0, hp: 3 });
+  state.board[8] = unit({ id: 'enemy-in-friendly-row', owner: 'enemy', attack: 0, hp: 3 });
+
+  assert.equal(playEffectCard(state, 'player', 'wardens_reinforce_line_1').ok, true);
+  assert.equal(state.board[6].tempArmorMod, 1);
+  assert.equal(state.board[7].tempArmorMod, 1);
+  assert.equal(state.board[8].tempArmorMod, undefined);
+  assert.deepEqual(state.board.map((item) => item?.owner ?? null).slice(6, 9), ['player', 'player', 'enemy']);
+});
+
+test('Wardens adjacent armor orders are rejected for isolated units and do not discard', () => {
+  const state = createWardensState();
+  state.player.hand.push({ ...card('wardens_reinforce_line_1') }, { ...card('wardens_hold_the_line_1') });
+  state.board[6] = unit({ id: 'isolated-left', owner: 'player', attack: 0, hp: 3 });
+  state.board[8] = unit({ id: 'isolated-right', owner: 'player', attack: 0, hp: 3 });
+
+  const reinforceResult = playEffectCard(state, 'player', 'wardens_reinforce_line_1');
+  const holdResult = playEffectCard(state, 'player', 'wardens_hold_the_line_1');
+
+  assert.equal(reinforceResult.ok, false);
+  assert.equal(holdResult.ok, false);
+  assert.equal(state.board[6].tempArmorMod, undefined);
+  assert.equal(state.board[8].tempArmorMod, undefined);
+  assert.equal(state.player.hand.length, 2);
   assert.equal(state.player.discard.length, 0);
 });
 
@@ -177,11 +201,11 @@ test('Wardens targeting metadata uses only Brace manual targeting', () => {
     targetIndexes: [],
   });
   assert.equal(getTargetingStateForEffect('swap_leftmost_adjacent_enemies', 'wardens_shield_push_1'), null);
-  assert.equal(getTargetingStateForEffect('leftmost_friendly_temp_armor_1', 'wardens_reinforce_line_1'), null);
-  assert.equal(getTargetingStateForEffect('leftmost_2_friendly_temp_armor_1', 'wardens_hold_the_line_1'), null);
+  assert.equal(getTargetingStateForEffect('adjacent_allies_temp_armor_1', 'wardens_reinforce_line_1'), null);
+  assert.equal(getTargetingStateForEffect('adjacent_allies_temp_armor_1', 'wardens_hold_the_line_1'), null);
 });
 
-test('AI avoids Shield Push without legal pair and Reinforce Line without a friendly unit', () => {
+test('AI avoids Shield Push without legal pair and Reinforce Line without adjacent allies', () => {
   const shieldState = createWardensState();
   shieldState.enemy.hand.push({ ...card('wardens_shield_push_1') });
   shieldState.board[6] = unit({ id: 'player-left', owner: 'player' });
@@ -190,6 +214,8 @@ test('AI avoids Shield Push without legal pair and Reinforce Line without a frie
 
   const reinforceState = createWardensState();
   reinforceState.enemy.hand.push({ ...card('wardens_reinforce_line_1') });
+  reinforceState.board[0] = unit({ id: 'isolated-left', owner: 'enemy' });
+  reinforceState.board[2] = unit({ id: 'isolated-right', owner: 'enemy' });
   assert.notEqual(chooseBattleAction(reinforceState, 'enemy').cardId, 'wardens_reinforce_line_1');
 });
 
