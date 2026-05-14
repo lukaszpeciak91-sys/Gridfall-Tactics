@@ -27,7 +27,11 @@ const INSPECT_CARD_MAX_WIDTH_RATIO = 0.78;
 const INSPECT_CARD_PLAYER_ROW_GAP_RATIO = 0.08;
 const INSPECT_CARD_OVERLAY_ALPHA = 0.22;
 const BATTLE_FRAME_OVERLAY_COLOR = 0x05080f;
-const BATTLE_FRAME_OVERLAY_ALPHA = 0.28;
+const BATTLE_FRAME_OVERLAY_ALPHA = 0.26;
+const BOARD_SLOT_FILL_ALPHA = 0.3;
+const BOARD_SLOT_STROKE_ALPHA = 0.46;
+const BOARD_GUIDE_SLOT_FILL_ALPHA = 0.12;
+const BOARD_GUIDE_SLOT_STROKE_ALPHA = 0.25;
 const INSPECT_CARD_OVERLAY_DEPTH = 840;
 const INSPECT_CARD_DEPTH = 850;
 const INSPECT_CARD_TWEEN_IN_MS = 150;
@@ -865,8 +869,8 @@ export default class BattleScene extends Phaser.Scene {
         const isMiddleRow = row === 1;
 
         const background = this.add
-          .rectangle(x, y, board.cellWidth - 10, board.cellHeight - 10, 0x111827, isMiddleRow ? 0.18 : 0.4)
-          .setStrokeStyle(isMiddleRow ? 2 : 3, isMiddleRow ? 0x94a3b8 : 0xcbd5e1, isMiddleRow ? 0.3 : 0.55)
+          .rectangle(x, y, board.cellWidth - 10, board.cellHeight - 10, 0x111827, isMiddleRow ? BOARD_GUIDE_SLOT_FILL_ALPHA : BOARD_SLOT_FILL_ALPHA)
+          .setStrokeStyle(isMiddleRow ? 2 : 3, isMiddleRow ? 0x94a3b8 : 0xcbd5e1, isMiddleRow ? BOARD_GUIDE_SLOT_STROKE_ALPHA : BOARD_SLOT_STROKE_ALPHA)
           .setInteractive({ useHandCursor: true });
 
         if (isMiddleRow && typeof background.setLineDash === 'function') {
@@ -2448,7 +2452,7 @@ export default class BattleScene extends Phaser.Scene {
       cell,
       lineWidth: cell.background.lineWidth ?? (cell.row === 1 ? 2 : 3),
       strokeColor: cell.background.strokeColor ?? (cell.row === 1 ? 0x94a3b8 : 0xcbd5e1),
-      strokeAlpha: cell.background.strokeAlpha ?? (cell.row === 1 ? 0.3 : 0.55),
+      strokeAlpha: cell.background.strokeAlpha ?? (cell.row === 1 ? BOARD_GUIDE_SLOT_STROKE_ALPHA : BOARD_SLOT_STROKE_ALPHA),
     }));
 
     laneCells.forEach((cell) => {
@@ -2524,7 +2528,7 @@ export default class BattleScene extends Phaser.Scene {
     const previousStyle = {
       lineWidth: cell.background.lineWidth ?? (cell.row === 1 ? 2 : 3),
       strokeColor: cell.background.strokeColor ?? (cell.row === 1 ? 0x94a3b8 : 0xcbd5e1),
-      strokeAlpha: cell.background.strokeAlpha ?? (cell.row === 1 ? 0.3 : 0.55),
+      strokeAlpha: cell.background.strokeAlpha ?? (cell.row === 1 ? BOARD_GUIDE_SLOT_STROKE_ALPHA : BOARD_SLOT_STROKE_ALPHA),
       labelScaleX: cell.label.scaleX,
       labelScaleY: cell.label.scaleY,
     };
@@ -2882,7 +2886,7 @@ export default class BattleScene extends Phaser.Scene {
       const isValidEnemyTarget = this.isValidTarget(cell.index, 'enemy-unit', selectedTargetIndexes);
       const isValidAnyTarget = this.isValidTarget(cell.index, 'any-unit', selectedTargetIndexes);
       let strokeColor = cell.row === 1 ? 0x94a3b8 : 0xcbd5e1;
-      let strokeAlpha = cell.row === 1 ? 0.3 : 0.55;
+      let strokeAlpha = cell.row === 1 ? BOARD_GUIDE_SLOT_STROKE_ALPHA : BOARD_SLOT_STROKE_ALPHA;
 
       if (this.targetingState?.targetType === 'friendly-unit' && isValidFriendlyTarget) {
         strokeColor = 0x22c55e;
