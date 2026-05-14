@@ -161,7 +161,7 @@ export default class CollectionScene extends Phaser.Scene {
     const name = this.add
       .text(x + 12, y + 10, rowLabel.name, {
         fontFamily: 'Arial, sans-serif',
-        fontSize: '17px',
+        fontSize: '18px',
         color: '#f8fafc',
         fontStyle: 'bold',
       })
@@ -173,7 +173,7 @@ export default class CollectionScene extends Phaser.Scene {
       .text(x + 12, y + 34, rowLabel.typeStats, {
         fontFamily: 'Arial, sans-serif',
         fontSize: '12px',
-        color: '#cbd5e1',
+        color: '#bfdbfe',
       })
       .setOrigin(0, 0);
     content.add(typeStats);
@@ -182,9 +182,10 @@ export default class CollectionScene extends Phaser.Scene {
     const textShort = this.add
       .text(x + 122, y + 12, rowLabel.textShort, {
         fontFamily: 'Arial, sans-serif',
-        fontSize: '12px',
-        color: '#e5e7eb',
-        wordWrap: { width: width - 136 },
+        fontSize: '13px',
+        color: '#dbeafe',
+        lineSpacing: 2,
+        wordWrap: { width: width - 138 },
       })
       .setOrigin(0, 0);
     content.add(textShort);
@@ -216,7 +217,7 @@ export default class CollectionScene extends Phaser.Scene {
     const panelWidth = Math.min(width - 34, 350);
     const panelHeight = Math.min(height - 158, 430);
     const panel = this.add.rectangle(width / 2, height / 2, panelWidth, panelHeight, 0x0f172a, 0.98)
-      .setStrokeStyle(1, 0x93c5fd, 0.9)
+      .setStrokeStyle(2, 0x93c5fd, 0.92)
       .setDepth(101)
       .setInteractive();
 
@@ -225,7 +226,7 @@ export default class CollectionScene extends Phaser.Scene {
     const title = this.add
       .text(width / 2, height / 2 - panelHeight / 2 + 30, detailLines[0], {
         fontFamily: 'Arial, sans-serif',
-        fontSize: '24px',
+        fontSize: '25px',
         color: '#f8fafc',
         fontStyle: 'bold',
         align: 'center',
@@ -241,7 +242,7 @@ export default class CollectionScene extends Phaser.Scene {
         fontFamily: 'Arial, sans-serif',
         fontSize: '15px',
         color: '#e5e7eb',
-        lineSpacing: 8,
+        lineSpacing: 10,
         wordWrap: { width: panelWidth - 44 },
       })
       .setOrigin(0, 0)

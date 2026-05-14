@@ -2,10 +2,10 @@ import { getCardDisplayName, getCardTextShort } from '../localization/cardDispla
 import { formatCardEffectTextShort } from '../localization/cardTextFormatting.js';
 
 export const CARD_ZONE_RATIOS = Object.freeze({
-  statBadges: 0.105,
-  art: 0.54,
-  name: 0.105,
-  text: 0.25,
+  statBadges: 0.112,
+  art: 0.513,
+  name: 0.12,
+  text: 0.255,
 });
 
 export const CARD_CORNER_RADIUS_RATIO = 0.055;
@@ -239,10 +239,10 @@ export function getCardLayoutZones(width, height) {
 
 export function getCardTypography(width, height) {
   return {
-    stat: Math.max(10, Math.floor(width * 0.108)),
-    name: Math.max(10, Math.floor(width * 0.102)),
+    stat: Math.max(10, Math.floor(width * 0.112)),
+    name: Math.max(11, Math.floor(width * 0.114)),
     type: Math.max(8, Math.floor(width * 0.065)),
-    body: Math.max(9, Math.floor(width * 0.076)),
+    body: Math.max(9, Math.floor(width * 0.078)),
   };
 }
 
@@ -312,11 +312,11 @@ export function createStatBadges(scene, x, y, width, height, stats, depth = 0, o
     sizeScale = 1,
     fontScale = 1,
     spacingScale = 1,
-    maxGroupWidthRatio = 0.82,
+    maxGroupWidthRatio = 0.86,
   } = options;
   const symbolSize = getStatBadgeSize(height, width, sizeScale);
   const fontSize = Math.max(10, Math.floor(symbolSize * 0.56 * fontScale));
-  const groupWidth = Math.min(width * maxGroupWidthRatio, symbolSize * 4.15 * spacingScale);
+  const groupWidth = Math.min(width * maxGroupWidthRatio, symbolSize * 4.45 * spacingScale);
   const slotWidth = groupWidth / 3;
   const statGlyphs = {};
 

@@ -51,9 +51,9 @@ const INSPECT_CARD_DEPTH = 850;
 const INSPECT_CARD_TWEEN_IN_MS = 150;
 const INSPECT_CARD_TWEEN_OUT_MS = 95;
 const HAND_CARD_STAT_BADGE_SCALE = 1.1;
-const INSPECT_CARD_STAT_BADGE_SCALE = 1.24;
-const INSPECT_CARD_TYPOGRAPHY_SCALE = 1.07;
-const INSPECT_CARD_BODY_LINE_SPACING = 3;
+const INSPECT_CARD_STAT_BADGE_SCALE = 1.28;
+const INSPECT_CARD_TYPOGRAPHY_SCALE = 1.1;
+const INSPECT_CARD_BODY_LINE_SPACING = 5;
 const HAND_CARD_INSPECT_DIM_ALPHA = 0.55;
 const ENEMY_ACTION_NOTIFICATION_FADE_IN_MS = 110;
 const ENEMY_ACTION_NOTIFICATION_HOLD_MS = 650;
@@ -1080,7 +1080,7 @@ export default class BattleScene extends Phaser.Scene {
     const panelTop = centerY - panelHeight / 2;
     const panelLeft = centerX - panelWidth / 2;
     const padding = Math.max(16, Math.floor(panelWidth * 0.045));
-    const headerHeight = Math.max(72, Math.floor(panelHeight * 0.14));
+    const headerHeight = Math.max(78, Math.floor(panelHeight * 0.155));
     const footerHeight = 68;
     const contentX = panelLeft + padding;
     const contentY = panelTop + headerHeight;
@@ -1091,19 +1091,19 @@ export default class BattleScene extends Phaser.Scene {
       .setInteractive()
       .setDepth(760);
     const panel = this.add.rectangle(centerX, centerY, panelWidth, panelHeight, 0x0f172a, 0.97)
-      .setStrokeStyle(3, 0x38bdf8, 0.86)
+      .setStrokeStyle(3, 0x38bdf8, 0.9)
       .setInteractive()
       .setDepth(761);
     const title = this.add.text(centerX, panelTop + 28, translateActive('ui.battle.deckInfo.title', 'Deck Info'), {
       fontFamily: 'Arial, sans-serif',
-      fontSize: `${Math.max(20, Math.floor(panelHeight * 0.05))}px`,
+      fontSize: `${Math.max(21, Math.floor(panelHeight * 0.052))}px`,
       color: '#e0f2fe',
       fontStyle: 'bold',
       align: 'center',
     }).setOrigin(0.5).setDepth(762);
     const subtitle = this.add.text(centerX, panelTop + 54, translateActive('ui.battle.deckInfo.subtitle', 'Player cards • read-only'), {
       fontFamily: 'Arial, sans-serif',
-      fontSize: `${Math.max(12, Math.floor(panelHeight * 0.03))}px`,
+      fontSize: `${Math.max(12, Math.floor(panelHeight * 0.031))}px`,
       color: '#94a3b8',
       align: 'center',
     }).setOrigin(0.5).setDepth(762);
@@ -1114,9 +1114,9 @@ export default class BattleScene extends Phaser.Scene {
       this.getDeckInfoPanelText(),
       {
         fontFamily: 'Arial, sans-serif',
-        fontSize: `${Math.max(12, Math.floor(panelHeight * 0.027))}px`,
+        fontSize: `${Math.max(13, Math.floor(panelHeight * 0.029))}px`,
         color: '#f8fafc',
-        lineSpacing: Math.max(2, Math.floor(panelHeight * 0.004)),
+        lineSpacing: Math.max(4, Math.floor(panelHeight * 0.006)),
         wordWrap: { width: contentWidth },
       },
     ).setOrigin(0, 0);
@@ -1344,7 +1344,7 @@ export default class BattleScene extends Phaser.Scene {
     depth,
     statBadgeScale = HAND_CARD_STAT_BADGE_SCALE,
     typographyScale = 1,
-    bodyLineSpacing = 1,
+    bodyLineSpacing = 2,
   }) {
     const zones = getCardLayoutZones(width, height);
     const baseTypography = getCardTypography(width, height);
@@ -1373,33 +1373,40 @@ export default class BattleScene extends Phaser.Scene {
       0,
       {
         sizeScale: statBadgeScale,
-        maxGroupWidthRatio: 0.88,
-        spacingScale: 1.05,
+        maxGroupWidthRatio: 0.9,
+        spacingScale: typographyScale > 1 ? 1.16 : 1.12,
       },
     );
     const art = createArtPlaceholder(this, zones.art);
-    const namePanel = this.add.rectangle(zones.name.centerX, zones.name.centerY, zones.name.width, zones.name.height, CARD_COLORS.namePanel, 0.93)
-      .setStrokeStyle(1, accentColor, card ? 0.38 : 0.14);
+    const namePanel = this.add.rectangle(zones.name.centerX, zones.name.centerY, zones.name.width, zones.name.height, CARD_COLORS.namePanel, 0.95)
+      .setStrokeStyle(1, accentColor, card ? (typographyScale > 1 ? 0.52 : 0.44) : 0.14);
+    const nameHorizontalInset = Math.max(10, zones.pad * (typographyScale > 1 ? 1.45 : 1.32));
     const nameText = this.add.text(zones.name.centerX, zones.name.centerY, content.name || '—', {
       fontFamily: 'Arial, sans-serif',
       fontSize: `${typography.name}px`,
       color: card ? CARD_COLORS.ivoryText : CARD_COLORS.mutedText,
       fontStyle: 'bold',
       align: 'center',
-      wordWrap: { width: zones.name.width - Math.max(10, zones.pad * 1.25) },
+      lineSpacing: Math.max(1, Math.round(typography.name * 0.08)),
+      wordWrap: { width: zones.name.width - nameHorizontalInset },
     }).setOrigin(0.5);
-    const textPanel = this.add.rectangle(zones.text.centerX, zones.text.centerY, zones.text.width, zones.text.height, CARD_COLORS.textPanel, 0.9)
-      .setStrokeStyle(1, 0x94a3b8, 0.18);
-    const bodyTopPadding = Math.max(5, zones.text.height * (typographyScale > 1 ? 0.14 : 0.12));
-    const bodyBottomPadding = Math.max(5, zones.text.height * (typographyScale > 1 ? 0.14 : 0.12));
+    const minNameFontSize = Math.max(9, typography.name - (typographyScale > 1 ? 4 : 3));
+    const maxNameHeight = zones.name.height - Math.max(4, zones.gap * 1.5);
+    while (nameText.height > maxNameHeight && Number.parseFloat(nameText.style.fontSize) > minNameFontSize) {
+      nameText.setFontSize(Number.parseFloat(nameText.style.fontSize) - 1);
+    }
+    const textPanel = this.add.rectangle(zones.text.centerX, zones.text.centerY, zones.text.width, zones.text.height, CARD_COLORS.textPanel, 0.91)
+      .setStrokeStyle(1, 0x94a3b8, typographyScale > 1 ? 0.24 : 0.2);
+    const bodyTopPadding = Math.max(6, zones.text.height * (typographyScale > 1 ? 0.16 : 0.135));
+    const bodyBottomPadding = Math.max(6, zones.text.height * (typographyScale > 1 ? 0.15 : 0.13));
     const bodyText = createInlineStatText(this, zones.text.centerX, zones.text.y + bodyTopPadding, content.body || content.type, {
       fontFamily: 'Arial, sans-serif',
       fontSize: typography.body,
       minFontSize: Math.max(8, typography.body - 2),
-      color: card ? CARD_COLORS.bodyText : CARD_COLORS.mutedText,
+      color: card ? '#cfe7ff' : CARD_COLORS.mutedText,
       align: 'center',
       lineSpacing: bodyLineSpacing,
-      maxWidth: zones.text.width - Math.max(12, zones.pad * (typographyScale > 1 ? 1.7 : 1.25)),
+      maxWidth: zones.text.width - Math.max(14, zones.pad * (typographyScale > 1 ? 2.0 : 1.5)),
       maxHeight: zones.text.height - bodyTopPadding - bodyBottomPadding,
     });
     const dividers = [zones.art.y - zones.gap / 2, zones.name.y - zones.gap / 2, zones.text.y - zones.gap / 2]
@@ -2928,9 +2935,9 @@ export default class BattleScene extends Phaser.Scene {
     this.applyInspectDimming(inspectRequest.cardId);
 
     previewView.root.setAlpha(0).setScale(0.92);
-    previewView.glow.setFillStyle(0xfacc15, 0.12);
-    previewView.glow.setStrokeStyle(5, 0xfacc15, 0.65);
-    previewView.background.setFillStyle(CARD_COLORS.frameSelected, 0.94);
+    previewView.glow.setFillStyle(0xfacc15, 0.14);
+    previewView.glow.setStrokeStyle(5, 0xfacc15, 0.72);
+    previewView.background.setFillStyle(CARD_COLORS.frameSelected, 0.95);
     previewView.background.setStrokeStyle(5, accentColor, 1);
 
     this.tweens.add({
