@@ -7,7 +7,7 @@ import { getCombatEventAttackerIndex, getCombatEventTargetIndex, getLaneLethalTa
 import { BATTLE_BACKGROUND_FALLBACK_COLOR, BATTLE_BACKGROUND_FALLBACK_COLOR_HEX, createCoverBackground, getBattleBackgroundAsset, preloadBattleBackgroundArt } from '../rendering/backgroundArt.js';
 import { createBuildMarker } from '../ui/buildMarker.js';
 import { calculateHandLayoutMetrics } from '../ui/handLayout.js';
-import { createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
+import { createBottomNavigationControls, createFloatingControl, createMuteToggleControl, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
 import { createModalBackButton } from '../ui/modalControls.js';
 import { preloadSecondaryButtonAsset } from '../ui/imageButton.js';
 import { formatDeckSummaryEntry } from '../rendering/cardRenderModes.js';
@@ -134,6 +134,7 @@ export default class BattleScene extends Phaser.Scene {
     this.deckCounterView = null;
     this.deckInfoPanel = null;
     this.bottomControlViews = [];
+    this.utilityMenuPanel = null;
     this.isFlowResolving = false;
     this.enemyActionBanner = null;
     this.enemyActionBannerFadeOutEvent = null;
@@ -176,6 +177,7 @@ export default class BattleScene extends Phaser.Scene {
     this.deckCounterView = null;
     this.deckInfoPanel = null;
     this.bottomControlViews = [];
+    this.utilityMenuPanel = null;
     this.isFlowResolving = false;
     this.enemyActionBanner = null;
     this.enemyActionBannerFadeOutEvent = null;
@@ -211,6 +213,7 @@ export default class BattleScene extends Phaser.Scene {
     this.destroyEnemyActionBanner();
     this.destroyPlayerActionBanner();
     this.destroyBattleResultModal();
+    this.destroyUtilityMenuPanel();
     this.destroyDeckInfoPanel();
     this.destroyDeckCounterView();
     this.destroySelectedHandCardZoom();
@@ -449,17 +452,168 @@ export default class BattleScene extends Phaser.Scene {
 
   drawBottomUtilityBar() {
     const { hand, margin } = this.layout;
+    const menuX = margin + hand.controlTouchSize / 2;
+    const menu = createFloatingControl(
+      this,
+      menuX,
+      hand.controlCenterY,
+      hand.controlTouchSize,
+      '☰',
+      () => this.toggleUtilityMenuPanel(),
+      { fontScale: 0.5 },
+    );
 
     const controls = createBottomNavigationControls(this, {
-      onBack: () => this.exitBattleToFactionSelect(),
-      onRules: () => this.openRulesPanel(),
       onFullscreen: () => this.toggleFullscreen(),
       centerY: hand.controlCenterY,
       touchSize: hand.controlTouchSize,
       margin,
     });
 
-    this.bottomControlViews = [controls.back, controls.rules, controls.fullscreen].filter(Boolean);
+    this.bottomControlViews = [menu, controls.fullscreen].filter(Boolean);
+  }
+
+  toggleUtilityMenuPanel() {
+    if (this.utilityMenuPanel) {
+      this.destroyUtilityMenuPanel();
+      return;
+    }
+
+    this.showUtilityMenuPanel();
+  }
+
+  showUtilityMenuPanel() {
+    this.destroyUtilityMenuPanel();
+
+    const { width, height, hand, margin } = this.layout;
+    const touchSize = hand.controlTouchSize;
+    const panelWidth = Math.min(236, width - margin * 2);
+    const panelHeight = 278;
+    const panelX = margin + panelWidth / 2;
+    const triggerX = margin + touchSize / 2;
+    const gapAboveTrigger = Math.max(10, Math.round(touchSize * 0.22));
+    const panelY = Math.max(margin + panelHeight / 2, hand.controlCenterY - touchSize / 2 - gapAboveTrigger - panelHeight / 2);
+    const panelTop = panelY - panelHeight / 2;
+    const rowY = panelTop + 48;
+    const buttonWidth = panelWidth - 28;
+    const buttonHeight = 36;
+    const buttonX = panelX;
+    const firstButtonY = rowY + 52;
+    const buttonGap = 42;
+    const depth = 720;
+
+    const outsideCatcher = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.001)
+      .setInteractive()
+      .setDepth(depth);
+    outsideCatcher.on('pointerup', () => this.destroyUtilityMenuPanel());
+
+    const triggerControl = createFloatingControl(this, triggerX, hand.controlCenterY, touchSize, '☰', () => {
+      this.destroyUtilityMenuPanel();
+    }, { fontScale: 0.5 });
+
+    const glow = this.add.rectangle(panelX, panelY + 4, panelWidth + 8, panelHeight + 8, 0x38bdf8, 0.08)
+      .setStrokeStyle(1, 0x38bdf8, 0.12)
+      .setDepth(depth + 1);
+    const panel = this.add.rectangle(panelX, panelY, panelWidth, panelHeight, 0x020617, 0.9)
+      .setStrokeStyle(1, 0x7dd3fc, 0.72)
+      .setDepth(depth + 2);
+    const title = this.add.text(panelX, panelTop + 18, translateActive('ui.battle.utilityMenuTitle', 'TACTICAL MENU'), {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: '12px',
+      color: '#93c5fd',
+      fontStyle: 'bold',
+      letterSpacing: 1.4,
+    }).setOrigin(0.5).setDepth(depth + 3);
+
+    const fullscreenToggle = createFloatingControl(this, panelX - 28, rowY, 42, '⛶', () => {
+      this.toggleFullscreen();
+    }, { fontScale: 0.48 });
+    const muteToggle = createMuteToggleControl(this, panelX + 28, rowY, 42, { depth: depth + 3 });
+
+    [triggerControl, fullscreenToggle, muteToggle].forEach((control) => {
+      [control.halo, control.backing, control.text, control.button, control.icon].filter(Boolean).forEach((item) => {
+        item.setDepth?.(depth + 3);
+      });
+    });
+
+    const buttons = [
+      this.createUtilityMenuButton(buttonX, firstButtonY, buttonWidth, buttonHeight, translateActive('ui.common.rules', 'Rules'), () => this.openRulesPanel()),
+      this.createUtilityMenuButton(buttonX, firstButtonY + buttonGap, buttonWidth, buttonHeight, translateActive('ui.common.settings', 'Settings'), () => this.openSettingsScene()),
+      this.createUtilityMenuButton(buttonX, firstButtonY + buttonGap * 2, buttonWidth, buttonHeight, translateActive('ui.battle.returnToFactionSelect', 'Return / Back'), () => this.exitBattleToFactionSelect()),
+      this.createUtilityMenuButton(buttonX, firstButtonY + buttonGap * 3, buttonWidth, buttonHeight, translateActive('ui.battle.exitToMainMenu', 'Exit Battle / Main Menu'), () => this.exitBattleToMainMenu()),
+    ];
+
+    buttons.forEach((button) => {
+      [button.background, button.text].forEach((item) => item.setDepth(depth + 3));
+    });
+
+    this.utilityMenuPanel = {
+      outsideCatcher,
+      glow,
+      panel,
+      title,
+      triggerControl,
+      fullscreenToggle,
+      muteToggle,
+      buttons,
+    };
+  }
+
+  createUtilityMenuButton(x, y, width, height, label, onClick) {
+    const background = this.add.rectangle(x, y, width, height, 0x0f172a, 0.92)
+      .setStrokeStyle(1, 0x38bdf8, 0.42)
+      .setInteractive({ useHandCursor: true });
+    const text = this.add.text(x, y, label, {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: '15px',
+      color: '#f8fafc',
+      fontStyle: 'bold',
+      align: 'center',
+    }).setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+
+    const setHover = (isHovering) => {
+      background.setFillStyle(isHovering ? 0x14304a : 0x0f172a, isHovering ? 0.98 : 0.92);
+      background.setStrokeStyle(1, isHovering ? 0x7dd3fc : 0x38bdf8, isHovering ? 0.88 : 0.42);
+    };
+    const handlePointerUp = (pointer, localX, localY, event) => {
+      event?.stopPropagation?.();
+      onClick();
+    };
+
+    [background, text].forEach((target) => {
+      target.on('pointerover', () => setHover(true));
+      target.on('pointerout', () => setHover(false));
+      target.on('pointerup', handlePointerUp);
+    });
+
+    return { background, text };
+  }
+
+  destroyUtilityMenuPanel() {
+    if (!this.utilityMenuPanel) return;
+
+    const { outsideCatcher, glow, panel, title, triggerControl, fullscreenToggle, muteToggle, buttons } = this.utilityMenuPanel;
+    const items = [
+      outsideCatcher,
+      glow,
+      panel,
+      title,
+      triggerControl?.halo,
+      triggerControl?.backing,
+      triggerControl?.text,
+      fullscreenToggle?.halo,
+      fullscreenToggle?.backing,
+      fullscreenToggle?.text,
+      ...buttons.flatMap((button) => [button.background, button.text]),
+    ];
+
+    muteToggle?.destroy?.();
+    items.forEach((item) => {
+      item?.removeAllListeners?.();
+      item?.destroy?.();
+    });
+    this.utilityMenuPanel = null;
   }
 
   getBattleResultText() {
@@ -615,6 +769,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   exitBattleToFactionSelect() {
+    this.destroyUtilityMenuPanel();
     this.destroyBattleResultModal();
     this.isFlowResolving = false;
     this.selectedCardId = null;
@@ -625,11 +780,13 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   openRulesPanel() {
+    this.destroyUtilityMenuPanel();
     this.scene.launch('RulesPanelScene', { returnSceneKey: 'BattleScene' });
     this.scene.pause();
   }
 
   openBattleMenu() {
+    this.destroyUtilityMenuPanel();
     this.scene.launch('BattleMenuScene', { factionKey: this.factionKey, returnSceneKey: 'BattleScene' });
     this.scene.pause();
   }
@@ -644,9 +801,26 @@ export default class BattleScene extends Phaser.Scene {
     this.recoverFromLifecycle('battle-menu-return');
   }
 
+  openSettingsScene() {
+    this.destroyUtilityMenuPanel();
+    this.scene.start('SettingsScene');
+  }
+
+  exitBattleToMainMenu() {
+    this.destroyUtilityMenuPanel();
+    this.destroyBattleResultModal();
+    this.isFlowResolving = false;
+    this.selectedCardId = null;
+    this.pendingSwapIndex = null;
+    this.targetingState = null;
+    this.openingMulliganPending = false;
+    this.scene.start('MainMenuScene');
+  }
+
   retryBattle() {
     const factionKey = this.factionKey;
     const enemyFactionKey = this.enemyFactionKey;
+    this.destroyUtilityMenuPanel();
     this.destroyBattleResultModal();
     this.isFlowResolving = false;
     this.selectedCardId = null;
@@ -1678,6 +1852,8 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     if (this.deckInfoPanel) return true;
+
+    if (this.utilityMenuPanel) return true;
 
     return this.bottomControlViews.some((control) => [control.backing, control.text]
       .some((item) => overObjects.includes(item) || this.isPointerInsideGameObject(pointer, item)));
