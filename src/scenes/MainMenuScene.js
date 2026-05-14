@@ -34,6 +34,7 @@ const MAIN_MENU_SHARED_REVEAL_FALLBACK_MS = 1400;
 const MAIN_MENU_BUTTON_WIDTH_RATIO = 0.72;
 const MAIN_MENU_BUTTON_VERTICAL_GAP = 14;
 const MAIN_MENU_BUTTON_FONT_SIZE = 27;
+const MAIN_MENU_MIN_RECOVERED_TITLE_WIDTH = 96;
 
 
 export default class MainMenuScene extends Phaser.Scene {
@@ -41,6 +42,7 @@ export default class MainMenuScene extends Phaser.Scene {
     super('MainMenuScene');
     this.statusText = null;
     this.title = null;
+    this.isAwaitingSharedLogo = false;
     this.menuButtonViews = [];
     this.menuButtons = [];
     this.sharedLogoRevealFallbackEvent = null;
@@ -65,6 +67,7 @@ export default class MainMenuScene extends Phaser.Scene {
     const { width, height } = this.scale;
     const revealFromStart = Boolean(data.revealFromStart);
     const awaitSharedLogo = Boolean(data.awaitSharedLogo);
+    this.isAwaitingSharedLogo = awaitSharedLogo;
     this.menuButtonViews = [];
     this.menuButtons = [];
     applyAudioSettings(this, loadSettings());
@@ -85,6 +88,7 @@ export default class MainMenuScene extends Phaser.Scene {
     this.scale.on('leavefullscreen', this.onFullscreenChanged, this);
 
     this.title = this.createTitle(width, height);
+    this.ensureTitleExistsAndVisible({ forceVisible: !awaitSharedLogo, width, height });
 
     const buttonWidth = Math.round(width * MAIN_MENU_BUTTON_WIDTH_RATIO);
     const buttonHeight = calculateSecondaryButtonHeight(buttonWidth);
@@ -149,14 +153,73 @@ export default class MainMenuScene extends Phaser.Scene {
     const width = gameSize?.width ?? this.scale.width;
     const height = gameSize?.height ?? this.scale.height;
 
-    if (this.title) {
-      const position = getMainMenuLogoPosition(width, height);
-      this.title.setPosition(position.x, position.y);
-      if (this.title.type === 'Image') {
-        this.scaleLogoToFit(this.title, width, height);
-      } else if (this.title.setWordWrapWidth) {
-        this.title.setWordWrapWidth(width * 0.86);
-      }
+    this.ensureTitleExistsAndVisible({
+      forceVisible: !this.isAwaitingSharedLogo,
+      width,
+      height,
+    });
+  }
+
+  ensureTitleExistsAndVisible({ forceVisible = !this.isAwaitingSharedLogo, width = null, height = null } = {}) {
+    const resolvedWidth = width ?? this.scale.gameSize?.width ?? this.scale.width;
+    const resolvedHeight = height ?? this.scale.gameSize?.height ?? this.scale.height;
+
+    if (!this.isTitleUsable()) {
+      this.title?.destroy?.();
+      this.title = this.createTitle(resolvedWidth, resolvedHeight);
+    }
+
+    if (!this.title) {
+      return null;
+    }
+
+    this.applyTitleLayout(this.title, resolvedWidth, resolvedHeight);
+    this.title.setDepth?.(MAIN_MENU_TITLE_DEPTH);
+    this.title.disableInteractive?.();
+    this.ensureTitleHasDisplaySize(this.title, resolvedWidth);
+
+    if (forceVisible) {
+      this.isAwaitingSharedLogo = false;
+      this.title.setVisible?.(true);
+      this.title.setAlpha?.(1);
+    } else if (this.isAwaitingSharedLogo) {
+      this.title.setAlpha?.(0);
+    }
+
+    return this.title;
+  }
+
+  isTitleUsable() {
+    return Boolean(this.title && this.title.active && this.title.scene === this);
+  }
+
+  applyTitleLayout(title, width, height) {
+    const position = getMainMenuLogoPosition(width, height);
+    title.setPosition(position.x, position.y);
+
+    if (title.type === 'Image') {
+      this.scaleLogoToFit(title, width, height);
+    } else if (title.setWordWrapWidth) {
+      title.setWordWrapWidth(width * 0.86);
+    }
+  }
+
+  ensureTitleHasDisplaySize(title, width) {
+    const hasValidDisplaySize = Number.isFinite(title.displayWidth)
+      && Number.isFinite(title.displayHeight)
+      && title.displayWidth > 0
+      && title.displayHeight > 0;
+
+    if (hasValidDisplaySize) {
+      return;
+    }
+
+    if (title.type === 'Image' && title.setDisplaySize) {
+      const aspectRatio = title.width > 0 && title.height > 0 ? title.height / title.width : 0.5;
+      const recoveredWidth = Math.max(MAIN_MENU_MIN_RECOVERED_TITLE_WIDTH, Math.round(width * 0.5));
+      title.setDisplaySize(recoveredWidth, Math.max(1, Math.round(recoveredWidth * aspectRatio)));
+    } else if (title.setFontSize) {
+      title.setFontSize('30px');
     }
   }
 
@@ -165,6 +228,7 @@ export default class MainMenuScene extends Phaser.Scene {
   }
 
   prepareSharedLogoReveal() {
+    this.isAwaitingSharedLogo = true;
     this.title?.setAlpha(0);
     this.setMenuButtonsInteractive(false);
     this.menuButtonViews.flat().forEach((item) => {
@@ -184,10 +248,9 @@ export default class MainMenuScene extends Phaser.Scene {
   completeStartLogoTransition() {
     this.sharedLogoRevealFallbackEvent?.remove?.();
     this.sharedLogoRevealFallbackEvent = null;
+    this.isAwaitingSharedLogo = false;
 
-    if (this.title) {
-      this.title.setAlpha(1);
-    }
+    this.ensureTitleExistsAndVisible({ forceVisible: true });
 
     this.setMenuButtonsInteractive(true);
     this.revealMenuButtons({ alreadyPrepared: true });
@@ -220,6 +283,7 @@ export default class MainMenuScene extends Phaser.Scene {
     this.sharedLogoRevealFallbackEvent?.remove?.();
     this.sharedLogoRevealFallbackEvent = null;
 
+    this.ensureTitleExistsAndVisible({ forceVisible: true });
     this.title?.setAlpha?.(1);
     this.title?.setVisible?.(true);
 
@@ -306,6 +370,7 @@ export default class MainMenuScene extends Phaser.Scene {
     this.children?.removeAll?.(true);
     this.statusText = null;
     this.title = null;
+    this.isAwaitingSharedLogo = false;
     this.menuButtonViews = [];
     this.menuButtons = [];
   }
