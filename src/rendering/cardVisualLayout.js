@@ -3,9 +3,9 @@ import { formatCardEffectTextShort } from '../localization/cardTextFormatting.js
 
 export const CARD_ZONE_RATIOS = Object.freeze({
   statBadges: 0.112,
-  art: 0.513,
-  name: 0.12,
-  text: 0.255,
+  art: 0.48,
+  name: 0.135,
+  text: 0.285,
 });
 
 export const CARD_CORNER_RADIUS_RATIO = 0.055;
@@ -242,7 +242,7 @@ export function getCardTypography(width, height) {
     stat: Math.max(10, Math.floor(width * 0.112)),
     name: Math.max(11, Math.floor(width * 0.114)),
     type: Math.max(8, Math.floor(width * 0.065)),
-    body: Math.max(9, Math.floor(width * 0.078)),
+    body: Math.max(9, Math.floor(width * 0.088)),
   };
 }
 
