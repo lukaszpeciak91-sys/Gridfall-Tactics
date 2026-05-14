@@ -51,6 +51,8 @@ const INSPECT_CARD_DEPTH = 850;
 const INSPECT_CARD_TWEEN_IN_MS = 150;
 const INSPECT_CARD_TWEEN_OUT_MS = 95;
 const HAND_CARD_STAT_BADGE_SCALE = 1.1;
+const HAND_CARD_TYPOGRAPHY_SCALE = 1.12;
+const HAND_CARD_BODY_LINE_SPACING = 3;
 const INSPECT_CARD_STAT_BADGE_SCALE = 1.28;
 const INSPECT_CARD_TYPOGRAPHY_SCALE = 1.1;
 const INSPECT_CARD_BODY_LINE_SPACING = 5;
@@ -1500,6 +1502,8 @@ export default class BattleScene extends Phaser.Scene {
         height: hand.cardHeight,
         accentColor,
         depth: baseDepth,
+        typographyScale: HAND_CARD_TYPOGRAPHY_SCALE,
+        bodyLineSpacing: HAND_CARD_BODY_LINE_SPACING,
       });
 
       if (card) {
