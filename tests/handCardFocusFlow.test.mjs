@@ -53,7 +53,7 @@ test('outside taps clear selection without intercepting board, pass, or card inp
   assert.match(source, /this\.input\.on\('pointerup', this\.onScenePointerUp, this\);/);
   assert.match(source, /this\.input\.off\('pointerup', this\.onScenePointerUp, this\);/);
   assert.match(source, /this\.bottomControlViews = \[\];/);
-  assert.match(source, /this\.bottomControlViews = \[controls\.back, controls\.rules, controls\.fullscreen\]\.filter\(Boolean\);/);
+  assert.match(source, /this\.bottomControlViews = \[menu, controls\.fullscreen\]\.filter\(Boolean\);/);
   assert.match(source, /onScenePointerUp\(pointer, currentlyOver = \[\]\) \{\s*if \(this\.battleResultModalShown \|\| this\.isFlowResolving\) return;\s*if \(this\.openingMulliganPending\) \{\s*this\.clearOpeningMulliganPreviewFromOutsideTap\(pointer, currentlyOver\);\s*return;\s*\}\s*if \(!this\.selectedCardId && !this\.targetingState\) \{\s*this\.clearBoardInspectFromOutsideTap\(pointer, currentlyOver\);\s*return;\s*\}\s*if \(this\.isPointerUpReservedForUi\(pointer, currentlyOver\)\) return;/);
   assert.match(source, /clearOpeningMulliganPreviewFromOutsideTap\(pointer, currentlyOver = \[\]\) \{\s*if \(!this\.previewedMulliganCardId && !this\.selectedHandCardZoom\) return;\s*if \(this\.isPointerInsideMulliganHandOrPreview\(pointer, currentlyOver\)\) return;\s*this\.previewedMulliganCardId = null;[\s\S]*this\.pressedHandCardId = null;\s*this\.resetCardHighlights\(\{ showPreview: false \}\);\s*\}/);
   assert.match(source, /isPointerInsideMulliganHandOrPreview\(pointer, currentlyOver = \[\]\) \{[\s\S]*const handTop = hand\.y;[\s\S]*return pointer\.x >= handLeft && pointer\.x <= handRight && pointer\.y >= handTop && pointer\.y <= handBottom;/);
@@ -65,6 +65,7 @@ test('outside taps clear selection without intercepting board, pass, or card inp
   assert.doesNotMatch(source, /if \(this\.isPointerInsideInspectCard\(pointer, overObjects\)\) return true;/);
   assert.match(source, /this\.actionButton && \(overObjects\.includes\(this\.actionButton\) \|\| this\.isPointerInsideGameObject\(pointer, this\.actionButton\)\)/);
   assert.match(source, /this\.deckCounterView && \[this\.deckCounterView\.backing, this\.deckCounterView\.text\]/);
+  assert.match(source, /if \(this\.utilityMenuPanel\) return true;/);
   assert.match(source, /this\.bottomControlViews\.some\(\(control\) => \[control\.backing, control\.text\]/);
   assert.match(source, /getBoardCellFromPointerUp\(pointer, currentlyOver = \[\]\) \{[\s\S]*this\.boardCells\.find\(\(cell\) => overObjects\.includes\(cell\.background\)/);
   assert.match(source, /isBoardCellTapReservedForCardAction\(boardIndex, selectedCard\) \{\s*if \(this\.targetingState\) \{\s*return this\.isValidTarget\(boardIndex, this\.targetingState\.targetType\);\s*\}\s*if \(!this\.isUnitCard\(selectedCard\)\) \{\s*return true;\s*\}\s*return canPlayOrRedeploy\(this\.gameState, 'player', selectedCard\.id, boardIndex\)\.ok;\s*\}/);

@@ -55,7 +55,7 @@ test('BattleScene enemy action pacing constants resolve during turn flow', () =>
 test('BattleScene returns to faction select through a cleanup path and retry stays in BattleScene', () => {
   const source = readScene('src/scenes/BattleScene.js');
 
-  assert.match(source, /drawBottomUtilityBar\(\) \{[\s\S]*createBottomNavigationControls\(this, \{[\s\S]*onBack: \(\) => this\.exitBattleToFactionSelect\(\),[\s\S]*centerY: hand\.controlCenterY,[\s\S]*touchSize: hand\.controlTouchSize,[\s\S]*margin,[\s\S]*\}\)/);
+  assert.match(source, /drawBottomUtilityBar\(\) \{[\s\S]*createFloatingControl\([\s\S]*'☰',[\s\S]*\(\) => this\.toggleUtilityMenuPanel\(\),[\s\S]*createBottomNavigationControls\(this, \{[\s\S]*onFullscreen: \(\) => this\.toggleFullscreen\(\),[\s\S]*centerY: hand\.controlCenterY,[\s\S]*touchSize: hand\.controlTouchSize,[\s\S]*margin,[\s\S]*\}\)/);
   assert.match(source, /this\.scene\.start\('FactionSelectScene'\)/);
   assert.match(source, /this\.scene\.restart\(\{ factionKey, enemyFactionKey \}\)/);
   assert.match(source, /exitBattleToFactionSelect\(\) \{[\s\S]*this\.scene\.start\('FactionSelectScene'\)/);
@@ -76,7 +76,7 @@ test('BattleScene lifecycle destroys stale interactive objects, overlays, timers
   assert.match(source, /init\(\) \{\s*this\.cleanupSceneObjects\(\);\s*this\.resetRuntimeState\(\);\s*\}/);
   assert.match(source, /create\(data\) \{\s*this\.cleanupSceneObjects\(\);/);
   assert.match(source, /shutdown\(\) \{\s*this\.cleanupSceneObjects\(\);/);
-  assert.match(source, /cleanupSceneObjects\(\{ preserveTimers = false, preserveTweens = false \} = \{\}\) \{[\s\S]*this\.destroyBattleResultModal\(\);[\s\S]*if \(!preserveTweens\) \{[\s\S]*this\.tweens\?\.killAll\?\.\(\);[\s\S]*if \(!preserveTimers\) \{[\s\S]*this\.time\?\.removeAllEvents\?\.\(\);[\s\S]*this\.children\.removeAll\(true\);[\s\S]*\}/);
+  assert.match(source, /cleanupSceneObjects\(\{ preserveTimers = false, preserveTweens = false \} = \{\}\) \{[\s\S]*this\.destroyBattleResultModal\(\);[\s\S]*this\.destroyUtilityMenuPanel\(\);[\s\S]*if \(!preserveTweens\) \{[\s\S]*this\.tweens\?\.killAll\?\.\(\);[\s\S]*if \(!preserveTimers\) \{[\s\S]*this\.time\?\.removeAllEvents\?\.\(\);[\s\S]*this\.children\.removeAll\(true\);[\s\S]*\}/);
   assert.match(source, /destroyBattleResultModal\(\) \{[\s\S]*overlay[\s\S]*buttons[\s\S]*item\?\.removeAllListeners\?\.\(\);[\s\S]*item\?\.destroy\?\.\(\);[\s\S]*\}/);
   assert.equal(expectedFiveLoopCoverage.length, 5);
 });
@@ -86,13 +86,13 @@ test('BattleScene lifecycle destroys stale interactive objects, overlays, timers
 test('BattleScene bottom navigation uses resolved layout metrics before entering battle', () => {
   const source = readScene('src/scenes/BattleScene.js');
 
-  assert.match(source, /drawBottomUtilityBar\(\) \{[\s\S]*const \{ hand, margin \} = this\.layout;[\s\S]*const controls = createBottomNavigationControls\(this, \{[\s\S]*centerY: hand\.controlCenterY,[\s\S]*touchSize: hand\.controlTouchSize,[\s\S]*margin,[\s\S]*\}\);[\s\S]*this\.bottomControlViews = \[controls\.back, controls\.rules, controls\.fullscreen\]\.filter\(Boolean\);[\s\S]*\}/);
+  assert.match(source, /drawBottomUtilityBar\(\) \{[\s\S]*const \{ hand, margin \} = this\.layout;[\s\S]*const menuX = margin \+ hand\.controlTouchSize \/ 2;[\s\S]*createFloatingControl\([\s\S]*menuX,[\s\S]*hand\.controlCenterY,[\s\S]*hand\.controlTouchSize,[\s\S]*'☰',[\s\S]*const controls = createBottomNavigationControls\(this, \{[\s\S]*centerY: hand\.controlCenterY,[\s\S]*touchSize: hand\.controlTouchSize,[\s\S]*margin,[\s\S]*\}\);[\s\S]*this\.bottomControlViews = \[menu, controls\.fullscreen\]\.filter\(Boolean\);[\s\S]*\}/);
   assert.doesNotMatch(source, /createFloatingControl\(backX, centerY, touchSize/);
   assert.doesNotMatch(source, /createFloatingControl\(width \* 0\.5, centerY, touchSize/);
   assert.doesNotMatch(source, /createFloatingControl\(fullscreenX, centerY, touchSize/);
 });
 
-test('rules panel opens from the middle bottom icon and resumes the existing scene', () => {
+test('battle utility menu opens panel actions and rules resume the existing scene', () => {
   const battleSource = readScene('src/scenes/BattleScene.js');
   const factionSource = readScene('src/scenes/FactionSelectScene.js');
   const rulesSource = readScene('src/scenes/RulesPanelScene.js');
@@ -100,7 +100,10 @@ test('rules panel opens from the middle bottom icon and resumes the existing sce
   const mainSource = readScene('src/main.js');
 
   assert.match(helperSource, /rules: middleAction \? createFloatingControl\(scene, metrics\.width \* 0\.5, metrics\.centerY, metrics\.touchSize, '\?', middleAction/);
-  assert.match(battleSource, /drawBottomUtilityBar\(\) \{[\s\S]*createBottomNavigationControls\(this, \{[\s\S]*onRules: \(\) => this\.openRulesPanel\(\),[\s\S]*onFullscreen: \(\) => this\.toggleFullscreen\(\),[\s\S]*\}\)/);
+  assert.match(battleSource, /drawBottomUtilityBar\(\) \{[\s\S]*'☰',[\s\S]*\(\) => this\.toggleUtilityMenuPanel\(\),[\s\S]*onFullscreen: \(\) => this\.toggleFullscreen\(\),[\s\S]*\}\)/);
+  assert.match(battleSource, /showUtilityMenuPanel\(\) \{[\s\S]*outsideCatcher\.on\('pointerup', \(\) => this\.destroyUtilityMenuPanel\(\)\);[\s\S]*createMuteToggleControl\(this,[\s\S]*translateActive\('ui\.common\.rules', 'Rules'\), \(\) => this\.openRulesPanel\(\)\),[\s\S]*translateActive\('ui\.common\.settings', 'Settings'\), \(\) => this\.openSettingsScene\(\)\),[\s\S]*translateActive\('ui\.battle\.returnToFactionSelect', 'Return \/ Back'\), \(\) => this\.exitBattleToFactionSelect\(\)\),[\s\S]*translateActive\('ui\.battle\.exitToMainMenu', 'Exit Battle \/ Main Menu'\), \(\) => this\.exitBattleToMainMenu\(\)\),[\s\S]*\}/);
+  assert.match(battleSource, /openSettingsScene\(\) \{[\s\S]*this\.scene\.start\('SettingsScene'\);[\s\S]*\}/);
+  assert.match(battleSource, /exitBattleToMainMenu\(\) \{[\s\S]*this\.scene\.start\('MainMenuScene'\);[\s\S]*\}/);
   assert.doesNotMatch(battleSource, /deckLabel: `x\$\{deckCount\}`/);
   assert.match(battleSource, /openRulesPanel\(\) \{[\s\S]*this\.scene\.launch\('RulesPanelScene', \{ returnSceneKey: 'BattleScene' \}\);[\s\S]*this\.scene\.pause\(\);[\s\S]*\}/);
   assert.match(battleSource, /resumeFromRulesPanel\(\) \{[\s\S]*this\.scene\.resume\(\);[\s\S]*this\.recoverFromLifecycle\('rules-panel-return'\);[\s\S]*\}/);
@@ -195,7 +198,7 @@ test('FactionSelectScene uses shared bottom navigation controls for back, rules,
   const menuSource = readScene('src/scenes/BattleMenuScene.js');
 
   assert.match(factionSource, /import \{ createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen \} from '\.\.\/ui\/navigationControls\.js';/);
-  assert.match(battleSource, /import \{ createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen \} from '\.\.\/ui\/navigationControls\.js';/);
+  assert.match(battleSource, /import \{ createBottomNavigationControls, createFloatingControl, createMuteToggleControl, requestPortraitOrientationLock, toggleSceneFullscreen \} from '\.\.\/ui\/navigationControls\.js';/);
   assert.match(helperSource, /export function createBottomNavigationControls/);
   assert.match(helperSource, /export function createFloatingControl/);
   assert.match(helperSource, /export function requestPortraitOrientationLock/);
