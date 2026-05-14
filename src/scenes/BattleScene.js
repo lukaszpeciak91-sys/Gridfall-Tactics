@@ -21,11 +21,11 @@ const HAND_CARD_ACCENT_COLORS = Object.freeze({
   default: 0x94a3b8,
 });
 
-const INSPECT_CARD_TARGET_SCALE = 1.76;
-const INSPECT_CARD_MAX_HEIGHT_RATIO = 0.62;
+const INSPECT_CARD_TARGET_SCALE = 2.2;
+const INSPECT_CARD_MAX_HEIGHT_RATIO = 0.64;
 const INSPECT_CARD_MAX_WIDTH_RATIO = 0.78;
-const INSPECT_CARD_PLAYER_ROW_GAP_RATIO = 0.08;
-const INSPECT_CARD_OVERLAY_ALPHA = 0.22;
+const INSPECT_CARD_PLAYER_ROW_GAP_RATIO = 0.16;
+const INSPECT_CARD_OVERLAY_ALPHA = 0.2;
 const BATTLE_FRAME_OVERLAY_COLOR = 0x05080f;
 const BATTLE_FRAME_OVERLAY_ALPHA = 0.26;
 const BOARD_SLOT_FILL_ALPHA = 0.22;
@@ -51,7 +51,10 @@ const INSPECT_CARD_DEPTH = 850;
 const INSPECT_CARD_TWEEN_IN_MS = 150;
 const INSPECT_CARD_TWEEN_OUT_MS = 95;
 const HAND_CARD_STAT_BADGE_SCALE = 1.1;
-const INSPECT_CARD_STAT_BADGE_SCALE = 1.18;
+const INSPECT_CARD_STAT_BADGE_SCALE = 1.24;
+const INSPECT_CARD_TYPOGRAPHY_SCALE = 1.07;
+const INSPECT_CARD_BODY_LINE_SPACING = 3;
+const HAND_CARD_INSPECT_DIM_ALPHA = 0.55;
 const ENEMY_ACTION_NOTIFICATION_FADE_IN_MS = 110;
 const ENEMY_ACTION_NOTIFICATION_HOLD_MS = 650;
 const ENEMY_ACTION_NOTIFICATION_FADE_OUT_MS = 140;
@@ -291,7 +294,7 @@ export default class BattleScene extends Phaser.Scene {
       board: 0.54,
       playerHero: 0.06,
       action: 0.05,
-      hand: 0.255,
+      hand: 0.265,
     };
     const gapRatio = 0.008;
     const topBottomPadRatio = 0.008;
@@ -1330,9 +1333,27 @@ export default class BattleScene extends Phaser.Scene {
     }
   }
 
-  createHandCardView({ card, cardId, x, y, width, height, accentColor, depth, statBadgeScale = HAND_CARD_STAT_BADGE_SCALE }) {
+  createHandCardView({
+    card,
+    cardId,
+    x,
+    y,
+    width,
+    height,
+    accentColor,
+    depth,
+    statBadgeScale = HAND_CARD_STAT_BADGE_SCALE,
+    typographyScale = 1,
+    bodyLineSpacing = 1,
+  }) {
     const zones = getCardLayoutZones(width, height);
-    const typography = getCardTypography(width, height);
+    const baseTypography = getCardTypography(width, height);
+    const typography = {
+      stat: Math.round(baseTypography.stat * typographyScale),
+      name: Math.round(baseTypography.name * typographyScale),
+      type: Math.round(baseTypography.type * typographyScale),
+      body: Math.round(baseTypography.body * typographyScale),
+    };
     const content = getCardDisplayContent(card, getActiveLocale());
     const stats = getCardStatValues(card);
     const root = this.add.container(x, y).setDepth(depth);
@@ -1365,20 +1386,20 @@ export default class BattleScene extends Phaser.Scene {
       color: card ? CARD_COLORS.ivoryText : CARD_COLORS.mutedText,
       fontStyle: 'bold',
       align: 'center',
-      wordWrap: { width: zones.name.width - 10 },
+      wordWrap: { width: zones.name.width - Math.max(10, zones.pad * 1.25) },
     }).setOrigin(0.5);
     const textPanel = this.add.rectangle(zones.text.centerX, zones.text.centerY, zones.text.width, zones.text.height, CARD_COLORS.textPanel, 0.9)
       .setStrokeStyle(1, 0x94a3b8, 0.18);
-    const bodyTopPadding = Math.max(5, zones.text.height * 0.12);
-    const bodyBottomPadding = Math.max(5, zones.text.height * 0.12);
+    const bodyTopPadding = Math.max(5, zones.text.height * (typographyScale > 1 ? 0.14 : 0.12));
+    const bodyBottomPadding = Math.max(5, zones.text.height * (typographyScale > 1 ? 0.14 : 0.12));
     const bodyText = createInlineStatText(this, zones.text.centerX, zones.text.y + bodyTopPadding, content.body || content.type, {
       fontFamily: 'Arial, sans-serif',
       fontSize: typography.body,
       minFontSize: Math.max(8, typography.body - 2),
       color: card ? CARD_COLORS.bodyText : CARD_COLORS.mutedText,
       align: 'center',
-      lineSpacing: 1,
-      maxWidth: zones.text.width - 12,
+      lineSpacing: bodyLineSpacing,
+      maxWidth: zones.text.width - Math.max(12, zones.pad * (typographyScale > 1 ? 1.7 : 1.25)),
       maxHeight: zones.text.height - bodyTopPadding - bodyBottomPadding,
     });
     const dividers = [zones.art.y - zones.gap / 2, zones.name.y - zones.gap / 2, zones.text.y - zones.gap / 2]
@@ -2782,6 +2803,7 @@ export default class BattleScene extends Phaser.Scene {
     };
 
     if (!animate || !inspect.root?.active) {
+      this.restoreInspectDimming();
       destroyItems();
       return;
     }
@@ -2794,7 +2816,10 @@ export default class BattleScene extends Phaser.Scene {
       alpha: 0,
       duration: INSPECT_CARD_TWEEN_OUT_MS,
       ease: 'Quad.easeIn',
-      onComplete: destroyItems,
+      onComplete: () => {
+        this.restoreInspectDimming();
+        destroyItems();
+      },
     });
 
     if (inspect.overlay?.active) {
@@ -2808,7 +2833,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   getInspectCardTransform() {
-    const { width, height, hand, margin, board } = this.layout;
+    const { width, height, hand, margin, board, topHero } = this.layout;
     const maxInspectWidth = Math.min(width * INSPECT_CARD_MAX_WIDTH_RATIO, width - margin * 2);
     const maxInspectHeight = Math.min(height * INSPECT_CARD_MAX_HEIGHT_RATIO, height - margin * 2);
     const targetScale = Math.min(
@@ -2820,7 +2845,7 @@ export default class BattleScene extends Phaser.Scene {
     const inspectHeight = hand.cardHeight * targetScale;
     const minX = margin + inspectWidth / 2;
     const maxX = width - margin - inspectWidth / 2;
-    const minY = margin + inspectHeight / 2;
+    const minY = topHero.y + topHero.h + margin + inspectHeight / 2;
     const maxY = height - margin - inspectHeight / 2;
 
     const boardTopY = board.centerY - board.height / 2;
@@ -2896,7 +2921,11 @@ export default class BattleScene extends Phaser.Scene {
       accentColor,
       depth: INSPECT_CARD_DEPTH,
       statBadgeScale: INSPECT_CARD_STAT_BADGE_SCALE,
+      typographyScale: INSPECT_CARD_TYPOGRAPHY_SCALE,
+      bodyLineSpacing: INSPECT_CARD_BODY_LINE_SPACING,
     });
+
+    this.applyInspectDimming(inspectRequest.cardId);
 
     previewView.root.setAlpha(0).setScale(0.92);
     previewView.glow.setFillStyle(0xfacc15, 0.12);
@@ -2927,6 +2956,23 @@ export default class BattleScene extends Phaser.Scene {
       sourceY: inspectRequest.sourceY,
       previewItems: [previewView.root, overlay],
     };
+  }
+
+  applyInspectDimming(inspectCardId) {
+    this.cardViews.forEach((card) => {
+      const viewCard = this.gameState?.player?.hand?.find((item) => item.id === card.cardId);
+      if (!viewCard) return;
+
+      const isInspectedCard = card.cardId === inspectCardId;
+      card.root.setAlpha(isInspectedCard ? 0.82 : HAND_CARD_INSPECT_DIM_ALPHA);
+    });
+  }
+
+  restoreInspectDimming() {
+    this.cardViews.forEach((card) => {
+      const viewCard = this.gameState?.player?.hand?.find((item) => item.id === card.cardId);
+      card.root.setAlpha(viewCard ? 1 : 0.45);
+    });
   }
 
   resetCardHighlights({ showPreview = true } = {}) {
