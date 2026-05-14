@@ -87,16 +87,16 @@
       "name": "Reinforce Line",
       "type": "order",
       "targeting": "none",
-      "effectId": "leftmost_friendly_temp_armor_1",
-      "textShort": "Leftmost ally +1 ARM until combat ends."
+      "effectId": "adjacent_allies_temp_armor_1",
+      "textShort": "Adjacent allies +1 ARM until combat ends."
     },
     {
       "id": "wardens_hold_the_line_1",
       "name": "Hold The Line",
       "type": "order",
       "targeting": "none",
-      "effectId": "leftmost_2_friendly_temp_armor_1",
-      "textShort": "Leftmost 2 allies +1 ARM until combat ends."
+      "effectId": "adjacent_allies_temp_armor_1",
+      "textShort": "Adjacent allies +1 ARM until combat ends."
     }
   ]
 }

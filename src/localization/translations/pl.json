@@ -234,11 +234,11 @@
     },
     "wardens_reinforce_line_1": {
       "name": "Wzmocnij Linię",
-      "textShort": "Najbardziej lewy sojusznik +1 ARM do końca walki."
+      "textShort": "Sąsiedni sojusznicy +1 ARM do końca walki."
     },
     "wardens_hold_the_line_1": {
       "name": "Utrzymać Linię",
-      "textShort": "2 najbardziej lewi sojusznicy +1 ARM do końca walki."
+      "textShort": "Sąsiedni sojusznicy +1 ARM do końca walki."
     }
   },
   "cardTypes": {
@@ -379,8 +379,7 @@
         "funeral_pyre": "Pierwsze 2 śmierci sojuszników zadają 1",
         "grave_call": "Przyzwij 1/1; 2, jeśli jesteś sam",
         "infect_damage_1_opposite_ally_atk_1": "Zadaj 1, wzmocnij przeciwnego sojusznika",
-        "leftmost_2_friendly_temp_armor_1": "2 najbardziej lewych sojuszników +1 PANC",
-        "leftmost_friendly_temp_armor_1": "Najbardziej lewy sojusznik +1 PANC",
+        "adjacent_allies_temp_armor_1": "Sąsiedni sojusznicy +1 ARM",
         "swap_leftmost_adjacent_enemies": "Zamień najbardziej lewych sąsiednich wrogów"
       }
     },

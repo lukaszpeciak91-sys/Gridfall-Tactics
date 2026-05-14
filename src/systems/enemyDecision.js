@@ -15,8 +15,7 @@ const LOW_TEMPO_EFFECTS = new Set([
   'destroy_friendly_draw_1',
   'revive_friendly_1hp',
   'friendly_immovable_this_turn',
-  'leftmost_friendly_temp_armor_1',
-  'leftmost_2_friendly_temp_armor_1',
+  'adjacent_allies_temp_armor_1',
 ]);
 
 const BOARD_SYNERGY_EFFECTS = new Set([
@@ -26,8 +25,7 @@ const BOARD_SYNERGY_EFFECTS = new Set([
   'quick_strike',
   'swap_adjacent_then_resolve',
   'heal_1_atk_1_draw_on_kill_this_turn',
-  'leftmost_friendly_temp_armor_1',
-  'leftmost_2_friendly_temp_armor_1',
+  'adjacent_allies_temp_armor_1',
 ]);
 
 function scoreOpeningCard(card, hand, factionName = '') {
@@ -489,6 +487,14 @@ function scoreAction(state, owner, action) {
         if (incomingDamage > 0) score += 1000 + incomingDamage * 120;
       }
     }
+    const placedUnit = nextState.board[action.slotIndex];
+    if (placedUnit?.owner === owner && String(placedUnit.cardId ?? placedUnit.id ?? '').startsWith('wardens_')) {
+      const adjacentAllyCount = [friendly[lane - 1], friendly[lane + 1]]
+        .filter((index) => nextState.board[index]?.owner === owner).length;
+      if (adjacentAllyCount > 0) score += 120 + adjacentAllyCount * 80;
+      if (lane === 1 && adjacentAllyCount > 0) score += 80;
+    }
+
     if (action.placementType === 'redeploy') {
       const meaningful = boardPressureGain > 20 || heroPressureGain > 0 || opponentPressureReduced > 0 || openLaneImprovement > 0;
       action.aiEvaluation = {
@@ -542,10 +548,13 @@ function scoreAction(state, owner, action) {
     score += 760;
   }
 
-  if (action.effectId === 'leftmost_friendly_temp_armor_1' || action.effectId === 'leftmost_2_friendly_temp_armor_1') {
+  if (action.effectId === 'adjacent_allies_temp_armor_1') {
     const { friendly } = getRowsForOwner(owner);
-    const limit = action.effectId === 'leftmost_2_friendly_temp_armor_1' ? 2 : 1;
-    const targetIndexes = friendly.filter((index) => state.board[index]?.owner === owner).slice(0, limit);
+    const targetIndexes = friendly.filter((index, rowPosition) => (
+      state.board[index]?.owner === owner
+      && (state.board[friendly[rowPosition - 1]]?.owner === owner
+        || state.board[friendly[rowPosition + 1]]?.owner === owner)
+    ));
     const armorGain = targetIndexes.reduce((total, index) => (
       total + Math.max(0, getUnitArmor(nextState.board[index]) - getUnitArmor(state.board[index]))
     ), 0);

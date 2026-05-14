@@ -111,8 +111,7 @@ function cardCanRealisticallyAffectOutcome(card, state, owner) {
     case 'immune_move_disable_this_turn':
     case 'friendly_immovable_this_turn':
     case 'cancel_enemy_order':
-    case 'leftmost_friendly_temp_armor_1':
-    case 'leftmost_2_friendly_temp_armor_1':
+    case 'adjacent_allies_temp_armor_1':
       return false;
     default:
       return false;
@@ -518,9 +517,8 @@ function canApplyEffectById(state, owner, effectId) {
     case 'swap_leftmost_adjacent_enemies':
       return Boolean(findLeftmostAdjacentEnemyPair(state, owner))
         && !hasMoveDisableImmunity(state, getOpponentOwner(owner), owner, effectId);
-    case 'leftmost_friendly_temp_armor_1':
-    case 'leftmost_2_friendly_temp_armor_1':
-      return getRowForOwner(owner).some((index) => state.board[index]?.owner === owner);
+    case 'adjacent_allies_temp_armor_1':
+      return getAdjacentFriendlyFormationIndexes(state, owner).length > 0;
     case 'grave_call':
       return getRowForOwner(owner).some((index) => state.board[index] === null);
     case 'revive_friendly_1hp': {
@@ -542,6 +540,15 @@ function getLeftmostOccupiedRowIndexes(state, rowIndexes, limit) {
   return rowIndexes
     .filter((index) => state.board[index])
     .slice(0, limit);
+}
+
+function getAdjacentFriendlyFormationIndexes(state, owner) {
+  const rowIndexes = getRowForOwner(owner);
+  return rowIndexes.filter((index, rowPosition) => {
+    if (state.board[index]?.owner !== owner) return false;
+    return state.board[rowIndexes[rowPosition - 1]]?.owner === owner
+      || state.board[rowIndexes[rowPosition + 1]]?.owner === owner;
+  });
 }
 
 function applyEffectById(state, owner, effectId) {
@@ -591,20 +598,13 @@ function applyEffectById(state, owner, effectId) {
       });
       break;
     }
-    case 'leftmost_2_friendly_temp_armor_1': {
-      const friendlyIndexes = getLeftmostOccupiedRowIndexes(state, getRowForOwner(owner), 2);
+    case 'adjacent_allies_temp_armor_1': {
+      const friendlyIndexes = getAdjacentFriendlyFormationIndexes(state, owner);
       friendlyIndexes.forEach((index) => {
         const unit = state.board[index];
         if (!unit) return;
         unit.tempArmorMod = (unit.tempArmorMod ?? 0) + 1;
       });
-      break;
-    }
-    case 'leftmost_friendly_temp_armor_1': {
-      const friendlyIndex = getRowForOwner(owner).find((index) => state.board[index]?.owner === owner);
-      if (friendlyIndex === undefined) break;
-      const unit = state.board[friendlyIndex];
-      unit.tempArmorMod = (unit.tempArmorMod ?? 0) + 1;
       break;
     }
     case 'enemy_all_atk_minus_1': {
