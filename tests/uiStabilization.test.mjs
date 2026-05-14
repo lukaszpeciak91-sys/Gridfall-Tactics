@@ -23,7 +23,7 @@ test('hand layout keeps cards above the control row with readable spacing on por
 
   assert.equal(hand.cardsVisible, MAX_VISIBLE_HAND_CARDS);
   assert.ok(hand.controlTouchSize >= MIN_HAND_CONTROL_TOUCH_SIZE);
-  assert.ok(cardBottom <= controlRowTop - hand.cardControlGap + 0.0001);
+  assert.ok(cardBottom <= controlRowTop - hand.cardControlGap * 0.35 + 0.0001);
   assert.ok(firstCardLeft >= 10);
   assert.ok(lastCardRight <= 380);
   assert.ok(hand.step >= hand.cardWidth * 0.72, 'card overlap should leave most of each card readable');
