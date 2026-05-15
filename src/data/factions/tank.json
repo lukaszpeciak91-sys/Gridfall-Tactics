@@ -20,7 +20,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": null,
-      "textShort": "Heavy durable unit.",
+      "textShort": "",
       "attack": 2,
       "hp": 3,
       "armor": 0
@@ -96,7 +96,7 @@
       "type": "utility",
       "targeting": "friendly_unit",
       "effectId": "temp_armor_1",
-      "textShort": "Target ally +1 ARM until combat ends."
+      "textShort": "Target [ALLY] +1 ARM until combat ends."
     }
   ]
 }

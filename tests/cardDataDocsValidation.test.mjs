@@ -10,31 +10,31 @@ const factionDir = 'src/data/factions';
 const factionFiles = ['aggro.json', 'attrition-swarm.json', 'control.json', 'swarm.json', 'tank.json', 'wardens.json'];
 
 const expectedTextShort = new Map(Object.entries({
-  aggro_runner_1: 'Open enemy line: +2 hero dmg.',
-  aggro_flanker_1: 'If nearby ally slot empty: +1 ATK.',
+  aggro_runner_1: 'Open enemy line: enemy hero loses 2 HP.',
+  aggro_flanker_1: 'If adjacent ally slot empty: +1 ATK.',
   aggro_scout_1: 'On play: block enemy unit play here this turn.',
   aggro_rush_1: 'Swap with first adjacent ally; fight that line.',
   aggro_pierce_strike_1: 'Deal 1. Next combat hit ignores its armor.',
-  aggro_quick_fix_1: 'Ally: heal 1, +1 ATK this turn. Draw if it kills.',
+  aggro_quick_fix_1: 'Target [ALLY]: heal 1, +1 ATK this turn. Draw on kill.',
   control_disruptor_1: 'On play: cancel next enemy effect this turn.',
   control_sniper_1: 'Attacks lowest-HP enemy unit.',
   control_controller_1: 'On play: swap first 2 enemies.',
   control_jam_signal_1: 'Leftmost 2 enemies -1 ATK this turn.',
   control_pulse_wave_1: 'Deal 1 to all enemy units, ignoring ARM.',
-  control_system_override_1: 'Target enemy attacks its own hero in next combat, then takes 1 damage.',
+  control_system_override_1: 'Target enemy attacks own hero next combat, then loses 1 HP.',
   swarm_spitter_1: 'On play: deal 1 to opposing enemy.',
   swarm_brood_1: 'On death: summon 1/1 here.',
   swarm_alpha_1: 'Adjacent allies +1 ATK, ignore 1 ARM.',
   swarm_spawn_1: 'Summon 1/1 in first empty ally slot.',
   swarm_regrow_1: 'Revive first discarded unit at 1 HP.',
-  swarm_flood_1: 'Fill up to 2 empty ally slots with temporary 1/1 Tokens.',
+  swarm_flood_1: 'Fill up to 2 empty ally slots with temporary 1/1s.',
   swarm_recycle_1: 'Destroy ally. Draw 1.',
   tank_shieldbearer_1: 'Adjacent allies have +1 ARM in combat.',
   tank_guardian_1: 'Intercepts combat damage for adjacent ally.',
   tank_bruiser_1: 'When damaged and survives: +1 ATK this turn.',
   tank_stability_1: 'Allies can’t be moved/disabled this turn.',
   tank_last_stand_1: 'Allies can’t drop below 1 HP this turn.',
-  tank_repair_kit_1: 'Target ally +1 ARM until combat ends.',
+  tank_repair_kit_1: 'Target [ALLY] +1 ARM until combat ends.',
   wardens_sentinel_1: 'Enemy attacking this: -1 ATK.',
   wardens_spearwall_1: 'Adjacent allies: attackers -1 ATK.',
   wardens_halberdier_1: 'If opposed: +1 ATK.',
@@ -47,9 +47,9 @@ const expectedTextShort = new Map(Object.entries({
   attrition_swarm_carrier_1: 'Combat death: summon 1/1 here.',
   attrition_swarm_leech_1: 'Combat kill and survive: heal hero 1.',
   attrition_swarm_rotcaller_1: 'First adjacent ally combat death: +1 ATK.',
-  attrition_swarm_abomination_1: 'Combat death: both heroes take 1.',
-  attrition_swarm_funeral_pyre_1: 'First 2 ally combat deaths deal 1 to opposing enemy.',
-  attrition_swarm_infect_1: 'Deal 1 to enemy. If survives, opposite ally +1 ATK.',
+  attrition_swarm_abomination_1: 'Combat death: both heroes lose 1 HP.',
+  attrition_swarm_funeral_pyre_1: 'First 2 ally combat deaths: deal 1 to opposing enemy.',
+  attrition_swarm_infect_1: 'Deal 1 to enemy. If it survives, opposite ally +1 ATK.',
   attrition_swarm_feast_1: 'Destroy ally. Draw 1.',
   attrition_swarm_rise_again_1: 'Revive first discarded unit at 1 HP.',
   attrition_swarm_grave_call_1: 'Summon 1/1. If no allies, summon 2.',
@@ -103,7 +103,7 @@ test('canonical behavior matrix matches source card faction, type, stats, and ef
 
 test('Reactive Plating wording avoids immediate-lane-combat cleanup language', () => {
   const reactivePlating = allCards().find(({ card }) => card.id === 'tank_repair_kit_1').card;
-  assert.equal(reactivePlating.textShort, 'Target ally +1 ARM until combat ends.');
+  assert.equal(reactivePlating.textShort, 'Target [ALLY] +1 ARM until combat ends.');
   assert.doesNotMatch(reactivePlating.textShort, /this combat/i);
 
   const doc = fs.readFileSync('docs/rules/mvp-battle-rules.md', 'utf8');

@@ -9,7 +9,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": null,
-      "textShort": "Small fighter.",
+      "textShort": "",
       "attack": 1,
       "hp": 1,
       "armor": 0
@@ -42,7 +42,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": null,
-      "textShort": "Fast pressure unit.",
+      "textShort": "",
       "attack": 2,
       "hp": 1,
       "armor": 0
@@ -72,7 +72,7 @@
       "type": "order",
       "targeting": "all_friendly_units",
       "effectId": "buff_all_atk_1",
-      "textShort": "All allies +1 ATK this turn."
+      "textShort": "All [ALLY] +1 ATK this turn."
     },
     {
       "id": "swarm_regrow_1",
@@ -88,7 +88,7 @@
       "type": "special",
       "targeting": "empty_friendly_slots",
       "effectId": "fill_empty_slots_0_1",
-      "textShort": "Fill up to 2 empty ally slots with temporary 1/1 Tokens."
+      "textShort": "Fill up to 2 empty ally slots with temporary 1/1s."
     },
     {
       "id": "swarm_recycle_1",

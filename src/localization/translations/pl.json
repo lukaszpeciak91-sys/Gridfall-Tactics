@@ -2,7 +2,7 @@
   "cards": {
     "aggro_runner_1": {
       "name": "Biegacz",
-      "textShort": "Otwarta linia wroga: +2 obr. bohatera."
+      "textShort": "Otwarta linia wroga: wrogi bohater traci 2 HP."
     },
     "aggro_berserker_1": {
       "name": "Berserker",
@@ -38,7 +38,7 @@
     },
     "aggro_quick_fix_1": {
       "name": "Szybka Naprawa",
-      "textShort": "Sojusznik: ulecz 1, +1 ATK w tej turze. Dobierz, jeśli zabije."
+      "textShort": "Wybrany [ALLY]: ulecz 1, +1 ATK w tej turze. Dobierz po zabiciu."
     },
     "attrition_swarm_husk_1": {
       "name": "Łupina",
@@ -58,11 +58,11 @@
     },
     "attrition_swarm_abomination_1": {
       "name": "Abominacja",
-      "textShort": "Śmierć w walce: obaj bohaterowie otrzymują 1."
+      "textShort": "Śmierć w walce: obaj bohaterowie tracą 1 HP."
     },
     "attrition_swarm_funeral_pyre_1": {
       "name": "Stos Pogrzebowy",
-      "textShort": "Pierwsze 2 śmierci sojuszników w walce: 1 wrogowi naprzeciw."
+      "textShort": "Pierwsze 2 śmierci sojuszników w walce: zadaj 1 wrogowi naprzeciw."
     },
     "attrition_swarm_infect_1": {
       "name": "Infekcja",
@@ -98,7 +98,7 @@
     },
     "control_drone_1": {
       "name": "Dron",
-      "textShort": "Po śmierci: wrogi bohater otrzymuje 1."
+      "textShort": "Po śmierci: wrogi bohater traci 1 HP."
     },
     "control_swap_1": {
       "name": "Zamiana",
@@ -114,15 +114,15 @@
     },
     "control_system_override_1": {
       "name": "Przejęcie Systemu",
-      "textShort": "Celowany wróg atakuje własnego bohatera w następnej walce, potem otrzymuje 1 obrażenie."
+      "textShort": "Wybrany wróg atakuje własnego bohatera w następnej walce, potem traci 1 HP."
     },
     "control_recall_1": {
       "name": "Odwołanie",
-      "textShort": "Przywróć sojusznika na rękę. Dobierz 1."
+      "textShort": "Przywróć [ALLY] na rękę. Dobierz 1."
     },
     "swarm_grunt_1": {
       "name": "Rekrut",
-      "textShort": "Mały wojownik."
+      "textShort": ""
     },
     "swarm_spitter_1": {
       "name": "Plujka",
@@ -134,7 +134,7 @@
     },
     "swarm_rusher_1": {
       "name": "Napastnik",
-      "textShort": "Szybka jednostka nacisku."
+      "textShort": ""
     },
     "swarm_alpha_1": {
       "name": "Alfa",
@@ -146,7 +146,7 @@
     },
     "swarm_swarm_attack_1": {
       "name": "Atak Roju",
-      "textShort": "Wszyscy sojusznicy +1 ATK w tej turze."
+      "textShort": "Wszyscy [ALLY] +1 ATK w tej turze."
     },
     "swarm_regrow_1": {
       "name": "Odrost",
@@ -154,7 +154,7 @@
     },
     "swarm_flood_1": {
       "name": "Zalew",
-      "textShort": "Wypełnij do 2 pustych slotów sojuszników tymczasowymi Tokenami 1/1."
+      "textShort": "Wypełnij do 2 pustych slotów sojuszników tymczasowymi 1/1."
     },
     "swarm_recycle_1": {
       "name": "Recykling",
@@ -166,7 +166,7 @@
     },
     "tank_heavy_1": {
       "name": "Ciężki",
-      "textShort": "Wytrzymała ciężka jednostka."
+      "textShort": ""
     },
     "tank_guardian_1": {
       "name": "Strażnik",
@@ -198,7 +198,7 @@
     },
     "tank_repair_kit_1": {
       "name": "Reaktywne Opancerzenie",
-      "textShort": "Wybrany sojusznik +1 ARM do końca walki."
+      "textShort": "Wybrany [ALLY] +1 ARM do końca walki."
     },
     "wardens_sentinel_1": {
       "name": "Wartownik",
@@ -214,11 +214,11 @@
     },
     "wardens_bastion_guard_1": {
       "name": "Straż Bastionu",
-      "textShort": "Wytrzymały strażnik."
+      "textShort": ""
     },
     "wardens_watch_captain_1": {
       "name": "Kapitan Warty",
-      "textShort": "Dowódca linii."
+      "textShort": ""
     },
     "wardens_brace_1": {
       "name": "Zapora",

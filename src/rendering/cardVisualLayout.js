@@ -1,5 +1,5 @@
 import { getCardDisplayName, getCardTextShort } from '../localization/cardDisplay.js';
-import { formatCardEffectTextShort } from '../localization/cardTextFormatting.js';
+import { CARD_EFFECT_GAMEPLAY_SYMBOLS, formatCardEffectTextShort } from '../localization/cardTextFormatting.js';
 
 export const CARD_ZONE_RATIOS = Object.freeze({
   statBadges: 0.112,
@@ -52,6 +52,10 @@ const CARD_STAT_SYMBOL_KEYS = Object.freeze({
   '●': 'health',
 });
 
+const CARD_GAMEPLAY_SYMBOL_STYLES = Object.freeze({
+  [CARD_EFFECT_GAMEPLAY_SYMBOLS.ally]: Object.freeze({ color: '#facc15', fontStyle: 'bold' }),
+});
+
 function colorNumberToCss(color) {
   return `#${color.toString(16).padStart(6, '0')}`;
 }
@@ -61,16 +65,35 @@ export function getInlineStatSymbolColor(symbol) {
   return statKey ? colorNumberToCss(CARD_STAT_STYLES[statKey].color) : null;
 }
 
+export function getInlineGameplaySymbolColor(symbol) {
+  return CARD_GAMEPLAY_SYMBOL_STYLES[symbol]?.color ?? null;
+}
+
+function getInlineSymbolStyle(symbol) {
+  const statColor = getInlineStatSymbolColor(symbol);
+  if (statColor) {
+    return { type: 'statSymbol', color: statColor, fontStyle: 'bold' };
+  }
+
+  const gameplayStyle = CARD_GAMEPLAY_SYMBOL_STYLES[symbol];
+  if (gameplayStyle) {
+    return { type: 'gameplaySymbol', ...gameplayStyle };
+  }
+
+  return { type: 'text', color: null, fontStyle: undefined };
+}
+
 export function tokenizeInlineStatText(text) {
   if (typeof text !== 'string' || text.length === 0) return [];
   return text
-    .split(/(▲|◆|●|\n|\s+)/u)
+    .split(/(▲|◆|●|♙|\n|\s+)/u)
     .filter((token) => token.length > 0)
     .map((token) => {
       if (token === '\n') return { type: 'newline', text: token };
       if (/^\s+$/u.test(token)) return { type: 'space', text: token };
+      const symbolStyle = getInlineSymbolStyle(token);
       return {
-        type: getInlineStatSymbolColor(token) ? 'statSymbol' : 'text',
+        type: symbolStyle.type,
         text: token,
       };
     });
@@ -171,11 +194,11 @@ export function createInlineStatText(scene, x, y, text, {
     const startX = align === 'center' ? -line.width / 2 : 0;
     const baselineY = lineIndex * lineHeight;
     line.segments.forEach((segment) => {
-      const statColor = getInlineStatSymbolColor(segment.text);
+      const symbolStyle = getInlineSymbolStyle(segment.text);
       const segmentText = scene.add.text(startX + segment.x, baselineY, segment.text, {
         ...baseStyle,
-        color: statColor ?? color,
-        fontStyle: statColor ? statFontStyle : undefined,
+        color: symbolStyle.color ?? color,
+        fontStyle: symbolStyle.type === 'statSymbol' ? statFontStyle : symbolStyle.fontStyle,
       }).setOrigin(0, 0);
       container.add(segmentText);
     });

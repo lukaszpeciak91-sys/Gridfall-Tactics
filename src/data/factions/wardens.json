@@ -42,7 +42,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": null,
-      "textShort": "Durable guard.",
+      "textShort": "",
       "attack": 1,
       "hp": 3,
       "armor": 0
@@ -53,7 +53,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": null,
-      "textShort": "Line leader.",
+      "textShort": "",
       "attack": 2,
       "hp": 2,
       "armor": 0

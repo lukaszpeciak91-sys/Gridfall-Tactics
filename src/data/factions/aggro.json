@@ -9,7 +9,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": "lane_empty_bonus_damage",
-      "textShort": "Open enemy line: +2 hero dmg.",
+      "textShort": "Open enemy line: enemy hero loses 2 HP.",
       "attack": 2,
       "hp": 1,
       "armor": 0
@@ -42,7 +42,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": "empty_adjacent_bonus_atk",
-      "textShort": "If nearby ally slot empty: +1 ATK.",
+      "textShort": "If adjacent ally slot empty: +1 ATK.",
       "attack": 2,
       "hp": 2,
       "armor": 0
@@ -96,7 +96,7 @@
       "type": "utility",
       "targeting": "friendly_unit",
       "effectId": "heal_1_atk_1_draw_on_kill_this_turn",
-      "textShort": "Ally: heal 1, +1 ATK this turn. Draw if it kills."
+      "textShort": "Target [ALLY]: heal 1, +1 ATK this turn. Draw on kill."
     }
   ]
 }
