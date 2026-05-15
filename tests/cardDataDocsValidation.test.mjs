@@ -35,14 +35,14 @@ const expectedTextShort = new Map(Object.entries({
   tank_stability_1: 'Allies can’t be moved/disabled this turn.',
   tank_last_stand_1: 'Allies can’t drop below 1 HP this turn.',
   tank_repair_kit_1: 'Target [ALLY] +1 ARM until combat ends.',
-  wardens_sentinel_1: 'Enemy attacking this: -1 ATK.',
-  wardens_spearwall_1: 'Adjacent allies: attackers -1 ATK.',
-  wardens_halberdier_1: 'If opposed: +1 ATK.',
-  wardens_brace_1: 'Target ally +1 ARM until combat ends.',
-  wardens_shield_push_1: 'Swap leftmost adjacent enemies.',
-  wardens_stand_firm_1: 'All allies can’t be moved this turn.',
-  wardens_reinforce_line_1: 'Adjacent allies +1 ARM until combat ends.',
-  wardens_hold_the_line_1: 'Adjacent allies +1 ARM until combat ends.',
+  wardens_sentinel_1: 'Attackers: -1 ATK.',
+  wardens_spearwall_1: 'Attackers of adjacent allies: -1 ATK.',
+  wardens_halberdier_1: 'Opposed: +1 ATK.',
+  wardens_brace_1: 'Target [ALLY] +1 ARM until combat ends.',
+  wardens_shield_push_1: 'Swap two adjacent enemies.',
+  wardens_stand_firm_1: "All [ALLY] can't be moved this turn.",
+  wardens_reinforce_line_1: 'Adjacent [ALLY] +1 ARM until combat ends.',
+  wardens_hold_the_line_1: 'Adjacent [ALLY] +1 ARM until combat ends.',
   attrition_swarm_husk_1: 'Combat death: deal 1 to opposing enemy.',
   attrition_swarm_carrier_1: 'Combat death: summon 1/1 here.',
   attrition_swarm_leech_1: 'Combat kill and survive: heal hero 1.',
@@ -85,6 +85,28 @@ test('visible textShort values match the MVP wording pass', () => {
   const cardsById = new Map(allCards().map(({ card }) => [card.id, card]));
   for (const [id, textShort] of expectedTextShort) {
     assert.equal(cardsById.get(id)?.textShort, textShort, id);
+  }
+});
+
+test('all source cards have English and Polish localization entries', () => {
+  for (const { card } of allCards()) {
+    for (const locale of ['en', 'pl']) {
+      const translations = JSON.parse(fs.readFileSync(`src/localization/translations/${locale}.json`, 'utf8'));
+      assert.ok(translations.cards?.[card.id], `${locale} localization missing for ${card.id}`);
+      assert.equal(typeof translations.cards[card.id].name, 'string', `${locale} name for ${card.id}`);
+      assert.equal(typeof translations.cards[card.id].textShort, 'string', `${locale} textShort for ${card.id}`);
+    }
+  }
+});
+
+test('Wardens vanilla units keep visually empty text boxes', () => {
+  const cardsById = new Map(allCards().map(({ card }) => [card.id, card]));
+  for (const id of ['wardens_bastion_guard_1', 'wardens_watch_captain_1']) {
+    assert.equal(cardsById.get(id)?.textShort, '', `${id} source text`);
+    for (const locale of ['en', 'pl']) {
+      const translations = JSON.parse(fs.readFileSync(`src/localization/translations/${locale}.json`, 'utf8'));
+      assert.equal(translations.cards[id].textShort, '', `${id} ${locale} localized text`);
+    }
   }
 });
 
@@ -132,7 +154,6 @@ test('deterministic effects remain outside manual targeting metadata', () => {
   }
 });
 
-
 test('Controller unit on-play stays deterministic even though its effectId has direct resolver metadata', () => {
   const control = JSON.parse(fs.readFileSync('src/data/factions/control.json', 'utf8'));
   const controller = control.deck.find((card) => card.id === 'control_controller_1');
@@ -149,7 +170,6 @@ test('Controller unit on-play stays deterministic even though its effectId has d
   assert.equal(state.board[1].id, 'enemy-left');
   assert.equal(state.board[2].id, 'enemy-right');
 });
-
 
 test('battle-end documentation names current stall, mulligan, retry, and tiebreak rules', () => {
   const read = (file) => fs.readFileSync(file, 'utf8');

@@ -110,6 +110,18 @@ test('hand/full formatter includes textShort and preserves unit stat line output
   assert.equal(formatHandCardLabel(card), 'Shield Drone\n1/4 ARM 2\nBlocks line. This unit can’t attack.');
 });
 
+test('Wardens vanilla units render without placeholder body text', () => {
+  const { deck } = getFactionByKey('Wardens');
+  const bastionGuard = deck.find((card) => card.id === 'wardens_bastion_guard_1');
+  const watchCaptain = deck.find((card) => card.id === 'wardens_watch_captain_1');
+
+  assert.equal(formatHandCardLabel(bastionGuard), 'Bastion Keeper\n1/3 ARM 0');
+  assert.equal(formatCollectionRowLabel(bastionGuard).textShort, '');
+  assert.equal(formatCardDetailLines(watchCaptain).at(-1), '');
+  assert.doesNotMatch(formatHandCardLabel(bastionGuard), /UNIT|NO EFFECT|No special behavior/i);
+  assert.doesNotMatch(formatHandCardLabel(watchCaptain), /UNIT|NO EFFECT|No special behavior/i);
+});
+
 test('hand/full formatter includes effect card textShort without unit stats', () => {
   const card = {
     name: 'Repair Kit',
@@ -186,7 +198,6 @@ test('deck info panel output templates remain unchanged', () => {
   assert.match(source, /return groups\.map\(\(\[heading, cards\]\) => this\.formatDeckInfoGroup\(heading, cards\)\)\.join\('\\n\\n'\);/);
 });
 
-
 test('visible UI surfaces route names through active-locale presentation helpers', () => {
   const battleSource = fs.readFileSync('src/scenes/BattleScene.js', 'utf8');
   const collectionSource = fs.readFileSync('src/scenes/CollectionScene.js', 'utf8');
@@ -236,7 +247,6 @@ test('current faction card display names use locale presentation overrides witho
     }
   }
 });
-
 
 test('presentation overrides resolve through render modes and preserve gameplay ids', () => {
   const faction = getFactionByKey('Aggro');
