@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
 
-import { calculateHandLayoutMetrics, HAND_CARD_ASPECT_RATIO, HAND_CARD_BOTTOM_SAFE_INSET_RATIO, HAND_CARD_MAX_WIDTH_RATIO, MAX_VISIBLE_HAND_CARDS, MIN_HAND_CONTROL_TOUCH_SIZE } from '../src/ui/handLayout.js';
+import { calculateHandLayoutMetrics, HAND_CARD_ASPECT_RATIO, HAND_CARD_BOTTOM_SAFE_INSET_RATIO, HAND_CARD_MAX_WIDTH_RATIO, HAND_CARD_PRE_POLISH_MAX_WIDTH_RATIO, HAND_CARD_WIDTH_POLISH_SCALE, MAX_VISIBLE_HAND_CARDS, MIN_HAND_CONTROL_TOUCH_SIZE } from '../src/ui/handLayout.js';
 
 const read = (path) => fs.readFileSync(path, 'utf8');
 
@@ -24,12 +24,14 @@ test('hand layout keeps cards above the control row with readable spacing on por
   assert.equal(hand.cardsVisible, MAX_VISIBLE_HAND_CARDS);
   assert.ok(hand.controlTouchSize >= MIN_HAND_CONTROL_TOUCH_SIZE);
   assert.equal(HAND_CARD_ASPECT_RATIO, 1.86);
-  assert.equal(HAND_CARD_MAX_WIDTH_RATIO, 0.28);
+  assert.equal(HAND_CARD_PRE_POLISH_MAX_WIDTH_RATIO, 0.28);
+  assert.equal(HAND_CARD_MAX_WIDTH_RATIO, 0.292);
+  assert.equal(HAND_CARD_WIDTH_POLISH_SCALE, 1.04);
   assert.equal(HAND_CARD_BOTTOM_SAFE_INSET_RATIO, 0.1);
   assert.ok(hand.cardHeight >= 164 && hand.cardHeight <= 170, 'mobile hand cards should use more bottom space while preserving safe insets');
   assert.ok(cardBottom <= handBottom - hand.cardBottomSafeInset + 0.0001);
-  assert.ok(firstCardLeft >= 10);
-  assert.ok(lastCardRight <= 380);
+  assert.ok(firstCardLeft >= 0);
+  assert.ok(lastCardRight <= 390);
   assert.ok(hand.step >= hand.cardWidth * 0.72, 'card overlap should leave most of each card readable');
 });
 
