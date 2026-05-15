@@ -11,15 +11,9 @@ import { createFloatingControl, createMuteToggleControl, requestPortraitOrientat
 import { createModalBackButton } from '../ui/modalControls.js';
 import { preloadSecondaryButtonAsset } from '../ui/imageButton.js';
 import { formatDeckSummaryEntry } from '../rendering/cardRenderModes.js';
-import { CARD_COLORS, createArtPlaceholder, createInlineStatText, createStatBadges, getCardDisplayContent, getCardLayoutZones, getCardStatValues, getCardTypography } from '../rendering/cardVisualLayout.js';
+import { CARD_COLORS, createCardPreviewView, createStatBadges, getDefaultCardAccentColor } from '../rendering/cardVisualLayout.js';
 import { getCardDisplayName, getCardTextShort } from '../localization/cardDisplay.js';
 import { getActiveLocale, translateActive } from '../localization/localeService.js';
-
-const HAND_CARD_ACCENT_COLORS = Object.freeze({
-  unit: 0x4da6ff,
-  effect: 0xb06cff,
-  default: 0x94a3b8,
-});
 
 const INSPECT_CARD_TARGET_SCALE = 2.2;
 const INSPECT_CARD_MAX_HEIGHT_RATIO = 0.64;
@@ -1550,101 +1544,25 @@ export default class BattleScene extends Phaser.Scene {
     titleTypographyScale = typographyScale,
     bodyLineSpacing = 2,
   }) {
-    const zones = getCardLayoutZones(width, height);
-    const baseTypography = getCardTypography(width, height);
-    const typography = {
-      stat: Math.round(baseTypography.stat * typographyScale),
-      name: Math.round(baseTypography.name * titleTypographyScale),
-      type: Math.round(baseTypography.type * typographyScale),
-      body: Math.round(baseTypography.body * typographyScale),
-    };
-    const content = getCardDisplayContent(card, getActiveLocale());
-    const stats = getCardStatValues(card);
-    const root = this.add.container(x, y).setDepth(depth);
-    const glow = this.add.rectangle(0, 0, width + 8, height + 8, 0xfacc15, 0)
-      .setStrokeStyle(5, 0xfacc15, 0);
-    const background = this.add.rectangle(0, 0, width, height, CARD_COLORS.frame, card ? 0.84 : 0.48)
-      .setStrokeStyle(3, accentColor, card ? 0.82 : 0.7);
-    const inner = this.add.rectangle(0, 0, width - zones.pad * 0.9, height - zones.pad * 0.9, CARD_COLORS.innerPanel, 0.36)
-      .setStrokeStyle(1, 0xffffff, 0.055);
-    const statBadges = createStatBadges(
-      this,
-      zones.statBadges.centerX,
-      zones.statBadges.centerY,
-      zones.statBadges.width,
-      zones.statBadges.height,
-      stats,
-      0,
-      {
-        sizeScale: statBadgeScale,
-        maxGroupWidthRatio: 0.9,
-        spacingScale: typographyScale > 1 ? 1.16 : 1.12,
-      },
-    );
-    const art = createArtPlaceholder(this, zones.art);
-    const namePanel = this.add.rectangle(zones.name.centerX, zones.name.centerY, zones.name.width, zones.name.height, CARD_COLORS.namePanel, 0.95)
-      .setStrokeStyle(1, accentColor, card ? (typographyScale > 1 ? 0.52 : 0.44) : 0.14);
-    const nameHorizontalInset = Math.max(10, zones.pad * (typographyScale > 1 ? 1.45 : 1.32));
-    const nameText = this.add.text(zones.name.centerX, zones.name.centerY, content.name || '—', {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: `${typography.name}px`,
-      color: card ? CARD_COLORS.ivoryText : CARD_COLORS.mutedText,
-      fontStyle: 'bold',
-      align: 'center',
-      lineSpacing: Math.max(1, Math.round(typography.name * 0.08)),
-      wordWrap: { width: zones.name.width - nameHorizontalInset },
-    }).setOrigin(0.5);
-    const minNameFontSize = Math.max(9, typography.name - (typographyScale > 1 ? 4 : 3));
-    const maxNameHeight = zones.name.height - Math.max(4, zones.gap * 1.5);
-    while (nameText.height > maxNameHeight && Number.parseFloat(nameText.style.fontSize) > minNameFontSize) {
-      nameText.setFontSize(Number.parseFloat(nameText.style.fontSize) - 1);
-    }
-    const textPanel = this.add.rectangle(zones.text.centerX, zones.text.centerY, zones.text.width, zones.text.height, CARD_COLORS.textPanel, 0.91)
-      .setStrokeStyle(1, 0x94a3b8, typographyScale > 1 ? 0.24 : 0.2);
-    const bodyTopPadding = Math.max(5, zones.text.height * (typographyScale > 1 ? 0.11 : 0.1));
-    const bodyBottomPadding = Math.max(5, zones.text.height * (typographyScale > 1 ? 0.1 : 0.09));
-    const bodyText = createInlineStatText(this, zones.text.centerX, zones.text.y + bodyTopPadding, content.body || content.type, {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: typography.body,
-      minFontSize: Math.max(8, typography.body - 2),
-      color: card ? '#cfe7ff' : CARD_COLORS.mutedText,
-      align: 'center',
-      lineSpacing: bodyLineSpacing,
-      maxWidth: zones.text.width - Math.max(14, zones.pad * (typographyScale > 1 ? 2.0 : 1.5)),
-      maxHeight: zones.text.height - bodyTopPadding - bodyBottomPadding,
-    });
-    const dividers = [zones.art.y - zones.gap / 2, zones.name.y - zones.gap / 2, zones.text.y - zones.gap / 2]
-      .map((dividerY) => this.add.rectangle(0, dividerY, zones.outer.width - zones.pad * 2.15, 1, CARD_COLORS.divider, 0.22));
-    const selectionOutline = this.add.rectangle(0, 0, width + 3, height + 3, 0xfacc15, 0)
-      .setStrokeStyle(0, 0xfacc15, 0);
-
-    root.add([glow, background, inner, statBadges, art, namePanel, nameText, textPanel, bodyText, ...dividers, selectionOutline]);
-
-    return {
+    return createCardPreviewView(this, {
+      card,
       cardId,
-      root,
-      glow,
-      background,
-      label: nameText,
-      nameText,
-      bodyText,
-      selectionOutline,
-      statBar: statBadges,
-      statBadges,
-      art,
-      baseX: x,
-      baseY: y,
-      labelBaseX: x,
-      labelBaseY: y,
-      baseDepth: depth,
-      baseFontSize: typography.name,
-    };
+      x,
+      y,
+      width,
+      height,
+      accentColor,
+      depth,
+      locale: getActiveLocale(),
+      statBadgeScale,
+      typographyScale,
+      titleTypographyScale,
+      bodyLineSpacing,
+    });
   }
 
   getHandCardAccentColor(card) {
-    if (card?.type === 'unit') return HAND_CARD_ACCENT_COLORS.unit;
-    if (card?.type === 'effect') return HAND_CARD_ACCENT_COLORS.effect;
-    return HAND_CARD_ACCENT_COLORS.default;
+    return getDefaultCardAccentColor(card);
   }
 
   onHandCardPointerOver(cardId) {

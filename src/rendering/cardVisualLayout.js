@@ -46,6 +46,18 @@ export const CARD_STAT_STYLES = Object.freeze({
   }),
 });
 
+export const CARD_ACCENT_COLORS = Object.freeze({
+  unit: 0x4da6ff,
+  effect: 0xb06cff,
+  default: 0x94a3b8,
+});
+
+export function getDefaultCardAccentColor(card) {
+  if (card?.type === 'unit') return CARD_ACCENT_COLORS.unit;
+  if (card?.type === 'effect') return CARD_ACCENT_COLORS.effect;
+  return CARD_ACCENT_COLORS.default;
+}
+
 const CARD_STAT_SYMBOL_KEYS = Object.freeze({
   '▲': 'attack',
   '◆': 'armor',
@@ -285,7 +297,6 @@ export function drawStatSymbol(scene, x, y, size, statKey, color, alpha = 1) {
   return scene.add.circle(x, y, size * 0.43, color, alpha);
 }
 
-
 function getStatBadgeSize(height, width, scale = 1) {
   const baseSize = Math.max(18, Math.min(24, height * 0.9, width * 0.2));
   return baseSize * scale;
@@ -381,6 +392,34 @@ export function createArtPlaceholder(scene, zone) {
   return container;
 }
 
+function getCardArtTextureKey(card) {
+  return card?.artTextureKey ?? card?.artKey ?? card?.art?.textureKey ?? null;
+}
+
+export function createCardArtwork(scene, zone, card) {
+  const textureKey = getCardArtTextureKey(card);
+  if (textureKey && scene.textures?.exists?.(textureKey)) {
+    const image = scene.add.image(zone.centerX, zone.centerY, textureKey);
+    const texture = image.texture?.getSourceImage?.();
+    const sourceWidth = texture?.width ?? image.width;
+    const sourceHeight = texture?.height ?? image.height;
+    const scale = Math.max(zone.width / Math.max(1, sourceWidth), zone.height / Math.max(1, sourceHeight));
+    image.setDisplaySize(sourceWidth * scale, sourceHeight * scale);
+
+    const cropWidth = Math.min(sourceWidth, zone.width / scale);
+    const cropHeight = Math.min(sourceHeight, zone.height / scale);
+    image.setCrop(
+      Math.max(0, (sourceWidth - cropWidth) / 2),
+      Math.max(0, (sourceHeight - cropHeight) / 2),
+      cropWidth,
+      cropHeight,
+    );
+    return image;
+  }
+
+  return createArtPlaceholder(scene, zone);
+}
+
 export function getCardDisplayContent(card, locale = 'en') {
   if (!card) {
     return { name: '', body: '', type: '' };
@@ -390,5 +429,112 @@ export function getCardDisplayContent(card, locale = 'en') {
     name: getCardDisplayName(card, locale) ?? '',
     body: typeof getCardTextShort(card, locale) === 'string' ? formatCardEffectTextShort(getCardTextShort(card, locale), locale).trim() : '',
     type: card?.type ? String(card.type).toUpperCase() : '',
+  };
+}
+
+export function createCardPreviewView(scene, {
+  card,
+  cardId = null,
+  x,
+  y,
+  width,
+  height,
+  accentColor = getDefaultCardAccentColor(card),
+  depth = 0,
+  locale = 'en',
+  statBadgeScale = 1.1,
+  typographyScale = 1,
+  titleTypographyScale = typographyScale,
+  bodyLineSpacing = 2,
+  frameAlpha = card ? 0.84 : 0.48,
+} = {}) {
+  const zones = getCardLayoutZones(width, height);
+  const baseTypography = getCardTypography(width, height);
+  const typography = {
+    stat: Math.round(baseTypography.stat * typographyScale),
+    name: Math.round(baseTypography.name * titleTypographyScale),
+    type: Math.round(baseTypography.type * typographyScale),
+    body: Math.round(baseTypography.body * typographyScale),
+  };
+  const content = getCardDisplayContent(card, locale);
+  const stats = getCardStatValues(card);
+  const root = scene.add.container(x, y).setDepth(depth);
+  const glow = scene.add.rectangle(0, 0, width + 8, height + 8, 0xfacc15, 0)
+    .setStrokeStyle(5, 0xfacc15, 0);
+  const background = scene.add.rectangle(0, 0, width, height, CARD_COLORS.frame, frameAlpha)
+    .setStrokeStyle(3, accentColor, card ? 0.82 : 0.7);
+  const inner = scene.add.rectangle(0, 0, width - zones.pad * 0.9, height - zones.pad * 0.9, CARD_COLORS.innerPanel, 0.36)
+    .setStrokeStyle(1, 0xffffff, 0.055);
+  const statBadges = createStatBadges(
+    scene,
+    zones.statBadges.centerX,
+    zones.statBadges.centerY,
+    zones.statBadges.width,
+    zones.statBadges.height,
+    stats,
+    0,
+    {
+      sizeScale: statBadgeScale,
+      maxGroupWidthRatio: 0.9,
+      spacingScale: typographyScale > 1 ? 1.16 : 1.12,
+    },
+  );
+  const art = createCardArtwork(scene, zones.art, card);
+  const namePanel = scene.add.rectangle(zones.name.centerX, zones.name.centerY, zones.name.width, zones.name.height, CARD_COLORS.namePanel, 0.95)
+    .setStrokeStyle(1, accentColor, card ? (typographyScale > 1 ? 0.52 : 0.44) : 0.14);
+  const nameHorizontalInset = Math.max(10, zones.pad * (typographyScale > 1 ? 1.45 : 1.32));
+  const nameText = scene.add.text(zones.name.centerX, zones.name.centerY, content.name || '—', {
+    fontFamily: 'Arial, sans-serif',
+    fontSize: `${typography.name}px`,
+    color: card ? CARD_COLORS.ivoryText : CARD_COLORS.mutedText,
+    fontStyle: 'bold',
+    align: 'center',
+    lineSpacing: Math.max(1, Math.round(typography.name * 0.08)),
+    wordWrap: { width: zones.name.width - nameHorizontalInset },
+  }).setOrigin(0.5);
+  const minNameFontSize = Math.max(9, typography.name - (typographyScale > 1 ? 4 : 3));
+  const maxNameHeight = zones.name.height - Math.max(4, zones.gap * 1.5);
+  while (nameText.height > maxNameHeight && Number.parseFloat(nameText.style.fontSize) > minNameFontSize) {
+    nameText.setFontSize(Number.parseFloat(nameText.style.fontSize) - 1);
+  }
+  const textPanel = scene.add.rectangle(zones.text.centerX, zones.text.centerY, zones.text.width, zones.text.height, CARD_COLORS.textPanel, 0.91)
+    .setStrokeStyle(1, 0x94a3b8, typographyScale > 1 ? 0.24 : 0.2);
+  const bodyTopPadding = Math.max(5, zones.text.height * (typographyScale > 1 ? 0.11 : 0.1));
+  const bodyBottomPadding = Math.max(5, zones.text.height * (typographyScale > 1 ? 0.1 : 0.09));
+  const bodyText = createInlineStatText(scene, zones.text.centerX, zones.text.y + bodyTopPadding, content.body || content.type, {
+    fontFamily: 'Arial, sans-serif',
+    fontSize: typography.body,
+    minFontSize: Math.max(8, typography.body - 2),
+    color: card ? '#cfe7ff' : CARD_COLORS.mutedText,
+    align: 'center',
+    lineSpacing: bodyLineSpacing,
+    maxWidth: zones.text.width - Math.max(14, zones.pad * (typographyScale > 1 ? 2.0 : 1.5)),
+    maxHeight: zones.text.height - bodyTopPadding - bodyBottomPadding,
+  });
+  const dividers = [zones.art.y - zones.gap / 2, zones.name.y - zones.gap / 2, zones.text.y - zones.gap / 2]
+    .map((dividerY) => scene.add.rectangle(0, dividerY, zones.outer.width - zones.pad * 2.15, 1, CARD_COLORS.divider, 0.22));
+  const selectionOutline = scene.add.rectangle(0, 0, width + 3, height + 3, 0xfacc15, 0)
+    .setStrokeStyle(0, 0xfacc15, 0);
+
+  root.add([glow, background, inner, statBadges, art, namePanel, nameText, textPanel, bodyText, ...dividers, selectionOutline]);
+
+  return {
+    cardId,
+    root,
+    glow,
+    background,
+    label: nameText,
+    nameText,
+    bodyText,
+    selectionOutline,
+    statBar: statBadges,
+    statBadges,
+    art,
+    baseX: x,
+    baseY: y,
+    labelBaseX: x,
+    labelBaseY: y,
+    baseDepth: depth,
+    baseFontSize: typography.name,
   };
 }

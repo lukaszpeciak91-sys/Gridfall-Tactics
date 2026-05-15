@@ -48,6 +48,7 @@ test('mobile hand polish widens cards without increasing card height', () => {
 
 test('battle hand title emphasis is separate from inspect scaling', () => {
   const source = fs.readFileSync('src/scenes/BattleScene.js', 'utf8');
+  const visualSource = fs.readFileSync('src/rendering/cardVisualLayout.js', 'utf8');
   const inspectMethod = source.slice(
     source.indexOf('  showSelectedHandCardZoom()'),
     source.indexOf('  applyInspectDimming(inspectCardId)'),
@@ -56,8 +57,8 @@ test('battle hand title emphasis is separate from inspect scaling', () => {
   assert.match(source, /const HAND_CARD_TYPOGRAPHY_SCALE = 1\.12;/);
   assert.match(source, /const HAND_CARD_TITLE_TYPOGRAPHY_SCALE = 1\.2;/);
   assert.match(source, /titleTypographyScale: HAND_CARD_TITLE_TYPOGRAPHY_SCALE,/);
-  assert.match(source, /titleTypographyScale = typographyScale,/);
-  assert.match(source, /name: Math\.round\(baseTypography\.name \* titleTypographyScale\),/);
+  assert.match(visualSource, /titleTypographyScale = typographyScale,/);
+  assert.match(visualSource, /name: Math\.round\(baseTypography\.name \* titleTypographyScale\),/);
   assert.match(inspectMethod, /typographyScale: INSPECT_CARD_TYPOGRAPHY_SCALE,/);
   assert.doesNotMatch(inspectMethod, /titleTypographyScale:/);
   assert.match(source, /const INSPECT_CARD_TARGET_SCALE = 2\.2;/);
