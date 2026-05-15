@@ -16,11 +16,11 @@ const expectedTextShort = new Map(Object.entries({
   aggro_rush_1: 'Swap with an adjacent [ALLY]. Fight that lane.',
   aggro_pierce_strike_1: 'Deal 1. Next combat hit ignores ARM.',
   aggro_quick_fix_1: 'Target [ALLY]: heal 1, +1 ATK this turn. Draw if it kills.',
-  control_disruptor_1: 'On play: cancel next enemy effect this turn.',
-  control_sniper_1: 'Attacks lowest-HP enemy unit.',
-  control_controller_1: 'On play: swap first 2 enemies.',
-  control_jam_signal_1: 'Leftmost 2 enemies -1 ATK this turn.',
-  control_pulse_wave_1: 'Deal 1 to all enemy units, ignoring ARM.',
+  control_disruptor_1: 'On play: cancel the next enemy effect this turn.',
+  control_sniper_1: 'Attacks the lowest-HP enemy.',
+  control_controller_1: 'On play: swap two enemies.',
+  control_jam_signal_1: 'Leftmost 2 enemies: -1 ATK this turn.',
+  control_pulse_wave_1: 'Deal 1 to all enemies, ignoring ARM.',
   control_system_override_1: 'Target enemy attacks own hero next combat, then loses 1 HP.',
   swarm_spitter_1: 'On play: deal 1 to opposed enemy.',
   swarm_brood_1: 'On death: summon 1/1 here.',
@@ -72,6 +72,13 @@ function parseCanonicalRows() {
     .map(([faction, card, type, stats, effectId]) => ({ faction, card, type, stats, effectId }));
 }
 
+test('MVP faction card ids are unique across source decks', () => {
+  const ids = allCards().map(({ card }) => card.id);
+  const duplicateIds = ids.filter((id, index) => ids.indexOf(id) !== index);
+
+  assert.deepEqual(duplicateIds, []);
+});
+
 test('MVP faction cards have no cost or duplicated faction fields', () => {
   for (const { card } of allCards()) {
     assert.equal(Object.hasOwn(card, 'cost'), false, `${card.id} must not define cost`);
@@ -88,13 +95,17 @@ test('visible textShort values match the MVP wording pass', () => {
   }
 });
 
-test('all source cards have English and Polish localization entries', () => {
-  for (const { card } of allCards()) {
-    for (const locale of ['en', 'pl']) {
-      const translations = JSON.parse(fs.readFileSync(`src/localization/translations/${locale}.json`, 'utf8'));
-      assert.ok(translations.cards?.[card.id], `${locale} localization missing for ${card.id}`);
-      assert.equal(typeof translations.cards[card.id].name, 'string', `${locale} name for ${card.id}`);
-      assert.equal(typeof translations.cards[card.id].textShort, 'string', `${locale} textShort for ${card.id}`);
+test('all source cards have exactly one English and Polish localization entry', () => {
+  const sourceIds = allCards().map(({ card }) => card.id).sort();
+
+  for (const locale of ['en', 'pl']) {
+    const translations = JSON.parse(fs.readFileSync(`src/localization/translations/${locale}.json`, 'utf8'));
+    const localizedIds = Object.keys(translations.cards ?? {}).sort();
+    assert.deepEqual(localizedIds, sourceIds, `${locale} localization card ids`);
+
+    for (const cardId of sourceIds) {
+      assert.equal(typeof translations.cards[cardId].name, 'string', `${locale} name for ${cardId}`);
+      assert.equal(typeof translations.cards[cardId].textShort, 'string', `${locale} textShort for ${cardId}`);
     }
   }
 });
@@ -108,6 +119,15 @@ test('Wardens vanilla units keep visually empty text boxes', () => {
       assert.equal(translations.cards[id].textShort, '', `${id} ${locale} localized text`);
     }
   }
+});
+
+test('canonical behavior matrix has exactly one row per source card', () => {
+  const rows = parseCanonicalRows();
+  const rowKeys = rows.map((row) => `${row.faction}:${row.card}`);
+  const duplicateRows = rowKeys.filter((key, index) => rowKeys.indexOf(key) !== index);
+
+  assert.deepEqual(duplicateRows, []);
+  assert.equal(rows.length, allCards().length);
 });
 
 test('canonical behavior matrix matches source card faction, type, stats, and effectId', () => {

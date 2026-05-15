@@ -207,29 +207,27 @@ The no-progress detector uses the stricter "meaningful for outcome" definition i
 | Aggro | Pierce Strike | order | - | ignore_armor_next_attack | Deal 1. Next combat hit ignores ARM. | Targeted enemy | If the target survives, consumes ignore flag on first mitigated hit. |
 | Aggro | Adrenaline | special | - | quick_strike | [ALLY]: fight its lane now. | Targeted friendly | Lane-only immediate combat slice. |
 | Aggro | Quick Fix | utility | - | heal_1_atk_1_draw_on_kill_this_turn | Target [ALLY]: heal 1, +1 ATK this turn. Draw if it kills. | Targeted friendly | Heal is capped by max HP; draw uses one-shot combat kill tracking and temporary trigger cleanup after combat. |
-| Control | Hacker | unit | 1/2/0 | enemy_lane_atk_minus_1 | On play: opposing lane unit gets temp -1 ATK this turn. | Lane on-play | Also available as targeted effectId path. |
-| Control | Disruptor | unit | 1/2/0 | cancel_enemy_order | On play: cancel next enemy effect this turn. | On-play non-targeted | Cancels at most one enemy non-unit action; expires at PASS/combat cleanup if unused; not a persistent aura. |
-| Control | Sniper | unit | 2/1/0 | can_hit_any_lane | Attacks lowest-HP enemy unit. | Deterministic auto-target | Tie-break: lowest index; no manual target UI. |
-| Control | Controller | unit | 1/2/0 | swap_two_enemy_units | On play: swap first 2 enemies. | Deterministic on-play | Picks first two enemy units by index order; not manual two-pick UI for this unit trigger. |
+| Control | Hacker | unit | 1/2/0 | enemy_lane_atk_minus_1 | Opposed enemy: -1 ATK this turn. | Lane on-play | Also available as targeted effectId path. |
+| Control | Disruptor | unit | 1/2/0 | cancel_enemy_order | On play: cancel the next enemy effect this turn. | On-play non-targeted | Cancels at most one enemy non-unit action; expires at PASS/combat cleanup if unused; not a persistent aura. |
+| Control | Sniper | unit | 2/1/0 | can_hit_any_lane | Attacks the lowest-HP enemy. | Deterministic auto-target | Tie-break: lowest index; no manual target UI. |
+| Control | Controller | unit | 1/2/0 | swap_two_enemy_units | On play: swap two enemies. | Deterministic on-play | Picks first two enemy units by index order; not manual two-pick UI for this unit trigger. |
 | Control | Drone | unit | 1/1/0 | death_damage_enemy_hero_1 | On death: enemy hero loses 1 HP. | Death trigger | Applies after unit removed. |
 | Control | Swap | order | - | swap_any_two_units | Swap two selected units on one side. | Two-target targeted effect | Requires two distinct occupied slots with the same owner; cannot trade units between sides. |
-| Control | Jam Signal | order | - | enemy_all_atk_minus_1 | Leftmost 2 enemies -1 ATK this turn. | Non-targeted deterministic effect | Picks occupied enemy lanes from left to right; expires after combat. |
-| Control | Pulse Wave | order | - | damage_all_enemies_1_ignore_armor | Deal 1 to all enemies ignoring armor. | Non-targeted deterministic effect | Damages occupied enemy lanes only, ignores armor, never damages heroes, and cleans up defeated units after all Pulse Wave damage is applied. |
-| Control | System Override | special | - | control_enemy_unit_this_turn | Target enemy hits its own hero next combat. | Targeted enemy | Clears after combat cleanup. |
+| Control | Jam Signal | order | - | enemy_all_atk_minus_1 | Leftmost 2 enemies: -1 ATK this turn. | Non-targeted deterministic effect | Picks occupied enemy lanes from left to right; expires after combat. |
+| Control | Pulse Wave | order | - | damage_all_enemies_1_ignore_armor | Deal 1 to all enemies, ignoring ARM. | Non-targeted deterministic effect | Damages occupied enemy lanes only, ignores ARM, never damages heroes, and cleans up defeated units after all Pulse Wave damage is applied. |
+| Control | System Override | special | - | control_enemy_unit_this_turn | Target enemy attacks own hero next combat, then loses 1 HP. | Targeted enemy | Clears after combat cleanup. |
 | Control | Recall | utility | - | return_friendly_draw_1 | Return [ALLY] to hand. Draw 1. | Targeted friendly | Blocked if hand already full. |
-| Swarm | Grunt | unit | 1/1/0 | null | No special behavior. | Lane combat | Baseline token-like unit. |
+| Swarm | Grunt | unit | 1/1/0 | null |  | Lane combat | Vanilla unit with empty rules text. |
 | Swarm | Spitter | unit | 1/1/0 | on_play_lane_damage_1 | On play: deal 1 to opposed enemy. | Lane on-play | No hero damage from this trigger. |
 | Swarm | Brood | unit | 1/2/0 | on_death_summon_grunt | On death: summon 1/1 here. | Death trigger | Uses generated token cardId if same slot is now empty. |
-| Swarm | Rusher | unit | 2/1/0 | null | No special behavior. | Lane combat | Baseline attacker. |
+| Swarm | Rusher | unit | 2/1/0 | null |  | Lane combat | Vanilla unit with empty rules text. |
 | Swarm | Alpha | unit | 1/2/0 | adjacent_allies_atk_plus_1_ignore_armor_1 | Adjacent [ALLY] +1 ATK, ignore 1 ARM. | Passive adjacency aura | Calculated at combat time; Alpha only benefits if adjacent to another Alpha. |
-| Swarm | Spawn | order | - | summon_grunt_empty_slot | Summon 1/1 in an empty ally slot. | Non-targeted deterministic effect | Fizzles if no empty slot; no manual target UI. |
+| Swarm | Spawn | order | - | summon_grunt_empty_slot | Summon 1/1 in an empty ally slot. | Non-targeted deterministic effect | Rejected if no empty slot; no manual target UI. |
 | Swarm | Swarm Attack | order | - | buff_all_atk_1 | All [ALLY] +1 ATK this turn. | Non-targeted effect | Swarm-specific behavior remains unchanged. |
 | Swarm | Regrow | order | - | revive_friendly_1hp | Revive the first discarded unit at 1 HP. | Non-targeted deterministic effect | First empty slot + first unit in discard; no manual target UI. |
-| Swarm | Flood | special | - | fill_empty_slots_0_1 | Fill up to 2 empty ally slots with temporary 1/1s. | Non-targeted deterministic effect | Fills up to 2 empty friendly slots left-to-right with temporary 1/1 Tokens; they vanish after combat, do not enter discard, and do not trigger death effects. |
-| Swarm | Recycle | utility | - | destroy_friendly_draw_1 | Destroy ally. Draw 1. | Targeted friendly | Immediate non-combat destroy, then draw 1. |
+| Swarm | Flood | special | - | fill_empty_slots_0_1 | Fill up to 2 empty ally slots with temporary 1/1s. | Non-targeted deterministic effect | Fills up to 2 empty ally slots left-to-right with temporary 1/1 Tokens; they vanish after combat, do not enter discard, and do not trigger death effects. |
 | Attrition Swarm | Husk | unit | 1/1/0 | combat_death_damage_enemy_lane_1 | Combat death: deal 1 to opposed enemy. | Combat-only death trigger | Damages only an opposing enemy unit in the same lane; no hero fallback; does not trigger from Feast, redeploy, return, or non-combat damage cleanup. |
 | Swarm | Recycle | utility | - | destroy_friendly_draw_1 | Destroy [ALLY]. Draw 1. | Targeted friendly | Immediate non-combat destroy, then draw 1. |
-| Attrition Swarm | Husk | unit | 1/1/0 | combat_death_damage_enemy_lane_1 | Combat death: deal 1 to enemy in lane. | Combat-only death trigger | Damages only an opposing enemy unit in the same lane; no hero fallback; does not trigger from Feast, redeploy, return, or non-combat damage cleanup. |
 | Attrition Swarm | Carrier | unit | 1/2/0 | combat_death_summon_grunt | Combat death: summon 1/1 here. | Combat-only death trigger | Summons a same-owner 1/1 in the same slot only after combat death and only if the slot is empty. |
 | Attrition Swarm | Leech | unit | 2/1/0 | leech_heal_hero_on_combat_kill | Combat kill and survive: heal your hero 1. | Lane combat kill trigger | Heals its owner hero by 1 after dealing lethal combat damage and surviving; hero heal is capped by max HP. |
 | Attrition Swarm | Rotcaller | unit | 1/2/0 | rotcaller_adjacent_death_atk_1 | First adjacent [ALLY] combat death: +1 ATK. | Combat-only same-row adjacency trigger | Capped at +1 per Rotcaller per combat and clears after combat. |
@@ -239,21 +237,21 @@ The no-progress detector uses the stricter "meaningful for outcome" definition i
 | Attrition Swarm | Feast | utility | - | destroy_friendly_draw_1 | Destroy [ALLY]. Draw 1. | Targeted friendly | Reuses Recycle-style non-combat destruction and does not trigger combat-only death effects. |
 | Attrition Swarm | Rise Again | order | - | revive_friendly_1hp | Revive the first discarded unit at 1 HP. | Non-targeted deterministic effect | First empty friendly slot + first unit in discard; no manual target UI. |
 | Attrition Swarm | Grave Call | order | - | grave_call | Summon 1/1. If no [ALLY], summon 2. | Non-targeted deterministic effect | Fills first empty friendly slot, or up to 2 left-to-right if the owner has no allies; rejected if no empty slot exists. |
-| Tank | Shieldbearer | unit | 1/2/0 | lane_armor_aura_1 | Adjacent allies have +1 ARM in combat. | Passive adjacency aura | Calculated during damage mitigation. |
-| Tank | Heavy | unit | 2/3/0 | null | No special behavior. | Lane combat | Baseline durable unit. |
-| Tank | Guardian | unit | 1/3/0 | intercept_lane_damage | Intercepts combat damage for adjacent ally. | Deterministic adjacency intercept | One guardian intercept per index per resolve pass. |
-| Tank | Wall | unit | 0/2/0 | cannot_attack | Cannot attack (ATK forced to 0). | Lane combat | Still can receive buffs/debuffs. |
-| Tank | Bruiser | unit | 2/3/0 | gain_atk_when_damaged | When damaged and survives: +1 ATK this turn. | Damage trigger | Stacks within turn; reset after combat. |
-| Tank | Fortify | order | - | buff_all_armor_1 | Friendly units get temp +1 armor this turn. | Non-targeted effect | Temp armor reset after combat. |
-| Tank | Stability | order | - | immune_move_disable_this_turn | Allies can’t be moved/disabled this turn. | Non-targeted effect | Blocks swap/disable effects by opponent. |
-| Tank | Reinforce | order | - | heal_all_1 | Heal all friendly units by 1 (to max HP). | Non-targeted effect | Uses unit max HP cap. |
-| Tank | Last Stand | special | - | cannot_drop_below_1_this_turn | Allies can’t drop below 1 HP this turn. | Non-targeted effect | Reset after combat resolve. |
+| Tank | Shieldbearer | unit | 1/2/0 | lane_armor_aura_1 | Adjacent [ALLY] +1 ARM in combat. | Passive adjacency aura | Calculated during damage mitigation. |
+| Tank | Heavy | unit | 2/3/0 | null |  | Lane combat | Vanilla unit with empty rules text. |
+| Tank | Guardian | unit | 1/3/0 | intercept_lane_damage | Takes combat damage for adjacent [ALLY]. | Deterministic adjacency intercept | One guardian intercept per index per resolve pass. |
+| Tank | Wall | unit | 0/2/0 | cannot_attack | Blocks lane. Can't attack. | Lane combat | Still can receive buffs/debuffs. |
+| Tank | Bruiser | unit | 2/3/0 | gain_atk_when_damaged | Survives damage: +1 ATK this turn. | Damage trigger | Stacks within turn; reset after combat. |
+| Tank | Fortify | order | - | buff_all_armor_1 | All [ALLY] +1 ARM this turn. | Non-targeted effect | Temporary ARM resets after combat. |
+| Tank | Stability | order | - | immune_move_disable_this_turn | [ALLY] can't be moved or disabled this turn. | Non-targeted effect | Blocks swap/disable effects by opponent. |
+| Tank | Reinforce | order | - | heal_all_1 | Heal all [ALLY] by 1. | Non-targeted effect | Uses unit max HP cap. |
+| Tank | Last Stand | special | - | cannot_drop_below_1_this_turn | [ALLY] can't drop below 1 HP this turn. | Non-targeted effect | Reset after combat resolve. |
 | Tank | Reactive Plating | utility | - | temp_armor_1 | Target [ALLY] +1 ARM until combat ends. | Targeted friendly | Stacks with armor normally and resets at full turn/combat cleanup; does not heal HP. |
 | Wardens | Sentinel | unit | 2/2/0 | warden_defensive_friction_self | Attackers: -1 ATK. | Lane combat defensive friction | Combat-time only; capped with all Wardens friction at -1 total. |
 | Wardens | Spearwall | unit | 1/1/0 | warden_defensive_friction_adjacent | Attackers of adjacent allies: -1 ATK. | Passive adjacency aura | Same-row adjacency only; does not protect itself unless adjacent to another Spearwall; capped with all Wardens friction at -1 total. |
 | Wardens | Halberdier | unit | 2/1/0 | opposing_lane_atk_plus_1 | Opposed: +1 ATK. | Lane combat | Board-state check only; no history or moved-this-turn logic. |
-| Wardens | Bastion Guard | unit | 1/3/0 | null | No special behavior. | Lane combat | Baseline durable unit. |
-| Wardens | Watch Captain | unit | 2/2/0 | null | No special behavior. | Lane combat | Baseline leader unit. |
+| Wardens | Bastion Guard | unit | 1/3/0 | null |  | Lane combat | Vanilla unit with empty rules text. |
+| Wardens | Watch Captain | unit | 2/2/0 | null |  | Lane combat | Vanilla unit with empty rules text. |
 | Wardens | Brace | utility | - | temp_armor_1 | Target [ALLY] +1 ARM until combat ends. | Targeted friendly | Reuses temporary armor cleanup; no costs. |
 | Wardens | Shield Push | order | - | swap_leftmost_adjacent_enemies | Swap two adjacent enemies. | Non-targeted deterministic effect | Same enemy row only; no cross-side movement; no ownership changes; rejected if no legal adjacent enemy pair. |
 | Wardens | Stand Firm | order | - | friendly_immovable_this_turn | All [ALLY] can't be moved this turn. | Non-targeted effect | Move-only protection; unlike Tank Stability, it does not block disable effects. |
