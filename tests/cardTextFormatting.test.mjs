@@ -11,8 +11,8 @@ test('formats English stat abbreviations in card effect text as compact symbols'
   assert.equal(formatCardEffectTextShort('+1 ARM', 'en'), '+1 ◆');
   assert.equal(formatCardEffectTextShort('After attack: lose 1 HP.', 'en'), 'After attack: lose 1 ●.');
   assert.equal(
-    formatCardEffectTextShort('Target [ALLY]: heal 1, +1 ATK this turn. Draw on kill.', 'en'),
-    'Target ♙: heal +1 ●, +1 ▲ this turn. Draw on kill.',
+    formatCardEffectTextShort('Target [ALLY]: heal 1, +1 ATK this turn. Draw if it kills.', 'en'),
+    'Target ♙: heal +1 ●, +1 ▲ this turn. Draw if it kills.',
   );
 });
 
@@ -39,15 +39,15 @@ test('formats HP-related healing and damage language without replacing unrelated
   assert.equal(formatCardEffectTextShort('Combat kill and survive: heal hero 1.', 'en'), 'Combat kill and survive: heal hero +1 ●.');
   assert.equal(formatCardEffectTextShort('Combat death: both heroes lose 1 HP.', 'en'), 'Combat death: both heroes lose 1 ●.');
   assert.equal(formatCardEffectTextShort('On death: enemy hero loses 1 HP.', 'en'), 'On death: enemy hero loses 1 ●.');
-  assert.equal(formatCardEffectTextShort('Heal all allies 1.', 'en'), 'Heal all allies +1 ●.');
+  assert.equal(formatCardEffectTextShort('Heal all [ALLY] by 1.', 'en'), 'Heal all ♙ by +1 ●.');
   assert.equal(formatCardEffectTextShort('First 2 ally combat deaths: deal 1 to opposing enemy.', 'en'), 'First 2 ally combat deaths: deal 1 ● to opposing enemy.');
-  assert.equal(formatCardEffectTextShort('Destroy ally. Draw 1.', 'en'), 'Destroy ally. Draw 1.');
+  assert.equal(formatCardEffectTextShort('Destroy [ALLY]. Draw 1.', 'en'), 'Destroy ♙. Draw 1.');
   assert.equal(formatCardEffectTextShort('Combat death: summon 1/1 here.', 'en'), 'Combat death: summon 1/1 here.');
   assert.equal(formatCardEffectTextShort('Śmierć w walce: obaj bohaterowie otrzymują 1.', 'pl'), 'Śmierć w walce: obaj bohaterowie otrzymują 1 ●.');
   assert.equal(formatCardEffectTextShort('Po śmierci: wrogi bohater otrzymuje 1.', 'pl'), 'Po śmierci: wrogi bohater otrzymuje 1 ●.');
   assert.equal(formatCardEffectTextShort('Celowany wróg atakuje własnego bohatera w następnej walce, potem otrzymuje 1 obrażenie.', 'pl'), 'Celowany wróg atakuje własnego bohatera w następnej walce, potem otrzymuje 1 ●.');
   assert.equal(formatCardEffectTextShort('Pierwsze 2 śmierci sojuszników w walce: 1 wrogowi naprzeciw.', 'pl'), 'Pierwsze 2 śmierci sojuszników w walce: 1 ● wrogowi naprzeciw.');
-  assert.equal(formatCardEffectTextShort('Zniszcz sojusznika. Dobierz 1.', 'pl'), 'Zniszcz sojusznika. Dobierz 1.');
+  assert.equal(formatCardEffectTextShort('Zniszcz [ALLY]. Dobierz 1.', 'pl'), 'Zniszcz ♙. Dobierz 1.');
   assert.equal(formatCardEffectTextShort('Śmierć w walce: przyzwij tutaj 1/1.', 'pl'), 'Śmierć w walce: przyzwij tutaj 1/1.');
 });
 
@@ -65,17 +65,41 @@ test('formats HP symbols for localized Attrition Swarm card effect display text'
 });
 
 test('pilot card display content renders ally icon markers', () => {
+  const aggro = getFactionByKey('Aggro');
   const swarm = getFactionByKey('Swarm');
   const tank = getFactionByKey('Tank');
   const control = getFactionByKey('Control');
   const cardById = (faction, id) => faction.deck.find((card) => card.id === id);
 
+  assert.equal(getCardDisplayContent(cardById(aggro, 'aggro_full_attack_1'), 'en').body, 'All ♙ +2 ▲ this turn.');
+  assert.equal(getCardDisplayContent(cardById(aggro, 'aggro_rush_1'), 'en').body, 'Swap with an adjacent ♙. Fight that lane.');
+  assert.equal(getCardDisplayContent(cardById(aggro, 'aggro_adrenaline_1'), 'en').body, '♙: fight its lane now.');
+  assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_grunt_1'), 'en').body, '');
+  assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_rusher_1'), 'en').body, '');
+  assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_alpha_1'), 'en').body, 'Adjacent ♙ +1 ▲, ignore 1 ◆.');
   assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_swarm_attack_1'), 'en').body, 'All ♙ +1 ▲ this turn.');
+  assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_recycle_1'), 'en').body, 'Destroy ♙. Draw 1.');
   assert.equal(getCardDisplayContent(cardById(tank, 'tank_repair_kit_1'), 'en').body, 'Target ♙ +1 ◆ until combat ends.');
+  assert.equal(getCardDisplayContent(cardById(tank, 'tank_shieldbearer_1'), 'en').body, 'Adjacent ♙ +1 ◆ in combat.');
+  assert.equal(getCardDisplayContent(cardById(tank, 'tank_fortify_1'), 'en').body, 'All ♙ +1 ◆ this turn.');
+  assert.equal(getCardDisplayContent(cardById(tank, 'tank_reinforce_1'), 'en').body, 'Heal all ♙ by +1 ●.');
+  assert.equal(getCardDisplayContent(cardById(tank, 'tank_heavy_1'), 'en').body, '');
   assert.equal(getCardDisplayContent(cardById(control, 'control_recall_1'), 'en').body, 'Return ♙ to hand. Draw 1.');
   const wardens = getFactionByKey('Wardens');
 
+  assert.equal(getCardDisplayContent(cardById(aggro, 'aggro_full_attack_1'), 'pl').body, 'Wszyscy ♙ +2 ▲ w tej turze.');
+  assert.equal(getCardDisplayContent(cardById(aggro, 'aggro_rush_1'), 'pl').body, 'Zamień się z sąsiednim ♙. Walcz na tej linii.');
+  assert.equal(getCardDisplayContent(cardById(aggro, 'aggro_adrenaline_1'), 'pl').body, '♙: walcz na jego linii teraz.');
+  assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_grunt_1'), 'pl').body, '');
+  assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_rusher_1'), 'pl').body, '');
+  assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_alpha_1'), 'pl').body, 'Sąsiedni ♙ +1 ▲, ignorują 1 ◆.');
+  assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_swarm_attack_1'), 'pl').body, 'Wszyscy ♙ +1 ▲ w tej turze.');
+  assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_recycle_1'), 'pl').body, 'Zniszcz ♙. Dobierz 1.');
   assert.equal(getCardDisplayContent(cardById(tank, 'tank_repair_kit_1'), 'pl').body, 'Wybrany ♙ +1 ◆ do końca walki.');
+  assert.equal(getCardDisplayContent(cardById(tank, 'tank_shieldbearer_1'), 'pl').body, 'Sąsiedni ♙ +1 ◆ w walce.');
+  assert.equal(getCardDisplayContent(cardById(tank, 'tank_fortify_1'), 'pl').body, 'Wszyscy ♙ +1 ◆ w tej turze.');
+  assert.equal(getCardDisplayContent(cardById(tank, 'tank_reinforce_1'), 'pl').body, 'Ulecz wszystkich ♙ o +1 ●.');
+  assert.equal(getCardDisplayContent(cardById(tank, 'tank_heavy_1'), 'pl').body, '');
   assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_brace_1'), 'en').body, 'Target ♙ +1 ◆ until combat ends.');
   assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_stand_firm_1'), 'en').body, "All ♙ can't be moved this turn.");
   assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_reinforce_line_1'), 'pl').body, 'Sąsiedni ♙ +1 ◆ do końca walki.');
