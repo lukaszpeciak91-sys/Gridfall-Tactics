@@ -2,43 +2,43 @@
   "cards": {
     "aggro_runner_1": {
       "name": "Biegacz",
-      "textShort": "Otwarta linia wroga: wrogi bohater traci 2 HP."
+      "textShort": "Otwarta linia: wróg traci 2 HP."
     },
     "aggro_berserker_1": {
       "name": "Berserker",
-      "textShort": "Gdy uszkodzony: +1 ATK."
+      "textShort": "Gdy ranny: +1 ATK."
     },
     "aggro_glass_cannon_1": {
       "name": "Szklane Działo",
-      "textShort": "Po ataku: traci 1 HP."
+      "textShort": "Po ataku: strać 1 HP."
     },
     "aggro_flanker_1": {
       "name": "Flanker",
-      "textShort": "Jeśli sąsiedni slot sojusznika pusty: +1 ATK."
+      "textShort": "Pusty sąsiedni slot [ALLY]: +1 ATK."
     },
     "aggro_scout_1": {
       "name": "Zwiadowca",
-      "textShort": "Po zagraniu: blokuje zagranie wrogiej jednostki tutaj w tej turze."
+      "textShort": "Po zagraniu: wrogowie nie mogą zagrywać tu jednostek w tej turze."
     },
     "aggro_full_attack_1": {
       "name": "Pełny Atak",
-      "textShort": "Wszyscy sojusznicy +2 ATK w tej turze."
+      "textShort": "Wszyscy [ALLY] +2 ATK w tej turze."
     },
     "aggro_rush_1": {
       "name": "Szarża",
-      "textShort": "Zamień z pierwszym sąsiednim sojusznikiem; walcz w tej linii."
+      "textShort": "Zamień się z sąsiednim [ALLY]. Walcz na tej linii."
     },
     "aggro_pierce_strike_1": {
       "name": "Przebijające Uderzenie",
-      "textShort": "Zadaj 1. Następne trafienie w walce ignoruje pancerz."
+      "textShort": "Zadaj 1. Następne trafienie w walce ignoruje ARM."
     },
     "aggro_adrenaline_1": {
       "name": "Adrenalina",
-      "textShort": "Sojusznik: walcz teraz w jego linii."
+      "textShort": "[ALLY]: walcz na jego linii teraz."
     },
     "aggro_quick_fix_1": {
       "name": "Szybka Naprawa",
-      "textShort": "Wybrany [ALLY]: ulecz 1, +1 ATK w tej turze. Dobierz po zabiciu."
+      "textShort": "Wybrany [ALLY]: ulecz 1, +1 ATK w tej turze. Dobierz kartę po zabiciu."
     },
     "attrition_swarm_husk_1": {
       "name": "Łupina",
@@ -130,7 +130,7 @@
     },
     "swarm_brood_1": {
       "name": "Miot",
-      "textShort": "Po śmierci: przyzwij tutaj 1/1."
+      "textShort": "Po śmierci: przywołaj tu 1/1."
     },
     "swarm_rusher_1": {
       "name": "Napastnik",
@@ -138,11 +138,11 @@
     },
     "swarm_alpha_1": {
       "name": "Alfa",
-      "textShort": "Sąsiedni sojusznicy +1 ATK, ignorują 1 ARM."
+      "textShort": "Sąsiedni [ALLY] +1 ATK, ignorują 1 ARM."
     },
     "swarm_spawn_1": {
       "name": "Pomiot",
-      "textShort": "Przyzwij 1/1 w pierwszym pustym slocie sojusznika."
+      "textShort": "Przywołaj 1/1 w pustym slocie [ALLY]."
     },
     "swarm_swarm_attack_1": {
       "name": "Atak Roju",
@@ -150,19 +150,19 @@
     },
     "swarm_regrow_1": {
       "name": "Odrost",
-      "textShort": "Wskrześ pierwszą odrzuconą jednostkę z 1 HP."
+      "textShort": "Przywróć pierwszą odrzuconą jednostkę z 1 HP."
     },
     "swarm_flood_1": {
       "name": "Zalew",
-      "textShort": "Wypełnij do 2 pustych slotów sojuszników tymczasowymi 1/1."
+      "textShort": "Wypełnij do 2 pustych slotów [ALLY] tymczasowymi 1/1."
     },
     "swarm_recycle_1": {
       "name": "Recykling",
-      "textShort": "Zniszcz sojusznika. Dobierz 1."
+      "textShort": "Zniszcz [ALLY]. Dobierz 1."
     },
     "tank_shieldbearer_1": {
       "name": "Tarczownik",
-      "textShort": "Sąsiedni sojusznicy mają +1 ARM w walce."
+      "textShort": "Sąsiedni [ALLY] +1 ARM w walce."
     },
     "tank_heavy_1": {
       "name": "Ciężki",
@@ -170,31 +170,31 @@
     },
     "tank_guardian_1": {
       "name": "Strażnik",
-      "textShort": "Przechwytuje obrażenia w walce za sąsiedniego sojusznika."
+      "textShort": "Przyjmuje obrażenia z walki za sąsiedniego [ALLY]."
     },
     "tank_wall_1": {
       "name": "Mur",
-      "textShort": "Blokuje linię. Ta jednostka nie atakuje."
+      "textShort": "Blokuje linię. Nie może atakować."
     },
     "tank_bruiser_1": {
       "name": "Zabijaka",
-      "textShort": "Gdy uszkodzony i przetrwa: +1 ATK w tej turze."
+      "textShort": "Po przetrwaniu obrażeń: +1 ATK w tej turze."
     },
     "tank_fortify_1": {
       "name": "Fortyfikacja",
-      "textShort": "Wszyscy sojusznicy +1 pancerza w tej turze."
+      "textShort": "Wszyscy [ALLY] +1 ARM w tej turze."
     },
     "tank_stability_1": {
       "name": "Stabilność",
-      "textShort": "Sojusznicy nie mogą być przesuwani/wyłączani w tej turze."
+      "textShort": "[ALLY] nie mogą być przesuwani ani unieruchamiani w tej turze."
     },
     "tank_reinforce_1": {
       "name": "Wzmocnienie",
-      "textShort": "Ulecz wszystkich sojuszników o 1."
+      "textShort": "Ulecz wszystkich [ALLY] o 1."
     },
     "tank_last_stand_1": {
       "name": "Ostatni Bastion",
-      "textShort": "Sojusznicy nie mogą spaść poniżej 1 HP w tej turze."
+      "textShort": "[ALLY] nie mogą spaść poniżej 1 HP w tej turze."
     },
     "tank_repair_kit_1": {
       "name": "Reaktywne Opancerzenie",

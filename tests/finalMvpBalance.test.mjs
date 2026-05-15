@@ -36,7 +36,7 @@ test('Runner remains a 2/1 Aggro unit with +2 open-lane hero damage text', () =>
   assert.equal(runner.armor, 0);
   assert.equal(runner.effectId, 'lane_empty_bonus_damage');
   assert.equal(runner.targeting, 'lane');
-  assert.equal(runner.textShort, 'Open enemy line: enemy hero loses 2 HP.');
+  assert.equal(runner.textShort, 'Open line: enemy hero loses 2 HP.');
 });
 
 
@@ -122,7 +122,7 @@ test('Alpha is a 1/2 unit with the adjacent attack and anti-armor aura', () => {
   assert.equal(alpha.attack, 1);
   assert.equal(alpha.hp, 2);
   assert.equal(alpha.effectId, 'adjacent_allies_atk_plus_1_ignore_armor_1');
-  assert.equal(alpha.textShort, 'Adjacent allies +1 ATK, ignore 1 ARM.');
+  assert.equal(alpha.textShort, 'Adjacent [ALLY] +1 ATK, ignore 1 ARM.');
 });
 
 test('Alpha still gives adjacent friendly units +1 ATK in combat', () => {
@@ -193,7 +193,7 @@ test('Flanker is a 2/2 Aggro unit with the same empty-adjacent attack role', () 
   assert.equal(flanker.armor, 0);
   assert.equal(flanker.effectId, 'empty_adjacent_bonus_atk');
   assert.equal(flanker.targeting, 'lane');
-  assert.equal(flanker.textShort, 'If adjacent ally slot empty: +1 ATK.');
+  assert.equal(flanker.textShort, 'Empty adjacent ally slot: +1 ATK.');
 });
 
 
@@ -230,7 +230,7 @@ test('Scout is a 2/1 Aggro unit with the same lane-block role', () => {
   assert.equal(scout.armor, 0);
   assert.equal(scout.effectId, 'block_enemy_lane_play_this_turn');
   assert.equal(scout.targeting, 'enemy');
-  assert.equal(scout.textShort, "On play: block enemy unit play here this turn.");
+  assert.equal(scout.textShort, "On play: enemies can't play units here this turn.");
 });
 
 test('Fortify grants all friendly units +1 temporary armor for combat', () => {
@@ -250,7 +250,7 @@ test('Fortify grants all friendly units +1 temporary armor for combat', () => {
 
   assert.equal(state.board[6].hp, 2);
   assert.equal(state.board[6].tempArmorMod, undefined);
-  assert.equal(fortify.textShort, 'All allies +1 armor this turn.');
+  assert.equal(fortify.textShort, 'All [ALLY] +1 ARM this turn.');
 });
 
 test('Full Attack grants all Aggro friendly units +2 temporary attack for combat', () => {
@@ -267,7 +267,7 @@ test('Full Attack grants all Aggro friendly units +2 temporary attack for combat
   assert.equal(state.board[6].tempAttackMod, 2);
   assert.equal(state.board[7].tempAttackMod, 2);
   assert.equal(fullAttack.effectId, 'aggro_buff_all_atk_2');
-  assert.equal(fullAttack.textShort, 'All allies +2 ATK this turn.');
+  assert.equal(fullAttack.textShort, 'All [ALLY] +2 ATK this turn.');
 
   resolveCombat(state);
 
@@ -290,7 +290,7 @@ test('Quick Fix heals a friendly unit by 1 and grants +1 temporary attack for co
   assert.equal(getUnitAttack(state.board[6]), 3);
   assert.equal(quickFix.effectId, 'heal_1_atk_1_draw_on_kill_this_turn');
   assert.equal(quickFix.targeting, 'friendly_unit');
-  assert.equal(quickFix.textShort, 'Target [ALLY]: heal 1, +1 ATK this turn. Draw on kill.');
+  assert.equal(quickFix.textShort, 'Target [ALLY]: heal 1, +1 ATK this turn. Draw if it kills.');
 
   resolveCombat(state);
 
@@ -528,5 +528,5 @@ test('Recycle destroys only a friendly unit and draws exactly one card', () => {
   assert.equal(state.player.discard.map((card) => card.id).includes(recycle.id), true);
   assert.equal(recycle.targeting, 'friendly_unit');
   assert.equal(recycle.effectId, 'destroy_friendly_draw_1');
-  assert.equal(recycle.textShort, 'Destroy ally. Draw 1.');
+  assert.equal(recycle.textShort, 'Destroy [ALLY]. Draw 1.');
 });
