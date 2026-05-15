@@ -8,12 +8,18 @@ import {
   getMenuBackgroundAsset,
   preloadMenuBackgroundArt,
 } from '../rendering/backgroundArt.js';
-import { formatCardDetailLines, formatCollectionRowLabel } from '../rendering/cardRenderModes.js';
+import { formatCardDetailLines } from '../rendering/cardRenderModes.js';
 import { getActiveLocale, translateActive } from '../localization/localeService.js';
 import { createModalBackButton } from '../ui/modalControls.js';
 import { preloadSecondaryButtonAsset } from '../ui/imageButton.js';
+import { createCardPreviewView, getDefaultCardAccentColor } from '../rendering/cardVisualLayout.js';
 
 const CARD_SCROLL_DRAG_THRESHOLD = 8;
+const COLLECTION_GRID_GAP_X = 10;
+const COLLECTION_CARD_GAP_Y = 12;
+const COLLECTION_SECTION_GAP_Y = 26;
+const COLLECTION_CARDS_PER_COLUMN = 5;
+const COLLECTION_CARD_ASPECT_RATIO = 1.42;
 
 export default class CollectionScene extends Phaser.Scene {
   constructor() {
@@ -88,7 +94,9 @@ export default class CollectionScene extends Phaser.Scene {
     content.setMask(this.scrollMask);
 
     const sideMargin = 14;
-    const cardWidth = width - sideMargin * 2;
+    const columnGap = COLLECTION_GRID_GAP_X;
+    const cardWidth = (width - sideMargin * 2 - columnGap) / 2;
+    const cardHeight = Math.round(cardWidth * COLLECTION_CARD_ASPECT_RATIO);
     let cursorY = 0;
 
     getFactionKeys().forEach((factionKey) => {
@@ -97,8 +105,10 @@ export default class CollectionScene extends Phaser.Scene {
         x: sideMargin,
         y: cursorY,
         cardWidth,
+        cardHeight,
+        columnGap,
       });
-      cursorY += 18;
+      cursorY += COLLECTION_SECTION_GAP_Y;
     });
 
     this.scrollState = {
@@ -119,86 +129,62 @@ export default class CollectionScene extends Phaser.Scene {
     this.input.on('pointerup', this.onScrollPointerUp, this);
   }
 
-  drawFactionSection(content, factionKey, faction, { x, y, cardWidth }) {
+  drawFactionSection(content, factionKey, faction, { x, y, cardWidth, cardHeight, columnGap }) {
     const header = this.add
-      .text(x, y, getFactionPresentationName(faction?.id, getActiveLocale(), faction?.name ?? factionKey), {
+      .text(this.scale.width / 2, y, getFactionPresentationName(faction?.id, getActiveLocale(), faction?.name ?? factionKey), {
         fontFamily: 'Arial, sans-serif',
         fontSize: '21px',
         color: '#93c5fd',
         fontStyle: 'bold',
+        align: 'center',
       })
-      .setOrigin(0, 0);
+      .setOrigin(0.5, 0);
     content.add(header);
     this.uiElements.push(header);
 
-    let cursorY = y + 32;
-    (faction?.deck ?? []).forEach((card) => {
-      this.drawCardRow(content, card, {
-        x,
-        y: cursorY,
+    const deck = faction?.deck ?? [];
+    const rowsPerColumn = Math.max(COLLECTION_CARDS_PER_COLUMN, Math.ceil(deck.length / 2));
+    const gridTop = y + 34;
+
+    deck.forEach((card, index) => {
+      const column = Math.floor(index / rowsPerColumn);
+      const row = index % rowsPerColumn;
+      this.drawCardPreview(content, card, {
+        x: x + column * (cardWidth + columnGap),
+        y: gridTop + row * (cardHeight + COLLECTION_CARD_GAP_Y),
         width: cardWidth,
-        height: 72,
+        height: cardHeight,
       });
-      cursorY += 80;
     });
 
-    return cursorY;
+    return gridTop + rowsPerColumn * cardHeight + Math.max(0, rowsPerColumn - 1) * COLLECTION_CARD_GAP_Y;
   }
 
-  drawCardRow(content, card, { x, y, width, height }) {
-    const rowLabel = formatCollectionRowLabel(card, getActiveLocale());
+  drawCardPreview(content, card, { x, y, width, height }) {
+    const preview = createCardPreviewView(this, {
+      card,
+      x: x + width / 2,
+      y: y + height / 2,
+      width,
+      height,
+      accentColor: getDefaultCardAccentColor(card),
+      locale: getActiveLocale(),
+      statBadgeScale: 0.95,
+      typographyScale: 0.95,
+      titleTypographyScale: 1,
+      bodyLineSpacing: 1,
+    });
+    content.add(preview.root);
+    this.uiElements.push(preview.root);
 
-    const row = this.add.graphics();
-    row.fillStyle(0x0f172a, 0.92);
-    row.fillRoundedRect(x, y, width, height, 12);
-    row.lineStyle(1, 0x334155, 0.95);
-    row.strokeRoundedRect(x + 1, y + 1, width - 2, height - 2, 11);
-    content.add(row);
-    this.uiElements.push(row);
-
-    const name = this.add
-      .text(x + 12, y + 10, rowLabel.name, {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '18px',
-        color: '#f8fafc',
-        fontStyle: 'bold',
-      })
-      .setOrigin(0, 0);
-    content.add(name);
-    this.uiElements.push(name);
-
-    const typeStats = this.add
-      .text(x + 12, y + 34, rowLabel.typeStats, {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '12px',
-        color: '#bfdbfe',
-      })
-      .setOrigin(0, 0);
-    content.add(typeStats);
-    this.uiElements.push(typeStats);
-
-    const textShort = this.add
-      .text(x + 122, y + 12, rowLabel.textShort, {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '13px',
-        color: '#dbeafe',
-        lineSpacing: 2,
-        wordWrap: { width: width - 138 },
-      })
-      .setOrigin(0, 0);
-    content.add(textShort);
-    this.uiElements.push(textShort);
-
-    const zone = this.add.zone(x + width / 2, y + height / 2, width, height).setInteractive({ useHandCursor: true });
-    zone.on('pointerup', (pointer) => {
+    preview.background.setInteractive({ useHandCursor: true });
+    preview.background.on('pointerup', (pointer) => {
       const state = this.scrollState;
       if (!state || pointer.y < state.viewportTop || pointer.y > state.viewportBottom) {
         return;
       }
       this.openDetailPanel(card);
     });
-    content.add(zone);
-    this.uiElements.push(zone);
   }
 
   openDetailPanel(card) {
