@@ -1594,8 +1594,8 @@ export default class BattleScene extends Phaser.Scene {
     }
     const textPanel = this.add.rectangle(zones.text.centerX, zones.text.centerY, zones.text.width, zones.text.height, CARD_COLORS.textPanel, 0.91)
       .setStrokeStyle(1, 0x94a3b8, typographyScale > 1 ? 0.24 : 0.2);
-    const bodyTopPadding = Math.max(6, zones.text.height * (typographyScale > 1 ? 0.16 : 0.135));
-    const bodyBottomPadding = Math.max(6, zones.text.height * (typographyScale > 1 ? 0.15 : 0.13));
+    const bodyTopPadding = Math.max(5, zones.text.height * (typographyScale > 1 ? 0.11 : 0.1));
+    const bodyBottomPadding = Math.max(5, zones.text.height * (typographyScale > 1 ? 0.1 : 0.09));
     const bodyText = createInlineStatText(this, zones.text.centerX, zones.text.y + bodyTopPadding, content.body || content.type, {
       fontFamily: 'Arial, sans-serif',
       fontSize: typography.body,
