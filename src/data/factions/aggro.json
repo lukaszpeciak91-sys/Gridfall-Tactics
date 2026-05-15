@@ -9,7 +9,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": "lane_empty_bonus_damage",
-      "textShort": "Open enemy line: enemy hero loses 2 HP.",
+      "textShort": "Open line: enemy hero loses 2 HP.",
       "attack": 2,
       "hp": 1,
       "armor": 0
@@ -42,7 +42,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": "empty_adjacent_bonus_atk",
-      "textShort": "If adjacent ally slot empty: +1 ATK.",
+      "textShort": "Empty adjacent ally slot: +1 ATK.",
       "attack": 2,
       "hp": 2,
       "armor": 0
@@ -53,7 +53,7 @@
       "type": "unit",
       "targeting": "enemy",
       "effectId": "block_enemy_lane_play_this_turn",
-      "textShort": "On play: block enemy unit play here this turn.",
+      "textShort": "On play: enemies can't play units here this turn.",
       "attack": 2,
       "hp": 1,
       "armor": 0
@@ -64,7 +64,7 @@
       "type": "order",
       "targeting": "all_friendly_units",
       "effectId": "aggro_buff_all_atk_2",
-      "textShort": "All allies +2 ATK this turn."
+      "textShort": "All [ALLY] +2 ATK this turn."
     },
     {
       "id": "aggro_rush_1",
@@ -72,7 +72,7 @@
       "type": "order",
       "targeting": "friendly_unit",
       "effectId": "swap_adjacent_then_resolve",
-      "textShort": "Swap with first adjacent ally; fight that line."
+      "textShort": "Swap with an adjacent [ALLY]. Fight that lane."
     },
     {
       "id": "aggro_pierce_strike_1",
@@ -80,7 +80,7 @@
       "type": "order",
       "targeting": "enemy_unit",
       "effectId": "ignore_armor_next_attack",
-      "textShort": "Deal 1. Next combat hit ignores its armor."
+      "textShort": "Deal 1. Next combat hit ignores ARM."
     },
     {
       "id": "aggro_adrenaline_1",
@@ -88,7 +88,7 @@
       "type": "special",
       "targeting": "friendly_unit",
       "effectId": "quick_strike",
-      "textShort": "Ally: fight its line now."
+      "textShort": "[ALLY]: fight its lane now."
     },
     {
       "id": "aggro_quick_fix_1",
@@ -96,7 +96,7 @@
       "type": "utility",
       "targeting": "friendly_unit",
       "effectId": "heal_1_atk_1_draw_on_kill_this_turn",
-      "textShort": "Target [ALLY]: heal 1, +1 ATK this turn. Draw on kill."
+      "textShort": "Target [ALLY]: heal 1, +1 ATK this turn. Draw if it kills."
     }
   ]
 }

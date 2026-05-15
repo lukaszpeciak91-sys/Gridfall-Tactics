@@ -2,7 +2,7 @@
   "cards": {
     "aggro_runner_1": {
       "name": "Runner",
-      "textShort": "Open enemy line: enemy hero loses 2 HP."
+      "textShort": "Open line: enemy hero loses 2 HP."
     },
     "aggro_berserker_1": {
       "name": "Berserker",
@@ -14,31 +14,31 @@
     },
     "aggro_flanker_1": {
       "name": "Flanker",
-      "textShort": "If adjacent ally slot empty: +1 ATK."
+      "textShort": "Empty adjacent ally slot: +1 ATK."
     },
     "aggro_scout_1": {
       "name": "Scout",
-      "textShort": "On play: block enemy unit play here this turn."
+      "textShort": "On play: enemies can't play units here this turn."
     },
     "aggro_full_attack_1": {
       "name": "Full Attack",
-      "textShort": "All allies +2 ATK this turn."
+      "textShort": "All [ALLY] +2 ATK this turn."
     },
     "aggro_rush_1": {
       "name": "Rush",
-      "textShort": "Swap with first adjacent ally; fight that line."
+      "textShort": "Swap with an adjacent [ALLY]. Fight that lane."
     },
     "aggro_pierce_strike_1": {
       "name": "Pierce Strike",
-      "textShort": "Deal 1. Next combat hit ignores its armor."
+      "textShort": "Deal 1. Next combat hit ignores ARM."
     },
     "aggro_adrenaline_1": {
       "name": "Adrenaline",
-      "textShort": "Ally: fight its line now."
+      "textShort": "[ALLY]: fight its lane now."
     },
     "aggro_quick_fix_1": {
       "name": "Quick Fix",
-      "textShort": "Target [ALLY]: heal 1, +1 ATK this turn. Draw on kill."
+      "textShort": "Target [ALLY]: heal 1, +1 ATK this turn. Draw if it kills."
     },
     "attrition_swarm_husk_1": {
       "name": "Husk",
@@ -126,7 +126,7 @@
     },
     "swarm_spitter_1": {
       "name": "Spitter",
-      "textShort": "On play: deal 1 to opposing enemy."
+      "textShort": "On play: deal 1 to opposed enemy."
     },
     "swarm_brood_1": {
       "name": "Brood",
@@ -138,11 +138,11 @@
     },
     "swarm_alpha_1": {
       "name": "Alpha",
-      "textShort": "Adjacent allies +1 ATK, ignore 1 ARM."
+      "textShort": "Adjacent [ALLY] +1 ATK, ignore 1 ARM."
     },
     "swarm_spawn_1": {
       "name": "Spawn",
-      "textShort": "Summon 1/1 in first empty ally slot."
+      "textShort": "Summon 1/1 in an empty ally slot."
     },
     "swarm_swarm_attack_1": {
       "name": "Swarm Attack",
@@ -150,7 +150,7 @@
     },
     "swarm_regrow_1": {
       "name": "Regrow",
-      "textShort": "Revive first discarded unit at 1 HP."
+      "textShort": "Revive the first discarded unit at 1 HP."
     },
     "swarm_flood_1": {
       "name": "Flood",
@@ -158,11 +158,11 @@
     },
     "swarm_recycle_1": {
       "name": "Recycle",
-      "textShort": "Destroy ally. Draw 1."
+      "textShort": "Destroy [ALLY]. Draw 1."
     },
     "tank_shieldbearer_1": {
       "name": "Shieldbearer",
-      "textShort": "Adjacent allies have +1 ARM in combat."
+      "textShort": "Adjacent [ALLY] +1 ARM in combat."
     },
     "tank_heavy_1": {
       "name": "Heavy",
@@ -170,31 +170,31 @@
     },
     "tank_guardian_1": {
       "name": "Guardian",
-      "textShort": "Intercepts combat damage for adjacent ally."
+      "textShort": "Takes combat damage for adjacent [ALLY]."
     },
     "tank_wall_1": {
       "name": "Wall",
-      "textShort": "Blocks line. This unit can’t attack."
+      "textShort": "Blocks lane. Can't attack."
     },
     "tank_bruiser_1": {
       "name": "Bruiser",
-      "textShort": "When damaged and survives: +1 ATK this turn."
+      "textShort": "Survives damage: +1 ATK this turn."
     },
     "tank_fortify_1": {
       "name": "Fortify",
-      "textShort": "All allies +1 armor this turn."
+      "textShort": "All [ALLY] +1 ARM this turn."
     },
     "tank_stability_1": {
       "name": "Stability",
-      "textShort": "Allies can’t be moved/disabled this turn."
+      "textShort": "[ALLY] can't be moved or disabled this turn."
     },
     "tank_reinforce_1": {
       "name": "Reinforce",
-      "textShort": "Heal all allies 1."
+      "textShort": "Heal all [ALLY] by 1."
     },
     "tank_last_stand_1": {
       "name": "Last Stand",
-      "textShort": "Allies can’t drop below 1 HP this turn."
+      "textShort": "[ALLY] can't drop below 1 HP this turn."
     },
     "tank_repair_kit_1": {
       "name": "Reactive Plating",

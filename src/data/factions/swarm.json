@@ -20,7 +20,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": "on_play_lane_damage_1",
-      "textShort": "On play: deal 1 to opposing enemy.",
+      "textShort": "On play: deal 1 to opposed enemy.",
       "attack": 1,
       "hp": 1,
       "armor": 0
@@ -53,7 +53,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": "adjacent_allies_atk_plus_1_ignore_armor_1",
-      "textShort": "Adjacent allies +1 ATK, ignore 1 ARM.",
+      "textShort": "Adjacent [ALLY] +1 ATK, ignore 1 ARM.",
       "attack": 1,
       "hp": 2,
       "armor": 0
@@ -64,7 +64,7 @@
       "type": "order",
       "targeting": "empty_friendly_slot",
       "effectId": "summon_grunt_empty_slot",
-      "textShort": "Summon 1/1 in first empty ally slot."
+      "textShort": "Summon 1/1 in an empty ally slot."
     },
     {
       "id": "swarm_swarm_attack_1",
@@ -80,7 +80,7 @@
       "type": "order",
       "targeting": "friendly_discard",
       "effectId": "revive_friendly_1hp",
-      "textShort": "Revive first discarded unit at 1 HP."
+      "textShort": "Revive the first discarded unit at 1 HP."
     },
     {
       "id": "swarm_flood_1",
@@ -96,7 +96,7 @@
       "type": "utility",
       "targeting": "friendly_unit",
       "effectId": "destroy_friendly_draw_1",
-      "textShort": "Destroy ally. Draw 1."
+      "textShort": "Destroy [ALLY]. Draw 1."
     }
   ]
 }

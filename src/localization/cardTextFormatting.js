@@ -60,6 +60,7 @@ function signedHealthAmount(amount, sign = '') {
 
 function formatEnglishHealthEffectPhrases(text) {
   return text
+    .replace(/\b(heal(?:s)?\b[^.,;:!?]*?\s+by\s+)(\d+)(?!\s*●)\b/giu, (match, prefix, amount) => `${prefix}${signedHealthAmount(amount, '+')}`)
     .replace(/\b(heal(?:s)?(?:\s+(?:the\s+)?(?:(?:all|friendly)\s+)?(?:hero|heroes|ally|allies|unit|units|self|it|target))?\s+)(\d+)(?!\s*●)\b/giu, (match, prefix, amount) => `${prefix}${signedHealthAmount(amount, '+')}`)
     .replace(/\b(gain(?:s)?\s+)(\d+)\s+HP\b(?!\s*●)/giu, (match, prefix, amount) => `${prefix}${signedHealthAmount(amount, '+')}`)
     .replace(/\b(lose(?:s)?\s+)(\d+)\s+HP\b(?!\s*●)/giu, (match, prefix, amount) => `${prefix}${signedHealthAmount(amount)}`)

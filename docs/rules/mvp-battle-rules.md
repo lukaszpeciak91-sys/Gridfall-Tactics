@@ -197,16 +197,16 @@ The no-progress detector uses the stricter "meaningful for outcome" definition i
 
 | Faction | Card | Type | Stats | effectId | Implemented behavior | Targeting model | MVP simplifications / notes |
 |---|---|---|---|---|---|---|---|
-| Aggro | Runner | unit | 2/1/0 | lane_empty_bonus_damage | Open enemy line: enemy hero loses 2 HP. | Lane combat | Implemented in combat resolver. |
-| Aggro | Berserker | unit | 2/2/0 | wounded_atk_plus_1 | +1 ATK while current HP is below max HP. | Lane combat | Continuous card-local wounded check; bonus disappears when healed to full HP. |
-| Aggro | Glass Cannon | unit | 3/1/0 | self_damage_after_attack | Takes 1 self damage after attack resolves. | Lane combat | Implemented as pending self-damage. |
-| Aggro | Flanker | unit | 2/2/0 | empty_adjacent_bonus_atk | If adjacent ally slot empty: +1 ATK. | Lane combat | Adjacent check is board-state based. |
-| Aggro | Scout | unit | 2/1/0 | block_enemy_lane_play_this_turn | On play: block enemy unit play here this turn. | On-play lane | Symmetric for player/enemy; clears at PASS/combat cleanup. |
-| Aggro | Full Attack | order | - | aggro_buff_all_atk_2 | Friendly units get temp +2 ATK this turn. | Non-targeted effect | Expires after combat. |
-| Aggro | Rush | order | - | swap_adjacent_then_resolve | Swap with adjacent ally; fight that lane. | Targeted friendly | Fails if no adjacent friendly; prefers left if both sides are available. |
-| Aggro | Pierce Strike | order | - | ignore_armor_next_attack | Deal 1. Next combat hit ignores its armor. | Targeted enemy | If the target survives, consumes ignore flag on first mitigated hit. |
-| Aggro | Adrenaline | special | - | quick_strike | Resolve selected friendly unit's lane combat immediately. | Targeted friendly | Lane-only immediate combat slice. |
-| Aggro | Quick Fix | utility | - | heal_1_atk_1_draw_on_kill_this_turn | Target [ALLY]: heal 1, +1 ATK this turn. Draw on kill. | Targeted friendly | Heal is capped by max HP; draw uses one-shot combat kill tracking and temporary trigger cleanup after combat. |
+| Aggro | Runner | unit | 2/1/0 | lane_empty_bonus_damage | Open line: enemy hero loses 2 HP. | Lane combat | Implemented in combat resolver. |
+| Aggro | Berserker | unit | 2/2/0 | wounded_atk_plus_1 | While damaged: +1 ATK. | Lane combat | Continuous card-local wounded check; bonus disappears when healed to full HP. |
+| Aggro | Glass Cannon | unit | 3/1/0 | self_damage_after_attack | After attack: lose 1 HP. | Lane combat | Implemented as pending self-damage. |
+| Aggro | Flanker | unit | 2/2/0 | empty_adjacent_bonus_atk | Empty adjacent ally slot: +1 ATK. | Lane combat | Adjacent check is board-state based. |
+| Aggro | Scout | unit | 2/1/0 | block_enemy_lane_play_this_turn | On play: enemies can't play units here this turn. | On-play lane | Symmetric for player/enemy; clears at PASS/combat cleanup. |
+| Aggro | Full Attack | order | - | aggro_buff_all_atk_2 | All [ALLY] +2 ATK this turn. | Non-targeted effect | Expires after combat. |
+| Aggro | Rush | order | - | swap_adjacent_then_resolve | Swap with an adjacent [ALLY]. Fight that lane. | Targeted friendly | Fails if no adjacent friendly; prefers left if both sides are available. |
+| Aggro | Pierce Strike | order | - | ignore_armor_next_attack | Deal 1. Next combat hit ignores ARM. | Targeted enemy | If the target survives, consumes ignore flag on first mitigated hit. |
+| Aggro | Adrenaline | special | - | quick_strike | [ALLY]: fight its lane now. | Targeted friendly | Lane-only immediate combat slice. |
+| Aggro | Quick Fix | utility | - | heal_1_atk_1_draw_on_kill_this_turn | Target [ALLY]: heal 1, +1 ATK this turn. Draw if it kills. | Targeted friendly | Heal is capped by max HP; draw uses one-shot combat kill tracking and temporary trigger cleanup after combat. |
 | Control | Hacker | unit | 1/2/0 | enemy_lane_atk_minus_1 | On play: opposing lane unit gets temp -1 ATK this turn. | Lane on-play | Also available as targeted effectId path. |
 | Control | Disruptor | unit | 1/2/0 | cancel_enemy_order | On play: cancel next enemy effect this turn. | On-play non-targeted | Cancels at most one enemy non-unit action; expires at PASS/combat cleanup if unused; not a persistent aura. |
 | Control | Sniper | unit | 2/1/0 | can_hit_any_lane | Attacks lowest-HP enemy unit. | Deterministic auto-target | Tie-break: lowest index; no manual target UI. |
@@ -218,15 +218,15 @@ The no-progress detector uses the stricter "meaningful for outcome" definition i
 | Control | System Override | special | - | control_enemy_unit_this_turn | Target enemy hits its own hero next combat. | Targeted enemy | Clears after combat cleanup. |
 | Control | Recall | utility | - | return_friendly_draw_1 | Return [ALLY] to hand. Draw 1. | Targeted friendly | Blocked if hand already full. |
 | Swarm | Grunt | unit | 1/1/0 | null | No special behavior. | Lane combat | Baseline token-like unit. |
-| Swarm | Spitter | unit | 1/1/0 | on_play_lane_damage_1 | On play: deal 1 to enemy in lane. | Lane on-play | No hero damage from this trigger. |
+| Swarm | Spitter | unit | 1/1/0 | on_play_lane_damage_1 | On play: deal 1 to opposed enemy. | Lane on-play | No hero damage from this trigger. |
 | Swarm | Brood | unit | 1/2/0 | on_death_summon_grunt | On death: summon 1/1 here. | Death trigger | Uses generated token cardId if same slot is now empty. |
 | Swarm | Rusher | unit | 2/1/0 | null | No special behavior. | Lane combat | Baseline attacker. |
-| Swarm | Alpha | unit | 1/2/0 | adjacent_allies_atk_plus_1_ignore_armor_1 | Adjacent allies +1 ATK, ignore 1 ARM. | Passive adjacency aura | Calculated at combat time; Alpha only benefits if adjacent to another Alpha. |
-| Swarm | Spawn | order | - | summon_grunt_empty_slot | Summon 1/1 in first empty ally slot. | Non-targeted deterministic effect | Fizzles if no empty slot; no manual target UI. |
+| Swarm | Alpha | unit | 1/2/0 | adjacent_allies_atk_plus_1_ignore_armor_1 | Adjacent [ALLY] +1 ATK, ignore 1 ARM. | Passive adjacency aura | Calculated at combat time; Alpha only benefits if adjacent to another Alpha. |
+| Swarm | Spawn | order | - | summon_grunt_empty_slot | Summon 1/1 in an empty ally slot. | Non-targeted deterministic effect | Fizzles if no empty slot; no manual target UI. |
 | Swarm | Swarm Attack | order | - | buff_all_atk_1 | All [ALLY] +1 ATK this turn. | Non-targeted effect | Swarm-specific behavior remains unchanged. |
-| Swarm | Regrow | order | - | revive_friendly_1hp | Revive first discarded unit at 1 HP. | Non-targeted deterministic effect | First empty slot + first unit in discard; no manual target UI. |
+| Swarm | Regrow | order | - | revive_friendly_1hp | Revive the first discarded unit at 1 HP. | Non-targeted deterministic effect | First empty slot + first unit in discard; no manual target UI. |
 | Swarm | Flood | special | - | fill_empty_slots_0_1 | Fill up to 2 empty ally slots with temporary 1/1s. | Non-targeted deterministic effect | Fills up to 2 empty friendly slots left-to-right with temporary 1/1 Tokens; they vanish after combat, do not enter discard, and do not trigger death effects. |
-| Swarm | Recycle | utility | - | destroy_friendly_draw_1 | Destroy ally. Draw 1. | Targeted friendly | Immediate non-combat destroy, then draw 1. |
+| Swarm | Recycle | utility | - | destroy_friendly_draw_1 | Destroy [ALLY]. Draw 1. | Targeted friendly | Immediate non-combat destroy, then draw 1. |
 | Attrition Swarm | Husk | unit | 1/1/0 | combat_death_damage_enemy_lane_1 | Combat death: deal 1 to enemy in lane. | Combat-only death trigger | Damages only an opposing enemy unit in the same lane; no hero fallback; does not trigger from Feast, redeploy, return, or non-combat damage cleanup. |
 | Attrition Swarm | Carrier | unit | 1/2/0 | combat_death_summon_grunt | Combat death: summon 1/1 here. | Combat-only death trigger | Summons a same-owner 1/1 in the same slot only after combat death and only if the slot is empty. |
 | Attrition Swarm | Leech | unit | 2/1/0 | leech_heal_hero_on_combat_kill | Combat kill and survive: heal hero 1. | Lane combat kill trigger | Heals its owner hero by 1 after dealing lethal combat damage and surviving; hero heal is capped by max HP. |
