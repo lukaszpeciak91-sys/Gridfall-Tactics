@@ -60,12 +60,12 @@ function signedHealthAmount(amount, sign = '') {
 
 function formatEnglishHealthEffectPhrases(text) {
   return text
-    .replace(/\b(heal(?:s)?(?:\s+(?:the\s+)?(?:(?:all|friendly)\s+)?(?:hero|heroes|ally|allies|unit|units|self|it|target))?\s+)(\d+)(?!\s*●)\b/giu, (match, prefix, amount) => `${prefix}${signedHealthAmount(amount, '+')}`)
+    .replace(/\b(heal(?:s)?(?:\s+(?:(?:the|your)\s+)?(?:(?:all|friendly)\s+)?(?:hero|heroes|ally|allies|unit|units|self|it|target))?\s+)(\d+)(?!\s*●)\b/giu, (match, prefix, amount) => `${prefix}${signedHealthAmount(amount, '+')}`)
     .replace(/\b(gain(?:s)?\s+)(\d+)\s+HP\b(?!\s*●)/giu, (match, prefix, amount) => `${prefix}${signedHealthAmount(amount, '+')}`)
     .replace(/\b(lose(?:s)?\s+)(\d+)\s+HP\b(?!\s*●)/giu, (match, prefix, amount) => `${prefix}${signedHealthAmount(amount)}`)
     .replace(/\b((?:(?:both|all)\s+)?(?:(?:enemy|friendly|opposing|allied)\s+)?(?:hero|heroes)\s+take(?:s)?\s+)(\d+)(?!\s*●)\b/giu, (match, prefix, amount) => `${prefix}${signedHealthAmount(amount)}`)
     .replace(/\b(take(?:s)?\s+)(\d+)\s+damage\b(?!\s*●)/giu, (match, prefix, amount) => `${prefix}${signedHealthAmount(amount)}`)
-    .replace(/\b(deal(?:s)?\s+)(\d+)(\s+to\s+(?:(?:the|an|a)\s+)?(?:opposing\s+)?(?:enemy|enemies|hero|heroes|unit|units|ally|allies)\b)(?!\s*●)/giu, (match, prefix, amount, suffix) => `${prefix}${signedHealthAmount(amount)}${suffix}`);
+    .replace(/\b(deal(?:s)?\s+)(\d+)(\s+to\s+(?:(?:the|an|a)\s+)?(?:(?:opposing|opposed)\s+)?(?:enemy|enemies|hero|heroes|unit|units|ally|allies)\b)(?!\s*●)/giu, (match, prefix, amount, suffix) => `${prefix}${signedHealthAmount(amount)}${suffix}`);
 }
 
 function formatPolishHealthEffectPhrases(text) {
