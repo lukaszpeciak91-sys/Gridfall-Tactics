@@ -64,10 +64,15 @@
         box-sizing: border-box;
       }
 
-      #app[data-forced-landscape-fullscreen="true"] canvas {
+      #app[data-portrait-frame-fit="true"] {
         flex: 0 0 auto;
-        max-width: var(--forced-landscape-fit-width);
-        max-height: var(--forced-landscape-fit-height);
+        box-shadow: 0 0 32px rgba(0, 0, 0, 0.42);
+      }
+
+      #app[data-portrait-frame-fit="true"] canvas {
+        flex: 0 0 auto;
+        max-width: var(--portrait-frame-fit-width);
+        max-height: var(--portrait-frame-fit-height);
       }
 
       #app canvas {
