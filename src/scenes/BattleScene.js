@@ -53,6 +53,10 @@ const INSPECT_CARD_TWEEN_OUT_MS = 95;
 const HAND_CARD_STAT_BADGE_SCALE = 1.1;
 const HAND_CARD_TYPOGRAPHY_SCALE = 1.12;
 const HAND_CARD_BODY_LINE_SPACING = 3;
+const HAND_CARD_SELECTED_DEPTH = 760;
+const HAND_CARD_SELECTED_LIFT_PX = 14;
+const HAND_CARD_DIM_ALPHA = 0.62;
+const HAND_CARD_SELECTED_ALPHA = 1;
 const INSPECT_CARD_STAT_BADGE_SCALE = 1.28;
 const INSPECT_CARD_TYPOGRAPHY_SCALE = 1.1;
 const INSPECT_CARD_BODY_LINE_SPACING = 5;
@@ -1608,8 +1612,10 @@ export default class BattleScene extends Phaser.Scene {
     });
     const dividers = [zones.art.y - zones.gap / 2, zones.name.y - zones.gap / 2, zones.text.y - zones.gap / 2]
       .map((dividerY) => this.add.rectangle(0, dividerY, zones.outer.width - zones.pad * 2.15, 1, CARD_COLORS.divider, 0.22));
+    const selectionOutline = this.add.rectangle(0, 0, width + 3, height + 3, 0xfacc15, 0)
+      .setStrokeStyle(0, 0xfacc15, 0);
 
-    root.add([glow, background, inner, statBadges, art, namePanel, nameText, textPanel, bodyText, ...dividers]);
+    root.add([glow, background, inner, statBadges, art, namePanel, nameText, textPanel, bodyText, ...dividers, selectionOutline]);
 
     return {
       cardId,
@@ -1619,6 +1625,7 @@ export default class BattleScene extends Phaser.Scene {
       label: nameText,
       nameText,
       bodyText,
+      selectionOutline,
       statBar: statBadges,
       statBadges,
       art,
@@ -3210,6 +3217,7 @@ export default class BattleScene extends Phaser.Scene {
     previewView.glow.setStrokeStyle(5, 0xfacc15, 0.72);
     previewView.background.setFillStyle(CARD_COLORS.frameSelected, 0.95);
     previewView.background.setStrokeStyle(5, accentColor, 1);
+    previewView.selectionOutline?.setStrokeStyle(5, 0xfacc15, 0.92);
 
     this.tweens.add({
       targets: overlay,
@@ -3243,6 +3251,9 @@ export default class BattleScene extends Phaser.Scene {
 
       const isInspectedCard = card.cardId === inspectCardId;
       card.root.setAlpha(isInspectedCard ? 0.82 : HAND_CARD_INSPECT_DIM_ALPHA);
+      card.root.setPosition(card.baseX, isInspectedCard ? card.baseY - HAND_CARD_SELECTED_LIFT_PX : card.baseY);
+      card.root.setDepth(isInspectedCard ? HAND_CARD_SELECTED_DEPTH : card.baseDepth);
+      card.selectionOutline?.setStrokeStyle(isInspectedCard ? 5 : 0, 0xfacc15, isInspectedCard ? 0.72 : 0);
     });
   }
 
@@ -3250,6 +3261,9 @@ export default class BattleScene extends Phaser.Scene {
     this.cardViews.forEach((card) => {
       const viewCard = this.gameState?.player?.hand?.find((item) => item.id === card.cardId);
       card.root.setAlpha(viewCard ? 1 : 0.45);
+      card.root.setPosition(card.baseX, card.baseY);
+      card.root.setDepth(card.baseDepth);
+      card.selectionOutline?.setStrokeStyle(0, 0xfacc15, 0);
     });
   }
 
@@ -3259,20 +3273,27 @@ export default class BattleScene extends Phaser.Scene {
       const isGameplaySelected = !this.openingMulliganPending && card.cardId === this.selectedCardId;
       const isHighlighted = isGameplaySelected || isMulliganSelected;
       const viewCard = this.gameState.player.hand.find((item) => item.id === card.cardId);
-      const allTargets = [card.root, card.glow, card.background, card.label].filter(Boolean);
+      const hasActiveHandCard = this.openingMulliganPending
+        ? Boolean(this.previewedMulliganCardId || this.selectedMulliganCardIds.length > 0)
+        : Boolean(this.selectedCardId || this.hoverInspectCardId);
+      const isFocusedHandCard = Boolean(viewCard) && !this.openingMulliganPending && card.cardId === this.hoverInspectCardId;
+      const isActiveHandCard = isHighlighted || isFocusedHandCard;
+      const isDimmedByActiveCard = Boolean(viewCard) && hasActiveHandCard && !isActiveHandCard;
+      const allTargets = [card.root, card.glow, card.background, card.label, card.selectionOutline].filter(Boolean);
 
       const accentColor = this.getHandCardAccentColor(viewCard);
 
       this.tweens.killTweensOf(allTargets);
-      card.background.setStrokeStyle(isHighlighted ? 5 : 3, isHighlighted ? 0xfacc15 : accentColor, isHighlighted ? 1 : viewCard ? 0.82 : 0.7);
-      card.background.setFillStyle(isHighlighted ? CARD_COLORS.frameSelected : CARD_COLORS.frame, isHighlighted ? 0.92 : viewCard ? 0.84 : 0.48);
-      card.glow.setStrokeStyle(isHighlighted ? 5 : 0, 0xfacc15, isHighlighted ? 0.65 : 0);
-      card.glow.setFillStyle(0xfacc15, isHighlighted ? 0.12 : 0);
+      card.background.setStrokeStyle(isActiveHandCard ? 5 : 3, isActiveHandCard ? 0xfacc15 : accentColor, isActiveHandCard ? 1 : viewCard ? 0.76 : 0.7);
+      card.background.setFillStyle(isActiveHandCard ? CARD_COLORS.frameSelected : CARD_COLORS.frame, isActiveHandCard ? 0.95 : viewCard ? 0.74 : 0.48);
+      card.glow.setStrokeStyle(isActiveHandCard ? 5 : 0, 0xfacc15, isActiveHandCard ? 0.65 : 0);
+      card.glow.setFillStyle(0xfacc15, isActiveHandCard ? 0.12 : 0);
+      card.selectionOutline?.setStrokeStyle(isActiveHandCard ? 5 : 0, 0xfacc15, isActiveHandCard ? 0.92 : 0);
       card.label.setFontSize(card.baseFontSize);
       card.label.setColor(viewCard ? CARD_COLORS.ivoryText : CARD_COLORS.mutedText);
 
-      card.root.setAlpha(viewCard ? 1 : 0.45);
-      card.root.setPosition(card.baseX, card.baseY).setScale(1).setDepth(card.baseDepth);
+      card.root.setAlpha(viewCard ? (isDimmedByActiveCard ? HAND_CARD_DIM_ALPHA : HAND_CARD_SELECTED_ALPHA) : 0.45);
+      card.root.setPosition(card.baseX, isActiveHandCard ? card.baseY - HAND_CARD_SELECTED_LIFT_PX : card.baseY).setScale(1).setDepth(isActiveHandCard ? HAND_CARD_SELECTED_DEPTH : card.baseDepth);
     });
 
     if (showPreview) {
