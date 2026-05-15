@@ -9,7 +9,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": "warden_defensive_friction_self",
-      "textShort": "Enemy attacking this: -1 ATK.",
+      "textShort": "Attackers: -1 ATK.",
       "attack": 2,
       "hp": 2,
       "armor": 0
@@ -20,7 +20,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": "warden_defensive_friction_adjacent",
-      "textShort": "Adjacent allies: attackers -1 ATK.",
+      "textShort": "Attackers of adjacent allies: -1 ATK.",
       "attack": 1,
       "hp": 1,
       "armor": 0
@@ -31,7 +31,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": "opposing_lane_atk_plus_1",
-      "textShort": "If opposed: +1 ATK.",
+      "textShort": "Opposed: +1 ATK.",
       "attack": 2,
       "hp": 1,
       "armor": 0
@@ -64,7 +64,7 @@
       "type": "utility",
       "targeting": "friendly_unit",
       "effectId": "temp_armor_1",
-      "textShort": "Target ally +1 ARM until combat ends."
+      "textShort": "Target [ALLY] +1 ARM until combat ends."
     },
     {
       "id": "wardens_shield_push_1",
@@ -72,7 +72,7 @@
       "type": "order",
       "targeting": "none",
       "effectId": "swap_leftmost_adjacent_enemies",
-      "textShort": "Swap leftmost adjacent enemies."
+      "textShort": "Swap two adjacent enemies."
     },
     {
       "id": "wardens_stand_firm_1",
@@ -80,7 +80,7 @@
       "type": "order",
       "targeting": "none",
       "effectId": "friendly_immovable_this_turn",
-      "textShort": "All allies can’t be moved this turn."
+      "textShort": "All [ALLY] can't be moved this turn."
     },
     {
       "id": "wardens_reinforce_line_1",
@@ -88,7 +88,7 @@
       "type": "order",
       "targeting": "none",
       "effectId": "adjacent_allies_temp_armor_1",
-      "textShort": "Adjacent allies +1 ARM until combat ends."
+      "textShort": "Adjacent [ALLY] +1 ARM until combat ends."
     },
     {
       "id": "wardens_hold_the_line_1",
@@ -96,7 +96,7 @@
       "type": "order",
       "targeting": "none",
       "effectId": "adjacent_allies_temp_armor_1",
-      "textShort": "Adjacent allies +1 ARM until combat ends."
+      "textShort": "Adjacent [ALLY] +1 ARM until combat ends."
     }
   ]
 }

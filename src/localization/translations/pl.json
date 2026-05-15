@@ -202,15 +202,15 @@
     },
     "wardens_sentinel_1": {
       "name": "Wartownik",
-      "textShort": "Wróg atakujący tę jednostkę: -1 ATK."
+      "textShort": "Atakujący: -1 ATK."
     },
     "wardens_spearwall_1": {
       "name": "Ściana Włóczni",
-      "textShort": "Sąsiedni sojusznicy: atakujący -1 ATK."
+      "textShort": "Atakujący sąsiednich sprzymierzeńców: -1 ATK."
     },
     "wardens_halberdier_1": {
       "name": "Halabardnik",
-      "textShort": "Gdy naprzeciw jest wróg: +1 ATK."
+      "textShort": "Naprzeciwko: +1 ATK."
     },
     "wardens_bastion_guard_1": {
       "name": "Straż Bastionu",
@@ -222,23 +222,23 @@
     },
     "wardens_brace_1": {
       "name": "Zapora",
-      "textShort": "Wybrany sojusznik +1 ARM do końca walki."
+      "textShort": "Wybrany [ALLY] +1 ARM do końca walki."
     },
     "wardens_shield_push_1": {
       "name": "Pchnięcie Tarczą",
-      "textShort": "Zamień najbardziej lewych sąsiednich wrogów."
+      "textShort": "Zamień dwóch sąsiednich wrogów."
     },
     "wardens_stand_firm_1": {
       "name": "Stać Twardo",
-      "textShort": "Sojusznicy nie mogą być przesuwani w tej turze."
+      "textShort": "Wszyscy [ALLY] nie mogą być przesuwani w tej turze."
     },
     "wardens_reinforce_line_1": {
       "name": "Wzmocnij Linię",
-      "textShort": "Sąsiedni sojusznicy +1 ARM do końca walki."
+      "textShort": "Sąsiedni [ALLY] +1 ARM do końca walki."
     },
     "wardens_hold_the_line_1": {
       "name": "Utrzymać Linię",
-      "textShort": "Sąsiedni sojusznicy +1 ARM do końca walki."
+      "textShort": "Sąsiedni [ALLY] +1 ARM do końca walki."
     }
   },
   "cardTypes": {
@@ -380,7 +380,7 @@
         "grave_call": "Przyzwij 1/1; 2, jeśli jesteś sam",
         "infect_damage_1_opposite_ally_atk_1": "Zadaj 1, wzmocnij przeciwnego sojusznika",
         "adjacent_allies_temp_armor_1": "Sąsiedni sojusznicy +1 ARM",
-        "swap_leftmost_adjacent_enemies": "Zamień najbardziej lewych sąsiednich wrogów"
+        "swap_leftmost_adjacent_enemies": "Zamień dwóch sąsiednich wrogów"
       }
     },
     "rules": {

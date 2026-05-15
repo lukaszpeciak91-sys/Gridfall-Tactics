@@ -202,15 +202,15 @@
     },
     "wardens_sentinel_1": {
       "name": "Sentinel",
-      "textShort": "Enemy attacking this: -1 ATK."
+      "textShort": "Attackers: -1 ATK."
     },
     "wardens_spearwall_1": {
       "name": "Spearwall",
-      "textShort": "Adjacent allies: attackers -1 ATK."
+      "textShort": "Attackers of adjacent allies: -1 ATK."
     },
     "wardens_halberdier_1": {
       "name": "Halberdier",
-      "textShort": "If opposed: +1 ATK."
+      "textShort": "Opposed: +1 ATK."
     },
     "wardens_bastion_guard_1": {
       "name": "Bastion Guard",
@@ -222,23 +222,23 @@
     },
     "wardens_brace_1": {
       "name": "Brace",
-      "textShort": "Target ally +1 ARM until combat ends."
+      "textShort": "Target [ALLY] +1 ARM until combat ends."
     },
     "wardens_shield_push_1": {
       "name": "Shield Push",
-      "textShort": "Swap leftmost adjacent enemies."
+      "textShort": "Swap two adjacent enemies."
     },
     "wardens_stand_firm_1": {
       "name": "Stand Firm",
-      "textShort": "All allies can’t be moved this turn."
+      "textShort": "All [ALLY] can't be moved this turn."
     },
     "wardens_reinforce_line_1": {
       "name": "Reinforce Line",
-      "textShort": "Adjacent allies +1 ARM until combat ends."
+      "textShort": "Adjacent [ALLY] +1 ARM until combat ends."
     },
     "wardens_hold_the_line_1": {
       "name": "Hold The Line",
-      "textShort": "Adjacent allies +1 ARM until combat ends."
+      "textShort": "Adjacent [ALLY] +1 ARM until combat ends."
     }
   },
   "cardTypes": {
@@ -380,7 +380,7 @@
         "grave_call": "Summon 1/1; 2 if alone",
         "infect_damage_1_opposite_ally_atk_1": "Deal 1, empower opposite ally",
         "adjacent_allies_temp_armor_1": "Adjacent allies +1 ARM",
-        "swap_leftmost_adjacent_enemies": "Swap leftmost adjacent enemies"
+        "swap_leftmost_adjacent_enemies": "Swap two adjacent enemies"
       }
     },
     "rules": {
