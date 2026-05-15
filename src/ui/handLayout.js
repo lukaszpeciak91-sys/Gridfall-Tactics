@@ -4,7 +4,7 @@ export const HAND_CARD_READABILITY_SCALE = 1.35;
 export const MIN_HAND_CONTROL_TOUCH_SIZE = 48;
 export const MAX_HAND_CONTROL_TOUCH_SIZE = 54;
 export const HAND_CARD_MAX_WIDTH_RATIO = 0.28;
-export const HAND_CARD_BOTTOM_SAFE_INSET_RATIO = 0.16;
+export const HAND_CARD_BOTTOM_SAFE_INSET_RATIO = 0.1;
 
 export function calculateHandLayoutMetrics({
   contentWidth,

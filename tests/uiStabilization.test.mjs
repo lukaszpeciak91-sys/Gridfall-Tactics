@@ -25,8 +25,8 @@ test('hand layout keeps cards above the control row with readable spacing on por
   assert.ok(hand.controlTouchSize >= MIN_HAND_CONTROL_TOUCH_SIZE);
   assert.equal(HAND_CARD_ASPECT_RATIO, 1.86);
   assert.equal(HAND_CARD_MAX_WIDTH_RATIO, 0.28);
-  assert.equal(HAND_CARD_BOTTOM_SAFE_INSET_RATIO, 0.16);
-  assert.ok(hand.cardHeight >= 154 && hand.cardHeight <= 162, 'mobile hand cards should gain roughly 15–25% height over the previous 129px layout');
+  assert.equal(HAND_CARD_BOTTOM_SAFE_INSET_RATIO, 0.1);
+  assert.ok(hand.cardHeight >= 164 && hand.cardHeight <= 170, 'mobile hand cards should use more bottom space while preserving safe insets');
   assert.ok(cardBottom <= handBottom - hand.cardBottomSafeInset + 0.0001);
   assert.ok(firstCardLeft >= 10);
   assert.ok(lastCardRight <= 380);
