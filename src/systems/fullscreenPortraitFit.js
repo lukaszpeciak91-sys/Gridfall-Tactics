@@ -7,6 +7,7 @@ const VIEWPORT_RESIZE_EVENTS = [
   'fullscreenchange',
   'webkitfullscreenchange',
 ];
+const ROTATION_REFRESH_FRAME_COUNT = 4;
 
 function getFullscreenElement() {
   if (typeof document === 'undefined') {
@@ -45,7 +46,15 @@ function getBodySafeAreaPadding() {
   };
 }
 
-export function calculateForcedLandscapePortraitFit(viewportWidth, viewportHeight, {
+function isFullscreenActive(game) {
+  return Boolean(getFullscreenElement()) || Boolean(game?.scale?.isFullscreen);
+}
+
+function isWideViewport(width, height) {
+  return width > height * WIDE_VIEWPORT_RATIO;
+}
+
+export function calculatePortraitFrameFit(viewportWidth, viewportHeight, {
   gameWidth = PORTRAIT_GAME_WIDTH,
   gameHeight = PORTRAIT_GAME_HEIGHT,
   safeHorizontal = 0,
@@ -66,48 +75,57 @@ export function calculateForcedLandscapePortraitFit(viewportWidth, viewportHeigh
   };
 }
 
-function isForcedLandscapeFullscreen(game) {
-  const fullscreenElement = getFullscreenElement();
-  const isFullscreen = Boolean(fullscreenElement) || Boolean(game?.scale?.isFullscreen);
-
-  if (!isFullscreen) {
-    return false;
-  }
-
-  const viewport = getViewportSize();
-  return viewport.width > viewport.height * WIDE_VIEWPORT_RATIO;
+export function calculateForcedLandscapePortraitFit(viewportWidth, viewportHeight, options = {}) {
+  return calculatePortraitFrameFit(viewportWidth, viewportHeight, options);
 }
 
-function applyForcedLandscapeFit(game, appElement) {
+export function shouldApplyPortraitFrameFit(viewportWidth, viewportHeight, { isFullscreen = false } = {}) {
+  return isFullscreen || isWideViewport(viewportWidth, viewportHeight);
+}
+
+function getCurrentPortraitFrameFit() {
   const viewport = getViewportSize();
   const safeArea = getBodySafeAreaPadding();
-  const fit = calculateForcedLandscapePortraitFit(viewport.width, viewport.height, {
-    safeHorizontal: safeArea.horizontal,
-    safeVertical: safeArea.vertical,
-  });
+
+  return {
+    viewport,
+    fit: calculatePortraitFrameFit(viewport.width, viewport.height, {
+      safeHorizontal: safeArea.horizontal,
+      safeVertical: safeArea.vertical,
+    }),
+  };
+}
+
+function applyPortraitFrameFit(game, appElement, { isFullscreen }) {
+  const { viewport, fit } = getCurrentPortraitFrameFit();
   const scaleManager = game?.scale;
-  const canvas = game?.canvas;
 
-  appElement.dataset.forcedLandscapeFullscreen = 'true';
-  appElement.style.setProperty('--forced-landscape-fit-width', `${fit.width}px`);
-  appElement.style.setProperty('--forced-landscape-fit-height', `${fit.height}px`);
+  appElement.dataset.portraitFrameFit = 'true';
+  appElement.dataset.portraitFrameFullscreen = isFullscreen ? 'true' : 'false';
+  appElement.style.setProperty('--portrait-frame-fit-width', `${fit.width}px`);
+  appElement.style.setProperty('--portrait-frame-fit-height', `${fit.height}px`);
+  appElement.style.setProperty('width', `${fit.width}px`);
+  appElement.style.setProperty('height', `${fit.height}px`);
+  appElement.style.setProperty('max-width', `${fit.availableWidth}px`);
+  appElement.style.setProperty('max-height', `${fit.availableHeight}px`);
 
-  canvas?.style?.setProperty('width', `${fit.width}px`);
-  canvas?.style?.setProperty('height', `${fit.height}px`);
   scaleManager?.setParentSize?.(fit.width, fit.height);
   scaleManager?.refresh?.();
 
-  return fit;
+  return { viewport, fit };
 }
 
 function restoreDefaultFit(game, appElement) {
-  const canvas = game?.canvas;
-
-  delete appElement.dataset.forcedLandscapeFullscreen;
-  appElement.style.removeProperty('--forced-landscape-fit-width');
-  appElement.style.removeProperty('--forced-landscape-fit-height');
-  canvas?.style?.removeProperty('width');
-  canvas?.style?.removeProperty('height');
+  delete appElement.dataset.portraitFrameFit;
+  delete appElement.dataset.portraitFrameFullscreen;
+  appElement.style.removeProperty('--portrait-frame-fit-width');
+  appElement.style.removeProperty('--portrait-frame-fit-height');
+  appElement.style.removeProperty('width');
+  appElement.style.removeProperty('height');
+  appElement.style.removeProperty('max-width');
+  appElement.style.removeProperty('max-height');
+  game?.canvas?.style?.removeProperty('width');
+  game?.canvas?.style?.removeProperty('height');
   game?.scale?.refresh?.();
 }
 
@@ -120,25 +138,36 @@ export function installFullscreenPortraitFit(game, appElement = null) {
 
   let animationFrame = 0;
   let applied = false;
+  let pendingFrames = 0;
 
   const update = () => {
     animationFrame = 0;
 
-    if (isForcedLandscapeFullscreen(game)) {
-      applyForcedLandscapeFit(game, resolvedAppElement);
-      applied = true;
-      return;
-    }
+    const viewport = getViewportSize();
+    const isFullscreen = isFullscreenActive(game);
 
-    if (applied) {
+    if (shouldApplyPortraitFrameFit(viewport.width, viewport.height, { isFullscreen })) {
+      applyPortraitFrameFit(game, resolvedAppElement, { isFullscreen });
+      applied = true;
+    } else if (applied) {
       restoreDefaultFit(game, resolvedAppElement);
       applied = false;
+    } else {
+      game?.scale?.refresh?.();
+    }
+
+    pendingFrames -= 1;
+    if (pendingFrames > 0) {
+      animationFrame = globalThis.requestAnimationFrame?.(update) ?? globalThis.setTimeout(update, 0);
     }
   };
 
   const scheduleUpdate = () => {
+    pendingFrames = ROTATION_REFRESH_FRAME_COUNT;
+
     if (animationFrame) {
       globalThis.cancelAnimationFrame?.(animationFrame);
+      globalThis.clearTimeout?.(animationFrame);
     }
 
     animationFrame = globalThis.requestAnimationFrame?.(update) ?? globalThis.setTimeout(update, 0);
@@ -160,6 +189,7 @@ export function installFullscreenPortraitFit(game, appElement = null) {
       globalThis.clearTimeout?.(animationFrame);
     }
 
+    pendingFrames = 0;
     VIEWPORT_RESIZE_EVENTS.forEach((eventName) => {
       globalThis.removeEventListener(eventName, scheduleUpdate);
     });
