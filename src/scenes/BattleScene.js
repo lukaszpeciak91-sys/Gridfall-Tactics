@@ -52,6 +52,7 @@ const INSPECT_CARD_TWEEN_IN_MS = 150;
 const INSPECT_CARD_TWEEN_OUT_MS = 95;
 const HAND_CARD_STAT_BADGE_SCALE = 1.1;
 const HAND_CARD_TYPOGRAPHY_SCALE = 1.12;
+const HAND_CARD_TITLE_TYPOGRAPHY_SCALE = 1.2;
 const HAND_CARD_BODY_LINE_SPACING = 3;
 const HAND_CARD_SELECTED_DEPTH = 760;
 const HAND_CARD_SELECTED_LIFT_PX = 14;
@@ -1507,6 +1508,7 @@ export default class BattleScene extends Phaser.Scene {
         accentColor,
         depth: baseDepth,
         typographyScale: HAND_CARD_TYPOGRAPHY_SCALE,
+        titleTypographyScale: HAND_CARD_TITLE_TYPOGRAPHY_SCALE,
         bodyLineSpacing: HAND_CARD_BODY_LINE_SPACING,
       });
 
@@ -1545,13 +1547,14 @@ export default class BattleScene extends Phaser.Scene {
     depth,
     statBadgeScale = HAND_CARD_STAT_BADGE_SCALE,
     typographyScale = 1,
+    titleTypographyScale = typographyScale,
     bodyLineSpacing = 2,
   }) {
     const zones = getCardLayoutZones(width, height);
     const baseTypography = getCardTypography(width, height);
     const typography = {
       stat: Math.round(baseTypography.stat * typographyScale),
-      name: Math.round(baseTypography.name * typographyScale),
+      name: Math.round(baseTypography.name * titleTypographyScale),
       type: Math.round(baseTypography.type * typographyScale),
       body: Math.round(baseTypography.body * typographyScale),
     };

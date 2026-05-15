@@ -1,9 +1,12 @@
 export const MAX_VISIBLE_HAND_CARDS = 5;
 export const HAND_CARD_ASPECT_RATIO = 1.86;
 export const HAND_CARD_READABILITY_SCALE = 1.35;
+export const HAND_CARD_WIDTH_POLISH_SCALE = 1.04;
 export const MIN_HAND_CONTROL_TOUCH_SIZE = 48;
 export const MAX_HAND_CONTROL_TOUCH_SIZE = 54;
-export const HAND_CARD_MAX_WIDTH_RATIO = 0.28;
+export const HAND_CARD_PRE_POLISH_MAX_WIDTH_RATIO = 0.28;
+export const HAND_CARD_MAX_WIDTH_RATIO = 0.292;
+export const HAND_CARD_TRACK_BLEED_RATIO = 1;
 export const HAND_CARD_BOTTOM_SAFE_INSET_RATIO = 0.1;
 
 export function calculateHandLayoutMetrics({
@@ -27,15 +30,24 @@ export function calculateHandLayoutMetrics({
   const cardRowHeight = Math.max(0, handHeight - cardBottomSafeInset);
   const maxCardHeight = Math.max(0, cardRowHeight - cardTopInset);
   const baseCardWidth = Math.min(contentWidth * 0.27, maxCardHeight / HAND_CARD_ASPECT_RATIO, handHeight * 0.9);
-  const cardWidth = Math.min(baseCardWidth * HAND_CARD_READABILITY_SCALE, contentWidth * HAND_CARD_MAX_WIDTH_RATIO, maxCardHeight / HAND_CARD_ASPECT_RATIO);
-  const cardHeight = cardWidth * HAND_CARD_ASPECT_RATIO;
-  const trackWidth = contentWidth;
+  const readableCardWidth = Math.min(
+    baseCardWidth * HAND_CARD_READABILITY_SCALE,
+    contentWidth * HAND_CARD_PRE_POLISH_MAX_WIDTH_RATIO,
+    maxCardHeight / HAND_CARD_ASPECT_RATIO,
+  );
+  const cardWidth = Math.min(
+    readableCardWidth * HAND_CARD_WIDTH_POLISH_SCALE,
+    contentWidth * HAND_CARD_MAX_WIDTH_RATIO,
+  );
+  const cardHeight = readableCardWidth * HAND_CARD_ASPECT_RATIO;
+  const trackBleed = margin * 2 * HAND_CARD_TRACK_BLEED_RATIO;
+  const trackWidth = contentWidth + trackBleed;
   const cardsVisible = Math.min(MAX_VISIBLE_HAND_CARDS, maxHandSize);
   const fittedStep = cardsVisible > 1 ? (trackWidth - cardWidth) / (cardsVisible - 1) : 0;
   const overlapStep = cardWidth * 1.0;
   const step = cardsVisible > 1 ? Math.min(fittedStep, overlapStep) : 0;
   const usedTrackWidth = cardWidth + step * Math.max(0, cardsVisible - 1);
-  const trackLeft = margin + (contentWidth - usedTrackWidth) / 2;
+  const trackLeft = margin - trackBleed / 2 + (trackWidth - usedTrackWidth) / 2;
   const cardCenterY = handY + cardTopInset + cardHeight / 2;
   const controlCenterY = handY + handHeight - controlBottomInset - controlTouchSize / 2;
 
