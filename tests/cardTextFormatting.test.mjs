@@ -1,36 +1,46 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { formatCardEffectTextShort } from '../src/localization/cardTextFormatting.js';
+import { CARD_EFFECT_GAMEPLAY_SYMBOLS, formatCardEffectTextShort } from '../src/localization/cardTextFormatting.js';
 import { formatCardDetailLines } from '../src/rendering/cardRenderModes.js';
 import { getFactionByKey } from '../src/data/factions/index.js';
-import { getCardDisplayContent, getInlineStatSymbolColor, layoutInlineStatText, tokenizeInlineStatText } from '../src/rendering/cardVisualLayout.js';
+import { getCardDisplayContent, getInlineGameplaySymbolColor, getInlineStatSymbolColor, layoutInlineStatText, tokenizeInlineStatText } from '../src/rendering/cardVisualLayout.js';
 
 test('formats English stat abbreviations in card effect text as compact symbols', () => {
   assert.equal(formatCardEffectTextShort('+1 ATK', 'en'), '+1 ▲');
   assert.equal(formatCardEffectTextShort('+1 ARM', 'en'), '+1 ◆');
-  assert.equal(formatCardEffectTextShort('After attack: lose 1 HP.', 'en'), 'After attack: lose -1 ●.');
+  assert.equal(formatCardEffectTextShort('After attack: lose 1 HP.', 'en'), 'After attack: lose 1 ●.');
   assert.equal(
-    formatCardEffectTextShort('Ally: heal 1, +1 ATK this turn. Draw if it kills.', 'en'),
-    'Ally: heal +1 ●, +1 ▲ this turn. Draw if it kills.',
+    formatCardEffectTextShort('Target [ALLY]: heal 1, +1 ATK this turn. Draw on kill.', 'en'),
+    'Target ♙: heal +1 ●, +1 ▲ this turn. Draw on kill.',
   );
+});
+
+
+test('formats pilot ally icon markers without globally replacing ally terms', () => {
+  assert.equal(CARD_EFFECT_GAMEPLAY_SYMBOLS.ally, '♙');
+  assert.equal(formatCardEffectTextShort('Target [ALLY] +1 ARM until combat ends.', 'en'), 'Target ♙ +1 ◆ until combat ends.');
+  assert.equal(formatCardEffectTextShort('All [ALLY] +1 ATK this turn.', 'en'), 'All ♙ +1 ▲ this turn.');
+  assert.equal(formatCardEffectTextShort('Return [ALLY] to hand. Draw 1.', 'en'), 'Return ♙ to hand. Draw 1.');
+  assert.equal(formatCardEffectTextShort('Wybrany [ALLY] +1 ARM do końca walki.', 'pl'), 'Wybrany ♙ +1 ◆ do końca walki.');
+  assert.equal(formatCardEffectTextShort('Target ally +1 ARM until combat ends.', 'en'), 'Target ally +1 ◆ until combat ends.');
 });
 
 test('formats localized Polish stat terms while preserving surrounding text', () => {
   assert.equal(formatCardEffectTextShort('Gdy uszkodzony: +1 ATK.', 'pl'), 'Gdy uszkodzony: +1 ▲.');
   assert.equal(formatCardEffectTextShort('Sojusznik +1 PANC do końca walki.', 'pl'), 'Sojusznik +1 ◆ do końca walki.');
   assert.equal(formatCardEffectTextShort('Wskrześ jednostkę z 1 HP.', 'pl'), 'Wskrześ jednostkę z 1 ●.');
-  assert.equal(formatCardEffectTextShort('Po ataku: traci 1 HP.', 'pl'), 'Po ataku: traci -1 ●.');
+  assert.equal(formatCardEffectTextShort('Po ataku: traci 1 HP.', 'pl'), 'Po ataku: traci 1 ●.');
   assert.equal(formatCardEffectTextShort('Zabije w walce i przetrwa: ulecz bohatera o 1.', 'pl'), 'Zabije w walce i przetrwa: ulecz bohatera o +1 ●.');
 });
 
 
 test('formats HP-related healing and damage language without replacing unrelated numbers', () => {
   assert.equal(formatCardEffectTextShort('Combat kill and survive: heal hero 1.', 'en'), 'Combat kill and survive: heal hero +1 ●.');
-  assert.equal(formatCardEffectTextShort('Combat death: both heroes take 1.', 'en'), 'Combat death: both heroes take 1 ●.');
-  assert.equal(formatCardEffectTextShort('On death: enemy hero takes 1.', 'en'), 'On death: enemy hero takes 1 ●.');
+  assert.equal(formatCardEffectTextShort('Combat death: both heroes lose 1 HP.', 'en'), 'Combat death: both heroes lose 1 ●.');
+  assert.equal(formatCardEffectTextShort('On death: enemy hero loses 1 HP.', 'en'), 'On death: enemy hero loses 1 ●.');
   assert.equal(formatCardEffectTextShort('Heal all allies 1.', 'en'), 'Heal all allies +1 ●.');
-  assert.equal(formatCardEffectTextShort('First 2 ally combat deaths deal 1 to opposing enemy.', 'en'), 'First 2 ally combat deaths deal 1 ● to opposing enemy.');
+  assert.equal(formatCardEffectTextShort('First 2 ally combat deaths: deal 1 to opposing enemy.', 'en'), 'First 2 ally combat deaths: deal 1 ● to opposing enemy.');
   assert.equal(formatCardEffectTextShort('Destroy ally. Draw 1.', 'en'), 'Destroy ally. Draw 1.');
   assert.equal(formatCardEffectTextShort('Combat death: summon 1/1 here.', 'en'), 'Combat death: summon 1/1 here.');
   assert.equal(formatCardEffectTextShort('Śmierć w walce: obaj bohaterowie otrzymują 1.', 'pl'), 'Śmierć w walce: obaj bohaterowie otrzymują 1 ●.');
@@ -48,10 +58,22 @@ test('formats HP symbols for localized Attrition Swarm card effect display text'
 
   assert.equal(getCardDisplayContent(cardById('attrition_swarm_leech_1'), 'en').body, 'Combat kill and survive: heal hero +1 ●.');
   assert.equal(getCardDisplayContent(cardById('attrition_swarm_leech_1'), 'pl').body, 'Zabije w walce i przetrwa: ulecz bohatera o +1 ●.');
-  assert.equal(getCardDisplayContent(cardById('attrition_swarm_abomination_1'), 'en').body, 'Combat death: both heroes take 1 ●.');
-  assert.equal(getCardDisplayContent(cardById('attrition_swarm_abomination_1'), 'pl').body, 'Śmierć w walce: obaj bohaterowie otrzymują 1 ●.');
-  assert.equal(getCardDisplayContent(cardById('attrition_swarm_funeral_pyre_1'), 'en').body, 'First 2 ally combat deaths deal 1 ● to opposing enemy.');
-  assert.equal(getCardDisplayContent(cardById('attrition_swarm_funeral_pyre_1'), 'pl').body, 'Pierwsze 2 śmierci sojuszników w walce: 1 ● wrogowi naprzeciw.');
+  assert.equal(getCardDisplayContent(cardById('attrition_swarm_abomination_1'), 'en').body, 'Combat death: both heroes lose 1 ●.');
+  assert.equal(getCardDisplayContent(cardById('attrition_swarm_abomination_1'), 'pl').body, 'Śmierć w walce: obaj bohaterowie tracą 1 ●.');
+  assert.equal(getCardDisplayContent(cardById('attrition_swarm_funeral_pyre_1'), 'en').body, 'First 2 ally combat deaths: deal 1 ● to opposing enemy.');
+  assert.equal(getCardDisplayContent(cardById('attrition_swarm_funeral_pyre_1'), 'pl').body, 'Pierwsze 2 śmierci sojuszników w walce: zadaj 1 ● wrogowi naprzeciw.');
+});
+
+test('pilot card display content renders ally icon markers', () => {
+  const swarm = getFactionByKey('Swarm');
+  const tank = getFactionByKey('Tank');
+  const control = getFactionByKey('Control');
+  const cardById = (faction, id) => faction.deck.find((card) => card.id === id);
+
+  assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_swarm_attack_1'), 'en').body, 'All ♙ +1 ▲ this turn.');
+  assert.equal(getCardDisplayContent(cardById(tank, 'tank_repair_kit_1'), 'en').body, 'Target ♙ +1 ◆ until combat ends.');
+  assert.equal(getCardDisplayContent(cardById(control, 'control_recall_1'), 'en').body, 'Return ♙ to hand. Draw 1.');
+  assert.equal(getCardDisplayContent(cardById(tank, 'tank_repair_kit_1'), 'pl').body, 'Wybrany ♙ +1 ◆ do końca walki.');
 });
 
 test('does not mutate source card data when formatting visual card content', () => {
@@ -74,10 +96,10 @@ test('detail text uses the same compact formatter as card textShort display', ()
     name: 'Detail',
     type: 'order',
     targeting: 'friendly-unit',
-    textShort: 'Ally: heal 1, +1 ATK this turn.',
+    textShort: 'Target [ALLY]: heal 1, +1 ATK this turn.',
   };
 
-  assert.equal(formatCardDetailLines(card, 'en').at(-1), 'Ally: heal +1 ●, +1 ▲ this turn.');
+  assert.equal(formatCardDetailLines(card, 'en').at(-1), 'Target ♙: heal +1 ●, +1 ▲ this turn.');
 });
 
 
@@ -85,12 +107,15 @@ test('inline stat text renderer maps compact symbols to top badge colors', () =>
   assert.equal(getInlineStatSymbolColor('▲'), '#24c6a7');
   assert.equal(getInlineStatSymbolColor('◆'), '#3d63c7');
   assert.equal(getInlineStatSymbolColor('●'), '#d24b5f');
+  assert.equal(getInlineGameplaySymbolColor('♙'), '#facc15');
   assert.equal(getInlineStatSymbolColor('x'), null);
+  assert.equal(getInlineGameplaySymbolColor('x'), null);
 });
 
-test('inline stat text tokenizer preserves localized copy while tagging stat symbols', () => {
-  assert.deepEqual(tokenizeInlineStatText('Sojusznik +1 ◆ i 1 ●.').filter((token) => token.type !== 'space'), [
+test('inline stat text tokenizer preserves localized copy while tagging stat and gameplay symbols', () => {
+  assert.deepEqual(tokenizeInlineStatText('Sojusznik ♙ +1 ◆ i 1 ●.').filter((token) => token.type !== 'space'), [
     { type: 'text', text: 'Sojusznik' },
+    { type: 'gameplaySymbol', text: '♙' },
     { type: 'text', text: '+1' },
     { type: 'statSymbol', text: '◆' },
     { type: 'text', text: 'i' },
@@ -100,15 +125,16 @@ test('inline stat text tokenizer preserves localized copy while tagging stat sym
   ]);
 });
 
-test('inline stat text layout wraps by measured token width and keeps stat symbols inline', () => {
-  const lines = layoutInlineStatText('Ally +1 ▲ this turn.', {
+test('inline stat text layout wraps by measured token width and keeps symbols inline', () => {
+  const lines = layoutInlineStatText('♙ +1 ▲ this turn.', {
     maxWidth: 10,
     measureTokenWidth: (token) => token.length,
   });
 
   assert.deepEqual(lines.map((line) => line.segments.map((segment) => segment.text).join('')), [
-    'Ally+1▲',
+    '♙+1▲',
     'thisturn.',
   ]);
+  assert.equal(lines[0].segments[0].type, 'gameplaySymbol');
   assert.equal(lines[0].segments.at(-1).type, 'statSymbol');
 });

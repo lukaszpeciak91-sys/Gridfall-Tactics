@@ -53,7 +53,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": "death_damage_enemy_hero_1",
-      "textShort": "On death: enemy hero takes 1.",
+      "textShort": "On death: enemy hero loses 1 HP.",
       "attack": 1,
       "hp": 1,
       "armor": 0
@@ -88,7 +88,7 @@
       "type": "special",
       "targeting": "enemy_unit",
       "effectId": "control_enemy_unit_this_turn",
-      "textShort": "Target enemy attacks its own hero in next combat, then takes 1 damage."
+      "textShort": "Target enemy attacks own hero next combat, then loses 1 HP."
     },
     {
       "id": "control_recall_1",
@@ -96,7 +96,7 @@
       "type": "utility",
       "targeting": "friendly_unit",
       "effectId": "return_friendly_draw_1",
-      "textShort": "Return ally to hand. Draw 1."
+      "textShort": "Return [ALLY] to hand. Draw 1."
     }
   ]
 }

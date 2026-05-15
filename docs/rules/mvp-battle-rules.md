@@ -197,43 +197,43 @@ The no-progress detector uses the stricter "meaningful for outcome" definition i
 
 | Faction | Card | Type | Stats | effectId | Implemented behavior | Targeting model | MVP simplifications / notes |
 |---|---|---|---|---|---|---|---|
-| Aggro | Runner | unit | 2/1/0 | lane_empty_bonus_damage | Open enemy lane: +2 hero dmg. | Lane combat | Implemented in combat resolver. |
+| Aggro | Runner | unit | 2/1/0 | lane_empty_bonus_damage | Open enemy line: enemy hero loses 2 HP. | Lane combat | Implemented in combat resolver. |
 | Aggro | Berserker | unit | 2/2/0 | wounded_atk_plus_1 | +1 ATK while current HP is below max HP. | Lane combat | Continuous card-local wounded check; bonus disappears when healed to full HP. |
 | Aggro | Glass Cannon | unit | 3/1/0 | self_damage_after_attack | Takes 1 self damage after attack resolves. | Lane combat | Implemented as pending self-damage. |
-| Aggro | Flanker | unit | 2/2/0 | empty_adjacent_bonus_atk | If nearby ally slot empty: +1 ATK. | Lane combat | Adjacent check is board-state based. |
+| Aggro | Flanker | unit | 2/2/0 | empty_adjacent_bonus_atk | If adjacent ally slot empty: +1 ATK. | Lane combat | Adjacent check is board-state based. |
 | Aggro | Scout | unit | 2/1/0 | block_enemy_lane_play_this_turn | On play: block enemy unit play here this turn. | On-play lane | Symmetric for player/enemy; clears at PASS/combat cleanup. |
 | Aggro | Full Attack | order | - | aggro_buff_all_atk_2 | Friendly units get temp +2 ATK this turn. | Non-targeted effect | Expires after combat. |
 | Aggro | Rush | order | - | swap_adjacent_then_resolve | Swap with adjacent ally; fight that lane. | Targeted friendly | Fails if no adjacent friendly; prefers left if both sides are available. |
 | Aggro | Pierce Strike | order | - | ignore_armor_next_attack | Deal 1. Next combat hit ignores its armor. | Targeted enemy | If the target survives, consumes ignore flag on first mitigated hit. |
 | Aggro | Adrenaline | special | - | quick_strike | Resolve selected friendly unit's lane combat immediately. | Targeted friendly | Lane-only immediate combat slice. |
-| Aggro | Quick Fix | utility | - | heal_1_atk_1_draw_on_kill_this_turn | Ally: heal 1, +1 ATK this turn. Draw if it kills. | Targeted friendly | Heal is capped by max HP; draw uses one-shot combat kill tracking and temporary trigger cleanup after combat. |
+| Aggro | Quick Fix | utility | - | heal_1_atk_1_draw_on_kill_this_turn | Target [ALLY]: heal 1, +1 ATK this turn. Draw on kill. | Targeted friendly | Heal is capped by max HP; draw uses one-shot combat kill tracking and temporary trigger cleanup after combat. |
 | Control | Hacker | unit | 1/2/0 | enemy_lane_atk_minus_1 | On play: opposing lane unit gets temp -1 ATK this turn. | Lane on-play | Also available as targeted effectId path. |
 | Control | Disruptor | unit | 1/2/0 | cancel_enemy_order | On play: cancel next enemy effect this turn. | On-play non-targeted | Cancels at most one enemy non-unit action; expires at PASS/combat cleanup if unused; not a persistent aura. |
 | Control | Sniper | unit | 2/1/0 | can_hit_any_lane | Attacks lowest-HP enemy unit. | Deterministic auto-target | Tie-break: lowest index; no manual target UI. |
 | Control | Controller | unit | 1/2/0 | swap_two_enemy_units | On play: swap first 2 enemies. | Deterministic on-play | Picks first two enemy units by index order; not manual two-pick UI for this unit trigger. |
-| Control | Drone | unit | 1/1/0 | death_damage_enemy_hero_1 | On death, enemy hero takes 1. | Death trigger | Applies after unit removed. |
+| Control | Drone | unit | 1/1/0 | death_damage_enemy_hero_1 | On death: enemy hero loses 1 HP. | Death trigger | Applies after unit removed. |
 | Control | Swap | order | - | swap_any_two_units | Swap two selected units on one side. | Two-target targeted effect | Requires two distinct occupied slots with the same owner; cannot trade units between sides. |
 | Control | Jam Signal | order | - | enemy_all_atk_minus_1 | Leftmost 2 enemies -1 ATK this turn. | Non-targeted deterministic effect | Picks occupied enemy lanes from left to right; expires after combat. |
 | Control | Pulse Wave | order | - | damage_all_enemies_1_ignore_armor | Deal 1 to all enemies ignoring armor. | Non-targeted deterministic effect | Damages occupied enemy lanes only, ignores armor, never damages heroes, and cleans up defeated units after all Pulse Wave damage is applied. |
 | Control | System Override | special | - | control_enemy_unit_this_turn | Target enemy hits its own hero next combat. | Targeted enemy | Clears after combat cleanup. |
-| Control | Recall | utility | - | return_friendly_draw_1 | Return friendly unit to hand, then draw 1. | Targeted friendly | Blocked if hand already full. |
+| Control | Recall | utility | - | return_friendly_draw_1 | Return [ALLY] to hand. Draw 1. | Targeted friendly | Blocked if hand already full. |
 | Swarm | Grunt | unit | 1/1/0 | null | No special behavior. | Lane combat | Baseline token-like unit. |
 | Swarm | Spitter | unit | 1/1/0 | on_play_lane_damage_1 | On play: deal 1 to enemy in lane. | Lane on-play | No hero damage from this trigger. |
 | Swarm | Brood | unit | 1/2/0 | on_death_summon_grunt | On death: summon 1/1 here. | Death trigger | Uses generated token cardId if same slot is now empty. |
 | Swarm | Rusher | unit | 2/1/0 | null | No special behavior. | Lane combat | Baseline attacker. |
 | Swarm | Alpha | unit | 1/2/0 | adjacent_allies_atk_plus_1_ignore_armor_1 | Adjacent allies +1 ATK, ignore 1 ARM. | Passive adjacency aura | Calculated at combat time; Alpha only benefits if adjacent to another Alpha. |
 | Swarm | Spawn | order | - | summon_grunt_empty_slot | Summon 1/1 in first empty ally slot. | Non-targeted deterministic effect | Fizzles if no empty slot; no manual target UI. |
-| Swarm | Swarm Attack | order | - | buff_all_atk_1 | Friendly units get temp +1 ATK this turn. | Non-targeted effect | Swarm-specific behavior remains unchanged. |
+| Swarm | Swarm Attack | order | - | buff_all_atk_1 | All [ALLY] +1 ATK this turn. | Non-targeted effect | Swarm-specific behavior remains unchanged. |
 | Swarm | Regrow | order | - | revive_friendly_1hp | Revive first discarded unit at 1 HP. | Non-targeted deterministic effect | First empty slot + first unit in discard; no manual target UI. |
-| Swarm | Flood | special | - | fill_empty_slots_0_1 | Fill up to 2 empty ally slots with temporary 1/1 Tokens. | Non-targeted deterministic effect | Fills up to 2 empty friendly slots left-to-right with temporary 1/1 Tokens; they vanish after combat, do not enter discard, and do not trigger death effects. |
+| Swarm | Flood | special | - | fill_empty_slots_0_1 | Fill up to 2 empty ally slots with temporary 1/1s. | Non-targeted deterministic effect | Fills up to 2 empty friendly slots left-to-right with temporary 1/1 Tokens; they vanish after combat, do not enter discard, and do not trigger death effects. |
 | Swarm | Recycle | utility | - | destroy_friendly_draw_1 | Destroy ally. Draw 1. | Targeted friendly | Immediate non-combat destroy, then draw 1. |
 | Attrition Swarm | Husk | unit | 1/1/0 | combat_death_damage_enemy_lane_1 | Combat death: deal 1 to enemy in lane. | Combat-only death trigger | Damages only an opposing enemy unit in the same lane; no hero fallback; does not trigger from Feast, redeploy, return, or non-combat damage cleanup. |
 | Attrition Swarm | Carrier | unit | 1/2/0 | combat_death_summon_grunt | Combat death: summon 1/1 here. | Combat-only death trigger | Summons a same-owner 1/1 in the same slot only after combat death and only if the slot is empty. |
 | Attrition Swarm | Leech | unit | 2/1/0 | leech_heal_hero_on_combat_kill | Combat kill and survive: heal hero 1. | Lane combat kill trigger | Heals its owner hero by 1 after dealing lethal combat damage and surviving; hero heal is capped by max HP. |
 | Attrition Swarm | Rotcaller | unit | 1/2/0 | rotcaller_adjacent_death_atk_1 | First adjacent ally combat death: +1 ATK. | Combat-only same-row adjacency trigger | Capped at +1 per Rotcaller per combat and clears after combat. |
-| Attrition Swarm | Abomination | unit | 2/2/0 | combat_death_damage_both_heroes_1 | Combat death: both heroes take 1. | Combat-only death trigger | Both-hero damage participates in raw-HP simultaneous lethal resolution. |
-| Attrition Swarm | Funeral Pyre | order | - | funeral_pyre | First 2 ally combat deaths hit enemy in lane 1. | Non-targeted deterministic effect | Active for combat cleanup; cap 2 per owner per combat; damages only opposing enemy units in the dying allies’ lanes; no hero fallback; multiple plays do not stack above cap. |
-| Attrition Swarm | Infect | order | - | infect_damage_1_opposite_ally_atk_1 | Deal 1 to enemy. If survives, opposite ally +1 ATK. | Targeted enemy | Non-combat damage; if the target survives, the caster-owned unit directly opposite it gets +1 ATK until combat cleanup; if the target dies or no opposite ally exists, no buff or hero damage occurs. |
+| Attrition Swarm | Abomination | unit | 2/2/0 | combat_death_damage_both_heroes_1 | Combat death: both heroes lose 1 HP. | Combat-only death trigger | Both-hero damage participates in raw-HP simultaneous lethal resolution. |
+| Attrition Swarm | Funeral Pyre | order | - | funeral_pyre | First 2 ally combat deaths: deal 1 to opposing enemy. | Non-targeted deterministic effect | Active for combat cleanup; cap 2 per owner per combat; damages only opposing enemy units in the dying allies’ lanes; no hero fallback; multiple plays do not stack above cap. |
+| Attrition Swarm | Infect | order | - | infect_damage_1_opposite_ally_atk_1 | Deal 1 to enemy. If it survives, opposite ally +1 ATK. | Targeted enemy | Non-combat damage; if the target survives, the caster-owned unit directly opposite it gets +1 ATK until combat cleanup; if the target dies or no opposite ally exists, no buff or hero damage occurs. |
 | Attrition Swarm | Feast | utility | - | destroy_friendly_draw_1 | Destroy ally. Draw 1. | Targeted friendly | Reuses Recycle-style non-combat destruction and does not trigger combat-only death effects. |
 | Attrition Swarm | Rise Again | order | - | revive_friendly_1hp | Revive first discarded unit at 1 HP. | Non-targeted deterministic effect | First empty friendly slot + first unit in discard; no manual target UI. |
 | Attrition Swarm | Grave Call | order | - | grave_call | Summon 1/1. If no allies, summon 2. | Non-targeted deterministic effect | Fills first empty friendly slot, or up to 2 left-to-right if the owner has no allies; rejected if no empty slot exists. |
@@ -246,7 +246,7 @@ The no-progress detector uses the stricter "meaningful for outcome" definition i
 | Tank | Stability | order | - | immune_move_disable_this_turn | Allies can’t be moved/disabled this turn. | Non-targeted effect | Blocks swap/disable effects by opponent. |
 | Tank | Reinforce | order | - | heal_all_1 | Heal all friendly units by 1 (to max HP). | Non-targeted effect | Uses unit max HP cap. |
 | Tank | Last Stand | special | - | cannot_drop_below_1_this_turn | Allies can’t drop below 1 HP this turn. | Non-targeted effect | Reset after combat resolve. |
-| Tank | Reactive Plating | utility | - | temp_armor_1 | Target ally +1 ARM until combat ends. | Targeted friendly | Stacks with armor normally and resets at full turn/combat cleanup; does not heal HP. |
+| Tank | Reactive Plating | utility | - | temp_armor_1 | Target [ALLY] +1 ARM until combat ends. | Targeted friendly | Stacks with armor normally and resets at full turn/combat cleanup; does not heal HP. |
 | Wardens | Sentinel | unit | 2/2/0 | warden_defensive_friction_self | Enemy attacking this has -1 ATK. | Lane combat defensive friction | Combat-time only; capped with all Wardens friction at -1 total. |
 | Wardens | Spearwall | unit | 1/1/0 | warden_defensive_friction_adjacent | Adjacent allies: attackers -1 ATK. | Passive adjacency aura | Same-row adjacency only; does not protect itself unless adjacent to another Spearwall; capped with all Wardens friction at -1 total. |
 | Wardens | Halberdier | unit | 2/1/0 | opposing_lane_atk_plus_1 | +1 ATK while an enemy unit is in the opposing lane. | Lane combat | Board-state check only; no history or moved-this-turn logic. |

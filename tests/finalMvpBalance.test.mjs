@@ -36,7 +36,7 @@ test('Runner remains a 2/1 Aggro unit with +2 open-lane hero damage text', () =>
   assert.equal(runner.armor, 0);
   assert.equal(runner.effectId, 'lane_empty_bonus_damage');
   assert.equal(runner.targeting, 'lane');
-  assert.equal(runner.textShort, 'Open enemy line: +2 hero dmg.');
+  assert.equal(runner.textShort, 'Open enemy line: enemy hero loses 2 HP.');
 });
 
 
@@ -193,7 +193,7 @@ test('Flanker is a 2/2 Aggro unit with the same empty-adjacent attack role', () 
   assert.equal(flanker.armor, 0);
   assert.equal(flanker.effectId, 'empty_adjacent_bonus_atk');
   assert.equal(flanker.targeting, 'lane');
-  assert.equal(flanker.textShort, 'If nearby ally slot empty: +1 ATK.');
+  assert.equal(flanker.textShort, 'If adjacent ally slot empty: +1 ATK.');
 });
 
 
@@ -290,7 +290,7 @@ test('Quick Fix heals a friendly unit by 1 and grants +1 temporary attack for co
   assert.equal(getUnitAttack(state.board[6]), 3);
   assert.equal(quickFix.effectId, 'heal_1_atk_1_draw_on_kill_this_turn');
   assert.equal(quickFix.targeting, 'friendly_unit');
-  assert.equal(quickFix.textShort, 'Ally: heal 1, +1 ATK this turn. Draw if it kills.');
+  assert.equal(quickFix.textShort, 'Target [ALLY]: heal 1, +1 ATK this turn. Draw on kill.');
 
   resolveCombat(state);
 
@@ -446,7 +446,7 @@ test('Swarm Attack remains a +1 temporary attack buff', () => {
   assert.equal(result.ok, true);
   assert.equal(state.board[6].tempAttackMod, 1);
   assert.equal(swarmAttack.effectId, 'buff_all_atk_1');
-  assert.equal(swarmAttack.textShort, 'All allies +1 ATK this turn.');
+  assert.equal(swarmAttack.textShort, 'All [ALLY] +1 ATK this turn.');
 
   resolveCombat(state);
 
@@ -476,7 +476,7 @@ test('Flood creates temporary 1/1 Tokens that attack and vanish after combat', (
   assert.equal(state.board[6], null);
   assert.equal(state.board[7], null);
   assert.deepEqual(state.player.discard.map((card) => card.id), [flood.id]);
-  assert.equal(flood.textShort, 'Fill up to 2 empty ally slots with temporary 1/1 Tokens.');
+  assert.equal(flood.textShort, 'Fill up to 2 empty ally slots with temporary 1/1s.');
 });
 
 test('Flood temporary Tokens skip combat death trigger paths', () => {

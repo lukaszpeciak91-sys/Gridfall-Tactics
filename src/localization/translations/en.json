@@ -2,7 +2,7 @@
   "cards": {
     "aggro_runner_1": {
       "name": "Runner",
-      "textShort": "Open enemy line: +2 hero dmg."
+      "textShort": "Open enemy line: enemy hero loses 2 HP."
     },
     "aggro_berserker_1": {
       "name": "Berserker",
@@ -14,7 +14,7 @@
     },
     "aggro_flanker_1": {
       "name": "Flanker",
-      "textShort": "If nearby ally slot empty: +1 ATK."
+      "textShort": "If adjacent ally slot empty: +1 ATK."
     },
     "aggro_scout_1": {
       "name": "Scout",
@@ -38,7 +38,7 @@
     },
     "aggro_quick_fix_1": {
       "name": "Quick Fix",
-      "textShort": "Ally: heal 1, +1 ATK this turn. Draw if it kills."
+      "textShort": "Target [ALLY]: heal 1, +1 ATK this turn. Draw on kill."
     },
     "attrition_swarm_husk_1": {
       "name": "Husk",
@@ -58,15 +58,15 @@
     },
     "attrition_swarm_abomination_1": {
       "name": "Abomination",
-      "textShort": "Combat death: both heroes take 1."
+      "textShort": "Combat death: both heroes lose 1 HP."
     },
     "attrition_swarm_funeral_pyre_1": {
       "name": "Funeral Pyre",
-      "textShort": "First 2 ally combat deaths deal 1 to opposing enemy."
+      "textShort": "First 2 ally combat deaths: deal 1 to opposing enemy."
     },
     "attrition_swarm_infect_1": {
       "name": "Infect",
-      "textShort": "Deal 1 to enemy. If survives, opposite ally +1 ATK."
+      "textShort": "Deal 1 to enemy. If it survives, opposite ally +1 ATK."
     },
     "attrition_swarm_feast_1": {
       "name": "Feast",
@@ -98,7 +98,7 @@
     },
     "control_drone_1": {
       "name": "Drone",
-      "textShort": "On death: enemy hero takes 1."
+      "textShort": "On death: enemy hero loses 1 HP."
     },
     "control_swap_1": {
       "name": "Swap",
@@ -114,15 +114,15 @@
     },
     "control_system_override_1": {
       "name": "System Override",
-      "textShort": "Target enemy attacks its own hero in next combat, then takes 1 damage."
+      "textShort": "Target enemy attacks own hero next combat, then loses 1 HP."
     },
     "control_recall_1": {
       "name": "Recall",
-      "textShort": "Return ally to hand. Draw 1."
+      "textShort": "Return [ALLY] to hand. Draw 1."
     },
     "swarm_grunt_1": {
       "name": "Grunt",
-      "textShort": "Small fighter."
+      "textShort": ""
     },
     "swarm_spitter_1": {
       "name": "Spitter",
@@ -134,7 +134,7 @@
     },
     "swarm_rusher_1": {
       "name": "Rusher",
-      "textShort": "Fast pressure unit."
+      "textShort": ""
     },
     "swarm_alpha_1": {
       "name": "Alpha",
@@ -146,7 +146,7 @@
     },
     "swarm_swarm_attack_1": {
       "name": "Swarm Attack",
-      "textShort": "All allies +1 ATK this turn."
+      "textShort": "All [ALLY] +1 ATK this turn."
     },
     "swarm_regrow_1": {
       "name": "Regrow",
@@ -154,7 +154,7 @@
     },
     "swarm_flood_1": {
       "name": "Flood",
-      "textShort": "Fill up to 2 empty ally slots with temporary 1/1 Tokens."
+      "textShort": "Fill up to 2 empty ally slots with temporary 1/1s."
     },
     "swarm_recycle_1": {
       "name": "Recycle",
@@ -166,7 +166,7 @@
     },
     "tank_heavy_1": {
       "name": "Heavy",
-      "textShort": "Heavy durable unit."
+      "textShort": ""
     },
     "tank_guardian_1": {
       "name": "Guardian",
@@ -198,7 +198,7 @@
     },
     "tank_repair_kit_1": {
       "name": "Reactive Plating",
-      "textShort": "Target ally +1 ARM until combat ends."
+      "textShort": "Target [ALLY] +1 ARM until combat ends."
     },
     "wardens_sentinel_1": {
       "name": "Sentinel",
@@ -214,11 +214,11 @@
     },
     "wardens_bastion_guard_1": {
       "name": "Bastion Guard",
-      "textShort": "Durable guard."
+      "textShort": ""
     },
     "wardens_watch_captain_1": {
       "name": "Watch Captain",
-      "textShort": "Line leader."
+      "textShort": ""
     },
     "wardens_brace_1": {
       "name": "Brace",
