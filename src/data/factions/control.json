@@ -9,7 +9,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": "enemy_lane_atk_minus_1",
-      "textShort": "Opposing enemy -1 ATK this turn.",
+      "textShort": "Opposed enemy: -1 ATK this turn.",
       "attack": 1,
       "hp": 2,
       "armor": 0
@@ -20,7 +20,7 @@
       "type": "unit",
       "targeting": "enemy",
       "effectId": "cancel_enemy_order",
-      "textShort": "On play: cancel next enemy effect this turn.",
+      "textShort": "On play: cancel the next enemy effect this turn.",
       "attack": 1,
       "hp": 2,
       "armor": 0
@@ -31,7 +31,7 @@
       "type": "unit",
       "targeting": "any_enemy_unit",
       "effectId": "can_hit_any_lane",
-      "textShort": "Attacks lowest-HP enemy unit.",
+      "textShort": "Attacks the lowest-HP enemy.",
       "attack": 2,
       "hp": 1,
       "armor": 0
@@ -42,7 +42,7 @@
       "type": "unit",
       "targeting": "enemy_units",
       "effectId": "swap_two_enemy_units",
-      "textShort": "On play: swap first 2 enemies.",
+      "textShort": "On play: swap two enemies.",
       "attack": 1,
       "hp": 2,
       "armor": 0
@@ -64,7 +64,7 @@
       "type": "order",
       "targeting": "any_units",
       "effectId": "swap_any_two_units",
-      "textShort": "Swap any two units on one side."
+      "textShort": "Swap two units on one side."
     },
     {
       "id": "control_jam_signal_1",
@@ -72,7 +72,7 @@
       "type": "order",
       "targeting": "all_enemy_units",
       "effectId": "enemy_all_atk_minus_1",
-      "textShort": "Leftmost 2 enemies -1 ATK this turn."
+      "textShort": "Leftmost 2 enemies: -1 ATK this turn."
     },
     {
       "id": "control_pulse_wave_1",
@@ -80,7 +80,7 @@
       "type": "order",
       "targeting": "all_enemy_units",
       "effectId": "damage_all_enemies_1_ignore_armor",
-      "textShort": "Deal 1 to all enemy units, ignoring ARM."
+      "textShort": "Deal 1 to all enemies, ignoring ARM."
     },
     {
       "id": "control_system_override_1",
