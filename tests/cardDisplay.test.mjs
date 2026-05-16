@@ -135,6 +135,13 @@ test('hand/full formatter includes effect card textShort without unit stats', ()
   assert.equal(formatHandCardLabel(card), 'Repair Kit\nHeal +3 ●.');
 });
 
+test('shared visual renderer leaves empty rules areas blank instead of using type labels', () => {
+  const visualSource = fs.readFileSync('src/rendering/cardVisualLayout.js', 'utf8');
+
+  assert.doesNotMatch(visualSource, /content\.body \|\| content\.type/);
+  assert.match(visualSource, /createInlineStatText\(scene, zones\.text\.centerX, zones\.text\.y \+ bodyTopPadding, content\.body,/);
+});
+
 test('battle hand cards route content through card visual layout helpers and preserve formatter output', () => {
   const source = fs.readFileSync('src/scenes/BattleScene.js', 'utf8');
   const unitCard = {
