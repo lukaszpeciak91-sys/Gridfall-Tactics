@@ -106,7 +106,7 @@
     },
     "control_jam_signal_1": {
       "name": "Zagłusz Sygnał",
-      "textShort": "2 najbardziej lewych wrogów: -1 ATK w tej turze."
+      "textShort": "Wybierz do 2 wrogów: -1 ATK w tej turze."
     },
     "control_pulse_wave_1": {
       "name": "Fala Pulsu",
@@ -259,6 +259,8 @@
       "exit": "WYJDŹ",
       "retry": "PONÓW",
       "pass": "PAS",
+      "confirm": "POTWIERDŹ",
+      "cancel": "ANULUJ",
       "fullscreen": "Pełny ekran",
       "help": "Pomoc",
       "menu": "Menu",
@@ -362,6 +364,7 @@
         "heal_1_atk_1_draw_on_kill_this_turn": "Ulecz, +1 ATK, dobierz po zabiciu",
         "swap_any_two_units": "Zamień dwie jednostki",
         "enemy_all_atk_minus_1": "Najbardziej lewi wrogowie -1 ATK",
+        "enemy_up_to_2_atk_minus_1": "Wybrani wrogowie -1 ATK",
         "damage_all_enemies_1_ignore_armor": "Obrażenia wszystkim wrogom",
         "control_enemy_unit_this_turn": "Wróg atakuje własnego bohatera i dostaje 1",
         "damage_up_to_2_enemies_1": "Obrażenia najbardziej lewym wrogom",

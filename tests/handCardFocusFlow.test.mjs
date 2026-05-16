@@ -33,13 +33,17 @@ test('mulligan tap toggles only mulligan selection and uses separate preview sta
   assert.match(source, /const isHighlighted = isGameplaySelected \|\| isMulliganSelected;/);
 });
 
-test('normal gameplay card pointerdown keeps selected card when closing inspect and pointerup reveals inspect preview', () => {
+test('normal gameplay quick tap selects only and long press opens inspect without losing selection', () => {
+  assert.match(source, /const HAND_CARD_LONG_PRESS_MS = 425;/);
+  assert.match(source, /this\.handCardLongPressEvent = null;/);
+  assert.match(source, /this\.longPressTriggeredCardId = null;/);
   assert.match(source, /background\.on\('pointerdown', \(\) => \{\s*this\.onCardPointerDown\(cardId\);\s*\}\);/);
   assert.match(source, /background\.on\('pointerup', \(\) => \{\s*this\.onCardPointerUp\(cardId\);\s*\}\);/);
-  assert.match(source, /background\.on\('pointerover', \(\) => \{\s*this\.onHandCardPointerOver\(cardId\);\s*\}\);/);
-  assert.match(source, /const isInspectOpenForSelectedCard = Boolean\(\s*this\.selectedHandCardZoom && !this\.openingMulliganPending && this\.selectedCardId === cardId,\s*\);/);
-  assert.match(source, /this\.pendingSwapIndex = null;[\s\S]*if \(isInspectOpenForSelectedCard\) \{[\s\S]*this\.resetCardHighlights\(\{ showPreview: false \}\);[\s\S]*return;[\s\S]*\}[\s\S]*this\.targetingState = null;[\s\S]*this\.effectCastState = null;[\s\S]*if \(this\.selectedCardId === cardId\) \{[\s\S]*this\.selectedCardId = null;[\s\S]*\} else \{[\s\S]*this\.selectedCardId = cardId;[\s\S]*\}[\s\S]*this\.resetCardHighlights\(\{ showPreview: false \}\);/);
-  assert.match(source, /onCardPointerUp\(cardId\) \{[\s\S]*this\.resetCardHighlights\(\{ showPreview: true \}\);/);
+  assert.match(source, /onHandCardPointerOver\(cardId\) \{\s*\/\/ Hand-card inspect is intentionally long-press driven so quick taps only select for play\.\s*if \(!cardId\) return;\s*\}/);
+  assert.match(source, /this\.pendingSwapIndex = null;\s*this\.selectedCardId = cardId;\s*this\.targetingState = this\.isUnitCard\(card\) \? null : this\.getTargetingStateForCard\(card\);\s*this\.resetCardHighlights\(\{ showPreview: false \}\);\s*this\.updateActionButtonLabel\(\);\s*this\.startHandCardLongPress\(cardId\);/);
+  assert.match(source, /startHandCardLongPress\(cardId\) \{\s*this\.cancelHandCardLongPress\(\);\s*this\.handCardLongPressEvent = this\.time\.delayedCall\(HAND_CARD_LONG_PRESS_MS, \(\) => \{[\s\S]*this\.longPressTriggeredCardId = cardId;[\s\S]*this\.resetCardHighlights\(\{ showPreview: true \}\);/);
+  assert.match(source, /cancelHandCardLongPress\(\) \{\s*if \(!this\.handCardLongPressEvent\) return;\s*this\.handCardLongPressEvent\.remove\(false\);\s*this\.handCardLongPressEvent = null;\s*\}/);
+  assert.match(source, /onCardPointerUp\(cardId\) \{[\s\S]*this\.cancelHandCardLongPress\(\);[\s\S]*if \(this\.longPressTriggeredCardId === cardId\) \{[\s\S]*return;\s*\}[\s\S]*this\.resetCardHighlights\(\{ showPreview: false \}\);/);
   assert.match(source, /const handCardId = isMulliganPreview\s*\? this\.previewedMulliganCardId\s*: \(this\.selectedCardId \?\? this\.hoverInspectCardId\);/);
   assert.match(source, /const cardView = this\.cardViews\.find\(\(view\) => view\.cardId === handCardId\);/);
   assert.match(source, /const card = this\.gameState\.player\.hand\.find\(\(item\) => item\.id === handCardId\);/);
@@ -57,10 +61,11 @@ test('outside taps clear selection without intercepting board, pass, or card inp
   assert.match(source, /onScenePointerUp\(pointer, currentlyOver = \[\]\) \{\s*if \(this\.battleResultModalShown \|\| this\.isFlowResolving \|\| this\.isEffectCastResolving\) return;[\s\S]*if \(!this\.selectedCardId && !this\.targetingState && !this\.effectCastState\) \{\s*this\.clearBoardInspectFromOutsideTap\(pointer, currentlyOver\);\s*return;\s*\}\s*if \(this\.isPointerUpReservedForUi\(pointer, currentlyOver\)\) return;/);
   assert.match(source, /clearOpeningMulliganPreviewFromOutsideTap\(pointer, currentlyOver = \[\]\) \{\s*if \(!this\.previewedMulliganCardId && !this\.selectedHandCardZoom\) return;\s*if \(this\.isPointerInsideMulliganHandOrPreview\(pointer, currentlyOver\)\) return;\s*this\.previewedMulliganCardId = null;[\s\S]*this\.pressedHandCardId = null;\s*this\.resetCardHighlights\(\{ showPreview: false \}\);\s*\}/);
   assert.match(source, /isPointerInsideMulliganHandOrPreview\(pointer, currentlyOver = \[\]\) \{[\s\S]*const handTop = hand\.y;[\s\S]*return pointer\.x >= handLeft && pointer\.x <= handRight && pointer\.y >= handTop && pointer\.y <= handBottom;/);
-  assert.match(source, /const boardCell = this\.getBoardCellFromPointerUp\(pointer, currentlyOver\);\s*if \(boardCell\) \{\s*const selectedCard = this\.getActivePlayerEffectCard\(\)\s*\?\? this\.gameState\.player\.hand\.find\(\(card\) => card\.id === this\.selectedCardId\);/);
+  assert.match(source, /if \(this\.pressedHandCardId\) \{\s*this\.cancelHandCardLongPress\(\);\s*this\.pressedHandCardId = null;\s*return;\s*\}\s*const boardCell = this\.getBoardCellFromPointerUp\(pointer, currentlyOver\);\s*if \(boardCell\) \{\s*const selectedCard = this\.gameState\.player\.hand\.find\(\(card\) => card\.id === this\.selectedCardId\);/);
   assert.match(source, /if \(this\.isBoardCellTapReservedForCardAction\(boardCell\.index, selectedCard\)\) \{\s*this\.pressedHandCardId = null;\s*this\.onBoardCellTap\(boardCell\.index\);\s*return;\s*\}/);
   assert.match(source, /if \(this\.targetingState\) \{\s*this\.pressedHandCardId = null;\s*return;\s*\}/);
-  assert.match(source, /this\.pressedHandCardId = null;\s*this\.clearHandCardSelection\(\);/);
+  assert.match(source, /if \(this\.clearSelectedHandInspectFromOutsideTap\(pointer, currentlyOver\)\) \{\s*this\.pressedHandCardId = null;\s*return;\s*\}\s*this\.pressedHandCardId = null;\s*this\.clearHandCardSelection\(\);/);
+  assert.match(source, /clearSelectedHandInspectFromOutsideTap\(pointer, currentlyOver = \[\]\) \{\s*if \(!this\.selectedHandCardZoom \|\| this\.boardInspectIndex !== null\) return false;\s*if \(this\.isPointerInsideSelectedHandCardZoom\(pointer, currentlyOver\)\) return false;\s*this\.resetCardHighlights\(\{ showPreview: false \}\);\s*return true;\s*\}/);
   assert.match(source, /isPointerUpReservedForUi\(pointer, currentlyOver = \[\]\) \{[\s\S]*this\.cardViews\.some\(\(view\) => overObjects\.includes\(view\.background\)\);/);
   assert.doesNotMatch(inspectMethod, /setInteractive\(\)|setInteractive\(\{ useHandCursor: true \}\)|startInspectDragCandidate/);
   assert.doesNotMatch(source, /if \(this\.isPointerInsideInspectCard\(pointer, overObjects\)\) return true;/);
@@ -70,7 +75,7 @@ test('outside taps clear selection without intercepting board, pass, or card inp
   assert.match(source, /this\.bottomControlViews\.some\(\(control\) => \[control\.backing, control\.text\]/);
   assert.match(source, /getBoardCellFromPointerUp\(pointer, currentlyOver = \[\]\) \{[\s\S]*this\.boardCells\.find\(\(cell\) => overObjects\.includes\(cell\.background\)/);
   assert.match(source, /isBoardCellTapReservedForCardAction\(boardIndex, selectedCard\) \{\s*if \(this\.targetingState\) \{\s*return this\.isValidTarget\(boardIndex, this\.targetingState\.targetType, this\.targetingState\.targetIndexes, this\.targetingState\.targetConstraint\);\s*\}\s*if \(!this\.isUnitCard\(selectedCard\)\) \{\s*return true;\s*\}\s*return canPlayOrRedeploy\(this\.gameState, 'player', selectedCard\.id, boardIndex\)\.ok;\s*\}/);
-  assert.match(source, /button\.on\('pointerup', \(\) => \{\s*if \(this\.targetingState\) \{\s*this\.cancelEffectTargeting\(\);\s*return;\s*\}\s*if \(this\.openingMulliganPending\) \{\s*this\.confirmOpeningMulligan\(\);\s*return;\s*\}\s*this\.resolvePassTurn\(\);\s*\}\);/);
+  assert.match(source, /button\.on\('pointerup', \(\) => \{\s*if \(this\.openingMulliganPending\) \{\s*this\.confirmOpeningMulligan\(\);\s*return;\s*\}\s*if \(this\.targetingState\) \{\s*this\.confirmTargetingSelection\(\);\s*return;\s*\}\s*this\.resolvePassTurn\(\);\s*\}\);/);
   assert.match(source, /background\.on\('pointerup', \(\) => \{\s*this\.onBoardCellTap\(boardIndex\);\s*\}\);/);
 });
 

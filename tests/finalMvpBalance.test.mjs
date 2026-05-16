@@ -366,7 +366,7 @@ test('Quick Fix does not draw when the buffed unit fails to destroy an enemy', (
   assert.equal(state.quickFixTempoDraws ?? 0, 0);
 });
 
-test('Jam Signal applies -1 temporary attack to up to two enemy units', () => {
+test('Jam Signal applies -1 temporary attack to selected enemy units', () => {
   const control = loadFaction('src/data/factions/control.json');
   const jamSignal = control.deck.find((card) => card.id === 'control_jam_signal_1');
   const state = createInitialBattleState({ name: 'Test', deck: [] });
@@ -376,14 +376,14 @@ test('Jam Signal applies -1 temporary attack to up to two enemy units', () => {
   state.board[1] = unit('enemy', { attack: 2, hp: 2, maxHp: 2 });
   state.board[2] = unit('enemy', { attack: 2, hp: 2, maxHp: 2 });
 
-  const result = playEffectCard(state, 'player', jamSignal.id);
+  const result = resolveTargetedEffectCard(state, 'player', jamSignal.id, 2, [2, 0]);
   assert.equal(result.ok, true);
   assert.equal(state.board[0].tempAttackMod, -1);
-  assert.equal(state.board[1].tempAttackMod, -1);
-  assert.equal(state.board[2].tempAttackMod, undefined);
-  assert.equal(jamSignal.targeting, 'all_enemy_units');
-  assert.equal(jamSignal.effectId, 'enemy_all_atk_minus_1');
-  assert.equal(jamSignal.textShort, 'Leftmost 2 enemies: -1 ATK this turn.');
+  assert.equal(state.board[1].tempAttackMod, undefined);
+  assert.equal(state.board[2].tempAttackMod, -1);
+  assert.equal(jamSignal.targeting, 'enemy_units');
+  assert.equal(jamSignal.effectId, 'enemy_up_to_2_atk_minus_1');
+  assert.equal(jamSignal.textShort, 'Choose up to 2 enemies: -1 ATK this turn.');
 
   resolveCombat(state);
 
@@ -391,7 +391,6 @@ test('Jam Signal applies -1 temporary attack to up to two enemy units', () => {
   assert.equal(state.board[1]?.tempAttackMod, undefined);
   assert.equal(state.board[2]?.tempAttackMod, undefined);
 });
-
 
 test('Pulse Wave damages all occupied enemy lanes and ignores armor without hitting heroes', () => {
   const control = loadFaction('src/data/factions/control.json');
