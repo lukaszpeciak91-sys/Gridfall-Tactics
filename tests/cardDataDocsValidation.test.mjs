@@ -79,6 +79,18 @@ test('MVP faction card ids are unique across source decks', () => {
   assert.deepEqual(duplicateIds, []);
 });
 
+
+test('MVP faction cards have stable internal art asset ids by faction order', () => {
+  for (const faction of loadFactions()) {
+    faction.deck.forEach((card, index) => {
+      const cardNumber = index + 1;
+      const twoDigitCardNumber = String(cardNumber).padStart(2, '0');
+      assert.equal(card.cardNumber, cardNumber, `${card.id} cardNumber`);
+      assert.equal(card.artAssetId, `${faction.id}_${twoDigitCardNumber}`, `${card.id} artAssetId`);
+    });
+  }
+});
+
 test('MVP faction cards have no cost or duplicated faction fields', () => {
   for (const { card } of allCards()) {
     assert.equal(Object.hasOwn(card, 'cost'), false, `${card.id} must not define cost`);
