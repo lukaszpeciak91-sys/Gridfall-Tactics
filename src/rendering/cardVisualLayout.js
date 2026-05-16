@@ -501,7 +501,7 @@ export function createCardPreviewView(scene, {
     .setStrokeStyle(1, 0x94a3b8, typographyScale > 1 ? 0.24 : 0.2);
   const bodyTopPadding = Math.max(5, zones.text.height * (typographyScale > 1 ? 0.11 : 0.1));
   const bodyBottomPadding = Math.max(5, zones.text.height * (typographyScale > 1 ? 0.1 : 0.09));
-  const bodyText = createInlineStatText(scene, zones.text.centerX, zones.text.y + bodyTopPadding, content.body || content.type, {
+  const bodyText = createInlineStatText(scene, zones.text.centerX, zones.text.y + bodyTopPadding, content.body, {
     fontFamily: 'Arial, sans-serif',
     fontSize: typography.body,
     minFontSize: Math.max(8, typography.body - 2),

@@ -105,6 +105,37 @@ test('pilot card display content renders ally icon markers', () => {
   assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_reinforce_line_1'), 'pl').body, 'Sąsiedni ♙ +1 ◆ do końca walki.');
 });
 
+test('visual card content keeps empty rules text empty instead of falling back to type labels', () => {
+  const unitCard = {
+    id: 'plain_unit',
+    name: 'Plain Unit',
+    type: 'unit',
+    attack: 2,
+    hp: 2,
+    armor: 0,
+    textShort: '',
+  };
+  const missingTextCard = {
+    id: 'missing_text_unit',
+    name: 'Missing Text Unit',
+    type: 'unit',
+    attack: 1,
+    hp: 1,
+    armor: 0,
+  };
+  const effectCard = {
+    id: 'effect_card',
+    name: 'Effect Card',
+    type: 'effect',
+    textShort: 'Target [ALLY] +1 ARM until combat ends.',
+  };
+
+  assert.equal(getCardDisplayContent(unitCard, 'en').body, '');
+  assert.equal(getCardDisplayContent(unitCard, 'pl').body, '');
+  assert.equal(getCardDisplayContent(missingTextCard, 'en').body, '');
+  assert.equal(getCardDisplayContent(effectCard, 'en').body, 'Target ♙ +1 ◆ until combat ends.');
+});
+
 test('does not mutate source card data when formatting visual card content', () => {
   const card = {
     id: 'example_card',
