@@ -1218,10 +1218,6 @@ export default class BattleScene extends Phaser.Scene {
 
     this.actionButton = button;
     button.on('pointerup', () => {
-      if (this.targetingState) {
-        this.cancelEffectTargeting();
-        return;
-      }
       if (this.openingMulliganPending) {
         this.confirmOpeningMulligan();
         return;
@@ -1701,8 +1697,6 @@ export default class BattleScene extends Phaser.Scene {
 
       this.longPressTriggeredCardId = cardId;
       this.selectedCardId = cardId;
-    }
-    this.resetCardHighlights({ showPreview: false });
       this.targetingState = this.isUnitCard(card) ? null : this.getTargetingStateForCard(card);
       this.hoverInspectCardId = null;
       this.boardInspectIndex = null;
@@ -1770,9 +1764,8 @@ export default class BattleScene extends Phaser.Scene {
 
     const boardCell = this.getBoardCellFromPointerUp(pointer, currentlyOver);
     if (boardCell) {
-      const selectedCard = this.getActivePlayerEffectCard()
-        ?? this.gameState.player.hand.find((card) => card.id === this.selectedCardId);
-      if (!selectedCard) {
+      const selectedCard = this.gameState.player.hand.find((card) => card.id === this.selectedCardId);
+      if (!selectedCard && !this.effectCastState) {
         this.pressedHandCardId = null;
         this.clearHandCardSelection();
         return;
@@ -2197,12 +2190,6 @@ export default class BattleScene extends Phaser.Scene {
 
   updateActionButtonLabel() {
     if (!this.actionButton) return;
-    if (this.targetingState) {
-      this.actionButton.setText(translateActive('ui.common.cancel', 'CANCEL'));
-      this.actionButton.setStyle({ backgroundColor: '#164e63', color: '#ecfeff' });
-      this.actionButton.setStroke('#22d3ee', 2);
-      return;
-    }
     if (this.openingMulliganPending) {
       const count = this.selectedMulliganCardIds.length;
       this.actionButton.setText(count > 0 ? translateActive('ui.battle.mulligan', 'MULLIGAN {count}', { count }) : translateActive('ui.battle.keepHand', 'KEEP HAND'));
@@ -2213,9 +2200,13 @@ export default class BattleScene extends Phaser.Scene {
     if (this.targetingState) {
       const selectedCount = this.targetingState.targetIndexes?.length ?? 0;
       const minTargets = this.targetingState.minTargets ?? this.targetingState.requiredTargets ?? 1;
-      this.actionButton.setText(selectedCount >= minTargets
-        ? translateActive('ui.common.confirm', 'CONFIRM')
-        : translateActive('ui.common.cancel', 'CANCEL'));
+      if (selectedCount >= minTargets) {
+        this.actionButton.setText(translateActive('ui.common.confirm', 'CONFIRM'));
+      } else {
+        this.actionButton.setText(translateActive('ui.common.cancel', 'CANCEL'));
+      }
+      this.actionButton.setStyle({ backgroundColor: '#164e63', color: '#ecfeff' });
+      this.actionButton.setStroke('#22d3ee', 2);
       return;
     }
     this.actionButton.setText(translateActive('ui.common.pass', 'PASS'));
@@ -2225,7 +2216,8 @@ export default class BattleScene extends Phaser.Scene {
 
   confirmTargetingSelection() {
     if (this.battleResultModalShown || this.isFlowResolving || this.playerActionUsed) return;
-    const selectedCard = this.gameState.player.hand.find((card) => card.id === this.selectedCardId);
+    const selectedCard = this.getActivePlayerEffectCard()
+      ?? this.gameState.player.hand.find((card) => card.id === this.selectedCardId);
     if (!selectedCard || !this.targetingState) {
       this.clearHandCardSelection();
       return;
@@ -2234,12 +2226,13 @@ export default class BattleScene extends Phaser.Scene {
     const targetIndexes = [...(this.targetingState.targetIndexes ?? [])];
     const minTargets = this.targetingState.minTargets ?? this.targetingState.requiredTargets ?? 1;
     if (targetIndexes.length < minTargets) {
-      this.clearHandCardSelection();
+      this.cancelEffectTargeting();
       return;
     }
 
     const beforeStats = this.captureBoardStats();
-    const result = resolveTargetedEffectCard(this.gameState, 'player', this.selectedCardId, targetIndexes[0], targetIndexes);
+    const effectCardId = this.effectCastState?.cardId ?? this.selectedCardId;
+    const result = resolveTargetedEffectCard(this.gameState, 'player', effectCardId, targetIndexes[0], targetIndexes);
     if (!result.ok || result.type === 'targeted-effect-pending') return;
     if (result.type === 'targeted-effect' && this.gameState.cancelEnemyOrderThisTurn?.enemy) {
       this.gameState.cancelEnemyOrderThisTurn.enemy = false;
