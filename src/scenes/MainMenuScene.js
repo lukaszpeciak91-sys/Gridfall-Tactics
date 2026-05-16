@@ -17,6 +17,7 @@ import {
   resetImageButtonState,
 } from '../ui/imageButton.js';
 import { translateActive } from '../localization/localeService.js';
+import { createBuildMarker } from '../ui/buildMarker.js';
 import { applyAudioSettings, loadSettings } from '../systems/settingsState.js';
 import {
   GRIDFALL_LOGO_ASSET,
@@ -46,6 +47,7 @@ export default class MainMenuScene extends Phaser.Scene {
     this.menuButtonViews = [];
     this.menuButtons = [];
     this.sharedLogoRevealFallbackEvent = null;
+    this.buildMarker = null;
   }
 
   init() {
@@ -129,8 +131,29 @@ export default class MainMenuScene extends Phaser.Scene {
       this.restoreMainMenuInteractivity();
     }
 
+    this.drawBuildMarker(width, height);
     this.scale.on('resize', this.layoutMainMenuScene, this);
     this.drawNavigationControls();
+  }
+
+
+  drawBuildMarker(width = this.scale.width, height = this.scale.height) {
+    this.buildMarker?.destroy?.();
+    this.buildMarker = createBuildMarker(this, {
+      width,
+      height,
+      inset: 10,
+      corner: 'top-right',
+      alpha: 0.42,
+      depth: 20,
+      fontSize: '10px',
+    });
+  }
+
+  layoutBuildMarker(width = this.scale.width) {
+    if (!this.buildMarker?.active) return;
+    this.buildMarker.setPosition(width - 10, 10);
+    this.buildMarker.setOrigin(1, 0);
   }
 
   createTitle(width, height) {
@@ -153,6 +176,7 @@ export default class MainMenuScene extends Phaser.Scene {
     const width = gameSize?.width ?? this.scale.width;
     const height = gameSize?.height ?? this.scale.height;
 
+    this.layoutBuildMarker(width, height);
     this.ensureTitleExistsAndVisible({
       forceVisible: !this.isAwaitingSharedLogo,
       width,
@@ -373,6 +397,7 @@ export default class MainMenuScene extends Phaser.Scene {
     this.isAwaitingSharedLogo = false;
     this.menuButtonViews = [];
     this.menuButtons = [];
+    this.buildMarker = null;
   }
 
   createMenuButton(x, y, width, label, onPointerUp) {

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
 
-import { calculateHandLayoutMetrics, HAND_CARD_ASPECT_RATIO, HAND_CARD_BOTTOM_SAFE_INSET_RATIO, HAND_CARD_MAX_WIDTH_RATIO, HAND_CARD_PRE_POLISH_MAX_WIDTH_RATIO, HAND_CARD_WIDTH_POLISH_SCALE, MAX_VISIBLE_HAND_CARDS, MIN_HAND_CONTROL_TOUCH_SIZE } from '../src/ui/handLayout.js';
+import { calculateHandLayoutMetrics, HAND_CARD_ASPECT_RATIO, HAND_CARD_BOTTOM_SAFE_INSET_RATIO, HAND_CARD_EDGE_SAFE_MARGIN_PX, HAND_CARD_MAX_WIDTH_RATIO, HAND_CARD_PRE_POLISH_MAX_WIDTH_RATIO, HAND_CARD_ROW_DOWN_SHIFT_PX, HAND_CARD_WIDTH_POLISH_SCALE, MAX_VISIBLE_HAND_CARDS, MIN_HAND_CONTROL_TOUCH_SIZE } from '../src/ui/handLayout.js';
 
 const read = (path) => fs.readFileSync(path, 'utf8');
 
@@ -28,24 +28,32 @@ test('hand layout keeps cards above the control row with readable spacing on por
   assert.equal(HAND_CARD_MAX_WIDTH_RATIO, 0.292);
   assert.equal(HAND_CARD_WIDTH_POLISH_SCALE, 1.04);
   assert.equal(HAND_CARD_BOTTOM_SAFE_INSET_RATIO, 0.1);
+  assert.equal(HAND_CARD_ROW_DOWN_SHIFT_PX, 8);
+  assert.equal(HAND_CARD_EDGE_SAFE_MARGIN_PX, 8);
+  assert.equal(hand.cardRowDownShift, 8);
+  assert.equal(hand.trackSafeInset, 8);
   assert.ok(hand.cardHeight >= 164 && hand.cardHeight <= 170, 'mobile hand cards should use more bottom space while preserving safe insets');
   assert.ok(cardBottom <= handBottom - hand.cardBottomSafeInset + 0.0001);
-  assert.ok(firstCardLeft >= 0);
-  assert.ok(lastCardRight <= 390);
+  assert.ok(firstCardLeft >= HAND_CARD_EDGE_SAFE_MARGIN_PX);
+  assert.ok(lastCardRight <= 390 - HAND_CARD_EDGE_SAFE_MARGIN_PX);
   assert.ok(hand.step >= hand.cardWidth * 0.72, 'card overlap should leave most of each card readable');
 });
 
-test('shared build marker helper is used by scene UI instead of duplicating marker styling', () => {
+test('shared build marker helper is used by scene UI outside BattleScene gameplay', () => {
   const battleSource = read('src/scenes/BattleScene.js');
   const factionSource = read('src/scenes/FactionSelectScene.js');
+  const mainMenuSource = read('src/scenes/MainMenuScene.js');
   const helperSource = read('src/ui/buildMarker.js');
 
   assert.match(helperSource, /export function createBuildMarker/);
   assert.match(helperSource, /getBuildMarkerText\(\)/);
-  assert.match(battleSource, /import \{ createBuildMarker \} from '\.\.\/ui\/buildMarker\.js';/);
+  assert.match(helperSource, /corner = 'bottom-right'/);
+  assert.match(mainMenuSource, /import \{ createBuildMarker \} from '\.\.\/ui\/buildMarker\.js';/);
+  assert.match(mainMenuSource, /corner: 'top-right'/);
+  assert.match(mainMenuSource, /alpha: 0\.42/);
   assert.match(factionSource, /import \{ createBuildMarker \} from '\.\.\/ui\/buildMarker\.js';/);
-  assert.match(battleSource, /createBuildMarker\(this, \{ width, height \}\);/);
   assert.match(factionSource, /const buildMarker = createBuildMarker\(this, \{ width, height \}\);/);
+  assert.doesNotMatch(battleSource, /createBuildMarker/);
 });
 
 test('UI implementation notes cover the mobile regression checklist and remaining risk report', () => {
