@@ -20,7 +20,7 @@
       "type": "unit",
       "targeting": "enemy",
       "effectId": "cancel_enemy_order",
-      "textShort": "On play: cancel the next enemy effect this turn.",
+      "textShort": "On play: cancel the next enemy effect.",
       "attack": 1,
       "hp": 2,
       "armor": 0
@@ -64,7 +64,7 @@
       "type": "order",
       "targeting": "any_units",
       "effectId": "swap_any_two_units",
-      "textShort": "Swap two units on one side."
+      "textShort": "Swap 2 [ALLY] or 2 enemies."
     },
     {
       "id": "control_jam_signal_1",

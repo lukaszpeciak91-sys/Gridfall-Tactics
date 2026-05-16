@@ -42,7 +42,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": "cannot_attack",
-      "textShort": "Blocks lane. Can't attack.",
+      "textShort": "",
       "attack": 0,
       "hp": 2,
       "armor": 0
@@ -72,7 +72,7 @@
       "type": "order",
       "targeting": "all_friendly_units",
       "effectId": "immune_move_disable_this_turn",
-      "textShort": "[ALLY] can't be moved or disabled this turn."
+      "textShort": "All [ALLY] are immovable this turn."
     },
     {
       "id": "tank_reinforce_1",

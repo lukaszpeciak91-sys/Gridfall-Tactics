@@ -18,7 +18,7 @@
     },
     "aggro_scout_1": {
       "name": "Scout",
-      "textShort": "On play: enemies can't play units here this turn."
+      "textShort": "On play: block this lane this turn."
     },
     "aggro_full_attack_1": {
       "name": "Full Attack",
@@ -26,7 +26,7 @@
     },
     "aggro_rush_1": {
       "name": "Rush",
-      "textShort": "Swap with an adjacent [ALLY]. Fight that lane."
+      "textShort": "Swap with adjacent [ALLY]. Fight immediately."
     },
     "aggro_pierce_strike_1": {
       "name": "Pierce Strike",
@@ -34,7 +34,7 @@
     },
     "aggro_adrenaline_1": {
       "name": "Adrenaline",
-      "textShort": "[ALLY]: fight its lane now."
+      "textShort": "Target [ALLY] fights immediately."
     },
     "aggro_quick_fix_1": {
       "name": "Quick Fix",
@@ -86,7 +86,7 @@
     },
     "control_disruptor_1": {
       "name": "Disruptor",
-      "textShort": "On play: cancel the next enemy effect this turn."
+      "textShort": "On play: cancel the next enemy effect."
     },
     "control_sniper_1": {
       "name": "Sniper",
@@ -102,7 +102,7 @@
     },
     "control_swap_1": {
       "name": "Swap",
-      "textShort": "Swap two units on one side."
+      "textShort": "Swap 2 [ALLY] or 2 enemies."
     },
     "control_jam_signal_1": {
       "name": "Jam Signal",
@@ -174,7 +174,7 @@
     },
     "tank_wall_1": {
       "name": "Wall",
-      "textShort": "Blocks lane. Can't attack."
+      "textShort": ""
     },
     "tank_bruiser_1": {
       "name": "Bruiser",
@@ -186,7 +186,7 @@
     },
     "tank_stability_1": {
       "name": "Stability",
-      "textShort": "[ALLY] can't be moved or disabled this turn."
+      "textShort": "All [ALLY] are immovable this turn."
     },
     "tank_reinforce_1": {
       "name": "Reinforce",
@@ -210,7 +210,7 @@
     },
     "wardens_halberdier_1": {
       "name": "Halberdier",
-      "textShort": "Opposed: +1 ATK."
+      "textShort": "If opposed: +1 ATK."
     },
     "wardens_bastion_guard_1": {
       "name": "Bastion Guard",
