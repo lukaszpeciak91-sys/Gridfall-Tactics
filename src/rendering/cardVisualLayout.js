@@ -1,5 +1,6 @@
 import { getCardDisplayName, getCardTextShort } from '../localization/cardDisplay.js';
 import { CARD_EFFECT_GAMEPLAY_SYMBOLS, formatCardEffectTextShort } from '../localization/cardTextFormatting.js';
+import { getLoadedCardIllustrationTextureKey } from './cardIllustrationAssets.js';
 
 export const CARD_ZONE_RATIOS = Object.freeze({
   statBadges: 0.112,
@@ -455,12 +456,15 @@ export function createArtPlaceholder(scene, zone) {
   return container;
 }
 
-function getCardArtTextureKey(card) {
-  return card?.artTextureKey ?? card?.artKey ?? card?.art?.textureKey ?? null;
+function getCardArtTextureKey(scene, card) {
+  return card?.artTextureKey
+    ?? card?.artKey
+    ?? card?.art?.textureKey
+    ?? getLoadedCardIllustrationTextureKey(scene, card);
 }
 
 export function createCardArtwork(scene, zone, card) {
-  const textureKey = getCardArtTextureKey(card);
+  const textureKey = getCardArtTextureKey(scene, card);
   if (textureKey && scene.textures?.exists?.(textureKey)) {
     const image = scene.add.image(zone.centerX, zone.centerY, textureKey);
     const texture = image.texture?.getSourceImage?.();

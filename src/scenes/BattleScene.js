@@ -5,6 +5,7 @@ import { chooseEnemyAction, recordBattleActionUse, selectOpeningMulliganCardIds 
 import { getTargetingStateForEffect } from '../systems/cardTargeting.js';
 import { getCombatEventAttackerIndex, getCombatEventTargetIndex, getLaneLethalTargetIndexes, getLaneSimultaneousUnitClash, shouldAnimateCombatAttacker } from '../systems/combatAnimation.js';
 import { BATTLE_BACKGROUND_FALLBACK_COLOR, BATTLE_BACKGROUND_FALLBACK_COLOR_HEX, createCoverBackground, getBattleBackgroundAsset, preloadBattleBackgroundArt } from '../rendering/backgroundArt.js';
+import { preloadAllCardIllustrations } from '../rendering/cardIllustrationAssets.js';
 import { calculateHandLayoutMetrics } from '../ui/handLayout.js';
 import { createFloatingControl, createMuteToggleControl, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
 import { createModalBackButton } from '../ui/modalControls.js';
@@ -168,6 +169,7 @@ export default class BattleScene extends Phaser.Scene {
   preload() {
     preloadBattleBackgroundArt(this);
     preloadSecondaryButtonAsset(this);
+    preloadAllCardIllustrations(this);
   }
 
   init() {
