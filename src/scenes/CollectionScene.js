@@ -9,6 +9,7 @@ import {
   preloadMenuBackgroundArt,
 } from '../rendering/backgroundArt.js';
 import { formatCardDetailLines } from '../rendering/cardRenderModes.js';
+import { preloadAllCardIllustrations } from '../rendering/cardIllustrationAssets.js';
 import { getActiveLocale, translateActive } from '../localization/localeService.js';
 import { createModalBackButton } from '../ui/modalControls.js';
 import { preloadSecondaryButtonAsset } from '../ui/imageButton.js';
@@ -33,6 +34,7 @@ export default class CollectionScene extends Phaser.Scene {
   preload() {
     preloadMenuBackgroundArt(this);
     preloadSecondaryButtonAsset(this);
+    preloadAllCardIllustrations(this);
   }
 
   init() {

@@ -65,6 +65,10 @@ const CARD_STAT_SYMBOL_KEYS = Object.freeze({
   '●': 'health',
 });
 
+export const INLINE_EFFECT_ICON_STAT_FONT_SCALE = 1.25;
+export const INLINE_EFFECT_ICON_BASELINE_OFFSET_RATIO = -0.09;
+export const INLINE_EFFECT_ICON_SPACE_SCALE = 0.62;
+
 const CARD_GAMEPLAY_SYMBOL_STYLES = Object.freeze({
   [CARD_EFFECT_GAMEPLAY_SYMBOLS.ally]: Object.freeze({
     color: '#facc15',
@@ -98,7 +102,13 @@ export function getInlineGameplaySymbolColor(symbol) {
 function getInlineSymbolStyle(symbol) {
   const statColor = getInlineStatSymbolColor(symbol);
   if (statColor) {
-    return { type: 'statSymbol', color: statColor, fontStyle: 'bold' };
+    return {
+      type: 'statSymbol',
+      color: statColor,
+      fontStyle: 'bold',
+      fontScale: INLINE_EFFECT_ICON_STAT_FONT_SCALE,
+      widthScale: 0.86,
+    };
   }
 
   const gameplayStyle = CARD_GAMEPLAY_SYMBOL_STYLES[symbol];
@@ -123,6 +133,18 @@ export function tokenizeInlineStatText(text) {
         text: token,
       };
     });
+}
+
+function isInlineSymbolToken(token) {
+  return token?.type === 'statSymbol' || token?.type === 'gameplaySymbol';
+}
+
+function getInlineSpaceWidth(spaceWidth, previousToken, nextToken) {
+  if (spaceWidth <= 0 || (!isInlineSymbolToken(previousToken) && !isInlineSymbolToken(nextToken))) {
+    return spaceWidth;
+  }
+
+  return Math.max(1, Math.ceil(spaceWidth * INLINE_EFFECT_ICON_SPACE_SCALE));
 }
 
 export function layoutInlineStatText(text, { maxWidth, measureTokenWidth }) {
@@ -152,12 +174,14 @@ export function layoutInlineStatText(text, { maxWidth, measureTokenWidth }) {
       return;
     }
 
-    const nextX = currentWidth + pendingSpaceWidth;
+    const previousSegment = currentLine.at(-1);
+    const inlineSpaceWidth = getInlineSpaceWidth(pendingSpaceWidth, previousSegment, token);
+    const nextX = currentWidth + inlineSpaceWidth;
     if (currentLine.length > 0 && nextX + width > maxWidth) {
       pushLine();
     }
 
-    const segmentX = currentLine.length > 0 ? currentWidth + pendingSpaceWidth : 0;
+    const segmentX = currentLine.length > 0 ? currentWidth + inlineSpaceWidth : 0;
     currentLine.push({ ...token, x: segmentX, width });
     currentWidth = segmentX + width;
     pendingSpaceWidth = 0;
@@ -194,7 +218,7 @@ export function createInlineStatText(scene, x, y, text, {
       return Math.ceil(fittedFontSize * (symbolStyle.widthScale ?? 0.78));
     }
     if (symbolStyle.type === 'statSymbol') {
-      return Math.ceil(fittedFontSize * 0.92);
+      return Math.ceil(fittedFontSize * (symbolStyle.widthScale ?? 0.86));
     }
 
     measureText.setText(value);
@@ -227,11 +251,12 @@ export function createInlineStatText(scene, x, y, text, {
   lines.forEach((line, lineIndex) => {
     const startX = align === 'center' ? -line.width / 2 : 0;
     const baselineY = lineIndex * lineHeight;
+    const inlineIconYOffset = Math.round(fittedFontSize * INLINE_EFFECT_ICON_BASELINE_OFFSET_RATIO);
     line.segments.forEach((segment) => {
       const symbolStyle = getInlineSymbolStyle(segment.text);
       const segmentX = startX + segment.x;
       if (symbolStyle.type === 'gameplaySymbol' && symbolStyle.icon === 'group') {
-        const group = scene.add.container(segmentX + segment.width / 2, baselineY + lineHeight * 0.49);
+        const group = scene.add.container(segmentX + segment.width / 2, baselineY + lineHeight * 0.49 + inlineIconYOffset);
         const iconFontSize = Math.max(fittedFontSize + 1, Math.round(fittedFontSize * (symbolStyle.fontScale ?? 1.12)));
         const backIcon = scene.add.text(-segment.width * 0.18, -iconFontSize * 0.02, CARD_EFFECT_GAMEPLAY_SYMBOLS.ally, {
           ...baseStyle,
@@ -260,7 +285,8 @@ export function createInlineStatText(scene, x, y, text, {
       const iconFontSize = isInlineSymbol
         ? Math.max(fittedFontSize + 1, Math.round(fittedFontSize * (symbolStyle.fontScale ?? 1.14)))
         : fittedFontSize;
-      const segmentText = scene.add.text(segmentX, baselineY, segment.text, {
+      const segmentY = isInlineSymbol ? baselineY + inlineIconYOffset : baselineY;
+      const segmentText = scene.add.text(segmentX, segmentY, segment.text, {
         ...baseStyle,
         fontSize: `${iconFontSize}px`,
         color: symbolStyle.color ?? color,
@@ -456,7 +482,7 @@ export function createArtPlaceholder(scene, zone) {
   return container;
 }
 
-function getCardArtTextureKey(scene, card, { enableCardIllustration = true } = {}) {
+function getCardArtTextureKey(scene, card, { enableCardIllustration = false } = {}) {
   const explicitTextureKey = card?.artTextureKey ?? card?.artKey ?? card?.art?.textureKey ?? null;
   if (explicitTextureKey) return explicitTextureKey;
 
@@ -465,6 +491,15 @@ function getCardArtTextureKey(scene, card, { enableCardIllustration = true } = {
 
 export function createCardArtwork(scene, zone, card, options = {}) {
   const textureKey = getCardArtTextureKey(scene, card, options);
+function getCardArtTextureKey(scene, card) {
+  return card?.artTextureKey
+    ?? card?.artKey
+    ?? card?.art?.textureKey
+    ?? getLoadedCardIllustrationTextureKey(scene, card);
+}
+
+export function createCardArtwork(scene, zone, card) {
+  const textureKey = getCardArtTextureKey(scene, card);
   if (textureKey && scene.textures?.exists?.(textureKey)) {
     const image = scene.add.image(zone.centerX, zone.centerY, textureKey);
     const texture = image.texture?.getSourceImage?.();
