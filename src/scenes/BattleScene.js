@@ -69,6 +69,8 @@ const ENEMY_ACTION_PRE_COMBAT_DELAY_MS = 400;
 const PLAYER_EFFECT_CONFIRMATION_FADE_IN_MS = 90;
 const PLAYER_EFFECT_CONFIRMATION_HOLD_MS = 520;
 const PLAYER_EFFECT_CONFIRMATION_FADE_OUT_MS = 120;
+const PLAYER_EFFECT_CAST_BEAT_MS = 620;
+const PLAYER_EFFECT_CAST_SWEEP_STEP_MS = 70;
 const ENEMY_ACTION_PACING = Object.freeze({
   pass: {
     applyDelayMs: Math.round(ENEMY_ACTION_APPLY_DELAY_MS * 0.65),
@@ -132,6 +134,9 @@ export default class BattleScene extends Phaser.Scene {
     this.playerActionUsed = false;
     this.enemyActionUsed = false;
     this.targetingState = null;
+    this.effectCastState = null;
+    this.isEffectCastResolving = false;
+    this.targetingInstructionText = null;
     this.openingMulliganPending = false;
     this.selectedMulliganCardIds = [];
     this.previewedMulliganCardId = null;
@@ -175,6 +180,9 @@ export default class BattleScene extends Phaser.Scene {
     this.playerActionUsed = false;
     this.enemyActionUsed = false;
     this.targetingState = null;
+    this.effectCastState = null;
+    this.isEffectCastResolving = false;
+    this.targetingInstructionText = null;
     this.openingMulliganPending = false;
     this.selectedMulliganCardIds = [];
     this.previewedMulliganCardId = null;
@@ -217,6 +225,7 @@ export default class BattleScene extends Phaser.Scene {
   cleanupSceneObjects({ preserveTimers = false, preserveTweens = false } = {}) {
     this.destroyEnemyActionBanner();
     this.destroyPlayerActionBanner();
+    this.destroyTargetingInstruction();
     this.destroyBattleResultModal();
     this.destroyUtilityMenuPanel();
     this.destroyDeckInfoPanel();
@@ -789,6 +798,9 @@ export default class BattleScene extends Phaser.Scene {
     this.selectedCardId = null;
     this.pendingSwapIndex = null;
     this.targetingState = null;
+    this.effectCastState = null;
+    this.isEffectCastResolving = false;
+    this.destroyTargetingInstruction();
     this.openingMulliganPending = false;
     this.scene.start('FactionSelectScene');
   }
@@ -827,6 +839,9 @@ export default class BattleScene extends Phaser.Scene {
     this.selectedCardId = null;
     this.pendingSwapIndex = null;
     this.targetingState = null;
+    this.effectCastState = null;
+    this.isEffectCastResolving = false;
+    this.destroyTargetingInstruction();
     this.openingMulliganPending = false;
     this.scene.start('MainMenuScene');
   }
@@ -840,6 +855,9 @@ export default class BattleScene extends Phaser.Scene {
     this.selectedCardId = null;
     this.pendingSwapIndex = null;
     this.targetingState = null;
+    this.effectCastState = null;
+    this.isEffectCastResolving = false;
+    this.destroyTargetingInstruction();
     this.openingMulliganPending = false;
     this.scene.restart({ factionKey, enemyFactionKey });
   }
@@ -1193,6 +1211,10 @@ export default class BattleScene extends Phaser.Scene {
 
     this.actionButton = button;
     button.on('pointerup', () => {
+      if (this.targetingState) {
+        this.cancelEffectTargeting();
+        return;
+      }
       if (this.openingMulliganPending) {
         this.confirmOpeningMulligan();
         return;
@@ -1267,7 +1289,11 @@ export default class BattleScene extends Phaser.Scene {
     this.destroyDeckInfoPanel();
     this.selectedCardId = null;
     this.targetingState = null;
+    this.effectCastState = null;
+    this.isEffectCastResolving = false;
     this.pendingSwapIndex = null;
+    this.destroyTargetingInstruction();
+    this.updateActionButtonLabel();
     this.resetCardHighlights({ showPreview: false });
 
     const { width, height } = this.scale.gameSize;
@@ -1570,7 +1596,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   onHandCardPointerOver(cardId) {
-    if (this.battleResultModalShown || this.isFlowResolving || this.selectedCardId || this.targetingState) return;
+    if (this.battleResultModalShown || this.isFlowResolving || this.isEffectCastResolving || this.selectedCardId || this.targetingState || this.effectCastState) return;
     const card = this.gameState?.player?.hand?.find((item) => item.id === cardId);
     if (!card) return;
 
@@ -1597,7 +1623,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   showBoardUnitInspect(boardIndex) {
-    if (this.selectedCardId || this.targetingState || this.pressedHandCardId) return false;
+    if (this.selectedCardId || this.targetingState || this.effectCastState || this.isEffectCastResolving || this.pressedHandCardId) return false;
 
     const unit = this.gameState?.board?.[boardIndex] ?? null;
     if (!unit) return false;
@@ -1633,13 +1659,16 @@ export default class BattleScene extends Phaser.Scene {
     if (this.openingMulliganPending) {
       this.selectedCardId = null;
       this.targetingState = null;
+      this.effectCastState = null;
+      this.isEffectCastResolving = false;
+      this.destroyTargetingInstruction();
       this.pendingSwapIndex = null;
       this.previewedMulliganCardId = null;
       this.toggleOpeningMulliganCard(cardId, { showPreview: false });
       return;
     }
 
-    if (this.playerActionUsed) {
+    if (this.playerActionUsed || this.isEffectCastResolving || this.targetingState) {
       return;
     }
 
@@ -1657,12 +1686,13 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     this.targetingState = null;
+    this.effectCastState = null;
+    this.destroyTargetingInstruction();
 
     if (this.selectedCardId === cardId) {
       this.selectedCardId = null;
     } else {
       this.selectedCardId = cardId;
-      this.targetingState = this.isUnitCard(card) ? null : this.getTargetingStateForCard(card);
     }
     this.resetCardHighlights({ showPreview: false });
   }
@@ -1672,7 +1702,7 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
-    if (this.battleResultModalShown || this.isFlowResolving) {
+    if (this.battleResultModalShown || this.isFlowResolving || this.isEffectCastResolving) {
       this.pressedHandCardId = null;
       return;
     }
@@ -1689,14 +1719,14 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   onScenePointerUp(pointer, currentlyOver = []) {
-    if (this.battleResultModalShown || this.isFlowResolving) return;
+    if (this.battleResultModalShown || this.isFlowResolving || this.isEffectCastResolving) return;
 
     if (this.openingMulliganPending) {
       this.clearOpeningMulliganPreviewFromOutsideTap(pointer, currentlyOver);
       return;
     }
 
-    if (!this.selectedCardId && !this.targetingState) {
+    if (!this.selectedCardId && !this.targetingState && !this.effectCastState) {
       this.clearBoardInspectFromOutsideTap(pointer, currentlyOver);
       return;
     }
@@ -1704,7 +1734,8 @@ export default class BattleScene extends Phaser.Scene {
 
     const boardCell = this.getBoardCellFromPointerUp(pointer, currentlyOver);
     if (boardCell) {
-      const selectedCard = this.gameState.player.hand.find((card) => card.id === this.selectedCardId);
+      const selectedCard = this.getActivePlayerEffectCard()
+        ?? this.gameState.player.hand.find((card) => card.id === this.selectedCardId);
       if (!selectedCard) {
         this.pressedHandCardId = null;
         this.clearHandCardSelection();
@@ -1827,11 +1858,14 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   clearHandCardSelection() {
-    const hadState = Boolean(this.selectedCardId || this.targetingState || this.hoverInspectCardId || this.boardInspectIndex !== null);
+    const hadState = Boolean(this.selectedCardId || this.targetingState || this.effectCastState || this.hoverInspectCardId || this.boardInspectIndex !== null);
     this.selectedCardId = null;
     this.targetingState = null;
+    this.effectCastState = null;
     this.hoverInspectCardId = null;
     this.boardInspectIndex = null;
+    this.destroyTargetingInstruction();
+    this.updateActionButtonLabel();
     if (hadState) this.resetCardHighlights();
   }
 
@@ -1840,7 +1874,7 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
-    if (this.isFlowResolving) {
+    if (this.isFlowResolving || this.isEffectCastResolving) {
       return;
     }
 
@@ -1848,7 +1882,7 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
-    if (!this.selectedCardId && !this.targetingState) {
+    if (!this.selectedCardId && !this.targetingState && !this.effectCastState) {
       const unit = this.gameState.board[boardIndex];
 
       if (this.pendingSwapIndex !== null) {
@@ -1875,7 +1909,8 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
-    const selectedCard = this.gameState.player.hand.find((card) => card.id === this.selectedCardId);
+    const selectedCard = this.getActivePlayerEffectCard()
+      ?? this.gameState.player.hand.find((card) => card.id === this.selectedCardId);
     if (!selectedCard) return;
 
     if (this.targetingState) {
@@ -1893,13 +1928,15 @@ export default class BattleScene extends Phaser.Scene {
       }
 
       const beforeStats = this.captureBoardStats();
-      const result = resolveTargetedEffectCard(this.gameState, 'player', this.selectedCardId, boardIndex, targetIndexes);
+      const effectCardId = this.effectCastState?.cardId ?? this.selectedCardId;
+      const result = resolveTargetedEffectCard(this.gameState, 'player', effectCardId, boardIndex, targetIndexes);
       if (result.ok && result.type === 'targeted-effect-pending') {
         this.targetingState = {
           ...this.targetingState,
           targetIndexes,
         };
         this.resetCardHighlights();
+        this.showTargetingInstruction();
         return;
       }
       if (!result.ok) return;
@@ -1908,22 +1945,12 @@ export default class BattleScene extends Phaser.Scene {
         this.refreshAfterPlayerAction();
         return;
       }
-      this.showPlayerEffectConfirmation(selectedCard);
       this.completePlayerAction(beforeStats);
       return;
     }
 
     if (!this.isUnitCard(selectedCard)) {
-      if (this.gameState.cancelEnemyOrderThisTurn?.enemy) {
-        this.gameState.cancelEnemyOrderThisTurn.enemy = false;
-        this.refreshAfterPlayerAction();
-        return;
-      }
-      const beforeStats = this.captureBoardStats();
-      const result = playEffectCard(this.gameState, 'player', this.selectedCardId);
-      if (!result.ok) return;
-      this.showPlayerEffectConfirmation(selectedCard);
-      this.completePlayerAction(beforeStats);
+      this.startPlayerEffectCast(selectedCard);
       return;
     }
 
@@ -1936,6 +1963,135 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     this.completePlayerAction(beforeStats);
+  }
+
+
+  getActivePlayerEffectCard() {
+    const cardId = this.effectCastState?.cardId;
+    if (!cardId) return null;
+    return this.gameState?.player?.hand?.find((card) => card.id === cardId) ?? null;
+  }
+
+  async startPlayerEffectCast(card) {
+    if (!card || this.isUnitCard(card) || this.isEffectCastResolving || this.playerActionUsed) return;
+
+    const targetingState = this.getTargetingStateForCard(card);
+    this.effectCastState = { cardId: card.id, targetingState };
+    this.selectedCardId = null;
+    this.pendingSwapIndex = null;
+    this.targetingState = null;
+    this.hoverInspectCardId = null;
+    this.boardInspectIndex = null;
+    this.pressedHandCardId = null;
+    this.destroySelectedHandCardZoom({ animate: true });
+    this.destroyTargetingInstruction();
+    this.updateActionButtonLabel();
+    this.resetCardHighlights({ showPreview: false });
+
+    this.isEffectCastResolving = true;
+    this.showPlayerEffectConfirmation(card);
+
+    await Promise.all([
+      this.playPlayerEffectCastFeedback(),
+      this.delay(PLAYER_EFFECT_CAST_BEAT_MS),
+    ]);
+
+    if (!this.effectCastState || this.effectCastState.cardId !== card.id) {
+      this.isEffectCastResolving = false;
+      return;
+    }
+
+    if (targetingState) {
+      this.targetingState = { ...targetingState, targetIndexes: [...(targetingState.targetIndexes ?? [])] };
+      this.isEffectCastResolving = false;
+      this.updateActionButtonLabel();
+      this.resetCardHighlights({ showPreview: false });
+      this.showTargetingInstruction();
+      return;
+    }
+
+    if (this.gameState.cancelEnemyOrderThisTurn?.enemy) {
+      this.gameState.cancelEnemyOrderThisTurn.enemy = false;
+      this.isEffectCastResolving = false;
+      this.refreshAfterPlayerAction();
+      return;
+    }
+
+    const beforeStats = this.captureBoardStats();
+    const result = playEffectCard(this.gameState, 'player', card.id);
+    this.isEffectCastResolving = false;
+    if (!result.ok) {
+      this.effectCastState = null;
+      this.resetCardHighlights({ showPreview: false });
+      this.updateActionButtonLabel();
+      return;
+    }
+    this.completePlayerAction(beforeStats);
+  }
+
+
+  async playPlayerEffectCastFeedback() {
+    const middleCells = this.boardCells
+      .filter((cell) => cell.row === 1 && cell.background?.active)
+      .sort((a, b) => Math.abs(a.index - 4) - Math.abs(b.index - 4) || a.index - b.index);
+
+    if (middleCells.length === 0) return;
+
+    const animations = middleCells.map((cell, order) => new Promise((resolve) => {
+      const background = cell.background;
+      const previousStyle = {
+        lineWidth: background.lineWidth ?? 2,
+        strokeColor: background.strokeColor ?? 0x94a3b8,
+        strokeAlpha: background.strokeAlpha ?? BOARD_GUIDE_SLOT_STROKE_ALPHA,
+        fillColor: background.fillColor ?? 0x111827,
+        fillAlpha: background.fillAlpha ?? BOARD_GUIDE_SLOT_FILL_ALPHA,
+        scaleX: background.scaleX,
+        scaleY: background.scaleY,
+      };
+
+      this.time.delayedCall(order * PLAYER_EFFECT_CAST_SWEEP_STEP_MS, () => {
+        if (!background.active) {
+          resolve();
+          return;
+        }
+        background.setStrokeStyle(4, 0x38bdf8, 0.92);
+        background.setFillStyle(0x0e7490, 0.18);
+        this.tweens.add({
+          targets: background,
+          scaleX: previousStyle.scaleX * 1.045,
+          scaleY: previousStyle.scaleY * 1.045,
+          duration: 120,
+          yoyo: true,
+          repeat: 1,
+          ease: 'Sine.easeInOut',
+          onComplete: () => {
+            if (background.active) {
+              background.setScale(previousStyle.scaleX, previousStyle.scaleY);
+              background.setFillStyle(previousStyle.fillColor, previousStyle.fillAlpha);
+              background.setStrokeStyle(previousStyle.lineWidth, previousStyle.strokeColor, previousStyle.strokeAlpha);
+            }
+            resolve();
+          },
+        });
+      });
+    }));
+
+    await Promise.all(animations);
+  }
+
+
+  cancelEffectTargeting() {
+    if (!this.targetingState && !this.effectCastState) return;
+    this.targetingState = null;
+    this.effectCastState = null;
+    this.pendingSwapIndex = null;
+    this.hoverInspectCardId = null;
+    this.boardInspectIndex = null;
+    this.pressedHandCardId = null;
+    this.destroyTargetingInstruction();
+    this.destroySelectedHandCardZoom({ animate: true });
+    this.updateActionButtonLabel();
+    this.resetCardHighlights({ showPreview: false });
   }
 
 
@@ -1980,24 +2136,37 @@ export default class BattleScene extends Phaser.Scene {
     this.previewedMulliganCardId = null;
     this.selectedCardId = null;
     this.targetingState = null;
+    this.effectCastState = null;
+    this.isEffectCastResolving = false;
     this.pendingSwapIndex = null;
     this.hoverInspectCardId = null;
     this.boardInspectIndex = null;
+    this.destroyTargetingInstruction();
     this.destroySelectedHandCardZoom({ animate: true });
   }
 
   updateActionButtonLabel() {
     if (!this.actionButton) return;
+    if (this.targetingState) {
+      this.actionButton.setText(translateActive('ui.common.cancel', 'CANCEL'));
+      this.actionButton.setStyle({ backgroundColor: '#164e63', color: '#ecfeff' });
+      this.actionButton.setStroke('#22d3ee', 2);
+      return;
+    }
     if (this.openingMulliganPending) {
       const count = this.selectedMulliganCardIds.length;
       this.actionButton.setText(count > 0 ? translateActive('ui.battle.mulligan', 'MULLIGAN {count}', { count }) : translateActive('ui.battle.keepHand', 'KEEP HAND'));
+      this.actionButton.setStyle({ backgroundColor: '#111827', color: '#f9fafb' });
+      this.actionButton.setStroke('#64748b', 2);
       return;
     }
     this.actionButton.setText(translateActive('ui.common.pass', 'PASS'));
+    this.actionButton.setStyle({ backgroundColor: '#111827', color: '#f9fafb' });
+    this.actionButton.setStroke('#64748b', 2);
   }
 
   resolvePassTurn() {
-    if (this.battleResultModalShown || this.isFlowResolving) return;
+    if (this.battleResultModalShown || this.isFlowResolving || this.isEffectCastResolving || this.targetingState) return;
     if (this.gameState.winner || !canPass(this.gameState) || this.playerActionUsed) return;
     recordPassAction(this.gameState, 'player');
     this.completePlayerAction();
@@ -2022,10 +2191,14 @@ export default class BattleScene extends Phaser.Scene {
     this.selectedCardId = null;
     this.pendingSwapIndex = null;
     this.targetingState = null;
+    this.effectCastState = null;
+    this.isEffectCastResolving = false;
     this.hoverInspectCardId = null;
     this.boardInspectIndex = null;
+    this.destroyTargetingInstruction();
     this.destroySelectedHandCardZoom({ animate: true });
     this.updateInitiativeIndicator();
+    this.updateActionButtonLabel();
 
     if (this.gameState.firstActor === 'enemy') {
       this.resolveEnemyFirstTurnOpening();
@@ -2143,8 +2316,11 @@ export default class BattleScene extends Phaser.Scene {
     this.selectedCardId = null;
     this.pendingSwapIndex = null;
     this.targetingState = null;
+    this.effectCastState = null;
+    this.isEffectCastResolving = false;
     this.hoverInspectCardId = null;
     this.boardInspectIndex = null;
+    this.destroyTargetingInstruction();
     this.destroySelectedHandCardZoom({ animate: true });
     this.refreshBoardLabels();
     this.redrawHand();
@@ -2152,6 +2328,7 @@ export default class BattleScene extends Phaser.Scene {
     this.refreshDeckCounter();
     this.resetCardHighlights();
     this.updateActionSlotBadge();
+    this.updateActionButtonLabel();
   }
 
   async revealAndApplyEnemyAction() {
@@ -2317,6 +2494,53 @@ export default class BattleScene extends Phaser.Scene {
     );
   }
 
+  getTargetingInstructionMessage() {
+    const state = this.targetingState;
+    if (!state) return '';
+
+    const selectedCount = state.targetIndexes?.length ?? 0;
+    if (state.targetConstraint === 'adjacent-pair' && selectedCount > 0) {
+      return translateActive('ui.battle.targeting.selectAdjacentEnemy', 'Select adjacent enemy');
+    }
+    if (state.requiredTargets > 1 && selectedCount === 0 && state.targetType === 'enemy-unit') {
+      return translateActive('ui.battle.targeting.selectFirstEnemy', 'Select first enemy');
+    }
+    if (state.targetType === 'enemy-unit') return translateActive('ui.battle.targeting.selectEnemy', 'Select enemy');
+    if (state.targetType === 'friendly-unit') return translateActive('ui.battle.targeting.selectAlly', 'Select ally');
+    if (state.targetType === 'any-unit') return translateActive('ui.battle.targeting.selectUnit', 'Select unit');
+    return translateActive('ui.battle.targeting.selectUnit', 'Select unit');
+  }
+
+  showTargetingInstruction() {
+    const message = this.getTargetingInstructionMessage();
+    if (!message) {
+      this.destroyTargetingInstruction();
+      return;
+    }
+
+    if (this.targetingInstructionText?.active) {
+      this.targetingInstructionText.setText(message);
+      return;
+    }
+
+    const { width, height, board } = this.layout;
+    const fontSize = Math.min(18, Math.max(13, Math.floor(Math.max(board.cellWidth * 0.12, height * 0.015))));
+    this.targetingInstructionText = this.add.text(
+      width * 0.5,
+      board.centerY - board.cellHeight * 0.64,
+      message,
+      {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: `${fontSize}px`,
+        color: '#e0f2fe',
+        backgroundColor: '#0f172a',
+        fontStyle: 'bold',
+        align: 'center',
+        padding: { x: 12, y: 7 },
+      },
+    ).setOrigin(0.5).setDepth(222).setAlpha(0.94);
+  }
+
   showEnemyActionBanner(message, pacing = ENEMY_ACTION_PACING.unit) {
     this.destroyPlayerActionBanner();
     this.destroyEnemyActionBanner();
@@ -2388,6 +2612,13 @@ export default class BattleScene extends Phaser.Scene {
     this.tweens?.killTweensOf?.(this.playerActionBanner);
     this.playerActionBanner.destroy();
     this.playerActionBanner = null;
+  }
+
+  destroyTargetingInstruction() {
+    if (!this.targetingInstructionText) return;
+    this.tweens?.killTweensOf?.(this.targetingInstructionText);
+    this.targetingInstructionText.destroy();
+    this.targetingInstructionText = null;
   }
 
 

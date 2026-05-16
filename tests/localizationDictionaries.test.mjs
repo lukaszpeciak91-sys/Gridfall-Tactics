@@ -43,6 +43,15 @@ test('player effect confirmation banner copy is localized for English and Polish
   assert.equal(getPath(pl, 'ui.battle.playerPlayed'), 'ZAGRANO');
 });
 
+test('effect targeting cancel and instruction copy is localized for English and Polish', () => {
+  assert.equal(getPath(en, 'ui.common.cancel'), 'CANCEL');
+  assert.equal(getPath(pl, 'ui.common.cancel'), 'ANULUJ');
+  for (const key of ['selectEnemy', 'selectFirstEnemy', 'selectAdjacentEnemy', 'selectAlly', 'selectUnit']) {
+    assert.equal(typeof getPath(en, `ui.battle.targeting.${key}`), 'string', `missing English targeting instruction ${key}`);
+    assert.equal(typeof getPath(pl, `ui.battle.targeting.${key}`), 'string', `missing Polish targeting instruction ${key}`);
+  }
+});
+
 test('card type and stat labels exist in English and Polish dictionaries', () => {
   for (const key of ['cardTypes.unit', 'cardTypes.effect', 'stats.attack', 'stats.hp', 'stats.armor']) {
     assert.equal(typeof getPath(en, key), 'string', `missing English ${key}`);

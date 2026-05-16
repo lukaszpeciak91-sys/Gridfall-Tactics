@@ -268,7 +268,8 @@
       "none": "None",
       "empty": "Empty",
       "unknownCard": "Unknown Card",
-      "unit": "Unit"
+      "unit": "Unit",
+      "cancel": "CANCEL"
     },
     "start": {
       "title": "GRIDFALL TACTICS",
@@ -382,6 +383,13 @@
         "adjacent_allies_temp_armor_1": "Adjacent allies +1 ARM",
         "swap_leftmost_adjacent_enemies": "Swap two adjacent enemies",
         "swap_adjacent_enemy_units": "Swap two adjacent enemies"
+      },
+      "targeting": {
+        "selectEnemy": "Select enemy",
+        "selectFirstEnemy": "Select first enemy",
+        "selectAdjacentEnemy": "Select adjacent enemy",
+        "selectAlly": "Select ally",
+        "selectUnit": "Select unit"
       }
     },
     "rules": {
