@@ -26,6 +26,9 @@ export function getTargetingStateForEffect(effectId, cardId) {
   if (effectId === 'swap_two_enemy_units') {
     return { cardId, targetType: 'enemy-unit', requiredTargets: 2, targetIndexes: [] };
   }
+  if (effectId === 'swap_adjacent_enemy_units') {
+    return { cardId, targetType: 'enemy-unit', requiredTargets: 2, targetIndexes: [], targetConstraint: 'adjacent-pair' };
+  }
   if (effectId === 'swap_any_two_units') {
     return { cardId, targetType: 'any-unit', requiredTargets: 2, targetIndexes: [] };
   }

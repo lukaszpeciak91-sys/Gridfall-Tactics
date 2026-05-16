@@ -178,7 +178,7 @@ The no-progress detector uses the stricter "meaningful for outcome" definition i
 - Deterministic simplifications currently in code:
   - **Sniper (`can_hit_any_lane`)** targets the lowest-HP enemy unit; ties break to lower board index.
   - **Controller (`swap_two_enemy_units`)** on-play picks first two enemy units by lane/index order.
-  - **Shield Push (`swap_leftmost_adjacent_enemies`)** swaps the leftmost legal adjacent enemy pair in the opponent row only; it never crosses sides and never changes ownership. If no adjacent enemy pair exists, it has no legal deterministic resolution and is rejected rather than discarded.
+  - **Shield Push (`swap_adjacent_enemy_units`)** is a manual two-target order: select an enemy, then select an adjacent enemy in the same row. The selected enemies swap positions; the effect never crosses sides and never changes ownership. Invalid, empty, friendly, duplicate, or non-adjacent targets are rejected rather than discarded.
   - **Reinforce Line / Hold The Line (`adjacent_allies_temp_armor_1`)** give +1 temporary ARM to friendly units with same-row adjacent allies; isolated friendly units have no legal deterministic resolution and the order is rejected rather than discarded.
   - AI-controlled sides evaluate legal targeted actions, immediate effects, redeploys, and adjacent swaps with the same `chooseBattleAction` scorer used by AI-vs-AI simulation bots and the live enemy. Ties are deterministic in live enemy turns and seeded-random in simulation runs.
 - No hidden-information peek UI; `peek_enemy_slot` is a no-op.
@@ -253,7 +253,7 @@ The no-progress detector uses the stricter "meaningful for outcome" definition i
 | Wardens | Bastion Guard | unit | 1/3/0 | null |  | Lane combat | Vanilla unit with empty rules text. |
 | Wardens | Watch Captain | unit | 2/2/0 | null |  | Lane combat | Vanilla unit with empty rules text. |
 | Wardens | Brace | utility | - | temp_armor_1 | Target [ALLY] +1 ARM until combat ends. | Targeted friendly | Reuses temporary armor cleanup; no costs. |
-| Wardens | Shield Push | order | - | swap_leftmost_adjacent_enemies | Swap two adjacent enemies. | Non-targeted deterministic effect | Same enemy row only; no cross-side movement; no ownership changes; rejected if no legal adjacent enemy pair. |
+| Wardens | Shield Push | order | - | swap_adjacent_enemy_units | Swap two adjacent enemies. | Manual two-enemy targeting | Select two adjacent enemies in the same row; no cross-side movement; no ownership changes. |
 | Wardens | Stand Firm | order | - | friendly_immovable_this_turn | All [ALLY] can't be moved this turn. | Non-targeted effect | Move-only protection; unlike Tank Stability, it does not block disable effects. |
 | Wardens | Reinforce Line | order | - | adjacent_allies_temp_armor_1 | Adjacent [ALLY] +1 ARM until combat ends. | Non-targeted formation effect | Same-row friendly units with adjacent allies gain +1 temporary ARM; isolated allies have no legal deterministic resolution; no lane targeting UI. |
 | Wardens | Hold The Line | order | - | adjacent_allies_temp_armor_1 | Adjacent [ALLY] +1 ARM until combat ends. | Non-targeted formation effect | Same adjacency behavior as Reinforce Line; reinforces Wardens shield-wall formation identity and reuses temporary armor cleanup. |

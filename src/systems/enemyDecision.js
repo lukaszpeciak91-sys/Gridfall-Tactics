@@ -268,6 +268,7 @@ function getCandidateTargetIndexes(state, owner, effectId) {
     case 'infect_damage_1_opposite_ally_atk_1':
     case 'enemy_lane_atk_minus_1':
     case 'swap_two_enemy_units':
+    case 'swap_adjacent_enemy_units':
       return board.map((unit, index) => (unit?.owner === opponentOwner ? index : -1)).filter((index) => index >= 0);
     case 'swap_any_two_units':
       return board.map((unit, index) => (unit ? index : -1)).filter((index) => index >= 0);
@@ -285,7 +286,14 @@ function getActionTargetIndexes(action) {
 }
 
 function isTwoTargetSwapEffect(effectId) {
-  return effectId === 'swap_any_two_units' || effectId === 'swap_two_enemy_units';
+  return effectId === 'swap_any_two_units'
+    || effectId === 'swap_two_enemy_units'
+    || effectId === 'swap_adjacent_enemy_units';
+}
+
+function areAdjacentTargetIndexes(firstIndex, secondIndex) {
+  return Math.floor(firstIndex / 3) === Math.floor(secondIndex / 3)
+    && Math.abs((firstIndex % 3) - (secondIndex % 3)) === 1;
 }
 
 function isTargetedOnlyEffect(effectId) {
@@ -334,6 +342,7 @@ function addTwoTargetCandidates(actions, state, owner, card) {
       if (first === second) continue;
       if (isTwoTargetSwapEffect(card.effectId ?? null) && second < first) continue;
       const targetIndexes = [targets[first], targets[second]];
+      if (card.effectId === 'swap_adjacent_enemy_units' && !areAdjacentTargetIndexes(targetIndexes[0], targetIndexes[1])) continue;
       if (!state.board[targetIndexes[0]] || !state.board[targetIndexes[1]]) continue;
 
       const probeState = cloneState(state);
@@ -535,7 +544,7 @@ function scoreAction(state, owner, action) {
     score += 900;
   }
 
-  if (action.effectId === 'swap_leftmost_adjacent_enemies') {
+  if (action.effectId === 'swap_leftmost_adjacent_enemies' || action.effectId === 'swap_adjacent_enemy_units') {
     const meaningful = boardPressureGain > 20 || heroPressureGain > 0 || opponentPressureReduced > 0 || openLaneImprovement > 0;
     action.aiEvaluation = {
       kind: 'shield-push',
@@ -637,6 +646,7 @@ function scoreAction(state, owner, action) {
     const hasEnemyMoveCard = (owner === 'enemy' ? state.player?.hand : state.enemy?.hand)?.some((card) => (
       card?.effectId === 'swap_any_two_units'
       || card?.effectId === 'swap_two_enemy_units'
+      || card?.effectId === 'swap_adjacent_enemy_units'
       || card?.effectId === 'swap_adjacent_then_resolve'
       || card?.effectId === 'swap_leftmost_adjacent_enemies'
     ));

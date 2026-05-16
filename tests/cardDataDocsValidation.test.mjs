@@ -162,7 +162,6 @@ test('deterministic effects remain outside manual targeting metadata', () => {
     ['can_hit_any_lane', 'control_sniper_1'],
     ['enemy_all_atk_minus_1', 'control_jam_signal_1'],
     ['damage_all_enemies_1_ignore_armor', 'control_pulse_wave_1'],
-    ['swap_leftmost_adjacent_enemies', 'wardens_shield_push_1'],
     ['adjacent_allies_temp_armor_1', 'wardens_reinforce_line_1'],
     ['friendly_immovable_this_turn', 'wardens_stand_firm_1'],
     ['adjacent_allies_temp_armor_1', 'wardens_hold_the_line_1'],

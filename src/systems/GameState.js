@@ -81,6 +81,14 @@ function cardCanRealisticallyAffectOutcome(card, state, owner) {
         .some((unitOwner) => state.board.filter((unit) => unit?.owner === unitOwner).length >= 2);
       return ownersWithTwoUnits;
     }
+    case 'swap_adjacent_enemy_units': {
+      const opponentRow = getRowForOwner(getOpponentOwner(owner));
+      return opponentRow.some((index, rowPosition) => (
+        rowPosition < opponentRow.length - 1
+        && state.board[index]?.owner === getOpponentOwner(owner)
+        && state.board[opponentRow[rowPosition + 1]]?.owner === getOpponentOwner(owner)
+      ));
+    }
     case 'summon_grunt_empty_slot':
     case 'grave_call':
       return friendlyEmptySlots;
@@ -466,6 +474,7 @@ export function getUnitArmor(unit) {
 function isMoveEffectId(effectId) {
   return effectId === 'swap_any_two_units'
     || effectId === 'swap_two_enemy_units'
+    || effectId === 'swap_adjacent_enemy_units'
     || effectId === 'swap_adjacent_then_resolve'
     || effectId === 'swap_leftmost_adjacent_enemies';
 }
@@ -497,6 +506,13 @@ function findLeftmostAdjacentEnemyPair(state, owner) {
   return null;
 }
 
+function areSameRowAdjacentIndexes(firstIndex, secondIndex) {
+  if (!Number.isInteger(firstIndex) || !Number.isInteger(secondIndex)) return false;
+  if (firstIndex === secondIndex) return false;
+  return Math.floor(firstIndex / 3) === Math.floor(secondIndex / 3)
+    && Math.abs((firstIndex % 3) - (secondIndex % 3)) === 1;
+}
+
 function applyLeftmostAdjacentEnemySwap(state, owner) {
   const pair = findLeftmostAdjacentEnemyPair(state, owner);
   if (!pair) return false;
@@ -514,6 +530,8 @@ function applyLeftmostAdjacentEnemySwap(state, owner) {
 
 function canApplyEffectById(state, owner, effectId) {
   switch (effectId) {
+    case 'swap_adjacent_enemy_units':
+      return false;
     case 'swap_leftmost_adjacent_enemies':
       return Boolean(findLeftmostAdjacentEnemyPair(state, owner))
         && !hasMoveDisableImmunity(state, getOpponentOwner(owner), owner, effectId);
@@ -1114,7 +1132,8 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
       });
       break;
     }
-    case 'swap_two_enemy_units': {
+    case 'swap_two_enemy_units':
+    case 'swap_adjacent_enemy_units': {
       const selectedTargets = Array.isArray(targetIndexes) ? targetIndexes : [boardIndex];
       if (targetUnit.owner !== getOpponentOwner(owner)) return { ok: false, reason: 'Target must be enemy' };
       if (selectedTargets.length < 2) {
@@ -1127,6 +1146,9 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
       if (!firstUnit || !secondUnit) return { ok: false, reason: 'Both targets must contain units' };
       if (firstUnit.owner !== getOpponentOwner(owner) || secondUnit.owner !== getOpponentOwner(owner)) {
         return { ok: false, reason: 'Targets must be enemies' };
+      }
+      if (card.effectId === 'swap_adjacent_enemy_units' && !areSameRowAdjacentIndexes(firstIndex, secondIndex)) {
+        return { ok: false, reason: 'Targets must be adjacent enemies' };
       }
       state.board[firstIndex] = secondUnit;
       state.board[secondIndex] = firstUnit;
