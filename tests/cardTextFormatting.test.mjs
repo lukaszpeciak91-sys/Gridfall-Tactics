@@ -4,7 +4,16 @@ import assert from 'node:assert/strict';
 import { CARD_EFFECT_GAMEPLAY_SYMBOLS, formatCardEffectTextShort } from '../src/localization/cardTextFormatting.js';
 import { formatCardDetailLines } from '../src/rendering/cardRenderModes.js';
 import { getFactionByKey } from '../src/data/factions/index.js';
-import { getCardDisplayContent, getInlineGameplaySymbolColor, getInlineStatSymbolColor, layoutInlineStatText, tokenizeInlineStatText } from '../src/rendering/cardVisualLayout.js';
+import {
+  getCardDisplayContent,
+  getInlineGameplaySymbolColor,
+  getInlineStatSymbolColor,
+  INLINE_EFFECT_ICON_BASELINE_OFFSET_RATIO,
+  INLINE_EFFECT_ICON_SPACE_SCALE,
+  INLINE_EFFECT_ICON_STAT_FONT_SCALE,
+  layoutInlineStatText,
+  tokenizeInlineStatText,
+} from '../src/rendering/cardVisualLayout.js';
 
 test('formats English stat abbreviations in card effect text as compact symbols', () => {
   assert.equal(formatCardEffectTextShort('+1 ATK', 'en'), '+1 ▲');
@@ -197,6 +206,22 @@ test('inline stat text tokenizer preserves localized copy while tagging stat and
     { type: 'statSymbol', text: '●' },
     { type: 'text', text: '.' },
   ]);
+});
+
+test('inline effect icon typography uses larger symbols, raised baseline, and tighter icon spacing', () => {
+  assert.equal(INLINE_EFFECT_ICON_STAT_FONT_SCALE, 1.25);
+  assert.equal(INLINE_EFFECT_ICON_BASELINE_OFFSET_RATIO, -0.09);
+  assert.equal(INLINE_EFFECT_ICON_SPACE_SCALE, 0.62);
+
+  const lines = layoutInlineStatText('+1 ▲ this turn', {
+    maxWidth: 100,
+    measureTokenWidth: (token) => (token === ' ' ? 10 : token.length * 10),
+  });
+
+  assert.equal(lines[0].segments[1].text, '▲');
+  assert.equal(lines[0].segments[1].x, 27);
+  assert.equal(lines[0].segments[2].text, 'this');
+  assert.equal(lines[0].segments[2].x, 44);
 });
 
 test('inline stat text layout wraps by measured token width and keeps symbols inline', () => {
