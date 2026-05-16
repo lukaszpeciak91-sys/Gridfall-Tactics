@@ -48,7 +48,8 @@ test('BattleScene enemy action pacing constants resolve during turn flow', () =>
   assert.doesNotMatch(source, /ENEMY_ACTION_DEFAULT_PRE_COMBAT_DELAY_MS/);
 
   assert.match(source, /const PLAYER_EFFECT_CONFIRMATION_FADE_IN_MS = 90/);
-  assert.match(source, /showPlayerEffectConfirmation\(selectedCard\);/);
+  assert.match(source, /showPlayerEffectConfirmation\(card\);/);
+  assert.match(source, /playPlayerEffectCastFeedback\(\)/);
   assert.match(source, /translateActive\('ui\.battle\.playerPlayed', 'YOU PLAYED'\)/);
 });
 
