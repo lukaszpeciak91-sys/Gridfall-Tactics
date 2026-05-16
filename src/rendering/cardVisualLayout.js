@@ -482,6 +482,15 @@ export function createArtPlaceholder(scene, zone) {
   return container;
 }
 
+function getCardArtTextureKey(scene, card, { enableCardIllustration = false } = {}) {
+  const explicitTextureKey = card?.artTextureKey ?? card?.artKey ?? card?.art?.textureKey ?? null;
+  if (explicitTextureKey) return explicitTextureKey;
+
+  return enableCardIllustration ? getLoadedCardIllustrationTextureKey(scene, card) : null;
+}
+
+export function createCardArtwork(scene, zone, card, options = {}) {
+  const textureKey = getCardArtTextureKey(scene, card, options);
 function getCardArtTextureKey(scene, card) {
   return card?.artTextureKey
     ?? card?.artKey
@@ -540,6 +549,7 @@ export function createCardPreviewView(scene, {
   titleTypographyScale = typographyScale,
   bodyLineSpacing = 2,
   frameAlpha = card ? 0.84 : 0.48,
+  enableCardIllustration = false,
 } = {}) {
   const zones = getCardLayoutZones(width, height);
   const baseTypography = getCardTypography(width, height);
@@ -572,7 +582,7 @@ export function createCardPreviewView(scene, {
       spacingScale: typographyScale > 1 ? 1.16 : 1.12,
     },
   );
-  const art = createCardArtwork(scene, zones.art, card);
+  const art = createCardArtwork(scene, zones.art, card, { enableCardIllustration });
   const namePanel = scene.add.rectangle(zones.name.centerX, zones.name.centerY, zones.name.width, zones.name.height, CARD_COLORS.namePanel, 0.95)
     .setStrokeStyle(1, accentColor, card ? (typographyScale > 1 ? 0.52 : 0.44) : 0.14);
   const nameHorizontalInset = Math.max(10, zones.pad * (typographyScale > 1 ? 1.45 : 1.32));
