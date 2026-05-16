@@ -74,7 +74,7 @@ test('outside taps clear selection without intercepting board, pass, or card inp
 });
 
 test('inspect zoom anchors above player lanes, dims gameplay, stays bounded, and animates in/out', () => {
-  assert.match(source, /const INSPECT_CARD_TARGET_SCALE = 2\.28;/);
+  assert.match(source, /const INSPECT_CARD_TARGET_SCALE = 2\.15;/);
   assert.match(source, /const INSPECT_CARD_OVERLAY_ALPHA = 0\.2;/);
   assert.match(source, /const INSPECT_CARD_OVERLAY_DEPTH = 840;/);
   assert.match(source, /const INSPECT_CARD_DEPTH = 850;/);
