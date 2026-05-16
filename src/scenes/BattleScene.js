@@ -105,6 +105,7 @@ const ENEMY_EFFECT_SUMMARY_OVERRIDES = Object.freeze({
   swap_any_two_units: 'Swap two units',
   swap_adjacent_enemy_units: 'Swap adjacent enemies',
   enemy_all_atk_minus_1: 'Leftmost enemies -1 ATK',
+  enemy_up_to_2_atk_minus_1: 'Chosen enemies -1 ATK',
   damage_all_enemies_1_ignore_armor: 'Damage all enemies',
   control_enemy_unit_this_turn: 'Enemy hits own hero',
   damage_up_to_2_enemies_1: 'Damage leftmost enemies',
@@ -1197,6 +1198,10 @@ export default class BattleScene extends Phaser.Scene {
         this.confirmOpeningMulligan();
         return;
       }
+      if (this.targetingState) {
+        this.confirmTargetingSelection();
+        return;
+      }
       this.resolvePassTurn();
     });
   }
@@ -1665,6 +1670,7 @@ export default class BattleScene extends Phaser.Scene {
       this.targetingState = this.isUnitCard(card) ? null : this.getTargetingStateForCard(card);
     }
     this.resetCardHighlights({ showPreview: false });
+    this.updateActionButtonLabel();
   }
 
   onCardPointerUp(cardId) {
@@ -1832,7 +1838,10 @@ export default class BattleScene extends Phaser.Scene {
     this.targetingState = null;
     this.hoverInspectCardId = null;
     this.boardInspectIndex = null;
-    if (hadState) this.resetCardHighlights();
+    if (hadState) {
+      this.resetCardHighlights();
+      this.updateActionButtonLabel();
+    }
   }
 
   onBoardCellTap(boardIndex) {
@@ -1900,6 +1909,7 @@ export default class BattleScene extends Phaser.Scene {
           targetIndexes,
         };
         this.resetCardHighlights();
+        this.updateActionButtonLabel();
         return;
       }
       if (!result.ok) return;
@@ -1993,7 +2003,42 @@ export default class BattleScene extends Phaser.Scene {
       this.actionButton.setText(count > 0 ? translateActive('ui.battle.mulligan', 'MULLIGAN {count}', { count }) : translateActive('ui.battle.keepHand', 'KEEP HAND'));
       return;
     }
+    if (this.targetingState) {
+      const selectedCount = this.targetingState.targetIndexes?.length ?? 0;
+      const minTargets = this.targetingState.minTargets ?? this.targetingState.requiredTargets ?? 1;
+      this.actionButton.setText(selectedCount >= minTargets
+        ? translateActive('ui.common.confirm', 'CONFIRM')
+        : translateActive('ui.common.cancel', 'CANCEL'));
+      return;
+    }
     this.actionButton.setText(translateActive('ui.common.pass', 'PASS'));
+  }
+
+  confirmTargetingSelection() {
+    if (this.battleResultModalShown || this.isFlowResolving || this.playerActionUsed) return;
+    const selectedCard = this.gameState.player.hand.find((card) => card.id === this.selectedCardId);
+    if (!selectedCard || !this.targetingState) {
+      this.clearHandCardSelection();
+      return;
+    }
+
+    const targetIndexes = [...(this.targetingState.targetIndexes ?? [])];
+    const minTargets = this.targetingState.minTargets ?? this.targetingState.requiredTargets ?? 1;
+    if (targetIndexes.length < minTargets) {
+      this.clearHandCardSelection();
+      return;
+    }
+
+    const beforeStats = this.captureBoardStats();
+    const result = resolveTargetedEffectCard(this.gameState, 'player', this.selectedCardId, targetIndexes[0], targetIndexes);
+    if (!result.ok || result.type === 'targeted-effect-pending') return;
+    if (result.type === 'targeted-effect' && this.gameState.cancelEnemyOrderThisTurn?.enemy) {
+      this.gameState.cancelEnemyOrderThisTurn.enemy = false;
+      this.refreshAfterPlayerAction();
+      return;
+    }
+    this.showPlayerEffectConfirmation(selectedCard);
+    this.completePlayerAction(beforeStats);
   }
 
   resolvePassTurn() {

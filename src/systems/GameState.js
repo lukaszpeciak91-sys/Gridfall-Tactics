@@ -105,6 +105,7 @@ function cardCanRealisticallyAffectOutcome(card, state, owner) {
       return friendlyUnits.length > 0
         && (owner === 'player' ? state.player.deck : state.enemy.deck)
           .some((deckCard) => cardCanRealisticallyAffectOutcome(deckCard, state, owner));
+    case 'enemy_up_to_2_atk_minus_1':
     case 'enemy_all_atk_minus_1':
     case 'enemy_lane_atk_minus_1':
     case 'buff_all_armor_1':
@@ -531,6 +532,7 @@ function applyLeftmostAdjacentEnemySwap(state, owner) {
 function canApplyEffectById(state, owner, effectId) {
   switch (effectId) {
     case 'swap_adjacent_enemy_units':
+    case 'enemy_up_to_2_atk_minus_1':
       return false;
     case 'swap_leftmost_adjacent_enemies':
       return Boolean(findLeftmostAdjacentEnemyPair(state, owner))
@@ -679,8 +681,9 @@ function applyEffectById(state, owner, effectId) {
       });
       break;
     }
-    // Quick Strike, Quick Fix, and Control Override are targeted and handled via resolveTargetedEffectCard.
+    // Quick Strike, Quick Fix, Jam Signal, and Control Override are targeted and handled via resolveTargetedEffectCard.
     case 'quick_strike':
+    case 'enemy_up_to_2_atk_minus_1':
     case 'control_enemy_unit_this_turn':
       break;
     case 'cannot_drop_below_1_this_turn': {
@@ -1020,6 +1023,25 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
     case 'enemy_lane_atk_minus_1': {
       if (targetUnit.owner !== getOpponentOwner(owner)) return { ok: false, reason: 'Target must be enemy' };
       targetUnit.tempAttackMod = (targetUnit.tempAttackMod ?? 0) - 1;
+      break;
+    }
+    case 'enemy_up_to_2_atk_minus_1': {
+      const selectedTargets = Array.isArray(targetIndexes) ? targetIndexes : [boardIndex];
+      if (targetUnit.owner !== getOpponentOwner(owner)) return { ok: false, reason: 'Target must be enemy' };
+      if (selectedTargets.length < 1) return { ok: false, reason: 'Select at least one enemy target' };
+      if (selectedTargets.length > 2) return { ok: false, reason: 'Select up to two enemy targets' };
+      if (new Set(selectedTargets).size !== selectedTargets.length) {
+        return { ok: false, reason: 'Select different enemy targets' };
+      }
+      const selectedUnits = selectedTargets.map((index) => state.board[index]);
+      if (selectedUnits.some((unit) => !unit)) return { ok: false, reason: 'Targets must contain units' };
+      if (selectedUnits.some((unit) => unit.owner !== getOpponentOwner(owner))) {
+        return { ok: false, reason: 'Targets must be enemies' };
+      }
+      selectedTargets.forEach((index) => {
+        const enemyUnit = state.board[index];
+        enemyUnit.tempAttackMod = (enemyUnit.tempAttackMod ?? 0) - 1;
+      });
       break;
     }
     case 'quick_strike': {

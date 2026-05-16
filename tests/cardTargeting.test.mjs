@@ -27,6 +27,13 @@ test('two-target effect metadata exposes required target counts without changing
 });
 
 
-test('Pulse Wave remains a deterministic non-manual effect in UI targeting metadata', () => {
+test('Jam Signal uses optional two-enemy manual targeting metadata while Pulse Wave remains deterministic', () => {
+  assert.deepEqual(getTargetingStateForEffect('enemy_up_to_2_atk_minus_1', 'control_jam_signal_1'), {
+    cardId: 'control_jam_signal_1',
+    targetType: 'enemy-unit',
+    requiredTargets: 2,
+    minTargets: 1,
+    targetIndexes: [],
+  });
   assert.equal(getTargetingStateForEffect('damage_all_enemies_1_ignore_armor', 'control_pulse_wave_1'), null);
 });

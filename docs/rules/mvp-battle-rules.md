@@ -173,7 +173,7 @@ The no-progress detector uses the stricter "meaningful for outcome" definition i
 
 - Card JSON `targeting` values are descriptive metadata, not the sole source of truth for manual UI targeting.
 - Actual manual targeting is determined by `src/systems/cardTargeting.js` and effectId-specific handling in `GameState`.
-- Some cards resolve deterministically instead of opening manual targeting UI. Deterministic effects must remain deterministic: Spawn, Regrow, Flood, Sniper, Controller, Jam Signal, and Pulse Wave do not get added manual targeting in MVP.
+- Some cards resolve deterministically instead of opening manual targeting UI. Deterministic effects must remain deterministic: Spawn, Regrow, Flood, Sniper, Controller and Pulse Wave do not get added manual targeting in MVP; Jam Signal uses manual enemy targeting.
 - Manual targeting is only used where the UI/logic currently supports targeted effect resolution.
 - Deterministic simplifications currently in code:
   - **Sniper (`can_hit_any_lane`)** targets the lowest-HP enemy unit; ties break to lower board index.
@@ -213,7 +213,7 @@ The no-progress detector uses the stricter "meaningful for outcome" definition i
 | Control | Controller | unit | 1/2/0 | swap_two_enemy_units | On play: swap two enemies. | Deterministic on-play | Picks first two enemy units by index order; not manual two-pick UI for this unit trigger. |
 | Control | Drone | unit | 1/1/0 | death_damage_enemy_hero_1 | On death: enemy hero loses 1 HP. | Death trigger | Applies after unit removed. |
 | Control | Swap | order | - | swap_any_two_units | Swap two selected units on one side. | Two-target targeted effect | Requires two distinct occupied slots with the same owner; cannot trade units between sides. |
-| Control | Jam Signal | order | - | enemy_all_atk_minus_1 | Leftmost 2 enemies: -1 ATK this turn. | Non-targeted deterministic effect | Picks occupied enemy lanes from left to right; expires after combat. |
+| Control | Jam Signal | order | - | enemy_up_to_2_atk_minus_1 | Choose up to 2 enemies: -1 ATK this turn. | Manual enemy targeting | Choose 1 or 2 occupied enemy lanes; expires after combat. |
 | Control | Pulse Wave | order | - | damage_all_enemies_1_ignore_armor | Deal 1 to all enemies, ignoring ARM. | Non-targeted deterministic effect | Damages occupied enemy lanes only, ignores ARM, never damages heroes, and cleans up defeated units after all Pulse Wave damage is applied. |
 | Control | System Override | special | - | control_enemy_unit_this_turn | Target enemy attacks own hero next combat, then loses 1 HP. | Targeted enemy | Clears after combat cleanup. |
 | Control | Recall | utility | - | return_friendly_draw_1 | Return [ALLY] to hand. Draw 1. | Targeted friendly | Blocked if hand already full. |
