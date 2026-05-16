@@ -58,7 +58,7 @@ const artZone = Object.freeze({
   height: 160,
 });
 
-test('standardized card illustrations render only when enabled by hand/inspect callers', () => {
+test('standardized card illustrations render only when callers enable them', () => {
   const scene = createArtworkScene({ loadedTextureKeys: ['card.aggro.aggro_runner_1'] });
 
   const disabledArtwork = createCardArtwork(scene, artZone, { id: 'aggro_runner_1' });
@@ -101,7 +101,12 @@ test('battle scene enables illustrations for hand cards and hand inspect, not bo
   assert.match(inspectZoom, /enableCardIllustration: inspectRequest\.enableCardIllustration/);
 });
 
-test('collection scene keeps previews on the default artwork behavior', () => {
+test('collection scene enables standardized illustrations through the shared preview renderer', () => {
   const source = fs.readFileSync('src/scenes/CollectionScene.js', 'utf8');
-  assert.doesNotMatch(source, /enableCardIllustration: true/);
+  const previewSource = source.slice(source.indexOf('  drawCardPreview('), source.indexOf('  openDetailPanel('));
+
+  assert.match(source, /preloadAllCardIllustrations\(this\)/);
+  assert.match(previewSource, /createCardPreviewView\(this, \{/);
+  assert.match(previewSource, /enableCardIllustration: true/);
+  assert.doesNotMatch(previewSource, /createCardArtwork\(/);
 });

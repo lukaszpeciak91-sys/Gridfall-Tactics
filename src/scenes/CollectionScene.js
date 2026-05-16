@@ -175,6 +175,7 @@ export default class CollectionScene extends Phaser.Scene {
       typographyScale: 0.95,
       titleTypographyScale: 1,
       bodyLineSpacing: 1,
+      enableCardIllustration: true,
     });
     content.add(preview.root);
     this.uiElements.push(preview.root);
