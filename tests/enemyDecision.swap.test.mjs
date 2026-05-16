@@ -10,7 +10,7 @@ const swapCard = {
   type: 'order',
   targeting: 'any_units',
   effectId: 'swap_any_two_units',
-  textShort: 'Swap two units on one side.',
+  textShort: 'Swap 2 [ALLY] or 2 enemies.',
 };
 
 const unit = (owner, overrides = {}) => ({

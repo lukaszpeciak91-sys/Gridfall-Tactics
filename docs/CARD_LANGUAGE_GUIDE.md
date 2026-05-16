@@ -79,7 +79,7 @@ Use short, repeatable sentence patterns. These examples are canonical style refe
 - `Combat death: deal 1 to opposing enemy.`
 - `Adjacent allies gain +1 ARM until combat ends.`
 - `Target ally gains +1 ARM until combat ends.`
-- `Opposed: +1 ATK.`
+- `If opposed: +1 ATK.`
 - `Attackers: -1 ATK.`
 
 ## 8. Icons policy

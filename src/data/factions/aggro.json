@@ -53,7 +53,7 @@
       "type": "unit",
       "targeting": "enemy",
       "effectId": "block_enemy_lane_play_this_turn",
-      "textShort": "On play: enemies can't play units here this turn.",
+      "textShort": "On play: block this lane this turn.",
       "attack": 2,
       "hp": 1,
       "armor": 0
@@ -72,7 +72,7 @@
       "type": "order",
       "targeting": "friendly_unit",
       "effectId": "swap_adjacent_then_resolve",
-      "textShort": "Swap with an adjacent [ALLY]. Fight that lane."
+      "textShort": "Swap with adjacent [ALLY]. Fight immediately."
     },
     {
       "id": "aggro_pierce_strike_1",
@@ -88,7 +88,7 @@
       "type": "special",
       "targeting": "friendly_unit",
       "effectId": "quick_strike",
-      "textShort": "[ALLY]: fight its lane now."
+      "textShort": "Target [ALLY] fights immediately."
     },
     {
       "id": "aggro_quick_fix_1",

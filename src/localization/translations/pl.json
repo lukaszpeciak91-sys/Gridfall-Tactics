@@ -18,7 +18,7 @@
     },
     "aggro_scout_1": {
       "name": "Zwiadowca",
-      "textShort": "Po zagraniu: wrogowie nie mogą zagrywać tu jednostek w tej turze."
+      "textShort": "Po zagraniu: zablokuj tę linię w tej turze."
     },
     "aggro_full_attack_1": {
       "name": "Pełny Atak",
@@ -26,7 +26,7 @@
     },
     "aggro_rush_1": {
       "name": "Szarża",
-      "textShort": "Zamień się z sąsiednim [ALLY]. Walcz na tej linii."
+      "textShort": "Zamień się z sąsiednim ♙. Natychmiast walcz."
     },
     "aggro_pierce_strike_1": {
       "name": "Przebijające Uderzenie",
@@ -34,7 +34,7 @@
     },
     "aggro_adrenaline_1": {
       "name": "Adrenalina",
-      "textShort": "[ALLY]: walcz na jego linii teraz."
+      "textShort": "Wybrany ♙ natychmiast walczy."
     },
     "aggro_quick_fix_1": {
       "name": "Szybka Naprawa",
@@ -86,7 +86,7 @@
     },
     "control_disruptor_1": {
       "name": "Zakłócacz",
-      "textShort": "Po zagraniu: anuluj następny efekt wroga w tej turze."
+      "textShort": "Po zagraniu: anuluj następny efekt wroga."
     },
     "control_sniper_1": {
       "name": "Snajper",
@@ -102,7 +102,7 @@
     },
     "control_swap_1": {
       "name": "Zamiana",
-      "textShort": "Zamień dwie jednostki po jednej stronie."
+      "textShort": "Zamień miejscami 2 ♙ lub 2 wrogów."
     },
     "control_jam_signal_1": {
       "name": "Zagłusz Sygnał",
@@ -174,7 +174,7 @@
     },
     "tank_wall_1": {
       "name": "Mur",
-      "textShort": "Blokuje linię. Nie może atakować."
+      "textShort": ""
     },
     "tank_bruiser_1": {
       "name": "Zabijaka",
@@ -186,7 +186,7 @@
     },
     "tank_stability_1": {
       "name": "Stabilność",
-      "textShort": "[ALLY] nie mogą być przesuwani ani unieruchamiani w tej turze."
+      "textShort": "Wszyscy ♙ nie mogą być ruszani w tej turze."
     },
     "tank_reinforce_1": {
       "name": "Wzmocnienie",
@@ -210,7 +210,7 @@
     },
     "wardens_halberdier_1": {
       "name": "Halabardnik",
-      "textShort": "Naprzeciwko: +1 ATK."
+      "textShort": "Jeśli naprzeciw: +1 ATK."
     },
     "wardens_bastion_guard_1": {
       "name": "Straż Bastionu",
