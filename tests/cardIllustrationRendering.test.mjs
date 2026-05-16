@@ -58,14 +58,10 @@ const artZone = Object.freeze({
   height: 160,
 });
 
-test('standardized card illustrations render by default and can be disabled by non-hand callers', () => {
+test('standardized card illustrations render only when enabled by hand/inspect callers', () => {
   const scene = createArtworkScene({ loadedTextureKeys: ['card.aggro.aggro_runner_1'] });
 
-  const defaultArtwork = createCardArtwork(scene, artZone, { id: 'aggro_runner_1' });
-  assert.equal(defaultArtwork.type, 'image');
-  assert.equal(defaultArtwork.key, 'card.aggro.aggro_runner_1');
-
-  const disabledArtwork = createCardArtwork(scene, artZone, { id: 'aggro_runner_1' }, { enableCardIllustration: false });
+  const disabledArtwork = createCardArtwork(scene, artZone, { id: 'aggro_runner_1' });
   assert.equal(disabledArtwork.type, 'container');
 
   const enabledArtwork = createCardArtwork(scene, artZone, { id: 'aggro_runner_1' }, { enableCardIllustration: true });
