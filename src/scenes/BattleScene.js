@@ -15,7 +15,7 @@ import { CARD_COLORS, createCardPreviewView, createStatBadges, getDefaultCardAcc
 import { getCardDisplayName, getCardTextShort } from '../localization/cardDisplay.js';
 import { getActiveLocale, translateActive } from '../localization/localeService.js';
 
-const INSPECT_CARD_TARGET_SCALE = 2.28;
+const INSPECT_CARD_TARGET_SCALE = 2.15;
 const INSPECT_CARD_MAX_HEIGHT_RATIO = 0.64;
 const INSPECT_CARD_MAX_WIDTH_RATIO = 0.78;
 const INSPECT_CARD_PLAYER_ROW_GAP_RATIO = 0.16;

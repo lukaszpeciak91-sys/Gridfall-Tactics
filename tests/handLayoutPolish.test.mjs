@@ -61,6 +61,6 @@ test('battle hand title emphasis is separate from inspect scaling', () => {
   assert.match(visualSource, /name: Math\.round\(baseTypography\.name \* titleTypographyScale\),/);
   assert.match(inspectMethod, /typographyScale: INSPECT_CARD_TYPOGRAPHY_SCALE,/);
   assert.doesNotMatch(inspectMethod, /titleTypographyScale:/);
-  assert.match(source, /const INSPECT_CARD_TARGET_SCALE = 2\.28;/);
+  assert.match(source, /const INSPECT_CARD_TARGET_SCALE = 2\.15;/);
   assert.match(source, /const INSPECT_CARD_TYPOGRAPHY_SCALE = 1\.1;/);
 });
