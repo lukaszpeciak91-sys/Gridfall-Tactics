@@ -74,16 +74,19 @@ test('outside taps clear selection without intercepting board, pass, or card inp
 });
 
 test('inspect zoom anchors above player lanes, dims gameplay, stays bounded, and animates in/out', () => {
-  assert.match(source, /const INSPECT_CARD_TARGET_SCALE = 2\.15;/);
+  assert.match(source, /const INSPECT_CARD_TARGET_SCALE = 2\.06;/);
   assert.match(source, /const INSPECT_CARD_OVERLAY_ALPHA = 0\.2;/);
   assert.match(source, /const INSPECT_CARD_OVERLAY_DEPTH = 840;/);
   assert.match(source, /const INSPECT_CARD_DEPTH = 850;/);
   assert.match(source, /const INSPECT_CARD_TWEEN_IN_MS = 150;/);
   assert.match(source, /const INSPECT_CARD_TWEEN_OUT_MS = 95;/);
   assert.doesNotMatch(source, /INSPECT_DRAG_START_THRESHOLD_PX|startInspectDragCandidate|inspectDragState/);
-  assert.match(source, /const targetScale = Math\.min\([\s\S]*INSPECT_CARD_TARGET_SCALE,[\s\S]*maxInspectWidth \/ hand\.cardWidth,[\s\S]*maxInspectHeight \/ hand\.cardHeight,[\s\S]*\);/);
+  assert.match(source, /const targetScale = Math\.min\([\s\S]*INSPECT_CARD_TARGET_SCALE,[\s\S]*maxInspectWidth \/ hand\.cardWidth,[\s\S]*maxInspectHeight \/ \(hand\.cardHeight \* INSPECT_CARD_VERTICAL_COMPACT_RATIO\),[\s\S]*\);/);
+  assert.match(source, /const inspectHeight = hand\.cardHeight \* targetScale \* INSPECT_CARD_VERTICAL_COMPACT_RATIO;/);
   assert.match(source, /x: Phaser\.Math\.Clamp\(width \* 0\.5, minX, maxX\),/);
-  assert.match(source, /const INSPECT_CARD_PLAYER_ROW_GAP_RATIO = 0\.16;/);
+  assert.match(source, /const INSPECT_CARD_PLAYER_ROW_GAP_RATIO = 0\.2;/);
+  assert.match(source, /const INSPECT_CARD_VERTICAL_COMPACT_RATIO = 0\.96;/);
+  assert.match(source, /const tacticalBottomLimitY = Math\.min\(boardBottomLimitY, actionBottomLimitY, height - margin\);/);
   assert.match(source, /const playerRowTopY = boardTopY \+ board\.cellHeight \* 2;/);
   assert.match(source, /const targetY = playerRowTopY - playerRowGap - inspectHeight \/ 2;/);
   assert.match(source, /y: Phaser\.Math\.Clamp\(targetY, minY, maxY\),/);
