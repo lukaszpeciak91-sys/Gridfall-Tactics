@@ -5,6 +5,8 @@
   "deck": [
     {
       "id": "control_hacker_1",
+      "cardNumber": 1,
+      "artAssetId": "control_01",
       "name": "Hacker",
       "type": "unit",
       "targeting": "lane",
@@ -16,6 +18,8 @@
     },
     {
       "id": "control_disruptor_1",
+      "cardNumber": 2,
+      "artAssetId": "control_02",
       "name": "Disruptor",
       "type": "unit",
       "targeting": "enemy",
@@ -27,6 +31,8 @@
     },
     {
       "id": "control_sniper_1",
+      "cardNumber": 3,
+      "artAssetId": "control_03",
       "name": "Sniper",
       "type": "unit",
       "targeting": "any_enemy_unit",
@@ -38,6 +44,8 @@
     },
     {
       "id": "control_controller_1",
+      "cardNumber": 4,
+      "artAssetId": "control_04",
       "name": "Controller",
       "type": "unit",
       "targeting": "enemy_units",
@@ -49,6 +57,8 @@
     },
     {
       "id": "control_drone_1",
+      "cardNumber": 5,
+      "artAssetId": "control_05",
       "name": "Drone",
       "type": "unit",
       "targeting": "lane",
@@ -60,6 +70,8 @@
     },
     {
       "id": "control_swap_1",
+      "cardNumber": 6,
+      "artAssetId": "control_06",
       "name": "Swap",
       "type": "order",
       "targeting": "any_units",
@@ -68,6 +80,8 @@
     },
     {
       "id": "control_jam_signal_1",
+      "cardNumber": 7,
+      "artAssetId": "control_07",
       "name": "Jam Signal",
       "type": "order",
       "targeting": "enemy_units",
@@ -76,6 +90,8 @@
     },
     {
       "id": "control_pulse_wave_1",
+      "cardNumber": 8,
+      "artAssetId": "control_08",
       "name": "Pulse Wave",
       "type": "order",
       "targeting": "all_enemy_units",
@@ -84,6 +100,8 @@
     },
     {
       "id": "control_system_override_1",
+      "cardNumber": 9,
+      "artAssetId": "control_09",
       "name": "System Override",
       "type": "special",
       "targeting": "enemy_unit",
@@ -92,6 +110,8 @@
     },
     {
       "id": "control_recall_1",
+      "cardNumber": 10,
+      "artAssetId": "control_10",
       "name": "Recall",
       "type": "utility",
       "targeting": "friendly_unit",

@@ -5,6 +5,8 @@
   "deck": [
     {
       "id": "tank_shieldbearer_1",
+      "cardNumber": 1,
+      "artAssetId": "tank_01",
       "name": "Shieldbearer",
       "type": "unit",
       "targeting": "lane",
@@ -16,6 +18,8 @@
     },
     {
       "id": "tank_heavy_1",
+      "cardNumber": 2,
+      "artAssetId": "tank_02",
       "name": "Heavy",
       "type": "unit",
       "targeting": "lane",
@@ -27,6 +31,8 @@
     },
     {
       "id": "tank_guardian_1",
+      "cardNumber": 3,
+      "artAssetId": "tank_03",
       "name": "Guardian",
       "type": "unit",
       "targeting": "lane",
@@ -38,6 +44,8 @@
     },
     {
       "id": "tank_wall_1",
+      "cardNumber": 4,
+      "artAssetId": "tank_04",
       "name": "Wall",
       "type": "unit",
       "targeting": "lane",
@@ -49,6 +57,8 @@
     },
     {
       "id": "tank_bruiser_1",
+      "cardNumber": 5,
+      "artAssetId": "tank_05",
       "name": "Bruiser",
       "type": "unit",
       "targeting": "lane",
@@ -60,6 +70,8 @@
     },
     {
       "id": "tank_fortify_1",
+      "cardNumber": 6,
+      "artAssetId": "tank_06",
       "name": "Fortify",
       "type": "order",
       "targeting": "all_friendly_units",
@@ -68,6 +80,8 @@
     },
     {
       "id": "tank_stability_1",
+      "cardNumber": 7,
+      "artAssetId": "tank_07",
       "name": "Stability",
       "type": "order",
       "targeting": "all_friendly_units",
@@ -76,6 +90,8 @@
     },
     {
       "id": "tank_reinforce_1",
+      "cardNumber": 8,
+      "artAssetId": "tank_08",
       "name": "Reinforce",
       "type": "order",
       "targeting": "all_friendly_units",
@@ -84,6 +100,8 @@
     },
     {
       "id": "tank_last_stand_1",
+      "cardNumber": 9,
+      "artAssetId": "tank_09",
       "name": "Last Stand",
       "type": "special",
       "targeting": "all_friendly_units",
@@ -92,6 +110,8 @@
     },
     {
       "id": "tank_repair_kit_1",
+      "cardNumber": 10,
+      "artAssetId": "tank_10",
       "name": "Reactive Plating",
       "type": "utility",
       "targeting": "friendly_unit",

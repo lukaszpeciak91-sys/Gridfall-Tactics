@@ -59,18 +59,22 @@ const artZone = Object.freeze({
 });
 
 test('standardized card illustrations render only when callers enable them', () => {
-  const scene = createArtworkScene({ loadedTextureKeys: ['card.aggro.aggro_runner_1'] });
+  const scene = createArtworkScene({ loadedTextureKeys: ['card.aggro.aggro_01', 'card.control.control_04'] });
 
   const disabledArtwork = createCardArtwork(scene, artZone, { id: 'aggro_runner_1' });
   assert.equal(disabledArtwork.type, 'container');
 
   const enabledArtwork = createCardArtwork(scene, artZone, { id: 'aggro_runner_1' }, { enableCardIllustration: true });
   assert.equal(enabledArtwork.type, 'image');
-  assert.equal(enabledArtwork.key, 'card.aggro.aggro_runner_1');
+  assert.equal(enabledArtwork.key, 'card.aggro.aggro_01');
   assert.equal(enabledArtwork.crop.x, 0);
   assert.equal(enabledArtwork.crop.width, 512);
   assert.ok(Math.abs(enabledArtwork.crop.y - 42.6667) < 0.001);
   assert.ok(Math.abs(enabledArtwork.crop.height - 682.6667) < 0.001);
+
+  const controlArtwork = createCardArtwork(scene, artZone, { id: 'control_controller_1' }, { enableCardIllustration: true });
+  assert.equal(controlArtwork.type, 'image');
+  assert.equal(controlArtwork.key, 'card.control.control_04');
 });
 
 test('missing standardized card illustrations keep the existing placeholder fallback', () => {
@@ -86,7 +90,7 @@ test('missing standardized card illustrations keep the existing placeholder fall
     console.warn = originalWarn;
   }
 
-  assert.deepEqual(warnings, ['Card illustration missing: public/assets/cards/aggro/aggro_runner_1.webp']);
+  assert.deepEqual(warnings, ['Card illustration missing: public/assets/cards/aggro/aggro_01.webp']);
 });
 
 test('battle scene enables illustrations for hand cards and hand inspect, not board inspect', () => {

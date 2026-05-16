@@ -5,6 +5,8 @@
   "deck": [
     {
       "id": "wardens_sentinel_1",
+      "cardNumber": 1,
+      "artAssetId": "wardens_01",
       "name": "Sentinel",
       "type": "unit",
       "targeting": "lane",
@@ -16,6 +18,8 @@
     },
     {
       "id": "wardens_spearwall_1",
+      "cardNumber": 2,
+      "artAssetId": "wardens_02",
       "name": "Spearwall",
       "type": "unit",
       "targeting": "lane",
@@ -27,6 +31,8 @@
     },
     {
       "id": "wardens_halberdier_1",
+      "cardNumber": 3,
+      "artAssetId": "wardens_03",
       "name": "Halberdier",
       "type": "unit",
       "targeting": "lane",
@@ -38,6 +44,8 @@
     },
     {
       "id": "wardens_bastion_guard_1",
+      "cardNumber": 4,
+      "artAssetId": "wardens_04",
       "name": "Bastion Guard",
       "type": "unit",
       "targeting": "lane",
@@ -49,6 +57,8 @@
     },
     {
       "id": "wardens_watch_captain_1",
+      "cardNumber": 5,
+      "artAssetId": "wardens_05",
       "name": "Watch Captain",
       "type": "unit",
       "targeting": "lane",
@@ -60,6 +70,8 @@
     },
     {
       "id": "wardens_brace_1",
+      "cardNumber": 6,
+      "artAssetId": "wardens_06",
       "name": "Brace",
       "type": "utility",
       "targeting": "friendly_unit",
@@ -68,6 +80,8 @@
     },
     {
       "id": "wardens_shield_push_1",
+      "cardNumber": 7,
+      "artAssetId": "wardens_07",
       "name": "Shield Push",
       "type": "order",
       "targeting": "enemy_units",
@@ -76,6 +90,8 @@
     },
     {
       "id": "wardens_stand_firm_1",
+      "cardNumber": 8,
+      "artAssetId": "wardens_08",
       "name": "Stand Firm",
       "type": "order",
       "targeting": "none",
@@ -84,6 +100,8 @@
     },
     {
       "id": "wardens_reinforce_line_1",
+      "cardNumber": 9,
+      "artAssetId": "wardens_09",
       "name": "Reinforce Line",
       "type": "order",
       "targeting": "none",
@@ -92,6 +110,8 @@
     },
     {
       "id": "wardens_hold_the_line_1",
+      "cardNumber": 10,
+      "artAssetId": "wardens_10",
       "name": "Hold The Line",
       "type": "order",
       "targeting": "none",

@@ -5,6 +5,8 @@
   "deck": [
     {
       "id": "attrition_swarm_husk_1",
+      "cardNumber": 1,
+      "artAssetId": "attrition-swarm_01",
       "name": "Husk",
       "type": "unit",
       "targeting": "lane",
@@ -16,6 +18,8 @@
     },
     {
       "id": "attrition_swarm_carrier_1",
+      "cardNumber": 2,
+      "artAssetId": "attrition-swarm_02",
       "name": "Carrier",
       "type": "unit",
       "targeting": "lane",
@@ -27,6 +31,8 @@
     },
     {
       "id": "attrition_swarm_leech_1",
+      "cardNumber": 3,
+      "artAssetId": "attrition-swarm_03",
       "name": "Leech",
       "type": "unit",
       "targeting": "lane",
@@ -38,6 +44,8 @@
     },
     {
       "id": "attrition_swarm_rotcaller_1",
+      "cardNumber": 4,
+      "artAssetId": "attrition-swarm_04",
       "name": "Rotcaller",
       "type": "unit",
       "targeting": "lane",
@@ -49,6 +57,8 @@
     },
     {
       "id": "attrition_swarm_abomination_1",
+      "cardNumber": 5,
+      "artAssetId": "attrition-swarm_05",
       "name": "Abomination",
       "type": "unit",
       "targeting": "lane",
@@ -60,6 +70,8 @@
     },
     {
       "id": "attrition_swarm_funeral_pyre_1",
+      "cardNumber": 6,
+      "artAssetId": "attrition-swarm_06",
       "name": "Funeral Pyre",
       "type": "order",
       "targeting": "none",
@@ -68,6 +80,8 @@
     },
     {
       "id": "attrition_swarm_infect_1",
+      "cardNumber": 7,
+      "artAssetId": "attrition-swarm_07",
       "name": "Infect",
       "type": "order",
       "targeting": "enemy_unit",
@@ -76,6 +90,8 @@
     },
     {
       "id": "attrition_swarm_feast_1",
+      "cardNumber": 8,
+      "artAssetId": "attrition-swarm_08",
       "name": "Feast",
       "type": "utility",
       "targeting": "friendly_unit",
@@ -84,6 +100,8 @@
     },
     {
       "id": "attrition_swarm_rise_again_1",
+      "cardNumber": 9,
+      "artAssetId": "attrition-swarm_09",
       "name": "Rise Again",
       "type": "order",
       "targeting": "none",
@@ -92,6 +110,8 @@
     },
     {
       "id": "attrition_swarm_grave_call_1",
+      "cardNumber": 10,
+      "artAssetId": "attrition-swarm_10",
       "name": "Grave Call",
       "type": "order",
       "targeting": "none",

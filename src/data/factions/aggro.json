@@ -5,6 +5,8 @@
   "deck": [
     {
       "id": "aggro_runner_1",
+      "cardNumber": 1,
+      "artAssetId": "aggro_01",
       "name": "Runner",
       "type": "unit",
       "targeting": "lane",
@@ -16,6 +18,8 @@
     },
     {
       "id": "aggro_berserker_1",
+      "cardNumber": 2,
+      "artAssetId": "aggro_02",
       "name": "Berserker",
       "type": "unit",
       "targeting": "lane",
@@ -27,6 +31,8 @@
     },
     {
       "id": "aggro_glass_cannon_1",
+      "cardNumber": 3,
+      "artAssetId": "aggro_03",
       "name": "Glass Cannon",
       "type": "unit",
       "targeting": "lane",
@@ -38,6 +44,8 @@
     },
     {
       "id": "aggro_flanker_1",
+      "cardNumber": 4,
+      "artAssetId": "aggro_04",
       "name": "Flanker",
       "type": "unit",
       "targeting": "lane",
@@ -49,6 +57,8 @@
     },
     {
       "id": "aggro_scout_1",
+      "cardNumber": 5,
+      "artAssetId": "aggro_05",
       "name": "Scout",
       "type": "unit",
       "targeting": "enemy",
@@ -60,6 +70,8 @@
     },
     {
       "id": "aggro_full_attack_1",
+      "cardNumber": 6,
+      "artAssetId": "aggro_06",
       "name": "Full Attack",
       "type": "order",
       "targeting": "all_friendly_units",
@@ -68,6 +80,8 @@
     },
     {
       "id": "aggro_rush_1",
+      "cardNumber": 7,
+      "artAssetId": "aggro_07",
       "name": "Rush",
       "type": "order",
       "targeting": "friendly_unit",
@@ -76,6 +90,8 @@
     },
     {
       "id": "aggro_pierce_strike_1",
+      "cardNumber": 8,
+      "artAssetId": "aggro_08",
       "name": "Pierce Strike",
       "type": "order",
       "targeting": "enemy_unit",
@@ -84,6 +100,8 @@
     },
     {
       "id": "aggro_adrenaline_1",
+      "cardNumber": 9,
+      "artAssetId": "aggro_09",
       "name": "Adrenaline",
       "type": "special",
       "targeting": "friendly_unit",
@@ -92,6 +110,8 @@
     },
     {
       "id": "aggro_quick_fix_1",
+      "cardNumber": 10,
+      "artAssetId": "aggro_10",
       "name": "Quick Fix",
       "type": "utility",
       "targeting": "friendly_unit",

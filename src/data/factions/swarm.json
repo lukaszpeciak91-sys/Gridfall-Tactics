@@ -5,6 +5,8 @@
   "deck": [
     {
       "id": "swarm_grunt_1",
+      "cardNumber": 1,
+      "artAssetId": "swarm_01",
       "name": "Grunt",
       "type": "unit",
       "targeting": "lane",
@@ -16,6 +18,8 @@
     },
     {
       "id": "swarm_spitter_1",
+      "cardNumber": 2,
+      "artAssetId": "swarm_02",
       "name": "Spitter",
       "type": "unit",
       "targeting": "lane",
@@ -27,6 +31,8 @@
     },
     {
       "id": "swarm_brood_1",
+      "cardNumber": 3,
+      "artAssetId": "swarm_03",
       "name": "Brood",
       "type": "unit",
       "targeting": "lane",
@@ -38,6 +44,8 @@
     },
     {
       "id": "swarm_rusher_1",
+      "cardNumber": 4,
+      "artAssetId": "swarm_04",
       "name": "Rusher",
       "type": "unit",
       "targeting": "lane",
@@ -49,6 +57,8 @@
     },
     {
       "id": "swarm_alpha_1",
+      "cardNumber": 5,
+      "artAssetId": "swarm_05",
       "name": "Alpha",
       "type": "unit",
       "targeting": "lane",
@@ -60,6 +70,8 @@
     },
     {
       "id": "swarm_spawn_1",
+      "cardNumber": 6,
+      "artAssetId": "swarm_06",
       "name": "Spawn",
       "type": "order",
       "targeting": "empty_friendly_slot",
@@ -68,6 +80,8 @@
     },
     {
       "id": "swarm_swarm_attack_1",
+      "cardNumber": 7,
+      "artAssetId": "swarm_07",
       "name": "Swarm Attack",
       "type": "order",
       "targeting": "all_friendly_units",
@@ -76,6 +90,8 @@
     },
     {
       "id": "swarm_regrow_1",
+      "cardNumber": 8,
+      "artAssetId": "swarm_08",
       "name": "Regrow",
       "type": "order",
       "targeting": "friendly_discard",
@@ -84,6 +100,8 @@
     },
     {
       "id": "swarm_flood_1",
+      "cardNumber": 9,
+      "artAssetId": "swarm_09",
       "name": "Flood",
       "type": "special",
       "targeting": "empty_friendly_slots",
@@ -92,6 +110,8 @@
     },
     {
       "id": "swarm_recycle_1",
+      "cardNumber": 10,
+      "artAssetId": "swarm_10",
       "name": "Recycle",
       "type": "utility",
       "targeting": "friendly_unit",

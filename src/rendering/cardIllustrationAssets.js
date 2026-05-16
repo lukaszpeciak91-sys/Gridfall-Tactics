@@ -23,18 +23,27 @@ function getFactionIdFromFactionKey(factionKey) {
   return normalizeIdentifier(faction?.id) || normalizeIdentifier(factionKey);
 }
 
-function findFactionIdForCardId(cardId) {
+function findFactionAndCardForCardId(cardId) {
   const normalizedCardId = normalizeIdentifier(cardId);
-  if (!normalizedCardId) return '';
+  if (!normalizedCardId) return { factionId: '', card: null };
 
   for (const factionKey of getFactionKeys()) {
     const faction = getFactionByKey(factionKey);
-    if (faction?.deck?.some((card) => card?.id === normalizedCardId)) {
-      return getFactionIdFromFactionKey(factionKey);
+    const card = faction?.deck?.find((deckCard) => deckCard?.id === normalizedCardId);
+    if (card) {
+      return { factionId: getFactionIdFromFactionKey(factionKey), card };
     }
   }
 
-  return '';
+  return { factionId: '', card: null };
+}
+
+function findFactionIdForCardId(cardId) {
+  return findFactionAndCardForCardId(cardId).factionId;
+}
+
+function findCanonicalCardForCardId(cardId) {
+  return findFactionAndCardForCardId(cardId).card;
 }
 
 export function getCardIllustrationFactionId(card, explicitFactionId = null) {
@@ -44,35 +53,44 @@ export function getCardIllustrationFactionId(card, explicitFactionId = null) {
     || findFactionIdForCardId(card?.id);
 }
 
-export function getCardIllustrationTextureKey(factionId, cardId) {
-  const normalizedFactionId = normalizeIdentifier(factionId);
-  const normalizedCardId = normalizeIdentifier(cardId);
-  if (!normalizedFactionId || !normalizedCardId) return null;
-  return `card.${normalizedFactionId}.${normalizedCardId}`;
+export function getCardIllustrationAssetId(card) {
+  const explicitArtAssetId = normalizeIdentifier(card?.artAssetId);
+  if (explicitArtAssetId) return explicitArtAssetId;
+
+  const canonicalCard = findCanonicalCardForCardId(card?.id);
+  return normalizeIdentifier(canonicalCard?.artAssetId) || normalizeIdentifier(card?.id);
 }
 
-export function getCardIllustrationPublicPath(factionId, cardId) {
+export function getCardIllustrationTextureKey(factionId, artAssetIdOrCardId) {
   const normalizedFactionId = normalizeIdentifier(factionId);
-  const normalizedCardId = normalizeIdentifier(cardId);
-  if (!normalizedFactionId || !normalizedCardId) return null;
-  return `${CARD_ILLUSTRATION_PUBLIC_ROOT}/${normalizedFactionId}/${normalizedCardId}.webp`;
+  const normalizedArtAssetId = normalizeIdentifier(artAssetIdOrCardId);
+  if (!normalizedFactionId || !normalizedArtAssetId) return null;
+  return `card.${normalizedFactionId}.${normalizedArtAssetId}`;
 }
 
-export function getCardIllustrationRuntimePath(factionId, cardId) {
+export function getCardIllustrationPublicPath(factionId, artAssetIdOrCardId) {
   const normalizedFactionId = normalizeIdentifier(factionId);
-  const normalizedCardId = normalizeIdentifier(cardId);
-  if (!normalizedFactionId || !normalizedCardId) return null;
-  return resolvePublicAssetPath(`${CARD_ILLUSTRATION_RUNTIME_ROOT}/${normalizedFactionId}/${normalizedCardId}.webp`);
+  const normalizedArtAssetId = normalizeIdentifier(artAssetIdOrCardId);
+  if (!normalizedFactionId || !normalizedArtAssetId) return null;
+  return `${CARD_ILLUSTRATION_PUBLIC_ROOT}/${normalizedFactionId}/${normalizedArtAssetId}.webp`;
+}
+
+export function getCardIllustrationRuntimePath(factionId, artAssetIdOrCardId) {
+  const normalizedFactionId = normalizeIdentifier(factionId);
+  const normalizedArtAssetId = normalizeIdentifier(artAssetIdOrCardId);
+  if (!normalizedFactionId || !normalizedArtAssetId) return null;
+  return resolvePublicAssetPath(`${CARD_ILLUSTRATION_RUNTIME_ROOT}/${normalizedFactionId}/${normalizedArtAssetId}.webp`);
 }
 
 export function getCardIllustrationAsset(card, { factionId = null } = {}) {
   const cardId = normalizeIdentifier(card?.id);
+  const artAssetId = getCardIllustrationAssetId(card);
   const resolvedFactionId = getCardIllustrationFactionId(card, factionId);
-  const key = getCardIllustrationTextureKey(resolvedFactionId, cardId);
-  const path = getCardIllustrationRuntimePath(resolvedFactionId, cardId);
-  const publicPath = getCardIllustrationPublicPath(resolvedFactionId, cardId);
+  const key = getCardIllustrationTextureKey(resolvedFactionId, artAssetId);
+  const path = getCardIllustrationRuntimePath(resolvedFactionId, artAssetId);
+  const publicPath = getCardIllustrationPublicPath(resolvedFactionId, artAssetId);
 
-  return key && path ? { key, path, publicPath, factionId: resolvedFactionId, cardId } : null;
+  return key && path ? { key, path, publicPath, factionId: resolvedFactionId, cardId, artAssetId } : null;
 }
 
 function getSceneQueuedTextureKeys(scene) {
