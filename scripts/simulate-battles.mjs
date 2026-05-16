@@ -560,6 +560,7 @@ Battle simulation complete (${matchCount} games per matchup, max ${MAX_TURNS} tu
     { metric: 'Quick Fix triggered draws', count: telemetry.quickFixTriggers },
     { metric: 'Quick Fix trigger rate', count: `${percent(telemetry.quickFixTriggers, telemetry.quickFixUses)}%` },
     { metric: 'Shield Push uses', count: telemetry.shieldPushUses },
+    { metric: 'Jam Signal uses', count: telemetry.jamSignalUses },
     { metric: 'defensive friction applications', count: telemetry.defensiveFrictionApplications },
     { metric: 'Funeral Pyre uses', count: telemetry.funeralPyreUses },
     { metric: 'System Override uses', count: telemetry.systemOverrideUses },

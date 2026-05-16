@@ -70,9 +70,9 @@
       "id": "control_jam_signal_1",
       "name": "Jam Signal",
       "type": "order",
-      "targeting": "all_enemy_units",
-      "effectId": "enemy_all_atk_minus_1",
-      "textShort": "Leftmost 2 enemies: -1 ATK this turn."
+      "targeting": "enemy_units",
+      "effectId": "enemy_up_to_2_atk_minus_1",
+      "textShort": "Choose up to 2 enemies: -1 ATK this turn."
     },
     {
       "id": "control_pulse_wave_1",

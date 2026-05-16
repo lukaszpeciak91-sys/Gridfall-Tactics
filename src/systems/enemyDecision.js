@@ -65,7 +65,7 @@ function scoreOpeningCard(card, hand, factionName = '') {
 
   if (LOW_TEMPO_EFFECTS.has(card.effectId)) score -= 36;
   if (BOARD_SYNERGY_EFFECTS.has(card.effectId)) score += unitsInHand >= 2 ? 18 : -28;
-  if (card.effectId === 'damage_all_enemies_1_ignore_armor' || card.effectId === 'enemy_all_atk_minus_1') score -= 12;
+  if (card.effectId === 'damage_all_enemies_1_ignore_armor' || card.effectId === 'enemy_all_atk_minus_1' || card.effectId === 'enemy_up_to_2_atk_minus_1') score -= 12;
   if (card.effectId === 'summon_grunt_empty_slot' || card.effectId === 'fill_empty_slots_0_1' || card.effectId === 'grave_call') score += 22;
   if (card.effectId === 'funeral_pyre') score += unitsInHand >= 2 ? -4 : -34;
   if (card.effectId === 'ignore_armor_next_attack' || card.effectId === 'control_enemy_unit_this_turn') score -= 16;
@@ -239,6 +239,7 @@ export function recordBattleActionUse(state, owner, action, telemetry = null) {
   if (kind === 'replace') telemetry.replaceUsed = (telemetry.replaceUsed ?? 0) + 1;
   if (kind === 'reposition') telemetry.repositionUsed = (telemetry.repositionUsed ?? 0) + 1;
   if (kind === 'shield-push') telemetry.shieldPushUses = (telemetry.shieldPushUses ?? 0) + 1;
+  if (kind === 'jam-signal') telemetry.jamSignalUses = (telemetry.jamSignalUses ?? 0) + 1;
   if (kind === 'replace' || kind === 'reposition') {
     if (action.aiEvaluation.meaningful) telemetry.meaningfulGameplayActions = (telemetry.meaningfulGameplayActions ?? 0) + 1;
     else telemetry.pointlessGameplayActions = (telemetry.pointlessGameplayActions ?? 0) + 1;
@@ -267,6 +268,7 @@ function getCandidateTargetIndexes(state, owner, effectId) {
     case 'ignore_armor_next_attack':
     case 'infect_damage_1_opposite_ally_atk_1':
     case 'enemy_lane_atk_minus_1':
+    case 'enemy_up_to_2_atk_minus_1':
     case 'swap_two_enemy_units':
     case 'swap_adjacent_enemy_units':
       return board.map((unit, index) => (unit?.owner === opponentOwner ? index : -1)).filter((index) => index >= 0);
@@ -309,7 +311,8 @@ function isTargetedOnlyEffect(effectId) {
     || effectId === 'control_enemy_unit_this_turn'
     || effectId === 'ignore_armor_next_attack'
     || effectId === 'infect_damage_1_opposite_ally_atk_1'
-    || effectId === 'enemy_lane_atk_minus_1';
+    || effectId === 'enemy_lane_atk_minus_1'
+    || effectId === 'enemy_up_to_2_atk_minus_1';
 }
 
 function getBoardPressureSignature(state, owner) {
@@ -363,6 +366,46 @@ function addTwoTargetCandidates(actions, state, owner, card) {
   }
 }
 
+function getJamSignalTargetValue(state, owner, targetIndex) {
+  const target = state?.board?.[targetIndex];
+  if (!target || target.owner === owner) return Number.NEGATIVE_INFINITY;
+  const attack = getUnitAttack(target);
+  if (attack <= 0) return Number.NEGATIVE_INFINITY;
+  const { opposing } = getRowsForOwner(owner);
+  const lane = opposing.indexOf(targetIndex);
+  const friendlyBlocker = lane >= 0 ? state.board[getRowsForOwner(owner).friendly[lane]] : null;
+  let value = attack * 120;
+  if (!friendlyBlocker) value += attack * 180;
+  else value += Math.max(0, attack - getUnitAttack(friendlyBlocker)) * 80;
+  if (target.effectId === 'lane_empty_bonus_damage' && !friendlyBlocker) value += 180;
+  return value;
+}
+
+function addJamSignalCandidates(actions, state, owner, card) {
+  const rankedTargets = getCandidateTargetIndexes(state, owner, card.effectId ?? null)
+    .map((targetIndex) => ({ targetIndex, value: getJamSignalTargetValue(state, owner, targetIndex) }))
+    .filter(({ value }) => Number.isFinite(value) && value > 0)
+    .sort((a, b) => (b.value - a.value) || (a.targetIndex - b.targetIndex));
+
+  rankedTargets.forEach(({ targetIndex }) => {
+    const targetIndexes = [targetIndex];
+    const targetedProbe = resolveTargetedEffectCard(cloneState(state), owner, card.id, targetIndex, targetIndexes);
+    if (targetedProbe.ok && targetedProbe.type !== 'targeted-effect-pending' && targetedProbe.type !== 'targeted-effect-blocked') {
+      actions.push({ type: 'play-targeted-effect', cardId: card.id, targetIndex, targetIndexes, effectId: card.effectId ?? null });
+    }
+  });
+
+  for (let first = 0; first < rankedTargets.length; first += 1) {
+    for (let second = first + 1; second < rankedTargets.length; second += 1) {
+      const targetIndexes = [rankedTargets[first].targetIndex, rankedTargets[second].targetIndex];
+      const targetedProbe = resolveTargetedEffectCard(cloneState(state), owner, card.id, targetIndexes[0], targetIndexes);
+      if (targetedProbe.ok && targetedProbe.type !== 'targeted-effect-pending' && targetedProbe.type !== 'targeted-effect-blocked') {
+        actions.push({ type: 'play-targeted-effect', cardId: card.id, targetIndex: targetIndexes[0], targetIndexes, effectId: card.effectId ?? null });
+      }
+    }
+  }
+}
+
 function addRepositionCandidates(actions, state, owner, telemetry = null) {
   const { friendly } = getRowsForOwner(owner);
   for (let lane = 0; lane < friendly.length - 1; lane += 1) {
@@ -403,6 +446,11 @@ function buildActionCandidates(state, owner, hand, telemetry = null) {
 
     if (isTwoTargetSwapEffect(card.effectId ?? null)) {
       addTwoTargetCandidates(actions, state, owner, card);
+      return;
+    }
+
+    if (card.effectId === 'enemy_up_to_2_atk_minus_1') {
+      addJamSignalCandidates(actions, state, owner, card);
       return;
     }
 
@@ -601,6 +649,20 @@ function scoreAction(state, owner, action) {
     const lane = opposing.indexOf(action.targetIndex);
     const oppositeAlly = lane >= 0 ? state.board[getRowsForOwner(owner).friendly[lane]] : null;
     score += lethal ? 650 : (oppositeAlly?.owner === owner ? 780 : 120);
+  }
+
+  if (action.effectId === 'enemy_up_to_2_atk_minus_1') {
+    const targetIndexes = getActionTargetIndexes(action);
+    const targetValue = targetIndexes.reduce((total, index) => total + Math.max(0, getJamSignalTargetValue(state, owner, index)), 0);
+    const meaningful = opponentPressureReduced > 0 || targetValue > 0;
+    action.aiEvaluation = {
+      kind: 'jam-signal',
+      meaningful,
+      targetCount: targetIndexes.length,
+      opponentPressureReduced,
+    };
+    if (!meaningful) return Number.NEGATIVE_INFINITY;
+    score += 360 + targetValue + targetIndexes.length * 90;
   }
 
   if (action.effectId === 'control_enemy_unit_this_turn') {
