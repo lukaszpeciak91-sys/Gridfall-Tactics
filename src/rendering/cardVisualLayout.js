@@ -491,15 +491,6 @@ function getCardArtTextureKey(scene, card, { enableCardIllustration = false } = 
 
 export function createCardArtwork(scene, zone, card, options = {}) {
   const textureKey = getCardArtTextureKey(scene, card, options);
-function getCardArtTextureKey(scene, card) {
-  return card?.artTextureKey
-    ?? card?.artKey
-    ?? card?.art?.textureKey
-    ?? getLoadedCardIllustrationTextureKey(scene, card);
-}
-
-export function createCardArtwork(scene, zone, card) {
-  const textureKey = getCardArtTextureKey(scene, card);
   if (textureKey && scene.textures?.exists?.(textureKey)) {
     const image = scene.add.image(zone.centerX, zone.centerY, textureKey);
     const texture = image.texture?.getSourceImage?.();

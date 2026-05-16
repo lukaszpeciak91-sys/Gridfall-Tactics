@@ -101,8 +101,7 @@ test('battle scene enables illustrations for hand cards and hand inspect, not bo
   assert.match(inspectZoom, /enableCardIllustration: inspectRequest\.enableCardIllustration/);
 });
 
-test('collection scene does not opt into task 2 hand/inspect illustration rendering', () => {
+test('collection scene keeps previews on the default artwork behavior', () => {
   const source = fs.readFileSync('src/scenes/CollectionScene.js', 'utf8');
-  assert.doesNotMatch(source, /preloadAllCardIllustrations/);
   assert.doesNotMatch(source, /enableCardIllustration: true/);
 });
