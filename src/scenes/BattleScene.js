@@ -20,7 +20,7 @@ const INSPECT_CARD_VERTICAL_COMPACT_RATIO = 0.96;
 const INSPECT_CARD_MAX_HEIGHT_RATIO = 0.58;
 const INSPECT_CARD_MAX_WIDTH_RATIO = 0.78;
 const INSPECT_CARD_PLAYER_ROW_GAP_RATIO = 0.2;
-const INSPECT_CARD_PLAYER_ROW_BOTTOM_LIMIT_RATIO = 2.48;
+const INSPECT_CARD_PLAYER_ROW_BOTTOM_LIMIT_RATIO = 2.78;
 const INSPECT_CARD_ACTION_BOTTOM_LIMIT_RATIO = 0.28;
 const INSPECT_CARD_OVERLAY_ALPHA = 0.2;
 const BATTLE_FRAME_OVERLAY_COLOR = 0x05080f;
@@ -3061,9 +3061,11 @@ export default class BattleScene extends Phaser.Scene {
     const minY = topHero.y + topHero.h + margin + inspectHeight / 2;
 
     const boardTopY = board.centerY - board.height / 2;
+    const enemyRowBottomY = boardTopY + board.cellHeight;
     const playerRowTopY = boardTopY + board.cellHeight * 2;
     const playerRowGap = Math.max(10, Math.min(28, board.cellHeight * INSPECT_CARD_PLAYER_ROW_GAP_RATIO));
-    const targetY = playerRowTopY - playerRowGap - inspectHeight / 2;
+    const sharedLaneCenterY = (enemyRowBottomY + playerRowTopY) * 0.5;
+    const targetY = sharedLaneCenterY + playerRowGap * 0.15;
     const boardBottomLimitY = boardTopY + board.cellHeight * INSPECT_CARD_PLAYER_ROW_BOTTOM_LIMIT_RATIO;
     const actionBottomLimitY = playerHero.y + playerHero.h + action.h * INSPECT_CARD_ACTION_BOTTOM_LIMIT_RATIO;
     const tacticalBottomLimitY = Math.min(boardBottomLimitY, actionBottomLimitY, height - margin);

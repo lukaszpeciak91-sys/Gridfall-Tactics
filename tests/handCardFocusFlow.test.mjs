@@ -74,7 +74,7 @@ test('outside taps clear selection without intercepting board, pass, or card inp
   assert.match(source, /background\.on\('pointerup', \(\) => \{\s*this\.onBoardCellTap\(boardIndex\);\s*\}\);/);
 });
 
-test('inspect zoom anchors above player lanes, dims gameplay, stays bounded, and animates in/out', () => {
+test('inspect zoom centers between enemy and player lanes, dims gameplay, stays bounded, and animates in/out', () => {
   assert.match(source, /const INSPECT_CARD_TARGET_SCALE = 2\.06;/);
   assert.match(source, /const INSPECT_CARD_OVERLAY_ALPHA = 0\.2;/);
   assert.match(source, /const INSPECT_CARD_OVERLAY_DEPTH = 840;/);
@@ -86,10 +86,13 @@ test('inspect zoom anchors above player lanes, dims gameplay, stays bounded, and
   assert.match(source, /const inspectHeight = hand\.cardHeight \* targetScale \* INSPECT_CARD_VERTICAL_COMPACT_RATIO;/);
   assert.match(source, /x: Phaser\.Math\.Clamp\(width \* 0\.5, minX, maxX\),/);
   assert.match(source, /const INSPECT_CARD_PLAYER_ROW_GAP_RATIO = 0\.2;/);
+  assert.match(source, /const INSPECT_CARD_PLAYER_ROW_BOTTOM_LIMIT_RATIO = 2\.78;/);
   assert.match(source, /const INSPECT_CARD_VERTICAL_COMPACT_RATIO = 0\.96;/);
   assert.match(source, /const tacticalBottomLimitY = Math\.min\(boardBottomLimitY, actionBottomLimitY, height - margin\);/);
+  assert.match(source, /const enemyRowBottomY = boardTopY \+ board\.cellHeight;/);
   assert.match(source, /const playerRowTopY = boardTopY \+ board\.cellHeight \* 2;/);
-  assert.match(source, /const targetY = playerRowTopY - playerRowGap - inspectHeight \/ 2;/);
+  assert.match(source, /const sharedLaneCenterY = \(enemyRowBottomY \+ playerRowTopY\) \* 0\.5;/);
+  assert.match(source, /const targetY = sharedLaneCenterY \+ playerRowGap \* 0\.15;/);
   assert.match(source, /y: Phaser\.Math\.Clamp\(targetY, minY, maxY\),/);
   assert.match(inspectMethod, /const overlay = this\.add\.rectangle\(width \* 0\.5, height \* 0\.5, width, height, 0x000000, 0\)/);
   assert.match(inspectMethod, /alpha: INSPECT_CARD_OVERLAY_ALPHA,/);
