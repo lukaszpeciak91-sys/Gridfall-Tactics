@@ -8,6 +8,7 @@ export const CARD_EFFECT_STAT_SYMBOLS = Object.freeze({
 
 export const CARD_EFFECT_GAMEPLAY_SYMBOLS = Object.freeze({
   ally: '♙',
+  allies: '♙♙',
 });
 
 // Matches the visual colors used by card stat badges and lightweight gameplay
@@ -27,6 +28,7 @@ const STAT_TERM_ALIASES = Object.freeze({
 
 const HEALTH_SYMBOL = CARD_EFFECT_STAT_SYMBOLS.health;
 const ALLY_SYMBOL = CARD_EFFECT_GAMEPLAY_SYMBOLS.ally;
+const ALLIES_SYMBOL = CARD_EFFECT_GAMEPLAY_SYMBOLS.allies;
 
 const ALLY_ICON_MARKER_PATTERN = /\[(?:ALLY|ALLIES|ALLY_ICON)\]/giu;
 
@@ -88,8 +90,32 @@ function formatHealthEffectPhrases(text, locale) {
     : formatEnglishHealthEffectPhrases(text);
 }
 
+function getAllyIconSymbolForContext(prefix, marker) {
+  if (/\[ALLIES\]/iu.test(marker)) return ALLIES_SYMBOL;
+  if (/\[ALLY_ICON\]/iu.test(marker)) return ALLY_SYMBOL;
+
+  const normalizedPrefix = prefix.replace(/\s+/gu, ' ').trim();
+  if (/(?:^|\b)(?:all|both|2|two|wszyscy|wszystkie|wszystkich|oba|obaj|obie|2|dwa|dwóch)$/iu.test(normalizedPrefix)
+    || /(?:^|[.!?:]\s*)(?:adjacent|sąsiedni|sąsiednie|sąsiednich)$/iu.test(normalizedPrefix)
+    || /\b(?:2|two|dwa|dwóch)\s+[^\s]+$/iu.test(normalizedPrefix)
+    || /\bfor adjacent$/iu.test(normalizedPrefix)) {
+    return ALLIES_SYMBOL;
+  }
+
+  return ALLY_SYMBOL;
+}
+
 function formatGameplayIconMarkers(text) {
-  return text.replace(ALLY_ICON_MARKER_PATTERN, ALLY_SYMBOL);
+  return text
+    .replace(ALLY_ICON_MARKER_PATTERN, (marker, offset, fullText) => {
+      const prefix = fullText.slice(Math.max(0, offset - 24), offset);
+      return getAllyIconSymbolForContext(prefix, marker);
+    })
+    .replace(/(?<!♙)♙(?!♙)/gu, (symbol, offset, fullText) => {
+      const prefix = fullText.slice(Math.max(0, offset - 24), offset);
+      return getAllyIconSymbolForContext(prefix, '[ALLY]');
+    })
+    .replace(/(?<!♙)♙(?!♙)(?=\s+(?:can't drop below|nie mogą spaść))/giu, ALLIES_SYMBOL);
 }
 
 export function formatCardEffectTextShort(textShort, locale = 'en') {

@@ -65,7 +65,20 @@ const CARD_STAT_SYMBOL_KEYS = Object.freeze({
 });
 
 const CARD_GAMEPLAY_SYMBOL_STYLES = Object.freeze({
-  [CARD_EFFECT_GAMEPLAY_SYMBOLS.ally]: Object.freeze({ color: '#facc15', fontStyle: 'bold' }),
+  [CARD_EFFECT_GAMEPLAY_SYMBOLS.ally]: Object.freeze({
+    color: '#facc15',
+    fontStyle: 'bold',
+    icon: 'single',
+    fontScale: 1.2,
+    widthScale: 0.72,
+  }),
+  [CARD_EFFECT_GAMEPLAY_SYMBOLS.allies]: Object.freeze({
+    color: '#facc15',
+    fontStyle: 'bold',
+    icon: 'group',
+    fontScale: 1.15,
+    widthScale: 1.04,
+  }),
 });
 
 function colorNumberToCss(color) {
@@ -98,7 +111,7 @@ function getInlineSymbolStyle(symbol) {
 export function tokenizeInlineStatText(text) {
   if (typeof text !== 'string' || text.length === 0) return [];
   return text
-    .split(/(▲|◆|●|♙|\n|\s+)/u)
+    .split(/(♙♙|▲|◆|●|♙|\n|\s+)/u)
     .filter((token) => token.length > 0)
     .map((token) => {
       if (token === '\n') return { type: 'newline', text: token };
@@ -175,6 +188,14 @@ export function createInlineStatText(scene, x, y, text, {
     color,
   }).setVisible(false);
   const measureTokenWidth = (value) => {
+    const symbolStyle = getInlineSymbolStyle(value);
+    if (symbolStyle.type === 'gameplaySymbol') {
+      return Math.ceil(fittedFontSize * (symbolStyle.widthScale ?? 0.78));
+    }
+    if (symbolStyle.type === 'statSymbol') {
+      return Math.ceil(fittedFontSize * 0.92);
+    }
+
     measureText.setText(value);
     return measureText.width;
   };
@@ -207,11 +228,48 @@ export function createInlineStatText(scene, x, y, text, {
     const baselineY = lineIndex * lineHeight;
     line.segments.forEach((segment) => {
       const symbolStyle = getInlineSymbolStyle(segment.text);
-      const segmentText = scene.add.text(startX + segment.x, baselineY, segment.text, {
+      const segmentX = startX + segment.x;
+      if (symbolStyle.type === 'gameplaySymbol' && symbolStyle.icon === 'group') {
+        const group = scene.add.container(segmentX + segment.width / 2, baselineY + lineHeight * 0.49);
+        const iconFontSize = Math.max(fittedFontSize + 1, Math.round(fittedFontSize * (symbolStyle.fontScale ?? 1.12)));
+        const backIcon = scene.add.text(-segment.width * 0.18, -iconFontSize * 0.02, CARD_EFFECT_GAMEPLAY_SYMBOLS.ally, {
+          ...baseStyle,
+          fontSize: `${iconFontSize}px`,
+          color: symbolStyle.color ?? color,
+          fontStyle: symbolStyle.fontStyle,
+          stroke: '#4a3200',
+          strokeThickness: Math.max(1, Math.round(iconFontSize * 0.12)),
+        }).setOrigin(0.5).setAlpha(0.92);
+        const frontIcon = scene.add.text(segment.width * 0.17, iconFontSize * 0.04, CARD_EFFECT_GAMEPLAY_SYMBOLS.ally, {
+          ...baseStyle,
+          fontSize: `${iconFontSize}px`,
+          color: symbolStyle.color ?? color,
+          fontStyle: symbolStyle.fontStyle,
+          stroke: '#4a3200',
+          strokeThickness: Math.max(1, Math.round(iconFontSize * 0.12)),
+        }).setOrigin(0.5);
+        backIcon.setShadow(0, 1, 'rgba(0, 0, 0, 0.55)', 1);
+        frontIcon.setShadow(0, 1, 'rgba(0, 0, 0, 0.55)', 1);
+        group.add([backIcon, frontIcon]);
+        container.add(group);
+        return;
+      }
+
+      const isInlineSymbol = symbolStyle.type === 'statSymbol' || symbolStyle.type === 'gameplaySymbol';
+      const iconFontSize = isInlineSymbol
+        ? Math.max(fittedFontSize + 1, Math.round(fittedFontSize * (symbolStyle.fontScale ?? 1.14)))
+        : fittedFontSize;
+      const segmentText = scene.add.text(segmentX, baselineY, segment.text, {
         ...baseStyle,
+        fontSize: `${iconFontSize}px`,
         color: symbolStyle.color ?? color,
         fontStyle: symbolStyle.type === 'statSymbol' ? statFontStyle : symbolStyle.fontStyle,
+        stroke: isInlineSymbol ? '#061426' : undefined,
+        strokeThickness: isInlineSymbol ? Math.max(1, Math.round(iconFontSize * 0.1)) : 0,
       }).setOrigin(0, 0);
+      if (isInlineSymbol) {
+        segmentText.setShadow(0, 1, 'rgba(0, 0, 0, 0.58)', 1);
+      }
       container.add(segmentText);
     });
   });
@@ -315,12 +373,17 @@ function createStatGlyph(scene, x, y, size, key, value, style, isKnown, fontSize
   const text = scene.add.text(0, textOffsetY, valueText, {
     fontFamily: 'Arial, sans-serif',
     fontSize: `${fontSize}px`,
-    color: isKnown ? CARD_COLORS.ivoryText : '#94a3b8',
+    color: isKnown ? '#061426' : '#94a3b8',
     fontStyle: 'bold',
     align: 'center',
-    fixedWidth: Math.ceil(size * 0.95),
-    fixedHeight: Math.ceil(size * 0.76),
+    stroke: isKnown ? '#fff7ed' : '#0f172a',
+    strokeThickness: isKnown ? Math.max(1, Math.round(size * 0.075)) : 1,
+    fixedWidth: Math.ceil(size * 1.02),
+    fixedHeight: Math.ceil(size * 0.84),
   }).setOrigin(0.5);
+  if (isKnown) {
+    text.setShadow(0, 1, 'rgba(255, 255, 255, 0.28)', 1);
+  }
 
   glyph.add([glow, outline, symbol, glass, text]);
   glyph.statFeedback = {
@@ -349,7 +412,7 @@ export function createStatBadges(scene, x, y, width, height, stats, depth = 0, o
     maxGroupWidthRatio = 0.86,
   } = options;
   const symbolSize = getStatBadgeSize(height, width, sizeScale);
-  const fontSize = Math.max(10, Math.floor(symbolSize * 0.56 * fontScale));
+  const fontSize = Math.max(11, Math.floor(symbolSize * 0.63 * fontScale));
   const groupWidth = Math.min(width * maxGroupWidthRatio, symbolSize * 4.45 * spacingScale);
   const slotWidth = groupWidth / 3;
   const statGlyphs = {};
