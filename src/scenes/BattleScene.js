@@ -5,7 +5,6 @@ import { chooseEnemyAction, recordBattleActionUse, selectOpeningMulliganCardIds 
 import { getTargetingStateForEffect } from '../systems/cardTargeting.js';
 import { getCombatEventAttackerIndex, getCombatEventTargetIndex, getLaneLethalTargetIndexes, getLaneSimultaneousUnitClash, shouldAnimateCombatAttacker } from '../systems/combatAnimation.js';
 import { BATTLE_BACKGROUND_FALLBACK_COLOR, BATTLE_BACKGROUND_FALLBACK_COLOR_HEX, createCoverBackground, getBattleBackgroundAsset, preloadBattleBackgroundArt } from '../rendering/backgroundArt.js';
-import { createBuildMarker } from '../ui/buildMarker.js';
 import { calculateHandLayoutMetrics } from '../ui/handLayout.js';
 import { createFloatingControl, createMuteToggleControl, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
 import { createModalBackButton } from '../ui/modalControls.js';
@@ -290,7 +289,6 @@ export default class BattleScene extends Phaser.Scene {
     this.drawDeckCounter();
     this.drawHand();
     this.drawActionRowUtilityMenuTrigger();
-    this.drawBuildMarker();
     this.updateActionButtonLabel();
 
     this.scale.on('enterfullscreen', this.onFullscreenChanged, this);
@@ -464,11 +462,6 @@ export default class BattleScene extends Phaser.Scene {
     context.globalCompositeOperation = 'source-over';
 
     texture.refresh();
-  }
-
-  drawBuildMarker() {
-    const { width, height } = this.layout;
-    createBuildMarker(this, { width, height });
   }
 
   getActionRowUtilityMenuMetrics() {
@@ -987,7 +980,6 @@ export default class BattleScene extends Phaser.Scene {
     this.drawDeckCounter();
     this.drawHand();
     this.drawActionRowUtilityMenuTrigger();
-    this.drawBuildMarker();
     this.updateActionButtonLabel();
     this.updateInitiativeIndicator();
     this.resetCardHighlights();
