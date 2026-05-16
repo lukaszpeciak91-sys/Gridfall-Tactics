@@ -380,7 +380,8 @@
         "grave_call": "Summon 1/1; 2 if alone",
         "infect_damage_1_opposite_ally_atk_1": "Deal 1, empower opposite ally",
         "adjacent_allies_temp_armor_1": "Adjacent allies +1 ARM",
-        "swap_leftmost_adjacent_enemies": "Swap two adjacent enemies"
+        "swap_leftmost_adjacent_enemies": "Swap two adjacent enemies",
+        "swap_adjacent_enemy_units": "Swap two adjacent enemies"
       }
     },
     "rules": {

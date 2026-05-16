@@ -43,7 +43,7 @@ test('Wardens faction is registered and selectable with exactly 10 cards', () =>
   assert.ok(getFactionKeys().includes('Wardens'));
 });
 
-test('Shield Push swaps only the leftmost adjacent enemy pair and preserves side ownership', () => {
+test('Shield Push manually swaps selected adjacent enemies and preserves side ownership', () => {
   const state = createWardensState();
   state.player.hand.push({ ...card('wardens_shield_push_1') });
   state.board[0] = unit({ id: 'enemy-left', owner: 'enemy' });
@@ -51,27 +51,75 @@ test('Shield Push swaps only the leftmost adjacent enemy pair and preserves side
   state.board[2] = unit({ id: 'enemy-right', owner: 'enemy' });
   state.board[6] = unit({ id: 'player-left', owner: 'player' });
 
-  const result = playEffectCard(state, 'player', 'wardens_shield_push_1');
+  const pending = resolveTargetedEffectCard(state, 'player', 'wardens_shield_push_1', 1, [1]);
+  assert.equal(pending.ok, true);
+  assert.equal(pending.type, 'targeted-effect-pending');
+
+  const result = resolveTargetedEffectCard(state, 'player', 'wardens_shield_push_1', 2, [1, 2]);
 
   assert.equal(result.ok, true);
-  assert.equal(state.board[0].id, 'enemy-mid');
-  assert.equal(state.board[1].id, 'enemy-left');
-  assert.equal(state.board[2].id, 'enemy-right');
+  assert.equal(result.type, 'targeted-effect');
+  assert.equal(state.board[0].id, 'enemy-left');
+  assert.equal(state.board[1].id, 'enemy-right');
+  assert.equal(state.board[2].id, 'enemy-mid');
   assert.equal(state.board[6].id, 'player-left');
   assert.deepEqual(state.board.map((u) => u?.owner ?? null), ['enemy', 'enemy', 'enemy', null, null, null, 'player', null, null]);
+  assert.equal(state.player.hand.length, 0);
+  assert.equal(state.player.discard[0].id, 'wardens_shield_push_1');
 });
 
-test('Shield Push is rejected without an adjacent enemy pair and does not discard', () => {
+test('Shield Push rejects non-adjacent, friendly, duplicate, and empty targets without discarding', () => {
+  const nonAdjacent = createWardensState();
+  nonAdjacent.player.hand.push({ ...card('wardens_shield_push_1') });
+  nonAdjacent.board[0] = unit({ id: 'enemy-left', owner: 'enemy' });
+  nonAdjacent.board[2] = unit({ id: 'enemy-right', owner: 'enemy' });
+
+  const nonAdjacentResult = resolveTargetedEffectCard(nonAdjacent, 'player', 'wardens_shield_push_1', 2, [0, 2]);
+  assert.equal(nonAdjacentResult.ok, false);
+  assert.equal(nonAdjacentResult.reason, 'Targets must be adjacent enemies');
+  assert.equal(nonAdjacent.player.hand.length, 1);
+  assert.equal(nonAdjacent.player.discard.length, 0);
+
+  const friendly = createWardensState();
+  friendly.player.hand.push({ ...card('wardens_shield_push_1') });
+  friendly.board[0] = unit({ id: 'enemy-left', owner: 'enemy' });
+  friendly.board[6] = unit({ id: 'player-left', owner: 'player' });
+  const friendlyResult = resolveTargetedEffectCard(friendly, 'player', 'wardens_shield_push_1', 6, [0, 6]);
+  assert.equal(friendlyResult.ok, false);
+  assert.equal(friendlyResult.reason, 'Target must be enemy');
+  assert.equal(friendly.player.hand.length, 1);
+
+  const duplicate = createWardensState();
+  duplicate.player.hand.push({ ...card('wardens_shield_push_1') });
+  duplicate.board[0] = unit({ id: 'enemy-left', owner: 'enemy' });
+  const duplicateResult = resolveTargetedEffectCard(duplicate, 'player', 'wardens_shield_push_1', 0, [0, 0]);
+  assert.equal(duplicateResult.ok, false);
+  assert.equal(duplicateResult.reason, 'Select two different enemy targets');
+  assert.equal(duplicate.player.hand.length, 1);
+
+  const empty = createWardensState();
+  empty.player.hand.push({ ...card('wardens_shield_push_1') });
+  empty.board[0] = unit({ id: 'enemy-left', owner: 'enemy' });
+  const emptyResult = resolveTargetedEffectCard(empty, 'player', 'wardens_shield_push_1', 0, [0, 1]);
+  assert.equal(emptyResult.ok, false);
+  assert.equal(emptyResult.reason, 'Both targets must contain units');
+  assert.equal(empty.player.hand.length, 1);
+});
+
+
+test('Shield Push cannot be resolved through deterministic playEffectCard path', () => {
   const state = createWardensState();
   state.player.hand.push({ ...card('wardens_shield_push_1') });
   state.board[0] = unit({ id: 'enemy-left', owner: 'enemy' });
-  state.board[2] = unit({ id: 'enemy-right', owner: 'enemy' });
+  state.board[1] = unit({ id: 'enemy-mid', owner: 'enemy' });
 
   const result = playEffectCard(state, 'player', 'wardens_shield_push_1');
 
   assert.equal(result.ok, false);
   assert.equal(state.player.hand.length, 1);
   assert.equal(state.player.discard.length, 0);
+  assert.equal(state.board[0].id, 'enemy-left');
+  assert.equal(state.board[1].id, 'enemy-mid');
 });
 
 test('Wardens unit summon, placement, and redeploy remain owner-correct', () => {
@@ -193,14 +241,20 @@ test('Wardens adjacent armor orders are rejected for isolated units and do not d
   assert.equal(state.player.discard.length, 0);
 });
 
-test('Wardens targeting metadata uses only Brace manual targeting', () => {
+test('Wardens targeting metadata uses Brace and Shield Push manual targeting', () => {
   assert.deepEqual(getTargetingStateForEffect('temp_armor_1', 'wardens_brace_1'), {
     cardId: 'wardens_brace_1',
     targetType: 'friendly-unit',
     requiredTargets: 1,
     targetIndexes: [],
   });
-  assert.equal(getTargetingStateForEffect('swap_leftmost_adjacent_enemies', 'wardens_shield_push_1'), null);
+  assert.deepEqual(getTargetingStateForEffect('swap_adjacent_enemy_units', 'wardens_shield_push_1'), {
+    cardId: 'wardens_shield_push_1',
+    targetType: 'enemy-unit',
+    requiredTargets: 2,
+    targetIndexes: [],
+    targetConstraint: 'adjacent-pair',
+  });
   assert.equal(getTargetingStateForEffect('adjacent_allies_temp_armor_1', 'wardens_reinforce_line_1'), null);
   assert.equal(getTargetingStateForEffect('adjacent_allies_temp_armor_1', 'wardens_hold_the_line_1'), null);
 });
@@ -219,6 +273,26 @@ test('AI avoids Shield Push without legal pair and Reinforce Line without adjace
   assert.notEqual(chooseBattleAction(reinforceState, 'enemy').cardId, 'wardens_reinforce_line_1');
 });
 
+
+test('AI targets a meaningful adjacent pair for Shield Push', () => {
+  const state = createWardensState();
+  state.enemy.hand.push({ ...card('wardens_shield_push_1') });
+  state.board[6] = unit({ id: 'blocked-grunt', owner: 'player', attack: 1 });
+  state.board[7] = unit({ id: 'open-attacker', owner: 'player', attack: 3 });
+  state.board[0] = unit({ id: 'enemy-blocker', owner: 'enemy', attack: 1 });
+
+  const action = chooseBattleAction(state, 'enemy');
+
+  assert.equal(action.type, 'play-targeted-effect');
+  assert.equal(action.effectId, 'swap_adjacent_enemy_units');
+  assert.deepEqual(action.targetIndexes, [6, 7]);
+
+  const result = resolveTargetedEffectCard(state, 'enemy', action.cardId, action.targetIndex, action.targetIndexes);
+  assert.equal(result.ok, true);
+  assert.equal(state.board[6].id, 'open-attacker');
+  assert.equal(state.board[7].id, 'blocked-grunt');
+});
+
 test('AI can play Wardens without invalid actions in a representative turn', () => {
   const state = createWardensState();
   state.enemy.hand.push(
@@ -233,5 +307,6 @@ test('AI can play Wardens without invalid actions in a representative turn', () 
   let result;
   if (action.type === 'play-unit') result = playOrRedeployUnit(state, 'enemy', action.cardId, action.slotIndex);
   if (action.type === 'play-effect') result = playEffectCard(state, 'enemy', action.cardId);
+  if (action.type === 'play-targeted-effect') result = resolveTargetedEffectCard(state, 'enemy', action.cardId, action.targetIndex, action.targetIndexes);
   assert.equal(result?.ok, true);
 });

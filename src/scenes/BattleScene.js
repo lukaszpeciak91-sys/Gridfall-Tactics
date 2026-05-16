@@ -103,6 +103,7 @@ const ENEMY_EFFECT_SUMMARY_OVERRIDES = Object.freeze({
   quick_strike: 'Resolve line combat now',
   heal_1_atk_1_draw_on_kill_this_turn: 'Heal, +1 ATK, draw on kill',
   swap_any_two_units: 'Swap two units',
+  swap_adjacent_enemy_units: 'Swap adjacent enemies',
   enemy_all_atk_minus_1: 'Leftmost enemies -1 ATK',
   damage_all_enemies_1_ignore_armor: 'Damage all enemies',
   control_enemy_unit_this_turn: 'Enemy hits own hero',
@@ -1715,6 +1716,10 @@ export default class BattleScene extends Phaser.Scene {
         this.onBoardCellTap(boardCell.index);
         return;
       }
+      if (this.targetingState) {
+        this.pressedHandCardId = null;
+        return;
+      }
     }
 
     this.pressedHandCardId = null;
@@ -1811,7 +1816,7 @@ export default class BattleScene extends Phaser.Scene {
 
   isBoardCellTapReservedForCardAction(boardIndex, selectedCard) {
     if (this.targetingState) {
-      return this.isValidTarget(boardIndex, this.targetingState.targetType);
+      return this.isValidTarget(boardIndex, this.targetingState.targetType, this.targetingState.targetIndexes, this.targetingState.targetConstraint);
     }
 
     if (!this.isUnitCard(selectedCard)) {
@@ -1874,8 +1879,7 @@ export default class BattleScene extends Phaser.Scene {
     if (!selectedCard) return;
 
     if (this.targetingState) {
-      if (!this.isValidTarget(boardIndex, this.targetingState.targetType, this.targetingState.targetIndexes)) {
-        this.clearHandCardSelection();
+      if (!this.isValidTarget(boardIndex, this.targetingState.targetType, this.targetingState.targetIndexes, this.targetingState.targetConstraint)) {
         return;
       }
 
@@ -3231,13 +3235,18 @@ export default class BattleScene extends Phaser.Scene {
 
     this.boardCells.forEach((cell) => {
       const selectedTargetIndexes = this.targetingState?.targetIndexes ?? [];
-      const isValidFriendlyTarget = this.isValidTarget(cell.index, 'friendly-unit', selectedTargetIndexes);
-      const isValidEnemyTarget = this.isValidTarget(cell.index, 'enemy-unit', selectedTargetIndexes);
-      const isValidAnyTarget = this.isValidTarget(cell.index, 'any-unit', selectedTargetIndexes);
+      const targetConstraint = this.targetingState?.targetConstraint ?? null;
+      const isValidFriendlyTarget = this.isValidTarget(cell.index, 'friendly-unit', selectedTargetIndexes, targetConstraint);
+      const isValidEnemyTarget = this.isValidTarget(cell.index, 'enemy-unit', selectedTargetIndexes, targetConstraint);
+      const isValidAnyTarget = this.isValidTarget(cell.index, 'any-unit', selectedTargetIndexes, targetConstraint);
+      const isSelectedTarget = selectedTargetIndexes.includes(cell.index);
       let strokeColor = cell.row === 1 ? 0x94a3b8 : 0xcbd5e1;
       let strokeAlpha = cell.row === 1 ? BOARD_GUIDE_SLOT_STROKE_ALPHA : BOARD_SLOT_STROKE_ALPHA;
 
-      if (this.targetingState?.targetType === 'friendly-unit' && isValidFriendlyTarget) {
+      if (isSelectedTarget) {
+        strokeColor = 0xfacc15;
+        strokeAlpha = BOARD_TARGET_STROKE_ALPHA;
+      } else if (this.targetingState?.targetType === 'friendly-unit' && isValidFriendlyTarget) {
         strokeColor = 0x22c55e;
         strokeAlpha = BOARD_TARGET_STROKE_ALPHA;
       } else if (this.targetingState?.targetType === 'enemy-unit' && isValidEnemyTarget) {
@@ -3260,9 +3269,17 @@ export default class BattleScene extends Phaser.Scene {
     return getTargetingStateForEffect(card.effectId, card.id);
   }
 
-  isValidTarget(boardIndex, targetType, selectedTargetIndexes = []) {
+  isValidTarget(boardIndex, targetType, selectedTargetIndexes = [], targetConstraint = null) {
     const unit = this.gameState.board[boardIndex];
     if (!unit) return false;
+    if (selectedTargetIndexes.includes(boardIndex)) return false;
+    if (targetConstraint === 'adjacent-pair' && selectedTargetIndexes.length > 0) {
+      const firstSelectedIndex = selectedTargetIndexes[0];
+      const firstSelectedUnit = this.gameState.board[firstSelectedIndex];
+      if (!firstSelectedUnit) return false;
+      if (Math.floor(firstSelectedIndex / 3) !== Math.floor(boardIndex / 3)) return false;
+      if (Math.abs((firstSelectedIndex % 3) - (boardIndex % 3)) !== 1) return false;
+    }
     if (targetType === 'friendly-unit') return unit.owner === 'player';
     if (targetType === 'enemy-unit') return unit.owner === 'enemy';
     if (targetType === 'any-unit') {

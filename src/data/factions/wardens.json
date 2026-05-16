@@ -70,8 +70,8 @@
       "id": "wardens_shield_push_1",
       "name": "Shield Push",
       "type": "order",
-      "targeting": "none",
-      "effectId": "swap_leftmost_adjacent_enemies",
+      "targeting": "enemy_units",
+      "effectId": "swap_adjacent_enemy_units",
       "textShort": "Swap two adjacent enemies."
     },
     {
