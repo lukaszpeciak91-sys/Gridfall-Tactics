@@ -1,5 +1,6 @@
 import { getCardDisplayName, getCardTextShort } from '../localization/cardDisplay.js';
 import { CARD_EFFECT_GAMEPLAY_SYMBOLS, formatCardEffectTextShort } from '../localization/cardTextFormatting.js';
+import { getLoadedCardIllustrationTextureKey } from './cardIllustrationAssets.js';
 
 export const CARD_ZONE_RATIOS = Object.freeze({
   statBadges: 0.112,
@@ -455,12 +456,15 @@ export function createArtPlaceholder(scene, zone) {
   return container;
 }
 
-function getCardArtTextureKey(card) {
-  return card?.artTextureKey ?? card?.artKey ?? card?.art?.textureKey ?? null;
+function getCardArtTextureKey(scene, card, { enableCardIllustration = true } = {}) {
+  const explicitTextureKey = card?.artTextureKey ?? card?.artKey ?? card?.art?.textureKey ?? null;
+  if (explicitTextureKey) return explicitTextureKey;
+
+  return enableCardIllustration ? getLoadedCardIllustrationTextureKey(scene, card) : null;
 }
 
-export function createCardArtwork(scene, zone, card) {
-  const textureKey = getCardArtTextureKey(card);
+export function createCardArtwork(scene, zone, card, options = {}) {
+  const textureKey = getCardArtTextureKey(scene, card, options);
   if (textureKey && scene.textures?.exists?.(textureKey)) {
     const image = scene.add.image(zone.centerX, zone.centerY, textureKey);
     const texture = image.texture?.getSourceImage?.();
@@ -510,6 +514,7 @@ export function createCardPreviewView(scene, {
   titleTypographyScale = typographyScale,
   bodyLineSpacing = 2,
   frameAlpha = card ? 0.84 : 0.48,
+  enableCardIllustration = false,
 } = {}) {
   const zones = getCardLayoutZones(width, height);
   const baseTypography = getCardTypography(width, height);
@@ -542,7 +547,7 @@ export function createCardPreviewView(scene, {
       spacingScale: typographyScale > 1 ? 1.16 : 1.12,
     },
   );
-  const art = createCardArtwork(scene, zones.art, card);
+  const art = createCardArtwork(scene, zones.art, card, { enableCardIllustration });
   const namePanel = scene.add.rectangle(zones.name.centerX, zones.name.centerY, zones.name.width, zones.name.height, CARD_COLORS.namePanel, 0.95)
     .setStrokeStyle(1, accentColor, card ? (typographyScale > 1 ? 0.52 : 0.44) : 0.14);
   const nameHorizontalInset = Math.max(10, zones.pad * (typographyScale > 1 ? 1.45 : 1.32));
