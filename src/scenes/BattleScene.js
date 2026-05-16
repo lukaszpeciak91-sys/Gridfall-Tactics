@@ -59,6 +59,7 @@ const INSPECT_CARD_STAT_BADGE_SCALE = 1.28;
 const INSPECT_CARD_TYPOGRAPHY_SCALE = 1.1;
 const INSPECT_CARD_BODY_LINE_SPACING = 5;
 const HAND_CARD_INSPECT_DIM_ALPHA = 0.55;
+const HAND_CARD_LONG_PRESS_MS = 425;
 const ENEMY_ACTION_NOTIFICATION_FADE_IN_MS = 110;
 const ENEMY_ACTION_NOTIFICATION_HOLD_MS = 650;
 const ENEMY_ACTION_NOTIFICATION_FADE_OUT_MS = 140;
@@ -156,6 +157,8 @@ export default class BattleScene extends Phaser.Scene {
     this.hoverInspectCardId = null;
     this.boardInspectIndex = null;
     this.pressedHandCardId = null;
+    this.handCardLongPressEvent = null;
+    this.longPressTriggeredCardId = null;
   }
 
   preload() {
@@ -213,6 +216,8 @@ export default class BattleScene extends Phaser.Scene {
     this.hoverInspectCardId = null;
     this.boardInspectIndex = null;
     this.pressedHandCardId = null;
+    this.handCardLongPressEvent = null;
+    this.longPressTriggeredCardId = null;
   }
 
   cleanupSceneObjects({ preserveTimers = false, preserveTweens = false } = {}) {
@@ -223,6 +228,7 @@ export default class BattleScene extends Phaser.Scene {
     this.destroyDeckInfoPanel();
     this.destroyDeckCounterView();
     this.destroySelectedHandCardZoom();
+    this.cancelHandCardLongPress();
     if (!preserveTweens) {
       this.tweens?.killAll?.();
     }
@@ -1575,13 +1581,8 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   onHandCardPointerOver(cardId) {
-    if (this.battleResultModalShown || this.isFlowResolving || this.selectedCardId || this.targetingState) return;
-    const card = this.gameState?.player?.hand?.find((item) => item.id === cardId);
-    if (!card) return;
-
-    this.hoverInspectCardId = cardId;
-    this.boardInspectIndex = null;
-    this.showSelectedHandCardZoom();
+    // Hand-card inspect is intentionally long-press driven so quick taps only select for play.
+    if (!cardId) return;
   }
 
   onHandCardPointerOut(cardId) {
@@ -1618,14 +1619,11 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   onCardPointerDown(cardId) {
-    const isInspectOpenForSelectedCard = Boolean(
-      this.selectedHandCardZoom && !this.openingMulliganPending && this.selectedCardId === cardId,
-    );
-
+    this.cancelHandCardLongPress();
+    this.longPressTriggeredCardId = null;
     this.pressedHandCardId = cardId;
     this.hoverInspectCardId = null;
     this.boardInspectIndex = null;
-    this.destroySelectedHandCardZoom({ animate: true });
 
     if (this.battleResultModalShown) {
       return;
@@ -1655,22 +1653,37 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     this.pendingSwapIndex = null;
-
-    if (isInspectOpenForSelectedCard) {
-      this.resetCardHighlights({ showPreview: false });
-      return;
-    }
-
-    this.targetingState = null;
-
-    if (this.selectedCardId === cardId) {
-      this.selectedCardId = null;
-    } else {
-      this.selectedCardId = cardId;
-      this.targetingState = this.isUnitCard(card) ? null : this.getTargetingStateForCard(card);
-    }
+    this.selectedCardId = cardId;
+    this.targetingState = this.isUnitCard(card) ? null : this.getTargetingStateForCard(card);
     this.resetCardHighlights({ showPreview: false });
     this.updateActionButtonLabel();
+    this.startHandCardLongPress(cardId);
+  }
+
+  startHandCardLongPress(cardId) {
+    this.cancelHandCardLongPress();
+    this.handCardLongPressEvent = this.time.delayedCall(HAND_CARD_LONG_PRESS_MS, () => {
+      this.handCardLongPressEvent = null;
+      if (this.pressedHandCardId !== cardId) return;
+      if (this.battleResultModalShown || this.isFlowResolving || this.openingMulliganPending || this.playerActionUsed) return;
+
+      const card = this.gameState?.player?.hand?.find((item) => item.id === cardId);
+      if (!card) return;
+
+      this.longPressTriggeredCardId = cardId;
+      this.selectedCardId = cardId;
+      this.targetingState = this.isUnitCard(card) ? null : this.getTargetingStateForCard(card);
+      this.hoverInspectCardId = null;
+      this.boardInspectIndex = null;
+      this.resetCardHighlights({ showPreview: true });
+      this.updateActionButtonLabel();
+    });
+  }
+
+  cancelHandCardLongPress() {
+    if (!this.handCardLongPressEvent) return;
+    this.handCardLongPressEvent.remove(false);
+    this.handCardLongPressEvent = null;
   }
 
   onCardPointerUp(cardId) {
@@ -1678,8 +1691,11 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
+    this.cancelHandCardLongPress();
+
     if (this.battleResultModalShown || this.isFlowResolving) {
       this.pressedHandCardId = null;
+      this.longPressTriggeredCardId = null;
       return;
     }
 
@@ -1687,10 +1703,17 @@ export default class BattleScene extends Phaser.Scene {
       this.previewedMulliganCardId = this.selectedMulliganCardIds.includes(cardId) ? cardId : null;
       this.resetCardHighlights({ showPreview: true });
       this.pressedHandCardId = null;
+      this.longPressTriggeredCardId = null;
       return;
     }
 
-    this.resetCardHighlights({ showPreview: true });
+    if (this.longPressTriggeredCardId === cardId) {
+      this.pressedHandCardId = null;
+      this.longPressTriggeredCardId = null;
+      return;
+    }
+
+    this.resetCardHighlights({ showPreview: false });
     this.pressedHandCardId = null;
   }
 
@@ -1707,6 +1730,12 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
     if (this.isPointerUpReservedForUi(pointer, currentlyOver)) return;
+
+    if (this.pressedHandCardId) {
+      this.cancelHandCardLongPress();
+      this.pressedHandCardId = null;
+      return;
+    }
 
     const boardCell = this.getBoardCellFromPointerUp(pointer, currentlyOver);
     if (boardCell) {
@@ -1728,8 +1757,21 @@ export default class BattleScene extends Phaser.Scene {
       }
     }
 
+    if (this.clearSelectedHandInspectFromOutsideTap(pointer, currentlyOver)) {
+      this.pressedHandCardId = null;
+      return;
+    }
+
     this.pressedHandCardId = null;
     this.clearHandCardSelection();
+  }
+
+  clearSelectedHandInspectFromOutsideTap(pointer, currentlyOver = []) {
+    if (!this.selectedHandCardZoom || this.boardInspectIndex !== null) return false;
+    if (this.isPointerInsideSelectedHandCardZoom(pointer, currentlyOver)) return false;
+
+    this.resetCardHighlights({ showPreview: false });
+    return true;
   }
 
   clearOpeningMulliganPreviewFromOutsideTap(pointer, currentlyOver = []) {
@@ -3236,13 +3278,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   restoreInspectDimming() {
-    this.cardViews.forEach((card) => {
-      const viewCard = this.gameState?.player?.hand?.find((item) => item.id === card.cardId);
-      card.root.setAlpha(viewCard ? 1 : 0.45);
-      card.root.setPosition(card.baseX, card.baseY);
-      card.root.setDepth(card.baseDepth);
-      card.selectionOutline?.setStrokeStyle(0, 0xfacc15, 0);
-    });
+    this.resetCardHighlights({ showPreview: false });
   }
 
   resetCardHighlights({ showPreview = true } = {}) {
