@@ -392,7 +392,8 @@
         "selectFirstEnemy": "Select first enemy",
         "selectAdjacentEnemy": "Select adjacent enemy",
         "selectAlly": "Select ally",
-        "selectUnit": "Select unit"
+        "selectUnit": "Select unit",
+        "selectSecondEnemy": "Select second enemy"
       }
     },
     "rules": {

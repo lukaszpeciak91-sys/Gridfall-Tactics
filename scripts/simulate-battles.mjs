@@ -10,6 +10,7 @@ import {
   performSwap,
   playEffectCard,
   resolveTargetedEffectCard,
+  resolveTargetedUnitOnPlayEffect,
   resolveCombat,
   toggleFirstActor,
   resolveTurnCapWinner,
@@ -101,7 +102,12 @@ function applyAction(state, owner, passStats, decisionOptions, telemetry) {
     return;
   }
   let result = { ok: true };
-  if (action.type === 'play-unit') result = playOrRedeployUnit(state, owner, action.cardId, action.slotIndex);
+  if (action.type === 'play-unit') {
+    result = playOrRedeployUnit(state, owner, action.cardId, action.slotIndex);
+    if (result.ok && Array.isArray(action.targetIndexes) && action.effectId === 'swap_two_enemy_units') {
+      result = resolveTargetedUnitOnPlayEffect(state, owner, action.slotIndex, action.targetIndexes);
+    }
+  }
   if (action.type === 'swap-units') result = performSwap(state, owner, action.fromIndex, action.toIndex);
   if (action.type === 'play-effect') {
     result = playEffectCard(state, owner, action.cardId);
@@ -561,6 +567,7 @@ Battle simulation complete (${matchCount} games per matchup, max ${MAX_TURNS} tu
     { metric: 'Quick Fix trigger rate', count: `${percent(telemetry.quickFixTriggers, telemetry.quickFixUses)}%` },
     { metric: 'Shield Push uses', count: telemetry.shieldPushUses },
     { metric: 'Jam Signal uses', count: telemetry.jamSignalUses },
+    { metric: 'Controller uses', count: telemetry.controllerUses },
     { metric: 'defensive friction applications', count: telemetry.defensiveFrictionApplications },
     { metric: 'Funeral Pyre uses', count: telemetry.funeralPyreUses },
     { metric: 'System Override uses', count: telemetry.systemOverrideUses },

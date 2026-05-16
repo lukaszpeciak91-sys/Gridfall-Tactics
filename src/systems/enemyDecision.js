@@ -1,4 +1,4 @@
-import { canPlayOrRedeploy, canSwap, performSwap, playEffectCard, playOrRedeployUnit, resolveTargetedEffectCard, getUnitAttack, getUnitArmor, RUNNER_OPEN_LANE_HERO_BONUS } from './GameState.js';
+import { canPlayOrRedeploy, canSwap, performSwap, playEffectCard, playOrRedeployUnit, resolveTargetedEffectCard, resolveTargetedUnitOnPlayEffect, getUnitAttack, getUnitArmor, RUNNER_OPEN_LANE_HERO_BONUS } from './GameState.js';
 
 const ENEMY_ROW_INDEXES = [0, 1, 2];
 const PLAYER_ROW_INDEXES = [6, 7, 8];
@@ -240,6 +240,7 @@ export function recordBattleActionUse(state, owner, action, telemetry = null) {
   if (kind === 'reposition') telemetry.repositionUsed = (telemetry.repositionUsed ?? 0) + 1;
   if (kind === 'shield-push') telemetry.shieldPushUses = (telemetry.shieldPushUses ?? 0) + 1;
   if (kind === 'jam-signal') telemetry.jamSignalUses = (telemetry.jamSignalUses ?? 0) + 1;
+  if (kind === 'controller') telemetry.controllerUses = (telemetry.controllerUses ?? 0) + 1;
   if (kind === 'replace' || kind === 'reposition') {
     if (action.aiEvaluation.meaningful) telemetry.meaningfulGameplayActions = (telemetry.meaningfulGameplayActions ?? 0) + 1;
     else telemetry.pointlessGameplayActions = (telemetry.pointlessGameplayActions ?? 0) + 1;
@@ -406,6 +407,46 @@ function addJamSignalCandidates(actions, state, owner, card) {
   }
 }
 
+
+
+function hasMeaningfulPressureChange(beforeState, afterState, owner) {
+  const opponent = owner === 'enemy' ? 'player' : 'enemy';
+  const beforeOpen = getOpenLaneStats(beforeState, owner);
+  const afterOpen = getOpenLaneStats(afterState, owner);
+  return getBoardPressureValue(afterState, owner) !== getBoardPressureValue(beforeState, owner)
+    || getGuaranteedHeroDamage(afterState, owner) !== getGuaranteedHeroDamage(beforeState, owner)
+    || getGuaranteedHeroDamage(afterState, opponent) !== getGuaranteedHeroDamage(beforeState, opponent)
+    || afterOpen.damage !== beforeOpen.damage
+    || afterOpen.lanes !== beforeOpen.lanes;
+}
+
+function addControllerUnitCandidates(actions, state, owner, card, slotIndex, placementType) {
+  const targets = getCandidateTargetIndexes(state, owner, card.effectId ?? null);
+  if (targets.length < 2) return;
+
+  for (let first = 0; first < targets.length - 1; first += 1) {
+    for (let second = first + 1; second < targets.length; second += 1) {
+      const targetIndexes = [targets[first], targets[second]];
+      const placementState = cloneState(state);
+      const playProbe = playOrRedeployUnit(placementState, owner, card.id, slotIndex);
+      if (!playProbe.ok) continue;
+      const probeState = cloneState(placementState);
+      const targetedProbe = resolveTargetedUnitOnPlayEffect(probeState, owner, slotIndex, targetIndexes);
+      if (!targetedProbe.ok || targetedProbe.type === 'unit-on-play-targeted-effect-pending') continue;
+      if (!hasMeaningfulPressureChange(placementState, probeState, owner)) continue;
+      actions.push({
+        type: 'play-unit',
+        cardId: card.id,
+        slotIndex,
+        placementType,
+        effectId: card.effectId ?? null,
+        targetIndex: targetIndexes[0],
+        targetIndexes,
+      });
+    }
+  }
+}
+
 function addRepositionCandidates(actions, state, owner, telemetry = null) {
   const { friendly } = getRowsForOwner(owner);
   for (let lane = 0; lane < friendly.length - 1; lane += 1) {
@@ -436,6 +477,10 @@ function buildActionCandidates(state, owner, hand, telemetry = null) {
           const action = { type: 'play-unit', cardId: card.id, slotIndex, placementType: canPlay.type };
           if (canPlay.type === 'redeploy' && wasRecentlyLooped(state, owner, action)) {
             if (telemetry) telemetry.repeatedLoopPreventions = (telemetry.repeatedLoopPreventions ?? 0) + 1;
+            return;
+          }
+          if (card.effectId === 'swap_two_enemy_units') {
+            addControllerUnitCandidates(actions, state, owner, card, slotIndex, canPlay.type);
             return;
           }
           actions.push(action);
@@ -492,6 +537,10 @@ function scoreAction(state, owner, action) {
     const result = playOrRedeployUnit(nextState, owner, action.cardId, action.slotIndex);
     if (!result.ok) return Number.NEGATIVE_INFINITY;
     action.placementType = result.type;
+    if (Array.isArray(action.targetIndexes) && action.effectId === 'swap_two_enemy_units') {
+      const targetedResult = resolveTargetedUnitOnPlayEffect(nextState, owner, action.slotIndex, action.targetIndexes);
+      if (!targetedResult.ok || targetedResult.type === 'unit-on-play-targeted-effect-pending') return Number.NEGATIVE_INFINITY;
+    }
   } else if (action.type === 'swap-units') {
     const result = performSwap(nextState, owner, action.fromIndex, action.toIndex);
     if (!result.ok) return Number.NEGATIVE_INFINITY;
@@ -590,6 +639,19 @@ function scoreAction(state, owner, action) {
 
   if (isTwoTargetSwapEffect(action.effectId ?? null)) {
     score += 900;
+  }
+
+  if (action.effectId === 'swap_two_enemy_units') {
+    const meaningful = boardPressureGain > 20 || heroPressureGain > 0 || opponentPressureReduced > 0 || openLaneImprovement > 0;
+    action.aiEvaluation = {
+      kind: action.type === 'play-unit' ? 'controller' : 'shield-push',
+      meaningful,
+      pressureGain: boardPressureGain,
+      heroPressureGain,
+      openLaneImprovement,
+    };
+    if (!meaningful) return Number.NEGATIVE_INFINITY;
+    score += action.type === 'play-unit' ? 720 : 760;
   }
 
   if (action.effectId === 'swap_leftmost_adjacent_enemies' || action.effectId === 'swap_adjacent_enemy_units') {

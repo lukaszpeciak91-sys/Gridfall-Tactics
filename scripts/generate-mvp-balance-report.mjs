@@ -10,6 +10,7 @@ import {
   performSwap,
   playEffectCard,
   resolveTargetedEffectCard,
+  resolveTargetedUnitOnPlayEffect,
   resolveCombat,
   toggleFirstActor,
   resolveTurnCapWinner,
@@ -138,7 +139,12 @@ function applyAction(state, owner, passStats, decisionOptions, telemetry, gameLo
     return;
   }
   let result = { ok: true };
-  if (action.type === 'play-unit') result = playOrRedeployUnit(state, owner, action.cardId, action.slotIndex);
+  if (action.type === 'play-unit') {
+    result = playOrRedeployUnit(state, owner, action.cardId, action.slotIndex);
+    if (result.ok && Array.isArray(action.targetIndexes) && action.effectId === 'swap_two_enemy_units') {
+      result = resolveTargetedUnitOnPlayEffect(state, owner, action.slotIndex, action.targetIndexes);
+    }
+  }
   if (action.type === 'swap-units') result = performSwap(state, owner, action.fromIndex, action.toIndex);
   if (action.type === 'play-effect') {
     result = playEffectCard(state, owner, action.cardId);

@@ -10,6 +10,7 @@ import {
   performSwap,
   playEffectCard,
   resolveTargetedEffectCard,
+  resolveTargetedUnitOnPlayEffect,
   resolveCombat,
   toggleFirstActor,
   resolveTurnCapWinner,
@@ -121,7 +122,10 @@ function applyAction(state, owner, metrics, rng) {
     const side = owner === 'player' ? state.player : state.enemy;
     const card = side.hand.find((c) => c.id === action.cardId);
     if (card?.effectId) metrics.effectUsage.set(card.effectId, (metrics.effectUsage.get(card.effectId) ?? 0) + 1);
-    const result = playOrRedeployUnit(state, owner, action.cardId, action.slotIndex);
+    let result = playOrRedeployUnit(state, owner, action.cardId, action.slotIndex);
+    if (result.ok && Array.isArray(action.targetIndexes) && action.effectId === 'swap_two_enemy_units') {
+      result = resolveTargetedUnitOnPlayEffect(state, owner, action.slotIndex, action.targetIndexes);
+    }
     if (!result.ok) { metrics.invalidActions += 1; return; }
     recordBattleActionUse(state, owner, action, metrics);
   }
