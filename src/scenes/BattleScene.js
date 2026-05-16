@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
-import { createInitialBattleState, drawCards, shuffleDeck, canPass, canPlayOrRedeploy, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, getUnitAttack, getUnitArmor, toggleFirstActor, resolveTurnCapWinner, resolveImmediateNoProgressWinner, recordPassAction, performOpeningMulligan, STARTING_HAND_SIZE, MAX_OPENING_MULLIGAN_CARDS } from '../systems/GameState.js';
+import { createInitialBattleState, drawCards, shuffleDeck, canPass, canPlayOrRedeploy, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, resolveTargetedUnitOnPlayEffect, getUnitAttack, getUnitArmor, toggleFirstActor, resolveTurnCapWinner, resolveImmediateNoProgressWinner, recordPassAction, performOpeningMulligan, STARTING_HAND_SIZE, MAX_OPENING_MULLIGAN_CARDS } from '../systems/GameState.js';
 import { chooseEnemyAction, recordBattleActionUse, selectOpeningMulliganCardIds } from '../systems/enemyDecision.js';
 import { getTargetingStateForEffect } from '../systems/cardTargeting.js';
 import { getCombatEventAttackerIndex, getCombatEventTargetIndex, getLaneLethalTargetIndexes, getLaneSimultaneousUnitClash, shouldAnimateCombatAttacker } from '../systems/combatAnimation.js';
@@ -1970,16 +1970,21 @@ export default class BattleScene extends Phaser.Scene {
         targetIndexes.splice(0, targetIndexes.length, boardIndex);
       }
 
-      const beforeStats = this.captureBoardStats();
+      const beforeStats = this.effectCastState?.source === 'unit-on-play'
+        ? this.effectCastState.beforeStats
+        : this.captureBoardStats();
       const effectCardId = this.effectCastState?.cardId ?? this.selectedCardId;
-      const result = resolveTargetedEffectCard(this.gameState, 'player', effectCardId, boardIndex, targetIndexes);
-      if (result.ok && result.type === 'targeted-effect-pending') {
+      const result = this.effectCastState?.source === 'unit-on-play'
+        ? resolveTargetedUnitOnPlayEffect(this.gameState, 'player', this.effectCastState.boardIndex, targetIndexes)
+        : resolveTargetedEffectCard(this.gameState, 'player', effectCardId, boardIndex, targetIndexes);
+      if (result.ok && (result.type === 'targeted-effect-pending' || result.type === 'unit-on-play-targeted-effect-pending')) {
         this.targetingState = {
           ...this.targetingState,
           targetIndexes,
         };
         this.resetCardHighlights();
         this.updateActionButtonLabel();
+        this.showTargetingInstruction();
         return;
       }
       if (!result.ok) return;
@@ -2005,14 +2010,61 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
+    if (result.type === 'play' && result.card?.effectId === 'swap_two_enemy_units') {
+      this.startPlayerUnitOnPlayTargeting(result.card, boardIndex, beforeStats);
+      return;
+    }
+
     this.completePlayerAction(beforeStats);
   }
 
 
   getActivePlayerEffectCard() {
+    if (this.effectCastState?.source === 'unit-on-play') {
+      return this.effectCastState.card ?? null;
+    }
     const cardId = this.effectCastState?.cardId;
     if (!cardId) return null;
     return this.gameState?.player?.hand?.find((card) => card.id === cardId) ?? null;
+  }
+
+  async startPlayerUnitOnPlayTargeting(card, boardIndex, beforeStats) {
+    const targetingState = getTargetingStateForEffect(card?.effectId, card?.id);
+    if (!targetingState) {
+      this.completePlayerAction(beforeStats);
+      return;
+    }
+
+    this.effectCastState = { source: 'unit-on-play', cardId: card.id, card, boardIndex, targetingState, beforeStats };
+    this.selectedCardId = null;
+    this.pendingSwapIndex = null;
+    this.targetingState = null;
+    this.hoverInspectCardId = null;
+    this.boardInspectIndex = null;
+    this.pressedHandCardId = null;
+    this.destroySelectedHandCardZoom({ animate: true });
+    this.destroyTargetingInstruction();
+    this.updateActionButtonLabel();
+    this.resetCardHighlights({ showPreview: false });
+
+    this.isEffectCastResolving = true;
+    this.showPlayerEffectConfirmation(card, { allowUnit: true });
+
+    await Promise.all([
+      this.playPlayerEffectCastFeedback(),
+      this.delay(PLAYER_EFFECT_CAST_BEAT_MS),
+    ]);
+
+    if (!this.effectCastState || this.effectCastState.cardId !== card.id || this.effectCastState.source !== 'unit-on-play') {
+      this.isEffectCastResolving = false;
+      return;
+    }
+
+    this.targetingState = { ...targetingState, targetIndexes: [...(targetingState.targetIndexes ?? [])] };
+    this.isEffectCastResolving = false;
+    this.updateActionButtonLabel();
+    this.resetCardHighlights({ showPreview: false });
+    this.showTargetingInstruction();
   }
 
   async startPlayerEffectCast(card) {
@@ -2125,6 +2177,8 @@ export default class BattleScene extends Phaser.Scene {
 
   cancelEffectTargeting() {
     if (!this.targetingState && !this.effectCastState) return;
+    const canceledUnitOnPlay = this.effectCastState?.source === 'unit-on-play';
+    const beforeStats = this.effectCastState?.beforeStats;
     this.targetingState = null;
     this.effectCastState = null;
     this.pendingSwapIndex = null;
@@ -2135,6 +2189,9 @@ export default class BattleScene extends Phaser.Scene {
     this.destroySelectedHandCardZoom({ animate: true });
     this.updateActionButtonLabel();
     this.resetCardHighlights({ showPreview: false });
+    if (canceledUnitOnPlay && !this.playerActionUsed && !this.isFlowResolving) {
+      this.completePlayerAction(beforeStats);
+    }
   }
 
 
@@ -2230,10 +2287,14 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
-    const beforeStats = this.captureBoardStats();
+    const beforeStats = this.effectCastState?.source === 'unit-on-play'
+      ? this.effectCastState.beforeStats
+      : this.captureBoardStats();
     const effectCardId = this.effectCastState?.cardId ?? this.selectedCardId;
-    const result = resolveTargetedEffectCard(this.gameState, 'player', effectCardId, targetIndexes[0], targetIndexes);
-    if (!result.ok || result.type === 'targeted-effect-pending') return;
+    const result = this.effectCastState?.source === 'unit-on-play'
+      ? resolveTargetedUnitOnPlayEffect(this.gameState, 'player', this.effectCastState.boardIndex, targetIndexes)
+      : resolveTargetedEffectCard(this.gameState, 'player', effectCardId, targetIndexes[0], targetIndexes);
+    if (!result.ok || result.type === 'targeted-effect-pending' || result.type === 'unit-on-play-targeted-effect-pending') return;
     if (result.type === 'targeted-effect' && this.gameState.cancelEnemyOrderThisTurn?.enemy) {
       this.gameState.cancelEnemyOrderThisTurn.enemy = false;
       this.refreshAfterPlayerAction();
@@ -2476,7 +2537,10 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     if (action.type === 'play-unit') {
-      const result = playOrRedeployUnit(this.gameState, 'enemy', action.cardId, action.slotIndex);
+      let result = playOrRedeployUnit(this.gameState, 'enemy', action.cardId, action.slotIndex);
+      if (result.ok && Array.isArray(action.targetIndexes) && action.effectId === 'swap_two_enemy_units') {
+        result = resolveTargetedUnitOnPlayEffect(this.gameState, 'enemy', action.slotIndex, action.targetIndexes);
+      }
       if (result.ok) recordBattleActionUse(this.gameState, 'enemy', action);
       return result;
     }
@@ -2521,8 +2585,8 @@ export default class BattleScene extends Phaser.Scene {
     return `${translateActive('ui.battle.playerPlayed', 'YOU PLAYED')}\n${cardName}\n${this.getEnemyEffectSummary(card)}`;
   }
 
-  showPlayerEffectConfirmation(card) {
-    if (!card || this.isUnitCard(card)) return;
+  showPlayerEffectConfirmation(card, options = {}) {
+    if (!card || (this.isUnitCard(card) && !options.allowUnit)) return;
     this.destroyPlayerActionBanner();
 
     const { width, height, board } = this.layout;
@@ -2582,6 +2646,9 @@ export default class BattleScene extends Phaser.Scene {
     }
     if (state.requiredTargets > 1 && selectedCount === 0 && state.targetType === 'enemy-unit') {
       return translateActive('ui.battle.targeting.selectFirstEnemy', 'Select first enemy');
+    }
+    if (state.requiredTargets > 1 && selectedCount === 1 && state.targetType === 'enemy-unit') {
+      return translateActive('ui.battle.targeting.selectSecondEnemy', 'Select second enemy');
     }
     if (state.targetType === 'enemy-unit') return translateActive('ui.battle.targeting.selectEnemy', 'Select enemy');
     if (state.targetType === 'friendly-unit') return translateActive('ui.battle.targeting.selectAlly', 'Select ally');

@@ -1187,6 +1187,41 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
 }
 
 
+export function resolveTargetedUnitOnPlayEffect(state, owner, sourceBoardIndex, targetIndexes = []) {
+  if (!state || state.winner) return { ok: false, reason: 'Battle is over' };
+  const sourceUnit = state.board[sourceBoardIndex];
+  if (!sourceUnit || sourceUnit.owner !== owner) {
+    return { ok: false, reason: 'Source unit must be friendly' };
+  }
+
+  if (sourceUnit.effectId !== 'swap_two_enemy_units') {
+    return { ok: false, reason: 'Unit on-play effect does not support targeted resolution' };
+  }
+
+  const selectedTargets = Array.isArray(targetIndexes) ? targetIndexes : [];
+  if (selectedTargets.length < 2) {
+    const firstTarget = state.board[selectedTargets[0]];
+    if (selectedTargets.length > 0 && firstTarget?.owner !== getOpponentOwner(owner)) {
+      return { ok: false, reason: 'Target must be enemy' };
+    }
+    return { ok: true, type: 'unit-on-play-targeted-effect-pending' };
+  }
+
+  const [firstIndex, secondIndex] = selectedTargets;
+  if (firstIndex === secondIndex) return { ok: false, reason: 'Select two different enemy targets' };
+  const firstUnit = state.board[firstIndex];
+  const secondUnit = state.board[secondIndex];
+  if (!firstUnit || !secondUnit) return { ok: false, reason: 'Both targets must contain units' };
+  if (firstUnit.owner !== getOpponentOwner(owner) || secondUnit.owner !== getOpponentOwner(owner)) {
+    return { ok: false, reason: 'Targets must be enemies' };
+  }
+
+  state.board[firstIndex] = secondUnit;
+  state.board[secondIndex] = firstUnit;
+  return { ok: true, type: 'unit-on-play-targeted-effect', sourceUnit };
+}
+
+
 export function resolveQuickStrike(state, owner, boardIndex) {
   if (!state || state.winner) return { ok: false, reason: 'Battle is over' };
   const targetUnit = state.board[boardIndex];
@@ -1225,16 +1260,9 @@ function resolveUnitOnPlayEffect(state, owner, boardIndex, card) {
       }
       break;
     }
-    case 'swap_two_enemy_units': {
-      const enemyIndexes = getRowForOwner(enemyOwner).filter((index) => state.board[index]?.owner === enemyOwner);
-      if (enemyIndexes.length >= 2) {
-        const [firstIndex, secondIndex] = enemyIndexes;
-        const firstUnit = state.board[firstIndex];
-        state.board[firstIndex] = state.board[secondIndex];
-        state.board[secondIndex] = firstUnit;
-      }
+    case 'swap_two_enemy_units':
+      // Controller's on-play swap is resolved through the staged targeted cast flow.
       break;
-    }
     case 'peek_enemy_slot':
       // MVP safe no-op until reveal UI exists.
       break;

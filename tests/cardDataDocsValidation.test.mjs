@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { getTargetingStateForEffect } from '../src/systems/cardTargeting.js';
-import { createInitialBattleState, playOrRedeployUnit } from '../src/systems/GameState.js';
+import { createInitialBattleState, playOrRedeployUnit, resolveTargetedUnitOnPlayEffect } from '../src/systems/GameState.js';
 
 const factionDir = 'src/data/factions';
 const factionFiles = ['aggro.json', 'attrition-swarm.json', 'control.json', 'swarm.json', 'tank.json', 'wardens.json'];
@@ -172,7 +172,7 @@ test('deterministic effects remain outside manual targeting metadata', () => {
   }
 });
 
-test('Controller unit on-play stays deterministic even though its effectId has direct resolver metadata', () => {
+test('Controller unit on-play waits for manual enemy targets before swapping', () => {
   const control = JSON.parse(fs.readFileSync('src/data/factions/control.json', 'utf8'));
   const controller = control.deck.find((card) => card.id === 'control_controller_1');
   const state = createInitialBattleState({ name: 'Control', deck: [] });
@@ -184,9 +184,14 @@ test('Controller unit on-play stays deterministic even though its effectId has d
   const result = playOrRedeployUnit(state, 'player', controller.id, 6);
 
   assert.equal(result.ok, true);
-  assert.equal(state.board[0].id, 'enemy-mid');
-  assert.equal(state.board[1].id, 'enemy-left');
-  assert.equal(state.board[2].id, 'enemy-right');
+  assert.equal(state.board[6].cardId, 'control_controller_1');
+  assert.equal(state.board[0].id, 'enemy-left');
+  assert.equal(state.board[1].id, 'enemy-mid');
+
+  const targeted = resolveTargetedUnitOnPlayEffect(state, 'player', 6, [0, 2]);
+  assert.equal(targeted.ok, true);
+  assert.equal(state.board[0].id, 'enemy-right');
+  assert.equal(state.board[2].id, 'enemy-left');
 });
 
 test('battle-end documentation names current stall, mulligan, retry, and tiebreak rules', () => {

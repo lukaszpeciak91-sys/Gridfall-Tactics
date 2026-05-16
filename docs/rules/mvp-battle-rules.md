@@ -210,7 +210,7 @@ The no-progress detector uses the stricter "meaningful for outcome" definition i
 | Control | Hacker | unit | 1/2/0 | enemy_lane_atk_minus_1 | Opposed enemy: -1 ATK this turn. | Lane on-play | Also available as targeted effectId path. |
 | Control | Disruptor | unit | 1/2/0 | cancel_enemy_order | On play: cancel the next enemy effect this turn. | On-play non-targeted | Cancels at most one enemy non-unit action; expires at PASS/combat cleanup if unused; not a persistent aura. |
 | Control | Sniper | unit | 2/1/0 | can_hit_any_lane | Attacks the lowest-HP enemy. | Deterministic auto-target | Tie-break: lowest index; no manual target UI. |
-| Control | Controller | unit | 1/2/0 | swap_two_enemy_units | On play: swap two enemies. | Deterministic on-play | Picks first two enemy units by index order; not manual two-pick UI for this unit trigger. |
+| Control | Controller | unit | 1/2/0 | swap_two_enemy_units | On play: swap two enemies. | Staged two-enemy on-play targeting | Unit remains played; after cast feedback, select two distinct enemy units to swap. Cancel only cancels the swap effect. |
 | Control | Drone | unit | 1/1/0 | death_damage_enemy_hero_1 | On death: enemy hero loses 1 HP. | Death trigger | Applies after unit removed. |
 | Control | Swap | order | - | swap_any_two_units | Swap two selected units on one side. | Two-target targeted effect | Requires two distinct occupied slots with the same owner; cannot trade units between sides. |
 | Control | Jam Signal | order | - | enemy_up_to_2_atk_minus_1 | Choose up to 2 enemies: -1 ATK this turn. | Manual enemy targeting | Choose 1 or 2 occupied enemy lanes; expires after combat. |
@@ -266,7 +266,7 @@ Implemented now:
 - Unit/effect split by `type === unit` vs non-unit.
 - Targeted/non-targeted effect pipelines, including UI targeting for every targeted hand effect currently implemented in `GameState`.
 - Deterministic Sniper targeting.
-- Deterministic Controller on-play enemy swap.
+- Manual staged Controller on-play enemy swap.
 - Flood capped at up to 2 temporary 1/1 Tokens that vanish after combat and do not trigger death effects.
 - Wardens defensive friction, Halberdier opposing-lane bonus, Shield Push, Stand Firm, and Reinforce Line.
 - Attrition Swarm combat-only death triggers, Funeral Pyre cap-2 death pressure, Infect, Feast, Rise Again, and Grave Call.

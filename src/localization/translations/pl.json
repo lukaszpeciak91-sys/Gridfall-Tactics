@@ -392,7 +392,8 @@
         "selectFirstEnemy": "Wybierz pierwszego wroga",
         "selectAdjacentEnemy": "Wybierz sąsiedniego wroga",
         "selectAlly": "Wybierz sojusznika",
-        "selectUnit": "Wybierz jednostkę"
+        "selectUnit": "Wybierz jednostkę",
+        "selectSecondEnemy": "Wybierz drugiego wroga"
       }
     },
     "rules": {

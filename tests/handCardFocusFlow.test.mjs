@@ -47,7 +47,7 @@ test('normal gameplay quick tap selects only and long press opens inspect withou
   assert.match(source, /const handCardId = isMulliganPreview\s*\? this\.previewedMulliganCardId\s*: \(this\.selectedCardId \?\? this\.hoverInspectCardId\);/);
   assert.match(source, /const cardView = this\.cardViews\.find\(\(view\) => view\.cardId === handCardId\);/);
   assert.match(source, /const card = this\.gameState\.player\.hand\.find\(\(item\) => item\.id === handCardId\);/);
-  assert.match(source, /const effectCardId = this\.effectCastState\?\.cardId \?\? this\.selectedCardId;\s*const result = resolveTargetedEffectCard\(this\.gameState, 'player', effectCardId, boardIndex, targetIndexes\);/);
+  assert.match(source, /const result = this\.effectCastState\?\.source === 'unit-on-play'\s*\? resolveTargetedUnitOnPlayEffect\(this\.gameState, 'player', this\.effectCastState\.boardIndex, targetIndexes\)\s*: resolveTargetedEffectCard\(this\.gameState, 'player', effectCardId, boardIndex, targetIndexes\);/);
   assert.match(source, /const result = playEffectCard\(this\.gameState, 'player', card\.id\);/);
   assert.match(source, /const result = playOrRedeployUnit\(this\.gameState, 'player', this\.selectedCardId, boardIndex\);/);
 });
@@ -83,10 +83,11 @@ test('outside taps clear selection without intercepting board, pass, or card inp
 test('effect casting is staged before targeted resolution and cancel reuses the action button', () => {
   assert.match(source, /this\.effectCastState = \{ cardId: card\.id, targetingState \};/);
   assert.match(source, /this\.selectedCardId = null;[\s\S]*this\.showPlayerEffectConfirmation\(card\);[\s\S]*this\.playPlayerEffectCastFeedback\(\)/);
+  assert.match(source, /this\.showPlayerEffectConfirmation\(card, \{ allowUnit: true \}\);[\s\S]*this\.playPlayerEffectCastFeedback\(\)/);
   assert.match(source, /if \(targetingState\) \{\s*this\.targetingState = \{ \.\.\.targetingState, targetIndexes: \[\.\.\.\(targetingState\.targetIndexes \?\? \[\]\)\] \};[\s\S]*this\.showTargetingInstruction\(\);[\s\S]*return;\s*\}/);
   assert.match(source, /cancelEffectTargeting\(\) \{[\s\S]*this\.targetingState = null;[\s\S]*this\.effectCastState = null;[\s\S]*this\.updateActionButtonLabel\(\);[\s\S]*this\.resetCardHighlights\(\{ showPreview: false \}\);[\s\S]*\}/);
   assert.match(source, /this\.actionButton\.setText\(translateActive\('ui\.common\.cancel', 'CANCEL'\)\);/);
-  assert.match(source, /getTargetingInstructionMessage\(\) \{[\s\S]*selectAdjacentEnemy[\s\S]*selectFirstEnemy[\s\S]*selectAlly[\s\S]*selectUnit/);
+  assert.match(source, /getTargetingInstructionMessage\(\) \{[\s\S]*selectAdjacentEnemy[\s\S]*selectFirstEnemy[\s\S]*selectSecondEnemy[\s\S]*selectAlly[\s\S]*selectUnit/);
 });
 
 test('inspect zoom centers between enemy and player lanes, dims gameplay, stays bounded, and animates in/out', () => {
