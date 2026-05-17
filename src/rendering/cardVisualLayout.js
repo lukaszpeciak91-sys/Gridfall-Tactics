@@ -2,11 +2,13 @@ import { getCardDisplayName, getCardTextShort } from '../localization/cardDispla
 import { CARD_EFFECT_GAMEPLAY_SYMBOLS, formatCardEffectTextShort } from '../localization/cardTextFormatting.js';
 import { getLoadedCardIllustrationTextureKey } from './cardIllustrationAssets.js';
 
+// Dry layout experiment: keep stat badge allocation stable while borrowing
+// modest vertical space from name/rules panels for a taller shared art viewport.
 export const CARD_ZONE_RATIOS = Object.freeze({
   statBadges: 0.112,
   art: 0.45,
-  name: 0.135,
-  text: 0.315,
+  name: 0.126,
+  text: 0.252,
 });
 
 export const CARD_CORNER_RADIUS_RATIO = 0.055;

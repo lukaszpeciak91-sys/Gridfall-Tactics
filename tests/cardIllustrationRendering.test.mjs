@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-import { calculateCardArtworkCoverCrop, createCardArtwork } from '../src/rendering/cardVisualLayout.js';
+import { calculateCardArtworkCoverCrop, createCardArtwork, getCardLayoutZones } from '../src/rendering/cardVisualLayout.js';
 
 function chainable(displayObject = {}) {
   return {
@@ -70,6 +70,16 @@ test('card artwork cover crop diagnostics report centered source-space loss', ()
   assert.ok(Math.abs(crop.lostTopPercent - crop.lostBottomPercent) < 0.001);
   assert.equal(crop.lostLeftPercent, 0);
   assert.equal(crop.lostRightPercent, 0);
+});
+
+test('dry card layout experiment expands collection artwork viewport without shrinking stat row', () => {
+  const zones = getCardLayoutZones(176, 250);
+  const crop = calculateCardArtworkCoverCrop(zones.art, 512, 768);
+
+  assert.equal(zones.statBadges.height, 26);
+  assert.equal(zones.art.width, 156);
+  assert.equal(zones.art.height, 111);
+  assert.ok(crop.visibleSourceHeightPercent >= 47 && crop.visibleSourceHeightPercent <= 49);
 });
 
 test('standardized card illustrations render only when callers enable them', () => {
