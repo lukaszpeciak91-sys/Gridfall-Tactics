@@ -75,6 +75,16 @@ test('card artwork cover crop diagnostics keep cover scaling with a shared upwar
   assert.ok(Math.abs((crop.lostBottomPercent - crop.lostTopPercent) - 6) < 0.001);
 });
 
+test('dry card layout experiment expands collection artwork viewport without shrinking stat row', () => {
+  const zones = getCardLayoutZones(176, 250);
+  const crop = calculateCardArtworkCoverCrop(zones.art, 512, 768);
+
+  assert.equal(zones.statBadges.height, 26);
+  assert.equal(zones.art.width, 156);
+  assert.equal(zones.art.height, 111);
+  assert.ok(crop.visibleSourceHeightPercent >= 47 && crop.visibleSourceHeightPercent <= 49);
+});
+
 test('standardized card illustrations render only when callers enable them', () => {
   const scene = createArtworkScene({ loadedTextureKeys: ['card.aggro.aggro_01', 'card.control.control_04'] });
 
