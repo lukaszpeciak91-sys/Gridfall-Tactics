@@ -2,7 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-import { CARD_ARTWORK_UPWARD_CROP_BIAS_RATIO, calculateCardArtworkCoverCrop, createCardArtwork } from '../src/rendering/cardVisualLayout.js';
+import {
+  CARD_ARTWORK_UPWARD_CROP_BIAS_RATIO,
+  calculateCardArtworkCoverCrop,
+  createCardArtwork,
+  getCardLayoutZones,
+} from '../src/rendering/cardVisualLayout.js';
 
 function chainable(displayObject = {}) {
   return {
@@ -138,7 +143,7 @@ test('battle scene enables illustrations for hand cards and hand inspect, not bo
 
 test('collection scene enables standardized illustrations through the shared preview renderer', () => {
   const source = fs.readFileSync('src/scenes/CollectionScene.js', 'utf8');
-  const previewSource = source.slice(source.indexOf('  drawCardPreview('), source.indexOf('  openDetailPanel('));
+  const previewSource = source.slice(source.indexOf('  drawCardPreview('), source.indexOf('  createBackButton('));
 
   assert.match(source, /preloadAllCardIllustrations\(this\)/);
   assert.match(previewSource, /createCardPreviewView\(this, \{/);

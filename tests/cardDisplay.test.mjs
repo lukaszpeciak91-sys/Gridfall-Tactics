@@ -250,7 +250,9 @@ test('visible UI surfaces route names through active-locale presentation helpers
   assert.match(battleSource, /showSelectedHandCardZoom\(\) \{[\s\S]*this\.createHandCardView\(\{/);
   assert.match(collectionSource, /createCardPreviewView\(this, \{/);
   assert.doesNotMatch(collectionSource, /formatCollectionRowLabel\(card, getActiveLocale\(\)\)/);
-  assert.match(collectionSource, /formatCardDetailLines\(card, getActiveLocale\(\)\)/);
+  assert.doesNotMatch(collectionSource, /formatCardDetailLines\(card, getActiveLocale\(\)\)/);
+  assert.doesNotMatch(collectionSource, /openDetailPanel\(/);
+  assert.match(collectionSource, /showInspectPreview\(pressedCard\)/);
   assert.match(collectionSource, /getFactionPresentationName\(faction\?\.id, getActiveLocale\(\), faction\?\.name \?\? factionKey\)/);
   assert.match(factionSelectSource, /getFactionPresentationName\(faction\?\.id, getActiveLocale\(\), faction\?\.name \?\? factionKey\)/);
 });
