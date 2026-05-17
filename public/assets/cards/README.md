@@ -123,13 +123,13 @@ Do not frame briefs, reviews, or renderer expectations around every card having 
 
 ## Crop, layout, and composition behavior
 
-Card illustrations use a shared center-cover crop in the MVP card preview renderer. The same crop behavior is used by hand cards, hand inspect / zoom cards, and collection cards. Center-cover means the source image is scaled until the artwork frame is fully covered, then cropped around the source center.
+Card illustrations use a shared center-cover crop with a fixed upward source-space bias of approximately `3%` of source height in the MVP card preview renderer. The same crop behavior is used by hand cards, hand inspect / zoom cards, and collection cards. Center-cover means the source image is scaled until the artwork frame is fully covered; the final source crop is then shifted upward by the universal production bias. No per-card offsets, focal metadata, per-faction rules, or per-mode crop rules are used.
 
 The full production audit and final composition standard live in `docs/art/card-illustration-composition.md`. In short: approve art against the cropped mobile hand-card read, not only against the uncropped `512x768` source. On common portrait phone layouts, runtime card views preserve the full source width but only the middle vertical band of the image:
 
-- hand cards: roughly the middle `383–390px` of source height;
-- inspect / zoom cards: roughly the middle `356–362px` of source height;
-- collection cards: roughly the middle `419–423px` of source height.
+- hand cards: roughly `383–390px` of source height, shifted upward by about `23px` on a `512x768` source;
+- inspect / zoom cards: roughly `379–386px` of source height, shifted upward by the same source-space bias;
+- collection cards: roughly `309–312px` of source height, shifted upward by the same source-space bias.
 
 Board compact units currently do not render production illustration textures; they use placeholder/reserved art panels.
 
@@ -137,10 +137,10 @@ Board compact units currently do not render production illustration textures; th
 
 Compose production source art with these `512x768` source-space safe zones:
 
-- **Recommended focal-point zone:** center `40%` width by center `30%` height, approximately x `154–358`, y `269–499`. Put the strongest focal point here.
-- **Must-survive zone:** center `60%` width by center `45%` height, approximately x `102–410`, y `211–557`. The dominant silhouette, gesture, and gameplay read must remain understandable here.
-- **Safe supporting-content zone:** center `80%` width by center `55%` height, approximately x `51–461`, y `173–595`. Keep important secondary props, faction identifiers, and readable effects here.
-- **Edge danger zones:** outer `10%` horizontally plus the upper y `0–173` and lower y `595–768` bands. Use these areas only for expendable bleed, atmosphere, particles, smoke, or non-essential background.
+- **Recommended face / helmet target:** center `40%` width with face or helmet center around y `38–44%`, approximately x `154–358`, y `292–338` for the focal center.
+- **Must-survive focal zone:** x `12–88%`, y `32–62%`, approximately x `61–451`, y `246–476`. The dominant silhouette, gesture, and gameplay read must remain understandable here.
+- **Upper torso / main mass target:** y `48–58%`, approximately y `369–445`; keep lower essential silhouette above roughly y `64–65%`, approximately y `492–499`.
+- **Edge danger zones:** outer `10%` horizontally plus the upper y `0–205` and lower y `517–768` bands. Use these areas only for expendable bleed, atmosphere, particles, smoke, or non-essential background.
 
 Avoid placing critical text, icons, small silhouettes, or gameplay-readable cues near the outer edge.
 
@@ -162,9 +162,9 @@ public/assets/cards/attrition-swarm/attrition-swarm_01.webp
 Use manual assets to verify that:
 
 - hand cards load available illustrations and keep the placeholder fallback when a file is missing
-- inspect / zoom cards use the same center-cover crop as hand cards
-- collection cards use the same shared crop behavior
-- mobile card text and focal art remain readable with the center `40%` focal zone and center `85%` safe content zone
+- inspect / zoom cards use the same biased center-cover crop as hand cards
+- collection cards use the same shared biased crop behavior
+- mobile card text and focal art remain readable with the `x 12–88%`, `y 32–62%` must-survive focal zone
 - missing illustration files keep the existing fallback behavior
 - board / compact units and board inspect remain art-free
 - card numbers do not appear in UI

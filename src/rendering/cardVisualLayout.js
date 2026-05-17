@@ -10,6 +10,7 @@ export const CARD_ZONE_RATIOS = Object.freeze({
 });
 
 export const CARD_CORNER_RADIUS_RATIO = 0.055;
+export const CARD_ARTWORK_UPWARD_CROP_BIAS_RATIO = 0.03;
 
 export const CARD_COLORS = Object.freeze({
   frame: 0x172033,
@@ -625,7 +626,9 @@ export function calculateCardArtworkCoverCrop(zone, sourceWidth = 512, sourceHei
   const cropWidth = Math.min(safeSourceWidth, zone.width / scale);
   const cropHeight = Math.min(safeSourceHeight, zone.height / scale);
   const cropX = Math.max(0, (safeSourceWidth - cropWidth) / 2);
-  const cropY = Math.max(0, (safeSourceHeight - cropHeight) / 2);
+  const centeredCropY = (safeSourceHeight - cropHeight) / 2;
+  const upwardCropBias = safeSourceHeight * CARD_ARTWORK_UPWARD_CROP_BIAS_RATIO;
+  const cropY = Math.max(0, centeredCropY - upwardCropBias);
 
   return {
     scale,
