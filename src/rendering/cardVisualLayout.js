@@ -65,24 +65,25 @@ const CARD_STAT_SYMBOL_KEYS = Object.freeze({
   '●': 'health',
 });
 
-export const INLINE_EFFECT_ICON_STAT_FONT_SCALE = 1.18;
-export const INLINE_EFFECT_ICON_BASELINE_OFFSET_RATIO = -0.06;
-export const INLINE_EFFECT_ICON_SPACE_SCALE = 0.34;
+export const INLINE_EFFECT_ICON_STAT_FONT_SCALE = 1.32;
+export const INLINE_EFFECT_ICON_MIN_FONT_SIZE = 15;
+export const INLINE_EFFECT_ICON_BASELINE_OFFSET_RATIO = -0.07;
+export const INLINE_EFFECT_ICON_SPACE_SCALE = 0.4;
 
 const CARD_GAMEPLAY_SYMBOL_STYLES = Object.freeze({
   [CARD_EFFECT_GAMEPLAY_SYMBOLS.ally]: Object.freeze({
     color: '#facc15',
     fontStyle: 'bold',
     icon: 'single',
-    fontScale: 1.02,
-    widthScale: 0.58,
+    fontScale: 1.22,
+    widthScale: 0.7,
   }),
   [CARD_EFFECT_GAMEPLAY_SYMBOLS.allies]: Object.freeze({
     color: '#facc15',
     fontStyle: 'bold',
     icon: 'group',
-    fontScale: 1.0,
-    widthScale: 0.84,
+    fontScale: 1.16,
+    widthScale: 1.0,
   }),
 });
 
@@ -97,6 +98,17 @@ export function getInlineStatSymbolColor(symbol) {
 
 export function getInlineGameplaySymbolColor(symbol) {
   return CARD_GAMEPLAY_SYMBOL_STYLES[symbol]?.color ?? null;
+}
+
+function getInlineIconFontSize(textFontSize, symbolStyle) {
+  if (symbolStyle?.type !== 'statSymbol' && symbolStyle?.type !== 'gameplaySymbol') {
+    return textFontSize;
+  }
+
+  return Math.max(
+    INLINE_EFFECT_ICON_MIN_FONT_SIZE,
+    Math.round(textFontSize * (symbolStyle.fontScale ?? 1)),
+  );
 }
 
 function getInlineSymbolStyle(symbol) {
@@ -212,13 +224,13 @@ export function createInlineStatText(scene, x, y, text, {
     fontSize: `${fittedFontSize}px`,
     color,
   }).setVisible(false);
-  const measureTokenWidth = (value) => {
+  const measureTokenWidth = (value, textFontSize = fittedFontSize) => {
     const symbolStyle = getInlineSymbolStyle(value);
     if (symbolStyle.type === 'gameplaySymbol') {
-      return Math.ceil(fittedFontSize * (symbolStyle.widthScale ?? 0.78));
+      return Math.ceil(getInlineIconFontSize(textFontSize, symbolStyle) * (symbolStyle.widthScale ?? 0.78));
     }
     if (symbolStyle.type === 'statSymbol') {
-      return Math.ceil(fittedFontSize * (symbolStyle.widthScale ?? 0.86));
+      return Math.ceil(getInlineIconFontSize(textFontSize, symbolStyle) * (symbolStyle.widthScale ?? 0.86));
     }
 
     measureText.setText(value);
@@ -226,8 +238,19 @@ export function createInlineStatText(scene, x, y, text, {
   };
   const layoutForFontSize = (size) => {
     measureText.setFontSize(size);
-    const linesForSize = layoutInlineStatText(text, { maxWidth, measureTokenWidth });
-    const lineHeightForSize = Math.ceil(size * 1.12) + lineSpacing;
+    const linesForSize = layoutInlineStatText(text, {
+      maxWidth,
+      measureTokenWidth: (value) => measureTokenWidth(value, size),
+    });
+    const maxIconFontSize = linesForSize.reduce((largest, line) => {
+      return Math.max(
+        largest,
+        ...line.segments
+          .filter((segment) => isInlineSymbolToken(segment))
+          .map((segment) => getInlineIconFontSize(size, getInlineSymbolStyle(segment.text))),
+      );
+    }, size);
+    const lineHeightForSize = Math.ceil(Math.max(size * 1.12, maxIconFontSize * 1.03)) + lineSpacing;
     return {
       lines: linesForSize,
       lineHeight: lineHeightForSize,
@@ -257,7 +280,7 @@ export function createInlineStatText(scene, x, y, text, {
       const segmentX = startX + segment.x;
       if (symbolStyle.type === 'gameplaySymbol' && symbolStyle.icon === 'group') {
         const group = scene.add.container(segmentX + segment.width / 2, baselineY + lineHeight * 0.49 + inlineIconYOffset);
-        const iconFontSize = Math.round(fittedFontSize * (symbolStyle.fontScale ?? 1));
+        const iconFontSize = getInlineIconFontSize(fittedFontSize, symbolStyle);
         const backIcon = scene.add.text(-segment.width * 0.16, -iconFontSize * 0.02, CARD_EFFECT_GAMEPLAY_SYMBOLS.ally, {
           ...baseStyle,
           fontSize: `${iconFontSize}px`,
@@ -283,7 +306,7 @@ export function createInlineStatText(scene, x, y, text, {
 
       const isInlineSymbol = symbolStyle.type === 'statSymbol' || symbolStyle.type === 'gameplaySymbol';
       const iconFontSize = isInlineSymbol
-        ? Math.round(fittedFontSize * (symbolStyle.fontScale ?? 1))
+        ? getInlineIconFontSize(fittedFontSize, symbolStyle)
         : fittedFontSize;
       const segmentY = isInlineSymbol ? baselineY + lineHeight * 0.5 + inlineIconYOffset : baselineY;
       const segmentText = scene.add.text(segmentX, segmentY, segment.text, {
@@ -397,22 +420,24 @@ function createStatGlyph(scene, x, y, size, key, value, style, isKnown, fontSize
   const symbol = drawStatSymbol(scene, 0, 0, size, key, style.color, symbolAlpha);
   const glass = drawStatSymbol(scene, -size * 0.08, -size * 0.14, size * 0.46, key, 0xffffff, isKnown ? 0.1 : 0.025);
   const textOffsetY = key === 'attack' ? size * 0.09 : 0;
+  const numberPlate = scene.add.circle(0, textOffsetY, size * 0.31, 0x020817, isKnown ? 0.42 : 0.1)
+    .setStrokeStyle(Math.max(1, Math.round(size * 0.045)), 0xfff1d6, isKnown ? 0.22 : 0.06);
   const text = scene.add.text(0, textOffsetY, valueText, {
     fontFamily: 'Arial, sans-serif',
     fontSize: `${fontSize}px`,
-    color: isKnown ? '#020817' : '#94a3b8',
+    color: isKnown ? '#fff7ed' : '#94a3b8',
     fontStyle: 'bold',
     align: 'center',
-    stroke: isKnown ? '#fff1d6' : '#0f172a',
-    strokeThickness: isKnown ? Math.max(2, Math.round(size * 0.105)) : 1,
+    stroke: isKnown ? '#020817' : '#0f172a',
+    strokeThickness: isKnown ? Math.max(2, Math.round(size * 0.115)) : 1,
     fixedWidth: Math.ceil(size * 1.02),
     fixedHeight: Math.ceil(size * 0.84),
   }).setOrigin(0.5);
   if (isKnown) {
-    text.setShadow(0, 1, 'rgba(255, 255, 255, 0.46)', 2);
+    text.setShadow(0, 1, 'rgba(0, 0, 0, 0.68)', 2);
   }
 
-  glyph.add([glow, outline, symbol, glass, text]);
+  glyph.add([glow, outline, symbol, glass, numberPlate, text]);
   glyph.statFeedback = {
     key,
     baseColor: style.color,
@@ -420,6 +445,7 @@ function createStatGlyph(scene, x, y, size, key, value, style, isKnown, fontSize
     outline,
     symbol,
     glass,
+    numberPlate,
     valueText: text,
     setDimmed(dimmed = true) {
       glyph.setAlpha(dimmed ? 0.48 : 1);
