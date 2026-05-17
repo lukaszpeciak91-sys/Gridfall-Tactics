@@ -13,25 +13,32 @@ import { getActiveLocale, translateActive } from '../localization/localeService.
 import { createModalBackButton } from '../ui/modalControls.js';
 import { preloadSecondaryButtonAsset } from '../ui/imageButton.js';
 import { CARD_COLORS, createCardPreviewView, getDefaultCardAccentColor } from '../rendering/cardVisualLayout.js';
+import { HAND_CARD_ASPECT_RATIO } from '../ui/handLayout.js';
+import {
+  HAND_CARD_BODY_LINE_SPACING,
+  HAND_CARD_LONG_PRESS_MS,
+  HAND_CARD_STAT_BADGE_SCALE,
+  HAND_CARD_TITLE_TYPOGRAPHY_SCALE,
+  HAND_CARD_TYPOGRAPHY_SCALE,
+  INSPECT_CARD_BODY_LINE_SPACING,
+  INSPECT_CARD_DEPTH,
+  INSPECT_CARD_MAX_HEIGHT_RATIO,
+  INSPECT_CARD_MAX_WIDTH_RATIO,
+  INSPECT_CARD_OVERLAY_ALPHA,
+  INSPECT_CARD_OVERLAY_DEPTH,
+  INSPECT_CARD_STAT_BADGE_SCALE,
+  INSPECT_CARD_TARGET_SCALE,
+  INSPECT_CARD_TWEEN_IN_MS,
+  INSPECT_CARD_TWEEN_OUT_MS,
+  INSPECT_CARD_TYPOGRAPHY_SCALE,
+  INSPECT_CARD_VERTICAL_COMPACT_RATIO,
+} from '../rendering/cardViewConfig.js';
 
 const CARD_SCROLL_DRAG_THRESHOLD = 8;
 const COLLECTION_GRID_GAP_X = 10;
 const COLLECTION_CARD_GAP_Y = 12;
 const COLLECTION_SECTION_GAP_Y = 26;
 const COLLECTION_CARDS_PER_COLUMN = 5;
-const COLLECTION_CARD_ASPECT_RATIO = 1.42;
-const COLLECTION_INSPECT_CARD_TARGET_SCALE = 2.06;
-const COLLECTION_INSPECT_CARD_VERTICAL_COMPACT_RATIO = 0.96;
-const COLLECTION_INSPECT_CARD_MAX_HEIGHT_RATIO = 0.58;
-const COLLECTION_INSPECT_CARD_MAX_WIDTH_RATIO = 0.78;
-const COLLECTION_INSPECT_CARD_OVERLAY_ALPHA = 0.2;
-const COLLECTION_INSPECT_CARD_OVERLAY_DEPTH = 840;
-const COLLECTION_INSPECT_CARD_DEPTH = 850;
-const COLLECTION_INSPECT_CARD_TWEEN_IN_MS = 150;
-const COLLECTION_INSPECT_CARD_TWEEN_OUT_MS = 95;
-const COLLECTION_INSPECT_CARD_STAT_BADGE_SCALE = 1.28;
-const COLLECTION_INSPECT_CARD_TYPOGRAPHY_SCALE = 1.1;
-const COLLECTION_INSPECT_CARD_BODY_LINE_SPACING = 5;
 
 export default class CollectionScene extends Phaser.Scene {
   constructor() {
@@ -42,6 +49,8 @@ export default class CollectionScene extends Phaser.Scene {
     this.inspectPreview = null;
     this.pressedCard = null;
     this.cardTapHandled = false;
+    this.cardLongPressEvent = null;
+    this.longPressTriggeredCard = null;
   }
 
   preload() {
@@ -111,7 +120,7 @@ export default class CollectionScene extends Phaser.Scene {
     const sideMargin = 14;
     const columnGap = COLLECTION_GRID_GAP_X;
     const cardWidth = (width - sideMargin * 2 - columnGap) / 2;
-    const cardHeight = Math.round(cardWidth * COLLECTION_CARD_ASPECT_RATIO);
+    const cardHeight = Math.round(cardWidth * HAND_CARD_ASPECT_RATIO);
     let cursorY = 0;
 
     getFactionKeys().forEach((factionKey) => {
@@ -188,10 +197,10 @@ export default class CollectionScene extends Phaser.Scene {
       height,
       accentColor: getDefaultCardAccentColor(card),
       locale: getActiveLocale(),
-      statBadgeScale: 0.95,
-      typographyScale: 0.95,
-      titleTypographyScale: 1,
-      bodyLineSpacing: 1,
+      statBadgeScale: HAND_CARD_STAT_BADGE_SCALE,
+      typographyScale: HAND_CARD_TYPOGRAPHY_SCALE,
+      titleTypographyScale: HAND_CARD_TITLE_TYPOGRAPHY_SCALE,
+      bodyLineSpacing: HAND_CARD_BODY_LINE_SPACING,
       enableCardIllustration: true,
       showCardNumber: true,
     });
@@ -221,24 +230,50 @@ export default class CollectionScene extends Phaser.Scene {
     }
 
     this.pressedCard = { card, ...source };
+    this.startCardLongPress(this.pressedCard);
   }
 
   onCardPointerUp(card, pointer) {
     const state = this.scrollState;
     if (!state || !this.pressedCard || this.pressedCard.card !== card || pointer.y < state.viewportTop || pointer.y > state.viewportBottom) {
+      this.cancelCardLongPress();
       this.pressedCard = null;
+      this.longPressTriggeredCard = null;
       return;
     }
 
-    const pressedCard = this.pressedCard;
+    const wasLongPressInspect = this.longPressTriggeredCard === card;
+    this.cancelCardLongPress();
     this.pressedCard = null;
 
     if (this.wasScrollDragging()) {
+      this.longPressTriggeredCard = null;
       return;
     }
 
-    this.cardTapHandled = true;
-    this.showInspectPreview(pressedCard);
+    if (wasLongPressInspect) {
+      this.cardTapHandled = true;
+      this.longPressTriggeredCard = null;
+    }
+  }
+
+  startCardLongPress(pressedCard) {
+    this.cancelCardLongPress();
+    this.longPressTriggeredCard = null;
+    this.cardLongPressEvent = this.time.delayedCall(HAND_CARD_LONG_PRESS_MS, () => {
+      this.cardLongPressEvent = null;
+      if (this.pressedCard !== pressedCard || this.wasScrollDragging()) return;
+
+      this.longPressTriggeredCard = pressedCard.card;
+      this.cardTapHandled = true;
+      this.showInspectPreview(pressedCard);
+    });
+  }
+
+  cancelCardLongPress() {
+    if (!this.cardLongPressEvent) return;
+    this.cardLongPressEvent.remove(false);
+    this.cardLongPressEvent = null;
   }
 
   getInspectCardTransform({ sourceWidth, sourceHeight }) {
@@ -246,15 +281,15 @@ export default class CollectionScene extends Phaser.Scene {
     const margin = 14;
     const viewportTop = this.scrollState?.viewportTop ?? margin;
     const viewportBottom = this.scrollState?.viewportBottom ?? height - margin;
-    const maxInspectWidth = Math.min(width * COLLECTION_INSPECT_CARD_MAX_WIDTH_RATIO, width - margin * 2);
-    const maxInspectHeight = Math.min(height * COLLECTION_INSPECT_CARD_MAX_HEIGHT_RATIO, viewportBottom - viewportTop - margin * 2);
+    const maxInspectWidth = Math.min(width * INSPECT_CARD_MAX_WIDTH_RATIO, width - margin * 2);
+    const maxInspectHeight = Math.min(height * INSPECT_CARD_MAX_HEIGHT_RATIO, viewportBottom - viewportTop - margin * 2);
     const targetScale = Math.min(
-      COLLECTION_INSPECT_CARD_TARGET_SCALE,
+      INSPECT_CARD_TARGET_SCALE,
       maxInspectWidth / sourceWidth,
-      maxInspectHeight / (sourceHeight * COLLECTION_INSPECT_CARD_VERTICAL_COMPACT_RATIO),
+      maxInspectHeight / (sourceHeight * INSPECT_CARD_VERTICAL_COMPACT_RATIO),
     );
     const inspectWidth = sourceWidth * targetScale;
-    const inspectHeight = sourceHeight * targetScale * COLLECTION_INSPECT_CARD_VERTICAL_COMPACT_RATIO;
+    const inspectHeight = sourceHeight * targetScale * INSPECT_CARD_VERTICAL_COMPACT_RATIO;
     const minX = margin + inspectWidth / 2;
     const maxX = width - margin - inspectWidth / 2;
     const minY = viewportTop + margin + inspectHeight / 2;
@@ -271,13 +306,14 @@ export default class CollectionScene extends Phaser.Scene {
   showInspectPreview({ card, sourceX, sourceY, sourceWidth, sourceHeight }) {
     if (!card) return;
 
+    this.cancelCardLongPress();
     this.destroyInspectPreview();
 
     const { width, height } = this.scale;
     const transform = this.getInspectCardTransform({ sourceWidth, sourceHeight });
     const accentColor = getDefaultCardAccentColor(card);
     const overlay = this.add.rectangle(width * 0.5, height * 0.5, width, height, 0x000000, 0)
-      .setDepth(COLLECTION_INSPECT_CARD_OVERLAY_DEPTH);
+      .setDepth(INSPECT_CARD_OVERLAY_DEPTH);
 
     const previewView = createCardPreviewView(this, {
       card,
@@ -286,11 +322,11 @@ export default class CollectionScene extends Phaser.Scene {
       width: transform.width,
       height: transform.height,
       accentColor,
-      depth: COLLECTION_INSPECT_CARD_DEPTH,
+      depth: INSPECT_CARD_DEPTH,
       locale: getActiveLocale(),
-      statBadgeScale: COLLECTION_INSPECT_CARD_STAT_BADGE_SCALE,
-      typographyScale: COLLECTION_INSPECT_CARD_TYPOGRAPHY_SCALE,
-      bodyLineSpacing: COLLECTION_INSPECT_CARD_BODY_LINE_SPACING,
+      statBadgeScale: INSPECT_CARD_STAT_BADGE_SCALE,
+      typographyScale: INSPECT_CARD_TYPOGRAPHY_SCALE,
+      bodyLineSpacing: INSPECT_CARD_BODY_LINE_SPACING,
       enableCardIllustration: true,
       showCardNumber: true,
     });
@@ -304,8 +340,8 @@ export default class CollectionScene extends Phaser.Scene {
 
     this.tweens.add({
       targets: overlay,
-      alpha: COLLECTION_INSPECT_CARD_OVERLAY_ALPHA,
-      duration: COLLECTION_INSPECT_CARD_TWEEN_IN_MS,
+      alpha: INSPECT_CARD_OVERLAY_ALPHA,
+      duration: INSPECT_CARD_TWEEN_IN_MS,
       ease: 'Quad.easeOut',
     });
     this.tweens.add({
@@ -314,7 +350,7 @@ export default class CollectionScene extends Phaser.Scene {
       y: transform.y,
       scale: 1,
       alpha: 1,
-      duration: COLLECTION_INSPECT_CARD_TWEEN_IN_MS,
+      duration: INSPECT_CARD_TWEEN_IN_MS,
       ease: 'Quad.easeOut',
     });
 
@@ -352,7 +388,7 @@ export default class CollectionScene extends Phaser.Scene {
       y: inspect.sourceY,
       scale: 0.96,
       alpha: 0,
-      duration: COLLECTION_INSPECT_CARD_TWEEN_OUT_MS,
+      duration: INSPECT_CARD_TWEEN_OUT_MS,
       ease: 'Quad.easeIn',
       onComplete: destroyItems,
     });
@@ -361,7 +397,7 @@ export default class CollectionScene extends Phaser.Scene {
       this.tweens.add({
         targets: inspect.overlay,
         alpha: 0,
-        duration: COLLECTION_INSPECT_CARD_TWEEN_OUT_MS,
+        duration: INSPECT_CARD_TWEEN_OUT_MS,
         ease: 'Quad.easeIn',
       });
     }
@@ -417,6 +453,7 @@ export default class CollectionScene extends Phaser.Scene {
 
     state.lastDragDistance = pointer.y - state.pointerStartY;
     if (Math.abs(state.lastDragDistance) > CARD_SCROLL_DRAG_THRESHOLD) {
+      this.cancelCardLongPress();
       this.destroyInspectPreview({ animate: true });
     }
     this.setCollectionScrollY(state.contentStartY + state.lastDragDistance);
@@ -439,13 +476,19 @@ export default class CollectionScene extends Phaser.Scene {
   onCollectionPointerUp() {
     if (this.cardTapHandled) {
       this.cardTapHandled = false;
+      this.cancelCardLongPress();
+      this.longPressTriggeredCard = null;
+      this.pressedCard = null;
       return;
     }
+
+    this.cancelCardLongPress();
 
     if (this.inspectPreview) {
       this.destroyInspectPreview({ animate: true });
     }
 
+    this.longPressTriggeredCard = null;
     this.pressedCard = null;
   }
 
@@ -477,6 +520,7 @@ export default class CollectionScene extends Phaser.Scene {
     this.input?.keyboard?.off('keydown-ESC', this.onBackRequested, this);
     this.input?.keyboard?.off('keydown-BACKSPACE', this.onBackRequested, this);
 
+    this.cancelCardLongPress();
     this.destroyInspectPreview();
     this.scrollMask?.destroy?.();
     this.scrollMask = null;
