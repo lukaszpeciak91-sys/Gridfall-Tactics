@@ -257,6 +257,24 @@ test('visible UI surfaces route names through active-locale presentation helpers
   assert.match(factionSelectSource, /getFactionPresentationName\(faction\?\.id, getActiveLocale\(\), faction\?\.name \?\? factionKey\)/);
 });
 
+
+test('collection cards use the hand-card visual contract instead of collection-only styling', () => {
+  const source = fs.readFileSync('src/scenes/CollectionScene.js', 'utf8');
+  const previewSource = source.slice(source.indexOf('  drawCardPreview('), source.indexOf('  onCardPointerDown('));
+  const inspectSource = source.slice(source.indexOf('  getInspectCardTransform('), source.indexOf('  createBackButton('));
+
+  assert.match(source, /import \{ HAND_CARD_ASPECT_RATIO \} from '\.\.\/ui\/handLayout\.js';/);
+  assert.match(source, /const cardHeight = Math\.round\(cardWidth \* HAND_CARD_ASPECT_RATIO\);/);
+  assert.match(previewSource, /statBadgeScale: HAND_CARD_STAT_BADGE_SCALE,/);
+  assert.match(previewSource, /typographyScale: HAND_CARD_TYPOGRAPHY_SCALE,/);
+  assert.match(previewSource, /titleTypographyScale: HAND_CARD_TITLE_TYPOGRAPHY_SCALE,/);
+  assert.match(previewSource, /bodyLineSpacing: HAND_CARD_BODY_LINE_SPACING,/);
+  assert.match(source, /this\.time\.delayedCall\(HAND_CARD_LONG_PRESS_MS,/);
+  assert.match(inspectSource, /statBadgeScale: INSPECT_CARD_STAT_BADGE_SCALE,/);
+  assert.match(inspectSource, /typographyScale: INSPECT_CARD_TYPOGRAPHY_SCALE,/);
+  assert.doesNotMatch(source, /COLLECTION_CARD_ASPECT_RATIO|COLLECTION_INSPECT_CARD_|openDetailPanel\(/);
+});
+
 test('board unit compact view keeps top stats, art space, and a bottom name strip without effect text', () => {
   const source = fs.readFileSync('src/scenes/BattleScene.js', 'utf8');
   const start = source.indexOf('  createBoardUnitView(cell, unit) {');
