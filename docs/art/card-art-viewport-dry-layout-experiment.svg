@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="560" viewBox="0 0 900 560">
+<rect width="100%" height="100%" fill="#0b1220"/>
+<text x="30" y="36" fill="#fff7ed" font-family="Arial" font-size="22" font-weight="700">Card art viewport dry layout experiment</text>
+<text x="30" y="62" fill="#94a3b8" font-family="Arial" font-size="14">Old vs experimental vertical zones; stat badge row remains unchanged.</text>
+<text x="40" y="96" fill="#dbeafe" font-family="Arial" font-size="16" font-weight="700">Hand</text>
+<rect x="40.0" y="115" width="117.42136064374543" height="210.0" rx="10" fill="#172033" stroke="#64748b" stroke-width="2"/>
+<rect x="50.97293343087052" y="125.97293343087051" width="95.47549378200439" height="21.945866861741038" fill="#111827" stroke="#24c6a7" stroke-width="1" opacity="0.95"/>
+<rect x="50.97293343087052" y="150.11338697878563" width="95.47549378200439" height="79.42209217264082" fill="#334155" stroke="#38bdf8" stroke-width="1.5"/>
+<rect x="50.97293343087052" y="231.73006583760053" width="95.47549378200439" height="71.32406730065841" fill="#0f172a" opacity="0.95"/>
+<text x="98.71068032187272" y="347.0" fill="#cfe7ff" text-anchor="middle" font-family="Arial" font-size="12">old</text>
+<rect x="185.42136064374543" y="115" width="117.42136064374543" height="210.0" rx="10" fill="#172033" stroke="#64748b" stroke-width="2"/>
+<rect x="196.39429407461594" y="125.97293343087051" width="95.47549378200439" height="21.945866861741038" fill="#111827" stroke="#24c6a7" stroke-width="1" opacity="0.95"/>
+<rect x="196.39429407461594" y="150.11338697878563" width="95.47549378200439" height="93.6869056327725" fill="#2563eb" stroke="#38bdf8" stroke-width="1.5"/>
+<rect x="196.39429407461594" y="245.9948792977322" width="95.47549378200439" height="57.05925384052674" fill="#0f172a" opacity="0.95"/>
+<text x="244.13204096561816" y="347.0" fill="#cfe7ff" text-anchor="middle" font-family="Arial" font-size="12">experiment</text>
+<text x="325" y="96" fill="#dbeafe" font-family="Arial" font-size="16" font-weight="700">Inspect</text>
+<rect x="325.0" y="115" width="122.31135066582117" height="210.0" rx="10" fill="#172033" stroke="#64748b" stroke-width="2"/>
+<rect x="331.6582117945466" y="121.6582117945466" width="108.99492707672795" height="22.194039315155358" fill="#111827" stroke="#24c6a7" stroke-width="1" opacity="0.95"/>
+<rect x="331.6582117945466" y="145.5168040583386" width="108.99492707672795" height="80.71972098922002" fill="#334155" stroke="#38bdf8" stroke-width="1.5"/>
+<rect x="331.6582117945466" y="227.90107799619528" width="108.99492707672795" height="83.7824984147115" fill="#0f172a" opacity="0.95"/>
+<text x="386.15567533291056" y="347.0" fill="#cfe7ff" text-anchor="middle" font-family="Arial" font-size="12">old</text>
+<rect x="475.3113506658212" y="115" width="122.31135066582117" height="210.0" rx="10" fill="#172033" stroke="#64748b" stroke-width="2"/>
+<rect x="481.9695624603678" y="121.6582117945466" width="108.99492707672795" height="22.194039315155358" fill="#111827" stroke="#24c6a7" stroke-width="1" opacity="0.95"/>
+<rect x="481.9695624603678" y="145.5168040583386" width="108.99492707672795" height="95.145846544071" fill="#2563eb" stroke="#38bdf8" stroke-width="1.5"/>
+<rect x="481.9695624603678" y="242.32720355104624" width="108.99492707672795" height="69.35637285986051" fill="#0f172a" opacity="0.95"/>
+<text x="536.4670259987317" y="347.0" fill="#cfe7ff" text-anchor="middle" font-family="Arial" font-size="12">experiment</text>
+<text x="610" y="96" fill="#dbeafe" font-family="Arial" font-size="16" font-weight="700">Collection</text>
+<rect x="610.0" y="115" width="147.84" height="210.0" rx="10" fill="#172033" stroke="#64748b" stroke-width="2"/>
+<rect x="618.4" y="123.4" width="131.04" height="21.84" fill="#111827" stroke="#24c6a7" stroke-width="1" opacity="0.95"/>
+<rect x="618.4" y="146.92000000000002" width="131.04" height="79.8" fill="#334155" stroke="#38bdf8" stroke-width="1.5"/>
+<rect x="618.4" y="228.40000000000003" width="131.04" height="79.79999999999997" fill="#0f172a" opacity="0.95"/>
+<text x="683.92" y="347.0" fill="#cfe7ff" text-anchor="middle" font-family="Arial" font-size="12">old</text>
+<rect x="785.84" y="115" width="147.84" height="210.0" rx="10" fill="#172033" stroke="#64748b" stroke-width="2"/>
+<rect x="794.24" y="123.4" width="131.04" height="21.84" fill="#111827" stroke="#24c6a7" stroke-width="1" opacity="0.95"/>
+<rect x="794.24" y="146.92000000000002" width="131.04" height="93.24" fill="#2563eb" stroke="#38bdf8" stroke-width="1.5"/>
+<rect x="794.24" y="241.84000000000003" width="131.04" height="66.35999999999997" fill="#0f172a" opacity="0.95"/>
+<text x="859.76" y="347.0" fill="#cfe7ff" text-anchor="middle" font-family="Arial" font-size="12">experiment</text>
+<rect x="30" y="410" width="840" height="110" rx="12" fill="#111827" stroke="#334155"/>
+<text x="52" y="442" fill="#dbeafe" font-family="Arial" font-size="15">• Collection visible source height: 40.60% → 47.44%</text>
+<text x="52" y="464" fill="#dbeafe" font-family="Arial" font-size="15">• Hand visible source height: 50.79% → 59.91%</text>
+<text x="52" y="486" fill="#dbeafe" font-family="Arial" font-size="15">• Inspect visible source height: 49.37% → 58.20%</text>
+<text x="52" y="508" fill="#dbeafe" font-family="Arial" font-size="15">• Recommendation: iterate before production merge; collection improves, hand text slack tightens.</text>
+</svg>
