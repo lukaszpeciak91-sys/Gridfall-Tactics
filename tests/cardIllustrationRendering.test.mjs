@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-import { calculateCardArtworkCoverCrop, createCardArtwork, getCardLayoutZones } from '../src/rendering/cardVisualLayout.js';
+import { CARD_ARTWORK_UPWARD_CROP_BIAS_RATIO, calculateCardArtworkCoverCrop, createCardArtwork } from '../src/rendering/cardVisualLayout.js';
 
 function chainable(displayObject = {}) {
   return {
@@ -58,18 +58,21 @@ const artZone = Object.freeze({
   height: 160,
 });
 
-test('card artwork cover crop diagnostics report centered source-space loss', () => {
+test('card artwork cover crop diagnostics keep cover scaling with a shared upward source-space bias', () => {
   const crop = calculateCardArtworkCoverCrop(artZone, 512, 768);
+  const centeredCropY = (768 - 682.6666666666666) / 2;
+  const expectedBias = 768 * CARD_ARTWORK_UPWARD_CROP_BIAS_RATIO;
 
+  assert.equal(CARD_ARTWORK_UPWARD_CROP_BIAS_RATIO, 0.03);
+  assert.equal(crop.scale, 0.234375);
+  assert.equal(crop.displayWidth, 120);
+  assert.equal(crop.displayHeight, 180);
   assert.equal(crop.cropX, 0);
   assert.equal(crop.cropWidth, 512);
-  assert.ok(Math.abs(crop.cropY - 42.6667) < 0.001);
+  assert.ok(Math.abs(crop.cropY - (centeredCropY - expectedBias)) < 0.001);
   assert.ok(Math.abs(crop.cropHeight - 682.6667) < 0.001);
-  assert.equal(crop.visibleSourceWidthPercent, 100);
-  assert.ok(Math.abs(crop.visibleSourceHeightPercent - 88.8889) < 0.001);
-  assert.ok(Math.abs(crop.lostTopPercent - crop.lostBottomPercent) < 0.001);
-  assert.equal(crop.lostLeftPercent, 0);
-  assert.equal(crop.lostRightPercent, 0);
+  assert.ok(crop.lostTopPercent < crop.lostBottomPercent);
+  assert.ok(Math.abs((crop.lostBottomPercent - crop.lostTopPercent) - 6) < 0.001);
 });
 
 test('dry card layout experiment expands collection artwork viewport without shrinking stat row', () => {
@@ -93,7 +96,7 @@ test('standardized card illustrations render only when callers enable them', () 
   assert.equal(enabledArtwork.key, 'card.aggro.aggro_01');
   assert.equal(enabledArtwork.crop.x, 0);
   assert.equal(enabledArtwork.crop.width, 512);
-  assert.ok(Math.abs(enabledArtwork.crop.y - 42.6667) < 0.001);
+  assert.ok(Math.abs(enabledArtwork.crop.y - 19.6267) < 0.001);
   assert.ok(Math.abs(enabledArtwork.crop.height - 682.6667) < 0.001);
 
   const controlArtwork = createCardArtwork(scene, artZone, { id: 'control_controller_1' }, { enableCardIllustration: true });
@@ -126,7 +129,11 @@ test('battle scene enables illustrations for hand cards and hand inspect, not bo
   assert.match(drawHand, /enableCardIllustration: true/);
   assert.match(inspectRequest, /sourceY: cardView\.baseY,[\s\S]*enableCardIllustration: true/);
   assert.match(inspectRequest, /sourceY: cell\.background\.y,[\s\S]*enableCardIllustration: false/);
+  const boardUnitView = source.slice(source.indexOf('  createBoardUnitView(cell, unit) {'), source.indexOf('  refreshBoardLabels() {'));
+
   assert.match(inspectZoom, /enableCardIllustration: inspectRequest\.enableCardIllustration/);
+  assert.doesNotMatch(boardUnitView, /createCardArtwork\(/);
+  assert.match(boardUnitView, /const artBack = this\.add\.rectangle/);
 });
 
 test('collection scene enables standardized illustrations through the shared preview renderer', () => {

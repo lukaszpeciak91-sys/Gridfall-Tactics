@@ -22,10 +22,11 @@ The active card artwork renderer:
 2. creates a Phaser image at the artwork-zone center;
 3. computes `scale = max(zone.width / sourceWidth, zone.height / sourceHeight)` so the image fully covers the artwork zone;
 4. displays the scaled image at `sourceWidth * scale` by `sourceHeight * scale`;
-5. applies a centered crop rectangle sized to `zone.width / scale` by `zone.height / scale`; and
-6. falls back to the generic placeholder artwork when no loaded texture exists.
+5. sizes the crop rectangle to `zone.width / scale` by `zone.height / scale`;
+6. shifts that source crop upward by the shared production bias of approximately `3%` of source height; and
+7. falls back to the generic placeholder artwork when no loaded texture exists.
 
-This is a **center-cover crop**. It is not a focal-point-aware crop, per-card safe-area crop, responsive art-direction crop, or custom masked crop. The crop rectangle is centered in source space and changes only because each view's artwork-zone aspect ratio changes.
+This is a **center-cover crop with one shared upward source-space bias**. It is not a focal-point-aware crop, per-card safe-area crop, responsive art-direction crop, per-mode crop, or custom masked crop. The crop rectangle remains deterministic and universal for card artwork.
 
 ### Shared card layout zones
 
@@ -41,21 +42,21 @@ Because hand, inspect, and collection cards all reserve space for stat badges, n
 
 ### Hand-card artwork visible area
 
-Hand cards enable production illustrations. On common portrait phone viewports, the hand card artwork zone is roughly `90–102px` wide by `67–77px` high. For a `512x768` source, this usually preserves the full source width and only about the middle `383–390px` of source height.
+Hand cards enable production illustrations. On common portrait phone viewports, the hand card artwork zone is roughly `90–102px` wide by `67–77px` high. For a `512x768` source, this usually preserves the full source width and about `383–390px` of source height, shifted upward by about `23px` on a `512x768` source.
 
-Practical source-space read: roughly **x `0–512`, y `189–579`** on a `390x844` phone-size layout. In other words, hand cards typically discard about **49–50% of the source height total** split across the top and bottom. The hand-card crop is one of the strictest production reads and should be treated as the primary approval target.
+Practical source-space read: roughly **x `0–512`, y `166–556`** on a `390x844` phone-size layout. In other words, hand cards typically discard about **49–50% of the source height total**, with less loss at the top than the bottom because of the shared upward bias. The hand-card crop is one of the strictest production reads and should be treated as a primary approval target.
 
 ### Inspect-card artwork visible area
 
 Hand inspect / zoom cards also enable production illustrations and reuse the same shared preview renderer. The inspect card is larger on screen, but it is vertically compacted relative to the hand-card aspect to fit the tactical board lane. That changes the artwork-zone aspect and can make the vertical crop slightly more aggressive.
 
-Practical source-space read on common portrait phone layouts: approximately **x `0–512`, y `191–574`**, preserving about **379–386px** of source height and discarding about **50% of the source height total** split across top and bottom. Inspect cards improve pixel size, but they do not recover lost top/bottom composition context.
+Practical source-space read on common portrait phone layouts: approximately **x `0–512`, y `171–551`**, preserving about **379–386px** of source height and discarding about **50% of the source height total** split across top and bottom. Inspect cards improve pixel size, but they do not recover lost top/bottom composition context.
 
 ### Collection-card artwork visible area
 
 Collection cards enable production illustrations through the same preview renderer. A two-column mobile collection grid is the strictest active production-art crop and must be checked against the diagnostic safe zone.
 
-Practical source-space read on common portrait phone layouts: approximately **x `0–512`, y `228–540`**, preserving about **309–312px** of source height and discarding about **59–60% of the source height total** split across top and bottom.
+Practical source-space read on common portrait phone layouts: approximately **x `0–512`, y `205–517`**, preserving about **309–312px** of source height and discarding about **59–60% of the source height total** split across top and bottom.
 
 ### Board-card artwork behavior
 
@@ -65,13 +66,13 @@ Board rendering therefore currently uses **reserved/placeholder artwork zones**,
 
 ### Does the crop differ between views?
 
-Yes, but only because the artwork-zone dimensions differ. The crop algorithm is the same center-cover algorithm for every illustration-enabled card view. There is no per-view focal crop metadata and no per-card override.
+Yes, but only because the artwork-zone dimensions differ. The crop algorithm is the same center-cover algorithm plus the same `3%` upward source-space bias for every illustration-enabled card view. There is no per-view focal crop metadata and no per-card override.
 
 | Surface | Production illustration textures? | Current behavior | Typical visible source from `512x768` |
 | --- | --- | --- | --- |
-| Hand cards | Yes | Shared center-cover crop | Full width, middle ~`383–390px` height |
-| Hand inspect / zoom | Yes | Shared center-cover crop in vertically compact inspect card | Full width, middle ~`379–386px` height |
-| Collection cards | Yes | Shared center-cover crop | Full width, middle ~`309–312px` height |
+| Hand cards | Yes | Shared center-cover crop with ~3% upward source-space bias | Full width, biased ~`383–390px` height |
+| Hand inspect / zoom | Yes | Shared biased crop in vertically compact inspect card | Full width, biased ~`379–386px` height |
+| Collection cards | Yes | Shared biased crop | Full width, biased ~`309–312px` height |
 | Board slots | No | Empty tactical slots | No card illustration |
 | Board compact units | No | Placeholder art panel plus stats/name | No production illustration; future zone would be center-cover-like if enabled |
 | Board inspect | No | Detail shell with illustration disabled | No production illustration |
@@ -148,43 +149,43 @@ Artwork remains language-neutral and UI-neutral. Do not bake names, stats, rules
 
 ## Safe-zone standard for `512x768` sources
 
-Use these source-space zones when briefing, generating, cropping, and reviewing art. The collection grid is the strictest active production-art crop, so universal production safety means surviving approximately y `230–540`, not only the hand-card middle half.
+Use these source-space zones when briefing, generating, cropping, and reviewing art. The collection grid is the strictest active production-art crop, so universal production safety means surviving approximately y `205–517`, not only the hand-card read.
 
 ### Universal visible zone
 
-- **Normalized:** full width by approximately y `30–70%`.
-- **Pixel guide:** x `0–512`, y `230–540`.
+- **Normalized:** full width by approximately y `27–67%`.
+- **Pixel guide:** x `0–512`, y `205–517`.
 - **Purpose:** content in this band is expected to remain visible across hand, hand inspect, and collection. Content outside this band may still appear in hand/inspect, but it is not universal.
 
 ### Must-survive zone
 
-- **Normalized:** center `76%` width by center `30%` height.
-- **Pixel guide:** x `61–451`, y `269–499`.
+- **Normalized:** x `12–88%`, y `32–62%`.
+- **Pixel guide:** x `61–451`, y `246–476`.
 - **Purpose:** the dominant silhouette, primary gesture, face/core/object, and gameplay-readable action must remain understandable inside this zone.
 
 This zone is conservative enough to survive hand, inspect, and collection crops without per-card renderer metadata.
 
 ### Recommended focal-point target
 
-- **Normalized:** center `40%` width; face/core center around y `43–48%`.
-- **Pixel guide:** x `154–358`, with the face/core center around y `330–369`.
+- **Normalized:** center `40%` width; face/helmet center around y `38–44%`, with upper torso/main mass around y `48–58%`.
+- **Pixel guide:** x `154–358`, with the face/helmet center around y `292–338` and upper torso/main mass around y `369–445`.
 - **Purpose:** place the strongest focal point here: head/torso center, monster core, weapon impact, ritual center, explosion heart, command signal, key object, or environment landmark.
 
 The focal point can extend beyond this target, but the read should still be obvious if only the central band is visible at hand-card scale.
 
 ### Safe supporting-content zone
 
-- **Normalized:** center `90%` width by y `30–70%`.
-- **Pixel guide:** x `26–486`, y `230–540`.
-- **Purpose:** important secondary props, faction identifiers, readable limbs, major effects, and composition cues should fit here.
+- **Normalized:** center `90%` width by y `27–67%`.
+- **Pixel guide:** x `26–486`, y `205–517`.
+- **Purpose:** important secondary props, faction identifiers, readable limbs, major effects, and composition cues should fit here. Lower essential silhouette, ground contact, mounts, tails, and important prop bases should stay above roughly y `64–65%` (`492–499px`).
 
 The most important read must remain inside the must-survive zone.
 
 ### Edge danger zones
 
 - **Left/right danger:** outer `5–10%` of width, x `0–26` and `486–512` for universal support safety, with x `0–61` and `451–512` unsafe for must-survive identity.
-- **Top danger:** approximately y `0–230`; hand/inspect remove most of the top quarter, and collection removes nearly the top `30%`.
-- **Bottom danger:** approximately y `540–768`; hand/inspect remove most of the bottom quarter, and collection removes nearly the bottom `30%`.
+- **Top danger:** approximately y `0–205`; hand/inspect remove most of the top fifth, and collection removes nearly the top `27%` after the upward bias.
+- **Bottom danger:** approximately y `517–768`; bottom loss is larger because the crop is intentionally biased upward, and collection removes roughly the bottom `33%`.
 
 Use danger zones only for bleed, atmosphere, non-essential environment, partial motion trails, cropped limbs, particles, smoke, audience lights, or background continuation.
 
@@ -221,9 +222,10 @@ A universal crop-safe standard is sufficient for the current pipeline and prefer
 Use this checklist for every future card illustration prompt and art review:
 
 - Source is `512x768`, portrait 2:3, WebP-ready, no baked UI/text.
-- Primary read is centered, with the face/core focal point around x `154–358`, y `330–369`.
-- Dominant silhouette and gesture survive inside x `61–451`, y `269–499`.
-- Important supporting cues stay inside x `26–486`, y `230–540`.
+- Primary read is centered, with the face/helmet focal point around x `154–358`, y `292–338`.
+- Upper torso/main mass sits around y `369–445`.
+- Dominant silhouette and gesture survive inside x `61–451`, y `246–476`.
+- Important supporting cues stay inside x `26–486`, y `205–517`, with lower essential silhouette above roughly y `492–499`.
 - Upper and lower edge bands are treated as expendable atmosphere unless they overlap the central subject.
 - The image still reads when cropped to the middle ~`309–390px` of height.
 - The hand-card thumbnail read is clear before inspecting the full source.
