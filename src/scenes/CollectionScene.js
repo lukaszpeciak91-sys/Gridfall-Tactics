@@ -8,7 +8,6 @@ import {
   getMenuBackgroundAsset,
   preloadMenuBackgroundArt,
 } from '../rendering/backgroundArt.js';
-import { formatCardDetailLines } from '../rendering/cardRenderModes.js';
 import { preloadAllCardIllustrations } from '../rendering/cardIllustrationAssets.js';
 import { getActiveLocale, translateActive } from '../localization/localeService.js';
 import { createModalBackButton } from '../ui/modalControls.js';
@@ -21,7 +20,6 @@ const COLLECTION_CARD_GAP_Y = 12;
 const COLLECTION_SECTION_GAP_Y = 26;
 const COLLECTION_CARDS_PER_COLUMN = 5;
 const COLLECTION_CARD_ASPECT_RATIO = 1.42;
-const COLLECTION_CARD_LONG_PRESS_MS = 425;
 const COLLECTION_INSPECT_CARD_TARGET_SCALE = 2.06;
 const COLLECTION_INSPECT_CARD_VERTICAL_COMPACT_RATIO = 0.96;
 const COLLECTION_INSPECT_CARD_MAX_HEIGHT_RATIO = 0.58;
@@ -41,11 +39,9 @@ export default class CollectionScene extends Phaser.Scene {
     this.uiElements = [];
     this.scrollMask = null;
     this.scrollState = null;
-    this.detailPanel = null;
     this.inspectPreview = null;
     this.pressedCard = null;
-    this.cardLongPressEvent = null;
-    this.longPressTriggeredCard = null;
+    this.cardTapHandled = false;
   }
 
   preload() {
@@ -148,6 +144,8 @@ export default class CollectionScene extends Phaser.Scene {
     this.input.on('pointerup', this.onScrollPointerUp, this);
     this.input.on('pointerup', this.onCollectionPointerUp, this);
     this.input.on('pointerupoutside', this.onCollectionPointerUp, this);
+    this.input.keyboard?.on('keydown-ESC', this.onBackRequested, this);
+    this.input.keyboard?.on('keydown-BACKSPACE', this.onBackRequested, this);
   }
 
   drawFactionSection(content, factionKey, faction, { x, y, cardWidth, cardHeight, columnGap }) {
@@ -214,59 +212,33 @@ export default class CollectionScene extends Phaser.Scene {
     preview.background.on('pointerup', (pointer) => {
       this.onCardPointerUp(card, pointer);
     });
-    preview.background.on('pointerout', (_pointer) => {
-      this.cancelCardLongPress();
-    });
   }
 
   onCardPointerDown(card, source) {
     const state = this.scrollState;
-    if (!state || this.detailPanel || this.inspectPreview || !card || source.pointer.y < state.viewportTop || source.pointer.y > state.viewportBottom) {
+    if (!state || !card || source.pointer.y < state.viewportTop || source.pointer.y > state.viewportBottom) {
       return;
     }
 
-    this.cancelCardLongPress();
-    this.longPressTriggeredCard = null;
     this.pressedCard = { card, ...source };
-    this.cardLongPressEvent = this.time.delayedCall(COLLECTION_CARD_LONG_PRESS_MS, () => {
-      this.cardLongPressEvent = null;
-      if (this.pressedCard?.card !== card || this.wasScrollDragging()) return;
-
-      const currentState = this.scrollState;
-      if (!currentState || this.detailPanel || !this.pressedCard) return;
-      if (source.pointer.y < currentState.viewportTop || source.pointer.y > currentState.viewportBottom) return;
-
-      this.longPressTriggeredCard = card;
-      this.showInspectPreview(this.pressedCard);
-    });
   }
 
   onCardPointerUp(card, pointer) {
-    this.cancelCardLongPress();
-
-    if (this.longPressTriggeredCard === card || this.inspectPreview) {
-      this.destroyInspectPreview({ animate: true });
-      this.pressedCard = null;
-      this.longPressTriggeredCard = null;
-      return;
-    }
-
     const state = this.scrollState;
     if (!state || !this.pressedCard || this.pressedCard.card !== card || pointer.y < state.viewportTop || pointer.y > state.viewportBottom) {
       this.pressedCard = null;
-      this.longPressTriggeredCard = null;
       return;
     }
 
+    const pressedCard = this.pressedCard;
     this.pressedCard = null;
-    this.longPressTriggeredCard = null;
-    this.openDetailPanel(card);
-  }
 
-  cancelCardLongPress() {
-    if (!this.cardLongPressEvent) return;
-    this.cardLongPressEvent.remove(false);
-    this.cardLongPressEvent = null;
+    if (this.wasScrollDragging()) {
+      return;
+    }
+
+    this.cardTapHandled = true;
+    this.showInspectPreview(pressedCard);
   }
 
   getInspectCardTransform({ sourceWidth, sourceHeight }) {
@@ -300,16 +272,12 @@ export default class CollectionScene extends Phaser.Scene {
     if (!card) return;
 
     this.destroyInspectPreview();
-    this.destroyDetailPanel();
 
     const { width, height } = this.scale;
     const transform = this.getInspectCardTransform({ sourceWidth, sourceHeight });
     const accentColor = getDefaultCardAccentColor(card);
     const overlay = this.add.rectangle(width * 0.5, height * 0.5, width, height, 0x000000, 0)
-      .setDepth(COLLECTION_INSPECT_CARD_OVERLAY_DEPTH)
-      .setInteractive();
-    overlay.on('pointerup', () => this.destroyInspectPreview({ animate: true }));
-    overlay.on('pointerdown', () => this.destroyInspectPreview({ animate: true }));
+      .setDepth(COLLECTION_INSPECT_CARD_OVERLAY_DEPTH);
 
     const previewView = createCardPreviewView(this, {
       card,
@@ -399,69 +367,6 @@ export default class CollectionScene extends Phaser.Scene {
     }
   }
 
-  openDetailPanel(card) {
-    if (this.detailPanel || this.wasScrollDragging()) {
-      return;
-    }
-
-    this.destroyInspectPreview();
-    this.destroyDetailPanel();
-
-    const { width, height } = this.scale;
-    const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x020617, 0.72)
-      .setDepth(100)
-      .setInteractive();
-    const panelWidth = Math.min(width - 34, 350);
-    const panelHeight = Math.min(height - 158, 430);
-    const panel = this.add.rectangle(width / 2, height / 2, panelWidth, panelHeight, 0x0f172a, 0.98)
-      .setStrokeStyle(2, 0x93c5fd, 0.92)
-      .setDepth(101)
-      .setInteractive();
-
-    const detailLines = formatCardDetailLines(card, getActiveLocale());
-
-    const title = this.add
-      .text(width / 2, height / 2 - panelHeight / 2 + 30, detailLines[0], {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '25px',
-        color: '#f8fafc',
-        fontStyle: 'bold',
-        align: 'center',
-        wordWrap: { width: panelWidth - 32 },
-      })
-      .setOrigin(0.5)
-      .setDepth(102);
-
-    const lines = detailLines.slice(1);
-
-    const body = this.add
-      .text(width / 2 - panelWidth / 2 + 22, height / 2 - panelHeight / 2 + 76, lines.join('\n'), {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '15px',
-        color: '#e5e7eb',
-        lineSpacing: 10,
-        wordWrap: { width: panelWidth - 44 },
-      })
-      .setOrigin(0, 0)
-      .setDepth(102);
-
-    const backButton = createModalBackButton(this, {
-      x: width / 2,
-      y: height / 2 + panelHeight / 2 - 36,
-      depth: 102,
-      width: Math.min(210, Math.max(160, Math.round(width * 0.48))),
-      height: 52,
-      onPointerUp: () => this.destroyDetailPanel(),
-    });
-
-    this.detailPanel = [overlay, panel, title, body, ...backButton.items];
-  }
-
-  destroyDetailPanel() {
-    this.detailPanel?.forEach((element) => element?.destroy?.());
-    this.detailPanel = null;
-  }
-
   createBackButton(width, height) {
     const backButton = createModalBackButton(this, {
       x: width / 2,
@@ -471,10 +376,6 @@ export default class CollectionScene extends Phaser.Scene {
       onPointerUp: () => {
         if (this.inspectPreview) {
           this.destroyInspectPreview({ animate: true });
-          return;
-        }
-        if (this.detailPanel) {
-          this.destroyDetailPanel();
           return;
         }
         this.scene.start('MainMenuScene');
@@ -489,7 +390,7 @@ export default class CollectionScene extends Phaser.Scene {
 
   onScrollWheel(pointer, gameObjects, deltaX, deltaY) {
     const state = this.scrollState;
-    if (!state || this.detailPanel || this.inspectPreview || pointer.y < state.viewportTop || pointer.y > state.viewportBottom) {
+    if (!state || this.inspectPreview || pointer.y < state.viewportTop || pointer.y > state.viewportBottom) {
       return;
     }
 
@@ -498,7 +399,7 @@ export default class CollectionScene extends Phaser.Scene {
 
   onScrollPointerDown(pointer) {
     const state = this.scrollState;
-    if (!state || this.detailPanel || this.inspectPreview || pointer.y < state.viewportTop || pointer.y > state.viewportBottom) {
+    if (!state || this.inspectPreview || pointer.y < state.viewportTop || pointer.y > state.viewportBottom) {
       return;
     }
 
@@ -516,7 +417,6 @@ export default class CollectionScene extends Phaser.Scene {
 
     state.lastDragDistance = pointer.y - state.pointerStartY;
     if (Math.abs(state.lastDragDistance) > CARD_SCROLL_DRAG_THRESHOLD) {
-      this.cancelCardLongPress();
       this.destroyInspectPreview({ animate: true });
     }
     this.setCollectionScrollY(state.contentStartY + state.lastDragDistance);
@@ -537,19 +437,25 @@ export default class CollectionScene extends Phaser.Scene {
   }
 
   onCollectionPointerUp() {
-    if (this.inspectPreview) {
-      this.destroyInspectPreview({ animate: true });
-      this.cancelCardLongPress();
-      this.pressedCard = null;
-      this.longPressTriggeredCard = null;
+    if (this.cardTapHandled) {
+      this.cardTapHandled = false;
       return;
     }
 
-    this.cancelCardLongPress();
-    globalThis.setTimeout(() => {
-      this.pressedCard = null;
-      this.longPressTriggeredCard = null;
-    }, 0);
+    if (this.inspectPreview) {
+      this.destroyInspectPreview({ animate: true });
+    }
+
+    this.pressedCard = null;
+  }
+
+  onBackRequested() {
+    if (this.inspectPreview) {
+      this.destroyInspectPreview({ animate: true });
+      return;
+    }
+
+    this.scene.start('MainMenuScene');
   }
 
   setCollectionScrollY(nextY) {
@@ -568,10 +474,10 @@ export default class CollectionScene extends Phaser.Scene {
     this.input?.off('pointerup', this.onScrollPointerUp, this);
     this.input?.off('pointerup', this.onCollectionPointerUp, this);
     this.input?.off('pointerupoutside', this.onCollectionPointerUp, this);
+    this.input?.keyboard?.off('keydown-ESC', this.onBackRequested, this);
+    this.input?.keyboard?.off('keydown-BACKSPACE', this.onBackRequested, this);
 
-    this.cancelCardLongPress();
     this.destroyInspectPreview();
-    this.destroyDetailPanel();
     this.scrollMask?.destroy?.();
     this.scrollMask = null;
     this.scrollState = null;
