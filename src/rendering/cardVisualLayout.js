@@ -65,24 +65,24 @@ const CARD_STAT_SYMBOL_KEYS = Object.freeze({
   '●': 'health',
 });
 
-export const INLINE_EFFECT_ICON_STAT_FONT_SCALE = 1.25;
-export const INLINE_EFFECT_ICON_BASELINE_OFFSET_RATIO = -0.09;
-export const INLINE_EFFECT_ICON_SPACE_SCALE = 0.62;
+export const INLINE_EFFECT_ICON_STAT_FONT_SCALE = 1.08;
+export const INLINE_EFFECT_ICON_BASELINE_OFFSET_RATIO = -0.04;
+export const INLINE_EFFECT_ICON_SPACE_SCALE = 0.42;
 
 const CARD_GAMEPLAY_SYMBOL_STYLES = Object.freeze({
   [CARD_EFFECT_GAMEPLAY_SYMBOLS.ally]: Object.freeze({
     color: '#facc15',
     fontStyle: 'bold',
     icon: 'single',
-    fontScale: 1.2,
-    widthScale: 0.72,
+    fontScale: 1.02,
+    widthScale: 0.58,
   }),
   [CARD_EFFECT_GAMEPLAY_SYMBOLS.allies]: Object.freeze({
     color: '#facc15',
     fontStyle: 'bold',
     icon: 'group',
-    fontScale: 1.15,
-    widthScale: 1.04,
+    fontScale: 1.0,
+    widthScale: 0.84,
   }),
 });
 
@@ -257,8 +257,8 @@ export function createInlineStatText(scene, x, y, text, {
       const segmentX = startX + segment.x;
       if (symbolStyle.type === 'gameplaySymbol' && symbolStyle.icon === 'group') {
         const group = scene.add.container(segmentX + segment.width / 2, baselineY + lineHeight * 0.49 + inlineIconYOffset);
-        const iconFontSize = Math.max(fittedFontSize + 1, Math.round(fittedFontSize * (symbolStyle.fontScale ?? 1.12)));
-        const backIcon = scene.add.text(-segment.width * 0.18, -iconFontSize * 0.02, CARD_EFFECT_GAMEPLAY_SYMBOLS.ally, {
+        const iconFontSize = Math.round(fittedFontSize * (symbolStyle.fontScale ?? 1));
+        const backIcon = scene.add.text(-segment.width * 0.16, -iconFontSize * 0.02, CARD_EFFECT_GAMEPLAY_SYMBOLS.ally, {
           ...baseStyle,
           fontSize: `${iconFontSize}px`,
           color: symbolStyle.color ?? color,
@@ -266,7 +266,7 @@ export function createInlineStatText(scene, x, y, text, {
           stroke: '#4a3200',
           strokeThickness: Math.max(1, Math.round(iconFontSize * 0.12)),
         }).setOrigin(0.5).setAlpha(0.92);
-        const frontIcon = scene.add.text(segment.width * 0.17, iconFontSize * 0.04, CARD_EFFECT_GAMEPLAY_SYMBOLS.ally, {
+        const frontIcon = scene.add.text(segment.width * 0.15, iconFontSize * 0.03, CARD_EFFECT_GAMEPLAY_SYMBOLS.ally, {
           ...baseStyle,
           fontSize: `${iconFontSize}px`,
           color: symbolStyle.color ?? color,
@@ -283,9 +283,9 @@ export function createInlineStatText(scene, x, y, text, {
 
       const isInlineSymbol = symbolStyle.type === 'statSymbol' || symbolStyle.type === 'gameplaySymbol';
       const iconFontSize = isInlineSymbol
-        ? Math.max(fittedFontSize + 1, Math.round(fittedFontSize * (symbolStyle.fontScale ?? 1.14)))
+        ? Math.round(fittedFontSize * (symbolStyle.fontScale ?? 1))
         : fittedFontSize;
-      const segmentY = isInlineSymbol ? baselineY + inlineIconYOffset : baselineY;
+      const segmentY = isInlineSymbol ? baselineY + lineHeight * 0.5 + inlineIconYOffset : baselineY;
       const segmentText = scene.add.text(segmentX, segmentY, segment.text, {
         ...baseStyle,
         fontSize: `${iconFontSize}px`,
@@ -293,7 +293,7 @@ export function createInlineStatText(scene, x, y, text, {
         fontStyle: symbolStyle.type === 'statSymbol' ? statFontStyle : symbolStyle.fontStyle,
         stroke: isInlineSymbol ? '#061426' : undefined,
         strokeThickness: isInlineSymbol ? Math.max(1, Math.round(iconFontSize * 0.1)) : 0,
-      }).setOrigin(0, 0);
+      }).setOrigin(0, isInlineSymbol ? 0.5 : 0);
       if (isInlineSymbol) {
         segmentText.setShadow(0, 1, 'rgba(0, 0, 0, 0.58)', 1);
       }

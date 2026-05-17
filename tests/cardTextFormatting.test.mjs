@@ -208,10 +208,10 @@ test('inline stat text tokenizer preserves localized copy while tagging stat and
   ]);
 });
 
-test('inline effect icon typography uses larger symbols, raised baseline, and tighter icon spacing', () => {
-  assert.equal(INLINE_EFFECT_ICON_STAT_FONT_SCALE, 1.25);
-  assert.equal(INLINE_EFFECT_ICON_BASELINE_OFFSET_RATIO, -0.09);
-  assert.equal(INLINE_EFFECT_ICON_SPACE_SCALE, 0.62);
+test('inline effect icon typography uses glyph-sized symbols, centered baseline, and compact icon spacing', () => {
+  assert.equal(INLINE_EFFECT_ICON_STAT_FONT_SCALE, 1.08);
+  assert.equal(INLINE_EFFECT_ICON_BASELINE_OFFSET_RATIO, -0.04);
+  assert.equal(INLINE_EFFECT_ICON_SPACE_SCALE, 0.42);
 
   const lines = layoutInlineStatText('+1 ▲ this turn', {
     maxWidth: 100,
@@ -219,9 +219,9 @@ test('inline effect icon typography uses larger symbols, raised baseline, and ti
   });
 
   assert.equal(lines[0].segments[1].text, '▲');
-  assert.equal(lines[0].segments[1].x, 27);
+  assert.equal(lines[0].segments[1].x, 25);
   assert.equal(lines[0].segments[2].text, 'this');
-  assert.equal(lines[0].segments[2].x, 44);
+  assert.equal(lines[0].segments[2].x, 40);
 });
 
 test('inline stat text layout wraps by measured token width and keeps symbols inline', () => {
