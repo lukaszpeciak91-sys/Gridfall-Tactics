@@ -210,7 +210,7 @@ test('inline stat text tokenizer preserves localized copy while tagging stat and
 });
 
 test('inline effect icon typography uses glyph-sized symbols, centered baseline, and compact icon spacing', () => {
-  assert.equal(INLINE_EFFECT_ICON_STAT_FONT_SCALE, 1.32);
+  assert.equal(INLINE_EFFECT_ICON_STAT_FONT_SCALE, 1.38);
   assert.equal(INLINE_EFFECT_ICON_MIN_FONT_SIZE, 15);
   assert.equal(INLINE_EFFECT_ICON_BASELINE_OFFSET_RATIO, -0.16);
   assert.equal(INLINE_EFFECT_ICON_SPACE_SCALE, 0.4);
