@@ -1738,8 +1738,15 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
-    if (this.playerActionUsed || this.isEffectCastResolving || this.targetingState) {
+    if (this.playerActionUsed || this.isEffectCastResolving) {
       return;
+    }
+
+    if (this.targetingState) {
+      this.cancelEffectTargeting();
+      if (this.playerActionUsed || this.isFlowResolving || this.isEffectCastResolving) {
+        return;
+      }
     }
 
     const card = this.gameState.player.hand.find((item) => item.id === cardId);
@@ -1842,6 +1849,11 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
+    if (this.targetingState && this.isPointerInsideHandArea(pointer, currentlyOver)) {
+      this.cancelEffectTargeting();
+      return;
+    }
+
     const boardCell = this.getBoardCellFromPointerUp(pointer, currentlyOver);
     if (boardCell) {
       const selectedCard = this.gameState.player.hand.find((card) => card.id === this.selectedCardId);
@@ -1898,6 +1910,25 @@ export default class BattleScene extends Phaser.Scene {
       : [];
 
     if ([...handObjects, ...previewObjects].some((item) => overObjects.includes(item) || this.isPointerInsideGameObject(pointer, item))) {
+      return true;
+    }
+
+    if (!pointer || !this.layout?.hand) return false;
+
+    const { width, margin, hand } = this.layout;
+    const handLeft = margin;
+    const handRight = width - margin;
+    const handTop = hand.y;
+    const handBottom = hand.y + hand.h;
+
+    return pointer.x >= handLeft && pointer.x <= handRight && pointer.y >= handTop && pointer.y <= handBottom;
+  }
+
+  isPointerInsideHandArea(pointer, currentlyOver = []) {
+    const overObjects = this.normalizePointerUpObjects(currentlyOver);
+    const handObjects = this.cardViews.flatMap((view) => [view.glow, view.background, view.label].filter(Boolean));
+
+    if (handObjects.some((item) => overObjects.includes(item) || this.isPointerInsideGameObject(pointer, item))) {
       return true;
     }
 
