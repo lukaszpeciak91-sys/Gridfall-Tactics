@@ -226,6 +226,29 @@ test('inline effect icon typography uses glyph-sized symbols, centered baseline,
   assert.equal(lines[0].segments[2].x, 38);
 });
 
+
+test('inline stat text layout groups numbers with stat icons and keeps ally icon buffs in sentence flow', () => {
+  const measureTokenWidth = (token) => token.length;
+  const compactTextLines = (text, maxWidth) => layoutInlineStatText(text, {
+    maxWidth,
+    measureTokenWidth,
+  }).map((line) => line.segments.map((segment) => segment.text).join(''));
+
+  assert.deepEqual(compactTextLines('+1 ▲ w walce.', 4), ['+1▲', 'w', 'walce.']);
+  assert.deepEqual(compactTextLines('traci 1 ●.', 7), ['traci', '1●.']);
+  assert.deepEqual(compactTextLines('ignoruje 1 ◆.', 9), ['ignoruje', '1◆.']);
+  assert.deepEqual(compactTextLines('Wszyscy ♙♙ +2 ▲ w tej turze.', 15), [
+    'Wszyscy♙♙+2▲',
+    'wtejturze.',
+  ]);
+  assert.deepEqual(compactTextLines('Wszyscy ♙♙ +2 ▲ w tej turze.', 7), [
+    'Wszyscy',
+    '♙♙+2▲',
+    'wtej',
+    'turze.',
+  ]);
+});
+
 test('inline stat text layout wraps by measured token width and keeps symbols inline', () => {
   const lines = layoutInlineStatText('♙ +1 ▲ this turn.', {
     maxWidth: 10,

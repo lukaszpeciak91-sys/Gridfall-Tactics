@@ -159,45 +159,146 @@ function getInlineSpaceWidth(spaceWidth, previousToken, nextToken) {
   return Math.max(1, Math.ceil(spaceWidth * INLINE_EFFECT_ICON_SPACE_SCALE));
 }
 
+function createInlineAtom(token, measureTokenWidth) {
+  const width = measureTokenWidth(token.text);
+  return {
+    segments: [{ ...token, x: 0, width }],
+    width,
+    firstToken: token,
+    lastToken: token,
+  };
+}
+
+function appendAtomToInlineUnit(unit, atom, spaceWidth = 0) {
+  const xOffset = unit.width + spaceWidth;
+  unit.segments.push(...atom.segments.map((segment) => ({
+    ...segment,
+    x: xOffset + segment.x,
+  })));
+  unit.width = xOffset + atom.width;
+  unit.lastToken = atom.lastToken;
+}
+
+function isNumericInlineAtom(atom) {
+  return atom?.segments.length === 1 && /^[-+]?\d+$/u.test(atom.segments[0].text);
+}
+
+function isInlineUnitEndingWithNumber(unit) {
+  const lastSegment = unit?.segments.at(-1);
+  return lastSegment?.type === 'text' && /^[-+]?\d+$/u.test(lastSegment.text);
+}
+
+function isStatSymbolInlineAtom(atom) {
+  return atom?.segments.some((segment) => segment.type === 'statSymbol');
+}
+
+function isGameplaySymbolInlineAtom(atom) {
+  return atom?.segments.length === 1 && atom.segments[0].type === 'gameplaySymbol';
+}
+
+function createInlineLayoutUnits(tokens, measureTokenWidth) {
+  const units = [];
+  let currentAtom = null;
+  let pendingSpaceWidth = 0;
+
+  const flushAtom = () => {
+    if (!currentAtom) return;
+
+    const previousUnit = units.at(-1);
+    if (isInlineUnitEndingWithNumber(previousUnit) && isStatSymbolInlineAtom(currentAtom)) {
+      appendAtomToInlineUnit(
+        previousUnit,
+        currentAtom,
+        getInlineSpaceWidth(pendingSpaceWidth, previousUnit.lastToken, currentAtom.firstToken),
+      );
+    } else if (isGameplaySymbolInlineAtom(previousUnit) && isNumericInlineAtom(currentAtom)) {
+      appendAtomToInlineUnit(
+        previousUnit,
+        currentAtom,
+        getInlineSpaceWidth(pendingSpaceWidth, previousUnit.lastToken, currentAtom.firstToken),
+      );
+    } else {
+      units.push({
+        ...currentAtom,
+        segments: currentAtom.segments.map((segment) => ({ ...segment })),
+        leadingSpaceWidth: units.length > 0 ? pendingSpaceWidth : 0,
+      });
+    }
+
+    currentAtom = null;
+    pendingSpaceWidth = 0;
+  };
+
+  tokens.forEach((token) => {
+    if (token.type === 'space') {
+      flushAtom();
+      if (units.length > 0) {
+        pendingSpaceWidth += measureTokenWidth(token.text);
+      }
+      return;
+    }
+
+    const atom = createInlineAtom(token, measureTokenWidth);
+    if (!currentAtom) {
+      currentAtom = atom;
+      return;
+    }
+
+    appendAtomToInlineUnit(currentAtom, atom, 0);
+  });
+
+  flushAtom();
+  return units;
+}
+
 export function layoutInlineStatText(text, { maxWidth, measureTokenWidth }) {
-  const tokens = tokenizeInlineStatText(text);
+  const sourceTokens = tokenizeInlineStatText(text);
   const lines = [];
   let currentLine = [];
   let currentWidth = 0;
-  let pendingSpaceWidth = 0;
 
   const pushLine = () => {
     lines.push({ segments: currentLine, width: currentWidth });
     currentLine = [];
     currentWidth = 0;
-    pendingSpaceWidth = 0;
   };
 
-  tokens.forEach((token) => {
-    if (token.type === 'newline') {
-      pushLine();
+  const layoutUnits = (tokens) => {
+    const units = createInlineLayoutUnits(tokens, measureTokenWidth);
+
+    units.forEach((unit) => {
+      const previousSegment = currentLine.at(-1);
+      const rawSpaceWidth = currentLine.length > 0 ? unit.leadingSpaceWidth : 0;
+      const inlineSpaceWidth = getInlineSpaceWidth(rawSpaceWidth, previousSegment, unit.firstToken);
+      const nextX = currentWidth + inlineSpaceWidth;
+
+      if (currentLine.length > 0 && nextX + unit.width > maxWidth) {
+        pushLine();
+      }
+
+      const segmentX = currentLine.length > 0
+        ? currentWidth + getInlineSpaceWidth(unit.leadingSpaceWidth, currentLine.at(-1), unit.firstToken)
+        : 0;
+      currentLine.push(...unit.segments.map((segment) => ({
+        ...segment,
+        x: segmentX + segment.x,
+      })));
+      currentWidth = segmentX + unit.width;
+    });
+  };
+
+  let paragraphTokens = [];
+  sourceTokens.forEach((token) => {
+    if (token.type !== 'newline') {
+      paragraphTokens.push(token);
       return;
     }
 
-    const width = measureTokenWidth(token.text);
-    if (token.type === 'space') {
-      if (currentLine.length === 0) return;
-      pendingSpaceWidth += width;
-      return;
-    }
-
-    const previousSegment = currentLine.at(-1);
-    const inlineSpaceWidth = getInlineSpaceWidth(pendingSpaceWidth, previousSegment, token);
-    const nextX = currentWidth + inlineSpaceWidth;
-    if (currentLine.length > 0 && nextX + width > maxWidth) {
-      pushLine();
-    }
-
-    const segmentX = currentLine.length > 0 ? currentWidth + inlineSpaceWidth : 0;
-    currentLine.push({ ...token, x: segmentX, width });
-    currentWidth = segmentX + width;
-    pendingSpaceWidth = 0;
+    layoutUnits(paragraphTokens);
+    pushLine();
+    paragraphTokens = [];
   });
+  layoutUnits(paragraphTokens);
 
   if (currentLine.length > 0 || lines.length === 0) {
     pushLine();
@@ -273,13 +374,15 @@ export function createInlineStatText(scene, x, y, text, {
 
   lines.forEach((line, lineIndex) => {
     const startX = align === 'center' ? -line.width / 2 : 0;
-    const baselineY = lineIndex * lineHeight;
+    const lineTopY = lineIndex * lineHeight;
+    const textY = lineTopY + Math.max(0, Math.round((lineHeight - lineSpacing - fittedFontSize) / 2));
+    const iconCenterY = lineTopY + (lineHeight - lineSpacing) * 0.5;
     const inlineIconYOffset = Math.round(fittedFontSize * INLINE_EFFECT_ICON_BASELINE_OFFSET_RATIO);
     line.segments.forEach((segment) => {
       const symbolStyle = getInlineSymbolStyle(segment.text);
       const segmentX = startX + segment.x;
       if (symbolStyle.type === 'gameplaySymbol' && symbolStyle.icon === 'group') {
-        const group = scene.add.container(segmentX + segment.width / 2, baselineY + lineHeight * 0.49 + inlineIconYOffset);
+        const group = scene.add.container(segmentX + segment.width / 2, iconCenterY + inlineIconYOffset);
         const iconFontSize = getInlineIconFontSize(fittedFontSize, symbolStyle);
         const backIcon = scene.add.text(-segment.width * 0.16, -iconFontSize * 0.02, CARD_EFFECT_GAMEPLAY_SYMBOLS.ally, {
           ...baseStyle,
@@ -308,7 +411,7 @@ export function createInlineStatText(scene, x, y, text, {
       const iconFontSize = isInlineSymbol
         ? getInlineIconFontSize(fittedFontSize, symbolStyle)
         : fittedFontSize;
-      const segmentY = isInlineSymbol ? baselineY + lineHeight * 0.5 + inlineIconYOffset : baselineY;
+      const segmentY = isInlineSymbol ? iconCenterY + inlineIconYOffset : textY;
       const segmentText = scene.add.text(segmentX, segmentY, segment.text, {
         ...baseStyle,
         fontSize: `${iconFontSize}px`,
