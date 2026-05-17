@@ -1,6 +1,6 @@
 # Frozen Art Bible: Gridfall Tactics
 
-This document freezes the visual and naming direction for faction/card presentation. It is additive art direction only: it must not change gameplay, balance, card ids, deck composition, AI behavior, or tests. Internal gameplay archetypes remain `aggro`, `control`, `swarm`, and `tank`; later factions and presentations are thematic layers or variants on top of those foundations.
+This document freezes the visual and naming direction for faction/card presentation. It is additive art direction only: it must not change gameplay, balance, faction ids, card ids, deck composition, AI behavior, or tests. The current game has **6 full base gameplay factions**: `aggro`, `tank`, `control`, `swarm`, `wardens`, and `attrition-swarm`. `attrition-swarm` is a full permanent base faction, not a temporary variant. Future armies may be presentation or thematic expansions based on these mechanical bases, but the current six factions are not placeholders.
 
 ## Global Visual Identity
 
@@ -85,6 +85,8 @@ Discovered asset sizing guidance from the audit:
 - **Readability:** silhouette should read at small card size.
 
 ## Faction Visual Identities
+
+These six visual identities map onto the six current base gameplay factions. Presentation names and art direction are additive layers over the stable faction ids; they must not rename the source faction ids or imply that any current base faction is temporary.
 
 ### aggro — Porcelain Court / Porcelanowy Dwór
 

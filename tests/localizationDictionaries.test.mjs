@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
 import test from 'node:test';
+import { getFactionByKey, getFactionKeys } from '../src/data/factions/index.js';
 import en from '../src/localization/translations/en.json' with { type: 'json' };
 import pl from '../src/localization/translations/pl.json' with { type: 'json' };
 
@@ -31,6 +31,14 @@ test('major UI-facing localization groups exist in English and Polish dictionari
 test('faction select title copy is localized for English and Polish', () => {
   assert.equal(getPath(en, 'ui.factionSelect.title'), 'SELECT YOUR TEAM');
   assert.equal(getPath(pl, 'ui.factionSelect.title'), 'WYBIERZ DRUŻYNĘ');
+});
+
+
+test('faction select descriptions cover every runtime faction key in English and Polish', () => {
+  for (const factionKey of getFactionKeys()) {
+    assert.equal(typeof getPath(en, `ui.factionSelect.descriptions.${factionKey}`), 'string', `missing English faction select description for ${factionKey}`);
+    assert.equal(typeof getPath(pl, `ui.factionSelect.descriptions.${factionKey}`), 'string', `missing Polish faction select description for ${factionKey}`);
+  }
 });
 
 test('retry button copy stays short in Polish without changing English', () => {
@@ -68,9 +76,12 @@ test('every English card display entry has a Polish card display entry', () => {
   }
 });
 
+function allSourceCards() {
+  return getFactionKeys().flatMap((factionKey) => getFactionByKey(factionKey)?.deck ?? []);
+}
+
 test('enemy action summaries cover every non-unit card effect in English and Polish', () => {
-  const factionFiles = fs.readdirSync('src/data/factions').filter((file) => file.endsWith('.json'));
-  const cards = factionFiles.flatMap((file) => JSON.parse(fs.readFileSync(`src/data/factions/${file}`, 'utf8')).deck ?? []);
+  const cards = allSourceCards();
   const effectIds = [...new Set(cards.filter((card) => card.type !== 'unit').map((card) => card.effectId))];
 
   for (const effectId of effectIds) {
@@ -80,8 +91,7 @@ test('enemy action summaries cover every non-unit card effect in English and Pol
 });
 
 test('card detail targeting labels cover every source targeting value in English and Polish', () => {
-  const factionFiles = fs.readdirSync('src/data/factions').filter((file) => file.endsWith('.json'));
-  const cards = factionFiles.flatMap((file) => JSON.parse(fs.readFileSync(`src/data/factions/${file}`, 'utf8')).deck ?? []);
+  const cards = allSourceCards();
   const targetingValues = [...new Set(cards.map((card) => card.targeting ?? 'none'))];
 
   for (const targeting of targetingValues) {

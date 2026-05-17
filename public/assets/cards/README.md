@@ -6,7 +6,7 @@ This folder documents the MVP production contract for card illustration files. T
 
 The current faction roster is defined by `src/data/factions/index.js`, which imports the faction JSON files from `src/data/factions/`. Card illustration folders and filename stems must use each faction's `id` field from those JSON files.
 
-Current roster count: **6 factions**.
+Current roster count: **6 full base gameplay factions**. `attrition-swarm` is a full permanent base faction, not a temporary variant. Future armies may be presentation/thematic expansions based on these mechanical bases, but the current six faction mechanics and card descriptions remain the base source.
 
 | Faction key / display name | Faction id | Definition file |
 | --- | --- | --- |
@@ -24,10 +24,10 @@ Current roster count: **6 factions**.
 | Required source size | `512x768` pixels |
 | Orientation | Portrait, 2:3 aspect ratio |
 | Preferred format | WebP |
-| Folder convention | `public/assets/cards/{factionId}/` |
+| Active card illustration folder convention | `public/assets/cards/{factionId}/` |
 | Filename convention | `{artAssetId}.webp` |
 
-Illustration files use stable internal art asset ids, not card names and not gameplay card ids. This keeps filenames safe while names, copy, balance, and gameplay ids continue to evolve during design.
+Active card illustrations use `public/assets/cards/{factionId}/{artAssetId}.webp`. Illustration files use stable internal art asset ids, not card names and not gameplay card ids. This keeps filenames safe while names, copy, balance, and gameplay ids continue to evolve during design.
 
 Reserved folder examples for the current faction roster:
 
@@ -67,7 +67,7 @@ Every source card defines two internal-only illustration fields:
 - `artAssetId` uses `{factionId}_{twoDigitCardNumber}`.
 - Two-digit numbering is required: `01`, `02`, `03`, through `10` and beyond.
 - Initial numbering was assigned from the current order in each faction data file / collection order.
-- After assignment, numbers are stable identifiers and must not be automatically renumbered when card order changes later.
+- After assignment, numbers are stable identifiers and must not be automatically renumbered when card order changes later. Validation must check uniqueness and `artAssetId` consistency, not require `cardNumber` to equal the current array index.
 - Card numbers are internal/system-only and must not be displayed in UI.
 - Production filenames should use `artAssetId`, not card names and not gameplay card ids.
 
@@ -126,7 +126,7 @@ Do not frame briefs, reviews, or renderer expectations around every card having 
 Card illustrations use a shared center-cover crop in the MVP card preview renderer. The same crop behavior is used by:
 
 - hand cards
-- inspect / zoom cards
+- hand inspect / zoom cards
 - collection cards
 
 Center-cover means the source image is scaled until the artwork frame is fully covered, then cropped around the source center. Keep the focal read near the center so the same asset remains readable across all shared preview surfaces.
@@ -163,9 +163,14 @@ Use manual assets to verify that:
 - collection cards use the same shared crop behavior
 - mobile card text and focal art remain readable with the center `40%` focal zone and center `85%` safe content zone
 - missing illustration files keep the existing fallback behavior
-- board / compact units remain art-free
+- board / compact units and board inspect remain art-free
 - card numbers do not appear in UI
 
 ## Board rendering confirmation
 
 Board and compact units do **not** render production card illustrations in the MVP. The board renderer remains art-free for readability and crop safety, and board rendering behavior should remain unchanged unless a future task explicitly changes that contract.
+
+
+## Active vs reserved card-art paths
+
+The active production card illustration pipeline uses `public/assets/cards/{factionId}/{artAssetId}.webp`. Faction preview art uses `public/assets/factions/{factionId}/preview.webp` and is separate from card illustrations. Any `public/assets/factions/{factionId}/cards/` directory is reserved/inactive unless a future implementation explicitly wires that path into the renderer.
