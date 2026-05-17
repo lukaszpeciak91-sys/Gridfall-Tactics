@@ -65,7 +65,7 @@ const CARD_STAT_SYMBOL_KEYS = Object.freeze({
   '●': 'health',
 });
 
-export const INLINE_EFFECT_ICON_STAT_FONT_SCALE = 1.32;
+export const INLINE_EFFECT_ICON_STAT_FONT_SCALE = 1.38;
 export const INLINE_EFFECT_ICON_MIN_FONT_SIZE = 15;
 export const INLINE_EFFECT_ICON_BASELINE_OFFSET_RATIO = -0.16;
 export const INLINE_EFFECT_ICON_SPACE_SCALE = 0.4;
@@ -75,15 +75,15 @@ const CARD_GAMEPLAY_SYMBOL_STYLES = Object.freeze({
     color: '#facc15',
     fontStyle: 'bold',
     icon: 'single',
-    fontScale: 1.22,
-    widthScale: 0.7,
+    fontScale: 1.28,
+    widthScale: 0.667,
   }),
   [CARD_EFFECT_GAMEPLAY_SYMBOLS.allies]: Object.freeze({
     color: '#facc15',
     fontStyle: 'bold',
     icon: 'group',
-    fontScale: 1.16,
-    widthScale: 1.0,
+    fontScale: 1.22,
+    widthScale: 0.951,
   }),
 });
 
@@ -119,7 +119,7 @@ function getInlineSymbolStyle(symbol) {
       color: statColor,
       fontStyle: 'bold',
       fontScale: INLINE_EFFECT_ICON_STAT_FONT_SCALE,
-      widthScale: 0.86,
+      widthScale: 0.823,
     };
   }
 
