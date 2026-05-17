@@ -121,23 +121,26 @@ Cards are not always unit, character, or portrait cards. Production illustration
 
 Do not frame briefs, reviews, or renderer expectations around every card having a face, body, or character silhouette. The renderer should remain generic and subject-agnostic.
 
-## Crop and layout behavior
+## Crop, layout, and composition behavior
 
-Card illustrations use a shared center-cover crop in the MVP card preview renderer. The same crop behavior is used by:
+Card illustrations use a shared center-cover crop in the MVP card preview renderer. The same crop behavior is used by hand cards, hand inspect / zoom cards, and collection cards. Center-cover means the source image is scaled until the artwork frame is fully covered, then cropped around the source center.
 
-- hand cards
-- hand inspect / zoom cards
-- collection cards
+The full production audit and final composition standard live in `docs/art/card-illustration-composition.md`. In short: approve art against the cropped mobile hand-card read, not only against the uncropped `512x768` source. On common portrait phone layouts, runtime card views preserve the full source width but only the middle vertical band of the image:
 
-Center-cover means the source image is scaled until the artwork frame is fully covered, then cropped around the source center. Keep the focal read near the center so the same asset remains readable across all shared preview surfaces.
+- hand cards: roughly the middle `383–390px` of source height;
+- inspect / zoom cards: roughly the middle `356–362px` of source height;
+- collection cards: roughly the middle `419–423px` of source height.
+
+Board compact units currently do not render production illustration textures; they use placeholder/reserved art panels.
 
 ## Safe zones
 
-Compose production source art with these safe zones:
+Compose production source art with these `512x768` source-space safe zones:
 
-- Center `40%`: focal zone. Put the primary read here, whether it is a character, creature, object, symbol, explosion core, ritual focus, location landmark, or abstract focal shape.
-- Center `85%`: safe content zone. Keep important secondary silhouettes, effects, technology, artifacts, environmental landmarks, and readable composition cues inside this area.
-- Outer `5–10%`: crop-tolerant edge. This area may crop; use it for bleed, particles, atmosphere, texture, or non-essential background.
+- **Recommended focal-point zone:** center `40%` width by center `30%` height, approximately x `154–358`, y `269–499`. Put the strongest focal point here.
+- **Must-survive zone:** center `60%` width by center `45%` height, approximately x `102–410`, y `211–557`. The dominant silhouette, gesture, and gameplay read must remain understandable here.
+- **Safe supporting-content zone:** center `80%` width by center `55%` height, approximately x `51–461`, y `173–595`. Keep important secondary props, faction identifiers, and readable effects here.
+- **Edge danger zones:** outer `10%` horizontally plus the upper y `0–173` and lower y `595–768` bands. Use these areas only for expendable bleed, atmosphere, particles, smoke, or non-essential background.
 
 Avoid placing critical text, icons, small silhouettes, or gameplay-readable cues near the outer edge.
 

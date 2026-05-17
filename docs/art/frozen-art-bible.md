@@ -63,10 +63,16 @@ The UI should feel like a high-end interdimensional broadcast package for a tact
 
 ## Card Art Rules
 
+The detailed crop audit, safe-zone map, and final production checklist are frozen in `docs/art/card-illustration-composition.md`. The short art-bible version is:
+
 - Card art should not contain baked text.
 - Card text remains UI-rendered.
-- Each card should have one clear focal point.
+- Compose for the mobile hand-card crop first; inspect, collection, and future board views are secondary.
+- Each card should have one clear central focal point.
 - The main silhouette must remain readable at small size.
+- Keep the strongest focal point in the center `40%` width by center `30%` height of the `512x768` source.
+- Keep the dominant silhouette, gesture, and gameplay read inside the center `60%` width by center `45%` height.
+- Treat top/bottom edges and the outer `10%` horizontally as expendable atmosphere or bleed.
 - Prefer iconic action, object, or character moments that communicate the presentation name without changing mechanics.
 - Avoid excessive particles, smoke, tiny props, and texture-noise detail that collapses when scaled down.
 - Faction-specific details should be visible, but the composition should not become an inventory sheet.
