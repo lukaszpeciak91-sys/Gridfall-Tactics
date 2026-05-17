@@ -2,6 +2,21 @@
 
 This folder documents the MVP production contract for card illustration files. The card renderer treats illustrations as generic card art: it does not assume the image is a character portrait, and it must not branch by illustration subject.
 
+## Source of truth
+
+The current faction roster is defined by `src/data/factions/index.js`, which imports the faction JSON files from `src/data/factions/`. Card illustration folders and filename stems must use each faction's `id` field from those JSON files.
+
+Current roster count: **6 factions**.
+
+| Faction key / display name | Faction id | Definition file |
+| --- | --- | --- |
+| `Aggro` | `aggro` | `src/data/factions/aggro.json` |
+| `Tank` | `tank` | `src/data/factions/tank.json` |
+| `Control` | `control` | `src/data/factions/control.json` |
+| `Swarm` | `swarm` | `src/data/factions/swarm.json` |
+| `Wardens` | `wardens` | `src/data/factions/wardens.json` |
+| `Attrition Swarm` | `attrition-swarm` | `src/data/factions/attrition-swarm.json` |
+
 ## Production asset contract
 
 | Requirement | Contract |
@@ -14,12 +29,26 @@ This folder documents the MVP production contract for card illustration files. T
 
 Illustration files use stable internal art asset ids, not card names and not gameplay card ids. This keeps filenames safe while names, copy, balance, and gameplay ids continue to evolve during design.
 
-Example paths:
+Reserved folder examples for the current faction roster:
+
+```text
+public/assets/cards/aggro/
+public/assets/cards/tank/
+public/assets/cards/control/
+public/assets/cards/swarm/
+public/assets/cards/wardens/
+public/assets/cards/attrition-swarm/
+```
+
+Example paths for the current faction roster:
 
 ```text
 public/assets/cards/aggro/aggro_01.webp
-public/assets/cards/aggro/aggro_02.webp
+public/assets/cards/tank/tank_01.webp
 public/assets/cards/control/control_04.webp
+public/assets/cards/swarm/swarm_01.webp
+public/assets/cards/wardens/wardens_01.webp
+public/assets/cards/attrition-swarm/attrition-swarm_01.webp
 ```
 
 ## Stable card numbering metadata
@@ -45,8 +74,12 @@ Every source card defines two internal-only illustration fields:
 Examples:
 
 ```text
-Aggro cardNumber 1  -> artAssetId aggro_01  -> public/assets/cards/aggro/aggro_01.webp
+Aggro cardNumber 1 -> artAssetId aggro_01 -> public/assets/cards/aggro/aggro_01.webp
+Tank cardNumber 1 -> artAssetId tank_01 -> public/assets/cards/tank/tank_01.webp
 Control cardNumber 4 -> artAssetId control_04 -> public/assets/cards/control/control_04.webp
+Swarm cardNumber 1 -> artAssetId swarm_01 -> public/assets/cards/swarm/swarm_01.webp
+Wardens cardNumber 1 -> artAssetId wardens_01 -> public/assets/cards/wardens/wardens_01.webp
+Attrition Swarm cardNumber 1 -> artAssetId attrition-swarm_01 -> public/assets/cards/attrition-swarm/attrition-swarm_01.webp
 ```
 
 ## Texture key convention
@@ -57,11 +90,15 @@ The preferred runtime texture key is derived from the faction id and `artAssetId
 card.{factionId}.{artAssetId}
 ```
 
-Example texture keys:
+Example texture keys for the current faction roster:
 
 ```text
 card.aggro.aggro_01
+card.tank.tank_01
 card.control.control_04
+card.swarm.swarm_01
+card.wardens.wardens_01
+card.attrition-swarm.attrition-swarm_01
 ```
 
 If a card does not define `artAssetId`, the asset resolver falls back to the existing card-id-based path and key behavior for compatibility. Explicit renderer texture keys are still supported through `artTextureKey`, `artKey`, or `art.textureKey`.
@@ -108,11 +145,15 @@ Avoid placing critical text, icons, small silhouettes, or gameplay-readable cues
 
 Codex should not generate or commit placeholder illustration binaries. Sample validation images should be added manually by the developer or designer when real or approved temporary art is available.
 
-Suggested manual validation paths:
+Suggested manual validation paths for the current faction roster:
 
 ```text
 public/assets/cards/aggro/aggro_01.webp
+public/assets/cards/tank/tank_01.webp
 public/assets/cards/control/control_04.webp
+public/assets/cards/swarm/swarm_01.webp
+public/assets/cards/wardens/wardens_01.webp
+public/assets/cards/attrition-swarm/attrition-swarm_01.webp
 ```
 
 Use manual assets to verify that:

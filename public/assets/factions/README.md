@@ -2,6 +2,21 @@
 
 This folder reserves the future faction-art pipeline. Codex intentionally includes only text documentation and empty directory keepers. No binary faction artwork or placeholder image files are included or generated; the user will manually upload artwork later.
 
+## Source of truth
+
+The current faction roster is defined by `src/data/factions/index.js`, which imports the faction JSON files from `src/data/factions/`. Each reserved artwork folder must use the faction's `id` from those JSON files, not a display name guessed from UI copy.
+
+Current roster count: **6 factions**.
+
+| Faction key / display name | Faction id | Definition file |
+| --- | --- | --- |
+| `Aggro` | `aggro` | `src/data/factions/aggro.json` |
+| `Tank` | `tank` | `src/data/factions/tank.json` |
+| `Control` | `control` | `src/data/factions/control.json` |
+| `Swarm` | `swarm` | `src/data/factions/swarm.json` |
+| `Wardens` | `wardens` | `src/data/factions/wardens.json` |
+| `Attrition Swarm` | `attrition-swarm` | `src/data/factions/attrition-swarm.json` |
+
 ## Future folder structure
 
 ```text
@@ -18,14 +33,31 @@ public/assets/factions/
     swarm/
         preview.webp
         cards/
+    wardens/
+        preview.webp
+        cards/
+    attrition-swarm/
+        preview.webp
+        cards/
 ```
 
-Current reserved paths:
+Current reserved preview paths:
 
 - `public/assets/factions/aggro/preview.webp`
 - `public/assets/factions/tank/preview.webp`
 - `public/assets/factions/control/preview.webp`
 - `public/assets/factions/swarm/preview.webp`
+- `public/assets/factions/wardens/preview.webp`
+- `public/assets/factions/attrition-swarm/preview.webp`
+
+Current reserved per-faction subfolders:
+
+- `public/assets/factions/aggro/cards/`
+- `public/assets/factions/tank/cards/`
+- `public/assets/factions/control/cards/`
+- `public/assets/factions/swarm/cards/`
+- `public/assets/factions/wardens/cards/`
+- `public/assets/factions/attrition-swarm/cards/`
 
 ## Faction preview/banner spec
 
@@ -38,4 +70,4 @@ Current reserved paths:
 
 ## Runtime behavior
 
-`FactionSelectScene` attempts to load `public/assets/factions/{factionKey}/preview.webp` for each faction. If the image loads, the faction card renders it as a cover-cropped banner. If the file is missing, the card uses a clean faction-colored gradient fallback instead. Missing artwork should never show a broken-image icon and should never crash faction select.
+`FactionSelectScene` attempts to load `public/assets/factions/{factionId}/preview.webp` for each faction. If the image loads, the faction card renders it as a cover-cropped banner. If the file is missing, the card uses a clean faction-colored gradient fallback instead. Missing artwork should never show a broken-image icon and should never crash faction select.
