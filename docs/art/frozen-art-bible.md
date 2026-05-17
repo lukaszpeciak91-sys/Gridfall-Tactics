@@ -90,11 +90,19 @@ These six visual identities map onto the six current base gameplay factions. Pre
 
 ### aggro — Porcelain Court / Porcelanowy Dwór
 
-**Style:** Rococo chaos, powdered aristocracy, porcelain automata, ballroom violence, elegant insanity, tea party massacre, aristocratic frenzy, cracked porcelain, decorative brutality, masquerade horror, noble madness, psychotic etiquette, theatrical aggression, violent rococo, decadent apocalypse.
+**Style:** Rococo chaos, decadent immortal aristocracy, powdered court degeneracy, porcelain automata, televised ballroom violence, chemical degeneration, ceremonial brutality, elegant insanity, Marquis de Sade / late-18th-century decadence energy, tea party massacre, aristocratic frenzy, cracked porcelain, decorative brutality, masquerade horror, noble madness, psychotic etiquette, theatrical aggression, violent rococo, decadent apocalypse.
 
-**Visual tags:** powdered wigs, gold trim, cracked masks, lace uniforms, rose gardens, porcelain servants, tea automata, dueling rapiers, ballroom lighting, pastel luxury, candlelit carnage.
+**Visual tags:** powdered wigs, gold trim, cracked masks, lace uniforms, white gloves, rose gardens, porcelain servants, porcelain automata, tea automata, gold syringes, crystal ampoules, velvet medical rituals, dueling rapiers, ballroom lighting, pastel luxury, candlelit carnage.
 
 **Color notes:** pastel cream, blush pink, powder blue, porcelain white, antique gold, candle amber, and sharp blood-red accents.
+
+**Updated card presentation and art-direction notes:**
+
+- `aggro_berserker_1` display name: **Mad Countess / Obłąkana Hrabina**. Show a decadent aristocratic court lady with cracked porcelain beauty, ballroom insanity, emotional collapse under elegance, and a massive aristocratic dress/silhouette that becomes more dangerous as she psychologically and physically breaks apart. Avoid generic berserker energy, armored warrior silhouettes, or masculine noble silhouettes.
+- `aggro_flanker_1` display name: **Sadistic Marquis / Sadystyczny Markiz**. Lean into a libertine aristocrat, elegant predator, ceremonial sadism, white gloves, lace, aristocratic refinement, and controlled cruelty instead of chaotic rage. Avoid generic duelist, generic berserker, or generic rogue silhouettes.
+- `aggro_full_attack_1` display name: **Velvet Serum / Aksamitne Serum**. Depict aristocratic combat stimulants, decadent immortality treatments, porcelain syringes, perfumed chemical enhancement, luxurious medical horror, and elegant addiction sustaining the immortal court. Motifs include gold syringes, crystal ampoules, velvet medical aesthetics, glowing serum, candlelit injection ritual, and aristocratic bio-alchemy. Avoid generic feast scenes, generic fantasy potions, or modern sci-fi biotech.
+- `aggro_rush_1` display name: **Crimson Waltz / Karmazynowy Walc**. Emphasize violent partner-swapping dance, elegant momentum, swirling ballroom motion, theatrical choreography, romanticized violence, rotational movement, and impact.
+- `aggro_quick_fix_1` display name: **Mercy Etiquette / Etykieta Miłosierdzia**. Emphasize ceremonial healing through cruelty, aristocratic politeness masking violence, refined medical brutality, and elegant sadism presented as compassion.
 
 ### control — Orden der Glasköpfe
 
@@ -161,7 +169,7 @@ Use these as modular prompt helpers. Combine global tags with one faction set an
 
 ### Faction Prompt Tags
 
-- **Porcelain Court:** `rococo chaos, powdered aristocracy, porcelain automata, ballroom violence, cracked porcelain, gold trim, lace uniforms, rose garden, candlelit carnage, pastel luxury`
+- **Porcelain Court:** `rococo chaos, decadent immortal aristocracy, porcelain automata, televised ballroom violence, chemical degeneration, ceremonial brutality, cracked porcelain, gold trim, lace uniforms, white gloves, gold syringes, crystal ampoules, velvet medical rituals, rose garden, candlelit carnage, pastel luxury`
 - **Orden der Glasköpfe:** `techno-occult Reich, brain in glass cylinder, cold technocracy, neural cables, red optics, steel walkers, surveillance towers, industrial paranoia, machine theology`
 - **Spore Choir:** `psychedelic biology, cosmic mycelium, beautiful bio-horror, glowing spores, wet organic textures, bioluminescent fungi, translucent flesh, dreamlike forest`
 - **Gravehearts:** `gothic romance, necro-rockabilly, funeral swing, undead lovers, velvet coffins, funeral roses, moonlit graveyard, cemetery neon, melancholic grotesque`
