@@ -29,7 +29,7 @@ Current roster count: **6 full base gameplay factions**. `attrition-swarm` is a 
 
 Active card illustrations use `public/assets/cards/{factionId}/{artAssetId}.webp`. Illustration files use stable internal art asset ids, not card names and not gameplay card ids. This keeps filenames safe while names, copy, balance, and gameplay ids continue to evolve during design.
 
-Reserved folder examples for the current faction roster:
+Canonical folder examples for the current faction roster:
 
 ```text
 public/assets/cards/aggro/
@@ -171,6 +171,6 @@ Use manual assets to verify that:
 Board and compact units do **not** render production card illustrations in the MVP. The board renderer remains art-free for readability and crop safety, and board rendering behavior should remain unchanged unless a future task explicitly changes that contract.
 
 
-## Active vs reserved card-art paths
+## Single canonical card-art path
 
-The active production card illustration pipeline uses `public/assets/cards/{factionId}/{artAssetId}.webp`. Faction preview art uses `public/assets/factions/{factionId}/preview.webp` and is separate from card illustrations. Any `public/assets/factions/{factionId}/cards/` directory is reserved/inactive unless a future implementation explicitly wires that path into the renderer.
+The production card illustration pipeline uses exactly one source directory: `public/assets/cards/{factionId}/{artAssetId}.webp`. Faction preview art uses `public/assets/factions/{factionId}/preview.webp` and is separate from gameplay card illustrations. Do not create or document faction-local gameplay card-art folders under `public/assets/factions/`.
