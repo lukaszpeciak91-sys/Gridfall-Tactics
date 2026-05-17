@@ -65,9 +65,9 @@ const CARD_STAT_SYMBOL_KEYS = Object.freeze({
   '●': 'health',
 });
 
-export const INLINE_EFFECT_ICON_STAT_FONT_SCALE = 1.08;
-export const INLINE_EFFECT_ICON_BASELINE_OFFSET_RATIO = -0.04;
-export const INLINE_EFFECT_ICON_SPACE_SCALE = 0.42;
+export const INLINE_EFFECT_ICON_STAT_FONT_SCALE = 1.18;
+export const INLINE_EFFECT_ICON_BASELINE_OFFSET_RATIO = -0.06;
+export const INLINE_EFFECT_ICON_SPACE_SCALE = 0.34;
 
 const CARD_GAMEPLAY_SYMBOL_STYLES = Object.freeze({
   [CARD_EFFECT_GAMEPLAY_SYMBOLS.ally]: Object.freeze({
@@ -400,16 +400,16 @@ function createStatGlyph(scene, x, y, size, key, value, style, isKnown, fontSize
   const text = scene.add.text(0, textOffsetY, valueText, {
     fontFamily: 'Arial, sans-serif',
     fontSize: `${fontSize}px`,
-    color: isKnown ? '#061426' : '#94a3b8',
+    color: isKnown ? '#020817' : '#94a3b8',
     fontStyle: 'bold',
     align: 'center',
-    stroke: isKnown ? '#fff7ed' : '#0f172a',
-    strokeThickness: isKnown ? Math.max(1, Math.round(size * 0.075)) : 1,
+    stroke: isKnown ? '#fff1d6' : '#0f172a',
+    strokeThickness: isKnown ? Math.max(2, Math.round(size * 0.105)) : 1,
     fixedWidth: Math.ceil(size * 1.02),
     fixedHeight: Math.ceil(size * 0.84),
   }).setOrigin(0.5);
   if (isKnown) {
-    text.setShadow(0, 1, 'rgba(255, 255, 255, 0.28)', 1);
+    text.setShadow(0, 1, 'rgba(255, 255, 255, 0.46)', 2);
   }
 
   glyph.add([glow, outline, symbol, glass, text]);
@@ -569,6 +569,7 @@ export function createCardPreviewView(scene, {
     0,
     {
       sizeScale: statBadgeScale,
+      fontScale: typographyScale > 1 ? 1.06 : 1.1,
       maxGroupWidthRatio: 0.9,
       spacingScale: typographyScale > 1 ? 1.16 : 1.12,
     },
