@@ -58,7 +58,7 @@ test('outside taps clear selection without intercepting board, pass, or card inp
   assert.match(source, /this\.input\.off\('pointerup', this\.onScenePointerUp, this\);/);
   assert.match(source, /this\.bottomControlViews = \[\];/);
   assert.match(source, /this\.bottomControlViews = \[menu\];/);
-  assert.match(source, /onScenePointerUp\(pointer, currentlyOver = \[\]\) \{\s*if \(this\.battleResultModalShown \|\| this\.isFlowResolving \|\| this\.isEffectCastResolving\) return;[\s\S]*if \(!this\.selectedCardId && !this\.targetingState && !this\.effectCastState\) \{\s*this\.clearBoardInspectFromOutsideTap\(pointer, currentlyOver\);\s*return;\s*\}\s*if \(this\.isPointerUpReservedForUi\(pointer, currentlyOver\)\) return;/);
+  assert.match(source, /onScenePointerUp\(pointer, currentlyOver = \[\]\) \{\s*if \(this\.isPointerEventGuarded\(pointer\) \|\| this\.navigationInProgress\) return;\s*if \(this\.battleResultModalShown \|\| this\.isFlowResolving \|\| this\.isEffectCastResolving\) return;[\s\S]*if \(!this\.selectedCardId && !this\.targetingState && !this\.effectCastState\) \{\s*this\.clearBoardInspectFromOutsideTap\(pointer, currentlyOver\);\s*return;\s*\}\s*if \(this\.isPointerUpReservedForUi\(pointer, currentlyOver\)\) return;/);
   assert.match(source, /clearOpeningMulliganPreviewFromOutsideTap\(pointer, currentlyOver = \[\]\) \{\s*if \(!this\.previewedMulliganCardId && !this\.selectedHandCardZoom\) return;\s*if \(this\.isPointerInsideMulliganHandOrPreview\(pointer, currentlyOver\)\) return;\s*this\.previewedMulliganCardId = null;[\s\S]*this\.pressedHandCardId = null;\s*this\.resetCardHighlights\(\{ showPreview: false \}\);\s*\}/);
   assert.match(source, /isPointerInsideMulliganHandOrPreview\(pointer, currentlyOver = \[\]\) \{[\s\S]*const handTop = hand\.y;[\s\S]*return pointer\.x >= handLeft && pointer\.x <= handRight && pointer\.y >= handTop && pointer\.y <= handBottom;/);
   assert.match(source, /if \(this\.pressedHandCardId\) \{\s*this\.cancelHandCardLongPress\(\);\s*this\.pressedHandCardId = null;\s*return;\s*\}\s*const boardCell = this\.getBoardCellFromPointerUp\(pointer, currentlyOver\);\s*if \(boardCell\) \{\s*const selectedCard = this\.gameState\.player\.hand\.find\(\(card\) => card\.id === this\.selectedCardId\);/);
@@ -79,6 +79,19 @@ test('outside taps clear selection without intercepting board, pass, or card inp
   assert.match(source, /background\.on\('pointerup', \(\) => \{\s*this\.onBoardCellTap\(boardIndex\);\s*\}\);/);
 });
 
+
+
+test('tactical menu and inspect are mutually safe during navigation', () => {
+  assert.match(source, /this\.navigationInProgress = false;/);
+  assert.match(source, /this\.pointerInputGuardActive = false;/);
+  assert.match(source, /clearPointerInputGuard\(\) \{\s*this\.pointerInputGuardActive = false;\s*this\.pointerInputGuardEventId = null;\s*\}/);
+  assert.match(source, /showUtilityMenuPanel\(\) \{\s*if \(this\.navigationInProgress\) return;\s*this\.closeInspectPreview\(\{ animate: false \}\);\s*this\.destroyUtilityMenuPanel\(\);/);
+  assert.match(source, /closeInspectPreview\(\{ animate = false, clearSelection = false \} = \{\}\) \{[\s\S]*this\.cancelHandCardLongPress\(\);[\s\S]*this\.hoverInspectCardId = null;[\s\S]*this\.boardInspectIndex = null;[\s\S]*this\.previewedMulliganCardId = null;[\s\S]*this\.pressedHandCardId = null;[\s\S]*this\.longPressTriggeredCardId = null;[\s\S]*this\.destroySelectedHandCardZoom\(\{ animate \}\);/);
+  assert.match(source, /prepareUtilityMenuNavigation\(\{ includeBattleResultModal = false \} = \{\}\) \{[\s\S]*this\.navigationInProgress = true;[\s\S]*this\.closeInspectPreview\(\{ animate: false, clearSelection: true \}\);[\s\S]*this\.destroyUtilityMenuPanel\(\);[\s\S]*this\.destroyDeckInfoPanel\(\);/);
+  assert.match(source, /onCardPointerDown\(cardId\) \{\s*if \(this\.utilityMenuPanel \|\| this\.navigationInProgress \|\| this\.pointerInputGuardActive\) return;/);
+  assert.match(source, /startHandCardLongPress\(cardId\) \{[\s\S]*if \(this\.utilityMenuPanel \|\| this\.navigationInProgress \|\| this\.pointerInputGuardActive\) return;/);
+  assert.match(source, /onScenePointerUp\(pointer, currentlyOver = \[\]\) \{\s*if \(this\.isPointerEventGuarded\(pointer\) \|\| this\.navigationInProgress\) return;/);
+});
 
 test('effect casting is staged before targeted resolution and cancel reuses the action button', () => {
   assert.match(source, /this\.effectCastState = \{ cardId: card\.id, targetingState \};/);
@@ -120,7 +133,7 @@ test('board unit inspect opens from occupied slots and reuses the full hand-card
   assert.match(source, /background\.on\('pointerup', \(\) => \{\s*this\.onBoardCellTap\(boardIndex\);\s*\}\);/);
   assert.doesNotMatch(source, /background\.on\('pointerover', \(\) => \{\s*this\.onBoardCellPointerOver\(boardIndex\);\s*\}\);/);
   assert.match(source, /onBoardCellPointerOut\(\) \{\s*\/\/ Board inspect is tap-driven and stays open until an outside tap or state change clears it\./);
-  assert.match(source, /showBoardUnitInspect\(boardIndex\) \{\s*if \(this\.selectedCardId \|\| this\.targetingState \|\| this\.effectCastState \|\| this\.isEffectCastResolving \|\| this\.pressedHandCardId\) return false;\s*const unit = this\.gameState\?\.board\?\.\[boardIndex\] \?\? null;\s*if \(!unit\) return false;\s*this\.hoverInspectCardId = null;\s*this\.boardInspectIndex = boardIndex;\s*this\.showSelectedHandCardZoom\(\);\s*return true;\s*\}/);
+  assert.match(source, /showBoardUnitInspect\(boardIndex\) \{\s*if \(this\.utilityMenuPanel \|\| this\.navigationInProgress \|\| this\.selectedCardId \|\| this\.targetingState \|\| this\.effectCastState \|\| this\.isEffectCastResolving \|\| this\.pressedHandCardId\) return false;\s*const unit = this\.gameState\?\.board\?\.\[boardIndex\] \?\? null;\s*if \(!unit\) return false;\s*this\.hoverInspectCardId = null;\s*this\.boardInspectIndex = boardIndex;\s*this\.showSelectedHandCardZoom\(\);\s*return true;\s*\}/);
   assert.match(source, /if \(!this\.selectedCardId && !this\.targetingState && !this\.effectCastState\) \{\s*const unit = this\.gameState\.board\[boardIndex\];[\s\S]*this\.showBoardUnitInspect\(boardIndex\);\s*return;\s*\}/);
   assert.match(source, /if \(this\.boardInspectIndex !== null\) \{\s*const unit = this\.gameState\.board\[this\.boardInspectIndex\];\s*const cell = this\.getCellByIndex\(this\.boardInspectIndex\);/);
   assert.match(source, /card: unit,\s*cardId: unit\.cardId \?\? unit\.id \?\? `board-\$\{this\.boardInspectIndex\}-unit`,\s*sourceX: cell\.background\.x,\s*sourceY: cell\.background\.y,/);

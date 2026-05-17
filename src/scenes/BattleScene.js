@@ -164,6 +164,9 @@ export default class BattleScene extends Phaser.Scene {
     this.pressedHandCardId = null;
     this.handCardLongPressEvent = null;
     this.longPressTriggeredCardId = null;
+    this.navigationInProgress = false;
+    this.pointerInputGuardActive = false;
+    this.pointerInputGuardEventId = null;
   }
 
   preload() {
@@ -227,6 +230,9 @@ export default class BattleScene extends Phaser.Scene {
     this.pressedHandCardId = null;
     this.handCardLongPressEvent = null;
     this.longPressTriggeredCardId = null;
+    this.navigationInProgress = false;
+    this.pointerInputGuardActive = false;
+    this.pointerInputGuardEventId = null;
   }
 
   cleanupSceneObjects({ preserveTimers = false, preserveTweens = false } = {}) {
@@ -492,7 +498,11 @@ export default class BattleScene extends Phaser.Scene {
       y,
       touchSize,
       '☰',
-      () => this.toggleUtilityMenuPanel(),
+      (pointer, localX, localY, event) => {
+        event?.stopPropagation?.();
+        this.guardPointerEvent(pointer);
+        this.toggleUtilityMenuPanel();
+      },
       { fontScale: 0.5 },
     );
 
@@ -500,7 +510,10 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   toggleUtilityMenuPanel() {
+    if (this.navigationInProgress) return;
+
     if (this.utilityMenuPanel) {
+      this.guardPointerEvent();
       this.destroyUtilityMenuPanel();
       return;
     }
@@ -509,6 +522,9 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   showUtilityMenuPanel() {
+    if (this.navigationInProgress) return;
+
+    this.closeInspectPreview({ animate: false });
     this.destroyUtilityMenuPanel();
 
     const { width, height, margin } = this.layout;
@@ -530,9 +546,15 @@ export default class BattleScene extends Phaser.Scene {
     const outsideCatcher = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.001)
       .setInteractive()
       .setDepth(depth);
-    outsideCatcher.on('pointerup', () => this.destroyUtilityMenuPanel());
+    outsideCatcher.on('pointerup', (pointer, localX, localY, event) => {
+      event?.stopPropagation?.();
+      this.guardPointerEvent(pointer);
+      this.destroyUtilityMenuPanel();
+    });
 
-    const triggerControl = createFloatingControl(this, triggerX, triggerY, touchSize, '☰', () => {
+    const triggerControl = createFloatingControl(this, triggerX, triggerY, touchSize, '☰', (pointer, localX, localY, event) => {
+      event?.stopPropagation?.();
+      this.guardPointerEvent(pointer);
       this.destroyUtilityMenuPanel();
     }, { fontScale: 0.5 });
 
@@ -603,6 +625,8 @@ export default class BattleScene extends Phaser.Scene {
     };
     const handlePointerUp = (pointer, localX, localY, event) => {
       event?.stopPropagation?.();
+      this.guardPointerEvent(pointer);
+      if (this.navigationInProgress) return;
       onClick();
     };
 
@@ -639,6 +663,63 @@ export default class BattleScene extends Phaser.Scene {
       item?.destroy?.();
     });
     this.utilityMenuPanel = null;
+  }
+
+  guardPointerEvent(pointer = null) {
+    this.pointerInputGuardActive = true;
+    this.pointerInputGuardEventId = pointer?.id ?? pointer?.pointerId ?? null;
+    this.time?.delayedCall?.(0, () => this.clearPointerInputGuard());
+  }
+
+  clearPointerInputGuard() {
+    this.pointerInputGuardActive = false;
+    this.pointerInputGuardEventId = null;
+  }
+
+  isPointerEventGuarded(pointer = null) {
+    if (!this.pointerInputGuardActive) return false;
+    const pointerId = pointer?.id ?? pointer?.pointerId ?? null;
+    return this.pointerInputGuardEventId === null || pointerId === null || pointerId === this.pointerInputGuardEventId;
+  }
+
+  closeInspectPreview({ animate = false, clearSelection = false } = {}) {
+    this.cancelHandCardLongPress();
+    this.hoverInspectCardId = null;
+    this.boardInspectIndex = null;
+    this.previewedMulliganCardId = null;
+    this.pressedHandCardId = null;
+    this.longPressTriggeredCardId = null;
+
+    if (clearSelection) {
+      this.selectedCardId = null;
+      this.pendingSwapIndex = null;
+      this.targetingState = null;
+      this.effectCastState = null;
+      this.isEffectCastResolving = false;
+      this.destroyTargetingInstruction();
+    }
+
+    this.destroySelectedHandCardZoom({ animate });
+    this.resetCardHighlights({ showPreview: false });
+    this.updateActionButtonLabel?.();
+  }
+
+  prepareUtilityMenuNavigation({ includeBattleResultModal = false } = {}) {
+    if (this.navigationInProgress) return false;
+
+    this.navigationInProgress = true;
+    this.guardPointerEvent();
+    this.closeInspectPreview({ animate: false, clearSelection: true });
+    this.destroyUtilityMenuPanel();
+    this.destroyDeckInfoPanel();
+
+    if (includeBattleResultModal) {
+      this.destroyBattleResultModal();
+    }
+
+    this.isFlowResolving = false;
+    this.openingMulliganPending = false;
+    return true;
   }
 
   getBattleResultText() {
@@ -794,64 +875,52 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   exitBattleToFactionSelect() {
-    this.destroyUtilityMenuPanel();
-    this.destroyBattleResultModal();
-    this.isFlowResolving = false;
-    this.selectedCardId = null;
-    this.pendingSwapIndex = null;
-    this.targetingState = null;
-    this.effectCastState = null;
-    this.isEffectCastResolving = false;
-    this.destroyTargetingInstruction();
-    this.openingMulliganPending = false;
+    if (!this.prepareUtilityMenuNavigation({ includeBattleResultModal: true })) return;
     this.scene.start('FactionSelectScene');
   }
 
   openRulesPanel() {
-    this.destroyUtilityMenuPanel();
+    if (!this.prepareUtilityMenuNavigation()) return;
     this.scene.launch('RulesPanelScene', { returnSceneKey: 'BattleScene' });
     this.scene.pause();
   }
 
   openBattleMenu() {
-    this.destroyUtilityMenuPanel();
+    if (!this.prepareUtilityMenuNavigation()) return;
     this.scene.launch('BattleMenuScene', { factionKey: this.factionKey, returnSceneKey: 'BattleScene' });
     this.scene.pause();
   }
 
   resumeFromRulesPanel() {
+    this.navigationInProgress = false;
+    this.clearPointerInputGuard();
     this.scene.resume();
     this.recoverFromLifecycle('rules-panel-return');
   }
 
   resumeFromBattleMenu() {
+    this.navigationInProgress = false;
+    this.clearPointerInputGuard();
     this.scene.resume();
     this.recoverFromLifecycle('battle-menu-return');
   }
 
   openSettingsScene() {
-    this.destroyUtilityMenuPanel();
+    if (!this.prepareUtilityMenuNavigation()) return;
     this.scene.start('SettingsScene');
   }
 
   exitBattleToMainMenu() {
-    this.destroyUtilityMenuPanel();
-    this.destroyBattleResultModal();
-    this.isFlowResolving = false;
-    this.selectedCardId = null;
-    this.pendingSwapIndex = null;
-    this.targetingState = null;
-    this.effectCastState = null;
-    this.isEffectCastResolving = false;
-    this.destroyTargetingInstruction();
-    this.openingMulliganPending = false;
+    if (!this.prepareUtilityMenuNavigation({ includeBattleResultModal: true })) return;
     this.scene.start('MainMenuScene');
   }
 
   retryBattle() {
     const factionKey = this.factionKey;
     const enemyFactionKey = this.enemyFactionKey;
+    this.closeInspectPreview({ animate: false, clearSelection: true });
     this.destroyUtilityMenuPanel();
+    this.destroyDeckInfoPanel();
     this.destroyBattleResultModal();
     this.isFlowResolving = false;
     this.selectedCardId = null;
@@ -1625,7 +1694,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   showBoardUnitInspect(boardIndex) {
-    if (this.selectedCardId || this.targetingState || this.effectCastState || this.isEffectCastResolving || this.pressedHandCardId) return false;
+    if (this.utilityMenuPanel || this.navigationInProgress || this.selectedCardId || this.targetingState || this.effectCastState || this.isEffectCastResolving || this.pressedHandCardId) return false;
 
     const unit = this.gameState?.board?.[boardIndex] ?? null;
     if (!unit) return false;
@@ -1641,6 +1710,8 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   onCardPointerDown(cardId) {
+    if (this.utilityMenuPanel || this.navigationInProgress || this.pointerInputGuardActive) return;
+
     this.cancelHandCardLongPress();
     this.longPressTriggeredCardId = null;
     this.pressedHandCardId = cardId;
@@ -1690,6 +1761,7 @@ export default class BattleScene extends Phaser.Scene {
     this.handCardLongPressEvent = this.time.delayedCall(HAND_CARD_LONG_PRESS_MS, () => {
       this.handCardLongPressEvent = null;
       if (this.pressedHandCardId !== cardId) return;
+      if (this.utilityMenuPanel || this.navigationInProgress || this.pointerInputGuardActive) return;
       if (this.battleResultModalShown || this.isFlowResolving || this.openingMulliganPending || this.playerActionUsed) return;
 
       const card = this.gameState?.player?.hand?.find((item) => item.id === cardId);
@@ -1712,6 +1784,13 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   onCardPointerUp(cardId) {
+    if (this.utilityMenuPanel || this.navigationInProgress || this.pointerInputGuardActive) {
+      this.cancelHandCardLongPress();
+      this.pressedHandCardId = null;
+      this.longPressTriggeredCardId = null;
+      return;
+    }
+
     if (this.pressedHandCardId !== cardId) {
       return;
     }
@@ -1743,6 +1822,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   onScenePointerUp(pointer, currentlyOver = []) {
+    if (this.isPointerEventGuarded(pointer) || this.navigationInProgress) return;
     if (this.battleResultModalShown || this.isFlowResolving || this.isEffectCastResolving) return;
 
     if (this.openingMulliganPending) {
@@ -1913,6 +1993,10 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   onBoardCellTap(boardIndex) {
+    if (this.utilityMenuPanel || this.navigationInProgress || this.pointerInputGuardActive) {
+      return;
+    }
+
     if (this.battleResultModalShown) {
       return;
     }
