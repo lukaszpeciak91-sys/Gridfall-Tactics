@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import path from 'node:path';
 
+import { getFactionByKey, getFactionKeys } from '../src/data/factions/index.js';
 import {
   factionPresentation,
   getCardPresentationName,
@@ -10,11 +10,8 @@ import {
   getFactionPresentationName,
 } from '../src/data/presentation/factionPresentation.js';
 
-const factionDir = 'src/data/factions';
-const factionFiles = ['aggro.json', 'attrition-swarm.json', 'control.json', 'swarm.json', 'tank.json', 'wardens.json'];
-
 function loadFactions() {
-  return factionFiles.map((file) => JSON.parse(fs.readFileSync(path.join(factionDir, file), 'utf8')));
+  return getFactionKeys().map((factionKey) => getFactionByKey(factionKey));
 }
 
 function allCards() {
@@ -79,6 +76,18 @@ test('faction presentation names resolve by locale with safe fallbacks', () => {
   assert.equal(getFactionPresentationName('aggro', 'de'), 'Porcelain Court');
   assert.equal(getFactionPresentationName('missing-faction', 'pl'), 'missing-faction');
   assert.equal(getFactionPresentationName('missing-faction', 'pl', 'Raw Faction Name'), 'Raw Faction Name');
+});
+
+
+test('faction select metadata covers Attrition Swarm without Aggro fallback details', () => {
+  const source = fs.readFileSync('src/scenes/FactionSelectScene.js', 'utf8');
+  const detailsStart = source.indexOf('const FACTION_CARD_DETAILS = {');
+  const detailsEnd = source.indexOf('const CARD_SCROLL_DRAG_THRESHOLD');
+  const detailsSource = source.slice(detailsStart, detailsEnd);
+
+  assert.match(detailsSource, /'Attrition Swarm': \{/);
+  assert.match(detailsSource, /tags: \['Attrition', 'Death'\]/);
+  assert.match(detailsSource, /description: 'Death value and recursion\.'/);
 });
 
 test('faction presentation helper falls back safely when display metadata is incomplete', async () => {

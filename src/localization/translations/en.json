@@ -292,7 +292,8 @@
         "Tank": "Armor and sustain.",
         "Control": "Disrupt and reposition.",
         "Swarm": "Board swarm tactics.",
-        "Wardens": "Defensive friction and zone control."
+        "Wardens": "Defensive friction and zone control.",
+        "Attrition Swarm": "Death value and recursion."
       },
       "tags": {
         "Rush": "Rush",
@@ -303,7 +304,9 @@
         "Move": "Move",
         "Tokens": "Tokens",
         "Buffs": "Buffs",
-        "Friction": "Friction"
+        "Friction": "Friction",
+        "Attrition": "Attrition",
+        "Death": "Death"
       }
     },
     "settings": {

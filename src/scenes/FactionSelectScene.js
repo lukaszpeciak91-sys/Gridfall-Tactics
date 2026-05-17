@@ -50,6 +50,13 @@ const FACTION_CARD_DETAILS = {
     fallbackTopColor: 0x713f12,
     fallbackBottomColor: 0x0f172a,
   },
+  'Attrition Swarm': {
+    description: 'Death value and recursion.',
+    tags: ['Attrition', 'Death'],
+    accentColor: 0xec4899,
+    fallbackTopColor: 0x4c0519,
+    fallbackBottomColor: 0x0f172a,
+  },
 };
 
 const CARD_SCROLL_DRAG_THRESHOLD = 8;

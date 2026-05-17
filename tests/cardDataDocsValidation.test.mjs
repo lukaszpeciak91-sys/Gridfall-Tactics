@@ -1,13 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import path from 'node:path';
 
+import { getFactionByKey, getFactionKeys } from '../src/data/factions/index.js';
 import { getTargetingStateForEffect } from '../src/systems/cardTargeting.js';
 import { createInitialBattleState, playOrRedeployUnit, resolveTargetedUnitOnPlayEffect } from '../src/systems/GameState.js';
-
-const factionDir = 'src/data/factions';
-const factionFiles = ['aggro.json', 'attrition-swarm.json', 'control.json', 'swarm.json', 'tank.json', 'wardens.json'];
 
 const expectedTextShort = new Map(Object.entries({
   aggro_runner_1: 'Open line: enemy hero loses 2 HP.',
@@ -56,7 +53,7 @@ const expectedTextShort = new Map(Object.entries({
 }));
 
 function loadFactions() {
-  return factionFiles.map((file) => JSON.parse(fs.readFileSync(path.join(factionDir, file), 'utf8')));
+  return getFactionKeys().map((factionKey) => getFactionByKey(factionKey));
 }
 
 function allCards() {
@@ -80,12 +77,19 @@ test('MVP faction card ids are unique across source decks', () => {
 });
 
 
-test('MVP faction cards have stable internal art asset ids by faction order', () => {
+test('MVP faction cards have stable internal art asset ids decoupled from deck order', () => {
   for (const faction of loadFactions()) {
-    faction.deck.forEach((card, index) => {
-      const cardNumber = index + 1;
-      const twoDigitCardNumber = String(cardNumber).padStart(2, '0');
-      assert.equal(card.cardNumber, cardNumber, `${card.id} cardNumber`);
+    const cardNumbers = new Set();
+
+    faction.deck.forEach((card) => {
+      assert.equal(typeof card.cardNumber, 'number', `${card.id} cardNumber must be numeric`);
+      assert.equal(Number.isFinite(card.cardNumber), true, `${card.id} cardNumber must be finite`);
+      assert.equal(Number.isInteger(card.cardNumber), true, `${card.id} cardNumber must be an integer`);
+      assert.ok(card.cardNumber > 0, `${card.id} cardNumber must be positive`);
+      assert.equal(cardNumbers.has(card.cardNumber), false, `${card.id} cardNumber must be unique within ${faction.id}`);
+      cardNumbers.add(card.cardNumber);
+
+      const twoDigitCardNumber = String(card.cardNumber).padStart(2, '0');
       assert.equal(card.artAssetId, `${faction.id}_${twoDigitCardNumber}`, `${card.id} artAssetId`);
     });
   }

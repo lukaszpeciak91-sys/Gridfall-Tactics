@@ -18,6 +18,7 @@ import {
   recordPassAction,
   MAX_TURNS,
 } from '../src/systems/GameState.js';
+import { getFactionByKey, getFactionKeys } from '../src/data/factions/index.js';
 import { chooseBattleAction, recordBattleActionUse, selectOpeningMulliganCardIds } from '../src/systems/enemyDecision.js';
 
 const DEFAULT_MATCH_COUNT = 1000;
@@ -30,15 +31,8 @@ const REPRESENTATIVE_LOG_LIMIT = 24;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..');
-const factionsDir = path.resolve(repoRoot, 'src/data/factions');
-
 function loadFactions() {
-  const files = fs.readdirSync(factionsDir).filter((name) => name.endsWith('.json')).sort();
-  const entries = files.map((file) => {
-    const data = JSON.parse(fs.readFileSync(path.join(factionsDir, file), 'utf8'));
-    return [data.name, data];
-  });
-  return Object.fromEntries(entries);
+  return Object.fromEntries(getFactionKeys().map((factionKey) => [factionKey, getFactionByKey(factionKey)]));
 }
 
 function createSeededRng(seedInput) {

@@ -1,6 +1,3 @@
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import {
   createInitialBattleState,
   drawCards,
@@ -18,6 +15,7 @@ import {
   recordPassAction,
   MAX_TURNS,
 } from '../src/systems/GameState.js';
+import { getFactionByKey, getFactionKeys } from '../src/data/factions/index.js';
 import { chooseBattleAction, recordBattleActionUse, selectOpeningMulliganCardIds } from '../src/systems/enemyDecision.js';
 
 const DEFAULT_MATCH_COUNT = 100;
@@ -26,16 +24,8 @@ const SHUFFLE_DECKS = true;
 const FIRST_ACTOR_POLICY = 'random-initial-then-alternating';
 const TIE_BREAK_POLICY = 'seeded-random';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const factionsDir = path.resolve(__dirname, '../src/data/factions');
-
 function loadFactions() {
-  const files = fs.readdirSync(factionsDir).filter((name) => name.endsWith('.json')).sort();
-  const entries = files.map((file) => {
-    const data = JSON.parse(fs.readFileSync(path.join(factionsDir, file), 'utf8'));
-    return [data.name, data];
-  });
-  return Object.fromEntries(entries);
+  return Object.fromEntries(getFactionKeys().map((factionKey) => [factionKey, getFactionByKey(factionKey)]));
 }
 
 function createSeededRng(seedInput) {

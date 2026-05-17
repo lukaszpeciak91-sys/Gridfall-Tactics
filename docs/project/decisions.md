@@ -10,7 +10,7 @@
 - Use a **3x3 visual board framing** to keep systems and balancing simple.
 - Implement **turn-based** combat flow.
 - Limit players to **1 action per turn** in MVP.
-- Start with **4 faction archetypes** to establish strategic variety.
+- Historical initial scope: start with **4 faction archetypes** to establish strategic variety. Current source-of-truth is **6 full base gameplay factions** (`aggro`, `tank`, `control`, `swarm`, `wardens`, `attrition-swarm`); `attrition-swarm` is permanent, not a temporary variant.
 
 ## Battle UI MVP Layout (2026-04-29)
 - Lock battle screen to a **mobile-first portrait 9:16** layout for MVP.
