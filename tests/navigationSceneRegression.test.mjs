@@ -56,7 +56,7 @@ test('BattleScene enemy action pacing constants resolve during turn flow', () =>
 test('BattleScene returns to faction select through a cleanup path and retry stays in BattleScene', () => {
   const source = readScene('src/scenes/BattleScene.js');
 
-  assert.match(source, /drawActionRowUtilityMenuTrigger\(\) \{[\s\S]*getActionRowUtilityMenuMetrics\(\);[\s\S]*createFloatingControl\([\s\S]*'☰',[\s\S]*\(\) => this\.toggleUtilityMenuPanel\(\),[\s\S]*this\.bottomControlViews = \[menu\];[\s\S]*\}/);
+  assert.match(source, /drawActionRowUtilityMenuTrigger\(\) \{[\s\S]*getActionRowUtilityMenuMetrics\(\);[\s\S]*createFloatingControl\([\s\S]*'☰',[\s\S]*this\.guardPointerEvent\(pointer\);[\s\S]*this\.toggleUtilityMenuPanel\(\);[\s\S]*this\.bottomControlViews = \[menu\];[\s\S]*\}/);
   assert.match(source, /this\.scene\.start\('FactionSelectScene'\)/);
   assert.match(source, /this\.scene\.restart\(\{ factionKey, enemyFactionKey \}\)/);
   assert.match(source, /exitBattleToFactionSelect\(\) \{[\s\S]*this\.scene\.start\('FactionSelectScene'\)/);
@@ -103,13 +103,13 @@ test('battle utility menu opens panel actions and rules resume the existing scen
   const mainSource = readScene('src/main.js');
 
   assert.match(helperSource, /rules: middleAction \? createFloatingControl\(scene, metrics\.width \* 0\.5, metrics\.centerY, metrics\.touchSize, '\?', middleAction/);
-  assert.match(battleSource, /drawActionRowUtilityMenuTrigger\(\) \{[\s\S]*'☰',[\s\S]*\(\) => this\.toggleUtilityMenuPanel\(\),[\s\S]*this\.bottomControlViews = \[menu\];[\s\S]*\}/);
-  assert.match(battleSource, /showUtilityMenuPanel\(\) \{[\s\S]*outsideCatcher\.on\('pointerup', \(\) => this\.destroyUtilityMenuPanel\(\)\);[\s\S]*createMuteToggleControl\(this,[\s\S]*translateActive\('ui\.common\.rules', 'Rules'\), \(\) => this\.openRulesPanel\(\)\),[\s\S]*translateActive\('ui\.common\.settings', 'Settings'\), \(\) => this\.openSettingsScene\(\)\),[\s\S]*translateActive\('ui\.battle\.returnToFactionSelect', 'Return \/ Back'\), \(\) => this\.exitBattleToFactionSelect\(\)\),[\s\S]*translateActive\('ui\.battle\.exitToMainMenu', 'Exit Battle \/ Main Menu'\), \(\) => this\.exitBattleToMainMenu\(\)\),[\s\S]*\}/);
+  assert.match(battleSource, /drawActionRowUtilityMenuTrigger\(\) \{[\s\S]*'☰',[\s\S]*this\.guardPointerEvent\(pointer\);[\s\S]*this\.toggleUtilityMenuPanel\(\);[\s\S]*this\.bottomControlViews = \[menu\];[\s\S]*\}/);
+  assert.match(battleSource, /showUtilityMenuPanel\(\) \{[\s\S]*this\.closeInspectPreview\(\{ animate: false \}\);[\s\S]*outsideCatcher\.on\('pointerup',[\s\S]*this\.guardPointerEvent\(pointer\);[\s\S]*this\.destroyUtilityMenuPanel\(\);[\s\S]*createMuteToggleControl\(this,[\s\S]*translateActive\('ui\.common\.rules', 'Rules'\), \(\) => this\.openRulesPanel\(\)\),[\s\S]*translateActive\('ui\.common\.settings', 'Settings'\), \(\) => this\.openSettingsScene\(\)\),[\s\S]*translateActive\('ui\.battle\.returnToFactionSelect', 'Return \/ Back'\), \(\) => this\.exitBattleToFactionSelect\(\)\),[\s\S]*translateActive\('ui\.battle\.exitToMainMenu', 'Exit Battle \/ Main Menu'\), \(\) => this\.exitBattleToMainMenu\(\)\),[\s\S]*\}/);
   assert.match(battleSource, /openSettingsScene\(\) \{[\s\S]*this\.scene\.start\('SettingsScene'\);[\s\S]*\}/);
   assert.match(battleSource, /exitBattleToMainMenu\(\) \{[\s\S]*this\.scene\.start\('MainMenuScene'\);[\s\S]*\}/);
   assert.doesNotMatch(battleSource, /deckLabel: `x\$\{deckCount\}`/);
   assert.match(battleSource, /openRulesPanel\(\) \{[\s\S]*this\.scene\.launch\('RulesPanelScene', \{ returnSceneKey: 'BattleScene' \}\);[\s\S]*this\.scene\.pause\(\);[\s\S]*\}/);
-  assert.match(battleSource, /resumeFromRulesPanel\(\) \{[\s\S]*this\.scene\.resume\(\);[\s\S]*this\.recoverFromLifecycle\('rules-panel-return'\);[\s\S]*\}/);
+  assert.match(battleSource, /resumeFromRulesPanel\(\) \{[\s\S]*this\.navigationInProgress = false;[\s\S]*this\.scene\.resume\(\);[\s\S]*this\.recoverFromLifecycle\('rules-panel-return'\);[\s\S]*\}/);
   assert.match(factionSource, /openRulesPanel\(\) \{[\s\S]*this\.scene\.launch\('RulesPanelScene', \{ returnSceneKey: 'FactionSelectScene' \}\);[\s\S]*this\.scene\.pause\(\);[\s\S]*\}/);
   assert.doesNotMatch(rulesSource, /closeButton|['"]×['"]/);
   assert.match(rulesSource, /overlay\.on\('pointerup', \(\) => this\.closePanel\(\)\)/);
