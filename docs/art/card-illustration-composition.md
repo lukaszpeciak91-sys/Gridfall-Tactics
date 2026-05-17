@@ -1,6 +1,6 @@
 # Card Illustration Composition Standard
 
-This document formalizes the production composition rules for Gridfall Tactics card illustrations. It is an art-pipeline and rendering-guideline document only: do not use it to redesign card UI, gameplay, board layout, or crop logic.
+This document formalizes the production composition rules for Gridfall Tactics card illustrations. For exact runtime viewport measurements and source-space crop percentages, see `docs/art/card-art-rendering-diagnostic.md`. It is an art-pipeline and rendering-guideline document only: do not use it to redesign card UI, gameplay, board layout, or crop logic.
 
 ## Production intent
 
@@ -49,13 +49,13 @@ Practical source-space read: roughly **x `0–512`, y `189–579`** on a `390x84
 
 Hand inspect / zoom cards also enable production illustrations and reuse the same shared preview renderer. The inspect card is larger on screen, but it is vertically compacted relative to the hand-card aspect to fit the tactical board lane. That changes the artwork-zone aspect and can make the vertical crop slightly more aggressive.
 
-Practical source-space read on common portrait phone layouts: approximately **x `0–512`, y `203–565`**, preserving about **356–362px** of source height and discarding about **53–54% of the source height total** split across top and bottom. Inspect cards improve pixel size, but they do not recover lost top/bottom composition context.
+Practical source-space read on common portrait phone layouts: approximately **x `0–512`, y `191–574`**, preserving about **379–386px** of source height and discarding about **50% of the source height total** split across top and bottom. Inspect cards improve pixel size, but they do not recover lost top/bottom composition context.
 
 ### Collection-card artwork visible area
 
-Collection cards enable production illustrations through the same preview renderer. A two-column mobile collection grid makes the artwork zone somewhat less aggressive than inspect and often slightly less aggressive than hand cards.
+Collection cards enable production illustrations through the same preview renderer. A two-column mobile collection grid is the strictest active production-art crop and must be checked against the diagnostic safe zone.
 
-Practical source-space read on common portrait phone layouts: approximately **x `0–512`, y `172–596`**, preserving about **419–423px** of source height and discarding about **45% of the source height total** split across top and bottom.
+Practical source-space read on common portrait phone layouts: approximately **x `0–512`, y `228–540`**, preserving about **309–312px** of source height and discarding about **59–60% of the source height total** split across top and bottom.
 
 ### Board-card artwork behavior
 
@@ -70,8 +70,8 @@ Yes, but only because the artwork-zone dimensions differ. The crop algorithm is 
 | Surface | Production illustration textures? | Current behavior | Typical visible source from `512x768` |
 | --- | --- | --- | --- |
 | Hand cards | Yes | Shared center-cover crop | Full width, middle ~`383–390px` height |
-| Hand inspect / zoom | Yes | Shared center-cover crop in vertically compact inspect card | Full width, middle ~`356–362px` height |
-| Collection cards | Yes | Shared center-cover crop | Full width, middle ~`419–423px` height |
+| Hand inspect / zoom | Yes | Shared center-cover crop in vertically compact inspect card | Full width, middle ~`379–386px` height |
+| Collection cards | Yes | Shared center-cover crop | Full width, middle ~`309–312px` height |
 | Board slots | No | Empty tactical slots | No card illustration |
 | Board compact units | No | Placeholder art panel plus stats/name | No production illustration; future zone would be center-cover-like if enabled |
 | Board inspect | No | Detail shell with illustration disabled | No production illustration |
@@ -148,37 +148,43 @@ Artwork remains language-neutral and UI-neutral. Do not bake names, stats, rules
 
 ## Safe-zone standard for `512x768` sources
 
-Use these source-space zones when briefing, generating, cropping, and reviewing art.
+Use these source-space zones when briefing, generating, cropping, and reviewing art. The collection grid is the strictest active production-art crop, so universal production safety means surviving approximately y `230–540`, not only the hand-card middle half.
+
+### Universal visible zone
+
+- **Normalized:** full width by approximately y `30–70%`.
+- **Pixel guide:** x `0–512`, y `230–540`.
+- **Purpose:** content in this band is expected to remain visible across hand, hand inspect, and collection. Content outside this band may still appear in hand/inspect, but it is not universal.
 
 ### Must-survive zone
 
-- **Normalized:** center `60%` width by center `45%` height.
-- **Pixel guide:** x `102–410`, y `211–557`.
+- **Normalized:** center `76%` width by center `30%` height.
+- **Pixel guide:** x `61–451`, y `269–499`.
 - **Purpose:** the dominant silhouette, primary gesture, face/core/object, and gameplay-readable action must remain understandable inside this zone.
 
-This zone is conservative enough to survive hand and inspect crops without per-card renderer metadata.
+This zone is conservative enough to survive hand, inspect, and collection crops without per-card renderer metadata.
 
-### Recommended focal-point zone
+### Recommended focal-point target
 
-- **Normalized:** center `40%` width by center `30%` height.
-- **Pixel guide:** x `154–358`, y `269–499`.
+- **Normalized:** center `40%` width; face/core center around y `43–48%`.
+- **Pixel guide:** x `154–358`, with the face/core center around y `330–369`.
 - **Purpose:** place the strongest focal point here: head/torso center, monster core, weapon impact, ritual center, explosion heart, command signal, key object, or environment landmark.
 
-The focal point can extend beyond this zone, but the read should still be obvious if this is all the viewer notices at hand-card scale.
+The focal point can extend beyond this target, but the read should still be obvious if only the central band is visible at hand-card scale.
 
 ### Safe supporting-content zone
 
-- **Normalized:** center `80%` width by center `55%` height.
-- **Pixel guide:** x `51–461`, y `173–595`.
+- **Normalized:** center `90%` width by y `30–70%`.
+- **Pixel guide:** x `26–486`, y `230–540`.
 - **Purpose:** important secondary props, faction identifiers, readable limbs, major effects, and composition cues should fit here.
 
-This zone lines up with the practical collection-card crop and mostly survives hand-card crop, but the most important read must remain inside the must-survive zone.
+The most important read must remain inside the must-survive zone.
 
 ### Edge danger zones
 
-- **Left/right danger:** outer `10%` of width, x `0–51` and `461–512`.
-- **Top danger:** approximately y `0–173`; hand/inspect crops usually remove most or all of this area.
-- **Bottom danger:** approximately y `595–768`; hand/inspect crops usually remove most or all of this area.
+- **Left/right danger:** outer `5–10%` of width, x `0–26` and `486–512` for universal support safety, with x `0–61` and `451–512` unsafe for must-survive identity.
+- **Top danger:** approximately y `0–230`; hand/inspect remove most of the top quarter, and collection removes nearly the top `30%`.
+- **Bottom danger:** approximately y `540–768`; hand/inspect remove most of the bottom quarter, and collection removes nearly the bottom `30%`.
 
 Use danger zones only for bleed, atmosphere, non-essential environment, partial motion trails, cropped limbs, particles, smoke, audience lights, or background continuation.
 
@@ -205,21 +211,21 @@ Future artwork should optimize in this order:
 
 1. **Hand readability:** primary approval target because hand cards are the most frequent and smallest decision surface.
 2. **Shared crop-safe standard:** all production illustrations must survive the same central-safe composition without custom crop metadata.
-3. **Inspect and collection richness:** these views may show more pixels or slightly different context, but they should only add appreciation, not essential meaning.
+3. **Inspect and collection checks:** inspect may show more pixels and collection is the strictest active crop; neither view may contain the only complete version of the read.
 4. **Board variants:** board cards may intentionally reveal slightly more illustration context in the future, but board readability should not become the art target unless the board renderer is explicitly redesigned.
 
-A universal crop-safe standard is sufficient for the current pipeline and preferred for future variants. Board cards can reveal slightly more context as a bonus, but artwork must not depend on that extra board context because board production illustrations are not currently active and hand cards remain the mobile-first gameplay contract.
+A universal crop-safe standard is sufficient for the current pipeline and preferred for future variants. Board cards could reveal slightly more context if production textures are added later, but artwork must not depend on that extra board context because board production illustrations are not currently active and collection is the strictest active crop.
 
 ## Final production generation standard
 
 Use this checklist for every future card illustration prompt and art review:
 
 - Source is `512x768`, portrait 2:3, WebP-ready, no baked UI/text.
-- Primary read is centered, with the focal point inside x `154–358`, y `269–499`.
-- Dominant silhouette and gesture survive inside x `102–410`, y `211–557`.
-- Important supporting cues stay inside x `51–461`, y `173–595`.
+- Primary read is centered, with the face/core focal point around x `154–358`, y `330–369`.
+- Dominant silhouette and gesture survive inside x `61–451`, y `269–499`.
+- Important supporting cues stay inside x `26–486`, y `230–540`.
 - Upper and lower edge bands are treated as expendable atmosphere unless they overlap the central subject.
-- The image still reads when cropped to the middle ~`360–390px` of height.
+- The image still reads when cropped to the middle ~`309–390px` of height.
 - The hand-card thumbnail read is clear before inspecting the full source.
 - There is one dominant gesture, one dominant silhouette, and one dominant focal point.
 - Background contrast and detail are lower priority than the subject.

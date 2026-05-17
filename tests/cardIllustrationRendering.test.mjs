@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-import { createCardArtwork } from '../src/rendering/cardVisualLayout.js';
+import { calculateCardArtworkCoverCrop, createCardArtwork } from '../src/rendering/cardVisualLayout.js';
 
 function chainable(displayObject = {}) {
   return {
@@ -56,6 +56,20 @@ const artZone = Object.freeze({
   centerY: 24,
   width: 120,
   height: 160,
+});
+
+test('card artwork cover crop diagnostics report centered source-space loss', () => {
+  const crop = calculateCardArtworkCoverCrop(artZone, 512, 768);
+
+  assert.equal(crop.cropX, 0);
+  assert.equal(crop.cropWidth, 512);
+  assert.ok(Math.abs(crop.cropY - 42.6667) < 0.001);
+  assert.ok(Math.abs(crop.cropHeight - 682.6667) < 0.001);
+  assert.equal(crop.visibleSourceWidthPercent, 100);
+  assert.ok(Math.abs(crop.visibleSourceHeightPercent - 88.8889) < 0.001);
+  assert.ok(Math.abs(crop.lostTopPercent - crop.lostBottomPercent) < 0.001);
+  assert.equal(crop.lostLeftPercent, 0);
+  assert.equal(crop.lostRightPercent, 0);
 });
 
 test('standardized card illustrations render only when callers enable them', () => {
