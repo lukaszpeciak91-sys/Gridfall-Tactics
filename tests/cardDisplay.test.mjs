@@ -14,6 +14,7 @@ import {
   formatDeckSummaryEntry,
   formatHandCardLabel,
 } from '../src/rendering/cardRenderModes.js';
+import { formatCardNumberOverlay } from '../src/rendering/cardVisualLayout.js';
 import { getFactionByKey, getFactionKeys } from '../src/data/factions/index.js';
 
 test('card display helper falls back to current card name fields when card keys are absent', () => {
@@ -135,11 +136,41 @@ test('hand/full formatter includes effect card textShort without unit stats', ()
   assert.equal(formatHandCardLabel(card), 'Repair Kit\nHeal +3 ●.');
 });
 
+
+test('internal card number overlay formats stable faction-local Arabic numbers only', () => {
+  assert.equal(formatCardNumberOverlay({ cardNumber: 1 }), '01');
+  assert.equal(formatCardNumberOverlay({ cardNumber: 10 }), '10');
+  assert.equal(formatCardNumberOverlay({ cardNumber: 7, id: 'gameplay-id', artAssetId: 'asset-id' }), '07');
+  assert.equal(formatCardNumberOverlay({ id: 'gameplay-id', artAssetId: 'asset-id' }), null);
+  assert.equal(formatCardNumberOverlay({ cardNumber: '07' }), null);
+});
+
 test('shared visual renderer leaves empty rules areas blank instead of using type labels', () => {
   const visualSource = fs.readFileSync('src/rendering/cardVisualLayout.js', 'utf8');
 
   assert.doesNotMatch(visualSource, /content\.body \|\| content\.type/);
   assert.match(visualSource, /createInlineStatText\(scene, zones\.text\.centerX, zones\.text\.y \+ bodyTopPadding, content\.body,/);
+});
+
+
+test('card number overlay is limited to hand, hand inspect, and collection previews', () => {
+  const visualSource = fs.readFileSync('src/rendering/cardVisualLayout.js', 'utf8');
+  const battleSource = fs.readFileSync('src/scenes/BattleScene.js', 'utf8');
+  const collectionSource = fs.readFileSync('src/scenes/CollectionScene.js', 'utf8');
+  const drawHand = battleSource.slice(battleSource.indexOf('  drawHand()'), battleSource.indexOf('  createHandCardView({'));
+  const inspectRequest = battleSource.slice(battleSource.indexOf('  getCurrentInspectCardRequest()'), battleSource.indexOf('  showSelectedHandCardZoom()'));
+  const inspectZoom = battleSource.slice(battleSource.indexOf('  showSelectedHandCardZoom()'), battleSource.indexOf('  applyInspectDimming('));
+  const boardUnitView = battleSource.slice(battleSource.indexOf('  createBoardUnitView(cell, unit) {'), battleSource.indexOf('  refreshBoardLabels()'));
+  const collectionPreview = collectionSource.slice(collectionSource.indexOf('  drawCardPreview('), collectionSource.indexOf('  openDetailPanel('));
+
+  assert.match(visualSource, /showCardNumber = false/);
+  assert.match(visualSource, /createCardNumberOverlay\(scene, zones, card, \{ width, height, typographyScale \}\)/);
+  assert.match(drawHand, /showCardNumber: true/);
+  assert.match(inspectRequest, /sourceY: cardView\.baseY,[\s\S]*showCardNumber: true/);
+  assert.match(inspectRequest, /sourceY: cell\.background\.y,[\s\S]*showCardNumber: false/);
+  assert.match(inspectZoom, /showCardNumber: inspectRequest\.showCardNumber/);
+  assert.match(collectionPreview, /showCardNumber: true/);
+  assert.doesNotMatch(boardUnitView, /showCardNumber|createCardNumberOverlay|cardNumber/);
 });
 
 test('battle hand cards route content through card visual layout helpers and preserve formatter output', () => {

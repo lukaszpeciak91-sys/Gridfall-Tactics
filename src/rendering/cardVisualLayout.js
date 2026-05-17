@@ -539,6 +539,33 @@ export function createCardArtwork(scene, zone, card, options = {}) {
   return createArtPlaceholder(scene, zone);
 }
 
+
+export function formatCardNumberOverlay(card) {
+  if (!Number.isInteger(card?.cardNumber) || card.cardNumber <= 0) return null;
+  return String(card.cardNumber).padStart(2, '0');
+}
+
+export function createCardNumberOverlay(scene, zones, card, { width, height, typographyScale = 1 } = {}) {
+  const cardNumberLabel = formatCardNumberOverlay(card);
+  if (!cardNumberLabel) return null;
+
+  const fontSize = Math.max(9, Math.min(14, Math.round(width * 0.066 * typographyScale)));
+  const insetX = Math.max(4, Math.round(zones.pad * 0.48));
+  const insetY = Math.max(3, Math.round(zones.pad * 0.38));
+  const marker = scene.add.text(width / 2 - insetX, height / 2 - insetY, cardNumberLabel, {
+    fontFamily: 'Arial, sans-serif',
+    fontSize: `${fontSize}px`,
+    color: '#dbeafe',
+    fontStyle: 'normal',
+    align: 'right',
+    letterSpacing: Math.max(0.2, fontSize * 0.035),
+    stroke: '#020617',
+    strokeThickness: Math.max(1, Math.round(fontSize * 0.12)),
+  }).setOrigin(1, 1).setAlpha(0.46);
+  marker.setShadow(0, 1, 'rgba(0, 0, 0, 0.42)', 1);
+  return marker;
+}
+
 export function getCardDisplayContent(card, locale = 'en') {
   if (!card) {
     return { name: '', body: '', type: '' };
@@ -567,6 +594,7 @@ export function createCardPreviewView(scene, {
   bodyLineSpacing = 2,
   frameAlpha = card ? 0.84 : 0.48,
   enableCardIllustration = false,
+  showCardNumber = false,
 } = {}) {
   const zones = getCardLayoutZones(width, height);
   const baseTypography = getCardTypography(width, height);
@@ -634,10 +662,13 @@ export function createCardPreviewView(scene, {
   });
   const dividers = [zones.art.y - zones.gap / 2, zones.name.y - zones.gap / 2, zones.text.y - zones.gap / 2]
     .map((dividerY) => scene.add.rectangle(0, dividerY, zones.outer.width - zones.pad * 2.15, 1, CARD_COLORS.divider, 0.22));
+  const cardNumberOverlay = showCardNumber
+    ? createCardNumberOverlay(scene, zones, card, { width, height, typographyScale })
+    : null;
   const selectionOutline = scene.add.rectangle(0, 0, width + 3, height + 3, 0xfacc15, 0)
     .setStrokeStyle(0, 0xfacc15, 0);
 
-  root.add([glow, background, inner, statBadges, art, namePanel, nameText, textPanel, bodyText, ...dividers, selectionOutline]);
+  root.add([glow, background, inner, statBadges, art, namePanel, nameText, textPanel, bodyText, ...dividers, cardNumberOverlay, selectionOutline].filter(Boolean));
 
   return {
     cardId,
@@ -647,6 +678,7 @@ export function createCardPreviewView(scene, {
     label: nameText,
     nameText,
     bodyText,
+    cardNumberOverlay,
     selectionOutline,
     statBar: statBadges,
     statBadges,

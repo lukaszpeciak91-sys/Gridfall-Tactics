@@ -1536,6 +1536,7 @@ export default class BattleScene extends Phaser.Scene {
         titleTypographyScale: HAND_CARD_TITLE_TYPOGRAPHY_SCALE,
         bodyLineSpacing: HAND_CARD_BODY_LINE_SPACING,
         enableCardIllustration: true,
+        showCardNumber: true,
       });
 
       if (card) {
@@ -1576,6 +1577,7 @@ export default class BattleScene extends Phaser.Scene {
     titleTypographyScale = typographyScale,
     bodyLineSpacing = 2,
     enableCardIllustration = false,
+    showCardNumber = false,
   }) {
     return createCardPreviewView(this, {
       card,
@@ -1592,6 +1594,7 @@ export default class BattleScene extends Phaser.Scene {
       titleTypographyScale,
       bodyLineSpacing,
       enableCardIllustration,
+      showCardNumber,
     });
   }
 
@@ -3468,6 +3471,7 @@ export default class BattleScene extends Phaser.Scene {
           sourceX: cardView.baseX,
           sourceY: cardView.baseY,
           enableCardIllustration: true,
+          showCardNumber: true,
         };
       }
     }
@@ -3482,6 +3486,7 @@ export default class BattleScene extends Phaser.Scene {
           sourceX: cell.background.x,
           sourceY: cell.background.y,
           enableCardIllustration: false,
+          showCardNumber: false,
         };
       }
     }
@@ -3517,6 +3522,7 @@ export default class BattleScene extends Phaser.Scene {
       typographyScale: INSPECT_CARD_TYPOGRAPHY_SCALE,
       bodyLineSpacing: INSPECT_CARD_BODY_LINE_SPACING,
       enableCardIllustration: inspectRequest.enableCardIllustration,
+      showCardNumber: inspectRequest.showCardNumber,
     });
 
     this.applyInspectDimming(inspectRequest.cardId);
