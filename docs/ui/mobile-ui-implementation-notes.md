@@ -61,14 +61,8 @@ Safe cleanup completed in this pass intentionally stayed small:
   - `public/assets/factions/swarm/preview.webp`
   - `public/assets/factions/wardens/preview.webp`
   - `public/assets/factions/attrition-swarm/preview.webp`
-- Reserved/inactive per-faction card-art folders are kept only for a future pipeline and are not used by the active card illustration renderer:
-  - `public/assets/factions/aggro/cards/`
-  - `public/assets/factions/tank/cards/`
-  - `public/assets/factions/control/cards/`
-  - `public/assets/factions/swarm/cards/`
-  - `public/assets/factions/wardens/cards/`
-  - `public/assets/factions/attrition-swarm/cards/`
-- Active card illustrations use `public/assets/cards/{factionId}/{artAssetId}.webp`, not the reserved faction `cards/` subfolders.
+- Gameplay card illustrations use the single canonical source `public/assets/cards/{factionId}/{artAssetId}.webp` and runtime URL `/assets/cards/<faction-id>/<art-asset-id>.webp`.
+- `public/assets/factions/` is limited to faction-level preview/banner/UI assets and must not contain gameplay card-art subfolders.
 - Faction preview/banner image spec: filename `preview.webp`; WebP format; recommended size `1024x576 px`; landscape banner style; keep important content centered so compact banner crops stay safe; avoid baked-in text unless intentional.
 - If a preview image loads, it renders as a cover-cropped banner. If `preview.webp` is missing, the card draws a clean faction-colored gradient fallback with no broken-image icon and no gameplay crash.
 - Artwork will be manually uploaded later by the user. Codex only created text documentation and empty directory keepers for this asset pipeline; no binary faction artwork or placeholder images are included.

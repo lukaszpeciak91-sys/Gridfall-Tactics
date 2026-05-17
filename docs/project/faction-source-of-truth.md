@@ -53,10 +53,4 @@ Faction preview/banner art uses:
 public/assets/factions/{factionId}/preview.webp
 ```
 
-Any folder shaped like:
-
-```text
-public/assets/factions/{factionId}/cards/
-```
-
-is reserved/inactive unless a future task explicitly implements a faction-scoped card-art pipeline there. Current production card illustrations must not be placed there.
+`public/assets/cards/` is the only canonical source directory for gameplay card illustrations. `public/assets/factions/` is limited to faction-level preview, banner, logo, and UI artwork; it must not contain gameplay card-art subfolders.

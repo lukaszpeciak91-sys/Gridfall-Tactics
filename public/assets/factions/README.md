@@ -1,6 +1,6 @@
 # Faction artwork assets
 
-This folder reserves faction preview/banner artwork and future faction-scoped art directories. Codex intentionally includes only text documentation and empty directory keepers. No binary faction artwork or placeholder image files are included or generated; the user will manually upload artwork later.
+This folder is reserved for faction-level artwork only: preview images, banners, logos, faction select visuals, and other faction UI art. It is not a gameplay card illustration location. Codex intentionally includes only text documentation and empty directory keepers. No binary faction artwork or placeholder image files are included or generated; the user will manually upload artwork later.
 
 ## Source of truth
 
@@ -23,22 +23,16 @@ Current roster count: **6 full base gameplay factions**. `attrition-swarm` is a 
 public/assets/factions/
     aggro/
         preview.webp
-        cards/
     tank/
         preview.webp
-        cards/
     control/
         preview.webp
-        cards/
     swarm/
         preview.webp
-        cards/
     wardens/
         preview.webp
-        cards/
     attrition-swarm/
         preview.webp
-        cards/
 ```
 
 Current faction preview paths:
@@ -50,16 +44,7 @@ Current faction preview paths:
 - `public/assets/factions/wardens/preview.webp`
 - `public/assets/factions/attrition-swarm/preview.webp`
 
-Reserved/inactive per-faction card-art subfolders:
-
-- `public/assets/factions/aggro/cards/`
-- `public/assets/factions/tank/cards/`
-- `public/assets/factions/control/cards/`
-- `public/assets/factions/swarm/cards/`
-- `public/assets/factions/wardens/cards/`
-- `public/assets/factions/attrition-swarm/cards/`
-
-These `cards/` subfolders are not part of the active card illustration pipeline. Active production card illustrations use `public/assets/cards/{factionId}/{artAssetId}.webp` instead.
+Gameplay card illustrations must not be stored under `public/assets/factions/`. The canonical gameplay card illustration source is `public/assets/cards/{factionId}/{artAssetId}.webp`.
 
 ## Faction preview/banner spec
 

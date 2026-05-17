@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { join } from 'node:path';
 
 import {
   CARD_ILLUSTRATION_SOURCE,
@@ -12,6 +14,24 @@ import {
   preloadCardIllustrationAsset,
   preloadCardIllustrationsForFaction,
 } from '../src/rendering/cardIllustrationAssets.js';
+
+function walkTextFiles(root) {
+  const ignoredDirectories = new Set(['.git', 'node_modules', 'dist', 'build']);
+  const ignoredExtensions = new Set(['.webp', '.png', '.jpg', '.jpeg', '.gif', '.ico', '.mp3', '.wav']);
+  const files = [];
+  for (const entry of readdirSync(root, { withFileTypes: true })) {
+    if (ignoredDirectories.has(entry.name)) continue;
+    const entryPath = join(root, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...walkTextFiles(entryPath));
+      continue;
+    }
+    const lowerName = entry.name.toLowerCase();
+    if ([...ignoredExtensions].some((extension) => lowerName.endsWith(extension))) continue;
+    files.push(entryPath);
+  }
+  return files;
+}
 
 function createFakeScene({ existingTextures = [] } = {}) {
   const textureKeys = new Set(existingTextures);
@@ -121,4 +141,19 @@ test('missing illustrations fall back to placeholder-compatible null texture key
   }
 
   assert.deepEqual(warnings, ['Card illustration missing: public/assets/cards/aggro/aggro_01.webp']);
+});
+
+test('card illustration architecture has one canonical gameplay art root', () => {
+  const factionArtRoot = join(process.cwd(), 'public/assets/factions');
+  for (const entry of readdirSync(factionArtRoot, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    assert.equal(existsSync(join(factionArtRoot, entry.name, 'cards')), false, `${entry.name} faction art must not contain a gameplay cards directory`);
+  }
+
+  const forbiddenFactionLocalCardPath = /(?:public\/)?assets\/factions\/(?:\{factionId\}|[a-z0-9-]+)\/cards\b/;
+  const filesWithFactionLocalCardPaths = walkTextFiles(process.cwd())
+    .filter((filePath) => statSync(filePath).isFile())
+    .filter((filePath) => forbiddenFactionLocalCardPath.test(readFileSync(filePath, 'utf8')));
+
+  assert.deepEqual(filesWithFactionLocalCardPaths, []);
 });
