@@ -42,21 +42,21 @@ test('formats localized Polish stat terms while preserving surrounding text', ()
   assert.equal(formatCardEffectTextShort('Sojusznik +1 PANC do końca walki.', 'pl'), 'Sojusznik +1 ◆ do końca walki.');
   assert.equal(formatCardEffectTextShort('Wskrześ jednostkę z 1 HP.', 'pl'), 'Wskrześ jednostkę z 1 ●.');
   assert.equal(formatCardEffectTextShort('Po ataku: traci 1 HP.', 'pl'), 'Po ataku: traci 1 ●.');
-  assert.equal(formatCardEffectTextShort('Zabójstwo w walce i przetrwanie: ulecz swojego bohatera o 1.', 'pl'), 'Zabójstwo w walce i przetrwanie: ulecz swojego bohatera o +1 ●.');
+  assert.equal(formatCardEffectTextShort('Zabójstwo w walce i przetrwanie: ulecz swoją bazę o 1.', 'pl'), 'Zabójstwo w walce i przetrwanie: ulecz swoją bazę o +1 ●.');
 });
 
 
 test('formats HP-related healing and damage language without replacing unrelated numbers', () => {
-  assert.equal(formatCardEffectTextShort('Combat kill and survive: heal your hero 1.', 'en'), 'Combat kill and survive: heal your hero +1 ●.');
-  assert.equal(formatCardEffectTextShort('Combat death: both heroes lose 1 HP.', 'en'), 'Combat death: both heroes lose 1 ●.');
-  assert.equal(formatCardEffectTextShort('On death: enemy hero loses 1 HP.', 'en'), 'On death: enemy hero loses 1 ●.');
+  assert.equal(formatCardEffectTextShort('Combat kill and survive: heal your base 1.', 'en'), 'Combat kill and survive: heal your base +1 ●.');
+  assert.equal(formatCardEffectTextShort('Combat death: both bases lose 1 HP.', 'en'), 'Combat death: both bases lose 1 ●.');
+  assert.equal(formatCardEffectTextShort('On death: enemy base loses 1 HP.', 'en'), 'On death: enemy base loses 1 ●.');
   assert.equal(formatCardEffectTextShort('Heal all [ALLY] by 1.', 'en'), 'Heal all ♙♙ by +1 ●.');
   assert.equal(formatCardEffectTextShort('First 2 ally combat deaths: deal 1 to opposing enemy.', 'en'), 'First 2 ally combat deaths: deal 1 ● to opposing enemy.');
   assert.equal(formatCardEffectTextShort('Destroy [ALLY]. Draw 1.', 'en'), 'Destroy ♙. Draw 1.');
   assert.equal(formatCardEffectTextShort('Combat death: summon 1/1 here.', 'en'), 'Combat death: summon 1/1 here.');
-  assert.equal(formatCardEffectTextShort('Śmierć w walce: obaj bohaterowie otrzymują 1.', 'pl'), 'Śmierć w walce: obaj bohaterowie otrzymują 1 ●.');
-  assert.equal(formatCardEffectTextShort('Po śmierci: wrogi bohater otrzymuje 1.', 'pl'), 'Po śmierci: wrogi bohater otrzymuje 1 ●.');
-  assert.equal(formatCardEffectTextShort('Celowany wróg atakuje własnego bohatera w następnej walce, potem otrzymuje 1 obrażenie.', 'pl'), 'Celowany wróg atakuje własnego bohatera w następnej walce, potem otrzymuje 1 ●.');
+  assert.equal(formatCardEffectTextShort('Śmierć w walce: obie bazy otrzymują 1.', 'pl'), 'Śmierć w walce: obie bazy otrzymują 1 ●.');
+  assert.equal(formatCardEffectTextShort('Po śmierci: wroga baza otrzymuje 1.', 'pl'), 'Po śmierci: wroga baza otrzymuje 1 ●.');
+  assert.equal(formatCardEffectTextShort('Celowany wróg atakuje własną bazę w następnej walce, potem otrzymuje 1 obrażenie.', 'pl'), 'Celowany wróg atakuje własną bazę w następnej walce, potem otrzymuje 1 ●.');
   assert.equal(formatCardEffectTextShort('Pierwsze 2 śmierci sojuszników w walce: 1 wrogowi naprzeciw.', 'pl'), 'Pierwsze 2 śmierci sojuszników w walce: 1 ● wrogowi naprzeciw.');
   assert.equal(formatCardEffectTextShort('Zniszcz [ALLY]. Dobierz 1.', 'pl'), 'Zniszcz ♙. Dobierz 1.');
   assert.equal(formatCardEffectTextShort('Śmierć w walce: przyzwij tutaj 1/1.', 'pl'), 'Śmierć w walce: przyzwij tutaj 1/1.');
@@ -67,10 +67,10 @@ test('formats HP symbols for localized Attrition Swarm card effect display text'
   const { deck } = getFactionByKey('Attrition Swarm');
   const cardById = (id) => deck.find((card) => card.id === id);
 
-  assert.equal(getCardDisplayContent(cardById('attrition_swarm_leech_1'), 'en').body, 'Combat kill and survive: heal your hero +1 ●.');
-  assert.equal(getCardDisplayContent(cardById('attrition_swarm_leech_1'), 'pl').body, 'Przetrwanie po zabójstwie:\nbohater leczy\n1 ●.');
-  assert.equal(getCardDisplayContent(cardById('attrition_swarm_abomination_1'), 'en').body, 'Combat death: both heroes lose 1 ●.');
-  assert.equal(getCardDisplayContent(cardById('attrition_swarm_abomination_1'), 'pl').body, 'Śmierć w walce: obaj bohaterowie tracą 1 ●.');
+  assert.equal(getCardDisplayContent(cardById('attrition_swarm_leech_1'), 'en').body, 'Combat kill and survive: heal your base +1 ●.');
+  assert.equal(getCardDisplayContent(cardById('attrition_swarm_leech_1'), 'pl').body, 'Zabije i przetrwa:\nulecz bazę o +1 ●.');
+  assert.equal(getCardDisplayContent(cardById('attrition_swarm_abomination_1'), 'en').body, 'Combat death: both bases lose 1 ●.');
+  assert.equal(getCardDisplayContent(cardById('attrition_swarm_abomination_1'), 'pl').body, 'Śmierć w walce: obie bazy tracą 1 ●.');
   assert.equal(getCardDisplayContent(cardById('attrition_swarm_funeral_pyre_1'), 'en').body, 'First 2 ♙♙ combat deaths: deal 1 ● to opposed enemy.');
   assert.equal(getCardDisplayContent(cardById('attrition_swarm_funeral_pyre_1'), 'pl').body, 'Pierwsze 2 śmierci:\nzadaj 1 ●\nwrogowi naprzeciw.');
 });
@@ -115,7 +115,7 @@ test('pilot card display content renders ally icon markers', () => {
   assert.equal(getCardDisplayContent(cardById(tank, 'tank_repair_kit_1'), 'pl').body, 'Wybrany ♙ +1 ◆ do końca walki.');
   assert.equal(getCardDisplayContent(cardById(tank, 'tank_shieldbearer_1'), 'pl').body, 'Sąsiedni ♙♙ +1 ◆ w walce.');
   assert.equal(getCardDisplayContent(cardById(tank, 'tank_fortify_1'), 'pl').body, 'Wszyscy ♙♙ +1 ◆ w tej turze.');
-  assert.equal(getCardDisplayContent(cardById(tank, 'tank_stability_1'), 'pl').body, 'Sojusznicy są odporni\nna przesunięcie i wyłączenie\nw tej turze.');
+  assert.equal(getCardDisplayContent(cardById(tank, 'tank_stability_1'), 'pl').body, '♙♙ są odporni\nna przesunięcie i wyłączenie\nw tej turze.');
   assert.equal(getCardDisplayContent(cardById(tank, 'tank_wall_1'), 'pl').body, '');
   assert.equal(getCardDisplayContent(cardById(tank, 'tank_reinforce_1'), 'pl').body, 'Ulecz wszystkich ♙♙ o +1 ●.');
   assert.equal(getCardDisplayContent(cardById(tank, 'tank_heavy_1'), 'pl').body, '');
@@ -124,10 +124,10 @@ test('pilot card display content renders ally icon markers', () => {
   assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_stand_firm_1'), 'en').body, "All ♙♙ can't be moved this turn.");
   assert.equal(getCardDisplayContent(cardById(control, 'control_disruptor_1'), 'pl').body, 'Po zagraniu: anuluj następny efekt wroga.');
   assert.equal(getCardDisplayContent(cardById(control, 'control_swap_1'), 'pl').body, 'Zamień miejscami 2 ♙♙ lub 2 wrogów.');
-  assert.equal(getCardDisplayContent(cardById(control, 'control_system_override_1'), 'pl').body, 'Wróg atakuje własnego\nbohatera, potem\ntraci 1 ●.');
+  assert.equal(getCardDisplayContent(cardById(control, 'control_system_override_1'), 'pl').body, 'Wróg atakuje własną\nbazę, potem\ntraci 1 ●.');
   assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_halberdier_1'), 'pl').body, 'Jeśli naprzeciw: +1 ▲.');
-  assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_spearwall_1'), 'pl').body, 'Wrogowie atakujący\nsąsiadów: -1 ▲.');
-  assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_stand_firm_1'), 'pl').body, 'Sojusznicy są odporni\nna przesunięcie\nw tej turze.');
+  assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_spearwall_1'), 'pl').body, 'Wrogowie atakujący\nsąsiednich ♙♙: -1 ▲.');
+  assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_stand_firm_1'), 'pl').body, '♙♙ są odporni\nna przesunięcie\nw tej turze.');
   assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_reinforce_line_1'), 'pl').body, 'Sąsiedni ♙♙ +1 ◆ do końca walki.');
 });
 

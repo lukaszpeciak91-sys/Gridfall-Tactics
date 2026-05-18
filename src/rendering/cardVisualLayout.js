@@ -887,7 +887,9 @@ export function createCardPreviewView(scene, {
     color: card ? '#cfe7ff' : CARD_COLORS.mutedText,
     align: 'center',
     lineSpacing: bodyLineSpacing,
-    maxWidth: zones.text.width - Math.max(14, zones.pad * (typographyScale > 1 ? 2.0 : 1.5)),
+    // Keep wrapping tied to the actual rules panel width. The panel already
+    // sits inside the card padding, so only a small optical inset is needed.
+    maxWidth: zones.text.width - Math.max(8, zones.pad * (typographyScale > 1 ? 1.15 : 1.05)),
     maxHeight: zones.text.height - bodyTopPadding - bodyBottomPadding,
   });
   const dividers = [zones.art.y - zones.gap / 2, zones.name.y - zones.gap / 2, zones.text.y - zones.gap / 2]

@@ -8,8 +8,8 @@ const RULE_SECTIONS = Object.freeze([
   {
     heading: 'Goal',
     lines: [
-      'Both heroes start at 12 HP.',
-      'Protect your hero and reduce the enemy hero to 0 HP.',
+      'Both bases start at 12 HP.',
+      'Protect your base and reduce the enemy base to 0 HP.',
     ],
   },
   {
@@ -17,7 +17,7 @@ const RULE_SECTIONS = Object.freeze([
     lines: [
       'The fight has 3 lines.',
       'Play units into your line slots. The middle row is only for visuals.',
-      'If a unit attacks an open line, it hits the enemy hero.',
+      'If a unit attacks an open line, it hits the enemy base.',
     ],
   },
   {
@@ -42,17 +42,17 @@ const RULE_SECTIONS = Object.freeze([
     lines: [
       'Combat happens line by line with no diagonal attacks.',
       'Units fight opposing units in their line.',
-      'Open line attacks damage the opposing hero instead.',
+      'Open line attacks damage the opposing base instead.',
       'Both sides can deal damage during the same combat step.',
     ],
   },
   {
     heading: 'Winning',
     lines: [
-      'A battle can end when a hero is defeated.',
-      'If neither side can make meaningful progress, remaining hero HP decides the result.',
-      'If the turn limit is reached, remaining hero HP decides the result.',
-      'If remaining hero HP is tied, the battle is a draw.',
+      'A battle can end when a base is defeated.',
+      'If neither side can make meaningful progress, remaining base HP decides the result.',
+      'If the turn limit is reached, remaining base HP decides the result.',
+      'If remaining base HP is tied, the battle is a draw.',
     ],
   },
 ]);
