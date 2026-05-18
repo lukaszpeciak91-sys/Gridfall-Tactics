@@ -2139,7 +2139,7 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
-    this.completePlayerAction(beforeStats);
+    this.completePlayerAction(beforeStats, this.buildActionFeedback(beforeStats, result));
   }
 
 
@@ -2486,7 +2486,9 @@ export default class BattleScene extends Phaser.Scene {
 
     this.playerActionUsed = true;
     this.isFlowResolving = true;
+    this.currentActionFeedback = actionFeedback;
     await this.playMovementFeedback(movementFeedback, beforeStats);
+    await this.playPreRefreshActionFeedback(actionFeedback);
     this.refreshAfterPlayerAction();
     await this.playPostRefreshMovementFeedback(movementFeedback);
     await this.playBuffFeedback(beforeStats, 'player');
@@ -2623,14 +2625,17 @@ export default class BattleScene extends Phaser.Scene {
     const result = this.enemyTakeAction(action);
     this.enemyActionUsed = true;
     const movementFeedback = this.buildEnemyMovementFeedback(action, beforeStats, result);
+    const actionFeedback = this.buildActionFeedback(beforeStats, result);
     await this.playMovementFeedback(movementFeedback, beforeStats);
+    await this.playPreRefreshActionFeedback(actionFeedback);
     this.refreshBoardLabels();
     await this.playPostRefreshMovementFeedback(movementFeedback);
     this.redrawHand();
     this.refreshHeroHP();
     this.updateInitiativeIndicator();
+    this.currentActionFeedback = actionFeedback;
     await this.playBuffFeedback(beforeStats, 'enemy');
-    await this.playActionFeedback(this.buildActionFeedback(beforeStats, result));
+    await this.playActionFeedback(actionFeedback);
     await this.delay(pacing.postActionDelayMs);
     return pacing;
   }
@@ -2929,7 +2934,7 @@ export default class BattleScene extends Phaser.Scene {
 
 
   captureBoardStats() {
-    return this.gameState.board.map((unit) => (unit ? {
+    const snapshot = this.gameState.board.map((unit) => (unit ? {
       id: unit.id,
       cardId: unit.cardId,
       owner: unit.owner,
@@ -2937,7 +2942,12 @@ export default class BattleScene extends Phaser.Scene {
       attack: getUnitAttack(unit),
       armor: getUnitArmor(unit),
       health: Number.isFinite(unit.hp) ? unit.hp : 0,
+      ignoreArmorNext: Boolean(unit.ignoreArmorNext),
+      controlledAttackThisTurn: Boolean(unit.controlledAttackThisTurn),
     } : null));
+    snapshot.playerHP = this.gameState?.playerHP ?? 0;
+    snapshot.enemyHP = this.gameState?.enemyHP ?? 0;
+    return snapshot;
   }
 
   captureBoardSnapshot() {
@@ -3071,10 +3081,141 @@ export default class BattleScene extends Phaser.Scene {
       .map(({ index }) => index);
   }
 
+  getHeroHpFromSnapshot(snapshot, side) {
+    return side === 'player' ? snapshot?.playerHP : snapshot?.enemyHP;
+  }
+
+  getDirectEffectLabel(effectId, baseLabel) {
+    switch (effectId) {
+      case 'damage_all_enemies_1_ignore_armor':
+        return `${baseLabel}\nPULSE`;
+      case 'infect_damage_1_opposite_ally_atk_1':
+        return `${baseLabel}\nINFECT`;
+      case 'ignore_armor_next_attack':
+        return `${baseLabel}\nPIERCE`;
+      case 'on_play_lane_damage_1':
+        return `${baseLabel}\nSPIT`;
+      case 'control_enemy_unit_this_turn':
+        return 'OVERRIDE';
+      default:
+        return baseLabel;
+    }
+  }
+
+  pushDirectDamageDeathFeedback(feedback, beforeSnapshot) {
+    const heroDamageBySide = { player: 0, enemy: 0 };
+    ['player', 'enemy'].forEach((side) => {
+      const beforeHp = this.getHeroHpFromSnapshot(beforeSnapshot, side);
+      const afterHp = this.gameState?.[side === 'player' ? 'playerHP' : 'enemyHP'];
+      if (Number.isFinite(beforeHp) && Number.isFinite(afterHp) && afterHp < beforeHp) {
+        heroDamageBySide[side] = beforeHp - afterHp;
+      }
+    });
+
+    this.findRemovedUnitIndexes(beforeSnapshot).forEach((index) => {
+      const unit = beforeSnapshot[index];
+      if (!unit || unit.effectId !== 'death_damage_enemy_hero_1') return;
+      const targetSide = this.getOpponentSide(unit.owner);
+      if (heroDamageBySide[targetSide] <= 0) return;
+      feedback.push({ type: 'slot-text', index, label: 'DEATH', kind: 'death', phase: 'pre', order: 30 });
+      feedback.push({ type: 'hero-text', side: targetSide, label: '-1', kind: 'damage', phase: 'pre', order: 31 });
+      heroDamageBySide[targetSide] -= 1;
+    });
+  }
+
+  buildEffectDeltaFeedback(beforeSnapshot, result, effectId) {
+    const feedback = [];
+    const directDamageEffects = new Set([
+      'damage_all_enemies_1_ignore_armor',
+      'infect_damage_1_opposite_ally_atk_1',
+      'ignore_armor_next_attack',
+      'on_play_lane_damage_1',
+    ]);
+    const debuffEffects = new Set(['enemy_lane_atk_minus_1', 'enemy_up_to_2_atk_minus_1']);
+    const healEffects = new Set(['heal_all_1', 'heal_1_atk_1_draw_on_kill_this_turn', 'heal_2', 'heal_3']);
+
+    if (directDamageEffects.has(effectId)) {
+      beforeSnapshot.forEach((before, index) => {
+        if (!before) return;
+        const after = this.gameState.board[index];
+        const afterHealth = this.isSameBoardUnit(before, after) && Number.isFinite(after?.hp) ? after.hp : 0;
+        const damage = Math.max(0, before.health - afterHealth);
+        if (damage <= 0) return;
+        feedback.push({
+          type: 'slot-text',
+          index,
+          label: this.getDirectEffectLabel(effectId, `-${damage}`),
+          kind: effectId === 'ignore_armor_next_attack' || effectId === 'damage_all_enemies_1_ignore_armor' ? 'pierce' : 'damage',
+          phase: 'pre',
+          order: effectId === 'damage_all_enemies_1_ignore_armor' ? index : 10,
+          staggerMs: effectId === 'damage_all_enemies_1_ignore_armor' ? 85 : 0,
+        });
+      });
+    }
+
+    if (effectId === 'ignore_armor_next_attack') {
+      beforeSnapshot.forEach((before, index) => {
+        const after = this.gameState.board[index];
+        if (!before || !this.isSameBoardUnit(before, after)) return;
+        if (!before.ignoreArmorNext && after.ignoreArmorNext) {
+          feedback.push({ type: 'slot-text', index, label: 'IGNORE ARM', kind: 'pierce', phase: 'pre', order: 12 });
+        }
+      });
+    }
+
+    if (effectId === 'control_enemy_unit_this_turn') {
+      beforeSnapshot.forEach((before, index) => {
+        const after = this.gameState.board[index];
+        if (!before || !this.isSameBoardUnit(before, after)) return;
+        if (!before.controlledAttackThisTurn && after.controlledAttackThisTurn) {
+          feedback.push({ type: 'slot-text', index, label: 'OVERRIDE', kind: 'debuff', phase: 'pre', order: 10 });
+        }
+      });
+    }
+
+    if (debuffEffects.has(effectId)) {
+      beforeSnapshot.forEach((before, index) => {
+        const after = this.gameState.board[index];
+        if (!before || !this.isSameBoardUnit(before, after)) return;
+        const attackDelta = getUnitAttack(after) - before.attack;
+        if (attackDelta < 0) {
+          feedback.push({ type: 'slot-text', index, label: `${attackDelta} ATK`, kind: 'debuff', phase: 'pre', order: 10 });
+        }
+      });
+    }
+
+    if (healEffects.has(effectId)) {
+      beforeSnapshot.forEach((before, index) => {
+        const after = this.gameState.board[index];
+        if (!before || !this.isSameBoardUnit(before, after)) return;
+        const healthDelta = (Number.isFinite(after.hp) ? after.hp : 0) - before.health;
+        if (healthDelta > 0) {
+          feedback.push({ type: 'slot-text', index, label: `+${healthDelta} HP`, kind: 'heal', phase: 'pre', order: 10 });
+        }
+      });
+    }
+
+    if (effectId === 'infect_damage_1_opposite_ally_atk_1' || effectId === 'heal_1_atk_1_draw_on_kill_this_turn') {
+      beforeSnapshot.forEach((before, index) => {
+        const after = this.gameState.board[index];
+        if (!before || !this.isSameBoardUnit(before, after)) return;
+        const attackDelta = getUnitAttack(after) - before.attack;
+        if (attackDelta > 0) {
+          feedback.push({ type: 'slot-text', index, label: `+${attackDelta} ATK`, kind: 'buff', phase: 'pre', order: 20 });
+        }
+      });
+    }
+
+    if (directDamageEffects.has(effectId)) this.pushDirectDamageDeathFeedback(feedback, beforeSnapshot);
+    return feedback;
+  }
+
   buildActionFeedback(beforeSnapshot, result = null) {
     if (!result?.ok || !Array.isArray(beforeSnapshot)) return [];
     const effectId = result.card?.effectId ?? result.effectId ?? null;
     const feedback = [];
+
+    feedback.push(...this.buildEffectDeltaFeedback(beforeSnapshot, result, effectId));
 
     if (effectId === 'summon_grunt_empty_slot' || effectId === 'grave_call' || effectId === 'fill_empty_slots_0_1') {
       this.findCreatedUnitIndexes(beforeSnapshot).forEach((index) => {
@@ -3224,21 +3365,22 @@ export default class BattleScene extends Phaser.Scene {
     }));
   }
 
-  async playBuffFeedback(beforeStats, owner) {
+  async playBuffFeedback(beforeStats, owner, actionFeedback = this.currentActionFeedback) {
     if (!Array.isArray(beforeStats)) return;
 
+    const preFeedbackIndexes = new Set((Array.isArray(actionFeedback) ? actionFeedback : [])
+      .filter((event) => this.isPreRefreshFeedback(event) && Number.isInteger(event.index))
+      .map((event) => event.index));
     const feedback = [];
     this.gameState.board.forEach((unit, index) => {
       if (!unit || unit.owner !== owner) return;
       const before = beforeStats[index];
-      if (!before || before.owner !== owner) return;
+      if (!before || before.owner !== owner || preFeedbackIndexes.has(index)) return;
       const attackDelta = getUnitAttack(unit) - before.attack;
       const armorDelta = getUnitArmor(unit) - before.armor;
-      const healthDelta = (Number.isFinite(unit.hp) ? unit.hp : 0) - (Number.isFinite(before.health) ? before.health : 0);
       const parts = [];
       if (attackDelta > 0) parts.push(`+${attackDelta} ATK`);
       if (armorDelta > 0) parts.push(`+${armorDelta} ARM`);
-      if (healthDelta > 0) parts.push(`+${healthDelta} HP`);
       if (parts.length === 0) return;
       feedback.push({ index, label: parts.join('\n') });
     });
@@ -3268,19 +3410,37 @@ export default class BattleScene extends Phaser.Scene {
     this.resetCardHighlights();
   }
 
+  isPreRefreshFeedback(feedback) {
+    return feedback?.phase === 'pre' || feedback?.type === 'slot-text' || feedback?.type === 'hero-text';
+  }
+
+  async playPreRefreshActionFeedback(actionFeedback = []) {
+    const events = Array.isArray(actionFeedback) ? actionFeedback.filter((feedback) => this.isPreRefreshFeedback(feedback)) : [];
+    if (events.length === 0) return;
+
+    const orderedEvents = [...events].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    for (const event of orderedEvents) {
+      // Small stagger keeps mass effects readable on phone-sized portrait boards without cinematic delay.
+      if ((event.staggerMs ?? 0) > 0) await this.delay(event.staggerMs);
+      await this.playVisualFeedbackEvents([event]);
+    }
+  }
+
   async playActionFeedback(actionFeedback = []) {
     if (!Array.isArray(actionFeedback) || actionFeedback.length === 0) return;
 
-    const animations = actionFeedback.map((feedback) => {
-      if (feedback?.type === 'draw') {
-        const label = this.getDrawFeedbackLabel(feedback);
-        if (!label) return Promise.resolve();
-        return this.showHandFloatingText(label, feedback.drawn > 0 ? '#bfdbfe' : '#fecaca');
-      }
-      if (feedback?.type === 'spawn') return this.showSpawnFeedback(feedback.index, feedback.label, feedback.kind);
-      if (feedback?.type === 'remove') return this.showRemoveFeedback(feedback.index, feedback.label, feedback.kind);
-      return Promise.resolve();
-    });
+    const animations = actionFeedback
+      .filter((feedback) => !this.isPreRefreshFeedback(feedback))
+      .map((feedback) => {
+        if (feedback?.type === 'draw') {
+          const label = this.getDrawFeedbackLabel(feedback);
+          if (!label) return Promise.resolve();
+          return this.showHandFloatingText(label, feedback.drawn > 0 ? '#bfdbfe' : '#fecaca');
+        }
+        if (feedback?.type === 'spawn') return this.showSpawnFeedback(feedback.index, feedback.label, feedback.kind);
+        if (feedback?.type === 'remove') return this.showRemoveFeedback(feedback.index, feedback.label, feedback.kind);
+        return Promise.resolve();
+      });
 
     await Promise.all(animations);
   }
@@ -3306,7 +3466,12 @@ export default class BattleScene extends Phaser.Scene {
       case 'spawn':
       case 'revive':
       case 'buff':
+      case 'heal':
         return '#bbf7d0';
+      case 'debuff':
+        return '#fdba74';
+      case 'pierce':
+        return '#fde68a';
       case 'return':
         return '#bfdbfe';
       default:
@@ -3322,7 +3487,12 @@ export default class BattleScene extends Phaser.Scene {
       case 'spawn':
       case 'revive':
       case 'buff':
+      case 'heal':
         return 0x22c55e;
+      case 'debuff':
+        return 0xfb923c;
+      case 'pierce':
+        return 0xfacc15;
       case 'return':
         return 0x93c5fd;
       default:
@@ -3965,6 +4135,16 @@ export default class BattleScene extends Phaser.Scene {
 
       if (event.healFeedback?.targetType === 'hero') {
         animations.push(this.showHeroHeal(event.healFeedback.side, event.healFeedback.amount));
+      }
+
+      if (event.selfDamageFeedback?.targetType === 'unit') {
+        const cell = this.getCellByIndex(event.selfDamageFeedback.index);
+        if (cell) {
+          animations.push(Promise.all([
+            this.flashCellHit(cell, { damage: event.selfDamageFeedback.amount, lethal: event.lethal }),
+            this.showUnitFloatingText(cell, event.selfDamageFeedback.label ?? `-${event.selfDamageFeedback.amount}`, '#fdba74'),
+          ]));
+        }
       }
 
       return animations.length > 0 ? Promise.all(animations) : Promise.resolve();
