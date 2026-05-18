@@ -86,7 +86,7 @@
       "type": "order",
       "targeting": "friendly_unit",
       "effectId": "swap_adjacent_then_resolve",
-      "textShort": "Swap with an adjacent [ALLY]."
+      "textShort": "Swap with the nearest adjacent [ALLY], then fight immediately."
     },
     {
       "id": "aggro_pierce_strike_1",
@@ -112,7 +112,7 @@
       "id": "aggro_quick_fix_1",
       "cardNumber": 10,
       "artAssetId": "aggro_10",
-      "name": "Mercy",
+      "name": "Quick Fix",
       "type": "utility",
       "targeting": "friendly_unit",
       "effectId": "heal_1_atk_1_draw_on_kill_this_turn",
