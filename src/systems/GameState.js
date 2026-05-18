@@ -334,11 +334,13 @@ function damageHero(state, owner, amount) {
 }
 
 function healHero(state, owner, amount) {
-  if (!state || amount <= 0) return;
+  if (!state || amount <= 0) return 0;
   const hpKey = owner === 'player' ? 'playerHP' : 'enemyHP';
   const maxKey = owner === 'player' ? 'playerMaxHP' : 'enemyMaxHP';
   const maxHp = Number.isFinite(state[maxKey]) ? state[maxKey] : HERO_START_HP;
+  const before = state[hpKey];
   state[hpKey] = Math.min(maxHp, state[hpKey] + amount);
+  return Math.max(0, state[hpKey] - before);
 }
 
 function createGruntCard(id, name = 'Grunt', attack = 1, hp = 1) {
@@ -861,9 +863,26 @@ export function performOpeningMulligan(state, owner, cardIds = [], randomFn = Ma
   return { ok: true, type: 'opening-mulligan', replaced: replacedCards.length, cardIds: replacedCards.map((card) => card.id) };
 }
 
-export function drawCards(sideState, count) {
+function getDrawBlockedReason(sideState, requestedCount) {
+  if (!sideState || requestedCount <= 0) return 'no-draw';
+  if ((sideState.deck?.length ?? 0) <= 0) return 'deck-empty';
+  const maxHandSize = Number.isFinite(sideState.maxHandSize) ? sideState.maxHandSize : Infinity;
+  if ((sideState.hand?.length ?? 0) >= maxHandSize) return 'hand-full';
+  return 'no-draw';
+}
+
+function createDrawResult(sideState, requested, drawn) {
+  const blockedReason = drawn > 0 ? null : getDrawBlockedReason(sideState, requested);
+  return {
+    requested,
+    drawn,
+    blockedReason,
+  };
+}
+
+export function drawCardsWithResult(sideState, count) {
   if (!sideState || count <= 0) {
-    return sideState;
+    return createDrawResult(sideState, count, 0);
   }
 
   const drawLimit = Math.max(0, sideState.maxHandSize - sideState.hand.length);
@@ -874,6 +893,11 @@ export function drawCards(sideState, count) {
     sideState.hand.push(card);
   }
 
+  return createDrawResult(sideState, count, cardsToDraw);
+}
+
+export function drawCards(sideState, count) {
+  drawCardsWithResult(sideState, count);
   return sideState;
 }
 
@@ -889,7 +913,9 @@ function triggerLeechHealsFromCombatEvents(state, combatEvents) {
     if (!attacker || attacker.effectId !== 'leech_heal_hero_on_combat_kill') return;
     if (!target || target.hp > 0 || attacker.owner === target.owner) return;
     if (attacker.hp <= 0) return;
-    healHero(state, attacker.owner, 1);
+    const restored = healHero(state, attacker.owner, 1);
+    if (restored <= 0) return;
+    event.healFeedback = { targetType: 'hero', side: attacker.owner, amount: restored };
     state.leechCombatHeals = (state.leechCombatHeals ?? 0) + 1;
   });
 }
@@ -914,8 +940,16 @@ function triggerQuickFixDrawsFromCombatEvents(state, combatEvents) {
     pendingTriggers.forEach((trigger) => {
       if (trigger.triggered) return;
       trigger.triggered = true;
-      drawCards(side, 1);
-      state.quickFixTempoDraws = (state.quickFixTempoDraws ?? 0) + 1;
+      const drawResult = drawCardsWithResult(side, 1);
+      if (drawResult.drawn > 0) {
+        event.quickFixDrawFeedback = {
+          owner: attacker.owner,
+          amount: (event.quickFixDrawFeedback?.amount ?? 0) + drawResult.drawn,
+        };
+      } else if (!event.quickFixDrawFeedback) {
+        event.quickFixDrawFeedback = { owner: attacker.owner, amount: 0, blockedReason: drawResult.blockedReason };
+      }
+      state.quickFixTempoDraws = (state.quickFixTempoDraws ?? 0) + drawResult.drawn;
     });
   });
 }
@@ -1011,13 +1045,13 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
       if (side.hand.length >= side.maxHandSize) return { ok: false, reason: 'Hand is full' };
       side.hand.push(createCardFromBoardUnit(targetUnit));
       state.board[boardIndex] = null;
-      drawCards(side, 1);
+      card.drawResult = drawCardsWithResult(side, 1);
       break;
     }
     case 'destroy_friendly_draw_1': {
       if (targetUnit.owner !== owner) return { ok: false, reason: 'Target must be friendly' };
       state.board[boardIndex] = null;
-      drawCards(side, 1);
+      card.drawResult = drawCardsWithResult(side, 1);
       break;
     }
     case 'enemy_lane_atk_minus_1': {
@@ -1180,10 +1214,17 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
       return { ok: false, reason: 'Effect does not support targeted resolution' };
   }
 
+  const drawResult = card.drawResult ?? null;
+  if (card.drawResult) delete card.drawResult;
   const [playedCard] = side.hand.splice(handIndex, 1);
   side.discard.push(playedCard);
   recordProgressAction(state, owner, 'targeted-effect');
-  return { ok: true, type: 'targeted-effect', card: playedCard };
+  return {
+    ok: true,
+    type: 'targeted-effect',
+    card: playedCard,
+    feedback: drawResult ? [{ type: 'draw', owner, ...drawResult }] : [],
+  };
 }
 
 

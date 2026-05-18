@@ -227,15 +227,17 @@ test('Leech heals owner hero only after killing a unit in combat and surviving, 
   heals.playerHP = 10;
   heals.board[6] = unit({ id: 'leech', attack: 2, hp: 2, effectId: 'leech_heal_hero_on_combat_kill' });
   heals.board[0] = unit({ owner: 'enemy', id: 'prey', attack: 0, hp: 1 });
-  resolveCombat(heals);
+  const healEvents = resolveCombat(heals);
   assert.equal(heals.playerHP, 11);
+  assert.equal(healEvents.some((event) => event.healFeedback?.targetType === 'hero' && event.healFeedback.amount === 1), true);
 
   const capped = state();
   capped.playerHP = 12;
   capped.board[6] = unit({ id: 'leech', attack: 2, hp: 2, effectId: 'leech_heal_hero_on_combat_kill' });
   capped.board[0] = unit({ owner: 'enemy', id: 'prey', attack: 0, hp: 1 });
-  resolveCombat(capped);
+  const cappedEvents = resolveCombat(capped);
   assert.equal(capped.playerHP, 12);
+  assert.equal(cappedEvents.some((event) => event.healFeedback), false);
 
   const dies = state();
   dies.playerHP = 10;

@@ -86,7 +86,7 @@
       "type": "order",
       "targeting": "all_friendly_units",
       "effectId": "immune_move_disable_this_turn",
-      "textShort": "All [ALLY] are immovable this turn."
+      "textShort": "All [ALLY] cannot be moved or disabled this turn."
     },
     {
       "id": "tank_reinforce_1",

@@ -203,7 +203,7 @@ The no-progress detector uses the stricter "meaningful for outcome" definition i
 | Aggro | Flanker | unit | 2/2/0 | empty_adjacent_bonus_atk | Empty adjacent ally slot: +1 ATK. | Lane combat | Adjacent check is board-state based. |
 | Aggro | Scout | unit | 2/1/0 | block_enemy_lane_play_this_turn | On play: block this lane this turn. | On-play lane | Symmetric for player/enemy; clears at PASS/combat cleanup. |
 | Aggro | Full Attack | order | - | aggro_buff_all_atk_2 | All [ALLY] +2 ATK this turn. | Non-targeted effect | Expires after combat. |
-| Aggro | Rush | order | - | swap_adjacent_then_resolve | Swap with adjacent [ALLY]. Fight immediately. | Targeted friendly | Fails if no adjacent friendly; prefers left if both sides are available. |
+| Aggro | Rush | order | - | swap_adjacent_then_resolve | Swap with the nearest adjacent [ALLY], then fight immediately. | Targeted friendly | Fails if no adjacent friendly; prefers left if both sides are available. |
 | Aggro | Pierce Strike | order | - | ignore_armor_next_attack | Deal 1. Next combat hit ignores ARM. | Targeted enemy | If the target survives, consumes ignore flag on first mitigated hit. |
 | Aggro | Adrenaline | special | - | quick_strike | Target [ALLY] fights immediately. | Targeted friendly | Lane-only immediate combat slice. |
 | Aggro | Quick Fix | utility | - | heal_1_atk_1_draw_on_kill_this_turn | Target [ALLY]: heal 1, +1 ATK this turn. Draw if it kills. | Targeted friendly | Heal is capped by max HP; draw uses one-shot combat kill tracking and temporary trigger cleanup after combat. |
@@ -243,7 +243,7 @@ The no-progress detector uses the stricter "meaningful for outcome" definition i
 | Tank | Wall | unit | 0/2/0 | cannot_attack |  | Lane combat | Still can receive buffs/debuffs. |
 | Tank | Bruiser | unit | 2/3/0 | gain_atk_when_damaged | Survives damage: +1 ATK this turn. | Damage trigger | Stacks within turn; reset after combat. |
 | Tank | Fortify | order | - | buff_all_armor_1 | All [ALLY] +1 ARM this turn. | Non-targeted effect | Temporary ARM resets after combat. |
-| Tank | Stability | order | - | immune_move_disable_this_turn | All [ALLY] are immovable this turn. | Non-targeted effect | Blocks swap/disable effects by opponent. |
+| Tank | Stability | order | - | immune_move_disable_this_turn | All [ALLY] cannot be moved or disabled this turn. | Non-targeted effect | Blocks swap/disable effects by opponent. |
 | Tank | Reinforce | order | - | heal_all_1 | Heal all [ALLY] by 1. | Non-targeted effect | Uses unit max HP cap. |
 | Tank | Last Stand | special | - | cannot_drop_below_1_this_turn | [ALLY] can't drop below 1 HP this turn. | Non-targeted effect | Reset after combat resolve. |
 | Tank | Reactive Plating | utility | - | temp_armor_1 | Target [ALLY] +1 ARM until combat ends. | Targeted friendly | Stacks with armor normally and resets at full turn/combat cleanup; does not heal HP. |
