@@ -68,11 +68,11 @@ test('formats HP symbols for localized Attrition Swarm card effect display text'
   const cardById = (id) => deck.find((card) => card.id === id);
 
   assert.equal(getCardDisplayContent(cardById('attrition_swarm_leech_1'), 'en').body, 'Combat kill and survive: heal your hero +1 ●.');
-  assert.equal(getCardDisplayContent(cardById('attrition_swarm_leech_1'), 'pl').body, 'Zabójstwo w walce i przetrwanie: ulecz swojego bohatera o +1 ●.');
+  assert.equal(getCardDisplayContent(cardById('attrition_swarm_leech_1'), 'pl').body, 'Przetrwanie po zabójstwie:\nbohater leczy\n1 ●.');
   assert.equal(getCardDisplayContent(cardById('attrition_swarm_abomination_1'), 'en').body, 'Combat death: both heroes lose 1 ●.');
   assert.equal(getCardDisplayContent(cardById('attrition_swarm_abomination_1'), 'pl').body, 'Śmierć w walce: obaj bohaterowie tracą 1 ●.');
   assert.equal(getCardDisplayContent(cardById('attrition_swarm_funeral_pyre_1'), 'en').body, 'First 2 ♙♙ combat deaths: deal 1 ● to opposed enemy.');
-  assert.equal(getCardDisplayContent(cardById('attrition_swarm_funeral_pyre_1'), 'pl').body, 'Pierwsze 2 śmierci ♙♙ w walce: zadaj 1 ● wrogowi naprzeciw.');
+  assert.equal(getCardDisplayContent(cardById('attrition_swarm_funeral_pyre_1'), 'pl').body, 'Pierwsze 2 śmierci:\nzadaj 1 ●\nwrogowi naprzeciw.');
 });
 
 test('pilot card display content renders ally icon markers', () => {
@@ -115,7 +115,7 @@ test('pilot card display content renders ally icon markers', () => {
   assert.equal(getCardDisplayContent(cardById(tank, 'tank_repair_kit_1'), 'pl').body, 'Wybrany ♙ +1 ◆ do końca walki.');
   assert.equal(getCardDisplayContent(cardById(tank, 'tank_shieldbearer_1'), 'pl').body, 'Sąsiedni ♙♙ +1 ◆ w walce.');
   assert.equal(getCardDisplayContent(cardById(tank, 'tank_fortify_1'), 'pl').body, 'Wszyscy ♙♙ +1 ◆ w tej turze.');
-  assert.equal(getCardDisplayContent(cardById(tank, 'tank_stability_1'), 'pl').body, 'Wszyscy ♙♙ nie mogą zostać przesunięci ani wyłączeni w tej turze.');
+  assert.equal(getCardDisplayContent(cardById(tank, 'tank_stability_1'), 'pl').body, 'Sojusznicy są odporni\nna przesunięcie i wyłączenie\nw tej turze.');
   assert.equal(getCardDisplayContent(cardById(tank, 'tank_wall_1'), 'pl').body, '');
   assert.equal(getCardDisplayContent(cardById(tank, 'tank_reinforce_1'), 'pl').body, 'Ulecz wszystkich ♙♙ o +1 ●.');
   assert.equal(getCardDisplayContent(cardById(tank, 'tank_heavy_1'), 'pl').body, '');
@@ -124,7 +124,10 @@ test('pilot card display content renders ally icon markers', () => {
   assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_stand_firm_1'), 'en').body, "All ♙♙ can't be moved this turn.");
   assert.equal(getCardDisplayContent(cardById(control, 'control_disruptor_1'), 'pl').body, 'Po zagraniu: anuluj następny efekt wroga.');
   assert.equal(getCardDisplayContent(cardById(control, 'control_swap_1'), 'pl').body, 'Zamień miejscami 2 ♙♙ lub 2 wrogów.');
+  assert.equal(getCardDisplayContent(cardById(control, 'control_system_override_1'), 'pl').body, 'Wróg atakuje własnego\nbohatera, potem\ntraci 1 ●.');
   assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_halberdier_1'), 'pl').body, 'Jeśli naprzeciw: +1 ▲.');
+  assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_spearwall_1'), 'pl').body, 'Wrogowie atakujący\nsąsiadów: -1 ▲.');
+  assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_stand_firm_1'), 'pl').body, 'Sojusznicy są odporni\nna przesunięcie\nw tej turze.');
   assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_reinforce_line_1'), 'pl').body, 'Sąsiedni ♙♙ +1 ◆ do końca walki.');
 });
 
