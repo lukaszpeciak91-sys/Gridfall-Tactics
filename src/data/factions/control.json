@@ -63,7 +63,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": "death_damage_enemy_hero_1",
-      "textShort": "On death: enemy hero loses 1 HP.",
+      "textShort": "On death: enemy base loses 1 HP.",
       "attack": 1,
       "hp": 1,
       "armor": 0
@@ -106,7 +106,7 @@
       "type": "special",
       "targeting": "enemy_unit",
       "effectId": "control_enemy_unit_this_turn",
-      "textShort": "Target enemy attacks own hero next combat, then loses 1 HP."
+      "textShort": "Target enemy attacks own base next combat, then loses 1 HP."
     },
     {
       "id": "control_recall_1",

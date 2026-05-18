@@ -37,7 +37,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": "leech_heal_hero_on_combat_kill",
-      "textShort": "Combat kill and survive: heal your hero 1.",
+      "textShort": "Combat kill and survive: heal your base 1.",
       "attack": 2,
       "hp": 1,
       "armor": 0
@@ -63,7 +63,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": "combat_death_damage_both_heroes_1",
-      "textShort": "Combat death: both heroes lose 1 HP.",
+      "textShort": "Combat death: both bases lose 1 HP.",
       "attack": 2,
       "hp": 2,
       "armor": 0

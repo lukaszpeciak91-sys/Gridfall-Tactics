@@ -93,7 +93,7 @@ test('supported locale list returns en and pl as a safe copy', () => {
 
 test('English translation lookup returns base dictionary values', () => {
   assert.equal(translate('cards.aggro_runner_1.name', 'en'), 'Runner');
-  assert.equal(translate('cards.aggro_runner_1.textShort', 'en'), 'Open line: enemy hero loses 2 HP.');
+  assert.equal(translate('cards.aggro_runner_1.textShort', 'en'), 'Open line: enemy base loses 2 HP.');
   assert.equal(translate('stats.armor', 'en'), 'ARM');
 });
 

@@ -20,8 +20,9 @@ Use these preferred forms for card text unless a specific UI context requires an
 
 | Concept | Preferred wording | Notes |
 | --- | --- | --- |
-| Friendly unit | `ally` / `allies` | Use for units controlled by the player or card owner. |
-| Opposing unit | `enemy` / `enemies` | Use for units controlled by the opposing side. |
+| Friendly unit | `ally` / `allies` or `[ALLY]` / `[ALLIES]` on cards | Use for units controlled by the player or card owner; card rules should prefer the existing ally icon marker where it shortens text. |
+| Opposing unit | `enemy` / `enemies` | Use for units controlled by the opposing side. No enemy icon exists yet. |
+| HP objective | `base` / `bases` | Use instead of hero/bohater for the player/enemy HP target in presentation text. |
 | Neighboring slot or unit | `adjacent` | Use instead of `nearby`. |
 | Lane-facing logic | `opposing` / `opposed` | Use only when lane-facing or directly across-slot logic matters. |
 | Play trigger | `On play:` | Use as the standard trigger label. |
@@ -33,7 +34,7 @@ Use these preferred forms for card text unless a specific UI context requires an
 | Single chosen enemy target | `target enemy` | Use when the player chooses one enemy unit. |
 | All friendly units | `all allies` | Use for all allied units affected by an effect. |
 | All enemy units | `all enemies` | Use for all enemy units affected by an effect. |
-| Empty friendly board position | `empty ally slot` | Use for allied-side empty slot requirements. |
+| Empty friendly board position | `empty [ALLY] slot` on cards; `empty ally slot` in prose | Use for allied-side empty slot requirements. |
 
 ## 4. Forbidden and discouraged wording
 
@@ -89,8 +90,10 @@ ATK, ARM, and HP are already symbol-supported by the formatter. Future wording a
 Current and future direction:
 
 - ATK / ARM / HP are already symbol-supported by the formatter.
-- Ally/allies icon is the first supported non-stat icon candidate and should be limited to pilot usages until a broader wording pass.
-- Pilot card text should use the `[ALLY]` marker so the formatter can render the game-consistent ally glyph.
+- The existing ally/allies icon is yellow and must keep its current color and meaning.
+- Card text should use `[ALLY]` for a single/all-context-sensitive ally marker and `[ALLIES]` when a plural/group ally icon is required without preceding context.
+- The formatter renders those markers consistently in collection, hand, and inspect card previews through the shared card preview renderer.
+- Enemy/enemies icons are not implemented. If added later, use an analogous explicit marker convention such as `[ENEMY]` / `[ENEMIES]` and a visually distinct red/pink enemy-group icon rather than changing the yellow ally icon.
 - Do not introduce icons for `adjacent`, `combat`, `this turn`, or `on play` yet.
 - Avoid emoji in production UI; use game-consistent glyphs or icons.
 - Icons must not create “hieroglyph soup.” Text should remain understandable at mobile size.
@@ -103,8 +106,9 @@ Preferred Polish canonical equivalents:
 
 | English | Polish |
 | --- | --- |
-| `ally` / `allies` | `sprzymierzeniec` / `sprzymierzeńcy` |
+| `ally` / `allies` | `sprzymierzeniec` / `sprzymierzeńcy`; use `[ALLY]` / `[ALLIES]` on card rules where the icon is clearer or shorter. |
 | `enemy` / `enemies` | `wróg` / `wrogowie` |
+| `base` / `bases` | `baza` / `bazy`; use inflected forms such as `bazę`, `bazie`, or `własną bazę` as grammar requires. |
 | `adjacent` | `sąsiedni` |
 | `opposed` | `naprzeciwko` |
 | `this turn` | `w tej turze` |
@@ -115,6 +119,6 @@ Preferred Polish canonical equivalents:
 
 ## 10. MVP scope
 
-This guide does not require immediate tooltip or glossary UI. It also does not require broad keyword expansion, broad icon expansion, card JSON rewrites, localization rewrites, renderer changes, or gameplay logic changes.
+This guide does not require immediate tooltip or glossary UI. It also does not require broad keyword expansion, enemy icon implementation, renderer redesigns, or gameplay logic changes. Keep card rule text within the shared rules panel width, avoid manual line breaks unless needed for localized readability, and prefer existing icon markers over long repeated ally/allies words.
 
 For MVP, use this guide as the reference for future card wording standardization tasks and review proposed wording changes against it before changing player-facing card text.

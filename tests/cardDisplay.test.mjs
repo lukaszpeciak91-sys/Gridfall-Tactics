@@ -39,7 +39,7 @@ test('card display helper can resolve future nameKey and textKey fields through 
   };
 
   assert.equal(getCardDisplayName(keyedCard, 'en'), 'Ballroom Duelist');
-  assert.equal(getCardTextShort(keyedCard, 'en'), 'Open line: enemy hero loses 2 HP.');
+  assert.equal(getCardTextShort(keyedCard, 'en'), 'Open line: enemy base loses 2 HP.');
   assert.equal(getCardDisplayName(keyedCard, 'pl'), 'Balowy Pojedynkowicz');
   assert.equal(getCardTextShort(keyedCard, 'pl'), 'Otwarta linia: wróg traci 2 HP.');
 });
@@ -336,7 +336,7 @@ test('presentation overrides resolve through render modes and preserve gameplay 
   assert.deepEqual(formatCollectionRowLabel(runner, 'en'), {
     name: 'Ballroom Duelist',
     typeStats: 'Unit • ATK 2 / HP 1',
-    textShort: 'Open line: enemy hero loses 2 ●.',
+    textShort: 'Open line: enemy base loses 2 ●.',
   });
   assert.equal(formatDeckSummaryEntry(runner, 'en').name, 'Ballroom Duelist');
   assert.equal(getCardDisplayName(runner, 'pl'), 'Balowy Pojedynkowicz');

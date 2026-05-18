@@ -76,7 +76,7 @@
       "type": "order",
       "targeting": "empty_friendly_slot",
       "effectId": "summon_grunt_empty_slot",
-      "textShort": "Summon 1/1 in an empty ally slot."
+      "textShort": "Summon 1/1 in an empty [ALLY] slot."
     },
     {
       "id": "swarm_swarm_attack_1",
@@ -106,7 +106,7 @@
       "type": "special",
       "targeting": "empty_friendly_slots",
       "effectId": "fill_empty_slots_0_1",
-      "textShort": "Fill up to 2 empty ally slots with temporary 1/1s."
+      "textShort": "Fill up to 2 empty [ALLY] slots with temporary 1/1s."
     },
     {
       "id": "swarm_recycle_1",

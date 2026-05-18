@@ -2,7 +2,7 @@
   "cards": {
     "aggro_runner_1": {
       "name": "Runner",
-      "textShort": "Open line: enemy hero loses 2 HP."
+      "textShort": "Open line: enemy base loses 2 HP."
     },
     "aggro_berserker_1": {
       "name": "Berserker",
@@ -14,7 +14,7 @@
     },
     "aggro_flanker_1": {
       "name": "Flanker",
-      "textShort": "Empty adjacent ally slot: +1 ATK."
+      "textShort": "Empty adjacent [ALLY] slot: +1 ATK."
     },
     "aggro_scout_1": {
       "name": "Scout",
@@ -50,7 +50,7 @@
     },
     "attrition_swarm_leech_1": {
       "name": "Leech",
-      "textShort": "Combat kill and survive: heal your hero 1."
+      "textShort": "Combat kill and survive: heal your base 1."
     },
     "attrition_swarm_rotcaller_1": {
       "name": "Rotcaller",
@@ -58,7 +58,7 @@
     },
     "attrition_swarm_abomination_1": {
       "name": "Abomination",
-      "textShort": "Combat death: both heroes lose 1 HP."
+      "textShort": "Combat death: both bases lose 1 HP."
     },
     "attrition_swarm_funeral_pyre_1": {
       "name": "Funeral Pyre",
@@ -98,7 +98,7 @@
     },
     "control_drone_1": {
       "name": "Drone",
-      "textShort": "On death: enemy hero loses 1 HP."
+      "textShort": "On death: enemy base loses 1 HP."
     },
     "control_swap_1": {
       "name": "Swap",
@@ -114,7 +114,7 @@
     },
     "control_system_override_1": {
       "name": "System Override",
-      "textShort": "Target enemy attacks own hero next combat, then loses 1 HP."
+      "textShort": "Target enemy attacks own base next combat, then loses 1 HP."
     },
     "control_recall_1": {
       "name": "Recall",
@@ -142,7 +142,7 @@
     },
     "swarm_spawn_1": {
       "name": "Spawn",
-      "textShort": "Summon 1/1 in an empty ally slot."
+      "textShort": "Summon 1/1 in an empty [ALLY] slot."
     },
     "swarm_swarm_attack_1": {
       "name": "Swarm Attack",
@@ -154,7 +154,7 @@
     },
     "swarm_flood_1": {
       "name": "Flood",
-      "textShort": "Fill up to 2 empty ally slots with temporary 1/1s."
+      "textShort": "Fill up to 2 empty [ALLY] slots with temporary 1/1s."
     },
     "swarm_recycle_1": {
       "name": "Recycle",
@@ -206,7 +206,7 @@
     },
     "wardens_spearwall_1": {
       "name": "Spearwall",
-      "textShort": "Attackers of adjacent allies: -1 ATK."
+      "textShort": "Attackers of adjacent [ALLIES]: -1 ATK."
     },
     "wardens_halberdier_1": {
       "name": "Halberdier",
@@ -333,8 +333,8 @@
       "howToPlay": "HOW TO PLAY"
     },
     "battle": {
-      "enemyHero": "ENEMY HERO",
-      "playerHero": "PLAYER HERO",
+      "enemyHero": "ENEMY BASE",
+      "playerHero": "PLAYER BASE",
       "actOne": "ACT 1/2",
       "actTwo": "ACT 2/2",
       "deckCounter": "DECK {count}",
@@ -369,7 +369,7 @@
         "enemy_all_atk_minus_1": "Leftmost enemies -1 ATK",
         "enemy_up_to_2_atk_minus_1": "Chosen enemies -1 ATK",
         "damage_all_enemies_1_ignore_armor": "Damage all enemies",
-        "control_enemy_unit_this_turn": "Enemy attacks own hero, takes 1",
+        "control_enemy_unit_this_turn": "Enemy attacks own base, takes 1",
         "damage_up_to_2_enemies_1": "Damage leftmost enemies",
         "return_friendly_draw_1": "Return ally, draw 1",
         "buff_all_armor_1": "All allies +1 ARM",
@@ -405,8 +405,8 @@
         {
           "heading": "Goal",
           "lines": [
-            "Both heroes start at 12 HP.",
-            "Protect your hero and reduce the enemy hero to 0 HP."
+            "Both bases start at 12 HP.",
+            "Protect your base and reduce the enemy base to 0 HP."
           ]
         },
         {
@@ -414,7 +414,7 @@
           "lines": [
             "The fight has 3 lines.",
             "Play units into your line slots. The middle row is only for visuals.",
-            "If a unit attacks an open line, it hits the enemy hero."
+            "If a unit attacks an open line, it hits the enemy base."
           ]
         },
         {
@@ -439,17 +439,17 @@
           "lines": [
             "Combat happens line by line with no diagonal attacks.",
             "Units fight opposing units in their line.",
-            "Open line attacks damage the opposing hero instead.",
+            "Open line attacks damage the opposing base instead.",
             "Both sides can deal damage during the same combat step."
           ]
         },
         {
           "heading": "Winning",
           "lines": [
-            "A battle can end when a hero is defeated.",
-            "If neither side can make meaningful progress, remaining hero HP decides the result.",
-            "If the turn limit is reached, remaining hero HP decides the result.",
-            "If remaining hero HP is tied, the battle is a draw."
+            "A battle can end when a base is defeated.",
+            "If neither side can make meaningful progress, remaining base HP decides the result.",
+            "If the turn limit is reached, remaining base HP decides the result.",
+            "If remaining base HP is tied, the battle is a draw."
           ]
         }
       ]
@@ -481,10 +481,10 @@
       "subtitle": "Battle basics",
       "steps": [
         "Pick a faction in Arena.",
-        "Play units into lines to pressure the enemy hero.",
+        "Play units into lines to pressure the enemy base.",
         "Use effect cards and swaps to control combat timing.",
         "End your turn after spending your action.",
-        "Reduce the enemy hero to 0 HP to win."
+        "Reduce the enemy base to 0 HP to win."
       ]
     }
   },

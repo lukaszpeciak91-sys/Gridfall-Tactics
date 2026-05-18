@@ -272,7 +272,7 @@ test('BattleScene still opens the result modal when a player action sets winner'
 test('rules panel contains the current short player-facing MVP rules summary', () => {
   const source = readScene('src/scenes/RulesPanelScene.js');
 
-  assert.match(source, /Both heroes start at 12 HP/);
+  assert.match(source, /Both bases start at 12 HP/);
   assert.match(source, /The fight has 3 lines/);
   assert.match(source, /mulligan up to 2 cards once/);
   assert.match(source, /initiative alternates each turn/);
@@ -280,7 +280,7 @@ test('rules panel contains the current short player-facing MVP rules summary', (
   assert.match(source, /Cards have no mana, energy, or cost system/);
   assert.match(source, /combat resolves automatically/);
   assert.match(source, /After combat, you draw 1 card/);
-  assert.match(source, /A battle can end when a hero is defeated/);
+  assert.match(source, /A battle can end when a base is defeated/);
   assert.match(source, /neither side can make meaningful progress/);
   assert.match(source, /turn limit is reached/);
   assert.doesNotMatch(source, /stall/i);

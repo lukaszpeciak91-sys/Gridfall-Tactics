@@ -34,7 +34,7 @@
     },
     "aggro_adrenaline_1": {
       "name": "Adrenalina",
-      "textShort": "Wybrany ♙ natychmiast walczy."
+      "textShort": "Wybrany [ALLY] natychmiast walczy."
     },
     "aggro_quick_fix_1": {
       "name": "Szybka Naprawa",
@@ -50,7 +50,7 @@
     },
     "attrition_swarm_leech_1": {
       "name": "Pijawka",
-      "textShort": "Przetrwanie po zabójstwie:\nbohater leczy\n1 HP."
+      "textShort": "Zabije i przetrwa:\nulecz bazę o 1."
     },
     "attrition_swarm_rotcaller_1": {
       "name": "Zew Rozkładu",
@@ -58,7 +58,7 @@
     },
     "attrition_swarm_abomination_1": {
       "name": "Abominacja",
-      "textShort": "Śmierć w walce: obaj bohaterowie tracą 1 HP."
+      "textShort": "Śmierć w walce: obie bazy tracą 1 HP."
     },
     "attrition_swarm_funeral_pyre_1": {
       "name": "Stos Pogrzebowy",
@@ -102,7 +102,7 @@
     },
     "control_swap_1": {
       "name": "Zamiana",
-      "textShort": "Zamień miejscami 2 ♙ lub 2 wrogów."
+      "textShort": "Zamień miejscami 2 [ALLY] lub 2 wrogów."
     },
     "control_jam_signal_1": {
       "name": "Zagłusz Sygnał",
@@ -114,7 +114,7 @@
     },
     "control_system_override_1": {
       "name": "Przejęcie Systemu",
-      "textShort": "Wróg atakuje własnego\nbohatera, potem\ntraci 1 HP."
+      "textShort": "Wróg atakuje własną\nbazę, potem\ntraci 1 HP."
     },
     "control_recall_1": {
       "name": "Odwołanie",
@@ -186,7 +186,7 @@
     },
     "tank_stability_1": {
       "name": "Stabilność",
-      "textShort": "Sojusznicy są odporni\nna przesunięcie i wyłączenie\nw tej turze."
+      "textShort": "[ALLIES] są odporni\nna przesunięcie i wyłączenie\nw tej turze."
     },
     "tank_reinforce_1": {
       "name": "Wzmocnienie",
@@ -206,7 +206,7 @@
     },
     "wardens_spearwall_1": {
       "name": "Ściana Włóczni",
-      "textShort": "Wrogowie atakujący\nsąsiadów: -1 ATK."
+      "textShort": "Wrogowie atakujący\nsąsiednich [ALLIES]: -1 ATK."
     },
     "wardens_halberdier_1": {
       "name": "Halabardnik",
@@ -230,7 +230,7 @@
     },
     "wardens_stand_firm_1": {
       "name": "Stać Twardo",
-      "textShort": "Sojusznicy są odporni\nna przesunięcie\nw tej turze."
+      "textShort": "[ALLIES] są odporni\nna przesunięcie\nw tej turze."
     },
     "wardens_reinforce_line_1": {
       "name": "Wzmocnij Linię",
@@ -333,8 +333,8 @@
       "howToPlay": "JAK GRAĆ"
     },
     "battle": {
-      "enemyHero": "BOHATER WROGA",
-      "playerHero": "TWÓJ BOHATER",
+      "enemyHero": "BAZA WROGA",
+      "playerHero": "TWOJA BAZA",
       "actOne": "AKCJA 1/2",
       "actTwo": "AKCJA 2/2",
       "deckCounter": "TALIA {count}",
@@ -369,7 +369,7 @@
         "enemy_all_atk_minus_1": "Najbardziej lewi wrogowie -1 ATK",
         "enemy_up_to_2_atk_minus_1": "Wybrani wrogowie -1 ATK",
         "damage_all_enemies_1_ignore_armor": "Obrażenia wszystkim wrogom",
-        "control_enemy_unit_this_turn": "Wróg atakuje własnego bohatera i dostaje 1",
+        "control_enemy_unit_this_turn": "Wróg atakuje własną bazę i dostaje 1",
         "damage_up_to_2_enemies_1": "Obrażenia najbardziej lewym wrogom",
         "return_friendly_draw_1": "Cofnij sojusznika, dobierz 1",
         "buff_all_armor_1": "Wszyscy sojusznicy +1 PANC",
@@ -405,8 +405,8 @@
         {
           "heading": "Cel",
           "lines": [
-            "Obaj bohaterowie zaczynają z 12 HP.",
-            "Chroń swojego bohatera i zredukuj HP wrogiego bohatera do 0."
+            "Obie bazy zaczynają z 12 HP.",
+            "Chroń swoją bazę i zredukuj HP bazy wroga do 0."
           ]
         },
         {
@@ -414,7 +414,7 @@
           "lines": [
             "Walka ma 3 linie.",
             "Zagrywaj jednostki do swoich slotów linii. Środkowy rząd jest tylko wizualny.",
-            "Jeśli jednostka atakuje otwartą linię, trafia wrogiego bohatera."
+            "Jeśli jednostka atakuje otwartą linię, trafia bazę wroga."
           ]
         },
         {
@@ -439,17 +439,17 @@
           "lines": [
             "Walka odbywa się linia po linii, bez ataków po skosie.",
             "Jednostki walczą z jednostkami naprzeciwko w swojej linii.",
-            "Ataki w otwartą linię zadają obrażenia przeciwnemu bohaterowi.",
+            "Ataki w otwartą linię zadają obrażenia przeciwnej bazie.",
             "Obie strony mogą zadawać obrażenia w tym samym kroku walki."
           ]
         },
         {
           "heading": "Zwycięstwo",
           "lines": [
-            "Bitwa może zakończyć się, gdy bohater zostanie pokonany.",
-            "Jeśli żadna strona nie może zrobić znaczącego postępu, wynik ustala pozostałe HP bohaterów.",
-            "Jeśli osiągnięto limit tur, wynik ustala pozostałe HP bohaterów.",
-            "Jeśli pozostałe HP bohaterów jest równe, bitwa kończy się remisem."
+            "Bitwa może zakończyć się, gdy baza zostanie pokonana.",
+            "Jeśli żadna strona nie może zrobić znaczącego postępu, wynik ustala pozostałe HP baz.",
+            "Jeśli osiągnięto limit tur, wynik ustala pozostałe HP baz.",
+            "Jeśli pozostałe HP baz jest równe, bitwa kończy się remisem."
           ]
         }
       ]
@@ -481,10 +481,10 @@
       "subtitle": "Podstawy bitwy",
       "steps": [
         "Wybierz frakcję w Arenie.",
-        "Zagrywaj jednostki na linie, aby naciskać wrogiego bohatera.",
+        "Zagrywaj jednostki na linie, aby naciskać bazę wroga.",
         "Używaj kart efektów i zamian, aby kontrolować tempo walki.",
         "Zakończ turę po wykorzystaniu akcji.",
-        "Obniż PŻ wrogiego bohatera do 0, aby wygrać."
+        "Obniż PŻ bazy wroga do 0, aby wygrać."
       ]
     }
   }

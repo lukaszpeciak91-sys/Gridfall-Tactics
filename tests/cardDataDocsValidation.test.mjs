@@ -7,8 +7,8 @@ import { getTargetingStateForEffect } from '../src/systems/cardTargeting.js';
 import { createInitialBattleState, playOrRedeployUnit, resolveTargetedUnitOnPlayEffect } from '../src/systems/GameState.js';
 
 const expectedTextShort = new Map(Object.entries({
-  aggro_runner_1: 'Open line: enemy hero loses 2 HP.',
-  aggro_flanker_1: 'Empty adjacent ally slot: +1 ATK.',
+  aggro_runner_1: 'Open line: enemy base loses 2 HP.',
+  aggro_flanker_1: 'Empty adjacent [ALLY] slot: +1 ATK.',
   aggro_scout_1: 'On play: block this lane this turn.',
   aggro_rush_1: 'Swap with the nearest adjacent [ALLY], then fight immediately.',
   aggro_pierce_strike_1: 'Deal 1. Next combat hit ignores ARM.',
@@ -18,13 +18,13 @@ const expectedTextShort = new Map(Object.entries({
   control_controller_1: 'On play: swap two enemies.',
   control_jam_signal_1: 'Choose up to 2 enemies: -1 ATK this turn.',
   control_pulse_wave_1: 'Deal 1 to all enemies, ignoring ARM.',
-  control_system_override_1: 'Target enemy attacks own hero next combat, then loses 1 HP.',
+  control_system_override_1: 'Target enemy attacks own base next combat, then loses 1 HP.',
   swarm_spitter_1: 'On play: deal 1 to opposed enemy.',
   swarm_brood_1: 'On death: summon 1/1 here.',
   swarm_alpha_1: 'Adjacent [ALLY] +1 ATK, ignore 1 ARM.',
-  swarm_spawn_1: 'Summon 1/1 in an empty ally slot.',
+  swarm_spawn_1: 'Summon 1/1 in an empty [ALLY] slot.',
   swarm_regrow_1: 'Revive the first discarded unit at 1 HP.',
-  swarm_flood_1: 'Fill up to 2 empty ally slots with temporary 1/1s.',
+  swarm_flood_1: 'Fill up to 2 empty [ALLY] slots with temporary 1/1s.',
   swarm_recycle_1: 'Destroy [ALLY]. Draw 1.',
   tank_shieldbearer_1: 'Adjacent [ALLY] +1 ARM in combat.',
   tank_guardian_1: 'Takes combat damage for adjacent [ALLY].',
@@ -33,7 +33,7 @@ const expectedTextShort = new Map(Object.entries({
   tank_last_stand_1: "[ALLY] can't drop below 1 HP this turn.",
   tank_repair_kit_1: 'Target [ALLY] +1 ARM until combat ends.',
   wardens_sentinel_1: 'Attackers: -1 ATK.',
-  wardens_spearwall_1: 'Attackers of adjacent allies: -1 ATK.',
+  wardens_spearwall_1: 'Attackers of adjacent [ALLIES]: -1 ATK.',
   wardens_halberdier_1: 'If opposed: +1 ATK.',
   wardens_brace_1: 'Target [ALLY] +1 ARM until combat ends.',
   wardens_shield_push_1: 'Swap two adjacent enemies.',
@@ -42,9 +42,9 @@ const expectedTextShort = new Map(Object.entries({
   wardens_hold_the_line_1: 'Adjacent [ALLY] +1 ARM until combat ends.',
   attrition_swarm_husk_1: 'Combat death: deal 1 to opposed enemy.',
   attrition_swarm_carrier_1: 'Combat death: summon 1/1 here.',
-  attrition_swarm_leech_1: 'Combat kill and survive: heal your hero 1.',
+  attrition_swarm_leech_1: 'Combat kill and survive: heal your base 1.',
   attrition_swarm_rotcaller_1: 'First adjacent [ALLY] combat death: +1 ATK.',
-  attrition_swarm_abomination_1: 'Combat death: both heroes lose 1 HP.',
+  attrition_swarm_abomination_1: 'Combat death: both bases lose 1 HP.',
   attrition_swarm_funeral_pyre_1: 'First 2 [ALLY] combat deaths: deal 1 to opposed enemy.',
   attrition_swarm_infect_1: 'Deal 1 to enemy. If it survives, opposed [ALLY] +1 ATK.',
   attrition_swarm_feast_1: 'Destroy [ALLY]. Draw 1.',
@@ -218,7 +218,7 @@ test('battle-end documentation names current stall, mulligan, retry, and tiebrea
   const decisions = read('docs/project/decisions.md');
   const combined = [readme, rules, historicalSpec, decisions].join('\n');
 
-  assert.match(readme, /Battles end by hero death, no-progress deadlock, or the 50 completed-turn cap/);
+  assert.match(readme, /Battles end by base defeat, no-progress deadlock, or the 50 completed-turn cap/);
   assert.match(rules, /There is no repeated-PASS or 3-pass stall counter/);
   assert.match(rules, /Meaningful Actions for No-Progress Detection/);
   assert.match(rules, /Empty board \+ no meaningful playable cards is a no-progress deadlock/);

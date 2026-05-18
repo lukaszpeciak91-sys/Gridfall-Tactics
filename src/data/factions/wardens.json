@@ -24,7 +24,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": "warden_defensive_friction_adjacent",
-      "textShort": "Attackers of adjacent allies: -1 ATK.",
+      "textShort": "Attackers of adjacent [ALLIES]: -1 ATK.",
       "attack": 1,
       "hp": 1,
       "armor": 0
