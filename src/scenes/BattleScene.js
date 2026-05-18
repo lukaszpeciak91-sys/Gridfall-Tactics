@@ -2108,7 +2108,7 @@ export default class BattleScene extends Phaser.Scene {
         this.refreshAfterPlayerAction();
         return;
       }
-      this.completePlayerAction(beforeStats, result.feedback);
+      this.completePlayerAction(beforeStats, [...(result.feedback ?? []), ...this.buildActionFeedback(beforeStats, result)]);
       return;
     }
 
@@ -2236,7 +2236,7 @@ export default class BattleScene extends Phaser.Scene {
       this.updateActionButtonLabel();
       return;
     }
-    this.completePlayerAction(beforeStats);
+    this.completePlayerAction(beforeStats, this.buildActionFeedback(beforeStats, result));
   }
 
 
@@ -2416,7 +2416,7 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
     this.showPlayerEffectConfirmation(selectedCard);
-    this.completePlayerAction(beforeStats, result.feedback);
+    this.completePlayerAction(beforeStats, [...(result.feedback ?? []), ...this.buildActionFeedback(beforeStats, result)]);
   }
 
   resolvePassTurn() {
@@ -2510,14 +2510,16 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     await this.delay(enemyActionPacing?.preCombatDelayMs ?? ENEMY_ACTION_PRE_COMBAT_DELAY_MS);
-    const preCombatBoardSnapshot = this.captureBoardSnapshot();
+    const preCombatFeedbackSnapshot = this.captureCombatFeedbackSnapshot();
     const combatEvents = resolveCombat(this.gameState);
     this.lastCombatEvents = combatEvents;
     if (combatEvents.length > 0) {
       console.debug('Combat feedback events', combatEvents);
     }
-    await this.playCombatAnimations(combatEvents, preCombatBoardSnapshot);
+    await this.playCombatAnimations(combatEvents, preCombatFeedbackSnapshot.board);
+    await this.playCombatDeathTriggerFeedback(preCombatFeedbackSnapshot);
     this.refreshBoardLabels();
+    await this.playCombatCreationFeedback(preCombatFeedbackSnapshot);
     this.refreshHeroHP();
 
     this.gameState.turnsCompleted += 1;
@@ -2594,13 +2596,14 @@ export default class BattleScene extends Phaser.Scene {
     await this.delay(pacing.applyDelayMs);
 
     const beforeStats = this.captureBoardStats();
-    this.enemyTakeAction(action);
+    const result = this.enemyTakeAction(action);
     this.enemyActionUsed = true;
     this.refreshBoardLabels();
     this.redrawHand();
     this.refreshHeroHP();
     this.updateInitiativeIndicator();
     await this.playBuffFeedback(beforeStats, 'enemy');
+    await this.playActionFeedback(this.buildActionFeedback(beforeStats, result));
     await this.delay(pacing.postActionDelayMs);
     return pacing;
   }
@@ -2885,7 +2888,10 @@ export default class BattleScene extends Phaser.Scene {
 
   captureBoardStats() {
     return this.gameState.board.map((unit) => (unit ? {
+      id: unit.id,
+      cardId: unit.cardId,
       owner: unit.owner,
+      effectId: unit.effectId,
       attack: getUnitAttack(unit),
       armor: getUnitArmor(unit),
       health: Number.isFinite(unit.hp) ? unit.hp : 0,
@@ -2896,12 +2902,203 @@ export default class BattleScene extends Phaser.Scene {
     return this.gameState.board.map((unit) => (unit ? { ...unit } : null));
   }
 
+  captureCombatFeedbackSnapshot() {
+    return {
+      board: this.captureBoardSnapshot(),
+      playerHP: this.gameState?.playerHP ?? 0,
+      enemyHP: this.gameState?.enemyHP ?? 0,
+      funeralPyreThisCombat: this.gameState?.funeralPyreThisCombat
+        ? JSON.parse(JSON.stringify(this.gameState.funeralPyreThisCombat))
+        : null,
+    };
+  }
+
   getCellByIndex(index) {
     return this.boardCells.find((cell) => cell.index === index) ?? null;
   }
 
   getHeroPanel(side) {
     return side === 'player' ? this.playerHeroPanel : this.enemyHeroPanel;
+  }
+
+  getOpponentSide(side) {
+    return side === 'player' ? 'enemy' : 'player';
+  }
+
+  isSameBoardUnit(beforeUnit, afterUnit) {
+    if (!beforeUnit || !afterUnit) return false;
+    const beforeId = beforeUnit.cardId ?? beforeUnit.id;
+    const afterId = afterUnit.cardId ?? afterUnit.id;
+    return Boolean(beforeId && afterId && beforeId === afterId && beforeUnit.owner === afterUnit.owner);
+  }
+
+  findCreatedUnitIndexes(beforeSnapshot) {
+    if (!Array.isArray(beforeSnapshot) || !this.gameState?.board) return [];
+    return this.gameState.board
+      .map((unit, index) => ({ unit, index }))
+      .filter(({ unit, index }) => unit && !this.isSameBoardUnit(beforeSnapshot[index], unit))
+      .map(({ index }) => index);
+  }
+
+  findRemovedUnitIndexes(beforeSnapshot) {
+    if (!Array.isArray(beforeSnapshot) || !this.gameState?.board) return [];
+    return beforeSnapshot
+      .map((unit, index) => ({ unit, index }))
+      .filter(({ unit, index }) => unit && !this.isSameBoardUnit(unit, this.gameState.board[index]))
+      .map(({ index }) => index);
+  }
+
+  buildActionFeedback(beforeSnapshot, result = null) {
+    if (!result?.ok || !Array.isArray(beforeSnapshot)) return [];
+    const effectId = result.card?.effectId ?? result.effectId ?? null;
+    const feedback = [];
+
+    if (effectId === 'summon_grunt_empty_slot' || effectId === 'grave_call' || effectId === 'fill_empty_slots_0_1') {
+      this.findCreatedUnitIndexes(beforeSnapshot).forEach((index) => {
+        feedback.push({ type: 'spawn', index, label: 'SUMMON' });
+      });
+    }
+
+    if (effectId === 'revive_friendly_1hp') {
+      this.findCreatedUnitIndexes(beforeSnapshot).forEach((index) => {
+        feedback.push({ type: 'spawn', index, label: 'REVIVE', kind: 'revive' });
+      });
+    }
+
+    if (effectId === 'destroy_friendly_draw_1') {
+      this.findRemovedUnitIndexes(beforeSnapshot).forEach((index) => {
+        feedback.push({ type: 'remove', index, label: 'DESTROYED', kind: 'damage' });
+      });
+    }
+
+    if (effectId === 'return_friendly_draw_1') {
+      this.findRemovedUnitIndexes(beforeSnapshot).forEach((index) => {
+        feedback.push({ type: 'remove', index, label: 'RETURN', kind: 'return' });
+      });
+    }
+
+    return feedback;
+  }
+
+  getCombatDeathFeedback(preCombatSnapshot) {
+    const beforeBoard = preCombatSnapshot?.board;
+    if (!Array.isArray(beforeBoard) || !this.gameState?.board) return { beforeRefresh: [], afterRefresh: [] };
+
+    const beforeRefresh = [];
+    const afterRefresh = [];
+    const sourceLabels = new Set();
+    const pyreTriggersByOwner = {
+      player: preCombatSnapshot.funeralPyreThisCombat?.player?.triggers ?? 0,
+      enemy: preCombatSnapshot.funeralPyreThisCombat?.enemy?.triggers ?? 0,
+    };
+
+    const addSourceDeath = (index) => {
+      if (!Number.isInteger(index) || sourceLabels.has(index)) return;
+      sourceLabels.add(index);
+      beforeRefresh.push({ type: 'slot-text', index, label: 'DEATH', kind: 'death' });
+    };
+    const addUnitDamage = (index, amount = 1) => {
+      if (!Number.isInteger(index)) return;
+      beforeRefresh.push({ type: 'slot-text', index, label: `-${amount}`, kind: 'damage' });
+    };
+    const addHeroDamage = (side, amount = 1) => {
+      beforeRefresh.push({ type: 'hero-text', side, label: `-${amount}`, kind: 'damage' });
+    };
+
+    beforeBoard.forEach((unit, index) => {
+      if (!unit || unit.temporaryFloodToken) return;
+      const afterUnit = this.gameState.board[index];
+      const died = !this.isSameBoardUnit(unit, afterUnit);
+      if (!died) return;
+
+      const owner = unit.owner;
+      const enemyOwner = this.getOpponentSide(owner);
+      const opposingIndex = owner === 'player' ? index - 6 : index + 6;
+      const opposingUnit = beforeBoard[opposingIndex];
+
+      const pyreState = preCombatSnapshot.funeralPyreThisCombat?.[owner];
+      if (pyreState?.active && pyreTriggersByOwner[owner] < 2) {
+        pyreTriggersByOwner[owner] += 1;
+        addSourceDeath(index);
+        if (opposingUnit?.owner === enemyOwner) addUnitDamage(opposingIndex, 1);
+      }
+
+      if (unit.effectId === 'death_damage_enemy_hero_1') {
+        addSourceDeath(index);
+        addHeroDamage(enemyOwner, 1);
+      }
+
+      if (unit.effectId === 'combat_death_damage_enemy_lane_1') {
+        addSourceDeath(index);
+        if (opposingUnit?.owner === enemyOwner) addUnitDamage(opposingIndex, 1);
+      }
+
+      if (unit.effectId === 'combat_death_damage_both_heroes_1') {
+        addSourceDeath(index);
+        addHeroDamage('player', 1);
+        addHeroDamage('enemy', 1);
+      }
+
+      if (unit.effectId === 'on_death_summon_grunt' || unit.effectId === 'combat_death_summon_grunt') {
+        addSourceDeath(index);
+        if (this.gameState.board[index]) {
+          afterRefresh.push({ type: 'spawn', index, label: unit.effectId === 'on_death_summon_grunt' ? 'BROOD' : 'SUMMON', kind: 'spawn' });
+        }
+      }
+
+      const row = owner === 'player' ? [6, 7, 8] : [0, 1, 2];
+      if (row.includes(index)) {
+        const lane = index % 3;
+        [lane > 0 ? row[lane - 1] : null, lane < 2 ? row[lane + 1] : null]
+          .filter((candidateIndex) => Number.isInteger(candidateIndex))
+          .forEach((candidateIndex) => {
+            const beforeRotcaller = beforeBoard[candidateIndex];
+            const afterRotcaller = this.gameState.board[candidateIndex];
+            if (beforeRotcaller?.owner !== owner || beforeRotcaller.effectId !== 'rotcaller_adjacent_death_atk_1') return;
+            if (!this.isSameBoardUnit(beforeRotcaller, afterRotcaller)) return;
+            const beforeAttack = (beforeRotcaller.attack ?? 0) + (beforeRotcaller.tempAttackMod ?? 0);
+            const afterAttack = (afterRotcaller.attack ?? 0) + (afterRotcaller.tempAttackMod ?? 0);
+            if (afterAttack <= beforeAttack) return;
+            addSourceDeath(candidateIndex);
+            beforeRefresh.push({ type: 'slot-text', index: candidateIndex, label: '+1 ATK', kind: 'buff' });
+          });
+      }
+    });
+
+    return { beforeRefresh, afterRefresh };
+  }
+
+  async playCombatDeathTriggerFeedback(preCombatSnapshot) {
+    const { beforeRefresh } = this.getCombatDeathFeedback(preCombatSnapshot);
+    if (beforeRefresh.length === 0) return;
+    await this.playVisualFeedbackEvents(beforeRefresh);
+  }
+
+  async playCombatCreationFeedback(preCombatSnapshot) {
+    const { afterRefresh } = this.getCombatDeathFeedback(preCombatSnapshot);
+    if (afterRefresh.length === 0) return;
+    await this.playVisualFeedbackEvents(afterRefresh);
+  }
+
+  async playVisualFeedbackEvents(events = []) {
+    if (!Array.isArray(events) || events.length === 0) return;
+    await Promise.all(events.map((event) => {
+      if (event.type === 'spawn') return this.showSpawnFeedback(event.index, event.label, event.kind);
+      if (event.type === 'remove') return this.showRemoveFeedback(event.index, event.label, event.kind);
+      if (event.type === 'slot-text') {
+        return Promise.all([
+          this.showSlotPulse(event.index, event.kind),
+          this.showFloatingTextAtSlot(event.index, event.label, event.kind),
+        ]);
+      }
+      if (event.type === 'hero-text') {
+        return Promise.all([
+          this.showHeroPulse(event.side, event.kind),
+          this.showFloatingTextAtHero(event.side, event.label, event.kind),
+        ]);
+      }
+      return Promise.resolve();
+    }));
   }
 
   async playBuffFeedback(beforeStats, owner) {
@@ -2952,10 +3149,14 @@ export default class BattleScene extends Phaser.Scene {
     if (!Array.isArray(actionFeedback) || actionFeedback.length === 0) return;
 
     const animations = actionFeedback.map((feedback) => {
-      if (feedback?.type !== 'draw') return Promise.resolve();
-      const label = this.getDrawFeedbackLabel(feedback);
-      if (!label) return Promise.resolve();
-      return this.showHandFloatingText(label, feedback.drawn > 0 ? '#bfdbfe' : '#fecaca');
+      if (feedback?.type === 'draw') {
+        const label = this.getDrawFeedbackLabel(feedback);
+        if (!label) return Promise.resolve();
+        return this.showHandFloatingText(label, feedback.drawn > 0 ? '#bfdbfe' : '#fecaca');
+      }
+      if (feedback?.type === 'spawn') return this.showSpawnFeedback(feedback.index, feedback.label, feedback.kind);
+      if (feedback?.type === 'remove') return this.showRemoveFeedback(feedback.index, feedback.label, feedback.kind);
+      return Promise.resolve();
     });
 
     await Promise.all(animations);
@@ -2972,6 +3173,143 @@ export default class BattleScene extends Phaser.Scene {
       default:
         return 'NO DRAW';
     }
+  }
+
+  getFeedbackColor(kind) {
+    switch (kind) {
+      case 'damage':
+      case 'death':
+        return '#fca5a5';
+      case 'spawn':
+      case 'revive':
+      case 'buff':
+        return '#bbf7d0';
+      case 'return':
+        return '#bfdbfe';
+      default:
+        return '#fde68a';
+    }
+  }
+
+  getFeedbackStrokeColor(kind) {
+    switch (kind) {
+      case 'damage':
+      case 'death':
+        return 0xfca5a5;
+      case 'spawn':
+      case 'revive':
+      case 'buff':
+        return 0x22c55e;
+      case 'return':
+        return 0x93c5fd;
+      default:
+        return 0xfde68a;
+    }
+  }
+
+  showSlotPulse(index, kind = 'default') {
+    const cell = this.getCellByIndex(index);
+    if (!cell?.background?.active) return Promise.resolve();
+
+    const previousStyle = {
+      lineWidth: cell.background.lineWidth ?? (cell.row === 1 ? 2 : 3),
+      strokeColor: cell.background.strokeColor ?? (cell.row === 1 ? 0x94a3b8 : 0xcbd5e1),
+      strokeAlpha: cell.background.strokeAlpha ?? (cell.row === 1 ? BOARD_GUIDE_SLOT_STROKE_ALPHA : BOARD_SLOT_STROKE_ALPHA),
+      fillColor: cell.background.fillColor ?? 0x0f172a,
+      fillAlpha: cell.background.fillAlpha ?? BOARD_SLOT_FILL_ALPHA,
+    };
+
+    cell.background.setStrokeStyle(4, this.getFeedbackStrokeColor(kind), BOARD_FEEDBACK_STROKE_ALPHA);
+    cell.background.setFillStyle(previousStyle.fillColor, Math.max(previousStyle.fillAlpha, 0.38));
+
+    const targets = cell.label?.active ? [cell.label] : [cell.background];
+    return this.tweenToPromise({ targets, scaleX: 1.06, scaleY: 1.06, duration: 120, yoyo: true })
+      .then(() => {
+        if (!cell.background?.active) return;
+        cell.background.setFillStyle(previousStyle.fillColor, previousStyle.fillAlpha);
+        cell.background.setStrokeStyle(previousStyle.lineWidth, previousStyle.strokeColor, previousStyle.strokeAlpha);
+        if (cell.label?.active) cell.label.setScale(1);
+      });
+  }
+
+  showHeroPulse(side, kind = 'default') {
+    const hero = this.getHeroPanel(side);
+    if (!hero?.active) return Promise.resolve();
+
+    const previousStyle = {
+      lineWidth: hero.lineWidth ?? 2,
+      strokeColor: hero.strokeColor ?? (side === 'player' ? 0x60a5fa : 0xf87171),
+      strokeAlpha: hero.strokeAlpha ?? HERO_PANEL_STROKE_ALPHA,
+      fillColor: hero.fillColor ?? 0x111827,
+      fillAlpha: hero.fillAlpha ?? HERO_PANEL_FILL_ALPHA,
+    };
+
+    hero.setFillStyle(previousStyle.fillColor, Math.max(previousStyle.fillAlpha, 0.58));
+    hero.setStrokeStyle(Math.max(previousStyle.lineWidth, 3), this.getFeedbackStrokeColor(kind), HERO_PANEL_HIT_STROKE_ALPHA);
+
+    return this.tweenToPromise({ targets: hero, scaleX: 1.05, scaleY: 1.05, duration: 120, yoyo: true })
+      .then(() => {
+        if (!hero?.active) return;
+        hero.setFillStyle(previousStyle.fillColor, previousStyle.fillAlpha);
+        hero.setStrokeStyle(previousStyle.lineWidth, previousStyle.strokeColor, previousStyle.strokeAlpha);
+      });
+  }
+
+  showFloatingTextAtSlot(index, text, kind = 'default') {
+    const cell = this.getCellByIndex(index);
+    if (!cell?.background?.active || !text) return Promise.resolve();
+    const floating = this.add.text(cell.background.x, cell.background.y - this.layout.board.cellHeight * 0.34, text, {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: `${Math.max(13, Math.floor(this.layout.board.cellWidth * 0.12))}px`,
+      color: this.getFeedbackColor(kind),
+      fontStyle: 'bold',
+      align: 'center',
+    }).setOrigin(0.5).setDepth(250);
+
+    return this.tweenToPromise({ targets: floating, y: floating.y - 26, alpha: 0, duration: 520, ease: 'Cubic.easeOut' })
+      .then(() => floating.destroy());
+  }
+
+  showFloatingTextAtHero(side, text, kind = 'default') {
+    const hero = this.getHeroPanel(side);
+    if (!hero?.active || !text) return Promise.resolve();
+    const floating = this.add.text(hero.x + hero.width * 0.34, hero.y - hero.height * 0.18, text, {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: '22px',
+      color: this.getFeedbackColor(kind),
+      fontStyle: 'bold',
+      align: 'center',
+    }).setOrigin(0.5).setDepth(250);
+
+    return this.tweenToPromise({ targets: floating, y: floating.y - 30, alpha: 0, duration: 520, ease: 'Cubic.easeOut' })
+      .then(() => floating.destroy());
+  }
+
+  showSpawnFeedback(index, label = 'SUMMON', kind = 'spawn') {
+    return Promise.all([
+      this.showSlotPulse(index, kind),
+      this.showFloatingTextAtSlot(index, label, kind),
+    ]);
+  }
+
+  showRemoveFeedback(index, label = 'DESTROYED', kind = 'damage') {
+    return Promise.all([
+      this.showSlotPulse(index, kind),
+      this.showFloatingTextAtSlot(index, label, kind),
+    ]);
+  }
+
+  showDeathTriggerFeedback(sourceIndex, targetIndexOrHero, label = 'DEATH') {
+    const animations = [
+      this.showSlotPulse(sourceIndex, 'death'),
+      this.showFloatingTextAtSlot(sourceIndex, label, 'death'),
+    ];
+    if (targetIndexOrHero?.targetType === 'hero') {
+      animations.push(this.showHeroPulse(targetIndexOrHero.side, 'damage'));
+    } else if (Number.isInteger(targetIndexOrHero)) {
+      animations.push(this.showSlotPulse(targetIndexOrHero, 'damage'));
+    }
+    return Promise.all(animations);
   }
 
   showHandFloatingText(label, color = '#bfdbfe') {
