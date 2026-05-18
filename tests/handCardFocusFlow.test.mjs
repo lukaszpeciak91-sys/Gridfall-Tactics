@@ -143,6 +143,8 @@ test('board unit inspect opens from occupied slots and reuses the full hand-card
   assert.match(source, /clearBoardInspectFromOutsideTap\(pointer, currentlyOver = \[\]\) \{[\s\S]*this\.clearBoardInspect\(\{ animate: true \}\);\s*\}/);
   assert.match(inspectMethod, /this\.createHandCardView\(\{/);
   assert.match(source, /cell\.label\.add\(this\.createBoardUnitView\(cell, unit\)\);/);
-  assert.match(source, /createBoardUnitView\(cell, unit\) \{[\s\S]*createStatBadges\(this, 0, statY, artWidth, statHeight, this\.getBoardUnitStats\(unit\)\)/);
-  assert.doesNotMatch(source.slice(source.indexOf('  createBoardUnitView(cell, unit) {'), source.indexOf('  refreshBoardLabels() {')), /getCardTextShort|getCardDisplayContent|createInlineStatText|bodyText|textPanel|setInteractive/);
+  const boardUnitViewSource = source.slice(source.indexOf('  createBoardUnitView(cell, unit) {'), source.indexOf('  refreshBoardLabels() {'));
+  assert.match(boardUnitViewSource, /const unitStats = this\.currentBoardRenderStats\?\.\[cell\.index\] \?\? this\.getBoardUnitStats\(unit\);/);
+  assert.match(boardUnitViewSource, /baseStats: this\.getBoardUnitBaseStats\(unit\),/);
+  assert.doesNotMatch(boardUnitViewSource, /getCardTextShort|getCardDisplayContent|createInlineStatText|bodyText|textPanel|setInteractive/);
 });

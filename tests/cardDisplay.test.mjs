@@ -14,7 +14,7 @@ import {
   formatDeckSummaryEntry,
   formatHandCardLabel,
 } from '../src/rendering/cardRenderModes.js';
-import { formatCardNumberOverlay } from '../src/rendering/cardVisualLayout.js';
+import { formatCardNumberOverlay, getModifiedStatState } from '../src/rendering/cardVisualLayout.js';
 import { getFactionByKey, getFactionKeys } from '../src/data/factions/index.js';
 
 test('card display helper falls back to current card name fields when card keys are absent', () => {
@@ -242,12 +242,17 @@ test('visible UI surfaces route names through active-locale presentation helpers
   const battleSource = fs.readFileSync('src/scenes/BattleScene.js', 'utf8');
   const collectionSource = fs.readFileSync('src/scenes/CollectionScene.js', 'utf8');
   const factionSelectSource = fs.readFileSync('src/scenes/FactionSelectScene.js', 'utf8');
+  const boardUnitViewSource = battleSource.slice(battleSource.indexOf('  createBoardUnitView(cell, unit) {'), battleSource.indexOf('  refreshBoardLabels() {'));
+  const enemyActionMessageSource = battleSource.slice(battleSource.indexOf('  getEnemyActionMessage(action, card) {'), battleSource.indexOf('  getEnemyEffectSummary(card) {'));
+  const createHandCardViewSource = battleSource.slice(battleSource.indexOf('  createHandCardView({'), battleSource.indexOf('  getHandCardAccentColor(card) {'));
+  const inspectZoomSource = battleSource.slice(battleSource.indexOf('  showSelectedHandCardZoom() {'), battleSource.indexOf('  applyInspectDimming(activeCardId) {'));
 
-  assert.match(battleSource, /getEnemyActionMessage\(action, card\) \{[\s\S]*const cardName = getCardDisplayName\(card, getActiveLocale\(\)\) \?\? translateActive\('ui\.common\.unknownCard', 'Unknown Card'\);/);
-  assert.match(battleSource, /createBoardUnitView\(cell, unit\) \{[\s\S]*createStatBadges\(this, 0, statY, artWidth, statHeight, this\.getBoardUnitStats\(unit\)\)/);
+  assert.match(enemyActionMessageSource, /const cardName = getCardDisplayName\(card, getActiveLocale\(\)\) \?\? translateActive\('ui\.common\.unknownCard', 'Unknown Card'\);/);
+  assert.match(boardUnitViewSource, /const unitStats = this\.currentBoardRenderStats\?\.\[cell\.index\] \?\? this\.getBoardUnitStats\(unit\);/);
+  assert.match(boardUnitViewSource, /baseStats: this\.getBoardUnitBaseStats\(unit\),/);
   assert.doesNotMatch(battleSource, /getBoardUnitLabel\(unit\)/);
-  assert.match(battleSource, /createHandCardView\(\{[\s\S]*card,[\s\S]*cardId,[\s\S]*x,[\s\S]*y,[\s\S]*width,[\s\S]*height,[\s\S]*accentColor,[\s\S]*depth[\s\S]*\}\) \{[\s\S]*createCardPreviewView\(this, \{/);
-  assert.match(battleSource, /showSelectedHandCardZoom\(\) \{[\s\S]*this\.createHandCardView\(\{/);
+  assert.match(createHandCardViewSource, /createCardPreviewView\(this, \{/);
+  assert.match(inspectZoomSource, /this\.createHandCardView\(\{/);
   assert.match(collectionSource, /createCardPreviewView\(this, \{/);
   assert.doesNotMatch(collectionSource, /formatCollectionRowLabel\(card, getActiveLocale\(\)\)/);
   assert.doesNotMatch(collectionSource, /formatCardDetailLines\(card, getActiveLocale\(\)\)/);
@@ -257,6 +262,14 @@ test('visible UI surfaces route names through active-locale presentation helpers
   assert.match(factionSelectSource, /getFactionPresentationName\(faction\?\.id, getActiveLocale\(\), faction\?\.name \?\? factionKey\)/);
 });
 
+
+test('modified stat state compares displayed ATK and ARM against base values without changing HP', () => {
+  assert.equal(getModifiedStatState('attack', { attack: 3 }, { attack: 1 }), 'buff');
+  assert.equal(getModifiedStatState('attack', { attack: 0 }, { attack: 2 }), 'debuff');
+  assert.equal(getModifiedStatState('armor', { armor: 2 }, { armor: 0 }), 'buff');
+  assert.equal(getModifiedStatState('armor', { armor: 0 }, { armor: 1 }), 'debuff');
+  assert.equal(getModifiedStatState('health', { health: 1 }, { health: 3 }), 'base');
+});
 
 test('collection cards use the hand-card visual contract instead of collection-only styling', () => {
   const source = fs.readFileSync('src/scenes/CollectionScene.js', 'utf8');
@@ -284,7 +297,9 @@ test('board unit compact view keeps top stats, art space, and a bottom name stri
   assert.match(boardUnitViewSource, /const statHeight = Math\.max\(22, Math\.min\(32, Math\.round\(unitHeight \* 0\.18\)\)\);/);
   assert.match(boardUnitViewSource, /const nameHeight = Math\.max\(18, Math\.min\(30, Math\.round\(unitHeight \* 0\.19\)\)\);/);
   assert.match(boardUnitViewSource, /const displayName = getCardDisplayName\(unit, getActiveLocale\(\)\) \?\? translateActive\('ui\.common\.unit', 'Unit'\);/);
-  assert.match(boardUnitViewSource, /const stats = createStatBadges\(this, 0, statY, artWidth, statHeight, this\.getBoardUnitStats\(unit\)\);/);
+  assert.match(boardUnitViewSource, /const unitStats = this\.currentBoardRenderStats\?\.\[cell\.index\] \?\? this\.getBoardUnitStats\(unit\);/);
+  assert.match(boardUnitViewSource, /const stats = createStatBadges\(this, 0, statY, artWidth, statHeight, unitStats, 0, \{/);
+  assert.match(boardUnitViewSource, /baseStats: this\.getBoardUnitBaseStats\(unit\),/);
   assert.match(boardUnitViewSource, /const namePanel = this\.add\.rectangle\(0, nameY, artWidth, nameHeight, CARD_COLORS\.namePanel, 0\.9\)/);
   assert.match(boardUnitViewSource, /const nameText = this\.createBoardUnitNameText\(0, nameY, artWidth, nameHeight, displayName\);/);
   assert.doesNotMatch(boardUnitViewSource, /getCardTextShort|getCardDisplayContent|createInlineStatText|bodyText|textPanel/);
