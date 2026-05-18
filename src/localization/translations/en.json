@@ -26,7 +26,7 @@
     },
     "aggro_rush_1": {
       "name": "Rush",
-      "textShort": "Swap with the nearest adjacent [ALLY], then fight immediately."
+      "textShort": "Swap with an adjacent [ALLY]."
     },
     "aggro_pierce_strike_1": {
       "name": "Pierce Strike",
@@ -37,7 +37,7 @@
       "textShort": "Target [ALLY] fights immediately."
     },
     "aggro_quick_fix_1": {
-      "name": "Quick Fix",
+      "name": "Mercy",
       "textShort": "Target [ALLY]: heal 1, +1 ATK this turn. Draw if it kills."
     },
     "attrition_swarm_husk_1": {
@@ -185,8 +185,8 @@
       "textShort": "All [ALLY] +1 ARM this turn."
     },
     "tank_stability_1": {
-      "name": "Stability",
-      "textShort": "All [ALLY] cannot be moved or disabled this turn."
+      "name": "Emperor's Will",
+      "textShort": "[ALLIES] are immune to swap and block."
     },
     "tank_reinforce_1": {
       "name": "Reinforce",

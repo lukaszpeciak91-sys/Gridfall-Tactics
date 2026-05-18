@@ -32,6 +32,8 @@ import {
   INSPECT_CARD_TWEEN_OUT_MS,
   INSPECT_CARD_TYPOGRAPHY_SCALE,
   INSPECT_CARD_VERTICAL_COMPACT_RATIO,
+  CARD_RULES_TEXT_TOP_PADDING_RATIO_COMPACT,
+  CARD_RULES_TEXT_BOTTOM_PADDING_RATIO_COMPACT,
 } from '../rendering/cardViewConfig.js';
 
 const CARD_SCROLL_DRAG_THRESHOLD = 8;
@@ -201,6 +203,8 @@ export default class CollectionScene extends Phaser.Scene {
       typographyScale: HAND_CARD_TYPOGRAPHY_SCALE,
       titleTypographyScale: HAND_CARD_TITLE_TYPOGRAPHY_SCALE,
       bodyLineSpacing: HAND_CARD_BODY_LINE_SPACING,
+      bodyTopPaddingRatio: CARD_RULES_TEXT_TOP_PADDING_RATIO_COMPACT,
+      bodyBottomPaddingRatio: CARD_RULES_TEXT_BOTTOM_PADDING_RATIO_COMPACT,
       enableCardIllustration: true,
       showCardNumber: true,
     });
@@ -327,6 +331,8 @@ export default class CollectionScene extends Phaser.Scene {
       statBadgeScale: INSPECT_CARD_STAT_BADGE_SCALE,
       typographyScale: INSPECT_CARD_TYPOGRAPHY_SCALE,
       bodyLineSpacing: INSPECT_CARD_BODY_LINE_SPACING,
+      bodyTopPaddingRatio: CARD_RULES_TEXT_TOP_PADDING_RATIO_COMPACT,
+      bodyBottomPaddingRatio: CARD_RULES_TEXT_BOTTOM_PADDING_RATIO_COMPACT,
       enableCardIllustration: true,
       showCardNumber: true,
     });
