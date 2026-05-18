@@ -1515,6 +1515,7 @@ function resolveCombatLane(state, col, combatContext = null) {
       targetIndex: { value: targetIndex, enumerable: false },
     });
     context.events.push(event);
+    return event;
   };
   const recordUnitAttack = (attackerSide, attackerIndex, targetIndex, damage) => {
     const target = state.board[targetIndex];
@@ -1530,8 +1531,7 @@ function resolveCombatLane(state, col, combatContext = null) {
       lethal: wouldUnitDamageBeLethal(targetIndex, damage),
     });
   };
-  const recordHeroAttack = (attackerSide, attackerIndex, targetSide, damage, openLane) => {
-    recordCombatEvent({
+  const recordHeroAttack = (attackerSide, attackerIndex, targetSide, damage, openLane) => recordCombatEvent({
       attackerSide,
       attackerIndex,
       targetType: 'hero',
@@ -1540,7 +1540,6 @@ function resolveCombatLane(state, col, combatContext = null) {
       openLane,
       lethal: false,
     });
-  };
 
   if (player) {
     const playerAttack = getAttackWithCombatBonuses(player, playerIndex) + getAuraBonusAttack(player);
@@ -1548,7 +1547,8 @@ function resolveCombatLane(state, col, combatContext = null) {
     const canHitAnyLane = player.effectId === 'can_hit_any_lane';
     const sniperTargetIndex = !controlledToHero && canHitAnyLane ? findSniperTargetIndex(player.owner) : null;
     if (controlledToHero) {
-      recordHeroAttack('player', playerIndex, 'player', playerAttack, false);
+      const event = recordHeroAttack('player', playerIndex, 'player', playerAttack, false);
+      event.selfDamageFeedback = { targetType: 'unit', index: playerIndex, amount: 1, label: 'OVERRIDE -1' };
       state.playerHP -= playerAttack;
       addPendingUnitDamage(playerIndex, 1);
     } else if (sniperTargetIndex !== null) {
@@ -1584,7 +1584,8 @@ function resolveCombatLane(state, col, combatContext = null) {
     const canHitAnyLane = enemy.effectId === 'can_hit_any_lane';
     const sniperTargetIndex = !controlledToHero && canHitAnyLane ? findSniperTargetIndex(enemy.owner) : null;
     if (controlledToHero) {
-      recordHeroAttack('enemy', enemyIndex, 'enemy', enemyAttack, false);
+      const event = recordHeroAttack('enemy', enemyIndex, 'enemy', enemyAttack, false);
+      event.selfDamageFeedback = { targetType: 'unit', index: enemyIndex, amount: 1, label: 'OVERRIDE -1' };
       state.enemyHP -= enemyAttack;
       addPendingUnitDamage(enemyIndex, 1);
     } else if (sniperTargetIndex !== null) {
