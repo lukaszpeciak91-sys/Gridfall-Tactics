@@ -226,7 +226,7 @@
     },
     "wardens_shield_push_1": {
       "name": "Pchnięcie Tarczą",
-      "textShort": "Zamień dwóch sąsiednich wrogów."
+      "textShort": "Zamień dwóch sąsiadujących wrogów."
     },
     "wardens_stand_firm_1": {
       "name": "Stać Twardo",
@@ -387,8 +387,8 @@
         "grave_call": "Przyzwij 1/1; 2, jeśli jesteś sam",
         "infect_damage_1_opposite_ally_atk_1": "Zadaj 1, wzmocnij przeciwnego sojusznika",
         "adjacent_allies_temp_armor_1": "Sąsiedni sojusznicy +1 ARM",
-        "swap_leftmost_adjacent_enemies": "Zamień dwóch sąsiednich wrogów",
-        "swap_adjacent_enemy_units": "Zamień dwóch sąsiednich wrogów"
+        "swap_leftmost_adjacent_enemies": "Zamień dwóch sąsiadujących wrogów",
+        "swap_adjacent_enemy_units": "Zamień dwóch sąsiadujących wrogów"
       },
       "targeting": {
         "selectEnemy": "Wybierz wroga",

@@ -26,7 +26,7 @@
     },
     "aggro_rush_1": {
       "name": "Rush",
-      "textShort": "Swap with the nearest adjacent [ALLY], then fight immediately."
+      "textShort": "Swap with adjacent [ALLY], then fight immediately."
     },
     "aggro_pierce_strike_1": {
       "name": "Pierce Strike",
@@ -114,7 +114,7 @@
     },
     "control_system_override_1": {
       "name": "System Override",
-      "textShort": "Target enemy attacks own base next combat, then loses 1 HP."
+      "textShort": "Enemy attacks own base next combat, then loses 1 HP."
     },
     "control_recall_1": {
       "name": "Recall",

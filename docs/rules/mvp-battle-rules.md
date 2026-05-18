@@ -203,7 +203,7 @@ The no-progress detector uses the stricter "meaningful for outcome" definition i
 | Aggro | Flanker | unit | 2/2/0 | empty_adjacent_bonus_atk | Empty adjacent [ALLY] slot: +1 ATK. | Lane combat | Adjacent check is board-state based. |
 | Aggro | Scout | unit | 2/1/0 | block_enemy_lane_play_this_turn | On play: block this lane this turn. | On-play lane | Symmetric for player/enemy; clears at PASS/combat cleanup. |
 | Aggro | Full Attack | order | - | aggro_buff_all_atk_2 | All [ALLY] +2 ATK this turn. | Non-targeted effect | Expires after combat. |
-| Aggro | Rush | order | - | swap_adjacent_then_resolve | Swap with the nearest adjacent [ALLY], then fight immediately. | Targeted friendly | Fails if no adjacent friendly; prefers left if both sides are available. |
+| Aggro | Rush | order | - | swap_adjacent_then_resolve | Swap with adjacent [ALLY], then fight immediately. | Targeted friendly | Fails if no adjacent friendly; prefers left if both sides are available. |
 | Aggro | Pierce Strike | order | - | ignore_armor_next_attack | Deal 1. Next combat hit ignores ARM. | Targeted enemy | If the target survives, consumes ignore flag on first mitigated hit. |
 | Aggro | Adrenaline | special | - | quick_strike | Target [ALLY] fights immediately. | Targeted friendly | Lane-only immediate combat slice. |
 | Aggro | Quick Fix | utility | - | heal_1_atk_1_draw_on_kill_this_turn | Target [ALLY]: heal 1, +1 ATK this turn. Draw if it kills. | Targeted friendly | Heal is capped by max HP; draw uses one-shot combat kill tracking and temporary trigger cleanup after combat. |
@@ -215,7 +215,7 @@ The no-progress detector uses the stricter "meaningful for outcome" definition i
 | Control | Swap | order | - | swap_any_two_units | Swap 2 [ALLY] or 2 enemies. | Two-target targeted effect | Requires two distinct occupied slots with the same owner; cannot trade units between sides. |
 | Control | Jam Signal | order | - | enemy_up_to_2_atk_minus_1 | Choose up to 2 enemies: -1 ATK this turn. | Manual enemy targeting | Choose 1 or 2 occupied enemy lanes; expires after combat. |
 | Control | Pulse Wave | order | - | damage_all_enemies_1_ignore_armor | Deal 1 to all enemies, ignoring ARM. | Non-targeted deterministic effect | Damages occupied enemy lanes only, ignores ARM, never damages bases, and cleans up defeated units after all Pulse Wave damage is applied. |
-| Control | System Override | special | - | control_enemy_unit_this_turn | Target enemy attacks own base next combat, then loses 1 HP. | Targeted enemy | Clears after combat cleanup. |
+| Control | System Override | special | - | control_enemy_unit_this_turn | Enemy attacks own base next combat, then loses 1 HP. | Targeted enemy | Clears after combat cleanup. |
 | Control | Recall | utility | - | return_friendly_draw_1 | Return [ALLY] to hand. Draw 1. | Targeted friendly | Blocked if hand already full. |
 | Swarm | Grunt | unit | 1/1/0 | null |  | Lane combat | Vanilla unit with empty rules text. |
 | Swarm | Spitter | unit | 1/1/0 | on_play_lane_damage_1 | On play: deal 1 to opposed enemy. | Lane on-play | No base damage from this trigger. |
