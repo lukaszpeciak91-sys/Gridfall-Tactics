@@ -50,7 +50,7 @@
     },
     "attrition_swarm_leech_1": {
       "name": "Pijawka",
-      "textShort": "Zabójstwo w walce i przetrwanie: ulecz swojego bohatera o 1."
+      "textShort": "Przetrwanie po zabójstwie:\nbohater leczy\n1 HP."
     },
     "attrition_swarm_rotcaller_1": {
       "name": "Zew Rozkładu",
@@ -62,7 +62,7 @@
     },
     "attrition_swarm_funeral_pyre_1": {
       "name": "Stos Pogrzebowy",
-      "textShort": "Pierwsze 2 śmierci [ALLY] w walce: zadaj 1 wrogowi naprzeciw."
+      "textShort": "Pierwsze 2 śmierci:\nzadaj 1\nwrogowi naprzeciw."
     },
     "attrition_swarm_infect_1": {
       "name": "Infekcja",
@@ -114,7 +114,7 @@
     },
     "control_system_override_1": {
       "name": "Przejęcie Systemu",
-      "textShort": "Wybrany wróg atakuje własnego bohatera w następnej walce, potem traci 1 HP."
+      "textShort": "Wróg atakuje własnego\nbohatera, potem\ntraci 1 HP."
     },
     "control_recall_1": {
       "name": "Odwołanie",
@@ -186,7 +186,7 @@
     },
     "tank_stability_1": {
       "name": "Stabilność",
-      "textShort": "Wszyscy [ALLY] nie mogą zostać przesunięci ani wyłączeni w tej turze."
+      "textShort": "Sojusznicy są odporni\nna przesunięcie i wyłączenie\nw tej turze."
     },
     "tank_reinforce_1": {
       "name": "Wzmocnienie",
@@ -206,7 +206,7 @@
     },
     "wardens_spearwall_1": {
       "name": "Ściana Włóczni",
-      "textShort": "Atakujący sąsiednich sprzymierzeńców: -1 ATK."
+      "textShort": "Wrogowie atakujący\nsąsiadów: -1 ATK."
     },
     "wardens_halberdier_1": {
       "name": "Halabardnik",
@@ -230,7 +230,7 @@
     },
     "wardens_stand_firm_1": {
       "name": "Stać Twardo",
-      "textShort": "Wszyscy [ALLY] nie mogą być przesuwani w tej turze."
+      "textShort": "Sojusznicy są odporni\nna przesunięcie\nw tej turze."
     },
     "wardens_reinforce_line_1": {
       "name": "Wzmocnij Linię",
