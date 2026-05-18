@@ -2108,7 +2108,7 @@ export default class BattleScene extends Phaser.Scene {
         this.refreshAfterPlayerAction();
         return;
       }
-      this.completePlayerAction(beforeStats);
+      this.completePlayerAction(beforeStats, result.feedback);
       return;
     }
 
@@ -2416,7 +2416,7 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
     this.showPlayerEffectConfirmation(selectedCard);
-    this.completePlayerAction(beforeStats);
+    this.completePlayerAction(beforeStats, result.feedback);
   }
 
   resolvePassTurn() {
@@ -2459,7 +2459,7 @@ export default class BattleScene extends Phaser.Scene {
     }
   }
 
-  async completePlayerAction(beforeStats = null) {
+  async completePlayerAction(beforeStats = null, actionFeedback = []) {
     if (!this.gameState || this.playerActionUsed || this.isFlowResolving) return;
 
     this.playerActionUsed = true;
@@ -2470,6 +2470,7 @@ export default class BattleScene extends Phaser.Scene {
       this.completeBattleFlow(500);
       return;
     }
+    await this.playActionFeedback(actionFeedback);
     this.isFlowResolving = false;
     this.finishTurnAfterBothActions();
   }
@@ -2887,6 +2888,7 @@ export default class BattleScene extends Phaser.Scene {
       owner: unit.owner,
       attack: getUnitAttack(unit),
       armor: getUnitArmor(unit),
+      health: Number.isFinite(unit.hp) ? unit.hp : 0,
     } : null));
   }
 
@@ -2912,9 +2914,11 @@ export default class BattleScene extends Phaser.Scene {
       if (!before || before.owner !== owner) return;
       const attackDelta = getUnitAttack(unit) - before.attack;
       const armorDelta = getUnitArmor(unit) - before.armor;
+      const healthDelta = (Number.isFinite(unit.hp) ? unit.hp : 0) - (Number.isFinite(before.health) ? before.health : 0);
       const parts = [];
       if (attackDelta > 0) parts.push(`+${attackDelta} ATK`);
       if (armorDelta > 0) parts.push(`+${armorDelta} ARM`);
+      if (healthDelta > 0) parts.push(`+${healthDelta} HP`);
       if (parts.length === 0) return;
       feedback.push({ index, label: parts.join('\n') });
     });
@@ -2942,6 +2946,91 @@ export default class BattleScene extends Phaser.Scene {
 
     await Promise.all(animations);
     this.resetCardHighlights();
+  }
+
+  async playActionFeedback(actionFeedback = []) {
+    if (!Array.isArray(actionFeedback) || actionFeedback.length === 0) return;
+
+    const animations = actionFeedback.map((feedback) => {
+      if (feedback?.type !== 'draw') return Promise.resolve();
+      const label = this.getDrawFeedbackLabel(feedback);
+      if (!label) return Promise.resolve();
+      return this.showHandFloatingText(label, feedback.drawn > 0 ? '#bfdbfe' : '#fecaca');
+    });
+
+    await Promise.all(animations);
+  }
+
+  getDrawFeedbackLabel(feedback) {
+    if (!feedback) return '';
+    if ((feedback.drawn ?? 0) > 0) return `DRAW +${feedback.drawn}`;
+    switch (feedback.blockedReason) {
+      case 'hand-full':
+        return 'HAND FULL';
+      case 'deck-empty':
+        return 'DECK EMPTY';
+      default:
+        return 'NO DRAW';
+    }
+  }
+
+  showHandFloatingText(label, color = '#bfdbfe') {
+    const { width, hand } = this.layout;
+    const x = hand?.handTrackLeft ? hand.handTrackLeft + Math.min(2, Math.max(0, (this.gameState?.player?.hand?.length ?? 1) - 1)) * hand.step : width * 0.5;
+    const y = hand?.y ? hand.y + Math.max(18, hand.cardRowHeight * 0.18) : this.scale.height * 0.78;
+    const text = this.add.text(x, y, label, {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: `${Math.max(16, Math.floor((hand?.cardWidth ?? 120) * 0.16))}px`,
+      color,
+      fontStyle: 'bold',
+      align: 'center',
+    }).setOrigin(0.5).setDepth(245);
+
+    const pulseTargets = this.cardViews
+      .slice(0, Math.max(1, Math.min(this.cardViews.length, this.gameState?.player?.hand?.length ?? 1)))
+      .map((view) => view.root)
+      .filter(Boolean);
+
+    const tweens = [
+      this.tweenToPromise({ targets: text, y: text.y - 28, alpha: 0, duration: 760, ease: 'Cubic.easeOut' }),
+    ];
+    if (pulseTargets.length > 0) {
+      tweens.push(this.tweenToPromise({ targets: pulseTargets, scaleX: 1.03, scaleY: 1.03, duration: 110, yoyo: true }));
+    }
+
+    return Promise.all(tweens).then(() => text.destroy());
+  }
+
+  showUnitFloatingText(cell, label, color = '#bbf7d0') {
+    if (!cell?.background) return Promise.resolve();
+    const floating = this.add.text(cell.background.x, cell.background.y - this.layout.board.cellHeight * 0.34, label, {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: `${Math.max(13, Math.floor(this.layout.board.cellWidth * 0.12))}px`,
+      color,
+      fontStyle: 'bold',
+      align: 'center',
+    }).setOrigin(0.5).setDepth(245);
+
+    const tweens = [this.tweenToPromise({ targets: floating, y: floating.y - 28, alpha: 0, duration: 760, ease: 'Cubic.easeOut' })];
+    if (cell.label) tweens.push(this.tweenToPromise({ targets: cell.label, scaleX: 1.12, scaleY: 1.12, duration: 140, yoyo: true }));
+    return Promise.all(tweens).then(() => floating.destroy());
+  }
+
+  showHeroHeal(side, amount) {
+    if (amount <= 0) return Promise.resolve();
+    const hero = this.getHeroPanel(side);
+    if (!hero) return Promise.resolve();
+    const text = this.add.text(hero.x + hero.width * 0.34, hero.y - hero.height * 0.18, `+${amount} HP`, {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: '22px',
+      color: '#bbf7d0',
+      fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(245);
+
+    return Promise.all([
+      this.tweenToPromise({ targets: hero, scaleX: 1.05, scaleY: 1.05, duration: 120, yoyo: true }),
+      this.tweenToPromise({ targets: text, y: text.y - 30, alpha: 0, duration: 760, ease: 'Cubic.easeOut' }),
+    ]).then(() => text.destroy());
   }
 
   tweenToPromise(config) {
@@ -3274,21 +3363,42 @@ export default class BattleScene extends Phaser.Scene {
 
   async playCombatEventFeedback(events) {
     const feedback = events.map((event) => {
+      const animations = [];
+
       if (event.targetType === 'hero') {
         this.showHeroDamage(event.targetSide, event.damage);
-        return this.flashHeroHit(event.targetSide);
+        animations.push(this.flashHeroHit(event.targetSide));
+      } else {
+        const targetIndex = this.getCombatEventTargetIndex(event);
+        if (Number.isInteger(targetIndex)) {
+          const target = this.getCellByIndex(targetIndex);
+          if (target) {
+            this.showUnitCombatText(target, event);
+            animations.push(this.flashCellHit(target, event));
+            if (event.lethal) animations.push(this.playLethalFade(target));
+          }
+        }
       }
 
-      const targetIndex = this.getCombatEventTargetIndex(event);
-      if (!Number.isInteger(targetIndex)) return Promise.resolve();
+      if (event.quickFixDrawFeedback) {
+        const attackerIndex = getCombatEventAttackerIndex(event);
+        const attackerCell = Number.isInteger(attackerIndex) ? this.getCellByIndex(attackerIndex) : null;
+        const label = this.getDrawFeedbackLabel({
+          drawn: event.quickFixDrawFeedback.amount,
+          blockedReason: event.quickFixDrawFeedback.blockedReason,
+        });
+        if (attackerCell) {
+          animations.push(this.showUnitFloatingText(attackerCell, label, event.quickFixDrawFeedback.amount > 0 ? '#bfdbfe' : '#fecaca'));
+        } else {
+          animations.push(this.showHandFloatingText(label, event.quickFixDrawFeedback.amount > 0 ? '#bfdbfe' : '#fecaca'));
+        }
+      }
 
-      const target = this.getCellByIndex(targetIndex);
-      if (!target) return Promise.resolve();
+      if (event.healFeedback?.targetType === 'hero') {
+        animations.push(this.showHeroHeal(event.healFeedback.side, event.healFeedback.amount));
+      }
 
-      this.showUnitCombatText(target, event);
-      const animations = [this.flashCellHit(target, event)];
-      if (event.lethal) animations.push(this.playLethalFade(target));
-      return Promise.all(animations);
+      return animations.length > 0 ? Promise.all(animations) : Promise.resolve();
     });
 
     await Promise.all(feedback);

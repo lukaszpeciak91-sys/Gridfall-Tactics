@@ -26,7 +26,7 @@
     },
     "aggro_rush_1": {
       "name": "Rush",
-      "textShort": "Swap with adjacent [ALLY]. Fight immediately."
+      "textShort": "Swap with the nearest adjacent [ALLY], then fight immediately."
     },
     "aggro_pierce_strike_1": {
       "name": "Pierce Strike",
@@ -186,7 +186,7 @@
     },
     "tank_stability_1": {
       "name": "Stability",
-      "textShort": "All [ALLY] are immovable this turn."
+      "textShort": "All [ALLY] cannot be moved or disabled this turn."
     },
     "tank_reinforce_1": {
       "name": "Reinforce",

@@ -312,8 +312,9 @@ test('Quick Fix draws once when the buffed unit destroys an enemy in combat', ()
   const result = resolveTargetedEffectCard(state, 'player', quickFix.id, 6, [6]);
   assert.equal(result.ok, true);
 
-  resolveCombat(state);
+  const combatEvents = resolveCombat(state);
 
+  assert.equal(combatEvents.some((event) => event.quickFixDrawFeedback?.amount === 1), true);
   assert.equal(state.board[0], null);
   assert.equal(state.player.hand.length, 1);
   assert.equal(state.player.hand[0].id, 'drawn-card');
@@ -347,6 +348,29 @@ test('Quick Fix draw trigger does not duplicate across immediate and later comba
   assert.equal(state.quickFixTempoDraws, 1);
 });
 
+
+test('Quick Fix draw feedback reports cap blocks without drawing extra cards', () => {
+  const aggro = loadFaction('src/data/factions/aggro.json');
+  const quickFix = aggro.deck.find((card) => card.id === 'aggro_quick_fix_1');
+  const state = createInitialBattleState({ name: 'Test', deck: [] });
+
+  state.player.hand.push({ ...quickFix });
+  state.player.maxHandSize = 0;
+  state.player.deck.push({ id: 'blocked-draw', name: 'Blocked Draw', type: 'unit', attack: 1, hp: 1, armor: 0, effectId: null });
+  state.board[6] = unit('player', { attack: 1, hp: 2, maxHp: 3 });
+  state.board[0] = unit('enemy', { attack: 0, hp: 2, maxHp: 2 });
+
+  const result = resolveTargetedEffectCard(state, 'player', quickFix.id, 6, [6]);
+  assert.equal(result.ok, true);
+
+  const combatEvents = resolveCombat(state);
+
+  assert.equal(state.player.hand.length, 0);
+  assert.equal(state.player.deck.length, 1);
+  assert.equal(state.quickFixTempoDraws, 0);
+  assert.equal(combatEvents.some((event) => event.quickFixDrawFeedback?.blockedReason === 'hand-full'), true);
+});
+
 test('Quick Fix does not draw when the buffed unit fails to destroy an enemy', () => {
   const aggro = loadFaction('src/data/factions/aggro.json');
   const quickFix = aggro.deck.find((card) => card.id === 'aggro_quick_fix_1');
@@ -360,8 +384,9 @@ test('Quick Fix does not draw when the buffed unit fails to destroy an enemy', (
   const result = resolveTargetedEffectCard(state, 'player', quickFix.id, 6, [6]);
   assert.equal(result.ok, true);
 
-  resolveCombat(state);
+  const combatEvents = resolveCombat(state);
 
+  assert.equal(combatEvents.some((event) => event.quickFixDrawFeedback), false);
   assert.equal(state.player.hand.length, 0);
   assert.equal(state.quickFixTempoDraws ?? 0, 0);
 });
