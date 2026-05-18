@@ -82,11 +82,11 @@
       "id": "tank_stability_1",
       "cardNumber": 7,
       "artAssetId": "tank_07",
-      "name": "Emperor's Will",
+      "name": "Stability",
       "type": "order",
       "targeting": "all_friendly_units",
       "effectId": "immune_move_disable_this_turn",
-      "textShort": "[ALLIES] are immune to swap and block."
+      "textShort": "All [ALLY] cannot be moved or disabled this turn."
     },
     {
       "id": "tank_reinforce_1",

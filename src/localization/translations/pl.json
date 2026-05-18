@@ -26,7 +26,7 @@
     },
     "aggro_rush_1": {
       "name": "Szarża",
-      "textShort": "Zamień się z sąsiednim [ALLY]."
+      "textShort": "Zamień się z najbliższym sąsiednim [ALLY], potem natychmiast walcz."
     },
     "aggro_pierce_strike_1": {
       "name": "Przebijające Uderzenie",
@@ -37,7 +37,7 @@
       "textShort": "Wybrany [ALLY] natychmiast walczy."
     },
     "aggro_quick_fix_1": {
-      "name": "Miłosierdzie",
+      "name": "Szybka Naprawa",
       "textShort": "Wybrany [ALLY]: ulecz 1, +1 ATK w tej turze. Dobierz kartę po zabiciu."
     },
     "attrition_swarm_husk_1": {
@@ -185,8 +185,8 @@
       "textShort": "Wszyscy [ALLY] +1 ARM w tej turze."
     },
     "tank_stability_1": {
-      "name": "Wola Imperatora",
-      "textShort": "[ALLIES] odporni na zamianę i blokadę."
+      "name": "Stabilność",
+      "textShort": "[ALLIES] są odporni\nna przesunięcie i wyłączenie\nw tej turze."
     },
     "tank_reinforce_1": {
       "name": "Wzmocnienie",
