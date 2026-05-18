@@ -23,9 +23,9 @@
 
 ## Next Milestones
 - Add faction-specific UI frame assets beyond `frame_default`.
-- Add card UI for displaying and selecting hand cards.
-- Expand enemy action logic beyond placeholder deployment AI.
-- Add explicit UX feedback for invalid actions (e.g., redeploy blocked/full hand).
+- Continue readability passes for long-form rules text in EN/PL after future balance patches.
+- Extend documentation parity checks after each gameplay/content PR to prevent drift between code, card data, and docs.
+- Add automated docs consistency checklist to release workflow (rules source, progress, decisions, README).
 
 ## Merge Diagnostics + Stabilization (2026-04-30)
 - Diagnosed and removed post-merge API mismatches between `FactionSelectScene`, `BattleScene`, and `GameState` initialization flow.
@@ -88,3 +88,12 @@
 - Player may keep or replace up to 2 starting-hand cards; replacements are shuffled back into deck and the same number of cards are drawn.
 - Live enemy AI and AI-vs-AI simulations now use the same deterministic opening mulligan evaluator, which prefers replacing low-tempo and low-synergy opening cards.
 - Simulation and sanity reports now include mulligan usage by faction alongside stability and pacing telemetry.
+
+
+## Card Readability & UX Feedback Polish (2026-05-18)
+- Improved card rules-text readability across hand cards, card inspect surfaces, and collection presentation paths.
+- Shortened and clarified Polish localization strings for mobile card readability while preserving gameplay meaning.
+- Updated card presentation names for Empire of the Golden Sun entries to match current in-game naming intent.
+- Added explicit Last Stand prevention feedback so prevented lethal outcomes are communicated in battle UX.
+- Added/kept modified-stat readability treatment to make combat-relevant stat changes easier to parse at a glance.
+- Reconfirmed these were UX/content updates with no canonical MVP battle-rules engine change.

@@ -87,3 +87,11 @@
 - Limit is up to 2 replaced cards from the 4-card starting hand; hand size, deck size, hero HP, action economy, mana/energy assumptions, and combat flow remain unchanged.
 - AI-controlled sides use the shared deterministic evaluator for parity between live enemy behavior and simulation mirrors.
 - The evaluator intentionally stays simple: value playable early units, penalize no-board/low-tempo effects, and replace the lowest-scoring opening cards only when they fall at or below the opening threshold.
+
+
+## Card Readability + Localization Clarity Lock (2026-05-18)
+- Locked a readability-first card text direction across hand, inspect, and collection views so long effect strings stay legible on mobile portrait.
+- Locked persistent modified-stat readability treatment so temporary/permanent stat changes remain visible and understandable during combat decisions.
+- Locked explicit Last Stand prevention feedback in battle UI to remove hidden-rule ambiguity when lethal is prevented.
+- Locked card presentation naming and Polish copy shortening/simplification as the current UX standard for Empire of the Golden Sun content.
+- These are UX/content clarity decisions (not rules-engine changes) and should be treated as binding for future card text and presentation updates unless replaced by a newer documented decision.

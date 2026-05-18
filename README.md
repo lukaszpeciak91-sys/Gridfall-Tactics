@@ -12,6 +12,13 @@ Frozen MVP battle rules are defined in:
 
 Project notes in `docs/project/*` and `docs/battle_mvp_v1.md` are historical/contextual and non-normative.
 
+## Current UX/Localization Direction (2026-05-18)
+
+- Current polish priority is **readability-first card presentation on mobile** (hand/inspect/collection).
+- EN/PL card wording is being normalized toward shorter, clearer effect phrasing without changing rules behavior.
+- Battle UX includes explicit feedback for prevention mechanics (including Last Stand prevention) and clearer modified-stat readability to reduce hidden-state confusion.
+
+
 https://lukaszpeciak91-sys.github.io/Gridfall-Tactics/
 
 https://lukaszpeciak91-sys.github.io/Gridfall-Tactics/?v=999
