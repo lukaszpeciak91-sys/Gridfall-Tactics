@@ -84,7 +84,7 @@ test('pilot card display content renders ally icon markers', () => {
 
   assert.equal(getCardDisplayContent(cardById(aggro, 'aggro_full_attack_1'), 'en').body, 'All ♙♙ +2 ▲ this turn.');
   assert.equal(getCardDisplayContent(cardById(aggro, 'aggro_scout_1'), 'en').body, 'On play: block this lane this turn.');
-  assert.equal(getCardDisplayContent(cardById(aggro, 'aggro_rush_1'), 'en').body, 'Swap with the nearest adjacent ♙, then fight immediately.');
+  assert.equal(getCardDisplayContent(cardById(aggro, 'aggro_rush_1'), 'en').body, 'Swap with adjacent ♙, then fight immediately.');
   assert.equal(getCardDisplayContent(cardById(aggro, 'aggro_adrenaline_1'), 'en').body, 'Target ♙ fights immediately.');
   assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_grunt_1'), 'en').body, '');
   assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_rusher_1'), 'en').body, '');

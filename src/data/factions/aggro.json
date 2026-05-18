@@ -86,7 +86,7 @@
       "type": "order",
       "targeting": "friendly_unit",
       "effectId": "swap_adjacent_then_resolve",
-      "textShort": "Swap with the nearest adjacent [ALLY], then fight immediately."
+      "textShort": "Swap with adjacent [ALLY], then fight immediately."
     },
     {
       "id": "aggro_pierce_strike_1",
