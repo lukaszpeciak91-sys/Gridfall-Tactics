@@ -26,7 +26,7 @@
     },
     "aggro_rush_1": {
       "name": "Szarża",
-      "textShort": "Zamień się z najbliższym sąsiednim [ALLY], potem natychmiast walcz."
+      "textShort": "Zamień się z sąsiednim [ALLY]."
     },
     "aggro_pierce_strike_1": {
       "name": "Przebijające Uderzenie",
@@ -186,7 +186,7 @@
     },
     "tank_stability_1": {
       "name": "Stabilność",
-      "textShort": "[ALLIES] są odporni\nna przesunięcie i wyłączenie\nw tej turze."
+      "textShort": "[ALLIES] odporni na zamianę i blokadę."
     },
     "tank_reinforce_1": {
       "name": "Wzmocnienie",
