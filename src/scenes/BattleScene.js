@@ -2052,14 +2052,16 @@ export default class BattleScene extends Phaser.Scene {
           return;
         }
 
-        const result = performSwap(this.gameState, 'player', this.pendingSwapIndex, boardIndex);
+        const beforeStats = this.captureBoardStats();
+        const fromIndex = this.pendingSwapIndex;
+        const result = performSwap(this.gameState, 'player', fromIndex, boardIndex);
         this.pendingSwapIndex = null;
 
         if (!result.ok) {
           return;
         }
 
-        this.completePlayerAction();
+        this.completePlayerAction(beforeStats, [], [{ type: 'swap', fromIndex, toIndex: boardIndex, label: 'SWAP', kind: 'swap' }]);
         return;
       }
 
@@ -2108,7 +2110,14 @@ export default class BattleScene extends Phaser.Scene {
         this.refreshAfterPlayerAction();
         return;
       }
-      this.completePlayerAction(beforeStats, [...(result.feedback ?? []), ...this.buildActionFeedback(beforeStats, result)]);
+      const movementFeedback = this.buildMovementFeedbackForAction({
+        effectId: selectedCard.effectId,
+        owner: 'player',
+        targetIndexes,
+        beforeSnapshot: beforeStats,
+        result,
+      });
+      this.completePlayerAction(beforeStats, [...(result.feedback ?? []), ...this.buildActionFeedback(beforeStats, result)], movementFeedback);
       return;
     }
 
@@ -2236,7 +2245,13 @@ export default class BattleScene extends Phaser.Scene {
       this.updateActionButtonLabel();
       return;
     }
-    this.completePlayerAction(beforeStats, this.buildActionFeedback(beforeStats, result));
+    const movementFeedback = this.buildMovementFeedbackForAction({
+      effectId: card.effectId,
+      owner: 'player',
+      beforeSnapshot: beforeStats,
+      result,
+    });
+    this.completePlayerAction(beforeStats, this.buildActionFeedback(beforeStats, result), movementFeedback);
   }
 
 
@@ -2416,7 +2431,14 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
     this.showPlayerEffectConfirmation(selectedCard);
-    this.completePlayerAction(beforeStats, [...(result.feedback ?? []), ...this.buildActionFeedback(beforeStats, result)]);
+    const movementFeedback = this.buildMovementFeedbackForAction({
+      effectId: selectedCard.effectId,
+      owner: 'player',
+      targetIndexes,
+      beforeSnapshot: beforeStats,
+      result,
+    });
+    this.completePlayerAction(beforeStats, [...(result.feedback ?? []), ...this.buildActionFeedback(beforeStats, result)], movementFeedback);
   }
 
   resolvePassTurn() {
@@ -2459,12 +2481,14 @@ export default class BattleScene extends Phaser.Scene {
     }
   }
 
-  async completePlayerAction(beforeStats = null, actionFeedback = []) {
+  async completePlayerAction(beforeStats = null, actionFeedback = [], movementFeedback = []) {
     if (!this.gameState || this.playerActionUsed || this.isFlowResolving) return;
 
     this.playerActionUsed = true;
     this.isFlowResolving = true;
+    await this.playMovementFeedback(movementFeedback, beforeStats);
     this.refreshAfterPlayerAction();
+    await this.playPostRefreshMovementFeedback(movementFeedback);
     await this.playBuffFeedback(beforeStats, 'player');
     if (this.gameState.winner) {
       this.completeBattleFlow(500);
@@ -2598,7 +2622,10 @@ export default class BattleScene extends Phaser.Scene {
     const beforeStats = this.captureBoardStats();
     const result = this.enemyTakeAction(action);
     this.enemyActionUsed = true;
+    const movementFeedback = this.buildEnemyMovementFeedback(action, beforeStats, result);
+    await this.playMovementFeedback(movementFeedback, beforeStats);
     this.refreshBoardLabels();
+    await this.playPostRefreshMovementFeedback(movementFeedback);
     this.redrawHand();
     this.refreshHeroHP();
     this.updateInitiativeIndicator();
@@ -2606,6 +2633,21 @@ export default class BattleScene extends Phaser.Scene {
     await this.playActionFeedback(this.buildActionFeedback(beforeStats, result));
     await this.delay(pacing.postActionDelayMs);
     return pacing;
+  }
+
+  buildEnemyMovementFeedback(action, beforeStats, result) {
+    if (!action || !result?.ok) return [];
+    if (action.type === 'swap-units') {
+      return [{ type: 'swap', fromIndex: action.fromIndex, toIndex: action.toIndex, label: 'SWAP', kind: 'swap' }];
+    }
+
+    return this.buildMovementFeedbackForAction({
+      effectId: action.effectId ?? result.card?.effectId,
+      owner: 'enemy',
+      targetIndexes: action.targetIndexes ?? (Number.isInteger(action.targetIndex) ? [action.targetIndex] : []),
+      beforeSnapshot: beforeStats,
+      result,
+    });
   }
 
   getEnemyActionPacing(action) {
@@ -2923,6 +2965,87 @@ export default class BattleScene extends Phaser.Scene {
 
   getOpponentSide(side) {
     return side === 'player' ? 'enemy' : 'player';
+  }
+
+  getBoardCellCenter(index) {
+    const cell = this.getCellByIndex(index);
+    if (!cell?.background) return null;
+    return { x: cell.background.x, y: cell.background.y };
+  }
+
+  getBoardUnitVisual(index) {
+    return this.getCellByIndex(index)?.label ?? null;
+  }
+
+  getAdjacentFriendlySwapPartner(index, owner, boardSnapshot = this.gameState?.board) {
+    if (!Array.isArray(boardSnapshot) || !Number.isInteger(index)) return null;
+    const sameRow = (candidateIndex) => Math.floor(candidateIndex / 3) === Math.floor(index / 3);
+    const candidates = [index - 1, index + 1];
+    return candidates.find((candidateIndex) => (
+      candidateIndex >= 0
+      && candidateIndex < boardSnapshot.length
+      && sameRow(candidateIndex)
+      && boardSnapshot[candidateIndex]?.owner === owner
+    )) ?? null;
+  }
+
+  getMovementBlockedLabel(targetIndex, owner = 'player') {
+    const protectedOwner = this.gameState?.board?.[targetIndex]?.owner ?? this.getOpponentSide(owner);
+    if (this.gameState?.immovableThisTurn?.[protectedOwner]) return 'IMMOVABLE';
+    if (this.gameState?.immuneMoveDisableThisTurn?.[protectedOwner]) return 'IMMUNE';
+    return 'BLOCKED';
+  }
+
+  buildMovementFeedbackForAction({ effectId, owner = 'player', targetIndexes = [], beforeSnapshot = null, result = null, label = null } = {}) {
+    if (!result?.ok || !Array.isArray(beforeSnapshot)) return [];
+
+    if (result.type === 'targeted-effect-blocked' || result.type === 'effect-blocked') {
+      const indexes = targetIndexes.length > 0
+        ? targetIndexes
+        : beforeSnapshot
+          .map((unit, index) => ({ unit, index }))
+          .filter(({ unit }) => unit?.owner === this.getOpponentSide(owner))
+          .map(({ index }) => index);
+      return indexes
+        .filter((index, position, allIndexes) => Number.isInteger(index) && allIndexes.indexOf(index) === position)
+        .map((index) => ({ type: 'movement-blocked', index, label: this.getMovementBlockedLabel(index, owner) }));
+    }
+
+    if (effectId === 'swap_adjacent_then_resolve') {
+      const selectedIndex = targetIndexes[0];
+      const partnerIndex = this.getAdjacentFriendlySwapPartner(selectedIndex, owner, beforeSnapshot);
+      if (Number.isInteger(selectedIndex) && Number.isInteger(partnerIndex)) {
+        return [{ type: 'swap', fromIndex: selectedIndex, toIndex: partnerIndex, label: label ?? 'RUSH', kind: 'rush' }];
+      }
+    }
+
+    if (effectId === 'swap_any_two_units' || effectId === 'swap_two_enemy_units' || effectId === 'swap_adjacent_enemy_units') {
+      const [fromIndex, toIndex] = targetIndexes;
+      if (Number.isInteger(fromIndex) && Number.isInteger(toIndex)) {
+        return [{
+          type: 'swap',
+          fromIndex,
+          toIndex,
+          label: label ?? (effectId === 'swap_adjacent_enemy_units' ? 'PUSH' : 'SWAP'),
+          kind: effectId === 'swap_adjacent_enemy_units' ? 'push' : 'swap',
+        }];
+      }
+    }
+
+    return this.inferSwapFeedbackFromSnapshots(beforeSnapshot, label ?? 'SWAP');
+  }
+
+  inferSwapFeedbackFromSnapshots(beforeSnapshot, label = 'SWAP') {
+    if (!Array.isArray(beforeSnapshot) || !Array.isArray(this.gameState?.board)) return [];
+    for (let firstIndex = 0; firstIndex < beforeSnapshot.length - 1; firstIndex += 1) {
+      for (let secondIndex = firstIndex + 1; secondIndex < beforeSnapshot.length; secondIndex += 1) {
+        if (this.isSameBoardUnit(beforeSnapshot[firstIndex], this.gameState.board[secondIndex])
+          && this.isSameBoardUnit(beforeSnapshot[secondIndex], this.gameState.board[firstIndex])) {
+          return [{ type: 'swap', fromIndex: firstIndex, toIndex: secondIndex, label, kind: 'swap' }];
+        }
+      }
+    }
+    return [];
   }
 
   isSameBoardUnit(beforeUnit, afterUnit) {
@@ -3297,6 +3420,114 @@ export default class BattleScene extends Phaser.Scene {
       this.showSlotPulse(index, kind),
       this.showFloatingTextAtSlot(index, label, kind),
     ]);
+  }
+
+  createMovementGhost(index, unit) {
+    const cell = this.getCellByIndex(index);
+    const center = this.getBoardCellCenter(index);
+    if (!cell || !center || !unit) return null;
+
+    const ghost = this.add.container(center.x, center.y).setDepth(240);
+    ghost.add(this.createBoardUnitView(cell, unit));
+    return ghost;
+  }
+
+  showSwapFeedback(indexA, indexB, label = 'SWAP') {
+    const centerA = this.getBoardCellCenter(indexA);
+    const centerB = this.getBoardCellCenter(indexB);
+    if (!centerA || !centerB) return Promise.resolve();
+    const x = (centerA.x + centerB.x) / 2;
+    const y = Math.min(centerA.y, centerB.y) - this.layout.board.cellHeight * 0.34;
+    const floating = this.add.text(x, y, label, {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: `${Math.max(13, Math.floor(this.layout.board.cellWidth * 0.13))}px`,
+      color: '#fde68a',
+      fontStyle: 'bold',
+      align: 'center',
+    }).setOrigin(0.5).setDepth(252);
+
+    return Promise.all([
+      this.showSlotPulse(indexA, 'buff'),
+      this.showSlotPulse(indexB, 'buff'),
+      this.tweenToPromise({ targets: floating, y: floating.y - 24, alpha: 0, duration: 560, ease: 'Cubic.easeOut' }),
+    ]).then(() => floating.destroy());
+  }
+
+  animateUnitSwap(fromIndex, toIndex, options = {}) {
+    const { beforeSnapshot = null, label = 'SWAP' } = options;
+    const fromCenter = this.getBoardCellCenter(fromIndex);
+    const toCenter = this.getBoardCellCenter(toIndex);
+    const fromUnit = beforeSnapshot?.[fromIndex] ?? this.gameState?.board?.[toIndex];
+    const toUnit = beforeSnapshot?.[toIndex] ?? this.gameState?.board?.[fromIndex];
+    if (!fromCenter || !toCenter || !fromUnit || !toUnit) return Promise.resolve();
+
+    const fromVisual = this.getBoardUnitVisual(fromIndex);
+    const toVisual = this.getBoardUnitVisual(toIndex);
+    if (fromVisual) fromVisual.setAlpha(0.18);
+    if (toVisual) toVisual.setAlpha(0.18);
+
+    const fromGhost = this.createMovementGhost(fromIndex, fromUnit);
+    const toGhost = this.createMovementGhost(toIndex, toUnit);
+    if (!fromGhost || !toGhost) {
+      fromGhost?.destroy();
+      toGhost?.destroy();
+      if (fromVisual) fromVisual.setAlpha(1);
+      if (toVisual) toVisual.setAlpha(1);
+      return Promise.resolve();
+    }
+
+    const fromCell = this.getCellByIndex(fromIndex);
+    const toCell = this.getCellByIndex(toIndex);
+    fromCell?.background?.setStrokeStyle(4, 0xfacc15, BOARD_FEEDBACK_STROKE_ALPHA);
+    toCell?.background?.setStrokeStyle(4, 0xfacc15, BOARD_FEEDBACK_STROKE_ALPHA);
+
+    return Promise.all([
+      this.tweenToPromise({ targets: fromGhost, x: toCenter.x, y: toCenter.y, duration: 175, ease: 'Quad.easeInOut' }),
+      this.tweenToPromise({ targets: toGhost, x: fromCenter.x, y: fromCenter.y, duration: 175, ease: 'Quad.easeInOut' }),
+      this.showSwapFeedback(fromIndex, toIndex, label),
+    ]).then(() => {
+      fromGhost.destroy();
+      toGhost.destroy();
+      if (fromVisual?.active) fromVisual.setAlpha(1);
+      if (toVisual?.active) toVisual.setAlpha(1);
+    });
+  }
+
+  animateUnitMove(fromIndex, toIndex, options = {}) {
+    return this.animateUnitSwap(fromIndex, toIndex, options);
+  }
+
+  showMovementBlockedFeedback(index, label = 'BLOCKED') {
+    return Promise.all([
+      this.showSlotPulse(index, 'damage'),
+      this.showFloatingTextAtSlot(index, label, 'damage'),
+    ]);
+  }
+
+  async playMovementFeedback(events = [], beforeSnapshot = null) {
+    if (!Array.isArray(events) || events.length === 0) return;
+    await Promise.all(events.map((event) => {
+      if (event?.type === 'swap') {
+        return this.animateUnitSwap(event.fromIndex, event.toIndex, {
+          beforeSnapshot,
+          label: event.label,
+          kind: event.kind,
+        });
+      }
+      if (event?.type === 'movement-blocked') {
+        return this.showMovementBlockedFeedback(event.index, event.label);
+      }
+      return Promise.resolve();
+    }));
+  }
+
+  async playPostRefreshMovementFeedback(events = []) {
+    const swaps = Array.isArray(events) ? events.filter((event) => event?.type === 'swap') : [];
+    if (swaps.length === 0) return;
+    await Promise.all(swaps.flatMap((event) => [
+      this.showSlotPulse(event.fromIndex, 'buff'),
+      this.showSlotPulse(event.toIndex, 'buff'),
+    ]));
   }
 
   showDeathTriggerFeedback(sourceIndex, targetIndexOrHero, label = 'DEATH') {
