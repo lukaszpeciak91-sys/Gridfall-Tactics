@@ -3484,6 +3484,8 @@ export default class BattleScene extends Phaser.Scene {
         return '#fdba74';
       case 'pierce':
         return '#fde68a';
+      case 'prevention':
+        return '#67e8f9';
       case 'return':
         return '#bfdbfe';
       default:
@@ -3505,6 +3507,8 @@ export default class BattleScene extends Phaser.Scene {
         return 0xfb923c;
       case 'pierce':
         return 0xfacc15;
+      case 'prevention':
+        return 0x06b6d4;
       case 'return':
         return 0x93c5fd;
       default:
@@ -4126,6 +4130,7 @@ export default class BattleScene extends Phaser.Scene {
           if (target) {
             this.showUnitCombatText(target, event);
             animations.push(this.flashCellHit(target, event));
+            if (event.prevention?.prevented) animations.push(this.showLastStandPreventionFeedback(targetIndex, event.prevention));
             if (event.lethal) animations.push(this.playLethalFade(target));
           }
         }
@@ -4183,21 +4188,44 @@ export default class BattleScene extends Phaser.Scene {
     this.tweens.add({ targets: damageText, y: damageText.y - 30, alpha: 0, duration: 720, onComplete: () => damageText.destroy() });
   }
 
+  getUnitCombatTextLabel(event) {
+    const isBlocked = event.damage <= 0;
+    if (isBlocked) return translateActive('ui.battle.block', 'BLOCK');
+
+    if (event.prevention?.prevented) {
+      const visibleDamage = Number.isFinite(event.prevention.visibleDamage)
+        ? Math.max(0, event.prevention.visibleDamage)
+        : Math.max(0, event.damage - Math.max(0, event.prevention.finalHp ?? 1));
+      return visibleDamage > 0 ? `-${visibleDamage}` : 'HIT';
+    }
+
+    return `-${event.damage}`;
+  }
+
   showUnitCombatText(target, event) {
     const isBlocked = event.damage <= 0;
-    const damageText = this.add.text(target.background.x, target.background.y - this.layout.board.cellHeight * 0.14, isBlocked ? translateActive('ui.battle.block', 'BLOCK') : `-${event.damage}`, {
+    const isPrevented = Boolean(event.prevention?.prevented);
+    const damageText = this.add.text(target.background.x, target.background.y - this.layout.board.cellHeight * 0.14, this.getUnitCombatTextLabel(event), {
       fontFamily: 'Arial, sans-serif',
       fontSize: `${Math.max(15, Math.floor(this.layout.board.cellWidth * (isBlocked ? 0.13 : 0.15)))}px`,
-      color: isBlocked ? '#bfdbfe' : (event.lethal ? '#fecaca' : '#fde68a'),
+      color: isBlocked ? '#bfdbfe' : (isPrevented ? '#67e8f9' : (event.lethal ? '#fecaca' : '#fde68a')),
       fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(240);
     this.tweens.add({ targets: damageText, y: damageText.y - 24, alpha: 0, duration: 650, ease: 'Cubic.easeOut', onComplete: () => damageText.destroy() });
   }
 
+  showLastStandPreventionFeedback(index, prevention = {}) {
+    const finalHp = Number.isFinite(prevention.finalHp) ? prevention.finalHp : 1;
+    return Promise.all([
+      this.showSlotPulse(index, 'prevention'),
+      this.showFloatingTextAtSlot(index, `LAST STAND\n${finalHp} HP`, 'prevention'),
+    ]);
+  }
+
   async flashCellHit(cell, event) {
     if (!cell?.background || !cell?.label) return;
 
-    const strokeColor = event.damage <= 0 ? 0x93c5fd : (event.lethal ? 0xfca5a5 : 0xfde68a);
+    const strokeColor = event.damage <= 0 ? 0x93c5fd : (event.prevention?.prevented ? 0x06b6d4 : (event.lethal ? 0xfca5a5 : 0xfde68a));
     const previousStyle = {
       lineWidth: cell.background.lineWidth ?? (cell.row === 1 ? 2 : 3),
       strokeColor: cell.background.strokeColor ?? (cell.row === 1 ? 0x94a3b8 : 0xcbd5e1),

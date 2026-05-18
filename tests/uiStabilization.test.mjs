@@ -203,3 +203,13 @@ test('BattleScene preloads and renders the default battlefield background with d
   assert.match(backgroundDocs, /public\/assets\/backgrounds\/default\/battlefield\.webp/);
   assert.match(backgroundDocs, /assets\/backgrounds\/default\/battlefield\.webp/);
 });
+
+
+test('BattleScene renders Last Stand prevention as distinct combat feedback', () => {
+  const battleSource = read('src/scenes/BattleScene.js');
+
+  assert.match(battleSource, /showLastStandPreventionFeedback\(targetIndex, event\.prevention\)/);
+  assert.match(battleSource, /LAST STAND\\n\$\{finalHp\} HP/);
+  assert.match(battleSource, /event\.prevention\?\.prevented \? 0x06b6d4/);
+  assert.match(battleSource, /getUnitCombatTextLabel\(event\)/);
+});

@@ -1491,6 +1491,23 @@ function resolveCombatLane(state, col, combatContext = null) {
     if (!amount || amount <= 0) return;
     pendingUnitDamage.set(index, (pendingUnitDamage.get(index) ?? 0) + amount);
   };
+  const getUnitDamagePrevention = (index, amount) => {
+    const target = state.board[index];
+    if (!target || amount <= 0) return null;
+    const accumulatedDamage = pendingUnitDamage.get(index) ?? 0;
+    const projectedHp = target.hp - accumulatedDamage - amount;
+    const minOneProtection = Boolean(state.cannotDropBelowOneThisTurn?.[target.owner]);
+    if (!minOneProtection || projectedHp >= 1) return null;
+
+    return {
+      targetIndex: index,
+      prevented: true,
+      preventedBy: 'LAST_STAND',
+      attemptedDamage: amount,
+      visibleDamage: Math.max(0, target.hp - accumulatedDamage - 1),
+      finalHp: 1,
+    };
+  };
   const wouldUnitDamageBeLethal = (index, amount) => {
     const target = state.board[index];
     if (!target || amount <= 0) return false;
@@ -1499,7 +1516,7 @@ function resolveCombatLane(state, col, combatContext = null) {
     const minOneProtection = Boolean(state.cannotDropBelowOneThisTurn?.[target.owner]);
     return !minOneProtection && projectedHp <= 0;
   };
-  const recordCombatEvent = ({ attackerSide, attackerIndex = null, targetType, targetSide, targetIndex = null, damage, openLane, lethal = false }) => {
+  const recordCombatEvent = ({ attackerSide, attackerIndex = null, targetType, targetSide, targetIndex = null, damage, openLane, lethal = false, prevention = null }) => {
     // Read-only feedback payload for BattleScene; combat mutations remain below.
     const event = {
       lane: col,
@@ -1510,6 +1527,7 @@ function resolveCombatLane(state, col, combatContext = null) {
       openLane,
       lethal,
     };
+    if (prevention) event.prevention = prevention;
     Object.defineProperties(event, {
       attackerIndex: { value: attackerIndex, enumerable: false },
       targetIndex: { value: targetIndex, enumerable: false },
@@ -1520,6 +1538,7 @@ function resolveCombatLane(state, col, combatContext = null) {
   const recordUnitAttack = (attackerSide, attackerIndex, targetIndex, damage) => {
     const target = state.board[targetIndex];
     if (!target) return;
+    const prevention = getUnitDamagePrevention(targetIndex, damage);
     recordCombatEvent({
       attackerSide,
       attackerIndex,
@@ -1529,6 +1548,7 @@ function resolveCombatLane(state, col, combatContext = null) {
       damage,
       openLane: false,
       lethal: wouldUnitDamageBeLethal(targetIndex, damage),
+      prevention,
     });
   };
   const recordHeroAttack = (attackerSide, attackerIndex, targetSide, damage, openLane) => recordCombatEvent({
