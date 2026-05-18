@@ -50,6 +50,85 @@ export const CARD_STAT_STYLES = Object.freeze({
   }),
 });
 
+export const MODIFIED_STAT_TEXT_STYLES = Object.freeze({
+  attackBuff: Object.freeze({
+    color: '#86efac',
+    shadow: 'rgba(34, 197, 94, 0.58)',
+    glowAlpha: 0.24,
+    plateStroke: 0x86efac,
+    plateStrokeAlpha: 0.5,
+  }),
+  attackDebuff: Object.freeze({
+    color: '#fb923c',
+    shadow: 'rgba(248, 113, 113, 0.5)',
+    glowAlpha: 0.08,
+    plateStroke: 0xfb923c,
+    plateStrokeAlpha: 0.46,
+  }),
+  armorBuff: Object.freeze({
+    color: '#bae6fd',
+    shadow: 'rgba(56, 189, 248, 0.52)',
+    glowAlpha: 0.22,
+    plateStroke: 0x7dd3fc,
+    plateStrokeAlpha: 0.48,
+  }),
+  armorDebuff: Object.freeze({
+    color: '#fdba74',
+    shadow: 'rgba(251, 146, 60, 0.46)',
+    glowAlpha: 0.07,
+    plateStroke: 0xfdba74,
+    plateStrokeAlpha: 0.42,
+  }),
+});
+
+const PERSISTENT_MODIFIED_STAT_KEYS = Object.freeze(['attack', 'armor']);
+
+function getNumericStatValue(stats, key) {
+  const value = stats?.[key];
+  return Number.isFinite(value) ? value : null;
+}
+
+export function getModifiedStatState(key, currentStats = {}, baseStats = {}) {
+  if (!PERSISTENT_MODIFIED_STAT_KEYS.includes(key)) return 'base';
+
+  const current = getNumericStatValue(currentStats, key);
+  const base = getNumericStatValue(baseStats, key);
+  if (current === null || base === null || current === base) return 'base';
+  return current > base ? 'buff' : 'debuff';
+}
+
+function getModifiedStatTextStyle(key, modifiedState) {
+  if (modifiedState === 'buff') {
+    if (key === 'attack') return MODIFIED_STAT_TEXT_STYLES.attackBuff;
+    if (key === 'armor') return MODIFIED_STAT_TEXT_STYLES.armorBuff;
+  }
+
+  if (modifiedState === 'debuff') {
+    if (key === 'attack') return MODIFIED_STAT_TEXT_STYLES.attackDebuff;
+    if (key === 'armor') return MODIFIED_STAT_TEXT_STYLES.armorDebuff;
+  }
+
+  return null;
+}
+
+function asChangedStatSet(changedStats) {
+  if (changedStats instanceof Set) return changedStats;
+  if (Array.isArray(changedStats)) return new Set(changedStats);
+  return new Set();
+}
+
+function pulseStatGlyph(scene, glyph) {
+  if (!scene?.tweens || !glyph) return;
+  scene.tweens.add({
+    targets: glyph,
+    scaleX: 1.12,
+    scaleY: 1.12,
+    duration: 110,
+    yoyo: true,
+    ease: 'Sine.easeOut',
+  });
+}
+
 export const CARD_ACCENT_COLORS = Object.freeze({
   unit: 0x4da6ff,
   effect: 0xb06cff,
@@ -516,7 +595,7 @@ function getStatBadgeSize(height, width, scale = 1) {
   return baseSize * scale;
 }
 
-function createStatGlyph(scene, x, y, size, key, value, style, isKnown, fontSize) {
+function createStatGlyph(scene, x, y, size, key, value, style, isKnown, fontSize, modifiedState = 'base') {
   const glyph = scene.add.container(x, y);
   const valueText = isKnown ? String(value) : '–';
   const symbolAlpha = isKnown ? 0.98 : 0.26;
@@ -526,12 +605,17 @@ function createStatGlyph(scene, x, y, size, key, value, style, isKnown, fontSize
   const symbol = drawStatSymbol(scene, 0, 0, size, key, style.color, symbolAlpha);
   const glass = drawStatSymbol(scene, -size * 0.08, -size * 0.14, size * 0.46, key, 0xffffff, isKnown ? 0.1 : 0.025);
   const textOffsetY = key === 'attack' ? size * 0.09 : 0;
+  const modifiedStyle = isKnown ? getModifiedStatTextStyle(key, modifiedState) : null;
+  if (modifiedStyle) {
+    glow.setAlpha(modifiedStyle.glowAlpha);
+    outline.setAlpha(0.24);
+  }
   const numberPlate = scene.add.circle(0, textOffsetY, size * 0.31, 0x020817, isKnown ? 0.42 : 0.1)
     .setStrokeStyle(Math.max(1, Math.round(size * 0.045)), 0xfff1d6, isKnown ? 0.22 : 0.06);
   const text = scene.add.text(0, textOffsetY, valueText, {
     fontFamily: 'Arial, sans-serif',
     fontSize: `${fontSize}px`,
-    color: isKnown ? '#fff7ed' : '#94a3b8',
+    color: modifiedStyle?.color ?? (isKnown ? '#fff7ed' : '#94a3b8'),
     fontStyle: 'bold',
     align: 'center',
     stroke: isKnown ? '#020817' : '#0f172a',
@@ -540,7 +624,10 @@ function createStatGlyph(scene, x, y, size, key, value, style, isKnown, fontSize
     fixedHeight: Math.ceil(size * 0.84),
   }).setOrigin(0.5);
   if (isKnown) {
-    text.setShadow(0, 1, 'rgba(0, 0, 0, 0.68)', 2);
+    text.setShadow(0, 1, modifiedStyle?.shadow ?? 'rgba(0, 0, 0, 0.68)', modifiedStyle ? 4 : 2);
+  }
+  if (modifiedStyle) {
+    numberPlate.setStrokeStyle(Math.max(1, Math.round(size * 0.05)), modifiedStyle.plateStroke, modifiedStyle.plateStrokeAlpha);
   }
 
   glyph.add([glow, outline, symbol, glass, numberPlate, text]);
@@ -553,6 +640,7 @@ function createStatGlyph(scene, x, y, size, key, value, style, isKnown, fontSize
     glass,
     numberPlate,
     valueText: text,
+    modifiedState,
     setDimmed(dimmed = true) {
       glyph.setAlpha(dimmed ? 0.48 : 1);
     },
@@ -569,19 +657,26 @@ export function createStatBadges(scene, x, y, width, height, stats, depth = 0, o
     fontScale = 1,
     spacingScale = 1,
     maxGroupWidthRatio = 0.86,
+    baseStats = stats,
+    changedStats = [],
+    pulseChangedStats = false,
   } = options;
   const symbolSize = getStatBadgeSize(height, width, sizeScale);
   const fontSize = Math.max(11, Math.floor(symbolSize * 0.63 * fontScale));
   const groupWidth = Math.min(width * maxGroupWidthRatio, symbolSize * 4.45 * spacingScale);
   const slotWidth = groupWidth / 3;
   const statGlyphs = {};
+  const changedStatSet = asChangedStatSet(changedStats);
 
   keys.forEach((key, index) => {
     const slotCenterX = -groupWidth / 2 + slotWidth * (index + 0.5);
     const statStyle = CARD_STAT_STYLES[key];
     const value = stats[key];
     const isKnown = value !== null && value !== undefined;
-    const glyph = createStatGlyph(scene, slotCenterX, 0, symbolSize, key, value, statStyle, isKnown, fontSize);
+    const modifiedState = getModifiedStatState(key, stats, baseStats);
+    const glyph = createStatGlyph(scene, slotCenterX, 0, symbolSize, key, value, statStyle, isKnown, fontSize, modifiedState);
+
+    if (pulseChangedStats && changedStatSet.has(key)) pulseStatGlyph(scene, glyph);
 
     statGlyphs[key] = glyph.statFeedback;
     container.add(glyph);
@@ -722,6 +817,10 @@ export function createCardPreviewView(scene, {
   frameAlpha = card ? 0.84 : 0.48,
   enableCardIllustration = false,
   showCardNumber = false,
+  statValues = null,
+  baseStatValues = null,
+  changedStats = [],
+  pulseChangedStats = false,
 } = {}) {
   const zones = getCardLayoutZones(width, height);
   const baseTypography = getCardTypography(width, height);
@@ -732,7 +831,8 @@ export function createCardPreviewView(scene, {
     body: Math.round(baseTypography.body * typographyScale),
   };
   const content = getCardDisplayContent(card, locale);
-  const stats = getCardStatValues(card);
+  const stats = statValues ?? getCardStatValues(card);
+  const baseStats = baseStatValues ?? stats;
   const root = scene.add.container(x, y).setDepth(depth);
   const glow = scene.add.rectangle(0, 0, width + 8, height + 8, 0xfacc15, 0)
     .setStrokeStyle(5, 0xfacc15, 0);
@@ -753,6 +853,9 @@ export function createCardPreviewView(scene, {
       fontScale: typographyScale > 1 ? 1.06 : 1.1,
       maxGroupWidthRatio: 0.9,
       spacingScale: typographyScale > 1 ? 1.16 : 1.12,
+      baseStats,
+      changedStats,
+      pulseChangedStats,
     },
   );
   const art = createCardArtwork(scene, zones.art, card, { enableCardIllustration });

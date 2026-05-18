@@ -167,6 +167,8 @@ export default class BattleScene extends Phaser.Scene {
     this.navigationInProgress = false;
     this.pointerInputGuardActive = false;
     this.pointerInputGuardEventId = null;
+    this.lastRenderedBoardStats = null;
+    this.currentBoardRenderStats = null;
   }
 
   preload() {
@@ -233,6 +235,8 @@ export default class BattleScene extends Phaser.Scene {
     this.navigationInProgress = false;
     this.pointerInputGuardActive = false;
     this.pointerInputGuardEventId = null;
+    this.lastRenderedBoardStats = null;
+    this.currentBoardRenderStats = null;
   }
 
   cleanupSceneObjects({ preserveTimers = false, preserveTweens = false } = {}) {
@@ -1647,6 +1651,10 @@ export default class BattleScene extends Phaser.Scene {
     bodyLineSpacing = 2,
     enableCardIllustration = false,
     showCardNumber = false,
+    statValues = null,
+    baseStatValues = null,
+    changedStats = [],
+    pulseChangedStats = false,
   }) {
     return createCardPreviewView(this, {
       card,
@@ -1664,6 +1672,10 @@ export default class BattleScene extends Phaser.Scene {
       bodyLineSpacing,
       enableCardIllustration,
       showCardNumber,
+      statValues,
+      baseStatValues,
+      changedStats,
+      pulseChangedStats,
     });
   }
 
@@ -4252,6 +4264,34 @@ export default class BattleScene extends Phaser.Scene {
     };
   }
 
+  getBoardUnitBaseStats(unit) {
+    if (!unit) return { attack: null, armor: null, health: null };
+
+    return {
+      attack: Number.isFinite(unit.attack) ? unit.attack : 0,
+      armor: Number.isFinite(unit.armor) ? unit.armor : 0,
+      health: Number.isFinite(unit.hp) ? unit.hp : 0,
+    };
+  }
+
+  createBoardRenderStatSnapshot() {
+    return this.gameState.board.map((unit) => (unit ? {
+      id: unit.id,
+      cardId: unit.cardId,
+      owner: unit.owner,
+      attack: getUnitAttack(unit),
+      armor: getUnitArmor(unit),
+      health: Number.isFinite(unit.hp) ? unit.hp : 0,
+    } : null));
+  }
+
+  getChangedBoardUnitStatKeys(index, unit, currentStats) {
+    const previous = this.lastRenderedBoardStats?.[index];
+    if (!previous || !this.isSameBoardUnit(previous, unit)) return [];
+
+    return ['attack', 'armor'].filter((key) => previous[key] !== currentStats[key]);
+  }
+
   createBoardUnitNameText(x, y, width, height, name) {
     const text = String(name || translateActive('ui.common.unit', 'Unit'));
     const horizontalPadding = Math.max(6, Math.round(width * 0.06));
@@ -4307,7 +4347,13 @@ export default class BattleScene extends Phaser.Scene {
       .setStrokeStyle(2, ownerAccent, 0.62);
     const inner = this.add.rectangle(0, 0, unitWidth - pad, unitHeight - pad, CARD_COLORS.innerPanel, 0.32)
       .setStrokeStyle(1, 0xffffff, 0.045);
-    const stats = createStatBadges(this, 0, statY, artWidth, statHeight, this.getBoardUnitStats(unit));
+    const unitStats = this.currentBoardRenderStats?.[cell.index] ?? this.getBoardUnitStats(unit);
+    const changedStats = this.getChangedBoardUnitStatKeys(cell.index, unit, unitStats);
+    const stats = createStatBadges(this, 0, statY, artWidth, statHeight, unitStats, 0, {
+      baseStats: this.getBoardUnitBaseStats(unit),
+      changedStats,
+      pulseChangedStats: changedStats.length > 0,
+    });
     const artBack = this.add.rectangle(0, artY, artWidth, artHeight, CARD_COLORS.artBottom, 0.96)
       .setStrokeStyle(1, 0x38bdf8, 0.12);
     const artShade = this.add.rectangle(0, artY - artHeight * 0.18, artWidth, artHeight * 0.48, CARD_COLORS.artTop, 0.46);
@@ -4324,6 +4370,9 @@ export default class BattleScene extends Phaser.Scene {
       this.clearBoardInspect({ animate: true });
     }
 
+    const currentRenderStats = this.createBoardRenderStatSnapshot();
+    this.currentBoardRenderStats = currentRenderStats;
+
     this.boardCells.forEach((cell) => {
       const unit = this.gameState.board[cell.index];
       cell.label.removeAll(true);
@@ -4338,6 +4387,9 @@ export default class BattleScene extends Phaser.Scene {
         cell.blockedMarker.setText('');
       }
     });
+
+    this.lastRenderedBoardStats = currentRenderStats;
+    this.currentBoardRenderStats = null;
   }
 
   refreshHeroHP() {
@@ -4461,6 +4513,8 @@ export default class BattleScene extends Phaser.Scene {
           sourceY: cell.background.y,
           enableCardIllustration: false,
           showCardNumber: false,
+          statValues: this.getBoardUnitStats(unit),
+          baseStatValues: this.getBoardUnitBaseStats(unit),
         };
       }
     }
@@ -4497,6 +4551,8 @@ export default class BattleScene extends Phaser.Scene {
       bodyLineSpacing: INSPECT_CARD_BODY_LINE_SPACING,
       enableCardIllustration: inspectRequest.enableCardIllustration,
       showCardNumber: inspectRequest.showCardNumber,
+      statValues: inspectRequest.statValues ?? null,
+      baseStatValues: inspectRequest.baseStatValues ?? null,
     });
 
     this.applyInspectDimming(inspectRequest.cardId);
