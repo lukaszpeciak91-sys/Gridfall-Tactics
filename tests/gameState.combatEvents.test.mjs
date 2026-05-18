@@ -399,3 +399,92 @@ test('simultaneous lethal still applies both hero attacks before winner resoluti
   assert.equal(state.heroDeathResolution.rawEnemyHP, -2);
   assert.equal(state.winner, 'player');
 });
+
+test('Last Stand combat prevention payload explains lethal damage clamped to 1 HP', () => {
+  const state = makeState();
+  state.cannotDropBelowOneThisTurn = { player: true, enemy: false };
+  state.board[0] = unit('enemy', { attack: 5, hp: 3, maxHp: 3 });
+  state.board[6] = unit('player', { attack: 0, hp: 3, maxHp: 3 });
+
+  const events = resolveCombat(state);
+  const preventedHit = events.find((event) => event.targetSide === 'player');
+
+  assert.equal(preventedHit.lethal, false);
+  assert.deepEqual(preventedHit.prevention, {
+    targetIndex: 6,
+    prevented: true,
+    preventedBy: 'LAST_STAND',
+    attemptedDamage: 5,
+    visibleDamage: 2,
+    finalHp: 1,
+  });
+  assert.equal(state.board[6].hp, 1);
+  assert.equal(state.cannotDropBelowOneThisTurn.player, false);
+});
+
+test('Last Stand combat prevention payload supports simultaneous protected survivors', () => {
+  const state = makeState();
+  state.cannotDropBelowOneThisTurn = { player: true, enemy: true };
+  state.board[0] = unit('enemy', { attack: 4, hp: 2, maxHp: 2 });
+  state.board[6] = unit('player', { attack: 3, hp: 2, maxHp: 2 });
+
+  const events = resolveCombat(state);
+
+  assert.equal(events.length, 2);
+  assert.equal(events.every((event) => event.prevention?.prevented === true), true);
+  assert.deepEqual(events.map((event) => [event.targetSide, event.prevention.preventedBy, event.prevention.finalHp]), [
+    ['enemy', 'LAST_STAND', 1],
+    ['player', 'LAST_STAND', 1],
+  ]);
+  assert.equal(state.board[0].hp, 1);
+  assert.equal(state.board[6].hp, 1);
+});
+
+test('Last Stand does not emit prevention metadata for non-lethal damage or after expiry', () => {
+  const nonLethal = makeState();
+  nonLethal.cannotDropBelowOneThisTurn = { player: true, enemy: false };
+  nonLethal.board[0] = unit('enemy', { attack: 1, hp: 3, maxHp: 3 });
+  nonLethal.board[6] = unit('player', { attack: 0, hp: 3, maxHp: 3 });
+
+  const nonLethalEvents = resolveCombat(nonLethal);
+  assert.equal(nonLethalEvents.some((event) => event.prevention), false);
+  assert.equal(nonLethal.board[6].hp, 2);
+
+  const expired = makeState();
+  expired.board[0] = unit('enemy', { attack: 2, hp: 3, maxHp: 3 });
+  expired.board[6] = unit('player', { attack: 0, hp: 1, maxHp: 3 });
+
+  const expiredEvents = resolveCombat(expired);
+  assert.equal(expiredEvents.some((event) => event.prevention), false);
+  assert.equal(expired.board[6], null);
+});
+
+test('Last Stand prevention metadata reflects armor-mitigated combat damage', () => {
+  const state = makeState();
+  state.cannotDropBelowOneThisTurn = { player: true, enemy: false };
+  state.board[0] = unit('enemy', { attack: 5, hp: 3, maxHp: 3 });
+  state.board[6] = unit('player', { attack: 0, hp: 2, maxHp: 2, armor: 2 });
+
+  const events = resolveCombat(state);
+  const preventedHit = events.find((event) => event.targetSide === 'player');
+
+  assert.equal(preventedHit.damage, 3);
+  assert.equal(preventedHit.prevention?.attemptedDamage, 3);
+  assert.equal(preventedHit.prevention?.visibleDamage, 1);
+  assert.equal(state.board[6].hp, 1);
+});
+
+test('Last Stand prevention metadata reflects ignore-armor combat damage', () => {
+  const state = makeState();
+  state.cannotDropBelowOneThisTurn = { player: true, enemy: false };
+  state.board[0] = unit('enemy', { attack: 5, hp: 3, maxHp: 3 });
+  state.board[6] = unit('player', { attack: 0, hp: 2, maxHp: 2, armor: 4, ignoreArmorNext: true });
+
+  const events = resolveCombat(state);
+  const preventedHit = events.find((event) => event.targetSide === 'player');
+
+  assert.equal(preventedHit.damage, 5);
+  assert.equal(preventedHit.prevention?.attemptedDamage, 5);
+  assert.equal(preventedHit.prevention?.visibleDamage, 1);
+  assert.equal(state.board[6].hp, 1);
+});
