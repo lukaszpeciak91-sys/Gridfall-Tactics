@@ -66,7 +66,7 @@ const presentation = {
       aggro_rush_1: { nameEn: 'Crimson Waltz', namePl: 'Karmazynowy Walc' },
       aggro_pierce_strike_1: { nameEn: 'Crystal Rapier', namePl: 'Kryształowy Rapier' },
       aggro_adrenaline_1: { nameEn: 'Maniacal Masquerade', namePl: 'Maniakalna Maskarada' },
-      aggro_quick_fix_1: { nameEn: 'Mercy Etiquette', namePl: 'Etykieta Miłosierdzia' },
+      aggro_quick_fix_1: { nameEn: 'Mercy', namePl: 'Miłosierdzie' },
     },
     cardArtDirections: {
       aggro_berserker_1: 'A decadent aristocratic court lady with cracked porcelain beauty and a massive ballroom dress silhouette, emotionally collapsing under elegance as her body and composure fracture into escalating danger; avoid generic berserker, armored warrior, or masculine noble reads.',
