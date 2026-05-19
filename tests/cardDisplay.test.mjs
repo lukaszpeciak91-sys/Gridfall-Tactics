@@ -116,7 +116,7 @@ test('Wardens vanilla units render without placeholder body text', () => {
   const bastionGuard = deck.find((card) => card.id === 'wardens_bastion_guard_1');
   const watchCaptain = deck.find((card) => card.id === 'wardens_watch_captain_1');
 
-  assert.equal(formatHandCardLabel(bastionGuard), 'Bastion Keeper\n1/3 ARM 0');
+  assert.equal(formatHandCardLabel(bastionGuard), 'Tururuk\n1/3 ARM 0');
   assert.equal(formatCollectionRowLabel(bastionGuard).textShort, '');
   assert.equal(formatCardDetailLines(watchCaptain).at(-1), '');
   assert.doesNotMatch(formatHandCardLabel(bastionGuard), /UNIT|NO EFFECT|No special behavior/i);

@@ -201,43 +201,43 @@
       "textShort": "Target [ALLY] +1 ARM until combat ends."
     },
     "wardens_sentinel_1": {
-      "name": "Sentinel",
+      "name": "Tusk Guard",
       "textShort": "Attackers: -1 ATK."
     },
     "wardens_spearwall_1": {
-      "name": "Spearwall",
+      "name": "Tundra Hunter",
       "textShort": "Attackers of adjacent [ALLIES]: -1 ATK."
     },
     "wardens_halberdier_1": {
-      "name": "Halberdier",
+      "name": "Ice Pike",
       "textShort": "If opposed: +1 ATK."
     },
     "wardens_bastion_guard_1": {
-      "name": "Bastion Guard",
+      "name": "Tururuk",
       "textShort": ""
     },
     "wardens_watch_captain_1": {
-      "name": "Watch Captain",
+      "name": "Tererek",
       "textShort": ""
     },
     "wardens_brace_1": {
-      "name": "Brace",
+      "name": "Bone Shields",
       "textShort": "Target [ALLY] +1 ARM until combat ends."
     },
     "wardens_shield_push_1": {
-      "name": "Shield Push",
+      "name": "Mammoth Stampede",
       "textShort": "Swap two adjacent enemies."
     },
     "wardens_stand_firm_1": {
-      "name": "Stand Firm",
+      "name": "Endure the Cold",
       "textShort": "All [ALLY] can't be moved this turn."
     },
     "wardens_reinforce_line_1": {
-      "name": "Reinforce Line",
+      "name": "Raise the Spears",
       "textShort": "Adjacent [ALLY] +1 ARM until combat ends."
     },
     "wardens_hold_the_line_1": {
-      "name": "Hold The Line",
+      "name": "Hold the Ice Pass",
       "textShort": "Adjacent [ALLY] +1 ARM until combat ends."
     }
   },
