@@ -11,7 +11,7 @@ import { createFloatingControl, createMuteToggleControl, requestPortraitOrientat
 import { createModalBackButton } from '../ui/modalControls.js';
 import { preloadSecondaryButtonAsset } from '../ui/imageButton.js';
 import { formatDeckSummaryEntry } from '../rendering/cardRenderModes.js';
-import { CARD_COLORS, createCardPreviewView, createStatBadges, getDefaultCardAccentColor } from '../rendering/cardVisualLayout.js';
+import { CARD_COLORS, createCardArtwork, createCardPreviewView, getDefaultCardAccentColor, createStatBadges } from '../rendering/cardVisualLayout.js';
 import { getCardDisplayName, getCardTextShort } from '../localization/cardDisplay.js';
 import { getActiveLocale, translateActive } from '../localization/localeService.js';
 
@@ -59,6 +59,7 @@ const INSPECT_CARD_STAT_BADGE_SCALE = 1.28;
 const INSPECT_CARD_TYPOGRAPHY_SCALE = 1.1;
 const INSPECT_CARD_BODY_LINE_SPACING = 5;
 const HAND_CARD_INSPECT_DIM_ALPHA = 0.55;
+const BOARD_CARD_ARTWORK_UPWARD_CROP_BIAS_RATIO = 0.065;
 const HAND_CARD_LONG_PRESS_MS = 425;
 const ENEMY_ACTION_NOTIFICATION_FADE_IN_MS = 110;
 const ENEMY_ACTION_NOTIFICATION_HOLD_MS = 650;
@@ -4356,7 +4357,6 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   createBoardUnitView(cell, unit) {
-    const { board } = this.layout;
     const unitWidth = Math.max(1, cell.background.width - 8);
     const unitHeight = Math.max(1, cell.background.height - 8);
     const pad = Math.max(5, Math.round(unitWidth * 0.06));
@@ -4382,15 +4382,27 @@ export default class BattleScene extends Phaser.Scene {
       changedStats,
       pulseChangedStats: changedStats.length > 0,
     });
-    const artBack = this.add.rectangle(0, artY, artWidth, artHeight, CARD_COLORS.artBottom, 0.96)
+    const art = createCardArtwork(this, {
+      x: -artWidth / 2,
+      y: artY - artHeight / 2,
+      width: artWidth,
+      height: artHeight,
+      centerX: 0,
+      centerY: artY,
+    }, unit, {
+      enableCardIllustration: true,
+      upwardCropBiasRatio: BOARD_CARD_ARTWORK_UPWARD_CROP_BIAS_RATIO,
+    });
+    const artStroke = this.add.rectangle(0, artY, artWidth, artHeight)
+      .setFillStyle(0x000000, 0)
       .setStrokeStyle(1, 0x38bdf8, 0.12);
-    const artShade = this.add.rectangle(0, artY - artHeight * 0.18, artWidth, artHeight * 0.48, CARD_COLORS.artTop, 0.46);
-    const artGround = this.add.rectangle(0, artY + artHeight * 0.3, artWidth * 0.86, Math.max(1, board.cellHeight * 0.006), 0x67e8f9, 0.12);
+    const artShade = this.add.rectangle(0, artY - artHeight * 0.18, artWidth, artHeight * 0.52, CARD_COLORS.artTop, 0.34);
+    const artBottomDim = this.add.rectangle(0, artY + artHeight * 0.28, artWidth, artHeight * 0.44, 0x020617, 0.28);
     const namePanel = this.add.rectangle(0, nameY, artWidth, nameHeight, CARD_COLORS.namePanel, 0.9)
       .setStrokeStyle(1, ownerAccent, 0.34);
     const nameText = this.createBoardUnitNameText(0, nameY, artWidth, nameHeight, displayName);
 
-    return [cardBack, inner, artBack, artShade, artGround, namePanel, nameText, stats];
+    return [cardBack, inner, art, artStroke, artShade, artBottomDim, namePanel, nameText, stats];
   }
 
   refreshBoardLabels() {
@@ -4539,7 +4551,7 @@ export default class BattleScene extends Phaser.Scene {
           cardId: unit.cardId ?? unit.id ?? `board-${this.boardInspectIndex}-unit`,
           sourceX: cell.background.x,
           sourceY: cell.background.y,
-          enableCardIllustration: false,
+          enableCardIllustration: true,
           showCardNumber: false,
           statValues: this.getBoardUnitStats(unit),
           baseStatValues: this.getBoardUnitBaseStats(unit),

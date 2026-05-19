@@ -125,7 +125,7 @@ test('missing standardized card illustrations keep the existing placeholder fall
   assert.deepEqual(warnings, ['Card illustration missing: public/assets/cards/aggro/aggro_01.webp']);
 });
 
-test('battle scene enables illustrations for hand cards and hand inspect, not board inspect', () => {
+test('battle scene enables illustrations for hand cards, board cards, and board inspect', () => {
   const source = fs.readFileSync('src/scenes/BattleScene.js', 'utf8');
   const drawHand = source.slice(source.indexOf('  drawHand()'), source.indexOf('  createHandCardView({'));
   const inspectRequest = source.slice(source.indexOf('  getCurrentInspectCardRequest()'), source.indexOf('  showSelectedHandCardZoom()'));
@@ -133,12 +133,12 @@ test('battle scene enables illustrations for hand cards and hand inspect, not bo
 
   assert.match(drawHand, /enableCardIllustration: true/);
   assert.match(inspectRequest, /sourceY: cardView\.baseY,[\s\S]*enableCardIllustration: true/);
-  assert.match(inspectRequest, /sourceY: cell\.background\.y,[\s\S]*enableCardIllustration: false/);
+  assert.match(inspectRequest, /sourceY: cell\.background\.y,[\s\S]*enableCardIllustration: true/);
   const boardUnitView = source.slice(source.indexOf('  createBoardUnitView(cell, unit) {'), source.indexOf('  refreshBoardLabels() {'));
 
   assert.match(inspectZoom, /enableCardIllustration: inspectRequest\.enableCardIllustration/);
-  assert.doesNotMatch(boardUnitView, /createCardArtwork\(/);
-  assert.match(boardUnitView, /const artBack = this\.add\.rectangle/);
+  assert.match(boardUnitView, /createCardArtwork\(/);
+  assert.match(boardUnitView, /enableCardIllustration: true/);
 });
 
 test('collection scene enables standardized illustrations through the shared preview renderer', () => {
