@@ -716,7 +716,7 @@ function getCardArtTextureKey(scene, card, { enableCardIllustration = false } = 
   return enableCardIllustration ? getLoadedCardIllustrationTextureKey(scene, card) : null;
 }
 
-export function calculateCardArtworkCoverCrop(zone, sourceWidth = 512, sourceHeight = 768) {
+export function calculateCardArtworkCoverCrop(zone, sourceWidth = 512, sourceHeight = 768, options = {}) {
   const safeSourceWidth = Math.max(1, sourceWidth);
   const safeSourceHeight = Math.max(1, sourceHeight);
   const scale = Math.max(zone.width / safeSourceWidth, zone.height / safeSourceHeight);
@@ -724,7 +724,10 @@ export function calculateCardArtworkCoverCrop(zone, sourceWidth = 512, sourceHei
   const cropHeight = Math.min(safeSourceHeight, zone.height / scale);
   const cropX = Math.max(0, (safeSourceWidth - cropWidth) / 2);
   const centeredCropY = (safeSourceHeight - cropHeight) / 2;
-  const upwardCropBias = safeSourceHeight * CARD_ARTWORK_UPWARD_CROP_BIAS_RATIO;
+  const cropBiasRatio = Number.isFinite(options.upwardCropBiasRatio)
+    ? options.upwardCropBiasRatio
+    : CARD_ARTWORK_UPWARD_CROP_BIAS_RATIO;
+  const upwardCropBias = safeSourceHeight * cropBiasRatio;
   const cropY = Math.max(0, centeredCropY - upwardCropBias);
 
   return {
@@ -752,7 +755,7 @@ export function createCardArtwork(scene, zone, card, options = {}) {
     const texture = image.texture?.getSourceImage?.();
     const sourceWidth = texture?.width ?? image.width;
     const sourceHeight = texture?.height ?? image.height;
-    const crop = calculateCardArtworkCoverCrop(zone, sourceWidth, sourceHeight);
+    const crop = calculateCardArtworkCoverCrop(zone, sourceWidth, sourceHeight, options);
     image.setDisplaySize(crop.displayWidth, crop.displayHeight);
     image.setCrop(crop.cropX, crop.cropY, crop.cropWidth, crop.cropHeight);
     return image;
