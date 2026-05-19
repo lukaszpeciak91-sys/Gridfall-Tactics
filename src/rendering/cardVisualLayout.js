@@ -803,6 +803,16 @@ export function getCardDisplayContent(card, locale = 'en') {
   };
 }
 
+function getCardBodyTextException(card, locale = 'en') {
+  if (locale !== 'pl') return { fontSizeDelta: 0, lineSpacingDelta: 0 };
+  if ((getCardDisplayName(card, locale) ?? '').trim() !== 'Miłosierdzie') {
+    return { fontSizeDelta: 0, lineSpacingDelta: 0 };
+  }
+
+  // Surgical one-card PL exception to avoid minor overflow.
+  return { fontSizeDelta: 0, lineSpacingDelta: -1 };
+}
+
 export function createCardPreviewView(scene, {
   card,
   cardId = null,
@@ -827,11 +837,12 @@ export function createCardPreviewView(scene, {
 } = {}) {
   const zones = getCardLayoutZones(width, height);
   const baseTypography = getCardTypography(width, height);
+  const bodyTextException = getCardBodyTextException(card, locale);
   const typography = {
     stat: Math.round(baseTypography.stat * typographyScale),
     name: Math.round(baseTypography.name * titleTypographyScale),
     type: Math.round(baseTypography.type * typographyScale),
-    body: Math.round(baseTypography.body * typographyScale),
+    body: Math.round(baseTypography.body * typographyScale) + bodyTextException.fontSizeDelta,
   };
   const content = getCardDisplayContent(card, locale);
   const stats = statValues ?? getCardStatValues(card);
@@ -889,7 +900,7 @@ export function createCardPreviewView(scene, {
     minFontSize: Math.max(8, typography.body - 2),
     color: card ? '#cfe7ff' : CARD_COLORS.mutedText,
     align: 'center',
-    lineSpacing: bodyLineSpacing,
+    lineSpacing: bodyLineSpacing + bodyTextException.lineSpacingDelta,
     // Keep wrapping tied to the actual rules panel width. The panel already
     // sits inside the card padding, so only a small optical inset is needed.
     maxWidth: zones.text.width - Math.max(8, zones.pad * (typographyScale > 1 ? 1.15 : 1.05)),
