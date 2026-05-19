@@ -95,3 +95,8 @@
 - Locked explicit Last Stand prevention feedback in battle UI to remove hidden-rule ambiguity when lethal is prevented.
 - Locked card presentation naming and Polish copy shortening/simplification as the current UX standard for Empire of the Golden Sun content.
 - These are UX/content clarity decisions (not rules-engine changes) and should be treated as binding for future card text and presentation updates unless replaced by a newer documented decision.
+
+## StartScene Input UX Parity (2026-05-19)
+- Locked StartScene continue behavior to accept pointer/tap release anywhere on the scene, not only the logo hit area.
+- Logo remains an explicit interactive target with the same hover/press feedback and transition path.
+- Transition must remain single-fire (`isTransitioning` guarded) to prevent duplicate scene launches on rapid taps or overlapping logo/global input.

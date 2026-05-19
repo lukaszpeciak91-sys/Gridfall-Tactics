@@ -74,6 +74,7 @@ export default class StartScene extends Phaser.Scene {
     this.positionLogoHitArea();
     this.startLogoIdlePulse();
     this.drawNavigationControls();
+    this.input.on('pointerup', this.onStartScenePointerUp, this);
 
     this.scale.on('resize', this.layoutStartScene, this);
     this.scale.on('enterfullscreen', this.onFullscreenChanged, this);
@@ -82,6 +83,7 @@ export default class StartScene extends Phaser.Scene {
       this.scale.off('resize', this.layoutStartScene, this);
       this.scale.off('enterfullscreen', this.onFullscreenChanged, this);
       this.scale.off('leavefullscreen', this.onFullscreenChanged, this);
+      this.input.off('pointerup', this.onStartScenePointerUp, this);
     });
   }
 
@@ -263,6 +265,18 @@ export default class StartScene extends Phaser.Scene {
     });
   }
 
+
+  onStartScenePointerUp(pointer, currentlyOver = []) {
+    if (this.isTransitioning || !this.title) {
+      return;
+    }
+
+    const logoTapped = currentlyOver.some((gameObject) => gameObject === this.logoHitArea);
+
+    if (!logoTapped) {
+      this.playStartTransition();
+    }
+  }
   playStartTransition() {
     if (this.isTransitioning || !this.title) {
       return;

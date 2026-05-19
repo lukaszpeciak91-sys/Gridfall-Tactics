@@ -97,3 +97,7 @@
 - Added explicit Last Stand prevention feedback so prevented lethal outcomes are communicated in battle UX.
 - Added/kept modified-stat readability treatment to make combat-relevant stat changes easier to parse at a glance.
 - Reconfirmed these were UX/content updates with no canonical MVP battle-rules engine change.
+
+## StartScene Tap-Anywhere Continue (2026-05-19)
+- Updated `StartScene` so pointer/tap release anywhere on the scene now triggers the same single transition to `MainMenuScene` as the logo button.
+- Kept existing logo button behavior/feedback unchanged and guarded transition to fire once.
