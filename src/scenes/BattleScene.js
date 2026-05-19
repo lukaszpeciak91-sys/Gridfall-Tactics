@@ -177,6 +177,7 @@ export default class BattleScene extends Phaser.Scene {
     this.hoverInspectCardId = null;
     this.boardInspectIndex = null;
     this.pressedHandCardId = null;
+    this.pressedHandCardWasSelected = false;
     this.handCardLongPressEvent = null;
     this.longPressTriggeredCardId = null;
     this.navigationInProgress = false;
@@ -245,6 +246,7 @@ export default class BattleScene extends Phaser.Scene {
     this.hoverInspectCardId = null;
     this.boardInspectIndex = null;
     this.pressedHandCardId = null;
+    this.pressedHandCardWasSelected = false;
     this.handCardLongPressEvent = null;
     this.longPressTriggeredCardId = null;
     this.navigationInProgress = false;
@@ -707,6 +709,7 @@ export default class BattleScene extends Phaser.Scene {
     this.boardInspectIndex = null;
     this.previewedMulliganCardId = null;
     this.pressedHandCardId = null;
+    this.pressedHandCardWasSelected = false;
     this.longPressTriggeredCardId = null;
 
     if (clearSelection) {
@@ -1742,6 +1745,7 @@ export default class BattleScene extends Phaser.Scene {
     this.cancelHandCardLongPress();
     this.longPressTriggeredCardId = null;
     this.pressedHandCardId = cardId;
+    this.pressedHandCardWasSelected = this.selectedCardId === cardId;
     this.hoverInspectCardId = null;
     this.boardInspectIndex = null;
 
@@ -1761,6 +1765,7 @@ export default class BattleScene extends Phaser.Scene {
       this.destroyTargetingInstruction();
       this.pendingSwapIndex = null;
       this.previewedMulliganCardId = null;
+      this.pressedHandCardWasSelected = false;
       this.toggleOpeningMulliganCard(cardId, { showPreview: false });
       return;
     }
@@ -1821,6 +1826,7 @@ export default class BattleScene extends Phaser.Scene {
     if (this.utilityMenuPanel || this.navigationInProgress || this.pointerInputGuardActive) {
       this.cancelHandCardLongPress();
       this.pressedHandCardId = null;
+      this.pressedHandCardWasSelected = false;
       this.longPressTriggeredCardId = null;
       return;
     }
@@ -1833,6 +1839,7 @@ export default class BattleScene extends Phaser.Scene {
 
     if (this.battleResultModalShown || this.isFlowResolving) {
       this.pressedHandCardId = null;
+      this.pressedHandCardWasSelected = false;
       this.longPressTriggeredCardId = null;
       return;
     }
@@ -1841,18 +1848,28 @@ export default class BattleScene extends Phaser.Scene {
       this.previewedMulliganCardId = this.selectedMulliganCardIds.includes(cardId) ? cardId : null;
       this.resetCardHighlights({ showPreview: true });
       this.pressedHandCardId = null;
+      this.pressedHandCardWasSelected = false;
       this.longPressTriggeredCardId = null;
       return;
     }
 
     if (this.longPressTriggeredCardId === cardId) {
       this.pressedHandCardId = null;
+      this.pressedHandCardWasSelected = false;
       this.longPressTriggeredCardId = null;
+      return;
+    }
+
+    if (this.pressedHandCardWasSelected && this.selectedCardId === cardId) {
+      this.clearHandCardSelection();
+      this.pressedHandCardId = null;
+      this.pressedHandCardWasSelected = false;
       return;
     }
 
     this.resetCardHighlights({ showPreview: false });
     this.pressedHandCardId = null;
+    this.pressedHandCardWasSelected = false;
   }
 
   onScenePointerUp(pointer, currentlyOver = []) {
@@ -1873,6 +1890,7 @@ export default class BattleScene extends Phaser.Scene {
     if (this.pressedHandCardId) {
       this.cancelHandCardLongPress();
       this.pressedHandCardId = null;
+      this.pressedHandCardWasSelected = false;
       return;
     }
 
@@ -1886,27 +1904,32 @@ export default class BattleScene extends Phaser.Scene {
       const selectedCard = this.gameState.player.hand.find((card) => card.id === this.selectedCardId);
       if (!selectedCard && !this.effectCastState) {
         this.pressedHandCardId = null;
+        this.pressedHandCardWasSelected = false;
         this.clearHandCardSelection();
         return;
       }
 
       if (this.isBoardCellTapReservedForCardAction(boardCell.index, selectedCard)) {
         this.pressedHandCardId = null;
+        this.pressedHandCardWasSelected = false;
         this.onBoardCellTap(boardCell.index);
         return;
       }
       if (this.targetingState) {
         this.pressedHandCardId = null;
+        this.pressedHandCardWasSelected = false;
         return;
       }
     }
 
     if (this.clearSelectedHandInspectFromOutsideTap(pointer, currentlyOver)) {
       this.pressedHandCardId = null;
+      this.pressedHandCardWasSelected = false;
       return;
     }
 
     this.pressedHandCardId = null;
+    this.pressedHandCardWasSelected = false;
     this.clearHandCardSelection();
   }
 
@@ -2044,6 +2067,7 @@ export default class BattleScene extends Phaser.Scene {
     this.effectCastState = null;
     this.hoverInspectCardId = null;
     this.boardInspectIndex = null;
+    this.pressedHandCardWasSelected = false;
     if (hadState) {
       this.resetCardHighlights();
       this.updateActionButtonLabel();
@@ -2343,6 +2367,7 @@ export default class BattleScene extends Phaser.Scene {
     this.hoverInspectCardId = null;
     this.boardInspectIndex = null;
     this.pressedHandCardId = null;
+    this.pressedHandCardWasSelected = false;
     this.destroyTargetingInstruction();
     this.destroySelectedHandCardZoom({ animate: true });
     this.updateActionButtonLabel();
@@ -2418,7 +2443,7 @@ export default class BattleScene extends Phaser.Scene {
       if (selectedCount >= minTargets) {
         this.actionButton.setText(translateActive('ui.common.confirm', 'CONFIRM'));
       } else {
-        this.actionButton.setText(translateActive('ui.common.cancel', 'CANCEL'));
+        this.actionButton.setText(translateActive('ui.battle.selectTarget', 'SELECT TARGET'));
       }
       this.actionButton.setStyle({ backgroundColor: '#164e63', color: '#ecfeff' });
       this.actionButton.setStroke('#22d3ee', 2);
@@ -2441,7 +2466,6 @@ export default class BattleScene extends Phaser.Scene {
     const targetIndexes = [...(this.targetingState.targetIndexes ?? [])];
     const minTargets = this.targetingState.minTargets ?? this.targetingState.requiredTargets ?? 1;
     if (targetIndexes.length < minTargets) {
-      this.cancelEffectTargeting();
       return;
     }
 
