@@ -73,6 +73,20 @@ const PLAYER_EFFECT_CONFIRMATION_HOLD_MS = 520;
 const PLAYER_EFFECT_CONFIRMATION_FADE_OUT_MS = 120;
 const PLAYER_EFFECT_CAST_BEAT_MS = 620;
 const PLAYER_EFFECT_CAST_SWEEP_STEP_MS = 70;
+const EFFECT_CAST_SWEEP_STYLE = Object.freeze({
+  player: Object.freeze({
+    strokeColor: 0x38bdf8,
+    strokeAlpha: 0.92,
+    fillColor: 0x0e7490,
+    fillAlpha: 0.18,
+  }),
+  enemy: Object.freeze({
+    strokeColor: 0xef4444,
+    strokeAlpha: 0.94,
+    fillColor: 0x7f1d1d,
+    fillAlpha: 0.22,
+  }),
+});
 const ENEMY_ACTION_PACING = Object.freeze({
   pass: {
     applyDelayMs: Math.round(ENEMY_ACTION_APPLY_DELAY_MS * 0.65),
@@ -2188,7 +2202,7 @@ export default class BattleScene extends Phaser.Scene {
     this.showPlayerEffectConfirmation(card, { allowUnit: true });
 
     await Promise.all([
-      this.playPlayerEffectCastFeedback(),
+      this.playEffectCastSweep({ side: 'player' }),
       this.delay(PLAYER_EFFECT_CAST_BEAT_MS),
     ]);
 
@@ -2224,7 +2238,7 @@ export default class BattleScene extends Phaser.Scene {
     this.showPlayerEffectConfirmation(card);
 
     await Promise.all([
-      this.playPlayerEffectCastFeedback(),
+      this.playEffectCastSweep({ side: 'player' }),
       this.delay(PLAYER_EFFECT_CAST_BEAT_MS),
     ]);
 
@@ -2268,7 +2282,8 @@ export default class BattleScene extends Phaser.Scene {
   }
 
 
-  async playPlayerEffectCastFeedback() {
+  async playEffectCastSweep({ side = 'player' } = {}) {
+    const style = EFFECT_CAST_SWEEP_STYLE[side] ?? EFFECT_CAST_SWEEP_STYLE.player;
     const middleCells = this.boardCells
       .filter((cell) => cell.row === 1 && cell.background?.active)
       .sort((a, b) => Math.abs(a.index - 4) - Math.abs(b.index - 4) || a.index - b.index);
@@ -2292,8 +2307,8 @@ export default class BattleScene extends Phaser.Scene {
           resolve();
           return;
         }
-        background.setStrokeStyle(4, 0x38bdf8, 0.92);
-        background.setFillStyle(0x0e7490, 0.18);
+        background.setStrokeStyle(4, style.strokeColor, style.strokeAlpha);
+        background.setFillStyle(style.fillColor, style.fillAlpha);
         this.tweens.add({
           targets: background,
           scaleX: previousStyle.scaleX * 1.045,
@@ -2633,6 +2648,9 @@ export default class BattleScene extends Phaser.Scene {
     const pacing = this.getEnemyActionPacing(action);
     this.showEnemyActionBanner(this.getEnemyActionMessage(action, card), pacing);
     await this.delay(pacing.applyDelayMs);
+    if (action.type === 'play-effect' || action.type === 'play-targeted-effect') {
+      await this.playEffectCastSweep({ side: 'enemy' });
+    }
 
     const beforeStats = this.captureBoardStats();
     const result = this.enemyTakeAction(action);
