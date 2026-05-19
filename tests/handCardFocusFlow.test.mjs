@@ -61,12 +61,12 @@ test('outside taps clear selection without intercepting board, pass, or card inp
   assert.match(source, /onScenePointerUp\(pointer, currentlyOver = \[\]\) \{\s*if \(this\.isPointerEventGuarded\(pointer\) \|\| this\.navigationInProgress\) return;\s*if \(this\.battleResultModalShown \|\| this\.isFlowResolving \|\| this\.isEffectCastResolving\) return;[\s\S]*if \(!this\.selectedCardId && !this\.targetingState && !this\.effectCastState\) \{\s*this\.clearBoardInspectFromOutsideTap\(pointer, currentlyOver\);\s*return;\s*\}\s*if \(this\.isPointerUpReservedForUi\(pointer, currentlyOver\)\) return;/);
   assert.match(source, /clearOpeningMulliganPreviewFromOutsideTap\(pointer, currentlyOver = \[\]\) \{\s*if \(!this\.previewedMulliganCardId && !this\.selectedHandCardZoom\) return;\s*if \(this\.isPointerInsideMulliganHandOrPreview\(pointer, currentlyOver\)\) return;\s*this\.previewedMulliganCardId = null;[\s\S]*this\.pressedHandCardId = null;\s*this\.resetCardHighlights\(\{ showPreview: false \}\);\s*\}/);
   assert.match(source, /isPointerInsideMulliganHandOrPreview\(pointer, currentlyOver = \[\]\) \{[\s\S]*const handTop = hand\.y;[\s\S]*return pointer\.x >= handLeft && pointer\.x <= handRight && pointer\.y >= handTop && pointer\.y <= handBottom;/);
-  assert.match(source, /if \(this\.pressedHandCardId\) \{\s*this\.cancelHandCardLongPress\(\);\s*this\.pressedHandCardId = null;\s*return;\s*\}/);
+  assert.match(source, /if \(this\.pressedHandCardId\) \{[\s\S]*this\.cancelHandCardLongPress\(\);[\s\S]*this\.pressedHandCardId = null;[\s\S]*return;\s*\}/);
   assert.match(source, /if \(this\.targetingState && this\.isPointerInsideHandArea\(pointer, currentlyOver\)\) \{\s*this\.cancelEffectTargeting\(\);\s*return;\s*\}\s*const boardCell = this\.getBoardCellFromPointerUp\(pointer, currentlyOver\);\s*if \(boardCell\) \{\s*const selectedCard = this\.gameState\.player\.hand\.find\(\(card\) => card\.id === this\.selectedCardId\);/);
   assert.match(source, /isPointerInsideHandArea\(pointer, currentlyOver = \[\]\) \{[\s\S]*const handTop = hand\.y;[\s\S]*return pointer\.x >= handLeft && pointer\.x <= handRight && pointer\.y >= handTop && pointer\.y <= handBottom;/);
-  assert.match(source, /if \(this\.isBoardCellTapReservedForCardAction\(boardCell\.index, selectedCard\)\) \{\s*this\.pressedHandCardId = null;\s*this\.onBoardCellTap\(boardCell\.index\);\s*return;\s*\}/);
-  assert.match(source, /if \(this\.targetingState\) \{\s*this\.pressedHandCardId = null;\s*return;\s*\}/);
-  assert.match(source, /if \(this\.clearSelectedHandInspectFromOutsideTap\(pointer, currentlyOver\)\) \{\s*this\.pressedHandCardId = null;\s*return;\s*\}\s*this\.pressedHandCardId = null;\s*this\.clearHandCardSelection\(\);/);
+  assert.match(source, /if \(this\.isBoardCellTapReservedForCardAction\(boardCell\.index, selectedCard\)\) \{[\s\S]*this\.pressedHandCardId = null;[\s\S]*this\.onBoardCellTap\(boardCell\.index\);[\s\S]*return;\s*\}/);
+  assert.match(source, /if \(this\.targetingState\) \{[\s\S]*this\.pressedHandCardId = null;[\s\S]*return;\s*\}/);
+  assert.match(source, /if \(this\.clearSelectedHandInspectFromOutsideTap\(pointer, currentlyOver\)\) \{[\s\S]*this\.pressedHandCardId = null;[\s\S]*return;\s*\}[\s\S]*this\.pressedHandCardId = null;[\s\S]*this\.clearHandCardSelection\(\);/);
   assert.match(source, /clearSelectedHandInspectFromOutsideTap\(pointer, currentlyOver = \[\]\) \{\s*if \(!this\.selectedHandCardZoom \|\| this\.boardInspectIndex !== null\) return false;\s*if \(this\.isPointerInsideSelectedHandCardZoom\(pointer, currentlyOver\)\) return false;\s*this\.resetCardHighlights\(\{ showPreview: false \}\);\s*return true;\s*\}/);
   assert.match(source, /isPointerUpReservedForUi\(pointer, currentlyOver = \[\]\) \{[\s\S]*this\.cardViews\.some\(\(view\) => overObjects\.includes\(view\.background\)\);/);
   assert.doesNotMatch(inspectMethod, /setInteractive\(\)|setInteractive\(\{ useHandCursor: true \}\)|startInspectDragCandidate/);
@@ -96,13 +96,13 @@ test('tactical menu and inspect are mutually safe during navigation', () => {
   assert.match(source, /onScenePointerUp\(pointer, currentlyOver = \[\]\) \{\s*if \(this\.isPointerEventGuarded\(pointer\) \|\| this\.navigationInProgress\) return;/);
 });
 
-test('effect casting is staged before targeted resolution and cancel reuses the action button', () => {
+test('effect casting is staged before targeted resolution without a dedicated cancel action button state', () => {
   assert.match(source, /this\.effectCastState = \{ cardId: card\.id, targetingState \};/);
   assert.match(source, /this\.selectedCardId = null;[\s\S]*this\.showPlayerEffectConfirmation\(card\);[\s\S]*this\.playEffectCastSweep\(\{ side: 'player' \}\)/);
   assert.match(source, /this\.showPlayerEffectConfirmation\(card, \{ allowUnit: true \}\);[\s\S]*this\.playEffectCastSweep\(\{ side: 'player' \}\)/);
   assert.match(source, /if \(targetingState\) \{\s*this\.targetingState = \{ \.\.\.targetingState, targetIndexes: \[\.\.\.\(targetingState\.targetIndexes \?\? \[\]\)\] \};[\s\S]*this\.showTargetingInstruction\(\);[\s\S]*return;\s*\}/);
   assert.match(source, /cancelEffectTargeting\(\) \{[\s\S]*this\.targetingState = null;[\s\S]*this\.effectCastState = null;[\s\S]*this\.updateActionButtonLabel\(\);[\s\S]*this\.resetCardHighlights\(\{ showPreview: false \}\);[\s\S]*\}/);
-  assert.match(source, /this\.actionButton\.setText\(translateActive\('ui\.common\.cancel', 'CANCEL'\)\);/);
+  assert.match(source, /this\.actionButton\.setText\(translateActive\('ui\.battle\.selectTarget', 'SELECT TARGET'\)\);/);
   assert.match(source, /getTargetingInstructionMessage\(\) \{[\s\S]*selectAdjacentEnemy[\s\S]*selectFirstEnemy[\s\S]*selectSecondEnemy[\s\S]*selectAlly[\s\S]*selectUnit/);
 });
 
