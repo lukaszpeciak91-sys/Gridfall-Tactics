@@ -49,7 +49,7 @@ test('BattleScene enemy action pacing constants resolve during turn flow', () =>
 
   assert.match(source, /const PLAYER_EFFECT_CONFIRMATION_FADE_IN_MS = 90/);
   assert.match(source, /showPlayerEffectConfirmation\(card\);/);
-  assert.match(source, /playPlayerEffectCastFeedback\(\)/);
+  assert.match(source, /playEffectCastSweep\(\{ side: 'player' \}\)/);
   assert.match(source, /translateActive\('ui\.battle\.playerPlayed', 'YOU PLAYED'\)/);
 });
 

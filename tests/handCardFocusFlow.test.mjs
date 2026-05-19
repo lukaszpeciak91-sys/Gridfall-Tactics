@@ -98,8 +98,8 @@ test('tactical menu and inspect are mutually safe during navigation', () => {
 
 test('effect casting is staged before targeted resolution and cancel reuses the action button', () => {
   assert.match(source, /this\.effectCastState = \{ cardId: card\.id, targetingState \};/);
-  assert.match(source, /this\.selectedCardId = null;[\s\S]*this\.showPlayerEffectConfirmation\(card\);[\s\S]*this\.playPlayerEffectCastFeedback\(\)/);
-  assert.match(source, /this\.showPlayerEffectConfirmation\(card, \{ allowUnit: true \}\);[\s\S]*this\.playPlayerEffectCastFeedback\(\)/);
+  assert.match(source, /this\.selectedCardId = null;[\s\S]*this\.showPlayerEffectConfirmation\(card\);[\s\S]*this\.playEffectCastSweep\(\{ side: 'player' \}\)/);
+  assert.match(source, /this\.showPlayerEffectConfirmation\(card, \{ allowUnit: true \}\);[\s\S]*this\.playEffectCastSweep\(\{ side: 'player' \}\)/);
   assert.match(source, /if \(targetingState\) \{\s*this\.targetingState = \{ \.\.\.targetingState, targetIndexes: \[\.\.\.\(targetingState\.targetIndexes \?\? \[\]\)\] \};[\s\S]*this\.showTargetingInstruction\(\);[\s\S]*return;\s*\}/);
   assert.match(source, /cancelEffectTargeting\(\) \{[\s\S]*this\.targetingState = null;[\s\S]*this\.effectCastState = null;[\s\S]*this\.updateActionButtonLabel\(\);[\s\S]*this\.resetCardHighlights\(\{ showPreview: false \}\);[\s\S]*\}/);
   assert.match(source, /this\.actionButton\.setText\(translateActive\('ui\.common\.cancel', 'CANCEL'\)\);/);
