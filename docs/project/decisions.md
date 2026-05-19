@@ -100,3 +100,8 @@
 - Locked StartScene continue behavior to accept pointer/tap release anywhere on the scene, not only the logo hit area.
 - Logo remains an explicit interactive target with the same hover/press feedback and transition path.
 - Transition must remain single-fire (`isTransitioning` guarded) to prevent duplicate scene launches on rapid taps or overlapping logo/global input.
+
+## Blocked-Lane Board Indicator Parity (2026-05-19)
+- Locked blocked-lane UI feedback to render on both board sides when the corresponding per-lane block flag is active for that side.
+- Marker remains a lightweight red `✕` and is shown only on empty lane slots to avoid implying combat disable or covering occupied unit readability.
+- This is presentation-only parity; lane block gameplay and AI decision logic remain unchanged.

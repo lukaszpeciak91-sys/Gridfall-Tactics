@@ -101,3 +101,8 @@
 ## StartScene Tap-Anywhere Continue (2026-05-19)
 - Updated `StartScene` so pointer/tap release anywhere on the scene now triggers the same single transition to `MainMenuScene` as the logo button.
 - Kept existing logo button behavior/feedback unchanged and guarded transition to fire once.
+
+## Blocked Lane Indicator Parity (2026-05-19)
+- Updated board blocked-lane marker rendering to show the same red `✕` indicator for both affected sides when lane-play blocks are active.
+- Kept the indicator scoped to empty slots so it communicates “cannot place unit here this turn” without obscuring occupied unit cards.
+- No gameplay, AI, or placement-validation behavior changed; this was a UI readability polish only.

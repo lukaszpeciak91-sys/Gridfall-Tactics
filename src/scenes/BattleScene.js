@@ -4438,12 +4438,17 @@ export default class BattleScene extends Phaser.Scene {
       if (unit) {
         cell.label.add(this.createBoardUnitView(cell, unit));
       }
-      if (cell.row === 2) {
-        const lane = cell.index % 3;
-        cell.blockedMarker.setText(this.gameState.playerLanePlayBlockedThisTurn?.[lane] ? '✕' : '');
-      } else {
-        cell.blockedMarker.setText('');
-      }
+      const lane = cell.index % 3;
+      const isEnemyRow = cell.row === 0;
+      const isPlayerRow = cell.row === 2;
+      const laneBlocked = (
+        !unit
+        && (
+          (isEnemyRow && this.gameState.enemyLanePlayBlockedThisTurn?.[lane])
+          || (isPlayerRow && this.gameState.playerLanePlayBlockedThisTurn?.[lane])
+        )
+      );
+      cell.blockedMarker.setText(laneBlocked ? '✕' : '');
     });
 
     this.lastRenderedBoardStats = currentRenderStats;
