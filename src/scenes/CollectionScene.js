@@ -39,6 +39,11 @@ const COLLECTION_GRID_GAP_X = 10;
 const COLLECTION_CARD_GAP_Y = 12;
 const COLLECTION_SECTION_GAP_Y = 26;
 const COLLECTION_CARDS_PER_COLUMN = 5;
+const CARD_ART_CROP_DEBUG_STEP = 0.005;
+const CARD_ART_CROP_DEBUG_MIN = -0.25;
+const CARD_ART_CROP_DEBUG_MAX = 0.25;
+const CARD_ART_CROP_DEBUG_ICON_SIZE = 26;
+const CARD_ART_CROP_DEBUG_ENABLED = import.meta.env?.DEV === true;
 
 export default class CollectionScene extends Phaser.Scene {
   constructor() {
@@ -51,6 +56,7 @@ export default class CollectionScene extends Phaser.Scene {
     this.cardTapHandled = false;
     this.cardLongPressEvent = null;
     this.longPressTriggeredCard = null;
+    this.cardArtCropDebug = null;
   }
 
   preload() {
@@ -99,6 +105,7 @@ export default class CollectionScene extends Phaser.Scene {
 
     this.drawCollectionList({ width, height });
     this.createBackButton(width, height);
+    this.createCardArtCropDebugIcon();
   }
 
   drawCollectionList({ width, height }) {
@@ -203,6 +210,7 @@ export default class CollectionScene extends Phaser.Scene {
       bodyLineSpacing: HAND_CARD_BODY_LINE_SPACING,
       enableCardIllustration: true,
       showCardNumber: true,
+      temporaryArtCropYOffset: this.getCardArtCropYOffset(card),
     });
     content.add(preview.root);
     this.uiElements.push(preview.root);
@@ -329,6 +337,7 @@ export default class CollectionScene extends Phaser.Scene {
       bodyLineSpacing: INSPECT_CARD_BODY_LINE_SPACING,
       enableCardIllustration: true,
       showCardNumber: true,
+      temporaryArtCropYOffset: this.getCardArtCropYOffset(card),
     });
 
     previewView.root.setAlpha(0).setScale(0.92);
@@ -359,8 +368,12 @@ export default class CollectionScene extends Phaser.Scene {
       overlay,
       sourceX,
       sourceY,
+      sourceWidth,
+      sourceHeight,
+      card,
       previewItems: [previewView.root, overlay],
     };
+    this.refreshCardArtCropDebugUi();
   }
 
   destroyInspectPreview({ animate = false } = {}) {
@@ -418,6 +431,88 @@ export default class CollectionScene extends Phaser.Scene {
       },
     });
     this.uiElements.push(...backButton.items);
+  }
+
+  createCardArtCropDebugIcon() {
+    if (!CARD_ART_CROP_DEBUG_ENABLED) return;
+    const iconSize = CARD_ART_CROP_DEBUG_ICON_SIZE;
+    const icon = this.add.rectangle(16 + iconSize / 2, 16 + iconSize / 2, iconSize, iconSize, 0x0f172a, 0.82)
+      .setStrokeStyle(1, 0x38bdf8, 0.9)
+      .setDepth(2400)
+      .setScrollFactor(0)
+      .setInteractive({ useHandCursor: true });
+    const glyph = this.add.text(icon.x, icon.y, '✂', {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: '14px',
+      color: '#dbeafe',
+      fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(2401).setScrollFactor(0);
+    icon.on('pointerup', () => {
+      const debug = this.ensureCardArtCropDebugState();
+      debug.panelVisible = !debug.panelVisible;
+      this.refreshCardArtCropDebugUi();
+    });
+    this.uiElements.push(icon, glyph);
+  }
+
+  ensureCardArtCropDebugState() {
+    if (!this.cardArtCropDebug) {
+      this.cardArtCropDebug = { panelVisible: false, draftByCardId: new Map(), sessionOverrides: new Map(), panelItems: [] };
+    }
+    return this.cardArtCropDebug;
+  }
+
+  getCardArtCropYOffset(card) {
+    if (!card?.id || !this.cardArtCropDebug) return 0;
+    return this.cardArtCropDebug.draftByCardId.get(String(card.id)) ?? 0;
+  }
+
+  nudgeCardArtCrop(card, delta) {
+    this.setCardArtCrop(card, this.getCardArtCropYOffset(card) + delta);
+  }
+
+  setCardArtCrop(card, value) {
+    if (!card?.id || !this.inspectPreview) return;
+    const debug = this.ensureCardArtCropDebugState();
+    debug.draftByCardId.set(String(card.id), Phaser.Math.Clamp(value, CARD_ART_CROP_DEBUG_MIN, CARD_ART_CROP_DEBUG_MAX));
+    this.showInspectPreview({ card, sourceX: this.inspectPreview.sourceX, sourceY: this.inspectPreview.sourceY, sourceWidth: this.inspectPreview.sourceWidth, sourceHeight: this.inspectPreview.sourceHeight });
+  }
+
+  buildCardArtCropDebugJson() {
+    const result = {};
+    this.cardArtCropDebug?.sessionOverrides?.forEach((value, cardId) => {
+      result[cardId] = { yOffset: Number(value.yOffset.toFixed(3)) };
+    });
+    return JSON.stringify({ artCropOverrides: result }, null, 2);
+  }
+
+  refreshCardArtCropDebugUi() {
+    if (!CARD_ART_CROP_DEBUG_ENABLED || !this.cardArtCropDebug) return;
+    const debug = this.cardArtCropDebug;
+    debug.panelItems.forEach((item) => item?.destroy?.());
+    debug.panelItems = [];
+    if (!debug.panelVisible || !this.inspectPreview?.card?.id) return;
+    const card = this.inspectPreview.card;
+    const cardId = String(card.id);
+    const yOffset = this.getCardArtCropYOffset(card);
+    const { width } = this.scale;
+    const panel = this.add.rectangle(width * 0.5, 58, Math.min(356, width - 20), 78, 0x020617, 0.9).setStrokeStyle(1, 0x38bdf8, 0.75).setDepth(2400).setScrollFactor(0);
+    const valueLabel = this.add.text(panel.x, panel.y - 18, `art yOffset: ${yOffset.toFixed(3)} (${cardId})`, { fontFamily: 'Arial, sans-serif', fontSize: '12px', color: '#e2e8f0' }).setOrigin(0.5).setDepth(2401).setScrollFactor(0);
+    const upBtn = this.createDebugTextButton(panel.x - 154, panel.y - 18, '▲', () => this.nudgeCardArtCrop(card, CARD_ART_CROP_DEBUG_STEP));
+    const downBtn = this.createDebugTextButton(panel.x - 126, panel.y - 18, '▼', () => this.nudgeCardArtCrop(card, -CARD_ART_CROP_DEBUG_STEP));
+    const resetBtn = this.createDebugTextButton(panel.x - 98, panel.y - 18, '0', () => this.setCardArtCrop(card, 0));
+    const addButton = this.createDebugTextButton(panel.x - 84, panel.y + 15, 'ADD / UPDATE', () => { debug.sessionOverrides.set(cardId, { yOffset: this.getCardArtCropYOffset(card) }); this.refreshCardArtCropDebugUi(); });
+    const copyButton = this.createDebugTextButton(panel.x + 5, panel.y + 15, 'COPY ALL', async () => { await navigator.clipboard?.writeText?.(this.buildCardArtCropDebugJson()); });
+    const clearButton = this.createDebugTextButton(panel.x + 86, panel.y + 15, 'CLEAR', () => { debug.sessionOverrides.clear(); this.refreshCardArtCropDebugUi(); });
+    const countLabel = this.add.text(panel.x + 147, panel.y - 18, `buffer: ${debug.sessionOverrides.size}`, { fontFamily: 'Arial, sans-serif', fontSize: '11px', color: '#93c5fd' }).setOrigin(1, 0.5).setDepth(2401).setScrollFactor(0);
+    debug.panelItems.push(panel, valueLabel, upBtn, downBtn, resetBtn, addButton, copyButton, clearButton, countLabel);
+  }
+
+  createDebugTextButton(x, y, label, onPress) {
+    const button = this.add.text(x, y, label, { fontFamily: 'Arial, sans-serif', fontSize: '11px', color: '#dbeafe', backgroundColor: '#0f172a', padding: { left: 5, right: 5, top: 2, bottom: 2 } })
+      .setOrigin(0.5).setDepth(2401).setScrollFactor(0).setInteractive({ useHandCursor: true });
+    button.on('pointerup', () => onPress?.());
+    return button;
   }
 
   wasScrollDragging() {
@@ -487,6 +582,7 @@ export default class CollectionScene extends Phaser.Scene {
     if (this.inspectPreview) {
       this.destroyInspectPreview({ animate: true });
     }
+    this.refreshCardArtCropDebugUi();
 
     this.longPressTriggeredCard = null;
     this.pressedCard = null;
@@ -522,6 +618,8 @@ export default class CollectionScene extends Phaser.Scene {
 
     this.cancelCardLongPress();
     this.destroyInspectPreview();
+    this.cardArtCropDebug?.panelItems?.forEach((item) => item?.destroy?.());
+    if (this.cardArtCropDebug) this.cardArtCropDebug.panelItems = [];
     this.scrollMask?.destroy?.();
     this.scrollMask = null;
     this.scrollState = null;
