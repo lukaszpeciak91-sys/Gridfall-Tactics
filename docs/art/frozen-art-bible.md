@@ -142,7 +142,9 @@ These six visual identities map onto the six current base gameplay factions. Pre
 
 **Color notes:** imperial gold, obsidian black, basalt gray, volcanic red, sunlit amber, jade patina, and desaturated ceremonial ivory.
 
-### wardens — Mammoth Riders / Jeźdźcy Mamutów
+### wardens — Mammoth Clans / Klany Mamutów
+
+**Core identity:** A developed neanderthal ice-age military civilization in a world where *Homo sapiens* vanished and the planet is slowly becoming a snowball. Only equatorial regions remain tundra-like. This is not caveman comedy, not generic barbarians, not fantasy Vikings. The faction should feel like a disciplined tribal-imperial mammoth civilization built around survival, fortification, heavy spears, bone weapons, fur armor, frozen banners, and mammoth warfare.
 
 **Style:** Ice age empire, mammoth civilization, tundra fortress, prehistoric military, glacial warfare, frozen frontier, neanderthal empire, primal fortification, snowbound legion, ancient survivalism, tribal phalanx, ice bastion.
 
@@ -159,7 +161,7 @@ These are presentation feelings only. They describe how art should support exist
 - **swarm / Spore Choir:** expansion, multiplication, collective growth, spreading organism, organic pressure, swarm saturation.
 - **attrition-swarm / Gravehearts:** death value, recurring units, sacrificial advantage, lingering pressure, emotional attrition, undead persistence.
 - **tank / Empire of the Golden Sun:** immovable defense, sustain, armored advance, imperial resilience, heavy battlefield presence, survival through attrition.
-- **wardens / Mammoth Riders:** defensive line, endurance, fortified positions, holding ground, defensive friction, lane denial.
+- **wardens / Mammoth Clans:** defensive line, endurance, fortified positions, holding ground, defensive friction, lane denial.
 
 ## Prompt Helper Tags
 
@@ -180,4 +182,4 @@ Use these as modular prompt helpers. Combine global tags with one faction set an
 - **Spore Choir:** `psychedelic biology, cosmic mycelium, beautiful bio-horror, glowing spores, wet organic textures, bioluminescent fungi, translucent flesh, dreamlike forest`
 - **Gravehearts:** `gothic romance, necro-rockabilly, funeral swing, undead lovers, velvet coffins, funeral roses, moonlit graveyard, cemetery neon, melancholic grotesque`
 - **Empire of the Golden Sun:** `solar dinosaur empire, gold armor, obsidian weapons, basalt fortress, feathered raptors, sun worship symbols, ceremonial war culture, ancient monuments`
-- **Mammoth Riders:** `ice age empire, mammoth cavalry, fur armor, frozen fortress, bone weapons, snow storm, heavy spears, ice shields, tundra camp, glacial cliffs`
+- **Mammoth Clans:** `ice age empire, mammoth civilization, tundra fortress, prehistoric military, glacial warfare, frozen frontier, neanderthal empire, primal fortification, snowbound legion, ancient survivalism, tribal phalanx, ice bastion`

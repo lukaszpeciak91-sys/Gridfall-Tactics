@@ -10,7 +10,7 @@ Gridfall Tactics currently has **6 full base gameplay factions**:
 | `Tank` | `tank` | `src/data/factions/tank.json` | `Empire of the Golden Sun` |
 | `Control` | `control` | `src/data/factions/control.json` | `Orden der Glasköpfe` |
 | `Swarm` | `swarm` | `src/data/factions/swarm.json` | `Spore Choir` |
-| `Wardens` | `wardens` | `src/data/factions/wardens.json` | `Mammoth Riders` |
+| `Wardens` | `wardens` | `src/data/factions/wardens.json` | `Mammoth Clans` |
 | `Attrition Swarm` | `attrition-swarm` | `src/data/factions/attrition-swarm.json` | `Gravehearts` |
 
 `attrition-swarm` is a full permanent base faction, not a temporary variant. All six current factions are base gameplay factions. Future armies may be presentation or thematic expansions built from these mechanical bases, but the current faction mechanics, IDs, card IDs, and card descriptions remain the base source.
