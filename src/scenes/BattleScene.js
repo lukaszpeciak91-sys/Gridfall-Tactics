@@ -2141,17 +2141,44 @@ export default class BattleScene extends Phaser.Scene {
     if (!selectedCard) return;
 
     if (this.targetingState) {
+      const currentTargets = [...(this.targetingState.targetIndexes ?? [])];
+      const alreadySelected = currentTargets.includes(boardIndex);
+      if (alreadySelected) {
+        const targetIndexes = currentTargets.filter((index) => index !== boardIndex);
+        this.targetingState = {
+          ...this.targetingState,
+          targetIndexes,
+        };
+        this.resetCardHighlights();
+        this.updateActionButtonLabel();
+        this.showTargetingInstruction();
+        return;
+      }
+
       if (!this.isValidTarget(boardIndex, this.targetingState.targetType, this.targetingState.targetIndexes, this.targetingState.targetConstraint)) {
         return;
       }
 
-      const targetIndexes = [...(this.targetingState.targetIndexes ?? [])];
+      const targetIndexes = [...currentTargets];
       if (this.targetingState.requiredTargets > 1) {
-        if (!targetIndexes.includes(boardIndex)) {
-          targetIndexes.push(boardIndex);
-        }
+        targetIndexes.push(boardIndex);
       } else {
         targetIndexes.splice(0, targetIndexes.length, boardIndex);
+      }
+
+      const minTargets = this.targetingState.minTargets ?? this.targetingState.requiredTargets ?? 1;
+      const isExactTargetCount = minTargets === (this.targetingState.requiredTargets ?? minTargets);
+      const canAutoCast = targetIndexes.length >= minTargets && isExactTargetCount;
+
+      if (!canAutoCast) {
+        this.targetingState = {
+          ...this.targetingState,
+          targetIndexes,
+        };
+        this.resetCardHighlights();
+        this.updateActionButtonLabel();
+        this.showTargetingInstruction();
+        return;
       }
 
       const beforeStats = this.effectCastState?.source === 'unit-on-play'
@@ -2466,16 +2493,22 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
     if (this.targetingState) {
-      const selectedCount = this.targetingState.targetIndexes?.length ?? 0;
       const minTargets = this.targetingState.minTargets ?? this.targetingState.requiredTargets ?? 1;
+      const requiredTargets = this.targetingState.requiredTargets ?? minTargets;
+      const isExactTargetCount = minTargets === requiredTargets;
+      if (isExactTargetCount) {
+        this.actionButton.setVisible(false);
+        return;
+      }
+      const selectedCount = this.targetingState.targetIndexes?.length ?? 0;
       this.actionButton.setVisible(true);
       if (selectedCount >= minTargets) {
         this.actionButton.setText(translateActive('ui.common.confirm', 'CONFIRM'));
       } else {
         this.actionButton.setText(translateActive('ui.battle.selectTarget', 'SELECT TARGET'));
       }
-      this.actionButton.setStyle({ backgroundColor: '#164e63', color: '#ecfeff' });
-      this.actionButton.setStroke('#22d3ee', 2);
+      this.actionButton.setStyle({ backgroundColor: '#312e81', color: '#ede9fe' });
+      this.actionButton.setStroke('#a78bfa', 2);
       return;
     }
 
@@ -2895,18 +2928,18 @@ export default class BattleScene extends Phaser.Scene {
 
     const selectedCount = state.targetIndexes?.length ?? 0;
     if (state.targetConstraint === 'adjacent-pair' && selectedCount > 0) {
-      return translateActive('ui.battle.targeting.selectAdjacentEnemy', 'Select adjacent enemy');
+      return translateActive('ui.battle.targeting.selectAdjacentEnemy', 'SELECT ADJACENT ENEMIES');
     }
     if (state.requiredTargets > 1 && selectedCount === 0 && state.targetType === 'enemy-unit') {
-      return translateActive('ui.battle.targeting.selectFirstEnemy', 'Select first enemy');
+      return translateActive('ui.battle.targeting.selectFirstEnemy', 'SELECT FIRST ENEMY');
     }
     if (state.requiredTargets > 1 && selectedCount === 1 && state.targetType === 'enemy-unit') {
-      return translateActive('ui.battle.targeting.selectSecondEnemy', 'Select second enemy');
+      return translateActive('ui.battle.targeting.selectSecondEnemy', 'SELECT SECOND ENEMY');
     }
-    if (state.targetType === 'enemy-unit') return translateActive('ui.battle.targeting.selectEnemy', 'Select enemy');
-    if (state.targetType === 'friendly-unit') return translateActive('ui.battle.targeting.selectAlly', 'Select ally');
-    if (state.targetType === 'any-unit') return translateActive('ui.battle.targeting.selectUnit', 'Select unit');
-    return translateActive('ui.battle.targeting.selectUnit', 'Select unit');
+    if (state.targetType === 'enemy-unit') return translateActive('ui.battle.targeting.selectEnemy', 'SELECT ENEMY');
+    if (state.targetType === 'friendly-unit') return translateActive('ui.battle.targeting.selectAlly', 'SELECT ALLY');
+    if (state.targetType === 'any-unit') return translateActive('ui.battle.targeting.selectUnit', 'SELECT UNIT');
+    return translateActive('ui.battle.targeting.selectUnit', 'SELECT UNIT');
   }
 
   showTargetingInstruction() {
@@ -2930,13 +2963,13 @@ export default class BattleScene extends Phaser.Scene {
       {
         fontFamily: 'Arial, sans-serif',
         fontSize: `${fontSize}px`,
-        color: '#e0f2fe',
-        backgroundColor: '#0f172a',
+        color: '#f5f3ff',
+        backgroundColor: '#4c1d95',
         fontStyle: 'bold',
         align: 'center',
         padding: { x: 12, y: 7 },
       },
-    ).setOrigin(0.5).setDepth(222).setAlpha(0.94);
+    ).setOrigin(0.5).setDepth(222).setAlpha(0.96).setStroke('#c4b5fd', 2);
   }
 
   showEnemyActionBanner(message, pacing = ENEMY_ACTION_PACING.unit) {
