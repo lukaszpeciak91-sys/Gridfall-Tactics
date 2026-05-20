@@ -396,7 +396,9 @@
         "selectAlly": "WYBIERZ SOJUSZNIKA",
         "selectUnit": "WYBIERZ JEDNOSTKĘ",
         "selectSecondEnemy": "WYBIERZ DRUGIEGO WROGA"
-      }
+      },
+      "playerStarts": "Ty zaczynasz",
+      "enemyStarts": "Wróg zaczyna"
     },
     "rules": {
       "title": "Zasady / Jak grać",
