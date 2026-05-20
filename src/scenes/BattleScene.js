@@ -2444,18 +2444,31 @@ export default class BattleScene extends Phaser.Scene {
     this.destroySelectedHandCardZoom({ animate: true });
   }
 
+  isPassActionButtonAvailable() {
+    return !this.battleResultModalShown
+      && !this.gameState?.winner
+      && !this.playerActionUsed
+      && !this.openingMulliganPending
+      && !this.targetingState
+      && !this.isFlowResolving
+      && !this.isEffectCastResolving
+      && canPass(this.gameState);
+  }
+
   updateActionButtonLabel() {
     if (!this.actionButton) return;
     if (this.openingMulliganPending) {
       const count = this.selectedMulliganCardIds.length;
+      this.actionButton.setVisible(true);
       this.actionButton.setText(count > 0 ? translateActive('ui.battle.mulligan', 'MULLIGAN {count}', { count }) : translateActive('ui.battle.keepHand', 'KEEP HAND'));
-      this.actionButton.setStyle({ backgroundColor: '#111827', color: '#f9fafb' });
-      this.actionButton.setStroke('#64748b', 2);
+      this.actionButton.setStyle({ backgroundColor: '#78350f', color: '#fffbeb' });
+      this.actionButton.setStroke('#f59e0b', 2);
       return;
     }
     if (this.targetingState) {
       const selectedCount = this.targetingState.targetIndexes?.length ?? 0;
       const minTargets = this.targetingState.minTargets ?? this.targetingState.requiredTargets ?? 1;
+      this.actionButton.setVisible(true);
       if (selectedCount >= minTargets) {
         this.actionButton.setText(translateActive('ui.common.confirm', 'CONFIRM'));
       } else {
@@ -2465,6 +2478,9 @@ export default class BattleScene extends Phaser.Scene {
       this.actionButton.setStroke('#22d3ee', 2);
       return;
     }
+
+    const passAvailable = this.isPassActionButtonAvailable();
+    this.actionButton.setVisible(passAvailable);
     this.actionButton.setText(translateActive('ui.common.pass', 'PASS'));
     this.actionButton.setStyle({ backgroundColor: '#111827', color: '#f9fafb' });
     this.actionButton.setStroke('#64748b', 2);
