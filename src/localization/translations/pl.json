@@ -270,8 +270,7 @@
       "none": "Brak",
       "empty": "Pusto",
       "unknownCard": "Nieznana karta",
-      "unit": "Jednostka",
-      "cancel": "ANULUJ"
+      "unit": "Jednostka"
     },
     "start": {
       "title": "GRIDFALL TACTICS",
@@ -391,12 +390,12 @@
         "swap_adjacent_enemy_units": "Zamień dwóch sąsiadujących wrogów"
       },
       "targeting": {
-        "selectEnemy": "Wybierz wroga",
-        "selectFirstEnemy": "Wybierz pierwszego wroga",
-        "selectAdjacentEnemy": "Wybierz sąsiedniego wroga",
-        "selectAlly": "Wybierz sojusznika",
-        "selectUnit": "Wybierz jednostkę",
-        "selectSecondEnemy": "Wybierz drugiego wroga"
+        "selectEnemy": "WYBIERZ WROGA",
+        "selectFirstEnemy": "WYBIERZ PIERWSZEGO WROGA",
+        "selectAdjacentEnemy": "WYBIERZ SĄSIADUJĄCYCH WROGÓW",
+        "selectAlly": "WYBIERZ SOJUSZNIKA",
+        "selectUnit": "WYBIERZ JEDNOSTKĘ",
+        "selectSecondEnemy": "WYBIERZ DRUGIEGO WROGA"
       }
     },
     "rules": {
