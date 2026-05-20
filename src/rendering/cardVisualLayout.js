@@ -834,6 +834,7 @@ export function createCardPreviewView(scene, {
   baseStatValues = null,
   changedStats = [],
   pulseChangedStats = false,
+  temporaryArtCropYOffset = 0,
 } = {}) {
   const zones = getCardLayoutZones(width, height);
   const baseTypography = getCardTypography(width, height);
@@ -872,7 +873,10 @@ export function createCardPreviewView(scene, {
       pulseChangedStats,
     },
   );
-  const art = createCardArtwork(scene, zones.art, card, { enableCardIllustration });
+  const art = createCardArtwork(scene, zones.art, card, {
+    enableCardIllustration,
+    upwardCropBiasRatio: CARD_ARTWORK_UPWARD_CROP_BIAS_RATIO + temporaryArtCropYOffset,
+  });
   const namePanel = scene.add.rectangle(zones.name.centerX, zones.name.centerY, zones.name.width, zones.name.height, CARD_COLORS.namePanel, 0.95)
     .setStrokeStyle(1, accentColor, card ? (typographyScale > 1 ? 0.52 : 0.44) : 0.14);
   const nameHorizontalInset = Math.max(10, zones.pad * (typographyScale > 1 ? 1.45 : 1.32));
