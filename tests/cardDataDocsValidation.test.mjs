@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import { getFactionByKey, getFactionKeys } from '../src/data/factions/index.js';
 import { getTargetingStateForEffect } from '../src/systems/cardTargeting.js';
 import { createInitialBattleState, playOrRedeployUnit, resolveTargetedUnitOnPlayEffect } from '../src/systems/GameState.js';
+import { getCardPresentationName } from '../src/data/presentation/factionPresentation.js';
 
 const expectedTextShort = new Map(Object.entries({
   aggro_runner_1: 'Open line: enemy base loses 2 HP.',
@@ -150,8 +151,10 @@ test('canonical behavior matrix matches source card faction, type, stats, and ef
   const rowsByFactionAndName = new Map(parseCanonicalRows().map((row) => [`${row.faction}:${row.card}`, row]));
 
   for (const { faction, card } of allCards()) {
-    const row = rowsByFactionAndName.get(`${faction.name}:${card.name}`);
-    assert.ok(row, `Missing canonical row for ${faction.name}:${card.name}`);
+    const gameplayKey = `${faction.name}:${card.name}`;
+    const presentationKey = `${faction.name}:${getCardPresentationName(card, 'en')}`;
+    const row = rowsByFactionAndName.get(gameplayKey) ?? rowsByFactionAndName.get(presentationKey);
+    assert.ok(row, `Missing canonical row for ${gameplayKey}`);
     const expectedStats = card.type === 'unit' ? `${card.attack}/${card.hp}/${card.armor}` : '-';
     assert.equal(row.type, card.type, `${card.id} type`);
     assert.equal(row.stats, expectedStats, `${card.id} stats`);

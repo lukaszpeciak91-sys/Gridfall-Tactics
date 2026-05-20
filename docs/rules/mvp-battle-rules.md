@@ -247,16 +247,16 @@ The no-progress detector uses the stricter "meaningful for outcome" definition i
 | Tank | Reinforce | order | - | heal_all_1 | Heal all [ALLY] by 1. | Non-targeted effect | Uses unit max HP cap. |
 | Tank | Last Stand | special | - | cannot_drop_below_1_this_turn | [ALLY] can't drop below 1 HP this turn. | Non-targeted effect | Reset after combat resolve. |
 | Tank | Reactive Plating | utility | - | temp_armor_1 | Target [ALLY] +1 ARM until combat ends. | Targeted friendly | Stacks with armor normally and resets at full turn/combat cleanup; does not heal HP. |
-| Wardens | Sentinel | unit | 2/2/0 | warden_defensive_friction_self | Attackers: -1 ATK. | Lane combat defensive friction | Combat-time only; capped with all Wardens friction at -1 total. |
-| Wardens | Spearwall | unit | 1/1/0 | warden_defensive_friction_adjacent | Attackers of adjacent [ALLIES]: -1 ATK. | Passive adjacency aura | Same-row adjacency only; does not protect itself unless adjacent to another Spearwall; capped with all Wardens friction at -1 total. |
-| Wardens | Halberdier | unit | 2/1/0 | opposing_lane_atk_plus_1 | If opposed: +1 ATK. | Lane combat | Board-state check only; no history or moved-this-turn logic. |
-| Wardens | Bastion Guard | unit | 1/3/0 | null |  | Lane combat | Vanilla unit with empty rules text. |
-| Wardens | Watch Captain | unit | 2/2/0 | null |  | Lane combat | Vanilla unit with empty rules text. |
-| Wardens | Brace | utility | - | temp_armor_1 | Target [ALLY] +1 ARM until combat ends. | Targeted friendly | Reuses temporary armor cleanup; no costs. |
-| Wardens | Shield Push | order | - | swap_adjacent_enemy_units | Swap two adjacent enemies. | Manual two-enemy targeting | Select two adjacent enemies in the same row; no cross-side movement; no ownership changes. |
-| Wardens | Stand Firm | order | - | friendly_immovable_this_turn | All [ALLY] can't be moved this turn. | Non-targeted effect | Move-only protection; unlike Tank Stability, it does not block disable effects. |
-| Wardens | Reinforce Line | order | - | adjacent_allies_temp_armor_1 | Adjacent [ALLY] +1 ARM until combat ends. | Non-targeted formation effect | Same-row friendly units with adjacent allies gain +1 temporary ARM; isolated allies have no legal deterministic resolution; no lane targeting UI. |
-| Wardens | Hold The Line | order | - | adjacent_allies_temp_armor_1 | Adjacent [ALLY] +1 ARM until combat ends. | Non-targeted formation effect | Same adjacency behavior as Reinforce Line; reinforces Wardens shield-wall formation identity and reuses temporary armor cleanup. |
+| Wardens | Tusk Guard | unit | 2/2/0 | warden_defensive_friction_self | Attackers: -1 ATK. | Lane combat defensive friction | Combat-time only; capped with all Wardens friction at -1 total. |
+| Wardens | Tundra Hunter | unit | 1/1/0 | warden_defensive_friction_adjacent | Attackers of adjacent [ALLIES]: -1 ATK. | Passive adjacency aura | Same-row adjacency only; does not protect itself unless adjacent to another Spearwall; capped with all Wardens friction at -1 total. |
+| Wardens | Ice Pike | unit | 2/1/0 | opposing_lane_atk_plus_1 | If opposed: +1 ATK. | Lane combat | Board-state check only; no history or moved-this-turn logic. |
+| Wardens | Tururuk | unit | 1/3/0 | null |  | Lane combat | Vanilla unit with empty rules text. |
+| Wardens | Tererek | unit | 2/2/0 | null |  | Lane combat | Vanilla unit with empty rules text. |
+| Wardens | Bone Shields | utility | - | temp_armor_1 | Target [ALLY] +1 ARM until combat ends. | Targeted friendly | Reuses temporary armor cleanup; no costs. |
+| Wardens | Mammoth Stampede | order | - | swap_adjacent_enemy_units | Swap two adjacent enemies. | Manual two-enemy targeting | Select two adjacent enemies in the same row; no cross-side movement; no ownership changes. |
+| Wardens | Endure the Cold | order | - | friendly_immovable_this_turn | All [ALLY] can't be moved this turn. | Non-targeted effect | Move-only protection; unlike Tank Stability, it does not block disable effects. |
+| Wardens | Raise the Spears | order | - | adjacent_allies_temp_armor_1 | Adjacent [ALLY] +1 ARM until combat ends. | Non-targeted formation effect | Same-row friendly units with adjacent allies gain +1 temporary ARM; isolated allies have no legal deterministic resolution; no lane targeting UI. |
+| Wardens | Hold the Ice Pass | order | - | adjacent_allies_temp_armor_1 | Adjacent [ALLY] +1 ARM until combat ends. | Non-targeted formation effect | Same adjacency behavior as Reinforce Line; reinforces Wardens shield-wall formation identity and reuses temporary armor cleanup. |
 
 ## 9) Implemented vs Deferred (Explicit)
 
