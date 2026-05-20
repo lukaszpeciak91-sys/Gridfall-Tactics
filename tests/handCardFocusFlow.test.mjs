@@ -24,9 +24,9 @@ test('card inspect is visual-only and avoids focus gameplay state', () => {
 });
 
 test('mulligan tap toggles only mulligan selection and uses separate preview state', () => {
-  assert.match(source, /if \(this\.openingMulliganPending\) \{[\s\S]*this\.selectedCardId = null;[\s\S]*this\.targetingState = null;[\s\S]*this\.effectCastState = null;[\s\S]*this\.toggleOpeningMulliganCard\(cardId, \{ showPreview: false \}\);[\s\S]*return;[\s\S]*\}/);
-  assert.match(source, /this\.previewedMulliganCardId = this\.selectedMulliganCardIds\.includes\(cardId\) \? cardId : null;/);
-  assert.match(source, /this\.resetCardHighlights\(\{ showPreview: true \}\);/);
+  assert.match(source, /if \(this\.openingMulliganPending\) \{[\s\S]*this\.selectedCardId = null;[\s\S]*this\.targetingState = null;[\s\S]*this\.effectCastState = null;[\s\S]*this\.startHandCardLongPress\(cardId\);[\s\S]*return;[\s\S]*\}/);
+  assert.match(source, /if \(this\.openingMulliganPending\) \{[\s\S]*this\.previewedMulliganCardId = cardId;[\s\S]*this\.resetCardHighlights\(\{ showPreview: true \}\);[\s\S]*return;[\s\S]*\}/);
+  assert.match(source, /if \(this\.openingMulliganPending\) \{[\s\S]*if \(this\.longPressTriggeredCardId === cardId\) \{[\s\S]*return;[\s\S]*\}[\s\S]*this\.previewedMulliganCardId = null;[\s\S]*this\.toggleOpeningMulliganCard\(cardId, \{ showPreview: false \}\);[\s\S]*return;[\s\S]*\}/);
   assert.match(source, /if \(this\.selectedMulliganCardIds\.includes\(cardId\)\) \{\s*this\.selectedMulliganCardIds = this\.selectedMulliganCardIds\.filter\(\(id\) => id !== cardId\);\s*\} else if \(this\.selectedMulliganCardIds\.length < MAX_OPENING_MULLIGAN_CARDS\) \{\s*this\.selectedMulliganCardIds\.push\(cardId\);\s*\}/);
   assert.match(source, /const isMulliganSelected = this\.openingMulliganPending && this\.selectedMulliganCardIds\.includes\(card\.cardId\);/);
   assert.match(source, /const isGameplaySelected = !this\.openingMulliganPending && card\.cardId === this\.selectedCardId;/);

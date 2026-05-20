@@ -1766,7 +1766,7 @@ export default class BattleScene extends Phaser.Scene {
       this.pendingSwapIndex = null;
       this.previewedMulliganCardId = null;
       this.pressedHandCardWasSelected = false;
-      this.toggleOpeningMulliganCard(cardId, { showPreview: false });
+      this.startHandCardLongPress(cardId);
       return;
     }
 
@@ -1801,12 +1801,21 @@ export default class BattleScene extends Phaser.Scene {
       this.handCardLongPressEvent = null;
       if (this.pressedHandCardId !== cardId) return;
       if (this.utilityMenuPanel || this.navigationInProgress || this.pointerInputGuardActive) return;
-      if (this.battleResultModalShown || this.isFlowResolving || this.openingMulliganPending || this.playerActionUsed) return;
+      if (this.battleResultModalShown || this.isFlowResolving || this.playerActionUsed) return;
 
       const card = this.gameState?.player?.hand?.find((item) => item.id === cardId);
       if (!card) return;
 
       this.longPressTriggeredCardId = cardId;
+
+      if (this.openingMulliganPending) {
+        this.previewedMulliganCardId = cardId;
+        this.hoverInspectCardId = null;
+        this.boardInspectIndex = null;
+        this.resetCardHighlights({ showPreview: true });
+        return;
+      }
+
       this.selectedCardId = cardId;
       this.targetingState = this.isUnitCard(card) ? null : this.getTargetingStateForCard(card);
       this.hoverInspectCardId = null;
@@ -1845,8 +1854,15 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     if (this.openingMulliganPending) {
-      this.previewedMulliganCardId = this.selectedMulliganCardIds.includes(cardId) ? cardId : null;
-      this.resetCardHighlights({ showPreview: true });
+      if (this.longPressTriggeredCardId === cardId) {
+        this.pressedHandCardId = null;
+        this.pressedHandCardWasSelected = false;
+        this.longPressTriggeredCardId = null;
+        return;
+      }
+
+      this.previewedMulliganCardId = null;
+      this.toggleOpeningMulliganCard(cardId, { showPreview: false });
       this.pressedHandCardId = null;
       this.pressedHandCardWasSelected = false;
       this.longPressTriggeredCardId = null;
