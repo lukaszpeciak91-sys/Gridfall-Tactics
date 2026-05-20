@@ -62,14 +62,14 @@ const HAND_CARD_INSPECT_DIM_ALPHA = 0.55;
 const BOARD_CARD_ARTWORK_UPWARD_CROP_BIAS_RATIO = 0.065;
 const HAND_CARD_LONG_PRESS_MS = 425;
 const ENEMY_ACTION_NOTIFICATION_FADE_IN_MS = 110;
-const ENEMY_ACTION_NOTIFICATION_HOLD_MS = 650;
+const ENEMY_ACTION_NOTIFICATION_HOLD_MS = 800;
 const ENEMY_ACTION_NOTIFICATION_FADE_OUT_MS = 140;
 const ENEMY_ACTION_APPLY_DELAY_MS = 500;
 const ENEMY_EFFECT_ACTION_APPLY_DELAY_MS = 750;
 const ENEMY_EFFECT_ACTION_BANNER_HOLD_MS = 1020;
 const ENEMY_ACTION_PRE_COMBAT_DELAY_MS = 400;
 const PLAYER_EFFECT_CONFIRMATION_FADE_IN_MS = 90;
-const PLAYER_EFFECT_CONFIRMATION_HOLD_MS = 520;
+const PLAYER_EFFECT_CONFIRMATION_HOLD_MS = 840;
 const PLAYER_EFFECT_CONFIRMATION_FADE_OUT_MS = 120;
 const TURN_START_BANNER_FADE_IN_MS = 110;
 const TURN_START_BANNER_HOLD_MS = 820;
@@ -2975,7 +2975,7 @@ export default class BattleScene extends Phaser.Scene {
     const { width, height, board } = this.layout;
     const maxWidth = board.width * 0.88;
     const fontSize = Math.min(18, Math.max(14, Math.floor(Math.max(board.cellWidth * 0.125, height * 0.016))));
-    const targetY = board.centerY + board.cellHeight * 0.55;
+    const targetY = board.centerY + board.cellHeight * 0.25;
     const startY = targetY + 5;
     this.playerActionBanner = this.add.text(width * 0.5, startY, this.getPlayerEffectConfirmationMessage(card), {
       fontFamily: 'Arial, sans-serif',
@@ -2985,7 +2985,8 @@ export default class BattleScene extends Phaser.Scene {
       align: 'center',
       padding: { x: 14, y: 8 },
       wordWrap: { width: maxWidth },
-    }).setOrigin(0.5).setDepth(219).setAlpha(0).setScale(0.98);
+      fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(219).setAlpha(0).setScale(0.98).setStroke('#052e16', 1);
 
     const banner = this.playerActionBanner;
     this.tweens.add({
@@ -3085,7 +3086,8 @@ export default class BattleScene extends Phaser.Scene {
       align: 'center',
       padding: { x: 16, y: 9 },
       wordWrap: { width: maxWidth },
-    }).setOrigin(0.5).setDepth(220).setAlpha(0).setScale(0.98);
+      fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(220).setAlpha(0).setScale(0.98).setStroke('#450a0a', 1);
 
     const banner = this.enemyActionBanner;
     this.tweens.add({
