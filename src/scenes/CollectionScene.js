@@ -44,6 +44,7 @@ const CARD_ART_CROP_DEBUG_MIN = -0.25;
 const CARD_ART_CROP_DEBUG_MAX = 0.25;
 const CARD_ART_CROP_DEBUG_ICON_SIZE = 26;
 const CARD_ART_CROP_DEBUG_ENABLED = (() => {
+  // TEMP DEBUG: remove after art crop pass.
   if (import.meta.env?.DEV === true) return true;
   const search = globalThis?.location?.search ?? '';
   if (new URLSearchParams(search).get('cardArtCropDebug') === '1') return true;
@@ -110,7 +111,6 @@ export default class CollectionScene extends Phaser.Scene {
 
     this.drawCollectionList({ width, height });
     this.createBackButton(width, height);
-    this.createCardArtCropDebugIcon();
   }
 
   drawCollectionList({ width, height }) {
@@ -378,7 +378,7 @@ export default class CollectionScene extends Phaser.Scene {
       card,
       previewItems: [previewView.root, overlay],
     };
-    this.refreshCardArtCropDebugUi();
+    this.refreshCardArtCropDebugUi({ inspectTransform: transform });
   }
 
   destroyInspectPreview({ animate = false } = {}) {
@@ -453,6 +453,7 @@ export default class CollectionScene extends Phaser.Scene {
       fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(2401).setScrollFactor(0);
     icon.on('pointerup', () => {
+      this.cardTapHandled = true;
       const debug = this.ensureCardArtCropDebugState();
       debug.panelVisible = !debug.panelVisible;
       this.refreshCardArtCropDebugUi();
@@ -462,7 +463,7 @@ export default class CollectionScene extends Phaser.Scene {
 
   ensureCardArtCropDebugState() {
     if (!this.cardArtCropDebug) {
-      this.cardArtCropDebug = { panelVisible: false, draftByCardId: new Map(), sessionOverrides: new Map(), panelItems: [] };
+      this.cardArtCropDebug = { panelVisible: false, draftByCardId: new Map(), sessionOverrides: new Map(), panelItems: [], toggleItems: [] };
     }
     return this.cardArtCropDebug;
   }
@@ -491,13 +492,24 @@ export default class CollectionScene extends Phaser.Scene {
     return JSON.stringify({ artCropOverrides: result }, null, 2);
   }
 
-  refreshCardArtCropDebugUi() {
-    if (!CARD_ART_CROP_DEBUG_ENABLED || !this.cardArtCropDebug) return;
-    const debug = this.cardArtCropDebug;
+  refreshCardArtCropDebugUi({ inspectTransform = null } = {}) {
+    if (!CARD_ART_CROP_DEBUG_ENABLED || !this.inspectPreview?.card?.id) return;
+    const debug = this.ensureCardArtCropDebugState();
     debug.panelItems.forEach((item) => item?.destroy?.());
+    debug.toggleItems.forEach((item) => item?.destroy?.());
     debug.panelItems = [];
-    if (!debug.panelVisible || !this.inspectPreview?.card?.id) return;
+    debug.toggleItems = [];
     const card = this.inspectPreview.card;
+    const bounds = inspectTransform ?? this.getInspectCardTransform({ sourceWidth: this.inspectPreview.sourceWidth, sourceHeight: this.inspectPreview.sourceHeight });
+    const toggleBtn = this.add.text(bounds.x - (bounds.width * 0.5) + 20, bounds.y - (bounds.height * 0.5) + 18, debug.panelVisible ? '✂ ON' : '✂', { fontFamily: 'Arial, sans-serif', fontSize: '12px', color: '#dbeafe', backgroundColor: '#0f172a', padding: { left: 6, right: 6, top: 4, bottom: 3 } })
+      .setOrigin(0.5).setDepth(INSPECT_CARD_DEPTH + 60).setScrollFactor(0).setInteractive({ useHandCursor: true });
+    toggleBtn.on('pointerup', () => {
+      this.cardTapHandled = true;
+      debug.panelVisible = !debug.panelVisible;
+      this.refreshCardArtCropDebugUi();
+    });
+    debug.toggleItems.push(toggleBtn);
+    if (!debug.panelVisible) return;
     const cardId = String(card.id);
     const yOffset = this.getCardArtCropYOffset(card);
     const { width } = this.scale;
@@ -516,7 +528,7 @@ export default class CollectionScene extends Phaser.Scene {
   createDebugTextButton(x, y, label, onPress) {
     const button = this.add.text(x, y, label, { fontFamily: 'Arial, sans-serif', fontSize: '11px', color: '#dbeafe', backgroundColor: '#0f172a', padding: { left: 5, right: 5, top: 2, bottom: 2 } })
       .setOrigin(0.5).setDepth(2401).setScrollFactor(0).setInteractive({ useHandCursor: true });
-    button.on('pointerup', () => onPress?.());
+    button.on('pointerup', () => { this.cardTapHandled = true; onPress?.(); });
     return button;
   }
 
@@ -624,7 +636,11 @@ export default class CollectionScene extends Phaser.Scene {
     this.cancelCardLongPress();
     this.destroyInspectPreview();
     this.cardArtCropDebug?.panelItems?.forEach((item) => item?.destroy?.());
-    if (this.cardArtCropDebug) this.cardArtCropDebug.panelItems = [];
+    this.cardArtCropDebug?.toggleItems?.forEach((item) => item?.destroy?.());
+    if (this.cardArtCropDebug) {
+      this.cardArtCropDebug.panelItems = [];
+      this.cardArtCropDebug.toggleItems = [];
+    }
     this.scrollMask?.destroy?.();
     this.scrollMask = null;
     this.scrollState = null;
