@@ -43,7 +43,12 @@ const CARD_ART_CROP_DEBUG_STEP = 0.005;
 const CARD_ART_CROP_DEBUG_MIN = -0.25;
 const CARD_ART_CROP_DEBUG_MAX = 0.25;
 const CARD_ART_CROP_DEBUG_ICON_SIZE = 26;
-const CARD_ART_CROP_DEBUG_ENABLED = import.meta.env?.DEV === true;
+const CARD_ART_CROP_DEBUG_ENABLED = (() => {
+  if (import.meta.env?.DEV === true) return true;
+  const search = globalThis?.location?.search ?? '';
+  if (new URLSearchParams(search).get('cardArtCropDebug') === '1') return true;
+  return globalThis?.localStorage?.getItem?.('gridfall.debug.cardArtCrop') === '1';
+})();
 
 export default class CollectionScene extends Phaser.Scene {
   constructor() {
