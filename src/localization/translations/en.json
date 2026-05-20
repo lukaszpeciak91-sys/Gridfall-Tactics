@@ -396,7 +396,9 @@
         "selectAlly": "SELECT ALLY",
         "selectUnit": "SELECT UNIT",
         "selectSecondEnemy": "SELECT SECOND ENEMY"
-      }
+      },
+      "playerStarts": "YOU START",
+      "enemyStarts": "ENEMY STARTS"
     },
     "rules": {
       "title": "Rules / How To Play",

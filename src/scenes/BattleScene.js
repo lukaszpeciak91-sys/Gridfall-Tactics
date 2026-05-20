@@ -71,6 +71,9 @@ const ENEMY_ACTION_PRE_COMBAT_DELAY_MS = 400;
 const PLAYER_EFFECT_CONFIRMATION_FADE_IN_MS = 90;
 const PLAYER_EFFECT_CONFIRMATION_HOLD_MS = 520;
 const PLAYER_EFFECT_CONFIRMATION_FADE_OUT_MS = 120;
+const TURN_START_BANNER_FADE_IN_MS = 110;
+const TURN_START_BANNER_HOLD_MS = 820;
+const TURN_START_BANNER_FADE_OUT_MS = 140;
 const PLAYER_EFFECT_CAST_BEAT_MS = 620;
 const PLAYER_EFFECT_CAST_SWEEP_STEP_MS = 70;
 const EFFECT_CAST_SWEEP_STYLE = Object.freeze({
@@ -185,6 +188,9 @@ export default class BattleScene extends Phaser.Scene {
     this.pointerInputGuardEventId = null;
     this.lastRenderedBoardStats = null;
     this.currentBoardRenderStats = null;
+    this.turnStartBanner = null;
+    this.turnStartBannerFadeOutEvent = null;
+    this.hasShownOpeningTurnStartBanner = false;
   }
 
   preload() {
@@ -254,10 +260,14 @@ export default class BattleScene extends Phaser.Scene {
     this.pointerInputGuardEventId = null;
     this.lastRenderedBoardStats = null;
     this.currentBoardRenderStats = null;
+    this.turnStartBanner = null;
+    this.turnStartBannerFadeOutEvent = null;
+    this.hasShownOpeningTurnStartBanner = false;
   }
 
   cleanupSceneObjects({ preserveTimers = false, preserveTweens = false } = {}) {
     this.destroyEnemyActionBanner();
+    this.destroyTurnStartBanner();
     this.destroyPlayerActionBanner();
     this.destroyTargetingInstruction();
     this.destroyBattleResultModal();
@@ -2441,7 +2451,7 @@ export default class BattleScene extends Phaser.Scene {
     this.resetCardHighlights({ showPreview });
   }
 
-  confirmOpeningMulligan() {
+  async confirmOpeningMulligan() {
     if (this.isFlowResolving) return;
 
     const selectedIds = [...this.selectedMulliganCardIds];
@@ -2454,6 +2464,7 @@ export default class BattleScene extends Phaser.Scene {
     this.updateActionButtonLabel();
     this.refreshDeckCounter();
     this.resetCardHighlights();
+    await this.showOpeningTurnStartBanner();
     this.startTurn();
   }
 
@@ -2564,6 +2575,91 @@ export default class BattleScene extends Phaser.Scene {
     recordPassAction(this.gameState, 'player');
     this.completePlayerAction();
   }
+
+
+  getOpeningTurnStartBannerConfig() {
+    if (this.gameState?.firstActor === 'enemy') {
+      return {
+        message: translateActive('ui.battle.enemyStarts', 'ENEMY STARTS'),
+        textColor: '#fee2e2',
+        backgroundColor: '#7f1d1d',
+      };
+    }
+
+    return {
+      message: translateActive('ui.battle.playerStarts', 'YOU START'),
+      textColor: '#e0f2fe',
+      backgroundColor: '#0c4a6e',
+    };
+  }
+
+  async showOpeningTurnStartBanner() {
+    if (this.hasShownOpeningTurnStartBanner || !this.layout || !this.gameState) return;
+    this.hasShownOpeningTurnStartBanner = true;
+    this.destroyTurnStartBanner();
+
+    const { width, height, board } = this.layout;
+    const maxWidth = board.width * 0.88;
+    const fontSize = Math.min(20, Math.max(15, Math.floor(Math.max(board.cellWidth * 0.14, height * 0.018))));
+    const { message, textColor, backgroundColor } = this.getOpeningTurnStartBannerConfig();
+    const targetY = board.centerY + 2;
+    this.turnStartBanner = this.add.text(width * 0.5, targetY + 6, message, {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: `${fontSize}px`,
+      color: textColor,
+      backgroundColor,
+      align: 'center',
+      padding: { x: 16, y: 9 },
+      wordWrap: { width: maxWidth },
+      fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(221).setAlpha(0).setScale(0.98);
+
+    const banner = this.turnStartBanner;
+    this.tweens.add({
+      targets: banner,
+      alpha: 1,
+      y: targetY,
+      scaleX: 1,
+      scaleY: 1,
+      duration: TURN_START_BANNER_FADE_IN_MS,
+      ease: 'Quad.easeOut',
+    });
+
+    await this.delay(TURN_START_BANNER_FADE_IN_MS + TURN_START_BANNER_HOLD_MS);
+
+    await new Promise((resolve) => {
+      if (this.turnStartBanner !== banner || !banner.active) {
+        resolve();
+        return;
+      }
+      this.turnStartBannerFadeOutEvent = null;
+      this.tweens.add({
+        targets: banner,
+        alpha: 0,
+        y: targetY - 6,
+        scaleX: 0.98,
+        scaleY: 0.98,
+        duration: TURN_START_BANNER_FADE_OUT_MS,
+        ease: 'Quad.easeIn',
+        onComplete: () => {
+          if (this.turnStartBanner === banner) this.destroyTurnStartBanner();
+          resolve();
+        },
+      });
+    });
+  }
+
+  destroyTurnStartBanner() {
+    if (this.turnStartBannerFadeOutEvent) {
+      this.turnStartBannerFadeOutEvent.remove(false);
+      this.turnStartBannerFadeOutEvent = null;
+    }
+    if (!this.turnStartBanner) return;
+    this.tweens?.killTweensOf?.(this.turnStartBanner);
+    this.turnStartBanner.destroy();
+    this.turnStartBanner = null;
+  }
+
 
   startTurn() {
     if (!this.gameState || this.gameState.winner) {
@@ -2691,6 +2787,7 @@ export default class BattleScene extends Phaser.Scene {
 
     toggleFirstActor(this.gameState);
     this.isFlowResolving = false;
+    await this.showOpeningTurnStartBanner();
     this.startTurn();
   }
 
@@ -4542,6 +4639,9 @@ export default class BattleScene extends Phaser.Scene {
 
     this.lastRenderedBoardStats = currentRenderStats;
     this.currentBoardRenderStats = null;
+    this.turnStartBanner = null;
+    this.turnStartBannerFadeOutEvent = null;
+    this.hasShownOpeningTurnStartBanner = false;
   }
 
   refreshHeroHP() {
