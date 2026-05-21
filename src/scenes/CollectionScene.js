@@ -210,7 +210,6 @@ export default class CollectionScene extends Phaser.Scene {
       bodyLineSpacing: HAND_CARD_BODY_LINE_SPACING,
       enableCardIllustration: true,
       showCardNumber: true,
-      temporaryArtCropYOffset: this.getCardArtCropYOffset(card),
     });
     content.add(preview.root);
     this.uiElements.push(preview.root);
@@ -529,21 +528,75 @@ export default class CollectionScene extends Phaser.Scene {
     const cardId = String(card.id);
     const yOffset = this.getCardArtCropYOffset(card);
     const { width } = this.scale;
-    const panel = this.add.rectangle(width * 0.5, 58, Math.min(356, width - 20), 78, 0x020617, 0.9).setStrokeStyle(1, 0x38bdf8, 0.75).setDepth(2600).setScrollFactor(0);
-    const valueLabel = this.add.text(panel.x, panel.y - 18, `art yOffset: ${yOffset.toFixed(3)} (${cardId})`, { fontFamily: 'Arial, sans-serif', fontSize: '12px', color: '#e2e8f0' }).setOrigin(0.5).setDepth(2601).setScrollFactor(0);
-    const upBtn = this.createDebugTextButton(panel.x - 154, panel.y - 18, '▲', () => this.nudgeCardArtCrop(card, CARD_ART_CROP_DEBUG_STEP));
-    const downBtn = this.createDebugTextButton(panel.x - 126, panel.y - 18, '▼', () => this.nudgeCardArtCrop(card, -CARD_ART_CROP_DEBUG_STEP));
-    const resetBtn = this.createDebugTextButton(panel.x - 98, panel.y - 18, '0', () => this.setCardArtCrop(card, 0));
-    const addButton = this.createDebugTextButton(panel.x - 84, panel.y + 15, 'ADD / UPDATE', () => { debug.sessionOverrides.set(cardId, { yOffset: this.getCardArtCropYOffset(card) }); this.refreshCardArtCropDebugUi(); });
-    const copyButton = this.createDebugTextButton(panel.x + 5, panel.y + 15, 'COPY ALL', async () => { await navigator.clipboard?.writeText?.(this.buildCardArtCropDebugJson()); });
-    const clearButton = this.createDebugTextButton(panel.x + 86, panel.y + 15, 'CLEAR', () => { debug.sessionOverrides.clear(); this.refreshCardArtCropDebugUi(); });
-    const countLabel = this.add.text(panel.x + 147, panel.y - 18, `buffer: ${debug.sessionOverrides.size}`, { fontFamily: 'Arial, sans-serif', fontSize: '11px', color: '#93c5fd' }).setOrigin(1, 0.5).setDepth(2601).setScrollFactor(0);
-    debug.panelItems.push(panel, valueLabel, upBtn, downBtn, resetBtn, addButton, copyButton, clearButton, countLabel);
+    const panelWidth = Math.min(440, width - 16);
+    const panel = this.add.rectangle(width * 0.5, 62, panelWidth, 98, 0x020617, 0.92)
+      .setStrokeStyle(1, 0x38bdf8, 0.75)
+      .setDepth(2600)
+      .setScrollFactor(0);
+    const controlsTopY = panel.y - 20;
+    const controlsBottomY = panel.y + 20;
+    const controlsLeft = panel.x - panelWidth * 0.5 + 28;
+    const upBtn = this.createDebugTextButton(controlsLeft, controlsTopY, '▲', () => this.nudgeCardArtCrop(card, CARD_ART_CROP_DEBUG_STEP), {
+      fontSize: '18px',
+      minWidth: 44,
+      minHeight: 36,
+      paddingX: 14,
+      paddingY: 8,
+    });
+    const downBtn = this.createDebugTextButton(controlsLeft + 52, controlsTopY, '▼', () => this.nudgeCardArtCrop(card, -CARD_ART_CROP_DEBUG_STEP), {
+      fontSize: '18px',
+      minWidth: 44,
+      minHeight: 36,
+      paddingX: 14,
+      paddingY: 8,
+    });
+    const valueLabel = this.add.text(controlsLeft + 118, controlsTopY, `yOffset: ${yOffset.toFixed(3)}`, {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: '14px',
+      color: '#e2e8f0',
+    }).setOrigin(0, 0.5).setDepth(2601).setScrollFactor(0);
+    const countLabel = this.add.text(panel.x + panelWidth * 0.5 - 12, controlsTopY, `buffer: ${debug.sessionOverrides.size}`, {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: '13px',
+      color: '#93c5fd',
+    }).setOrigin(1, 0.5).setDepth(2601).setScrollFactor(0);
+    const addButton = this.createDebugTextButton(panel.x - 116, controlsBottomY, 'ADD / UPDATE', () => { debug.sessionOverrides.set(cardId, { yOffset: this.getCardArtCropYOffset(card) }); this.refreshCardArtCropDebugUi(); }, { minWidth: 126, minHeight: 34 });
+    const copyButton = this.createDebugTextButton(panel.x, controlsBottomY, 'COPY ALL', async () => { await navigator.clipboard?.writeText?.(this.buildCardArtCropDebugJson()); }, { minWidth: 96, minHeight: 34 });
+    const clearButton = this.createDebugTextButton(panel.x + 104, controlsBottomY, 'CLEAR', () => { debug.sessionOverrides.clear(); this.refreshCardArtCropDebugUi(); }, { minWidth: 84, minHeight: 34 });
+    const cardIdLabel = this.add.text(panel.x + panelWidth * 0.5 - 12, controlsBottomY + 28, cardId, {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: '10px',
+      color: '#64748b',
+    }).setOrigin(1, 0.5).setDepth(2601).setScrollFactor(0);
+    debug.panelItems.push(panel, valueLabel, upBtn, downBtn, addButton, copyButton, clearButton, countLabel, cardIdLabel);
   }
 
-  createDebugTextButton(x, y, label, onPress) {
-    const button = this.add.text(x, y, label, { fontFamily: 'Arial, sans-serif', fontSize: '11px', color: '#dbeafe', backgroundColor: '#0f172a', padding: { left: 5, right: 5, top: 2, bottom: 2 } })
-      .setOrigin(0.5).setDepth(2601).setScrollFactor(0).setInteractive({ useHandCursor: true });
+  createDebugTextButton(x, y, label, onPress, options = {}) {
+    const {
+      fontSize = '12px',
+      minWidth = 0,
+      minHeight = 0,
+      paddingX = 7,
+      paddingY = 4,
+    } = options;
+    const button = this.add.text(x, y, label, {
+      fontFamily: 'Arial, sans-serif',
+      fontSize,
+      color: '#dbeafe',
+      backgroundColor: '#0f172a',
+      padding: { left: paddingX, right: paddingX, top: paddingY, bottom: paddingY },
+      align: 'center',
+    })
+      .setOrigin(0.5)
+      .setDepth(2601)
+      .setScrollFactor(0);
+    if (minWidth > 0 || minHeight > 0) {
+      const hitWidth = Math.max(button.width, minWidth);
+      const hitHeight = Math.max(button.height, minHeight);
+      button.setInteractive(new Phaser.Geom.Rectangle(-hitWidth / 2, -hitHeight / 2, hitWidth, hitHeight), Phaser.Geom.Rectangle.Contains);
+    } else {
+      button.setInteractive({ useHandCursor: true });
+    }
     button.on('pointerup', () => { this.cardTapHandled = true; onPress?.(); });
     return button;
   }
