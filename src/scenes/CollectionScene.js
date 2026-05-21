@@ -518,7 +518,7 @@ export default class CollectionScene extends Phaser.Scene {
     const bounds = inspectTransform ?? this.getInspectCardTransform({ sourceWidth: this.inspectPreview.sourceWidth, sourceHeight: this.inspectPreview.sourceHeight });
     const toggleBtn = this.add.text(bounds.x - (bounds.width * 0.5) + 20, bounds.y - (bounds.height * 0.5) + 18, debug.panelVisible ? '✂ ON' : '✂', { fontFamily: 'Arial, sans-serif', fontSize: '12px', color: '#dbeafe', backgroundColor: '#0f172a', padding: { left: 6, right: 6, top: 4, bottom: 3 } })
       .setOrigin(0.5).setDepth(INSPECT_CARD_DEPTH + 60).setScrollFactor(0).setInteractive({ useHandCursor: true });
-    toggleBtn.on('pointerup', () => {
+    this.captureDebugControlInput(toggleBtn, () => {
       this.cardTapHandled = true;
       debug.panelVisible = !debug.panelVisible;
       this.refreshCardArtCropDebugUi();
@@ -532,7 +532,16 @@ export default class CollectionScene extends Phaser.Scene {
     const panel = this.add.rectangle(width * 0.5, 62, panelWidth, 98, 0x020617, 0.92)
       .setStrokeStyle(1, 0x38bdf8, 0.75)
       .setDepth(2600)
-      .setScrollFactor(0);
+      .setScrollFactor(0)
+      .setInteractive({ useHandCursor: false });
+    panel.on('pointerdown', (pointer, localX, localY, event) => {
+      this.cardTapHandled = true;
+      event?.stopPropagation?.();
+    });
+    panel.on('pointerup', (pointer, localX, localY, event) => {
+      this.cardTapHandled = true;
+      event?.stopPropagation?.();
+    });
     const controlsTopY = panel.y - 20;
     const controlsBottomY = panel.y + 20;
     const controlsLeft = panel.x - panelWidth * 0.5 + 28;
@@ -597,8 +606,20 @@ export default class CollectionScene extends Phaser.Scene {
     } else {
       button.setInteractive({ useHandCursor: true });
     }
-    button.on('pointerup', () => { this.cardTapHandled = true; onPress?.(); });
+    this.captureDebugControlInput(button, onPress);
     return button;
+  }
+
+  captureDebugControlInput(gameObject, onPress = null) {
+    gameObject.on('pointerdown', (pointer, localX, localY, event) => {
+      this.cardTapHandled = true;
+      event?.stopPropagation?.();
+    });
+    gameObject.on('pointerup', (pointer, localX, localY, event) => {
+      this.cardTapHandled = true;
+      event?.stopPropagation?.();
+      onPress?.();
+    });
   }
 
   wasScrollDragging() {
