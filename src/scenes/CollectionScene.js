@@ -529,21 +529,30 @@ export default class CollectionScene extends Phaser.Scene {
     const cardId = String(card.id);
     const yOffset = this.getCardArtCropYOffset(card);
     const { width } = this.scale;
-    const panel = this.add.rectangle(width * 0.5, 58, Math.min(356, width - 20), 78, 0x020617, 0.9).setStrokeStyle(1, 0x38bdf8, 0.75).setDepth(2600).setScrollFactor(0);
-    const valueLabel = this.add.text(panel.x, panel.y - 18, `art yOffset: ${yOffset.toFixed(3)} (${cardId})`, { fontFamily: 'Arial, sans-serif', fontSize: '12px', color: '#e2e8f0' }).setOrigin(0.5).setDepth(2601).setScrollFactor(0);
-    const upBtn = this.createDebugTextButton(panel.x - 154, panel.y - 18, '▲', () => this.nudgeCardArtCrop(card, CARD_ART_CROP_DEBUG_STEP));
-    const downBtn = this.createDebugTextButton(panel.x - 126, panel.y - 18, '▼', () => this.nudgeCardArtCrop(card, -CARD_ART_CROP_DEBUG_STEP));
-    const resetBtn = this.createDebugTextButton(panel.x - 98, panel.y - 18, '0', () => this.setCardArtCrop(card, 0));
-    const addButton = this.createDebugTextButton(panel.x - 84, panel.y + 15, 'ADD / UPDATE', () => { debug.sessionOverrides.set(cardId, { yOffset: this.getCardArtCropYOffset(card) }); this.refreshCardArtCropDebugUi(); });
-    const copyButton = this.createDebugTextButton(panel.x + 5, panel.y + 15, 'COPY ALL', async () => { await navigator.clipboard?.writeText?.(this.buildCardArtCropDebugJson()); });
-    const clearButton = this.createDebugTextButton(panel.x + 86, panel.y + 15, 'CLEAR', () => { debug.sessionOverrides.clear(); this.refreshCardArtCropDebugUi(); });
-    const countLabel = this.add.text(panel.x + 147, panel.y - 18, `buffer: ${debug.sessionOverrides.size}`, { fontFamily: 'Arial, sans-serif', fontSize: '11px', color: '#93c5fd' }).setOrigin(1, 0.5).setDepth(2601).setScrollFactor(0);
+    const panel = this.add.rectangle(width * 0.5, 62, Math.min(390, width - 16), 104, 0x020617, 0.9).setStrokeStyle(1, 0x38bdf8, 0.75).setDepth(2600).setScrollFactor(0);
+    const valueLabel = this.add.text(panel.x, panel.y - 24, `yOffset: ${yOffset.toFixed(3)} (${cardId})`, { fontFamily: 'Arial, sans-serif', fontSize: '13px', color: '#e2e8f0' }).setOrigin(0.5).setDepth(2601).setScrollFactor(0);
+    const upBtn = this.createDebugTextButton(panel.x - 132, panel.y - 24, '▲', () => this.nudgeCardArtCrop(card, CARD_ART_CROP_DEBUG_STEP), { largeSquare: true });
+    const downBtn = this.createDebugTextButton(panel.x + 132, panel.y - 24, '▼', () => this.nudgeCardArtCrop(card, -CARD_ART_CROP_DEBUG_STEP), { largeSquare: true });
+    const resetBtn = this.createDebugTextButton(panel.x, panel.y - 24, '0', () => this.setCardArtCrop(card, 0), { largeSquare: true });
+    const addButton = this.createDebugTextButton(panel.x - 96, panel.y + 22, 'ADD / UPDATE', () => { debug.sessionOverrides.set(cardId, { yOffset: this.getCardArtCropYOffset(card) }); this.refreshCardArtCropDebugUi(); });
+    const copyButton = this.createDebugTextButton(panel.x + 2, panel.y + 22, 'COPY ALL', async () => { await navigator.clipboard?.writeText?.(this.buildCardArtCropDebugJson()); });
+    const clearButton = this.createDebugTextButton(panel.x + 90, panel.y + 22, 'CLEAR', () => { debug.sessionOverrides.clear(); this.refreshCardArtCropDebugUi(); });
+    const countLabel = this.add.text(panel.x + 166, panel.y - 24, `buffer: ${debug.sessionOverrides.size}`, { fontFamily: 'Arial, sans-serif', fontSize: '11px', color: '#93c5fd' }).setOrigin(1, 0.5).setDepth(2601).setScrollFactor(0);
     debug.panelItems.push(panel, valueLabel, upBtn, downBtn, resetBtn, addButton, copyButton, clearButton, countLabel);
   }
 
-  createDebugTextButton(x, y, label, onPress) {
-    const button = this.add.text(x, y, label, { fontFamily: 'Arial, sans-serif', fontSize: '11px', color: '#dbeafe', backgroundColor: '#0f172a', padding: { left: 5, right: 5, top: 2, bottom: 2 } })
-      .setOrigin(0.5).setDepth(2601).setScrollFactor(0).setInteractive({ useHandCursor: true });
+  createDebugTextButton(x, y, label, onPress, { largeSquare = false } = {}) {
+    const button = this.add.text(x, y, label, {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: largeSquare ? '18px' : '11px',
+      color: '#dbeafe',
+      backgroundColor: '#0f172a',
+      padding: largeSquare ? { left: 13, right: 13, top: 10, bottom: 8 } : { left: 6, right: 6, top: 4, bottom: 4 },
+    })
+      .setOrigin(0.5)
+      .setDepth(2601)
+      .setScrollFactor(0)
+      .setInteractive({ useHandCursor: true });
     button.on('pointerup', () => { this.cardTapHandled = true; onPress?.(); });
     return button;
   }
