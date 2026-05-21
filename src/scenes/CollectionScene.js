@@ -478,6 +478,7 @@ export default class CollectionScene extends Phaser.Scene {
         sessionOverrides: new Map(),
         panelItems: [],
         toggleItems: [],
+        guideItems: [],
       };
     }
     return this.cardArtCropDebug;
@@ -511,11 +512,15 @@ export default class CollectionScene extends Phaser.Scene {
     const debug = this.ensureCardArtCropDebugState();
     debug.panelItems.forEach((item) => item?.destroy?.());
     debug.toggleItems.forEach((item) => item?.destroy?.());
+    debug.guideItems.forEach((item) => item?.destroy?.());
     debug.panelItems = [];
     debug.toggleItems = [];
+    debug.guideItems = [];
     if (!debug.enabled || !this.inspectPreview?.card?.id) return;
     const card = this.inspectPreview.card;
     const bounds = inspectTransform ?? this.getInspectCardTransform({ sourceWidth: this.inspectPreview.sourceWidth, sourceHeight: this.inspectPreview.sourceHeight });
+    const yOffset = this.getCardArtCropYOffset(card);
+    this.createCardArtCropDebugGuides(bounds, yOffset);
     const toggleBtn = this.add.text(bounds.x - (bounds.width * 0.5) + 20, bounds.y - (bounds.height * 0.5) + 18, debug.panelVisible ? '✂ ON' : '✂', { fontFamily: 'Arial, sans-serif', fontSize: '12px', color: '#dbeafe', backgroundColor: '#0f172a', padding: { left: 6, right: 6, top: 4, bottom: 3 } })
       .setOrigin(0.5).setDepth(INSPECT_CARD_DEPTH + 60).setScrollFactor(0).setInteractive({ useHandCursor: true });
     this.captureDebugControlInput(toggleBtn, () => {
@@ -526,7 +531,6 @@ export default class CollectionScene extends Phaser.Scene {
     debug.toggleItems.push(toggleBtn);
     if (!debug.panelVisible) return;
     const cardId = String(card.id);
-    const yOffset = this.getCardArtCropYOffset(card);
     const { width } = this.scale;
     const panelWidth = Math.min(440, width - 16);
     const panel = this.add.rectangle(width * 0.5, 62, panelWidth, 98, 0x020617, 0.92)
@@ -542,24 +546,16 @@ export default class CollectionScene extends Phaser.Scene {
       this.cardTapHandled = true;
       event?.stopPropagation?.();
     });
-    const controlsTopY = panel.y - 20;
-    const controlsBottomY = panel.y + 20;
-    const controlsLeft = panel.x - panelWidth * 0.5 + 28;
-    const upBtn = this.createDebugTextButton(controlsLeft, controlsTopY, '▲', () => this.nudgeCardArtCrop(card, CARD_ART_CROP_DEBUG_STEP), {
-      fontSize: '18px',
-      minWidth: 44,
-      minHeight: 36,
-      paddingX: 14,
-      paddingY: 8,
+    const controlsTopY = panel.y - 22;
+    const controlsBottomY = panel.y + 22;
+    const controlsLeft = panel.x - panelWidth * 0.5 + 38;
+    const upBtn = this.createDebugTextButton(controlsLeft, controlsTopY - 16, '▲', () => this.nudgeCardArtCrop(card, CARD_ART_CROP_DEBUG_STEP), {
+      fontSize: '22px', minWidth: 58, minHeight: 48, paddingX: 16, paddingY: 10,
     });
-    const downBtn = this.createDebugTextButton(controlsLeft + 52, controlsTopY, '▼', () => this.nudgeCardArtCrop(card, -CARD_ART_CROP_DEBUG_STEP), {
-      fontSize: '18px',
-      minWidth: 44,
-      minHeight: 36,
-      paddingX: 14,
-      paddingY: 8,
+    const downBtn = this.createDebugTextButton(controlsLeft, controlsTopY + 20, '▼', () => this.nudgeCardArtCrop(card, -CARD_ART_CROP_DEBUG_STEP), {
+      fontSize: '22px', minWidth: 58, minHeight: 48, paddingX: 16, paddingY: 10,
     });
-    const valueLabel = this.add.text(controlsLeft + 118, controlsTopY, `yOffset: ${yOffset.toFixed(3)}`, {
+    const valueLabel = this.add.text(controlsLeft + 62, controlsTopY + 2, `yOffset: ${yOffset.toFixed(3)}`, {
       fontFamily: 'Arial, sans-serif',
       fontSize: '14px',
       color: '#e2e8f0',
@@ -578,6 +574,18 @@ export default class CollectionScene extends Phaser.Scene {
       color: '#64748b',
     }).setOrigin(1, 0.5).setDepth(2601).setScrollFactor(0);
     debug.panelItems.push(panel, valueLabel, upBtn, downBtn, addButton, copyButton, clearButton, countLabel, cardIdLabel);
+  }
+
+  createCardArtCropDebugGuides(bounds, yOffset) {
+    const debug = this.ensureCardArtCropDebugState();
+    const art = this.inspectPreview?.art;
+    if (!art?.getBounds) return;
+    const artBounds = art.getBounds();
+    const centerLine = this.add.rectangle(artBounds.centerX, artBounds.centerY, artBounds.width, 2, 0x22d3ee, 0.95).setDepth(INSPECT_CARD_DEPTH + 8).setScrollFactor(0);
+    const topSafe = this.add.rectangle(artBounds.centerX, artBounds.y + artBounds.height * 0.2, artBounds.width, 1, 0xf8fafc, 0.45).setDepth(INSPECT_CARD_DEPTH + 8).setScrollFactor(0);
+    const bottomSafe = this.add.rectangle(artBounds.centerX, artBounds.bottom - artBounds.height * 0.2, artBounds.width, 1, 0xf8fafc, 0.45).setDepth(INSPECT_CARD_DEPTH + 8).setScrollFactor(0);
+    const label = this.add.text(bounds.x, artBounds.y + 10, `crop yOffset ${yOffset.toFixed(3)}`, { fontFamily: 'Arial, sans-serif', fontSize: '11px', color: '#67e8f9', backgroundColor: '#020617', padding: { left: 5, right: 5, top: 2, bottom: 2 } }).setOrigin(0.5, 0).setDepth(INSPECT_CARD_DEPTH + 9).setScrollFactor(0);
+    debug.guideItems.push(centerLine, topSafe, bottomSafe, label);
   }
 
   createDebugTextButton(x, y, label, onPress, options = {}) {
@@ -599,15 +607,19 @@ export default class CollectionScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setDepth(2601)
       .setScrollFactor(0);
+    let hitWidth = button.width;
+    let hitHeight = button.height;
     if (minWidth > 0 || minHeight > 0) {
-      const hitWidth = Math.max(button.width, minWidth);
-      const hitHeight = Math.max(button.height, minHeight);
-      button.setInteractive(new Phaser.Geom.Rectangle(-hitWidth / 2, -hitHeight / 2, hitWidth, hitHeight), Phaser.Geom.Rectangle.Contains);
-    } else {
-      button.setInteractive({ useHandCursor: true });
+      hitWidth = Math.max(button.width, minWidth);
+      hitHeight = Math.max(button.height, minHeight);
     }
-    this.captureDebugControlInput(button, onPress);
-    return button;
+    const background = this.add.rectangle(x, y, hitWidth + 6, hitHeight + 6, 0x0f172a, 0.96)
+      .setStrokeStyle(1, 0x38bdf8, 0.55)
+      .setDepth(2600.5)
+      .setScrollFactor(0)
+      .setInteractive(new Phaser.Geom.Rectangle(-(hitWidth + 6) / 2, -(hitHeight + 6) / 2, hitWidth + 6, hitHeight + 6), Phaser.Geom.Rectangle.Contains);
+    this.captureDebugControlInput(background, onPress);
+    return this.add.container(0, 0, [background, button]);
   }
 
   captureDebugControlInput(gameObject, onPress = null) {
@@ -727,9 +739,11 @@ export default class CollectionScene extends Phaser.Scene {
     this.destroyInspectPreview();
     this.cardArtCropDebug?.panelItems?.forEach((item) => item?.destroy?.());
     this.cardArtCropDebug?.toggleItems?.forEach((item) => item?.destroy?.());
+    this.cardArtCropDebug?.guideItems?.forEach((item) => item?.destroy?.());
     if (this.cardArtCropDebug) {
       this.cardArtCropDebug.panelItems = [];
       this.cardArtCropDebug.toggleItems = [];
+      this.cardArtCropDebug.guideItems = [];
     }
     this.scrollMask?.destroy?.();
     this.scrollMask = null;
