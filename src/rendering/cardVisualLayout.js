@@ -758,17 +758,6 @@ export function createCardArtwork(scene, zone, card, options = {}) {
     const crop = calculateCardArtworkCoverCrop(zone, sourceWidth, sourceHeight, options);
     image.setDisplaySize(crop.displayWidth, crop.displayHeight);
     image.setCrop(crop.cropX, crop.cropY, crop.cropWidth, crop.cropHeight);
-    if (scene.make?.graphics && image.setMask) {
-      const artMaskShape = scene.make.graphics({ x: 0, y: 0, add: false });
-      artMaskShape.fillStyle(0xffffff, 1);
-      artMaskShape.fillRect(zone.x, zone.y, zone.width, zone.height);
-      const artMask = artMaskShape.createGeometryMask();
-      image.setMask(artMask);
-      image.once?.(Phaser.GameObjects.Events.DESTROY, () => {
-        image.clearMask?.(true);
-        artMaskShape.destroy?.();
-      });
-    }
     return image;
   }
 
