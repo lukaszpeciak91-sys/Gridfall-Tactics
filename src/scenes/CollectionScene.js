@@ -597,6 +597,7 @@ export default class CollectionScene extends Phaser.Scene {
   }
 
   createDebugTextButton(x, y, label, onPress, options = {}) {
+    const debugPanelButtonDepth = 3202;
     const {
       fontSize = '12px',
       minWidth = 0,
@@ -613,7 +614,7 @@ export default class CollectionScene extends Phaser.Scene {
       align: 'center',
     })
       .setOrigin(0.5)
-      .setDepth(3202)
+      .setDepth(debugPanelButtonDepth)
       .setScrollFactor(0);
     let hitWidth = button.width;
     let hitHeight = button.height;
@@ -623,11 +624,11 @@ export default class CollectionScene extends Phaser.Scene {
     }
     const background = this.add.rectangle(x, y, hitWidth + 6, hitHeight + 6, 0x0f172a, 0.96)
       .setStrokeStyle(1, 0x38bdf8, 0.55)
-      .setDepth(3201)
+      .setDepth(debugPanelButtonDepth)
       .setScrollFactor(0)
       .setInteractive(new Phaser.Geom.Rectangle(-(hitWidth + 6) / 2, -(hitHeight + 6) / 2, hitWidth + 6, hitHeight + 6), Phaser.Geom.Rectangle.Contains);
     this.captureDebugControlInput(background, onPress);
-    return this.add.container(0, 0, [background, button]);
+    return this.add.container(0, 0, [background, button]).setDepth(debugPanelButtonDepth);
   }
 
   captureDebugControlInput(gameObject, onPress = null) {
