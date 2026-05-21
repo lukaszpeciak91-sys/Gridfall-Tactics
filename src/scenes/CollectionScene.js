@@ -551,13 +551,15 @@ export default class CollectionScene extends Phaser.Scene {
     const panelLeft = panel.x - panelWidth * 0.5;
     const panelRight = panel.x + panelWidth * 0.5;
     const topButtonY = controlsTopY;
-    const upBtn = this.createDebugTextButton(panelLeft + 34, topButtonY, '▲', () => this.nudgeCardArtCrop(card, CARD_ART_CROP_DEBUG_STEP), {
-      fontSize: '22px', minWidth: 52, minHeight: 44, paddingX: 12, paddingY: 8,
+    const buttonGroupLeft = panelLeft + 50;
+    const buttonGap = 76;
+    const upBtn = this.createDebugTextButton(buttonGroupLeft, topButtonY, '▲', () => this.nudgeCardArtCrop(card, CARD_ART_CROP_DEBUG_STEP), {
+      fontSize: '22px', minWidth: 62, minHeight: 54, paddingX: 14, paddingY: 10,
     });
-    const downBtn = this.createDebugTextButton(panelLeft + 92, topButtonY, '▼', () => this.nudgeCardArtCrop(card, -CARD_ART_CROP_DEBUG_STEP), {
-      fontSize: '22px', minWidth: 52, minHeight: 44, paddingX: 12, paddingY: 8,
+    const downBtn = this.createDebugTextButton(buttonGroupLeft + buttonGap, topButtonY, '▼', () => this.nudgeCardArtCrop(card, -CARD_ART_CROP_DEBUG_STEP), {
+      fontSize: '22px', minWidth: 62, minHeight: 54, paddingX: 14, paddingY: 10,
     });
-    const valueLabel = this.add.text(panelLeft + 126, topButtonY, `yOffset: ${yOffset.toFixed(3)}`, {
+    const valueLabel = this.add.text(buttonGroupLeft + buttonGap + 42, topButtonY, `yOffset: ${yOffset.toFixed(3)}`, {
       fontFamily: 'Arial, sans-serif',
       fontSize: '15px',
       color: '#f8fafc',
@@ -622,24 +624,32 @@ export default class CollectionScene extends Phaser.Scene {
       hitWidth = Math.max(button.width, minWidth);
       hitHeight = Math.max(button.height, minHeight);
     }
-    const background = this.add.rectangle(x, y, hitWidth + 6, hitHeight + 6, 0x0f172a, 0.96)
+    const interactiveWidth = hitWidth + 10;
+    const interactiveHeight = hitHeight + 10;
+    const background = this.add.rectangle(x, y, interactiveWidth, interactiveHeight, 0x0f172a, 0.96)
       .setStrokeStyle(1, 0x38bdf8, 0.55)
       .setDepth(debugPanelButtonDepth)
       .setScrollFactor(0)
-      .setInteractive(new Phaser.Geom.Rectangle(-(hitWidth + 6) / 2, -(hitHeight + 6) / 2, hitWidth + 6, hitHeight + 6), Phaser.Geom.Rectangle.Contains);
-    this.captureDebugControlInput(background, onPress);
-    return this.add.container(0, 0, [background, button]).setDepth(debugPanelButtonDepth);
+      .setInteractive(new Phaser.Geom.Rectangle(-interactiveWidth / 2, -interactiveHeight / 2, interactiveWidth, interactiveHeight), Phaser.Geom.Rectangle.Contains);
+    const buttonContainer = this.add.container(0, 0, [background, button]).setDepth(debugPanelButtonDepth);
+    this.captureDebugControlInput(background, onPress, buttonContainer);
+    return buttonContainer;
   }
 
-  captureDebugControlInput(gameObject, onPress = null) {
+  captureDebugControlInput(gameObject, onPress = null, feedbackTarget = null) {
     gameObject.on('pointerdown', (pointer, localX, localY, event) => {
       this.cardTapHandled = true;
       event?.stopPropagation?.();
+      if (feedbackTarget) feedbackTarget.setScale(0.97);
       onPress?.();
     });
     gameObject.on('pointerup', (pointer, localX, localY, event) => {
       this.cardTapHandled = true;
       event?.stopPropagation?.();
+      if (feedbackTarget) feedbackTarget.setScale(1);
+    });
+    gameObject.on('pointerout', () => {
+      if (feedbackTarget) feedbackTarget.setScale(1);
     });
   }
 
