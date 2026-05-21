@@ -255,7 +255,7 @@ The no-progress detector uses the stricter "meaningful for outcome" definition i
 | Wardens | Bone Shields | utility | - | temp_armor_1 | Target [ALLY] +1 ARM until combat ends. | Targeted friendly | Reuses temporary armor cleanup; no costs. |
 | Wardens | Mammoth Stampede | order | - | swap_adjacent_enemy_units | Swap two adjacent enemies. | Manual two-enemy targeting | Select two adjacent enemies in the same row; no cross-side movement; no ownership changes. |
 | Wardens | Endure the Cold | order | - | friendly_immovable_this_turn | All [ALLY] can't be moved this turn. | Non-targeted effect | Move-only protection; unlike Tank Stability, it does not block disable effects. |
-| Wardens | Raise the Spears | order | - | adjacent_allies_temp_armor_1 | Adjacent [ALLY] +1 ARM until combat ends. | Non-targeted formation effect | Same-row friendly units with adjacent allies gain +1 temporary ARM; isolated allies have no legal deterministic resolution; no lane targeting UI. |
+| Wardens | Lock the Line | order | - | adjacent_allies_temp_armor_1 | Adjacent [ALLY] +1 ARM until combat ends. | Non-targeted formation effect | Same-row friendly units with adjacent allies gain +1 temporary ARM; isolated allies have no legal deterministic resolution; no lane targeting UI. |
 | Wardens | Hold the Ice Pass | order | - | adjacent_allies_temp_armor_1 | Adjacent [ALLY] +1 ARM until combat ends. | Non-targeted formation effect | Same adjacency behavior as Reinforce Line; reinforces Wardens shield-wall formation identity and reuses temporary armor cleanup. |
 
 ## 9) Implemented vs Deferred (Explicit)
