@@ -1,5 +1,6 @@
 import { getCardDisplayName, getCardTextShort } from '../localization/cardDisplay.js';
 import { CARD_EFFECT_GAMEPLAY_SYMBOLS, formatCardEffectTextShort } from '../localization/cardTextFormatting.js';
+import { getCardArtCropYOffset } from '../data/presentation/cardArtCropOverrides.js';
 import { getLoadedCardIllustrationTextureKey } from './cardIllustrationAssets.js';
 
 // Dry layout experiment: keep stat badge allocation stable while borrowing
@@ -873,9 +874,13 @@ export function createCardPreviewView(scene, {
       pulseChangedStats,
     },
   );
+  const persistentArtCropYOffset = getCardArtCropYOffset(card);
+  const totalArtCropYOffset = persistentArtCropYOffset + temporaryArtCropYOffset;
   const art = createCardArtwork(scene, zones.art, card, {
     enableCardIllustration,
-    upwardCropBiasRatio: CARD_ARTWORK_UPWARD_CROP_BIAS_RATIO + temporaryArtCropYOffset,
+    upwardCropBiasRatio: totalArtCropYOffset === 0
+      ? undefined
+      : (0.03 + totalArtCropYOffset),
   });
   const namePanel = scene.add.rectangle(zones.name.centerX, zones.name.centerY, zones.name.width, zones.name.height, CARD_COLORS.namePanel, 0.95)
     .setStrokeStyle(1, accentColor, card ? (typographyScale > 1 ? 0.52 : 0.44) : 0.14);
