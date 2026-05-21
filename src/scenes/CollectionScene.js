@@ -614,11 +614,11 @@ export default class CollectionScene extends Phaser.Scene {
     gameObject.on('pointerdown', (pointer, localX, localY, event) => {
       this.cardTapHandled = true;
       event?.stopPropagation?.();
+      onPress?.();
     });
     gameObject.on('pointerup', (pointer, localX, localY, event) => {
       this.cardTapHandled = true;
       event?.stopPropagation?.();
-      onPress?.();
     });
   }
 
