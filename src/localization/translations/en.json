@@ -233,7 +233,7 @@
       "textShort": "All [ALLY] can't be moved this turn."
     },
     "wardens_reinforce_line_1": {
-      "name": "Raise the Spears",
+      "name": "Lock the Line",
       "textShort": "Adjacent [ALLY] +1 ARM until combat ends."
     },
     "wardens_hold_the_line_1": {

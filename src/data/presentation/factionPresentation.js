@@ -322,7 +322,7 @@ const presentation = {
       wardens_brace_1: { nameEn: 'Bone Shields', namePl: 'Kościane Tarcze' },
       wardens_shield_push_1: { nameEn: 'Mammoth Stampede', namePl: 'Mamuci Napór' },
       wardens_stand_firm_1: { nameEn: 'Endure the Cold', namePl: 'Przetrwać Mróz' },
-      wardens_reinforce_line_1: { nameEn: 'Raise the Spears', namePl: 'Wznieść Włócznie' },
+      wardens_reinforce_line_1: { nameEn: 'Lock the Line', namePl: 'Zewrzeć Szereg' },
       wardens_hold_the_line_1: { nameEn: 'Hold the Ice Pass', namePl: 'Utrzymać Przełęcz' },
     },
   },
