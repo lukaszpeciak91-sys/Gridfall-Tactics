@@ -23,7 +23,7 @@ For the current `512x768` sources and all present card-art zones, the zone is wi
 - horizontal source crop is `0px` in normal card modes;
 - vertical source crop preserves the same cover-crop height as the old centered crop;
 - the crop window is shifted upward by the shared `3%` source-height bias, so top loss is about `6` percentage points lower than bottom loss;
-- there is no per-card focal-point logic, manual offset, per-mode rule, or responsive art-direction rule.
+- there is no per-card focal-point logic or per-mode responsive art-direction rule; one scoped test override now exists at `src/data/presentation/cardArtCropOverrides.js` for `aggro_flanker_1` (`yOffset: -0.08`) and is applied by the shared preview renderer.
 
 ## Runtime mode audit
 
@@ -112,7 +112,7 @@ Collection is currently the most aggressive active production-art crop, not hand
 | Board inspect | No | Placeholder only | n/a | n/a |
 | Collection | Yes | `y 205.06-516.85` | `40.60%` | Source center minus 3% height |
 
-The renderer crop is center-cover plus a shared upward source-space bias. The card layout itself is vertically asymmetrical because the artwork viewport sits below stat badges and above name/text panels. This production contract intentionally compensates slightly for perceived runtime framing without changing card layout, adding focal metadata, or introducing per-mode/per-card rules.
+The renderer crop is center-cover plus a shared upward source-space bias. The card layout itself is vertically asymmetrical because the artwork viewport sits below stat badges and above name/text panels. This production contract intentionally compensates slightly for perceived runtime framing without changing card layout, adding focal metadata, or introducing per-mode rules. A single card-level test override is currently wired through `src/data/presentation/cardArtCropOverrides.js` for `aggro_flanker_1`.
 
 ## True safe zones for `512x768` sources
 
@@ -154,4 +154,4 @@ The final production contract is now the shared `3%` upward source-space bias on
 - Put face/helmet centers around `38-44%` source height.
 - Put upper torso/main mass around `48-58%` source height.
 - Keep lower essential silhouette above roughly `64-65%` source height.
-- Do not add per-card offsets, per-faction rules, per-mode crop rules, focal metadata, or baked UI/text/icons in artwork.
+- Do not add broad per-card/per-faction/per-mode rule sets or focal metadata in artwork. If a scoped renderer test override is required, keep it explicit in `src/data/presentation/cardArtCropOverrides.js` and limited to named card ids.
