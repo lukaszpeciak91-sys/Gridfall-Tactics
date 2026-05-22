@@ -729,7 +729,12 @@ export function calculateCardArtworkCoverCrop(zone, sourceWidth = 512, sourceHei
     ? options.upwardCropBiasRatio
     : CARD_ARTWORK_UPWARD_CROP_BIAS_RATIO;
   const upwardCropBias = safeSourceHeight * cropBiasRatio;
-  const cropY = Math.max(0, centeredCropY - upwardCropBias);
+  // Keep yOffset-driven debug nudges confined to source cropping only.
+  // We clamp the crop window to valid source bounds so setCrop always
+  // preserves the same display layer footprint on the card.
+  const unclampedCropY = centeredCropY - upwardCropBias;
+  const maxCropY = Math.max(0, safeSourceHeight - cropHeight);
+  const cropY = Math.min(maxCropY, Math.max(0, unclampedCropY));
 
   return {
     scale,
