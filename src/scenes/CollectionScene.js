@@ -336,7 +336,7 @@ export default class CollectionScene extends Phaser.Scene {
       bodyLineSpacing: INSPECT_CARD_BODY_LINE_SPACING,
       enableCardIllustration: true,
       showCardNumber: true,
-      temporaryArtCropYOffset: this.getCardArtCropYOffset(card),
+      temporaryArtCropYOffset: 0,
     });
 
     previewView.root.setAlpha(0).setScale(0.92);
