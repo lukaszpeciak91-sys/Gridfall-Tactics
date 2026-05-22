@@ -81,35 +81,35 @@
       "textShort": "Przywołaj 1/1. Jeśli nie masz [ALLY], przywołaj 2."
     },
     "control_hacker_1": {
-      "name": "Haker",
+      "name": "Pijawka Sygnału",
       "textShort": "Wróg naprzeciwko: -1 ATK w tej turze."
     },
     "control_disruptor_1": {
-      "name": "Zakłócacz",
+      "name": "Sygnał Zakłóceń",
       "textShort": "Po zagraniu: anuluj następny efekt wroga."
     },
     "control_sniper_1": {
-      "name": "Snajper",
+      "name": "Czerwone Oko",
       "textShort": "Atakuje wroga z najniższym HP."
     },
     "control_controller_1": {
-      "name": "Kontroler",
+      "name": "Mistrz Sygnału",
       "textShort": "Po zagraniu: zamień dwóch wrogów."
     },
     "control_drone_1": {
-      "name": "Dron",
+      "name": "Czaszka-Przekaźnik",
       "textShort": "Po śmierci: wróg traci 1 HP."
     },
     "control_swap_1": {
-      "name": "Zamiana",
+      "name": "Przesunięcie Sygnału",
       "textShort": "Zamień miejscami 2 [ALLY] lub 2 wrogów."
     },
     "control_jam_signal_1": {
-      "name": "Zagłusz Sygnał",
+      "name": "Zakłócenie Sygnału",
       "textShort": "Wybierz do 2 wrogów: -1 ATK w tej turze."
     },
     "control_pulse_wave_1": {
-      "name": "Fala Pulsu",
+      "name": "Impuls Neuronalny",
       "textShort": "Zadaj 1 wszystkim wrogom, ignorując ARM."
     },
     "control_system_override_1": {
@@ -117,7 +117,7 @@
       "textShort": "Wróg atakuje własną\nbazę, potem\ntraci 1 HP."
     },
     "control_recall_1": {
-      "name": "Odwołanie",
+      "name": "Ekstrakcja",
       "textShort": "Przywróć [ALLY] na rękę. Dobierz 1."
     },
     "swarm_grunt_1": {
