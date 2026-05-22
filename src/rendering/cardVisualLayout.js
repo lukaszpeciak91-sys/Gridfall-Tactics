@@ -928,7 +928,7 @@ export function createCardPreviewView(scene, {
   const selectionOutline = scene.add.rectangle(0, 0, width + 3, height + 3, 0xfacc15, 0)
     .setStrokeStyle(0, 0xfacc15, 0);
 
-  root.add([glow, background, inner, statBadges, art, namePanel, nameText, textPanel, bodyText, ...dividers, cardNumberOverlay, selectionOutline].filter(Boolean));
+  root.add([glow, background, inner, art, statBadges, namePanel, nameText, textPanel, bodyText, ...dividers, cardNumberOverlay, selectionOutline].filter(Boolean));
 
   return {
     cardId,
