@@ -76,6 +76,9 @@ const TURN_START_BANNER_HOLD_MS = 820;
 const TURN_START_BANNER_FADE_OUT_MS = 140;
 const PLAYER_EFFECT_CAST_BEAT_MS = 620;
 const PLAYER_EFFECT_CAST_SWEEP_STEP_MS = 70;
+const HERO_HIT_SHAKE_DURATION_MS = 100;
+const HERO_HIT_SHAKE_OFFSET_PX = 3;
+const HERO_HIT_SHAKE_COOLDOWN_MS = 80;
 const EFFECT_CAST_SWEEP_STYLE = Object.freeze({
   player: Object.freeze({
     strokeColor: 0x38bdf8,
@@ -186,6 +189,7 @@ export default class BattleScene extends Phaser.Scene {
     this.navigationInProgress = false;
     this.pointerInputGuardActive = false;
     this.pointerInputGuardEventId = null;
+    this.heroHitShakeBySide = null;
     this.lastRenderedBoardStats = null;
     this.currentBoardRenderStats = null;
     this.turnStartBanner = null;
@@ -258,6 +262,7 @@ export default class BattleScene extends Phaser.Scene {
     this.navigationInProgress = false;
     this.pointerInputGuardActive = false;
     this.pointerInputGuardEventId = null;
+    this.heroHitShakeBySide = { player: { lastAt: 0 }, enemy: { lastAt: 0 } };
     this.lastRenderedBoardStats = null;
     this.currentBoardRenderStats = null;
     this.turnStartBanner = null;
@@ -3575,10 +3580,14 @@ export default class BattleScene extends Phaser.Scene {
         ]);
       }
       if (event.type === 'hero-text') {
-        return Promise.all([
+        const animations = [
           this.showHeroPulse(event.side, event.kind),
           this.showFloatingTextAtHero(event.side, event.label, event.kind),
-        ]);
+        ];
+        if (event.kind === 'damage' && this.getHeroFeedbackDamageAmount(event) > 0) {
+          animations.push(this.shakeHeroPanel(event.side));
+        }
+        return Promise.all(animations);
       }
       return Promise.resolve();
     }));
@@ -4392,7 +4401,56 @@ export default class BattleScene extends Phaser.Scene {
       fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(240);
     this.tweens.add({ targets: hero, scaleX: 1.04, scaleY: 1.04, duration: 90, yoyo: true });
+    if (!isBlocked) this.shakeHeroPanel(side);
     this.tweens.add({ targets: damageText, y: damageText.y - 30, alpha: 0, duration: 720, onComplete: () => damageText.destroy() });
+  }
+
+  getHeroFeedbackDamageAmount(event) {
+    if (Number.isFinite(event?.amount)) return Math.max(0, event.amount);
+    if (typeof event?.label !== 'string') return 0;
+    const amount = Number.parseInt(event.label.replace(/[^0-9]/g, ''), 10);
+    return Number.isFinite(amount) ? Math.max(0, amount) : 0;
+  }
+
+  shakeHeroPanel(side) {
+    const hero = this.getHeroPanel(side);
+    if (!hero?.active) return Promise.resolve();
+
+    const now = this.time?.now ?? Date.now();
+    const state = this.heroHitShakeBySide?.[side] ?? { lastAt: 0 };
+    if (now - state.lastAt < HERO_HIT_SHAKE_COOLDOWN_MS) return Promise.resolve();
+    state.lastAt = now;
+    if (!this.heroHitShakeBySide) this.heroHitShakeBySide = {};
+    this.heroHitShakeBySide[side] = state;
+
+    const baseY = Number.isFinite(hero.getData('baseY')) ? hero.getData('baseY') : hero.y;
+    hero.setData('baseY', baseY);
+    if (hero.getData('shakeTween')) {
+      hero.getData('shakeTween').remove();
+      hero.y = baseY;
+    }
+
+    const direction = side === 'enemy' ? -1 : 1;
+    return this.tweenToPromise({
+      targets: hero,
+      y: baseY + direction * HERO_HIT_SHAKE_OFFSET_PX,
+      duration: HERO_HIT_SHAKE_DURATION_MS,
+      ease: 'Quad.easeOut',
+      yoyo: true,
+      onStart: (tween) => {
+        hero.setData('shakeTween', tween);
+      },
+      onComplete: () => {
+        if (!hero?.active) return;
+        hero.y = baseY;
+        hero.setData('shakeTween', null);
+      },
+      onStop: () => {
+        if (!hero?.active) return;
+        hero.y = baseY;
+        hero.setData('shakeTween', null);
+      },
+    });
   }
 
   getUnitCombatTextLabel(event) {
