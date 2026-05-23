@@ -4585,55 +4585,21 @@ export default class BattleScene extends Phaser.Scene {
     return ['attack', 'armor'].filter((key) => previous[key] !== currentStats[key]);
   }
 
-  createBoardUnitNameText(x, y, width, height, name) {
-    const text = String(name || translateActive('ui.common.unit', 'Unit'));
-    const horizontalPadding = Math.max(6, Math.round(width * 0.06));
-    const maxWidth = Math.max(1, width - horizontalPadding * 2);
-    const maxHeight = Math.max(1, height - 4);
-    const minFontSize = Math.max(8, Math.floor(height * 0.32));
-    let fontSize = Math.max(10, Math.min(14, Math.floor(width * 0.105), Math.floor(height * 0.46)));
-    const nameText = this.add.text(x, y, text, {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: `${fontSize}px`,
-      color: CARD_COLORS.ivoryText,
-      fontStyle: 'bold',
-      align: 'center',
-      lineSpacing: -2,
-      wordWrap: { width: maxWidth, useAdvancedWrap: true },
-      maxLines: 2,
-    }).setOrigin(0.5);
-
-    const fits = () => nameText.width <= maxWidth + 1 && nameText.height <= maxHeight + 1;
-    while (!fits() && fontSize > minFontSize) {
-      fontSize -= 1;
-      nameText.setFontSize(fontSize);
-    }
-
-    if (!fits()) {
-      const chars = [...text];
-      for (let length = chars.length - 1; length > 1; length -= 1) {
-        nameText.setText(`${chars.slice(0, length).join('').trimEnd()}…`);
-        if (fits()) break;
-      }
-    }
-
-    return nameText;
-  }
-
   createBoardUnitView(cell, unit) {
     const unitWidth = Math.max(1, cell.background.width - 8);
     const unitHeight = Math.max(1, cell.background.height - 8);
     const pad = Math.max(5, Math.round(unitWidth * 0.06));
     const gap = Math.max(3, Math.round(unitHeight * 0.025));
-    const statHeight = Math.max(22, Math.min(32, Math.round(unitHeight * 0.18)));
-    const nameHeight = Math.max(18, Math.min(30, Math.round(unitHeight * 0.19)));
+    const statHeight = Math.max(22, Math.min(32, Math.round(unitHeight * 0.19)));
     const artWidth = Math.max(1, unitWidth - pad * 2);
-    const artHeight = Math.max(1, unitHeight - pad * 2 - statHeight - nameHeight - gap * 2);
-    const statY = -unitHeight / 2 + pad + statHeight / 2;
-    const artY = statY + statHeight / 2 + gap + artHeight / 2;
-    const nameY = artY + artHeight / 2 + gap + nameHeight / 2;
+    const artHeight = Math.max(1, unitHeight - pad * 2 - statHeight - gap);
+    const isEnemyUnit = unit.owner === 'enemy';
+    const topY = -unitHeight / 2 + pad;
+    const artY = topY + artHeight / 2;
+    const statY = topY + artHeight + gap + statHeight / 2;
+    const finalArtY = isEnemyUnit ? artY : statY;
+    const finalStatY = isEnemyUnit ? statY : artY;
     const ownerAccent = unit.owner === 'enemy' ? 0xf87171 : 0x60a5fa;
-    const displayName = getCardDisplayName(unit, getActiveLocale()) ?? translateActive('ui.common.unit', 'Unit');
 
     const cardBack = this.add.rectangle(0, 0, unitWidth, unitHeight, CARD_COLORS.frame, 0.72)
       .setStrokeStyle(2, ownerAccent, 0.62);
@@ -4641,32 +4607,29 @@ export default class BattleScene extends Phaser.Scene {
       .setStrokeStyle(1, 0xffffff, 0.045);
     const unitStats = this.currentBoardRenderStats?.[cell.index] ?? this.getBoardUnitStats(unit);
     const changedStats = this.getChangedBoardUnitStatKeys(cell.index, unit, unitStats);
-    const stats = createStatBadges(this, 0, statY, artWidth, statHeight, unitStats, 0, {
+    const stats = createStatBadges(this, 0, finalStatY, artWidth, statHeight, unitStats, 0, {
       baseStats: this.getBoardUnitBaseStats(unit),
       changedStats,
       pulseChangedStats: changedStats.length > 0,
     });
     const art = createCardArtwork(this, {
       x: -artWidth / 2,
-      y: artY - artHeight / 2,
+      y: finalArtY - artHeight / 2,
       width: artWidth,
       height: artHeight,
       centerX: 0,
-      centerY: artY,
+      centerY: finalArtY,
     }, unit, {
       enableCardIllustration: true,
       upwardCropBiasRatio: BOARD_CARD_ARTWORK_UPWARD_CROP_BIAS_RATIO,
     });
-    const artStroke = this.add.rectangle(0, artY, artWidth, artHeight)
+    const artStroke = this.add.rectangle(0, finalArtY, artWidth, artHeight)
       .setFillStyle(0x000000, 0)
       .setStrokeStyle(1, 0x38bdf8, 0.12);
-    const artShade = this.add.rectangle(0, artY - artHeight * 0.18, artWidth, artHeight * 0.52, CARD_COLORS.artTop, 0.34);
-    const artBottomDim = this.add.rectangle(0, artY + artHeight * 0.28, artWidth, artHeight * 0.44, 0x020617, 0.28);
-    const namePanel = this.add.rectangle(0, nameY, artWidth, nameHeight, CARD_COLORS.namePanel, 0.9)
-      .setStrokeStyle(1, ownerAccent, 0.34);
-    const nameText = this.createBoardUnitNameText(0, nameY, artWidth, nameHeight, displayName);
+    const artShade = this.add.rectangle(0, finalArtY - artHeight * 0.18, artWidth, artHeight * 0.52, CARD_COLORS.artTop, 0.34);
+    const artBottomDim = this.add.rectangle(0, finalArtY + artHeight * 0.28, artWidth, artHeight * 0.44, 0x020617, 0.28);
 
-    return [cardBack, inner, art, artStroke, artShade, artBottomDim, namePanel, nameText, stats];
+    return [cardBack, inner, art, artStroke, artShade, artBottomDim, stats];
   }
 
   refreshBoardLabels() {
