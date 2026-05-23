@@ -767,7 +767,9 @@ export function createCardArtwork(scene, zone, card, options = {}) {
     image.setDisplaySize(crop.displayWidth, crop.displayHeight);
     image.setCrop(crop.cropX, crop.cropY, crop.cropWidth, crop.cropHeight);
     if (options.lockDisplayToZone) {
-      image.setDisplaySize(zone.width, zone.height);
+      // Preserve cover behavior with uniform scaling only.
+      // Geometry masking handles viewport clipping for custom board art rects.
+      image.setDisplaySize(crop.displayWidth, crop.displayHeight);
     }
     if (artRect && canCreateGeometryMask) {
       const artMaskShape = scene.make.graphics({ x: 0, y: 0, add: false });
