@@ -566,7 +566,7 @@ export default class CollectionScene extends Phaser.Scene {
     if (cropMetrics && cropMetrics.maxCropY <= 0) {
       this.setCardArtCropDebugStatus('NO VERTICAL SLACK', 'fail');
     }
-    const toggleBtn = this.add.text(bounds.x + (bounds.width * 0.5) - 22, bounds.y - (bounds.height * 0.5) + 18, debug.panelVisible ? '✂ ON' : '✂', { fontFamily: 'Arial, sans-serif', fontSize: '12px', color: '#dbeafe', backgroundColor: '#0f172a', padding: { left: 6, right: 6, top: 4, bottom: 3 } })
+    const toggleBtn = this.add.text(bounds.x - (bounds.width * 0.5) + 20, bounds.y - (bounds.height * 0.5) + 18, debug.panelVisible ? '✂ ON' : '✂', { fontFamily: 'Arial, sans-serif', fontSize: '12px', color: '#dbeafe', backgroundColor: '#0f172a', padding: { left: 6, right: 6, top: 4, bottom: 3 } })
       .setOrigin(0.5).setDepth(INSPECT_CARD_DEPTH + 60).setScrollFactor(0).setInteractive({ useHandCursor: true });
     this.captureDebugControlInput(toggleBtn, () => {
       this.cardTapHandled = true;
@@ -577,16 +577,22 @@ export default class CollectionScene extends Phaser.Scene {
     if (!debug.panelVisible) return;
     const cardId = String(card.id);
     const { width, height } = this.scale;
-    const panelWidth = Math.min(420, width - 20);
-    const panelHeight = 188;
-    const panelX = Math.max(panelWidth * 0.5 + 10, width - panelWidth * 0.5 - 12);
-    const panelY = Math.max(panelHeight * 0.5 + 20, bounds.y - (bounds.height * 0.5) + panelHeight * 0.5 + 10);
-    const topPanel = this.add.rectangle(panelX, panelY, panelWidth, panelHeight, 0x020617, 0.76)
-      .setStrokeStyle(1, 0x38bdf8, 0.5)
+    const panelWidth = Math.min(500, width - 12);
+    const topPanelY = Math.max(88, bounds.y - (bounds.height * 0.5) - 96);
+    const topPanelHeight = 168;
+    const bottomPanelY = Math.min(height - 94, bounds.y + (bounds.height * 0.5) + 66);
+    const bottomPanelHeight = 72;
+    const topPanel = this.add.rectangle(width * 0.5, topPanelY, panelWidth, topPanelHeight, 0x020617, 0.97)
+      .setStrokeStyle(2, 0x38bdf8, 0.95)
       .setDepth(3200)
       .setScrollFactor(0)
       .setInteractive({ useHandCursor: false });
-    [topPanel].forEach((panel) => {
+    const bottomPanel = this.add.rectangle(width * 0.5, bottomPanelY, panelWidth, bottomPanelHeight, 0x020617, 0.97)
+      .setStrokeStyle(2, 0x38bdf8, 0.95)
+      .setDepth(3200)
+      .setScrollFactor(0)
+      .setInteractive({ useHandCursor: false });
+    [topPanel, bottomPanel].forEach((panel) => {
       panel.on('pointerdown', (pointer, localX, localY, event) => {
         this.cardTapHandled = true;
         event?.stopPropagation?.();
@@ -597,72 +603,66 @@ export default class CollectionScene extends Phaser.Scene {
       });
     });
     const panelLeft = topPanel.x - panelWidth * 0.5;
-    const panelRight = topPanel.x + (panelWidth * 0.5);
-    const rowGap = 38;
-    const firstRowY = topPanel.y - 64;
-    const secondRowY = firstRowY + rowGap;
-    const thirdRowY = secondRowY + rowGap;
-    const fourthRowY = thirdRowY + rowGap;
-    const buttonGap = 16;
-    const halfColumn = (panelWidth * 0.5) - 28;
-    const leftBtnX = panelLeft + halfColumn * 0.5;
-    const rightBtnX = panelLeft + halfColumn + (halfColumn * 0.5) + buttonGap;
-    const upBtn = this.createDebugTextButton(panelLeft + 34, firstRowY, '▲', () => this.nudgeCardArtPosition(card, -CARD_ART_CROP_DEBUG_STEP), {
-      fontSize: '19px', minWidth: 48, minHeight: 32, paddingX: 8, paddingY: 4,
+    const panelRight = topPanel.x + panelWidth * 0.5;
+    const topRowY = topPanel.y - 30;
+    const secondRowY = topPanel.y + 14;
+    const thirdRowY = topPanel.y + 52;
+    const upBtn = this.createDebugTextButton(panelLeft + 42, topRowY, '▲', () => this.nudgeCardArtPosition(card, -CARD_ART_CROP_DEBUG_STEP), {
+      fontSize: '26px', minWidth: 72, minHeight: 56, paddingX: 16, paddingY: 10,
     });
-    const downBtn = this.createDebugTextButton(panelLeft + 86, firstRowY, '▼', () => this.nudgeCardArtPosition(card, CARD_ART_CROP_DEBUG_STEP), {
-      fontSize: '19px', minWidth: 48, minHeight: 32, paddingX: 8, paddingY: 4,
+    const downBtn = this.createDebugTextButton(panelLeft + 130, topRowY, '▼', () => this.nudgeCardArtPosition(card, CARD_ART_CROP_DEBUG_STEP), {
+      fontSize: '26px', minWidth: 72, minHeight: 56, paddingX: 16, paddingY: 10,
     });
     const maxYLabel = cropMetrics ? `  maxY: ${cropMetrics.maxCropY.toFixed(1)}px` : '';
-    const valueLabel = this.add.text(panelLeft + 120, firstRowY, `artPositionY ${artPositionY.toFixed(2)}${maxYLabel}`, {
+    const valueLabel = this.add.text(panelLeft + 176, topRowY, `artPositionY: ${artPositionY.toFixed(2)}${maxYLabel}`, {
       fontFamily: 'Arial, sans-serif',
-      fontSize: '13px',
+      fontSize: '15px',
       color: '#f8fafc',
     }).setOrigin(0, 0.5).setDepth(3202).setScrollFactor(0);
-    const countLabel = this.add.text(panelRight - 12, secondRowY - 18, `BUFFER ${debug.sessionOverrides.size}`, {
+    const countLabel = this.add.text(panelRight - 12, topRowY, `BUFFER: ${debug.sessionOverrides.size}`, {
       fontFamily: 'Arial, sans-serif',
-      fontSize: '12px',
+      fontSize: '14px',
       color: '#93c5fd',
     }).setOrigin(1, 0.5).setDepth(3202).setScrollFactor(0);
-    const addButton = this.createDebugTextButton(leftBtnX, secondRowY, 'ADD', () => {
+    const addButton = this.createDebugTextButton(panelLeft + panelWidth * 0.25, secondRowY, 'ADD', () => {
       debug.sessionOverrides.set(cardId, { artPositionY: this.getCardArtPositionY(card) });
       this.setCardArtCropDebugStatus(`BUFFER: ${debug.sessionOverrides.size}`, 'ok');
       this.refreshCardArtCropDebugUi();
-    }, { minWidth: 150, minHeight: 30, fontSize: '13px', paddingX: 10, paddingY: 6 });
-    const resetButton = this.createDebugTextButton(rightBtnX, secondRowY, 'RESET', () => {
+    }, { minWidth: 176, minHeight: 50, fontSize: '14px', paddingX: 16, paddingY: 8 });
+    const resetButton = this.createDebugTextButton(panelLeft + panelWidth * 0.75, secondRowY, 'RESET', () => {
       debug.sessionOverrides.delete(cardId);
       if (!card.presentation) card.presentation = {};
       delete card.presentation.artPositionY;
       this.setCardArtCropDebugStatus('RESET CURRENT', 'ok');
       this.refreshInspectPreviewArt();
       this.refreshCardArtCropDebugUi();
-    }, { minWidth: 150, minHeight: 30, fontSize: '13px', paddingX: 10, paddingY: 6 });
-    const copyCurrentButton = this.createDebugTextButton(leftBtnX, thirdRowY, 'COPY CURRENT', async () => {
+    }, { minWidth: 176, minHeight: 50, fontSize: '14px', paddingX: 16, paddingY: 8 });
+    const copyCurrentButton = this.createDebugTextButton(panelLeft + panelWidth * 0.25, thirdRowY, 'COPY CURRENT', async () => {
       const currentJson = JSON.stringify({ [cardId]: { artPositionY: this.normalizeCardArtDebugValue(this.getCardArtPositionY(card)) } }, null, 2);
       await this.writeCardArtCropDebugClipboard(currentJson, 'COPIED CURRENT');
       this.refreshCardArtCropDebugUi();
-    }, { minWidth: 150, minHeight: 30, fontSize: '13px', paddingX: 10, paddingY: 6 });
-    const copyAllButton = this.createDebugTextButton(rightBtnX, thirdRowY, 'COPY ALL', async () => {
+    }, { minWidth: 176, minHeight: 50, fontSize: '14px', paddingX: 16, paddingY: 8 });
+    const copyAllButton = this.createDebugTextButton(panelLeft + panelWidth * 0.75, thirdRowY, 'COPY ALL', async () => {
       await this.writeCardArtCropDebugClipboard(this.buildCardArtCropDebugJson(), `COPIED ALL (${debug.sessionOverrides.size})`);
       this.refreshCardArtCropDebugUi();
-    }, { minWidth: 150, minHeight: 30, fontSize: '13px', paddingX: 10, paddingY: 6 });
-    const clearButton = this.createDebugTextButton(leftBtnX, fourthRowY, 'CLEAR BUFFER', () => {
+    }, { minWidth: 176, minHeight: 50, fontSize: '14px', paddingX: 16, paddingY: 8 });
+    const clearButton = this.createDebugTextButton(panelLeft + panelWidth * 0.5, bottomPanel.y, 'CLEAR BUFFER', () => {
       debug.sessionOverrides.clear();
       this.setCardArtCropDebugStatus('BUFFER CLEARED', 'ok');
       this.refreshCardArtCropDebugUi();
-    }, { minWidth: 150, minHeight: 30, fontSize: '13px', paddingX: 10, paddingY: 6 });
+    }, { minWidth: 176, minHeight: 50, fontSize: '14px', paddingX: 16, paddingY: 8 });
     const statusColor = debug.statusTone === 'fail' ? '#fca5a5' : (debug.statusTone === 'ok' ? '#86efac' : '#cbd5e1');
-    const statusLabel = this.add.text(panelLeft + 12, fourthRowY, debug.statusMessage || 'READY', {
+    const statusLabel = this.add.text(panelLeft + 12, topPanel.y + 54, debug.statusMessage || 'READY', {
       fontFamily: 'Arial, sans-serif',
       fontSize: '12px',
       color: statusColor,
     }).setOrigin(0, 0.5).setDepth(3202).setScrollFactor(0);
-    const cardIdLabel = this.add.text(rightBtnX, fourthRowY, `id ${cardId}`, {
+    const cardIdLabel = this.add.text(panelRight - 12, topPanel.y + 54, cardId, {
       fontFamily: 'Arial, sans-serif',
-      fontSize: '11px',
-      color: '#94a3b8',
-    }).setOrigin(0.5, 0.5).setDepth(3202).setScrollFactor(0);
-    debug.panelItems.push(topPanel, valueLabel, upBtn, downBtn, addButton, resetButton, copyCurrentButton, copyAllButton, clearButton, countLabel, statusLabel, cardIdLabel);
+      fontSize: '10px',
+      color: '#64748b',
+    }).setOrigin(1, 0.5).setDepth(3202).setScrollFactor(0);
+    debug.panelItems.push(topPanel, bottomPanel, valueLabel, upBtn, downBtn, addButton, resetButton, copyCurrentButton, copyAllButton, clearButton, countLabel, statusLabel, cardIdLabel);
   }
 
   createCardArtCropDebugGuides(bounds, artPositionY) {
@@ -674,13 +674,11 @@ export default class CollectionScene extends Phaser.Scene {
       zones.art.width,
       zones.art.height,
     );
-    const outline = this.add.rectangle(artBounds.centerX, artBounds.centerY, artBounds.width, artBounds.height)
-      .setStrokeStyle(1, 0x22d3ee, 0.45)
-      .setFillStyle(0x000000, 0)
-      .setDepth(INSPECT_CARD_DEPTH + 8)
-      .setScrollFactor(0);
-    const centerLine = this.add.rectangle(artBounds.centerX, artBounds.centerY, artBounds.width, 1, 0x67e8f9, 0.4).setDepth(INSPECT_CARD_DEPTH + 8).setScrollFactor(0);
-    debug.guideItems.push(outline, centerLine);
+    const centerLine = this.add.rectangle(artBounds.centerX, artBounds.centerY, artBounds.width, 2, 0x22d3ee, 0.95).setDepth(INSPECT_CARD_DEPTH + 8).setScrollFactor(0);
+    const topSafe = this.add.rectangle(artBounds.centerX, artBounds.y + artBounds.height * 0.2, artBounds.width, 1, 0xf8fafc, 0.45).setDepth(INSPECT_CARD_DEPTH + 8).setScrollFactor(0);
+    const bottomSafe = this.add.rectangle(artBounds.centerX, artBounds.bottom - artBounds.height * 0.2, artBounds.width, 1, 0xf8fafc, 0.45).setDepth(INSPECT_CARD_DEPTH + 8).setScrollFactor(0);
+    const label = this.add.text(bounds.x, artBounds.y + 10, `artPositionY ${artPositionY.toFixed(2)} (▲ top / ▼ bottom)`, { fontFamily: 'Arial, sans-serif', fontSize: '11px', color: '#67e8f9', backgroundColor: '#020617', padding: { left: 5, right: 5, top: 2, bottom: 2 } }).setOrigin(0.5, 0).setDepth(INSPECT_CARD_DEPTH + 9).setScrollFactor(0);
+    debug.guideItems.push(centerLine, topSafe, bottomSafe, label);
   }
 
   createDebugTextButton(x, y, label, onPress, options = {}) {
