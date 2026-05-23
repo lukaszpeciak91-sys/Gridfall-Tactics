@@ -59,7 +59,8 @@ const INSPECT_CARD_STAT_BADGE_SCALE = 1.28;
 const INSPECT_CARD_TYPOGRAPHY_SCALE = 1.1;
 const INSPECT_CARD_BODY_LINE_SPACING = 5;
 const HAND_CARD_INSPECT_DIM_ALPHA = 0.55;
-const BOARD_CARD_ARTWORK_UPWARD_CROP_BIAS_RATIO = 0.072;
+const BOARD_CARD_ARTWORK_PLAYER_CROP_POSITION_Y = 0.43;
+const BOARD_CARD_ARTWORK_ENEMY_CROP_POSITION_Y = 0.57;
 const HAND_CARD_LONG_PRESS_MS = 425;
 const ENEMY_ACTION_NOTIFICATION_FADE_IN_MS = 110;
 const ENEMY_ACTION_NOTIFICATION_HOLD_MS = 800;
@@ -4626,7 +4627,9 @@ export default class BattleScene extends Phaser.Scene {
       centerY: finalArtY,
     }, unit, {
       enableCardIllustration: true,
-      upwardCropBiasRatio: BOARD_CARD_ARTWORK_UPWARD_CROP_BIAS_RATIO,
+      artPositionY: isEnemyUnit
+        ? BOARD_CARD_ARTWORK_ENEMY_CROP_POSITION_Y
+        : BOARD_CARD_ARTWORK_PLAYER_CROP_POSITION_Y,
     });
     const artStroke = this.add.rectangle(0, finalArtY, artWidth, artHeight)
       .setFillStyle(0x000000, 0)
