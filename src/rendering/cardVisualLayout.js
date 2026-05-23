@@ -1,6 +1,6 @@
 import { getCardDisplayName, getCardTextShort } from '../localization/cardDisplay.js';
 import { CARD_EFFECT_GAMEPLAY_SYMBOLS, formatCardEffectTextShort } from '../localization/cardTextFormatting.js';
-import { getCardArtCropY01, getCardArtCropYOffset } from '../data/presentation/cardArtCropOverrides.js';
+import { getCardArtPositionY } from '../data/presentation/cardArtCropOverrides.js';
 import { getLoadedCardIllustrationTextureKey } from './cardIllustrationAssets.js';
 
 // Dry layout experiment: keep stat badge allocation stable while borrowing
@@ -13,7 +13,6 @@ export const CARD_ZONE_RATIOS = Object.freeze({
 });
 
 export const CARD_CORNER_RADIUS_RATIO = 0.055;
-export const CARD_ARTWORK_UPWARD_CROP_BIAS_RATIO = 0.03;
 
 export const CARD_COLORS = Object.freeze({
   frame: 0x172033,
@@ -717,29 +716,18 @@ function getCardArtTextureKey(scene, card, { enableCardIllustration = false } = 
   return enableCardIllustration ? getLoadedCardIllustrationTextureKey(scene, card) : null;
 }
 
-export function calculateCardArtworkCoverCrop(zone, sourceWidth = 512, sourceHeight = 768, options = {}) {
+export function calculateCardArtworkCoverPosition(zone, sourceWidth = 512, sourceHeight = 768, options = {}) {
   const safeSourceWidth = Math.max(1, sourceWidth);
   const safeSourceHeight = Math.max(1, sourceHeight);
   const scale = Math.max(zone.width / safeSourceWidth, zone.height / safeSourceHeight);
   const cropWidth = Math.min(safeSourceWidth, zone.width / scale);
   const cropHeight = Math.min(safeSourceHeight, zone.height / scale);
   const cropX = Math.max(0, (safeSourceWidth - cropWidth) / 2);
-  const centeredCropY = (safeSourceHeight - cropHeight) / 2;
-  const cropBiasRatio = Number.isFinite(options.upwardCropBiasRatio)
-    ? options.upwardCropBiasRatio
-    : CARD_ARTWORK_UPWARD_CROP_BIAS_RATIO;
-  const upwardCropBias = safeSourceHeight * cropBiasRatio;
-  // Keep yOffset-driven debug nudges confined to source cropping only.
-  // We clamp the crop window to valid source bounds so setCrop always
-  // preserves the same display layer footprint on the card.
-  const unclampedCropY = centeredCropY - upwardCropBias;
-  const maxCropY = Math.max(0, safeSourceHeight - cropHeight);
-  const normalizedCropY01 = Number.isFinite(options.cropY01)
-    ? Math.min(1, Math.max(0, options.cropY01))
-    : null;
-  const cropY = normalizedCropY01 !== null
-    ? Math.min(maxCropY, Math.max(0, normalizedCropY01 * maxCropY))
-    : Math.min(maxCropY, Math.max(0, unclampedCropY));
+    const maxCropY = Math.max(0, safeSourceHeight - cropHeight);
+  const normalizedArtPositionY = Number.isFinite(options.artPositionY)
+    ? Math.min(1, Math.max(0, options.artPositionY))
+    : 0.5;
+  const cropY = Math.min(maxCropY, Math.max(0, normalizedArtPositionY * maxCropY));
 
   return {
     scale,
@@ -750,7 +738,7 @@ export function calculateCardArtworkCoverCrop(zone, sourceWidth = 512, sourceHei
     cropWidth,
     cropHeight,
     maxCropY,
-    cropY01: maxCropY > 0 ? (cropY / maxCropY) : 0,
+    artPositionY: maxCropY > 0 ? (cropY / maxCropY) : 0.5,
     visibleSourceWidthPercent: (cropWidth / safeSourceWidth) * 100,
     visibleSourceHeightPercent: (cropHeight / safeSourceHeight) * 100,
     visibleSourceAreaPercent: (cropWidth * cropHeight) / (safeSourceWidth * safeSourceHeight) * 100,
@@ -768,7 +756,7 @@ export function createCardArtwork(scene, zone, card, options = {}) {
     const texture = image.texture?.getSourceImage?.();
     const sourceWidth = texture?.width ?? image.width;
     const sourceHeight = texture?.height ?? image.height;
-    const crop = calculateCardArtworkCoverCrop(zone, sourceWidth, sourceHeight, options);
+    const crop = calculateCardArtworkCoverPosition(zone, sourceWidth, sourceHeight, options);
     image.setDisplaySize(crop.displayWidth, crop.displayHeight);
     image.setCrop(crop.cropX, crop.cropY, crop.cropWidth, crop.cropHeight);
     image.cropDebugMetrics = crop;
@@ -888,19 +876,14 @@ export function createCardPreviewView(scene, {
       pulseChangedStats,
     },
   );
-  const persistentArtCropYOffset = getCardArtCropYOffset(card);
-  const persistentArtCropY01 = getCardArtCropY01(card);
-  const hasTemporaryCropY01 = Number.isFinite(temporaryArtCropY01);
-  const effectiveCropY01 = hasTemporaryCropY01
+    const persistentArtPositionY = getCardArtPositionY(card);
+  const hasTemporaryArtPositionY = Number.isFinite(temporaryArtCropY01);
+  const effectiveArtPositionY = hasTemporaryArtPositionY
     ? Math.min(1, Math.max(0, temporaryArtCropY01))
-    : (Number.isFinite(persistentArtCropY01) ? Math.min(1, Math.max(0, persistentArtCropY01)) : null);
-  const totalArtCropYOffset = persistentArtCropYOffset + temporaryArtCropYOffset;
+    : (Number.isFinite(persistentArtPositionY) ? Math.min(1, Math.max(0, persistentArtPositionY)) : 0.5);
   const art = createCardArtwork(scene, zones.art, card, {
     enableCardIllustration,
-    cropY01: effectiveCropY01,
-    upwardCropBiasRatio: totalArtCropYOffset === 0
-      ? undefined
-      : (0.03 + totalArtCropYOffset),
+    artPositionY: effectiveArtPositionY,
   });
   const namePanel = scene.add.rectangle(zones.name.centerX, zones.name.centerY, zones.name.width, zones.name.height, CARD_COLORS.namePanel, 0.95)
     .setStrokeStyle(1, accentColor, card ? (typographyScale > 1 ? 0.52 : 0.44) : 0.14);

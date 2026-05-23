@@ -3,8 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 import {
-  CARD_ARTWORK_UPWARD_CROP_BIAS_RATIO,
-  calculateCardArtworkCoverCrop,
+  calculateCardArtworkCoverPosition,
   createCardArtwork,
   getCardLayoutZones,
 } from '../src/rendering/cardVisualLayout.js';
@@ -63,26 +62,22 @@ const artZone = Object.freeze({
   height: 160,
 });
 
-test('card artwork cover crop diagnostics keep cover scaling with a shared upward source-space bias', () => {
-  const crop = calculateCardArtworkCoverCrop(artZone, 512, 768);
-  const centeredCropY = (768 - 682.6666666666666) / 2;
-  const expectedBias = 768 * CARD_ARTWORK_UPWARD_CROP_BIAS_RATIO;
-
-  assert.equal(CARD_ARTWORK_UPWARD_CROP_BIAS_RATIO, 0.03);
+test('card artwork cover positioning keeps frame fixed and defaults to centered source position', () => {
+  const crop = calculateCardArtworkCoverPosition(artZone, 512, 768);
   assert.equal(crop.scale, 0.234375);
   assert.equal(crop.displayWidth, 120);
   assert.equal(crop.displayHeight, 180);
   assert.equal(crop.cropX, 0);
   assert.equal(crop.cropWidth, 512);
-  assert.ok(Math.abs(crop.cropY - (centeredCropY - expectedBias)) < 0.001);
+  assert.ok(Math.abs(crop.cropY - ((768 - 682.6666666666666) / 2)) < 0.001);
   assert.ok(Math.abs(crop.cropHeight - 682.6667) < 0.001);
-  assert.ok(crop.lostTopPercent < crop.lostBottomPercent);
-  assert.ok(Math.abs((crop.lostBottomPercent - crop.lostTopPercent) - 6) < 0.001);
+  assert.ok(Math.abs(crop.lostTopPercent - crop.lostBottomPercent) < 0.001);
+  assert.equal(crop.artPositionY, 0.5);
 });
 
 test('dry card layout experiment expands collection artwork viewport without shrinking stat row', () => {
   const zones = getCardLayoutZones(176, 250);
-  const crop = calculateCardArtworkCoverCrop(zones.art, 512, 768);
+  const crop = calculateCardArtworkCoverPosition(zones.art, 512, 768);
 
   assert.equal(zones.statBadges.height, 26);
   assert.equal(zones.art.width, 156);
@@ -101,7 +96,7 @@ test('standardized card illustrations render only when callers enable them', () 
   assert.equal(enabledArtwork.key, 'card.aggro.aggro_01');
   assert.equal(enabledArtwork.crop.x, 0);
   assert.equal(enabledArtwork.crop.width, 512);
-  assert.ok(Math.abs(enabledArtwork.crop.y - 19.6267) < 0.001);
+  assert.ok(Math.abs(enabledArtwork.crop.y - 42.6667) < 0.001);
   assert.ok(Math.abs(enabledArtwork.crop.height - 682.6667) < 0.001);
 
   const controlArtwork = createCardArtwork(scene, artZone, { id: 'control_controller_1' }, { enableCardIllustration: true });
