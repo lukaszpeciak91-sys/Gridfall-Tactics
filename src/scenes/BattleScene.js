@@ -61,6 +61,7 @@ const INSPECT_CARD_BODY_LINE_SPACING = 5;
 const HAND_CARD_INSPECT_DIM_ALPHA = 0.55;
 const BOARD_CARD_ARTWORK_PLAYER_CROP_POSITION_Y = 0.43;
 const BOARD_CARD_ARTWORK_ENEMY_CROP_POSITION_Y = 0.57;
+const BOARD_CARD_ART_HEIGHT_EXPANSION_PX = 10;
 const HAND_CARD_LONG_PRESS_MS = 425;
 const ENEMY_ACTION_NOTIFICATION_FADE_IN_MS = 110;
 const ENEMY_ACTION_NOTIFICATION_HOLD_MS = 800;
@@ -4595,15 +4596,18 @@ export default class BattleScene extends Phaser.Scene {
     const statGap = Math.max(2, Math.round(unitHeight * 0.014));
     const statHeight = Math.max(21, Math.min(30, Math.round(unitHeight * 0.17)));
     const artWidth = Math.max(1, unitWidth - horizontalPad * 2);
-    const artHeight = Math.max(1, unitHeight - verticalPad * 2 - statHeight - statGap - statEdgeInset * 2);
+    const baseArtHeight = Math.max(1, unitHeight - verticalPad * 2 - statHeight - statGap - statEdgeInset * 2);
+    const maxArtHeight = Math.max(1, baseArtHeight + Math.max(0, verticalPad * 2 + statEdgeInset * 2));
+    const artHeight = Math.min(maxArtHeight, baseArtHeight + BOARD_CARD_ART_HEIGHT_EXPANSION_PX);
     const isEnemyUnit = unit.owner === 'enemy';
     const topEdgeY = -unitHeight / 2 + verticalPad;
     const bottomEdgeY = unitHeight / 2 - verticalPad;
     const topStatY = topEdgeY + statEdgeInset + statHeight / 2;
     const bottomStatY = bottomEdgeY - statEdgeInset - statHeight / 2;
-    const topArtY = topStatY + statHeight / 2 + statGap + artHeight / 2;
-    const bottomArtY = bottomStatY - statHeight / 2 - statGap - artHeight / 2;
-    const finalArtY = isEnemyUnit ? topArtY : bottomArtY;
+    const topArtTopY = topStatY + statHeight / 2 + statGap;
+    const bottomArtTopY = bottomStatY - statHeight / 2 - statGap - artHeight;
+    const artTopY = isEnemyUnit ? topArtTopY : bottomArtTopY;
+    const finalArtY = artTopY + artHeight / 2;
     const finalStatY = isEnemyUnit ? bottomStatY : topStatY;
     const ownerAccent = unit.owner === 'enemy' ? 0xf87171 : 0x60a5fa;
 
@@ -4620,9 +4624,15 @@ export default class BattleScene extends Phaser.Scene {
     });
     const artRect = {
       x: -artWidth / 2,
-      y: finalArtY - artHeight / 2,
+      y: artTopY,
       width: artWidth,
       height: artHeight,
+    };
+    const artMaskRect = {
+      x: cell.label.x + artRect.x,
+      y: cell.label.y + artRect.y,
+      width: artRect.width,
+      height: artRect.height,
     };
     const art = createCardArtwork(this, {
       ...artRect,
@@ -4630,7 +4640,7 @@ export default class BattleScene extends Phaser.Scene {
       centerY: finalArtY,
     }, unit, {
       enableCardIllustration: true,
-      artRect,
+      artRect: artMaskRect,
       artPositionY: isEnemyUnit
         ? BOARD_CARD_ARTWORK_ENEMY_CROP_POSITION_Y
         : BOARD_CARD_ARTWORK_PLAYER_CROP_POSITION_Y,
