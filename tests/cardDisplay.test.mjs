@@ -294,11 +294,11 @@ test('board unit compact view removes names, expands artwork, and mirrors stat p
   const end = source.indexOf('  refreshBoardLabels() {');
   const boardUnitViewSource = source.slice(start, end);
 
-  assert.match(boardUnitViewSource, /const statHeight = Math\.max\(22, Math\.min\(32, Math\.round\(unitHeight \* 0\.19\)\)\);/);
-  assert.match(boardUnitViewSource, /const artHeight = Math\.max\(1, unitHeight - pad \* 2 - statHeight - gap\);/);
+  assert.match(boardUnitViewSource, /const statHeight = Math\.max\(21, Math\.min\(30, Math\.round\(unitHeight \* 0\.17\)\)\);/);
+  assert.match(boardUnitViewSource, /const artHeight = Math\.max\(1, unitHeight - verticalPad \* 2 - statHeight - statGap - statEdgeInset \* 2\);/);
   assert.match(boardUnitViewSource, /const isEnemyUnit = unit\.owner === 'enemy';/);
-  assert.match(boardUnitViewSource, /const finalArtY = isEnemyUnit \? artY : statY;/);
-  assert.match(boardUnitViewSource, /const finalStatY = isEnemyUnit \? statY : artY;/);
+  assert.match(boardUnitViewSource, /const finalArtY = isEnemyUnit \? topArtY : bottomArtY;/);
+  assert.match(boardUnitViewSource, /const finalStatY = isEnemyUnit \? bottomStatY : topStatY;/);
   assert.match(boardUnitViewSource, /const unitStats = this\.currentBoardRenderStats\?\.\[cell\.index\] \?\? this\.getBoardUnitStats\(unit\);/);
   assert.match(boardUnitViewSource, /const stats = createStatBadges\(this, 0, finalStatY, artWidth, statHeight, unitStats, 0, \{/);
   assert.match(boardUnitViewSource, /baseStats: this\.getBoardUnitBaseStats\(unit\),/);
