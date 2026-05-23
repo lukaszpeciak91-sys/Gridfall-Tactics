@@ -23,7 +23,8 @@ For the current `512x768` sources and all present card-art zones, the zone is wi
 - horizontal source crop is `0px` in normal card modes;
 - vertical source crop preserves the same cover-crop height as the old centered crop;
 - the crop window is shifted upward by the shared `3%` source-height bias, so top loss is about `6` percentage points lower than bottom loss;
-- there is no per-card focal-point logic or per-mode responsive art-direction rule; one scoped test override now exists at `src/data/presentation/cardArtCropOverrides.js` for `aggro_flanker_1` (`yOffset: -0.08`) and is applied by the shared preview renderer.
+- there is no per-card focal-point logic or per-mode responsive art-direction rule in production gameplay rendering;
+- per-card overrides now support direct normalized crop placement (`cropY01`) for debug/composition tuning in collection inspect and shared preview paths; legacy `yOffset` remains backward-compatible only.
 
 ## Runtime mode audit
 
@@ -155,3 +156,8 @@ The final production contract is now the shared `3%` upward source-space bias on
 - Put upper torso/main mass around `48-58%` source height.
 - Keep lower essential silhouette above roughly `64-65%` source height.
 - Do not add broad per-card/per-faction/per-mode rule sets or focal metadata in artwork. If a scoped renderer test override is required, keep it explicit in `src/data/presentation/cardArtCropOverrides.js` and limited to named card ids.
+
+## Override precedence update (2026-05-23)
+
+- Per-card art crop overrides now prefer `cropY01` (normalized legal vertical crop position where `0` is top bound and `1` is bottom bound).
+- Legacy `yOffset` is still read for backward compatibility only when `cropY01` is absent.
