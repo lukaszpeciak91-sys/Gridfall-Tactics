@@ -59,7 +59,7 @@ const INSPECT_CARD_STAT_BADGE_SCALE = 1.28;
 const INSPECT_CARD_TYPOGRAPHY_SCALE = 1.1;
 const INSPECT_CARD_BODY_LINE_SPACING = 5;
 const HAND_CARD_INSPECT_DIM_ALPHA = 0.55;
-const BOARD_CARD_ARTWORK_UPWARD_CROP_BIAS_RATIO = 0.065;
+const BOARD_CARD_ARTWORK_UPWARD_CROP_BIAS_RATIO = 0.072;
 const HAND_CARD_LONG_PRESS_MS = 425;
 const ENEMY_ACTION_NOTIFICATION_FADE_IN_MS = 110;
 const ENEMY_ACTION_NOTIFICATION_HOLD_MS = 800;
@@ -4588,22 +4588,27 @@ export default class BattleScene extends Phaser.Scene {
   createBoardUnitView(cell, unit) {
     const unitWidth = Math.max(1, cell.background.width - 8);
     const unitHeight = Math.max(1, cell.background.height - 8);
-    const pad = Math.max(5, Math.round(unitWidth * 0.06));
-    const gap = Math.max(3, Math.round(unitHeight * 0.025));
-    const statHeight = Math.max(22, Math.min(32, Math.round(unitHeight * 0.19)));
-    const artWidth = Math.max(1, unitWidth - pad * 2);
-    const artHeight = Math.max(1, unitHeight - pad * 2 - statHeight - gap);
+    const horizontalPad = Math.max(4, Math.round(unitWidth * 0.05));
+    const verticalPad = Math.max(3, Math.round(unitHeight * 0.036));
+    const statEdgeInset = Math.max(1, Math.round(unitHeight * 0.012));
+    const statGap = Math.max(2, Math.round(unitHeight * 0.014));
+    const statHeight = Math.max(21, Math.min(30, Math.round(unitHeight * 0.17)));
+    const artWidth = Math.max(1, unitWidth - horizontalPad * 2);
+    const artHeight = Math.max(1, unitHeight - verticalPad * 2 - statHeight - statGap - statEdgeInset * 2);
     const isEnemyUnit = unit.owner === 'enemy';
-    const topY = -unitHeight / 2 + pad;
-    const artY = topY + artHeight / 2;
-    const statY = topY + artHeight + gap + statHeight / 2;
-    const finalArtY = isEnemyUnit ? artY : statY;
-    const finalStatY = isEnemyUnit ? statY : artY;
+    const topEdgeY = -unitHeight / 2 + verticalPad;
+    const bottomEdgeY = unitHeight / 2 - verticalPad;
+    const topStatY = topEdgeY + statEdgeInset + statHeight / 2;
+    const bottomStatY = bottomEdgeY - statEdgeInset - statHeight / 2;
+    const topArtY = topStatY + statHeight / 2 + statGap + artHeight / 2;
+    const bottomArtY = bottomStatY - statHeight / 2 - statGap - artHeight / 2;
+    const finalArtY = isEnemyUnit ? topArtY : bottomArtY;
+    const finalStatY = isEnemyUnit ? bottomStatY : topStatY;
     const ownerAccent = unit.owner === 'enemy' ? 0xf87171 : 0x60a5fa;
 
     const cardBack = this.add.rectangle(0, 0, unitWidth, unitHeight, CARD_COLORS.frame, 0.72)
       .setStrokeStyle(2, ownerAccent, 0.62);
-    const inner = this.add.rectangle(0, 0, unitWidth - pad, unitHeight - pad, CARD_COLORS.innerPanel, 0.32)
+    const inner = this.add.rectangle(0, 0, unitWidth - horizontalPad, unitHeight - verticalPad, CARD_COLORS.innerPanel, 0.32)
       .setStrokeStyle(1, 0xffffff, 0.045);
     const unitStats = this.currentBoardRenderStats?.[cell.index] ?? this.getBoardUnitStats(unit);
     const changedStats = this.getChangedBoardUnitStatKeys(cell.index, unit, unitStats);
