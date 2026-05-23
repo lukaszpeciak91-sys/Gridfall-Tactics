@@ -39,3 +39,13 @@ node scripts/simulate-battles.mjs 20
 ```
 
 The runner evaluates all faction pairings, uses the same opening mulligan, no-progress, and 50-turn remaining-base-HP end rules as live battle flow, and reports matchup plus aggregate faction win rates.
+
+## Card Art `artPositionY` Debug Workflow (Collection-only)
+
+- `artPositionY` is a normalized vertical crop anchor in `[0, 1]` where `0` biases toward top, `0.5` is centered, and `1` biases toward bottom.
+- In the Collection inspect debug panel, only illustration placement is adjusted (`maskedOffset` mode); card frame, title/stats, and inspect viewport stay fixed.
+- `ADD` stores the current inspected card value in the session buffer, `COPY ALL` exports the full buffered override payload, and `CLEAR BUFFER` clears only that buffer.
+- `COPY CURRENT` always exports the inspected card only.
+- Exported values are normalized/clamped and rounded to 3 decimals for stable persistence/reload parity with runtime rendering.
+- When entering debug inspect for a card, the initial value is loaded from persisted card art overrides (fallback `0.5`) until a draft edit is made.
+- This workflow is intentionally scoped to Collection inspection for now; board/hand rollout should remain opt-in and follow-up validated separately.

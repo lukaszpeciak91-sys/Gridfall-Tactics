@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
 import { getFactionPresentationName } from '../data/presentation/factionPresentation.js';
+import { getCardArtPositionY as getSavedCardArtPositionY } from '../data/presentation/cardArtCropOverrides.js';
 import {
   MENU_BACKGROUND_FALLBACK_COLOR,
   MENU_BACKGROUND_FALLBACK_COLOR_HEX,
@@ -489,8 +490,15 @@ export default class CollectionScene extends Phaser.Scene {
   }
 
   getCardArtPositionY(card) {
-    if (!card?.id || !this.cardArtCropDebug) return 0.5;
-    return this.cardArtCropDebug.draftByCardId.get(String(card.id)) ?? 0.5;
+    if (!card?.id) return 0.5;
+    const cardId = String(card.id);
+    const draftValue = this.cardArtCropDebug?.draftByCardId?.get(cardId);
+    if (Number.isFinite(draftValue)) return Phaser.Math.Clamp(draftValue, CARD_ART_CROP_DEBUG_MIN, CARD_ART_CROP_DEBUG_MAX);
+
+    const persistedValue = getSavedCardArtPositionY(cardId);
+    if (Number.isFinite(persistedValue)) return Phaser.Math.Clamp(persistedValue, CARD_ART_CROP_DEBUG_MIN, CARD_ART_CROP_DEBUG_MAX);
+
+    return 0.5;
   }
 
   nudgeCardArtPosition(card, delta) {
@@ -504,10 +512,16 @@ export default class CollectionScene extends Phaser.Scene {
     this.showInspectPreview({ card, sourceX: this.inspectPreview.sourceX, sourceY: this.inspectPreview.sourceY, sourceWidth: this.inspectPreview.sourceWidth, sourceHeight: this.inspectPreview.sourceHeight });
   }
 
+  normalizeCardArtDebugValue(value, precision = 3) {
+    const normalized = Phaser.Math.Clamp(Number(value), CARD_ART_CROP_DEBUG_MIN, CARD_ART_CROP_DEBUG_MAX);
+    if (!Number.isFinite(normalized)) return 0.5;
+    return Number(normalized.toFixed(precision));
+  }
+
   buildCardArtCropDebugJson() {
     const result = {};
     this.cardArtCropDebug?.sessionOverrides?.forEach((value, cardId) => {
-      result[cardId] = { artPositionY: Number(value.artPositionY.toFixed(3)) };
+      result[cardId] = { artPositionY: this.normalizeCardArtDebugValue(value.artPositionY) };
     });
     return JSON.stringify({ artPositionOverrides: result }, null, 2);
   }
@@ -624,7 +638,7 @@ export default class CollectionScene extends Phaser.Scene {
       this.refreshCardArtCropDebugUi();
     }, { minWidth: 176, minHeight: 50, fontSize: '14px', paddingX: 16, paddingY: 8 });
     const copyCurrentButton = this.createDebugTextButton(panelLeft + panelWidth * 0.25, thirdRowY, 'COPY CURRENT', async () => {
-      const currentJson = JSON.stringify({ [cardId]: { artPositionY: Number(this.getCardArtPositionY(card).toFixed(3)) } }, null, 2);
+      const currentJson = JSON.stringify({ [cardId]: { artPositionY: this.normalizeCardArtDebugValue(this.getCardArtPositionY(card)) } }, null, 2);
       await this.writeCardArtCropDebugClipboard(currentJson, 'COPIED CURRENT');
       this.refreshCardArtCropDebugUi();
     }, { minWidth: 176, minHeight: 50, fontSize: '14px', paddingX: 16, paddingY: 8 });
