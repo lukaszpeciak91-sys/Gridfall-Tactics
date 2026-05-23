@@ -757,7 +757,7 @@ export function createCardArtwork(scene, zone, card, options = {}) {
     const sourceWidth = texture?.width ?? image.width;
     const sourceHeight = texture?.height ?? image.height;
     const crop = calculateCardArtworkCoverPosition(zone, sourceWidth, sourceHeight, options);
-    image.setDisplaySize(crop.displayWidth, crop.displayHeight);
+    image.setDisplaySize(zone.width, zone.height);
     image.setCrop(crop.cropX, crop.cropY, crop.cropWidth, crop.cropHeight);
     image.cropDebugMetrics = crop;
     return image;
