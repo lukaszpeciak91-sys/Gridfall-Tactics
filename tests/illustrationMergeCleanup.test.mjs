@@ -46,8 +46,7 @@ test('cardVisualLayout keeps exactly one merged artwork resolver and renderer', 
 
   assert.equal((source.match(/function getCardArtTextureKey\(/g) ?? []).length, 1);
   assert.equal((source.match(/export function createCardArtwork\(/g) ?? []).length, 1);
-  assert.equal((source.match(/export function calculateCardArtworkCoverCrop\(/g) ?? []).length, 1);
-  assert.equal((source.match(/CARD_ARTWORK_UPWARD_CROP_BIAS_RATIO/g) ?? []).length, 2);
+  assert.equal((source.match(/export function calculateCardArtworkCoverPosition\(/g) ?? []).length, 1);
   assert.match(source, /function getCardArtTextureKey\(scene, card, \{ enableCardIllustration = false \} = \{\}\)/);
   assert.match(source, /const explicitTextureKey = card\?\.artTextureKey \?\? card\?\.artKey \?\? card\?\.art\?\.textureKey \?\? null;/);
   assert.match(source, /getLoadedCardIllustrationTextureKey\(scene, card\)/);

@@ -336,7 +336,7 @@ export default class CollectionScene extends Phaser.Scene {
       bodyLineSpacing: INSPECT_CARD_BODY_LINE_SPACING,
       enableCardIllustration: true,
       showCardNumber: true,
-      temporaryArtCropY01: this.getCardArtCropY01(card),
+      temporaryArtCropY01: this.getCardArtPositionY(card),
       temporaryArtCropYOffset: 0,
     });
 
@@ -487,21 +487,16 @@ export default class CollectionScene extends Phaser.Scene {
     return this.cardArtCropDebug;
   }
 
-  getCardArtCropYOffset(card) {
-    if (!card?.id || !this.cardArtCropDebug) return 0;
-    return this.cardArtCropDebug.draftByCardId.get(String(card.id)) ?? 0;
-  }
-
-  getCardArtCropY01(card) {
+  getCardArtPositionY(card) {
     if (!card?.id || !this.cardArtCropDebug) return 0.5;
     return this.cardArtCropDebug.draftByCardId.get(String(card.id)) ?? 0.5;
   }
 
-  nudgeCardArtCrop(card, delta) {
-    this.setCardArtCrop(card, this.getCardArtCropY01(card) + delta);
+  nudgeCardArtPosition(card, delta) {
+    this.setCardArtPosition(card, this.getCardArtPositionY(card) + delta);
   }
 
-  setCardArtCrop(card, value) {
+  setCardArtPosition(card, value) {
     if (!card?.id || !this.inspectPreview) return;
     const debug = this.ensureCardArtCropDebugState();
     debug.draftByCardId.set(String(card.id), Phaser.Math.Clamp(value, CARD_ART_CROP_DEBUG_MIN, CARD_ART_CROP_DEBUG_MAX));
@@ -511,9 +506,9 @@ export default class CollectionScene extends Phaser.Scene {
   buildCardArtCropDebugJson() {
     const result = {};
     this.cardArtCropDebug?.sessionOverrides?.forEach((value, cardId) => {
-      result[cardId] = { cropY01: Number(value.cropY01.toFixed(3)) };
+      result[cardId] = { artPositionY: Number(value.artPositionY.toFixed(3)) };
     });
-    return JSON.stringify({ artCropOverrides: result }, null, 2);
+    return JSON.stringify({ artPositionOverrides: result }, null, 2);
   }
 
   setCardArtCropDebugStatus(message, tone = 'info') {
@@ -550,8 +545,8 @@ export default class CollectionScene extends Phaser.Scene {
     if (!debug.enabled || !this.inspectPreview?.card?.id) return;
     const card = this.inspectPreview.card;
     const bounds = inspectTransform ?? this.getInspectCardTransform({ sourceWidth: this.inspectPreview.sourceWidth, sourceHeight: this.inspectPreview.sourceHeight });
-    const cropY01 = this.getCardArtCropY01(card);
-    this.createCardArtCropDebugGuides(bounds, cropY01);
+    const artPositionY = this.getCardArtPositionY(card);
+    this.createCardArtCropDebugGuides(bounds, artPositionY);
     const cropMetrics = this.inspectPreview?.art?.cropDebugMetrics ?? null;
     if (cropMetrics && cropMetrics.maxCropY <= 0) {
       this.setCardArtCropDebugStatus('NO VERTICAL SLACK', 'fail');
@@ -596,14 +591,14 @@ export default class CollectionScene extends Phaser.Scene {
     const panelRight = topPanel.x + panelWidth * 0.5;
     const topRowY = topPanel.y - 30;
     const secondRowY = topPanel.y + 24;
-    const upBtn = this.createDebugTextButton(panelLeft + 42, topRowY, '▲', () => this.nudgeCardArtCrop(card, -CARD_ART_CROP_DEBUG_STEP), {
+    const upBtn = this.createDebugTextButton(panelLeft + 42, topRowY, '▲', () => this.nudgeCardArtPosition(card, -CARD_ART_CROP_DEBUG_STEP), {
       fontSize: '26px', minWidth: 72, minHeight: 56, paddingX: 16, paddingY: 10,
     });
-    const downBtn = this.createDebugTextButton(panelLeft + 130, topRowY, '▼', () => this.nudgeCardArtCrop(card, CARD_ART_CROP_DEBUG_STEP), {
+    const downBtn = this.createDebugTextButton(panelLeft + 130, topRowY, '▼', () => this.nudgeCardArtPosition(card, CARD_ART_CROP_DEBUG_STEP), {
       fontSize: '26px', minWidth: 72, minHeight: 56, paddingX: 16, paddingY: 10,
     });
     const maxYLabel = cropMetrics ? `  maxY: ${cropMetrics.maxCropY.toFixed(1)}px` : '';
-    const valueLabel = this.add.text(panelLeft + 176, topRowY, `cropY01: ${cropY01.toFixed(2)}${maxYLabel}`, {
+    const valueLabel = this.add.text(panelLeft + 176, topRowY, `artPositionY: ${artPositionY.toFixed(2)}${maxYLabel}`, {
       fontFamily: 'Arial, sans-serif',
       fontSize: '15px',
       color: '#f8fafc',
@@ -614,12 +609,12 @@ export default class CollectionScene extends Phaser.Scene {
       color: '#93c5fd',
     }).setOrigin(1, 0.5).setDepth(3202).setScrollFactor(0);
     const addButton = this.createDebugTextButton(panelLeft + panelWidth * 0.25, secondRowY, 'ADD', () => {
-      debug.sessionOverrides.set(cardId, { cropY01: this.getCardArtCropY01(card) });
+      debug.sessionOverrides.set(cardId, { artPositionY: this.getCardArtPositionY(card) });
       this.setCardArtCropDebugStatus(`BUFFER: ${debug.sessionOverrides.size}`, 'ok');
       this.refreshCardArtCropDebugUi();
     }, { minWidth: 176, minHeight: 50, fontSize: '14px', paddingX: 16, paddingY: 8 });
     const copyCurrentButton = this.createDebugTextButton(panelLeft + panelWidth * 0.75, secondRowY, 'COPY CURRENT', async () => {
-      const currentJson = JSON.stringify({ [cardId]: { cropY01: Number(this.getCardArtCropY01(card).toFixed(3)) } }, null, 2);
+      const currentJson = JSON.stringify({ [cardId]: { artPositionY: Number(this.getCardArtPositionY(card).toFixed(3)) } }, null, 2);
       await this.writeCardArtCropDebugClipboard(currentJson, 'COPIED CURRENT');
       this.refreshCardArtCropDebugUi();
     }, { minWidth: 176, minHeight: 50, fontSize: '14px', paddingX: 16, paddingY: 8 });
@@ -646,7 +641,7 @@ export default class CollectionScene extends Phaser.Scene {
     debug.panelItems.push(topPanel, bottomPanel, valueLabel, upBtn, downBtn, addButton, copyCurrentButton, copyAllButton, clearButton, countLabel, statusLabel, cardIdLabel);
   }
 
-  createCardArtCropDebugGuides(bounds, cropY01) {
+  createCardArtCropDebugGuides(bounds, artPositionY) {
     const debug = this.ensureCardArtCropDebugState();
     const art = this.inspectPreview?.art;
     if (!art?.getBounds) return;
@@ -654,7 +649,7 @@ export default class CollectionScene extends Phaser.Scene {
     const centerLine = this.add.rectangle(artBounds.centerX, artBounds.centerY, artBounds.width, 2, 0x22d3ee, 0.95).setDepth(INSPECT_CARD_DEPTH + 8).setScrollFactor(0);
     const topSafe = this.add.rectangle(artBounds.centerX, artBounds.y + artBounds.height * 0.2, artBounds.width, 1, 0xf8fafc, 0.45).setDepth(INSPECT_CARD_DEPTH + 8).setScrollFactor(0);
     const bottomSafe = this.add.rectangle(artBounds.centerX, artBounds.bottom - artBounds.height * 0.2, artBounds.width, 1, 0xf8fafc, 0.45).setDepth(INSPECT_CARD_DEPTH + 8).setScrollFactor(0);
-    const label = this.add.text(bounds.x, artBounds.y + 10, `cropY01 ${cropY01.toFixed(2)} (▲ top / ▼ bottom)`, { fontFamily: 'Arial, sans-serif', fontSize: '11px', color: '#67e8f9', backgroundColor: '#020617', padding: { left: 5, right: 5, top: 2, bottom: 2 } }).setOrigin(0.5, 0).setDepth(INSPECT_CARD_DEPTH + 9).setScrollFactor(0);
+    const label = this.add.text(bounds.x, artBounds.y + 10, `artPositionY ${artPositionY.toFixed(2)} (▲ top / ▼ bottom)`, { fontFamily: 'Arial, sans-serif', fontSize: '11px', color: '#67e8f9', backgroundColor: '#020617', padding: { left: 5, right: 5, top: 2, bottom: 2 } }).setOrigin(0.5, 0).setDepth(INSPECT_CARD_DEPTH + 9).setScrollFactor(0);
     debug.guideItems.push(centerLine, topSafe, bottomSafe, label);
   }
 
