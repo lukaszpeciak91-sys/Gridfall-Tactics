@@ -4660,10 +4660,12 @@ export default class BattleScene extends Phaser.Scene {
     const artStroke = this.add.rectangle(0, finalArtY, artRect.width, artRect.height)
       .setFillStyle(0x000000, 0)
       .setStrokeStyle(1, 0x38bdf8, 0.12);
-    const artShade = this.add.rectangle(0, finalArtY - artRect.height * 0.18, artRect.width, artRect.height * 0.52, CARD_COLORS.artTop, 0.34);
-    const artBottomDim = this.add.rectangle(0, finalArtY + artRect.height * 0.28, artRect.width, artRect.height * 0.44, 0x020617, 0.28);
+    // Board-only readability polish: keep atmosphere dark while lifting artwork clarity.
+    const artReadabilityLift = this.add.rectangle(0, finalArtY, artRect.width, artRect.height, 0xffffff, 0.055);
+    const artShade = this.add.rectangle(0, finalArtY - artRect.height * 0.18, artRect.width, artRect.height * 0.52, CARD_COLORS.artTop, 0.30);
+    const artBottomDim = this.add.rectangle(0, finalArtY + artRect.height * 0.28, artRect.width, artRect.height * 0.44, 0x020617, 0.24);
 
-    return [cardBack, inner, art, artStroke, artShade, artBottomDim, stats];
+    return [cardBack, inner, art, artStroke, artReadabilityLift, artShade, artBottomDim, stats];
   }
 
   refreshBoardLabels() {
