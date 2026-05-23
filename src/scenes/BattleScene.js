@@ -4590,11 +4590,11 @@ export default class BattleScene extends Phaser.Scene {
   createBoardUnitView(cell, unit) {
     const unitWidth = Math.max(1, cell.background.width - 8);
     const unitHeight = Math.max(1, cell.background.height - 8);
-    const horizontalPad = Math.max(4, Math.round(unitWidth * 0.05));
-    const verticalPad = Math.max(3, Math.round(unitHeight * 0.036));
-    const statEdgeInset = Math.max(1, Math.round(unitHeight * 0.012));
-    const statGap = Math.max(2, Math.round(unitHeight * 0.014));
-    const statHeight = Math.max(21, Math.min(30, Math.round(unitHeight * 0.17)));
+    const horizontalPad = Math.max(3, Math.round(unitWidth * 0.04));
+    const verticalPad = Math.max(2, Math.round(unitHeight * 0.028));
+    const statEdgeInset = Math.max(1, Math.round(unitHeight * 0.009));
+    const statGap = Math.max(2, Math.round(unitHeight * 0.01));
+    const statHeight = Math.max(18, Math.min(26, Math.round(unitHeight * 0.145)));
     const artHeight = Math.max(1, unitHeight - verticalPad * 2 - statHeight - statGap - statEdgeInset * 2);
     const artWidth = Math.max(1, unitWidth - horizontalPad * 2);
     const isEnemyUnit = unit.owner === 'enemy';

@@ -294,7 +294,7 @@ test('board unit compact view removes names, expands artwork, and mirrors stat p
   const end = source.indexOf('  refreshBoardLabels() {');
   const boardUnitViewSource = source.slice(start, end);
 
-  assert.match(boardUnitViewSource, /const statHeight = Math\.max\(21, Math\.min\(30, Math\.round\(unitHeight \* 0\.17\)\)\);/);
+  assert.match(boardUnitViewSource, /const statHeight = Math\.max\(18, Math\.min\(26, Math\.round\(unitHeight \* 0\.145\)\)\);/);
   assert.match(boardUnitViewSource, /const artHeight = Math\.max\(1, unitHeight - verticalPad \* 2 - statHeight - statGap - statEdgeInset \* 2\);/);
   assert.match(boardUnitViewSource, /const isEnemyUnit = unit\.owner === 'enemy';/);
   assert.match(boardUnitViewSource, /const finalArtY = isEnemyUnit \? topArtY : bottomArtY;/);
