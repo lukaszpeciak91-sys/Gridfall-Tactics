@@ -564,7 +564,7 @@ export default class CollectionScene extends Phaser.Scene {
     const { width, height } = this.scale;
     const panelWidth = Math.min(500, width - 12);
     const topPanelY = Math.max(88, bounds.y - (bounds.height * 0.5) - 96);
-    const topPanelHeight = 132;
+    const topPanelHeight = 168;
     const bottomPanelY = Math.min(height - 94, bounds.y + (bounds.height * 0.5) + 66);
     const bottomPanelHeight = 72;
     const topPanel = this.add.rectangle(width * 0.5, topPanelY, panelWidth, topPanelHeight, 0x020617, 0.97)
@@ -590,7 +590,8 @@ export default class CollectionScene extends Phaser.Scene {
     const panelLeft = topPanel.x - panelWidth * 0.5;
     const panelRight = topPanel.x + panelWidth * 0.5;
     const topRowY = topPanel.y - 30;
-    const secondRowY = topPanel.y + 24;
+    const secondRowY = topPanel.y + 14;
+    const thirdRowY = topPanel.y + 52;
     const upBtn = this.createDebugTextButton(panelLeft + 42, topRowY, '▲', () => this.nudgeCardArtPosition(card, -CARD_ART_CROP_DEBUG_STEP), {
       fontSize: '26px', minWidth: 72, minHeight: 56, paddingX: 16, paddingY: 10,
     });
@@ -613,16 +614,24 @@ export default class CollectionScene extends Phaser.Scene {
       this.setCardArtCropDebugStatus(`BUFFER: ${debug.sessionOverrides.size}`, 'ok');
       this.refreshCardArtCropDebugUi();
     }, { minWidth: 176, minHeight: 50, fontSize: '14px', paddingX: 16, paddingY: 8 });
-    const copyCurrentButton = this.createDebugTextButton(panelLeft + panelWidth * 0.75, secondRowY, 'COPY CURRENT', async () => {
+    const resetButton = this.createDebugTextButton(panelLeft + panelWidth * 0.75, secondRowY, 'RESET', () => {
+      debug.sessionOverrides.delete(cardId);
+      if (!card.presentation) card.presentation = {};
+      delete card.presentation.artPositionY;
+      this.setCardArtCropDebugStatus('RESET CURRENT', 'ok');
+      this.refreshInspectPreviewArt();
+      this.refreshCardArtCropDebugUi();
+    }, { minWidth: 176, minHeight: 50, fontSize: '14px', paddingX: 16, paddingY: 8 });
+    const copyCurrentButton = this.createDebugTextButton(panelLeft + panelWidth * 0.25, thirdRowY, 'COPY CURRENT', async () => {
       const currentJson = JSON.stringify({ [cardId]: { artPositionY: Number(this.getCardArtPositionY(card).toFixed(3)) } }, null, 2);
       await this.writeCardArtCropDebugClipboard(currentJson, 'COPIED CURRENT');
       this.refreshCardArtCropDebugUi();
     }, { minWidth: 176, minHeight: 50, fontSize: '14px', paddingX: 16, paddingY: 8 });
-    const copyAllButton = this.createDebugTextButton(panelLeft + panelWidth * 0.25, bottomPanel.y, 'COPY ALL', async () => {
+    const copyAllButton = this.createDebugTextButton(panelLeft + panelWidth * 0.75, thirdRowY, 'COPY ALL', async () => {
       await this.writeCardArtCropDebugClipboard(this.buildCardArtCropDebugJson(), `COPIED ALL (${debug.sessionOverrides.size})`);
       this.refreshCardArtCropDebugUi();
     }, { minWidth: 176, minHeight: 50, fontSize: '14px', paddingX: 16, paddingY: 8 });
-    const clearButton = this.createDebugTextButton(panelLeft + panelWidth * 0.75, bottomPanel.y, 'CLEAR', () => {
+    const clearButton = this.createDebugTextButton(panelLeft + panelWidth * 0.5, bottomPanel.y, 'CLEAR BUFFER', () => {
       debug.sessionOverrides.clear();
       this.setCardArtCropDebugStatus('BUFFER CLEARED', 'ok');
       this.refreshCardArtCropDebugUi();
@@ -638,7 +647,7 @@ export default class CollectionScene extends Phaser.Scene {
       fontSize: '10px',
       color: '#64748b',
     }).setOrigin(1, 0.5).setDepth(3202).setScrollFactor(0);
-    debug.panelItems.push(topPanel, bottomPanel, valueLabel, upBtn, downBtn, addButton, copyCurrentButton, copyAllButton, clearButton, countLabel, statusLabel, cardIdLabel);
+    debug.panelItems.push(topPanel, bottomPanel, valueLabel, upBtn, downBtn, addButton, resetButton, copyCurrentButton, copyAllButton, clearButton, countLabel, statusLabel, cardIdLabel);
   }
 
   createCardArtCropDebugGuides(bounds, artPositionY) {
@@ -679,8 +688,8 @@ export default class CollectionScene extends Phaser.Scene {
       hitWidth = Math.max(button.width, minWidth);
       hitHeight = Math.max(button.height, minHeight);
     }
-    const interactiveWidth = hitWidth + 10;
-    const interactiveHeight = hitHeight + 10;
+    const interactiveWidth = hitWidth;
+    const interactiveHeight = hitHeight;
     const background = this.add.rectangle(x, y, interactiveWidth, interactiveHeight, 0x0f172a, 0.96)
       .setStrokeStyle(1, 0x38bdf8, 0.55)
       .setDepth(debugPanelButtonDepth)
@@ -696,12 +705,12 @@ export default class CollectionScene extends Phaser.Scene {
       this.cardTapHandled = true;
       event?.stopPropagation?.();
       if (feedbackTarget) feedbackTarget.setScale(0.97);
-      onPress?.();
     });
     gameObject.on('pointerup', (pointer, localX, localY, event) => {
       this.cardTapHandled = true;
       event?.stopPropagation?.();
       if (feedbackTarget) feedbackTarget.setScale(1);
+      onPress?.();
     });
     gameObject.on('pointerout', () => {
       if (feedbackTarget) feedbackTarget.setScale(1);
