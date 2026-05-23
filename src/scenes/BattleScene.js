@@ -4657,15 +4657,16 @@ export default class BattleScene extends Phaser.Scene {
         ? BOARD_CARD_ARTWORK_ENEMY_CROP_POSITION_Y
         : BOARD_CARD_ARTWORK_PLAYER_CROP_POSITION_Y,
     });
+    const artBackdrop = this.add.rectangle(0, finalArtY, artRect.width, artRect.height, 0x020617, 0.16);
     const artStroke = this.add.rectangle(0, finalArtY, artRect.width, artRect.height)
       .setFillStyle(0x000000, 0)
-      .setStrokeStyle(1, 0x38bdf8, 0.12);
-    // Board-only readability polish: keep atmosphere dark while lifting artwork clarity.
-    const artReadabilityLift = this.add.rectangle(0, finalArtY, artRect.width, artRect.height, 0xffffff, 0.055);
-    const artShade = this.add.rectangle(0, finalArtY - artRect.height * 0.18, artRect.width, artRect.height * 0.52, CARD_COLORS.artTop, 0.30);
-    const artBottomDim = this.add.rectangle(0, finalArtY + artRect.height * 0.28, artRect.width, artRect.height * 0.44, 0x020617, 0.24);
+      .setStrokeStyle(1, 0x93c5fd, 0.16);
+    // Board-only readability polish: prioritize separation/clarity over global brightness.
+    const artLocalContrast = this.add.rectangle(0, finalArtY, artRect.width, artRect.height, 0x000000, 0.05);
+    const artShade = this.add.rectangle(0, finalArtY - artRect.height * 0.17, artRect.width, artRect.height * 0.52, CARD_COLORS.artTop, 0.34);
+    const artBottomDim = this.add.rectangle(0, finalArtY + artRect.height * 0.29, artRect.width, artRect.height * 0.42, 0x020617, 0.30);
 
-    return [cardBack, inner, art, artStroke, artReadabilityLift, artShade, artBottomDim, stats];
+    return [cardBack, inner, artBackdrop, art, artStroke, artLocalContrast, artShade, artBottomDim, stats];
   }
 
   refreshBoardLabels() {
