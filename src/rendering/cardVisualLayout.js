@@ -750,6 +750,7 @@ export function calculateCardArtworkCoverPosition(zone, sourceWidth = 512, sourc
 }
 
 export function createCardArtwork(scene, zone, card, options = {}) {
+  const artPlacementMode = options.artPlacementMode === 'maskedOffset' ? 'maskedOffset' : 'crop';
   const textureKey = getCardArtTextureKey(scene, card, options);
   const hasExplicitArtRect = options.artRect
     && Number.isFinite(options.artRect.x)
@@ -765,7 +766,25 @@ export function createCardArtwork(scene, zone, card, options = {}) {
     const sourceHeight = texture?.height ?? image.height;
     const crop = calculateCardArtworkCoverPosition(zone, sourceWidth, sourceHeight, options);
     image.setDisplaySize(crop.displayWidth, crop.displayHeight);
-    image.setCrop(crop.cropX, crop.cropY, crop.cropWidth, crop.cropHeight);
+    if (artPlacementMode !== 'maskedOffset') {
+      image.setCrop(crop.cropX, crop.cropY, crop.cropWidth, crop.cropHeight);
+    } else {
+      const viewport = scene.add.container(zone.centerX, zone.centerY);
+      image.setPosition(0, (crop.artPositionY - 0.5) * Math.max(0, crop.displayHeight - zone.height));
+      viewport.add(image);
+      if (canCreateGeometryMask) {
+        const artMaskShape = scene.make.graphics({ x: 0, y: 0, add: false });
+        artMaskShape.fillStyle(0xffffff, 1);
+        artMaskShape.fillRect(zone.x, zone.y, zone.width, zone.height);
+        const artMask = artMaskShape.createGeometryMask();
+        viewport.setMask(artMask);
+        viewport.artMaskShape = artMaskShape;
+        viewport.artMask = artMask;
+      }
+      viewport.cropDebugMetrics = crop;
+      viewport.artPlacementMode = artPlacementMode;
+      return viewport;
+    }
     if (options.lockDisplayToZone) {
       image.setDisplaySize(zone.width, zone.height);
     }
@@ -869,6 +888,7 @@ export function createCardPreviewView(scene, {
   pulseChangedStats = false,
   temporaryArtCropY01 = null,
   temporaryArtCropYOffset = 0,
+  artPlacementMode = 'crop',
 } = {}) {
   const zones = getCardLayoutZones(width, height);
   const baseTypography = getCardTypography(width, height);
@@ -915,6 +935,7 @@ export function createCardPreviewView(scene, {
   const art = createCardArtwork(scene, zones.art, card, {
     enableCardIllustration,
     artPositionY: effectiveArtPositionY,
+    artPlacementMode,
   });
   const namePanel = scene.add.rectangle(zones.name.centerX, zones.name.centerY, zones.name.width, zones.name.height, CARD_COLORS.namePanel, 0.95)
     .setStrokeStyle(1, accentColor, card ? (typographyScale > 1 ? 0.52 : 0.44) : 0.14);
