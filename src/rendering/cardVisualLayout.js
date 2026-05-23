@@ -773,9 +773,11 @@ export function createCardArtwork(scene, zone, card, options = {}) {
       image.setPosition(0, (crop.artPositionY - 0.5) * Math.max(0, crop.displayHeight - zone.height));
       viewport.add(image);
       if (canCreateGeometryMask) {
-        const artMaskShape = scene.make.graphics({ x: 0, y: 0, add: false });
+        const artMaskShape = scene.add.graphics();
         artMaskShape.fillStyle(0xffffff, 1);
-        artMaskShape.fillRect(zone.x, zone.y, zone.width, zone.height);
+        artMaskShape.fillRect(-zone.width / 2, -zone.height / 2, zone.width, zone.height);
+        artMaskShape.setVisible(false);
+        viewport.add(artMaskShape);
         const artMask = artMaskShape.createGeometryMask();
         viewport.setMask(artMask);
         viewport.artMaskShape = artMaskShape;
