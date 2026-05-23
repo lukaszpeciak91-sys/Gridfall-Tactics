@@ -94,6 +94,8 @@ test('standardized card illustrations render only when callers enable them', () 
   const enabledArtwork = createCardArtwork(scene, artZone, { id: 'aggro_runner_1' }, { enableCardIllustration: true });
   assert.equal(enabledArtwork.type, 'image');
   assert.equal(enabledArtwork.key, 'card.aggro.aggro_01');
+  assert.equal(enabledArtwork.displayWidth, artZone.width);
+  assert.equal(enabledArtwork.displayHeight, artZone.height);
   assert.equal(enabledArtwork.crop.x, 0);
   assert.equal(enabledArtwork.crop.width, 512);
   assert.ok(Math.abs(enabledArtwork.crop.y - 42.6667) < 0.001);
