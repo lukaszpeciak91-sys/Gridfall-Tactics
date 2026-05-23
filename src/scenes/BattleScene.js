@@ -4591,6 +4591,7 @@ export default class BattleScene extends Phaser.Scene {
     const unitWidth = Math.max(1, cell.background.width - 8);
     const unitHeight = Math.max(1, cell.background.height - 8);
     const horizontalPad = Math.max(3, Math.round(unitWidth * 0.04));
+    const artHorizontalInset = Math.max(2, Math.min(4, Math.round(unitWidth * 0.018)));
     const verticalPad = Math.max(2, Math.round(unitHeight * 0.028));
     const statEdgeInset = Math.max(1, Math.round(unitHeight * 0.009));
     const statGap = Math.max(2, Math.round(unitHeight * 0.01));
@@ -4615,15 +4616,15 @@ export default class BattleScene extends Phaser.Scene {
       };
     const artRect = isEnemyUnit
       ? {
-        x: -unitWidth / 2 + horizontalPad,
+        x: -unitWidth / 2 + artHorizontalInset,
         y: topInnerY,
-        width: artWidth,
+        width: Math.max(1, unitWidth - artHorizontalInset * 2),
         height: Math.max(1, Math.min(artHeight, statsRect.y - statGap - topInnerY)),
       }
       : {
-        x: -unitWidth / 2 + horizontalPad,
+        x: -unitWidth / 2 + artHorizontalInset,
         y: statsRect.y + statsRect.height + statGap,
-        width: artWidth,
+        width: Math.max(1, unitWidth - artHorizontalInset * 2),
         height: Math.max(1, Math.min(artHeight, bottomInnerY - (statsRect.y + statsRect.height + statGap))),
       };
     const topArtY = artRect.y + artRect.height / 2;
