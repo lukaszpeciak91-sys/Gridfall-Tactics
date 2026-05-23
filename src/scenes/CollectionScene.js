@@ -12,7 +12,7 @@ import { preloadAllCardIllustrations } from '../rendering/cardIllustrationAssets
 import { getActiveLocale, translateActive } from '../localization/localeService.js';
 import { createModalBackButton } from '../ui/modalControls.js';
 import { preloadSecondaryButtonAsset } from '../ui/imageButton.js';
-import { CARD_COLORS, createCardPreviewView, getDefaultCardAccentColor } from '../rendering/cardVisualLayout.js';
+import { CARD_COLORS, createCardPreviewView, getCardLayoutZones, getDefaultCardAccentColor } from '../rendering/cardVisualLayout.js';
 import { HAND_CARD_ASPECT_RATIO } from '../ui/handLayout.js';
 import {
   HAND_CARD_BODY_LINE_SPACING,
@@ -338,6 +338,7 @@ export default class CollectionScene extends Phaser.Scene {
       showCardNumber: true,
       temporaryArtCropY01: this.getCardArtPositionY(card),
       temporaryArtCropYOffset: 0,
+      artPlacementMode: 'maskedOffset',
     });
 
     previewView.root.setAlpha(0).setScale(0.92);
@@ -652,9 +653,13 @@ export default class CollectionScene extends Phaser.Scene {
 
   createCardArtCropDebugGuides(bounds, artPositionY) {
     const debug = this.ensureCardArtCropDebugState();
-    const art = this.inspectPreview?.art;
-    if (!art?.getBounds) return;
-    const artBounds = art.getBounds();
+    const zones = getCardLayoutZones(bounds.width, bounds.height);
+    const artBounds = new Phaser.Geom.Rectangle(
+      bounds.x - (bounds.width / 2) + zones.art.x,
+      bounds.y - (bounds.height / 2) + zones.art.y,
+      zones.art.width,
+      zones.art.height,
+    );
     const centerLine = this.add.rectangle(artBounds.centerX, artBounds.centerY, artBounds.width, 2, 0x22d3ee, 0.95).setDepth(INSPECT_CARD_DEPTH + 8).setScrollFactor(0);
     const topSafe = this.add.rectangle(artBounds.centerX, artBounds.y + artBounds.height * 0.2, artBounds.width, 1, 0xf8fafc, 0.45).setDepth(INSPECT_CARD_DEPTH + 8).setScrollFactor(0);
     const bottomSafe = this.add.rectangle(artBounds.centerX, artBounds.bottom - artBounds.height * 0.2, artBounds.width, 1, 0xf8fafc, 0.45).setDepth(INSPECT_CARD_DEPTH + 8).setScrollFactor(0);
