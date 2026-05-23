@@ -13,14 +13,25 @@ export function getCardArtCropOverride(cardOrCardId) {
   const override = CARD_ART_CROP_OVERRIDES[String(cardId)];
   if (!override) return null;
 
-  const yOffset = Number(override.yOffset);
-  if (!Number.isFinite(yOffset)) return null;
+  const cropY01 = Number(override.cropY01);
+  if (Number.isFinite(cropY01)) {
+    return { cropY01 };
+  }
 
-  return { yOffset };
+  const yOffset = Number(override.yOffset);
+  if (Number.isFinite(yOffset)) {
+    return { yOffset };
+  }
+
+  return null;
 }
 
 export function getCardArtCropYOffset(cardOrCardId) {
   return getCardArtCropOverride(cardOrCardId)?.yOffset ?? 0;
+}
+
+export function getCardArtCropY01(cardOrCardId) {
+  return getCardArtCropOverride(cardOrCardId)?.cropY01 ?? null;
 }
 
 export { CARD_ART_CROP_OVERRIDES };

@@ -66,7 +66,7 @@ Board rendering therefore currently uses **reserved/placeholder artwork zones**,
 
 ### Does the crop differ between views?
 
-Yes, but only because the artwork-zone dimensions differ. The crop algorithm is the same center-cover algorithm plus the same `3%` upward source-space bias for every illustration-enabled card view. There is no per-view focal crop metadata. A single scoped per-card test override exists at `src/data/presentation/cardArtCropOverrides.js` for `aggro_flanker_1` (`yOffset: -0.08`) and is applied in the shared preview renderer.
+Yes, but only because the artwork-zone dimensions differ. The crop algorithm is the same center-cover algorithm plus the same `3%` upward source-space bias for every illustration-enabled card view. There is no per-view focal crop metadata. Per-card override data now prefers `cropY01` (normalized legal vertical crop position) with legacy `yOffset` retained as backward-compatible fallback when `cropY01` is missing.
 
 | Surface | Production illustration textures? | Current behavior | Typical visible source from `512x768` |
 | --- | --- | --- | --- |
