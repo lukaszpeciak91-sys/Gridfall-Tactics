@@ -4595,19 +4595,42 @@ export default class BattleScene extends Phaser.Scene {
     const statEdgeInset = Math.max(1, Math.round(unitHeight * 0.012));
     const statGap = Math.max(2, Math.round(unitHeight * 0.014));
     const statHeight = Math.max(21, Math.min(30, Math.round(unitHeight * 0.17)));
+    const artHeight = Math.max(1, unitHeight - verticalPad * 2 - statHeight - statGap - statEdgeInset * 2);
     const artWidth = Math.max(1, unitWidth - horizontalPad * 2);
-    const baseArtHeight = Math.max(1, unitHeight - verticalPad * 2 - statHeight - statGap - statEdgeInset * 2);
-    const maxArtHeight = Math.max(1, baseArtHeight + Math.max(0, verticalPad * 2 + statEdgeInset * 2));
-    const artHeight = Math.min(maxArtHeight, baseArtHeight + BOARD_CARD_ART_HEIGHT_EXPANSION_PX);
     const isEnemyUnit = unit.owner === 'enemy';
-    const topEdgeY = -unitHeight / 2 + verticalPad;
-    const bottomEdgeY = unitHeight / 2 - verticalPad;
-    const topStatY = topEdgeY + statEdgeInset + statHeight / 2;
-    const bottomStatY = bottomEdgeY - statEdgeInset - statHeight / 2;
-    const topArtTopY = topStatY + statHeight / 2 + statGap;
-    const bottomArtTopY = bottomStatY - statHeight / 2 - statGap - artHeight;
-    const artTopY = isEnemyUnit ? topArtTopY : bottomArtTopY;
-    const finalArtY = artTopY + artHeight / 2;
+    const topInnerY = -unitHeight / 2 + verticalPad;
+    const bottomInnerY = unitHeight / 2 - verticalPad;
+    const statsRect = isEnemyUnit
+      ? {
+        x: -unitWidth / 2 + horizontalPad,
+        y: bottomInnerY - statEdgeInset - statHeight,
+        width: artWidth,
+        height: statHeight,
+      }
+      : {
+        x: -unitWidth / 2 + horizontalPad,
+        y: topInnerY + statEdgeInset,
+        width: artWidth,
+        height: statHeight,
+      };
+    const artRect = isEnemyUnit
+      ? {
+        x: -unitWidth / 2 + horizontalPad,
+        y: topInnerY,
+        width: artWidth,
+        height: Math.max(1, Math.min(artHeight, statsRect.y - statGap - topInnerY)),
+      }
+      : {
+        x: -unitWidth / 2 + horizontalPad,
+        y: statsRect.y + statsRect.height + statGap,
+        width: artWidth,
+        height: Math.max(1, Math.min(artHeight, bottomInnerY - (statsRect.y + statsRect.height + statGap))),
+      };
+    const topArtY = artRect.y + artRect.height / 2;
+    const bottomArtY = artRect.y + artRect.height / 2;
+    const topStatY = statsRect.y + statsRect.height / 2;
+    const bottomStatY = statsRect.y + statsRect.height / 2;
+    const finalArtY = isEnemyUnit ? topArtY : bottomArtY;
     const finalStatY = isEnemyUnit ? bottomStatY : topStatY;
     const ownerAccent = unit.owner === 'enemy' ? 0xf87171 : 0x60a5fa;
 
@@ -4622,34 +4645,22 @@ export default class BattleScene extends Phaser.Scene {
       changedStats,
       pulseChangedStats: changedStats.length > 0,
     });
-    const artRect = {
-      x: -artWidth / 2,
-      y: artTopY,
-      width: artWidth,
-      height: artHeight,
-    };
-    const artMaskRect = {
-      x: cell.label.x + artRect.x,
-      y: cell.label.y + artRect.y,
-      width: artRect.width,
-      height: artRect.height,
-    };
     const art = createCardArtwork(this, {
       ...artRect,
       centerX: 0,
       centerY: finalArtY,
     }, unit, {
       enableCardIllustration: true,
-      artRect: artMaskRect,
+      lockDisplayToZone: true,
       artPositionY: isEnemyUnit
         ? BOARD_CARD_ARTWORK_ENEMY_CROP_POSITION_Y
         : BOARD_CARD_ARTWORK_PLAYER_CROP_POSITION_Y,
     });
-    const artStroke = this.add.rectangle(0, finalArtY, artWidth, artHeight)
+    const artStroke = this.add.rectangle(0, finalArtY, artRect.width, artRect.height)
       .setFillStyle(0x000000, 0)
       .setStrokeStyle(1, 0x38bdf8, 0.12);
-    const artShade = this.add.rectangle(0, finalArtY - artHeight * 0.18, artWidth, artHeight * 0.52, CARD_COLORS.artTop, 0.34);
-    const artBottomDim = this.add.rectangle(0, finalArtY + artHeight * 0.28, artWidth, artHeight * 0.44, 0x020617, 0.28);
+    const artShade = this.add.rectangle(0, finalArtY - artRect.height * 0.18, artRect.width, artRect.height * 0.52, CARD_COLORS.artTop, 0.34);
+    const artBottomDim = this.add.rectangle(0, finalArtY + artRect.height * 0.28, artRect.width, artRect.height * 0.44, 0x020617, 0.28);
 
     return [cardBack, inner, art, artStroke, artShade, artBottomDim, stats];
   }

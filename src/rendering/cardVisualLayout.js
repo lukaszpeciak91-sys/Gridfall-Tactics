@@ -766,6 +766,9 @@ export function createCardArtwork(scene, zone, card, options = {}) {
     const crop = calculateCardArtworkCoverPosition(zone, sourceWidth, sourceHeight, options);
     image.setDisplaySize(crop.displayWidth, crop.displayHeight);
     image.setCrop(crop.cropX, crop.cropY, crop.cropWidth, crop.cropHeight);
+    if (options.lockDisplayToZone) {
+      image.setDisplaySize(zone.width, zone.height);
+    }
     if (artRect && canCreateGeometryMask) {
       const artMaskShape = scene.make.graphics({ x: 0, y: 0, add: false });
       artMaskShape.fillStyle(0xffffff, 1);
@@ -779,16 +782,18 @@ export function createCardArtwork(scene, zone, card, options = {}) {
     return image;
   }
 
-  const placeholder = createArtPlaceholder(scene, zone);
-  if (artRect && canCreateGeometryMask) {
-    const artMaskShape = scene.make.graphics({ x: 0, y: 0, add: false });
-    artMaskShape.fillStyle(0xffffff, 1);
-    artMaskShape.fillRect(artRect.x, artRect.y, artRect.width, artRect.height);
-    const artMask = artMaskShape.createGeometryMask();
-    placeholder.setMask(artMask);
-    placeholder.artMaskShape = artMaskShape;
-    placeholder.artMask = artMask;
+  if (!(artRect && canCreateGeometryMask)) {
+    return createArtPlaceholder(scene, zone);
   }
+
+  const placeholder = createArtPlaceholder(scene, zone);
+  const artMaskShape = scene.make.graphics({ x: 0, y: 0, add: false });
+  artMaskShape.fillStyle(0xffffff, 1);
+  artMaskShape.fillRect(artRect.x, artRect.y, artRect.width, artRect.height);
+  const artMask = artMaskShape.createGeometryMask();
+  placeholder.setMask(artMask);
+  placeholder.artMaskShape = artMaskShape;
+  placeholder.artMask = artMask;
   return placeholder;
 }
 
