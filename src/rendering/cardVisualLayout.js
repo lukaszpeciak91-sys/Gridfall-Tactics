@@ -751,6 +751,13 @@ export function calculateCardArtworkCoverPosition(zone, sourceWidth = 512, sourc
 
 export function createCardArtwork(scene, zone, card, options = {}) {
   const textureKey = getCardArtTextureKey(scene, card, options);
+  const hasExplicitArtRect = options.artRect
+    && Number.isFinite(options.artRect.x)
+    && Number.isFinite(options.artRect.y)
+    && Number.isFinite(options.artRect.width)
+    && Number.isFinite(options.artRect.height);
+  const artRect = hasExplicitArtRect ? options.artRect : null;
+  const canCreateGeometryMask = typeof scene.make?.graphics === 'function';
   if (textureKey && scene.textures?.exists?.(textureKey)) {
     const image = scene.add.image(zone.centerX, zone.centerY, textureKey);
     const texture = image.texture?.getSourceImage?.();
@@ -759,11 +766,30 @@ export function createCardArtwork(scene, zone, card, options = {}) {
     const crop = calculateCardArtworkCoverPosition(zone, sourceWidth, sourceHeight, options);
     image.setDisplaySize(crop.displayWidth, crop.displayHeight);
     image.setCrop(crop.cropX, crop.cropY, crop.cropWidth, crop.cropHeight);
+    if (artRect && canCreateGeometryMask) {
+      const artMaskShape = scene.make.graphics({ x: 0, y: 0, add: false });
+      artMaskShape.fillStyle(0xffffff, 1);
+      artMaskShape.fillRect(artRect.x, artRect.y, artRect.width, artRect.height);
+      const artMask = artMaskShape.createGeometryMask();
+      image.setMask(artMask);
+      image.artMaskShape = artMaskShape;
+      image.artMask = artMask;
+    }
     image.cropDebugMetrics = crop;
     return image;
   }
 
-  return createArtPlaceholder(scene, zone);
+  const placeholder = createArtPlaceholder(scene, zone);
+  if (artRect && canCreateGeometryMask) {
+    const artMaskShape = scene.make.graphics({ x: 0, y: 0, add: false });
+    artMaskShape.fillStyle(0xffffff, 1);
+    artMaskShape.fillRect(artRect.x, artRect.y, artRect.width, artRect.height);
+    const artMask = artMaskShape.createGeometryMask();
+    placeholder.setMask(artMask);
+    placeholder.artMaskShape = artMaskShape;
+    placeholder.artMask = artMask;
+  }
+  return placeholder;
 }
 
 

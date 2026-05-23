@@ -4618,15 +4618,19 @@ export default class BattleScene extends Phaser.Scene {
       changedStats,
       pulseChangedStats: changedStats.length > 0,
     });
-    const art = createCardArtwork(this, {
+    const artRect = {
       x: -artWidth / 2,
       y: finalArtY - artHeight / 2,
       width: artWidth,
       height: artHeight,
+    };
+    const art = createCardArtwork(this, {
+      ...artRect,
       centerX: 0,
       centerY: finalArtY,
     }, unit, {
       enableCardIllustration: true,
+      artRect,
       artPositionY: isEnemyUnit
         ? BOARD_CARD_ARTWORK_ENEMY_CROP_POSITION_Y
         : BOARD_CARD_ARTWORK_PLAYER_CROP_POSITION_Y,
