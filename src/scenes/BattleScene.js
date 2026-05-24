@@ -193,6 +193,7 @@ export default class BattleScene extends Phaser.Scene {
     this.boardCellLongPressEvent = null;
     this.pressedBoardCellIndex = null;
     this.boardLongPressTriggeredIndex = null;
+    this.boardPointerDownSelectedSwapSource = false;
     this.navigationInProgress = false;
     this.pointerInputGuardActive = false;
     this.pointerInputGuardEventId = null;
@@ -274,6 +275,7 @@ export default class BattleScene extends Phaser.Scene {
     this.boardCellLongPressEvent = null;
     this.pressedBoardCellIndex = null;
     this.boardLongPressTriggeredIndex = null;
+    this.boardPointerDownSelectedSwapSource = false;
     this.navigationInProgress = false;
     this.pointerInputGuardActive = false;
     this.pointerInputGuardEventId = null;
@@ -1793,6 +1795,8 @@ export default class BattleScene extends Phaser.Scene {
     this.cancelBoardCellLongPress();
     this.pressedBoardCellIndex = boardIndex;
     this.boardLongPressTriggeredIndex = null;
+    this.boardPointerDownSelectedSwapSource = false;
+    this.trySelectImplicitSwapSourceOnPointerDown(boardIndex);
     this.startBoardCellLongPress(boardIndex);
   }
 
@@ -1805,6 +1809,12 @@ export default class BattleScene extends Phaser.Scene {
       if (this.battleResultModalShown || this.isFlowResolving || this.isEffectCastResolving || this.playerActionUsed) return;
 
       if (this.showBoardUnitInspect(boardIndex)) {
+        if (this.boardPointerDownSelectedSwapSource && this.pendingSwapIndex === boardIndex) {
+          this.pendingSwapIndex = null;
+          this.clearSwapPrompt();
+          this.resetCardHighlights({ showPreview: false });
+          this.updateActionButtonLabel();
+        }
         this.boardLongPressTriggeredIndex = boardIndex;
       }
     });
@@ -1827,10 +1837,18 @@ export default class BattleScene extends Phaser.Scene {
 
     if (this.boardLongPressTriggeredIndex === boardIndex) {
       this.boardLongPressTriggeredIndex = null;
+      this.boardPointerDownSelectedSwapSource = false;
+      return;
+    }
+
+    if (this.boardPointerDownSelectedSwapSource && this.pendingSwapIndex === boardIndex) {
+      this.boardLongPressTriggeredIndex = null;
+      this.boardPointerDownSelectedSwapSource = false;
       return;
     }
 
     this.boardLongPressTriggeredIndex = null;
+    this.boardPointerDownSelectedSwapSource = false;
     this.onBoardCellTap(boardIndex);
   }
 
@@ -1838,6 +1856,24 @@ export default class BattleScene extends Phaser.Scene {
     this.cancelBoardCellLongPress();
     this.pressedBoardCellIndex = null;
     this.boardLongPressTriggeredIndex = null;
+    this.boardPointerDownSelectedSwapSource = false;
+  }
+
+  trySelectImplicitSwapSourceOnPointerDown(boardIndex) {
+    if (this.pendingSwapIndex !== null) return false;
+    if (this.selectedCardId || this.targetingState || this.effectCastState) return false;
+    if (this.battleResultModalShown || this.isFlowResolving || this.isEffectCastResolving || this.playerActionUsed) return false;
+
+    const unit = this.gameState?.board?.[boardIndex] ?? null;
+    if (!unit || unit.owner !== 'player') return false;
+
+    this.pendingSwapIndex = boardIndex;
+    this.showSwapPrompt('selectAdjacent');
+    this.hoverInspectCardId = null;
+    this.clearBoardInspect({ animate: true });
+    this.resetCardHighlights({ showPreview: false });
+    this.boardPointerDownSelectedSwapSource = true;
+    return true;
   }
 
   onCardPointerDown(cardId) {
