@@ -569,13 +569,13 @@ export default class CollectionScene extends Phaser.Scene {
       if (debug.activeMode === 'crop') return;
       debug.activeMode = 'crop';
       this.refreshCardArtCropDebugUi();
-    }, { minWidth: 132, minHeight: 34, fontSize: '12px', paddingX: 10, paddingY: 5, disabled: debug.activeMode === 'crop' });
+    }, { minWidth: 132, minHeight: 34, fontSize: '12px', paddingX: 10, paddingY: 5, disabled: debug.activeMode === 'crop', active: debug.activeMode === 'crop' });
     const framingModeBtn = this.createDebugTextButton(bounds.x + 76, modeSwitcherY, 'Art Framing', () => {
       this.cardTapHandled = true;
       if (debug.activeMode === 'framing') return;
       debug.activeMode = 'framing';
       this.refreshCardArtCropDebugUi();
-    }, { minWidth: 132, minHeight: 34, fontSize: '12px', paddingX: 10, paddingY: 5, disabled: debug.activeMode === 'framing' });
+    }, { minWidth: 132, minHeight: 34, fontSize: '12px', paddingX: 10, paddingY: 5, disabled: debug.activeMode === 'framing', active: debug.activeMode === 'framing' });
     debug.toggleItems.push(cropModeBtn, framingModeBtn);
 
     if (!debug.panelVisible) return;
@@ -680,20 +680,25 @@ export default class CollectionScene extends Phaser.Scene {
       }).setOrigin(1, 0.5).setDepth(3202).setScrollFactor(0);
       debug.panelItems.push(topPanel, bottomPanel, valueLabel, upBtn, downBtn, addButton, resetButton, copyCurrentButton, copyAllButton, clearButton, countLabel, statusLabel, cardIdLabel);
     } else {
-      const framingHint = this.add.text(width * 0.5, topPanel.y - 14, 'Art Framing prototype not wired yet', {
+      const framingTitle = this.add.text(width * 0.5, topPanel.y - 40, 'ART FRAMING MODE', {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: compact ? '14px' : '16px',
+        color: '#67e8f9',
+      }).setOrigin(0.5).setDepth(3202).setScrollFactor(0);
+      const framingHint = this.add.text(width * 0.5, topPanel.y - 12, 'Prototype not wired yet', {
         fontFamily: 'Arial, sans-serif',
         fontSize: compact ? '12px' : '14px',
         color: '#f8fafc',
       }).setOrigin(0.5).setDepth(3202).setScrollFactor(0);
-      const upPlaceholder = this.createDebugTextButton(width * 0.5, topPanel.y + 20, '↑', () => {}, { minWidth: compact ? 86 : 96, minHeight: compact ? 46 : 52, fontSize: compact ? '24px' : '28px', paddingX: 12, paddingY: 8 });
-      const downPlaceholder = this.createDebugTextButton(width * 0.5, topPanel.y + 76, '↓', () => {}, { minWidth: compact ? 86 : 96, minHeight: compact ? 46 : 52, fontSize: compact ? '24px' : '28px', paddingX: 12, paddingY: 8 });
-      const resetPlaceholder = this.createDebugTextButton(width * 0.5, bottomPanel.y, 'Reset', () => {}, { minWidth: compact ? 164 : 176, minHeight: compact ? 44 : 50, fontSize: compact ? '13px' : '14px', paddingX: compact ? 12 : 16, paddingY: compact ? 7 : 8 });
-      const statusLabel = this.add.text(panelLeft + 12, topPanel.y + (compact ? 60 : 54), 'FRAMING MODE PLACEHOLDER', {
+      const upPlaceholder = this.createDebugTextButton(width * 0.5, topPanel.y + 20, '↑ (disabled)', () => {}, { minWidth: compact ? 152 : 172, minHeight: compact ? 42 : 48, fontSize: compact ? '14px' : '15px', paddingX: 12, paddingY: 8, disabled: true });
+      const downPlaceholder = this.createDebugTextButton(width * 0.5, topPanel.y + 72, '↓ (disabled)', () => {}, { minWidth: compact ? 152 : 172, minHeight: compact ? 42 : 48, fontSize: compact ? '14px' : '15px', paddingX: 12, paddingY: 8, disabled: true });
+      const resetPlaceholder = this.createDebugTextButton(width * 0.5, bottomPanel.y, 'Reset (disabled)', () => {}, { minWidth: compact ? 164 : 176, minHeight: compact ? 44 : 50, fontSize: compact ? '13px' : '14px', paddingX: compact ? 12 : 16, paddingY: compact ? 7 : 8, disabled: true });
+      const statusLabel = this.add.text(panelLeft + 12, topPanel.y + (compact ? 60 : 54), 'No crop values are edited in this mode.', {
         fontFamily: 'Arial, sans-serif',
         fontSize: '12px',
         color: '#cbd5e1',
       }).setOrigin(0, 0.5).setDepth(3202).setScrollFactor(0);
-      debug.panelItems.push(topPanel, bottomPanel, framingHint, upPlaceholder, downPlaceholder, resetPlaceholder, statusLabel);
+      debug.panelItems.push(topPanel, bottomPanel, framingTitle, framingHint, upPlaceholder, downPlaceholder, resetPlaceholder, statusLabel);
     }
   }
 
@@ -718,12 +723,13 @@ export default class CollectionScene extends Phaser.Scene {
       paddingX = 7,
       paddingY = 4,
       disabled = false,
+      active = false,
     } = options;
     const button = this.add.text(x, y, label, {
       fontFamily: 'Arial, sans-serif',
       fontSize,
-      color: '#dbeafe',
-      backgroundColor: '#0f172a66',
+      color: active ? '#082f49' : '#dbeafe',
+      backgroundColor: active ? '#67e8f9' : '#0f172a66',
       padding: { left: paddingX, right: paddingX, top: paddingY, bottom: paddingY },
       align: 'center',
     })
@@ -738,14 +744,14 @@ export default class CollectionScene extends Phaser.Scene {
     }
     const interactiveWidth = hitWidth;
     const interactiveHeight = hitHeight;
-    const background = this.add.rectangle(x, y, interactiveWidth, interactiveHeight, 0x0f172a, disabled ? 0.84 : 0.96)
-      .setStrokeStyle(1, disabled ? 0x67e8f9 : 0x38bdf8, disabled ? 0.95 : 0.55)
+    const background = this.add.rectangle(x, y, interactiveWidth, interactiveHeight, active ? 0x67e8f9 : 0x0f172a, active ? 0.96 : (disabled ? 0.84 : 0.96))
+      .setStrokeStyle(1, active ? 0xe0f2fe : (disabled ? 0x67e8f9 : 0x38bdf8), active ? 1 : (disabled ? 0.95 : 0.55))
       .setDepth(debugPanelButtonDepth)
       .setScrollFactor(0)
       .setInteractive(new Phaser.Geom.Rectangle(-interactiveWidth / 2, -interactiveHeight / 2, interactiveWidth, interactiveHeight), Phaser.Geom.Rectangle.Contains);
-    if (disabled) button.setColor('#67e8f9');
+    if (disabled && !active) button.setColor('#67e8f9');
     const buttonContainer = this.add.container(0, 0, [background, button]).setDepth(debugPanelButtonDepth);
-    this.captureDebugControlInput(background, onPress, buttonContainer);
+    if (!disabled) this.captureDebugControlInput(background, onPress, buttonContainer);
     return buttonContainer;
   }
 
