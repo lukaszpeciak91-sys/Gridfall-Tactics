@@ -11,7 +11,7 @@ import { createFloatingControl, createMuteToggleControl, requestPortraitOrientat
 import { createModalBackButton } from '../ui/modalControls.js';
 import { preloadSecondaryButtonAsset } from '../ui/imageButton.js';
 import { formatDeckSummaryEntry } from '../rendering/cardRenderModes.js';
-import { CARD_COLORS, createCardArtwork, createCardPreviewView, getBaseCardSurfaceTheme, getDefaultCardAccentColor, createStatBadges } from '../rendering/cardVisualLayout.js';
+import { CARD_COLORS, createCardArtwork, createCardPreviewView, getBaseCardSurfaceTheme, getDefaultCardAccentColor, getFactionSurfaceTheme, createStatBadges } from '../rendering/cardVisualLayout.js';
 import { getCardDisplayName, getCardTextShort } from '../localization/cardDisplay.js';
 import { getActiveLocale, translateActive } from '../localization/localeService.js';
 
@@ -1653,6 +1653,7 @@ export default class BattleScene extends Phaser.Scene {
         bodyLineSpacing: HAND_CARD_BODY_LINE_SPACING,
         enableCardIllustration: true,
         showCardNumber: true,
+        factionThemeId: this.gameState?.player?.factionKey ?? this.factionKey,
       });
 
       if (card) {
@@ -1698,6 +1699,7 @@ export default class BattleScene extends Phaser.Scene {
     baseStatValues = null,
     changedStats = [],
     pulseChangedStats = false,
+    factionThemeId = '',
   }) {
     return createCardPreviewView(this, {
       card,
@@ -1719,6 +1721,7 @@ export default class BattleScene extends Phaser.Scene {
       baseStatValues,
       changedStats,
       pulseChangedStats,
+      surfaceTheme: getFactionSurfaceTheme(factionThemeId),
     });
   }
 
@@ -4936,6 +4939,7 @@ export default class BattleScene extends Phaser.Scene {
           sourceY: cardView.baseY,
           enableCardIllustration: true,
           showCardNumber: true,
+          factionThemeId: this.gameState?.player?.factionKey ?? this.factionKey,
         };
       }
     }
@@ -4953,6 +4957,9 @@ export default class BattleScene extends Phaser.Scene {
           showCardNumber: false,
           statValues: this.getBoardUnitStats(unit),
           baseStatValues: this.getBoardUnitBaseStats(unit),
+          factionThemeId: unit.owner === 'enemy'
+            ? (this.gameState?.enemy?.factionKey ?? this.enemyFactionKey)
+            : (this.gameState?.player?.factionKey ?? this.factionKey),
         };
       }
     }
@@ -4991,6 +4998,7 @@ export default class BattleScene extends Phaser.Scene {
       showCardNumber: inspectRequest.showCardNumber,
       statValues: inspectRequest.statValues ?? null,
       baseStatValues: inspectRequest.baseStatValues ?? null,
+      factionThemeId: inspectRequest.factionThemeId ?? '',
     });
 
     this.applyInspectDimming(inspectRequest.cardId);

@@ -37,6 +37,70 @@ export function getBaseCardSurfaceTheme() {
   return BASE_CARD_SURFACE_THEME;
 }
 
+function mergeSurfaceTheme(baseTheme, overrideTheme = {}) {
+  return Object.freeze({
+    ...baseTheme,
+    ...(overrideTheme ?? {}),
+  });
+}
+
+export const FACTION_SURFACE_OVERRIDES = Object.freeze({
+  aggro: Object.freeze({
+    frameFill: 0x222a38,
+    frameSelectedFill: 0x374151,
+    dividerLine: 0x8f9cb1,
+    namePanelFill: 0x1a2434,
+    textPanelFill: 0x131d2d,
+    panelHighlightStroke: 0xe7dcc8,
+  }),
+  control: Object.freeze({
+    frameFill: 0x1c2a38,
+    frameSelectedFill: 0x2a3b4f,
+    dividerLine: 0x7690a2,
+    namePanelFill: 0x142336,
+    textPanelFill: 0x0f1c2d,
+    panelHighlightStroke: 0xd2e5ea,
+  }),
+  swarm: Object.freeze({
+    frameFill: 0x20273b,
+    frameSelectedFill: 0x303a54,
+    dividerLine: 0x8390b5,
+    namePanelFill: 0x182038,
+    textPanelFill: 0x11192f,
+    panelHighlightStroke: 0xdadbf2,
+  }),
+  'attrition-swarm': Object.freeze({
+    frameFill: 0x22263a,
+    frameSelectedFill: 0x32394e,
+    dividerLine: 0x8b8faa,
+    namePanelFill: 0x1a1f34,
+    textPanelFill: 0x14182c,
+    panelHighlightStroke: 0xd8d8e8,
+  }),
+  wardens: Object.freeze({
+    frameFill: 0x1e2a35,
+    frameSelectedFill: 0x2f3f4f,
+    dividerLine: 0x8798ab,
+    namePanelFill: 0x172430,
+    textPanelFill: 0x101d28,
+    panelHighlightStroke: 0xd8e3ed,
+  }),
+  tank: Object.freeze({
+    frameFill: 0x1f2836,
+    frameSelectedFill: 0x324256,
+    dividerLine: 0x8696aa,
+    namePanelFill: 0x192331,
+    textPanelFill: 0x131d2b,
+    panelHighlightStroke: 0xd7e1ea,
+  }),
+});
+
+export function getFactionSurfaceTheme(factionId = '') {
+  const normalizedFactionId = String(factionId ?? '').trim().toLowerCase();
+  const override = FACTION_SURFACE_OVERRIDES[normalizedFactionId] ?? null;
+  return override ? mergeSurfaceTheme(BASE_CARD_SURFACE_THEME, override) : BASE_CARD_SURFACE_THEME;
+}
+
 export const CARD_COLORS = Object.freeze({
   frame: BASE_CARD_SURFACE_THEME.frameFill,
   frameSelected: BASE_CARD_SURFACE_THEME.frameSelectedFill,
@@ -894,7 +958,9 @@ export function createCardPreviewView(scene, {
   pulseChangedStats = false,
   temporaryArtCropY01 = null,
   temporaryArtCropYOffset = 0,
+  surfaceTheme = BASE_CARD_SURFACE_THEME,
 } = {}) {
+  const resolvedSurfaceTheme = surfaceTheme ?? BASE_CARD_SURFACE_THEME;
   const zones = getCardLayoutZones(width, height);
   const baseTypography = getCardTypography(width, height);
   const bodyTextException = getCardBodyTextException(card, locale);
@@ -910,10 +976,10 @@ export function createCardPreviewView(scene, {
   const root = scene.add.container(x, y).setDepth(depth);
   const glow = scene.add.rectangle(0, 0, width + 8, height + 8, 0xfacc15, 0)
     .setStrokeStyle(5, 0xfacc15, 0);
-  const background = scene.add.rectangle(0, 0, width, height, CARD_COLORS.frame, frameAlpha)
+  const background = scene.add.rectangle(0, 0, width, height, resolvedSurfaceTheme.frameFill, frameAlpha)
     .setStrokeStyle(3, accentColor, card ? 0.82 : 0.7);
-  const inner = scene.add.rectangle(0, 0, width - zones.pad * 0.9, height - zones.pad * 0.9, CARD_COLORS.innerPanel, 0.4)
-    .setStrokeStyle(1, CARD_COLORS.divider, 0.11);
+  const inner = scene.add.rectangle(0, 0, width - zones.pad * 0.9, height - zones.pad * 0.9, resolvedSurfaceTheme.innerPanelFill, 0.4)
+    .setStrokeStyle(1, resolvedSurfaceTheme.dividerLine, 0.11);
   const statBadges = createStatBadges(
     scene,
     zones.statBadges.centerX,
@@ -941,13 +1007,13 @@ export function createCardPreviewView(scene, {
     enableCardIllustration,
     artPositionY: effectiveArtPositionY,
   });
-  const namePanel = scene.add.rectangle(zones.name.centerX, zones.name.centerY, zones.name.width, zones.name.height, CARD_COLORS.namePanel, 0.95)
+  const namePanel = scene.add.rectangle(zones.name.centerX, zones.name.centerY, zones.name.width, zones.name.height, resolvedSurfaceTheme.namePanelFill, 0.95)
     .setStrokeStyle(1, accentColor, card ? (typographyScale > 1 ? 0.52 : 0.44) : 0.14);
   const nameHorizontalInset = Math.max(10, zones.pad * (typographyScale > 1 ? 1.45 : 1.32));
   const nameText = scene.add.text(zones.name.centerX, zones.name.centerY, content.name || '—', {
     fontFamily: 'Arial, sans-serif',
     fontSize: `${typography.name}px`,
-    color: card ? CARD_COLORS.ivoryText : CARD_COLORS.mutedText,
+    color: card ? resolvedSurfaceTheme.textIvory : resolvedSurfaceTheme.textMuted,
     fontStyle: 'bold',
     align: 'center',
     lineSpacing: Math.max(1, Math.round(typography.name * 0.08)),
@@ -958,15 +1024,15 @@ export function createCardPreviewView(scene, {
   while (nameText.height > maxNameHeight && Number.parseFloat(nameText.style.fontSize) > minNameFontSize) {
     nameText.setFontSize(Number.parseFloat(nameText.style.fontSize) - 1);
   }
-  const textPanel = scene.add.rectangle(zones.text.centerX, zones.text.centerY, zones.text.width, zones.text.height, CARD_COLORS.textPanel, 0.93)
-    .setStrokeStyle(1, CARD_COLORS.divider, typographyScale > 1 ? 0.32 : 0.28);
+  const textPanel = scene.add.rectangle(zones.text.centerX, zones.text.centerY, zones.text.width, zones.text.height, resolvedSurfaceTheme.textPanelFill, 0.93)
+    .setStrokeStyle(1, resolvedSurfaceTheme.dividerLine, typographyScale > 1 ? 0.32 : 0.28);
   const bodyTopPadding = Math.max(5, zones.text.height * (typographyScale > 1 ? 0.11 : 0.1));
   const bodyBottomPadding = Math.max(5, zones.text.height * (typographyScale > 1 ? 0.1 : 0.09));
   const bodyText = createInlineStatText(scene, zones.text.centerX, zones.text.y + bodyTopPadding, content.body, {
     fontFamily: 'Arial, sans-serif',
     fontSize: typography.body,
     minFontSize: Math.max(8, typography.body - 2),
-    color: card ? '#cfe7ff' : CARD_COLORS.mutedText,
+    color: card ? resolvedSurfaceTheme.textBody : resolvedSurfaceTheme.textMuted,
     align: 'center',
     lineSpacing: bodyLineSpacing + bodyTextException.lineSpacingDelta,
     // Keep wrapping tied to the actual rules panel width. The panel already
@@ -975,7 +1041,7 @@ export function createCardPreviewView(scene, {
     maxHeight: zones.text.height - bodyTopPadding - bodyBottomPadding,
   });
   const dividers = [zones.art.y - zones.gap / 2, zones.name.y - zones.gap / 2, zones.text.y - zones.gap / 2]
-    .map((dividerY) => scene.add.rectangle(0, dividerY, zones.outer.width - zones.pad * 2.15, 1, CARD_COLORS.divider, 0.34));
+    .map((dividerY) => scene.add.rectangle(0, dividerY, zones.outer.width - zones.pad * 2.15, 1, resolvedSurfaceTheme.dividerLine, 0.34));
   const cardNumberOverlay = showCardNumber
     ? createCardNumberOverlay(scene, zones, card, { width, height, typographyScale })
     : null;
