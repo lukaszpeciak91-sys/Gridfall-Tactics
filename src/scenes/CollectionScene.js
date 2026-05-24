@@ -334,11 +334,12 @@ export default class CollectionScene extends Phaser.Scene {
       showCardNumber: true,
       surfaceTheme: resolveCardSurfaceTheme({ factionId: factionThemeId, mode: 'inspect' }),
     });
+    const inspectSurfaceTheme = resolveCardSurfaceTheme({ factionId: factionThemeId, mode: 'inspect' });
 
     previewView.root.setAlpha(0).setScale(0.92);
     previewView.glow.setFillStyle(0xfacc15, 0.14);
     previewView.glow.setStrokeStyle(5, 0xfacc15, 0.72);
-    previewView.background.setFillStyle(CARD_COLORS.frameSelected, 0.95);
+    previewView.background.setFillStyle(inspectSurfaceTheme.frameSelectedFill, 0.95);
     previewView.background.setStrokeStyle(5, accentColor, 1);
     previewView.selectionOutline?.setStrokeStyle(5, 0xfacc15, 0.92);
 
