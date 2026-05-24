@@ -4637,7 +4637,8 @@ export default class BattleScene extends Phaser.Scene {
 
     const cardBack = this.add.rectangle(0, 0, unitWidth, unitHeight, CARD_COLORS.frame, 0.72)
       .setStrokeStyle(2, ownerAccent, 0.62);
-    const inner = this.add.rectangle(0, 0, unitWidth - horizontalPad, unitHeight - verticalPad, CARD_COLORS.innerPanel, 0.32)
+    const boardInnerPanelColor = 0x0c1423; // +~9% value lift vs CARD_COLORS.innerPanel for board-only readability.
+    const inner = this.add.rectangle(0, 0, unitWidth - horizontalPad, unitHeight - verticalPad, boardInnerPanelColor, 0.32)
       .setStrokeStyle(1, 0xffffff, 0.045);
     const unitStats = this.currentBoardRenderStats?.[cell.index] ?? this.getBoardUnitStats(unit);
     const changedStats = this.getChangedBoardUnitStatKeys(cell.index, unit, unitStats);
