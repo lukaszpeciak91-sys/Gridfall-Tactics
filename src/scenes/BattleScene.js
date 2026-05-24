@@ -2755,6 +2755,11 @@ export default class BattleScene extends Phaser.Scene {
       }
     }
 
+    if (this.gameState?.winner) {
+      this.completeBattleFlow(500);
+      return;
+    }
+
     await this.delay(enemyActionPacing?.preCombatDelayMs ?? ENEMY_ACTION_PRE_COMBAT_DELAY_MS);
     const preCombatFeedbackSnapshot = this.captureCombatFeedbackSnapshot();
     const combatEvents = resolveCombat(this.gameState);
@@ -2888,6 +2893,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   getEnemyActionMessage(action, card) {
+    if (action?.type === 'surrender') return translateActive('ui.battle.enemySurrenders', 'ENEMY SURRENDERS');
     if (!action || action.type === 'pass') return translateActive('ui.battle.enemyPass', 'ENEMY PASS');
     const cardName = getCardDisplayName(card, getActiveLocale()) ?? translateActive('ui.common.unknownCard', 'Unknown Card');
     if (action.type === 'play-unit') return `${translateActive('ui.battle.enemyPlays', 'ENEMY PLAYS')}\n${cardName}`;
@@ -2920,6 +2926,12 @@ export default class BattleScene extends Phaser.Scene {
   enemyTakeAction(action = chooseEnemyAction(this.gameState)) {
     const cancelEnemyOrder = Boolean(this.gameState.cancelEnemyOrderThisTurn?.player);
     const isEnemyNonUnitAction = action.type === 'play-effect' || action.type === 'play-targeted-effect';
+
+    if (action.type === 'surrender') {
+      this.gameState.winner = 'player';
+      this.gameState.endingReason = 'ai_safe_surrender';
+      return { ok: true, type: 'surrender' };
+    }
 
     if (cancelEnemyOrder && isEnemyNonUnitAction) {
       this.gameState.cancelEnemyOrderThisTurn.player = false;

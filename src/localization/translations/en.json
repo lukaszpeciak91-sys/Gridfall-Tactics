@@ -352,6 +352,7 @@
       "youLose": "YOU LOSE",
       "draw": "DRAW",
       "enemyPass": "ENEMY PASS",
+      "enemySurrenders": "ENEMY SURRENDERS",
       "playerPlayed": "YOU PLAYED",
       "enemyPlays": "ENEMY PLAYS",
       "enemyRepositions": "ENEMY REPOSITIONS",
