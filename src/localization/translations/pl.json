@@ -353,6 +353,7 @@
       "draw": "REMIS",
       "enemyPass": "WRÓG PASUJE",
       "enemySurrenders": "WRÓG PODDAJE MECZ",
+      "playerNoMeaningfulActionsDetected": "Nie wykryto sensownych akcji.",
       "playerPlayed": "ZAGRANO",
       "enemyPlays": "WRÓG GRA",
       "enemyRepositions": "WRÓG ZMIENIA POZYCJE",

@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
 import { createInitialBattleState, drawCards, shuffleDeck, canPass, canPlayOrRedeploy, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, resolveTargetedUnitOnPlayEffect, getUnitAttack, getUnitArmor, toggleFirstActor, resolveTurnCapWinner, resolveImmediateNoProgressWinner, recordPassAction, performOpeningMulligan, STARTING_HAND_SIZE, MAX_OPENING_MULLIGAN_CARDS } from '../systems/GameState.js';
-import { chooseEnemyAction, recordBattleActionUse, selectOpeningMulliganCardIds } from '../systems/enemyDecision.js';
+import { chooseEnemyAction, isVerySafeConcedableState, recordBattleActionUse, selectOpeningMulliganCardIds } from '../systems/enemyDecision.js';
 import { getTargetingStateForEffect } from '../systems/cardTargeting.js';
 import { getCombatEventAttackerIndex, getCombatEventTargetIndex, getLaneLethalTargetIndexes, getLaneSimultaneousUnitClash, shouldAnimateCombatAttacker } from '../systems/combatAnimation.js';
 import { BATTLE_BACKGROUND_FALLBACK_COLOR, BATTLE_BACKGROUND_FALLBACK_COLOR_HEX, createCoverBackground, getBattleBackgroundAsset, preloadBattleBackgroundArt } from '../rendering/backgroundArt.js';
@@ -197,6 +197,7 @@ export default class BattleScene extends Phaser.Scene {
     this.turnStartBanner = null;
     this.turnStartBannerFadeOutEvent = null;
     this.hasShownOpeningTurnStartBanner = false;
+    this.playerConcedableHintState = { shownKey: null, stableChecks: 0, lastEligibleKey: null };
   }
 
   preload() {
@@ -270,6 +271,7 @@ export default class BattleScene extends Phaser.Scene {
     this.turnStartBanner = null;
     this.turnStartBannerFadeOutEvent = null;
     this.hasShownOpeningTurnStartBanner = false;
+    this.playerConcedableHintState = { shownKey: null, stableChecks: 0, lastEligibleKey: null };
   }
 
   cleanupSceneObjects({ preserveTimers = false, preserveTweens = false } = {}) {
@@ -2695,10 +2697,42 @@ export default class BattleScene extends Phaser.Scene {
     this.destroySelectedHandCardZoom({ animate: true });
     this.updateInitiativeIndicator();
     this.updateActionButtonLabel();
+    this.evaluateAndShowPlayerConcedableInfoBanner();
 
     if (this.gameState.firstActor === 'enemy') {
       this.resolveEnemyFirstTurnOpening();
     }
+  }
+
+  evaluateAndShowPlayerConcedableInfoBanner() {
+    if (!this.gameState || this.gameState.winner || this.gameState.firstActor !== 'player') return;
+    const hintState = this.playerConcedableHintState ?? { shownKey: null, stableChecks: 0, lastEligibleKey: null };
+    this.playerConcedableHintState = hintState;
+
+    const eligible = isVerySafeConcedableState(this.gameState, 'player');
+    if (!eligible) {
+      hintState.lastEligibleKey = null;
+      hintState.stableChecks = 0;
+      hintState.shownKey = null;
+      return;
+    }
+
+    const key = `php:${this.gameState.playerHP}|ehp:${this.gameState.enemyHP}|h:${this.gameState.player?.hand?.length ?? 0}|d:${this.gameState.player?.deck?.length ?? 0}|t:${this.gameState.turnsCompleted ?? 0}`;
+    if (hintState.lastEligibleKey === key) {
+      hintState.stableChecks += 1;
+    } else {
+      hintState.lastEligibleKey = key;
+      hintState.stableChecks = 1;
+    }
+    if (hintState.stableChecks < 2) return;
+    if (hintState.shownKey === key) return;
+
+    this.showPlayerConcedableInfoBanner();
+    hintState.shownKey = key;
+  }
+
+  showPlayerConcedableInfoBanner() {
+    this.showPlayerActionBanner(translateActive('ui.battle.playerNoMeaningfulActionsDetected', 'No meaningful actions detected.'));
   }
 
   async completePlayerAction(beforeStats = null, actionFeedback = [], movementFeedback = []) {
@@ -2989,6 +3023,11 @@ export default class BattleScene extends Phaser.Scene {
 
   showPlayerEffectConfirmation(card, options = {}) {
     if (!card || (this.isUnitCard(card) && !options.allowUnit)) return;
+    this.showPlayerActionBanner(this.getPlayerEffectConfirmationMessage(card));
+  }
+
+  showPlayerActionBanner(message) {
+    if (!message) return;
     this.destroyPlayerActionBanner();
 
     const { width, height, board } = this.layout;
@@ -2996,7 +3035,7 @@ export default class BattleScene extends Phaser.Scene {
     const fontSize = Math.min(18, Math.max(14, Math.floor(Math.max(board.cellWidth * 0.125, height * 0.016))));
     const targetY = board.centerY + board.cellHeight * 0.25;
     const startY = targetY + 5;
-    this.playerActionBanner = this.add.text(width * 0.5, startY, this.getPlayerEffectConfirmationMessage(card), {
+    this.playerActionBanner = this.add.text(width * 0.5, startY, message, {
       fontFamily: 'Arial, sans-serif',
       fontSize: `${fontSize}px`,
       color: '#dcfce7',

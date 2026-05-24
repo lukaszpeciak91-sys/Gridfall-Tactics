@@ -858,19 +858,22 @@ function cardIsUnknownForSafeSurrender(card) {
 }
 
 export function isVerySafeConcedableState(state, owner = 'enemy') {
-  if (!state || owner !== 'enemy') return false;
+  if (!state || (owner !== 'enemy' && owner !== 'player')) return false;
   if (noProgressWouldAlreadyResolve(state)) return false;
-  if ((state.enemyHP ?? 0) >= (state.playerHP ?? 0)) return false;
+  const selfHp = owner === 'enemy' ? (state.enemyHP ?? 0) : (state.playerHP ?? 0);
+  const opponentHp = owner === 'enemy' ? (state.playerHP ?? 0) : (state.enemyHP ?? 0);
+  if (selfHp >= opponentHp) return false;
 
-  const enemyHasUnits = getOwnerRowIndexes('enemy').some((index) => state.board?.[index]?.owner === 'enemy');
-  if (enemyHasUnits) return false;
+  const ownerHasUnits = getOwnerRowIndexes(owner).some((index) => state.board?.[index]?.owner === owner);
+  if (ownerHasUnits) return false;
 
-  const enemyHand = Array.isArray(state.enemy?.hand) ? state.enemy.hand : [];
-  const enemyDeck = Array.isArray(state.enemy?.deck) ? state.enemy.deck : [];
+  const ownerSide = owner === 'enemy' ? state.enemy : state.player;
+  const ownerHand = Array.isArray(ownerSide?.hand) ? ownerSide.hand : [];
+  const ownerDeck = Array.isArray(ownerSide?.deck) ? ownerSide.deck : [];
 
-  if (enemyHand.some(cardIsUnknownForSafeSurrender) || enemyDeck.some(cardIsUnknownForSafeSurrender)) return false;
-  if (enemyHand.some(cardIsKnownMeaningfulForSafeSurrender)) return false;
-  if (enemyDeck.some(cardIsKnownMeaningfulForSafeSurrender)) return false;
+  if (ownerHand.some(cardIsUnknownForSafeSurrender) || ownerDeck.some(cardIsUnknownForSafeSurrender)) return false;
+  if (ownerHand.some(cardIsKnownMeaningfulForSafeSurrender)) return false;
+  if (ownerDeck.some(cardIsKnownMeaningfulForSafeSurrender)) return false;
 
   return true;
 }
