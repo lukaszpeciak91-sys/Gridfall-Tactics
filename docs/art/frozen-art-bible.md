@@ -171,9 +171,17 @@ Use these as modular prompt helpers. Combine global tags with one faction set an
 
 `premium interdimensional entertainment broadcast, absurd tactical card game, pastel dystopia, black comedy, late-night multidimensional television, grotesque worlds, cosmic entertainment, dark whimsical sci-fi, weird civilization collapse, satirical multiverse, pulp multiverse fantasy, broadcast arena aesthetic, colorful apocalypse, tactical absurdism`
 
+Add readability direction to the active prompt body (or style suffix) for gameplay-facing card art:
+
+`strong focal separation, clean readable silhouette, higher midtone readability, clear value hierarchy, mobile TCG readability, gameplay-first composition, readable at small size, subject separation from background`
+
 ### Global Negative Prompt
 
 `generic cyberpunk neon, generic dark fantasy, anime proportions, photorealism, meme rendering, Marvel superhero posing, overcomplicated armor, AI slop detail overload, mobile game UI clutter, unreadable chaotic composition, excessive particle spam, grimdark monochrome, baked text, words, letters, logos, numbers, UI frame`
+
+Also avoid:
+
+`muddy midtones, fully dark subject on equally dark background, low-separation composition, overly uniform tonal range, flat global contrast, forced universal glow focal points, oversaturation for fake readability, faction style homogenization`
 
 ### Faction Prompt Tags
 

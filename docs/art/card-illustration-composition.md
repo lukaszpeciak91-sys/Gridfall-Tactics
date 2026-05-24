@@ -8,6 +8,8 @@ Card illustrations must be authored for the current mobile-first renderer, not f
 
 The problem this standard solves is composition readability, not image quality. High-detail cinematic images can fail if their focal point, gesture, or silhouette depends on uncropped top/bottom context, tiny props, edge framing, or multiple competing reads.
 
+Global art direction target: **readable at gameplay glance**. Future prompts should prioritize faster battlefield readability at small size while preserving cinematic dark fantasy/sci-fi quality, premium painterly rendering, faction identity, and rich detail.
+
 ## Current rendering audit
 
 ### Source asset contract
@@ -79,6 +81,21 @@ Yes, but only because the artwork-zone dimensions differ. The crop algorithm is 
 
 ## Formal composition rules
 
+### Prompting language baseline (global)
+
+Future illustration prompts and internal generation templates should naturally include these concepts:
+
+- strong focal separation;
+- clean readable silhouette;
+- higher midtone readability;
+- clear value hierarchy;
+- mobile TCG readability;
+- gameplay-first composition;
+- readable at small size;
+- subject separation from background.
+
+These are composition/value priorities, not mandates for generic brightness or neon highlights.
+
 ### 1. Central focal point is mandatory
 
 Every illustration must have one dominant focal read centered in the source. The primary subject can be a character, creature, object, machine, ritual core, explosion core, location landmark, symbolic shape, or abstract phenomenon, but it must read when only the middle band of the image survives.
@@ -105,6 +122,7 @@ Acceptable detail density:
 - readable value separation between subject and background;
 - a few supporting props or faction identifiers inside the safe zone;
 - texture that survives downscaling as tone, not noise.
+- higher midtone readability so the primary form still reads in dark atmospheric scenes.
 
 Unacceptable detail density:
 
@@ -113,12 +131,15 @@ Unacceptable detail density:
 - particle storms that obscure the silhouette;
 - intricate armor, machinery, or architecture that collapses into visual static;
 - background detail with equal contrast to the subject.
+- muddy midtones that collapse form separation at card size.
 
 ### 6. Background complexity must be subordinate
 
 Backgrounds should frame the focal shape and provide faction atmosphere. They should not become the focal read unless the card is intentionally an environment/location card, and even then the environment needs one dominant landmark centered in the safe zone.
 
 Use simplified value blocks, broadcast framing shapes, directional light, atmospheric gradients, or large faction motifs. Avoid high-contrast background clutter behind the subject.
+
+Subject separation from background is required even in dark palettes. Avoid fully dark subjects on equally dark backgrounds unless value or edge lighting still keeps the silhouette readable at hand-card size.
 
 ### 7. Dominant shape language must fit gameplay recognition
 
@@ -198,6 +219,9 @@ The outer `5–10%` of all sides can contain decorative overflow if it improves 
 - **One dominant gesture:** the player should immediately understand the action or role without scanning.
 - **One dominant silhouette:** avoid equal-weight groups unless they merge into one readable mass.
 - **One dominant value contrast:** keep the brightest or highest-contrast area aligned with the focal point.
+- **Strong focal separation:** the focal read should pop through shape and value structure before fine details resolve.
+- **Clear value hierarchy:** establish primary, secondary, and tertiary value groups; avoid overly uniform tonal ranges.
+- **Higher midtone readability:** preserve enough midtone separation that forms do not merge into a single dark block.
 - **Reduced competing focal points:** secondary shapes should support the primary read and be lower contrast or smaller.
 - **No wallpaper compositions:** avoid full-frame decorative patterns, crowd scenes, object inventories, or lore collages as primary card art.
 - **No off-center cinematic framing:** avoid subjects pushed to thirds, cropped to the side, or dependent on negative space outside the center.
@@ -205,6 +229,26 @@ The outer `5–10%` of all sides can contain decorative overflow if it improves 
 - **Immediate card-type distinction:** unit art should read as a subject/actor; effect art should read as an event, command, field state, object, or force.
 - **Readable faction flavor:** faction style should be visible through broad motifs, color, material, and shape language rather than hidden tiny props.
 - **Gameplay truthfulness:** art may dramatize a card, but it should not imply unrelated targeting, board position, damage scale, or faction identity.
+- **Gameplay-first composition:** beauty and atmosphere should support fast tactical reading, not fight it.
+
+### Visual direction constraints (do / do not)
+
+Maintain:
+
+- cinematic quality;
+- dark fantasy/sci-fi atmosphere;
+- premium painterly rendering;
+- faction identity and stylistic diversity;
+- rich detail that supports the focal read.
+
+Do not:
+
+- flatten global contrast to chase safety;
+- oversaturate art to force readability;
+- force glowing focal points in every composition;
+- homogenize factions into one tonal or stylistic look.
+
+Improve clarity through composition and value structure, not generic brightness.
 
 ## Board-vs-hand production stance
 
