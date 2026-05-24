@@ -11,7 +11,7 @@ import { createFloatingControl, createMuteToggleControl, requestPortraitOrientat
 import { createModalBackButton } from '../ui/modalControls.js';
 import { preloadSecondaryButtonAsset } from '../ui/imageButton.js';
 import { formatDeckSummaryEntry } from '../rendering/cardRenderModes.js';
-import { CARD_COLORS, createCardArtwork, createCardPreviewView, getDefaultCardAccentColor, createStatBadges } from '../rendering/cardVisualLayout.js';
+import { CARD_COLORS, createCardArtwork, createCardPreviewView, getBaseCardSurfaceTheme, getDefaultCardAccentColor, createStatBadges } from '../rendering/cardVisualLayout.js';
 import { getCardDisplayName, getCardTextShort } from '../localization/cardDisplay.js';
 import { getActiveLocale, translateActive } from '../localization/localeService.js';
 
@@ -148,6 +148,7 @@ const ENEMY_EFFECT_SUMMARY_OVERRIDES = Object.freeze({
   fill_empty_slots_0_1: 'Fill slots with Tokens',
   destroy_friendly_draw_1: 'Destroy ally, draw 1',
 });
+const BASE_CARD_SURFACE_THEME = getBaseCardSurfaceTheme();
 
 export default class BattleScene extends Phaser.Scene {
   constructor() {
@@ -4688,7 +4689,7 @@ export default class BattleScene extends Phaser.Scene {
 
     const cardBack = this.add.rectangle(0, 0, unitWidth, unitHeight, CARD_COLORS.frame, 0.72)
       .setStrokeStyle(2, ownerAccent, 0.62);
-    const boardInnerPanelColor = 0x0c1423; // +~9% value lift vs CARD_COLORS.innerPanel for board-only readability.
+    const boardInnerPanelColor = BASE_CARD_SURFACE_THEME.innerPanelFill;
     const inner = this.add.rectangle(0, 0, unitWidth - horizontalPad, unitHeight - verticalPad, boardInnerPanelColor, 0.32)
       .setStrokeStyle(1, 0xffffff, 0.045);
     const unitStats = this.currentBoardRenderStats?.[cell.index] ?? this.getBoardUnitStats(unit);
@@ -4709,14 +4710,14 @@ export default class BattleScene extends Phaser.Scene {
         ? BOARD_CARD_ARTWORK_ENEMY_CROP_POSITION_Y
         : BOARD_CARD_ARTWORK_PLAYER_CROP_POSITION_Y,
     });
-    const artBackdrop = this.add.rectangle(0, finalArtY, artRect.width, artRect.height, 0x020617, 0.16);
+    const artBackdrop = this.add.rectangle(0, finalArtY, artRect.width, artRect.height, BASE_CARD_SURFACE_THEME.artBackdropFill, 0.22);
     const artStroke = this.add.rectangle(0, finalArtY, artRect.width, artRect.height)
       .setFillStyle(0x000000, 0)
       .setStrokeStyle(1, 0x93c5fd, 0.16);
     // Board-only readability polish: prioritize separation/clarity over global brightness.
     const artLocalContrast = this.add.rectangle(0, finalArtY, artRect.width, artRect.height, 0x000000, 0.05);
     const artShade = this.add.rectangle(0, finalArtY - artRect.height * 0.17, artRect.width, artRect.height * 0.52, CARD_COLORS.artTop, 0.34);
-    const artBottomDim = this.add.rectangle(0, finalArtY + artRect.height * 0.29, artRect.width, artRect.height * 0.42, 0x020617, 0.30);
+    const artBottomDim = this.add.rectangle(0, finalArtY + artRect.height * 0.29, artRect.width, artRect.height * 0.42, BASE_CARD_SURFACE_THEME.artBackdropFill, 0.24);
 
     return [cardBack, inner, artBackdrop, art, artStroke, artLocalContrast, artShade, artBottomDim, stats];
   }

@@ -14,19 +14,42 @@ export const CARD_ZONE_RATIOS = Object.freeze({
 
 export const CARD_CORNER_RADIUS_RATIO = 0.055;
 
+export const BASE_CARD_SURFACE_THEME = Object.freeze({
+  frameFill: 0x1f2937,
+  frameSelectedFill: 0x334155,
+  frameEmptyFill: 0x0f172a,
+  innerPanelFill: 0x111827,
+  panelHighlightStroke: 0xe2e8f0,
+  artBackdropFill: 0x0b1220,
+  artUpperFill: 0x243043,
+  artSilhouetteFill: 0x020617,
+  artHorizonLine: 0x67e8f9,
+  dividerLine: 0x7b8aa3,
+  namePanelFill: 0x161f31,
+  textPanelFill: 0x101a2b,
+  statBackingFill: 0x0e1728,
+  textIvory: '#fff7ed',
+  textBody: '#dbeafe',
+  textMuted: '#94a3b8',
+});
+
+export function getBaseCardSurfaceTheme() {
+  return BASE_CARD_SURFACE_THEME;
+}
+
 export const CARD_COLORS = Object.freeze({
-  frame: 0x172033,
-  frameSelected: 0x334155,
-  emptyFrame: 0x111827,
-  innerPanel: 0x0b1220,
-  artTop: 0x1e293b,
-  artBottom: 0x0f172a,
-  divider: 0x64748b,
-  namePanel: 0x111827,
-  textPanel: 0x0f172a,
-  ivoryText: '#fff7ed',
-  bodyText: '#dbeafe',
-  mutedText: '#94a3b8',
+  frame: BASE_CARD_SURFACE_THEME.frameFill,
+  frameSelected: BASE_CARD_SURFACE_THEME.frameSelectedFill,
+  emptyFrame: BASE_CARD_SURFACE_THEME.frameEmptyFill,
+  innerPanel: BASE_CARD_SURFACE_THEME.innerPanelFill,
+  artTop: BASE_CARD_SURFACE_THEME.artUpperFill,
+  artBottom: BASE_CARD_SURFACE_THEME.artBackdropFill,
+  divider: BASE_CARD_SURFACE_THEME.dividerLine,
+  namePanel: BASE_CARD_SURFACE_THEME.namePanelFill,
+  textPanel: BASE_CARD_SURFACE_THEME.textPanelFill,
+  ivoryText: BASE_CARD_SURFACE_THEME.textIvory,
+  bodyText: BASE_CARD_SURFACE_THEME.textBody,
+  mutedText: BASE_CARD_SURFACE_THEME.textMuted,
 });
 
 export const CARD_STAT_STYLES = Object.freeze({
@@ -699,9 +722,9 @@ export function createStatBar(...args) {
 
 export function createArtPlaceholder(scene, zone) {
   const container = scene.add.container(zone.centerX, zone.centerY);
-  const back = scene.add.rectangle(0, 0, zone.width, zone.height, CARD_COLORS.artBottom, 0.95)
+  const back = scene.add.rectangle(0, 0, zone.width, zone.height, CARD_COLORS.artBottom, 0.92)
     .setStrokeStyle(1, 0x38bdf8, 0.16);
-  const upper = scene.add.rectangle(0, -zone.height * 0.22, zone.width, zone.height * 0.56, CARD_COLORS.artTop, 0.72);
+  const upper = scene.add.rectangle(0, -zone.height * 0.22, zone.width, zone.height * 0.56, CARD_COLORS.artTop, 0.66);
   const silhouette = scene.add.rectangle(0, zone.height * 0.04, zone.width * 0.48, zone.height * 0.62, 0x020617, 0.22)
     .setRotation(-0.08);
   const horizon = scene.add.rectangle(0, zone.height * 0.26, zone.width * 0.82, 1, 0x67e8f9, 0.18);
@@ -889,8 +912,8 @@ export function createCardPreviewView(scene, {
     .setStrokeStyle(5, 0xfacc15, 0);
   const background = scene.add.rectangle(0, 0, width, height, CARD_COLORS.frame, frameAlpha)
     .setStrokeStyle(3, accentColor, card ? 0.82 : 0.7);
-  const inner = scene.add.rectangle(0, 0, width - zones.pad * 0.9, height - zones.pad * 0.9, CARD_COLORS.innerPanel, 0.36)
-    .setStrokeStyle(1, 0xffffff, 0.055);
+  const inner = scene.add.rectangle(0, 0, width - zones.pad * 0.9, height - zones.pad * 0.9, CARD_COLORS.innerPanel, 0.4)
+    .setStrokeStyle(1, CARD_COLORS.divider, 0.11);
   const statBadges = createStatBadges(
     scene,
     zones.statBadges.centerX,
@@ -935,8 +958,8 @@ export function createCardPreviewView(scene, {
   while (nameText.height > maxNameHeight && Number.parseFloat(nameText.style.fontSize) > minNameFontSize) {
     nameText.setFontSize(Number.parseFloat(nameText.style.fontSize) - 1);
   }
-  const textPanel = scene.add.rectangle(zones.text.centerX, zones.text.centerY, zones.text.width, zones.text.height, CARD_COLORS.textPanel, 0.91)
-    .setStrokeStyle(1, 0x94a3b8, typographyScale > 1 ? 0.24 : 0.2);
+  const textPanel = scene.add.rectangle(zones.text.centerX, zones.text.centerY, zones.text.width, zones.text.height, CARD_COLORS.textPanel, 0.93)
+    .setStrokeStyle(1, CARD_COLORS.divider, typographyScale > 1 ? 0.32 : 0.28);
   const bodyTopPadding = Math.max(5, zones.text.height * (typographyScale > 1 ? 0.11 : 0.1));
   const bodyBottomPadding = Math.max(5, zones.text.height * (typographyScale > 1 ? 0.1 : 0.09));
   const bodyText = createInlineStatText(scene, zones.text.centerX, zones.text.y + bodyTopPadding, content.body, {
@@ -952,7 +975,7 @@ export function createCardPreviewView(scene, {
     maxHeight: zones.text.height - bodyTopPadding - bodyBottomPadding,
   });
   const dividers = [zones.art.y - zones.gap / 2, zones.name.y - zones.gap / 2, zones.text.y - zones.gap / 2]
-    .map((dividerY) => scene.add.rectangle(0, dividerY, zones.outer.width - zones.pad * 2.15, 1, CARD_COLORS.divider, 0.22));
+    .map((dividerY) => scene.add.rectangle(0, dividerY, zones.outer.width - zones.pad * 2.15, 1, CARD_COLORS.divider, 0.34));
   const cardNumberOverlay = showCardNumber
     ? createCardNumberOverlay(scene, zones, card, { width, height, typographyScale })
     : null;
