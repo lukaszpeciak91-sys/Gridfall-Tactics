@@ -2,16 +2,16 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-test('swap mode is explicit and uses two-tap adjacent friendly swap flow', () => {
+test('swap selection is implicit and uses pendingSwapIndex flow', () => {
   const source = readFileSync(new URL('../src/scenes/BattleScene.js', import.meta.url), 'utf8');
-  assert.match(source, /this\.actionMode === 'swap' && this\.pendingSwapIndex !== null/);
-  assert.match(source, /this\.actionMode === 'swap'\) \{\s*if \(!unit \|\| unit\.owner !== 'player'\) return;\s*this\.pendingSwapIndex = boardIndex;/);
+  assert.match(source, /if \(this\.pendingSwapIndex !== null\) \{/);
+  assert.match(source, /if \(!unit \|\| unit\.owner !== 'player'\) \{\s*this\.pendingSwapIndex = null;/);
   assert.match(source, /const result = performSwap\(this\.gameState, 'player', fromIndex, boardIndex\);/);
-  assert.match(source, /if \(!result\.ok\) \{\s*return;\s*\}/);
+  assert.match(source, /if \(!result\.ok\) \{\s*this\.clearSwapPrompt\(\);/);
   assert.match(source, /this\.completePlayerAction\(beforeStats, \[\], \[\{ type: 'swap', fromIndex, toIndex: boardIndex, label: 'SWAP', kind: 'swap' \}\]\);/);
 });
 
-test('action button enters and cancels explicit swap mode before pass', () => {
+test('pass no longer enters or cancels explicit swap mode', () => {
   const source = readFileSync(new URL('../src/scenes/BattleScene.js', import.meta.url), 'utf8');
 
   const resolvePassTurnBlock = source.slice(
@@ -19,18 +19,18 @@ test('action button enters and cancels explicit swap mode before pass', () => {
     source.indexOf('  getOpeningTurnStartBannerConfig() {'),
   );
 
-  assert.match(resolvePassTurnBlock, /if \(this\.actionMode === 'swap'\) \{\s*this\.pendingSwapIndex = null;\s*this\.actionMode = null;/);
-  assert.match(resolvePassTurnBlock, /if \(this\.canPlayerStartSwap\(\)\) \{\s*this\.actionMode = 'swap';\s*this\.pendingSwapIndex = null;/);
-  assert.doesNotMatch(resolvePassTurnBlock, /this\.isUnitCard\(selectedCard\)/);
+  assert.doesNotMatch(resolvePassTurnBlock, /actionMode === 'swap'/);
+  assert.doesNotMatch(resolvePassTurnBlock, /canPlayerStartSwap/);
 });
 
-test('action button prioritizes standalone SWAP label before PASS when swap is legal', () => {
+test('action button does not show standalone SWAP label', () => {
   const source = readFileSync(new URL('../src/scenes/BattleScene.js', import.meta.url), 'utf8');
   const updateActionButtonLabelBlock = source.slice(
     source.indexOf('  updateActionButtonLabel() {'),
     source.indexOf('  canHoldPassToSurrender() {'),
   );
-  assert.match(updateActionButtonLabelBlock, /if \(this\.canPlayerStartSwap\(\)\) \{[\s\S]*translateActive\('ui\.battle\.swapAction', 'SWAP'\)/);
+  assert.doesNotMatch(updateActionButtonLabelBlock, /swapAction/);
+  assert.doesNotMatch(updateActionButtonLabelBlock, /swapModeCancel/);
 });
 
 test('board inspect remains long-press only and suppresses quick-tap inspect', () => {
@@ -48,7 +48,7 @@ test('board inspect remains long-press only and suppresses quick-tap inspect', (
   assert.doesNotMatch(onBoardCellTapBlock, /showBoardUnitInspect\(boardIndex\)/);
 });
 
-test('scene-level pointerup routes board quick taps in swap mode even without a selected hand card', () => {
+test('scene-level pointerup routes board quick taps while pending swap exists even without a selected hand card', () => {
   const source = readFileSync(new URL('../src/scenes/BattleScene.js', import.meta.url), 'utf8');
 
   const onScenePointerUpBlock = source.slice(
@@ -56,6 +56,6 @@ test('scene-level pointerup routes board quick taps in swap mode even without a 
     source.indexOf('  clearSelectedHandInspectFromOutsideTap(pointer, currentlyOver = []) {'),
   );
 
-  assert.match(onScenePointerUpBlock, /const hasActiveBoardTapMode = this\.actionMode === 'swap' \|\| this\.pendingSwapIndex !== null;/);
+  assert.match(onScenePointerUpBlock, /const hasActiveBoardTapMode = this\.pendingSwapIndex !== null;/);
   assert.match(onScenePointerUpBlock, /if \(boardCell\) \{[\s\S]*if \(hasActiveBoardTapMode\) \{[\s\S]*this\.onBoardCellTap\(boardCell\.index\);[\s\S]*return;\s*\}/);
 });

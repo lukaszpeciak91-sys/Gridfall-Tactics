@@ -359,10 +359,9 @@
       "enemyPlays": "ENEMY PLAYS",
       "enemyRepositions": "ENEMY REPOSITIONS",
       "enemyAction": "ENEMY ACTION",
-      "swapAction": "SWAP",
       "swapPromptSelectUnit": "SWAP: select unit",
-    "swapPromptSelectAdjacent": "SWAP: select adjacent unit",
-    "effect": "Effect",
+      "swapPromptSelectAdjacent": "SWAP: select adjacent unit",
+      "effect": "Effect",
       "block": "BLOCK",
       "effectSummaries": {
         "aggro_buff_all_atk_2": "All allies +2 ATK",

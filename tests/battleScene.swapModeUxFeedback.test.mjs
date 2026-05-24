@@ -21,7 +21,7 @@ function compileMethod(name, nextName, params, prelude = '') {
   return new Function(...params, `${prelude}${body}`);
 }
 
-test('swap mode runtime flow: select, highlight, swap, clear, and invalid tap behavior', () => {
+test('implicit swap runtime flow: select, highlight, swap, clear, and invalid tap behavior', () => {
   const onBoardCellTap = compileMethod('onBoardCellTap', 'getActivePlayerEffectCard', ['boardIndex', 'performSwap']);
   const resetCardHighlights = compileMethod('resetCardHighlights', 'isUnitCard', ['options'], "const { showPreview = true } = options ?? {};\nconst BOARD_GUIDE_SLOT_STROKE_ALPHA = 0.18;\nconst BOARD_SLOT_STROKE_ALPHA = 0.36;\nconst BOARD_TARGET_STROKE_ALPHA = 0.9;\n");
 
@@ -48,7 +48,7 @@ test('swap mode runtime flow: select, highlight, swap, clear, and invalid tap be
     selectedCardId: null,
     targetingState: null,
     effectCastState: null,
-    actionMode: 'swap',
+    actionMode: null,
     pendingSwapIndex: null,
     hoverInspectCardId: null,
     gameState: state,
@@ -64,12 +64,13 @@ test('swap mode runtime flow: select, highlight, swap, clear, and invalid tap be
     })),
     clearBoardInspect: () => {},
     resetCardHighlights: function (opts) { return resetCardHighlights.call(this, opts); },
+    updateActionButtonLabel: () => {},
     showSelectedHandCardZoom: () => {},
     destroySelectedHandCardZoom: () => {},
     isValidTarget: () => false,
     captureBoardStats: () => ({}),
     completeCalls: 0,
-    completePlayerAction: function () { this.completeCalls += 1; this.actionMode = null; this.pendingSwapIndex = null; },
+    completePlayerAction: function () { this.completeCalls += 1; this.pendingSwapIndex = null; },
     showSwapPrompt: () => {},
     clearSwapPrompt: () => {},
     getActivePlayerEffectCard: () => null,
@@ -85,11 +86,13 @@ test('swap mode runtime flow: select, highlight, swap, clear, and invalid tap be
   assert.equal(strokes.get(6)?.strokeColor, 0xfacc15);
   assert.equal(strokes.get(7)?.strokeColor, 0x22c55e);
 
-  // Invalid tap in swap mode: enemy/empty tap should not consume action.
+  // Invalid tap in swap mode: enemy/empty tap should cancel and not consume action.
   onBoardCellTap.call(scene, 8, (s, owner, from, to) => ({ ok: false }));
+  assert.equal(scene.pendingSwapIndex, null);
   assert.equal(scene.completeCalls, 0);
 
   // Valid second tap performs swap and completes action.
+  onBoardCellTap.call(scene, 6, (s, owner, from, to) => ({ ok: true }));
   onBoardCellTap.call(scene, 7, (s, owner, from, to) => {
     const temp = s.board[from];
     s.board[from] = s.board[to];
@@ -97,7 +100,6 @@ test('swap mode runtime flow: select, highlight, swap, clear, and invalid tap be
     return { ok: true };
   });
   assert.equal(scene.completeCalls, 1);
-  assert.equal(scene.actionMode, null);
   assert.equal(scene.pendingSwapIndex, null);
   assert.equal(scene.gameState.board[6].id, 'B');
   assert.equal(scene.gameState.board[7].id, 'A');
