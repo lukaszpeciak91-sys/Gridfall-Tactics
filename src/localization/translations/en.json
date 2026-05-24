@@ -353,6 +353,7 @@
       "draw": "DRAW",
       "enemyPass": "ENEMY PASS",
       "enemySurrenders": "ENEMY SURRENDERS",
+      "playerNoMeaningfulActionsDetected": "No meaningful actions detected.",
       "playerPlayed": "YOU PLAYED",
       "enemyPlays": "ENEMY PLAYS",
       "enemyRepositions": "ENEMY REPOSITIONS",

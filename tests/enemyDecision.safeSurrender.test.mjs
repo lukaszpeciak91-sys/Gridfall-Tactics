@@ -88,3 +88,55 @@ test('equal-HP frozen states keep passing and do not surrender', () => {
   assert.equal(first.type, 'pass');
   assert.equal(second.type, 'pass');
 });
+
+test('player-side strict concedable detection eligible only in safe state', () => {
+  const state = createState();
+  state.firstActor = 'player';
+  state.playerHP = 4;
+  state.enemyHP = 7;
+  state.player.hand = [];
+  state.player.deck = [];
+  state.enemy.hand = [];
+  state.enemy.deck = [{ id: 'e-future', name: 'E Future', type: 'unit', attack: 2, hp: 2, armor: 0, effectId: null }];
+  assert.equal(isVerySafeConcedableState(state, 'player'), true);
+});
+
+test('player-side concedable detection blocked by hp parity, board presence, meaningful and unknown cards', () => {
+  const hpState = createState();
+  hpState.playerHP = 8;
+  hpState.enemyHP = 8;
+  assert.equal(isVerySafeConcedableState(hpState, 'player'), false);
+
+  const boardState = createState();
+  boardState.playerHP = 4;
+  boardState.enemyHP = 7;
+  boardState.player.hand = [];
+  boardState.player.deck = [];
+  boardState.board[6] = { id: 'p-u', cardId: 'p-u', name: 'P U', type: 'unit', owner: 'player', attack: 0, hp: 2, maxHp: 2, armor: 0, effectId: null };
+  assert.equal(isVerySafeConcedableState(boardState, 'player'), false);
+
+  const meaningfulState = createState();
+  meaningfulState.playerHP = 4;
+  meaningfulState.enemyHP = 7;
+  meaningfulState.player.hand = [{ id: 'summon', name: 'Summon', type: 'order', effectId: 'summon_grunt_empty_slot' }];
+  meaningfulState.player.deck = [];
+  assert.equal(isVerySafeConcedableState(meaningfulState, 'player'), false);
+
+  const unknownState = createState();
+  unknownState.playerHP = 4;
+  unknownState.enemyHP = 7;
+  unknownState.player.hand = [{ id: 'mystery', name: 'Mystery', type: 'order', effectId: 'unknown_effect_xyz' }];
+  unknownState.player.deck = [];
+  assert.equal(isVerySafeConcedableState(unknownState, 'player'), false);
+});
+
+test('player-side concedable detection blocked when immediate no-progress already resolves', () => {
+  const state = createState();
+  state.playerHP = 1;
+  state.enemyHP = 9;
+  state.player.hand = [];
+  state.player.deck = [];
+  state.enemy.hand = [];
+  state.enemy.deck = [];
+  assert.equal(isVerySafeConcedableState(state, 'player'), false);
+});
