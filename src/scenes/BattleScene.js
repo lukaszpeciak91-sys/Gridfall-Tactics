@@ -2322,8 +2322,6 @@ export default class BattleScene extends Phaser.Scene {
       if (!result.ok) return;
       if (result.type === 'targeted-effect' && this.gameState.cancelEnemyOrderThisTurn?.enemy) {
         this.gameState.cancelEnemyOrderThisTurn.enemy = false;
-        this.refreshAfterPlayerAction();
-        return;
       }
       const movementFeedback = this.buildMovementFeedbackForAction({
         effectId: selectedCard.effectId,
@@ -2446,13 +2444,6 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
-    if (this.gameState.cancelEnemyOrderThisTurn?.enemy) {
-      this.gameState.cancelEnemyOrderThisTurn.enemy = false;
-      this.isEffectCastResolving = false;
-      this.refreshAfterPlayerAction();
-      return;
-    }
-
     const beforeStats = this.captureBoardStats();
     const result = playEffectCard(this.gameState, 'player', card.id);
     this.isEffectCastResolving = false;
@@ -2461,6 +2452,9 @@ export default class BattleScene extends Phaser.Scene {
       this.resetCardHighlights({ showPreview: false });
       this.updateActionButtonLabel();
       return;
+    }
+    if (result.type === 'effect' && this.gameState.cancelEnemyOrderThisTurn?.enemy) {
+      this.gameState.cancelEnemyOrderThisTurn.enemy = false;
     }
     const movementFeedback = this.buildMovementFeedbackForAction({
       effectId: card.effectId,
@@ -2734,8 +2728,6 @@ export default class BattleScene extends Phaser.Scene {
     if (!result.ok || result.type === 'targeted-effect-pending' || result.type === 'unit-on-play-targeted-effect-pending') return;
     if (result.type === 'targeted-effect' && this.gameState.cancelEnemyOrderThisTurn?.enemy) {
       this.gameState.cancelEnemyOrderThisTurn.enemy = false;
-      this.refreshAfterPlayerAction();
-      return;
     }
     this.showPlayerEffectConfirmation(selectedCard);
     const movementFeedback = this.buildMovementFeedbackForAction({
