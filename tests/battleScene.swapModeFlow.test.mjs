@@ -37,3 +37,15 @@ test('board inspect remains long-press only and suppresses quick-tap inspect', (
   );
   assert.doesNotMatch(onBoardCellTapBlock, /showBoardUnitInspect\(boardIndex\)/);
 });
+
+test('scene-level pointerup routes board quick taps in swap mode even without a selected hand card', () => {
+  const source = readFileSync(new URL('../src/scenes/BattleScene.js', import.meta.url), 'utf8');
+
+  const onScenePointerUpBlock = source.slice(
+    source.indexOf('  onScenePointerUp(pointer, currentlyOver = []) {'),
+    source.indexOf('  clearSelectedHandInspectFromOutsideTap(pointer, currentlyOver = []) {'),
+  );
+
+  assert.match(onScenePointerUpBlock, /const hasActiveBoardTapMode = this\.actionMode === 'swap' \|\| this\.pendingSwapIndex !== null;/);
+  assert.match(onScenePointerUpBlock, /if \(boardCell\) \{[\s\S]*if \(hasActiveBoardTapMode\) \{[\s\S]*this\.onBoardCellTap\(boardCell\.index\);[\s\S]*return;\s*\}/);
+});
