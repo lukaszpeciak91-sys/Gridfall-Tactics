@@ -78,7 +78,8 @@ test('outside taps clear selection without intercepting board, pass, or card inp
   assert.match(source, /getBoardCellFromPointerUp\(pointer, currentlyOver = \[\]\) \{[\s\S]*this\.boardCells\.find\(\(cell\) => overObjects\.includes\(cell\.background\)/);
   assert.match(source, /isBoardCellTapReservedForCardAction\(boardIndex, selectedCard\) \{\s*if \(this\.targetingState\) \{\s*return this\.isValidTarget\(boardIndex, this\.targetingState\.targetType, this\.targetingState\.targetIndexes, this\.targetingState\.targetConstraint\);\s*\}\s*if \(!this\.isUnitCard\(selectedCard\)\) \{\s*return true;\s*\}\s*return canPlayOrRedeploy\(this\.gameState, 'player', selectedCard\.id, boardIndex\)\.ok;\s*\}/);
   assert.match(source, /button\.on\('pointerup', \(\) => \{\s*if \(this\.openingMulliganPending\) \{\s*this\.confirmOpeningMulligan\(\);\s*return;\s*\}\s*if \(this\.targetingState\) \{\s*this\.confirmTargetingSelection\(\);\s*return;\s*\}\s*this\.resolvePassTurn\(\);\s*\}\);/);
-  assert.match(source, /background\.on\('pointerup', \(\) => \{\s*this\.onBoardCellTap\(boardIndex\);\s*\}\);/);
+  assert.match(source, /background\.on\('pointerdown', \(\) => \{\s*this\.onBoardCellPointerDown\(boardIndex\);\s*\}\);/);
+  assert.match(source, /background\.on\('pointerup', \(\) => \{\s*this\.onBoardCellPointerUp\(boardIndex\);\s*\}\);/);
 });
 
 
@@ -133,11 +134,14 @@ test('inspect zoom centers between enemy and player lanes, dims gameplay, stays 
 });
 
 test('board unit inspect opens from occupied slots and reuses the full hand-card renderer', () => {
-  assert.match(source, /background\.on\('pointerup', \(\) => \{\s*this\.onBoardCellTap\(boardIndex\);\s*\}\);/);
+  assert.match(source, /background\.on\('pointerdown', \(\) => \{\s*this\.onBoardCellPointerDown\(boardIndex\);\s*\}\);/);
+  assert.match(source, /background\.on\('pointerup', \(\) => \{\s*this\.onBoardCellPointerUp\(boardIndex\);\s*\}\);/);
   assert.doesNotMatch(source, /background\.on\('pointerover', \(\) => \{\s*this\.onBoardCellPointerOver\(boardIndex\);\s*\}\);/);
-  assert.match(source, /onBoardCellPointerOut\(\) \{\s*\/\/ Board inspect is tap-driven and stays open until an outside tap or state change clears it\./);
+  assert.match(source, /startBoardCellLongPress\(boardIndex\) \{\s*this\.cancelBoardCellLongPress\(\);\s*this\.boardCellLongPressEvent = this\.time\.delayedCall\(HAND_CARD_LONG_PRESS_MS,/);
+  assert.match(source, /if \(this\.showBoardUnitInspect\(boardIndex\)\) \{\s*this\.boardLongPressTriggeredIndex = boardIndex;\s*\}/);
+  assert.match(source, /onBoardCellPointerUp\(boardIndex\) \{[\s\S]*if \(this\.boardLongPressTriggeredIndex === boardIndex\) \{[\s\S]*return;\s*\}[\s\S]*this\.onBoardCellTap\(boardIndex\);\s*\}/);
   assert.match(source, /showBoardUnitInspect\(boardIndex\) \{\s*if \(this\.utilityMenuPanel \|\| this\.navigationInProgress \|\| this\.selectedCardId \|\| this\.targetingState \|\| this\.effectCastState \|\| this\.isEffectCastResolving \|\| this\.pressedHandCardId\) return false;\s*const unit = this\.gameState\?\.board\?\.\[boardIndex\] \?\? null;\s*if \(!unit\) return false;\s*this\.hoverInspectCardId = null;\s*this\.boardInspectIndex = boardIndex;\s*this\.showSelectedHandCardZoom\(\);\s*return true;\s*\}/);
-  assert.match(source, /if \(!this\.selectedCardId && !this\.targetingState && !this\.effectCastState\) \{\s*const unit = this\.gameState\.board\[boardIndex\];[\s\S]*this\.showBoardUnitInspect\(boardIndex\);\s*return;\s*\}/);
+  assert.match(source, /if \(!this\.selectedCardId && !this\.targetingState && !this\.effectCastState\) \{\s*const unit = this\.gameState\.board\[boardIndex\];[\s\S]*if \(this\.actionMode === 'swap'\) \{[\s\S]*\}\s*return;\s*\}/);
   assert.match(source, /if \(this\.boardInspectIndex !== null\) \{\s*const unit = this\.gameState\.board\[this\.boardInspectIndex\];\s*const cell = this\.getCellByIndex\(this\.boardInspectIndex\);/);
   assert.match(source, /card: unit,\s*cardId: unit\.cardId \?\? unit\.id \?\? `board-\$\{this\.boardInspectIndex\}-unit`,\s*sourceX: cell\.background\.x,\s*sourceY: cell\.background\.y,/);
   assert.match(source, /clearBoardInspectFromOutsideTap\(pointer, currentlyOver = \[\]\) \{[\s\S]*this\.clearBoardInspect\(\{ animate: true \}\);\s*\}/);
