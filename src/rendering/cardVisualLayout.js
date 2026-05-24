@@ -19,8 +19,11 @@ export const BASE_CARD_SURFACE_THEME = Object.freeze({
   frameSelectedFill: 0x334155,
   frameEmptyFill: 0x0f172a,
   innerPanelFill: 0x111827,
+  innerPanelEdgeStroke: 0x9aa8bc,
   panelHighlightStroke: 0xe2e8f0,
   artBackdropFill: 0x0b1220,
+  artInsetShadow: 0x020617,
+  artInsetHighlight: 0xf8fafc,
   artUpperFill: 0x243043,
   artSilhouetteFill: 0x020617,
   artHorizonLine: 0x67e8f9,
@@ -979,7 +982,39 @@ export function createCardPreviewView(scene, {
   const background = scene.add.rectangle(0, 0, width, height, resolvedSurfaceTheme.frameFill, frameAlpha)
     .setStrokeStyle(3, accentColor, card ? 0.82 : 0.7);
   const inner = scene.add.rectangle(0, 0, width - zones.pad * 0.9, height - zones.pad * 0.9, resolvedSurfaceTheme.innerPanelFill, 0.4)
-    .setStrokeStyle(1, resolvedSurfaceTheme.dividerLine, 0.11);
+    .setStrokeStyle(1, resolvedSurfaceTheme.innerPanelEdgeStroke, 0.2);
+  const statPanel = scene.add.rectangle(
+    zones.statBadges.centerX,
+    zones.statBadges.centerY,
+    zones.statBadges.width,
+    zones.statBadges.height,
+    resolvedSurfaceTheme.statBackingFill,
+    0.74,
+  ).setStrokeStyle(1, resolvedSurfaceTheme.dividerLine, typographyScale > 1 ? 0.38 : 0.33);
+  const statPanelTopEdge = scene.add.rectangle(
+    zones.statBadges.centerX,
+    zones.statBadges.y - zones.statBadges.height * 0.5 + 1,
+    zones.statBadges.width - 2,
+    1,
+    resolvedSurfaceTheme.panelHighlightStroke,
+    0.14,
+  );
+  const artRecessShadow = scene.add.rectangle(
+    zones.art.centerX,
+    zones.art.centerY + Math.max(1, Math.round(zones.gap * 0.11)),
+    zones.art.width - 2,
+    zones.art.height - 2,
+    resolvedSurfaceTheme.artInsetShadow,
+    0.2,
+  ).setStrokeStyle(1, resolvedSurfaceTheme.artInsetShadow, 0.28);
+  const artRecessHighlight = scene.add.rectangle(
+    zones.art.centerX,
+    zones.art.centerY - 1,
+    zones.art.width - 3,
+    zones.art.height - 3,
+    resolvedSurfaceTheme.artInsetHighlight,
+    0,
+  ).setStrokeStyle(1, resolvedSurfaceTheme.artInsetHighlight, 0.08);
   const statBadges = createStatBadges(
     scene,
     zones.statBadges.centerX,
@@ -1008,7 +1043,15 @@ export function createCardPreviewView(scene, {
     artPositionY: effectiveArtPositionY,
   });
   const namePanel = scene.add.rectangle(zones.name.centerX, zones.name.centerY, zones.name.width, zones.name.height, resolvedSurfaceTheme.namePanelFill, 0.95)
-    .setStrokeStyle(1, accentColor, card ? (typographyScale > 1 ? 0.52 : 0.44) : 0.14);
+    .setStrokeStyle(1, accentColor, card ? (typographyScale > 1 ? 0.46 : 0.4) : 0.14);
+  const namePanelHighlight = scene.add.rectangle(
+    zones.name.centerX,
+    zones.name.y - zones.name.height * 0.5 + 1,
+    zones.name.width - 2,
+    1,
+    resolvedSurfaceTheme.panelHighlightStroke,
+    0.14,
+  );
   const nameHorizontalInset = Math.max(10, zones.pad * (typographyScale > 1 ? 1.45 : 1.32));
   const nameText = scene.add.text(zones.name.centerX, zones.name.centerY, content.name || '—', {
     fontFamily: 'Arial, sans-serif',
@@ -1025,7 +1068,15 @@ export function createCardPreviewView(scene, {
     nameText.setFontSize(Number.parseFloat(nameText.style.fontSize) - 1);
   }
   const textPanel = scene.add.rectangle(zones.text.centerX, zones.text.centerY, zones.text.width, zones.text.height, resolvedSurfaceTheme.textPanelFill, 0.93)
-    .setStrokeStyle(1, resolvedSurfaceTheme.dividerLine, typographyScale > 1 ? 0.32 : 0.28);
+    .setStrokeStyle(1, resolvedSurfaceTheme.dividerLine, typographyScale > 1 ? 0.37 : 0.33);
+  const textPanelHighlight = scene.add.rectangle(
+    zones.text.centerX,
+    zones.text.y - zones.text.height * 0.5 + 1,
+    zones.text.width - 2,
+    1,
+    resolvedSurfaceTheme.panelHighlightStroke,
+    0.12,
+  );
   const bodyTopPadding = Math.max(5, zones.text.height * (typographyScale > 1 ? 0.11 : 0.1));
   const bodyBottomPadding = Math.max(5, zones.text.height * (typographyScale > 1 ? 0.1 : 0.09));
   const bodyText = createInlineStatText(scene, zones.text.centerX, zones.text.y + bodyTopPadding, content.body, {
@@ -1041,14 +1092,33 @@ export function createCardPreviewView(scene, {
     maxHeight: zones.text.height - bodyTopPadding - bodyBottomPadding,
   });
   const dividers = [zones.art.y - zones.gap / 2, zones.name.y - zones.gap / 2, zones.text.y - zones.gap / 2]
-    .map((dividerY) => scene.add.rectangle(0, dividerY, zones.outer.width - zones.pad * 2.15, 1, resolvedSurfaceTheme.dividerLine, 0.34));
+    .map((dividerY) => scene.add.rectangle(0, dividerY, zones.outer.width - zones.pad * 2.15, 1, resolvedSurfaceTheme.dividerLine, typographyScale > 1 ? 0.48 : 0.43));
   const cardNumberOverlay = showCardNumber
     ? createCardNumberOverlay(scene, zones, card, { width, height, typographyScale })
     : null;
   const selectionOutline = scene.add.rectangle(0, 0, width + 3, height + 3, 0xfacc15, 0)
     .setStrokeStyle(0, 0xfacc15, 0);
 
-  root.add([glow, background, inner, art, statBadges, namePanel, nameText, textPanel, bodyText, ...dividers, cardNumberOverlay, selectionOutline].filter(Boolean));
+  root.add([
+    glow,
+    background,
+    inner,
+    statPanel,
+    statPanelTopEdge,
+    artRecessShadow,
+    art,
+    artRecessHighlight,
+    statBadges,
+    namePanel,
+    namePanelHighlight,
+    nameText,
+    textPanel,
+    textPanelHighlight,
+    bodyText,
+    ...dividers,
+    cardNumberOverlay,
+    selectionOutline,
+  ].filter(Boolean));
 
   return {
     cardId,
