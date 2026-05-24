@@ -2011,11 +2011,14 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     const hasActiveBoardTapMode = this.pendingSwapIndex !== null;
-    if (!this.selectedCardId && !this.targetingState && !this.effectCastState && !hasActiveBoardTapMode) {
+    const isIdleBoardTapMode = !this.selectedCardId && !this.targetingState && !this.effectCastState && !hasActiveBoardTapMode;
+    if (this.isPointerUpReservedForUi(pointer, currentlyOver)) return;
+
+    const boardCell = this.getBoardCellFromPointerUp(pointer, currentlyOver);
+    if (isIdleBoardTapMode && !boardCell) {
       this.clearBoardInspectFromOutsideTap(pointer, currentlyOver);
       return;
     }
-    if (this.isPointerUpReservedForUi(pointer, currentlyOver)) return;
 
     if (this.pressedHandCardId) {
       this.cancelHandCardLongPress();
@@ -2029,8 +2032,14 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
-    const boardCell = this.getBoardCellFromPointerUp(pointer, currentlyOver);
     if (boardCell) {
+      if (isIdleBoardTapMode) {
+        this.pressedHandCardId = null;
+        this.pressedHandCardWasSelected = false;
+        this.onBoardCellTap(boardCell.index);
+        return;
+      }
+
       if (hasActiveBoardTapMode) {
         this.pressedHandCardId = null;
         this.pressedHandCardWasSelected = false;
