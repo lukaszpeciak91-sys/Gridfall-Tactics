@@ -199,6 +199,9 @@ export default class BattleScene extends Phaser.Scene {
     this.turnStartBannerFadeOutEvent = null;
     this.hasShownOpeningTurnStartBanner = false;
     this.playerConcedableHintState = { shownKey: null, stableChecks: 0, lastEligibleKey: null };
+    this.passHoldToSurrenderEnabled = false;
+    this.passHoldToSurrenderProgress = false;
+    this.passHoldToSurrenderEvent = null;
   }
 
   preload() {
@@ -273,6 +276,9 @@ export default class BattleScene extends Phaser.Scene {
     this.turnStartBannerFadeOutEvent = null;
     this.hasShownOpeningTurnStartBanner = false;
     this.playerConcedableHintState = { shownKey: null, stableChecks: 0, lastEligibleKey: null };
+    this.passHoldToSurrenderEnabled = false;
+    this.passHoldToSurrenderProgress = false;
+    this.passHoldToSurrenderEvent = null;
   }
 
   cleanupSceneObjects({ preserveTimers = false, preserveTweens = false } = {}) {
@@ -286,6 +292,7 @@ export default class BattleScene extends Phaser.Scene {
     this.destroyDeckCounterView();
     this.destroySelectedHandCardZoom();
     this.cancelHandCardLongPress();
+    this.cancelPassHoldToSurrender();
     if (!preserveTweens) {
       this.tweens?.killAll?.();
     }
@@ -1322,16 +1329,14 @@ export default class BattleScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true });
 
     this.actionButton = button;
+    button.on('pointerdown', () => {
+      this.onActionButtonPointerDown();
+    });
     button.on('pointerup', () => {
-      if (this.openingMulliganPending) {
-        this.confirmOpeningMulligan();
-        return;
-      }
-      if (this.targetingState) {
-        this.confirmTargetingSelection();
-        return;
-      }
-      this.resolvePassTurn();
+      this.onActionButtonPointerUp();
+    });
+    button.on('pointerout', () => {
+      this.onActionButtonPointerCancel();
     });
   }
 
@@ -2511,6 +2516,8 @@ export default class BattleScene extends Phaser.Scene {
       this.actionButton.setText(count > 0 ? translateActive('ui.battle.mulligan', 'MULLIGAN {count}', { count }) : translateActive('ui.battle.keepHand', 'KEEP HAND'));
       this.actionButton.setStyle({ backgroundColor: '#78350f', color: '#fffbeb' });
       this.actionButton.setStroke('#f59e0b', 2);
+      this.passHoldToSurrenderEnabled = false;
+      this.cancelPassHoldToSurrender();
       return;
     }
     if (this.targetingState) {
@@ -2530,14 +2537,80 @@ export default class BattleScene extends Phaser.Scene {
       }
       this.actionButton.setStyle({ backgroundColor: '#312e81', color: '#ede9fe' });
       this.actionButton.setStroke('#a78bfa', 2);
+      this.passHoldToSurrenderEnabled = false;
+      this.cancelPassHoldToSurrender();
       return;
     }
 
     const passAvailable = this.isPassActionButtonAvailable();
+    const playerConcedable = this.canHoldPassToSurrender();
+    this.passHoldToSurrenderEnabled = passAvailable && playerConcedable;
     this.actionButton.setVisible(passAvailable);
-    this.actionButton.setText(translateActive('ui.common.pass', 'PASS'));
-    this.actionButton.setStyle({ backgroundColor: '#111827', color: '#f9fafb' });
-    this.actionButton.setStroke('#64748b', 2);
+    this.actionButton.setText(this.passHoldToSurrenderEnabled
+      ? translateActive('ui.battle.holdPassToSurrender', 'Hold PASS to surrender')
+      : translateActive('ui.common.pass', 'PASS'));
+    this.actionButton.setStyle({
+      backgroundColor: this.passHoldToSurrenderEnabled ? '#172554' : '#111827',
+      color: '#f9fafb',
+    });
+    this.actionButton.setStroke(this.passHoldToSurrenderEnabled ? '#60a5fa' : '#64748b', 2);
+    if (!this.passHoldToSurrenderEnabled) {
+      this.cancelPassHoldToSurrender();
+    }
+  }
+
+  canHoldPassToSurrender() {
+    if (!this.gameState || this.gameState.winner) return false;
+    if (this.gameState.firstActor !== 'player') return false;
+    return isVerySafeConcedableState(this.gameState, 'player');
+  }
+
+  onActionButtonPointerDown() {
+    if (!this.passHoldToSurrenderEnabled || this.battleResultModalShown || this.gameState?.winner) return;
+    this.cancelPassHoldToSurrender();
+    this.passHoldToSurrenderProgress = true;
+    this.actionButton.setAlpha(0.82);
+    this.passHoldToSurrenderEvent = this.time.delayedCall(HAND_CARD_LONG_PRESS_MS, () => {
+      this.passHoldToSurrenderEvent = null;
+      if (!this.passHoldToSurrenderProgress || !this.passHoldToSurrenderEnabled || this.gameState?.winner || this.battleResultModalShown) return;
+      this.resolvePlayerHoldToSurrender();
+    });
+  }
+
+  onActionButtonPointerUp() {
+    const holdTriggered = Boolean(this.passHoldToSurrenderProgress && !this.passHoldToSurrenderEvent);
+    this.cancelPassHoldToSurrender();
+    if (holdTriggered) return;
+    if (this.openingMulliganPending) {
+      this.confirmOpeningMulligan();
+      return;
+    }
+    if (this.targetingState) {
+      this.confirmTargetingSelection();
+      return;
+    }
+    this.resolvePassTurn();
+  }
+
+  onActionButtonPointerCancel() {
+    this.cancelPassHoldToSurrender();
+  }
+
+  cancelPassHoldToSurrender() {
+    if (this.passHoldToSurrenderEvent) {
+      this.passHoldToSurrenderEvent.remove(false);
+      this.passHoldToSurrenderEvent = null;
+    }
+    this.passHoldToSurrenderProgress = false;
+    this.actionButton?.setAlpha?.(1);
+  }
+
+  resolvePlayerHoldToSurrender() {
+    if (!this.gameState || this.gameState.winner || this.battleResultModalShown || !this.passHoldToSurrenderEnabled) return;
+    this.gameState.winner = 'enemy';
+    this.gameState.endingReason = 'player_hold_surrender';
+    this.cancelPassHoldToSurrender();
+    this.completeBattleFlow(0);
   }
 
   confirmTargetingSelection() {

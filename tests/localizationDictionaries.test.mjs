@@ -51,6 +51,11 @@ test('player effect confirmation banner copy is localized for English and Polish
   assert.equal(getPath(pl, 'ui.battle.playerPlayed'), 'ZAGRANO');
 });
 
+test('hold-pass surrender helper copy is localized for English and Polish', () => {
+  assert.equal(getPath(en, 'ui.battle.holdPassToSurrender'), 'Hold PASS to surrender');
+  assert.equal(getPath(pl, 'ui.battle.holdPassToSurrender'), 'Przytrzymaj PASS, aby się poddać');
+});
+
 test('effect targeting cancel and instruction copy is localized for English and Polish', () => {
   assert.equal(getPath(en, 'ui.common.cancel'), 'CANCEL');
   assert.equal(getPath(pl, 'ui.common.cancel'), 'ANULUJ');

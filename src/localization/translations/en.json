@@ -354,6 +354,7 @@
       "enemyPass": "ENEMY PASS",
       "enemySurrenders": "ENEMY SURRENDERS",
       "playerNoMeaningfulActionsDetected": "No meaningful actions detected.",
+      "holdPassToSurrender": "Hold PASS to surrender",
       "playerPlayed": "YOU PLAYED",
       "enemyPlays": "ENEMY PLAYS",
       "enemyRepositions": "ENEMY REPOSITIONS",

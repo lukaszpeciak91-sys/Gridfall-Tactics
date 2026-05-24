@@ -354,6 +354,7 @@
       "enemyPass": "WRÓG PASUJE",
       "enemySurrenders": "WRÓG PODDAJE MECZ",
       "playerNoMeaningfulActionsDetected": "Nie wykryto sensownych akcji.",
+      "holdPassToSurrender": "Przytrzymaj PASS, aby się poddać",
       "playerPlayed": "ZAGRANO",
       "enemyPlays": "WRÓG GRA",
       "enemyRepositions": "WRÓG ZMIENIA POZYCJE",
