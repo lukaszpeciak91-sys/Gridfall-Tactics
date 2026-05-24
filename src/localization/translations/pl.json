@@ -359,6 +359,8 @@
       "enemyPlays": "WRÓG GRA",
       "enemyRepositions": "WRÓG ZMIENIA POZYCJE",
       "enemyAction": "AKCJA WROGA",
+      "swapPromptSelectUnit": "ZAMIEŃ: wybierz jednostkę",
+      "swapPromptSelectAdjacent": "ZAMIEŃ: wybierz sąsiada",
       "effect": "Efekt",
       "block": "BLOK",
       "effectSummaries": {
