@@ -2030,6 +2030,13 @@ export default class BattleScene extends Phaser.Scene {
 
     const boardCell = this.getBoardCellFromPointerUp(pointer, currentlyOver);
     if (boardCell) {
+      if (hasActiveBoardTapMode) {
+        this.pressedHandCardId = null;
+        this.pressedHandCardWasSelected = false;
+        this.onBoardCellTap(boardCell.index);
+        return;
+      }
+
       const selectedCard = this.gameState.player.hand.find((card) => card.id === this.selectedCardId);
       if (!selectedCard && !this.effectCastState) {
         this.pressedHandCardId = null;
