@@ -1723,6 +1723,7 @@ export default class BattleScene extends Phaser.Scene {
     changedStats = [],
     pulseChangedStats = false,
     factionThemeId = '',
+    surfaceThemeMode = 'board',
   }) {
     return createCardPreviewView(this, {
       card,
@@ -1744,7 +1745,7 @@ export default class BattleScene extends Phaser.Scene {
       baseStatValues,
       changedStats,
       pulseChangedStats,
-      surfaceTheme: resolveCardSurfaceTheme({ factionId: factionThemeId, mode: 'board' }),
+      surfaceTheme: resolveCardSurfaceTheme({ factionId: factionThemeId, mode: surfaceThemeMode }),
     });
   }
 
@@ -4886,12 +4887,16 @@ export default class BattleScene extends Phaser.Scene {
     const finalArtY = isEnemyUnit ? topArtY : bottomArtY;
     const finalStatY = isEnemyUnit ? bottomStatY : topStatY;
     const ownerAccent = unit.owner === 'enemy' ? 0xf87171 : 0x60a5fa;
+    const boardFactionThemeId = unit.owner === 'enemy'
+      ? (this.gameState?.enemy?.factionKey ?? this.enemyFactionKey)
+      : (this.gameState?.player?.factionKey ?? this.factionKey);
+    const boardSurfaceTheme = resolveCardSurfaceTheme({ factionId: boardFactionThemeId, mode: 'board' });
 
-    const cardBack = this.add.rectangle(0, 0, unitWidth, unitHeight, CARD_COLORS.frame, 0.72)
+    const cardBack = this.add.rectangle(0, 0, unitWidth, unitHeight, boardSurfaceTheme.frameFill, 0.74)
       .setStrokeStyle(2, ownerAccent, 0.62);
     const boardInnerPanelColor = BASE_CARD_SURFACE_THEME.innerPanelFill;
     const inner = this.add.rectangle(0, 0, unitWidth - horizontalPad, unitHeight - verticalPad, boardInnerPanelColor, 0.32)
-      .setStrokeStyle(1, 0xffffff, 0.045);
+      .setStrokeStyle(1, boardSurfaceTheme.innerPanelEdgeStroke, 0.18);
     const unitStats = this.currentBoardRenderStats?.[cell.index] ?? this.getBoardUnitStats(unit);
     const changedStats = this.getChangedBoardUnitStatKeys(cell.index, unit, unitStats);
     const stats = createStatBadges(this, 0, finalStatY, artWidth, statHeight, unitStats, 0, {
@@ -4913,7 +4918,7 @@ export default class BattleScene extends Phaser.Scene {
     const artBackdrop = this.add.rectangle(0, finalArtY, artRect.width, artRect.height, BASE_CARD_SURFACE_THEME.artBackdropFill, 0.22);
     const artStroke = this.add.rectangle(0, finalArtY, artRect.width, artRect.height)
       .setFillStyle(0x000000, 0)
-      .setStrokeStyle(1, 0x93c5fd, 0.16);
+      .setStrokeStyle(1, boardSurfaceTheme.dividerLine, 0.2);
     // Board-only readability polish: prioritize separation/clarity over global brightness.
     const artLocalContrast = this.add.rectangle(0, finalArtY, artRect.width, artRect.height, 0x000000, 0.05);
     const artShade = this.add.rectangle(0, finalArtY - artRect.height * 0.17, artRect.width, artRect.height * 0.52, CARD_COLORS.artTop, 0.34);
@@ -5123,14 +5128,16 @@ export default class BattleScene extends Phaser.Scene {
       statValues: inspectRequest.statValues ?? null,
       baseStatValues: inspectRequest.baseStatValues ?? null,
       factionThemeId: inspectRequest.factionThemeId ?? '',
+      surfaceThemeMode: 'inspect',
     });
+    const inspectSurfaceTheme = resolveCardSurfaceTheme({ factionId: inspectRequest.factionThemeId ?? '', mode: 'inspect' });
 
     this.applyInspectDimming(inspectRequest.cardId);
 
     previewView.root.setAlpha(0).setScale(0.92);
     previewView.glow.setFillStyle(0xfacc15, 0.14);
     previewView.glow.setStrokeStyle(5, 0xfacc15, 0.72);
-    previewView.background.setFillStyle(CARD_COLORS.frameSelected, 0.95);
+    previewView.background.setFillStyle(inspectSurfaceTheme.frameSelectedFill, 0.95);
     previewView.background.setStrokeStyle(5, accentColor, 1);
     previewView.selectionOutline?.setStrokeStyle(5, 0xfacc15, 0.92);
 
