@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
-import { createInitialBattleState, drawCards, shuffleDeck, canPass, canSwap, canPlayOrRedeploy, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, resolveTargetedUnitOnPlayEffect, getUnitAttack, getUnitArmor, toggleFirstActor, resolveTurnCapWinner, resolveImmediateNoProgressWinner, recordPassAction, performOpeningMulligan, STARTING_HAND_SIZE, MAX_OPENING_MULLIGAN_CARDS } from '../systems/GameState.js';
+import { createInitialBattleState, drawCards, shuffleDeck, canPass, canPlayOrRedeploy, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, resolveTargetedUnitOnPlayEffect, getUnitAttack, getUnitArmor, toggleFirstActor, resolveTurnCapWinner, resolveImmediateNoProgressWinner, recordPassAction, performOpeningMulligan, STARTING_HAND_SIZE, MAX_OPENING_MULLIGAN_CARDS } from '../systems/GameState.js';
 import { chooseEnemyAction, isVerySafeConcedableState, recordBattleActionUse, selectOpeningMulliganCardIds } from '../systems/enemyDecision.js';
 import { getTargetingStateForEffect } from '../systems/cardTargeting.js';
 import { getCombatEventAttackerIndex, getCombatEventTargetIndex, getLaneLethalTargetIndexes, getLaneSimultaneousUnitClash, shouldAnimateCombatAttacker } from '../systems/combatAnimation.js';
@@ -2010,7 +2010,7 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
-    const hasActiveBoardTapMode = this.actionMode === 'swap' || this.pendingSwapIndex !== null;
+    const hasActiveBoardTapMode = this.pendingSwapIndex !== null;
     if (!this.selectedCardId && !this.targetingState && !this.effectCastState && !hasActiveBoardTapMode) {
       this.clearBoardInspectFromOutsideTap(pointer, currentlyOver);
       return;
@@ -2233,11 +2233,15 @@ export default class BattleScene extends Phaser.Scene {
     if (!this.selectedCardId && !this.targetingState && !this.effectCastState) {
       const unit = this.gameState.board[boardIndex];
 
-      if (this.actionMode === 'swap' && this.pendingSwapIndex !== null) {
+      if (this.pendingSwapIndex !== null) {
         this.hoverInspectCardId = null;
         this.clearBoardInspect({ animate: true });
 
         if (!unit || unit.owner !== 'player') {
+          this.pendingSwapIndex = null;
+          this.clearSwapPrompt();
+          this.resetCardHighlights({ showPreview: false });
+          this.updateActionButtonLabel();
           return;
         }
 
@@ -2247,6 +2251,9 @@ export default class BattleScene extends Phaser.Scene {
         this.pendingSwapIndex = null;
 
         if (!result.ok) {
+          this.clearSwapPrompt();
+          this.resetCardHighlights({ showPreview: false });
+          this.updateActionButtonLabel();
           return;
         }
         this.clearSwapPrompt();
@@ -2254,8 +2261,8 @@ export default class BattleScene extends Phaser.Scene {
         return;
       }
 
-      if (this.actionMode === 'swap') {
-        if (!unit || unit.owner !== 'player') return;
+      if (!unit || unit.owner !== 'player') return;
+      if (!this.targetingState && !this.effectCastState) {
         this.pendingSwapIndex = boardIndex;
         this.showSwapPrompt('selectAdjacent');
         this.hoverInspectCardId = null;
@@ -2613,22 +2620,6 @@ export default class BattleScene extends Phaser.Scene {
       && canPass(this.gameState);
   }
 
-  canPlayerStartSwap() {
-    if (!this.gameState || this.gameState.winner) return false;
-    if (this.battleResultModalShown || this.openingMulliganPending || this.playerActionUsed) return false;
-    if (this.isFlowResolving || this.isEffectCastResolving) return false;
-    if (this.targetingState || this.effectCastState) return false;
-    if (this.actionMode === 'swap') return false;
-    if (!canPass(this.gameState)) return false;
-
-    const rowIndexes = [6, 7, 8];
-    return rowIndexes.some((leftIndex) => {
-      const rightIndex = leftIndex + 1;
-      if (!rowIndexes.includes(rightIndex)) return false;
-      return canSwap(this.gameState, leftIndex, rightIndex, 'player');
-    });
-  }
-
   updateActionButtonLabel() {
     if (!this.actionButton) return;
     if (this.openingMulliganPending) {
@@ -2662,26 +2653,6 @@ export default class BattleScene extends Phaser.Scene {
       this.cancelPassHoldToSurrender();
       return;
     }
-    if (this.actionMode === 'swap') {
-      this.actionButton.setVisible(true);
-      this.actionButton.setText(translateActive('ui.battle.swapModeCancel', 'CANCEL SWAP'));
-      this.actionButton.setStyle({ backgroundColor: '#3f1d1d', color: '#fee2e2' });
-      this.actionButton.setStroke('#fca5a5', 2);
-      this.passHoldToSurrenderEnabled = false;
-      this.cancelPassHoldToSurrender();
-      return;
-    }
-
-    if (this.canPlayerStartSwap()) {
-      this.passHoldToSurrenderEnabled = false;
-      this.cancelPassHoldToSurrender();
-      this.actionButton.setVisible(true);
-      this.actionButton.setText(translateActive('ui.battle.swapAction', 'SWAP'));
-      this.actionButton.setStyle({ backgroundColor: '#1f2937', color: '#f9fafb' });
-      this.actionButton.setStroke('#60a5fa', 2);
-      return;
-    }
-
     const passAvailable = this.isPassActionButtonAvailable();
     const playerConcedable = this.canHoldPassToSurrender();
     this.passHoldToSurrenderEnabled = passAvailable && playerConcedable;
@@ -2779,27 +2750,6 @@ export default class BattleScene extends Phaser.Scene {
   resolvePassTurn() {
     this.cancelPassHoldToSurrender();
     if (this.battleResultModalShown || this.isFlowResolving || this.isEffectCastResolving || this.targetingState) return;
-
-    if (this.actionMode === 'swap') {
-      this.pendingSwapIndex = null;
-      this.actionMode = null;
-      this.clearSwapPrompt();
-      this.resetCardHighlights({ showPreview: false });
-      this.updateActionButtonLabel();
-      return;
-    }
-
-    if (this.canPlayerStartSwap()) {
-      this.actionMode = 'swap';
-      this.pendingSwapIndex = null;
-      this.targetingState = null;
-      this.effectCastState = null;
-      this.showSwapPrompt('selectSource');
-      this.clearBoardInspect({ animate: true });
-      this.resetCardHighlights({ showPreview: false });
-      this.updateActionButtonLabel();
-      return;
-    }
 
     if (this.gameState.winner || !canPass(this.gameState) || this.playerActionUsed) return;
     recordPassAction(this.gameState, 'player');
@@ -5261,7 +5211,7 @@ export default class BattleScene extends Phaser.Scene {
       const isValidEnemyTarget = this.isValidTarget(cell.index, 'enemy-unit', selectedTargetIndexes, targetConstraint);
       const isValidAnyTarget = this.isValidTarget(cell.index, 'any-unit', selectedTargetIndexes, targetConstraint);
       const isSelectedTarget = selectedTargetIndexes.includes(cell.index);
-      const swapSourceIndex = this.actionMode === 'swap' ? this.pendingSwapIndex : null;
+      const swapSourceIndex = this.pendingSwapIndex;
       const swapSourceUnit = swapSourceIndex !== null ? this.gameState.board[swapSourceIndex] : null;
       const isSwapSource = swapSourceIndex === cell.index;
       const isSwapTarget = Boolean(
