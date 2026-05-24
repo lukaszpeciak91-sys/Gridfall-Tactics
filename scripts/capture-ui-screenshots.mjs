@@ -22,7 +22,7 @@ async function main() {
   try {
     ({ chromium } = await import('playwright'));
   } catch {
-    throw new Error('Playwright is not installed. Run `npm install` and `npx playwright install chromium` first.');
+    throw new Error('Playwright is not installed. For local screenshots run `npm i -D playwright` and `npx playwright install chromium` first.');
   }
 
   const userDataDir = mkdtempSync(join(tmpdir(), 'gridfall-screens-'));
