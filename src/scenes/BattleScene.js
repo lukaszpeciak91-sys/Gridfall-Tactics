@@ -2198,6 +2198,7 @@ export default class BattleScene extends Phaser.Scene {
     this.hoverInspectCardId = null;
     this.boardInspectIndex = null;
     this.pressedHandCardWasSelected = false;
+    this.clearSwapPrompt();
     if (hadState) {
       this.resetCardHighlights();
       this.updateActionButtonLabel();
@@ -2240,7 +2241,7 @@ export default class BattleScene extends Phaser.Scene {
         if (!result.ok) {
           return;
         }
-
+        this.clearSwapPrompt();
         this.completePlayerAction(beforeStats, [], [{ type: 'swap', fromIndex, toIndex: boardIndex, label: 'SWAP', kind: 'swap' }]);
         return;
       }
@@ -2248,6 +2249,7 @@ export default class BattleScene extends Phaser.Scene {
       if (this.actionMode === 'swap') {
         if (!unit || unit.owner !== 'player') return;
         this.pendingSwapIndex = boardIndex;
+        this.showSwapPrompt('selectAdjacent');
         this.hoverInspectCardId = null;
         this.clearBoardInspect({ animate: true });
         this.resetCardHighlights({ showPreview: false });
@@ -2747,6 +2749,7 @@ export default class BattleScene extends Phaser.Scene {
     if (this.actionMode === 'swap') {
       this.pendingSwapIndex = null;
       this.actionMode = null;
+      this.clearSwapPrompt();
       this.resetCardHighlights({ showPreview: false });
       this.updateActionButtonLabel();
       return;
@@ -2756,6 +2759,7 @@ export default class BattleScene extends Phaser.Scene {
     if (this.isUnitCard(selectedCard)) {
       this.actionMode = 'swap';
       this.pendingSwapIndex = null;
+      this.showSwapPrompt('selectSource');
       this.clearBoardInspect({ animate: true });
       this.resetCardHighlights({ showPreview: false });
       this.updateActionButtonLabel();
@@ -3312,6 +3316,17 @@ export default class BattleScene extends Phaser.Scene {
         padding: { x: 12, y: 7 },
       },
     ).setOrigin(0.5).setDepth(222).setAlpha(0.96).setStroke('#c4b5fd', 2);
+  }
+
+  showSwapPrompt(step = 'selectSource') {
+    const message = step === 'selectAdjacent'
+      ? translateActive('ui.battle.swapPromptSelectAdjacent', 'SWAP: select adjacent unit')
+      : translateActive('ui.battle.swapPromptSelectUnit', 'SWAP: select unit');
+    this.showPlayerActionBanner(message);
+  }
+
+  clearSwapPrompt() {
+    this.destroyPlayerActionBanner();
   }
 
   showEnemyActionBanner(message, pacing = ENEMY_ACTION_PACING.unit) {
@@ -5203,10 +5218,27 @@ export default class BattleScene extends Phaser.Scene {
       const isValidEnemyTarget = this.isValidTarget(cell.index, 'enemy-unit', selectedTargetIndexes, targetConstraint);
       const isValidAnyTarget = this.isValidTarget(cell.index, 'any-unit', selectedTargetIndexes, targetConstraint);
       const isSelectedTarget = selectedTargetIndexes.includes(cell.index);
+      const swapSourceIndex = this.actionMode === 'swap' ? this.pendingSwapIndex : null;
+      const swapSourceUnit = swapSourceIndex !== null ? this.gameState.board[swapSourceIndex] : null;
+      const isSwapSource = swapSourceIndex === cell.index;
+      const isSwapTarget = Boolean(
+        swapSourceUnit
+        && !this.targetingState
+        && !isSwapSource
+        && this.gameState.board[cell.index]?.owner === 'player'
+        && Math.floor(swapSourceIndex / 3) === Math.floor(cell.index / 3)
+        && Math.abs((swapSourceIndex % 3) - (cell.index % 3)) === 1,
+      );
       let strokeColor = cell.row === 1 ? 0x94a3b8 : 0xcbd5e1;
       let strokeAlpha = cell.row === 1 ? BOARD_GUIDE_SLOT_STROKE_ALPHA : BOARD_SLOT_STROKE_ALPHA;
 
-      if (isSelectedTarget) {
+      if (isSwapSource) {
+        strokeColor = 0xfacc15;
+        strokeAlpha = BOARD_TARGET_STROKE_ALPHA;
+      } else if (isSwapTarget) {
+        strokeColor = 0x22c55e;
+        strokeAlpha = BOARD_TARGET_STROKE_ALPHA;
+      } else if (isSelectedTarget) {
         strokeColor = 0xfacc15;
         strokeAlpha = BOARD_TARGET_STROKE_ALPHA;
       } else if (this.targetingState?.targetType === 'friendly-unit' && isValidFriendlyTarget) {
