@@ -2009,7 +2009,8 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
-    if (!this.selectedCardId && !this.targetingState && !this.effectCastState) {
+    const hasActiveBoardTapMode = this.actionMode === 'swap' || this.pendingSwapIndex !== null;
+    if (!this.selectedCardId && !this.targetingState && !this.effectCastState && !hasActiveBoardTapMode) {
       this.clearBoardInspectFromOutsideTap(pointer, currentlyOver);
       return;
     }
