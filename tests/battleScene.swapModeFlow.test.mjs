@@ -20,7 +20,17 @@ test('action button enters and cancels explicit swap mode before pass', () => {
   );
 
   assert.match(resolvePassTurnBlock, /if \(this\.actionMode === 'swap'\) \{\s*this\.pendingSwapIndex = null;\s*this\.actionMode = null;/);
-  assert.match(resolvePassTurnBlock, /if \(this\.isUnitCard\(selectedCard\)\) \{\s*this\.actionMode = 'swap';\s*this\.pendingSwapIndex = null;/);
+  assert.match(resolvePassTurnBlock, /if \(this\.canPlayerStartSwap\(\)\) \{\s*this\.actionMode = 'swap';\s*this\.pendingSwapIndex = null;/);
+  assert.doesNotMatch(resolvePassTurnBlock, /this\.isUnitCard\(selectedCard\)/);
+});
+
+test('action button prioritizes standalone SWAP label before PASS when swap is legal', () => {
+  const source = readFileSync(new URL('../src/scenes/BattleScene.js', import.meta.url), 'utf8');
+  const updateActionButtonLabelBlock = source.slice(
+    source.indexOf('  updateActionButtonLabel() {'),
+    source.indexOf('  canHoldPassToSurrender() {'),
+  );
+  assert.match(updateActionButtonLabelBlock, /if \(this\.canPlayerStartSwap\(\)\) \{[\s\S]*translateActive\('ui\.battle\.swapAction', 'SWAP'\)/);
 });
 
 test('board inspect remains long-press only and suppresses quick-tap inspect', () => {
