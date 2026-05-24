@@ -57,6 +57,7 @@ export default class CollectionScene extends Phaser.Scene {
     this.cardLongPressEvent = null;
     this.longPressTriggeredCard = null;
     this.cardArtCropDebug = null;
+    this.cardArtFramingByCardId = new Map();
   }
 
   preload() {
@@ -373,6 +374,7 @@ export default class CollectionScene extends Phaser.Scene {
       card,
       previewItems: [previewView.root, overlay],
     };
+    this.applyInspectArtFramingPreview();
     this.refreshCardArtCropDebugUi({ inspectTransform: transform });
   }
 
@@ -504,6 +506,70 @@ export default class CollectionScene extends Phaser.Scene {
     this.showInspectPreview({ card, sourceX: this.inspectPreview.sourceX, sourceY: this.inspectPreview.sourceY, sourceWidth: this.inspectPreview.sourceWidth, sourceHeight: this.inspectPreview.sourceHeight });
   }
 
+  ensureCardArtFramingState(card) {
+    const cardId = String(card?.id ?? '');
+    if (!cardId) return { frameX: 0, frameY: 0, frameScale: 1 };
+    const existing = this.cardArtFramingByCardId.get(cardId);
+    if (existing) return existing;
+    const next = { frameX: 0, frameY: 0, frameScale: 1 };
+    this.cardArtFramingByCardId.set(cardId, next);
+    return next;
+  }
+
+  nudgeCardArtFrame(card, { deltaX = 0, deltaY = 0, deltaScale = 0 } = {}) {
+    if (!card?.id) return;
+    const state = this.ensureCardArtFramingState(card);
+    state.frameX += deltaX;
+    state.frameY += deltaY;
+    state.frameScale = Phaser.Math.Clamp(state.frameScale + deltaScale, 0.6, 2.4);
+    this.applyInspectArtFramingPreview();
+    this.refreshCardArtCropDebugUi();
+  }
+
+  resetCardArtFrame(card) {
+    if (!card?.id) return;
+    const state = this.ensureCardArtFramingState(card);
+    state.frameX = 0;
+    state.frameY = 0;
+    state.frameScale = 1;
+    this.applyInspectArtFramingPreview();
+    this.refreshCardArtCropDebugUi();
+  }
+
+  applyInspectArtFramingPreview() {
+    const debug = this.ensureCardArtCropDebugState();
+    const inspect = this.inspectPreview;
+    if (!inspect?.card?.id || !inspect?.art) return;
+    if (debug.activeMode !== 'framing') {
+      inspect.art.setVisible(true);
+      inspect.framingPreviewContainer?.setVisible(false);
+      return;
+    }
+    const bounds = inspect.art.getBounds();
+    if (!inspect.framingPreviewContainer) {
+      const textureKey = inspect.art.texture?.key ?? null;
+      if (!textureKey || !this.textures?.exists?.(textureKey)) return;
+      const frameImage = this.add.image(bounds.centerX, bounds.centerY, textureKey).setDepth((inspect.art.depth ?? INSPECT_CARD_DEPTH) + 1);
+      const maskShape = this.add.graphics({ x: 0, y: 0 }).setDepth(frameImage.depth);
+      maskShape.fillStyle(0xffffff, 1);
+      maskShape.fillRect(bounds.x, bounds.y, bounds.width, bounds.height);
+      frameImage.setMask(maskShape.createGeometryMask());
+      inspect.root.add([frameImage, maskShape]);
+      inspect.framingPreviewContainer = { image: frameImage, maskShape };
+    }
+    const frameState = this.ensureCardArtFramingState(inspect.card);
+    const frameImage = inspect.framingPreviewContainer.image;
+    frameImage.setVisible(true);
+    inspect.art.setVisible(false);
+    const source = frameImage.texture?.getSourceImage?.();
+    const sourceWidth = source?.width ?? frameImage.width;
+    const sourceHeight = source?.height ?? frameImage.height;
+    const coverScale = Math.max(bounds.width / Math.max(1, sourceWidth), bounds.height / Math.max(1, sourceHeight));
+    const finalScale = coverScale * frameState.frameScale;
+    frameImage.setDisplaySize(sourceWidth * finalScale, sourceHeight * finalScale);
+    frameImage.setPosition(bounds.centerX + frameState.frameX, bounds.centerY + frameState.frameY);
+  }
+
   buildCardArtCropDebugJson() {
     const result = {};
     this.cardArtCropDebug?.sessionOverrides?.forEach((value, cardId) => {
@@ -568,12 +634,14 @@ export default class CollectionScene extends Phaser.Scene {
       this.cardTapHandled = true;
       if (debug.activeMode === 'crop') return;
       debug.activeMode = 'crop';
+      this.applyInspectArtFramingPreview();
       this.refreshCardArtCropDebugUi();
     }, { minWidth: 132, minHeight: 34, fontSize: '12px', paddingX: 10, paddingY: 5, disabled: debug.activeMode === 'crop', active: debug.activeMode === 'crop' });
     const framingModeBtn = this.createDebugTextButton(bounds.x + 76, modeSwitcherY, 'Art Framing', () => {
       this.cardTapHandled = true;
       if (debug.activeMode === 'framing') return;
       debug.activeMode = 'framing';
+      this.applyInspectArtFramingPreview();
       this.refreshCardArtCropDebugUi();
     }, { minWidth: 132, minHeight: 34, fontSize: '12px', paddingX: 10, paddingY: 5, disabled: debug.activeMode === 'framing', active: debug.activeMode === 'framing' });
     debug.toggleItems.push(cropModeBtn, framingModeBtn);
@@ -680,25 +748,30 @@ export default class CollectionScene extends Phaser.Scene {
       }).setOrigin(1, 0.5).setDepth(3202).setScrollFactor(0);
       debug.panelItems.push(topPanel, bottomPanel, valueLabel, upBtn, downBtn, addButton, resetButton, copyCurrentButton, copyAllButton, clearButton, countLabel, statusLabel, cardIdLabel);
     } else {
+      const frameState = this.ensureCardArtFramingState(card);
       const framingTitle = this.add.text(width * 0.5, topPanel.y - 40, 'ART FRAMING MODE', {
         fontFamily: 'Arial, sans-serif',
         fontSize: compact ? '14px' : '16px',
         color: '#67e8f9',
       }).setOrigin(0.5).setDepth(3202).setScrollFactor(0);
-      const framingHint = this.add.text(width * 0.5, topPanel.y - 12, 'Prototype not wired yet', {
+      const framingHint = this.add.text(width * 0.5, topPanel.y - 12, 'Move image behind fixed viewport', {
         fontFamily: 'Arial, sans-serif',
         fontSize: compact ? '12px' : '14px',
         color: '#f8fafc',
       }).setOrigin(0.5).setDepth(3202).setScrollFactor(0);
-      const upPlaceholder = this.createDebugTextButton(width * 0.5, topPanel.y + 20, '↑ (disabled)', () => {}, { minWidth: compact ? 152 : 172, minHeight: compact ? 42 : 48, fontSize: compact ? '14px' : '15px', paddingX: 12, paddingY: 8, disabled: true });
-      const downPlaceholder = this.createDebugTextButton(width * 0.5, topPanel.y + 72, '↓ (disabled)', () => {}, { minWidth: compact ? 152 : 172, minHeight: compact ? 42 : 48, fontSize: compact ? '14px' : '15px', paddingX: 12, paddingY: 8, disabled: true });
-      const resetPlaceholder = this.createDebugTextButton(width * 0.5, bottomPanel.y, 'Reset (disabled)', () => {}, { minWidth: compact ? 164 : 176, minHeight: compact ? 44 : 50, fontSize: compact ? '13px' : '14px', paddingX: compact ? 12 : 16, paddingY: compact ? 7 : 8, disabled: true });
-      const statusLabel = this.add.text(panelLeft + 12, topPanel.y + (compact ? 60 : 54), 'No crop values are edited in this mode.', {
+      const upBtn = this.createDebugTextButton(width * 0.5, topPanel.y + 16, '↑', () => this.nudgeCardArtFrame(card, { deltaY: -10 }), { minWidth: compact ? 72 : 82, minHeight: compact ? 42 : 48, fontSize: compact ? '18px' : '20px' });
+      const downBtn = this.createDebugTextButton(width * 0.5, topPanel.y + 62, '↓', () => this.nudgeCardArtFrame(card, { deltaY: 10 }), { minWidth: compact ? 72 : 82, minHeight: compact ? 42 : 48, fontSize: compact ? '18px' : '20px' });
+      const leftBtn = this.createDebugTextButton(width * 0.5 - 74, topPanel.y + 62, '←', () => this.nudgeCardArtFrame(card, { deltaX: -10 }), { minWidth: compact ? 72 : 82, minHeight: compact ? 42 : 48, fontSize: compact ? '18px' : '20px' });
+      const rightBtn = this.createDebugTextButton(width * 0.5 + 74, topPanel.y + 62, '→', () => this.nudgeCardArtFrame(card, { deltaX: 10 }), { minWidth: compact ? 72 : 82, minHeight: compact ? 42 : 48, fontSize: compact ? '18px' : '20px' });
+      const zoomInBtn = this.createDebugTextButton(width * 0.5 - 96, topPanel.y + 108, 'Zoom +', () => this.nudgeCardArtFrame(card, { deltaScale: 0.05 }), { minWidth: compact ? 104 : 118, minHeight: compact ? 36 : 40, fontSize: compact ? '12px' : '13px' });
+      const zoomOutBtn = this.createDebugTextButton(width * 0.5 + 96, topPanel.y + 108, 'Zoom -', () => this.nudgeCardArtFrame(card, { deltaScale: -0.05 }), { minWidth: compact ? 104 : 118, minHeight: compact ? 36 : 40, fontSize: compact ? '12px' : '13px' });
+      const resetBtn = this.createDebugTextButton(width * 0.5, bottomPanel.y, 'Reset', () => this.resetCardArtFrame(card), { minWidth: compact ? 164 : 176, minHeight: compact ? 44 : 50, fontSize: compact ? '13px' : '14px', paddingX: compact ? 12 : 16, paddingY: compact ? 7 : 8 });
+      const statusLabel = this.add.text(panelLeft + 12, topPanel.y + (compact ? 60 : 54), `Art Framing mode | frameX: ${frameState.frameX.toFixed(1)} frameY: ${frameState.frameY.toFixed(1)} frameScale: ${frameState.frameScale.toFixed(2)}`, {
         fontFamily: 'Arial, sans-serif',
         fontSize: '12px',
         color: '#cbd5e1',
       }).setOrigin(0, 0.5).setDepth(3202).setScrollFactor(0);
-      debug.panelItems.push(topPanel, bottomPanel, framingTitle, framingHint, upPlaceholder, downPlaceholder, resetPlaceholder, statusLabel);
+      debug.panelItems.push(topPanel, bottomPanel, framingTitle, framingHint, upBtn, downBtn, leftBtn, rightBtn, zoomInBtn, zoomOutBtn, resetBtn, statusLabel);
     }
   }
 
