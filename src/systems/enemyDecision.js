@@ -1,7 +1,54 @@
-import { canPlayOrRedeploy, canSwap, performSwap, playEffectCard, playOrRedeployUnit, resolveTargetedEffectCard, resolveTargetedUnitOnPlayEffect, getUnitAttack, getUnitArmor, RUNNER_OPEN_LANE_HERO_BONUS } from './GameState.js';
+import { canPlayOrRedeploy, canSwap, performSwap, playEffectCard, playOrRedeployUnit, resolveTargetedEffectCard, resolveTargetedUnitOnPlayEffect, getUnitAttack, getUnitArmor, RUNNER_OPEN_LANE_HERO_BONUS, resolveImmediateNoProgressWinner } from './GameState.js';
 
 const ENEMY_ROW_INDEXES = [0, 1, 2];
 const PLAYER_ROW_INDEXES = [6, 7, 8];
+export const AI_SAFE_SURRENDER_ENABLED = false;
+const AI_SAFE_SURRENDER_CONFIRMATION_PASSES = 2;
+
+const SAFE_SURRENDER_MEANINGFUL_EFFECT_IDS = new Set([
+  'lane_empty_bonus_damage',
+  'on_play_lane_damage_1',
+  'death_damage_enemy_hero_1',
+  'combat_death_damage_enemy_lane_1',
+  'combat_death_summon_grunt',
+  'leech_heal_hero_on_combat_kill',
+  'rotcaller_adjacent_death_atk_1',
+  'combat_death_damage_both_heroes_1',
+  'adjacent_allies_atk_plus_1_ignore_armor_1',
+  'gain_atk_when_damaged',
+  'wounded_atk_plus_1',
+  'can_hit_any_lane',
+  'opposing_lane_atk_plus_1',
+  'aggro_buff_all_atk_2',
+  'buff_all_atk_1',
+  'heal_1_atk_1_draw_on_kill_this_turn',
+  'quick_strike',
+  'swap_adjacent_then_resolve',
+  'ignore_armor_next_attack',
+  'damage_all_enemies_1_ignore_armor',
+  'control_enemy_unit_this_turn',
+  'swap_any_two_units',
+  'swap_adjacent_enemy_units',
+  'summon_grunt_empty_slot',
+  'grave_call',
+  'funeral_pyre',
+  'revive_friendly_1hp',
+  'fill_empty_slots_0_1',
+  'infect_damage_1_opposite_ally_atk_1',
+  'destroy_friendly_draw_1',
+  'return_friendly_draw_1',
+  'enemy_up_to_2_atk_minus_1',
+  'enemy_all_atk_minus_1',
+  'enemy_lane_atk_minus_1',
+  'buff_all_armor_1',
+  'heal_all_1',
+  'cannot_drop_below_1_this_turn',
+  'temp_armor_1',
+  'swap_leftmost_adjacent_enemies',
+  'heal_2',
+  'heal_3',
+  'swap_two_enemy_units',
+]);
 
 
 const LOW_TEMPO_EFFECTS = new Set([
@@ -781,11 +828,78 @@ function scoreAction(state, owner, action) {
   return score;
 }
 
+function getOwnerRowIndexes(owner) {
+  return owner === 'enemy' ? ENEMY_ROW_INDEXES : PLAYER_ROW_INDEXES;
+}
+
+function noProgressWouldAlreadyResolve(state) {
+  if (!state || state.winner) return Boolean(state?.winner);
+  const snapshot = JSON.parse(JSON.stringify(state));
+  return Boolean(resolveImmediateNoProgressWinner(snapshot));
+}
+
+function cardIsKnownMeaningfulForSafeSurrender(card) {
+  if (!card) return false;
+  if (card.type === 'unit') {
+    if (!Number.isFinite(card.attack) || !Number.isFinite(card.hp)) return true;
+    if ((card.attack ?? 0) > 0) return true;
+    if (!card.effectId) return false;
+    return SAFE_SURRENDER_MEANINGFUL_EFFECT_IDS.has(card.effectId);
+  }
+  if (!card.effectId) return true;
+  return SAFE_SURRENDER_MEANINGFUL_EFFECT_IDS.has(card.effectId);
+}
+
+function cardIsUnknownForSafeSurrender(card) {
+  if (!card) return false;
+  if (card.type !== 'unit' && !card.effectId) return true;
+  if (!card.effectId) return false;
+  return !SAFE_SURRENDER_MEANINGFUL_EFFECT_IDS.has(card.effectId);
+}
+
+export function isVerySafeConcedableState(state, owner = 'enemy') {
+  if (!state || owner !== 'enemy') return false;
+  if (noProgressWouldAlreadyResolve(state)) return false;
+  if ((state.enemyHP ?? 0) >= (state.playerHP ?? 0)) return false;
+
+  const enemyHasUnits = getOwnerRowIndexes('enemy').some((index) => state.board?.[index]?.owner === 'enemy');
+  if (enemyHasUnits) return false;
+
+  const enemyHand = Array.isArray(state.enemy?.hand) ? state.enemy.hand : [];
+  const enemyDeck = Array.isArray(state.enemy?.deck) ? state.enemy.deck : [];
+
+  if (enemyHand.some(cardIsUnknownForSafeSurrender) || enemyDeck.some(cardIsUnknownForSafeSurrender)) return false;
+  if (enemyHand.some(cardIsKnownMeaningfulForSafeSurrender)) return false;
+  if (enemyDeck.some(cardIsKnownMeaningfulForSafeSurrender)) return false;
+
+  return true;
+}
+
+function updateSafeSurrenderPassCounter(state, owner, stillEligible) {
+  if (!state) return 0;
+  state.aiSafeSurrender ??= { player: 0, enemy: 0 };
+  if (stillEligible) {
+    state.aiSafeSurrender[owner] = (state.aiSafeSurrender[owner] ?? 0) + 1;
+  } else {
+    state.aiSafeSurrender[owner] = 0;
+  }
+  return state.aiSafeSurrender[owner];
+}
+
 export function chooseEnemyAction(state) {
   return chooseBattleAction(state, 'enemy');
 }
 
 export function chooseBattleAction(state, owner = 'enemy', options = {}) {
+  const safeSurrenderEnabled = options.aiSafeSurrenderEnabled ?? AI_SAFE_SURRENDER_ENABLED;
+  if (owner === 'enemy' && safeSurrenderEnabled) {
+    const isSafeConcedable = isVerySafeConcedableState(state, owner);
+    const confirmations = updateSafeSurrenderPassCounter(state, owner, isSafeConcedable);
+    if (isSafeConcedable && confirmations >= AI_SAFE_SURRENDER_CONFIRMATION_PASSES) {
+      return { type: 'surrender', reason: 'ai-safe-surrender' };
+    }
+  }
+
   const side = owner === 'enemy' ? state?.enemy : state?.player;
   const hand = Array.isArray(side?.hand) ? side.hand : [];
   const actions = buildActionCandidates(state, owner, hand, options.telemetry ?? null);
@@ -801,21 +915,29 @@ export function chooseBattleAction(state, owner = 'enemy', options = {}) {
   const bestScore = scoredActions.reduce((max, entry) => Math.max(max, entry.score), Number.NEGATIVE_INFINITY);
   const tiedBest = scoredActions.filter((entry) => entry.score === bestScore).map((entry) => entry.action);
 
-  if (tiedBest.length === 1) return tiedBest[0];
+  if (tiedBest.length === 1) {
+    if (owner === 'enemy' && tiedBest[0]?.type !== 'pass') updateSafeSurrenderPassCounter(state, owner, false);
+    return tiedBest[0];
+  }
 
   const randomFn = typeof options.randomFn === 'function' ? options.randomFn : null;
   const tieBreakPolicy = options.tieBreakPolicy ?? 'first';
 
   if (tieBreakPolicy === 'seeded-random' && randomFn) {
     const index = Math.floor(randomFn() * tiedBest.length);
-    return tiedBest[Math.max(0, Math.min(tiedBest.length - 1, index))];
+    const picked = tiedBest[Math.max(0, Math.min(tiedBest.length - 1, index))];
+    if (owner === 'enemy' && picked?.type !== 'pass') updateSafeSurrenderPassCounter(state, owner, false);
+    return picked;
   }
 
   if (tieBreakPolicy === 'rotation') {
     const rotationIndex = Number.isInteger(options.tieBreakIndex) ? options.tieBreakIndex : 0;
     const normalized = ((rotationIndex % tiedBest.length) + tiedBest.length) % tiedBest.length;
-    return tiedBest[normalized];
+    const picked = tiedBest[normalized];
+    if (owner === 'enemy' && picked?.type !== 'pass') updateSafeSurrenderPassCounter(state, owner, false);
+    return picked;
   }
 
+  if (owner === 'enemy' && tiedBest[0]?.type !== 'pass') updateSafeSurrenderPassCounter(state, owner, false);
   return tiedBest[0];
 }

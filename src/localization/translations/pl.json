@@ -352,6 +352,7 @@
       "youLose": "PORAŻKA",
       "draw": "REMIS",
       "enemyPass": "WRÓG PASUJE",
+      "enemySurrenders": "WRÓG PODDAJE MECZ",
       "playerPlayed": "ZAGRANO",
       "enemyPlays": "WRÓG GRA",
       "enemyRepositions": "WRÓG ZMIENIA POZYCJE",
