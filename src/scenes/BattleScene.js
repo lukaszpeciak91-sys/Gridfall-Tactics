@@ -11,7 +11,7 @@ import { createFloatingControl, createMuteToggleControl, requestPortraitOrientat
 import { createModalBackButton } from '../ui/modalControls.js';
 import { preloadSecondaryButtonAsset } from '../ui/imageButton.js';
 import { formatDeckSummaryEntry } from '../rendering/cardRenderModes.js';
-import { CARD_COLORS, createCardArtwork, createCardPreviewView, getBaseCardSurfaceTheme, getDefaultCardAccentColor, getFactionSurfaceTheme, createStatBadges } from '../rendering/cardVisualLayout.js';
+import { CARD_COLORS, createCardArtwork, createCardPreviewView, getBaseCardSurfaceTheme, getDefaultCardAccentColor, resolveCardSurfaceTheme, createStatBadges } from '../rendering/cardVisualLayout.js';
 import { getCardDisplayName, getCardTextShort } from '../localization/cardDisplay.js';
 import { getActiveLocale, translateActive } from '../localization/localeService.js';
 
@@ -1744,7 +1744,7 @@ export default class BattleScene extends Phaser.Scene {
       baseStatValues,
       changedStats,
       pulseChangedStats,
-      surfaceTheme: getFactionSurfaceTheme(factionThemeId),
+      surfaceTheme: resolveCardSurfaceTheme({ factionId: factionThemeId, mode: 'board' }),
     });
   }
 

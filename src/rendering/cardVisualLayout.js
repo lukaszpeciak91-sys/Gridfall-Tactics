@@ -47,61 +47,82 @@ function mergeSurfaceTheme(baseTheme, overrideTheme = {}) {
   });
 }
 
-export const FACTION_SURFACE_OVERRIDES = Object.freeze({
+export const FACTION_CARD_SURFACE_OVERRIDES = Object.freeze({
   aggro: Object.freeze({
-    frameFill: 0x222a38,
-    frameSelectedFill: 0x374151,
-    dividerLine: 0x8f9cb1,
-    namePanelFill: 0x1a2434,
-    textPanelFill: 0x131d2d,
-    panelHighlightStroke: 0xe7dcc8,
+    frameFill: 0x252a34,
+    frameSelectedFill: 0x3a414d,
+    innerPanelEdgeStroke: 0xaa9d8d,
+    panelHighlightStroke: 0xe8ddce,
+    dividerLine: 0xa29382,
+    namePanelFill: 0x1f2530,
+    textPanelFill: 0x191f2b,
   }),
   control: Object.freeze({
-    frameFill: 0x1c2a38,
-    frameSelectedFill: 0x2a3b4f,
-    dividerLine: 0x7690a2,
-    namePanelFill: 0x142336,
-    textPanelFill: 0x0f1c2d,
-    panelHighlightStroke: 0xd2e5ea,
+    frameFill: 0x1c2b34,
+    frameSelectedFill: 0x2b3f4b,
+    innerPanelEdgeStroke: 0x7ea3a6,
+    panelHighlightStroke: 0xd3eaeb,
+    dividerLine: 0x71979b,
+    namePanelFill: 0x162731,
+    textPanelFill: 0x111f2a,
   }),
   swarm: Object.freeze({
-    frameFill: 0x20273b,
-    frameSelectedFill: 0x303a54,
-    dividerLine: 0x8390b5,
-    namePanelFill: 0x182038,
-    textPanelFill: 0x11192f,
-    panelHighlightStroke: 0xdadbf2,
+    frameFill: 0x23273a,
+    frameSelectedFill: 0x353b51,
+    innerPanelEdgeStroke: 0x8f94b3,
+    panelHighlightStroke: 0xdcddf1,
+    dividerLine: 0x878cad,
+    namePanelFill: 0x1d2236,
+    textPanelFill: 0x171b30,
   }),
   'attrition-swarm': Object.freeze({
-    frameFill: 0x22263a,
-    frameSelectedFill: 0x32394e,
-    dividerLine: 0x8b8faa,
-    namePanelFill: 0x1a1f34,
-    textPanelFill: 0x14182c,
-    panelHighlightStroke: 0xd8d8e8,
-  }),
-  wardens: Object.freeze({
-    frameFill: 0x1e2a35,
-    frameSelectedFill: 0x2f3f4f,
-    dividerLine: 0x8798ab,
-    namePanelFill: 0x172430,
-    textPanelFill: 0x101d28,
-    panelHighlightStroke: 0xd8e3ed,
+    frameFill: 0x262638,
+    frameSelectedFill: 0x3a3b50,
+    innerPanelEdgeStroke: 0x9690a3,
+    panelHighlightStroke: 0xdfd9e5,
+    dividerLine: 0x8e889d,
+    namePanelFill: 0x201f32,
+    textPanelFill: 0x19172c,
   }),
   tank: Object.freeze({
-    frameFill: 0x1f2836,
-    frameSelectedFill: 0x324256,
-    dividerLine: 0x8696aa,
-    namePanelFill: 0x192331,
-    textPanelFill: 0x131d2b,
-    panelHighlightStroke: 0xd7e1ea,
+    frameFill: 0x282a31,
+    frameSelectedFill: 0x3f414a,
+    innerPanelEdgeStroke: 0xa69778,
+    panelHighlightStroke: 0xe4ddcc,
+    dividerLine: 0x9e906f,
+    namePanelFill: 0x21232b,
+    textPanelFill: 0x191c25,
+  }),
+  wardens: Object.freeze({
+    frameFill: 0x212932,
+    frameSelectedFill: 0x343e49,
+    innerPanelEdgeStroke: 0x98a4b2,
+    panelHighlightStroke: 0xdce3eb,
+    dividerLine: 0x8c98a6,
+    namePanelFill: 0x1a242d,
+    textPanelFill: 0x141e28,
   }),
 });
 
-export function getFactionSurfaceTheme(factionId = '') {
+export function resolveCardSurfaceTheme({ factionId = '', mode = 'default' } = {}) {
+  const normalizedMode = String(mode ?? 'default').trim().toLowerCase();
   const normalizedFactionId = String(factionId ?? '').trim().toLowerCase();
-  const override = FACTION_SURFACE_OVERRIDES[normalizedFactionId] ?? null;
-  return override ? mergeSurfaceTheme(BASE_CARD_SURFACE_THEME, override) : BASE_CARD_SURFACE_THEME;
+  const override = FACTION_CARD_SURFACE_OVERRIDES[normalizedFactionId] ?? null;
+  if (!override) return BASE_CARD_SURFACE_THEME;
+
+  const modeOverrides = normalizedMode === 'inspect'
+    ? { panelHighlightStroke: override.panelHighlightStroke }
+    : null;
+
+  return mergeSurfaceTheme(BASE_CARD_SURFACE_THEME, modeOverrides ? { ...override, ...modeOverrides } : override);
+}
+
+export function getFactionSurfaceTheme(factionId = '') {
+  return resolveCardSurfaceTheme({ factionId, mode: 'default' });
+}
+
+export function __deprecatedGetFactionSurfaceTheme(factionId = '') {
+  return getFactionSurfaceTheme(factionId);
 }
 
 export const CARD_COLORS = Object.freeze({
