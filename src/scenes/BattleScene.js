@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
-import { createInitialBattleState, drawCards, shuffleDeck, canPass, canPlayOrRedeploy, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, resolveTargetedUnitOnPlayEffect, getUnitAttack, getUnitArmor, toggleFirstActor, resolveTurnCapWinner, resolveImmediateNoProgressWinner, recordPassAction, performOpeningMulligan, STARTING_HAND_SIZE, MAX_OPENING_MULLIGAN_CARDS } from '../systems/GameState.js';
+import { createInitialBattleState, drawCards, shuffleDeck, canPass, canSwap, canPlayOrRedeploy, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, resolveTargetedUnitOnPlayEffect, getUnitAttack, getUnitArmor, toggleFirstActor, resolveTurnCapWinner, resolveImmediateNoProgressWinner, recordPassAction, performOpeningMulligan, STARTING_HAND_SIZE, MAX_OPENING_MULLIGAN_CARDS } from '../systems/GameState.js';
 import { chooseEnemyAction, isVerySafeConcedableState, recordBattleActionUse, selectOpeningMulliganCardIds } from '../systems/enemyDecision.js';
 import { getTargetingStateForEffect } from '../systems/cardTargeting.js';
 import { getCombatEventAttackerIndex, getCombatEventTargetIndex, getLaneLethalTargetIndexes, getLaneSimultaneousUnitClash, shouldAnimateCombatAttacker } from '../systems/combatAnimation.js';
@@ -2613,6 +2613,22 @@ export default class BattleScene extends Phaser.Scene {
       && canPass(this.gameState);
   }
 
+  canPlayerStartSwap() {
+    if (!this.gameState || this.gameState.winner) return false;
+    if (this.battleResultModalShown || this.openingMulliganPending || this.playerActionUsed) return false;
+    if (this.isFlowResolving || this.isEffectCastResolving) return false;
+    if (this.targetingState || this.effectCastState) return false;
+    if (this.actionMode === 'swap') return false;
+    if (!canPass(this.gameState)) return false;
+
+    const rowIndexes = [6, 7, 8];
+    return rowIndexes.some((leftIndex) => {
+      const rightIndex = leftIndex + 1;
+      if (!rowIndexes.includes(rightIndex)) return false;
+      return canSwap(this.gameState, leftIndex, rightIndex, 'player');
+    });
+  }
+
   updateActionButtonLabel() {
     if (!this.actionButton) return;
     if (this.openingMulliganPending) {
@@ -2653,6 +2669,16 @@ export default class BattleScene extends Phaser.Scene {
       this.actionButton.setStroke('#fca5a5', 2);
       this.passHoldToSurrenderEnabled = false;
       this.cancelPassHoldToSurrender();
+      return;
+    }
+
+    if (this.canPlayerStartSwap()) {
+      this.passHoldToSurrenderEnabled = false;
+      this.cancelPassHoldToSurrender();
+      this.actionButton.setVisible(true);
+      this.actionButton.setText(translateActive('ui.battle.swapAction', 'SWAP'));
+      this.actionButton.setStyle({ backgroundColor: '#1f2937', color: '#f9fafb' });
+      this.actionButton.setStroke('#60a5fa', 2);
       return;
     }
 
@@ -2763,10 +2789,11 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
-    const selectedCard = this.gameState?.player?.hand?.find((card) => card.id === this.selectedCardId) ?? null;
-    if (this.isUnitCard(selectedCard)) {
+    if (this.canPlayerStartSwap()) {
       this.actionMode = 'swap';
       this.pendingSwapIndex = null;
+      this.targetingState = null;
+      this.effectCastState = null;
       this.showSwapPrompt('selectSource');
       this.clearBoardInspect({ animate: true });
       this.resetCardHighlights({ showPreview: false });
