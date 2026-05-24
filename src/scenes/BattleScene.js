@@ -5205,10 +5205,12 @@ export default class BattleScene extends Phaser.Scene {
       const allTargets = [card.root, card.glow, card.background, card.label, card.selectionOutline].filter(Boolean);
 
       const accentColor = this.getHandCardAccentColor(viewCard);
+      const frameFillColor = card.surfaceTheme?.frameFill ?? CARD_COLORS.frame;
+      const frameSelectedFillColor = card.surfaceTheme?.frameSelectedFill ?? CARD_COLORS.frameSelected;
 
       this.tweens.killTweensOf(allTargets);
       card.background.setStrokeStyle(isActiveHandCard ? 5 : 3, isActiveHandCard ? 0xfacc15 : accentColor, isActiveHandCard ? 1 : viewCard ? 0.76 : 0.7);
-      card.background.setFillStyle(isActiveHandCard ? CARD_COLORS.frameSelected : CARD_COLORS.frame, isActiveHandCard ? 0.95 : viewCard ? 0.74 : 0.48);
+      card.background.setFillStyle(isActiveHandCard ? frameSelectedFillColor : frameFillColor, isActiveHandCard ? 0.95 : viewCard ? 0.74 : 0.48);
       card.glow.setStrokeStyle(isActiveHandCard ? 5 : 0, 0xfacc15, isActiveHandCard ? 0.65 : 0);
       card.glow.setFillStyle(0xfacc15, isActiveHandCard ? 0.12 : 0);
       card.selectionOutline?.setStrokeStyle(isActiveHandCard ? 5 : 0, 0xfacc15, isActiveHandCard ? 0.92 : 0);
