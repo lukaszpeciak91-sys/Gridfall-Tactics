@@ -12,7 +12,7 @@ import { preloadAllCardIllustrations } from '../rendering/cardIllustrationAssets
 import { getActiveLocale, translateActive } from '../localization/localeService.js';
 import { createModalBackButton } from '../ui/modalControls.js';
 import { preloadSecondaryButtonAsset } from '../ui/imageButton.js';
-import { CARD_COLORS, createCardPreviewView, getDefaultCardAccentColor } from '../rendering/cardVisualLayout.js';
+import { CARD_COLORS, createCardPreviewView, getDefaultCardAccentColor, getFactionSurfaceTheme } from '../rendering/cardVisualLayout.js';
 import { HAND_CARD_ASPECT_RATIO } from '../ui/handLayout.js';
 import {
   HAND_CARD_BODY_LINE_SPACING,
@@ -182,13 +182,14 @@ export default class CollectionScene extends Phaser.Scene {
         y: gridTop + row * (cardHeight + COLLECTION_CARD_GAP_Y),
         width: cardWidth,
         height: cardHeight,
+        factionThemeId: faction?.id ?? factionKey,
       });
     });
 
     return gridTop + rowsPerColumn * cardHeight + Math.max(0, rowsPerColumn - 1) * COLLECTION_CARD_GAP_Y;
   }
 
-  drawCardPreview(content, card, { x, y, width, height }) {
+  drawCardPreview(content, card, { x, y, width, height, factionThemeId = '' }) {
     const preview = createCardPreviewView(this, {
       card,
       x: x + width / 2,
@@ -203,6 +204,7 @@ export default class CollectionScene extends Phaser.Scene {
       bodyLineSpacing: HAND_CARD_BODY_LINE_SPACING,
       enableCardIllustration: true,
       showCardNumber: true,
+      surfaceTheme: getFactionSurfaceTheme(factionThemeId),
     });
     content.add(preview.root);
     this.uiElements.push(preview.root);
@@ -216,6 +218,7 @@ export default class CollectionScene extends Phaser.Scene {
         sourceY: bounds.centerY,
         sourceWidth: width,
         sourceHeight: height,
+        factionThemeId,
       });
     });
     preview.background.on('pointerup', (pointer) => {
@@ -303,7 +306,7 @@ export default class CollectionScene extends Phaser.Scene {
     };
   }
 
-  showInspectPreview({ card, sourceX, sourceY, sourceWidth, sourceHeight }) {
+  showInspectPreview({ card, sourceX, sourceY, sourceWidth, sourceHeight, factionThemeId = '' }) {
     if (!card) return;
 
     this.cancelCardLongPress();
@@ -329,6 +332,7 @@ export default class CollectionScene extends Phaser.Scene {
       bodyLineSpacing: INSPECT_CARD_BODY_LINE_SPACING,
       enableCardIllustration: true,
       showCardNumber: true,
+      surfaceTheme: getFactionSurfaceTheme(factionThemeId),
     });
 
     previewView.root.setAlpha(0).setScale(0.92);
