@@ -1333,7 +1333,15 @@ export default class BattleScene extends Phaser.Scene {
       this.onActionButtonPointerDown();
     });
     button.on('pointerup', () => {
-      this.onActionButtonPointerUp();
+      if (this.openingMulliganPending) {
+        this.confirmOpeningMulligan();
+        return;
+      }
+      if (this.targetingState) {
+        this.confirmTargetingSelection();
+        return;
+      }
+      this.resolvePassTurn();
     });
     button.on('pointerout', () => {
       this.onActionButtonPointerCancel();
@@ -2470,6 +2478,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   async confirmOpeningMulligan() {
+    this.cancelPassHoldToSurrender();
     if (this.isFlowResolving) return;
 
     const selectedIds = [...this.selectedMulliganCardIds];
@@ -2580,21 +2589,6 @@ export default class BattleScene extends Phaser.Scene {
     });
   }
 
-  onActionButtonPointerUp() {
-    const holdTriggered = Boolean(this.passHoldToSurrenderProgress && !this.passHoldToSurrenderEvent);
-    this.cancelPassHoldToSurrender();
-    if (holdTriggered) return;
-    if (this.openingMulliganPending) {
-      this.confirmOpeningMulligan();
-      return;
-    }
-    if (this.targetingState) {
-      this.confirmTargetingSelection();
-      return;
-    }
-    this.resolvePassTurn();
-  }
-
   onActionButtonPointerCancel() {
     this.cancelPassHoldToSurrender();
   }
@@ -2617,6 +2611,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   confirmTargetingSelection() {
+    this.cancelPassHoldToSurrender();
     if (this.battleResultModalShown || this.isFlowResolving || this.playerActionUsed) return;
     const selectedCard = this.getActivePlayerEffectCard()
       ?? this.gameState.player.hand.find((card) => card.id === this.selectedCardId);
@@ -2656,6 +2651,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   resolvePassTurn() {
+    this.cancelPassHoldToSurrender();
     if (this.battleResultModalShown || this.isFlowResolving || this.isEffectCastResolving || this.targetingState) return;
     if (this.gameState.winner || !canPass(this.gameState) || this.playerActionUsed) return;
     recordPassAction(this.gameState, 'player');
