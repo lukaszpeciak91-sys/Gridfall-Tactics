@@ -1843,7 +1843,6 @@ export default class BattleScene extends Phaser.Scene {
 
     if (this.boardPointerDownSelectedSwapSource && this.pendingSwapIndex === boardIndex) {
       this.boardLongPressTriggeredIndex = null;
-      this.boardPointerDownSelectedSwapSource = false;
       return;
     }
 
@@ -2051,6 +2050,13 @@ export default class BattleScene extends Phaser.Scene {
     if (this.isPointerUpReservedForUi(pointer, currentlyOver)) return;
 
     const boardCell = this.getBoardCellFromPointerUp(pointer, currentlyOver);
+
+    if (boardCell && this.boardPointerDownSelectedSwapSource && this.pendingSwapIndex === boardCell.index) {
+      this.pressedHandCardId = null;
+      this.pressedHandCardWasSelected = false;
+      this.boardPointerDownSelectedSwapSource = false;
+      return;
+    }
     if (isIdleBoardTapMode && !boardCell) {
       this.clearBoardInspectFromOutsideTap(pointer, currentlyOver);
       return;
