@@ -69,5 +69,35 @@ test('pointerup does not cancel source selected on pointerdown', () => {
 
   assert.deepEqual(tapped, []);
   assert.equal(scene.pendingSwapIndex, 6);
+  assert.equal(scene.boardPointerDownSelectedSwapSource, true);
+});
+
+
+test('scene pointerup consumes pointerdown-selected source without committing swap', () => {
+  const onScenePointerUp = compileMethod('onScenePointerUp', 'clearSelectedHandInspectFromOutsideTap', ['pointer', 'currentlyOver']);
+
+  const tapped = [];
+  const scene = {
+    pendingSwapIndex: 6,
+    selectedCardId: null,
+    targetingState: null,
+    effectCastState: null,
+    boardPointerDownSelectedSwapSource: true,
+    navigationInProgress: false,
+    battleResultModalShown: false,
+    isFlowResolving: false,
+    isEffectCastResolving: false,
+    pressedHandCardId: null,
+    pressedHandCardWasSelected: false,
+    isPointerEventGuarded: () => false,
+    isPointerUpReservedForUi: () => false,
+    getBoardCellFromPointerUp: () => ({ index: 6 }),
+    onBoardCellTap(index) { tapped.push(index); },
+  };
+
+  onScenePointerUp.call(scene, { id: 1 }, []);
+
+  assert.deepEqual(tapped, []);
+  assert.equal(scene.pendingSwapIndex, 6);
   assert.equal(scene.boardPointerDownSelectedSwapSource, false);
 });
