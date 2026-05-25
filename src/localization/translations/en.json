@@ -409,53 +409,55 @@
       "title": "Rules / How To Play",
       "sections": [
         {
+          "heading": "Icon Glossary",
+          "lines": [
+            "ATK — damage dealt by a unit.",
+            "HP — unit health.",
+            "ARM — armor that reduces incoming damage.",
+            "ALLY — one of your units.",
+            "ALLIES — all your units.",
+            "ENEMY — one enemy unit.",
+            "ENEMIES — all enemy units.",
+            "Base HP — your base health. At 0, you lose."
+          ]
+        },
+        {
           "heading": "Goal",
           "lines": [
-            "Both bases start at 12 HP.",
-            "Protect your base and reduce the enemy base to 0 HP."
+            "Reduce the enemy Base to 0 HP before your Base reaches 0."
           ]
         },
         {
-          "heading": "Board / Lines",
+          "heading": "Your Turn",
           "lines": [
-            "The fight has 3 lines.",
-            "Play units into your line slots. The middle row is only for visuals.",
-            "If a unit attacks an open line, it hits the enemy base."
-          ]
-        },
-        {
-          "heading": "Turn Flow",
-          "lines": [
-            "At battle start, draw 4 cards and mulligan up to 2 cards once.",
-            "One side acts first, then initiative alternates each turn.",
-            "Each side gets 1 action or may pass.",
-            "After both sides act or pass, combat resolves automatically.",
+            "You get 1 action.",
+            "Then the enemy gets 1 action.",
+            "After both actions, combat resolves automatically.",
             "After combat, you draw 1 card, then the enemy draws 1 card."
           ]
         },
         {
-          "heading": "Actions",
+          "heading": "Board and Combat",
           "lines": [
-            "Cards have no mana, energy, or cost system.",
-            "Your action can play a unit, play an effect, use a targeted effect, swap friendly units, redeploy a unit, or pass."
+            "Battles use 3 lanes.",
+            "Your units fight enemies directly opposite them.",
+            "If no enemy is opposite, your unit hits the enemy Base.",
+            "The middle row is visual only."
           ]
         },
         {
-          "heading": "Combat",
+          "heading": "Swap",
           "lines": [
-            "Combat happens line by line with no diagonal attacks.",
-            "Units fight opposing units in their line.",
-            "Open line attacks damage the opposing base instead.",
-            "Both sides can deal damage during the same combat step."
+            "Tap one of your units.",
+            "Tap an adjacent allied unit.",
+            "The two units swap places."
           ]
         },
         {
-          "heading": "Winning",
+          "heading": "PASS and Surrender",
           "lines": [
-            "A battle can end when a base is defeated.",
-            "If neither side can make meaningful progress, remaining base HP decides the result.",
-            "If the turn limit is reached, remaining base HP decides the result.",
-            "If remaining base HP is tied, the battle is a draw."
+            "PASS ends your action.",
+            "If available, hold PASS to surrender."
           ]
         }
       ]

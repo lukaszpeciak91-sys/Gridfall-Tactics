@@ -409,53 +409,55 @@
       "title": "Zasady / Jak grać",
       "sections": [
         {
+          "heading": "Słownik ikon",
+          "lines": [
+            "ATK — obrażenia zadawane przez jednostkę.",
+            "HP — punkty życia jednostki.",
+            "ARM — pancerz zmniejszający otrzymywane obrażenia.",
+            "ALLY — jedna twoja jednostka.",
+            "ALLIES — wszystkie twoje jednostki.",
+            "ENEMY — jedna wroga jednostka.",
+            "ENEMIES — wszystkie wrogie jednostki.",
+            "Base HP — życie twojej bazy. Przy 0 przegrywasz."
+          ]
+        },
+        {
           "heading": "Cel",
           "lines": [
-            "Obie bazy zaczynają z 12 HP.",
-            "Chroń swoją bazę i zredukuj HP bazy wroga do 0."
+            "Obniż HP bazy wroga do 0, zanim twoja baza spadnie do 0."
           ]
         },
         {
-          "heading": "Plansza / Linie",
+          "heading": "Twoja tura",
           "lines": [
-            "Walka ma 3 linie.",
-            "Zagrywaj jednostki do swoich slotów linii. Środkowy rząd jest tylko wizualny.",
-            "Jeśli jednostka atakuje otwartą linię, trafia bazę wroga."
-          ]
-        },
-        {
-          "heading": "Przebieg tury",
-          "lines": [
-            "Na początku bitwy dobierz 4 karty i raz wymień do 2 kart.",
-            "Jedna strona działa pierwsza, potem inicjatywa zmienia się co turę.",
-            "Każda strona ma 1 akcję albo może spasować.",
-            "Po działaniu lub pasie obu stron walka rozstrzyga się automatycznie.",
+            "Masz 1 akcję.",
+            "Potem wróg ma 1 akcję.",
+            "Po obu akcjach walka rozstrzyga się automatycznie.",
             "Po walce dobierasz 1 kartę, potem wróg dobiera 1 kartę."
           ]
         },
         {
-          "heading": "Akcje",
+          "heading": "Plansza i walka",
           "lines": [
-            "Karty nie mają many, energii ani kosztów.",
-            "Twoja akcja może zagrać jednostkę, zagrać efekt, użyć efektu celowanego, zamienić sojusznicze jednostki, przestawić jednostkę albo spasować."
+            "Bitwa toczy się na 3 liniach.",
+            "Twoje jednostki walczą z wrogami naprzeciwko.",
+            "Jeśli naprzeciwko nie ma wroga, jednostka atakuje bazę wroga.",
+            "Środkowy rząd jest tylko wizualny."
           ]
         },
         {
-          "heading": "Walka",
+          "heading": "Zamiana",
           "lines": [
-            "Walka odbywa się linia po linii, bez ataków po skosie.",
-            "Jednostki walczą z jednostkami naprzeciwko w swojej linii.",
-            "Ataki w otwartą linię zadają obrażenia przeciwnej bazie.",
-            "Obie strony mogą zadawać obrażenia w tym samym kroku walki."
+            "Dotknij swojej jednostki.",
+            "Dotknij sąsiedniej sojuszniczej jednostki.",
+            "Obie jednostki zamieniają się miejscami."
           ]
         },
         {
-          "heading": "Zwycięstwo",
+          "heading": "PASS i poddanie",
           "lines": [
-            "Bitwa może zakończyć się, gdy baza zostanie pokonana.",
-            "Jeśli żadna strona nie może zrobić znaczącego postępu, wynik ustala pozostałe HP baz.",
-            "Jeśli osiągnięto limit tur, wynik ustala pozostałe HP baz.",
-            "Jeśli pozostałe HP baz jest równe, bitwa kończy się remisem."
+            "PASS kończy twoją akcję.",
+            "Jeśli poddanie jest dostępne, przytrzymaj PASS, aby poddać mecz."
           ]
         }
       ]
