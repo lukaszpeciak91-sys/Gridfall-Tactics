@@ -1,49 +1,49 @@
 import Phaser from 'phaser';
+import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
+import { getActiveLocale } from '../localization/localeService.js';
+import { preloadAllCardIllustrations } from '../rendering/cardIllustrationAssets.js';
+import { createCardPreviewView, getDefaultCardAccentColor, resolveCardSurfaceTheme } from '../rendering/cardVisualLayout.js';
+import {
+  HAND_CARD_BODY_LINE_SPACING,
+  HAND_CARD_STAT_BADGE_SCALE,
+  HAND_CARD_TITLE_TYPOGRAPHY_SCALE,
+  HAND_CARD_TYPOGRAPHY_SCALE,
+  INSPECT_CARD_BODY_LINE_SPACING,
+  INSPECT_CARD_STAT_BADGE_SCALE,
+  INSPECT_CARD_TYPOGRAPHY_SCALE,
+} from '../rendering/cardViewConfig.js';
+import { HAND_CARD_ASPECT_RATIO } from '../ui/handLayout.js';
+
+const STEP_OPTIONS = [0.01, 0.025, 0.05];
+const DEFAULT_STEP_INDEX = 1;
+
+function clamp01(value) {
+  return Phaser.Math.Clamp(value, 0, 1);
+}
 
 export default class ArtViewportDebugScene extends Phaser.Scene {
   constructor() {
     super('ArtViewportDebugScene');
+    this.cardEntries = [];
+    this.selectedIndex = 0;
+    this.stepIndex = DEFAULT_STEP_INDEX;
+    this.currentY01 = 0.5;
+    this.defaultY01 = 0.5;
+    this.previewNodes = [];
+  }
+
+  preload() {
+    preloadAllCardIllustrations(this);
   }
 
   create() {
     this.onBackRequested = () => this.scene.start('MainMenuScene');
-    const { width, height } = this.scale;
-
     this.cameras.main.setBackgroundColor('#0b1220');
+    this.cardEntries = this.buildCardEntries();
 
-    this.add.text(width * 0.5, 54, 'Art Viewport Debug', {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: '30px',
-      color: '#f8fafc',
-      fontStyle: 'bold',
-      align: 'center',
-    }).setOrigin(0.5);
-
-    this.add.text(width * 0.5, 118, 'Skeleton scene (PR 1)\nDebug-only entry for future viewport tuning tool.\nNo preview/crop/export in this phase.', {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: '16px',
-      color: '#cbd5e1',
-      align: 'center',
-      lineSpacing: 8,
-      wordWrap: { width: Math.max(240, width - 52) },
-    }).setOrigin(0.5, 0);
-
-    const backWidth = Math.min(width - 40, 260);
-    const backHeight = 64;
-    const backY = height - 88;
-
-    const backButton = this.add.rectangle(width * 0.5, backY, backWidth, backHeight, 0x1d4ed8, 0.94)
-      .setStrokeStyle(2, 0x93c5fd, 0.95)
-      .setInteractive({ useHandCursor: true });
-
-    const backLabel = this.add.text(width * 0.5, backY, 'Back to Main Menu', {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: '23px',
-      color: '#eff6ff',
-      fontStyle: 'bold',
-    }).setOrigin(0.5);
-
-    backButton.on('pointerup', this.onBackRequested);
+    this.createLayout();
+    this.syncSelectedCardState();
+    this.renderPreviews();
 
     this.input.keyboard?.on('keydown-ESC', this.onBackRequested);
     this.input.keyboard?.on('keydown-BACKSPACE', this.onBackRequested);
@@ -51,18 +51,195 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.input.keyboard?.off('keydown-ESC', this.onBackRequested);
       this.input.keyboard?.off('keydown-BACKSPACE', this.onBackRequested);
-      backButton.off('pointerup', this.onBackRequested);
+    });
+  }
+
+  buildCardEntries() {
+    const entries = [];
+    getFactionKeys().forEach((factionKey) => {
+      const faction = getFactionByKey(factionKey);
+      (faction?.deck ?? []).forEach((card) => {
+        entries.push({ card, factionKey });
+      });
     });
 
-    this.add.text(width * 0.5, backY - 106, 'Future phases will add runtime-accurate Hand/Inspect preview\nand clipboard export for manual Codex patch workflows.', {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: '13px',
-      color: '#93c5fd',
-      align: 'center',
-      lineSpacing: 5,
-      wordWrap: { width: Math.max(220, width - 64) },
-    }).setOrigin(0.5, 0.5);
+    return entries.sort((a, b) => {
+      const aId = String(a.card?.id ?? '');
+      const bId = String(b.card?.id ?? '');
+      if (aId !== bId) return aId.localeCompare(bId);
+      return String(a.card?.name ?? '').localeCompare(String(b.card?.name ?? ''));
+    });
+  }
 
-    this.children.bringToTop(backLabel);
+  createLayout() {
+    const { width, height } = this.scale;
+    const sidePad = 16;
+
+    this.add.text(width * 0.5, 24, 'Art Viewport Debug (PR 2)', {
+      fontFamily: 'Arial, sans-serif', fontSize: '24px', color: '#f8fafc', fontStyle: 'bold',
+    }).setOrigin(0.5, 0);
+
+    this.add.text(width * 0.5, 56, 'Fixed viewport, movable artwork underneath (Y-only runtime override)', {
+      fontFamily: 'Arial, sans-serif', fontSize: '13px', color: '#93c5fd', align: 'center',
+      wordWrap: { width: width - 32 },
+    }).setOrigin(0.5, 0);
+
+    const selectorY = 106;
+    this.createButton(sidePad + 68, selectorY, 120, 52, 'Prev', () => this.shiftCard(-1));
+    this.createButton(width - sidePad - 68, selectorY, 120, 52, 'Next', () => this.shiftCard(1));
+
+    this.cardLabel = this.add.text(width * 0.5, selectorY, '', {
+      fontFamily: 'Arial, sans-serif', fontSize: '15px', color: '#e2e8f0', align: 'center',
+      wordWrap: { width: width - 280 },
+    }).setOrigin(0.5);
+
+    const previewTop = 140;
+    const dockHeight = 246;
+    const previewBottom = height - dockHeight;
+    const previewAreaHeight = Math.max(220, previewBottom - previewTop);
+
+    const handWidth = Phaser.Math.Clamp(width * 0.42, 128, 210);
+    const handHeight = handWidth / HAND_CARD_ASPECT_RATIO;
+
+    const inspectHeight = Math.min(previewAreaHeight * 0.82, handHeight * 1.9);
+    const inspectWidth = inspectHeight * HAND_CARD_ASPECT_RATIO;
+
+    this.handAnchor = { x: width * 0.26, y: previewTop + previewAreaHeight * 0.5, width: handWidth, height: handHeight };
+    this.inspectAnchor = { x: width * 0.74, y: previewTop + previewAreaHeight * 0.5, width: inspectWidth, height: inspectHeight };
+
+    this.add.text(this.handAnchor.x, previewTop + 2, 'Hand', { fontFamily: 'Arial, sans-serif', fontSize: '13px', color: '#cbd5e1' }).setOrigin(0.5, 0);
+    this.add.text(this.inspectAnchor.x, previewTop + 2, 'Inspect', { fontFamily: 'Arial, sans-serif', fontSize: '13px', color: '#cbd5e1' }).setOrigin(0.5, 0);
+
+    const dockY = height - dockHeight;
+    this.add.rectangle(width * 0.5, dockY + dockHeight * 0.5, width, dockHeight, 0x111827, 0.95)
+      .setStrokeStyle(1, 0x334155, 0.95);
+
+    const row1Y = dockY + 48;
+    this.createButton(width * 0.5 - 95, row1Y, 128, 64, 'Y -', () => this.adjustY(-1));
+    this.createButton(width * 0.5 + 95, row1Y, 128, 64, 'Y +', () => this.adjustY(1));
+
+    const row2Y = dockY + 118;
+    this.stepLabel = this.add.text(width * 0.5 - 110, row2Y, '', { fontFamily: 'Arial, sans-serif', fontSize: '16px', color: '#f8fafc' }).setOrigin(0.5);
+    this.createButton(width * 0.5 + 98, row2Y, 146, 50, 'Step Toggle', () => this.cycleStep(), { fontSize: '17px' });
+
+    const row3Y = dockY + 178;
+    this.valueLabel = this.add.text(width * 0.5 - 98, row3Y, '', { fontFamily: 'Arial, sans-serif', fontSize: '16px', color: '#bfdbfe' }).setOrigin(0.5);
+    this.createButton(width * 0.5 + 100, row3Y, 120, 50, 'Reset', () => this.resetY());
+
+    this.disabledLabel = this.add.text(width * 0.5, dockY + 220, 'X: disabled (future)   Scale: disabled (future)', {
+      fontFamily: 'Arial, sans-serif', fontSize: '14px', color: '#94a3b8',
+    }).setOrigin(0.5);
+
+    this.createButton(width - sidePad - 72, 32, 132, 46, 'Back', this.onBackRequested, { fontSize: '19px' });
+  }
+
+  createButton(x, y, width, height, label, onPress, { fontSize = '22px' } = {}) {
+    const button = this.add.rectangle(x, y, width, height, 0x1d4ed8, 0.94)
+      .setStrokeStyle(2, 0x93c5fd, 0.95)
+      .setInteractive({ useHandCursor: true });
+    const text = this.add.text(x, y, label, {
+      fontFamily: 'Arial, sans-serif', fontSize, color: '#eff6ff', fontStyle: 'bold', align: 'center',
+    }).setOrigin(0.5);
+    button.on('pointerup', onPress);
+    return { button, text };
+  }
+
+  shiftCard(delta) {
+    if (!this.cardEntries.length) return;
+    const total = this.cardEntries.length;
+    this.selectedIndex = (this.selectedIndex + delta + total) % total;
+    this.syncSelectedCardState();
+    this.renderPreviews();
+  }
+
+  cycleStep() {
+    this.stepIndex = (this.stepIndex + 1) % STEP_OPTIONS.length;
+    this.updateValueLabels();
+  }
+
+  adjustY(direction) {
+    const step = STEP_OPTIONS[this.stepIndex];
+    this.currentY01 = clamp01(this.currentY01 + step * direction);
+    this.updateValueLabels();
+    this.renderPreviews();
+  }
+
+  resetY() {
+    this.currentY01 = this.defaultY01;
+    this.updateValueLabels();
+    this.renderPreviews();
+  }
+
+  syncSelectedCardState() {
+    if (!this.cardEntries.length) {
+      this.cardLabel.setText('No cards found');
+      return;
+    }
+
+    const selected = this.cardEntries[this.selectedIndex];
+    const card = selected.card;
+    const fallbackY = Number.isFinite(card?.artPositionY01) ? card.artPositionY01 : 0.5;
+    this.defaultY01 = clamp01(fallbackY);
+    this.currentY01 = this.defaultY01;
+
+    this.cardLabel.setText(`${this.selectedIndex + 1}/${this.cardEntries.length} • ${card.id} • ${card.name}`);
+    this.updateValueLabels();
+  }
+
+  updateValueLabels() {
+    const step = STEP_OPTIONS[this.stepIndex];
+    this.stepLabel?.setText(`Step: ${step.toFixed(3)}`);
+    this.valueLabel?.setText(`artPositionY01: ${this.currentY01.toFixed(3)}`);
+  }
+
+  clearPreviews() {
+    this.previewNodes.forEach((node) => node?.destroy());
+    this.previewNodes = [];
+  }
+
+  renderPreviews() {
+    this.clearPreviews();
+    if (!this.cardEntries.length) return;
+
+    const { card, factionKey } = this.cardEntries[this.selectedIndex];
+    const accentColor = getDefaultCardAccentColor(card);
+    const locale = getActiveLocale();
+
+    const handPreview = createCardPreviewView(this, {
+      card,
+      x: this.handAnchor.x,
+      y: this.handAnchor.y,
+      width: this.handAnchor.width,
+      height: this.handAnchor.height,
+      accentColor,
+      locale,
+      statBadgeScale: HAND_CARD_STAT_BADGE_SCALE,
+      typographyScale: HAND_CARD_TYPOGRAPHY_SCALE,
+      titleTypographyScale: HAND_CARD_TITLE_TYPOGRAPHY_SCALE,
+      bodyLineSpacing: HAND_CARD_BODY_LINE_SPACING,
+      enableCardIllustration: true,
+      showCardNumber: true,
+      temporaryArtCropY01: this.currentY01,
+      surfaceTheme: resolveCardSurfaceTheme({ factionId: factionKey, mode: 'hand' }),
+    });
+
+    const inspectPreview = createCardPreviewView(this, {
+      card,
+      x: this.inspectAnchor.x,
+      y: this.inspectAnchor.y,
+      width: this.inspectAnchor.width,
+      height: this.inspectAnchor.height,
+      accentColor,
+      locale,
+      statBadgeScale: INSPECT_CARD_STAT_BADGE_SCALE,
+      typographyScale: INSPECT_CARD_TYPOGRAPHY_SCALE,
+      bodyLineSpacing: INSPECT_CARD_BODY_LINE_SPACING,
+      enableCardIllustration: true,
+      showCardNumber: true,
+      temporaryArtCropY01: this.currentY01,
+      surfaceTheme: resolveCardSurfaceTheme({ factionId: factionKey, mode: 'inspect' }),
+    });
+
+    this.previewNodes = [handPreview.root, inspectPreview.root];
   }
 }
