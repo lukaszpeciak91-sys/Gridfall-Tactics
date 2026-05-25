@@ -16,6 +16,8 @@ import { HAND_CARD_ASPECT_RATIO } from '../ui/handLayout.js';
 
 const STEP_OPTIONS = [0.01, 0.025, 0.05];
 const DEFAULT_STEP_INDEX = 1;
+const FALLBACK_X01 = 0.5;
+const FALLBACK_SCALE = 1;
 
 function clamp01(value) {
   return Phaser.Math.Clamp(value, 0, 1);
@@ -30,6 +32,8 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     this.currentY01 = 0.5;
     this.defaultY01 = 0.5;
     this.previewNodes = [];
+    this.pendingRecordsByCardId = new Map();
+    this.statusClearEvent = null;
   }
 
   preload() {
@@ -51,6 +55,8 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.input.keyboard?.off('keydown-ESC', this.onBackRequested);
       this.input.keyboard?.off('keydown-BACKSPACE', this.onBackRequested);
+      this.statusClearEvent?.remove(false);
+      this.statusClearEvent = null;
     });
   }
 
@@ -75,7 +81,7 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     const { width, height } = this.scale;
     const sidePad = 16;
 
-    this.add.text(width * 0.5, 24, 'Art Viewport Debug (PR 2)', {
+    this.add.text(width * 0.5, 24, 'Art Viewport Debug (PR 3)', {
       fontFamily: 'Arial, sans-serif', fontSize: '24px', color: '#f8fafc', fontStyle: 'bold',
     }).setOrigin(0.5, 0);
 
@@ -94,7 +100,7 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     const previewTop = 140;
-    const dockHeight = 246;
+    const dockHeight = 310;
     const previewBottom = height - dockHeight;
     const previewAreaHeight = Math.max(220, previewBottom - previewTop);
 
@@ -114,20 +120,32 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     this.add.rectangle(width * 0.5, dockY + dockHeight * 0.5, width, dockHeight, 0x111827, 0.95)
       .setStrokeStyle(1, 0x334155, 0.95);
 
-    const row1Y = dockY + 48;
-    this.createButton(width * 0.5 - 95, row1Y, 128, 64, 'Y -', () => this.adjustY(-1));
-    this.createButton(width * 0.5 + 95, row1Y, 128, 64, 'Y +', () => this.adjustY(1));
+    const row1Y = dockY + 42;
+    this.createButton(width * 0.5 - 95, row1Y, 128, 58, 'Y -', () => this.adjustY(-1));
+    this.createButton(width * 0.5 + 95, row1Y, 128, 58, 'Y +', () => this.adjustY(1));
 
-    const row2Y = dockY + 118;
+    const row2Y = dockY + 104;
     this.stepLabel = this.add.text(width * 0.5 - 110, row2Y, '', { fontFamily: 'Arial, sans-serif', fontSize: '16px', color: '#f8fafc' }).setOrigin(0.5);
-    this.createButton(width * 0.5 + 98, row2Y, 146, 50, 'Step Toggle', () => this.cycleStep(), { fontSize: '17px' });
+    this.createButton(width * 0.5 + 98, row2Y, 146, 48, 'Step Toggle', () => this.cycleStep(), { fontSize: '17px' });
 
-    const row3Y = dockY + 178;
+    const row3Y = dockY + 160;
     this.valueLabel = this.add.text(width * 0.5 - 98, row3Y, '', { fontFamily: 'Arial, sans-serif', fontSize: '16px', color: '#bfdbfe' }).setOrigin(0.5);
-    this.createButton(width * 0.5 + 100, row3Y, 120, 50, 'Reset', () => this.resetY());
+    this.createButton(width * 0.5 + 100, row3Y, 120, 48, 'Reset', () => this.resetY());
 
-    this.disabledLabel = this.add.text(width * 0.5, dockY + 220, 'X: disabled (future)   Scale: disabled (future)', {
-      fontFamily: 'Arial, sans-serif', fontSize: '14px', color: '#94a3b8',
+    const copyRowY = dockY + 214;
+    this.createButton(width * 0.5 - 95, copyRowY, 156, 48, 'Copy current', () => { void this.copyCurrentRecord(); }, { fontSize: '18px' });
+    this.createButton(width * 0.5 + 95, copyRowY, 156, 48, 'Copy all', () => { void this.copyAllRecords(); }, { fontSize: '18px' });
+
+    this.recordsCountLabel = this.add.text(width * 0.5, dockY + 252, 'Records: 0', {
+      fontFamily: 'Arial, sans-serif', fontSize: '15px', color: '#f8fafc',
+    }).setOrigin(0.5);
+
+    this.statusLabel = this.add.text(width * 0.5, dockY + 278, '', {
+      fontFamily: 'Arial, sans-serif', fontSize: '14px', color: '#bbf7d0', align: 'center', wordWrap: { width: width - 24 },
+    }).setOrigin(0.5);
+
+    this.disabledLabel = this.add.text(width * 0.5, dockY + 296, 'X: disabled (future)   Scale: disabled (future)', {
+      fontFamily: 'Arial, sans-serif', fontSize: '13px', color: '#94a3b8',
     }).setOrigin(0.5);
 
     this.createButton(width - sidePad - 72, 32, 132, 46, 'Back', this.onBackRequested, { fontSize: '19px' });
@@ -152,10 +170,7 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     this.renderPreviews();
   }
 
-  cycleStep() {
-    this.stepIndex = (this.stepIndex + 1) % STEP_OPTIONS.length;
-    this.updateValueLabels();
-  }
+  cycleStep() { this.stepIndex = (this.stepIndex + 1) % STEP_OPTIONS.length; this.updateValueLabels(); }
 
   adjustY(direction) {
     const step = STEP_OPTIONS[this.stepIndex];
@@ -170,6 +185,80 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     this.renderPreviews();
   }
 
+  buildRecordForCard(cardId) {
+    return {
+      cardId,
+      shared: true,
+      runtime: { artPositionY01: Number(this.currentY01.toFixed(3)) },
+      future: { artPositionX01: FALLBACK_X01, artScale: FALLBACK_SCALE },
+    };
+  }
+
+  createExportPayload(records) {
+    return { version: 1, tool: 'art-viewport-debug', records };
+  }
+
+  copyWithFallback(text, successMessage) {
+    const canUseClipboard = typeof navigator !== 'undefined' && navigator?.clipboard?.writeText;
+    if (canUseClipboard) {
+      return navigator.clipboard.writeText(text)
+        .then(() => this.setStatus(successMessage))
+        .catch((error) => {
+          this.showFallbackExport(text, `Clipboard failed: ${error?.message ?? 'unknown error'}`);
+        });
+    }
+
+    this.showFallbackExport(text, 'Clipboard API unavailable. Copy text from fallback.');
+    return Promise.resolve();
+  }
+
+  showFallbackExport(text, message) {
+    this.setStatus(message, true);
+    this.fallbackExportText?.destroy();
+    this.fallbackExportText = this.add.text(this.scale.width * 0.5, this.scale.height - 336, text, {
+      fontFamily: 'monospace', fontSize: '12px', color: '#fde68a', align: 'left',
+      backgroundColor: '#1f2937', padding: { x: 8, y: 6 }, wordWrap: { width: this.scale.width - 24 },
+    }).setOrigin(0.5, 0).setDepth(1000);
+  }
+
+  setStatus(message, isError = false) {
+    this.statusClearEvent?.remove(false);
+    this.statusLabel?.setColor(isError ? '#fecaca' : '#bbf7d0');
+    this.statusLabel?.setText(message);
+    this.statusClearEvent = this.time.delayedCall(4500, () => {
+      this.statusLabel?.setText('');
+    });
+  }
+
+  updateRecordsCountLabel() {
+    this.recordsCountLabel?.setText(`Records: ${this.pendingRecordsByCardId.size}`);
+  }
+
+  copyCurrentRecord() {
+    if (!this.cardEntries.length) return Promise.resolve();
+    const cardId = String(this.cardEntries[this.selectedIndex]?.card?.id ?? '');
+    if (!cardId) {
+      this.setStatus('Cannot copy: selected card has no id.', true);
+      return Promise.resolve();
+    }
+
+    const record = this.buildRecordForCard(cardId);
+    this.pendingRecordsByCardId.set(cardId, record);
+    this.updateRecordsCountLabel();
+
+    const payload = this.createExportPayload([record]);
+    const text = JSON.stringify(payload, null, 2);
+    return this.copyWithFallback(text, 'Copied current record');
+  }
+
+  copyAllRecords() {
+    const records = Array.from(this.pendingRecordsByCardId.values())
+      .sort((a, b) => String(a.cardId).localeCompare(String(b.cardId)));
+    const payload = this.createExportPayload(records);
+    const text = JSON.stringify(payload, null, 2);
+    return this.copyWithFallback(text, 'Copied all records');
+  }
+
   syncSelectedCardState() {
     if (!this.cardEntries.length) {
       this.cardLabel.setText('No cards found');
@@ -180,7 +269,10 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     const card = selected.card;
     const fallbackY = Number.isFinite(card?.artPositionY01) ? card.artPositionY01 : 0.5;
     this.defaultY01 = clamp01(fallbackY);
-    this.currentY01 = this.defaultY01;
+
+    const existingRecord = this.pendingRecordsByCardId.get(String(card.id));
+    const existingY = existingRecord?.runtime?.artPositionY01;
+    this.currentY01 = Number.isFinite(existingY) ? clamp01(existingY) : this.defaultY01;
 
     this.cardLabel.setText(`${this.selectedIndex + 1}/${this.cardEntries.length} • ${card.id} • ${card.name}`);
     this.updateValueLabels();
@@ -206,37 +298,20 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     const locale = getActiveLocale();
 
     const handPreview = createCardPreviewView(this, {
-      card,
-      x: this.handAnchor.x,
-      y: this.handAnchor.y,
-      width: this.handAnchor.width,
-      height: this.handAnchor.height,
-      accentColor,
-      locale,
-      statBadgeScale: HAND_CARD_STAT_BADGE_SCALE,
-      typographyScale: HAND_CARD_TYPOGRAPHY_SCALE,
-      titleTypographyScale: HAND_CARD_TITLE_TYPOGRAPHY_SCALE,
-      bodyLineSpacing: HAND_CARD_BODY_LINE_SPACING,
-      enableCardIllustration: true,
-      showCardNumber: true,
-      temporaryArtCropY01: this.currentY01,
+      card, x: this.handAnchor.x, y: this.handAnchor.y, width: this.handAnchor.width, height: this.handAnchor.height,
+      accentColor, locale,
+      statBadgeScale: HAND_CARD_STAT_BADGE_SCALE, typographyScale: HAND_CARD_TYPOGRAPHY_SCALE,
+      titleTypographyScale: HAND_CARD_TITLE_TYPOGRAPHY_SCALE, bodyLineSpacing: HAND_CARD_BODY_LINE_SPACING,
+      enableCardIllustration: true, showCardNumber: true, temporaryArtCropY01: this.currentY01,
       surfaceTheme: resolveCardSurfaceTheme({ factionId: factionKey, mode: 'hand' }),
     });
 
     const inspectPreview = createCardPreviewView(this, {
-      card,
-      x: this.inspectAnchor.x,
-      y: this.inspectAnchor.y,
-      width: this.inspectAnchor.width,
-      height: this.inspectAnchor.height,
-      accentColor,
-      locale,
-      statBadgeScale: INSPECT_CARD_STAT_BADGE_SCALE,
-      typographyScale: INSPECT_CARD_TYPOGRAPHY_SCALE,
+      card, x: this.inspectAnchor.x, y: this.inspectAnchor.y, width: this.inspectAnchor.width, height: this.inspectAnchor.height,
+      accentColor, locale,
+      statBadgeScale: INSPECT_CARD_STAT_BADGE_SCALE, typographyScale: INSPECT_CARD_TYPOGRAPHY_SCALE,
       bodyLineSpacing: INSPECT_CARD_BODY_LINE_SPACING,
-      enableCardIllustration: true,
-      showCardNumber: true,
-      temporaryArtCropY01: this.currentY01,
+      enableCardIllustration: true, showCardNumber: true, temporaryArtCropY01: this.currentY01,
       surfaceTheme: resolveCardSurfaceTheme({ factionId: factionKey, mode: 'inspect' }),
     });
 
