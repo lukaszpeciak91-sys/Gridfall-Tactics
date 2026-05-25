@@ -1,3 +1,8 @@
+---
+status: EXPERIMENTAL
+active_state: postponed
+---
+
 # Card Art Framing / Crop Debug Experiment (Postponed)
 
 ## Summary
@@ -30,3 +35,10 @@ Build a clean, isolated Art Framing tool later:
 - no coupling to CollectionScene debug UI
 - prototype and validate in isolation first
 - adopt into production renderer only after stability and UX validation
+
+## Status and cross-links
+
+- Status: **EXPERIMENTAL** (`postponed`).
+- Primary diagnostic reference: `docs/art/card-art-rendering-diagnostic.md`.
+- Workflow/reference index: `docs/README.md`.
+

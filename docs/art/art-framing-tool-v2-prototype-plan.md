@@ -1,3 +1,8 @@
+---
+status: EXPERIMENTAL
+active_state: planning-only
+---
+
 # Art Framing Tool v2 — Inspect-Only Prototype Plan
 
 ## 1) Recommended architecture
@@ -82,4 +87,12 @@ Inside current debug panel:
 
 ## 7) Recommended next implementation task
 - Implement `Art Framing` mode in `CollectionScene` debug panel with inspect-only transforms and temporary session buffer export, while leaving all existing crop debug code paths and renderer behavior unchanged.
+
+
+## Status and cross-links
+
+- Status: **EXPERIMENTAL** (`planning-only`).
+- This plan is not canonical gameplay/UI behavior.
+- Primary diagnostic reference: `docs/art/card-art-rendering-diagnostic.md`.
+- Workflow/reference index: `docs/README.md`.
 
