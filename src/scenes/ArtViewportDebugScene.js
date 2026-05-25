@@ -4,8 +4,7 @@ import { preloadAllCardIllustrations } from '../rendering/cardIllustrationAssets
 import { createCardArtwork, getCardLayoutZones } from '../rendering/cardVisualLayout.js';
 import { HAND_CARD_ASPECT_RATIO } from '../ui/handLayout.js';
 
-const STEP_OPTIONS = [0.01, 0.025, 0.05];
-const DEFAULT_STEP_INDEX = 1;
+const Y_STEP = 0.025;
 const FALLBACK_X01 = 0.5;
 const FALLBACK_SCALE = 1;
 
@@ -18,7 +17,6 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     super('ArtViewportDebugScene');
     this.cardEntries = [];
     this.selectedIndex = 0;
-    this.stepIndex = DEFAULT_STEP_INDEX;
     this.currentY01 = 0.5;
     this.defaultY01 = 0.5;
     this.previewNodes = [];
@@ -69,76 +67,45 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
 
   createLayout() {
     const { width, height } = this.scale;
-    const sidePad = 16;
-
-    this.add.text(width * 0.5, 24, 'Art Viewport Debug (PR 3)', {
-      fontFamily: 'Arial, sans-serif', fontSize: '24px', color: '#f8fafc', fontStyle: 'bold',
-    }).setOrigin(0.5, 0);
-
-    this.add.text(width * 0.5, 56, 'Fixed viewport, movable artwork underneath (Y-only runtime override)', {
-      fontFamily: 'Arial, sans-serif', fontSize: '13px', color: '#93c5fd', align: 'center',
-      wordWrap: { width: width - 32 },
-    }).setOrigin(0.5, 0);
-
-    const selectorY = 106;
-    this.createButton(sidePad + 68, selectorY, 120, 52, 'Prev', () => this.shiftCard(-1));
-    this.createButton(width - sidePad - 68, selectorY, 120, 52, 'Next', () => this.shiftCard(1));
+    const sidePad = 12;
+    const selectorY = 28;
+    this.createButton(sidePad + 44, selectorY, 88, 42, 'Prev', () => this.shiftCard(-1), { fontSize: '18px' });
+    this.createButton(width - sidePad - 44, selectorY, 88, 42, 'Next', () => this.shiftCard(1), { fontSize: '18px' });
 
     this.cardLabel = this.add.text(width * 0.5, selectorY, '', {
-      fontFamily: 'Arial, sans-serif', fontSize: '15px', color: '#e2e8f0', align: 'center',
-      wordWrap: { width: width - 280 },
+      fontFamily: 'Arial, sans-serif', fontSize: '14px', color: '#e2e8f0', align: 'center',
+      wordWrap: { width: width - 200 },
     }).setOrigin(0.5);
 
-    const previewTop = 140;
-    const dockHeight = 310;
-    const previewBottom = height - dockHeight;
+    const controlsHeight = 220;
+    const previewTop = 56;
+    const previewBottom = height - controlsHeight;
     const previewAreaHeight = Math.max(220, previewBottom - previewTop);
+    const previewHeight = previewAreaHeight;
+    const previewWidth = previewHeight * HAND_CARD_ASPECT_RATIO;
+    const clampedPreviewWidth = Math.min(width - 16, previewWidth);
+    const clampedPreviewHeight = clampedPreviewWidth / HAND_CARD_ASPECT_RATIO;
+    this.previewAnchor = {
+      x: width * 0.5,
+      y: previewTop + (previewAreaHeight * 0.5),
+      width: clampedPreviewWidth,
+      height: clampedPreviewHeight,
+    };
 
-    const handWidth = Phaser.Math.Clamp(width * 0.42, 128, 210);
-    const handHeight = handWidth / HAND_CARD_ASPECT_RATIO;
-
-    const inspectHeight = Math.min(previewAreaHeight * 0.82, handHeight * 1.9);
-    const inspectWidth = inspectHeight * HAND_CARD_ASPECT_RATIO;
-
-    this.handAnchor = { x: width * 0.26, y: previewTop + previewAreaHeight * 0.5, width: handWidth, height: handHeight };
-    this.inspectAnchor = { x: width * 0.74, y: previewTop + previewAreaHeight * 0.5, width: inspectWidth, height: inspectHeight };
-
-    this.add.text(this.handAnchor.x, previewTop + 2, 'Hand Art Window', { fontFamily: 'Arial, sans-serif', fontSize: '13px', color: '#cbd5e1' }).setOrigin(0.5, 0);
-    this.add.text(this.inspectAnchor.x, previewTop + 2, 'Inspect Art Window', { fontFamily: 'Arial, sans-serif', fontSize: '13px', color: '#cbd5e1' }).setOrigin(0.5, 0);
-
-    const dockY = height - dockHeight;
-    this.add.rectangle(width * 0.5, dockY + dockHeight * 0.5, width, dockHeight, 0x111827, 0.95)
-      .setStrokeStyle(1, 0x334155, 0.95);
-
-    const row1Y = dockY + 42;
-    this.createButton(width * 0.5 - 95, row1Y, 128, 58, 'Y -', () => this.adjustY(-1));
-    this.createButton(width * 0.5 + 95, row1Y, 128, 58, 'Y +', () => this.adjustY(1));
-
-    const row2Y = dockY + 104;
-    this.stepLabel = this.add.text(width * 0.5 - 110, row2Y, '', { fontFamily: 'Arial, sans-serif', fontSize: '16px', color: '#f8fafc' }).setOrigin(0.5);
-    this.createButton(width * 0.5 + 98, row2Y, 146, 48, 'Step Toggle', () => this.cycleStep(), { fontSize: '17px' });
-
-    const row3Y = dockY + 160;
-    this.valueLabel = this.add.text(width * 0.5 - 98, row3Y, '', { fontFamily: 'Arial, sans-serif', fontSize: '16px', color: '#bfdbfe' }).setOrigin(0.5);
-    this.createButton(width * 0.5 + 100, row3Y, 120, 48, 'Reset', () => this.resetY());
-
-    const copyRowY = dockY + 214;
-    this.createButton(width * 0.5 - 95, copyRowY, 156, 48, 'Copy current', () => { void this.copyCurrentRecord(); }, { fontSize: '18px' });
-    this.createButton(width * 0.5 + 95, copyRowY, 156, 48, 'Copy all', () => { void this.copyAllRecords(); }, { fontSize: '18px' });
-
-    this.recordsCountLabel = this.add.text(width * 0.5, dockY + 252, 'Records: 0', {
-      fontFamily: 'Arial, sans-serif', fontSize: '15px', color: '#f8fafc',
+    const controlsY = height - controlsHeight + 8;
+    this.createButton(width * 0.5 - 108, controlsY + 26, 96, 42, 'Y -', () => this.adjustY(-1), { fontSize: '20px' });
+    this.createButton(width * 0.5 + 108, controlsY + 26, 96, 42, 'Y +', () => this.adjustY(1), { fontSize: '20px' });
+    this.valueLabel = this.add.text(width * 0.5, controlsY + 26, '', {
+      fontFamily: 'Arial, sans-serif', fontSize: '22px', color: '#bfdbfe',
     }).setOrigin(0.5);
 
-    this.statusLabel = this.add.text(width * 0.5, dockY + 278, '', {
+    this.createButton(width * 0.5, controlsY + 78, 140, 40, 'Add', () => { void this.copyCurrentRecord(); }, { fontSize: '18px' });
+    this.createButton(width * 0.5, controlsY + 122, 140, 40, 'Copy All', () => { void this.copyAllRecords(); }, { fontSize: '18px' });
+    this.createButton(width * 0.5, controlsY + 166, 140, 40, 'Reset', () => this.resetY(), { fontSize: '18px' });
+
+    this.statusLabel = this.add.text(width * 0.5, previewBottom - 8, '', {
       fontFamily: 'Arial, sans-serif', fontSize: '14px', color: '#bbf7d0', align: 'center', wordWrap: { width: width - 24 },
     }).setOrigin(0.5);
-
-    this.disabledLabel = this.add.text(width * 0.5, dockY + 296, 'X: disabled (future)   Scale: disabled (future)', {
-      fontFamily: 'Arial, sans-serif', fontSize: '13px', color: '#94a3b8',
-    }).setOrigin(0.5);
-
-    this.createButton(width - sidePad - 72, 32, 132, 46, 'Back', this.onBackRequested, { fontSize: '19px' });
   }
 
   createButton(x, y, width, height, label, onPress, { fontSize = '22px' } = {}) {
@@ -160,11 +127,8 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     this.renderPreviews();
   }
 
-  cycleStep() { this.stepIndex = (this.stepIndex + 1) % STEP_OPTIONS.length; this.updateValueLabels(); }
-
   adjustY(direction) {
-    const step = STEP_OPTIONS[this.stepIndex];
-    this.currentY01 = clamp01(this.currentY01 + step * direction);
+    this.currentY01 = clamp01(this.currentY01 + (Y_STEP * direction));
     this.updateValueLabels();
     this.renderPreviews();
   }
@@ -220,10 +184,6 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     });
   }
 
-  updateRecordsCountLabel() {
-    this.recordsCountLabel?.setText(`Records: ${this.pendingRecordsByCardId.size}`);
-  }
-
   copyCurrentRecord() {
     if (!this.cardEntries.length) return Promise.resolve();
     const cardId = String(this.cardEntries[this.selectedIndex]?.card?.id ?? '');
@@ -234,8 +194,6 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
 
     const record = this.buildRecordForCard(cardId);
     this.pendingRecordsByCardId.set(cardId, record);
-    this.updateRecordsCountLabel();
-
     const payload = this.createExportPayload([record]);
     const text = JSON.stringify(payload, null, 2);
     return this.copyWithFallback(text, 'Copied current record');
@@ -269,9 +227,7 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
   }
 
   updateValueLabels() {
-    const step = STEP_OPTIONS[this.stepIndex];
-    this.stepLabel?.setText(`Step: ${step.toFixed(3)}`);
-    this.valueLabel?.setText(`artPositionY01: ${this.currentY01.toFixed(3)}`);
+    this.valueLabel?.setText(`Y: ${this.currentY01.toFixed(3)}`);
   }
 
   clearPreviews() {
@@ -310,8 +266,7 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
 
     const { card } = this.cardEntries[this.selectedIndex];
     this.previewNodes = [
-      ...this.drawArtWindow(this.handAnchor, card),
-      ...this.drawArtWindow(this.inspectAnchor, card),
+      ...this.drawArtWindow(this.previewAnchor, card),
     ];
   }
 }
