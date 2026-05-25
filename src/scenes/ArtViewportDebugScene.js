@@ -81,10 +81,13 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     const previewTop = 56;
     const previewBottom = height - controlsHeight;
     const previewAreaHeight = Math.max(220, previewBottom - previewTop);
-    const previewHeight = previewAreaHeight;
-    const previewWidth = previewHeight * HAND_CARD_ASPECT_RATIO;
-    const clampedPreviewWidth = Math.min(width - 16, previewWidth);
-    const clampedPreviewHeight = clampedPreviewWidth / HAND_CARD_ASPECT_RATIO;
+    const previewBoundsWidth = width - 16;
+    const previewBoundsHeight = previewAreaHeight;
+    // Keep runtime art math (card-space zones) but fit the virtual card as a portrait
+    // surface so the visible art viewport matches Inspect-like perception.
+    const widthFromHeight = previewBoundsHeight / HAND_CARD_ASPECT_RATIO;
+    const clampedPreviewWidth = Math.min(previewBoundsWidth, widthFromHeight);
+    const clampedPreviewHeight = clampedPreviewWidth * HAND_CARD_ASPECT_RATIO;
     this.previewAnchor = {
       x: width * 0.5,
       y: previewTop + (previewAreaHeight * 0.5),
