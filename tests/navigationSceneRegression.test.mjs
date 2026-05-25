@@ -269,20 +269,19 @@ test('BattleScene still opens the result modal when a player action sets winner'
   assert.match(completePlayerActionSource, /await this\.playBuffFeedback\(beforeStats, 'player'\);\s*if \(this\.gameState\.winner\) \{\s*this\.completeBattleFlow\(500\);\s*return;\s*\}/);
 });
 
-test('rules panel contains the current short player-facing MVP rules summary', () => {
+test('rules panel contains glossary-first player-facing rules summary', () => {
   const source = readScene('src/scenes/RulesPanelScene.js');
 
-  assert.match(source, /Both bases start at 12 HP/);
-  assert.match(source, /The fight has 3 lines/);
-  assert.match(source, /mulligan up to 2 cards once/);
-  assert.match(source, /initiative alternates each turn/);
-  assert.match(source, /Each side gets 1 action/);
-  assert.match(source, /Cards have no mana, energy, or cost system/);
+  assert.match(source, /heading: 'Icon Glossary'/);
+  assert.match(source, /ATK — damage dealt by a unit/);
+  assert.match(source, /ARM — armor that reduces incoming damage/);
+  assert.match(source, /Base HP — your base health/);
+  assert.match(source, /Reduce the enemy Base to 0 HP/);
+  assert.match(source, /You get 1 action/);
   assert.match(source, /combat resolves automatically/);
-  assert.match(source, /After combat, you draw 1 card/);
-  assert.match(source, /A battle can end when a base is defeated/);
-  assert.match(source, /neither side can make meaningful progress/);
-  assert.match(source, /turn limit is reached/);
+  assert.match(source, /Battles use 3 lanes/);
+  assert.match(source, /Tap one of your units/);
+  assert.match(source, /PASS ends your action/);
   assert.doesNotMatch(source, /stall/i);
   assert.doesNotMatch(source, /telemetry/i);
 });
