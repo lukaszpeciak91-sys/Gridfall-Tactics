@@ -42,3 +42,11 @@ Build a clean, isolated Art Framing tool later:
 - Primary diagnostic reference: `docs/art/card-art-rendering-diagnostic.md`.
 - Workflow/reference index: `docs/README.md`.
 
+## Authority and replacement references
+
+- Active state: **postponed** (not an active implementation track).
+- Canonical input/interaction behavior: `docs/battle/input-flow.md`.
+- Canonical gameplay rules authority: `docs/rules/mvp-battle-rules.md`.
+- Canonical current art diagnostic: `docs/art/card-art-rendering-diagnostic.md`.
+
+This document is historical experimental context and must not be treated as implementation truth.

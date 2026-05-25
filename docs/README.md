@@ -38,6 +38,10 @@ These three docs are intentionally separate and should not be collapsed:
 - `docs/project/progress.md` — timeline context (**HISTORY**).
 - `docs/project/decisions.md` — decision chronology (**HISTORY**).
 
+## Documentation archive strategy
+
+- Archive policy and status semantics: `docs/archive/README.md` (**WORKFLOW/REFERENCE**).
+
 ## Experimental/diagnostic docs
 
 - `docs/experiments/card-art-framing-debug.md` — experiment postmortem (**EXPERIMENTAL**, currently postponed).

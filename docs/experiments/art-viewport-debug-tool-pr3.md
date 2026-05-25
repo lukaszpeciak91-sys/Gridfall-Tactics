@@ -62,3 +62,13 @@ PR 3 completes the MVP visual calibration/export loop for art framing.
 - No runtime schema changes.
 - No production renderer/Battle/Collection changes.
 - X and Scale remain future-only (not runtime-adjustable in this MVP).
+
+## Status and authority
+
+- Status: **EXPERIMENTAL** (historical phase note).
+- Active state: **obsolete phase artifact**.
+- Canonical input behavior: `docs/battle/input-flow.md`.
+- Canonical gameplay rules: `docs/rules/mvp-battle-rules.md`.
+- Canonical art diagnostic/reality check: `docs/art/card-art-rendering-diagnostic.md`.
+
+Clipboard/export workflow described here is historical experiment context unless promoted by a canonical doc.
