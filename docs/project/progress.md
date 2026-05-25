@@ -1,3 +1,9 @@
+---
+status: HISTORY
+active_state: active-log
+canonical_ref: docs/rules/mvp-battle-rules.md
+---
+
 # Project Progress
 
 > **Doc role (2026-05-02):** Progress log only. Not a normative gameplay rules source.

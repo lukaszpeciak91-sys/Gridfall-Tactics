@@ -1,3 +1,9 @@
+---
+status: SUPERSEDED
+active_state: historical-reference-only
+canonical_ref: docs/rules/mvp-battle-rules.md
+---
+
 # Battle System MVP v1.0 (Historical Spec)
 
 > **Status (2026-05-02):** This document is retained for history only and is **not** the canonical rules source.
@@ -33,3 +39,9 @@ Faction flavor remains useful for thematic reference, but gameplay implementatio
 - Any implication that there is no opening mulligan. Current MVP code has one opening keep/replace decision before turn 1; see the canonical rules doc.
 - Any implication that Flood fills all 3 lanes; code currently caps Flood at up to 2 tokens.
 - Any repeated-PASS/3-pass stall-counter assumptions. Current MVP code resolves dead games from board/resource state, not pass counts.
+
+## Status and cross-links
+
+- Status: **SUPERSEDED** (historical reference only).
+- Canonical gameplay rules: `docs/rules/mvp-battle-rules.md`.
+- Workflow/reference index: `docs/README.md`.
