@@ -1,17 +1,7 @@
 import Phaser from 'phaser';
 import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
-import { getActiveLocale } from '../localization/localeService.js';
 import { preloadAllCardIllustrations } from '../rendering/cardIllustrationAssets.js';
-import { createCardPreviewView, getDefaultCardAccentColor, resolveCardSurfaceTheme } from '../rendering/cardVisualLayout.js';
-import {
-  HAND_CARD_BODY_LINE_SPACING,
-  HAND_CARD_STAT_BADGE_SCALE,
-  HAND_CARD_TITLE_TYPOGRAPHY_SCALE,
-  HAND_CARD_TYPOGRAPHY_SCALE,
-  INSPECT_CARD_BODY_LINE_SPACING,
-  INSPECT_CARD_STAT_BADGE_SCALE,
-  INSPECT_CARD_TYPOGRAPHY_SCALE,
-} from '../rendering/cardViewConfig.js';
+import { createCardArtwork, getCardLayoutZones } from '../rendering/cardVisualLayout.js';
 import { HAND_CARD_ASPECT_RATIO } from '../ui/handLayout.js';
 
 const STEP_OPTIONS = [0.01, 0.025, 0.05];
@@ -113,8 +103,8 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     this.handAnchor = { x: width * 0.26, y: previewTop + previewAreaHeight * 0.5, width: handWidth, height: handHeight };
     this.inspectAnchor = { x: width * 0.74, y: previewTop + previewAreaHeight * 0.5, width: inspectWidth, height: inspectHeight };
 
-    this.add.text(this.handAnchor.x, previewTop + 2, 'Hand', { fontFamily: 'Arial, sans-serif', fontSize: '13px', color: '#cbd5e1' }).setOrigin(0.5, 0);
-    this.add.text(this.inspectAnchor.x, previewTop + 2, 'Inspect', { fontFamily: 'Arial, sans-serif', fontSize: '13px', color: '#cbd5e1' }).setOrigin(0.5, 0);
+    this.add.text(this.handAnchor.x, previewTop + 2, 'Hand Art Window', { fontFamily: 'Arial, sans-serif', fontSize: '13px', color: '#cbd5e1' }).setOrigin(0.5, 0);
+    this.add.text(this.inspectAnchor.x, previewTop + 2, 'Inspect Art Window', { fontFamily: 'Arial, sans-serif', fontSize: '13px', color: '#cbd5e1' }).setOrigin(0.5, 0);
 
     const dockY = height - dockHeight;
     this.add.rectangle(width * 0.5, dockY + dockHeight * 0.5, width, dockHeight, 0x111827, 0.95)
@@ -289,32 +279,39 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     this.previewNodes = [];
   }
 
+  drawArtWindow(anchor, card) {
+    const zones = getCardLayoutZones(anchor.width, anchor.height);
+    const artZone = zones.art;
+    const worldArtZone = {
+      x: anchor.x + artZone.x,
+      y: anchor.y + artZone.y,
+      width: artZone.width,
+      height: artZone.height,
+      centerX: anchor.x + artZone.centerX,
+      centerY: anchor.y + artZone.centerY,
+    };
+
+    const backdrop = this.add.rectangle(worldArtZone.centerX, worldArtZone.centerY, worldArtZone.width, worldArtZone.height, 0x0b1220, 0.95)
+      .setStrokeStyle(1, 0x1e293b, 0.9);
+    const art = createCardArtwork(this, worldArtZone, card, {
+      enableCardIllustration: true,
+      artPositionY: this.currentY01,
+    });
+    const border = this.add.rectangle(worldArtZone.centerX, worldArtZone.centerY, worldArtZone.width, worldArtZone.height)
+      .setStrokeStyle(2, 0x93c5fd, 1)
+      .setFillStyle(0x000000, 0);
+
+    return [backdrop, art, border];
+  }
+
   renderPreviews() {
     this.clearPreviews();
     if (!this.cardEntries.length) return;
 
-    const { card, factionKey } = this.cardEntries[this.selectedIndex];
-    const accentColor = getDefaultCardAccentColor(card);
-    const locale = getActiveLocale();
-
-    const handPreview = createCardPreviewView(this, {
-      card, x: this.handAnchor.x, y: this.handAnchor.y, width: this.handAnchor.width, height: this.handAnchor.height,
-      accentColor, locale,
-      statBadgeScale: HAND_CARD_STAT_BADGE_SCALE, typographyScale: HAND_CARD_TYPOGRAPHY_SCALE,
-      titleTypographyScale: HAND_CARD_TITLE_TYPOGRAPHY_SCALE, bodyLineSpacing: HAND_CARD_BODY_LINE_SPACING,
-      enableCardIllustration: true, showCardNumber: true, temporaryArtCropY01: this.currentY01,
-      surfaceTheme: resolveCardSurfaceTheme({ factionId: factionKey, mode: 'hand' }),
-    });
-
-    const inspectPreview = createCardPreviewView(this, {
-      card, x: this.inspectAnchor.x, y: this.inspectAnchor.y, width: this.inspectAnchor.width, height: this.inspectAnchor.height,
-      accentColor, locale,
-      statBadgeScale: INSPECT_CARD_STAT_BADGE_SCALE, typographyScale: INSPECT_CARD_TYPOGRAPHY_SCALE,
-      bodyLineSpacing: INSPECT_CARD_BODY_LINE_SPACING,
-      enableCardIllustration: true, showCardNumber: true, temporaryArtCropY01: this.currentY01,
-      surfaceTheme: resolveCardSurfaceTheme({ factionId: factionKey, mode: 'inspect' }),
-    });
-
-    this.previewNodes = [handPreview.root, inspectPreview.root];
+    const { card } = this.cardEntries[this.selectedIndex];
+    this.previewNodes = [
+      ...this.drawArtWindow(this.handAnchor, card),
+      ...this.drawArtWindow(this.inspectAnchor, card),
+    ];
   }
 }
