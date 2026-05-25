@@ -102,7 +102,7 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
       fontFamily: 'Arial, sans-serif', fontSize: '22px', color: '#bfdbfe',
     }).setOrigin(0.5);
 
-    this.createButton(width * 0.5, controlsY + 78, 140, 40, 'Add', () => { void this.copyCurrentRecord(); }, { fontSize: '18px' });
+    this.createButton(width * 0.5, controlsY + 78, 140, 40, 'Add', () => { this.addCurrentRecord(); }, { fontSize: '18px' });
     this.createButton(width * 0.5, controlsY + 122, 140, 40, 'Copy All', () => { void this.copyAllRecords(); }, { fontSize: '18px' });
     this.createButton(width * 0.5, controlsY + 166, 140, 40, 'Reset', () => this.resetY(), { fontSize: '18px' });
 
@@ -187,19 +187,18 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     });
   }
 
-  copyCurrentRecord() {
+  addCurrentRecord() {
     if (!this.cardEntries.length) return Promise.resolve();
     const cardId = String(this.cardEntries[this.selectedIndex]?.card?.id ?? '');
     if (!cardId) {
-      this.setStatus('Cannot copy: selected card has no id.', true);
+      this.setStatus('Cannot add: selected card has no id.', true);
       return Promise.resolve();
     }
 
     const record = this.buildRecordForCard(cardId);
     this.pendingRecordsByCardId.set(cardId, record);
-    const payload = this.createExportPayload([record]);
-    const text = JSON.stringify(payload, null, 2);
-    return this.copyWithFallback(text, 'Copied current record');
+    this.setStatus(`Added record (${this.pendingRecordsByCardId.size})`);
+    return Promise.resolve();
   }
 
   copyAllRecords() {
