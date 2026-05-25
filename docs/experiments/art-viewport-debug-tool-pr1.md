@@ -15,3 +15,13 @@ Explicitly excluded from PR 1:
 - Any production renderer changes.
 
 Future phases will add runtime-accurate preview and export behavior.
+
+## Status and authority
+
+- Status: **EXPERIMENTAL** (historical phase note).
+- Active state: **obsolete phase artifact**.
+- Canonical input behavior: `docs/battle/input-flow.md`.
+- Canonical gameplay rules: `docs/rules/mvp-battle-rules.md`.
+- Canonical art diagnostic/reality check: `docs/art/card-art-rendering-diagnostic.md`.
+
+This PR-phase note is not authoritative implementation guidance.

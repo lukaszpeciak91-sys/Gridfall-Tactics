@@ -96,3 +96,12 @@ Inside current debug panel:
 - Primary diagnostic reference: `docs/art/card-art-rendering-diagnostic.md`.
 - Workflow/reference index: `docs/README.md`.
 
+## Authority and replacement references
+
+- Active state: **planning-only** (prototype not active in production flow).
+- This plan is **not** a canonical implementation instruction set.
+- Canonical input behavior (including swap and interaction arbitration): `docs/battle/input-flow.md`.
+- Canonical gameplay rules authority: `docs/rules/mvp-battle-rules.md`.
+- Canonical art behavior diagnostic: `docs/art/card-art-rendering-diagnostic.md`.
+
+Any implementation assumptions here are historical planning notes unless promoted by newer canonical docs/decisions.

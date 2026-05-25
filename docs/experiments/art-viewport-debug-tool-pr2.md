@@ -36,3 +36,13 @@ The card frame/viewport does not move. The artwork framing changes only by adjus
 4. Use `Step Toggle` for smaller/larger increments.
 5. Tap `Reset` to restore that card's default/current runtime Y baseline.
 6. Compare Hand and Inspect previews; both share the same temporary Y value.
+
+## Status and authority
+
+- Status: **EXPERIMENTAL** (historical phase note).
+- Active state: **obsolete phase artifact**.
+- Canonical input behavior: `docs/battle/input-flow.md`.
+- Canonical gameplay rules: `docs/rules/mvp-battle-rules.md`.
+- Canonical art diagnostic/reality check: `docs/art/card-art-rendering-diagnostic.md`.
+
+`temporaryArtCropY01` and other phase-limited notes here should be treated as historical diagnostics, not implementation truth.
