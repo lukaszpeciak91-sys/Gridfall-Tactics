@@ -37,6 +37,9 @@ const MAIN_MENU_BUTTON_VERTICAL_GAP = 14;
 const MAIN_MENU_BUTTON_FONT_SIZE = 27;
 const MAIN_MENU_MIN_RECOVERED_TITLE_WIDTH = 96;
 
+const MAIN_MENU_DEBUG_ICON_SIZE = 38;
+const MAIN_MENU_DEBUG_ICON_MARGIN = 12;
+
 
 export default class MainMenuScene extends Phaser.Scene {
   constructor() {
@@ -48,6 +51,8 @@ export default class MainMenuScene extends Phaser.Scene {
     this.menuButtons = [];
     this.sharedLogoRevealFallbackEvent = null;
     this.buildMarker = null;
+    this.debugEntryIcon = null;
+    this.debugEntryLabel = null;
   }
 
   init() {
@@ -132,10 +137,63 @@ export default class MainMenuScene extends Phaser.Scene {
     }
 
     this.drawBuildMarker(width, height);
+    this.drawDebugEntry(width, height);
     this.scale.on('resize', this.layoutMainMenuScene, this);
     this.drawNavigationControls();
   }
 
+
+
+  drawDebugEntry(width = this.scale.width) {
+    const size = MAIN_MENU_DEBUG_ICON_SIZE;
+    const x = MAIN_MENU_DEBUG_ICON_MARGIN + size * 0.5;
+    const y = MAIN_MENU_DEBUG_ICON_MARGIN + size * 0.5;
+
+    this.debugEntryIcon?.destroy?.();
+    this.debugEntryLabel?.destroy?.();
+
+    const icon = this.add.circle(x, y, size * 0.5, 0x0f172a, 0.8)
+      .setStrokeStyle(2, 0x60a5fa, 0.72)
+      .setDepth(21)
+      .setInteractive({ useHandCursor: true });
+
+    const label = this.add.text(x, y, '⚙', {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: '20px',
+      color: '#dbeafe',
+      fontStyle: 'bold',
+      align: 'center',
+    }).setOrigin(0.5).setDepth(22);
+
+    icon.on('pointerup', () => {
+      this.scene.start('ArtViewportDebugScene');
+    });
+
+    icon.on('pointerover', () => {
+      icon.setFillStyle(0x1e293b, 0.94);
+      icon.setStrokeStyle(2, 0x93c5fd, 0.88);
+      label.setColor('#eff6ff');
+    });
+
+    icon.on('pointerout', () => {
+      icon.setFillStyle(0x0f172a, 0.8);
+      icon.setStrokeStyle(2, 0x60a5fa, 0.72);
+      label.setColor('#dbeafe');
+    });
+
+    this.debugEntryIcon = icon;
+    this.debugEntryLabel = label;
+  }
+
+
+  layoutDebugEntry() {
+    if (!this.debugEntryIcon?.active || !this.debugEntryLabel?.active) return;
+    const size = MAIN_MENU_DEBUG_ICON_SIZE;
+    const x = MAIN_MENU_DEBUG_ICON_MARGIN + size * 0.5;
+    const y = MAIN_MENU_DEBUG_ICON_MARGIN + size * 0.5;
+    this.debugEntryIcon.setPosition(x, y);
+    this.debugEntryLabel.setPosition(x, y);
+  }
 
   drawBuildMarker(width = this.scale.width, height = this.scale.height) {
     this.buildMarker?.destroy?.();
@@ -177,6 +235,7 @@ export default class MainMenuScene extends Phaser.Scene {
     const height = gameSize?.height ?? this.scale.height;
 
     this.layoutBuildMarker(width, height);
+    this.layoutDebugEntry();
     this.ensureTitleExistsAndVisible({
       forceVisible: !this.isAwaitingSharedLogo,
       width,
@@ -398,6 +457,8 @@ export default class MainMenuScene extends Phaser.Scene {
     this.menuButtonViews = [];
     this.menuButtons = [];
     this.buildMarker = null;
+    this.debugEntryIcon = null;
+    this.debugEntryLabel = null;
   }
 
   createMenuButton(x, y, width, label, onPointerUp) {
