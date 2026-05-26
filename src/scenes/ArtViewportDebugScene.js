@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
 import { getLoadedCardIllustrationTextureKey, preloadAllCardIllustrations } from '../rendering/cardIllustrationAssets.js';
-import { calculateCardArtworkCoverPosition, createCardArtwork, getCardLayoutZones } from '../rendering/cardVisualLayout.js';
+import { createCardArtwork, getCardLayoutZones } from '../rendering/cardVisualLayout.js';
 import { getFactionPresentationName } from '../data/presentation/factionPresentation.js';
 import { getActiveLocale } from '../localization/localeService.js';
 import { getCardDisplayName } from '../localization/cardDisplay.js';
@@ -260,13 +260,18 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     const workspaceScale = Math.min(pane.width / sourceWidth, pane.height / sourceHeight);
     const displayWidth = Math.max(1, sourceWidth * workspaceScale);
     const displayHeight = Math.max(1, sourceHeight * workspaceScale);
-    const crop = calculateCardArtworkCoverPosition(this.referenceArtZone, sourceWidth, sourceHeight, {
-      artPositionY: this.currentY01,
-    });
-    const cropWorldX = pane.x - displayWidth / 2 + (crop.cropX * workspaceScale);
-    const cropWorldY = pane.y - displayHeight / 2 + (crop.cropY * workspaceScale);
-    const cropWorldWidth = crop.cropWidth * workspaceScale;
-    const cropWorldHeight = crop.cropHeight * workspaceScale;
+    const zoneWidthRatio = this.referenceArtZone.width / 1000;
+    const zoneHeightRatio = this.referenceArtZone.height / 1500;
+    const selectorWidth = sourceWidth * zoneWidthRatio;
+    const selectorHeight = sourceHeight * zoneHeightRatio;
+    const maxCropY = Math.max(0, sourceHeight - selectorHeight);
+    const cropY = maxCropY * this.currentY01;
+    const cropX = (sourceWidth - selectorWidth) * 0.5;
+
+    const cropWorldX = pane.x - displayWidth / 2 + (cropX * workspaceScale);
+    const cropWorldY = pane.y - displayHeight / 2 + (cropY * workspaceScale);
+    const cropWorldWidth = selectorWidth * workspaceScale;
+    const cropWorldHeight = selectorHeight * workspaceScale;
 
     const workspaceBackdrop = this.add.rectangle(pane.x, pane.y, pane.width, pane.height, 0x0b1220, 0.94)
       .setStrokeStyle(1, 0x1e293b, 0.9);
