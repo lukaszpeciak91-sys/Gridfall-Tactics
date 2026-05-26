@@ -1,8 +1,7 @@
 import Phaser from 'phaser';
 import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
-import { getLoadedCardIllustrationTextureKey } from '../rendering/cardIllustrationAssets.js';
 import { preloadAllCardIllustrations } from '../rendering/cardIllustrationAssets.js';
-import { calculateCardArtworkCoverPosition, getCardLayoutZones } from '../rendering/cardVisualLayout.js';
+import { createCardArtwork, getCardLayoutZones } from '../rendering/cardVisualLayout.js';
 import { HAND_CARD_ASPECT_RATIO } from '../ui/handLayout.js';
 
 const Y_STEP = 0.025;
@@ -305,57 +304,12 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     const textZoneTint = this.add.rectangle(worldTextZone.centerX, worldTextZone.centerY, worldTextZone.width, worldTextZone.height, 0xf59e0b, 0.06)
       .setStrokeStyle(1, 0xfbbf24, 0.14);
 
-    const artworkTextureKey = getLoadedCardIllustrationTextureKey(this, card);
-    const hasArtworkTexture = Boolean(artworkTextureKey && this.textures?.exists?.(artworkTextureKey));
-
-    let fullArtworkWidth = worldArtZone.width;
-    let fullArtworkHeight = worldArtZone.height;
-    let coverMetrics = null;
-    if (hasArtworkTexture) {
-      const source = this.textures.get(artworkTextureKey)?.getSourceImage?.();
-      const sourceWidth = source?.width ?? worldArtZone.width;
-      const sourceHeight = source?.height ?? worldArtZone.height;
-      fullArtworkWidth = Math.max(worldArtZone.width, sourceWidth);
-      fullArtworkHeight = Math.max(worldArtZone.height, sourceHeight);
-      coverMetrics = calculateCardArtworkCoverPosition(worldArtZone, sourceWidth, sourceHeight, {
-        artPositionY: this.currentY01,
-      });
-    }
-
-    const workspaceWidth = fullArtworkWidth + 32;
-    const workspaceHeight = fullArtworkHeight + 32;
-    const workspaceFrame = this.add.rectangle(worldArtZone.centerX, worldArtZone.centerY, workspaceWidth, workspaceHeight, 0x020617, 0.76)
-      .setStrokeStyle(1, 0x334155, 0.85);
-
-    const fullArtwork = hasArtworkTexture
-      ? this.add.image(worldArtZone.centerX, worldArtZone.centerY, artworkTextureKey)
-        .setDisplaySize(fullArtworkWidth, fullArtworkHeight)
-      : this.add.rectangle(worldArtZone.centerX, worldArtZone.centerY, fullArtworkWidth, fullArtworkHeight, 0x172033, 0.95)
-        .setStrokeStyle(1, 0x475569, 0.8);
-    const missingArtworkLabel = !hasArtworkTexture
-      ? this.add.text(worldArtZone.centerX, worldArtZone.centerY, 'No card artwork texture', {
-        fontFamily: 'Arial, sans-serif', fontSize: '16px', color: '#cbd5e1',
-      }).setOrigin(0.5)
-      : null;
-
-    if (hasArtworkTexture && coverMetrics) {
-      const viewportCenterY = worldArtZone.y + (worldArtZone.height * 0.5);
-      const imageTopAtCurrentY = viewportCenterY - (coverMetrics.displayHeight * 0.5);
-      const sourceToDisplayY = coverMetrics.scale;
-      const viewportTopInSource = coverMetrics.cropY;
-      const viewportCenterInSourceY = viewportTopInSource + (coverMetrics.cropHeight * 0.5);
-      const viewportCenterOnDisplayY = imageTopAtCurrentY + (viewportCenterInSourceY * sourceToDisplayY);
-      const shiftY = worldArtZone.centerY - viewportCenterOnDisplayY;
-      fullArtwork.y += shiftY;
-    }
-
-    const topGuideY = worldArtZone.y + (worldArtZone.height * 0.2);
-    const bottomGuideY = worldArtZone.y + (worldArtZone.height * 0.8);
-    const topPressureGuide = this.add.line(worldArtZone.centerX, topGuideY, -worldArtZone.width * 0.5, 0, worldArtZone.width * 0.5, 0, 0x38bdf8, 0.7)
-      .setLineWidth(1, 1);
-    const bottomPressureGuide = this.add.line(worldArtZone.centerX, bottomGuideY, -worldArtZone.width * 0.5, 0, worldArtZone.width * 0.5, 0, 0x38bdf8, 0.7)
-      .setLineWidth(1, 1);
-
+    const backdrop = this.add.rectangle(worldArtZone.centerX, worldArtZone.centerY, worldArtZone.width, worldArtZone.height, 0x0b1220, 0.95)
+      .setStrokeStyle(1, 0x1e293b, 0.9);
+    const art = createCardArtwork(this, worldArtZone, card, {
+      enableCardIllustration: true,
+      artPositionY: this.currentY01,
+    });
     const safeFocalGuide = this.add.rectangle(safeCenterX, safeCenterY, safeWidth, safeHeight)
       .setStrokeStyle(1, 0x34d399, 0.6)
       .setFillStyle(0x34d399, 0.02);
@@ -368,11 +322,8 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
       statZoneTint,
       nameZoneTint,
       textZoneTint,
-      workspaceFrame,
-      fullArtwork,
-      missingArtworkLabel,
-      topPressureGuide,
-      bottomPressureGuide,
+      backdrop,
+      art,
       safeFocalGuide,
       border,
     ];
