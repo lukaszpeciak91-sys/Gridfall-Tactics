@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
 import { getLoadedCardIllustrationTextureKey, preloadAllCardIllustrations } from '../rendering/cardIllustrationAssets.js';
-import { createCardArtwork, getCardLayoutZones } from '../rendering/cardVisualLayout.js';
+import { calculateCardArtworkCoverPosition, createCardArtwork, getCardLayoutZones } from '../rendering/cardVisualLayout.js';
 import { getFactionPresentationName } from '../data/presentation/factionPresentation.js';
 import { getActiveLocale } from '../localization/localeService.js';
 import { getCardDisplayName } from '../localization/cardDisplay.js';
@@ -9,8 +9,6 @@ import { getCardDisplayName } from '../localization/cardDisplay.js';
 const Y_STEP = 0.025;
 const FALLBACK_X01 = 0.5;
 const FALLBACK_SCALE = 1;
-const SAFE_FOCAL_INSET_X_RATIO = 0.11;
-const SAFE_FOCAL_INSET_Y_RATIO = 0.14;
 
 function clamp01(value) {
   return Phaser.Math.Clamp(value, 0, 1);
@@ -94,25 +92,17 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     const previewAreaHeight = Math.max(220, previewBottom - previewTop);
     const previewBoundsWidth = width - 24;
     const previewBoundsHeight = previewAreaHeight - 8;
-    // Keep runtime art-window geometry (zones.art), but show full source art behind it.
     const referenceCardWidth = 1000;
     const referenceCardHeight = 1500;
     const referenceZones = getCardLayoutZones(referenceCardWidth, referenceCardHeight);
-    const artRatio = referenceZones.art.width / referenceZones.art.height;
-    const maxViewportWidth = Math.min(previewBoundsWidth, previewBoundsHeight * artRatio);
-    const artScale = maxViewportWidth / referenceZones.art.width;
-    this.previewRuntimeCard = {
-      x: width * 0.5,
-      y: previewTop + (previewAreaHeight * 0.5),
-      width: referenceCardWidth * artScale,
-      height: referenceCardHeight * artScale,
-    };
-    this.previewWorkspace = {
-      x: width * 0.5,
-      y: previewTop + (previewAreaHeight * 0.5),
-      width: previewBoundsWidth,
-      height: previewBoundsHeight,
-    };
+    this.referenceArtZone = referenceZones.art;
+    const paneGap = 8;
+    const paneHeight = Math.max(96, (previewBoundsHeight - paneGap) / 2);
+    const paneCenterX = width * 0.5;
+    const paneA_centerY = previewTop + paneHeight / 2;
+    const paneB_centerY = paneA_centerY + paneHeight + paneGap;
+    this.previewPaneSource = { x: paneCenterX, y: paneA_centerY, width: previewBoundsWidth, height: paneHeight };
+    this.previewPaneRuntime = { x: paneCenterX, y: paneB_centerY, width: previewBoundsWidth, height: paneHeight };
 
     const controlsY = height - controlsHeight + 8;
     this.createButton(width * 0.5 - 108, controlsY + 26, 96, 42, 'Y -', () => this.adjustY(-1), { fontSize: '20px' });
@@ -265,68 +255,74 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     this.previewNodes = [];
   }
 
-  drawArtWindow(anchor, card) {
-    const zones = getCardLayoutZones(anchor.width, anchor.height);
-    const artZone = zones.art;
-    const worldArtZone = {
-      x: anchor.x + artZone.x,
-      y: anchor.y + artZone.y,
-      width: artZone.width,
-      height: artZone.height,
-      centerX: anchor.x + artZone.centerX,
-      centerY: anchor.y + artZone.centerY,
-    };
+  drawSourceSelectionPane(card) {
+    const pane = this.previewPaneSource;
     const textureKey = getLoadedCardIllustrationTextureKey(this, card);
     const source = textureKey ? this.textures?.get(textureKey)?.getSourceImage?.() : null;
     const sourceWidth = Math.max(1, source?.width ?? 512);
     const sourceHeight = Math.max(1, source?.height ?? 768);
-    const workspace = this.previewWorkspace;
-    const workspaceScale = Math.min(workspace.width / sourceWidth, workspace.height / sourceHeight);
+    const workspaceScale = Math.min(pane.width / sourceWidth, pane.height / sourceHeight);
     const displayWidth = Math.max(1, sourceWidth * workspaceScale);
     const displayHeight = Math.max(1, sourceHeight * workspaceScale);
-    const artTop = workspace.y - displayHeight / 2;
-    const maxWindowTravel = Math.max(0, displayHeight - worldArtZone.height);
-    const artWindowCenterY = artTop + worldArtZone.height / 2 + maxWindowTravel * this.currentY01;
-    const movedArtZone = {
-      ...worldArtZone,
-      y: artWindowCenterY - worldArtZone.height / 2,
-      centerY: artWindowCenterY,
-    };
-    const safeInsetX = Math.round(movedArtZone.width * SAFE_FOCAL_INSET_X_RATIO);
-    const safeInsetY = Math.round(movedArtZone.height * SAFE_FOCAL_INSET_Y_RATIO);
-    const safeWidth = Math.max(12, movedArtZone.width - safeInsetX * 2);
-    const safeHeight = Math.max(12, movedArtZone.height - safeInsetY * 2);
-    const safeCenterX = movedArtZone.x + safeInsetX + safeWidth / 2;
-    const safeCenterY = movedArtZone.y + safeInsetY + safeHeight / 2;
+    const crop = calculateCardArtworkCoverPosition(this.referenceArtZone, sourceWidth, sourceHeight, {
+      artPositionY: this.currentY01,
+    });
+    const cropWorldX = pane.x - displayWidth / 2 + (crop.cropX * workspaceScale);
+    const cropWorldY = pane.y - displayHeight / 2 + (crop.cropY * workspaceScale);
+    const cropWorldWidth = crop.cropWidth * workspaceScale;
+    const cropWorldHeight = crop.cropHeight * workspaceScale;
 
-    const workspaceBackdrop = this.add.rectangle(workspace.x, workspace.y, workspace.width, workspace.height, 0x0b1220, 0.94)
+    const workspaceBackdrop = this.add.rectangle(pane.x, pane.y, pane.width, pane.height, 0x0b1220, 0.94)
       .setStrokeStyle(1, 0x1e293b, 0.9);
     const art = createCardArtwork(this, {
-      x: workspace.x - displayWidth / 2,
-      y: workspace.y - displayHeight / 2,
+      x: pane.x - displayWidth / 2,
+      y: pane.y - displayHeight / 2,
       width: displayWidth,
       height: displayHeight,
-      centerX: workspace.x,
-      centerY: workspace.y,
+      centerX: pane.x,
+      centerY: pane.y,
     }, card, { enableCardIllustration: true });
-    const safeFocalGuide = this.add.rectangle(safeCenterX, safeCenterY, safeWidth, safeHeight)
-      .setStrokeStyle(1, 0x34d399, 0.6)
-      .setFillStyle(0x34d399, 0.02);
-    const border = this.add.rectangle(movedArtZone.centerX, movedArtZone.centerY, movedArtZone.width, movedArtZone.height)
+    const sourceCropBorder = this.add.rectangle(
+      cropWorldX + cropWorldWidth / 2,
+      cropWorldY + cropWorldHeight / 2,
+      cropWorldWidth,
+      cropWorldHeight,
+    )
       .setStrokeStyle(2, 0x93c5fd, 1)
       .setFillStyle(0x000000, 0);
-    const pressureTop = this.add.line(movedArtZone.centerX, movedArtZone.y + movedArtZone.height * 0.2, -movedArtZone.width * 0.45, 0, movedArtZone.width * 0.45, 0, 0x60a5fa, 0.4)
-      .setLineWidth(1, 1);
-    const pressureBottom = this.add.line(movedArtZone.centerX, movedArtZone.y + movedArtZone.height * 0.8, -movedArtZone.width * 0.45, 0, movedArtZone.width * 0.45, 0, 0x60a5fa, 0.4)
-      .setLineWidth(1, 1);
+    const label = this.add.text(pane.x - pane.width / 2 + 8, pane.y - pane.height / 2 + 6, 'Source selection', {
+      fontFamily: 'Arial, sans-serif', fontSize: '12px', color: '#bfdbfe',
+    }).setOrigin(0, 0);
+
+    return [workspaceBackdrop, art, sourceCropBorder, label];
+  }
+
+  drawRuntimeResultPane(card) {
+    const pane = this.previewPaneRuntime;
+    const workspaceBackdrop = this.add.rectangle(pane.x, pane.y, pane.width, pane.height, 0x0b1220, 0.94)
+      .setStrokeStyle(1, 0x1e293b, 0.9);
+    const scale = Math.min(pane.width / this.referenceArtZone.width, pane.height / this.referenceArtZone.height);
+    const runtimeZone = {
+      x: pane.x - (this.referenceArtZone.width * scale) / 2,
+      y: pane.y - (this.referenceArtZone.height * scale) / 2,
+      width: this.referenceArtZone.width * scale,
+      height: this.referenceArtZone.height * scale,
+      centerX: pane.x,
+      centerY: pane.y,
+    };
+    const art = createCardArtwork(this, runtimeZone, card, { enableCardIllustration: true, artPositionY: this.currentY01 });
+    const viewportBorder = this.add.rectangle(runtimeZone.centerX, runtimeZone.centerY, runtimeZone.width, runtimeZone.height)
+      .setStrokeStyle(2, 0x60a5fa, 0.8)
+      .setFillStyle(0x000000, 0);
+    const label = this.add.text(pane.x - pane.width / 2 + 8, pane.y - pane.height / 2 + 6, 'Runtime result', {
+      fontFamily: 'Arial, sans-serif', fontSize: '12px', color: '#bfdbfe',
+    }).setOrigin(0, 0);
 
     return [
       workspaceBackdrop,
       art,
-      safeFocalGuide,
-      pressureTop,
-      pressureBottom,
-      border,
+      viewportBorder,
+      label,
     ];
   }
 
@@ -336,7 +332,8 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
 
     const { card } = this.cardEntries[this.selectedIndex];
     this.previewNodes = [
-      ...this.drawArtWindow(this.previewRuntimeCard, card),
+      ...this.drawSourceSelectionPane(card),
+      ...this.drawRuntimeResultPane(card),
     ];
   }
 }
