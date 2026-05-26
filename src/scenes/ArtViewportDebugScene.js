@@ -310,11 +310,18 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
       centerX: pane.x,
       centerY: pane.y,
     };
-    const art = createCardArtwork(this, runtimeZone, card, {
-      enableCardIllustration: true,
+
+    const textureKey = getLoadedCardIllustrationTextureKey(this, card);
+    const source = textureKey ? this.textures?.get(textureKey)?.getSourceImage?.() : null;
+    const sourceWidth = Math.max(1, source?.width ?? 512);
+    const sourceHeight = Math.max(1, source?.height ?? 768);
+    const crop = calculateCardArtworkCoverPosition(this.referenceArtZone, sourceWidth, sourceHeight, {
       artPositionY: this.currentY01,
-      artRect: runtimeZone,
     });
+
+    const art = this.add.image(runtimeZone.centerX, runtimeZone.centerY, textureKey)
+      .setDisplaySize(runtimeZone.width, runtimeZone.height)
+      .setCrop(crop.cropX, crop.cropY, crop.cropWidth, crop.cropHeight);
     const viewportBorder = this.add.rectangle(runtimeZone.centerX, runtimeZone.centerY, runtimeZone.width, runtimeZone.height)
       .setStrokeStyle(2, 0x60a5fa, 0.8)
       .setFillStyle(0x000000, 0);
