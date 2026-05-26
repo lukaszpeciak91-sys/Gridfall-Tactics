@@ -96,13 +96,9 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     const referenceCardHeight = 1500;
     const referenceZones = getCardLayoutZones(referenceCardWidth, referenceCardHeight);
     this.referenceArtZone = referenceZones.art;
-    const paneGap = 8;
-    const paneHeight = Math.max(96, (previewBoundsHeight - paneGap) / 2);
     const paneCenterX = width * 0.5;
-    const paneA_centerY = previewTop + paneHeight / 2;
-    const paneB_centerY = paneA_centerY + paneHeight + paneGap;
-    this.previewPaneSource = { x: paneCenterX, y: paneA_centerY, width: previewBoundsWidth, height: paneHeight };
-    this.previewPaneRuntime = { x: paneCenterX, y: paneB_centerY, width: previewBoundsWidth, height: paneHeight };
+    const paneCenterY = previewTop + previewBoundsHeight / 2;
+    this.previewPaneSource = { x: paneCenterX, y: paneCenterY, width: previewBoundsWidth, height: previewBoundsHeight };
 
     const controlsY = height - controlsHeight + 8;
     this.createButton(width * 0.5 - 108, controlsY + 26, 96, 42, 'Y -', () => this.adjustY(-1), { fontSize: '20px' });
@@ -297,47 +293,11 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     return [workspaceBackdrop, art, sourceCropBorder, label];
   }
 
-  drawRuntimeResultPane(card) {
-    const pane = this.previewPaneRuntime;
-    const workspaceBackdrop = this.add.rectangle(pane.x, pane.y, pane.width, pane.height, 0x0b1220, 0.94)
-      .setStrokeStyle(1, 0x1e293b, 0.9);
-    const scale = Math.min(pane.width / this.referenceArtZone.width, pane.height / this.referenceArtZone.height);
-    const runtimeZone = {
-      x: pane.x - (this.referenceArtZone.width * scale) / 2,
-      y: pane.y - (this.referenceArtZone.height * scale) / 2,
-      width: this.referenceArtZone.width * scale,
-      height: this.referenceArtZone.height * scale,
-      centerX: pane.x,
-      centerY: pane.y,
-    };
-
-    const art = createCardArtwork(this, runtimeZone, card, {
-      enableCardIllustration: true,
-      artPositionY: this.currentY01,
-    });
-    const viewportBorder = this.add.rectangle(runtimeZone.centerX, runtimeZone.centerY, runtimeZone.width, runtimeZone.height)
-      .setStrokeStyle(2, 0x60a5fa, 0.8)
-      .setFillStyle(0x000000, 0);
-    const label = this.add.text(pane.x - pane.width / 2 + 8, pane.y - pane.height / 2 + 6, 'Runtime result', {
-      fontFamily: 'Arial, sans-serif', fontSize: '12px', color: '#bfdbfe',
-    }).setOrigin(0, 0);
-
-    return [
-      workspaceBackdrop,
-      art,
-      viewportBorder,
-      label,
-    ];
-  }
-
   renderPreviews() {
     this.clearPreviews();
     if (!this.cardEntries.length) return;
 
     const { card } = this.cardEntries[this.selectedIndex];
-    this.previewNodes = [
-      ...this.drawSourceSelectionPane(card),
-      ...this.drawRuntimeResultPane(card),
-    ];
+    this.previewNodes = this.drawSourceSelectionPane(card);
   }
 }
