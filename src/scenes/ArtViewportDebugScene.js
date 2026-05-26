@@ -82,6 +82,10 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     const { width, height } = this.scale;
     const sidePad = 12;
     const selectorY = 28;
+    const controlsBottomPad = 10;
+    const controlsTopGap = 10;
+    const controlsRowGap = 8;
+    const controlsHeight = 42 + controlsRowGap + 40 + controlsRowGap + 40 + controlsBottomPad;
     this.createButton(sidePad + 44, selectorY, 88, 42, 'Prev', () => this.shiftCard(-1), { fontSize: '18px' });
     this.createButton(width - sidePad - 44, selectorY, 88, 42, 'Next', () => this.shiftCard(1), { fontSize: '18px' });
 
@@ -97,25 +101,27 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
       wordWrap: { width: width - 32 },
     }).setOrigin(0.5, 0.5);
 
-    const previewTop = 56;
-    const previewBottom = height - controlsHeight;
-    const previewAreaHeight = Math.max(220, previewBottom - previewTop);
+    const previewTop = 86;
+    const previewBottom = height - controlsHeight - controlsTopGap;
+    const previewAreaHeight = Math.max(160, previewBottom - previewTop);
     const previewBoundsWidth = width - 24;
     const previewBoundsHeight = previewAreaHeight - 8;
     const paneCenterX = width * 0.5;
     const paneCenterY = previewTop + previewBoundsHeight / 2;
     this.previewPaneSource = { x: paneCenterX, y: paneCenterY, width: previewBoundsWidth, height: previewBoundsHeight };
 
-    const controlsY = height - controlsHeight + 8;
-    this.createButton(width * 0.5 - 108, controlsY + 26, 96, 42, 'Y -', () => this.adjustY(-1), { fontSize: '20px' });
-    this.createButton(width * 0.5 + 108, controlsY + 26, 96, 42, 'Y +', () => this.adjustY(1), { fontSize: '20px' });
-    this.valueLabel = this.add.text(width * 0.5, controlsY + 26, '', {
-      fontFamily: 'Arial, sans-serif', fontSize: '22px', color: '#bfdbfe',
+    const controlsY = height - controlsHeight;
+    this.createButton(width * 0.5 - 108, controlsY + 21, 96, 42, 'Y -', () => this.adjustY(-1), { fontSize: '20px' });
+    this.createButton(width * 0.5 + 108, controlsY + 21, 96, 42, 'Y +', () => this.adjustY(1), { fontSize: '20px' });
+    this.valueLabel = this.add.text(width * 0.5, controlsY + 21, '', {
+      fontFamily: 'Arial, sans-serif', fontSize: '20px', color: '#bfdbfe',
     }).setOrigin(0.5);
 
-    this.createButton(width * 0.5, controlsY + 78, 140, 40, 'Add', () => { this.addCurrentRecord(); }, { fontSize: '18px' });
-    this.createButton(width * 0.5, controlsY + 122, 140, 40, 'Copy All', () => { void this.copyAllRecords(); }, { fontSize: '18px' });
-    this.createButton(width * 0.5, controlsY + 166, 140, 40, 'Reset', () => this.resetY(), { fontSize: '18px' });
+    const actionRowY = controlsY + 21 + 42 / 2 + controlsRowGap + 20;
+    const actionWidth = Math.min(140, (width - 32) / 3);
+    this.createButton(width * 0.5 - actionWidth - 8, actionRowY, actionWidth, 40, 'Add', () => { this.addCurrentRecord(); }, { fontSize: '16px' });
+    this.createButton(width * 0.5, actionRowY, actionWidth, 40, 'Copy All', () => { void this.copyAllRecords(); }, { fontSize: '16px' });
+    this.createButton(width * 0.5 + actionWidth + 8, actionRowY, actionWidth, 40, 'Reset', () => this.resetY(), { fontSize: '16px' });
 
     this.statusLabel = this.add.text(width * 0.5, previewBottom - 8, '', {
       fontFamily: 'Arial, sans-serif', fontSize: '14px', color: '#bbf7d0', align: 'center', wordWrap: { width: width - 24 },
