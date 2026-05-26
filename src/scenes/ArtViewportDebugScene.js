@@ -9,13 +9,18 @@ import { getCardDisplayName } from '../localization/cardDisplay.js';
 const Y_STEP = 0.025;
 const FALLBACK_X01 = 0.5;
 const FALLBACK_SCALE = 1;
-const CANONICAL_CARD_WIDTH = 1000;
-const CANONICAL_CARD_HEIGHT = 1500;
 
 // Runtime contract:
-// - Art viewport geometry is immutable runtime layout data sourced from getCardLayoutZones(...).zones.art.
-// - Debug editing only changes source-image framing (artPositionY01).
-// - Debug tools must never independently fit/reshape the viewport aspect ratio.
+// - The blue rectangle is fixed runtime viewport geometry (zones.art-based).
+// - Authoring only adjusts which source-image region appears in that fixed viewport.
+// - Exported runtime.artPositionY01 must map into runtime artPositionY and flow through
+//   createCardArtwork(...) shared crop semantics (cover-scale + crop), with no custom
+//   preview stretching or alternate geometry rules in this debug tool.
+
+function clamp01(value) {
+  return Phaser.Math.Clamp(value, 0, 1);
+}
+
 export default class ArtViewportDebugScene extends Phaser.Scene {
   constructor() {
     super('ArtViewportDebugScene');
@@ -28,7 +33,9 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     this.statusClearEvent = null;
   }
 
-  preload() { preloadAllCardIllustrations(this); }
+  preload() {
+    preloadAllCardIllustrations(this);
+  }
 
   create() {
     this.onBackRequested = () => this.scene.start('MainMenuScene');
@@ -54,7 +61,9 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     const entries = [];
     getFactionKeys().forEach((factionKey) => {
       const faction = getFactionByKey(factionKey);
-      (faction?.deck ?? []).forEach((card) => entries.push({ card, factionKey }));
+      (faction?.deck ?? []).forEach((card) => {
+        entries.push({ card, factionKey });
+      });
     });
 
     return entries.sort((a, b) => {
@@ -76,20 +85,27 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
       fontFamily: 'Arial, sans-serif', fontSize: '14px', color: '#e2e8f0', align: 'center',
       wordWrap: { width: width - 200 },
     }).setOrigin(0.5);
+    this.sortNoticeLabel = this.add.text(width * 0.5, selectorY + 22, 'Debug list sorted globally by card.id (not faction deck order).', {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: '11px',
+      color: '#93c5fd',
+      align: 'center',
+      wordWrap: { width: width - 32 },
+    }).setOrigin(0.5, 0.5);
 
     const controlsHeight = 220;
     const previewTop = 56;
     const previewBottom = height - controlsHeight;
     const previewAreaHeight = Math.max(220, previewBottom - previewTop);
+    const previewBoundsWidth = width - 24;
     const previewBoundsHeight = previewAreaHeight - 8;
-    const referenceZones = getCardLayoutZones(CANONICAL_CARD_WIDTH, CANONICAL_CARD_HEIGHT);
+    const referenceCardWidth = 1000;
+    const referenceCardHeight = 1500;
+    const referenceZones = getCardLayoutZones(referenceCardWidth, referenceCardHeight);
     this.referenceArtZone = referenceZones.art;
-
-    const gutter = 12;
-    const paneWidth = (width - 24 - gutter) / 2;
-    const paneY = previewTop + previewBoundsHeight / 2;
-    this.previewPaneSource = { x: 12 + (paneWidth / 2), y: paneY, width: paneWidth, height: previewBoundsHeight };
-    this.previewPaneRuntime = { x: width - 12 - (paneWidth / 2), y: paneY, width: paneWidth, height: previewBoundsHeight };
+    const paneCenterX = width * 0.5;
+    const paneCenterY = previewTop + previewBoundsHeight / 2;
+    this.previewPaneSource = { x: paneCenterX, y: paneCenterY, width: previewBoundsWidth, height: previewBoundsHeight };
 
     const controlsY = height - controlsHeight + 8;
     this.createButton(width * 0.5 - 108, controlsY + 26, 96, 42, 'Y -', () => this.adjustY(-1), { fontSize: '20px' });
@@ -118,46 +134,147 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     return { button, text };
   }
 
-  shiftCard(delta) { if (!this.cardEntries.length) return; this.selectedIndex = (this.selectedIndex + delta + this.cardEntries.length) % this.cardEntries.length; this.syncSelectedCardState(); this.renderPreviews(); }
-  adjustY(direction) { this.currentY01 = Phaser.Math.Clamp(this.currentY01 + (Y_STEP * direction), 0, 1); this.updateValueLabels(); this.renderPreviews(); }
-  resetY() { this.currentY01 = this.defaultY01; this.updateValueLabels(); this.renderPreviews(); }
+  shiftCard(delta) {
+    if (!this.cardEntries.length) return;
+    const total = this.cardEntries.length;
+    this.selectedIndex = (this.selectedIndex + delta + total) % total;
+    this.syncSelectedCardState();
+    this.renderPreviews();
+  }
 
-  buildRecordForCard(cardId) { return { cardId, shared: true, runtime: { artPositionY01: Number(this.currentY01.toFixed(3)) }, future: { artPositionX01: FALLBACK_X01, artScale: FALLBACK_SCALE } }; }
-  createRuntimeOverrides(records) { return records.reduce((o, r) => { const cardId = String(r?.cardId ?? ''); const y = r?.runtime?.artPositionY01; if (cardId && Number.isFinite(y)) o[cardId] = { artPositionY: Number(y.toFixed(3)) }; return o; }, {}); }
-  createExportPayload(records) { return { version: 1, tool: 'art-viewport-debug', records, runtimeOverrides: this.createRuntimeOverrides(records) }; }
+  adjustY(direction) {
+    this.currentY01 = clamp01(this.currentY01 + (Y_STEP * direction));
+    this.updateValueLabels();
+    this.renderPreviews();
+  }
+
+  resetY() {
+    this.currentY01 = this.defaultY01;
+    this.updateValueLabels();
+    this.renderPreviews();
+  }
+
+  buildRecordForCard(cardId) {
+    return {
+      cardId,
+      shared: true,
+      runtime: { artPositionY01: Number(this.currentY01.toFixed(3)) },
+      future: { artPositionX01: FALLBACK_X01, artScale: FALLBACK_SCALE },
+    };
+  }
+
+  createRuntimeOverrides(records) {
+    return records.reduce((overrides, record) => {
+      const cardId = String(record?.cardId ?? '');
+      const runtimeY01 = record?.runtime?.artPositionY01;
+      if (!cardId || !Number.isFinite(runtimeY01)) {
+        return overrides;
+      }
+
+      overrides[cardId] = { artPositionY: Number(runtimeY01.toFixed(3)) };
+      return overrides;
+    }, {});
+  }
+
+  createExportPayload(records) {
+    return {
+      version: 1,
+      tool: 'art-viewport-debug',
+      records,
+      runtimeOverrides: this.createRuntimeOverrides(records),
+    };
+  }
 
   copyWithFallback(text, successMessage) {
     const canUseClipboard = typeof navigator !== 'undefined' && navigator?.clipboard?.writeText;
-    if (canUseClipboard) return navigator.clipboard.writeText(text).then(() => this.setStatus(successMessage)).catch((error) => this.showFallbackExport(text, `Clipboard failed: ${error?.message ?? 'unknown error'}`));
+    if (canUseClipboard) {
+      return navigator.clipboard.writeText(text)
+        .then(() => this.setStatus(successMessage))
+        .catch((error) => {
+          this.showFallbackExport(text, `Clipboard failed: ${error?.message ?? 'unknown error'}`);
+        });
+    }
+
     this.showFallbackExport(text, 'Clipboard API unavailable. Copy text from fallback.');
     return Promise.resolve();
   }
-  showFallbackExport(text, message) { this.setStatus(message, true); this.fallbackExportText?.destroy(); this.fallbackExportText = this.add.text(this.scale.width * 0.5, this.scale.height - 336, text, { fontFamily: 'monospace', fontSize: '12px', color: '#fde68a', align: 'left', backgroundColor: '#1f2937', padding: { x: 8, y: 6 }, wordWrap: { width: this.scale.width - 24 } }).setOrigin(0.5, 0).setDepth(1000); }
-  setStatus(message, isError = false) { this.statusClearEvent?.remove(false); this.statusLabel?.setColor(isError ? '#fecaca' : '#bbf7d0'); this.statusLabel?.setText(message); this.statusClearEvent = this.time.delayedCall(4500, () => this.statusLabel?.setText('')); }
 
-  addCurrentRecord() { if (!this.cardEntries.length) return Promise.resolve(); const cardId = String(this.cardEntries[this.selectedIndex]?.card?.id ?? ''); if (!cardId) { this.setStatus('Cannot add: selected card has no id.', true); return Promise.resolve(); } this.pendingRecordsByCardId.set(cardId, this.buildRecordForCard(cardId)); this.setStatus(`Added record (${this.pendingRecordsByCardId.size})`); return Promise.resolve(); }
-  copyAllRecords() { const records = Array.from(this.pendingRecordsByCardId.values()).sort((a, b) => String(a.cardId).localeCompare(String(b.cardId))); return this.copyWithFallback(JSON.stringify(this.createExportPayload(records), null, 2), 'Copied all records'); }
+  showFallbackExport(text, message) {
+    this.setStatus(message, true);
+    this.fallbackExportText?.destroy();
+    this.fallbackExportText = this.add.text(this.scale.width * 0.5, this.scale.height - 336, text, {
+      fontFamily: 'monospace', fontSize: '12px', color: '#fde68a', align: 'left',
+      backgroundColor: '#1f2937', padding: { x: 8, y: 6 }, wordWrap: { width: this.scale.width - 24 },
+    }).setOrigin(0.5, 0).setDepth(1000);
+  }
+
+  setStatus(message, isError = false) {
+    this.statusClearEvent?.remove(false);
+    this.statusLabel?.setColor(isError ? '#fecaca' : '#bbf7d0');
+    this.statusLabel?.setText(message);
+    this.statusClearEvent = this.time.delayedCall(4500, () => {
+      this.statusLabel?.setText('');
+    });
+  }
+
+  addCurrentRecord() {
+    if (!this.cardEntries.length) return Promise.resolve();
+    const cardId = String(this.cardEntries[this.selectedIndex]?.card?.id ?? '');
+    if (!cardId) {
+      this.setStatus('Cannot add: selected card has no id.', true);
+      return Promise.resolve();
+    }
+
+    const record = this.buildRecordForCard(cardId);
+    this.pendingRecordsByCardId.set(cardId, record);
+    this.setStatus(`Added record (${this.pendingRecordsByCardId.size})`);
+    return Promise.resolve();
+  }
+
+  copyAllRecords() {
+    const records = Array.from(this.pendingRecordsByCardId.values())
+      .sort((a, b) => String(a.cardId).localeCompare(String(b.cardId)));
+    const payload = this.createExportPayload(records);
+    const text = JSON.stringify(payload, null, 2);
+    return this.copyWithFallback(text, 'Copied all records');
+  }
 
   syncSelectedCardState() {
-    if (!this.cardEntries.length) { this.cardLabel.setText('No cards found'); return; }
+    if (!this.cardEntries.length) {
+      this.cardLabel.setText('No cards found');
+      return;
+    }
+
     const selected = this.cardEntries[this.selectedIndex];
     const card = selected.card;
     const faction = getFactionByKey(selected.factionKey);
     const deck = faction?.deck ?? [];
     const deckIndex = deck.findIndex((deckCard) => deckCard?.id === card?.id);
+    const deckPositionLabel = deckIndex >= 0
+      ? `${deckIndex + 1}/${deck.length}`
+      : `?/${deck.length || '?'}`;
     const factionLabel = getFactionPresentationName(faction?.id, getActiveLocale(), faction?.name ?? selected.factionKey);
     const localizedDisplayName = getCardDisplayName(card, getActiveLocale()) ?? card?.name ?? 'Unknown';
     const cardNumberLabel = Number.isInteger(card?.cardNumber) ? `#${card.cardNumber}` : '#?';
     const fallbackY = Number.isFinite(card?.artPositionY01) ? card.artPositionY01 : 0.5;
-    this.defaultY01 = Phaser.Math.Clamp(fallbackY, 0, 1);
-    const existingY = this.pendingRecordsByCardId.get(String(card.id))?.runtime?.artPositionY01;
-    this.currentY01 = Number.isFinite(existingY) ? Phaser.Math.Clamp(existingY, 0, 1) : this.defaultY01;
-    this.cardLabel.setText(`${factionLabel} ${deckIndex + 1}/${deck.length} • ${cardNumberLabel} • ${card.id} • ${localizedDisplayName}`);
+    this.defaultY01 = clamp01(fallbackY);
+
+    const existingRecord = this.pendingRecordsByCardId.get(String(card.id));
+    const existingY = existingRecord?.runtime?.artPositionY01;
+    this.currentY01 = Number.isFinite(existingY) ? clamp01(existingY) : this.defaultY01;
+
+    this.cardLabel.setText(`${factionLabel} ${deckPositionLabel} • ${cardNumberLabel} • ${card.id} • ${localizedDisplayName}`);
     this.updateValueLabels();
   }
 
-  updateValueLabels() { this.valueLabel?.setText(`Y: ${this.currentY01.toFixed(3)}`); }
-  clearPreviews() { this.previewNodes.forEach((node) => node?.destroy()); this.previewNodes = []; }
+  updateValueLabels() {
+    this.valueLabel?.setText(`Y: ${this.currentY01.toFixed(3)}`);
+  }
+
+  clearPreviews() {
+    this.previewNodes.forEach((node) => node?.destroy());
+    this.previewNodes = [];
+  }
 
   drawSourceSelectionPane(card) {
     const pane = this.previewPaneSource;
@@ -165,48 +282,47 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     const source = textureKey ? this.textures?.get(textureKey)?.getSourceImage?.() : null;
     const sourceWidth = Math.max(1, source?.width ?? 512);
     const sourceHeight = Math.max(1, source?.height ?? 768);
-    const fitScale = Math.min((pane.width - 24) / sourceWidth, (pane.height - 40) / sourceHeight);
-    const displayWidth = Math.max(1, sourceWidth * fitScale);
-    const displayHeight = Math.max(1, sourceHeight * fitScale);
-    const crop = calculateCardArtworkCoverPosition(this.referenceArtZone, sourceWidth, sourceHeight, { artPositionY: this.currentY01 });
-
-    const backdrop = this.add.rectangle(pane.x, pane.y, pane.width, pane.height, 0x0b1220, 0.94).setStrokeStyle(1, 0x1e293b, 0.9);
-    const art = createCardArtwork(this, { x: pane.x - (displayWidth / 2), y: pane.y - (displayHeight / 2), width: displayWidth, height: displayHeight, centerX: pane.x, centerY: pane.y }, card, { enableCardIllustration: true });
-
-    const rectX = pane.x - (displayWidth / 2) + (crop.cropX * fitScale);
-    const rectY = pane.y - (displayHeight / 2) + (crop.cropY * fitScale);
-    const selector = this.add.rectangle(rectX + (crop.cropWidth * fitScale / 2), rectY + (crop.cropHeight * fitScale / 2), crop.cropWidth * fitScale, crop.cropHeight * fitScale).setStrokeStyle(2, 0x93c5fd, 1).setFillStyle(0x000000, 0);
-    const label = this.add.text(pane.x - pane.width / 2 + 8, pane.y - pane.height / 2 + 6, 'Pane A: source + runtime zones.art crop rectangle', { fontFamily: 'Arial, sans-serif', fontSize: '12px', color: '#bfdbfe' }).setOrigin(0, 0);
-    return [backdrop, art, selector, label];
-  }
-
-  drawRuntimePreviewPane(card) {
-    const pane = this.previewPaneRuntime;
-    const zoneScale = Math.min((pane.width - 24) / this.referenceArtZone.width, (pane.height - 40) / this.referenceArtZone.height);
-    const viewportWidth = this.referenceArtZone.width * zoneScale;
-    const viewportHeight = this.referenceArtZone.height * zoneScale;
-    const backdrop = this.add.rectangle(pane.x, pane.y, pane.width, pane.height, 0x0b1220, 0.94).setStrokeStyle(1, 0x1e293b, 0.9);
-    const frame = this.add.rectangle(pane.x, pane.y, viewportWidth, viewportHeight).setStrokeStyle(2, 0x22c55e, 1).setFillStyle(0x000000, 0);
-
-    const art = createCardArtwork(this, {
-      x: pane.x - (viewportWidth / 2),
-      y: pane.y - (viewportHeight / 2),
-      width: viewportWidth,
-      height: viewportHeight,
-      centerX: pane.x,
-      centerY: pane.y,
-    }, card, {
-      enableCardIllustration: true,
+    const workspaceScale = Math.min(pane.width / sourceWidth, pane.height / sourceHeight);
+    const displayWidth = Math.max(1, sourceWidth * workspaceScale);
+    const displayHeight = Math.max(1, sourceHeight * workspaceScale);
+    const crop = calculateCardArtworkCoverPosition(this.referenceArtZone, sourceWidth, sourceHeight, {
       artPositionY: this.currentY01,
     });
-    const label = this.add.text(pane.x - pane.width / 2 + 8, pane.y - pane.height / 2 + 6, 'Pane B: runtime crop semantics (createCardArtwork)', { fontFamily: 'Arial, sans-serif', fontSize: '12px', color: '#86efac' }).setOrigin(0, 0);
-    return [backdrop, art, frame, label];
+    const cropWorldX = pane.x - displayWidth / 2 + (crop.cropX * workspaceScale);
+    const cropWorldY = pane.y - displayHeight / 2 + (crop.cropY * workspaceScale);
+    const cropWorldWidth = crop.cropWidth * workspaceScale;
+    const cropWorldHeight = crop.cropHeight * workspaceScale;
+
+    const workspaceBackdrop = this.add.rectangle(pane.x, pane.y, pane.width, pane.height, 0x0b1220, 0.94)
+      .setStrokeStyle(1, 0x1e293b, 0.9);
+    const art = createCardArtwork(this, {
+      x: pane.x - displayWidth / 2,
+      y: pane.y - displayHeight / 2,
+      width: displayWidth,
+      height: displayHeight,
+      centerX: pane.x,
+      centerY: pane.y,
+    }, card, { enableCardIllustration: true });
+    const sourceCropBorder = this.add.rectangle(
+      cropWorldX + cropWorldWidth / 2,
+      cropWorldY + cropWorldHeight / 2,
+      cropWorldWidth,
+      cropWorldHeight,
+    )
+      .setStrokeStyle(2, 0x93c5fd, 1)
+      .setFillStyle(0x000000, 0);
+    const label = this.add.text(pane.x - pane.width / 2 + 8, pane.y - pane.height / 2 + 6, 'Source selection', {
+      fontFamily: 'Arial, sans-serif', fontSize: '12px', color: '#bfdbfe',
+    }).setOrigin(0, 0);
+
+    return [workspaceBackdrop, art, sourceCropBorder, label];
   }
 
   renderPreviews() {
     this.clearPreviews();
     if (!this.cardEntries.length) return;
+
     const { card } = this.cardEntries[this.selectedIndex];
-    this.previewNodes = [...this.drawSourceSelectionPane(card), ...this.drawRuntimePreviewPane(card)];
+    this.previewNodes = this.drawSourceSelectionPane(card);
   }
 }
