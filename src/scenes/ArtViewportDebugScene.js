@@ -2,7 +2,6 @@ import Phaser from 'phaser';
 import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
 import { preloadAllCardIllustrations } from '../rendering/cardIllustrationAssets.js';
 import { createCardArtwork, getCardLayoutZones } from '../rendering/cardVisualLayout.js';
-import { HAND_CARD_ASPECT_RATIO } from '../ui/handLayout.js';
 
 const Y_STEP = 0.025;
 const FALLBACK_X01 = 0.5;
@@ -83,18 +82,21 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     const previewTop = 56;
     const previewBottom = height - controlsHeight;
     const previewAreaHeight = Math.max(220, previewBottom - previewTop);
-    const previewBoundsWidth = width - 16;
-    const previewBoundsHeight = previewAreaHeight;
-    // Keep runtime art math (card-space zones) but fit the virtual card as a portrait
-    // surface so the visible art viewport matches Inspect-like perception.
-    const widthFromHeight = previewBoundsHeight / HAND_CARD_ASPECT_RATIO;
-    const clampedPreviewWidth = Math.min(previewBoundsWidth, widthFromHeight);
-    const clampedPreviewHeight = clampedPreviewWidth * HAND_CARD_ASPECT_RATIO;
-    this.previewAnchor = {
+    const previewBoundsWidth = width - 24;
+    const previewBoundsHeight = previewAreaHeight - 8;
+    // Use runtime card geometry (zones.art) and only magnify that exact window.
+    const referenceCardWidth = 1000;
+    const referenceCardHeight = 1500;
+    const referenceZones = getCardLayoutZones(referenceCardWidth, referenceCardHeight);
+    const artRatio = referenceZones.art.width / referenceZones.art.height;
+    const maxViewportWidth = Math.min(previewBoundsWidth, previewBoundsHeight * artRatio);
+    const maxViewportHeight = maxViewportWidth / artRatio;
+    const artScale = maxViewportWidth / referenceZones.art.width;
+    this.previewRuntimeCard = {
       x: width * 0.5,
       y: previewTop + (previewAreaHeight * 0.5),
-      width: clampedPreviewWidth,
-      height: clampedPreviewHeight,
+      width: referenceCardWidth * artScale,
+      height: referenceCardHeight * artScale,
     };
 
     const controlsY = height - controlsHeight + 8;
@@ -241,22 +243,6 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
 
   drawArtWindow(anchor, card) {
     const zones = getCardLayoutZones(anchor.width, anchor.height);
-    const worldOuterZone = {
-      x: anchor.x + zones.outer.x,
-      y: anchor.y + zones.outer.y,
-      width: zones.outer.width,
-      height: zones.outer.height,
-      centerX: anchor.x + zones.outer.centerX,
-      centerY: anchor.y + zones.outer.centerY,
-    };
-    const worldStatZone = {
-      x: anchor.x + zones.statBadges.x,
-      y: anchor.y + zones.statBadges.y,
-      width: zones.statBadges.width,
-      height: zones.statBadges.height,
-      centerX: anchor.x + zones.statBadges.centerX,
-      centerY: anchor.y + zones.statBadges.centerY,
-    };
     const artZone = zones.art;
     const worldArtZone = {
       x: anchor.x + artZone.x,
@@ -266,43 +252,12 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
       centerX: anchor.x + artZone.centerX,
       centerY: anchor.y + artZone.centerY,
     };
-    const worldNameZone = {
-      x: anchor.x + zones.name.x,
-      y: anchor.y + zones.name.y,
-      width: zones.name.width,
-      height: zones.name.height,
-      centerX: anchor.x + zones.name.centerX,
-      centerY: anchor.y + zones.name.centerY,
-    };
-    const worldTextZone = {
-      x: anchor.x + zones.text.x,
-      y: anchor.y + zones.text.y,
-      width: zones.text.width,
-      height: zones.text.height,
-      centerX: anchor.x + zones.text.centerX,
-      centerY: anchor.y + zones.text.centerY,
-    };
     const safeInsetX = Math.round(worldArtZone.width * SAFE_FOCAL_INSET_X_RATIO);
     const safeInsetY = Math.round(worldArtZone.height * SAFE_FOCAL_INSET_Y_RATIO);
     const safeWidth = Math.max(12, worldArtZone.width - safeInsetX * 2);
     const safeHeight = Math.max(12, worldArtZone.height - safeInsetY * 2);
     const safeCenterX = worldArtZone.x + safeInsetX + safeWidth / 2;
     const safeCenterY = worldArtZone.y + safeInsetY + safeHeight / 2;
-
-    const fullCardBoundary = this.add.rectangle(
-      worldOuterZone.centerX,
-      worldOuterZone.centerY,
-      worldOuterZone.width,
-      worldOuterZone.height,
-    )
-      .setStrokeStyle(1, 0x94a3b8, 0.22)
-      .setFillStyle(0x000000, 0);
-    const statZoneTint = this.add.rectangle(worldStatZone.centerX, worldStatZone.centerY, worldStatZone.width, worldStatZone.height, 0x38bdf8, 0.1)
-      .setStrokeStyle(1, 0x38bdf8, 0.2);
-    const nameZoneTint = this.add.rectangle(worldNameZone.centerX, worldNameZone.centerY, worldNameZone.width, worldNameZone.height, 0xf59e0b, 0.08)
-      .setStrokeStyle(1, 0xfbbf24, 0.16);
-    const textZoneTint = this.add.rectangle(worldTextZone.centerX, worldTextZone.centerY, worldTextZone.width, worldTextZone.height, 0xf59e0b, 0.06)
-      .setStrokeStyle(1, 0xfbbf24, 0.14);
 
     const backdrop = this.add.rectangle(worldArtZone.centerX, worldArtZone.centerY, worldArtZone.width, worldArtZone.height, 0x0b1220, 0.95)
       .setStrokeStyle(1, 0x1e293b, 0.9);
@@ -318,10 +273,6 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
       .setFillStyle(0x000000, 0);
 
     return [
-      fullCardBoundary,
-      statZoneTint,
-      nameZoneTint,
-      textZoneTint,
       backdrop,
       art,
       safeFocalGuide,
@@ -335,7 +286,7 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
 
     const { card } = this.cardEntries[this.selectedIndex];
     this.previewNodes = [
-      ...this.drawArtWindow(this.previewAnchor, card),
+      ...this.drawArtWindow(this.previewRuntimeCard, card),
     ];
   }
 }
