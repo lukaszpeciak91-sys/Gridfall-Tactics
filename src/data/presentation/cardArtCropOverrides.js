@@ -5,6 +5,9 @@ const CARD_ART_POSITION_OVERRIDES = Object.freeze({
   aggro_flanker_1: Object.freeze({
     artPositionY: 0.44,
   }),
+  tank_bruiser_1: Object.freeze({
+    artPositionY: 0.175,
+  }),
 });
 
 export function getCardArtPositionOverride(cardOrCardId) {
