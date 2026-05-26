@@ -2,6 +2,9 @@ import Phaser from 'phaser';
 import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
 import { getLoadedCardIllustrationTextureKey, preloadAllCardIllustrations } from '../rendering/cardIllustrationAssets.js';
 import { createCardArtwork, getCardLayoutZones } from '../rendering/cardVisualLayout.js';
+import { getFactionPresentationName } from '../data/presentation/factionPresentation.js';
+import { getActiveLocale } from '../localization/localeService.js';
+import { getCardDisplayName } from '../localization/cardDisplay.js';
 
 const Y_STEP = 0.025;
 const FALLBACK_X01 = 0.5;
@@ -77,6 +80,13 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
       fontFamily: 'Arial, sans-serif', fontSize: '14px', color: '#e2e8f0', align: 'center',
       wordWrap: { width: width - 200 },
     }).setOrigin(0.5);
+    this.sortNoticeLabel = this.add.text(width * 0.5, selectorY + 22, 'Debug list sorted globally by card.id (not faction deck order).', {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: '11px',
+      color: '#93c5fd',
+      align: 'center',
+      wordWrap: { width: width - 32 },
+    }).setOrigin(0.5, 0.5);
 
     const controlsHeight = 220;
     const previewTop = 56;
@@ -226,6 +236,15 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
 
     const selected = this.cardEntries[this.selectedIndex];
     const card = selected.card;
+    const faction = getFactionByKey(selected.factionKey);
+    const deck = faction?.deck ?? [];
+    const deckIndex = deck.findIndex((deckCard) => deckCard?.id === card?.id);
+    const deckPositionLabel = deckIndex >= 0
+      ? `${deckIndex + 1}/${deck.length}`
+      : `?/${deck.length || '?'}`;
+    const factionLabel = getFactionPresentationName(faction?.id, getActiveLocale(), faction?.name ?? selected.factionKey);
+    const localizedDisplayName = getCardDisplayName(card, getActiveLocale()) ?? card?.name ?? 'Unknown';
+    const cardNumberLabel = Number.isInteger(card?.cardNumber) ? `#${card.cardNumber}` : '#?';
     const fallbackY = Number.isFinite(card?.artPositionY01) ? card.artPositionY01 : 0.5;
     this.defaultY01 = clamp01(fallbackY);
 
@@ -233,7 +252,7 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     const existingY = existingRecord?.runtime?.artPositionY01;
     this.currentY01 = Number.isFinite(existingY) ? clamp01(existingY) : this.defaultY01;
 
-    this.cardLabel.setText(`${this.selectedIndex + 1}/${this.cardEntries.length} • ${card.id} • ${card.name}`);
+    this.cardLabel.setText(`${factionLabel} ${deckPositionLabel} • ${cardNumberLabel} • ${card.id} • ${localizedDisplayName}`);
     this.updateValueLabels();
   }
 

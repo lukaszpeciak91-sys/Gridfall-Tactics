@@ -103,6 +103,12 @@ On a representative `390x844` portrait viewport:
 
 Collection is currently the most aggressive active production-art crop, not hand.
 
+### Collection vs ArtViewportDebug ordering and identity
+
+- Collection card traversal is runtime faction order from `getFactionKeys()`, then deck JSON order within each faction (`deck.forEach(...)`). This is effectively faction deck order (`Tank 5/10`, etc.).
+- `ArtViewportDebugScene` currently builds entries from the same runtime factions/decks but then applies a global sort by `card.id`, so selector order is **not** faction deck order.
+- To prevent wrong-card tuning, the debug selector label includes canonical deck identity metadata (faction + deck position + cardNumber + card id + localized display name), e.g. `Tank 5/10 • #5 • tank_bruiser_1 • Weteran Złamanego Kła`.
+
 ## Cross-mode comparison
 
 | Mode | Production texture active? | Representative visible source range | Visible source height | Crop center |
