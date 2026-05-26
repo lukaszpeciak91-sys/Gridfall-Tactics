@@ -7,6 +7,8 @@ import { HAND_CARD_ASPECT_RATIO } from '../ui/handLayout.js';
 const Y_STEP = 0.025;
 const FALLBACK_X01 = 0.5;
 const FALLBACK_SCALE = 1;
+const SAFE_FOCAL_INSET_X_RATIO = 0.11;
+const SAFE_FOCAL_INSET_Y_RATIO = 0.14;
 
 function clamp01(value) {
   return Phaser.Math.Clamp(value, 0, 1);
@@ -239,6 +241,22 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
 
   drawArtWindow(anchor, card) {
     const zones = getCardLayoutZones(anchor.width, anchor.height);
+    const worldOuterZone = {
+      x: anchor.x + zones.outer.x,
+      y: anchor.y + zones.outer.y,
+      width: zones.outer.width,
+      height: zones.outer.height,
+      centerX: anchor.x + zones.outer.centerX,
+      centerY: anchor.y + zones.outer.centerY,
+    };
+    const worldStatZone = {
+      x: anchor.x + zones.statBadges.x,
+      y: anchor.y + zones.statBadges.y,
+      width: zones.statBadges.width,
+      height: zones.statBadges.height,
+      centerX: anchor.x + zones.statBadges.centerX,
+      centerY: anchor.y + zones.statBadges.centerY,
+    };
     const artZone = zones.art;
     const worldArtZone = {
       x: anchor.x + artZone.x,
@@ -248,6 +266,43 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
       centerX: anchor.x + artZone.centerX,
       centerY: anchor.y + artZone.centerY,
     };
+    const worldNameZone = {
+      x: anchor.x + zones.name.x,
+      y: anchor.y + zones.name.y,
+      width: zones.name.width,
+      height: zones.name.height,
+      centerX: anchor.x + zones.name.centerX,
+      centerY: anchor.y + zones.name.centerY,
+    };
+    const worldTextZone = {
+      x: anchor.x + zones.text.x,
+      y: anchor.y + zones.text.y,
+      width: zones.text.width,
+      height: zones.text.height,
+      centerX: anchor.x + zones.text.centerX,
+      centerY: anchor.y + zones.text.centerY,
+    };
+    const safeInsetX = Math.round(worldArtZone.width * SAFE_FOCAL_INSET_X_RATIO);
+    const safeInsetY = Math.round(worldArtZone.height * SAFE_FOCAL_INSET_Y_RATIO);
+    const safeWidth = Math.max(12, worldArtZone.width - safeInsetX * 2);
+    const safeHeight = Math.max(12, worldArtZone.height - safeInsetY * 2);
+    const safeCenterX = worldArtZone.x + safeInsetX + safeWidth / 2;
+    const safeCenterY = worldArtZone.y + safeInsetY + safeHeight / 2;
+
+    const fullCardBoundary = this.add.rectangle(
+      worldOuterZone.centerX,
+      worldOuterZone.centerY,
+      worldOuterZone.width,
+      worldOuterZone.height,
+    )
+      .setStrokeStyle(1, 0x94a3b8, 0.22)
+      .setFillStyle(0x000000, 0);
+    const statZoneTint = this.add.rectangle(worldStatZone.centerX, worldStatZone.centerY, worldStatZone.width, worldStatZone.height, 0x38bdf8, 0.1)
+      .setStrokeStyle(1, 0x38bdf8, 0.2);
+    const nameZoneTint = this.add.rectangle(worldNameZone.centerX, worldNameZone.centerY, worldNameZone.width, worldNameZone.height, 0xf59e0b, 0.08)
+      .setStrokeStyle(1, 0xfbbf24, 0.16);
+    const textZoneTint = this.add.rectangle(worldTextZone.centerX, worldTextZone.centerY, worldTextZone.width, worldTextZone.height, 0xf59e0b, 0.06)
+      .setStrokeStyle(1, 0xfbbf24, 0.14);
 
     const backdrop = this.add.rectangle(worldArtZone.centerX, worldArtZone.centerY, worldArtZone.width, worldArtZone.height, 0x0b1220, 0.95)
       .setStrokeStyle(1, 0x1e293b, 0.9);
@@ -255,11 +310,23 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
       enableCardIllustration: true,
       artPositionY: this.currentY01,
     });
+    const safeFocalGuide = this.add.rectangle(safeCenterX, safeCenterY, safeWidth, safeHeight)
+      .setStrokeStyle(1, 0x34d399, 0.6)
+      .setFillStyle(0x34d399, 0.02);
     const border = this.add.rectangle(worldArtZone.centerX, worldArtZone.centerY, worldArtZone.width, worldArtZone.height)
       .setStrokeStyle(2, 0x93c5fd, 1)
       .setFillStyle(0x000000, 0);
 
-    return [backdrop, art, border];
+    return [
+      fullCardBoundary,
+      statZoneTint,
+      nameZoneTint,
+      textZoneTint,
+      backdrop,
+      art,
+      safeFocalGuide,
+      border,
+    ];
   }
 
   renderPreviews() {
