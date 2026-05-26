@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { createModalBackButton } from '../ui/modalControls.js';
 import { preloadSecondaryButtonAsset } from '../ui/imageButton.js';
 import { translateActive, translateActiveList } from '../localization/localeService.js';
+import { CARD_EFFECT_GAMEPLAY_SYMBOLS, CARD_EFFECT_STAT_SYMBOLS, CARD_EFFECT_STAT_SYMBOL_STYLES } from '../localization/cardTextFormatting.js';
 
 // Player-facing summary derived from docs/rules/mvp-battle-rules.md.
 const RULE_SECTIONS = Object.freeze([
@@ -57,6 +58,17 @@ const RULE_SECTIONS = Object.freeze([
       'If available, hold PASS to surrender.',
     ],
   },
+]);
+
+const GLOSSARY_ICON_ROWS = Object.freeze([
+  Object.freeze({ icon: CARD_EFFECT_STAT_SYMBOLS.attack, iconColor: CARD_EFFECT_STAT_SYMBOL_STYLES.attack.color, label: 'ATK', description: 'Damage dealt in combat' }),
+  Object.freeze({ icon: CARD_EFFECT_STAT_SYMBOLS.health, iconColor: CARD_EFFECT_STAT_SYMBOL_STYLES.health.color, label: 'HP', description: 'Unit health' }),
+  Object.freeze({ icon: CARD_EFFECT_STAT_SYMBOLS.armor, iconColor: CARD_EFFECT_STAT_SYMBOL_STYLES.armor.color, label: 'ARM', description: 'Reduces incoming combat damage' }),
+  Object.freeze({ icon: CARD_EFFECT_GAMEPLAY_SYMBOLS.ally, iconColor: '#fde68a', label: 'ALLY', description: 'One of your units' }),
+  Object.freeze({ icon: CARD_EFFECT_GAMEPLAY_SYMBOLS.allies, iconColor: '#fde68a', label: 'ALLIES', description: 'All your units' }),
+  Object.freeze({ icon: CARD_EFFECT_GAMEPLAY_SYMBOLS.ally, iconColor: '#fca5a5', label: 'ENEMY', description: 'One enemy unit' }),
+  Object.freeze({ icon: CARD_EFFECT_GAMEPLAY_SYMBOLS.allies, iconColor: '#fca5a5', label: 'ENEMIES', description: 'All enemy units' }),
+  Object.freeze({ icon: CARD_EFFECT_STAT_SYMBOLS.health, iconColor: CARD_EFFECT_STAT_SYMBOL_STYLES.health.color, label: 'Base HP', description: 'Your base health. At 0, you lose' }),
 ]);
 
 export default class RulesPanelScene extends Phaser.Scene {
@@ -162,6 +174,10 @@ export default class RulesPanelScene extends Phaser.Scene {
       items.push(heading);
       y += heading.height + 6;
 
+      if (sectionIndex === 0) {
+        y = this.addGlossaryRows(items, x, y, width, bodyFontSize, panelWidth);
+        return;
+      }
       section.lines.forEach((line) => {
         const bullet = this.add.text(x + 4, y + 1, '•', {
           fontFamily: 'Arial, sans-serif',
@@ -181,6 +197,46 @@ export default class RulesPanelScene extends Phaser.Scene {
     });
 
     return { items, bottomY: y };
+  }
+
+  addGlossaryRows(items, x, y, width, bodyFontSize, panelWidth) {
+    const iconBoxSize = Math.max(24, Math.round(panelWidth * 0.072));
+    const rowGap = Math.max(8, Math.round(panelWidth * 0.022));
+    const labelFontSize = Math.max(bodyFontSize + 1, Math.floor(panelWidth * 0.04));
+    const descriptionFontSize = Math.max(13, bodyFontSize - 1);
+    const labelX = x + iconBoxSize + 16;
+    const descriptionWrapWidth = width - (labelX - x) - 4;
+
+    GLOSSARY_ICON_ROWS.forEach((row) => {
+      const rowTop = y;
+      const iconCenterY = rowTop + iconBoxSize * 0.5 + 1;
+      const iconBackdrop = this.add.circle(x + iconBoxSize * 0.5, iconCenterY, iconBoxSize * 0.5, 0x0b1220, 0.98)
+        .setStrokeStyle(1.5, 0x334155, 0.95);
+      const icon = this.add.text(x + iconBoxSize * 0.5, iconCenterY, row.icon, {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: `${Math.round(iconBoxSize * 0.72)}px`,
+        color: row.iconColor,
+        fontStyle: 'bold',
+        stroke: '#020617',
+        strokeThickness: Math.max(1, Math.round(iconBoxSize * 0.08)),
+      }).setOrigin(0.5);
+      const label = this.add.text(labelX, rowTop, row.label, {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: `${labelFontSize}px`,
+        color: '#f8fafc',
+        fontStyle: 'bold',
+      });
+      const description = this.add.text(labelX, rowTop + label.height + 1, row.description, {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: `${descriptionFontSize}px`,
+        color: '#cbd5e1',
+        wordWrap: { width: descriptionWrapWidth },
+      });
+      items.push(iconBackdrop, icon, label, description);
+      y += Math.max(iconBoxSize, label.height + description.height + 3) + rowGap;
+    });
+
+    return y;
   }
 
   addScrollHint(panelLeft, panelTop, panelWidth, panelHeight, padding, isScrollable) {
