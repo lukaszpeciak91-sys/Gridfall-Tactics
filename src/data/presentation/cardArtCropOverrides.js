@@ -1,4 +1,7 @@
 const CARD_ART_POSITION_OVERRIDES = Object.freeze({
+  aggro_adrenaline_1: Object.freeze({
+    artPositionY: 0.225,
+  }),
   aggro_flanker_1: Object.freeze({
     artPositionY: 0.44,
   }),
