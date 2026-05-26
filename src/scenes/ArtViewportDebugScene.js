@@ -10,13 +10,6 @@ const Y_STEP = 0.025;
 const FALLBACK_X01 = 0.5;
 const FALLBACK_SCALE = 1;
 
-// Runtime contract:
-// - The blue rectangle is fixed runtime viewport geometry (zones.art-based).
-// - Authoring only adjusts which source-image region appears in that fixed viewport.
-// - Exported runtime.artPositionY01 must map into runtime artPositionY and flow through
-//   createCardArtwork(...) shared crop semantics (cover-scale + crop), with no custom
-//   preview stretching or alternate geometry rules in this debug tool.
-
 function clamp01(value) {
   return Phaser.Math.Clamp(value, 0, 1);
 }
@@ -163,26 +156,8 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     };
   }
 
-  createRuntimeOverrides(records) {
-    return records.reduce((overrides, record) => {
-      const cardId = String(record?.cardId ?? '');
-      const runtimeY01 = record?.runtime?.artPositionY01;
-      if (!cardId || !Number.isFinite(runtimeY01)) {
-        return overrides;
-      }
-
-      overrides[cardId] = { artPositionY: Number(runtimeY01.toFixed(3)) };
-      return overrides;
-    }, {});
-  }
-
   createExportPayload(records) {
-    return {
-      version: 1,
-      tool: 'art-viewport-debug',
-      records,
-      runtimeOverrides: this.createRuntimeOverrides(records),
-    };
+    return { version: 1, tool: 'art-viewport-debug', records };
   }
 
   copyWithFallback(text, successMessage) {
