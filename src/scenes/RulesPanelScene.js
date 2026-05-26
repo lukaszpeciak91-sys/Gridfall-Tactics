@@ -9,37 +9,33 @@ const RULE_SECTIONS = Object.freeze([
   {
     heading: 'Icon Glossary',
     lines: [
-      'ATK — damage dealt by a unit.',
-      'HP — unit health.',
-      'ARM — armor that reduces incoming damage.',
+      'ATK — combat damage dealt by a unit.',
+      'HP — a unit’s health.',
+      'ARM — armor that reduces incoming combat damage.',
       'ALLY — one of your units.',
       'ALLIES — all your units.',
-      'ENEMY — one enemy unit.',
-      'ENEMIES — all enemy units.',
-      'Base HP — your base health. At 0, you lose.',
     ],
   },
   {
     heading: 'Goal',
     lines: [
-      'Reduce the enemy Base to 0 HP before your Base reaches 0.',
+      'Reduce the enemy Base to 0 HP before yours reaches 0.',
     ],
   },
   {
     heading: 'Your Turn',
     lines: [
-      'You get 1 action.',
-      'Then the enemy gets 1 action.',
+      'Players take one action each, alternating.',
       'After both actions, combat resolves automatically.',
-      'After combat, you draw 1 card, then the enemy draws 1 card.',
+      'After combat, both players draw 1 card.',
     ],
   },
   {
     heading: 'Board and Combat',
     lines: [
       'Battles use 3 lanes.',
-      'Your units fight enemies directly opposite them.',
-      'If no enemy is opposite, your unit hits the enemy Base.',
+      'Units fight directly opposite units.',
+      'If a lane is open, that attack hits the enemy Base.',
       'The middle row is visual only.',
     ],
   },
@@ -66,9 +62,6 @@ const GLOSSARY_ICON_ROWS = Object.freeze([
   Object.freeze({ icon: CARD_EFFECT_STAT_SYMBOLS.armor, iconColor: CARD_EFFECT_STAT_SYMBOL_STYLES.armor.color, label: 'ARM', description: 'Reduces incoming combat damage' }),
   Object.freeze({ icon: CARD_EFFECT_GAMEPLAY_SYMBOLS.ally, iconColor: '#fde68a', label: 'ALLY', description: 'One of your units' }),
   Object.freeze({ icon: CARD_EFFECT_GAMEPLAY_SYMBOLS.allies, iconColor: '#fde68a', label: 'ALLIES', description: 'All your units' }),
-  Object.freeze({ icon: CARD_EFFECT_GAMEPLAY_SYMBOLS.ally, iconColor: '#fca5a5', label: 'ENEMY', description: 'One enemy unit' }),
-  Object.freeze({ icon: CARD_EFFECT_GAMEPLAY_SYMBOLS.allies, iconColor: '#fca5a5', label: 'ENEMIES', description: 'All enemy units' }),
-  Object.freeze({ icon: CARD_EFFECT_STAT_SYMBOLS.health, iconColor: CARD_EFFECT_STAT_SYMBOL_STYLES.health.color, label: 'Base HP', description: 'Your base health. At 0, you lose' }),
 ]);
 
 export default class RulesPanelScene extends Phaser.Scene {
