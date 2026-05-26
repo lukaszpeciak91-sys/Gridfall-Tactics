@@ -310,7 +310,11 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
       centerX: pane.x,
       centerY: pane.y,
     };
-    const art = createCardArtwork(this, runtimeZone, card, { enableCardIllustration: true, artPositionY: this.currentY01 });
+    const art = createCardArtwork(this, runtimeZone, card, {
+      enableCardIllustration: true,
+      artPositionY: this.currentY01,
+      artRect: runtimeZone,
+    });
     const viewportBorder = this.add.rectangle(runtimeZone.centerX, runtimeZone.centerY, runtimeZone.width, runtimeZone.height)
       .setStrokeStyle(2, 0x60a5fa, 0.8)
       .setFillStyle(0x000000, 0);
