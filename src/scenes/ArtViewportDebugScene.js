@@ -2,6 +2,13 @@ import Phaser from 'phaser';
 import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
 import { getLoadedCardIllustrationTextureKey, preloadAllCardIllustrations } from '../rendering/cardIllustrationAssets.js';
 import { createCardArtwork, getCardLayoutZones } from '../rendering/cardVisualLayout.js';
+import { HAND_CARD_ASPECT_RATIO } from '../ui/handLayout.js';
+import {
+  INSPECT_CARD_MAX_HEIGHT_RATIO,
+  INSPECT_CARD_MAX_WIDTH_RATIO,
+  INSPECT_CARD_TARGET_SCALE,
+  INSPECT_CARD_VERTICAL_COMPACT_RATIO,
+} from '../rendering/cardViewConfig.js';
 import { getFactionPresentationName } from '../data/presentation/factionPresentation.js';
 import { getActiveLocale } from '../localization/localeService.js';
 import { getCardDisplayName } from '../localization/cardDisplay.js';
@@ -9,6 +16,10 @@ import { getCardDisplayName } from '../localization/cardDisplay.js';
 const Y_STEP = 0.025;
 const FALLBACK_X01 = 0.5;
 const FALLBACK_SCALE = 1;
+const AUTHORING_TARGET = 'collection_inspect';
+const COLLECTION_GRID_GAP_X = 10;
+const COLLECTION_SIDE_MARGIN = 14;
+const COLLECTION_INSPECT_MARGIN = 14;
 
 function clamp01(value) {
   return Phaser.Math.Clamp(value, 0, 1);
@@ -86,16 +97,11 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
       wordWrap: { width: width - 32 },
     }).setOrigin(0.5, 0.5);
 
-    const controlsHeight = 220;
     const previewTop = 56;
     const previewBottom = height - controlsHeight;
     const previewAreaHeight = Math.max(220, previewBottom - previewTop);
     const previewBoundsWidth = width - 24;
     const previewBoundsHeight = previewAreaHeight - 8;
-    const referenceCardWidth = 1000;
-    const referenceCardHeight = 1500;
-    const referenceZones = getCardLayoutZones(referenceCardWidth, referenceCardHeight);
-    this.referenceArtZone = referenceZones.art;
     const paneCenterX = width * 0.5;
     const paneCenterY = previewTop + previewBoundsHeight / 2;
     this.previewPaneSource = { x: paneCenterX, y: paneCenterY, width: previewBoundsWidth, height: previewBoundsHeight };
@@ -251,6 +257,52 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     this.previewNodes = [];
   }
 
+
+  getCollectionCardBaseSize() {
+    const { width } = this.scale;
+    const cardWidth = (width - COLLECTION_SIDE_MARGIN * 2 - COLLECTION_GRID_GAP_X) / 2;
+    const cardHeight = Math.round(cardWidth * HAND_CARD_ASPECT_RATIO);
+    return { cardWidth, cardHeight };
+  }
+
+  getCollectionInspectTargetDimensions() {
+    const { width, height } = this.scale;
+    const { cardWidth, cardHeight } = this.getCollectionCardBaseSize();
+    const viewportTop = 98;
+    const viewportBottom = height - 88;
+    const maxInspectWidth = Math.min(width * INSPECT_CARD_MAX_WIDTH_RATIO, width - COLLECTION_INSPECT_MARGIN * 2);
+    const maxInspectHeight = Math.min(
+      height * INSPECT_CARD_MAX_HEIGHT_RATIO,
+      viewportBottom - viewportTop - COLLECTION_INSPECT_MARGIN * 2,
+    );
+    const targetScale = Math.min(
+      INSPECT_CARD_TARGET_SCALE,
+      maxInspectWidth / cardWidth,
+      maxInspectHeight / (cardHeight * INSPECT_CARD_VERTICAL_COMPACT_RATIO),
+    );
+
+    return {
+      width: cardWidth * targetScale,
+      height: cardHeight * targetScale * INSPECT_CARD_VERTICAL_COMPACT_RATIO,
+    };
+  }
+
+  getAuthoringTargetArtZone() {
+    if (AUTHORING_TARGET === 'collection_inspect') {
+      const target = this.getCollectionInspectTargetDimensions();
+      const zones = getCardLayoutZones(target.width, target.height);
+      return {
+        mode: AUTHORING_TARGET,
+        targetWidth: target.width,
+        targetHeight: target.height,
+        artZone: zones.art,
+      };
+    }
+
+    const zones = getCardLayoutZones(1, 1);
+    return { mode: AUTHORING_TARGET, targetWidth: 1, targetHeight: 1, artZone: zones.art };
+  }
+
   drawSourceSelectionPane(card) {
     const pane = this.previewPaneSource;
     const textureKey = getLoadedCardIllustrationTextureKey(this, card);
@@ -260,10 +312,9 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     const workspaceScale = Math.min(pane.width / sourceWidth, pane.height / sourceHeight);
     const displayWidth = Math.max(1, sourceWidth * workspaceScale);
     const displayHeight = Math.max(1, sourceHeight * workspaceScale);
-    const zoneWidthRatio = this.referenceArtZone.width / 1000;
-    const zoneHeightRatio = this.referenceArtZone.height / 1500;
-    const selectorWidth = sourceWidth * zoneWidthRatio;
-    const selectorHeight = sourceHeight * zoneHeightRatio;
+    const { artZone, targetWidth, targetHeight, mode } = this.getAuthoringTargetArtZone();
+    const selectorWidth = sourceWidth * (artZone.width / targetWidth);
+    const selectorHeight = sourceHeight * (artZone.height / targetHeight);
     const maxCropY = Math.max(0, sourceHeight - selectorHeight);
     const cropY = maxCropY * this.currentY01;
     const cropX = (sourceWidth - selectorWidth) * 0.5;
@@ -291,7 +342,8 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     )
       .setStrokeStyle(2, 0x93c5fd, 1)
       .setFillStyle(0x000000, 0);
-    const label = this.add.text(pane.x - pane.width / 2 + 8, pane.y - pane.height / 2 + 6, 'Source selection', {
+    const selectorAspect = selectorHeight > 0 ? (selectorWidth / selectorHeight) : 0;
+    const label = this.add.text(pane.x - pane.width / 2 + 8, pane.y - pane.height / 2 + 6, `Source selection • ${mode} • target ${targetWidth.toFixed(1)}x${targetHeight.toFixed(1)} • art ${artZone.width.toFixed(1)}x${artZone.height.toFixed(1)} • ar ${selectorAspect.toFixed(4)}`, {
       fontFamily: 'Arial, sans-serif', fontSize: '12px', color: '#bfdbfe',
     }).setOrigin(0, 0);
 
