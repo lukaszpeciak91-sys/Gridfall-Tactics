@@ -42,7 +42,40 @@ PR 3 completes the MVP visual calibration/export loop for art framing.
         "artScale": 1
       }
     }
-  ]
+  ],
+  "runtimeOverrides": {
+    "example_card_id": {
+      "artPositionY": 0.44
+    }
+  }
+}
+```
+
+
+## Canonical runtime contract
+- `ArtViewportDebugScene` is **not** a freeform crop editor.
+- The blue rectangle is the fixed runtime card-art viewport geometry derived from runtime `zones.art` layout math.
+- Rectangle size/position are immutable runtime geometry in this tool.
+- Authoring edits only choose which source-image region is visible inside that fixed runtime viewport.
+- Exported `runtime.artPositionY01` values must be interpreted by runtime rendering through shared `createCardArtwork(...)` crop behavior.
+- Hand / Inspect / Collection / Battle previews must consume the same runtime crop semantics and geometry contract.
+- The tool edits source-image framing, not viewport geometry.
+- Do not introduce alternate preview scale/stretch logic in debug paths; use the same cover-scale + crop contract as `createCardArtwork(...)`.
+
+## Runtime-ready override export companion
+- `records` remains unchanged and is still the debug-first schema.
+- Export now also includes a `runtimeOverrides` object for direct use in `cardArtCropOverrides.js`.
+- Debug export field: `record.runtime.artPositionY01`.
+- Runtime override field: `artPositionY`.
+- Mapping rule: `record.runtime.artPositionY01 -> runtimeOverrides[record.cardId].artPositionY`.
+- Ignore future fields for now (`future.artPositionX01`, `future.artScale` are not mapped).
+
+Example `runtimeOverrides` section:
+```json
+{
+  "runtimeOverrides": {
+    "tank_bruiser_1": { "artPositionY": 0.225 }
+  }
 }
 ```
 
