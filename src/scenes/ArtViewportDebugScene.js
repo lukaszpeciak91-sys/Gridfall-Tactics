@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
-import { preloadAllCardIllustrations } from '../rendering/cardIllustrationAssets.js';
+import { getLoadedCardIllustrationTextureKey, preloadAllCardIllustrations } from '../rendering/cardIllustrationAssets.js';
 import { createCardArtwork, getCardLayoutZones } from '../rendering/cardVisualLayout.js';
 
 const Y_STEP = 0.025;
@@ -84,19 +84,24 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     const previewAreaHeight = Math.max(220, previewBottom - previewTop);
     const previewBoundsWidth = width - 24;
     const previewBoundsHeight = previewAreaHeight - 8;
-    // Use runtime card geometry (zones.art) and only magnify that exact window.
+    // Keep runtime art-window geometry (zones.art), but show full source art behind it.
     const referenceCardWidth = 1000;
     const referenceCardHeight = 1500;
     const referenceZones = getCardLayoutZones(referenceCardWidth, referenceCardHeight);
     const artRatio = referenceZones.art.width / referenceZones.art.height;
     const maxViewportWidth = Math.min(previewBoundsWidth, previewBoundsHeight * artRatio);
-    const maxViewportHeight = maxViewportWidth / artRatio;
     const artScale = maxViewportWidth / referenceZones.art.width;
     this.previewRuntimeCard = {
       x: width * 0.5,
       y: previewTop + (previewAreaHeight * 0.5),
       width: referenceCardWidth * artScale,
       height: referenceCardHeight * artScale,
+    };
+    this.previewWorkspace = {
+      x: width * 0.5,
+      y: previewTop + (previewAreaHeight * 0.5),
+      width: previewBoundsWidth,
+      height: previewBoundsHeight,
     };
 
     const controlsY = height - controlsHeight + 8;
@@ -252,30 +257,56 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
       centerX: anchor.x + artZone.centerX,
       centerY: anchor.y + artZone.centerY,
     };
-    const safeInsetX = Math.round(worldArtZone.width * SAFE_FOCAL_INSET_X_RATIO);
-    const safeInsetY = Math.round(worldArtZone.height * SAFE_FOCAL_INSET_Y_RATIO);
-    const safeWidth = Math.max(12, worldArtZone.width - safeInsetX * 2);
-    const safeHeight = Math.max(12, worldArtZone.height - safeInsetY * 2);
-    const safeCenterX = worldArtZone.x + safeInsetX + safeWidth / 2;
-    const safeCenterY = worldArtZone.y + safeInsetY + safeHeight / 2;
+    const textureKey = getLoadedCardIllustrationTextureKey(this, card);
+    const source = textureKey ? this.textures?.get(textureKey)?.getSourceImage?.() : null;
+    const sourceWidth = Math.max(1, source?.width ?? 512);
+    const sourceHeight = Math.max(1, source?.height ?? 768);
+    const workspace = this.previewWorkspace;
+    const workspaceScale = Math.min(workspace.width / sourceWidth, workspace.height / sourceHeight);
+    const displayWidth = Math.max(1, sourceWidth * workspaceScale);
+    const displayHeight = Math.max(1, sourceHeight * workspaceScale);
+    const artTop = workspace.y - displayHeight / 2;
+    const maxWindowTravel = Math.max(0, displayHeight - worldArtZone.height);
+    const artWindowCenterY = artTop + worldArtZone.height / 2 + maxWindowTravel * this.currentY01;
+    const movedArtZone = {
+      ...worldArtZone,
+      y: artWindowCenterY - worldArtZone.height / 2,
+      centerY: artWindowCenterY,
+    };
+    const safeInsetX = Math.round(movedArtZone.width * SAFE_FOCAL_INSET_X_RATIO);
+    const safeInsetY = Math.round(movedArtZone.height * SAFE_FOCAL_INSET_Y_RATIO);
+    const safeWidth = Math.max(12, movedArtZone.width - safeInsetX * 2);
+    const safeHeight = Math.max(12, movedArtZone.height - safeInsetY * 2);
+    const safeCenterX = movedArtZone.x + safeInsetX + safeWidth / 2;
+    const safeCenterY = movedArtZone.y + safeInsetY + safeHeight / 2;
 
-    const backdrop = this.add.rectangle(worldArtZone.centerX, worldArtZone.centerY, worldArtZone.width, worldArtZone.height, 0x0b1220, 0.95)
+    const workspaceBackdrop = this.add.rectangle(workspace.x, workspace.y, workspace.width, workspace.height, 0x0b1220, 0.94)
       .setStrokeStyle(1, 0x1e293b, 0.9);
-    const art = createCardArtwork(this, worldArtZone, card, {
-      enableCardIllustration: true,
-      artPositionY: this.currentY01,
-    });
+    const art = createCardArtwork(this, {
+      x: workspace.x - displayWidth / 2,
+      y: workspace.y - displayHeight / 2,
+      width: displayWidth,
+      height: displayHeight,
+      centerX: workspace.x,
+      centerY: workspace.y,
+    }, card, { enableCardIllustration: true });
     const safeFocalGuide = this.add.rectangle(safeCenterX, safeCenterY, safeWidth, safeHeight)
       .setStrokeStyle(1, 0x34d399, 0.6)
       .setFillStyle(0x34d399, 0.02);
-    const border = this.add.rectangle(worldArtZone.centerX, worldArtZone.centerY, worldArtZone.width, worldArtZone.height)
+    const border = this.add.rectangle(movedArtZone.centerX, movedArtZone.centerY, movedArtZone.width, movedArtZone.height)
       .setStrokeStyle(2, 0x93c5fd, 1)
       .setFillStyle(0x000000, 0);
+    const pressureTop = this.add.line(movedArtZone.centerX, movedArtZone.y + movedArtZone.height * 0.2, -movedArtZone.width * 0.45, 0, movedArtZone.width * 0.45, 0, 0x60a5fa, 0.4)
+      .setLineWidth(1, 1);
+    const pressureBottom = this.add.line(movedArtZone.centerX, movedArtZone.y + movedArtZone.height * 0.8, -movedArtZone.width * 0.45, 0, movedArtZone.width * 0.45, 0, 0x60a5fa, 0.4)
+      .setLineWidth(1, 1);
 
     return [
-      backdrop,
+      workspaceBackdrop,
       art,
       safeFocalGuide,
+      pressureTop,
+      pressureBottom,
       border,
     ];
   }
