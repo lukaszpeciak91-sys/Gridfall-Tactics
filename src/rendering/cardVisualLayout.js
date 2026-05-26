@@ -1,7 +1,7 @@
 import { getCardDisplayName, getCardTextShort } from '../localization/cardDisplay.js';
 import { CARD_EFFECT_GAMEPLAY_SYMBOLS, formatCardEffectTextShort } from '../localization/cardTextFormatting.js';
 import { getCardArtPositionY } from '../data/presentation/cardArtCropOverrides.js';
-import { getLoadedCardIllustrationTextureKey } from './cardIllustrationAssets.js';
+import { getCardIllustrationAsset, getLoadedCardIllustrationTextureKey } from './cardIllustrationAssets.js';
 
 // Dry layout experiment: keep stat badge allocation stable while borrowing
 // modest vertical space from name/rules panels for a taller shared art viewport.
@@ -1059,6 +1059,23 @@ export function createCardPreviewView(scene, {
   const effectiveArtPositionY = hasTemporaryArtPositionY
     ? Math.min(1, Math.max(0, temporaryArtCropY01))
     : (Number.isFinite(persistentArtPositionY) ? Math.min(1, Math.max(0, persistentArtPositionY)) : 0.5);
+  const artProofAsset = getCardIllustrationAsset(card);
+  const artProofTextureKey = getLoadedCardIllustrationTextureKey(scene, card, { enableCardIllustration });
+  const artPositionSource = hasTemporaryArtPositionY
+    ? 'temporary'
+    : (Number.isFinite(persistentArtPositionY) ? 'persistent_override' : 'default_fallback');
+  if (card?.id) {
+    console.info('[ART_VIEWPORT_PROOF]', {
+      scene: scene?.scene?.key ?? scene?.sys?.settings?.key ?? 'unknown',
+      cardId: card.id,
+      factionId: artProofAsset?.factionId ?? null,
+      artAssetId: artProofAsset?.artAssetId ?? null,
+      textureKey: artProofTextureKey,
+      artPositionY: Number(effectiveArtPositionY.toFixed(3)),
+      source: artPositionSource,
+      enableCardIllustration,
+    });
+  }
   const art = createCardArtwork(scene, zones.art, card, {
     enableCardIllustration,
     artPositionY: effectiveArtPositionY,
