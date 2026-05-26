@@ -411,37 +411,33 @@
         {
           "heading": "Słownik ikon",
           "lines": [
-            "ATK — obrażenia zadawane przez jednostkę.",
+            "ATK — obrażenia zadawane w walce.",
             "HP — punkty życia jednostki.",
-            "ARM — pancerz zmniejszający otrzymywane obrażenia.",
+            "ARM — pancerz zmniejszający obrażenia w walce.",
             "ALLY — jedna twoja jednostka.",
-            "ALLIES — wszystkie twoje jednostki.",
-            "ENEMY — jedna wroga jednostka.",
-            "ENEMIES — wszystkie wrogie jednostki.",
-            "Base HP — życie twojej bazy. Przy 0 przegrywasz."
+            "ALLIES — wszystkie twoje jednostki."
           ]
         },
         {
           "heading": "Cel",
           "lines": [
-            "Obniż HP bazy wroga do 0, zanim twoja baza spadnie do 0."
+            "Obniż HP bazy wroga do 0, zanim twoja spadnie do 0."
           ]
         },
         {
           "heading": "Twoja tura",
           "lines": [
-            "Masz 1 akcję.",
-            "Potem wróg ma 1 akcję.",
+            "Gracze wykonują akcje naprzemiennie, po 1 akcji.",
             "Po obu akcjach walka rozstrzyga się automatycznie.",
-            "Po walce dobierasz 1 kartę, potem wróg dobiera 1 kartę."
+            "Po walce obaj gracze dobierają po 1 karcie."
           ]
         },
         {
           "heading": "Plansza i walka",
           "lines": [
             "Bitwa toczy się na 3 liniach.",
-            "Twoje jednostki walczą z wrogami naprzeciwko.",
-            "Jeśli naprzeciwko nie ma wroga, jednostka atakuje bazę wroga.",
+            "Jednostki walczą bezpośrednio z jednostkami naprzeciwko.",
+            "Jeśli linia jest pusta, atak trafia bazę wroga.",
             "Środkowy rząd jest tylko wizualny."
           ]
         },
@@ -457,7 +453,7 @@
           "heading": "PASS i poddanie",
           "lines": [
             "PASS kończy twoją akcję.",
-            "Jeśli poddanie jest dostępne, przytrzymaj PASS, aby poddać mecz."
+            "Przytrzymaj PASS, aby się poddać."
           ]
         }
       ]

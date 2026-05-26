@@ -273,11 +273,13 @@ test('rules panel contains glossary-first player-facing rules summary', () => {
   const source = readScene('src/scenes/RulesPanelScene.js');
 
   assert.match(source, /heading: 'Icon Glossary'/);
-  assert.match(source, /ATK — damage dealt by a unit/);
-  assert.match(source, /ARM — armor that reduces incoming damage/);
-  assert.match(source, /Base HP — your base health/);
+  assert.match(source, /ATK — combat damage dealt by a unit/);
+  assert.match(source, /ARM — armor that reduces incoming combat damage/);
+  assert.doesNotMatch(source, /Base HP — your base health/);
+  assert.doesNotMatch(source, /ENEMY — one enemy unit/);
+  assert.doesNotMatch(source, /ENEMIES — all enemy units/);
   assert.match(source, /Reduce the enemy Base to 0 HP/);
-  assert.match(source, /You get 1 action/);
+  assert.match(source, /Players take one action each, alternating/);
   assert.match(source, /combat resolves automatically/);
   assert.match(source, /Battles use 3 lanes/);
   assert.match(source, /Tap one of your units/);
