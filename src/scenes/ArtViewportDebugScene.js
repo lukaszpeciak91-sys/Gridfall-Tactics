@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
 import { getLoadedCardIllustrationTextureKey, preloadAllCardIllustrations } from '../rendering/cardIllustrationAssets.js';
-import { createCardArtwork, getCardLayoutZones } from '../rendering/cardVisualLayout.js';
+import { createCardArtwork, createCardPreviewView } from '../rendering/cardVisualLayout.js';
 import { HAND_CARD_ASPECT_RATIO } from '../ui/handLayout.js';
 import {
   getCollectionInspectCardTransform,
@@ -289,20 +289,28 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     };
   }
 
-  getAuthoringTargetArtZone() {
-    if (AUTHORING_TARGET === 'collection_inspect') {
-      const target = this.getCollectionInspectTargetDimensions();
-      const zones = getCardLayoutZones(target.width, target.height);
-      return {
-        mode: AUTHORING_TARGET,
-        targetWidth: target.width,
-        targetHeight: target.height,
-        artZone: zones.art,
-      };
-    }
-
-    const zones = getCardLayoutZones(1, 1);
-    return { mode: AUTHORING_TARGET, targetWidth: 1, targetHeight: 1, artZone: zones.art };
+  getRealArtworkViewportMetrics(card) {
+    const target = this.getCollectionInspectTargetDimensions();
+    const preview = createCardPreviewView(this, {
+      card,
+      x: -10000,
+      y: -10000,
+      width: target.width,
+      height: target.height,
+      enableCardIllustration: true,
+      temporaryArtCropY01: this.currentY01,
+    });
+    const crop = preview?.art?.cropDebugMetrics ?? null;
+    const viewportWidth = Number.isFinite(crop?.cropWidth) ? crop.cropWidth : null;
+    const viewportHeight = Number.isFinite(crop?.cropHeight) ? crop.cropHeight : null;
+    preview?.root?.destroy();
+    return {
+      mode: AUTHORING_TARGET,
+      targetWidth: target.width,
+      targetHeight: target.height,
+      viewportWidth,
+      viewportHeight,
+    };
   }
 
   drawSourceSelectionPane(card) {
@@ -314,9 +322,15 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     const workspaceScale = Math.min(pane.width / sourceWidth, pane.height / sourceHeight);
     const displayWidth = Math.max(1, sourceWidth * workspaceScale);
     const displayHeight = Math.max(1, sourceHeight * workspaceScale);
-    const { artZone, targetWidth, targetHeight, mode } = this.getAuthoringTargetArtZone();
-    const selectorWidth = sourceWidth * (artZone.width / targetWidth);
-    const selectorHeight = sourceHeight * (artZone.height / targetHeight);
+    const { viewportWidth, viewportHeight, targetWidth, targetHeight, mode } = this.getRealArtworkViewportMetrics(card);
+    const fallbackWidth = sourceWidth * 0.5;
+    const fallbackHeight = sourceHeight * 0.5;
+    const selectorWidth = Number.isFinite(viewportWidth)
+      ? sourceWidth * (viewportWidth / targetWidth)
+      : fallbackWidth;
+    const selectorHeight = Number.isFinite(viewportHeight)
+      ? sourceHeight * (viewportHeight / targetHeight)
+      : fallbackHeight;
     const maxCropY = Math.max(0, sourceHeight - selectorHeight);
     const cropY = maxCropY * this.currentY01;
     const cropX = (sourceWidth - selectorWidth) * 0.5;
@@ -345,7 +359,7 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
       .setStrokeStyle(2, 0x93c5fd, 1)
       .setFillStyle(0x000000, 0);
     const selectorAspect = selectorHeight > 0 ? (selectorWidth / selectorHeight) : 0;
-    const label = this.add.text(pane.x - pane.width / 2 + 8, pane.y - pane.height / 2 + 6, `Source selection • ${mode} • target ${targetWidth.toFixed(1)}x${targetHeight.toFixed(1)} • art ${artZone.width.toFixed(1)}x${artZone.height.toFixed(1)} • ar ${selectorAspect.toFixed(4)}`, {
+    const label = this.add.text(pane.x - pane.width / 2 + 8, pane.y - pane.height / 2 + 6, `Source selection • ${mode} • target ${targetWidth.toFixed(1)}x${targetHeight.toFixed(1)} • viewport ${Number(viewportWidth ?? 0).toFixed(1)}x${Number(viewportHeight ?? 0).toFixed(1)} • ar ${selectorAspect.toFixed(4)}`, {
       fontFamily: 'Arial, sans-serif', fontSize: '12px', color: '#bfdbfe',
     }).setOrigin(0, 0);
 

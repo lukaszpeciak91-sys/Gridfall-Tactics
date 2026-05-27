@@ -145,3 +145,29 @@ test('collection scene enables standardized illustrations through the shared pre
   assert.match(previewSource, /enableCardIllustration: true/);
   assert.doesNotMatch(previewSource, /createCardArtwork\(/);
 });
+
+test('card preview artwork crop metrics are source-space viewport dimensions that map back to the visible card window', () => {
+  const targetWidth = 220;
+  const targetHeight = 409;
+  const zones = getCardLayoutZones(targetWidth, targetHeight);
+  const crop = calculateCardArtworkCoverPosition(zones.art, 512, 768);
+
+  // cropDebugMetrics values are in source-image pixel space.
+  assert.ok(crop.cropWidth > zones.art.width);
+  assert.ok(crop.cropHeight > zones.art.height);
+
+  // Mapping source-space crop window back by render scale equals visible art zone.
+  assert.ok(Math.abs((crop.cropWidth * crop.scale) - zones.art.width) < 0.001);
+  assert.ok(Math.abs((crop.cropHeight * crop.scale) - zones.art.height) < 0.001);
+});
+
+test('art viewport debug uses measured preview viewport metrics and applies movement only on Y', () => {
+  const source = fs.readFileSync('src/scenes/ArtViewportDebugScene.js', 'utf8');
+
+  assert.match(source, /createCardPreviewView\(this, \{/);
+  assert.match(source, /preview\?\.art\?\.cropDebugMetrics/);
+  assert.match(source, /selectorWidth = Number\.isFinite\(viewportWidth\)\s*\?\s*sourceWidth \* \(viewportWidth \/ targetWidth\)/);
+  assert.match(source, /selectorHeight = Number\.isFinite\(viewportHeight\)\s*\?\s*sourceHeight \* \(viewportHeight \/ targetHeight\)/);
+  assert.match(source, /const cropY = maxCropY \* this\.currentY01/);
+  assert.match(source, /const cropX = \(sourceWidth - selectorWidth\) \* 0\.5/);
+});
