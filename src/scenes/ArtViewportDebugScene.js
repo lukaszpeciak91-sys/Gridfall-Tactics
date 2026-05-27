@@ -4,11 +4,9 @@ import { getLoadedCardIllustrationTextureKey, preloadAllCardIllustrations } from
 import { createCardArtwork, getCardLayoutZones } from '../rendering/cardVisualLayout.js';
 import { HAND_CARD_ASPECT_RATIO } from '../ui/handLayout.js';
 import {
-  INSPECT_CARD_MAX_HEIGHT_RATIO,
-  INSPECT_CARD_MAX_WIDTH_RATIO,
-  INSPECT_CARD_TARGET_SCALE,
-  INSPECT_CARD_VERTICAL_COMPACT_RATIO,
-} from '../rendering/cardViewConfig.js';
+  getCollectionInspectCardTransform,
+  getCollectionViewportBounds,
+} from '../ui/collectionInspectTransform.js';
 import { getFactionPresentationName } from '../data/presentation/factionPresentation.js';
 import { getActiveLocale } from '../localization/localeService.js';
 import { getCardDisplayName } from '../localization/cardDisplay.js';
@@ -274,22 +272,20 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
   getCollectionInspectTargetDimensions() {
     const { width, height } = this.scale;
     const { cardWidth, cardHeight } = this.getCollectionCardBaseSize();
-    const viewportTop = 98;
-    const viewportBottom = height - 88;
-    const maxInspectWidth = Math.min(width * INSPECT_CARD_MAX_WIDTH_RATIO, width - COLLECTION_INSPECT_MARGIN * 2);
-    const maxInspectHeight = Math.min(
-      height * INSPECT_CARD_MAX_HEIGHT_RATIO,
-      viewportBottom - viewportTop - COLLECTION_INSPECT_MARGIN * 2,
-    );
-    const targetScale = Math.min(
-      INSPECT_CARD_TARGET_SCALE,
-      maxInspectWidth / cardWidth,
-      maxInspectHeight / (cardHeight * INSPECT_CARD_VERTICAL_COMPACT_RATIO),
-    );
+    const { viewportTop, viewportBottom } = getCollectionViewportBounds(height);
+    const transform = getCollectionInspectCardTransform({
+      screenWidth: width,
+      screenHeight: height,
+      sourceWidth: cardWidth,
+      sourceHeight: cardHeight,
+      viewportTop,
+      viewportBottom,
+      margin: COLLECTION_INSPECT_MARGIN,
+    });
 
     return {
-      width: cardWidth * targetScale,
-      height: cardHeight * targetScale * INSPECT_CARD_VERTICAL_COMPACT_RATIO,
+      width: transform.width,
+      height: transform.height,
     };
   }
 

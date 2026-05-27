@@ -102,8 +102,7 @@ export default class CollectionScene extends Phaser.Scene {
   }
 
   drawCollectionList({ width, height }) {
-    const viewportTop = 98;
-    const viewportBottom = height - 88;
+    const { viewportTop, viewportBottom } = getCollectionViewportBounds(height);
     const viewportHeight = viewportBottom - viewportTop;
     const content = this.add.container(0, viewportTop);
     this.uiElements.push(content);
@@ -281,29 +280,14 @@ export default class CollectionScene extends Phaser.Scene {
 
   getInspectCardTransform({ sourceWidth, sourceHeight }) {
     const { width, height } = this.scale;
-    const margin = 14;
-    const viewportTop = this.scrollState?.viewportTop ?? margin;
-    const viewportBottom = this.scrollState?.viewportBottom ?? height - margin;
-    const maxInspectWidth = Math.min(width * INSPECT_CARD_MAX_WIDTH_RATIO, width - margin * 2);
-    const maxInspectHeight = Math.min(height * INSPECT_CARD_MAX_HEIGHT_RATIO, viewportBottom - viewportTop - margin * 2);
-    const targetScale = Math.min(
-      INSPECT_CARD_TARGET_SCALE,
-      maxInspectWidth / sourceWidth,
-      maxInspectHeight / (sourceHeight * INSPECT_CARD_VERTICAL_COMPACT_RATIO),
-    );
-    const inspectWidth = sourceWidth * targetScale;
-    const inspectHeight = sourceHeight * targetScale * INSPECT_CARD_VERTICAL_COMPACT_RATIO;
-    const minX = margin + inspectWidth / 2;
-    const maxX = width - margin - inspectWidth / 2;
-    const minY = viewportTop + margin + inspectHeight / 2;
-    const maxY = Math.max(minY, viewportBottom - margin - inspectHeight / 2);
-
-    return {
-      x: Phaser.Math.Clamp(width * 0.5, minX, maxX),
-      y: Phaser.Math.Clamp((viewportTop + viewportBottom) * 0.5, minY, maxY),
-      width: inspectWidth,
-      height: inspectHeight,
-    };
+    return getCollectionInspectCardTransform({
+      screenWidth: width,
+      screenHeight: height,
+      sourceWidth,
+      sourceHeight,
+      viewportTop: this.scrollState?.viewportTop,
+      viewportBottom: this.scrollState?.viewportBottom,
+    });
   }
 
   showInspectPreview({ card, sourceX, sourceY, sourceWidth, sourceHeight, factionThemeId = '' }) {
