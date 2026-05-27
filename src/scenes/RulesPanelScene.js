@@ -64,6 +64,13 @@ const GLOSSARY_ICON_ROWS = Object.freeze([
   Object.freeze({ icon: CARD_EFFECT_GAMEPLAY_SYMBOLS.allies, iconColor: '#fde68a', label: 'ALLIES', description: 'All your units' }),
 ]);
 
+function resolveGlossaryRows() {
+  return GLOSSARY_ICON_ROWS.map((row) => ({
+    ...row,
+    description: translateActive(`ui.rules.glossaryDescriptions.${row.label}`, row.description),
+  }));
+}
+
 export default class RulesPanelScene extends Phaser.Scene {
   constructor() {
     super('RulesPanelScene');
@@ -200,7 +207,7 @@ export default class RulesPanelScene extends Phaser.Scene {
     const labelX = x + iconBoxSize + 16;
     const descriptionWrapWidth = width - (labelX - x) - 4;
 
-    GLOSSARY_ICON_ROWS.forEach((row) => {
+    resolveGlossaryRows().forEach((row) => {
       const rowTop = y;
       const iconCenterY = rowTop + iconBoxSize * 0.5 + 1;
       const iconBackdrop = this.add.circle(x + iconBoxSize * 0.5, iconCenterY, iconBoxSize * 0.5, 0x0b1220, 0.98)

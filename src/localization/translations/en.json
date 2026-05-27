@@ -466,7 +466,14 @@
             "Hold PASS to surrender."
           ]
         }
-      ]
+      ],
+      "glossaryDescriptions": {
+        "ATK": "Damage dealt in combat.",
+        "HP": "Unit health.",
+        "ARM": "Reduces incoming combat damage.",
+        "ALLY": "One of your units.",
+        "ALLIES": "All your units."
+      }
     },
     "cardDetails": {
       "type": "Type",
