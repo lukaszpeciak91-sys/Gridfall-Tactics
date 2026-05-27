@@ -411,49 +411,59 @@
         {
           "heading": "Icon Glossary",
           "lines": [
-            "ATK — combat damage dealt by a unit.",
-            "HP — a unit's health.",
-            "ARM — armor that reduces incoming combat damage.",
-            "ALLY — one of your units.",
-            "ALLIES — all your units."
+            "ATK — Combat damage dealt in combat.",
+            "HP — Health of a unit or base.",
+            "ARM — Armor that reduces combat damage.",
+            "ALLY — One of your units.",
+            "ALLIES — All your units."
           ]
         },
         {
           "heading": "Goal",
           "lines": [
-            "Reduce the enemy Base to 0 HP before yours reaches 0."
+            "Destroy the enemy base before they destroy yours."
           ]
         },
         {
-          "heading": "Your Turn",
+          "heading": "Deck",
           "lines": [
-            "Players take one action each, alternating.",
+            "Your deck has 10 cards.",
+            "Maximum hand size is 5 cards.",
+            "Cards are split into: units and effects.",
+            "At battle start, draw 4 cards."
+          ]
+        },
+        {
+          "heading": "Combat Flow",
+          "lines": [
+            "Players take actions in alternating order.",
             "After both actions, combat resolves automatically.",
-            "After combat, both players draw 1 card."
+            "Units attack enemies directly opposite.",
+            "An open lane hits the enemy base.",
+            "After combat, both players draw a card."
           ]
         },
         {
-          "heading": "Board and Combat",
+          "heading": "Playing Cards",
           "lines": [
-            "Battles use 3 lanes.",
-            "Units fight directly opposite units.",
-            "If a lane is open, that attack hits the enemy Base.",
-            "The middle row is visual only."
+            "Play units to your side of the board.",
+            "Cast effects onto the board.",
+            "Targeted effects require tapping a valid target."
           ]
         },
         {
-          "heading": "Swap",
+          "heading": "Unit Swap",
           "lines": [
             "Tap one of your units.",
             "Tap an adjacent allied unit.",
-            "The two units swap places."
+            "Those units swap positions."
           ]
         },
         {
-          "heading": "PASS and Surrender",
+          "heading": "PASS",
           "lines": [
             "PASS ends your action.",
-            "If available, hold PASS to surrender."
+            "Hold PASS to surrender."
           ]
         }
       ]

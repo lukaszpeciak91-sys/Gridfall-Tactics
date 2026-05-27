@@ -411,46 +411,56 @@
         {
           "heading": "Słownik ikon",
           "lines": [
-            "ATK — obrażenia zadawane w walce.",
-            "HP — punkty życia jednostki.",
-            "ARM — pancerz zmniejszający obrażenia w walce.",
-            "ALLY — jedna twoja jednostka.",
-            "ALLIES — wszystkie twoje jednostki."
+            "ATK — Obrażenia zadawane w walce.",
+            "HP — Życie jednostki lub bazy.",
+            "ARM — Pancerz zmniejszający obrażenia bojowe.",
+            "ALLY — Jedna twoja jednostka.",
+            "ALLIES — Wszystkie twoje jednostki."
           ]
         },
         {
-          "heading": "Cel",
+          "heading": "Cel gry",
           "lines": [
-            "Obniż HP bazy wroga do 0, zanim twoja spadnie do 0."
+            "Zniszcz bazę przeciwnika, zanim przeciwnik zniszczy twoją."
           ]
         },
         {
-          "heading": "Twoja tura",
+          "heading": "Talia",
           "lines": [
-            "Gracze wykonują akcje naprzemiennie, po 1 akcji.",
+            "Talia składa się z 10 kart.",
+            "Maksymalna wielkość ręki to 5 kart.",
+            "Karty dzielą się na: jednostki i efekty.",
+            "Na początku bitwy dobierasz 4 karty."
+          ]
+        },
+        {
+          "heading": "Przebieg walki",
+          "lines": [
+            "Gracze wykonują akcje naprzemiennie.",
             "Po obu akcjach walka rozstrzyga się automatycznie.",
-            "Po walce obaj gracze dobierają po 1 karcie."
+            "Jednostki atakują przeciwników naprzeciwko.",
+            "Otwarta linia atakuje bazę przeciwnika.",
+            "Po walce obaj gracze dobierają kartę."
           ]
         },
         {
-          "heading": "Plansza i walka",
+          "heading": "Zagrywanie kart",
           "lines": [
-            "Bitwa toczy się na 3 liniach.",
-            "Jednostki walczą bezpośrednio z jednostkami naprzeciwko.",
-            "Jeśli linia jest pusta, atak trafia bazę wroga.",
-            "Środkowy rząd jest tylko wizualny."
+            "Jednostki zagrywasz na własne pola.",
+            "Efekty rzucasz na planszę.",
+            "Efekty celowane wymagają wskazania celu tapem."
           ]
         },
         {
-          "heading": "Zamiana",
+          "heading": "Zamiana jednostek",
           "lines": [
             "Dotknij swojej jednostki.",
             "Dotknij sąsiedniej sojuszniczej jednostki.",
-            "Obie jednostki zamieniają się miejscami."
+            "Jednostki zamienią się miejscami."
           ]
         },
         {
-          "heading": "PASS i poddanie",
+          "heading": "PASS",
           "lines": [
             "PASS kończy twoją akcję.",
             "Przytrzymaj PASS, aby się poddać."
