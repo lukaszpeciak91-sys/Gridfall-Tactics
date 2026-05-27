@@ -10,6 +10,7 @@ import {
 import { getFactionPresentationName } from '../data/presentation/factionPresentation.js';
 import { getActiveLocale } from '../localization/localeService.js';
 import { getCardDisplayName } from '../localization/cardDisplay.js';
+import { calculateCardArtworkCoverPosition } from '../rendering/cardVisualLayout.js';
 
 const Y_STEP = 0.025;
 const FALLBACK_X01 = 0.5;
@@ -315,11 +316,13 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     const displayWidth = Math.max(1, sourceWidth * workspaceScale);
     const displayHeight = Math.max(1, sourceHeight * workspaceScale);
     const { artZone, targetWidth, targetHeight, mode } = this.getAuthoringTargetArtZone();
-    const selectorWidth = sourceWidth * (artZone.width / targetWidth);
-    const selectorHeight = sourceHeight * (artZone.height / targetHeight);
-    const maxCropY = Math.max(0, sourceHeight - selectorHeight);
-    const cropY = maxCropY * this.currentY01;
-    const cropX = (sourceWidth - selectorWidth) * 0.5;
+    const crop = calculateCardArtworkCoverPosition(artZone, sourceWidth, sourceHeight, {
+      artPositionY: this.currentY01,
+    });
+    const selectorWidth = crop.cropWidth;
+    const selectorHeight = crop.cropHeight;
+    const cropY = crop.cropY;
+    const cropX = crop.cropX;
 
     const cropWorldX = pane.x - displayWidth / 2 + (cropX * workspaceScale);
     const cropWorldY = pane.y - displayHeight / 2 + (cropY * workspaceScale);
