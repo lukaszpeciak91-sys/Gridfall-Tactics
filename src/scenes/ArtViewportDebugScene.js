@@ -319,9 +319,7 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     const source = textureKey ? this.textures?.get(textureKey)?.getSourceImage?.() : null;
     const sourceWidth = Math.max(1, source?.width ?? 512);
     const sourceHeight = Math.max(1, source?.height ?? 768);
-    const workspaceScale = Math.min(pane.width / sourceWidth, pane.height / sourceHeight);
-    const displayWidth = Math.max(1, sourceWidth * workspaceScale);
-    const displayHeight = Math.max(1, sourceHeight * workspaceScale);
+    const fitToPaneScale = Math.min(pane.width / sourceWidth, pane.height / sourceHeight);
     const { viewportWidth, viewportHeight, targetWidth, targetHeight, mode } = this.getRealArtworkViewportMetrics(card);
     const fallbackWidth = sourceWidth * 0.5;
     const fallbackHeight = sourceHeight * 0.5;
@@ -334,6 +332,14 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     const maxCropY = Math.max(0, sourceHeight - selectorHeight);
     const cropY = maxCropY * this.currentY01;
     const cropX = (sourceWidth - selectorWidth) * 0.5;
+    const viewportCoverageRatio = 0.62;
+    const maxViewportScale = Math.min(
+      (pane.width * viewportCoverageRatio) / Math.max(1, selectorWidth),
+      (pane.height * viewportCoverageRatio) / Math.max(1, selectorHeight),
+    );
+    const workspaceScale = Math.max(0.0001, Math.min(fitToPaneScale, maxViewportScale));
+    const displayWidth = Math.max(1, sourceWidth * workspaceScale);
+    const displayHeight = Math.max(1, sourceHeight * workspaceScale);
     const viewportWorldWidth = selectorWidth * workspaceScale;
     const viewportWorldHeight = selectorHeight * workspaceScale;
     const viewportWorldX = pane.x - viewportWorldWidth / 2;
@@ -362,7 +368,7 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     const paneBottom = paneTop + pane.height;
     const viewportRight = viewportWorldX + viewportWorldWidth;
     const viewportBottom = viewportWorldY + viewportWorldHeight;
-    const dimAlpha = 0.58;
+    const dimAlpha = 0.26;
     const maskTop = this.add.rectangle(pane.x, (paneTop + viewportWorldY) / 2, pane.width, Math.max(0, viewportWorldY - paneTop), 0x020617, dimAlpha).setOrigin(0.5);
     const maskBottom = this.add.rectangle(pane.x, (viewportBottom + paneBottom) / 2, pane.width, Math.max(0, paneBottom - viewportBottom), 0x020617, dimAlpha).setOrigin(0.5);
     const maskLeft = this.add.rectangle((paneLeft + viewportWorldX) / 2, pane.y, Math.max(0, viewportWorldX - paneLeft), viewportWorldHeight, 0x020617, dimAlpha).setOrigin(0.5);
