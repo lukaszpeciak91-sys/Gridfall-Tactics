@@ -319,7 +319,6 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     const source = textureKey ? this.textures?.get(textureKey)?.getSourceImage?.() : null;
     const sourceWidth = Math.max(1, source?.width ?? 512);
     const sourceHeight = Math.max(1, source?.height ?? 768);
-    const fitToPaneScale = Math.min(pane.width / sourceWidth, pane.height / sourceHeight);
     const { viewportWidth, viewportHeight, targetWidth, targetHeight, mode } = this.getRealArtworkViewportMetrics(card);
     const fallbackWidth = sourceWidth * 0.5;
     const fallbackHeight = sourceHeight * 0.5;
@@ -333,15 +332,14 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     const cropY = maxCropY * this.currentY01;
     const cropX = (sourceWidth - selectorWidth) * 0.5;
     const viewportCoverageRatio = 0.62;
-    const maxViewportScale = Math.min(
-      (pane.width * viewportCoverageRatio) / Math.max(1, selectorWidth),
-      (pane.height * viewportCoverageRatio) / Math.max(1, selectorHeight),
-    );
-    const workspaceScale = Math.max(0.0001, Math.min(fitToPaneScale, maxViewportScale));
+    const targetAspect = targetWidth / Math.max(1, targetHeight);
+    const maxFrameWidth = pane.width * viewportCoverageRatio;
+    const maxFrameHeight = pane.height * viewportCoverageRatio;
+    const viewportWorldWidth = Math.min(maxFrameWidth, maxFrameHeight * targetAspect);
+    const viewportWorldHeight = viewportWorldWidth / Math.max(0.0001, targetAspect);
+    const workspaceScale = viewportWorldWidth / Math.max(1, selectorWidth);
     const displayWidth = Math.max(1, sourceWidth * workspaceScale);
     const displayHeight = Math.max(1, sourceHeight * workspaceScale);
-    const viewportWorldWidth = selectorWidth * workspaceScale;
-    const viewportWorldHeight = selectorHeight * workspaceScale;
     const viewportWorldX = pane.x - viewportWorldWidth / 2;
     const viewportWorldY = pane.y - viewportWorldHeight / 2;
     const artWorldX = viewportWorldX - (cropX * workspaceScale);
@@ -381,8 +379,8 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     )
       .setStrokeStyle(3, 0x93c5fd, 1)
       .setFillStyle(0x000000, 0);
-    const selectorAspect = selectorHeight > 0 ? (selectorWidth / selectorHeight) : 0;
-    const label = this.add.text(pane.x - pane.width / 2 + 8, pane.y - pane.height / 2 + 6, `Source selection • ${mode} • target ${targetWidth.toFixed(1)}x${targetHeight.toFixed(1)} • viewport ${Number(viewportWidth ?? 0).toFixed(1)}x${Number(viewportHeight ?? 0).toFixed(1)} • ar ${selectorAspect.toFixed(4)}`, {
+    const viewportAspect = selectorHeight > 0 ? (selectorWidth / selectorHeight) : 0;
+    const label = this.add.text(pane.x - pane.width / 2 + 8, pane.y - pane.height / 2 + 6, `Source selection • ${mode} • display frame ${viewportWorldWidth.toFixed(1)}x${viewportWorldHeight.toFixed(1)} • target ${targetWidth.toFixed(1)}x${targetHeight.toFixed(1)} • source viewport ${Number(viewportWidth ?? 0).toFixed(1)}x${Number(viewportHeight ?? 0).toFixed(1)} • source ar ${viewportAspect.toFixed(4)}`, {
       fontFamily: 'Arial, sans-serif', fontSize: '12px', color: '#bfdbfe',
     }).setOrigin(0, 0);
 
