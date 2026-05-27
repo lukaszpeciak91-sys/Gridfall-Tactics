@@ -466,7 +466,14 @@
             "Przytrzymaj PASS, aby się poddać."
           ]
         }
-      ]
+      ],
+      "glossaryDescriptions": {
+        "ATK": "Obrażenia zadawane w walce.",
+        "HP": "Życie jednostki lub bazy.",
+        "ARM": "Pancerz zmniejszający obrażenia bojowe.",
+        "ALLY": "Jedna twoja jednostka.",
+        "ALLIES": "Wszystkie twoje jednostki."
+      }
     },
     "cardDetails": {
       "type": "Typ",
