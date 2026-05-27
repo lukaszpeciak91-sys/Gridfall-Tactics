@@ -337,7 +337,10 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     const maxFrameHeight = pane.height * viewportCoverageRatio;
     const viewportWorldWidth = Math.min(maxFrameWidth, maxFrameHeight * targetAspect);
     const viewportWorldHeight = viewportWorldWidth / Math.max(0.0001, targetAspect);
-    const workspaceScale = viewportWorldWidth / Math.max(1, selectorWidth);
+    const workspaceScale = Math.max(
+      viewportWorldWidth / Math.max(1, sourceWidth),
+      viewportWorldHeight / Math.max(1, sourceHeight),
+    );
     const displayWidth = Math.max(1, sourceWidth * workspaceScale);
     const displayHeight = Math.max(1, sourceHeight * workspaceScale);
     const viewportWorldX = pane.x - viewportWorldWidth / 2;
@@ -355,11 +358,6 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
       centerX: pane.x,
       centerY: pane.y,
     }, card, { enableCardIllustration: true });
-    const viewportMaskShape = this.make.graphics({ x: 0, y: 0, add: false });
-    viewportMaskShape.fillStyle(0xffffff, 1);
-    viewportMaskShape.fillRect(viewportWorldX, viewportWorldY, viewportWorldWidth, viewportWorldHeight);
-    art.setMask(viewportMaskShape.createGeometryMask());
-
     const paneLeft = pane.x - pane.width / 2;
     const paneTop = pane.y - pane.height / 2;
     const paneRight = paneLeft + pane.width;
