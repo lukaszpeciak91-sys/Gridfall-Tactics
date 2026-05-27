@@ -334,36 +334,53 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     const maxCropY = Math.max(0, sourceHeight - selectorHeight);
     const cropY = maxCropY * this.currentY01;
     const cropX = (sourceWidth - selectorWidth) * 0.5;
-
-    const cropWorldX = pane.x - displayWidth / 2 + (cropX * workspaceScale);
-    const cropWorldY = pane.y - displayHeight / 2 + (cropY * workspaceScale);
-    const cropWorldWidth = selectorWidth * workspaceScale;
-    const cropWorldHeight = selectorHeight * workspaceScale;
+    const viewportWorldWidth = selectorWidth * workspaceScale;
+    const viewportWorldHeight = selectorHeight * workspaceScale;
+    const viewportWorldX = pane.x - viewportWorldWidth / 2;
+    const viewportWorldY = pane.y - viewportWorldHeight / 2;
+    const artWorldX = viewportWorldX - (cropX * workspaceScale);
+    const artWorldY = viewportWorldY - (cropY * workspaceScale);
 
     const workspaceBackdrop = this.add.rectangle(pane.x, pane.y, pane.width, pane.height, 0x0b1220, 0.94)
       .setStrokeStyle(1, 0x1e293b, 0.9);
     const art = createCardArtwork(this, {
-      x: pane.x - displayWidth / 2,
-      y: pane.y - displayHeight / 2,
+      x: artWorldX,
+      y: artWorldY,
       width: displayWidth,
       height: displayHeight,
       centerX: pane.x,
       centerY: pane.y,
     }, card, { enableCardIllustration: true });
-    const sourceCropBorder = this.add.rectangle(
-      cropWorldX + cropWorldWidth / 2,
-      cropWorldY + cropWorldHeight / 2,
-      cropWorldWidth,
-      cropWorldHeight,
+    const viewportMaskShape = this.make.graphics({ x: 0, y: 0, add: false });
+    viewportMaskShape.fillStyle(0xffffff, 1);
+    viewportMaskShape.fillRect(viewportWorldX, viewportWorldY, viewportWorldWidth, viewportWorldHeight);
+    art.setMask(viewportMaskShape.createGeometryMask());
+
+    const paneLeft = pane.x - pane.width / 2;
+    const paneTop = pane.y - pane.height / 2;
+    const paneRight = paneLeft + pane.width;
+    const paneBottom = paneTop + pane.height;
+    const viewportRight = viewportWorldX + viewportWorldWidth;
+    const viewportBottom = viewportWorldY + viewportWorldHeight;
+    const dimAlpha = 0.58;
+    const maskTop = this.add.rectangle(pane.x, (paneTop + viewportWorldY) / 2, pane.width, Math.max(0, viewportWorldY - paneTop), 0x020617, dimAlpha).setOrigin(0.5);
+    const maskBottom = this.add.rectangle(pane.x, (viewportBottom + paneBottom) / 2, pane.width, Math.max(0, paneBottom - viewportBottom), 0x020617, dimAlpha).setOrigin(0.5);
+    const maskLeft = this.add.rectangle((paneLeft + viewportWorldX) / 2, pane.y, Math.max(0, viewportWorldX - paneLeft), viewportWorldHeight, 0x020617, dimAlpha).setOrigin(0.5);
+    const maskRight = this.add.rectangle((viewportRight + paneRight) / 2, pane.y, Math.max(0, paneRight - viewportRight), viewportWorldHeight, 0x020617, dimAlpha).setOrigin(0.5);
+    const viewportFrame = this.add.rectangle(
+      pane.x,
+      pane.y,
+      viewportWorldWidth,
+      viewportWorldHeight,
     )
-      .setStrokeStyle(2, 0x93c5fd, 1)
+      .setStrokeStyle(3, 0x93c5fd, 1)
       .setFillStyle(0x000000, 0);
     const selectorAspect = selectorHeight > 0 ? (selectorWidth / selectorHeight) : 0;
     const label = this.add.text(pane.x - pane.width / 2 + 8, pane.y - pane.height / 2 + 6, `Source selection • ${mode} • target ${targetWidth.toFixed(1)}x${targetHeight.toFixed(1)} • viewport ${Number(viewportWidth ?? 0).toFixed(1)}x${Number(viewportHeight ?? 0).toFixed(1)} • ar ${selectorAspect.toFixed(4)}`, {
       fontFamily: 'Arial, sans-serif', fontSize: '12px', color: '#bfdbfe',
     }).setOrigin(0, 0);
 
-    return [workspaceBackdrop, art, sourceCropBorder, label];
+    return [workspaceBackdrop, art, maskTop, maskBottom, maskLeft, maskRight, viewportFrame, label];
   }
 
   renderPreviews() {
