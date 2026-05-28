@@ -308,6 +308,7 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
       enableCardIllustration: true,
       temporaryArtCropY01: this.currentY01,
       temporaryArtCropYOffset: 0,
+      clipArtToViewport: true,
     });
     const crop = preview?.art?.cropDebugMetrics ?? null;
 
