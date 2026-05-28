@@ -877,6 +877,14 @@ export function createCardArtwork(scene, zone, card, options = {}) {
     const sourceHeight = texture?.height ?? image.height;
     const crop = calculateCardArtworkCoverPosition(zone, sourceWidth, sourceHeight, options);
     image.setDisplaySize(crop.displayWidth, crop.displayHeight);
+    if (typeof image.setOrigin === 'function') {
+      const safeSourceWidth = Math.max(1, sourceWidth);
+      const safeSourceHeight = Math.max(1, sourceHeight);
+      image.setOrigin(
+        (crop.cropX + crop.cropWidth / 2) / safeSourceWidth,
+        (crop.cropY + crop.cropHeight / 2) / safeSourceHeight,
+      );
+    }
     image.setCrop(crop.cropX, crop.cropY, crop.cropWidth, crop.cropHeight);
     if (options.lockDisplayToZone) {
       // Preserve cover behavior with uniform scaling only.
