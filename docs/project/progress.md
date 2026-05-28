@@ -112,3 +112,10 @@ canonical_ref: docs/rules/mvp-battle-rules.md
 - Updated board blocked-lane marker rendering to show the same red `✕` indicator for both affected sides when lane-play blocks are active.
 - Kept the indicator scoped to empty slots so it communicates “cannot place unit here this turn” without obscuring occupied unit cards.
 - No gameplay, AI, or placement-validation behavior changed; this was a UI readability polish only.
+
+## ArtViewportDebug Artwork Framing Workflow Complete (2026-05-28)
+- Completed and validated the card artwork framing workflow in-game using `ArtViewportDebug` as the authoring tool.
+- Locked the production data shape around normalized `artPositionY` values in the `0..1` range; the renderer reconstructs the source crop dynamically at render time so the stored crop intent remains resolution-independent.
+- Confirmed Collection and Inspect previews use the same shared renderer crop path for production card artwork, keeping authored overrides consistent across those preview surfaces.
+- Documented the current board-unit exception: board-unit rendering uses separate board artwork constants today rather than the Collection/Inspect shared crop override path.
+- Final authoring workflow: Generate artwork → Adjust Y in `ArtViewportDebug` → Export overrides → Apply overrides to production override data.

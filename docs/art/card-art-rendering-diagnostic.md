@@ -4,7 +4,9 @@ This is the source-of-truth diagnostic for the current card-art viewport and cro
 
 ## Shared renderer contract
 
-Production card illustrations are authored as `512x768` portrait WebP assets. The shared preview renderer creates an image centered on the card artwork zone, scales it with cover behavior, and applies one universal source-space crop: a centered cover crop shifted upward by `3%` of source height. For `512x768` sources, that shared upward bias is `23.04px`. The diagnostic helper reports the same cover scale, crop rectangle, and source-loss percentages used by the runtime renderer.
+Production card illustrations are authored as portrait WebP assets. The accepted crop contract stores vertical framing intent as normalized `artPositionY` values in the `0..1` range, where `0` means the highest legal crop position, `1` means the lowest legal crop position, and `0.5` is centered. These values are not pixels and do not encode a fixed source-image viewport.
+
+At render time, the shared card preview renderer reconstructs the concrete crop from the active artwork zone, source texture dimensions, cover scale, and effective `artPositionY`. This keeps the crop intent resolution-independent across hand, collection, and inspect card sizes.
 
 Formula:
 
@@ -13,18 +15,30 @@ scale = max(zone.width / sourceWidth, zone.height / sourceHeight)
 cropWidth = min(sourceWidth, zone.width / scale)
 cropHeight = min(sourceHeight, zone.height / scale)
 cropX = (sourceWidth - cropWidth) / 2
-centeredCropY = (sourceHeight - cropHeight) / 2
-upwardCropBias = sourceHeight * 0.03
-cropY = max(0, centeredCropY - upwardCropBias)
+maxCropY = sourceHeight - cropHeight
+normalizedArtPositionY = clamp(effective artPositionY, 0, 1)
+cropY = maxCropY * normalizedArtPositionY
 ```
 
-For the current `512x768` sources and all present card-art zones, the zone is wider than the source aspect. That means:
+For the current portrait sources and all present card-art zones, the zone is wider than the source aspect. That means:
 
 - horizontal source crop is `0px` in normal card modes;
-- vertical source crop preserves the same cover-crop height as the old centered crop;
-- the crop window is shifted upward by the shared `3%` source-height bias, so top loss is about `6` percentage points lower than bottom loss;
-- there is no per-card focal-point logic or per-mode responsive art-direction rule in production gameplay rendering;
-- per-card overrides now support direct normalized crop placement (`cropY01`) for debug/composition tuning in collection inspect and shared preview paths; legacy `yOffset` remains backward-compatible only.
+- vertical source crop height is derived from cover scaling for the active artwork zone;
+- vertical crop placement is reconstructed from normalized `artPositionY`, not stored pixels;
+- crop intent remains portable across renderer sizes because only the normalized legal crop position is persisted;
+- there is no per-faction or per-mode responsive art-direction rule in production gameplay rendering;
+- production overrides prefer `artPositionY`; legacy `cropY01` and `yOffset` are backward-compatible fallback inputs only.
+
+## Accepted authoring workflow (2026-05-28)
+
+`ArtViewportDebug` is the accepted authoring tool for card artwork vertical framing. The validated workflow is:
+
+1. Generate artwork.
+2. Adjust Y in `ArtViewportDebug` while reviewing the runtime card read.
+3. Export overrides.
+4. Apply the exported values to production override data.
+
+This workflow intentionally tunes the runtime presentation of approved artwork instead of regenerating art repeatedly to solve framing problems.
 
 ## Runtime mode audit
 
@@ -46,7 +60,7 @@ On a representative `390x844` portrait viewport:
 | Lost source bottom | `27.60%` |
 | Lost source left/right | `0% / 0%` |
 
-Expected hand variation on common portrait layouts is roughly `y 165-557`, keeping about `50-51%` of source height after the shared upward bias.
+Expected hand variation on common portrait layouts depends on the effective normalized `artPositionY`; the visible crop height remains cover-derived while crop placement is reconstructed dynamically.
 
 ### Inspect / zoom cards
 
@@ -66,7 +80,7 @@ On a representative `390x844` portrait viewport, hand-card inspect is:
 | Lost source bottom | `28.31%` |
 | Lost source left/right | `0% / 0%` |
 
-Inspect is not meaningfully safer than hand. Depending on viewport rounding it can be slightly more or slightly less aggressive, but it remains the same shared cover crop with the universal upward source-space bias.
+Inspect is not meaningfully safer than hand. Depending on viewport rounding it can be slightly more or slightly less aggressive, but it remains the same shared renderer path with dynamic normalized `artPositionY` crop placement.
 
 ### Board cards / board units
 
@@ -81,7 +95,7 @@ On a representative `390x844` portrait viewport:
 | Placeholder art viewport | `80.70 x 64.34px` |
 | Production texture crop | Not applicable today |
 
-If the shared production texture crop were applied to that board art viewport in the future, the equivalent biased source crop would be approximately `x=0`, `y=156.87`, `w=512`, `h=408.19`, keeping `53.15%` of source height. That hypothetical board crop would expose more art than hand/inspect, but it is not active runtime behavior today.
+Board-unit artwork currently uses separate board constants for artwork positioning and is not the same production card override path used by Collection/Inspect previews. Do not assume board-unit rendering consumes per-card `artPositionY` overrides until that path is explicitly redesigned.
 
 ### Collection cards
 
@@ -111,15 +125,15 @@ Collection is currently the most aggressive active production-art crop, not hand
 
 ## Cross-mode comparison
 
-| Mode | Production texture active? | Representative visible source range | Visible source height | Crop center |
-| --- | --- | --- | ---: | --- |
-| Hand | Yes | `y 165.93-556.00` | `50.79%` | Source center minus 3% height |
-| Hand inspect | Yes | `y 171.37-550.55` | `49.37%` | Source center minus 3% height |
-| Board unit | No | Placeholder only | n/a | n/a |
-| Board inspect | No | Placeholder only | n/a | n/a |
-| Collection | Yes | `y 205.06-516.85` | `40.60%` | Source center minus 3% height |
+| Mode | Production texture active? | Shared crop path? | Crop placement source |
+| --- | --- | --- | --- |
+| Hand | Yes | Yes | Effective normalized `artPositionY` |
+| Hand inspect | Yes | Yes | Effective normalized `artPositionY` |
+| Board unit | Yes, compact board art | No | Separate board artwork constants |
+| Board inspect | Uses enlarged card frame path when applicable | Same as its preview path | Effective normalized `artPositionY` when production art is enabled |
+| Collection | Yes | Yes | Effective normalized `artPositionY` |
 
-The renderer crop is center-cover plus a shared upward source-space bias. The card layout itself is vertically asymmetrical because the artwork viewport sits below stat badges and above name/text panels. This production contract intentionally compensates slightly for perceived runtime framing without changing card layout, adding focal metadata, or introducing per-mode rules. A single card-level test override is currently wired through `src/data/presentation/cardArtCropOverrides.js` for `aggro_flanker_1`.
+The renderer crop is center-cover plus dynamic normalized vertical crop placement. The card layout itself is vertically asymmetrical because the artwork viewport sits below stat badges and above name/text panels. The production contract compensates for perceived runtime framing through explicit `artPositionY` crop intent without changing card layout or introducing per-mode rules.
 
 ## True safe zones for `512x768` sources
 
@@ -127,12 +141,12 @@ Use source percentages, measured from the top-left of the source image.
 
 ### Active production-art modes only
 
-- **Universal visible zone:** `x 0-100%`, approximately `y 27-67%` survives hand, hand inspect, and collection after the shared upward crop bias.
+- **Universal visible zone:** `x 0-100%`, approximately `y 27-67%` survives conservative hand, hand inspect, and collection framing when authoring for the shared renderer path.
 - **Must-survive focal zone:** keep faces, heads, key silhouettes, weapon tips, readable gestures, and unique props inside `x 12-88%`, `y 32-62%`.
 - **Primary face target:** place the face/helmet center around `y 38-44%`; avoid face centers above `35%` unless the head and shoulders still fit below about `27%`.
 - **Upper-body target:** place torso mass around `y 48-58%`; keep the top of the head, hair, horns, helmets, banners, and raised weapons below about `27%` if they must survive collection.
 - **Lower silhouette target:** keep lower essential silhouette, ground contact, readable lower-body action, mounts, tails, and important prop bases above roughly `y 64-65%`.
-- **Danger zones:** top `0-27%` and bottom `67-100%` are not production-safe across all active modes. The bottom danger zone is intentionally larger than the top danger zone because the runtime crop is biased upward.
+- **Danger zones:** top `0-27%` and bottom `67-100%` are not production-safe across all active modes unless the card receives an explicit reviewed `artPositionY` override.
 
 ### Hand/inspect approval target
 
@@ -146,24 +160,25 @@ If the collection grid must preserve the same focal read, the stricter safe zone
 
 The current issue is a **mixed composition and viewport-layout issue**, not evidence of a broken crop implementation.
 
-- The renderer is doing what the code specifies: center-cover scaling with one shared `3%` upward source-space bias, reducing top loss and increasing bottom loss by the same amount.
+- The renderer is doing what the code specifies: center-cover scaling with concrete crop placement reconstructed from normalized `artPositionY`.
 - The active card artwork windows are much shorter than a `2:3` source. Hand/inspect keep only about half the source height; collection keeps only about two-fifths.
 - If standalone illustrations place faces, upper torsos, raised arms, or silhouette-identifying details in the upper poster-like third, those elements will be cropped in runtime.
 - The layout reserves large non-art areas for stats, name, and rules text. That is the viewport-layout constraint causing the short art windows.
 
-## Recommendation
+## Decision update (2026-05-28)
 
-The final production contract is now the shared `3%` upward source-space bias on top of center-cover scaling. Keep this rule universal and deterministic:
+The final production contract is normalized runtime crop intent on top of center-cover scaling. Keep this rule universal and deterministic for card preview surfaces:
 
-- Author all card art for the biased runtime window, not for the full `512x768` frame.
-- Treat collection (`y 27-67%`) as the strict universal crop.
-- Keep the identity read in `x 12-88%`, `y 32-62%`.
-- Put face/helmet centers around `38-44%` source height.
-- Put upper torso/main mass around `48-58%` source height.
-- Keep lower essential silhouette above roughly `64-65%` source height.
-- Do not add broad per-card/per-faction/per-mode rule sets or focal metadata in artwork. If a scoped renderer test override is required, keep it explicit in `src/data/presentation/cardArtCropOverrides.js` and limited to named card ids.
+- Store reviewed framing as `artPositionY` in the `0..1` range.
+- Let the renderer reconstruct the concrete source crop dynamically at render time.
+- Treat Collection/Inspect previews as authoritative because they use the same shared renderer crop path for production card artwork.
+- Keep the identity read in `x 12-88%`, `y 32-62%` when generating new art so only modest Y adjustment is needed.
+- Do not store pixel crop rectangles as production intent.
+- Do not use source-image viewport authoring as the primary workflow; author against the runtime read in `ArtViewportDebug`.
+- Do not rely on repeated artwork regeneration to fix framing when a reviewed `artPositionY` override can preserve approved art.
+- Remember that board-unit rendering currently uses separate board constants and is not proof that shared card-preview crop behavior has changed.
 
-## Override precedence update (2026-05-23)
+## Override precedence update (2026-05-28)
 
-- Per-card art crop overrides now prefer `cropY01` (normalized legal vertical crop position where `0` is top bound and `1` is bottom bound).
-- Legacy `yOffset` is still read for backward compatibility only when `cropY01` is absent.
+- Per-card art crop overrides now prefer `artPositionY` (normalized legal vertical crop position where `0` is top bound and `1` is bottom bound).
+- Legacy `cropY01` and `yOffset` remain backward-compatible inputs only when `artPositionY` is absent.

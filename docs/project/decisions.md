@@ -111,3 +111,14 @@ canonical_ref: docs/rules/mvp-battle-rules.md
 - Locked blocked-lane UI feedback to render on both board sides when the corresponding per-lane block flag is active for that side.
 - Marker remains a lightweight red `✕` and is shown only on empty lane slots to avoid implying combat disable or covering occupied unit readability.
 - This is presentation-only parity; lane block gameplay and AI decision logic remain unchanged.
+
+## Card Artwork Framing/Cropping Architecture (2026-05-28)
+- Accepted architecture: store per-card vertical framing as normalized `artPositionY` values in the `0..1` range, not as source pixels or viewport pixels.
+- The renderer remains responsible for reconstructing the concrete source crop dynamically at render time from the active artwork zone, source texture dimensions, cover scale, and normalized `artPositionY` intent. This keeps crop intent resolution-independent across device sizes and card preview sizes.
+- `ArtViewportDebug` is the accepted authoring tool for vertical card-art framing. Its export is the handoff format for applying reviewed values into production override data.
+- Collection and Inspect previews must continue to use the same shared renderer crop path for production card artwork so authored crop intent is previewed through the same behavior players see.
+- Board-unit rendering currently remains a separate path using board-specific artwork constants; do not assume board units consume the same per-card production crop overrides until that path is explicitly redesigned.
+- Rejected: pixel-based crop storage, because it couples authoring intent to one source/render size and becomes brittle across renderer/layout changes.
+- Rejected: source-image viewport authoring as the primary workflow, because it asks artists/authors to reason about source rectangles instead of the actual runtime card read.
+- Rejected: repeated artwork regeneration as the framing solution, because the validated workflow can preserve approved artwork and tune presentation through explicit runtime crop intent.
+- Final workflow: Generate artwork → Adjust Y in `ArtViewportDebug` → Export overrides → Apply overrides to production override data.
