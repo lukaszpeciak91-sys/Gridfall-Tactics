@@ -161,13 +161,14 @@ test('card preview artwork crop metrics are source-space viewport dimensions tha
   assert.ok(Math.abs((crop.cropHeight * crop.scale) - zones.art.height) < 0.001);
 });
 
-test('art viewport debug uses measured preview viewport metrics and applies movement only on Y', () => {
+test('art viewport debug renders final card preview and applies movement only on Y', () => {
   const source = fs.readFileSync('src/scenes/ArtViewportDebugScene.js', 'utf8');
 
   assert.match(source, /createCardPreviewView\(this, \{/);
   assert.match(source, /preview\?\.art\?\.cropDebugMetrics/);
-  assert.match(source, /selectorWidth = Number\.isFinite\(viewportWidth\)\s*\?\s*sourceWidth \* \(viewportWidth \/ targetWidth\)/);
-  assert.match(source, /selectorHeight = Number\.isFinite\(viewportHeight\)\s*\?\s*sourceHeight \* \(viewportHeight \/ targetHeight\)/);
-  assert.match(source, /const cropY = maxCropY \* this\.currentY01/);
-  assert.match(source, /const cropX = \(sourceWidth - selectorWidth\) \* 0\.5/);
+  assert.match(source, /temporaryArtCropY01: this\.currentY01/);
+  assert.match(source, /this\.previewNodes = this\.drawRenderedCardPane\(card\)/);
+  assert.doesNotMatch(source, /drawSourceSelectionPane/);
+  assert.doesNotMatch(source, /selectorWidth = Number\.isFinite\(viewportWidth\)/);
+  assert.doesNotMatch(source, /const cropX = \(sourceWidth - selectorWidth\)/);
 });
