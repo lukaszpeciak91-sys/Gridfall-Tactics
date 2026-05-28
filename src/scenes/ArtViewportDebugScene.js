@@ -289,32 +289,9 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     };
   }
 
-  getRealArtworkViewportMetrics(card) {
-    const target = this.getCollectionInspectTargetDimensions();
-    const preview = createCardPreviewView(this, {
-      card,
-      x: -10000,
-      y: -10000,
-      width: target.width,
-      height: target.height,
-      enableCardIllustration: true,
-      temporaryArtCropY01: this.currentY01,
-    });
-    const crop = preview?.art?.cropDebugMetrics ?? null;
-    preview?.root?.destroy();
-    return {
-      mode: AUTHORING_TARGET,
-      targetWidth: target.width,
-      targetHeight: target.height,
-      viewportWidth: Number.isFinite(crop?.cropWidth) ? crop.cropWidth : null,
-      viewportHeight: Number.isFinite(crop?.cropHeight) ? crop.cropHeight : null,
-    };
-  }
-
   drawRenderedCardPane(card) {
     const pane = this.previewPaneSource;
-    const { targetWidth, targetHeight, mode } = this.getRealArtworkViewportMetrics(card);
-    const target = { width: targetWidth, height: targetHeight };
+    const target = this.getCollectionInspectTargetDimensions();
     const maxWidth = pane.width - 16;
     const maxHeight = pane.height - 28;
     const fitScale = Math.min(maxWidth / Math.max(1, target.width), maxHeight / Math.max(1, target.height));
@@ -330,7 +307,9 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
       height: target.height,
       enableCardIllustration: true,
       temporaryArtCropY01: this.currentY01,
+      temporaryArtCropYOffset: 0,
     });
+    const crop = preview?.art?.cropDebugMetrics ?? null;
 
     preview.root.setScale(fitScale);
 
@@ -340,7 +319,7 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     const label = this.add.text(
       pane.x - pane.width / 2 + 8,
       pane.y - pane.height / 2 + 6,
-      `Final rendered card preview • ${mode} • target ${target.width.toFixed(1)}x${target.height.toFixed(1)} • display ${previewWidth.toFixed(1)}x${previewHeight.toFixed(1)}`,
+      `Final rendered card preview • ${AUTHORING_TARGET} • target ${target.width.toFixed(1)}x${target.height.toFixed(1)} • display ${previewWidth.toFixed(1)}x${previewHeight.toFixed(1)} • cropY ${Number.isFinite(crop?.cropY) ? crop.cropY.toFixed(1) : "n/a"}`,
       {
         fontFamily: 'Arial, sans-serif', fontSize: '12px', color: '#bfdbfe',
       },
