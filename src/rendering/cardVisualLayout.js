@@ -868,6 +868,7 @@ export function createCardArtwork(scene, zone, card, options = {}) {
     && Number.isFinite(options.artRect.width)
     && Number.isFinite(options.artRect.height);
   const artRect = hasExplicitArtRect ? options.artRect : null;
+  const effectiveArtRect = artRect;
   const canCreateGeometryMask = typeof scene.make?.graphics === 'function';
   if (textureKey && scene.textures?.exists?.(textureKey)) {
     const image = scene.add.image(zone.centerX, zone.centerY, textureKey);
@@ -882,10 +883,10 @@ export function createCardArtwork(scene, zone, card, options = {}) {
       // Geometry masking handles viewport clipping for custom board art rects.
       image.setDisplaySize(crop.displayWidth, crop.displayHeight);
     }
-    if (artRect && canCreateGeometryMask) {
+    if (effectiveArtRect && canCreateGeometryMask) {
       const artMaskShape = scene.make.graphics({ x: 0, y: 0, add: false });
       artMaskShape.fillStyle(0xffffff, 1);
-      artMaskShape.fillRect(artRect.x, artRect.y, artRect.width, artRect.height);
+      artMaskShape.fillRect(effectiveArtRect.x, effectiveArtRect.y, effectiveArtRect.width, effectiveArtRect.height);
       const artMask = artMaskShape.createGeometryMask();
       image.setMask(artMask);
       image.artMaskShape = artMaskShape;
@@ -895,14 +896,14 @@ export function createCardArtwork(scene, zone, card, options = {}) {
     return image;
   }
 
-  if (!(artRect && canCreateGeometryMask)) {
+  if (!(effectiveArtRect && canCreateGeometryMask)) {
     return createArtPlaceholder(scene, zone);
   }
 
   const placeholder = createArtPlaceholder(scene, zone);
   const artMaskShape = scene.make.graphics({ x: 0, y: 0, add: false });
   artMaskShape.fillStyle(0xffffff, 1);
-  artMaskShape.fillRect(artRect.x, artRect.y, artRect.width, artRect.height);
+  artMaskShape.fillRect(effectiveArtRect.x, effectiveArtRect.y, effectiveArtRect.width, effectiveArtRect.height);
   const artMask = artMaskShape.createGeometryMask();
   placeholder.setMask(artMask);
   placeholder.artMaskShape = artMaskShape;
@@ -982,6 +983,7 @@ export function createCardPreviewView(scene, {
   pulseChangedStats = false,
   temporaryArtCropY01 = null,
   temporaryArtCropYOffset = 0,
+  clipArtToViewport = false,
   surfaceTheme = BASE_CARD_SURFACE_THEME,
 } = {}) {
   const resolvedSurfaceTheme = surfaceTheme ?? BASE_CARD_SURFACE_THEME;
@@ -1157,6 +1159,23 @@ export function createCardPreviewView(scene, {
     cardNumberOverlay,
     selectionOutline,
   ].filter(Boolean));
+
+  if (clipArtToViewport && typeof scene.add?.graphics === 'function') {
+    const artViewportMaskShape = scene.add.graphics();
+    artViewportMaskShape.fillStyle(0xffffff, 1);
+    artViewportMaskShape.fillRect(
+      zones.art.x - zones.art.width / 2,
+      zones.art.y - zones.art.height / 2,
+      zones.art.width,
+      zones.art.height,
+    );
+    artViewportMaskShape.visible = false;
+    root.add(artViewportMaskShape);
+    const artViewportMask = artViewportMaskShape.createGeometryMask();
+    art.setMask(artViewportMask);
+    art.artMaskShape = artViewportMaskShape;
+    art.artMask = artViewportMask;
+  }
 
   return {
     cardId,
