@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
 import { getLoadedCardIllustrationTextureKey, preloadAllCardIllustrations } from '../rendering/cardIllustrationAssets.js';
-import { createCardPreviewView } from '../rendering/cardVisualLayout.js';
+import { createCardArtwork, createCardPreviewView } from '../rendering/cardVisualLayout.js';
 import { HAND_CARD_ASPECT_RATIO } from '../ui/handLayout.js';
 import {
   getCollectionInspectCardTransform,
@@ -332,11 +332,11 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     const cropY = maxCropY * this.currentY01;
     const cropX = (sourceWidth - selectorWidth) * 0.5;
     const viewportCoverageRatio = 0.62;
-    const viewportAspect = selectorHeight > 0 ? (selectorWidth / selectorHeight) : 1;
+    const targetAspect = targetWidth / Math.max(1, targetHeight);
     const maxFrameWidth = pane.width * viewportCoverageRatio;
     const maxFrameHeight = pane.height * viewportCoverageRatio;
-    const viewportWorldWidth = Math.min(maxFrameWidth, maxFrameHeight * viewportAspect);
-    const viewportWorldHeight = viewportWorldWidth / Math.max(0.0001, viewportAspect);
+    const viewportWorldWidth = Math.min(maxFrameWidth, maxFrameHeight * targetAspect);
+    const viewportWorldHeight = viewportWorldWidth / Math.max(0.0001, targetAspect);
     const workspaceScale = Math.max(
       viewportWorldWidth / Math.max(1, sourceWidth),
       viewportWorldHeight / Math.max(1, sourceHeight),
@@ -350,15 +350,14 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
 
     const workspaceBackdrop = this.add.rectangle(pane.x, pane.y, pane.width, pane.height, 0x0b1220, 0.94)
       .setStrokeStyle(1, 0x1e293b, 0.9);
-    let art = null;
-    if (textureKey && this.textures?.exists?.(textureKey)) {
-      art = this.add.image(artWorldX, artWorldY, textureKey)
-        .setOrigin(0, 0)
-        .setDisplaySize(displayWidth, displayHeight);
-    } else {
-      art = this.add.rectangle(artWorldX + displayWidth / 2, artWorldY + displayHeight / 2, displayWidth, displayHeight, 0x1e293b, 0.8)
-        .setStrokeStyle(1, 0x38bdf8, 0.2);
-    }
+    const art = createCardArtwork(this, {
+      x: artWorldX,
+      y: artWorldY,
+      width: displayWidth,
+      height: displayHeight,
+      centerX: pane.x,
+      centerY: pane.y,
+    }, card, { enableCardIllustration: true });
     const paneLeft = pane.x - pane.width / 2;
     const paneTop = pane.y - pane.height / 2;
     const paneRight = paneLeft + pane.width;
@@ -378,6 +377,7 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
     )
       .setStrokeStyle(3, 0x93c5fd, 1)
       .setFillStyle(0x000000, 0);
+    const viewportAspect = selectorHeight > 0 ? (selectorWidth / selectorHeight) : 0;
     const label = this.add.text(pane.x - pane.width / 2 + 8, pane.y - pane.height / 2 + 6, `Source selection • ${mode} • display frame ${viewportWorldWidth.toFixed(1)}x${viewportWorldHeight.toFixed(1)} • target ${targetWidth.toFixed(1)}x${targetHeight.toFixed(1)} • source viewport ${Number(viewportWidth ?? 0).toFixed(1)}x${Number(viewportHeight ?? 0).toFixed(1)} • source ar ${viewportAspect.toFixed(4)}`, {
       fontFamily: 'Arial, sans-serif', fontSize: '12px', color: '#bfdbfe',
     }).setOrigin(0, 0);
