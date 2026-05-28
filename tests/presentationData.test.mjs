@@ -79,6 +79,31 @@ test('faction presentation names resolve by locale with safe fallbacks', () => {
   assert.equal(getFactionPresentationName('missing-faction', 'pl', 'Raw Faction Name'), 'Raw Faction Name');
 });
 
+test('Gravehearts Polish presentation names match the short-name localization pass', () => {
+  const attritionSwarm = getFactionByKey('Attrition Swarm');
+  const cardsByNumber = new Map(attritionSwarm.deck.map((card) => [card.cardNumber, card]));
+  const expectedNames = [
+    [1, 'attrition_swarm_husk_1', 'Hollow Groom', 'Pusty Pan Młody'],
+    [2, 'attrition_swarm_carrier_1', 'Coffin Bearer', 'Trumniarz'],
+    [3, 'attrition_swarm_leech_1', 'Grave Leech', 'Pijawka'],
+    [4, 'attrition_swarm_rotcaller_1', 'Rotcaller', 'Dyrygent'],
+    [5, 'attrition_swarm_abomination_1', 'Mourning Giant', 'Żałobny Olbrzym'],
+    [6, 'attrition_swarm_funeral_pyre_1', 'Funeral Pyre', 'Stos'],
+    [7, 'attrition_swarm_infect_1', 'Infectious Kiss', 'Pocałunek'],
+    [8, 'attrition_swarm_feast_1', 'Last Supper', 'Ostatnia Wieczerza'],
+    [9, 'attrition_swarm_rise_again_1', 'Dance Again', 'Zatańcz Raz Jeszcze'],
+    [10, 'attrition_swarm_grave_call_1', 'Grave Call', 'Wezwanie Grobu'],
+  ];
+
+  expectedNames.forEach(([cardNumber, cardId, nameEn, namePl]) => {
+    const card = cardsByNumber.get(cardNumber);
+    assert.equal(card.id, cardId);
+    assert.equal(getCardPresentationName(card, 'en'), nameEn);
+    assert.equal(getCardPresentationName(card, 'pl'), namePl);
+    assert.equal(getCardDisplayName(card, 'en'), nameEn);
+    assert.equal(getCardDisplayName(card, 'pl'), namePl);
+  });
+});
 
 test('Empire of the Golden Sun presentation names match the current flavor pass', () => {
   const tank = getFactionByKey('Tank');
