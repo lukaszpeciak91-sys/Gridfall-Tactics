@@ -128,11 +128,17 @@ These six visual identities map onto the six current base gameplay factions. Pre
 
 ### attrition-swarm — Gravehearts
 
-**Style:** Gothic romance, necro-rockabilly, funeral swing, romantic necromancy, tragicomic horror, cemetery culture, undead lovers, melancholic grotesque, burtonesque death fantasy, graveyard elegance, eternal mourning, undead devotion, psychotronic horror, love beyond death.
+**Core identity:** Post-human immortals who survived a catastrophe and then spent centuries being destroyed, resurrected, repaired, and rebuilt until both body and memory degraded. They cannot truly die, but every reconstruction leaves them less intact. Most no longer remember who they originally were; what remains are emotional echoes, compulsive ceremonies, and fragments of social rituals that outlived the people who understood them. Gravehearts are not primarily romantic necromancers. Their gothic romance is a residue: funerals, romances, dances, processions, celebrations, and mourning customs continue because the behavior survived longer than the memory.
 
-**Visual tags:** velvet coffins, funeral roses, pale makeup, cemetery neon, graveyard suits, vintage hearses, dancing skeletons, mourning dresses, cracked tombstones, gothic hairstyles, moonlit graveyards, undead ballroom.
+**Style:** Gothic romance, funeral swing, tragic post-human immortality, ritual persistence, melancholic grotesque, darkly funny memory loss, cemetery culture, degraded resurrection, stitched-together devotion, absurd ceremonial repetition, graveyard elegance, emotional echoes, psychotronic horror, love remembered only as habit. Keep the tone tragic, grotesque, absurd, melancholic, and darkly humorous. The comedy should come from persistent rituals performed by people who have forgotten their meaning, not slapstick, parody, or Halloween-style jokes.
+
+**Visual tags:** velvet coffins, funeral roses, cemetery neon, graveyard suits, vintage hearses, mourning dresses, cracked tombstones, gothic hairstyles, moonlit graveyards, faded identity tokens, stitched bodies, mismatched replacement limbs, reconstructed faces, patchwork torsos, repeated repair seams, funeral masks, coffin labels with unreadable names, dancers following corrupted choreography, coffin bearers carrying forgotten contents, hollow wedding attire.
 
 **Color notes:** moonlit blue, funeral black, velvet burgundy, bone white, wilted rose pink, graveyard green, and neon cemetery accents.
+
+**Art-direction emphasis:** Keep coffins, roses, cemetery motifs, mourning attire, gothic romance, and resurrection themes, but push the faction away from polished undead ballroom aristocracy. Show physical degradation and repeated reconstruction: bodies stitched from incompatible eras, a groom searching for a bride he may never have had, a coffin bearer protecting a coffin whose occupant nobody remembers, dancers continuing a ceremony without understanding it, a giant assembled from replacement bodies accumulated over centuries, and performers repeating traditions from corrupted memories.
+
+**Porcelain Court contrast:** Gravehearts are immortals losing themselves, not aristocratic immortals preserving perfection. Their identity is decay, forgetting, reconstruction, instinctive ritual, and fragmentation. The Porcelain Court should own preservation, memory, refinement, etiquette, and maintained identity. Avoid making both factions feel like immortal ballroom aristocracies.
 
 ### tank — Empire of the Golden Sun / Imperium Złotego Słońca
 
@@ -159,7 +165,7 @@ These are presentation feelings only. They describe how art should support exist
 - **aggro / Porcelain Court:** fast tempo, burst aggression, theatrical attacks, stylish violence, chaotic pressure.
 - **control / Orden der Glasköpfe:** manipulation, disruption, tactical control, debuffs, forced positioning, system interference.
 - **swarm / Spore Choir:** expansion, multiplication, collective growth, spreading organism, organic pressure, swarm saturation.
-- **attrition-swarm / Gravehearts:** death value, recurring units, sacrificial advantage, lingering pressure, emotional attrition, undead persistence.
+- **attrition-swarm / Gravehearts:** death value, recurring units, sacrificial advantage, lingering pressure, emotional attrition, undead persistence, degraded reconstruction, and instinctive ritual without remembered meaning.
 - **tank / Empire of the Golden Sun:** immovable defense, sustain, armored advance, imperial resilience, heavy battlefield presence, survival through attrition.
 - **wardens / Mammoth Clans:** defensive line, endurance, fortified positions, holding ground, defensive friction, lane denial.
 
@@ -188,6 +194,6 @@ Also avoid:
 - **Porcelain Court:** `rococo chaos, decadent immortal aristocracy, porcelain automata, televised ballroom violence, chemical degeneration, ceremonial brutality, cracked porcelain, gold trim, lace uniforms, white gloves, gold syringes, crystal ampoules, velvet medical rituals, rose garden, candlelit carnage, pastel luxury`
 - **Orden der Glasköpfe:** `techno-occult Reich, brain in glass cylinder, cold technocracy, neural cables, red optics, steel walkers, surveillance towers, industrial paranoia, machine theology`
 - **Spore Choir:** `psychedelic biology, cosmic mycelium, beautiful bio-horror, glowing spores, wet organic textures, bioluminescent fungi, translucent flesh, dreamlike forest`
-- **Gravehearts:** `gothic romance, necro-rockabilly, funeral swing, undead lovers, velvet coffins, funeral roses, moonlit graveyard, cemetery neon, melancholic grotesque`
+- **Gravehearts:** `gothic romance, funeral swing, post-human immortals, degraded resurrection, stitched bodies, mismatched replacement limbs, fading identities, emotional echoes, ritualized mourning, velvet coffins, funeral roses, moonlit graveyard, cemetery neon, melancholic grotesque, darkly humorous memory loss`
 - **Empire of the Golden Sun:** `solar dinosaur empire, gold armor, obsidian weapons, basalt fortress, feathered raptors, sun worship symbols, ceremonial war culture, ancient monuments`
 - **Mammoth Clans:** `ice age empire, mammoth civilization, tundra fortress, prehistoric military, glacial warfare, frozen frontier, neanderthal empire, primal fortification, snowbound legion, ancient survivalism, tribal phalanx, ice bastion`
