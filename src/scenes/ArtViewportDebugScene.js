@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
 import { preloadAllCardIllustrations } from '../rendering/cardIllustrationAssets.js';
-import { createCardPreviewView } from '../rendering/cardVisualLayout.js';
+import { createCardPreviewView, getCardLayoutZones } from '../rendering/cardVisualLayout.js';
 import { HAND_CARD_ASPECT_RATIO } from '../ui/handLayout.js';
 import {
   getCollectionInspectCardTransform,
@@ -308,11 +308,12 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
       enableCardIllustration: true,
       temporaryArtCropY01: this.currentY01,
       temporaryArtCropYOffset: 0,
-      clipArtToViewport: true,
+      clipArtToViewport: false,
     });
     const crop = preview?.art?.cropDebugMetrics ?? null;
 
     preview.root.setScale(fitScale);
+    const artViewportMaskShape = this.createWorldArtViewportMask(preview, target);
 
     const previewWidth = target.width * fitScale;
     const previewHeight = target.height * fitScale;
@@ -326,7 +327,31 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
       },
     ).setOrigin(0, 0);
 
-    return [workspaceBackdrop, preview.root, label];
+    return [workspaceBackdrop, preview.root, artViewportMaskShape, label].filter(Boolean);
+  }
+
+  createWorldArtViewportMask(preview, target) {
+    if (!preview?.art || typeof this.add?.graphics !== 'function') return null;
+
+    const scaleX = preview.root?.scaleX ?? 1;
+    const scaleY = preview.root?.scaleY ?? 1;
+    const zones = getCardLayoutZones(target.width, target.height);
+    const maskShape = this.add.graphics();
+    maskShape.fillStyle(0xffffff, 1);
+    maskShape.fillRect(
+      preview.root.x + zones.art.x * scaleX,
+      preview.root.y + zones.art.y * scaleY,
+      zones.art.width * scaleX,
+      zones.art.height * scaleY,
+    );
+    maskShape.setVisible(false);
+
+    const artViewportMask = maskShape.createGeometryMask();
+    preview.art.setMask(artViewportMask);
+    preview.art.artMaskShape = maskShape;
+    preview.art.artMask = artViewportMask;
+
+    return maskShape;
   }
 
   renderPreviews() {
