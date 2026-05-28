@@ -28,6 +28,10 @@ function chainable(displayObject = {}) {
       this.crop = { x, y, width, height };
       return this;
     },
+    setOrigin(x, y = x) {
+      this.origin = { x, y };
+      return this;
+    },
   };
 }
 
@@ -83,6 +87,45 @@ test('dry card layout experiment expands collection artwork viewport without shr
   assert.equal(zones.art.width, 156);
   assert.equal(zones.art.height, 111);
   assert.ok(crop.visibleSourceHeightPercent >= 47 && crop.visibleSourceHeightPercent <= 49);
+});
+
+test('card artwork crop Y selects source window while keeping viewport covered and image position fixed', () => {
+  const scene = createArtworkScene({ loadedTextureKeys: ['card.aggro.aggro_01'] });
+
+  const topArtwork = createCardArtwork(scene, artZone, { id: 'aggro_runner_1' }, {
+    enableCardIllustration: true,
+    artPositionY: 0,
+  });
+  const middleArtwork = createCardArtwork(scene, artZone, { id: 'aggro_runner_1' }, {
+    enableCardIllustration: true,
+    artPositionY: 0.5,
+  });
+  const bottomArtwork = createCardArtwork(scene, artZone, { id: 'aggro_runner_1' }, {
+    enableCardIllustration: true,
+    artPositionY: 1,
+  });
+
+  assert.equal(topArtwork.x, artZone.centerX);
+  assert.equal(middleArtwork.x, artZone.centerX);
+  assert.equal(bottomArtwork.x, artZone.centerX);
+  assert.equal(topArtwork.y, artZone.centerY);
+  assert.equal(middleArtwork.y, artZone.centerY);
+  assert.equal(bottomArtwork.y, artZone.centerY);
+
+  assert.equal(topArtwork.crop.y, 0);
+  assert.ok(Math.abs(middleArtwork.crop.y - 42.6667) < 0.001);
+  assert.ok(Math.abs(bottomArtwork.crop.y - bottomArtwork.cropDebugMetrics.maxCropY) < 0.001);
+  assert.ok(bottomArtwork.crop.y > middleArtwork.crop.y);
+
+  [topArtwork, middleArtwork, bottomArtwork].forEach((artwork) => {
+    assert.ok(Math.abs((artwork.crop.width * artwork.cropDebugMetrics.scale) - artZone.width) < 0.001);
+    assert.ok(Math.abs((artwork.crop.height * artwork.cropDebugMetrics.scale) - artZone.height) < 0.001);
+    assert.equal(artwork.displayWidth, 120);
+    assert.equal(artwork.displayHeight, 180);
+  });
+
+  assert.ok(topArtwork.origin.y < middleArtwork.origin.y);
+  assert.ok(middleArtwork.origin.y < bottomArtwork.origin.y);
 });
 
 test('standardized card illustrations render only when callers enable them', () => {
