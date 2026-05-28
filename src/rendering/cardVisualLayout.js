@@ -1164,8 +1164,8 @@ export function createCardPreviewView(scene, {
     const artViewportMaskShape = scene.add.graphics();
     artViewportMaskShape.fillStyle(0xffffff, 1);
     artViewportMaskShape.fillRect(
-      zones.art.x - zones.art.width / 2,
-      zones.art.y - zones.art.height / 2,
+      zones.art.x,
+      zones.art.y,
       zones.art.width,
       zones.art.height,
     );
