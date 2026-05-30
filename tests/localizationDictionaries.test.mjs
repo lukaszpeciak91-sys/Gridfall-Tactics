@@ -59,7 +59,7 @@ test('hold-pass surrender helper copy is localized for English and Polish', () =
 test('effect targeting cancel and instruction copy is localized for English and Polish', () => {
   assert.equal(getPath(en, 'ui.common.cancel'), 'CANCEL');
   assert.equal(getPath(pl, 'ui.common.cancel'), 'ANULUJ');
-  for (const key of ['selectEnemy', 'selectFirstEnemy', 'selectAdjacentEnemy', 'selectAlly', 'selectUnit']) {
+  for (const key of ['selectEnemy', 'selectFirstEnemy', 'selectSecondEnemy', 'selectAdjacentEnemy', 'selectAlly', 'selectUnit']) {
     assert.equal(typeof getPath(en, `ui.battle.targeting.${key}`), 'string', `missing English targeting instruction ${key}`);
     assert.equal(typeof getPath(pl, `ui.battle.targeting.${key}`), 'string', `missing Polish targeting instruction ${key}`);
   }

@@ -167,6 +167,8 @@ export default class BattleScene extends Phaser.Scene {
     this.effectCastState = null;
     this.isEffectCastResolving = false;
     this.targetingInstructionText = null;
+    this.activeSelectionBanner = null;
+    this.activeSelectionBannerMode = null;
     this.openingMulliganPending = false;
     this.selectedMulliganCardIds = [];
     this.previewedMulliganCardId = null;
@@ -236,6 +238,8 @@ export default class BattleScene extends Phaser.Scene {
     this.effectCastState = null;
     this.isEffectCastResolving = false;
     this.targetingInstructionText = null;
+    this.activeSelectionBanner = null;
+    this.activeSelectionBannerMode = null;
     this.openingMulliganPending = false;
     this.selectedMulliganCardIds = [];
     this.previewedMulliganCardId = null;
@@ -301,6 +305,7 @@ export default class BattleScene extends Phaser.Scene {
     this.destroyTurnStartBanner();
     this.destroyPlayerActionBanner();
     this.destroyTargetingInstruction();
+    this.destroyActiveSelectionMessage();
     this.destroyBattleResultModal();
     this.destroyUtilityMenuPanel();
     this.destroyDeckInfoPanel();
@@ -3343,38 +3348,62 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
-    if (this.targetingInstructionText?.active) {
-      this.targetingInstructionText.setText(message);
-      return;
-    }
-
-    const { width, height, board } = this.layout;
-    const fontSize = Math.min(18, Math.max(13, Math.floor(Math.max(board.cellWidth * 0.12, height * 0.015))));
-    this.targetingInstructionText = this.add.text(
-      width * 0.5,
-      board.centerY - board.cellHeight * 0.64,
-      message,
-      {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: `${fontSize}px`,
-        color: '#f5f3ff',
-        backgroundColor: '#4c1d95',
-        fontStyle: 'bold',
-        align: 'center',
-        padding: { x: 12, y: 7 },
-      },
-    ).setOrigin(0.5).setDepth(222).setAlpha(0.96).setStroke('#c4b5fd', 2);
+    this.showActiveSelectionMessage(message, 'targeting');
   }
 
   showSwapPrompt(step = 'selectSource') {
     const message = step === 'selectAdjacent'
       ? translateActive('ui.battle.swapPromptSelectAdjacent', 'SWAP: select adjacent unit')
       : translateActive('ui.battle.swapPromptSelectUnit', 'SWAP: select unit');
-    this.showPlayerActionBanner(message);
+    this.showActiveSelectionMessage(message, 'swap');
   }
 
   clearSwapPrompt() {
-    this.destroyPlayerActionBanner();
+    if (this.activeSelectionBannerMode !== 'swap') return;
+    this.destroyActiveSelectionMessage();
+  }
+
+  showActiveSelectionMessage(message, mode = 'selection') {
+    if (!message) {
+      this.destroyActiveSelectionMessage();
+      return;
+    }
+
+    if (this.activeSelectionBanner?.active) {
+      this.activeSelectionBanner.setText(message);
+      this.activeSelectionBannerMode = mode;
+      this.targetingInstructionText = mode === 'targeting' ? this.activeSelectionBanner : null;
+      return;
+    }
+
+    const { width, height, board } = this.layout;
+    const maxWidth = board.width * 0.88;
+    const fontSize = Math.min(18, Math.max(14, Math.floor(Math.max(board.cellWidth * 0.125, height * 0.016))));
+    const targetY = board.centerY - board.cellHeight * 0.64;
+    const startY = targetY + 5;
+    this.activeSelectionBanner = this.add.text(width * 0.5, startY, message, {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: `${fontSize}px`,
+      color: '#dcfce7',
+      backgroundColor: '#14532d',
+      align: 'center',
+      padding: { x: 14, y: 8 },
+      wordWrap: { width: maxWidth },
+      fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(221).setAlpha(0).setScale(0.98).setStroke('#052e16', 1);
+
+    this.activeSelectionBannerMode = mode;
+    this.targetingInstructionText = mode === 'targeting' ? this.activeSelectionBanner : null;
+    const banner = this.activeSelectionBanner;
+    this.tweens.add({
+      targets: banner,
+      alpha: 1,
+      y: targetY,
+      scaleX: 1,
+      scaleY: 1,
+      duration: PLAYER_EFFECT_CONFIRMATION_FADE_IN_MS,
+      ease: 'Quad.easeOut',
+    });
   }
 
   showEnemyActionBanner(message, pacing = ENEMY_ACTION_PACING.unit) {
@@ -3452,9 +3481,20 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   destroyTargetingInstruction() {
-    if (!this.targetingInstructionText) return;
-    this.tweens?.killTweensOf?.(this.targetingInstructionText);
-    this.targetingInstructionText.destroy();
+    if (this.activeSelectionBannerMode !== 'targeting') return;
+    this.destroyActiveSelectionMessage();
+  }
+
+  destroyActiveSelectionMessage() {
+    if (!this.activeSelectionBanner) {
+      this.targetingInstructionText = null;
+      this.activeSelectionBannerMode = null;
+      return;
+    }
+    this.tweens?.killTweensOf?.(this.activeSelectionBanner);
+    this.activeSelectionBanner.destroy();
+    this.activeSelectionBanner = null;
+    this.activeSelectionBannerMode = null;
     this.targetingInstructionText = null;
   }
 
