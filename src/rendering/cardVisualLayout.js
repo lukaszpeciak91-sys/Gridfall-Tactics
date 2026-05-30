@@ -143,9 +143,6 @@ export const CARD_COLORS = Object.freeze({
 export const NON_UNIT_EFFECT_STAT_SYMBOL = '✶';
 export const NON_UNIT_EFFECT_STAT_SYMBOL_COLOR = 0xfde68a;
 export const NON_UNIT_EFFECT_STAT_SYMBOL_CSS_COLOR = '#fde68a';
-export const NON_UNIT_EFFECT_STAT_SYMBOL_FIXED_HEIGHT_RATIO = 0.84;
-export const NON_UNIT_EFFECT_STAT_SYMBOL_OPTICAL_OFFSET_Y = -3;
-
 
 export function getFixedHeightTextVisualCenterOriginY(fontMetrics, fixedHeight, strokeThickness = 0) {
   const measuredFontHeight = Number.isFinite(fontMetrics?.fontSize) && fontMetrics.fontSize > 0
@@ -856,8 +853,42 @@ export function createStatBadges(scene, x, y, width, height, stats, depth = 0, o
   return container;
 }
 
+function getNonUnitEffectStarPoints(size, offsetX = 0, offsetY = 0) {
+  const outerRadius = size * 0.46;
+  const innerRadius = outerRadius * 0.43;
+  const pointCount = 6;
+  const points = [];
+
+  for (let index = 0; index < pointCount * 2; index += 1) {
+    const radius = index % 2 === 0 ? outerRadius : innerRadius;
+    const angle = -Math.PI / 2 + (Math.PI / pointCount) * index;
+    points.push({
+      x: offsetX + Math.cos(angle) * radius,
+      y: offsetY + Math.sin(angle) * radius,
+    });
+  }
+
+  return points;
+}
+
+export function drawNonUnitEffectStarIcon(scene, x, y, size) {
+  const strokeThickness = Math.max(1, Math.round(size * 0.115));
+  const shadowOffsetY = Math.max(1, Math.round(size * 0.045));
+  const star = scene.add.graphics({ x, y });
+  const points = getNonUnitEffectStarPoints(size);
+
+  star.fillStyle(0x000000, 0.36);
+  star.fillPoints(getNonUnitEffectStarPoints(size, 0, shadowOffsetY), true);
+  star.lineStyle(strokeThickness, 0x4a3200, 0.98);
+  star.fillStyle(NON_UNIT_EFFECT_STAT_SYMBOL_COLOR, 1);
+  star.fillPoints(points, true);
+  star.strokePoints(points, true);
+
+  return star;
+}
+
 export function createNonUnitEffectStatSymbols(scene, x, y, width, height, depth = 0, options = {}) {
-  const container = scene.add.container(x, y + NON_UNIT_EFFECT_STAT_SYMBOL_OPTICAL_OFFSET_Y).setDepth(depth);
+  const container = scene.add.container(x, y).setDepth(depth);
   const {
     sizeScale = 1,
     fontScale = 1,
@@ -865,26 +896,11 @@ export function createNonUnitEffectStatSymbols(scene, x, y, width, height, depth
     maxGroupWidthRatio = 0.86,
   } = options;
   const metrics = getStatRowMetrics(height, width, { sizeScale, fontScale, spacingScale, maxGroupWidthRatio });
-  const effectFontSize = Math.max(13, Math.round(metrics.symbolSize * 0.96));
-  const fixedHeight = Math.ceil(metrics.symbolSize * NON_UNIT_EFFECT_STAT_SYMBOL_FIXED_HEIGHT_RATIO);
-  const strokeThickness = Math.max(1, Math.round(effectFontSize * 0.12));
+  const starSize = metrics.symbolSize * Math.max(0.01, fontScale * 0.96);
 
   for (let index = 0; index < 3; index += 1) {
     const slotCenterX = -metrics.groupWidth / 2 + metrics.slotWidth * (index + 0.5);
-    const symbol = scene.add.text(slotCenterX, 0, NON_UNIT_EFFECT_STAT_SYMBOL, {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: `${effectFontSize}px`,
-      color: NON_UNIT_EFFECT_STAT_SYMBOL_CSS_COLOR,
-      fontStyle: 'bold',
-      align: 'center',
-      stroke: '#4a3200',
-      strokeThickness,
-      fixedWidth: Math.ceil(metrics.symbolSize * 1.02),
-      fixedHeight,
-    });
-    symbol.setOrigin(0.5, getFixedHeightTextVisualCenterOriginY(symbol.getTextMetrics(), fixedHeight, strokeThickness));
-    symbol.setShadow(0, 1, 'rgba(0, 0, 0, 0.62)', 2);
-    container.add(symbol);
+    container.add(drawNonUnitEffectStarIcon(scene, slotCenterX, 0, starSize));
   }
 
   container.statFeedback = {};
@@ -893,7 +909,6 @@ export function createNonUnitEffectStatSymbols(scene, x, y, width, height, depth
     groupWidth: metrics.groupWidth,
     slotWidth: metrics.slotWidth,
     topMargin: metrics.topMargin,
-    opticalOffsetY: NON_UNIT_EFFECT_STAT_SYMBOL_OPTICAL_OFFSET_Y,
   };
 
   return container;
