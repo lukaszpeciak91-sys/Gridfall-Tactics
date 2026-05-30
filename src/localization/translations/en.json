@@ -65,7 +65,7 @@
       "textShort": "First 2 [ALLY] combat deaths: deal 1 to opposed enemy."
     },
     "attrition_swarm_infect_1": {
-      "name": "Infect",
+      "name": "Rotten Gift",
       "textShort": "Deal 1 to enemy. If it survives, opposed [ALLY] +1 ATK."
     },
     "attrition_swarm_feast_1": {

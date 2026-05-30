@@ -82,7 +82,7 @@
       "id": "attrition_swarm_infect_1",
       "cardNumber": 7,
       "artAssetId": "attrition-swarm_07",
-      "name": "Infect",
+      "name": "Rotten Gift",
       "type": "order",
       "targeting": "enemy_unit",
       "effectId": "infect_damage_1_opposite_ally_atk_1",
