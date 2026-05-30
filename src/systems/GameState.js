@@ -1,3 +1,5 @@
+import { GENERATED_UNIT_ART, getGeneratedGruntArtForSource } from '../data/generatedUnitArt.js';
+
 const BOARD_SIZE = 9;
 const ENEMY_ROW = [0, 1, 2];
 const PLAYER_ROW = [6, 7, 8];
@@ -343,7 +345,7 @@ function healHero(state, owner, amount) {
   return Math.max(0, state[hpKey] - before);
 }
 
-function createGruntCard(id, name = 'Grunt', attack = 1, hp = 1) {
+function createGruntCard(id, name = 'Grunt', attack = 1, hp = 1, artMetadata = GENERATED_UNIT_ART.swarmGrunt) {
   return {
     id,
     name,
@@ -352,14 +354,15 @@ function createGruntCard(id, name = 'Grunt', attack = 1, hp = 1) {
     hp,
     armor: 0,
     effectId: null,
+    ...artMetadata,
   };
 }
 
-function summonGruntAt(state, index, owner, idPrefix = 'summoned_grunt') {
+function summonGruntAt(state, index, owner, idPrefix = 'summoned_grunt', artMetadata = GENERATED_UNIT_ART.swarmGrunt) {
   if (state.board[index] !== null) return false;
   const tokenId = `${owner}_${idPrefix}_${index}_${state.nextTokenId ?? 0}`;
   state.nextTokenId = (state.nextTokenId ?? 0) + 1;
-  state.board[index] = createBoardUnitFromCard(createGruntCard(tokenId), owner);
+  state.board[index] = createBoardUnitFromCard(createGruntCard(tokenId, 'Grunt', 1, 1, artMetadata), owner);
   return true;
 }
 
@@ -426,12 +429,12 @@ function triggerUnitDeathEffects(state, index, unit, options = {}) {
   }
 
   if (unit.effectId === 'on_death_summon_grunt' && state.board[index] === null) {
-    summonGruntAt(state, index, owner, 'death_grunt');
+    summonGruntAt(state, index, owner, 'death_grunt', getGeneratedGruntArtForSource(unit));
   }
 
   if (isCombatDeath && unit.effectId === 'combat_death_summon_grunt' && state.board[index] === null) {
     state.combatOnlyDeathSummons = (state.combatOnlyDeathSummons ?? 0) + 1;
-    summonGruntAt(state, index, owner, 'combat_death_grunt');
+    summonGruntAt(state, index, owner, 'combat_death_grunt', getGeneratedGruntArtForSource(unit));
   }
 }
 
@@ -573,7 +576,7 @@ function getAdjacentFriendlyFormationIndexes(state, owner) {
   });
 }
 
-function applyEffectById(state, owner, effectId) {
+function applyEffectById(state, owner, effectId, sourceCard = null) {
   switch (effectId) {
     case 'damage_all_enemies_1_ignore_armor': {
       const enemyIndexes = getRowForOwner(getOpponentOwner(owner))
@@ -643,7 +646,7 @@ function applyEffectById(state, owner, effectId) {
       if (emptySlot === undefined) {
         break;
       }
-      summonGruntAt(state, emptySlot, owner, 'summoned_grunt');
+      summonGruntAt(state, emptySlot, owner, 'summoned_grunt', getGeneratedGruntArtForSource(sourceCard));
       break;
     }
     case 'grave_call': {
@@ -653,7 +656,7 @@ function applyEffectById(state, owner, effectId) {
       let summoned = 0;
       friendlyIndexes.forEach((index) => {
         if (summoned >= summonLimit || state.board[index]) return;
-        if (summonGruntAt(state, index, owner, 'grave_call_grunt')) summoned += 1;
+        if (summonGruntAt(state, index, owner, 'grave_call_grunt', getGeneratedGruntArtForSource(sourceCard))) summoned += 1;
       });
       break;
     }
@@ -678,6 +681,7 @@ function applyEffectById(state, owner, effectId) {
           armor: 0,
           effectId: null,
           temporaryFloodToken: true,
+          ...GENERATED_UNIT_ART.swarmFloodToken,
         }, owner);
         summoned += 1;
       });
@@ -1010,7 +1014,7 @@ export function playEffectCard(state, owner, handCardId) {
   const protectedOwner = getOpponentOwner(owner);
   const blockedByImmunity = hasMoveDisableImmunity(state, protectedOwner, owner, playedCard.effectId ?? null);
   if (!blockedByImmunity) {
-    applyEffectById(state, owner, playedCard.effectId ?? null);
+    applyEffectById(state, owner, playedCard.effectId ?? null, playedCard);
   }
   recordProgressAction(state, owner, blockedByImmunity ? 'effect-blocked' : 'effect');
   return { ok: true, type: blockedByImmunity ? 'effect-blocked' : 'effect', card: playedCard };

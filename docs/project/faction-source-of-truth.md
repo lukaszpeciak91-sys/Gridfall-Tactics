@@ -54,3 +54,14 @@ public/assets/factions/{factionId}/preview.webp
 ```
 
 `public/assets/cards/` is the only canonical source directory for gameplay card illustrations. `public/assets/factions/` is limited to faction-level preview, banner, logo, and UI artwork; it must not contain gameplay card-art subfolders.
+
+
+Generated non-deck units use the same resolver and `public/assets/cards/{factionId}/{artAssetId}.webp` convention as collectible deck cards, but their art identity is stamped at generation time instead of coming from a deck JSON entry. The current generated-unit art identities are:
+
+| Generated unit source | `factionId` | `artAssetId` | Runtime file |
+| --- | --- | --- | --- |
+| Spawn / Brood Grunt | `swarm` | `token_grunt_01` | `public/assets/cards/swarm/token_grunt_01.webp` |
+| Flood Token | `swarm` | `token_flood_01` | `public/assets/cards/swarm/token_flood_01.webp` |
+| Carrier / Grave Call Grunt | `attrition_swarm` | `token_grunt_02` | `public/assets/cards/attrition_swarm/token_grunt_02.webp` |
+
+Generated units also carry `tokenType`, `isToken: true`, and `collectible: false`. Board/hand/discard/revive conversions must preserve those fields so Recall, redeploy displacement, replay from hand, and later revive continue to resolve the same faction-local token illustration. Do not place generated-unit illustrations in `public/assets/cards/tokens/`; token art remains faction-local under `public/assets/cards/`. Do not reuse the same `artAssetId` for visually different generated units, even when those units live in different faction folders. The binary `.webp` artwork files are manual repository additions outside Codex scope; when absent, the runtime must keep using the existing card-art placeholder fallback without crashing.
