@@ -119,3 +119,8 @@ canonical_ref: docs/rules/mvp-battle-rules.md
 - Confirmed Collection and Inspect previews use the same shared renderer crop path for production card artwork, keeping authored overrides consistent across those preview surfaces.
 - Documented the current board-unit exception: board-unit rendering uses separate board artwork constants today rather than the Collection/Inspect shared crop override path.
 - Final authoring workflow: Generate artwork → Adjust Y in `ArtViewportDebug` → Export overrides → Apply overrides to production override data.
+
+## Generated Unit Faction-Local Art (2026-05-30)
+- Added stable art identity for generated non-deck units while preserving existing Recall, redeploy, discard, revive, death, and cleanup behavior.
+- Generated Grunts and Flood tokens now resolve through unique faction-local `public/assets/cards/{factionId}/{artAssetId}.webp` artwork and are explicitly preloaded even though they are not normal deck cards; binary `.webp` files remain manual repo additions outside Codex scope.
+- Documented the generated-unit lifecycle convention so board, hand, discard, and revive movements keep the same token illustration metadata.

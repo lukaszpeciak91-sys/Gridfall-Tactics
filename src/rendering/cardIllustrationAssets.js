@@ -1,4 +1,5 @@
 import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
+import { GENERATED_UNIT_ART_ASSETS } from '../data/generatedUnitArt.js';
 import { preloadImageAsset, resolvePublicAssetPath } from './backgroundArt.js';
 
 export const CARD_ILLUSTRATION_SOURCE = Object.freeze({
@@ -138,8 +139,16 @@ export function preloadCardIllustrationsForFaction(scene, factionKeyOrData) {
     .filter(Boolean).length;
 }
 
+export function preloadGeneratedUnitIllustrations(scene) {
+  return GENERATED_UNIT_ART_ASSETS
+    .map((generatedUnitArt) => preloadCardIllustration(scene, generatedUnitArt))
+    .filter(Boolean).length;
+}
+
 export function preloadAllCardIllustrations(scene) {
-  return getFactionKeys().reduce((count, factionKey) => count + preloadCardIllustrationsForFaction(scene, factionKey), 0);
+  const deckIllustrationCount = getFactionKeys()
+    .reduce((count, factionKey) => count + preloadCardIllustrationsForFaction(scene, factionKey), 0);
+  return deckIllustrationCount + preloadGeneratedUnitIllustrations(scene);
 }
 
 export function getLoadedCardIllustrationTextureKey(scene, card, options = {}) {
