@@ -6,6 +6,7 @@ import {
 } from '../localization/cardDisplay.js';
 import { translate } from '../localization/localeService.js';
 import { formatCardEffectTextShort } from '../localization/cardTextFormatting.js';
+import { isCardUnit } from './cardVisualLayout.js';
 
 function getTargetingLabel(targeting, locale = 'en') {
   const normalizedTargeting = typeof targeting === 'string' && targeting.length > 0 ? targeting : 'none';
@@ -14,16 +15,12 @@ function getTargetingLabel(targeting, locale = 'en') {
 
 const UNKNOWN_CARD_LABEL = 'Unknown Card';
 
-function isUnitCard(card) {
-  return card?.type === 'unit' || (Number.isFinite(card?.attack) && Number.isFinite(card?.hp));
-}
-
 function getNumericStat(card, key, fallback = 0) {
   return Number.isFinite(card?.[key]) ? card[key] : fallback;
 }
 
 function compactUnitStats(card, locale = 'en') {
-  if (!isUnitCard(card)) return null;
+  if (!isCardUnit(card)) return null;
   const attack = getNumericStat(card, 'attack');
   const hp = getNumericStat(card, 'hp');
   const armor = getNumericStat(card, 'armor');
@@ -67,7 +64,7 @@ export function formatBoardUnitLabel(unit, locale = 'en') {
 export function formatCollectionRowLabel(card, locale = 'en') {
   const name = getCardDisplayName(card, locale) ?? '';
   const type = card?.type ? getCardTypeLabel(card, locale) : '';
-  const stats = isUnitCard(card)
+  const stats = isCardUnit(card)
     ? `${getStatLabel('attack', locale)} ${card.attack ?? '-'} / ${getStatLabel('hp', locale)} ${card.hp ?? '-'}`
     : null;
   const textShort = formatCardEffectTextShort(getCardTextShort(card, locale) ?? '', locale);
@@ -84,7 +81,7 @@ export function formatCardDetailLines(card, locale = 'en') {
   return [
     name,
     `${translate('ui.cardDetails.type', locale, 'Type')}: ${getCardTypeLabel(card, locale)}`,
-    ...(isUnitCard(card) ? [`${translate('ui.cardDetails.atkHp', locale, 'ATK/HP')}: ${card.attack ?? '-'} / ${card.hp ?? '-'}`] : []),
+    ...(isCardUnit(card) ? [`${translate('ui.cardDetails.atkHp', locale, 'ATK/HP')}: ${card.attack ?? '-'} / ${card.hp ?? '-'}`] : []),
     `${translate('ui.cardDetails.targeting', locale, 'Target')}: ${getTargetingLabel(card?.targeting, locale)}`,
     '',
     formatCardEffectTextShort(getCardTextShort(card, locale) ?? '', locale),
