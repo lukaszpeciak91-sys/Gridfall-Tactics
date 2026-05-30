@@ -872,17 +872,14 @@ function getNonUnitEffectStarPoints(size, offsetX = 0, offsetY = 0) {
 }
 
 export function drawNonUnitEffectStarIcon(scene, x, y, size) {
-  const strokeThickness = Math.max(1, Math.round(size * 0.115));
-  const shadowOffsetY = Math.max(1, Math.round(size * 0.045));
+  const shadowOffsetY = Math.max(1, Math.round(size * 0.035));
   const star = scene.add.graphics({ x, y });
   const points = getNonUnitEffectStarPoints(size);
 
-  star.fillStyle(0x000000, 0.36);
+  star.fillStyle(0xf59e0b, 0.22);
   star.fillPoints(getNonUnitEffectStarPoints(size, 0, shadowOffsetY), true);
-  star.lineStyle(strokeThickness, 0x4a3200, 0.98);
   star.fillStyle(NON_UNIT_EFFECT_STAT_SYMBOL_COLOR, 1);
   star.fillPoints(points, true);
-  star.strokePoints(points, true);
 
   return star;
 }
