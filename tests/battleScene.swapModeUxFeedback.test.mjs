@@ -105,7 +105,7 @@ test('implicit swap runtime flow: select, highlight, swap, clear, and invalid ta
   assert.equal(scene.gameState.board[7].id, 'A');
 });
 
-test('own board long-press inspect consumes the release before scene-level tap routing', () => {
+test('own board long-press inspect preserves swap source and consumes release before scene-level tap routing', () => {
   const startBoardCellLongPress = compileMethod(
     'startBoardCellLongPress',
     'cancelBoardCellLongPress',
@@ -158,13 +158,13 @@ test('own board long-press inspect consumes the release before scene-level tap r
   assert.equal(scene.delayMs, 350);
   assert.equal(scene.boardInspectIndex, 6);
   assert.equal(scene.boardLongPressSuppressNextScenePointerUpIndex, 6);
-  assert.equal(scene.pendingSwapIndex, null);
+  assert.equal(scene.pendingSwapIndex, 6);
 
   onScenePointerUp.call(scene, { x: 1, y: 1 }, []);
   assert.equal(scene.boardLongPressSuppressNextScenePointerUpIndex, null);
   assert.equal(scene.tapCalls ?? 0, 0);
   assert.equal(scene.clearInspectCalls ?? 0, 0);
-  assert.equal(scene.pendingSwapIndex, null);
+  assert.equal(scene.pendingSwapIndex, 6);
   assert.equal(scene.boardInspectIndex, 6);
 });
 

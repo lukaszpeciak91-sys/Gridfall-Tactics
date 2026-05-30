@@ -6,7 +6,8 @@ const source = readFileSync(new URL('../src/scenes/BattleScene.js', import.meta.
 
 function extractMethodBody(name, nextName) {
   const start = source.indexOf(`\n  ${name}(`);
-  const end = source.indexOf(`\n  ${nextName}(`, start + 1);
+  let end = source.indexOf(`\n  ${nextName}(`, start + 1);
+  if (end < 0) end = source.indexOf(`\n  async ${nextName}(`, start + 1);
   if (start < 0 || end < 0) throw new Error(`Failed to extract ${name}`);
   return source.slice(start, end);
 }
@@ -100,4 +101,196 @@ test('scene pointerup consumes pointerdown-selected source without committing sw
   assert.deepEqual(tapped, []);
   assert.equal(scene.pendingSwapIndex, 6);
   assert.equal(scene.boardPointerDownSelectedSwapSource, false);
+});
+
+test('own unit short tap selects swap source without opening board inspect', () => {
+  const trySelectImplicitSwapSourceOnPointerDown = compileMethod('trySelectImplicitSwapSourceOnPointerDown', 'onCardPointerDown', ['boardIndex']);
+  const onBoardCellPointerUp = compileMethod('onBoardCellPointerUp', 'onBoardCellPointerOut', ['boardIndex']);
+
+  const scene = {
+    pendingSwapIndex: null,
+    selectedCardId: null,
+    targetingState: null,
+    effectCastState: null,
+    battleResultModalShown: false,
+    isFlowResolving: false,
+    isEffectCastResolving: false,
+    playerActionUsed: false,
+    hoverInspectCardId: null,
+    boardInspectIndex: null,
+    boardPointerDownSelectedSwapSource: false,
+    pressedBoardCellIndex: 2,
+    boardLongPressTriggeredIndex: null,
+    gameState: { board: [null, null, { owner: 'player' }] },
+    showSwapPromptCalledWith: null,
+    showSwapPrompt(step) { this.showSwapPromptCalledWith = step; },
+    clearBoardInspect() { this.boardInspectIndex = null; },
+    resetCardHighlights() {},
+    cancelBoardCellLongPress() {},
+    onBoardCellTap() { throw new Error('short release should not re-process pointerdown-selected source'); },
+  };
+
+  assert.equal(trySelectImplicitSwapSourceOnPointerDown.call(scene, 2), true);
+  onBoardCellPointerUp.call(scene, 2);
+
+  assert.equal(scene.pendingSwapIndex, 2);
+  assert.equal(scene.showSwapPromptCalledWith, 'selectAdjacent');
+  assert.equal(scene.boardInspectIndex, null);
+});
+
+test('own unit long press preserves swap source, opens inspect, and release is not an extra tap', () => {
+  const startBoardCellLongPress = compileMethod('startBoardCellLongPress', 'cancelBoardCellLongPress', ['boardIndex', 'BOARD_INSPECT_LONG_PRESS_MS']);
+  const onBoardCellPointerUp = compileMethod('onBoardCellPointerUp', 'onBoardCellPointerOut', ['boardIndex']);
+  const onScenePointerUp = compileMethod('onScenePointerUp', 'clearSelectedHandInspectFromOutsideTap', ['pointer', 'currentlyOver']);
+
+  let timerCallback = null;
+  const tapped = [];
+  const scene = {
+    pendingSwapIndex: 2,
+    selectedCardId: null,
+    targetingState: null,
+    effectCastState: null,
+    boardPointerDownSelectedSwapSource: true,
+    pressedBoardCellIndex: 2,
+    boardLongPressTriggeredIndex: null,
+    boardLongPressSuppressNextScenePointerUpIndex: null,
+    boardCellLongPressEvent: null,
+    boardInspectIndex: null,
+    utilityMenuPanel: null,
+    navigationInProgress: false,
+    pointerInputGuardActive: false,
+    battleResultModalShown: false,
+    isFlowResolving: false,
+    isEffectCastResolving: false,
+    playerActionUsed: false,
+    pressedHandCardId: null,
+    pressedHandCardWasSelected: false,
+    time: { delayedCall(ms, callback) { assert.equal(ms, 350); timerCallback = callback; return { remove() {} }; } },
+    cancelBoardCellLongPress() { this.boardCellLongPressEvent = null; },
+    showBoardUnitInspect(index) { this.boardInspectIndex = index; return true; },
+    isPointerEventGuarded: () => false,
+    isPointerUpReservedForUi: () => false,
+    getBoardCellFromPointerUp: () => ({ index: 2 }),
+    onBoardCellTap(index) { tapped.push(index); },
+  };
+
+  startBoardCellLongPress.call(scene, 2, 350);
+  timerCallback();
+  onBoardCellPointerUp.call(scene, 2);
+  onScenePointerUp.call(scene, { id: 1 }, []);
+
+  assert.deepEqual(tapped, []);
+  assert.equal(scene.pendingSwapIndex, 2);
+  assert.equal(scene.boardInspectIndex, 2);
+  assert.equal(scene.boardLongPressSuppressNextScenePointerUpIndex, null);
+});
+
+test('outside tap closes board inspect before preserving active swap source', () => {
+  const onScenePointerUp = compileMethod('onScenePointerUp', 'clearSelectedHandInspectFromOutsideTap', ['pointer', 'currentlyOver']);
+
+  const scene = {
+    pendingSwapIndex: 2,
+    selectedCardId: null,
+    targetingState: null,
+    effectCastState: null,
+    boardPointerDownSelectedSwapSource: false,
+    boardInspectIndex: 2,
+    navigationInProgress: false,
+    battleResultModalShown: false,
+    isFlowResolving: false,
+    isEffectCastResolving: false,
+    pressedHandCardId: null,
+    pressedHandCardWasSelected: false,
+    selectedHandCardZoom: { background: {}, label: {}, glow: {} },
+    isPointerEventGuarded: () => false,
+    isPointerUpReservedForUi: () => false,
+    getBoardCellFromPointerUp: () => null,
+    clearBoardInspectFromOutsideTap() { this.boardInspectIndex = null; return true; },
+    onBoardCellTap() { throw new Error('outside inspect-close tap should not process swap'); },
+    clearHandCardSelection() { throw new Error('outside inspect-close tap should not clear selection'); },
+  };
+
+  onScenePointerUp.call(scene, { id: 1, x: 0, y: 0 }, []);
+
+  assert.equal(scene.boardInspectIndex, null);
+  assert.equal(scene.pendingSwapIndex, 2);
+});
+
+test('subsequent outside tap after inspect closes follows existing swap cancel rules', () => {
+  const onBoardCellTap = compileMethod('onBoardCellTap', 'getActivePlayerEffectCard', ['boardIndex']);
+
+  const scene = {
+    utilityMenuPanel: null,
+    navigationInProgress: false,
+    pointerInputGuardActive: false,
+    battleResultModalShown: false,
+    isFlowResolving: false,
+    isEffectCastResolving: false,
+    playerActionUsed: false,
+    selectedCardId: null,
+    targetingState: null,
+    effectCastState: null,
+    pendingSwapIndex: 2,
+    hoverInspectCardId: null,
+    gameState: { board: [null, null, { owner: 'player' }, { owner: 'enemy' }], player: { hand: [] } },
+    clearBoardInspect() {},
+    clearSwapPromptCalled: false,
+    clearSwapPrompt() { this.clearSwapPromptCalled = true; },
+    resetCardHighlights() {},
+    updateActionButtonLabel() {},
+  };
+
+  onBoardCellTap.call(scene, 3);
+
+  assert.equal(scene.pendingSwapIndex, null);
+  assert.equal(scene.clearSwapPromptCalled, true);
+});
+
+test('enemy unit long press opens inspect without starting swap selection', () => {
+  const trySelectImplicitSwapSourceOnPointerDown = compileMethod('trySelectImplicitSwapSourceOnPointerDown', 'onCardPointerDown', ['boardIndex']);
+  const startBoardCellLongPress = compileMethod('startBoardCellLongPress', 'cancelBoardCellLongPress', ['boardIndex', 'BOARD_INSPECT_LONG_PRESS_MS']);
+
+  let timerCallback = null;
+  const scene = {
+    pendingSwapIndex: null,
+    selectedCardId: null,
+    targetingState: null,
+    effectCastState: null,
+    battleResultModalShown: false,
+    isFlowResolving: false,
+    isEffectCastResolving: false,
+    playerActionUsed: false,
+    hoverInspectCardId: null,
+    boardPointerDownSelectedSwapSource: false,
+    pressedBoardCellIndex: 3,
+    boardLongPressTriggeredIndex: null,
+    boardLongPressSuppressNextScenePointerUpIndex: null,
+    boardCellLongPressEvent: null,
+    boardInspectIndex: null,
+    utilityMenuPanel: null,
+    navigationInProgress: false,
+    pointerInputGuardActive: false,
+    pressedHandCardId: null,
+    gameState: { board: [null, null, null, { owner: 'enemy' }] },
+    showSwapPrompt() { throw new Error('enemy long press should not show swap prompt'); },
+    clearBoardInspect() {},
+    resetCardHighlights() {},
+    cancelBoardCellLongPress() { this.boardCellLongPressEvent = null; },
+    time: { delayedCall(ms, callback) { assert.equal(ms, 350); timerCallback = callback; return { remove() {} }; } },
+    showBoardUnitInspect(index) { this.boardInspectIndex = index; return true; },
+  };
+
+  assert.equal(trySelectImplicitSwapSourceOnPointerDown.call(scene, 3), false);
+  startBoardCellLongPress.call(scene, 3, 350);
+  timerCallback();
+
+  assert.equal(scene.pendingSwapIndex, null);
+  assert.equal(scene.boardInspectIndex, 3);
+});
+
+test('hand-card long press source path remains unchanged', () => {
+  assert.match(source, /const HAND_CARD_LONG_PRESS_MS = 425;/);
+  assert.match(source, /const CARD_INSPECT_LONG_PRESS_MS = 350;/);
+  assert.match(source, /startHandCardLongPress\(cardId\) \{\s*this\.cancelHandCardLongPress\(\);\s*this\.handCardLongPressEvent = this\.time\.delayedCall\(CARD_INSPECT_LONG_PRESS_MS,/);
+  assert.match(source, /if \(this\.longPressTriggeredCardId === cardId\) \{/);
 });
