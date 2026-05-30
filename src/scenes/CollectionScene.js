@@ -318,6 +318,7 @@ export default class CollectionScene extends Phaser.Scene {
       enableCardIllustration: true,
       showCardNumber: true,
       surfaceTheme: resolveCardSurfaceTheme({ factionId: factionThemeId, mode: 'inspect' }),
+      showNonUnitEffectStatSymbols: true,
     });
     const inspectSurfaceTheme = resolveCardSurfaceTheme({ factionId: factionThemeId, mode: 'inspect' });
 

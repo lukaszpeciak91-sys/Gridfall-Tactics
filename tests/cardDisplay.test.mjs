@@ -14,7 +14,12 @@ import {
   formatDeckSummaryEntry,
   formatHandCardLabel,
 } from '../src/rendering/cardRenderModes.js';
-import { formatCardNumberOverlay, getModifiedStatState } from '../src/rendering/cardVisualLayout.js';
+import {
+  NON_UNIT_EFFECT_STAT_SYMBOL,
+  NON_UNIT_EFFECT_STAT_SYMBOL_CSS_COLOR,
+  formatCardNumberOverlay,
+  getModifiedStatState,
+} from '../src/rendering/cardVisualLayout.js';
 import { getFactionByKey, getFactionKeys } from '../src/data/factions/index.js';
 
 test('card display helper falls back to current card name fields when card keys are absent', () => {
@@ -199,6 +204,24 @@ test('battle hand cards route content through card visual layout helpers and pre
   assert.equal(formatHandCardLabel(unitCard), 'Shield Drone\n1/4 ARM 2\nBlocks line. This unit can’t attack.');
   assert.equal(formatHandCardLabel(effectCard), 'Repair Kit\nHeal +3 ●.');
   assert.equal(formatHandCardLabel(null), 'Empty');
+});
+
+test('hand and inspect card previews render non-unit effect stars without touching board stat rows', () => {
+  const visualSource = fs.readFileSync('src/rendering/cardVisualLayout.js', 'utf8');
+  const battleSource = fs.readFileSync('src/scenes/BattleScene.js', 'utf8');
+  const collectionSource = fs.readFileSync('src/scenes/CollectionScene.js', 'utf8');
+  const createHandCardViewSource = battleSource.slice(battleSource.indexOf('  createHandCardView({'), battleSource.indexOf('  getHandCardAccentColor(card) {'));
+  const boardUnitViewSource = battleSource.slice(battleSource.indexOf('  createBoardUnitView(cell, unit) {'), battleSource.indexOf('  refreshBoardLabels() {'));
+  const collectionInspectSource = collectionSource.slice(collectionSource.indexOf('  showInspectPreview('), collectionSource.indexOf('  destroyInspectPreview('));
+
+  assert.equal(NON_UNIT_EFFECT_STAT_SYMBOL, '✶');
+  assert.equal(NON_UNIT_EFFECT_STAT_SYMBOL_CSS_COLOR, '#fde68a');
+  assert.match(visualSource, /showNonUnitEffectStatSymbols && !isCardUnit\(card\)/);
+  assert.match(visualSource, /createNonUnitEffectStatSymbols\(/);
+  assert.match(visualSource, /const metrics = getStatRowMetrics\(height, width, \{ sizeScale, fontScale, spacingScale, maxGroupWidthRatio \}\);/);
+  assert.match(createHandCardViewSource, /showNonUnitEffectStatSymbols: true/);
+  assert.match(collectionInspectSource, /showNonUnitEffectStatSymbols: true/);
+  assert.doesNotMatch(boardUnitViewSource, /showNonUnitEffectStatSymbols|createNonUnitEffectStatSymbols/);
 });
 
 test('card render mode helpers preserve English fallback behavior for future locales', () => {

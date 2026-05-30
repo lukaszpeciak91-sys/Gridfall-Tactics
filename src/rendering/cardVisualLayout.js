@@ -140,6 +140,10 @@ export const CARD_COLORS = Object.freeze({
   mutedText: BASE_CARD_SURFACE_THEME.textMuted,
 });
 
+export const NON_UNIT_EFFECT_STAT_SYMBOL = '✶';
+export const NON_UNIT_EFFECT_STAT_SYMBOL_COLOR = 0xfde68a;
+export const NON_UNIT_EFFECT_STAT_SYMBOL_CSS_COLOR = '#fde68a';
+
 export const CARD_STAT_STYLES = Object.freeze({
   attack: Object.freeze({
     color: 0x24c6a7,
@@ -706,6 +710,26 @@ function getStatBadgeSize(height, width, scale = 1) {
   return baseSize * scale;
 }
 
+function getStatRowMetrics(height, width, {
+  sizeScale = 1,
+  fontScale = 1,
+  spacingScale = 1,
+  maxGroupWidthRatio = 0.86,
+} = {}) {
+  const symbolSize = getStatBadgeSize(height, width, sizeScale);
+  const fontSize = Math.max(11, Math.floor(symbolSize * 0.63 * fontScale));
+  const groupWidth = Math.min(width * maxGroupWidthRatio, symbolSize * 4.45 * spacingScale);
+  const slotWidth = groupWidth / 3;
+
+  return {
+    symbolSize,
+    fontSize,
+    groupWidth,
+    slotWidth,
+    topMargin: Math.max(4, Math.round(height * 0.09)),
+  };
+}
+
 function createStatGlyph(scene, x, y, size, key, value, style, isKnown, fontSize, modifiedState = 'base') {
   const glyph = scene.add.container(x, y);
   const valueText = isKnown ? String(value) : '–';
@@ -772,10 +796,8 @@ export function createStatBadges(scene, x, y, width, height, stats, depth = 0, o
     changedStats = [],
     pulseChangedStats = false,
   } = options;
-  const symbolSize = getStatBadgeSize(height, width, sizeScale);
-  const fontSize = Math.max(11, Math.floor(symbolSize * 0.63 * fontScale));
-  const groupWidth = Math.min(width * maxGroupWidthRatio, symbolSize * 4.45 * spacingScale);
-  const slotWidth = groupWidth / 3;
+  const metrics = getStatRowMetrics(height, width, { sizeScale, fontScale, spacingScale, maxGroupWidthRatio });
+  const { symbolSize, fontSize, groupWidth, slotWidth } = metrics;
   const statGlyphs = {};
   const changedStatSet = asChangedStatSet(changedStats);
 
@@ -798,7 +820,46 @@ export function createStatBadges(scene, x, y, width, height, stats, depth = 0, o
     size: symbolSize,
     groupWidth,
     slotWidth,
-    topMargin: Math.max(4, Math.round(height * 0.09)),
+    topMargin: metrics.topMargin,
+  };
+
+  return container;
+}
+
+export function createNonUnitEffectStatSymbols(scene, x, y, width, height, depth = 0, options = {}) {
+  const container = scene.add.container(x, y).setDepth(depth);
+  const {
+    sizeScale = 1,
+    fontScale = 1,
+    spacingScale = 1,
+    maxGroupWidthRatio = 0.86,
+  } = options;
+  const metrics = getStatRowMetrics(height, width, { sizeScale, fontScale, spacingScale, maxGroupWidthRatio });
+  const effectFontSize = Math.max(13, Math.round(metrics.symbolSize * 0.96));
+
+  for (let index = 0; index < 3; index += 1) {
+    const slotCenterX = -metrics.groupWidth / 2 + metrics.slotWidth * (index + 0.5);
+    const symbol = scene.add.text(slotCenterX, 0, NON_UNIT_EFFECT_STAT_SYMBOL, {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: `${effectFontSize}px`,
+      color: NON_UNIT_EFFECT_STAT_SYMBOL_CSS_COLOR,
+      fontStyle: 'bold',
+      align: 'center',
+      stroke: '#4a3200',
+      strokeThickness: Math.max(1, Math.round(effectFontSize * 0.12)),
+      fixedWidth: Math.ceil(metrics.symbolSize * 1.02),
+      fixedHeight: Math.ceil(metrics.symbolSize * 0.84),
+    }).setOrigin(0.5);
+    symbol.setShadow(0, 1, 'rgba(0, 0, 0, 0.62)', 2);
+    container.add(symbol);
+  }
+
+  container.statFeedback = {};
+  container.badgeMetrics = {
+    size: metrics.symbolSize,
+    groupWidth: metrics.groupWidth,
+    slotWidth: metrics.slotWidth,
+    topMargin: metrics.topMargin,
   };
 
   return container;
@@ -993,6 +1054,7 @@ export function createCardPreviewView(scene, {
   temporaryArtCropYOffset = 0,
   clipArtToViewport = false,
   surfaceTheme = BASE_CARD_SURFACE_THEME,
+  showNonUnitEffectStatSymbols = false,
 } = {}) {
   const resolvedSurfaceTheme = surfaceTheme ?? BASE_CARD_SURFACE_THEME;
   const zones = getCardLayoutZones(width, height);
@@ -1046,25 +1108,38 @@ export function createCardPreviewView(scene, {
     resolvedSurfaceTheme.artInsetHighlight,
     0,
   ).setStrokeStyle(1, resolvedSurfaceTheme.artInsetHighlight, 0.08);
-  const statBadges = createStatBadges(
-    scene,
-    zones.statBadges.centerX,
-    zones.statBadges.centerY,
-    zones.statBadges.width,
-    zones.statBadges.height,
-    stats,
-    0,
-    {
-      sizeScale: statBadgeScale,
-      fontScale: typographyScale > 1 ? 1.06 : 1.1,
-      maxGroupWidthRatio: 0.9,
-      spacingScale: typographyScale > 1 ? 1.16 : 1.12,
-      baseStats,
-      changedStats,
-      pulseChangedStats,
-    },
-  );
-    const persistentArtPositionY = getCardArtPositionY(card);
+  const statRowOptions = {
+    sizeScale: statBadgeScale,
+    fontScale: typographyScale > 1 ? 1.06 : 1.1,
+    maxGroupWidthRatio: 0.9,
+    spacingScale: typographyScale > 1 ? 1.16 : 1.12,
+  };
+  const statBadges = showNonUnitEffectStatSymbols && !isCardUnit(card)
+    ? createNonUnitEffectStatSymbols(
+      scene,
+      zones.statBadges.centerX,
+      zones.statBadges.centerY,
+      zones.statBadges.width,
+      zones.statBadges.height,
+      0,
+      statRowOptions,
+    )
+    : createStatBadges(
+      scene,
+      zones.statBadges.centerX,
+      zones.statBadges.centerY,
+      zones.statBadges.width,
+      zones.statBadges.height,
+      stats,
+      0,
+      {
+        ...statRowOptions,
+        baseStats,
+        changedStats,
+        pulseChangedStats,
+      },
+    );
+  const persistentArtPositionY = getCardArtPositionY(card);
   const hasTemporaryArtPositionY = Number.isFinite(temporaryArtCropY01);
   const effectiveArtPositionY = hasTemporaryArtPositionY
     ? Math.min(1, Math.max(0, temporaryArtCropY01))
