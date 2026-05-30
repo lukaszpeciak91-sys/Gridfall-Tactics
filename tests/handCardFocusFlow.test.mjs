@@ -35,13 +35,16 @@ test('mulligan tap toggles only mulligan selection and uses separate preview sta
 
 test('normal gameplay quick tap selects only and long press opens inspect without losing selection', () => {
   assert.match(source, /const HAND_CARD_LONG_PRESS_MS = 425;/);
+  assert.match(source, /const CARD_INSPECT_LONG_PRESS_MS = 350;/);
+  assert.match(source, /const BOARD_INSPECT_LONG_PRESS_MS = 350;/);
+  assert.match(source, /const PASS_HOLD_TO_SURRENDER_MS = 425;/);
   assert.match(source, /this\.handCardLongPressEvent = null;/);
   assert.match(source, /this\.longPressTriggeredCardId = null;/);
   assert.match(source, /background\.on\('pointerdown', \(\) => \{\s*this\.onCardPointerDown\(cardId\);\s*\}\);/);
   assert.match(source, /background\.on\('pointerup', \(\) => \{\s*this\.onCardPointerUp\(cardId\);\s*\}\);/);
   assert.match(source, /onHandCardPointerOver\(cardId\) \{\s*\/\/ Hand-card inspect is intentionally long-press driven so quick taps only select for play\.\s*if \(!cardId\) return;\s*\}/);
   assert.match(source, /this\.pendingSwapIndex = null;\s*this\.selectedCardId = cardId;\s*this\.targetingState = this\.isUnitCard\(card\) \? null : this\.getTargetingStateForCard\(card\);\s*this\.resetCardHighlights\(\{ showPreview: false \}\);\s*this\.updateActionButtonLabel\(\);\s*this\.startHandCardLongPress\(cardId\);/);
-  assert.match(source, /startHandCardLongPress\(cardId\) \{\s*this\.cancelHandCardLongPress\(\);\s*this\.handCardLongPressEvent = this\.time\.delayedCall\(HAND_CARD_LONG_PRESS_MS, \(\) => \{[\s\S]*this\.longPressTriggeredCardId = cardId;[\s\S]*this\.resetCardHighlights\(\{ showPreview: true \}\);/);
+  assert.match(source, /startHandCardLongPress\(cardId\) \{\s*this\.cancelHandCardLongPress\(\);\s*this\.handCardLongPressEvent = this\.time\.delayedCall\(CARD_INSPECT_LONG_PRESS_MS, \(\) => \{[\s\S]*this\.longPressTriggeredCardId = cardId;[\s\S]*this\.resetCardHighlights\(\{ showPreview: true \}\);/);
   assert.match(source, /cancelHandCardLongPress\(\) \{\s*if \(!this\.handCardLongPressEvent\) return;\s*this\.handCardLongPressEvent\.remove\(false\);\s*this\.handCardLongPressEvent = null;\s*\}/);
   assert.match(source, /onCardPointerUp\(cardId\) \{[\s\S]*this\.cancelHandCardLongPress\(\);[\s\S]*if \(this\.longPressTriggeredCardId === cardId\) \{[\s\S]*return;\s*\}[\s\S]*this\.resetCardHighlights\(\{ showPreview: false \}\);/);
   assert.match(source, /const handCardId = isMulliganPreview\s*\? this\.previewedMulliganCardId\s*: \(this\.selectedCardId \?\? this\.hoverInspectCardId\);/);
@@ -137,7 +140,7 @@ test('board unit inspect opens from occupied slots and reuses the full hand-card
   assert.match(source, /background\.on\('pointerdown', \(\) => \{\s*this\.onBoardCellPointerDown\(boardIndex\);\s*\}\);/);
   assert.match(source, /background\.on\('pointerup', \(\) => \{\s*this\.onBoardCellPointerUp\(boardIndex\);\s*\}\);/);
   assert.doesNotMatch(source, /background\.on\('pointerover', \(\) => \{\s*this\.onBoardCellPointerOver\(boardIndex\);\s*\}\);/);
-  assert.match(source, /startBoardCellLongPress\(boardIndex\) \{\s*this\.cancelBoardCellLongPress\(\);\s*this\.boardCellLongPressEvent = this\.time\.delayedCall\(HAND_CARD_LONG_PRESS_MS,/);
+  assert.match(source, /startBoardCellLongPress\(boardIndex\) \{\s*this\.cancelBoardCellLongPress\(\);\s*this\.boardCellLongPressEvent = this\.time\.delayedCall\(BOARD_INSPECT_LONG_PRESS_MS,/);
   assert.match(source, /if \(this\.showBoardUnitInspect\(boardIndex\)\) \{[\s\S]*this\.boardLongPressTriggeredIndex = boardIndex;\s*\}/);
   assert.match(source, /onBoardCellPointerUp\(boardIndex\) \{[\s\S]*if \(this\.boardLongPressTriggeredIndex === boardIndex\) \{[\s\S]*return;\s*\}[\s\S]*this\.onBoardCellTap\(boardIndex\);\s*\}/);
   assert.match(source, /showBoardUnitInspect\(boardIndex\) \{\s*if \(this\.utilityMenuPanel \|\| this\.navigationInProgress \|\| this\.selectedCardId \|\| this\.targetingState \|\| this\.effectCastState \|\| this\.isEffectCastResolving \|\| this\.pressedHandCardId\) return false;\s*const unit = this\.gameState\?\.board\?\.\[boardIndex\] \?\? null;\s*if \(!unit\) return false;\s*this\.hoverInspectCardId = null;\s*this\.boardInspectIndex = boardIndex;\s*this\.showSelectedHandCardZoom\(\);\s*return true;\s*\}/);
