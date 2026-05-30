@@ -17,8 +17,6 @@ import {
 import {
   NON_UNIT_EFFECT_STAT_SYMBOL,
   NON_UNIT_EFFECT_STAT_SYMBOL_CSS_COLOR,
-  NON_UNIT_EFFECT_STAT_SYMBOL_FIXED_HEIGHT_RATIO,
-  NON_UNIT_EFFECT_STAT_SYMBOL_OPTICAL_OFFSET_Y,
   getFixedHeightTextVisualCenterOriginY,
   formatCardNumberOverlay,
   getCardPreviewStatRowKind,
@@ -224,8 +222,6 @@ test('hand and inspect card previews render non-unit effect stars without touchi
 
   assert.equal(NON_UNIT_EFFECT_STAT_SYMBOL, '✶');
   assert.equal(NON_UNIT_EFFECT_STAT_SYMBOL_CSS_COLOR, '#fde68a');
-  assert.equal(NON_UNIT_EFFECT_STAT_SYMBOL_FIXED_HEIGHT_RATIO, 0.84);
-  assert.equal(NON_UNIT_EFFECT_STAT_SYMBOL_OPTICAL_OFFSET_Y, -3);
   assert.equal(getFixedHeightTextVisualCenterOriginY({ fontSize: 20 }, 20, 0), 0.5);
   assert.equal(getFixedHeightTextVisualCenterOriginY({ fontSize: 20 }, 10, 2), 1.1);
   assert.match(visualSource, /const statRowKind = getCardPreviewStatRowKind\(card, \{ showNonUnitEffectStatSymbols \}\);/);
@@ -234,8 +230,10 @@ test('hand and inspect card previews render non-unit effect stars without touchi
   assert.match(visualSource, /return createEmptyStatRow\(/);
   assert.match(visualSource, /createNonUnitEffectStatSymbols\(/);
   assert.match(visualSource, /const metrics = getStatRowMetrics\(height, width, \{ sizeScale, fontScale, spacingScale, maxGroupWidthRatio \}\);/);
-  assert.match(visualSource, /scene\.add\.container\(x, y \+ NON_UNIT_EFFECT_STAT_SYMBOL_OPTICAL_OFFSET_Y\)/);
-  assert.match(visualSource, /symbol\.setOrigin\(0\.5, getFixedHeightTextVisualCenterOriginY\(symbol\.getTextMetrics\(\), fixedHeight, strokeThickness\)\)/);
+  assert.match(visualSource, /scene\.add\.container\(x, y\)\.setDepth\(depth\)/);
+  assert.match(visualSource, /drawNonUnitEffectStarIcon\(scene, slotCenterX, 0, starSize\)/);
+  assert.match(visualSource, /scene\.add\.graphics\(\{ x, y \}\)/);
+  assert.doesNotMatch(visualSource, /scene\.add\.text\(slotCenterX, 0, NON_UNIT_EFFECT_STAT_SYMBOL/);
   assert.match(createHandCardViewSource, /showNonUnitEffectStatSymbols: true/);
   assert.match(collectionInspectSource, /showNonUnitEffectStatSymbols: true/);
   assert.match(collectionGridPreviewSource, /showNonUnitEffectStatSymbols: true/);
