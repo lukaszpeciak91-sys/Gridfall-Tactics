@@ -1748,6 +1748,7 @@ export default class BattleScene extends Phaser.Scene {
       changedStats,
       pulseChangedStats,
       surfaceTheme: resolveCardSurfaceTheme({ factionId: factionThemeId, mode: surfaceThemeMode }),
+      showNonUnitEffectStatSymbols: true,
     });
   }
 
