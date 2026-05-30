@@ -634,8 +634,24 @@ export function createInlineStatText(scene, x, y, text, {
   return container;
 }
 
+export function isCardPlaceholder(card) {
+  return !card;
+}
+
 export function isCardUnit(card) {
-  return card?.type === 'unit' || (Number.isFinite(card?.attack) && Number.isFinite(card?.hp));
+  return !isCardPlaceholder(card)
+    && (card?.type === 'unit' || (Number.isFinite(card?.attack) && Number.isFinite(card?.hp)));
+}
+
+export function isCardNonUnit(card) {
+  return !isCardPlaceholder(card) && !isCardUnit(card);
+}
+
+export function getCardPreviewStatRowKind(card, { showNonUnitEffectStatSymbols = true } = {}) {
+  if (isCardPlaceholder(card)) return 'empty';
+  if (isCardUnit(card)) return 'unit';
+  if (showNonUnitEffectStatSymbols && isCardNonUnit(card)) return 'nonUnitEffect';
+  return 'empty';
 }
 
 export function getCardStatValues(card) {
@@ -865,6 +881,28 @@ export function createNonUnitEffectStatSymbols(scene, x, y, width, height, depth
   return container;
 }
 
+
+function createEmptyStatRow(scene, x, y, width, height, depth = 0, options = {}) {
+  const container = scene.add.container(x, y).setDepth(depth);
+  const {
+    sizeScale = 1,
+    fontScale = 1,
+    spacingScale = 1,
+    maxGroupWidthRatio = 0.86,
+  } = options;
+  const metrics = getStatRowMetrics(height, width, { sizeScale, fontScale, spacingScale, maxGroupWidthRatio });
+
+  container.statFeedback = {};
+  container.badgeMetrics = {
+    size: metrics.symbolSize,
+    groupWidth: metrics.groupWidth,
+    slotWidth: metrics.slotWidth,
+    topMargin: metrics.topMargin,
+  };
+
+  return container;
+}
+
 export function createStatBar(...args) {
   return createStatBadges(...args);
 }
@@ -1054,7 +1092,7 @@ export function createCardPreviewView(scene, {
   temporaryArtCropYOffset = 0,
   clipArtToViewport = false,
   surfaceTheme = BASE_CARD_SURFACE_THEME,
-  showNonUnitEffectStatSymbols = false,
+  showNonUnitEffectStatSymbols = true,
 } = {}) {
   const resolvedSurfaceTheme = surfaceTheme ?? BASE_CARD_SURFACE_THEME;
   const zones = getCardLayoutZones(width, height);
@@ -1114,8 +1152,39 @@ export function createCardPreviewView(scene, {
     maxGroupWidthRatio: 0.9,
     spacingScale: typographyScale > 1 ? 1.16 : 1.12,
   };
-  const statBadges = showNonUnitEffectStatSymbols && !isCardUnit(card)
-    ? createNonUnitEffectStatSymbols(
+  const statRowKind = getCardPreviewStatRowKind(card, { showNonUnitEffectStatSymbols });
+  const statBadges = (() => {
+    if (statRowKind === 'nonUnitEffect') {
+      return createNonUnitEffectStatSymbols(
+        scene,
+        zones.statBadges.centerX,
+        zones.statBadges.centerY,
+        zones.statBadges.width,
+        zones.statBadges.height,
+        0,
+        statRowOptions,
+      );
+    }
+
+    if (statRowKind === 'unit') {
+      return createStatBadges(
+        scene,
+        zones.statBadges.centerX,
+        zones.statBadges.centerY,
+        zones.statBadges.width,
+        zones.statBadges.height,
+        stats,
+        0,
+        {
+          ...statRowOptions,
+          baseStats,
+          changedStats,
+          pulseChangedStats,
+        },
+      );
+    }
+
+    return createEmptyStatRow(
       scene,
       zones.statBadges.centerX,
       zones.statBadges.centerY,
@@ -1123,22 +1192,8 @@ export function createCardPreviewView(scene, {
       zones.statBadges.height,
       0,
       statRowOptions,
-    )
-    : createStatBadges(
-      scene,
-      zones.statBadges.centerX,
-      zones.statBadges.centerY,
-      zones.statBadges.width,
-      zones.statBadges.height,
-      stats,
-      0,
-      {
-        ...statRowOptions,
-        baseStats,
-        changedStats,
-        pulseChangedStats,
-      },
     );
+  })();
   const persistentArtPositionY = getCardArtPositionY(card);
   const hasTemporaryArtPositionY = Number.isFinite(temporaryArtCropY01);
   const effectiveArtPositionY = hasTemporaryArtPositionY

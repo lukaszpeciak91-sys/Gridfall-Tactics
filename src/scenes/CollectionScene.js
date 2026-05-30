@@ -205,6 +205,7 @@ export default class CollectionScene extends Phaser.Scene {
       enableCardIllustration: true,
       showCardNumber: true,
       surfaceTheme: resolveCardSurfaceTheme({ factionId: factionThemeId, mode: 'hand' }),
+      showNonUnitEffectStatSymbols: true,
     });
     content.add(preview.root);
     this.uiElements.push(preview.root);

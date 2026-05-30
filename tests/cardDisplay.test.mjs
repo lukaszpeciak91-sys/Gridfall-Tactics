@@ -18,7 +18,11 @@ import {
   NON_UNIT_EFFECT_STAT_SYMBOL,
   NON_UNIT_EFFECT_STAT_SYMBOL_CSS_COLOR,
   formatCardNumberOverlay,
+  getCardPreviewStatRowKind,
   getModifiedStatState,
+  isCardNonUnit,
+  isCardPlaceholder,
+  isCardUnit,
 } from '../src/rendering/cardVisualLayout.js';
 import { getFactionByKey, getFactionKeys } from '../src/data/factions/index.js';
 
@@ -213,15 +217,38 @@ test('hand and inspect card previews render non-unit effect stars without touchi
   const createHandCardViewSource = battleSource.slice(battleSource.indexOf('  createHandCardView({'), battleSource.indexOf('  getHandCardAccentColor(card) {'));
   const boardUnitViewSource = battleSource.slice(battleSource.indexOf('  createBoardUnitView(cell, unit) {'), battleSource.indexOf('  refreshBoardLabels() {'));
   const collectionInspectSource = collectionSource.slice(collectionSource.indexOf('  showInspectPreview('), collectionSource.indexOf('  destroyInspectPreview('));
+  const collectionGridPreviewSource = collectionSource.slice(collectionSource.indexOf('  drawCardPreview('), collectionSource.indexOf('  onCardPointerDown('));
 
   assert.equal(NON_UNIT_EFFECT_STAT_SYMBOL, '✶');
   assert.equal(NON_UNIT_EFFECT_STAT_SYMBOL_CSS_COLOR, '#fde68a');
-  assert.match(visualSource, /showNonUnitEffectStatSymbols && !isCardUnit\(card\)/);
+  assert.match(visualSource, /const statRowKind = getCardPreviewStatRowKind\(card, \{ showNonUnitEffectStatSymbols \}\);/);
+  assert.match(visualSource, /if \(statRowKind === 'nonUnitEffect'\)/);
+  assert.match(visualSource, /if \(statRowKind === 'unit'\)/);
+  assert.match(visualSource, /return createEmptyStatRow\(/);
   assert.match(visualSource, /createNonUnitEffectStatSymbols\(/);
   assert.match(visualSource, /const metrics = getStatRowMetrics\(height, width, \{ sizeScale, fontScale, spacingScale, maxGroupWidthRatio \}\);/);
   assert.match(createHandCardViewSource, /showNonUnitEffectStatSymbols: true/);
   assert.match(collectionInspectSource, /showNonUnitEffectStatSymbols: true/);
+  assert.match(collectionGridPreviewSource, /showNonUnitEffectStatSymbols: true/);
   assert.doesNotMatch(boardUnitViewSource, /showNonUnitEffectStatSymbols|createNonUnitEffectStatSymbols/);
+});
+
+
+
+test('shared card preview stat row classification separates units, non-units, and placeholders', () => {
+  const unitCard = { name: 'Shield Drone', type: 'unit', attack: 1, hp: 4, armor: 2 };
+  const statOnlyUnitCard = { name: 'Generated Unit', attack: 1, hp: 1 };
+  const effectCard = { name: 'Repair Kit', type: 'effect', textShort: 'Heal +3 HP.' };
+
+  assert.equal(isCardPlaceholder(null), true);
+  assert.equal(isCardUnit(unitCard), true);
+  assert.equal(isCardUnit(statOnlyUnitCard), true);
+  assert.equal(isCardNonUnit(effectCard), true);
+  assert.equal(isCardNonUnit(null), false);
+  assert.equal(getCardPreviewStatRowKind(unitCard), 'unit');
+  assert.equal(getCardPreviewStatRowKind(effectCard), 'nonUnitEffect');
+  assert.equal(getCardPreviewStatRowKind(effectCard, { showNonUnitEffectStatSymbols: false }), 'empty');
+  assert.equal(getCardPreviewStatRowKind(null), 'empty');
 });
 
 test('card render mode helpers preserve English fallback behavior for future locales', () => {
