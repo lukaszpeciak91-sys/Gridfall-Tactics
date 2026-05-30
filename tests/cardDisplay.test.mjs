@@ -17,6 +17,7 @@ import {
 import {
   NON_UNIT_EFFECT_STAT_SYMBOL,
   NON_UNIT_EFFECT_STAT_SYMBOL_CSS_COLOR,
+  NON_UNIT_EFFECT_STAT_SYMBOL_VERTICAL_ORIGIN,
   formatCardNumberOverlay,
   getCardPreviewStatRowKind,
   getModifiedStatState,
@@ -221,12 +222,14 @@ test('hand and inspect card previews render non-unit effect stars without touchi
 
   assert.equal(NON_UNIT_EFFECT_STAT_SYMBOL, '✶');
   assert.equal(NON_UNIT_EFFECT_STAT_SYMBOL_CSS_COLOR, '#fde68a');
+  assert.equal(NON_UNIT_EFFECT_STAT_SYMBOL_VERTICAL_ORIGIN, 0.58);
   assert.match(visualSource, /const statRowKind = getCardPreviewStatRowKind\(card, \{ showNonUnitEffectStatSymbols \}\);/);
   assert.match(visualSource, /if \(statRowKind === 'nonUnitEffect'\)/);
   assert.match(visualSource, /if \(statRowKind === 'unit'\)/);
   assert.match(visualSource, /return createEmptyStatRow\(/);
   assert.match(visualSource, /createNonUnitEffectStatSymbols\(/);
   assert.match(visualSource, /const metrics = getStatRowMetrics\(height, width, \{ sizeScale, fontScale, spacingScale, maxGroupWidthRatio \}\);/);
+  assert.match(visualSource, /\.setOrigin\(0\.5, NON_UNIT_EFFECT_STAT_SYMBOL_VERTICAL_ORIGIN\)/);
   assert.match(createHandCardViewSource, /showNonUnitEffectStatSymbols: true/);
   assert.match(collectionInspectSource, /showNonUnitEffectStatSymbols: true/);
   assert.match(collectionGridPreviewSource, /showNonUnitEffectStatSymbols: true/);

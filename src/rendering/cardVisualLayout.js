@@ -143,6 +143,7 @@ export const CARD_COLORS = Object.freeze({
 export const NON_UNIT_EFFECT_STAT_SYMBOL = '✶';
 export const NON_UNIT_EFFECT_STAT_SYMBOL_COLOR = 0xfde68a;
 export const NON_UNIT_EFFECT_STAT_SYMBOL_CSS_COLOR = '#fde68a';
+export const NON_UNIT_EFFECT_STAT_SYMBOL_VERTICAL_ORIGIN = 0.58;
 
 export const CARD_STAT_STYLES = Object.freeze({
   attack: Object.freeze({
@@ -865,7 +866,7 @@ export function createNonUnitEffectStatSymbols(scene, x, y, width, height, depth
       strokeThickness: Math.max(1, Math.round(effectFontSize * 0.12)),
       fixedWidth: Math.ceil(metrics.symbolSize * 1.02),
       fixedHeight: Math.ceil(metrics.symbolSize * 0.84),
-    }).setOrigin(0.5);
+    }).setOrigin(0.5, NON_UNIT_EFFECT_STAT_SYMBOL_VERTICAL_ORIGIN);
     symbol.setShadow(0, 1, 'rgba(0, 0, 0, 0.62)', 2);
     container.add(symbol);
   }
