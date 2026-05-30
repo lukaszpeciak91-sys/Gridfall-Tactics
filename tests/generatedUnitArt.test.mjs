@@ -71,7 +71,22 @@ function assertTokenArt(card, expected) {
   assert.equal(card.isToken, true);
   assert.equal(card.collectible, false);
   const asset = getCardIllustrationAsset(card);
+  assert.equal(asset.factionId, expected.factionId);
+  assert.equal(asset.artAssetId, expected.artAssetId);
+  assert.equal(asset.key, expected.textureKey);
+  assert.equal(asset.path, expected.runtimePath);
   assert.equal(asset.publicPath, expected.publicPath);
+}
+
+function assertLoadedTokenArtworkRenders(card, expected) {
+  const artwork = createCardArtwork(
+    createArtworkScene({ loadedTextureKeys: [expected.textureKey] }),
+    { centerX: 0, centerY: 0, width: 120, height: 160 },
+    card,
+    { enableCardIllustration: true },
+  );
+  assert.equal(artwork.type, 'image');
+  assert.equal(artwork.key, expected.textureKey);
 }
 
 const swarm = getFactionByKey('Swarm');
@@ -81,20 +96,26 @@ const swarmGruntArt = {
   factionId: 'swarm',
   artAssetId: 'token_grunt_01',
   tokenType: 'grunt',
+  textureKey: 'card.swarm.token_grunt_01',
+  runtimePath: './assets/cards/swarm/token_grunt_01.webp',
   publicPath: 'public/assets/cards/swarm/token_grunt_01.webp',
 };
 
 const attritionSwarmGruntArt = {
-  factionId: 'attrition_swarm',
+  factionId: 'attrition-swarm',
   artAssetId: 'token_grunt_02',
   tokenType: 'grunt',
-  publicPath: 'public/assets/cards/attrition_swarm/token_grunt_02.webp',
+  textureKey: 'card.attrition-swarm.token_grunt_02',
+  runtimePath: './assets/cards/attrition-swarm/token_grunt_02.webp',
+  publicPath: 'public/assets/cards/attrition-swarm/token_grunt_02.webp',
 };
 
 const floodTokenArt = {
   factionId: 'swarm',
   artAssetId: 'token_flood_01',
   tokenType: 'floodToken',
+  textureKey: 'card.swarm.token_flood_01',
+  runtimePath: './assets/cards/swarm/token_flood_01.webp',
   publicPath: 'public/assets/cards/swarm/token_flood_01.webp',
 };
 
@@ -113,7 +134,7 @@ test('preloadAllCardIllustrations queues explicit generated unit assets outside 
 
   assert.ok(scene.queued.some((asset) => asset.key === 'card.swarm.token_grunt_01' && asset.path.endsWith('assets/cards/swarm/token_grunt_01.webp')));
   assert.ok(scene.queued.some((asset) => asset.key === 'card.swarm.token_flood_01' && asset.path.endsWith('assets/cards/swarm/token_flood_01.webp')));
-  assert.ok(scene.queued.some((asset) => asset.key === 'card.attrition_swarm.token_grunt_02' && asset.path.endsWith('assets/cards/attrition_swarm/token_grunt_02.webp')));
+  assert.ok(scene.queued.some((asset) => asset.key === 'card.attrition-swarm.token_grunt_02' && asset.path.endsWith('assets/cards/attrition-swarm/token_grunt_02.webp')));
 });
 
 test('generated grunts and flood tokens stamp stable faction-local art metadata', () => {
@@ -144,11 +165,13 @@ test('generated grunts and flood tokens stamp stable faction-local art metadata'
   carrierState.board[0] = { id: 'enemy_attacker', type: 'unit', owner: 'enemy', attack: 1, hp: 3, maxHp: 3, armor: 0, effectId: null };
   resolveCombat(carrierState);
   assertTokenArt(carrierState.board[6], attritionSwarmGruntArt);
+  assertLoadedTokenArtworkRenders(carrierState.board[6], attritionSwarmGruntArt);
 
   const graveCallState = createInitialBattleState(attritionSwarm, attritionSwarm, { firstActor: 'player' });
   graveCallState.player.hand.push(getCard(attritionSwarm, 'attrition_swarm_grave_call_1'));
   assert.equal(playEffectCard(graveCallState, 'player', 'attrition_swarm_grave_call_1').ok, true);
   assertTokenArt(graveCallState.board[6], attritionSwarmGruntArt);
+  assertLoadedTokenArtworkRenders(graveCallState.board[6], attritionSwarmGruntArt);
 
   const floodState = createInitialBattleState(swarm, swarm, { firstActor: 'player' });
   floodState.player.hand.push(getCard(swarm, 'swarm_flood_1'));
