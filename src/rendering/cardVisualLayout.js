@@ -143,7 +143,19 @@ export const CARD_COLORS = Object.freeze({
 export const NON_UNIT_EFFECT_STAT_SYMBOL = '✶';
 export const NON_UNIT_EFFECT_STAT_SYMBOL_COLOR = 0xfde68a;
 export const NON_UNIT_EFFECT_STAT_SYMBOL_CSS_COLOR = '#fde68a';
-export const NON_UNIT_EFFECT_STAT_SYMBOL_VERTICAL_ORIGIN = 0.58;
+export const NON_UNIT_EFFECT_STAT_SYMBOL_FIXED_HEIGHT_RATIO = 0.84;
+
+
+export function getFixedHeightTextVisualCenterOriginY(fontMetrics, fixedHeight, strokeThickness = 0) {
+  const measuredFontHeight = Number.isFinite(fontMetrics?.fontSize) && fontMetrics.fontSize > 0
+    ? fontMetrics.fontSize
+    : null;
+  if (!measuredFontHeight || !Number.isFinite(fixedHeight) || fixedHeight <= 0) return 0.5;
+
+  const safeStrokeThickness = Number.isFinite(strokeThickness) ? Math.max(0, strokeThickness) : 0;
+  const measuredGlyphCenterY = safeStrokeThickness * 0.5 + measuredFontHeight * 0.5;
+  return measuredGlyphCenterY / fixedHeight;
+}
 
 export const CARD_STAT_STYLES = Object.freeze({
   attack: Object.freeze({
@@ -853,6 +865,8 @@ export function createNonUnitEffectStatSymbols(scene, x, y, width, height, depth
   } = options;
   const metrics = getStatRowMetrics(height, width, { sizeScale, fontScale, spacingScale, maxGroupWidthRatio });
   const effectFontSize = Math.max(13, Math.round(metrics.symbolSize * 0.96));
+  const fixedHeight = Math.ceil(metrics.symbolSize * NON_UNIT_EFFECT_STAT_SYMBOL_FIXED_HEIGHT_RATIO);
+  const strokeThickness = Math.max(1, Math.round(effectFontSize * 0.12));
 
   for (let index = 0; index < 3; index += 1) {
     const slotCenterX = -metrics.groupWidth / 2 + metrics.slotWidth * (index + 0.5);
@@ -863,10 +877,11 @@ export function createNonUnitEffectStatSymbols(scene, x, y, width, height, depth
       fontStyle: 'bold',
       align: 'center',
       stroke: '#4a3200',
-      strokeThickness: Math.max(1, Math.round(effectFontSize * 0.12)),
+      strokeThickness,
       fixedWidth: Math.ceil(metrics.symbolSize * 1.02),
-      fixedHeight: Math.ceil(metrics.symbolSize * 0.84),
-    }).setOrigin(0.5, NON_UNIT_EFFECT_STAT_SYMBOL_VERTICAL_ORIGIN);
+      fixedHeight,
+    });
+    symbol.setOrigin(0.5, getFixedHeightTextVisualCenterOriginY(symbol.getTextMetrics(), fixedHeight, strokeThickness));
     symbol.setShadow(0, 1, 'rgba(0, 0, 0, 0.62)', 2);
     container.add(symbol);
   }
