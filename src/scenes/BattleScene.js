@@ -1817,12 +1817,6 @@ export default class BattleScene extends Phaser.Scene {
 
       if (this.showBoardUnitInspect(boardIndex)) {
         this.boardLongPressSuppressNextScenePointerUpIndex = boardIndex;
-        if (this.boardPointerDownSelectedSwapSource && this.pendingSwapIndex === boardIndex) {
-          this.pendingSwapIndex = null;
-          this.clearSwapPrompt();
-          this.resetCardHighlights({ showPreview: false });
-          this.updateActionButtonLabel();
-        }
         this.boardLongPressTriggeredIndex = boardIndex;
       }
     });
@@ -2064,6 +2058,10 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
+    if (this.boardInspectIndex !== null && !boardCell && this.clearBoardInspectFromOutsideTap(pointer, currentlyOver)) {
+      return;
+    }
+
     if (boardCell && this.boardPointerDownSelectedSwapSource && this.pendingSwapIndex === boardCell.index) {
       this.pressedHandCardId = null;
       this.pressedHandCardWasSelected = false;
@@ -2204,12 +2202,13 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   clearBoardInspectFromOutsideTap(pointer, currentlyOver = []) {
-    if (this.boardInspectIndex === null) return;
-    if (this.isPointerUpReservedForUi(pointer, currentlyOver)) return;
-    if (this.getBoardCellFromPointerUp(pointer, currentlyOver)) return;
-    if (this.isPointerInsideSelectedHandCardZoom(pointer, currentlyOver)) return;
+    if (this.boardInspectIndex === null) return false;
+    if (this.isPointerUpReservedForUi(pointer, currentlyOver)) return false;
+    if (this.getBoardCellFromPointerUp(pointer, currentlyOver)) return false;
+    if (this.isPointerInsideSelectedHandCardZoom(pointer, currentlyOver)) return false;
 
     this.clearBoardInspect({ animate: true });
+    return true;
   }
 
   isPointerInsideSelectedHandCardZoom(pointer, currentlyOver = []) {

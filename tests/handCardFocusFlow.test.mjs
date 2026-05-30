@@ -147,7 +147,7 @@ test('board unit inspect opens from occupied slots and reuses the full hand-card
   assert.match(source, /if \(!this\.selectedCardId && !this\.targetingState && !this\.effectCastState\) \{\s*const unit = this\.gameState\.board\[boardIndex\];[\s\S]*if \(this\.pendingSwapIndex !== null\) \{[\s\S]*\}\s*if \(!unit \|\| unit\.owner !== 'player'\) return;/);
   assert.match(source, /if \(this\.boardInspectIndex !== null\) \{\s*const unit = this\.gameState\.board\[this\.boardInspectIndex\];\s*const cell = this\.getCellByIndex\(this\.boardInspectIndex\);/);
   assert.match(source, /card: unit,\s*cardId: unit\.cardId \?\? unit\.id \?\? `board-\$\{this\.boardInspectIndex\}-unit`,\s*sourceX: cell\.background\.x,\s*sourceY: cell\.background\.y,/);
-  assert.match(source, /clearBoardInspectFromOutsideTap\(pointer, currentlyOver = \[\]\) \{[\s\S]*this\.clearBoardInspect\(\{ animate: true \}\);\s*\}/);
+  assert.match(source, /clearBoardInspectFromOutsideTap\(pointer, currentlyOver = \[\]\) \{[\s\S]*this\.clearBoardInspect\(\{ animate: true \}\);\s*return true;\s*\}/);
   assert.match(inspectMethod, /this\.createHandCardView\(\{/);
   assert.match(source, /cell\.label\.add\(this\.createBoardUnitView\(cell, unit\)\);/);
   const boardUnitViewSource = source.slice(source.indexOf('  createBoardUnitView(cell, unit) {'), source.indexOf('  refreshBoardLabels() {'));
