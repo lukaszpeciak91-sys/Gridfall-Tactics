@@ -144,6 +144,7 @@ export const NON_UNIT_EFFECT_STAT_SYMBOL = '✶';
 export const NON_UNIT_EFFECT_STAT_SYMBOL_COLOR = 0xfde68a;
 export const NON_UNIT_EFFECT_STAT_SYMBOL_CSS_COLOR = '#fde68a';
 export const NON_UNIT_EFFECT_STAT_SYMBOL_FIXED_HEIGHT_RATIO = 0.84;
+export const NON_UNIT_EFFECT_STAT_SYMBOL_OPTICAL_OFFSET_Y = -3;
 
 
 export function getFixedHeightTextVisualCenterOriginY(fontMetrics, fixedHeight, strokeThickness = 0) {
@@ -856,7 +857,7 @@ export function createStatBadges(scene, x, y, width, height, stats, depth = 0, o
 }
 
 export function createNonUnitEffectStatSymbols(scene, x, y, width, height, depth = 0, options = {}) {
-  const container = scene.add.container(x, y).setDepth(depth);
+  const container = scene.add.container(x, y + NON_UNIT_EFFECT_STAT_SYMBOL_OPTICAL_OFFSET_Y).setDepth(depth);
   const {
     sizeScale = 1,
     fontScale = 1,
@@ -892,6 +893,7 @@ export function createNonUnitEffectStatSymbols(scene, x, y, width, height, depth
     groupWidth: metrics.groupWidth,
     slotWidth: metrics.slotWidth,
     topMargin: metrics.topMargin,
+    opticalOffsetY: NON_UNIT_EFFECT_STAT_SYMBOL_OPTICAL_OFFSET_Y,
   };
 
   return container;
