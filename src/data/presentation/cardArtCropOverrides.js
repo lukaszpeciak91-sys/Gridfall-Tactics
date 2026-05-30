@@ -26,6 +26,33 @@ const CARD_ART_POSITION_OVERRIDES = Object.freeze({
   aggro_scout_1: Object.freeze({
     artPositionY: 0.575,
   }),
+  attrition_swarm_abomination_1: Object.freeze({
+    artPositionY: 0.25,
+  }),
+  attrition_swarm_carrier_1: Object.freeze({
+    artPositionY: 0.45,
+  }),
+  attrition_swarm_funeral_pyre_1: Object.freeze({
+    artPositionY: 0.25,
+  }),
+  attrition_swarm_grave_call_1: Object.freeze({
+    artPositionY: 0.125,
+  }),
+  attrition_swarm_husk_1: Object.freeze({
+    artPositionY: 0.275,
+  }),
+  attrition_swarm_infect_1: Object.freeze({
+    artPositionY: 0.8,
+  }),
+  attrition_swarm_leech_1: Object.freeze({
+    artPositionY: 0.2,
+  }),
+  attrition_swarm_rise_again_1: Object.freeze({
+    artPositionY: 0.25,
+  }),
+  attrition_swarm_rotcaller_1: Object.freeze({
+    artPositionY: 0.175,
+  }),
   control_controller_1: Object.freeze({
     artPositionY: 0.3,
   }),
