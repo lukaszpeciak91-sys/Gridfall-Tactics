@@ -43,7 +43,7 @@ Meaningful for this detector includes:
 - Combat that can ever change either base's HP from the current board, including open-lane attackers.
 - A hand/deck unit with attack greater than 0.
 - A hand/deck unit with an outcome-affecting special such as Runner open-lane bonus damage, Spitter lane damage, Brood death summon, Alpha aura, Attrition Swarm combat-only death pressure, Bruiser/Berserker attack growth, or Sniper lane flexibility.
-- A non-unit effect that currently has useful targets and can create pressure or damage, such as attack buffs with friendly units, Quick Strike/Rush with attacking friendly units, Pierce/Pulse/System Override with enemy units, Spawn/Regrow/Grave Call with an empty friendly slot and valid source, Funeral Pyre when allied combat deaths are plausible, Infect with enemy units, or draw effects that can reach a future meaningful card.
+- A non-unit effect that currently has useful targets and can create pressure or damage, such as attack buffs with friendly units, Quick Strike/Rush with attacking friendly units, Pierce/Pulse/System Override with enemy units, Spawn/Regrow/Grave Call with an empty friendly slot and valid source, Funeral Pyre when allied combat deaths are plausible, Rotten Gift with enemy units, or draw effects that can reach a future meaningful card.
 - A friendly swap only if simulating that swap allows combat to eventually change base HP.
 
 Not meaningful for this detector includes:
@@ -233,7 +233,7 @@ The no-progress detector uses the stricter "meaningful for outcome" definition i
 | Attrition Swarm | Rotcaller | unit | 1/2/0 | rotcaller_adjacent_death_atk_1 | First adjacent [ALLY] combat death: +1 ATK. | Combat-only same-row adjacency trigger | Capped at +1 per Rotcaller per combat and clears after combat. |
 | Attrition Swarm | Abomination | unit | 2/2/0 | combat_death_damage_both_heroes_1 | Combat death: both bases lose 1 HP. | Combat-only death trigger | Both-base damage participates in raw-HP simultaneous lethal resolution. |
 | Attrition Swarm | Funeral Pyre | order | - | funeral_pyre | First 2 [ALLY] combat deaths: deal 1 to opposed enemy. | Non-targeted deterministic effect | Active for combat cleanup; cap 2 per owner per combat; damages only opposing enemy units in the dying allies’ lanes; no base fallback; multiple plays do not stack above cap. |
-| Attrition Swarm | Infect | order | - | infect_damage_1_opposite_ally_atk_1 | Deal 1 to enemy. If it survives, opposed [ALLY] +1 ATK. | Targeted enemy | Non-combat damage; if the target survives, the caster-owned unit directly opposite it gets +1 ATK until combat cleanup; if the target dies or no opposite ally exists, no buff or base damage occurs. |
+| Attrition Swarm | Rotten Gift | order | - | infect_damage_1_opposite_ally_atk_1 | Deal 1 to enemy. If it survives, opposed [ALLY] +1 ATK. | Targeted enemy | Non-combat damage; if the target survives, the caster-owned unit directly opposite it gets +1 ATK until combat cleanup; if the target dies or no opposite ally exists, no buff or base damage occurs. |
 | Attrition Swarm | Feast | utility | - | destroy_friendly_draw_1 | Destroy [ALLY]. Draw 1. | Targeted friendly | Reuses Recycle-style non-combat destruction and does not trigger combat-only death effects. |
 | Attrition Swarm | Rise Again | order | - | revive_friendly_1hp | Revive the first discarded unit at 1 HP. | Non-targeted deterministic effect | First empty friendly slot + first unit in discard; no manual target UI. |
 | Attrition Swarm | Grave Call | order | - | grave_call | Summon 1/1. If no [ALLY], summon 2. | Non-targeted deterministic effect | Fills first empty friendly slot, or up to 2 left-to-right if the owner has no allies; rejected if no empty slot exists. |
@@ -269,7 +269,7 @@ Implemented now:
 - Manual staged Controller on-play enemy swap.
 - Flood capped at up to 2 temporary 1/1 Tokens that vanish after combat and do not trigger death effects.
 - Wardens defensive friction, Halberdier opposing-lane bonus, Shield Push, Stand Firm, and Reinforce Line.
-- Attrition Swarm combat-only death triggers, Funeral Pyre cap-2 death pressure, Infect, Feast, Rise Again, and Grave Call.
+- Attrition Swarm combat-only death triggers, Funeral Pyre cap-2 death pressure, Rotten Gift, Feast, Rise Again, and Grave Call.
 - One-time opening mulligan with up to 2 replacements before game start.
 
 Deferred / intentionally simplified:
