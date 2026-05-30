@@ -14,7 +14,7 @@ export const GENERATED_UNIT_ART = Object.freeze({
     collectible: false,
   }),
   attritionSwarmGrunt: Object.freeze({
-    factionId: 'attrition_swarm',
+    factionId: 'attrition-swarm',
     artAssetId: 'token_grunt_02',
     tokenType: 'grunt',
     isToken: true,
