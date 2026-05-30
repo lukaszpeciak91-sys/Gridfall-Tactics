@@ -96,6 +96,8 @@ test('non-unit effect stat symbols render as centered icon objects in stat slots
   row.children.forEach((star) => {
     assert.equal(star.type, 'graphics');
     assert.ok(star.commands.some((command) => command.type === 'fillStyle' && command.color === NON_UNIT_EFFECT_STAT_SYMBOL_COLOR));
+    assert.equal(star.commands.some((command) => command.type === 'lineStyle'), false);
+    assert.equal(star.commands.some((command) => command.type === 'strokePoints'), false);
 
     const mainFill = star.commands.filter((command) => command.type === 'fillPoints').at(-1);
     assert.ok(mainFill, 'star icon should draw a vector fill');
