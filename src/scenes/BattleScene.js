@@ -63,6 +63,9 @@ const BOARD_CARD_ARTWORK_PLAYER_CROP_POSITION_Y = 0.43;
 const BOARD_CARD_ARTWORK_ENEMY_CROP_POSITION_Y = 0.57;
 const BOARD_CARD_ART_HEIGHT_EXPANSION_PX = 10;
 const HAND_CARD_LONG_PRESS_MS = 425;
+const CARD_INSPECT_LONG_PRESS_MS = 350;
+const BOARD_INSPECT_LONG_PRESS_MS = 350;
+const PASS_HOLD_TO_SURRENDER_MS = 425;
 const ENEMY_ACTION_NOTIFICATION_FADE_IN_MS = 110;
 const ENEMY_ACTION_NOTIFICATION_HOLD_MS = 800;
 const ENEMY_ACTION_NOTIFICATION_FADE_OUT_MS = 140;
@@ -193,6 +196,7 @@ export default class BattleScene extends Phaser.Scene {
     this.boardCellLongPressEvent = null;
     this.pressedBoardCellIndex = null;
     this.boardLongPressTriggeredIndex = null;
+    this.boardLongPressSuppressNextScenePointerUpIndex = null;
     this.boardPointerDownSelectedSwapSource = false;
     this.navigationInProgress = false;
     this.pointerInputGuardActive = false;
@@ -275,6 +279,7 @@ export default class BattleScene extends Phaser.Scene {
     this.boardCellLongPressEvent = null;
     this.pressedBoardCellIndex = null;
     this.boardLongPressTriggeredIndex = null;
+    this.boardLongPressSuppressNextScenePointerUpIndex = null;
     this.boardPointerDownSelectedSwapSource = false;
     this.navigationInProgress = false;
     this.pointerInputGuardActive = false;
@@ -752,6 +757,7 @@ export default class BattleScene extends Phaser.Scene {
     this.longPressTriggeredCardId = null;
     this.pressedBoardCellIndex = null;
     this.boardLongPressTriggeredIndex = null;
+    this.boardLongPressSuppressNextScenePointerUpIndex = null;
 
     if (clearSelection) {
       this.selectedCardId = null;
@@ -1803,13 +1809,14 @@ export default class BattleScene extends Phaser.Scene {
 
   startBoardCellLongPress(boardIndex) {
     this.cancelBoardCellLongPress();
-    this.boardCellLongPressEvent = this.time.delayedCall(HAND_CARD_LONG_PRESS_MS, () => {
+    this.boardCellLongPressEvent = this.time.delayedCall(BOARD_INSPECT_LONG_PRESS_MS, () => {
       this.boardCellLongPressEvent = null;
       if (this.pressedBoardCellIndex !== boardIndex) return;
       if (this.utilityMenuPanel || this.navigationInProgress || this.pointerInputGuardActive) return;
       if (this.battleResultModalShown || this.isFlowResolving || this.isEffectCastResolving || this.playerActionUsed) return;
 
       if (this.showBoardUnitInspect(boardIndex)) {
+        this.boardLongPressSuppressNextScenePointerUpIndex = boardIndex;
         if (this.boardPointerDownSelectedSwapSource && this.pendingSwapIndex === boardIndex) {
           this.pendingSwapIndex = null;
           this.clearSwapPrompt();
@@ -1936,7 +1943,7 @@ export default class BattleScene extends Phaser.Scene {
 
   startHandCardLongPress(cardId) {
     this.cancelHandCardLongPress();
-    this.handCardLongPressEvent = this.time.delayedCall(HAND_CARD_LONG_PRESS_MS, () => {
+    this.handCardLongPressEvent = this.time.delayedCall(CARD_INSPECT_LONG_PRESS_MS, () => {
       this.handCardLongPressEvent = null;
       if (this.pressedHandCardId !== cardId) return;
       if (this.utilityMenuPanel || this.navigationInProgress || this.pointerInputGuardActive) return;
@@ -2051,6 +2058,11 @@ export default class BattleScene extends Phaser.Scene {
     if (this.isPointerUpReservedForUi(pointer, currentlyOver)) return;
 
     const boardCell = this.getBoardCellFromPointerUp(pointer, currentlyOver);
+
+    if (this.boardLongPressSuppressNextScenePointerUpIndex != null) {
+      this.boardLongPressSuppressNextScenePointerUpIndex = null;
+      return;
+    }
 
     if (boardCell && this.boardPointerDownSelectedSwapSource && this.pendingSwapIndex === boardCell.index) {
       this.pressedHandCardId = null;
@@ -2733,7 +2745,7 @@ export default class BattleScene extends Phaser.Scene {
     this.cancelPassHoldToSurrender();
     this.passHoldToSurrenderProgress = true;
     this.actionButton.setAlpha(0.82);
-    this.passHoldToSurrenderEvent = this.time.delayedCall(HAND_CARD_LONG_PRESS_MS, () => {
+    this.passHoldToSurrenderEvent = this.time.delayedCall(PASS_HOLD_TO_SURRENDER_MS, () => {
       this.passHoldToSurrenderEvent = null;
       if (!this.passHoldToSurrenderProgress || !this.passHoldToSurrenderEnabled || this.gameState?.winner || this.battleResultModalShown) return;
       this.resolvePlayerHoldToSurrender();

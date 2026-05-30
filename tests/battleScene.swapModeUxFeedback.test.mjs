@@ -104,3 +104,155 @@ test('implicit swap runtime flow: select, highlight, swap, clear, and invalid ta
   assert.equal(scene.gameState.board[6].id, 'B');
   assert.equal(scene.gameState.board[7].id, 'A');
 });
+
+test('own board long-press inspect consumes the release before scene-level tap routing', () => {
+  const startBoardCellLongPress = compileMethod(
+    'startBoardCellLongPress',
+    'cancelBoardCellLongPress',
+    ['boardIndex'],
+    'const BOARD_INSPECT_LONG_PRESS_MS = 350;\n',
+  );
+  const onScenePointerUp = compileMethod('onScenePointerUp', 'clearSelectedHandInspectFromOutsideTap', ['pointer', 'currentlyOver']);
+
+  const scene = {
+    boardCellLongPressEvent: null,
+    pressedBoardCellIndex: 6,
+    boardLongPressTriggeredIndex: null,
+    boardLongPressSuppressNextScenePointerUpIndex: null,
+    boardPointerDownSelectedSwapSource: true,
+    pendingSwapIndex: 6,
+    boardInspectIndex: null,
+    selectedCardId: null,
+    targetingState: null,
+    effectCastState: null,
+    utilityMenuPanel: null,
+    navigationInProgress: false,
+    pointerInputGuardActive: false,
+    battleResultModalShown: false,
+    isFlowResolving: false,
+    isEffectCastResolving: false,
+    playerActionUsed: false,
+    openingMulliganPending: false,
+    pressedHandCardId: null,
+    pressedHandCardWasSelected: false,
+    cancelBoardCellLongPress: function () { this.boardCellLongPressEvent = null; },
+    showBoardUnitInspect: function (index) { this.boardInspectIndex = index; return true; },
+    clearSwapPrompt: () => {},
+    resetCardHighlights: () => {},
+    updateActionButtonLabel: () => {},
+    time: {
+      delayedCall(ms, callback) {
+        scene.delayMs = ms;
+        callback();
+        return { remove: () => {} };
+      },
+    },
+    isPointerEventGuarded: () => false,
+    isPointerUpReservedForUi: () => false,
+    getBoardCellFromPointerUp: () => ({ index: 6 }),
+    onBoardCellTap: function () { this.tapCalls = (this.tapCalls ?? 0) + 1; },
+    clearBoardInspectFromOutsideTap: function () { this.clearInspectCalls = (this.clearInspectCalls ?? 0) + 1; },
+  };
+
+  startBoardCellLongPress.call(scene, 6);
+  assert.equal(scene.delayMs, 350);
+  assert.equal(scene.boardInspectIndex, 6);
+  assert.equal(scene.boardLongPressSuppressNextScenePointerUpIndex, 6);
+  assert.equal(scene.pendingSwapIndex, null);
+
+  onScenePointerUp.call(scene, { x: 1, y: 1 }, []);
+  assert.equal(scene.boardLongPressSuppressNextScenePointerUpIndex, null);
+  assert.equal(scene.tapCalls ?? 0, 0);
+  assert.equal(scene.clearInspectCalls ?? 0, 0);
+  assert.equal(scene.pendingSwapIndex, null);
+  assert.equal(scene.boardInspectIndex, 6);
+});
+
+test('enemy board long-press inspect remains persistent through release suppression', () => {
+  const startBoardCellLongPress = compileMethod(
+    'startBoardCellLongPress',
+    'cancelBoardCellLongPress',
+    ['boardIndex'],
+    'const BOARD_INSPECT_LONG_PRESS_MS = 350;\n',
+  );
+  const onScenePointerUp = compileMethod('onScenePointerUp', 'clearSelectedHandInspectFromOutsideTap', ['pointer', 'currentlyOver']);
+
+  const scene = {
+    boardCellLongPressEvent: null,
+    pressedBoardCellIndex: 2,
+    boardLongPressTriggeredIndex: null,
+    boardLongPressSuppressNextScenePointerUpIndex: null,
+    boardPointerDownSelectedSwapSource: false,
+    pendingSwapIndex: null,
+    boardInspectIndex: null,
+    selectedCardId: null,
+    targetingState: null,
+    effectCastState: null,
+    utilityMenuPanel: null,
+    navigationInProgress: false,
+    pointerInputGuardActive: false,
+    battleResultModalShown: false,
+    isFlowResolving: false,
+    isEffectCastResolving: false,
+    playerActionUsed: false,
+    openingMulliganPending: false,
+    pressedHandCardId: null,
+    pressedHandCardWasSelected: false,
+    cancelBoardCellLongPress: function () { this.boardCellLongPressEvent = null; },
+    showBoardUnitInspect: function (index) { this.boardInspectIndex = index; return true; },
+    clearSwapPrompt: () => {},
+    resetCardHighlights: () => {},
+    updateActionButtonLabel: () => {},
+    time: {
+      delayedCall(ms, callback) {
+        scene.delayMs = ms;
+        callback();
+        return { remove: () => {} };
+      },
+    },
+    isPointerEventGuarded: () => false,
+    isPointerUpReservedForUi: () => false,
+    getBoardCellFromPointerUp: () => ({ index: 2 }),
+    onBoardCellTap: function () { this.tapCalls = (this.tapCalls ?? 0) + 1; },
+    clearBoardInspectFromOutsideTap: function () { this.clearInspectCalls = (this.clearInspectCalls ?? 0) + 1; },
+  };
+
+  startBoardCellLongPress.call(scene, 2);
+  assert.equal(scene.delayMs, 350);
+  assert.equal(scene.boardInspectIndex, 2);
+  assert.equal(scene.boardLongPressSuppressNextScenePointerUpIndex, 2);
+
+  onScenePointerUp.call(scene, { x: 1, y: 1 }, []);
+  assert.equal(scene.boardLongPressSuppressNextScenePointerUpIndex, null);
+  assert.equal(scene.tapCalls ?? 0, 0);
+  assert.equal(scene.clearInspectCalls ?? 0, 0);
+  assert.equal(scene.boardInspectIndex, 2);
+});
+
+test('stale board long-press suppression is cleared on the next scene pointerup without clearing inspect', () => {
+  const onScenePointerUp = compileMethod('onScenePointerUp', 'clearSelectedHandInspectFromOutsideTap', ['pointer', 'currentlyOver']);
+  const scene = {
+    boardLongPressSuppressNextScenePointerUpIndex: 6,
+    pendingSwapIndex: null,
+    boardInspectIndex: 6,
+    selectedCardId: null,
+    targetingState: null,
+    effectCastState: null,
+    navigationInProgress: false,
+    battleResultModalShown: false,
+    isFlowResolving: false,
+    isEffectCastResolving: false,
+    openingMulliganPending: false,
+    isPointerEventGuarded: () => false,
+    isPointerUpReservedForUi: () => false,
+    getBoardCellFromPointerUp: () => null,
+    onBoardCellTap: function () { this.tapCalls = (this.tapCalls ?? 0) + 1; },
+    clearBoardInspectFromOutsideTap: function () { this.clearInspectCalls = (this.clearInspectCalls ?? 0) + 1; },
+  };
+
+  onScenePointerUp.call(scene, { x: 1, y: 1 }, []);
+  assert.equal(scene.boardLongPressSuppressNextScenePointerUpIndex, null);
+  assert.equal(scene.tapCalls ?? 0, 0);
+  assert.equal(scene.clearInspectCalls ?? 0, 0);
+  assert.equal(scene.boardInspectIndex, 6);
+});

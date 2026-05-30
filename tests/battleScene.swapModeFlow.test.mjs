@@ -38,7 +38,7 @@ test('board inspect remains long-press only and suppresses quick-tap inspect', (
 
   assert.match(source, /background\.on\('pointerdown', \(\) => \{\s*this\.onBoardCellPointerDown\(boardIndex\);\s*\}\);/);
   assert.match(source, /background\.on\('pointerup', \(\) => \{\s*this\.onBoardCellPointerUp\(boardIndex\);\s*\}\);/);
-  assert.match(source, /startBoardCellLongPress\(boardIndex\) \{[\s\S]*this\.time\.delayedCall\(HAND_CARD_LONG_PRESS_MS,[\s\S]*if \(this\.showBoardUnitInspect\(boardIndex\)\) \{/);
+  assert.match(source, /startBoardCellLongPress\(boardIndex\) \{[\s\S]*this\.time\.delayedCall\(BOARD_INSPECT_LONG_PRESS_MS,[\s\S]*if \(this\.showBoardUnitInspect\(boardIndex\)\) \{/);
   assert.match(source, /onBoardCellPointerUp\(boardIndex\) \{[\s\S]*if \(this\.boardLongPressTriggeredIndex === boardIndex\) \{[\s\S]*return;\s*\}[\s\S]*this\.onBoardCellTap\(boardIndex\);\s*\}/);
 
   const onBoardCellTapBlock = source.slice(
