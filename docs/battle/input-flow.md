@@ -64,6 +64,7 @@ Battle input is resolved by state priority, not raw tap location alone. Effectiv
 - Inspect is **long-press driven** for board and hand interactions.
 - Quick tap does **not** open inspect.
 - Long-press marks the interaction as consumed so the release event does not fire a second ghost tap action.
+- Hand-card pointer-down may provisionally select a card to keep quick taps responsive, but a completed long-press clears that gameplay selection and any provisional targeting before opening the inspect preview.
 - If long-press inspect triggers on the same unit that was just selected as swap source on pointer-down, pending swap is cleared to avoid dual-mode ambiguity.
 
 ---

@@ -2019,9 +2019,15 @@ export default class BattleScene extends Phaser.Scene {
         return;
       }
 
-      this.selectedCardId = cardId;
-      this.targetingState = this.isUnitCard(card) ? null : this.getTargetingStateForCard(card);
-      this.hoverInspectCardId = null;
+      // Pointer-down keeps quick taps responsive, but a completed long press is inspect-only.
+      // Remove the provisional gameplay selection before opening the preview so no board
+      // targeting remains active underneath the readable card view.
+      this.selectedCardId = null;
+      this.targetingState = null;
+      this.effectCastState = null;
+      this.actionMode = null;
+      this.destroyTargetingInstruction();
+      this.hoverInspectCardId = cardId;
       this.boardInspectIndex = null;
       this.resetCardHighlights({ showPreview: true });
       this.updateActionButtonLabel();
@@ -2199,6 +2205,7 @@ export default class BattleScene extends Phaser.Scene {
     if (!this.selectedHandCardZoom || this.boardInspectIndex !== null) return false;
     if (this.isPointerInsideSelectedHandCardZoom(pointer, currentlyOver)) return false;
 
+    this.hoverInspectCardId = null;
     this.resetCardHighlights({ showPreview: false });
     return true;
   }

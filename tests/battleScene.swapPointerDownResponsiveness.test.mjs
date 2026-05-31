@@ -288,9 +288,73 @@ test('enemy unit long press opens inspect without starting swap selection', () =
   assert.equal(scene.boardInspectIndex, 3);
 });
 
-test('hand-card long press source path remains unchanged', () => {
-  assert.match(source, /const HAND_CARD_LONG_PRESS_MS = 425;/);
-  assert.match(source, /const CARD_INSPECT_LONG_PRESS_MS = 350;/);
-  assert.match(source, /startHandCardLongPress\(cardId\) \{\s*this\.cancelHandCardLongPress\(\);\s*this\.handCardLongPressEvent = this\.time\.delayedCall\(CARD_INSPECT_LONG_PRESS_MS,/);
-  assert.match(source, /if \(this\.longPressTriggeredCardId === cardId\) \{/);
+test('hand-card long press clears provisional targeting, suppresses release, and allows a later quick tap', () => {
+  const startHandCardLongPress = compileMethod('startHandCardLongPress', 'cancelHandCardLongPress', ['cardId', 'CARD_INSPECT_LONG_PRESS_MS']);
+  const onCardPointerUp = compileMethod('onCardPointerUp', 'onScenePointerUp', ['cardId']);
+  const clearSelectedHandInspectFromOutsideTap = compileMethod('clearSelectedHandInspectFromOutsideTap', 'clearOpeningMulliganPreviewFromOutsideTap', ['pointer', 'currentlyOver']);
+  const onCardPointerDown = compileMethod('onCardPointerDown', 'startHandCardLongPress', ['cardId']);
+
+  const signalShift = { id: 'control_swap_1', type: 'order', effectId: 'swap_any_two_units' };
+  let timerCallback = null;
+  const highlights = [];
+  const scene = {
+    utilityMenuPanel: null,
+    navigationInProgress: false,
+    pointerInputGuardActive: false,
+    battleResultModalShown: false,
+    isFlowResolving: false,
+    playerActionUsed: false,
+    openingMulliganPending: false,
+    isEffectCastResolving: false,
+    pressedHandCardId: signalShift.id,
+    pressedHandCardWasSelected: false,
+    longPressTriggeredCardId: null,
+    handCardLongPressEvent: null,
+    selectedCardId: signalShift.id,
+    targetingState: { targetType: 'any-unit' },
+    effectCastState: null,
+    actionMode: 'card',
+    hoverInspectCardId: null,
+    boardInspectIndex: null,
+    pressedBoardCellIndex: null,
+    boardLongPressTriggeredIndex: null,
+    pendingSwapIndex: null,
+    selectedHandCardZoom: {},
+    gameState: { player: { hand: [signalShift] } },
+    time: { delayedCall(ms, callback) { assert.equal(ms, 350); timerCallback = callback; return { remove() {} }; } },
+    cancelHandCardLongPress() { this.handCardLongPressEvent = null; },
+    destroyTargetingInstructionCalled: false,
+    destroyTargetingInstruction() { this.destroyTargetingInstructionCalled = true; },
+    resetCardHighlights(options) { highlights.push(options); },
+    updateActionButtonLabel() {},
+    isPointerInsideSelectedHandCardZoom: () => false,
+    clearSwapPrompt() {},
+    isUnitCard: () => false,
+    getTargetingStateForCard: () => ({ targetType: 'any-unit' }),
+    startHandCardLongPress(cardId) { this.quickTapLongPressStartedFor = cardId; },
+  };
+
+  startHandCardLongPress.call(scene, signalShift.id, 350);
+  timerCallback();
+
+  assert.equal(scene.selectedCardId, null);
+  assert.equal(scene.targetingState, null);
+  assert.equal(scene.effectCastState, null);
+  assert.equal(scene.hoverInspectCardId, signalShift.id);
+  assert.equal(scene.destroyTargetingInstructionCalled, true);
+  assert.deepEqual(highlights.at(-1), { showPreview: true });
+
+  onCardPointerUp.call(scene, signalShift.id);
+  assert.equal(scene.selectedCardId, null);
+  assert.equal(scene.targetingState, null);
+  assert.equal(scene.longPressTriggeredCardId, null);
+
+  assert.equal(clearSelectedHandInspectFromOutsideTap.call(scene, { id: 1 }, []), true);
+  assert.equal(scene.hoverInspectCardId, null);
+  assert.deepEqual(highlights.at(-1), { showPreview: false });
+
+  onCardPointerDown.call(scene, signalShift.id);
+  assert.equal(scene.selectedCardId, signalShift.id);
+  assert.deepEqual(scene.targetingState, { targetType: 'any-unit' });
+  assert.equal(scene.quickTapLongPressStartedFor, signalShift.id);
 });
