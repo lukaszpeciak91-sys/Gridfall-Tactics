@@ -8,10 +8,16 @@ export const HAND_BACK_CARD_VISIBLE_TRIM = Object.freeze({
   bottom: 78 / 1536,
 });
 
+export function calculateVisibleHandBackCardCount({ handCount, maxHandSize, deckCount }) {
+  return Math.min(
+    Math.max(0, maxHandSize - handCount),
+    Math.max(0, deckCount),
+  );
+}
+
 export function shouldRenderHandBackCard({ handCount, maxHandSize, deckCount, index }) {
-  return handCount < maxHandSize
-    && deckCount > 0
-    && index === handCount;
+  const backCardCount = calculateVisibleHandBackCardCount({ handCount, maxHandSize, deckCount });
+  return index >= handCount && index < handCount + backCardCount;
 }
 
 export function calculateHandBackCardDepth({ baseDepth, slotDepthStep = 4 }) {
