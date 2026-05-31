@@ -33,10 +33,14 @@ export default class SettingsScene extends Phaser.Scene {
     this.languageMenuOpen = false;
     this.musicValueText = null;
     this.sfxValueText = null;
+    this.returnSceneKey = null;
   }
 
-  init() {
+  init(data) {
     this.cleanupScene();
+    this.returnSceneKey = typeof data?.returnSceneKey === 'string' && data.returnSceneKey
+      ? data.returnSceneKey
+      : null;
   }
 
   preload() {
@@ -303,6 +307,21 @@ export default class SettingsScene extends Phaser.Scene {
   }
 
   returnToMainMenu() {
+    const returnSceneKey = this.returnSceneKey;
+    const returnScene = returnSceneKey ? this.scene.get(returnSceneKey) : null;
+
+    if (returnSceneKey) {
+      this.scene.stop();
+      if (returnScene?.resumeFromSettings) {
+        returnScene.resumeFromSettings();
+        return;
+      }
+      if (this.scene.isPaused(returnSceneKey)) {
+        this.scene.resume(returnSceneKey);
+        return;
+      }
+    }
+
     this.scene.start('MainMenuScene');
   }
 
@@ -325,7 +344,7 @@ export default class SettingsScene extends Phaser.Scene {
     }
 
     if (this.scene.isActive('SettingsScene')) {
-      this.scene.restart();
+      this.scene.restart({ returnSceneKey: this.returnSceneKey });
     }
   }
 

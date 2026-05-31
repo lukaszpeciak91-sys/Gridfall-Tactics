@@ -93,11 +93,13 @@ test('tactical menu and inspect are mutually safe during navigation', () => {
   assert.match(source, /clearPointerInputGuard\(\) \{\s*this\.pointerInputGuardActive = false;\s*this\.pointerInputGuardEventId = null;\s*\}/);
   assert.match(source, /showUtilityMenuPanel\(\) \{\s*if \(this\.navigationInProgress\) return;\s*this\.closeInspectPreview\(\{ animate: false \}\);\s*this\.destroyUtilityMenuPanel\(\);/);
   assert.match(source, /closeInspectPreview\(\{ animate = false, clearSelection = false \} = \{\}\) \{[\s\S]*this\.cancelHandCardLongPress\(\);[\s\S]*this\.hoverInspectCardId = null;[\s\S]*this\.boardInspectIndex = null;[\s\S]*this\.previewedMulliganCardId = null;[\s\S]*this\.pressedHandCardId = null;[\s\S]*this\.longPressTriggeredCardId = null;[\s\S]*this\.destroySelectedHandCardZoom\(\{ animate \}\);/);
-  assert.match(source, /prepareUtilityMenuNavigation\(\{ includeBattleResultModal = false \} = \{\}\) \{[\s\S]*this\.navigationInProgress = true;[\s\S]*this\.closeInspectPreview\(\{ animate: false, clearSelection: true \}\);[\s\S]*this\.destroyUtilityMenuPanel\(\);[\s\S]*this\.destroyDeckInfoPanel\(\);/);
+  assert.match(source, /prepareUtilityMenuNavigation\(\{ includeBattleResultModal = false, preserveBattleFlow = false \} = \{\}\) \{[\s\S]*this\.navigationInProgress = true;[\s\S]*this\.closeInspectPreview\(\{ animate: false, clearSelection: true \}\);[\s\S]*this\.destroyUtilityMenuPanel\(\);[\s\S]*this\.destroyDeckInfoPanel\(\);/);
   assert.match(source, /onCardPointerDown\(cardId\) \{\s*if \(this\.utilityMenuPanel \|\| this\.navigationInProgress \|\| this\.pointerInputGuardActive\) return;/);
   assert.match(source, /if \(this\.targetingState\) \{\s*this\.cancelEffectTargeting\(\);\s*if \(this\.playerActionUsed \|\| this\.isFlowResolving \|\| this\.isEffectCastResolving\) \{\s*return;\s*\}\s*\}\s*const card = this\.gameState\.player\.hand\.find\(\(item\) => item\.id === cardId\);/);
   assert.match(source, /startHandCardLongPress\(cardId\) \{[\s\S]*if \(this\.utilityMenuPanel \|\| this\.navigationInProgress \|\| this\.pointerInputGuardActive\) return;/);
   assert.match(source, /onScenePointerUp\(pointer, currentlyOver = \[\]\) \{\s*if \(this\.isPointerEventGuarded\(pointer\) \|\| this\.navigationInProgress\) return;/);
+  assert.match(source, /const outsideCatcher = this\.add\.rectangle[\s\S]*\.setInteractive\(\)[\s\S]*\.setDepth\(depth\);/);
+  assert.match(source, /const panel = this\.add\.rectangle[\s\S]*\.setDepth\(depth \+ 2\)\s*\.setInteractive\(\);[\s\S]*panel\.on\('pointerdown',[\s\S]*event\?\.stopPropagation\?\.\(\);[\s\S]*panel\.on\('pointerup',[\s\S]*this\.guardPointerEvent\(pointer\);/);
 });
 
 test('effect casting is staged before targeted resolution without a dedicated cancel action button state', () => {
