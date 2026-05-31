@@ -11,6 +11,7 @@ import {
   resolveCombat,
   toggleFirstActor,
   resolveTurnCapWinner,
+  resolveImmediateResourceExhaustionWinner,
   resolveImmediateNoProgressWinner,
   recordPassAction,
   MAX_TURNS,
@@ -151,6 +152,10 @@ function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, gameSe
   const initialFirstActor = state.firstActor;
 
   while (!state.winner && turns < MAX_TURNS) {
+    resolveImmediateResourceExhaustionWinner(state);
+    resolveImmediateNoProgressWinner(state);
+    if (state.winner) break;
+
     const decisionContext = `${playerKey}|${enemyKey}|${gameIndex}|${turns}`;
     const decisionSeed = buildGameSeed(gameSeed, decisionContext, state.firstActor, turns + 7);
     const turnRng = createSeededRng(decisionSeed);
@@ -165,10 +170,13 @@ function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, gameSe
     resolveCombat(state);
     turns += 1;
     state.turnsCompleted = turns;
+    resolveImmediateResourceExhaustionWinner(state);
     resolveImmediateNoProgressWinner(state);
     if (state.winner) break;
     drawCards(state.player, 1);
     drawCards(state.enemy, 1);
+    resolveImmediateResourceExhaustionWinner(state);
+    resolveImmediateNoProgressWinner(state);
     resolveTurnCapWinner(state, turns);
     if (!state.winner) toggleFirstActor(state);
   }

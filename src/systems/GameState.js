@@ -14,7 +14,7 @@ export const RUNNER_OPEN_LANE_HERO_BONUS = 2;
 function hasSwarmAlphaAura(unit) {
   return unit?.effectId === SWARM_ALPHA_AURA_EFFECT_ID;
 }
-export const MAX_TURNS = 50;
+export const MAX_TURNS = 24;
 export const STARTING_HAND_SIZE = 4;
 export const MAX_OPENING_MULLIGAN_CARDS = 2;
 
@@ -211,6 +211,27 @@ export function resolveImmediateNoProgressWinner(state) {
 
 export function resolveNoProgressDeadlockWinner(state) {
   return resolveImmediateNoProgressWinner(state);
+}
+
+export function resolveImmediateResourceExhaustionWinner(state) {
+  if (!state || state.winner) return state?.winner ?? null;
+
+  const ownerIsExhaustedAndBehind = (owner) => {
+    const side = owner === 'player' ? state.player : state.enemy;
+    const opponentHp = owner === 'player' ? state.enemyHP : state.playerHP;
+    const ownerHp = owner === 'player' ? state.playerHP : state.enemyHP;
+    return (side?.hand?.length ?? 0) === 0
+      && (side?.deck?.length ?? 0) === 0
+      && !state.board.some((unit) => unit?.owner === owner)
+      && ownerHp < opponentHp;
+  };
+
+  if (ownerIsExhaustedAndBehind('player')) state.winner = 'enemy';
+  else if (ownerIsExhaustedAndBehind('enemy')) state.winner = 'player';
+  else return null;
+
+  state.endingReason = 'resource_exhaustion';
+  return state.winner;
 }
 
 function getRowForOwner(owner) {
