@@ -600,7 +600,8 @@ export default class BattleScene extends Phaser.Scene {
     const { x: triggerX, y: triggerY, touchSize } = this.getActionRowUtilityMenuMetrics();
     const panelWidth = Math.min(236, width - margin * 2);
     const panelHeight = 278;
-    const panelX = margin + panelWidth / 2;
+    const panelLeft = Phaser.Math.Clamp(triggerX - touchSize / 2, margin, width - margin - panelWidth);
+    const panelX = panelLeft + panelWidth / 2;
     const gapAboveTrigger = Math.max(10, Math.round(touchSize * 0.22));
     const panelY = Math.max(margin + panelHeight / 2, triggerY - touchSize / 2 - gapAboveTrigger - panelHeight / 2);
     const panelTop = panelY - panelHeight / 2;
@@ -641,10 +642,10 @@ export default class BattleScene extends Phaser.Scene {
       letterSpacing: 1.4,
     }).setOrigin(0.5).setDepth(depth + 3);
 
-    const fullscreenToggle = createFloatingControl(this, panelX - 28, rowY, 42, '⛶', () => {
+    const muteToggle = createMuteToggleControl(this, panelX - 28, rowY, 42, { depth: depth + 3 });
+    const fullscreenToggle = createFloatingControl(this, panelX + 28, rowY, 42, '⛶', () => {
       this.toggleFullscreen();
     }, { fontScale: 0.48 });
-    const muteToggle = createMuteToggleControl(this, panelX + 28, rowY, 42, { depth: depth + 3 });
 
     [triggerControl, fullscreenToggle, muteToggle].forEach((control) => {
       [control.halo, control.backing, control.text, control.button, control.icon].filter(Boolean).forEach((item) => {
@@ -653,10 +654,10 @@ export default class BattleScene extends Phaser.Scene {
     });
 
     const buttons = [
-      this.createUtilityMenuButton(buttonX, firstButtonY, buttonWidth, buttonHeight, translateActive('ui.common.rules', 'Rules'), () => this.openRulesPanel()),
-      this.createUtilityMenuButton(buttonX, firstButtonY + buttonGap, buttonWidth, buttonHeight, translateActive('ui.common.settings', 'Settings'), () => this.openSettingsScene()),
-      this.createUtilityMenuButton(buttonX, firstButtonY + buttonGap * 2, buttonWidth, buttonHeight, translateActive('ui.battle.returnToFactionSelect', 'Return / Back'), () => this.exitBattleToFactionSelect()),
-      this.createUtilityMenuButton(buttonX, firstButtonY + buttonGap * 3, buttonWidth, buttonHeight, translateActive('ui.battle.exitToMainMenu', 'Exit Battle / Main Menu'), () => this.exitBattleToMainMenu()),
+      this.createUtilityMenuButton(buttonX, firstButtonY, buttonWidth, buttonHeight, translateActive('ui.battle.utilityMenuRules', 'Rules'), () => this.openRulesPanel()),
+      this.createUtilityMenuButton(buttonX, firstButtonY + buttonGap, buttonWidth, buttonHeight, translateActive('ui.battle.utilityMenuSettings', 'Settings'), () => this.openSettingsScene()),
+      this.createUtilityMenuButton(buttonX, firstButtonY + buttonGap * 2, buttonWidth, buttonHeight, translateActive('ui.battle.utilityMenuReturn', 'Return'), () => this.exitBattleToFactionSelect()),
+      this.createUtilityMenuButton(buttonX, firstButtonY + buttonGap * 3, buttonWidth, buttonHeight, translateActive('ui.battle.utilityMenuMainMenu', 'Main Menu'), () => this.exitBattleToMainMenu()),
     ];
 
     buttons.forEach((button) => {

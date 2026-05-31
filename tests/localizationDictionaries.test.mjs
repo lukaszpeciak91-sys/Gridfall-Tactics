@@ -46,6 +46,17 @@ test('retry button copy stays short in Polish without changing English', () => {
   assert.equal(getPath(pl, 'ui.common.retry'), 'PONÓW');
 });
 
+test('battle utility drawer labels are explicit in English and Polish', () => {
+  assert.deepEqual(
+    ['utilityMenuRules', 'utilityMenuSettings', 'utilityMenuReturn', 'utilityMenuMainMenu'].map((key) => getPath(en, `ui.battle.${key}`)),
+    ['Rules', 'Settings', 'Return', 'Main Menu'],
+  );
+  assert.deepEqual(
+    ['utilityMenuRules', 'utilityMenuSettings', 'utilityMenuReturn', 'utilityMenuMainMenu'].map((key) => getPath(pl, `ui.battle.${key}`)),
+    ['Zasady', 'Ustawienia', 'Powrót', 'Menu główne'],
+  );
+});
+
 test('player effect confirmation banner copy is localized for English and Polish', () => {
   assert.equal(getPath(en, 'ui.battle.playerPlayed'), 'YOU PLAYED');
   assert.equal(getPath(pl, 'ui.battle.playerPlayed'), 'ZAGRANO');
