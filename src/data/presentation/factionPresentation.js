@@ -117,7 +117,7 @@ const presentation = {
       control_disruptor_1: { nameEn: 'Störsignal', namePl: 'Sygnał Zakłóceń' },
       control_sniper_1: { nameEn: 'Rotes Auge', namePl: 'Czerwone Oko' },
       control_controller_1: { nameEn: 'Signal Master', namePl: 'Mistrz Sygnału' },
-      control_drone_1: { nameEn: 'Relaisschädel', namePl: 'Czaszka-Przekaźnik' },
+      control_drone_1: { nameEn: 'Relay', namePl: 'Przekaźnik' },
       control_swap_1: { nameEn: 'Signal Shift', namePl: 'Przesunięcie Sygnału' },
       control_jam_signal_1: { nameEn: 'Signal Jam', namePl: 'Zakłócenie Sygnału' },
       control_pulse_wave_1: { nameEn: 'Neural Pulse', namePl: 'Impuls Neuronalny' },

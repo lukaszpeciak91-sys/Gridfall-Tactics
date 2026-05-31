@@ -97,7 +97,7 @@
       "textShort": "Po zagraniu: zamień dwóch wrogów."
     },
     "control_drone_1": {
-      "name": "Czaszka-Przekaźnik",
+      "name": "Przekaźnik",
       "textShort": "Po śmierci: wróg traci 1 HP."
     },
     "control_swap_1": {

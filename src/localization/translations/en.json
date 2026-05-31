@@ -97,7 +97,7 @@
       "textShort": "On play: swap two enemies."
     },
     "control_drone_1": {
-      "name": "Relaisschädel",
+      "name": "Relay",
       "textShort": "On death: enemy base loses 1 HP."
     },
     "control_swap_1": {
