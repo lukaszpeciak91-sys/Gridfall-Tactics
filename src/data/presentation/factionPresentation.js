@@ -172,7 +172,7 @@ const presentation = {
       swarm_swarm_attack_1: { nameEn: 'Shared Frenzy', namePl: 'Wspólna Gorączka' },
       swarm_regrow_1: { nameEn: 'Regrowth Cycle', namePl: 'Cykl Odrostu' },
       swarm_flood_1: { nameEn: 'Spore Flood', namePl: 'Powódź Zarodników' },
-      swarm_recycle_1: { nameEn: 'Recycle Biomass', namePl: 'Recykling Biomasy' },
+      swarm_recycle_1: { nameEn: 'Substrate', namePl: 'Pożywka' },
     },
   },
   'attrition-swarm': {

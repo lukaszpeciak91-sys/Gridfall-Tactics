@@ -54,6 +54,14 @@ test('card display helper can resolve future nameKey and textKey fields through 
   assert.equal(getCardTextShort(keyedCard, 'pl'), 'Otwarta linia: wróg traci 2 HP.');
 });
 
+test('Swarm Substrate display name resolves in English and Polish', () => {
+  const { deck } = getFactionByKey('Swarm');
+  const substrate = deck.find((card) => card.id === 'swarm_recycle_1');
+
+  assert.equal(getCardDisplayName(substrate, 'en'), 'Substrate');
+  assert.equal(getCardDisplayName(substrate, 'pl'), 'Pożywka');
+});
+
 test('card display helper uses existing card fields when future translation keys are missing', () => {
   const keyedCard = {
     name: 'Fallback Name',

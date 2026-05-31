@@ -384,11 +384,11 @@ test('Attrition Swarm UI targeting metadata matches resolver expectations', () =
   });
 });
 
-test('Base Swarm Recycle destroys a friendly unit and draws exactly 1 without changing Feast', () => {
+test('Base Swarm Substrate destroys a friendly unit and draws exactly 1 without changing Feast', () => {
   const s = createInitialBattleState(baseSwarm, emptyFaction, { firstActor: 'player' });
   s.player.hand = [swarmCard('swarm_recycle_1')];
   s.player.deck = [swarmCard('swarm_grunt_1'), swarmCard('swarm_rusher_1')];
-  s.board[6] = unit({ owner: 'player', id: 'recycle-victim' });
+  s.board[6] = unit({ owner: 'player', id: 'substrate-victim' });
   s.board[0] = unit({ owner: 'enemy', id: 'enemy-unit' });
   assert.equal(resolveTargetedEffectCard(s, 'player', 'swarm_recycle_1', 0).ok, false);
   const result = resolveTargetedEffectCard(s, 'player', 'swarm_recycle_1', 6);
