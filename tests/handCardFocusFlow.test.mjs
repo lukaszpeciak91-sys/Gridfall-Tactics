@@ -157,3 +157,36 @@ test('board unit inspect opens from occupied slots and reuses the full hand-card
   assert.match(boardUnitViewSource, /baseStats: this\.getBoardUnitBaseStats\(unit\),/);
   assert.doesNotMatch(boardUnitViewSource, /getCardTextShort|getCardDisplayContent|createInlineStatText|bodyText|textPanel|setInteractive/);
 });
+
+test('targeted hand-card long press closes inspect before board target selection without clearing targeting state', () => {
+  const closeForTargetingMethod = source.slice(
+    source.indexOf('  closeInspectForBoardTargeting({ animate = true } = {})'),
+    source.indexOf('  showSelectedHandCardZoom()'),
+  );
+  const resetHighlightsMethod = source.slice(
+    source.indexOf('  resetCardHighlights({ showPreview = true } = {})'),
+  );
+
+  assert.match(source, /closeInspectForBoardTargeting\(\{ animate = true \} = \{\}\) \{\s*if \(!this\.targetingState\) return;[\s\S]*this\.hoverInspectCardId = null;[\s\S]*this\.boardInspectIndex = null;[\s\S]*this\.previewedMulliganCardId = null;[\s\S]*this\.destroySelectedHandCardZoom\(\{ animate \}\);\s*\}/);
+  assert.doesNotMatch(closeForTargetingMethod, /this\.selectedCardId\s*=/);
+  assert.doesNotMatch(closeForTargetingMethod, /this\.targetingState\s*=/);
+  assert.match(inspectMethod, /if \(this\.targetingState\) \{\s*this\.closeInspectForBoardTargeting\(\);\s*return;\s*\}/);
+  assert.match(resetHighlightsMethod, /if \(this\.targetingState\) \{\s*this\.closeInspectForBoardTargeting\(\);\s*\}/);
+  assert.match(resetHighlightsMethod, /if \(showPreview && !this\.targetingState\) \{\s*this\.showSelectedHandCardZoom\(\);\s*\} else \{\s*this\.destroySelectedHandCardZoom\(\{ animate: true \}\);/);
+  assert.match(source, /this\.selectedCardId = cardId;\s*this\.targetingState = this\.isUnitCard\(card\) \? null : this\.getTargetingStateForCard\(card\);[\s\S]*this\.resetCardHighlights\(\{ showPreview: true \}\);/);
+});
+
+test('multi-target and optional-target highlight refreshes keep inspect closed after board selections', () => {
+  const boardTapMethod = source.slice(
+    source.indexOf('  onBoardCellTap(boardIndex) {'),
+    source.indexOf('  getActivePlayerEffectCard()'),
+  );
+
+  assert.match(boardTapMethod, /if \(alreadySelected\) \{[\s\S]*this\.targetingState = \{[\s\S]*targetIndexes,[\s\S]*\};\s*this\.resetCardHighlights\(\{ showPreview: false \}\);/);
+  assert.match(boardTapMethod, /if \(!canAutoCast\) \{[\s\S]*this\.targetingState = \{[\s\S]*targetIndexes,[\s\S]*\};\s*this\.resetCardHighlights\(\{ showPreview: false \}\);/);
+  assert.match(boardTapMethod, /if \(result\.ok && \(result\.type === 'targeted-effect-pending' \|\| result\.type === 'unit-on-play-targeted-effect-pending'\)\) \{[\s\S]*this\.targetingState = \{[\s\S]*targetIndexes,[\s\S]*\};\s*this\.resetCardHighlights\(\{ showPreview: false \}\);/);
+});
+
+test('quick-tap targeting continues to suppress inspect preview', () => {
+  assert.match(source, /this\.selectedCardId = cardId;\s*this\.targetingState = this\.isUnitCard\(card\) \? null : this\.getTargetingStateForCard\(card\);\s*this\.resetCardHighlights\(\{ showPreview: false \}\);\s*this\.updateActionButtonLabel\(\);\s*this\.startHandCardLongPress\(cardId\);/);
+});
