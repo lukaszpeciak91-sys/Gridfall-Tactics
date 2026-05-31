@@ -234,7 +234,7 @@ The no-progress detector still exists and uses the stricter "meaningful for outc
 | Swarm | Spawn | order | - | summon_grunt_empty_slot | Summon 1/1 in an empty [ALLY] slot. | Non-targeted deterministic effect | Rejected if no empty slot; no manual target UI. |
 | Swarm | Swarm Attack | order | - | buff_all_atk_1 | All [ALLY] +1 ATK this turn. | Non-targeted effect | Swarm-specific behavior remains unchanged. |
 | Swarm | Regrow | order | - | revive_friendly_1hp | Revive the first discarded unit at 1 HP. | Non-targeted deterministic effect | First empty slot + first unit in discard; no manual target UI. |
-| Swarm | Flood | special | - | fill_empty_slots_0_1 | Fill up to 2 empty [ALLY] slots with temporary 1/1s. | Non-targeted deterministic effect | Fills up to 2 empty ally slots left-to-right with temporary 1/1 Tokens; they vanish after combat, do not enter discard, and do not trigger death effects. |
+| Swarm | Flood | special | - | fill_empty_slots_0_1 | Fill up to 2 empty [ALLY] slots with temporary 1/1s. | Non-targeted deterministic effect | Fills up to 2 empty ally slots left-to-right with temporary board-only 1/1 Tokens; they vanish after combat or instead of returning to hand, do not enter hand or discard, and do not trigger death effects. |
 | Attrition Swarm | Husk | unit | 1/1/0 | combat_death_damage_enemy_lane_1 | Combat death: deal 1 to opposed enemy. | Combat-only death trigger | Damages only an opposing enemy unit in the same lane; no base fallback; does not trigger from Feast, redeploy, return, or non-combat damage cleanup. |
 | Swarm | Substrate | utility | - | destroy_friendly_draw_1 | Destroy [ALLY]. Draw 1. | Targeted friendly | Immediate non-combat destroy, then draw 1. |
 | Attrition Swarm | Carrier | unit | 1/2/0 | combat_death_summon_grunt | Combat death: summon 1/1 here. | Combat-only death trigger | Summons a same-owner 1/1 in the same slot only after combat death and only if the slot is empty. |
@@ -298,7 +298,8 @@ Deferred / intentionally simplified:
 ## 11) Balance Notes (MVP Tracking)
 
 - Flood tempo candidate status: **active** (`fill_empty_slots_0_1` summons up to 2 temporary 1/1 Tokens).
-- Swarm no longer fills all 3 slots with Flood in current code; Flood Tokens vanish after combat and skip death effects/discard paths.
+- Swarm no longer fills all 3 slots with Flood in current code; Flood Tokens are temporary board-only units. They vanish after combat or whenever they would leave the board through a return-to-hand path, and they skip hand, discard, and death-effect paths.
+- Generated Grunts remain persistent card-like generated units: they return to hand through redeploy and Recall, preserve their artwork metadata, and can be replayed, discarded, or revived normally.
 - Tank/Shieldbearer package remains under observation for balance after Wall moved to 0/3.
 - No Base HP increase currently (still 12).
 - No deck-size increase currently (still 10).
