@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
-import { createInitialBattleState, drawCards, shuffleDeck, canPass, canPlayOrRedeploy, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, resolveTargetedUnitOnPlayEffect, getUnitAttack, getUnitArmor, toggleFirstActor, resolveTurnCapWinner, resolveImmediateNoProgressWinner, recordPassAction, performOpeningMulligan, STARTING_HAND_SIZE, MAX_OPENING_MULLIGAN_CARDS } from '../systems/GameState.js';
+import { createInitialBattleState, drawCards, shuffleDeck, canPass, canPlayOrRedeploy, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, resolveTargetedUnitOnPlayEffect, getUnitAttack, getUnitArmor, toggleFirstActor, resolveTurnCapWinner, resolveImmediateResourceExhaustionWinner, resolveImmediateNoProgressWinner, recordPassAction, performOpeningMulligan, STARTING_HAND_SIZE, MAX_OPENING_MULLIGAN_CARDS } from '../systems/GameState.js';
 import { chooseEnemyAction, isVerySafeConcedableState, recordBattleActionUse, selectOpeningMulliganCardIds } from '../systems/enemyDecision.js';
 import { getTargetingStateForEffect } from '../systems/cardTargeting.js';
 import { getCombatEventAttackerIndex, getCombatEventTargetIndex, getLaneLethalTargetIndexes, getLaneSimultaneousUnitClash, shouldAnimateCombatAttacker } from '../systems/combatAnimation.js';
@@ -2925,6 +2925,7 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
+    resolveImmediateResourceExhaustionWinner(this.gameState);
     resolveImmediateNoProgressWinner(this.gameState);
     if (this.gameState.winner) {
       this.updateInitiativeIndicator();
@@ -3058,6 +3059,7 @@ export default class BattleScene extends Phaser.Scene {
     this.refreshHeroHP();
 
     this.gameState.turnsCompleted += 1;
+    resolveImmediateResourceExhaustionWinner(this.gameState);
     resolveImmediateNoProgressWinner(this.gameState);
     if (this.gameState.winner) {
       this.completeBattleFlow(500);
@@ -3067,6 +3069,7 @@ export default class BattleScene extends Phaser.Scene {
     await this.delay(500);
     drawCards(this.gameState.player, 1);
     drawCards(this.gameState.enemy, 1);
+    resolveImmediateResourceExhaustionWinner(this.gameState);
     resolveImmediateNoProgressWinner(this.gameState);
     resolveTurnCapWinner(this.gameState, this.gameState.turnsCompleted);
 

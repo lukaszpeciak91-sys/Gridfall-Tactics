@@ -124,3 +124,11 @@ canonical_ref: docs/rules/mvp-battle-rules.md
 - Added stable art identity for generated non-deck units while preserving existing Recall, redeploy, discard, revive, death, and cleanup behavior.
 - Generated Grunts and Flood tokens now resolve through unique faction-local `public/assets/cards/{factionId}/{artAssetId}.webp` artwork and are explicitly preloaded even though they are not normal deck cards; binary `.webp` files remain manual repo additions outside Codex scope.
 - Documented the generated-unit lifecycle convention so board, hand, discard, and revive movements keep the same token illustration metadata.
+
+
+## Resource Exhaustion + 24-Turn Cap Parity Update (2026-05-31)
+- Reduced the shared MVP full-turn cap from 50 to 24; live battle flow and all simulation/report runners continue to import the same `MAX_TURNS` constant.
+- Added an immediate stable-boundary `resource_exhaustion` result: a side loses only when its hand, deck, and board-unit count are all zero and its base HP is strictly lower than the opponent's.
+- Kept deck-empty as a required condition so a hand-empty side with future draws is never auto-defeated.
+- Preserved the broader no-progress resolver, player-controlled hold-to-surrender flow, and AI safe-surrender path.
+- Aligned live and simulation sequencing after combat and after both draws: resource exhaustion, then no-progress, then the turn-cap check after the post-draw checks.

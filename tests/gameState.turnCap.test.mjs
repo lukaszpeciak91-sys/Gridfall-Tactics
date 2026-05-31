@@ -3,6 +3,10 @@ import assert from 'node:assert/strict';
 
 import { MAX_TURNS, createInitialBattleState, resolveTurnCapWinner } from '../src/systems/GameState.js';
 
+test('shared MVP turn cap is 24 completed turns', () => {
+  assert.equal(MAX_TURNS, 24);
+});
+
 const makeState = (playerHP, enemyHP) => {
   const state = createInitialBattleState({ name: 'Test', deck: [] }, { name: 'Test Enemy', deck: [] });
   state.playerHP = playerHP;

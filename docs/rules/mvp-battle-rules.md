@@ -1,7 +1,7 @@
 # MVP Battle Rules (Canonical)
 
 **Status:** Frozen for MVP implementation  
-**Last Updated:** 2026-05-10
+**Last Updated:** 2026-05-31
 
 **Scope:** Gameplay rules for the MVP battle loop
 
@@ -12,7 +12,7 @@ If any other document conflicts with this file, this file wins.
 
 - Player Base HP: **12**.
 - Enemy Base HP: **12**.
-- Battle-end checks are code-driven and occur during combat finalization, no-progress checks, and the turn-cap check.
+- Battle-end checks are code-driven and occur during combat finalization and stable-boundary resource-exhaustion, no-progress, and turn-cap checks.
 - Base defeat:
   - If only the player base is at **0 or lower HP** when base defeat is finalized, the **enemy wins**.
   - If only the enemy base is at **0 or lower HP** when base defeat is finalized, the **player wins**.
@@ -23,11 +23,15 @@ If any other document conflicts with this file, this file wins.
   - Higher raw enemy base HP -> **enemy wins**.
   - Equal raw base HP -> **draw** (for example, -3 vs -3 remains a draw).
   - This tiebreak changes only winner assignment after simultaneous lethal; combat order, lane order, damage timing, attack timing, and damage events are unchanged.
-- MVP turn cap: **50 completed full turns**.
+- MVP turn cap: **24 completed full turns**.
 - At the turn cap, if no winner already exists, the winner is decided by remaining base HP:
   - Higher player base HP -> **player wins**.
   - Higher enemy base HP -> **enemy wins**.
   - Equal base HP -> **draw**.
+- Immediate resource-exhaustion loss: at a stable battle boundary, a side loses if and only if it has **0 cards in hand**, **0 cards in deck**, **0 units on board**, and **strictly lower base HP** than its opponent.
+  - Deck-empty is required: hand-empty-only never causes an automatic loss because future draws may still exist.
+  - Equal base HP does not force a resource-exhaustion winner; no-progress/draw logic remains responsible for locked parity cases.
+  - Resource exhaustion is checked only at stable battle boundaries: start of turn, after combat cleanup, after both draws, and before turn-cap resolution. It is never checked during targeting, mid-combat, between lane resolutions, between the two draws, or before death-trigger cleanup.
 - Immediate no-progress end: if both sides have no meaningful remaining card/action, combat can no longer change base HP, and no remaining action can realistically affect the outcome, the battle ends immediately by remaining base HP:
   - Higher player base HP -> **player wins**.
   - Higher enemy base HP -> **enemy wins**.
@@ -92,27 +96,32 @@ Runner-only edge cases follow these same rules: an unblocked Runner in combat ca
 - After each full turn resolution, `firstActor` toggles so initiative alternates player → enemy → player, or enemy → player → enemy.
 - Each side gets at most **1 action or PASS** per full turn. In UI flow, PASS is only available while the player has not already used their turn action.
 - PASS counts as that side's action for the turn, advances the auto-turn sequence, and does **not** increment any stall/pass counter.
+- At each stable turn start, resource exhaustion is checked before no-progress handling and before either side acts; this gives deterministic end rules priority over optional AI surrender.
 - Combat resolves only after both sides have acted or passed.
 - If `firstActor` is `player`, the full turn order is:
   1. Player takes one action or PASS.
   2. Enemy takes one action or passes.
-  3. Combat resolves across all 3 lanes.
-  4. If no-progress deadlock is detected, end immediately by remaining base HP.
-  5. Player draws 1.
-  6. Enemy draws 1.
-  7. If no-progress deadlock is detected after draws, end immediately by remaining base HP.
-  8. If this was completed turn 50 and no winner exists, apply the remaining-base-HP turn-cap rule.
-  9. Initiative toggles for the next turn if the battle is still active.
+  3. Combat resolves across all 3 lanes, including base-lethal resolution and death-trigger cleanup.
+  4. If resource exhaustion is detected, end immediately with `resource_exhaustion`.
+  5. If no-progress deadlock is detected, end immediately by remaining base HP.
+  6. Player draws 1.
+  7. Enemy draws 1.
+  8. If resource exhaustion is detected after both draws, end immediately with `resource_exhaustion`.
+  9. If no-progress deadlock is detected after both draws, end immediately by remaining base HP.
+  10. If this was completed turn 24 and no winner exists, apply the remaining-base-HP turn-cap rule.
+  11. Initiative toggles for the next turn if the battle is still active.
 - If `firstActor` is `enemy`, the full turn order is:
   1. Enemy takes one automatic action or passes.
   2. Player takes one action or PASS.
-  3. Combat resolves across all 3 lanes.
-  4. If no-progress deadlock is detected, end immediately by remaining base HP.
-  5. Player draws 1.
-  6. Enemy draws 1.
-  7. If no-progress deadlock is detected after draws, end immediately by remaining base HP.
-  8. If this was completed turn 50 and no winner exists, apply the remaining-base-HP turn-cap rule.
-  9. Initiative toggles for the next turn if the battle is still active.
+  3. Combat resolves across all 3 lanes, including base-lethal resolution and death-trigger cleanup.
+  4. If resource exhaustion is detected, end immediately with `resource_exhaustion`.
+  5. If no-progress deadlock is detected, end immediately by remaining base HP.
+  6. Player draws 1.
+  7. Enemy draws 1.
+  8. If resource exhaustion is detected after both draws, end immediately with `resource_exhaustion`.
+  9. If no-progress deadlock is detected after both draws, end immediately by remaining base HP.
+  10. If this was completed turn 24 and no winner exists, apply the remaining-base-HP turn-cap rule.
+  11. Initiative toggles for the next turn if the battle is still active.
 
 Player turn actions that spend the one action for the turn:
 - Play a unit card to a friendly combat slot.
@@ -122,7 +131,7 @@ Player turn actions that spend the one action for the turn:
 - Redeploy a unit from hand onto an occupied friendly slot.
 - PASS without taking another action.
 
-The no-progress detector uses the stricter "meaningful for outcome" definition in section 1.1; not every legal turn action is considered outcome-meaningful in a locked board state.
+The no-progress detector still exists and uses the stricter "meaningful for outcome" definition in section 1.1; not every legal turn action is considered outcome-meaningful in a locked board state. Player surrender remains an optional, player-controlled hold gesture in concedable states rather than an automatic hand-empty loss.
 
 
 ## 4.1) Result Modal, Retry, and Back-to-Faction-Select Flow

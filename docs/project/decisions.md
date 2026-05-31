@@ -128,3 +128,12 @@ canonical_ref: docs/rules/mvp-battle-rules.md
 - Spawn/Brood Grunts resolve as `swarm/token_grunt_01`, Flood tokens resolve as `swarm/token_flood_01`, and Carrier/Grave Call Grunts resolve as `attrition_swarm/token_grunt_02` under `public/assets/cards/`.
 - `factionId`, `artAssetId`, `tokenType`, `isToken`, and `collectible` are lifecycle metadata: Recall, redeploy displacement, replay from hand, discard, and revive must preserve them without changing gameplay rules.
 - Binary token artwork files are a manual follow-up outside Codex scope: add `public/assets/cards/swarm/token_grunt_01.webp`, `public/assets/cards/swarm/token_flood_01.webp`, and `public/assets/cards/attrition_swarm/token_grunt_02.webp` when final art is ready.
+
+
+## Resource Exhaustion + 24-Turn Cap MVP Rule (2026-05-31)
+- Reduced the shared turn cap from 50 completed turns to 24 completed turns based on observed simulation pacing; this supersedes only the cap value in the 2026-05-06 turn-cap decision.
+- Added a simple stable-boundary `resource_exhaustion` loss: hand empty, deck empty, no owned board units, and strictly lower remaining hero HP are all required.
+- Explicitly rejected hand-empty-only automatic loss because future deck draws can still exist.
+- Equal-HP exhaustion does not force a winner. The existing no-progress deadlock resolver remains in place for locked parity cases.
+- Live battles and simulation/report runners check base lethal first through combat resolution, then resource exhaustion, then no-progress; after both draws they check resource exhaustion and no-progress again before turn-cap resolution.
+- Player hold-to-surrender remains optional and player-controlled. AI safe surrender remains available, with deterministic resource-exhaustion and no-progress checks taking priority at stable turn boundaries.
