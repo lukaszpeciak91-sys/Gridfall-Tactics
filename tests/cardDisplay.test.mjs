@@ -382,6 +382,27 @@ test('current faction card display names use locale presentation overrides witho
   }
 });
 
+test('Relay production name resolves in player-facing views without changing its stable card id', () => {
+  const faction = getFactionByKey('Control');
+  const relay = faction.deck.find((card) => card.id === 'control_drone_1');
+  const before = JSON.stringify(relay);
+
+  assert.equal(relay.name, 'Drone');
+  assert.equal(getCardDisplayName(relay, 'en'), 'Relay');
+  assert.equal(formatHandCardLabel(relay, 'en').split('\n')[0], 'Relay');
+  assert.equal(formatCollectionRowLabel(relay, 'en').name, 'Relay');
+  assert.equal(formatCardDetailLines(relay, 'en')[0], 'Relay');
+  assert.equal(formatDeckSummaryEntry(relay, 'en').name, 'Relay');
+  assert.equal(getCardDisplayName(relay, 'pl'), 'Przekaźnik');
+  assert.equal(formatHandCardLabel(relay, 'pl').split('\n')[0], 'Przekaźnik');
+  assert.equal(formatCollectionRowLabel(relay, 'pl').name, 'Przekaźnik');
+  assert.equal(formatCardDetailLines(relay, 'pl')[0], 'Przekaźnik');
+  assert.equal(formatDeckSummaryEntry(relay, 'pl').name, 'Przekaźnik');
+  assert.equal(relay.id, 'control_drone_1');
+  assert.equal(relay.name, 'Drone');
+  assert.equal(JSON.stringify(relay), before);
+});
+
 test('presentation overrides resolve through render modes and preserve gameplay ids', () => {
   const faction = getFactionByKey('Aggro');
   const runner = faction.deck.find((card) => card.id === 'aggro_runner_1');
