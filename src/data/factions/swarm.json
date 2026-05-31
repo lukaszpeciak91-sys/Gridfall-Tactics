@@ -112,7 +112,7 @@
       "id": "swarm_recycle_1",
       "cardNumber": 10,
       "artAssetId": "swarm_10",
-      "name": "Recycle",
+      "name": "Substrate",
       "type": "utility",
       "targeting": "friendly_unit",
       "effectId": "destroy_friendly_draw_1",

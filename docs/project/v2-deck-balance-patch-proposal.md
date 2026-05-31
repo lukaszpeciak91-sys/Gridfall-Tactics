@@ -35,7 +35,7 @@ The latest 1000-game seeded audit used shuffled decks, random initial initiative
 
 1. **Aggro has too many low-impact cards for a faction that must end games early.** Runner, Striker, Glass Cannon, and Full Attack carry most of the proactive identity, but Scout's lane-play block is narrow and Quick Fix spends a card on a defensive heal that does not reliably convert into lethal pressure. That leaves Aggro behind once opponents establish any refill or durability loop.
 2. **Tank's non-attacking stall tools are doing too much aggregate work.** Tank should be durable, but a 0-attack Wall with 4 HP is converting too many turns into safe stabilization, especially against Aggro's fragile units. The Tank audit result is high without needing more system-level changes.
-3. **Swarm mirrors are paced by refill density, not by unresolved draw rules.** The remaining-HP turn cap reduced true mirror draws, but Flood still adds too much replacement board material in a mirror where both sides already have Spawn, Regrow, Brood death replacement, and Recycle.
+3. **Swarm mirrors are paced by refill density, not by unresolved draw rules.** The remaining-HP turn cap reduced true mirror draws, but Flood still adds too much replacement board material in a mirror where both sides already have Spawn, Regrow, Brood death replacement, and Substrate.
 
 ### Watch later
 
@@ -96,7 +96,7 @@ This proposal uses exactly four card changes. They are intentionally small, card
 | Aggro burst becomes too swingy | Medium | Aggro mirrors fall below 5 average turns or Aggro vs Control jumps above 50% in both seats | Revert Quick Fix to +1 ATK before reverting Scout. |
 | Tank drops too far vs Control or Swarm | Medium | Tank aggregate falls below 48% or Tank vs Control drops below 42% in both seats | Restore Wall to 4 HP or instead test Repair Kit as the sustain knob. |
 | Swarm loses all resilience into Tank | High | Swarm vs Tank falls below 15% in both seats, or Swarm aggregate falls below 45% | Restore Flood to 2 summons and pursue a mirror-only lethality buff later. |
-| Swarm mirror still reaches the cap too often | Medium | Swarm mirror turn-cap remains above 30% | Watch Recycle/Flood sequencing and consider a future card-local Recycle draw reduction. |
+| Swarm mirror still reaches the cap too often | Medium | Swarm mirror turn-cap remains above 30% | Watch Substrate/Flood sequencing and consider a future card-local Substrate draw reduction. |
 | Scout invalidates lane play too often | Low | Cancelled/pass rates spike due to blocked lanes and Aggro gains mostly by denied actions, not damage | Keep Scout at 2/1 but shorten or replace lane-block text in a later card-only pass. |
 
 ## 5. Metrics To Verify In Next 1000-Game Run
