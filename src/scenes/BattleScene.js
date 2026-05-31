@@ -7,6 +7,7 @@ import { getCombatEventAttackerIndex, getCombatEventTargetIndex, getLaneLethalTa
 import { BATTLE_BACKGROUND_FALLBACK_COLOR, BATTLE_BACKGROUND_FALLBACK_COLOR_HEX, createCoverBackground, getBattleBackgroundAsset, hasLoadedImageAsset, preloadBattleBackgroundArt, preloadImageAsset, resolvePublicAssetPath } from '../rendering/backgroundArt.js';
 import { preloadAllCardIllustrations } from '../rendering/cardIllustrationAssets.js';
 import { calculateHandLayoutMetrics } from '../ui/handLayout.js';
+import { calculateHandBackCardCoverCrop, shouldRenderHandBackCard } from '../ui/handBackCardPresentation.js';
 import { createFloatingControl, createMuteToggleControl, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
 import { createModalBackButton } from '../ui/modalControls.js';
 import { preloadSecondaryButtonAsset } from '../ui/imageButton.js';
@@ -1738,16 +1739,39 @@ export default class BattleScene extends Phaser.Scene {
         cardView.root.setAlpha(0.45);
       }
 
-      const shouldRenderHandBackCard = handCount < maxHandSize
-        && deckCount > 0
-        && index === handCount;
-      if (shouldRenderHandBackCard && hasLoadedImageAsset(this, HAND_BACK_CARD_ASSET)) {
+      const showHandBackCard = shouldRenderHandBackCard({ handCount, maxHandSize, deckCount, index });
+      if (showHandBackCard && hasLoadedImageAsset(this, HAND_BACK_CARD_ASSET)) {
         // Presentation-only draw affordance. Keep reveal animation isolated as a follow-up.
-        this.handBackCard = this.add.image(x, baseY, HAND_BACK_CARD_ASSET.key)
-          .setDisplaySize(hand.cardWidth, hand.cardHeight)
-          .setDepth(baseDepth + 1);
+        this.handBackCard = this.createHandBackCardView({
+          x,
+          y: baseY,
+          width: hand.cardWidth,
+          height: hand.cardHeight,
+          depth: baseDepth + 1,
+        });
       }
     }
+  }
+
+
+  createHandBackCardView({ x, y, width, height, depth }) {
+    const root = this.add.container(x, y).setDepth(depth);
+    const background = this.add.rectangle(0, 0, width, height, 0x1f2937, 1);
+    const image = this.add.image(0, 0, HAND_BACK_CARD_ASSET.key);
+    const source = image.texture?.getSourceImage?.();
+    const crop = calculateHandBackCardCoverCrop({
+      sourceWidth: source?.width ?? image.width,
+      sourceHeight: source?.height ?? image.height,
+      width,
+      height,
+    });
+    image.setDisplaySize(crop.displayWidth, crop.displayHeight);
+    image.setOrigin(crop.originX, crop.originY);
+    image.setCrop(crop.cropX, crop.cropY, crop.cropWidth, crop.cropHeight);
+    const frame = this.add.rectangle(0, 0, width, height, 0x1f2937, 0)
+      .setStrokeStyle(3, 0x94a3b8, 0.82);
+    root.add([background, image, frame]);
+    return root;
   }
 
   createHandCardView({
