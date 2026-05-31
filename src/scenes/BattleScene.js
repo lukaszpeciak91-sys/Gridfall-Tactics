@@ -164,7 +164,7 @@ export default class BattleScene extends Phaser.Scene {
     super('BattleScene');
     this.selectedCardId = null;
     this.cardViews = [];
-    this.handBackCard = null;
+    this.handBackCards = [];
     this.boardCells = [];
     this.pendingSwapIndex = null;
     this.actionMode = null;
@@ -239,7 +239,7 @@ export default class BattleScene extends Phaser.Scene {
   resetRuntimeState() {
     this.selectedCardId = null;
     this.cardViews = [];
-    this.handBackCard = null;
+    this.handBackCards = [];
     this.boardCells = [];
     this.pendingSwapIndex = null;
     this.actionMode = null;
@@ -338,7 +338,7 @@ export default class BattleScene extends Phaser.Scene {
       });
       this.children.removeAll(true);
     }
-    this.handBackCard = null;
+    this.handBackCards = [];
   }
 
   create(data) {
@@ -1687,23 +1687,17 @@ export default class BattleScene extends Phaser.Scene {
     const handCount = this.gameState.player.hand.length;
     const deckCount = this.gameState.player.deck.length;
     const maxHandSize = this.gameState.player.maxHandSize;
-    const hasHandBackCard = handCount < maxHandSize
-      && deckCount > 0
-      && hasLoadedImageAsset(this, HAND_BACK_CARD_ASSET);
-    const handBackCardDepth = calculateHandBackCardDepth({ baseDepth: 20 + handCount * 4 });
+    const hasHandBackCardAsset = hasLoadedImageAsset(this, HAND_BACK_CARD_ASSET);
 
     this.add.rectangle(width * 0.5, centerY, width - margin * 2, hand.h, 0x0f172a, 0.2)
       .setStrokeStyle(1, 0x334155, 0.38);
     this.add.rectangle(width * 0.5, centerY - hand.h / 2, width - margin * 2, 1, 0x38bdf8, 0.16);
     this.add.rectangle(width * 0.5, controlDividerY, width - margin * 2, 1, 0x38bdf8, 0.12);
 
-    for (let index = 0; index < hand.cardsVisible; index += 1) {
+    this.gameState.player.hand.slice(0, hand.cardsVisible).forEach((card, index) => {
       const x = handTrackLeft + index * hand.step;
-      const card = this.gameState.player.hand[index] ?? null;
-      const cardId = card?.id ?? `slot-${index}`;
+      const cardId = card.id;
       const baseY = cardBaseY;
-      const accentColor = this.getHandCardAccentColor(card);
-      const baseDepth = 20 + index * 4;
       const cardView = this.createHandCardView({
         card,
         cardId,
@@ -1711,8 +1705,8 @@ export default class BattleScene extends Phaser.Scene {
         y: baseY,
         width: hand.cardWidth,
         height: hand.cardHeight,
-        accentColor,
-        depth: baseDepth,
+        accentColor: this.getHandCardAccentColor(card),
+        depth: 20 + index * 4,
         typographyScale: HAND_CARD_TYPOGRAPHY_SCALE,
         titleTypographyScale: HAND_CARD_TITLE_TYPOGRAPHY_SCALE,
         bodyLineSpacing: HAND_CARD_BODY_LINE_SPACING,
@@ -1721,43 +1715,34 @@ export default class BattleScene extends Phaser.Scene {
         factionThemeId: this.gameState?.player?.factionKey ?? this.factionKey,
       });
 
-      if (card) {
-        cardView.background.setInteractive({ useHandCursor: true });
-        cardView.background.on('pointerdown', () => {
-          this.onCardPointerDown(cardId);
-        });
-        cardView.background.on('pointerup', () => {
-          this.onCardPointerUp(cardId);
-        });
-        cardView.background.on('pointerover', () => {
-          this.onHandCardPointerOver(cardId);
-        });
-        cardView.background.on('pointerout', () => {
-          this.onHandCardPointerOut(cardId);
-        });
-      }
+      cardView.background.setInteractive({ useHandCursor: true });
+      cardView.background.on('pointerdown', () => {
+        this.onCardPointerDown(cardId);
+      });
+      cardView.background.on('pointerup', () => {
+        this.onCardPointerUp(cardId);
+      });
+      cardView.background.on('pointerover', () => {
+        this.onHandCardPointerOver(cardId);
+      });
+      cardView.background.on('pointerout', () => {
+        this.onHandCardPointerOut(cardId);
+      });
 
       this.cardViews.push(cardView);
+    });
 
-      if (!card) {
-        cardView.root.setAlpha(0.45);
-        if (hasHandBackCard) {
-          cardView.baseDepth = handBackCardDepth - 1;
-          cardView.root.setDepth(cardView.baseDepth);
-        }
-      }
+    for (let index = handCount; index < hand.cardsVisible; index += 1) {
+      if (!shouldRenderHandBackCard({ handCount, maxHandSize, deckCount, index }) || !hasHandBackCardAsset) continue;
 
-      const showHandBackCard = shouldRenderHandBackCard({ handCount, maxHandSize, deckCount, index });
-      if (showHandBackCard && hasHandBackCard) {
-        // Presentation-only draw affordance. Keep reveal animation isolated as a follow-up.
-        this.handBackCard = this.createHandBackCardView({
-          x,
-          y: baseY,
-          width: hand.cardWidth,
-          height: hand.cardHeight,
-          depth: handBackCardDepth,
-        });
-      }
+      // Presentation-only future-card affordance. Keep reveal animation isolated as a follow-up.
+      this.handBackCards.push(this.createHandBackCardView({
+        x: handTrackLeft + index * hand.step,
+        y: cardBaseY,
+        width: hand.cardWidth,
+        height: hand.cardHeight,
+        depth: calculateHandBackCardDepth({ baseDepth: 20 + index * 4 }),
+      }));
     }
   }
 
@@ -4965,8 +4950,8 @@ export default class BattleScene extends Phaser.Scene {
 
 
   redrawHand() {
-    this.handBackCard?.destroy();
-    this.handBackCard = null;
+    this.handBackCards.forEach((backCard) => backCard.destroy());
+    this.handBackCards = [];
     this.cardViews.forEach((view) => {
       view.root?.destroy();
     });

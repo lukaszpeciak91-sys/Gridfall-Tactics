@@ -5,14 +5,22 @@ import { calculateHandLayoutMetrics } from '../src/ui/handLayout.js';
 import {
   calculateHandBackCardCoverCrop,
   calculateHandBackCardDepth,
+  calculateVisibleHandBackCardCount,
   shouldRenderHandBackCard,
 } from '../src/ui/handBackCardPresentation.js';
 
-test('hand back card visibility is limited to the first empty slot while the deck has cards', () => {
-  assert.equal(shouldRenderHandBackCard({ handCount: 2, maxHandSize: 5, deckCount: 4, index: 2 }), true);
-  assert.equal(shouldRenderHandBackCard({ handCount: 2, maxHandSize: 5, deckCount: 4, index: 1 }), false);
-  assert.equal(shouldRenderHandBackCard({ handCount: 2, maxHandSize: 5, deckCount: 4, index: 3 }), false);
-  assert.equal(shouldRenderHandBackCard({ handCount: 5, maxHandSize: 5, deckCount: 4, index: 5 }), false);
+test('hand back card count fills visible empty slots while cards remain in the deck', () => {
+  assert.equal(calculateVisibleHandBackCardCount({ handCount: 4, maxHandSize: 5, deckCount: 3 }), 1);
+  assert.equal(calculateVisibleHandBackCardCount({ handCount: 2, maxHandSize: 5, deckCount: 5 }), 3);
+  assert.equal(calculateVisibleHandBackCardCount({ handCount: 1, maxHandSize: 5, deckCount: 9 }), 4);
+  assert.equal(calculateVisibleHandBackCardCount({ handCount: 3, maxHandSize: 5, deckCount: 0 }), 0);
+  assert.equal(calculateVisibleHandBackCardCount({ handCount: 5, maxHandSize: 5, deckCount: 4 }), 0);
+  assert.equal(calculateVisibleHandBackCardCount({ handCount: 2, maxHandSize: 5, deckCount: 1 }), 1);
+
+  assert.equal(shouldRenderHandBackCard({ handCount: 2, maxHandSize: 5, deckCount: 5, index: 1 }), false);
+  assert.equal(shouldRenderHandBackCard({ handCount: 2, maxHandSize: 5, deckCount: 5, index: 2 }), true);
+  assert.equal(shouldRenderHandBackCard({ handCount: 2, maxHandSize: 5, deckCount: 5, index: 4 }), true);
+  assert.equal(shouldRenderHandBackCard({ handCount: 2, maxHandSize: 5, deckCount: 5, index: 5 }), false);
   assert.equal(shouldRenderHandBackCard({ handCount: 2, maxHandSize: 5, deckCount: 0, index: 2 }), false);
 });
 
@@ -61,15 +69,17 @@ test('presentation-only hand back card visibility does not change hand layout me
   assert.deepEqual(withBackCard, withoutBackCard);
 });
 
-test('BattleScene passes the empty hand slot footprint to a presentation-only helper', () => {
+test('BattleScene renders back cards separately from gameplay cards and omits empty placeholders', () => {
   const source = fs.readFileSync('src/scenes/BattleScene.js', 'utf8');
   const drawHand = source.slice(source.indexOf('  drawHand() {'), source.indexOf('  createHandBackCardView({ x, y, width, height, depth })'));
   const helper = source.slice(source.indexOf('  createHandBackCardView({ x, y, width, height, depth })'), source.indexOf('  createHandCardView({'));
 
+  assert.match(drawHand, /this\.gameState\.player\.hand\.slice\(0, hand\.cardsVisible\)\.forEach\(\(card, index\) => \{/);
+  assert.match(drawHand, /for \(let index = handCount; index < hand\.cardsVisible; index \+= 1\) \{/);
   assert.match(drawHand, /shouldRenderHandBackCard\(\{ handCount, maxHandSize, deckCount, index \}\)/);
-  assert.match(drawHand, /const handBackCardDepth = calculateHandBackCardDepth\(\{ baseDepth: 20 \+ handCount \* 4 \}\);/);
-  assert.match(drawHand, /cardView\.baseDepth = handBackCardDepth - 1;[\s\S]*cardView\.root\.setDepth\(cardView\.baseDepth\);/);
-  assert.match(drawHand, /this\.createHandBackCardView\(\{[\s\S]*x,[\s\S]*y: baseY,[\s\S]*width: hand\.cardWidth,[\s\S]*height: hand\.cardHeight,[\s\S]*depth: handBackCardDepth,/);
+  assert.match(drawHand, /this\.handBackCards\.push\(this\.createHandBackCardView\(\{/);
+  assert.match(drawHand, /depth: calculateHandBackCardDepth\(\{ baseDepth: 20 \+ index \* 4 \}\)/);
+  assert.doesNotMatch(drawHand, /slot-\$\{index\}|setAlpha\(0\.45\)/);
   assert.match(helper, /this\.add\.container\(x, y\)\.setDepth\(depth\)/);
   assert.match(helper, /calculateHandBackCardCoverCrop\(\{/);
   assert.doesNotMatch(helper, /setInteractive|cardViews|cardId|inspect|target/i);
