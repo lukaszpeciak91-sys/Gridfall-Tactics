@@ -2414,7 +2414,7 @@ export default class BattleScene extends Phaser.Scene {
           ...this.targetingState,
           targetIndexes,
         };
-        this.resetCardHighlights({ showPreview: false });
+        this.resetCardHighlights();
         this.updateActionButtonLabel();
         this.showTargetingInstruction();
         return;
@@ -2440,7 +2440,7 @@ export default class BattleScene extends Phaser.Scene {
           ...this.targetingState,
           targetIndexes,
         };
-        this.resetCardHighlights({ showPreview: false });
+        this.resetCardHighlights();
         this.updateActionButtonLabel();
         this.showTargetingInstruction();
         return;
@@ -2458,7 +2458,7 @@ export default class BattleScene extends Phaser.Scene {
           ...this.targetingState,
           targetIndexes,
         };
-        this.resetCardHighlights({ showPreview: false });
+        this.resetCardHighlights();
         this.updateActionButtonLabel();
         this.showTargetingInstruction();
         return;
@@ -5290,21 +5290,7 @@ export default class BattleScene extends Phaser.Scene {
     return null;
   }
 
-  closeInspectForBoardTargeting({ animate = true } = {}) {
-    if (!this.targetingState) return;
-
-    this.hoverInspectCardId = null;
-    this.boardInspectIndex = null;
-    this.previewedMulliganCardId = null;
-    this.destroySelectedHandCardZoom({ animate });
-  }
-
   showSelectedHandCardZoom() {
-    if (this.targetingState) {
-      this.closeInspectForBoardTargeting();
-      return;
-    }
-
     const inspectRequest = this.getCurrentInspectCardRequest();
     if (!inspectRequest) {
       this.destroySelectedHandCardZoom({ animate: true });
@@ -5392,10 +5378,6 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   resetCardHighlights({ showPreview = true } = {}) {
-    if (this.targetingState) {
-      this.closeInspectForBoardTargeting();
-    }
-
     this.cardViews.forEach((card) => {
       const isMulliganSelected = this.openingMulliganPending && this.selectedMulliganCardIds.includes(card.cardId);
       const isGameplaySelected = !this.openingMulliganPending && card.cardId === this.selectedCardId;
@@ -5426,7 +5408,7 @@ export default class BattleScene extends Phaser.Scene {
       card.root.setPosition(card.baseX, isActiveHandCard ? card.baseY - HAND_CARD_SELECTED_LIFT_PX : card.baseY).setScale(1).setDepth(isActiveHandCard ? HAND_CARD_SELECTED_DEPTH : card.baseDepth);
     });
 
-    if (showPreview && !this.targetingState) {
+    if (showPreview) {
       this.showSelectedHandCardZoom();
     } else {
       this.destroySelectedHandCardZoom({ animate: true });
