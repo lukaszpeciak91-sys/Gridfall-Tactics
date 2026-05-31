@@ -195,7 +195,7 @@ test('battle hand renders one presentation-only back card in the first empty slo
   const battleSource = fs.readFileSync('src/scenes/BattleScene.js', 'utf8');
   const visualSource = fs.readFileSync('src/rendering/cardVisualLayout.js', 'utf8');
   const drawHandSource = battleSource.slice(battleSource.indexOf('  drawHand() {'), battleSource.indexOf('  createHandCardView({'));
-  const backCardRenderSource = drawHandSource.slice(drawHandSource.indexOf('      const shouldRenderHandBackCard'));
+  const backCardRenderSource = battleSource.slice(battleSource.indexOf('  createHandBackCardView({ x, y, width, height, depth })'), battleSource.indexOf('  createHandCardView({'));
 
   assert.match(battleSource, /key: 'ui\.card\.back'/);
   assert.match(battleSource, /path: resolvePublicAssetPath\('assets\/ui\/card_back\.webp'\)/);
@@ -203,8 +203,9 @@ test('battle hand renders one presentation-only back card in the first empty slo
   assert.match(drawHandSource, /const handCount = this\.gameState\.player\.hand\.length;/);
   assert.match(drawHandSource, /const deckCount = this\.gameState\.player\.deck\.length;/);
   assert.match(drawHandSource, /const maxHandSize = this\.gameState\.player\.maxHandSize;/);
-  assert.match(drawHandSource, /handCount < maxHandSize[\s\S]*&& deckCount > 0[\s\S]*&& index === handCount/);
-  assert.match(backCardRenderSource, /this\.handBackCard = this\.add\.image\(x, baseY, HAND_BACK_CARD_ASSET\.key\)/);
+  assert.match(drawHandSource, /shouldRenderHandBackCard\(\{ handCount, maxHandSize, deckCount, index \}\)/);
+  assert.match(drawHandSource, /this\.handBackCard = this\.createHandBackCardView\(\{/);
+  assert.match(backCardRenderSource, /const root = this\.add\.container\(x, y\)\.setDepth\(depth\)/);
   assert.doesNotMatch(backCardRenderSource, /setInteractive/);
   assert.doesNotMatch(visualSource, /HAND_BACK_CARD|card_back|ui\.card\.back/);
 });
