@@ -598,18 +598,17 @@ export default class BattleScene extends Phaser.Scene {
 
     const { width, height, margin } = this.layout;
     const { x: triggerX, y: triggerY, touchSize } = this.getActionRowUtilityMenuMetrics();
-    const panelWidth = Math.min(236, width - margin * 2);
-    const panelHeight = 278;
-    const panelLeft = Phaser.Math.Clamp(triggerX - touchSize / 2, margin, width - margin - panelWidth);
+    const panelLeft = triggerX + touchSize / 2;
+    const panelWidth = Math.min(236, width - margin - panelLeft);
+    const panelHeight = 228;
+    const panelTop = triggerY - touchSize / 2;
     const panelX = panelLeft + panelWidth / 2;
-    const gapAboveTrigger = Math.max(10, Math.round(touchSize * 0.22));
-    const panelY = Math.max(margin + panelHeight / 2, triggerY - touchSize / 2 - gapAboveTrigger - panelHeight / 2);
-    const panelTop = panelY - panelHeight / 2;
-    const rowY = panelTop + 48;
+    const panelY = panelTop + panelHeight / 2;
+    const rowY = panelTop + 28;
     const buttonWidth = panelWidth - 28;
     const buttonHeight = 36;
     const buttonX = panelX;
-    const firstButtonY = rowY + 52;
+    const firstButtonY = rowY + 42;
     const buttonGap = 42;
     const depth = 720;
 
@@ -634,14 +633,6 @@ export default class BattleScene extends Phaser.Scene {
     const panel = this.add.rectangle(panelX, panelY, panelWidth, panelHeight, 0x020617, 0.9)
       .setStrokeStyle(1, 0x7dd3fc, 0.72)
       .setDepth(depth + 2);
-    const title = this.add.text(panelX, panelTop + 18, translateActive('ui.battle.utilityMenuTitle', 'TACTICAL MENU'), {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: '12px',
-      color: '#93c5fd',
-      fontStyle: 'bold',
-      letterSpacing: 1.4,
-    }).setOrigin(0.5).setDepth(depth + 3);
-
     const muteToggle = createMuteToggleControl(this, panelX - 28, rowY, 42, { depth: depth + 3 });
     const fullscreenToggle = createFloatingControl(this, panelX + 28, rowY, 42, '⛶', () => {
       this.toggleFullscreen();
@@ -668,7 +659,6 @@ export default class BattleScene extends Phaser.Scene {
       outsideCatcher,
       glow,
       panel,
-      title,
       triggerControl,
       fullscreenToggle,
       muteToggle,
@@ -712,12 +702,11 @@ export default class BattleScene extends Phaser.Scene {
   destroyUtilityMenuPanel() {
     if (!this.utilityMenuPanel) return;
 
-    const { outsideCatcher, glow, panel, title, triggerControl, fullscreenToggle, muteToggle, buttons } = this.utilityMenuPanel;
+    const { outsideCatcher, glow, panel, triggerControl, fullscreenToggle, muteToggle, buttons } = this.utilityMenuPanel;
     const items = [
       outsideCatcher,
       glow,
       panel,
-      title,
       triggerControl?.halo,
       triggerControl?.backing,
       triggerControl?.text,
