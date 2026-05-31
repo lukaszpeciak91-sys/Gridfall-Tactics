@@ -14,6 +14,10 @@ export function shouldRenderHandBackCard({ handCount, maxHandSize, deckCount, in
     && index === handCount;
 }
 
+export function calculateHandBackCardDepth({ baseDepth, slotDepthStep = 4 }) {
+  return baseDepth - slotDepthStep - 1;
+}
+
 export function calculateHandBackCardCoverCrop({
   sourceWidth,
   sourceHeight,

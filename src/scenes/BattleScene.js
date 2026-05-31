@@ -7,7 +7,7 @@ import { getCombatEventAttackerIndex, getCombatEventTargetIndex, getLaneLethalTa
 import { BATTLE_BACKGROUND_FALLBACK_COLOR, BATTLE_BACKGROUND_FALLBACK_COLOR_HEX, createCoverBackground, getBattleBackgroundAsset, hasLoadedImageAsset, preloadBattleBackgroundArt, preloadImageAsset, resolvePublicAssetPath } from '../rendering/backgroundArt.js';
 import { preloadAllCardIllustrations } from '../rendering/cardIllustrationAssets.js';
 import { calculateHandLayoutMetrics } from '../ui/handLayout.js';
-import { calculateHandBackCardCoverCrop, shouldRenderHandBackCard } from '../ui/handBackCardPresentation.js';
+import { calculateHandBackCardCoverCrop, calculateHandBackCardDepth, shouldRenderHandBackCard } from '../ui/handBackCardPresentation.js';
 import { createFloatingControl, createMuteToggleControl, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
 import { createModalBackButton } from '../ui/modalControls.js';
 import { preloadSecondaryButtonAsset } from '../ui/imageButton.js';
@@ -1687,6 +1687,10 @@ export default class BattleScene extends Phaser.Scene {
     const handCount = this.gameState.player.hand.length;
     const deckCount = this.gameState.player.deck.length;
     const maxHandSize = this.gameState.player.maxHandSize;
+    const hasHandBackCard = handCount < maxHandSize
+      && deckCount > 0
+      && hasLoadedImageAsset(this, HAND_BACK_CARD_ASSET);
+    const handBackCardDepth = calculateHandBackCardDepth({ baseDepth: 20 + handCount * 4 });
 
     this.add.rectangle(width * 0.5, centerY, width - margin * 2, hand.h, 0x0f172a, 0.2)
       .setStrokeStyle(1, 0x334155, 0.38);
@@ -1737,17 +1741,21 @@ export default class BattleScene extends Phaser.Scene {
 
       if (!card) {
         cardView.root.setAlpha(0.45);
+        if (hasHandBackCard) {
+          cardView.baseDepth = handBackCardDepth - 1;
+          cardView.root.setDepth(cardView.baseDepth);
+        }
       }
 
       const showHandBackCard = shouldRenderHandBackCard({ handCount, maxHandSize, deckCount, index });
-      if (showHandBackCard && hasLoadedImageAsset(this, HAND_BACK_CARD_ASSET)) {
+      if (showHandBackCard && hasHandBackCard) {
         // Presentation-only draw affordance. Keep reveal animation isolated as a follow-up.
         this.handBackCard = this.createHandBackCardView({
           x,
           y: baseY,
           width: hand.cardWidth,
           height: hand.cardHeight,
-          depth: baseDepth + 1,
+          depth: handBackCardDepth,
         });
       }
     }

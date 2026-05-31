@@ -4,6 +4,7 @@ import test from 'node:test';
 import { calculateHandLayoutMetrics } from '../src/ui/handLayout.js';
 import {
   calculateHandBackCardCoverCrop,
+  calculateHandBackCardDepth,
   shouldRenderHandBackCard,
 } from '../src/ui/handBackCardPresentation.js';
 
@@ -13,6 +14,17 @@ test('hand back card visibility is limited to the first empty slot while the dec
   assert.equal(shouldRenderHandBackCard({ handCount: 2, maxHandSize: 5, deckCount: 4, index: 3 }), false);
   assert.equal(shouldRenderHandBackCard({ handCount: 5, maxHandSize: 5, deckCount: 4, index: 5 }), false);
   assert.equal(shouldRenderHandBackCard({ handCount: 2, maxHandSize: 5, deckCount: 0, index: 2 }), false);
+});
+
+test('hand back card depth sits behind the neighboring real card and above lowered empty placeholders', () => {
+  const backCardSlotBaseDepth = 20 + 2 * 4;
+  const neighboringRealCardDepth = 20 + 1 * 4;
+  const backCardDepth = calculateHandBackCardDepth({ baseDepth: backCardSlotBaseDepth });
+  const emptyPlaceholderDepth = backCardDepth - 1;
+
+  assert.equal(backCardDepth, neighboringRealCardDepth - 1);
+  assert.ok(neighboringRealCardDepth > backCardDepth);
+  assert.ok(backCardDepth > emptyPlaceholderDepth);
 });
 
 test('hand back card cover crop fills the real hand-card footprint without raw aspect-ratio stretching', () => {
@@ -55,7 +67,9 @@ test('BattleScene passes the empty hand slot footprint to a presentation-only he
   const helper = source.slice(source.indexOf('  createHandBackCardView({ x, y, width, height, depth })'), source.indexOf('  createHandCardView({'));
 
   assert.match(drawHand, /shouldRenderHandBackCard\(\{ handCount, maxHandSize, deckCount, index \}\)/);
-  assert.match(drawHand, /this\.createHandBackCardView\(\{[\s\S]*x,[\s\S]*y: baseY,[\s\S]*width: hand\.cardWidth,[\s\S]*height: hand\.cardHeight,[\s\S]*depth: baseDepth \+ 1,/);
+  assert.match(drawHand, /const handBackCardDepth = calculateHandBackCardDepth\(\{ baseDepth: 20 \+ handCount \* 4 \}\);/);
+  assert.match(drawHand, /cardView\.baseDepth = handBackCardDepth - 1;[\s\S]*cardView\.root\.setDepth\(cardView\.baseDepth\);/);
+  assert.match(drawHand, /this\.createHandBackCardView\(\{[\s\S]*x,[\s\S]*y: baseY,[\s\S]*width: hand\.cardWidth,[\s\S]*height: hand\.cardHeight,[\s\S]*depth: handBackCardDepth,/);
   assert.match(helper, /this\.add\.container\(x, y\)\.setDepth\(depth\)/);
   assert.match(helper, /calculateHandBackCardCoverCrop\(\{/);
   assert.doesNotMatch(helper, /setInteractive|cardViews|cardId|inspect|target/i);
