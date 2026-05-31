@@ -204,7 +204,8 @@ test('battle hand renders presentation-only back cards in visible empty slots wh
   assert.match(drawHandSource, /const deckCount = this\.gameState\.player\.deck\.length;/);
   assert.match(drawHandSource, /const maxHandSize = this\.gameState\.player\.maxHandSize;/);
   assert.match(drawHandSource, /shouldRenderHandBackCard\(\{ handCount, maxHandSize, deckCount, index \}\)/);
-  assert.match(drawHandSource, /this\.handBackCards\.push\(this\.createHandBackCardView\(\{/);
+  assert.match(drawHandSource, /const backCard = this\.createHandBackCardView\(\{/);
+  assert.match(drawHandSource, /backCard\.slotIndex = index;\s*this\.handBackCards\.push\(backCard\);/);
   assert.match(backCardRenderSource, /const root = this\.add\.container\(x, y\)\.setDepth\(depth\)/);
   assert.doesNotMatch(backCardRenderSource, /setInteractive/);
   assert.doesNotMatch(visualSource, /HAND_BACK_CARD|card_back|ui\.card\.back/);

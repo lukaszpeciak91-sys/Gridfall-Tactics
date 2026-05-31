@@ -77,8 +77,9 @@ test('BattleScene renders back cards separately from gameplay cards and omits em
   assert.match(drawHand, /this\.gameState\.player\.hand\.slice\(0, hand\.cardsVisible\)\.forEach\(\(card, index\) => \{/);
   assert.match(drawHand, /for \(let index = handCount; index < hand\.cardsVisible; index \+= 1\) \{/);
   assert.match(drawHand, /shouldRenderHandBackCard\(\{ handCount, maxHandSize, deckCount, index \}\)/);
-  assert.match(drawHand, /this\.handBackCards\.push\(this\.createHandBackCardView\(\{/);
+  assert.match(drawHand, /const backCard = this\.createHandBackCardView\(\{/);
   assert.match(drawHand, /depth: calculateHandBackCardDepth\(\{ baseDepth: 20 \+ index \* 4 \}\)/);
+  assert.match(drawHand, /backCard\.slotIndex = index;\s*this\.handBackCards\.push\(backCard\);/);
   assert.doesNotMatch(drawHand, /slot-\$\{index\}|setAlpha\(0\.45\)/);
   assert.match(helper, /this\.add\.container\(x, y\)\.setDepth\(depth\)/);
   assert.match(helper, /calculateHandBackCardCoverCrop\(\{/);

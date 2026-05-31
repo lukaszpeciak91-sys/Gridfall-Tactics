@@ -8,6 +8,7 @@ import { BATTLE_BACKGROUND_FALLBACK_COLOR, BATTLE_BACKGROUND_FALLBACK_COLOR_HEX,
 import { preloadAllCardIllustrations } from '../rendering/cardIllustrationAssets.js';
 import { calculateHandLayoutMetrics } from '../ui/handLayout.js';
 import { calculateHandBackCardCoverCrop, calculateHandBackCardDepth, shouldRenderHandBackCard } from '../ui/handBackCardPresentation.js';
+import { findHandCardFlipRevealSlots, startHandCardFlipReveal } from '../ui/handCardFlipReveal.js';
 import { createFloatingControl, createMuteToggleControl, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
 import { createModalBackButton } from '../ui/modalControls.js';
 import { preloadSecondaryButtonAsset } from '../ui/imageButton.js';
@@ -165,6 +166,7 @@ export default class BattleScene extends Phaser.Scene {
     this.selectedCardId = null;
     this.cardViews = [];
     this.handBackCards = [];
+    this.handCardFlipReveals = [];
     this.boardCells = [];
     this.pendingSwapIndex = null;
     this.actionMode = null;
@@ -240,6 +242,7 @@ export default class BattleScene extends Phaser.Scene {
     this.selectedCardId = null;
     this.cardViews = [];
     this.handBackCards = [];
+    this.handCardFlipReveals = [];
     this.boardCells = [];
     this.pendingSwapIndex = null;
     this.actionMode = null;
@@ -325,6 +328,7 @@ export default class BattleScene extends Phaser.Scene {
     this.cancelHandCardLongPress();
     this.cancelBoardCellLongPress();
     this.cancelPassHoldToSurrender();
+    this.cleanupHandCardFlipReveals();
     if (!preserveTweens) {
       this.tweens?.killAll?.();
     }
@@ -1729,20 +1733,22 @@ export default class BattleScene extends Phaser.Scene {
         this.onHandCardPointerOut(cardId);
       });
 
+      cardView.slotIndex = index;
       this.cardViews.push(cardView);
     });
 
     for (let index = handCount; index < hand.cardsVisible; index += 1) {
       if (!shouldRenderHandBackCard({ handCount, maxHandSize, deckCount, index }) || !hasHandBackCardAsset) continue;
 
-      // Presentation-only future-card affordance. Keep reveal animation isolated as a follow-up.
-      this.handBackCards.push(this.createHandBackCardView({
+      const backCard = this.createHandBackCardView({
         x: handTrackLeft + index * hand.step,
         y: cardBaseY,
         width: hand.cardWidth,
         height: hand.cardHeight,
         depth: calculateHandBackCardDepth({ baseDepth: 20 + index * 4 }),
-      }));
+      });
+      backCard.slotIndex = index;
+      this.handBackCards.push(backCard);
     }
   }
 
@@ -4949,14 +4955,45 @@ export default class BattleScene extends Phaser.Scene {
   }
 
 
+  cleanupHandCardFlipReveals() {
+    this.handCardFlipReveals.forEach((reveal) => reveal.cleanup());
+    this.handCardFlipReveals = [];
+  }
+
+  startHandCardFlipReveals(backCards) {
+    backCards.forEach((backCard) => {
+      const cardView = this.cardViews.find((view) => view.slotIndex === backCard.slotIndex);
+      let reveal = null;
+      reveal = startHandCardFlipReveal({
+        tweens: this.tweens,
+        backCard,
+        cardView,
+        onComplete: () => {
+          this.handCardFlipReveals = this.handCardFlipReveals.filter((activeReveal) => activeReveal !== reveal);
+        },
+      });
+      if (reveal) this.handCardFlipReveals.push(reveal);
+    });
+  }
+
   redrawHand() {
-    this.handBackCards.forEach((backCard) => backCard.destroy());
+    this.cleanupHandCardFlipReveals();
+    const revealSlots = new Set(findHandCardFlipRevealSlots({
+      backCards: this.handBackCards,
+      handCards: this.gameState.player.hand,
+      cardsVisible: this.layout.hand.cardsVisible,
+    }));
+    const revealBackCards = this.handBackCards.filter((backCard) => revealSlots.has(backCard.slotIndex));
+    this.handBackCards.forEach((backCard) => {
+      if (!revealSlots.has(backCard.slotIndex)) backCard.destroy();
+    });
     this.handBackCards = [];
     this.cardViews.forEach((view) => {
       view.root?.destroy();
     });
     this.cardViews = [];
     this.drawHand();
+    this.startHandCardFlipReveals(revealBackCards);
   }
 
   getBoardUnitStats(unit) {
