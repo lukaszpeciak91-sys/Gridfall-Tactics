@@ -76,11 +76,23 @@ test('SettingsScene uses shared full-screen bottom navigation controls', () => {
   assert.match(source, /openRulesPanel\(\) \{[\s\S]*this\.scene\.launch\('RulesPanelScene', \{ returnSceneKey: 'SettingsScene' \}\);[\s\S]*this\.scene\.pause\(\);[\s\S]*\}/);
   assert.match(source, /resumeFromRulesPanel\(\) \{[\s\S]*this\.scene\.resume\(\);[\s\S]*\}/);
   assert.match(source, /toggleFullscreen\(\) \{[\s\S]*toggleSceneFullscreen\(this\);[\s\S]*\}/);
-  assert.match(source, /onFullscreenChanged\(\) \{[\s\S]*this\.scale\.isFullscreen[\s\S]*requestPortraitOrientationLock\(\);[\s\S]*this\.scene\.restart\(\);[\s\S]*\}/);
+  assert.match(source, /onFullscreenChanged\(\) \{[\s\S]*this\.scale\.isFullscreen[\s\S]*requestPortraitOrientationLock\(\);[\s\S]*this\.scene\.restart\(\{ returnSceneKey: this\.returnSceneKey \}\);[\s\S]*\}/);
   assert.doesNotMatch(source, /createModalBackButton/);
   assert.doesNotMatch(source, /createBackButton/);
   assert.doesNotMatch(source, /BACK DEBUG/);
   assert.doesNotMatch(source, /SETTINGS_BACK_/);
   assert.doesNotMatch(source, /SETTINGS DEBUG/);
   assert.doesNotMatch(source, /SETTINGS RUNTIME DEBUG/);
+});
+
+
+test('battle-launched settings resumes the existing paused battle while menu-launched settings returns to main menu', () => {
+  const battleSource = read('src/scenes/BattleScene.js');
+  const settingsSource = read('src/scenes/SettingsScene.js');
+
+  assert.match(battleSource, /openSettingsScene\(\) \{[\s\S]*this\.prepareUtilityMenuNavigation\(\{ preserveBattleFlow: true \}\)[\s\S]*this\.scene\.launch\('SettingsScene', \{ returnSceneKey: 'BattleScene' \}\);[\s\S]*this\.scene\.pause\(\);/);
+  assert.match(battleSource, /resumeFromSettings\(\) \{[\s\S]*this\.scene\.resume\(\);[\s\S]*this\.recoverFromLifecycle\('settings-return'\);/);
+  assert.match(settingsSource, /this\.returnSceneKey = typeof data\?\.returnSceneKey === 'string'/);
+  assert.match(settingsSource, /returnToMainMenu\(\) \{[\s\S]*const returnSceneKey = this\.returnSceneKey;[\s\S]*this\.scene\.stop\(\);[\s\S]*returnScene\?\.resumeFromSettings[\s\S]*this\.scene\.start\('MainMenuScene'\);/);
+  assert.match(settingsSource, /this\.scene\.restart\(\{ returnSceneKey: this\.returnSceneKey \}\);/);
 });

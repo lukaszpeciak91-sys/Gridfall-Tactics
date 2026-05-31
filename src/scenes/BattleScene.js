@@ -632,7 +632,15 @@ export default class BattleScene extends Phaser.Scene {
       .setDepth(depth + 1);
     const panel = this.add.rectangle(panelX, panelY, panelWidth, panelHeight, 0x020617, 0.9)
       .setStrokeStyle(1, 0x7dd3fc, 0.72)
-      .setDepth(depth + 2);
+      .setDepth(depth + 2)
+      .setInteractive();
+    panel.on('pointerdown', (pointer, localX, localY, event) => {
+      event?.stopPropagation?.();
+    });
+    panel.on('pointerup', (pointer, localX, localY, event) => {
+      event?.stopPropagation?.();
+      this.guardPointerEvent(pointer);
+    });
     const muteToggle = createMuteToggleControl(this, panelX - 28, rowY, 42, { depth: depth + 3 });
     const fullscreenToggle = createFloatingControl(this, panelX + 28, rowY, 42, '⛶', () => {
       this.toggleFullscreen();
@@ -768,7 +776,7 @@ export default class BattleScene extends Phaser.Scene {
     this.updateActionButtonLabel?.();
   }
 
-  prepareUtilityMenuNavigation({ includeBattleResultModal = false } = {}) {
+  prepareUtilityMenuNavigation({ includeBattleResultModal = false, preserveBattleFlow = false } = {}) {
     if (this.navigationInProgress) return false;
 
     this.navigationInProgress = true;
@@ -781,8 +789,10 @@ export default class BattleScene extends Phaser.Scene {
       this.destroyBattleResultModal();
     }
 
-    this.isFlowResolving = false;
-    this.openingMulliganPending = false;
+    if (!preserveBattleFlow) {
+      this.isFlowResolving = false;
+      this.openingMulliganPending = false;
+    }
     return true;
   }
 
@@ -970,9 +980,17 @@ export default class BattleScene extends Phaser.Scene {
     this.recoverFromLifecycle('battle-menu-return');
   }
 
+  resumeFromSettings() {
+    this.navigationInProgress = false;
+    this.clearPointerInputGuard();
+    this.scene.resume();
+    this.recoverFromLifecycle('settings-return');
+  }
+
   openSettingsScene() {
-    if (!this.prepareUtilityMenuNavigation()) return;
-    this.scene.start('SettingsScene');
+    if (!this.prepareUtilityMenuNavigation({ preserveBattleFlow: true })) return;
+    this.scene.launch('SettingsScene', { returnSceneKey: 'BattleScene' });
+    this.scene.pause();
   }
 
   exitBattleToMainMenu() {
@@ -1056,6 +1074,7 @@ export default class BattleScene extends Phaser.Scene {
       'viewport-change',
       'battle-menu-return',
       'rules-panel-return',
+      'settings-return',
     ]);
 
     return structuralRecoveryReasons.has(reason)
