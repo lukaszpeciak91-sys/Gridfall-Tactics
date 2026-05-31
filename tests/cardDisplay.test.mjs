@@ -191,6 +191,24 @@ test('card number overlay is limited to hand, hand inspect, and collection previ
   assert.doesNotMatch(boardUnitView, /showCardNumber|createCardNumberOverlay|cardNumber/);
 });
 
+test('battle hand renders one presentation-only back card in the first empty slot while cards remain in the deck', () => {
+  const battleSource = fs.readFileSync('src/scenes/BattleScene.js', 'utf8');
+  const visualSource = fs.readFileSync('src/rendering/cardVisualLayout.js', 'utf8');
+  const drawHandSource = battleSource.slice(battleSource.indexOf('  drawHand() {'), battleSource.indexOf('  createHandCardView({'));
+  const backCardRenderSource = drawHandSource.slice(drawHandSource.indexOf('      const shouldRenderHandBackCard'));
+
+  assert.match(battleSource, /key: 'ui\.card\.back'/);
+  assert.match(battleSource, /path: resolvePublicAssetPath\('assets\/ui\/card_back\.webp'\)/);
+  assert.match(battleSource, /preloadImageAsset\(this, HAND_BACK_CARD_ASSET/);
+  assert.match(drawHandSource, /const handCount = this\.gameState\.player\.hand\.length;/);
+  assert.match(drawHandSource, /const deckCount = this\.gameState\.player\.deck\.length;/);
+  assert.match(drawHandSource, /const maxHandSize = this\.gameState\.player\.maxHandSize;/);
+  assert.match(drawHandSource, /handCount < maxHandSize[\s\S]*&& deckCount > 0[\s\S]*&& index === handCount/);
+  assert.match(backCardRenderSource, /this\.handBackCard = this\.add\.image\(x, baseY, HAND_BACK_CARD_ASSET\.key\)/);
+  assert.doesNotMatch(backCardRenderSource, /setInteractive/);
+  assert.doesNotMatch(visualSource, /HAND_BACK_CARD|card_back|ui\.card\.back/);
+});
+
 test('battle hand cards route content through card visual layout helpers and preserve formatter output', () => {
   const source = fs.readFileSync('src/scenes/BattleScene.js', 'utf8');
   const unitCard = {

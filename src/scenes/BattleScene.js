@@ -4,7 +4,7 @@ import { createInitialBattleState, drawCards, shuffleDeck, canPass, canPlayOrRed
 import { chooseEnemyAction, isVerySafeConcedableState, recordBattleActionUse, selectOpeningMulliganCardIds } from '../systems/enemyDecision.js';
 import { getTargetingStateForEffect } from '../systems/cardTargeting.js';
 import { getCombatEventAttackerIndex, getCombatEventTargetIndex, getLaneLethalTargetIndexes, getLaneSimultaneousUnitClash, shouldAnimateCombatAttacker } from '../systems/combatAnimation.js';
-import { BATTLE_BACKGROUND_FALLBACK_COLOR, BATTLE_BACKGROUND_FALLBACK_COLOR_HEX, createCoverBackground, getBattleBackgroundAsset, preloadBattleBackgroundArt } from '../rendering/backgroundArt.js';
+import { BATTLE_BACKGROUND_FALLBACK_COLOR, BATTLE_BACKGROUND_FALLBACK_COLOR_HEX, createCoverBackground, getBattleBackgroundAsset, hasLoadedImageAsset, preloadBattleBackgroundArt, preloadImageAsset, resolvePublicAssetPath } from '../rendering/backgroundArt.js';
 import { preloadAllCardIllustrations } from '../rendering/cardIllustrationAssets.js';
 import { calculateHandLayoutMetrics } from '../ui/handLayout.js';
 import { createFloatingControl, createMuteToggleControl, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
@@ -14,6 +14,11 @@ import { formatDeckSummaryEntry } from '../rendering/cardRenderModes.js';
 import { CARD_COLORS, createCardArtwork, createCardPreviewView, getBaseCardSurfaceTheme, getDefaultCardAccentColor, resolveCardSurfaceTheme, createStatBadges } from '../rendering/cardVisualLayout.js';
 import { getCardDisplayName, getCardTextShort } from '../localization/cardDisplay.js';
 import { getActiveLocale, translateActive } from '../localization/localeService.js';
+
+const HAND_BACK_CARD_ASSET = Object.freeze({
+  key: 'ui.card.back',
+  path: resolvePublicAssetPath('assets/ui/card_back.webp'),
+});
 
 const INSPECT_CARD_TARGET_SCALE = 2.06;
 const INSPECT_CARD_VERTICAL_COMPACT_RATIO = 0.96;
@@ -158,6 +163,7 @@ export default class BattleScene extends Phaser.Scene {
     super('BattleScene');
     this.selectedCardId = null;
     this.cardViews = [];
+    this.handBackCard = null;
     this.boardCells = [];
     this.pendingSwapIndex = null;
     this.actionMode = null;
@@ -217,6 +223,9 @@ export default class BattleScene extends Phaser.Scene {
 
   preload() {
     preloadBattleBackgroundArt(this);
+    preloadImageAsset(this, HAND_BACK_CARD_ASSET, {
+      onError: (asset) => console.warn(`Hand back card failed to load: ${asset.path}`),
+    });
     preloadSecondaryButtonAsset(this);
     preloadAllCardIllustrations(this);
   }
@@ -229,6 +238,7 @@ export default class BattleScene extends Phaser.Scene {
   resetRuntimeState() {
     this.selectedCardId = null;
     this.cardViews = [];
+    this.handBackCard = null;
     this.boardCells = [];
     this.pendingSwapIndex = null;
     this.actionMode = null;
@@ -327,6 +337,7 @@ export default class BattleScene extends Phaser.Scene {
       });
       this.children.removeAll(true);
     }
+    this.handBackCard = null;
   }
 
   create(data) {
@@ -1672,6 +1683,9 @@ export default class BattleScene extends Phaser.Scene {
     const cardBaseY = hand.cardCenterY;
     const controlDividerY = hand.y + hand.cardRowHeight;
     const handTrackLeft = hand.handTrackLeft + hand.cardWidth / 2;
+    const handCount = this.gameState.player.hand.length;
+    const deckCount = this.gameState.player.deck.length;
+    const maxHandSize = this.gameState.player.maxHandSize;
 
     this.add.rectangle(width * 0.5, centerY, width - margin * 2, hand.h, 0x0f172a, 0.2)
       .setStrokeStyle(1, 0x334155, 0.38);
@@ -1722,6 +1736,16 @@ export default class BattleScene extends Phaser.Scene {
 
       if (!card) {
         cardView.root.setAlpha(0.45);
+      }
+
+      const shouldRenderHandBackCard = handCount < maxHandSize
+        && deckCount > 0
+        && index === handCount;
+      if (shouldRenderHandBackCard && hasLoadedImageAsset(this, HAND_BACK_CARD_ASSET)) {
+        // Presentation-only draw affordance. Keep reveal animation isolated as a follow-up.
+        this.handBackCard = this.add.image(x, baseY, HAND_BACK_CARD_ASSET.key)
+          .setDisplaySize(hand.cardWidth, hand.cardHeight)
+          .setDepth(baseDepth + 1);
       }
     }
   }
@@ -4911,6 +4935,8 @@ export default class BattleScene extends Phaser.Scene {
 
 
   redrawHand() {
+    this.handBackCard?.destroy();
+    this.handBackCard = null;
     this.cardViews.forEach((view) => {
       view.root?.destroy();
     });
