@@ -3,6 +3,7 @@ import { createModalBackButton } from '../ui/modalControls.js';
 import { preloadSecondaryButtonAsset } from '../ui/imageButton.js';
 import { translateActive, translateActiveList } from '../localization/localeService.js';
 import { CARD_EFFECT_GAMEPLAY_SYMBOLS, CARD_EFFECT_STAT_SYMBOLS, CARD_EFFECT_STAT_SYMBOL_STYLES } from '../localization/cardTextFormatting.js';
+import { NON_UNIT_EFFECT_STAT_SYMBOL, NON_UNIT_EFFECT_STAT_SYMBOL_CSS_COLOR } from '../rendering/cardVisualLayout.js';
 
 // Player-facing summary derived from docs/rules/mvp-battle-rules.md.
 const RULE_SECTIONS = Object.freeze([
@@ -60,6 +61,7 @@ const GLOSSARY_ICON_ROWS = Object.freeze([
   Object.freeze({ icon: CARD_EFFECT_STAT_SYMBOLS.attack, iconColor: CARD_EFFECT_STAT_SYMBOL_STYLES.attack.color, label: 'ATK', description: 'Damage dealt in combat' }),
   Object.freeze({ icon: CARD_EFFECT_STAT_SYMBOLS.health, iconColor: CARD_EFFECT_STAT_SYMBOL_STYLES.health.color, label: 'HP', description: 'Unit health' }),
   Object.freeze({ icon: CARD_EFFECT_STAT_SYMBOLS.armor, iconColor: CARD_EFFECT_STAT_SYMBOL_STYLES.armor.color, label: 'ARM', description: 'Reduces incoming combat damage' }),
+  Object.freeze({ icon: [NON_UNIT_EFFECT_STAT_SYMBOL, NON_UNIT_EFFECT_STAT_SYMBOL, NON_UNIT_EFFECT_STAT_SYMBOL].join(' '), iconColor: NON_UNIT_EFFECT_STAT_SYMBOL_CSS_COLOR, iconFontSizeRatio: 0.32, label: '✶ ✶ ✶', translationKey: 'effectCard', description: 'Effect card — not a unit and has no ATK / ARM / HP.' }),
   Object.freeze({ icon: CARD_EFFECT_GAMEPLAY_SYMBOLS.ally, iconColor: '#fde68a', label: 'ALLY', description: 'One of your units' }),
   Object.freeze({ icon: CARD_EFFECT_GAMEPLAY_SYMBOLS.allies, iconColor: '#fde68a', label: 'ALLIES', description: 'All your units' }),
 ]);
@@ -67,7 +69,7 @@ const GLOSSARY_ICON_ROWS = Object.freeze([
 function resolveGlossaryRows() {
   return GLOSSARY_ICON_ROWS.map((row) => ({
     ...row,
-    description: translateActive(`ui.rules.glossaryDescriptions.${row.label}`, row.description),
+    description: translateActive(`ui.rules.glossaryDescriptions.${row.translationKey ?? row.label}`, row.description),
   }));
 }
 
@@ -214,7 +216,7 @@ export default class RulesPanelScene extends Phaser.Scene {
         .setStrokeStyle(1.5, 0x334155, 0.95);
       const icon = this.add.text(x + iconBoxSize * 0.5, iconCenterY, row.icon, {
         fontFamily: 'Arial, sans-serif',
-        fontSize: `${Math.round(iconBoxSize * 0.72)}px`,
+        fontSize: `${Math.round(iconBoxSize * (row.iconFontSizeRatio ?? 0.72))}px`,
         color: row.iconColor,
         fontStyle: 'bold',
         stroke: '#020617',

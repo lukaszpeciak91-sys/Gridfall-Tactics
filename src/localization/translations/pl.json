@@ -471,6 +471,7 @@
         "ATK": "Obrażenia zadawane w walce.",
         "HP": "Życie jednostki lub bazy.",
         "ARM": "Pancerz zmniejszający obrażenia bojowe.",
+        "effectCard": "Karta efektu — nie jest jednostką i nie ma ATK / ARM / HP.",
         "ALLY": "Jedna twoja jednostka.",
         "ALLIES": "Wszystkie twoje jednostki."
       }
