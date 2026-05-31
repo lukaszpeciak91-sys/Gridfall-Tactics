@@ -471,6 +471,7 @@
         "ATK": "Damage dealt in combat.",
         "HP": "Unit health.",
         "ARM": "Reduces incoming combat damage.",
+        "effectCard": "Effect card — not a unit and has no ATK / ARM / HP.",
         "ALLY": "One of your units.",
         "ALLIES": "All your units."
       }

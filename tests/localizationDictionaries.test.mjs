@@ -65,6 +65,11 @@ test('effect targeting cancel and instruction copy is localized for English and 
   }
 });
 
+test('rules glossary explains the non-unit effect indicator in English and Polish', () => {
+  assert.equal(getPath(en, 'ui.rules.glossaryDescriptions.effectCard'), 'Effect card — not a unit and has no ATK / ARM / HP.');
+  assert.equal(getPath(pl, 'ui.rules.glossaryDescriptions.effectCard'), 'Karta efektu — nie jest jednostką i nie ma ATK / ARM / HP.');
+});
+
 test('card type and stat labels exist in English and Polish dictionaries', () => {
   for (const key of ['cardTypes.unit', 'cardTypes.effect', 'stats.attack', 'stats.hp', 'stats.armor']) {
     assert.equal(typeof getPath(en, key), 'string', `missing English ${key}`);

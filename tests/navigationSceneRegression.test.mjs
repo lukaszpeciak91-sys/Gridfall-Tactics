@@ -275,6 +275,7 @@ test('rules panel contains glossary-first player-facing rules summary', () => {
   assert.match(source, /heading: 'Icon Glossary'/);
   assert.match(source, /ATK — combat damage dealt by a unit/);
   assert.match(source, /ARM — armor that reduces incoming combat damage/);
+  assert.match(source, /label: '✶ ✶ ✶', translationKey: 'effectCard'/);
   assert.doesNotMatch(source, /Base HP — your base health/);
   assert.doesNotMatch(source, /ENEMY — one enemy unit/);
   assert.doesNotMatch(source, /ENEMIES — all enemy units/);
