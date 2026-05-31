@@ -332,6 +332,11 @@
       "howToPlay": "HOW TO PLAY"
     },
     "battle": {
+      "utilityMenuTitle": "TACTICAL MENU",
+      "utilityMenuRules": "Rules",
+      "utilityMenuSettings": "Settings",
+      "utilityMenuReturn": "Return",
+      "utilityMenuMainMenu": "Main Menu",
       "enemyHero": "ENEMY BASE",
       "playerHero": "PLAYER BASE",
       "actOne": "ACT 1/2",

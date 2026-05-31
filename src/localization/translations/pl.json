@@ -332,6 +332,11 @@
       "howToPlay": "JAK GRAĆ"
     },
     "battle": {
+      "utilityMenuTitle": "MENU TAKTYCZNE",
+      "utilityMenuRules": "Zasady",
+      "utilityMenuSettings": "Ustawienia",
+      "utilityMenuReturn": "Powrót",
+      "utilityMenuMainMenu": "Menu główne",
       "enemyHero": "BAZA WROGA",
       "playerHero": "TWOJA BAZA",
       "actOne": "AKCJA 1/2",
