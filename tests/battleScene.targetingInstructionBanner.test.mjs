@@ -28,15 +28,20 @@ const getTargetingInstructionMessage = compileMethod(
 );
 const showTargetingInstruction = compileMethod('showTargetingInstruction', 'showSwapPrompt', []);
 const showSwapPrompt = compileMethod('showSwapPrompt', 'clearSwapPrompt', ['step', 'translateActive']);
-const clearSwapPrompt = compileMethod('clearSwapPrompt', 'showActiveSelectionMessage', []);
+const clearSwapPrompt = compileMethod('clearSwapPrompt', 'getActiveSelectionBannerLayout', []);
+const getActiveSelectionBannerLayout = compileMethod(
+  'getActiveSelectionBannerLayout',
+  'showActiveSelectionMessage',
+  ['owner'],
+);
 const showActiveSelectionMessage = compileMethod(
   'showActiveSelectionMessage',
   'showEnemyActionBanner',
-  ['message', 'mode'],
+  ['message', 'owner'],
   'const PLAYER_EFFECT_CONFIRMATION_FADE_IN_MS = 90;\n',
 );
 const destroyTargetingInstruction = compileMethod('destroyTargetingInstruction', 'destroyActiveSelectionMessage', []);
-const destroyActiveSelectionMessage = compileMethod('destroyActiveSelectionMessage', 'captureBoardStats', []);
+const destroyActiveSelectionMessage = compileMethod('destroyActiveSelectionMessage', 'captureBoardStats', ['owner']);
 
 function getPath(root, path) {
   return path.split('.').reduce((value, segment) => value?.[segment], root);
@@ -56,6 +61,7 @@ function makeTextObject(x, y, text, style) {
     setScale(value) { this.scale = value; return this; },
     setStroke(...args) { this.stroke = args; return this; },
     setText(value) { this.text = value; return this; },
+    setPosition(x, y) { this.x = x; this.y = y; return this; },
     destroy() { this.destroyed = true; this.active = false; },
   };
 }
@@ -65,7 +71,7 @@ function makeScene(targetingState = null) {
     targetingState,
     targetingInstructionText: null,
     activeSelectionBanner: null,
-    activeSelectionBannerMode: null,
+    activeSelectionBannerOwner: null,
     playerActionBanner: { active: true },
     layout: {
       width: 900,
@@ -88,8 +94,9 @@ function makeScene(targetingState = null) {
     getTargetingInstructionMessage() {
       return getTargetingInstructionMessage.call(this, (key, fallback) => fallback);
     },
-    showActiveSelectionMessage(message, mode) { return showActiveSelectionMessage.call(this, message, mode); },
-    destroyActiveSelectionMessage() { return destroyActiveSelectionMessage.call(this); },
+    getActiveSelectionBannerLayout(owner) { return getActiveSelectionBannerLayout.call(this, owner); },
+    showActiveSelectionMessage(message, owner) { return showActiveSelectionMessage.call(this, message, owner); },
+    destroyActiveSelectionMessage(owner) { return destroyActiveSelectionMessage.call(this, owner); },
     destroyTargetingInstruction() { return destroyTargetingInstruction.call(this); },
   };
   return scene;
@@ -102,10 +109,11 @@ test('showTargetingInstruction uses active selection banner style instead of the
 
   assert.equal(scene.addCalls.length, 1);
   assert.equal(scene.activeSelectionBanner, scene.addCalls[0]);
-  assert.equal(scene.activeSelectionBannerMode, 'targeting');
+  assert.equal(scene.activeSelectionBannerOwner, 'targeting');
   assert.equal(scene.targetingInstructionText, scene.activeSelectionBanner);
   assert.equal(scene.addCalls[0].text, 'SELECT ENEMY');
   assert.equal(scene.addCalls[0].style.backgroundColor, '#14532d');
+  assert.equal(scene.tweenCalls[0].y, scene.layout.board.centerY - scene.layout.board.cellHeight * 0.64);
   assert.notEqual(scene.addCalls[0].style.backgroundColor, '#4c1d95');
   assert.equal(scene.playerActionBanner.active, true, 'targeting banner must not destroy transient player action banners');
 });
@@ -166,7 +174,7 @@ test('targeting instructions persist while targeting remains active and update w
   assert.equal(scene.activeSelectionBanner, banner);
   assert.equal(scene.activeSelectionBanner.destroyed, false);
   assert.equal(scene.activeSelectionBanner.text, 'SELECT SECOND ENEMY');
-  assert.equal(scene.activeSelectionBannerMode, 'targeting');
+  assert.equal(scene.activeSelectionBannerOwner, 'targeting');
 });
 
 test('canceling and completing targeting clear only the active targeting selection message', () => {
@@ -187,16 +195,17 @@ test('canceling and completing targeting clear only the active targeting selecti
 
   assert.equal(completionBanner.destroyed, true);
   assert.equal(scene.activeSelectionBanner, null);
-  assert.equal(scene.activeSelectionBannerMode, null);
+  assert.equal(scene.activeSelectionBannerOwner, null);
 });
 
 test('board swap prompt appears through the unified active selection banner path', () => {
   const scene = makeScene();
   showSwapPrompt.call(scene, 'selectAdjacent', (key, fallback) => fallback);
 
-  assert.equal(scene.activeSelectionBannerMode, 'swap');
+  assert.equal(scene.activeSelectionBannerOwner, 'board-swap');
   assert.equal(scene.activeSelectionBanner.text, 'SWAP: select adjacent unit');
   assert.equal(scene.activeSelectionBanner.style.backgroundColor, '#14532d');
+  assert.equal(scene.tweenCalls[0].y, scene.layout.board.centerY + scene.layout.board.cellHeight * 0.25);
   assert.equal(scene.targetingInstructionText, null);
 
   clearSwapPrompt.call(scene);
@@ -208,4 +217,49 @@ test('targeting highlight and action-button routing remain unchanged', () => {
   assert.match(source, /if \(this\.targetingState\) \{[\s\S]*this\.confirmTargetingSelection\(\);[\s\S]*return;[\s\S]*\}/);
   assert.match(source, /const isValidEnemyTarget = this\.isValidTarget\(cell\.index, 'enemy-unit', selectedTargetIndexes, targetConstraint\);/);
   assert.match(source, /strokeAlpha = BOARD_TARGET_STROKE_ALPHA;/);
+});
+
+
+test('selection banner cleanup is owner-scoped and replacing owners recreates the banner at the correct layout', () => {
+  const scene = makeScene({ targetType: 'enemy-unit', requiredTargets: 1, targetIndexes: [] });
+  showTargetingInstruction.call(scene);
+  const targetingBanner = scene.activeSelectionBanner;
+
+  clearSwapPrompt.call(scene);
+  assert.equal(scene.activeSelectionBanner, targetingBanner, 'board swap cleanup must not clear targeting UI');
+
+  showSwapPrompt.call(scene, 'selectAdjacent', (key, fallback) => fallback);
+  assert.equal(targetingBanner.destroyed, true, 'switching owners must replace the old layout object');
+  const swapBanner = scene.activeSelectionBanner;
+  assert.equal(scene.activeSelectionBannerOwner, 'board-swap');
+  assert.equal(scene.tweenCalls.at(-1).y, scene.layout.board.centerY + scene.layout.board.cellHeight * 0.25);
+
+  destroyTargetingInstruction.call(scene);
+  assert.equal(scene.activeSelectionBanner, swapBanner, 'targeting cleanup must not clear board swap UI');
+});
+
+test('pass, turn transition, player-action refresh, and scene shutdown retain intentional global banner cleanup', () => {
+  const resolvePassTurn = extractMethodBody('resolvePassTurn', 'getOpeningTurnStartBannerConfig');
+  const startTurn = extractMethodBody('startTurn', 'evaluateAndShowPlayerConcedableInfoBanner');
+  const refreshAfterPlayerAction = source.slice(
+    source.indexOf('  refreshAfterPlayerAction() {'),
+    source.indexOf('  async revealAndApplyEnemyAction()', source.indexOf('  refreshAfterPlayerAction() {')),
+  );
+  const cleanupSceneObjects = extractMethodBody('cleanupSceneObjects', 'create');
+  const completePlayerAction = source.slice(
+    source.indexOf('  async completePlayerAction('),
+    source.indexOf('  async resolveEnemyFirstTurnOpening()', source.indexOf('  async completePlayerAction(')),
+  );
+
+  assert.match(resolvePassTurn, /this\.pendingSwapIndex = null;\s*this\.destroyActiveSelectionMessage\(\);\s*this\.completePlayerAction\(\);/);
+  assert.match(startTurn, /this\.targetingState = null;[\s\S]*this\.destroyActiveSelectionMessage\(\);/);
+  assert.match(refreshAfterPlayerAction, /this\.targetingState = null;[\s\S]*this\.destroyActiveSelectionMessage\(\);/);
+  assert.match(cleanupSceneObjects, /this\.destroyActiveSelectionMessage\(\);/);
+  assert.match(completePlayerAction, /this\.isFlowResolving = true;\s*this\.destroyActiveSelectionMessage\(\);/);
+});
+
+test('card selection cleanup clears targeting and board-swap owners through their scoped cleanup paths', () => {
+  const clearHandCardSelection = extractMethodBody('clearHandCardSelection', 'onBoardCellTap');
+
+  assert.match(clearHandCardSelection, /this\.destroyTargetingInstruction\(\);\s*this\.clearSwapPrompt\(\);/);
 });

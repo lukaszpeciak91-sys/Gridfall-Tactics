@@ -168,7 +168,7 @@ export default class BattleScene extends Phaser.Scene {
     this.isEffectCastResolving = false;
     this.targetingInstructionText = null;
     this.activeSelectionBanner = null;
-    this.activeSelectionBannerMode = null;
+    this.activeSelectionBannerOwner = null;
     this.openingMulliganPending = false;
     this.selectedMulliganCardIds = [];
     this.previewedMulliganCardId = null;
@@ -239,7 +239,7 @@ export default class BattleScene extends Phaser.Scene {
     this.isEffectCastResolving = false;
     this.targetingInstructionText = null;
     this.activeSelectionBanner = null;
-    this.activeSelectionBannerMode = null;
+    this.activeSelectionBannerOwner = null;
     this.openingMulliganPending = false;
     this.selectedMulliganCardIds = [];
     this.previewedMulliganCardId = null;
@@ -770,7 +770,7 @@ export default class BattleScene extends Phaser.Scene {
       this.targetingState = null;
       this.effectCastState = null;
       this.isEffectCastResolving = false;
-      this.destroyTargetingInstruction();
+      this.destroyActiveSelectionMessage();
     }
 
     this.destroySelectedHandCardZoom({ animate });
@@ -828,6 +828,7 @@ export default class BattleScene extends Phaser.Scene {
     this.selectedCardId = null;
     this.pendingSwapIndex = null;
     this.targetingState = null;
+    this.destroyActiveSelectionMessage();
     this.resetCardHighlights();
 
     const { width, height } = this.scale.gameSize;
@@ -1002,7 +1003,7 @@ export default class BattleScene extends Phaser.Scene {
     this.targetingState = null;
     this.effectCastState = null;
     this.isEffectCastResolving = false;
-    this.destroyTargetingInstruction();
+    this.destroyActiveSelectionMessage();
     this.openingMulliganPending = false;
     this.scene.restart({ factionKey, enemyFactionKey });
   }
@@ -1445,7 +1446,7 @@ export default class BattleScene extends Phaser.Scene {
     this.effectCastState = null;
     this.isEffectCastResolving = false;
     this.pendingSwapIndex = null;
-    this.destroyTargetingInstruction();
+    this.destroyActiveSelectionMessage();
     this.updateActionButtonLabel();
     this.resetCardHighlights({ showPreview: false });
 
@@ -1907,7 +1908,7 @@ export default class BattleScene extends Phaser.Scene {
       this.targetingState = null;
       this.effectCastState = null;
       this.isEffectCastResolving = false;
-      this.destroyTargetingInstruction();
+      this.destroyActiveSelectionMessage();
       this.pendingSwapIndex = null;
       this.previewedMulliganCardId = null;
       this.pressedHandCardWasSelected = false;
@@ -1933,6 +1934,7 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     this.pendingSwapIndex = null;
+    this.clearSwapPrompt();
     this.selectedCardId = cardId;
     this.targetingState = this.isUnitCard(card) ? null : this.getTargetingStateForCard(card);
     this.resetCardHighlights({ showPreview: false });
@@ -2274,6 +2276,7 @@ export default class BattleScene extends Phaser.Scene {
     this.hoverInspectCardId = null;
     this.boardInspectIndex = null;
     this.pressedHandCardWasSelected = false;
+    this.destroyTargetingInstruction();
     this.clearSwapPrompt();
     if (hadState) {
       this.resetCardHighlights();
@@ -2460,6 +2463,7 @@ export default class BattleScene extends Phaser.Scene {
     this.effectCastState = { source: 'unit-on-play', cardId: card.id, card, boardIndex, targetingState, beforeStats };
     this.selectedCardId = null;
     this.pendingSwapIndex = null;
+    this.clearSwapPrompt();
     this.actionMode = null;
     this.targetingState = null;
     this.hoverInspectCardId = null;
@@ -2497,6 +2501,7 @@ export default class BattleScene extends Phaser.Scene {
     this.effectCastState = { cardId: card.id, targetingState };
     this.selectedCardId = null;
     this.pendingSwapIndex = null;
+    this.clearSwapPrompt();
     this.actionMode = null;
     this.targetingState = null;
     this.hoverInspectCardId = null;
@@ -2673,7 +2678,7 @@ export default class BattleScene extends Phaser.Scene {
     this.actionMode = null;
     this.hoverInspectCardId = null;
     this.boardInspectIndex = null;
-    this.destroyTargetingInstruction();
+    this.destroyActiveSelectionMessage();
     this.destroySelectedHandCardZoom({ animate: true });
   }
 
@@ -2823,6 +2828,7 @@ export default class BattleScene extends Phaser.Scene {
     recordPassAction(this.gameState, 'player');
     this.actionMode = null;
     this.pendingSwapIndex = null;
+    this.destroyActiveSelectionMessage();
     this.completePlayerAction();
   }
 
@@ -2935,7 +2941,7 @@ export default class BattleScene extends Phaser.Scene {
     this.isEffectCastResolving = false;
     this.hoverInspectCardId = null;
     this.boardInspectIndex = null;
-    this.destroyTargetingInstruction();
+    this.destroyActiveSelectionMessage();
     this.destroySelectedHandCardZoom({ animate: true });
     this.updateInitiativeIndicator();
     this.updateActionButtonLabel();
@@ -2982,6 +2988,7 @@ export default class BattleScene extends Phaser.Scene {
 
     this.playerActionUsed = true;
     this.isFlowResolving = true;
+    this.destroyActiveSelectionMessage();
     this.currentActionFeedback = actionFeedback;
     await this.playMovementFeedback(movementFeedback, beforeStats);
     await this.playPreRefreshActionFeedback(actionFeedback);
@@ -3106,7 +3113,7 @@ export default class BattleScene extends Phaser.Scene {
     this.isEffectCastResolving = false;
     this.hoverInspectCardId = null;
     this.boardInspectIndex = null;
-    this.destroyTargetingInstruction();
+    this.destroyActiveSelectionMessage();
     this.destroySelectedHandCardZoom({ animate: true });
     this.refreshBoardLabels();
     this.redrawHand();
@@ -3355,50 +3362,60 @@ export default class BattleScene extends Phaser.Scene {
     const message = step === 'selectAdjacent'
       ? translateActive('ui.battle.swapPromptSelectAdjacent', 'SWAP: select adjacent unit')
       : translateActive('ui.battle.swapPromptSelectUnit', 'SWAP: select unit');
-    this.showActiveSelectionMessage(message, 'swap');
+    this.showActiveSelectionMessage(message, 'board-swap');
   }
 
   clearSwapPrompt() {
-    if (this.activeSelectionBannerMode !== 'swap') return;
-    this.destroyActiveSelectionMessage();
+    this.destroyActiveSelectionMessage('board-swap');
   }
 
-  showActiveSelectionMessage(message, mode = 'selection') {
-    if (!message) {
-      this.destroyActiveSelectionMessage();
-      return;
-    }
-
-    if (this.activeSelectionBanner?.active) {
-      this.activeSelectionBanner.setText(message);
-      this.activeSelectionBannerMode = mode;
-      this.targetingInstructionText = mode === 'targeting' ? this.activeSelectionBanner : null;
-      return;
-    }
-
+  getActiveSelectionBannerLayout(owner) {
     const { width, height, board } = this.layout;
-    const maxWidth = board.width * 0.88;
-    const fontSize = Math.min(18, Math.max(14, Math.floor(Math.max(board.cellWidth * 0.125, height * 0.016))));
-    const targetY = board.centerY - board.cellHeight * 0.64;
-    const startY = targetY + 5;
-    this.activeSelectionBanner = this.add.text(width * 0.5, startY, message, {
+    const targetY = owner === 'board-swap'
+      ? board.centerY + board.cellHeight * 0.25
+      : board.centerY - board.cellHeight * 0.64;
+    return {
+      x: width * 0.5,
+      targetY,
+      startY: targetY + 5,
+      maxWidth: board.width * 0.88,
+      fontSize: Math.min(18, Math.max(14, Math.floor(Math.max(board.cellWidth * 0.125, height * 0.016)))),
+    };
+  }
+
+  showActiveSelectionMessage(message, owner = 'selection') {
+    if (!message) {
+      this.destroyActiveSelectionMessage(owner);
+      return;
+    }
+
+    const layout = this.getActiveSelectionBannerLayout(owner);
+    if (this.activeSelectionBanner?.active && this.activeSelectionBannerOwner === owner) {
+      this.activeSelectionBanner.setText(message);
+      this.activeSelectionBanner.setPosition(layout.x, layout.targetY);
+      this.targetingInstructionText = owner === 'targeting' ? this.activeSelectionBanner : null;
+      return;
+    }
+
+    this.destroyActiveSelectionMessage();
+    this.activeSelectionBanner = this.add.text(layout.x, layout.startY, message, {
       fontFamily: 'Arial, sans-serif',
-      fontSize: `${fontSize}px`,
+      fontSize: `${layout.fontSize}px`,
       color: '#dcfce7',
       backgroundColor: '#14532d',
       align: 'center',
       padding: { x: 14, y: 8 },
-      wordWrap: { width: maxWidth },
+      wordWrap: { width: layout.maxWidth },
       fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(221).setAlpha(0).setScale(0.98).setStroke('#052e16', 1);
 
-    this.activeSelectionBannerMode = mode;
-    this.targetingInstructionText = mode === 'targeting' ? this.activeSelectionBanner : null;
+    this.activeSelectionBannerOwner = owner;
+    this.targetingInstructionText = owner === 'targeting' ? this.activeSelectionBanner : null;
     const banner = this.activeSelectionBanner;
     this.tweens.add({
       targets: banner,
       alpha: 1,
-      y: targetY,
+      y: layout.targetY,
       scaleX: 1,
       scaleY: 1,
       duration: PLAYER_EFFECT_CONFIRMATION_FADE_IN_MS,
@@ -3481,20 +3498,20 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   destroyTargetingInstruction() {
-    if (this.activeSelectionBannerMode !== 'targeting') return;
-    this.destroyActiveSelectionMessage();
+    this.destroyActiveSelectionMessage('targeting');
   }
 
-  destroyActiveSelectionMessage() {
+  destroyActiveSelectionMessage(owner = null) {
+    if (owner && this.activeSelectionBannerOwner !== owner) return;
     if (!this.activeSelectionBanner) {
       this.targetingInstructionText = null;
-      this.activeSelectionBannerMode = null;
+      this.activeSelectionBannerOwner = null;
       return;
     }
     this.tweens?.killTweensOf?.(this.activeSelectionBanner);
     this.activeSelectionBanner.destroy();
     this.activeSelectionBanner = null;
-    this.activeSelectionBannerMode = null;
+    this.activeSelectionBannerOwner = null;
     this.targetingInstructionText = null;
   }
 
