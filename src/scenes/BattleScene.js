@@ -3439,9 +3439,7 @@ export default class BattleScene extends Phaser.Scene {
 
   getActiveSelectionBannerLayout(owner) {
     const { width, height, board } = this.layout;
-    const targetY = owner === 'board-swap'
-      ? board.centerY + board.cellHeight * 0.25
-      : board.centerY - board.cellHeight * 0.64;
+    const targetY = board.centerY + board.cellHeight * 0.25;
     return {
       x: width * 0.5,
       targetY,

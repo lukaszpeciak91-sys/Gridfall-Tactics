@@ -113,7 +113,7 @@ test('showTargetingInstruction uses active selection banner style instead of the
   assert.equal(scene.targetingInstructionText, scene.activeSelectionBanner);
   assert.equal(scene.addCalls[0].text, 'SELECT ENEMY');
   assert.equal(scene.addCalls[0].style.backgroundColor, '#14532d');
-  assert.equal(scene.tweenCalls[0].y, scene.layout.board.centerY - scene.layout.board.cellHeight * 0.64);
+  assert.equal(scene.tweenCalls[0].y, scene.layout.board.centerY + scene.layout.board.cellHeight * 0.25);
   assert.notEqual(scene.addCalls[0].style.backgroundColor, '#4c1d95');
   assert.equal(scene.playerActionBanner.active, true, 'targeting banner must not destroy transient player action banners');
 });
