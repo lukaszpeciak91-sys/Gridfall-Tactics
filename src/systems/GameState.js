@@ -275,6 +275,12 @@ function createCardFromBoardUnit(unit) {
   return card;
 }
 
+function returnBoardUnitToHand(side, unit) {
+  if (!unit || unit.temporaryFloodToken) return false;
+  side.hand.push(createCardFromBoardUnit(unit));
+  return true;
+}
+
 function removeDefeatedUnits(state, boardIndexes) {
   cleanupDefeatedUnitsWithTriggers(state, boardIndexes);
 }
@@ -1007,7 +1013,7 @@ export function canPlayOrRedeploy(state, owner, handCardId, boardIndex) {
   if (!occupyingUnit) return { ok: true, type: 'play' };
   if (occupyingUnit.owner !== owner) return { ok: false, reason: 'Slot is occupied by opponent' };
 
-  if (side.hand.length >= side.maxHandSize) {
+  if (!occupyingUnit.temporaryFloodToken && side.hand.length >= side.maxHandSize) {
     return { ok: false, reason: 'Redeploy blocked: hand is full' };
   }
 
@@ -1068,7 +1074,7 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
     case 'return_friendly_draw_1': {
       if (targetUnit.owner !== owner) return { ok: false, reason: 'Target must be friendly' };
       if (side.hand.length >= side.maxHandSize) return { ok: false, reason: 'Hand is full' };
-      side.hand.push(createCardFromBoardUnit(targetUnit));
+      returnBoardUnitToHand(side, targetUnit);
       state.board[boardIndex] = null;
       card.drawResult = drawCardsWithResult(side, 1);
       break;
@@ -1358,7 +1364,7 @@ export function playOrRedeployUnit(state, owner, handCardId, boardIndex) {
 
   if (validation.type === 'redeploy') {
     const displacedUnit = state.board[boardIndex];
-    side.hand.push(createCardFromBoardUnit(displacedUnit));
+    returnBoardUnitToHand(side, displacedUnit);
   }
 
   state.board[boardIndex] = createBoardUnitFromCard(card, owner);
