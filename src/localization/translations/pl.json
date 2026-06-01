@@ -496,7 +496,7 @@
         "enemy": "Wróg",
         "enemy_unit": "Wroga jednostka",
         "enemy_units": "Wrogie jednostki",
-        "friendly_discard": "Odrzucona karta sojusznika",
+        "friendly_fallen": "Polegli sojusznicy",
         "friendly_unit": "Sojusznicza jednostka",
         "lane": "Linia",
         "none": "Brak"

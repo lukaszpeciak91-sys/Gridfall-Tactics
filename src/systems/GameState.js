@@ -63,8 +63,8 @@ function cardCanRealisticallyAffectOutcome(card, state, owner) {
   const friendlyUnits = getRowForOwner(owner).map((index) => state.board[index]).filter(Boolean);
   const enemyUnits = getRowForOwner(getOpponentOwner(owner)).map((index) => state.board[index]).filter(Boolean);
   const friendlyEmptySlots = getRowForOwner(owner).some((index) => state.board[index] === null);
-  const friendlyDiscardUnits = (owner === 'player' ? state.player.discard : state.enemy.discard)
-    .some((discardedCard) => discardedCard?.type === 'unit' && cardCanRealisticallyAffectOutcome(discardedCard, state, owner));
+  const friendlyFallenUnits = (owner === 'player' ? state.player.fallen : state.enemy.fallen)
+    .some((entry) => entry?.card?.type === 'unit' && cardCanRealisticallyAffectOutcome(entry.card, state, owner));
 
   switch (card.effectId) {
     case 'aggro_buff_all_atk_2':
@@ -97,7 +97,7 @@ function cardCanRealisticallyAffectOutcome(card, state, owner) {
     case 'funeral_pyre':
       return friendlyUnits.length > 0;
     case 'revive_friendly_1hp':
-      return friendlyEmptySlots && friendlyDiscardUnits;
+      return friendlyEmptySlots && friendlyFallenUnits;
     case 'fill_empty_slots_0_1':
       return friendlyEmptySlots;
     case 'infect_damage_1_opposite_ally_atk_1':
@@ -273,6 +273,26 @@ function createCardFromBoardUnit(unit) {
   card.id = unit.id ?? unit.cardId;
   card.hp = unit.maxHp ?? unit.hp;
   return card;
+}
+
+function recordFallenUnit(state, unit, reason = 'damage-death') {
+  if (!unit || unit.temporaryFloodToken) return false;
+  const side = unit.owner === 'player' ? state.player : state.enemy;
+  state.nextFallenSequence = (state.nextFallenSequence ?? 0) + 1;
+  side.fallen.push({
+    card: createCardFromBoardUnit(unit),
+    sequence: state.nextFallenSequence,
+    reason,
+    combat: reason === 'combat-death',
+  });
+  return true;
+}
+
+function findNewestReviveableFallenIndex(side) {
+  for (let index = side.fallen.length - 1; index >= 0; index -= 1) {
+    if (side.fallen[index]?.card?.type === 'unit') return index;
+  }
+  return -1;
 }
 
 function returnBoardUnitToHand(side, unit) {
@@ -470,7 +490,10 @@ function cleanupDefeatedUnitsWithTriggers(state, boardIndexes, options = {}) {
     const unit = state.board[index];
     if (!unit || unit.hp > 0) return;
     state.board[index] = null;
-    if (!unit.temporaryFloodToken) triggerUnitDeathEffects(state, index, unit, options);
+    if (!unit.temporaryFloodToken) {
+      recordFallenUnit(state, unit, options.combat ? 'combat-death' : 'damage-death');
+      triggerUnitDeathEffects(state, index, unit, options);
+    }
   });
 }
 
@@ -576,7 +599,7 @@ function canApplyEffectById(state, owner, effectId) {
     case 'revive_friendly_1hp': {
       const side = owner === 'player' ? state.player : state.enemy;
       return getRowForOwner(owner).some((index) => state.board[index] === null)
-        && side.discard.some((card) => card?.type === 'unit');
+        && findNewestReviveableFallenIndex(side) >= 0;
     }
     default:
       return true;
@@ -755,10 +778,10 @@ function applyEffectById(state, owner, effectId, sourceCard = null) {
       const friendlyIndexes = getRowForOwner(owner);
       const emptySlot = friendlyIndexes.find((index) => state.board[index] === null);
       if (emptySlot === undefined) break;
-      const discard = owner === 'player' ? state.player.discard : state.enemy.discard;
-      const reviveIndex = discard.findIndex((card) => card?.type === 'unit');
+      const side = owner === 'player' ? state.player : state.enemy;
+      const reviveIndex = findNewestReviveableFallenIndex(side);
       if (reviveIndex < 0) break;
-      const [reviveCard] = discard.splice(reviveIndex, 1);
+      const [{ card: reviveCard }] = side.fallen.splice(reviveIndex, 1);
       const revivedUnit = createBoardUnitFromCard(reviveCard, owner);
       revivedUnit.hp = 1;
       revivedUnit.maxHp = Number.isFinite(revivedUnit.maxHp) ? revivedUnit.maxHp : reviveCard.hp;
@@ -800,12 +823,14 @@ export function createInitialBattleState(playerFactionData, enemyFactionData = p
     turnCapResolvedBy: null,
     noProgressResolvedBy: null,
     turnsCompleted: 0,
+    nextFallenSequence: 0,
     firstActor,
     player: {
       factionName: playerFactionData?.name ?? 'Unknown',
       deck: playerDeck,
       hand: [],
       discard: [],
+      fallen: [],
       maxHandSize: 5,
     },
     enemy: {
@@ -813,6 +838,7 @@ export function createInitialBattleState(playerFactionData, enemyFactionData = p
       deck: enemyDeck,
       hand: [],
       discard: [],
+      fallen: [],
       maxHandSize: 5,
     },
     cannotDropBelowOneThisTurn: {
@@ -1082,6 +1108,7 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
     case 'destroy_friendly_draw_1': {
       if (targetUnit.owner !== owner) return { ok: false, reason: 'Target must be friendly' };
       state.board[boardIndex] = null;
+      recordFallenUnit(state, targetUnit, 'destroy');
       card.drawResult = drawCardsWithResult(side, 1);
       break;
     }

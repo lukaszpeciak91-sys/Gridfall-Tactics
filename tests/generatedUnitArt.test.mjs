@@ -209,11 +209,12 @@ test('returned-to-hand generated units preserve faction-local art through recall
   assert.equal(playOrRedeployUnit(state, 'player', redeployedToHandToken.id, 7).ok, true);
   assertTokenArt(state.board[7], swarmGruntArt);
 
-  state.board[6] = null;
-  state.board[7] = null;
+  state.board[1] = { id: 'grunt-killer', type: 'unit', owner: 'enemy', attack: 1, hp: 3, maxHp: 3, armor: 0, effectId: null };
+  resolveCombat(state);
+  assert.equal(state.player.fallen.at(-1)?.card.id, displacedToken.id);
   state.player.hand.push(getCard(swarm, 'swarm_regrow_1'));
   assert.equal(playEffectCard(state, 'player', 'swarm_regrow_1').ok, true);
-  assertTokenArt(state.board[6], swarmGruntArt);
+  assertTokenArt(state.board[7], swarmGruntArt);
 });
 
 test('missing generated unit artwork falls back to placeholder without crashing', () => {

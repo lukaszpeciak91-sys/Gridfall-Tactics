@@ -746,8 +746,8 @@ function scoreAction(state, owner, action) {
     const { friendly } = getRowsForOwner(owner);
     const side = owner === 'enemy' ? state.enemy : state.player;
     const hasEmpty = friendly.some((index) => !state.board[index]);
-    const hasUnitDiscard = side.discard?.some((card) => card?.type === 'unit');
-    if (!hasEmpty || !hasUnitDiscard) score -= 5000;
+    const hasFallenUnit = side.fallen?.some((entry) => entry?.card?.type === 'unit');
+    if (!hasEmpty || !hasFallenUnit) score -= 5000;
     else score += 500;
   }
 

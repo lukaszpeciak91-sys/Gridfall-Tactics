@@ -24,7 +24,7 @@ const expectedTextShort = new Map(Object.entries({
   swarm_brood_1: 'On death: summon 1/1 here.',
   swarm_alpha_1: 'Adjacent [ALLY] +1 ATK, ignore 1 ARM.',
   swarm_spawn_1: 'Summon 1/1 in an empty [ALLY] slot.',
-  swarm_regrow_1: 'Revive the first discarded unit at 1 HP.',
+  swarm_regrow_1: 'Revive the newest fallen unit at 1 HP.',
   swarm_flood_1: 'Fill up to 2 empty [ALLY] slots with temporary 1/1s.',
   swarm_recycle_1: 'Destroy [ALLY]. Draw 1.',
   tank_shieldbearer_1: 'Adjacent [ALLY] +1 ARM in combat.',
@@ -49,7 +49,7 @@ const expectedTextShort = new Map(Object.entries({
   attrition_swarm_funeral_pyre_1: 'First 2 [ALLY] combat deaths: deal 1 to opposed enemy.',
   attrition_swarm_infect_1: 'Deal 1 to enemy. If it survives, opposed [ALLY] +1 ATK.',
   attrition_swarm_feast_1: 'Destroy [ALLY]. Draw 1.',
-  attrition_swarm_rise_again_1: 'Revive the first discarded unit at 1 HP.',
+  attrition_swarm_rise_again_1: 'Revive the newest fallen unit at 1 HP.',
   attrition_swarm_grave_call_1: 'Summon 1/1. If no [ALLY], summon 2.',
 }));
 

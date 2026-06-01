@@ -74,7 +74,7 @@
     },
     "attrition_swarm_rise_again_1": {
       "name": "Rise Again",
-      "textShort": "Revive the first discarded unit at 1 HP."
+      "textShort": "Revive the newest fallen unit at 1 HP."
     },
     "attrition_swarm_grave_call_1": {
       "name": "Grave Call",
@@ -150,7 +150,7 @@
     },
     "swarm_regrow_1": {
       "name": "Regrow",
-      "textShort": "Revive the first discarded unit at 1 HP."
+      "textShort": "Revive the newest fallen unit at 1 HP."
     },
     "swarm_flood_1": {
       "name": "Flood",
@@ -496,7 +496,7 @@
         "enemy": "Enemy",
         "enemy_unit": "Enemy unit",
         "enemy_units": "Enemy units",
-        "friendly_discard": "Friendly discard",
+        "friendly_fallen": "Friendly fallen",
         "friendly_unit": "Friendly unit",
         "lane": "Line",
         "none": "None"
