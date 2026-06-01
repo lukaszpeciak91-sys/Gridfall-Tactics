@@ -36,7 +36,8 @@ If any other document conflicts with this file, this file wins.
   - Higher player base HP -> **player wins**.
   - Higher enemy base HP -> **enemy wins**.
   - Equal base HP -> **draw**.
-- Empty board + no meaningful playable cards is a no-progress deadlock and ends immediately by remaining base HP. Empty board + any future card that can realistically affect base HP or create future pressure does **not** immediately end.
+- A board state with no realistic outcome-changing path is a no-progress deadlock and ends immediately by remaining base HP. The centralized check distinguishes cards merely remaining in hand/deck from legally reachable plays and from plays that can realistically affect base HP or the final winner.
+- Future draws and reachable summon, redeploy, revive, swap, or combat sequences keep the battle active when they can still create outcome-changing pressure. Situational cards do not keep a locked battle alive when their required target, board condition, or follow-up resource cannot exist in any reachable state.
 - There is no repeated-PASS or 3-pass stall counter; dead games end as soon as the locked outcome is detected.
 
 ### 1.1) Meaningful Actions for No-Progress Detection

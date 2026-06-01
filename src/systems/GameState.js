@@ -37,11 +37,84 @@ function recordProgressAction() {
   // Meaningful-action tracking is no longer counter-based.
 }
 
-function cardCanRealisticallyAffectOutcome(card, state, owner) {
+function ownerHasReachableEmptySlot(state, owner) {
+  const row = getRowForOwner(owner);
+  if (row.some((index) => state.board[index] === null)) return true;
+
+  const simulation = cloneStateForDeadGameCheck(state);
+  const seen = new Set();
+  const startingOccupiedSlots = row.filter((index) => simulation.board[index]?.owner === owner).length;
+
+  for (let round = 0; round < 20; round += 1) {
+    const snapshot = createDeadGameCombatSnapshot(simulation);
+    if (seen.has(snapshot)) return false;
+    seen.add(snapshot);
+    resolveCombat(simulation);
+    const occupiedSlots = row.filter((index) => simulation.board[index]?.owner === owner).length;
+    if (occupiedSlots < startingOccupiedSlots) return true;
+    if (simulation.winner) return false;
+  }
+
+  return false;
+}
+
+function ownerHasReachableUnitPlacement(state, owner) {
+  return getRowForOwner(owner).some((index) => (
+    state.board[index] === null || state.board[index]?.owner === owner
+  ));
+}
+
+function ownerHasPotentialUnitCard(state, owner, predicate = () => true) {
+  if (!ownerHasReachableUnitPlacement(state, owner)) return false;
+  const side = owner === 'player' ? state.player : state.enemy;
+  return [...(side?.hand ?? []), ...(side?.deck ?? [])]
+    .some((card) => card?.type === 'unit' && predicate(card));
+}
+
+function unitCardCanUnlockOutcome(card, state, owner) {
+  return getRowForOwner(owner).some((index) => {
+    if (state.board[index] && state.board[index]?.owner !== owner) return false;
+    const simulation = cloneStateForDeadGameCheck(state);
+    simulation.board[index] = createBoardUnitFromCard(card, owner);
+    return canCombatEverChangeHeroHp(simulation);
+  });
+}
+
+function ownerCanReachFriendlyUnit(state, owner) {
+  return getRowForOwner(owner).some((index) => state.board[index]?.owner === owner)
+    || ownerHasPotentialUnitCard(state, owner);
+}
+
+function ownerCanReachAttackingUnit(state, owner) {
+  return getRowForOwner(owner).some((index) => (
+    state.board[index]?.owner === owner && getUnitAttack(state.board[index]) > 0
+  )) || ownerHasPotentialUnitCard(state, owner, (card) => (card.attack ?? 0) > 0);
+}
+
+function applyingEffectCanUnlockOutcome(state, owner, effectId) {
+  const simulation = cloneStateForDeadGameCheck(state);
+  const before = createDeadGameCombatSnapshot(simulation);
+  const playerHP = simulation.playerHP;
+  const enemyHP = simulation.enemyHP;
+  applyEffectById(simulation, owner, effectId);
+  return createDeadGameCombatSnapshot(simulation) !== before
+    && (simulation.playerHP !== playerHP
+      || simulation.enemyHP !== enemyHP
+      || canCombatEverChangeHeroHp(simulation));
+}
+
+function effectCanEnableOutcome(state, owner, effectId) {
+  const simulation = cloneStateForDeadGameCheck(state);
+  applyEffectById(simulation, owner, effectId);
+  return canCombatEverChangeHeroHp(simulation);
+}
+
+function cardCanRealisticallyAffectOutcome(card, state, owner, visitedCardIds = new Set()) {
   if (!card) return false;
 
   if (card.type === 'unit') {
-    if ((card.attack ?? 0) > 0) return true;
+    if (!ownerHasReachableUnitPlacement(state, owner)) return false;
+    if (unitCardCanUnlockOutcome(card, state, owner)) return true;
     return [
       'lane_empty_bonus_damage',
       'on_play_lane_damage_1',
@@ -61,52 +134,61 @@ function cardCanRealisticallyAffectOutcome(card, state, owner) {
   }
 
   const friendlyUnits = getRowForOwner(owner).map((index) => state.board[index]).filter(Boolean);
-  const enemyUnits = getRowForOwner(getOpponentOwner(owner)).map((index) => state.board[index]).filter(Boolean);
-  const friendlyEmptySlots = getRowForOwner(owner).some((index) => state.board[index] === null);
+  const enemyOwner = getOpponentOwner(owner);
+  const enemyUnits = getRowForOwner(enemyOwner).map((index) => state.board[index]).filter(Boolean);
+  const friendlyEmptySlotIsReachable = ownerHasReachableEmptySlot(state, owner);
+  const friendlyUnitIsReachable = ownerCanReachFriendlyUnit(state, owner);
+  const enemyUnitIsReachable = ownerCanReachFriendlyUnit(state, enemyOwner);
+  const friendlyAttackerIsReachable = ownerCanReachAttackingUnit(state, owner);
   const friendlyFallenUnits = (owner === 'player' ? state.player.fallen : state.enemy.fallen)
-    .some((entry) => entry?.card?.type === 'unit' && cardCanRealisticallyAffectOutcome(entry.card, state, owner));
+    .some((entry) => entry?.card?.type === 'unit'
+      && cardCanRealisticallyAffectOutcome(entry.card, state, owner, visitedCardIds));
 
   switch (card.effectId) {
     case 'aggro_buff_all_atk_2':
     case 'buff_all_atk_1':
+      return effectCanEnableOutcome(state, owner, card.effectId);
     case 'heal_1_atk_1_draw_on_kill_this_turn':
-      return friendlyUnits.length > 0;
+      return friendlyAttackerIsReachable;
     case 'quick_strike':
     case 'swap_adjacent_then_resolve':
-      return friendlyUnits.some((unit) => getUnitAttack(unit) > 0);
+      return friendlyAttackerIsReachable;
     case 'ignore_armor_next_attack':
+      return enemyUnitIsReachable && friendlyAttackerIsReachable;
     case 'damage_all_enemies_1_ignore_armor':
+      return enemyUnits.length > 0 && applyingEffectCanUnlockOutcome(state, owner, card.effectId);
     case 'control_enemy_unit_this_turn':
-      return enemyUnits.length > 0;
+      return enemyUnits.some((unit) => getUnitAttack(unit) > 0);
     case 'swap_any_two_units': {
       const ownersWithTwoUnits = ['player', 'enemy']
         .some((unitOwner) => state.board.filter((unit) => unit?.owner === unitOwner).length >= 2);
       return ownersWithTwoUnits;
     }
     case 'swap_adjacent_enemy_units': {
-      const opponentRow = getRowForOwner(getOpponentOwner(owner));
+      const opponentRow = getRowForOwner(enemyOwner);
       return opponentRow.some((index, rowPosition) => (
         rowPosition < opponentRow.length - 1
-        && state.board[index]?.owner === getOpponentOwner(owner)
-        && state.board[opponentRow[rowPosition + 1]]?.owner === getOpponentOwner(owner)
+        && state.board[index]?.owner === enemyOwner
+        && state.board[opponentRow[rowPosition + 1]]?.owner === enemyOwner
       ));
     }
     case 'summon_grunt_empty_slot':
     case 'grave_call':
-      return friendlyEmptySlots;
-    case 'funeral_pyre':
-      return friendlyUnits.length > 0;
-    case 'revive_friendly_1hp':
-      return friendlyEmptySlots && friendlyFallenUnits;
     case 'fill_empty_slots_0_1':
-      return friendlyEmptySlots;
+      return friendlyEmptySlotIsReachable;
+    case 'funeral_pyre':
+      return friendlyUnits.length > 0 && effectCanEnableOutcome(state, owner, card.effectId);
+    case 'revive_friendly_1hp':
+      return friendlyEmptySlotIsReachable && friendlyFallenUnits;
     case 'infect_damage_1_opposite_ally_atk_1':
-      return enemyUnits.length > 0;
+      return enemyUnitIsReachable;
     case 'destroy_friendly_draw_1':
-    case 'return_friendly_draw_1':
-      return friendlyUnits.length > 0
-        && (owner === 'player' ? state.player.deck : state.enemy.deck)
-          .some((deckCard) => cardCanRealisticallyAffectOutcome(deckCard, state, owner));
+    case 'return_friendly_draw_1': {
+      if (!friendlyUnitIsReachable || visitedCardIds.has(card.id)) return false;
+      const nextVisitedCardIds = new Set(visitedCardIds).add(card.id);
+      return (owner === 'player' ? state.player.deck : state.enemy.deck)
+        .some((deckCard) => cardCanRealisticallyAffectOutcome(deckCard, state, owner, nextVisitedCardIds));
+    }
     case 'enemy_up_to_2_atk_minus_1':
     case 'enemy_all_atk_minus_1':
     case 'enemy_lane_atk_minus_1':
@@ -114,6 +196,10 @@ function cardCanRealisticallyAffectOutcome(card, state, owner) {
     case 'heal_all_1':
     case 'cannot_drop_below_1_this_turn':
     case 'temp_armor_1':
+    case 'heal_2':
+    case 'heal_3':
+    case 'adjacent_allies_temp_armor_1':
+      return false;
     case 'swap_leftmost_adjacent_enemies': {
       const simulation = cloneStateForDeadGameCheck(state);
       if (!applyLeftmostAdjacentEnemySwap(simulation, owner)) return false;
@@ -122,7 +208,6 @@ function cardCanRealisticallyAffectOutcome(card, state, owner) {
     case 'immune_move_disable_this_turn':
     case 'friendly_immovable_this_turn':
     case 'cancel_enemy_order':
-    case 'adjacent_allies_temp_armor_1':
       return false;
     default:
       return false;
@@ -200,11 +285,16 @@ function canCombatEverChangeHeroHp(state, maxCombatRounds = 20) {
   return false;
 }
 
+export function battleCanRealisticallyChangeOutcome(state) {
+  if (!state || state.winner) return false;
+  if (canCombatEverChangeHeroHp(state)) return true;
+  if (ownerHasMeaningfulRemainingCard(state, 'player') || ownerHasMeaningfulRemainingCard(state, 'enemy')) return true;
+  return ownerHasMeaningfulSwapAction(state, 'player') || ownerHasMeaningfulSwapAction(state, 'enemy');
+}
+
 export function resolveImmediateNoProgressWinner(state) {
   if (!state || state.winner) return state?.winner ?? null;
-  if (canCombatEverChangeHeroHp(state)) return null;
-  if (ownerHasMeaningfulRemainingCard(state, 'player') || ownerHasMeaningfulRemainingCard(state, 'enemy')) return null;
-  if (ownerHasMeaningfulSwapAction(state, 'player') || ownerHasMeaningfulSwapAction(state, 'enemy')) return null;
+  if (battleCanRealisticallyChangeOutcome(state)) return null;
 
   return resolveHeroHpTiebreakWinner(state, 'no-progress-deadlock', 'noProgressResolvedBy');
 }

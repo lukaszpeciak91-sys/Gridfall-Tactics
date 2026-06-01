@@ -6,7 +6,7 @@ Scope: card-only proposal; no new systems, Hero HP changes, deck size changes, o
 
 ## Latest 1000-Game Audit Snapshot
 
-The latest 1000-game seeded audit used shuffled decks, random initial initiative, alternating first actor after each completed turn, and the shared 50-turn remaining-hero-HP cap rule.
+The 1000-game seeded audit that informed this proposal predated the current cap reduction: it used shuffled decks, random initial initiative, alternating first actor after each completed turn, and the former shared 50-turn remaining-hero-HP cap rule. Current live and simulation flow use the shared 24-completed-turn fallback cap.
 
 ### Aggregate faction results
 
