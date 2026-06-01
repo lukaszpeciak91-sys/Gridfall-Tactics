@@ -388,6 +388,7 @@ export default class BattleScene extends Phaser.Scene {
     this.scale.on('leavefullscreen', this.onFullscreenChanged, this);
     this.scale.on('resize', this.onViewportChanged, this);
     this.input.on('pointerup', this.onScenePointerUp, this);
+    this.input.on('pointerupoutside', this.onScenePointerUpOutside, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this);
 
   }
@@ -1177,7 +1178,18 @@ export default class BattleScene extends Phaser.Scene {
     this.scale.off('leavefullscreen', this.onFullscreenChanged, this);
     this.scale.off('resize', this.onViewportChanged, this);
     this.input.off('pointerup', this.onScenePointerUp, this);
+    this.input.off('pointerupoutside', this.onScenePointerUpOutside, this);
     this.resetRuntimeState();
+  }
+
+  onScenePointerUpOutside() {
+    // Phaser exposes pointerupoutside on the Scene Input Plugin, not individual Game Objects.
+    this.cancelInterruptedPointerGesture();
+  }
+
+  cancelInterruptedPointerGesture() {
+    this.cancelHandCardPressState();
+    this.cancelBoardCellPressState();
   }
 
   drawHeroPanels() {
@@ -1354,8 +1366,8 @@ export default class BattleScene extends Phaser.Scene {
         background.on('pointerdown', () => {
           this.onBoardCellPointerDown(boardIndex);
         });
-        background.on('pointerup', () => {
-          this.onBoardCellPointerUp(boardIndex);
+        background.on('pointerup', (pointer) => {
+          this.onBoardCellPointerUp(boardIndex, pointer);
         });
         background.on('pointerout', () => {
           this.onBoardCellPointerOut(boardIndex);
@@ -1723,8 +1735,8 @@ export default class BattleScene extends Phaser.Scene {
       cardView.background.on('pointerdown', () => {
         this.onCardPointerDown(cardId);
       });
-      cardView.background.on('pointerup', () => {
-        this.onCardPointerUp(cardId);
+      cardView.background.on('pointerup', (pointer) => {
+        this.onCardPointerUp(cardId, pointer);
       });
       cardView.background.on('pointerover', () => {
         this.onHandCardPointerOver(cardId);
@@ -1830,6 +1842,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   onHandCardPointerOut(cardId) {
+    this.cancelHandCardPressState();
     if (this.hoverInspectCardId !== cardId) return;
     this.hoverInspectCardId = null;
     if (!this.selectedCardId && !this.previewedMulliganCardId) {
@@ -1890,7 +1903,19 @@ export default class BattleScene extends Phaser.Scene {
     this.boardCellLongPressEvent = null;
   }
 
-  onBoardCellPointerUp(boardIndex) {
+  cancelBoardCellPressState() {
+    this.cancelBoardCellLongPress();
+    this.pressedBoardCellIndex = null;
+    this.boardLongPressTriggeredIndex = null;
+    this.boardPointerDownSelectedSwapSource = false;
+  }
+
+  onBoardCellPointerUp(boardIndex, pointer) {
+    if (pointer?.wasCanceled) {
+      this.cancelBoardCellPressState();
+      return;
+    }
+
     if (this.openingMulliganPending) return;
 
     this.cancelBoardCellLongPress();
@@ -1918,10 +1943,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   onBoardCellPointerOut() {
-    this.cancelBoardCellLongPress();
-    this.pressedBoardCellIndex = null;
-    this.boardLongPressTriggeredIndex = null;
-    this.boardPointerDownSelectedSwapSource = false;
+    this.cancelBoardCellPressState();
   }
 
   trySelectImplicitSwapSourceOnPointerDown(boardIndex) {
@@ -2043,7 +2065,19 @@ export default class BattleScene extends Phaser.Scene {
     this.handCardLongPressEvent = null;
   }
 
-  onCardPointerUp(cardId) {
+  cancelHandCardPressState() {
+    this.cancelHandCardLongPress();
+    this.pressedHandCardId = null;
+    this.pressedHandCardWasSelected = false;
+    this.longPressTriggeredCardId = null;
+  }
+
+  onCardPointerUp(cardId, pointer) {
+    if (pointer?.wasCanceled) {
+      this.cancelHandCardPressState();
+      return;
+    }
+
     if (this.utilityMenuPanel || this.navigationInProgress || this.pointerInputGuardActive) {
       this.cancelHandCardLongPress();
       this.pressedHandCardId = null;
@@ -2111,6 +2145,12 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   onScenePointerUp(pointer, currentlyOver = []) {
+    // Phaser routes mobile touchcancel through pointerup with wasCanceled set.
+    if (pointer?.wasCanceled) {
+      this.cancelInterruptedPointerGesture();
+      return;
+    }
+
     if (this.isPointerEventGuarded(pointer) || this.navigationInProgress) return;
     if (this.battleResultModalShown || this.isFlowResolving || this.isEffectCastResolving) return;
 

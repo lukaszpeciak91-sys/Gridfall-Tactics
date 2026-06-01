@@ -21,7 +21,7 @@ function compileMethod(name, nextName, params = []) {
 
 test('mulligan hand taps still mark and unmark cards for exchange', () => {
   const toggleOpeningMulliganCard = compileMethod('toggleOpeningMulliganCard', 'confirmOpeningMulligan', ['cardId', '{ showPreview = true } = {}', 'MAX_OPENING_MULLIGAN_CARDS']);
-  const onCardPointerUp = compileMethod('onCardPointerUp', 'onScenePointerUp', ['cardId']);
+  const onCardPointerUp = compileMethod('onCardPointerUp', 'onScenePointerUp', ['cardId', 'pointer']);
   const card = { id: 'unit-a' };
   const scene = {
     openingMulliganPending: true,
@@ -119,7 +119,7 @@ test('mulligan board pointerdown and tap cannot select swaps, show banners, or s
 });
 
 test('mulligan board pointerup and unit long press inspect return without mutating board interaction state', () => {
-  const onBoardCellPointerUp = compileMethod('onBoardCellPointerUp', 'onBoardCellPointerOut', ['boardIndex']);
+  const onBoardCellPointerUp = compileMethod('onBoardCellPointerUp', 'onBoardCellPointerOut', ['boardIndex', 'pointer']);
   const showBoardUnitInspect = compileMethod('showBoardUnitInspect', 'onBoardCellPointerDown', ['boardIndex']);
   const targetingState = { targetIndexes: [] };
   const effectCastState = { cardId: 'effect-a' };

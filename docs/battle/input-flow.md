@@ -56,6 +56,7 @@ Battle input is resolved by state priority, not raw tap location alone. Effectiv
 ### Outside/UI taps
 - UI-reserved pointer-up areas do not fall through to board action handling.
 - Outside taps can clear inspect/selection state depending on active context.
+- Interrupted hand-card and board-cell gestures cancel their pending long-press timers and pressed-state bookkeeping without running tap behavior.
 
 ---
 
@@ -150,6 +151,10 @@ Runtime ownership is split deliberately:
   - Suppress tap execution if long-press already consumed the interaction.
 - **Long-press suppression model**
   - Press state tracks whether long-press fired; corresponding release path exits without duplicate tap action.
+- **Interrupted-gesture cleanup**
+  - Hand-card and board-cell `pointerout` handlers clear only their gesture-local pressed state and delayed long-press event.
+  - Phaser 3.90 exposes `pointerupoutside` on the Scene Input Plugin rather than on individual Game Objects, so `onScenePointerUpOutside(...)` clears both gesture paths.
+  - Phaser routes mobile `touchcancel` through its pointer-up pipeline with `pointer.wasCanceled = true`; Game Object and scene-level pointer-up handlers detect that flag and clean gesture state before tap arbitration.
 
 ---
 

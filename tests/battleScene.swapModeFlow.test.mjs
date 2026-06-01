@@ -37,9 +37,9 @@ test('board inspect remains long-press only and suppresses quick-tap inspect', (
   const source = readFileSync(new URL('../src/scenes/BattleScene.js', import.meta.url), 'utf8');
 
   assert.match(source, /background\.on\('pointerdown', \(\) => \{\s*this\.onBoardCellPointerDown\(boardIndex\);\s*\}\);/);
-  assert.match(source, /background\.on\('pointerup', \(\) => \{\s*this\.onBoardCellPointerUp\(boardIndex\);\s*\}\);/);
+  assert.match(source, /background\.on\('pointerup', \(pointer\) => \{\s*this\.onBoardCellPointerUp\(boardIndex, pointer\);\s*\}\);/);
   assert.match(source, /startBoardCellLongPress\(boardIndex\) \{[\s\S]*this\.time\.delayedCall\(BOARD_INSPECT_LONG_PRESS_MS,[\s\S]*if \(this\.showBoardUnitInspect\(boardIndex\)\) \{/);
-  assert.match(source, /onBoardCellPointerUp\(boardIndex\) \{[\s\S]*if \(this\.boardLongPressTriggeredIndex === boardIndex\) \{[\s\S]*return;\s*\}[\s\S]*this\.onBoardCellTap\(boardIndex\);\s*\}/);
+  assert.match(source, /onBoardCellPointerUp\(boardIndex, pointer\) \{[\s\S]*if \(this\.boardLongPressTriggeredIndex === boardIndex\) \{[\s\S]*return;\s*\}[\s\S]*this\.onBoardCellTap\(boardIndex\);\s*\}/);
 
   const onBoardCellTapBlock = source.slice(
     source.indexOf('  onBoardCellTap(boardIndex) {'),
