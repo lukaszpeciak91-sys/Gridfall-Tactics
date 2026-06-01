@@ -57,6 +57,10 @@ export function startHandCardFlipReveal({
 
   root.scaleX = 0;
   background.disableInteractive?.();
+  // The retained back-card survived the hand redraw, but the newly rendered
+  // future-card stack may otherwise cover it. Lift this temporary reveal visual
+  // into the drawn card's normal depth for the short first half of the flip.
+  if (Number.isFinite(root.depth)) backCard.setDepth?.(root.depth);
   backCard.scaleX = 1;
   shrinkTween = tweens.add({
     targets: backCard,

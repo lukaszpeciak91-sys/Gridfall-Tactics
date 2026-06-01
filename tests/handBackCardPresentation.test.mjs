@@ -24,15 +24,14 @@ test('hand back card count fills visible empty slots while cards remain in the d
   assert.equal(shouldRenderHandBackCard({ handCount: 2, maxHandSize: 5, deckCount: 0, index: 2 }), false);
 });
 
-test('hand back card depth sits behind the neighboring real card and above lowered empty placeholders', () => {
-  const backCardSlotBaseDepth = 20 + 2 * 4;
-  const neighboringRealCardDepth = 20 + 1 * 4;
-  const backCardDepth = calculateHandBackCardDepth({ baseDepth: backCardSlotBaseDepth });
-  const emptyPlaceholderDepth = backCardDepth - 1;
+test('K K K R R depth priority keeps real cards above a descending future-card stack', () => {
+  const realCardDepths = [0, 1, 2].map((index) => 20 + index * 4);
+  const backCardDepths = [0, 1].map((backCardOrder) => calculateHandBackCardDepth({ backCardOrder }));
 
-  assert.equal(backCardDepth, neighboringRealCardDepth - 1);
-  assert.ok(neighboringRealCardDepth > backCardDepth);
-  assert.ok(backCardDepth > emptyPlaceholderDepth);
+  assert.deepEqual(realCardDepths, [20, 24, 28]);
+  assert.deepEqual(backCardDepths, [19, 18]);
+  assert.ok(backCardDepths[0] > backCardDepths[1], 'R1 must render above R2');
+  assert.ok(Math.min(...realCardDepths) > Math.max(...backCardDepths), 'every real card must render above every back-card');
 });
 
 test('hand back card cover crop fills the real hand-card footprint without raw aspect-ratio stretching', () => {
@@ -78,9 +77,9 @@ test('BattleScene renders back cards separately from gameplay cards and omits em
   assert.match(drawHand, /for \(let index = handCount; index < hand\.cardsVisible; index \+= 1\) \{/);
   assert.match(drawHand, /shouldRenderHandBackCard\(\{ handCount, maxHandSize, deckCount, index \}\)/);
   assert.match(drawHand, /const backCard = this\.createHandBackCardView\(\{/);
-  assert.match(drawHand, /depth: calculateHandBackCardDepth\(\{ baseDepth: 20 \+ index \* 4 \}\)/);
+  assert.match(drawHand, /depth: calculateHandBackCardDepth\(\{ backCardOrder: index - handCount \}\)/);
   assert.match(drawHand, /backCard\.slotIndex = index;\s*this\.handBackCards\.push\(backCard\);/);
-  assert.doesNotMatch(drawHand, /slot-\$\{index\}|setAlpha\(0\.45\)/);
+  assert.doesNotMatch(drawHand, /slot-\$\{index\}|setAlpha\(0\.45\)/, 'empty placeholder containers must stay suppressed');
   assert.match(helper, /this\.add\.container\(x, y\)\.setDepth\(depth\)/);
   assert.match(helper, /calculateHandBackCardCoverCrop\(\{/);
   assert.doesNotMatch(helper, /setInteractive|cardViews|cardId|inspect|target/i);
