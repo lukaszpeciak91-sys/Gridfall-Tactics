@@ -20,8 +20,11 @@ export function shouldRenderHandBackCard({ handCount, maxHandSize, deckCount, in
   return index >= handCount && index < handCount + backCardCount;
 }
 
-export function calculateHandBackCardDepth({ baseDepth, slotDepthStep = 4 }) {
-  return baseDepth - slotDepthStep - 1;
+// Keep future-card visuals in their own depth band. Real hand cards use depths
+// starting at realCardBaseDepth, while back-cards descend so the first future
+// card is the visible top of the small deck and later cards tuck underneath it.
+export function calculateHandBackCardDepth({ backCardOrder, realCardBaseDepth = 20 }) {
+  return realCardBaseDepth - backCardOrder - 1;
 }
 
 export function calculateHandBackCardCoverCrop({

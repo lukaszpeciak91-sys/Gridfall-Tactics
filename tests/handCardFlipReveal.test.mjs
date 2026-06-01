@@ -38,11 +38,13 @@ function createVisuals() {
   };
   const backCard = {
     slotIndex: 2,
+    depth: 19,
     scaleX: 1,
     destroyed: false,
     destroy() { this.destroyed = true; },
+    setDepth(depth) { this.depth = depth; return this; },
   };
-  const cardView = { root: { scaleX: 1 }, background };
+  const cardView = { root: { depth: 28, scaleX: 1 }, background };
   return { backCard, cardView, background };
 }
 
@@ -64,6 +66,7 @@ test('flip reveal swaps the visual at midpoint and restores an interactive real 
   assert.equal(pending[0].config.scaleX, 0);
   assert.equal(pending[0].config.duration, 110);
   assert.equal(cardView.root.scaleX, 0);
+  assert.equal(backCard.depth, cardView.root.depth, 'temporary reveal back-card is lifted above the redrawn future-card stack');
   assert.equal(background.interactive, false);
   assert.equal(backCard.destroyed, false);
 

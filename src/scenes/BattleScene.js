@@ -1745,7 +1745,7 @@ export default class BattleScene extends Phaser.Scene {
         y: cardBaseY,
         width: hand.cardWidth,
         height: hand.cardHeight,
-        depth: calculateHandBackCardDepth({ baseDepth: 20 + index * 4 }),
+        depth: calculateHandBackCardDepth({ backCardOrder: index - handCount }),
       });
       backCard.slotIndex = index;
       this.handBackCards.push(backCard);
