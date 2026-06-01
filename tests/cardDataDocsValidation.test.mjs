@@ -221,10 +221,10 @@ test('battle-end documentation names current stall, mulligan, retry, and tiebrea
   const decisions = read('docs/project/decisions.md');
   const combined = [readme, rules, historicalSpec, decisions].join('\n');
 
-  assert.match(readme, /Battles end by base defeat, no-progress deadlock, or the 50 completed-turn cap/);
+  assert.match(readme, /Battles end by base defeat, no-progress deadlock, or the 24-completed-turn fallback cap/);
   assert.match(rules, /There is no repeated-PASS or 3-pass stall counter/);
   assert.match(rules, /Meaningful Actions for No-Progress Detection/);
-  assert.match(rules, /Empty board \+ no meaningful playable cards is a no-progress deadlock/);
+  assert.match(rules, /A board state with no realistic outcome-changing path is a no-progress deadlock/);
   assert.match(rules, /Runner-only edge cases follow these same rules/);
   assert.match(rules, /RETRY.*same player faction key and the same enemy faction key/s);
   assert.match(rules, /EXIT.*starts `FactionSelectScene`/s);

@@ -1,4 +1,4 @@
-import { canPlayOrRedeploy, canSwap, performSwap, playEffectCard, playOrRedeployUnit, resolveTargetedEffectCard, resolveTargetedUnitOnPlayEffect, getUnitAttack, getUnitArmor, RUNNER_OPEN_LANE_HERO_BONUS, resolveImmediateNoProgressWinner } from './GameState.js';
+import { canPlayOrRedeploy, canSwap, performSwap, playEffectCard, playOrRedeployUnit, resolveTargetedEffectCard, resolveTargetedUnitOnPlayEffect, getUnitAttack, getUnitArmor, RUNNER_OPEN_LANE_HERO_BONUS, resolveImmediateNoProgressWinner, battleCanRealisticallyChangeOutcome } from './GameState.js';
 
 const ENEMY_ROW_INDEXES = [0, 1, 2];
 const PLAYER_ROW_INDEXES = [6, 7, 8];
@@ -902,6 +902,8 @@ export function chooseBattleAction(state, owner = 'enemy', options = {}) {
       return { type: 'surrender', reason: 'ai-safe-surrender' };
     }
   }
+
+  if (!battleCanRealisticallyChangeOutcome(state)) return { type: 'pass' };
 
   const side = owner === 'enemy' ? state?.enemy : state?.player;
   const hand = Array.isArray(side?.hand) ? side.hand : [];
