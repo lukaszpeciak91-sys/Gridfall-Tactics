@@ -213,7 +213,7 @@ test('board swap prompt appears through the unified active selection banner path
 });
 
 test('targeting highlight and action-button routing remain unchanged', () => {
-  assert.match(source, /if \(targetingState\) \{\s*this\.targetingState = \{ \.\.\.targetingState, targetIndexes: \[\.\.\.\(targetingState\.targetIndexes \?\? \[\]\)\] \};[\s\S]*this\.showTargetingInstruction\(\);[\s\S]*return;\s*\}/);
+  assert.match(source, /beginPlayerTargetingSession\(targetingState\) \{\s*if \(!targetingState\) return;\s*this\.targetingState = \{ \.\.\.targetingState, targetIndexes: \[\.\.\.\(targetingState\.targetIndexes \?\? \[\]\)\] \};\s*this\.resetCardHighlights\(\{ showPreview: false \}\);\s*this\.updateActionButtonLabel\(\);\s*this\.showTargetingInstruction\(\);\s*\}/);
   assert.match(source, /if \(this\.targetingState\) \{[\s\S]*this\.confirmTargetingSelection\(\);[\s\S]*return;[\s\S]*\}/);
   assert.match(source, /const isValidEnemyTarget = this\.isValidTarget\(cell\.index, 'enemy-unit', selectedTargetIndexes, targetConstraint\);/);
   assert.match(source, /strokeAlpha = BOARD_TARGET_STROKE_ALPHA;/);

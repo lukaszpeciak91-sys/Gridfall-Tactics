@@ -293,6 +293,7 @@ test('hand-card long press clears provisional targeting, suppresses release, and
   const onCardPointerUp = compileMethod('onCardPointerUp', 'onScenePointerUp', ['cardId', 'pointer']);
   const clearSelectedHandInspectFromOutsideTap = compileMethod('clearSelectedHandInspectFromOutsideTap', 'clearOpeningMulliganPreviewFromOutsideTap', ['pointer', 'currentlyOver']);
   const onCardPointerDown = compileMethod('onCardPointerDown', 'startHandCardLongPress', ['cardId']);
+  const beginPlayerTargetingSession = compileMethod('beginPlayerTargetingSession', 'playEffectCastSweep', ['targetingState']);
 
   const signalShift = { id: 'control_swap_1', type: 'order', effectId: 'swap_any_two_units' };
   let timerCallback = null;
@@ -331,6 +332,8 @@ test('hand-card long press clears provisional targeting, suppresses release, and
     clearSwapPrompt() {},
     isUnitCard: () => false,
     getTargetingStateForCard: () => ({ targetType: 'any-unit' }),
+    beginPlayerTargetingSession(targetingState) { beginPlayerTargetingSession.call(this, targetingState); },
+    showTargetingInstruction() {},
     startHandCardLongPress(cardId) { this.quickTapLongPressStartedFor = cardId; },
   };
 
@@ -355,6 +358,6 @@ test('hand-card long press clears provisional targeting, suppresses release, and
 
   onCardPointerDown.call(scene, signalShift.id);
   assert.equal(scene.selectedCardId, signalShift.id);
-  assert.deepEqual(scene.targetingState, { targetType: 'any-unit' });
+  assert.deepEqual(scene.targetingState, { targetType: 'any-unit', targetIndexes: [] });
   assert.equal(scene.quickTapLongPressStartedFor, signalShift.id);
 });
