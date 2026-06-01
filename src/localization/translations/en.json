@@ -62,7 +62,7 @@
     },
     "attrition_swarm_funeral_pyre_1": {
       "name": "Funeral Pyre",
-      "textShort": "First 2 [ALLY] combat deaths: deal 1 to opposed enemy."
+      "textShort": "First 2 [ALLIES] combat deaths:\neach deal 1 ● to opposed enemy."
     },
     "attrition_swarm_infect_1": {
       "name": "Rotten Gift",
