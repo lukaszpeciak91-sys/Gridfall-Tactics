@@ -338,7 +338,12 @@ test('Infect targets enemies, deals 1, buffs opposite ally on survivor, and neve
 
 test('Rise Again and Grave Call are deterministic and preserve owner integrity', () => {
   const revive = state();
-  revive.player.discard.push(card('attrition_swarm_abomination_1'));
+  revive.player.fallen.push({
+    card: card('attrition_swarm_abomination_1'),
+    sequence: 1,
+    reason: 'combat-death',
+    combat: true,
+  });
   addHand(revive, 'player', card('attrition_swarm_rise_again_1'));
   const reviveResult = playEffectCard(revive, 'player', 'attrition_swarm_rise_again_1');
   assert.equal(reviveResult.ok, true);
@@ -395,6 +400,10 @@ test('Base Swarm Substrate destroys a friendly unit and draws exactly 1 without 
   assert.equal(result.ok, true);
   assert.equal(s.board[6], null);
   assert.equal(s.board[0].owner, 'enemy');
+  assert.equal(s.player.fallen.length, 1);
+  assert.equal(s.player.fallen[0].card.id, 'substrate-victim');
+  assert.equal(s.player.fallen[0].reason, 'destroy');
+  assert.equal(s.player.fallen[0].combat, false);
   assert.equal(s.player.hand.length, 1);
   assert.equal(s.player.hand[0].id, 'swarm_grunt_1');
   assert.equal(s.player.deck.length, 1);

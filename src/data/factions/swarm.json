@@ -94,9 +94,9 @@
       "artAssetId": "swarm_08",
       "name": "Regrow",
       "type": "order",
-      "targeting": "friendly_discard",
+      "targeting": "friendly_fallen",
       "effectId": "revive_friendly_1hp",
-      "textShort": "Revive the first discarded unit at 1 HP."
+      "textShort": "Revive the newest fallen unit at 1 HP."
     },
     {
       "id": "swarm_flood_1",

@@ -126,7 +126,7 @@ canonical_ref: docs/rules/mvp-battle-rules.md
 ## Generated Unit Art Identity (2026-05-30)
 - Generated non-deck units now use stable faction-local card illustration metadata instead of a shared token art directory.
 - Spawn/Brood Grunts resolve as `swarm/token_grunt_01`, Flood tokens resolve as `swarm/token_flood_01`, and Carrier/Grave Call Grunts resolve as `attrition_swarm/token_grunt_02` under `public/assets/cards/`.
-- `factionId`, `artAssetId`, `tokenType`, `isToken`, and `collectible` are lifecycle metadata: Recall, redeploy displacement, replay from hand, discard, and revive must preserve them without changing gameplay rules.
+- `factionId`, `artAssetId`, `tokenType`, `isToken`, and `collectible` are lifecycle metadata: Recall, redeploy displacement, replay from hand, discard, fallen, and revive must preserve them without changing gameplay rules.
 - Binary token artwork files are a manual follow-up outside Codex scope: add `public/assets/cards/swarm/token_grunt_01.webp`, `public/assets/cards/swarm/token_flood_01.webp`, and `public/assets/cards/attrition_swarm/token_grunt_02.webp` when final art is ready.
 
 

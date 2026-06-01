@@ -233,7 +233,7 @@ The no-progress detector still exists and uses the stricter "meaningful for outc
 | Swarm | Alpha | unit | 1/2/0 | adjacent_allies_atk_plus_1_ignore_armor_1 | Adjacent [ALLY] +1 ATK, ignore 1 ARM. | Passive adjacency aura | Calculated at combat time; Alpha only benefits if adjacent to another Alpha. |
 | Swarm | Spawn | order | - | summon_grunt_empty_slot | Summon 1/1 in an empty [ALLY] slot. | Non-targeted deterministic effect | Rejected if no empty slot; no manual target UI. |
 | Swarm | Swarm Attack | order | - | buff_all_atk_1 | All [ALLY] +1 ATK this turn. | Non-targeted effect | Swarm-specific behavior remains unchanged. |
-| Swarm | Regrow | order | - | revive_friendly_1hp | Revive the first discarded unit at 1 HP. | Non-targeted deterministic effect | First empty slot + first unit in discard; no manual target UI. |
+| Swarm | Regrow | order | - | revive_friendly_1hp | Revive the newest fallen unit at 1 HP. | Non-targeted deterministic effect | First empty slot + newest unit in fallen; no manual target UI. |
 | Swarm | Flood | special | - | fill_empty_slots_0_1 | Fill up to 2 empty [ALLY] slots with temporary 1/1s. | Non-targeted deterministic effect | Fills up to 2 empty ally slots left-to-right with temporary board-only 1/1 Tokens; they vanish after combat or instead of returning to hand, do not enter hand or discard, and do not trigger death effects. |
 | Attrition Swarm | Husk | unit | 1/1/0 | combat_death_damage_enemy_lane_1 | Combat death: deal 1 to opposed enemy. | Combat-only death trigger | Damages only an opposing enemy unit in the same lane; no base fallback; does not trigger from Feast, redeploy, return, or non-combat damage cleanup. |
 | Swarm | Substrate | utility | - | destroy_friendly_draw_1 | Destroy [ALLY]. Draw 1. | Targeted friendly | Immediate non-combat destroy, then draw 1. |
@@ -244,7 +244,7 @@ The no-progress detector still exists and uses the stricter "meaningful for outc
 | Attrition Swarm | Funeral Pyre | order | - | funeral_pyre | First 2 [ALLY] combat deaths: deal 1 to opposed enemy. | Non-targeted deterministic effect | Active for combat cleanup; cap 2 per owner per combat; damages only opposing enemy units in the dying allies’ lanes; no base fallback; multiple plays do not stack above cap. |
 | Attrition Swarm | Rotten Gift | order | - | infect_damage_1_opposite_ally_atk_1 | Deal 1 to enemy. If it survives, opposed [ALLY] +1 ATK. | Targeted enemy | Non-combat damage; if the target survives, the caster-owned unit directly opposite it gets +1 ATK until combat cleanup; if the target dies or no opposite ally exists, no buff or base damage occurs. |
 | Attrition Swarm | Feast | utility | - | destroy_friendly_draw_1 | Destroy [ALLY]. Draw 1. | Targeted friendly | Reuses Substrate-style non-combat destruction and does not trigger combat-only death effects. |
-| Attrition Swarm | Rise Again | order | - | revive_friendly_1hp | Revive the first discarded unit at 1 HP. | Non-targeted deterministic effect | First empty friendly slot + first unit in discard; no manual target UI. |
+| Attrition Swarm | Rise Again | order | - | revive_friendly_1hp | Revive the newest fallen unit at 1 HP. | Non-targeted deterministic effect | First empty friendly slot + newest unit in fallen; no manual target UI. |
 | Attrition Swarm | Grave Call | order | - | grave_call | Summon 1/1. If no [ALLY], summon 2. | Non-targeted deterministic effect | Fills first empty friendly slot, or up to 2 left-to-right if the owner has no allies; rejected if no empty slot exists. |
 | Tank | Shieldbearer | unit | 1/2/0 | lane_armor_aura_1 | Adjacent [ALLY] +1 ARM in combat. | Passive adjacency aura | Calculated during damage mitigation. |
 | Tank | Heavy | unit | 2/3/0 | null |  | Lane combat | Vanilla unit with empty rules text. |
@@ -297,6 +297,8 @@ Deferred / intentionally simplified:
 
 ## 11) Balance Notes (MVP Tracking)
 
+- `discard` remains the Played / Discarded archive. It is not a graveyard and does not make living archived units eligible for resurrection.
+- Each side has a separate `fallen` stack for persistent units that died or were explicitly destroyed after entering the board. Resurrection consumes the newest eligible fallen entry first; recalls, redeploy displacement, and temporary Flood Token removal do not add entries.
 - Flood tempo candidate status: **active** (`fill_empty_slots_0_1` summons up to 2 temporary 1/1 Tokens).
 - Swarm no longer fills all 3 slots with Flood in current code; Flood Tokens are temporary board-only units. They vanish after combat or whenever they would leave the board through a return-to-hand path, and they skip hand, discard, and death-effect paths.
 - Generated Grunts remain persistent card-like generated units: they return to hand through redeploy and Recall, preserve their artwork metadata, and can be replayed, discarded, or revived normally.

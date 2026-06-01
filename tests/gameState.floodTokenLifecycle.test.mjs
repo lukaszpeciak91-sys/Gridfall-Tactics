@@ -76,6 +76,7 @@ test('redeploy over a Flood Token makes it vanish without hand, discard, or deat
   assert.equal(state.board[6].id, 'replacement');
   assert.equal(state.player.hand.some((item) => item.id === floodToken.id), false);
   assert.equal(state.player.discard.some((item) => item.id === floodToken.id), false);
+  assert.deepEqual(state.player.fallen, []);
   assert.equal(state.enemyHP, enemyHpBefore);
 });
 
@@ -122,6 +123,7 @@ test('Recall makes a Flood Token vanish without adding it to hand or discard', (
   assert.equal(state.player.hand.some((item) => item.id === floodToken.id), false);
   assert.equal(state.player.hand.some((item) => item.id === 'drawn-after-recall'), true);
   assert.equal(state.player.discard.some((item) => item.id === floodToken.id), false);
+  assert.deepEqual(state.player.fallen, []);
   assert.equal(state.enemyHP, enemyHpBefore);
 });
 
@@ -133,4 +135,5 @@ test('Flood Tokens still vanish after combat without entering discard', () => {
 
   assert.equal(state.board[6], null);
   assert.equal(state.player.discard.some((item) => item.id === floodToken.id), false);
+  assert.deepEqual(state.player.fallen, []);
 });
