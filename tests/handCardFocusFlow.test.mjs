@@ -41,12 +41,12 @@ test('normal gameplay quick tap selects only and long press opens inspect withou
   assert.match(source, /this\.handCardLongPressEvent = null;/);
   assert.match(source, /this\.longPressTriggeredCardId = null;/);
   assert.match(source, /background\.on\('pointerdown', \(\) => \{\s*this\.onCardPointerDown\(cardId\);\s*\}\);/);
-  assert.match(source, /background\.on\('pointerup', \(\) => \{\s*this\.onCardPointerUp\(cardId\);\s*\}\);/);
+  assert.match(source, /background\.on\('pointerup', \(pointer\) => \{\s*this\.onCardPointerUp\(cardId, pointer\);\s*\}\);/);
   assert.match(source, /onHandCardPointerOver\(cardId\) \{\s*\/\/ Hand-card inspect is intentionally long-press driven so quick taps only select for play\.\s*if \(!cardId\) return;\s*\}/);
   assert.match(source, /this\.pendingSwapIndex = null;\s*this\.clearSwapPrompt\(\);\s*this\.selectedCardId = cardId;\s*this\.targetingState = this\.isUnitCard\(card\) \? null : this\.getTargetingStateForCard\(card\);\s*this\.resetCardHighlights\(\{ showPreview: false \}\);\s*this\.updateActionButtonLabel\(\);\s*this\.startHandCardLongPress\(cardId\);/);
   assert.match(source, /startHandCardLongPress\(cardId\) \{\s*this\.cancelHandCardLongPress\(\);\s*this\.handCardLongPressEvent = this\.time\.delayedCall\(CARD_INSPECT_LONG_PRESS_MS, \(\) => \{[\s\S]*this\.longPressTriggeredCardId = cardId;[\s\S]*this\.selectedCardId = null;\s*this\.targetingState = null;\s*this\.effectCastState = null;\s*this\.actionMode = null;\s*this\.destroyTargetingInstruction\(\);\s*this\.hoverInspectCardId = cardId;[\s\S]*this\.resetCardHighlights\(\{ showPreview: true \}\);/);
   assert.match(source, /cancelHandCardLongPress\(\) \{\s*if \(!this\.handCardLongPressEvent\) return;\s*this\.handCardLongPressEvent\.remove\(false\);\s*this\.handCardLongPressEvent = null;\s*\}/);
-  assert.match(source, /onCardPointerUp\(cardId\) \{[\s\S]*this\.cancelHandCardLongPress\(\);[\s\S]*if \(this\.longPressTriggeredCardId === cardId\) \{[\s\S]*return;\s*\}[\s\S]*this\.resetCardHighlights\(\{ showPreview: false \}\);/);
+  assert.match(source, /onCardPointerUp\(cardId, pointer\) \{[\s\S]*this\.cancelHandCardLongPress\(\);[\s\S]*if \(this\.longPressTriggeredCardId === cardId\) \{[\s\S]*return;\s*\}[\s\S]*this\.resetCardHighlights\(\{ showPreview: false \}\);/);
   assert.match(source, /const handCardId = isMulliganPreview\s*\? this\.previewedMulliganCardId\s*: \(this\.selectedCardId \?\? this\.hoverInspectCardId\);/);
   assert.match(source, /const cardView = this\.cardViews\.find\(\(view\) => view\.cardId === handCardId\);/);
   assert.match(source, /const card = this\.gameState\.player\.hand\.find\(\(item\) => item\.id === handCardId\);/);
@@ -61,7 +61,7 @@ test('outside taps clear selection without intercepting board, pass, or card inp
   assert.match(source, /this\.input\.off\('pointerup', this\.onScenePointerUp, this\);/);
   assert.match(source, /this\.bottomControlViews = \[\];/);
   assert.match(source, /this\.bottomControlViews = \[menu\];/);
-  assert.match(source, /onScenePointerUp\(pointer, currentlyOver = \[\]\) \{\s*if \(this\.isPointerEventGuarded\(pointer\) \|\| this\.navigationInProgress\) return;\s*if \(this\.battleResultModalShown \|\| this\.isFlowResolving \|\| this\.isEffectCastResolving\) return;[\s\S]*const hasActiveBoardTapMode = this\.pendingSwapIndex !== null;[\s\S]*const isIdleBoardTapMode = !this\.selectedCardId && !this\.targetingState && !this\.effectCastState && !hasActiveBoardTapMode;[\s\S]*if \(this\.isPointerUpReservedForUi\(pointer, currentlyOver\)\) return;\s*const boardCell = this\.getBoardCellFromPointerUp\(pointer, currentlyOver\);[\s\S]*if \(isIdleBoardTapMode && !boardCell\) \{\s*this\.clearBoardInspectFromOutsideTap\(pointer, currentlyOver\);\s*return;\s*\}/);
+  assert.match(source, /onScenePointerUp\(pointer, currentlyOver = \[\]\) \{[\s\S]*if \(this\.isPointerEventGuarded\(pointer\) \|\| this\.navigationInProgress\) return;\s*if \(this\.battleResultModalShown \|\| this\.isFlowResolving \|\| this\.isEffectCastResolving\) return;[\s\S]*const hasActiveBoardTapMode = this\.pendingSwapIndex !== null;[\s\S]*const isIdleBoardTapMode = !this\.selectedCardId && !this\.targetingState && !this\.effectCastState && !hasActiveBoardTapMode;[\s\S]*if \(this\.isPointerUpReservedForUi\(pointer, currentlyOver\)\) return;\s*const boardCell = this\.getBoardCellFromPointerUp\(pointer, currentlyOver\);[\s\S]*if \(isIdleBoardTapMode && !boardCell\) \{\s*this\.clearBoardInspectFromOutsideTap\(pointer, currentlyOver\);\s*return;\s*\}/);
   assert.match(source, /clearOpeningMulliganPreviewFromOutsideTap\(pointer, currentlyOver = \[\]\) \{\s*if \(!this\.previewedMulliganCardId && !this\.selectedHandCardZoom\) return;\s*if \(this\.isPointerInsideMulliganHandOrPreview\(pointer, currentlyOver\)\) return;\s*this\.previewedMulliganCardId = null;[\s\S]*this\.pressedHandCardId = null;\s*this\.resetCardHighlights\(\{ showPreview: false \}\);\s*\}/);
   assert.match(source, /isPointerInsideMulliganHandOrPreview\(pointer, currentlyOver = \[\]\) \{[\s\S]*const handTop = hand\.y;[\s\S]*return pointer\.x >= handLeft && pointer\.x <= handRight && pointer\.y >= handTop && pointer\.y <= handBottom;/);
   assert.match(source, /if \(this\.pressedHandCardId\) \{[\s\S]*this\.cancelHandCardLongPress\(\);[\s\S]*this\.pressedHandCardId = null;[\s\S]*return;\s*\}/);
@@ -82,7 +82,7 @@ test('outside taps clear selection without intercepting board, pass, or card inp
   assert.match(source, /isBoardCellTapReservedForCardAction\(boardIndex, selectedCard\) \{\s*if \(this\.targetingState\) \{\s*return this\.isValidTarget\(boardIndex, this\.targetingState\.targetType, this\.targetingState\.targetIndexes, this\.targetingState\.targetConstraint\);\s*\}\s*if \(!this\.isUnitCard\(selectedCard\)\) \{\s*return true;\s*\}\s*return canPlayOrRedeploy\(this\.gameState, 'player', selectedCard\.id, boardIndex\)\.ok;\s*\}/);
   assert.match(source, /button\.on\('pointerup', \(\) => \{\s*if \(this\.openingMulliganPending\) \{\s*this\.confirmOpeningMulligan\(\);\s*return;\s*\}\s*if \(this\.targetingState\) \{\s*this\.confirmTargetingSelection\(\);\s*return;\s*\}\s*this\.resolvePassTurn\(\);\s*\}\);/);
   assert.match(source, /background\.on\('pointerdown', \(\) => \{\s*this\.onBoardCellPointerDown\(boardIndex\);\s*\}\);/);
-  assert.match(source, /background\.on\('pointerup', \(\) => \{\s*this\.onBoardCellPointerUp\(boardIndex\);\s*\}\);/);
+  assert.match(source, /background\.on\('pointerup', \(pointer\) => \{\s*this\.onBoardCellPointerUp\(boardIndex, pointer\);\s*\}\);/);
 });
 
 
@@ -97,7 +97,7 @@ test('tactical menu and inspect are mutually safe during navigation', () => {
   assert.match(source, /onCardPointerDown\(cardId\) \{\s*if \(this\.utilityMenuPanel \|\| this\.navigationInProgress \|\| this\.pointerInputGuardActive\) return;/);
   assert.match(source, /if \(this\.targetingState\) \{\s*this\.cancelEffectTargeting\(\);\s*if \(this\.playerActionUsed \|\| this\.isFlowResolving \|\| this\.isEffectCastResolving\) \{\s*return;\s*\}\s*\}\s*const card = this\.gameState\.player\.hand\.find\(\(item\) => item\.id === cardId\);/);
   assert.match(source, /startHandCardLongPress\(cardId\) \{[\s\S]*if \(this\.utilityMenuPanel \|\| this\.navigationInProgress \|\| this\.pointerInputGuardActive\) return;/);
-  assert.match(source, /onScenePointerUp\(pointer, currentlyOver = \[\]\) \{\s*if \(this\.isPointerEventGuarded\(pointer\) \|\| this\.navigationInProgress\) return;/);
+  assert.match(source, /onScenePointerUp\(pointer, currentlyOver = \[\]\) \{[\s\S]*if \(this\.isPointerEventGuarded\(pointer\) \|\| this\.navigationInProgress\) return;/);
   assert.match(source, /const outsideCatcher = this\.add\.rectangle[\s\S]*\.setInteractive\(\)[\s\S]*\.setDepth\(depth\);/);
   assert.match(source, /const panel = this\.add\.rectangle[\s\S]*\.setDepth\(depth \+ 2\)\s*\.setInteractive\(\);[\s\S]*panel\.on\('pointerdown',[\s\S]*event\?\.stopPropagation\?\.\(\);[\s\S]*panel\.on\('pointerup',[\s\S]*this\.guardPointerEvent\(pointer\);/);
 });
@@ -140,11 +140,11 @@ test('inspect zoom centers between enemy and player lanes, dims gameplay, stays 
 
 test('board unit inspect opens from occupied slots and reuses the full hand-card renderer', () => {
   assert.match(source, /background\.on\('pointerdown', \(\) => \{\s*this\.onBoardCellPointerDown\(boardIndex\);\s*\}\);/);
-  assert.match(source, /background\.on\('pointerup', \(\) => \{\s*this\.onBoardCellPointerUp\(boardIndex\);\s*\}\);/);
+  assert.match(source, /background\.on\('pointerup', \(pointer\) => \{\s*this\.onBoardCellPointerUp\(boardIndex, pointer\);\s*\}\);/);
   assert.doesNotMatch(source, /background\.on\('pointerover', \(\) => \{\s*this\.onBoardCellPointerOver\(boardIndex\);\s*\}\);/);
   assert.match(source, /startBoardCellLongPress\(boardIndex\) \{\s*this\.cancelBoardCellLongPress\(\);\s*this\.boardCellLongPressEvent = this\.time\.delayedCall\(BOARD_INSPECT_LONG_PRESS_MS,/);
   assert.match(source, /if \(this\.showBoardUnitInspect\(boardIndex\)\) \{[\s\S]*this\.boardLongPressTriggeredIndex = boardIndex;\s*\}/);
-  assert.match(source, /onBoardCellPointerUp\(boardIndex\) \{[\s\S]*if \(this\.boardLongPressTriggeredIndex === boardIndex\) \{[\s\S]*return;\s*\}[\s\S]*this\.onBoardCellTap\(boardIndex\);\s*\}/);
+  assert.match(source, /onBoardCellPointerUp\(boardIndex, pointer\) \{[\s\S]*if \(this\.boardLongPressTriggeredIndex === boardIndex\) \{[\s\S]*return;\s*\}[\s\S]*this\.onBoardCellTap\(boardIndex\);\s*\}/);
   assert.match(source, /showBoardUnitInspect\(boardIndex\) \{\s*if \(this\.openingMulliganPending \|\| this\.utilityMenuPanel \|\| this\.navigationInProgress \|\| this\.selectedCardId \|\| this\.targetingState \|\| this\.effectCastState \|\| this\.isEffectCastResolving \|\| this\.pressedHandCardId\) return false;\s*const unit = this\.gameState\?\.board\?\.\[boardIndex\] \?\? null;\s*if \(!unit\) return false;\s*this\.hoverInspectCardId = null;\s*this\.boardInspectIndex = boardIndex;\s*this\.showSelectedHandCardZoom\(\);\s*return true;\s*\}/);
   assert.match(source, /if \(!this\.selectedCardId && !this\.targetingState && !this\.effectCastState\) \{\s*const unit = this\.gameState\.board\[boardIndex\];[\s\S]*if \(this\.pendingSwapIndex !== null\) \{[\s\S]*\}\s*if \(!unit \|\| unit\.owner !== 'player'\) return;/);
   assert.match(source, /if \(this\.boardInspectIndex !== null\) \{\s*const unit = this\.gameState\.board\[this\.boardInspectIndex\];\s*const cell = this\.getCellByIndex\(this\.boardInspectIndex\);/);

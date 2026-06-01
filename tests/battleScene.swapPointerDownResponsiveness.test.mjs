@@ -54,7 +54,7 @@ test('pointerdown immediately primes implicit swap source when idle on own unit'
 });
 
 test('pointerup does not cancel source selected on pointerdown', () => {
-  const onBoardCellPointerUp = compileMethod('onBoardCellPointerUp', 'onBoardCellPointerOut', ['boardIndex']);
+  const onBoardCellPointerUp = compileMethod('onBoardCellPointerUp', 'onBoardCellPointerOut', ['boardIndex', 'pointer']);
 
   const tapped = [];
   const scene = {
@@ -105,7 +105,7 @@ test('scene pointerup consumes pointerdown-selected source without committing sw
 
 test('own unit short tap selects swap source without opening board inspect', () => {
   const trySelectImplicitSwapSourceOnPointerDown = compileMethod('trySelectImplicitSwapSourceOnPointerDown', 'onCardPointerDown', ['boardIndex']);
-  const onBoardCellPointerUp = compileMethod('onBoardCellPointerUp', 'onBoardCellPointerOut', ['boardIndex']);
+  const onBoardCellPointerUp = compileMethod('onBoardCellPointerUp', 'onBoardCellPointerOut', ['boardIndex', 'pointer']);
 
   const scene = {
     pendingSwapIndex: null,
@@ -140,7 +140,7 @@ test('own unit short tap selects swap source without opening board inspect', () 
 
 test('own unit long press preserves swap source, opens inspect, and release is not an extra tap', () => {
   const startBoardCellLongPress = compileMethod('startBoardCellLongPress', 'cancelBoardCellLongPress', ['boardIndex', 'BOARD_INSPECT_LONG_PRESS_MS']);
-  const onBoardCellPointerUp = compileMethod('onBoardCellPointerUp', 'onBoardCellPointerOut', ['boardIndex']);
+  const onBoardCellPointerUp = compileMethod('onBoardCellPointerUp', 'onBoardCellPointerOut', ['boardIndex', 'pointer']);
   const onScenePointerUp = compileMethod('onScenePointerUp', 'clearSelectedHandInspectFromOutsideTap', ['pointer', 'currentlyOver']);
 
   let timerCallback = null;
@@ -290,7 +290,7 @@ test('enemy unit long press opens inspect without starting swap selection', () =
 
 test('hand-card long press clears provisional targeting, suppresses release, and allows a later quick tap', () => {
   const startHandCardLongPress = compileMethod('startHandCardLongPress', 'cancelHandCardLongPress', ['cardId', 'CARD_INSPECT_LONG_PRESS_MS']);
-  const onCardPointerUp = compileMethod('onCardPointerUp', 'onScenePointerUp', ['cardId']);
+  const onCardPointerUp = compileMethod('onCardPointerUp', 'onScenePointerUp', ['cardId', 'pointer']);
   const clearSelectedHandInspectFromOutsideTap = compileMethod('clearSelectedHandInspectFromOutsideTap', 'clearOpeningMulliganPreviewFromOutsideTap', ['pointer', 'currentlyOver']);
   const onCardPointerDown = compileMethod('onCardPointerDown', 'startHandCardLongPress', ['cardId']);
 
