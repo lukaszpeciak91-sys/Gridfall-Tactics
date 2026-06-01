@@ -51,13 +51,13 @@ test('formats HP-related healing and damage language without replacing unrelated
   assert.equal(formatCardEffectTextShort('Combat death: both bases lose 1 HP.', 'en'), 'Combat death: both bases lose 1 ●.');
   assert.equal(formatCardEffectTextShort('On death: enemy base loses 1 HP.', 'en'), 'On death: enemy base loses 1 ●.');
   assert.equal(formatCardEffectTextShort('Heal all [ALLY] by 1.', 'en'), 'Heal all ♙♙ by +1 ●.');
-  assert.equal(formatCardEffectTextShort('First 2 ally combat deaths: deal 1 to opposing enemy.', 'en'), 'First 2 ally combat deaths: deal 1 ● to opposing enemy.');
+  assert.equal(formatCardEffectTextShort('First 2 [ALLIES] combat deaths:\neach deal 1 ● to opposed enemy.', 'en'), 'First 2 ♙♙ combat deaths:\neach deal 1 ● to opposed enemy.');
   assert.equal(formatCardEffectTextShort('Destroy [ALLY]. Draw 1.', 'en'), 'Destroy ♙. Draw 1.');
   assert.equal(formatCardEffectTextShort('Combat death: summon 1/1 here.', 'en'), 'Combat death: summon 1/1 here.');
   assert.equal(formatCardEffectTextShort('Śmierć w walce: obie bazy otrzymują 1.', 'pl'), 'Śmierć w walce: obie bazy otrzymują 1 ●.');
   assert.equal(formatCardEffectTextShort('Po śmierci: wroga baza otrzymuje 1.', 'pl'), 'Po śmierci: wroga baza otrzymuje 1 ●.');
   assert.equal(formatCardEffectTextShort('Celowany wróg atakuje własną bazę w następnej walce, potem otrzymuje 1 obrażenie.', 'pl'), 'Celowany wróg atakuje własną bazę w następnej walce, potem otrzymuje 1 ●.');
-  assert.equal(formatCardEffectTextShort('Pierwsze 2 śmierci sojuszników w walce: 1 wrogowi naprzeciw.', 'pl'), 'Pierwsze 2 śmierci sojuszników w walce: 1 ● wrogowi naprzeciw.');
+  assert.equal(formatCardEffectTextShort('Pierwsze 2 zgony [ALLIES] w walce:\npo 1 ● wrogowi naprzeciw.', 'pl'), 'Pierwsze 2 zgony ♙♙ w walce:\npo 1 ● wrogowi naprzeciw.');
   assert.equal(formatCardEffectTextShort('Zniszcz [ALLY]. Dobierz 1.', 'pl'), 'Zniszcz ♙. Dobierz 1.');
   assert.equal(formatCardEffectTextShort('Śmierć w walce: przyzwij tutaj 1/1.', 'pl'), 'Śmierć w walce: przyzwij tutaj 1/1.');
 });
@@ -71,8 +71,8 @@ test('formats HP symbols for localized Attrition Swarm card effect display text'
   assert.equal(getCardDisplayContent(cardById('attrition_swarm_leech_1'), 'pl').body, 'Zabije i przetrwa:\nulecz bazę o +1 ●.');
   assert.equal(getCardDisplayContent(cardById('attrition_swarm_abomination_1'), 'en').body, 'Combat death: both bases lose 1 ●.');
   assert.equal(getCardDisplayContent(cardById('attrition_swarm_abomination_1'), 'pl').body, 'Śmierć w walce: obie bazy tracą 1 ●.');
-  assert.equal(getCardDisplayContent(cardById('attrition_swarm_funeral_pyre_1'), 'en').body, 'First 2 ♙♙ combat deaths: deal 1 ● to opposed enemy.');
-  assert.equal(getCardDisplayContent(cardById('attrition_swarm_funeral_pyre_1'), 'pl').body, 'Pierwsze 2 śmierci:\nzadaj 1 ●\nwrogowi naprzeciw.');
+  assert.equal(getCardDisplayContent(cardById('attrition_swarm_funeral_pyre_1'), 'en').body, 'First 2 ♙♙ combat deaths:\neach deal 1 ● to opposed enemy.');
+  assert.equal(getCardDisplayContent(cardById('attrition_swarm_funeral_pyre_1'), 'pl').body, 'Pierwsze 2 zgony ♙♙ w walce:\npo 1 ● wrogowi naprzeciw.');
 });
 
 test('pilot card display content renders ally icon markers', () => {
