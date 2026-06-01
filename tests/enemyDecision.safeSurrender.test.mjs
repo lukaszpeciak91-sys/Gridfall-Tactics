@@ -67,6 +67,17 @@ test('does not surrender on first eligible pass and surrenders on second consecu
   assert.equal(second.reason, 'ai-safe-surrender');
 });
 
+test('default production path safe surrenders after two consecutive eligible passes', () => {
+  const state = createState();
+  const first = chooseBattleAction(state, 'enemy');
+  assert.equal(first.type, 'pass');
+  assert.equal(state.aiSafeSurrender.enemy, 1);
+
+  const second = chooseBattleAction(state, 'enemy');
+  assert.equal(second.type, 'surrender');
+  assert.equal(second.reason, 'ai-safe-surrender');
+});
+
 test('safe surrender counter resets when state becomes non-eligible', () => {
   const state = createState();
   const first = chooseBattleAction(state, 'enemy', { aiSafeSurrenderEnabled: true });
