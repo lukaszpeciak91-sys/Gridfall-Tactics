@@ -288,7 +288,7 @@ test('enemy unit long press opens inspect without starting swap selection', () =
   assert.equal(scene.boardInspectIndex, 3);
 });
 
-test('hand-card long press clears provisional targeting, suppresses release, and allows a later quick tap', () => {
+test('hand-card long press preserves targeted session, suppresses release, and allows a later quick tap', () => {
   const startHandCardLongPress = compileMethod('startHandCardLongPress', 'cancelHandCardLongPress', ['cardId', 'CARD_INSPECT_LONG_PRESS_MS']);
   const onCardPointerUp = compileMethod('onCardPointerUp', 'onScenePointerUp', ['cardId', 'pointer']);
   const clearSelectedHandInspectFromOutsideTap = compileMethod('clearSelectedHandInspectFromOutsideTap', 'clearOpeningMulliganPreviewFromOutsideTap', ['pointer', 'currentlyOver']);
@@ -340,16 +340,16 @@ test('hand-card long press clears provisional targeting, suppresses release, and
   startHandCardLongPress.call(scene, signalShift.id, 350);
   timerCallback();
 
-  assert.equal(scene.selectedCardId, null);
-  assert.equal(scene.targetingState, null);
+  assert.equal(scene.selectedCardId, signalShift.id);
+  assert.deepEqual(scene.targetingState, { targetType: 'any-unit' });
   assert.equal(scene.effectCastState, null);
   assert.equal(scene.hoverInspectCardId, signalShift.id);
-  assert.equal(scene.destroyTargetingInstructionCalled, true);
+  assert.equal(scene.destroyTargetingInstructionCalled, false);
   assert.deepEqual(highlights.at(-1), { showPreview: true });
 
   onCardPointerUp.call(scene, signalShift.id);
-  assert.equal(scene.selectedCardId, null);
-  assert.equal(scene.targetingState, null);
+  assert.equal(scene.selectedCardId, signalShift.id);
+  assert.deepEqual(scene.targetingState, { targetType: 'any-unit' });
   assert.equal(scene.longPressTriggeredCardId, null);
 
   assert.equal(clearSelectedHandInspectFromOutsideTap.call(scene, { id: 1 }, []), true);
@@ -358,6 +358,6 @@ test('hand-card long press clears provisional targeting, suppresses release, and
 
   onCardPointerDown.call(scene, signalShift.id);
   assert.equal(scene.selectedCardId, signalShift.id);
-  assert.deepEqual(scene.targetingState, { targetType: 'any-unit', targetIndexes: [] });
+  assert.deepEqual(scene.targetingState, { targetType: 'any-unit' });
   assert.equal(scene.quickTapLongPressStartedFor, signalShift.id);
 });

@@ -216,3 +216,161 @@ test('Controller utility navigation click cancels and finalizes targeting before
   assert.equal(scene.navigationInProgress, false);
   assert.deepEqual(calls, ['cancel-targeting']);
 });
+
+test('selected targeted card pointerdown keeps its session available for long-press inspect', () => {
+  const onCardPointerDown = compileMethod('onCardPointerDown', 'startHandCardLongPress', ['cardId']);
+  const targetingState = { cardId: 'control_swap_1', targetType: 'any-unit', requiredTargets: 2, targetIndexes: [0] };
+  const calls = [];
+  const scene = {
+    utilityMenuPanel: null,
+    navigationInProgress: false,
+    pointerInputGuardActive: false,
+    battleResultModalShown: false,
+    isFlowResolving: false,
+    openingMulliganPending: false,
+    playerActionUsed: false,
+    isEffectCastResolving: false,
+    selectedCardId: 'control_swap_1',
+    targetingState,
+    effectCastState: null,
+    cancelHandCardLongPress() { calls.push('cancel-long-press'); },
+    startHandCardLongPress(cardId) { calls.push(['start-long-press', cardId]); },
+    cancelEffectTargeting() { calls.push('cancel-targeting'); },
+  };
+
+  onCardPointerDown.call(scene, 'control_swap_1');
+
+  assert.equal(scene.targetingState, targetingState);
+  assert.deepEqual(scene.targetingState.targetIndexes, [0]);
+  assert.deepEqual(calls, ['cancel-long-press', ['start-long-press', 'control_swap_1']]);
+});
+
+test('long-press inspect keeps selected targeted card session and hand card intact', () => {
+  const startHandCardLongPress = compileMethod('startHandCardLongPress', 'cancelHandCardLongPress', ['cardId', 'CARD_INSPECT_LONG_PRESS_MS']);
+  const card = { id: 'control_swap_1', type: 'order', effectId: 'swap_any_two_units' };
+  const targetingState = { cardId: card.id, targetType: 'any-unit', requiredTargets: 2, targetIndexes: [0] };
+  const calls = [];
+  const scene = {
+    pressedHandCardId: card.id,
+    utilityMenuPanel: null,
+    navigationInProgress: false,
+    pointerInputGuardActive: false,
+    battleResultModalShown: false,
+    isFlowResolving: false,
+    playerActionUsed: false,
+    openingMulliganPending: false,
+    selectedCardId: card.id,
+    targetingState,
+    effectCastState: null,
+    actionMode: null,
+    boardInspectIndex: null,
+    hoverInspectCardId: null,
+    gameState: { player: { hand: [card] } },
+    cancelHandCardLongPress() {},
+    time: { delayedCall(_delay, callback) { callback(); return { remove() {} }; } },
+    destroyTargetingInstruction() { calls.push('destroy-instruction'); },
+    resetCardHighlights(options) { calls.push(['highlights', options]); },
+    updateActionButtonLabel() { calls.push('button'); },
+  };
+
+  startHandCardLongPress.call(scene, card.id, 350);
+
+  assert.equal(scene.selectedCardId, card.id);
+  assert.equal(scene.targetingState, targetingState);
+  assert.deepEqual(scene.targetingState.targetIndexes, [0]);
+  assert.deepEqual(scene.gameState.player.hand, [card]);
+  assert.equal(scene.hoverInspectCardId, card.id);
+  assert.deepEqual(calls, [['highlights', { showPreview: true }], 'button']);
+});
+
+test('Signal Shift first target refreshes instruction without Inspect and second target resolves', () => {
+  const onBoardCellTapWithResolvers = compileMethod('onBoardCellTap', 'getActivePlayerEffectCard', [
+    'boardIndex',
+    'playOrRedeployUnit',
+    'resolveTargetedUnitOnPlayEffect',
+    'resolveTargetedEffectCard',
+  ]);
+  const signalShift = { id: 'control_swap_1', type: 'order', effectId: 'swap_any_two_units' };
+  const calls = [];
+  const scene = {
+    openingMulliganPending: false,
+    utilityMenuPanel: null,
+    navigationInProgress: false,
+    pointerInputGuardActive: false,
+    battleResultModalShown: false,
+    isFlowResolving: false,
+    isEffectCastResolving: false,
+    playerActionUsed: false,
+    selectedCardId: signalShift.id,
+    targetingState: { cardId: signalShift.id, targetType: 'any-unit', requiredTargets: 2, targetIndexes: [] },
+    effectCastState: null,
+    pendingSwapIndex: null,
+    gameState: { player: { hand: [signalShift] }, board: [{ owner: 'player' }, { owner: 'enemy' }] },
+    getActivePlayerEffectCard: () => null,
+    isValidTarget: () => true,
+    resetCardHighlights(options) { calls.push(['highlights', options]); },
+    updateActionButtonLabel() { calls.push(['button']); },
+    showTargetingInstruction() { calls.push(['instruction', [...this.targetingState.targetIndexes]]); },
+    captureBoardStats: () => ({ before: true }),
+    buildMovementFeedbackForAction: () => [],
+    buildActionFeedback: () => [],
+    completePlayerAction(beforeStats) { calls.push(['complete', beforeStats]); },
+  };
+  const resolveTargetedEffectCard = (_state, _side, cardId, boardIndex, targetIndexes) => {
+    calls.push(['resolve', cardId, boardIndex, [...targetIndexes]]);
+    return { ok: true, type: 'targeted-effect' };
+  };
+
+  onBoardCellTapWithResolvers.call(scene, 0, () => { throw new Error('unit placement must not run'); }, () => {}, resolveTargetedEffectCard);
+
+  assert.deepEqual(scene.targetingState.targetIndexes, [0]);
+  assert.deepEqual(scene.gameState.player.hand, [signalShift]);
+  assert.deepEqual(calls, [
+    ['highlights', { showPreview: false }],
+    ['button'],
+    ['instruction', [0]],
+  ]);
+
+  onBoardCellTapWithResolvers.call(scene, 1, () => { throw new Error('unit placement must not run'); }, () => {}, resolveTargetedEffectCard);
+
+  assert.deepEqual(calls.slice(3), [
+    ['resolve', signalShift.id, 1, [0, 1]],
+    ['complete', { before: true }],
+  ]);
+});
+
+test('Jam Signal optional partial targeting refresh does not open Inspect', () => {
+  const onBoardCellTapWithResolvers = compileMethod('onBoardCellTap', 'getActivePlayerEffectCard', ['boardIndex']);
+  const jamSignal = { id: 'control_jam_signal_1', type: 'order', effectId: 'enemy_up_to_2_atk_minus_1' };
+  const calls = [];
+  const scene = {
+    openingMulliganPending: false,
+    utilityMenuPanel: null,
+    navigationInProgress: false,
+    pointerInputGuardActive: false,
+    battleResultModalShown: false,
+    isFlowResolving: false,
+    isEffectCastResolving: false,
+    playerActionUsed: false,
+    selectedCardId: jamSignal.id,
+    targetingState: { cardId: jamSignal.id, targetType: 'enemy-unit', minTargets: 1, requiredTargets: 2, targetIndexes: [] },
+    effectCastState: null,
+    pendingSwapIndex: null,
+    gameState: { player: { hand: [jamSignal] }, board: [{ owner: 'enemy' }] },
+    getActivePlayerEffectCard: () => null,
+    isValidTarget: () => true,
+    resetCardHighlights(options) { calls.push(['highlights', options]); },
+    updateActionButtonLabel() { calls.push(['button']); },
+    showTargetingInstruction() { calls.push(['instruction', [...this.targetingState.targetIndexes]]); },
+  };
+
+  onBoardCellTapWithResolvers.call(scene, 0);
+
+  assert.deepEqual(scene.targetingState.targetIndexes, [0]);
+  assert.deepEqual(scene.gameState.player.hand, [jamSignal]);
+  assert.deepEqual(calls, [
+    ['highlights', { showPreview: false }],
+    ['button'],
+    ['instruction', [0]],
+  ]);
+});

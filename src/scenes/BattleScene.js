@@ -2010,6 +2010,10 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     if (this.targetingState) {
+      if (this.selectedCardId === cardId) {
+        this.startHandCardLongPress(cardId);
+        return;
+      }
       this.cancelEffectTargeting();
       if (this.playerActionUsed || this.isFlowResolving || this.isEffectCastResolving) {
         return;
@@ -2058,13 +2062,16 @@ export default class BattleScene extends Phaser.Scene {
       }
 
       // Pointer-down keeps quick taps responsive, but a completed long press is inspect-only.
-      // Remove the provisional gameplay selection before opening the preview so no board
-      // targeting remains active underneath the readable card view.
-      this.selectedCardId = null;
-      this.targetingState = null;
-      this.effectCastState = null;
-      this.actionMode = null;
-      this.destroyTargetingInstruction();
+      // Preserve an active targeting session so dismissing Inspect returns to the same target
+      // selection. Non-targeting cards still discard their provisional gameplay selection.
+      const preserveTargetingSession = this.selectedCardId === cardId && Boolean(this.targetingState);
+      if (!preserveTargetingSession) {
+        this.selectedCardId = null;
+        this.targetingState = null;
+        this.effectCastState = null;
+        this.actionMode = null;
+        this.destroyTargetingInstruction();
+      }
       this.hoverInspectCardId = cardId;
       this.boardInspectIndex = null;
       this.resetCardHighlights({ showPreview: true });
@@ -2481,7 +2488,7 @@ export default class BattleScene extends Phaser.Scene {
           ...this.targetingState,
           targetIndexes,
         };
-        this.resetCardHighlights();
+        this.resetCardHighlights({ showPreview: false });
         this.updateActionButtonLabel();
         this.showTargetingInstruction();
         return;
@@ -2507,7 +2514,7 @@ export default class BattleScene extends Phaser.Scene {
           ...this.targetingState,
           targetIndexes,
         };
-        this.resetCardHighlights();
+        this.resetCardHighlights({ showPreview: false });
         this.updateActionButtonLabel();
         this.showTargetingInstruction();
         return;
@@ -2525,7 +2532,7 @@ export default class BattleScene extends Phaser.Scene {
           ...this.targetingState,
           targetIndexes,
         };
-        this.resetCardHighlights();
+        this.resetCardHighlights({ showPreview: false });
         this.updateActionButtonLabel();
         this.showTargetingInstruction();
         return;
