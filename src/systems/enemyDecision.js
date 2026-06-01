@@ -2,7 +2,7 @@ import { canPlayOrRedeploy, canSwap, performSwap, playEffectCard, playOrRedeploy
 
 const ENEMY_ROW_INDEXES = [0, 1, 2];
 const PLAYER_ROW_INDEXES = [6, 7, 8];
-export const AI_SAFE_SURRENDER_ENABLED = false;
+export const AI_SAFE_SURRENDER_ENABLED = true;
 const AI_SAFE_SURRENDER_CONFIRMATION_PASSES = 2;
 
 const SAFE_SURRENDER_MEANINGFUL_EFFECT_IDS = new Set([
