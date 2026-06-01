@@ -795,6 +795,10 @@ export default class BattleScene extends Phaser.Scene {
 
   prepareUtilityMenuNavigation({ includeBattleResultModal = false, preserveBattleFlow = false } = {}) {
     if (this.navigationInProgress) return false;
+    if (this.effectCastState?.source === 'unit-on-play') {
+      this.cancelEffectTargeting();
+      return false;
+    }
 
     this.navigationInProgress = true;
     this.guardPointerEvent();
@@ -1476,6 +1480,10 @@ export default class BattleScene extends Phaser.Scene {
 
   openDeckInfoPanel() {
     if (!this.gameState?.player || this.battleResultModalShown || this.isFlowResolving) return;
+    if (this.effectCastState?.source === 'unit-on-play') {
+      this.cancelEffectTargeting();
+      return;
+    }
 
     this.destroyDeckInfoPanel();
     this.selectedCardId = null;
@@ -2017,9 +2025,14 @@ export default class BattleScene extends Phaser.Scene {
     this.pendingSwapIndex = null;
     this.clearSwapPrompt();
     this.selectedCardId = cardId;
-    this.targetingState = this.isUnitCard(card) ? null : this.getTargetingStateForCard(card);
-    this.resetCardHighlights({ showPreview: false });
-    this.updateActionButtonLabel();
+    const targetingState = this.isUnitCard(card) ? null : this.getTargetingStateForCard(card);
+    if (targetingState) {
+      this.beginPlayerTargetingSession(targetingState);
+    } else {
+      this.targetingState = null;
+      this.resetCardHighlights({ showPreview: false });
+      this.updateActionButtonLabel();
+    }
     this.startHandCardLongPress(cardId);
   }
 
@@ -2241,6 +2254,10 @@ export default class BattleScene extends Phaser.Scene {
 
     this.pressedHandCardId = null;
     this.pressedHandCardWasSelected = false;
+    if (this.effectCastState?.source === 'unit-on-play') {
+      this.cancelEffectTargeting();
+      return;
+    }
     this.clearHandCardSelection();
   }
 
@@ -2541,7 +2558,7 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
-    if (result.type === 'play' && result.card?.effectId === 'swap_two_enemy_units') {
+    if ((result.type === 'play' || result.type === 'redeploy') && result.card?.effectId === 'swap_two_enemy_units') {
       this.startPlayerUnitOnPlayTargeting(result.card, boardIndex, beforeStats);
       return;
     }
@@ -2593,11 +2610,8 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
-    this.targetingState = { ...targetingState, targetIndexes: [...(targetingState.targetIndexes ?? [])] };
     this.isEffectCastResolving = false;
-    this.updateActionButtonLabel();
-    this.resetCardHighlights({ showPreview: false });
-    this.showTargetingInstruction();
+    this.beginPlayerTargetingSession(targetingState);
   }
 
   async startPlayerEffectCast(card) {
@@ -2632,11 +2646,8 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     if (targetingState) {
-      this.targetingState = { ...targetingState, targetIndexes: [...(targetingState.targetIndexes ?? [])] };
       this.isEffectCastResolving = false;
-      this.updateActionButtonLabel();
-      this.resetCardHighlights({ showPreview: false });
-      this.showTargetingInstruction();
+      this.beginPlayerTargetingSession(targetingState);
       return;
     }
 
@@ -2659,6 +2670,15 @@ export default class BattleScene extends Phaser.Scene {
       result,
     });
     this.completePlayerAction(beforeStats, this.buildActionFeedback(beforeStats, result), movementFeedback);
+  }
+
+
+  beginPlayerTargetingSession(targetingState) {
+    if (!targetingState) return;
+    this.targetingState = { ...targetingState, targetIndexes: [...(targetingState.targetIndexes ?? [])] };
+    this.resetCardHighlights({ showPreview: false });
+    this.updateActionButtonLabel();
+    this.showTargetingInstruction();
   }
 
 
