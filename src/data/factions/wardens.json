@@ -86,7 +86,7 @@
       "type": "order",
       "targeting": "enemy_units",
       "effectId": "swap_adjacent_enemy_units",
-      "textShort": "Swap two adjacent enemies."
+      "textShort": "Swap two adjacent [ENEMIES]."
     },
     {
       "id": "wardens_stand_firm_1",
