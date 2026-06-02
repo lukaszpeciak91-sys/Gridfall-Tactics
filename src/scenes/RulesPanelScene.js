@@ -15,6 +15,8 @@ const RULE_SECTIONS = Object.freeze([
       'ARM — armor that reduces incoming combat damage.',
       'ALLY — one of your units.',
       'ALLIES — all your units.',
+      'ENEMY — one opposing unit.',
+      'ENEMIES — opposing units.',
     ],
   },
   {
@@ -64,6 +66,8 @@ const GLOSSARY_ICON_ROWS = Object.freeze([
   Object.freeze({ icon: [NON_UNIT_EFFECT_STAT_SYMBOL, NON_UNIT_EFFECT_STAT_SYMBOL, NON_UNIT_EFFECT_STAT_SYMBOL].join(' '), iconColor: NON_UNIT_EFFECT_STAT_SYMBOL_CSS_COLOR, iconFontSizeRatio: 0.32, label: '✶ ✶ ✶', translationKey: 'effectCard', description: 'Effect card — not a unit and has no ATK / ARM / HP.' }),
   Object.freeze({ icon: CARD_EFFECT_GAMEPLAY_SYMBOLS.ally, iconColor: '#fde68a', label: 'ALLY', description: 'One of your units' }),
   Object.freeze({ icon: CARD_EFFECT_GAMEPLAY_SYMBOLS.allies, iconColor: '#fde68a', label: 'ALLIES', description: 'All your units' }),
+  Object.freeze({ icon: CARD_EFFECT_GAMEPLAY_SYMBOLS.enemy, iconColor: '#fb7185', label: 'ENEMY', description: 'One opposing unit' }),
+  Object.freeze({ icon: CARD_EFFECT_GAMEPLAY_SYMBOLS.enemies, iconColor: '#fb7185', label: 'ENEMIES', description: 'Opposing units' }),
 ]);
 
 function resolveGlossaryRows() {

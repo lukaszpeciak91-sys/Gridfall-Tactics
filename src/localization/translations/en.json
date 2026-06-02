@@ -42,7 +42,7 @@
     },
     "attrition_swarm_husk_1": {
       "name": "Husk",
-      "textShort": "Combat death: deal 1 to opposed enemy."
+      "textShort": "Combat death: deal 1 to opposed [ENEMY]."
     },
     "attrition_swarm_carrier_1": {
       "name": "Carrier",
@@ -62,11 +62,11 @@
     },
     "attrition_swarm_funeral_pyre_1": {
       "name": "Funeral Pyre",
-      "textShort": "First 2 [ALLIES] combat deaths:\neach deal 1 ● to opposed enemy."
+      "textShort": "First 2 [ALLIES] combat deaths:\neach deal 1 ● to opposed [ENEMY]."
     },
     "attrition_swarm_infect_1": {
       "name": "Rotten Gift",
-      "textShort": "Deal 1 to enemy. If it survives, opposed [ALLY] +1 ATK."
+      "textShort": "Deal 1 to [ENEMY]. If it survives, opposed [ALLY] +1 ATK."
     },
     "attrition_swarm_feast_1": {
       "name": "Feast",
@@ -82,7 +82,7 @@
     },
     "control_hacker_1": {
       "name": "Signalegel",
-      "textShort": "Opposed enemy: -1 ATK this turn."
+      "textShort": "Opposed [ENEMY]: -1 ATK this turn."
     },
     "control_disruptor_1": {
       "name": "Störsignal",
@@ -90,11 +90,11 @@
     },
     "control_sniper_1": {
       "name": "Rotes Auge",
-      "textShort": "Attacks the lowest-HP enemy."
+      "textShort": "Attacks the lowest-HP [ENEMY]."
     },
     "control_controller_1": {
       "name": "Signal Master",
-      "textShort": "On play: swap two enemies."
+      "textShort": "On play: swap two [ENEMIES]."
     },
     "control_drone_1": {
       "name": "Relay",
@@ -102,19 +102,19 @@
     },
     "control_swap_1": {
       "name": "Signal Shift",
-      "textShort": "Swap 2 [ALLY] or 2 enemies."
+      "textShort": "Swap 2 [ALLY] or 2 [ENEMIES]."
     },
     "control_jam_signal_1": {
       "name": "Signal Jam",
-      "textShort": "Choose up to 2 enemies: -1 ATK this turn."
+      "textShort": "Choose up to 2 [ENEMIES]: -1 ATK this turn."
     },
     "control_pulse_wave_1": {
       "name": "Neural Pulse",
-      "textShort": "Deal 1 to all enemies, ignoring ARM."
+      "textShort": "Deal 1 to all [ENEMIES], ignoring ARM."
     },
     "control_system_override_1": {
       "name": "System Override",
-      "textShort": "Enemy attacks own base next combat, then loses 1 HP."
+      "textShort": "[ENEMY] attacks own base next combat, then loses 1 HP."
     },
     "control_recall_1": {
       "name": "Extraction",
@@ -126,7 +126,7 @@
     },
     "swarm_spitter_1": {
       "name": "Spitter",
-      "textShort": "On play: deal 1 to opposed enemy."
+      "textShort": "On play: deal 1 to opposed [ENEMY]."
     },
     "swarm_brood_1": {
       "name": "Brood",
@@ -226,7 +226,7 @@
     },
     "wardens_shield_push_1": {
       "name": "Mammoth Stampede",
-      "textShort": "Swap two adjacent enemies."
+      "textShort": "Swap two adjacent [ENEMIES]."
     },
     "wardens_stand_firm_1": {
       "name": "Endure the Cold",
@@ -477,7 +477,9 @@
         "ARM": "Reduces incoming combat damage.",
         "effectCard": "Effect card — not a unit and has no ATK / ARM / HP.",
         "ALLY": "One of your units.",
-        "ALLIES": "All your units."
+        "ALLIES": "All your units.",
+        "ENEMY": "One opposing unit.",
+        "ENEMIES": "Opposing units."
       }
     },
     "cardDetails": {
