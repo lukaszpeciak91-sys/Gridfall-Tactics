@@ -2999,19 +2999,19 @@ export default class BattleScene extends Phaser.Scene {
     }
     this.hasShownOpeningTurnStartBanner = true;
 
-    const { width, height, board } = this.layout;
-    const maxWidth = board.width * 0.88;
+    const { height, board } = this.layout;
+    const bannerLayout = this.getCentralBattleBannerLayout({ baseWidthRatio: 0.88, horizontalPadding: 16 });
     const fontSize = Math.min(20, Math.max(15, Math.floor(Math.max(board.cellWidth * 0.14, height * 0.018))));
     const { message, textColor, backgroundColor } = this.getOpeningTurnStartBannerConfig();
-    const targetY = board.centerY + 2;
-    this.turnStartBanner = this.add.text(width * 0.5, targetY + 6, message, {
+    const { x, targetY } = bannerLayout;
+    this.turnStartBanner = this.add.text(x, bannerLayout.startY, message, {
       fontFamily: 'Arial, sans-serif',
       fontSize: `${fontSize}px`,
       color: textColor,
       backgroundColor,
       align: 'center',
-      padding: { x: 16, y: 9 },
-      wordWrap: { width: maxWidth },
+      padding: { x: 16, y: 12 },
+      wordWrap: { width: bannerLayout.maxTextWidth },
       fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(221).setAlpha(0).setScale(0.98);
 
@@ -3431,19 +3431,18 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
-    const { width, height, board } = this.layout;
-    const maxWidth = board.width * 0.88;
+    const { height, board } = this.layout;
+    const bannerLayout = this.getCentralBattleBannerLayout({ baseWidthRatio: 0.88, horizontalPadding: 14, startOffset: 5 });
     const fontSize = Math.min(18, Math.max(14, Math.floor(Math.max(board.cellWidth * 0.125, height * 0.016))));
-    const targetY = board.centerY + board.cellHeight * 0.25;
-    const startY = targetY + 5;
-    this.playerActionBanner = this.add.text(width * 0.5, startY, message, {
+    const { targetY } = bannerLayout;
+    this.playerActionBanner = this.add.text(bannerLayout.x, bannerLayout.startY, message, {
       fontFamily: 'Arial, sans-serif',
       fontSize: `${fontSize}px`,
       color: '#dcfce7',
       backgroundColor: '#14532d',
       align: 'center',
-      padding: { x: 14, y: 8 },
-      wordWrap: { width: maxWidth },
+      padding: { x: 14, y: 11 },
+      wordWrap: { width: bannerLayout.maxTextWidth },
       fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(219).setAlpha(0).setScale(0.98).setStroke('#052e16', 1);
 
@@ -3521,14 +3520,26 @@ export default class BattleScene extends Phaser.Scene {
     this.destroyActiveSelectionMessage('board-swap');
   }
 
-  getActiveSelectionBannerLayout(owner) {
-    const { width, height, board } = this.layout;
-    const targetY = board.centerY + board.cellHeight * 0.25;
+  getCentralBattleBannerLayout({ baseWidthRatio, horizontalPadding, startOffset = 6 }) {
+    const { width, margin, board } = this.layout;
+    const targetY = board.centerY;
     return {
       x: width * 0.5,
       targetY,
-      startY: targetY + 5,
-      maxWidth: board.width * 0.88,
+      startY: targetY + startOffset,
+      maxTextWidth: Math.min(
+        board.width * baseWidthRatio * 1.2,
+        width - margin * 2 - horizontalPadding * 2,
+      ),
+    };
+  }
+
+  getActiveSelectionBannerLayout(owner) {
+    const { height, board } = this.layout;
+    const bannerLayout = this.getCentralBattleBannerLayout({ baseWidthRatio: 0.88, horizontalPadding: 14, startOffset: 5 });
+    return {
+      ...bannerLayout,
+      maxWidth: bannerLayout.maxTextWidth,
       fontSize: Math.min(18, Math.max(14, Math.floor(Math.max(board.cellWidth * 0.125, height * 0.016)))),
     };
   }
@@ -3555,7 +3566,7 @@ export default class BattleScene extends Phaser.Scene {
       color: '#dcfce7',
       backgroundColor: '#14532d',
       align: 'center',
-      padding: { x: 14, y: 8 },
+      padding: { x: 14, y: 11 },
       wordWrap: { width: layout.maxWidth },
       fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(221).setAlpha(0).setScale(0.98).setStroke('#052e16', 1);
@@ -3580,18 +3591,17 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
-    const { width, height, board } = this.layout;
-    const maxWidth = board.width * 0.94;
+    const { height, board } = this.layout;
+    const bannerLayout = this.getCentralBattleBannerLayout({ baseWidthRatio: 0.94, horizontalPadding: 16 });
     const fontSize = Math.min(20, Math.max(15, Math.floor(Math.max(board.cellWidth * 0.14, height * 0.018))));
-    const startY = board.centerY + 6;
-    this.enemyActionBanner = this.add.text(width * 0.5, startY, message, {
+    this.enemyActionBanner = this.add.text(bannerLayout.x, bannerLayout.startY, message, {
       fontFamily: 'Arial, sans-serif',
       fontSize: `${fontSize}px`,
       color: '#fee2e2',
       backgroundColor: '#7f1d1d',
       align: 'center',
-      padding: { x: 16, y: 9 },
-      wordWrap: { width: maxWidth },
+      padding: { x: 16, y: 12 },
+      wordWrap: { width: bannerLayout.maxTextWidth },
       fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(220).setAlpha(0).setScale(0.98).setStroke('#450a0a', 1);
 
