@@ -28,7 +28,13 @@ const getTargetingInstructionMessage = compileMethod(
 );
 const showTargetingInstruction = compileMethod('showTargetingInstruction', 'showSwapPrompt', []);
 const showSwapPrompt = compileMethod('showSwapPrompt', 'clearSwapPrompt', ['step', 'translateActive']);
-const clearSwapPrompt = compileMethod('clearSwapPrompt', 'getActiveSelectionBannerLayout', []);
+const clearSwapPrompt = compileMethod('clearSwapPrompt', 'getCentralBattleBannerLayout', []);
+const getCentralBattleBannerLayout = compileMethod(
+  'getCentralBattleBannerLayout',
+  'getActiveSelectionBannerLayout',
+  ['options'],
+  'const { baseWidthRatio, horizontalPadding, startOffset = 6 } = options;\n',
+);
 const getActiveSelectionBannerLayout = compileMethod(
   'getActiveSelectionBannerLayout',
   'showActiveSelectionMessage',
@@ -81,6 +87,7 @@ function makeScene(targetingState = null) {
     layout: {
       width: 900,
       height: 700,
+      margin: 18,
       board: { width: 540, centerY: 320, cellWidth: 120, cellHeight: 110 },
     },
     addCalls: [],
@@ -99,6 +106,7 @@ function makeScene(targetingState = null) {
     getTargetingInstructionMessage() {
       return getTargetingInstructionMessage.call(this, (key, fallback) => fallback);
     },
+    getCentralBattleBannerLayout(options) { return getCentralBattleBannerLayout.call(this, options); },
     getActiveSelectionBannerLayout(owner) { return getActiveSelectionBannerLayout.call(this, owner); },
     showActiveSelectionMessage(message, owner) { return showActiveSelectionMessage.call(this, message, owner); },
     destroyActiveSelectionMessage(owner, options) { return destroyActiveSelectionMessage.call(this, owner, options); },
@@ -123,9 +131,43 @@ test('showTargetingInstruction uses active selection banner style instead of the
   assert.equal(scene.targetingInstructionText, scene.activeSelectionBanner);
   assert.equal(scene.addCalls[0].text, 'SELECT ENEMY');
   assert.equal(scene.addCalls[0].style.backgroundColor, '#14532d');
-  assert.equal(scene.tweenCalls[0].y, scene.layout.board.centerY + scene.layout.board.cellHeight * 0.25);
+  assert.equal(scene.tweenCalls[0].y, scene.layout.board.centerY);
   assert.notEqual(scene.addCalls[0].style.backgroundColor, '#4c1d95');
   assert.equal(scene.playerActionBanner.active, false, 'persistent targeting banner must replace transient central banners');
+});
+
+test('central banner layout grows nominally by 20% and caps text width inside viewport padding', () => {
+  const scene = makeScene();
+  const roomyLayout = getCentralBattleBannerLayout.call(scene, { baseWidthRatio: 0.88, horizontalPadding: 14, startOffset: 5 });
+
+  assert.equal(roomyLayout.x, scene.layout.width * 0.5);
+  assert.equal(roomyLayout.targetY, scene.layout.board.centerY);
+  assert.equal(roomyLayout.startY, scene.layout.board.centerY + 5);
+  assert.equal(roomyLayout.maxTextWidth, scene.layout.board.width * 0.88 * 1.2);
+
+  scene.layout.width = 360;
+  scene.layout.margin = 9;
+  scene.layout.board.width = 315;
+  const cappedLayout = getCentralBattleBannerLayout.call(scene, { baseWidthRatio: 0.94, horizontalPadding: 16 });
+  assert.equal(cappedLayout.maxTextWidth, 360 - 9 * 2 - 16 * 2);
+});
+
+test('all central banner variants use the shared midpoint helper and increased vertical padding', () => {
+  const turnStart = source.slice(source.indexOf('  async showOpeningTurnStartBanner() {'), source.indexOf('  destroyTurnStartBanner() {'));
+  const playerAction = extractMethodBody('showPlayerActionBanner', 'getTargetingInstructionMessage');
+  const activeSelection = extractMethodBody('showActiveSelectionMessage', 'showEnemyActionBanner');
+  const enemyAction = extractMethodBody('showEnemyActionBanner', 'destroyEnemyActionBanner');
+
+  assert.match(turnStart, /getCentralBattleBannerLayout\(\{ baseWidthRatio: 0\.88, horizontalPadding: 16 \}\)/);
+  assert.match(turnStart, /const \{ x, targetY \} = bannerLayout;/);
+  assert.match(turnStart, /padding: \{ x: 16, y: 12 \}/);
+  assert.match(playerAction, /getCentralBattleBannerLayout\(\{ baseWidthRatio: 0\.88, horizontalPadding: 14, startOffset: 5 \}\)/);
+  assert.match(playerAction, /const \{ targetY \} = bannerLayout;/);
+  assert.match(playerAction, /padding: \{ x: 14, y: 11 \}/);
+  assert.match(activeSelection, /padding: \{ x: 14, y: 11 \}/);
+  assert.match(enemyAction, /getCentralBattleBannerLayout\(\{ baseWidthRatio: 0\.94, horizontalPadding: 16 \}\)/);
+  assert.match(enemyAction, /y: board\.centerY,/);
+  assert.match(enemyAction, /padding: \{ x: 16, y: 12 \}/);
 });
 
 test('targeting instruction messages still resolve through existing English and Polish localization keys', () => {
@@ -215,7 +257,7 @@ test('board swap prompt appears through the unified active selection banner path
   assert.equal(scene.activeSelectionBannerOwner, 'board-swap');
   assert.equal(scene.activeSelectionBanner.text, 'SWAP: select adjacent unit');
   assert.equal(scene.activeSelectionBanner.style.backgroundColor, '#14532d');
-  assert.equal(scene.tweenCalls[0].y, scene.layout.board.centerY + scene.layout.board.cellHeight * 0.25);
+  assert.equal(scene.tweenCalls[0].y, scene.layout.board.centerY);
   assert.equal(scene.targetingInstructionText, null);
 
   clearSwapPrompt.call(scene);
@@ -242,7 +284,7 @@ test('selection banner cleanup is owner-scoped and replacing owners recreates th
   assert.equal(targetingBanner.destroyed, true, 'switching owners must replace the old layout object');
   const swapBanner = scene.activeSelectionBanner;
   assert.equal(scene.activeSelectionBannerOwner, 'board-swap');
-  assert.equal(scene.tweenCalls.at(-1).y, scene.layout.board.centerY + scene.layout.board.cellHeight * 0.25);
+  assert.equal(scene.tweenCalls.at(-1).y, scene.layout.board.centerY);
 
   destroyTargetingInstruction.call(scene);
   assert.equal(scene.activeSelectionBanner, swapBanner, 'targeting cleanup must not clear board swap UI');
