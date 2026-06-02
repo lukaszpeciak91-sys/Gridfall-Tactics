@@ -19,7 +19,7 @@ For project process and documentation conventions, also see:
 Battle input is resolved by state priority, not raw tap location alone. Effective precedence is:
 
 1. **Global blockers / modal-like blockers**
-   - Navigation transitions, utility/deck panels, result modal, flow/effect resolution guards, and opening mulligan gates short-circuit normal board interactions.
+   - Navigation transitions, utility/deck panels, result modal, flow/effect resolution guards, and opening mulligan gates short-circuit normal board interactions. During mulligan, hand-card exchange and long-press inspect remain available while board gameplay stays blocked.
 2. **Targeting / effect-cast flow**
    - Active `targetingState` / `effectCastState` owns board taps for target selection or effect progression.
 3. **Long-press inspect path**
@@ -93,7 +93,7 @@ Any non-commit input (e.g., enemy cell, empty cell, UI/outside interaction paths
 - There is **no standalone SWAP button** in this model.
 - PASS remains PASS (separate action button behavior).
 - `pendingSwapIndex` is the authoritative player swap-selection state.
-- `actionMode='swap'` is deprecated/removed for player board-swap flow ownership.
+- The obsolete `actionMode` field has been removed; player board-swap flow is fully represented by `pendingSwapIndex`.
 
 ---
 
@@ -103,6 +103,8 @@ Any non-commit input (e.g., enemy cell, empty cell, UI/outside interaction paths
 - Card/effect targeting always has precedence over board-swap selection.
 - Swap-source selection cannot begin while targeting/effect resolution state is active.
 - Board taps during targeting are validated against target constraints before any action can resolve.
+- Targeted effect cards enter a targeting session on pointer-down and display the first instruction before any board target is selected.
+- Controller play/redeploy uses explicit manual `unit-on-play` targeting for its enemy-unit swap. Hacker remains an automatic lane effect and does not enter that manual flow.
 
 ---
 
@@ -151,6 +153,9 @@ Runtime ownership is split deliberately:
   - Suppress tap execution if long-press already consumed the interaction.
 - **Long-press suppression model**
   - Press state tracks whether long-press fired; corresponding release path exits without duplicate tap action.
+- **Battle-banner coordination**
+  - Persistent targeting and board-swap instructions take precedence over transient action and turn-start banners.
+  - Transient banners are deferred and replayed after persistent selection instructions clear instead of overlapping them.
 - **Interrupted-gesture cleanup**
   - Hand-card and board-cell `pointerout` handlers clear only their gesture-local pressed state and delayed long-press event.
   - Phaser 3.90 exposes `pointerupoutside` on the Scene Input Plugin rather than on individual Game Objects, so `onScenePointerUpOutside(...)` clears both gesture paths.

@@ -48,7 +48,6 @@ test('implicit swap runtime flow: select, highlight, swap, clear, and invalid ta
     selectedCardId: null,
     targetingState: null,
     effectCastState: null,
-    actionMode: null,
     pendingSwapIndex: null,
     hoverInspectCardId: null,
     gameState: state,
