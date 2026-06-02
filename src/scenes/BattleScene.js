@@ -4846,6 +4846,11 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   async animateHeroStrike(event, preCombatBoardSnapshot = null) {
+    if (event.controlledAttackFeedback) {
+      await this.animateControlledHeroStrike(event, preCombatBoardSnapshot);
+      return;
+    }
+
     if (event.openLane) {
       await this.animateOpenLaneHeroStrike(event, preCombatBoardSnapshot);
       return;
@@ -4877,6 +4882,74 @@ export default class BattleScene extends Phaser.Scene {
     } finally {
       this.restoreUnitVisualState(visualState);
     }
+  }
+
+  async animateControlledHeroStrike(event, preCombatBoardSnapshot = null) {
+    const attacker = this.getCombatAttackerVisual(event, preCombatBoardSnapshot);
+    const target = this.getCombatTargetVisual(event);
+    if (!attacker || target?.type !== 'hero') {
+      await this.playCombatEventFeedback([event]);
+      return;
+    }
+
+    const cue = this.createControlledAttackCue(attacker.cell, target.hero, event);
+    if (!cue) {
+      await this.playCombatEventFeedback([event]);
+      return;
+    }
+
+    try {
+      await cue.reveal();
+      await this.playCombatEventFeedback([event]);
+      await this.delay(140);
+    } finally {
+      cue.destroy();
+    }
+  }
+
+  createControlledAttackCue(attackerCell, hero, event) {
+    if (!attackerCell?.background || !hero) return null;
+
+    const startX = attackerCell.background.x;
+    const startY = attackerCell.background.y;
+    const heroEdgeY = event.targetSide === 'enemy'
+      ? hero.y + hero.height * 0.5
+      : hero.y - hero.height * 0.5;
+    const line = this.add.graphics().setDepth(235).setAlpha(0);
+    line.lineStyle(4, 0xef4444, 0.9);
+    line.beginPath();
+    line.moveTo(startX, startY);
+    line.lineTo(hero.x, heroEdgeY);
+    line.strokePath();
+    line.fillStyle(0xfca5a5, 0.95);
+    line.fillCircle(startX, startY, 5);
+    line.fillCircle(hero.x, heroEdgeY, 5);
+
+    const label = this.add.text(
+      startX,
+      startY - this.layout.board.cellHeight * 0.4,
+      event.controlledAttackFeedback.label ?? 'CONTROLLED\nOVERRIDE',
+      {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: `${Math.max(12, Math.floor(this.layout.board.cellWidth * 0.11))}px`,
+        color: '#fee2e2',
+        fontStyle: 'bold',
+        align: 'center',
+        backgroundColor: '#7f1d1d',
+        padding: { x: 5, y: 3 },
+      },
+    ).setOrigin(0.5).setDepth(245).setAlpha(0).setScale(0.88);
+
+    return {
+      reveal: () => Promise.all([
+        this.tweenToPromise({ targets: line, alpha: 1, duration: 90, ease: 'Quad.easeOut' }),
+        this.tweenToPromise({ targets: label, alpha: 1, scaleX: 1, scaleY: 1, duration: 110, ease: 'Back.easeOut' }),
+      ]),
+      destroy: () => {
+        line.destroy();
+        label.destroy();
+      },
+    };
   }
 
   async animateOpenLaneHeroStrike(event, preCombatBoardSnapshot = null) {

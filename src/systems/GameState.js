@@ -1716,6 +1716,7 @@ function resolveCombatLane(state, col, combatContext = null) {
     const sniperTargetIndex = !controlledToHero && canHitAnyLane ? findSniperTargetIndex(player.owner) : null;
     if (controlledToHero) {
       const event = recordHeroAttack('player', playerIndex, 'player', playerAttack, false);
+      event.controlledAttackFeedback = { label: 'CONTROLLED\nOVERRIDE' };
       event.selfDamageFeedback = { targetType: 'unit', index: playerIndex, amount: 1, label: 'OVERRIDE -1' };
       state.playerHP -= playerAttack;
       addPendingUnitDamage(playerIndex, 1);
@@ -1753,6 +1754,7 @@ function resolveCombatLane(state, col, combatContext = null) {
     const sniperTargetIndex = !controlledToHero && canHitAnyLane ? findSniperTargetIndex(enemy.owner) : null;
     if (controlledToHero) {
       const event = recordHeroAttack('enemy', enemyIndex, 'enemy', enemyAttack, false);
+      event.controlledAttackFeedback = { label: 'CONTROLLED\nOVERRIDE' };
       event.selfDamageFeedback = { targetType: 'unit', index: enemyIndex, amount: 1, label: 'OVERRIDE -1' };
       state.enemyHP -= enemyAttack;
       addPendingUnitDamage(enemyIndex, 1);

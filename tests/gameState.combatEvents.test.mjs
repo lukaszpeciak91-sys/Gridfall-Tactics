@@ -285,6 +285,8 @@ test('System Override makes the targeted enemy attack its own hero, then take 1 
     [0, 'player', 'enemy', 0, false],
     [0, 'enemy', 'enemy', 2, false],
   ]);
+  assert.deepEqual(events[1].controlledAttackFeedback, { label: 'CONTROLLED\nOVERRIDE' });
+  assert.deepEqual(events[1].selfDamageFeedback, { targetType: 'unit', index: 0, amount: 1, label: 'OVERRIDE -1' });
   assert.equal(state.enemyHP, 10);
   assert.equal(state.playerHP, 12);
   assert.equal(state.board[0].hp, 1);
