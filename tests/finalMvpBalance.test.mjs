@@ -218,7 +218,7 @@ test('Disruptor is a 1/2 Control unit with the same order-cancel role', () => {
   assert.equal(disruptor.armor, 0);
   assert.equal(disruptor.effectId, 'cancel_enemy_order');
   assert.equal(disruptor.targeting, 'enemy');
-  assert.equal(disruptor.textShort, 'On play: cancel the next enemy effect.');
+  assert.equal(disruptor.textShort, "On play: cancel the opponent's next effect.");
 });
 
 test('Scout is a 2/1 Aggro unit with the same lane-block role', () => {

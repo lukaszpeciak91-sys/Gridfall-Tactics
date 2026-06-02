@@ -103,7 +103,7 @@ test('translation lookup falls back to English for invalid locales', () => {
 
 test('Polish translation lookup returns Polish dictionary values', () => {
   assert.equal(translate('cards.aggro_runner_1.name', 'pl'), 'Biegacz');
-  assert.equal(translate('cards.aggro_runner_1.textShort', 'pl'), 'Otwarta linia: wróg traci 2 HP.');
+  assert.equal(translate('cards.aggro_runner_1.textShort', 'pl'), 'Otwarta linia: baza wroga traci 2 HP.');
   assert.equal(translate('ui.mainMenu.collection', 'pl'), 'KOLEKCJA');
 });
 
