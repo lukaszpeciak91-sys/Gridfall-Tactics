@@ -84,3 +84,19 @@ test('BattleScene renders back cards separately from gameplay cards and omits em
   assert.match(helper, /calculateHandBackCardCoverCrop\(\{/);
   assert.doesNotMatch(helper, /setInteractive|cardViews|cardId|inspect|target/i);
 });
+
+test('BattleScene replaces tracked hand panel visuals instead of accumulating rectangles across redraws', () => {
+  const source = fs.readFileSync('src/scenes/BattleScene.js', 'utf8');
+  const cleanupSceneObjects = source.slice(source.indexOf('  cleanupSceneObjects('), source.indexOf('  create(data) {'));
+  const clearHandPanelViews = source.slice(source.indexOf('  clearHandPanelViews() {'), source.indexOf('  drawHand() {'));
+  const drawHand = source.slice(source.indexOf('  drawHand() {'), source.indexOf('  createHandBackCardView({ x, y, width, height, depth })'));
+  const redrawHand = source.slice(source.indexOf('  redrawHand() {'), source.indexOf('  getBoardUnitStats('));
+
+  assert.match(cleanupSceneObjects, /this\.clearHandPanelViews\(\);/);
+  assert.match(clearHandPanelViews, /\(this\.handPanelViews \?\? \[\]\)\.forEach\(\(view\) => \{/);
+  assert.match(clearHandPanelViews, /view\?\.destroy\?\.\(\);/);
+  assert.match(clearHandPanelViews, /this\.handPanelViews = \[\];/);
+  assert.match(drawHand, /this\.clearHandPanelViews\(\);/);
+  assert.match(drawHand, /this\.handPanelViews = \[background, topDivider, controlDivider\];/);
+  assert.match(redrawHand, /this\.drawHand\(\);/);
+});

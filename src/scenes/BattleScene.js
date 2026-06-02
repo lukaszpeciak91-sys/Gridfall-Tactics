@@ -166,6 +166,7 @@ export default class BattleScene extends Phaser.Scene {
     this.selectedCardId = null;
     this.cardViews = [];
     this.handBackCards = [];
+    this.handPanelViews = [];
     this.handCardFlipReveals = [];
     this.boardCells = [];
     this.pendingSwapIndex = null;
@@ -242,6 +243,7 @@ export default class BattleScene extends Phaser.Scene {
     this.selectedCardId = null;
     this.cardViews = [];
     this.handBackCards = [];
+    this.handPanelViews = [];
     this.handCardFlipReveals = [];
     this.boardCells = [];
     this.pendingSwapIndex = null;
@@ -330,6 +332,7 @@ export default class BattleScene extends Phaser.Scene {
     this.cancelBoardCellLongPress();
     this.cancelPassHoldToSurrender();
     this.cleanupHandCardFlipReveals();
+    this.clearHandPanelViews();
     if (!preserveTweens) {
       this.tweens?.killAll?.();
     }
@@ -1705,7 +1708,15 @@ export default class BattleScene extends Phaser.Scene {
     return [...summary.values()].sort((a, b) => a.name.localeCompare(b.name) || a.typeLabel.localeCompare(b.typeLabel));
   }
 
+  clearHandPanelViews() {
+    (this.handPanelViews ?? []).forEach((view) => {
+      view?.destroy?.();
+    });
+    this.handPanelViews = [];
+  }
+
   drawHand() {
+    this.clearHandPanelViews();
     const { width, hand, margin } = this.layout;
     const centerY = hand.centerY;
     const cardBaseY = hand.cardCenterY;
@@ -1716,10 +1727,11 @@ export default class BattleScene extends Phaser.Scene {
     const maxHandSize = this.gameState.player.maxHandSize;
     const hasHandBackCardAsset = hasLoadedImageAsset(this, HAND_BACK_CARD_ASSET);
 
-    this.add.rectangle(width * 0.5, centerY, width - margin * 2, hand.h, 0x0f172a, 0.2)
+    const background = this.add.rectangle(width * 0.5, centerY, width - margin * 2, hand.h, 0x0f172a, 0.2)
       .setStrokeStyle(1, 0x334155, 0.38);
-    this.add.rectangle(width * 0.5, centerY - hand.h / 2, width - margin * 2, 1, 0x38bdf8, 0.16);
-    this.add.rectangle(width * 0.5, controlDividerY, width - margin * 2, 1, 0x38bdf8, 0.12);
+    const topDivider = this.add.rectangle(width * 0.5, centerY - hand.h / 2, width - margin * 2, 1, 0x38bdf8, 0.16);
+    const controlDivider = this.add.rectangle(width * 0.5, controlDividerY, width - margin * 2, 1, 0x38bdf8, 0.12);
+    this.handPanelViews = [background, topDivider, controlDivider];
 
     this.gameState.player.hand.slice(0, hand.cardsVisible).forEach((card, index) => {
       const x = handTrackLeft + index * hand.step;
