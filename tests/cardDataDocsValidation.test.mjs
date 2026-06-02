@@ -14,7 +14,7 @@ const expectedTextShort = new Map(Object.entries({
   aggro_rush_1: 'Swap with adjacent [ALLY], then fight immediately.',
   aggro_pierce_strike_1: 'Deal 1. Next combat hit ignores ARM.',
   aggro_quick_fix_1: 'Target [ALLY]: heal 1, +1 ATK this turn. Draw if it kills.',
-  control_disruptor_1: 'On play: cancel the next enemy effect.',
+  control_disruptor_1: "On play: cancel the opponent's next effect.",
   control_sniper_1: 'Attacks the lowest-HP [ENEMY].',
   control_controller_1: 'On play: swap two [ENEMIES].',
   control_jam_signal_1: 'Choose up to 2 [ENEMIES]: -1 ATK this turn.',

@@ -86,7 +86,7 @@
     },
     "control_disruptor_1": {
       "name": "Störsignal",
-      "textShort": "On play: cancel the next enemy effect."
+      "textShort": "On play: cancel the opponent's next effect."
     },
     "control_sniper_1": {
       "name": "Rotes Auge",

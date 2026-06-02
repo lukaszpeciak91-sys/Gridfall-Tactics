@@ -2,7 +2,7 @@
   "cards": {
     "aggro_runner_1": {
       "name": "Biegacz",
-      "textShort": "Otwarta linia: wróg traci 2 HP."
+      "textShort": "Otwarta linia: baza wroga traci 2 HP."
     },
     "aggro_berserker_1": {
       "name": "Berserker",
@@ -86,7 +86,7 @@
     },
     "control_disruptor_1": {
       "name": "Sygnał Zakłóceń",
-      "textShort": "Po zagraniu: anuluj następny efekt wroga."
+      "textShort": "Po zagraniu: anuluj następny efekt przeciwnika."
     },
     "control_sniper_1": {
       "name": "Czerwone Oko",
@@ -98,7 +98,7 @@
     },
     "control_drone_1": {
       "name": "Przekaźnik",
-      "textShort": "Po śmierci: wróg traci 1 HP."
+      "textShort": "Po śmierci: baza wroga traci 1 HP."
     },
     "control_swap_1": {
       "name": "Przesunięcie Sygnału",

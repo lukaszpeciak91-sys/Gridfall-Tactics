@@ -218,7 +218,7 @@ The no-progress detector still exists and uses the stricter "meaningful for outc
 | Aggro | Adrenaline | special | - | quick_strike | Target [ALLY] fights immediately. | Targeted friendly | Lane-only immediate combat slice. |
 | Aggro | Quick Fix | utility | - | heal_1_atk_1_draw_on_kill_this_turn | Target [ALLY]: heal 1, +1 ATK this turn. Draw if it kills. | Targeted friendly | Heal is capped by max HP; draw uses one-shot combat kill tracking and temporary trigger cleanup after combat. |
 | Control | Hacker | unit | 1/2/0 | enemy_lane_atk_minus_1 | Opposed [ENEMY]: -1 ATK this turn. | Lane on-play | Also available as targeted effectId path. |
-| Control | Disruptor | unit | 1/2/0 | cancel_enemy_order | On play: cancel the next enemy effect. | On-play non-targeted | Cancels at most one enemy non-unit action; expires at PASS/combat cleanup if unused; not a persistent aura. |
+| Control | Disruptor | unit | 1/2/0 | cancel_enemy_order | On play: cancel the opponent's next effect. | On-play non-targeted | Cancels at most one enemy non-unit action; expires at PASS/combat cleanup if unused; not a persistent aura. |
 | Control | Sniper | unit | 2/1/0 | can_hit_any_lane | Attacks the lowest-HP [ENEMY]. | Deterministic auto-target | Tie-break: lowest index; no manual target UI. |
 | Control | Controller | unit | 1/2/0 | swap_two_enemy_units | On play: swap two [ENEMIES]. | Staged two-enemy on-play targeting | Unit remains played; after cast feedback, select two distinct enemy units to swap. Cancel only cancels the swap effect. |
 | Control | Drone | unit | 1/1/0 | death_damage_enemy_hero_1 | On death: enemy base loses 1 HP. | Death trigger | Applies after unit removed. |
