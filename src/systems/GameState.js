@@ -1514,7 +1514,7 @@ function resolveCombatLane(state, col, combatContext = null) {
     let bestHp = Infinity;
     enemyIndexes.forEach((index) => {
       const unit = state.board[index];
-      if (!unit) return;
+      if (!unit || unit.hp <= 0) return;
       const hp = Number.isFinite(unit.hp) ? unit.hp : 0;
       if (hp < bestHp || (hp === bestHp && (bestIndex === null || index < bestIndex))) {
         bestHp = hp;
@@ -1631,8 +1631,8 @@ function resolveCombatLane(state, col, combatContext = null) {
 
   const enemyIndex = ENEMY_ROW[col];
   const playerIndex = PLAYER_ROW[col];
-  const enemy = state.board[enemyIndex] ? { ...state.board[enemyIndex], __index: enemyIndex } : null;
-  const player = state.board[playerIndex] ? { ...state.board[playerIndex], __index: playerIndex } : null;
+  const enemy = state.board[enemyIndex]?.hp > 0 ? { ...state.board[enemyIndex], __index: enemyIndex } : null;
+  const player = state.board[playerIndex]?.hp > 0 ? { ...state.board[playerIndex], __index: playerIndex } : null;
 
   const pendingUnitDamage = new Map();
   const addPendingUnitDamage = (index, amount) => {
@@ -1792,6 +1792,9 @@ function resolveCombatLane(state, col, combatContext = null) {
   triggerLeechHealsFromCombatEvents(state, context.events);
   triggerQuickFixDrawsFromCombatEvents(state, context.events);
 
+  const laneIndexes = new Set([enemyIndex, playerIndex]);
+  const offLaneDamageIndexes = [...pendingUnitDamage.keys()].filter((index) => !laneIndexes.has(index));
+  cleanupDefeatedUnitsWithTriggers(state, offLaneDamageIndexes, { combat: true });
   cleanupDefeatedUnitsWithTriggers(state, [enemyIndex, playerIndex], { combat: true });
 
   return context.events;
