@@ -38,7 +38,7 @@
     },
     "aggro_quick_fix_1": {
       "name": "Szybka Naprawa",
-      "textShort": "[ALLY]ulecz +1❤️,+1▲ w tej turze.Po zabójstwie:+1 karta."
+      "textShort": "Ulecz [ALLY] +1 HP, +1 ATK w tej turze. Po zabójstwie: +1 karta."
     },
     "attrition_swarm_husk_1": {
       "name": "Łupina",
