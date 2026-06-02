@@ -83,6 +83,20 @@ test('formats HP symbols for localized Attrition Swarm card effect display text'
   assert.equal(getCardDisplayContent(cardById('attrition_swarm_funeral_pyre_1'), 'pl').body, 'Pierwsze 2 zgony ♙♙ w walce:\npo 1 ● ♟ naprzeciw.');
 });
 
+test('Polish Mercy uses established inline ally, HP, and ATK icons with readable spacing', () => {
+  const { deck } = getFactionByKey('Aggro');
+  const mercy = deck.find((card) => card.id === 'aggro_quick_fix_1');
+
+  assert.equal(
+    getCardDisplayContent(mercy, 'pl').body,
+    'Ulecz ♙ +1 ●, +1 ▲ w tej turze. Po zabójstwie: +1 karta.',
+  );
+  assert.equal(
+    getCardDisplayContent(mercy, 'en').body,
+    'Target ♙: heal +1 ●, +1 ▲ this turn. Draw if it kills.',
+  );
+});
+
 test('pilot card display content renders ally icon markers', () => {
   const aggro = getFactionByKey('Aggro');
   const swarm = getFactionByKey('Swarm');
