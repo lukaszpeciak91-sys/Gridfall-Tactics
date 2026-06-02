@@ -280,8 +280,10 @@ test('rules panel contains glossary-first player-facing rules summary', () => {
   assert.match(source, /ARM — armor that reduces incoming combat damage/);
   assert.match(source, /label: '✶ ✶ ✶', translationKey: 'effectCard'/);
   assert.doesNotMatch(source, /Base HP — your base health/);
-  assert.doesNotMatch(source, /ENEMY — one enemy unit/);
-  assert.doesNotMatch(source, /ENEMIES — all enemy units/);
+  assert.match(source, /ENEMY — one opposing unit/);
+  assert.match(source, /ENEMIES — opposing units/);
+  assert.match(source, /CARD_EFFECT_GAMEPLAY_SYMBOLS\.enemy, iconColor: '#fb7185', label: 'ENEMY'/);
+  assert.match(source, /CARD_EFFECT_GAMEPLAY_SYMBOLS\.enemies, iconColor: '#fb7185', label: 'ENEMIES'/);
   assert.match(source, /Reduce the enemy Base to 0 HP/);
   assert.match(source, /Players take one action each, alternating/);
   assert.match(source, /combat resolves automatically/);

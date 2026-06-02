@@ -42,7 +42,7 @@
     },
     "attrition_swarm_husk_1": {
       "name": "Łupina",
-      "textShort": "Śmierć w walce: zadaj 1 wrogowi naprzeciw."
+      "textShort": "Śmierć w walce: zadaj 1 [ENEMY] naprzeciw."
     },
     "attrition_swarm_carrier_1": {
       "name": "Nosiciel",
@@ -62,11 +62,11 @@
     },
     "attrition_swarm_funeral_pyre_1": {
       "name": "Stos Pogrzebowy",
-      "textShort": "Pierwsze 2 zgony [ALLIES] w walce:\npo 1 ● wrogowi naprzeciw."
+      "textShort": "Pierwsze 2 zgony [ALLIES] w walce:\npo 1 ● [ENEMY] naprzeciw."
     },
     "attrition_swarm_infect_1": {
       "name": "Zgniły Upominek",
-      "textShort": "Zadaj 1 wrogowi. Jeśli przetrwa, [ALLY] naprzeciwko +1 ATK."
+      "textShort": "Zadaj 1 [ENEMY]. Jeśli przetrwa, [ALLY] naprzeciwko +1 ATK."
     },
     "attrition_swarm_feast_1": {
       "name": "Uczta",
@@ -82,7 +82,7 @@
     },
     "control_hacker_1": {
       "name": "Pijawka Sygnału",
-      "textShort": "Wróg naprzeciwko: -1 ATK w tej turze."
+      "textShort": "[ENEMY] naprzeciwko: -1 ATK w tej turze."
     },
     "control_disruptor_1": {
       "name": "Sygnał Zakłóceń",
@@ -90,11 +90,11 @@
     },
     "control_sniper_1": {
       "name": "Czerwone Oko",
-      "textShort": "Atakuje wroga z najniższym HP."
+      "textShort": "Atakuje [ENEMY] z najniższym HP."
     },
     "control_controller_1": {
       "name": "Mistrz Sygnału",
-      "textShort": "Po zagraniu: zamień dwóch wrogów."
+      "textShort": "Po zagraniu: zamień dwóch [ENEMIES]."
     },
     "control_drone_1": {
       "name": "Przekaźnik",
@@ -102,19 +102,19 @@
     },
     "control_swap_1": {
       "name": "Przesunięcie Sygnału",
-      "textShort": "Zamień miejscami 2 [ALLY] lub 2 wrogów."
+      "textShort": "Zamień miejscami 2 [ALLY] lub 2 [ENEMIES]."
     },
     "control_jam_signal_1": {
       "name": "Zakłócenie Sygnału",
-      "textShort": "Wybierz do 2 wrogów: -1 ATK w tej turze."
+      "textShort": "Wybierz do 2 [ENEMIES]: -1 ATK w tej turze."
     },
     "control_pulse_wave_1": {
       "name": "Impuls Neuronalny",
-      "textShort": "Zadaj 1 wszystkim wrogom, ignorując ARM."
+      "textShort": "Zadaj 1 wszystkim [ENEMIES], ignorując ARM."
     },
     "control_system_override_1": {
       "name": "Przejęcie Systemu",
-      "textShort": "Wróg atakuje własną\nbazę, potem\ntraci 1 HP."
+      "textShort": "[ENEMY] atakuje własną\nbazę, potem\ntraci 1 HP."
     },
     "control_recall_1": {
       "name": "Ekstrakcja",
@@ -126,7 +126,7 @@
     },
     "swarm_spitter_1": {
       "name": "Plujka",
-      "textShort": "Po zagraniu: zadaj 1 wrogowi naprzeciw."
+      "textShort": "Po zagraniu: zadaj 1 [ENEMY] naprzeciw."
     },
     "swarm_brood_1": {
       "name": "Miot",
@@ -206,7 +206,7 @@
     },
     "wardens_spearwall_1": {
       "name": "Łowca Tundry",
-      "textShort": "Wrogowie atakujący\nsąsiednich [ALLIES]: -1 ATK."
+      "textShort": "[ENEMIES] atakujący\nsąsiednich [ALLIES]: -1 ATK."
     },
     "wardens_halberdier_1": {
       "name": "Lodowa Pika",
@@ -226,7 +226,7 @@
     },
     "wardens_shield_push_1": {
       "name": "Mamuci Napór",
-      "textShort": "Zamień dwóch sąsiadujących wrogów."
+      "textShort": "Zamień dwóch sąsiadujących [ENEMIES]."
     },
     "wardens_stand_firm_1": {
       "name": "Przetrwać Mróz",
@@ -477,7 +477,9 @@
         "ARM": "Pancerz zmniejszający obrażenia bojowe.",
         "effectCard": "Karta efektu — nie jest jednostką i nie ma ATK / ARM / HP.",
         "ALLY": "Jedna twoja jednostka.",
-        "ALLIES": "Wszystkie twoje jednostki."
+        "ALLIES": "Wszystkie twoje jednostki.",
+        "ENEMY": "Jedna jednostka przeciwnika.",
+        "ENEMIES": "Jednostki przeciwnika."
       }
     },
     "cardDetails": {

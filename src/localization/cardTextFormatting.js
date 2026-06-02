@@ -9,6 +9,8 @@ export const CARD_EFFECT_STAT_SYMBOLS = Object.freeze({
 export const CARD_EFFECT_GAMEPLAY_SYMBOLS = Object.freeze({
   ally: '♙',
   allies: '♙♙',
+  enemy: '♟',
+  enemies: '♟♟',
 });
 
 // Matches the visual colors used by card stat badges and lightweight gameplay
@@ -29,8 +31,11 @@ const STAT_TERM_ALIASES = Object.freeze({
 const HEALTH_SYMBOL = CARD_EFFECT_STAT_SYMBOLS.health;
 const ALLY_SYMBOL = CARD_EFFECT_GAMEPLAY_SYMBOLS.ally;
 const ALLIES_SYMBOL = CARD_EFFECT_GAMEPLAY_SYMBOLS.allies;
+const ENEMY_SYMBOL = CARD_EFFECT_GAMEPLAY_SYMBOLS.enemy;
+const ENEMIES_SYMBOL = CARD_EFFECT_GAMEPLAY_SYMBOLS.enemies;
 
 const ALLY_ICON_MARKER_PATTERN = /\[(?:ALLY|ALLIES|ALLY_ICON)\]/giu;
+const ENEMY_ICON_MARKER_PATTERN = /\[(?:ENEMY|ENEMIES)\]/giu;
 
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -107,6 +112,7 @@ function getAllyIconSymbolForContext(prefix, marker) {
 
 function formatGameplayIconMarkers(text) {
   return text
+    .replace(ENEMY_ICON_MARKER_PATTERN, (marker) => (/\[ENEMIES\]/iu.test(marker) ? ENEMIES_SYMBOL : ENEMY_SYMBOL))
     .replace(ALLY_ICON_MARKER_PATTERN, (marker, offset, fullText) => {
       const prefix = fullText.slice(Math.max(0, offset - 24), offset);
       return getAllyIconSymbolForContext(prefix, marker);

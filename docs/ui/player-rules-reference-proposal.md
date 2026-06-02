@@ -59,8 +59,8 @@ On your action, you can:
 - **ARM**: Armor that reduces incoming combat damage.
 - **Ally**: One of your units.
 - **Allies**: All your units.
-- **Enemy**: One enemy unit.
-- **Enemies**: All enemy units.
+- **♟ ENEMY**: One opposing unit.
+- **♟♟ ENEMIES**: Opposing units.
 - **Base HP**: Your Base health. If it reaches 0, you lose.
 
 ### 8) Targeting Words
@@ -111,8 +111,8 @@ W swojej akcji możesz:
 - **ARM**: Pancerz zmniejszający otrzymywane obrażenia w walce.
 - **Sojusznik**: Jedna twoja jednostka.
 - **Sojusznicy**: Wszystkie twoje jednostki.
-- **Wróg**: Jedna wroga jednostka.
-- **Wrogowie**: Wszystkie wrogie jednostki.
+- **♟ ENEMY**: Jedna jednostka przeciwnika.
+- **♟♟ ENEMIES**: Jednostki przeciwnika.
 - **HP bazy**: Życie twojej bazy. Gdy spadnie do 0, przegrywasz.
 
 ### 8) Słowa celowania

@@ -76,9 +76,62 @@ test('effect targeting cancel and instruction copy is localized for English and 
   }
 });
 
-test('rules glossary explains the non-unit effect indicator in English and Polish', () => {
+test('rules glossary explains gameplay icons in English and Polish', () => {
   assert.equal(getPath(en, 'ui.rules.glossaryDescriptions.effectCard'), 'Effect card — not a unit and has no ATK / ARM / HP.');
   assert.equal(getPath(pl, 'ui.rules.glossaryDescriptions.effectCard'), 'Karta efektu — nie jest jednostką i nie ma ATK / ARM / HP.');
+  assert.equal(getPath(en, 'ui.rules.glossaryDescriptions.ENEMY'), 'One opposing unit.');
+  assert.equal(getPath(en, 'ui.rules.glossaryDescriptions.ENEMIES'), 'Opposing units.');
+  assert.equal(getPath(pl, 'ui.rules.glossaryDescriptions.ENEMY'), 'Jedna jednostka przeciwnika.');
+  assert.equal(getPath(pl, 'ui.rules.glossaryDescriptions.ENEMIES'), 'Jednostki przeciwnika.');
+});
+
+test('selected localized card texts use enemy board-unit markers without changing base, effect, or UI copy', () => {
+  const migrated = {
+    en: {
+      attrition_swarm_husk_1: 'Combat death: deal 1 to opposed [ENEMY].',
+      attrition_swarm_funeral_pyre_1: 'First 2 [ALLIES] combat deaths:\neach deal 1 ● to opposed [ENEMY].',
+      attrition_swarm_infect_1: 'Deal 1 to [ENEMY]. If it survives, opposed [ALLY] +1 ATK.',
+      control_hacker_1: 'Opposed [ENEMY]: -1 ATK this turn.',
+      control_sniper_1: 'Attacks the lowest-HP [ENEMY].',
+      control_controller_1: 'On play: swap two [ENEMIES].',
+      control_swap_1: 'Swap 2 [ALLY] or 2 [ENEMIES].',
+      control_jam_signal_1: 'Choose up to 2 [ENEMIES]: -1 ATK this turn.',
+      control_pulse_wave_1: 'Deal 1 to all [ENEMIES], ignoring ARM.',
+      control_system_override_1: '[ENEMY] attacks own base next combat, then loses 1 HP.',
+      swarm_spitter_1: 'On play: deal 1 to opposed [ENEMY].',
+      wardens_shield_push_1: 'Swap two adjacent [ENEMIES].',
+    },
+    pl: {
+      attrition_swarm_husk_1: 'Śmierć w walce: zadaj 1 [ENEMY] naprzeciw.',
+      attrition_swarm_funeral_pyre_1: 'Pierwsze 2 zgony [ALLIES] w walce:\npo 1 ● [ENEMY] naprzeciw.',
+      attrition_swarm_infect_1: 'Zadaj 1 [ENEMY]. Jeśli przetrwa, [ALLY] naprzeciwko +1 ATK.',
+      control_hacker_1: '[ENEMY] naprzeciwko: -1 ATK w tej turze.',
+      control_sniper_1: 'Atakuje [ENEMY] z najniższym HP.',
+      control_controller_1: 'Po zagraniu: zamień dwóch [ENEMIES].',
+      control_swap_1: 'Zamień miejscami 2 [ALLY] lub 2 [ENEMIES].',
+      control_jam_signal_1: 'Wybierz do 2 [ENEMIES]: -1 ATK w tej turze.',
+      control_pulse_wave_1: 'Zadaj 1 wszystkim [ENEMIES], ignorując ARM.',
+      control_system_override_1: '[ENEMY] atakuje własną\nbazę, potem\ntraci 1 HP.',
+      swarm_spitter_1: 'Po zagraniu: zadaj 1 [ENEMY] naprzeciw.',
+      wardens_spearwall_1: '[ENEMIES] atakujący\nsąsiednich [ALLIES]: -1 ATK.',
+      wardens_shield_push_1: 'Zamień dwóch sąsiadujących [ENEMIES].',
+    },
+  };
+
+  for (const [locale, dictionary] of Object.entries({ en, pl })) {
+    for (const [cardId, textShort] of Object.entries(migrated[locale])) {
+      assert.equal(dictionary.cards[cardId].textShort, textShort, `${locale} ${cardId}`);
+    }
+  }
+
+  assert.equal(en.cards.aggro_runner_1.textShort, 'Open line: enemy base loses 2 HP.');
+  assert.equal(en.cards.control_drone_1.textShort, 'On death: enemy base loses 1 HP.');
+  assert.equal(en.cards.control_disruptor_1.textShort, 'On play: cancel the next enemy effect.');
+  assert.equal(pl.cards.aggro_runner_1.textShort, 'Otwarta linia: wróg traci 2 HP.');
+  assert.equal(pl.cards.control_drone_1.textShort, 'Po śmierci: wróg traci 1 HP.');
+  assert.equal(pl.cards.control_disruptor_1.textShort, 'Po zagraniu: anuluj następny efekt wroga.');
+  assert.doesNotMatch(JSON.stringify(en.ui), /\[(?:ENEMY|ENEMIES)\]/u);
+  assert.doesNotMatch(JSON.stringify(pl.ui), /\[(?:ENEMY|ENEMIES)\]/u);
 });
 
 test('card type and stat labels exist in English and Polish dictionaries', () => {

@@ -21,7 +21,7 @@ Use these preferred forms for card text unless a specific UI context requires an
 | Concept | Preferred wording | Notes |
 | --- | --- | --- |
 | Friendly unit | `ally` / `allies` or `[ALLY]` / `[ALLIES]` on cards | Use for units controlled by the player or card owner; card rules should prefer the existing ally icon marker where it shortens text. |
-| Opposing unit | `enemy` / `enemies` | Use for units controlled by the opposing side. No enemy icon exists yet. |
+| Opposing unit | `enemy` / `enemies` or `[ENEMY]` / `[ENEMIES]` on cards | Use for opposing board units only; card rules should prefer the enemy icon marker where it shortens text without reducing clarity. Do not use these markers for the enemy base, enemy player, or UI labels. |
 | HP objective | `base` / `bases` | Use instead of hero/bohater for the player/enemy HP target in presentation text. |
 | Neighboring slot or unit | `adjacent` | Use instead of `nearby`. |
 | Lane-facing logic | `opposing` / `opposed` | Use only when lane-facing or directly across-slot logic matters. |
@@ -75,9 +75,9 @@ Do not add flavor filler such as `Durable guard.` just to occupy the rules text 
 
 Use short, repeatable sentence patterns. These examples are canonical style references, not new card designs.
 
-- `On play: deal 1 to opposing enemy.`
+- `On play: deal 1 to opposed [ENEMY].`
 - `On death: summon 1/1 here.`
-- `Combat death: deal 1 to opposing enemy.`
+- `Combat death: deal 1 to opposed [ENEMY].`
 - `Adjacent allies gain +1 ARM until combat ends.`
 - `Target ally gains +1 ARM until combat ends.`
 - `If opposed: +1 ATK.`
@@ -85,18 +85,29 @@ Use short, repeatable sentence patterns. These examples are canonical style refe
 
 ## 8. Icons policy
 
-ATK, ARM, and HP are already symbol-supported by the formatter. Future wording and UI passes may expand icon support, but icon use should remain deliberate and readable.
+ATK, ARM, HP, ally/allies, and enemy/enemies are symbol-supported by the formatter. Icon use should remain deliberate and readable.
 
-Current and future direction:
+Current convention:
 
 - ATK / ARM / HP are already symbol-supported by the formatter.
 - The existing ally/allies icon is yellow and must keep its current color and meaning.
 - Card text should use `[ALLY]` for a single/all-context-sensitive ally marker and `[ALLIES]` when a plural/group ally icon is required without preceding context.
-- The formatter renders those markers consistently in collection, hand, and inspect card previews through the shared card preview renderer.
-- Enemy/enemies icons are not implemented. If added later, use an analogous explicit marker convention such as `[ENEMY]` / `[ENEMIES]` and a visually distinct red/pink enemy-group icon rather than changing the yellow ally icon.
+- Card text should use `[ENEMY]` for one opposing board unit and `[ENEMIES]` for grouped opposing board units.
+- `[ENEMY]` / `[ENEMIES]` must not replace references to the enemy base, enemy player, or UI labels.
+- The enemy/enemies icon is rose-red `#fb7185`, visually distinct from the yellow ally icon.
+- The formatter renders gameplay-icon markers consistently in collection, hand, and inspect card previews through the shared card preview renderer.
 - Do not introduce icons for `adjacent`, `combat`, `this turn`, or `on play` yet.
 - Avoid emoji in production UI; use game-consistent glyphs or icons.
 - Icons must not create “hieroglyph soup.” Text should remain understandable at mobile size.
+
+Gameplay marker reference:
+
+| Card marker | Displayed symbol | Meaning |
+| --- | --- | --- |
+| `[ALLY]` | `♙` | One allied unit, or context-sensitive ally usage handled by the formatter. |
+| `[ALLIES]` | `♙♙` | Grouped allied units. |
+| `[ENEMY]` | `♟` | One opposing board unit only. |
+| `[ENEMIES]` | `♟♟` | Grouped opposing board units only. |
 
 ## 9. English and Polish localization notes
 
@@ -107,7 +118,7 @@ Preferred Polish canonical equivalents:
 | English | Polish |
 | --- | --- |
 | `ally` / `allies` | `sprzymierzeniec` / `sprzymierzeńcy`; use `[ALLY]` / `[ALLIES]` on card rules where the icon is clearer or shorter. |
-| `enemy` / `enemies` | `wróg` / `wrogowie` |
+| `enemy` / `enemies` | `wróg` / `wrogowie`; use `[ENEMY]` / `[ENEMIES]` on card rules for opposing board units where the icon is clearer or shorter. Do not use the markers for the enemy base or player. |
 | `base` / `bases` | `baza` / `bazy`; use inflected forms such as `bazę`, `bazie`, or `własną bazę` as grammar requires. |
 | `adjacent` | `sąsiedni` |
 | `opposed` | `naprzeciwko` |
@@ -119,6 +130,6 @@ Preferred Polish canonical equivalents:
 
 ## 10. MVP scope
 
-This guide does not require immediate tooltip or glossary UI. It also does not require broad keyword expansion, enemy icon implementation, renderer redesigns, or gameplay logic changes. Keep card rule text within the shared rules panel width, avoid manual line breaks unless needed for localized readability, and prefer existing icon markers over long repeated ally/allies words.
+This guide does not require broad keyword expansion, renderer redesigns, or gameplay logic changes. Keep card rule text within the shared rules panel width, avoid manual line breaks unless needed for localized readability, and prefer existing icon markers over long repeated ally/allies or enemy/enemies words when the result remains clear.
 
 For MVP, use this guide as the reference for future card wording standardization tasks and review proposed wording changes against it before changing player-facing card text.

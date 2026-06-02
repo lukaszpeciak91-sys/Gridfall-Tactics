@@ -6,7 +6,9 @@ import { formatCardDetailLines } from '../src/rendering/cardRenderModes.js';
 import { getFactionByKey } from '../src/data/factions/index.js';
 import {
   getCardDisplayContent,
+  createInlineStatText,
   getInlineGameplaySymbolColor,
+  getInlineGameplaySymbolStyle,
   getInlineStatSymbolColor,
   INLINE_EFFECT_ICON_BASELINE_OFFSET_RATIO,
   INLINE_EFFECT_ICON_MIN_FONT_SIZE,
@@ -30,11 +32,15 @@ test('formats English stat abbreviations in card effect text as compact symbols'
 test('formats pilot ally icon markers without globally replacing ally terms', () => {
   assert.equal(CARD_EFFECT_GAMEPLAY_SYMBOLS.ally, '♙');
   assert.equal(CARD_EFFECT_GAMEPLAY_SYMBOLS.allies, '♙♙');
+  assert.equal(CARD_EFFECT_GAMEPLAY_SYMBOLS.enemy, '♟');
+  assert.equal(CARD_EFFECT_GAMEPLAY_SYMBOLS.enemies, '♟♟');
   assert.equal(formatCardEffectTextShort('Target [ALLY] +1 ARM until combat ends.', 'en'), 'Target ♙ +1 ◆ until combat ends.');
   assert.equal(formatCardEffectTextShort('All [ALLY] +1 ATK this turn.', 'en'), 'All ♙♙ +1 ▲ this turn.');
   assert.equal(formatCardEffectTextShort('Return [ALLY] to hand. Draw 1.', 'en'), 'Return ♙ to hand. Draw 1.');
   assert.equal(formatCardEffectTextShort('Wybrany [ALLY] +1 ARM do końca walki.', 'pl'), 'Wybrany ♙ +1 ◆ do końca walki.');
   assert.equal(formatCardEffectTextShort('Target ally +1 ARM until combat ends.', 'en'), 'Target ally +1 ◆ until combat ends.');
+  assert.equal(formatCardEffectTextShort('Target [ENEMY] -1 ARM until combat ends.', 'en'), 'Target ♟ -1 ◆ until combat ends.');
+  assert.equal(formatCardEffectTextShort('All [ENEMIES] -1 ATK this turn.', 'en'), 'All ♟♟ -1 ▲ this turn.');
 });
 
 test('formats localized Polish stat terms while preserving surrounding text', () => {
@@ -51,13 +57,13 @@ test('formats HP-related healing and damage language without replacing unrelated
   assert.equal(formatCardEffectTextShort('Combat death: both bases lose 1 HP.', 'en'), 'Combat death: both bases lose 1 ●.');
   assert.equal(formatCardEffectTextShort('On death: enemy base loses 1 HP.', 'en'), 'On death: enemy base loses 1 ●.');
   assert.equal(formatCardEffectTextShort('Heal all [ALLY] by 1.', 'en'), 'Heal all ♙♙ by +1 ●.');
-  assert.equal(formatCardEffectTextShort('First 2 [ALLIES] combat deaths:\neach deal 1 ● to opposed enemy.', 'en'), 'First 2 ♙♙ combat deaths:\neach deal 1 ● to opposed enemy.');
+  assert.equal(formatCardEffectTextShort('First 2 [ALLIES] combat deaths:\neach deal 1 ● to opposed [ENEMY].', 'en'), 'First 2 ♙♙ combat deaths:\neach deal 1 ● to opposed ♟.');
   assert.equal(formatCardEffectTextShort('Destroy [ALLY]. Draw 1.', 'en'), 'Destroy ♙. Draw 1.');
   assert.equal(formatCardEffectTextShort('Combat death: summon 1/1 here.', 'en'), 'Combat death: summon 1/1 here.');
   assert.equal(formatCardEffectTextShort('Śmierć w walce: obie bazy otrzymują 1.', 'pl'), 'Śmierć w walce: obie bazy otrzymują 1 ●.');
   assert.equal(formatCardEffectTextShort('Po śmierci: wroga baza otrzymuje 1.', 'pl'), 'Po śmierci: wroga baza otrzymuje 1 ●.');
   assert.equal(formatCardEffectTextShort('Celowany wróg atakuje własną bazę w następnej walce, potem otrzymuje 1 obrażenie.', 'pl'), 'Celowany wróg atakuje własną bazę w następnej walce, potem otrzymuje 1 ●.');
-  assert.equal(formatCardEffectTextShort('Pierwsze 2 zgony [ALLIES] w walce:\npo 1 ● wrogowi naprzeciw.', 'pl'), 'Pierwsze 2 zgony ♙♙ w walce:\npo 1 ● wrogowi naprzeciw.');
+  assert.equal(formatCardEffectTextShort('Pierwsze 2 zgony [ALLIES] w walce:\npo 1 ● [ENEMY] naprzeciw.', 'pl'), 'Pierwsze 2 zgony ♙♙ w walce:\npo 1 ● ♟ naprzeciw.');
   assert.equal(formatCardEffectTextShort('Zniszcz [ALLY]. Dobierz 1.', 'pl'), 'Zniszcz ♙. Dobierz 1.');
   assert.equal(formatCardEffectTextShort('Śmierć w walce: przyzwij tutaj 1/1.', 'pl'), 'Śmierć w walce: przyzwij tutaj 1/1.');
 });
@@ -71,8 +77,8 @@ test('formats HP symbols for localized Attrition Swarm card effect display text'
   assert.equal(getCardDisplayContent(cardById('attrition_swarm_leech_1'), 'pl').body, 'Zabije i przetrwa:\nulecz bazę o +1 ●.');
   assert.equal(getCardDisplayContent(cardById('attrition_swarm_abomination_1'), 'en').body, 'Combat death: both bases lose 1 ●.');
   assert.equal(getCardDisplayContent(cardById('attrition_swarm_abomination_1'), 'pl').body, 'Śmierć w walce: obie bazy tracą 1 ●.');
-  assert.equal(getCardDisplayContent(cardById('attrition_swarm_funeral_pyre_1'), 'en').body, 'First 2 ♙♙ combat deaths:\neach deal 1 ● to opposed enemy.');
-  assert.equal(getCardDisplayContent(cardById('attrition_swarm_funeral_pyre_1'), 'pl').body, 'Pierwsze 2 zgony ♙♙ w walce:\npo 1 ● wrogowi naprzeciw.');
+  assert.equal(getCardDisplayContent(cardById('attrition_swarm_funeral_pyre_1'), 'en').body, 'First 2 ♙♙ combat deaths:\neach deal 1 ● to opposed ♟.');
+  assert.equal(getCardDisplayContent(cardById('attrition_swarm_funeral_pyre_1'), 'pl').body, 'Pierwsze 2 zgony ♙♙ w walce:\npo 1 ● ♟ naprzeciw.');
 });
 
 test('pilot card display content renders ally icon markers', () => {
@@ -100,7 +106,11 @@ test('pilot card display content renders ally icon markers', () => {
   assert.equal(getCardDisplayContent(cardById(tank, 'tank_heavy_1'), 'en').body, '');
   assert.equal(getCardDisplayContent(cardById(control, 'control_recall_1'), 'en').body, 'Return ♙ to hand. Draw 1.');
   assert.equal(getCardDisplayContent(cardById(control, 'control_disruptor_1'), 'en').body, 'On play: cancel the next enemy effect.');
-  assert.equal(getCardDisplayContent(cardById(control, 'control_swap_1'), 'en').body, 'Swap 2 ♙♙ or 2 enemies.');
+  assert.equal(getCardDisplayContent(cardById(control, 'control_swap_1'), 'en').body, 'Swap 2 ♙♙ or 2 ♟♟.');
+  assert.equal(getCardDisplayContent(cardById(control, 'control_pulse_wave_1'), 'en').body, 'Deal 1 to all ♟♟, ignoring ◆.');
+  assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_spitter_1'), 'en').body, 'On play: deal 1 to opposed ♟.');
+  const attritionSwarm = getFactionByKey('Attrition Swarm');
+  assert.equal(getCardDisplayContent(cardById(attritionSwarm, 'attrition_swarm_infect_1'), 'en').body, 'Deal 1 to ♟. If it survives, opposed ♙ +1 ▲.');
   const wardens = getFactionByKey('Wardens');
 
   assert.equal(getCardDisplayContent(cardById(aggro, 'aggro_full_attack_1'), 'pl').body, 'Wszyscy ♙♙ +2 ▲ w tej turze.');
@@ -123,10 +133,13 @@ test('pilot card display content renders ally icon markers', () => {
   assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_halberdier_1'), 'en').body, 'If opposed: +1 ▲.');
   assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_stand_firm_1'), 'en').body, "All ♙♙ can't be moved this turn.");
   assert.equal(getCardDisplayContent(cardById(control, 'control_disruptor_1'), 'pl').body, 'Po zagraniu: anuluj następny efekt wroga.');
-  assert.equal(getCardDisplayContent(cardById(control, 'control_swap_1'), 'pl').body, 'Zamień miejscami 2 ♙♙ lub 2 wrogów.');
-  assert.equal(getCardDisplayContent(cardById(control, 'control_system_override_1'), 'pl').body, 'Wróg atakuje własną\nbazę, potem\ntraci 1 ●.');
+  assert.equal(getCardDisplayContent(cardById(control, 'control_swap_1'), 'pl').body, 'Zamień miejscami 2 ♙♙ lub 2 ♟♟.');
+  assert.equal(getCardDisplayContent(cardById(control, 'control_system_override_1'), 'pl').body, '♟ atakuje własną\nbazę, potem\ntraci 1 ●.');
+  assert.equal(getCardDisplayContent(cardById(control, 'control_pulse_wave_1'), 'pl').body, 'Zadaj 1 wszystkim ♟♟, ignorując ◆.');
+  assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_spitter_1'), 'pl').body, 'Po zagraniu: zadaj 1 ♟ naprzeciw.');
+  assert.equal(getCardDisplayContent(cardById(attritionSwarm, 'attrition_swarm_infect_1'), 'pl').body, 'Zadaj 1 ♟. Jeśli przetrwa, ♙ naprzeciwko +1 ▲.');
   assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_halberdier_1'), 'pl').body, 'Jeśli naprzeciw: +1 ▲.');
-  assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_spearwall_1'), 'pl').body, 'Wrogowie atakujący\nsąsiednich ♙♙: -1 ▲.');
+  assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_spearwall_1'), 'pl').body, '♟♟ atakujący\nsąsiednich ♙♙: -1 ▲.');
   assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_stand_firm_1'), 'pl').body, '♙♙ są odporni\nna przesunięcie\nw tej turze.');
   assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_reinforce_line_1'), 'pl').body, 'Sąsiedni ♙♙ +1 ◆ do końca walki.');
 });
@@ -195,6 +208,8 @@ test('inline stat text renderer maps compact symbols to top badge colors', () =>
   assert.equal(getInlineStatSymbolColor('●'), '#d24b5f');
   assert.equal(getInlineGameplaySymbolColor('♙'), '#facc15');
   assert.equal(getInlineGameplaySymbolColor('♙♙'), '#facc15');
+  assert.equal(getInlineGameplaySymbolColor('♟'), '#fb7185');
+  assert.equal(getInlineGameplaySymbolColor('♟♟'), '#fb7185');
   assert.equal(getInlineStatSymbolColor('x'), null);
   assert.equal(getInlineGameplaySymbolColor('x'), null);
 });
@@ -210,6 +225,40 @@ test('inline stat text tokenizer preserves localized copy while tagging stat and
     { type: 'statSymbol', text: '●' },
     { type: 'text', text: '.' },
   ]);
+  assert.deepEqual(tokenizeInlineStatText('♟ ♟♟').filter((token) => token.type !== 'space'), [
+    { type: 'gameplaySymbol', text: '♟' },
+    { type: 'gameplaySymbol', text: '♟♟' },
+  ]);
+});
+
+test('grouped enemy gameplay icons render overlapping enemy glyphs rather than ally glyphs', () => {
+  const drawnTexts = [];
+  const scene = {
+    add: {
+      container: () => ({ add: () => {} }),
+      text: (x, y, text) => {
+        const node = {
+          text,
+          width: String(text).length * 10,
+          setVisible() { return this; },
+          setText(value) { this.text = value; this.width = String(value).length * 10; return this; },
+          setFontSize() { return this; },
+          setOrigin() { return this; },
+          setAlpha() { return this; },
+          setShadow() { return this; },
+          destroy() {},
+        };
+        drawnTexts.push(node);
+        return node;
+      },
+    },
+  };
+
+  assert.equal(getInlineGameplaySymbolStyle('♟♟').baseGlyph, '♟');
+  assert.equal(getInlineGameplaySymbolStyle('♟♟').count, 2);
+  createInlineStatText(scene, 0, 0, '♟♟');
+  assert.equal(drawnTexts.filter(({ text }) => text === '♟').length, 2);
+  assert.equal(drawnTexts.some(({ text }) => text === '♙'), false);
 });
 
 test('inline effect icon typography uses glyph-sized symbols, centered baseline, and compact icon spacing', () => {

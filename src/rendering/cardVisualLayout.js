@@ -292,6 +292,26 @@ const CARD_GAMEPLAY_SYMBOL_STYLES = Object.freeze({
     icon: 'group',
     fontScale: 1.22,
     widthScale: 0.951,
+    baseGlyph: CARD_EFFECT_GAMEPLAY_SYMBOLS.ally,
+    count: 2,
+    stroke: '#4a3200',
+  }),
+  [CARD_EFFECT_GAMEPLAY_SYMBOLS.enemy]: Object.freeze({
+    color: '#fb7185',
+    fontStyle: 'bold',
+    icon: 'single',
+    fontScale: 1.28,
+    widthScale: 0.667,
+  }),
+  [CARD_EFFECT_GAMEPLAY_SYMBOLS.enemies]: Object.freeze({
+    color: '#fb7185',
+    fontStyle: 'bold',
+    icon: 'group',
+    fontScale: 1.22,
+    widthScale: 0.951,
+    baseGlyph: CARD_EFFECT_GAMEPLAY_SYMBOLS.enemy,
+    count: 2,
+    stroke: '#061426',
   }),
 });
 
@@ -304,8 +324,12 @@ export function getInlineStatSymbolColor(symbol) {
   return statKey ? colorNumberToCss(CARD_STAT_STYLES[statKey].color) : null;
 }
 
+export function getInlineGameplaySymbolStyle(symbol) {
+  return CARD_GAMEPLAY_SYMBOL_STYLES[symbol] ?? null;
+}
+
 export function getInlineGameplaySymbolColor(symbol) {
-  return CARD_GAMEPLAY_SYMBOL_STYLES[symbol]?.color ?? null;
+  return getInlineGameplaySymbolStyle(symbol)?.color ?? null;
 }
 
 function getInlineIconFontSize(textFontSize, symbolStyle) {
@@ -342,7 +366,7 @@ function getInlineSymbolStyle(symbol) {
 export function tokenizeInlineStatText(text) {
   if (typeof text !== 'string' || text.length === 0) return [];
   return text
-    .split(/(♙♙|▲|◆|●|♙|\n|\s+)/u)
+    .split(/(♙♙|♟♟|▲|◆|●|♙|♟|\n|\s+)/u)
     .filter((token) => token.length > 0)
     .map((token) => {
       if (token === '\n') return { type: 'newline', text: token };
@@ -592,25 +616,23 @@ export function createInlineStatText(scene, x, y, text, {
       if (symbolStyle.type === 'gameplaySymbol' && symbolStyle.icon === 'group') {
         const group = scene.add.container(segmentX + segment.width / 2, iconCenterY + inlineIconYOffset);
         const iconFontSize = getInlineIconFontSize(fittedFontSize, symbolStyle);
-        const backIcon = scene.add.text(-segment.width * 0.16, -iconFontSize * 0.02, CARD_EFFECT_GAMEPLAY_SYMBOLS.ally, {
-          ...baseStyle,
-          fontSize: `${iconFontSize}px`,
-          color: symbolStyle.color ?? color,
-          fontStyle: symbolStyle.fontStyle,
-          stroke: '#4a3200',
-          strokeThickness: Math.max(1, Math.round(iconFontSize * 0.12)),
-        }).setOrigin(0.5).setAlpha(0.92);
-        const frontIcon = scene.add.text(segment.width * 0.15, iconFontSize * 0.03, CARD_EFFECT_GAMEPLAY_SYMBOLS.ally, {
-          ...baseStyle,
-          fontSize: `${iconFontSize}px`,
-          color: symbolStyle.color ?? color,
-          fontStyle: symbolStyle.fontStyle,
-          stroke: '#4a3200',
-          strokeThickness: Math.max(1, Math.round(iconFontSize * 0.12)),
-        }).setOrigin(0.5);
-        backIcon.setShadow(0, 1, 'rgba(0, 0, 0, 0.55)', 1);
-        frontIcon.setShadow(0, 1, 'rgba(0, 0, 0, 0.55)', 1);
-        group.add([backIcon, frontIcon]);
+        const iconPositions = [
+          { x: -segment.width * 0.16, y: -iconFontSize * 0.02, alpha: 0.92 },
+          { x: segment.width * 0.15, y: iconFontSize * 0.03, alpha: 1 },
+        ];
+        const icons = iconPositions.slice(0, symbolStyle.count).map(({ x: iconX, y: iconY, alpha }) => {
+          const icon = scene.add.text(iconX, iconY, symbolStyle.baseGlyph, {
+            ...baseStyle,
+            fontSize: `${iconFontSize}px`,
+            color: symbolStyle.color ?? color,
+            fontStyle: symbolStyle.fontStyle,
+            stroke: symbolStyle.stroke,
+            strokeThickness: Math.max(1, Math.round(iconFontSize * 0.12)),
+          }).setOrigin(0.5).setAlpha(alpha);
+          icon.setShadow(0, 1, 'rgba(0, 0, 0, 0.55)', 1);
+          return icon;
+        });
+        group.add(icons);
         container.add(group);
         return;
       }
