@@ -14,6 +14,8 @@ import {
   INLINE_EFFECT_ICON_MIN_FONT_SIZE,
   INLINE_EFFECT_ICON_SPACE_SCALE,
   INLINE_EFFECT_ICON_STAT_FONT_SCALE,
+  INLINE_GAMEPLAY_ICON_BASELINE_OFFSET_RATIO,
+  INLINE_GAMEPLAY_ICON_SPACE_SCALE,
   layoutInlineStatText,
   tokenizeInlineStatText,
 } from '../src/rendering/cardVisualLayout.js';
@@ -208,8 +210,8 @@ test('inline stat text renderer maps compact symbols to top badge colors', () =>
   assert.equal(getInlineStatSymbolColor('●'), '#d24b5f');
   assert.equal(getInlineGameplaySymbolColor('♙'), '#facc15');
   assert.equal(getInlineGameplaySymbolColor('♙♙'), '#facc15');
-  assert.equal(getInlineGameplaySymbolColor('♟'), '#fb7185');
-  assert.equal(getInlineGameplaySymbolColor('♟♟'), '#fb7185');
+  assert.equal(getInlineGameplaySymbolColor('♟'), '#e879f9');
+  assert.equal(getInlineGameplaySymbolColor('♟♟'), '#e879f9');
   assert.equal(getInlineStatSymbolColor('x'), null);
   assert.equal(getInlineGameplaySymbolColor('x'), null);
 });
@@ -281,6 +283,8 @@ test('inline effect icon typography uses glyph-sized symbols, centered baseline,
   assert.equal(INLINE_EFFECT_ICON_MIN_FONT_SIZE, 15);
   assert.equal(INLINE_EFFECT_ICON_BASELINE_OFFSET_RATIO, -0.16);
   assert.equal(INLINE_EFFECT_ICON_SPACE_SCALE, 0.4);
+  assert.equal(INLINE_GAMEPLAY_ICON_BASELINE_OFFSET_RATIO, -0.06);
+  assert.equal(INLINE_GAMEPLAY_ICON_SPACE_SCALE, 1);
 
   const lines = layoutInlineStatText('+1 ▲ this turn', {
     maxWidth: 100,
@@ -293,6 +297,21 @@ test('inline effect icon typography uses glyph-sized symbols, centered baseline,
   assert.equal(lines[0].segments[2].x, 38);
 });
 
+
+test('inline gameplay icons keep full word spacing while stat icons retain compact spacing', () => {
+  const measureTokenWidth = (token) => (token === ' ' ? 10 : token.length * 10);
+  const allyLine = layoutInlineStatText('Atakuje ♙ z najniższym HP.', { maxWidth: 500, measureTokenWidth })[0];
+  const enemyLine = layoutInlineStatText('Atakuje ♟ z najniższym HP.', { maxWidth: 500, measureTokenWidth })[0];
+
+  assert.equal(allyLine.segments[1].text, '♙');
+  assert.equal(allyLine.segments[1].x, 80);
+  assert.equal(allyLine.segments[2].text, 'z');
+  assert.equal(allyLine.segments[2].x, 100);
+  assert.deepEqual(enemyLine.segments, allyLine.segments.map((segment) => ({
+    ...segment,
+    text: segment.text === '♙' ? '♟' : segment.text,
+  })));
+});
 
 test('inline stat text layout groups numbers with stat icons and keeps ally icon buffs in sentence flow', () => {
   const measureTokenWidth = (token) => token.length;
