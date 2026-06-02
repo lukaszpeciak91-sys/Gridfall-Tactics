@@ -277,10 +277,12 @@ export const INLINE_EFFECT_ICON_STAT_FONT_SCALE = 1.38;
 export const INLINE_EFFECT_ICON_MIN_FONT_SIZE = 15;
 export const INLINE_EFFECT_ICON_BASELINE_OFFSET_RATIO = -0.16;
 export const INLINE_EFFECT_ICON_SPACE_SCALE = 0.4;
+export const INLINE_GAMEPLAY_ICON_BASELINE_OFFSET_RATIO = -0.06;
+export const INLINE_GAMEPLAY_ICON_SPACE_SCALE = 1;
 
-const GAMEPLAY_SYMBOL_COLORS = Object.freeze({
+export const GAMEPLAY_SYMBOL_COLORS = Object.freeze({
   ally: '#facc15',
-  enemy: '#fb7185',
+  enemy: '#e879f9',
 });
 
 const SINGLE_GAMEPLAY_SYMBOL_STYLE = Object.freeze({
@@ -393,7 +395,10 @@ function getInlineSpaceWidth(spaceWidth, previousToken, nextToken) {
     return spaceWidth;
   }
 
-  return Math.max(1, Math.ceil(spaceWidth * INLINE_EFFECT_ICON_SPACE_SCALE));
+  const spaceScale = previousToken?.type === 'gameplaySymbol' || nextToken?.type === 'gameplaySymbol'
+    ? INLINE_GAMEPLAY_ICON_SPACE_SCALE
+    : INLINE_EFFECT_ICON_SPACE_SCALE;
+  return Math.max(1, Math.ceil(spaceWidth * spaceScale));
 }
 
 function createInlineAtom(token, measureTokenWidth) {
@@ -614,9 +619,12 @@ export function createInlineStatText(scene, x, y, text, {
     const lineTopY = lineIndex * lineHeight;
     const textY = lineTopY + Math.max(0, Math.round((lineHeight - lineSpacing - fittedFontSize) / 2));
     const iconCenterY = lineTopY + (lineHeight - lineSpacing) * 0.5;
-    const inlineIconYOffset = Math.round(fittedFontSize * INLINE_EFFECT_ICON_BASELINE_OFFSET_RATIO);
     line.segments.forEach((segment) => {
       const symbolStyle = getInlineSymbolStyle(segment.text);
+      const baselineOffsetRatio = symbolStyle.type === 'gameplaySymbol'
+        ? INLINE_GAMEPLAY_ICON_BASELINE_OFFSET_RATIO
+        : INLINE_EFFECT_ICON_BASELINE_OFFSET_RATIO;
+      const inlineIconYOffset = Math.round(fittedFontSize * baselineOffsetRatio);
       const segmentX = startX + segment.x;
       if (symbolStyle.type === 'gameplaySymbol' && symbolStyle.icon === 'group') {
         const group = scene.add.container(segmentX + segment.width / 2, iconCenterY + inlineIconYOffset);

@@ -3,7 +3,7 @@ import { createModalBackButton } from '../ui/modalControls.js';
 import { preloadSecondaryButtonAsset } from '../ui/imageButton.js';
 import { translateActive, translateActiveList } from '../localization/localeService.js';
 import { CARD_EFFECT_GAMEPLAY_SYMBOLS, CARD_EFFECT_STAT_SYMBOLS, CARD_EFFECT_STAT_SYMBOL_STYLES } from '../localization/cardTextFormatting.js';
-import { NON_UNIT_EFFECT_STAT_SYMBOL, NON_UNIT_EFFECT_STAT_SYMBOL_CSS_COLOR } from '../rendering/cardVisualLayout.js';
+import { GAMEPLAY_SYMBOL_COLORS, NON_UNIT_EFFECT_STAT_SYMBOL, NON_UNIT_EFFECT_STAT_SYMBOL_CSS_COLOR } from '../rendering/cardVisualLayout.js';
 
 // Player-facing summary derived from docs/rules/mvp-battle-rules.md.
 const RULE_SECTIONS = Object.freeze([
@@ -66,8 +66,8 @@ const GLOSSARY_ICON_ROWS = Object.freeze([
   Object.freeze({ icon: [NON_UNIT_EFFECT_STAT_SYMBOL, NON_UNIT_EFFECT_STAT_SYMBOL, NON_UNIT_EFFECT_STAT_SYMBOL].join(' '), iconColor: NON_UNIT_EFFECT_STAT_SYMBOL_CSS_COLOR, iconFontSizeRatio: 0.32, label: '✶ ✶ ✶', translationKey: 'effectCard', description: 'Effect card — not a unit and has no ATK / ARM / HP.' }),
   Object.freeze({ icon: CARD_EFFECT_GAMEPLAY_SYMBOLS.ally, iconColor: '#fde68a', label: 'ALLY', description: 'One of your units' }),
   Object.freeze({ icon: CARD_EFFECT_GAMEPLAY_SYMBOLS.allies, iconColor: '#fde68a', label: 'ALLIES', description: 'All your units' }),
-  Object.freeze({ icon: CARD_EFFECT_GAMEPLAY_SYMBOLS.enemy, iconColor: '#fb7185', label: 'ENEMY', description: 'One opposing unit' }),
-  Object.freeze({ icon: CARD_EFFECT_GAMEPLAY_SYMBOLS.enemies, iconColor: '#fb7185', label: 'ENEMIES', description: 'Opposing units' }),
+  Object.freeze({ icon: CARD_EFFECT_GAMEPLAY_SYMBOLS.enemy, iconColor: GAMEPLAY_SYMBOL_COLORS.enemy, label: 'ENEMY', description: 'One opposing unit' }),
+  Object.freeze({ icon: CARD_EFFECT_GAMEPLAY_SYMBOLS.enemies, iconColor: GAMEPLAY_SYMBOL_COLORS.enemy, label: 'ENEMIES', description: 'Opposing units' }),
 ]);
 
 function resolveGlossaryRows() {
