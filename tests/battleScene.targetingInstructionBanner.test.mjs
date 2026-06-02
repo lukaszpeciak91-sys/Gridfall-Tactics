@@ -41,7 +41,12 @@ const showActiveSelectionMessage = compileMethod(
   'const PLAYER_EFFECT_CONFIRMATION_FADE_IN_MS = 90;\n',
 );
 const destroyTargetingInstruction = compileMethod('destroyTargetingInstruction', 'destroyActiveSelectionMessage', []);
-const destroyActiveSelectionMessage = compileMethod('destroyActiveSelectionMessage', 'captureBoardStats', ['owner']);
+const destroyActiveSelectionMessage = compileMethod(
+  'destroyActiveSelectionMessage',
+  'captureBoardStats',
+  ['owner', 'options'],
+  'const { flushDeferred = true } = options ?? {};\n',
+);
 
 function getPath(root, path) {
   return path.split('.').reduce((value, segment) => value?.[segment], root);
@@ -96,8 +101,13 @@ function makeScene(targetingState = null) {
     },
     getActiveSelectionBannerLayout(owner) { return getActiveSelectionBannerLayout.call(this, owner); },
     showActiveSelectionMessage(message, owner) { return showActiveSelectionMessage.call(this, message, owner); },
-    destroyActiveSelectionMessage(owner) { return destroyActiveSelectionMessage.call(this, owner); },
+    destroyActiveSelectionMessage(owner, options) { return destroyActiveSelectionMessage.call(this, owner, options); },
+    flushDeferredTransientBattleBanner() { return false; },
     destroyTargetingInstruction() { return destroyTargetingInstruction.call(this); },
+    destroyTransientBattleBanners() {
+      if (this.playerActionBanner) this.playerActionBanner.active = false;
+      this.transientCleanupCount = (this.transientCleanupCount ?? 0) + 1;
+    },
   };
   return scene;
 }
@@ -115,7 +125,7 @@ test('showTargetingInstruction uses active selection banner style instead of the
   assert.equal(scene.addCalls[0].style.backgroundColor, '#14532d');
   assert.equal(scene.tweenCalls[0].y, scene.layout.board.centerY + scene.layout.board.cellHeight * 0.25);
   assert.notEqual(scene.addCalls[0].style.backgroundColor, '#4c1d95');
-  assert.equal(scene.playerActionBanner.active, true, 'targeting banner must not destroy transient player action banners');
+  assert.equal(scene.playerActionBanner.active, false, 'persistent targeting banner must replace transient central banners');
 });
 
 test('targeting instruction messages still resolve through existing English and Polish localization keys', () => {
@@ -262,4 +272,123 @@ test('card selection cleanup clears targeting and board-swap owners through thei
   const clearHandCardSelection = extractMethodBody('clearHandCardSelection', 'onBoardCellTap');
 
   assert.match(clearHandCardSelection, /this\.destroyTargetingInstruction\(\);\s*this\.clearSwapPrompt\(\);/);
+});
+
+
+test('central banner coordinator preserves persistent prompt priority and rebuild restoration without absorbing excluded feedback', () => {
+  const coordinator = source.slice(
+    source.indexOf('  getPersistentBattleBannerOwner() {'),
+    source.indexOf('  captureBoardSnapshot() {'),
+  );
+  const rebuildBattleView = extractMethodBody('rebuildBattleView', 'shutdown');
+  const showPlayerActionBanner = extractMethodBody('showPlayerActionBanner', 'getTargetingInstructionMessage');
+  const showEnemyActionBanner = extractMethodBody('showEnemyActionBanner', 'destroyEnemyActionBanner');
+  const showOpeningTurnStartBanner = source.slice(
+    source.indexOf('  async showOpeningTurnStartBanner() {'),
+    source.indexOf('  destroyTurnStartBanner() {'),
+  );
+  const cleanupSceneObjects = extractMethodBody('cleanupSceneObjects', 'create');
+  const updateActionButtonLabel = extractMethodBody('updateActionButtonLabel', 'canHoldPassToSurrender');
+  const showMovementBlockedFeedback = source.slice(
+    source.indexOf('  showMovementBlockedFeedback('),
+    source.indexOf('  async playMovementFeedback('),
+  );
+
+  assert.match(coordinator, /if \(this\.targetingState\) return 'targeting';/);
+  assert.match(coordinator, /if \(this\.pendingSwapIndex !== null && this\.pendingSwapIndex !== undefined\) return 'board-swap';/);
+  assert.match(coordinator, /if \(this\.restorePersistentBattleBanner\(\)\) return false;/);
+  assert.match(coordinator, /'enemy-action': 3,[\s\S]*'player-action': 2,[\s\S]*'turn-start': 1,/);
+  assert.match(coordinator, /if \(this\.getBattleBannerPriority\(renderedOwner\) > this\.getBattleBannerPriority\(owner\)\) return false;/);
+  assert.match(coordinator, /this\.destroyTransientBattleBanners\(\);/);
+  assert.match(rebuildBattleView, /this\.restorePersistentBattleBanner\(\);/);
+  assert.match(showPlayerActionBanner, /!this\.prepareTransientBattleBanner\('player-action'\)/);
+  assert.match(showEnemyActionBanner, /!this\.prepareTransientBattleBanner\('enemy-action'\)/);
+  assert.match(showOpeningTurnStartBanner, /!this\.prepareTransientBattleBanner\('turn-start'\)/);
+  assert.match(cleanupSceneObjects, /this\.destroyEnemyActionBanner\(\);[\s\S]*this\.destroyTurnStartBanner\(\);[\s\S]*this\.destroyPlayerActionBanner\(\);[\s\S]*this\.destroyActiveSelectionMessage\(\);/);
+  assert.match(updateActionButtonLabel, /translateActive\('ui\.battle\.holdPassToSurrender', 'Hold PASS to surrender'\)/);
+  assert.match(showMovementBlockedFeedback, /this\.showFloatingTextAtSlot\(index, label, 'damage'\)/);
+});
+
+test('persistent owner restoration routes targeting and board swap through their existing prompt methods', () => {
+  const getPersistentBattleBannerOwner = compileMethod('getPersistentBattleBannerOwner', 'restorePersistentBattleBanner', []);
+  const restorePersistentBattleBanner = compileMethod('restorePersistentBattleBanner', 'getBattleBannerPriority', []);
+  const calls = [];
+  const scene = {
+    targetingState: { targetType: 'enemy-unit' },
+    pendingSwapIndex: 2,
+    getPersistentBattleBannerOwner() { return getPersistentBattleBannerOwner.call(this); },
+    showTargetingInstruction() { calls.push('targeting'); },
+    showSwapPrompt(step) { calls.push(`board-swap:${step}`); },
+  };
+
+  assert.equal(restorePersistentBattleBanner.call(scene), true);
+  assert.deepEqual(calls, ['targeting']);
+
+  scene.targetingState = null;
+  assert.equal(restorePersistentBattleBanner.call(scene), true);
+  assert.deepEqual(calls, ['targeting', 'board-swap:selectAdjacent']);
+
+  scene.pendingSwapIndex = null;
+  assert.equal(restorePersistentBattleBanner.call(scene), false);
+});
+
+
+test('transient coordinator suppresses overlap while persistent state exists and clears competing central banners otherwise', () => {
+  const prepareTransientBattleBanner = compileMethod('prepareTransientBattleBanner', 'captureBoardSnapshot', ['owner']);
+  const calls = [];
+  const scene = {
+    restorePersistentBattleBanner() { calls.push('restore'); return true; },
+    getRenderedTransientBattleBannerOwner() { return null; },
+    getBattleBannerPriority(owner) { return { 'enemy-action': 3, 'player-action': 2, 'turn-start': 1 }[owner] ?? 0; },
+    destroyActiveSelectionMessage() { calls.push('clear-selection'); },
+    destroyTransientBattleBanners() { calls.push('clear-transient'); },
+  };
+
+  assert.equal(prepareTransientBattleBanner.call(scene, 'enemy-action'), false);
+  assert.deepEqual(calls, ['restore']);
+
+  scene.restorePersistentBattleBanner = () => { calls.push('restore-none'); return false; };
+  assert.equal(prepareTransientBattleBanner.call(scene, 'player-action'), true);
+  assert.deepEqual(calls, ['restore', 'restore-none', 'clear-selection', 'clear-transient']);
+
+  calls.length = 0;
+  scene.getRenderedTransientBattleBannerOwner = () => 'enemy-action';
+  assert.equal(prepareTransientBattleBanner.call(scene, 'turn-start'), false);
+  assert.deepEqual(calls, ['restore-none']);
+});
+
+test('suppressed player confirmation is deferred until targeting cleanup and higher-priority deferred feedback wins', () => {
+  const deferTransientBattleBanner = compileMethod('deferTransientBattleBanner', 'flushDeferredTransientBattleBanner', ['owner', 'payload']);
+  const flushDeferredTransientBattleBanner = compileMethod('flushDeferredTransientBattleBanner', 'prepareTransientBattleBanner', []);
+  const calls = [];
+  const scene = {
+    deferredTransientBattleBanner: null,
+    targetingState: { targetType: 'enemy-unit' },
+    getBattleBannerPriority(owner) { return { 'enemy-action': 3, 'player-action': 2, 'turn-start': 1 }[owner] ?? 0; },
+    getPersistentBattleBannerOwner() { return this.targetingState ? 'targeting' : null; },
+    showEnemyActionBanner(message) { calls.push(`enemy:${message}`); },
+    showPlayerActionBanner(message) { calls.push(`player:${message}`); },
+    showOpeningTurnStartBanner() { calls.push('turn-start'); },
+  };
+
+  deferTransientBattleBanner.call(scene, 'player-action', { message: 'YOU PLAYED' });
+  assert.equal(flushDeferredTransientBattleBanner.call(scene), false, 'targeting prompt must keep rendering while targeting remains active');
+  assert.deepEqual(calls, []);
+
+  deferTransientBattleBanner.call(scene, 'turn-start');
+  assert.equal(scene.deferredTransientBattleBanner.owner, 'player-action', 'lower-priority deferred feedback must not replace confirmation');
+
+  scene.targetingState = null;
+  assert.equal(flushDeferredTransientBattleBanner.call(scene), true);
+  assert.deepEqual(calls, ['player:YOU PLAYED']);
+  assert.equal(scene.deferredTransientBattleBanner, null);
+});
+
+test('target completion flushes deferred confirmation immediately after clearing the persistent prompt', () => {
+  const completePlayerAction = source.slice(
+    source.indexOf('  async completePlayerAction('),
+    source.indexOf('  async resolveEnemyFirstTurnOpening()', source.indexOf('  async completePlayerAction(')),
+  );
+
+  assert.match(completePlayerAction, /this\.destroyActiveSelectionMessage\(\);\s*this\.flushDeferredTransientBattleBanner\(\);/);
 });
