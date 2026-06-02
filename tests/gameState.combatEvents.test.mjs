@@ -50,6 +50,106 @@ test('resolveCombat returns unit-vs-unit combat events and preserves winner reso
   assert.equal(state.winner, null);
 });
 
+test('Sniper removes an off-lane lethal target before its later lane can attack', () => {
+  const state = makeState();
+  state.board[6] = unit('player', { id: 'sniper', attack: 2, hp: 1, maxHp: 1, effectId: 'can_hit_any_lane' });
+  state.board[1] = unit('enemy', { id: 'later-lane-victim', attack: 3, hp: 1, maxHp: 1 });
+
+  const events = resolveCombat(state);
+
+  assert.equal(events.length, 1);
+  assert.equal(events[0].attackerIndex, 6);
+  assert.equal(events[0].targetIndex, 1);
+  assert.equal(events[0].lethal, true);
+  assert.equal(state.board[1], null);
+  assert.equal(state.playerHP, 12);
+});
+
+test('Sniper immediately cleans an off-lane lethal target in an already-resolved lane', () => {
+  const state = makeState();
+  state.board[8] = unit('player', { id: 'late-sniper', attack: 2, hp: 1, maxHp: 1, effectId: 'can_hit_any_lane' });
+  state.board[0] = unit('enemy', { id: 'earlier-lane-victim', attack: 0, hp: 1, maxHp: 1 });
+
+  const events = resolveCombat(state);
+
+  assert.equal(events.length, 2);
+  assert.equal(events[0].attackerIndex, 0);
+  assert.equal(events[0].targetType, 'hero');
+  assert.equal(events[1].attackerIndex, 8);
+  assert.equal(events[1].targetIndex, 0);
+  assert.equal(state.board[0], null);
+});
+
+test('multiple Snipers skip defeated off-lane targets instead of attacking the same corpse', () => {
+  const state = makeState();
+  state.board[6] = unit('player', { id: 'first-sniper', attack: 2, hp: 1, maxHp: 1, effectId: 'can_hit_any_lane' });
+  state.board[7] = unit('player', { id: 'second-sniper', attack: 2, hp: 1, maxHp: 1, effectId: 'can_hit_any_lane' });
+  state.board[2] = unit('enemy', { id: 'lowest-hp-victim', attack: 4, hp: 1, maxHp: 1 });
+  state.board[0] = unit('enemy', { id: 'next-living-target', attack: 0, hp: 3, maxHp: 3 });
+
+  const events = resolveCombat(state);
+  const sniperEvents = events.filter((event) => event.attackerSide === 'player');
+
+  assert.deepEqual(sniperEvents.map((event) => [event.attackerIndex, event.targetIndex]), [
+    [6, 2],
+    [7, 0],
+  ]);
+  assert.equal(state.board[2], null);
+  assert.equal(state.board[0].hp, 1);
+  assert.equal(state.playerHP, 12);
+});
+
+test('Sniper targeting ignores non-positive HP units already present on the board', () => {
+  const state = makeState();
+  state.board[6] = unit('player', { id: 'sniper', attack: 2, hp: 1, maxHp: 1, effectId: 'can_hit_any_lane' });
+  state.board[0] = unit('enemy', { id: 'stale-corpse', attack: 5, hp: 0, maxHp: 1 });
+  state.board[1] = unit('enemy', { id: 'living-target', attack: 0, hp: 2, maxHp: 2 });
+
+  const events = resolveCombat(state);
+
+  assert.equal(events[0].attackerIndex, 6);
+  assert.equal(events[0].targetIndex, 1);
+  assert.equal(state.board[0], null);
+  assert.equal(state.board[1], null);
+  assert.equal(state.playerHP, 12);
+});
+
+test('Sniper off-lane cleanup records fallen units and fires death triggers exactly once', () => {
+  const state = makeState();
+  state.board[6] = unit('player', { id: 'sniper', attack: 2, hp: 1, maxHp: 1, effectId: 'can_hit_any_lane' });
+  state.board[2] = unit('enemy', { id: 'trigger-victim', attack: 3, hp: 1, maxHp: 1, effectId: 'death_damage_enemy_hero_1' });
+
+  const events = resolveCombat(state);
+
+  assert.equal(events.length, 1);
+  assert.equal(state.playerHP, 11);
+  assert.equal(state.board[2], null);
+  assert.equal(state.enemy.fallen.length, 1);
+  assert.equal(state.enemy.fallen[0].card.id, 'trigger-victim');
+  assert.equal(state.enemy.fallen[0].reason, 'combat-death');
+});
+
+test('Sniper off-lane cleanup preserves combat-death summon handling without duplicates', () => {
+  const state = makeState();
+  state.board[6] = unit('player', { id: 'sniper', attack: 2, hp: 1, maxHp: 1, effectId: 'can_hit_any_lane' });
+  state.board[2] = unit('enemy', { id: 'carrier-victim', attack: 3, hp: 1, maxHp: 1, effectId: 'combat_death_summon_grunt' });
+
+  const events = resolveCombat(state);
+
+  assert.equal(events.length, 2);
+  assert.equal(events[0].attackerIndex, 6);
+  assert.equal(events[0].targetIndex, 2);
+  assert.equal(events[1].attackerIndex, 2);
+  assert.equal(events[1].targetType, 'hero');
+  assert.equal(events[1].damage, 1);
+  assert.equal(state.playerHP, 11);
+  assert.equal(state.board[2].effectId, null);
+  assert.equal(state.board[2].attack, 1);
+  assert.equal(state.enemy.fallen.length, 1);
+  assert.equal(state.enemy.fallen[0].card.id, 'carrier-victim');
+  assert.equal(state.combatOnlyDeathSummons, 1);
+});
+
 test('resolveCombat returns a player open-lane hero attack event and sets winner', () => {
   const state = makeState();
   state.enemyHP = 2;
