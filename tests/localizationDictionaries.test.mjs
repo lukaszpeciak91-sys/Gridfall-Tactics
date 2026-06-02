@@ -85,6 +85,21 @@ test('rules glossary explains gameplay icons in English and Polish', () => {
   assert.equal(getPath(pl, 'ui.rules.glossaryDescriptions.ENEMIES'), 'Jednostki przeciwnika.');
 });
 
+test('selected Control cards keep their intended German-themed names in both dictionaries', () => {
+  const expectedNames = {
+    control_hacker_1: 'Signalegel',
+    control_disruptor_1: 'Störführer',
+    control_sniper_1: 'Rotes Auge',
+    control_controller_1: 'Kommandant',
+    control_pulse_wave_1: 'Wunderwaffe',
+  };
+
+  for (const [cardId, name] of Object.entries(expectedNames)) {
+    assert.equal(en.cards[cardId].name, name, `English ${cardId}`);
+    assert.equal(pl.cards[cardId].name, name, `Polish ${cardId}`);
+  }
+});
+
 test('selected localized card texts use enemy board-unit markers without changing base, effect, or UI copy', () => {
   const migrated = {
     en: {

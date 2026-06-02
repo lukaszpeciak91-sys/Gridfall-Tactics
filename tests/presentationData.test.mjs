@@ -36,6 +36,20 @@ test('every presentation card override points at an existing card id', () => {
   assert.deepEqual(missingCardIds, []);
 });
 
+test('selected Control card names are sourced from localization instead of presentation overrides', () => {
+  const localizedControlCardIds = [
+    'control_hacker_1',
+    'control_disruptor_1',
+    'control_sniper_1',
+    'control_controller_1',
+    'control_pulse_wave_1',
+  ];
+
+  for (const cardId of localizedControlCardIds) {
+    assert.equal(factionPresentation.control.cardNameOverrides[cardId], undefined, cardId);
+  }
+});
+
 test('presentation helper resolves English and Polish override names without replacing gameplay card names', () => {
   const cardsById = new Map(allCards().map(({ card }) => [card.id, card]));
   const runner = cardsById.get('aggro_runner_1');

@@ -81,19 +81,19 @@
       "textShort": "Przywołaj 1/1. Jeśli nie masz [ALLY], przywołaj 2."
     },
     "control_hacker_1": {
-      "name": "Pijawka Sygnału",
+      "name": "Signalegel",
       "textShort": "[ENEMY] naprzeciwko: -1 ATK w tej turze."
     },
     "control_disruptor_1": {
-      "name": "Sygnał Zakłóceń",
+      "name": "Störführer",
       "textShort": "Po zagraniu: anuluj następny efekt przeciwnika."
     },
     "control_sniper_1": {
-      "name": "Czerwone Oko",
+      "name": "Rotes Auge",
       "textShort": "Atakuje [ENEMY] z najniższym HP."
     },
     "control_controller_1": {
-      "name": "Mistrz Sygnału",
+      "name": "Kommandant",
       "textShort": "Po zagraniu: zamień dwóch [ENEMIES]."
     },
     "control_drone_1": {
@@ -109,7 +109,7 @@
       "textShort": "Wybierz do 2 [ENEMIES]: -1 ATK w tej turze."
     },
     "control_pulse_wave_1": {
-      "name": "Impuls Neuronalny",
+      "name": "Wunderwaffe",
       "textShort": "Zadaj 1 wszystkim [ENEMIES], ignorując ARM."
     },
     "control_system_override_1": {

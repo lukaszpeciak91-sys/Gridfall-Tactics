@@ -410,6 +410,27 @@ test('current faction card display names use locale presentation overrides witho
   }
 });
 
+test('localized Control names resolve in Collection, Inspect, Hand, and Battle labels', () => {
+  const faction = getFactionByKey('Control');
+  const expectedNames = {
+    control_hacker_1: 'Signalegel',
+    control_disruptor_1: 'Störführer',
+    control_sniper_1: 'Rotes Auge',
+    control_controller_1: 'Kommandant',
+    control_pulse_wave_1: 'Wunderwaffe',
+  };
+
+  for (const [cardId, name] of Object.entries(expectedNames)) {
+    const card = faction.deck.find((item) => item.id === cardId);
+    assert.equal(getCardDisplayName(card, 'en'), name, `English display name for ${cardId}`);
+    assert.equal(getCardDisplayName(card, 'pl'), name, `Polish display name for ${cardId}`);
+    assert.equal(formatCollectionRowLabel(card, 'pl').name, name, `Collection title for ${cardId}`);
+    assert.equal(formatCardDetailLines(card, 'pl')[0], name, `Inspect title for ${cardId}`);
+    assert.equal(formatHandCardLabel(card, 'pl').split('\n')[0], name, `Hand title for ${cardId}`);
+    assert.equal(formatDeckSummaryEntry(card, 'pl').name, name, `Battle title for ${cardId}`);
+  }
+});
+
 test('Relay production name resolves in player-facing views without changing its stable card id', () => {
   const faction = getFactionByKey('Control');
   const relay = faction.deck.find((card) => card.id === 'control_drone_1');
