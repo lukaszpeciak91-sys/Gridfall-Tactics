@@ -278,40 +278,45 @@ export const INLINE_EFFECT_ICON_MIN_FONT_SIZE = 15;
 export const INLINE_EFFECT_ICON_BASELINE_OFFSET_RATIO = -0.16;
 export const INLINE_EFFECT_ICON_SPACE_SCALE = 0.4;
 
+const GAMEPLAY_SYMBOL_COLORS = Object.freeze({
+  ally: '#facc15',
+  enemy: '#fb7185',
+});
+
+const SINGLE_GAMEPLAY_SYMBOL_STYLE = Object.freeze({
+  fontStyle: 'bold',
+  icon: 'single',
+  fontScale: 1.28,
+  widthScale: 0.667,
+});
+
+const GROUP_GAMEPLAY_SYMBOL_STYLE = Object.freeze({
+  fontStyle: 'bold',
+  icon: 'group',
+  fontScale: 1.22,
+  widthScale: 0.951,
+  count: 2,
+  stroke: '#061426',
+});
+
 const CARD_GAMEPLAY_SYMBOL_STYLES = Object.freeze({
   [CARD_EFFECT_GAMEPLAY_SYMBOLS.ally]: Object.freeze({
-    color: '#facc15',
-    fontStyle: 'bold',
-    icon: 'single',
-    fontScale: 1.28,
-    widthScale: 0.667,
+    ...SINGLE_GAMEPLAY_SYMBOL_STYLE,
+    color: GAMEPLAY_SYMBOL_COLORS.ally,
   }),
   [CARD_EFFECT_GAMEPLAY_SYMBOLS.allies]: Object.freeze({
-    color: '#facc15',
-    fontStyle: 'bold',
-    icon: 'group',
-    fontScale: 1.22,
-    widthScale: 0.951,
+    ...GROUP_GAMEPLAY_SYMBOL_STYLE,
+    color: GAMEPLAY_SYMBOL_COLORS.ally,
     baseGlyph: CARD_EFFECT_GAMEPLAY_SYMBOLS.ally,
-    count: 2,
-    stroke: '#4a3200',
   }),
   [CARD_EFFECT_GAMEPLAY_SYMBOLS.enemy]: Object.freeze({
-    color: '#fb7185',
-    fontStyle: 'bold',
-    icon: 'single',
-    fontScale: 1.28,
-    widthScale: 0.667,
+    ...SINGLE_GAMEPLAY_SYMBOL_STYLE,
+    color: GAMEPLAY_SYMBOL_COLORS.enemy,
   }),
   [CARD_EFFECT_GAMEPLAY_SYMBOLS.enemies]: Object.freeze({
-    color: '#fb7185',
-    fontStyle: 'bold',
-    icon: 'group',
-    fontScale: 1.22,
-    widthScale: 0.951,
+    ...GROUP_GAMEPLAY_SYMBOL_STYLE,
+    color: GAMEPLAY_SYMBOL_COLORS.enemy,
     baseGlyph: CARD_EFFECT_GAMEPLAY_SYMBOLS.enemy,
-    count: 2,
-    stroke: '#061426',
   }),
 });
 

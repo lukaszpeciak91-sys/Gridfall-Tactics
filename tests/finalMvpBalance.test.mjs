@@ -206,7 +206,7 @@ test('Hacker is a 1/2 Control unit with the same lane attack debuff role', () =>
   assert.equal(hacker.armor, 0);
   assert.equal(hacker.effectId, 'enemy_lane_atk_minus_1');
   assert.equal(hacker.targeting, 'lane');
-  assert.equal(hacker.textShort, 'Opposed enemy: -1 ATK this turn.');
+  assert.equal(hacker.textShort, 'Opposed [ENEMY]: -1 ATK this turn.');
 });
 
 test('Disruptor is a 1/2 Control unit with the same order-cancel role', () => {
@@ -408,7 +408,7 @@ test('Jam Signal applies -1 temporary attack to selected enemy units', () => {
   assert.equal(state.board[2].tempAttackMod, -1);
   assert.equal(jamSignal.targeting, 'enemy_units');
   assert.equal(jamSignal.effectId, 'enemy_up_to_2_atk_minus_1');
-  assert.equal(jamSignal.textShort, 'Choose up to 2 enemies: -1 ATK this turn.');
+  assert.equal(jamSignal.textShort, 'Choose up to 2 [ENEMIES]: -1 ATK this turn.');
 
   resolveCombat(state);
 
@@ -439,7 +439,7 @@ test('Pulse Wave damages all occupied enemy lanes and ignores armor without hitt
   assert.equal(state.enemyHP, 5);
   assert.equal(pulseWave.targeting, 'all_enemy_units');
   assert.equal(pulseWave.effectId, 'damage_all_enemies_1_ignore_armor');
-  assert.equal(pulseWave.textShort, 'Deal 1 to all enemies, ignoring ARM.');
+  assert.equal(pulseWave.textShort, 'Deal 1 to all [ENEMIES], ignoring ARM.');
 });
 
 test('Pulse Wave skips empty lanes and damages a single enemy if only one exists', () => {

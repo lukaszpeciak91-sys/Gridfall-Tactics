@@ -24,7 +24,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": "on_play_lane_damage_1",
-      "textShort": "On play: deal 1 to opposed enemy.",
+      "textShort": "On play: deal 1 to opposed [ENEMY].",
       "attack": 1,
       "hp": 1,
       "armor": 0

@@ -214,6 +214,21 @@ test('inline stat text renderer maps compact symbols to top badge colors', () =>
   assert.equal(getInlineGameplaySymbolColor('x'), null);
 });
 
+test('enemy gameplay icons match ally geometry, outline, spacing, and grouping with only a different fill color', () => {
+  const withoutColorAndGlyph = ({ color, baseGlyph, ...style }) => style;
+
+  assert.deepEqual(
+    withoutColorAndGlyph(getInlineGameplaySymbolStyle('♟')),
+    withoutColorAndGlyph(getInlineGameplaySymbolStyle('♙')),
+  );
+  assert.deepEqual(
+    withoutColorAndGlyph(getInlineGameplaySymbolStyle('♟♟')),
+    withoutColorAndGlyph(getInlineGameplaySymbolStyle('♙♙')),
+  );
+  assert.equal(getInlineGameplaySymbolStyle('♙♙').stroke, '#061426');
+  assert.equal(getInlineGameplaySymbolStyle('♟♟').stroke, '#061426');
+});
+
 test('inline stat text tokenizer preserves localized copy while tagging stat and gameplay symbols', () => {
   assert.deepEqual(tokenizeInlineStatText('Sojusznik ♙♙ +1 ◆ i 1 ●.').filter((token) => token.type !== 'space'), [
     { type: 'text', text: 'Sojusznik' },
