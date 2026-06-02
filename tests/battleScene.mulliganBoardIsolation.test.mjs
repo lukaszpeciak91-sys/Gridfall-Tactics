@@ -188,7 +188,6 @@ test('confirming mulligan input reset clears hand inspect preview and pending pr
     effectCastState: { cardId: 'stale-card' },
     isEffectCastResolving: true,
     pendingSwapIndex: 0,
-    actionMode: 'stale',
     hoverInspectCardId: 'unit-a',
     boardInspectIndex: 0,
     pressedHandCardId: 'unit-a',

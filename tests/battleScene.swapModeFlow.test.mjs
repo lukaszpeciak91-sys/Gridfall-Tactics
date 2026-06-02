@@ -11,7 +11,7 @@ test('swap selection is implicit and uses pendingSwapIndex flow', () => {
   assert.match(source, /this\.completePlayerAction\(beforeStats, \[\], \[\{ type: 'swap', fromIndex, toIndex: boardIndex, label: 'SWAP', kind: 'swap' \}\]\);/);
 });
 
-test('pass no longer enters or cancels explicit swap mode', () => {
+test('obsolete actionMode state is removed and pass does not expose explicit swap controls', () => {
   const source = readFileSync(new URL('../src/scenes/BattleScene.js', import.meta.url), 'utf8');
 
   const resolvePassTurnBlock = source.slice(
@@ -19,7 +19,7 @@ test('pass no longer enters or cancels explicit swap mode', () => {
     source.indexOf('  getOpeningTurnStartBannerConfig() {'),
   );
 
-  assert.doesNotMatch(resolvePassTurnBlock, /actionMode === 'swap'/);
+  assert.doesNotMatch(source, /actionMode/);
   assert.doesNotMatch(resolvePassTurnBlock, /canPlayerStartSwap/);
 });
 

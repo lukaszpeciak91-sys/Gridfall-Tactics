@@ -314,7 +314,6 @@ test('hand-card long press preserves targeted session, suppresses release, and a
     selectedCardId: signalShift.id,
     targetingState: { targetType: 'any-unit' },
     effectCastState: null,
-    actionMode: 'card',
     hoverInspectCardId: null,
     boardInspectIndex: null,
     pressedBoardCellIndex: null,

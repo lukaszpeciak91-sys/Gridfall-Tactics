@@ -39,10 +39,10 @@ Safe cleanup completed in this pass intentionally stayed small:
 
 ## Hand/card interaction rules
 
-- Opening mulligan uses `selectedMulliganCardIds` and `previewedMulliganCardId`; it must not set gameplay `selectedCardId`.
-- Normal gameplay card selection uses `selectedCardId`; pointer-up only reveals a visual zoom preview and does not create a separate focus/input mode.
+- Opening mulligan uses `selectedMulliganCardIds` and `previewedMulliganCardId`; it must not set gameplay `selectedCardId`. Hand-card long-press inspect remains available, but board gameplay input is blocked until mulligan confirmation.
+- Normal gameplay card selection uses `selectedCardId`; pointer-up only reveals a visual zoom preview and does not create a separate focus/input mode. Targeted effect cards show their first selection instruction as soon as their targeting session starts.
 - Tapping a selected hand card again toggles it off during gameplay.
-- Tapping outside the hand clears selection only when the pointer-up is not reserved for a card, board cell action, PASS/action button, gameplay deck counter/info panel, or bottom navigation control.
+- Tapping outside the hand clears selection only when the pointer-up is not reserved for a card, board cell action, PASS/action button, gameplay deck counter/info panel, or bottom navigation control. Interrupted pointer gestures clear local press/timer bookkeeping without triggering tap behavior.
 - Mulligan selection state is highlighted independently from gameplay card selection.
 - Empty hand slots remain non-interactive and visually muted.
 
@@ -84,6 +84,8 @@ Safe cleanup completed in this pass intentionally stayed small:
 - Tapping outside an in-game overlay closes only that overlay; the dimmed overlay layer consumes the tap so underlying gameplay controls do not also act on it.
 - Deck Info can be viewed during the opening mulligan, is blocked while battle flow animations are resolving, and keeps masked scrolling available when card groups exceed the reduced panel height.
 - The action button reads `KEEP HAND`/`MULLIGAN N` during the opening mulligan and `PASS` afterward.
+- Controller play/redeploy uses explicit manual unit-on-play targeting; Hacker keeps its automatic lane behavior.
+- Persistent targeting/swap instructions and transient action/turn banners are centrally coordinated so transient notices defer rather than overlap.
 
 ## Regression checklist coverage
 

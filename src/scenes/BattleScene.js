@@ -169,7 +169,6 @@ export default class BattleScene extends Phaser.Scene {
     this.handCardFlipReveals = [];
     this.boardCells = [];
     this.pendingSwapIndex = null;
-    this.actionMode = null;
     this.playerActionUsed = false;
     this.enemyActionUsed = false;
     this.targetingState = null;
@@ -246,7 +245,6 @@ export default class BattleScene extends Phaser.Scene {
     this.handCardFlipReveals = [];
     this.boardCells = [];
     this.pendingSwapIndex = null;
-    this.actionMode = null;
     this.playerActionUsed = false;
     this.enemyActionUsed = false;
     this.targetingState = null;
@@ -1192,6 +1190,7 @@ export default class BattleScene extends Phaser.Scene {
 
   onScenePointerUpOutside() {
     // Phaser exposes pointerupoutside on the Scene Input Plugin, not individual Game Objects.
+    // Keep interruption cleanup gesture-local: canceled releases must never fall through to tap behavior.
     this.cancelInterruptedPointerGesture();
   }
 
@@ -2073,7 +2072,6 @@ export default class BattleScene extends Phaser.Scene {
         this.selectedCardId = null;
         this.targetingState = null;
         this.effectCastState = null;
-        this.actionMode = null;
         this.destroyTargetingInstruction();
       }
       this.hoverInspectCardId = cardId;
@@ -2179,6 +2177,7 @@ export default class BattleScene extends Phaser.Scene {
     if (this.battleResultModalShown || this.isFlowResolving || this.isEffectCastResolving) return;
 
     if (this.openingMulliganPending) {
+      // Mulligan owns hand exchange and inspect only; board gameplay stays isolated until confirmation.
       this.clearOpeningMulliganPreviewFromOutsideTap(pointer, currentlyOver);
       return;
     }
@@ -2406,7 +2405,6 @@ export default class BattleScene extends Phaser.Scene {
     this.selectedCardId = null;
     this.targetingState = null;
     this.effectCastState = null;
-    this.actionMode = null;
     this.hoverInspectCardId = null;
     this.boardInspectIndex = null;
     this.pressedHandCardWasSelected = false;
@@ -2419,6 +2417,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   onBoardCellTap(boardIndex) {
+    // Board gameplay is intentionally unavailable while the opening mulligan owns input.
     if (this.openingMulliganPending || this.utilityMenuPanel || this.navigationInProgress || this.pointerInputGuardActive) {
       return;
     }
@@ -2569,6 +2568,8 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
+    // Controller play/redeploy explicitly enters manual unit-on-play targeting. Hacker lane behavior
+    // remains automatic because it does not use the swap_two_enemy_units effect.
     if ((result.type === 'play' || result.type === 'redeploy') && result.card?.effectId === 'swap_two_enemy_units') {
       this.startPlayerUnitOnPlayTargeting(result.card, boardIndex, beforeStats);
       return;
@@ -2598,7 +2599,6 @@ export default class BattleScene extends Phaser.Scene {
     this.selectedCardId = null;
     this.pendingSwapIndex = null;
     this.clearSwapPrompt();
-    this.actionMode = null;
     this.targetingState = null;
     this.hoverInspectCardId = null;
     this.boardInspectIndex = null;
@@ -2633,7 +2633,6 @@ export default class BattleScene extends Phaser.Scene {
     this.selectedCardId = null;
     this.pendingSwapIndex = null;
     this.clearSwapPrompt();
-    this.actionMode = null;
     this.targetingState = null;
     this.hoverInspectCardId = null;
     this.boardInspectIndex = null;
@@ -2751,7 +2750,6 @@ export default class BattleScene extends Phaser.Scene {
     this.targetingState = null;
     this.effectCastState = null;
     this.pendingSwapIndex = null;
-    this.actionMode = null;
     this.hoverInspectCardId = null;
     this.boardInspectIndex = null;
     this.pressedHandCardId = null;
@@ -2814,7 +2812,6 @@ export default class BattleScene extends Phaser.Scene {
     this.effectCastState = null;
     this.isEffectCastResolving = false;
     this.pendingSwapIndex = null;
-    this.actionMode = null;
     this.hoverInspectCardId = null;
     this.boardInspectIndex = null;
     this.pressedHandCardId = null;
@@ -2972,7 +2969,6 @@ export default class BattleScene extends Phaser.Scene {
 
     if (this.gameState.winner || !canPass(this.gameState) || this.playerActionUsed) return;
     recordPassAction(this.gameState, 'player');
-    this.actionMode = null;
     this.pendingSwapIndex = null;
     this.destroyActiveSelectionMessage();
     this.completePlayerAction();
@@ -3086,7 +3082,6 @@ export default class BattleScene extends Phaser.Scene {
     this.enemyActionUsed = false;
     this.selectedCardId = null;
     this.pendingSwapIndex = null;
-    this.actionMode = null;
     this.targetingState = null;
     this.effectCastState = null;
     this.isEffectCastResolving = false;
@@ -3261,7 +3256,6 @@ export default class BattleScene extends Phaser.Scene {
   refreshAfterPlayerAction() {
     this.selectedCardId = null;
     this.pendingSwapIndex = null;
-    this.actionMode = null;
     this.targetingState = null;
     this.effectCastState = null;
     this.isEffectCastResolving = false;
@@ -3695,6 +3689,8 @@ export default class BattleScene extends Phaser.Scene {
     return snapshot;
   }
 
+  // Persistent selection banners outrank transient action/turn banners. Transient banners are
+  // deferred and replayed after selection clears so instructions never overlap notifications.
   getPersistentBattleBannerOwner() {
     if (this.targetingState) return 'targeting';
     if (this.pendingSwapIndex !== null && this.pendingSwapIndex !== undefined) return 'board-swap';
