@@ -217,6 +217,7 @@ export default class BattleScene extends Phaser.Scene {
     this.currentBoardRenderStats = null;
     this.turnStartBanner = null;
     this.turnStartBannerFadeOutEvent = null;
+    this.deferredTransientBattleBanner = null;
     this.hasShownOpeningTurnStartBanner = false;
     this.playerConcedableHintState = { shownKey: null, stableChecks: 0, lastEligibleKey: null };
     this.passHoldToSurrenderEnabled = false;
@@ -307,6 +308,7 @@ export default class BattleScene extends Phaser.Scene {
     this.currentBoardRenderStats = null;
     this.turnStartBanner = null;
     this.turnStartBannerFadeOutEvent = null;
+    this.deferredTransientBattleBanner = null;
     this.hasShownOpeningTurnStartBanner = false;
     this.playerConcedableHintState = { shownKey: null, stableChecks: 0, lastEligibleKey: null };
     this.passHoldToSurrenderEnabled = false;
@@ -315,6 +317,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   cleanupSceneObjects({ preserveTimers = false, preserveTweens = false } = {}) {
+    this.deferredTransientBattleBanner = null;
     this.destroyEnemyActionBanner();
     this.destroyTurnStartBanner();
     this.destroyPlayerActionBanner();
@@ -1159,6 +1162,7 @@ export default class BattleScene extends Phaser.Scene {
     this.updateActionButtonLabel();
     this.updateInitiativeIndicator();
     this.resetCardHighlights();
+    this.restorePersistentBattleBanner();
 
     if (this.gameState?.winner && resultModalWasShown) {
       this.battleResultModalShown = false;
@@ -2993,8 +2997,11 @@ export default class BattleScene extends Phaser.Scene {
 
   async showOpeningTurnStartBanner() {
     if (this.hasShownOpeningTurnStartBanner || !this.layout || !this.gameState) return;
+    if (!this.prepareTransientBattleBanner('turn-start')) {
+      this.deferTransientBattleBanner('turn-start');
+      return;
+    }
     this.hasShownOpeningTurnStartBanner = true;
-    this.destroyTurnStartBanner();
 
     const { width, height, board } = this.layout;
     const maxWidth = board.width * 0.88;
@@ -3041,6 +3048,7 @@ export default class BattleScene extends Phaser.Scene {
         ease: 'Quad.easeIn',
         onComplete: () => {
           if (this.turnStartBanner === banner) this.destroyTurnStartBanner();
+          this.flushDeferredTransientBattleBanner();
           resolve();
         },
       });
@@ -3132,6 +3140,7 @@ export default class BattleScene extends Phaser.Scene {
     this.playerActionUsed = true;
     this.isFlowResolving = true;
     this.destroyActiveSelectionMessage();
+    this.flushDeferredTransientBattleBanner();
     this.currentActionFeedback = actionFeedback;
     await this.playMovementFeedback(movementFeedback, beforeStats);
     await this.playPreRefreshActionFeedback(actionFeedback);
@@ -3423,7 +3432,10 @@ export default class BattleScene extends Phaser.Scene {
 
   showPlayerActionBanner(message) {
     if (!message) return;
-    this.destroyPlayerActionBanner();
+    if (!this.prepareTransientBattleBanner('player-action')) {
+      this.deferTransientBattleBanner('player-action', { message });
+      return;
+    }
 
     const { width, height, board } = this.layout;
     const maxWidth = board.width * 0.88;
@@ -3467,6 +3479,7 @@ export default class BattleScene extends Phaser.Scene {
           ease: 'Quad.easeIn',
           onComplete: () => {
             if (this.playerActionBanner === banner) this.destroyPlayerActionBanner();
+            this.flushDeferredTransientBattleBanner();
           },
         });
       },
@@ -3532,6 +3545,7 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
+    this.destroyTransientBattleBanners();
     const layout = this.getActiveSelectionBannerLayout(owner);
     if (this.activeSelectionBanner?.active && this.activeSelectionBannerOwner === owner) {
       this.activeSelectionBanner.setText(message);
@@ -3540,7 +3554,7 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
-    this.destroyActiveSelectionMessage();
+    this.destroyActiveSelectionMessage(null, { flushDeferred: false });
     this.activeSelectionBanner = this.add.text(layout.x, layout.startY, message, {
       fontFamily: 'Arial, sans-serif',
       fontSize: `${layout.fontSize}px`,
@@ -3567,8 +3581,10 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   showEnemyActionBanner(message, pacing = ENEMY_ACTION_PACING.unit) {
-    this.destroyPlayerActionBanner();
-    this.destroyEnemyActionBanner();
+    if (!this.prepareTransientBattleBanner('enemy-action')) {
+      this.deferTransientBattleBanner('enemy-action', { message, pacing });
+      return;
+    }
 
     const { width, height, board } = this.layout;
     const maxWidth = board.width * 0.94;
@@ -3611,6 +3627,7 @@ export default class BattleScene extends Phaser.Scene {
           ease: 'Quad.easeIn',
           onComplete: () => {
             if (this.enemyActionBanner === banner) this.destroyEnemyActionBanner();
+            this.flushDeferredTransientBattleBanner();
           },
         });
       },
@@ -3644,11 +3661,12 @@ export default class BattleScene extends Phaser.Scene {
     this.destroyActiveSelectionMessage('targeting');
   }
 
-  destroyActiveSelectionMessage(owner = null) {
+  destroyActiveSelectionMessage(owner = null, { flushDeferred = true } = {}) {
     if (owner && this.activeSelectionBannerOwner !== owner) return;
     if (!this.activeSelectionBanner) {
       this.targetingInstructionText = null;
       this.activeSelectionBannerOwner = null;
+      if (flushDeferred) this.flushDeferredTransientBattleBanner();
       return;
     }
     this.tweens?.killTweensOf?.(this.activeSelectionBanner);
@@ -3656,6 +3674,7 @@ export default class BattleScene extends Phaser.Scene {
     this.activeSelectionBanner = null;
     this.activeSelectionBannerOwner = null;
     this.targetingInstructionText = null;
+    if (flushDeferred) this.flushDeferredTransientBattleBanner();
   }
 
 
@@ -3674,6 +3693,82 @@ export default class BattleScene extends Phaser.Scene {
     snapshot.playerHP = this.gameState?.playerHP ?? 0;
     snapshot.enemyHP = this.gameState?.enemyHP ?? 0;
     return snapshot;
+  }
+
+  getPersistentBattleBannerOwner() {
+    if (this.targetingState) return 'targeting';
+    if (this.pendingSwapIndex !== null && this.pendingSwapIndex !== undefined) return 'board-swap';
+    return null;
+  }
+
+  restorePersistentBattleBanner() {
+    const owner = this.getPersistentBattleBannerOwner();
+    if (owner === 'targeting') {
+      this.showTargetingInstruction();
+      return true;
+    }
+    if (owner === 'board-swap') {
+      this.showSwapPrompt('selectAdjacent');
+      return true;
+    }
+    return false;
+  }
+
+  getBattleBannerPriority(owner) {
+    return {
+      targeting: 5,
+      'board-swap': 4,
+      'enemy-action': 3,
+      'player-action': 2,
+      'turn-start': 1,
+    }[owner] ?? 0;
+  }
+
+  getRenderedTransientBattleBannerOwner() {
+    if (this.enemyActionBanner?.active) return 'enemy-action';
+    if (this.playerActionBanner?.active) return 'player-action';
+    if (this.turnStartBanner?.active) return 'turn-start';
+    return null;
+  }
+
+  destroyTransientBattleBanners() {
+    this.destroyTurnStartBanner();
+    this.destroyEnemyActionBanner();
+    this.destroyPlayerActionBanner();
+  }
+
+  deferTransientBattleBanner(owner, payload = {}) {
+    const deferredOwner = this.deferredTransientBattleBanner?.owner;
+    if (this.getBattleBannerPriority(deferredOwner) > this.getBattleBannerPriority(owner)) return;
+    this.deferredTransientBattleBanner = { owner, payload };
+  }
+
+  flushDeferredTransientBattleBanner() {
+    const deferred = this.deferredTransientBattleBanner;
+    if (!deferred || this.getPersistentBattleBannerOwner()) return false;
+    this.deferredTransientBattleBanner = null;
+    if (deferred.owner === 'enemy-action') {
+      this.showEnemyActionBanner(deferred.payload.message, deferred.payload.pacing);
+      return true;
+    }
+    if (deferred.owner === 'player-action') {
+      this.showPlayerActionBanner(deferred.payload.message);
+      return true;
+    }
+    if (deferred.owner === 'turn-start') {
+      this.showOpeningTurnStartBanner();
+      return true;
+    }
+    return false;
+  }
+
+  prepareTransientBattleBanner(owner) {
+    if (this.restorePersistentBattleBanner()) return false;
+    const renderedOwner = this.getRenderedTransientBattleBannerOwner();
+    if (this.getBattleBannerPriority(renderedOwner) > this.getBattleBannerPriority(owner)) return false;
+    this.destroyActiveSelectionMessage(null, { flushDeferred: false });
+    this.destroyTransientBattleBanners();
+    return true;
   }
 
   captureBoardSnapshot() {
