@@ -1,7 +1,36 @@
 import { getUnitAttack } from './GameState.js';
 
+export const COMBAT_ATTACK_PRESENTATIONS = Object.freeze({
+  melee: 'melee',
+  beam: 'beam',
+});
+
+export function normalizeCombatAttackPresentation(presentation) {
+  return presentation === COMBAT_ATTACK_PRESENTATIONS.beam
+    ? COMBAT_ATTACK_PRESENTATIONS.beam
+    : COMBAT_ATTACK_PRESENTATIONS.melee;
+}
+
 export function getCombatEventAttackerIndex(event) {
   return Number.isInteger(event?.attackerIndex) ? event.attackerIndex : null;
+}
+
+export function getCombatEventAttackerSnapshot(event, preCombatBoardSnapshot) {
+  const attackerIndex = getCombatEventAttackerIndex(event);
+  if (!Number.isInteger(attackerIndex)) return null;
+  if (!Array.isArray(preCombatBoardSnapshot)) return null;
+
+  const attacker = preCombatBoardSnapshot[attackerIndex];
+  if (!attacker) return null;
+  if (attacker.owner !== event.attackerSide) return null;
+
+  return attacker;
+}
+
+export function getCombatAttackPresentation(event, preCombatBoardSnapshot) {
+  return normalizeCombatAttackPresentation(
+    getCombatEventAttackerSnapshot(event, preCombatBoardSnapshot)?.attackPresentation,
+  );
 }
 
 export function shouldAnimateCombatAttacker(event, preCombatBoardSnapshot) {
@@ -9,16 +38,19 @@ export function shouldAnimateCombatAttacker(event, preCombatBoardSnapshot) {
 
   const attackerIndex = getCombatEventAttackerIndex(event);
   if (!Number.isInteger(attackerIndex)) return false;
-  if (!Array.isArray(preCombatBoardSnapshot)) return false;
 
-  const attacker = preCombatBoardSnapshot[attackerIndex];
+  const attacker = getCombatEventAttackerSnapshot(event, preCombatBoardSnapshot);
   if (!attacker) return false;
-  if (attacker.owner !== event.attackerSide) return false;
 
   const expectedLane = attackerIndex % 3;
   if (Number.isInteger(event.lane) && event.lane !== expectedLane) return false;
 
   return getUnitAttack(attacker) > 0;
+}
+
+export function shouldUseMeleeCombatPresentation(event, preCombatBoardSnapshot) {
+  return shouldAnimateCombatAttacker(event, preCombatBoardSnapshot)
+    && getCombatAttackPresentation(event, preCombatBoardSnapshot) === COMBAT_ATTACK_PRESENTATIONS.melee;
 }
 
 export function getCombatEventTargetIndex(event) {
@@ -55,7 +87,7 @@ export function getLaneSimultaneousUnitClash(lane, laneEvents, preCombatBoardSna
     }))
     .filter(({ event, attackerIndex, targetIndex }) => (
       event?.targetType === 'unit'
-      && shouldAnimateCombatAttacker(event, preCombatBoardSnapshot)
+      && shouldUseMeleeCombatPresentation(event, preCombatBoardSnapshot)
       && Number.isInteger(attackerIndex)
       && Number.isInteger(targetIndex)
     ));

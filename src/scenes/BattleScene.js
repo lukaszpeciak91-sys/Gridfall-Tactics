@@ -3,7 +3,7 @@ import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
 import { createInitialBattleState, drawCards, shuffleDeck, canPass, canPlayOrRedeploy, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, resolveTargetedUnitOnPlayEffect, getUnitAttack, getUnitArmor, toggleFirstActor, resolveTurnCapWinner, resolveImmediateResourceExhaustionWinner, resolveImmediateNoProgressWinner, recordPassAction, performOpeningMulligan, STARTING_HAND_SIZE, MAX_OPENING_MULLIGAN_CARDS } from '../systems/GameState.js';
 import { chooseEnemyAction, isVerySafeConcedableState, recordBattleActionUse, selectOpeningMulliganCardIds } from '../systems/enemyDecision.js';
 import { getTargetingStateForEffect } from '../systems/cardTargeting.js';
-import { getCombatEventAttackerIndex, getCombatEventTargetIndex, getLaneLethalTargetIndexes, getLaneSimultaneousUnitClash, shouldAnimateCombatAttacker } from '../systems/combatAnimation.js';
+import { COMBAT_ATTACK_PRESENTATIONS, getCombatAttackPresentation, getCombatEventAttackerIndex, getCombatEventTargetIndex, getLaneLethalTargetIndexes, getLaneSimultaneousUnitClash, shouldAnimateCombatAttacker } from '../systems/combatAnimation.js';
 import { BATTLE_BACKGROUND_FALLBACK_COLOR, BATTLE_BACKGROUND_FALLBACK_COLOR_HEX, createCoverBackground, getBattleBackgroundAsset, hasLoadedImageAsset, preloadBattleBackgroundArt, preloadImageAsset, resolvePublicAssetPath } from '../rendering/backgroundArt.js';
 import { preloadAllCardIllustrations } from '../rendering/cardIllustrationAssets.js';
 import { calculateHandLayoutMetrics } from '../ui/handLayout.js';
@@ -4711,6 +4711,8 @@ export default class BattleScene extends Phaser.Scene {
         const attackerWasDefeatedInThisLane = Number.isInteger(attackerIndex) && lethalTargetIndexes.has(attackerIndex);
         if (attackerWasDefeatedInThisLane) {
           await this.playCombatEventFeedback([event]);
+        } else if (getCombatAttackPresentation(event, preCombatBoardSnapshot) === COMBAT_ATTACK_PRESENTATIONS.beam) {
+          await this.animateBeamAttack(event, preCombatBoardSnapshot);
         } else if (event.targetType === 'hero') {
           await this.animateHeroStrike(event, preCombatBoardSnapshot);
         } else {
@@ -4843,6 +4845,96 @@ export default class BattleScene extends Phaser.Scene {
     } finally {
       this.restoreUnitVisualState(lungeConfig.visualState);
     }
+  }
+
+  async animateBeamAttack(event, preCombatBoardSnapshot = null) {
+    const attacker = this.getCombatAttackerVisual(event, preCombatBoardSnapshot);
+    const target = this.getCombatTargetVisual(event);
+    if (!attacker || !target) {
+      await this.playCombatEventFeedback([event]);
+      return;
+    }
+
+    const cue = this.createBeamAttackCue(attacker.cell, target, event);
+    if (!cue) {
+      await this.playCombatEventFeedback([event]);
+      return;
+    }
+
+    try {
+      await cue.flashAttacker();
+      await cue.revealBeam();
+      await this.playCombatEventFeedback([event]);
+      await this.delay(45);
+    } finally {
+      cue.destroy();
+    }
+  }
+
+  createBeamAttackCue(attackerCell, target, event) {
+    if (!attackerCell?.background) return null;
+
+    const startX = attackerCell.background.x;
+    const startY = attackerCell.background.y;
+    const targetPoint = this.getCombatTargetBeamPoint(target, event);
+    if (!targetPoint) return null;
+
+    const beam = this.add.graphics().setDepth(238).setAlpha(0);
+    beam.lineStyle(3, 0xff1f3d, 0.94);
+    beam.beginPath();
+    beam.moveTo(startX, startY);
+    beam.lineTo(targetPoint.x, targetPoint.y);
+    beam.strokePath();
+    beam.lineStyle(1, 0xffc4c4, 0.88);
+    beam.beginPath();
+    beam.moveTo(startX, startY);
+    beam.lineTo(targetPoint.x, targetPoint.y);
+    beam.strokePath();
+
+    const flashRadius = Math.max(8, Math.min(attackerCell.background.width, attackerCell.background.height) * 0.12);
+    const eyeFlash = this.add.graphics().setDepth(242).setAlpha(0);
+    eyeFlash.fillStyle(0xff1f3d, 0.88);
+    eyeFlash.fillCircle(startX, startY, flashRadius);
+    eyeFlash.lineStyle(2, 0xffc4c4, 0.9);
+    eyeFlash.strokeCircle(startX, startY, flashRadius + 2);
+
+    const targetFlash = this.add.graphics().setDepth(241).setAlpha(0);
+    targetFlash.fillStyle(0xff1f3d, 0.3);
+    targetFlash.fillCircle(targetPoint.x, targetPoint.y, flashRadius * 1.35);
+    targetFlash.lineStyle(2, 0xff6b6b, 0.95);
+    targetFlash.strokeCircle(targetPoint.x, targetPoint.y, flashRadius * 1.75);
+
+    return {
+      flashAttacker: () => Promise.all([
+        this.tweenToPromise({ targets: eyeFlash, alpha: 1, duration: 35, ease: 'Quad.easeOut' }),
+        this.tweenToPromise({ targets: attackerCell.background, scaleX: 1.025, scaleY: 1.025, duration: 35, yoyo: true, ease: 'Quad.easeOut' }),
+      ]),
+      revealBeam: () => Promise.all([
+        this.tweenToPromise({ targets: beam, alpha: 1, duration: 45, ease: 'Quad.easeOut' }),
+        this.tweenToPromise({ targets: eyeFlash, alpha: 0.72, duration: 45, ease: 'Quad.easeInOut' }),
+        this.tweenToPromise({ targets: targetFlash, alpha: 1, duration: 45, ease: 'Quad.easeOut' }),
+      ]),
+      destroy: () => {
+        beam.destroy();
+        eyeFlash.destroy();
+        targetFlash.destroy();
+      },
+    };
+  }
+
+  getCombatTargetBeamPoint(target, event) {
+    if (target?.type === 'unit' && target.cell?.background) {
+      return { x: target.cell.background.x, y: target.cell.background.y };
+    }
+
+    if (target?.type === 'hero' && target.hero) {
+      const heroEdgeY = event.targetSide === 'enemy'
+        ? target.hero.y + target.hero.height * 0.5
+        : target.hero.y - target.hero.height * 0.5;
+      return { x: target.hero.x, y: heroEdgeY };
+    }
+
+    return null;
   }
 
   async animateHeroStrike(event, preCombatBoardSnapshot = null) {

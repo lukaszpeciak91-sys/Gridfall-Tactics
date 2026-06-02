@@ -40,7 +40,8 @@
       "textShort": "Attacks the lowest-HP [ENEMY].",
       "attack": 2,
       "hp": 1,
-      "armor": 0
+      "armor": 0,
+      "attackPresentation": "beam"
     },
     {
       "id": "control_controller_1",
