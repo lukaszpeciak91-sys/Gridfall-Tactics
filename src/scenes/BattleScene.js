@@ -5085,38 +5085,6 @@ export default class BattleScene extends Phaser.Scene {
 
     const startX = attackerCell.background.x;
     const startY = attackerCell.background.y;
-    const strikePoint = this.getControlledHeroStrikePoint(attackerCell, hero, event);
-    if (!strikePoint) return null;
-
-    const vectorCue = this.add.graphics().setDepth(235).setAlpha(0);
-    const dx = strikePoint.x - startX;
-    const dy = strikePoint.y - startY;
-    const length = Math.hypot(dx, dy) || 1;
-    const ux = dx / length;
-    const uy = dy / length;
-    const startOffset = Math.min(18, length * 0.18);
-    const endOffset = Math.min(54, length * 0.42);
-    const cueStartX = startX + ux * startOffset;
-    const cueStartY = startY + uy * startOffset;
-    const cueEndX = startX + ux * Math.max(startOffset + 1, length - endOffset);
-    const cueEndY = startY + uy * Math.max(startOffset + 1, length - endOffset);
-    const perpX = -uy;
-    const perpY = ux;
-    const arrowSize = Math.max(9, Math.min(attackerCell.background.width, attackerCell.background.height) * 0.11);
-
-    vectorCue.lineStyle(6, 0xf97316, 0.58);
-    vectorCue.beginPath();
-    vectorCue.moveTo(cueStartX, cueStartY);
-    vectorCue.lineTo(cueEndX, cueEndY);
-    vectorCue.strokePath();
-    vectorCue.lineStyle(2, 0xffedd5, 0.86);
-    vectorCue.beginPath();
-    vectorCue.moveTo(cueEndX - ux * arrowSize + perpX * arrowSize * 0.55, cueEndY - uy * arrowSize + perpY * arrowSize * 0.55);
-    vectorCue.lineTo(cueEndX, cueEndY);
-    vectorCue.lineTo(cueEndX - ux * arrowSize - perpX * arrowSize * 0.55, cueEndY - uy * arrowSize - perpY * arrowSize * 0.55);
-    vectorCue.strokePath();
-    vectorCue.fillStyle(0xf97316, 0.85);
-    vectorCue.fillCircle(startX, startY, 5);
 
     const label = this.add.text(
       startX,
@@ -5134,12 +5102,15 @@ export default class BattleScene extends Phaser.Scene {
     ).setOrigin(0.5).setDepth(245).setAlpha(0).setScale(0.88);
 
     return {
-      reveal: () => Promise.all([
-        this.tweenToPromise({ targets: vectorCue, alpha: 1, duration: 90, ease: 'Quad.easeOut' }),
-        this.tweenToPromise({ targets: label, alpha: 1, scaleX: 1, scaleY: 1, duration: 110, ease: 'Back.easeOut' }),
-      ]),
+      reveal: () => this.tweenToPromise({
+        targets: label,
+        alpha: 1,
+        scaleX: 1,
+        scaleY: 1,
+        duration: 110,
+        ease: 'Back.easeOut',
+      }),
       destroy: () => {
-        vectorCue.destroy();
         label.destroy();
       },
     };
