@@ -643,6 +643,83 @@ export function getUnitArmor(unit) {
   return Math.max(0, baseArmor + tempArmor);
 }
 
+function getAdjacentBoardAllyIndexes(unit, boardIndex) {
+  if (!unit || !Number.isInteger(boardIndex)) return [];
+  const row = getRowForOwner(unit.owner);
+  if (!row.includes(boardIndex)) return [];
+
+  const lane = boardIndex % 3;
+  const indexes = [];
+  if (lane > 0) indexes.push(row[lane - 1]);
+  if (lane < 2) indexes.push(row[lane + 1]);
+  return indexes;
+}
+
+function getOpposingLaneIndex(unit, boardIndex) {
+  if (!unit || !Number.isInteger(boardIndex)) return null;
+  if (!getRowForOwner(unit.owner).includes(boardIndex)) return null;
+  return unit.owner === 'player' ? boardIndex - 6 : boardIndex + 6;
+}
+
+function getBoardDefensiveFrictionPenalty(state, defenderIndex) {
+  const defender = state?.board?.[defenderIndex];
+  if (!defender) return 0;
+
+  let penalty = 0;
+  if (defender.effectId === WARDEN_SELF_FRICTION_EFFECT_ID) penalty += 1;
+
+  getAdjacentBoardAllyIndexes(defender, defenderIndex).forEach((index) => {
+    const adjacentAlly = state.board[index];
+    if (adjacentAlly?.owner === defender.owner && adjacentAlly.effectId === WARDEN_SPEARWALL_EFFECT_ID) {
+      penalty += 1;
+    }
+  });
+
+  return Math.min(WARDEN_FRICTION_CAP, penalty);
+}
+
+export function getEffectiveBoardAttack(state, boardIndex) {
+  const unit = state?.board?.[boardIndex];
+  if (!unit) return 0;
+
+  let attack = getUnitAttack(unit);
+
+  if (unit.effectId === 'opposing_lane_atk_plus_1') {
+    const opposingIndex = getOpposingLaneIndex(unit, boardIndex);
+    if (state.board[opposingIndex]?.owner === getOpponentOwner(unit.owner)) attack += 1;
+  }
+
+  if (unit.effectId === 'empty_adjacent_bonus_atk') {
+    const hasEmptyAdjacent = getAdjacentBoardAllyIndexes(unit, boardIndex)
+      .some((index) => state.board[index] === null);
+    if (hasEmptyAdjacent) attack += 1;
+  }
+
+  const auraAttackBonus = getAdjacentBoardAllyIndexes(unit, boardIndex).reduce((total, index) => (
+    total + (state.board[index]?.owner === unit.owner && hasSwarmAlphaAura(state.board[index]) ? 1 : 0)
+  ), 0);
+  attack += auraAttackBonus;
+
+  const opposingIndex = getOpposingLaneIndex(unit, boardIndex);
+  const defender = state.board[opposingIndex];
+  if (defender?.owner === getOpponentOwner(unit.owner)) {
+    attack -= getBoardDefensiveFrictionPenalty(state, opposingIndex);
+  }
+
+  return Math.max(0, attack);
+}
+
+export function getEffectiveBoardArmor(state, boardIndex) {
+  const unit = state?.board?.[boardIndex];
+  if (!unit) return 0;
+
+  const auraArmorBonus = getAdjacentBoardAllyIndexes(unit, boardIndex).reduce((total, index) => (
+    total + (state.board[index]?.owner === unit.owner && state.board[index]?.effectId === 'lane_armor_aura_1' ? 1 : 0)
+  ), 0);
+
+  return Math.max(0, getUnitArmor(unit) + auraArmorBonus);
+}
+
 function isMoveEffectId(effectId) {
   return effectId === 'swap_any_two_units'
     || effectId === 'swap_two_enemy_units'
