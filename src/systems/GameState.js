@@ -1833,6 +1833,7 @@ function resolveCombatLane(state, col, combatContext = null) {
     lethal = false,
     prevention = null,
     combatModifiers = [],
+    interceptOriginalTargetIndex = null,
   }) => {
     // Read-only feedback payload for BattleScene; combat mutations remain below.
     const event = {
@@ -1851,11 +1852,12 @@ function resolveCombatLane(state, col, combatContext = null) {
     Object.defineProperties(event, {
       attackerIndex: { value: attackerIndex, enumerable: false },
       targetIndex: { value: targetIndex, enumerable: false },
+      interceptOriginalTargetIndex: { value: interceptOriginalTargetIndex, enumerable: false },
     });
     context.events.push(event);
     return event;
   };
-  const recordUnitAttack = (attackerSide, attackerIndex, targetIndex, damage, combatModifiers = []) => {
+  const recordUnitAttack = (attackerSide, attackerIndex, targetIndex, damage, combatModifiers = [], options = {}) => {
     const target = state.board[targetIndex];
     if (!target) return;
     const prevention = getUnitDamagePrevention(targetIndex, damage);
@@ -1870,6 +1872,7 @@ function resolveCombatLane(state, col, combatContext = null) {
       lethal: wouldUnitDamageBeLethal(targetIndex, damage),
       prevention,
       combatModifiers,
+      interceptOriginalTargetIndex: options.interceptOriginalTargetIndex ?? null,
     });
   };
   const recordHeroAttack = (attackerSide, attackerIndex, targetSide, damage, openLane, combatModifiers = []) => recordCombatEvent({
@@ -1925,7 +1928,7 @@ function resolveCombatLane(state, col, combatContext = null) {
         recordUnitAttack('player', playerIndex, interceptIndex, damage, [
           ...combatModifiers,
           createCombatModifier({ type: 'intercept', source: 'intercept_lane_damage', label: 'INTERCEPT', feedback: 'target' }),
-        ]);
+        ], { interceptOriginalTargetIndex: enemyIndex });
         addPendingUnitDamage(interceptIndex, damage);
         context.guardiansUsed.add(interceptIndex);
       } else {
@@ -1977,7 +1980,7 @@ function resolveCombatLane(state, col, combatContext = null) {
         recordUnitAttack('enemy', enemyIndex, interceptIndex, damage, [
           ...combatModifiers,
           createCombatModifier({ type: 'intercept', source: 'intercept_lane_damage', label: 'INTERCEPT', feedback: 'target' }),
-        ]);
+        ], { interceptOriginalTargetIndex: playerIndex });
         addPendingUnitDamage(interceptIndex, damage);
         context.guardiansUsed.add(interceptIndex);
       } else {

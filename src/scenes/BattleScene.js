@@ -3,7 +3,7 @@ import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
 import { createInitialBattleState, drawCards, shuffleDeck, canPass, canPlayOrRedeploy, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, resolveTargetedUnitOnPlayEffect, getUnitAttack, getUnitArmor, toggleFirstActor, resolveTurnCapWinner, resolveImmediateResourceExhaustionWinner, resolveImmediateNoProgressWinner, recordPassAction, performOpeningMulligan, STARTING_HAND_SIZE, MAX_OPENING_MULLIGAN_CARDS, getEffectiveBoardAttack, getEffectiveBoardArmor } from '../systems/GameState.js';
 import { chooseEnemyAction, isVerySafeConcedableState, recordBattleActionUse, selectOpeningMulliganCardIds } from '../systems/enemyDecision.js';
 import { getTargetingStateForEffect } from '../systems/cardTargeting.js';
-import { COMBAT_ATTACK_PRESENTATIONS, getCombatAttackPresentation, getCombatEventAttackerIndex, getCombatEventTargetIndex, getLaneLethalTargetIndexes, getLaneSimultaneousUnitClash, shouldAnimateCombatAttacker } from '../systems/combatAnimation.js';
+import { COMBAT_ATTACK_PRESENTATIONS, getCombatAttackPresentation, getCombatEventAttackerIndex, getCombatEventInterceptOriginalTargetIndex, getCombatEventTargetIndex, getLaneLethalTargetIndexes, getLaneSimultaneousUnitClash, shouldAnimateCombatAttacker } from '../systems/combatAnimation.js';
 import { BATTLE_BACKGROUND_FALLBACK_COLOR, BATTLE_BACKGROUND_FALLBACK_COLOR_HEX, createCoverBackground, getBattleBackgroundAsset, hasLoadedImageAsset, preloadBattleBackgroundArt, preloadImageAsset, resolvePublicAssetPath } from '../rendering/backgroundArt.js';
 import { preloadAllCardIllustrations } from '../rendering/cardIllustrationAssets.js';
 import { calculateHandLayoutMetrics } from '../ui/handLayout.js';
@@ -4797,7 +4797,7 @@ export default class BattleScene extends Phaser.Scene {
       return { type: 'hero', side: event.targetSide, hero };
     }
 
-    const targetIndex = this.getCombatEventTargetIndex(event);
+    const targetIndex = getCombatEventInterceptOriginalTargetIndex(event) ?? this.getCombatEventTargetIndex(event);
     if (!Number.isInteger(targetIndex)) return null;
 
     const cell = this.getCellByIndex(targetIndex);
@@ -5167,7 +5167,9 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   async playCombatEventFeedback(events) {
-    const feedback = events.map((event) => {
+    const feedback = events.map(async (event) => {
+      await this.playGuardianInterceptCue(event);
+
       const animations = [];
 
       if (event.targetType === 'hero') {
@@ -5241,6 +5243,75 @@ export default class BattleScene extends Phaser.Scene {
     if (kind === 'armor-ignore' || kind === 'retarget') return '#fde68a';
     if (kind === 'attack-reduction') return '#fb923c';
     return '#facc15';
+  }
+
+  hasGuardianInterceptFeedback(event) {
+    return Array.isArray(event?.combatModifiers)
+      && event.combatModifiers.some((modifier) => modifier?.type === 'intercept');
+  }
+
+  async playGuardianInterceptCue(event) {
+    if (!this.hasGuardianInterceptFeedback(event)) return;
+
+    const originalTargetIndex = getCombatEventInterceptOriginalTargetIndex(event);
+    const guardianIndex = getCombatEventTargetIndex(event);
+    if (!Number.isInteger(originalTargetIndex) || !Number.isInteger(guardianIndex)) return;
+    if (originalTargetIndex === guardianIndex) return;
+
+    await this.showGuardianInterceptThreatPulse(originalTargetIndex);
+    await this.showGuardianInterceptReactionPulse(guardianIndex);
+  }
+
+  showGuardianInterceptThreatPulse(index) {
+    const cell = this.getCellByIndex(index);
+    if (!cell?.background?.active) return Promise.resolve();
+
+    const previousStyle = {
+      lineWidth: cell.background.lineWidth ?? (cell.row === 1 ? 2 : 3),
+      strokeColor: cell.background.strokeColor ?? (cell.row === 1 ? 0x94a3b8 : 0xcbd5e1),
+      strokeAlpha: cell.background.strokeAlpha ?? (cell.row === 1 ? BOARD_GUIDE_SLOT_STROKE_ALPHA : BOARD_SLOT_STROKE_ALPHA),
+      fillColor: cell.background.fillColor ?? 0x0f172a,
+      fillAlpha: cell.background.fillAlpha ?? BOARD_SLOT_FILL_ALPHA,
+    };
+
+    cell.background.setStrokeStyle(4, 0xf87171, BOARD_FEEDBACK_STROKE_ALPHA);
+    cell.background.setFillStyle(0x7f1d1d, Math.max(previousStyle.fillAlpha, 0.42));
+
+    const targets = cell.label?.active ? [cell.label] : [cell.background];
+    return this.tweenToPromise({ targets, scaleX: 1.045, scaleY: 1.045, duration: 85, yoyo: true, ease: 'Quad.easeOut' })
+      .then(() => this.delay(25))
+      .then(() => {
+        if (!cell.background?.active) return;
+        cell.background.setFillStyle(previousStyle.fillColor, previousStyle.fillAlpha);
+        cell.background.setStrokeStyle(previousStyle.lineWidth, previousStyle.strokeColor, previousStyle.strokeAlpha);
+        if (cell.label?.active) cell.label.setScale(1);
+      });
+  }
+
+  showGuardianInterceptReactionPulse(index) {
+    const cell = this.getCellByIndex(index);
+    if (!cell?.background?.active) return Promise.resolve();
+
+    const previousStyle = {
+      lineWidth: cell.background.lineWidth ?? (cell.row === 1 ? 2 : 3),
+      strokeColor: cell.background.strokeColor ?? (cell.row === 1 ? 0x94a3b8 : 0xcbd5e1),
+      strokeAlpha: cell.background.strokeAlpha ?? (cell.row === 1 ? BOARD_GUIDE_SLOT_STROKE_ALPHA : BOARD_SLOT_STROKE_ALPHA),
+      fillColor: cell.background.fillColor ?? 0x0f172a,
+      fillAlpha: cell.background.fillAlpha ?? BOARD_SLOT_FILL_ALPHA,
+    };
+
+    cell.background.setStrokeStyle(4, 0x93c5fd, BOARD_FEEDBACK_STROKE_ALPHA);
+    cell.background.setFillStyle(0x1e3a8a, Math.max(previousStyle.fillAlpha, 0.46));
+
+    const targets = [cell.background, ...(cell.label?.active ? [cell.label] : [])];
+    return this.tweenToPromise({ targets, scaleX: 1.085, scaleY: 1.085, duration: 105, yoyo: true, ease: 'Back.easeOut' })
+      .then(() => {
+        if (!cell.background?.active) return;
+        cell.background.setFillStyle(previousStyle.fillColor, previousStyle.fillAlpha);
+        cell.background.setStrokeStyle(previousStyle.lineWidth, previousStyle.strokeColor, previousStyle.strokeAlpha);
+        cell.background.setScale(1);
+        if (cell.label?.active) cell.label.setScale(1);
+      });
   }
 
   playCombatModifierFeedback(event) {

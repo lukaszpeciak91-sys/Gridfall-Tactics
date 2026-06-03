@@ -53,6 +53,10 @@ export function shouldUseMeleeCombatPresentation(event, preCombatBoardSnapshot) 
     && getCombatAttackPresentation(event, preCombatBoardSnapshot) === COMBAT_ATTACK_PRESENTATIONS.melee;
 }
 
+export function getCombatEventInterceptOriginalTargetIndex(event) {
+  return Number.isInteger(event?.interceptOriginalTargetIndex) ? event.interceptOriginalTargetIndex : null;
+}
+
 export function getCombatEventTargetIndex(event) {
   if (Number.isInteger(event?.targetIndex)) return event.targetIndex;
   if (!Number.isInteger(event?.lane)) return null;

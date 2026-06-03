@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { getLaneLethalTargetIndexes, getLaneSimultaneousUnitClash, shouldAnimateCombatAttacker } from '../src/systems/combatAnimation.js';
+import { getCombatEventInterceptOriginalTargetIndex, getLaneLethalTargetIndexes, getLaneSimultaneousUnitClash, shouldAnimateCombatAttacker } from '../src/systems/combatAnimation.js';
 
 const unit = (owner, overrides = {}) => ({
   id: `${owner}-unit`,
@@ -109,4 +109,14 @@ test('lane lethal target index collection uses event target indexes and lane fal
   assert.equal(lethalIndexes.has(0), true);
   assert.equal(lethalIndexes.has(6), true);
   assert.equal(lethalIndexes.has(1), false);
+});
+
+
+test('guardian intercept original target index is available from non-enumerable combat metadata', () => {
+  const intercepted = eventWithHiddenIndexes({ targetIndex: 7 });
+  Object.defineProperty(intercepted, 'interceptOriginalTargetIndex', { value: 6, enumerable: false });
+
+  assert.equal(getCombatEventInterceptOriginalTargetIndex(intercepted), 6);
+  assert.equal(Object.keys(intercepted).includes('interceptOriginalTargetIndex'), false);
+  assert.equal(getCombatEventInterceptOriginalTargetIndex(event()), null);
 });
