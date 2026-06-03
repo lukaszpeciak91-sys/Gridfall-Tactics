@@ -3,7 +3,7 @@ import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
 import { createInitialBattleState, drawCards, shuffleDeck, canPass, canPlayOrRedeploy, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, resolveTargetedUnitOnPlayEffect, getUnitAttack, getUnitArmor, toggleFirstActor, resolveTurnCapWinner, resolveImmediateResourceExhaustionWinner, resolveImmediateNoProgressWinner, recordPassAction, performOpeningMulligan, STARTING_HAND_SIZE, MAX_OPENING_MULLIGAN_CARDS, getEffectiveBoardAttack, getEffectiveBoardArmor } from '../systems/GameState.js';
 import { chooseEnemyAction, isVerySafeConcedableState, recordBattleActionUse, selectOpeningMulliganCardIds } from '../systems/enemyDecision.js';
 import { getTargetingStateForEffect } from '../systems/cardTargeting.js';
-import { COMBAT_ATTACK_PRESENTATIONS, getCombatAttackPresentation, getCombatEventAttackerIndex, getCombatEventInterceptOriginalTargetIndex, getCombatEventTargetIndex, getLaneLethalTargetIndexes, getLaneSimultaneousUnitClash, shouldAnimateCombatAttacker } from '../systems/combatAnimation.js';
+import { COMBAT_ATTACK_PRESENTATIONS, getCombatAttackPresentation, getCombatEventAttackerIndex, getCombatEventInterceptOriginalTargetIndex, getCombatEventTargetIndex, getLaneLethalTargetIndexes, getLaneSimultaneousUnitClash, shouldAnimateCombatAttacker, shouldUseControlledHeroStrikePresentation } from '../systems/combatAnimation.js';
 import { BATTLE_BACKGROUND_FALLBACK_COLOR, BATTLE_BACKGROUND_FALLBACK_COLOR_HEX, createCoverBackground, getBattleBackgroundAsset, hasLoadedImageAsset, preloadBattleBackgroundArt, preloadImageAsset, resolvePublicAssetPath } from '../rendering/backgroundArt.js';
 import { preloadAllCardIllustrations } from '../rendering/cardIllustrationAssets.js';
 import { calculateHandLayoutMetrics } from '../ui/handLayout.js';
@@ -4763,7 +4763,9 @@ export default class BattleScene extends Phaser.Scene {
 
         const attackerIndex = getCombatEventAttackerIndex(event);
         const attackerWasDefeatedInThisLane = Number.isInteger(attackerIndex) && lethalTargetIndexes.has(attackerIndex);
-        if (attackerWasDefeatedInThisLane) {
+        if (shouldUseControlledHeroStrikePresentation(event)) {
+          await this.animateControlledHeroStrike(event, preCombatBoardSnapshot);
+        } else if (attackerWasDefeatedInThisLane) {
           await this.playCombatEventFeedback([event]);
         } else if (getCombatAttackPresentation(event, preCombatBoardSnapshot) === COMBAT_ATTACK_PRESENTATIONS.beam) {
           await this.animateBeamAttack(event, preCombatBoardSnapshot);
@@ -5038,19 +5040,44 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
-    const cue = this.createControlledAttackCue(attacker.cell, target.hero, event);
-    if (!cue) {
+    const attackerCell = attacker.cell;
+    const hero = target.hero;
+    const visualState = this.captureUnitVisualState(attackerCell);
+    const strikePoint = this.getControlledHeroStrikePoint(attackerCell, hero, event);
+    const cue = this.createControlledAttackCue(attackerCell, hero, event);
+    if (!visualState || !strikePoint || !cue) {
+      cue?.destroy?.();
       await this.playCombatEventFeedback([event]);
       return;
     }
 
+    const startY = visualState.y;
+    const direction = Math.sign(strikePoint.y - startY) || (event.attackerSide === 'player' ? 1 : -1);
+    const maxTravel = Math.min(this.layout.board.cellHeight * 0.62, 115);
+    const travel = Math.min(Math.abs(strikePoint.y - startY), maxTravel);
+    const strikeY = startY + direction * travel;
+    const targets = this.getUnitLungeTargets(attackerCell);
+
     try {
+      this.prepareUnitLungeTargets(targets);
       await cue.reveal();
+      await this.tweenToPromise({ targets, y: strikeY, duration: 165, ease: 'Quad.easeOut' });
       await this.playCombatEventFeedback([event]);
-      await this.delay(140);
+      await this.delay(70);
+      await this.tweenToPromise({ targets, y: startY, duration: 135, ease: 'Quad.easeIn' });
     } finally {
+      this.restoreUnitVisualState(visualState);
       cue.destroy();
     }
+  }
+
+  getControlledHeroStrikePoint(attackerCell, hero, event) {
+    if (!attackerCell?.background || !hero) return null;
+
+    const heroEdgeY = event.targetSide === 'enemy'
+      ? hero.y + hero.height * 0.5
+      : hero.y - hero.height * 0.5;
+    return { x: hero.x, y: heroEdgeY };
   }
 
   createControlledAttackCue(attackerCell, hero, event) {
@@ -5058,18 +5085,38 @@ export default class BattleScene extends Phaser.Scene {
 
     const startX = attackerCell.background.x;
     const startY = attackerCell.background.y;
-    const heroEdgeY = event.targetSide === 'enemy'
-      ? hero.y + hero.height * 0.5
-      : hero.y - hero.height * 0.5;
-    const line = this.add.graphics().setDepth(235).setAlpha(0);
-    line.lineStyle(4, 0xef4444, 0.9);
-    line.beginPath();
-    line.moveTo(startX, startY);
-    line.lineTo(hero.x, heroEdgeY);
-    line.strokePath();
-    line.fillStyle(0xfca5a5, 0.95);
-    line.fillCircle(startX, startY, 5);
-    line.fillCircle(hero.x, heroEdgeY, 5);
+    const strikePoint = this.getControlledHeroStrikePoint(attackerCell, hero, event);
+    if (!strikePoint) return null;
+
+    const vectorCue = this.add.graphics().setDepth(235).setAlpha(0);
+    const dx = strikePoint.x - startX;
+    const dy = strikePoint.y - startY;
+    const length = Math.hypot(dx, dy) || 1;
+    const ux = dx / length;
+    const uy = dy / length;
+    const startOffset = Math.min(18, length * 0.18);
+    const endOffset = Math.min(54, length * 0.42);
+    const cueStartX = startX + ux * startOffset;
+    const cueStartY = startY + uy * startOffset;
+    const cueEndX = startX + ux * Math.max(startOffset + 1, length - endOffset);
+    const cueEndY = startY + uy * Math.max(startOffset + 1, length - endOffset);
+    const perpX = -uy;
+    const perpY = ux;
+    const arrowSize = Math.max(9, Math.min(attackerCell.background.width, attackerCell.background.height) * 0.11);
+
+    vectorCue.lineStyle(6, 0xf97316, 0.58);
+    vectorCue.beginPath();
+    vectorCue.moveTo(cueStartX, cueStartY);
+    vectorCue.lineTo(cueEndX, cueEndY);
+    vectorCue.strokePath();
+    vectorCue.lineStyle(2, 0xffedd5, 0.86);
+    vectorCue.beginPath();
+    vectorCue.moveTo(cueEndX - ux * arrowSize + perpX * arrowSize * 0.55, cueEndY - uy * arrowSize + perpY * arrowSize * 0.55);
+    vectorCue.lineTo(cueEndX, cueEndY);
+    vectorCue.lineTo(cueEndX - ux * arrowSize - perpX * arrowSize * 0.55, cueEndY - uy * arrowSize - perpY * arrowSize * 0.55);
+    vectorCue.strokePath();
+    vectorCue.fillStyle(0xf97316, 0.85);
+    vectorCue.fillCircle(startX, startY, 5);
 
     const label = this.add.text(
       startX,
@@ -5088,11 +5135,11 @@ export default class BattleScene extends Phaser.Scene {
 
     return {
       reveal: () => Promise.all([
-        this.tweenToPromise({ targets: line, alpha: 1, duration: 90, ease: 'Quad.easeOut' }),
+        this.tweenToPromise({ targets: vectorCue, alpha: 1, duration: 90, ease: 'Quad.easeOut' }),
         this.tweenToPromise({ targets: label, alpha: 1, scaleX: 1, scaleY: 1, duration: 110, ease: 'Back.easeOut' }),
       ]),
       destroy: () => {
-        line.destroy();
+        vectorCue.destroy();
         label.destroy();
       },
     };
