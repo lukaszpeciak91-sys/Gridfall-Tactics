@@ -2563,7 +2563,12 @@ export default class BattleScene extends Phaser.Scene {
         beforeSnapshot: beforeStats,
         result,
       });
-      this.completePlayerAction(beforeStats, [...(result.feedback ?? []), ...this.buildActionFeedback(beforeStats, result)], movementFeedback);
+      this.completePlayerAction(
+        beforeStats,
+        [...(result.feedback ?? []), ...this.buildActionFeedback(beforeStats, result)],
+        movementFeedback,
+        this.getImmediateCombatFeedback?.(result) ?? null,
+      );
       return;
     }
 
@@ -2972,7 +2977,12 @@ export default class BattleScene extends Phaser.Scene {
       beforeSnapshot: beforeStats,
       result,
     });
-    this.completePlayerAction(beforeStats, [...(result.feedback ?? []), ...this.buildActionFeedback(beforeStats, result)], movementFeedback);
+    this.completePlayerAction(
+      beforeStats,
+      [...(result.feedback ?? []), ...this.buildActionFeedback(beforeStats, result)],
+      movementFeedback,
+      this.getImmediateCombatFeedback?.(result) ?? null,
+    );
   }
 
   resolvePassTurn() {
@@ -3141,7 +3151,7 @@ export default class BattleScene extends Phaser.Scene {
     this.showPlayerActionBanner(translateActive('ui.battle.playerNoMeaningfulActionsDetected', 'No meaningful actions detected.'));
   }
 
-  async completePlayerAction(beforeStats = null, actionFeedback = [], movementFeedback = []) {
+  async completePlayerAction(beforeStats = null, actionFeedback = [], movementFeedback = [], immediateCombatFeedback = null) {
     if (!this.gameState || this.playerActionUsed || this.isFlowResolving) return;
 
     this.playerActionUsed = true;
@@ -3151,8 +3161,10 @@ export default class BattleScene extends Phaser.Scene {
     this.currentActionFeedback = actionFeedback;
     await this.playMovementFeedback(movementFeedback, beforeStats);
     await this.playPreRefreshActionFeedback(actionFeedback);
+    await this.playImmediateCombatFeedback(immediateCombatFeedback);
     this.refreshAfterPlayerAction();
     await this.playPostRefreshMovementFeedback(movementFeedback);
+    await this.playImmediateCombatCreationFeedback(immediateCombatFeedback);
     await this.playBuffFeedback(beforeStats, 'player');
     if (this.gameState.winner) {
       this.completeBattleFlow(500);
@@ -3299,8 +3311,10 @@ export default class BattleScene extends Phaser.Scene {
     this.enemyActionUsed = true;
     const movementFeedback = this.buildEnemyMovementFeedback(action, beforeStats, result);
     const actionFeedback = this.buildActionFeedback(beforeStats, result);
+    const immediateCombatFeedback = this.getImmediateCombatFeedback(result);
     await this.playMovementFeedback(movementFeedback, beforeStats);
     await this.playPreRefreshActionFeedback(actionFeedback);
+    await this.playImmediateCombatFeedback(immediateCombatFeedback);
     this.refreshBoardLabels();
     await this.playPostRefreshMovementFeedback(movementFeedback);
     this.redrawHand();
@@ -3308,6 +3322,7 @@ export default class BattleScene extends Phaser.Scene {
     this.updateInitiativeIndicator();
     this.currentActionFeedback = actionFeedback;
     await this.playBuffFeedback(beforeStats, 'enemy');
+    await this.playImmediateCombatCreationFeedback(immediateCombatFeedback);
     await this.playActionFeedback(actionFeedback);
     await this.delay(pacing.postActionDelayMs);
     return pacing;
@@ -3802,6 +3817,45 @@ export default class BattleScene extends Phaser.Scene {
         ? JSON.parse(JSON.stringify(this.gameState.funeralPyreThisCombat))
         : null,
     };
+  }
+
+  getImmediateCombatFeedback(result = null) {
+    if (!Array.isArray(result?.combatEvents) || result.combatEvents.length === 0) return null;
+    return {
+      combatEvents: result.combatEvents,
+      combatSnapshot: result.combatSnapshot ?? null,
+    };
+  }
+
+  refreshBoardLabelsFromSnapshot(boardSnapshot) {
+    if (!Array.isArray(boardSnapshot)) return;
+    this.boardCells.forEach((cell) => {
+      const unit = boardSnapshot[cell.index];
+      cell.label.removeAll(true);
+      cell.label.setAlpha(1).setScale(1);
+      if (unit) {
+        cell.label.add(this.createBoardUnitView(cell, unit));
+      }
+    });
+  }
+
+  async playImmediateCombatFeedback(immediateCombatFeedback = null) {
+    const combatEvents = immediateCombatFeedback?.combatEvents;
+    const combatSnapshot = immediateCombatFeedback?.combatSnapshot;
+    if (!Array.isArray(combatEvents) || combatEvents.length === 0) return;
+    if (!Array.isArray(combatSnapshot?.board)) return;
+
+    this.refreshBoardLabelsFromSnapshot(combatSnapshot.board);
+    await this.playCombatAnimations(combatEvents, combatSnapshot.board);
+    await this.playCombatDeathTriggerFeedback(combatSnapshot);
+  }
+
+  async playImmediateCombatCreationFeedback(immediateCombatFeedback = null) {
+    const combatEvents = immediateCombatFeedback?.combatEvents;
+    const combatSnapshot = immediateCombatFeedback?.combatSnapshot;
+    if (!Array.isArray(combatEvents) || combatEvents.length === 0) return;
+    await this.playCombatCreationFeedback(combatSnapshot);
+    this.refreshHeroHP();
   }
 
   getCellByIndex(index) {
