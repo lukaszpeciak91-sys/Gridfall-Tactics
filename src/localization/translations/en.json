@@ -50,7 +50,7 @@
     },
     "attrition_swarm_leech_1": {
       "name": "Leech",
-      "textShort": "Combat kill and survive: heal your base 1."
+      "textShort": "On attack: heal your base 1."
     },
     "attrition_swarm_rotcaller_1": {
       "name": "Rotcaller",

@@ -36,8 +36,8 @@
       "name": "Leech",
       "type": "unit",
       "targeting": "lane",
-      "effectId": "leech_heal_hero_on_combat_kill",
-      "textShort": "Combat kill and survive: heal your base 1.",
+      "effectId": "leech_heal_hero_on_attack",
+      "textShort": "On attack: heal your base 1.",
       "attack": 2,
       "hp": 1,
       "armor": 0

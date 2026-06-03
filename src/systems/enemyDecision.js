@@ -11,7 +11,7 @@ const SAFE_SURRENDER_MEANINGFUL_EFFECT_IDS = new Set([
   'death_damage_enemy_hero_1',
   'combat_death_damage_enemy_lane_1',
   'combat_death_summon_grunt',
-  'leech_heal_hero_on_combat_kill',
+  'leech_heal_hero_on_attack',
   'rotcaller_adjacent_death_atk_1',
   'combat_death_damage_both_heroes_1',
   'adjacent_allies_atk_plus_1_ignore_armor_1',
@@ -93,7 +93,7 @@ function scoreOpeningCard(card, hand, factionName = '') {
     if (card.effectId === 'on_play_lane_damage_1') score += 12;
     if (card.effectId === 'combat_death_damage_enemy_lane_1') score += 8;
     if (card.effectId === 'combat_death_summon_grunt') score += 12;
-    if (card.effectId === 'leech_heal_hero_on_combat_kill') score += 10;
+    if (card.effectId === 'leech_heal_hero_on_attack') score += 10;
     if (card.effectId === 'rotcaller_adjacent_death_atk_1') score += unitsInHand >= 2 ? 12 : -2;
     if (card.effectId === 'combat_death_damage_both_heroes_1') score += 10;
     if (card.effectId === 'warden_defensive_friction_self') score += 18;
@@ -215,7 +215,7 @@ function getBoardPressureValue(state, owner) {
       if (friendlyUnit.effectId === 'lane_empty_bonus_damage') value += 80;
       if (friendlyUnit.effectId === 'combat_death_damage_enemy_lane_1') value += 20;
       if (friendlyUnit.effectId === 'combat_death_summon_grunt') value += 35;
-      if (friendlyUnit.effectId === 'leech_heal_hero_on_combat_kill') value += 30;
+      if (friendlyUnit.effectId === 'leech_heal_hero_on_attack') value += 30;
       if (friendlyUnit.effectId === 'rotcaller_adjacent_death_atk_1') value += 25;
       if (friendlyUnit.effectId === 'combat_death_damage_both_heroes_1') value += 35;
       if (friendlyUnit.effectId === 'warden_defensive_friction_self') value += 35;
@@ -239,7 +239,7 @@ function getBoardPressureValue(state, owner) {
       if (friendlyUnit.effectId === 'warden_defensive_friction_adjacent') value += 35;
       if (friendlyUnit.effectId === 'combat_death_damage_enemy_lane_1') value += enemyCanKill ? 35 : 10;
       if (friendlyUnit.effectId === 'combat_death_summon_grunt') value += enemyCanKill ? 45 : 15;
-      if (friendlyUnit.effectId === 'leech_heal_hero_on_combat_kill') value += friendlyCanKill ? 40 : 10;
+      if (friendlyUnit.effectId === 'leech_heal_hero_on_attack') value += 35;
       if (friendlyUnit.effectId === 'rotcaller_adjacent_death_atk_1') value += 20;
       if (friendlyUnit.effectId === 'combat_death_damage_both_heroes_1') value += enemyCanKill ? 35 : 15;
     }

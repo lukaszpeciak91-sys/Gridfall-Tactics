@@ -55,7 +55,7 @@ test('formats localized Polish stat terms while preserving surrounding text', ()
 
 
 test('formats HP-related healing and damage language without replacing unrelated numbers', () => {
-  assert.equal(formatCardEffectTextShort('Combat kill and survive: heal your base 1.', 'en'), 'Combat kill and survive: heal your base +1 ●.');
+  assert.equal(formatCardEffectTextShort('On attack: heal your base 1.', 'en'), 'On attack: heal your base +1 ●.');
   assert.equal(formatCardEffectTextShort('Combat death: both bases lose 1 HP.', 'en'), 'Combat death: both bases lose 1 ●.');
   assert.equal(formatCardEffectTextShort('On death: enemy base loses 1 HP.', 'en'), 'On death: enemy base loses 1 ●.');
   assert.equal(formatCardEffectTextShort('Heal all [ALLY] by 1.', 'en'), 'Heal all ♙♙ by +1 ●.');
@@ -75,8 +75,8 @@ test('formats HP symbols for localized Attrition Swarm card effect display text'
   const { deck } = getFactionByKey('Attrition Swarm');
   const cardById = (id) => deck.find((card) => card.id === id);
 
-  assert.equal(getCardDisplayContent(cardById('attrition_swarm_leech_1'), 'en').body, 'Combat kill and survive: heal your base +1 ●.');
-  assert.equal(getCardDisplayContent(cardById('attrition_swarm_leech_1'), 'pl').body, 'Zabije i przetrwa:\nulecz bazę o +1 ●.');
+  assert.equal(getCardDisplayContent(cardById('attrition_swarm_leech_1'), 'en').body, 'On attack: heal your base +1 ●.');
+  assert.equal(getCardDisplayContent(cardById('attrition_swarm_leech_1'), 'pl').body, 'Przy ataku: ulecz swoją bazę o +1 ●.');
   assert.equal(getCardDisplayContent(cardById('attrition_swarm_abomination_1'), 'en').body, 'Combat death: both bases lose 1 ●.');
   assert.equal(getCardDisplayContent(cardById('attrition_swarm_abomination_1'), 'pl').body, 'Śmierć w walce: obie bazy tracą 1 ●.');
   assert.equal(getCardDisplayContent(cardById('attrition_swarm_funeral_pyre_1'), 'en').body, 'First 2 ♙♙ combat deaths:\neach deal 1 ● to opposed ♟.');
