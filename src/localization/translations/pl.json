@@ -407,7 +407,12 @@
         "selectSecondEnemy": "WYBIERZ DRUGIEGO WROGA"
       },
       "playerStarts": "Ty zaczynasz",
-      "enemyStarts": "Wróg zaczyna"
+      "enemyStarts": "Wróg zaczyna",
+      "resultSubtitles": {
+        "victory": "Publiczność zachwycona.",
+        "defeat": "Publiczność domaga się więcej.",
+        "draw": "Produkcja zarządziła dogrywkę."
+      }
     },
     "rules": {
       "title": "Zasady / Jak grać",
