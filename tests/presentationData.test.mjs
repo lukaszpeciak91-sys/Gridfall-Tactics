@@ -131,7 +131,7 @@ test('Empire of the Golden Sun presentation names match the current flavor pass'
     [6, 'tank_fortify_1', 'Solar Fortification', 'Solarne Umocnienie'],
     [7, 'tank_stability_1', "Emperor's Will", 'Wola Imperatora'],
     [8, 'tank_reinforce_1', 'Rite of Renewal', 'Rytuał Odnowy'],
-    [9, 'tank_last_stand_1', 'Last Dynasty', 'Ostatnia Dynastia'],
+    [9, 'tank_last_stand_1', 'Last Legion', 'Ostatni Legion'],
     [10, 'tank_repair_kit_1', 'Golden Carapace', 'Złoty Karapaks'],
   ];
 

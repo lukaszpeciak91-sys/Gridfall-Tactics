@@ -17,6 +17,7 @@ import {
 import {
   NON_UNIT_EFFECT_STAT_SYMBOL,
   NON_UNIT_EFFECT_STAT_SYMBOL_CSS_COLOR,
+  getCardDisplayContent,
   getFixedHeightTextVisualCenterOriginY,
   formatCardNumberOverlay,
   getCardPreviewStatRowKind,
@@ -428,6 +429,21 @@ test('localized Control names resolve in Collection, Inspect, Hand, and Battle l
     assert.equal(formatCardDetailLines(card, 'pl')[0], name, `Inspect title for ${cardId}`);
     assert.equal(formatHandCardLabel(card, 'pl').split('\n')[0], name, `Hand title for ${cardId}`);
     assert.equal(formatDeckSummaryEntry(card, 'pl').name, name, `Battle title for ${cardId}`);
+  }
+});
+
+test('Tank Last Legion display name resolves in all card presentation surfaces', () => {
+  const faction = getFactionByKey('Tank');
+  const card = faction.deck.find((item) => item.id === 'tank_last_stand_1');
+  const expectedNames = { en: 'Last Legion', pl: 'Ostatni Legion' };
+
+  for (const [locale, name] of Object.entries(expectedNames)) {
+    assert.equal(getCardDisplayName(card, locale), name, `${locale} display name`);
+    assert.equal(formatCollectionRowLabel(card, locale).name, name, `${locale} Collection title`);
+    assert.equal(formatCardDetailLines(card, locale)[0], name, `${locale} Inspect title`);
+    assert.equal(formatHandCardLabel(card, locale).split('\n')[0], name, `${locale} Battle Hand title`);
+    assert.equal(formatDeckSummaryEntry(card, locale).name, name, `${locale} Battle label`);
+    assert.equal(getCardDisplayContent(card, locale).name, name, `${locale} Battle Card View title`);
   }
 });
 

@@ -269,7 +269,7 @@ const presentation = {
       tank_fortify_1: { nameEn: 'Solar Fortification', namePl: 'Solarne Umocnienie' },
       tank_stability_1: { nameEn: "Emperor's Will", namePl: 'Wola Imperatora' },
       tank_reinforce_1: { nameEn: 'Rite of Renewal', namePl: 'Rytuał Odnowy' },
-      tank_last_stand_1: { nameEn: 'Last Dynasty', namePl: 'Ostatnia Dynastia' },
+      tank_last_stand_1: { nameEn: 'Last Legion', namePl: 'Ostatni Legion' },
       tank_repair_kit_1: { nameEn: 'Golden Carapace', namePl: 'Złoty Karapaks' },
     },
   },
