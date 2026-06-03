@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { getCombatEventInterceptOriginalTargetIndex, getLaneLethalTargetIndexes, getLaneSimultaneousUnitClash, shouldAnimateCombatAttacker } from '../src/systems/combatAnimation.js';
+import { getCombatAttackPresentation, getCombatEventInterceptOriginalTargetIndex, getLaneLethalTargetIndexes, getLaneSimultaneousUnitClash, shouldAnimateCombatAttacker, shouldUseControlledHeroStrikePresentation } from '../src/systems/combatAnimation.js';
 
 const unit = (owner, overrides = {}) => ({
   id: `${owner}-unit`,
@@ -119,4 +119,32 @@ test('guardian intercept original target index is available from non-enumerable 
   assert.equal(getCombatEventInterceptOriginalTargetIndex(intercepted), 6);
   assert.equal(Object.keys(intercepted).includes('interceptOriginalTargetIndex'), false);
   assert.equal(getCombatEventInterceptOriginalTargetIndex(event()), null);
+});
+
+test('controlled own-base hero attacks request the override presentation path', () => {
+  assert.equal(shouldUseControlledHeroStrikePresentation(event({
+    targetType: 'hero',
+    targetSide: 'player',
+    controlledAttackFeedback: { label: 'CONTROLLED\nOVERRIDE' },
+  })), true);
+});
+
+test('controlled own-base hero attacks request override presentation even for beam attackers', () => {
+  const beamBoard = snapshot(unit('player', { attackPresentation: 'beam' }));
+  const controlledBeamEvent = event({
+    targetType: 'hero',
+    targetSide: 'player',
+    controlledAttackFeedback: { label: 'CONTROLLED\nOVERRIDE' },
+  });
+
+  assert.equal(getCombatAttackPresentation(controlledBeamEvent, beamBoard), 'beam');
+  assert.equal(shouldUseControlledHeroStrikePresentation(controlledBeamEvent), true);
+});
+
+test('normal non-controlled beam attacks remain beam-presented and do not use override presentation', () => {
+  const beamBoard = snapshot(unit('player', { attackPresentation: 'beam' }));
+  const normalBeamEvent = event({ targetType: 'unit', targetSide: 'enemy' });
+
+  assert.equal(getCombatAttackPresentation(normalBeamEvent, beamBoard), 'beam');
+  assert.equal(shouldUseControlledHeroStrikePresentation(normalBeamEvent), false);
 });

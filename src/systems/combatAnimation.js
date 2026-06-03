@@ -48,6 +48,12 @@ export function shouldAnimateCombatAttacker(event, preCombatBoardSnapshot) {
   return getUnitAttack(attacker) > 0;
 }
 
+export function shouldUseControlledHeroStrikePresentation(event) {
+  return Boolean(event?.controlledAttackFeedback)
+    && event?.targetType === 'hero'
+    && event?.attackerSide === event?.targetSide;
+}
+
 export function shouldUseMeleeCombatPresentation(event, preCombatBoardSnapshot) {
   return shouldAnimateCombatAttacker(event, preCombatBoardSnapshot)
     && getCombatAttackPresentation(event, preCombatBoardSnapshot) === COMBAT_ATTACK_PRESENTATIONS.melee;
