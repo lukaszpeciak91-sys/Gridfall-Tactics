@@ -14,3 +14,11 @@ test('Hacker and Signal Jam action-time debuff feedback remains in action delta 
   assert.match(source, /const debuffEffects = new Set\(\['enemy_lane_atk_minus_1', 'enemy_up_to_2_atk_minus_1'\]\);/);
   assert.match(source, /feedback\.push\(\{ type: 'slot-text', index, label: `\$\{attackDelta\} ATK`, kind: 'debuff', phase: 'pre', order: 10 \}\);/);
 });
+
+
+test('Guardian intercept feedback pulses intended ally before Guardian damage feedback', () => {
+  assert.match(source, /getCombatEventInterceptOriginalTargetIndex/);
+  assert.match(source, /const targetIndex = getCombatEventInterceptOriginalTargetIndex\(event\) \?\? this\.getCombatEventTargetIndex\(event\);/);
+  assert.match(source, /playCombatEventFeedback\(events\) \{[\s\S]*events\.map\(async \(event\) => \{[\s\S]*await this\.playGuardianInterceptCue\(event\);[\s\S]*this\.showUnitCombatText\(target, event\)/);
+  assert.match(source, /playGuardianInterceptCue\(event\) \{[\s\S]*await this\.showGuardianInterceptThreatPulse\(originalTargetIndex\);[\s\S]*await this\.showGuardianInterceptReactionPulse\(guardianIndex\);/);
+});

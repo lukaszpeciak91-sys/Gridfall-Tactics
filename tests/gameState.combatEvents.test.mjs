@@ -873,6 +873,8 @@ test('Halberdier, Flanker, Runner, Pierce, Guardian, and Sniper emit combat feed
   guardianState.board[7] = unit('player', { id: 'guardian', attack: 0, hp: 3, maxHp: 3, effectId: 'intercept_lane_damage' });
   const guardianHit = resolveCombat(guardianState).find((event) => event.attackerSide === 'enemy');
   assert.equal(guardianHit.targetIndex, 7);
+  assert.equal(guardianHit.interceptOriginalTargetIndex, 6);
+  assert.equal(Object.keys(guardianHit).includes('interceptOriginalTargetIndex'), false);
   assert.deepEqual(guardianHit.combatModifiers, [
     { type: 'intercept', amount: 0, source: 'intercept_lane_damage', label: 'INTERCEPT', feedback: 'target' },
   ]);
