@@ -1637,18 +1637,28 @@ function resolveCombatLane(state, col, combatContext = null) {
     return Math.min(WARDEN_FRICTION_CAP, penalty);
   };
 
-  const getMitigatedDamage = (attacker, defender) => {
+  const getMitigatedDamageResult = (attacker, defender) => {
     const frictionPenalty = getDefensiveFrictionPenalty(defender);
+    const combatModifiers = [];
     const attackDamage = Math.max(0, getUnitAttack(attacker) - frictionPenalty);
     if (frictionPenalty > 0) {
       state.wardenDefensiveFrictionApplications = (state.wardenDefensiveFrictionApplications ?? 0) + 1;
+      combatModifiers.push({
+        type: 'attack-reduction',
+        amount: -frictionPenalty,
+        source: 'warden_defensive_friction',
+        label: `${-frictionPenalty} ATK`,
+      });
     }
-    if (defender?.ignoreArmorNext) {
-      defender.ignoreArmorNext = false;
-      return Math.max(0, attackDamage);
-    }
-    const armor = Math.max(0, getArmorWithAura(defender) - getAuraArmorIgnore(attacker));
-    return Math.max(0, attackDamage - armor);
+    const damage = (() => {
+      if (defender?.ignoreArmorNext) {
+        defender.ignoreArmorNext = false;
+        return Math.max(0, attackDamage);
+      }
+      const armor = Math.max(0, getArmorWithAura(defender) - getAuraArmorIgnore(attacker));
+      return Math.max(0, attackDamage - armor);
+    })();
+    return { damage, combatModifiers };
   };
 
   const enemyIndex = ENEMY_ROW[col];
@@ -1686,7 +1696,18 @@ function resolveCombatLane(state, col, combatContext = null) {
     const minOneProtection = Boolean(state.cannotDropBelowOneThisTurn?.[target.owner]);
     return !minOneProtection && projectedHp <= 0;
   };
-  const recordCombatEvent = ({ attackerSide, attackerIndex = null, targetType, targetSide, targetIndex = null, damage, openLane, lethal = false, prevention = null }) => {
+  const recordCombatEvent = ({
+    attackerSide,
+    attackerIndex = null,
+    targetType,
+    targetSide,
+    targetIndex = null,
+    damage,
+    openLane,
+    lethal = false,
+    prevention = null,
+    combatModifiers = [],
+  }) => {
     // Read-only feedback payload for BattleScene; combat mutations remain below.
     const event = {
       lane: col,
@@ -1698,6 +1719,9 @@ function resolveCombatLane(state, col, combatContext = null) {
       lethal,
     };
     if (prevention) event.prevention = prevention;
+    if (Array.isArray(combatModifiers) && combatModifiers.length > 0) {
+      event.combatModifiers = combatModifiers;
+    }
     Object.defineProperties(event, {
       attackerIndex: { value: attackerIndex, enumerable: false },
       targetIndex: { value: targetIndex, enumerable: false },
@@ -1705,7 +1729,7 @@ function resolveCombatLane(state, col, combatContext = null) {
     context.events.push(event);
     return event;
   };
-  const recordUnitAttack = (attackerSide, attackerIndex, targetIndex, damage) => {
+  const recordUnitAttack = (attackerSide, attackerIndex, targetIndex, damage, combatModifiers = []) => {
     const target = state.board[targetIndex];
     if (!target) return;
     const prevention = getUnitDamagePrevention(targetIndex, damage);
@@ -1719,6 +1743,7 @@ function resolveCombatLane(state, col, combatContext = null) {
       openLane: false,
       lethal: wouldUnitDamageBeLethal(targetIndex, damage),
       prevention,
+      combatModifiers,
     });
   };
   const recordHeroAttack = (attackerSide, attackerIndex, targetSide, damage, openLane) => recordCombatEvent({
@@ -1745,19 +1770,19 @@ function resolveCombatLane(state, col, combatContext = null) {
     } else if (sniperTargetIndex !== null) {
       const sniperTarget = state.board[sniperTargetIndex];
       if (sniperTarget) {
-        const damage = getMitigatedDamage({ ...player, attack: playerAttack }, sniperTarget);
-        recordUnitAttack('player', playerIndex, sniperTargetIndex, damage);
+        const { damage, combatModifiers } = getMitigatedDamageResult({ ...player, attack: playerAttack }, sniperTarget);
+        recordUnitAttack('player', playerIndex, sniperTargetIndex, damage, combatModifiers);
         addPendingUnitDamage(sniperTargetIndex, damage);
       }
     } else if (enemy) {
-      const damage = getMitigatedDamage({ ...player, attack: playerAttack }, enemy);
+      const { damage, combatModifiers } = getMitigatedDamageResult({ ...player, attack: playerAttack }, enemy);
       const interceptIndex = findGuardianInterceptIndex(enemyIndex);
       if (interceptIndex !== null) {
-        recordUnitAttack('player', playerIndex, interceptIndex, damage);
+        recordUnitAttack('player', playerIndex, interceptIndex, damage, combatModifiers);
         addPendingUnitDamage(interceptIndex, damage);
         context.guardiansUsed.add(interceptIndex);
       } else {
-        recordUnitAttack('player', playerIndex, enemyIndex, damage);
+        recordUnitAttack('player', playerIndex, enemyIndex, damage, combatModifiers);
         addPendingUnitDamage(enemyIndex, damage);
       }
     } else {
@@ -1783,19 +1808,19 @@ function resolveCombatLane(state, col, combatContext = null) {
     } else if (sniperTargetIndex !== null) {
       const sniperTarget = state.board[sniperTargetIndex];
       if (sniperTarget) {
-        const damage = getMitigatedDamage({ ...enemy, attack: enemyAttack }, sniperTarget);
-        recordUnitAttack('enemy', enemyIndex, sniperTargetIndex, damage);
+        const { damage, combatModifiers } = getMitigatedDamageResult({ ...enemy, attack: enemyAttack }, sniperTarget);
+        recordUnitAttack('enemy', enemyIndex, sniperTargetIndex, damage, combatModifiers);
         addPendingUnitDamage(sniperTargetIndex, damage);
       }
     } else if (player) {
-      const damage = getMitigatedDamage({ ...enemy, attack: enemyAttack }, player);
+      const { damage, combatModifiers } = getMitigatedDamageResult({ ...enemy, attack: enemyAttack }, player);
       const interceptIndex = findGuardianInterceptIndex(playerIndex);
       if (interceptIndex !== null) {
-        recordUnitAttack('enemy', enemyIndex, interceptIndex, damage);
+        recordUnitAttack('enemy', enemyIndex, interceptIndex, damage, combatModifiers);
         addPendingUnitDamage(interceptIndex, damage);
         context.guardiansUsed.add(interceptIndex);
       } else {
-        recordUnitAttack('enemy', enemyIndex, playerIndex, damage);
+        recordUnitAttack('enemy', enemyIndex, playerIndex, damage, combatModifiers);
         addPendingUnitDamage(playerIndex, damage);
       }
     } else {

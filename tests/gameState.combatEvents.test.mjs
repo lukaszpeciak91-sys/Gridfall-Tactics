@@ -627,3 +627,118 @@ test('Last Stand prevention metadata reflects ignore-armor combat damage', () =>
   assert.equal(preventedHit.prevention?.visibleDamage, 1);
   assert.equal(state.board[6].hp, 1);
 });
+
+test('Warden self-friction combat event metadata appears when Tusk Guard is attacked without changing attacker stats', () => {
+  const state = makeState();
+  state.board[0] = unit('enemy', { id: 'attacker', attack: 2, hp: 3, maxHp: 3 });
+  state.board[6] = unit('player', {
+    id: 'tusk-guard',
+    attack: 0,
+    hp: 3,
+    maxHp: 3,
+    effectId: 'warden_defensive_friction_self',
+  });
+
+  const events = resolveCombat(state);
+  const hit = events.find((event) => event.attackerSide === 'enemy' && event.targetSide === 'player');
+
+  assert.equal(hit.damage, 1);
+  assert.equal(state.board[0].tempAttackMod, undefined);
+  assert.deepEqual(hit.combatModifiers, [
+    {
+      type: 'attack-reduction',
+      amount: -1,
+      source: 'warden_defensive_friction',
+      label: '-1 ATK',
+    },
+  ]);
+});
+
+test('Warden adjacent-friction combat event metadata appears when a Tundra Hunter protects an adjacent ally', () => {
+  const state = makeState();
+  state.board[0] = unit('enemy', { id: 'attacker', attack: 2, hp: 3, maxHp: 3 });
+  state.board[6] = unit('player', { id: 'protected-ally', attack: 0, hp: 3, maxHp: 3 });
+  state.board[7] = unit('player', {
+    id: 'tundra-hunter',
+    attack: 0,
+    hp: 3,
+    maxHp: 3,
+    effectId: 'warden_defensive_friction_adjacent',
+  });
+
+  const events = resolveCombat(state);
+  const hit = events.find((event) => event.attackerSide === 'enemy' && event.targetSide === 'player');
+
+  assert.equal(hit.damage, 1);
+  assert.deepEqual(hit.combatModifiers, [
+    {
+      type: 'attack-reduction',
+      amount: -1,
+      source: 'warden_defensive_friction',
+      label: '-1 ATK',
+    },
+  ]);
+});
+
+test('Warden friction metadata is omitted for unprotected defenders and open-lane base attacks', () => {
+  const unprotected = makeState();
+  unprotected.board[0] = unit('enemy', { id: 'attacker', attack: 2, hp: 3, maxHp: 3 });
+  unprotected.board[6] = unit('player', { id: 'unprotected-ally', attack: 0, hp: 3, maxHp: 3 });
+  unprotected.board[8] = unit('player', {
+    id: 'off-lane-tusk-guard',
+    attack: 0,
+    hp: 3,
+    maxHp: 3,
+    effectId: 'warden_defensive_friction_self',
+  });
+
+  const unprotectedEvents = resolveCombat(unprotected);
+  assert.equal(unprotectedEvents.some((event) => event.combatModifiers), false);
+
+  const openLane = makeState();
+  openLane.board[0] = unit('enemy', {
+    id: 'open-lane-attacker',
+    attack: 2,
+    hp: 3,
+    maxHp: 3,
+    effectId: 'lane_empty_bonus_damage',
+  });
+
+  const openLaneEvents = resolveCombat(openLane);
+  assert.equal(openLaneEvents.length, 1);
+  assert.equal(openLaneEvents[0].targetType, 'hero');
+  assert.equal(openLaneEvents[0].openLane, true);
+  assert.equal(openLaneEvents[0].combatModifiers, undefined);
+});
+
+test('Multiple Warden friction sources produce one capped -1 ATK metadata entry', () => {
+  const state = makeState();
+  state.board[0] = unit('enemy', { id: 'attacker', attack: 3, hp: 3, maxHp: 3 });
+  state.board[6] = unit('player', {
+    id: 'tusk-guard',
+    attack: 0,
+    hp: 5,
+    maxHp: 5,
+    effectId: 'warden_defensive_friction_self',
+  });
+  state.board[7] = unit('player', {
+    id: 'tundra-hunter',
+    attack: 0,
+    hp: 3,
+    maxHp: 3,
+    effectId: 'warden_defensive_friction_adjacent',
+  });
+
+  const events = resolveCombat(state);
+  const hit = events.find((event) => event.attackerSide === 'enemy' && event.targetSide === 'player');
+
+  assert.equal(hit.damage, 2);
+  assert.deepEqual(hit.combatModifiers, [
+    {
+      type: 'attack-reduction',
+      amount: -1,
+      source: 'warden_defensive_friction',
+      label: '-1 ATK',
+    },
+  ]);
+});

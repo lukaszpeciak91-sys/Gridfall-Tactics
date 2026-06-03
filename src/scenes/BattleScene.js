@@ -5204,6 +5204,9 @@ export default class BattleScene extends Phaser.Scene {
         animations.push(this.showHeroHeal(event.healFeedback.side, event.healFeedback.amount));
       }
 
+      const modifierFeedback = this.playCombatModifierFeedback(event);
+      if (modifierFeedback) animations.push(modifierFeedback);
+
       if (event.selfDamageFeedback?.targetType === 'unit') {
         const cell = this.getCellByIndex(event.selfDamageFeedback.index);
         if (cell) {
@@ -5218,6 +5221,26 @@ export default class BattleScene extends Phaser.Scene {
     });
 
     await Promise.all(feedback);
+  }
+
+  getWardenFrictionCombatModifier(event) {
+    if (!Array.isArray(event?.combatModifiers)) return null;
+    return event.combatModifiers.find((modifier) => (
+      modifier?.source === 'warden_defensive_friction'
+      && modifier.type === 'attack-reduction'
+      && modifier.amount < 0
+    )) ?? null;
+  }
+
+  playCombatModifierFeedback(event) {
+    const wardenFriction = this.getWardenFrictionCombatModifier(event);
+    if (!wardenFriction) return null;
+
+    const attackerIndex = getCombatEventAttackerIndex(event);
+    const attackerCell = Number.isInteger(attackerIndex) ? this.getCellByIndex(attackerIndex) : null;
+    if (!attackerCell) return null;
+
+    return this.showUnitFloatingText(attackerCell, wardenFriction.label ?? `${wardenFriction.amount} ATK`, '#fb923c');
   }
 
   getCombatEventTargetIndex(event) {
