@@ -46,6 +46,18 @@ test('retry button copy stays short in Polish without changing English', () => {
   assert.equal(getPath(pl, 'ui.common.retry'), 'PONÓW');
 });
 
+
+test('battle result modal flavor subtitles are localized for English and Polish', () => {
+  assert.deepEqual(
+    ['victory', 'defeat', 'draw'].map((key) => getPath(en, `ui.battle.resultSubtitles.${key}`)),
+    ['Audience delighted.', 'Audience demands more.', 'Production ordered a rematch.'],
+  );
+  assert.deepEqual(
+    ['victory', 'defeat', 'draw'].map((key) => getPath(pl, `ui.battle.resultSubtitles.${key}`)),
+    ['Publiczność zachwycona.', 'Publiczność domaga się więcej.', 'Produkcja zarządziła dogrywkę.'],
+  );
+});
+
 test('battle utility drawer labels are explicit in English and Polish', () => {
   assert.deepEqual(
     ['utilityMenuRules', 'utilityMenuSettings', 'utilityMenuReturn', 'utilityMenuMainMenu'].map((key) => getPath(en, `ui.battle.${key}`)),

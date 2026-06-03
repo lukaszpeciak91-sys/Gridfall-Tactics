@@ -407,7 +407,12 @@
         "selectSecondEnemy": "SELECT SECOND ENEMY"
       },
       "playerStarts": "YOU START",
-      "enemyStarts": "ENEMY STARTS"
+      "enemyStarts": "ENEMY STARTS",
+      "resultSubtitles": {
+        "victory": "Audience delighted.",
+        "defeat": "Audience demands more.",
+        "draw": "Production ordered a rematch."
+      }
     },
     "rules": {
       "title": "Rules / How To Play",

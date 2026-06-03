@@ -11,7 +11,7 @@ import { calculateHandBackCardCoverCrop, calculateHandBackCardDepth, shouldRende
 import { findHandCardFlipRevealSlots, startHandCardFlipReveal } from '../ui/handCardFlipReveal.js';
 import { createFloatingControl, createMuteToggleControl, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
 import { createModalBackButton } from '../ui/modalControls.js';
-import { preloadSecondaryButtonAsset } from '../ui/imageButton.js';
+import { PREMIUM_BROADCAST_FONT_STACK, createImageButton, preloadSecondaryButtonAsset } from '../ui/imageButton.js';
 import { formatDeckSummaryEntry } from '../rendering/cardRenderModes.js';
 import { CARD_COLORS, createCardArtwork, createCardPreviewView, getBaseCardSurfaceTheme, getDefaultCardAccentColor, resolveCardSurfaceTheme, createStatBadges } from '../rendering/cardVisualLayout.js';
 import { getCardDisplayName, getCardTextShort } from '../localization/cardDisplay.js';
@@ -828,6 +828,13 @@ export default class BattleScene extends Phaser.Scene {
     return translateActive('ui.battle.draw', 'DRAW');
   }
 
+  getBattleResultSubtitle() {
+    if (!this.gameState?.winner) return '';
+    if (this.gameState.winner === 'player') return translateActive('ui.battle.resultSubtitles.victory', 'Audience delighted.');
+    if (this.gameState.winner === 'enemy') return translateActive('ui.battle.resultSubtitles.defeat', 'Audience demands more.');
+    return translateActive('ui.battle.resultSubtitles.draw', 'Production ordered a rematch.');
+  }
+
   scheduleBattleResultModal(delayMs = 500) {
     if (!this.gameState?.winner || this.battleResultModalShown || this.battleResultModalPending) return;
     this.battleResultModalPending = true;
@@ -857,45 +864,58 @@ export default class BattleScene extends Phaser.Scene {
     this.resetCardHighlights();
 
     const { width, height } = this.scale.gameSize;
-    const modalWidth = Math.min(width * 0.78, 460);
-    const modalHeight = Math.min(height * 0.34, 260);
+    const modalWidth = Math.min(width * 0.86, 460);
+    const modalHeight = Math.min(Math.max(height * 0.31, 240), 286);
     const centerX = width * 0.5;
-    const centerY = height * 0.5;
+    const centerY = height * 0.42;
     const resultText = this.getBattleResultText();
+    const resultSubtitle = this.getBattleResultSubtitle();
     const resultColor = this.gameState.winner === 'player'
       ? '#bbf7d0'
       : (this.gameState.winner === 'enemy' ? '#fecaca' : '#fde68a');
 
-    const overlay = this.add.rectangle(centerX, centerY, width, height, 0x000000, 0.58)
+    const overlay = this.add.rectangle(centerX, height * 0.5, width, height, 0x000000, 0.58)
       .setInteractive()
       .setDepth(900);
-    const panel = this.add.rectangle(centerX, centerY, modalWidth, modalHeight, 0x0f172a, 0.96)
+    const panel = this.add.rectangle(centerX, centerY, modalWidth, modalHeight, 0x0f172a, 0.97)
       .setStrokeStyle(4, 0xe2e8f0, 0.85)
       .setDepth(901);
-    const title = this.add.text(centerX, centerY - modalHeight * 0.24, resultText, {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: `${Math.max(34, Math.floor(modalHeight * 0.2))}px`,
-      color: resultColor,
-      fontStyle: 'bold',
-      align: 'center',
-    }).setOrigin(0.5).setDepth(902);
-    const subtitle = this.add.text(centerX, centerY - modalHeight * 0.02, translateActive('ui.battle.battleComplete', 'Battle Complete'), {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: `${Math.max(16, Math.floor(modalHeight * 0.07))}px`,
+    const topRule = this.add.rectangle(centerX, centerY - modalHeight * 0.34, modalWidth * 0.46, 2, 0xe2e8f0, 0.58)
+      .setDepth(902);
+    const eyebrow = this.add.text(centerX, centerY - modalHeight * 0.24, translateActive('ui.battle.battleComplete', 'Battle Complete'), {
+      fontFamily: PREMIUM_BROADCAST_FONT_STACK,
+      fontSize: `${Math.max(13, Math.floor(modalHeight * 0.055))}px`,
       color: '#cbd5e1',
+      fontStyle: '700',
       align: 'center',
+      letterSpacing: 2.2,
+    }).setOrigin(0.5).setDepth(902);
+    const title = this.add.text(centerX, centerY - modalHeight * 0.045, resultText, {
+      fontFamily: PREMIUM_BROADCAST_FONT_STACK,
+      fontSize: `${Math.max(38, Math.floor(modalHeight * 0.2))}px`,
+      color: resultColor,
+      fontStyle: '700',
+      align: 'center',
+      letterSpacing: 1.6,
+    }).setOrigin(0.5).setDepth(902);
+    const subtitle = this.add.text(centerX, centerY + modalHeight * 0.125, resultSubtitle, {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: `${Math.max(16, Math.floor(modalHeight * 0.065))}px`,
+      color: '#e2e8f0',
+      align: 'center',
+      wordWrap: { width: modalWidth * 0.78, useAdvancedWrap: true },
     }).setOrigin(0.5).setDepth(902);
 
-    const buttonY = centerY + modalHeight * 0.26;
-    const buttonWidth = Math.min(170, modalWidth * 0.34);
-    const buttonHeight = Math.max(54, modalHeight * 0.22);
-    const gap = Math.max(24, modalWidth * 0.08);
+    const buttonY = centerY + modalHeight * 0.345;
+    const buttonWidth = Math.min(142, modalWidth * 0.39);
+    const buttonHeight = Math.max(50, Math.floor(modalHeight * 0.19));
+    const gap = Math.max(14, modalWidth * 0.035);
     const exitButton = this.createResultModalButton(
       centerX - buttonWidth / 2 - gap / 2,
       buttonY,
       buttonWidth,
       buttonHeight,
-      `←\n${translateActive('ui.common.exit', 'EXIT')}`,
+      translateActive('ui.common.exit', 'EXIT'),
       () => this.exitBattleToFactionSelect(),
     );
     const retryButton = this.createResultModalButton(
@@ -903,13 +923,15 @@ export default class BattleScene extends Phaser.Scene {
       buttonY,
       buttonWidth,
       buttonHeight,
-      `↻\n${translateActive('ui.common.retry', 'RETRY')}`,
+      translateActive('ui.common.retry', 'RETRY'),
       () => this.retryBattle(),
     );
 
     this.battleResultModal = {
       overlay,
       panel,
+      topRule,
+      eyebrow,
       title,
       subtitle,
       buttons: [exitButton, retryButton],
@@ -917,37 +939,33 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   createResultModalButton(x, y, width, height, label, onClick) {
-    const background = this.add.rectangle(x, y, width, height, 0x1e293b, 1)
-      .setStrokeStyle(3, 0x94a3b8, 0.95)
-      .setInteractive({ useHandCursor: true })
-      .setDepth(902);
-    const text = this.add.text(x, y, label, {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: `${Math.max(16, Math.floor(height * 0.28))}px`,
-      color: '#f8fafc',
-      fontStyle: 'bold',
-      align: 'center',
-      lineSpacing: -2,
-    }).setOrigin(0.5).setDepth(903);
-
-    const setHover = (isHovering) => {
-      background.setFillStyle(isHovering ? 0x334155 : 0x1e293b, 1);
-      background.setStrokeStyle(3, isHovering ? 0xfacc15 : 0x94a3b8, isHovering ? 1 : 0.95);
-      text.setScale(isHovering ? 1.04 : 1);
-    };
-
-    background.on('pointerover', () => setHover(true));
-    background.on('pointerout', () => setHover(false));
-    background.on('pointerdown', () => {
-      background.setFillStyle(0x475569, 1);
-      text.setScale(0.96);
+    return createImageButton(this, {
+      x,
+      y,
+      width,
+      height,
+      label,
+      onPointerUp: () => {
+        this.guardPointerEvent();
+        if (this.navigationInProgress) return;
+        onClick();
+      },
+      depth: 902,
+      fontSize: `${Math.max(16, Math.floor(height * 0.31))}px`,
+      textStyle: {
+        color: '#f5f1e6',
+        fontFamily: PREMIUM_BROADCAST_FONT_STACK,
+        fontStyle: '700',
+        letterSpacing: 1.7,
+      },
+      fallbackFill: 0x1e293b,
+      fallbackStroke: 0x94a3b8,
+      fallbackStrokeAlpha: 0.95,
+      shadowAlpha: 0.28,
+      hoverScale: 1.025,
+      downScale: 0.975,
+      minTouchHeight: 54,
     });
-    background.on('pointerup', () => {
-      setHover(false);
-      onClick();
-    });
-
-    return { background, text };
   }
 
   destroyBattleResultModal() {
@@ -960,9 +978,11 @@ export default class BattleScene extends Phaser.Scene {
     const items = [
       this.battleResultModal.overlay,
       this.battleResultModal.panel,
+      this.battleResultModal.topRule,
+      this.battleResultModal.eyebrow,
       this.battleResultModal.title,
       this.battleResultModal.subtitle,
-      ...this.battleResultModal.buttons.flatMap((button) => [button.background, button.text]),
+      ...this.battleResultModal.buttons.flatMap((button) => button.items ?? []),
     ];
     items.forEach((item) => {
       item?.removeAllListeners?.();
