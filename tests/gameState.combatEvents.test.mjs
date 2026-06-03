@@ -226,6 +226,12 @@ test('Rush finalizes immediate lane combat after resolving only the swapped lane
   const result = resolveTargetedEffectCard(state, 'player', rush.id, 7);
 
   assert.equal(result.ok, true);
+  assert.equal(result.combatEvents.length, 1);
+  assert.equal(result.combatEvents[0].attackerIndex, 6);
+  assert.equal(result.combatEvents[0].targetType, 'hero');
+  assert.equal(result.combatEvents[0].damage, 2);
+  assert.equal(result.combatSnapshot.board[6].id, 'rushing-ally');
+  assert.equal(result.combatSnapshot.board[7].id, 'left-ally');
   assert.equal(state.board[6].id, 'rushing-ally');
   assert.equal(state.board[7].id, 'left-ally');
   assert.equal(state.enemyHP, 0);
@@ -251,10 +257,41 @@ test('Quick Strike finalizes immediate lane combat and resolves only its target 
   const result = resolveTargetedEffectCard(state, 'player', quickStrike.id, 7);
 
   assert.equal(result.ok, true);
+  assert.equal(result.combatEvents.length, 1);
+  assert.equal(result.combatEvents[0].attackerIndex, 7);
+  assert.equal(result.combatEvents[0].targetType, 'hero');
+  assert.equal(result.combatEvents[0].damage, 2);
+  assert.equal(result.combatSnapshot.board[7].id, 'quick-ally');
   assert.equal(state.enemyHP, 0);
   assert.equal(state.winner, 'player');
   assert.equal(state.playerHP, 12);
   assert.equal(state.board[0].id, 'unresolved-enemy');
+});
+
+
+test('Quick Strike combatEvents represent both attacks and damage is applied once', () => {
+  const state = makeState();
+  const quickStrike = {
+    id: 'quick-strike-test-card',
+    name: 'Quick Strike',
+    type: 'special',
+    targeting: 'friendly_unit',
+    effectId: 'quick_strike',
+  };
+  state.player.hand.push(quickStrike);
+  state.board[7] = unit('player', { id: 'quick-ally', attack: 2, hp: 4, maxHp: 4 });
+  state.board[1] = unit('enemy', { id: 'quick-enemy', attack: 1, hp: 4, maxHp: 4 });
+
+  const result = resolveTargetedEffectCard(state, 'player', quickStrike.id, 7);
+
+  assert.equal(result.ok, true);
+  assert.equal(result.combatEvents.length, 2);
+  assert.deepEqual(result.combatEvents.map((event) => [event.attackerSide, event.attackerIndex, event.targetIndex, event.damage]), [
+    ['player', 7, 1, 2],
+    ['enemy', 1, 7, 1],
+  ]);
+  assert.equal(state.board[1].hp, 2);
+  assert.equal(state.board[7].hp, 3);
 });
 
 test('Runner deals +2 extra hero damage through an empty opposing lane', () => {

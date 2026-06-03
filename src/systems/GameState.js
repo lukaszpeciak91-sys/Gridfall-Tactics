@@ -454,6 +454,32 @@ function resolveCombatWithRawHeroDamage(state, callback) {
   return result;
 }
 
+function cloneBoardForCombatPresentation(state) {
+  return state.board.map((unit) => (unit ? { ...unit } : null));
+}
+
+function cloneFuneralPyreForCombatPresentation(state) {
+  return state.funeralPyreThisCombat
+    ? JSON.parse(JSON.stringify(state.funeralPyreThisCombat))
+    : null;
+}
+
+function captureImmediateCombatPresentationSnapshot(state) {
+  return {
+    board: cloneBoardForCombatPresentation(state),
+    playerHP: state.playerHP,
+    enemyHP: state.enemyHP,
+    funeralPyreThisCombat: cloneFuneralPyreForCombatPresentation(state),
+  };
+}
+
+function resolveImmediateLaneCombat(state, lane) {
+  const combatSnapshot = captureImmediateCombatPresentationSnapshot(state);
+  const combatEvents = resolveCombatLane(state, lane);
+  finalizeImmediateLaneCombat(state);
+  return { combatEvents, combatSnapshot };
+}
+
 function ensureFuneralPyreState(state) {
   state.funeralPyreThisCombat ??= {
     player: { active: false, triggers: 0 },
@@ -1170,6 +1196,7 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
   if (handIndex < 0) return { ok: false, reason: 'Card not in hand' };
 
   const card = side.hand[handIndex];
+  let immediateCombatFeedback = null;
   if (!card || card.type === 'unit') {
     return { ok: false, reason: 'Only effect cards can use targeted resolution' };
   }
@@ -1229,10 +1256,7 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
     case 'quick_strike': {
       if (targetUnit.owner !== owner) return { ok: false, reason: 'Target must be friendly' };
       const lane = boardIndex % 3;
-      resolveCombatWithRawHeroDamage(state, () => {
-        resolveCombatLane(state, lane);
-        finalizeImmediateLaneCombat(state);
-      });
+      immediateCombatFeedback = resolveCombatWithRawHeroDamage(state, () => resolveImmediateLaneCombat(state, lane));
       break;
     }
     case 'control_enemy_unit_this_turn': {
@@ -1330,10 +1354,7 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
       const adjacentUnit = state.board[swapIndex];
       state.board[boardIndex] = adjacentUnit;
       state.board[swapIndex] = selectedUnit;
-      resolveCombatWithRawHeroDamage(state, () => {
-        resolveCombatLane(state, targetLane);
-        finalizeImmediateLaneCombat(state);
-      });
+      immediateCombatFeedback = resolveCombatWithRawHeroDamage(state, () => resolveImmediateLaneCombat(state, targetLane));
       break;
     }
     case 'swap_two_enemy_units':
@@ -1372,6 +1393,10 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
     type: 'targeted-effect',
     card: playedCard,
     feedback: drawResult ? [{ type: 'draw', owner, ...drawResult }] : [],
+    ...(immediateCombatFeedback?.combatEvents?.length > 0 ? {
+      combatEvents: immediateCombatFeedback.combatEvents,
+      combatSnapshot: immediateCombatFeedback.combatSnapshot,
+    } : {}),
   };
 }
 
@@ -1418,12 +1443,9 @@ export function resolveQuickStrike(state, owner, boardIndex) {
     return { ok: false, reason: 'Target must be friendly' };
   }
   const lane = boardIndex % 3;
-  resolveCombatWithRawHeroDamage(state, () => {
-    resolveCombatLane(state, lane);
-    finalizeImmediateLaneCombat(state);
-  });
+  const immediateCombatFeedback = resolveCombatWithRawHeroDamage(state, () => resolveImmediateLaneCombat(state, lane));
   recordProgressAction(state, owner, 'quick-strike');
-  return { ok: true, type: 'quick-strike', lane };
+  return { ok: true, type: 'quick-strike', lane, ...immediateCombatFeedback };
 }
 
 
