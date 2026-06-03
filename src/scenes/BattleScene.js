@@ -5223,24 +5223,48 @@ export default class BattleScene extends Phaser.Scene {
     await Promise.all(feedback);
   }
 
-  getWardenFrictionCombatModifier(event) {
-    if (!Array.isArray(event?.combatModifiers)) return null;
-    return event.combatModifiers.find((modifier) => (
-      modifier?.source === 'warden_defensive_friction'
-      && modifier.type === 'attack-reduction'
-      && modifier.amount < 0
-    )) ?? null;
+  getCombatModifierFeedbackItems(event) {
+    if (!Array.isArray(event?.combatModifiers)) return [];
+    const attackerIndex = getCombatEventAttackerIndex(event);
+    const targetIndex = getCombatEventTargetIndex(event);
+    return event.combatModifiers
+      .map((modifier) => {
+        const index = modifier?.feedback === 'target' ? targetIndex : attackerIndex;
+        if (!Number.isInteger(index) || !modifier?.label) return null;
+        return { index, label: modifier.label, kind: modifier.type };
+      })
+      .filter(Boolean);
+  }
+
+  getCombatModifierFeedbackColor(kind) {
+    if (kind === 'armor-bonus' || kind === 'intercept') return '#bfdbfe';
+    if (kind === 'armor-ignore' || kind === 'retarget') return '#fde68a';
+    if (kind === 'attack-reduction') return '#fb923c';
+    return '#facc15';
   }
 
   playCombatModifierFeedback(event) {
-    const wardenFriction = this.getWardenFrictionCombatModifier(event);
-    if (!wardenFriction) return null;
+    const items = this.getCombatModifierFeedbackItems(event);
+    if (items.length === 0) return null;
 
-    const attackerIndex = getCombatEventAttackerIndex(event);
-    const attackerCell = Number.isInteger(attackerIndex) ? this.getCellByIndex(attackerIndex) : null;
-    if (!attackerCell) return null;
+    const grouped = new Map();
+    items.forEach((item) => {
+      const group = grouped.get(item.index) ?? { labels: [], kind: item.kind };
+      group.labels.push(item.label);
+      grouped.set(item.index, group);
+    });
 
-    return this.showUnitFloatingText(attackerCell, wardenFriction.label ?? `${wardenFriction.amount} ATK`, '#fb923c');
+    const animations = [...grouped.entries()].map(([index, group]) => {
+      const cell = this.getCellByIndex(index);
+      if (!cell) return null;
+      return this.showUnitFloatingText(
+        cell,
+        group.labels.join('\n'),
+        this.getCombatModifierFeedbackColor(group.kind),
+      );
+    }).filter(Boolean);
+
+    return animations.length > 0 ? Promise.all(animations) : null;
   }
 
   getCombatEventTargetIndex(event) {
