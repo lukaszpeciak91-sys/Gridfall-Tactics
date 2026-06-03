@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
-import { createInitialBattleState, drawCards, shuffleDeck, canPass, canPlayOrRedeploy, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, resolveTargetedUnitOnPlayEffect, getUnitAttack, getUnitArmor, toggleFirstActor, resolveTurnCapWinner, resolveImmediateResourceExhaustionWinner, resolveImmediateNoProgressWinner, recordPassAction, performOpeningMulligan, STARTING_HAND_SIZE, MAX_OPENING_MULLIGAN_CARDS } from '../systems/GameState.js';
+import { createInitialBattleState, drawCards, shuffleDeck, canPass, canPlayOrRedeploy, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, resolveTargetedUnitOnPlayEffect, getUnitAttack, getUnitArmor, toggleFirstActor, resolveTurnCapWinner, resolveImmediateResourceExhaustionWinner, resolveImmediateNoProgressWinner, recordPassAction, performOpeningMulligan, STARTING_HAND_SIZE, MAX_OPENING_MULLIGAN_CARDS, getEffectiveBoardAttack, getEffectiveBoardArmor } from '../systems/GameState.js';
 import { chooseEnemyAction, isVerySafeConcedableState, recordBattleActionUse, selectOpeningMulliganCardIds } from '../systems/enemyDecision.js';
 import { getTargetingStateForEffect } from '../systems/cardTargeting.js';
 import { COMBAT_ATTACK_PRESENTATIONS, getCombatAttackPresentation, getCombatEventAttackerIndex, getCombatEventTargetIndex, getLaneLethalTargetIndexes, getLaneSimultaneousUnitClash, shouldAnimateCombatAttacker } from '../systems/combatAnimation.js';
@@ -5461,12 +5461,20 @@ export default class BattleScene extends Phaser.Scene {
     this.startHandCardFlipReveals(revealBackCards);
   }
 
-  getBoardUnitStats(unit) {
+  getBoardUnitStats(unit, boardIndex = null) {
     if (!unit) return { attack: null, armor: null, health: null };
 
+    const effectiveBoardIndex = Number.isInteger(boardIndex)
+      ? boardIndex
+      : this.gameState?.board?.indexOf(unit);
+
     return {
-      attack: getUnitAttack(unit),
-      armor: getUnitArmor(unit),
+      attack: Number.isInteger(effectiveBoardIndex) && effectiveBoardIndex >= 0
+        ? getEffectiveBoardAttack(this.gameState, effectiveBoardIndex)
+        : getUnitAttack(unit),
+      armor: Number.isInteger(effectiveBoardIndex) && effectiveBoardIndex >= 0
+        ? getEffectiveBoardArmor(this.gameState, effectiveBoardIndex)
+        : getUnitArmor(unit),
       health: Number.isFinite(unit.hp) ? unit.hp : 0,
     };
   }
@@ -5482,12 +5490,12 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   createBoardRenderStatSnapshot() {
-    return this.gameState.board.map((unit) => (unit ? {
+    return this.gameState.board.map((unit, index) => (unit ? {
       id: unit.id,
       cardId: unit.cardId,
       owner: unit.owner,
-      attack: getUnitAttack(unit),
-      armor: getUnitArmor(unit),
+      attack: getEffectiveBoardAttack(this.gameState, index),
+      armor: getEffectiveBoardArmor(this.gameState, index),
       health: Number.isFinite(unit.hp) ? unit.hp : 0,
     } : null));
   }
