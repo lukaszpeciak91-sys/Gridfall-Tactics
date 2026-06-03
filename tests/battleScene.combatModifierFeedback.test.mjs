@@ -4,9 +4,9 @@ import { readFileSync } from 'node:fs';
 
 const source = readFileSync('src/scenes/BattleScene.js', 'utf8');
 
-test('Warden friction combat metadata produces attacker-side -1 ATK floating feedback', () => {
-  assert.match(source, /getWardenFrictionCombatModifier\(event\) \{[\s\S]*source === 'warden_defensive_friction'[\s\S]*modifier\.type === 'attack-reduction'[\s\S]*modifier\.amount < 0[\s\S]*\}/);
-  assert.match(source, /playCombatModifierFeedback\(event\) \{[\s\S]*getCombatEventAttackerIndex\(event\)[\s\S]*showUnitFloatingText\(attackerCell, wardenFriction\.label \?\? `\$\{wardenFriction\.amount\} ATK`, '#fb923c'\)/);
+test('combat modifier metadata produces grouped floating feedback at attacker or target slots', () => {
+  assert.match(source, /getCombatModifierFeedbackItems\(event\) \{[\s\S]*event\.combatModifiers[\s\S]*modifier\?\.feedback === 'target' \? targetIndex : attackerIndex[\s\S]*label: modifier\.label[\s\S]*\}/);
+  assert.match(source, /playCombatModifierFeedback\(event\) \{[\s\S]*getCombatModifierFeedbackItems\(event\)[\s\S]*showUnitFloatingText\([\s\S]*group\.labels\.join\('\\n'\)/);
   assert.match(source, /const modifierFeedback = this\.playCombatModifierFeedback\(event\);[\s\S]*if \(modifierFeedback\) animations\.push\(modifierFeedback\);/);
 });
 

@@ -1567,57 +1567,92 @@ function resolveCombatLane(state, col, combatContext = null) {
     return chosen;
   };
 
+  const getAdjacentAllyIndexes = (unit, unitIndex) => {
+    if (!unit) return [];
+    const rowStart = unit.owner === 'player' ? 6 : 0;
+    const lane = unitIndex % 3;
+    const indexes = [];
+    if (lane > 0) indexes.push(rowStart + lane - 1);
+    if (lane < 2) indexes.push(rowStart + lane + 1);
+    return indexes;
+  };
+
+  const createCombatModifier = ({ type, amount = 0, source, label, feedback = 'attacker' }) => {
+    const modifier = { type, amount, source, label };
+    if (feedback !== 'attacker') modifier.feedback = feedback;
+    return modifier;
+  };
+
   const getAttackWithCombatBonuses = (unit, unitIndex) => {
-    if (!unit) return 0;
+    const combatModifiers = [];
+    if (!unit) return { attack: 0, combatModifiers };
     let attack = unit.effectId === 'cannot_attack' ? 0 : (unit.attack ?? 0);
     if (unit.effectId === 'opposing_lane_atk_plus_1') {
       const opposingIndex = unit.owner === 'player' ? unitIndex - 6 : unitIndex + 6;
-      if (state.board[opposingIndex]?.owner === getOpponentOwner(unit.owner)) attack += 1;
+      if (state.board[opposingIndex]?.owner === getOpponentOwner(unit.owner)) {
+        attack += 1;
+        combatModifiers.push(createCombatModifier({
+          type: 'attack-bonus',
+          amount: 1,
+          source: 'opposing_lane_atk_plus_1',
+          label: '+1 ATK',
+        }));
+      }
     }
     if (unit.effectId === 'empty_adjacent_bonus_atk') {
-      const rowStart = unit.owner === 'player' ? 6 : 0;
-      const lane = unitIndex % 3;
-      const adjacentIndexes = [];
-      if (lane > 0) adjacentIndexes.push(rowStart + lane - 1);
-      if (lane < 2) adjacentIndexes.push(rowStart + lane + 1);
-      const hasEmptyAdjacent = adjacentIndexes.some((idx) => state.board[idx] === null);
-      if (hasEmptyAdjacent) attack += 1;
+      const hasEmptyAdjacent = getAdjacentAllyIndexes(unit, unitIndex).some((idx) => state.board[idx] === null);
+      if (hasEmptyAdjacent) {
+        attack += 1;
+        combatModifiers.push(createCombatModifier({
+          type: 'attack-bonus',
+          amount: 1,
+          source: 'empty_adjacent_bonus_atk',
+          label: '+1 ATK',
+        }));
+      }
     }
-    return Math.max(0, attack);
+    return { attack: Math.max(0, attack), combatModifiers };
   };
 
-  const getAuraBonusAttack = (unit) => {
-    if (!unit) return 0;
-    const lane = unit.owner === 'player' ? (unit.__index - 6) : unit.__index;
-    const rowStart = unit.owner === 'player' ? 6 : 0;
-    let bonus = 0;
-    const left = lane > 0 ? state.board[rowStart + lane - 1] : null;
-    const right = lane < 2 ? state.board[rowStart + lane + 1] : null;
-    if (hasSwarmAlphaAura(left)) bonus += 1;
-    if (hasSwarmAlphaAura(right)) bonus += 1;
-    return bonus;
+  const getAuraBonusAttack = (unit, unitIndex) => {
+    const combatModifiers = [];
+    if (!unit) return { bonus: 0, combatModifiers };
+    const bonus = getAdjacentAllyIndexes(unit, unitIndex).reduce((total, index) => (
+      total + (hasSwarmAlphaAura(state.board[index]) ? 1 : 0)
+    ), 0);
+    if (bonus > 0) {
+      combatModifiers.push(createCombatModifier({
+        type: 'attack-bonus',
+        amount: bonus,
+        source: SWARM_ALPHA_AURA_EFFECT_ID,
+        label: `+${bonus} ATK`,
+      }));
+    }
+    return { bonus, combatModifiers };
   };
 
-  const getArmorWithAura = (unit) => {
-    if (!unit) return 0;
+  const getArmorWithAura = (unit, unitIndex) => {
+    const combatModifiers = [];
+    if (!unit) return { armor: 0, combatModifiers };
     const baseArmor = getUnitArmor(unit);
-    const lane = unit.owner === 'player' ? (unit.__index - 6) : unit.__index;
-    const rowStart = unit.owner === 'player' ? 6 : 0;
-    let aura = 0;
-    const left = lane > 0 ? state.board[rowStart + lane - 1] : null;
-    const right = lane < 2 ? state.board[rowStart + lane + 1] : null;
-    if (left?.effectId === 'lane_armor_aura_1') aura += 1;
-    if (right?.effectId === 'lane_armor_aura_1') aura += 1;
-    return baseArmor + aura;
+    const aura = getAdjacentAllyIndexes(unit, unitIndex).reduce((total, index) => (
+      total + (state.board[index]?.effectId === 'lane_armor_aura_1' ? 1 : 0)
+    ), 0);
+    if (aura > 0) {
+      combatModifiers.push(createCombatModifier({
+        type: 'armor-bonus',
+        amount: aura,
+        source: 'lane_armor_aura_1',
+        label: `+${aura} ARM`,
+        feedback: 'target',
+      }));
+    }
+    return { armor: baseArmor + aura, combatModifiers };
   };
 
-  const getAuraArmorIgnore = (unit) => {
+  const getAuraArmorIgnore = (unit, unitIndex) => {
     if (!unit) return 0;
-    const lane = unit.owner === 'player' ? (unit.__index - 6) : unit.__index;
-    const rowStart = unit.owner === 'player' ? 6 : 0;
-    const left = lane > 0 ? state.board[rowStart + lane - 1] : null;
-    const right = lane < 2 ? state.board[rowStart + lane + 1] : null;
-    return hasSwarmAlphaAura(left) || hasSwarmAlphaAura(right) ? 1 : 0;
+    return getAdjacentAllyIndexes(unit, unitIndex).some((index) => hasSwarmAlphaAura(state.board[index])) ? 1 : 0;
   };
 
   const getDefensiveFrictionPenalty = (defender) => {
@@ -1633,26 +1668,44 @@ function resolveCombatLane(state, col, combatContext = null) {
     return Math.min(WARDEN_FRICTION_CAP, penalty);
   };
 
-  const getMitigatedDamageResult = (attacker, defender) => {
+  const getMitigatedDamageResult = (attacker, defender, defenderIndex, attackCombatModifiers = []) => {
     const frictionPenalty = getDefensiveFrictionPenalty(defender);
-    const combatModifiers = [];
+    const combatModifiers = [...attackCombatModifiers];
     const attackDamage = Math.max(0, getUnitAttack(attacker) - frictionPenalty);
     if (frictionPenalty > 0) {
       state.wardenDefensiveFrictionApplications = (state.wardenDefensiveFrictionApplications ?? 0) + 1;
-      combatModifiers.push({
+      combatModifiers.push(createCombatModifier({
         type: 'attack-reduction',
         amount: -frictionPenalty,
         source: 'warden_defensive_friction',
         label: `${-frictionPenalty} ATK`,
-      });
+      }));
     }
+
     const damage = (() => {
       if (defender?.ignoreArmorNext) {
+        const boardDefender = Number.isInteger(defenderIndex) ? state.board[defenderIndex] : null;
+        if (boardDefender) boardDefender.ignoreArmorNext = false;
         defender.ignoreArmorNext = false;
+        combatModifiers.push(createCombatModifier({
+          type: 'armor-ignore',
+          source: 'ignore_armor_next_attack',
+          label: 'IGNORE ARM',
+        }));
         return Math.max(0, attackDamage);
       }
-      const armor = Math.max(0, getArmorWithAura(defender) - getAuraArmorIgnore(attacker));
-      return Math.max(0, attackDamage - armor);
+      const { armor, combatModifiers: armorCombatModifiers } = getArmorWithAura(defender, defenderIndex);
+      combatModifiers.push(...armorCombatModifiers);
+      const armorIgnore = getAuraArmorIgnore(attacker, attacker?.__index);
+      if (armorIgnore > 0 && armor > 0) {
+        combatModifiers.push(createCombatModifier({
+          type: 'armor-ignore',
+          amount: Math.min(armor, armorIgnore),
+          source: SWARM_ALPHA_AURA_EFFECT_ID,
+          label: 'IGNORE ARM',
+        }));
+      }
+      return Math.max(0, attackDamage - Math.max(0, armor - armorIgnore));
     })();
     return { damage, combatModifiers };
   };
@@ -1742,7 +1795,7 @@ function resolveCombatLane(state, col, combatContext = null) {
       combatModifiers,
     });
   };
-  const recordHeroAttack = (attackerSide, attackerIndex, targetSide, damage, openLane) => recordCombatEvent({
+  const recordHeroAttack = (attackerSide, attackerIndex, targetSide, damage, openLane, combatModifiers = []) => recordCombatEvent({
       attackerSide,
       attackerIndex,
       targetType: 'hero',
@@ -1750,10 +1803,20 @@ function resolveCombatLane(state, col, combatContext = null) {
       damage,
       openLane,
       lethal: false,
+      combatModifiers,
     });
 
+  const getCombatAttackProfile = (unit, unitIndex) => {
+    const { attack, combatModifiers } = getAttackWithCombatBonuses(unit, unitIndex);
+    const { bonus, combatModifiers: auraCombatModifiers } = getAuraBonusAttack(unit, unitIndex);
+    return {
+      attack: attack + bonus,
+      combatModifiers: [...combatModifiers, ...auraCombatModifiers],
+    };
+  };
+
   if (player) {
-    const playerAttack = getAttackWithCombatBonuses(player, playerIndex) + getAuraBonusAttack(player);
+    const { attack: playerAttack, combatModifiers: playerAttackModifiers } = getCombatAttackProfile(player, playerIndex);
     const controlledToHero = Boolean(player.controlledAttackThisTurn);
     const canHitAnyLane = player.effectId === 'can_hit_any_lane';
     const sniperTargetIndex = !controlledToHero && canHitAnyLane ? findSniperTargetIndex(player.owner) : null;
@@ -1766,15 +1829,26 @@ function resolveCombatLane(state, col, combatContext = null) {
     } else if (sniperTargetIndex !== null) {
       const sniperTarget = state.board[sniperTargetIndex];
       if (sniperTarget) {
-        const { damage, combatModifiers } = getMitigatedDamageResult({ ...player, attack: playerAttack }, sniperTarget);
+        const { damage, combatModifiers } = getMitigatedDamageResult(
+          { ...player, attack: playerAttack },
+          sniperTarget,
+          sniperTargetIndex,
+          [
+            ...playerAttackModifiers,
+            createCombatModifier({ type: 'retarget', source: 'can_hit_any_lane', label: 'LOWEST HP' }),
+          ],
+        );
         recordUnitAttack('player', playerIndex, sniperTargetIndex, damage, combatModifiers);
         addPendingUnitDamage(sniperTargetIndex, damage);
       }
     } else if (enemy) {
-      const { damage, combatModifiers } = getMitigatedDamageResult({ ...player, attack: playerAttack }, enemy);
+      const { damage, combatModifiers } = getMitigatedDamageResult({ ...player, attack: playerAttack }, enemy, enemyIndex, playerAttackModifiers);
       const interceptIndex = findGuardianInterceptIndex(enemyIndex);
       if (interceptIndex !== null) {
-        recordUnitAttack('player', playerIndex, interceptIndex, damage, combatModifiers);
+        recordUnitAttack('player', playerIndex, interceptIndex, damage, [
+          ...combatModifiers,
+          createCombatModifier({ type: 'intercept', source: 'intercept_lane_damage', label: 'INTERCEPT', feedback: 'target' }),
+        ]);
         addPendingUnitDamage(interceptIndex, damage);
         context.guardiansUsed.add(interceptIndex);
       } else {
@@ -1784,14 +1858,17 @@ function resolveCombatLane(state, col, combatContext = null) {
     } else {
       const laneBonus = player.effectId === 'lane_empty_bonus_damage' ? RUNNER_OPEN_LANE_HERO_BONUS : 0;
       const damage = playerAttack + laneBonus;
-      recordHeroAttack('player', playerIndex, 'enemy', damage, true);
+      const combatModifiers = laneBonus > 0
+        ? [...playerAttackModifiers, createCombatModifier({ type: 'base-damage-bonus', amount: laneBonus, source: 'lane_empty_bonus_damage', label: `OPEN +${laneBonus}` })]
+        : playerAttackModifiers;
+      recordHeroAttack('player', playerIndex, 'enemy', damage, true, combatModifiers);
       state.enemyHP -= damage;
     }
     if (player.effectId === 'self_damage_after_attack') addPendingUnitDamage(playerIndex, 1);
   }
 
   if (enemy) {
-    const enemyAttack = getAttackWithCombatBonuses(enemy, enemyIndex) + getAuraBonusAttack(enemy);
+    const { attack: enemyAttack, combatModifiers: enemyAttackModifiers } = getCombatAttackProfile(enemy, enemyIndex);
     const controlledToHero = Boolean(enemy.controlledAttackThisTurn);
     const canHitAnyLane = enemy.effectId === 'can_hit_any_lane';
     const sniperTargetIndex = !controlledToHero && canHitAnyLane ? findSniperTargetIndex(enemy.owner) : null;
@@ -1804,15 +1881,26 @@ function resolveCombatLane(state, col, combatContext = null) {
     } else if (sniperTargetIndex !== null) {
       const sniperTarget = state.board[sniperTargetIndex];
       if (sniperTarget) {
-        const { damage, combatModifiers } = getMitigatedDamageResult({ ...enemy, attack: enemyAttack }, sniperTarget);
+        const { damage, combatModifiers } = getMitigatedDamageResult(
+          { ...enemy, attack: enemyAttack },
+          sniperTarget,
+          sniperTargetIndex,
+          [
+            ...enemyAttackModifiers,
+            createCombatModifier({ type: 'retarget', source: 'can_hit_any_lane', label: 'LOWEST HP' }),
+          ],
+        );
         recordUnitAttack('enemy', enemyIndex, sniperTargetIndex, damage, combatModifiers);
         addPendingUnitDamage(sniperTargetIndex, damage);
       }
     } else if (player) {
-      const { damage, combatModifiers } = getMitigatedDamageResult({ ...enemy, attack: enemyAttack }, player);
+      const { damage, combatModifiers } = getMitigatedDamageResult({ ...enemy, attack: enemyAttack }, player, playerIndex, enemyAttackModifiers);
       const interceptIndex = findGuardianInterceptIndex(playerIndex);
       if (interceptIndex !== null) {
-        recordUnitAttack('enemy', enemyIndex, interceptIndex, damage, combatModifiers);
+        recordUnitAttack('enemy', enemyIndex, interceptIndex, damage, [
+          ...combatModifiers,
+          createCombatModifier({ type: 'intercept', source: 'intercept_lane_damage', label: 'INTERCEPT', feedback: 'target' }),
+        ]);
         addPendingUnitDamage(interceptIndex, damage);
         context.guardiansUsed.add(interceptIndex);
       } else {
@@ -1822,7 +1910,10 @@ function resolveCombatLane(state, col, combatContext = null) {
     } else {
       const laneBonus = enemy.effectId === 'lane_empty_bonus_damage' ? RUNNER_OPEN_LANE_HERO_BONUS : 0;
       const damage = enemyAttack + laneBonus;
-      recordHeroAttack('enemy', enemyIndex, 'player', damage, true);
+      const combatModifiers = laneBonus > 0
+        ? [...enemyAttackModifiers, createCombatModifier({ type: 'base-damage-bonus', amount: laneBonus, source: 'lane_empty_bonus_damage', label: `OPEN +${laneBonus}` })]
+        : enemyAttackModifiers;
+      recordHeroAttack('enemy', enemyIndex, 'player', damage, true, combatModifiers);
       state.playerHP -= damage;
     }
     if (enemy.effectId === 'self_damage_after_attack') addPendingUnitDamage(enemyIndex, 1);

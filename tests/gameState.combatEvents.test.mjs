@@ -309,6 +309,14 @@ test('Runner deals +2 extra hero damage through an empty opposing lane', () => {
       damage: 4,
       openLane: true,
       lethal: false,
+      combatModifiers: [
+        {
+          type: 'base-damage-bonus',
+          amount: 2,
+          source: 'lane_empty_bonus_damage',
+          label: 'OPEN +2',
+        },
+      ],
     },
   ]);
   assert.equal(state.enemyHP, 8);
@@ -374,6 +382,14 @@ test('Runner keeps existing combat timing and simultaneous open-lane order', () 
       damage: 4,
       openLane: true,
       lethal: false,
+      combatModifiers: [
+        {
+          type: 'base-damage-bonus',
+          amount: 2,
+          source: 'lane_empty_bonus_damage',
+          label: 'OPEN +2',
+        },
+      ],
     },
     {
       lane: 1,
@@ -383,6 +399,14 @@ test('Runner keeps existing combat timing and simultaneous open-lane order', () 
       damage: 4,
       openLane: true,
       lethal: false,
+      combatModifiers: [
+        {
+          type: 'base-damage-bonus',
+          amount: 2,
+          source: 'lane_empty_bonus_damage',
+          label: 'OPEN +2',
+        },
+      ],
     },
   ]);
   assert.equal(state.winner, 'draw');
@@ -708,7 +732,14 @@ test('Warden friction metadata is omitted for unprotected defenders and open-lan
   assert.equal(openLaneEvents.length, 1);
   assert.equal(openLaneEvents[0].targetType, 'hero');
   assert.equal(openLaneEvents[0].openLane, true);
-  assert.equal(openLaneEvents[0].combatModifiers, undefined);
+  assert.deepEqual(openLaneEvents[0].combatModifiers, [
+    {
+      type: 'base-damage-bonus',
+      amount: 2,
+      source: 'lane_empty_bonus_damage',
+      label: 'OPEN +2',
+    },
+  ]);
 });
 
 test('Multiple Warden friction sources produce one capped -1 ATK metadata entry', () => {
@@ -740,5 +771,119 @@ test('Multiple Warden friction sources produce one capped -1 ATK metadata entry'
       source: 'warden_defensive_friction',
       label: '-1 ATK',
     },
+  ]);
+});
+
+test('combat-only attack and armor modifiers emit feedback metadata only when active without changing board stats', () => {
+  const alphaState = makeState();
+  alphaState.board[6] = unit('player', { id: 'alpha', attack: 1, hp: 2, maxHp: 2, effectId: 'adjacent_allies_atk_plus_1_ignore_armor_1' });
+  alphaState.board[7] = unit('player', { id: 'alpha-ally', attack: 1, hp: 2, maxHp: 2 });
+  alphaState.board[1] = unit('enemy', { id: 'armored-target', attack: 0, hp: 3, maxHp: 3, armor: 1 });
+
+  const alphaHit = resolveCombat(alphaState).find((event) => event.attackerIndex === 7);
+  assert.equal(alphaHit.damage, 2);
+  assert.equal(alphaState.board[7].attack, 1);
+  assert.deepEqual(alphaHit.combatModifiers, [
+    { type: 'attack-bonus', amount: 1, source: 'adjacent_allies_atk_plus_1_ignore_armor_1', label: '+1 ATK' },
+    { type: 'armor-ignore', amount: 1, source: 'adjacent_allies_atk_plus_1_ignore_armor_1', label: 'IGNORE ARM' },
+  ]);
+
+  const shieldState = makeState();
+  shieldState.board[0] = unit('enemy', { id: 'attacker', attack: 2, hp: 3, maxHp: 3 });
+  shieldState.board[6] = unit('player', { id: 'shielded', attack: 0, hp: 3, maxHp: 3, armor: 0 });
+  shieldState.board[7] = unit('player', { id: 'shieldbearer', attack: 0, hp: 3, maxHp: 3, effectId: 'lane_armor_aura_1' });
+
+  const shieldHit = resolveCombat(shieldState).find((event) => event.attackerSide === 'enemy');
+  assert.equal(shieldHit.damage, 1);
+  assert.equal(shieldState.board[6].armor, 0);
+  assert.deepEqual(shieldHit.combatModifiers, [
+    { type: 'armor-bonus', amount: 1, source: 'lane_armor_aura_1', label: '+1 ARM', feedback: 'target' },
+  ]);
+
+  const inactiveState = makeState();
+  inactiveState.board[6] = unit('player', { id: 'distant-alpha', attack: 1, hp: 2, maxHp: 2, effectId: 'adjacent_allies_atk_plus_1_ignore_armor_1' });
+  inactiveState.board[8] = unit('player', { id: 'distant-ally', attack: 1, hp: 2, maxHp: 2 });
+  inactiveState.board[2] = unit('enemy', { id: 'target', attack: 0, hp: 3, maxHp: 3, armor: 1 });
+
+  const inactiveHit = resolveCombat(inactiveState).find((event) => event.attackerIndex === 8);
+  assert.equal(inactiveHit.damage, 0);
+  assert.equal(inactiveHit.combatModifiers, undefined);
+});
+
+test('Halberdier, Flanker, Runner, Pierce, Guardian, and Sniper emit combat feedback only on real application', () => {
+  const halberdierState = makeState();
+  halberdierState.board[6] = unit('player', { id: 'halberdier', attack: 2, hp: 3, maxHp: 3, effectId: 'opposing_lane_atk_plus_1' });
+  halberdierState.board[0] = unit('enemy', { id: 'opposed', attack: 0, hp: 4, maxHp: 4 });
+  const halberdierHit = resolveCombat(halberdierState).find((event) => event.attackerIndex === 6);
+  assert.equal(halberdierHit.damage, 3);
+  assert.deepEqual(halberdierHit.combatModifiers, [
+    { type: 'attack-bonus', amount: 1, source: 'opposing_lane_atk_plus_1', label: '+1 ATK' },
+  ]);
+
+  const flankerState = makeState();
+  flankerState.board[7] = unit('player', { id: 'flanker', attack: 2, hp: 3, maxHp: 3, effectId: 'empty_adjacent_bonus_atk' });
+  flankerState.board[1] = unit('enemy', { id: 'flanked', attack: 0, hp: 4, maxHp: 4 });
+  const flankerHit = resolveCombat(flankerState).find((event) => event.attackerIndex === 7);
+  assert.equal(flankerHit.damage, 3);
+  assert.deepEqual(flankerHit.combatModifiers, [
+    { type: 'attack-bonus', amount: 1, source: 'empty_adjacent_bonus_atk', label: '+1 ATK' },
+  ]);
+
+  const runnerState = makeState();
+  runnerState.board[6] = unit('player', { id: 'runner', attack: 2, hp: 2, maxHp: 2, effectId: 'lane_empty_bonus_damage' });
+  const runnerHit = resolveCombat(runnerState)[0];
+  assert.equal(runnerHit.damage, 4);
+  assert.deepEqual(runnerHit.combatModifiers, [
+    { type: 'base-damage-bonus', amount: 2, source: 'lane_empty_bonus_damage', label: 'OPEN +2' },
+  ]);
+
+  const pierceState = makeState();
+  const pierceCard = {
+    id: 'pierce-strike-test-card',
+    name: 'Pierce Strike',
+    type: 'order',
+    targeting: 'enemy_unit',
+    effectId: 'ignore_armor_next_attack',
+  };
+  pierceState.player.hand.push(pierceCard);
+  pierceState.board[0] = unit('enemy', { id: 'pierced', attack: 0, hp: 10, maxHp: 10, armor: 4 });
+  pierceState.board[6] = unit('player', { id: 'piercing-attacker', attack: 5, hp: 3, maxHp: 3 });
+
+  const pierceResult = resolveTargetedEffectCard(pierceState, 'player', pierceCard.id, 0);
+  assert.equal(pierceResult.ok, true);
+  assert.equal(pierceState.board[0].ignoreArmorNext, true);
+
+  const pierceHit = resolveCombat(pierceState).find((event) => event.attackerSide === 'player');
+  assert.equal(pierceHit.damage, 5);
+  assert.equal(pierceState.board[0].ignoreArmorNext, false);
+  assert.deepEqual(pierceHit.combatModifiers, [
+    { type: 'armor-ignore', amount: 0, source: 'ignore_armor_next_attack', label: 'IGNORE ARM' },
+  ]);
+
+  const normalArmorState = makeState();
+  normalArmorState.board[0] = unit('enemy', { id: 'armored', attack: 0, hp: 10, maxHp: 10, armor: 4 });
+  normalArmorState.board[6] = unit('player', { id: 'normal-attacker', attack: 5, hp: 3, maxHp: 3 });
+  const normalArmorHit = resolveCombat(normalArmorState).find((event) => event.attackerSide === 'player');
+  assert.equal(normalArmorHit.damage, 1);
+  assert.equal(normalArmorHit.combatModifiers, undefined);
+
+  const guardianState = makeState();
+  guardianState.board[0] = unit('enemy', { id: 'attacker', attack: 2, hp: 3, maxHp: 3 });
+  guardianState.board[6] = unit('player', { id: 'protected', attack: 0, hp: 3, maxHp: 3 });
+  guardianState.board[7] = unit('player', { id: 'guardian', attack: 0, hp: 3, maxHp: 3, effectId: 'intercept_lane_damage' });
+  const guardianHit = resolveCombat(guardianState).find((event) => event.attackerSide === 'enemy');
+  assert.equal(guardianHit.targetIndex, 7);
+  assert.deepEqual(guardianHit.combatModifiers, [
+    { type: 'intercept', amount: 0, source: 'intercept_lane_damage', label: 'INTERCEPT', feedback: 'target' },
+  ]);
+
+  const sniperState = makeState();
+  sniperState.board[6] = unit('player', { id: 'sniper', attack: 1, hp: 2, maxHp: 2, effectId: 'can_hit_any_lane' });
+  sniperState.board[0] = unit('enemy', { id: 'tough', attack: 0, hp: 5, maxHp: 5 });
+  sniperState.board[1] = unit('enemy', { id: 'weak', attack: 0, hp: 2, maxHp: 2 });
+  const sniperHit = resolveCombat(sniperState).find((event) => event.attackerIndex === 6);
+  assert.equal(sniperHit.targetIndex, 1);
+  assert.deepEqual(sniperHit.combatModifiers, [
+    { type: 'retarget', amount: 0, source: 'can_hit_any_lane', label: 'LOWEST HP' },
   ]);
 });
