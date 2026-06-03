@@ -43,7 +43,7 @@ const expectedTextShort = new Map(Object.entries({
   wardens_hold_the_line_1: 'Adjacent [ALLY] +1 ARM until combat ends.',
   attrition_swarm_husk_1: 'Combat death: deal 1 to opposed [ENEMY].',
   attrition_swarm_carrier_1: 'Combat death: summon 1/1 here.',
-  attrition_swarm_leech_1: 'Combat kill and survive: heal your base 1.',
+  attrition_swarm_leech_1: 'On attack: heal your base 1.',
   attrition_swarm_rotcaller_1: 'First adjacent [ALLY] combat death: +1 ATK.',
   attrition_swarm_abomination_1: 'Combat death: both bases lose 1 HP.',
   attrition_swarm_funeral_pyre_1: 'First 2 [ALLIES] combat deaths:\neach deal 1 ● to opposed [ENEMY].',

@@ -222,36 +222,40 @@ test('Funeral Pyre lane damage does not count as hero damage for simultaneous le
   assert.equal(s.winner, 'enemy');
 });
 
-test('Leech heals owner hero only after killing a unit in combat and surviving, capped by max HP', () => {
-  const heals = state();
-  heals.playerHP = 10;
-  heals.board[6] = unit({ id: 'leech', attack: 2, hp: 2, effectId: 'leech_heal_hero_on_combat_kill' });
-  heals.board[0] = unit({ owner: 'enemy', id: 'prey', attack: 0, hp: 1 });
-  const healEvents = resolveCombat(heals);
-  assert.equal(heals.playerHP, 11);
-  assert.equal(healEvents.some((event) => event.healFeedback?.targetType === 'hero' && event.healFeedback.amount === 1), true);
+test('Leech heals owner hero on every combat attack, capped by max HP', () => {
+  const noKill = state();
+  noKill.playerHP = 10;
+  noKill.board[6] = unit({ id: 'leech', attack: 1, hp: 2, effectId: 'leech_heal_hero_on_attack' });
+  noKill.board[0] = unit({ owner: 'enemy', id: 'large', attack: 0, hp: 2 });
+  const noKillEvents = resolveCombat(noKill);
+  assert.equal(noKill.playerHP, 11);
+  assert.equal(noKill.board[0]?.hp, 1);
+  assert.equal(noKillEvents.some((event) => event.healFeedback?.targetType === 'hero' && event.healFeedback.amount === 1), true);
+
+  const dies = state();
+  dies.playerHP = 10;
+  dies.board[6] = unit({ id: 'leech', attack: 2, hp: 1, effectId: 'leech_heal_hero_on_attack' });
+  dies.board[0] = unit({ owner: 'enemy', id: 'trade', attack: 1, hp: 1 });
+  const diesEvents = resolveCombat(dies);
+  assert.equal(dies.playerHP, 11);
+  assert.equal(dies.board[6], null);
+  assert.equal(diesEvents.some((event) => event.healFeedback?.targetType === 'hero' && event.healFeedback.amount === 1), true);
+
+  const openLane = state();
+  openLane.playerHP = 10;
+  openLane.board[6] = unit({ id: 'leech', attack: 2, hp: 1, effectId: 'leech_heal_hero_on_attack' });
+  const openLaneEvents = resolveCombat(openLane);
+  assert.equal(openLane.playerHP, 11);
+  assert.equal(openLane.enemyHP, 10);
+  assert.equal(openLaneEvents.some((event) => event.targetType === 'hero' && event.healFeedback?.amount === 1), true);
 
   const capped = state();
   capped.playerHP = 12;
-  capped.board[6] = unit({ id: 'leech', attack: 2, hp: 2, effectId: 'leech_heal_hero_on_combat_kill' });
+  capped.board[6] = unit({ id: 'leech', attack: 2, hp: 2, effectId: 'leech_heal_hero_on_attack' });
   capped.board[0] = unit({ owner: 'enemy', id: 'prey', attack: 0, hp: 1 });
   const cappedEvents = resolveCombat(capped);
   assert.equal(capped.playerHP, 12);
   assert.equal(cappedEvents.some((event) => event.healFeedback), false);
-
-  const dies = state();
-  dies.playerHP = 10;
-  dies.board[6] = unit({ id: 'leech', attack: 2, hp: 1, effectId: 'leech_heal_hero_on_combat_kill' });
-  dies.board[0] = unit({ owner: 'enemy', id: 'trade', attack: 1, hp: 1 });
-  resolveCombat(dies);
-  assert.equal(dies.playerHP, 10);
-
-  const noKill = state();
-  noKill.playerHP = 10;
-  noKill.board[6] = unit({ id: 'leech', attack: 1, hp: 2, effectId: 'leech_heal_hero_on_combat_kill' });
-  noKill.board[0] = unit({ owner: 'enemy', id: 'large', attack: 0, hp: 2 });
-  resolveCombat(noKill);
-  assert.equal(noKill.playerHP, 10);
 });
 
 test('Rotcaller gets capped temporary attack from first adjacent ally combat death only', () => {

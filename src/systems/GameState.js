@@ -122,7 +122,7 @@ function cardCanRealisticallyAffectOutcome(card, state, owner, visitedCardIds = 
       'combat_death_damage_enemy_lane_1',
       'on_death_summon_grunt',
       'combat_death_summon_grunt',
-      'leech_heal_hero_on_combat_kill',
+      'leech_heal_hero_on_attack',
       'rotcaller_adjacent_death_atk_1',
       'combat_death_damage_both_heroes_1',
       'adjacent_allies_atk_plus_1_ignore_armor_1',
@@ -1074,18 +1074,14 @@ export function drawCards(sideState, count) {
   return sideState;
 }
 
-function triggerLeechHealsFromCombatEvents(state, combatEvents) {
+function triggerLeechHealsFromAttackEvents(state, combatEvents) {
   if (!state || !Array.isArray(combatEvents)) return;
 
   combatEvents.forEach((event) => {
-    if (!event?.lethal || event.targetType !== 'unit') return;
-    const attackerIndex = event.attackerIndex;
-    const targetIndex = event.targetIndex;
-    const attacker = state.board[attackerIndex];
-    const target = state.board[targetIndex];
-    if (!attacker || attacker.effectId !== 'leech_heal_hero_on_combat_kill') return;
-    if (!target || target.hp > 0 || attacker.owner === target.owner) return;
-    if (attacker.hp <= 0) return;
+    if (event?.leechHealResolved) return;
+    const attacker = state.board[event?.attackerIndex];
+    if (!attacker || attacker.effectId !== 'leech_heal_hero_on_attack') return;
+    Object.defineProperty(event, 'leechHealResolved', { value: true });
     const restored = healHero(state, attacker.owner, 1);
     if (restored <= 0) return;
     event.healFeedback = { targetType: 'hero', side: attacker.owner, amount: restored };
@@ -1836,7 +1832,7 @@ function resolveCombatLane(state, col, combatContext = null) {
     applyDamageToUnit(state, index, amount);
   });
 
-  triggerLeechHealsFromCombatEvents(state, context.events);
+  triggerLeechHealsFromAttackEvents(state, context.events);
   triggerQuickFixDrawsFromCombatEvents(state, context.events);
 
   const laneIndexes = new Set([enemyIndex, playerIndex]);
