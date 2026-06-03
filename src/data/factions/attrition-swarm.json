@@ -76,7 +76,7 @@
       "type": "order",
       "targeting": "none",
       "effectId": "funeral_pyre",
-      "textShort": "First 2 [ALLIES] combat deaths:\neach deal 1 ● to opposed [ENEMY]."
+      "textShort": "First 2 [ALLIES] combat deaths:\n1 damage to opposed [ENEMY]."
     },
     {
       "id": "attrition_swarm_infect_1",
