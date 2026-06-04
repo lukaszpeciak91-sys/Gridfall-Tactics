@@ -62,6 +62,8 @@ const FACTION_CARD_DETAILS = {
 };
 
 const CARD_SCROLL_DRAG_THRESHOLD = 8;
+const MIN_FACTION_LIST_TOP = 106;
+const HEADER_TO_FACTION_LIST_GAP = 24;
 
 function getFactionAssetSlug(factionKey) {
   const faction = getFactionByKey(factionKey);
@@ -142,15 +144,19 @@ export default class FactionSelectScene extends Phaser.Scene {
     this.uiElements.push(buildMarker);
 
     this.drawNavigationControls();
-    this.drawFactionCards(factionKeys, { width, height });
+    this.drawFactionCards(factionKeys, {
+      width,
+      height,
+      headerBottomY: header.bottomY,
+    });
   }
 
 
-  drawFactionCards(factionKeys, { width, height }) {
+  drawFactionCards(factionKeys, { width, height, headerBottomY }) {
     const cardWidth = Math.min(width - 24, 382);
     const cardHeight = 164;
     const gap = 12;
-    const viewportTop = 106;
+    const viewportTop = Math.max(MIN_FACTION_LIST_TOP, Math.ceil(headerBottomY + HEADER_TO_FACTION_LIST_GAP));
     const viewportBottom = Math.max(viewportTop + cardHeight, height - 88);
     const viewportHeight = viewportBottom - viewportTop;
     const contentHeight = factionKeys.length * cardHeight + Math.max(0, factionKeys.length - 1) * gap;

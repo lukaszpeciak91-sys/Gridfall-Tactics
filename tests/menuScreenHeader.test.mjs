@@ -30,3 +30,14 @@ test('non-battle menu screens use the shared premium broadcast screen header', (
     assert.match(source, new RegExp(`createMenuScreenHeader\\(this, \\{[\\s\\S]*title: translateActive\\('${titleKey}'`));
   });
 });
+
+test('faction select list keeps breathing room below wrapped title without resizing cards', () => {
+  const source = read('src/scenes/FactionSelectScene.js');
+
+  assert.match(source, /const MIN_FACTION_LIST_TOP = 106;/);
+  assert.match(source, /const HEADER_TO_FACTION_LIST_GAP = 24;/);
+  assert.match(source, /headerBottomY: header\.bottomY/);
+  assert.match(source, /const viewportTop = Math\.max\(MIN_FACTION_LIST_TOP, Math\.ceil\(headerBottomY \+ HEADER_TO_FACTION_LIST_GAP\)\);/);
+  assert.match(source, /const cardHeight = 164;/);
+  assert.match(source, /const artHeight = Math\.round\(cardHeight \* 0\.58\);/);
+});
