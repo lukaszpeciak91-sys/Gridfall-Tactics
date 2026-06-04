@@ -403,6 +403,7 @@ export default class FactionSelectScene extends Phaser.Scene {
       onBack: () => this.returnToMainMenu(),
       onRules: () => this.openRulesPanel(),
       onFullscreen: () => this.toggleFullscreen(),
+      debugOverlay: true,
     });
 
     [controls.back, controls.rules, controls.fullscreen].filter(Boolean).forEach((control) => {
