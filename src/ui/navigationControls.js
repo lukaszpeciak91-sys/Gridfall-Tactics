@@ -1,11 +1,14 @@
 import { SETTINGS_CHANGED_EVENT, loadSettings, toggleMuted } from '../systems/settingsState.js';
 
+export const TEMP_BOTTOM_UTILITY_CONTROL_Y_OFFSET = 90;
+
 export function getBottomNavigationMetrics(scene, { centerY = null, touchSize = null, margin = null } = {}) {
   const width = scene.scale.gameSize?.width ?? scene.scale.width;
   const height = scene.scale.gameSize?.height ?? scene.scale.height;
   const resolvedMargin = margin ?? Math.max(8, Math.round(width * 0.025));
   const resolvedTouchSize = touchSize ?? Math.max(48, Math.min(58, height * 0.066));
-  const resolvedCenterY = centerY ?? (height - resolvedMargin - resolvedTouchSize / 2);
+  const originalCenterY = height - resolvedMargin - resolvedTouchSize / 2;
+  const resolvedCenterY = centerY ?? (originalCenterY - TEMP_BOTTOM_UTILITY_CONTROL_Y_OFFSET);
 
   return {
     width,
