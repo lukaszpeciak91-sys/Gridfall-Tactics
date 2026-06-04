@@ -141,3 +141,7 @@ canonical_ref: docs/rules/mvp-battle-rules.md
 - Reused the existing premium image button component/assets for EXIT and RETRY, increasing size and spacing instead of introducing new button art.
 - Added lightweight result animations: victory scale-in with soft glow pulse, defeat slower dramatic reveal with rose glow pulse, and draw soft gold reveal.
 - Added a mobile-safe victory celebration using small procedural confetti/spark rectangles and circles; no new art assets or expensive particle systems were introduced.
+
+## Battle Result Broadcast Overlay Prototype (2026-06-04)
+- Converted the end-of-battle result presentation from a framed modal window into a lightweight broadcast overlay while preserving battle-end flow, localized result/subtitle copy, EXIT/RETRY behavior, and existing celebration effects.
+- Kept the battlefield readable under a darker fullscreen overlay, removed the modal panel/frame/separators, and let the result title float directly over the board with a slow 1.00 → 1.03 → 1.00 pulse.

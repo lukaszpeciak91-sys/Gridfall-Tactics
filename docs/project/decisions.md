@@ -145,3 +145,8 @@ canonical_ref: docs/rules/mvp-battle-rules.md
 - Card rendering, gameplay HUD text, Rules panel text, Collection cards, Inspect cards, and localization content remain outside this decision.
 - Future premium typography changes must validate Polish diacritic rendering against: `PORAŻKA`, `WYJDŹ`, `PONÓW`, `PUBLICZNOŚĆ`, `PRZEJĘCIE`, `ZAKŁÓCENIE`, `ZEWRZEĆ`.
 - Canonical standard: `docs/ui/premium-typography-standard.md`.
+
+## Battle Result Presentation Direction (2026-06-04)
+- Shift battle result presentation away from modal-dialog chrome and toward an interdimensional broadcast-overlay treatment.
+- Result screens should keep the battlefield visible behind fullscreen dimming, avoid framed panel backgrounds, and place the localized result title/subtitle/buttons directly over the board.
+- Result-specific glows, victory fireworks, existing button assets, and end-of-battle navigation/retry behavior remain unchanged unless a later scoped UX decision supersedes them.
