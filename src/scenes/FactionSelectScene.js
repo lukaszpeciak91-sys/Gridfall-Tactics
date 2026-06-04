@@ -13,6 +13,7 @@ import {
   createMenuArenaLightSweep,
   getMenuBackgroundAsset,
   preloadMenuBackgroundArt,
+  resolvePublicAssetPath,
 } from '../rendering/backgroundArt.js';
 
 const FACTION_CARD_DETAILS = {
@@ -68,7 +69,7 @@ function getFactionAssetSlug(factionKey) {
 }
 
 function getFactionPreviewPath(factionKey) {
-  return `/assets/factions/${getFactionAssetSlug(factionKey)}/preview.webp`;
+  return resolvePublicAssetPath(`assets/factions/${getFactionAssetSlug(factionKey)}/preview.webp`);
 }
 
 function getFactionPreviewTextureKey(factionKey) {
