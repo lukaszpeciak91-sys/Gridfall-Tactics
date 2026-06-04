@@ -9,6 +9,7 @@ import {
   preloadMenuBackgroundArt,
 } from '../rendering/backgroundArt.js';
 import { createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
+import { createFloatingControl } from '../ui/navigationControls.js';
 import {
   PREMIUM_BROADCAST_FONT_STACK,
   calculateSecondaryButtonHeight,
@@ -53,6 +54,7 @@ export default class MainMenuScene extends Phaser.Scene {
     this.buildMarker = null;
     this.debugEntryIcon = null;
     this.debugEntryLabel = null;
+    this.debugEntryControl = null;
   }
 
   init() {
@@ -149,50 +151,26 @@ export default class MainMenuScene extends Phaser.Scene {
     const x = MAIN_MENU_DEBUG_ICON_MARGIN + size * 0.5;
     const y = MAIN_MENU_DEBUG_ICON_MARGIN + size * 0.5;
 
-    this.debugEntryIcon?.destroy?.();
-    this.debugEntryLabel?.destroy?.();
+    this.debugEntryControl?.button?.destroy?.();
 
-    const icon = this.add.circle(x, y, size * 0.5, 0x0f172a, 0.8)
-      .setStrokeStyle(2, 0x60a5fa, 0.72)
-      .setDepth(21)
-      .setInteractive({ useHandCursor: true });
-
-    const label = this.add.text(x, y, '⚙', {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: '20px',
-      color: '#dbeafe',
-      fontStyle: 'bold',
-      align: 'center',
-    }).setOrigin(0.5).setDepth(22);
-
-    icon.on('pointerup', () => {
+    const control = createFloatingControl(this, x, y, size, '⚙', () => {
       this.scene.start('ArtViewportDebugScene');
-    });
+    }, { fontScale: 0.52 });
 
-    icon.on('pointerover', () => {
-      icon.setFillStyle(0x1e293b, 0.94);
-      icon.setStrokeStyle(2, 0x93c5fd, 0.88);
-      label.setColor('#eff6ff');
-    });
+    control.button?.setDepth?.(21);
+    control.text?.setDepth?.(2);
 
-    icon.on('pointerout', () => {
-      icon.setFillStyle(0x0f172a, 0.8);
-      icon.setStrokeStyle(2, 0x60a5fa, 0.72);
-      label.setColor('#dbeafe');
-    });
-
-    this.debugEntryIcon = icon;
-    this.debugEntryLabel = label;
+    this.debugEntryControl = control;
+    this.debugEntryIcon = control.button;
+    this.debugEntryLabel = control.text;
   }
 
-
   layoutDebugEntry() {
-    if (!this.debugEntryIcon?.active || !this.debugEntryLabel?.active) return;
+    if (!this.debugEntryControl?.button?.active) return;
     const size = MAIN_MENU_DEBUG_ICON_SIZE;
     const x = MAIN_MENU_DEBUG_ICON_MARGIN + size * 0.5;
     const y = MAIN_MENU_DEBUG_ICON_MARGIN + size * 0.5;
-    this.debugEntryIcon.setPosition(x, y);
-    this.debugEntryLabel.setPosition(x, y);
+    this.debugEntryControl.button.setPosition(x, y);
   }
 
   drawBuildMarker(width = this.scale.width, height = this.scale.height) {
@@ -459,6 +437,7 @@ export default class MainMenuScene extends Phaser.Scene {
     this.buildMarker = null;
     this.debugEntryIcon = null;
     this.debugEntryLabel = null;
+    this.debugEntryControl = null;
   }
 
   createMenuButton(x, y, width, label, onPointerUp) {

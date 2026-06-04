@@ -158,3 +158,9 @@ canonical_ref: docs/rules/mvp-battle-rules.md
 - Locked the final placement slightly above the previous lowered pass, with only a minimal title-size increase, so the header sits balanced in the upper presentation zone without changing screen content flow.
 - Retained neutral warm-ivory title color, centered alignment, the approved premium UI font stack, Polish diacritic support, English support, subtle glow, and subtle shadow.
 - Kept the work scoped to UI presentation only; no gameplay, navigation behavior, screen flow, localization, or asset-generation changes were introduced.
+
+## Glass Utility Tile Final Polish (2026-06-04)
+- Replaced the circular utility icon backplate experiment with the accepted shared Glass Utility Tile presentation standard across menu-style bottom utility controls.
+- Standardized Back, Help/Rules, Audio, Fullscreen, and Settings-style utility controls on a single rounded-square dark navy glass tile with a thin restrained gold border and very subtle cyan/blue glow.
+- Removed inner circles, extra rings, and screen-specific utility button chrome while preserving existing icon glyphs, icon size/position, control positions, navigation behavior, scene flow, and gameplay behavior.
+- Confirmed the intended hierarchy split: primary CTA buttons such as ARENA remain visually dominant, while utility controls are premium but secondary support/navigation controls.

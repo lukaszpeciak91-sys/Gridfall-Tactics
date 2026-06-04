@@ -166,9 +166,10 @@ canonical_ref: docs/rules/mvp-battle-rules.md
 - Arena / Choose Faction, Collection, Tutorial, Settings, Rules, and future non-battle menu screens should reuse this same simplified header pattern to preserve the interdimensional prestige broadcast presentation system; future work should not revisit header styling unless a major UI redesign occurs.
 
 ## Premium Utility Button Standard (2026-06-04)
-- Bottom-bar utility controls such as Back, Help/Rules, Fullscreen, Audio, and Settings should use the same premium broadcast-control-panel visual language as primary menu navigation while remaining clearly secondary controls.
-- Utility buttons keep their existing compact square touch targets, icon-only communication, positions, spacing, and behavior; the standard is presentation-only and must not change navigation or gameplay flow.
-- Accepted material treatment: dark broadcast glass fill, cleaner cool edge stroke, restrained cyan halo, subtle warm top highlight/reflection, inner hairline detail, and a soft contact shadow.
-- Visual priority target is approximately 60–70% of main menu button intensity: utility controls may brighten gently on hover/press or active states, but must not use large scale changes, dramatic glow blooms, labels, or ARENA-sized button treatments.
-- Icon readability is part of the standard. Arrow, question mark, fullscreen, audio, and settings glyphs must stay high-contrast and legible on mobile portrait before decorative effects are increased.
-- Future utility buttons in menu screens should reuse this shared standard instead of introducing generic app-control chrome or one-off faction-specific variants.
+- Bottom-bar utility controls such as Back, Help/Rules, Fullscreen, Audio, and Settings use one shared **Glass Utility Tile** standard: compact square icon-only controls with rounded 14–16 px corners, consistent positions, spacing, and behavior.
+- The standard is presentation-only and must not change navigation, gameplay flow, scene flow, icon glyphs, or touch-target footprint.
+- Accepted material treatment: one dark navy translucent broadcast-glass tile, one thin low-to-medium intensity gold border, and only a very subtle cyan/blue premium glow that stays much weaker than primary call-to-action button glow.
+- The inner-circle/extra-ring experiment behind utility icons is rejected. Utility controls must not add circular backplates, decorative rings, secondary icon containers, or screen-specific variants behind Back, Help/Rules, Fullscreen, Audio, or Settings glyphs.
+- Visual hierarchy is intentionally split into two tiers: Tier 1 primary actions such as ARENA, KOLEKCJA, SAMOUCZEK, and USTAWIENIA remain the dominant menu elements; Tier 2 utility controls are quieter navigation/support controls and must not compete with primary CTAs.
+- Icon readability is part of the standard. Arrow, question mark, fullscreen, audio, and settings glyphs stay white, existing-sized, centered, and legible on mobile portrait before decorative effects are increased.
+- Future utility buttons in menu-style screens should reuse the shared Glass Utility Tile standard instead of introducing generic app-control chrome, miniature ARENA-style buttons, new art assets, new icon art, or one-off faction/screen-specific variants.

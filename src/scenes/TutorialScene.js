@@ -97,7 +97,7 @@ export default class TutorialScene extends Phaser.Scene {
     });
 
     [controls.back, controls.rules, controls.fullscreen].forEach((control) => {
-      this.uiElements.push(control.halo, control.backing, control.text);
+      this.uiElements.push(...(control.items ?? [control.button ?? control.halo, control.backing, control.text].filter(Boolean)));
     });
   }
 
