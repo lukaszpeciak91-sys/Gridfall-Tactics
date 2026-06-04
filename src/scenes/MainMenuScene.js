@@ -378,6 +378,7 @@ export default class MainMenuScene extends Phaser.Scene {
       onMute: () => {},
       onRules: () => this.openRulesPanel(),
       onFullscreen: () => this.toggleFullscreen(),
+      debugOverlay: true,
     });
   }
 
