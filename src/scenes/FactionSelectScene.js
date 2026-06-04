@@ -64,8 +64,10 @@ const FACTION_CARD_DETAILS = {
 const CARD_SCROLL_DRAG_THRESHOLD = 8;
 const MIN_FACTION_LIST_TOP = 106;
 const HEADER_TO_FACTION_LIST_GAP = 24;
-const POSTER_TITLE_SCRIM_HEIGHT = 108;
-
+const POSTER_TITLE_SCRIM_HEIGHT = 96;
+const POSTER_TITLE_BOTTOM_PADDING = 18;
+const POSTER_TITLE_LEFT_PADDING = 18;
+const POSTER_TITLE_WIDTH_RATIO = 0.58;
 
 function getFactionAssetSlug(factionKey) {
   const faction = getFactionByKey(factionKey);
@@ -236,7 +238,7 @@ export default class FactionSelectScene extends Phaser.Scene {
     const titleScrimHeight = Math.min(POSTER_TITLE_SCRIM_HEIGHT, posterHeight - 24);
     const titleScrimY = posterY + posterHeight - titleScrimHeight;
     const titleScrim = this.add.graphics();
-    titleScrim.fillGradientStyle(0x020617, 0x020617, 0x020617, 0x020617, 0, 0, 0.76, 0.84);
+    titleScrim.fillGradientStyle(0x020617, 0x020617, 0x020617, 0x020617, 0, 0, 0.78, 0.58);
     titleScrim.fillRect(posterX, titleScrimY, posterWidth, titleScrimHeight);
     content.add(titleScrim);
     this.uiElements.push(titleScrim);
@@ -247,41 +249,27 @@ export default class FactionSelectScene extends Phaser.Scene {
       accentColor: details.accentColor,
     });
 
-    const titleMaxWidth = posterWidth - 52;
+    const titleMaxWidth = Math.min(posterWidth - 52, Math.max(190, posterWidth * POSTER_TITLE_WIDTH_RATIO));
     const titleFontSize = displayName.length > 18 ? 23 : displayName.length > 13 ? 25 : 29;
     const name = this.add
-      .text(posterX + 20, titleScrimY + 22, displayName, {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: `${titleFontSize}px`,
-        color: '#f8fafc',
-        fontStyle: 'bold',
-        stroke: '#020617',
-        strokeThickness: 4,
-        wordWrap: { width: titleMaxWidth, useAdvancedWrap: true },
-      })
-      .setOrigin(0, 0)
-      .setMaxLines(2);
-    content.add(name);
-    this.uiElements.push(name);
-
-    const tagline = this.add
       .text(
-        posterX + 20,
-        Math.min(name.y + name.height + 3, posterY + posterHeight - 34),
-        translateActive(`ui.factionSelect.descriptions.${factionKey}`, details.description),
+        posterX + POSTER_TITLE_LEFT_PADDING,
+        posterY + posterHeight - POSTER_TITLE_BOTTOM_PADDING,
+        displayName,
         {
           fontFamily: 'Arial, sans-serif',
-          fontSize: '13px',
-          color: '#e5e7eb',
+          fontSize: `${titleFontSize}px`,
+          color: '#f8fafc',
+          fontStyle: 'bold',
           stroke: '#020617',
-          strokeThickness: 3,
+          strokeThickness: 4,
           wordWrap: { width: titleMaxWidth, useAdvancedWrap: true },
         },
       )
-      .setOrigin(0, 0)
+      .setOrigin(0, 1)
       .setMaxLines(2);
-    content.add(tagline);
-    this.uiElements.push(tagline);
+    content.add(name);
+    this.uiElements.push(name);
 
     const pressOverlay = this.add.graphics();
     pressOverlay.fillStyle(0xffffff, 0.08);
@@ -344,30 +332,30 @@ export default class FactionSelectScene extends Phaser.Scene {
 
   drawFactionTags(content, tags, { rightX, y, accentColor }) {
     const chipGap = 6;
+    const chipHeight = 24;
     const chips = tags.map((tag) => {
       const text = this.add
-        .text(0, y + 4, translateActive(`ui.factionSelect.tags.${tag}`, tag), {
+        .text(0, y + 5, translateActive(`ui.factionSelect.tags.${tag}`, tag), {
           fontFamily: 'Arial, sans-serif',
-          fontSize: '10px',
-          color: '#cbd5e1',
+          fontSize: '11px',
+          color: '#f8fafc',
           stroke: '#020617',
-          strokeThickness: 2,
+          strokeThickness: 3,
         })
-        .setOrigin(0, 0)
-        .setAlpha(0.84);
+        .setOrigin(0, 0);
 
-      return { text, width: Math.ceil(text.width + 16) };
+      return { text, width: Math.ceil(text.width + 18) };
     });
     const totalWidth = chips.reduce((sum, chip) => sum + chip.width, 0) + Math.max(0, chips.length - 1) * chipGap;
     let currentX = rightX - totalWidth;
 
     chips.forEach(({ text, width: pillWidth }) => {
       const pill = this.add.graphics();
-      pill.fillStyle(0x020617, 0.34);
-      pill.fillRoundedRect(currentX, y, pillWidth, 22, 11);
-      pill.lineStyle(1, accentColor, 0.36);
-      pill.strokeRoundedRect(currentX + 0.5, y + 0.5, pillWidth - 1, 21, 10);
-      text.setPosition(currentX + 8, y + 4);
+      pill.fillStyle(0x020617, 0.68);
+      pill.fillRoundedRect(currentX, y, pillWidth, chipHeight, 12);
+      pill.lineStyle(1.5, accentColor, 0.9);
+      pill.strokeRoundedRect(currentX + 0.75, y + 0.75, pillWidth - 1.5, chipHeight - 1.5, 11);
+      text.setPosition(currentX + 9, y + 5);
       content.add(pill);
       content.add(text);
       this.uiElements.push(pill, text);

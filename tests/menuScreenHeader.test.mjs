@@ -42,6 +42,14 @@ test('faction select list keeps breathing room below wrapped title while using f
   assert.match(source, /const posterInset = 4;/);
   assert.match(source, /const posterHeight = cardHeight - posterInset \* 2;/);
   assert.match(source, /rightX: posterX \+ posterWidth - 12/);
-  assert.match(source, /\.text\(posterX \+ 20, titleScrimY \+ 22, displayName/);
-  assert.match(source, /translateActive\(`ui\.factionSelect\.descriptions\.\$\{factionKey\}`/);
+  assert.match(source, /const POSTER_TITLE_BOTTOM_PADDING = 18;/);
+  assert.match(source, /const POSTER_TITLE_LEFT_PADDING = 18;/);
+  assert.match(source, /const POSTER_TITLE_WIDTH_RATIO = 0\.58;/);
+  assert.match(source, /posterY \+ posterHeight - POSTER_TITLE_BOTTOM_PADDING/);
+  assert.match(source, /\.setOrigin\(0, 1\)/);
+  assert.doesNotMatch(source, /translateActive\(`ui\.factionSelect\.descriptions\.\$\{factionKey\}`/);
+  assert.match(source, /pill\.fillStyle\(0x020617, 0\.68\)/);
+  assert.match(source, /pill\.lineStyle\(1\.5, accentColor, 0\.9\)/);
+  assert.match(source, /fontSize: '11px'/);
+  assert.match(source, /color: '#f8fafc'/);
 });
