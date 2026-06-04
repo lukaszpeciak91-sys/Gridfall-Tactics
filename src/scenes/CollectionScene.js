@@ -84,7 +84,6 @@ export default class CollectionScene extends Phaser.Scene {
       title: translateActive('ui.collection.title', 'COLLECTION'),
       width,
       height,
-      tint: 0xf5f1e6,
     });
     this.uiElements.push(...header.items);
 

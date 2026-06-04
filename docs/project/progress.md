@@ -152,8 +152,9 @@ canonical_ref: docs/rules/mvp-battle-rules.md
 - Increased subtitle size/readability with outcome-colored accents, added one subtle broadcast divider above the controls, enlarged the existing EXIT/RETRY image buttons, and reduced title glow intensity so the board remains visible.
 - Upgraded victory celebration timing to three staggered reused particle/firework waves with slight randomized positions and no new assets.
 
-## Screen Header Presentation Standard (2026-06-04)
-- Added a shared premium broadcast-style menu header treatment for Arena / Choose Faction, Collection, Tutorial, Settings, and Rules.
-- Standardized localized title typography on centered bold premium UI text with subtle glow and shadow, preserving Polish diacritics and English rendering through the same font stack.
-- Added the shared thin centered decorative line under each title, using a lightweight tintable line rather than banners, panels, frames, ornaments, or new assets.
-- Kept the work scoped to UI presentation only; no gameplay, navigation behavior, screen flow, or asset-generation changes were introduced.
+## Screen Header Presentation Standard v2 (2026-06-04)
+- Refined the shared premium broadcast-style menu header treatment for Arena / Choose Faction, Collection, Tutorial, Settings, and Rules.
+- Removed the shared decorative line so headers now present title-only hierarchy without dividers, underlines, decorative bars, panels, frames, ornaments, or new assets.
+- Increased the shared title size and lowered the default placement to make headers feel more intentional and visually connected to each screen's content.
+- Retained neutral warm-ivory title color, centered alignment, the approved premium UI font stack, Polish diacritic support, English support, subtle glow, and subtle shadow.
+- Kept the work scoped to UI presentation only; no gameplay, navigation behavior, screen flow, localization, or asset-generation changes were introduced.

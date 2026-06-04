@@ -1,6 +1,5 @@
 import { PREMIUM_BROADCAST_FONT_STACK } from './imageButton.js';
 
-const DEFAULT_HEADER_TINT = 0xf5f1e6;
 const DEFAULT_HEADER_COLOR = '#f5f1e6';
 const DEFAULT_HEADER_SHADOW_COLOR = 'rgba(3, 17, 40, 0.74)';
 const DEFAULT_HEADER_GLOW_COLOR = 'rgba(250, 204, 21, 0.32)';
@@ -13,11 +12,10 @@ export function getMenuScreenHeaderLayout({ width, height, y } = {}) {
 
   return {
     x: width * 0.5,
-    y: Number.isFinite(y) ? y : (isPortrait ? 48 : 50),
+    y: Number.isFinite(y) ? y : (isPortrait ? 88 : 92),
     safeWidth,
-    fontSize: isExtraNarrowPortrait ? 25 : (isPortrait ? 29 : 32),
-    letterSpacing: isExtraNarrowPortrait ? 1.4 : 1.8,
-    lineOffsetY: isExtraNarrowPortrait ? 26 : 29,
+    fontSize: isExtraNarrowPortrait ? 29 : (isPortrait ? 34 : 38),
+    letterSpacing: isExtraNarrowPortrait ? 1.45 : 1.9,
   };
 }
 
@@ -27,7 +25,6 @@ export function createMenuScreenHeader(scene, {
   height = scene.scale.height,
   x,
   y,
-  tint = DEFAULT_HEADER_TINT,
   color = DEFAULT_HEADER_COLOR,
   depth = DEFAULT_HEADER_DEPTH,
   maxLines = 2,
@@ -66,26 +63,10 @@ export function createMenuScreenHeader(scene, {
     .setDepth(depth)
     .setShadow(0, 2, DEFAULT_HEADER_SHADOW_COLOR, 3, true, true);
 
-  const measuredWidth = Math.min(layout.safeWidth, Math.max(titleObject.width, layout.safeWidth * 0.38));
-  const lineWidth = Math.min(layout.safeWidth * 0.58, Math.max(58, measuredWidth * 0.5));
-  const lineY = layout.y + Math.max(layout.lineOffsetY, titleObject.height * 0.55 + 9);
-  const lineGlow = scene.add.line(headerX, lineY, -lineWidth * 0.5, 0, lineWidth * 0.5, 0, tint, 0.22)
-    .setOrigin(0.5)
-    .setDepth(depth - 0.1);
-  lineGlow.lineWidth = 3;
-  lineGlow.setBlendMode?.('ADD');
-
-  const line = scene.add.line(headerX, lineY, -lineWidth * 0.5, 0, lineWidth * 0.5, 0, tint, 0.58)
-    .setOrigin(0.5)
-    .setDepth(depth);
-  line.lineWidth = 1;
-
   return {
     title: titleObject,
     glow,
-    line,
-    lineGlow,
-    items: [glow, titleObject, lineGlow, line],
-    bottomY: lineY + 1,
+    items: [glow, titleObject],
+    bottomY: layout.y + titleObject.height * 0.5,
   };
 }

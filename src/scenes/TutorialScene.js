@@ -61,7 +61,6 @@ export default class TutorialScene extends Phaser.Scene {
       title: translateActive('ui.tutorial.title', 'TUTORIAL'),
       width,
       height,
-      tint: 0xf5f1e6,
     });
     this.uiElements.push(...header.items);
     this.drawTutorialCard(width, height);

@@ -14,7 +14,7 @@ test('SettingsScene exposes future-ready language, audio, and persistence contro
   assert.match(source, /function getLanguageOptions\(displayLocale\)/);
   assert.match(source, /translate\(`ui\.settings\.languages\.\$\{locale\}`/);
   assert.match(source, /import \{ createMenuScreenHeader \} from '\.\.\/ui\/screenHeader\.js';/);
-  assert.match(source, /createMenuScreenHeader\(this, \{[\s\S]*title: translateActive\('ui\.settings\.title', 'SETTINGS'\),[\s\S]*width,[\s\S]*height,[\s\S]*tint: 0xf5f1e6,[\s\S]*\}\)/);
+  assert.match(source, /createMenuScreenHeader\(this, \{[\s\S]*title: translateActive\('ui\.settings\.title', 'SETTINGS'\),[\s\S]*width,[\s\S]*height,[\s\S]*\}\)/);
   assert.doesNotMatch(source, /ui\.settings\.subtitle/);
   assert.match(source, /createLanguageSelect\(width \/ 2, height \* 0\.32, panelWidth - 74\)/);
   assert.doesNotMatch(source, /createChoiceButton\(width \/ 2 - 76[\s\S]*English/);
