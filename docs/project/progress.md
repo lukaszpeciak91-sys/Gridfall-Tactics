@@ -132,3 +132,12 @@ canonical_ref: docs/rules/mvp-battle-rules.md
 - Kept deck-empty as a required condition so a hand-empty side with future draws is never auto-defeated.
 - Preserved the broader no-progress resolver, player-controlled hold-to-surrender flow, and AI safe-surrender path.
 - Aligned live and simulation sequencing after combat and after both draws: resource exhaustion, then no-progress, then the turn-cap check after the post-draw checks.
+
+## Final Battle Result Broadcast Modal Polish (2026-06-04)
+- Redesigned the battle result modal as a Gridfall broadcast-style presentation without changing battle flow, combat resolution, card rendering, HUD, collection, inspect, or rules surfaces.
+- Removed the redundant battle-complete eyebrow text so the localized result title is the first-read element.
+- Moved the modal higher toward the battlefield area, increased result-title and premium-button prominence, and tightened unused interior space while preserving mobile portrait readability.
+- Added result-colored frame/glow treatment: victory uses green, defeat uses rose/red, and draw uses gold so each outcome has a distinct presentation state.
+- Reused the existing premium image button component/assets for EXIT and RETRY, increasing size and spacing instead of introducing new button art.
+- Added lightweight result animations: victory scale-in with soft glow pulse, defeat slower dramatic reveal with rose glow pulse, and draw soft gold reveal.
+- Added a mobile-safe victory celebration using small procedural confetti/spark rectangles and circles; no new art assets or expensive particle systems were introduced.

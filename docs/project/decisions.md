@@ -137,3 +137,10 @@ canonical_ref: docs/rules/mvp-battle-rules.md
 - Equal-HP exhaustion does not force a winner. The existing no-progress deadlock resolver remains in place for locked parity cases.
 - Live battles and simulation/report runners check base lethal first through combat resolution, then resource exhaustion, then no-progress; after both draws they check resource exhaustion and no-progress again before turn-cap resolution.
 - Player hold-to-surrender remains optional and player-controlled. AI safe surrender remains available, with deterministic resource-exhaustion and no-progress checks taking priority at stable turn boundaries.
+
+## Final Battle Result Broadcast Presentation (2026-06-04)
+- Battle result presentation is a visual/UI-only layer and must not alter gameplay, combat sequencing, card rendering, HUD behavior, collection/inspect views, or rules-panel content.
+- Result modal copy should keep the localized outcome title plus subtitle flavor line; the generic `battleComplete` eyebrow was removed because it did not communicate useful match information.
+- Result-color convention is locked for the modal frame/glow: victory = green, defeat = rose/red, draw = gold. Draw should read as neutral/gold and not as a weaker defeat.
+- EXIT and RETRY continue to reuse the existing premium button asset/component; polish should adjust sizing, spacing, and accent treatment rather than adding bespoke result-button art.
+- Victory celebration should remain lightweight and procedural, using a small number of simple confetti/spark/broadcast-light primitives instead of new assets or costly particle systems.
