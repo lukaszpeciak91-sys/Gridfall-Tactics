@@ -19,8 +19,8 @@ test('non-battle menu screens use the shared premium broadcast screen header', (
   assert.match(helper, /fontStyle: '700'/);
   assert.match(helper, /setShadow\(0, 2, DEFAULT_HEADER_SHADOW_COLOR, 3, true, true\)/);
   assert.match(helper, /setShadow\(0, 0, DEFAULT_HEADER_GLOW_COLOR, 10, true, true\)/);
-  assert.match(helper, /isPortrait \? 88 : 92/);
-  assert.match(helper, /isPortrait \? 34 : 38/);
+  assert.match(helper, /isPortrait \? 66 : 70/);
+  assert.match(helper, /isPortrait \? 36 : 40/);
   assert.doesNotMatch(helper, /scene\.add\.line/);
   assert.match(helper, /items: \[glow, titleObject\]/);
 

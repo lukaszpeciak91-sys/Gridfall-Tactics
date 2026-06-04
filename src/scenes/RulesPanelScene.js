@@ -132,7 +132,7 @@ export default class RulesPanelScene extends Phaser.Scene {
       width: panelWidth,
       height: panelHeight,
       x: panelX,
-      y: panelTop + 68,
+      y: panelTop + 44,
       depth: 2,
     });
 
