@@ -20,7 +20,7 @@ Safe cleanup completed in this pass intentionally stayed small:
 
 - The game targets a portrait mobile canvas around the existing 390 × 844 design baseline.
 - The shell requests portrait orientation and keeps a centered portrait frame if fullscreen lands in a wide/landscape viewport.
-- Touch controls assume a minimum 48 px hit target for bottom navigation, utility controls, and hand controls. Utility control visuals may remain smaller than the interactive area; centered invisible hit zones may exceed the visible tile/icon size to preserve approved art and layout while improving mobile reliability.
+- Touch controls assume a minimum 48 px hit target for bottom navigation and hand controls.
 - The battle UI should remain readable at the current portrait aspect before any background art is added.
 
 ## Safe gameplay zone
