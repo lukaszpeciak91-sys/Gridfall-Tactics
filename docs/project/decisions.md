@@ -137,3 +137,11 @@ canonical_ref: docs/rules/mvp-battle-rules.md
 - Equal-HP exhaustion does not force a winner. The existing no-progress deadlock resolver remains in place for locked parity cases.
 - Live battles and simulation/report runners check base lethal first through combat resolution, then resource exhaustion, then no-progress; after both draws they check resource exhaustion and no-progress again before turn-cap resolution.
 - Player hold-to-surrender remains optional and player-controlled. AI safe surrender remains available, with deterministic resource-exhaustion and no-progress checks taking priority at stable turn boundaries.
+
+## Premium UI Typography Standard (2026-06-04)
+- Adopted one global premium UI font stack for Polish, English, and future locales: `Segoe UI, Arial, sans-serif`.
+- This supersedes the experimental premium broadcast font investigation and rejects locale-specific premium font stacks.
+- Scope is premium UI only: premium buttons, broadcast-style UI chrome, menu screens, result screens, and premium overlays.
+- Card rendering, gameplay HUD text, Rules panel text, Collection cards, Inspect cards, and localization content remain outside this decision.
+- Future premium typography changes must validate Polish diacritic rendering against: `PORAŻKA`, `WYJDŹ`, `PONÓW`, `PUBLICZNOŚĆ`, `PRZEJĘCIE`, `ZAKŁÓCENIE`, `ZEWRZEĆ`.
+- Canonical standard: `docs/ui/premium-typography-standard.md`.

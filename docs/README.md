@@ -21,6 +21,7 @@ Use these status labels in docs when relevant:
 - **Project collaboration workflow (WORKFLOW):** `docs/project/workflow.md`
 - **Faction/data ownership alignment (CANONICAL):** `docs/project/faction-source-of-truth.md`
 - **Card wording/style reference (CANONICAL for wording):** `docs/CARD_LANGUAGE_GUIDE.md`
+- **Premium UI typography (CANONICAL):** `docs/ui/premium-typography-standard.md`
 
 If any gameplay-rule conflict appears, `docs/rules/mvp-battle-rules.md` wins.
 
