@@ -145,3 +145,9 @@ canonical_ref: docs/rules/mvp-battle-rules.md
 ## Battle Result Broadcast Overlay Prototype (2026-06-04)
 - Converted the end-of-battle result presentation from a framed modal window into a lightweight broadcast overlay while preserving battle-end flow, localized result/subtitle copy, EXIT/RETRY behavior, and existing celebration effects.
 - Kept the battlefield readable under a darker fullscreen overlay, removed the modal panel/frame/separators, and let the result title float directly over the board with a slow 1.00 → 1.03 → 1.00 pulse.
+
+## Battle Result Broadcast Overlay Final Polish (2026-06-04)
+- Completed the accepted panel-free broadcast-overlay result treatment polish pass without changing gameplay, rewards, routing, or localization strings.
+- Moved the result title/subtitle/button stack downward into the battlefield combat-lane read, away from the enemy-base UI.
+- Increased subtitle size/readability with outcome-colored accents, added one subtle broadcast divider above the controls, enlarged the existing EXIT/RETRY image buttons, and reduced title glow intensity so the board remains visible.
+- Upgraded victory celebration timing to three staggered reused particle/firework waves with slight randomized positions and no new assets.
