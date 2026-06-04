@@ -116,7 +116,7 @@ test('selected localized card texts use enemy board-unit markers without changin
   const migrated = {
     en: {
       attrition_swarm_husk_1: 'Combat death: deal 1 to opposed [ENEMY].',
-      attrition_swarm_funeral_pyre_1: 'First 2 [ALLIES] combat deaths:\n1 damage to opposed [ENEMY].',
+      attrition_swarm_funeral_pyre_1: 'First 2 [ALLY]\ncombat deaths:\n1 HP to opposed [ENEMY].',
       attrition_swarm_infect_1: 'Deal 1 to [ENEMY]. If it survives, opposed [ALLY] +1 ATK.',
       control_hacker_1: 'Opposed [ENEMY]: -1 ATK this turn.',
       control_sniper_1: 'Attacks the lowest-HP [ENEMY].',

@@ -1123,6 +1123,12 @@ export function getCardDisplayContent(card, locale = 'en') {
 }
 
 function getCardBodyTextException(card, locale = 'en') {
+  if (locale === 'en' && card?.id === 'attrition_swarm_funeral_pyre_1') {
+    // Surgical one-card EN exception so the three-line rules text fits the
+    // existing panel without changing card or modal dimensions.
+    return { fontSizeDelta: -2, lineSpacingDelta: -8 };
+  }
+
   if (locale !== 'pl') return { fontSizeDelta: 0, lineSpacingDelta: 0 };
   if ((getCardDisplayName(card, locale) ?? '').trim() !== 'Miłosierdzie') {
     return { fontSizeDelta: 0, lineSpacingDelta: 0 };

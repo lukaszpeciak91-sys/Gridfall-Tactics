@@ -10,6 +10,8 @@ import {
   getInlineGameplaySymbolColor,
   getInlineGameplaySymbolStyle,
   getInlineStatSymbolColor,
+  getCardLayoutZones,
+  getCardTypography,
   INLINE_EFFECT_ICON_BASELINE_OFFSET_RATIO,
   INLINE_EFFECT_ICON_MIN_FONT_SIZE,
   INLINE_EFFECT_ICON_SPACE_SCALE,
@@ -19,6 +21,13 @@ import {
   layoutInlineStatText,
   tokenizeInlineStatText,
 } from '../src/rendering/cardVisualLayout.js';
+import { HAND_CARD_ASPECT_RATIO } from '../src/ui/handLayout.js';
+import {
+  HAND_CARD_BODY_LINE_SPACING,
+  HAND_CARD_TYPOGRAPHY_SCALE,
+  INSPECT_CARD_BODY_LINE_SPACING,
+  INSPECT_CARD_TYPOGRAPHY_SCALE,
+} from '../src/rendering/cardViewConfig.js';
 
 test('formats English stat abbreviations in card effect text as compact symbols', () => {
   assert.equal(formatCardEffectTextShort('+1 ATK', 'en'), '+1 ▲');
@@ -59,7 +68,7 @@ test('formats HP-related healing and damage language without replacing unrelated
   assert.equal(formatCardEffectTextShort('Combat death: both bases lose 1 HP.', 'en'), 'Combat death: both bases lose 1 ●.');
   assert.equal(formatCardEffectTextShort('On death: enemy base loses 1 HP.', 'en'), 'On death: enemy base loses 1 ●.');
   assert.equal(formatCardEffectTextShort('Heal all [ALLY] by 1.', 'en'), 'Heal all ♙♙ by +1 ●.');
-  assert.equal(formatCardEffectTextShort('First 2 [ALLIES] combat deaths:\n1 damage to opposed [ENEMY].', 'en'), 'First 2 ♙♙ combat deaths:\n1 damage to opposed ♟.');
+  assert.equal(formatCardEffectTextShort('First 2 [ALLY]\ncombat deaths:\n1 HP to opposed [ENEMY].', 'en'), 'First 2 ♙♙\ncombat deaths:\n1 ● to opposed ♟.');
   assert.equal(formatCardEffectTextShort('Destroy [ALLY]. Draw 1.', 'en'), 'Destroy ♙. Draw 1.');
   assert.equal(formatCardEffectTextShort('Combat death: summon 1/1 here.', 'en'), 'Combat death: summon 1/1 here.');
   assert.equal(formatCardEffectTextShort('Śmierć w walce: obie bazy otrzymują 1.', 'pl'), 'Śmierć w walce: obie bazy otrzymują 1 ●.');
@@ -79,8 +88,78 @@ test('formats HP symbols for localized Attrition Swarm card effect display text'
   assert.equal(getCardDisplayContent(cardById('attrition_swarm_leech_1'), 'pl').body, 'Przy ataku: ulecz swoją bazę o +1 ●.');
   assert.equal(getCardDisplayContent(cardById('attrition_swarm_abomination_1'), 'en').body, 'Combat death: both bases lose 1 ●.');
   assert.equal(getCardDisplayContent(cardById('attrition_swarm_abomination_1'), 'pl').body, 'Śmierć w walce: obie bazy tracą 1 ●.');
-  assert.equal(getCardDisplayContent(cardById('attrition_swarm_funeral_pyre_1'), 'en').body, 'First 2 ♙♙ combat deaths:\n1 damage to opposed ♟.');
+  assert.equal(getCardDisplayContent(cardById('attrition_swarm_funeral_pyre_1'), 'en').body, 'First 2 ♙♙\ncombat deaths:\n1 ● to opposed ♟.');
   assert.equal(getCardDisplayContent(cardById('attrition_swarm_funeral_pyre_1'), 'pl').body, 'Pierwsze 2 zgony ♙♙ w walce:\npo 1 ● ♟ naprzeciw.');
+});
+
+
+
+test('English Funeral Pyre card text stays within normal and collection inspect rules panels', () => {
+  const { deck } = getFactionByKey('Attrition Swarm');
+  const funeralPyre = deck.find((card) => card.id === 'attrition_swarm_funeral_pyre_1');
+  const body = getCardDisplayContent(funeralPyre, 'en').body;
+
+  assert.equal(body, 'First 2 ♙♙\ncombat deaths:\n1 ● to opposed ♟.');
+  assert.equal(body.split('\n').length, 3);
+  assert.doesNotMatch(body, /damage/i);
+
+  const measureFits = ({ width, height, typographyScale, lineSpacing }) => {
+    const zones = getCardLayoutZones(width, height);
+    const baseTypography = getCardTypography(width, height);
+    const startingBodyFontSize = Math.round(baseTypography.body * typographyScale) - 2;
+    const effectiveLineSpacing = lineSpacing - 8;
+    const minBodyFontSize = Math.max(8, startingBodyFontSize - 2);
+    const bodyTopPadding = Math.max(5, zones.text.height * (typographyScale > 1 ? 0.11 : 0.1));
+    const bodyBottomPadding = Math.max(5, zones.text.height * (typographyScale > 1 ? 0.1 : 0.09));
+    const maxWidth = zones.text.width - Math.max(8, zones.pad * (typographyScale > 1 ? 1.15 : 1.05));
+    const maxHeight = zones.text.height - bodyTopPadding - bodyBottomPadding;
+    const layoutAtFontSize = (bodyFontSize) => {
+      const measureTokenWidth = (token) => {
+        if (token === ' ') return Math.ceil(bodyFontSize * 0.3);
+        if (/^[♙♟]+$/u.test(token)) return Math.ceil(bodyFontSize * 1.08);
+        if (/^[●▲◆]$/u.test(token)) return Math.ceil(bodyFontSize * 1.05);
+        return Math.ceil(token.length * bodyFontSize * 0.45);
+      };
+      const lines = layoutInlineStatText(body, { maxWidth, measureTokenWidth });
+      const lineHeight = Math.ceil(Math.max(bodyFontSize * 1.12, bodyFontSize * 1.38 * 1.03)) + effectiveLineSpacing;
+      return { lines, heightUsed: lines.length * lineHeight - effectiveLineSpacing };
+    };
+    let fontSize = startingBodyFontSize;
+    let fitted = layoutAtFontSize(fontSize);
+    while (fitted.heightUsed > maxHeight && fontSize > minBodyFontSize) {
+      fontSize -= 1;
+      fitted = layoutAtFontSize(fontSize);
+    }
+
+    assert.ok(fitted.lines.length <= 3, `${width}x${height} should render in 3 lines or fewer`);
+    assert.ok(Math.max(...fitted.lines.map((line) => line.width)) <= maxWidth, `${width}x${height} line width should fit the rules panel`);
+    assert.ok(fitted.heightUsed <= maxHeight, `${width}x${height} text height should fit the rules panel`);
+  };
+
+  const collectionScreen = { width: 390, height: 844 };
+  const collectionCardWidth = (collectionScreen.width - 14 * 2 - 10) / 2;
+  const collectionCardHeight = Math.round(collectionCardWidth * HAND_CARD_ASPECT_RATIO);
+  measureFits({
+    width: collectionCardWidth,
+    height: collectionCardHeight,
+    typographyScale: HAND_CARD_TYPOGRAPHY_SCALE,
+    lineSpacing: HAND_CARD_BODY_LINE_SPACING,
+  });
+
+  const viewport = { viewportTop: 98, viewportBottom: collectionScreen.height - 88 };
+  const maxInspectWidth = Math.min(collectionScreen.width * 0.78, collectionScreen.width - 14 * 2);
+  const maxInspectHeight = Math.min(collectionScreen.height * 0.58, viewport.viewportBottom - viewport.viewportTop - 14 * 2);
+  const inspectScale = Math.min(2.06, maxInspectWidth / collectionCardWidth, maxInspectHeight / (collectionCardHeight * 0.96));
+  const inspect = {
+    width: collectionCardWidth * inspectScale,
+    height: collectionCardHeight * inspectScale * 0.96,
+  };
+  measureFits({
+    width: inspect.width,
+    height: inspect.height,
+    typographyScale: INSPECT_CARD_TYPOGRAPHY_SCALE,
+    lineSpacing: INSPECT_CARD_BODY_LINE_SPACING,
+  });
 });
 
 test('Polish Mercy uses established inline ally, HP, and ATK icons with readable spacing', () => {
