@@ -858,12 +858,11 @@ export default class BattleScene extends Phaser.Scene {
         frameColor: 0x4ade80,
         glowColor: 0x22c55e,
         accentColor: 0xfacc15,
-        panelFill: 0x0b1f18,
-        overlayAlpha: 0.56,
+        overlayAlpha: 0.68,
         revealDuration: 190,
-        titleStartScale: 0.86,
+        titleStartScale: 0.98,
         titleEndScale: 1,
-        titlePulseScale: 1.028,
+        titlePulseScale: 1.03,
         glowPulseAlpha: 0.32,
       };
     }
@@ -874,12 +873,11 @@ export default class BattleScene extends Phaser.Scene {
         frameColor: 0xfb7185,
         glowColor: 0xe11d48,
         accentColor: 0xfb7185,
-        panelFill: 0x220f1a,
-        overlayAlpha: 0.64,
+        overlayAlpha: 0.72,
         revealDuration: 360,
-        titleStartScale: 0.94,
+        titleStartScale: 0.98,
         titleEndScale: 1,
-        titlePulseScale: 1.014,
+        titlePulseScale: 1.03,
         glowPulseAlpha: 0.28,
       };
     }
@@ -889,17 +887,16 @@ export default class BattleScene extends Phaser.Scene {
       frameColor: 0xfacc15,
       glowColor: 0xeab308,
       accentColor: 0xfde68a,
-      panelFill: 0x201a0b,
-      overlayAlpha: 0.58,
+      overlayAlpha: 0.68,
       revealDuration: 260,
-      titleStartScale: 0.91,
+      titleStartScale: 0.98,
       titleEndScale: 1,
-      titlePulseScale: 1.018,
+      titlePulseScale: 1.03,
       glowPulseAlpha: 0.24,
     };
   }
 
-  addBattleResultVictoryCelebration(centerX, centerY, modalWidth, modalHeight, presentation) {
+  addBattleResultVictoryCelebration(centerX, centerY, overlayWidth, overlayHeight, presentation) {
     if (presentation.key !== 'victory') return [];
 
     const particles = [];
@@ -907,8 +904,8 @@ export default class BattleScene extends Phaser.Scene {
     const count = 26;
     for (let i = 0; i < count; i += 1) {
       const side = i % 2 === 0 ? -1 : 1;
-      const startX = centerX + side * (modalWidth * (0.22 + Math.random() * 0.22));
-      const startY = centerY - modalHeight * (0.35 + Math.random() * 0.18);
+      const startX = centerX + side * (overlayWidth * (0.22 + Math.random() * 0.22));
+      const startY = centerY - overlayHeight * (0.35 + Math.random() * 0.18);
       const size = 3 + Math.random() * 5;
       const color = particleColors[i % particleColors.length];
       const particle = this.add.rectangle(startX, startY, size, size * (1.35 + Math.random()), color, 0.9)
@@ -918,7 +915,7 @@ export default class BattleScene extends Phaser.Scene {
       this.tweens.add({
         targets: particle,
         x: startX + side * (10 + Math.random() * 42),
-        y: startY + modalHeight * (0.42 + Math.random() * 0.34),
+        y: startY + overlayHeight * (0.42 + Math.random() * 0.34),
         alpha: 0,
         rotation: particle.rotation + side * (1.2 + Math.random() * 2.8),
         duration: 760 + Math.random() * 360,
@@ -928,8 +925,8 @@ export default class BattleScene extends Phaser.Scene {
 
     for (let i = 0; i < 7; i += 1) {
       const burst = this.add.circle(
-        centerX + (Math.random() - 0.5) * modalWidth * 0.72,
-        centerY - modalHeight * (0.16 + Math.random() * 0.2),
+        centerX + (Math.random() - 0.5) * overlayWidth * 0.72,
+        centerY - overlayHeight * (0.16 + Math.random() * 0.2),
         2 + Math.random() * 2.2,
         presentation.accentColor,
         0.7,
@@ -961,10 +958,10 @@ export default class BattleScene extends Phaser.Scene {
     this.resetCardHighlights();
 
     const { width, height } = this.scale.gameSize;
-    const modalWidth = Math.min(width * 0.86, 460);
-    const modalHeight = Math.min(Math.max(height * 0.29, 224), 272);
     const centerX = width * 0.5;
-    const centerY = height * 0.34;
+    const centerY = height * 0.31;
+    const overlayWidth = Math.min(width * 0.94, 720);
+    const overlayHeight = Math.min(Math.max(height * 0.27, 230), 310);
     const resultText = this.getBattleResultText();
     const resultSubtitle = this.getBattleResultSubtitle();
     const presentation = this.getBattleResultPresentation();
@@ -972,46 +969,41 @@ export default class BattleScene extends Phaser.Scene {
     const overlay = this.add.rectangle(centerX, height * 0.5, width, height, 0x000000, presentation.overlayAlpha)
       .setInteractive()
       .setDepth(900);
-    const outerGlow = this.add.rectangle(centerX, centerY, modalWidth + 12, modalHeight + 12, presentation.glowColor, 0.1)
-      .setStrokeStyle(2, presentation.glowColor, 0.2)
-      .setDepth(900);
-    const panel = this.add.rectangle(centerX, centerY, modalWidth, modalHeight, presentation.panelFill, 0.97)
-      .setStrokeStyle(4, presentation.frameColor, 0.86)
+    const titleAura = this.add.ellipse(centerX, centerY - overlayHeight * 0.12, overlayWidth * 0.88, overlayHeight * 0.46, presentation.glowColor, 0.12)
       .setDepth(901);
-    const innerSheen = this.add.rectangle(centerX, centerY - modalHeight * 0.37, modalWidth * 0.82, 2, presentation.frameColor, 0.38)
-      .setDepth(902);
-    const broadcastRule = this.add.rectangle(centerX, centerY + modalHeight * 0.19, modalWidth * 0.54, 2, presentation.frameColor, 0.24)
-      .setDepth(902);
-    const titleGlow = this.add.text(centerX, centerY - modalHeight * 0.13, resultText, {
+    titleAura.setBlendMode?.(Phaser.BlendModes.ADD);
+    const titleFontSize = Math.min(Math.max(58, Math.floor(height * 0.092)), 96);
+    const titleGlow = this.add.text(centerX, centerY - overlayHeight * 0.13, resultText, {
       fontFamily: PREMIUM_BROADCAST_FONT_STACK,
-      fontSize: `${Math.max(52, Math.floor(modalHeight * 0.285))}px`,
+      fontSize: `${titleFontSize}px`,
       color: presentation.titleColor,
       fontStyle: '700',
       align: 'center',
-      letterSpacing: 1.8,
-    }).setOrigin(0.5).setDepth(901).setAlpha(0.2);
-    titleGlow.setShadow(0, 0, presentation.titleColor, 14, true, true);
-    const title = this.add.text(centerX, centerY - modalHeight * 0.13, resultText, {
+      letterSpacing: 2.2,
+    }).setOrigin(0.5).setDepth(902).setAlpha(0.2);
+    titleGlow.setShadow(0, 0, presentation.titleColor, 18, true, true);
+    const title = this.add.text(centerX, centerY - overlayHeight * 0.13, resultText, {
       fontFamily: PREMIUM_BROADCAST_FONT_STACK,
-      fontSize: `${Math.max(52, Math.floor(modalHeight * 0.285))}px`,
+      fontSize: `${titleFontSize}px`,
       color: presentation.titleColor,
       fontStyle: '700',
       align: 'center',
-      letterSpacing: 1.8,
-    }).setOrigin(0.5).setDepth(903);
-    title.setShadow(0, 2, 'rgba(0, 0, 0, 0.55)', 3, true, true);
-    const subtitle = this.add.text(centerX, centerY + modalHeight * 0.08, resultSubtitle, {
+      letterSpacing: 2.2,
+    }).setOrigin(0.5).setDepth(904);
+    title.setShadow(0, 3, 'rgba(0, 0, 0, 0.62)', 5, true, true);
+    const subtitle = this.add.text(centerX, centerY + overlayHeight * 0.11, resultSubtitle, {
       fontFamily: 'Arial, sans-serif',
-      fontSize: `${Math.max(16, Math.floor(modalHeight * 0.068))}px`,
+      fontSize: `${Math.max(16, Math.floor(height * 0.023))}px`,
       color: '#e2e8f0',
       align: 'center',
-      wordWrap: { width: modalWidth * 0.78, useAdvancedWrap: true },
-    }).setOrigin(0.5).setDepth(902);
+      wordWrap: { width: Math.min(width * 0.86, 620), useAdvancedWrap: true },
+    }).setOrigin(0.5).setDepth(903);
+    subtitle.setShadow(0, 2, 'rgba(0, 0, 0, 0.6)', 3, true, true);
 
-    const buttonY = centerY + modalHeight * 0.34;
-    const buttonWidth = Math.min(168, (modalWidth - 20) * 0.5);
-    const buttonHeight = Math.max(58, Math.floor(modalHeight * 0.225));
-    const gap = Math.max(18, modalWidth * 0.045);
+    const buttonY = centerY + overlayHeight * 0.34;
+    const buttonWidth = Math.min(168, Math.max(136, width * 0.34));
+    const buttonHeight = Math.max(58, Math.min(68, Math.floor(height * 0.075)));
+    const gap = Math.max(18, Math.min(34, width * 0.055));
     const exitButton = this.createResultModalButton(
       centerX - buttonWidth / 2 - gap / 2,
       buttonY,
@@ -1033,41 +1025,39 @@ export default class BattleScene extends Phaser.Scene {
 
     title.setScale(presentation.titleStartScale).setAlpha(0);
     titleGlow.setScale(presentation.titleStartScale).setAlpha(0);
+    titleAura.setScale(presentation.titleStartScale).setAlpha(0);
     this.tweens.add({
-      targets: [title, titleGlow],
+      targets: [title, titleGlow, titleAura],
       scale: presentation.titleEndScale,
       alpha: { from: 0, to: 1 },
       duration: presentation.revealDuration,
-      ease: presentation.key === 'defeat' ? 'Cubic.easeOut' : 'Back.easeOut',
+      ease: 'Sine.easeOut',
       onComplete: () => {
         this.tweens.add({
-          targets: titleGlow,
+          targets: [title, titleGlow],
           scale: presentation.titlePulseScale,
-          alpha: { from: presentation.glowPulseAlpha * 0.55, to: presentation.glowPulseAlpha },
-          duration: presentation.key === 'defeat' ? 940 : 720,
+          duration: 1850,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.easeInOut',
+        });
+        this.tweens.add({
+          targets: titleAura,
+          scale: 1.04,
+          alpha: { from: presentation.glowPulseAlpha * 0.35, to: presentation.glowPulseAlpha },
+          duration: 1850,
           yoyo: true,
           repeat: -1,
           ease: 'Sine.easeInOut',
         });
       },
     });
-    this.tweens.add({
-      targets: outerGlow,
-      alpha: { from: 0.08, to: presentation.glowPulseAlpha },
-      duration: presentation.key === 'defeat' ? 980 : 780,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut',
-    });
 
-    const celebration = this.addBattleResultVictoryCelebration(centerX, centerY, modalWidth, modalHeight, presentation);
+    const celebration = this.addBattleResultVictoryCelebration(centerX, centerY, overlayWidth, overlayHeight, presentation);
 
     this.battleResultModal = {
       overlay,
-      outerGlow,
-      panel,
-      innerSheen,
-      broadcastRule,
+      titleAura,
       titleGlow,
       title,
       subtitle,
@@ -1115,10 +1105,7 @@ export default class BattleScene extends Phaser.Scene {
     }
     const items = [
       this.battleResultModal.overlay,
-      this.battleResultModal.outerGlow,
-      this.battleResultModal.panel,
-      this.battleResultModal.innerSheen,
-      this.battleResultModal.broadcastRule,
+      this.battleResultModal.titleAura,
       this.battleResultModal.titleGlow,
       this.battleResultModal.title,
       this.battleResultModal.subtitle,
