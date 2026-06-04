@@ -64,6 +64,9 @@ const FACTION_CARD_DETAILS = {
 const CARD_SCROLL_DRAG_THRESHOLD = 8;
 const MIN_FACTION_LIST_TOP = 106;
 const HEADER_TO_FACTION_LIST_GAP = 24;
+const HERO_BANNER_HEIGHT_RATIO = 0.7;
+const HERO_TITLE_SCRIM_HEIGHT = 64;
+
 
 function getFactionAssetSlug(factionKey) {
   const faction = getFactionByKey(factionKey);
@@ -206,7 +209,7 @@ export default class FactionSelectScene extends Phaser.Scene {
     const x = -cardWidth / 2;
     const artMargin = 10;
     const artWidth = cardWidth - artMargin * 2;
-    const artHeight = Math.round(cardHeight * 0.58);
+    const artHeight = Math.round(cardHeight * HERO_BANNER_HEIGHT_RATIO);
     const artY = y + artMargin;
 
     const shadow = this.add.graphics();
@@ -230,37 +233,54 @@ export default class FactionSelectScene extends Phaser.Scene {
       height: artHeight,
     });
 
+    const titleScrimHeight = Math.min(HERO_TITLE_SCRIM_HEIGHT, artHeight - 12);
     const titleScrim = this.add.graphics();
-    titleScrim.fillGradientStyle(0x020617, 0x020617, 0x020617, 0x020617, 0, 0, 0.74, 0.74);
-    titleScrim.fillRect(x + artMargin, artY + artHeight - 42, artWidth, 42);
+    titleScrim.fillGradientStyle(0x020617, 0x020617, 0x020617, 0x020617, 0, 0, 0.82, 0.82);
+    titleScrim.fillRect(x + artMargin, artY + artHeight - titleScrimHeight, artWidth, titleScrimHeight);
     content.add(titleScrim);
     this.uiElements.push(titleScrim);
 
+    const titleMaxWidth = artWidth - 24;
+    const titleFontSize = displayName.length > 18 ? 18 : displayName.length > 13 ? 20 : 22;
     const name = this.add
-      .text(x + artMargin + 12, artY + artHeight - 31, displayName, {
+      .text(x + artMargin + 12, artY + artHeight - titleScrimHeight + 8, displayName, {
         fontFamily: 'Arial, sans-serif',
-        fontSize: '22px',
+        fontSize: `${titleFontSize}px`,
         color: '#f8fafc',
         fontStyle: 'bold',
+        wordWrap: { width: titleMaxWidth, useAdvancedWrap: true },
       })
-      .setOrigin(0, 0);
+      .setOrigin(0, 0)
+      .setMaxLines(2);
     content.add(name);
     this.uiElements.push(name);
 
-    const infoTop = artY + artHeight + 9;
-    const description = this.add
-      .text(x + 16, infoTop, translateActive(`ui.factionSelect.descriptions.${factionKey}`, details.description), {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '14px',
-        color: '#e5e7eb',
-      })
-      .setOrigin(0, 0);
-    content.add(description);
-    this.uiElements.push(description);
+    const tagline = this.add
+      .text(
+        x + artMargin + 12,
+        Math.min(name.y + name.height + 2, artY + artHeight - 18),
+        translateActive(`ui.factionSelect.descriptions.${factionKey}`, details.description),
+        {
+          fontFamily: 'Arial, sans-serif',
+          fontSize: '12px',
+          color: '#e5e7eb',
+          wordWrap: { width: titleMaxWidth, useAdvancedWrap: true },
+        },
+      )
+      .setOrigin(0, 0)
+      .setMaxLines(1);
+    content.add(tagline);
+    this.uiElements.push(tagline);
+
+    const chipStrip = this.add.graphics();
+    chipStrip.fillStyle(0x020617, 0.28);
+    chipStrip.fillRoundedRect(x + artMargin, artY + artHeight + 5, artWidth, 29, 12);
+    content.add(chipStrip);
+    this.uiElements.push(chipStrip);
 
     this.drawFactionTags(content, details.tags, {
       x: x + 16,
-      y: y + cardHeight - 32,
+      y: y + cardHeight - 31,
       accentColor: details.accentColor,
     });
 
