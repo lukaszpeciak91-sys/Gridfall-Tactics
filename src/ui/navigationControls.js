@@ -19,127 +19,119 @@ export function getBottomNavigationMetrics(scene, { centerY = null, touchSize = 
 
 const UTILITY_SURFACE_THEME = Object.freeze({
   baseFill: 0x07111f,
-  hoverFill: 0x0b1b2d,
-  activeFill: 0x0f2742,
-  mutedFill: 0x102a45,
-  goldStroke: 0xd6b56d,
-  hoverGoldStroke: 0xf2d38a,
+  hoverFill: 0x0d1d31,
+  activeFill: 0x102a45,
+  mutedFill: 0x0f2742,
+  edgeStroke: 0x8fd7ff,
+  idleStroke: 0x94a3b8,
+  innerStroke: 0xf5f1e6,
   glow: 0x38bdf8,
-  shadow: 0x020617,
+  warmHighlight: 0xf5f1e6,
 });
 
-function drawGlassUtilityTile(surface, {
-  size,
-  hovering = false,
-  pressed = false,
-  active = false,
-} = {}) {
-  const cornerRadius = Math.round(Phaser.Math.Clamp(size * 0.28, 14, 16));
-  const fillColor = active
-    ? UTILITY_SURFACE_THEME.mutedFill
-    : (hovering ? UTILITY_SURFACE_THEME.hoverFill : UTILITY_SURFACE_THEME.baseFill);
-  const fillAlpha = active ? 0.84 : (hovering ? 0.8 : 0.72);
-  const strokeColor = hovering || active ? UTILITY_SURFACE_THEME.hoverGoldStroke : UTILITY_SURFACE_THEME.goldStroke;
-  const strokeAlpha = active ? 0.78 : (hovering ? 0.72 : 0.58);
-  const glowAlpha = active ? 0.13 : (hovering ? 0.11 : 0.07);
-  const half = size * 0.5;
-  const inset = pressed ? 1.2 : 0;
-  const tileX = -half + inset;
-  const tileY = -half + inset;
-  const tileSize = size - inset * 2;
-
-  surface.clear();
-
-  // A single rounded glass tile: soft contact shadow, faint cyan broadcast glow,
-  // translucent navy fill, and one thin gold edge. No inner icon circles/rings.
-  surface.fillStyle(UTILITY_SURFACE_THEME.shadow, pressed ? 0.26 : 0.34);
-  surface.fillRoundedRect(-half + 1.5, -half + 3.5, size, size, cornerRadius);
-
-  surface.lineStyle(5, UTILITY_SURFACE_THEME.glow, glowAlpha * 0.18);
-  surface.strokeRoundedRect(tileX - 2, tileY - 2, tileSize + 4, tileSize + 4, cornerRadius + 2);
-  surface.lineStyle(2, UTILITY_SURFACE_THEME.glow, glowAlpha);
-  surface.strokeRoundedRect(tileX - 0.75, tileY - 0.75, tileSize + 1.5, tileSize + 1.5, cornerRadius + 1);
-
-  surface.fillStyle(fillColor, pressed ? Math.max(0.64, fillAlpha - 0.08) : fillAlpha);
-  surface.fillRoundedRect(tileX, tileY, tileSize, tileSize, cornerRadius);
-
-  surface.lineStyle(1.35, strokeColor, pressed ? Math.max(0.48, strokeAlpha - 0.1) : strokeAlpha);
-  surface.strokeRoundedRect(tileX + 0.75, tileY + 0.75, tileSize - 1.5, tileSize - 1.5, Math.max(1, cornerRadius - 1));
+function setUtilityScale(targets, scale) {
+  targets.forEach((target) => target?.setScale?.(scale));
 }
 
-function createUtilityButtonSurface(scene, size) {
-  const backing = scene.add.graphics();
-  drawGlassUtilityTile(backing, { size });
-  return { backing, size };
+function createUtilityButtonSurface(scene, x, y, size, { depth = 198, local = false } = {}) {
+  const px = local ? 0 : x;
+  const py = local ? 0 : y;
+  const halo = scene.add.circle(px, py, size * 0.62, UTILITY_SURFACE_THEME.glow, 0.09)
+    .setStrokeStyle(1, 0x7dd3fc, 0.2)
+    .setDepth(depth);
+  halo.setBlendMode?.('ADD');
+
+  const shadow = scene.add.ellipse(px, py + size * 0.29, size * 0.78, size * 0.22, 0x020617, 0.38)
+    .setDepth(depth + 0.2);
+  const backing = scene.add.rectangle(px, py, size, size, UTILITY_SURFACE_THEME.baseFill, 0.76)
+    .setStrokeStyle(1.5, UTILITY_SURFACE_THEME.idleStroke, 0.6)
+    .setDepth(depth + 1);
+  const innerEdge = scene.add.rectangle(px, py, size - 7, size - 7, 0x020617, 0)
+    .setStrokeStyle(1, UTILITY_SURFACE_THEME.innerStroke, 0.12)
+    .setDepth(depth + 1.1);
+  const topHighlight = scene.add.rectangle(px, py - size * 0.35, size * 0.64, Math.max(1, size * 0.025), UTILITY_SURFACE_THEME.warmHighlight, 0.22)
+    .setDepth(depth + 1.2);
+  const centerGlow = scene.add.ellipse(px, py - size * 0.05, size * 0.62, size * 0.34, UTILITY_SURFACE_THEME.glow, 0.04)
+    .setDepth(depth + 1.3);
+  centerGlow.setBlendMode?.('ADD');
+
+  return { halo, shadow, backing, innerEdge, topHighlight, centerGlow };
 }
 
 function setUtilitySurfaceState(surface, {
   hovering = false,
   pressed = false,
   active = false,
+  scale = 1,
 } = {}) {
-  drawGlassUtilityTile(surface.backing, {
-    size: surface.size,
-    hovering,
-    pressed,
-    active,
-  });
-}
+  const fillColor = active
+    ? UTILITY_SURFACE_THEME.mutedFill
+    : (hovering ? UTILITY_SURFACE_THEME.hoverFill : UTILITY_SURFACE_THEME.baseFill);
+  const fillAlpha = active ? 0.84 : (hovering ? 0.82 : 0.76);
+  const strokeColor = active || hovering ? UTILITY_SURFACE_THEME.edgeStroke : UTILITY_SURFACE_THEME.idleStroke;
+  const strokeAlpha = active ? 0.9 : (hovering ? 0.78 : 0.6);
+  const glowAlpha = active ? 0.18 : (hovering ? 0.14 : 0.09);
+  const centerGlowAlpha = active ? 0.1 : (hovering ? 0.08 : 0.04);
+  const highlightAlpha = active ? 0.28 : (hovering ? 0.3 : 0.22);
+  const resolvedScale = pressed ? 0.985 : scale;
 
-function createUtilityHitArea(size) {
-  return new Phaser.Geom.Rectangle(-size / 2, -size / 2, size, size);
+  surface.backing?.setFillStyle?.(fillColor, pressed ? Math.max(0.72, fillAlpha - 0.08) : fillAlpha);
+  surface.backing?.setStrokeStyle?.(1.5, strokeColor, pressed ? Math.max(0.64, strokeAlpha - 0.08) : strokeAlpha);
+  surface.innerEdge?.setStrokeStyle?.(1, UTILITY_SURFACE_THEME.innerStroke, hovering || active ? 0.2 : 0.12);
+  surface.halo?.setFillStyle?.(UTILITY_SURFACE_THEME.glow, glowAlpha);
+  surface.halo?.setStrokeStyle?.(1, 0x7dd3fc, active ? 0.34 : (hovering ? 0.28 : 0.2));
+  surface.centerGlow?.setAlpha?.(pressed ? Math.max(0.03, centerGlowAlpha - 0.03) : centerGlowAlpha);
+  surface.topHighlight?.setAlpha?.(pressed ? Math.max(0.14, highlightAlpha - 0.1) : highlightAlpha);
+  setUtilityScale([surface.halo, surface.shadow, surface.backing, surface.innerEdge, surface.topHighlight, surface.centerGlow], resolvedScale);
 }
 
 export function createFloatingControl(scene, x, y, size, label, onPointerUp, { fontScale = 0.5 } = {}) {
-  const button = scene.add.container(x, y).setDepth(198);
-  const surface = createUtilityButtonSurface(scene, size);
-  const text = scene.add.text(0, 0, label, {
+  const surface = createUtilityButtonSurface(scene, x, y, size);
+  const text = scene.add.text(x, y, label, {
     fontFamily: 'Segoe UI, Arial, sans-serif',
     fontSize: `${Math.max(16, Math.floor(size * fontScale))}px`,
     color: '#f8fafc',
     fontStyle: 'bold',
     align: 'center',
-  }).setOrigin(0.5).setDepth(2)
+  }).setOrigin(0.5).setDepth(200)
     .setShadow(0, 1, 'rgba(3, 17, 40, 0.72)', 2, true, true);
-
-  button.add([surface.backing, text]);
-  button.setSize(size, size);
 
   const setState = (state = {}) => {
     setUtilitySurfaceState(surface, state);
     text.setAlpha(state.pressed ? 0.9 : 1);
     text.setColor(state.hovering ? '#ffffff' : '#f8fafc');
-    text.setShadow(0, 1, state.hovering ? 'rgba(245, 241, 230, 0.16)' : 'rgba(3, 17, 40, 0.72)', state.hovering ? 3 : 2, true, true);
-    button.setScale(state.pressed ? 0.985 : 1);
+    text.setShadow(0, 1, state.hovering ? 'rgba(245, 241, 230, 0.18)' : 'rgba(3, 17, 40, 0.72)', state.hovering ? 3 : 2, true, true);
+    text.setScale(state.pressed ? 0.985 : 1);
   };
 
   if (onPointerUp) {
-    button.setInteractive(createUtilityHitArea(size), Phaser.Geom.Rectangle.Contains);
-    if (button.input) button.input.cursor = 'pointer';
-    button.on('pointerover', () => setState({ hovering: true }));
-    button.on('pointerout', () => setState());
-    button.on('pointerdown', () => setState({ hovering: true, pressed: true }));
-    button.on('pointerup', (...args) => {
-      setState({ hovering: true });
-      onPointerUp(...args);
+    surface.backing.setInteractive({ useHandCursor: true });
+    text.setInteractive({ useHandCursor: true });
+    [surface.backing, text].forEach((target) => {
+      target.on('pointerover', () => setState({ hovering: true }));
+      target.on('pointerout', () => setState());
+      target.on('pointerdown', () => setState({ hovering: true, pressed: true }));
+      target.on('pointerup', (...args) => {
+        setState({ hovering: true });
+        onPointerUp(...args);
+      });
     });
   }
 
   return {
-    halo: null,
-    shadow: null,
+    halo: surface.halo,
+    shadow: surface.shadow,
     backing: surface.backing,
-    innerEdge: null,
-    topHighlight: null,
-    centerGlow: null,
-    button,
+    innerEdge: surface.innerEdge,
+    topHighlight: surface.topHighlight,
+    centerGlow: surface.centerGlow,
     text,
-    items: [button],
+    items: [surface.halo, surface.shadow, surface.backing, surface.innerEdge, surface.topHighlight, surface.centerGlow, text],
   };
 }
 
 export function drawSpeakerIcon(icon, size, isMuted) {
-  const iconColor = 0xf8fafc;
+  const iconColor = isMuted ? 0xbfdbfe : 0xf8fafc;
   const slashColor = 0xf87171;
   const unit = size / 44;
 
@@ -179,15 +171,14 @@ export function drawSpeakerIcon(icon, size, isMuted) {
 
 export function createMuteToggleControl(scene, x, y, size, { onToggle = null, depth = 198 } = {}) {
   const button = scene.add.container(x, y).setDepth(depth);
-  const surface = createUtilityButtonSurface(scene, size);
+  const surface = createUtilityButtonSurface(scene, 0, 0, size, { depth: 0, local: true });
   const icon = scene.add.graphics().setDepth(2);
   let hovering = false;
   let pressed = false;
 
-  button.add([surface.backing, icon]);
+  button.add([surface.halo, surface.shadow, surface.backing, surface.innerEdge, surface.topHighlight, surface.centerGlow, icon]);
   button.setSize(size, size);
-  button.setInteractive(createUtilityHitArea(size), Phaser.Geom.Rectangle.Contains);
-  if (button.input) button.input.cursor = 'pointer';
+  button.setInteractive({ useHandCursor: true });
 
   const refreshButton = (settings = loadSettings()) => {
     const isMuted = settings.muted;
@@ -229,12 +220,12 @@ export function createMuteToggleControl(scene, x, y, size, { onToggle = null, de
     button.destroy();
   };
   return {
-    halo: null,
-    shadow: null,
+    halo: surface.halo,
+    shadow: surface.shadow,
     backing: surface.backing,
-    innerEdge: null,
-    topHighlight: null,
-    centerGlow: null,
+    innerEdge: surface.innerEdge,
+    topHighlight: surface.topHighlight,
+    centerGlow: surface.centerGlow,
     icon,
     button,
     text: icon,
