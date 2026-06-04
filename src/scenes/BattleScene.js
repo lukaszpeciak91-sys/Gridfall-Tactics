@@ -83,6 +83,7 @@ const ENEMY_ACTION_PRE_COMBAT_DELAY_MS = 400;
 const PLAYER_EFFECT_CONFIRMATION_FADE_IN_MS = 90;
 const PLAYER_EFFECT_CONFIRMATION_HOLD_MS = 840;
 const PLAYER_EFFECT_CONFIRMATION_FADE_OUT_MS = 120;
+const INVALID_ACTION_BANNER_HOLD_MS = 760;
 const TURN_START_BANNER_FADE_IN_MS = 110;
 const TURN_START_BANNER_HOLD_MS = 820;
 const TURN_START_BANNER_FADE_OUT_MS = 140;
@@ -191,6 +192,8 @@ export default class BattleScene extends Phaser.Scene {
     this.enemyActionBannerFadeOutEvent = null;
     this.playerActionBanner = null;
     this.playerActionBannerFadeOutEvent = null;
+    this.invalidActionBanner = null;
+    this.invalidActionBannerFadeOutEvent = null;
     this.battleResultModal = null;
     this.battleResultModalShown = false;
     this.battleResultModalPending = false;
@@ -268,6 +271,8 @@ export default class BattleScene extends Phaser.Scene {
     this.enemyActionBannerFadeOutEvent = null;
     this.playerActionBanner = null;
     this.playerActionBannerFadeOutEvent = null;
+    this.invalidActionBanner = null;
+    this.invalidActionBannerFadeOutEvent = null;
     this.battleResultModal = null;
     this.battleResultModalShown = false;
     this.battleResultModalPending = false;
@@ -2634,6 +2639,7 @@ export default class BattleScene extends Phaser.Scene {
 
         if (!unit || unit.owner !== 'player') {
           this.pendingSwapIndex = null;
+          this.showInvalidActionFeedback?.({ reason: 'Swap is not valid', boardIndex, scope: 'slot' });
           this.clearSwapPrompt();
           this.resetCardHighlights({ showPreview: false });
           this.updateActionButtonLabel();
@@ -2647,6 +2653,7 @@ export default class BattleScene extends Phaser.Scene {
 
         if (!result.ok) {
           this.clearSwapPrompt();
+          this.showInvalidActionFeedback?.({ reason: result.reason, boardIndex, scope: 'slot' });
           this.resetCardHighlights({ showPreview: false });
           this.updateActionButtonLabel();
           return;
@@ -2731,7 +2738,10 @@ export default class BattleScene extends Phaser.Scene {
         this.showTargetingInstruction();
         return;
       }
-      if (!result.ok) return;
+      if (!result.ok) {
+        this.showInvalidActionFeedback?.({ reason: result.reason, cardId: effectCardId, boardIndex, scope: this.getInvalidActionScope(result.reason) });
+        return;
+      }
       if (result.type === 'targeted-effect' && this.gameState.cancelEnemyOrderThisTurn?.enemy) {
         this.gameState.cancelEnemyOrderThisTurn.enemy = false;
       }
@@ -2759,8 +2769,10 @@ export default class BattleScene extends Phaser.Scene {
     const beforeStats = this.captureBoardStats();
     const result = playOrRedeployUnit(this.gameState, 'player', this.selectedCardId, boardIndex);
     if (!result.ok) {
+      const invalidCardId = this.selectedCardId;
       this.pendingSwapIndex = null;
       this.clearHandCardSelection();
+      this.showInvalidActionFeedback?.({ reason: result.reason, cardId: invalidCardId, boardIndex, scope: this.getInvalidActionScope(result.reason) });
       return;
     }
 
@@ -2864,6 +2876,7 @@ export default class BattleScene extends Phaser.Scene {
       this.effectCastState = null;
       this.resetCardHighlights({ showPreview: false });
       this.updateActionButtonLabel();
+      this.showInvalidActionFeedback?.({ reason: result.reason, cardId: card.id, card, scope: 'global' });
       return;
     }
     if (result.type === 'effect' && this.gameState.cancelEnemyOrderThisTurn?.enemy) {
@@ -3144,7 +3157,11 @@ export default class BattleScene extends Phaser.Scene {
     const result = this.effectCastState?.source === 'unit-on-play'
       ? resolveTargetedUnitOnPlayEffect(this.gameState, 'player', this.effectCastState.boardIndex, targetIndexes)
       : resolveTargetedEffectCard(this.gameState, 'player', effectCardId, targetIndexes[0], targetIndexes);
-    if (!result.ok || result.type === 'targeted-effect-pending' || result.type === 'unit-on-play-targeted-effect-pending') return;
+    if (!result.ok) {
+      this.showInvalidActionFeedback?.({ reason: result.reason, cardId: effectCardId, boardIndex: targetIndexes[0], scope: this.getInvalidActionScope(result.reason) });
+      return;
+    }
+    if (result.type === 'targeted-effect-pending' || result.type === 'unit-on-play-targeted-effect-pending') return;
     if (result.type === 'targeted-effect' && this.gameState.cancelEnemyOrderThisTurn?.enemy) {
       this.gameState.cancelEnemyOrderThisTurn.enemy = false;
     }
@@ -3630,6 +3647,158 @@ export default class BattleScene extends Phaser.Scene {
     this.showPlayerActionBanner(this.getPlayerEffectConfirmationMessage(card));
   }
 
+  getInvalidActionReasonKey(reason, card = null) {
+    const normalized = String(reason ?? '').toLowerCase();
+    if (normalized.includes('hand') && normalized.includes('full')) return 'handFull';
+    if (normalized.includes('deck') && normalized.includes('empty')) return 'deckEmpty';
+    if (normalized.includes('friendly') || normalized.includes('ally')) return 'noValidAlly';
+    if (normalized.includes('enemy')) return 'noValidEnemy';
+    if (normalized.includes('no target') || normalized.includes('target') || normalized.includes('legal deterministic')) {
+      if (card?.effectId === 'revive_friendly_1hp') return this.getReviveInvalidReasonKey('player');
+      if (card?.effectId === 'summon_grunt_empty_slot' || card?.effectId === 'grave_call' || card?.effectId === 'fill_empty_slots_0_1') return 'noEmptySlot';
+      if (card?.effectId === 'adjacent_allies_temp_armor_1' || card?.effectId === 'swap_adjacent_then_resolve') return 'noAdjacentAlly';
+      return 'noValidTarget';
+    }
+    if (normalized.includes('empty slot')) return 'noEmptySlot';
+    if (normalized.includes('fallen')) return 'noFallenUnit';
+    if (normalized.includes('full hp')) return 'fullHp';
+    if (normalized.includes('blocked') && normalized.includes('line')) return 'laneBlocked';
+    if (normalized.includes('blocked') && normalized.includes('move')) return 'moveBlocked';
+    if (normalized.includes('blocked')) return 'effectBlocked';
+    if (normalized.includes('immune')) return 'immune';
+    if (normalized.includes('adjacent')) return 'noAdjacentAlly';
+    if (normalized.includes('occupied')) return 'occupied';
+    if (normalized.includes('swap')) return 'invalidSwap';
+    return 'effectBlocked';
+  }
+
+  getReviveInvalidReasonKey(owner = 'player') {
+    const rowIndexes = owner === 'player' ? [6, 7, 8] : [0, 1, 2];
+    const hasEmptySlot = rowIndexes.some((index) => this.gameState?.board?.[index] === null);
+    if (!hasEmptySlot) return 'noEmptySlot';
+    const side = owner === 'player' ? this.gameState?.player : this.gameState?.enemy;
+    const hasFallenUnit = (side?.fallen ?? []).some((entry) => entry?.card?.type === 'unit');
+    return hasFallenUnit ? 'effectBlocked' : 'noFallenUnit';
+  }
+
+  getInvalidActionMessage(reason, card = null) {
+    const key = this.getInvalidActionReasonKey(reason, card);
+    const fallbackByKey = {
+      handFull: 'Hand full',
+      noValidTarget: 'No valid target',
+      noValidAlly: 'No valid ally',
+      noValidEnemy: 'No valid enemy',
+      noEmptySlot: 'No empty slot',
+      deckEmpty: 'Deck empty',
+      fullHp: 'Already full HP',
+      moveBlocked: 'Move blocked',
+      effectBlocked: 'Effect blocked',
+      immune: 'Immune',
+      noAdjacentAlly: 'No adjacent ally',
+      noFallenUnit: 'No fallen unit',
+      laneBlocked: 'Lane blocked',
+      occupied: 'Slot occupied',
+      invalidSwap: 'Invalid swap',
+    };
+    return translateActive(`ui.battle.invalidAction.${key}`, fallbackByKey[key] ?? fallbackByKey.effectBlocked);
+  }
+
+  getInvalidActionScope(reason) {
+    const key = this.getInvalidActionReasonKey(reason);
+    return ['laneBlocked', 'occupied', 'invalidSwap', 'moveBlocked'].includes(key) ? 'slot' : 'global';
+  }
+
+  showInvalidActionFeedback({ reason, cardId = null, boardIndex = null, scope = 'global', card = null } = {}) {
+    const message = this.getInvalidActionMessage(reason, card);
+    const reasonKey = this.getInvalidActionReasonKey(reason, card);
+    const isSlotSpecific = scope === 'slot' && Number.isInteger(boardIndex);
+    if (isSlotSpecific) {
+      this.showSlotPulse(boardIndex, 'damage');
+      this.showFloatingTextAtSlot(boardIndex, message, 'damage');
+    } else {
+      this.showInvalidActionBanner(message);
+    }
+    if (cardId) this.pulseInvalidCard(cardId);
+    return { message, reasonKey, scope: isSlotSpecific ? 'slot' : 'global' };
+  }
+
+  pulseInvalidCard(cardId) {
+    const cardView = this.cardViews.find((view) => view.cardId === cardId);
+    if (!cardView?.root?.active) return Promise.resolve();
+    const targets = [cardView.root, cardView.background, cardView.glow, cardView.selectionOutline].filter(Boolean);
+    this.tweens?.killTweensOf?.(targets);
+    cardView.background?.setStrokeStyle?.(5, 0xef4444, 1);
+    cardView.glow?.setStrokeStyle?.(5, 0xef4444, 0.76);
+    cardView.selectionOutline?.setStrokeStyle?.(5, 0xef4444, 0.92);
+    return this.tweenToPromise({
+      targets: cardView.root,
+      x: cardView.baseX + 6,
+      duration: 54,
+      yoyo: true,
+      repeat: 3,
+      ease: 'Sine.easeInOut',
+    }).then(() => {
+      if (!cardView.root?.active) return;
+      cardView.root.setPosition(cardView.baseX, cardView.root.y);
+      this.resetCardHighlights({ showPreview: false });
+    });
+  }
+
+  showInvalidActionBanner(message) {
+    if (!message) return;
+    if (!this.prepareTransientBattleBanner('invalid-action')) {
+      this.deferTransientBattleBanner('invalid-action', { message });
+      return;
+    }
+
+    const { height, board } = this.layout;
+    const bannerLayout = this.getCentralBattleBannerLayout({ baseWidthRatio: 0.88, horizontalPadding: 14, startOffset: 5 });
+    const fontSize = Math.min(18, Math.max(14, Math.floor(Math.max(board.cellWidth * 0.125, height * 0.016))));
+    const { targetY } = bannerLayout;
+    this.invalidActionBanner = this.add.text(bannerLayout.x, bannerLayout.startY, message, {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: `${fontSize}px`,
+      color: '#fee2e2',
+      backgroundColor: '#7f1d1d',
+      align: 'center',
+      padding: { x: 14, y: 11 },
+      wordWrap: { width: bannerLayout.maxTextWidth },
+      fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(222).setAlpha(0).setScale(0.98).setStroke('#450a0a', 1);
+
+    const banner = this.invalidActionBanner;
+    this.tweens.add({
+      targets: banner,
+      alpha: 1,
+      y: targetY,
+      scaleX: 1,
+      scaleY: 1,
+      duration: PLAYER_EFFECT_CONFIRMATION_FADE_IN_MS,
+      ease: 'Quad.easeOut',
+    });
+
+    this.invalidActionBannerFadeOutEvent = this.time.delayedCall(
+      PLAYER_EFFECT_CONFIRMATION_FADE_IN_MS + INVALID_ACTION_BANNER_HOLD_MS,
+      () => {
+        if (this.invalidActionBanner !== banner) return;
+        this.invalidActionBannerFadeOutEvent = null;
+        this.tweens.add({
+          targets: banner,
+          alpha: 0,
+          y: targetY - 5,
+          scaleX: 0.98,
+          scaleY: 0.98,
+          duration: PLAYER_EFFECT_CONFIRMATION_FADE_OUT_MS,
+          ease: 'Quad.easeIn',
+          onComplete: () => {
+            if (this.invalidActionBanner === banner) this.destroyInvalidActionBanner();
+            this.flushDeferredTransientBattleBanner();
+          },
+        });
+      },
+    );
+  }
+
   showPlayerActionBanner(message) {
     if (!message) return;
     if (!this.prepareTransientBattleBanner('player-action')) {
@@ -3930,6 +4099,7 @@ export default class BattleScene extends Phaser.Scene {
       targeting: 5,
       'board-swap': 4,
       'enemy-action': 3,
+      'invalid-action': 3,
       'player-action': 2,
       'turn-start': 1,
     }[owner] ?? 0;
@@ -3937,15 +4107,28 @@ export default class BattleScene extends Phaser.Scene {
 
   getRenderedTransientBattleBannerOwner() {
     if (this.enemyActionBanner?.active) return 'enemy-action';
+    if (this.invalidActionBanner?.active) return 'invalid-action';
     if (this.playerActionBanner?.active) return 'player-action';
     if (this.turnStartBanner?.active) return 'turn-start';
     return null;
+  }
+
+  destroyInvalidActionBanner() {
+    if (this.invalidActionBannerFadeOutEvent) {
+      this.invalidActionBannerFadeOutEvent.remove(false);
+      this.invalidActionBannerFadeOutEvent = null;
+    }
+    if (!this.invalidActionBanner) return;
+    this.tweens?.killTweensOf?.(this.invalidActionBanner);
+    this.invalidActionBanner.destroy();
+    this.invalidActionBanner = null;
   }
 
   destroyTransientBattleBanners() {
     this.destroyTurnStartBanner();
     this.destroyEnemyActionBanner();
     this.destroyPlayerActionBanner();
+    this.destroyInvalidActionBanner();
   }
 
   deferTransientBattleBanner(owner, payload = {}) {
@@ -3964,6 +4147,10 @@ export default class BattleScene extends Phaser.Scene {
     }
     if (deferred.owner === 'player-action') {
       this.showPlayerActionBanner(deferred.payload.message);
+      return true;
+    }
+    if (deferred.owner === 'invalid-action') {
+      this.showInvalidActionBanner(deferred.payload.message);
       return true;
     }
     if (deferred.owner === 'turn-start') {

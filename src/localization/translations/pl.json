@@ -411,6 +411,23 @@
         "victory": "Publiczność zachwycona.",
         "defeat": "Publiczność domaga się więcej.",
         "draw": "Produkcja zarządziła dogrywkę."
+      },
+      "invalidAction": {
+        "handFull": "Ręka pełna",
+        "noValidTarget": "Brak prawidłowego celu",
+        "noValidAlly": "Brak prawidłowego sojusznika",
+        "noValidEnemy": "Brak prawidłowego wroga",
+        "noEmptySlot": "Brak wolnego pola",
+        "deckEmpty": "Talia pusta",
+        "fullHp": "Pełne HP",
+        "moveBlocked": "Ruch zablokowany",
+        "effectBlocked": "Efekt zablokowany",
+        "immune": "Odporność",
+        "noAdjacentAlly": "Brak sąsiedniego sojusznika",
+        "noFallenUnit": "Brak poległej jednostki",
+        "laneBlocked": "Linia zablokowana",
+        "occupied": "Pole zajęte",
+        "invalidSwap": "Nieprawidłowa zamiana"
       }
     },
     "rules": {

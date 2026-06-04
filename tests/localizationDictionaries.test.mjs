@@ -74,6 +74,46 @@ test('player effect confirmation banner copy is localized for English and Polish
   assert.equal(getPath(pl, 'ui.battle.playerPlayed'), 'ZAGRANO');
 });
 
+test('invalid action feedback copy is localized for English and Polish', () => {
+  const expectedEn = {
+    handFull: 'Hand full',
+    noValidTarget: 'No valid target',
+    noValidAlly: 'No valid ally',
+    noValidEnemy: 'No valid enemy',
+    noEmptySlot: 'No empty slot',
+    deckEmpty: 'Deck empty',
+    fullHp: 'Already full HP',
+    moveBlocked: 'Move blocked',
+    effectBlocked: 'Effect blocked',
+    immune: 'Immune',
+    noAdjacentAlly: 'No adjacent ally',
+    noFallenUnit: 'No fallen unit',
+    laneBlocked: 'Lane blocked',
+    occupied: 'Slot occupied',
+    invalidSwap: 'Invalid swap',
+  };
+  const expectedPl = {
+    handFull: 'Ręka pełna',
+    noValidTarget: 'Brak prawidłowego celu',
+    noValidAlly: 'Brak prawidłowego sojusznika',
+    noValidEnemy: 'Brak prawidłowego wroga',
+    noEmptySlot: 'Brak wolnego pola',
+    deckEmpty: 'Talia pusta',
+    fullHp: 'Pełne HP',
+    moveBlocked: 'Ruch zablokowany',
+    effectBlocked: 'Efekt zablokowany',
+    immune: 'Odporność',
+    noAdjacentAlly: 'Brak sąsiedniego sojusznika',
+    noFallenUnit: 'Brak poległej jednostki',
+    laneBlocked: 'Linia zablokowana',
+    occupied: 'Pole zajęte',
+    invalidSwap: 'Nieprawidłowa zamiana',
+  };
+
+  assert.deepEqual(getPath(en, 'ui.battle.invalidAction'), expectedEn);
+  assert.deepEqual(getPath(pl, 'ui.battle.invalidAction'), expectedPl);
+});
+
 test('hold-pass surrender helper copy is localized for English and Polish', () => {
   assert.equal(getPath(en, 'ui.battle.holdPassToSurrender'), 'Hold PASS to surrender');
   assert.equal(getPath(pl, 'ui.battle.holdPassToSurrender'), 'Przytrzymaj PASS, aby się poddać');
