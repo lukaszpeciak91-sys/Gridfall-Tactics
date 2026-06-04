@@ -97,275 +97,6 @@ function createUtilityHitArea(size, minTapTargetSize = MIN_UTILITY_TAP_TARGET_SI
   return new Phaser.Geom.Rectangle(-tapTargetSize / 2, -tapTargetSize / 2, tapTargetSize, tapTargetSize);
 }
 
-
-const UTILITY_DEBUG_OVERLAY_DEPTH = 10000;
-const UTILITY_DEBUG_TEXT_STYLE = Object.freeze({
-  fontFamily: 'Courier New, monospace',
-  fontSize: '10px',
-  color: '#ffffff',
-  backgroundColor: 'rgba(127, 29, 29, 0.78)',
-  padding: { x: 3, y: 2 },
-  lineSpacing: 1,
-});
-
-function getUtilityControlDebugName(control) {
-  return control?.debug?.name ?? control?.button?.name ?? 'Utility';
-}
-
-function describeInteractiveObject(object) {
-  if (!object) return 'unknown';
-  const name = object.name ? `${object.name} ` : '';
-  return `${name}${object.type ?? object.constructor?.name ?? 'GameObject'}`.trim();
-}
-
-function describeCurrentlyOver(pointer) {
-  const currentlyOver = Array.isArray(pointer?.currentlyOver) ? pointer.currentlyOver : [];
-  if (!currentlyOver.length) return 'none';
-  return currentlyOver.map(describeInteractiveObject).join(', ');
-}
-
-function getPointerLocalPosition(object, pointer) {
-  if (!object?.getWorldTransformMatrix || !pointer) {
-    return { x: pointer?.x ?? 0, y: pointer?.y ?? 0 };
-  }
-
-  const matrix = object.getWorldTransformMatrix();
-  const local = new Phaser.Math.Vector2();
-  matrix.applyInverse(pointer.x, pointer.y, local);
-  return local;
-}
-
-function isPointerInsideInteractiveHitArea(object, pointer) {
-  const hitArea = object?.input?.hitArea;
-  const hitAreaCallback = object?.input?.hitAreaCallback;
-  if (!hitArea || !hitAreaCallback || !pointer) return false;
-
-  const local = getPointerLocalPosition(object, pointer);
-  return Boolean(hitAreaCallback(hitArea, local.x, local.y, object));
-}
-
-function getRectWorldBounds(object, rect) {
-  if (!object || !rect) return null;
-
-  if (!object.getWorldTransformMatrix) {
-    return new Phaser.Geom.Rectangle(
-      (object.x ?? 0) + rect.x,
-      (object.y ?? 0) + rect.y,
-      rect.width,
-      rect.height,
-    );
-  }
-
-  const matrix = object.getWorldTransformMatrix();
-  const points = [
-    new Phaser.Math.Vector2(rect.x, rect.y),
-    new Phaser.Math.Vector2(rect.x + rect.width, rect.y),
-    new Phaser.Math.Vector2(rect.x + rect.width, rect.y + rect.height),
-    new Phaser.Math.Vector2(rect.x, rect.y + rect.height),
-  ].map((point) => matrix.transformPoint(point.x, point.y, point));
-
-  const xs = points.map((point) => point.x);
-  const ys = points.map((point) => point.y);
-  const minX = Math.min(...xs);
-  const maxX = Math.max(...xs);
-  const minY = Math.min(...ys);
-  const maxY = Math.max(...ys);
-  return new Phaser.Geom.Rectangle(minX, minY, maxX - minX, maxY - minY);
-}
-
-function getUtilityVisualBounds(control) {
-  const button = control?.button;
-  const visualSize = control?.debug?.visualSize ?? control?.debug?.size;
-  if (!button || !Number.isFinite(visualSize)) return null;
-
-  return getRectWorldBounds(button, new Phaser.Geom.Rectangle(
-    -visualSize / 2,
-    -visualSize / 2,
-    visualSize,
-    visualSize,
-  ));
-}
-
-function getUtilityHitBounds(control) {
-  const button = control?.button;
-  const hitArea = button?.input?.hitArea;
-  if (!button || !hitArea) return null;
-  return getRectWorldBounds(button, hitArea);
-}
-
-function getRectCenter(rect) {
-  return {
-    x: Math.round(rect.x + rect.width / 2),
-    y: Math.round(rect.y + rect.height / 2),
-  };
-}
-
-function formatRectSize(rect) {
-  return `${Math.round(rect.width)}×${Math.round(rect.height)}`;
-}
-
-function setUtilityControlDebugMetadata(control, { name, visualSize, hitSize } = {}) {
-  if (!control?.button) return control;
-
-  control.debug = {
-    ...(control.debug ?? {}),
-    name,
-    visualSize,
-    hitSize,
-  };
-  control.button.setName?.(`utility:${name}`);
-  control.backing?.setName?.(`utility:${name}:visual`);
-  control.text?.setName?.(`utility:${name}:icon`);
-  return control;
-}
-
-function attachUtilityDebugLogging(scene, control) {
-  const button = control?.button;
-  if (!button || button.getData?.('utilityDebugLoggingAttached')) return;
-
-  button.setData?.('utilityDebugLoggingAttached', true);
-  const logPointerEvent = (phase, pointer) => {
-    const name = getUtilityControlDebugName(control);
-    const hitBounds = getUtilityHitBounds(control);
-    const insideHitbox = isPointerInsideInteractiveHitArea(button, pointer);
-    const hitCenter = hitBounds ? getRectCenter(hitBounds) : null;
-    console.info('[UtilityHitboxDebug]', {
-      scene: scene.scene?.key ?? scene.constructor?.name,
-      control: name,
-      phase,
-      pointer: {
-        x: Math.round(pointer?.x ?? 0),
-        y: Math.round(pointer?.y ?? 0),
-        id: pointer?.id,
-      },
-      insideExpectedHitbox: insideHitbox,
-      expectedHitbox: hitBounds ? {
-        x: Math.round(hitBounds.x),
-        y: Math.round(hitBounds.y),
-        width: Math.round(hitBounds.width),
-        height: Math.round(hitBounds.height),
-        center: hitCenter,
-      } : null,
-      handledBy: describeInteractiveObject(button),
-      currentlyOver: describeCurrentlyOver(pointer),
-    });
-  };
-
-  button.on('pointerdown', (pointer) => logPointerEvent('pointerdown', pointer));
-  button.on('pointerup', (pointer) => logPointerEvent('pointerup', pointer));
-}
-
-function drawUtilityDebugOverlay(scene, controls, overlay) {
-  const graphics = overlay?.graphics;
-  if (!graphics) return;
-
-  graphics.clear();
-  overlay.labels?.forEach((label) => label.destroy());
-  overlay.labels = [];
-
-  const debugControls = Object.entries(controls)
-    .filter(([key, control]) => !['metrics', 'menu'].includes(key) && control?.button?.active);
-
-  debugControls.forEach(([key, control], index) => {
-    const name = control.debug?.name ?? key;
-    const visualBounds = getUtilityVisualBounds(control);
-    const hitBounds = getUtilityHitBounds(control);
-    if (!visualBounds && !hitBounds) return;
-
-    if (hitBounds) {
-      graphics.lineStyle(3, 0xff1f1f, 1);
-      graphics.strokeRect(hitBounds.x, hitBounds.y, hitBounds.width, hitBounds.height);
-    }
-
-    if (visualBounds) {
-      graphics.lineStyle(2, 0x00ffea, 1);
-      graphics.strokeRect(visualBounds.x, visualBounds.y, visualBounds.width, visualBounds.height);
-    }
-
-    const visualCenter = visualBounds ? getRectCenter(visualBounds) : null;
-    const hitCenter = hitBounds ? getRectCenter(hitBounds) : null;
-    const labelText = [
-      name,
-      `visual: ${visualBounds ? `${formatRectSize(visualBounds)} @ (${visualCenter.x}, ${visualCenter.y})` : 'n/a'}`,
-      `hit: ${hitBounds ? `${formatRectSize(hitBounds)} @ (${hitCenter.x}, ${hitCenter.y})` : 'n/a'}`,
-      `depth: ${control.button.depth ?? 'n/a'}`,
-    ].join('\n');
-
-    const labelX = Math.max(4, Math.min(scene.scale.width - 118, (hitCenter?.x ?? visualCenter?.x ?? 0) - 58));
-    const labelY = Math.max(4, Math.min(scene.scale.height - 52, (hitBounds?.y ?? visualBounds?.y ?? 0) - 58 - (index % 2) * 4));
-    const label = scene.add.text(labelX, labelY, labelText, UTILITY_DEBUG_TEXT_STYLE)
-      .setDepth(UTILITY_DEBUG_OVERLAY_DEPTH + 1)
-      .setScrollFactor(0);
-    overlay.labels.push(label);
-  });
-}
-
-function attachNearbyUtilityTapLogging(scene, controls, overlay) {
-  if (overlay.nearbyLoggingAttached) return;
-  overlay.nearbyLoggingAttached = true;
-
-  const logNearbyTap = (phase, pointer) => {
-    const activeBounds = Object.entries(controls)
-      .filter(([key, control]) => !['metrics', 'menu'].includes(key) && control?.button?.active)
-      .map(([key, control]) => ({ name: control.debug?.name ?? key, bounds: getUtilityHitBounds(control) }))
-      .filter(({ bounds }) => bounds);
-
-    const nearAnyUtility = activeBounds.some(({ bounds }) => Phaser.Geom.Rectangle.Contains(
-      Phaser.Geom.Rectangle.Inflate(Phaser.Geom.Rectangle.Clone(bounds), 28, 28),
-      pointer.x,
-      pointer.y,
-    ));
-
-    if (!nearAnyUtility) return;
-
-    console.info('[UtilityHitboxDebug:nearbyTap]', {
-      scene: scene.scene?.key ?? scene.constructor?.name,
-      phase,
-      pointer: { x: Math.round(pointer.x), y: Math.round(pointer.y), id: pointer.id },
-      currentlyOver: describeCurrentlyOver(pointer),
-      utilityHitboxes: activeBounds.map(({ name, bounds }) => ({
-        name,
-        x: Math.round(bounds.x),
-        y: Math.round(bounds.y),
-        width: Math.round(bounds.width),
-        height: Math.round(bounds.height),
-      })),
-    });
-  };
-
-  const handlePointerDown = (pointer) => logNearbyTap('pointerdown', pointer);
-  const handlePointerUp = (pointer) => logNearbyTap('pointerup', pointer);
-  scene.input.on('pointerdown', handlePointerDown);
-  scene.input.on('pointerup', handlePointerUp);
-  scene.events?.once?.(Phaser.Scenes.Events.SHUTDOWN, () => {
-    scene.input.off('pointerdown', handlePointerDown);
-    scene.input.off('pointerup', handlePointerUp);
-  });
-}
-
-export function createUtilityHitboxDebugOverlay(scene, controls) {
-  if (!scene || !controls) return null;
-
-  const graphics = scene.add.graphics()
-    .setDepth(UTILITY_DEBUG_OVERLAY_DEPTH)
-    .setScrollFactor(0);
-  const overlay = { graphics, labels: [], nearbyLoggingAttached: false };
-
-  Object.entries(controls)
-    .filter(([key, control]) => !['metrics', 'menu'].includes(key) && control?.button)
-    .forEach(([, control]) => attachUtilityDebugLogging(scene, control));
-
-  drawUtilityDebugOverlay(scene, controls, overlay);
-  attachNearbyUtilityTapLogging(scene, controls, overlay);
-
-  scene.events?.once?.(Phaser.Scenes.Events.SHUTDOWN, () => {
-    overlay.labels?.forEach((label) => label.destroy());
-    graphics.destroy();
-  });
-
-  return overlay;
-}
-
 export function createFloatingControl(scene, x, y, size, label, onPointerUp, { fontScale = 0.5, minTapTargetSize = MIN_UTILITY_TAP_TARGET_SIZE } = {}) {
   const button = scene.add.container(x, y).setDepth(198);
   const surface = createUtilityButtonSurface(scene, size);
@@ -406,11 +137,6 @@ export function createFloatingControl(scene, x, y, size, label, onPointerUp, { f
   }
 
   return {
-    debug: {
-      name: String(label ?? 'Utility'),
-      visualSize: size,
-      hitSize: tapTargetSize,
-    },
     halo: null,
     shadow: null,
     backing: surface.backing,
@@ -516,11 +242,6 @@ export function createMuteToggleControl(scene, x, y, size, { onToggle = null, de
     button.destroy();
   };
   return {
-    debug: {
-      name: 'Mute',
-      visualSize: size,
-      hitSize: tapTargetSize,
-    },
     halo: null,
     shadow: null,
     backing: surface.backing,
@@ -541,7 +262,6 @@ export function createBottomNavigationControls(scene, {
   onRules,
   onMenu,
   onFullscreen,
-  debugOverlay = false,
   centerY = null,
   touchSize = null,
   margin = null,
@@ -561,17 +281,7 @@ export function createBottomNavigationControls(scene, {
     metrics,
   };
 
-  setUtilityControlDebugMetadata(controls.back, { name: 'Back', visualSize: metrics.touchSize, hitSize: getUtilityTapTargetSize(metrics.touchSize) });
-  setUtilityControlDebugMetadata(controls.mute, { name: 'Mute', visualSize: metrics.touchSize, hitSize: getUtilityTapTargetSize(metrics.touchSize) });
-  setUtilityControlDebugMetadata(controls.rules, { name: onRules ? 'Rules' : 'Menu', visualSize: metrics.touchSize, hitSize: getUtilityTapTargetSize(metrics.touchSize) });
-  setUtilityControlDebugMetadata(controls.fullscreen, { name: 'Fullscreen', visualSize: metrics.touchSize, hitSize: getUtilityTapTargetSize(metrics.touchSize) });
-
   controls.menu = controls.rules;
-
-  if (debugOverlay) {
-    controls.debugOverlay = createUtilityHitboxDebugOverlay(scene, controls);
-  }
-
   return controls;
 }
 
