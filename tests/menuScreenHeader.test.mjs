@@ -31,7 +31,7 @@ test('non-battle menu screens use the shared premium broadcast screen header', (
   });
 });
 
-test('faction select list keeps breathing room below wrapped title without resizing cards', () => {
+test('faction select list keeps breathing room below wrapped title while using a hero faction banner', () => {
   const source = read('src/scenes/FactionSelectScene.js');
 
   assert.match(source, /const MIN_FACTION_LIST_TOP = 106;/);
@@ -39,5 +39,6 @@ test('faction select list keeps breathing room below wrapped title without resiz
   assert.match(source, /headerBottomY: header\.bottomY/);
   assert.match(source, /const viewportTop = Math\.max\(MIN_FACTION_LIST_TOP, Math\.ceil\(headerBottomY \+ HEADER_TO_FACTION_LIST_GAP\)\);/);
   assert.match(source, /const cardHeight = 164;/);
-  assert.match(source, /const artHeight = Math\.round\(cardHeight \* 0\.58\);/);
+  assert.match(source, /const HERO_BANNER_HEIGHT_RATIO = 0\.7;/);
+  assert.match(source, /const artHeight = Math\.round\(cardHeight \* HERO_BANNER_HEIGHT_RATIO\);/);
 });
