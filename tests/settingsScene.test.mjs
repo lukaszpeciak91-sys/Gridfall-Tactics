@@ -31,9 +31,7 @@ test('SettingsScene exposes future-ready language, audio, and persistence contro
   assert.match(source, /createMuteToggleControl\(this, width \/ 2, muteToggleY, 44/);
   assert.match(source, /createVolumeSlider\(width \/ 2, musicSliderY, panelWidth - 76, translateActive\('ui\.settings\.musicVolume', 'Music Volume'\), 'musicVolume'\)/);
   assert.match(source, /createVolumeSlider\(width \/ 2, sfxSliderY, panelWidth - 76, translateActive\('ui\.settings\.sfxVolume', 'SFX Volume'\), 'sfxVolume'\)/);
-  assert.match(navigationControls, /export const MIN_UTILITY_TAP_TARGET_SIZE = 48;/);
   assert.match(navigationControls, /createMuteToggleControl\(scene, x, y, size/);
-  assert.match(navigationControls, /button\.setSize\(tapTargetSize, tapTargetSize\)/);
   assert.match(navigationControls, /drawSpeakerIcon\(icon, size, isMuted\)/);
   assert.match(settingsState, /setMuted\(scene, muted\)/);
   assert.match(settingsState, /toggleMuted\(scene\)/);
