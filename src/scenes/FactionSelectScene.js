@@ -134,7 +134,6 @@ export default class FactionSelectScene extends Phaser.Scene {
       title: translateActive('ui.factionSelect.title', 'SELECT YOUR TEAM'),
       width,
       height,
-      tint: 0xf5f1e6,
     });
     this.uiElements.push(...header.items);
 

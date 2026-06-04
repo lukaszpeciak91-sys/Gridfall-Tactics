@@ -115,7 +115,7 @@ export default class RulesPanelScene extends Phaser.Scene {
     const panelTop = panelY - panelHeight / 2;
     const panelLeft = panelX - panelWidth / 2;
     const padding = Math.max(16, Math.round(panelWidth * 0.045));
-    const headerHeight = 76;
+    const headerHeight = 104;
     const footerHeight = 58;
     const viewportX = panelLeft + padding;
     const viewportY = panelTop + headerHeight;
@@ -132,8 +132,7 @@ export default class RulesPanelScene extends Phaser.Scene {
       width: panelWidth,
       height: panelHeight,
       x: panelX,
-      y: panelTop + 28,
-      tint: 0x7dd3fc,
+      y: panelTop + 68,
       depth: 2,
     });
 

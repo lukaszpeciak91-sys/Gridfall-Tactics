@@ -71,7 +71,6 @@ export default class SettingsScene extends Phaser.Scene {
       title: translateActive('ui.settings.title', 'SETTINGS'),
       width,
       height,
-      tint: 0xf5f1e6,
     });
 
     const panelWidth = Math.min(width - 32, 342);
