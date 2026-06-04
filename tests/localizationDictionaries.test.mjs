@@ -124,7 +124,7 @@ test('selected localized card texts use enemy board-unit markers without changin
       control_swap_1: 'Swap 2 [ALLY] or 2 [ENEMIES].',
       control_jam_signal_1: 'Choose up to 2 [ENEMIES]: -1 ATK this turn.',
       control_pulse_wave_1: 'Deal 1 to all [ENEMIES], ignoring ARM.',
-      control_system_override_1: '[ENEMY] attacks own base next combat, then loses 1 HP.',
+      control_system_override_1: '[ENEMY] attacks own base, then loses 1 HP.',
       swarm_spitter_1: 'On play: deal 1 to opposed [ENEMY].',
       wardens_shield_push_1: 'Swap two adjacent [ENEMIES].',
     },

@@ -114,7 +114,7 @@
     },
     "control_system_override_1": {
       "name": "System Override",
-      "textShort": "[ENEMY] attacks own base next combat, then loses 1 HP."
+      "textShort": "[ENEMY] attacks own base, then loses 1 HP."
     },
     "control_recall_1": {
       "name": "Extraction",

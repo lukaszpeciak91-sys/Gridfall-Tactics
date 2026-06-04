@@ -442,6 +442,80 @@ function finalizeImmediateLaneCombat(state) {
   clampHeroHpAndResolveWinner(state);
 }
 
+
+function getSystemOverrideAdjacentAllyIndexes(unit, unitIndex) {
+  if (!unit) return [];
+  const rowStart = unit.owner === 'player' ? 6 : 0;
+  const lane = unitIndex % 3;
+  const indexes = [];
+  if (lane > 0) indexes.push(rowStart + lane - 1);
+  if (lane < 2) indexes.push(rowStart + lane + 1);
+  return indexes;
+}
+
+function createSystemOverrideCombatModifier({ type, amount = 0, source, label, feedback = 'attacker' }) {
+  const modifier = { type, amount, source, label };
+  if (feedback !== 'attacker') modifier.feedback = feedback;
+  return modifier;
+}
+
+function getSystemOverrideAttackWithCombatBonuses(state, unit, unitIndex) {
+  const combatModifiers = [];
+  if (!unit) return { attack: 0, combatModifiers };
+  let attack = unit.effectId === 'cannot_attack' ? 0 : (unit.attack ?? 0);
+  if (unit.effectId === 'opposing_lane_atk_plus_1') {
+    const opposingIndex = unit.owner === 'player' ? unitIndex - 6 : unitIndex + 6;
+    if (state.board[opposingIndex]?.owner === getOpponentOwner(unit.owner)) {
+      attack += 1;
+      combatModifiers.push(createSystemOverrideCombatModifier({
+        type: 'attack-bonus',
+        amount: 1,
+        source: 'opposing_lane_atk_plus_1',
+        label: '+1 ATK',
+      }));
+    }
+  }
+  if (unit.effectId === 'empty_adjacent_bonus_atk') {
+    const hasEmptyAdjacent = getSystemOverrideAdjacentAllyIndexes(unit, unitIndex).some((idx) => state.board[idx] === null);
+    if (hasEmptyAdjacent) {
+      attack += 1;
+      combatModifiers.push(createSystemOverrideCombatModifier({
+        type: 'attack-bonus',
+        amount: 1,
+        source: 'empty_adjacent_bonus_atk',
+        label: '+1 ATK',
+      }));
+    }
+  }
+  return { attack: Math.max(0, attack), combatModifiers };
+}
+
+function getSystemOverrideAuraBonusAttack(state, unit, unitIndex) {
+  const combatModifiers = [];
+  if (!unit) return { bonus: 0, combatModifiers };
+  const bonus = getSystemOverrideAdjacentAllyIndexes(unit, unitIndex).reduce((total, index) => (
+    total + (hasSwarmAlphaAura(state.board[index]) ? 1 : 0)
+  ), 0);
+  if (bonus > 0) {
+    combatModifiers.push(createSystemOverrideCombatModifier({
+      type: 'attack-bonus',
+      amount: bonus,
+      source: SWARM_ALPHA_AURA_EFFECT_ID,
+      label: `+${bonus} ATK`,
+    }));
+  }
+  return { bonus, combatModifiers };
+}
+
+function getSystemOverrideAttackProfile(state, unit, unitIndex) {
+  const { attack, combatModifiers } = getSystemOverrideAttackWithCombatBonuses(state, unit, unitIndex);
+  const { bonus, combatModifiers: auraCombatModifiers } = getSystemOverrideAuraBonusAttack(state, unit, unitIndex);
+  return {
+    attack: attack + bonus,
+    combatModifiers: [...combatModifiers, ...auraCombatModifiers],
+  };
+}
+
 function resolveCombatWithRawHeroDamage(state, callback) {
   const previousPreserveRawHeroHP = state.preserveRawHeroHPUntilCombatFinalization;
   state.preserveRawHeroHPUntilCombatFinalization = true;
@@ -478,6 +552,40 @@ function resolveImmediateLaneCombat(state, lane) {
   const combatEvents = resolveCombatLane(state, lane);
   finalizeImmediateLaneCombat(state);
   return { combatEvents, combatSnapshot };
+}
+
+
+function resolveImmediateSystemOverrideAttack(state, boardIndex) {
+  const combatSnapshot = captureImmediateCombatPresentationSnapshot(state);
+  const attacker = state.board[boardIndex];
+  if (!attacker || attacker.hp <= 0) return { combatEvents: [], combatSnapshot };
+
+  const { attack } = getSystemOverrideAttackProfile(state, attacker, boardIndex);
+  const targetSide = attacker.owner;
+  const event = {
+    lane: boardIndex % 3,
+    attackerSide: attacker.owner,
+    targetType: 'hero',
+    targetSide,
+    damage: attack,
+    openLane: false,
+    lethal: false,
+    controlledAttackFeedback: { label: 'CONTROLLED\nOVERRIDE' },
+    selfDamageFeedback: { targetType: 'unit', index: boardIndex, amount: 1, label: 'OVERRIDE -1' },
+  };
+  Object.defineProperties(event, {
+    attackerIndex: { value: boardIndex, enumerable: false },
+    targetIndex: { value: null, enumerable: false },
+    interceptOriginalTargetIndex: { value: null, enumerable: false },
+  });
+
+  damageHero(state, targetSide, attack);
+  applyDamageToUnit(state, boardIndex, 1);
+  triggerLeechHealsFromAttackEvents(state, [event]);
+  cleanupDefeatedUnitsWithTriggers(state, [boardIndex], { combat: true });
+  clampHeroHpAndResolveWinner(state);
+
+  return { combatEvents: [event], combatSnapshot };
 }
 
 function ensureFuneralPyreState(state) {
@@ -1334,7 +1442,7 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
     }
     case 'control_enemy_unit_this_turn': {
       if (targetUnit.owner !== getOpponentOwner(owner)) return { ok: false, reason: 'Target must be enemy' };
-      targetUnit.controlledAttackThisTurn = true;
+      immediateCombatFeedback = resolveCombatWithRawHeroDamage(state, () => resolveImmediateSystemOverrideAttack(state, boardIndex));
       break;
     }
     case 'infect_damage_1_opposite_ally_atk_1': {
@@ -1712,7 +1820,7 @@ function resolveCombatLane(state, col, combatContext = null) {
     const combatModifiers = [];
     if (!unit) return { armor: 0, combatModifiers };
     const baseArmor = getUnitArmor(unit);
-    const aura = getAdjacentAllyIndexes(unit, unitIndex).reduce((total, index) => (
+    const aura = getSystemOverrideAdjacentAllyIndexes(unit, unitIndex).reduce((total, index) => (
       total + (state.board[index]?.effectId === 'lane_armor_aura_1' ? 1 : 0)
     ), 0);
     if (aura > 0) {
@@ -1729,7 +1837,7 @@ function resolveCombatLane(state, col, combatContext = null) {
 
   const getAuraArmorIgnore = (unit, unitIndex) => {
     if (!unit) return 0;
-    return getAdjacentAllyIndexes(unit, unitIndex).some((index) => hasSwarmAlphaAura(state.board[index])) ? 1 : 0;
+    return getSystemOverrideAdjacentAllyIndexes(unit, unitIndex).some((index) => hasSwarmAlphaAura(state.board[index])) ? 1 : 0;
   };
 
   const getDefensiveFrictionPenalty = (defender) => {
@@ -1897,16 +2005,9 @@ function resolveCombatLane(state, col, combatContext = null) {
 
   if (player) {
     const { attack: playerAttack, combatModifiers: playerAttackModifiers } = getCombatAttackProfile(player, playerIndex);
-    const controlledToHero = Boolean(player.controlledAttackThisTurn);
     const canHitAnyLane = player.effectId === 'can_hit_any_lane';
-    const sniperTargetIndex = !controlledToHero && canHitAnyLane ? findSniperTargetIndex(player.owner) : null;
-    if (controlledToHero) {
-      const event = recordHeroAttack('player', playerIndex, 'player', playerAttack, false);
-      event.controlledAttackFeedback = { label: 'CONTROLLED\nOVERRIDE' };
-      event.selfDamageFeedback = { targetType: 'unit', index: playerIndex, amount: 1, label: 'OVERRIDE -1' };
-      state.playerHP -= playerAttack;
-      addPendingUnitDamage(playerIndex, 1);
-    } else if (sniperTargetIndex !== null) {
+    const sniperTargetIndex = canHitAnyLane ? findSniperTargetIndex(player.owner) : null;
+    if (sniperTargetIndex !== null) {
       const sniperTarget = state.board[sniperTargetIndex];
       if (sniperTarget) {
         const { damage, combatModifiers } = getMitigatedDamageResult(
@@ -1949,16 +2050,9 @@ function resolveCombatLane(state, col, combatContext = null) {
 
   if (enemy) {
     const { attack: enemyAttack, combatModifiers: enemyAttackModifiers } = getCombatAttackProfile(enemy, enemyIndex);
-    const controlledToHero = Boolean(enemy.controlledAttackThisTurn);
     const canHitAnyLane = enemy.effectId === 'can_hit_any_lane';
-    const sniperTargetIndex = !controlledToHero && canHitAnyLane ? findSniperTargetIndex(enemy.owner) : null;
-    if (controlledToHero) {
-      const event = recordHeroAttack('enemy', enemyIndex, 'enemy', enemyAttack, false);
-      event.controlledAttackFeedback = { label: 'CONTROLLED\nOVERRIDE' };
-      event.selfDamageFeedback = { targetType: 'unit', index: enemyIndex, amount: 1, label: 'OVERRIDE -1' };
-      state.enemyHP -= enemyAttack;
-      addPendingUnitDamage(enemyIndex, 1);
-    } else if (sniperTargetIndex !== null) {
+    const sniperTargetIndex = canHitAnyLane ? findSniperTargetIndex(enemy.owner) : null;
+    if (sniperTargetIndex !== null) {
       const sniperTarget = state.board[sniperTargetIndex];
       if (sniperTarget) {
         const { damage, combatModifiers } = getMitigatedDamageResult(
@@ -2054,9 +2148,6 @@ export function resolveCombat(state) {
     if (unit?.temporaryFloodToken) {
       state.board[index] = null;
       return;
-    }
-    if (unit?.controlledAttackThisTurn) {
-      delete unit.controlledAttackThisTurn;
     }
     if (unit?.tempAttackMod) {
       delete unit.tempAttackMod;
