@@ -668,7 +668,7 @@ export default class BattleScene extends Phaser.Scene {
     }, { fontScale: 0.48 });
 
     [triggerControl, fullscreenToggle, muteToggle].forEach((control) => {
-      (control.items ?? [control.halo, control.backing, control.text, control.button, control.icon].filter(Boolean)).forEach((item) => {
+      [control.halo, control.backing, control.text, control.button, control.icon].filter(Boolean).forEach((item) => {
         item.setDepth?.(depth + 3);
       });
     });
@@ -736,8 +736,12 @@ export default class BattleScene extends Phaser.Scene {
       outsideCatcher,
       glow,
       panel,
-      ...(triggerControl?.items ?? [triggerControl?.halo, triggerControl?.backing, triggerControl?.text].filter(Boolean)),
-      ...(fullscreenToggle?.items ?? [fullscreenToggle?.halo, fullscreenToggle?.backing, fullscreenToggle?.text].filter(Boolean)),
+      triggerControl?.halo,
+      triggerControl?.backing,
+      triggerControl?.text,
+      fullscreenToggle?.halo,
+      fullscreenToggle?.backing,
+      fullscreenToggle?.text,
       ...buttons.flatMap((button) => [button.background, button.text]),
     ];
 
