@@ -46,7 +46,7 @@ const expectedTextShort = new Map(Object.entries({
   attrition_swarm_leech_1: 'On attack: heal your base 1.',
   attrition_swarm_rotcaller_1: 'First adjacent [ALLY] combat death: +1 ATK.',
   attrition_swarm_abomination_1: 'Combat death: both bases lose 1 HP.',
-  attrition_swarm_funeral_pyre_1: 'First 2 [ALLIES] combat deaths:\n1 damage to opposed [ENEMY].',
+  attrition_swarm_funeral_pyre_1: 'First 2 [ALLY]\ncombat deaths:\n1 HP to opposed [ENEMY].',
   attrition_swarm_infect_1: 'Deal 1 to [ENEMY]. If it survives, opposed [ALLY] +1 ATK.',
   attrition_swarm_feast_1: 'Destroy [ALLY]. Draw 1.',
   attrition_swarm_rise_again_1: 'Revive the newest fallen unit at 1 HP.',
