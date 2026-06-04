@@ -39,9 +39,6 @@ const MAIN_MENU_MIN_RECOVERED_TITLE_WIDTH = 96;
 
 const MAIN_MENU_DEBUG_ICON_SIZE = 38;
 const MAIN_MENU_DEBUG_ICON_MARGIN = 12;
-const MAIN_MENU_FONT_TEST_BUTTON_WIDTH = 112;
-const MAIN_MENU_FONT_TEST_BUTTON_HEIGHT = 30;
-
 
 
 export default class MainMenuScene extends Phaser.Scene {
@@ -56,7 +53,6 @@ export default class MainMenuScene extends Phaser.Scene {
     this.buildMarker = null;
     this.debugEntryIcon = null;
     this.debugEntryLabel = null;
-    this.fontTestButton = null;
   }
 
   init() {
@@ -142,7 +138,6 @@ export default class MainMenuScene extends Phaser.Scene {
 
     this.drawBuildMarker(width, height);
     this.drawDebugEntry(width, height);
-    this.drawFontTestButton(width, height);
     this.scale.on('resize', this.layoutMainMenuScene, this);
     this.drawNavigationControls();
   }
@@ -190,46 +185,6 @@ export default class MainMenuScene extends Phaser.Scene {
     this.debugEntryLabel = label;
   }
 
-
-  drawFontTestButton(width = this.scale.width, height = this.scale.height) {
-    this.fontTestButton?.items?.forEach((item) => item?.destroy?.());
-
-    const buttonWidth = Math.min(MAIN_MENU_FONT_TEST_BUTTON_WIDTH, Math.max(92, width * 0.3));
-    const buttonHeight = MAIN_MENU_FONT_TEST_BUTTON_HEIGHT;
-    const x = width / 2;
-    const y = height - 92;
-
-    const backing = this.add.rectangle(x, y, buttonWidth, buttonHeight, 0x4c1d95, 0.82)
-      .setStrokeStyle(1, 0xc4b5fd, 0.78)
-      .setDepth(23)
-      .setInteractive({ useHandCursor: true });
-    const label = this.add.text(x, y, 'FONT TEST', {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: '12px',
-      color: '#f5f3ff',
-      fontStyle: 'bold',
-      align: 'center',
-    }).setOrigin(0.5).setDepth(24);
-
-    const openFontPreview = () => {
-      this.scene.start('FontPreviewScene');
-    };
-    backing.on('pointerup', openFontPreview);
-    label.setInteractive({ useHandCursor: true });
-    label.on('pointerup', openFontPreview);
-
-    this.fontTestButton = { backing, label, items: [backing, label] };
-  }
-
-  layoutFontTestButton(width = this.scale.width, height = this.scale.height) {
-    if (!this.fontTestButton?.backing?.active || !this.fontTestButton?.label?.active) return;
-    const buttonWidth = Math.min(MAIN_MENU_FONT_TEST_BUTTON_WIDTH, Math.max(92, width * 0.3));
-    const x = width / 2;
-    const y = height - 92;
-    this.fontTestButton.backing.setPosition(x, y);
-    this.fontTestButton.backing.setSize(buttonWidth, MAIN_MENU_FONT_TEST_BUTTON_HEIGHT);
-    this.fontTestButton.label.setPosition(x, y);
-  }
 
   layoutDebugEntry() {
     if (!this.debugEntryIcon?.active || !this.debugEntryLabel?.active) return;
@@ -281,7 +236,6 @@ export default class MainMenuScene extends Phaser.Scene {
 
     this.layoutBuildMarker(width, height);
     this.layoutDebugEntry();
-    this.layoutFontTestButton(width, height);
     this.ensureTitleExistsAndVisible({
       forceVisible: !this.isAwaitingSharedLogo,
       width,
@@ -505,7 +459,6 @@ export default class MainMenuScene extends Phaser.Scene {
     this.buildMarker = null;
     this.debugEntryIcon = null;
     this.debugEntryLabel = null;
-    this.fontTestButton = null;
   }
 
   createMenuButton(x, y, width, label, onPointerUp) {
