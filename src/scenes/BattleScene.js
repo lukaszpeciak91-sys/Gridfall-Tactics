@@ -1006,7 +1006,7 @@ export default class BattleScene extends Phaser.Scene {
       letterSpacing: 2.2,
     }).setOrigin(0.5).setDepth(904);
     title.setShadow(0, 3, 'rgba(0, 0, 0, 0.62)', 5, true, true);
-    const subtitle = this.add.text(centerX, centerY + overlayHeight * 0.12, resultSubtitle, {
+    const subtitle = this.add.text(centerX, centerY + overlayHeight * 0.2, resultSubtitle, {
       fontFamily: PREMIUM_BROADCAST_FONT_STACK,
       fontSize: `${Math.max(20, Math.floor(height * 0.029))}px`,
       color: presentation.subtitleColor,
@@ -1016,16 +1016,19 @@ export default class BattleScene extends Phaser.Scene {
     subtitle.setShadow(0, 2, presentation.subtitleShadowColor, 5, true, true);
 
     const dividerWidth = Math.min(overlayWidth * 0.52, 360);
-    const dividerY = centerY + overlayHeight * 0.25;
+    const dividerY = centerY + overlayHeight * 0.34;
     const dividerCore = this.add.rectangle(centerX, dividerY, dividerWidth, 1, presentation.accentColor, 0.52)
       .setDepth(903);
     const dividerGlow = this.add.rectangle(centerX, dividerY, dividerWidth * 0.84, 3, presentation.glowColor, 0.12)
       .setDepth(902);
     dividerGlow.setBlendMode?.(Phaser.BlendModes.ADD);
 
-    const buttonY = centerY + overlayHeight * 0.43;
     const buttonWidth = Math.min(198, Math.max(160, width * 0.39));
     const buttonHeight = Math.max(68, Math.min(80, Math.floor(height * 0.088)));
+    const buttonY = Math.min(
+      height * 0.58,
+      this.layout.playerHero.y - buttonHeight * 0.5 - Math.max(6, height * 0.01),
+    );
     const gap = Math.max(22, Math.min(42, width * 0.065));
     const exitButton = this.createResultModalButton(
       centerX - buttonWidth / 2 - gap / 2,
