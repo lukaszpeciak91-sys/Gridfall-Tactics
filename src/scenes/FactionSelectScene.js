@@ -406,7 +406,7 @@ export default class FactionSelectScene extends Phaser.Scene {
     });
 
     [controls.back, controls.rules, controls.fullscreen].filter(Boolean).forEach((control) => {
-      this.uiElements.push(control.button ?? control.halo, control.backing, control.text);
+      this.uiElements.push(...(control.items ?? [control.button ?? control.halo, control.backing, control.text].filter(Boolean)));
       this.interactiveElements.push(control.button ?? control.backing, control.text);
     });
   }

@@ -164,3 +164,11 @@ canonical_ref: docs/rules/mvp-battle-rules.md
 - Header titles use the final locked micro-adjustment: slightly larger than the lowered pass and raised back into the upper presentation zone, preserving a strong TITLE → CONTENT relationship while avoiding clipping in mobile portrait layouts.
 - Header color stays neutral white / warm ivory as a global navigation element; faction-specific title colors, new title backgrounds, frames, ornaments, underlines, and decorative bars remain out of scope.
 - Arena / Choose Faction, Collection, Tutorial, Settings, Rules, and future non-battle menu screens should reuse this same simplified header pattern to preserve the interdimensional prestige broadcast presentation system; future work should not revisit header styling unless a major UI redesign occurs.
+
+## Premium Utility Button Standard (2026-06-04)
+- Bottom-bar utility controls such as Back, Help/Rules, Fullscreen, Audio, and Settings should use the same premium broadcast-control-panel visual language as primary menu navigation while remaining clearly secondary controls.
+- Utility buttons keep their existing compact square touch targets, icon-only communication, positions, spacing, and behavior; the standard is presentation-only and must not change navigation or gameplay flow.
+- Accepted material treatment: dark broadcast glass fill, cleaner cool edge stroke, restrained cyan halo, subtle warm top highlight/reflection, inner hairline detail, and a soft contact shadow.
+- Visual priority target is approximately 60–70% of main menu button intensity: utility controls may brighten gently on hover/press or active states, but must not use large scale changes, dramatic glow blooms, labels, or ARENA-sized button treatments.
+- Icon readability is part of the standard. Arrow, question mark, fullscreen, audio, and settings glyphs must stay high-contrast and legible on mobile portrait before decorative effects are increased.
+- Future utility buttons in menu screens should reuse this shared standard instead of introducing generic app-control chrome or one-off faction-specific variants.
