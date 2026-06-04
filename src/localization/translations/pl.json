@@ -26,7 +26,7 @@
     },
     "aggro_rush_1": {
       "name": "Szarża",
-      "textShort": "Zamień się z sąsiednim [ALLY]."
+      "textShort": "Zamień się z sąsiednim [ALLY], potem natychmiast walcz."
     },
     "aggro_pierce_strike_1": {
       "name": "Przebijające Uderzenie",
