@@ -8,6 +8,7 @@ import {
   preloadMenuBackgroundArt,
 } from '../rendering/backgroundArt.js';
 import { createBuildMarker } from '../ui/buildMarker.js';
+import { createMenuScreenHeader } from '../ui/screenHeader.js';
 import { createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
 import { translateActive, translateActiveList } from '../localization/localeService.js';
 
@@ -56,27 +57,13 @@ export default class TutorialScene extends Phaser.Scene {
     this.scale.on('enterfullscreen', this.onFullscreenChanged, this);
     this.scale.on('leavefullscreen', this.onFullscreenChanged, this);
 
-    const title = this.add
-      .text(width / 2, height * 0.11, translateActive('ui.tutorial.title', 'TUTORIAL'), {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '32px',
-        fontStyle: 'bold',
-        color: '#f8fafc',
-        align: 'center',
-        wordWrap: { width: width * 0.86 },
-      })
-      .setOrigin(0.5);
-
-    const subtitle = this.add
-      .text(width / 2, height * 0.16, translateActive('ui.tutorial.subtitle', 'Battle basics'), {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '15px',
-        color: '#cbd5e1',
-        align: 'center',
-      })
-      .setOrigin(0.5);
-
-    this.uiElements.push(title, subtitle);
+    const header = createMenuScreenHeader(this, {
+      title: translateActive('ui.tutorial.title', 'TUTORIAL'),
+      width,
+      height,
+      tint: 0xf5f1e6,
+    });
+    this.uiElements.push(...header.items);
     this.drawTutorialCard(width, height);
     this.drawNavigationControls();
     this.uiElements.push(createBuildMarker(this, { width, height }));

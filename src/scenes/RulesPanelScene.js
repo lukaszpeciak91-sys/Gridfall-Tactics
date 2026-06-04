@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { createModalBackButton } from '../ui/modalControls.js';
+import { createMenuScreenHeader } from '../ui/screenHeader.js';
 import { preloadSecondaryButtonAsset } from '../ui/imageButton.js';
 import { translateActive, translateActiveList } from '../localization/localeService.js';
 import { CARD_EFFECT_GAMEPLAY_SYMBOLS, CARD_EFFECT_STAT_SYMBOLS, CARD_EFFECT_STAT_SYMBOL_STYLES } from '../localization/cardTextFormatting.js';
@@ -114,7 +115,7 @@ export default class RulesPanelScene extends Phaser.Scene {
     const panelTop = panelY - panelHeight / 2;
     const panelLeft = panelX - panelWidth / 2;
     const padding = Math.max(16, Math.round(panelWidth * 0.045));
-    const headerHeight = 58;
+    const headerHeight = 76;
     const footerHeight = 58;
     const viewportX = panelLeft + padding;
     const viewportY = panelTop + headerHeight;
@@ -126,13 +127,15 @@ export default class RulesPanelScene extends Phaser.Scene {
       .setDepth(1)
       .setInteractive();
 
-    this.add.text(panelLeft + padding, panelTop + 18, translateActive('ui.rules.title', 'Rules / How To Play'), {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: `${Math.max(21, Math.floor(panelWidth * 0.055))}px`,
-      color: '#f8fafc',
-      fontStyle: 'bold',
-    }).setDepth(2);
-
+    createMenuScreenHeader(this, {
+      title: translateActive('ui.rules.title', 'Rules / How To Play'),
+      width: panelWidth,
+      height: panelHeight,
+      x: panelX,
+      y: panelTop + 28,
+      tint: 0x7dd3fc,
+      depth: 2,
+    });
 
     this.scrollArea = this.add.zone(viewportX, viewportY, viewportWidth, viewportHeight)
       .setOrigin(0, 0)

@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
 import { getFactionPresentationName } from '../data/presentation/factionPresentation.js';
 import { createBuildMarker } from '../ui/buildMarker.js';
+import { createMenuScreenHeader } from '../ui/screenHeader.js';
 import { createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
 import { getActiveLocale, translateActive } from '../localization/localeService.js';
 import { applyAudioSettings, loadSettings } from '../systems/settingsState.js';
@@ -60,21 +61,6 @@ const FACTION_CARD_DETAILS = {
 };
 
 const CARD_SCROLL_DRAG_THRESHOLD = 8;
-const TITLE_SAFE_SIDE_MARGIN = 18;
-
-export function getFactionSelectTitleStyle({ width, height }) {
-  const isNarrowPortrait = height >= width && width <= 420;
-  const isExtraNarrowPortrait = height >= width && width <= 360;
-  const safeWidth = Math.max(240, width - TITLE_SAFE_SIDE_MARGIN * 2);
-
-  return {
-    y: isNarrowPortrait ? 44 : 48,
-    safeWidth,
-    fontSize: isExtraNarrowPortrait ? 24 : (isNarrowPortrait ? 26 : 30),
-    letterSpacing: isExtraNarrowPortrait ? 0.2 : (isNarrowPortrait ? 0.45 : 0.8),
-    lineSpacing: isNarrowPortrait ? 2 : 0,
-  };
-}
 
 function getFactionAssetSlug(factionKey) {
   const faction = getFactionByKey(factionKey);
@@ -144,22 +130,13 @@ export default class FactionSelectScene extends Phaser.Scene {
     this.scale.on('enterfullscreen', this.onFullscreenChanged, this);
     this.scale.on('leavefullscreen', this.onFullscreenChanged, this);
 
-    const titleStyle = getFactionSelectTitleStyle({ width, height });
-    const title = this.add
-      .text(width / 2, titleStyle.y, translateActive('ui.factionSelect.title', 'SELECT YOUR TEAM'), {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: `${titleStyle.fontSize}px`,
-        color: '#f8fafc',
-        fontStyle: 'bold',
-        letterSpacing: titleStyle.letterSpacing,
-        align: 'center',
-        fixedWidth: titleStyle.safeWidth,
-        lineSpacing: titleStyle.lineSpacing,
-        maxLines: 2,
-        wordWrap: { width: titleStyle.safeWidth, useAdvancedWrap: true },
-      })
-      .setOrigin(0.5);
-    this.uiElements.push(title);
+    const header = createMenuScreenHeader(this, {
+      title: translateActive('ui.factionSelect.title', 'SELECT YOUR TEAM'),
+      width,
+      height,
+      tint: 0xf5f1e6,
+    });
+    this.uiElements.push(...header.items);
 
     const buildMarker = createBuildMarker(this, { width, height });
     this.uiElements.push(buildMarker);
