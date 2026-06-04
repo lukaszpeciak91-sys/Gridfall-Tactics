@@ -9,7 +9,7 @@ export const SECONDARY_BUTTON_ASSET = {
 
 export const SECONDARY_BUTTON_RUNTIME_URL = SECONDARY_BUTTON_PUBLIC_PATH;
 
-export const PREMIUM_BROADCAST_FONT_STACK = '"Exo 2", "Segoe UI", Arial, sans-serif';
+export const PREMIUM_BROADCAST_FONT_STACK = 'Segoe UI, Arial, sans-serif';
 
 const DEFAULT_TEXT_STYLE = {
   fontFamily: PREMIUM_BROADCAST_FONT_STACK,
