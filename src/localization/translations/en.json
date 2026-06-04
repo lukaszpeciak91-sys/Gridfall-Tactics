@@ -411,6 +411,23 @@
         "victory": "Audience delighted.",
         "defeat": "Audience demands more.",
         "draw": "Production ordered a rematch."
+      },
+      "invalidAction": {
+        "handFull": "Hand full",
+        "noValidTarget": "No valid target",
+        "noValidAlly": "No valid ally",
+        "noValidEnemy": "No valid enemy",
+        "noEmptySlot": "No empty slot",
+        "deckEmpty": "Deck empty",
+        "fullHp": "Already full HP",
+        "moveBlocked": "Move blocked",
+        "effectBlocked": "Effect blocked",
+        "immune": "Immune",
+        "noAdjacentAlly": "No adjacent ally",
+        "noFallenUnit": "No fallen unit",
+        "laneBlocked": "Lane blocked",
+        "occupied": "Slot occupied",
+        "invalidSwap": "Invalid swap"
       }
     },
     "rules": {
