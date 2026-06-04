@@ -7,6 +7,7 @@ import {
   preloadMenuBackgroundArt,
 } from '../rendering/backgroundArt.js';
 import { createBuildMarker } from '../ui/buildMarker.js';
+import { createMenuScreenHeader } from '../ui/screenHeader.js';
 import { createBottomNavigationControls, createMuteToggleControl, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
 import { getSupportedLocales, setActiveLocale, translateActive, translate } from '../localization/localeService.js';
 import { DEFAULT_SETTINGS, applyAudioSettings, loadSettings, saveSettings, updateSettings } from '../systems/settingsState.js';
@@ -66,24 +67,12 @@ export default class SettingsScene extends Phaser.Scene {
     this.scale.on('enterfullscreen', this.onFullscreenChanged, this);
     this.scale.on('leavefullscreen', this.onFullscreenChanged, this);
 
-    this.add
-      .text(width / 2, height * 0.1, translateActive('ui.settings.title', 'SETTINGS'), {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '30px',
-        fontStyle: 'bold',
-        color: '#f8fafc',
-        align: 'center',
-        wordWrap: { width: width * 0.86 },
-      })
-      .setOrigin(0.5);
-
-    this.add
-      .text(width / 2, height * 0.15, translateActive('ui.settings.subtitle', 'Preferences are saved locally'), {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '14px',
-        color: '#cbd5e1',
-      })
-      .setOrigin(0.5);
+    createMenuScreenHeader(this, {
+      title: translateActive('ui.settings.title', 'SETTINGS'),
+      width,
+      height,
+      tint: 0xf5f1e6,
+    });
 
     const panelWidth = Math.min(width - 32, 342);
     this.addPanel(width / 2, height * 0.3, panelWidth, 154, translateActive('ui.settings.languagePanel', 'LANGUAGE'));

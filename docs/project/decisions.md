@@ -157,3 +157,10 @@ canonical_ref: docs/rules/mvp-battle-rules.md
 - Final polish standard: place the result stack lower over the combat lanes, keep localized subtitle copy prominent with outcome-specific non-white accents, separate subtitle and controls with one thin broadcast divider, and use enlarged existing button assets for primary EXIT/RETRY controls.
 - Title glow should remain animated and outcome-colored but restrained enough that battlefield art and UI remain visible beneath it.
 - Victory celebrations use three staggered waves of the existing procedural fireworks/particles with slight position randomization; no new assets or reward/battle-end logic changes are part of this presentation decision.
+
+## Screen Header Presentation Standard (2026-06-04)
+- All non-battle menu screens use the same premium broadcast header pattern: centered title text near the top of the screen followed by a thin decorative line.
+- Typography is locked to the premium UI font stack (`Segoe UI, Arial, sans-serif`) with bold weight, localized uppercase text, subtle glow, and subtle shadow; this applies uniformly to Polish, English, and future localizations with no per-screen font special casing.
+- Header titles stay horizontally centered within a mobile-safe wrap width so Polish diacritics and English labels render without clipping in portrait layouts.
+- Decorative header lines are centered, lightweight, semi-transparent, tintable, and approximately half of the measured title width; they are not title cards, banner panels, large ornaments, or new artwork.
+- Arena / Choose Faction, Collection, Tutorial, Settings, Rules, and future non-battle menu screens should reuse this same header pattern to preserve the interdimensional prestige broadcast presentation system.

@@ -11,6 +11,7 @@ import {
 import { preloadAllCardIllustrations } from '../rendering/cardIllustrationAssets.js';
 import { getActiveLocale, translateActive } from '../localization/localeService.js';
 import { createModalBackButton } from '../ui/modalControls.js';
+import { createMenuScreenHeader } from '../ui/screenHeader.js';
 import { preloadSecondaryButtonAsset } from '../ui/imageButton.js';
 import { CARD_COLORS, createCardPreviewView, getDefaultCardAccentColor, resolveCardSurfaceTheme } from '../rendering/cardVisualLayout.js';
 import { HAND_CARD_ASPECT_RATIO } from '../ui/handLayout.js';
@@ -79,24 +80,13 @@ export default class CollectionScene extends Phaser.Scene {
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.cleanupScene, this);
 
-    const title = this.add
-      .text(width / 2, 42, translateActive('ui.collection.title', 'COLLECTION'), {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '32px',
-        color: '#f8fafc',
-        fontStyle: 'bold',
-      })
-      .setOrigin(0.5);
-    this.uiElements.push(title);
-
-    const subtitle = this.add
-      .text(width / 2, 72, translateActive('ui.collection.subtitle', 'Tap a card for details'), {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '13px',
-        color: '#cbd5e1',
-      })
-      .setOrigin(0.5);
-    this.uiElements.push(subtitle);
+    const header = createMenuScreenHeader(this, {
+      title: translateActive('ui.collection.title', 'COLLECTION'),
+      width,
+      height,
+      tint: 0xf5f1e6,
+    });
+    this.uiElements.push(...header.items);
 
     this.drawCollectionList({ width, height });
     this.createBackButton(width, height);
