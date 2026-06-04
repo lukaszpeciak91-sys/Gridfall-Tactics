@@ -291,7 +291,6 @@ export default class SettingsScene extends Phaser.Scene {
       onBack: () => this.returnToMainMenu(),
       onRules: () => this.openRulesPanel(),
       onFullscreen: () => this.toggleFullscreen(),
-      debugOverlay: true,
     });
   }
 
