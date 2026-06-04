@@ -1,5 +1,12 @@
 import { SETTINGS_CHANGED_EVENT, loadSettings, toggleMuted } from '../systems/settingsState.js';
 
+const PREMIUM_GOLD_ACCENT = 0xfacc15;
+const BOTTOM_CONTROL_CORNER_RADIUS_RATIO = 0.16;
+
+function getBottomControlCornerRadius(size) {
+  return Math.max(6, Math.round(size * BOTTOM_CONTROL_CORNER_RADIUS_RATIO));
+}
+
 export function getBottomNavigationMetrics(scene, { centerY = null, touchSize = null, margin = null } = {}) {
   const width = scene.scale.gameSize?.width ?? scene.scale.width;
   const height = scene.scale.gameSize?.height ?? scene.scale.height;
@@ -22,7 +29,8 @@ export function createFloatingControl(scene, x, y, size, label, onPointerUp, { f
     .setStrokeStyle(1, 0x7dd3fc, 0.18)
     .setDepth(198);
   const backing = scene.add.rectangle(x, y, size, size, 0x020617, 0.62)
-    .setStrokeStyle(1, 0x94a3b8, 0.58)
+    .setRounded(getBottomControlCornerRadius(size))
+    .setStrokeStyle(1, PREMIUM_GOLD_ACCENT, 0.58)
     .setDepth(199);
   const text = scene.add.text(x, y, label, {
     fontFamily: 'Arial, sans-serif',
@@ -38,12 +46,12 @@ export function createFloatingControl(scene, x, y, size, label, onPointerUp, { f
     text.setInteractive({ useHandCursor: true });
     backing.on('pointerover', () => {
       backing.setFillStyle(0x0f172a, 0.72);
-      backing.setStrokeStyle(1, 0x7dd3fc, 0.82);
+      backing.setStrokeStyle(1, PREMIUM_GOLD_ACCENT, 0.82);
       halo.setAlpha(0.18);
     });
     backing.on('pointerout', () => {
       backing.setFillStyle(0x020617, 0.62);
-      backing.setStrokeStyle(1, 0x94a3b8, 0.58);
+      backing.setStrokeStyle(1, PREMIUM_GOLD_ACCENT, 0.58);
       halo.setAlpha(1);
     });
     backing.on('pointerup', onPointerUp);
@@ -95,7 +103,9 @@ export function drawSpeakerIcon(icon, size, isMuted) {
 export function createMuteToggleControl(scene, x, y, size, { onToggle = null, depth = 198 } = {}) {
   const button = scene.add.container(x, y).setDepth(depth);
   const halo = scene.add.circle(0, 0, size * 0.58, 0x38bdf8, 0.08).setStrokeStyle(1, 0x7dd3fc, 0.18);
-  const backing = scene.add.rectangle(0, 0, size, size, 0x020617, 0.66).setStrokeStyle(1, 0x94a3b8, 0.58);
+  const backing = scene.add.rectangle(0, 0, size, size, 0x020617, 0.66)
+    .setRounded(getBottomControlCornerRadius(size))
+    .setStrokeStyle(1, PREMIUM_GOLD_ACCENT, 0.58);
   const icon = scene.add.graphics();
   let hovering = false;
 
@@ -106,7 +116,7 @@ export function createMuteToggleControl(scene, x, y, size, { onToggle = null, de
   const refreshButton = (settings = loadSettings()) => {
     const isMuted = settings.muted;
     backing.setFillStyle(isMuted ? 0x0f2742 : (hovering ? 0x0f172a : 0x020617), isMuted ? 0.82 : (hovering ? 0.72 : 0.66));
-    backing.setStrokeStyle(1, isMuted || hovering ? 0x7dd3fc : 0x94a3b8, isMuted ? 0.95 : (hovering ? 0.82 : 0.58));
+    backing.setStrokeStyle(1, PREMIUM_GOLD_ACCENT, isMuted ? 0.95 : (hovering ? 0.82 : 0.58));
     halo.setFillStyle(isMuted ? 0x60a5fa : 0x38bdf8, isMuted ? 0.2 : (hovering ? 0.18 : 0.08));
     halo.setStrokeStyle(1, 0x7dd3fc, isMuted ? 0.38 : (hovering ? 0.3 : 0.18));
     drawSpeakerIcon(icon, size, isMuted);
