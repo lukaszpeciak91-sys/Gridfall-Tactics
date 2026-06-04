@@ -107,7 +107,7 @@
       "type": "special",
       "targeting": "enemy_unit",
       "effectId": "control_enemy_unit_this_turn",
-      "textShort": "[ENEMY] attacks own base next combat, then loses 1 HP."
+      "textShort": "[ENEMY] attacks own base, then loses 1 HP."
     },
     {
       "id": "control_recall_1",

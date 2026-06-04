@@ -425,44 +425,57 @@ test('Multiple Runner attacks resolve consistently', () => {
 });
 
 
-test('System Override makes the targeted enemy attack its own hero, then take 1 damage', () => {
+const systemOverrideCard = () => ({
+  id: 'system-override-test-card',
+  name: 'System Override',
+  type: 'special',
+  targeting: 'enemy_unit',
+  effectId: 'control_enemy_unit_this_turn',
+});
+
+test('System Override immediately attacks the target own base and deals 1 self-damage', () => {
   const state = makeState();
-  const systemOverride = {
-    id: 'system-override-test-card',
-    name: 'System Override',
-    type: 'special',
-    targeting: 'enemy_unit',
-    effectId: 'control_enemy_unit_this_turn',
-  };
+  const systemOverride = systemOverrideCard();
   state.player.hand.push(systemOverride);
   state.board[0] = unit('enemy', { id: 'overridden-enemy', attack: 2, hp: 2, maxHp: 2 });
   state.board[6] = unit('player', { attack: 0, hp: 2, maxHp: 2 });
 
   const result = resolveTargetedEffectCard(state, 'player', systemOverride.id, 0);
-  const events = resolveCombat(state);
 
   assert.equal(result.ok, true);
-  assert.deepEqual(events.map((event) => [event.lane, event.attackerSide, event.targetSide, event.damage, event.openLane]), [
-    [0, 'player', 'enemy', 0, false],
+  assert.deepEqual(result.combatEvents.map((event) => [event.lane, event.attackerSide, event.targetSide, event.damage, event.openLane]), [
     [0, 'enemy', 'enemy', 2, false],
   ]);
-  assert.deepEqual(events[1].controlledAttackFeedback, { label: 'CONTROLLED\nOVERRIDE' });
-  assert.deepEqual(events[1].selfDamageFeedback, { targetType: 'unit', index: 0, amount: 1, label: 'OVERRIDE -1' });
+  assert.deepEqual(result.combatEvents[0].controlledAttackFeedback, { label: 'CONTROLLED\nOVERRIDE' });
+  assert.deepEqual(result.combatEvents[0].selfDamageFeedback, { targetType: 'unit', index: 0, amount: 1, label: 'OVERRIDE -1' });
   assert.equal(state.enemyHP, 10);
   assert.equal(state.playerHP, 12);
   assert.equal(state.board[0].hp, 1);
-  assert.equal(state.board[0].controlledAttackThisTurn, undefined);
 });
 
-test('System Override self-damage uses normal defeated-unit cleanup after combat', () => {
+test('System Override target remains on board and still performs normal combat later that turn', () => {
   const state = makeState();
-  const systemOverride = {
-    id: 'system-override-test-card',
-    name: 'System Override',
-    type: 'special',
-    targeting: 'enemy_unit',
-    effectId: 'control_enemy_unit_this_turn',
-  };
+  const systemOverride = systemOverrideCard();
+  state.player.hand.push(systemOverride);
+  state.board[0] = unit('enemy', { id: 'overridden-enemy', attack: 2, hp: 3, maxHp: 3 });
+  state.board[6] = unit('player', { id: 'blocking-player', attack: 0, hp: 3, maxHp: 3 });
+
+  const result = resolveTargetedEffectCard(state, 'player', systemOverride.id, 0);
+  const events = resolveCombat(state);
+
+  assert.equal(result.ok, true);
+  assert.equal(state.enemyHP, 10);
+  assert.deepEqual(events.map((event) => [event.lane, event.attackerSide, event.targetSide, event.damage, event.openLane]), [
+    [0, 'player', 'enemy', 0, false],
+    [0, 'enemy', 'player', 2, false],
+  ]);
+  assert.equal(state.board[0].hp, 2);
+  assert.equal(state.board[6].hp, 1);
+});
+
+test('System Override self-damage immediately removes a fragile target', () => {
+  const state = makeState();
+  const systemOverride = systemOverrideCard();
   state.player.hand.push(systemOverride);
   state.board[1] = unit('enemy', { id: 'fragile-overridden-enemy', attack: 1, hp: 1, maxHp: 1 });
 
@@ -470,11 +483,35 @@ test('System Override self-damage uses normal defeated-unit cleanup after combat
   const events = resolveCombat(state);
 
   assert.equal(result.ok, true);
-  assert.deepEqual(events.map((event) => [event.lane, event.attackerSide, event.targetSide, event.damage, event.openLane]), [
+  assert.deepEqual(result.combatEvents.map((event) => [event.lane, event.attackerSide, event.targetSide, event.damage, event.openLane]), [
     [1, 'enemy', 'enemy', 1, false],
   ]);
   assert.equal(state.enemyHP, 11);
   assert.equal(state.board[1], null);
+  assert.deepEqual(events, []);
+});
+
+test('System Override self-damage fires death triggers when it kills the target', () => {
+  const state = makeState();
+  const systemOverride = systemOverrideCard();
+  state.player.hand.push(systemOverride);
+  state.board[1] = unit('enemy', {
+    id: 'trigger-overridden-enemy',
+    attack: 1,
+    hp: 1,
+    maxHp: 1,
+    effectId: 'death_damage_enemy_hero_1',
+  });
+
+  const result = resolveTargetedEffectCard(state, 'player', systemOverride.id, 1);
+
+  assert.equal(result.ok, true);
+  assert.equal(state.enemyHP, 11);
+  assert.equal(state.playerHP, 11);
+  assert.equal(state.board[1], null);
+  assert.equal(state.enemy.fallen.length, 1);
+  assert.equal(state.enemy.fallen[0].card.id, 'trigger-overridden-enemy');
+  assert.equal(state.enemy.fallen[0].reason, 'combat-death');
 });
 
 test('simultaneous lethal uses raw overkill depth so -1 HP beats -4 HP', () => {

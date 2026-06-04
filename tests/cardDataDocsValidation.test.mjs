@@ -19,7 +19,7 @@ const expectedTextShort = new Map(Object.entries({
   control_controller_1: 'On play: swap two [ENEMIES].',
   control_jam_signal_1: 'Choose up to 2 [ENEMIES]: -1 ATK this turn.',
   control_pulse_wave_1: 'Deal 1 to all [ENEMIES], ignoring ARM.',
-  control_system_override_1: '[ENEMY] attacks own base next combat, then loses 1 HP.',
+  control_system_override_1: '[ENEMY] attacks own base, then loses 1 HP.',
   swarm_spitter_1: 'On play: deal 1 to opposed [ENEMY].',
   swarm_brood_1: 'On death: summon 1/1 here.',
   swarm_alpha_1: 'Adjacent [ALLY] +1 ATK, ignore 1 ARM.',

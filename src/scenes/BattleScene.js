@@ -3880,7 +3880,6 @@ export default class BattleScene extends Phaser.Scene {
       armor: getUnitArmor(unit),
       health: Number.isFinite(unit.hp) ? unit.hp : 0,
       ignoreArmorNext: Boolean(unit.ignoreArmorNext),
-      controlledAttackThisTurn: Boolean(unit.controlledAttackThisTurn),
     } : null));
     snapshot.playerHP = this.gameState?.playerHP ?? 0;
     snapshot.enemyHP = this.gameState?.enemyHP ?? 0;
@@ -4218,13 +4217,10 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     if (effectId === 'control_enemy_unit_this_turn') {
-      beforeSnapshot.forEach((before, index) => {
-        const after = this.gameState.board[index];
-        if (!before || !this.isSameBoardUnit(before, after)) return;
-        if (!before.controlledAttackThisTurn && after.controlledAttackThisTurn) {
-          feedback.push({ type: 'slot-text', index, label: 'OVERRIDE', kind: 'debuff', phase: 'pre', order: 10 });
-        }
-      });
+      const overrideIndex = result?.combatEvents?.find((event) => Number.isInteger(event?.attackerIndex))?.attackerIndex;
+      if (Number.isInteger(overrideIndex)) {
+        feedback.push({ type: 'slot-text', index: overrideIndex, label: 'OVERRIDE', kind: 'debuff', phase: 'pre', order: 10 });
+      }
     }
 
     if (debuffEffects.has(effectId)) {
