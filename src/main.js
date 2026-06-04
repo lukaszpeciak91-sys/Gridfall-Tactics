@@ -9,6 +9,7 @@ import BattleScene from './scenes/BattleScene.js';
 import BattleMenuScene from './scenes/BattleMenuScene.js';
 import RulesPanelScene from './scenes/RulesPanelScene.js';
 import ArtViewportDebugScene from './scenes/ArtViewportDebugScene.js';
+import FontPreviewScene from './scenes/FontPreviewScene.js';
 import { installSessionLifecycle } from './systems/sessionLifecycle.js';
 import { installFullscreenPortraitFit } from './systems/fullscreenPortraitFit.js';
 import { installHighDpiCanvas } from './rendering/highDpiCanvas.js';
@@ -29,7 +30,7 @@ const config = {
     antialiasGL: true,
     pixelArt: false,
   },
-  scene: [StartScene, MainMenuScene, FactionSelectScene, CollectionScene, SettingsScene, TutorialScene, BattleScene, BattleMenuScene, RulesPanelScene, ArtViewportDebugScene],
+  scene: [StartScene, MainMenuScene, FactionSelectScene, CollectionScene, SettingsScene, TutorialScene, BattleScene, BattleMenuScene, RulesPanelScene, ArtViewportDebugScene, FontPreviewScene],
 };
 
 const game = new Phaser.Game(config);
