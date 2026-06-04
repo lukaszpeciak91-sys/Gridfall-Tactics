@@ -9,7 +9,7 @@ import { preloadAllCardIllustrations } from '../rendering/cardIllustrationAssets
 import { calculateHandLayoutMetrics } from '../ui/handLayout.js';
 import { calculateHandBackCardCoverCrop, calculateHandBackCardDepth, shouldRenderHandBackCard } from '../ui/handBackCardPresentation.js';
 import { findHandCardFlipRevealSlots, startHandCardFlipReveal } from '../ui/handCardFlipReveal.js';
-import { createFloatingControl, createMuteToggleControl, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
+import { MIN_UTILITY_TAP_TARGET_SIZE, createFloatingControl, createMuteToggleControl, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
 import { createModalBackButton } from '../ui/modalControls.js';
 import { PREMIUM_BROADCAST_FONT_STACK, createImageButton, preloadSecondaryButtonAsset } from '../ui/imageButton.js';
 import { formatDeckSummaryEntry } from '../rendering/cardRenderModes.js';
@@ -681,7 +681,9 @@ export default class BattleScene extends Phaser.Scene {
     ];
 
     buttons.forEach((button) => {
-      [button.background, button.text].forEach((item) => item.setDepth(depth + 3));
+      button.background.setDepth(depth + 3);
+      button.text.setDepth(depth + 4);
+      button.hitZone.setDepth(depth + 5);
     });
 
     this.utilityMenuPanel = {
@@ -697,15 +699,18 @@ export default class BattleScene extends Phaser.Scene {
 
   createUtilityMenuButton(x, y, width, height, label, onClick) {
     const background = this.add.rectangle(x, y, width, height, 0x0f172a, 0.92)
-      .setStrokeStyle(1, 0x38bdf8, 0.42)
-      .setInteractive({ useHandCursor: true });
+      .setStrokeStyle(1, 0x38bdf8, 0.42);
     const text = this.add.text(x, y, label, {
       fontFamily: 'Arial, sans-serif',
       fontSize: '15px',
       color: '#f8fafc',
       fontStyle: 'bold',
       align: 'center',
-    }).setOrigin(0.5)
+    }).setOrigin(0.5);
+
+    const hitHeight = Math.max(height, MIN_UTILITY_TAP_TARGET_SIZE);
+    const hitZone = this.add.zone(x, y, width, hitHeight)
+      .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
 
     const setHover = (isHovering) => {
@@ -719,13 +724,12 @@ export default class BattleScene extends Phaser.Scene {
       onClick();
     };
 
-    [background, text].forEach((target) => {
-      target.on('pointerover', () => setHover(true));
-      target.on('pointerout', () => setHover(false));
-      target.on('pointerup', handlePointerUp);
-    });
+    hitZone.on('pointerover', () => setHover(true));
+    hitZone.on('pointerout', () => setHover(false));
+    hitZone.on('pointerup', handlePointerUp);
 
-    return { background, text };
+    return { background, text, hitZone };
+
   }
 
   destroyUtilityMenuPanel() {
@@ -738,7 +742,7 @@ export default class BattleScene extends Phaser.Scene {
       panel,
       ...(triggerControl?.items ?? [triggerControl?.halo, triggerControl?.backing, triggerControl?.text].filter(Boolean)),
       ...(fullscreenToggle?.items ?? [fullscreenToggle?.halo, fullscreenToggle?.backing, fullscreenToggle?.text].filter(Boolean)),
-      ...buttons.flatMap((button) => [button.background, button.text]),
+      ...buttons.flatMap((button) => [button.background, button.text, button.hitZone]),
     ];
 
     muteToggle?.destroy?.();

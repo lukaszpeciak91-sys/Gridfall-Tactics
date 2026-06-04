@@ -17,6 +17,8 @@ export function getBottomNavigationMetrics(scene, { centerY = null, touchSize = 
   };
 }
 
+export const MIN_UTILITY_TAP_TARGET_SIZE = 48;
+
 const UTILITY_SURFACE_THEME = Object.freeze({
   baseFill: 0x07111f,
   hoverFill: 0x0b1b2d,
@@ -86,11 +88,16 @@ function setUtilitySurfaceState(surface, {
   });
 }
 
-function createUtilityHitArea(size) {
-  return new Phaser.Geom.Rectangle(-size / 2, -size / 2, size, size);
+function getUtilityTapTargetSize(size, minTapTargetSize = MIN_UTILITY_TAP_TARGET_SIZE) {
+  return Math.max(size, minTapTargetSize);
 }
 
-export function createFloatingControl(scene, x, y, size, label, onPointerUp, { fontScale = 0.5 } = {}) {
+function createUtilityHitArea(size, minTapTargetSize = MIN_UTILITY_TAP_TARGET_SIZE) {
+  const tapTargetSize = getUtilityTapTargetSize(size, minTapTargetSize);
+  return new Phaser.Geom.Rectangle(-tapTargetSize / 2, -tapTargetSize / 2, tapTargetSize, tapTargetSize);
+}
+
+export function createFloatingControl(scene, x, y, size, label, onPointerUp, { fontScale = 0.5, minTapTargetSize = MIN_UTILITY_TAP_TARGET_SIZE } = {}) {
   const button = scene.add.container(x, y).setDepth(198);
   const surface = createUtilityButtonSurface(scene, size);
   const text = scene.add.text(0, 0, label, {
@@ -102,19 +109,23 @@ export function createFloatingControl(scene, x, y, size, label, onPointerUp, { f
   }).setOrigin(0.5).setDepth(2)
     .setShadow(0, 1, 'rgba(3, 17, 40, 0.72)', 2, true, true);
 
+  const tapTargetSize = getUtilityTapTargetSize(size, minTapTargetSize);
+
   button.add([surface.backing, text]);
-  button.setSize(size, size);
+  button.setSize(tapTargetSize, tapTargetSize);
 
   const setState = (state = {}) => {
+    const visualScale = state.pressed ? 0.985 : 1;
     setUtilitySurfaceState(surface, state);
+    surface.backing.setScale(visualScale);
+    text.setScale(visualScale);
     text.setAlpha(state.pressed ? 0.9 : 1);
     text.setColor(state.hovering ? '#ffffff' : '#f8fafc');
     text.setShadow(0, 1, state.hovering ? 'rgba(245, 241, 230, 0.16)' : 'rgba(3, 17, 40, 0.72)', state.hovering ? 3 : 2, true, true);
-    button.setScale(state.pressed ? 0.985 : 1);
   };
 
   if (onPointerUp) {
-    button.setInteractive(createUtilityHitArea(size), Phaser.Geom.Rectangle.Contains);
+    button.setInteractive(createUtilityHitArea(size, minTapTargetSize), Phaser.Geom.Rectangle.Contains);
     if (button.input) button.input.cursor = 'pointer';
     button.on('pointerover', () => setState({ hovering: true }));
     button.on('pointerout', () => setState());
@@ -177,16 +188,18 @@ export function drawSpeakerIcon(icon, size, isMuted) {
   icon.strokePath();
 }
 
-export function createMuteToggleControl(scene, x, y, size, { onToggle = null, depth = 198 } = {}) {
+export function createMuteToggleControl(scene, x, y, size, { onToggle = null, depth = 198, minTapTargetSize = MIN_UTILITY_TAP_TARGET_SIZE } = {}) {
   const button = scene.add.container(x, y).setDepth(depth);
   const surface = createUtilityButtonSurface(scene, size);
   const icon = scene.add.graphics().setDepth(2);
   let hovering = false;
   let pressed = false;
 
+  const tapTargetSize = getUtilityTapTargetSize(size, minTapTargetSize);
+
   button.add([surface.backing, icon]);
-  button.setSize(size, size);
-  button.setInteractive(createUtilityHitArea(size), Phaser.Geom.Rectangle.Contains);
+  button.setSize(tapTargetSize, tapTargetSize);
+  button.setInteractive(createUtilityHitArea(size, minTapTargetSize), Phaser.Geom.Rectangle.Contains);
   if (button.input) button.input.cursor = 'pointer';
 
   const refreshButton = (settings = loadSettings()) => {

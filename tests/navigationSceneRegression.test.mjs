@@ -204,10 +204,12 @@ test('FactionSelectScene uses shared bottom navigation controls for back, rules,
   const menuSource = readScene('src/scenes/BattleMenuScene.js');
 
   assert.match(factionSource, /import \{ createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen \} from '\.\.\/ui\/navigationControls\.js';/);
-  assert.match(battleSource, /import \{ createFloatingControl, createMuteToggleControl, requestPortraitOrientationLock, toggleSceneFullscreen \} from '\.\.\/ui\/navigationControls\.js';/);
+  assert.match(battleSource, /import \{ MIN_UTILITY_TAP_TARGET_SIZE, createFloatingControl, createMuteToggleControl, requestPortraitOrientationLock, toggleSceneFullscreen \} from '\.\.\/ui\/navigationControls\.js';/);
   assert.match(helperSource, /export function createBottomNavigationControls/);
-  assert.match(helperSource, /export function createFloatingControl/);
+  assert.match(helperSource, /export const MIN_UTILITY_TAP_TARGET_SIZE = 48;/);
+  assert.match(helperSource, /export function createFloatingControl[\s\S]*button\.setSize\(tapTargetSize, tapTargetSize\)[\s\S]*createUtilityHitArea\(size, minTapTargetSize\)/);
   assert.match(helperSource, /export function requestPortraitOrientationLock/);
+  assert.match(battleSource, /const hitHeight = Math\.max\(height, MIN_UTILITY_TAP_TARGET_SIZE\);[\s\S]*this\.add\.zone\(x, y, width, hitHeight\)[\s\S]*hitZone\.on\('pointerup', handlePointerUp\)/);
   assert.match(factionSource, /drawNavigationControls\(\) \{[\s\S]*createBottomNavigationControls\(this, \{[\s\S]*onBack: \(\) => this\.returnToMainMenu\(\),[\s\S]*onRules: \(\) => this\.openRulesPanel\(\),[\s\S]*onFullscreen: \(\) => this\.toggleFullscreen\(\),[\s\S]*\}\)/);
   assert.doesNotMatch(factionSource, /drawNavigationControls\(\) \{[\s\S]*onMute: \(\) => \{\}/);
   assert.match(factionSource, /openRulesPanel\(\) \{[\s\S]*this\.scene\.launch\('RulesPanelScene', \{ returnSceneKey: 'FactionSelectScene' \}\);[\s\S]*this\.scene\.pause\(\);[\s\S]*\}/);
