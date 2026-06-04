@@ -155,6 +155,6 @@ canonical_ref: docs/rules/mvp-battle-rules.md
 ## Screen Header Presentation Standard v2 (2026-06-04)
 - Refined the shared premium broadcast-style menu header treatment for Arena / Choose Faction, Collection, Tutorial, Settings, and Rules.
 - Removed the shared decorative line so headers now present title-only hierarchy without dividers, underlines, decorative bars, panels, frames, ornaments, or new assets.
-- Increased the shared title size and lowered the default placement to make headers feel more intentional and visually connected to each screen's content.
+- Locked the final placement slightly above the previous lowered pass, with only a minimal title-size increase, so the header sits balanced in the upper presentation zone without changing screen content flow.
 - Retained neutral warm-ivory title color, centered alignment, the approved premium UI font stack, Polish diacritic support, English support, subtle glow, and subtle shadow.
 - Kept the work scoped to UI presentation only; no gameplay, navigation behavior, screen flow, localization, or asset-generation changes were introduced.

@@ -12,9 +12,9 @@ export function getMenuScreenHeaderLayout({ width, height, y } = {}) {
 
   return {
     x: width * 0.5,
-    y: Number.isFinite(y) ? y : (isPortrait ? 88 : 92),
+    y: Number.isFinite(y) ? y : (isPortrait ? 66 : 70),
     safeWidth,
-    fontSize: isExtraNarrowPortrait ? 29 : (isPortrait ? 34 : 38),
+    fontSize: isExtraNarrowPortrait ? 31 : (isPortrait ? 36 : 40),
     letterSpacing: isExtraNarrowPortrait ? 1.45 : 1.9,
   };
 }
