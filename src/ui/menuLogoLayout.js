@@ -102,7 +102,7 @@ export function setMainMenuLogoDisplaySize(scene, logo, width, height) {
 export function createLogoFallbackText(scene, x, y, translationKey, fontSize, wordWrapWidth) {
   return scene.add
     .text(x, y, translateActive(translationKey, GRIDFALL_LOGO_TEXT), {
-      fontFamily: '"Rajdhani", "Exo 2", "Montserrat", "Segoe UI", sans-serif',
+      fontFamily: 'Segoe UI, Arial, sans-serif',
       fontSize,
       fontStyle: 'bold',
       color: '#f8fafc',

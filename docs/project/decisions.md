@@ -138,9 +138,10 @@ canonical_ref: docs/rules/mvp-battle-rules.md
 - Live battles and simulation/report runners check base lethal first through combat resolution, then resource exhaustion, then no-progress; after both draws they check resource exhaustion and no-progress again before turn-cap resolution.
 - Player hold-to-surrender remains optional and player-controlled. AI safe surrender remains available, with deterministic resource-exhaustion and no-progress checks taking priority at stable turn boundaries.
 
-## Final Battle Result Broadcast Presentation (2026-06-04)
-- Battle result presentation is a visual/UI-only layer and must not alter gameplay, combat sequencing, card rendering, HUD behavior, collection/inspect views, or rules-panel content.
-- Result modal copy should keep the localized outcome title plus subtitle flavor line; the generic `battleComplete` eyebrow was removed because it did not communicate useful match information.
-- Result-color convention is locked for the modal frame/glow: victory = green, defeat = rose/red, draw = gold. Draw should read as neutral/gold and not as a weaker defeat.
-- EXIT and RETRY continue to reuse the existing premium button asset/component; polish should adjust sizing, spacing, and accent treatment rather than adding bespoke result-button art.
-- Victory celebration should remain lightweight and procedural, using a small number of simple confetti/spark/broadcast-light primitives instead of new assets or costly particle systems.
+## Premium UI Typography Standard (2026-06-04)
+- Adopted one global premium UI font stack for Polish, English, and future locales: `Segoe UI, Arial, sans-serif`.
+- This supersedes the experimental premium broadcast font investigation and rejects locale-specific premium font stacks.
+- Scope is premium UI only: premium buttons, broadcast-style UI chrome, menu screens, result screens, and premium overlays.
+- Card rendering, gameplay HUD text, Rules panel text, Collection cards, Inspect cards, and localization content remain outside this decision.
+- Future premium typography changes must validate Polish diacritic rendering against: `PORAŻKA`, `WYJDŹ`, `PONÓW`, `PUBLICZNOŚĆ`, `PRZEJĘCIE`, `ZAKŁÓCENIE`, `ZEWRZEĆ`.
+- Canonical standard: `docs/ui/premium-typography-standard.md`.

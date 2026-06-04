@@ -3,11 +3,19 @@ import fs from 'node:fs';
 import test from 'node:test';
 
 const source = fs.readFileSync('src/ui/imageButton.js', 'utf8');
+const menuLogoLayoutSource = fs.readFileSync('src/ui/menuLogoLayout.js', 'utf8');
 
-test('premium broadcast button font stack prefers Polish-capable Exo 2 metrics', () => {
-  assert.match(source, /export const PREMIUM_BROADCAST_FONT_STACK = '"Exo 2", "Segoe UI", Arial, sans-serif';/);
+test('premium broadcast button font stack uses the approved global premium UI typography', () => {
+  assert.match(source, /export const PREMIUM_BROADCAST_FONT_STACK = 'Segoe UI, Arial, sans-serif';/);
+  assert.doesNotMatch(source, /PREMIUM_BROADCAST_FONT_STACK = '[^']*Exo 2/);
   assert.doesNotMatch(source, /PREMIUM_BROADCAST_FONT_STACK = '[^']*Rajdhani/);
   assert.doesNotMatch(source, /PREMIUM_BROADCAST_FONT_STACK = '[^']*Orbitron/);
+  assert.doesNotMatch(source, /PREMIUM_BROADCAST_FONT_STACK = '[^']*Montserrat/);
+});
+
+test('main menu logo fallback uses the same approved premium UI typography', () => {
+  assert.match(menuLogoLayoutSource, /fontFamily: 'Segoe UI, Arial, sans-serif'/);
+  assert.doesNotMatch(menuLogoLayoutSource, /fontFamily: '[^']*(Rajdhani|Exo 2|Montserrat|Orbitron)/);
 });
 
 test('image button state changes preserve display-size base scale', () => {
