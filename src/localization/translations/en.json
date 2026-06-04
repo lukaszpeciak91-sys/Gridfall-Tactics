@@ -351,7 +351,6 @@
       },
       "mulligan": "MULLIGAN {count}",
       "keepHand": "KEEP HAND",
-      "battleComplete": "Battle Complete",
       "youWin": "YOU WIN",
       "youLose": "YOU LOSE",
       "draw": "DRAW",
