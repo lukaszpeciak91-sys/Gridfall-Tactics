@@ -64,8 +64,8 @@ const FACTION_CARD_DETAILS = {
 const CARD_SCROLL_DRAG_THRESHOLD = 8;
 const MIN_FACTION_LIST_TOP = 106;
 const HEADER_TO_FACTION_LIST_GAP = 24;
-const HERO_BANNER_HEIGHT_RATIO = 0.7;
-const HERO_TITLE_SCRIM_HEIGHT = 64;
+const POSTER_ART_HEIGHT_RATIO = 0.88;
+const POSTER_TITLE_SCRIM_HEIGHT = 98;
 
 
 function getFactionAssetSlug(factionKey) {
@@ -157,8 +157,8 @@ export default class FactionSelectScene extends Phaser.Scene {
 
   drawFactionCards(factionKeys, { width, height, headerBottomY }) {
     const cardWidth = Math.min(width - 24, 382);
-    const cardHeight = 164;
-    const gap = 12;
+    const cardHeight = 196;
+    const gap = 14;
     const viewportTop = Math.max(MIN_FACTION_LIST_TOP, Math.ceil(headerBottomY + HEADER_TO_FACTION_LIST_GAP));
     const viewportBottom = Math.max(viewportTop + cardHeight, height - 88);
     const viewportHeight = viewportBottom - viewportTop;
@@ -207,47 +207,69 @@ export default class FactionSelectScene extends Phaser.Scene {
     const details = FACTION_CARD_DETAILS[factionKey] ?? FACTION_CARD_DETAILS.Aggro;
     const displayName = getFactionPresentationName(faction?.id, getActiveLocale(), faction?.name ?? factionKey);
     const x = -cardWidth / 2;
-    const artMargin = 10;
-    const artWidth = cardWidth - artMargin * 2;
-    const artHeight = Math.round(cardHeight * HERO_BANNER_HEIGHT_RATIO);
-    const artY = y + artMargin;
+    const posterInset = 6;
+    const posterWidth = cardWidth - posterInset * 2;
+    const posterHeight = Math.round(cardHeight * POSTER_ART_HEIGHT_RATIO);
+    const posterX = x + posterInset;
+    const posterY = y + posterInset;
 
     const shadow = this.add.graphics();
-    shadow.fillStyle(0x020617, 0.38);
-    shadow.fillRoundedRect(x + 2, y + 4, cardWidth, cardHeight, 18);
+    shadow.fillStyle(0x020617, 0.42);
+    shadow.fillRoundedRect(x + 2, y + 5, cardWidth, cardHeight, 20);
     content.add(shadow);
     this.uiElements.push(shadow);
 
     const card = this.add.graphics();
-    card.fillStyle(0x0f172a, 0.95);
-    card.fillRoundedRect(x, y, cardWidth, cardHeight, 18);
-    card.lineStyle(1, details.accentColor, 0.62);
-    card.strokeRoundedRect(x + 1, y + 1, cardWidth - 2, cardHeight - 2, 17);
+    card.fillStyle(0x020617, 0.94);
+    card.fillRoundedRect(x, y, cardWidth, cardHeight, 20);
+    card.lineStyle(1, details.accentColor, 0.72);
+    card.strokeRoundedRect(x + 1, y + 1, cardWidth - 2, cardHeight - 2, 19);
     content.add(card);
     this.uiElements.push(card);
 
     this.drawFactionPreview(content, factionKey, details, {
-      x: x + artMargin,
-      y: artY,
-      width: artWidth,
-      height: artHeight,
+      x: posterX,
+      y: posterY,
+      width: posterWidth,
+      height: posterHeight,
     });
 
-    const titleScrimHeight = Math.min(HERO_TITLE_SCRIM_HEIGHT, artHeight - 12);
+    const posterAtmosphere = this.add.graphics();
+    posterAtmosphere.fillGradientStyle(0x020617, 0x020617, 0x020617, 0x020617, 0.36, 0.08, 0.04, 0.62);
+    posterAtmosphere.fillRoundedRect(posterX, posterY, posterWidth, posterHeight, 16);
+    content.add(posterAtmosphere);
+    this.uiElements.push(posterAtmosphere);
+
+    const titleScrimHeight = Math.min(POSTER_TITLE_SCRIM_HEIGHT, posterHeight - 20);
+    const titleScrimY = posterY + posterHeight - titleScrimHeight;
     const titleScrim = this.add.graphics();
-    titleScrim.fillGradientStyle(0x020617, 0x020617, 0x020617, 0x020617, 0, 0, 0.82, 0.82);
-    titleScrim.fillRect(x + artMargin, artY + artHeight - titleScrimHeight, artWidth, titleScrimHeight);
+    titleScrim.fillGradientStyle(0x020617, 0x020617, 0x020617, 0x020617, 0, 0, 0.9, 0.9);
+    titleScrim.fillRect(posterX, titleScrimY, posterWidth, titleScrimHeight);
     content.add(titleScrim);
     this.uiElements.push(titleScrim);
 
-    const titleMaxWidth = artWidth - 24;
-    const titleFontSize = displayName.length > 18 ? 18 : displayName.length > 13 ? 20 : 22;
+    const highlightRule = this.add.graphics();
+    highlightRule.fillStyle(details.accentColor, 0.88);
+    highlightRule.fillRoundedRect(posterX + 14, titleScrimY + 17, 4, 46, 2);
+    content.add(highlightRule);
+    this.uiElements.push(highlightRule);
+
+    this.drawFactionTags(content, details.tags, {
+      x: posterX + 14,
+      y: posterY + 14,
+      accentColor: details.accentColor,
+    });
+
+    const titleMaxWidth = posterWidth - 48;
+    const titleFontSize = displayName.length > 18 ? 22 : displayName.length > 13 ? 24 : 27;
     const name = this.add
-      .text(x + artMargin + 12, artY + artHeight - titleScrimHeight + 8, displayName, {
+      .text(posterX + 26, titleScrimY + 12, displayName, {
         fontFamily: 'Arial, sans-serif',
         fontSize: `${titleFontSize}px`,
         color: '#f8fafc',
         fontStyle: 'bold',
+        stroke: '#020617',
+        strokeThickness: 4,
         wordWrap: { width: titleMaxWidth, useAdvancedWrap: true },
       })
       .setOrigin(0, 0)
@@ -257,36 +279,32 @@ export default class FactionSelectScene extends Phaser.Scene {
 
     const tagline = this.add
       .text(
-        x + artMargin + 12,
-        Math.min(name.y + name.height + 2, artY + artHeight - 18),
+        posterX + 26,
+        Math.min(name.y + name.height + 1, posterY + posterHeight - 28),
         translateActive(`ui.factionSelect.descriptions.${factionKey}`, details.description),
         {
           fontFamily: 'Arial, sans-serif',
           fontSize: '12px',
           color: '#e5e7eb',
+          stroke: '#020617',
+          strokeThickness: 3,
           wordWrap: { width: titleMaxWidth, useAdvancedWrap: true },
         },
       )
       .setOrigin(0, 0)
-      .setMaxLines(1);
+      .setMaxLines(2);
     content.add(tagline);
     this.uiElements.push(tagline);
 
-    const chipStrip = this.add.graphics();
-    chipStrip.fillStyle(0x020617, 0.28);
-    chipStrip.fillRoundedRect(x + artMargin, artY + artHeight + 5, artWidth, 29, 12);
-    content.add(chipStrip);
-    this.uiElements.push(chipStrip);
-
-    this.drawFactionTags(content, details.tags, {
-      x: x + 16,
-      y: y + cardHeight - 31,
-      accentColor: details.accentColor,
-    });
+    const lowerRail = this.add.graphics();
+    lowerRail.fillGradientStyle(details.accentColor, details.accentColor, 0x020617, 0x020617, 0.42, 0.08, 0.18, 0.44);
+    lowerRail.fillRoundedRect(posterX + 10, posterY + posterHeight + 5, posterWidth - 20, cardHeight - posterHeight - posterInset - 10, 10);
+    content.add(lowerRail);
+    this.uiElements.push(lowerRail);
 
     const pressOverlay = this.add.graphics();
     pressOverlay.fillStyle(0xffffff, 0.08);
-    pressOverlay.fillRoundedRect(x, y, cardWidth, cardHeight, 18);
+    pressOverlay.fillRoundedRect(x, y, cardWidth, cardHeight, 20);
     pressOverlay.setVisible(false);
     content.add(pressOverlay);
     this.uiElements.push(pressOverlay);
@@ -351,13 +369,15 @@ export default class FactionSelectScene extends Phaser.Scene {
           fontFamily: 'Arial, sans-serif',
           fontSize: '11px',
           color: '#f8fafc',
+          stroke: '#020617',
+          strokeThickness: 2,
         })
         .setOrigin(0, 0);
       const pillWidth = Math.ceil(text.width + 20);
       const pill = this.add.graphics();
-      pill.fillStyle(accentColor, 0.24);
+      pill.fillStyle(0x020617, 0.46);
       pill.fillRoundedRect(currentX, y, pillWidth, 24, 12);
-      pill.lineStyle(1, accentColor, 0.56);
+      pill.lineStyle(1, accentColor, 0.68);
       pill.strokeRoundedRect(currentX + 0.5, y + 0.5, pillWidth - 1, 23, 11);
       content.add(pill);
       content.add(text);
