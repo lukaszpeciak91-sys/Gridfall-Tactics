@@ -67,7 +67,11 @@ const HEADER_TO_FACTION_LIST_GAP = 24;
 const POSTER_TITLE_SCRIM_HEIGHT = 96;
 const POSTER_TITLE_BOTTOM_PADDING = 18;
 const POSTER_TITLE_LEFT_PADDING = 18;
-const POSTER_TITLE_WIDTH_RATIO = 0.58;
+const POSTER_TITLE_RIGHT_PADDING = 16;
+const POSTER_TITLE_WIDTH_RATIO = 0.92;
+const POSTER_TITLE_MAX_FONT_SIZE = 29;
+const POSTER_TITLE_WRAP_FONT_SIZE = 24;
+const POSTER_TITLE_MIN_SINGLE_LINE_FONT_SIZE = 20;
 
 function getFactionAssetSlug(factionKey) {
   const faction = getFactionByKey(factionKey);
@@ -249,8 +253,10 @@ export default class FactionSelectScene extends Phaser.Scene {
       accentColor: details.accentColor,
     });
 
-    const titleMaxWidth = Math.min(posterWidth - 52, Math.max(190, posterWidth * POSTER_TITLE_WIDTH_RATIO));
-    const titleFontSize = displayName.length > 18 ? 23 : displayName.length > 13 ? 25 : 29;
+    const titleMaxWidth = Math.min(
+      posterWidth - POSTER_TITLE_LEFT_PADDING - POSTER_TITLE_RIGHT_PADDING,
+      Math.max(190, posterWidth * POSTER_TITLE_WIDTH_RATIO),
+    );
     const name = this.add
       .text(
         posterX + POSTER_TITLE_LEFT_PADDING,
@@ -258,16 +264,15 @@ export default class FactionSelectScene extends Phaser.Scene {
         displayName,
         {
           fontFamily: 'Arial, sans-serif',
-          fontSize: `${titleFontSize}px`,
+          fontSize: `${POSTER_TITLE_MAX_FONT_SIZE}px`,
           color: '#f8fafc',
           fontStyle: 'bold',
           stroke: '#020617',
           strokeThickness: 4,
-          wordWrap: { width: titleMaxWidth, useAdvancedWrap: true },
         },
       )
-      .setOrigin(0, 1)
-      .setMaxLines(2);
+      .setOrigin(0, 1);
+    this.fitFactionTitleText(name, titleMaxWidth);
     content.add(name);
     this.uiElements.push(name);
 
@@ -289,6 +294,24 @@ export default class FactionSelectScene extends Phaser.Scene {
     content.add(button);
     this.uiElements.push(button);
     this.interactiveElements.push(button);
+  }
+
+
+  fitFactionTitleText(title, maxWidth) {
+    title.setWordWrapWidth(null);
+    title.setMaxLines(1);
+
+    for (let fontSize = POSTER_TITLE_MAX_FONT_SIZE; fontSize >= POSTER_TITLE_MIN_SINGLE_LINE_FONT_SIZE; fontSize -= 1) {
+      title.setFontSize(`${fontSize}px`);
+      if (title.width <= maxWidth) {
+        return title;
+      }
+    }
+
+    title.setFontSize(`${POSTER_TITLE_WRAP_FONT_SIZE}px`);
+    title.setWordWrapWidth(maxWidth, true);
+    title.setMaxLines(2);
+    return title;
   }
 
   drawFactionPreview(content, factionKey, details, { x, y, width, height }) {
