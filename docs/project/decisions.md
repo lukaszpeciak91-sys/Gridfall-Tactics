@@ -150,3 +150,10 @@ canonical_ref: docs/rules/mvp-battle-rules.md
 - Shift battle result presentation away from modal-dialog chrome and toward an interdimensional broadcast-overlay treatment.
 - Result screens should keep the battlefield visible behind fullscreen dimming, avoid framed panel backgrounds, and place the localized result title/subtitle/buttons directly over the board.
 - Result-specific glows, victory fireworks, existing button assets, and end-of-battle navigation/retry behavior remain unchanged unless a later scoped UX decision supersedes them.
+
+## Battle Result Broadcast Overlay Final Direction (2026-06-04)
+- Accepted the broadcast-overlay result presentation as the MVP-final direction and rejected returning to popup-dialog/modal-window framing for battle results.
+- Battle result screens should remain panel-free: no modal frames, window backgrounds, or boxed control groups over the battlefield.
+- Final polish standard: place the result stack lower over the combat lanes, keep localized subtitle copy prominent with outcome-specific non-white accents, separate subtitle and controls with one thin broadcast divider, and use enlarged existing button assets for primary EXIT/RETRY controls.
+- Title glow should remain animated and outcome-colored but restrained enough that battlefield art and UI remain visible beneath it.
+- Victory celebrations use three staggered waves of the existing procedural fireworks/particles with slight position randomization; no new assets or reward/battle-end logic changes are part of this presentation decision.

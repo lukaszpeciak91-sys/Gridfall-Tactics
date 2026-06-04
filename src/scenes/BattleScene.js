@@ -863,7 +863,9 @@ export default class BattleScene extends Phaser.Scene {
         titleStartScale: 0.98,
         titleEndScale: 1,
         titlePulseScale: 1.03,
-        glowPulseAlpha: 0.32,
+        glowPulseAlpha: 0.24,
+        subtitleColor: '#d9f99d',
+        subtitleShadowColor: 'rgba(22, 101, 52, 0.72)',
       };
     }
     if (this.gameState?.winner === 'enemy') {
@@ -878,7 +880,9 @@ export default class BattleScene extends Phaser.Scene {
         titleStartScale: 0.98,
         titleEndScale: 1,
         titlePulseScale: 1.03,
-        glowPulseAlpha: 0.28,
+        glowPulseAlpha: 0.21,
+        subtitleColor: '#fca5a5',
+        subtitleShadowColor: 'rgba(127, 29, 29, 0.72)',
       };
     }
     return {
@@ -892,56 +896,67 @@ export default class BattleScene extends Phaser.Scene {
       titleStartScale: 0.98,
       titleEndScale: 1,
       titlePulseScale: 1.03,
-      glowPulseAlpha: 0.24,
+      glowPulseAlpha: 0.18,
+      subtitleColor: '#fcd34d',
+      subtitleShadowColor: 'rgba(120, 53, 15, 0.7)',
     };
   }
 
   addBattleResultVictoryCelebration(centerX, centerY, overlayWidth, overlayHeight, presentation) {
-    if (presentation.key !== 'victory') return [];
+    if (presentation.key !== 'victory') return { particles: [], timers: [] };
 
     const particles = [];
+    const timers = [];
     const particleColors = [0xfacc15, 0x86efac, 0x38bdf8, 0xfef3c7];
-    const count = 26;
-    for (let i = 0; i < count; i += 1) {
-      const side = i % 2 === 0 ? -1 : 1;
-      const startX = centerX + side * (overlayWidth * (0.22 + Math.random() * 0.22));
-      const startY = centerY - overlayHeight * (0.35 + Math.random() * 0.18);
-      const size = 3 + Math.random() * 5;
-      const color = particleColors[i % particleColors.length];
-      const particle = this.add.rectangle(startX, startY, size, size * (1.35 + Math.random()), color, 0.9)
-        .setDepth(904)
-        .setRotation(Math.random() * Math.PI);
-      particles.push(particle);
-      this.tweens.add({
-        targets: particle,
-        x: startX + side * (10 + Math.random() * 42),
-        y: startY + overlayHeight * (0.42 + Math.random() * 0.34),
-        alpha: 0,
-        rotation: particle.rotation + side * (1.2 + Math.random() * 2.8),
-        duration: 760 + Math.random() * 360,
-        ease: 'Sine.easeOut',
-      });
-    }
+    const spawnWave = (waveIndex) => {
+      const waveOffsetX = (Math.random() - 0.5) * overlayWidth * 0.08;
+      const waveOffsetY = (Math.random() - 0.5) * overlayHeight * 0.08;
+      const count = 22;
+      for (let i = 0; i < count; i += 1) {
+        const side = i % 2 === 0 ? -1 : 1;
+        const startX = centerX + waveOffsetX + side * (overlayWidth * (0.2 + Math.random() * 0.24));
+        const startY = centerY + waveOffsetY - overlayHeight * (0.35 + Math.random() * 0.2);
+        const size = 3 + Math.random() * 5;
+        const color = particleColors[(i + waveIndex) % particleColors.length];
+        const particle = this.add.rectangle(startX, startY, size, size * (1.35 + Math.random()), color, 0.9)
+          .setDepth(904)
+          .setRotation(Math.random() * Math.PI);
+        particles.push(particle);
+        this.tweens.add({
+          targets: particle,
+          x: startX + side * (10 + Math.random() * 48),
+          y: startY + overlayHeight * (0.42 + Math.random() * 0.36),
+          alpha: 0,
+          rotation: particle.rotation + side * (1.2 + Math.random() * 2.8),
+          duration: 760 + Math.random() * 380,
+          ease: 'Sine.easeOut',
+        });
+      }
 
-    for (let i = 0; i < 7; i += 1) {
-      const burst = this.add.circle(
-        centerX + (Math.random() - 0.5) * overlayWidth * 0.72,
-        centerY - overlayHeight * (0.16 + Math.random() * 0.2),
-        2 + Math.random() * 2.2,
-        presentation.accentColor,
-        0.7,
-      ).setDepth(903);
-      particles.push(burst);
-      this.tweens.add({
-        targets: burst,
-        scale: { from: 0.6, to: 2.4 + Math.random() },
-        alpha: 0,
-        duration: 520 + Math.random() * 260,
-        ease: 'Quad.easeOut',
-      });
-    }
+      for (let i = 0; i < 6; i += 1) {
+        const burst = this.add.circle(
+          centerX + waveOffsetX + (Math.random() - 0.5) * overlayWidth * 0.76,
+          centerY + waveOffsetY - overlayHeight * (0.15 + Math.random() * 0.22),
+          2 + Math.random() * 2.2,
+          presentation.accentColor,
+          0.7,
+        ).setDepth(903);
+        particles.push(burst);
+        this.tweens.add({
+          targets: burst,
+          scale: { from: 0.6, to: 2.4 + Math.random() },
+          alpha: 0,
+          duration: 520 + Math.random() * 280,
+          ease: 'Quad.easeOut',
+        });
+      }
+    };
 
-    return particles;
+    [0, 800, 1600].forEach((delayMs, waveIndex) => {
+      timers.push(this.time.delayedCall(delayMs, () => spawnWave(waveIndex)));
+    });
+
+    return { particles, timers };
   }
 
   showBattleResultModal() {
@@ -959,7 +974,7 @@ export default class BattleScene extends Phaser.Scene {
 
     const { width, height } = this.scale.gameSize;
     const centerX = width * 0.5;
-    const centerY = height * 0.31;
+    const centerY = height * 0.38;
     const overlayWidth = Math.min(width * 0.94, 720);
     const overlayHeight = Math.min(Math.max(height * 0.27, 230), 310);
     const resultText = this.getBattleResultText();
@@ -969,11 +984,11 @@ export default class BattleScene extends Phaser.Scene {
     const overlay = this.add.rectangle(centerX, height * 0.5, width, height, 0x000000, presentation.overlayAlpha)
       .setInteractive()
       .setDepth(900);
-    const titleAura = this.add.ellipse(centerX, centerY - overlayHeight * 0.12, overlayWidth * 0.88, overlayHeight * 0.46, presentation.glowColor, 0.12)
+    const titleAura = this.add.ellipse(centerX, centerY - overlayHeight * 0.1, overlayWidth * 0.76, overlayHeight * 0.34, presentation.glowColor, 0.08)
       .setDepth(901);
     titleAura.setBlendMode?.(Phaser.BlendModes.ADD);
     const titleFontSize = Math.min(Math.max(58, Math.floor(height * 0.092)), 96);
-    const titleGlow = this.add.text(centerX, centerY - overlayHeight * 0.13, resultText, {
+    const titleGlow = this.add.text(centerX, centerY - overlayHeight * 0.1, resultText, {
       fontFamily: PREMIUM_BROADCAST_FONT_STACK,
       fontSize: `${titleFontSize}px`,
       color: presentation.titleColor,
@@ -981,8 +996,8 @@ export default class BattleScene extends Phaser.Scene {
       align: 'center',
       letterSpacing: 2.2,
     }).setOrigin(0.5).setDepth(902).setAlpha(0.2);
-    titleGlow.setShadow(0, 0, presentation.titleColor, 18, true, true);
-    const title = this.add.text(centerX, centerY - overlayHeight * 0.13, resultText, {
+    titleGlow.setShadow(0, 0, presentation.titleColor, 12, true, true);
+    const title = this.add.text(centerX, centerY - overlayHeight * 0.1, resultText, {
       fontFamily: PREMIUM_BROADCAST_FONT_STACK,
       fontSize: `${titleFontSize}px`,
       color: presentation.titleColor,
@@ -991,19 +1006,27 @@ export default class BattleScene extends Phaser.Scene {
       letterSpacing: 2.2,
     }).setOrigin(0.5).setDepth(904);
     title.setShadow(0, 3, 'rgba(0, 0, 0, 0.62)', 5, true, true);
-    const subtitle = this.add.text(centerX, centerY + overlayHeight * 0.11, resultSubtitle, {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: `${Math.max(16, Math.floor(height * 0.023))}px`,
-      color: '#e2e8f0',
+    const subtitle = this.add.text(centerX, centerY + overlayHeight * 0.12, resultSubtitle, {
+      fontFamily: PREMIUM_BROADCAST_FONT_STACK,
+      fontSize: `${Math.max(20, Math.floor(height * 0.029))}px`,
+      color: presentation.subtitleColor,
       align: 'center',
       wordWrap: { width: Math.min(width * 0.86, 620), useAdvancedWrap: true },
     }).setOrigin(0.5).setDepth(903);
-    subtitle.setShadow(0, 2, 'rgba(0, 0, 0, 0.6)', 3, true, true);
+    subtitle.setShadow(0, 2, presentation.subtitleShadowColor, 5, true, true);
 
-    const buttonY = centerY + overlayHeight * 0.34;
-    const buttonWidth = Math.min(168, Math.max(136, width * 0.34));
-    const buttonHeight = Math.max(58, Math.min(68, Math.floor(height * 0.075)));
-    const gap = Math.max(18, Math.min(34, width * 0.055));
+    const dividerWidth = Math.min(overlayWidth * 0.52, 360);
+    const dividerY = centerY + overlayHeight * 0.25;
+    const dividerCore = this.add.rectangle(centerX, dividerY, dividerWidth, 1, presentation.accentColor, 0.52)
+      .setDepth(903);
+    const dividerGlow = this.add.rectangle(centerX, dividerY, dividerWidth * 0.84, 3, presentation.glowColor, 0.12)
+      .setDepth(902);
+    dividerGlow.setBlendMode?.(Phaser.BlendModes.ADD);
+
+    const buttonY = centerY + overlayHeight * 0.43;
+    const buttonWidth = Math.min(198, Math.max(160, width * 0.39));
+    const buttonHeight = Math.max(68, Math.min(80, Math.floor(height * 0.088)));
+    const gap = Math.max(22, Math.min(42, width * 0.065));
     const exitButton = this.createResultModalButton(
       centerX - buttonWidth / 2 - gap / 2,
       buttonY,
@@ -1061,6 +1084,8 @@ export default class BattleScene extends Phaser.Scene {
       titleGlow,
       title,
       subtitle,
+      dividerCore,
+      dividerGlow,
       celebration,
       buttons: [exitButton, retryButton],
     };
@@ -1092,7 +1117,7 @@ export default class BattleScene extends Phaser.Scene {
       shadowAlpha: 0.34,
       hoverScale: 1.025,
       downScale: 0.975,
-      minTouchHeight: 58,
+      minTouchHeight: 68,
     });
   }
 
@@ -1109,9 +1134,12 @@ export default class BattleScene extends Phaser.Scene {
       this.battleResultModal.titleGlow,
       this.battleResultModal.title,
       this.battleResultModal.subtitle,
-      ...(this.battleResultModal.celebration ?? []),
+      this.battleResultModal.dividerCore,
+      this.battleResultModal.dividerGlow,
+      ...(this.battleResultModal.celebration?.particles ?? this.battleResultModal.celebration ?? []),
       ...this.battleResultModal.buttons.flatMap((button) => button.items ?? []),
     ];
+    this.battleResultModal.celebration?.timers?.forEach((timer) => timer?.remove?.(false));
     items.forEach((item) => {
       item?.removeAllListeners?.();
       item?.destroy?.();

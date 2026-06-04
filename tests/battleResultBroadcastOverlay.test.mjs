@@ -15,12 +15,31 @@ test('battle result screen uses a fullscreen broadcast overlay instead of a moda
   assert.doesNotMatch(showBattleResultModalSource, /innerSheen/);
 });
 
-test('battle result title is unconstrained and has a slow subtle broadcast pulse', () => {
-  assert.match(showBattleResultModalSource, /const title = this\.add\.text\(centerX, centerY - overlayHeight \* 0\.13, resultText,/);
+test('battle result title is unconstrained, lowered, and has a slow subtle broadcast pulse', () => {
+  assert.match(showBattleResultModalSource, /const title = this\.add\.text\(centerX, centerY - overlayHeight \* 0\.1, resultText,/);
   const titleStart = showBattleResultModalSource.indexOf('    const title = this.add.text');
   const subtitleStart = showBattleResultModalSource.indexOf('    const subtitle = this.add.text', titleStart);
   const titleSource = showBattleResultModalSource.slice(titleStart, subtitleStart);
   assert.doesNotMatch(titleSource, /wordWrap/);
   assert.match(source, /titlePulseScale: 1\.03/);
   assert.match(showBattleResultModalSource, /targets: \[title, titleGlow\],[\s\S]*scale: presentation\.titlePulseScale,[\s\S]*duration: 1850,[\s\S]*yoyo: true,[\s\S]*repeat: -1,[\s\S]*ease: 'Sine\.easeInOut'/);
+});
+
+
+test('battle result overlay polish keeps hierarchy panel-free while elevating subtitle and controls', () => {
+  assert.match(showBattleResultModalSource, /const centerY = height \* 0\.38/);
+  assert.match(showBattleResultModalSource, /fontSize: `\$\{Math\.max\(20, Math\.floor\(height \* 0\.029\)\)\}px`/);
+  assert.match(showBattleResultModalSource, /color: presentation\.subtitleColor/);
+  assert.match(showBattleResultModalSource, /const dividerCore = this\.add\.rectangle\(centerX, dividerY, dividerWidth, 1, presentation\.accentColor, 0\.52\)/);
+  assert.match(showBattleResultModalSource, /const buttonWidth = Math\.min\(198, Math\.max\(160, width \* 0\.39\)\)/);
+  assert.match(showBattleResultModalSource, /const buttonHeight = Math\.max\(68, Math\.min\(80, Math\.floor\(height \* 0\.088\)\)\)/);
+  assert.doesNotMatch(showBattleResultModalSource, /panelFill|setStrokeStyle\(4|innerSheen/);
+});
+
+test('victory celebration reuses particles across three staggered waves', () => {
+  assert.match(source, /\[0, 800, 1600\]\.forEach\(\(delayMs, waveIndex\) => \{/);
+  assert.match(source, /const spawnWave = \(waveIndex\) => \{/);
+  assert.match(source, /const waveOffsetX = \(Math\.random\(\) - 0\.5\) \* overlayWidth \* 0\.08/);
+  assert.match(source, /this\.add\.rectangle\(startX, startY, size, size \* \(1\.35 \+ Math\.random\(\)\), color, 0\.9\)/);
+  assert.match(source, /this\.add\.circle\(/);
 });
