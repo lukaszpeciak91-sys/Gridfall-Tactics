@@ -166,7 +166,7 @@ export default class MainMenuScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(22);
 
     icon.on('pointerup', () => {
-      this.scene.start('ArtViewportDebugScene');
+      this.scene.start('ArtDebugModeSelectScene');
     });
 
     icon.on('pointerover', () => {
