@@ -16,6 +16,7 @@ import { formatDeckSummaryEntry } from '../rendering/cardRenderModes.js';
 import { CARD_COLORS, createCardArtwork, createCardPreviewView, getBaseCardSurfaceTheme, getDefaultCardAccentColor, resolveCardSurfaceTheme, createStatBadges } from '../rendering/cardVisualLayout.js';
 import { getCardDisplayName, getCardTextShort } from '../localization/cardDisplay.js';
 import { getActiveLocale, translateActive } from '../localization/localeService.js';
+import { getCardBoardArtPositionY } from '../data/presentation/cardArtCropOverrides.js';
 
 const HAND_BACK_CARD_ASSET = Object.freeze({
   key: 'ui.card.back',
@@ -6009,6 +6010,10 @@ export default class BattleScene extends Phaser.Scene {
       ? (this.gameState?.enemy?.factionKey ?? this.enemyFactionKey)
       : (this.gameState?.player?.factionKey ?? this.factionKey);
     const boardSurfaceTheme = resolveCardSurfaceTheme({ factionId: boardFactionThemeId, mode: 'board' });
+    const boardOverrideY = getCardBoardArtPositionY(unit.cardId ?? unit.id);
+    const defaultBoardY = isEnemyUnit
+      ? BOARD_CARD_ARTWORK_ENEMY_CROP_POSITION_Y
+      : BOARD_CARD_ARTWORK_PLAYER_CROP_POSITION_Y;
 
     const cardBack = this.add.rectangle(0, 0, unitWidth, unitHeight, boardSurfaceTheme.frameFill, 0.74)
       .setStrokeStyle(2, ownerAccent, 0.62);
@@ -6029,9 +6034,9 @@ export default class BattleScene extends Phaser.Scene {
     }, unit, {
       enableCardIllustration: true,
       lockDisplayToZone: true,
-      artPositionY: isEnemyUnit
-        ? BOARD_CARD_ARTWORK_ENEMY_CROP_POSITION_Y
-        : BOARD_CARD_ARTWORK_PLAYER_CROP_POSITION_Y,
+      artPositionY: Number.isFinite(boardOverrideY)
+        ? boardOverrideY
+        : defaultBoardY,
     });
     const artBackdrop = this.add.rectangle(0, finalArtY, artRect.width, artRect.height, BASE_CARD_SURFACE_THEME.artBackdropFill, 0.22);
     const artStroke = this.add.rectangle(0, finalArtY, artRect.width, artRect.height)
