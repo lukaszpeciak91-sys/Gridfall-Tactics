@@ -31,7 +31,7 @@ const CARD_ART_POSITION_OVERRIDES = Object.freeze({
   }),
   aggro_scout_1: Object.freeze({
     artPositionY: 0.575,
-    boardArtPositionY: 0.83,
+    boardArtPositionY: 0.855,
   }),
   attrition_swarm_abomination_1: Object.freeze({
     artPositionY: 0.25,
