@@ -285,6 +285,7 @@ export default class BattleScene extends Phaser.Scene {
     this.playerHpText = null;
     this.enemyHeroPanel = null;
     this.playerHeroPanel = null;
+    this.playerMulliganControlText = null;
     this.enemyInitiativeIcon = null;
     this.playerInitiativeIcon = null;
     this.enemyActionSlotBadge = null;
@@ -1395,6 +1396,12 @@ export default class BattleScene extends Phaser.Scene {
     const playerPanel = this.add.rectangle(width * 0.5, playerHero.centerY, panelWidth, playerHero.h, 0x111827, HERO_PANEL_FILL_ALPHA).setStrokeStyle(2, 0x60a5fa, HERO_PANEL_STROKE_ALPHA);
     this.enemyHeroPanel = enemyPanel;
     this.playerHeroPanel = playerPanel;
+    playerPanel
+      .setInteractive({ useHandCursor: true })
+      .disableInteractive();
+    playerPanel.on('pointerup', (pointer, localX, localY, event) => {
+      this.onPlayerBasePointerUp(event);
+    });
 
     const iconStyle = {
       fontFamily: 'Arial, sans-serif',
@@ -1447,6 +1454,14 @@ export default class BattleScene extends Phaser.Scene {
       color: '#f8fafc',
       fontStyle: 'bold',
     }).setOrigin(0.5, 0.5);
+
+    this.playerMulliganControlText = this.add.text(playerPanel.x, playerPanel.y, '', {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: `${Math.max(15, Math.floor(playerHero.h * 0.32))}px`,
+      color: '#fffbeb',
+      fontStyle: 'bold',
+      align: 'center',
+    }).setOrigin(0.5).setDepth(123).setVisible(false);
 
     this.updateActionSlotBadge();
   }
@@ -1594,10 +1609,7 @@ export default class BattleScene extends Phaser.Scene {
       this.onActionButtonPointerDown();
     });
     button.on('pointerup', () => {
-      if (this.openingMulliganPending) {
-        this.confirmOpeningMulligan();
-        return;
-      }
+      if (this.openingMulliganPending) return;
       if (this.targetingState) {
         this.confirmTargetingSelection();
         return;
@@ -2980,6 +2992,42 @@ export default class BattleScene extends Phaser.Scene {
     performOpeningMulligan(this.gameState, 'enemy', selectedIds);
   }
 
+  getOpeningMulliganActionLabel() {
+    const count = this.selectedMulliganCardIds.length;
+    return count > 0
+      ? translateActive('ui.battle.mulligan', 'MULLIGAN {count}', { count })
+      : translateActive('ui.battle.keepHand', 'KEEP HAND');
+  }
+
+  updatePlayerBaseMulliganControl() {
+    const pending = Boolean(this.openingMulliganPending);
+    if (this.playerMulliganControlText) {
+      this.playerMulliganControlText
+        .setText(pending ? this.getOpeningMulliganActionLabel() : '')
+        .setVisible(pending);
+    }
+
+    if (!this.playerHeroPanel) return;
+    if (pending) {
+      if (!this.playerHeroPanel.input) {
+        this.playerHeroPanel.setInteractive({ useHandCursor: true });
+      } else {
+        this.playerHeroPanel.input.enabled = true;
+      }
+      return;
+    }
+
+    if (this.playerHeroPanel.input) {
+      this.playerHeroPanel.disableInteractive();
+    }
+  }
+
+  onPlayerBasePointerUp(event) {
+    if (!this.openingMulliganPending) return;
+    event?.stopPropagation?.();
+    this.confirmOpeningMulligan();
+  }
+
   toggleOpeningMulliganCard(cardId, { showPreview = true } = {}) {
     const card = this.gameState.player.hand.find((item) => item.id === cardId);
     if (!card) return;
@@ -3047,13 +3095,10 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   updateActionButtonLabel() {
+    this.updatePlayerBaseMulliganControl();
     if (!this.actionButton) return;
     if (this.openingMulliganPending) {
-      const count = this.selectedMulliganCardIds.length;
-      this.actionButton.setVisible(true);
-      this.actionButton.setText(count > 0 ? translateActive('ui.battle.mulligan', 'MULLIGAN {count}', { count }) : translateActive('ui.battle.keepHand', 'KEEP HAND'));
-      this.actionButton.setStyle({ backgroundColor: '#78350f', color: '#fffbeb' });
-      this.actionButton.setStroke('#f59e0b', 2);
+      this.actionButton.setVisible(false);
       this.passHoldToSurrenderEnabled = false;
       this.cancelPassHoldToSurrender();
       return;

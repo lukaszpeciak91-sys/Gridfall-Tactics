@@ -80,7 +80,9 @@ test('outside taps clear selection without intercepting board, pass, or card inp
   assert.match(source, /this\.bottomControlViews\.some\(\(control\) => \[control\.backing, control\.text\]/);
   assert.match(source, /getBoardCellFromPointerUp\(pointer, currentlyOver = \[\]\) \{[\s\S]*this\.boardCells\.find\(\(cell\) => overObjects\.includes\(cell\.background\)/);
   assert.match(source, /isBoardCellTapReservedForCardAction\(boardIndex, selectedCard\) \{\s*if \(this\.targetingState\) \{\s*return this\.isValidTarget\(boardIndex, this\.targetingState\.targetType, this\.targetingState\.targetIndexes, this\.targetingState\.targetConstraint\);\s*\}\s*if \(!this\.isUnitCard\(selectedCard\)\) \{\s*return true;\s*\}\s*return canPlayOrRedeploy\(this\.gameState, 'player', selectedCard\.id, boardIndex\)\.ok;\s*\}/);
-  assert.match(source, /button\.on\('pointerup', \(\) => \{\s*if \(this\.openingMulliganPending\) \{\s*this\.confirmOpeningMulligan\(\);\s*return;\s*\}\s*if \(this\.targetingState\) \{\s*this\.confirmTargetingSelection\(\);\s*return;\s*\}\s*this\.resolvePassTurn\(\);\s*\}\);/);
+  assert.match(source, /button\.on\('pointerup', \(\) => \{\s*if \(this\.openingMulliganPending\) return;\s*if \(this\.targetingState\) \{\s*this\.confirmTargetingSelection\(\);\s*return;\s*\}\s*this\.resolvePassTurn\(\);\s*\}\);/);
+  assert.match(source, /playerPanel\.on\('pointerup', \(pointer, localX, localY, event\) => \{\s*this\.onPlayerBasePointerUp\(event\);\s*\}\);/);
+  assert.match(source, /onPlayerBasePointerUp\(event\) \{\s*if \(!this\.openingMulliganPending\) return;\s*event\?\.stopPropagation\?\.\(\);\s*this\.confirmOpeningMulligan\(\);\s*\}/);
   assert.match(source, /background\.on\('pointerdown', \(\) => \{\s*this\.onBoardCellPointerDown\(boardIndex\);\s*\}\);/);
   assert.match(source, /background\.on\('pointerup', \(pointer\) => \{\s*this\.onBoardCellPointerUp\(boardIndex, pointer\);\s*\}\);/);
 });
