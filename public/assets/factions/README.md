@@ -50,10 +50,20 @@ Gameplay card illustrations must not be stored under `public/assets/factions/`. 
 
 - Filename: `preview.webp`
 - Format: WebP
-- Recommended size: `1024x576 px`
-- Orientation: landscape banner style
-- Composition: keep important content centered so compact cards can crop safely
-- Text: avoid baked-in text unless it is intentional artwork
+- Source generation format: `1920x1080` (`16:9`)
+- Runtime export: `preview.webp`
+- Runtime path: `public/assets/factions/<faction-id>/preview.webp`
+- Orientation: landscape faction-poster banner
+- Runtime crop: rendered with cover-crop, so mobile faction-select cards show only part of the original image
+- Text: avoid baked-in text; faction name, flavor text, and gameplay chips are UI-rendered
+
+## Banner design standard
+
+Faction banners are faction posters, not illustrations. They should sell the civilization instantly by communicating identity, emotional tone, world fantasy, and uniqueness before gameplay details. Use one dominant visual idea and one dominant civilization symbol; avoid battle scenes, character lineups, multiple heroes, or attempts to explain the entire faction.
+
+Preferred poster structure: civilization icon/symbol on the left and civilization world/context on the right. Keep the primary symbol recognizable after a heavy mobile crop. Critical storytelling elements should stay inside the central 60% of the source image, sit lower than traditional key art, and read as large silhouettes rather than distant horizon detail.
+
+Production uses high-resolution `1920x1080` source art because runtime faction cards cover-crop `preview.webp`; compact mobile cards display only a cropped portion of the original banner. Banner readability takes priority over full-image beauty.
 
 ## Runtime behavior
 

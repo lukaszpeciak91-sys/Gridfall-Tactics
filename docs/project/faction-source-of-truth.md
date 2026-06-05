@@ -15,6 +15,20 @@ Gridfall Tactics currently has **6 full base gameplay factions**:
 
 `attrition-swarm` is a full permanent base faction, not a temporary variant. All six current factions are base gameplay factions. Future armies may be presentation or thematic expansions built from these mechanical bases, but the current faction mechanics, IDs, card IDs, and card descriptions remain the base source.
 
+
+## Presentation identity freeze
+
+These presentation identities are the current lore/art direction source for faction-level banners and UI copy. They do not alter gameplay ids, card ids, decks, or rules.
+
+| Faction id | Presentation identity | Frozen direction |
+| --- | --- | --- |
+| `aggro` | Porcelain Court | Immortal aristocrats in porcelain bodies harvest humanity into serum; three centuries of etiquette and atrocities. |
+| `tank` | Empire of the Golden Sun | Reptilian solar empire led by a fanatical emperor; extinction through prophecy and religious certainty. |
+| `control` | Orden der Glasköpfe | Techno-occult catastrophe of heads preserved in jars, searching for a signal to retune reality. |
+| `swarm` | Spore Choir | Planetary superorganism where all life is merged into one consciousness and mutates endlessly. |
+| `wardens` | Mammoth Clans | Eternal ice-age mammoth migration civilization, the last warmth against the cosmic Frost. |
+| `attrition-swarm` | Gravehearts | Humanity trapped after New Year's Eve 1999 in memory decay and endless repetition; civilization-wide confusion rather than necromancy. |
+
 ## Runtime source of truth
 
 - `src/data/factions/index.js` is the runtime faction registry and defines the runtime faction order returned by `getFactionKeys()`.
