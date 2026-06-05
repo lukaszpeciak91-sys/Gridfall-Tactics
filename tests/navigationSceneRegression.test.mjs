@@ -164,6 +164,30 @@ test('MainMenuScene keeps primary buttons and uses shared bottom navigation cont
 });
 
 
+test('main menu debug gear opens isolated art debug mode selection flow', () => {
+  const mainSource = readScene('src/main.js');
+  const menuSource = readScene('src/scenes/MainMenuScene.js');
+  const modeSelectSource = readScene('src/scenes/ArtDebugModeSelectScene.js');
+  const boardDebugSource = readScene('src/scenes/BoardUnitArtViewportDebugScene.js');
+
+  assert.match(mainSource, /import ArtDebugModeSelectScene from '\.\/scenes\/ArtDebugModeSelectScene\.js';/);
+  assert.match(mainSource, /import ArtViewportDebugScene from '\.\/scenes\/ArtViewportDebugScene\.js';/);
+  assert.match(mainSource, /import BoardUnitArtViewportDebugScene from '\.\/scenes\/BoardUnitArtViewportDebugScene\.js';/);
+  assert.match(mainSource, /RulesPanelScene, ArtDebugModeSelectScene, ArtViewportDebugScene, BoardUnitArtViewportDebugScene/);
+  assert.match(menuSource, /icon\.on\('pointerup', \(\) => \{[\s\S]*this\.scene\.start\('ArtDebugModeSelectScene'\)/);
+  assert.match(modeSelectSource, /super\('ArtDebugModeSelectScene'\)/);
+  assert.match(modeSelectSource, /'Hand \/ Inspect Debug'/);
+  assert.match(modeSelectSource, /this\.scene\.start\('ArtViewportDebugScene'\)/);
+  assert.match(modeSelectSource, /'Board Unit Debug'/);
+  assert.match(modeSelectSource, /this\.scene\.start\('BoardUnitArtViewportDebugScene'\)/);
+  assert.match(modeSelectSource, /'Back'/);
+  assert.match(modeSelectSource, /this\.scene\.start\('MainMenuScene'\)/);
+  assert.match(boardDebugSource, /super\('BoardUnitArtViewportDebugScene'\)/);
+  assert.match(boardDebugSource, /'Board Unit Art Debug'/);
+  assert.match(boardDebugSource, /'Stage 1 placeholder'/);
+  assert.match(boardDebugSource, /this\.scene\.start\('ArtDebugModeSelectScene'\)/);
+});
+
 test('MainMenuScene restores full menu state for direct returns and abandoned start-logo transitions', () => {
   const source = readScene('src/scenes/MainMenuScene.js');
   const imageButtonSource = readScene('src/ui/imageButton.js');
