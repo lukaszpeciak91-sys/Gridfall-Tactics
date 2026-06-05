@@ -204,4 +204,19 @@ export function getCardArtPositionY(cardOrCardId) {
   return getCardArtPositionOverride(cardOrCardId)?.artPositionY ?? null;
 }
 
+export function getCardBoardArtPositionY(cardOrCardId) {
+  const cardId = typeof cardOrCardId === 'string'
+    ? cardOrCardId
+    : cardOrCardId?.id;
+  if (!cardId) return null;
+
+  const override = CARD_ART_POSITION_OVERRIDES[String(cardId)];
+  if (!override) return null;
+
+  const boardArtPositionY = Number(override.boardArtPositionY);
+  if (!Number.isFinite(boardArtPositionY)) return null;
+
+  return Math.min(1, Math.max(0, boardArtPositionY));
+}
+
 export { CARD_ART_POSITION_OVERRIDES };
