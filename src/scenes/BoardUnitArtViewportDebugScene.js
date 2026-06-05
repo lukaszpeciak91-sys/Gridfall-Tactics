@@ -81,6 +81,7 @@ export default class BoardUnitArtViewportDebugScene extends Phaser.Scene {
     this.defaultY01 = BOARD_CARD_ARTWORK_PLAYER_CROP_POSITION_Y;
     this.previewOwner = 'player';
     this.previewNodes = [];
+    this.pendingRecordsByCardId = new Map();
     this.statusClearEvent = null;
   }
 
@@ -105,6 +106,8 @@ export default class BoardUnitArtViewportDebugScene extends Phaser.Scene {
       this.input.keyboard?.off('keydown-BACKSPACE', this.onBackRequested);
       this.statusClearEvent?.remove(false);
       this.statusClearEvent = null;
+      this.fallbackExportText?.destroy();
+      this.fallbackExportText = null;
       this.clearPreview();
       this.onBackRequested = null;
     });
@@ -155,7 +158,7 @@ export default class BoardUnitArtViewportDebugScene extends Phaser.Scene {
       wordWrap: { width: width - 32 },
     }).setOrigin(0.5);
 
-    this.modeNoticeLabel = this.add.text(width * 0.5, selectorY + 42, 'Board Unit Debug • authoring preview only • export disabled', {
+    this.modeNoticeLabel = this.add.text(width * 0.5, selectorY + 42, 'Board Unit Debug • authoring preview only • exports shared board crop Y', {
       fontFamily: 'Arial, sans-serif',
       fontSize: '11px',
       color: '#93c5fd',
@@ -189,8 +192,8 @@ export default class BoardUnitArtViewportDebugScene extends Phaser.Scene {
 
     const bottomRowY = actionRowY + 40 / 2 + controlsRowGap + 20;
     const bottomButtonWidth = Math.min(132, (width - 32) / 3);
-    this.createButton(width * 0.5 - bottomButtonWidth - 8, bottomRowY, bottomButtonWidth, 40, 'Add', () => this.showExportNotImplemented(), { fontSize: '16px', fillColor: 0x334155, hoverColor: 0x475569 });
-    this.createButton(width * 0.5, bottomRowY, bottomButtonWidth, 40, 'Copy All', () => this.showExportNotImplemented(), { fontSize: '16px', fillColor: 0x334155, hoverColor: 0x475569 });
+    this.createButton(width * 0.5 - bottomButtonWidth - 8, bottomRowY, bottomButtonWidth, 40, 'Add', () => { this.addCurrentRecord(); }, { fontSize: '16px' });
+    this.createButton(width * 0.5, bottomRowY, bottomButtonWidth, 40, 'Copy All', () => { void this.copyAllRecords(); }, { fontSize: '16px' });
     this.createButton(width * 0.5 + bottomButtonWidth + 8, bottomRowY, bottomButtonWidth, 40, 'Back', () => this.returnToModeSelect(), { fontSize: '16px', fillColor: 0x334155, hoverColor: 0x475569 });
 
     this.statusLabel = this.add.text(width * 0.5, previewBottom - 8, '', {
@@ -255,6 +258,68 @@ export default class BoardUnitArtViewportDebugScene extends Phaser.Scene {
     this.renderPreview();
   }
 
+  buildRecordForCard(cardId) {
+    return {
+      cardId,
+      shared: true,
+      runtime: { boardArtPositionY01: Number(this.currentY01.toFixed(3)) },
+    };
+  }
+
+  createExportPayload(records) {
+    return { version: 1, tool: 'art-viewport-debug', records };
+  }
+
+  copyWithFallback(text, successMessage) {
+    const canUseClipboard = typeof navigator !== 'undefined' && navigator?.clipboard?.writeText;
+    if (canUseClipboard) {
+      return navigator.clipboard.writeText(text)
+        .then(() => this.setStatus(successMessage))
+        .catch((error) => {
+          this.showFallbackExport(text, `Clipboard failed: ${error?.message ?? 'unknown error'}`);
+        });
+    }
+
+    this.showFallbackExport(text, 'Clipboard API unavailable. Copy text from fallback.');
+    return Promise.resolve();
+  }
+
+  showFallbackExport(text, message) {
+    this.setStatus(message, true);
+    this.fallbackExportText?.destroy();
+    this.fallbackExportText = this.add.text(this.scale.width * 0.5, this.scale.height - 336, text, {
+      fontFamily: 'monospace',
+      fontSize: '12px',
+      color: '#fde68a',
+      align: 'left',
+      backgroundColor: '#1f2937',
+      padding: { x: 8, y: 6 },
+      wordWrap: { width: this.scale.width - 24 },
+    }).setOrigin(0.5, 0).setDepth(1000);
+  }
+
+  addCurrentRecord() {
+    if (!this.cardEntries.length) return Promise.resolve();
+    const cardId = String(this.cardEntries[this.selectedIndex]?.card?.id ?? '');
+    if (!cardId) {
+      this.setStatus('Cannot add: selected card has no id.', true);
+      return Promise.resolve();
+    }
+
+    const record = this.buildRecordForCard(cardId);
+    this.pendingRecordsByCardId.set(cardId, record);
+    this.setStatus(`Added board record (${this.pendingRecordsByCardId.size})`);
+    return Promise.resolve();
+  }
+
+  copyAllRecords() {
+    const records = Array.from(this.pendingRecordsByCardId.values())
+      .sort((a, b) => String(a.cardId).localeCompare(String(b.cardId)));
+    const payload = this.createExportPayload(records);
+    const text = JSON.stringify(payload, null, 2);
+    return this.copyWithFallback(text, 'Copied all board records');
+  }
+
   syncSelectedCardState() {
     if (!this.cardEntries.length) {
       this.cardLabel?.setText('No cards found');
@@ -272,6 +337,10 @@ export default class BoardUnitArtViewportDebugScene extends Phaser.Scene {
     const factionLabel = getFactionPresentationName(faction?.id, getActiveLocale(), faction?.name ?? selected.factionKey);
     const localizedDisplayName = getCardDisplayName(card, getActiveLocale()) ?? card?.name ?? 'Unknown';
     const cardNumberLabel = Number.isInteger(card?.cardNumber) ? `#${card.cardNumber}` : '#?';
+
+    const existingRecord = this.pendingRecordsByCardId.get(String(card.id));
+    const existingY = existingRecord?.runtime?.boardArtPositionY01;
+    this.currentY01 = Number.isFinite(existingY) ? clamp01(existingY) : this.defaultY01;
 
     this.cardLabel?.setText(`${factionLabel} ${deckPositionLabel} • ${cardNumberLabel} • ${card.id} • ${localizedDisplayName}`);
     this.updateValueLabel();
@@ -422,9 +491,6 @@ export default class BoardUnitArtViewportDebugScene extends Phaser.Scene {
     return container;
   }
 
-  showExportNotImplemented() {
-    this.setStatus('Board export not implemented yet.', true);
-  }
 
   setStatus(message, isError = false) {
     this.statusClearEvent?.remove(false);
