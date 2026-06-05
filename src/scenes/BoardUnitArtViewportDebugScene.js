@@ -251,7 +251,6 @@ export default class BoardUnitArtViewportDebugScene extends Phaser.Scene {
     this.defaultY01 = owner === 'enemy'
       ? BOARD_CARD_ARTWORK_ENEMY_CROP_POSITION_Y
       : BOARD_CARD_ARTWORK_PLAYER_CROP_POSITION_Y;
-    this.currentY01 = this.defaultY01;
     this.updateValueLabel();
     this.renderPreview();
   }
