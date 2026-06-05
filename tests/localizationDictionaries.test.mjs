@@ -41,6 +41,38 @@ test('faction select descriptions cover every runtime faction key in English and
   }
 });
 
+test('faction select chip tag localization matches current English and Polish labels', () => {
+  const expectedEn = {
+    Rush: 'Rush',
+    Burst: 'Burst',
+    Armor: 'Armor',
+    Sustain: 'Sustain',
+    Disrupt: 'Disrupt',
+    Move: 'Move',
+    Swarm: 'Swarm',
+    Growth: 'Growth',
+    Attrition: 'Attrition',
+    Return: 'Return',
+    Formation: 'Formation',
+  };
+  const expectedPl = {
+    Rush: 'Szarża',
+    Burst: 'Wybuch',
+    Armor: 'Pancerz',
+    Sustain: 'Utrzymanie',
+    Disrupt: 'Zakłócenia',
+    Move: 'Ruch',
+    Swarm: 'Rój',
+    Growth: 'Wzrost',
+    Attrition: 'Wyniszczenie',
+    Return: 'Powrót',
+    Formation: 'Formacja',
+  };
+
+  assert.deepEqual(getPath(en, 'ui.factionSelect.tags'), expectedEn);
+  assert.deepEqual(getPath(pl, 'ui.factionSelect.tags'), expectedPl);
+});
+
 test('retry button copy stays short in Polish without changing English', () => {
   assert.equal(getPath(en, 'ui.common.retry'), 'RETRY');
   assert.equal(getPath(pl, 'ui.common.retry'), 'PONÓW');

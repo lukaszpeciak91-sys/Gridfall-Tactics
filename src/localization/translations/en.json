@@ -301,11 +301,11 @@
         "Sustain": "Sustain",
         "Disrupt": "Disrupt",
         "Move": "Move",
-        "Tokens": "Tokens",
-        "Buffs": "Buffs",
-        "Friction": "Friction",
+        "Swarm": "Swarm",
+        "Growth": "Growth",
         "Attrition": "Attrition",
-        "Death": "Death"
+        "Return": "Return",
+        "Formation": "Formation"
       }
     },
     "settings": {

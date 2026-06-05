@@ -301,11 +301,11 @@
         "Sustain": "Utrzymanie",
         "Disrupt": "Zakłócenia",
         "Move": "Ruch",
-        "Tokens": "Tokeny",
-        "Buffs": "Wzmocnienia",
-        "Friction": "Tarcie",
-        "Attrition": "Wyczerpanie",
-        "Death": "Śmierć"
+        "Swarm": "Rój",
+        "Growth": "Wzrost",
+        "Attrition": "Wyniszczenie",
+        "Return": "Powrót",
+        "Formation": "Formacja"
       }
     },
     "settings": {

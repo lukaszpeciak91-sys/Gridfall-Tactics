@@ -190,15 +190,27 @@ test('Empire of the Golden Sun render-fit diagnostic stays inside previous prese
 });
 
 
-test('faction select metadata covers Attrition Swarm without Aggro fallback details', () => {
+test('faction select metadata covers every faction with two updated chip tags', () => {
   const source = fs.readFileSync('src/scenes/FactionSelectScene.js', 'utf8');
   const detailsStart = source.indexOf('const FACTION_CARD_DETAILS = {');
   const detailsEnd = source.indexOf('const CARD_SCROLL_DRAG_THRESHOLD');
   const detailsSource = source.slice(detailsStart, detailsEnd);
+  const expectedTags = new Map([
+    ['Aggro', ['Rush', 'Burst']],
+    ['Tank', ['Armor', 'Sustain']],
+    ['Control', ['Disrupt', 'Move']],
+    ['Swarm', ['Swarm', 'Growth']],
+    ['Wardens', ['Armor', 'Formation']],
+    ['Attrition Swarm', ['Attrition', 'Return']],
+  ]);
 
-  assert.match(detailsSource, /'Attrition Swarm': \{/);
-  assert.match(detailsSource, /tags: \['Attrition', 'Death'\]/);
-  assert.match(detailsSource, /description: 'Death value and recursion\.'/);
+  for (const [factionKey, tags] of expectedTags) {
+    const factionSource = detailsSource.slice(
+      detailsSource.indexOf(`${factionKey.includes(' ') ? `'${factionKey}'` : factionKey}: {`),
+    );
+    assert.match(factionSource, new RegExp(`tags: \\[${tags.map((tag) => `'${tag}'`).join(', ')}\\]`), factionKey);
+    assert.equal(tags.length, 2, `${factionKey} should render exactly two chips`);
+  }
 });
 
 test('faction presentation helper falls back safely when display metadata is incomplete', async () => {
