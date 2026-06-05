@@ -4,9 +4,14 @@ const CARD_ART_POSITION_OVERRIDES = Object.freeze({
   }),
   aggro_berserker_1: Object.freeze({
     artPositionY: 0.575,
+    boardArtPositionY: 0.78,
   }),
   aggro_flanker_1: Object.freeze({
     artPositionY: 0.65,
+    boardArtPositionY: 0.905,
+  }),
+  aggro_glass_cannon_1: Object.freeze({
+    boardArtPositionY: 0.655,
   }),
   aggro_full_attack_1: Object.freeze({
     artPositionY: 0.325,
@@ -19,18 +24,22 @@ const CARD_ART_POSITION_OVERRIDES = Object.freeze({
   }),
   aggro_runner_1: Object.freeze({
     artPositionY: 0.45,
+    boardArtPositionY: 0.455,
   }),
   aggro_rush_1: Object.freeze({
     artPositionY: 0.35,
   }),
   aggro_scout_1: Object.freeze({
     artPositionY: 0.575,
+    boardArtPositionY: 0.83,
   }),
   attrition_swarm_abomination_1: Object.freeze({
     artPositionY: 0.25,
+    boardArtPositionY: 0.355,
   }),
   attrition_swarm_carrier_1: Object.freeze({
     artPositionY: 0.45,
+    boardArtPositionY: 0.555,
   }),
   attrition_swarm_funeral_pyre_1: Object.freeze({
     artPositionY: 0.25,
@@ -40,12 +49,14 @@ const CARD_ART_POSITION_OVERRIDES = Object.freeze({
   }),
   attrition_swarm_husk_1: Object.freeze({
     artPositionY: 0.275,
+    boardArtPositionY: 0.38,
   }),
   attrition_swarm_infect_1: Object.freeze({
     artPositionY: 0.8,
   }),
   attrition_swarm_leech_1: Object.freeze({
     artPositionY: 0.2,
+    boardArtPositionY: 0.205,
   }),
   attrition_swarm_rise_again_1: Object.freeze({
     artPositionY: 0.25,
@@ -55,6 +66,7 @@ const CARD_ART_POSITION_OVERRIDES = Object.freeze({
   }),
   control_controller_1: Object.freeze({
     artPositionY: 0.3,
+    boardArtPositionY: 0.205,
   }),
   control_disruptor_1: Object.freeze({
     artPositionY: 0.35,
@@ -64,6 +76,7 @@ const CARD_ART_POSITION_OVERRIDES = Object.freeze({
   }),
   control_hacker_1: Object.freeze({
     artPositionY: 0.275,
+    boardArtPositionY: 0.28,
   }),
   control_jam_signal_1: Object.freeze({
     artPositionY: 0.225,
@@ -79,9 +92,11 @@ const CARD_ART_POSITION_OVERRIDES = Object.freeze({
   }),
   swarm_alpha_1: Object.freeze({
     artPositionY: 0.125,
+    boardArtPositionY: 0.255,
   }),
   swarm_brood_1: Object.freeze({
     artPositionY: 0.4,
+    boardArtPositionY: 0.38,
   }),
   swarm_flood_1: Object.freeze({
     artPositionY: 0.35,
@@ -103,6 +118,7 @@ const CARD_ART_POSITION_OVERRIDES = Object.freeze({
   }),
   swarm_spitter_1: Object.freeze({
     artPositionY: 0.45,
+    boardArtPositionY: 0.505,
   }),
   swarm_swarm_attack_1: Object.freeze({
     artPositionY: 0.475,
@@ -118,6 +134,7 @@ const CARD_ART_POSITION_OVERRIDES = Object.freeze({
   }),
   tank_heavy_1: Object.freeze({
     artPositionY: 0.225,
+    boardArtPositionY: 0.23,
   }),
   tank_last_stand_1: Object.freeze({
     artPositionY: 0.175,
@@ -130,6 +147,7 @@ const CARD_ART_POSITION_OVERRIDES = Object.freeze({
   }),
   tank_shieldbearer_1: Object.freeze({
     artPositionY: 0.275,
+    boardArtPositionY: 0.23,
   }),
   tank_stability_1: Object.freeze({
     artPositionY: 0.2,
@@ -137,8 +155,15 @@ const CARD_ART_POSITION_OVERRIDES = Object.freeze({
   tank_wall_1: Object.freeze({
     artPositionY: 0.425,
   }),
+  wardens_bastion_guard_1: Object.freeze({
+    boardArtPositionY: 0.88,
+  }),
   wardens_halberdier_1: Object.freeze({
     artPositionY: 0.15,
+    boardArtPositionY: 0.13,
+  }),
+  wardens_watch_captain_1: Object.freeze({
+    boardArtPositionY: 0.73,
   }),
   wardens_hold_the_line_1: Object.freeze({
     artPositionY: 0.2,
