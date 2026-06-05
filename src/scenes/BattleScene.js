@@ -1414,43 +1414,21 @@ export default class BattleScene extends Phaser.Scene {
     this.enemyInitiativeIcon.setDepth(120);
     this.playerInitiativeIcon.setDepth(120);
 
-    this.enemyActionSlotBadge = this.createActionSlotBadge({
-      panel: enemyPanel,
-      panelWidth,
-      panelHeight: topHero.h,
-      align: 'left',
-    });
-    this.playerActionSlotBadge = this.createActionSlotBadge({
-      panel: playerPanel,
-      panelWidth,
-      panelHeight: playerHero.h,
-      align: 'right',
-    });
+    this.enemyHeroTitleText = null;
+    this.playerHeroTitleText = null;
+    this.enemyActionSlotBadge = null;
+    this.playerActionSlotBadge = null;
 
-    this.enemyHeroTitleText = this.add.text(enemyPanel.x, enemyPanel.y - topHero.h * 0.14, translateActive('ui.battle.enemyHero', 'ENEMY HERO'), {
+    this.enemyHpText = this.add.text(enemyPanel.x, enemyPanel.y, '', {
       fontFamily: 'Arial, sans-serif',
-      fontSize: `${Math.max(16, Math.floor(topHero.h * 0.32))}px`,
-      color: '#f87171',
-      fontStyle: 'bold',
-    }).setOrigin(0.5, 0.5);
-
-    this.enemyHpText = this.add.text(enemyPanel.x, enemyPanel.y + topHero.h * 0.2, '', {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: `${Math.max(18, Math.floor(topHero.h * 0.38))}px`,
+      fontSize: `${Math.max(22, Math.floor(topHero.h * 0.54))}px`,
       color: '#f8fafc',
       fontStyle: 'bold',
     }).setOrigin(0.5, 0.5);
 
-    this.playerHeroTitleText = this.add.text(playerPanel.x, playerPanel.y - playerHero.h * 0.14, translateActive('ui.battle.playerHero', 'PLAYER HERO'), {
+    this.playerHpText = this.add.text(playerPanel.x, playerPanel.y, '', {
       fontFamily: 'Arial, sans-serif',
-      fontSize: `${Math.max(14, Math.floor(playerHero.h * 0.3))}px`,
-      color: '#60a5fa',
-      fontStyle: 'bold',
-    }).setOrigin(0.5, 0.5);
-
-    this.playerHpText = this.add.text(playerPanel.x, playerPanel.y + playerHero.h * 0.2, '', {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: `${Math.max(16, Math.floor(playerHero.h * 0.36))}px`,
+      fontSize: `${Math.max(20, Math.floor(playerHero.h * 0.52))}px`,
       color: '#f8fafc',
       fontStyle: 'bold',
     }).setOrigin(0.5, 0.5);
@@ -1467,79 +1445,10 @@ export default class BattleScene extends Phaser.Scene {
     this.updateActionSlotBadge();
   }
 
-  createActionSlotBadge({ panel, panelWidth, panelHeight, align }) {
-    const badgeWidth = Math.max(58, Math.min(82, panelWidth * 0.2));
-    const badgeHeight = Math.max(20, Math.min(28, panelHeight * 0.48));
-    const insetX = Math.max(8, panelWidth * 0.045);
-    const x = align === 'left'
-      ? panel.x - panelWidth / 2 + insetX + badgeWidth / 2
-      : panel.x + panelWidth / 2 - insetX - badgeWidth / 2;
-    const y = panel.y;
-
-    const backing = this.add.rectangle(x, y, badgeWidth, badgeHeight, 0x1e293b, 0.92)
-      .setStrokeStyle(2, 0xfacc15, 0.78)
-      .setDepth(121)
-      .setVisible(false);
-    const text = this.add.text(x, y, translateActive('ui.battle.actOne', 'ACT 1/2'), {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: `${Math.max(10, Math.floor(badgeHeight * 0.48))}px`,
-      color: '#fde68a',
-      fontStyle: 'bold',
-      align: 'center',
-    }).setOrigin(0.5).setDepth(122).setVisible(false);
-
-    return { backing, text };
-  }
-
-  getActionSlotBadgeState() {
-    if (!this.gameState
-      || this.gameState.winner
-      || this.battleResultModalShown
-      || this.battleResultModalPending
-      || this.openingMulliganPending) {
-      return null;
-    }
-
-    const firstActor = this.gameState.firstActor;
-    const firstActorUsed = firstActor === 'player' ? this.playerActionUsed : this.enemyActionUsed;
-    const secondActor = firstActor === 'player' ? 'enemy' : 'player';
-    const secondActorUsed = secondActor === 'player' ? this.playerActionUsed : this.enemyActionUsed;
-
-    if (this.isFlowResolving) {
-      if (!firstActorUsed && firstActor === 'enemy') {
-        return { side: firstActor, label: translateActive('ui.battle.actOne', 'ACT 1/2') };
-      }
-
-      if (firstActorUsed && !secondActorUsed && secondActor === 'enemy') {
-        return { side: secondActor, label: translateActive('ui.battle.actTwo', 'ACT 2/2') };
-      }
-
-      return null;
-    }
-
-    if (!firstActorUsed) {
-      return { side: firstActor, label: translateActive('ui.battle.actOne', 'ACT 1/2') };
-    }
-
-    if (!secondActorUsed) {
-      return { side: secondActor, label: translateActive('ui.battle.actTwo', 'ACT 2/2') };
-    }
-
-    return null;
-  }
-
   updateActionSlotBadge() {
-    const badgeState = this.getActionSlotBadgeState();
-
-    [
-      ['player', this.playerActionSlotBadge],
-      ['enemy', this.enemyActionSlotBadge],
-    ].forEach(([side, badge]) => {
-      if (!badge) return;
-      const isVisible = badgeState?.side === side && !(side === 'player' && this.isPlayerBaseActionStateActive());
-      badge.backing.setVisible(isVisible);
-      badge.text.setVisible(isVisible);
-      if (isVisible) badge.text.setText(badgeState.label);
+    [this.playerActionSlotBadge, this.enemyActionSlotBadge].forEach((badge) => {
+      badge?.backing?.setVisible(false);
+      badge?.text?.setVisible(false);
     });
   }
 
@@ -3535,11 +3444,11 @@ export default class BattleScene extends Phaser.Scene {
 
     if (this.playerHeroPanel) {
       const playerBaseActionStateActive = this.isPlayerBaseActionStateActive();
-      this.playerHeroPanel.setStrokeStyle(playerBaseActionStateActive || playerActive ? 4 : 2, playerBaseActionStateActive || playerActive ? 0xfacc15 : 0x60a5fa, playerBaseActionStateActive || playerActive ? HERO_PANEL_ACTIVE_STROKE_ALPHA : HERO_PANEL_STROKE_ALPHA);
+      this.playerHeroPanel.setStrokeStyle(playerBaseActionStateActive || playerActive ? 3 : 2, 0x60a5fa, playerBaseActionStateActive || playerActive ? HERO_PANEL_ACTIVE_STROKE_ALPHA : HERO_PANEL_STROKE_ALPHA);
       this.playerHeroPanel.setFillStyle(0x111827, playerBaseActionStateActive || playerActive ? HERO_PANEL_ACTIVE_FILL_ALPHA : HERO_PANEL_FILL_ALPHA);
     }
     if (this.enemyHeroPanel) {
-      this.enemyHeroPanel.setStrokeStyle(enemyActive ? 4 : 2, enemyActive ? 0xfacc15 : 0xf87171, enemyActive ? HERO_PANEL_ACTIVE_STROKE_ALPHA : HERO_PANEL_STROKE_ALPHA);
+      this.enemyHeroPanel.setStrokeStyle(enemyActive ? 3 : 2, 0xf87171, enemyActive ? HERO_PANEL_ACTIVE_STROKE_ALPHA : HERO_PANEL_STROKE_ALPHA);
       this.enemyHeroPanel.setFillStyle(0x111827, enemyActive ? HERO_PANEL_ACTIVE_FILL_ALPHA : HERO_PANEL_FILL_ALPHA);
     }
     if (this.playerInitiativeIcon) this.playerInitiativeIcon.setVisible(playerActive && !this.isPlayerBaseActionStateActive());
@@ -6162,8 +6071,8 @@ export default class BattleScene extends Phaser.Scene {
   refreshHeroHP() {
     if (!this.enemyHpText || !this.playerHpText) {
       const { width, topHero, playerHero } = this.layout;
-      this.enemyHpText = this.add.text(width * 0.5, topHero.centerY + topHero.h * 0.2, '', { fontFamily: 'Arial, sans-serif', fontSize: `${Math.max(18, Math.floor(topHero.h * 0.38))}px`, color: '#f8fafc', fontStyle: 'bold' }).setOrigin(0.5);
-      this.playerHpText = this.add.text(width * 0.5, playerHero.centerY + playerHero.h * 0.2, '', { fontFamily: 'Arial, sans-serif', fontSize: `${Math.max(16, Math.floor(playerHero.h * 0.36))}px`, color: '#f8fafc', fontStyle: 'bold' }).setOrigin(0.5);
+      this.enemyHpText = this.add.text(width * 0.5, topHero.centerY, '', { fontFamily: 'Arial, sans-serif', fontSize: `${Math.max(22, Math.floor(topHero.h * 0.54))}px`, color: '#f8fafc', fontStyle: 'bold' }).setOrigin(0.5);
+      this.playerHpText = this.add.text(width * 0.5, playerHero.centerY, '', { fontFamily: 'Arial, sans-serif', fontSize: `${Math.max(20, Math.floor(playerHero.h * 0.52))}px`, color: '#f8fafc', fontStyle: 'bold' }).setOrigin(0.5);
     }
     this.enemyHpText.setText(`${this.gameState.enemyHP} / 12`);
     this.playerHpText.setText(`${this.gameState.playerHP} / 12`);
