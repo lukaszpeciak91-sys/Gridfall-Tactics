@@ -143,6 +143,17 @@ Mobile faction select uses an aggressive center crop. Banner readability takes p
 - Prefer large readable silhouettes over detailed scenes.
 - Successful banners are the ones whose primary symbol remains recognizable after heavy crop.
 
+### Production clarification: banner lessons and crop review
+
+These notes extend the asset specs above; they do not replace the `1920x1080` source target, `preview.webp` runtime export, or current cover-crop behavior.
+
+- Treat each banner as a crop-tested production asset, not a finished full-frame painting. Approve it only after checking the live faction-select crop and a small-size thumbnail read.
+- Build the left anchor large enough that it still reads when the UI removes edge context. If the anchor only works as a full 16:9 scene, simplify or enlarge it.
+- Put secondary civilization details behind or beside the anchor as atmosphere. They should enrich the poster without competing with the faction name, flavor text, or gameplay chips.
+- Keep the lower-left name area and upper-right chip area free of busy high-contrast detail, faces, and must-read symbols so UI text remains legible.
+- Prefer bold value grouping, clean silhouettes, and a single iconic civilization symbol over panoramic armies, lineups, or lore collages.
+- When a generated source has strong full-frame storytelling but weak mobile readability, crop, extend, or repaint the composition rather than changing the faction identity.
+
 ## Faction Visual Identities
 
 These six visual identities map onto the six current base gameplay factions. Presentation names and art direction are additive layers over the stable faction ids; they must not rename the source faction ids or imply that any current base faction is temporary.
@@ -158,6 +169,8 @@ These six visual identities map onto the six current base gameplay factions. Pre
 **Color notes:** pastel cream, blush pink, powder blue, porcelain white, antique gold, candle amber, and sharp blood-red accents.
 
 **Banner anchor:** Giant porcelain face or mask as the dominant symbol; decadent court civilization beyond.
+
+**Production clarification:** Preserve the existing rococo cruelty, etiquette, serum-harvesting, porcelain-body, and aristocratic memory-preservation language. New art should clarify that the Court is about maintained identity and cultivated atrocity, not generic dolls, cute porcelain mascots, or simple haunted-house elegance.
 
 **Updated card presentation and art-direction notes:**
 
@@ -179,6 +192,8 @@ These six visual identities map onto the six current base gameplay factions. Pre
 
 **Banner anchor:** Colossal solar emperor as the dominant symbol; imperial monuments, ranks, and city-fortresses beyond.
 
+**Latest clarification:** The Golden Sun tragedy is chosen self-extinction through prophecy: the empire interprets survival itself as disobedience to the sun. Keep prophecy, religious certainty, imperial discipline, and extinction logic in the foreground; any shocking sacrificial or body-horror detail should support that thesis rather than become the headline.
+
 ### control — Orden der Glasköpfe
 
 **Core identity:** A techno-occult catastrophe state of preserved heads in jars. Its rulers and instruments search for a signal that can retune reality, treating bodies, cities, and enemies as receivers in a broken cosmic broadcast.
@@ -190,6 +205,8 @@ These six visual identities map onto the six current base gameplay factions. Pre
 **Color notes:** cold glass green, surgical white, gunmetal, black rubber, oxidized steel, warning red optics, and sickly lab-fluid highlights.
 
 **Banner anchor:** Giant head-in-jar as the dominant symbol; signal towers, cables, and retuning infrastructure beyond.
+
+**Production clarification:** Preserve the techno-occult catastrophe and authoritarian signal-control identity. The Order should read as a cold state apparatus trying to retune reality through preserved minds, machinery, surveillance, and machine theology, not as generic robots, ordinary cyberpunk hackers, or unrelated laboratory horror.
 
 ### swarm — Spore Choir / Chór Zarodników
 
@@ -203,6 +220,8 @@ These six visual identities map onto the six current base gameplay factions. Pre
 
 **Banner anchor:** Biological nexus as the dominant symbol; living ecosystem, root networks, and merged organisms beyond.
 
+**Production clarification:** Preserve the planetary-superorganism premise. The Choir is not just a fungus faction: fungal, animal, vegetal, neural, and cosmic forms should feel like temporary expressions of one merged consciousness, with beauty and bio-horror balanced instead of reducing the faction to gross spores alone.
+
 ### wardens — Mammoth Clans / Klany Mamutów
 
 **Core identity:** A mammoth migration civilization surviving an eternal ice age. They are the last warmth against the cosmic Frost: disciplined, mobile, fortified, and built around routes, herds, fire, memory, and collective endurance.
@@ -215,6 +234,8 @@ These six visual identities map onto the six current base gameplay factions. Pre
 
 **Banner anchor:** Mammoth fortress as the dominant symbol; migration route, tundra camps, and surviving warmth beyond.
 
+**Production clarification:** Preserve the migration-civilization and last-warmth identity. The Clans should feel mobile, communal, fortified, route-based, and endurance-focused, not like a static generic barbarian tribe, a lone mammoth monster, or a simple ice-fantasy army.
+
 ### attrition-swarm — Gravehearts
 
 **Core identity:** Humanity trapped after New Year's Eve 1999. The faction is civilization-wide confusion, memory decay, and endless repetition rather than necromancy: parties, funerals, romances, dances, processions, and civic rituals continue because nobody remembers how to stop or what they originally meant.
@@ -226,6 +247,8 @@ These six visual identities map onto the six current base gameplay factions. Pre
 **Color notes:** millennium neon, moonlit blue, funeral black, velvet burgundy, bone white, wilted rose pink, graveyard green, and cemetery accents.
 
 **Banner anchor:** Endless final celebration as the dominant symbol; lost civilization, forgotten streets, and repeated rituals beyond.
+
+**Latest clarification:** Gravehearts are Y2K final-day memory decay: a civilization stuck after New Year's Eve 1999, repeating parties, funerals, romances, processions, dances, and civic rituals after their meanings have corroded. Keep melancholy, funeral culture, civic ritual, gothic romance, and dark humor, but guard against framing them primarily as romantic necromancers, elegant vampire aristocrats, or a standard undead army.
 
 **Art-direction emphasis:** Keep coffins, roses, cemetery motifs, mourning attire, gothic romance, and resurrection-adjacent imagery as residues of a civilization stuck after the turn of the millennium, but do not present the faction as polished necromancers or a standard undead army. Show memory decay and ritual confusion: a groom searching for a bride he may never have had, coffin bearers protecting a coffin whose occupant nobody remembers, dancers continuing a ceremony without understanding it, partygoers repeating a midnight countdown forever, and performers repeating traditions from corrupted memories.
 
