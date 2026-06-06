@@ -70,8 +70,8 @@ const HAND_CARD_BODY_LINE_SPACING = 3;
 const HAND_CARD_SELECTED_DEPTH = 760;
 const HAND_CARD_SELECTED_LIFT_PX = 14;
 const MULLIGAN_HAND_CARD_SELECTED_LIFT_PX = HAND_CARD_SELECTED_LIFT_PX + 3;
-const MULLIGAN_SELECTION_BORDER_WIDTH_PX = 3.5;
-const MULLIGAN_SELECTION_GLOW_STROKE_WIDTH_PX = 2;
+const MULLIGAN_SELECTION_EDGE_STROKE_WIDTH_PX = 1.25;
+const MULLIGAN_SELECTION_GLOW_STROKE_WIDTH_PX = 1.25;
 const HAND_CARD_DIM_ALPHA = 0.62;
 const HAND_CARD_SELECTED_ALPHA = 1;
 const INSPECT_CARD_STAT_BADGE_SCALE = 1.28;
@@ -6225,18 +6225,21 @@ export default class BattleScene extends Phaser.Scene {
       const frameSelectedFillColor = card.surfaceTheme?.frameSelectedFill ?? CARD_COLORS.frameSelected;
 
       this.tweens.killTweensOf(allTargets);
-      const activeFrameStrokeWidth = isMulliganSelected ? MULLIGAN_SELECTION_BORDER_WIDTH_PX : 5;
+      const activeFrameStrokeWidth = isMulliganSelected ? MULLIGAN_SELECTION_EDGE_STROKE_WIDTH_PX : 5;
       const activeGlowStrokeWidth = isMulliganSelected ? MULLIGAN_SELECTION_GLOW_STROKE_WIDTH_PX : 5;
-      const activeGlowStrokeAlpha = isMulliganSelected ? 0.78 : 0.65;
-      const activeGlowFillAlpha = isMulliganSelected ? 0.16 : 0.12;
-      const activeOutlineAlpha = isMulliganSelected ? 0.52 : 0.92;
+      const activeGlowStrokeAlpha = isMulliganSelected ? 0.24 : 0.65;
+      const activeGlowFillAlpha = isMulliganSelected ? 0.2 : 0.12;
+      const activeFrameStrokeAlpha = isMulliganSelected ? 0.24 : 1;
+      const activeOutlineAlpha = isMulliganSelected ? 0 : 0.92;
+      const activeFillAlpha = isMulliganSelected ? 1 : 0.95;
       const selectedLift = isMulliganSelected ? MULLIGAN_HAND_CARD_SELECTED_LIFT_PX : HAND_CARD_SELECTED_LIFT_PX;
 
-      card.background.setStrokeStyle(isActiveHandCard ? activeFrameStrokeWidth : 3, isActiveHandCard ? 0xfacc15 : accentColor, isActiveHandCard ? (isMulliganSelected ? 0.86 : 1) : viewCard ? 0.76 : 0.7);
-      card.background.setFillStyle(isActiveHandCard ? frameSelectedFillColor : frameFillColor, isActiveHandCard ? 0.95 : viewCard ? 0.74 : 0.48);
+      card.background.setStrokeStyle(isActiveHandCard ? activeFrameStrokeWidth : 3, isActiveHandCard ? 0xfacc15 : accentColor, isActiveHandCard ? activeFrameStrokeAlpha : viewCard ? 0.76 : 0.7);
+      card.background.setFillStyle(isActiveHandCard ? frameSelectedFillColor : frameFillColor, isActiveHandCard ? activeFillAlpha : viewCard ? 0.74 : 0.48);
+      card.glow.setBlendMode?.(isMulliganSelected && isActiveHandCard ? Phaser.BlendModes.ADD : Phaser.BlendModes.NORMAL);
       card.glow.setStrokeStyle(isActiveHandCard ? activeGlowStrokeWidth : 0, 0xfacc15, isActiveHandCard ? activeGlowStrokeAlpha : 0);
       card.glow.setFillStyle(0xfacc15, isActiveHandCard ? activeGlowFillAlpha : 0);
-      card.selectionOutline?.setStrokeStyle(isActiveHandCard ? activeGlowStrokeWidth : 0, 0xfacc15, isActiveHandCard ? activeOutlineAlpha : 0);
+      card.selectionOutline?.setStrokeStyle(isActiveHandCard && !isMulliganSelected ? activeGlowStrokeWidth : 0, 0xfacc15, isActiveHandCard ? activeOutlineAlpha : 0);
       card.label.setFontSize(card.baseFontSize);
       card.label.setColor(viewCard ? CARD_COLORS.ivoryText : CARD_COLORS.mutedText);
 
