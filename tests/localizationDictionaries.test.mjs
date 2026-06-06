@@ -117,6 +117,7 @@ test('invalid action feedback copy is localized for English and Polish', () => {
     fullHp: 'Already full HP',
     moveBlocked: 'Move blocked',
     effectBlocked: 'Effect blocked',
+    effectCardPlayBlocked: 'You cannot play effect cards.',
     immune: 'Immune',
     noAdjacentAlly: 'No adjacent ally',
     noFallenUnit: 'No fallen unit',
@@ -134,6 +135,7 @@ test('invalid action feedback copy is localized for English and Polish', () => {
     fullHp: 'Pełne HP',
     moveBlocked: 'Ruch zablokowany',
     effectBlocked: 'Efekt zablokowany',
+    effectCardPlayBlocked: 'Nie możesz zagrać karty efektu.',
     immune: 'Odporność',
     noAdjacentAlly: 'Brak sąsiedniego sojusznika',
     noFallenUnit: 'Brak poległej jednostki',
@@ -225,10 +227,10 @@ test('selected localized card texts use enemy board-unit markers without changin
 
   assert.equal(en.cards.aggro_runner_1.textShort, 'Open line: enemy base loses 2 HP.');
   assert.equal(en.cards.control_drone_1.textShort, 'On death: enemy base loses 1 HP.');
-  assert.equal(en.cards.control_disruptor_1.textShort, "On play: cancel the opponent's next effect.");
+  assert.equal(en.cards.control_disruptor_1.textShort, "Until combat, opponent cannot play effect cards.");
   assert.equal(pl.cards.aggro_runner_1.textShort, 'Otwarta linia: baza wroga traci 2 HP.');
   assert.equal(pl.cards.control_drone_1.textShort, 'Po śmierci: baza wroga traci 1 HP.');
-  assert.equal(pl.cards.control_disruptor_1.textShort, 'Po zagraniu: anuluj następny efekt przeciwnika.');
+  assert.equal(pl.cards.control_disruptor_1.textShort, 'Do walki przeciwnik nie może zagrać kart efektu.');
   assert.doesNotMatch(JSON.stringify(en.ui), /\[(?:ENEMY|ENEMIES)\]/u);
   assert.doesNotMatch(JSON.stringify(pl.ui), /\[(?:ENEMY|ENEMIES)\]/u);
 });

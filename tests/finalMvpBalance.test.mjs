@@ -209,16 +209,16 @@ test('Hacker is a 1/2 Control unit with the same lane attack debuff role', () =>
   assert.equal(hacker.textShort, 'Opposed [ENEMY]: -1 ATK until combat.');
 });
 
-test('Disruptor is a 1/2 Control unit with the same order-cancel role', () => {
+test('Disruptor is a 1/2 Control unit with the same effect-card-block role', () => {
   const control = loadFaction('src/data/factions/control.json');
   const disruptor = control.deck.find((card) => card.id === 'control_disruptor_1');
 
   assert.equal(disruptor.attack, 1);
   assert.equal(disruptor.hp, 2);
   assert.equal(disruptor.armor, 0);
-  assert.equal(disruptor.effectId, 'cancel_enemy_order');
+  assert.equal(disruptor.effectId, 'block_enemy_effect_cards_until_combat');
   assert.equal(disruptor.targeting, 'enemy');
-  assert.equal(disruptor.textShort, "On play: cancel the opponent's next effect.");
+  assert.equal(disruptor.textShort, "Until combat, opponent cannot play effect cards.");
 });
 
 test('Scout is a 2/1 Aggro unit with the same lane-block role', () => {
