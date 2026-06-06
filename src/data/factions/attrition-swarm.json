@@ -86,7 +86,7 @@
       "type": "order",
       "targeting": "enemy_unit",
       "effectId": "infect_damage_1_opposite_ally_atk_1",
-      "textShort": "Deal 1 to [ENEMY]. If it survives, opposite [ALLY] +1 ATK until combat."
+      "textShort": "Deal 1 to [ENEMY].\nOpposed [ALLY] gains +1 [ATK]."
     },
     {
       "id": "attrition_swarm_feast_1",

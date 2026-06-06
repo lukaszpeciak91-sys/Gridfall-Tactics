@@ -30,7 +30,7 @@
     },
     "aggro_pierce_strike_1": {
       "name": "Przebijające Uderzenie",
-      "textShort": "Zadaj 1 [ENEMY]. Jeśli przeżyje, następne trafienie w niego ignoruje ARM."
+      "textShort": "Zadaj 1 [ENEMY].\nNastępny cios ignoruje [ARM]."
     },
     "aggro_adrenaline_1": {
       "name": "Adrenalina",
@@ -66,7 +66,7 @@
     },
     "attrition_swarm_infect_1": {
       "name": "Zgniły Upominek",
-      "textShort": "Zadaj 1 [ENEMY]. Jeśli przeżyje, [ALLY] naprzeciwko +1 ATK do walki."
+      "textShort": "Zadaj 1 [ENEMY].\n[ALLY] naprzeciwko +1 [ATK]."
     },
     "attrition_swarm_feast_1": {
       "name": "Uczta",
@@ -186,7 +186,7 @@
     },
     "tank_stability_1": {
       "name": "Stabilność",
-      "textShort": "Do walki [ALLIES] nie mogą być przesuwani ani blokowani."
+      "textShort": "Do walki: [ALLY] nie można przesuwać."
     },
     "tank_reinforce_1": {
       "name": "Wzmocnienie",

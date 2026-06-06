@@ -96,7 +96,7 @@
       "type": "order",
       "targeting": "enemy_unit",
       "effectId": "ignore_armor_next_attack",
-      "textShort": "Deal 1 to [ENEMY]. If it survives, the next hit on it ignores ARM."
+      "textShort": "Deal 1 to [ENEMY].\nNext hit ignores [ARM]."
     },
     {
       "id": "aggro_adrenaline_1",

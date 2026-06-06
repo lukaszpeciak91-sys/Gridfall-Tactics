@@ -57,7 +57,7 @@ function replaceStatTerms(text, terms, symbol) {
     .sort((a, b) => b.length - a.length)
     .map(escapeRegExp)
     .join('|');
-  const statTermPattern = new RegExp(`(^|[^\\p{L}\\p{N}_])(${pattern})(?=$|[^\\p{L}\\p{N}_])`, 'giu');
+  const statTermPattern = new RegExp(`(^|[^\\p{L}\\p{N}_])\\[?(${pattern})\\]?(?=$|[^\\p{L}\\p{N}_])`, 'giu');
   return text.replace(statTermPattern, (match, prefix) => `${prefix}${symbol}`);
 }
 
