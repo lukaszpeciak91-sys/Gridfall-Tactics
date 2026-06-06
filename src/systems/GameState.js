@@ -215,7 +215,7 @@ function cardCanRealisticallyAffectOutcome(card, state, owner, visitedCardIds = 
     }
     case 'immune_move_disable_this_turn':
     case 'friendly_immovable_this_turn':
-    case 'cancel_enemy_order':
+    case 'block_enemy_effect_cards_until_combat':
       return false;
     default:
       return false;
@@ -338,6 +338,27 @@ function getRowForOwner(owner) {
 
 function getOpponentOwner(owner) {
   return owner === 'player' ? 'enemy' : 'player';
+}
+
+function ensureEffectCardBlocks(state) {
+  if (!state.effectCardsBlockedUntilCombat) {
+    state.effectCardsBlockedUntilCombat = { player: false, enemy: false };
+  }
+}
+
+export function isEffectCardBlockedForOwner(state, owner) {
+  if (!state || (owner !== 'player' && owner !== 'enemy')) return false;
+  ensureEffectCardBlocks(state);
+  return Boolean(state.effectCardsBlockedUntilCombat[owner]);
+}
+
+export function canPlayEffectCard(state, owner, card = null) {
+  if (!state || state.winner) return { ok: false, reason: 'Battle is over' };
+  if (card?.type === 'unit') return { ok: false, reason: 'Unit cards must be placed on board' };
+  if (isEffectCardBlockedForOwner(state, owner)) {
+    return { ok: false, reason: 'You cannot play effect cards.' };
+  }
+  return { ok: true };
 }
 
 function ensureLanePlayBlocks(state) {
@@ -1110,11 +1131,9 @@ function applyEffectById(state, owner, effectId, sourceCard = null) {
       state.cannotDropBelowOneThisTurn[owner] = true;
       break;
     }
-    case 'cancel_enemy_order': {
-      if (!state.cancelEnemyOrderThisTurn) {
-        state.cancelEnemyOrderThisTurn = { player: false, enemy: false };
-      }
-      state.cancelEnemyOrderThisTurn[owner] = true;
+    case 'block_enemy_effect_cards_until_combat': {
+      ensureEffectCardBlocks(state);
+      state.effectCardsBlockedUntilCombat[getOpponentOwner(owner)] = true;
       break;
     }
     case 'immune_move_disable_this_turn': {
@@ -1206,7 +1225,7 @@ export function createInitialBattleState(playerFactionData, enemyFactionData = p
       player: false,
       enemy: false,
     },
-    cancelEnemyOrderThisTurn: {
+    effectCardsBlockedUntilCombat: {
       player: false,
       enemy: false,
     },
@@ -1412,6 +1431,8 @@ export function playEffectCard(state, owner, handCardId) {
   if (handIndex < 0) return { ok: false, reason: 'Card not in hand' };
 
   const card = side.hand[handIndex];
+  const legality = canPlayEffectCard(state, owner, card);
+  if (!legality.ok) return legality;
   if (!canApplyEffectById(state, owner, card.effectId ?? null)) {
     return { ok: false, reason: 'Effect has no legal deterministic resolution' };
   }
@@ -1440,6 +1461,8 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
   if (handIndex < 0) return { ok: false, reason: 'Card not in hand' };
 
   const card = side.hand[handIndex];
+  const legality = canPlayEffectCard(state, owner, card);
+  if (!legality.ok) return legality;
   let immediateCombatFeedback = null;
   if (!card || card.type === 'unit') {
     return { ok: false, reason: 'Only effect cards can use targeted resolution' };
@@ -1735,8 +1758,8 @@ function resolveUnitOnPlayEffect(state, owner, boardIndex, card) {
       if (owner === 'enemy') state.playerLanePlayBlockedThisTurn[lane] = true;
       break;
     }
-    case 'cancel_enemy_order': {
-      applyEffectById(state, owner, 'cancel_enemy_order');
+    case 'block_enemy_effect_cards_until_combat': {
+      applyEffectById(state, owner, 'block_enemy_effect_cards_until_combat');
       break;
     }
     default:
@@ -2206,9 +2229,9 @@ export function resolveCombat(state) {
     state.cannotDropBelowOneThisTurn.player = false;
     state.cannotDropBelowOneThisTurn.enemy = false;
   }
-  if (state.cancelEnemyOrderThisTurn) {
-    state.cancelEnemyOrderThisTurn.player = false;
-    state.cancelEnemyOrderThisTurn.enemy = false;
+  if (state.effectCardsBlockedUntilCombat) {
+    state.effectCardsBlockedUntilCombat.player = false;
+    state.effectCardsBlockedUntilCombat.enemy = false;
   }
 
   if (state.immuneMoveDisableThisTurn) {

@@ -339,7 +339,7 @@ test('Signal Shift first target refreshes instruction without Inspect and second
 
 
 test('Jam Signal targeting count is max valid positive-ATK enemies and blocks all-zero boards', () => {
-  const getTargetingStateForCard = compileMethod('getTargetingStateForCard', 'isValidTarget', ['card', 'getTargetingStateForEffect']);
+  const getTargetingStateForCard = compileMethod('getTargetingStateForCard', 'isValidTarget', ['card', 'getTargetingStateForEffect', 'canPlayEffectCard']);
   const jamSignal = { id: 'control_jam_signal_1', type: 'order', effectId: 'enemy_up_to_2_atk_minus_1' };
   const scene = {
     isUnitCard: () => false,
@@ -351,13 +351,13 @@ test('Jam Signal targeting count is max valid positive-ATK enemies and blocks al
   };
 
   scene.gameState.board = [{ owner: 'enemy', attack: 2 }, { owner: 'enemy', attack: 0 }];
-  assert.equal(getTargetingStateForCard.call(scene, jamSignal, getTargetingStateForEffect).requiredTargets, 1);
+  assert.equal(getTargetingStateForCard.call(scene, jamSignal, getTargetingStateForEffect, () => ({ ok: true })).requiredTargets, 1);
 
   scene.gameState.board = [{ owner: 'enemy', attack: 2 }, { owner: 'enemy', attack: 1 }];
-  assert.equal(getTargetingStateForCard.call(scene, jamSignal, getTargetingStateForEffect).requiredTargets, 2);
+  assert.equal(getTargetingStateForCard.call(scene, jamSignal, getTargetingStateForEffect, () => ({ ok: true })).requiredTargets, 2);
 
   scene.gameState.board = [{ owner: 'enemy', attack: 0 }, { owner: 'enemy', attack: 0 }];
-  assert.equal(getTargetingStateForCard.call(scene, jamSignal, getTargetingStateForEffect).requiredTargets, 0);
+  assert.equal(getTargetingStateForCard.call(scene, jamSignal, getTargetingStateForEffect, () => ({ ok: true })).requiredTargets, 0);
 });
 
 test('Jam Signal one valid target resolves on first tap without CONFIRM', () => {

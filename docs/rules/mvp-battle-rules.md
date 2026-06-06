@@ -173,14 +173,22 @@ The no-progress detector still exists and uses the stricter "meaningful for outc
 ## 6.1) Effect Duration Taxonomy (MVP)
 
 - **Until combat window**: Expires during the nearest standard combat cleanup window.
-  - Use “until combat” / “do walki” for temporary ATK/ARM modifiers, movement immunity, disable immunity, and Last Stand-style prevention that clear there.
+  - Use “until combat” / “do walki” for temporary ATK/ARM modifiers, movement immunity, disable immunity, Last Stand-style prevention, and Disruptor's effect-card play block that clear there.
   - Immediate lane combat from Adrenaline/Rush does not consume this window or clear these effects.
 - **This turn window**: Expires after PASS/combat resolution cleanup for effects that are not best described as combat-window modifiers.
-  - Example: `cancel_enemy_order`.
 - **Until consumed**: Lasts until a one-time trigger is used, then clears.
   - Example: `ignore_armor_next_attack`.
 - **While on board**: Passive/auras only active while source unit remains on board.
   - Examples: adjacency aura effects like `lane_armor_aura_1`, `adjacent_allies_atk_plus_1_ignore_armor_1`.
+
+
+### 6.2) Disruptor effect-card block
+
+- Disruptor applies a side-specific action-availability restriction to the opponent until the standard combat cleanup window.
+- While affected, that side cannot play effect cards, including both non-targeted effects and targeted effects.
+- The block does **not** apply to unit cards, manual swaps, PASS, mulligan actions, or automatic combat/death triggers.
+- Attempting to play a blocked effect card is illegal before resolution: the card is not selected for targeting, is not discarded, does not resolve, and does not consume the block.
+- Combat cleanup clears the restriction for both sides alongside other until-combat temporary state.
 
 ## 7) Targeting Model (MVP)
 
@@ -253,7 +261,7 @@ Candidate audit for the same rule:
 | Aggro | Adrenaline | special | - | quick_strike | Selected [ALLY] immediately fights in its lane. | Targeted friendly | Additional lane-only immediate combat slice; surviving units may still fight in standard combat. |
 | Aggro | Quick Fix | utility | - | heal_1_atk_1_draw_on_kill_this_turn | Heal [ALLY] 1. +1 ATK until combat. Kills in combat: draw 1. | Targeted friendly | Heal is capped by max HP; draw uses one-shot combat kill tracking and temporary trigger cleanup after combat. |
 | Control | Hacker | unit | 1/2/0 | enemy_lane_atk_minus_1 | Opposed [ENEMY]: -1 ATK until combat. | Lane on-play | Also available as targeted effectId path. |
-| Control | Disruptor | unit | 1/2/0 | cancel_enemy_order | On play: cancel the opponent's next effect. | On-play non-targeted | Cancels at most one enemy non-unit action; expires at PASS/combat cleanup if unused; not a persistent aura. |
+| Control | Disruptor | unit | 1/2/0 | block_enemy_effect_cards_until_combat | Until combat, opponent cannot play effect cards. | On-play action-availability restriction | Blocks the opponent from playing non-targeted and targeted effect cards until combat cleanup; units, swaps, PASS, mulligan, and automatic combat/death triggers remain legal; this is not a delayed counterspell and does not consume itself on a blocked attempt. |
 | Control | Sniper | unit | 2/1/0 | can_hit_any_lane | Attacks the lowest-HP [ENEMY]. | Deterministic auto-target | Tie-break: lowest index; no manual target UI. |
 | Control | Controller | unit | 1/2/0 | swap_two_enemy_units | On play: swap two [ENEMIES]. | Staged two-enemy on-play targeting | Unit remains played; after cast feedback, select two distinct enemy units to swap. Cancel only cancels the swap effect. |
 | Control | Drone | unit | 1/1/0 | death_damage_enemy_hero_1 | On death: enemy base loses 1 HP. | Death trigger | Applies after unit removed. |

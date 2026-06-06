@@ -65,3 +65,18 @@ test('invalid banner participates in central banner coordinator and existing blo
   assert.match(source, /if \(deferred\.owner === 'invalid-action'\) \{\s*this\.showInvalidActionBanner\(deferred\.payload\.message\);\s*return true;\s*\}/);
   assert.match(source, /showMovementBlockedFeedback\(index, label = 'BLOCKED'\) \{\s*return Promise\.all\(\[\s*this\.showSlotPulse\(index, 'damage'\),\s*this\.showFloatingTextAtSlot\(index, label, 'damage'\),\s*\]\);\s*\}/);
 });
+
+test('blocked player effect cards stay readable, show invalid feedback, and do not enter targeting', () => {
+  const cardPointerBlock = source.slice(
+    source.indexOf('  onCardPointerDown(cardId) {'),
+    source.indexOf('  startHandCardLongPress(cardId) {'),
+  );
+  assert.match(cardPointerBlock, /!this\.isUnitCard\(card\) && !canPlayEffectCard\(this\.gameState, 'player', card\)\.ok/);
+  assert.match(cardPointerBlock, /this\.showInvalidActionFeedback\?\.\(\{ reason: 'You cannot play effect cards\.', cardId, card, scope: 'global' \}\);/);
+  assert.doesNotMatch(cardPointerBlock.match(/if \(!this\.isUnitCard\(card\) && !canPlayEffectCard[\s\S]*?return;\n    \}/)?.[0] ?? '', /beginPlayerTargetingSession/);
+
+  assert.match(source, /addBlockedEffectCardOverlay\(cardView, hand\.cardWidth, hand\.cardHeight\);/);
+  assert.match(source, /isBlockedEffectCard = Boolean\(viewCard\)[\s\S]*isEffectCardBlockedForOwner\(this\.gameState, 'player'\)/);
+  assert.match(source, /card\.blockedOverlay\?\.setVisible\(Boolean\(isBlockedEffectCard\)\);/);
+  assert.doesNotMatch(source, /setTexture\([^)]*HAND_BACK_CARD_ASSET/);
+});

@@ -2,30 +2,23 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-test('targeted cancel-enemy-order resolution funnels through completePlayerAction', () => {
-  const source = readFileSync(new URL('../src/scenes/BattleScene.js', import.meta.url), 'utf8');
+const source = readFileSync(new URL('../src/scenes/BattleScene.js', import.meta.url), 'utf8');
 
-  assert.match(
-    source,
-    /if \(result\.type === 'targeted-effect' && this\.gameState\.cancelEnemyOrderThisTurn\?\.enemy\) \{\s*this\.gameState\.cancelEnemyOrderThisTurn\.enemy = false;\s*\}[\s\S]*this\.completePlayerAction\(/,
-  );
-
-  assert.doesNotMatch(
-    source,
-    /if \(result\.type === 'targeted-effect' && this\.gameState\.cancelEnemyOrderThisTurn\?\.enemy\) \{\s*this\.gameState\.cancelEnemyOrderThisTurn\.enemy = false;\s*this\.refreshAfterPlayerAction\(\);\s*return;\s*\}/,
-  );
+test('Disruptor no longer uses delayed cancel-and-consume player effect completion branches', () => {
+  assert.doesNotMatch(source, /cancelEnemyOrderThisTurn/);
+  assert.doesNotMatch(source, /type === 'cancelled'/);
 });
 
-test('non-targeted effect cast no longer short-circuits to refreshAfterPlayerAction', () => {
-  const source = readFileSync(new URL('../src/scenes/BattleScene.js', import.meta.url), 'utf8');
-
-  assert.doesNotMatch(
-    source,
-    /if \(this\.gameState\.cancelEnemyOrderThisTurn\?\.enemy\) \{\s*this\.gameState\.cancelEnemyOrderThisTurn\.enemy = false;\s*this\.isEffectCastResolving = false;\s*this\.refreshAfterPlayerAction\(\);\s*return;\s*\}/,
+test('legal targeted and non-targeted player effects still funnel through completePlayerAction', () => {
+  const targetedBlock = source.slice(
+    source.indexOf('  onBoardCellTap(boardIndex) {'),
+    source.indexOf('  getActivePlayerEffectCard() {'),
+  );
+  const nonTargetedBlock = source.slice(
+    source.indexOf('  async startPlayerEffectCast(card) {'),
+    source.indexOf('  beginPlayerTargetingSession(targetingState) {'),
   );
 
-  assert.match(
-    source,
-    /if \(result\.type === 'effect' && this\.gameState\.cancelEnemyOrderThisTurn\?\.enemy\) \{\s*this\.gameState\.cancelEnemyOrderThisTurn\.enemy = false;\s*\}[\s\S]*this\.completePlayerAction\(/,
-  );
+  assert.match(targetedBlock, /resolveTargetedEffectCard\(this\.gameState, 'player', effectCardId, boardIndex, targetIndexes\);[\s\S]*this\.completePlayerAction\(/);
+  assert.match(nonTargetedBlock, /const result = playEffectCard\(this\.gameState, 'player', card\.id\);[\s\S]*this\.completePlayerAction\(/);
 });

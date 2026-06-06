@@ -86,7 +86,7 @@
     },
     "control_disruptor_1": {
       "name": "Störführer",
-      "textShort": "On play: cancel the opponent's next effect."
+      "textShort": "Until combat, opponent cannot play effect cards."
     },
     "control_sniper_1": {
       "name": "Rotes Auge",
@@ -427,7 +427,8 @@
         "noFallenUnit": "No fallen unit",
         "laneBlocked": "Lane blocked",
         "occupied": "Slot occupied",
-        "invalidSwap": "Invalid swap"
+        "invalidSwap": "Invalid swap",
+        "effectCardPlayBlocked": "You cannot play effect cards."
       }
     },
     "rules": {

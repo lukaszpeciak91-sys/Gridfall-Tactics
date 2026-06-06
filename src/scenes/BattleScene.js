@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
-import { createInitialBattleState, drawCards, shuffleDeck, canPass, canPlayOrRedeploy, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, resolveTargetedUnitOnPlayEffect, getUnitAttack, getUnitArmor, toggleFirstActor, resolveTurnCapWinner, resolveImmediateResourceExhaustionWinner, resolveImmediateNoProgressWinner, recordPassAction, completeActionOpportunity, performOpeningMulligan, STARTING_HAND_SIZE, MAX_OPENING_MULLIGAN_CARDS, getEffectiveBoardAttack, getEffectiveBoardArmor } from '../systems/GameState.js';
+import { createInitialBattleState, drawCards, shuffleDeck, canPass, canPlayOrRedeploy, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, resolveTargetedUnitOnPlayEffect, getUnitAttack, getUnitArmor, toggleFirstActor, resolveTurnCapWinner, resolveImmediateResourceExhaustionWinner, resolveImmediateNoProgressWinner, recordPassAction, completeActionOpportunity, performOpeningMulligan, STARTING_HAND_SIZE, MAX_OPENING_MULLIGAN_CARDS, getEffectiveBoardAttack, getEffectiveBoardArmor, canPlayEffectCard, isEffectCardBlockedForOwner } from '../systems/GameState.js';
 import { chooseEnemyAction, isVerySafeConcedableState, recordBattleActionUse, selectOpeningMulliganCardIds } from '../systems/enemyDecision.js';
 import { getTargetingStateForEffect } from '../systems/cardTargeting.js';
 import { COMBAT_ATTACK_PRESENTATIONS, getCombatAttackPresentation, getCombatEventAttackerIndex, getCombatEventInterceptOriginalTargetIndex, getCombatEventTargetIndex, getLaneLethalTargetIndexes, getLaneSimultaneousUnitClash, shouldAnimateCombatAttacker, shouldUseControlledHeroStrikePresentation } from '../systems/combatAnimation.js';
@@ -1804,6 +1804,8 @@ export default class BattleScene extends Phaser.Scene {
         factionThemeId: this.gameState?.player?.factionKey ?? this.factionKey,
       });
 
+      this.addBlockedEffectCardOverlay(cardView, hand.cardWidth, hand.cardHeight);
+
       cardView.background.setInteractive({ useHandCursor: true });
       cardView.background.on('pointerdown', () => {
         this.onCardPointerDown(cardId);
@@ -1837,6 +1839,31 @@ export default class BattleScene extends Phaser.Scene {
     }
   }
 
+
+
+  addBlockedEffectCardOverlay(cardView, width, height) {
+    if (!cardView?.root || !Number.isFinite(width) || !Number.isFinite(height)) return;
+    const overlay = this.add.rectangle(0, 0, width * 0.92, height * 0.92, 0x2b0f16, 0)
+      .setStrokeStyle(0, 0x000000, 0)
+      .setVisible(false);
+    const iconRadius = Math.max(8, Math.min(width, height) * 0.13);
+    const iconX = width * 0.31;
+    const iconY = -height * 0.36;
+    const iconBubble = this.add.circle(iconX, iconY, iconRadius, 0x450a0a, 0.86)
+      .setStrokeStyle(Math.max(1, Math.floor(iconRadius * 0.16)), 0xfca5a5, 0.86)
+      .setVisible(false);
+    const icon = this.add.text(iconX, iconY, '⊘', {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: `${Math.max(14, Math.floor(iconRadius * 1.42))}px`,
+      color: '#fee2e2',
+      fontStyle: 'bold',
+      align: 'center',
+    }).setOrigin(0.5).setVisible(false);
+    cardView.root.add([overlay, iconBubble, icon]);
+    cardView.blockedOverlay = overlay;
+    cardView.blockedIconBubble = iconBubble;
+    cardView.blockedIcon = icon;
+  }
 
   createHandBackCardView({ x, y, width, height, depth }) {
     const root = this.add.container(x, y).setDepth(depth);
@@ -2088,6 +2115,18 @@ export default class BattleScene extends Phaser.Scene {
     const card = this.gameState.player.hand.find((item) => item.id === cardId);
     if (!card) {
       this.clearHandCardSelection();
+      return;
+    }
+
+    if (!this.isUnitCard(card) && !canPlayEffectCard(this.gameState, 'player', card).ok) {
+      this.pendingSwapIndex = null;
+      this.clearSwapPrompt();
+      this.selectedCardId = null;
+      this.targetingState = null;
+      this.resetCardHighlights({ showPreview: false });
+      this.updatePlayerBaseActionState();
+      this.showInvalidActionFeedback?.({ reason: 'You cannot play effect cards.', cardId, card, scope: 'global' });
+      this.startHandCardLongPress(cardId);
       return;
     }
 
@@ -2614,9 +2653,6 @@ export default class BattleScene extends Phaser.Scene {
         this.showInvalidActionFeedback?.({ reason: result.reason, cardId: effectCardId, boardIndex, scope: this.getInvalidActionScope(result.reason) });
         return;
       }
-      if (result.type === 'targeted-effect' && this.gameState.cancelEnemyOrderThisTurn?.enemy) {
-        this.gameState.cancelEnemyOrderThisTurn.enemy = false;
-      }
       const movementFeedback = this.buildMovementFeedbackForAction({
         effectId: selectedCard.effectId,
         owner: 'player',
@@ -2750,9 +2786,6 @@ export default class BattleScene extends Phaser.Scene {
       this.updatePlayerBaseActionState();
       this.showInvalidActionFeedback?.({ reason: result.reason, cardId: card.id, card, scope: 'global' });
       return;
-    }
-    if (result.type === 'effect' && this.gameState.cancelEnemyOrderThisTurn?.enemy) {
-      this.gameState.cancelEnemyOrderThisTurn.enemy = false;
     }
     const movementFeedback = this.buildMovementFeedbackForAction({
       effectId: card.effectId,
@@ -3502,20 +3535,12 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   enemyTakeAction(action = chooseEnemyAction(this.gameState)) {
-    const cancelEnemyOrder = Boolean(this.gameState.cancelEnemyOrderThisTurn?.player);
-    const isEnemyNonUnitAction = action.type === 'play-effect' || action.type === 'play-targeted-effect';
-
     if (action.type === 'surrender') {
       this.gameState.winner = 'player';
       this.gameState.endingReason = 'ai_safe_surrender';
       return { ok: true, type: 'surrender' };
     }
 
-    if (cancelEnemyOrder && isEnemyNonUnitAction) {
-      this.gameState.cancelEnemyOrderThisTurn.player = false;
-      completeActionOpportunity(this.gameState, 'enemy');
-      return { ok: true, type: 'cancelled' };
-    }
 
     if (action.type === 'play-unit') {
       let result = playOrRedeployUnit(this.gameState, 'enemy', action.cardId, action.slotIndex);
@@ -3533,9 +3558,7 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     if (action.type === 'play-effect') {
-      const result = playEffectCard(this.gameState, 'enemy', action.cardId);
-      this.gameState.cancelEnemyOrderThisTurn.player = false;
-      return result;
+      return playEffectCard(this.gameState, 'enemy', action.cardId);
     }
 
     if (action.type === 'play-targeted-effect') {
@@ -3546,7 +3569,6 @@ export default class BattleScene extends Phaser.Scene {
         action.targetIndex,
         action.targetIndexes ?? [action.targetIndex],
       );
-      this.gameState.cancelEnemyOrderThisTurn.player = false;
       return result;
     }
 
@@ -3573,6 +3595,7 @@ export default class BattleScene extends Phaser.Scene {
 
   getInvalidActionReasonKey(reason, card = null) {
     const normalized = String(reason ?? '').toLowerCase();
+    if (normalized.includes('cannot play effect cards')) return 'effectCardPlayBlocked';
     if (normalized.includes('hand') && normalized.includes('full')) return 'handFull';
     if (normalized.includes('deck') && normalized.includes('empty')) return 'deckEmpty';
     if (normalized.includes('friendly') || normalized.includes('ally')) return 'noValidAlly';
@@ -3617,6 +3640,7 @@ export default class BattleScene extends Phaser.Scene {
       fullHp: 'Already full HP',
       moveBlocked: 'Move blocked',
       effectBlocked: 'Effect blocked',
+      effectCardPlayBlocked: 'You cannot play effect cards.',
       immune: 'Immune',
       noAdjacentAlly: 'No adjacent ally',
       noFallenUnit: 'No fallen unit',
@@ -6242,7 +6266,8 @@ export default class BattleScene extends Phaser.Scene {
       const isFocusedHandCard = Boolean(viewCard) && !this.openingMulliganPending && card.cardId === this.hoverInspectCardId;
       const isActiveHandCard = isHighlighted || isFocusedHandCard;
       const isDimmedByActiveCard = Boolean(viewCard) && hasActiveHandCard && !isActiveHandCard;
-      const allTargets = [card.root, card.glow, card.background, card.label, card.selectionOutline].filter(Boolean);
+      const isBlockedEffectCard = Boolean(viewCard) && !this.openingMulliganPending && !this.isUnitCard(viewCard) && isEffectCardBlockedForOwner(this.gameState, 'player');
+      const allTargets = [card.root, card.glow, card.background, card.label, card.selectionOutline, card.blockedOverlay, card.blockedIconBubble, card.blockedIcon].filter(Boolean);
 
       const accentColor = this.getHandCardAccentColor(viewCard);
       const frameFillColor = card.surfaceTheme?.frameFill ?? CARD_COLORS.frame;
@@ -6267,7 +6292,13 @@ export default class BattleScene extends Phaser.Scene {
       card.label.setFontSize(card.baseFontSize);
       card.label.setColor(viewCard ? CARD_COLORS.ivoryText : CARD_COLORS.mutedText);
 
-      card.root.setAlpha(viewCard ? (isDimmedByActiveCard ? HAND_CARD_DIM_ALPHA : HAND_CARD_SELECTED_ALPHA) : 0.45);
+      card.blockedOverlay?.setVisible(Boolean(isBlockedEffectCard));
+      card.blockedIconBubble?.setVisible(Boolean(isBlockedEffectCard));
+      card.blockedIcon?.setVisible(Boolean(isBlockedEffectCard));
+      card.blockedOverlay?.setAlpha(isBlockedEffectCard ? 0.3 : 0);
+      card.blockedIconBubble?.setAlpha(isBlockedEffectCard ? 0.86 : 0);
+      card.blockedIcon?.setAlpha(isBlockedEffectCard ? 0.92 : 0);
+      card.root.setAlpha(viewCard ? (isBlockedEffectCard ? 0.68 : (isDimmedByActiveCard ? HAND_CARD_DIM_ALPHA : HAND_CARD_SELECTED_ALPHA)) : 0.45);
       card.root.setPosition(card.baseX, isActiveHandCard ? card.baseY - selectedLift : card.baseY).setScale(1).setDepth(isActiveHandCard ? HAND_CARD_SELECTED_DEPTH : card.baseDepth);
     });
 
@@ -6327,6 +6358,7 @@ export default class BattleScene extends Phaser.Scene {
 
   getTargetingStateForCard(card) {
     if (!card || this.isUnitCard(card)) return null;
+    if (!canPlayEffectCard(this.gameState, 'player', card).ok) return null;
     const targetingState = getTargetingStateForEffect(card.effectId, card.id);
     if (!targetingState) return null;
     if (card.effectId === 'enemy_up_to_2_atk_minus_1') {

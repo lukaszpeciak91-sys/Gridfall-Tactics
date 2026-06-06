@@ -14,7 +14,7 @@ const expectedTextShort = new Map(Object.entries({
   aggro_rush_1: 'Swap with adjacent [ALLY], then that lane immediately fights.',
   aggro_pierce_strike_1: 'Deal 1 to [ENEMY]. If it survives, the next hit on it ignores ARM.',
   aggro_quick_fix_1: 'Heal [ALLY] 1. +1 ATK until combat. Kills in combat: draw 1.',
-  control_disruptor_1: "On play: cancel the opponent's next effect.",
+  control_disruptor_1: "Until combat, opponent cannot play effect cards.",
   control_sniper_1: 'Attacks the lowest-HP [ENEMY].',
   control_controller_1: 'On play: swap two [ENEMIES].',
   control_jam_signal_1: 'Up to 2 [ENEMIES]: -1 ATK until combat.',

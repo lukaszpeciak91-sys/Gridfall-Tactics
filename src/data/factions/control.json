@@ -23,8 +23,8 @@
       "name": "Disruptor",
       "type": "unit",
       "targeting": "enemy",
-      "effectId": "cancel_enemy_order",
-      "textShort": "On play: cancel the opponent's next effect.",
+      "effectId": "block_enemy_effect_cards_until_combat",
+      "textShort": "Until combat, opponent cannot play effect cards.",
       "attack": 1,
       "hp": 2,
       "armor": 0
