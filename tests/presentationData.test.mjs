@@ -152,7 +152,7 @@ test('Empire of the Golden Sun flavor pass preserves gameplay-critical card data
     ['tank_heavy_1', 2, 'tank_02', null, '', 2, 3, 0],
     ['tank_guardian_1', 3, 'tank_03', 'intercept_lane_damage', 'Takes combat damage for adjacent [ALLY].', 1, 3, 0],
     ['tank_wall_1', 4, 'tank_04', 'cannot_attack', '', 0, 2, 0],
-    ['tank_bruiser_1', 5, 'tank_05', 'gain_atk_when_damaged', 'Survives damage: +1 ATK until combat.', 2, 3, 0],
+    ['tank_bruiser_1', 5, 'tank_05', 'gain_atk_when_damaged', 'After surviving damage: +1 ATK until next combat.', 2, 3, 0],
     ['tank_fortify_1', 6, 'tank_06', 'buff_all_armor_1', 'All [ALLY] +1 ARM until combat.', undefined, undefined, undefined],
     ['tank_stability_1', 7, 'tank_07', 'immune_move_disable_this_turn', 'Until combat, [ALLIES] cannot be moved or disabled.', undefined, undefined, undefined],
     ['tank_reinforce_1', 8, 'tank_08', 'heal_all_1', 'Heal all [ALLY] by 1.', undefined, undefined, undefined],

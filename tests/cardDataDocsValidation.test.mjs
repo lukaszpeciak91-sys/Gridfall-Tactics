@@ -10,7 +10,7 @@ import { getCardPresentationName } from '../src/data/presentation/factionPresent
 const expectedTextShort = new Map(Object.entries({
   aggro_runner_1: 'Open line: enemy base loses 2 HP.',
   aggro_flanker_1: 'Empty adjacent slot on your side: +1 ATK.',
-  aggro_scout_1: 'On play: block this lane until combat.',
+  aggro_scout_1: "Until opponent\'s next action: they cannot play a unit in this lane.",
   aggro_rush_1: 'Swap with adjacent [ALLY], then that lane immediately fights.',
   aggro_pierce_strike_1: 'Deal 1 to [ENEMY]. If it survives, the next hit on it ignores ARM.',
   aggro_quick_fix_1: 'Heal [ALLY] 1. +1 ATK until combat. Kills in combat: draw 1.',
@@ -29,7 +29,7 @@ const expectedTextShort = new Map(Object.entries({
   swarm_recycle_1: 'Destroy [ALLY]. Draw 1.',
   tank_shieldbearer_1: 'Adjacent [ALLY] +1 ARM in combat.',
   tank_guardian_1: 'Takes combat damage for adjacent [ALLY].',
-  tank_bruiser_1: 'Survives damage: +1 ATK until combat.',
+  tank_bruiser_1: 'After surviving damage: +1 ATK until next combat.',
   tank_stability_1: 'Until combat, [ALLIES] cannot be moved or disabled.',
   tank_last_stand_1: "Until combat, [ALLIES] cannot drop below 1 HP.",
   tank_repair_kit_1: 'Target [ALLY] +1 ARM until combat.',

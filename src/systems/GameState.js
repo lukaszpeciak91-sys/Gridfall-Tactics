@@ -29,7 +29,15 @@ function resolveHeroHpTiebreakWinner(state, endingReason, resolvedByKey) {
   return state.winner;
 }
 
-export function recordPassAction() {
+export function completeActionOpportunity(state, owner) {
+  if (!state || (owner !== 'player' && owner !== 'enemy')) return;
+  ensureLanePlayBlocks(state);
+  const blockKey = owner === 'player' ? 'playerLanePlayBlockedThisTurn' : 'enemyLanePlayBlockedThisTurn';
+  state[blockKey] = [false, false, false];
+}
+
+export function recordPassAction(state = null, owner = null) {
+  completeActionOpportunity(state, owner);
   // PASS no longer feeds any counter; dead games are resolved by board/resource state.
 }
 
@@ -443,6 +451,40 @@ function finalizeImmediateLaneCombat(state) {
 }
 
 
+
+function beginCombatWindow(state) {
+  state.nextCombatId = (state.nextCombatId ?? 0) + 1;
+  state.activeCombatId = state.nextCombatId;
+  return state.activeCombatId;
+}
+
+function endCombatWindow(state, combatId) {
+  state.board.forEach((unit) => {
+    if (!unit) return;
+    if (unit.bruiserPendingAttackBonusUsedCombatId === combatId) {
+      delete unit.bruiserPendingAttackBonus;
+      delete unit.bruiserPendingAttackBonusCombatId;
+      delete unit.bruiserPendingAttackBonusUsedCombatId;
+    }
+  });
+  if (state.activeCombatId === combatId) delete state.activeCombatId;
+}
+
+function getAvailableBruiserPendingAttackBonus(state, unit) {
+  if (!unit || unit.effectId !== 'gain_atk_when_damaged') return 0;
+  if (unit.bruiserPendingAttackBonusCombatId === state.activeCombatId) return 0;
+  return Math.min(1, Math.max(0, unit.bruiserPendingAttackBonus ?? 0));
+}
+
+function markBruiserPendingAttackBonusUsed(state, unit) {
+  if (getAvailableBruiserPendingAttackBonus(state, unit) <= 0) return;
+  unit.bruiserPendingAttackBonusUsedCombatId = state.activeCombatId;
+  const boardUnit = Number.isInteger(unit.__index) ? state.board[unit.__index] : null;
+  if (boardUnit?.effectId === 'gain_atk_when_damaged') {
+    boardUnit.bruiserPendingAttackBonusUsedCombatId = state.activeCombatId;
+  }
+}
+
 function getSystemOverrideAdjacentAllyIndexes(unit, unitIndex) {
   if (!unit) return [];
   const rowStart = unit.owner === 'player' ? 6 : 0;
@@ -462,7 +504,17 @@ function createSystemOverrideCombatModifier({ type, amount = 0, source, label, f
 function getSystemOverrideAttackWithCombatBonuses(state, unit, unitIndex) {
   const combatModifiers = [];
   if (!unit) return { attack: 0, combatModifiers };
-  let attack = unit.effectId === 'cannot_attack' ? 0 : (unit.attack ?? 0);
+  let attack = unit.effectId === 'cannot_attack' ? 0 : getUnitAttack(unit, { excludeCombatId: state.activeCombatId });
+  const bruiserPendingAttack = getAvailableBruiserPendingAttackBonus(state, unit);
+  if (bruiserPendingAttack > 0) {
+    markBruiserPendingAttackBonusUsed(state, unit);
+    combatModifiers.push(createSystemOverrideCombatModifier({
+      type: 'attack-bonus',
+      amount: bruiserPendingAttack,
+      source: 'gain_atk_when_damaged',
+      label: `+${bruiserPendingAttack} ATK`,
+    }));
+  }
   if (unit.effectId === 'opposing_lane_atk_plus_1') {
     const opposingIndex = unit.owner === 'player' ? unitIndex - 6 : unitIndex + 6;
     if (state.board[opposingIndex]?.owner === getOpponentOwner(unit.owner)) {
@@ -549,8 +601,10 @@ function captureImmediateCombatPresentationSnapshot(state) {
 
 function resolveImmediateLaneCombat(state, lane) {
   const combatSnapshot = captureImmediateCombatPresentationSnapshot(state);
+  const combatId = beginCombatWindow(state);
   const combatEvents = resolveCombatLane(state, lane);
   finalizeImmediateLaneCombat(state);
+  endCombatWindow(state, combatId);
   return { combatEvents, combatSnapshot };
 }
 
@@ -732,16 +786,22 @@ function applyDamageToUnit(state, index, amount) {
   }
 
   if (unit.hp > 0 && unit.effectId === 'gain_atk_when_damaged') {
-    unit.tempAttackMod = (unit.tempAttackMod ?? 0) + 1;
+    unit.bruiserPendingAttackBonus = 1;
+    unit.bruiserPendingAttackBonusCombatId = state.activeCombatId ?? null;
+    delete unit.bruiserPendingAttackBonusUsedCombatId;
   }
 }
 
-export function getUnitAttack(unit) {
+export function getUnitAttack(unit, options = {}) {
   if (!unit) return 0;
   const baseAttack = unit.attack ?? 0;
   const tempAttack = unit.tempAttackMod ?? 0;
   const woundedAttack = unit.effectId === 'wounded_atk_plus_1' && unit.hp < (unit.maxHp ?? unit.hp) ? 1 : 0;
-  return Math.max(0, baseAttack + tempAttack + woundedAttack);
+  const bruiserPendingAttack = unit.effectId === 'gain_atk_when_damaged'
+    && unit.bruiserPendingAttackBonusCombatId !== options.excludeCombatId
+    ? Math.min(1, Math.max(0, unit.bruiserPendingAttackBonus ?? 0))
+    : 0;
+  return Math.max(0, baseAttack + tempAttack + woundedAttack + bruiserPendingAttack);
 }
 
 export function getUnitArmor(unit) {
@@ -1158,6 +1218,8 @@ export function createInitialBattleState(playerFactionData, enemyFactionData = p
       player: false,
       enemy: false,
     },
+    enemyLanePlayBlockedThisTurn: [false, false, false],
+    playerLanePlayBlockedThisTurn: [false, false, false],
     mulligan: {
       playerUsed: false,
       enemyUsed: false,
@@ -1331,7 +1393,7 @@ export function canPlayOrRedeploy(state, owner, handCardId, boardIndex) {
 
   const occupyingUnit = state.board[boardIndex];
   if (!occupyingUnit && isLanePlayBlockedForOwner(state, owner, boardIndex)) {
-    return { ok: false, reason: 'Line is blocked for unit placement this turn' };
+    return { ok: false, reason: 'Line is blocked for unit placement' };
   }
   if (!occupyingUnit) return { ok: true, type: 'play' };
   if (occupyingUnit.owner !== owner) return { ok: false, reason: 'Slot is occupied by opponent' };
@@ -1367,6 +1429,7 @@ export function playEffectCard(state, owner, handCardId) {
     applyEffectById(state, owner, playedCard.effectId ?? null, playedCard);
   }
   recordProgressAction(state, owner, blockedByImmunity ? 'effect-blocked' : 'effect');
+  completeActionOpportunity(state, owner);
   return { ok: true, type: blockedByImmunity ? 'effect-blocked' : 'effect', card: playedCard };
 }
 
@@ -1391,6 +1454,7 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
     const [playedCard] = side.hand.splice(handIndex, 1);
     side.discard.push(playedCard);
     recordProgressAction(state, owner, 'targeted-effect-blocked');
+    completeActionOpportunity(state, owner);
     return { ok: true, type: 'targeted-effect-blocked', card: playedCard };
   }
 
@@ -1574,6 +1638,7 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
   const [playedCard] = side.hand.splice(handIndex, 1);
   side.discard.push(playedCard);
   recordProgressAction(state, owner, 'targeted-effect');
+  completeActionOpportunity(state, owner);
   return {
     ok: true,
     type: 'targeted-effect',
@@ -1697,6 +1762,7 @@ export function playOrRedeployUnit(state, owner, handCardId, boardIndex) {
 
   side.discard.push(card);
   recordProgressAction(state, owner, validation.type);
+  completeActionOpportunity(state, owner);
   return { ok: true, type: validation.type, card };
 }
 
@@ -1708,6 +1774,7 @@ export function performSwap(state, owner, fromIndex, toIndex) {
   state.board[fromIndex] = state.board[toIndex];
   state.board[toIndex] = temp;
   recordProgressAction(state, owner, 'swap');
+  completeActionOpportunity(state, owner);
   return { ok: true };
 }
 
@@ -1776,7 +1843,17 @@ function resolveCombatLane(state, col, combatContext = null) {
   const getAttackWithCombatBonuses = (unit, unitIndex) => {
     const combatModifiers = [];
     if (!unit) return { attack: 0, combatModifiers };
-    let attack = unit.effectId === 'cannot_attack' ? 0 : (unit.attack ?? 0);
+    let attack = unit.effectId === 'cannot_attack' ? 0 : getUnitAttack(unit, { excludeCombatId: state.activeCombatId });
+    const bruiserPendingAttack = getAvailableBruiserPendingAttackBonus(state, unit);
+    if (bruiserPendingAttack > 0) {
+      markBruiserPendingAttackBonusUsed(state, unit);
+      combatModifiers.push(createCombatModifier({
+        type: 'attack-bonus',
+        amount: bruiserPendingAttack,
+        source: 'gain_atk_when_damaged',
+        label: `+${bruiserPendingAttack} ATK`,
+      }));
+    }
     if (unit.effectId === 'opposing_lane_atk_plus_1') {
       const opposingIndex = unit.owner === 'player' ? unitIndex - 6 : unitIndex + 6;
       if (state.board[opposingIndex]?.owner === getOpponentOwner(unit.owner)) {
@@ -1861,7 +1938,7 @@ function resolveCombatLane(state, col, combatContext = null) {
   const getMitigatedDamageResult = (attacker, defender, defenderIndex, attackCombatModifiers = []) => {
     const frictionPenalty = getDefensiveFrictionPenalty(defender);
     const combatModifiers = [...attackCombatModifiers];
-    const attackDamage = Math.max(0, getUnitAttack(attacker) - frictionPenalty);
+    const attackDamage = Math.max(0, (attacker?.attack ?? getUnitAttack(attacker, { excludeCombatId: state.activeCombatId })) - frictionPenalty);
     if (frictionPenalty > 0) {
       state.wardenDefensiveFrictionApplications = (state.wardenDefensiveFrictionApplications ?? 0) + 1;
       combatModifiers.push(createCombatModifier({
@@ -2115,6 +2192,7 @@ function resolveCombatLane(state, col, combatContext = null) {
 
 export function resolveCombat(state) {
   const combatContext = { guardiansUsed: new Set(), events: [] };
+  const combatId = beginCombatWindow(state);
   const previousPreserveRawHeroHP = state.preserveRawHeroHPUntilCombatFinalization;
   state.preserveRawHeroHPUntilCombatFinalization = true;
 
@@ -2127,12 +2205,6 @@ export function resolveCombat(state) {
   if (state.cannotDropBelowOneThisTurn) {
     state.cannotDropBelowOneThisTurn.player = false;
     state.cannotDropBelowOneThisTurn.enemy = false;
-  }
-  if (state.enemyLanePlayBlockedThisTurn) {
-    state.enemyLanePlayBlockedThisTurn = [false, false, false];
-  }
-  if (state.playerLanePlayBlockedThisTurn) {
-    state.playerLanePlayBlockedThisTurn = [false, false, false];
   }
   if (state.cancelEnemyOrderThisTurn) {
     state.cancelEnemyOrderThisTurn.player = false;
@@ -2171,6 +2243,7 @@ export function resolveCombat(state) {
   delete state.funeralPyreThisCombat;
 
   clampHeroHpAndResolveWinner(state);
+  endCombatWindow(state, combatId);
 
   if (previousPreserveRawHeroHP) {
     state.preserveRawHeroHPUntilCombatFinalization = previousPreserveRawHeroHP;

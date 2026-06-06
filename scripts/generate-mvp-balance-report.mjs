@@ -17,6 +17,7 @@ import {
   resolveImmediateResourceExhaustionWinner,
   resolveImmediateNoProgressWinner,
   recordPassAction,
+  completeActionOpportunity,
   MAX_TURNS,
 } from '../src/systems/GameState.js';
 import { getFactionByKey, getFactionKeys } from '../src/data/factions/index.js';
@@ -129,6 +130,7 @@ function applyAction(state, owner, passStats, decisionOptions, telemetry, gameLo
   }
   if (state.cancelEnemyOrderThisTurn?.[cancelKey] && nonUnit) {
     state.cancelEnemyOrderThisTurn[cancelKey] = false;
+    completeActionOpportunity(state, owner);
     passStats.cancelled = (passStats.cancelled ?? 0) + 1;
     gameLog?.push(`${ownerLabel(owner)} ${action.type} cancelled by order cancel`);
     return;

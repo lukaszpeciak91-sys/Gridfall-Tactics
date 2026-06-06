@@ -246,7 +246,7 @@ Candidate audit for the same rule:
 | Aggro | Berserker | unit | 2/2/0 | wounded_atk_plus_1 | While damaged: +1 ATK. | Lane combat | Continuous card-local wounded check; bonus disappears when healed to full HP. |
 | Aggro | Glass Cannon | unit | 3/1/0 | self_damage_after_attack | After attack: lose 1 HP. | Lane combat | Implemented as pending self-damage. |
 | Aggro | Flanker | unit | 2/2/0 | empty_adjacent_bonus_atk | Empty adjacent slot on your side: +1 ATK. | Lane combat | Adjacent check is board-state based. |
-| Aggro | Scout | unit | 2/1/0 | block_enemy_lane_play_this_turn | On play: block this lane until combat. | On-play lane | Symmetric for player/enemy; clears at the nearest standard combat cleanup. |
+| Aggro | Scout | unit | 2/1/0 | block_enemy_lane_play_this_turn | Until opponent's next action: they cannot play a unit in this lane. | On-play lane | Symmetric for player/enemy; clears after the opponent's next action opportunity resolves. |
 | Aggro | Full Attack | order | - | aggro_buff_all_atk_2 | All [ALLY] +2 ATK until combat. | Non-targeted effect | Expires after combat. |
 | Aggro | Rush | order | - | swap_adjacent_then_resolve | Swap with adjacent [ALLY], then that lane immediately fights. | Targeted friendly | Fails if no adjacent friendly; prefers left if both sides are available; additional immediate lane combat does not replace standard combat. |
 | Aggro | Pierce Strike | order | - | ignore_armor_next_attack | Deal 1 to [ENEMY]. If it survives, the next hit on it ignores ARM. | Targeted enemy | If the target survives, consumes ignore flag on first mitigated hit. |
@@ -286,7 +286,7 @@ Candidate audit for the same rule:
 | Tank | Heavy | unit | 2/3/0 | null |  | Lane combat | Vanilla unit with empty rules text. |
 | Tank | Guardian | unit | 1/3/0 | intercept_lane_damage | Takes combat damage for adjacent [ALLY]. | Deterministic adjacency intercept | One guardian intercept per index per resolve pass. |
 | Tank | Wall | unit | 0/2/0 | cannot_attack |  | Lane combat | Still can receive buffs/debuffs. |
-| Tank | Bruiser | unit | 2/3/0 | gain_atk_when_damaged | Survives damage: +1 ATK until combat. | Damage trigger | Stacks within turn; reset after combat. |
+| Tank | Bruiser | unit | 2/3/0 | gain_atk_when_damaged | After surviving damage: +1 ATK until next combat. | Damage trigger | Caps at +1 pending bonus; clears after it is available for the next combat. |
 | Tank | Fortify | order | - | buff_all_armor_1 | All [ALLY] +1 ARM until combat. | Non-targeted effect | Temporary ARM resets after combat. |
 | Tank | Stability | order | - | immune_move_disable_this_turn | Until combat, [ALLIES] cannot be moved or disabled. | Non-targeted effect | Blocks swap/disable effects by opponent. |
 | Tank | Reinforce | order | - | heal_all_1 | Heal all [ALLY] by 1. | Non-targeted effect | Uses unit max HP cap. |

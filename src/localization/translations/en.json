@@ -18,7 +18,7 @@
     },
     "aggro_scout_1": {
       "name": "Scout",
-      "textShort": "On play: block this lane until combat."
+      "textShort": "Until opponent's next action: they cannot play a unit in this lane."
     },
     "aggro_full_attack_1": {
       "name": "Full Attack",
@@ -178,7 +178,7 @@
     },
     "tank_bruiser_1": {
       "name": "Bruiser",
-      "textShort": "Survives damage: +1 ATK until combat."
+      "textShort": "After surviving damage: +1 ATK until next combat."
     },
     "tank_fortify_1": {
       "name": "Fortify",

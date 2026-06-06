@@ -184,7 +184,7 @@ test('pilot card display content renders ally icon markers', () => {
   const cardById = (faction, id) => faction.deck.find((card) => card.id === id);
 
   assert.equal(getCardDisplayContent(cardById(aggro, 'aggro_full_attack_1'), 'en').body, 'All ♙♙ +2 ▲ until combat.');
-  assert.equal(getCardDisplayContent(cardById(aggro, 'aggro_scout_1'), 'en').body, 'On play: block this lane until combat.');
+  assert.equal(getCardDisplayContent(cardById(aggro, 'aggro_scout_1'), 'en').body, "Until opponent\'s next action: they cannot play a unit in this lane.");
   assert.equal(getCardDisplayContent(cardById(aggro, 'aggro_rush_1'), 'en').body, 'Swap with adjacent ♙, then that lane immediately fights.');
   assert.equal(getCardDisplayContent(cardById(aggro, 'aggro_adrenaline_1'), 'en').body, 'Selected ♙ immediately fights in its lane.');
   assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_grunt_1'), 'en').body, '');
@@ -209,7 +209,7 @@ test('pilot card display content renders ally icon markers', () => {
   const wardens = getFactionByKey('Wardens');
 
   assert.equal(getCardDisplayContent(cardById(aggro, 'aggro_full_attack_1'), 'pl').body, '♙♙ +2 ▲ do walki.');
-  assert.equal(getCardDisplayContent(cardById(aggro, 'aggro_scout_1'), 'pl').body, 'Po zagraniu: zablokuj tę linię do walki.');
+  assert.equal(getCardDisplayContent(cardById(aggro, 'aggro_scout_1'), 'pl').body, 'Do akcji przeciwnika: nie może zagrać jednostki w tej linii.');
   assert.equal(getCardDisplayContent(cardById(aggro, 'aggro_rush_1'), 'pl').body, 'Zamień z sąsiednim ♙, potem ta linia natychmiast walczy.');
   assert.equal(getCardDisplayContent(cardById(aggro, 'aggro_adrenaline_1'), 'pl').body, 'Wybrany ♙ natychmiast walczy w swojej linii.');
   assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_grunt_1'), 'pl').body, '');
