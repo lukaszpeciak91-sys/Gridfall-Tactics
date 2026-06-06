@@ -65,19 +65,21 @@ test('battle hand title emphasis is separate from inspect scaling', () => {
   assert.match(source, /const INSPECT_CARD_TYPOGRAPHY_SCALE = 1\.1;/);
 });
 
-test('mulligan selected cards use contained thin-stroke styling with a safe lift', async () => {
+test('selected hand cards use contained thin-stroke styling with safe lifts', async () => {
   const { calculateBattleLayoutMetrics } = await import('../src/ui/battleLayout.js');
   const source = fs.readFileSync('src/scenes/BattleScene.js', 'utf8');
 
   assert.match(source, /const HAND_CARD_SELECTED_LIFT_PX = 14;/);
   assert.match(source, /const MULLIGAN_HAND_CARD_SELECTED_LIFT_PX = HAND_CARD_SELECTED_LIFT_PX \+ 3;/);
   assert.match(source, /const MULLIGAN_SELECTION_BORDER_WIDTH_PX = 1\.5;/);
-  assert.match(source, /const activeFrameStrokeWidth = isMulliganSelected \? MULLIGAN_SELECTION_BORDER_WIDTH_PX : 5;/);
-  assert.match(source, /const activeGlowStrokeWidth = isMulliganSelected \? 0 : 5;/);
-  assert.match(source, /const activeGlowStrokeAlpha = isMulliganSelected \? 0 : 0\.65;/);
-  assert.match(source, /const activeGlowFillAlpha = isMulliganSelected \? 0 : 0\.12;/);
-  assert.match(source, /const activeOutlineAlpha = isMulliganSelected \? 0 : 0\.92;/);
-  assert.match(source, /const activeFrameFillAlpha = isMulliganSelected \? 0\.98 : 0\.95;/);
+  assert.match(source, /const usesSelectionTreatment = isMulliganSelected \|\| isGameplaySelected;/);
+  assert.match(source, /const activeFrameStrokeWidth = usesSelectionTreatment \? MULLIGAN_SELECTION_BORDER_WIDTH_PX : 5;/);
+  assert.match(source, /const activeGlowStrokeWidth = usesSelectionTreatment \? 0 : 5;/);
+  assert.match(source, /const activeGlowStrokeAlpha = usesSelectionTreatment \? 0 : 0\.65;/);
+  assert.match(source, /const activeGlowFillAlpha = usesSelectionTreatment \? 0 : 0\.12;/);
+  assert.match(source, /const activeOutlineAlpha = usesSelectionTreatment \? 0 : 0\.92;/);
+  assert.match(source, /const activeFrameFillAlpha = usesSelectionTreatment \? 0\.98 : 0\.95;/);
+  assert.match(source, /const activeFrameStrokeAlpha = usesSelectionTreatment \? 0\.9 : 1;/);
   assert.match(source, /const selectedLift = isMulliganSelected \? MULLIGAN_HAND_CARD_SELECTED_LIFT_PX : HAND_CARD_SELECTED_LIFT_PX;/);
   assert.match(source, /card\.root\.setPosition\(card\.baseX, isActiveHandCard \? card\.baseY - selectedLift : card\.baseY\)\.setScale\(1\)/);
 
