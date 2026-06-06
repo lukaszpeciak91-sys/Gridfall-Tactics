@@ -179,7 +179,7 @@ test('board swap interaction resumes after mulligan completes', () => {
 });
 
 test('confirming mulligan input reset clears hand inspect preview and pending press state', () => {
-  const resetOpeningMulliganInputState = compileMethod('resetOpeningMulliganInputState', 'isPassActionButtonAvailable');
+  const resetOpeningMulliganInputState = compileMethod('resetOpeningMulliganInputState', 'hasBasePassBlocker');
   const scene = {
     selectedMulliganCardIds: ['unit-a'],
     previewedMulliganCardId: 'unit-a',

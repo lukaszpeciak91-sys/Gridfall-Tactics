@@ -19,7 +19,7 @@ test('pass flow remains unchanged and still records pass then completes player a
 test('pass hold-to-surrender keeps the dedicated 425ms hold threshold and only when concedable hint is active', () => {
   const source = readFileSync(new URL('../src/scenes/BattleScene.js', import.meta.url), 'utf8');
   assert.match(source, /this\.passHoldToSurrenderEvent = this\.time\.delayedCall\(PASS_HOLD_TO_SURRENDER_MS,/);
-  assert.match(source, /this\.passHoldToSurrenderEnabled = passAvailable && playerConcedable;/);
+  assert.match(source, /this\.passHoldToSurrenderEnabled = passAvailable && playerConcedable && !basePassAvailable;/);
   assert.match(source, /canHoldPassToSurrender\(\)\s*\{[\s\S]*isVerySafeConcedableState\(this\.gameState, 'player'\)/);
 });
 

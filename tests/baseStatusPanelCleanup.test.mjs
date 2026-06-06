@@ -38,8 +38,22 @@ test('initiative remains icon-only with subtle side-colored active panel highlig
 
 test('mulligan base action remains on the player base and hides normal HP', () => {
   assert.match(source, /getOpeningMulliganActionLabel\(\) \{[\s\S]*ui\.battle\.mulligan[\s\S]*ui\.battle\.keepHand/);
-  assert.match(source, /getPlayerBaseActionLabel\(\) \{\s*if \(this\.openingMulliganPending\) \{\s*return this\.getOpeningMulliganActionLabel\(\);\s*\}\s*return null;\s*\}/);
+  assert.match(source, /getPlayerBaseMode\(\) \{\s*if \(this\.openingMulliganPending\) return 'mulligan';\s*if \(this\.isBasePassAvailable\(\)\) return 'pass';\s*return null;\s*\}/);
+  assert.match(source, /getPlayerBaseActionLabel\(\) \{[\s\S]*return this\.getOpeningMulliganActionLabel\(\);[\s\S]*translateActive\('ui\.common\.pass', 'PASS'\)/);
   assert.match(updatePlayerBaseActionState, /this\.playerBaseActionLabelText[\s\S]*\.setText\(actionLabel \?\? ''\)[\s\S]*\.setVisible\(actionStateActive\)/);
-  assert.match(updatePlayerBaseActionState, /this\.playerHpText\.setVisible\(!actionStateActive\)/);
-  assert.match(source, /onPlayerBasePointerUp\(event\) \{\s*if \(!this\.openingMulliganPending\) return;\s*event\?\.stopPropagation\?\.\(\);\s*this\.confirmOpeningMulligan\(\);\s*\}/);
+  assert.match(updatePlayerBaseActionState, /this\.playerHpText[\s\S]*\.setVisible\(!mulliganActionActive\)/);
+  assert.match(source, /onPlayerBasePointerUp\(event\) \{\s*if \(this\.openingMulliganPending\) \{\s*event\?\.stopPropagation\?\.\(\);\s*this\.confirmOpeningMulligan\(\);\s*return;\s*\}[\s\S]*if \(!this\.isBasePassAvailable\(\)\) return;[\s\S]*this\.resolvePassTurn\(\);\s*\}/);
+});
+
+test('base PASS uses existing pass path and gates PASS-only base action blockers', () => {
+  assert.match(source, /isBasePassAvailable\(\) \{\s*return this\.isPassActionButtonAvailable\(\);\s*\}/);
+  assert.match(source, /hasBasePassBlocker\(\) \{[\s\S]*this\.selectedCardId[\s\S]*this\.targetingState[\s\S]*this\.boardInspectIndex !== null[\s\S]*this\.hoverInspectCardId[\s\S]*this\.selectedHandCardZoom[\s\S]*this\.pendingSwapIndex !== null[\s\S]*this\.deckInfoPanel[\s\S]*this\.utilityMenuPanel[\s\S]*this\.battleResultModalShown[\s\S]*this\.isFlowResolving[\s\S]*this\.isEffectCastResolving[\s\S]*this\.effectCastState[\s\S]*this\.openingMulliganPending/);
+  assert.match(source, /isPassActionButtonAvailable\(\) \{\s*return !this\.gameState\?\.winner\s*&& !this\.playerActionUsed\s*&& !this\.hasBasePassBlocker\(\)\s*&& canPass\(this\.gameState\);\s*\}/);
+  assert.match(source, /onPlayerBasePointerUp\(event\) \{[\s\S]*if \(!this\.isBasePassAvailable\(\)\) return;[\s\S]*this\.resolvePassTurn\(\);\s*\}/);
+});
+
+test('old central PASS button is hidden when base PASS is available while targeting confirms stay visible', () => {
+  assert.match(source, /if \(this\.targetingState\) \{[\s\S]*this\.actionButton\.setVisible\(true\);[\s\S]*this\.actionButton\.setText\(translateActive\('ui\.common\.confirm', 'CONFIRM'\)\);/);
+  assert.match(source, /const basePassAvailable = this\.isBasePassAvailable\(\);[\s\S]*this\.passHoldToSurrenderEnabled = passAvailable && playerConcedable && !basePassAvailable;[\s\S]*this\.actionButton\.setVisible\(passAvailable && !basePassAvailable\);/);
+  assert.match(source, /button\.on\('pointerup', \(\) => \{\s*if \(!this\.actionButton\?\.visible \|\| this\.openingMulliganPending\) return;/);
 });
