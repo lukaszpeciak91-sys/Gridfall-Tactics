@@ -64,3 +64,40 @@ test('battle hand title emphasis is separate from inspect scaling', () => {
   assert.match(source, /const INSPECT_CARD_TARGET_SCALE = 2\.06;/);
   assert.match(source, /const INSPECT_CARD_TYPOGRAPHY_SCALE = 1\.1;/);
 });
+
+test('mulligan selected cards use lighter glow-first styling with a safe lift', async () => {
+  const { calculateBattleLayoutMetrics } = await import('../src/ui/battleLayout.js');
+  const source = fs.readFileSync('src/scenes/BattleScene.js', 'utf8');
+
+  assert.match(source, /const HAND_CARD_SELECTED_LIFT_PX = 14;/);
+  assert.match(source, /const MULLIGAN_HAND_CARD_SELECTED_LIFT_PX = HAND_CARD_SELECTED_LIFT_PX \+ 3;/);
+  assert.match(source, /const MULLIGAN_SELECTION_BORDER_WIDTH_PX = 3\.5;/);
+  assert.match(source, /const MULLIGAN_SELECTION_GLOW_STROKE_WIDTH_PX = 2;/);
+  assert.match(source, /const activeFrameStrokeWidth = isMulliganSelected \? MULLIGAN_SELECTION_BORDER_WIDTH_PX : 5;/);
+  assert.match(source, /const activeGlowStrokeWidth = isMulliganSelected \? MULLIGAN_SELECTION_GLOW_STROKE_WIDTH_PX : 5;/);
+  assert.match(source, /const activeGlowStrokeAlpha = isMulliganSelected \? 0\.78 : 0\.65;/);
+  assert.match(source, /const activeGlowFillAlpha = isMulliganSelected \? 0\.16 : 0\.12;/);
+  assert.match(source, /const activeOutlineAlpha = isMulliganSelected \? 0\.52 : 0\.92;/);
+  assert.match(source, /const selectedLift = isMulliganSelected \? MULLIGAN_HAND_CARD_SELECTED_LIFT_PX : HAND_CARD_SELECTED_LIFT_PX;/);
+  assert.match(source, /card\.root\.setPosition\(card\.baseX, isActiveHandCard \? card\.baseY - selectedLift : card\.baseY\)\.setScale\(1\)/);
+
+  const mobileViewports = [
+    [360, 800],
+    [390, 844],
+    [414, 896],
+  ];
+  const mulliganLift = 17;
+  const clearances = mobileViewports.map(([width, height]) => {
+    const layout = calculateBattleLayoutMetrics(width, height, { maxHandSize: 5 });
+    const selectedCardTop = layout.hand.cardCenterY - mulliganLift - layout.hand.cardHeight / 2;
+    const playerBaseBottom = layout.playerHero.y + layout.playerHero.h;
+    const normalCardWidth = layout.hand.cardWidth;
+    const normalCardHeight = layout.hand.cardHeight;
+
+    assert.equal(layout.hand.cardWidth, normalCardWidth, 'mulligan lift must not affect card width');
+    assert.equal(layout.hand.cardHeight, normalCardHeight, 'mulligan lift must not affect card height');
+    return selectedCardTop - playerBaseBottom;
+  });
+
+  assert.ok(Math.min(...clearances) >= 2.3, 'selected mulligan cards keep positive player-base clearance on target mobile sizes');
+});

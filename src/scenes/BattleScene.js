@@ -69,6 +69,9 @@ const HAND_CARD_TITLE_TYPOGRAPHY_SCALE = 1.2;
 const HAND_CARD_BODY_LINE_SPACING = 3;
 const HAND_CARD_SELECTED_DEPTH = 760;
 const HAND_CARD_SELECTED_LIFT_PX = 14;
+const MULLIGAN_HAND_CARD_SELECTED_LIFT_PX = HAND_CARD_SELECTED_LIFT_PX + 3;
+const MULLIGAN_SELECTION_BORDER_WIDTH_PX = 3.5;
+const MULLIGAN_SELECTION_GLOW_STROKE_WIDTH_PX = 2;
 const HAND_CARD_DIM_ALPHA = 0.62;
 const HAND_CARD_SELECTED_ALPHA = 1;
 const INSPECT_CARD_STAT_BADGE_SCALE = 1.28;
@@ -6222,16 +6225,23 @@ export default class BattleScene extends Phaser.Scene {
       const frameSelectedFillColor = card.surfaceTheme?.frameSelectedFill ?? CARD_COLORS.frameSelected;
 
       this.tweens.killTweensOf(allTargets);
-      card.background.setStrokeStyle(isActiveHandCard ? 5 : 3, isActiveHandCard ? 0xfacc15 : accentColor, isActiveHandCard ? 1 : viewCard ? 0.76 : 0.7);
+      const activeFrameStrokeWidth = isMulliganSelected ? MULLIGAN_SELECTION_BORDER_WIDTH_PX : 5;
+      const activeGlowStrokeWidth = isMulliganSelected ? MULLIGAN_SELECTION_GLOW_STROKE_WIDTH_PX : 5;
+      const activeGlowStrokeAlpha = isMulliganSelected ? 0.78 : 0.65;
+      const activeGlowFillAlpha = isMulliganSelected ? 0.16 : 0.12;
+      const activeOutlineAlpha = isMulliganSelected ? 0.52 : 0.92;
+      const selectedLift = isMulliganSelected ? MULLIGAN_HAND_CARD_SELECTED_LIFT_PX : HAND_CARD_SELECTED_LIFT_PX;
+
+      card.background.setStrokeStyle(isActiveHandCard ? activeFrameStrokeWidth : 3, isActiveHandCard ? 0xfacc15 : accentColor, isActiveHandCard ? (isMulliganSelected ? 0.86 : 1) : viewCard ? 0.76 : 0.7);
       card.background.setFillStyle(isActiveHandCard ? frameSelectedFillColor : frameFillColor, isActiveHandCard ? 0.95 : viewCard ? 0.74 : 0.48);
-      card.glow.setStrokeStyle(isActiveHandCard ? 5 : 0, 0xfacc15, isActiveHandCard ? 0.65 : 0);
-      card.glow.setFillStyle(0xfacc15, isActiveHandCard ? 0.12 : 0);
-      card.selectionOutline?.setStrokeStyle(isActiveHandCard ? 5 : 0, 0xfacc15, isActiveHandCard ? 0.92 : 0);
+      card.glow.setStrokeStyle(isActiveHandCard ? activeGlowStrokeWidth : 0, 0xfacc15, isActiveHandCard ? activeGlowStrokeAlpha : 0);
+      card.glow.setFillStyle(0xfacc15, isActiveHandCard ? activeGlowFillAlpha : 0);
+      card.selectionOutline?.setStrokeStyle(isActiveHandCard ? activeGlowStrokeWidth : 0, 0xfacc15, isActiveHandCard ? activeOutlineAlpha : 0);
       card.label.setFontSize(card.baseFontSize);
       card.label.setColor(viewCard ? CARD_COLORS.ivoryText : CARD_COLORS.mutedText);
 
       card.root.setAlpha(viewCard ? (isDimmedByActiveCard ? HAND_CARD_DIM_ALPHA : HAND_CARD_SELECTED_ALPHA) : 0.45);
-      card.root.setPosition(card.baseX, isActiveHandCard ? card.baseY - HAND_CARD_SELECTED_LIFT_PX : card.baseY).setScale(1).setDepth(isActiveHandCard ? HAND_CARD_SELECTED_DEPTH : card.baseDepth);
+      card.root.setPosition(card.baseX, isActiveHandCard ? card.baseY - selectedLift : card.baseY).setScale(1).setDepth(isActiveHandCard ? HAND_CARD_SELECTED_DEPTH : card.baseDepth);
     });
 
     if (showPreview) {
