@@ -56,7 +56,7 @@ test('BattleScene enemy action pacing constants resolve during turn flow', () =>
 test('BattleScene returns to faction select through a cleanup path and retry stays in BattleScene', () => {
   const source = readScene('src/scenes/BattleScene.js');
 
-  assert.match(source, /drawActionRowUtilityMenuTrigger\(\) \{[\s\S]*getActionRowUtilityMenuMetrics\(\);[\s\S]*createFloatingControl\([\s\S]*'☰',[\s\S]*this\.guardPointerEvent\(pointer\);[\s\S]*this\.toggleUtilityMenuPanel\(\);[\s\S]*this\.bottomControlViews = \[menu\];[\s\S]*\}/);
+  assert.match(source, /drawPlayerBaseUtilityMenuTrigger\(\) \{[\s\S]*getPlayerBaseUtilityControlMetrics\('menu'\);[\s\S]*createPlayerBaseUtilityControl\([\s\S]*'☰',[\s\S]*this\.guardPointerEvent\(pointer\);[\s\S]*this\.toggleUtilityMenuPanel\(\);[\s\S]*this\.bottomControlViews = \[menu\];[\s\S]*\}/);
   assert.match(source, /this\.scene\.start\('FactionSelectScene'\)/);
   assert.match(source, /this\.scene\.restart\(\{ factionKey, enemyFactionKey \}\)/);
   assert.match(source, /exitBattleToFactionSelect\(\) \{[\s\S]*this\.scene\.start\('FactionSelectScene'\)/);
@@ -84,11 +84,13 @@ test('BattleScene lifecycle destroys stale interactive objects, overlays, timers
 
 
 
-test('BattleScene action row utility menu uses resolved action metrics and no bottom fullscreen control', () => {
+test('BattleScene player-base utility menu uses resolved base metrics and no bottom fullscreen control', () => {
   const source = readScene('src/scenes/BattleScene.js');
 
-  assert.match(source, /getActionRowUtilityMenuMetrics\(\) \{[\s\S]*const \{ width, action, margin \} = this\.layout;[\s\S]*const actionButtonWidth = width \* 0\.46;[\s\S]*const actionButtonLeft = width \* 0\.5 - actionButtonWidth \/ 2;[\s\S]*x: Phaser\.Math\.Clamp\([\s\S]*actionButtonLeft - gap - touchSize \/ 2,[\s\S]*y: action\.centerY,[\s\S]*touchSize,[\s\S]*\}/);
-  assert.match(source, /drawActionRowUtilityMenuTrigger\(\) \{[\s\S]*const \{ x, y, touchSize \} = this\.getActionRowUtilityMenuMetrics\(\);[\s\S]*createFloatingControl\([\s\S]*x,[\s\S]*y,[\s\S]*touchSize,[\s\S]*'☰',[\s\S]*this\.bottomControlViews = \[menu\];[\s\S]*\}/);
+  assert.match(source, /getPlayerBaseUtilityControlMetrics\(side = 'menu'\) \{[\s\S]*const \{ width, margin, playerHero, contentWidth \} = this\.layout;[\s\S]*const baseWidth = contentWidth \* HERO_PANEL_WIDTH_RATIO;[\s\S]*const x = side === 'deck'[\s\S]*baseRight \+ gap \+ controlWidth \/ 2[\s\S]*baseLeft - gap - controlWidth \/ 2[\s\S]*y: playerHero\.centerY,[\s\S]*width: controlWidth,[\s\S]*height: controlHeight,[\s\S]*\}/);
+  assert.match(source, /drawPlayerBaseUtilityMenuTrigger\(\) \{[\s\S]*const \{ x, y, width, height \} = this\.getPlayerBaseUtilityControlMetrics\('menu'\);[\s\S]*createPlayerBaseUtilityControl\([\s\S]*x,[\s\S]*y,[\s\S]*width,[\s\S]*height,[\s\S]*'☰',[\s\S]*this\.bottomControlViews = \[menu\];[\s\S]*\}/);
+  assert.match(source, /drawDeckCounter\(\) \{[\s\S]*const \{ x, y, width, height \} = this\.getPlayerBaseUtilityControlMetrics\('deck'\);[\s\S]*translateActive\('ui\.battle\.deckCounter', 'DECK \{count\}', \{ count: deckCount \}\);[\s\S]*createPlayerBaseUtilityControl\([\s\S]*x,[\s\S]*y,[\s\S]*width,[\s\S]*height,[\s\S]*deckLabel,[\s\S]*\(\) => this\.openDeckInfoPanel\(\),[\s\S]*\}/);
+  assert.match(source, /const HERO_PANEL_WIDTH_RATIO = 0\.66/);
   assert.doesNotMatch(source, /drawBottomUtilityBar/);
   assert.doesNotMatch(source, /controls\.fullscreen/);
   assert.doesNotMatch(source, /onFullscreen: \(\) => this\.toggleFullscreen\(\)/);
@@ -103,8 +105,8 @@ test('battle utility menu opens panel actions and rules resume the existing scen
   const mainSource = readScene('src/main.js');
 
   assert.match(helperSource, /rules: middleAction \? createFloatingControl\(scene, metrics\.width \* 0\.5, metrics\.centerY, metrics\.touchSize, '\?', middleAction/);
-  assert.match(battleSource, /drawActionRowUtilityMenuTrigger\(\) \{[\s\S]*'☰',[\s\S]*this\.guardPointerEvent\(pointer\);[\s\S]*this\.toggleUtilityMenuPanel\(\);[\s\S]*this\.bottomControlViews = \[menu\];[\s\S]*\}/);
-  assert.match(battleSource, /const panelLeft = triggerX \+ touchSize \/ 2;[\s\S]*const panelWidth = Math\.min\(236, width - margin - panelLeft\);[\s\S]*const panelHeight = 228;[\s\S]*const panelTop = triggerY - touchSize \/ 2;[\s\S]*const panelX = panelLeft \+ panelWidth \/ 2;[\s\S]*const panelY = panelTop \+ panelHeight \/ 2;[\s\S]*const rowY = panelTop \+ 28;/);
+  assert.match(battleSource, /drawPlayerBaseUtilityMenuTrigger\(\) \{[\s\S]*'☰',[\s\S]*this\.guardPointerEvent\(pointer\);[\s\S]*this\.toggleUtilityMenuPanel\(\);[\s\S]*this\.bottomControlViews = \[menu\];[\s\S]*\}/);
+  assert.match(battleSource, /const panelLeft = triggerX \+ triggerWidth \/ 2;[\s\S]*const panelWidth = Math\.min\(236, width - margin - panelLeft\);[\s\S]*const panelHeight = 228;[\s\S]*const panelTop = triggerY - triggerHeight \/ 2;[\s\S]*const panelX = panelLeft \+ panelWidth \/ 2;[\s\S]*const panelY = panelTop \+ panelHeight \/ 2;[\s\S]*const rowY = panelTop \+ 28;/);
   assert.doesNotMatch(battleSource, /utilityMenuTitle|TACTICAL MENU/);
   assert.match(battleSource, /const muteToggle = createMuteToggleControl\(this, panelX - 28, rowY, 42, \{ depth: depth \+ 3 \}\);[\s\S]*const fullscreenToggle = createFloatingControl\(this, panelX \+ 28, rowY, 42, '⛶'/);
   assert.match(battleSource, /showUtilityMenuPanel\(\) \{[\s\S]*this\.closeInspectPreview\(\{ animate: false \}\);[\s\S]*outsideCatcher\.on\('pointerup',[\s\S]*this\.guardPointerEvent\(pointer\);[\s\S]*this\.destroyUtilityMenuPanel\(\);[\s\S]*createMuteToggleControl\(this,[\s\S]*translateActive\('ui\.battle\.utilityMenuRules', 'Rules'\), \(\) => this\.openRulesPanel\(\)\),[\s\S]*translateActive\('ui\.battle\.utilityMenuSettings', 'Settings'\), \(\) => this\.openSettingsScene\(\)\),[\s\S]*translateActive\('ui\.battle\.utilityMenuReturn', 'Return'\), \(\) => this\.exitBattleToFactionSelect\(\)\),[\s\S]*translateActive\('ui\.battle\.utilityMenuMainMenu', 'Main Menu'\), \(\) => this\.exitBattleToMainMenu\(\)\),[\s\S]*\}/);
