@@ -7,6 +7,10 @@ const drawHeroPanels = source.slice(
   source.indexOf('  drawHeroPanels()'),
   source.indexOf('  drawBoard() {'),
 );
+const updateActionableSideVisualState = source.slice(
+  source.indexOf('  updateActionableSideVisualState()'),
+  source.indexOf('  updateInitiativeIndicator()'),
+);
 const updateInitiativeIndicator = source.slice(
   source.indexOf('  updateInitiativeIndicator()'),
   source.indexOf('  refreshAfterPlayerAction()'),
@@ -27,14 +31,15 @@ test('normal base panels render centered HP without title labels or action-slot 
 });
 
 test('initiative remains icon-only with subtle side-colored active panel highlight', () => {
-  assert.match(drawHeroPanels, /this\.enemyInitiativeIcon = this\.add\.text\(enemyPanel\.x \+ panelWidth \* 0\.44, enemyPanel\.y, '▶'/);
+  assert.match(drawHeroPanels, /this\.enemyInitiativeIcon = this\.add\.text\(enemyPanel\.x - panelWidth \* 0\.44, enemyPanel\.y, '▶'/);
   assert.match(drawHeroPanels, /this\.playerInitiativeIcon = this\.add\.text\(playerPanel\.x - panelWidth \* 0\.44, playerPanel\.y, '▶'/);
-  assert.match(updateInitiativeIndicator, /const active = this\.getCurrentActionableSide\(\);/);
-  assert.match(updateInitiativeIndicator, /this\.playerHeroPanel\.setStrokeStyle\(playerBaseActionStateActive \|\| playerActive \? 3 : 2, 0x60a5fa/);
-  assert.match(updateInitiativeIndicator, /this\.enemyHeroPanel\.setStrokeStyle\(enemyActive \? 3 : 2, 0xf87171/);
-  assert.match(updateInitiativeIndicator, /this\.playerInitiativeIcon\.setVisible\(playerActive && !this\.isPlayerBaseActionStateActive\(\)\)/);
-  assert.match(updateInitiativeIndicator, /this\.enemyInitiativeIcon\.setVisible\(enemyActive\)/);
-  assert.doesNotMatch(updateInitiativeIndicator, /turn label|TURN|AKCJA 1\/2|ACT 1\/2/);
+  assert.match(updateActionableSideVisualState, /const active = this\.getCurrentActionableSide\(\);/);
+  assert.match(updateActionableSideVisualState, /this\.playerHeroPanel\.setStrokeStyle\(playerActive \? 3 : 2, 0x60a5fa/);
+  assert.match(updateActionableSideVisualState, /this\.enemyHeroPanel\.setStrokeStyle\(enemyActive \? 3 : 2, 0xf87171/);
+  assert.match(updateActionableSideVisualState, /this\.playerInitiativeIcon\.setVisible\(playerActive\)/);
+  assert.match(updateActionableSideVisualState, /this\.enemyInitiativeIcon\.setVisible\(enemyActive\)/);
+  assert.match(updateInitiativeIndicator, /this\.updateActionableSideVisualState\(\);/);
+  assert.doesNotMatch(updateActionableSideVisualState, /turn label|TURN|AKCJA 1\/2|ACT 1\/2/);
 });
 
 test('mulligan base action remains on the player base and hides normal HP', () => {

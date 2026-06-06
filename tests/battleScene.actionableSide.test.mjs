@@ -81,6 +81,9 @@ test('current actionable side returns null while battle UI is locked or ended', 
   assert.equal(getCurrentActionableSide.call(createScene({ isFlowResolving: true })), null);
   assert.equal(getCurrentActionableSide.call(createScene({ isEffectCastResolving: true })), null);
   assert.equal(getCurrentActionableSide.call(createScene({ battleResultModalShown: true })), null);
+  assert.equal(getCurrentActionableSide.call(createScene({ openingMulliganPending: true })), null);
+  assert.equal(getCurrentActionableSide.call(createScene({ deckInfoPanel: {} })), null);
+  assert.equal(getCurrentActionableSide.call(createScene({ utilityMenuPanel: {} })), null);
   assert.equal(getCurrentActionableSide.call(createScene({ gameState: { firstActor: 'player', winner: 'enemy' } })), null);
   assert.equal(getCurrentActionableSide.call(createScene({ gameState: null })), null);
 });
@@ -119,10 +122,43 @@ test('mulligan-start pass timing gates player and enemy starts correctly', () =>
 });
 
 test('initiative indicator and enemy-first unlock refresh use current actionability', () => {
+  const updateActionableSideVisualState = extractMethodBody('updateActionableSideVisualState', 'updateInitiativeIndicator');
   const updateInitiativeIndicator = extractMethodBody('updateInitiativeIndicator', 'refreshAfterPlayerAction');
   const resolveEnemyFirstTurnOpening = extractMethodBody('resolveEnemyFirstTurnOpening', 'finishTurnAfterBothActions');
 
-  assert.match(updateInitiativeIndicator, /const active = this\.getCurrentActionableSide\(\);/);
-  assert.doesNotMatch(updateInitiativeIndicator, /this\.gameState\.firstActor/);
+  assert.match(updateActionableSideVisualState, /const active = this\.getCurrentActionableSide\(\);/);
+  assert.doesNotMatch(updateActionableSideVisualState, /this\.gameState\.firstActor/);
+  assert.match(updateInitiativeIndicator, /this\.updateActionableSideVisualState\(\);/);
   assert.match(resolveEnemyFirstTurnOpening, /this\.isFlowResolving = false;\s*this\.updateInitiativeIndicator\(\);\s*this\.resetCardHighlights\(\);/);
+});
+
+test('actionable arrows use left-side base-panel placement for both sides', () => {
+  const drawHeroPanels = extractMethodBody('drawHeroPanels', 'updateActionSlotBadge');
+
+  assert.match(drawHeroPanels, /enemyInitiativeIcon = this\.add\.text\(enemyPanel\.x - panelWidth \* 0\.44, enemyPanel\.y, '▶'/);
+  assert.match(drawHeroPanels, /playerInitiativeIcon = this\.add\.text\(playerPanel\.x - panelWidth \* 0\.44, playerPanel\.y, '▶'/);
+  assert.doesNotMatch(drawHeroPanels, /enemyInitiativeIcon = this\.add\.text\(enemyPanel\.x \+ panelWidth/);
+});
+
+test('actionable arrows and base highlights follow current actionable side', () => {
+  const updateActionableSideVisualState = extractMethodBody('updateActionableSideVisualState', 'updateInitiativeIndicator');
+  const updatePlayerBaseActionState = extractMethodBody('updatePlayerBaseActionState', 'onPlayerBasePointerUp');
+
+  assert.match(updateActionableSideVisualState, /const playerActive = active === 'player';/);
+  assert.match(updateActionableSideVisualState, /const enemyActive = active === 'enemy';/);
+  assert.match(updateActionableSideVisualState, /playerHeroPanel\.setStrokeStyle\(playerActive \? 3 : 2, 0x60a5fa, playerActive \? HERO_PANEL_ACTIVE_STROKE_ALPHA : HERO_PANEL_STROKE_ALPHA\)/);
+  assert.match(updateActionableSideVisualState, /enemyHeroPanel\.setStrokeStyle\(enemyActive \? 3 : 2, 0xf87171, enemyActive \? HERO_PANEL_ACTIVE_STROKE_ALPHA : HERO_PANEL_STROKE_ALPHA\)/);
+  assert.match(updateActionableSideVisualState, /playerInitiativeIcon\) this\.playerInitiativeIcon\.setVisible\(playerActive\);/);
+  assert.match(updateActionableSideVisualState, /enemyInitiativeIcon\) this\.enemyInitiativeIcon\.setVisible\(enemyActive\);/);
+  assert.doesNotMatch(updateActionableSideVisualState, /isPlayerBaseActionStateActive/);
+  assert.match(updatePlayerBaseActionState, /this\.updateActionableSideVisualState\(\);/);
+});
+
+test('PASS remains player-base only while enemy side only receives arrow and highlight', () => {
+  const drawHeroPanels = extractMethodBody('drawHeroPanels', 'updateActionSlotBadge');
+  const getPlayerBaseActionLabel = extractMethodBody('getPlayerBaseActionLabel', 'isPlayerBaseActionStateActive');
+
+  assert.match(drawHeroPanels, /this\.playerBaseActionLabelText = this\.add\.text\(playerPanel\.x, playerPanel\.y, '',/);
+  assert.doesNotMatch(source, /enemyBaseActionLabelText/);
+  assert.match(getPlayerBaseActionLabel, /translateActive\('ui\.common\.pass', 'PASS'\)/);
 });
