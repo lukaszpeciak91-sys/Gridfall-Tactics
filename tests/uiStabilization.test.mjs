@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
 
-import { calculateHandLayoutMetrics, HAND_CARD_ASPECT_RATIO, HAND_CARD_BOTTOM_SAFE_INSET_RATIO, HAND_CARD_EDGE_SAFE_MARGIN_PX, HAND_CARD_MAX_WIDTH_RATIO, HAND_CARD_PRE_POLISH_MAX_WIDTH_RATIO, HAND_CARD_ROW_DOWN_SHIFT_PX, HAND_CARD_WIDTH_POLISH_SCALE, MAX_VISIBLE_HAND_CARDS, MIN_HAND_CONTROL_TOUCH_SIZE } from '../src/ui/handLayout.js';
+import { calculateHandLayoutMetrics, HAND_CARD_ASPECT_RATIO, HAND_CARD_BOTTOM_SAFE_INSET_RATIO, HAND_CARD_EDGE_SAFE_MARGIN_PX, HAND_CARD_MAX_WIDTH_RATIO, HAND_CARD_PRE_POLISH_MAX_WIDTH_RATIO, HAND_CARD_PROPORTIONAL_SCALE, HAND_CARD_ROW_DOWN_SHIFT_PX, HAND_CARD_WIDTH_POLISH_SCALE, MAX_VISIBLE_HAND_CARDS, MIN_HAND_CONTROL_TOUCH_SIZE } from '../src/ui/handLayout.js';
 
 const read = (path) => fs.readFileSync(path, 'utf8');
 
@@ -25,15 +25,16 @@ test('hand layout keeps cards above the control row with readable spacing on por
   assert.ok(hand.controlTouchSize >= MIN_HAND_CONTROL_TOUCH_SIZE);
   assert.equal(HAND_CARD_ASPECT_RATIO, 1.86);
   assert.equal(HAND_CARD_PRE_POLISH_MAX_WIDTH_RATIO, 0.28);
-  assert.equal(HAND_CARD_MAX_WIDTH_RATIO, 0.292);
-  assert.equal(HAND_CARD_WIDTH_POLISH_SCALE, 1.04);
+  assert.equal(HAND_CARD_MAX_WIDTH_RATIO, 0.29784);
+  assert.equal(HAND_CARD_WIDTH_POLISH_SCALE, 1.0608);
+  assert.equal(HAND_CARD_PROPORTIONAL_SCALE, 1.02);
   assert.equal(HAND_CARD_BOTTOM_SAFE_INSET_RATIO, 0.1);
   assert.equal(HAND_CARD_ROW_DOWN_SHIFT_PX, 8);
   assert.equal(HAND_CARD_EDGE_SAFE_MARGIN_PX, 8);
   assert.equal(hand.cardRowDownShift, 8);
   assert.equal(hand.trackSafeInset, 8);
-  assert.ok(hand.cardHeight >= 164 && hand.cardHeight <= 170, 'mobile hand cards should use more bottom space while preserving safe insets');
-  assert.ok(cardBottom <= handBottom - hand.cardBottomSafeInset + 0.0001);
+  assert.ok(hand.cardHeight >= 170 && hand.cardHeight <= 171, 'mobile hand cards should use the proportional readability polish');
+  assert.ok(cardBottom <= handBottom - hand.cardBottomSafeInset + hand.cardHeight * 0.01 + 0.0001);
   assert.ok(firstCardLeft >= HAND_CARD_EDGE_SAFE_MARGIN_PX);
   assert.ok(lastCardRight <= 390 - HAND_CARD_EDGE_SAFE_MARGIN_PX);
   assert.ok(hand.step >= hand.cardWidth * 0.72, 'card overlap should leave most of each card readable');
