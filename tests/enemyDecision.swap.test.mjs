@@ -79,7 +79,7 @@ const quickFixCard = {
   type: 'utility',
   targeting: 'friendly_unit',
   effectId: 'heal_1_atk_1_draw_on_kill_this_turn',
-  textShort: 'Target [ALLY]: heal 1, +1 ATK this turn. Draw if it kills.',
+  textShort: 'Heal [ALLY] 1. +1 ATK until combat. Kills in combat: draw 1.',
 };
 
 test('AI can legally target updated Quick Fix on a friendly unit', () => {

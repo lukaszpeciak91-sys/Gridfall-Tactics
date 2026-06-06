@@ -63,7 +63,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": "gain_atk_when_damaged",
-      "textShort": "Survives damage: +1 ATK this turn.",
+      "textShort": "Survives damage: +1 ATK until combat.",
       "attack": 2,
       "hp": 3,
       "armor": 0
@@ -76,7 +76,7 @@
       "type": "order",
       "targeting": "all_friendly_units",
       "effectId": "buff_all_armor_1",
-      "textShort": "All [ALLY] +1 ARM this turn."
+      "textShort": "All [ALLY] +1 ARM until combat."
     },
     {
       "id": "tank_stability_1",
@@ -86,7 +86,7 @@
       "type": "order",
       "targeting": "all_friendly_units",
       "effectId": "immune_move_disable_this_turn",
-      "textShort": "All [ALLY] cannot be moved or disabled this turn."
+      "textShort": "Until combat, [ALLIES] cannot be moved or disabled."
     },
     {
       "id": "tank_reinforce_1",
@@ -106,7 +106,7 @@
       "type": "special",
       "targeting": "all_friendly_units",
       "effectId": "cannot_drop_below_1_this_turn",
-      "textShort": "[ALLY] can't drop below 1 HP this turn."
+      "textShort": "Until combat, [ALLIES] cannot drop below 1 HP."
     },
     {
       "id": "tank_repair_kit_1",
@@ -116,7 +116,7 @@
       "type": "utility",
       "targeting": "friendly_unit",
       "effectId": "temp_armor_1",
-      "textShort": "Target [ALLY] +1 ARM until combat ends."
+      "textShort": "Target [ALLY] +1 ARM until combat."
     }
   ]
 }
