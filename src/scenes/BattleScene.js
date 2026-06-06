@@ -2852,6 +2852,16 @@ export default class BattleScene extends Phaser.Scene {
 
   beginPlayerTargetingSession(targetingState) {
     if (!targetingState) return;
+    if ((targetingState.requiredTargets ?? 0) <= 0) {
+      const card = this.gameState?.player?.hand?.find((item) => item.id === targetingState.cardId) ?? null;
+      this.selectedCardId = null;
+      this.targetingState = null;
+      this.effectCastState = null;
+      this.resetCardHighlights({ showPreview: false });
+      this.updateActionButtonLabel();
+      this.showInvalidActionFeedback?.({ reason: 'No valid targets', cardId: targetingState.cardId, card, scope: 'global' });
+      return;
+    }
     this.targetingState = { ...targetingState, targetIndexes: [...(targetingState.targetIndexes ?? [])] };
     this.resetCardHighlights({ showPreview: false });
     this.updateActionButtonLabel();
@@ -6473,7 +6483,20 @@ export default class BattleScene extends Phaser.Scene {
 
   getTargetingStateForCard(card) {
     if (!card || this.isUnitCard(card)) return null;
-    return getTargetingStateForEffect(card.effectId, card.id);
+    const targetingState = getTargetingStateForEffect(card.effectId, card.id);
+    if (!targetingState) return null;
+    if (card.effectId === 'enemy_up_to_2_atk_minus_1') {
+      const targetLimit = targetingState.targetLimit ?? targetingState.requiredTargets ?? 1;
+      const validTargetCount = this.gameState.board.filter((_unit, index) => (
+        this.isValidTarget(index, targetingState.targetType, [], targetingState.targetConstraint)
+      )).length;
+      return {
+        ...targetingState,
+        requiredTargets: Math.min(targetLimit, validTargetCount),
+        targetIndexes: [...(targetingState.targetIndexes ?? [])],
+      };
+    }
+    return targetingState;
   }
 
   isValidTarget(boardIndex, targetType, selectedTargetIndexes = [], targetConstraint = null) {
@@ -6487,6 +6510,7 @@ export default class BattleScene extends Phaser.Scene {
       if (Math.floor(firstSelectedIndex / 3) !== Math.floor(boardIndex / 3)) return false;
       if (Math.abs((firstSelectedIndex % 3) - (boardIndex % 3)) !== 1) return false;
     }
+    if (targetConstraint === 'positive-attack' && getUnitAttack(unit) <= 0) return false;
     if (targetType === 'friendly-unit') return unit.owner === 'player';
     if (targetType === 'enemy-unit') return unit.owner === 'enemy';
     if (targetType === 'any-unit') {

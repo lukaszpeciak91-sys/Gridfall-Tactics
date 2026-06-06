@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
+import { getTargetingStateForEffect } from '../src/systems/cardTargeting.js';
 
 const source = fs.readFileSync('src/scenes/BattleScene.js', 'utf8');
 
@@ -336,8 +337,36 @@ test('Signal Shift first target refreshes instruction without Inspect and second
   ]);
 });
 
-test('Jam Signal optional partial targeting refresh does not open Inspect', () => {
-  const onBoardCellTapWithResolvers = compileMethod('onBoardCellTap', 'getActivePlayerEffectCard', ['boardIndex']);
+
+test('Jam Signal targeting count is max valid positive-ATK enemies and blocks all-zero boards', () => {
+  const getTargetingStateForCard = compileMethod('getTargetingStateForCard', 'isValidTarget', ['card', 'getTargetingStateForEffect']);
+  const jamSignal = { id: 'control_jam_signal_1', type: 'order', effectId: 'enemy_up_to_2_atk_minus_1' };
+  const scene = {
+    isUnitCard: () => false,
+    gameState: { board: [] },
+    isValidTarget(index) {
+      const unit = this.gameState.board[index];
+      return Boolean(unit && unit.owner === 'enemy' && unit.attack > 0);
+    },
+  };
+
+  scene.gameState.board = [{ owner: 'enemy', attack: 2 }, { owner: 'enemy', attack: 0 }];
+  assert.equal(getTargetingStateForCard.call(scene, jamSignal, getTargetingStateForEffect).requiredTargets, 1);
+
+  scene.gameState.board = [{ owner: 'enemy', attack: 2 }, { owner: 'enemy', attack: 1 }];
+  assert.equal(getTargetingStateForCard.call(scene, jamSignal, getTargetingStateForEffect).requiredTargets, 2);
+
+  scene.gameState.board = [{ owner: 'enemy', attack: 0 }, { owner: 'enemy', attack: 0 }];
+  assert.equal(getTargetingStateForCard.call(scene, jamSignal, getTargetingStateForEffect).requiredTargets, 0);
+});
+
+test('Jam Signal one valid target resolves on first tap without CONFIRM', () => {
+  const onBoardCellTapWithResolvers = compileMethod('onBoardCellTap', 'getActivePlayerEffectCard', [
+    'boardIndex',
+    'playOrRedeployUnit',
+    'resolveTargetedUnitOnPlayEffect',
+    'resolveTargetedEffectCard',
+  ]);
   const jamSignal = { id: 'control_jam_signal_1', type: 'order', effectId: 'enemy_up_to_2_atk_minus_1' };
   const calls = [];
   const scene = {
@@ -350,24 +379,79 @@ test('Jam Signal optional partial targeting refresh does not open Inspect', () =
     isEffectCastResolving: false,
     playerActionUsed: false,
     selectedCardId: jamSignal.id,
-    targetingState: { cardId: jamSignal.id, targetType: 'enemy-unit', minTargets: 1, requiredTargets: 2, targetIndexes: [] },
+    targetingState: { cardId: jamSignal.id, targetType: 'enemy-unit', requiredTargets: 1, targetLimit: 2, targetConstraint: 'positive-attack', targetIndexes: [] },
     effectCastState: null,
     pendingSwapIndex: null,
-    gameState: { player: { hand: [jamSignal] }, board: [{ owner: 'enemy' }] },
+    gameState: { player: { hand: [jamSignal] }, board: [{ owner: 'enemy', attack: 2 }] },
+    getActivePlayerEffectCard: () => null,
+    isValidTarget: () => true,
+    captureBoardStats: () => ({ before: true }),
+    buildMovementFeedbackForAction: () => [],
+    buildActionFeedback: () => [],
+    getImmediateCombatFeedback: () => null,
+    completePlayerAction(beforeStats) { calls.push(['complete', beforeStats]); },
+  };
+  const resolveTargetedEffectCard = (_state, _side, cardId, boardIndex, targetIndexes) => {
+    calls.push(['resolve', cardId, boardIndex, [...targetIndexes]]);
+    return { ok: true, type: 'targeted-effect' };
+  };
+
+  onBoardCellTapWithResolvers.call(scene, 0, () => { throw new Error('unit placement must not run'); }, () => {}, resolveTargetedEffectCard);
+
+  assert.deepEqual(calls, [
+    ['resolve', jamSignal.id, 0, [0]],
+    ['complete', { before: true }],
+  ]);
+});
+
+test('Jam Signal two valid targets stages first tap and resolves on second tap without CONFIRM', () => {
+  const onBoardCellTapWithResolvers = compileMethod('onBoardCellTap', 'getActivePlayerEffectCard', [
+    'boardIndex',
+    'playOrRedeployUnit',
+    'resolveTargetedUnitOnPlayEffect',
+    'resolveTargetedEffectCard',
+  ]);
+  const jamSignal = { id: 'control_jam_signal_1', type: 'order', effectId: 'enemy_up_to_2_atk_minus_1' };
+  const calls = [];
+  const scene = {
+    openingMulliganPending: false,
+    utilityMenuPanel: null,
+    navigationInProgress: false,
+    pointerInputGuardActive: false,
+    battleResultModalShown: false,
+    isFlowResolving: false,
+    isEffectCastResolving: false,
+    playerActionUsed: false,
+    selectedCardId: jamSignal.id,
+    targetingState: { cardId: jamSignal.id, targetType: 'enemy-unit', requiredTargets: 2, targetLimit: 2, targetConstraint: 'positive-attack', targetIndexes: [] },
+    effectCastState: null,
+    pendingSwapIndex: null,
+    gameState: { player: { hand: [jamSignal] }, board: [{ owner: 'enemy', attack: 2 }, { owner: 'enemy', attack: 1 }] },
     getActivePlayerEffectCard: () => null,
     isValidTarget: () => true,
     resetCardHighlights(options) { calls.push(['highlights', options]); },
     updateActionButtonLabel() { calls.push(['button']); },
     showTargetingInstruction() { calls.push(['instruction', [...this.targetingState.targetIndexes]]); },
+    captureBoardStats: () => ({ before: true }),
+    buildMovementFeedbackForAction: () => [],
+    buildActionFeedback: () => [],
+    getImmediateCombatFeedback: () => null,
+    completePlayerAction(beforeStats) { calls.push(['complete', beforeStats]); },
+  };
+  const resolveTargetedEffectCard = (_state, _side, cardId, boardIndex, targetIndexes) => {
+    calls.push(['resolve', cardId, boardIndex, [...targetIndexes]]);
+    return { ok: true, type: 'targeted-effect' };
   };
 
-  onBoardCellTapWithResolvers.call(scene, 0);
-
+  onBoardCellTapWithResolvers.call(scene, 0, () => { throw new Error('unit placement must not run'); }, () => {}, resolveTargetedEffectCard);
   assert.deepEqual(scene.targetingState.targetIndexes, [0]);
-  assert.deepEqual(scene.gameState.player.hand, [jamSignal]);
+
+  onBoardCellTapWithResolvers.call(scene, 1, () => { throw new Error('unit placement must not run'); }, () => {}, resolveTargetedEffectCard);
   assert.deepEqual(calls, [
     ['highlights', { showPreview: false }],
     ['button'],
     ['instruction', [0]],
+    ['resolve', jamSignal.id, 1, [0, 1]],
+    ['complete', { before: true }],
   ]);
 });

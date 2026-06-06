@@ -435,22 +435,12 @@ function addJamSignalCandidates(actions, state, owner, card) {
     .filter(({ value }) => Number.isFinite(value) && value > 0)
     .sort((a, b) => (b.value - a.value) || (a.targetIndex - b.targetIndex));
 
-  rankedTargets.forEach(({ targetIndex }) => {
-    const targetIndexes = [targetIndex];
-    const targetedProbe = resolveTargetedEffectCard(cloneState(state), owner, card.id, targetIndex, targetIndexes);
-    if (targetedProbe.ok && targetedProbe.type !== 'targeted-effect-pending' && targetedProbe.type !== 'targeted-effect-blocked') {
-      actions.push({ type: 'play-targeted-effect', cardId: card.id, targetIndex, targetIndexes, effectId: card.effectId ?? null });
-    }
-  });
+  const targetIndexes = rankedTargets.slice(0, 2).map(({ targetIndex }) => targetIndex);
+  if (targetIndexes.length < 1) return;
 
-  for (let first = 0; first < rankedTargets.length; first += 1) {
-    for (let second = first + 1; second < rankedTargets.length; second += 1) {
-      const targetIndexes = [rankedTargets[first].targetIndex, rankedTargets[second].targetIndex];
-      const targetedProbe = resolveTargetedEffectCard(cloneState(state), owner, card.id, targetIndexes[0], targetIndexes);
-      if (targetedProbe.ok && targetedProbe.type !== 'targeted-effect-pending' && targetedProbe.type !== 'targeted-effect-blocked') {
-        actions.push({ type: 'play-targeted-effect', cardId: card.id, targetIndex: targetIndexes[0], targetIndexes, effectId: card.effectId ?? null });
-      }
-    }
+  const targetedProbe = resolveTargetedEffectCard(cloneState(state), owner, card.id, targetIndexes[0], targetIndexes);
+  if (targetedProbe.ok && targetedProbe.type !== 'targeted-effect-pending' && targetedProbe.type !== 'targeted-effect-blocked') {
+    actions.push({ type: 'play-targeted-effect', cardId: card.id, targetIndex: targetIndexes[0], targetIndexes, effectId: card.effectId ?? null });
   }
 }
 
