@@ -360,3 +360,155 @@ test('hand-card long press preserves targeted session, suppresses release, and a
   assert.deepEqual(scene.targetingState, { targetType: 'any-unit' });
   assert.equal(scene.quickTapLongPressStartedFor, signalShift.id);
 });
+
+function createBoardInspectScene(overrides = {}) {
+  const calls = [];
+  return {
+    pendingSwapIndex: null,
+    selectedCardId: null,
+    targetingState: null,
+    effectCastState: null,
+    boardPointerDownSelectedSwapSource: false,
+    boardInspectIndex: 4,
+    navigationInProgress: false,
+    battleResultModalShown: false,
+    isFlowResolving: false,
+    isEffectCastResolving: false,
+    openingMulliganPending: false,
+    pressedHandCardId: null,
+    pressedHandCardWasSelected: false,
+    selectedHandCardZoom: { background: {}, label: {}, glow: {} },
+    calls,
+    isPointerEventGuarded: () => false,
+    isPointerUpReservedForUi: () => false,
+    getBoardCellFromPointerUp: () => null,
+    isPointerInsideSelectedHandCardZoom: () => false,
+    isPointerInsideHandArea: () => false,
+    clearBoardInspectFromOutsideTap(pointer, currentlyOver = []) {
+      if (this.boardInspectIndex === null) return false;
+      if (this.isPointerInsideSelectedHandCardZoom(pointer, currentlyOver)) return false;
+      this.clearBoardInspect({ animate: true });
+      return true;
+    },
+    cancelBoardCellPressState() { calls.push('cancel-board-press'); },
+    clearBoardInspect() { this.boardInspectIndex = null; calls.push('clear-board-inspect'); },
+    onBoardCellTap(index) { calls.push(['board-tap', index]); },
+    clearHandCardSelection() { calls.push('clear-hand-selection'); },
+    cancelEffectTargeting() { calls.push('cancel-targeting'); },
+    ...overrides,
+  };
+}
+
+test('enemy board inspect closes on outside board tap without processing board action', () => {
+  const onScenePointerUp = compileMethod('onScenePointerUp', 'clearSelectedHandInspectFromOutsideTap', ['pointer', 'currentlyOver']);
+  const scene = createBoardInspectScene({
+    gameState: { board: [null, { owner: 'enemy' }] },
+    getBoardCellFromPointerUp: () => ({ index: 1 }),
+  });
+
+  onScenePointerUp.call(scene, { id: 1, x: 10, y: 10 }, []);
+
+  assert.equal(scene.boardInspectIndex, null);
+  assert.deepEqual(scene.calls, ['clear-board-inspect', 'cancel-board-press']);
+});
+
+test('enemy board inspect closes on empty board tap', () => {
+  const onScenePointerUp = compileMethod('onScenePointerUp', 'clearSelectedHandInspectFromOutsideTap', ['pointer', 'currentlyOver']);
+  const scene = createBoardInspectScene({ getBoardCellFromPointerUp: () => ({ index: 5 }) });
+
+  onScenePointerUp.call(scene, { id: 1, x: 60, y: 60 }, []);
+
+  assert.equal(scene.boardInspectIndex, null);
+  assert.deepEqual(scene.calls, ['clear-board-inspect', 'cancel-board-press']);
+});
+
+test('enemy board inspect closes on hand tap without selecting or playing a card', () => {
+  const onScenePointerUp = compileMethod('onScenePointerUp', 'clearSelectedHandInspectFromOutsideTap', ['pointer', 'currentlyOver']);
+  const handBackground = {};
+  const scene = createBoardInspectScene({
+    cardViews: [{ background: handBackground }],
+    isPointerUpReservedForUi: () => true,
+    getBoardCellFromPointerUp: () => null,
+  });
+
+  onScenePointerUp.call(scene, { id: 1, x: 20, y: 300 }, [handBackground]);
+
+  assert.equal(scene.boardInspectIndex, null);
+  assert.deepEqual(scene.calls, ['clear-board-inspect', 'cancel-board-press']);
+});
+
+test('friendly board inspect closes on outside tap without swap selection', () => {
+  const onScenePointerUp = compileMethod('onScenePointerUp', 'clearSelectedHandInspectFromOutsideTap', ['pointer', 'currentlyOver']);
+  const scene = createBoardInspectScene({
+    boardInspectIndex: 7,
+    getBoardCellFromPointerUp: () => ({ index: 8 }),
+  });
+
+  onScenePointerUp.call(scene, { id: 1, x: 80, y: 80 }, []);
+
+  assert.equal(scene.boardInspectIndex, null);
+  assert.equal(scene.pendingSwapIndex, null);
+  assert.deepEqual(scene.calls, ['clear-board-inspect', 'cancel-board-press']);
+});
+
+test('dismissing board inspect does not play a selected card', () => {
+  const onScenePointerUp = compileMethod('onScenePointerUp', 'clearSelectedHandInspectFromOutsideTap', ['pointer', 'currentlyOver']);
+  const scene = createBoardInspectScene({
+    selectedCardId: 'unit_card',
+    getBoardCellFromPointerUp: () => ({ index: 3 }),
+    isBoardCellTapReservedForCardAction() { throw new Error('dismiss should not evaluate play action'); },
+  });
+
+  onScenePointerUp.call(scene, { id: 1, x: 30, y: 30 }, []);
+
+  assert.equal(scene.boardInspectIndex, null);
+  assert.equal(scene.selectedCardId, 'unit_card');
+  assert.deepEqual(scene.calls, ['clear-board-inspect', 'cancel-board-press']);
+});
+
+test('dismissing board inspect does not trigger targeting', () => {
+  const onScenePointerUp = compileMethod('onScenePointerUp', 'clearSelectedHandInspectFromOutsideTap', ['pointer', 'currentlyOver']);
+  const scene = createBoardInspectScene({
+    selectedCardId: 'target_card',
+    targetingState: { targetType: 'enemy', targetIndexes: [] },
+    getBoardCellFromPointerUp: () => ({ index: 1 }),
+    isBoardCellTapReservedForCardAction() { throw new Error('dismiss should not evaluate targeting'); },
+  });
+
+  onScenePointerUp.call(scene, { id: 1, x: 30, y: 30 }, []);
+
+  assert.equal(scene.boardInspectIndex, null);
+  assert.deepEqual(scene.calls, ['clear-board-inspect', 'cancel-board-press']);
+});
+
+test('dismissing board inspect does not trigger swap', () => {
+  const onScenePointerUp = compileMethod('onScenePointerUp', 'clearSelectedHandInspectFromOutsideTap', ['pointer', 'currentlyOver']);
+  const scene = createBoardInspectScene({
+    pendingSwapIndex: 2,
+    getBoardCellFromPointerUp: () => ({ index: 3 }),
+  });
+
+  onScenePointerUp.call(scene, { id: 1, x: 30, y: 30 }, []);
+
+  assert.equal(scene.boardInspectIndex, null);
+  assert.equal(scene.pendingSwapIndex, 2);
+  assert.deepEqual(scene.calls, ['clear-board-inspect', 'cancel-board-press']);
+});
+
+test('hand inspect outside tap behavior still clears hand preview state', () => {
+  const clearSelectedHandInspectFromOutsideTap = compileMethod('clearSelectedHandInspectFromOutsideTap', 'clearOpeningMulliganPreviewFromOutsideTap', ['pointer', 'currentlyOver']);
+  const scene = {
+    selectedHandCardZoom: { background: {}, label: {}, glow: {} },
+    boardInspectIndex: null,
+    hoverInspectCardId: 'hand-card',
+    isPointerInsideSelectedHandCardZoom: () => false,
+    resetCalledWith: null,
+    resetCardHighlights(options) { this.resetCalledWith = options; },
+  };
+
+  const cleared = clearSelectedHandInspectFromOutsideTap.call(scene, { id: 1, x: 0, y: 0 }, []);
+
+  assert.equal(cleared, true);
+  assert.equal(scene.hoverInspectCardId, null);
+  assert.deepEqual(scene.resetCalledWith, { showPreview: false });
+});
