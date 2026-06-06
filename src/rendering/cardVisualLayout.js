@@ -992,17 +992,19 @@ function getCardArtTextureKey(scene, card, { enableCardIllustration = false } = 
 }
 
 export function calculateCardArtworkCoverPosition(zone, sourceWidth = 512, sourceHeight = 768, options = {}) {
-  const safeSourceWidth = Math.max(1, sourceWidth);
-  const safeSourceHeight = Math.max(1, sourceHeight);
+  const safeSourceWidth = Math.max(1, Math.floor(sourceWidth));
+  const safeSourceHeight = Math.max(1, Math.floor(sourceHeight));
   const scale = Math.max(zone.width / safeSourceWidth, zone.height / safeSourceHeight);
-  const cropWidth = Math.min(safeSourceWidth, zone.width / scale);
-  const cropHeight = Math.min(safeSourceHeight, zone.height / scale);
-  const cropX = Math.max(0, (safeSourceWidth - cropWidth) / 2);
-    const maxCropY = Math.max(0, safeSourceHeight - cropHeight);
+  const rawCropWidth = Math.min(safeSourceWidth, zone.width / scale);
+  const rawCropHeight = Math.min(safeSourceHeight, zone.height / scale);
+  const cropWidth = Math.min(safeSourceWidth, Math.max(1, Math.ceil(rawCropWidth)));
+  const cropHeight = Math.min(safeSourceHeight, Math.max(1, Math.ceil(rawCropHeight)));
+  const cropX = Math.min(Math.max(0, safeSourceWidth - cropWidth), Math.max(0, Math.round((safeSourceWidth - cropWidth) / 2)));
+  const maxCropY = Math.max(0, safeSourceHeight - cropHeight);
   const normalizedArtPositionY = Number.isFinite(options.artPositionY)
     ? Math.min(1, Math.max(0, options.artPositionY))
     : 0.5;
-  const cropY = Math.min(maxCropY, Math.max(0, normalizedArtPositionY * maxCropY));
+  const cropY = Math.min(maxCropY, Math.max(0, Math.round(normalizedArtPositionY * maxCropY)));
 
   return {
     scale,

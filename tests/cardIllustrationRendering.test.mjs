@@ -73,10 +73,14 @@ test('card artwork cover positioning keeps frame fixed and defaults to centered 
   assert.equal(crop.displayHeight, 180);
   assert.equal(crop.cropX, 0);
   assert.equal(crop.cropWidth, 512);
-  assert.ok(Math.abs(crop.cropY - ((768 - 682.6666666666666) / 2)) < 0.001);
-  assert.ok(Math.abs(crop.cropHeight - 682.6667) < 0.001);
-  assert.ok(Math.abs(crop.lostTopPercent - crop.lostBottomPercent) < 0.001);
-  assert.equal(crop.artPositionY, 0.5);
+  assert.equal(crop.cropY, 43);
+  assert.equal(crop.cropHeight, 683);
+  assert.equal(Number.isInteger(crop.cropX), true);
+  assert.equal(Number.isInteger(crop.cropY), true);
+  assert.equal(Number.isInteger(crop.cropWidth), true);
+  assert.equal(Number.isInteger(crop.cropHeight), true);
+  assert.ok(Math.abs(crop.lostTopPercent - crop.lostBottomPercent) < 0.14);
+  assert.ok(Math.abs(crop.artPositionY - 0.5) < 0.006);
 });
 
 test('dry card layout experiment expands collection artwork viewport without shrinking stat row', () => {
@@ -113,19 +117,37 @@ test('card artwork crop Y selects source window while keeping viewport covered a
   assert.equal(bottomArtwork.y, artZone.centerY);
 
   assert.equal(topArtwork.crop.y, 0);
-  assert.ok(Math.abs(middleArtwork.crop.y - 42.6667) < 0.001);
+  assert.equal(middleArtwork.crop.y, 43);
   assert.ok(Math.abs(bottomArtwork.crop.y - bottomArtwork.cropDebugMetrics.maxCropY) < 0.001);
   assert.ok(bottomArtwork.crop.y > middleArtwork.crop.y);
 
   [topArtwork, middleArtwork, bottomArtwork].forEach((artwork) => {
-    assert.ok(Math.abs((artwork.crop.width * artwork.cropDebugMetrics.scale) - artZone.width) < 0.001);
-    assert.ok(Math.abs((artwork.crop.height * artwork.cropDebugMetrics.scale) - artZone.height) < 0.001);
+    assert.ok((artwork.crop.width * artwork.cropDebugMetrics.scale) >= artZone.width);
+    assert.ok((artwork.crop.height * artwork.cropDebugMetrics.scale) >= artZone.height);
+    assert.ok(((artwork.crop.width * artwork.cropDebugMetrics.scale) - artZone.width) <= artwork.cropDebugMetrics.scale);
+    assert.ok(((artwork.crop.height * artwork.cropDebugMetrics.scale) - artZone.height) <= artwork.cropDebugMetrics.scale);
     assert.equal(artwork.displayWidth, 120);
     assert.equal(artwork.displayHeight, 180);
   });
 
   assert.ok(topArtwork.origin.y < middleArtwork.origin.y);
   assert.ok(middleArtwork.origin.y < bottomArtwork.origin.y);
+});
+
+
+test('card artwork crop values are integer-stabilized and remain inside texture bounds', () => {
+  const crop = calculateCardArtworkCoverPosition(artZone, 512, 768, { artPositionY: 0.5 });
+
+  assert.equal(Number.isInteger(crop.cropX), true);
+  assert.equal(Number.isInteger(crop.cropY), true);
+  assert.equal(Number.isInteger(crop.cropWidth), true);
+  assert.equal(Number.isInteger(crop.cropHeight), true);
+  assert.ok(crop.cropX >= 0);
+  assert.ok(crop.cropY >= 0);
+  assert.ok(crop.cropX + crop.cropWidth <= 512);
+  assert.ok(crop.cropY + crop.cropHeight <= 768);
+  assert.equal(crop.displayWidth, 120);
+  assert.equal(crop.displayHeight, 180);
 });
 
 test('standardized card illustrations render only when callers enable them', () => {
@@ -139,8 +161,8 @@ test('standardized card illustrations render only when callers enable them', () 
   assert.equal(enabledArtwork.key, 'card.aggro.aggro_01');
   assert.equal(enabledArtwork.crop.x, 0);
   assert.equal(enabledArtwork.crop.width, 512);
-  assert.ok(Math.abs(enabledArtwork.crop.y - 42.6667) < 0.001);
-  assert.ok(Math.abs(enabledArtwork.crop.height - 682.6667) < 0.001);
+  assert.equal(enabledArtwork.crop.y, 43);
+  assert.equal(enabledArtwork.crop.height, 683);
 
   const controlArtwork = createCardArtwork(scene, artZone, { id: 'control_controller_1' }, { enableCardIllustration: true });
   assert.equal(controlArtwork.type, 'image');
@@ -199,9 +221,12 @@ test('card preview artwork crop metrics are source-space viewport dimensions tha
   assert.ok(crop.cropWidth > zones.art.width);
   assert.ok(crop.cropHeight > zones.art.height);
 
-  // Mapping source-space crop window back by render scale equals visible art zone.
-  assert.ok(Math.abs((crop.cropWidth * crop.scale) - zones.art.width) < 0.001);
-  assert.ok(Math.abs((crop.cropHeight * crop.scale) - zones.art.height) < 0.001);
+  // Mapping source-space crop window back by render scale covers the visible art zone
+  // with less than one source pixel of safe overscan after integer stabilization.
+  assert.ok((crop.cropWidth * crop.scale) >= zones.art.width);
+  assert.ok((crop.cropHeight * crop.scale) >= zones.art.height);
+  assert.ok(((crop.cropWidth * crop.scale) - zones.art.width) <= crop.scale);
+  assert.ok(((crop.cropHeight * crop.scale) - zones.art.height) <= crop.scale);
 });
 
 test('art viewport debug renders final card preview and applies movement only on Y', () => {

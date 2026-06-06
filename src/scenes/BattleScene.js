@@ -2246,14 +2246,26 @@ export default class BattleScene extends Phaser.Scene {
 
     const hasActiveBoardTapMode = this.pendingSwapIndex !== null;
     const isIdleBoardTapMode = !this.selectedCardId && !this.targetingState && !this.effectCastState && !hasActiveBoardTapMode;
-    if (this.isPointerUpReservedForUi(pointer, currentlyOver)) return;
-
-    const boardCell = this.getBoardCellFromPointerUp(pointer, currentlyOver);
 
     if (this.boardLongPressSuppressNextScenePointerUpIndex != null) {
       this.boardLongPressSuppressNextScenePointerUpIndex = null;
       return;
     }
+
+    if (this.clearBoardInspectFromOutsideTap?.(pointer, currentlyOver)) {
+      this.cancelBoardCellPressState?.();
+      this.pressedHandCardId = null;
+      this.pressedHandCardWasSelected = false;
+      return;
+    }
+
+    if (this.boardInspectIndex !== null && this.isPointerInsideSelectedHandCardZoom?.(pointer, currentlyOver)) {
+      return;
+    }
+
+    if (this.isPointerUpReservedForUi(pointer, currentlyOver)) return;
+
+    const boardCell = this.getBoardCellFromPointerUp(pointer, currentlyOver);
 
     if (this.boardInspectIndex !== null && !boardCell && this.clearBoardInspectFromOutsideTap(pointer, currentlyOver)) {
       return;
@@ -2405,8 +2417,6 @@ export default class BattleScene extends Phaser.Scene {
 
   clearBoardInspectFromOutsideTap(pointer, currentlyOver = []) {
     if (this.boardInspectIndex === null) return false;
-    if (this.isPointerUpReservedForUi(pointer, currentlyOver)) return false;
-    if (this.getBoardCellFromPointerUp(pointer, currentlyOver)) return false;
     if (this.isPointerInsideSelectedHandCardZoom(pointer, currentlyOver)) return false;
 
     this.clearBoardInspect({ animate: true });
