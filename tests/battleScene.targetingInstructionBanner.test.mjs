@@ -264,12 +264,15 @@ test('board swap prompt appears through the unified active selection banner path
   assert.equal(scene.activeSelectionBanner, null);
 });
 
-test('targeting highlight and action-button routing remain source-aligned', () => {
+test('targeting highlight and direct tap routing remain source-aligned', () => {
   assert.match(source, /beginPlayerTargetingSession\(targetingState\) \{/);
   assert.match(source, /if \(\(targetingState\.requiredTargets \?\? 0\) <= 0\) \{/);
   assert.match(source, /this\.targetingState = \{ \.\.\.targetingState, targetIndexes: \[\.\.\.\(targetingState\.targetIndexes \?\? \[\]\)\] \};/);
   assert.match(source, /this\.showTargetingInstruction\(\);/);
-  assert.match(source, /if \(this\.targetingState\) \{[\s\S]*this\.confirmTargetingSelection\(\);[\s\S]*return;[\s\S]*\}/);
+  assert.match(source, /const canAutoCast = targetIndexes\.length >= minTargets && isExactTargetCount;/);
+  assert.match(source, /if \(!canAutoCast\) \{[\s\S]*this\.targetingState = \{[\s\S]*this\.showTargetingInstruction\(\);[\s\S]*return;[\s\S]*\}/);
+  assert.doesNotMatch(source, /confirmTargetingSelection/);
+  assert.equal(source.includes('action' + 'Button'), false);
   assert.match(source, /const isValidEnemyTarget = this\.isValidTarget\(cell\.index, 'enemy-unit', selectedTargetIndexes, targetConstraint\);/);
   assert.match(source, /strokeAlpha = BOARD_TARGET_STROKE_ALPHA;/);
 });
@@ -333,7 +336,7 @@ test('central banner coordinator preserves persistent prompt priority and rebuil
     source.indexOf('  destroyTurnStartBanner() {'),
   );
   const cleanupSceneObjects = extractMethodBody('cleanupSceneObjects', 'create');
-  const updateActionButtonLabel = extractMethodBody('updateActionButtonLabel', 'canHoldPassToSurrender');
+  const updatePlayerBaseActionState = extractMethodBody('updatePlayerBaseActionState', 'canHoldPassToSurrender');
   const showMovementBlockedFeedback = source.slice(
     source.indexOf('  showMovementBlockedFeedback('),
     source.indexOf('  async playMovementFeedback('),
@@ -350,8 +353,8 @@ test('central banner coordinator preserves persistent prompt priority and rebuil
   assert.match(showEnemyActionBanner, /!this\.prepareTransientBattleBanner\('enemy-action'\)/);
   assert.match(showOpeningTurnStartBanner, /!this\.prepareTransientBattleBanner\('turn-start'\)/);
   assert.match(cleanupSceneObjects, /this\.destroyEnemyActionBanner\(\);[\s\S]*this\.destroyTurnStartBanner\(\);[\s\S]*this\.destroyPlayerActionBanner\(\);[\s\S]*this\.destroyActiveSelectionMessage\(\);/);
-  assert.match(updateActionButtonLabel, /this\.actionButton\.setVisible\(false\);[\s\S]*this\.passHoldToSurrenderEnabled = this\.canPlayerBaseHoldToSurrender\(\);/);
-  assert.doesNotMatch(updateActionButtonLabel, /translateActive\('ui\.battle\.holdPassToSurrender', 'Hold PASS to surrender'\)/);
+  assert.match(updatePlayerBaseActionState, /this\.passHoldToSurrenderEnabled = passActionActive && this\.canHoldPassToSurrender\(\);/);
+  assert.doesNotMatch(updatePlayerBaseActionState, /translateActive\('ui\.battle\.holdPassToSurrender', 'Hold PASS to surrender'\)/);
   assert.match(showMovementBlockedFeedback, /this\.showFloatingTextAtSlot\(index, label, 'damage'\)/);
 });
 

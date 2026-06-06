@@ -192,7 +192,6 @@ export default class BattleScene extends Phaser.Scene {
     this.openingMulliganPending = false;
     this.selectedMulliganCardIds = [];
     this.previewedMulliganCardId = null;
-    this.actionButton = null;
     this.deckCounterView = null;
     this.deckInfoPanel = null;
     this.bottomControlViews = [];
@@ -271,7 +270,6 @@ export default class BattleScene extends Phaser.Scene {
     this.openingMulliganPending = false;
     this.selectedMulliganCardIds = [];
     this.previewedMulliganCardId = null;
-    this.actionButton = null;
     this.deckCounterView = null;
     this.deckInfoPanel = null;
     this.bottomControlViews = [];
@@ -400,11 +398,10 @@ export default class BattleScene extends Phaser.Scene {
     this.drawBoard();
     this.drawHeroPanels();
     this.refreshHeroHP();
-    this.drawActionZone();
     this.drawDeckCounter();
     this.drawHand();
     this.drawPlayerBaseUtilityMenuTrigger();
-    this.updateActionButtonLabel();
+    this.updatePlayerBaseActionState();
 
     this.scale.on('enterfullscreen', this.onFullscreenChanged, this);
     this.scale.on('leavefullscreen', this.onFullscreenChanged, this);
@@ -754,7 +751,7 @@ export default class BattleScene extends Phaser.Scene {
       muteToggle,
       buttons,
     };
-    this.updateActionButtonLabel();
+    this.updatePlayerBaseActionState();
   }
 
   createUtilityMenuButton(x, y, width, height, label, onClick) {
@@ -813,7 +810,7 @@ export default class BattleScene extends Phaser.Scene {
       item?.destroy?.();
     });
     this.utilityMenuPanel = null;
-    this.updateActionButtonLabel();
+    this.updatePlayerBaseActionState();
   }
 
   guardPointerEvent(pointer = null) {
@@ -857,7 +854,7 @@ export default class BattleScene extends Phaser.Scene {
 
     this.destroySelectedHandCardZoom({ animate });
     this.resetCardHighlights({ showPreview: false });
-    this.updateActionButtonLabel?.();
+    this.updatePlayerBaseActionState?.();
   }
 
   prepareUtilityMenuNavigation({ includeBattleResultModal = false, preserveBattleFlow = false } = {}) {
@@ -1321,7 +1318,7 @@ export default class BattleScene extends Phaser.Scene {
     } else {
       this.refreshBoardLabels();
       this.refreshHeroHP();
-      this.updateActionButtonLabel();
+      this.updatePlayerBaseActionState();
       this.updateInitiativeIndicator();
       this.resetCardHighlights();
     }
@@ -1349,7 +1346,6 @@ export default class BattleScene extends Phaser.Scene {
       || this.children.length === 0
       || !this.battleFrame?.active
       || this.boardCells.length !== 9
-      || !this.actionButton?.active
       || this.cardViews.length === 0;
   }
 
@@ -1396,11 +1392,10 @@ export default class BattleScene extends Phaser.Scene {
     this.drawHeroPanels();
     this.refreshBoardLabels();
     this.refreshHeroHP();
-    this.drawActionZone();
     this.drawDeckCounter();
     this.drawHand();
     this.drawPlayerBaseUtilityMenuTrigger();
-    this.updateActionButtonLabel();
+    this.updatePlayerBaseActionState();
     this.updateInitiativeIndicator();
     this.resetCardHighlights();
     this.restorePersistentBattleBanner();
@@ -1561,32 +1556,6 @@ export default class BattleScene extends Phaser.Scene {
     }
   }
 
-  drawActionZone() {
-    const { width, action } = this.layout;
-
-    const button = this.add
-      .text(width * 0.5, action.centerY, '', {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: `${Math.max(18, Math.floor(action.h * 0.52))}px`,
-        color: '#f9fafb',
-        backgroundColor: '#111827',
-        align: 'center',
-        fixedWidth: Math.floor(width * 0.46),
-        padding: { x: 0, y: Math.max(8, Math.floor(action.h * 0.18)) },
-      })
-      .setOrigin(0.5)
-      .setStroke('#64748b', 2)
-      .setInteractive({ useHandCursor: true });
-
-    this.actionButton = button;
-    button.on('pointerup', () => {
-      if (!this.actionButton?.visible || this.openingMulliganPending) return;
-      if (this.targetingState) {
-        this.confirmTargetingSelection();
-      }
-    });
-  }
-
   drawDeckCounter() {
     this.destroyDeckCounterView();
     if (!this.gameState?.player || !this.layout) return;
@@ -1638,7 +1607,7 @@ export default class BattleScene extends Phaser.Scene {
     this.isEffectCastResolving = false;
     this.pendingSwapIndex = null;
     this.destroyActiveSelectionMessage();
-    this.updateActionButtonLabel();
+    this.updatePlayerBaseActionState();
     this.resetCardHighlights({ showPreview: false });
 
     const { width, height } = this.scale.gameSize;
@@ -1743,7 +1712,7 @@ export default class BattleScene extends Phaser.Scene {
     };
 
     this.bindDeckInfoScrollHandlers(contentHeight);
-    this.updateActionButtonLabel();
+    this.updatePlayerBaseActionState();
   }
 
   bindDeckInfoScrollHandlers(contentHeight) {
@@ -1811,7 +1780,7 @@ export default class BattleScene extends Phaser.Scene {
       item?.destroy?.();
     });
     this.deckInfoPanel = null;
-    this.updateActionButtonLabel();
+    this.updatePlayerBaseActionState();
   }
 
   getDeckInfoPanelText() {
@@ -2192,7 +2161,7 @@ export default class BattleScene extends Phaser.Scene {
     } else {
       this.targetingState = null;
       this.resetCardHighlights({ showPreview: false });
-      this.updateActionButtonLabel();
+      this.updatePlayerBaseActionState();
     }
     this.startHandCardLongPress(cardId);
   }
@@ -2231,7 +2200,7 @@ export default class BattleScene extends Phaser.Scene {
       this.hoverInspectCardId = cardId;
       this.boardInspectIndex = null;
       this.resetCardHighlights({ showPreview: true });
-      this.updateActionButtonLabel();
+      this.updatePlayerBaseActionState();
     });
   }
 
@@ -2519,10 +2488,6 @@ export default class BattleScene extends Phaser.Scene {
     const isOverHandCard = this.cardViews.some((view) => overObjects.includes(view.background));
     if (isOverHandCard) return true;
 
-    if (this.actionButton && (overObjects.includes(this.actionButton) || this.isPointerInsideGameObject(pointer, this.actionButton))) {
-      return true;
-    }
-
     if (this.deckCounterView && [this.deckCounterView.backing, this.deckCounterView.text]
       .some((item) => overObjects.includes(item) || this.isPointerInsideGameObject(pointer, item))) {
       return true;
@@ -2566,7 +2531,7 @@ export default class BattleScene extends Phaser.Scene {
     this.clearSwapPrompt();
     if (hadState) {
       this.resetCardHighlights();
-      this.updateActionButtonLabel();
+      this.updatePlayerBaseActionState();
     }
   }
 
@@ -2600,7 +2565,7 @@ export default class BattleScene extends Phaser.Scene {
           this.showInvalidActionFeedback?.({ reason: 'Swap is not valid', boardIndex, scope: 'slot' });
           this.clearSwapPrompt();
           this.resetCardHighlights({ showPreview: false });
-          this.updateActionButtonLabel();
+          this.updatePlayerBaseActionState();
           return;
         }
 
@@ -2613,7 +2578,7 @@ export default class BattleScene extends Phaser.Scene {
           this.clearSwapPrompt();
           this.showInvalidActionFeedback?.({ reason: result.reason, boardIndex, scope: 'slot' });
           this.resetCardHighlights({ showPreview: false });
-          this.updateActionButtonLabel();
+          this.updatePlayerBaseActionState();
           return;
         }
         this.clearSwapPrompt();
@@ -2648,7 +2613,7 @@ export default class BattleScene extends Phaser.Scene {
           targetIndexes,
         };
         this.resetCardHighlights({ showPreview: false });
-        this.updateActionButtonLabel();
+        this.updatePlayerBaseActionState();
         this.showTargetingInstruction();
         return;
       }
@@ -2674,7 +2639,7 @@ export default class BattleScene extends Phaser.Scene {
           targetIndexes,
         };
         this.resetCardHighlights({ showPreview: false });
-        this.updateActionButtonLabel();
+        this.updatePlayerBaseActionState();
         this.showTargetingInstruction();
         return;
       }
@@ -2692,7 +2657,7 @@ export default class BattleScene extends Phaser.Scene {
           targetIndexes,
         };
         this.resetCardHighlights({ showPreview: false });
-        this.updateActionButtonLabel();
+        this.updatePlayerBaseActionState();
         this.showTargetingInstruction();
         return;
       }
@@ -2771,7 +2736,7 @@ export default class BattleScene extends Phaser.Scene {
     this.pressedHandCardId = null;
     this.destroySelectedHandCardZoom({ animate: true });
     this.destroyTargetingInstruction();
-    this.updateActionButtonLabel();
+    this.updatePlayerBaseActionState();
     this.resetCardHighlights({ showPreview: false });
 
     this.isEffectCastResolving = true;
@@ -2805,7 +2770,7 @@ export default class BattleScene extends Phaser.Scene {
     this.pressedHandCardId = null;
     this.destroySelectedHandCardZoom({ animate: true });
     this.destroyTargetingInstruction();
-    this.updateActionButtonLabel();
+    this.updatePlayerBaseActionState();
     this.resetCardHighlights({ showPreview: false });
 
     this.isEffectCastResolving = true;
@@ -2833,7 +2798,7 @@ export default class BattleScene extends Phaser.Scene {
     if (!result.ok) {
       this.effectCastState = null;
       this.resetCardHighlights({ showPreview: false });
-      this.updateActionButtonLabel();
+      this.updatePlayerBaseActionState();
       this.showInvalidActionFeedback?.({ reason: result.reason, cardId: card.id, card, scope: 'global' });
       return;
     }
@@ -2858,13 +2823,13 @@ export default class BattleScene extends Phaser.Scene {
       this.targetingState = null;
       this.effectCastState = null;
       this.resetCardHighlights({ showPreview: false });
-      this.updateActionButtonLabel();
+      this.updatePlayerBaseActionState();
       this.showInvalidActionFeedback?.({ reason: 'No valid targets', cardId: targetingState.cardId, card, scope: 'global' });
       return;
     }
     this.targetingState = { ...targetingState, targetIndexes: [...(targetingState.targetIndexes ?? [])] };
     this.resetCardHighlights({ showPreview: false });
-    this.updateActionButtonLabel();
+    this.updatePlayerBaseActionState();
     this.showTargetingInstruction();
   }
 
@@ -2933,7 +2898,7 @@ export default class BattleScene extends Phaser.Scene {
     this.pressedHandCardWasSelected = false;
     this.destroyTargetingInstruction();
     this.destroySelectedHandCardZoom({ animate: true });
-    this.updateActionButtonLabel();
+    this.updatePlayerBaseActionState();
     this.resetCardHighlights({ showPreview: false });
     if (canceledUnitOnPlay && !this.playerActionUsed && !this.isFlowResolving) {
       this.completePlayerAction(beforeStats);
@@ -3057,7 +3022,7 @@ export default class BattleScene extends Phaser.Scene {
       this.selectedMulliganCardIds.push(cardId);
     }
 
-    this.updateActionButtonLabel();
+    this.updatePlayerBaseActionState();
     this.resetCardHighlights({ showPreview });
   }
 
@@ -3072,7 +3037,7 @@ export default class BattleScene extends Phaser.Scene {
     this.resetOpeningMulliganInputState();
     this.openingMulliganPending = false;
     this.redrawHand();
-    this.updateActionButtonLabel();
+    this.updatePlayerBaseActionState();
     this.refreshDeckCounter();
     this.resetCardHighlights();
     await this.showOpeningTurnStartBanner();
@@ -3120,58 +3085,11 @@ export default class BattleScene extends Phaser.Scene {
     );
   }
 
-  isPassActionButtonAvailable() {
+  isBasePassAvailable() {
     return !this.gameState?.winner
       && !this.playerActionUsed
       && !this.hasBasePassBlocker()
       && canPass(this.gameState);
-  }
-
-  isBasePassAvailable() {
-    return this.isPassActionButtonAvailable();
-  }
-
-  updateActionButtonLabel() {
-    this.updatePlayerBaseActionState();
-    if (!this.actionButton) return;
-    if (this.openingMulliganPending) {
-      this.actionButton.setVisible(false);
-      this.passHoldToSurrenderEnabled = false;
-      this.cancelPassHoldToSurrender();
-      return;
-    }
-    if (this.targetingState) {
-      const minTargets = this.targetingState.minTargets ?? this.targetingState.requiredTargets ?? 1;
-      const requiredTargets = this.targetingState.requiredTargets ?? minTargets;
-      const isExactTargetCount = minTargets === requiredTargets;
-      if (isExactTargetCount) {
-        this.actionButton.setVisible(false);
-        return;
-      }
-      const selectedCount = this.targetingState.targetIndexes?.length ?? 0;
-      this.actionButton.setVisible(true);
-      if (selectedCount >= minTargets) {
-        this.actionButton.setText(translateActive('ui.common.confirm', 'CONFIRM'));
-      } else {
-        this.actionButton.setText(translateActive('ui.battle.selectTarget', 'SELECT TARGET'));
-      }
-      this.actionButton.setStyle({ backgroundColor: '#312e81', color: '#ede9fe' });
-      this.actionButton.setStroke('#a78bfa', 2);
-      this.passHoldToSurrenderEnabled = false;
-      this.cancelPassHoldToSurrender();
-      return;
-    }
-    this.actionButton.setVisible(false);
-    this.actionButton.setText('');
-    this.actionButton.setStyle({
-      backgroundColor: '#111827',
-      color: '#f9fafb',
-    });
-    this.actionButton.setStroke('#64748b', 2);
-    this.passHoldToSurrenderEnabled = this.canPlayerBaseHoldToSurrender();
-    if (!this.passHoldToSurrenderEnabled) {
-      this.cancelPassHoldToSurrender();
-    }
   }
 
   canHoldPassToSurrender() {
@@ -3211,7 +3129,6 @@ export default class BattleScene extends Phaser.Scene {
     }
     this.passHoldToSurrenderProgress = false;
     this.playerHeroPanel?.setAlpha?.(1);
-    this.actionButton?.setAlpha?.(1);
   }
 
   resolvePlayerHoldToSurrender() {
@@ -3220,53 +3137,6 @@ export default class BattleScene extends Phaser.Scene {
     this.gameState.endingReason = 'player_hold_surrender';
     this.cancelPassHoldToSurrender();
     this.completeBattleFlow(0);
-  }
-
-  confirmTargetingSelection() {
-    this.cancelPassHoldToSurrender();
-    if (this.battleResultModalShown || this.isFlowResolving || this.playerActionUsed) return;
-    const selectedCard = this.getActivePlayerEffectCard()
-      ?? this.gameState.player.hand.find((card) => card.id === this.selectedCardId);
-    if (!selectedCard || !this.targetingState) {
-      this.clearHandCardSelection();
-      return;
-    }
-
-    const targetIndexes = [...(this.targetingState.targetIndexes ?? [])];
-    const minTargets = this.targetingState.minTargets ?? this.targetingState.requiredTargets ?? 1;
-    if (targetIndexes.length < minTargets) {
-      return;
-    }
-
-    const beforeStats = this.effectCastState?.source === 'unit-on-play'
-      ? this.effectCastState.beforeStats
-      : this.captureBoardStats();
-    const effectCardId = this.effectCastState?.cardId ?? this.selectedCardId;
-    const result = this.effectCastState?.source === 'unit-on-play'
-      ? resolveTargetedUnitOnPlayEffect(this.gameState, 'player', this.effectCastState.boardIndex, targetIndexes)
-      : resolveTargetedEffectCard(this.gameState, 'player', effectCardId, targetIndexes[0], targetIndexes);
-    if (!result.ok) {
-      this.showInvalidActionFeedback?.({ reason: result.reason, cardId: effectCardId, boardIndex: targetIndexes[0], scope: this.getInvalidActionScope(result.reason) });
-      return;
-    }
-    if (result.type === 'targeted-effect-pending' || result.type === 'unit-on-play-targeted-effect-pending') return;
-    if (result.type === 'targeted-effect' && this.gameState.cancelEnemyOrderThisTurn?.enemy) {
-      this.gameState.cancelEnemyOrderThisTurn.enemy = false;
-    }
-    this.showPlayerEffectConfirmation(selectedCard);
-    const movementFeedback = this.buildMovementFeedbackForAction({
-      effectId: selectedCard.effectId,
-      owner: 'player',
-      targetIndexes,
-      beforeSnapshot: beforeStats,
-      result,
-    });
-    this.completePlayerAction(
-      beforeStats,
-      [...(result.feedback ?? []), ...this.buildActionFeedback(beforeStats, result)],
-      movementFeedback,
-      this.getImmediateCombatFeedback?.(result) ?? null,
-    );
   }
 
   resolvePassTurn() {
@@ -3396,7 +3266,7 @@ export default class BattleScene extends Phaser.Scene {
     this.destroyActiveSelectionMessage();
     this.destroySelectedHandCardZoom({ animate: true });
     this.updateInitiativeIndicator();
-    this.updateActionButtonLabel();
+    this.updatePlayerBaseActionState();
     this.evaluateAndShowPlayerConcedableInfoBanner();
 
     if (this.gameState.firstActor === 'enemy') {
@@ -3579,7 +3449,7 @@ export default class BattleScene extends Phaser.Scene {
     this.refreshDeckCounter();
     this.resetCardHighlights();
     this.updateActionSlotBadge();
-    this.updateActionButtonLabel();
+    this.updatePlayerBaseActionState();
   }
 
   async revealAndApplyEnemyAction() {

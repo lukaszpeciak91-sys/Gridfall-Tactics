@@ -7,7 +7,7 @@ _Last updated: UI stabilization pass before final art/canvas polish._
 `BattleScene` still owns a mix of runtime gameplay flow and UI rendering. The main mixed responsibilities are:
 
 - Battle state setup, mulligan state, turn sequencing, enemy action reveal, combat resolution timing, and result routing.
-- Board, hero panels, action button, gameplay deck counter/info panel, hand frame, hand card previews, bottom navigation, result modal, feedback banners, and combat/buff animations.
+- Board, hero/player-base panels, gameplay deck counter/info panel, hand frame, hand card previews, bottom navigation, result modal, targeting/action banners, and combat/buff animations.
 - Lifecycle recovery for fullscreen, viewport resize, rules/menu overlays, and WebGL restore.
 
 Safe cleanup completed in this pass intentionally stayed small:
@@ -26,7 +26,7 @@ Safe cleanup completed in this pass intentionally stayed small:
 ## Safe gameplay zone
 
 - The board and hero panels are the primary gameplay-readability zone.
-- Card selection previews may rise from the hand, but they should not cover the action button or bottom navigation row in normal portrait layout.
+- Card selection previews may rise from the hand, but they should not cover the player base, deck/menu controls, or bottom navigation row in normal portrait layout.
 - Result modal overlays intentionally block gameplay input after a winner is set.
 - Lifecycle rebuilds should redraw from the current `GameState` without changing card rules, turn rules, combat, or AI decisions.
 
@@ -42,7 +42,7 @@ Safe cleanup completed in this pass intentionally stayed small:
 - Opening mulligan uses `selectedMulliganCardIds` and `previewedMulliganCardId`; it must not set gameplay `selectedCardId`. Hand-card long-press inspect remains available, but board gameplay input is blocked until mulligan confirmation.
 - Normal gameplay card selection uses `selectedCardId`; pointer-up only reveals a visual zoom preview and does not create a separate focus/input mode. Targeted effect cards show their first selection instruction as soon as their targeting session starts.
 - Tapping a selected hand card again toggles it off during gameplay.
-- Tapping outside the hand clears selection only when the pointer-up is not reserved for a card, board cell action, PASS/action button, gameplay deck counter/info panel, or bottom navigation control. Interrupted pointer gestures clear local press/timer bookkeeping without triggering tap behavior.
+- Tapping outside the hand clears selection only when the pointer-up is not reserved for a card, board cell action, player-base PASS/mulligan control, gameplay deck counter/info panel, utility menu, or bottom navigation control. Interrupted pointer gestures clear local press/timer bookkeeping without triggering tap behavior.
 - Mulligan selection state is highlighted independently from gameplay card selection.
 - Empty hand slots remain non-interactive and visually muted.
 
@@ -76,7 +76,7 @@ Safe cleanup completed in this pass intentionally stayed small:
 - Back exits battle through cleanup and returns to faction select.
 - Rules opens `RulesPanelScene` over the current scene and resumes the same battle state afterward.
 - Fullscreen toggles Phaser fullscreen and requests portrait orientation when entering fullscreen.
-- A compact `DECK N` gameplay counter sits to the right of the action button in the action band, away from the hand and bottom navigation controls.
+- A compact `DECK N` gameplay counter sits beside the player base controls, away from the hand and bottom navigation controls.
 - Tapping `DECK N` opens a read-only Deck Info panel for the player cards. It groups card status as In Deck, In Hand, Played / Discarded, and On Board; each entry shows presentation-aware card name, Unit/Effect type, and count through the deck-summary render mode so localization can later change labels without changing gameplay data.
 - Card UI uses one card data source with multiple display modes: hand cards now use the HAND/FULL render mode with presentation-aware name, relevant unit stats, and `textShort`; full detail labels can include short rules text, while board/compact labels may use presentation-aware names but must remain name plus ATK/HP/ARM-style stats only. Future board tap or long-press previews can expose full rules text without crowding the combat board.
 - Card artwork remains language-neutral; localized strings should come from display adapters and render-mode formatting rather than from art assets.
@@ -84,7 +84,7 @@ Safe cleanup completed in this pass intentionally stayed small:
 - In-game overlays do not use top-right `X` close controls. The standard dismissal pattern is a centered, bottom-aligned `BACK` button sized for mobile tapping plus tap/click outside the panel.
 - Tapping outside an in-game overlay closes only that overlay; the dimmed overlay layer consumes the tap so underlying gameplay controls do not also act on it.
 - Deck Info can be viewed during the opening mulligan, is blocked while battle flow animations are resolving, and keeps masked scrolling available when card groups exceed the reduced panel height.
-- The action button reads `KEEP HAND`/`MULLIGAN N` during the opening mulligan and `PASS` afterward.
+- The player base owns the action label: it reads `KEEP HAND`/`MULLIGAN N` during the opening mulligan, then shows HP plus `PASS` when pass is legal. Holding the base triggers surrender only in concedable contexts.
 - Controller play/redeploy uses explicit manual unit-on-play targeting; Hacker keeps its automatic lane behavior.
 - Persistent targeting/swap instructions and transient action/turn banners are centrally coordinated so transient notices defer rather than overlap.
 
@@ -96,7 +96,7 @@ Use this checklist for manual smoke testing before art/canvas changes, and keep 
 - [ ] Mulligan select/unselect/confirm keeps selection visual, replaces up to two cards, and enters the first turn.
 - [ ] post-Mulligan card select/play keeps pointer-down selection and pointer-up preview behavior intact.
 - [ ] PASS consumes the player action only when passing is legal.
-- [ ] `DECK N` appears to the right of PASS/KEEP HAND, opens the Deck Info panel, blocks gameplay input, and closes from either the bottom `BACK` button or an outside overlay tap.
+- [ ] `DECK N` appears beside the player base, opens the Deck Info panel, blocks gameplay input, and closes from either the bottom `BACK` button or an outside overlay tap.
 - [ ] fullscreen enter/exit preserves the active battle state and rebuilds the view from `GameState`.
 - [ ] retry/back clean up result modal and transient input state before restarting or exiting.
 - [ ] win/loss modal appears through delayed battle completion and its retry/exit buttons remain tappable.

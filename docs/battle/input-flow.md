@@ -28,8 +28,8 @@ Battle input is resolved by state priority, not raw tap location alone. Effectiv
    - Idle own-unit board interactions enter/commit/cancel swap selection through `pendingSwapIndex`.
 5. **Idle board taps**
    - With no selected card, no targeting, no effect cast, and no pending swap, board taps evaluate as swap-source selection on own units.
-6. **PASS / hold-to-surrender button flow**
-   - PASS remains the action button behavior; hold gesture is layered for surrender where allowed.
+6. **Player-base PASS / hold-to-surrender flow**
+   - PASS is owned by the player base; its hold gesture triggers surrender only where allowed.
 
 ---
 
@@ -91,7 +91,7 @@ Any non-commit input (e.g., enemy cell, empty cell, UI/outside interaction paths
 
 ### Explicit authority
 - There is **no standalone SWAP button** in this model.
-- PASS remains PASS (separate action button behavior).
+- PASS remains owned by the player base and is separate from board-swap prompts.
 - `pendingSwapIndex` is the authoritative player swap-selection state.
 - The obsolete `actionMode` field has been removed; player board-swap flow is fully represented by `pendingSwapIndex`.
 
@@ -110,8 +110,8 @@ Any non-commit input (e.g., enemy cell, empty cell, UI/outside interaction paths
 
 ## 7) Hold-to-Surrender
 
-- Primary button behavior remains **PASS** when pass is legal and player action economy permits it.
-- In concedable contexts, UI presents informational guidance (e.g., hold PASS to surrender).
+- The player base shows and activates **PASS** when pass is legal and player action economy permits it.
+- In concedable contexts, holding the player base presents/executes the PASS hold-to-surrender flow.
 - Surrender requires hold-threshold completion and valid activation constraints.
 - There is no automatic player surrender trigger from simple tap/cancel flows.
 

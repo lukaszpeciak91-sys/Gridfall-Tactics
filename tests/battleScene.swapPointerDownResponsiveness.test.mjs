@@ -237,7 +237,7 @@ test('subsequent outside tap after inspect closes follows existing swap cancel r
     clearSwapPromptCalled: false,
     clearSwapPrompt() { this.clearSwapPromptCalled = true; },
     resetCardHighlights() {},
-    updateActionButtonLabel() {},
+    updatePlayerBaseActionState() {},
   };
 
   onBoardCellTap.call(scene, 3);
@@ -326,7 +326,7 @@ test('hand-card long press preserves targeted session, suppresses release, and a
     destroyTargetingInstructionCalled: false,
     destroyTargetingInstruction() { this.destroyTargetingInstructionCalled = true; },
     resetCardHighlights(options) { highlights.push(options); },
-    updateActionButtonLabel() {},
+    updatePlayerBaseActionState() {},
     isPointerInsideSelectedHandCardZoom: () => false,
     clearSwapPrompt() {},
     isUnitCard: () => false,

@@ -37,7 +37,7 @@ test('mulligan hand taps still mark and unmark cards for exchange', () => {
     longPressTriggeredCardId: null,
     gameState: { player: { hand: [card] } },
     cancelHandCardLongPress() {},
-    updateActionButtonLabel() {},
+    updatePlayerBaseActionState() {},
     resetCardHighlights() {},
     toggleOpeningMulliganCard(cardId, options) {
       return toggleOpeningMulliganCard.call(this, cardId, options, 2);

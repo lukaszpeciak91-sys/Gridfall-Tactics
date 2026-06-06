@@ -23,14 +23,14 @@ test('obsolete actionMode state is removed and pass does not expose explicit swa
   assert.doesNotMatch(resolvePassTurnBlock, /canPlayerStartSwap/);
 });
 
-test('action button does not show standalone SWAP label', () => {
+test('player base action state does not show standalone SWAP label', () => {
   const source = readFileSync(new URL('../src/scenes/BattleScene.js', import.meta.url), 'utf8');
-  const updateActionButtonLabelBlock = source.slice(
-    source.indexOf('  updateActionButtonLabel() {'),
+  const updatePlayerBaseActionStateBlock = source.slice(
+    source.indexOf('  updatePlayerBaseActionState() {'),
     source.indexOf('  canHoldPassToSurrender() {'),
   );
-  assert.doesNotMatch(updateActionButtonLabelBlock, /swapAction/);
-  assert.doesNotMatch(updateActionButtonLabelBlock, /swapModeCancel/);
+  assert.doesNotMatch(updatePlayerBaseActionStateBlock, /swapAction/);
+  assert.doesNotMatch(updatePlayerBaseActionStateBlock, /swapModeCancel/);
 });
 
 test('board inspect remains long-press only and suppresses quick-tap inspect', () => {

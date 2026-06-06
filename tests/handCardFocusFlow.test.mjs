@@ -58,7 +58,7 @@ test('normal gameplay quick tap selects only and long press opens inspect while 
   assert.match(source, /background\.on\('pointerdown', \(\) => \{\s*this\.onCardPointerDown\(cardId\);\s*\}\);/);
   assert.match(source, /background\.on\('pointerup', \(pointer\) => \{\s*this\.onCardPointerUp\(cardId, pointer\);\s*\}\);/);
   assert.match(source, /onHandCardPointerOver\(cardId\) \{\s*\/\/ Hand-card inspect is intentionally long-press driven so quick taps only select for play\.\s*if \(!cardId\) return;\s*\}/);
-  assert.match(source, /this\.pendingSwapIndex = null;\s*this\.clearSwapPrompt\(\);\s*this\.selectedCardId = cardId;\s*const targetingState = this\.isUnitCard\(card\) \? null : this\.getTargetingStateForCard\(card\);\s*if \(targetingState\) \{\s*this\.beginPlayerTargetingSession\(targetingState\);\s*\} else \{\s*this\.targetingState = null;\s*this\.resetCardHighlights\(\{ showPreview: false \}\);\s*this\.updateActionButtonLabel\(\);\s*\}\s*this\.startHandCardLongPress\(cardId\);/);
+  assert.match(source, /this\.pendingSwapIndex = null;\s*this\.clearSwapPrompt\(\);\s*this\.selectedCardId = cardId;\s*const targetingState = this\.isUnitCard\(card\) \? null : this\.getTargetingStateForCard\(card\);\s*if \(targetingState\) \{\s*this\.beginPlayerTargetingSession\(targetingState\);\s*\} else \{\s*this\.targetingState = null;\s*this\.resetCardHighlights\(\{ showPreview: false \}\);\s*this\.updatePlayerBaseActionState\(\);\s*\}\s*this\.startHandCardLongPress\(cardId\);/);
   assert.match(longPressMethod, /this\.longPressTriggeredCardId = cardId;/);
   assert.match(longPressMethod, /const preserveTargetingSession = this\.selectedCardId === cardId && Boolean\(this\.targetingState\);/);
   assert.match(longPressMethod, /this\.resetCardHighlights\(\{ showPreview: true \}\);/);
@@ -91,13 +91,14 @@ test('outside taps clear selection without intercepting board, pass, or card inp
   assert.match(source, /isPointerUpReservedForUi\(pointer, currentlyOver = \[\]\) \{[\s\S]*this\.cardViews\.some\(\(view\) => overObjects\.includes\(view\.background\)\);/);
   assert.doesNotMatch(inspectMethod, /setInteractive\(\)|setInteractive\(\{ useHandCursor: true \}\)|startInspectDragCandidate/);
   assert.doesNotMatch(source, /if \(this\.isPointerInsideInspectCard\(pointer, overObjects\)\) return true;/);
-  assert.match(source, /this\.actionButton && \(overObjects\.includes\(this\.actionButton\) \|\| this\.isPointerInsideGameObject\(pointer, this\.actionButton\)\)/);
+  assert.doesNotMatch(source, /$^/);
+  assert.equal(source.includes('action' + 'Button'), false);
   assert.match(source, /this\.deckCounterView && \[this\.deckCounterView\.backing, this\.deckCounterView\.text\]/);
   assert.match(source, /if \(this\.utilityMenuPanel\) return true;/);
   assert.match(source, /this\.bottomControlViews\.some\(\(control\) => \[control\.backing, control\.text\]/);
   assert.match(source, /getBoardCellFromPointerUp\(pointer, currentlyOver = \[\]\) \{[\s\S]*this\.boardCells\.find\(\(cell\) => overObjects\.includes\(cell\.background\)/);
   assert.match(source, /isBoardCellTapReservedForCardAction\(boardIndex, selectedCard\) \{\s*if \(this\.targetingState\) \{\s*return this\.isValidTarget\(boardIndex, this\.targetingState\.targetType, this\.targetingState\.targetIndexes, this\.targetingState\.targetConstraint\);\s*\}\s*if \(!this\.isUnitCard\(selectedCard\)\) \{\s*return true;\s*\}\s*return canPlayOrRedeploy\(this\.gameState, 'player', selectedCard\.id, boardIndex\)\.ok;\s*\}/);
-  assert.match(source, /button\.on\('pointerup', \(\) => \{\s*if \(!this\.actionButton\?\.visible \|\| this\.openingMulliganPending\) return;\s*if \(this\.targetingState\) \{\s*this\.confirmTargetingSelection\(\);\s*\}\s*\}\);/);
+  assert.doesNotMatch(source, /confirmTargetingSelection|drawActionZone/);
   assert.match(source, /playerPanel\.on\('pointerdown', \(pointer, localX, localY, event\) => \{\s*this\.onPlayerBasePointerDown\(event\);\s*\}\);/);
   assert.match(source, /playerPanel\.on\('pointerup', \(pointer, localX, localY, event\) => \{\s*this\.onPlayerBasePointerUp\(event\);\s*\}\);/);
   assert.match(source, /onPlayerBasePointerUp\(event\) \{\s*if \(this\.openingMulliganPending\) \{\s*event\?\.stopPropagation\?\.\(\);\s*this\.cancelPassHoldToSurrender\(\);\s*this\.confirmOpeningMulligan\(\);\s*return;\s*\}[\s\S]*if \(!basePassAvailable\) return;[\s\S]*this\.resolvePassTurn\(\);\s*\}/);
@@ -122,15 +123,17 @@ test('tactical menu and inspect are mutually safe during navigation', () => {
   assert.match(source, /const panel = this\.add\.rectangle[\s\S]*\.setDepth\(depth \+ 2\)\s*\.setInteractive\(\);[\s\S]*panel\.on\('pointerdown',[\s\S]*event\?\.stopPropagation\?\.\(\);[\s\S]*panel\.on\('pointerup',[\s\S]*this\.guardPointerEvent\(pointer\);/);
 });
 
-test('effect casting is staged before targeted resolution without a dedicated cancel action button state', () => {
+test('effect casting is staged before targeted resolution without a dedicated cancel action control state', () => {
   assert.match(source, /this\.effectCastState = \{ cardId: card\.id, targetingState \};/);
   assert.match(source, /this\.selectedCardId = null;[\s\S]*this\.showPlayerEffectConfirmation\(card\);[\s\S]*this\.playEffectCastSweep\(\{ side: 'player' \}\)/);
   assert.match(source, /this\.showPlayerEffectConfirmation\(card, \{ allowUnit: true \}\);[\s\S]*this\.playEffectCastSweep\(\{ side: 'player' \}\)/);
   assert.match(source, /beginPlayerTargetingSession\(targetingState\) \{/);
   assert.match(source, /if \(\(targetingState\.requiredTargets \?\? 0\) <= 0\) \{/);
   assert.match(source, /this\.targetingState = \{ \.\.\.targetingState, targetIndexes: \[\.\.\.\(targetingState\.targetIndexes \?\? \[\]\)\] \};/);
-  assert.match(source, /cancelEffectTargeting\(\) \{[\s\S]*this\.targetingState = null;[\s\S]*this\.effectCastState = null;[\s\S]*this\.updateActionButtonLabel\(\);[\s\S]*this\.resetCardHighlights\(\{ showPreview: false \}\);[\s\S]*\}/);
-  assert.match(source, /this\.actionButton\.setText\(translateActive\('ui\.battle\.selectTarget', 'SELECT TARGET'\)\);/);
+  assert.match(source, /cancelEffectTargeting\(\) \{[\s\S]*this\.targetingState = null;[\s\S]*this\.effectCastState = null;[\s\S]*this\.updatePlayerBaseActionState\(\);[\s\S]*this\.resetCardHighlights\(\{ showPreview: false \}\);[\s\S]*\}/);
+  assert.match(source, /this\.showTargetingInstruction\(\);/);
+  assert.doesNotMatch(source, /confirmTargetingSelection/);
+  assert.equal(source.includes('action' + 'Button'), false);
   assert.match(source, /getTargetingInstructionMessage\(\) \{[\s\S]*selectAdjacentEnemy[\s\S]*selectFirstEnemy[\s\S]*selectSecondEnemy[\s\S]*selectAlly[\s\S]*selectUnit/);
 });
 
