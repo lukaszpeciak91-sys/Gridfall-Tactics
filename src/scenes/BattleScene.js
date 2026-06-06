@@ -6,7 +6,7 @@ import { getTargetingStateForEffect } from '../systems/cardTargeting.js';
 import { COMBAT_ATTACK_PRESENTATIONS, getCombatAttackPresentation, getCombatEventAttackerIndex, getCombatEventInterceptOriginalTargetIndex, getCombatEventTargetIndex, getLaneLethalTargetIndexes, getLaneSimultaneousUnitClash, shouldAnimateCombatAttacker, shouldUseControlledHeroStrikePresentation } from '../systems/combatAnimation.js';
 import { BATTLE_BACKGROUND_FALLBACK_COLOR, BATTLE_BACKGROUND_FALLBACK_COLOR_HEX, createCoverBackground, getBattleBackgroundAsset, hasLoadedImageAsset, preloadBattleBackgroundArt, preloadImageAsset, resolvePublicAssetPath } from '../rendering/backgroundArt.js';
 import { preloadAllCardIllustrations } from '../rendering/cardIllustrationAssets.js';
-import { calculateHandLayoutMetrics } from '../ui/handLayout.js';
+import { calculateBattleLayoutMetrics } from '../ui/battleLayout.js';
 import { calculateHandBackCardCoverCrop, calculateHandBackCardDepth, shouldRenderHandBackCard } from '../ui/handBackCardPresentation.js';
 import { findHandCardFlipRevealSlots, startHandCardFlipReveal } from '../ui/handCardFlipReveal.js';
 import { createFloatingControl, createMuteToggleControl, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
@@ -29,7 +29,6 @@ const INSPECT_CARD_MAX_HEIGHT_RATIO = 0.58;
 const INSPECT_CARD_MAX_WIDTH_RATIO = 0.78;
 const INSPECT_CARD_PLAYER_ROW_GAP_RATIO = 0.2;
 const INSPECT_CARD_PLAYER_ROW_BOTTOM_LIMIT_RATIO = 2.78;
-const INSPECT_CARD_ACTION_BOTTOM_LIMIT_RATIO = 0.28;
 const INSPECT_CARD_OVERLAY_ALPHA = 0.2;
 const BATTLE_FRAME_OVERLAY_COLOR = 0x05080f;
 const BATTLE_FRAME_OVERLAY_ALPHA = 0.26;
@@ -431,71 +430,9 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   getLayoutMetrics(width, height) {
-    const margin = Math.max(8, Math.round(width * 0.025));
-    const contentWidth = width - margin * 2;
-
-    const sectionRatios = {
-      topHero: 0.06,
-      board: 0.54,
-      playerHero: 0.06,
-      action: 0.05,
-      hand: 0.265,
-    };
-    const gapRatio = 0.008;
-    const topBottomPadRatio = 0.008;
-    const sectionCount = Object.keys(sectionRatios).length;
-    const totalGapHeight = height * gapRatio * (sectionCount - 1);
-    const totalPadHeight = height * topBottomPadRatio * 2;
-    const usableHeight = Math.max(0, height - totalGapHeight - totalPadHeight);
-    const totalSectionRatio = Object.values(sectionRatios).reduce((sum, ratio) => sum + ratio, 0);
-
-    const topHeroHeight = usableHeight * (sectionRatios.topHero / totalSectionRatio);
-    const boardHeight = usableHeight * (sectionRatios.board / totalSectionRatio);
-    const playerHeroHeight = usableHeight * (sectionRatios.playerHero / totalSectionRatio);
-    const actionHeight = usableHeight * (sectionRatios.action / totalSectionRatio);
-    const handHeight = usableHeight * (sectionRatios.hand / totalSectionRatio);
-
-    const gapHeight = height * gapRatio;
-    const topBottomPad = height * topBottomPadRatio;
-
-    let cursorY = topBottomPad;
-    const topHeroY = cursorY;
-    cursorY += topHeroHeight + gapHeight;
-    const boardY = cursorY;
-    cursorY += boardHeight + gapHeight;
-    const playerHeroY = cursorY;
-    cursorY += playerHeroHeight + gapHeight;
-    const actionY = cursorY;
-    cursorY += actionHeight + gapHeight;
-    const handY = cursorY;
-
-    const boardWidth = Math.min(contentWidth * 0.985, contentWidth);
-    const slotWidth = boardWidth / 3;
-    const slotHeight = slotWidth * 1.34;
-    const boardScale = Math.min(1, boardHeight / (slotHeight * 3));
-    const cellWidth = slotWidth * boardScale;
-    const cellHeight = slotHeight * boardScale;
-
-    const handLayout = calculateHandLayoutMetrics({
-      contentWidth,
-      margin,
-      handY,
-      handHeight,
-      viewportHeight: height,
+    return calculateBattleLayoutMetrics(width, height, {
       maxHandSize: this.gameState.player.maxHandSize,
     });
-
-    return {
-      width,
-      height,
-      margin,
-      contentWidth,
-      topHero: { y: topHeroY, h: topHeroHeight, centerY: topHeroY + topHeroHeight / 2 },
-      board: { y: boardY, h: boardHeight, centerY: boardY + boardHeight / 2, cellWidth, cellHeight, width: cellWidth * 3, height: cellHeight * 3 },
-      playerHero: { y: playerHeroY, h: playerHeroHeight, centerY: playerHeroY + playerHeroHeight / 2 },
-      action: { y: actionY, h: actionHeight, centerY: actionY + actionHeight / 2 },
-      hand: handLayout,
-    };
   }
 
   drawBattleBackground() {
@@ -6101,7 +6038,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   getInspectCardTransform() {
-    const { width, height, hand, margin, board, topHero, playerHero, action } = this.layout;
+    const { width, height, hand, margin, board, topHero } = this.layout;
     const maxInspectWidth = Math.min(width * INSPECT_CARD_MAX_WIDTH_RATIO, width - margin * 2);
     const maxInspectHeight = Math.min(height * INSPECT_CARD_MAX_HEIGHT_RATIO, height - margin * 2);
     const targetScale = Math.min(
@@ -6122,8 +6059,8 @@ export default class BattleScene extends Phaser.Scene {
     const sharedLaneCenterY = (enemyRowBottomY + playerRowTopY) * 0.5;
     const targetY = sharedLaneCenterY + playerRowGap * 0.15;
     const boardBottomLimitY = boardTopY + board.cellHeight * INSPECT_CARD_PLAYER_ROW_BOTTOM_LIMIT_RATIO;
-    const actionBottomLimitY = playerHero.y + playerHero.h + action.h * INSPECT_CARD_ACTION_BOTTOM_LIMIT_RATIO;
-    const tacticalBottomLimitY = Math.min(boardBottomLimitY, actionBottomLimitY, height - margin);
+    const inspectSafeBottomLimitY = hand.y - margin;
+    const tacticalBottomLimitY = Math.min(boardBottomLimitY, inspectSafeBottomLimitY, height - margin);
     const maxY = Math.max(minY, tacticalBottomLimitY - inspectHeight / 2);
 
     return {
