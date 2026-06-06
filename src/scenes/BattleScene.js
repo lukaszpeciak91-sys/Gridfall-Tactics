@@ -2880,6 +2880,18 @@ export default class BattleScene extends Phaser.Scene {
     return Boolean(this.getPlayerBaseActionLabel());
   }
 
+  getCurrentActionableSide() {
+    if (!this.gameState || this.gameState.winner || this.battleResultModalShown) return null;
+    if (this.isFlowResolving || this.isEffectCastResolving) return null;
+
+    const firstActor = this.gameState.firstActor;
+    if (firstActor === 'player' && !this.playerActionUsed) return 'player';
+    if (firstActor === 'enemy' && !this.enemyActionUsed) return 'enemy';
+    if (this.enemyActionUsed && !this.playerActionUsed) return 'player';
+    if (this.playerActionUsed && !this.enemyActionUsed) return 'enemy';
+    return null;
+  }
+
   updatePlayerBaseActionState() {
     const playerBaseMode = this.getPlayerBaseMode();
     const actionLabel = this.getPlayerBaseActionLabel();
@@ -2916,7 +2928,7 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     if (this.playerInitiativeIcon) {
-      this.playerInitiativeIcon.setVisible(!actionStateActive && this.gameState?.firstActor === 'player' && !this.gameState?.winner);
+      this.playerInitiativeIcon.setVisible(!actionStateActive && this.getCurrentActionableSide() === 'player');
     }
 
     if (!this.playerHeroPanel) return;
@@ -3025,7 +3037,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   isBasePassAvailable() {
-    return !this.gameState?.winner
+    return this.getCurrentActionableSide() === 'player'
       && !this.playerActionUsed
       && !this.hasBasePassBlocker()
       && canPass(this.gameState);
@@ -3279,7 +3291,7 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
     this.isFlowResolving = false;
-    this.updateActionSlotBadge();
+    this.updateInitiativeIndicator();
     this.resetCardHighlights();
   }
 
@@ -3353,7 +3365,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   updateInitiativeIndicator() {
-    const active = this.gameState && !this.gameState.winner ? this.gameState.firstActor : null;
+    const active = this.getCurrentActionableSide();
     const playerActive = active === 'player';
     const enemyActive = active === 'enemy';
 
