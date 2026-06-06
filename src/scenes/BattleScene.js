@@ -1407,7 +1407,7 @@ export default class BattleScene extends Phaser.Scene {
       color: '#facc15',
       fontStyle: 'bold',
     };
-    this.enemyInitiativeIcon = this.add.text(enemyPanel.x + panelWidth * 0.44, enemyPanel.y, '▶', iconStyle).setOrigin(0.5).setVisible(false);
+    this.enemyInitiativeIcon = this.add.text(enemyPanel.x - panelWidth * 0.44, enemyPanel.y, '▶', iconStyle).setOrigin(0.5).setVisible(false);
     this.playerInitiativeIcon = this.add.text(playerPanel.x - panelWidth * 0.44, playerPanel.y, '▶', iconStyle).setOrigin(0.5).setVisible(false);
     this.enemyInitiativeIcon.setDepth(120);
     this.playerInitiativeIcon.setDepth(120);
@@ -2883,6 +2883,7 @@ export default class BattleScene extends Phaser.Scene {
   getCurrentActionableSide() {
     if (!this.gameState || this.gameState.winner || this.battleResultModalShown) return null;
     if (this.isFlowResolving || this.isEffectCastResolving) return null;
+    if (this.openingMulliganPending || this.deckInfoPanel || this.utilityMenuPanel) return null;
 
     const firstActor = this.gameState.firstActor;
     if (firstActor === 'player' && !this.playerActionUsed) return 'player';
@@ -2927,9 +2928,7 @@ export default class BattleScene extends Phaser.Scene {
         .setVisible(!mulliganActionActive);
     }
 
-    if (this.playerInitiativeIcon) {
-      this.playerInitiativeIcon.setVisible(!actionStateActive && this.getCurrentActionableSide() === 'player');
-    }
+    this.updateActionableSideVisualState();
 
     if (!this.playerHeroPanel) return;
     if (actionStateActive) {
@@ -3364,22 +3363,25 @@ export default class BattleScene extends Phaser.Scene {
     this.startTurn();
   }
 
-  updateInitiativeIndicator() {
+  updateActionableSideVisualState() {
     const active = this.getCurrentActionableSide();
     const playerActive = active === 'player';
     const enemyActive = active === 'enemy';
 
     if (this.playerHeroPanel) {
-      const playerBaseActionStateActive = this.isPlayerBaseActionStateActive();
-      this.playerHeroPanel.setStrokeStyle(playerBaseActionStateActive || playerActive ? 3 : 2, 0x60a5fa, playerBaseActionStateActive || playerActive ? HERO_PANEL_ACTIVE_STROKE_ALPHA : HERO_PANEL_STROKE_ALPHA);
-      this.playerHeroPanel.setFillStyle(0x111827, playerBaseActionStateActive || playerActive ? HERO_PANEL_ACTIVE_FILL_ALPHA : HERO_PANEL_FILL_ALPHA);
+      this.playerHeroPanel.setStrokeStyle(playerActive ? 3 : 2, 0x60a5fa, playerActive ? HERO_PANEL_ACTIVE_STROKE_ALPHA : HERO_PANEL_STROKE_ALPHA);
+      this.playerHeroPanel.setFillStyle(0x111827, playerActive ? HERO_PANEL_ACTIVE_FILL_ALPHA : HERO_PANEL_FILL_ALPHA);
     }
     if (this.enemyHeroPanel) {
       this.enemyHeroPanel.setStrokeStyle(enemyActive ? 3 : 2, 0xf87171, enemyActive ? HERO_PANEL_ACTIVE_STROKE_ALPHA : HERO_PANEL_STROKE_ALPHA);
       this.enemyHeroPanel.setFillStyle(0x111827, enemyActive ? HERO_PANEL_ACTIVE_FILL_ALPHA : HERO_PANEL_FILL_ALPHA);
     }
-    if (this.playerInitiativeIcon) this.playerInitiativeIcon.setVisible(playerActive && !this.isPlayerBaseActionStateActive());
+    if (this.playerInitiativeIcon) this.playerInitiativeIcon.setVisible(playerActive);
     if (this.enemyInitiativeIcon) this.enemyInitiativeIcon.setVisible(enemyActive);
+  }
+
+  updateInitiativeIndicator() {
+    this.updateActionableSideVisualState();
     this.updateActionSlotBadge();
     this.updatePlayerBaseActionState();
   }
