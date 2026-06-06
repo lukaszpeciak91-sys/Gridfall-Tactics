@@ -1,11 +1,12 @@
 export const MAX_VISIBLE_HAND_CARDS = 5;
 export const HAND_CARD_ASPECT_RATIO = 1.86;
 export const HAND_CARD_READABILITY_SCALE = 1.35;
-export const HAND_CARD_WIDTH_POLISH_SCALE = 1.04;
+export const HAND_CARD_WIDTH_POLISH_SCALE = 1.0608;
+export const HAND_CARD_PROPORTIONAL_SCALE = 1.02;
 export const MIN_HAND_CONTROL_TOUCH_SIZE = 48;
 export const MAX_HAND_CONTROL_TOUCH_SIZE = 54;
 export const HAND_CARD_PRE_POLISH_MAX_WIDTH_RATIO = 0.28;
-export const HAND_CARD_MAX_WIDTH_RATIO = 0.292;
+export const HAND_CARD_MAX_WIDTH_RATIO = 0.29784;
 export const HAND_CARD_TRACK_BLEED_RATIO = 1;
 export const HAND_CARD_BOTTOM_SAFE_INSET_RATIO = 0.1;
 export const HAND_CARD_ROW_DOWN_SHIFT_PX = 8;
@@ -47,7 +48,8 @@ export function calculateHandLayoutMetrics({
     readableCardWidth * HAND_CARD_WIDTH_POLISH_SCALE,
     contentWidth * HAND_CARD_MAX_WIDTH_RATIO,
   );
-  const cardHeight = readableCardWidth * HAND_CARD_ASPECT_RATIO;
+  const readableCardHeight = readableCardWidth * HAND_CARD_ASPECT_RATIO;
+  const cardHeight = readableCardHeight * HAND_CARD_PROPORTIONAL_SCALE;
   const trackBleed = margin * 2 * HAND_CARD_TRACK_BLEED_RATIO;
   const trackSafeInset = HAND_CARD_EDGE_SAFE_MARGIN_PX;
   const trackWidth = Math.max(cardWidth, contentWidth + trackBleed - trackSafeInset * 2);
@@ -57,7 +59,7 @@ export function calculateHandLayoutMetrics({
   const step = cardsVisible > 1 ? Math.min(fittedStep, overlapStep) : 0;
   const usedTrackWidth = cardWidth + step * Math.max(0, cardsVisible - 1);
   const trackLeft = margin - trackBleed / 2 + trackSafeInset + (trackWidth - usedTrackWidth) / 2;
-  const cardCenterY = handY + cardTopInset + cardHeight / 2 + cardRowDownShift;
+  const cardCenterY = handY + cardTopInset + readableCardHeight / 2 + cardRowDownShift;
   const controlCenterY = handY + handHeight - controlBottomInset - controlTouchSize / 2;
 
   return {

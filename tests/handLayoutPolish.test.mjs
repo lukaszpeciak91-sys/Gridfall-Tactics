@@ -5,6 +5,7 @@ import {
   HAND_CARD_ASPECT_RATIO,
   HAND_CARD_MAX_WIDTH_RATIO,
   HAND_CARD_PRE_POLISH_MAX_WIDTH_RATIO,
+  HAND_CARD_PROPORTIONAL_SCALE,
   HAND_CARD_TRACK_BLEED_RATIO,
   HAND_CARD_WIDTH_POLISH_SCALE,
   calculateHandLayoutMetrics,
@@ -24,7 +25,7 @@ function getPreviousHandCardWidth({ contentWidth, handHeight }) {
   );
 }
 
-test('mobile hand polish widens cards without increasing card height', () => {
+test('mobile hand polish scales card footprint proportionally by two percent', () => {
   const previousWidth = getPreviousHandCardWidth({ contentWidth: 342, handHeight: 185 });
   const layout = calculateHandLayoutMetrics({
     contentWidth: 342,
@@ -36,12 +37,16 @@ test('mobile hand polish widens cards without increasing card height', () => {
   });
 
   assert.equal(HAND_CARD_PRE_POLISH_MAX_WIDTH_RATIO, 0.28);
-  assert.equal(HAND_CARD_MAX_WIDTH_RATIO, 0.292);
-  assert.equal(HAND_CARD_WIDTH_POLISH_SCALE, 1.04);
+  assert.equal(HAND_CARD_MAX_WIDTH_RATIO, 0.29784);
+  assert.equal(HAND_CARD_WIDTH_POLISH_SCALE, 1.0608);
+  assert.equal(HAND_CARD_PROPORTIONAL_SCALE, 1.02);
   assert.equal(HAND_CARD_TRACK_BLEED_RATIO, 1);
-  assert.ok(layout.cardWidth >= previousWidth * 1.039);
-  assert.ok(layout.cardWidth <= previousWidth * 1.041);
-  assert.equal(layout.cardHeight, previousWidth * HAND_CARD_ASPECT_RATIO);
+  const previousFootprintWidth = previousWidth * 1.04;
+  const previousFootprintHeight = previousWidth * HAND_CARD_ASPECT_RATIO;
+
+  assert.ok(Math.abs(layout.cardWidth - previousFootprintWidth * HAND_CARD_PROPORTIONAL_SCALE) < 1e-9);
+  assert.ok(Math.abs(layout.cardHeight - previousFootprintHeight * HAND_CARD_PROPORTIONAL_SCALE) < 1e-9);
+  assert.ok(Math.abs((layout.cardHeight / layout.cardWidth) - (previousFootprintHeight / previousFootprintWidth)) < 1e-12);
   assert.ok(layout.handTrackLeft >= 0);
   assert.ok(layout.handTrackLeft + layout.cardWidth + layout.step * 4 <= 360);
 });
@@ -70,7 +75,7 @@ test('selected hand cards use contained thin-stroke styling with safe lifts', as
   const source = fs.readFileSync('src/scenes/BattleScene.js', 'utf8');
 
   assert.match(source, /const HAND_CARD_SELECTED_LIFT_PX = 14;/);
-  assert.match(source, /const MULLIGAN_HAND_CARD_SELECTED_LIFT_PX = HAND_CARD_SELECTED_LIFT_PX \+ 3;/);
+  assert.match(source, /const MULLIGAN_HAND_CARD_SELECTED_LIFT_PX = HAND_CARD_SELECTED_LIFT_PX;/);
   assert.match(source, /const MULLIGAN_SELECTION_BORDER_WIDTH_PX = 1\.5;/);
   assert.match(source, /const usesSelectionTreatment = isMulliganSelected \|\| isGameplaySelected;/);
   assert.match(source, /const activeFrameStrokeWidth = usesSelectionTreatment \? MULLIGAN_SELECTION_BORDER_WIDTH_PX : 5;/);
@@ -88,18 +93,21 @@ test('selected hand cards use contained thin-stroke styling with safe lifts', as
     [390, 844],
     [414, 896],
   ];
-  const mulliganLift = 17;
+  const gameplayLift = 14;
+  const mulliganLift = 14;
   const clearances = mobileViewports.map(([width, height]) => {
     const layout = calculateBattleLayoutMetrics(width, height, { maxHandSize: 5 });
-    const selectedCardTop = layout.hand.cardCenterY - mulliganLift - layout.hand.cardHeight / 2;
+    const normalCardTop = layout.hand.cardCenterY - layout.hand.cardHeight / 2;
+    const gameplaySelectedCardTop = normalCardTop - gameplayLift;
+    const mulliganSelectedCardTop = normalCardTop - mulliganLift;
+    const cardBottom = layout.hand.cardCenterY + layout.hand.cardHeight / 2;
     const playerBaseBottom = layout.playerHero.y + layout.playerHero.h;
-    const normalCardWidth = layout.hand.cardWidth;
-    const normalCardHeight = layout.hand.cardHeight;
 
-    assert.equal(layout.hand.cardWidth, normalCardWidth, 'mulligan lift must not affect card width');
-    assert.equal(layout.hand.cardHeight, normalCardHeight, 'mulligan lift must not affect card height');
-    return selectedCardTop - playerBaseBottom;
+    assert.ok(normalCardTop - playerBaseBottom > 0, 'normal hand card must clear player base');
+    assert.ok(gameplaySelectedCardTop - playerBaseBottom > 0, 'gameplay selected hand card must clear player base');
+    assert.ok(height - cardBottom >= 18.8, 'proportional polish must preserve bottom safe inset');
+    return mulliganSelectedCardTop - playerBaseBottom;
   });
 
-  assert.ok(Math.min(...clearances) >= 2.3, 'selected mulligan cards keep positive player-base clearance on target mobile sizes');
+  assert.ok(Math.min(...clearances) >= 3.5, 'selected mulligan cards keep positive player-base clearance on target mobile sizes');
 });

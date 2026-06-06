@@ -68,6 +68,19 @@ test('presentation-only hand back card visibility does not change hand layout me
   assert.deepEqual(withBackCard, withoutBackCard);
 });
 
+
+test('BattleScene gives hand backs the exact real-card footprint and row alignment', () => {
+  const source = fs.readFileSync('src/scenes/BattleScene.js', 'utf8');
+  const drawHand = source.slice(source.indexOf('  drawHand() {'), source.indexOf('  createHandBackCardView({ x, y, width, height, depth })'));
+
+  assert.match(drawHand, /const cardBaseY = hand\.cardCenterY;/);
+  assert.match(drawHand, /const handTrackLeft = hand\.handTrackLeft \+ hand\.cardWidth \/ 2;/);
+  assert.match(drawHand, /const x = handTrackLeft \+ index \* hand\.step;/);
+  assert.match(drawHand, /const baseY = cardBaseY;/);
+  assert.match(drawHand, /x,\n\s*y:\s*baseY,\n\s*width:\s*hand\.cardWidth,\n\s*height:\s*hand\.cardHeight,/);
+  assert.match(drawHand, /x:\s*handTrackLeft \+ index \* hand\.step,[\s\S]*?y:\s*cardBaseY,[\s\S]*?width:\s*hand\.cardWidth,[\s\S]*?height:\s*hand\.cardHeight,/);
+});
+
 test('BattleScene renders back cards separately from gameplay cards and omits empty placeholders', () => {
   const source = fs.readFileSync('src/scenes/BattleScene.js', 'utf8');
   const drawHand = source.slice(source.indexOf('  drawHand() {'), source.indexOf('  createHandBackCardView({ x, y, width, height, depth })'));
