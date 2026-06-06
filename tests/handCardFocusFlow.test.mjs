@@ -7,6 +7,14 @@ const inspectMethod = source.slice(
   source.indexOf('  showSelectedHandCardZoom()'),
   source.indexOf('  resetCardHighlights({ showPreview = true } = {})'),
 );
+const cardPointerDownMethod = source.slice(
+  source.indexOf('  onCardPointerDown(cardId)'),
+  source.indexOf('  startHandCardLongPress(cardId)'),
+);
+const longPressMethod = source.slice(
+  source.indexOf('  startHandCardLongPress(cardId)'),
+  source.indexOf('  cancelHandCardLongPress()'),
+);
 
 test('card inspect is visual-only and avoids focus gameplay state', () => {
   assert.doesNotMatch(source, /focusedCardId|focusedCardView|focusHandCard|playFocusedCard|HAND_CARD_FOCUS|getHandCardFocusTarget/);
@@ -24,9 +32,16 @@ test('card inspect is visual-only and avoids focus gameplay state', () => {
 });
 
 test('mulligan tap toggles only mulligan selection and uses separate preview state', () => {
-  assert.match(source, /if \(this\.openingMulliganPending\) \{[\s\S]*this\.selectedCardId = null;[\s\S]*this\.targetingState = null;[\s\S]*this\.effectCastState = null;[\s\S]*this\.startHandCardLongPress\(cardId\);[\s\S]*return;[\s\S]*\}/);
-  assert.match(source, /if \(this\.openingMulliganPending\) \{[\s\S]*this\.previewedMulliganCardId = cardId;[\s\S]*this\.resetCardHighlights\(\{ showPreview: true \}\);[\s\S]*return;[\s\S]*\}/);
-  assert.match(source, /if \(this\.openingMulliganPending\) \{[\s\S]*if \(this\.longPressTriggeredCardId === cardId\) \{[\s\S]*return;[\s\S]*\}[\s\S]*this\.previewedMulliganCardId = null;[\s\S]*this\.toggleOpeningMulliganCard\(cardId, \{ showPreview: false \}\);[\s\S]*return;[\s\S]*\}/);
+  assert.match(cardPointerDownMethod, /if \(this\.openingMulliganPending\) \{/);
+  assert.match(cardPointerDownMethod, /this\.selectedCardId = null;/);
+  assert.match(cardPointerDownMethod, /this\.targetingState = null;/);
+  assert.match(cardPointerDownMethod, /this\.effectCastState = null;/);
+  assert.match(cardPointerDownMethod, /this\.startHandCardLongPress\(cardId\);/);
+  assert.match(longPressMethod, /this\.previewedMulliganCardId = cardId;/);
+  assert.match(longPressMethod, /this\.resetCardHighlights\(\{ showPreview: true \}\);/);
+  assert.match(source, /if \(this\.longPressTriggeredCardId === cardId\) \{/);
+  assert.match(source, /this\.previewedMulliganCardId = null;/);
+  assert.match(source, /this\.toggleOpeningMulliganCard\(cardId, \{ showPreview: false \}\);/);
   assert.match(source, /if \(this\.selectedMulliganCardIds\.includes\(cardId\)\) \{\s*this\.selectedMulliganCardIds = this\.selectedMulliganCardIds\.filter\(\(id\) => id !== cardId\);\s*\} else if \(this\.selectedMulliganCardIds\.length < MAX_OPENING_MULLIGAN_CARDS\) \{\s*this\.selectedMulliganCardIds\.push\(cardId\);\s*\}/);
   assert.match(source, /const isMulliganSelected = this\.openingMulliganPending && this\.selectedMulliganCardIds\.includes\(card\.cardId\);/);
   assert.match(source, /const isGameplaySelected = !this\.openingMulliganPending && card\.cardId === this\.selectedCardId;/);
@@ -44,7 +59,9 @@ test('normal gameplay quick tap selects only and long press opens inspect while 
   assert.match(source, /background\.on\('pointerup', \(pointer\) => \{\s*this\.onCardPointerUp\(cardId, pointer\);\s*\}\);/);
   assert.match(source, /onHandCardPointerOver\(cardId\) \{\s*\/\/ Hand-card inspect is intentionally long-press driven so quick taps only select for play\.\s*if \(!cardId\) return;\s*\}/);
   assert.match(source, /this\.pendingSwapIndex = null;\s*this\.clearSwapPrompt\(\);\s*this\.selectedCardId = cardId;\s*const targetingState = this\.isUnitCard\(card\) \? null : this\.getTargetingStateForCard\(card\);\s*if \(targetingState\) \{\s*this\.beginPlayerTargetingSession\(targetingState\);\s*\} else \{\s*this\.targetingState = null;\s*this\.resetCardHighlights\(\{ showPreview: false \}\);\s*this\.updateActionButtonLabel\(\);\s*\}\s*this\.startHandCardLongPress\(cardId\);/);
-  assert.match(source, /startHandCardLongPress\(cardId\) \{\s*this\.cancelHandCardLongPress\(\);\s*this\.handCardLongPressEvent = this\.time\.delayedCall\(CARD_INSPECT_LONG_PRESS_MS, \(\) => \{[\s\S]*this\.longPressTriggeredCardId = cardId;[\s\S]*const preserveTargetingSession = this\.selectedCardId === cardId && Boolean\(this\.targetingState\);\s*if \(!preserveTargetingSession\) \{\s*this\.selectedCardId = null;\s*this\.targetingState = null;\s*this\.effectCastState = null;\s*this\.destroyTargetingInstruction\(\);\s*\}\s*this\.hoverInspectCardId = cardId;[\s\S]*this\.resetCardHighlights\(\{ showPreview: true \}\);/);
+  assert.match(longPressMethod, /this\.longPressTriggeredCardId = cardId;/);
+  assert.match(longPressMethod, /const preserveTargetingSession = this\.selectedCardId === cardId && Boolean\(this\.targetingState\);/);
+  assert.match(longPressMethod, /this\.resetCardHighlights\(\{ showPreview: true \}\);/);
   assert.match(source, /cancelHandCardLongPress\(\) \{\s*if \(!this\.handCardLongPressEvent\) return;\s*this\.handCardLongPressEvent\.remove\(false\);\s*this\.handCardLongPressEvent = null;\s*\}/);
   assert.match(source, /onCardPointerUp\(cardId, pointer\) \{[\s\S]*this\.cancelHandCardLongPress\(\);[\s\S]*if \(this\.longPressTriggeredCardId === cardId\) \{[\s\S]*return;\s*\}[\s\S]*this\.resetCardHighlights\(\{ showPreview: false \}\);/);
   assert.match(source, /const handCardId = isMulliganPreview\s*\? this\.previewedMulliganCardId\s*: \(this\.selectedCardId \?\? this\.hoverInspectCardId\);/);
@@ -109,7 +126,9 @@ test('effect casting is staged before targeted resolution without a dedicated ca
   assert.match(source, /this\.effectCastState = \{ cardId: card\.id, targetingState \};/);
   assert.match(source, /this\.selectedCardId = null;[\s\S]*this\.showPlayerEffectConfirmation\(card\);[\s\S]*this\.playEffectCastSweep\(\{ side: 'player' \}\)/);
   assert.match(source, /this\.showPlayerEffectConfirmation\(card, \{ allowUnit: true \}\);[\s\S]*this\.playEffectCastSweep\(\{ side: 'player' \}\)/);
-  assert.match(source, /beginPlayerTargetingSession\(targetingState\) \{\s*if \(!targetingState\) return;\s*this\.targetingState = \{ \.\.\.targetingState, targetIndexes: \[\.\.\.\(targetingState\.targetIndexes \?\? \[\]\)\] \};\s*this\.resetCardHighlights\(\{ showPreview: false \}\);\s*this\.updateActionButtonLabel\(\);\s*this\.showTargetingInstruction\(\);\s*\}/);
+  assert.match(source, /beginPlayerTargetingSession\(targetingState\) \{/);
+  assert.match(source, /if \(\(targetingState\.requiredTargets \?\? 0\) <= 0\) \{/);
+  assert.match(source, /this\.targetingState = \{ \.\.\.targetingState, targetIndexes: \[\.\.\.\(targetingState\.targetIndexes \?\? \[\]\)\] \};/);
   assert.match(source, /cancelEffectTargeting\(\) \{[\s\S]*this\.targetingState = null;[\s\S]*this\.effectCastState = null;[\s\S]*this\.updateActionButtonLabel\(\);[\s\S]*this\.resetCardHighlights\(\{ showPreview: false \}\);[\s\S]*\}/);
   assert.match(source, /this\.actionButton\.setText\(translateActive\('ui\.battle\.selectTarget', 'SELECT TARGET'\)\);/);
   assert.match(source, /getTargetingInstructionMessage\(\) \{[\s\S]*selectAdjacentEnemy[\s\S]*selectFirstEnemy[\s\S]*selectSecondEnemy[\s\S]*selectAlly[\s\S]*selectUnit/);

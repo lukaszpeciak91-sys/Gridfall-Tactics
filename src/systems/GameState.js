@@ -1428,9 +1428,14 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
       if (selectedUnits.some((unit) => unit.owner !== getOpponentOwner(owner))) {
         return { ok: false, reason: 'Targets must be enemies' };
       }
+      if (selectedUnits.some((unit) => getUnitAttack(unit) <= 0)) {
+        return { ok: false, reason: 'Targets must have ATK above 0' };
+      }
       selectedTargets.forEach((index) => {
         const enemyUnit = state.board[index];
-        enemyUnit.tempAttackMod = (enemyUnit.tempAttackMod ?? 0) - 1;
+        if (getUnitAttack(enemyUnit) > 0) {
+          enemyUnit.tempAttackMod = (enemyUnit.tempAttackMod ?? 0) - 1;
+        }
       });
       break;
     }

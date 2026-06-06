@@ -183,7 +183,7 @@ The no-progress detector still exists and uses the stricter "meaningful for outc
 
 - Card JSON `targeting` values are descriptive metadata, not the sole source of truth for manual UI targeting.
 - Actual manual targeting is determined by `src/systems/cardTargeting.js` and effectId-specific handling in `GameState`.
-- Some cards resolve deterministically instead of opening manual targeting UI. Deterministic effects must remain deterministic: Spawn, Regrow, Flood, Sniper, Controller and Pulse Wave do not get added manual targeting in MVP; Jam Signal uses manual enemy targeting.
+- Some cards resolve deterministically instead of opening manual targeting UI. Deterministic effects must remain deterministic: Spawn, Regrow, Flood, Sniper, Controller and Pulse Wave do not get added manual targeting in MVP; Jam Signal uses direct max-target enemy targeting.
 - Manual targeting is only used where the UI/logic currently supports targeted effect resolution.
 - Deterministic simplifications currently in code:
   - **Sniper (`can_hit_any_lane`)** targets the lowest-HP enemy unit; ties break to lower board index.
@@ -194,7 +194,27 @@ The no-progress detector still exists and uses the stricter "meaningful for outc
 - No hidden-information peek UI; `peek_enemy_slot` is a no-op.
 - No general manual targeting UI for unit passive abilities beyond implemented hooks.
 
-### 7.1) Attrition Swarm Combat-Only Death Effects
+
+### 7.1) Jam Signal-style direct max-targeting
+
+For simple positive-friendly or negative-enemy effects with no downside to selecting more targets, do **not** use a separate `CONFIRM`/`DONE` action. The game should require the maximum number of currently valid targets up to the effect limit and auto-resolve after that many targets are selected. Targets that would receive no meaningful effect do not count as valid targets.
+
+Concrete example: Jam Signal (`enemy_up_to_2_atk_minus_1`) says "Choose up to 2 [ENEMIES]: -1 ATK this turn," but live targeting treats that as direct max-target selection:
+
+- If two enemy units have effective ATK above 0, the player taps two valid enemies and the effect resolves immediately on the second tap.
+- If one enemy unit has effective ATK above 0, the player taps that one valid enemy and the effect resolves immediately on the first tap.
+- Enemy units with 0 effective ATK are not valid Jam Signal targets because another -1 ATK would have no meaningful effect; ATK remains clamped at 0 by effective-stat logic.
+- If there are no enemy units with effective ATK above 0, Jam Signal should not enter a targeting session and should use the existing blocked-action feedback path.
+
+Candidate audit for the same rule:
+
+- **Jam Signal (`enemy_up_to_2_atk_minus_1`)** now follows the rule: dynamic target count is `min(2, valid enemy units with ATK > 0)`, with no central `CONFIRM`/`DONE` step.
+- **Flood (`fill_empty_slots_0_1`)** already behaves deterministically: it fills up to 2 empty friendly slots left-to-right with no manual targeting.
+- **Grave Call (`grave_call`)** already behaves deterministically: it fills the first empty friendly slot, or up to 2 left-to-right when the owner has no allies.
+- **Opening mulligan** mentions "up to 2" but is not a battle targeting effect; choosing fewer replacements is strategically meaningful, so it should not follow this rule.
+- **Swap / Shield Push / Controller swap effects** should not follow this rule because the chosen pair and/or choosing a legal pair has strategic movement implications; exact two-target selection remains correct.
+
+### 7.2) Attrition Swarm Combat-Only Death Effects
 
 - Attrition Swarm is a second Swarm-style faction focused on attrition, death value, sticky trades, and controlled bad-trade payoff. The no-cost MVP rules still apply: Attrition Swarm cards have no cost/mana/energy fields and use the same 10-card deck size.
 - Combat-only death effects trigger only from defeated-unit cleanup during combat resolution. Non-combat destruction, redeploy replacement, return-to-hand effects, and targeted non-combat damage do not count as combat deaths.
@@ -223,7 +243,7 @@ The no-progress detector still exists and uses the stricter "meaningful for outc
 | Control | Controller | unit | 1/2/0 | swap_two_enemy_units | On play: swap two [ENEMIES]. | Staged two-enemy on-play targeting | Unit remains played; after cast feedback, select two distinct enemy units to swap. Cancel only cancels the swap effect. |
 | Control | Drone | unit | 1/1/0 | death_damage_enemy_hero_1 | On death: enemy base loses 1 HP. | Death trigger | Applies after unit removed. |
 | Control | Swap | order | - | swap_any_two_units | Swap 2 [ALLY] or 2 [ENEMIES]. | Two-target targeted effect | Requires two distinct occupied slots with the same owner; cannot trade units between sides. |
-| Control | Jam Signal | order | - | enemy_up_to_2_atk_minus_1 | Choose up to 2 [ENEMIES]: -1 ATK this turn. | Manual enemy targeting | Choose 1 or 2 occupied enemy lanes; expires after combat. |
+| Control | Jam Signal | order | - | enemy_up_to_2_atk_minus_1 | Choose up to 2 [ENEMIES]: -1 ATK this turn. | Direct max-target enemy targeting | Choose the maximum currently valid enemy targets up to 2; only enemies with effective ATK above 0 are valid; auto-resolves on the final required tap and expires after combat. |
 | Control | Pulse Wave | order | - | damage_all_enemies_1_ignore_armor | Deal 1 to all [ENEMIES], ignoring ARM. | Non-targeted deterministic effect | Damages occupied enemy lanes only, ignores ARM, never damages bases, and cleans up defeated units after all Pulse Wave damage is applied. |
 | Control | System Override | special | - | control_enemy_unit_this_turn | [ENEMY] attacks own base next combat, then loses 1 HP. | Targeted enemy | Clears after combat cleanup. |
 | Control | Recall | utility | - | return_friendly_draw_1 | Return [ALLY] to hand. Draw 1. | Targeted friendly | Blocked if hand already full. |

@@ -35,17 +35,18 @@ function createControlState() {
   return createInitialBattleState(control, aggro, { firstActor: 'player' });
 }
 
-test('Jam Signal exposes Shield Push-style multi-target enemy metadata with one-target minimum', () => {
+test('Jam Signal exposes exact maximum-target metadata with positive-ATK target filtering', () => {
   assert.deepEqual(getTargetingStateForEffect('enemy_up_to_2_atk_minus_1', 'control_jam_signal_1'), {
     cardId: 'control_jam_signal_1',
     targetType: 'enemy-unit',
     requiredTargets: 2,
-    minTargets: 1,
+    targetLimit: 2,
+    targetConstraint: 'positive-attack',
     targetIndexes: [],
   });
 });
 
-test('Jam Signal can resolve with one selected enemy and expires after combat', () => {
+test('Jam Signal can resolve with one selected positive-ATK enemy and expires after combat', () => {
   const state = createControlState();
   state.player.hand.push({ ...jamSignalCard() });
   state.board[0] = unit({ id: 'enemy-left', owner: 'enemy', attack: 3 });
@@ -78,6 +79,21 @@ test('Jam Signal can resolve with two selected enemies without debuffing unselec
   assert.equal(state.board[0].tempAttackMod, -1);
   assert.equal(state.board[1].tempAttackMod, undefined);
   assert.equal(state.board[2].tempAttackMod, -1);
+});
+
+
+test('Jam Signal rejects 0 ATK enemy targets without discarding', () => {
+  const state = createControlState();
+  state.player.hand.push({ ...jamSignalCard() });
+  state.board[0] = unit({ id: 'enemy-left', owner: 'enemy', attack: 0 });
+
+  const result = resolveTargetedEffectCard(state, 'player', 'control_jam_signal_1', 0, [0]);
+
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'Targets must have ATK above 0');
+  assert.equal(state.board[0].tempAttackMod, undefined);
+  assert.equal(state.player.hand.length, 1);
+  assert.equal(state.player.discard.length, 0);
 });
 
 test('Jam Signal rejects duplicate, friendly, empty, and deterministic resolutions without discarding', () => {

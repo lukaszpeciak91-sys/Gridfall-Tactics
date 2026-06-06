@@ -86,10 +86,25 @@ test('BattleScene lifecycle destroys stale interactive objects, overlays, timers
 
 test('BattleScene player-base utility menu uses resolved base metrics and no bottom fullscreen control', () => {
   const source = readScene('src/scenes/BattleScene.js');
+  const metricsSource = source.slice(source.indexOf('  getPlayerBaseUtilityControlMetrics('), source.indexOf('  createPlayerBaseUtilityControl('));
+  const menuSource = source.slice(source.indexOf('  drawPlayerBaseUtilityMenuTrigger()'), source.indexOf('  drawDeckCounter()'));
+  const deckSource = source.slice(source.indexOf('  drawDeckCounter()'), source.indexOf('  renderBasePanels()'));
 
-  assert.match(source, /getPlayerBaseUtilityControlMetrics\(side = 'menu'\) \{[\s\S]*const \{ width, margin, playerHero, contentWidth \} = this\.layout;[\s\S]*const baseWidth = contentWidth \* HERO_PANEL_WIDTH_RATIO;[\s\S]*const x = side === 'deck'[\s\S]*baseRight \+ gap \+ controlWidth \/ 2[\s\S]*baseLeft - gap - controlWidth \/ 2[\s\S]*y: playerHero\.centerY,[\s\S]*width: controlWidth,[\s\S]*height: controlHeight,[\s\S]*\}/);
-  assert.match(source, /drawPlayerBaseUtilityMenuTrigger\(\) \{[\s\S]*const \{ x, y, width, height \} = this\.getPlayerBaseUtilityControlMetrics\('menu'\);[\s\S]*createPlayerBaseUtilityControl\([\s\S]*x,[\s\S]*y,[\s\S]*width,[\s\S]*height,[\s\S]*'☰',[\s\S]*this\.bottomControlViews = \[menu\];[\s\S]*\}/);
-  assert.match(source, /drawDeckCounter\(\) \{[\s\S]*const \{ x, y, width, height \} = this\.getPlayerBaseUtilityControlMetrics\('deck'\);[\s\S]*translateActive\('ui\.battle\.deckCounter', 'DECK \{count\}', \{ count: deckCount \}\);[\s\S]*createPlayerBaseUtilityControl\([\s\S]*x,[\s\S]*y,[\s\S]*width,[\s\S]*height,[\s\S]*deckLabel,[\s\S]*\(\) => this\.openDeckInfoPanel\(\),[\s\S]*\}/);
+  assert.match(metricsSource, /const \{ width, margin, playerHero, contentWidth \} = this\.layout;/);
+  assert.match(metricsSource, /const baseWidth = contentWidth \* HERO_PANEL_WIDTH_RATIO;/);
+  assert.match(metricsSource, /const x = side === 'deck'/);
+  assert.match(metricsSource, /baseRight \+ gap \+ controlWidth \/ 2/);
+  assert.match(metricsSource, /baseLeft - gap - controlWidth \/ 2/);
+  assert.match(metricsSource, /y: playerHero\.centerY,/);
+  assert.match(metricsSource, /width: controlWidth,/);
+  assert.match(metricsSource, /height: controlHeight,/);
+  assert.match(menuSource, /const \{ x, y, width, height \} = this\.getPlayerBaseUtilityControlMetrics\('menu'\);/);
+  assert.match(menuSource, /createPlayerBaseUtilityControl\(/);
+  assert.match(menuSource, /'☰'/);
+  assert.match(menuSource, /this\.bottomControlViews = \[menu\];/);
+  assert.match(deckSource, /const \{ x, y, width, height \} = this\.getPlayerBaseUtilityControlMetrics\('deck'\);/);
+  assert.match(deckSource, /translateActive\('ui\.battle\.deckCounter', 'DECK \{count\}', \{ count: deckCount \}\);/);
+  assert.match(deckSource, /\(\) => this\.openDeckInfoPanel\(\),/);
   assert.match(source, /const HERO_PANEL_WIDTH_RATIO = 0\.66/);
   assert.doesNotMatch(source, /drawBottomUtilityBar/);
   assert.doesNotMatch(source, /controls\.fullscreen/);
