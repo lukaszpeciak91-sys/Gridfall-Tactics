@@ -18,7 +18,7 @@
     },
     "aggro_scout_1": {
       "name": "Zwiadowca",
-      "textShort": "Po zagraniu: zablokuj tę linię do walki."
+      "textShort": "Do akcji przeciwnika: nie może zagrać jednostki w tej linii."
     },
     "aggro_full_attack_1": {
       "name": "Pełny Atak",
@@ -178,7 +178,7 @@
     },
     "tank_bruiser_1": {
       "name": "Zabijaka",
-      "textShort": "Po przetrwaniu obrażeń: +1 ATK do walki."
+      "textShort": "Po przetrwaniu obrażeń: +1 ATK do następnej walki."
     },
     "tank_fortify_1": {
       "name": "Fortyfikacja",

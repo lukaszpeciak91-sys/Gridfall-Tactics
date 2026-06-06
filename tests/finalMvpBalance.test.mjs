@@ -230,7 +230,7 @@ test('Scout is a 2/1 Aggro unit with the same lane-block role', () => {
   assert.equal(scout.armor, 0);
   assert.equal(scout.effectId, 'block_enemy_lane_play_this_turn');
   assert.equal(scout.targeting, 'enemy');
-  assert.equal(scout.textShort, 'On play: block this lane until combat.');
+  assert.equal(scout.textShort, "Until opponent\'s next action: they cannot play a unit in this lane.");
 });
 
 test('Fortify grants all friendly units +1 temporary armor for combat', () => {

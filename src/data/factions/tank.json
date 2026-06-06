@@ -63,7 +63,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": "gain_atk_when_damaged",
-      "textShort": "Survives damage: +1 ATK until combat.",
+      "textShort": "After surviving damage: +1 ATK until next combat.",
       "attack": 2,
       "hp": 3,
       "armor": 0

@@ -14,6 +14,7 @@ import {
   resolveImmediateResourceExhaustionWinner,
   resolveNoProgressDeadlockWinner,
   recordPassAction,
+  completeActionOpportunity,
   MAX_TURNS,
 } from '../src/systems/GameState.js';
 import { getFactionByKey, getFactionKeys } from '../src/data/factions/index.js';
@@ -103,6 +104,7 @@ function applyAction(state, owner, metrics, rng) {
   const nonUnit = action.type === 'play-effect' || action.type === 'play-targeted-effect';
   if (state.cancelEnemyOrderThisTurn?.[cancelKey] && nonUnit) {
     state.cancelEnemyOrderThisTurn[cancelKey] = false;
+    completeActionOpportunity(state, owner);
     metrics.cancelled += 1;
     return;
   }

@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
-import { createInitialBattleState, drawCards, shuffleDeck, canPass, canPlayOrRedeploy, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, resolveTargetedUnitOnPlayEffect, getUnitAttack, getUnitArmor, toggleFirstActor, resolveTurnCapWinner, resolveImmediateResourceExhaustionWinner, resolveImmediateNoProgressWinner, recordPassAction, performOpeningMulligan, STARTING_HAND_SIZE, MAX_OPENING_MULLIGAN_CARDS, getEffectiveBoardAttack, getEffectiveBoardArmor } from '../systems/GameState.js';
+import { createInitialBattleState, drawCards, shuffleDeck, canPass, canPlayOrRedeploy, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, resolveTargetedUnitOnPlayEffect, getUnitAttack, getUnitArmor, toggleFirstActor, resolveTurnCapWinner, resolveImmediateResourceExhaustionWinner, resolveImmediateNoProgressWinner, recordPassAction, completeActionOpportunity, performOpeningMulligan, STARTING_HAND_SIZE, MAX_OPENING_MULLIGAN_CARDS, getEffectiveBoardAttack, getEffectiveBoardArmor } from '../systems/GameState.js';
 import { chooseEnemyAction, isVerySafeConcedableState, recordBattleActionUse, selectOpeningMulliganCardIds } from '../systems/enemyDecision.js';
 import { getTargetingStateForEffect } from '../systems/cardTargeting.js';
 import { COMBAT_ATTACK_PRESENTATIONS, getCombatAttackPresentation, getCombatEventAttackerIndex, getCombatEventInterceptOriginalTargetIndex, getCombatEventTargetIndex, getLaneLethalTargetIndexes, getLaneSimultaneousUnitClash, shouldAnimateCombatAttacker, shouldUseControlledHeroStrikePresentation } from '../systems/combatAnimation.js';
@@ -3513,6 +3513,7 @@ export default class BattleScene extends Phaser.Scene {
 
     if (cancelEnemyOrder && isEnemyNonUnitAction) {
       this.gameState.cancelEnemyOrderThisTurn.player = false;
+      completeActionOpportunity(this.gameState, 'enemy');
       return { ok: true, type: 'cancelled' };
     }
 
