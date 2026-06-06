@@ -51,7 +51,7 @@ test('idle tap on own unit starts implicit swap selection', () => {
   assert.equal(scene.resetCardHighlightsCalled, true);
 });
 
-test('PASS button remains PASS and no SWAP/CANCEL labels remain', () => {
+test('base PASS remains PASS and no SWAP/CANCEL labels remain', () => {
   assert.doesNotMatch(source, /swapModeCancel/);
   assert.doesNotMatch(source, /swapAction/);
   assert.match(source, /translateActive\('ui\.common\.pass', 'PASS'\)/);

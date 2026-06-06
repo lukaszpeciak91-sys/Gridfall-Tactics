@@ -145,6 +145,7 @@ test('scene pointerupoutside clears both gesture paths without gameplay actions'
   const scene = {
     cancelHandCardPressState() { calls.push('hand'); },
     cancelBoardCellPressState() { calls.push('board'); },
+    cancelPassHoldToSurrender() { calls.push('pass'); },
     cancelInterruptedPointerGesture() { cancelInterruptedPointerGesture.call(this); },
     onBoardCellTap() { throw new Error('pointerupoutside must not tap'); },
     showBoardUnitInspect() { throw new Error('pointerupoutside must not open Inspect'); },
@@ -152,7 +153,7 @@ test('scene pointerupoutside clears both gesture paths without gameplay actions'
 
   onScenePointerUpOutside.call(scene);
 
-  assert.deepEqual(calls, ['hand', 'board']);
+  assert.deepEqual(calls, ['hand', 'board', 'pass']);
 });
 
 test('battle input wires scene-level pointerupoutside and canceled pointer guards', () => {

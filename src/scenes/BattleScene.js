@@ -1440,6 +1440,7 @@ export default class BattleScene extends Phaser.Scene {
   cancelInterruptedPointerGesture() {
     this.cancelHandCardPressState();
     this.cancelBoardCellPressState();
+    this.cancelPassHoldToSurrender();
   }
 
   drawHeroPanels() {
@@ -1453,8 +1454,17 @@ export default class BattleScene extends Phaser.Scene {
     playerPanel
       .setInteractive({ useHandCursor: true })
       .disableInteractive();
+    playerPanel.on('pointerdown', (pointer, localX, localY, event) => {
+      this.onPlayerBasePointerDown(event);
+    });
     playerPanel.on('pointerup', (pointer, localX, localY, event) => {
       this.onPlayerBasePointerUp(event);
+    });
+    playerPanel.on('pointerout', (pointer, event) => {
+      this.onPlayerBasePointerCancel(event);
+    });
+    playerPanel.on('pointercancel', (pointer, event) => {
+      this.onPlayerBasePointerCancel(event);
     });
 
     const iconStyle = {
@@ -1555,7 +1565,7 @@ export default class BattleScene extends Phaser.Scene {
     const { width, action } = this.layout;
 
     const button = this.add
-      .text(width * 0.5, action.centerY, translateActive('ui.common.pass', 'PASS'), {
+      .text(width * 0.5, action.centerY, '', {
         fontFamily: 'Arial, sans-serif',
         fontSize: `${Math.max(18, Math.floor(action.h * 0.52))}px`,
         color: '#f9fafb',
@@ -1569,21 +1579,11 @@ export default class BattleScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true });
 
     this.actionButton = button;
-    button.on('pointerdown', () => {
-      if (!this.actionButton?.visible) return;
-      this.onActionButtonPointerDown();
-    });
     button.on('pointerup', () => {
       if (!this.actionButton?.visible || this.openingMulliganPending) return;
       if (this.targetingState) {
         this.confirmTargetingSelection();
-        return;
       }
-      if (!this.isPassActionButtonAvailable()) return;
-      this.resolvePassTurn();
-    });
-    button.on('pointerout', () => {
-      this.onActionButtonPointerCancel();
     });
   }
 
@@ -2972,6 +2972,10 @@ export default class BattleScene extends Phaser.Scene {
     const actionStateActive = Boolean(actionLabel);
     const passActionActive = playerBaseMode === 'pass';
     const mulliganActionActive = playerBaseMode === 'mulligan';
+    this.passHoldToSurrenderEnabled = passActionActive && this.canHoldPassToSurrender();
+    if (!this.passHoldToSurrenderEnabled) {
+      this.cancelPassHoldToSurrender();
+    }
     const playerHero = this.layout?.playerHero;
     const centerY = this.playerHeroPanel?.y ?? playerHero?.centerY ?? this.playerHpText?.y ?? 0;
     const passHpOffset = playerHero ? Math.max(7, Math.floor(playerHero.h * 0.18)) : 10;
@@ -3019,11 +3023,16 @@ export default class BattleScene extends Phaser.Scene {
   onPlayerBasePointerUp(event) {
     if (this.openingMulliganPending) {
       event?.stopPropagation?.();
+      this.cancelPassHoldToSurrender();
       this.confirmOpeningMulligan();
       return;
     }
 
-    if (!this.isBasePassAvailable()) return;
+    const basePassAvailable = this.isBasePassAvailable();
+    if (this.passHoldToSurrenderProgress) {
+      this.cancelPassHoldToSurrender();
+    }
+    if (!basePassAvailable) return;
     event?.stopPropagation?.();
     this.resolvePassTurn();
   }
@@ -3142,19 +3151,14 @@ export default class BattleScene extends Phaser.Scene {
       this.cancelPassHoldToSurrender();
       return;
     }
-    const passAvailable = this.isPassActionButtonAvailable();
-    const basePassAvailable = this.isBasePassAvailable();
-    const playerConcedable = this.canHoldPassToSurrender();
-    this.passHoldToSurrenderEnabled = passAvailable && playerConcedable && !basePassAvailable;
-    this.actionButton.setVisible(passAvailable && !basePassAvailable);
-    this.actionButton.setText(this.passHoldToSurrenderEnabled
-      ? translateActive('ui.battle.holdPassToSurrender', 'Hold PASS to surrender')
-      : translateActive('ui.common.pass', 'PASS'));
+    this.actionButton.setVisible(false);
+    this.actionButton.setText('');
     this.actionButton.setStyle({
-      backgroundColor: this.passHoldToSurrenderEnabled ? '#172554' : '#111827',
+      backgroundColor: '#111827',
       color: '#f9fafb',
     });
-    this.actionButton.setStroke(this.passHoldToSurrenderEnabled ? '#60a5fa' : '#64748b', 2);
+    this.actionButton.setStroke('#64748b', 2);
+    this.passHoldToSurrenderEnabled = this.canPlayerBaseHoldToSurrender();
     if (!this.passHoldToSurrenderEnabled) {
       this.cancelPassHoldToSurrender();
     }
@@ -3166,19 +3170,27 @@ export default class BattleScene extends Phaser.Scene {
     return isVerySafeConcedableState(this.gameState, 'player');
   }
 
-  onActionButtonPointerDown() {
-    if (!this.passHoldToSurrenderEnabled || this.battleResultModalShown || this.gameState?.winner) return;
+  canPlayerBaseHoldToSurrender() {
+    return this.isBasePassAvailable() && this.canHoldPassToSurrender();
+  }
+
+  onPlayerBasePointerDown(event) {
+    if (!this.canPlayerBaseHoldToSurrender()) return;
+    event?.stopPropagation?.();
+    this.passHoldToSurrenderEnabled = true;
     this.cancelPassHoldToSurrender();
     this.passHoldToSurrenderProgress = true;
-    this.actionButton.setAlpha(0.82);
+    this.playerHeroPanel?.setAlpha?.(0.82);
     this.passHoldToSurrenderEvent = this.time.delayedCall(PASS_HOLD_TO_SURRENDER_MS, () => {
       this.passHoldToSurrenderEvent = null;
+      this.passHoldToSurrenderEnabled = this.canPlayerBaseHoldToSurrender();
       if (!this.passHoldToSurrenderProgress || !this.passHoldToSurrenderEnabled || this.gameState?.winner || this.battleResultModalShown) return;
       this.resolvePlayerHoldToSurrender();
     });
   }
 
-  onActionButtonPointerCancel() {
+  onPlayerBasePointerCancel(event) {
+    event?.stopPropagation?.();
     this.cancelPassHoldToSurrender();
   }
 
@@ -3188,6 +3200,7 @@ export default class BattleScene extends Phaser.Scene {
       this.passHoldToSurrenderEvent = null;
     }
     this.passHoldToSurrenderProgress = false;
+    this.playerHeroPanel?.setAlpha?.(1);
     this.actionButton?.setAlpha?.(1);
   }
 

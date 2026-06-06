@@ -347,7 +347,8 @@ test('central banner coordinator preserves persistent prompt priority and rebuil
   assert.match(showEnemyActionBanner, /!this\.prepareTransientBattleBanner\('enemy-action'\)/);
   assert.match(showOpeningTurnStartBanner, /!this\.prepareTransientBattleBanner\('turn-start'\)/);
   assert.match(cleanupSceneObjects, /this\.destroyEnemyActionBanner\(\);[\s\S]*this\.destroyTurnStartBanner\(\);[\s\S]*this\.destroyPlayerActionBanner\(\);[\s\S]*this\.destroyActiveSelectionMessage\(\);/);
-  assert.match(updateActionButtonLabel, /translateActive\('ui\.battle\.holdPassToSurrender', 'Hold PASS to surrender'\)/);
+  assert.match(updateActionButtonLabel, /this\.actionButton\.setVisible\(false\);[\s\S]*this\.passHoldToSurrenderEnabled = this\.canPlayerBaseHoldToSurrender\(\);/);
+  assert.doesNotMatch(updateActionButtonLabel, /translateActive\('ui\.battle\.holdPassToSurrender', 'Hold PASS to surrender'\)/);
   assert.match(showMovementBlockedFeedback, /this\.showFloatingTextAtSlot\(index, label, 'damage'\)/);
 });
 
