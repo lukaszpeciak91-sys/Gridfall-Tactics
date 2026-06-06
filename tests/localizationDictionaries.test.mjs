@@ -189,7 +189,7 @@ test('selected localized card texts use enemy board-unit markers without changin
     en: {
       attrition_swarm_husk_1: 'Combat death: deal 1 to opposed [ENEMY].',
       attrition_swarm_funeral_pyre_1: 'First 2 [ALLY]\ncombat deaths:\n1 HP to opposed [ENEMY].',
-      attrition_swarm_infect_1: 'Deal 1 to [ENEMY]. If it survives, opposite [ALLY] +1 ATK until combat.',
+      attrition_swarm_infect_1: 'Deal 1 to [ENEMY].\nOpposed [ALLY] gains +1 [ATK].',
       control_hacker_1: 'Opposed [ENEMY]: -1 ATK until combat.',
       control_sniper_1: 'Attacks the lowest-HP [ENEMY].',
       control_controller_1: 'On play: swap two [ENEMIES].',
@@ -203,7 +203,7 @@ test('selected localized card texts use enemy board-unit markers without changin
     pl: {
       attrition_swarm_husk_1: 'Śmierć w walce: zadaj 1 [ENEMY] naprzeciw.',
       attrition_swarm_funeral_pyre_1: 'Pierwsze 2 zgony [ALLIES] w walce:\npo 1 ● [ENEMY] naprzeciw.',
-      attrition_swarm_infect_1: 'Zadaj 1 [ENEMY]. Jeśli przeżyje, [ALLY] naprzeciwko +1 ATK do walki.',
+      attrition_swarm_infect_1: 'Zadaj 1 [ENEMY].\n[ALLY] naprzeciwko +1 [ATK].',
       control_hacker_1: '[ENEMY] naprzeciwko: -1 ATK do walki.',
       control_sniper_1: 'Atakuje [ENEMY] z najniższym HP.',
       control_controller_1: 'Po zagraniu: zamień dwóch [ENEMIES].',

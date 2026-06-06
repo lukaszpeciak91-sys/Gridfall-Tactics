@@ -30,7 +30,7 @@
     },
     "aggro_pierce_strike_1": {
       "name": "Pierce Strike",
-      "textShort": "Deal 1 to [ENEMY]. If it survives, the next hit on it ignores ARM."
+      "textShort": "Deal 1 to [ENEMY].\nNext hit ignores [ARM]."
     },
     "aggro_adrenaline_1": {
       "name": "Adrenaline",
@@ -66,7 +66,7 @@
     },
     "attrition_swarm_infect_1": {
       "name": "Rotten Gift",
-      "textShort": "Deal 1 to [ENEMY]. If it survives, opposite [ALLY] +1 ATK until combat."
+      "textShort": "Deal 1 to [ENEMY].\nOpposed [ALLY] gains +1 [ATK]."
     },
     "attrition_swarm_feast_1": {
       "name": "Feast",
@@ -186,7 +186,7 @@
     },
     "tank_stability_1": {
       "name": "Stability",
-      "textShort": "Until combat, [ALLIES] cannot be moved or disabled."
+      "textShort": "In combat: [ALLIES] can't be moved."
     },
     "tank_reinforce_1": {
       "name": "Reinforce",
