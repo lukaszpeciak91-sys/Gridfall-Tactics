@@ -5955,9 +5955,9 @@ export default class BattleScene extends Phaser.Scene {
       .setFillStyle(0x000000, 0)
       .setStrokeStyle(1, boardSurfaceTheme.dividerLine, 0.2);
     // Board-only readability polish: prioritize separation/clarity over global brightness.
-    const artLocalContrast = this.add.rectangle(0, finalArtY, artRect.width, artRect.height, 0x000000, 0.05);
-    const artShade = this.add.rectangle(0, finalArtY - artRect.height * 0.17, artRect.width, artRect.height * 0.52, CARD_COLORS.artTop, 0.34);
-    const artBottomDim = this.add.rectangle(0, finalArtY + artRect.height * 0.29, artRect.width, artRect.height * 0.42, BASE_CARD_SURFACE_THEME.artBackdropFill, 0.24);
+    const artLocalContrast = this.add.rectangle(0, finalArtY, artRect.width, artRect.height, 0x000000, 0.03);
+    const artShade = this.add.rectangle(0, finalArtY - artRect.height * 0.17, artRect.width, artRect.height * 0.52, CARD_COLORS.artTop, 0.18);
+    const artBottomDim = this.add.rectangle(0, finalArtY + artRect.height * 0.29, artRect.width, artRect.height * 0.42, BASE_CARD_SURFACE_THEME.artBackdropFill, 0.14);
 
     return [cardBack, inner, artBackdrop, art, artStroke, artLocalContrast, artShade, artBottomDim, stats];
   }

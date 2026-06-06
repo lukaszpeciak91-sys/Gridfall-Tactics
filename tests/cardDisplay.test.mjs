@@ -388,6 +388,10 @@ test('board unit compact view removes names, expands artwork, and mirrors stat p
   assert.match(boardUnitViewSource, /const unitStats = this\.currentBoardRenderStats\?\.\[cell\.index\] \?\? this\.getBoardUnitStats\(unit\);/);
   assert.match(boardUnitViewSource, /const stats = createStatBadges\(this, 0, finalStatY, artWidth, statHeight, unitStats, 0, \{/);
   assert.match(boardUnitViewSource, /baseStats: this\.getBoardUnitBaseStats\(unit\),/);
+  assert.match(boardUnitViewSource, /const artLocalContrast = this\.add\.rectangle\(0, finalArtY, artRect\.width, artRect\.height, 0x000000, 0\.03\);/);
+  assert.match(boardUnitViewSource, /const artShade = this\.add\.rectangle\(0, finalArtY - artRect\.height \* 0\.17, artRect\.width, artRect\.height \* 0\.52, CARD_COLORS\.artTop, 0\.18\);/);
+  assert.match(boardUnitViewSource, /const artBottomDim = this\.add\.rectangle\(0, finalArtY \+ artRect\.height \* 0\.29, artRect\.width, artRect\.height \* 0\.42, BASE_CARD_SURFACE_THEME\.artBackdropFill, 0\.14\);/);
+  assert.match(boardUnitViewSource, /return \[cardBack, inner, artBackdrop, art, artStroke, artLocalContrast, artShade, artBottomDim, stats\];/);
   assert.doesNotMatch(boardUnitViewSource, /createBoardUnitNameText|namePanel|nameText|displayName|getCardDisplayName\(unit, getActiveLocale\(\)\)/);
   assert.doesNotMatch(boardUnitViewSource, /getCardTextShort|getCardDisplayContent|createInlineStatText|bodyText|textPanel/);
 });
