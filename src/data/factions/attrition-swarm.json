@@ -50,7 +50,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": "rotcaller_adjacent_death_atk_1",
-      "textShort": "First adjacent [ALLY] combat death: +1 ATK.",
+      "textShort": "First adjacent [ALLY] death in combat: +1 ATK until combat.",
       "attack": 1,
       "hp": 2,
       "armor": 0
@@ -86,7 +86,7 @@
       "type": "order",
       "targeting": "enemy_unit",
       "effectId": "infect_damage_1_opposite_ally_atk_1",
-      "textShort": "Deal 1 to [ENEMY]. If it survives, opposed [ALLY] +1 ATK."
+      "textShort": "Deal 1 to [ENEMY]. If it survives, opposite [ALLY] +1 ATK until combat."
     },
     {
       "id": "attrition_swarm_feast_1",
@@ -106,7 +106,7 @@
       "type": "order",
       "targeting": "none",
       "effectId": "revive_friendly_1hp",
-      "textShort": "Revive the newest fallen unit at 1 HP."
+      "textShort": "Revive the newest fallen unit with 1 HP."
     },
     {
       "id": "attrition_swarm_grave_call_1",
@@ -116,7 +116,7 @@
       "type": "order",
       "targeting": "none",
       "effectId": "grave_call",
-      "textShort": "Summon 1/1. If no [ALLY], summon 2."
+      "textShort": "Summon a 1/1. If you have no [ALLY], summon up to 2."
     }
   ]
 }

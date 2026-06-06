@@ -76,7 +76,7 @@
       "type": "utility",
       "targeting": "friendly_unit",
       "effectId": "temp_armor_1",
-      "textShort": "Target [ALLY] +1 ARM until combat ends."
+      "textShort": "Target [ALLY] +1 ARM until combat."
     },
     {
       "id": "wardens_shield_push_1",
@@ -96,7 +96,7 @@
       "type": "order",
       "targeting": "none",
       "effectId": "friendly_immovable_this_turn",
-      "textShort": "All [ALLY] can't be moved this turn."
+      "textShort": "Until combat, [ALLIES] cannot be moved."
     },
     {
       "id": "wardens_reinforce_line_1",
@@ -106,7 +106,7 @@
       "type": "order",
       "targeting": "none",
       "effectId": "adjacent_allies_temp_armor_1",
-      "textShort": "Adjacent [ALLY] +1 ARM until combat ends."
+      "textShort": "Adjacent [ALLY] +1 ARM until combat."
     },
     {
       "id": "wardens_hold_the_line_1",
@@ -116,7 +116,7 @@
       "type": "order",
       "targeting": "none",
       "effectId": "adjacent_allies_temp_armor_1",
-      "textShort": "Adjacent [ALLY] +1 ARM until combat ends."
+      "textShort": "Adjacent [ALLY] +1 ARM until combat."
     }
   ]
 }

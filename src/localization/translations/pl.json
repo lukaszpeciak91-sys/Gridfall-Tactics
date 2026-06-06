@@ -14,31 +14,31 @@
     },
     "aggro_flanker_1": {
       "name": "Flanker",
-      "textShort": "Pusty sąsiedni slot [ALLY]: +1 ATK."
+      "textShort": "Pusty sąsiedni slot po twojej stronie: +1 ATK."
     },
     "aggro_scout_1": {
       "name": "Zwiadowca",
-      "textShort": "Po zagraniu: zablokuj tę linię w tej turze."
+      "textShort": "Po zagraniu: zablokuj tę linię do walki."
     },
     "aggro_full_attack_1": {
       "name": "Pełny Atak",
-      "textShort": "Wszyscy [ALLY] +2 ATK w tej turze."
+      "textShort": "[ALLIES] +2 ATK do walki."
     },
     "aggro_rush_1": {
       "name": "Szarża",
-      "textShort": "Zamień się z sąsiednim [ALLY], potem natychmiast walcz."
+      "textShort": "Zamień z sąsiednim [ALLY], potem ta linia natychmiast walczy."
     },
     "aggro_pierce_strike_1": {
       "name": "Przebijające Uderzenie",
-      "textShort": "Zadaj 1. Następne trafienie w walce ignoruje ARM."
+      "textShort": "Zadaj 1 [ENEMY]. Jeśli przeżyje, następne trafienie w niego ignoruje ARM."
     },
     "aggro_adrenaline_1": {
       "name": "Adrenalina",
-      "textShort": "Wybrany [ALLY] natychmiast walczy."
+      "textShort": "Wybrany [ALLY] natychmiast walczy w swojej linii."
     },
     "aggro_quick_fix_1": {
       "name": "Szybka Naprawa",
-      "textShort": "Ulecz [ALLY] +1 HP, +1 ATK w tej turze. Po zabójstwie: +1 karta."
+      "textShort": "Ulecz [ALLY] o 1. +1 ATK do walki. Zabije w walce: dobierz 1."
     },
     "attrition_swarm_husk_1": {
       "name": "Łupina",
@@ -54,7 +54,7 @@
     },
     "attrition_swarm_rotcaller_1": {
       "name": "Zew Rozkładu",
-      "textShort": "Pierwsza śmierć sąsiedniego [ALLY] w walce: +1 ATK."
+      "textShort": "Pierwsza śmierć sąsiedniego [ALLY] w walce: +1 ATK do walki."
     },
     "attrition_swarm_abomination_1": {
       "name": "Abominacja",
@@ -66,7 +66,7 @@
     },
     "attrition_swarm_infect_1": {
       "name": "Zgniły Upominek",
-      "textShort": "Zadaj 1 [ENEMY]. Jeśli przetrwa, [ALLY] naprzeciwko +1 ATK."
+      "textShort": "Zadaj 1 [ENEMY]. Jeśli przeżyje, [ALLY] naprzeciwko +1 ATK do walki."
     },
     "attrition_swarm_feast_1": {
       "name": "Uczta",
@@ -74,15 +74,15 @@
     },
     "attrition_swarm_rise_again_1": {
       "name": "Powstań Znowu",
-      "textShort": "Przywróć pierwszą odrzuconą jednostkę z 1 HP."
+      "textShort": "Przywróć najnowszą poległą jednostkę z 1 HP."
     },
     "attrition_swarm_grave_call_1": {
       "name": "Zew Grobu",
-      "textShort": "Przywołaj 1/1. Jeśli nie masz [ALLY], przywołaj 2."
+      "textShort": "Przywołaj 1/1. Jeśli nie masz [ALLY], przywołaj do 2."
     },
     "control_hacker_1": {
       "name": "Signalegel",
-      "textShort": "[ENEMY] naprzeciwko: -1 ATK w tej turze."
+      "textShort": "[ENEMY] naprzeciwko: -1 ATK do walki."
     },
     "control_disruptor_1": {
       "name": "Störführer",
@@ -106,7 +106,7 @@
     },
     "control_jam_signal_1": {
       "name": "Zakłócenie Sygnału",
-      "textShort": "Wybierz do 2 [ENEMIES]: -1 ATK w tej turze."
+      "textShort": "Do 2 [ENEMIES]: -1 ATK do walki."
     },
     "control_pulse_wave_1": {
       "name": "Wunderwaffe",
@@ -114,7 +114,7 @@
     },
     "control_system_override_1": {
       "name": "Przejęcie Systemu",
-      "textShort": "[ENEMY] atakuje własną\nbazę, potem\ntraci 1 HP."
+      "textShort": "Wybrany [ENEMY] natychmiast atakuje własną bazę, potem traci 1 HP."
     },
     "control_recall_1": {
       "name": "Ekstrakcja",
@@ -138,23 +138,23 @@
     },
     "swarm_alpha_1": {
       "name": "Alfa",
-      "textShort": "Sąsiedni [ALLY] +1 ATK, ignorują 1 ARM."
+      "textShort": "Sąsiedni [ALLY] w walce: +1 ATK i ignoruje 1 ARM."
     },
     "swarm_spawn_1": {
       "name": "Pomiot",
-      "textShort": "Przywołaj 1/1 w pustym slocie [ALLY]."
+      "textShort": "Przywołaj 1/1 w pierwszym pustym slocie."
     },
     "swarm_swarm_attack_1": {
       "name": "Atak Roju",
-      "textShort": "Wszyscy [ALLY] +1 ATK w tej turze."
+      "textShort": "[ALLIES] +1 ATK do walki."
     },
     "swarm_regrow_1": {
       "name": "Odrost",
-      "textShort": "Przywróć pierwszą odrzuconą jednostkę z 1 HP."
+      "textShort": "Przywróć najnowszą poległą jednostkę z 1 HP."
     },
     "swarm_flood_1": {
       "name": "Zalew",
-      "textShort": "Wypełnij do 2 pustych slotów [ALLY] tymczasowymi 1/1."
+      "textShort": "Wypełnij do 2 pustych slotów tymczasowymi 1/1. Znikają po walce."
     },
     "swarm_recycle_1": {
       "name": "Pożywka",
@@ -178,15 +178,15 @@
     },
     "tank_bruiser_1": {
       "name": "Zabijaka",
-      "textShort": "Po przetrwaniu obrażeń: +1 ATK w tej turze."
+      "textShort": "Po przetrwaniu obrażeń: +1 ATK do walki."
     },
     "tank_fortify_1": {
       "name": "Fortyfikacja",
-      "textShort": "Wszyscy [ALLY] +1 ARM w tej turze."
+      "textShort": "[ALLIES] +1 ARM do walki."
     },
     "tank_stability_1": {
       "name": "Stabilność",
-      "textShort": "[ALLIES] odporni na zamianę i blokadę."
+      "textShort": "Do walki [ALLIES] nie mogą być przesuwani ani blokowani."
     },
     "tank_reinforce_1": {
       "name": "Wzmocnienie",
@@ -194,11 +194,11 @@
     },
     "tank_last_stand_1": {
       "name": "Ostatni Bastion",
-      "textShort": "[ALLY] nie mogą spaść poniżej 1 HP w tej turze."
+      "textShort": "Do walki [ALLIES] nie mogą spaść poniżej 1 HP."
     },
     "tank_repair_kit_1": {
       "name": "Reaktywne Opancerzenie",
-      "textShort": "Wybrany [ALLY] +1 ARM do końca walki."
+      "textShort": "Wybrany [ALLY] +1 ARM do walki."
     },
     "wardens_sentinel_1": {
       "name": "Strażnik Kłów",
@@ -222,7 +222,7 @@
     },
     "wardens_brace_1": {
       "name": "Kościane Tarcze",
-      "textShort": "Wybrany [ALLY] +1 ARM do końca walki."
+      "textShort": "Wybrany [ALLY] +1 ARM do walki."
     },
     "wardens_shield_push_1": {
       "name": "Mamuci Napór",
@@ -230,15 +230,15 @@
     },
     "wardens_stand_firm_1": {
       "name": "Przetrwać Mróz",
-      "textShort": "[ALLIES] są odporni\nna przesunięcie\nw tej turze."
+      "textShort": "Do walki [ALLIES] nie mogą być przesuwani."
     },
     "wardens_reinforce_line_1": {
       "name": "Zewrzeć Szereg",
-      "textShort": "Sąsiedni [ALLY] +1 ARM do końca walki."
+      "textShort": "Sąsiedni [ALLY] +1 ARM do walki."
     },
     "wardens_hold_the_line_1": {
       "name": "Utrzymać Przełęcz",
-      "textShort": "Sąsiedni [ALLY] +1 ARM do końca walki."
+      "textShort": "Sąsiedni [ALLY] +1 ARM do walki."
     }
   },
   "cardTypes": {

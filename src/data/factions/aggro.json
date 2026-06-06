@@ -50,7 +50,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": "empty_adjacent_bonus_atk",
-      "textShort": "Empty adjacent [ALLY] slot: +1 ATK.",
+      "textShort": "Empty adjacent slot on your side: +1 ATK.",
       "attack": 2,
       "hp": 2,
       "armor": 0
@@ -63,7 +63,7 @@
       "type": "unit",
       "targeting": "enemy",
       "effectId": "block_enemy_lane_play_this_turn",
-      "textShort": "On play: block this lane this turn.",
+      "textShort": "On play: block this lane until combat.",
       "attack": 2,
       "hp": 1,
       "armor": 0
@@ -76,7 +76,7 @@
       "type": "order",
       "targeting": "all_friendly_units",
       "effectId": "aggro_buff_all_atk_2",
-      "textShort": "All [ALLY] +2 ATK this turn."
+      "textShort": "All [ALLY] +2 ATK until combat."
     },
     {
       "id": "aggro_rush_1",
@@ -86,7 +86,7 @@
       "type": "order",
       "targeting": "friendly_unit",
       "effectId": "swap_adjacent_then_resolve",
-      "textShort": "Swap with adjacent [ALLY], then fight immediately."
+      "textShort": "Swap with adjacent [ALLY], then that lane immediately fights."
     },
     {
       "id": "aggro_pierce_strike_1",
@@ -96,7 +96,7 @@
       "type": "order",
       "targeting": "enemy_unit",
       "effectId": "ignore_armor_next_attack",
-      "textShort": "Deal 1. Next combat hit ignores ARM."
+      "textShort": "Deal 1 to [ENEMY]. If it survives, the next hit on it ignores ARM."
     },
     {
       "id": "aggro_adrenaline_1",
@@ -106,7 +106,7 @@
       "type": "special",
       "targeting": "friendly_unit",
       "effectId": "quick_strike",
-      "textShort": "Target [ALLY] fights immediately."
+      "textShort": "Selected [ALLY] immediately fights in its lane."
     },
     {
       "id": "aggro_quick_fix_1",
@@ -116,7 +116,7 @@
       "type": "utility",
       "targeting": "friendly_unit",
       "effectId": "heal_1_atk_1_draw_on_kill_this_turn",
-      "textShort": "Target [ALLY]: heal 1, +1 ATK this turn. Draw if it kills."
+      "textShort": "Heal [ALLY] 1. +1 ATK until combat. Kills in combat: draw 1."
     }
   ]
 }

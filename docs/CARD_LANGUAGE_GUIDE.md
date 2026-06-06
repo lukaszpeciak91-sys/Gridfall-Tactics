@@ -28,8 +28,8 @@ Use these preferred forms for card text unless a specific UI context requires an
 | Play trigger | `On play:` | Use as the standard trigger label. |
 | Death trigger | `On death:` | Use when any death source can trigger the effect. |
 | Combat-specific death trigger | `Combat death:` | Use only when the death source matters. |
-| Current turn duration | `this turn` | Use for effects that expire at turn end. |
-| Combat duration | `until combat ends` | Use for effects that expire when combat ends. |
+| Current turn duration | `this turn` | Use only for effects that truly expire at turn end outside the combat cleanup window. |
+| Combat cleanup duration | `until combat` | Use for temporary ATK/ARM, movement immunity, Last Stand-style prevention, and other effects that clear at the nearest standard combat cleanup window. |
 | Single chosen friendly target | `target ally` | Use when the player chooses one allied unit. |
 | Single chosen enemy target | `target enemy` | Use when the player chooses one enemy unit. |
 | All friendly units | `all allies` | Use for all allied units affected by an effect. |
@@ -78,8 +78,8 @@ Use short, repeatable sentence patterns. These examples are canonical style refe
 - `On play: deal 1 to opposed [ENEMY].`
 - `On death: summon 1/1 here.`
 - `Combat death: deal 1 to opposed [ENEMY].`
-- `Adjacent allies gain +1 ARM until combat ends.`
-- `Target ally gains +1 ARM until combat ends.`
+- `Adjacent allies gain +1 ARM until combat.`
+- `Target ally gains +1 ARM until combat.`
 - `If opposed: +1 ATK.`
 - `Attackers: -1 ATK.`
 
@@ -96,7 +96,7 @@ Current convention:
 - `[ENEMY]` / `[ENEMIES]` must not replace references to the enemy base, enemy player, or UI labels.
 - The enemy/enemies icon is rose-red `#fb7185`, visually distinct from the yellow ally icon.
 - The formatter renders gameplay-icon markers consistently in collection, hand, and inspect card previews through the shared card preview renderer.
-- Do not introduce icons for `adjacent`, `combat`, `this turn`, or `on play` yet.
+- Do not introduce icons for `adjacent`, `combat`, `until combat`, or `on play` yet.
 - Avoid emoji in production UI; use game-consistent glyphs or icons.
 - Icons must not create “hieroglyph soup.” Text should remain understandable at mobile size.
 
@@ -123,12 +123,21 @@ Preferred Polish canonical equivalents:
 | `adjacent` | `sąsiedni` |
 | `opposed` | `naprzeciwko` |
 | `this turn` | `w tej turze` |
-| `until combat ends` | `do końca walki` |
+| `until combat` | `do walki` |
 | `On play` | `Po zagraniu` |
 | `On death` | `Po śmierci` |
 | `Combat death` | `Śmierć w walce` |
 
-## 10. MVP scope
+## 10. Rules clarity notes
+
+- `until combat` / `do walki` means the effect lasts until the nearest standard combat cleanup window. It should not imply cleanup after an immediate lane-combat slice.
+- `immediately fights` / `natychmiast walczy` means an additional immediate lane combat. It does not replace normal combat later in the turn.
+- `immediately attacks its own base` for System Override is immediate effect damage, not delayed standard-combat timing.
+- `first empty slot` / `pierwszy pusty slot` names deterministic summon placement.
+- Revive text should use `fallen unit` / `poległa jednostka`, not generic discard/archive wording.
+- Temporary Flood tokens are temporary board-only units that vanish after combat; do not describe them as normal persistent summons.
+
+## 11. MVP scope
 
 This guide does not require broad keyword expansion, renderer redesigns, or gameplay logic changes. Keep card rule text within the shared rules panel width, avoid manual line breaks unless needed for localized readability, and prefer existing icon markers over long repeated ally/allies or enemy/enemies words when the result remains clear.
 

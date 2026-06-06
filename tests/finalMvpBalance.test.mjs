@@ -122,7 +122,7 @@ test('Alpha is a 1/2 unit with the adjacent attack and anti-armor aura', () => {
   assert.equal(alpha.attack, 1);
   assert.equal(alpha.hp, 2);
   assert.equal(alpha.effectId, 'adjacent_allies_atk_plus_1_ignore_armor_1');
-  assert.equal(alpha.textShort, 'Adjacent [ALLY] +1 ATK, ignore 1 ARM.');
+  assert.equal(alpha.textShort, 'Adjacent [ALLY] in combat: +1 ATK and ignores 1 ARM.');
 });
 
 test('Alpha still gives adjacent friendly units +1 ATK in combat', () => {
@@ -193,7 +193,7 @@ test('Flanker is a 2/2 Aggro unit with the same empty-adjacent attack role', () 
   assert.equal(flanker.armor, 0);
   assert.equal(flanker.effectId, 'empty_adjacent_bonus_atk');
   assert.equal(flanker.targeting, 'lane');
-  assert.equal(flanker.textShort, 'Empty adjacent [ALLY] slot: +1 ATK.');
+  assert.equal(flanker.textShort, 'Empty adjacent slot on your side: +1 ATK.');
 });
 
 
@@ -206,7 +206,7 @@ test('Hacker is a 1/2 Control unit with the same lane attack debuff role', () =>
   assert.equal(hacker.armor, 0);
   assert.equal(hacker.effectId, 'enemy_lane_atk_minus_1');
   assert.equal(hacker.targeting, 'lane');
-  assert.equal(hacker.textShort, 'Opposed [ENEMY]: -1 ATK this turn.');
+  assert.equal(hacker.textShort, 'Opposed [ENEMY]: -1 ATK until combat.');
 });
 
 test('Disruptor is a 1/2 Control unit with the same order-cancel role', () => {
@@ -230,7 +230,7 @@ test('Scout is a 2/1 Aggro unit with the same lane-block role', () => {
   assert.equal(scout.armor, 0);
   assert.equal(scout.effectId, 'block_enemy_lane_play_this_turn');
   assert.equal(scout.targeting, 'enemy');
-  assert.equal(scout.textShort, 'On play: block this lane this turn.');
+  assert.equal(scout.textShort, 'On play: block this lane until combat.');
 });
 
 test('Fortify grants all friendly units +1 temporary armor for combat', () => {
@@ -250,7 +250,7 @@ test('Fortify grants all friendly units +1 temporary armor for combat', () => {
 
   assert.equal(state.board[6].hp, 2);
   assert.equal(state.board[6].tempArmorMod, undefined);
-  assert.equal(fortify.textShort, 'All [ALLY] +1 ARM this turn.');
+  assert.equal(fortify.textShort, 'All [ALLY] +1 ARM until combat.');
 });
 
 test('Full Attack grants all Aggro friendly units +2 temporary attack for combat', () => {
@@ -267,7 +267,7 @@ test('Full Attack grants all Aggro friendly units +2 temporary attack for combat
   assert.equal(state.board[6].tempAttackMod, 2);
   assert.equal(state.board[7].tempAttackMod, 2);
   assert.equal(fullAttack.effectId, 'aggro_buff_all_atk_2');
-  assert.equal(fullAttack.textShort, 'All [ALLY] +2 ATK this turn.');
+  assert.equal(fullAttack.textShort, 'All [ALLY] +2 ATK until combat.');
 
   resolveCombat(state);
 
@@ -290,7 +290,7 @@ test('Quick Fix heals a friendly unit by 1 and grants +1 temporary attack for co
   assert.equal(getUnitAttack(state.board[6]), 3);
   assert.equal(quickFix.effectId, 'heal_1_atk_1_draw_on_kill_this_turn');
   assert.equal(quickFix.targeting, 'friendly_unit');
-  assert.equal(quickFix.textShort, 'Target [ALLY]: heal 1, +1 ATK this turn. Draw if it kills.');
+  assert.equal(quickFix.textShort, 'Heal [ALLY] 1. +1 ATK until combat. Kills in combat: draw 1.');
 
   resolveCombat(state);
 
@@ -408,7 +408,7 @@ test('Jam Signal applies -1 temporary attack to selected enemy units', () => {
   assert.equal(state.board[2].tempAttackMod, -1);
   assert.equal(jamSignal.targeting, 'enemy_units');
   assert.equal(jamSignal.effectId, 'enemy_up_to_2_atk_minus_1');
-  assert.equal(jamSignal.textShort, 'Choose up to 2 [ENEMIES]: -1 ATK this turn.');
+  assert.equal(jamSignal.textShort, 'Up to 2 [ENEMIES]: -1 ATK until combat.');
 
   resolveCombat(state);
 
@@ -470,7 +470,7 @@ test('Swarm Attack remains a +1 temporary attack buff', () => {
   assert.equal(result.ok, true);
   assert.equal(state.board[6].tempAttackMod, 1);
   assert.equal(swarmAttack.effectId, 'buff_all_atk_1');
-  assert.equal(swarmAttack.textShort, 'All [ALLY] +1 ATK this turn.');
+  assert.equal(swarmAttack.textShort, 'All [ALLY] +1 ATK until combat.');
 
   resolveCombat(state);
 
@@ -500,7 +500,7 @@ test('Flood creates temporary 1/1 Tokens that attack and vanish after combat', (
   assert.equal(state.board[6], null);
   assert.equal(state.board[7], null);
   assert.deepEqual(state.player.discard.map((card) => card.id), [flood.id]);
-  assert.equal(flood.textShort, 'Fill up to 2 empty [ALLY] slots with temporary 1/1s.');
+  assert.equal(flood.textShort, 'Fill up to 2 empty slots with temporary 1/1s. They vanish after combat.');
 });
 
 test('Flood temporary Tokens skip combat death trigger paths', () => {

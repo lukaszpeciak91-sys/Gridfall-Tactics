@@ -33,8 +33,8 @@ Reduce the enemy Base to 0 HP before your Base reaches 0.
 ### 3) Cards and Actions
 On your action, you can:
 - Play a unit
-- Play an effect
-- Use a targeted effect
+- Play an effect card
+- Use a targeted effect card
 - Swap adjacent allied units
 - PASS
 
@@ -64,6 +64,10 @@ On your action, you can:
 - **Base HP**: Your Base health. If it reaches 0, you lose.
 
 ### 8) Targeting Words
+- **Effect card** = a non-unit card; it is not PASS or a swap.
+- **Until combat** = lasts until the nearest standard combat cleanup window.
+- **Immediately fights** = additional lane combat; surviving units can still fight in standard combat.
+- **Fallen unit** = a unit that died or was destroyed after entering the board, not a generic discard.
 - **Ally** = one of your units.
 - **Allies** = all your units.
 - **Enemy** = one enemy unit.
@@ -85,8 +89,8 @@ Obniż HP bazy wroga do 0, zanim twoja baza spadnie do 0.
 ### 3) Karty i akcje
 W swojej akcji możesz:
 - Zagrać jednostkę
-- Zagrać efekt
-- Użyć efektu celowanego
+- Zagrać kartę efektu
+- Użyć celowanej karty efektu
 - Zamienić miejscami sąsiednie sojusznicze jednostki
 - PASS
 
@@ -116,6 +120,10 @@ W swojej akcji możesz:
 - **HP bazy**: Życie twojej bazy. Gdy spadnie do 0, przegrywasz.
 
 ### 8) Słowa celowania
+- **Karta efektu** = karta niebędąca jednostką; to nie PASS ani zamiana.
+- **Do walki** = trwa do najbliższego standardowego czyszczenia po walce.
+- **Natychmiast walczy** = dodatkowa walka w linii; ocalałe jednostki mogą walczyć w standardowej walce.
+- **Poległa jednostka** = jednostka zmarła lub zniszczona po wejściu na planszę, nie zwykły discard.
 - **Sojusznik** = jedna twoja jednostka.
 - **Sojusznicy** = wszystkie twoje jednostki.
 - **Wróg** = jedna wroga jednostka.
@@ -129,7 +137,7 @@ W swojej akcji możesz:
    - This proposal intentionally standardizes help/glossary copy to PASS + ARM only.
 2. **“Swap” vs “Zamień/Zamiana” style drift may appear across prompts/effect summaries.**
    - Keep one consistent verb family per surface during implementation pass.
-3. **Legacy “hero” wording can still appear in older docs/comments.**
+3. **Legacy “hero” or generic “discard” wording can still appear in older docs/comments.**
    - Keep player-facing rules/help on “Base” only.
 
 ---

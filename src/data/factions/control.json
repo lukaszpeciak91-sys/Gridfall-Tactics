@@ -11,7 +11,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": "enemy_lane_atk_minus_1",
-      "textShort": "Opposed [ENEMY]: -1 ATK this turn.",
+      "textShort": "Opposed [ENEMY]: -1 ATK until combat.",
       "attack": 1,
       "hp": 2,
       "armor": 0
@@ -87,7 +87,7 @@
       "type": "order",
       "targeting": "enemy_units",
       "effectId": "enemy_up_to_2_atk_minus_1",
-      "textShort": "Choose up to 2 [ENEMIES]: -1 ATK this turn."
+      "textShort": "Up to 2 [ENEMIES]: -1 ATK until combat."
     },
     {
       "id": "control_pulse_wave_1",
@@ -107,7 +107,7 @@
       "type": "special",
       "targeting": "enemy_unit",
       "effectId": "control_enemy_unit_this_turn",
-      "textShort": "[ENEMY] attacks own base, then loses 1 HP."
+      "textShort": "Selected [ENEMY] immediately attacks its own base, then loses 1 HP."
     },
     {
       "id": "control_recall_1",

@@ -35,8 +35,8 @@ test('card display helper falls back to current card name fields when card keys 
 });
 
 test('card display helper falls back to current textShort fields when card keys are absent', () => {
-  assert.equal(getCardTextShort({ textShort: 'Target ally +1 ARM until combat ends.' }), 'Target ally +1 ARM until combat ends.');
-  assert.equal(getCardTextShort({ textShort: 'Target ally +1 ARM until combat ends.' }, 'pl'), 'Target ally +1 ARM until combat ends.');
+  assert.equal(getCardTextShort({ textShort: 'Target ally +1 ARM until combat.' }), 'Target ally +1 ARM until combat.');
+  assert.equal(getCardTextShort({ textShort: 'Target ally +1 ARM until combat.' }, 'pl'), 'Target ally +1 ARM until combat.');
   assert.equal(getCardTextShort({}), undefined);
 });
 
@@ -288,9 +288,9 @@ test('shared card preview stat row classification separates units, non-units, an
 });
 
 test('card render mode helpers preserve English fallback behavior for future locales', () => {
-  const card = { name: 'Shield Drone', type: 'effect', textShort: 'Target ally +1 ARM until combat ends.' };
+  const card = { name: 'Shield Drone', type: 'effect', textShort: 'Target ally +1 ARM until combat.' };
 
-  assert.equal(formatHandCardLabel(card, 'pl'), 'Shield Drone\nTarget ally +1 ◆ until combat ends.');
+  assert.equal(formatHandCardLabel(card, 'pl'), 'Shield Drone\nTarget ally +1 ◆ until combat.');
   assert.deepEqual(formatDeckSummaryEntry(card, 'pl'), { name: 'Shield Drone', typeLabel: 'Efekt', count: 1 });
   assert.deepEqual(formatDeckSummaryEntry({}, 'pl'), { name: 'Nieznana karta', typeLabel: 'Jednostka', count: 1 });
 });
