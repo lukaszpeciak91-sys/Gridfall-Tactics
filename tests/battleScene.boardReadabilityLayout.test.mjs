@@ -75,10 +75,39 @@ function legacyBattleLayoutMetrics(width, height, { maxHandSize = 7 } = {}) {
   };
 }
 
-function bottomVisibleBoardSlotGap(layout) {
+function bottomBoardVisualGap(layout) {
   const startY = layout.board.centerY - layout.board.height / 2;
-  const visibleSlotBottom = startY + layout.board.height - 5;
-  return layout.playerHero.y - visibleSlotBottom;
+  const boardVisualBottom = startY + layout.board.height;
+  return layout.playerHero.y - boardVisualBottom;
+}
+
+function bottomBoardHitboxGap(layout) {
+  const startY = layout.board.centerY - layout.board.height / 2;
+  const bottomSlotHitboxBottom = startY + layout.board.height - 5;
+  return layout.playerHero.y - bottomSlotHitboxBottom;
+}
+
+function stage4BBattleLayoutMetrics(width, height, { maxHandSize = 7 } = {}) {
+  const layout = calculateBattleLayoutMetrics(width, height, { maxHandSize });
+  const legacy = legacyBattleLayoutMetrics(width, height, { maxHandSize });
+  const stage4BCellGrowth = layout.board.cellWidth / legacy.board.cellWidth / layout.board.readabilityScale;
+  const stage4BCellWidth = legacy.board.cellWidth * stage4BCellGrowth;
+  const stage4BCellHeight = legacy.board.cellHeight * stage4BCellGrowth;
+  const stage4BShiftY = height * (4 / 844);
+
+  return {
+    ...layout,
+    board: {
+      ...layout.board,
+      centerY: layout.board.centerY - layout.board.readabilityShiftY + stage4BShiftY,
+      cellWidth: stage4BCellWidth,
+      cellHeight: stage4BCellHeight,
+      width: stage4BCellWidth * 3,
+      height: stage4BCellHeight * 3,
+      readabilityScale: 1,
+      readabilityShiftY: stage4BShiftY,
+    },
+  };
 }
 
 test('obsolete central action band is collapsed and recovered into the board/base region', () => {
@@ -116,22 +145,42 @@ test('hand card dimensions remain unchanged after action-band collapse', () => {
   }
 });
 
-test('board readability layout applies final board shift and effective slot growth', () => {
-  const legacy = legacyBattleLayoutMetrics(390, 844);
-  const polished = calculateBattleLayoutMetrics(390, 844, { maxHandSize: 7 });
+test('board readability layout applies final board scale, reduced shift, and effective slot growth', () => {
+  const expectedScales = new Map([
+    ['360x800', 0.995],
+    ['390x844', 0.97],
+    ['414x896', 0.97],
+  ]);
 
-  assert.equal(polished.board.readabilityScale, 1);
-  assert.equal(polished.board.readabilityShiftY, 4);
-  assert.ok(polished.board.cellWidth / legacy.board.cellWidth > 1.09);
-  assert.ok(polished.board.cellHeight / legacy.board.cellHeight > 1.09);
+  for (const [width, height] of [[360, 800], [390, 844], [414, 896]]) {
+    const legacy = legacyBattleLayoutMetrics(width, height);
+    const polished = calculateBattleLayoutMetrics(width, height, { maxHandSize: 7 });
+    const cellGrowth = polished.board.cellWidth / legacy.board.cellWidth;
+    const hitboxGrowth = (polished.board.cellWidth - 10) / (legacy.board.cellWidth - 10);
+
+    assert.equal(polished.board.readabilityScale, expectedScales.get(`${width}x${height}`));
+    assert.equal(polished.board.readabilityShiftY, height * (2 / 844));
+    assert.ok(cellGrowth >= 1.06 && cellGrowth <= 1.07, `${width}x${height} cell growth was ${cellGrowth}`);
+    assert.ok(hitboxGrowth >= 1.07 && hitboxGrowth <= 1.075, `${width}x${height} hitbox growth was ${hitboxGrowth}`);
+  }
 });
 
-test('bottom board slot keeps the player base safety gap on common portrait sizes', () => {
+test('bottom board slot restores player-base breathing room compared to Stage 4B', () => {
   for (const [width, height] of [[360, 800], [390, 844], [414, 896]]) {
-    const layout = calculateBattleLayoutMetrics(width, height, { maxHandSize: 7 });
+    const stage4B = stage4BBattleLayoutMetrics(width, height, { maxHandSize: 7 });
+    const polished = calculateBattleLayoutMetrics(width, height, { maxHandSize: 7 });
+
     assert.ok(
-      bottomVisibleBoardSlotGap(layout) >= 8,
-      `${width}x${height} gap should remain at least 8px`,
+      bottomBoardVisualGap(polished) > bottomBoardVisualGap(stage4B),
+      `${width}x${height} visual gap should improve compared to Stage 4B`,
+    );
+    assert.ok(
+      bottomBoardVisualGap(polished) >= 10,
+      `${width}x${height} visual gap should be at least 10px`,
+    );
+    assert.ok(
+      bottomBoardHitboxGap(polished) > 8,
+      `${width}x${height} hitbox gap should remain above 8px`,
     );
   }
 });

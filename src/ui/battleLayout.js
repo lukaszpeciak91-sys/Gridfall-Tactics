@@ -2,8 +2,19 @@ import { calculateHandLayoutMetrics } from './handLayout.js';
 
 // Board-only readability polish after collapsing the obsolete central action band.
 // The removed band is recovered by the board/player-base region while hand sizing stays unchanged.
-export const BOARD_READABILITY_CELL_SCALE = 1;
-export const BOARD_READABILITY_SHIFT_RATIO = 4 / 844;
+export const BOARD_READABILITY_CELL_SCALE = 0.97;
+export const BOARD_READABILITY_NARROW_CELL_SCALE = 0.995;
+export const BOARD_READABILITY_NARROW_WIDTH = 360;
+export const BOARD_READABILITY_BASE_WIDTH = 390;
+export const BOARD_READABILITY_SHIFT_RATIO = 2 / 844;
+
+function calculateBoardReadabilityCellScale(width) {
+  if (width <= BOARD_READABILITY_NARROW_WIDTH) return BOARD_READABILITY_NARROW_CELL_SCALE;
+  if (width >= BOARD_READABILITY_BASE_WIDTH) return BOARD_READABILITY_CELL_SCALE;
+
+  const progress = (width - BOARD_READABILITY_NARROW_WIDTH) / (BOARD_READABILITY_BASE_WIDTH - BOARD_READABILITY_NARROW_WIDTH);
+  return BOARD_READABILITY_NARROW_CELL_SCALE + (BOARD_READABILITY_CELL_SCALE - BOARD_READABILITY_NARROW_CELL_SCALE) * progress;
+}
 
 export function calculateBattleLayoutMetrics(width, height, { maxHandSize = 0 } = {}) {
   const margin = Math.max(8, Math.round(width * 0.025));
@@ -48,8 +59,9 @@ export function calculateBattleLayoutMetrics(width, height, { maxHandSize = 0 } 
   const slotWidth = boardWidth / 3;
   const slotHeight = slotWidth * 1.34;
   const boardScale = Math.min(1, boardHeight / (slotHeight * 3));
-  const cellWidth = slotWidth * boardScale * BOARD_READABILITY_CELL_SCALE;
-  const cellHeight = slotHeight * boardScale * BOARD_READABILITY_CELL_SCALE;
+  const boardReadabilityCellScale = calculateBoardReadabilityCellScale(width);
+  const cellWidth = slotWidth * boardScale * boardReadabilityCellScale;
+  const cellHeight = slotHeight * boardScale * boardReadabilityCellScale;
   const boardShiftY = height * BOARD_READABILITY_SHIFT_RATIO;
 
   const handLayout = calculateHandLayoutMetrics({
@@ -76,7 +88,7 @@ export function calculateBattleLayoutMetrics(width, height, { maxHandSize = 0 } 
       width: cellWidth * 3,
       height: cellHeight * 3,
       readabilityShiftY: boardShiftY,
-      readabilityScale: BOARD_READABILITY_CELL_SCALE,
+      readabilityScale: boardReadabilityCellScale,
       recoveredActionSpace,
     },
     playerHero: { y: playerHeroY, h: playerHeroHeight, centerY: playerHeroY + playerHeroHeight / 2 },
