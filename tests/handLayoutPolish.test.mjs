@@ -71,13 +71,17 @@ test('mulligan selected cards use lighter glow-first styling with a safe lift', 
 
   assert.match(source, /const HAND_CARD_SELECTED_LIFT_PX = 14;/);
   assert.match(source, /const MULLIGAN_HAND_CARD_SELECTED_LIFT_PX = HAND_CARD_SELECTED_LIFT_PX \+ 3;/);
-  assert.match(source, /const MULLIGAN_SELECTION_BORDER_WIDTH_PX = 3\.5;/);
-  assert.match(source, /const MULLIGAN_SELECTION_GLOW_STROKE_WIDTH_PX = 2;/);
-  assert.match(source, /const activeFrameStrokeWidth = isMulliganSelected \? MULLIGAN_SELECTION_BORDER_WIDTH_PX : 5;/);
+  assert.doesNotMatch(source, /const MULLIGAN_SELECTION_BORDER_WIDTH_PX = 3\.5;/);
+  assert.match(source, /const MULLIGAN_SELECTION_EDGE_STROKE_WIDTH_PX = 1\.25;/);
+  assert.match(source, /const MULLIGAN_SELECTION_GLOW_STROKE_WIDTH_PX = 1\.25;/);
+  assert.match(source, /const activeFrameStrokeWidth = isMulliganSelected \? MULLIGAN_SELECTION_EDGE_STROKE_WIDTH_PX : 5;/);
   assert.match(source, /const activeGlowStrokeWidth = isMulliganSelected \? MULLIGAN_SELECTION_GLOW_STROKE_WIDTH_PX : 5;/);
-  assert.match(source, /const activeGlowStrokeAlpha = isMulliganSelected \? 0\.78 : 0\.65;/);
-  assert.match(source, /const activeGlowFillAlpha = isMulliganSelected \? 0\.16 : 0\.12;/);
-  assert.match(source, /const activeOutlineAlpha = isMulliganSelected \? 0\.52 : 0\.92;/);
+  assert.match(source, /const activeGlowStrokeAlpha = isMulliganSelected \? 0\.24 : 0\.65;/);
+  assert.match(source, /const activeGlowFillAlpha = isMulliganSelected \? 0\.2 : 0\.12;/);
+  assert.match(source, /const activeFrameStrokeAlpha = isMulliganSelected \? 0\.24 : 1;/);
+  assert.match(source, /const activeOutlineAlpha = isMulliganSelected \? 0 : 0\.92;/);
+  assert.match(source, /const activeFillAlpha = isMulliganSelected \? 1 : 0\.95;/);
+  assert.match(source, /card\.selectionOutline\?\.setStrokeStyle\(isActiveHandCard && !isMulliganSelected \? activeGlowStrokeWidth : 0,/);
   assert.match(source, /const selectedLift = isMulliganSelected \? MULLIGAN_HAND_CARD_SELECTED_LIFT_PX : HAND_CARD_SELECTED_LIFT_PX;/);
   assert.match(source, /card\.root\.setPosition\(card\.baseX, isActiveHandCard \? card\.baseY - selectedLift : card\.baseY\)\.setScale\(1\)/);
 
