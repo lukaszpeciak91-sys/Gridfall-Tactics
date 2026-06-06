@@ -151,7 +151,8 @@ test('inspect zoom centers between enemy and player lanes, dims gameplay, stays 
   assert.match(source, /const INSPECT_CARD_PLAYER_ROW_GAP_RATIO = 0\.2;/);
   assert.match(source, /const INSPECT_CARD_PLAYER_ROW_BOTTOM_LIMIT_RATIO = 2\.78;/);
   assert.match(source, /const INSPECT_CARD_VERTICAL_COMPACT_RATIO = 0\.96;/);
-  assert.match(source, /const tacticalBottomLimitY = Math\.min\(boardBottomLimitY, actionBottomLimitY, height - margin\);/);
+  assert.match(source, /const inspectSafeBottomLimitY = hand\.y - margin;/);
+  assert.match(source, /const tacticalBottomLimitY = Math\.min\(boardBottomLimitY, inspectSafeBottomLimitY, height - margin\);/);
   assert.match(source, /const enemyRowBottomY = boardTopY \+ board\.cellHeight;/);
   assert.match(source, /const playerRowTopY = boardTopY \+ board\.cellHeight \* 2;/);
   assert.match(source, /const sharedLaneCenterY = \(enemyRowBottomY \+ playerRowTopY\) \* 0\.5;/);
