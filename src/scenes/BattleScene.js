@@ -754,6 +754,7 @@ export default class BattleScene extends Phaser.Scene {
       muteToggle,
       buttons,
     };
+    this.updateActionButtonLabel();
   }
 
   createUtilityMenuButton(x, y, width, height, label, onClick) {
@@ -812,6 +813,7 @@ export default class BattleScene extends Phaser.Scene {
       item?.destroy?.();
     });
     this.utilityMenuPanel = null;
+    this.updateActionButtonLabel();
   }
 
   guardPointerEvent(pointer = null) {
@@ -1568,14 +1570,16 @@ export default class BattleScene extends Phaser.Scene {
 
     this.actionButton = button;
     button.on('pointerdown', () => {
+      if (!this.actionButton?.visible) return;
       this.onActionButtonPointerDown();
     });
     button.on('pointerup', () => {
-      if (this.openingMulliganPending) return;
+      if (!this.actionButton?.visible || this.openingMulliganPending) return;
       if (this.targetingState) {
         this.confirmTargetingSelection();
         return;
       }
+      if (!this.isPassActionButtonAvailable()) return;
       this.resolvePassTurn();
     });
     button.on('pointerout', () => {
@@ -1739,6 +1743,7 @@ export default class BattleScene extends Phaser.Scene {
     };
 
     this.bindDeckInfoScrollHandlers(contentHeight);
+    this.updateActionButtonLabel();
   }
 
   bindDeckInfoScrollHandlers(contentHeight) {
@@ -1806,6 +1811,7 @@ export default class BattleScene extends Phaser.Scene {
       item?.destroy?.();
     });
     this.deckInfoPanel = null;
+    this.updateActionButtonLabel();
   }
 
   getDeckInfoPanelText() {
@@ -2938,9 +2944,19 @@ export default class BattleScene extends Phaser.Scene {
       : translateActive('ui.battle.keepHand', 'KEEP HAND');
   }
 
+  getPlayerBaseMode() {
+    if (this.openingMulliganPending) return 'mulligan';
+    if (this.isBasePassAvailable()) return 'pass';
+    return null;
+  }
+
   getPlayerBaseActionLabel() {
-    if (this.openingMulliganPending) {
+    const playerBaseMode = this.getPlayerBaseMode();
+    if (playerBaseMode === 'mulligan') {
       return this.getOpeningMulliganActionLabel();
+    }
+    if (playerBaseMode === 'pass') {
+      return translateActive('ui.common.pass', 'PASS');
     }
 
     return null;
@@ -2951,12 +2967,23 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   updatePlayerBaseActionState() {
+    const playerBaseMode = this.getPlayerBaseMode();
     const actionLabel = this.getPlayerBaseActionLabel();
     const actionStateActive = Boolean(actionLabel);
+    const passActionActive = playerBaseMode === 'pass';
+    const mulliganActionActive = playerBaseMode === 'mulligan';
+    const playerHero = this.layout?.playerHero;
+    const centerY = this.playerHeroPanel?.y ?? playerHero?.centerY ?? this.playerHpText?.y ?? 0;
+    const passHpOffset = playerHero ? Math.max(7, Math.floor(playerHero.h * 0.18)) : 10;
+    const passLabelOffset = playerHero ? Math.max(10, Math.floor(playerHero.h * 0.24)) : 14;
+    const passFontSize = playerHero ? Math.max(13, Math.floor(playerHero.h * 0.27)) : 14;
+    const mulliganFontSize = playerHero ? Math.max(22, Math.floor(playerHero.h * 0.58)) : 22;
 
     if (this.playerBaseActionLabelText) {
       this.playerBaseActionLabelText
         .setText(actionLabel ?? '')
+        .setFontSize(passActionActive ? passFontSize : mulliganFontSize)
+        .setY(passActionActive ? centerY + passLabelOffset : centerY)
         .setVisible(actionStateActive);
     }
 
@@ -2965,7 +2992,9 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     if (this.playerHpText) {
-      this.playerHpText.setVisible(!actionStateActive);
+      this.playerHpText
+        .setY(passActionActive ? centerY - passHpOffset : centerY)
+        .setVisible(!mulliganActionActive);
     }
 
     if (this.playerInitiativeIcon) {
@@ -2988,9 +3017,15 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   onPlayerBasePointerUp(event) {
-    if (!this.openingMulliganPending) return;
+    if (this.openingMulliganPending) {
+      event?.stopPropagation?.();
+      this.confirmOpeningMulligan();
+      return;
+    }
+
+    if (!this.isBasePassAvailable()) return;
     event?.stopPropagation?.();
-    this.confirmOpeningMulligan();
+    this.resolvePassTurn();
   }
 
   toggleOpeningMulliganCard(cardId, { showPreview = true } = {}) {
@@ -3048,15 +3083,33 @@ export default class BattleScene extends Phaser.Scene {
     this.destroySelectedHandCardZoom({ animate: true });
   }
 
+  hasBasePassBlocker() {
+    return Boolean(
+      this.selectedCardId
+      || this.targetingState
+      || this.boardInspectIndex !== null
+      || this.hoverInspectCardId
+      || this.selectedHandCardZoom
+      || this.pendingSwapIndex !== null
+      || this.deckInfoPanel
+      || this.utilityMenuPanel
+      || this.battleResultModalShown
+      || this.isFlowResolving
+      || this.isEffectCastResolving
+      || this.effectCastState
+      || this.openingMulliganPending,
+    );
+  }
+
   isPassActionButtonAvailable() {
-    return !this.battleResultModalShown
-      && !this.gameState?.winner
+    return !this.gameState?.winner
       && !this.playerActionUsed
-      && !this.openingMulliganPending
-      && !this.targetingState
-      && !this.isFlowResolving
-      && !this.isEffectCastResolving
+      && !this.hasBasePassBlocker()
       && canPass(this.gameState);
+  }
+
+  isBasePassAvailable() {
+    return this.isPassActionButtonAvailable();
   }
 
   updateActionButtonLabel() {
@@ -3090,9 +3143,10 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
     const passAvailable = this.isPassActionButtonAvailable();
+    const basePassAvailable = this.isBasePassAvailable();
     const playerConcedable = this.canHoldPassToSurrender();
-    this.passHoldToSurrenderEnabled = passAvailable && playerConcedable;
-    this.actionButton.setVisible(passAvailable);
+    this.passHoldToSurrenderEnabled = passAvailable && playerConcedable && !basePassAvailable;
+    this.actionButton.setVisible(passAvailable && !basePassAvailable);
     this.actionButton.setText(this.passHoldToSurrenderEnabled
       ? translateActive('ui.battle.holdPassToSurrender', 'Hold PASS to surrender')
       : translateActive('ui.common.pass', 'PASS'));
