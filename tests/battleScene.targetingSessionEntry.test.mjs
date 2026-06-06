@@ -34,7 +34,7 @@ test('targeted effect-card pointerdown begins a cloned targeting session with it
   const scene = {
     targetingState: null,
     resetCardHighlights(options) { calls.push(['highlights', options]); },
-    updateActionButtonLabel() { calls.push(['button']); },
+    updatePlayerBaseActionState() { calls.push(['button']); },
     showTargetingInstruction() { calls.push(['instruction']); },
   };
 
@@ -63,7 +63,7 @@ test('effect-card cancel clears scene targeting without mutating the card hand',
     pressedHandCardWasSelected: false,
     destroyTargetingInstruction() {},
     destroySelectedHandCardZoom() {},
-    updateActionButtonLabel() {},
+    updatePlayerBaseActionState() {},
     resetCardHighlights() {},
   };
 
@@ -170,7 +170,7 @@ test('Controller cancel preserves placement context and finalizes the already-sp
     isFlowResolving: false,
     destroyTargetingInstruction() {},
     destroySelectedHandCardZoom() {},
-    updateActionButtonLabel() {},
+    updatePlayerBaseActionState() {},
     resetCardHighlights() {},
     completePlayerAction(beforeStats) { this.completedWith = beforeStats; this.playerActionUsed = true; },
   };
@@ -268,7 +268,7 @@ test('long-press inspect keeps selected targeted card session and hand card inta
     time: { delayedCall(_delay, callback) { callback(); return { remove() {} }; } },
     destroyTargetingInstruction() { calls.push('destroy-instruction'); },
     resetCardHighlights(options) { calls.push(['highlights', options]); },
-    updateActionButtonLabel() { calls.push('button'); },
+    updatePlayerBaseActionState() { calls.push('button'); },
   };
 
   startHandCardLongPress.call(scene, card.id, 350);
@@ -307,7 +307,7 @@ test('Signal Shift first target refreshes instruction without Inspect and second
     getActivePlayerEffectCard: () => null,
     isValidTarget: () => true,
     resetCardHighlights(options) { calls.push(['highlights', options]); },
-    updateActionButtonLabel() { calls.push(['button']); },
+    updatePlayerBaseActionState() { calls.push(['button']); },
     showTargetingInstruction() { calls.push(['instruction', [...this.targetingState.targetIndexes]]); },
     captureBoardStats: () => ({ before: true }),
     buildMovementFeedbackForAction: () => [],
@@ -430,7 +430,7 @@ test('Jam Signal two valid targets stages first tap and resolves on second tap w
     getActivePlayerEffectCard: () => null,
     isValidTarget: () => true,
     resetCardHighlights(options) { calls.push(['highlights', options]); },
-    updateActionButtonLabel() { calls.push(['button']); },
+    updatePlayerBaseActionState() { calls.push(['button']); },
     showTargetingInstruction() { calls.push(['instruction', [...this.targetingState.targetIndexes]]); },
     captureBoardStats: () => ({ before: true }),
     buildMovementFeedbackForAction: () => [],

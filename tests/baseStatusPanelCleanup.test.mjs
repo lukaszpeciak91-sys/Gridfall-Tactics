@@ -46,17 +46,17 @@ test('mulligan base action remains on the player base and hides normal HP', () =
 });
 
 test('base PASS uses existing pass path and gates PASS-only base action blockers', () => {
-  assert.match(source, /isBasePassAvailable\(\) \{\s*return this\.isPassActionButtonAvailable\(\);\s*\}/);
   assert.match(source, /hasBasePassBlocker\(\) \{[\s\S]*this\.selectedCardId[\s\S]*this\.targetingState[\s\S]*this\.boardInspectIndex !== null[\s\S]*this\.hoverInspectCardId[\s\S]*this\.selectedHandCardZoom[\s\S]*this\.pendingSwapIndex !== null[\s\S]*this\.deckInfoPanel[\s\S]*this\.utilityMenuPanel[\s\S]*this\.battleResultModalShown[\s\S]*this\.isFlowResolving[\s\S]*this\.isEffectCastResolving[\s\S]*this\.effectCastState[\s\S]*this\.openingMulliganPending/);
-  assert.match(source, /isPassActionButtonAvailable\(\) \{\s*return !this\.gameState\?\.winner\s*&& !this\.playerActionUsed\s*&& !this\.hasBasePassBlocker\(\)\s*&& canPass\(this\.gameState\);\s*\}/);
+  assert.match(source, /isBasePassAvailable\(\) \{\s*return !this\.gameState\?\.winner\s*&& !this\.playerActionUsed\s*&& !this\.hasBasePassBlocker\(\)\s*&& canPass\(this\.gameState\);\s*\}/);
   assert.match(source, /onPlayerBasePointerUp\(event\) \{[\s\S]*const basePassAvailable = this\.isBasePassAvailable\(\);[\s\S]*if \(!basePassAvailable\) return;[\s\S]*this\.resolvePassTurn\(\);\s*\}/);
 });
 
-test('old central PASS button is hidden when base PASS is available while targeting confirms stay visible', () => {
-  assert.match(source, /if \(this\.targetingState\) \{[\s\S]*this\.actionButton\.setVisible\(true\);[\s\S]*this\.actionButton\.setText\(translateActive\('ui\.common\.confirm', 'CONFIRM'\)\);/);
-  assert.match(source, /this\.actionButton\.setVisible\(false\);[\s\S]*this\.actionButton\.setText\(''\);[\s\S]*this\.passHoldToSurrenderEnabled = this\.canPlayerBaseHoldToSurrender\(\);/);
-  assert.match(source, /button\.on\('pointerup', \(\) => \{\s*if \(!this\.actionButton\?\.visible \|\| this\.openingMulliganPending\) return;\s*if \(this\.targetingState\) \{\s*this\.confirmTargetingSelection\(\);\s*\}\s*\}\);/);
-  assert.doesNotMatch(source, /button\.on\('pointerdown'[\s\S]*onActionButtonPointerDown/);
+test('old central action control is removed while base PASS and direct targeting remain source-owned', () => {
+  assert.doesNotMatch(source, /drawActionZone|confirmTargetingSelection/);
+  assert.equal(source.includes('action' + 'Button'), false);
+  assert.match(source, /this\.passHoldToSurrenderEnabled = passActionActive && this\.canHoldPassToSurrender\(\);/);
+  assert.match(source, /onPlayerBasePointerUp\(event\) \{[\s\S]*if \(!basePassAvailable\) return;[\s\S]*this\.resolvePassTurn\(\);\s*\}/);
+  assert.match(source, /const canAutoCast = targetIndexes\.length >= minTargets && isExactTargetCount;/);
 });
 
 

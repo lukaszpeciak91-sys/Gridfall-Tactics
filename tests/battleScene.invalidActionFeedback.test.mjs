@@ -21,19 +21,14 @@ test('BattleScene exposes coordinated invalid action feedback helpers', () => {
   assert.match(feedbackBlock, /if \(cardId\) this\.pulseInvalidCard\(cardId\);/);
 });
 
-test('failed targeted effects in board tap and confirm paths show invalid feedback without completing action', () => {
+test('failed targeted effects in direct board tap path show invalid feedback without completing action', () => {
   const boardTapBlock = source.slice(
     source.indexOf('  onBoardCellTap(boardIndex) {'),
     source.indexOf('  getActivePlayerEffectCard() {'),
   );
   assert.match(boardTapBlock, /const result = this\.effectCastState\?\.source === 'unit-on-play'[\s\S]*resolveTargetedEffectCard\(this\.gameState, 'player', effectCardId, boardIndex, targetIndexes\);[\s\S]*if \(!result\.ok\) \{\s*this\.showInvalidActionFeedback\?\.\(\{ reason: result\.reason, cardId: effectCardId, boardIndex, scope: this\.getInvalidActionScope\(result\.reason\) \}\);\s*return;\s*\}/);
-
-  const confirmBlock = source.slice(
-    source.indexOf('  confirmTargetingSelection() {'),
-    source.indexOf('  resolvePassTurn() {'),
-  );
-  assert.match(confirmBlock, /resolveTargetedEffectCard\(this\.gameState, 'player', effectCardId, targetIndexes\[0\], targetIndexes\);[\s\S]*if \(!result\.ok\) \{\s*this\.showInvalidActionFeedback\?\.\(\{ reason: result\.reason, cardId: effectCardId, boardIndex: targetIndexes\[0\], scope: this\.getInvalidActionScope\(result\.reason\) \}\);\s*return;\s*\}/);
-  assert.match(confirmBlock, /if \(result\.type === 'targeted-effect-pending' \|\| result\.type === 'unit-on-play-targeted-effect-pending'\) return;/);
+  assert.match(boardTapBlock, /if \(result\.ok && \(result\.type === 'targeted-effect-pending' \|\| result\.type === 'unit-on-play-targeted-effect-pending'\)\) \{/);
+  assert.doesNotMatch(source, /confirmTargetingSelection/);
 });
 
 test('failed non-targeted effects show global banner and card pulse before any action completion', () => {
@@ -61,7 +56,7 @@ test('failed manual swap second tap shows slot invalid feedback and preserves cl
     source.indexOf('  getActivePlayerEffectCard() {'),
   );
   assert.match(boardTapBlock, /if \(!unit \|\| unit\.owner !== 'player'\) \{\s*this\.pendingSwapIndex = null;\s*this\.showInvalidActionFeedback\?\.\(\{ reason: 'Swap is not valid', boardIndex, scope: 'slot' \}\);[\s\S]*this\.clearSwapPrompt\(\);[\s\S]*return;\s*\}/);
-  assert.match(boardTapBlock, /if \(!result\.ok\) \{\s*this\.clearSwapPrompt\(\);\s*this\.showInvalidActionFeedback\?\.\(\{ reason: result\.reason, boardIndex, scope: 'slot' \}\);[\s\S]*this\.updateActionButtonLabel\(\);\s*return;\s*\}/);
+  assert.match(boardTapBlock, /if \(!result\.ok\) \{\s*this\.clearSwapPrompt\(\);\s*this\.showInvalidActionFeedback\?\.\(\{ reason: result\.reason, boardIndex, scope: 'slot' \}\);[\s\S]*this\.updatePlayerBaseActionState\(\);\s*return;\s*\}/);
 });
 
 test('invalid banner participates in central banner coordinator and existing blocked movement feedback remains intact', () => {

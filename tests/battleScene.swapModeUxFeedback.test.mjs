@@ -63,7 +63,7 @@ test('implicit swap runtime flow: select, highlight, swap, clear, and invalid ta
     })),
     clearBoardInspect: () => {},
     resetCardHighlights: function (opts) { return resetCardHighlights.call(this, opts); },
-    updateActionButtonLabel: () => {},
+    updatePlayerBaseActionState: () => {},
     showSelectedHandCardZoom: () => {},
     destroySelectedHandCardZoom: () => {},
     isValidTarget: () => false,
@@ -138,7 +138,7 @@ test('own board long-press inspect preserves swap source and consumes release be
     showBoardUnitInspect: function (index) { this.boardInspectIndex = index; return true; },
     clearSwapPrompt: () => {},
     resetCardHighlights: () => {},
-    updateActionButtonLabel: () => {},
+    updatePlayerBaseActionState: () => {},
     time: {
       delayedCall(ms, callback) {
         scene.delayMs = ms;
@@ -201,7 +201,7 @@ test('enemy board long-press inspect remains persistent through release suppress
     showBoardUnitInspect: function (index) { this.boardInspectIndex = index; return true; },
     clearSwapPrompt: () => {},
     resetCardHighlights: () => {},
-    updateActionButtonLabel: () => {},
+    updatePlayerBaseActionState: () => {},
     time: {
       delayedCall(ms, callback) {
         scene.delayMs = ms;

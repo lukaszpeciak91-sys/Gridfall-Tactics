@@ -52,7 +52,7 @@ Approximate important center band:
 
 - Horizontal: central ~95% of the canvas contains active UI; avoid high-contrast detail behind readable text/cards in this band.
 - Decorative side margins: outer ~0–2.5% per side are safest for edge-only art today, with wider future device margins possible when the 9:16 image is cover-cropped.
-- Vertical: keep the full center column readable because the board, hero panels, action button, hand, and utility bar stack vertically.
+- Vertical: keep the full center column readable because the board, hero/player-base panels, hand, and utility bar stack vertically.
 
 ## Current battle UI occupancy by vertical region
 
