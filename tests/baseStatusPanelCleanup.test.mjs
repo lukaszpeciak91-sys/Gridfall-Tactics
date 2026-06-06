@@ -29,6 +29,7 @@ test('normal base panels render centered HP without title labels or action-slot 
 test('initiative remains icon-only with subtle side-colored active panel highlight', () => {
   assert.match(drawHeroPanels, /this\.enemyInitiativeIcon = this\.add\.text\(enemyPanel\.x \+ panelWidth \* 0\.44, enemyPanel\.y, '▶'/);
   assert.match(drawHeroPanels, /this\.playerInitiativeIcon = this\.add\.text\(playerPanel\.x - panelWidth \* 0\.44, playerPanel\.y, '▶'/);
+  assert.match(updateInitiativeIndicator, /const active = this\.getCurrentActionableSide\(\);/);
   assert.match(updateInitiativeIndicator, /this\.playerHeroPanel\.setStrokeStyle\(playerBaseActionStateActive \|\| playerActive \? 3 : 2, 0x60a5fa/);
   assert.match(updateInitiativeIndicator, /this\.enemyHeroPanel\.setStrokeStyle\(enemyActive \? 3 : 2, 0xf87171/);
   assert.match(updateInitiativeIndicator, /this\.playerInitiativeIcon\.setVisible\(playerActive && !this\.isPlayerBaseActionStateActive\(\)\)/);
@@ -47,7 +48,8 @@ test('mulligan base action remains on the player base and hides normal HP', () =
 
 test('base PASS uses existing pass path and gates PASS-only base action blockers', () => {
   assert.match(source, /hasBasePassBlocker\(\) \{[\s\S]*this\.selectedCardId[\s\S]*this\.targetingState[\s\S]*this\.boardInspectIndex !== null[\s\S]*this\.hoverInspectCardId[\s\S]*this\.selectedHandCardZoom[\s\S]*this\.pendingSwapIndex !== null[\s\S]*this\.deckInfoPanel[\s\S]*this\.utilityMenuPanel[\s\S]*this\.battleResultModalShown[\s\S]*this\.isFlowResolving[\s\S]*this\.isEffectCastResolving[\s\S]*this\.effectCastState[\s\S]*this\.openingMulliganPending/);
-  assert.match(source, /isBasePassAvailable\(\) \{\s*return !this\.gameState\?\.winner\s*&& !this\.playerActionUsed\s*&& !this\.hasBasePassBlocker\(\)\s*&& canPass\(this\.gameState\);\s*\}/);
+  assert.match(source, /getCurrentActionableSide\(\) \{[\s\S]*firstActor === 'player'[\s\S]*firstActor === 'enemy'[\s\S]*this\.enemyActionUsed && !this\.playerActionUsed[\s\S]*this\.playerActionUsed && !this\.enemyActionUsed/);
+  assert.match(source, /isBasePassAvailable\(\) \{\s*return this\.getCurrentActionableSide\(\) === 'player'\s*&& !this\.playerActionUsed\s*&& !this\.hasBasePassBlocker\(\)\s*&& canPass\(this\.gameState\);\s*\}/);
   assert.match(source, /onPlayerBasePointerUp\(event\) \{[\s\S]*const basePassAvailable = this\.isBasePassAvailable\(\);[\s\S]*if \(!basePassAvailable\) return;[\s\S]*this\.resolvePassTurn\(\);\s*\}/);
 });
 
