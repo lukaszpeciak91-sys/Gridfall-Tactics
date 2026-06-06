@@ -47,6 +47,15 @@ const HERO_PANEL_STROKE_ALPHA = 0.5;
 const HERO_PANEL_ACTIVE_STROKE_ALPHA = 0.82;
 const HERO_PANEL_HIT_FILL_ALPHA = 0.52;
 const HERO_PANEL_HIT_STROKE_ALPHA = 0.86;
+const HERO_PANEL_WIDTH_RATIO = 0.66;
+const BASE_UTILITY_CONTROL_FILL = 0x020617;
+const BASE_UTILITY_CONTROL_FILL_ALPHA = 0.62;
+const BASE_UTILITY_CONTROL_HOVER_FILL = 0x0f172a;
+const BASE_UTILITY_CONTROL_HOVER_FILL_ALPHA = 0.72;
+const BASE_UTILITY_CONTROL_STROKE = 0xfacc15;
+const BASE_UTILITY_CONTROL_STROKE_ALPHA = 0.58;
+const BASE_UTILITY_CONTROL_HOVER_STROKE_ALPHA = 0.82;
+const BASE_UTILITY_CONTROL_HALO = 0x38bdf8;
 const BATTLEFIELD_CENTER_LIGHT_TEXTURE_KEY = 'effect.battlefield-center-light.readability-grade';
 const BATTLEFIELD_CENTER_LIGHT_TEXTURE_SIZE = 512;
 const BATTLEFIELD_CENTER_LIGHT_DEPTH = -875;
@@ -394,7 +403,7 @@ export default class BattleScene extends Phaser.Scene {
     this.drawActionZone();
     this.drawDeckCounter();
     this.drawHand();
-    this.drawActionRowUtilityMenuTrigger();
+    this.drawPlayerBaseUtilityMenuTrigger();
     this.updateActionButtonLabel();
 
     this.scale.on('enterfullscreen', this.onFullscreenChanged, this);
@@ -571,31 +580,74 @@ export default class BattleScene extends Phaser.Scene {
     texture.refresh();
   }
 
-  getActionRowUtilityMenuMetrics() {
-    const { width, action, margin } = this.layout;
-    const actionButtonWidth = width * 0.46;
-    const actionButtonLeft = width * 0.5 - actionButtonWidth / 2;
-    const touchSize = Math.min(Math.max(34, action.h * 0.8), 46);
-    const gap = Math.max(12, margin);
+  getPlayerBaseUtilityControlMetrics(side = 'menu') {
+    const { width, margin, playerHero, contentWidth } = this.layout;
+    const baseWidth = contentWidth * HERO_PANEL_WIDTH_RATIO;
+    const controlWidth = Math.min(Math.max(56, width * 0.16), 82);
+    const controlHeight = Math.min(Math.max(34, playerHero.h * 0.82), 46);
+    const gap = Math.max(8, Math.min(margin, width * 0.03));
+    const baseLeft = width * 0.5 - baseWidth / 2;
+    const baseRight = width * 0.5 + baseWidth / 2;
+    const x = side === 'deck'
+      ? baseRight + gap + controlWidth / 2
+      : baseLeft - gap - controlWidth / 2;
 
     return {
-      x: Phaser.Math.Clamp(
-        actionButtonLeft - gap - touchSize / 2,
-        margin + touchSize / 2,
-        width - margin - touchSize / 2,
-      ),
-      y: action.centerY,
-      touchSize,
+      x,
+      y: playerHero.centerY,
+      width: controlWidth,
+      height: controlHeight,
+      gap,
+      baseWidth,
     };
   }
 
-  drawActionRowUtilityMenuTrigger() {
-    const { x, y, touchSize } = this.getActionRowUtilityMenuMetrics();
-    const menu = createFloatingControl(
-      this,
+  createPlayerBaseUtilityControl(x, y, width, height, label, onPointerUp, { fontScale = 0.44 } = {}) {
+    const halo = this.add.rectangle(x, y, width + 8, height + 8, BASE_UTILITY_CONTROL_HALO, 0.08)
+      .setRounded(Math.max(7, Math.round(height * 0.18)))
+      .setStrokeStyle(1, 0x7dd3fc, 0.18)
+      .setDepth(198);
+    const backing = this.add.rectangle(x, y, width, height, BASE_UTILITY_CONTROL_FILL, BASE_UTILITY_CONTROL_FILL_ALPHA)
+      .setRounded(Math.max(6, Math.round(height * 0.16)))
+      .setStrokeStyle(1, BASE_UTILITY_CONTROL_STROKE, BASE_UTILITY_CONTROL_STROKE_ALPHA)
+      .setDepth(199);
+    const text = this.add.text(x, y, label, {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: `${Math.max(12, Math.floor(height * fontScale))}px`,
+      color: '#f5f1e6',
+      fontStyle: 'bold',
+      align: 'center',
+      fixedWidth: Math.floor(width * 0.92),
+    }).setOrigin(0.5).setDepth(200)
+      .setShadow(0, 1, 'rgba(3, 17, 40, 0.62)', 1, true, true);
+
+    if (onPointerUp) {
+      backing.setInteractive({ useHandCursor: true });
+      text.setInteractive({ useHandCursor: true });
+      backing.on('pointerover', () => {
+        backing.setFillStyle(BASE_UTILITY_CONTROL_HOVER_FILL, BASE_UTILITY_CONTROL_HOVER_FILL_ALPHA);
+        backing.setStrokeStyle(1, BASE_UTILITY_CONTROL_STROKE, BASE_UTILITY_CONTROL_HOVER_STROKE_ALPHA);
+        halo.setAlpha(0.18);
+      });
+      backing.on('pointerout', () => {
+        backing.setFillStyle(BASE_UTILITY_CONTROL_FILL, BASE_UTILITY_CONTROL_FILL_ALPHA);
+        backing.setStrokeStyle(1, BASE_UTILITY_CONTROL_STROKE, BASE_UTILITY_CONTROL_STROKE_ALPHA);
+        halo.setAlpha(1);
+      });
+      backing.on('pointerup', onPointerUp);
+      text.on('pointerup', onPointerUp);
+    }
+
+    return { halo, backing, text };
+  }
+
+  drawPlayerBaseUtilityMenuTrigger() {
+    const { x, y, width, height } = this.getPlayerBaseUtilityControlMetrics('menu');
+    const menu = this.createPlayerBaseUtilityControl(
       x,
       y,
-      touchSize,
+      width,
+      height,
       '☰',
       (pointer, localX, localY, event) => {
         event?.stopPropagation?.();
@@ -627,11 +679,11 @@ export default class BattleScene extends Phaser.Scene {
     this.destroyUtilityMenuPanel();
 
     const { width, height, margin } = this.layout;
-    const { x: triggerX, y: triggerY, touchSize } = this.getActionRowUtilityMenuMetrics();
-    const panelLeft = triggerX + touchSize / 2;
+    const { x: triggerX, y: triggerY, width: triggerWidth, height: triggerHeight } = this.getPlayerBaseUtilityControlMetrics('menu');
+    const panelLeft = triggerX + triggerWidth / 2;
     const panelWidth = Math.min(236, width - margin - panelLeft);
     const panelHeight = 228;
-    const panelTop = triggerY - touchSize / 2;
+    const panelTop = triggerY - triggerHeight / 2;
     const panelX = panelLeft + panelWidth / 2;
     const panelY = panelTop + panelHeight / 2;
     const rowY = panelTop + 28;
@@ -651,7 +703,7 @@ export default class BattleScene extends Phaser.Scene {
       this.destroyUtilityMenuPanel();
     });
 
-    const triggerControl = createFloatingControl(this, triggerX, triggerY, touchSize, '☰', (pointer, localX, localY, event) => {
+    const triggerControl = this.createPlayerBaseUtilityControl(triggerX, triggerY, triggerWidth, triggerHeight, '☰', (pointer, localX, localY, event) => {
       event?.stopPropagation?.();
       this.guardPointerEvent(pointer);
       this.destroyUtilityMenuPanel();
@@ -1345,7 +1397,7 @@ export default class BattleScene extends Phaser.Scene {
     this.drawActionZone();
     this.drawDeckCounter();
     this.drawHand();
-    this.drawActionRowUtilityMenuTrigger();
+    this.drawPlayerBaseUtilityMenuTrigger();
     this.updateActionButtonLabel();
     this.updateInitiativeIndicator();
     this.resetCardHighlights();
@@ -1390,7 +1442,7 @@ export default class BattleScene extends Phaser.Scene {
 
   drawHeroPanels() {
     const { width, topHero, playerHero, contentWidth } = this.layout;
-    const panelWidth = contentWidth * 0.72;
+    const panelWidth = contentWidth * HERO_PANEL_WIDTH_RATIO;
 
     const enemyPanel = this.add.rectangle(width * 0.5, topHero.centerY, panelWidth, topHero.h, 0x111827, HERO_PANEL_FILL_ALPHA).setStrokeStyle(2, 0xf87171, HERO_PANEL_STROKE_ALPHA);
     const playerPanel = this.add.rectangle(width * 0.5, playerHero.centerY, panelWidth, playerHero.h, 0x111827, HERO_PANEL_FILL_ALPHA).setStrokeStyle(2, 0x60a5fa, HERO_PANEL_STROKE_ALPHA);
@@ -1535,43 +1587,20 @@ export default class BattleScene extends Phaser.Scene {
     this.destroyDeckCounterView();
     if (!this.gameState?.player || !this.layout) return;
 
-    const { width, action, margin } = this.layout;
+    const { x, y, width, height } = this.getPlayerBaseUtilityControlMetrics('deck');
     const deckCount = this.gameState.player.deck.length;
-    const buttonRight = width * 0.5 + width * 0.46 / 2;
-    const counterWidth = Math.min(Math.max(76, width * 0.19), 104);
-    const counterHeight = Math.min(Math.max(34, action.h * 0.8), 46);
-    const x = Phaser.Math.Clamp(
-      buttonRight + Math.max(12, margin) + counterWidth / 2,
-      margin + counterWidth / 2,
-      width - margin - counterWidth / 2,
+    const deckLabel = translateActive('ui.battle.deckCounter', 'DECK {count}', { count: deckCount });
+    const deck = this.createPlayerBaseUtilityControl(
+      x,
+      y,
+      width,
+      height,
+      deckLabel,
+      () => this.openDeckInfoPanel(),
+      { fontScale: 0.33 },
     );
-    const y = action.centerY;
 
-    const backing = this.add.rectangle(x, y, counterWidth, counterHeight, 0x082f49, 0.82)
-      .setStrokeStyle(2, 0x38bdf8, 0.9)
-      .setDepth(150)
-      .setInteractive({ useHandCursor: true });
-    const text = this.add.text(x, y, translateActive('ui.battle.deckCounter', 'DECK {count}', { count: deckCount }), {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: `${Math.max(13, Math.floor(counterHeight * 0.34))}px`,
-      color: '#e0f2fe',
-      fontStyle: 'bold',
-      align: 'center',
-    }).setOrigin(0.5).setDepth(151).setInteractive({ useHandCursor: true });
-
-    const openPanel = () => this.openDeckInfoPanel();
-    backing.on('pointerover', () => {
-      backing.setFillStyle(0x0c4a6e, 0.9);
-      backing.setStrokeStyle(2, 0x7dd3fc, 1);
-    });
-    backing.on('pointerout', () => {
-      backing.setFillStyle(0x082f49, 0.82);
-      backing.setStrokeStyle(2, 0x38bdf8, 0.9);
-    });
-    backing.on('pointerup', openPanel);
-    text.on('pointerup', openPanel);
-
-    this.deckCounterView = { backing, text };
+    this.deckCounterView = { backing: deck.backing, text: deck.text, halo: deck.halo };
   }
 
   refreshDeckCounter() {
@@ -1584,7 +1613,7 @@ export default class BattleScene extends Phaser.Scene {
 
   destroyDeckCounterView() {
     if (!this.deckCounterView) return;
-    [this.deckCounterView.backing, this.deckCounterView.text].forEach((item) => {
+    [this.deckCounterView.halo, this.deckCounterView.backing, this.deckCounterView.text].forEach((item) => {
       item?.removeAllListeners?.();
       item?.destroy?.();
     });
