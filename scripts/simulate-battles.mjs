@@ -104,7 +104,7 @@ function applyAction(state, owner, passStats, decisionOptions, telemetry) {
   if (action.type === 'swap-units') result = performSwap(state, owner, action.fromIndex, action.toIndex);
   if (action.type === 'play-effect') {
     result = playEffectCard(state, owner, action.cardId);
-    state.cancelEnemyOrderThisTurn[cancelKey] = false;
+    if (state.cancelEnemyOrderThisTurn) state.cancelEnemyOrderThisTurn[cancelKey] = false;
   }
   if (action.type === 'play-targeted-effect') {
     result = resolveTargetedEffectCard(
@@ -114,7 +114,7 @@ function applyAction(state, owner, passStats, decisionOptions, telemetry) {
       action.targetIndex,
       action.targetIndexes ?? [action.targetIndex],
     );
-    state.cancelEnemyOrderThisTurn[cancelKey] = false;
+    if (state.cancelEnemyOrderThisTurn) state.cancelEnemyOrderThisTurn[cancelKey] = false;
   }
   if (!result.ok) {
     telemetry.invalidActions = (telemetry.invalidActions ?? 0) + 1;
