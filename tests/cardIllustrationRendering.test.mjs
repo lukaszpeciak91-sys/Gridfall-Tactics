@@ -6,7 +6,6 @@ import {
   calculateCardArtworkCoverPosition,
   createCardArtwork,
   createCardPreviewView,
-  SHARED_CARD_ARTWORK_BRIGHTNESS_MULTIPLIER,
   getCardLayoutZones,
 } from '../src/rendering/cardVisualLayout.js';
 
@@ -46,33 +45,17 @@ function createArtworkScene({ loadedTextureKeys = [] } = {}) {
     add: {
       container: (x, y) => chainable({ type: 'container', x, y, children: [], add(items) { this.children.push(...items); return this; } }),
       rectangle: (x, y, width, height, color, alpha) => chainable({ type: 'rectangle', x, y, width, height, color, alpha }),
-      image: (x, y, key) => {
-        const image = chainable({
-          type: 'image',
-          x,
-          y,
-          key,
-          width: 512,
-          height: 768,
-          texture: {
-            getSourceImage: () => ({ width: 512, height: 768 }),
-          },
-        });
-        image.preFX = {
-          addColorMatrix: () => {
-            const colorMatrix = {
-              brightnessValue: null,
-              brightness(value) {
-                this.brightnessValue = value;
-                return this;
-              },
-            };
-            image.colorMatrix = colorMatrix;
-            return colorMatrix;
-          },
-        };
-        return image;
-      },
+      image: (x, y, key) => chainable({
+        type: 'image',
+        x,
+        y,
+        key,
+        width: 512,
+        height: 768,
+        texture: {
+          getSourceImage: () => ({ width: 512, height: 768 }),
+        },
+      }),
     },
   };
 }
@@ -117,8 +100,6 @@ function createPreviewScene({ loadedTextureKeys = [] } = {}) {
   scene.add.graphics = () => makeChainable({
     type: 'graphics',
     fillStyle() { return this; },
-    fillTriangle(...args) { this.fillTriangleArgs = args; return this; },
-    fillPoints(...args) { this.fillPointsArgs = args; return this; },
     fillRect(...args) { this.fillRectArgs = args; return this; },
     createGeometryMask() { return { shape: this }; },
   });
@@ -314,42 +295,6 @@ test('standardized card illustrations render only when callers enable them', () 
   const controlArtwork = createCardArtwork(scene, artZone, { id: 'control_controller_1' }, { enableCardIllustration: true });
   assert.equal(controlArtwork.type, 'image');
   assert.equal(controlArtwork.key, 'card.control.control_04');
-});
-
-test('shared card previews apply a tiny global artwork brightness lift without changing crop or dimensions', () => {
-  const scene = createPreviewScene({ loadedTextureKeys: ['card.aggro.aggro_01'] });
-  const width = 160;
-  const height = 227;
-  const zones = getCardLayoutZones(width, height);
-  const preview = createCardPreviewView(scene, {
-    card: { id: 'test_card', type: 'unit', attack: 2, hp: 2, artTextureKey: 'card.aggro.aggro_01' },
-    x: 0,
-    y: 0,
-    width,
-    height,
-    enableCardIllustration: true,
-  });
-
-  assert.equal(preview.art.type, 'image');
-  assert.equal(preview.art.colorMatrix.brightnessValue, SHARED_CARD_ARTWORK_BRIGHTNESS_MULTIPLIER);
-  assert.equal(preview.art.sharedCardArtworkBrightnessMultiplier, SHARED_CARD_ARTWORK_BRIGHTNESS_MULTIPLIER);
-  assert.equal(preview.art.crop.x, 0);
-  assert.equal(preview.art.crop.width, 512);
-  const expectedCrop = calculateCardArtworkCoverPosition(zones.art, 512, 768);
-  assert.equal(preview.art.crop.y, expectedCrop.cropY);
-  assert.equal(preview.art.crop.height, expectedCrop.cropHeight);
-  assert.equal(preview.art.displayWidth, zones.art.width);
-  assert.equal(Math.round(preview.art.displayHeight), Math.round(768 * preview.art.cropDebugMetrics.scale));
-});
-
-test('direct board-style artwork rendering remains unbrightened unless the shared preview path opts in', () => {
-  const scene = createArtworkScene({ loadedTextureKeys: ['card.aggro.aggro_01'] });
-
-  const artwork = createCardArtwork(scene, artZone, { id: 'aggro_runner_1' }, { enableCardIllustration: true });
-
-  assert.equal(artwork.type, 'image');
-  assert.equal(artwork.colorMatrix, undefined);
-  assert.equal(artwork.sharedCardArtworkBrightnessMultiplier, undefined);
 });
 
 test('missing standardized card illustrations keep the existing placeholder fallback', () => {
