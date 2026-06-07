@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import {
   calculateCardArtworkCoverPosition,
   createCardArtwork,
+  createCardPreviewView,
   getCardLayoutZones,
 } from '../src/rendering/cardVisualLayout.js';
 
@@ -59,6 +60,53 @@ function createArtworkScene({ loadedTextureKeys = [] } = {}) {
   };
 }
 
+
+function createPreviewScene({ loadedTextureKeys = [] } = {}) {
+  const scene = createArtworkScene({ loadedTextureKeys });
+  const makeChainable = (displayObject = {}) => chainable({
+    ...displayObject,
+    active: true,
+    setDepth(value) { this.depth = value; return this; },
+    setAlpha(value) { this.alpha = value; return this; },
+    setShadow(...args) { this.shadow = args; return this; },
+    setVisible(value) { this.visible = value; return this; },
+    setText(value) { this.text = value; this.width = String(value ?? '').length * 6; return this; },
+    setFontSize(value) { this.style = { ...(this.style ?? {}), fontSize: `${value}px` }; this.height = Number(value) || this.height; return this; },
+    destroy() { this.destroyed = true; },
+  });
+
+  scene.add.container = (x, y) => makeChainable({
+    type: 'container',
+    x,
+    y,
+    children: [],
+    add(items) {
+      const normalizedItems = Array.isArray(items) ? items : [items];
+      this.children.push(...normalizedItems.filter(Boolean));
+      return this;
+    },
+  });
+  scene.add.rectangle = (x, y, width, height, color, alpha) => makeChainable({ type: 'rectangle', x, y, width, height, color, alpha });
+  scene.add.circle = (x, y, radius, color, alpha) => makeChainable({ type: 'circle', x, y, radius, color, alpha });
+  scene.add.text = (x, y, text, style = {}) => makeChainable({
+    type: 'text',
+    x,
+    y,
+    text,
+    style: { ...style },
+    width: String(text ?? '').length * 6,
+    height: Number.parseFloat(style.fontSize) || 12,
+  });
+  scene.add.graphics = () => makeChainable({
+    type: 'graphics',
+    fillStyle() { return this; },
+    fillRect(...args) { this.fillRectArgs = args; return this; },
+    createGeometryMask() { return { shape: this }; },
+  });
+
+  return scene;
+}
+
 const artZone = Object.freeze({
   centerX: 12,
   centerY: 24,
@@ -91,6 +139,46 @@ test('dry card layout experiment expands collection artwork viewport without shr
   assert.equal(zones.art.width, 156);
   assert.equal(zones.art.height, 111);
   assert.ok(crop.visibleSourceHeightPercent >= 47 && crop.visibleSourceHeightPercent <= 49);
+});
+
+
+test('card preview art recess shadow preserves layout while avoiding an art-bottom-aligned hard edge', () => {
+  const width = 160;
+  const height = 227;
+  const zones = getCardLayoutZones(width, height);
+  const scene = createPreviewScene();
+  const preview = createCardPreviewView(scene, {
+    card: null,
+    x: 0,
+    y: 0,
+    width,
+    height,
+  });
+
+  const [glow, background, inner, statPanel, statPanelTopEdge, artRecessShadow, art, artRecessHighlight] = preview.root.children;
+
+  assert.equal(glow.type, 'rectangle');
+  assert.equal(background.width, width);
+  assert.equal(background.height, height);
+  assert.equal(inner.width, width - zones.pad * 0.9);
+  assert.equal(statPanel.width, zones.statBadges.width);
+  assert.equal(statPanelTopEdge.height, 1);
+  assert.equal(artRecessShadow.type, 'rectangle');
+  assert.equal(art.type, 'container');
+  assert.equal(artRecessHighlight.type, 'rectangle');
+
+  // The artwork viewport and layout zones stay fixed; only the recess shadow treatment is softened.
+  assert.equal(zones.art.width, 142);
+  assert.equal(zones.art.height, 101);
+  assert.equal(art.x, zones.art.centerX);
+  assert.equal(art.y, zones.art.centerY);
+
+  const shadowBottom = artRecessShadow.y + artRecessShadow.height / 2;
+  const artBottom = zones.art.y + zones.art.height;
+  assert.ok(shadowBottom < artBottom, `expected shadow bottom ${shadowBottom} to sit above art bottom ${artBottom}`);
+  assert.equal(artRecessShadow.height, zones.art.height - Math.max(2, Math.round(zones.gap * 0.6)) * 2);
+  assert.deepEqual(artRecessShadow.strokeStyle, [1, 0x020617, 0.18]);
+  assert.equal(artRecessShadow.alpha, 0.16);
 });
 
 test('card artwork crop Y selects source window while keeping viewport covered and image position fixed', () => {
