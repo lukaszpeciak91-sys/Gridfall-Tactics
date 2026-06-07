@@ -1203,14 +1203,17 @@ export function createCardPreviewView(scene, {
     resolvedSurfaceTheme.panelHighlightStroke,
     0.14,
   );
+  const artRecessShadowOffsetY = Math.max(1, Math.round(zones.gap * 0.11));
+  const artRecessShadowVerticalInset = Math.max(2, Math.round(zones.gap * 0.6));
+  const artRecessShadowHeight = Math.max(1, zones.art.height - artRecessShadowVerticalInset * 2);
   const artRecessShadow = scene.add.rectangle(
     zones.art.centerX,
-    zones.art.centerY + Math.max(1, Math.round(zones.gap * 0.11)),
+    zones.art.centerY + artRecessShadowOffsetY,
     zones.art.width - 2,
-    zones.art.height - 2,
+    artRecessShadowHeight,
     resolvedSurfaceTheme.artInsetShadow,
-    0.2,
-  ).setStrokeStyle(1, resolvedSurfaceTheme.artInsetShadow, 0.28);
+    0.16,
+  ).setStrokeStyle(1, resolvedSurfaceTheme.artInsetShadow, 0.18);
   const artRecessHighlight = scene.add.rectangle(
     zones.art.centerX,
     zones.art.centerY - 1,
