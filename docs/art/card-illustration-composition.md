@@ -96,6 +96,28 @@ Future illustration prompts and internal generation templates should naturally i
 
 These are composition/value priorities, not mandates for generic brightness or neon highlights.
 
+### AI Crop Guidance Artifacts
+
+When generating card illustrations:
+
+- The artwork may be composed with a clear focal area suitable for card crops.
+- The artwork may remain readable after cropping.
+- The artwork may support hand, board, and inspect presentation.
+
+However:
+
+- Never generate visible crop guides.
+- Never generate tonal bands intended to separate "visible" and "non-visible" areas.
+- Never generate horizontal or vertical transition lines meant to assist future crops.
+- Never create brightness zones that imply a crop boundary.
+- Never create hidden framing markers.
+- Never create composition helper bands.
+- Never create subtle horizon-like separators unless they are a natural part of the scene itself.
+
+The image must look like a complete standalone illustration.
+
+Any future crop should reveal different portions of a natural image rather than exposing artificial "safe area" transitions.
+
 ### 1. Central focal point is mandatory
 
 Every illustration must have one dominant focal read centered in the source. The primary subject can be a character, creature, object, machine, ritual core, explosion core, location landmark, symbolic shape, or abstract phenomenon, but it must read when only the middle band of the image survives.
@@ -273,6 +295,7 @@ Use this checklist for every future card illustration prompt and art review:
 - Upper and lower edge bands are treated as expendable atmosphere unless they overlap the central subject.
 - The image still reads when cropped to the middle ~`309–390px` of height.
 - The hand-card thumbnail read is clear before inspecting the full source.
+- Inspect artwork at 100% zoom and verify that no horizontal or vertical tonal seams, crop-guide artifacts, or composition helper bands are present.
 - There is one dominant gesture, one dominant silhouette, and one dominant focal point.
 - Background contrast and detail are lower priority than the subject.
 - Faction flavor is expressed through broad shapes, colors, materials, and motifs.
