@@ -85,6 +85,9 @@ function applyAction(state, owner, passStats, decisionOptions, telemetry) {
   const nonUnit = action.type === 'play-effect' || action.type === 'play-targeted-effect';
   if (action.type === 'pass') {
     passStats.pass = (passStats.pass ?? 0) + 1;
+    const factionName = state?.[owner]?.factionName ?? owner;
+    passStats.byFaction ??= {};
+    passStats.byFaction[factionName] = (passStats.byFaction[factionName] ?? 0) + 1;
     recordPassAction(state, owner);
     return;
   }
@@ -303,6 +306,14 @@ function getMatchupCount(playerIndex, enemyIndex, factionCount, requestedTotal) 
 function main() {
   const totalArg = process.argv.find((arg) => arg.startsWith('--total='));
   const requestedTotal = totalArg ? Number.parseInt(totalArg.split('=')[1], 10) : null;
+  const onlyArg = process.argv.find((arg) => arg.startsWith('--only='));
+  const onlyOrderedMatchups = onlyArg
+    ? new Set(onlyArg.split('=')[1]
+      .split(',')
+      .map((entry) => entry.trim())
+      .filter(Boolean)
+      .map((entry) => entry.replace(':', '|')))
+    : null;
   const positionalArgs = process.argv.slice(2).filter((arg) => !arg.startsWith('--'));
   const parsedCount = Number.parseInt(positionalArgs[0] ?? `${DEFAULT_MATCH_COUNT}`, 10);
   const matchCount = Number.isInteger(parsedCount) && parsedCount > 0 ? parsedCount : DEFAULT_MATCH_COUNT;
@@ -323,6 +334,7 @@ function main() {
   for (let playerIndex = 0; playerIndex < factionKeys.length; playerIndex += 1) for (let enemyIndex = 0; enemyIndex < factionKeys.length; enemyIndex += 1) {
     const playerKey = factionKeys[playerIndex];
     const enemyKey = factionKeys[enemyIndex];
+    if (onlyOrderedMatchups && !onlyOrderedMatchups.has(`${playerKey}|${enemyKey}`)) continue;
     const gamesForMatchup = getMatchupCount(playerIndex, enemyIndex, factionKeys.length, requestedTotal) ?? matchCount;
     if (gamesForMatchup <= 0) continue;
     const orderedKey = `${playerKey}|${enemyKey}`;
@@ -510,9 +522,10 @@ function main() {
     }),
   ];
 
+  const filterSummary = onlyOrderedMatchups ? `, filtered to ${onlyOrderedMatchups.size} ordered matchup(s)` : '';
   console.log(requestedTotal ? `
-Battle simulation complete (${audit.games} total games, max ${MAX_TURNS} turns).` : `
-Battle simulation complete (${matchCount} games per matchup, max ${MAX_TURNS} turns).`);
+Battle simulation complete (${audit.games} total games${filterSummary}, max ${MAX_TURNS} turns).` : `
+Battle simulation complete (${matchCount} games per matchup${filterSummary}, max ${MAX_TURNS} turns).`);
   console.log(`Base seed: ${baseSeed}`);
   console.log('\nBalance audit: aggregate faction table');
   console.table(aggregateRows);
@@ -581,7 +594,13 @@ Battle simulation complete (${matchCount} games per matchup, max ${MAX_TURNS} tu
     { metric: 'Rotcaller combat triggers', count: telemetry.rotcallerCombatTriggers },
   ]);
   console.log('\nPASS reason counts:');
-  console.table(Object.entries(passStats).map(([reason, count]) => ({ reason, count })));
+  console.table(Object.entries(passStats)
+    .filter(([, count]) => typeof count === 'number')
+    .map(([reason, count]) => ({ reason, count })));
+  console.log('\nPASS counts by faction:');
+  console.table(Object.entries(passStats.byFaction ?? {})
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([faction, count]) => ({ faction, count })));
   console.log('\nSimulation parity and validity notes:');
   console.log(`- baseSeed: ${baseSeed}`);
   console.log(`- decks shuffled: ${SHUFFLE_DECKS ? 'yes (seeded Fisher-Yates per game)' : 'no'}`);
