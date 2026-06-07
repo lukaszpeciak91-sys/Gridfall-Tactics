@@ -14,6 +14,11 @@ export const CARD_ZONE_RATIOS = Object.freeze({
 
 export const CARD_CORNER_RADIUS_RATIO = 0.055;
 
+// Shared card previews get a tiny multiplicative artwork lift. 1.025 is a
+// 2.5% brightness increase, intentionally small enough to improve shadow
+// readability without changing crop, dimensions, saturation, or contrast.
+export const SHARED_CARD_ARTWORK_BRIGHTNESS_MULTIPLIER = 1.025;
+
 export const BASE_CARD_SURFACE_THEME = Object.freeze({
   frameFill: 0x1f2937,
   frameSelectedFill: 0x334155,
@@ -984,6 +989,14 @@ export function createArtPlaceholder(scene, zone) {
   return container;
 }
 
+function applySharedCardArtworkBrightness(image, brightnessMultiplier = SHARED_CARD_ARTWORK_BRIGHTNESS_MULTIPLIER) {
+  if (!image || !Number.isFinite(brightnessMultiplier) || brightnessMultiplier === 1) return null;
+  const colorMatrix = image.preFX?.addColorMatrix?.();
+  colorMatrix?.brightness?.(brightnessMultiplier);
+  image.sharedCardArtworkBrightnessMultiplier = brightnessMultiplier;
+  return colorMatrix ?? null;
+}
+
 function getCardArtTextureKey(scene, card, { enableCardIllustration = false } = {}) {
   const explicitTextureKey = card?.artTextureKey ?? card?.artKey ?? card?.art?.textureKey ?? null;
   if (explicitTextureKey) return explicitTextureKey;
@@ -1052,6 +1065,9 @@ export function createCardArtwork(scene, zone, card, options = {}) {
       );
     }
     image.setCrop(crop.cropX, crop.cropY, crop.cropWidth, crop.cropHeight);
+    if (options.applySharedCardArtworkBrightness) {
+      applySharedCardArtworkBrightness(image, options.artworkBrightnessMultiplier);
+    }
     if (options.lockDisplayToZone) {
       // Preserve cover behavior with uniform scaling only.
       // Geometry masking handles viewport clipping for custom board art rects.
@@ -1287,6 +1303,8 @@ export function createCardPreviewView(scene, {
   const art = createCardArtwork(scene, zones.art, card, {
     enableCardIllustration,
     artPositionY: effectiveArtPositionY,
+    applySharedCardArtworkBrightness: true,
+    artworkBrightnessMultiplier: SHARED_CARD_ARTWORK_BRIGHTNESS_MULTIPLIER,
   });
   const namePanel = scene.add.rectangle(zones.name.centerX, zones.name.centerY, zones.name.width, zones.name.height, resolvedSurfaceTheme.namePanelFill, 0.95)
     .setStrokeStyle(1, accentColor, card ? (typographyScale > 1 ? 0.46 : 0.4) : 0.14);
