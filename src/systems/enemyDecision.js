@@ -75,6 +75,12 @@ const BOARD_SYNERGY_EFFECTS = new Set([
   'adjacent_allies_temp_armor_1',
 ]);
 
+const MOVEMENT_TOOL_ARCHETYPES = new Set([
+  'Aggro',
+  'Control',
+  'Wardens',
+]);
+
 function scoreOpeningCard(card, hand, factionName = '') {
   if (!card) return Number.NEGATIVE_INFINITY;
   const unitsInHand = hand.filter((item) => item?.type === 'unit').length;
@@ -202,6 +208,78 @@ function getLikelyFriendlyCombatDeaths(state, owner) {
     if (getUnitAttack(enemyUnit) >= getEffectiveHp(friendlyUnit)) deaths += 1;
   });
   return deaths;
+}
+
+function getLikelyThreatenedFriendlyIndexes(state, owner) {
+  const { friendly, opposing } = getRowsForOwner(owner);
+  return friendly.filter((friendlyIndex, lane) => {
+    const friendlyUnit = state?.board?.[friendlyIndex];
+    const enemyUnit = state?.board?.[opposing[lane]];
+    return Boolean(friendlyUnit && enemyUnit && getUnitAttack(enemyUnit) >= getEffectiveHp(friendlyUnit));
+  });
+}
+
+function getFriendlyBoardStats(state, owner) {
+  const { friendly, opposing } = getRowsForOwner(owner);
+  let count = 0;
+  let attack = 0;
+  let openLaneAttack = 0;
+  let emptySlots = 0;
+  let threatened = 0;
+  friendly.forEach((friendlyIndex, lane) => {
+    const friendlyUnit = state?.board?.[friendlyIndex];
+    if (!friendlyUnit) {
+      emptySlots += 1;
+      return;
+    }
+    const unitAttack = getUnitAttack(friendlyUnit);
+    const enemyUnit = state?.board?.[opposing[lane]];
+    count += 1;
+    attack += unitAttack;
+    if (!enemyUnit) openLaneAttack += unitAttack + (friendlyUnit.effectId === 'lane_empty_bonus_damage' ? RUNNER_OPEN_LANE_HERO_BONUS : 0);
+    if (enemyUnit && getUnitAttack(enemyUnit) >= getEffectiveHp(friendlyUnit)) threatened += 1;
+  });
+  return { count, attack, openLaneAttack, emptySlots, threatened };
+}
+
+function getImmediateOpenLaneThreat(state, owner) {
+  return getGuaranteedHeroDamage(state, owner === 'enemy' ? 'player' : 'enemy');
+}
+
+function opponentArchetypeHasMovementTools(state, owner) {
+  const opponentSide = owner === 'enemy' ? state?.player : state?.enemy;
+  return MOVEMENT_TOOL_ARCHETYPES.has(opponentSide?.factionName ?? '');
+}
+
+function getFeastTargetValue(state, owner, targetIndex) {
+  const target = state?.board?.[targetIndex];
+  if (!target || target.owner !== owner) return Number.NEGATIVE_INFINITY;
+  const { friendly, opposing } = getRowsForOwner(owner);
+  const lane = friendly.indexOf(targetIndex);
+  const enemyUnit = lane >= 0 ? state?.board?.[opposing[lane]] : null;
+  const targetAttack = getUnitAttack(target);
+  const targetEffectiveHp = getEffectiveHp(target);
+  const selfHp = state?.[getHeroHpKey(owner)] ?? 0;
+  const opponentHp = state?.[getOpponentHpKey(owner)] ?? 0;
+
+  if (!enemyUnit && targetAttack >= opponentHp) return Number.NEGATIVE_INFINITY;
+  if (enemyUnit && !targetAttack && getUnitAttack(enemyUnit) >= selfHp) return Number.NEGATIVE_INFINITY;
+  if (enemyUnit && getUnitAttack(enemyUnit) >= selfHp && getUnitAttack(target) < getEffectiveHp(enemyUnit)) {
+    return Number.NEGATIVE_INFINITY;
+  }
+
+  let value = 0;
+  const wouldDieInCombat = Boolean(enemyUnit && getUnitAttack(enemyUnit) >= targetEffectiveHp);
+  if (wouldDieInCombat) value += 950;
+  if (targetAttack <= 0) value += 520;
+  if (targetAttack === 1) value += 240;
+  if (target.effectId === 'combat_death_damage_enemy_lane_1'
+    || target.effectId === 'combat_death_summon_grunt'
+    || target.effectId === 'combat_death_damage_both_heroes_1') value += 260;
+  if (target.effectId === 'rotcaller_adjacent_death_atk_1') value -= 260;
+  if (targetAttack >= 3) value -= 900;
+  if (!enemyUnit && targetAttack > 0) value -= 750;
+  return value;
 }
 
 function getBoardPressureValue(state, owner) {
@@ -744,6 +822,12 @@ function scoreAction(state, owner, action) {
     else score += 500;
   }
 
+  if (action.effectId === 'summon_grunt_empty_slot') {
+    const openLaneBlocked = Math.max(0, currentOpponentPressure - getGuaranteedHeroDamage(nextState, owner === 'enemy' ? 'player' : 'enemy'));
+    const preventsLethalLane = currentOpponentPressure >= currentOwnHp && openLaneBlocked > 0;
+    if (preventsLethalLane) score += 1600 + openLaneBlocked * 160;
+  }
+
   if (action.effectId === 'infect_damage_1_opposite_ally_atk_1') {
     const target = state.board[action.targetIndex];
     const lethal = target && target.hp <= 1;
@@ -772,6 +856,14 @@ function scoreAction(state, owner, action) {
     const targetAttack = getUnitAttack(target);
     score += 900 + targetAttack * 220;
     if ((target?.hp ?? 0) <= 1) score += 650;
+  }
+
+  if (action.effectId === 'destroy_friendly_draw_1') {
+    const targetValue = getFeastTargetValue(state, owner, action.targetIndex);
+    if (!Number.isFinite(targetValue)) return Number.NEGATIVE_INFINITY;
+    const side = owner === 'enemy' ? state.enemy : state.player;
+    const lowHandBonus = (side?.hand?.length ?? 0) <= 2 ? 420 : 0;
+    score += 520 + targetValue + lowHandBonus;
   }
 
   if (action.effectId === 'quick_strike') {
@@ -804,6 +896,26 @@ function scoreAction(state, owner, action) {
     const friendlyUnits = nextState.board.filter((unit) => unit && unit.owner === owner).length;
     if (friendlyUnits <= 1) score -= 1200;
     else score += friendlyUnits * 120;
+  }
+
+  if (action.effectId === 'cannot_drop_below_1_this_turn') {
+    const threatenedIndexes = getLikelyThreatenedFriendlyIndexes(state, owner);
+    if (threatenedIndexes.length <= 0) return Number.NEGATIVE_INFINITY;
+    const friendlyStats = getFriendlyBoardStats(state, owner);
+    const importantThreatenedAttack = threatenedIndexes.reduce((total, index) => total + Math.max(0, getUnitAttack(state.board[index])), 0);
+    const lethalPrevention = getImmediateOpenLaneThreat(state, owner) >= currentOwnHp ? 900 : 0;
+    const contestedBoardBonus = friendlyStats.count >= 2 ? 240 : 0;
+    score += 560 + threatenedIndexes.length * 300 + importantThreatenedAttack * 90 + lethalPrevention + contestedBoardBonus;
+  }
+
+  if (action.effectId === 'immune_move_disable_this_turn') {
+    const friendlyStats = getFriendlyBoardStats(state, owner);
+    if (friendlyStats.count < 2 || friendlyStats.attack <= 1) return Number.NEGATIVE_INFINITY;
+    const opponentHasMovementArchetype = opponentArchetypeHasMovementTools(state, owner);
+    const importantBoardBonus = friendlyStats.attack * 80 + friendlyStats.count * 120;
+    const openLaneBonus = friendlyStats.openLaneAttack > 0 ? 320 : 0;
+    if (!opponentHasMovementArchetype && (friendlyStats.count < 2 || friendlyStats.attack < 3)) return Number.NEGATIVE_INFINITY;
+    score += (opponentHasMovementArchetype ? 360 : 280) + importantBoardBonus + openLaneBonus;
   }
 
   if (action.effectId === 'friendly_immovable_this_turn') {
