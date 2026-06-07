@@ -47,7 +47,7 @@ These three docs are intentionally separate and should not be collapsed:
 
 - `docs/experiments/card-art-framing-debug.md` — experiment postmortem (**EXPERIMENTAL**, currently postponed).
 - `docs/art/art-framing-tool-v2-prototype-plan.md` — prototype plan (**EXPERIMENTAL**, planning only).
-- `docs/art/card-art-rendering-diagnostic.md` — renderer/crop diagnostic reference (diagnostic source for art framing behavior).
+- `docs/art/card-art-rendering-diagnostic.md` — renderer/crop diagnostic reference, including artwork viewport decorative-overlay artifact guardrails (diagnostic source for art framing behavior).
 
 ## How future agents should use docs
 

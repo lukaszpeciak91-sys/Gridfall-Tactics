@@ -135,6 +135,25 @@ Collection is currently the most aggressive active production-art crop, not hand
 
 The renderer crop is center-cover plus dynamic normalized vertical crop placement. The card layout itself is vertically asymmetrical because the artwork viewport sits below stat badges and above name/text panels. The production contract compensates for perceived runtime framing through explicit `artPositionY` crop intent without changing card layout or introducing per-mode rules.
 
+
+## Decorative overlay artifact incident (2026-06-07)
+
+A visible horizontal line was discovered inside card artwork previews. The root cause was **not** crop overrides, `artPositionY` tuning, `boardArtPositionY` tuning, WebP compression, source artwork assets, or the crop math above. Several weeks were spent investigating crop tuning and artwork assets before the issue was traced to shared card-preview decorative layers.
+
+Root cause: shared decorative layers in `createCardPreviewView()` overlapped the artwork viewport after the artwork had been rendered. In particular:
+
+1. `artRecessHighlight` rendered after artwork and its lower stroke overlapped the artwork viewport, producing a visible horizontal line near the artwork bottom.
+2. `namePanelHighlight` had incorrect vertical positioning, so it rendered inside the artwork area instead of inside the name panel and could create additional horizontal artifacts.
+
+Rendering guardrails from this incident:
+
+- Treat `zones.art` as a protected rendering region: decorative panel highlights, divider strokes, shadows, and later UI polish layers must not overlap artwork content unless they are intentionally clipped to the viewport and explicitly reviewed as part of the art treatment.
+- Decorative panel highlights must remain inside their owning panel. For example, name-panel highlights belong inside `zones.name`, not near the artwork boundary.
+- When a horizontal artifact appears consistently across many cards, inspect shared UI overlay layers early before assuming asset, crop, compression, or per-card framing problems.
+- Future visual QA should verify that decorative strokes and highlights remain outside the artwork viewport in Hand, Inspect, and Collection previews.
+
+Regression coverage should continue to assert that the art recess no longer draws a lower highlight stroke over artwork and that the name-panel highlight stays inside the name panel and outside `zones.art`.
+
 ## True safe zones for `512x768` sources
 
 Use source percentages, measured from the top-left of the source image.

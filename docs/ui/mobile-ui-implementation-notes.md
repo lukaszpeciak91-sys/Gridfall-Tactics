@@ -88,6 +88,15 @@ Safe cleanup completed in this pass intentionally stayed small:
 - Controller play/redeploy uses explicit manual unit-on-play targeting; Hacker keeps its automatic lane behavior.
 - Persistent targeting/swap instructions and transient action/turn banners are centrally coordinated so transient notices defer rather than overlap.
 
+
+## Card preview decorative-layer guardrails
+
+Shared card previews treat the artwork viewport as a protected rendering region. Decorative strokes, highlights, shadows, dividers, or polish layers must not overlap the artwork content unless that overlap is an intentional, reviewed artwork treatment.
+
+A historical horizontal-line artifact in card artwork previews was traced to shared preview chrome rather than crop overrides, `artPositionY` / `boardArtPositionY` tuning, WebP compression, source assets, or crop math. The problematic layers were `artRecessHighlight`, whose lower stroke overlapped the artwork viewport after artwork rendering, and `namePanelHighlight`, whose vertical position placed it inside the artwork area instead of inside the name panel.
+
+Future UI polish should check overlay geometry early when a line appears consistently across many cards: confirm panel highlights stay inside their owning panels, confirm name-panel highlights stay inside `zones.name`, and confirm no decorative stroke crosses `zones.art` in Hand, Inspect, or Collection previews.
+
 ## Regression checklist coverage
 
 Use this checklist for manual smoke testing before art/canvas changes, and keep automated coverage aligned with these flows:
