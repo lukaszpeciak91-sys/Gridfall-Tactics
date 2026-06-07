@@ -55,6 +55,33 @@ test('AI does not choose Spawn over a strong immediate removal action', () => {
   assert.equal(action.cardId, 'control_pulse_wave_1');
 });
 
+test('AI values Flood when it preserves board width against open-lane pressure', () => {
+  const state = createInitialBattleState(emptyFaction, emptyFaction, { firstActor: 'enemy' });
+  state.enemy.hand.push(factionCard('Swarm', 'swarm_flood_1'));
+  state.board[6] = unit({ owner: 'player', id: 'player-left', attack: 2, hp: 2 });
+  state.board[7] = unit({ owner: 'player', id: 'player-mid', attack: 1, hp: 1 });
+
+  const action = chooseBattleAction(state, 'enemy');
+
+  assert.equal(action.type, 'play-effect');
+  assert.equal(action.cardId, 'swarm_flood_1');
+});
+
+test('AI does not choose Flood over a strong immediate removal action', () => {
+  const state = createInitialBattleState(emptyFaction, emptyFaction, { firstActor: 'enemy' });
+  state.enemy.hand.push(
+    factionCard('Swarm', 'swarm_flood_1'),
+    factionCard('Control', 'control_pulse_wave_1'),
+  );
+  state.board[6] = unit({ owner: 'player', id: 'left-target', attack: 2, hp: 1 });
+  state.board[7] = unit({ owner: 'player', id: 'mid-target', attack: 2, hp: 1 });
+  state.board[8] = unit({ owner: 'player', id: 'right-target', attack: 2, hp: 1 });
+
+  const action = chooseBattleAction(state, 'enemy');
+
+  assert.equal(action.cardId, 'control_pulse_wave_1');
+});
+
 test('AI values Last Stand when multiple friendly units are threatened', () => {
   const state = createInitialBattleState(emptyFaction, emptyFaction, { firstActor: 'enemy' });
   state.enemy.hand.push(factionCard('Tank', 'tank_last_stand_1'));
