@@ -23,6 +23,11 @@ const HAND_BACK_CARD_ASSET = Object.freeze({
   path: resolvePublicAssetPath('assets/ui/card_back.webp'),
 });
 
+const BASE_BACKDROP_ASSET = Object.freeze({
+  key: 'ui.baseBackdrop.base',
+  path: resolvePublicAssetPath('assets/ui/bases/base.webp'),
+});
+
 const INSPECT_CARD_TARGET_SCALE = 2.06;
 const INSPECT_CARD_VERTICAL_COMPACT_RATIO = 0.96;
 const INSPECT_CARD_MAX_HEIGHT_RATIO = 0.58;
@@ -47,6 +52,10 @@ const HERO_PANEL_ACTIVE_STROKE_ALPHA = 0.82;
 const HERO_PANEL_HIT_FILL_ALPHA = 0.52;
 const HERO_PANEL_HIT_STROKE_ALPHA = 0.86;
 const HERO_PANEL_WIDTH_RATIO = 0.66;
+const BASE_BACKDROP_DEPTH = -100;
+const BASE_BACKDROP_HEIGHT_RATIO = 1.22;
+const BASE_BACKDROP_WIDTH_RATIO = 1.18;
+const BASE_BACKDROP_SCREEN_EDGE_GAP = 4;
 const BASE_UTILITY_CONTROL_FILL = 0x020617;
 const BASE_UTILITY_CONTROL_FILL_ALPHA = 0.62;
 const BASE_UTILITY_CONTROL_HOVER_FILL = 0x0f172a;
@@ -209,6 +218,7 @@ export default class BattleScene extends Phaser.Scene {
     this.battleResultModalPending = false;
     this.backgroundArtAsset = null;
     this.backgroundLayer = null;
+    this.baseBackdropViews = [];
     this.battlefieldCenterLight = null;
     this.selectedHandCardZoom = null;
     this.hoverInspectCardId = null;
@@ -240,6 +250,9 @@ export default class BattleScene extends Phaser.Scene {
 
   preload() {
     preloadBattleBackgroundArt(this);
+    preloadImageAsset(this, BASE_BACKDROP_ASSET, {
+      onError: (asset) => console.warn(`Base backdrop failed to load: ${asset.path}`),
+    });
     preloadImageAsset(this, HAND_BACK_CARD_ASSET, {
       onError: (asset) => console.warn(`Hand back card failed to load: ${asset.path}`),
     });
@@ -304,6 +317,7 @@ export default class BattleScene extends Phaser.Scene {
     this.enemyFactionKey = null;
     this.backgroundArtAsset = null;
     this.backgroundLayer = null;
+    this.baseBackdropViews = [];
     this.battlefieldCenterLight = null;
     this.selectedHandCardZoom = null;
     this.hoverInspectCardId = null;
@@ -364,6 +378,7 @@ export default class BattleScene extends Phaser.Scene {
       this.children.removeAll(true);
     }
     this.handBackCards = [];
+    this.baseBackdropViews = [];
   }
 
   create(data) {
@@ -1152,6 +1167,56 @@ export default class BattleScene extends Phaser.Scene {
     this.updateActionSlotBadge();
   }
 
+  drawBaseBackdrops({ panelWidth }) {
+    this.baseBackdropViews = [];
+
+    if (!hasLoadedImageAsset(this, BASE_BACKDROP_ASSET)) {
+      return;
+    }
+
+    const { width, height, topHero, playerHero, hand, contentWidth } = this.layout;
+    const baseTexture = this.textures.get(BASE_BACKDROP_ASSET.key);
+    const sourceImage = baseTexture?.getSourceImage?.();
+    const textureWidth = sourceImage?.width ?? baseTexture?.get?.()?.width ?? 1;
+    const textureHeight = sourceImage?.height ?? baseTexture?.get?.()?.height ?? 1;
+    const aspectRatio = textureWidth > 0 && textureHeight > 0 ? textureWidth / textureHeight : 1;
+
+    const createBackdrop = ({ side, centerY, panelHeight, flipY = false, topLimit = BASE_BACKDROP_SCREEN_EDGE_GAP, bottomLimit = height - BASE_BACKDROP_SCREEN_EDGE_GAP }) => {
+      const maxWidth = Math.min(contentWidth, panelWidth * BASE_BACKDROP_WIDTH_RATIO);
+      const maxHeight = Math.max(1, bottomLimit - topLimit);
+      const targetHeight = Math.min(panelHeight * BASE_BACKDROP_HEIGHT_RATIO, maxHeight);
+      const targetWidth = Math.min(maxWidth, targetHeight * aspectRatio);
+      const displayHeight = Math.min(targetHeight, targetWidth / aspectRatio);
+
+      const backdrop = this.add.image(width * 0.5, centerY, BASE_BACKDROP_ASSET.key)
+        .setOrigin(0.5)
+        .setDepth(BASE_BACKDROP_DEPTH)
+        .setFlipY(flipY);
+
+      backdrop.setDisplaySize(targetWidth, displayHeight);
+      backdrop.setData('side', side);
+      backdrop.setData('displayScale', { width: targetWidth / textureWidth, height: displayHeight / textureHeight });
+      this.baseBackdropViews.push(backdrop);
+    };
+
+    createBackdrop({
+      side: 'enemy',
+      centerY: topHero.centerY,
+      panelHeight: topHero.h,
+      flipY: true,
+      topLimit: BASE_BACKDROP_SCREEN_EDGE_GAP,
+      bottomLimit: Math.max(BASE_BACKDROP_SCREEN_EDGE_GAP + 1, topHero.centerY * 2 - BASE_BACKDROP_SCREEN_EDGE_GAP),
+    });
+
+    createBackdrop({
+      side: 'player',
+      centerY: playerHero.centerY,
+      panelHeight: playerHero.h,
+      topLimit: Math.max(BASE_BACKDROP_SCREEN_EDGE_GAP, playerHero.centerY - playerHero.h),
+      bottomLimit: Math.min(height - BASE_BACKDROP_SCREEN_EDGE_GAP, (hand?.y ?? height) - BASE_BACKDROP_SCREEN_EDGE_GAP),
+    });
+  }
+
   exitBattleToFactionSelect() {
     if (!this.prepareUtilityMenuNavigation({ includeBattleResultModal: true })) return;
     this.scene.start('FactionSelectScene');
@@ -1380,6 +1445,8 @@ export default class BattleScene extends Phaser.Scene {
   drawHeroPanels() {
     const { width, topHero, playerHero, contentWidth } = this.layout;
     const panelWidth = contentWidth * HERO_PANEL_WIDTH_RATIO;
+
+    this.drawBaseBackdrops({ panelWidth });
 
     const enemyPanel = this.add.rectangle(width * 0.5, topHero.centerY, panelWidth, topHero.h, 0x111827, HERO_PANEL_FILL_ALPHA).setStrokeStyle(2, 0xf87171, HERO_PANEL_STROKE_ALPHA);
     const playerPanel = this.add.rectangle(width * 0.5, playerHero.centerY, panelWidth, playerHero.h, 0x111827, HERO_PANEL_FILL_ALPHA).setStrokeStyle(2, 0x60a5fa, HERO_PANEL_STROKE_ALPHA);

@@ -179,6 +179,27 @@ test('start, main menu, and faction select use optional menu background art with
   assert.match(backgroundDocs, /1440 × 2560 px/);
 });
 
+test('BattleScene preloads decorative base backdrops beneath existing base UI', () => {
+  const battleSource = read('src/scenes/BattleScene.js');
+  const baseDocs = read('public/assets/ui/bases/README.md');
+
+  assert.ok(fs.existsSync('public/assets/ui/bases/base.webp'));
+  assert.match(battleSource, /key: 'ui\.baseBackdrop\.base'/);
+  assert.match(battleSource, /path: resolvePublicAssetPath\('assets\/ui\/bases\/base\.webp'\)/);
+  assert.match(battleSource, /preloadImageAsset\(this, BASE_BACKDROP_ASSET/);
+  assert.match(battleSource, /Base backdrop failed to load: \$\{asset\.path}/);
+  assert.match(battleSource, /const BASE_BACKDROP_DEPTH = -100;/);
+  assert.match(battleSource, /this\.drawBaseBackdrops\(\{ panelWidth \}\);/);
+  assert.match(battleSource, /if \(!hasLoadedImageAsset\(this, BASE_BACKDROP_ASSET\)\) \{\s*return;\s*\}/);
+  assert.match(battleSource, /side: 'enemy',[\s\S]*flipY: true/);
+  assert.match(battleSource, /side: 'player',[\s\S]*centerY: playerHero\.centerY/);
+  assert.match(battleSource, /setDepth\(BASE_BACKDROP_DEPTH\)/);
+  assert.match(battleSource, /backdrop\.setDisplaySize\(targetWidth, displayHeight\)/);
+  assert.doesNotMatch(battleSource.slice(battleSource.indexOf('  drawBaseBackdrops('), battleSource.indexOf('  exitBattleToFactionSelect()')), /setInteractive/);
+  assert.match(baseDocs, /ui\.baseBackdrop\.base/);
+  assert.match(baseDocs, /Enemy base rendering should reuse the same texture with a vertical mirror transform/);
+});
+
 test('BattleScene preloads and renders the default battlefield background with dark fallback', () => {
   const backgroundSource = read('src/rendering/backgroundArt.js');
   const battleSource = read('src/scenes/BattleScene.js');
