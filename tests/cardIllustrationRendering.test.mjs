@@ -142,7 +142,7 @@ test('dry card layout experiment expands collection artwork viewport without shr
 });
 
 
-test('card preview art recess shadow preserves layout while avoiding an art-bottom-aligned hard edge', () => {
+test('card preview decorative layers keep artwork viewport clear of lower highlight strokes', () => {
   const width = 160;
   const height = 227;
   const zones = getCardLayoutZones(width, height);
@@ -155,8 +155,9 @@ test('card preview art recess shadow preserves layout while avoiding an art-bott
     height,
   });
 
-  const [glow, background, inner, statPanel, statPanelTopEdge, artRecessShadow, art, artRecessHighlight] = preview.root.children;
+  const [glow, background, inner, statPanel, statPanelTopEdge, artRecessShadow, art, statBadges, namePanel, namePanelHighlight] = preview.root.children;
 
+  assert.equal(preview.root.children.length, 18);
   assert.equal(glow.type, 'rectangle');
   assert.equal(background.width, width);
   assert.equal(background.height, height);
@@ -165,9 +166,11 @@ test('card preview art recess shadow preserves layout while avoiding an art-bott
   assert.equal(statPanelTopEdge.height, 1);
   assert.equal(artRecessShadow.type, 'rectangle');
   assert.equal(art.type, 'container');
-  assert.equal(artRecessHighlight.type, 'rectangle');
+  assert.equal(statBadges.type, 'container');
+  assert.equal(namePanel.type, 'rectangle');
+  assert.equal(namePanelHighlight.type, 'rectangle');
 
-  // The artwork viewport and layout zones stay fixed; only the recess shadow treatment is softened.
+  // The artwork viewport and layout zones stay fixed; only decorative overlay lines move/remove.
   assert.equal(zones.art.width, 142);
   assert.equal(zones.art.height, 101);
   assert.equal(art.x, zones.art.centerX);
@@ -179,6 +182,43 @@ test('card preview art recess shadow preserves layout while avoiding an art-bott
   assert.equal(artRecessShadow.height, zones.art.height - Math.max(2, Math.round(zones.gap * 0.6)) * 2);
   assert.deepEqual(artRecessShadow.strokeStyle, [1, 0x020617, 0.18]);
   assert.equal(artRecessShadow.alpha, 0.16);
+
+  const removedHighlight = preview.root.children.find((child) => (
+    child?.type === 'rectangle'
+    && child?.color === 0xf8fafc
+    && child?.alpha === 0
+    && child?.strokeStyle?.[0] === 1
+    && child?.strokeStyle?.[2] === 0.08
+  ));
+  assert.equal(removedHighlight, undefined, 'artRecessHighlight should not draw a lower stroke over artwork');
+});
+
+test('card preview name panel highlight stays inside name panel and outside artwork', () => {
+  const width = 160;
+  const height = 227;
+  const zones = getCardLayoutZones(width, height);
+  const scene = createPreviewScene();
+  const preview = createCardPreviewView(scene, {
+    card: null,
+    x: 0,
+    y: 0,
+    width,
+    height,
+  });
+
+  const namePanelHighlight = preview.root.children[9];
+  const highlightTop = namePanelHighlight.y - namePanelHighlight.height / 2;
+  const highlightBottom = namePanelHighlight.y + namePanelHighlight.height / 2;
+  const artTop = zones.art.y;
+  const artBottom = zones.art.y + zones.art.height;
+  const nameTop = zones.name.y;
+  const nameBottom = zones.name.y + zones.name.height;
+
+  assert.equal(namePanelHighlight.type, 'rectangle');
+  assert.equal(namePanelHighlight.y, zones.name.y + 1);
+  assert.ok(highlightTop >= nameTop, `expected highlight top ${highlightTop} to be inside name top ${nameTop}`);
+  assert.ok(highlightBottom <= nameBottom, `expected highlight bottom ${highlightBottom} to be inside name bottom ${nameBottom}`);
+  assert.ok(highlightTop >= artBottom || highlightBottom <= artTop, 'namePanelHighlight should not overlap zones.art');
 });
 
 test('card artwork crop Y selects source window while keeping viewport covered and image position fixed', () => {
