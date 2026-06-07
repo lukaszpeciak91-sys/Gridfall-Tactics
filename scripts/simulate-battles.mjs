@@ -58,6 +58,160 @@ function shuffleDeck(deck, rng) {
   }
 }
 
+function parseTelemetryModes(value) {
+  if (!value) return new Set();
+  const requested = value.split(',').map((entry) => entry.trim().toLowerCase()).filter(Boolean);
+  const modes = new Set();
+  requested.forEach((mode) => {
+    if (mode === 'all') {
+      modes.add('basic');
+      modes.add('cards');
+      modes.add('ai');
+      return;
+    }
+    if (mode === 'basic' || mode === 'cards' || mode === 'ai') modes.add(mode);
+  });
+  return modes;
+}
+
+function hasTelemetryMode(modes, mode) {
+  return modes?.has?.(mode) ?? false;
+}
+
+function createSimulatorTelemetry() {
+  return {
+    factions: {},
+    cards: {},
+    endings: {
+      heroDefeated: 0,
+      draw: 0,
+      noProgress: 0,
+      resourceExhaustion: 0,
+      turnCap: 0,
+      surrender: 0,
+      other: 0,
+    },
+  };
+}
+
+function ensureFactionTelemetry(simTelemetry, faction) {
+  simTelemetry.factions[faction] ??= {
+    games: 0,
+    wins: 0,
+    draws: 0,
+    turns: 0,
+    passes: 0,
+    actions: 0,
+    actionMix: { unit: 0, effect: 0, targeted: 0, swap: 0, pass: 0 },
+    defeats: 0,
+    handAtDefeat: 0,
+  };
+  return simTelemetry.factions[faction];
+}
+
+function getCardTelemetryKey(faction, card) {
+  return `${faction}|${card?.id ?? 'unknown'}`;
+}
+
+function ensureCardTelemetry(simTelemetry, faction, card) {
+  const key = getCardTelemetryKey(faction, card);
+  simTelemetry.cards[key] ??= {
+    faction,
+    cardId: card?.id ?? 'unknown',
+    cardName: card?.name ?? card?.id ?? 'Unknown',
+    drawn: 0,
+    played: 0,
+    heldAtDefeat: 0,
+    turnPlayedTotal: 0,
+  };
+  return simTelemetry.cards[key];
+}
+
+function countCards(cards) {
+  const counts = new Map();
+  cards.forEach((card) => {
+    const key = card?.id ?? 'unknown';
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  });
+  return counts;
+}
+
+function recordDrawTelemetry(simTelemetry, side, beforeDeck) {
+  if (!simTelemetry || !side) return;
+  const beforeCards = beforeDeck ?? [];
+  const afterCounts = countCards(side.deck ?? []);
+  beforeCards.forEach((card) => {
+    const key = card?.id ?? 'unknown';
+    const remaining = afterCounts.get(key) ?? 0;
+    if (remaining > 0) {
+      afterCounts.set(key, remaining - 1);
+      return;
+    }
+    ensureCardTelemetry(simTelemetry, side.factionName ?? 'Unknown', card).drawn += 1;
+  });
+}
+
+function recordActionTelemetry(simTelemetry, state, owner, action, result = null) {
+  if (!simTelemetry || !state || !action) return;
+  const faction = state?.[owner]?.factionName ?? owner;
+  const row = ensureFactionTelemetry(simTelemetry, faction);
+  row.actions += 1;
+  if (action.type === 'pass') {
+    row.passes += 1;
+    row.actionMix.pass += 1;
+    return;
+  }
+  if (action.type === 'play-unit') row.actionMix.unit += 1;
+  else if (action.type === 'play-effect') row.actionMix.effect += 1;
+  else if (action.type === 'play-targeted-effect') row.actionMix.targeted += 1;
+  else if (action.type === 'swap-units') row.actionMix.swap += 1;
+
+  if (result?.ok && result.card) {
+    const cardRow = ensureCardTelemetry(simTelemetry, faction, result.card);
+    cardRow.played += 1;
+    cardRow.turnPlayedTotal += (state.turnsCompleted ?? 0) + 1;
+  }
+}
+
+function classifyEnding(result) {
+  if (result.endingReason === 'turn-cap') return 'turnCap';
+  if (result.endingReason === 'resource_exhaustion') return 'resourceExhaustion';
+  if (result.endingReason === 'no-progress-deadlock') return 'noProgress';
+  if (result.endingReason === 'ai_safe_surrender' || result.endingReason === 'player_hold_surrender') return 'surrender';
+  if (result.winner === 'draw') return 'draw';
+  if (result.heroDeathResolution) return 'heroDefeated';
+  return 'other';
+}
+
+function recordGameEndTelemetry(simTelemetry, result) {
+  if (!simTelemetry || !result) return;
+  const playerRow = ensureFactionTelemetry(simTelemetry, result.playerFaction);
+  const enemyRow = ensureFactionTelemetry(simTelemetry, result.enemyFaction);
+  playerRow.games += 1;
+  enemyRow.games += 1;
+  playerRow.turns += result.turns;
+  enemyRow.turns += result.turns;
+  if (result.winner === 'player') playerRow.wins += 1;
+  if (result.winner === 'enemy') enemyRow.wins += 1;
+  if (result.winner === 'draw') {
+    playerRow.draws += 1;
+    enemyRow.draws += 1;
+  }
+
+  const ending = classifyEnding(result);
+  simTelemetry.endings[ending] = (simTelemetry.endings[ending] ?? 0) + 1;
+
+  const defeatedOwner = result.winner === 'player' ? 'enemy' : (result.winner === 'enemy' ? 'player' : null);
+  if (!defeatedOwner) return;
+  const defeatedFaction = defeatedOwner === 'player' ? result.playerFaction : result.enemyFaction;
+  const defeatedHand = defeatedOwner === 'player' ? result.playerHandAtEnd : result.enemyHandAtEnd;
+  const defeatedRow = ensureFactionTelemetry(simTelemetry, defeatedFaction);
+  defeatedRow.defeats += 1;
+  defeatedRow.handAtDefeat += defeatedHand.length;
+  defeatedHand.forEach((card) => {
+    ensureCardTelemetry(simTelemetry, defeatedFaction, card).heldAtDefeat += 1;
+  });
+}
 
 function recordMulliganTelemetry(telemetry, factionName, replaced) {
   telemetry.mulliganByFaction ??= {};
@@ -79,7 +233,7 @@ function applyAiOpeningMulligan(state, owner, randomFn, telemetry) {
   recordMulliganTelemetry(telemetry, side.factionName ?? 'Unknown', result.replaced);
 }
 
-function applyAction(state, owner, passStats, decisionOptions, telemetry) {
+function applyAction(state, owner, passStats, decisionOptions, telemetry, simTelemetry) {
   const action = chooseBattleAction(state, owner, { ...decisionOptions, telemetry });
   const cancelKey = owner === 'enemy' ? 'player' : 'enemy';
   const nonUnit = action.type === 'play-effect' || action.type === 'play-targeted-effect';
@@ -89,6 +243,7 @@ function applyAction(state, owner, passStats, decisionOptions, telemetry) {
     passStats.byFaction ??= {};
     passStats.byFaction[factionName] = (passStats.byFaction[factionName] ?? 0) + 1;
     recordPassAction(state, owner);
+    recordActionTelemetry(simTelemetry, state, owner, action);
     return;
   }
   if (state.cancelEnemyOrderThisTurn?.[cancelKey] && nonUnit) {
@@ -97,6 +252,7 @@ function applyAction(state, owner, passStats, decisionOptions, telemetry) {
     passStats.cancelled = (passStats.cancelled ?? 0) + 1;
     return;
   }
+  const deckBeforeAction = [...(state?.[owner]?.deck ?? [])];
   let result = { ok: true };
   if (action.type === 'play-unit') {
     result = playOrRedeployUnit(state, owner, action.cardId, action.slotIndex);
@@ -123,6 +279,8 @@ function applyAction(state, owner, passStats, decisionOptions, telemetry) {
     telemetry.invalidActions = (telemetry.invalidActions ?? 0) + 1;
     return;
   }
+  recordDrawTelemetry(simTelemetry, state?.[owner], deckBeforeAction);
+  recordActionTelemetry(simTelemetry, state, owner, action, result);
   if (result.card?.id === 'aggro_quick_fix_1') {
     telemetry.quickFixUses = (telemetry.quickFixUses ?? 0) + 1;
   }
@@ -139,7 +297,7 @@ function applyAction(state, owner, passStats, decisionOptions, telemetry) {
 }
 
 
-function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, gameSeed, gameIndex, playerKey, enemyKey) {
+function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, simTelemetry, gameSeed, gameIndex, playerKey, enemyKey) {
   const gameRng = createSeededRng(gameSeed);
   const state = createInitialBattleState(playerFaction, enemyFaction, { randomFn: gameRng });
 
@@ -148,8 +306,12 @@ function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, gameSe
     shuffleDeck(state.enemy.deck, gameRng);
   }
 
+  const initialPlayerDeck = [...state.player.deck];
+  const initialEnemyDeck = [...state.enemy.deck];
   drawCards(state.player, STARTING_HAND_SIZE);
   drawCards(state.enemy, STARTING_HAND_SIZE);
+  recordDrawTelemetry(simTelemetry, state.player, initialPlayerDeck);
+  recordDrawTelemetry(simTelemetry, state.enemy, initialEnemyDeck);
   applyAiOpeningMulligan(state, 'player', gameRng, telemetry);
   applyAiOpeningMulligan(state, 'enemy', gameRng, telemetry);
   let turns = 0;
@@ -170,23 +332,33 @@ function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, gameSe
     const firstActor = state.firstActor;
     const secondActor = firstActor === 'player' ? 'enemy' : 'player';
 
-    applyAction(state, firstActor, passStats, firstDecisionOptions, telemetry);
-    applyAction(state, secondActor, passStats, secondDecisionOptions, telemetry);
+    applyAction(state, firstActor, passStats, firstDecisionOptions, telemetry, simTelemetry);
+    applyAction(state, secondActor, passStats, secondDecisionOptions, telemetry, simTelemetry);
+    const playerDeckBeforeCombat = [...state.player.deck];
+    const enemyDeckBeforeCombat = [...state.enemy.deck];
     resolveCombat(state);
+    recordDrawTelemetry(simTelemetry, state.player, playerDeckBeforeCombat);
+    recordDrawTelemetry(simTelemetry, state.enemy, enemyDeckBeforeCombat);
     turns += 1;
     state.turnsCompleted = turns;
     resolveImmediateResourceExhaustionWinner(state);
     resolveImmediateNoProgressWinner(state);
     if (state.winner) break;
+    const playerDeckBeforeTurnDraw = [...state.player.deck];
+    const enemyDeckBeforeTurnDraw = [...state.enemy.deck];
     drawCards(state.player, 1);
     drawCards(state.enemy, 1);
     resolveImmediateResourceExhaustionWinner(state);
     resolveImmediateNoProgressWinner(state);
     resolveTurnCapWinner(state, turns);
+    recordDrawTelemetry(simTelemetry, state.player, playerDeckBeforeTurnDraw);
+    recordDrawTelemetry(simTelemetry, state.enemy, enemyDeckBeforeTurnDraw);
     if (!state.winner) toggleFirstActor(state);
   }
   return {
     winner: state.winner ?? 'draw',
+    playerFaction: playerKey,
+    enemyFaction: enemyKey,
     turns,
     playerHP: state.playerHP,
     enemyHP: state.enemyHP,
@@ -194,6 +366,8 @@ function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, gameSe
     endingReason: state.endingReason,
     turnCapResolvedBy: state.turnCapResolvedBy,
     heroDeathResolution: state.heroDeathResolution,
+    playerHandAtEnd: [...state.player.hand],
+    enemyHandAtEnd: [...state.enemy.hand],
     quickFixTempoDraws: state.quickFixTempoDraws ?? 0,
     defensiveFrictionApplications: state.wardenDefensiveFrictionApplications ?? 0,
     funeralPyreCombatTriggers: state.funeralPyreCombatTriggers ?? 0,
@@ -255,6 +429,65 @@ function ensurePairStats(pairStats, factionA, factionB) {
   return pairStats.get(key);
 }
 
+
+function printBasicSimulatorTelemetry(simTelemetry, factionKeys, totalGames) {
+  console.log('\nSimulator telemetry: per-faction summary');
+  console.table(factionKeys.map((key) => {
+    const row = simTelemetry.factions[key] ?? ensureFactionTelemetry(simTelemetry, key);
+    return {
+      faction: key,
+      games: row.games,
+      WR: percent(row.wins, row.games),
+      'non-draw WR': percent(row.wins, row.games - row.draws),
+      'avg turns': avg(row.turns, row.games),
+      'PASS count': row.passes,
+      'PASS rate': `${percent(row.passes, row.actions)}%`,
+      unit: row.actionMix.unit,
+      effect: row.actionMix.effect,
+      targeted: row.actionMix.targeted,
+      swap: row.actionMix.swap,
+      pass: row.actionMix.pass,
+      'avg hand at defeat': avg(row.handAtDefeat, row.defeats),
+    };
+  }));
+
+  console.log('\nSimulator telemetry: game-end summary');
+  console.table([
+    { ending: 'hero defeated', count: simTelemetry.endings.heroDefeated, rate: `${percent(simTelemetry.endings.heroDefeated, totalGames)}%` },
+    { ending: 'draw', count: simTelemetry.endings.draw, rate: `${percent(simTelemetry.endings.draw, totalGames)}%` },
+    { ending: 'no-progress', count: simTelemetry.endings.noProgress, rate: `${percent(simTelemetry.endings.noProgress, totalGames)}%` },
+    { ending: 'resource exhaustion', count: simTelemetry.endings.resourceExhaustion, rate: `${percent(simTelemetry.endings.resourceExhaustion, totalGames)}%` },
+    { ending: 'turn cap', count: simTelemetry.endings.turnCap, rate: `${percent(simTelemetry.endings.turnCap, totalGames)}%` },
+    { ending: 'surrender', count: simTelemetry.endings.surrender, rate: `${percent(simTelemetry.endings.surrender, totalGames)}%` },
+    { ending: 'other', count: simTelemetry.endings.other, rate: `${percent(simTelemetry.endings.other, totalGames)}%` },
+  ]);
+}
+
+function printCardSimulatorTelemetry(simTelemetry) {
+  console.log('\nSimulator telemetry: per-card summary');
+  console.table(Object.values(simTelemetry.cards)
+    .sort((a, b) => a.faction.localeCompare(b.faction) || a.cardName.localeCompare(b.cardName))
+    .map((row) => ({
+      faction: row.faction,
+      card: row.cardName,
+      id: row.cardId,
+      drawn: row.drawn,
+      played: row.played,
+      'held at defeat': row.heldAtDefeat,
+      'avg turn played': avg(row.turnPlayedTotal, row.played),
+    })));
+}
+
+function printAiSimulatorTelemetry(telemetry, simTelemetry, totalGames) {
+  console.log('\nSimulator telemetry: AI health');
+  console.table([
+    { metric: 'invalid actions', count: telemetry.invalidActions, rate: `${avg(telemetry.invalidActions, totalGames)} per game` },
+    { metric: 'crashes', count: telemetry.crashes, rate: `${percent(telemetry.crashes, totalGames)}%` },
+    { metric: 'turn-cap rate', count: simTelemetry.endings.turnCap, rate: `${percent(simTelemetry.endings.turnCap, totalGames)}%` },
+    { metric: 'no-progress rate', count: simTelemetry.endings.noProgress, rate: `${percent(simTelemetry.endings.noProgress, totalGames)}%` },
+  ]);
+}
+
 function createOrderedStats(playerFaction, enemyFaction) {
   return {
     playerFaction,
@@ -306,6 +539,9 @@ function getMatchupCount(playerIndex, enemyIndex, factionCount, requestedTotal) 
 function main() {
   const totalArg = process.argv.find((arg) => arg.startsWith('--total='));
   const requestedTotal = totalArg ? Number.parseInt(totalArg.split('=')[1], 10) : null;
+  const telemetryArg = process.argv.find((arg) => arg.startsWith('--telemetry='));
+  const telemetryModes = parseTelemetryModes(telemetryArg?.split('=')[1] ?? '');
+  const simTelemetry = telemetryModes.size > 0 ? createSimulatorTelemetry() : null;
   const onlyArg = process.argv.find((arg) => arg.startsWith('--only='));
   const onlyOrderedMatchups = onlyArg
     ? new Set(onlyArg.split('=')[1]
@@ -343,7 +579,8 @@ function main() {
 
     for (let i = 0; i < gamesForMatchup; i += 1) {
       const gameSeed = buildGameSeed(baseSeed, playerKey, enemyKey, i);
-      const result = runSingleGame(factions[playerKey], factions[enemyKey], passStats, telemetry, gameSeed, i, playerKey, enemyKey);
+      const result = runSingleGame(factions[playerKey], factions[enemyKey], passStats, telemetry, simTelemetry, gameSeed, i, playerKey, enemyKey);
+      recordGameEndTelemetry(simTelemetry, result);
       telemetry.quickFixTriggers += result.quickFixTempoDraws ?? 0;
       telemetry.defensiveFrictionApplications += result.defensiveFrictionApplications ?? 0;
       telemetry.funeralPyreTriggers += result.funeralPyreCombatTriggers ?? 0;
@@ -601,6 +838,16 @@ Battle simulation complete (${matchCount} games per matchup${filterSummary}, max
   console.table(Object.entries(passStats.byFaction ?? {})
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([faction, count]) => ({ faction, count })));
+  if (simTelemetry && hasTelemetryMode(telemetryModes, 'basic')) {
+    printBasicSimulatorTelemetry(simTelemetry, factionKeys, audit.games);
+  }
+  if (simTelemetry && hasTelemetryMode(telemetryModes, 'cards')) {
+    printCardSimulatorTelemetry(simTelemetry);
+  }
+  if (simTelemetry && hasTelemetryMode(telemetryModes, 'ai')) {
+    printAiSimulatorTelemetry(telemetry, simTelemetry, audit.games);
+  }
+
   console.log('\nSimulation parity and validity notes:');
   console.log(`- baseSeed: ${baseSeed}`);
   console.log(`- decks shuffled: ${SHUFFLE_DECKS ? 'yes (seeded Fisher-Yates per game)' : 'no'}`);
