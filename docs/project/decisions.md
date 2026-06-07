@@ -164,3 +164,12 @@ canonical_ref: docs/rules/mvp-battle-rules.md
 - Header titles use the final locked micro-adjustment: slightly larger than the lowered pass and raised back into the upper presentation zone, preserving a strong TITLE → CONTENT relationship while avoiding clipping in mobile portrait layouts.
 - Header color stays neutral white / warm ivory as a global navigation element; faction-specific title colors, new title backgrounds, frames, ornaments, underlines, and decorative bars remain out of scope.
 - Arena / Choose Faction, Collection, Tutorial, Settings, Rules, and future non-battle menu screens should reuse this same simplified header pattern to preserve the interdimensional prestige broadcast presentation system; future work should not revisit header styling unless a major UI redesign occurs.
+
+## Balance Audit Phase Shift (2026-06-07)
+- Accepted the June 2026 balance-audit conclusion that the project has moved beyond broad AI validation into matchup/faction tuning.
+- Remaining top matchup concerns are Tank vs Swarm, Aggro vs Tank, and Control vs Swarm; they are classified as matchup structure / faction identity / card-design problems rather than major AI failures.
+- Cleared major AI-suspicion bucket: Flood, Spawn, Last Stand, Stability, Feast, Funeral Pyre, and Swarm Attack.
+- Safest future redesign slots, if tuning becomes necessary, are Control Recall/Swap/Controller, Tank Fortify, and Swarm Substrate; these are experiment slots, not approved redesigns.
+- Campaign fairness must be evaluated separately from PvP parity; preferred low-risk mitigations are multiple attempts and curated opponent order rather than permanent progression rewards.
+- Reference summary: `docs/project/balance-audit-june-2026.md`.
+

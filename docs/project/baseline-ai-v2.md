@@ -4,6 +4,8 @@ _Post Situational Valuation Merge_
 
 This report is the first official AI telemetry baseline after the Situational AI Valuation merge. Future AI work must be compared against this baseline.
 
+**June 2026 follow-up:** later focused audits kept invalid actions and crashes at zero and reclassified the remaining major concerns as matchup/faction tuning issues rather than broad AI failures. See `docs/project/balance-audit-june-2026.md` for the current short-form balance memory.
+
 ## Run Configuration
 
 - Command: `node scripts/simulate-battles.mjs 100 424242 --telemetry=all`

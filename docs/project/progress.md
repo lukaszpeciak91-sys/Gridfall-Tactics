@@ -158,3 +158,10 @@ canonical_ref: docs/rules/mvp-battle-rules.md
 - Locked the final placement slightly above the previous lowered pass, with only a minimal title-size increase, so the header sits balanced in the upper presentation zone without changing screen content flow.
 - Retained neutral warm-ivory title color, centered alignment, the approved premium UI font stack, Polish diacritic support, English support, subtle glow, and subtle shadow.
 - Kept the work scoped to UI presentation only; no gameplay, navigation behavior, screen flow, localization, or asset-generation changes were introduced.
+
+## June 2026 Balance Audit Baseline
+- AI validation is now considered largely complete: recent Flood, Spawn, Last Stand, Stability, hidden-information, invalid-action, and crash audits did not leave major AI-bug patterns as the primary balance concern.
+- Current problematic matchups are Tank vs Swarm (Tank durability shell over Swarm fragile refill), Aggro vs Tank (Aggro open-lane burst before Tank defensive orders matter), and Control vs Swarm (Pulse Wave clears but Control lacks post-clear pressure before Swarm rebuilds).
+- Future balance work should prioritize campaign viability, matchup severity, and faction identity preservation over broad AI changes.
+- Canonical short-form audit memory for this phase: `docs/project/balance-audit-june-2026.md`.
+

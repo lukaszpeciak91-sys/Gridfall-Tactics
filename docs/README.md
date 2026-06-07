@@ -20,6 +20,7 @@ Use these status labels in docs when relevant:
 - **Gameplay rules (CANONICAL):** `docs/rules/mvp-battle-rules.md`
 - **Project collaboration workflow (WORKFLOW):** `docs/project/workflow.md`
 - **Faction/data ownership alignment (CANONICAL):** `docs/project/faction-source-of-truth.md`
+- **Current balance audit summary (HISTORY):** `docs/project/balance-audit-june-2026.md`
 - **Card wording/style reference (CANONICAL for wording):** `docs/CARD_LANGUAGE_GUIDE.md`
 - **Premium UI typography (CANONICAL):** `docs/ui/premium-typography-standard.md`
 
@@ -38,6 +39,7 @@ These three docs are intentionally separate and should not be collapsed:
 - `docs/battle_mvp_v1.md` — historical battle spec retained for context (**SUPERSEDED** by canonical rules).
 - `docs/project/progress.md` — timeline context (**HISTORY**).
 - `docs/project/decisions.md` — decision chronology (**HISTORY**).
+- `docs/project/balance-audit-june-2026.md` — current June 2026 AI/matchup audit summary (**HISTORY**).
 
 ## Documentation archive strategy
 
