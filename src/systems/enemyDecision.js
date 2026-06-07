@@ -813,6 +813,45 @@ function scoreAction(state, owner, action) {
     else score += (friendlyUnits === 0 ? 900 : 450) + Math.min(emptySlots, friendlyUnits === 0 ? 2 : 1) * 160;
   }
 
+  if (action.effectId === 'fill_empty_slots_0_1') {
+    const { friendly } = getRowsForOwner(owner);
+    const occupiedBefore = friendly.filter((index) => state.board[index]?.owner === owner).length;
+    const occupiedAfter = friendly.filter((index) => nextState.board[index]?.owner === owner).length;
+    const laneGain = Math.max(0, occupiedAfter - occupiedBefore);
+    const opponentOccupiedBefore = getRowsForOwner(owner === 'enemy' ? 'player' : 'enemy').friendly
+      .filter((index) => state.board[index]?.owner !== owner && state.board[index]).length;
+    const opponentOccupiedAfter = getRowsForOwner(owner === 'enemy' ? 'player' : 'enemy').friendly
+      .filter((index) => nextState.board[index]?.owner !== owner && nextState.board[index]).length;
+    const ownerLaneDeltaBefore = occupiedBefore - opponentOccupiedBefore;
+    const ownerLaneDeltaAfter = occupiedAfter - opponentOccupiedAfter;
+    const laneDifferentialGain = Math.max(0, ownerLaneDeltaAfter - ownerLaneDeltaBefore);
+    const preventedImmediateHeroDamage = Math.min(currentOpponentPressure, opponentPressureReduced);
+    const preventsImmediateLethal = currentOpponentPressure >= currentOwnHp
+      && getGuaranteedHeroDamage(nextState, owner === 'enemy' ? 'player' : 'enemy') < currentOwnHp;
+
+    if (laneGain <= 0) score -= 5000;
+    else {
+      const isBehindOnLanes = occupiedBefore < opponentOccupiedBefore;
+      const preservesContestedWidth = isBehindOnLanes && opponentPressureReduced > 0;
+      const lanePreservationBonus = preservesContestedWidth ? laneGain * 160 + laneDifferentialGain * 120 : 0;
+      const openLaneDefenseBonus = opponentPressureReduced > 0
+        ? opponentPressureReduced * 180 + preventedImmediateHeroDamage * 100
+        : 0;
+      score += lanePreservationBonus + openLaneDefenseBonus;
+      if (preventsImmediateLethal) score += 900;
+      action.aiEvaluation = {
+        kind: 'flood-lane-preservation',
+        laneGain,
+        laneDifferentialGain,
+        isBehindOnLanes,
+        preservesContestedWidth,
+        opponentPressureReduced,
+        preventedImmediateHeroDamage,
+        preventsImmediateLethal,
+      };
+    }
+  }
+
   if (action.effectId === 'revive_friendly_1hp') {
     const { friendly } = getRowsForOwner(owner);
     const side = owner === 'enemy' ? state.enemy : state.player;
