@@ -1214,14 +1214,6 @@ export function createCardPreviewView(scene, {
     resolvedSurfaceTheme.artInsetShadow,
     0.16,
   ).setStrokeStyle(1, resolvedSurfaceTheme.artInsetShadow, 0.18);
-  const artRecessHighlight = scene.add.rectangle(
-    zones.art.centerX,
-    zones.art.centerY - 1,
-    zones.art.width - 3,
-    zones.art.height - 3,
-    resolvedSurfaceTheme.artInsetHighlight,
-    0,
-  ).setStrokeStyle(1, resolvedSurfaceTheme.artInsetHighlight, 0.08);
   const statRowOptions = {
     sizeScale: statBadgeScale,
     fontScale: typographyScale > 1 ? 1.06 : 1.1,
@@ -1300,7 +1292,7 @@ export function createCardPreviewView(scene, {
     .setStrokeStyle(1, accentColor, card ? (typographyScale > 1 ? 0.46 : 0.4) : 0.14);
   const namePanelHighlight = scene.add.rectangle(
     zones.name.centerX,
-    zones.name.y - zones.name.height * 0.5 + 1,
+    zones.name.y + 1,
     zones.name.width - 2,
     1,
     resolvedSurfaceTheme.panelHighlightStroke,
@@ -1361,7 +1353,6 @@ export function createCardPreviewView(scene, {
     statPanelTopEdge,
     artRecessShadow,
     art,
-    artRecessHighlight,
     statBadges,
     namePanel,
     namePanelHighlight,
