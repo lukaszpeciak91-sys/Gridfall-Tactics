@@ -1,9 +1,9 @@
-# Balance Lab v1
+# Balance Lab v2
 
-Balance Lab is a local wrapper around the existing Gridfall Tactics battle simulator. V1 runs two simulations for a simple card-stat experiment:
+Balance Lab is a local wrapper around the existing Gridfall Tactics battle simulator. It runs two simulations for a card-data experiment:
 
 1. **Baseline** — runs the existing simulator in the real repo with no data changes.
-2. **Experiment** — copies the repo to `tools/balance-lab/temp/`, patches only allowed card stats in that temporary copy, then runs the same simulator command from the temp copy.
+2. **Experiment** — copies the repo to `tools/balance-lab/temp/`, patches only allowed card data in that temporary copy, then runs the same simulator command from the temp copy.
 
 It does **not** modify gameplay logic or `scripts/simulate-battles.mjs`.
 
@@ -40,12 +40,18 @@ npm ci
 
 The repository root is the folder that contains `package.json`.
 
-## Run Balance Lab v1
+## Run Balance Lab
 
 From the repository root, run:
 
 ```powershell
 python tools/balance-lab/run_balance_lab.py tools/balance-lab/experiments/example_experiment.json
+```
+
+For the full card replacement example, run:
+
+```powershell
+python tools/balance-lab/run_balance_lab.py tools/balance-lab/experiments/example_full_card_replacement.json
 ```
 
 The script validates that these required paths exist:
@@ -58,7 +64,7 @@ It also validates every requested change before copying or patching anything.
 
 ## Running many experiments
 
-Balance Lab v1.1 can also run every experiment JSON file in one folder. From the repository root, pass the experiment folder instead of one JSON file:
+Balance Lab can also run every experiment JSON file in one folder. From the repository root, pass the experiment folder instead of one JSON file:
 
 ```powershell
 python tools/balance-lab/run_balance_lab.py tools/balance-lab/experiments/
@@ -103,21 +109,75 @@ The copy excludes heavy or generated folders:
 
 All experiment patches happen only inside that temp copy.
 
-## Supported v1 fields
+## Supported change modes
 
-Balance Lab v1 only supports simple JSON card stat changes in:
+Balance Lab patches card data only in:
 
 ```text
 src/data/factions/*.json
 ```
 
-Allowed fields:
+### Stat patch mode
+
+Stat patch mode keeps the existing card object and changes exactly one allowed numeric field. Allowed fields are:
 
 - `attack`
 - `hp`
 - `armor`
 
-V1 does not support effect changes, card ID/name/type changes, text changes, deck replacement, card replacement, or faction registration changes.
+Example:
+
+```json
+{
+  "faction": "Aggro",
+  "cardId": "aggro_runner_1",
+  "field": "hp",
+  "value": 2
+}
+```
+
+### Full card replacement mode
+
+Full card replacement mode replaces one existing card object with a full `replaceCard` JSON object in the temporary experiment copy only. The replacement card must keep the same `id` as `cardId`; Balance Lab rejects changed ids to keep telemetry and action ids stable.
+
+Required `replaceCard` fields:
+
+- `id`
+- `name`
+- `type`
+- `targeting`
+- `effectId`
+- `textShort`
+
+If `type` is `"unit"`, these fields are also required and must be integers greater than or equal to 0:
+
+- `attack`
+- `hp`
+- `armor`
+
+Full replacement may update display fields such as `name`, `textShort`, `targeting`, `artAssetId`, and `cardNumber`. `replaceCard.effectId` must be an existing effectId already present in the repo card data. Balance Lab v2 does not add new effect logic, does not support `effectParams`, and does not make unknown custom effects work. New effect behavior still requires the normal repo implementation path in gameplay code and AI support.
+
+Example:
+
+```json
+{
+  "faction": "Aggro",
+  "cardId": "aggro_runner_1",
+  "replaceCard": {
+    "id": "aggro_runner_1",
+    "cardNumber": 1,
+    "artAssetId": "aggro_01",
+    "name": "Runner Test",
+    "type": "unit",
+    "targeting": "lane",
+    "effectId": "lane_empty_bonus_damage",
+    "textShort": "Open line: enemy base loses 2 HP.",
+    "attack": 2,
+    "hp": 2,
+    "armor": 0
+  }
+}
+```
 
 ## Output
 
@@ -132,8 +192,8 @@ The report folder contains:
 - `baseline-output.txt` — raw stdout from the unmodified baseline simulator run
 - `experiment-output.txt` — raw stdout from the temp-copy experiment simulator run
 - `experiment-stderr.txt` — raw stderr from the temp-copy experiment simulator run
-- `patch-summary.md` — each applied stat patch, including card ID, faction, field, old value, new value, and temp-copy JSON path
-- `comparison-report.md` — readable baseline vs experiment comparison for faction win rates, matchup win rates, big-change flags, and v1 campaign viability
+- `patch-summary.md` — each applied stat patch and full card replacement; replacement entries include old and new card JSON blocks
+- `comparison-report.md` — readable baseline vs experiment comparison for faction win rates, matchup win rates, big-change flags, whether full card replacement was tested, and campaign viability heuristic
 - `card-telemetry-baseline.txt` — raw extracted baseline card telemetry section when available
 - `card-telemetry-experiment.txt` — raw extracted experiment card telemetry section when available
 - `summary.md` — short run metadata and file list
@@ -163,9 +223,9 @@ The report compares baseline vs experiment win-rate values and adds a flag when 
 - `100` games per matchup is smoke-test only. It is useful for checking that the tool works and for spotting very large problems.
 - Serious balance tests should use a higher `matchCount`, such as `1000` or more, because small sample sizes can be noisy.
 
-## V1 campaign viability heuristic
+## Campaign viability heuristic
 
-Balance Lab v1 does not run a real campaign or gauntlet simulator. It includes a simple heuristic based only on aggregate faction non-draw win rate:
+Balance Lab does not run a real campaign or gauntlet simulator. It includes a simple heuristic based only on aggregate faction non-draw win rate:
 
 - 45% to 55%: `stable`
 - 40% to <45% or >55% to 60%: `watch`
@@ -173,17 +233,20 @@ Balance Lab v1 does not run a real campaign or gauntlet simulator. It includes a
 
 Treat this as a quick balance smell test, not a final campaign-readiness verdict.
 
-## Card telemetry in v1
+## Card telemetry
 
-If simulator card telemetry is present, Balance Lab v1 extracts the raw card telemetry sections into text files. It does not fully normalize card telemetry into comparison tables yet. Use `telemetry: "all"` or `telemetry: "cards"` to include these sections.
+If simulator card telemetry is present, Balance Lab extracts the raw card telemetry sections into text files. It does not fully normalize card telemetry into comparison tables yet. Use `telemetry: "all"` or `telemetry: "cards"` to include these sections.
 
 ## Safety smoke checks for invalid configs
 
-Balance Lab v1 should reject unsupported changes before it creates a temp copy or patches any JSON. These cases are intentionally unsupported:
+Balance Lab rejects unsupported changes before it creates a temp copy or patches any JSON. These cases are intentionally unsupported:
 
-- `field: "effectId"` — effect changes are not supported in v1.
-- `field: "name"` — card name/text changes are not supported in v1.
+- `field: "effectId"` stat patches. Use `replaceCard` for existing-effect full card replacement instead.
 - negative stat values, such as `field: "hp"` with `value: -1`.
+- `replaceCard.id` that differs from `cardId`.
+- `replaceCard.effectParams`.
+- missing or empty `replaceCard.effectId`.
+- `replaceCard.effectId` values that do not already exist in repo card data.
 - unknown `cardId` values that do not exist in the selected faction deck.
 - unknown `faction` values that do not match a file in `src/data/factions/`.
 
@@ -191,7 +254,7 @@ If one of these appears in an experiment JSON, the command should stop with a `B
 
 ## Current safety behavior
 
-Balance Lab v1 does **not** change the real repository.
+Balance Lab does **not** change the real repository.
 
 It does not:
 
@@ -199,8 +262,9 @@ It does not:
 - write into real `src/`
 - edit `scripts/simulate-battles.mjs`
 - change gameplay logic
-- support effect changes
-- support deck or card replacement
+- add new effect logic
+- support `effectParams`
+- support deck replacement
 
 If validation fails, the script stops before patching. If the experiment simulation fails, the temp folder and output files remain for debugging.
 
@@ -210,6 +274,7 @@ See:
 
 ```text
 tools/balance-lab/experiments/example_experiment.json
+tools/balance-lab/experiments/example_full_card_replacement.json
 ```
 
 The example includes:
