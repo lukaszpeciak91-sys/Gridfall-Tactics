@@ -1,0 +1,29 @@
+{
+  "name": "Example Runner full card replacement test",
+  "matchCount": 100,
+  "seed": 1337,
+  "telemetry": "all",
+  "changes": [
+    {
+      "faction": "Aggro",
+      "cardId": "aggro_runner_1",
+      "replaceCard": {
+        "id": "aggro_runner_1",
+        "cardNumber": 1,
+        "artAssetId": "aggro_01",
+        "name": "Runner Test",
+        "type": "unit",
+        "targeting": "lane",
+        "effectId": "lane_empty_bonus_damage",
+        "textShort": "Open line: enemy base loses 2 HP.",
+        "attack": 2,
+        "hp": 2,
+        "armor": 0
+      }
+    }
+  ],
+  "flags": {
+    "warningDeltaPp": 3,
+    "dangerDeltaPp": 8
+  }
+}

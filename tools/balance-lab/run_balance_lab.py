@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Balance Lab v1 temp-copy experiment runner.
+"""Balance Lab temp-copy experiment runner.
 
 This version is intentionally conservative: it runs an unmodified baseline,
-copies the repo to a local temp folder, patches only allowed card stats in that
+copies the repo to a local temp folder, patches only allowed card data in that
 copy, runs the existing simulator there, and writes raw outputs to a report.
 """
 
@@ -20,6 +20,8 @@ from typing import Any
 
 
 ALLOWED_STAT_FIELDS = {"attack", "hp", "armor"}
+REQUIRED_REPLACE_CARD_FIELDS = {"id", "name", "type", "targeting", "effectId", "textShort"}
+REQUIRED_UNIT_REPLACE_CARD_FIELDS = {"attack", "hp", "armor"}
 ALLOWED_TELEMETRY_MODES = {"", "basic", "cards", "ai", "all"}
 REQUIRED_REPO_PATHS = [
     Path("package.json"),
@@ -126,18 +128,39 @@ def validate_experiment_shape(data: dict[str, Any]) -> None:
 def validate_change_shape(change: Any, index: int) -> None:
     if not isinstance(change, dict):
         raise BalanceLabError(f"Change #{index} must be an object.")
-    for key in ("faction", "cardId", "field", "value"):
+    for key in ("faction", "cardId"):
+        if key not in change:
+            raise BalanceLabError(f"Change #{index} is missing required field: {key}")
+    if not isinstance(change["faction"], str):
+        raise BalanceLabError(f"Change #{index} faction must be a string.")
+    if not isinstance(change["cardId"], str):
+        raise BalanceLabError(f"Change #{index} cardId must be a string.")
+    if "effectParams" in change:
+        raise BalanceLabError(f"Change #{index} includes effectParams, which Balance Lab v2 does not support.")
+
+    has_stat_patch = "field" in change or "value" in change
+    has_replacement = "replaceCard" in change
+    if has_stat_patch and has_replacement:
+        raise BalanceLabError(f"Change #{index} must use either field/value or replaceCard, not both.")
+    if not has_stat_patch and not has_replacement:
+        raise BalanceLabError(f"Change #{index} must include either field/value or replaceCard.")
+
+    if has_replacement:
+        validate_replace_card_shape(change, index)
+        return
+
+    validate_stat_change_shape(change, index)
+
+
+def validate_stat_change_shape(change: dict[str, Any], index: int) -> None:
+    for key in ("field", "value"):
         if key not in change:
             raise BalanceLabError(f"Change #{index} is missing required field: {key}")
     for blocked_key in ("id", "name", "type", "effectId", "text", "textShort"):
         if blocked_key in change:
             raise BalanceLabError(
-                f"Change #{index} includes '{blocked_key}', but Balance Lab v1 only supports stat fields."
+                f"Change #{index} includes '{blocked_key}', but stat patch mode only supports stat fields."
             )
-    if not isinstance(change["faction"], str):
-        raise BalanceLabError(f"Change #{index} faction must be a string.")
-    if not isinstance(change["cardId"], str):
-        raise BalanceLabError(f"Change #{index} cardId must be a string.")
     if change["field"] not in ALLOWED_STAT_FIELDS:
         allowed = ", ".join(sorted(ALLOWED_STAT_FIELDS))
         raise BalanceLabError(f"Change #{index} field must be one of: {allowed}")
@@ -145,6 +168,29 @@ def validate_change_shape(change: Any, index: int) -> None:
         raise BalanceLabError(f"Change #{index} value must be an integer.")
     if change["value"] < 0:
         raise BalanceLabError(f"Change #{index} value must be >= 0.")
+
+
+def validate_replace_card_shape(change: dict[str, Any], index: int) -> None:
+    replace_card = change.get("replaceCard")
+    if not isinstance(replace_card, dict):
+        raise BalanceLabError(f"Change #{index} replaceCard must be an object.")
+    if "effectParams" in replace_card:
+        raise BalanceLabError(f"Change #{index} replaceCard includes effectParams, which Balance Lab v2 does not support.")
+    missing_fields = sorted(field for field in REQUIRED_REPLACE_CARD_FIELDS if field not in replace_card)
+    if missing_fields:
+        raise BalanceLabError(
+            f"Change #{index} replaceCard is missing required field(s): {', '.join(missing_fields)}"
+        )
+    if replace_card.get("id") != change["cardId"]:
+        raise BalanceLabError(f"Change #{index} replaceCard.id must match cardId exactly.")
+    for key in ("id", "name", "type", "targeting", "effectId", "textShort"):
+        if not isinstance(replace_card.get(key), str) or not replace_card.get(key):
+            raise BalanceLabError(f"Change #{index} replaceCard.{key} must be a non-empty string.")
+    if replace_card["type"] == "unit":
+        for key in sorted(REQUIRED_UNIT_REPLACE_CARD_FIELDS):
+            value = replace_card.get(key)
+            if not isinstance(value, int) or value < 0:
+                raise BalanceLabError(f"Change #{index} replaceCard.{key} must be an integer >= 0 for unit cards.")
 
 
 def is_comma_telemetry_list(value: str) -> bool:
@@ -168,6 +214,19 @@ def load_faction_files(root: Path) -> list[tuple[Path, dict[str, Any]]]:
     return faction_files
 
 
+
+
+def collect_known_effect_ids(root: Path) -> set[str]:
+    effect_ids: set[str] = set()
+    for _path, faction_data in load_faction_files(root):
+        deck = faction_data.get("deck")
+        if not isinstance(deck, list):
+            continue
+        for card in deck:
+            if isinstance(card, dict) and isinstance(card.get("effectId"), str) and card["effectId"]:
+                effect_ids.add(card["effectId"])
+    return effect_ids
+
 def find_faction_file(root: Path, faction: str) -> tuple[Path, dict[str, Any]] | None:
     wanted = normalize_key(faction)
     for path, data in load_faction_files(root):
@@ -183,6 +242,7 @@ def find_faction_file(root: Path, faction: str) -> tuple[Path, dict[str, Any]] |
 
 def validate_requested_changes(root: Path, changes: list[dict[str, Any]]) -> list[dict[str, Any]]:
     validated = []
+    known_effect_ids = collect_known_effect_ids(root)
     for index, change in enumerate(changes, start=1):
         faction_match = find_faction_file(root, change["faction"])
         if faction_match is None:
@@ -198,6 +258,26 @@ def validate_requested_changes(root: Path, changes: list[dict[str, Any]]) -> lis
             raise BalanceLabError(
                 f"Change #{index} cardId '{change['cardId']}' was not found in {source_path}."
             )
+
+        if "replaceCard" in change:
+            replace_card = dict(change["replaceCard"])
+            effect_id = replace_card["effectId"]
+            if effect_id not in known_effect_ids:
+                raise BalanceLabError(
+                    f"Change #{index} replaceCard.effectId '{effect_id}' is not an existing effectId. "
+                    "Balance Lab v2 cannot add custom effect logic."
+                )
+            validated.append({
+                "index": index,
+                "mode": "replaceCard",
+                "faction": change["faction"],
+                "cardId": change["cardId"],
+                "oldCard": card,
+                "newCard": replace_card,
+                "relativePath": source_path.relative_to(root),
+            })
+            continue
+
         old_value = card.get(change["field"], 0)
         if old_value is not None and not isinstance(old_value, int):
             raise BalanceLabError(
@@ -205,6 +285,7 @@ def validate_requested_changes(root: Path, changes: list[dict[str, Any]]) -> lis
             )
         validated.append({
             "index": index,
+            "mode": "stat",
             "faction": change["faction"],
             "cardId": change["cardId"],
             "field": change["field"],
@@ -265,7 +346,7 @@ def create_run_paths(root: Path, experiment_name: str) -> tuple[str, Path, Path]
 def print_intro(root: Path, experiment_path: Path, data: dict[str, Any], command: list[str]) -> None:
     flags = data["flags"]
 
-    print("Balance Lab v1 temp-copy experiment runner", flush=True)
+    print("Balance Lab v2 temp-copy experiment runner", flush=True)
     print("==========================================", flush=True)
     print(f"Repo root: {root}", flush=True)
     print(f"Experiment file: {experiment_path}", flush=True)
@@ -275,7 +356,7 @@ def print_intro(root: Path, experiment_path: Path, data: dict[str, Any], command
     print("  ✓ scripts/simulate-battles.mjs found", flush=True)
     print("  ✓ src/data/factions found", flush=True)
     print("  ✓ experiment JSON loaded", flush=True)
-    print("  ✓ requested card stat changes validated", flush=True)
+    print("  ✓ requested card changes validated", flush=True)
     print("", flush=True)
     print("Experiment summary:", flush=True)
     print(f"  Name: {data['name']}", flush=True)
@@ -285,16 +366,23 @@ def print_intro(root: Path, experiment_path: Path, data: dict[str, Any], command
     print(f"  Warning delta: {flags['warningDeltaPp']} percentage points", flush=True)
     print(f"  Danger delta: {flags['dangerDeltaPp']} percentage points", flush=True)
     print("", flush=True)
-    print("Requested stat changes:", flush=True)
+    print("Requested card changes:", flush=True)
     if data["changes"]:
         for index, change in enumerate(data["changes"], start=1):
-            print(
-                f"  {index}. {change['faction']} / {change['cardId']}: "
-                f"set {change['field']} to {change['value']}",
-                flush=True,
-            )
+            if "replaceCard" in change:
+                print(
+                    f"  {index}. {change['faction']} / {change['cardId']}: "
+                    "replace full card JSON",
+                    flush=True,
+                )
+            else:
+                print(
+                    f"  {index}. {change['faction']} / {change['cardId']}: "
+                    f"set {change['field']} to {change['value']}",
+                    flush=True,
+                )
     else:
-        print("  No stat changes listed.", flush=True)
+        print("  No card changes listed.", flush=True)
     print("", flush=True)
     print("Safety status for this run:", flush=True)
     print("  The real repo will not be patched.", flush=True)
@@ -343,13 +431,24 @@ def apply_patches(temp_copy_dir: Path, validated_changes: list[dict[str, Any]]) 
         data = json.loads(temp_json_path.read_text(encoding="utf-8"))
         deck = data.get("deck", [])
         for change in path_changes:
-            card = next(entry for entry in deck if isinstance(entry, dict) and entry.get("id") == change["cardId"])
-            card[change["field"]] = change["newValue"]
+            card_index = next(
+                index for index, entry in enumerate(deck)
+                if isinstance(entry, dict) and entry.get("id") == change["cardId"]
+            )
             applied_change = dict(change)
             applied_change["tempJsonPath"] = temp_json_path
+            if change["mode"] == "replaceCard":
+                applied_change["oldCard"] = dict(deck[card_index])
+                deck[card_index] = dict(change["newCard"])
+            else:
+                deck[card_index][change["field"]] = change["newValue"]
             applied.append(applied_change)
         temp_json_path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return applied
+
+
+def format_json_block(data: dict[str, Any]) -> list[str]:
+    return ["```json", json.dumps(data, indent=2, ensure_ascii=False), "```"]
 
 
 def write_patch_summary(report_dir: Path, applied_changes: list[dict[str, Any]]) -> Path:
@@ -361,20 +460,40 @@ def write_patch_summary(report_dir: Path, applied_changes: list[dict[str, Any]])
         "",
     ]
     if not applied_changes:
-        lines.append("No card stat changes were requested.")
+        lines.append("No card changes were requested.")
         lines.append("")
     else:
-        lines.extend([
-            "| # | Faction | Card ID | Field | Old value | New value | Temp source JSON path |",
-            "|---:|---|---|---|---:|---:|---|",
-        ])
-        for change in applied_changes:
-            lines.append(
-                f"| {change['index']} | {change['faction']} | {change['cardId']} | "
-                f"{change['field']} | {change['oldValue']} | {change['newValue']} | "
-                f"`{change['tempJsonPath']}` |"
-            )
-        lines.append("")
+        stat_changes = [change for change in applied_changes if change.get("mode") == "stat"]
+        replacement_changes = [change for change in applied_changes if change.get("mode") == "replaceCard"]
+        if stat_changes:
+            lines.extend([
+                "## Stat patches",
+                "",
+                "| # | Faction | Card ID | Field | Old value | New value | Temp source JSON path |",
+                "|---:|---|---|---|---:|---:|---|",
+            ])
+            for change in stat_changes:
+                lines.append(
+                    f"| {change['index']} | {change['faction']} | {change['cardId']} | "
+                    f"{change['field']} | {change['oldValue']} | {change['newValue']} | "
+                    f"`{change['tempJsonPath']}` |"
+                )
+            lines.append("")
+        if replacement_changes:
+            lines.extend(["## Full card replacements", ""])
+            for change in replacement_changes:
+                lines.extend([
+                    f"### Change #{change['index']}: {change['faction']} / {change['cardId']}",
+                    "",
+                    f"Temp source JSON path: `{change['tempJsonPath']}`",
+                    "",
+                    "Old card JSON:",
+                    *format_json_block(change["oldCard"]),
+                    "",
+                    "New card JSON:",
+                    *format_json_block(change["newCard"]),
+                    "",
+                ])
     patch_summary_path.write_text("\n".join(lines), encoding="utf-8")
     return patch_summary_path
 
@@ -408,7 +527,8 @@ def write_report(
         f"Experiment exit code: {experiment_result.returncode}",
         "",
         "The baseline ran in the real repo without patching files.",
-        "The experiment ran in the temporary copy after applying JSON card stat patches only.",
+        "The experiment ran in the temporary copy after applying the requested JSON card changes only.",
+        f"Full card replacement tested: {'yes' if has_full_card_replacement(data) else 'no'}",
         "",
         f"Baseline output: `{BASELINE_OUTPUT_FILENAME}`",
         f"Experiment output: `{EXPERIMENT_OUTPUT_FILENAME}`",
@@ -563,7 +683,7 @@ def build_comparison_report(
         "|---|---:|---:|---:|---:|---:|---:|---|",
     ]
     viability_lines = [
-        "| Faction | Experiment non-draw win % | V1 viability |",
+        "| Faction | Experiment non-draw win % | Viability |",
         "|---|---:|---|",
     ]
     faction_delta_rows: list[dict[str, Any]] = []
@@ -628,6 +748,7 @@ def build_comparison_report(
         f"Seed: {data['seed']}",
         f"Telemetry: {data['telemetry']}",
         f"Patch summary: `{patch_summary_path}`",
+        f"Full card replacement tested: {'yes' if has_full_card_replacement(data) else 'no'}",
         "",
         "## Big change flag thresholds",
         "",
@@ -649,7 +770,7 @@ def build_comparison_report(
         "",
         "## Simple campaign viability heuristic",
         "",
-        "V1 approximates campaign viability from aggregate faction non-draw win %. This is only a v1 heuristic, not a campaign simulator.",
+        "Balance Lab approximates campaign viability from aggregate faction non-draw win %. This is only a heuristic, not a campaign simulator.",
         "",
         "- 45% to 55%: stable",
         "- 40% to <45% or >55% to 60%: watch",
@@ -659,7 +780,7 @@ def build_comparison_report(
         "",
         "## Card telemetry",
         "",
-        "V1 stores raw card telemetry sections instead of fully normalizing every console table cell.",
+        "Balance Lab stores raw card telemetry sections instead of fully normalizing every console table cell.",
         f"- Baseline raw card telemetry: `{baseline_card_path.name}`",
         f"- Experiment raw card telemetry: `{experiment_card_path.name}`",
         "",
@@ -705,6 +826,10 @@ def print_finished(
 
 def format_command(command: list[str]) -> str:
     return " ".join(command)
+
+
+def has_full_card_replacement(data: dict[str, Any]) -> bool:
+    return any(isinstance(change, dict) and "replaceCard" in change for change in data.get("changes", []))
 
 
 def run_one_experiment(root: Path, experiment_path: Path, *, verbose: bool = True) -> dict[str, Any]:
@@ -843,7 +968,7 @@ def run_batch(root: Path, input_path: Path, experiment_paths: list[Path]) -> int
     batch_summary_dir = create_batch_summary_dir(root)
     results: list[dict[str, Any]] = []
 
-    print("Balance Lab v1.1 batch experiment runner", flush=True)
+    print("Balance Lab batch experiment runner", flush=True)
     print("========================================", flush=True)
     print(f"Experiment folder: {input_path}", flush=True)
     print(f"JSON experiments found: {len(experiment_paths)}", flush=True)
