@@ -36,6 +36,7 @@ COMPARISON_REPORT_FILENAME = "comparison-report.md"
 CARD_TELEMETRY_BASELINE_FILENAME = "card-telemetry-baseline.txt"
 CARD_TELEMETRY_EXPERIMENT_FILENAME = "card-telemetry-experiment.txt"
 SUMMARY_FILENAME = "summary.md"
+BATCH_SUMMARY_FILENAME = "batch-summary.md"
 COPY_EXCLUDE_DIRS = {
     ".git",
     "node_modules",
@@ -238,7 +239,7 @@ def slugify(value: str) -> str:
 
 
 def create_run_paths(root: Path, experiment_name: str) -> tuple[str, Path, Path]:
-    run_name = f"{datetime.now().strftime('%Y%m%d-%H%M%S')}-{slugify(experiment_name)}"
+    run_name = f"{datetime.now().strftime('%Y%m%d-%H%M%S-%f')}-{slugify(experiment_name)}"
     report_dir = root / REPORTS_DIR / run_name
     temp_copy_dir = root / TEMP_DIR / f"{run_name}-experiment"
     report_dir.mkdir(parents=True, exist_ok=False)
@@ -507,7 +508,7 @@ def build_comparison_report(
     baseline_text: str,
     experiment_text: str,
     patch_summary_path: Path,
-) -> tuple[Path, dict[str, int]]:
+) -> tuple[Path, dict[str, Any]]:
     aggregate_columns = [
         "faction",
         "games",
@@ -550,6 +551,7 @@ def build_comparison_report(
         "| Faction | Experiment non-draw win % | V1 viability |",
         "|---|---:|---|",
     ]
+    faction_delta_rows: list[dict[str, Any]] = []
     for baseline_row in baseline_factions:
         faction = baseline_row["faction"]
         experiment_row = experiment_factions_by_key.get((faction,))
@@ -569,6 +571,13 @@ def build_comparison_report(
             f"| {faction} | {baseline_row['win %']} | {experiment_row['win %']} | {format_delta(win_delta)} | "
             f"{baseline_row['non-draw win %']} | {experiment_row['non-draw win %']} | {format_delta(non_draw_delta)} | {flag or 'OK'} |"
         )
+        faction_delta_rows.append({
+            "faction": faction,
+            "baselineNonDrawWr": baseline_row["non-draw win %"],
+            "experimentNonDrawWr": experiment_row["non-draw win %"],
+            "deltaPp": non_draw_delta,
+            "flag": flag or "OK",
+        })
         viability_lines.append(
             f"| {faction} | {experiment_row['non-draw win %']} | {viability_for_non_draw_wr(experiment_row['non-draw win %'])} |"
         )
@@ -646,6 +655,11 @@ def build_comparison_report(
         "matchupRows": min(len(baseline_matchups), len(experiment_matchups)),
         "warnings": warning_count,
         "dangers": danger_count,
+        "topFactionNonDrawWrDeltas": sorted(
+            faction_delta_rows,
+            key=lambda row: abs(row["deltaPp"]),
+            reverse=True,
+        )[:3],
     }
 
 def print_finished(
@@ -678,62 +692,54 @@ def format_command(command: list[str]) -> str:
     return " ".join(command)
 
 
-def main(argv: list[str]) -> int:
-    if len(argv) != 2:
-        print(
-            "Usage: python tools/balance-lab/run_balance_lab.py "
-            "tools/balance-lab/experiments/example_experiment.json",
-            file=sys.stderr,
-        )
-        return 2
+def run_one_experiment(root: Path, experiment_path: Path, *, verbose: bool = True) -> dict[str, Any]:
+    data = load_experiment(experiment_path)
+    validate_experiment_shape(data)
+    validated_changes = validate_requested_changes(root, data["changes"])
+    command = build_simulator_command(data)
+    _, report_dir, temp_copy_dir = create_run_paths(root, data["name"])
 
-    root = repo_root()
-    experiment_path = Path(argv[1])
-
-    try:
-        validate_repo_root(root)
-        data = load_experiment(experiment_path)
-        validate_experiment_shape(data)
-        validated_changes = validate_requested_changes(root, data["changes"])
-        command = build_simulator_command(data)
-        _, report_dir, temp_copy_dir = create_run_paths(root, data["name"])
-
+    if verbose:
         print_intro(root, experiment_path, data, command)
-        baseline_result = run_simulation(root, command)
+    baseline_result = run_simulation(root, command)
+    if verbose:
         print("Baseline complete.", flush=True)
 
-        if baseline_result.returncode != 0:
-            raise BalanceLabError("Baseline simulation failed; stopping before creating the experiment copy.")
+    if baseline_result.returncode != 0:
+        raise BalanceLabError("Baseline simulation failed; stopping before creating the experiment copy.")
 
-        copy_repo_to_temp(root, temp_copy_dir)
+    copy_repo_to_temp(root, temp_copy_dir)
+    if verbose:
         print(f"Temp copy created: {temp_copy_dir}", flush=True)
 
-        applied_changes = apply_patches(temp_copy_dir, validated_changes)
-        patch_summary_path = write_patch_summary(report_dir, applied_changes)
+    applied_changes = apply_patches(temp_copy_dir, validated_changes)
+    patch_summary_path = write_patch_summary(report_dir, applied_changes)
+    if verbose:
         print(f"Patches applied: {len(applied_changes)}", flush=True)
 
-        experiment_result = run_simulation(temp_copy_dir, command)
-        (
-            baseline_output_path,
-            experiment_output_path,
-            _experiment_stderr_path,
-            _summary_path,
-        ) = write_report(
-            report_dir,
-            temp_copy_dir,
-            experiment_path,
-            data,
-            command,
-            baseline_result,
-            experiment_result,
-        )
-        comparison_report_path, comparison_stats = build_comparison_report(
-            report_dir,
-            data,
-            baseline_output_path.read_text(encoding="utf-8"),
-            experiment_output_path.read_text(encoding="utf-8"),
-            patch_summary_path,
-        )
+    experiment_result = run_simulation(temp_copy_dir, command)
+    (
+        baseline_output_path,
+        experiment_output_path,
+        _experiment_stderr_path,
+        _summary_path,
+    ) = write_report(
+        report_dir,
+        temp_copy_dir,
+        experiment_path,
+        data,
+        command,
+        baseline_result,
+        experiment_result,
+    )
+    comparison_report_path, comparison_stats = build_comparison_report(
+        report_dir,
+        data,
+        baseline_output_path.read_text(encoding="utf-8"),
+        experiment_output_path.read_text(encoding="utf-8"),
+        patch_summary_path,
+    )
+    if verbose:
         print_finished(
             report_dir,
             temp_copy_dir,
@@ -743,6 +749,165 @@ def main(argv: list[str]) -> int:
             experiment_output_path,
             experiment_result,
         )
+    return {
+        "name": data["name"],
+        "configPath": experiment_path,
+        "reportDir": report_dir,
+        "simulatorExitCode": experiment_result.returncode,
+        "warningCount": comparison_stats["warnings"],
+        "dangerCount": comparison_stats["dangers"],
+        "topFactionNonDrawWrDeltas": comparison_stats.get("topFactionNonDrawWrDeltas", []),
+        "error": "",
+        "passed": experiment_result.returncode == 0,
+    }
+
+
+def discover_experiment_files(input_path: Path) -> list[Path]:
+    if input_path.is_file():
+        return [input_path]
+    if input_path.is_dir():
+        return sorted((path for path in input_path.glob("*.json") if path.is_file()), key=lambda path: path.name.lower())
+    raise BalanceLabError(f"Experiment path not found: {input_path}")
+
+
+def create_batch_summary_dir(root: Path) -> Path:
+    batch_name = f"{datetime.now().strftime('%Y%m%d-%H%M%S-%f')}-batch-summary"
+    batch_summary_dir = root / REPORTS_DIR / batch_name
+    batch_summary_dir.mkdir(parents=True, exist_ok=False)
+    return batch_summary_dir
+
+
+def escape_markdown_table_cell(value: Any) -> str:
+    return str(value).replace("\n", " ").replace("|", "\\|")
+
+
+def format_top_faction_deltas(deltas: list[dict[str, Any]]) -> str:
+    if not deltas:
+        return "Not available"
+    return "; ".join(
+        f"{row['faction']} {format_delta(row['deltaPp'])} pp "
+        f"({row['baselineNonDrawWr']} → {row['experimentNonDrawWr']}, {row['flag']})"
+        for row in deltas
+    )
+
+
+def write_batch_summary(batch_summary_dir: Path, results: list[dict[str, Any]]) -> Path:
+    summary_path = batch_summary_dir / BATCH_SUMMARY_FILENAME
+    passed_count = sum(1 for result in results if result["passed"])
+    failed_count = len(results) - passed_count
+    lines = [
+        "# Balance Lab Batch Summary",
+        "",
+        f"Experiments run: {len(results)}",
+        f"Passed: {passed_count}",
+        f"Failed: {failed_count}",
+        "",
+        "| Experiment | Config file | Report folder | Simulator exit code | Warnings | Dangers | Top faction non-draw WR deltas | Error |",
+        "|---|---|---|---:|---:|---:|---|---|",
+    ]
+    for result in results:
+        report_dir = result["reportDir"] or ""
+        exit_code = result["simulatorExitCode"]
+        warning_count = result["warningCount"]
+        danger_count = result["dangerCount"]
+        lines.append(
+            f"| {escape_markdown_table_cell(result['name'])} | `{escape_markdown_table_cell(result['configPath'])}` | "
+            f"`{escape_markdown_table_cell(report_dir)}` | "
+            f"{exit_code if exit_code is not None else 'N/A'} | "
+            f"{warning_count if warning_count is not None else 'N/A'} | "
+            f"{danger_count if danger_count is not None else 'N/A'} | "
+            f"{escape_markdown_table_cell(format_top_faction_deltas(result['topFactionNonDrawWrDeltas']))} | "
+            f"{escape_markdown_table_cell(result['error'] or '')} |"
+        )
+    lines.append("")
+    summary_path.write_text("\n".join(lines), encoding="utf-8")
+    return summary_path
+
+
+def run_batch(root: Path, input_path: Path, experiment_paths: list[Path]) -> int:
+    batch_summary_dir = create_batch_summary_dir(root)
+    results: list[dict[str, Any]] = []
+
+    print("Balance Lab v1.1 batch experiment runner", flush=True)
+    print("========================================", flush=True)
+    print(f"Experiment folder: {input_path}", flush=True)
+    print(f"JSON experiments found: {len(experiment_paths)}", flush=True)
+    print(f"Batch summary folder: {batch_summary_dir}", flush=True)
+    print("", flush=True)
+
+    for index, experiment_path in enumerate(experiment_paths, start=1):
+        print(f"[{index}/{len(experiment_paths)}] Running {experiment_path.name}", flush=True)
+        try:
+            result = run_one_experiment(root, experiment_path, verbose=False)
+        except FileNotFoundError as error:
+            message = (
+                f"Could not run required command: {error.filename}. "
+                "Please confirm Node.js and npm are installed and available in PATH."
+            )
+            print(f"Balance Lab error:\n{message}", file=sys.stderr)
+            result = failed_batch_result(experiment_path, message)
+        except BalanceLabError as error:
+            print(f"Balance Lab error:\n{error}", file=sys.stderr)
+            result = failed_batch_result(experiment_path, str(error))
+        except Exception as error:
+            message = f"Unexpected experiment failure: {error}"
+            print(f"Balance Lab error:\n{message}", file=sys.stderr)
+            result = failed_batch_result(experiment_path, message)
+        results.append(result)
+        status = "passed" if result["passed"] else "failed"
+        print(
+            f"[{index}/{len(experiment_paths)}] Finished {experiment_path.name}: {status} "
+            f"(exit code: {result['simulatorExitCode'] if result['simulatorExitCode'] is not None else 'N/A'})",
+            flush=True,
+        )
+        print("", flush=True)
+
+    summary_path = write_batch_summary(batch_summary_dir, results)
+    passed_count = sum(1 for result in results if result["passed"])
+    failed_count = len(results) - passed_count
+    print("Batch complete.", flush=True)
+    print(f"Experiments run: {len(results)}", flush=True)
+    print(f"Passed: {passed_count}", flush=True)
+    print(f"Failed: {failed_count}", flush=True)
+    print(f"Batch summary: {summary_path}", flush=True)
+    return 0 if failed_count == 0 else 1
+
+
+def failed_batch_result(experiment_path: Path, error_message: str) -> dict[str, Any]:
+    return {
+        "name": experiment_path.stem,
+        "configPath": experiment_path,
+        "reportDir": None,
+        "simulatorExitCode": None,
+        "warningCount": None,
+        "dangerCount": None,
+        "topFactionNonDrawWrDeltas": [],
+        "error": error_message.replace("\n", " "),
+        "passed": False,
+    }
+
+
+def main(argv: list[str]) -> int:
+    if len(argv) != 2:
+        print(
+            "Usage: python tools/balance-lab/run_balance_lab.py "
+            "tools/balance-lab/experiments/example_experiment.json\n"
+            "   or: python tools/balance-lab/run_balance_lab.py tools/balance-lab/experiments/",
+            file=sys.stderr,
+        )
+        return 2
+
+    root = repo_root()
+    input_path = Path(argv[1])
+
+    try:
+        validate_repo_root(root)
+        experiment_paths = discover_experiment_files(input_path)
+        if input_path.is_dir():
+            return run_batch(root, input_path, experiment_paths)
+        if not experiment_paths:
+            raise BalanceLabError(f"No experiment JSON files found in folder: {input_path}")
+        result = run_one_experiment(root, experiment_paths[0])
     except FileNotFoundError as error:
         print(
             "Balance Lab error:\n"
@@ -755,7 +920,7 @@ def main(argv: list[str]) -> int:
         print(f"Balance Lab error:\n{error}", file=sys.stderr)
         return 1
 
-    return experiment_result.returncode
+    return result["simulatorExitCode"]
 
 
 if __name__ == "__main__":

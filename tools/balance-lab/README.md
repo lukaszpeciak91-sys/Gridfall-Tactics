@@ -56,6 +56,30 @@ The script validates that these required paths exist:
 
 It also validates every requested change before copying or patching anything.
 
+## Running many experiments
+
+Balance Lab v1.1 can also run every experiment JSON file in one folder. From the repository root, pass the experiment folder instead of one JSON file:
+
+```powershell
+python tools/balance-lab/run_balance_lab.py tools/balance-lab/experiments/
+```
+
+Folder mode finds all `*.json` files directly inside the folder, sorts them by filename, and runs them one by one. It prints compact progress lines such as `[3/64] Running 003_aggro_runner_hp2.json`, which keeps larger 60+ experiment batches readable. Each experiment still gets its own normal timestamped report folder under:
+
+```text
+tools/balance-lab/reports/
+```
+
+After all experiments finish, folder mode writes a batch summary at:
+
+```text
+tools/balance-lab/reports/<batch_timestamp>-batch-summary/batch-summary.md
+```
+
+The batch summary lists the number of experiments run, pass/fail counts, each config path, each report folder path, simulator exit codes, warning and danger counts, and the largest faction non-draw win-rate deltas when comparison data is available. If one experiment fails validation, Balance Lab records the error in the batch summary and continues with the next JSON file.
+
+The example experiment uses `matchCount: 100`, which is smoke-test only. It is useful for checking that the runner works and for catching very large balance problems. For serious balance tests, use a higher `matchCount`, such as `1000` or more, because small sample sizes can be noisy.
+
 ## Baseline vs experiment
 
 The baseline run uses the real repo exactly as-is. No files are patched before the baseline.
