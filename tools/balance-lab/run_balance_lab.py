@@ -9,6 +9,7 @@ copy, runs the existing simulator there, and writes raw outputs to a report.
 from __future__ import annotations
 
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -218,9 +219,39 @@ def normalize_key(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", "", value.lower())
 
 
+def discover_npm_command() -> list[str]:
+    for executable in ("npm", "npm.cmd"):
+        if shutil.which(executable):
+            return [executable]
+
+    node_path = shutil.which("node")
+    npm_cli_path = discover_npm_cli_path(node_path) if node_path else None
+    if node_path and npm_cli_path:
+        return ["node", str(npm_cli_path)]
+
+    return ["npm"]
+
+
+def discover_npm_cli_path(node_path: str) -> Path | None:
+    node_dir = Path(node_path).resolve().parent
+    candidates = [
+        node_dir / "node_modules" / "npm" / "bin" / "npm-cli.js",
+        node_dir.parent / "lib" / "node_modules" / "npm" / "bin" / "npm-cli.js",
+    ]
+
+    appdata = os.environ.get("APPDATA")
+    if appdata:
+        candidates.append(Path(appdata) / "npm" / "node_modules" / "npm" / "bin" / "npm-cli.js")
+
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return None
+
+
 def build_simulator_command(data: dict[str, Any]) -> list[str]:
     command = [
-        "npm",
+        *discover_npm_command(),
         "run",
         "simulate:battles",
         "--",
