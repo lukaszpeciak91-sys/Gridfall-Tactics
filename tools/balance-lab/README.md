@@ -1,11 +1,21 @@
-# Balance Lab v2
+# Balance Lab v2-lite local experiment runner
 
-Balance Lab is a local wrapper around the existing Gridfall Tactics battle simulator. It runs two simulations for a card-data experiment:
+Balance Lab v2-lite is a local wrapper around the existing Gridfall Tactics battle simulator. It runs two simulations for a card-data experiment:
 
 1. **Baseline** — runs the existing simulator in the real repo with no data changes.
 2. **Experiment** — copies the repo to `tools/balance-lab/temp/`, patches only allowed card data in that temporary copy, then runs the same simulator command from the temp copy.
 
-It does **not** modify gameplay logic or `scripts/simulate-battles.mjs`.
+It does **not** modify gameplay logic, `scripts/simulate-battles.mjs`, or real repo card JSON files.
+
+
+## Supported scope
+
+Balance Lab v2-lite supports two local card-data experiment modes:
+
+1. **Stat patch mode** — changes exactly one allowed numeric stat per change: `attack`, `hp`, or `armor`.
+2. **replaceCard mode** — replaces one full card object in the temporary experiment copy only. The replacement must keep the same `id` as `cardId`, must use an `effectId` that already exists in repo card data, and must not include `effectParams`.
+
+Balance Lab v2-lite does **not** add new effect behavior. It does not patch `GameState.js`, create temporary effect variants, run custom effect logic, make permanent card changes, or automatically balance cards for you.
 
 ## Requirements
 
@@ -110,17 +120,19 @@ Balance Lab can also run every experiment JSON file in one folder. From the repo
 python tools/balance-lab/run_balance_lab.py tools/balance-lab/experiments/
 ```
 
-Folder mode finds all `*.json` files directly inside the folder, sorts them by filename, and runs them one by one. It prints compact progress lines such as `[3/64] Running 003_aggro_runner_hp2.json`, which keeps larger 60+ experiment batches readable. Each experiment still gets its own normal timestamped report folder under:
+Folder mode finds all direct `*.json` files inside the folder, sorts them by filename using normal lexicographic order, and runs them one by one. It prints compact progress lines such as `[3/64] Running 003_aggro_runner_hp2.json`, which keeps larger 60+ experiment batches readable. Each experiment still gets its own normal timestamped report folder under:
 
 ```text
 tools/balance-lab/reports/
 ```
 
-After all experiments finish, folder mode writes a batch summary at:
+After all experiments finish, folder mode writes exactly one batch summary for the entire run at:
 
 ```text
 tools/balance-lab/reports/<batch_timestamp>-batch-summary/batch-summary.md
 ```
+
+**Warning:** folder mode runs every direct `*.json` file in the experiments folder, including replaceCard examples such as `example_full_card_replacement.json`. Move draft or unsupported experiments out of that folder, or give them a non-`.json` extension, before running a batch.
 
 The batch summary lists the number of experiments run, pass/fail counts, each config path, each report folder path, simulator exit codes, warning and danger counts, and the largest faction non-draw win-rate deltas when comparison data is available. If one experiment fails validation, Balance Lab records the error in the batch summary and continues with the next JSON file.
 
@@ -176,9 +188,9 @@ Example:
 }
 ```
 
-### Full card replacement mode
+### replaceCard mode
 
-Full card replacement mode replaces one existing card object with a full `replaceCard` JSON object in the temporary experiment copy only. The replacement card must keep the same `id` as `cardId`; Balance Lab rejects changed ids to keep telemetry and action ids stable.
+`replaceCard` mode replaces one existing card object with a full `replaceCard` JSON object in the temporary experiment copy only. The replacement card must keep the same `id` as `cardId`; Balance Lab rejects changed ids to keep telemetry and action ids stable.
 
 Required `replaceCard` fields:
 
@@ -195,7 +207,7 @@ If `type` is `"unit"`, these fields are also required and must be integers great
 - `hp`
 - `armor`
 
-Full replacement may update display fields such as `name`, `textShort`, `targeting`, `artAssetId`, and `cardNumber`. `replaceCard.effectId` must be an existing effectId already present in the repo card data. Balance Lab v2 does not add new effect logic, does not support `effectParams`, and does not make unknown custom effects work. New effect behavior still requires the normal repo implementation path in gameplay code and AI support.
+Full replacement may update display fields such as `name`, `textShort`, `targeting`, `artAssetId`, and `cardNumber`. `replaceCard.effectId` must be an existing effectId already present in the repo card data. Balance Lab v2-lite does not add new effect logic, does not support `effectParams`, and does not make unknown custom effects work. New effect behavior still requires the normal repo implementation path in gameplay code and AI support.
 
 Example:
 
@@ -232,8 +244,8 @@ The report folder contains:
 - `baseline-output.txt` — raw stdout from the unmodified baseline simulator run
 - `experiment-output.txt` — raw stdout from the temp-copy experiment simulator run
 - `experiment-stderr.txt` — raw stderr from the temp-copy experiment simulator run
-- `patch-summary.md` — each applied stat patch and full card replacement; replacement entries include old and new card JSON blocks
-- `comparison-report.md` — readable baseline vs experiment comparison for faction win rates, matchup win rates, big-change flags, whether full card replacement was tested, and campaign viability heuristic
+- `patch-summary.md` — each applied stat patch and replaceCard changes; replacement entries include old and new card JSON blocks
+- `comparison-report.md` — readable baseline vs experiment comparison for faction win rates, matchup win rates, big-change flags, whether replaceCard mode was tested, and campaign viability heuristic
 - `card-telemetry-baseline.txt` — raw extracted baseline card telemetry section when available
 - `card-telemetry-experiment.txt` — raw extracted experiment card telemetry section when available
 - `summary.md` — short run metadata and file list
@@ -281,7 +293,7 @@ If simulator card telemetry is present, Balance Lab extracts the raw card teleme
 
 Balance Lab rejects unsupported changes before it creates a temp copy or patches any JSON. These cases are intentionally unsupported:
 
-- `field: "effectId"` stat patches. Use `replaceCard` for existing-effect full card replacement instead.
+- `field: "effectId"` stat patches. Use `replaceCard` for existing-effect full card replacement in the temp copy instead.
 - negative stat values, such as `field: "hp"` with `value: -1`.
 - `replaceCard.id` that differs from `cardId`.
 - `replaceCard.effectParams`.
@@ -302,9 +314,14 @@ It does not:
 - write into real `src/`
 - edit `scripts/simulate-battles.mjs`
 - change gameplay logic
-- add new effect logic
+- add new effect behavior
+- patch `GameState.js` or other gameplay files
+- create temporary effect variants
+- run custom effect logic
 - support `effectParams`
 - support deck replacement
+- make permanent card changes
+- automatically balance cards
 
 If validation fails, the script stops before patching. If the experiment simulation fails, the temp folder and output files remain for debugging.
 

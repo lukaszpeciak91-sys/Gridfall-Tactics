@@ -136,7 +136,7 @@ def validate_change_shape(change: Any, index: int) -> None:
     if not isinstance(change["cardId"], str):
         raise BalanceLabError(f"Change #{index} cardId must be a string.")
     if "effectParams" in change:
-        raise BalanceLabError(f"Change #{index} includes effectParams, which Balance Lab v2 does not support.")
+        raise BalanceLabError(f"Change #{index} includes effectParams, which Balance Lab v2-lite does not support.")
 
     has_stat_patch = "field" in change or "value" in change
     has_replacement = "replaceCard" in change
@@ -175,7 +175,7 @@ def validate_replace_card_shape(change: dict[str, Any], index: int) -> None:
     if not isinstance(replace_card, dict):
         raise BalanceLabError(f"Change #{index} replaceCard must be an object.")
     if "effectParams" in replace_card:
-        raise BalanceLabError(f"Change #{index} replaceCard includes effectParams, which Balance Lab v2 does not support.")
+        raise BalanceLabError(f"Change #{index} replaceCard includes effectParams, which Balance Lab v2-lite does not support.")
     missing_fields = sorted(field for field in REQUIRED_REPLACE_CARD_FIELDS if field not in replace_card)
     if missing_fields:
         raise BalanceLabError(
@@ -265,7 +265,7 @@ def validate_requested_changes(root: Path, changes: list[dict[str, Any]]) -> lis
             if effect_id not in known_effect_ids:
                 raise BalanceLabError(
                     f"Change #{index} replaceCard.effectId '{effect_id}' is not an existing effectId. "
-                    "Balance Lab v2 cannot add custom effect logic."
+                    "Balance Lab v2-lite cannot add custom effect logic."
                 )
             validated.append({
                 "index": index,
@@ -312,9 +312,10 @@ def discover_npm_command() -> str:
     )
 
 
-def build_simulator_command(data: dict[str, Any]) -> list[str]:
+def build_simulator_command(data: dict[str, Any], *, verbose: bool = True) -> list[str]:
     npm_command = discover_npm_command()
-    print(f"Resolved npm command: {npm_command}", flush=True)
+    if verbose:
+        print(f"Resolved npm command: {npm_command}", flush=True)
     command = [
         npm_command,
         "run",
@@ -346,7 +347,7 @@ def create_run_paths(root: Path, experiment_name: str) -> tuple[str, Path, Path]
 def print_intro(root: Path, experiment_path: Path, data: dict[str, Any], command: list[str]) -> None:
     flags = data["flags"]
 
-    print("Balance Lab v2 temp-copy experiment runner", flush=True)
+    print("Balance Lab v2-lite local experiment runner", flush=True)
     print("==========================================", flush=True)
     print(f"Repo root: {root}", flush=True)
     print(f"Experiment file: {experiment_path}", flush=True)
@@ -836,7 +837,7 @@ def run_one_experiment(root: Path, experiment_path: Path, *, verbose: bool = Tru
     data = load_experiment(experiment_path)
     validate_experiment_shape(data)
     validated_changes = validate_requested_changes(root, data["changes"])
-    command = build_simulator_command(data)
+    command = build_simulator_command(data, verbose=verbose)
     _, report_dir, temp_copy_dir = create_run_paths(root, data["name"])
 
     if verbose:
@@ -906,7 +907,7 @@ def discover_experiment_files(input_path: Path) -> list[Path]:
     if input_path.is_file():
         return [input_path]
     if input_path.is_dir():
-        return sorted((path for path in input_path.glob("*.json") if path.is_file()), key=lambda path: path.name.lower())
+        return sorted((path for path in input_path.glob("*.json") if path.is_file()), key=lambda path: path.name)
     raise BalanceLabError(f"Experiment path not found: {input_path}")
 
 
@@ -938,7 +939,7 @@ def write_batch_summary(batch_summary_dir: Path, results: list[dict[str, Any]]) 
     lines = [
         "# Balance Lab Batch Summary",
         "",
-        f"Experiments run: {len(results)}",
+        f"Experiments found: {len(results)}",
         f"Passed: {passed_count}",
         f"Failed: {failed_count}",
         "",
@@ -1006,7 +1007,7 @@ def run_batch(root: Path, input_path: Path, experiment_paths: list[Path]) -> int
     passed_count = sum(1 for result in results if result["passed"])
     failed_count = len(results) - passed_count
     print("Batch complete.", flush=True)
-    print(f"Experiments run: {len(results)}", flush=True)
+    print(f"Experiments found: {len(results)}", flush=True)
     print(f"Passed: {passed_count}", flush=True)
     print(f"Failed: {failed_count}", flush=True)
     print(f"Batch summary: {summary_path}", flush=True)
