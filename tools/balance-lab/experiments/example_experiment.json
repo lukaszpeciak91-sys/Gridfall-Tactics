@@ -1,0 +1,24 @@
+{
+  "name": "Example Runner durability test",
+  "matchCount": 100,
+  "seed": 1337,
+  "telemetry": "all",
+  "changes": [
+    {
+      "faction": "Aggro",
+      "cardId": "aggro_runner_1",
+      "field": "hp",
+      "value": 2
+    },
+    {
+      "faction": "Tank",
+      "cardId": "tank_shieldbearer_1",
+      "field": "armor",
+      "value": 1
+    }
+  ],
+  "flags": {
+    "warningDeltaPp": 3,
+    "dangerDeltaPp": 8
+  }
+}
