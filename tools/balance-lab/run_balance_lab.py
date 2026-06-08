@@ -219,39 +219,23 @@ def normalize_key(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", "", value.lower())
 
 
-def discover_npm_command() -> list[str]:
-    for executable in ("npm", "npm.cmd"):
-        if shutil.which(executable):
-            return [executable]
+def discover_npm_command() -> str:
+    executables = ("npm.cmd", "npm") if os.name == "nt" else ("npm", "npm.cmd")
+    for executable in executables:
+        npm_path = shutil.which(executable)
+        if npm_path is not None:
+            return npm_path
 
-    node_path = shutil.which("node")
-    npm_cli_path = discover_npm_cli_path(node_path) if node_path else None
-    if node_path and npm_cli_path:
-        return ["node", str(npm_cli_path)]
-
-    return ["npm"]
-
-
-def discover_npm_cli_path(node_path: str) -> Path | None:
-    node_dir = Path(node_path).resolve().parent
-    candidates = [
-        node_dir / "node_modules" / "npm" / "bin" / "npm-cli.js",
-        node_dir.parent / "lib" / "node_modules" / "npm" / "bin" / "npm-cli.js",
-    ]
-
-    appdata = os.environ.get("APPDATA")
-    if appdata:
-        candidates.append(Path(appdata) / "npm" / "node_modules" / "npm" / "bin" / "npm-cli.js")
-
-    for candidate in candidates:
-        if candidate.exists():
-            return candidate
-    return None
+    raise BalanceLabError(
+        "Could not find npm executable. Please confirm Node.js and npm are installed and available in PATH."
+    )
 
 
 def build_simulator_command(data: dict[str, Any]) -> list[str]:
+    npm_command = discover_npm_command()
+    print(f"Resolved npm command: {npm_command}", flush=True)
     command = [
-        *discover_npm_command(),
+        npm_command,
         "run",
         "simulate:battles",
         "--",
