@@ -607,13 +607,64 @@ def format_delta(value: float) -> str:
     return f"{value:+.1f}"
 
 
-def viability_for_non_draw_wr(value: str) -> str:
-    wr = number_value(value)
-    if 45 <= wr <= 55:
-        return "stable"
-    if 40 <= wr < 45 or 55 < wr <= 60:
-        return "watch"
-    return "danger"
+def best_of_3_success(non_draw_wr: str) -> float:
+    p = max(0.0, min(1.0, number_value(non_draw_wr) / 100.0))
+    return 1 - ((1 - p) ** 3)
+
+
+def format_percent(value: float) -> str:
+    return f"{value * 100:.1f}"
+
+
+def estimate_campaign_success(matchup_rows: list[dict[str, str]]) -> dict[str, dict[str, Any]]:
+    factions = sorted({row["faction A"] for row in matchup_rows} | {row["faction B"] for row in matchup_rows})
+    estimates: dict[str, dict[str, Any]] = {}
+    for faction in factions:
+        opponent_successes: list[float] = []
+        for row in matchup_rows:
+            if row["faction A"] == faction:
+                matchup_wr = number_value(row["faction A non-draw WR"])
+            elif row["faction B"] == faction:
+                matchup_wr = 100 - number_value(row["faction A non-draw WR"])
+            else:
+                continue
+            opponent_successes.append(best_of_3_success(str(matchup_wr)))
+
+        campaign_success = 1.0
+        for success in opponent_successes:
+            campaign_success *= success
+        estimates[faction] = {
+            "opponents": len(opponent_successes),
+            "success": campaign_success if opponent_successes else 0.0,
+        }
+    return estimates
+
+
+def build_patch_summary_sentence(data: dict[str, Any]) -> str:
+    changes = data.get("changes", [])
+    if not changes:
+        return "No card changes requested."
+    parts = []
+    for change in changes:
+        faction = change.get("faction", "unknown faction")
+        card_id = change.get("cardId", "unknown card")
+        if "replaceCard" in change:
+            parts.append(f"{faction}/{card_id} full replacement")
+        else:
+            parts.append(f"{faction}/{card_id} {change.get('field', 'field')} → {change.get('value', 'value')}")
+    return "; ".join(parts)
+
+
+def top_abs_delta(rows: list[dict[str, Any]]) -> dict[str, Any] | None:
+    if not rows:
+        return None
+    return max(rows, key=lambda row: abs(row["deltaPp"]))
+
+
+def count_flags(rows: list[dict[str, Any]]) -> tuple[int, int]:
+    warnings = sum(1 for row in rows if row.get("flag") == "WARNING")
+    dangers = sum(1 for row in rows if row.get("flag") == "DANGER")
+    return warnings, dangers
 
 
 def index_by_key(rows: list[dict[str, str]], key_fields: tuple[str, ...]) -> dict[tuple[str, ...], dict[str, str]]:
@@ -675,17 +726,11 @@ def build_comparison_report(
 
     warning_delta = float(data["flags"]["warningDeltaPp"])
     danger_delta = float(data["flags"]["dangerDeltaPp"])
-    warning_count = 0
-    danger_count = 0
 
     experiment_factions_by_key = index_by_key(experiment_factions, ("faction",))
     faction_lines = [
         "| Faction | Baseline win % | Experiment win % | Delta pp | Baseline non-draw win % | Experiment non-draw win % | Delta pp | Flag |",
         "|---|---:|---:|---:|---:|---:|---:|---|",
-    ]
-    viability_lines = [
-        "| Faction | Experiment non-draw win % | Viability |",
-        "|---|---:|---|",
     ]
     faction_delta_rows: list[dict[str, Any]] = []
     for baseline_row in baseline_factions:
@@ -695,14 +740,7 @@ def build_comparison_report(
             continue
         win_delta = delta_pp(baseline_row["win %"], experiment_row["win %"])
         non_draw_delta = delta_pp(baseline_row["non-draw win %"], experiment_row["non-draw win %"])
-        flag = stronger_flag(
-            flag_for_delta(win_delta, warning_delta, danger_delta),
-            flag_for_delta(non_draw_delta, warning_delta, danger_delta),
-        )
-        if flag == "DANGER":
-            danger_count += 1
-        elif flag == "WARNING":
-            warning_count += 1
+        flag = flag_for_delta(non_draw_delta, warning_delta, danger_delta)
         faction_lines.append(
             f"| {faction} | {baseline_row['win %']} | {experiment_row['win %']} | {format_delta(win_delta)} | "
             f"{baseline_row['non-draw win %']} | {experiment_row['non-draw win %']} | {format_delta(non_draw_delta)} | {flag or 'OK'} |"
@@ -714,15 +752,13 @@ def build_comparison_report(
             "deltaPp": non_draw_delta,
             "flag": flag or "OK",
         })
-        viability_lines.append(
-            f"| {faction} | {experiment_row['non-draw win %']} | {viability_for_non_draw_wr(experiment_row['non-draw win %'])} |"
-        )
 
     experiment_matchups_by_key = index_by_key(experiment_matchups, ("faction A", "faction B"))
     matchup_lines = [
         "| Faction A | Faction B | Baseline faction A non-draw WR | Experiment faction A non-draw WR | Delta pp | Flag |",
         "|---|---|---:|---:|---:|---|",
     ]
+    matchup_delta_rows: list[dict[str, Any]] = []
     for baseline_row in baseline_matchups:
         key = (baseline_row["faction A"], baseline_row["faction B"])
         experiment_row = experiment_matchups_by_key.get(key)
@@ -730,16 +766,119 @@ def build_comparison_report(
             continue
         non_draw_delta = delta_pp(baseline_row["faction A non-draw WR"], experiment_row["faction A non-draw WR"])
         flag = flag_for_delta(non_draw_delta, warning_delta, danger_delta)
-        if flag == "DANGER":
-            danger_count += 1
-        elif flag == "WARNING":
-            warning_count += 1
         matchup_lines.append(
             f"| {key[0]} | {key[1]} | {baseline_row['faction A non-draw WR']} | "
             f"{experiment_row['faction A non-draw WR']} | {format_delta(non_draw_delta)} | {flag or 'OK'} |"
         )
+        matchup_delta_rows.append({
+            "factionA": key[0],
+            "factionB": key[1],
+            "baselineFactionANonDrawWr": baseline_row["faction A non-draw WR"],
+            "experimentFactionANonDrawWr": experiment_row["faction A non-draw WR"],
+            "deltaPp": non_draw_delta,
+            "flag": flag or "OK",
+        })
 
+    baseline_campaign = estimate_campaign_success(baseline_matchups)
+    experiment_campaign = estimate_campaign_success(experiment_matchups)
+    campaign_lines = [
+        "| Faction | Opponents | Baseline campaign estimate | Experiment campaign estimate | Delta pp | Flag |",
+        "|---|---:|---:|---:|---:|---|",
+    ]
+    campaign_delta_rows: list[dict[str, Any]] = []
+    for faction in sorted(set(baseline_campaign) & set(experiment_campaign)):
+        baseline_success = baseline_campaign[faction]["success"]
+        experiment_success = experiment_campaign[faction]["success"]
+        campaign_delta = (experiment_success - baseline_success) * 100
+        flag = flag_for_delta(campaign_delta, warning_delta, danger_delta)
+        campaign_lines.append(
+            f"| {faction} | {experiment_campaign[faction]['opponents']} | {format_percent(baseline_success)}% | "
+            f"{format_percent(experiment_success)}% | {format_delta(campaign_delta)} | {flag or 'OK'} |"
+        )
+        campaign_delta_rows.append({
+            "faction": faction,
+            "baselineCampaignPct": format_percent(baseline_success),
+            "experimentCampaignPct": format_percent(experiment_success),
+            "deltaPp": campaign_delta,
+            "flag": flag or "OK",
+        })
+
+    all_flag_rows = [*faction_delta_rows, *matchup_delta_rows, *campaign_delta_rows]
+    warning_count, danger_count = count_flags(all_flag_rows)
+    verdict = "DANGER" if danger_count else "WATCH" if warning_count else "SAFE"
+    biggest_faction_delta = top_abs_delta(faction_delta_rows)
+    biggest_matchup_delta = top_abs_delta(matchup_delta_rows)
+    biggest_campaign_delta = top_abs_delta(campaign_delta_rows)
+    if verdict == "DANGER":
+        recommendation = "Do not accept as-is; split the change or test a weaker variant."
+    elif verdict == "WATCH":
+        recommendation = "Review flagged movement and rerun with a larger matchCount before accepting."
+    else:
+        recommendation = "No threshold-breaking movement was detected; acceptable for balance review, subject to normal sample-size caution."
+
+    reason_parts = []
+    if biggest_campaign_delta:
+        reason_parts.append(f"{biggest_campaign_delta['faction']} campaign estimate changed by {format_delta(biggest_campaign_delta['deltaPp'])} pp")
+    if biggest_matchup_delta:
+        reason_parts.append(
+            f"{biggest_matchup_delta['factionA']} vs {biggest_matchup_delta['factionB']} changed by "
+            f"{format_delta(biggest_matchup_delta['deltaPp'])} pp"
+        )
+    if not reason_parts and biggest_faction_delta:
+        reason_parts.append(f"{biggest_faction_delta['faction']} faction WR changed by {format_delta(biggest_faction_delta['deltaPp'])} pp")
+    reason_sentence = " and ".join(reason_parts) + "." if reason_parts else "No comparable rows were parsed."
+    biggest_faction_summary = (
+        f"{biggest_faction_delta['faction']} {format_delta(biggest_faction_delta['deltaPp'])} pp"
+        if biggest_faction_delta else "N/A"
+    )
+    biggest_matchup_summary = (
+        f"{biggest_matchup_delta['factionA']} vs {biggest_matchup_delta['factionB']} "
+        f"{format_delta(biggest_matchup_delta['deltaPp'])} pp"
+        if biggest_matchup_delta else "N/A"
+    )
+    biggest_campaign_summary = (
+        f"{biggest_campaign_delta['faction']} {format_delta(biggest_campaign_delta['deltaPp'])} pp"
+        if biggest_campaign_delta else "N/A"
+    )
+
+    top_matchup_rows = sorted(matchup_delta_rows, key=lambda row: abs(row["deltaPp"]), reverse=True)[:5]
+    top_matchup_lines = [
+        f"- {row['factionA']} vs {row['factionB']}: {format_delta(row['deltaPp'])} pp "
+        f"({row['baselineFactionANonDrawWr']} → {row['experimentFactionANonDrawWr']}, {row['flag']})"
+        for row in top_matchup_rows
+    ] or ["- Not available"]
+    paste_faction_lines = [
+        f"- {row['faction']}: {format_delta(row['deltaPp'])} pp "
+        f"({row['baselineNonDrawWr']} → {row['experimentNonDrawWr']}, {row['flag']})"
+        for row in sorted(faction_delta_rows, key=lambda row: row["faction"])
+    ] or ["- Not available"]
+    paste_campaign_lines = [
+        f"- {row['faction']}: {format_delta(row['deltaPp'])} pp "
+        f"({row['baselineCampaignPct']}% → {row['experimentCampaignPct']}%, {row['flag']})"
+        for row in sorted(campaign_delta_rows, key=lambda row: row["faction"])
+    ] or ["- Not available"]
+    flagged_rows = [row for row in all_flag_rows if row.get("flag") in {"WARNING", "DANGER"}]
+    paste_flag_lines = []
+    for row in flagged_rows:
+        if "factionA" in row:
+            label = f"Matchup {row['factionA']} vs {row['factionB']}"
+        elif "baselineCampaignPct" in row:
+            label = f"Campaign {row['faction']}"
+        else:
+            label = f"Faction {row['faction']}"
+        paste_flag_lines.append(f"- {row['flag']}: {label} {format_delta(row['deltaPp'])} pp")
+    if not paste_flag_lines:
+        paste_flag_lines = ["- None"]
+
+    baseline_card_telemetry_present = bool(extract_card_telemetry(baseline_text).strip())
+    experiment_card_telemetry_present = bool(extract_card_telemetry(experiment_text).strip())
     baseline_card_path, experiment_card_path = write_card_telemetry_sections(report_dir, baseline_text, experiment_text)
+    card_telemetry_line = (
+        f"`{baseline_card_path.name}`, `{experiment_card_path.name}`"
+        if baseline_card_telemetry_present or experiment_card_telemetry_present
+        else "Not present; files contain guidance placeholders."
+    )
+
     comparison_report_path = report_dir / COMPARISON_REPORT_FILENAME
     lines = [
         "# Balance Lab Comparison Report",
@@ -750,6 +889,26 @@ def build_comparison_report(
         f"Telemetry: {data['telemetry']}",
         f"Patch summary: `{patch_summary_path}`",
         f"Full card replacement tested: {'yes' if has_full_card_replacement(data) else 'no'}",
+        "",
+        "## Decision summary",
+        "",
+        f"Overall verdict: {verdict}",
+        f"Reason: {reason_sentence}",
+        f"Recommendation: {recommendation}",
+        f"Biggest faction delta: {biggest_faction_summary}",
+        f"Biggest matchup delta: {biggest_matchup_summary}",
+        f"Biggest campaign delta: {biggest_campaign_summary}",
+        f"Warning flags: {warning_count}",
+        f"Danger flags: {danger_count}",
+        "",
+        "```yaml",
+        f"verdict: {verdict}",
+        f"warning_flags: {warning_count}",
+        f"danger_flags: {danger_count}",
+        f"biggest_faction_delta_pp: {format_delta(biggest_faction_delta['deltaPp']) if biggest_faction_delta else 'N/A'}",
+        f"biggest_matchup_delta_pp: {format_delta(biggest_matchup_delta['deltaPp']) if biggest_matchup_delta else 'N/A'}",
+        f"biggest_campaign_delta_pp: {format_delta(biggest_campaign_delta['deltaPp']) if biggest_campaign_delta else 'N/A'}",
+        "```",
         "",
         "## Big change flag thresholds",
         "",
@@ -769,21 +928,42 @@ def build_comparison_report(
         f"- Warnings: {warning_count}",
         f"- Dangers: {danger_count}",
         "",
-        "## Simple campaign viability heuristic",
+        "## Campaign viability estimate",
         "",
-        "Balance Lab approximates campaign viability from aggregate faction non-draw win %. This is only a heuristic, not a campaign simulator.",
+        "This is an estimate from combined matchup non-draw win rates across both seats, not a true campaign simulator.",
+        "For each faction and opponent, Balance Lab converts matchup non-draw WR `p` into `1 - (1 - p)^3`, the probability of winning at least 1 game out of 3. It then multiplies those values across all parsed opponents.",
         "",
-        "- 45% to 55%: stable",
-        "- 40% to <45% or >55% to 60%: watch",
-        "- below 40% or above 60%: danger",
-        "",
-        *viability_lines,
+        *campaign_lines,
         "",
         "## Card telemetry",
         "",
         "Balance Lab stores raw card telemetry sections instead of fully normalizing every console table cell.",
         f"- Baseline raw card telemetry: `{baseline_card_path.name}`",
         f"- Experiment raw card telemetry: `{experiment_card_path.name}`",
+        "",
+        "## Paste into ChatGPT",
+        "",
+        "```text",
+        "Balance Lab decision report v1",
+        f"Experiment: {data['name']}",
+        f"Patch summary: {build_patch_summary_sentence(data)}",
+        f"Verdict: {verdict} ({warning_count} warnings, {danger_count} dangers)",
+        f"Recommendation: {recommendation}",
+        "",
+        "Faction non-draw WR deltas:",
+        *paste_faction_lines,
+        "",
+        "Campaign estimate deltas:",
+        *paste_campaign_lines,
+        "",
+        "Top 5 matchup non-draw WR deltas:",
+        *top_matchup_lines,
+        "",
+        "Warnings/dangers:",
+        *paste_flag_lines,
+        "",
+        f"Card telemetry files: {card_telemetry_line}",
+        "```",
         "",
     ]
     comparison_report_path.write_text("\n".join(lines), encoding="utf-8")
@@ -792,6 +972,7 @@ def build_comparison_report(
         "matchupRows": min(len(baseline_matchups), len(experiment_matchups)),
         "warnings": warning_count,
         "dangers": danger_count,
+        "verdict": verdict,
         "topFactionNonDrawWrDeltas": sorted(
             faction_delta_rows,
             key=lambda row: abs(row["deltaPp"]),

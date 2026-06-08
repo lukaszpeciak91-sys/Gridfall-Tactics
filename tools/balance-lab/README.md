@@ -271,7 +271,7 @@ The report folder contains:
 - `experiment-output.txt` — raw stdout from the temp-copy experiment simulator run
 - `experiment-stderr.txt` — raw stderr from the temp-copy experiment simulator run
 - `patch-summary.md` — each applied stat patch and replaceCard changes; replacement entries include old and new card JSON blocks
-- `comparison-report.md` — readable baseline vs experiment comparison for faction win rates, matchup win rates, big-change flags, whether replaceCard mode was tested, and campaign viability heuristic
+- `comparison-report.md` — readable baseline vs experiment comparison for faction win rates, matchup win rates, campaign viability estimates, decision verdicts, Paste into ChatGPT summary block, big-change flags, and whether replaceCard mode was tested
 - `card-telemetry-baseline.txt` — raw extracted baseline card telemetry section when available
 - `card-telemetry-experiment.txt` — raw extracted experiment card telemetry section when available
 - `summary.md` — short run metadata and file list
@@ -301,15 +301,29 @@ The report compares baseline vs experiment win-rate values and adds a flag when 
 - `100` games per matchup is smoke-test only. It is useful for checking that the tool works and for spotting very large problems.
 - Serious balance tests should use a higher `matchCount`, such as `1000` or more, because small sample sizes can be noisy.
 
-## Campaign viability heuristic
+## Campaign viability estimate
 
-Balance Lab does not run a real campaign or gauntlet simulator. It includes a simple heuristic based only on aggregate faction non-draw win rate:
+Balance Lab does not run a real campaign or gauntlet simulator. It estimates campaign viability from the combined matchup table across both seats:
 
-- 45% to 55%: `stable`
-- 40% to <45% or >55% to 60%: `watch`
-- below 40% or above 60%: `danger`
+1. For each faction, read its non-draw win rate against each other faction. When the faction appears as `faction B`, Balance Lab uses `100 - faction A non-draw WR`.
+2. Convert each matchup non-draw win rate `p` into the estimated chance to win at least 1 game out of 3: `1 - (1 - p)^3`.
+3. Multiply those best-of-3 success values across all parsed opponents.
 
-Treat this as a quick balance smell test, not a final campaign-readiness verdict.
+The report shows baseline campaign %, experiment campaign %, and delta pp for each faction. This is still only an estimate from matchup win rates, not a true campaign simulator, so treat it as a balance-review signal rather than final campaign proof.
+
+## Decision verdicts
+
+The decision summary at the top of `comparison-report.md` rolls faction non-draw WR deltas, matchup non-draw WR deltas, and campaign estimate deltas into one verdict:
+
+- `SAFE` means no faction, matchup, or campaign estimate delta reached `flags.warningDeltaPp`.
+- `WATCH` means at least one faction, matchup, or campaign estimate delta reached `flags.warningDeltaPp`, but none reached `flags.dangerDeltaPp`.
+- `DANGER` means at least one faction, matchup, or campaign estimate delta reached `flags.dangerDeltaPp`.
+
+The summary also lists the biggest faction delta, biggest matchup delta, biggest campaign delta, total warning flags, total danger flags, and a short recommendation.
+
+## Paste into ChatGPT
+
+At the end of `comparison-report.md`, Balance Lab writes a compact `Paste into ChatGPT` block for balance-review conversations. It includes the experiment name, patch summary, verdict, faction WR deltas, campaign deltas, top 5 matchup deltas, warning/danger flags, and raw card telemetry file names when telemetry is present. Balance Lab does not fully parse card telemetry yet; use the referenced raw telemetry files when deeper card-level analysis is needed.
 
 ## Card telemetry
 
