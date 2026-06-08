@@ -138,6 +138,32 @@ The batch summary lists the number of experiments run, pass/fail counts, each co
 
 The example experiment uses `matchCount: 100`, which is smoke-test only. It is useful for checking that the runner works and for catching very large balance problems. For serious balance tests, use a higher `matchCount`, such as `1000` or more, because small sample sizes can be noisy.
 
+## Running a small experiment queue
+
+Batch mode already acts as a queue: when you pass Balance Lab a folder, it runs each direct `*.json` file in that folder one by one in filename order. To run only a small selected set of experiments now, put only those experiment JSON files into:
+
+```text
+tools/balance-lab/experiments/queue/
+```
+
+Use numeric filename prefixes to control the run order, for example:
+
+```text
+001_runner_hp2.json
+002_runner_atk3.json
+003_shieldbearer_armor1.json
+```
+
+Then run Balance Lab on the queue folder from the repository root:
+
+```powershell
+python tools/balance-lab/run_balance_lab.py tools/balance-lab/experiments/queue/
+```
+
+Balance Lab runs the queued files one by one. If one experiment fails validation or simulation, folder mode records that failure and continues with the next JSON file. The run creates one `batch-summary.md` for the whole queue.
+
+After reviewing results, move completed experiment files to an archive folder manually if desired. Files in `tools/balance-lab/experiments/archive/` are not run by the queue command above; archive files only run if you pass the archive folder directly to Balance Lab.
+
 ## Baseline vs experiment
 
 The baseline run uses the real repo exactly as-is. No files are patched before the baseline.
