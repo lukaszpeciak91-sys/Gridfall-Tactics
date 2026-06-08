@@ -671,6 +671,238 @@ def index_by_key(rows: list[dict[str, str]], key_fields: tuple[str, ...]) -> dic
     return {tuple(row.get(field, "") for field in key_fields): row for row in rows}
 
 
+
+CARD_TELEMETRY_COLUMNS = [
+    "faction",
+    "card",
+    "id",
+    "drawn",
+    "played",
+    "held at defeat",
+    "avg turn played",
+]
+
+
+class CardTelemetryParseError(Exception):
+    """A non-fatal card telemetry parsing error."""
+
+
+def markdown_cell(value: Any) -> str:
+    return str(value).replace("|", "\\|")
+
+
+def parse_int_cell(value: str, field: str, row_label: str) -> int:
+    try:
+        return int(value)
+    except ValueError as error:
+        raise CardTelemetryParseError(f"{row_label} field '{field}' is not an integer: {value!r}") from error
+
+
+def parse_float_cell(value: str, field: str, row_label: str) -> float:
+    try:
+        return float(value)
+    except ValueError as error:
+        raise CardTelemetryParseError(f"{row_label} field '{field}' is not a number: {value!r}") from error
+
+
+def console_table_cells(line: str) -> list[str]:
+    return [cell.strip() for cell in line.split("│")[1:-1]]
+
+
+def parse_card_telemetry_table(output_text: str, label: str) -> list[dict[str, Any]]:
+    section = extract_named_section(output_text, "Simulator telemetry: per-card summary")
+    if not section.strip():
+        raise CardTelemetryParseError(f"{label} card telemetry section was not found")
+
+    header_columns: list[str] | None = None
+    for line in section.splitlines():
+        if "│" not in line:
+            continue
+        cells = [clean_table_value(cell) for cell in console_table_cells(line)]
+        if cells and cells[0] == "(index)":
+            header_columns = cells[1:]
+            break
+
+    if header_columns != CARD_TELEMETRY_COLUMNS:
+        raise CardTelemetryParseError(
+            f"{label} card telemetry columns were {header_columns or 'not found'}, "
+            f"expected {CARD_TELEMETRY_COLUMNS}"
+        )
+
+    raw_rows = parse_console_table_section(output_text, "Simulator telemetry: per-card summary", CARD_TELEMETRY_COLUMNS)
+    if not raw_rows:
+        raise CardTelemetryParseError(f"{label} card telemetry table had no data rows")
+
+    parsed_rows: list[dict[str, Any]] = []
+    seen_keys: set[tuple[str, str]] = set()
+    for index, row in enumerate(raw_rows, start=1):
+        row_label = f"{label} card telemetry row {index}"
+        faction = row["faction"]
+        card_id = row["id"]
+        if not faction:
+            raise CardTelemetryParseError(f"{row_label} is missing faction")
+        if not card_id:
+            raise CardTelemetryParseError(f"{row_label} is missing id")
+        key = (faction, card_id)
+        if key in seen_keys:
+            raise CardTelemetryParseError(f"{label} card telemetry has duplicate key {key}")
+        seen_keys.add(key)
+        parsed_rows.append({
+            "faction": faction,
+            "card": row["card"],
+            "id": card_id,
+            "drawn": parse_int_cell(row["drawn"], "drawn", row_label),
+            "played": parse_int_cell(row["played"], "played", row_label),
+            "heldAtDefeat": parse_int_cell(row["held at defeat"], "held at defeat", row_label),
+            "avgTurnPlayed": parse_float_cell(row["avg turn played"], "avg turn played", row_label),
+        })
+    return parsed_rows
+
+
+def format_count_delta(value: int) -> str:
+    return f"{value:+d}"
+
+
+def format_avg_value(value: float) -> str:
+    return f"{value:.2f}"
+
+
+def format_avg_delta(value: float) -> str:
+    return f"{value:+.2f}"
+
+
+def build_card_telemetry_comparison(
+    baseline_text: str,
+    experiment_text: str,
+) -> dict[str, Any]:
+    try:
+        baseline_rows = parse_card_telemetry_table(baseline_text, "Baseline")
+        experiment_rows = parse_card_telemetry_table(experiment_text, "Experiment")
+    except CardTelemetryParseError as error:
+        warning = f"Card telemetry comparison skipped: {error}. Raw card telemetry files are still available."
+        print(f"Warning: {warning}", flush=True)
+        return {
+            "warning": warning,
+            "changedRows": [],
+            "baselineOnlyRows": [],
+            "experimentOnlyRows": [],
+            "pasteLines": ["- Not available; card telemetry parsing failed. See raw card telemetry files."],
+        }
+
+    baseline_by_key = {(row["faction"], row["id"]): row for row in baseline_rows}
+    experiment_by_key = {(row["faction"], row["id"]): row for row in experiment_rows}
+    shared_keys = sorted(set(baseline_by_key) & set(experiment_by_key))
+
+    comparison_rows: list[dict[str, Any]] = []
+    for key in shared_keys:
+        baseline_row = baseline_by_key[key]
+        experiment_row = experiment_by_key[key]
+        drawn_delta = experiment_row["drawn"] - baseline_row["drawn"]
+        played_delta = experiment_row["played"] - baseline_row["played"]
+        held_delta = experiment_row["heldAtDefeat"] - baseline_row["heldAtDefeat"]
+        avg_delta = experiment_row["avgTurnPlayed"] - baseline_row["avgTurnPlayed"]
+        comparison_rows.append({
+            "faction": baseline_row["faction"],
+            "card": experiment_row["card"] or baseline_row["card"],
+            "id": baseline_row["id"],
+            "baselineDrawn": baseline_row["drawn"],
+            "experimentDrawn": experiment_row["drawn"],
+            "drawnDelta": drawn_delta,
+            "baselinePlayed": baseline_row["played"],
+            "experimentPlayed": experiment_row["played"],
+            "playedDelta": played_delta,
+            "baselineHeldAtDefeat": baseline_row["heldAtDefeat"],
+            "experimentHeldAtDefeat": experiment_row["heldAtDefeat"],
+            "heldAtDefeatDelta": held_delta,
+            "baselineAvgTurn": baseline_row["avgTurnPlayed"],
+            "experimentAvgTurn": experiment_row["avgTurnPlayed"],
+            "avgTurnDelta": avg_delta,
+        })
+
+    comparison_rows.sort(
+        key=lambda row: (
+            -abs(row["playedDelta"]),
+            -abs(row["drawnDelta"]),
+            row["faction"],
+            row["card"],
+            row["id"],
+        )
+    )
+    changed_rows = [
+        row for row in comparison_rows
+        if row["drawnDelta"] != 0
+        or row["playedDelta"] != 0
+        or row["heldAtDefeatDelta"] != 0
+        or round(row["avgTurnDelta"], 2) != 0
+    ]
+
+    baseline_only_rows = sorted(
+        (baseline_by_key[key] for key in set(baseline_by_key) - set(experiment_by_key)),
+        key=lambda row: (row["faction"], row["card"], row["id"]),
+    )
+    experiment_only_rows = sorted(
+        (experiment_by_key[key] for key in set(experiment_by_key) - set(baseline_by_key)),
+        key=lambda row: (row["faction"], row["card"], row["id"]),
+    )
+
+    paste_rows = changed_rows[:10]
+    paste_lines: list[str] = []
+    for row in paste_rows:
+        paste_lines.extend([
+            f"- {row['faction']} / {row['card']} / {row['id']}",
+            f"  Played: baseline {row['baselinePlayed']} -> experiment {row['experimentPlayed']} "
+            f"(delta {format_count_delta(row['playedDelta'])})",
+            f"  Drawn: baseline {row['baselineDrawn']} -> experiment {row['experimentDrawn']} "
+            f"(delta {format_count_delta(row['drawnDelta'])})",
+            f"  Held at defeat: baseline {row['baselineHeldAtDefeat']} -> experiment {row['experimentHeldAtDefeat']} "
+            f"(delta {format_count_delta(row['heldAtDefeatDelta'])})",
+            f"  Avg turn: baseline {format_avg_value(row['baselineAvgTurn'])} -> experiment {format_avg_value(row['experimentAvgTurn'])} "
+            f"(delta {format_avg_delta(row['avgTurnDelta'])})",
+        ])
+    if not paste_lines:
+        paste_lines = ["- No changed card telemetry rows parsed."]
+
+    return {
+        "warning": "",
+        "changedRows": changed_rows,
+        "baselineOnlyRows": baseline_only_rows,
+        "experimentOnlyRows": experiment_only_rows,
+        "pasteLines": paste_lines,
+    }
+
+
+def card_comparison_table_lines(rows: list[dict[str, Any]]) -> list[str]:
+    lines = [
+        "| Faction | Card | ID | Baseline drawn | Experiment drawn | Delta | Baseline played | Experiment played | Delta | Baseline held at defeat | Experiment held at defeat | Delta | Baseline avg turn | Experiment avg turn | Delta |",
+        "|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+    ]
+    if not rows:
+        return [*lines, "| _No changed cards_ |  |  |  |  |  |  |  |  |  |  |  |  |  |  |"]
+    for row in rows:
+        lines.append(
+            f"| {markdown_cell(row['faction'])} | {markdown_cell(row['card'])} | {markdown_cell(row['id'])} | "
+            f"{row['baselineDrawn']} | {row['experimentDrawn']} | {format_count_delta(row['drawnDelta'])} | "
+            f"{row['baselinePlayed']} | {row['experimentPlayed']} | {format_count_delta(row['playedDelta'])} | "
+            f"{row['baselineHeldAtDefeat']} | {row['experimentHeldAtDefeat']} | {format_count_delta(row['heldAtDefeatDelta'])} | "
+            f"{format_avg_value(row['baselineAvgTurn'])} | {format_avg_value(row['experimentAvgTurn'])} | {format_avg_delta(row['avgTurnDelta'])} |"
+        )
+    return lines
+
+
+def card_presence_table_lines(rows: list[dict[str, Any]], empty_message: str) -> list[str]:
+    lines = [
+        "| Faction | Card | ID | Drawn | Played | Held at defeat | Avg turn played |",
+        "|---|---|---|---:|---:|---:|---:|",
+    ]
+    if not rows:
+        return [*lines, f"| _{empty_message}_ |  |  |  |  |  |  |"]
+    for row in rows:
+        lines.append(
+            f"| {markdown_cell(row['faction'])} | {markdown_cell(row['card'])} | {markdown_cell(row['id'])} | "
+            f"{row['drawn']} | {row['played']} | {row['heldAtDefeat']} | {format_avg_value(row['avgTurnPlayed'])} |"
+        )
+    return lines
+
 def extract_card_telemetry(output_text: str) -> str:
     return extract_named_section(output_text, "Simulator telemetry: per-card summary").strip() + "\n"
 
@@ -873,6 +1105,21 @@ def build_comparison_report(
     baseline_card_telemetry_present = bool(extract_card_telemetry(baseline_text).strip())
     experiment_card_telemetry_present = bool(extract_card_telemetry(experiment_text).strip())
     baseline_card_path, experiment_card_path = write_card_telemetry_sections(report_dir, baseline_text, experiment_text)
+    card_telemetry_comparison = build_card_telemetry_comparison(baseline_text, experiment_text)
+    if card_telemetry_comparison["warning"]:
+        card_comparison_lines = ["_Parsed card telemetry comparison table skipped._"]
+        baseline_only_card_lines = ["_Skipped because card telemetry parsing failed._"]
+        experiment_only_card_lines = ["_Skipped because card telemetry parsing failed._"]
+    else:
+        card_comparison_lines = card_comparison_table_lines(card_telemetry_comparison["changedRows"])
+        baseline_only_card_lines = card_presence_table_lines(
+            card_telemetry_comparison["baselineOnlyRows"],
+            "No baseline-only cards",
+        )
+        experiment_only_card_lines = card_presence_table_lines(
+            card_telemetry_comparison["experimentOnlyRows"],
+            "No experiment-only cards",
+        )
     card_telemetry_line = (
         f"`{baseline_card_path.name}`, `{experiment_card_path.name}`"
         if baseline_card_telemetry_present or experiment_card_telemetry_present
@@ -935,11 +1182,21 @@ def build_comparison_report(
         "",
         *campaign_lines,
         "",
-        "## Card telemetry",
+        "## Card telemetry comparison",
         "",
-        "Balance Lab stores raw card telemetry sections instead of fully normalizing every console table cell.",
+        "Rows are matched by `(faction, id)`, not by card name. The table shows changed cards only, sorted by absolute played delta and then absolute drawn delta.",
         f"- Baseline raw card telemetry: `{baseline_card_path.name}`",
         f"- Experiment raw card telemetry: `{experiment_card_path.name}`",
+        *( [f"- Warning: {card_telemetry_comparison['warning']}", ""] if card_telemetry_comparison["warning"] else [""] ),
+        *card_comparison_lines,
+        "",
+        "### Baseline only cards",
+        "",
+        *baseline_only_card_lines,
+        "",
+        "### Experiment only cards",
+        "",
+        *experiment_only_card_lines,
         "",
         "## Paste into ChatGPT",
         "",
@@ -961,6 +1218,9 @@ def build_comparison_report(
         "",
         "Warnings/dangers:",
         *paste_flag_lines,
+        "",
+        "Top 10 card telemetry deltas:",
+        *card_telemetry_comparison["pasteLines"],
         "",
         f"Card telemetry files: {card_telemetry_line}",
         "```",

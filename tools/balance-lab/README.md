@@ -271,7 +271,7 @@ The report folder contains:
 - `experiment-output.txt` — raw stdout from the temp-copy experiment simulator run
 - `experiment-stderr.txt` — raw stderr from the temp-copy experiment simulator run
 - `patch-summary.md` — each applied stat patch and replaceCard changes; replacement entries include old and new card JSON blocks
-- `comparison-report.md` — readable baseline vs experiment comparison for faction win rates, matchup win rates, campaign viability estimates, decision verdicts, Paste into ChatGPT summary block, big-change flags, and whether replaceCard mode was tested
+- `comparison-report.md` — readable baseline vs experiment comparison for faction win rates, matchup win rates, campaign viability estimates, validated card telemetry comparisons, decision verdicts, Paste into ChatGPT summary block, big-change flags, and whether replaceCard mode was tested
 - `card-telemetry-baseline.txt` — raw extracted baseline card telemetry section when available
 - `card-telemetry-experiment.txt` — raw extracted experiment card telemetry section when available
 - `summary.md` — short run metadata and file list
@@ -284,6 +284,7 @@ Generated report folders are intentionally ignored by git. The placeholder `repo
 
 - aggregate faction results
 - combined matchup results across both seats
+- per-card telemetry when `telemetry` includes `cards` or `all`
 
 The report compares baseline vs experiment win-rate values and adds a flag when a change is large enough:
 
@@ -323,11 +324,17 @@ The summary also lists the biggest faction delta, biggest matchup delta, biggest
 
 ## Paste into ChatGPT
 
-At the end of `comparison-report.md`, Balance Lab writes a compact `Paste into ChatGPT` block for balance-review conversations. It includes the experiment name, patch summary, verdict, faction WR deltas, campaign deltas, top 5 matchup deltas, warning/danger flags, and raw card telemetry file names when telemetry is present. Balance Lab does not fully parse card telemetry yet; use the referenced raw telemetry files when deeper card-level analysis is needed.
+At the end of `comparison-report.md`, Balance Lab writes a compact `Paste into ChatGPT` block for balance-review conversations. It includes the experiment name, patch summary, verdict, faction WR deltas, campaign deltas, top 5 matchup deltas, warning/danger flags, top 10 card telemetry deltas when parsing succeeds, and raw card telemetry file names when telemetry is present.
 
 ## Card telemetry
 
-If simulator card telemetry is present, Balance Lab extracts the raw card telemetry sections into text files. It does not fully normalize card telemetry into comparison tables yet. Use `telemetry: "all"` or `telemetry: "cards"` to include these sections.
+If simulator card telemetry is present, Balance Lab extracts the raw card telemetry sections into text files and also tries to build a validated card telemetry comparison table in `comparison-report.md`. Use `telemetry: "all"` or `telemetry: "cards"` to include these sections.
+
+The comparison table matches baseline and experiment card rows by `(faction, id)`, not by card name. Card names remain display text only, which keeps matching stable when an experiment changes a card name as part of a full-card replacement.
+
+The card telemetry comparison shows changed cards by default. A card is changed when drawn, played, held-at-defeat, or average-turn-played values differ after parsing. Rows are sorted by largest absolute played delta first, then largest absolute drawn delta. The report also lists baseline-only and experiment-only cards when a card id appears on only one side.
+
+Card telemetry parsing is reporting-only and non-fatal. If the simulator table format changes, required columns are missing, numeric conversions fail, or duplicate `(faction, id)` keys are found, Balance Lab prints a warning, keeps the run successful, keeps writing `card-telemetry-baseline.txt` and `card-telemetry-experiment.txt`, and skips only the parsed card comparison table for that report.
 
 ## Safety smoke checks for invalid configs
 
