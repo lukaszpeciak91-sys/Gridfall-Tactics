@@ -40,7 +40,47 @@ npm ci
 
 The repository root is the folder that contains `package.json`.
 
-## Run Balance Lab
+## Run Balance Lab with the Windows GUI launcher
+
+For a Windows-friendly, no-command workflow, double-click:
+
+```text
+tools/balance-lab/Start Balance Lab.bat
+```
+
+The batch file changes to the repository root and starts the Tkinter launcher at:
+
+```text
+tools/balance-lab/balance_lab_launcher.py
+```
+
+If the GUI cannot start, the batch window stays open and shows the startup error so you can copy it into a bug report.
+
+The GUI detects the repository root automatically, lists every `*.json` experiment file in:
+
+```text
+tools/balance-lab/experiments/
+```
+
+GUI buttons:
+
+- **Run selected experiment** — runs the highlighted JSON file through the existing Balance Lab command.
+- **Run all experiments in folder** — runs every JSON file directly inside the experiments folder.
+- **Open reports folder** — opens the folder where Balance Lab writes reports.
+- **Open experiments folder** — opens the folder where experiment JSON files live.
+- **Refresh list** — reloads the experiment list after files are added, removed, or renamed.
+
+The log panel shows the existing CLI output while Balance Lab runs. The GUI stays responsive during a run. When the run finishes, it shows success or failure, updates the last detected report folder, and keeps the reports button available.
+
+Reports are written under:
+
+```text
+tools/balance-lab/reports/
+```
+
+Each selected-experiment run creates its own timestamped report folder. Folder-mode runs also create a timestamped batch-summary folder in the same reports location.
+
+## Run Balance Lab from a terminal
 
 From the repository root, run:
 
