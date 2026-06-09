@@ -23,10 +23,6 @@ const HAND_BACK_CARD_ASSET = Object.freeze({
   path: resolvePublicAssetPath('assets/ui/card_back.webp'),
 });
 
-const BASE_BACKDROP_ASSET = Object.freeze({
-  key: 'ui.baseBackdrop.base',
-  path: resolvePublicAssetPath('assets/ui/bases/base.webp'),
-});
 
 const INSPECT_CARD_TARGET_SCALE = 2.06;
 const INSPECT_CARD_VERTICAL_COMPACT_RATIO = 0.96;
@@ -52,8 +48,12 @@ const HERO_PANEL_ACTIVE_STROKE_ALPHA = 0.82;
 const HERO_PANEL_HIT_FILL_ALPHA = 0.52;
 const HERO_PANEL_HIT_STROKE_ALPHA = 0.86;
 const HERO_PANEL_WIDTH_RATIO = 0.66;
-const BASE_BACKDROP_DEPTH = -100;
-const BASE_BACKDROP_WIDTH_RATIO = 1.15;
+const BASE_FRAME_GOLD = 0xfacc15;
+const BASE_FRAME_GOLD_SOFT = 0xfde68a;
+const BASE_FRAME_PLAYER_ACCENT = 0x38bdf8;
+const BASE_FRAME_ENEMY_ACCENT = 0xfb7185;
+const BASE_FRAME_OVERLOAD = 0xff3b30;
+const BASE_FRAME_OVERLOAD_MS = 150;
 const BASE_UTILITY_CONTROL_FILL = 0x020617;
 const BASE_UTILITY_CONTROL_FILL_ALPHA = 0.62;
 const BASE_UTILITY_CONTROL_HOVER_FILL = 0x0f172a;
@@ -216,7 +216,7 @@ export default class BattleScene extends Phaser.Scene {
     this.battleResultModalPending = false;
     this.backgroundArtAsset = null;
     this.backgroundLayer = null;
-    this.baseBackdropViews = [];
+    this.baseFrameViews = { player: null, enemy: null };
     this.battlefieldCenterLight = null;
     this.selectedHandCardZoom = null;
     this.hoverInspectCardId = null;
@@ -248,9 +248,6 @@ export default class BattleScene extends Phaser.Scene {
 
   preload() {
     preloadBattleBackgroundArt(this);
-    preloadImageAsset(this, BASE_BACKDROP_ASSET, {
-      onError: (asset) => console.warn(`Base backdrop failed to load: ${asset.path}`),
-    });
     preloadImageAsset(this, HAND_BACK_CARD_ASSET, {
       onError: (asset) => console.warn(`Hand back card failed to load: ${asset.path}`),
     });
@@ -315,7 +312,7 @@ export default class BattleScene extends Phaser.Scene {
     this.enemyFactionKey = null;
     this.backgroundArtAsset = null;
     this.backgroundLayer = null;
-    this.baseBackdropViews = [];
+    this.baseFrameViews = { player: null, enemy: null };
     this.battlefieldCenterLight = null;
     this.selectedHandCardZoom = null;
     this.hoverInspectCardId = null;
@@ -376,7 +373,7 @@ export default class BattleScene extends Phaser.Scene {
       this.children.removeAll(true);
     }
     this.handBackCards = [];
-    this.baseBackdropViews = [];
+    this.baseFrameViews = { player: null, enemy: null };
   }
 
   create(data) {
@@ -1165,55 +1162,128 @@ export default class BattleScene extends Phaser.Scene {
     this.updateActionSlotBadge();
   }
 
-  drawBaseBackdrops({ panelWidth }) {
-    this.baseBackdropViews = [];
-
-    if (!hasLoadedImageAsset(this, BASE_BACKDROP_ASSET)) {
-      return;
-    }
-
-    const { width, topHero, playerHero, contentWidth } = this.layout;
-    const panelCenterX = width * 0.5;
-    const baseTexture = this.textures.get(BASE_BACKDROP_ASSET.key);
-    const sourceImage = baseTexture?.getSourceImage?.();
-    const textureWidth = sourceImage?.width ?? baseTexture?.get?.()?.width ?? 1;
-    const textureHeight = sourceImage?.height ?? baseTexture?.get?.()?.height ?? 1;
-    const aspectRatio = textureWidth > 0 && textureHeight > 0 ? textureWidth / textureHeight : 1;
-    const targetWidth = Math.min(contentWidth, panelWidth * BASE_BACKDROP_WIDTH_RATIO);
-    const displayHeight = targetWidth / aspectRatio;
-
-    const createBackdrop = ({ side, centerY, heroPanelHeight, flipY = false }) => {
-      const backdrop = this.add.image(panelCenterX, centerY, BASE_BACKDROP_ASSET.key)
-        .setOrigin(0.5)
-        .setDepth(BASE_BACKDROP_DEPTH)
-        .setFlipY(flipY);
-
-      backdrop.setDisplaySize(targetWidth, displayHeight);
-      backdrop.setData('side', side);
-      backdrop.setData('baseBackdropMetrics', {
-        panelWidth,
-        heroPanelHeight,
-        displayWidth: targetWidth,
-        displayHeight,
-        depth: BASE_BACKDROP_DEPTH,
-        x: panelCenterX,
-        y: centerY,
-      });
-      backdrop.setData('displayScale', { width: targetWidth / textureWidth, height: displayHeight / textureHeight });
-      this.baseBackdropViews.push(backdrop);
+  createBaseBroadcastFrame(side, panel, panelWidth, panelHeight) {
+    const graphics = this.add.graphics();
+    const frameView = {
+      side,
+      panel,
+      graphics,
+      panelWidth,
+      panelHeight,
+      overloadEvent: null,
+      overloadActive: false,
     };
+    graphics.setData('side', side);
+    graphics.setData('baseFrameMetrics', {
+      panelWidth,
+      panelHeight,
+      x: panel.x,
+      y: panel.y,
+      cleanCenterRatio: 0.86,
+    });
+    this.baseFrameViews[side] = frameView;
+    this.renderBaseBroadcastFrame(frameView);
+    return frameView;
+  }
 
-    createBackdrop({
-      side: 'enemy',
-      centerY: topHero.centerY,
-      heroPanelHeight: topHero.h,
-      flipY: true,
+  renderBaseBroadcastFrame(frameView) {
+    if (!frameView?.graphics?.active || !frameView?.panel?.active) return;
+
+    const { graphics, panel, panelWidth, panelHeight, side, overloadActive } = frameView;
+    const activeSide = this.getCurrentActionableSide?.() ?? null;
+    const isActive = activeSide === side;
+    const isMulligan = Boolean(this.openingMulliganPending);
+    const accentColor = side === 'player' ? BASE_FRAME_PLAYER_ACCENT : BASE_FRAME_ENEMY_ACCENT;
+    const width = panelWidth;
+    const height = panelHeight;
+    const left = panel.x - width / 2;
+    const top = panel.y - height / 2;
+    const right = left + width;
+    const bottom = top + height;
+    const edgeZone = Math.max(8, Math.min(18, width * 0.07));
+    const cornerLength = Math.max(8, Math.min(16, edgeZone * 0.92, height * 0.34));
+    const verticalAccentHeight = Math.max(10, Math.min(height * 0.46, 22));
+    const emitterWidth = Math.max(4, Math.min(7, edgeZone * 0.38));
+    const emitterHeight = Math.max(3, Math.min(5, height * 0.11));
+    const strokeAlpha = overloadActive ? 0.94 : (isActive ? 0.76 : (isMulligan ? 0.36 : 0.54));
+    const fineAlpha = overloadActive ? 0.84 : (isActive ? 0.62 : (isMulligan ? 0.26 : 0.42));
+    const accentAlpha = overloadActive ? 0.72 : (isActive ? 0.34 : (isMulligan ? 0.10 : 0.18));
+    const glowAlpha = overloadActive ? 0.22 : (isActive ? 0.15 : (isMulligan ? 0.045 : 0.085));
+    const overloadColor = overloadActive ? BASE_FRAME_OVERLOAD : accentColor;
+
+    graphics.clear();
+
+    // A full-width hairline makes the panel feel like the premium hardware object while staying on the edge.
+    graphics.lineStyle(isActive ? 2 : 1.25, BASE_FRAME_GOLD, strokeAlpha);
+    graphics.strokeRect(left + 0.5, top + 0.5, width - 1, height - 1);
+
+    // Soft side glow is constrained to the outer 7% edge zone so localized labels keep a clean center.
+    graphics.fillStyle(accentColor, glowAlpha);
+    graphics.fillRect(left + 1, top + height * 0.18, Math.max(2, edgeZone * 0.28), height * 0.64);
+    graphics.fillRect(right - 1 - Math.max(2, edgeZone * 0.28), top + height * 0.18, Math.max(2, edgeZone * 0.28), height * 0.64);
+
+    graphics.lineStyle(1.5, BASE_FRAME_GOLD_SOFT, fineAlpha);
+    // Corner ticks: short, readable marks that never pass the edge-safe zone.
+    graphics.beginPath();
+    graphics.moveTo(left + 3, top + cornerLength);
+    graphics.lineTo(left + 3, top + 3);
+    graphics.lineTo(left + cornerLength, top + 3);
+    graphics.moveTo(right - cornerLength, top + 3);
+    graphics.lineTo(right - 3, top + 3);
+    graphics.lineTo(right - 3, top + cornerLength);
+    graphics.moveTo(left + 3, bottom - cornerLength);
+    graphics.lineTo(left + 3, bottom - 3);
+    graphics.lineTo(left + cornerLength, bottom - 3);
+    graphics.moveTo(right - cornerLength, bottom - 3);
+    graphics.lineTo(right - 3, bottom - 3);
+    graphics.lineTo(right - 3, bottom - cornerLength);
+    graphics.strokePath();
+
+    // Broadcast emitters are deliberately side-bound: no center ornament, no texture behind text.
+    graphics.fillStyle(BASE_FRAME_GOLD, fineAlpha);
+    graphics.fillRect(left + edgeZone * 0.42, panel.y - verticalAccentHeight / 2, emitterWidth, verticalAccentHeight);
+    graphics.fillRect(right - edgeZone * 0.42 - emitterWidth, panel.y - verticalAccentHeight / 2, emitterWidth, verticalAccentHeight);
+
+    graphics.lineStyle(1, overloadColor, accentAlpha);
+    const innerTick = Math.max(5, Math.min(9, edgeZone * 0.54));
+    const emitterInsetLeft = left + edgeZone * 0.62;
+    const emitterInsetRight = right - edgeZone * 0.62;
+    [-1, 1].forEach((direction) => {
+      const y = panel.y + direction * Math.max(5, height * 0.16);
+      graphics.beginPath();
+      graphics.moveTo(emitterInsetLeft, y);
+      graphics.lineTo(emitterInsetLeft + innerTick, y);
+      graphics.moveTo(emitterInsetRight, y);
+      graphics.lineTo(emitterInsetRight - innerTick, y);
+      graphics.strokePath();
     });
 
-    createBackdrop({
-      side: 'player',
-      centerY: playerHero.centerY,
-      heroPanelHeight: playerHero.h,
+    if (overloadActive) {
+      graphics.lineStyle(2, BASE_FRAME_OVERLOAD, 0.76);
+      graphics.beginPath();
+      graphics.moveTo(left + 2, panel.y);
+      graphics.lineTo(left + edgeZone, panel.y - emitterHeight);
+      graphics.moveTo(right - 2, panel.y);
+      graphics.lineTo(right - edgeZone, panel.y + emitterHeight);
+      graphics.strokePath();
+    }
+  }
+
+  updateBaseBroadcastFrameState() {
+    ['enemy', 'player'].forEach((side) => this.renderBaseBroadcastFrame(this.baseFrameViews?.[side]));
+  }
+
+  triggerBaseBroadcastOverload(side) {
+    const frameView = this.baseFrameViews?.[side];
+    if (!frameView?.graphics?.active) return;
+
+    frameView.overloadEvent?.remove?.(false);
+    frameView.overloadActive = true;
+    this.renderBaseBroadcastFrame(frameView);
+    frameView.overloadEvent = this.time.delayedCall(BASE_FRAME_OVERLOAD_MS, () => {
+      frameView.overloadEvent = null;
+      frameView.overloadActive = false;
+      this.renderBaseBroadcastFrame(frameView);
     });
   }
 
@@ -1446,12 +1516,12 @@ export default class BattleScene extends Phaser.Scene {
     const { width, topHero, playerHero, contentWidth } = this.layout;
     const panelWidth = contentWidth * HERO_PANEL_WIDTH_RATIO;
 
-    this.drawBaseBackdrops({ panelWidth });
-
     const enemyPanel = this.add.rectangle(width * 0.5, topHero.centerY, panelWidth, topHero.h, 0x111827, HERO_PANEL_FILL_ALPHA).setStrokeStyle(2, 0xf87171, HERO_PANEL_STROKE_ALPHA);
     const playerPanel = this.add.rectangle(width * 0.5, playerHero.centerY, panelWidth, playerHero.h, 0x111827, HERO_PANEL_FILL_ALPHA).setStrokeStyle(2, 0x60a5fa, HERO_PANEL_STROKE_ALPHA);
     this.enemyHeroPanel = enemyPanel;
     this.playerHeroPanel = playerPanel;
+    this.createBaseBroadcastFrame('enemy', enemyPanel, panelWidth, topHero.h);
+    this.createBaseBroadcastFrame('player', playerPanel, panelWidth, playerHero.h);
     playerPanel
       .setInteractive({ useHandCursor: true })
       .disableInteractive();
@@ -3488,6 +3558,7 @@ export default class BattleScene extends Phaser.Scene {
     }
     if (this.playerInitiativeIcon) this.playerInitiativeIcon.setVisible(playerActive);
     if (this.enemyInitiativeIcon) this.enemyInitiativeIcon.setVisible(enemyActive);
+    this.updateBaseBroadcastFrameState();
   }
 
   updateInitiativeIndicator() {
@@ -4631,6 +4702,7 @@ export default class BattleScene extends Phaser.Scene {
           this.showFloatingTextAtHero(event.side, event.label, event.kind),
         ];
         if (event.kind === 'damage' && this.getHeroFeedbackDamageAmount(event) > 0) {
+          this.triggerBaseBroadcastOverload(event.side);
           animations.push(this.shakeHeroPanel(event.side));
         }
         return Promise.all(animations);
@@ -5741,6 +5813,7 @@ export default class BattleScene extends Phaser.Scene {
     const hero = this.getHeroPanel(side);
     if (!hero) return;
     const isBlocked = damage <= 0;
+    if (!isBlocked) this.triggerBaseBroadcastOverload(side);
     const damageText = this.add.text(hero.x + hero.width * 0.34, hero.y, isBlocked ? translateActive('ui.battle.block', 'BLOCK') : `-${damage}`, {
       fontFamily: 'Arial, sans-serif',
       fontSize: isBlocked ? '18px' : '22px',

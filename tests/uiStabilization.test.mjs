@@ -179,25 +179,23 @@ test('start, main menu, and faction select use optional menu background art with
   assert.match(backgroundDocs, /1440 × 2560 px/);
 });
 
-test('BattleScene preloads decorative base backdrops beneath existing base UI', () => {
+test('BattleScene disables decorative base backdrops and renders procedural broadcast frames', () => {
   const battleSource = read('src/scenes/BattleScene.js');
   const baseDocs = read('public/assets/ui/bases/README.md');
 
   assert.ok(fs.existsSync('public/assets/ui/bases/base.webp'));
-  assert.match(battleSource, /key: 'ui\.baseBackdrop\.base'/);
-  assert.match(battleSource, /path: resolvePublicAssetPath\('assets\/ui\/bases\/base\.webp'\)/);
-  assert.match(battleSource, /preloadImageAsset\(this, BASE_BACKDROP_ASSET/);
-  assert.match(battleSource, /Base backdrop failed to load: \$\{asset\.path}/);
-  assert.match(battleSource, /const BASE_BACKDROP_DEPTH = -100;/);
-  assert.match(battleSource, /this\.drawBaseBackdrops\(\{ panelWidth \}\);/);
-  assert.match(battleSource, /if \(!hasLoadedImageAsset\(this, BASE_BACKDROP_ASSET\)\) \{\s*return;\s*\}/);
-  assert.match(battleSource, /side: 'enemy',[\s\S]*flipY: true/);
-  assert.match(battleSource, /side: 'player',[\s\S]*centerY: playerHero\.centerY/);
-  assert.match(battleSource, /setDepth\(BASE_BACKDROP_DEPTH\)/);
-  assert.match(battleSource, /backdrop\.setDisplaySize\(targetWidth, displayHeight\)/);
-  assert.doesNotMatch(battleSource.slice(battleSource.indexOf('  drawBaseBackdrops('), battleSource.indexOf('  exitBattleToFactionSelect()')), /setInteractive/);
+  assert.doesNotMatch(battleSource, /BASE_BACKDROP_ASSET/);
+  assert.doesNotMatch(battleSource, /preloadImageAsset\(this, BASE_BACKDROP_ASSET/);
+  assert.doesNotMatch(battleSource, /drawBaseBackdrops/);
+  assert.doesNotMatch(battleSource, /setDepth\(BASE_BACKDROP_DEPTH\)/);
+  assert.match(battleSource, /const BASE_FRAME_GOLD = 0xfacc15;/);
+  assert.match(battleSource, /const BASE_FRAME_OVERLOAD_MS = 150;/);
+  assert.match(battleSource, /createBaseBroadcastFrame\('enemy', enemyPanel, panelWidth, topHero\.h\);/);
+  assert.match(battleSource, /createBaseBroadcastFrame\('player', playerPanel, panelWidth, playerHero\.h\);/);
+  assert.match(battleSource, /cleanCenterRatio: 0\.86/);
+  assert.match(battleSource, /width \* 0\.07/);
+  assert.match(battleSource, /triggerBaseBroadcastOverload\(side\)/);
   assert.match(baseDocs, /ui\.baseBackdrop\.base/);
-  assert.match(baseDocs, /Enemy base rendering should reuse the same texture with a vertical mirror transform/);
 });
 
 test('BattleScene preloads and renders the default battlefield background with dark fallback', () => {
