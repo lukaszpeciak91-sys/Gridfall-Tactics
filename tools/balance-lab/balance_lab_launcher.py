@@ -14,6 +14,28 @@ from pathlib import Path
 from tkinter import messagebox, ttk
 
 
+def configure_utf8_stdio() -> None:
+    """Prefer UTF-8 for any console attached to the GUI launcher."""
+    os.environ.setdefault("PYTHONUTF8", "1")
+    os.environ.setdefault("PYTHONIOENCODING", "utf-8")
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is None:
+            continue
+        try:
+            reconfigure(encoding="utf-8", errors="replace")
+        except (OSError, ValueError):
+            pass
+
+
+def utf8_subprocess_env() -> dict[str, str]:
+    """Launch Balance Lab CLI with UTF-8 Python stdio even from Windows GUI shells."""
+    env = os.environ.copy()
+    env.setdefault("PYTHONUTF8", "1")
+    env.setdefault("PYTHONIOENCODING", "utf-8")
+    return env
+
+
 APP_TITLE = "Gridfall Tactics Balance Lab"
 EXPERIMENTS_RELATIVE_PATH = Path("tools") / "balance-lab" / "experiments"
 REPORTS_RELATIVE_PATH = Path("tools") / "balance-lab" / "reports"
@@ -228,6 +250,7 @@ class BalanceLabLauncher(tk.Tk):
                 encoding="utf-8",
                 errors="replace",
                 bufsize=1,
+                env=utf8_subprocess_env(),
             )
         except OSError as error:
             self.output_queue.put(("error", f"Could not start Balance Lab: {error}"))
@@ -348,6 +371,8 @@ def open_path(path: Path) -> None:
 
 
 def main() -> int:
+    configure_utf8_stdio()
+
     app = BalanceLabLauncher()
     app.mainloop()
     return 0
