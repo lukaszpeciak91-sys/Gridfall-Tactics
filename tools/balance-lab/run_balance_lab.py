@@ -19,6 +19,28 @@ from pathlib import Path
 from typing import Any
 
 
+def configure_utf8_stdio() -> None:
+    """Prefer UTF-8 for console output on Windows and other non-UTF-8 shells."""
+    os.environ.setdefault("PYTHONUTF8", "1")
+    os.environ.setdefault("PYTHONIOENCODING", "utf-8")
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is None:
+            continue
+        try:
+            reconfigure(encoding="utf-8", errors="replace")
+        except (OSError, ValueError):
+            pass
+
+
+def utf8_subprocess_env() -> dict[str, str]:
+    """Return an environment that keeps child Python tools on UTF-8 stdio."""
+    env = os.environ.copy()
+    env.setdefault("PYTHONUTF8", "1")
+    env.setdefault("PYTHONIOENCODING", "utf-8")
+    return env
+
+
 ALLOWED_STAT_FIELDS = {"attack", "hp", "armor"}
 REQUIRED_REPLACE_CARD_FIELDS = {"id", "name", "type", "targeting", "effectId", "textShort"}
 REQUIRED_UNIT_REPLACE_CARD_FIELDS = {"attack", "hp", "armor"}
@@ -353,11 +375,11 @@ def print_intro(root: Path, experiment_path: Path, data: dict[str, Any], command
     print(f"Experiment file: {experiment_path}", flush=True)
     print("", flush=True)
     print("Validation passed:", flush=True)
-    print("  ✓ package.json found", flush=True)
-    print("  ✓ scripts/simulate-battles.mjs found", flush=True)
-    print("  ✓ src/data/factions found", flush=True)
-    print("  ✓ experiment JSON loaded", flush=True)
-    print("  ✓ requested card changes validated", flush=True)
+    print("  OK package.json found", flush=True)
+    print("  OK scripts/simulate-battles.mjs found", flush=True)
+    print("  OK src/data/factions found", flush=True)
+    print("  OK experiment JSON loaded", flush=True)
+    print("  OK requested card changes validated", flush=True)
     print("", flush=True)
     print("Experiment summary:", flush=True)
     print(f"  Name: {data['name']}", flush=True)
@@ -400,8 +422,11 @@ def run_simulation(root: Path, command: list[str]) -> subprocess.CompletedProces
         command,
         cwd=root,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         capture_output=True,
         check=False,
+        env=utf8_subprocess_env(),
     )
 
 
@@ -1470,6 +1495,8 @@ def failed_batch_result(experiment_path: Path, error_message: str) -> dict[str, 
 
 
 def main(argv: list[str]) -> int:
+    configure_utf8_stdio()
+
     if len(argv) != 2:
         print(
             "Usage: python tools/balance-lab/run_balance_lab.py "
