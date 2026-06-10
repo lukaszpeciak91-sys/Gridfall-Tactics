@@ -7,6 +7,8 @@ Balance Lab v2-lite is a local wrapper around the existing Gridfall Tactics batt
 
 It does **not** modify gameplay logic, `scripts/simulate-battles.mjs`, or real repo card JSON files.
 
+For Balance Lab v3 planning, see the controlled Experimental Effect Blocks catalog at [`tools/balance-lab/effect-blocks.md`](effect-blocks.md).
+
 
 ## Supported scope
 
