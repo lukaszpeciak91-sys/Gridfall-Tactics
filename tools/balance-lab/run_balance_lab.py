@@ -8,6 +8,7 @@ copy, runs the existing simulator there, and writes raw outputs to a report.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -45,6 +46,48 @@ ALLOWED_STAT_FIELDS = {"attack", "hp", "armor"}
 REQUIRED_REPLACE_CARD_FIELDS = {"id", "name", "type", "targeting", "effectId", "textShort"}
 REQUIRED_UNIT_REPLACE_CARD_FIELDS = {"attack", "hp", "armor"}
 ALLOWED_TELEMETRY_MODES = {"", "basic", "cards", "ai", "all"}
+EFFECT_VARIANT_SCHEMA_VERSION = 1
+EFFECT_VARIANT_STATUS = "recognized_not_executed"
+EFFECT_VARIANT_REGISTRY_GENERATED_STATUS = "registry_generated"
+EFFECT_VARIANT_RUNTIME_REGISTRY_RELATIVE_PATH = Path("src/systems/effectVariantRegistry.generated.js")
+EFFECT_VARIANT_SAFE_ID_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_-]{2,96}$")
+EFFECT_VARIANT_BLOCKED_OPERATION_KEYS = {"code", "script", "function", "eval", "import", "module", "path", "patch"}
+PRODUCTION_CARD_BLOCKED_DYNAMIC_KEYS = {
+    "effectParams",
+    "effectVariant",
+    "effectBlocks",
+    "script",
+    "code",
+    "resolver",
+    "js",
+}
+EFFECT_VARIANT_SELECTORS = {
+    "selectedOpponentUnit",
+    "selectedOwnerUnit",
+    "firstSelectedAfterBaseEffect",
+    "secondSelectedAfterBaseEffect",
+    "bothSelectedAfterBaseEffect",
+    "enemyBase",
+    "playerBase",
+}
+EFFECT_VARIANT_UNIT_SELECTORS = {
+    "selectedOpponentUnit",
+    "selectedOwnerUnit",
+    "firstSelectedAfterBaseEffect",
+    "secondSelectedAfterBaseEffect",
+    "bothSelectedAfterBaseEffect",
+}
+EFFECT_VARIANT_OPERATIONS = {
+    "runBaseEffect",
+    "damageUnit",
+    "damageEnemyBase",
+    "damagePlayerBase",
+    "debuffAttack",
+    "debuffArmor",
+    "buffAttack",
+    "buffArmor",
+    "drawOne",
+}
 REQUIRED_REPO_PATHS = [
     Path("package.json"),
     Path("scripts/simulate-battles.mjs"),
@@ -150,6 +193,24 @@ def validate_experiment_shape(data: dict[str, Any]) -> None:
 def validate_change_shape(change: Any, index: int) -> None:
     if not isinstance(change, dict):
         raise BalanceLabError(f"Change #{index} must be an object.")
+
+    mode = change.get("mode")
+    if mode is not None and mode != "effectVariant":
+        raise BalanceLabError(f"Change #{index} mode must be effectVariant when provided.")
+
+    has_effect_variant = mode == "effectVariant" or "effectVariant" in change
+    has_stat_patch = "field" in change or "value" in change
+    has_replacement = "replaceCard" in change
+    selected_modes = sum(1 for value in (has_stat_patch, has_replacement, has_effect_variant) if value)
+    if selected_modes != 1:
+        raise BalanceLabError(
+            f"Change #{index} must use exactly one mode: stat patch, replaceCard, or effectVariant."
+        )
+
+    if has_effect_variant:
+        validate_effect_variant_shape(change, index)
+        return
+
     for key in ("faction", "cardId"):
         if key not in change:
             raise BalanceLabError(f"Change #{index} is missing required field: {key}")
@@ -159,13 +220,6 @@ def validate_change_shape(change: Any, index: int) -> None:
         raise BalanceLabError(f"Change #{index} cardId must be a string.")
     if "effectParams" in change:
         raise BalanceLabError(f"Change #{index} includes effectParams, which Balance Lab v2-lite does not support.")
-
-    has_stat_patch = "field" in change or "value" in change
-    has_replacement = "replaceCard" in change
-    if has_stat_patch and has_replacement:
-        raise BalanceLabError(f"Change #{index} must use either field/value or replaceCard, not both.")
-    if not has_stat_patch and not has_replacement:
-        raise BalanceLabError(f"Change #{index} must include either field/value or replaceCard.")
 
     if has_replacement:
         validate_replace_card_shape(change, index)
@@ -215,6 +269,182 @@ def validate_replace_card_shape(change: dict[str, Any], index: int) -> None:
                 raise BalanceLabError(f"Change #{index} replaceCard.{key} must be an integer >= 0 for unit cards.")
 
 
+def require_non_empty_string(data: dict[str, Any], key: str, context: str) -> str:
+    value = data.get(key)
+    if not isinstance(value, str) or not value.strip():
+        raise BalanceLabError(f"{context}.{key} must be a non-empty string.")
+    return value
+
+
+def validate_effect_variant_shape(change: dict[str, Any], index: int) -> None:
+    if change.get("mode") != "effectVariant":
+        raise BalanceLabError(f"Change #{index} effectVariant entries must set mode to 'effectVariant'.")
+    variant = change.get("effectVariant")
+    if not isinstance(variant, dict):
+        raise BalanceLabError(f"Change #{index} effectVariant must be an object.")
+
+    schema_version = variant.get("schemaVersion")
+    if schema_version != EFFECT_VARIANT_SCHEMA_VERSION:
+        raise BalanceLabError(
+            f"Change #{index} effectVariant.schemaVersion must be {EFFECT_VARIANT_SCHEMA_VERSION}."
+        )
+
+    variant_id = require_non_empty_string(variant, "variantId", f"Change #{index} effectVariant")
+    if not EFFECT_VARIANT_SAFE_ID_PATTERN.fullmatch(variant_id):
+        raise BalanceLabError(
+            f"Change #{index} effectVariant.variantId must use 3-97 lowercase letters, numbers, hyphens, or underscores, and start with a letter or number."
+        )
+    require_non_empty_string(variant, "label", f"Change #{index} effectVariant")
+
+    scope = variant.get("scope")
+    if not isinstance(scope, dict):
+        raise BalanceLabError(f"Change #{index} effectVariant.scope must be an object.")
+    for key in ("factionId", "cardId", "baseEffectId"):
+        require_non_empty_string(scope, key, f"Change #{index} effectVariant.scope")
+
+    timing = variant.get("timing")
+    if timing != "afterBaseEffectBeforeDiscard":
+        raise BalanceLabError(
+            f"Change #{index} effectVariant.timing must be afterBaseEffectBeforeDiscard."
+        )
+
+    sequence = variant.get("sequence")
+    if not isinstance(sequence, list) or not sequence:
+        raise BalanceLabError(f"Change #{index} effectVariant.sequence must be a non-empty array.")
+
+    run_base_indexes: list[int] = []
+    for block_index, operation_block in enumerate(sequence, start=1):
+        validate_effect_variant_operation_block(operation_block, index, block_index)
+        if operation_block.get("operation") == "runBaseEffect":
+            run_base_indexes.append(block_index)
+
+    if len(run_base_indexes) != 1:
+        raise BalanceLabError(
+            f"Change #{index} effectVariant.sequence must include runBaseEffect exactly once."
+        )
+    if run_base_indexes[0] != 1:
+        raise BalanceLabError(f"Change #{index} effectVariant.sequence must start with runBaseEffect.")
+
+    text_patch = variant.get("textPatch")
+    if text_patch is not None:
+        if not isinstance(text_patch, dict):
+            raise BalanceLabError(f"Change #{index} effectVariant.textPatch must be an object when provided.")
+        unsupported_keys = sorted(key for key in text_patch if key != "textShort")
+        if unsupported_keys:
+            raise BalanceLabError(
+                f"Change #{index} effectVariant.textPatch only supports textShort in PR1; unsupported key(s): {', '.join(unsupported_keys)}."
+            )
+        if "textShort" in text_patch and not isinstance(text_patch["textShort"], str):
+            raise BalanceLabError(f"Change #{index} effectVariant.textPatch.textShort must be a string.")
+
+    telemetry_tags = variant.get("telemetryTags")
+    if telemetry_tags is not None:
+        if not isinstance(telemetry_tags, list) or not all(isinstance(tag, str) for tag in telemetry_tags):
+            raise BalanceLabError(f"Change #{index} effectVariant.telemetryTags must be an array of strings when provided.")
+
+
+def validate_effect_variant_operation_block(operation_block: Any, change_index: int, block_index: int) -> None:
+    context = f"Change #{change_index} effectVariant.sequence[{block_index}]"
+    if not isinstance(operation_block, dict):
+        raise BalanceLabError(f"{context} must be an object.")
+    blocked_keys = sorted(EFFECT_VARIANT_BLOCKED_OPERATION_KEYS.intersection(operation_block))
+    if blocked_keys:
+        raise BalanceLabError(f"{context} contains unsupported code-like key(s): {', '.join(blocked_keys)}.")
+
+    operation = operation_block.get("operation")
+    if not isinstance(operation, str) or not operation:
+        raise BalanceLabError(f"{context}.operation must be a non-empty string.")
+    if operation not in EFFECT_VARIANT_OPERATIONS:
+        allowed = ", ".join(sorted(EFFECT_VARIANT_OPERATIONS))
+        raise BalanceLabError(f"{context}.operation '{operation}' is unsupported. Supported operations: {allowed}.")
+
+    if operation == "runBaseEffect":
+        require_exact_operation_keys(operation_block, {"operation"}, context)
+        return
+    if operation == "drawOne":
+        require_exact_operation_keys(operation_block, {"operation"}, context)
+        return
+    if operation == "damageUnit":
+        require_exact_operation_keys(operation_block, {"operation", "selector", "amount", "cleanup"}, context)
+        validate_unit_selector(operation_block.get("selector"), context)
+        validate_positive_int(operation_block.get("amount"), f"{context}.amount")
+        if operation_block.get("cleanup") != "nonCombat":
+            raise BalanceLabError(f"{context}.cleanup must be nonCombat.")
+        return
+    if operation == "damageEnemyBase":
+        require_exact_operation_keys(operation_block, {"operation", "selector", "amount"}, context)
+        if operation_block.get("selector") != "enemyBase":
+            raise BalanceLabError(f"{context}.selector must be enemyBase for damageEnemyBase.")
+        validate_positive_int(operation_block.get("amount"), f"{context}.amount")
+        return
+    if operation == "damagePlayerBase":
+        require_exact_operation_keys(operation_block, {"operation", "selector", "amount"}, context)
+        if operation_block.get("selector") != "playerBase":
+            raise BalanceLabError(f"{context}.selector must be playerBase for damagePlayerBase.")
+        validate_positive_int(operation_block.get("amount"), f"{context}.amount")
+        return
+    if operation in {"debuffAttack", "debuffArmor", "buffAttack", "buffArmor"}:
+        allowed_keys = {"operation", "selector", "amount", "duration"}
+        require_allowed_operation_keys(operation_block, allowed_keys, context)
+        for required_key in ("selector", "amount"):
+            if required_key not in operation_block:
+                raise BalanceLabError(f"{context}.{required_key} is required for {operation}.")
+        validate_unit_selector(operation_block.get("selector"), context)
+        validate_positive_int(operation_block.get("amount"), f"{context}.amount")
+        if "duration" in operation_block and operation_block.get("duration") != "untilCombatCleanup":
+            raise BalanceLabError(f"{context}.duration must be untilCombatCleanup when provided.")
+        return
+
+
+def require_exact_operation_keys(operation_block: dict[str, Any], expected_keys: set[str], context: str) -> None:
+    actual_keys = set(operation_block)
+    if actual_keys != expected_keys:
+        unexpected = sorted(actual_keys - expected_keys)
+        missing = sorted(expected_keys - actual_keys)
+        details = []
+        if missing:
+            details.append(f"missing: {', '.join(missing)}")
+        if unexpected:
+            details.append(f"unsupported: {', '.join(unexpected)}")
+        raise BalanceLabError(f"{context} has invalid argument(s) ({'; '.join(details)}).")
+
+
+def require_allowed_operation_keys(operation_block: dict[str, Any], allowed_keys: set[str], context: str) -> None:
+    unexpected = sorted(set(operation_block) - allowed_keys)
+    if unexpected:
+        raise BalanceLabError(f"{context} has unsupported argument(s): {', '.join(unexpected)}.")
+
+
+def validate_unit_selector(selector: Any, context: str) -> None:
+    if not isinstance(selector, str) or not selector:
+        raise BalanceLabError(f"{context}.selector must be a non-empty string.")
+    if selector not in EFFECT_VARIANT_SELECTORS:
+        allowed = ", ".join(sorted(EFFECT_VARIANT_SELECTORS))
+        raise BalanceLabError(f"{context}.selector '{selector}' is unsupported. Supported selectors: {allowed}.")
+    if selector not in EFFECT_VARIANT_UNIT_SELECTORS:
+        allowed = ", ".join(sorted(EFFECT_VARIANT_UNIT_SELECTORS))
+        raise BalanceLabError(f"{context}.selector '{selector}' must resolve to unit target(s). Unit selectors: {allowed}.")
+
+
+def validate_positive_int(value: Any, context: str) -> None:
+    if not isinstance(value, int) or value <= 0:
+        raise BalanceLabError(f"{context} must be an integer greater than 0.")
+
+
+def is_run_base_effect_only_sequence(sequence: list[dict[str, Any]]) -> bool:
+    return len(sequence) == 1 and sequence[0].get("operation") == "runBaseEffect"
+
+
+def variant_registry_key(variant: dict[str, Any]) -> str:
+    scope = variant["scope"]
+    return f"{scope['factionId']}::{scope['cardId']}::{scope['baseEffectId']}"
+
+
+def stable_variant_hash(variant: dict[str, Any]) -> str:
+    encoded = json.dumps(variant, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    return f"sha256:{hashlib.sha256(encoded).hexdigest()}"
+
+
 def is_comma_telemetry_list(value: str) -> bool:
     if not value or " " in value:
         return False
@@ -236,6 +466,30 @@ def load_faction_files(root: Path) -> list[tuple[Path, dict[str, Any]]]:
     return faction_files
 
 
+
+
+def validate_production_card_safety(root: Path) -> None:
+    for path, faction_data in load_faction_files(root):
+        deck = faction_data.get("deck")
+        if not isinstance(deck, list):
+            continue
+        for card_index, card in enumerate(deck, start=1):
+            if not isinstance(card, dict):
+                continue
+            blocked_keys = sorted(PRODUCTION_CARD_BLOCKED_DYNAMIC_KEYS.intersection(card))
+            if blocked_keys:
+                card_id = card.get("id", f"deck entry #{card_index}")
+                raise BalanceLabError(
+                    f"Production card data contains unsupported dynamic effect field(s) in {path} / {card_id}: "
+                    f"{', '.join(blocked_keys)}. Balance Lab v3 effect variants must remain temp-copy only."
+                )
+
+
+def find_faction_file_by_id(root: Path, faction_id: str) -> tuple[Path, dict[str, Any]] | None:
+    for path, data in load_faction_files(root):
+        if data.get("id") == faction_id:
+            return path, data
+    return None
 
 
 def collect_known_effect_ids(root: Path) -> set[str]:
@@ -263,9 +517,29 @@ def find_faction_file(root: Path, faction: str) -> tuple[Path, dict[str, Any]] |
 
 
 def validate_requested_changes(root: Path, changes: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    validate_production_card_safety(root)
     validated = []
     known_effect_ids = collect_known_effect_ids(root)
+    seen_variant_ids: set[str] = set()
+    seen_variant_scopes: set[tuple[str, str, str]] = set()
+
     for index, change in enumerate(changes, start=1):
+        if is_effect_variant_change(change):
+            validated.append(validate_requested_effect_variant(root, change, index))
+            variant = validated[-1]["effectVariant"]
+            variant_id = variant["variantId"]
+            if variant_id in seen_variant_ids:
+                raise BalanceLabError(f"Change #{index} effectVariant.variantId '{variant_id}' is duplicated in this experiment.")
+            seen_variant_ids.add(variant_id)
+            scope = variant["scope"]
+            scope_key = (scope["factionId"], scope["cardId"], scope["baseEffectId"])
+            if scope_key in seen_variant_scopes:
+                raise BalanceLabError(
+                    f"Change #{index} effectVariant scope {scope_key[0]} / {scope_key[1]} / {scope_key[2]} is duplicated in this experiment."
+                )
+            seen_variant_scopes.add(scope_key)
+            continue
+
         faction_match = find_faction_file(root, change["faction"])
         if faction_match is None:
             raise BalanceLabError(
@@ -316,6 +590,56 @@ def validate_requested_changes(root: Path, changes: list[dict[str, Any]]) -> lis
             "relativePath": source_path.relative_to(root),
         })
     return validated
+
+
+def is_effect_variant_change(change: dict[str, Any]) -> bool:
+    return change.get("mode") == "effectVariant" or "effectVariant" in change
+
+
+def validate_requested_effect_variant(root: Path, change: dict[str, Any], index: int) -> dict[str, Any]:
+    variant = dict(change["effectVariant"])
+    scope = dict(variant["scope"])
+    faction_id = scope["factionId"]
+    faction_match = find_faction_file_by_id(root, faction_id)
+    if faction_match is None:
+        raise BalanceLabError(
+            f"Change #{index} effectVariant.scope.factionId '{faction_id}' was not found as a top-level faction id."
+        )
+    source_path, faction_data = faction_match
+    if faction_data.get("id") != faction_id:
+        raise BalanceLabError(
+            f"Change #{index} effectVariant.scope.factionId '{faction_id}' does not match top-level faction id in {source_path}."
+        )
+    deck = faction_data.get("deck")
+    if not isinstance(deck, list):
+        raise BalanceLabError(f"Faction file has no deck array: {source_path}")
+    card_id = scope["cardId"]
+    card = next((entry for entry in deck if isinstance(entry, dict) and entry.get("id") == card_id), None)
+    if card is None:
+        raise BalanceLabError(
+            f"Change #{index} effectVariant.scope.cardId '{card_id}' was not found in {source_path}."
+        )
+    base_effect_id = scope["baseEffectId"]
+    if card.get("effectId") != base_effect_id:
+        raise BalanceLabError(
+            f"Change #{index} effectVariant.scope.baseEffectId '{base_effect_id}' does not match current card.effectId "
+            f"'{card.get('effectId')}' for {card_id}."
+        )
+
+    variant["scope"] = scope
+    return {
+        "index": index,
+        "mode": "effectVariant",
+        "effectVariant": variant,
+        "faction": faction_id,
+        "cardId": card_id,
+        "oldCard": card,
+        "relativePath": source_path.relative_to(root),
+        "registryKey": variant_registry_key(variant),
+        "variantHash": stable_variant_hash(variant),
+        "runBaseEffectOnly": is_run_base_effect_only_sequence(variant["sequence"]),
+        "status": EFFECT_VARIANT_STATUS,
+    }
 
 
 def normalize_key(value: str) -> str:
@@ -379,7 +703,7 @@ def print_intro(root: Path, experiment_path: Path, data: dict[str, Any], command
     print("  OK scripts/simulate-battles.mjs found", flush=True)
     print("  OK src/data/factions found", flush=True)
     print("  OK experiment JSON loaded", flush=True)
-    print("  OK requested card changes validated", flush=True)
+    print("  OK requested changes validated", flush=True)
     print("", flush=True)
     print("Experiment summary:", flush=True)
     print(f"  Name: {data['name']}", flush=True)
@@ -389,10 +713,19 @@ def print_intro(root: Path, experiment_path: Path, data: dict[str, Any], command
     print(f"  Warning delta: {flags['warningDeltaPp']} percentage points", flush=True)
     print(f"  Danger delta: {flags['dangerDeltaPp']} percentage points", flush=True)
     print("", flush=True)
-    print("Requested card changes:", flush=True)
+    print("Requested changes:", flush=True)
     if data["changes"]:
         for index, change in enumerate(data["changes"], start=1):
-            if "replaceCard" in change:
+            if is_effect_variant_change(change):
+                variant = change["effectVariant"]
+                scope = variant["scope"]
+                print(
+                    f"  {index}. effectVariant {variant['variantId']}: "
+                    f"{scope['factionId']} / {scope['cardId']} / {scope['baseEffectId']} "
+                    f"({EFFECT_VARIANT_STATUS})",
+                    flush=True,
+                )
+            elif "replaceCard" in change:
                 print(
                     f"  {index}. {change['faction']} / {change['cardId']}: "
                     "replace full card JSON",
@@ -405,7 +738,7 @@ def print_intro(root: Path, experiment_path: Path, data: dict[str, Any], command
                     flush=True,
                 )
     else:
-        print("  No card changes listed.", flush=True)
+        print("  No changes listed.", flush=True)
     print("", flush=True)
     print("Safety status for this run:", flush=True)
     print("  The real repo will not be patched.", flush=True)
@@ -446,12 +779,81 @@ def copy_repo_to_temp(root: Path, temp_copy_dir: Path) -> None:
     shutil.copytree(root, temp_copy_dir, ignore=ignore)
 
 
-def apply_patches(temp_copy_dir: Path, validated_changes: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def js_literal(data: Any) -> str:
+    return json.dumps(data, indent=2, ensure_ascii=False)
+
+
+def build_effect_variant_registry_module(active_changes: list[dict[str, Any]], data: dict[str, Any], experiment_path: Path) -> str:
+    registry: dict[str, Any] = {}
+    for change in active_changes:
+        variant = change["effectVariant"]
+        registry[change["registryKey"]] = {
+            "schemaVersion": variant["schemaVersion"],
+            "variantId": variant["variantId"],
+            "label": variant["label"],
+            "scope": variant["scope"],
+            "timing": variant["timing"],
+            "sequence": variant["sequence"],
+            **({"textPatch": variant["textPatch"]} if "textPatch" in variant else {}),
+            "telemetryTags": variant.get("telemetryTags", []),
+            "sourceExperimentName": data["name"],
+            "sourceExperimentPath": str(experiment_path),
+            "sourceChangeIndex": change["index"],
+            "variantHash": change["variantHash"],
+            "status": EFFECT_VARIANT_REGISTRY_GENERATED_STATUS,
+        }
+    return "\n".join([
+        "export const EFFECT_VARIANT_REGISTRY_SCHEMA_VERSION = 1;",
+        "",
+        f"export const ACTIVE_EFFECT_VARIANTS = Object.freeze({js_literal(registry)});",
+        "",
+    ])
+
+
+def write_effect_variant_registry(
+    temp_copy_dir: Path,
+    validated_changes: list[dict[str, Any]],
+    data: dict[str, Any],
+    experiment_path: Path,
+) -> tuple[Path | None, set[str]]:
+    active_changes = [
+        change for change in validated_changes
+        if change.get("mode") == "effectVariant" and change.get("runBaseEffectOnly")
+    ]
+    if not active_changes:
+        return None, set()
+    registry_path = temp_copy_dir / EFFECT_VARIANT_RUNTIME_REGISTRY_RELATIVE_PATH
+    registry_path.parent.mkdir(parents=True, exist_ok=True)
+    registry_path.write_text(
+        build_effect_variant_registry_module(active_changes, data, experiment_path),
+        encoding="utf-8",
+    )
+    return registry_path, {change["registryKey"] for change in active_changes}
+
+
+def apply_patches(
+    temp_copy_dir: Path,
+    validated_changes: list[dict[str, Any]],
+    data: dict[str, Any],
+    experiment_path: Path,
+) -> list[dict[str, Any]]:
+    registry_path, registry_keys = write_effect_variant_registry(temp_copy_dir, validated_changes, data, experiment_path)
     by_path: dict[Path, list[dict[str, Any]]] = {}
+    applied = []
     for change in validated_changes:
+        if change.get("mode") == "effectVariant":
+            recognized_change = dict(change)
+            recognized_change["tempJsonPath"] = temp_copy_dir / change["relativePath"]
+            recognized_change["textPatchApplied"] = False
+            recognized_change["behaviorExecuted"] = False
+            recognized_change["registryPath"] = registry_path
+            recognized_change["registryGenerated"] = change.get("registryKey") in registry_keys
+            if recognized_change["registryGenerated"]:
+                recognized_change["status"] = EFFECT_VARIANT_REGISTRY_GENERATED_STATUS
+            applied.append(recognized_change)
+            continue
         by_path.setdefault(change["relativePath"], []).append(change)
 
-    applied = []
     for relative_path, path_changes in by_path.items():
         temp_json_path = temp_copy_dir / relative_path
         data = json.loads(temp_json_path.read_text(encoding="utf-8"))
@@ -477,20 +879,138 @@ def format_json_block(data: dict[str, Any]) -> list[str]:
     return ["```json", json.dumps(data, indent=2, ensure_ascii=False), "```"]
 
 
+def sequence_summary(sequence: list[dict[str, Any]]) -> str:
+    parts = []
+    for block in sequence:
+        operation = block.get("operation", "unknown")
+        args = []
+        for key in ("selector", "amount", "cleanup", "duration"):
+            if key in block:
+                args.append(f"{key}={block[key]}")
+        parts.append(f"{operation}({', '.join(args)})" if args else operation)
+    return " -> ".join(parts)
+
+
+def effect_variant_report_rows_from_changes(changes: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    rows = []
+    for change in changes:
+        if change.get("mode") != "effectVariant":
+            continue
+        variant = change["effectVariant"]
+        scope = variant["scope"]
+        rows.append({
+            "index": change.get("index", ""),
+            "variantId": variant["variantId"],
+            "label": variant["label"],
+            "factionId": scope["factionId"],
+            "cardId": scope["cardId"],
+            "baseEffectId": scope["baseEffectId"],
+            "timing": variant["timing"],
+            "sequence": sequence_summary(variant["sequence"]),
+            "telemetryTags": ", ".join(variant.get("telemetryTags", [])) or "None",
+            "status": change.get("status", EFFECT_VARIANT_STATUS),
+            "registryKey": change.get("registryKey", variant_registry_key(variant)),
+            "registryPath": str(change.get("registryPath") or "None"),
+            "variantHash": change.get("variantHash", stable_variant_hash(variant)),
+            "textPatch": variant.get("textPatch", {}).get("textShort", ""),
+        })
+    return rows
+
+
+def effect_variant_report_rows_from_data(data: dict[str, Any]) -> list[dict[str, Any]]:
+    if isinstance(data.get("_effectVariantReportRows"), list):
+        return data["_effectVariantReportRows"]
+    changes = []
+    for index, change in enumerate(data.get("changes", []), start=1):
+        if isinstance(change, dict) and is_effect_variant_change(change):
+            changes.append({
+                "index": index,
+                "mode": "effectVariant",
+                "effectVariant": change["effectVariant"],
+                "status": EFFECT_VARIANT_STATUS,
+            })
+    return effect_variant_report_rows_from_changes(changes)
+
+
+def has_effect_variants(data: dict[str, Any]) -> bool:
+    return bool(effect_variant_report_rows_from_data(data))
+
+
+def effect_variant_table_lines(rows: list[dict[str, Any]]) -> list[str]:
+    lines = [
+        "| # | Variant ID | Label | Faction ID | Card ID | Base effectId | Registry key | Registry path | Timing | Sequence | Telemetry tags | Status |",
+        "|---:|---|---|---|---|---|---|---|---|---|---|---|",
+    ]
+    if not rows:
+        lines.append("| N/A | None | None | None | None | None | None | None | None | None | None | none |")
+        return lines
+    for row in rows:
+        lines.append(
+            f"| {row['index']} | {row['variantId']} | {escape_markdown_table_cell(row['label'])} | "
+            f"{row['factionId']} | {row['cardId']} | {row['baseEffectId']} | "
+            f"{escape_markdown_table_cell(row['registryKey'])} | `{escape_markdown_table_cell(row['registryPath'])}` | "
+            f"{row['timing']} | {escape_markdown_table_cell(row['sequence'])} | "
+            f"{escape_markdown_table_cell(row['telemetryTags'])} | {row['status']} |"
+        )
+    return lines
+
+
+def effect_variant_summary_lines(rows: list[dict[str, Any]]) -> list[str]:
+    if not rows:
+        return ["No effect variants recognized."]
+    lines = []
+    for row in rows:
+        lines.extend([
+            f"- `{row['variantId']}` — {row['label']}",
+            f"  - Scope: `{row['factionId']}` / `{row['cardId']}` / `{row['baseEffectId']}`",
+            f"  - Registry key: `{row['registryKey']}`",
+            f"  - Registry path: `{row['registryPath']}`",
+            f"  - Timing: `{row['timing']}`",
+            f"  - Sequence: `{row['sequence']}`",
+            f"  - Telemetry tags: {row['telemetryTags']}",
+            f"  - Status: `{row['status']}`",
+        ])
+        if row.get("textPatch"):
+            lines.append(f"  - Report-only textPatch.textShort: {row['textPatch']}")
+    return lines
+
+
+def effect_variant_paste_lines(rows: list[dict[str, Any]]) -> list[str]:
+    if not rows:
+        return ["Effect variants: none"]
+    lines = ["Effect variants:"]
+    for row in rows:
+        lines.extend([
+            f"- variantId: {row['variantId']}",
+            f"  label: {row['label']}",
+            f"  scope: {row['factionId']} / {row['cardId']} / {row['baseEffectId']}",
+            f"  registryKey: {row['registryKey']}",
+            f"  registryPath: {row['registryPath']}",
+            f"  timing: {row['timing']}",
+            f"  sequence: {row['sequence']}",
+            f"  telemetryTags: {row['telemetryTags']}",
+            f"  status: {row['status']}",
+        ])
+    return lines
+
+
 def write_patch_summary(report_dir: Path, applied_changes: list[dict[str, Any]]) -> Path:
     patch_summary_path = report_dir / PATCH_SUMMARY_FILENAME
+    effect_variant_changes = [change for change in applied_changes if change.get("mode") == "effectVariant"]
+    patchable_changes = [change for change in applied_changes if change.get("mode") != "effectVariant"]
     lines = [
         "# Balance Lab Patch Summary",
         "",
-        "All patches were applied only inside the temporary experiment copy.",
+        "All executable card-data patches were applied only inside the temporary experiment copy.",
+        "Effect Variant entries are PR2-safe recognitions: runBaseEffect-only variants get a temp-copy registry and inert no-op runtime hook; variants with extra operations remain recognized_not_executed. No extra operations are executed.",
         "",
     ]
-    if not applied_changes:
-        lines.append("No card changes were requested.")
+    if not patchable_changes:
+        lines.append("No stat patch or full-card replacement changes were requested.")
         lines.append("")
     else:
-        stat_changes = [change for change in applied_changes if change.get("mode") == "stat"]
-        replacement_changes = [change for change in applied_changes if change.get("mode") == "replaceCard"]
+        stat_changes = [change for change in patchable_changes if change.get("mode") == "stat"]
+        replacement_changes = [change for change in patchable_changes if change.get("mode") == "replaceCard"]
         if stat_changes:
             lines.extend([
                 "## Stat patches",
@@ -520,6 +1040,14 @@ def write_patch_summary(report_dir: Path, applied_changes: list[dict[str, Any]])
                     *format_json_block(change["newCard"]),
                     "",
                 ])
+    lines.extend([
+        "## Effect Variant Recognition",
+        "",
+        "Status `registry_generated` means Balance Lab wrote the temp-copy active registry for a runBaseEffect-only variant. Status `recognized_not_executed` means the variant passed validation but contains operations not executed in PR2. PR2 executes only runBaseEffect-only variants; no extra operations are executed.",
+        "",
+        *effect_variant_table_lines(effect_variant_report_rows_from_changes(effect_variant_changes)),
+        "",
+    ])
     patch_summary_path.write_text("\n".join(lines), encoding="utf-8")
     return patch_summary_path
 
@@ -553,8 +1081,14 @@ def write_report(
         f"Experiment exit code: {experiment_result.returncode}",
         "",
         "The baseline ran in the real repo without patching files.",
-        "The experiment ran in the temporary copy after applying the requested JSON card changes only.",
+        "The experiment ran in the temporary copy after applying executable stat patch and replaceCard changes only.",
+        "Effect Variant entries are PR2-safe: runBaseEffect-only variants may use the inert no-op hook, while variants with extra operations remain report-only.",
         f"Full card replacement tested: {'yes' if has_full_card_replacement(data) else 'no'}",
+        f"Effect Variant entries recognized: {'yes' if has_effect_variants(data) else 'no'}",
+        "",
+        "## Effect Variant Recognition",
+        "",
+        *effect_variant_summary_lines(effect_variant_report_rows_from_data(data)),
         "",
         f"Baseline output: `{BASELINE_OUTPUT_FILENAME}`",
         f"Experiment output: `{EXPERIMENT_OUTPUT_FILENAME}`",
@@ -671,6 +1205,12 @@ def build_patch_summary_sentence(data: dict[str, Any]) -> str:
         return "No card changes requested."
     parts = []
     for change in changes:
+        if isinstance(change, dict) and is_effect_variant_change(change):
+            variant = change["effectVariant"]
+            scope = variant["scope"]
+            mode = "runBaseEffect-only" if is_run_base_effect_only_sequence(variant["sequence"]) else "report-only"
+            parts.append(f"effectVariant {variant['variantId']} ({scope['factionId']}/{scope['cardId']} {mode})")
+            continue
         faction = change.get("faction", "unknown faction")
         card_id = change.get("cardId", "unknown card")
         if "replaceCard" in change:
@@ -1150,6 +1690,7 @@ def build_comparison_report(
         if baseline_card_telemetry_present or experiment_card_telemetry_present
         else "Not present; files contain guidance placeholders."
     )
+    effect_variant_rows = effect_variant_report_rows_from_data(data)
 
     comparison_report_path = report_dir / COMPARISON_REPORT_FILENAME
     lines = [
@@ -1161,6 +1702,13 @@ def build_comparison_report(
         f"Telemetry: {data['telemetry']}",
         f"Patch summary: `{patch_summary_path}`",
         f"Full card replacement tested: {'yes' if has_full_card_replacement(data) else 'no'}",
+        f"Effect Variant entries recognized: {'yes' if effect_variant_rows else 'no'}",
+        "",
+        "## Effect Variant Recognition",
+        "",
+        "Status `registry_generated` means the temp-copy active registry was generated for a runBaseEffect-only variant. Status `recognized_not_executed` means extra operations were validated but not executed in PR2. PR2 executes only runBaseEffect-only variants; no extra operations were executed.",
+        "",
+        *effect_variant_table_lines(effect_variant_rows),
         "",
         "## Decision summary",
         "",
@@ -1231,6 +1779,8 @@ def build_comparison_report(
         f"Patch summary: {build_patch_summary_sentence(data)}",
         f"Verdict: {verdict} ({warning_count} warnings, {danger_count} dangers)",
         f"Recommendation: {recommendation}",
+        "",
+        *effect_variant_paste_lines(effect_variant_rows),
         "",
         "Faction non-draw WR deltas:",
         *paste_faction_lines,
@@ -1319,10 +1869,11 @@ def run_one_experiment(root: Path, experiment_path: Path, *, verbose: bool = Tru
     if verbose:
         print(f"Temp copy created: {temp_copy_dir}", flush=True)
 
-    applied_changes = apply_patches(temp_copy_dir, validated_changes)
+    applied_changes = apply_patches(temp_copy_dir, validated_changes, data, experiment_path)
+    data["_effectVariantReportRows"] = effect_variant_report_rows_from_changes(applied_changes)
     patch_summary_path = write_patch_summary(report_dir, applied_changes)
     if verbose:
-        print(f"Patches applied: {len(applied_changes)}", flush=True)
+        print(f"Changes processed: {len(applied_changes)}", flush=True)
 
     experiment_result = run_simulation(temp_copy_dir, command)
     (
@@ -1364,6 +1915,8 @@ def run_one_experiment(root: Path, experiment_path: Path, *, verbose: bool = Tru
         "warningCount": comparison_stats["warnings"],
         "dangerCount": comparison_stats["dangers"],
         "topFactionNonDrawWrDeltas": comparison_stats.get("topFactionNonDrawWrDeltas", []),
+        "effectVariantCount": len(effect_variant_report_rows_from_data(data)),
+        "effectVariantIds": [row["variantId"] for row in effect_variant_report_rows_from_data(data)],
         "error": "",
         "passed": experiment_result.returncode == 0,
     }
@@ -1409,18 +1962,21 @@ def write_batch_summary(batch_summary_dir: Path, results: list[dict[str, Any]]) 
         f"Passed: {passed_count}",
         f"Failed: {failed_count}",
         "",
-        "| Experiment | Config file | Report folder | Simulator exit code | Warnings | Dangers | Top faction non-draw WR deltas | Error |",
-        "|---|---|---|---:|---:|---:|---|---|",
+        "| Experiment | Config file | Report folder | Simulator exit code | Effect variants | Warnings | Dangers | Top faction non-draw WR deltas | Error |",
+        "|---|---|---|---:|---|---:|---:|---|---|",
     ]
     for result in results:
         report_dir = result["reportDir"] or ""
         exit_code = result["simulatorExitCode"]
         warning_count = result["warningCount"]
         danger_count = result["dangerCount"]
+        effect_variant_ids = result.get("effectVariantIds", [])
+        effect_variant_summary = "None" if not effect_variant_ids else ", ".join(effect_variant_ids)
         lines.append(
             f"| {escape_markdown_table_cell(result['name'])} | `{escape_markdown_table_cell(result['configPath'])}` | "
             f"`{escape_markdown_table_cell(report_dir)}` | "
             f"{exit_code if exit_code is not None else 'N/A'} | "
+            f"{escape_markdown_table_cell(effect_variant_summary)} | "
             f"{warning_count if warning_count is not None else 'N/A'} | "
             f"{danger_count if danger_count is not None else 'N/A'} | "
             f"{escape_markdown_table_cell(format_top_faction_deltas(result['topFactionNonDrawWrDeltas']))} | "
@@ -1489,6 +2045,8 @@ def failed_batch_result(experiment_path: Path, error_message: str) -> dict[str, 
         "warningCount": None,
         "dangerCount": None,
         "topFactionNonDrawWrDeltas": [],
+        "effectVariantCount": 0,
+        "effectVariantIds": [],
         "error": error_message.replace("\n", " "),
         "passed": False,
     }

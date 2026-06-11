@@ -1,0 +1,33 @@
+{
+  "name": "Example effect variant runBaseEffect-only parity",
+  "matchCount": 100,
+  "seed": 1337,
+  "telemetry": "all",
+  "changes": [
+    {
+      "mode": "effectVariant",
+      "effectVariant": {
+        "schemaVersion": 1,
+        "variantId": "example_run_base_effect_only_v1",
+        "label": "Run base effect only parity variant",
+        "scope": {
+          "factionId": "control",
+          "cardId": "control_jam_signal_1",
+          "baseEffectId": "enemy_up_to_2_atk_minus_1"
+        },
+        "timing": "afterBaseEffectBeforeDiscard",
+        "sequence": [
+          { "operation": "runBaseEffect" }
+        ],
+        "textPatch": {
+          "textShort": "Report-only text for runBaseEffect parity."
+        },
+        "telemetryTags": ["example", "run-base-effect-only", "parity"]
+      }
+    }
+  ],
+  "flags": {
+    "warningDeltaPp": 3,
+    "dangerDeltaPp": 8
+  }
+}

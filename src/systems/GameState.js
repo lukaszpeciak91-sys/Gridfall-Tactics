@@ -1,4 +1,5 @@
 import { GENERATED_UNIT_ART, getGeneratedGruntArtForSource } from '../data/generatedUnitArt.js';
+import { ACTIVE_EFFECT_VARIANTS } from './effectVariantRegistry.generated.js';
 
 const BOARD_SIZE = 9;
 const ENEMY_ROW = [0, 1, 2];
@@ -17,6 +18,28 @@ function hasSwarmAlphaAura(unit) {
 export const MAX_TURNS = 24;
 export const STARTING_HAND_SIZE = 4;
 export const MAX_OPENING_MULLIGAN_CARDS = 2;
+
+function isRunBaseEffectOnlyVariant(variant) {
+  return variant?.timing === 'afterBaseEffectBeforeDiscard'
+    && Array.isArray(variant.sequence)
+    && variant.sequence.length === 1
+    && variant.sequence[0]?.operation === 'runBaseEffect';
+}
+
+function findActiveEffectVariantForCard(card) {
+  if (!card?.id || !card?.effectId) return null;
+  const variants = Object.values(ACTIVE_EFFECT_VARIANTS ?? {});
+  return variants.find((variant) => (
+    variant?.scope?.cardId === card.id
+    && variant?.scope?.baseEffectId === card.effectId
+  )) ?? null;
+}
+
+function getActiveRunBaseEffectOnlyVariant(card) {
+  const variant = findActiveEffectVariantForCard(card);
+  if (!isRunBaseEffectOnlyVariant(variant)) return null;
+  return variant;
+}
 
 
 function resolveHeroHpTiebreakWinner(state, endingReason, resolvedByKey) {
@@ -1479,6 +1502,12 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
     recordProgressAction(state, owner, 'targeted-effect-blocked');
     completeActionOpportunity(state, owner);
     return { ok: true, type: 'targeted-effect-blocked', card: playedCard };
+  }
+
+  const activeRunBaseEffectOnlyVariant = getActiveRunBaseEffectOnlyVariant(card);
+  if (activeRunBaseEffectOnlyVariant) {
+    // Balance Lab v3 PR2: recognized runBaseEffect-only variants deliberately
+    // fall through to the production resolver below. No extra operations execute here.
   }
 
   switch (card.effectId) {
