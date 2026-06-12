@@ -104,6 +104,72 @@ This catalog is documentation only. It does not implement effect blocks.
 - If both selected units die from a block, telemetry should report both damage and kill count.
 - If one selected unit no longer exists, the variant must define whether to skip that unit or fail the variant.
 
+
+### `allOwnerUnits`
+
+**Meaning:** Every current board unit whose `unit.owner` is the acting `owner`.
+
+**Owner/opponent perspective:** If `owner` is `player`, this resolves player-owned board units; if `owner` is `enemy`, this resolves enemy-owned board units.
+
+**Existing repo behavior it maps to:** All-owner effects such as Fortify and Full Attack iterate the owner row and apply temporary modifiers to occupied owner slots.
+
+**Risks / caveats:**
+
+- Resolves zero, one, or many units and skips safely when the owner has no board units.
+- It is a unit selector and is not valid for base-damage operations.
+
+### `allOpponentUnits`
+
+**Meaning:** Every current board unit whose `unit.owner` is the acting `owner`'s opponent.
+
+**Owner/opponent perspective:** Uses `getOpponentOwner(owner)` and then resolves occupied opponent-row units.
+
+**Existing repo behavior it maps to:** Opponent-row effects such as Pulse Wave iterate opponent units.
+
+**Risks / caveats:**
+
+- Resolves zero, one, or many units deterministically in board-index order.
+- It is a unit selector and is not valid for base-damage operations.
+
+### `opposedOpponentUnit`
+
+**Meaning:** The opponent unit directly opposed to a safe owner-side source context. Runtime first uses the played/source unit lane when available; if there is no source lane, it falls back to the first preserved selected unit only when that selected unit is owner-owned.
+
+**Owner/opponent perspective:** The resolved target must belong to the opponent of the acting `owner`.
+
+**Existing repo behavior it maps to:** Lane-opposed unit effects such as Spitter use `boardIndex - 6` or `boardIndex + 6` to find the opposing row slot.
+
+**Risks / caveats:**
+
+- Non-targeted order effects do not have a lane source; if no owner source or selected owner unit exists, runtime skips with telemetry instead of guessing.
+- It is a unit selector and is not valid for base-damage operations.
+
+### `opposedOwnerUnit`
+
+**Meaning:** The owner unit directly opposed to the first preserved selected opponent unit.
+
+**Owner/opponent perspective:** The selected context must be opponent-owned and the resolved opposed unit must be owned by `owner`.
+
+**Existing repo behavior it maps to:** Effects that inspect the opposite lane use the same row offset as other lane-opposed logic.
+
+**Risks / caveats:**
+
+- This selector is intentionally limited to selected-opponent contexts; source-only owner contexts are skipped because “opposed owner unit” would otherwise be ambiguous.
+- It is a unit selector and is not valid for base-damage operations.
+
+### `adjacentOwnerUnits`
+
+**Meaning:** Owner units immediately left and/or right of a safe owner-side source context in the same row. Runtime first uses the played/source unit lane when available; if there is no source lane, it falls back to the first preserved selected unit only when that selected unit is owner-owned.
+
+**Owner/opponent perspective:** Adjacent targets must be owned by the acting `owner`.
+
+**Existing repo behavior it maps to:** Same-row adjacency used by adjacent ally auras, Shield Push adjacency checks, and adjacent ally temporary armor logic.
+
+**Risks / caveats:**
+
+- Missing, empty, opponent-owned, or cross-row slots are skipped with telemetry; runtime does not infer a source for non-targeted order effects.
+- It is a unit selector and is not valid for base-damage operations.
+
 ### `enemyBase`
 
 **Meaning:** The enemy base HP pool, represented by `enemyHP`.

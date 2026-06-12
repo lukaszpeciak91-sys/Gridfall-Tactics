@@ -1,0 +1,36 @@
+{
+  "name": "Example effect variant damageUnit opposedOpponentUnit execution",
+  "matchCount": 100,
+  "seed": 1337,
+  "telemetry": "all",
+  "changes": [
+    {
+      "mode": "effectVariant",
+      "effectVariant": {
+        "schemaVersion": 1,
+        "variantId": "example_opposed_opponent_damage_v1",
+        "label": "Base effect plus damageUnit opposedOpponentUnit example",
+        "scope": {
+          "factionId": "swarm",
+          "cardId": "swarm_spitter_1",
+          "baseEffectId": "on_play_lane_damage_1"
+        },
+        "timing": "afterBaseEffectBeforeDiscard",
+        "sequence": [
+          { "operation": "runBaseEffect" },
+          {
+            "operation": "damageUnit",
+            "selector": "opposedOpponentUnit",
+            "amount": 1,
+            "cleanup": "nonCombat"
+          }
+        ],
+        "telemetryTags": ["example", "opposed-opponent-unit", "damage-unit", "execution"]
+      }
+    }
+  ],
+  "flags": {
+    "warningDeltaPp": 3,
+    "dangerDeltaPp": 8
+  }
+}
