@@ -43,7 +43,7 @@ def utf8_subprocess_env() -> dict[str, str]:
 
 
 ALLOWED_STAT_FIELDS = {"attack", "hp", "armor"}
-REQUIRED_REPLACE_CARD_FIELDS = {"id", "name", "type", "targeting", "effectId", "textShort"}
+REQUIRED_REPLACE_CARD_FIELDS = {"id", "name", "type", "targeting", "textShort"}
 REQUIRED_UNIT_REPLACE_CARD_FIELDS = {"attack", "hp", "armor"}
 ALLOWED_TELEMETRY_MODES = {"", "basic", "cards", "ai", "all"}
 EFFECT_VARIANT_SCHEMA_VERSION = 1
@@ -325,9 +325,13 @@ def validate_replace_card_shape(change: dict[str, Any], index: int) -> None:
         )
     if replace_card.get("id") != change["cardId"]:
         raise BalanceLabError(f"Change #{index} replaceCard.id must match cardId exactly.")
-    for key in ("id", "name", "type", "targeting", "effectId", "textShort"):
+    for key in ("id", "name", "type", "targeting", "textShort"):
         if not isinstance(replace_card.get(key), str) or not replace_card.get(key):
             raise BalanceLabError(f"Change #{index} replaceCard.{key} must be a non-empty string.")
+    if "effectId" in replace_card:
+        effect_id = replace_card["effectId"]
+        if effect_id is not None and (not isinstance(effect_id, str) or not effect_id):
+            raise BalanceLabError(f"Change #{index} replaceCard.effectId must be a non-empty string, null, or omitted.")
     if replace_card["type"] == "unit":
         for key in sorted(REQUIRED_UNIT_REPLACE_CARD_FIELDS):
             value = replace_card.get(key)
@@ -605,8 +609,8 @@ def validate_requested_changes(root: Path, changes: list[dict[str, Any]]) -> lis
 
         if "replaceCard" in change:
             replace_card = dict(change["replaceCard"])
-            effect_id = replace_card["effectId"]
-            if effect_id not in known_effect_ids:
+            effect_id = replace_card.get("effectId")
+            if effect_id is not None and effect_id not in known_effect_ids:
                 raise BalanceLabError(
                     f"Change #{index} replaceCard.effectId '{effect_id}' is not an existing effectId. "
                     "Balance Lab v2-lite cannot add custom effect logic."
@@ -1253,6 +1257,24 @@ def effect_variant_paste_lines(rows: list[dict[str, Any]]) -> list[str]:
     return lines
 
 
+def format_patch_value(value: Any) -> str:
+    if isinstance(value, str):
+        return value
+    return json.dumps(value, ensure_ascii=False)
+
+
+def replacement_delta_lines(old_card: dict[str, Any], new_card: dict[str, Any]) -> list[str]:
+    fields = sorted(set(old_card) | set(new_card))
+    lines = []
+    for field in fields:
+        old_value = old_card.get(field) if field in old_card else "(omitted)"
+        new_value = new_card.get(field) if field in new_card else "(omitted)"
+        if old_value == new_value:
+            continue
+        lines.append(f"- {field}: {format_patch_value(old_value)} → {format_patch_value(new_value)}")
+    return lines or ["- No field-level differences detected."]
+
+
 def write_patch_summary(report_dir: Path, applied_changes: list[dict[str, Any]]) -> Path:
     patch_summary_path = report_dir / PATCH_SUMMARY_FILENAME
     effect_variant_changes = [change for change in applied_changes if change.get("mode") == "effectVariant"]
@@ -1291,6 +1313,9 @@ def write_patch_summary(report_dir: Path, applied_changes: list[dict[str, Any]])
                     f"### Change #{change['index']}: {change['faction']} / {change['cardId']}",
                     "",
                     f"Temp source JSON path: `{change['tempJsonPath']}`",
+                    "",
+                    "Changed fields:",
+                    *replacement_delta_lines(change["oldCard"], change["newCard"]),
                     "",
                     "Old card JSON:",
                     *format_json_block(change["oldCard"]),
