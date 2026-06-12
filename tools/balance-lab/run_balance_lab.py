@@ -50,6 +50,7 @@ EFFECT_VARIANT_SCHEMA_VERSION = 1
 EFFECT_VARIANT_STATUS = "recognized_not_executed"
 EFFECT_VARIANT_REGISTRY_GENERATED_STATUS = "registry_generated"
 EFFECT_VARIANT_DAMAGE_UNIT_EXECUTED_STATUS = "damage_unit_executed"
+EFFECT_VARIANT_STAT_MODIFIER_EXECUTED_STATUS = "stat_modifier_executed"
 EFFECT_VARIANT_REGISTRY_RELATIVE_PATH = Path("src/systems/effectVariantRegistry.generated.js")
 EFFECT_VARIANT_SAFE_ID_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_-]{2,96}$")
 EFFECT_VARIANT_BLOCKED_OPERATION_KEYS = {"code", "script", "function", "eval", "import", "module", "path", "patch"}
@@ -392,8 +393,10 @@ def validate_effect_variant_operation_block(operation_block: Any, change_index: 
                 raise BalanceLabError(f"{context}.{required_key} is required for {operation}.")
         validate_unit_selector(operation_block.get("selector"), context)
         validate_positive_int(operation_block.get("amount"), f"{context}.amount")
-        if "duration" in operation_block and operation_block.get("duration") != "untilCombatCleanup":
-            raise BalanceLabError(f"{context}.duration must be untilCombatCleanup when provided.")
+        if "duration" not in operation_block:
+            raise BalanceLabError(f"{context}.duration is required for {operation}.")
+        if operation_block.get("duration") != "untilCombatCleanup":
+            raise BalanceLabError(f"{context}.duration must be untilCombatCleanup.")
         return
 
 
@@ -653,9 +656,35 @@ def is_damage_unit_executable_variant(variant: dict[str, Any]) -> bool:
     )
 
 
+def is_stat_modifier_operation_block(block: dict[str, Any]) -> bool:
+    return isinstance(block, dict) and block.get("operation") in {"debuffAttack", "debuffArmor", "buffAttack", "buffArmor"}
+
+
+def is_pr4_executable_operation_block(block: dict[str, Any]) -> bool:
+    return isinstance(block, dict) and (block.get("operation") == "damageUnit" or is_stat_modifier_operation_block(block))
+
+
+def is_pr4_executable_variant(variant: dict[str, Any]) -> bool:
+    sequence = variant.get("sequence")
+    return (
+        isinstance(sequence, list)
+        and len(sequence) >= 2
+        and isinstance(sequence[0], dict)
+        and sequence[0] == {"operation": "runBaseEffect"}
+        and all(is_pr4_executable_operation_block(block) for block in sequence[1:])
+    )
+
+
+def is_stat_modifier_executable_variant(variant: dict[str, Any]) -> bool:
+    sequence = variant.get("sequence")
+    return is_pr4_executable_variant(variant) and any(is_stat_modifier_operation_block(block) for block in sequence[1:])
+
+
 def effect_variant_execution_status(variant: dict[str, Any]) -> str:
     if is_run_base_effect_only_variant(variant):
         return EFFECT_VARIANT_REGISTRY_GENERATED_STATUS
+    if is_stat_modifier_executable_variant(variant):
+        return EFFECT_VARIANT_STAT_MODIFIER_EXECUTED_STATUS
     if is_damage_unit_executable_variant(variant):
         return EFFECT_VARIANT_DAMAGE_UNIT_EXECUTED_STATUS
     return EFFECT_VARIANT_STATUS
@@ -669,11 +698,13 @@ def effect_variant_hash(variant: dict[str, Any]) -> str:
 def effect_variant_runtime_metadata(variant: dict[str, Any], registry_path: Path | str = EFFECT_VARIANT_REGISTRY_RELATIVE_PATH) -> dict[str, Any]:
     run_base_effect_only = is_run_base_effect_only_variant(variant)
     damage_unit_executable = is_damage_unit_executable_variant(variant)
+    stat_modifier_executable = is_stat_modifier_executable_variant(variant)
     return {
         "registryKey": effect_variant_registry_key(variant),
         "variantHash": effect_variant_hash(variant),
         "runBaseEffectOnly": run_base_effect_only,
         "damageUnitExecutable": damage_unit_executable,
+        "statModifierExecutable": stat_modifier_executable,
         "registryPath": str(registry_path),
         "status": effect_variant_execution_status(variant),
     }
@@ -854,7 +885,7 @@ def apply_patches(temp_copy_dir: Path, validated_changes: list[dict[str, Any]]) 
 def build_effect_variant_registry_entries(applied_changes: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     entries: dict[str, dict[str, Any]] = {}
     for change in applied_changes:
-        if change.get("mode") != "effectVariant" or change.get("status") not in {EFFECT_VARIANT_REGISTRY_GENERATED_STATUS, EFFECT_VARIANT_DAMAGE_UNIT_EXECUTED_STATUS}:
+        if change.get("mode") != "effectVariant" or change.get("status") not in {EFFECT_VARIANT_REGISTRY_GENERATED_STATUS, EFFECT_VARIANT_DAMAGE_UNIT_EXECUTED_STATUS, EFFECT_VARIANT_STAT_MODIFIER_EXECUTED_STATUS}:
             continue
         variant = change["effectVariant"]
         scope = variant["scope"]
@@ -867,6 +898,7 @@ def build_effect_variant_registry_entries(applied_changes: list[dict[str, Any]])
             "variantHash": change["variantHash"],
             "runBaseEffectOnly": bool(change.get("runBaseEffectOnly")),
             "damageUnitExecutable": bool(change.get("damageUnitExecutable")),
+            "statModifierExecutable": bool(change.get("statModifierExecutable")),
             "scope": {
                 "factionId": scope["factionId"],
                 "cardId": scope["cardId"],
@@ -924,8 +956,16 @@ def effect_variant_operation_telemetry_summary(variant: dict[str, Any], status: 
                 "damage dealt/kills/skips recorded in GameState telemetry, "
                 f"status={status}"
             )
+        elif operation in {"debuffAttack", "debuffArmor", "buffAttack", "buffArmor"}:
+            operation_parts.append(
+                f"{operation}: "
+                f"selector={block.get('selector')}, amount={block.get('amount')}, duration={block.get('duration')}, "
+                "targets resolved at runtime by preserved unit identity, "
+                "attack/armor added/reduced and skips recorded in GameState telemetry, "
+                f"status={status}"
+            )
         else:
-            operation_parts.append(f"{operation}: PR3 unsupported for execution; status={status}")
+            operation_parts.append(f"{operation}: PR4 unsupported for execution; status={status}")
     return " ; ".join(operation_parts)
 
 
@@ -937,7 +977,7 @@ def effect_variant_operation_report_lines(rows: list[dict[str, Any]]) -> list[st
         lines.extend([
             f"- `{row['variantId']}` (`{row['registryKey']}`) status `{row['status']}`",
             f"  - Operation telemetry metadata: {row['operationTelemetrySummary']}",
-            "  - Runtime counters: damageUnit execution writes per-operation entries to `state.effectVariantOperationTelemetry`; aggregate report counters are deferred because PR3 does not modify `scripts/simulate-battles.mjs`.",
+            "  - Runtime counters: damageUnit/stat modifier execution writes per-operation entries to `state.effectVariantOperationTelemetry`; aggregate report counters are deferred because PR4 does not modify `scripts/simulate-battles.mjs`.",
         ])
     return lines
 
@@ -955,6 +995,7 @@ def effect_variant_report_rows_from_changes(changes: list[dict[str, Any]]) -> li
         variant_hash = change.get("variantHash", runtime.get("variantHash", metadata["variantHash"]))
         run_base_effect_only = change.get("runBaseEffectOnly", runtime.get("runBaseEffectOnly", metadata["runBaseEffectOnly"]))
         damage_unit_executable = change.get("damageUnitExecutable", runtime.get("damageUnitExecutable", metadata["damageUnitExecutable"]))
+        stat_modifier_executable = change.get("statModifierExecutable", runtime.get("statModifierExecutable", metadata["statModifierExecutable"]))
         status = change.get("status", runtime.get("status", metadata["status"]))
         rows.append({
             "index": change.get("index", ""),
@@ -967,6 +1008,7 @@ def effect_variant_report_rows_from_changes(changes: list[dict[str, Any]]) -> li
             "variantHash": variant_hash,
             "runBaseEffectOnly": run_base_effect_only,
             "damageUnitExecutable": damage_unit_executable,
+            "statModifierExecutable": stat_modifier_executable,
             "baseEffectId": scope["baseEffectId"],
             "timing": variant["timing"],
             "sequence": sequence_summary(variant["sequence"]),
@@ -1007,6 +1049,7 @@ def annotate_experiment_data_with_effect_variant_runtime(data: dict[str, Any], a
                 "variantHash": applied.get("variantHash", ""),
                 "runBaseEffectOnly": bool(applied.get("runBaseEffectOnly")),
                 "damageUnitExecutable": bool(applied.get("damageUnitExecutable")),
+                "statModifierExecutable": bool(applied.get("statModifierExecutable")),
                 "status": applied.get("status", EFFECT_VARIANT_STATUS),
             }
             annotated_changes.append(annotated_change)
@@ -1052,6 +1095,7 @@ def effect_variant_summary_lines(rows: list[dict[str, Any]]) -> list[str]:
             f"  - Variant hash: `{row['variantHash']}`",
             f"  - runBaseEffect-only: `{str(row['runBaseEffectOnly']).lower()}`",
             f"  - damageUnit executable: `{str(row['damageUnitExecutable']).lower()}`",
+            f"  - stat modifier executable: `{str(row['statModifierExecutable']).lower()}`",
             f"  - Timing: `{row['timing']}`",
             f"  - Sequence: `{row['sequence']}`",
             f"  - Telemetry tags: {row['telemetryTags']}",
@@ -1077,6 +1121,7 @@ def effect_variant_paste_lines(rows: list[dict[str, Any]]) -> list[str]:
             f"  variantHash: {row['variantHash']}",
             f"  runBaseEffectOnly: {str(row['runBaseEffectOnly']).lower()}",
             f"  damageUnitExecutable: {str(row['damageUnitExecutable']).lower()}",
+            f"  statModifierExecutable: {str(row['statModifierExecutable']).lower()}",
             f"  baseEffectId: {row['baseEffectId']}",
             f"  timing: {row['timing']}",
             f"  sequence: {row['sequence']}",
@@ -1095,7 +1140,7 @@ def write_patch_summary(report_dir: Path, applied_changes: list[dict[str, Any]])
         "# Balance Lab Patch Summary",
         "",
         "All executable card-data patches were applied only inside the temporary experiment copy.",
-        "Effect Variant entries generate a temp-copy runtime registry for runBaseEffect-only variants and PR3 damageUnit executable variants. Other recognized operations remain report-only with recognized_not_executed status.",
+        "Effect Variant entries generate a temp-copy runtime registry for runBaseEffect-only variants, damageUnit executable variants, and PR4 stat modifier executable variants. damageEnemyBase, damagePlayerBase, and drawOne remain report-only with recognized_not_executed status and a PR4 unsupported-execution note.",
         "",
     ]
     if not patchable_changes:
@@ -1136,7 +1181,7 @@ def write_patch_summary(report_dir: Path, applied_changes: list[dict[str, Any]])
     lines.extend([
         "## Effect Variant Recognition",
         "",
-        "Status `registry_generated` means a temp-copy active registry entry was written for an exactly runBaseEffect-only variant. Status `damage_unit_executed` means PR3 wrote a temp-copy active registry entry for runBaseEffect followed by one or more damageUnit operations. Status `recognized_not_executed` means the variant remains report-only; PR3 does not execute debuffAttack, debuffArmor, buffAttack, buffArmor, damageEnemyBase, damagePlayerBase, or drawOne.",
+        "Status `registry_generated` means a temp-copy active registry entry was written for an exactly runBaseEffect-only variant. Status `damage_unit_executed` means a temp-copy active registry entry was written for runBaseEffect followed by one or more damageUnit operations. Status `stat_modifier_executed` means PR4 wrote a temp-copy active registry entry for runBaseEffect followed by one or more stat modifier operations, optionally mixed with damageUnit. Status `recognized_not_executed` means the variant remains report-only; PR4 does not execute damageEnemyBase, damagePlayerBase, or drawOne.",
         "",
         *effect_variant_table_lines(effect_variant_report_rows_from_changes(effect_variant_changes)),
         "",
@@ -1178,8 +1223,8 @@ def write_report(
         f"Experiment exit code: {experiment_result.returncode}",
         "",
         "The baseline ran in the real repo without patching files.",
-        "The experiment ran in the temporary copy after applying executable stat patch and replaceCard changes plus a temp-copy effect variant registry for runBaseEffect-only and PR3 damageUnit executable variants.",
-        "PR3 executes runBaseEffect-only parity variants and generic damageUnit operations after the base effect; other recognized operations remain report-only.",
+        "The experiment ran in the temporary copy after applying executable stat patch and replaceCard changes plus a temp-copy effect variant registry for runBaseEffect-only, damageUnit, and PR4 stat modifier executable variants.",
+        "PR4 executes runBaseEffect-only parity variants, generic damageUnit operations, and generic temporary stat modifier operations after the base effect; damageEnemyBase, damagePlayerBase, and drawOne remain report-only.",
         f"Full card replacement tested: {'yes' if has_full_card_replacement(data) else 'no'}",
         f"Effect Variant entries recognized: {'yes' if has_effect_variants(data) else 'no'}",
         "",
@@ -1807,7 +1852,7 @@ def build_comparison_report(
         "",
         "## Effect Variant Recognition",
         "",
-        "Status `registry_generated` means a temp-copy active registry entry was written for an exactly runBaseEffect-only variant. Status `damage_unit_executed` means PR3 wrote a temp-copy active registry entry for runBaseEffect followed by one or more damageUnit operations. Status `recognized_not_executed` means the variant remains report-only; PR3 does not execute debuffAttack, debuffArmor, buffAttack, buffArmor, damageEnemyBase, damagePlayerBase, or drawOne.",
+        "Status `registry_generated` means a temp-copy active registry entry was written for an exactly runBaseEffect-only variant. Status `damage_unit_executed` means a temp-copy active registry entry was written for runBaseEffect followed by one or more damageUnit operations. Status `stat_modifier_executed` means PR4 wrote a temp-copy active registry entry for runBaseEffect followed by one or more stat modifier operations, optionally mixed with damageUnit. Status `recognized_not_executed` means the variant remains report-only; PR4 does not execute damageEnemyBase, damagePlayerBase, or drawOne.",
         "",
         *effect_variant_table_lines(effect_variant_rows),
         "",

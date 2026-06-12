@@ -1017,12 +1017,19 @@ function getEffectVariantRegistryKey(state, owner, sourceCard, effectId) {
   return `${factionId}::${cardId}::${effectId}`;
 }
 
-const EFFECT_VARIANT_DAMAGE_UNIT_SELECTORS = new Set([
+const EFFECT_VARIANT_UNIT_SELECTORS = new Set([
   'selectedOpponentUnit',
   'selectedOwnerUnit',
   'firstSelectedAfterBaseEffect',
   'secondSelectedAfterBaseEffect',
   'bothSelectedAfterBaseEffect',
+]);
+
+const EFFECT_VARIANT_STAT_MODIFIER_OPERATIONS = new Set([
+  'debuffAttack',
+  'debuffArmor',
+  'buffAttack',
+  'buffArmor',
 ]);
 
 function isRunBaseEffectOperation(operation) {
@@ -1031,11 +1038,24 @@ function isRunBaseEffectOperation(operation) {
 
 function isDamageUnitOperation(operation) {
   return operation?.operation === 'damageUnit'
-    && EFFECT_VARIANT_DAMAGE_UNIT_SELECTORS.has(operation.selector)
+    && EFFECT_VARIANT_UNIT_SELECTORS.has(operation.selector)
     && Number.isInteger(operation.amount)
     && operation.amount > 0
     && operation.cleanup === 'nonCombat'
     && Object.keys(operation).every((key) => ['operation', 'selector', 'amount', 'cleanup'].includes(key));
+}
+
+function isStatModifierOperation(operation) {
+  return EFFECT_VARIANT_STAT_MODIFIER_OPERATIONS.has(operation?.operation)
+    && EFFECT_VARIANT_UNIT_SELECTORS.has(operation.selector)
+    && Number.isInteger(operation.amount)
+    && operation.amount > 0
+    && operation.duration === 'untilCombatCleanup'
+    && Object.keys(operation).every((key) => ['operation', 'selector', 'amount', 'duration'].includes(key));
+}
+
+function isExecutableEffectVariantOperation(operation) {
+  return isDamageUnitOperation(operation) || isStatModifierOperation(operation);
 }
 
 function isRunBaseEffectOnlyActiveVariant(variant, effectId) {
@@ -1056,11 +1076,21 @@ function isDamageUnitExecutableActiveVariant(variant, effectId) {
     && sequence.slice(1).every(isDamageUnitOperation);
 }
 
+function isEffectVariantExecutableActiveVariant(variant, effectId) {
+  const sequence = variant?.sequence;
+  return Boolean(variant && variant.baseEffectId === effectId)
+    && variant.timing === 'afterBaseEffectBeforeDiscard'
+    && Array.isArray(sequence)
+    && sequence.length >= 2
+    && isRunBaseEffectOperation(sequence[0])
+    && sequence.slice(1).every(isExecutableEffectVariantOperation);
+}
+
 function getActiveEffectVariant(state, owner, sourceCard, effectId) {
   const registryKey = getEffectVariantRegistryKey(state, owner, sourceCard, effectId);
   if (!registryKey) return null;
   const variant = ACTIVE_EFFECT_VARIANTS[registryKey];
-  if (isRunBaseEffectOnlyActiveVariant(variant, effectId) || isDamageUnitExecutableActiveVariant(variant, effectId)) {
+  if (isRunBaseEffectOnlyActiveVariant(variant, effectId) || isEffectVariantExecutableActiveVariant(variant, effectId)) {
     return variant;
   }
   return null;
@@ -1079,7 +1109,7 @@ function findCapturedUnitIndex(state, capturedTarget) {
   return state.board.findIndex((unit) => unit === capturedTarget.unit);
 }
 
-function resolveEffectVariantDamageTargets(state, owner, selector, capturedTargets) {
+function resolveEffectVariantUnitTargets(state, owner, selector, capturedTargets) {
   const opponent = getOpponentOwner(owner);
   const targetAt = (selectedPosition) => {
     const capturedTarget = capturedTargets[selectedPosition];
@@ -1119,55 +1149,111 @@ function recordEffectVariantOperationTelemetry(state, variant, operation, teleme
   });
 }
 
-function executeDamageUnitVariantOperations(state, owner, sourceCard, effectId, capturedTargets) {
+function executeEffectVariantOperations(state, owner, sourceCard, effectId, capturedTargets) {
   const variant = getActiveEffectVariant(state, owner, sourceCard, effectId);
-  if (!variant || !isDamageUnitExecutableActiveVariant(variant, effectId)) return;
+  if (!variant || !isEffectVariantExecutableActiveVariant(variant, effectId)) return;
 
   variant.sequence.slice(1).forEach((operation) => {
-    const targetResults = resolveEffectVariantDamageTargets(state, owner, operation.selector, capturedTargets);
-    const cleanupIndexes = [];
+    const targetResults = resolveEffectVariantUnitTargets(state, owner, operation.selector, capturedTargets);
     const targetTelemetry = [];
-    let damageDealt = 0;
-    let kills = 0;
 
-    targetResults.forEach((target) => {
-      if (!target.unit || target.skipped) {
-        targetTelemetry.push({ index: target.index, skipped: target.skipped ?? 'no_target' });
-        return;
-      }
-      const beforeHp = target.unit.hp;
-      applyDamageToUnit(state, target.index, operation.amount);
-      const afterUnit = state.board[target.index];
-      const afterHp = afterUnit === target.unit ? afterUnit.hp : null;
-      const dealt = Number.isFinite(beforeHp) && Number.isFinite(afterHp)
-        ? Math.max(0, beforeHp - afterHp)
-        : operation.amount;
-      damageDealt += dealt;
-      cleanupIndexes.push(target.index);
-      targetTelemetry.push({ index: target.index, owner: target.unit.owner, damageDealt: dealt });
-    });
+    if (isDamageUnitOperation(operation)) {
+      const cleanupIndexes = [];
+      let damageDealt = 0;
+      let kills = 0;
 
-    cleanupDefeatedUnitsWithTriggers(state, cleanupIndexes, { combat: false });
-    targetTelemetry.forEach((entry) => {
-      if (entry.skipped || !Number.isInteger(entry.index)) return;
-      if (!state.board[entry.index]) {
-        entry.killed = true;
-        kills += 1;
-      } else {
-        entry.killed = false;
-      }
-    });
+      targetResults.forEach((target) => {
+        if (!target.unit || target.skipped) {
+          targetTelemetry.push({ index: target.index, skipped: target.skipped ?? 'no_target' });
+          return;
+        }
+        const beforeHp = target.unit.hp;
+        applyDamageToUnit(state, target.index, operation.amount);
+        const afterUnit = state.board[target.index];
+        const afterHp = afterUnit === target.unit ? afterUnit.hp : null;
+        const dealt = Number.isFinite(beforeHp) && Number.isFinite(afterHp)
+          ? Math.max(0, beforeHp - afterHp)
+          : operation.amount;
+        damageDealt += dealt;
+        cleanupIndexes.push(target.index);
+        targetTelemetry.push({ index: target.index, owner: target.unit.owner, damageDealt: dealt });
+      });
 
-    recordEffectVariantOperationTelemetry(state, variant, operation, {
-      status: 'damage_unit_executed',
-      targetsResolved: targetTelemetry.filter((entry) => !entry.skipped).length,
-      damageDealt,
-      kills,
-      skippedTargets: targetTelemetry.filter((entry) => entry.skipped),
-      targets: targetTelemetry,
-    });
+      cleanupDefeatedUnitsWithTriggers(state, cleanupIndexes, { combat: false });
+      targetTelemetry.forEach((entry) => {
+        if (entry.skipped || !Number.isInteger(entry.index)) return;
+        if (!state.board[entry.index]) {
+          entry.killed = true;
+          kills += 1;
+        } else {
+          entry.killed = false;
+        }
+      });
+
+      recordEffectVariantOperationTelemetry(state, variant, operation, {
+        status: 'damage_unit_executed',
+        targetsResolved: targetTelemetry.filter((entry) => !entry.skipped).length,
+        damageDealt,
+        kills,
+        skippedTargets: targetTelemetry.filter((entry) => entry.skipped),
+        targets: targetTelemetry,
+      });
+      return;
+    }
+
+    if (isStatModifierOperation(operation)) {
+      let totalAttackAdded = 0;
+      let totalAttackReduced = 0;
+      let totalArmorAdded = 0;
+      let totalArmorReduced = 0;
+
+      targetResults.forEach((target) => {
+        if (!target.unit || target.skipped) {
+          targetTelemetry.push({ index: target.index, skipped: target.skipped ?? 'no_target' });
+          return;
+        }
+
+        const attackDelta = operation.operation === 'buffAttack'
+          ? operation.amount
+          : (operation.operation === 'debuffAttack' ? -operation.amount : 0);
+        const armorDelta = operation.operation === 'buffArmor'
+          ? operation.amount
+          : (operation.operation === 'debuffArmor' ? -operation.amount : 0);
+
+        if (attackDelta !== 0) {
+          target.unit.tempAttackMod = (target.unit.tempAttackMod ?? 0) + attackDelta;
+          if (attackDelta > 0) totalAttackAdded += attackDelta;
+          if (attackDelta < 0) totalAttackReduced += Math.abs(attackDelta);
+        }
+        if (armorDelta !== 0) {
+          target.unit.tempArmorMod = (target.unit.tempArmorMod ?? 0) + armorDelta;
+          if (armorDelta > 0) totalArmorAdded += armorDelta;
+          if (armorDelta < 0) totalArmorReduced += Math.abs(armorDelta);
+        }
+
+        targetTelemetry.push({
+          index: target.index,
+          owner: target.unit.owner,
+          attackDelta,
+          armorDelta,
+        });
+      });
+
+      recordEffectVariantOperationTelemetry(state, variant, operation, {
+        status: 'stat_modifier_executed',
+        duration: operation.duration,
+        targetsResolved: targetTelemetry.filter((entry) => !entry.skipped).length,
+        totalAttackAdded,
+        totalAttackReduced,
+        totalArmorAdded,
+        totalArmorReduced,
+        skippedTargets: targetTelemetry.filter((entry) => entry.skipped),
+        targets: targetTelemetry,
+      });
+    }
   });
 }
+
 
 function applyEffectById(state, owner, effectId, sourceCard = null) {
   getActiveEffectVariant(state, owner, sourceCard, effectId);
@@ -1822,7 +1908,7 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
       return { ok: false, reason: 'Effect does not support targeted resolution' };
   }
 
-  executeDamageUnitVariantOperations(state, owner, card, card.effectId, effectVariantSelectedTargets);
+  executeEffectVariantOperations(state, owner, card, card.effectId, effectVariantSelectedTargets);
 
   const drawResult = card.drawResult ?? null;
   if (card.drawResult) delete card.drawResult;
