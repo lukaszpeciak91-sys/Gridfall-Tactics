@@ -1,0 +1,29 @@
+{
+  "name": "Example full card replacement with no effect",
+  "matchCount": 100,
+  "seed": 1337,
+  "telemetry": "all",
+  "changes": [
+    {
+      "faction": "Swarm",
+      "cardId": "swarm_recycle_1",
+      "replaceCard": {
+        "id": "swarm_recycle_1",
+        "cardNumber": 10,
+        "artAssetId": "swarm_10",
+        "name": "Substrate Test",
+        "type": "unit",
+        "targeting": "lane",
+        "effectId": null,
+        "textShort": "Vanilla 1/2 unit.",
+        "attack": 1,
+        "hp": 2,
+        "armor": 0
+      }
+    }
+  ],
+  "flags": {
+    "warningDeltaPp": 3,
+    "dangerDeltaPp": 8
+  }
+}

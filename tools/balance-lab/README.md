@@ -15,7 +15,7 @@ For Balance Lab v3 planning, see the controlled Experimental Effect Blocks catal
 Balance Lab v2-lite supports two local card-data experiment modes:
 
 1. **Stat patch mode** — changes exactly one allowed numeric stat per change: `attack`, `hp`, or `armor`.
-2. **replaceCard mode** — replaces one full card object in the temporary experiment copy only. The replacement must keep the same `id` as `cardId`, must use an `effectId` that already exists in repo card data, and must not include `effectParams`.
+2. **replaceCard mode** — replaces one full card object in the temporary experiment copy only. The replacement must keep the same `id` as `cardId`; `effectId` may be an existing effect id, `null`, or omitted; and the replacement must not include `effectParams`.
 
 Balance Lab v2-lite does **not** add new effect behavior. It does not patch `GameState.js`, create temporary effect variants, run custom effect logic, make permanent card changes, or automatically balance cards for you.
 
@@ -226,7 +226,6 @@ Required `replaceCard` fields:
 - `name`
 - `type`
 - `targeting`
-- `effectId`
 - `textShort`
 
 If `type` is `"unit"`, these fields are also required and must be integers greater than or equal to 0:
@@ -235,7 +234,7 @@ If `type` is `"unit"`, these fields are also required and must be integers great
 - `hp`
 - `armor`
 
-Full replacement may update display fields such as `name`, `textShort`, `targeting`, `artAssetId`, and `cardNumber`. `replaceCard.effectId` must be an existing effectId already present in the repo card data. Balance Lab v2-lite does not add new effect logic, does not support `effectParams`, and does not make unknown custom effects work. New effect behavior still requires the normal repo implementation path in gameplay code and AI support.
+Full replacement may update display fields such as `name`, `textShort`, `targeting`, `artAssetId`, and `cardNumber`. When present, `replaceCard.effectId` must be either an existing effectId already present in the repo card data or `null` for a vanilla/no-effect card. Omitting `effectId` is also allowed for replacement objects that intentionally have no effect field. Balance Lab v2-lite does not add new effect logic, does not support `effectParams`, and does not make unknown custom effects work. New effect behavior still requires the normal repo implementation path in gameplay code and AI support.
 
 Example:
 
@@ -346,8 +345,9 @@ Balance Lab rejects unsupported changes before it creates a temp copy or patches
 - negative stat values, such as `field: "hp"` with `value: -1`.
 - `replaceCard.id` that differs from `cardId`.
 - `replaceCard.effectParams`.
-- missing or empty `replaceCard.effectId`.
-- `replaceCard.effectId` values that do not already exist in repo card data.
+- empty-string `replaceCard.effectId`.
+- non-string/non-null `replaceCard.effectId` values such as numbers, objects, or arrays.
+- string `replaceCard.effectId` values that do not already exist in repo card data.
 - unknown `cardId` values that do not exist in the selected faction deck.
 - unknown `faction` values that do not match a file in `src/data/factions/`.
 
