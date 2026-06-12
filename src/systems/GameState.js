@@ -1032,6 +1032,11 @@ const EFFECT_VARIANT_STAT_MODIFIER_OPERATIONS = new Set([
   'buffArmor',
 ]);
 
+const EFFECT_VARIANT_BASE_DAMAGE_OPERATIONS = new Set([
+  'damageEnemyBase',
+  'damagePlayerBase',
+]);
+
 function isRunBaseEffectOperation(operation) {
   return operation?.operation === 'runBaseEffect' && Object.keys(operation).length === 1;
 }
@@ -1054,8 +1059,17 @@ function isStatModifierOperation(operation) {
     && Object.keys(operation).every((key) => ['operation', 'selector', 'amount', 'duration'].includes(key));
 }
 
+function isBaseDamageOperation(operation) {
+  return EFFECT_VARIANT_BASE_DAMAGE_OPERATIONS.has(operation?.operation)
+    && ((operation.operation === 'damageEnemyBase' && operation.selector === 'enemyBase')
+      || (operation.operation === 'damagePlayerBase' && operation.selector === 'playerBase'))
+    && Number.isInteger(operation.amount)
+    && operation.amount > 0
+    && Object.keys(operation).every((key) => ['operation', 'selector', 'amount'].includes(key));
+}
+
 function isExecutableEffectVariantOperation(operation) {
-  return isDamageUnitOperation(operation) || isStatModifierOperation(operation);
+  return isDamageUnitOperation(operation) || isStatModifierOperation(operation) || isBaseDamageOperation(operation);
 }
 
 function isRunBaseEffectOnlyActiveVariant(variant, effectId) {
@@ -1145,6 +1159,7 @@ function recordEffectVariantOperationTelemetry(state, variant, operation, teleme
     selector: operation.selector,
     amount: operation.amount,
     cleanup: operation.cleanup,
+    duration: operation.duration,
     ...telemetry,
   });
 }
@@ -1154,6 +1169,26 @@ function executeEffectVariantOperations(state, owner, sourceCard, effectId, capt
   if (!variant || !isEffectVariantExecutableActiveVariant(variant, effectId)) return;
 
   variant.sequence.slice(1).forEach((operation) => {
+    if (isBaseDamageOperation(operation)) {
+      const baseDamaged = operation.operation === 'damageEnemyBase' ? 'enemyHP' : 'playerHP';
+      const beforeHp = state[baseDamaged];
+      state[baseDamaged] = beforeHp - operation.amount;
+      clampHeroHpAndResolveWinner(state);
+      const afterHp = state[baseDamaged];
+      const damageDealt = Number.isFinite(beforeHp) && Number.isFinite(afterHp)
+        ? Math.max(0, beforeHp - afterHp)
+        : operation.amount;
+
+      recordEffectVariantOperationTelemetry(state, variant, operation, {
+        status: 'base_damage_executed',
+        baseDamaged,
+        damageDealt,
+        beforeHp,
+        afterHp,
+      });
+      return;
+    }
+
     const targetResults = resolveEffectVariantUnitTargets(state, owner, operation.selector, capturedTargets);
     const targetTelemetry = [];
 
