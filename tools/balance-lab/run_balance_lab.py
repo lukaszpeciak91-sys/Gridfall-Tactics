@@ -8,6 +8,7 @@ copy, runs the existing simulator there, and writes raw outputs to a report.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -47,6 +48,8 @@ REQUIRED_UNIT_REPLACE_CARD_FIELDS = {"attack", "hp", "armor"}
 ALLOWED_TELEMETRY_MODES = {"", "basic", "cards", "ai", "all"}
 EFFECT_VARIANT_SCHEMA_VERSION = 1
 EFFECT_VARIANT_STATUS = "recognized_not_executed"
+EFFECT_VARIANT_REGISTRY_GENERATED_STATUS = "registry_generated"
+EFFECT_VARIANT_REGISTRY_RELATIVE_PATH = Path("src/systems/effectVariantRegistry.generated.js")
 EFFECT_VARIANT_SAFE_ID_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_-]{2,96}$")
 EFFECT_VARIANT_BLOCKED_OPERATION_KEYS = {"code", "script", "function", "eval", "import", "module", "path", "patch"}
 PRODUCTION_CARD_BLOCKED_DYNAMIC_KEYS = {
@@ -610,6 +613,7 @@ def validate_requested_effect_variant(root: Path, change: dict[str, Any], index:
         )
 
     variant["scope"] = scope
+    metadata = effect_variant_runtime_metadata(variant)
     return {
         "index": index,
         "mode": "effectVariant",
@@ -618,9 +622,39 @@ def validate_requested_effect_variant(root: Path, change: dict[str, Any], index:
         "cardId": card_id,
         "oldCard": card,
         "relativePath": source_path.relative_to(root),
-        "status": EFFECT_VARIANT_STATUS,
+        **metadata,
     }
 
+
+def effect_variant_registry_key(variant: dict[str, Any]) -> str:
+    scope = variant["scope"]
+    return f"{scope['factionId']}::{scope['cardId']}::{scope['baseEffectId']}"
+
+
+def is_run_base_effect_only_variant(variant: dict[str, Any]) -> bool:
+    sequence = variant.get("sequence")
+    return (
+        isinstance(sequence, list)
+        and len(sequence) == 1
+        and isinstance(sequence[0], dict)
+        and sequence[0] == {"operation": "runBaseEffect"}
+    )
+
+
+def effect_variant_hash(variant: dict[str, Any]) -> str:
+    canonical = json.dumps(variant, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def effect_variant_runtime_metadata(variant: dict[str, Any], registry_path: Path | str = EFFECT_VARIANT_REGISTRY_RELATIVE_PATH) -> dict[str, Any]:
+    run_base_effect_only = is_run_base_effect_only_variant(variant)
+    return {
+        "registryKey": effect_variant_registry_key(variant),
+        "variantHash": effect_variant_hash(variant),
+        "runBaseEffectOnly": run_base_effect_only,
+        "registryPath": str(registry_path),
+        "status": EFFECT_VARIANT_REGISTRY_GENERATED_STATUS if run_base_effect_only else EFFECT_VARIANT_STATUS,
+    }
 
 def normalize_key(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", "", value.lower())
@@ -702,7 +736,7 @@ def print_intro(root: Path, experiment_path: Path, data: dict[str, Any], command
                 print(
                     f"  {index}. effectVariant {variant['variantId']}: "
                     f"{scope['factionId']} / {scope['cardId']} / {scope['baseEffectId']} "
-                    f"({EFFECT_VARIANT_STATUS})",
+                    f"({effect_variant_runtime_metadata(variant)['status']})",
                     flush=True,
                 )
             elif "replaceCard" in change:
@@ -766,6 +800,7 @@ def apply_patches(temp_copy_dir: Path, validated_changes: list[dict[str, Any]]) 
         if change.get("mode") == "effectVariant":
             recognized_change = dict(change)
             recognized_change["tempJsonPath"] = temp_copy_dir / change["relativePath"]
+            recognized_change["registryPath"] = str(temp_copy_dir / EFFECT_VARIANT_REGISTRY_RELATIVE_PATH)
             recognized_change["textPatchApplied"] = False
             recognized_change["behaviorExecuted"] = False
             applied.append(recognized_change)
@@ -790,7 +825,49 @@ def apply_patches(temp_copy_dir: Path, validated_changes: list[dict[str, Any]]) 
                 deck[card_index][change["field"]] = change["newValue"]
             applied.append(applied_change)
         temp_json_path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    write_effect_variant_registry(temp_copy_dir, applied)
     return applied
+
+
+def build_effect_variant_registry_entries(applied_changes: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    entries: dict[str, dict[str, Any]] = {}
+    for change in applied_changes:
+        if change.get("mode") != "effectVariant" or not change.get("runBaseEffectOnly"):
+            continue
+        variant = change["effectVariant"]
+        scope = variant["scope"]
+        registry_key = change["registryKey"]
+        entries[registry_key] = {
+            "schemaVersion": EFFECT_VARIANT_SCHEMA_VERSION,
+            "variantId": variant["variantId"],
+            "label": variant["label"],
+            "registryKey": registry_key,
+            "variantHash": change["variantHash"],
+            "runBaseEffectOnly": True,
+            "scope": {
+                "factionId": scope["factionId"],
+                "cardId": scope["cardId"],
+                "baseEffectId": scope["baseEffectId"],
+            },
+            "baseEffectId": scope["baseEffectId"],
+            "timing": variant["timing"],
+            "sequence": variant["sequence"],
+            "telemetryTags": variant.get("telemetryTags", []),
+            "status": EFFECT_VARIANT_REGISTRY_GENERATED_STATUS,
+        }
+    return entries
+
+
+def write_effect_variant_registry(temp_copy_dir: Path, applied_changes: list[dict[str, Any]]) -> None:
+    registry_path = temp_copy_dir / EFFECT_VARIANT_REGISTRY_RELATIVE_PATH
+    registry_entries = build_effect_variant_registry_entries(applied_changes)
+    registry_path.parent.mkdir(parents=True, exist_ok=True)
+    registry_json = json.dumps(registry_entries, indent=2, ensure_ascii=False)
+    registry_path.write_text(
+        "export const EFFECT_VARIANT_REGISTRY_SCHEMA_VERSION = 1;\n"
+        f"export const ACTIVE_EFFECT_VARIANTS = Object.freeze({registry_json});\n",
+        encoding="utf-8",
+    )
 
 
 def format_json_block(data: dict[str, Any]) -> list[str]:
@@ -816,17 +893,27 @@ def effect_variant_report_rows_from_changes(changes: list[dict[str, Any]]) -> li
             continue
         variant = change["effectVariant"]
         scope = variant["scope"]
+        metadata = effect_variant_runtime_metadata(variant)
+        runtime = change.get("effectVariantRuntime", {})
+        registry_key = change.get("registryKey", runtime.get("registryKey", metadata["registryKey"]))
+        registry_path = change.get("registryPath", runtime.get("registryPath", metadata["registryPath"]))
+        variant_hash = change.get("variantHash", runtime.get("variantHash", metadata["variantHash"]))
+        run_base_effect_only = change.get("runBaseEffectOnly", runtime.get("runBaseEffectOnly", metadata["runBaseEffectOnly"]))
         rows.append({
             "index": change.get("index", ""),
             "variantId": variant["variantId"],
             "label": variant["label"],
             "factionId": scope["factionId"],
             "cardId": scope["cardId"],
+            "registryKey": registry_key,
+            "registryPath": str(registry_path),
+            "variantHash": variant_hash,
+            "runBaseEffectOnly": run_base_effect_only,
             "baseEffectId": scope["baseEffectId"],
             "timing": variant["timing"],
             "sequence": sequence_summary(variant["sequence"]),
             "telemetryTags": ", ".join(variant.get("telemetryTags", [])) or "None",
-            "status": change.get("status", EFFECT_VARIANT_STATUS),
+            "status": change.get("status", runtime.get("status", metadata["status"])),
             "textPatch": variant.get("textPatch", {}).get("textShort", ""),
         })
     return rows
@@ -840,9 +927,33 @@ def effect_variant_report_rows_from_data(data: dict[str, Any]) -> list[dict[str,
                 "index": index,
                 "mode": "effectVariant",
                 "effectVariant": change["effectVariant"],
-                "status": EFFECT_VARIANT_STATUS,
+                "effectVariantRuntime": change.get("effectVariantRuntime", {}),
+                "status": change.get("effectVariantRuntime", {}).get("status", effect_variant_runtime_metadata(change["effectVariant"])["status"]),
             })
     return effect_variant_report_rows_from_changes(changes)
+
+
+def annotate_experiment_data_with_effect_variant_runtime(data: dict[str, Any], applied_changes: list[dict[str, Any]]) -> dict[str, Any]:
+    annotated = dict(data)
+    changes = list(data.get("changes", []))
+    applied_by_index = {change.get("index"): change for change in applied_changes if change.get("mode") == "effectVariant"}
+    annotated_changes = []
+    for index, change in enumerate(changes, start=1):
+        if isinstance(change, dict) and is_effect_variant_change(change) and index in applied_by_index:
+            applied = applied_by_index[index]
+            annotated_change = dict(change)
+            annotated_change["effectVariantRuntime"] = {
+                "registryKey": applied.get("registryKey", ""),
+                "registryPath": applied.get("registryPath", str(EFFECT_VARIANT_REGISTRY_RELATIVE_PATH)),
+                "variantHash": applied.get("variantHash", ""),
+                "runBaseEffectOnly": bool(applied.get("runBaseEffectOnly")),
+                "status": applied.get("status", EFFECT_VARIANT_STATUS),
+            }
+            annotated_changes.append(annotated_change)
+        else:
+            annotated_changes.append(change)
+    annotated["changes"] = annotated_changes
+    return annotated
 
 
 def has_effect_variants(data: dict[str, Any]) -> bool:
@@ -851,16 +962,17 @@ def has_effect_variants(data: dict[str, Any]) -> bool:
 
 def effect_variant_table_lines(rows: list[dict[str, Any]]) -> list[str]:
     lines = [
-        "| # | Variant ID | Label | Faction ID | Card ID | Base effectId | Timing | Sequence | Telemetry tags | Status |",
-        "|---:|---|---|---|---|---|---|---|---|---|",
+        "| # | Variant ID | Label | Faction ID | Card ID | Registry key | Registry path | Base effectId | Timing | Sequence | Telemetry tags | Status |",
+        "|---:|---|---|---|---|---|---|---|---|---|---|---|",
     ]
     if not rows:
-        lines.append("| N/A | None | None | None | None | None | None | None | None | none |")
+        lines.append("| N/A | None | None | None | None | None | None | None | None | None | None | none |")
         return lines
     for row in rows:
         lines.append(
             f"| {row['index']} | {row['variantId']} | {escape_markdown_table_cell(row['label'])} | "
-            f"{row['factionId']} | {row['cardId']} | {row['baseEffectId']} | {row['timing']} | "
+            f"{row['factionId']} | {row['cardId']} | {escape_markdown_table_cell(row['registryKey'])} | "
+            f"`{escape_markdown_table_cell(row['registryPath'])}` | {row['baseEffectId']} | {row['timing']} | "
             f"{escape_markdown_table_cell(row['sequence'])} | {escape_markdown_table_cell(row['telemetryTags'])} | "
             f"{row['status']} |"
         )
@@ -875,6 +987,10 @@ def effect_variant_summary_lines(rows: list[dict[str, Any]]) -> list[str]:
         lines.extend([
             f"- `{row['variantId']}` — {row['label']}",
             f"  - Scope: `{row['factionId']}` / `{row['cardId']}` / `{row['baseEffectId']}`",
+            f"  - Registry key: `{row['registryKey']}`",
+            f"  - Registry path: `{row['registryPath']}`",
+            f"  - Variant hash: `{row['variantHash']}`",
+            f"  - runBaseEffect-only: `{str(row['runBaseEffectOnly']).lower()}`",
             f"  - Timing: `{row['timing']}`",
             f"  - Sequence: `{row['sequence']}`",
             f"  - Telemetry tags: {row['telemetryTags']}",
@@ -894,6 +1010,11 @@ def effect_variant_paste_lines(rows: list[dict[str, Any]]) -> list[str]:
             f"- variantId: {row['variantId']}",
             f"  label: {row['label']}",
             f"  scope: {row['factionId']} / {row['cardId']} / {row['baseEffectId']}",
+            f"  registryKey: {row['registryKey']}",
+            f"  registryPath: {row['registryPath']}",
+            f"  variantHash: {row['variantHash']}",
+            f"  runBaseEffectOnly: {str(row['runBaseEffectOnly']).lower()}",
+            f"  baseEffectId: {row['baseEffectId']}",
             f"  timing: {row['timing']}",
             f"  sequence: {row['sequence']}",
             f"  telemetryTags: {row['telemetryTags']}",
@@ -910,7 +1031,7 @@ def write_patch_summary(report_dir: Path, applied_changes: list[dict[str, Any]])
         "# Balance Lab Patch Summary",
         "",
         "All executable card-data patches were applied only inside the temporary experiment copy.",
-        "Effect Variant entries are PR1 report-only recognitions: no variant behavior was executed, no runtime registry was generated, and no gameplay or simulator logic was patched.",
+        "Effect Variant entries generate a temp-copy runtime registry only for runBaseEffect-only variants; PR2 executes only runBaseEffect-only variants and no extra operations are executed.",
         "",
     ]
     if not patchable_changes:
@@ -951,7 +1072,7 @@ def write_patch_summary(report_dir: Path, applied_changes: list[dict[str, Any]])
     lines.extend([
         "## Effect Variant Recognition",
         "",
-        "Status `recognized_not_executed` means the variant JSON passed schema and scope validation, but PR1 does not execute effect variants, generate a runtime registry, patch GameState.js, implement selectors, or implement operations.",
+        "Status `registry_generated` means PR2 wrote a temp-copy active registry entry for an exactly runBaseEffect-only variant. Status `recognized_not_executed` means the variant remains report-only. PR2 executes only runBaseEffect-only variants. No extra operations are executed.",
         "",
         *effect_variant_table_lines(effect_variant_report_rows_from_changes(effect_variant_changes)),
         "",
@@ -989,8 +1110,8 @@ def write_report(
         f"Experiment exit code: {experiment_result.returncode}",
         "",
         "The baseline ran in the real repo without patching files.",
-        "The experiment ran in the temporary copy after applying executable stat patch and replaceCard changes only.",
-        "Effect Variant entries are recognized and reported only in PR1; no variant behavior is executed.",
+        "The experiment ran in the temporary copy after applying executable stat patch and replaceCard changes plus a temp-copy effect variant registry for runBaseEffect-only variants.",
+        "PR2 executes only runBaseEffect-only variants. No extra operations are executed.",
         f"Full card replacement tested: {'yes' if has_full_card_replacement(data) else 'no'}",
         f"Effect Variant entries recognized: {'yes' if has_effect_variants(data) else 'no'}",
         "",
@@ -1116,7 +1237,8 @@ def build_patch_summary_sentence(data: dict[str, Any]) -> str:
         if isinstance(change, dict) and is_effect_variant_change(change):
             variant = change["effectVariant"]
             scope = variant["scope"]
-            parts.append(f"effectVariant {variant['variantId']} ({scope['factionId']}/{scope['cardId']} recognized_not_executed)")
+            metadata = change.get("effectVariantRuntime", effect_variant_runtime_metadata(variant))
+            parts.append(f"effectVariant {variant['variantId']} ({scope['factionId']}/{scope['cardId']} {metadata['status']})")
             continue
         faction = change.get("faction", "unknown faction")
         card_id = change.get("cardId", "unknown card")
@@ -1613,7 +1735,7 @@ def build_comparison_report(
         "",
         "## Effect Variant Recognition",
         "",
-        "Status `recognized_not_executed` means PR1 validated and reported the variant, but did not execute variant behavior, generate a runtime registry, patch GameState.js, implement selectors, or implement operations.",
+        "Status `registry_generated` means PR2 wrote a temp-copy active registry entry for an exactly runBaseEffect-only variant. Status `recognized_not_executed` means the variant remains report-only. PR2 executes only runBaseEffect-only variants. No extra operations are executed.",
         "",
         *effect_variant_table_lines(effect_variant_rows),
         "",
@@ -1777,6 +1899,7 @@ def run_one_experiment(root: Path, experiment_path: Path, *, verbose: bool = Tru
         print(f"Temp copy created: {temp_copy_dir}", flush=True)
 
     applied_changes = apply_patches(temp_copy_dir, validated_changes)
+    data = annotate_experiment_data_with_effect_variant_runtime(data, applied_changes)
     patch_summary_path = write_patch_summary(report_dir, applied_changes)
     if verbose:
         print(f"Changes processed: {len(applied_changes)}", flush=True)
@@ -1823,6 +1946,10 @@ def run_one_experiment(root: Path, experiment_path: Path, *, verbose: bool = Tru
         "topFactionNonDrawWrDeltas": comparison_stats.get("topFactionNonDrawWrDeltas", []),
         "effectVariantCount": len(effect_variant_report_rows_from_data(data)),
         "effectVariantIds": [row["variantId"] for row in effect_variant_report_rows_from_data(data)],
+        "effectVariantSummaries": [
+            f"{row['variantId']} status={row['status']} registryKey={row['registryKey']} registryPath={row['registryPath']}"
+            for row in effect_variant_report_rows_from_data(data)
+        ],
         "error": "",
         "passed": experiment_result.returncode == 0,
     }
@@ -1876,8 +2003,11 @@ def write_batch_summary(batch_summary_dir: Path, results: list[dict[str, Any]]) 
         exit_code = result["simulatorExitCode"]
         warning_count = result["warningCount"]
         danger_count = result["dangerCount"]
+        effect_variant_summaries = result.get("effectVariantSummaries", [])
         effect_variant_ids = result.get("effectVariantIds", [])
-        effect_variant_summary = "None" if not effect_variant_ids else ", ".join(effect_variant_ids)
+        effect_variant_summary = "None" if not effect_variant_summaries else "; ".join(effect_variant_summaries)
+        if not effect_variant_summaries and effect_variant_ids:
+            effect_variant_summary = ", ".join(effect_variant_ids)
         lines.append(
             f"| {escape_markdown_table_cell(result['name'])} | `{escape_markdown_table_cell(result['configPath'])}` | "
             f"`{escape_markdown_table_cell(report_dir)}` | "
