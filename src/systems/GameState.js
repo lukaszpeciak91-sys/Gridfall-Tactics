@@ -1,4 +1,5 @@
 import { GENERATED_UNIT_ART, getGeneratedGruntArtForSource } from '../data/generatedUnitArt.js';
+import { ACTIVE_EFFECT_VARIANTS } from './effectVariantRegistry.generated.js';
 
 const BOARD_SIZE = 9;
 const ENEMY_ROW = [0, 1, 2];
@@ -1008,7 +1009,32 @@ function getAdjacentFriendlyFormationIndexes(state, owner) {
   });
 }
 
+function getEffectVariantRegistryKey(state, owner, sourceCard, effectId) {
+  const side = owner === 'player' ? state?.player : state?.enemy;
+  const factionId = side?.factionId;
+  const cardId = sourceCard?.id;
+  if (!factionId || !cardId || !effectId) return null;
+  return `${factionId}::${cardId}::${effectId}`;
+}
+
+function isRunBaseEffectOnlyActiveVariant(variant, effectId) {
+  if (!variant || variant.baseEffectId !== effectId || variant.runBaseEffectOnly !== true) return false;
+  const sequence = variant.sequence;
+  return Array.isArray(sequence)
+    && sequence.length === 1
+    && sequence[0]?.operation === 'runBaseEffect'
+    && Object.keys(sequence[0]).length === 1;
+}
+
+function getRunBaseEffectOnlyVariant(state, owner, sourceCard, effectId) {
+  const registryKey = getEffectVariantRegistryKey(state, owner, sourceCard, effectId);
+  if (!registryKey) return null;
+  const variant = ACTIVE_EFFECT_VARIANTS[registryKey];
+  return isRunBaseEffectOnlyActiveVariant(variant, effectId) ? variant : null;
+}
+
 function applyEffectById(state, owner, effectId, sourceCard = null) {
+  getRunBaseEffectOnlyVariant(state, owner, sourceCard, effectId);
   switch (effectId) {
     case 'damage_all_enemies_1_ignore_armor': {
       const enemyIndexes = getRowForOwner(getOpponentOwner(owner))
@@ -1206,6 +1232,7 @@ export function createInitialBattleState(playerFactionData, enemyFactionData = p
     nextFallenSequence: 0,
     firstActor,
     player: {
+      factionId: playerFactionData?.id ?? 'unknown',
       factionName: playerFactionData?.name ?? 'Unknown',
       deck: playerDeck,
       hand: [],
@@ -1214,6 +1241,7 @@ export function createInitialBattleState(playerFactionData, enemyFactionData = p
       maxHandSize: 5,
     },
     enemy: {
+      factionId: enemyFactionData?.id ?? 'unknown',
       factionName: enemyFactionData?.name ?? 'Unknown',
       deck: enemyDeck,
       hand: [],
