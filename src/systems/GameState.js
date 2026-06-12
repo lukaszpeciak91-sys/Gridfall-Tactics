@@ -1017,24 +1017,160 @@ function getEffectVariantRegistryKey(state, owner, sourceCard, effectId) {
   return `${factionId}::${cardId}::${effectId}`;
 }
 
-function isRunBaseEffectOnlyActiveVariant(variant, effectId) {
-  if (!variant || variant.baseEffectId !== effectId || variant.runBaseEffectOnly !== true) return false;
-  const sequence = variant.sequence;
-  return Array.isArray(sequence)
-    && sequence.length === 1
-    && sequence[0]?.operation === 'runBaseEffect'
-    && Object.keys(sequence[0]).length === 1;
+const EFFECT_VARIANT_DAMAGE_UNIT_SELECTORS = new Set([
+  'selectedOpponentUnit',
+  'selectedOwnerUnit',
+  'firstSelectedAfterBaseEffect',
+  'secondSelectedAfterBaseEffect',
+  'bothSelectedAfterBaseEffect',
+]);
+
+function isRunBaseEffectOperation(operation) {
+  return operation?.operation === 'runBaseEffect' && Object.keys(operation).length === 1;
 }
 
-function getRunBaseEffectOnlyVariant(state, owner, sourceCard, effectId) {
+function isDamageUnitOperation(operation) {
+  return operation?.operation === 'damageUnit'
+    && EFFECT_VARIANT_DAMAGE_UNIT_SELECTORS.has(operation.selector)
+    && Number.isInteger(operation.amount)
+    && operation.amount > 0
+    && operation.cleanup === 'nonCombat'
+    && Object.keys(operation).every((key) => ['operation', 'selector', 'amount', 'cleanup'].includes(key));
+}
+
+function isRunBaseEffectOnlyActiveVariant(variant, effectId) {
+  const sequence = variant?.sequence;
+  return Boolean(variant && variant.baseEffectId === effectId)
+    && Array.isArray(sequence)
+    && sequence.length === 1
+    && isRunBaseEffectOperation(sequence[0]);
+}
+
+function isDamageUnitExecutableActiveVariant(variant, effectId) {
+  const sequence = variant?.sequence;
+  return Boolean(variant && variant.baseEffectId === effectId)
+    && variant.timing === 'afterBaseEffectBeforeDiscard'
+    && Array.isArray(sequence)
+    && sequence.length >= 2
+    && isRunBaseEffectOperation(sequence[0])
+    && sequence.slice(1).every(isDamageUnitOperation);
+}
+
+function getActiveEffectVariant(state, owner, sourceCard, effectId) {
   const registryKey = getEffectVariantRegistryKey(state, owner, sourceCard, effectId);
   if (!registryKey) return null;
   const variant = ACTIVE_EFFECT_VARIANTS[registryKey];
-  return isRunBaseEffectOnlyActiveVariant(variant, effectId) ? variant : null;
+  if (isRunBaseEffectOnlyActiveVariant(variant, effectId) || isDamageUnitExecutableActiveVariant(variant, effectId)) {
+    return variant;
+  }
+  return null;
+}
+
+function captureSelectedUnitIdentities(state, targetIndexes) {
+  const selectedTargets = Array.isArray(targetIndexes) ? targetIndexes : [];
+  return selectedTargets.map((index) => ({
+    originalIndex: index,
+    unit: state?.board?.[index] ?? null,
+  }));
+}
+
+function findCapturedUnitIndex(state, capturedTarget) {
+  if (!capturedTarget?.unit) return -1;
+  return state.board.findIndex((unit) => unit === capturedTarget.unit);
+}
+
+function resolveEffectVariantDamageTargets(state, owner, selector, capturedTargets) {
+  const opponent = getOpponentOwner(owner);
+  const targetAt = (selectedPosition) => {
+    const capturedTarget = capturedTargets[selectedPosition];
+    const index = findCapturedUnitIndex(state, capturedTarget);
+    if (index < 0) {
+      return { index: capturedTarget?.originalIndex ?? null, unit: null, skipped: 'missing_after_base_effect' };
+    }
+    return { index, unit: state.board[index], skipped: null };
+  };
+
+  if (selector === 'selectedOpponentUnit') {
+    const target = targetAt(0);
+    if (target.unit?.owner !== opponent) return [{ ...target, skipped: target.skipped ?? 'not_opponent_unit' }];
+    return [target];
+  }
+  if (selector === 'selectedOwnerUnit') {
+    const target = targetAt(0);
+    if (target.unit?.owner !== owner) return [{ ...target, skipped: target.skipped ?? 'not_owner_unit' }];
+    return [target];
+  }
+  if (selector === 'firstSelectedAfterBaseEffect') return [targetAt(0)];
+  if (selector === 'secondSelectedAfterBaseEffect') return [targetAt(1)];
+  if (selector === 'bothSelectedAfterBaseEffect') return [targetAt(0), targetAt(1)];
+  return [];
+}
+
+function recordEffectVariantOperationTelemetry(state, variant, operation, telemetry) {
+  state.effectVariantOperationTelemetry ??= [];
+  state.effectVariantOperationTelemetry.push({
+    variantId: variant.variantId,
+    registryKey: variant.registryKey,
+    operation: operation.operation,
+    selector: operation.selector,
+    amount: operation.amount,
+    cleanup: operation.cleanup,
+    ...telemetry,
+  });
+}
+
+function executeDamageUnitVariantOperations(state, owner, sourceCard, effectId, capturedTargets) {
+  const variant = getActiveEffectVariant(state, owner, sourceCard, effectId);
+  if (!variant || !isDamageUnitExecutableActiveVariant(variant, effectId)) return;
+
+  variant.sequence.slice(1).forEach((operation) => {
+    const targetResults = resolveEffectVariantDamageTargets(state, owner, operation.selector, capturedTargets);
+    const cleanupIndexes = [];
+    const targetTelemetry = [];
+    let damageDealt = 0;
+    let kills = 0;
+
+    targetResults.forEach((target) => {
+      if (!target.unit || target.skipped) {
+        targetTelemetry.push({ index: target.index, skipped: target.skipped ?? 'no_target' });
+        return;
+      }
+      const beforeHp = target.unit.hp;
+      applyDamageToUnit(state, target.index, operation.amount);
+      const afterUnit = state.board[target.index];
+      const afterHp = afterUnit === target.unit ? afterUnit.hp : null;
+      const dealt = Number.isFinite(beforeHp) && Number.isFinite(afterHp)
+        ? Math.max(0, beforeHp - afterHp)
+        : operation.amount;
+      damageDealt += dealt;
+      cleanupIndexes.push(target.index);
+      targetTelemetry.push({ index: target.index, owner: target.unit.owner, damageDealt: dealt });
+    });
+
+    cleanupDefeatedUnitsWithTriggers(state, cleanupIndexes, { combat: false });
+    targetTelemetry.forEach((entry) => {
+      if (entry.skipped || !Number.isInteger(entry.index)) return;
+      if (!state.board[entry.index]) {
+        entry.killed = true;
+        kills += 1;
+      } else {
+        entry.killed = false;
+      }
+    });
+
+    recordEffectVariantOperationTelemetry(state, variant, operation, {
+      status: 'damage_unit_executed',
+      targetsResolved: targetTelemetry.filter((entry) => !entry.skipped).length,
+      damageDealt,
+      kills,
+      skippedTargets: targetTelemetry.filter((entry) => entry.skipped),
+      targets: targetTelemetry,
+    });
+  });
 }
 
 function applyEffectById(state, owner, effectId, sourceCard = null) {
-  getRunBaseEffectOnlyVariant(state, owner, sourceCard, effectId);
+  getActiveEffectVariant(state, owner, sourceCard, effectId);
   switch (effectId) {
     case 'damage_all_enemies_1_ignore_armor': {
       const enemyIndexes = getRowForOwner(getOpponentOwner(owner))
@@ -1498,6 +1634,8 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
 
   const targetUnit = state.board[boardIndex];
   if (!targetUnit) return { ok: false, reason: 'No target at selected slot' };
+  const selectedTargets = Array.isArray(targetIndexes) ? targetIndexes : [boardIndex];
+  const effectVariantSelectedTargets = captureSelectedUnitIdentities(state, selectedTargets);
 
   const protectedOwner = targetUnit.owner;
   const blockedByImmunity = hasMoveDisableImmunity(state, protectedOwner, owner, card.effectId);
@@ -1683,6 +1821,8 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
     default:
       return { ok: false, reason: 'Effect does not support targeted resolution' };
   }
+
+  executeDamageUnitVariantOperations(state, owner, card, card.effectId, effectVariantSelectedTargets);
 
   const drawResult = card.drawResult ?? null;
   if (card.drawResult) delete card.drawResult;

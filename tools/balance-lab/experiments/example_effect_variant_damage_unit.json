@@ -1,5 +1,5 @@
 {
-  "name": "Example effect variant report-only recognition",
+  "name": "Example effect variant damageUnit execution",
   "matchCount": 100,
   "seed": 1337,
   "telemetry": "all",
@@ -8,8 +8,8 @@
       "mode": "effectVariant",
       "effectVariant": {
         "schemaVersion": 1,
-        "variantId": "example_report_only_draw_one_v1",
-        "label": "Report-only unsupported drawOne operation",
+        "variantId": "example_damage_unit_v1",
+        "label": "Generic damageUnit after base effect example",
         "scope": {
           "factionId": "control",
           "cardId": "control_jam_signal_1",
@@ -18,12 +18,14 @@
         "timing": "afterBaseEffectBeforeDiscard",
         "sequence": [
           { "operation": "runBaseEffect" },
-          { "operation": "drawOne" }
+          {
+            "operation": "damageUnit",
+            "selector": "selectedOpponentUnit",
+            "amount": 1,
+            "cleanup": "nonCombat"
+          }
         ],
-        "textPatch": {
-          "textShort": "Temporary report-only variant text."
-        },
-        "telemetryTags": ["example", "report-only", "unsupported-execution"]
+        "telemetryTags": ["example", "damage-unit", "execution"]
       }
     }
   ],
