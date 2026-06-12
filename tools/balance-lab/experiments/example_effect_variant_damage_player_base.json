@@ -1,0 +1,35 @@
+{
+  "name": "Example effect variant damagePlayerBase execution",
+  "matchCount": 100,
+  "seed": 1337,
+  "telemetry": "all",
+  "changes": [
+    {
+      "mode": "effectVariant",
+      "effectVariant": {
+        "schemaVersion": 1,
+        "variantId": "example_damage_player_base_v1",
+        "label": "Generic damagePlayerBase after base effect example",
+        "scope": {
+          "factionId": "control",
+          "cardId": "control_jam_signal_1",
+          "baseEffectId": "enemy_up_to_2_atk_minus_1"
+        },
+        "timing": "afterBaseEffectBeforeDiscard",
+        "sequence": [
+          { "operation": "runBaseEffect" },
+          {
+            "operation": "damagePlayerBase",
+            "selector": "playerBase",
+            "amount": 1
+          }
+        ],
+        "telemetryTags": ["example", "damage-player-base", "execution"]
+      }
+    }
+  ],
+  "flags": {
+    "warningDeltaPp": 3,
+    "dangerDeltaPp": 8
+  }
+}
