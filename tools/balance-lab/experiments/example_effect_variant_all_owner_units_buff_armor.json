@@ -1,0 +1,36 @@
+{
+  "name": "Example effect variant buffArmor allOwnerUnits execution",
+  "matchCount": 100,
+  "seed": 1337,
+  "telemetry": "all",
+  "changes": [
+    {
+      "mode": "effectVariant",
+      "effectVariant": {
+        "schemaVersion": 1,
+        "variantId": "example_all_owner_units_buff_armor_v1",
+        "label": "Base effect plus buffArmor allOwnerUnits example",
+        "scope": {
+          "factionId": "tank",
+          "cardId": "tank_fortify_1",
+          "baseEffectId": "buff_all_armor_1"
+        },
+        "timing": "afterBaseEffectBeforeDiscard",
+        "sequence": [
+          { "operation": "runBaseEffect" },
+          {
+            "operation": "buffArmor",
+            "selector": "allOwnerUnits",
+            "amount": 1,
+            "duration": "untilCombatCleanup"
+          }
+        ],
+        "telemetryTags": ["example", "all-owner-units", "buff-armor", "execution"]
+      }
+    }
+  ],
+  "flags": {
+    "warningDeltaPp": 3,
+    "dangerDeltaPp": 8
+  }
+}

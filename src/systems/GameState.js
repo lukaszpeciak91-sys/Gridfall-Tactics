@@ -1018,6 +1018,51 @@ function getEffectVariantRegistryKey(state, owner, sourceCard, effectId) {
 }
 
 const EFFECT_VARIANT_SELECTOR_HANDLERS = Object.freeze({
+  allOwnerUnits: ({ state, owner }) => getRowForOwner(owner)
+    .filter((index) => state.board[index]?.owner === owner)
+    .map((index) => ({ index, unit: state.board[index], skipped: null })),
+  allOpponentUnits: ({ state, owner }) => {
+    const opponent = getOpponentOwner(owner);
+    return getRowForOwner(opponent)
+      .filter((index) => state.board[index]?.owner === opponent)
+      .map((index) => ({ index, unit: state.board[index], skipped: null }));
+  },
+  opposedOpponentUnit: ({ owner, targetAt, sourceTarget, targetFromIndex }) => {
+    const opponent = getOpponentOwner(owner);
+    const source = sourceTarget();
+    const context = source.unit?.owner === owner ? source : targetAt(0);
+    if (context.unit?.owner !== owner) {
+      return [{ index: context.index, unit: null, skipped: context.skipped ?? 'missing_owner_source_context' }];
+    }
+    const target = targetFromIndex(getOpposedBoardIndex(context.index), 'no_opposed_opponent_unit');
+    if (target.unit?.owner !== opponent) return [{ ...target, skipped: target.skipped ?? 'not_opponent_unit' }];
+    return [target];
+  },
+  opposedOwnerUnit: ({ owner, targetAt, targetFromIndex }) => {
+    const opponent = getOpponentOwner(owner);
+    const context = targetAt(0);
+    if (context.unit?.owner !== opponent) {
+      return [{ index: context.index, unit: null, skipped: context.skipped ?? 'missing_opponent_context' }];
+    }
+    const target = targetFromIndex(getOpposedBoardIndex(context.index), 'no_opposed_owner_unit');
+    if (target.unit?.owner !== owner) return [{ ...target, skipped: target.skipped ?? 'not_owner_unit' }];
+    return [target];
+  },
+  adjacentOwnerUnits: ({ state, owner, targetAt, sourceTarget }) => {
+    const source = sourceTarget();
+    const context = source.unit?.owner === owner ? source : targetAt(0);
+    if (context.unit?.owner !== owner) {
+      return [{ index: context.index, unit: null, skipped: context.skipped ?? 'missing_owner_source_context' }];
+    }
+    return getAdjacentSameOwnerRowIndexes(context.index).map((index) => {
+      const unit = state.board[index];
+      return {
+        index,
+        unit,
+        skipped: unit?.owner === owner ? null : 'not_adjacent_owner_unit',
+      };
+    });
+  },
   selectedOpponentUnit: ({ targetAt, owner }) => {
     const target = targetAt(0);
     const opponent = getOpponentOwner(owner);
@@ -1159,8 +1204,35 @@ function findCapturedUnitIndex(state, capturedTarget) {
   return state.board.findIndex((unit) => unit === capturedTarget.unit);
 }
 
-function resolveEffectVariantUnitTargets(state, owner, selector, capturedTargets) {
-  const selectedTargets = Array.isArray(capturedTargets) ? capturedTargets : [];
+function getOpposedBoardIndex(index) {
+  if (!Number.isInteger(index)) return null;
+  if (ENEMY_ROW.includes(index)) return index + 6;
+  if (PLAYER_ROW.includes(index)) return index - 6;
+  return null;
+}
+
+function getAdjacentSameOwnerRowIndexes(index) {
+  if (!Number.isInteger(index)) return [];
+  const rowStart = Math.floor(index / 3) * 3;
+  const lane = index % 3;
+  const indexes = [];
+  if (lane > 0) indexes.push(rowStart + lane - 1);
+  if (lane < 2) indexes.push(rowStart + lane + 1);
+  return indexes;
+}
+
+function resolveEffectVariantContext(capturedContext) {
+  if (Array.isArray(capturedContext)) {
+    return { selectedTargets: capturedContext, sourceBoardIndex: null };
+  }
+  return {
+    selectedTargets: Array.isArray(capturedContext?.selectedTargets) ? capturedContext.selectedTargets : [],
+    sourceBoardIndex: Number.isInteger(capturedContext?.sourceBoardIndex) ? capturedContext.sourceBoardIndex : null,
+  };
+}
+
+function resolveEffectVariantUnitTargets(state, owner, selector, capturedContext) {
+  const { selectedTargets, sourceBoardIndex } = resolveEffectVariantContext(capturedContext);
   const targetAt = (selectedPosition) => {
     const capturedTarget = selectedTargets[selectedPosition];
     const index = findCapturedUnitIndex(state, capturedTarget);
@@ -1169,9 +1241,20 @@ function resolveEffectVariantUnitTargets(state, owner, selector, capturedTargets
     }
     return { index, unit: state.board[index], skipped: null };
   };
+  const sourceTarget = () => {
+    if (!Number.isInteger(sourceBoardIndex)) return { index: null, unit: null, skipped: 'missing_source_context' };
+    const unit = state.board[sourceBoardIndex];
+    if (!unit) return { index: sourceBoardIndex, unit: null, skipped: 'missing_source_after_base_effect' };
+    return { index: sourceBoardIndex, unit, skipped: null };
+  };
+  const targetFromIndex = (index, missingReason = 'no_target') => {
+    if (!Number.isInteger(index)) return { index: null, unit: null, skipped: missingReason };
+    const unit = state.board[index];
+    return { index, unit, skipped: unit ? null : missingReason };
+  };
 
   const handler = EFFECT_VARIANT_SELECTOR_HANDLERS[selector];
-  return handler ? handler({ state, owner, targetAt }) : [];
+  return handler ? handler({ state, owner, targetAt, sourceTarget, targetFromIndex }) : [];
 }
 
 function recordEffectVariantOperationTelemetry(state, variant, operation, telemetry) {
@@ -1305,7 +1388,7 @@ function executeStatModifierOperation(state, owner, variant, operation, captured
   });
 }
 
-function executeEffectVariantOperations(state, owner, sourceCard, effectId, capturedTargets) {
+function executeEffectVariantOperations(state, owner, sourceCard, effectId, capturedTargets = []) {
   const variant = getActiveEffectVariant(state, owner, sourceCard, effectId);
   if (!variant || !isEffectVariantExecutableActiveVariant(variant, effectId)) return;
 
@@ -1318,7 +1401,6 @@ function executeEffectVariantOperations(state, owner, sourceCard, effectId, capt
 
 
 function applyEffectById(state, owner, effectId, sourceCard = null) {
-  getActiveEffectVariant(state, owner, sourceCard, effectId);
   switch (effectId) {
     case 'damage_all_enemies_1_ignore_armor': {
       const enemyIndexes = getRowForOwner(getOpponentOwner(owner))
@@ -1482,6 +1564,8 @@ function applyEffectById(state, owner, effectId, sourceCard = null) {
     default:
       break;
   }
+
+  executeEffectVariantOperations(state, owner, sourceCard, effectId);
 }
 
 export function getRandomFirstActor(randomFn = Math.random) {
@@ -2020,8 +2104,13 @@ export function resolveTargetedUnitOnPlayEffect(state, owner, sourceBoardIndex, 
     return { ok: false, reason: 'Targets must be enemies' };
   }
 
+  const effectVariantSelectedTargets = captureSelectedUnitIdentities(state, selectedTargets);
   state.board[firstIndex] = secondUnit;
   state.board[secondIndex] = firstUnit;
+  executeEffectVariantOperations(state, owner, sourceUnit, sourceUnit.effectId, {
+    selectedTargets: effectVariantSelectedTargets,
+    sourceBoardIndex,
+  });
   return { ok: true, type: 'unit-on-play-targeted-effect', sourceUnit };
 }
 
@@ -2081,6 +2170,11 @@ function resolveUnitOnPlayEffect(state, owner, boardIndex, card) {
     default:
       break;
   }
+
+  executeEffectVariantOperations(state, owner, card, card.effectId, {
+    selectedTargets: [],
+    sourceBoardIndex: boardIndex,
+  });
 }
 
 export function playOrRedeployUnit(state, owner, handCardId, boardIndex) {

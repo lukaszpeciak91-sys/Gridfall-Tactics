@@ -71,9 +71,29 @@ EFFECT_VARIANT_UNIT_SELECTORS = {
     "firstSelectedAfterBaseEffect",
     "secondSelectedAfterBaseEffect",
     "bothSelectedAfterBaseEffect",
+    "allOwnerUnits",
+    "allOpponentUnits",
+    "opposedOpponentUnit",
+    "opposedOwnerUnit",
+    "adjacentOwnerUnits",
 }
 EFFECT_VARIANT_BASE_SELECTORS = {"enemyBase", "playerBase"}
 EFFECT_VARIANT_SELECTORS = EFFECT_VARIANT_UNIT_SELECTORS | EFFECT_VARIANT_BASE_SELECTORS
+
+EFFECT_VARIANT_SELECTOR_REPORT_METADATA = {
+    "selectedOpponentUnit": "unit selector; preserved selected target identity; requires selected opponent unit",
+    "selectedOwnerUnit": "unit selector; preserved selected target identity; requires selected owner unit",
+    "firstSelectedAfterBaseEffect": "unit selector; first preserved selected target after base effect",
+    "secondSelectedAfterBaseEffect": "unit selector; second preserved selected target after base effect",
+    "bothSelectedAfterBaseEffect": "unit selector; both preserved selected targets after base effect",
+    "allOwnerUnits": "unit selector; all current board units owned by owner",
+    "allOpponentUnits": "unit selector; all current board units owned by opponent",
+    "opposedOpponentUnit": "unit selector; opponent unit opposed to owner source lane, or selected owner unit when no source lane exists",
+    "opposedOwnerUnit": "unit selector; owner unit opposed to the selected opponent unit",
+    "adjacentOwnerUnits": "unit selector; owner units adjacent to owner source/selected owner unit in the same row",
+    "enemyBase": "base selector; absolute enemyHP",
+    "playerBase": "base selector; absolute playerHP",
+}
 EFFECT_VARIANT_OPERATION_METADATA = {
     "runBaseEffect": {
         "keys": {"operation"},
@@ -1009,6 +1029,13 @@ def format_json_block(data: dict[str, Any]) -> list[str]:
     return ["```json", json.dumps(data, indent=2, ensure_ascii=False), "```"]
 
 
+
+
+def selector_report_detail(selector: Any) -> str:
+    if not isinstance(selector, str):
+        return "selector metadata unavailable"
+    return EFFECT_VARIANT_SELECTOR_REPORT_METADATA.get(selector, "selector metadata unavailable")
+
 def sequence_summary(sequence: list[dict[str, Any]]) -> str:
     parts = []
     for block in sequence:
@@ -1033,23 +1060,23 @@ def effect_variant_operation_telemetry_summary(variant: dict[str, Any], status: 
         elif report_kind == "damageUnit":
             operation_parts.append(
                 "damageUnit: "
-                f"selector={block.get('selector')}, amount={block.get('amount')}, cleanup={block.get('cleanup')}, "
-                "targets resolved at runtime by preserved unit identity, "
+                f"selector={block.get('selector')} ({selector_report_detail(block.get('selector'))}), amount={block.get('amount')}, cleanup={block.get('cleanup')}, "
+                "targets resolved at runtime by selector semantics (including preserved selected-target identity when applicable), "
                 "damage dealt/kills/skips recorded in GameState telemetry, "
                 f"status={status}"
             )
         elif report_kind == "baseDamage":
             operation_parts.append(
                 f"{operation}: "
-                f"selector={block.get('selector')}, amount={block.get('amount')}, baseDamaged={metadata['base_damaged']}, "
+                f"selector={block.get('selector')} ({selector_report_detail(block.get('selector'))}), amount={block.get('amount')}, baseDamaged={metadata['base_damaged']}, "
                 "absolute base damage recorded in GameState telemetry with damage dealt, "
                 f"status={status}"
             )
         elif report_kind == "statModifier":
             operation_parts.append(
                 f"{operation}: "
-                f"selector={block.get('selector')}, amount={block.get('amount')}, duration={block.get('duration')}, "
-                "targets resolved at runtime by preserved unit identity, "
+                f"selector={block.get('selector')} ({selector_report_detail(block.get('selector'))}), amount={block.get('amount')}, duration={block.get('duration')}, "
+                "targets resolved at runtime by selector semantics (including preserved selected-target identity when applicable), "
                 "attack/armor added/reduced and skips recorded in GameState telemetry, "
                 f"status={status}"
             )
