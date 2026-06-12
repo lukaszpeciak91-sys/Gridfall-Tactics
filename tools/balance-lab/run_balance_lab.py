@@ -65,15 +65,6 @@ PRODUCTION_CARD_BLOCKED_DYNAMIC_KEYS = {
     "resolver",
     "js",
 }
-EFFECT_VARIANT_SELECTORS = {
-    "selectedOpponentUnit",
-    "selectedOwnerUnit",
-    "firstSelectedAfterBaseEffect",
-    "secondSelectedAfterBaseEffect",
-    "bothSelectedAfterBaseEffect",
-    "enemyBase",
-    "playerBase",
-}
 EFFECT_VARIANT_UNIT_SELECTORS = {
     "selectedOpponentUnit",
     "selectedOwnerUnit",
@@ -81,17 +72,68 @@ EFFECT_VARIANT_UNIT_SELECTORS = {
     "secondSelectedAfterBaseEffect",
     "bothSelectedAfterBaseEffect",
 }
-EFFECT_VARIANT_OPERATIONS = {
-    "runBaseEffect",
-    "damageUnit",
-    "damageEnemyBase",
-    "damagePlayerBase",
-    "debuffAttack",
-    "debuffArmor",
-    "buffAttack",
-    "buffArmor",
-    "drawOne",
+EFFECT_VARIANT_BASE_SELECTORS = {"enemyBase", "playerBase"}
+EFFECT_VARIANT_SELECTORS = EFFECT_VARIANT_UNIT_SELECTORS | EFFECT_VARIANT_BASE_SELECTORS
+EFFECT_VARIANT_OPERATION_METADATA = {
+    "runBaseEffect": {
+        "keys": {"operation"},
+        "validation": "exact",
+        "executable_group": "runBaseEffect",
+        "report_kind": "runBaseEffect",
+    },
+    "damageUnit": {
+        "keys": {"operation", "selector", "amount", "cleanup"},
+        "validation": "damageUnit",
+        "executable_group": "damageUnit",
+        "report_kind": "damageUnit",
+    },
+    "damageEnemyBase": {
+        "keys": {"operation", "selector", "amount"},
+        "validation": "baseDamage",
+        "required_selector": "enemyBase",
+        "base_damaged": "enemyHP",
+        "executable_group": "baseDamage",
+        "report_kind": "baseDamage",
+    },
+    "damagePlayerBase": {
+        "keys": {"operation", "selector", "amount"},
+        "validation": "baseDamage",
+        "required_selector": "playerBase",
+        "base_damaged": "playerHP",
+        "executable_group": "baseDamage",
+        "report_kind": "baseDamage",
+    },
+    "debuffAttack": {
+        "keys": {"operation", "selector", "amount", "duration"},
+        "validation": "statModifier",
+        "executable_group": "statModifier",
+        "report_kind": "statModifier",
+    },
+    "debuffArmor": {
+        "keys": {"operation", "selector", "amount", "duration"},
+        "validation": "statModifier",
+        "executable_group": "statModifier",
+        "report_kind": "statModifier",
+    },
+    "buffAttack": {
+        "keys": {"operation", "selector", "amount", "duration"},
+        "validation": "statModifier",
+        "executable_group": "statModifier",
+        "report_kind": "statModifier",
+    },
+    "buffArmor": {
+        "keys": {"operation", "selector", "amount", "duration"},
+        "validation": "statModifier",
+        "executable_group": "statModifier",
+        "report_kind": "statModifier",
+    },
+    "drawOne": {
+        "keys": {"operation"},
+        "validation": "exact",
+        "report_kind": "unsupported",
+    },
 }
+EFFECT_VARIANT_OPERATIONS = set(EFFECT_VARIANT_OPERATION_METADATA)
 REQUIRED_REPO_PATHS = [
     Path("package.json"),
     Path("scripts/simulate-battles.mjs"),
@@ -358,38 +400,32 @@ def validate_effect_variant_operation_block(operation_block: Any, change_index: 
     operation = operation_block.get("operation")
     if not isinstance(operation, str) or not operation:
         raise BalanceLabError(f"{context}.operation must be a non-empty string.")
-    if operation not in EFFECT_VARIANT_OPERATIONS:
+    operation_metadata = EFFECT_VARIANT_OPERATION_METADATA.get(operation)
+    if operation_metadata is None:
         allowed = ", ".join(sorted(EFFECT_VARIANT_OPERATIONS))
         raise BalanceLabError(f"{context}.operation '{operation}' is unsupported. Supported operations: {allowed}.")
 
-    if operation == "runBaseEffect":
-        require_exact_operation_keys(operation_block, {"operation"}, context)
+    validation = operation_metadata["validation"]
+    operation_keys = operation_metadata["keys"]
+    if validation == "exact":
+        require_exact_operation_keys(operation_block, operation_keys, context)
         return
-    if operation == "drawOne":
-        require_exact_operation_keys(operation_block, {"operation"}, context)
-        return
-    if operation == "damageUnit":
-        require_exact_operation_keys(operation_block, {"operation", "selector", "amount", "cleanup"}, context)
+    if validation == "damageUnit":
+        require_exact_operation_keys(operation_block, operation_keys, context)
         validate_unit_selector(operation_block.get("selector"), context)
         validate_positive_int(operation_block.get("amount"), f"{context}.amount")
         if operation_block.get("cleanup") != "nonCombat":
             raise BalanceLabError(f"{context}.cleanup must be nonCombat.")
         return
-    if operation == "damageEnemyBase":
-        require_exact_operation_keys(operation_block, {"operation", "selector", "amount"}, context)
-        if operation_block.get("selector") != "enemyBase":
-            raise BalanceLabError(f"{context}.selector must be enemyBase for damageEnemyBase.")
+    if validation == "baseDamage":
+        require_exact_operation_keys(operation_block, operation_keys, context)
+        required_selector = operation_metadata["required_selector"]
+        if operation_block.get("selector") != required_selector:
+            raise BalanceLabError(f"{context}.selector must be {required_selector} for {operation}.")
         validate_positive_int(operation_block.get("amount"), f"{context}.amount")
         return
-    if operation == "damagePlayerBase":
-        require_exact_operation_keys(operation_block, {"operation", "selector", "amount"}, context)
-        if operation_block.get("selector") != "playerBase":
-            raise BalanceLabError(f"{context}.selector must be playerBase for damagePlayerBase.")
-        validate_positive_int(operation_block.get("amount"), f"{context}.amount")
-        return
-    if operation in {"debuffAttack", "debuffArmor", "buffAttack", "buffArmor"}:
-        allowed_keys = {"operation", "selector", "amount", "duration"}
-        require_allowed_operation_keys(operation_block, allowed_keys, context)
+    if validation == "statModifier":
+        require_allowed_operation_keys(operation_block, operation_keys, context)
         for required_key in ("selector", "amount"):
             if required_key not in operation_block:
                 raise BalanceLabError(f"{context}.{required_key} is required for {operation}.")
@@ -658,20 +694,26 @@ def is_damage_unit_executable_variant(variant: dict[str, Any]) -> bool:
     )
 
 
+def effect_variant_operation_group(block: dict[str, Any]) -> str | None:
+    if not isinstance(block, dict):
+        return None
+    metadata = EFFECT_VARIANT_OPERATION_METADATA.get(block.get("operation"))
+    if not metadata:
+        return None
+    group = metadata.get("executable_group")
+    return group if group in {"damageUnit", "statModifier", "baseDamage"} else None
+
+
 def is_stat_modifier_operation_block(block: dict[str, Any]) -> bool:
-    return isinstance(block, dict) and block.get("operation") in {"debuffAttack", "debuffArmor", "buffAttack", "buffArmor"}
+    return effect_variant_operation_group(block) == "statModifier"
 
 
 def is_base_damage_operation_block(block: dict[str, Any]) -> bool:
-    return isinstance(block, dict) and block.get("operation") in {"damageEnemyBase", "damagePlayerBase"}
+    return effect_variant_operation_group(block) == "baseDamage"
 
 
 def is_pr5_executable_operation_block(block: dict[str, Any]) -> bool:
-    return isinstance(block, dict) and (
-        block.get("operation") == "damageUnit"
-        or is_stat_modifier_operation_block(block)
-        or is_base_damage_operation_block(block)
-    )
+    return effect_variant_operation_group(block) is not None
 
 
 def is_pr5_legacy_or_new_executable_operation_block(block: dict[str, Any]) -> bool:
@@ -705,12 +747,9 @@ def has_mixed_executable_operations(variant: dict[str, Any]) -> bool:
         return False
     operation_groups = set()
     for block in sequence[1:]:
-        if block.get("operation") == "damageUnit":
-            operation_groups.add("damageUnit")
-        elif is_stat_modifier_operation_block(block):
-            operation_groups.add("statModifier")
-        elif is_base_damage_operation_block(block):
-            operation_groups.add("baseDamage")
+        operation_group = effect_variant_operation_group(block)
+        if operation_group:
+            operation_groups.add(operation_group)
     return len(operation_groups) > 1
 
 
@@ -987,9 +1026,11 @@ def effect_variant_operation_telemetry_summary(variant: dict[str, Any], status: 
     operation_parts = []
     for block in variant.get("sequence", []):
         operation = block.get("operation")
-        if operation == "runBaseEffect":
+        metadata = EFFECT_VARIANT_OPERATION_METADATA.get(operation, {"report_kind": "unsupported"})
+        report_kind = metadata["report_kind"]
+        if report_kind == "runBaseEffect":
             operation_parts.append("runBaseEffect: base effect executed by normal resolver")
-        elif operation == "damageUnit":
+        elif report_kind == "damageUnit":
             operation_parts.append(
                 "damageUnit: "
                 f"selector={block.get('selector')}, amount={block.get('amount')}, cleanup={block.get('cleanup')}, "
@@ -997,15 +1038,14 @@ def effect_variant_operation_telemetry_summary(variant: dict[str, Any], status: 
                 "damage dealt/kills/skips recorded in GameState telemetry, "
                 f"status={status}"
             )
-        elif operation in {"damageEnemyBase", "damagePlayerBase"}:
-            base_damaged = "enemyHP" if operation == "damageEnemyBase" else "playerHP"
+        elif report_kind == "baseDamage":
             operation_parts.append(
                 f"{operation}: "
-                f"selector={block.get('selector')}, amount={block.get('amount')}, baseDamaged={base_damaged}, "
+                f"selector={block.get('selector')}, amount={block.get('amount')}, baseDamaged={metadata['base_damaged']}, "
                 "absolute base damage recorded in GameState telemetry with damage dealt, "
                 f"status={status}"
             )
-        elif operation in {"debuffAttack", "debuffArmor", "buffAttack", "buffArmor"}:
+        elif report_kind == "statModifier":
             operation_parts.append(
                 f"{operation}: "
                 f"selector={block.get('selector')}, amount={block.get('amount')}, duration={block.get('duration')}, "
