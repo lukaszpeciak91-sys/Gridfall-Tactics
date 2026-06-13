@@ -114,7 +114,7 @@
     },
     "control_system_override_1": {
       "name": "Przejęcie Systemu",
-      "textShort": "Wybrany [ENEMY] atakuje własną bazę, potem traci 1 HP."
+      "textShort": "Wybrany [ENEMY] natychmiast atakuje własną bazę, potem traci 1 HP."
     },
     "control_recall_1": {
       "name": "Ekstrakcja",
@@ -154,7 +154,7 @@
     },
     "swarm_flood_1": {
       "name": "Zalew",
-      "textShort": "Wypełnij do 2 pustych slotów jednostkami 1/1. Znikają po walce."
+      "textShort": "Wypełnij do 2 pustych slotów tymczasowymi 1/1. Znikają po walce."
     },
     "swarm_recycle_1": {
       "name": "Pożywka",

@@ -114,7 +114,7 @@
     },
     "control_system_override_1": {
       "name": "System Override",
-      "textShort": "Selected [ENEMY] attacks its own base, then loses 1 HP."
+      "textShort": "Selected [ENEMY] immediately attacks its own base, then loses 1 HP."
     },
     "control_recall_1": {
       "name": "Extraction",
@@ -154,7 +154,7 @@
     },
     "swarm_flood_1": {
       "name": "Flood",
-      "textShort": "Fill up to 2 empty slots with 1/1s. They vanish after combat."
+      "textShort": "Fill up to 2 empty slots with temporary 1/1s. They vanish after combat."
     },
     "swarm_recycle_1": {
       "name": "Substrate",
