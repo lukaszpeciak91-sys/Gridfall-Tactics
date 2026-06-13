@@ -179,7 +179,7 @@ test('start, main menu, and faction select use optional menu background art with
   assert.match(backgroundDocs, /1440 × 2560 px/);
 });
 
-test('BattleScene disables decorative base backdrops and renders procedural broadcast frames', () => {
+test('BattleScene renders clean base transmission screens without decorative emitters', () => {
   const battleSource = read('src/scenes/BattleScene.js');
   const baseDocs = read('public/assets/ui/bases/README.md');
 
@@ -188,13 +188,15 @@ test('BattleScene disables decorative base backdrops and renders procedural broa
   assert.doesNotMatch(battleSource, /preloadImageAsset\(this, BASE_BACKDROP_ASSET/);
   assert.doesNotMatch(battleSource, /drawBaseBackdrops/);
   assert.doesNotMatch(battleSource, /setDepth\(BASE_BACKDROP_DEPTH\)/);
-  assert.match(battleSource, /const BASE_FRAME_GOLD = 0xfacc15;/);
-  assert.match(battleSource, /const BASE_FRAME_OVERLOAD_MS = 150;/);
+  assert.match(battleSource, /const BASE_SCREEN_FILL = 0x07111f;/);
+  assert.match(battleSource, /const BASE_FRAME_OVERLOAD_MS = 135;/);
   assert.match(battleSource, /createBaseBroadcastFrame\('enemy', enemyPanel, panelWidth, topHero\.h\);/);
   assert.match(battleSource, /createBaseBroadcastFrame\('player', playerPanel, panelWidth, playerHero\.h\);/);
-  assert.match(battleSource, /cleanCenterRatio: 0\.86/);
-  assert.match(battleSource, /width \* 0\.07/);
-  assert.match(battleSource, /triggerBaseBroadcastOverload\(side\)/);
+  assert.match(battleSource, /slightly brighter center/);
+  assert.match(battleSource, /scanlineStep/);
+  assert.match(battleSource, /BASE_SCREEN_GLITCH_RED/);
+  assert.doesNotMatch(battleSource, /fillCircle\(leftNodeX/);
+  assert.doesNotMatch(battleSource, /if \(!isBlocked\) this\.shakeHeroPanel\(side\)/);
   assert.match(baseDocs, /ui\.baseBackdrop\.base/);
 });
 
