@@ -68,7 +68,7 @@ test('formats HP-related healing and damage language without replacing unrelated
   assert.equal(formatCardEffectTextShort('Combat death: both bases lose 1 HP.', 'en'), 'Combat death: both bases lose 1 ●.');
   assert.equal(formatCardEffectTextShort('On death: enemy base loses 1 HP.', 'en'), 'On death: enemy base loses 1 ●.');
   assert.equal(formatCardEffectTextShort('Heal all [ALLY] by 1.', 'en'), 'Heal all ♙♙ by +1 ●.');
-  assert.equal(formatCardEffectTextShort('First 2 [ALLY]\ncombat deaths:\n1 HP to opposed [ENEMY].', 'en'), 'First 2 ♙♙\ncombat deaths:\n1 ● to opposed ♟.');
+  assert.equal(formatCardEffectTextShort('First 2 [ALLY]\ncombat deaths:\n1 [HP] to opposed [ENEMY].', 'en'), 'First 2 ♙♙\ncombat deaths:\n1 ● to opposed ♟.');
   assert.equal(formatCardEffectTextShort('Destroy [ALLY]. Draw 1.', 'en'), 'Destroy ♙. Draw 1.');
   assert.equal(formatCardEffectTextShort('Combat death: summon 1/1 here.', 'en'), 'Combat death: summon 1/1 here.');
   assert.equal(formatCardEffectTextShort('Śmierć w walce: obie bazy otrzymują 1.', 'pl'), 'Śmierć w walce: obie bazy otrzymują 1 ●.');
@@ -101,8 +101,8 @@ test('polished card text stays within mobile collection and inspect rules panels
     { factionKey: 'Attrition Swarm', cardId: 'attrition_swarm_funeral_pyre_1', locale: 'en', expectedBody: 'First 2 ♙♙\ncombat deaths:\n1 ● to opposed ♟.' },
     { factionKey: 'Attrition Swarm', cardId: 'attrition_swarm_infect_1', locale: 'en', expectedBody: 'Deal 1 to ♟.\nOpposed ♙ gains +1 ▲.' },
     { factionKey: 'Attrition Swarm', cardId: 'attrition_swarm_infect_1', locale: 'pl', expectedBody: 'Zadaj 1 ♟.\n♙ naprzeciwko +1 ▲.' },
-    { factionKey: 'Tank', cardId: 'tank_stability_1', locale: 'en', expectedBody: "In combat: ♙♙ can't be moved." },
-    { factionKey: 'Tank', cardId: 'tank_stability_1', locale: 'pl', expectedBody: 'Do walki: ♙ nie można przesuwać.' },
+    { factionKey: 'Tank', cardId: 'tank_stability_1', locale: 'en', expectedBody: "Until combat, ♙♙ cannot be moved." },
+    { factionKey: 'Tank', cardId: 'tank_stability_1', locale: 'pl', expectedBody: 'Do walki ♙♙ nie można przesuwać.' },
   ];
 
   const measureFits = ({ body, width, height, typographyScale, lineSpacing }) => {
@@ -203,9 +203,9 @@ test('pilot card display content renders ally icon markers', () => {
   assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_swarm_attack_1'), 'en').body, 'All ♙♙ +1 ▲ until combat.');
   assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_recycle_1'), 'en').body, 'Destroy ♙. Draw 1.');
   assert.equal(getCardDisplayContent(cardById(tank, 'tank_repair_kit_1'), 'en').body, 'Target ♙ +1 ◆ until combat.');
-  assert.equal(getCardDisplayContent(cardById(tank, 'tank_shieldbearer_1'), 'en').body, 'Adjacent ♙♙ +1 ◆ in combat.');
+  assert.equal(getCardDisplayContent(cardById(tank, 'tank_shieldbearer_1'), 'en').body, 'Adjacent ♙♙ +1 ◆ until combat.');
   assert.equal(getCardDisplayContent(cardById(tank, 'tank_fortify_1'), 'en').body, 'All ♙♙ +1 ◆ until combat.');
-  assert.equal(getCardDisplayContent(cardById(tank, 'tank_stability_1'), 'en').body, "In combat: ♙♙ can\'t be moved.");
+  assert.equal(getCardDisplayContent(cardById(tank, 'tank_stability_1'), 'en').body, "Until combat, ♙♙ cannot be moved.");
   assert.equal(getCardDisplayContent(cardById(tank, 'tank_wall_1'), 'en').body, '');
   assert.equal(getCardDisplayContent(cardById(tank, 'tank_reinforce_1'), 'en').body, 'Heal all ♙♙ by +1 ●.');
   assert.equal(getCardDisplayContent(cardById(tank, 'tank_heavy_1'), 'en').body, '');
@@ -228,9 +228,9 @@ test('pilot card display content renders ally icon markers', () => {
   assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_swarm_attack_1'), 'pl').body, '♙♙ +1 ▲ do walki.');
   assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_recycle_1'), 'pl').body, 'Zniszcz ♙. Dobierz 1.');
   assert.equal(getCardDisplayContent(cardById(tank, 'tank_repair_kit_1'), 'pl').body, 'Wybrany ♙ +1 ◆ do walki.');
-  assert.equal(getCardDisplayContent(cardById(tank, 'tank_shieldbearer_1'), 'pl').body, 'Sąsiedni ♙♙ +1 ◆ w walce.');
+  assert.equal(getCardDisplayContent(cardById(tank, 'tank_shieldbearer_1'), 'pl').body, 'Sąsiedni ♙♙ +1 ◆ do walki.');
   assert.equal(getCardDisplayContent(cardById(tank, 'tank_fortify_1'), 'pl').body, '♙♙ +1 ◆ do walki.');
-  assert.equal(getCardDisplayContent(cardById(tank, 'tank_stability_1'), 'pl').body, 'Do walki: ♙ nie można przesuwać.');
+  assert.equal(getCardDisplayContent(cardById(tank, 'tank_stability_1'), 'pl').body, 'Do walki ♙♙ nie można przesuwać.');
   assert.equal(getCardDisplayContent(cardById(tank, 'tank_wall_1'), 'pl').body, '');
   assert.equal(getCardDisplayContent(cardById(tank, 'tank_reinforce_1'), 'pl').body, 'Ulecz wszystkich ♙♙ o +1 ●.');
   assert.equal(getCardDisplayContent(cardById(tank, 'tank_heavy_1'), 'pl').body, '');
@@ -245,7 +245,7 @@ test('pilot card display content renders ally icon markers', () => {
   assert.equal(getCardDisplayContent(cardById(attritionSwarm, 'attrition_swarm_infect_1'), 'pl').body, 'Zadaj 1 ♟.\n♙ naprzeciwko +1 ▲.');
   assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_halberdier_1'), 'pl').body, 'Jeśli naprzeciw: +1 ▲.');
   assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_spearwall_1'), 'pl').body, '♟♟ atakujący\nsąsiednich ♙♙: -1 ▲.');
-  assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_stand_firm_1'), 'pl').body, 'Do walki ♙♙ nie mogą być przesuwani.');
+  assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_stand_firm_1'), 'pl').body, 'Do walki ♙♙ nie można przesuwać.');
   assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_reinforce_line_1'), 'pl').body, 'Sąsiedni ♙♙ +1 ◆ do walki.');
 });
 

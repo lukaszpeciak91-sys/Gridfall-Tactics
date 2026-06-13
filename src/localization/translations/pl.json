@@ -42,7 +42,7 @@
     },
     "attrition_swarm_husk_1": {
       "name": "Łupina",
-      "textShort": "Śmierć w walce: zadaj 1 [ENEMY] naprzeciw."
+      "textShort": "Śmierć w walce: 1 [HP] [ENEMY] naprzeciw."
     },
     "attrition_swarm_carrier_1": {
       "name": "Nosiciel",
@@ -162,7 +162,7 @@
     },
     "tank_shieldbearer_1": {
       "name": "Tarczownik",
-      "textShort": "Sąsiedni [ALLY] +1 ARM w walce."
+      "textShort": "Sąsiedni [ALLY] +1 ARM do walki."
     },
     "tank_heavy_1": {
       "name": "Ciężki",
@@ -186,7 +186,7 @@
     },
     "tank_stability_1": {
       "name": "Stabilność",
-      "textShort": "Do walki: [ALLY] nie można przesuwać."
+      "textShort": "Do walki [ALLIES] nie można przesuwać."
     },
     "tank_reinforce_1": {
       "name": "Wzmocnienie",
@@ -230,7 +230,7 @@
     },
     "wardens_stand_firm_1": {
       "name": "Przetrwać Mróz",
-      "textShort": "Do walki [ALLIES] nie mogą być przesuwani."
+      "textShort": "Do walki [ALLIES] nie można przesuwać."
     },
     "wardens_reinforce_line_1": {
       "name": "Zewrzeć Szereg",
