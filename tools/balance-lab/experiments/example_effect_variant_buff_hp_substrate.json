@@ -1,0 +1,49 @@
+{
+  "name": "Substrate biomass shield",
+  "matchCount": 100,
+  "seed": 1337,
+  "telemetry": "all",
+  "changes": [
+    {
+      "mode": "effectVariant",
+      "effectVariant": {
+        "schemaVersion": 1,
+        "variantId": "substrate_biomass_shield_v1",
+        "label": "Substrate gives temporary HP to selected ally",
+        "scope": {
+          "factionId": "swarm",
+          "cardId": "swarm_recycle_1",
+          "baseEffectId": "destroy_friendly_draw_1"
+        },
+        "targeting": "friendly_unit",
+        "timing": "afterBaseEffectBeforeDiscard",
+        "sequence": [
+          {
+            "operation": "skipBaseEffect"
+          },
+          {
+            "operation": "buffHp",
+            "selector": "selectedOwnerUnit",
+            "amount": 2,
+            "duration": "untilCombatCleanup"
+          }
+        ],
+        "textPatch": {
+          "textShort": "Selected [ALLY]: +2 HP until combat."
+        },
+        "telemetryTags": [
+          "substrate",
+          "biomass-shield",
+          "buff-hp",
+          "survival",
+          "skip-base-effect",
+          "targeting-ally"
+        ]
+      }
+    }
+  ],
+  "flags": {
+    "warningDeltaPp": 3,
+    "dangerDeltaPp": 8
+  }
+}

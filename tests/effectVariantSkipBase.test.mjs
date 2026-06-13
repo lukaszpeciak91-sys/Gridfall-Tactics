@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { createInitialBattleState, playEffectCard, resolveTargetedEffectCard } from '../src/systems/GameState.js';
+import { createInitialBattleState, playEffectCard, resolveTargetedEffectCard, resolveCombat } from '../src/systems/GameState.js';
 import { chooseBattleAction } from '../src/systems/enemyDecision.js';
 
 const substrate = {
@@ -168,4 +168,82 @@ test('AI preserves targeting override enemy_unit selection for selectedOpponentU
   assert.deepEqual(state.effectVariantOperationTelemetry.map((entry) => entry.skippedTargets.length), [0, 0]);
   assert.equal(state.effectVariantOperationTelemetry[0].totalArmorReduced, 1);
   assert.equal(state.effectVariantOperationTelemetry[1].damageDealt, 1);
+});
+
+test('buffHp selectedOwnerUnit resolves with friendly_unit targeting override and adds temporary HP', () => {
+  const state = createInitialBattleState(faction, faction, { firstActor: 'player' });
+  state.player.hand = [{ ...substrate, targeting: 'friendly_unit' }];
+  state.player.deck = [];
+  state.board[6] = unit('friendly_target', 'player');
+  state.effectVariantRegistry = {
+    [registryKey]: {
+      schemaVersion: 1, registryKey, variantId: 'substrate_biomass_shield_v1', label: 'shield', baseEffectId: 'destroy_friendly_draw_1', timing: 'afterBaseEffectBeforeDiscard', targeting: 'friendly_unit',
+      sequence: [{ operation: 'skipBaseEffect' }, { operation: 'buffHp', selector: 'selectedOwnerUnit', amount: 2, duration: 'untilCombatCleanup' }],
+    },
+  };
+
+  const result = resolveTargetedEffectCard(state, 'player', 'swarm_recycle_1', 6, [6]);
+
+  assert.equal(result.ok, true);
+  assert.equal(state.board[6]?.id, 'friendly_target');
+  assert.equal(state.board[6]?.hp, 4);
+  assert.equal(state.board[6]?.maxHp, 2);
+  assert.equal(state.board[6]?.tempHpMod, 2);
+  assert.equal(state.player.hand.length, 0);
+  assert.equal(state.player.fallen.length, 0);
+  assert.equal(state.effectVariantOperationTelemetry[0].operation, 'buffHp');
+  assert.equal(state.effectVariantOperationTelemetry[0].targetsResolved, 1);
+  assert.equal(state.effectVariantOperationTelemetry[0].totalHpAdded, 2);
+});
+
+test('buffHp temporary HP clears at combat cleanup and clamps only overheal', () => {
+  const state = createInitialBattleState(faction, faction, { firstActor: 'player' });
+  state.player.hand = [{ ...substrate, targeting: 'friendly_unit' }];
+  state.board[6] = unit('friendly_target', 'player');
+  state.effectVariantRegistry = {
+    [registryKey]: { schemaVersion: 1, registryKey, variantId: 'substrate_biomass_shield_v1', label: 'shield', baseEffectId: 'destroy_friendly_draw_1', timing: 'afterBaseEffectBeforeDiscard', targeting: 'friendly_unit', sequence: [{ operation: 'skipBaseEffect' }, { operation: 'buffHp', selector: 'selectedOwnerUnit', amount: 2, duration: 'untilCombatCleanup' }] },
+  };
+
+  resolveTargetedEffectCard(state, 'player', 'swarm_recycle_1', 6, [6]);
+  resolveCombat(state);
+
+  assert.equal(state.board[6]?.hp, 2);
+  assert.equal(state.board[6]?.tempHpMod, undefined);
+});
+
+test('buffHp damage before cleanup consumes survivability without healing or killing at cleanup', () => {
+  const state = createInitialBattleState(faction, faction, { firstActor: 'player' });
+  state.player.hand = [{ ...substrate, targeting: 'friendly_unit' }];
+  state.board[6] = unit('friendly_target', 'player');
+  state.board[0] = unit('enemy_attacker', 'enemy', { attack: 3, hp: 5, maxHp: 5 });
+  state.effectVariantRegistry = {
+    [registryKey]: { schemaVersion: 1, registryKey, variantId: 'substrate_biomass_shield_v1', label: 'shield', baseEffectId: 'destroy_friendly_draw_1', timing: 'afterBaseEffectBeforeDiscard', targeting: 'friendly_unit', sequence: [{ operation: 'skipBaseEffect' }, { operation: 'buffHp', selector: 'selectedOwnerUnit', amount: 2, duration: 'untilCombatCleanup' }] },
+  };
+
+  resolveTargetedEffectCard(state, 'player', 'swarm_recycle_1', 6, [6]);
+  resolveCombat(state);
+
+  assert.equal(state.board[6]?.id, 'friendly_target');
+  assert.equal(state.board[6]?.hp, 1);
+  assert.equal(state.board[6]?.tempHpMod, undefined);
+});
+
+test('AI plays buffHp friendly_unit variant when a friendly unit exists and safely skips without one', () => {
+  const withAlly = createInitialBattleState(faction, faction, { firstActor: 'player' });
+  withAlly.player.hand = [{ ...substrate, targeting: 'friendly_unit' }];
+  withAlly.board[6] = unit('friendly_target', 'player');
+  withAlly.board[0] = unit('enemy_attacker', 'enemy', { attack: 3 });
+  withAlly.effectVariantRegistry = {
+    [registryKey]: { schemaVersion: 1, registryKey, variantId: 'substrate_biomass_shield_v1', label: 'shield', baseEffectId: 'destroy_friendly_draw_1', timing: 'afterBaseEffectBeforeDiscard', targeting: 'friendly_unit', sequence: [{ operation: 'skipBaseEffect' }, { operation: 'buffHp', selector: 'selectedOwnerUnit', amount: 2, duration: 'untilCombatCleanup' }] },
+  };
+
+  const action = chooseBattleAction(withAlly, 'player', { aiSafeSurrenderEnabled: false });
+  assert.equal(action.type, 'play-targeted-effect');
+  assert.deepEqual(action.targetIndexes, [6]);
+
+  const noAlly = createInitialBattleState(faction, faction, { firstActor: 'player' });
+  noAlly.player.hand = [{ ...substrate, targeting: 'friendly_unit' }];
+  noAlly.effectVariantRegistry = withAlly.effectVariantRegistry;
+  const skippedAction = chooseBattleAction(noAlly, 'player', { aiSafeSurrenderEnabled: false });
+  assert.notEqual(skippedAction.type, 'play-targeted-effect');
 });
