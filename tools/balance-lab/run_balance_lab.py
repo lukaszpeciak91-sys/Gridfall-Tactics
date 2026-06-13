@@ -53,6 +53,8 @@ EFFECT_VARIANT_DAMAGE_UNIT_EXECUTED_STATUS = "damage_unit_executed"
 EFFECT_VARIANT_STAT_MODIFIER_EXECUTED_STATUS = "stat_modifier_executed"
 EFFECT_VARIANT_BASE_DAMAGE_EXECUTED_STATUS = "base_damage_executed"
 EFFECT_VARIANT_MIXED_OPERATIONS_EXECUTED_STATUS = "mixed_operations_executed"
+EFFECT_VARIANT_DRAW_ONE_EXECUTED_STATUS = "draw_one_executed"
+EFFECT_VARIANT_SUMMON_TOKEN_EXECUTED_STATUS = "summon_token_executed"
 EFFECT_VARIANT_REGISTRY_RELATIVE_PATH = Path("src/systems/effectVariantRegistry.generated.js")
 EFFECT_VARIANT_SAFE_ID_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_-]{2,96}$")
 EFFECT_VARIANT_BLOCKED_OPERATION_KEYS = {"code", "script", "function", "eval", "import", "module", "path", "patch"}
@@ -78,7 +80,9 @@ EFFECT_VARIANT_UNIT_SELECTORS = {
     "adjacentOwnerUnits",
 }
 EFFECT_VARIANT_BASE_SELECTORS = {"enemyBase", "playerBase"}
-EFFECT_VARIANT_SELECTORS = EFFECT_VARIANT_UNIT_SELECTORS | EFFECT_VARIANT_BASE_SELECTORS
+EFFECT_VARIANT_EMPTY_OWNER_SLOT_SELECTORS = {"firstEmptyOwnerSlot", "allEmptyOwnerSlots", "upToTwoEmptyOwnerSlots"}
+EFFECT_VARIANT_SELECTORS = EFFECT_VARIANT_UNIT_SELECTORS | EFFECT_VARIANT_BASE_SELECTORS | EFFECT_VARIANT_EMPTY_OWNER_SLOT_SELECTORS
+EFFECT_VARIANT_TOKEN_IDS = {"grunt", "flood"}
 
 EFFECT_VARIANT_SELECTOR_REPORT_METADATA = {
     "selectedOpponentUnit": "unit selector; preserved selected target identity; requires selected opponent unit",
@@ -93,6 +97,9 @@ EFFECT_VARIANT_SELECTOR_REPORT_METADATA = {
     "adjacentOwnerUnits": "unit selector; owner units adjacent to owner source/selected owner unit in the same row",
     "enemyBase": "base selector; absolute enemyHP",
     "playerBase": "base selector; absolute playerHP",
+    "firstEmptyOwnerSlot": "empty owner slot selector; deterministic first empty slot in acting owner row",
+    "allEmptyOwnerSlots": "empty owner slot selector; every empty slot in acting owner row",
+    "upToTwoEmptyOwnerSlots": "empty owner slot selector; up to two deterministic empty slots in acting owner row",
 }
 EFFECT_VARIANT_OPERATION_METADATA = {
     "runBaseEffect": {
@@ -150,7 +157,14 @@ EFFECT_VARIANT_OPERATION_METADATA = {
     "drawOne": {
         "keys": {"operation"},
         "validation": "exact",
-        "report_kind": "unsupported",
+        "executable_group": "drawOne",
+        "report_kind": "drawOne",
+    },
+    "summonToken": {
+        "keys": {"operation", "selector", "token", "temporary"},
+        "validation": "summonToken",
+        "executable_group": "summonToken",
+        "report_kind": "summonToken",
     },
 }
 EFFECT_VARIANT_OPERATIONS = set(EFFECT_VARIANT_OPERATION_METADATA)
@@ -463,6 +477,20 @@ def validate_effect_variant_operation_block(operation_block: Any, change_index: 
             raise BalanceLabError(f"{context}.duration must be untilCombatCleanup.")
         return
 
+    if validation == "summonToken":
+        require_allowed_operation_keys(operation_block, operation_keys, context)
+        for required_key in ("selector", "token"):
+            if required_key not in operation_block:
+                raise BalanceLabError(f"{context}.{required_key} is required for {operation}.")
+        validate_empty_owner_slot_selector(operation_block.get("selector"), context)
+        token = operation_block.get("token")
+        if token not in EFFECT_VARIANT_TOKEN_IDS:
+            allowed = ", ".join(sorted(EFFECT_VARIANT_TOKEN_IDS))
+            raise BalanceLabError(f"{context}.token '{token}' is unsupported. Supported tokens: {allowed}.")
+        if "temporary" in operation_block and not isinstance(operation_block.get("temporary"), bool):
+            raise BalanceLabError(f"{context}.temporary must be a boolean when provided.")
+        return
+
 
 def require_exact_operation_keys(operation_block: dict[str, Any], expected_keys: set[str], context: str) -> None:
     actual_keys = set(operation_block)
@@ -492,6 +520,14 @@ def validate_unit_selector(selector: Any, context: str) -> None:
     if selector not in EFFECT_VARIANT_UNIT_SELECTORS:
         allowed = ", ".join(sorted(EFFECT_VARIANT_UNIT_SELECTORS))
         raise BalanceLabError(f"{context}.selector '{selector}' must resolve to unit target(s). Unit selectors: {allowed}.")
+
+
+def validate_empty_owner_slot_selector(selector: Any, context: str) -> None:
+    if not isinstance(selector, str) or not selector:
+        raise BalanceLabError(f"{context}.selector must be a non-empty string.")
+    if selector not in EFFECT_VARIANT_EMPTY_OWNER_SLOT_SELECTORS:
+        allowed = ", ".join(sorted(EFFECT_VARIANT_EMPTY_OWNER_SLOT_SELECTORS))
+        raise BalanceLabError(f"{context}.selector '{selector}' must resolve to empty owner slot(s). Empty owner slot selectors: {allowed}.")
 
 
 def validate_positive_int(value: Any, context: str) -> None:
@@ -727,7 +763,7 @@ def effect_variant_operation_group(block: dict[str, Any]) -> str | None:
     if not metadata:
         return None
     group = metadata.get("executable_group")
-    return group if group in {"damageUnit", "statModifier", "baseDamage"} else None
+    return group if group in {"damageUnit", "statModifier", "baseDamage", "drawOne", "summonToken"} else None
 
 
 def is_stat_modifier_operation_block(block: dict[str, Any]) -> bool:
@@ -736,6 +772,14 @@ def is_stat_modifier_operation_block(block: dict[str, Any]) -> bool:
 
 def is_base_damage_operation_block(block: dict[str, Any]) -> bool:
     return effect_variant_operation_group(block) == "baseDamage"
+
+
+def is_draw_one_operation_block(block: dict[str, Any]) -> bool:
+    return effect_variant_operation_group(block) == "drawOne"
+
+
+def is_summon_token_operation_block(block: dict[str, Any]) -> bool:
+    return effect_variant_operation_group(block) == "summonToken"
 
 
 def is_pr5_executable_operation_block(block: dict[str, Any]) -> bool:
@@ -767,6 +811,16 @@ def is_base_damage_executable_variant(variant: dict[str, Any]) -> bool:
     return is_pr5_executable_variant(variant) and any(is_base_damage_operation_block(block) for block in sequence[1:])
 
 
+def is_draw_one_executable_variant(variant: dict[str, Any]) -> bool:
+    sequence = variant.get("sequence")
+    return is_pr5_executable_variant(variant) and any(is_draw_one_operation_block(block) for block in sequence[1:])
+
+
+def is_summon_token_executable_variant(variant: dict[str, Any]) -> bool:
+    sequence = variant.get("sequence")
+    return is_pr5_executable_variant(variant) and any(is_summon_token_operation_block(block) for block in sequence[1:])
+
+
 def has_mixed_executable_operations(variant: dict[str, Any]) -> bool:
     sequence = variant.get("sequence")
     if not is_pr5_executable_variant(variant):
@@ -786,6 +840,10 @@ def effect_variant_execution_status(variant: dict[str, Any]) -> str:
         return EFFECT_VARIANT_MIXED_OPERATIONS_EXECUTED_STATUS
     if is_base_damage_executable_variant(variant):
         return EFFECT_VARIANT_BASE_DAMAGE_EXECUTED_STATUS
+    if is_summon_token_executable_variant(variant):
+        return EFFECT_VARIANT_SUMMON_TOKEN_EXECUTED_STATUS
+    if is_draw_one_executable_variant(variant):
+        return EFFECT_VARIANT_DRAW_ONE_EXECUTED_STATUS
     if is_stat_modifier_executable_variant(variant):
         return EFFECT_VARIANT_STAT_MODIFIER_EXECUTED_STATUS
     if is_damage_unit_executable_variant(variant):
@@ -803,6 +861,8 @@ def effect_variant_runtime_metadata(variant: dict[str, Any], registry_path: Path
     damage_unit_executable = is_damage_unit_executable_variant(variant)
     stat_modifier_executable = is_stat_modifier_executable_variant(variant)
     base_damage_executable = is_base_damage_executable_variant(variant)
+    draw_one_executable = is_draw_one_executable_variant(variant)
+    summon_token_executable = is_summon_token_executable_variant(variant)
     return {
         "registryKey": effect_variant_registry_key(variant),
         "variantHash": effect_variant_hash(variant),
@@ -810,6 +870,8 @@ def effect_variant_runtime_metadata(variant: dict[str, Any], registry_path: Path
         "damageUnitExecutable": damage_unit_executable,
         "statModifierExecutable": stat_modifier_executable,
         "baseDamageExecutable": base_damage_executable,
+        "drawOneExecutable": draw_one_executable,
+        "summonTokenExecutable": summon_token_executable,
         "registryPath": str(registry_path),
         "status": effect_variant_execution_status(variant),
     }
@@ -990,7 +1052,7 @@ def apply_patches(temp_copy_dir: Path, validated_changes: list[dict[str, Any]]) 
 def build_effect_variant_registry_entries(applied_changes: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     entries: dict[str, dict[str, Any]] = {}
     for change in applied_changes:
-        if change.get("mode") != "effectVariant" or change.get("status") not in {EFFECT_VARIANT_REGISTRY_GENERATED_STATUS, EFFECT_VARIANT_DAMAGE_UNIT_EXECUTED_STATUS, EFFECT_VARIANT_STAT_MODIFIER_EXECUTED_STATUS, EFFECT_VARIANT_BASE_DAMAGE_EXECUTED_STATUS, EFFECT_VARIANT_MIXED_OPERATIONS_EXECUTED_STATUS}:
+        if change.get("mode") != "effectVariant" or change.get("status") not in {EFFECT_VARIANT_REGISTRY_GENERATED_STATUS, EFFECT_VARIANT_DAMAGE_UNIT_EXECUTED_STATUS, EFFECT_VARIANT_STAT_MODIFIER_EXECUTED_STATUS, EFFECT_VARIANT_BASE_DAMAGE_EXECUTED_STATUS, EFFECT_VARIANT_MIXED_OPERATIONS_EXECUTED_STATUS, EFFECT_VARIANT_DRAW_ONE_EXECUTED_STATUS, EFFECT_VARIANT_SUMMON_TOKEN_EXECUTED_STATUS}:
             continue
         variant = change["effectVariant"]
         scope = variant["scope"]
@@ -1005,6 +1067,8 @@ def build_effect_variant_registry_entries(applied_changes: list[dict[str, Any]])
             "damageUnitExecutable": bool(change.get("damageUnitExecutable")),
             "statModifierExecutable": bool(change.get("statModifierExecutable")),
             "baseDamageExecutable": bool(change.get("baseDamageExecutable")),
+            "drawOneExecutable": bool(change.get("drawOneExecutable")),
+            "summonTokenExecutable": bool(change.get("summonTokenExecutable")),
             "scope": {
                 "factionId": scope["factionId"],
                 "cardId": scope["cardId"],
@@ -1047,7 +1111,7 @@ def sequence_summary(sequence: list[dict[str, Any]]) -> str:
     for block in sequence:
         operation = block.get("operation", "unknown")
         args = []
-        for key in ("selector", "amount", "cleanup", "duration"):
+        for key in ("selector", "amount", "cleanup", "duration", "token", "temporary"):
             if key in block:
                 args.append(f"{key}={block[key]}")
         parts.append(f"{operation}({', '.join(args)})" if args else operation)
@@ -1086,8 +1150,21 @@ def effect_variant_operation_telemetry_summary(variant: dict[str, Any], status: 
                 "attack/armor added/reduced and skips recorded in GameState telemetry, "
                 f"status={status}"
             )
+        elif report_kind == "drawOne":
+            operation_parts.append(
+                "drawOne: draws exactly one card for the acting owner via GameState drawCardsWithResult; "
+                "cardsDrawn plus failedDraws/skippedDraws and blocked reason recorded in runtime telemetry, "
+                f"status={status}"
+            )
+        elif report_kind == "summonToken":
+            operation_parts.append(
+                "summonToken: "
+                f"selector={block.get('selector')} ({selector_report_detail(block.get('selector'))}), token={block.get('token')}, temporary={str(block.get('temporary', False)).lower()}, "
+                "empty owner slots resolved deterministically; tokensSummoned/skippedSummons recorded in runtime telemetry, "
+                f"status={status}"
+            )
         else:
-            operation_parts.append(f"{operation}: PR5 unsupported for execution; drawOne remains recognized_not_executed/report-only rather than executable; status={status}")
+            operation_parts.append(f"{operation}: unsupported for execution; status={status}")
     return " ; ".join(operation_parts)
 
 
@@ -1099,7 +1176,7 @@ def effect_variant_operation_report_lines(rows: list[dict[str, Any]]) -> list[st
         lines.extend([
             f"- `{row['variantId']}` (`{row['registryKey']}`) status `{row['status']}`",
             f"  - Operation telemetry metadata: {row['operationTelemetrySummary']}",
-            "  - Runtime counters: damageUnit/stat modifier/base damage execution writes per-operation entries to `state.effectVariantOperationTelemetry`; aggregate report counters are deferred because PR5 does not modify `scripts/simulate-battles.mjs`.",
+            "  - Runtime counters: damageUnit/stat modifier/base damage/drawOne/summonToken execution writes per-operation entries to `state.effectVariantOperationTelemetry`; simulator aggregation includes draw and summon counters.",
         ])
     return lines
 
@@ -1119,6 +1196,8 @@ def effect_variant_report_rows_from_changes(changes: list[dict[str, Any]]) -> li
         damage_unit_executable = change.get("damageUnitExecutable", runtime.get("damageUnitExecutable", metadata["damageUnitExecutable"]))
         stat_modifier_executable = change.get("statModifierExecutable", runtime.get("statModifierExecutable", metadata["statModifierExecutable"]))
         base_damage_executable = change.get("baseDamageExecutable", runtime.get("baseDamageExecutable", metadata["baseDamageExecutable"]))
+        draw_one_executable = change.get("drawOneExecutable", runtime.get("drawOneExecutable", metadata["drawOneExecutable"]))
+        summon_token_executable = change.get("summonTokenExecutable", runtime.get("summonTokenExecutable", metadata["summonTokenExecutable"]))
         status = change.get("status", runtime.get("status", metadata["status"]))
         rows.append({
             "index": change.get("index", ""),
@@ -1133,6 +1212,8 @@ def effect_variant_report_rows_from_changes(changes: list[dict[str, Any]]) -> li
             "damageUnitExecutable": damage_unit_executable,
             "statModifierExecutable": stat_modifier_executable,
             "baseDamageExecutable": base_damage_executable,
+            "drawOneExecutable": draw_one_executable,
+            "summonTokenExecutable": summon_token_executable,
             "baseEffectId": scope["baseEffectId"],
             "timing": variant["timing"],
             "sequence": sequence_summary(variant["sequence"]),
@@ -1175,6 +1256,8 @@ def annotate_experiment_data_with_effect_variant_runtime(data: dict[str, Any], a
                 "damageUnitExecutable": bool(applied.get("damageUnitExecutable")),
                 "statModifierExecutable": bool(applied.get("statModifierExecutable")),
                 "baseDamageExecutable": bool(applied.get("baseDamageExecutable")),
+                "drawOneExecutable": bool(applied.get("drawOneExecutable")),
+                "summonTokenExecutable": bool(applied.get("summonTokenExecutable")),
                 "status": applied.get("status", EFFECT_VARIANT_STATUS),
             }
             annotated_changes.append(annotated_change)
@@ -1222,6 +1305,8 @@ def effect_variant_summary_lines(rows: list[dict[str, Any]]) -> list[str]:
             f"  - damageUnit executable: `{str(row['damageUnitExecutable']).lower()}`",
             f"  - stat modifier executable: `{str(row['statModifierExecutable']).lower()}`",
             f"  - base damage executable: `{str(row['baseDamageExecutable']).lower()}`",
+            f"  - drawOne executable: `{str(row['drawOneExecutable']).lower()}`",
+            f"  - summonToken executable: `{str(row['summonTokenExecutable']).lower()}`",
             f"  - Timing: `{row['timing']}`",
             f"  - Sequence: `{row['sequence']}`",
             f"  - Telemetry tags: {row['telemetryTags']}",
@@ -1249,6 +1334,8 @@ def effect_variant_paste_lines(rows: list[dict[str, Any]]) -> list[str]:
             f"  damageUnitExecutable: {str(row['damageUnitExecutable']).lower()}",
             f"  statModifierExecutable: {str(row['statModifierExecutable']).lower()}",
             f"  baseDamageExecutable: {str(row['baseDamageExecutable']).lower()}",
+            f"  drawOneExecutable: {str(row['drawOneExecutable']).lower()}",
+            f"  summonTokenExecutable: {str(row['summonTokenExecutable']).lower()}",
             f"  baseEffectId: {row['baseEffectId']}",
             f"  timing: {row['timing']}",
             f"  sequence: {row['sequence']}",
@@ -1285,7 +1372,7 @@ def write_patch_summary(report_dir: Path, applied_changes: list[dict[str, Any]])
         "# Balance Lab Patch Summary",
         "",
         "All executable card-data patches were applied only inside the temporary experiment copy.",
-        "Effect Variant entries generate a temp-copy runtime registry for runBaseEffect-only variants, damageUnit executable variants, PR5 stat modifier executable variants, and PR5 base damage executable variants. drawOne remains report-only with recognized_not_executed status and a PR5 unsupported-execution note.",
+        "Effect Variant entries generate a temp-copy runtime registry for runBaseEffect-only variants, damageUnit executable variants, stat modifier executable variants, base damage executable variants, drawOne executable variants, and summonToken executable variants.",
         "",
     ]
     if not patchable_changes:
@@ -1329,7 +1416,7 @@ def write_patch_summary(report_dir: Path, applied_changes: list[dict[str, Any]])
     lines.extend([
         "## Effect Variant Recognition",
         "",
-        "Status `registry_generated` means a temp-copy active registry entry was written for an exactly runBaseEffect-only variant. Status `damage_unit_executed` means a temp-copy active registry entry was written for runBaseEffect followed by one or more damageUnit operations. Status `stat_modifier_executed` means PR5 wrote a temp-copy active registry entry for runBaseEffect followed by one or more stat modifier operations. Status `base_damage_executed` means PR5 wrote a temp-copy active registry entry for runBaseEffect followed by one or more absolute base damage operations. Status `mixed_operations_executed` means PR5 wrote a temp-copy active registry entry for a supported mixed sequence. Status `recognized_not_executed` means the variant remains report-only; PR5 does not execute drawOne.",
+        "Status `registry_generated` means a temp-copy active registry entry was written for an exactly runBaseEffect-only variant. Status `damage_unit_executed` means a temp-copy active registry entry was written for runBaseEffect followed by one or more damageUnit operations. Status `stat_modifier_executed` means PR11 writes a temp-copy active registry entry for runBaseEffect followed by one or more stat modifier operations. Status `base_damage_executed` means PR11 writes a temp-copy active registry entry for runBaseEffect followed by one or more absolute base damage operations. Status `mixed_operations_executed` means PR11 writes a temp-copy active registry entry for a supported mixed sequence. Status `draw_one_executed` means PR11 writes a temp-copy active registry entry for drawOne. Status `summon_token_executed` means PR11 writes a temp-copy active registry entry for summonToken. Status `recognized_not_executed` means the variant remains report-only.",
         "",
         *effect_variant_table_lines(effect_variant_report_rows_from_changes(effect_variant_changes)),
         "",
@@ -1384,8 +1471,8 @@ def write_report(
         f"Experiment exit code: {experiment_result.returncode}",
         "",
         "The baseline ran in the real repo without patching files.",
-        "The experiment ran in the temporary copy after applying executable stat patch and replaceCard changes plus a temp-copy effect variant registry for runBaseEffect-only, damageUnit, PR5 stat modifier, and PR5 base damage executable variants.",
-        "PR5 executes runBaseEffect-only parity variants, generic damageUnit operations, generic temporary stat modifier operations, and absolute damageEnemyBase/damagePlayerBase operations after the base effect; drawOne remains report-only.",
+        "The experiment ran in the temporary copy after applying executable stat patch and replaceCard changes plus a temp-copy effect variant registry for runBaseEffect-only, damageUnit, stat modifier, and base damage executable variants.",
+        "PR11 executes runBaseEffect-only parity variants, generic damageUnit operations, generic temporary stat modifier operations, and absolute damageEnemyBase/damagePlayerBase operations after the base effect; drawOne is executable.",
         f"Full card replacement tested: {'yes' if has_full_card_replacement(data) else 'no'}",
         f"Effect Variant entries recognized: {'yes' if has_effect_variants(data) else 'no'}",
         f"Effect Variant runtime telemetry recorded: {'yes' if effect_variant_runtime_recorded else 'no'}",
@@ -2058,6 +2145,13 @@ EFFECT_VARIANT_RUNTIME_TELEMETRY_COLUMNS = [
     "base damage",
     "enemy base damage",
     "player base damage",
+    "cards drawn",
+    "failed draws",
+    "skipped draws",
+    "tokens summoned",
+    "skipped summons",
+    "token",
+    "temporary",
     "status",
 ]
 EFFECT_VARIANT_RUNTIME_NUMERIC_FIELDS = [
@@ -2073,6 +2167,11 @@ EFFECT_VARIANT_RUNTIME_NUMERIC_FIELDS = [
     "base damage",
     "enemy base damage",
     "player base damage",
+    "cards drawn",
+    "failed draws",
+    "skipped draws",
+    "tokens summoned",
+    "skipped summons",
 ]
 EFFECT_VARIANT_RUNTIME_DELTA_FIELDS = [
     ("executions", "executions"),
@@ -2087,6 +2186,11 @@ EFFECT_VARIANT_RUNTIME_DELTA_FIELDS = [
     ("base damage", "baseDamage"),
     ("enemy base damage", "enemyBaseDamage"),
     ("player base damage", "playerBaseDamage"),
+    ("cards drawn", "cardsDrawn"),
+    ("failed draws", "failedDraws"),
+    ("skipped draws", "skippedDraws"),
+    ("tokens summoned", "tokensSummoned"),
+    ("skipped summons", "skippedSummons"),
 ]
 
 
@@ -2158,7 +2262,7 @@ def parse_effect_variant_runtime_table(output_text: str, label: str) -> list[dic
         operation = row["operation"]
         selector = row["selector"]
         status = row["status"]
-        key = (variant_id, operation, selector, status)
+        key = (variant_id, operation, selector, row.get("token", ""), row.get("temporary", ""), status)
         if key in seen_keys:
             raise EffectVariantRuntimeTelemetryParseError(
                 f"{label} effectVariant runtime telemetry has duplicate key {key}"
@@ -2169,6 +2273,8 @@ def parse_effect_variant_runtime_table(output_text: str, label: str) -> list[dic
             "operation": operation,
             "selector": selector,
             "status": status,
+            "token": row.get("token", ""),
+            "temporary": row.get("temporary", ""),
         }
         for field in EFFECT_VARIANT_RUNTIME_NUMERIC_FIELDS:
             parsed[field] = parse_effect_variant_runtime_int(row[field], field, row_label)
@@ -2191,8 +2297,8 @@ def build_effect_variant_runtime_telemetry_comparison(baseline_text: str, experi
             "pasteLines": ["- Not available; effectVariant runtime telemetry parsing failed. See raw telemetry files."],
         }
 
-    baseline_by_key = {(row["variantId"], row["operation"], row["selector"], row["status"]): row for row in baseline_rows}
-    experiment_by_key = {(row["variantId"], row["operation"], row["selector"], row["status"]): row for row in experiment_rows}
+    baseline_by_key = {(row["variantId"], row["operation"], row["selector"], row.get("token", ""), row.get("temporary", ""), row["status"]): row for row in baseline_rows}
+    experiment_by_key = {(row["variantId"], row["operation"], row["selector"], row.get("token", ""), row.get("temporary", ""), row["status"]): row for row in experiment_rows}
     comparison_rows: list[dict[str, Any]] = []
     for key in sorted(set(baseline_by_key) | set(experiment_by_key)):
         baseline_row = baseline_by_key.get(key)
@@ -2202,7 +2308,9 @@ def build_effect_variant_runtime_telemetry_comparison(baseline_text: str, experi
             "variantId": source.get("variantId", key[0]),
             "operation": source.get("operation", key[1]),
             "selector": source.get("selector", key[2]),
-            "status": source.get("status", key[3]),
+            "token": source.get("token", key[3]),
+            "temporary": source.get("temporary", key[4]),
+            "status": source.get("status", key[5]),
         }
         changed = baseline_row is None or experiment_row is None
         for source_field, report_field in EFFECT_VARIANT_RUNTIME_DELTA_FIELDS:
@@ -2229,35 +2337,38 @@ def build_effect_variant_runtime_telemetry_comparison(baseline_text: str, experi
 
 def effect_variant_runtime_table_lines(rows: list[dict[str, Any]]) -> list[str]:
     lines = [
-        "| variantId | operation | selector | executions | resolved targets | skipped targets | damage dealt | kills | attack added | attack reduced | armor added | armor reduced | base damage | enemy base damage | player base damage | status |",
-        "|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|",
+        "| variantId | operation | selector | executions | resolved targets | skipped targets | damage dealt | kills | attack added | attack reduced | armor added | armor reduced | base damage | enemy base damage | player base damage | cards drawn | failed draws | skipped draws | tokens summoned | skipped summons | token | temporary | status |",
+        "|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---|---|",
     ]
     if not rows:
-        return [*lines, "| _No effectVariant runtime telemetry rows_ |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |"]
+        return [*lines, "| _No effectVariant runtime telemetry rows_ |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |"]
     for row in rows:
         lines.append(
             f"| {markdown_cell(row['variantId'])} | {markdown_cell(row['operation'])} | {markdown_cell(row['selector'])} | "
             f"{row['executions']} | {row['resolved targets']} | {row['skipped targets']} | {row['damage dealt']} | {row['kills']} | "
             f"{row['atk added']} | {row['atk reduced']} | {row['arm added']} | {row['arm reduced']} | {row['base damage']} | "
-            f"{row['enemy base damage']} | {row['player base damage']} | {markdown_cell(row['status'])} |"
+            f"{row['enemy base damage']} | {row['player base damage']} | {row['cards drawn']} | {row['failed draws']} | {row['skipped draws']} | "
+            f"{row['tokens summoned']} | {row['skipped summons']} | {markdown_cell(row.get('token', ''))} | {markdown_cell(row.get('temporary', ''))} | {markdown_cell(row['status'])} |"
         )
     return lines
 
 
 def effect_variant_runtime_comparison_table_lines(rows: list[dict[str, Any]]) -> list[str]:
     lines = [
-        "| variantId | operation | selector | status | executions Δ | resolved targets Δ | skipped targets Δ | damage dealt Δ | kills Δ | attack added Δ | attack reduced Δ | armor added Δ | armor reduced Δ | base damage Δ | enemy base damage Δ | player base damage Δ |",
-        "|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+        "| variantId | operation | selector | status | executions Δ | resolved targets Δ | skipped targets Δ | damage dealt Δ | kills Δ | attack added Δ | attack reduced Δ | armor added Δ | armor reduced Δ | base damage Δ | enemy base damage Δ | player base damage Δ | cards drawn Δ | failed draws Δ | skipped draws Δ | tokens summoned Δ | skipped summons Δ |",
+        "|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     if not rows:
-        return [*lines, "| _No changed effectVariant runtime telemetry rows_ |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |"]
+        return [*lines, "| _No changed effectVariant runtime telemetry rows_ |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |"]
     for row in rows:
         lines.append(
             f"| {markdown_cell(row['variantId'])} | {markdown_cell(row['operation'])} | {markdown_cell(row['selector'])} | {markdown_cell(row['status'])} | "
             f"{format_count_delta(row['executionsDelta'])} | {format_count_delta(row['resolvedTargetsDelta'])} | {format_count_delta(row['skippedTargetsDelta'])} | "
             f"{format_count_delta(row['damageDealtDelta'])} | {format_count_delta(row['killsDelta'])} | {format_count_delta(row['attackAddedDelta'])} | "
             f"{format_count_delta(row['attackReducedDelta'])} | {format_count_delta(row['armorAddedDelta'])} | {format_count_delta(row['armorReducedDelta'])} | "
-            f"{format_count_delta(row['baseDamageDelta'])} | {format_count_delta(row['enemyBaseDamageDelta'])} | {format_count_delta(row['playerBaseDamageDelta'])} |"
+            f"{format_count_delta(row['baseDamageDelta'])} | {format_count_delta(row['enemyBaseDamageDelta'])} | {format_count_delta(row['playerBaseDamageDelta'])} | "
+            f"{format_count_delta(row['cardsDrawnDelta'])} | {format_count_delta(row['failedDrawsDelta'])} | {format_count_delta(row['skippedDrawsDelta'])} | "
+            f"{format_count_delta(row['tokensSummonedDelta'])} | {format_count_delta(row['skippedSummonsDelta'])} |"
         )
     return lines
 
@@ -2279,6 +2390,8 @@ def effect_variant_runtime_paste_lines(rows: list[dict[str, Any]]) -> list[str]:
             f"  base damage {row['base damage']}",
             f"  enemy base damage {row['enemy base damage']}",
             f"  player base damage {row['player base damage']}",
+            f"  cards drawn/failed/skipped {row['cards drawn']}/{row['failed draws']}/{row['skipped draws']}",
+            f"  tokens summoned/skipped {row['tokens summoned']}/{row['skipped summons']} token={row.get('token', '')} temporary={row.get('temporary', '')}",
         ])
     return lines
 
@@ -2586,7 +2699,7 @@ def build_comparison_report(
         "",
         "## Effect Variant Recognition",
         "",
-        "Status `registry_generated` means a temp-copy active registry entry was written for an exactly runBaseEffect-only variant. Status `damage_unit_executed` means a temp-copy active registry entry was written for runBaseEffect followed by one or more damageUnit operations. Status `stat_modifier_executed` means PR5 wrote a temp-copy active registry entry for runBaseEffect followed by one or more stat modifier operations. Status `base_damage_executed` means PR5 wrote a temp-copy active registry entry for runBaseEffect followed by one or more absolute base damage operations. Status `mixed_operations_executed` means PR5 wrote a temp-copy active registry entry for a supported mixed sequence. Status `recognized_not_executed` means the variant remains report-only; PR5 does not execute drawOne.",
+        "Status `registry_generated` means a temp-copy active registry entry was written for an exactly runBaseEffect-only variant. Status `damage_unit_executed` means a temp-copy active registry entry was written for runBaseEffect followed by one or more damageUnit operations. Status `stat_modifier_executed` means PR11 writes a temp-copy active registry entry for runBaseEffect followed by one or more stat modifier operations. Status `base_damage_executed` means PR11 writes a temp-copy active registry entry for runBaseEffect followed by one or more absolute base damage operations. Status `mixed_operations_executed` means PR11 writes a temp-copy active registry entry for a supported mixed sequence. Status `draw_one_executed` means PR11 writes a temp-copy active registry entry for drawOne. Status `summon_token_executed` means PR11 writes a temp-copy active registry entry for summonToken. Status `recognized_not_executed` means the variant remains report-only.",
         "",
         *effect_variant_table_lines(effect_variant_rows),
         "",

@@ -1079,6 +1079,14 @@ const EFFECT_VARIANT_SELECTOR_HANDLERS = Object.freeze({
   bothSelectedAfterBaseEffect: ({ targetAt }) => [targetAt(0), targetAt(1)],
 });
 
+const EFFECT_VARIANT_EMPTY_OWNER_SLOT_SELECTORS = new Set([
+  'firstEmptyOwnerSlot',
+  'allEmptyOwnerSlots',
+  'upToTwoEmptyOwnerSlots',
+]);
+
+const SUPPORTED_EFFECT_VARIANT_TOKEN_IDS = new Set(['grunt', 'flood']);
+
 const EFFECT_VARIANT_UNIT_SELECTORS = new Set(Object.keys(EFFECT_VARIANT_SELECTOR_HANDLERS));
 
 const EFFECT_VARIANT_OPERATION_HANDLERS = Object.freeze({
@@ -1109,6 +1117,14 @@ const EFFECT_VARIANT_OPERATION_HANDLERS = Object.freeze({
   damagePlayerBase: Object.freeze({
     isExecutable: isBaseDamageOperation,
     execute: executeBaseDamageOperation,
+  }),
+  drawOne: Object.freeze({
+    isExecutable: isDrawOneOperation,
+    execute: executeDrawOneOperation,
+  }),
+  summonToken: Object.freeze({
+    isExecutable: isSummonTokenOperation,
+    execute: executeSummonTokenOperation,
   }),
 });
 
@@ -1157,6 +1173,19 @@ function isBaseDamageOperation(operation) {
     && Number.isInteger(operation.amount)
     && operation.amount > 0
     && Object.keys(operation).every((key) => ['operation', 'selector', 'amount'].includes(key));
+}
+
+function isDrawOneOperation(operation) {
+  return operation?.operation === 'drawOne'
+    && Object.keys(operation).length === 1;
+}
+
+function isSummonTokenOperation(operation) {
+  return operation?.operation === 'summonToken'
+    && EFFECT_VARIANT_EMPTY_OWNER_SLOT_SELECTORS.has(operation.selector)
+    && SUPPORTED_EFFECT_VARIANT_TOKEN_IDS.has(operation.token)
+    && (operation.temporary === undefined || typeof operation.temporary === 'boolean')
+    && Object.keys(operation).every((key) => ['operation', 'selector', 'token', 'temporary'].includes(key));
 }
 
 function isExecutableEffectVariantOperation(operation) {
@@ -1231,6 +1260,14 @@ function resolveEffectVariantContext(capturedContext) {
   };
 }
 
+function resolveEffectVariantEmptyOwnerSlots(state, owner, selector) {
+  const emptyIndexes = getRowForOwner(owner).filter((index) => state.board[index] === null);
+  if (selector === 'firstEmptyOwnerSlot') return emptyIndexes.slice(0, 1);
+  if (selector === 'upToTwoEmptyOwnerSlots') return emptyIndexes.slice(0, 2);
+  if (selector === 'allEmptyOwnerSlots') return emptyIndexes;
+  return [];
+}
+
 function resolveEffectVariantUnitTargets(state, owner, selector, capturedContext) {
   const { selectedTargets, sourceBoardIndex } = resolveEffectVariantContext(capturedContext);
   const targetAt = (selectedPosition) => {
@@ -1267,6 +1304,8 @@ function recordEffectVariantOperationTelemetry(state, variant, operation, teleme
     amount: operation.amount,
     cleanup: operation.cleanup,
     duration: operation.duration,
+    token: operation.token,
+    temporary: operation.temporary,
     ...telemetry,
   });
 }
@@ -1335,6 +1374,84 @@ function executeDamageUnitOperation(state, owner, variant, operation, capturedTa
   });
 }
 
+function createEffectVariantFloodTokenCard(id, temporary) {
+  return {
+    id,
+    name: 'Token',
+    type: 'unit',
+    attack: 1,
+    hp: 1,
+    armor: 0,
+    effectId: null,
+    ...(temporary ? { temporaryFloodToken: true } : {}),
+    ...GENERATED_UNIT_ART.swarmFloodToken,
+  };
+}
+
+function summonEffectVariantTokenAt(state, index, owner, token, temporary, sourceCard) {
+  if (state.board[index] !== null) return false;
+  if (token === 'grunt' && !temporary) {
+    return summonGruntAt(state, index, owner, 'effect_variant_grunt', getGeneratedGruntArtForSource(sourceCard));
+  }
+
+  const tokenSequence = state.nextTokenId ?? 0;
+  state.nextTokenId = tokenSequence + 1;
+  if (token === 'grunt') {
+    const tokenId = `${owner}_effect_variant_grunt_${index}_${tokenSequence}`;
+    const card = createGruntCard(tokenId, 'Grunt', 1, 1, getGeneratedGruntArtForSource(sourceCard));
+    state.board[index] = createBoardUnitFromCard(temporary ? { ...card, temporaryFloodToken: true } : card, owner);
+    return true;
+  }
+  if (token === 'flood') {
+    const tokenId = `${owner}_flood_token_${index}_${tokenSequence}`;
+    state.board[index] = createBoardUnitFromCard(createEffectVariantFloodTokenCard(tokenId, temporary), owner);
+    return true;
+  }
+  return false;
+}
+
+function executeDrawOneOperation(state, owner, variant, operation) {
+  const side = owner === 'player' ? state.player : state.enemy;
+  const result = drawCardsWithResult(side, 1);
+  const cardsDrawn = result.drawn ?? 0;
+  recordEffectVariantOperationTelemetry(state, variant, operation, {
+    status: cardsDrawn > 0 ? 'draw_executed' : 'draw_skipped',
+    cardsDrawn,
+    failedDraws: cardsDrawn > 0 ? 0 : 1,
+    skippedDraws: cardsDrawn > 0 ? 0 : 1,
+    drawBlockedReason: result.blockedReason,
+  });
+}
+
+function executeSummonTokenOperation(state, owner, variant, operation, capturedTargets, sourceCard = null) {
+  const targetIndexes = resolveEffectVariantEmptyOwnerSlots(state, owner, operation.selector);
+  const temporary = operation.temporary === true;
+  const tokenTelemetry = [];
+  let tokensSummoned = 0;
+
+  targetIndexes.forEach((index) => {
+    const summoned = summonEffectVariantTokenAt(state, index, owner, operation.token, temporary, sourceCard);
+    if (summoned) {
+      tokensSummoned += 1;
+      tokenTelemetry.push({ index, token: operation.token, temporary, summoned: true });
+      return;
+    }
+    tokenTelemetry.push({ index, token: operation.token, temporary, skipped: 'slot_occupied' });
+  });
+
+  const skippedSummons = targetIndexes.length === 0 ? 1 : tokenTelemetry.filter((entry) => entry.skipped).length;
+  recordEffectVariantOperationTelemetry(state, variant, operation, {
+    status: tokensSummoned > 0 ? 'summon_executed' : 'summon_skipped',
+    token: operation.token,
+    temporary,
+    tokensSummoned,
+    skippedSummons,
+    targetsResolved: tokensSummoned,
+    skippedTargets: tokenTelemetry.filter((entry) => entry.skipped),
+    targets: tokenTelemetry,
+  });
+}
+
 function executeStatModifierOperation(state, owner, variant, operation, capturedTargets) {
   const targetResults = resolveEffectVariantUnitTargets(state, owner, operation.selector, capturedTargets);
   const targetTelemetry = [];
@@ -1395,7 +1512,7 @@ function executeEffectVariantOperations(state, owner, sourceCard, effectId, capt
   variant.sequence.slice(1).forEach((operation) => {
     const handler = getEffectVariantOperationHandler(operation);
     if (!handler) return;
-    handler.execute(state, owner, variant, operation, capturedTargets);
+    handler.execute(state, owner, variant, operation, capturedTargets, sourceCard);
   });
 }
 

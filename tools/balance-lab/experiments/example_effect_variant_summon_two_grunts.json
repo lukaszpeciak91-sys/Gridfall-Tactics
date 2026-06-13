@@ -1,0 +1,35 @@
+{
+  "name": "Example effect variant summonToken up to two grunts execution",
+  "matchCount": 100,
+  "seed": 1337,
+  "telemetry": "all",
+  "changes": [
+    {
+      "mode": "effectVariant",
+      "effectVariant": {
+        "schemaVersion": 1,
+        "variantId": "example_summon_two_grunts_v1",
+        "label": "Base effect plus summon up to two grunts example",
+        "scope": {
+          "factionId": "swarm",
+          "cardId": "swarm_spawn_1",
+          "baseEffectId": "summon_grunt_empty_slot"
+        },
+        "timing": "afterBaseEffectBeforeDiscard",
+        "sequence": [
+          { "operation": "runBaseEffect" },
+          {
+            "operation": "summonToken",
+            "selector": "upToTwoEmptyOwnerSlots",
+            "token": "grunt"
+          }
+        ],
+        "telemetryTags": ["example", "summon-token", "grunt", "up-to-two", "execution"]
+      }
+    }
+  ],
+  "flags": {
+    "warningDeltaPp": 3,
+    "dangerDeltaPp": 8
+  }
+}

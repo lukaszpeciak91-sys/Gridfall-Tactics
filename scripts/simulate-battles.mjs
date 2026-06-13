@@ -113,6 +113,8 @@ function getEffectVariantOperationTelemetryKey(entry) {
     entry?.registryKey ?? 'unknown',
     entry?.operation ?? 'unknown',
     entry?.selector ?? '',
+    entry?.token ?? '',
+    entry?.temporary === true ? 'temporary' : 'permanent',
     entry?.status ?? 'unknown',
   ].join('|');
 }
@@ -137,6 +139,13 @@ function ensureEffectVariantOperationTelemetry(simTelemetry, entry) {
     baseDamageDealt: 0,
     enemyBaseDamage: 0,
     playerBaseDamage: 0,
+    cardsDrawn: 0,
+    failedDraws: 0,
+    skippedDraws: 0,
+    tokensSummoned: 0,
+    skippedSummons: 0,
+    token: entry?.token ?? '',
+    temporary: entry?.temporary === true,
   };
   return simTelemetry.effectVariantOperations[key];
 }
@@ -156,6 +165,13 @@ function recordEffectVariantOperationTelemetry(simTelemetry, entries) {
     row.attackReduced += numberMetric(entry.totalAttackReduced);
     row.armorAdded += numberMetric(entry.totalArmorAdded);
     row.armorReduced += numberMetric(entry.totalArmorReduced);
+    row.cardsDrawn += numberMetric(entry.cardsDrawn);
+    row.failedDraws += numberMetric(entry.failedDraws);
+    row.skippedDraws += numberMetric(entry.skippedDraws);
+    row.tokensSummoned += numberMetric(entry.tokensSummoned);
+    row.skippedSummons += numberMetric(entry.skippedSummons);
+    if (entry.token) row.token = entry.token;
+    if (entry.temporary === true) row.temporary = true;
     if (entry.operation === 'damageEnemyBase' || entry.operation === 'damagePlayerBase') {
       row.baseDamageDealt += damageDealt;
       if (entry.baseDamaged === 'enemyHP') row.enemyBaseDamage += damageDealt;
@@ -699,6 +715,13 @@ function printEffectVariantOperationSimulatorTelemetry(simTelemetry) {
     'base damage': row.baseDamageDealt,
     'enemy base damage': row.enemyBaseDamage,
     'player base damage': row.playerBaseDamage,
+    'cards drawn': row.cardsDrawn,
+    'failed draws': row.failedDraws,
+    'skipped draws': row.skippedDraws,
+    'tokens summoned': row.tokensSummoned,
+    'skipped summons': row.skippedSummons,
+    token: row.token,
+    temporary: row.temporary,
     status: row.status,
   })));
 }
