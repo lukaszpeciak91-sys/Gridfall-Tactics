@@ -52,6 +52,7 @@ const BASE_FRAME_GOLD = 0xfacc15;
 const BASE_FRAME_GOLD_SOFT = 0xfde68a;
 const BASE_FRAME_PLAYER_ACCENT = 0x38bdf8;
 const BASE_FRAME_ENEMY_ACCENT = 0xfb7185;
+const BASE_FRAME_CORE = 0x2dd4bf;
 const BASE_FRAME_OVERLOAD = 0xff3b30;
 const BASE_FRAME_OVERLOAD_MS = 150;
 const BASE_UTILITY_CONTROL_FILL = 0x020617;
@@ -1197,76 +1198,55 @@ export default class BattleScene extends Phaser.Scene {
     const width = panelWidth;
     const height = panelHeight;
     const left = panel.x - width / 2;
-    const top = panel.y - height / 2;
     const right = left + width;
-    const bottom = top + height;
     const edgeZone = Math.max(8, Math.min(18, width * 0.07));
-    const cornerLength = Math.max(8, Math.min(16, edgeZone * 0.92, height * 0.34));
-    const verticalAccentHeight = Math.max(10, Math.min(height * 0.46, 22));
-    const emitterWidth = Math.max(4, Math.min(7, edgeZone * 0.38));
-    const emitterHeight = Math.max(3, Math.min(5, height * 0.11));
-    const strokeAlpha = overloadActive ? 0.94 : (isActive ? 0.76 : (isMulligan ? 0.36 : 0.54));
-    const fineAlpha = overloadActive ? 0.84 : (isActive ? 0.62 : (isMulligan ? 0.26 : 0.42));
-    const accentAlpha = overloadActive ? 0.72 : (isActive ? 0.34 : (isMulligan ? 0.10 : 0.18));
-    const glowAlpha = overloadActive ? 0.22 : (isActive ? 0.15 : (isMulligan ? 0.045 : 0.085));
+    const textSafeInset = width * ((1 - 0.86) / 2);
+    const nodeRadius = Math.max(4.5, Math.min(7, height * 0.16, edgeZone * 0.48));
+    const coreRadius = Math.max(1.4, nodeRadius * 0.32);
+    const nodeInset = Math.max(nodeRadius + 3, Math.min(edgeZone * 0.55, textSafeInset - nodeRadius - 1));
+    const leftNodeX = left + nodeInset;
+    const rightNodeX = right - nodeInset;
+    const nodeY = panel.y;
+    const maxSignalLength = width * 0.15;
+    const leftCleanBoundary = left + textSafeInset;
+    const rightCleanBoundary = right - textSafeInset;
+    const leftSignalStart = leftNodeX + nodeRadius + 2;
+    const rightSignalStart = rightNodeX - nodeRadius - 2;
+    const leftSignalEnd = Math.min(leftSignalStart + maxSignalLength, leftCleanBoundary - 1);
+    const rightSignalEnd = Math.max(rightSignalStart - maxSignalLength, rightCleanBoundary + 1);
+    const ringAlpha = overloadActive ? 0.96 : (isActive ? 0.82 : (isMulligan ? 0.38 : 0.58));
+    const lineAlpha = overloadActive ? 0.86 : (isActive ? 0.58 : (isMulligan ? 0.20 : 0.34));
+    const coreAlpha = overloadActive ? 0.95 : (isActive ? 0.86 : (isMulligan ? 0.42 : 0.62));
+    const glowAlpha = overloadActive ? 0.26 : (isActive ? 0.18 : (isMulligan ? 0.045 : 0.09));
     const overloadColor = overloadActive ? BASE_FRAME_OVERLOAD : accentColor;
+    const coreColor = overloadActive ? BASE_FRAME_OVERLOAD : BASE_FRAME_CORE;
 
     graphics.clear();
 
-    // A full-width hairline makes the panel feel like the premium hardware object while staying on the edge.
-    graphics.lineStyle(isActive ? 2 : 1.25, BASE_FRAME_GOLD, strokeAlpha);
-    graphics.strokeRect(left + 0.5, top + 0.5, width - 1, height - 1);
+    // Keep the functional panel untouched: decoration is limited to two edge broadcast nodes and short edge ticks.
+    graphics.fillStyle(overloadColor, glowAlpha);
+    graphics.fillCircle(leftNodeX, nodeY, nodeRadius * 2.15);
+    graphics.fillCircle(rightNodeX, nodeY, nodeRadius * 2.15);
 
-    // Soft side glow is constrained to the outer 7% edge zone so localized labels keep a clean center.
-    graphics.fillStyle(accentColor, glowAlpha);
-    graphics.fillRect(left + 1, top + height * 0.18, Math.max(2, edgeZone * 0.28), height * 0.64);
-    graphics.fillRect(right - 1 - Math.max(2, edgeZone * 0.28), top + height * 0.18, Math.max(2, edgeZone * 0.28), height * 0.64);
+    graphics.lineStyle(overloadActive ? 2.25 : 1.6, overloadActive ? BASE_FRAME_OVERLOAD : BASE_FRAME_GOLD, ringAlpha);
+    graphics.strokeCircle(leftNodeX, nodeY, nodeRadius);
+    graphics.strokeCircle(rightNodeX, nodeY, nodeRadius);
 
-    graphics.lineStyle(1.5, BASE_FRAME_GOLD_SOFT, fineAlpha);
-    // Corner ticks: short, readable marks that never pass the edge-safe zone.
+    graphics.lineStyle(1, BASE_FRAME_GOLD_SOFT, Math.max(0, ringAlpha - 0.16));
+    graphics.strokeCircle(leftNodeX, nodeY, nodeRadius * 0.62);
+    graphics.strokeCircle(rightNodeX, nodeY, nodeRadius * 0.62);
+
+    graphics.fillStyle(coreColor, coreAlpha);
+    graphics.fillCircle(leftNodeX, nodeY, coreRadius);
+    graphics.fillCircle(rightNodeX, nodeY, coreRadius);
+
+    graphics.lineStyle(overloadActive ? 2 : 1.25, overloadActive ? BASE_FRAME_OVERLOAD : BASE_FRAME_GOLD_SOFT, lineAlpha);
     graphics.beginPath();
-    graphics.moveTo(left + 3, top + cornerLength);
-    graphics.lineTo(left + 3, top + 3);
-    graphics.lineTo(left + cornerLength, top + 3);
-    graphics.moveTo(right - cornerLength, top + 3);
-    graphics.lineTo(right - 3, top + 3);
-    graphics.lineTo(right - 3, top + cornerLength);
-    graphics.moveTo(left + 3, bottom - cornerLength);
-    graphics.lineTo(left + 3, bottom - 3);
-    graphics.lineTo(left + cornerLength, bottom - 3);
-    graphics.moveTo(right - cornerLength, bottom - 3);
-    graphics.lineTo(right - 3, bottom - 3);
-    graphics.lineTo(right - 3, bottom - cornerLength);
+    graphics.moveTo(leftSignalStart, nodeY);
+    graphics.lineTo(leftSignalEnd, nodeY);
+    graphics.moveTo(rightSignalStart, nodeY);
+    graphics.lineTo(rightSignalEnd, nodeY);
     graphics.strokePath();
-
-    // Broadcast emitters are deliberately side-bound: no center ornament, no texture behind text.
-    graphics.fillStyle(BASE_FRAME_GOLD, fineAlpha);
-    graphics.fillRect(left + edgeZone * 0.42, panel.y - verticalAccentHeight / 2, emitterWidth, verticalAccentHeight);
-    graphics.fillRect(right - edgeZone * 0.42 - emitterWidth, panel.y - verticalAccentHeight / 2, emitterWidth, verticalAccentHeight);
-
-    graphics.lineStyle(1, overloadColor, accentAlpha);
-    const innerTick = Math.max(5, Math.min(9, edgeZone * 0.54));
-    const emitterInsetLeft = left + edgeZone * 0.62;
-    const emitterInsetRight = right - edgeZone * 0.62;
-    [-1, 1].forEach((direction) => {
-      const y = panel.y + direction * Math.max(5, height * 0.16);
-      graphics.beginPath();
-      graphics.moveTo(emitterInsetLeft, y);
-      graphics.lineTo(emitterInsetLeft + innerTick, y);
-      graphics.moveTo(emitterInsetRight, y);
-      graphics.lineTo(emitterInsetRight - innerTick, y);
-      graphics.strokePath();
-    });
-
-    if (overloadActive) {
-      graphics.lineStyle(2, BASE_FRAME_OVERLOAD, 0.76);
-      graphics.beginPath();
-      graphics.moveTo(left + 2, panel.y);
-      graphics.lineTo(left + edgeZone, panel.y - emitterHeight);
-      graphics.moveTo(right - 2, panel.y);
-      graphics.lineTo(right - edgeZone, panel.y + emitterHeight);
-      graphics.strokePath();
-    }
   }
 
   updateBaseBroadcastFrameState() {
