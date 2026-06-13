@@ -1,0 +1,41 @@
+{
+  "name": "Example effect variant skip Substrate base for enemy armor draw",
+  "matchCount": 20,
+  "seed": 1337,
+  "telemetry": "all",
+  "changes": [
+    {
+      "mode": "effectVariant",
+      "effectVariant": {
+        "schemaVersion": 1,
+        "variantId": "example_skip_base_substrate_enemy_armor_draw",
+        "label": "Substrate skips destroy for enemy ARM debuff draw",
+        "scope": {
+          "factionId": "swarm",
+          "cardId": "swarm_recycle_1",
+          "baseEffectId": "destroy_friendly_draw_1"
+        },
+        "timing": "afterBaseEffectBeforeDiscard",
+        "targeting": "none",
+        "sequence": [
+          { "operation": "skipBaseEffect" },
+          {
+            "operation": "debuffArmor",
+            "selector": "allOpponentUnits",
+            "amount": 1,
+            "duration": "untilCombatCleanup"
+          },
+          { "operation": "drawOne" }
+        ],
+        "textPatch": {
+          "textShort": "All [ENEMIES]: -1 ARM until combat. Draw 1."
+        },
+        "telemetryTags": ["example", "skip-base-effect", "substrate", "debuff-armor", "draw-one", "execution"]
+      }
+    }
+  ],
+  "flags": {
+    "warningDeltaPp": 5,
+    "dangerDeltaPp": 10
+  }
+}

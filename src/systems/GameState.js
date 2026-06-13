@@ -1149,6 +1149,14 @@ function isRunBaseEffectOperation(operation) {
   return operation?.operation === 'runBaseEffect' && Object.keys(operation).length === 1;
 }
 
+function isSkipBaseEffectOperation(operation) {
+  return operation?.operation === 'skipBaseEffect' && Object.keys(operation).length === 1;
+}
+
+function getEffectVariantBaseEffectControl(variant) {
+  return isSkipBaseEffectOperation(variant?.sequence?.[0]) ? 'skipBaseEffect' : 'runBaseEffect';
+}
+
 function isDamageUnitOperation(operation) {
   return operation?.operation === 'damageUnit'
     && EFFECT_VARIANT_UNIT_SELECTORS.has(operation.selector)
@@ -1204,13 +1212,15 @@ function isRunBaseEffectOnlyActiveVariant(variant, effectId) {
 function isEffectVariantExecutableActiveVariant(variant, effectId, timing = 'afterBaseEffectBeforeDiscard') {
   const sequence = variant?.sequence;
   if (!Boolean(variant && variant.baseEffectId === effectId) || variant.timing !== timing || !Array.isArray(sequence)) return false;
+  const hasValidBaseEffectControl = isRunBaseEffectOperation(sequence[0]) || isSkipBaseEffectOperation(sequence[0]);
+  const hasLaterBaseEffectControl = sequence.slice(1).some((operation) => isRunBaseEffectOperation(operation) || isSkipBaseEffectOperation(operation));
+  if (!hasValidBaseEffectControl || hasLaterBaseEffectControl) return false;
   if (timing === 'afterBaseEffectBeforeDiscard') {
     return sequence.length >= 2
-      && isRunBaseEffectOperation(sequence[0])
       && sequence.slice(1).every(isExecutableEffectVariantOperation);
   }
   if (timing === 'onDeath') {
-    const operations = sequence.filter((operation) => !isRunBaseEffectOperation(operation));
+    const operations = sequence.slice(1);
     return operations.length > 0 && operations.every(isExecutableEffectVariantOperation);
   }
   return false;
@@ -1314,6 +1324,7 @@ function recordEffectVariantOperationTelemetry(state, variant, operation, teleme
     duration: operation.duration,
     token: operation.token,
     temporary: operation.temporary,
+    baseEffectControl: getEffectVariantBaseEffectControl(variant),
     triggerType: variant.timing ?? 'afterBaseEffectBeforeDiscard',
     ...telemetry,
   });
@@ -1522,7 +1533,7 @@ function executeEffectVariantOperations(state, owner, sourceCard, effectId, capt
   if (!variant || !isEffectVariantExecutableActiveVariant(variant, effectId, timing)) return;
 
   variant.sequence.forEach((operation, index) => {
-    if (index === 0 && isRunBaseEffectOperation(operation)) return;
+    if (index === 0 && (isRunBaseEffectOperation(operation) || isSkipBaseEffectOperation(operation))) return;
     const handler = getEffectVariantOperationHandler(operation);
     if (!handler) {
       recordEffectVariantOperationTelemetry(state, variant, operation, { status: 'operation_skipped', skippedExecutions: 1 });
@@ -1530,6 +1541,11 @@ function executeEffectVariantOperations(state, owner, sourceCard, effectId, capt
     }
     handler.execute(state, owner, variant, operation, capturedTargets, sourceCard);
   });
+}
+
+function shouldRunBaseEffectForEffectVariant(state, owner, sourceCard, effectId) {
+  const variant = getActiveEffectVariant(state, owner, sourceCard, effectId);
+  return !variant || getEffectVariantBaseEffectControl(variant) !== 'skipBaseEffect';
 }
 
 function executeOnDeathEffectVariantOperations(state, index, unit) {
@@ -2002,8 +2018,10 @@ export function playEffectCard(state, owner, handCardId) {
   side.discard.push(playedCard);
   const protectedOwner = getOpponentOwner(owner);
   const blockedByImmunity = hasMoveDisableImmunity(state, protectedOwner, owner, playedCard.effectId ?? null);
-  if (!blockedByImmunity) {
+  if (!blockedByImmunity && shouldRunBaseEffectForEffectVariant(state, owner, playedCard, playedCard.effectId ?? null)) {
     applyEffectById(state, owner, playedCard.effectId ?? null, playedCard);
+  } else if (!blockedByImmunity) {
+    executeEffectVariantOperations(state, owner, playedCard, playedCard.effectId ?? null);
   }
   recordProgressAction(state, owner, blockedByImmunity ? 'effect-blocked' : 'effect');
   completeActionOpportunity(state, owner);
@@ -2039,7 +2057,8 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
     return { ok: true, type: 'targeted-effect-blocked', card: playedCard };
   }
 
-  switch (card.effectId) {
+  if (shouldRunBaseEffectForEffectVariant(state, owner, card, card.effectId)) {
+    switch (card.effectId) {
     case 'return_friendly_draw_1': {
       if (targetUnit.owner !== owner) return { ok: false, reason: 'Target must be friendly' };
       if (side.hand.length >= side.maxHandSize) return { ok: false, reason: 'Hand is full' };
@@ -2210,8 +2229,9 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
       state.board[secondIndex] = firstUnit;
       break;
     }
-    default:
-      return { ok: false, reason: 'Effect does not support targeted resolution' };
+      default:
+        return { ok: false, reason: 'Effect does not support targeted resolution' };
+    }
   }
 
   executeEffectVariantOperations(state, owner, card, card.effectId, effectVariantSelectedTargets);
