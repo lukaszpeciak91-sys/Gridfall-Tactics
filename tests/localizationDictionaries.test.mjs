@@ -204,7 +204,7 @@ test('selected localized card texts use enemy board-unit markers without changin
     },
     pl: {
       attrition_swarm_husk_1: 'Śmierć w walce: zadaj 1 [ENEMY] naprzeciw.',
-      attrition_swarm_funeral_pyre_1: 'Pierwsze 2 zgony [ALLIES] w walce:\npo 1 ● [ENEMY] naprzeciw.',
+      attrition_swarm_funeral_pyre_1: 'Pierwsze 2 zgony [ALLY]:\n1 [HP] [ENEMY] naprzeciw.',
       attrition_swarm_infect_1: 'Zadaj 1 [ENEMY].\n[ALLY] naprzeciwko +1 [ATK].',
       control_hacker_1: '[ENEMY] naprzeciwko: -1 ATK do walki.',
       control_sniper_1: 'Atakuje [ENEMY] z najniższym HP.',

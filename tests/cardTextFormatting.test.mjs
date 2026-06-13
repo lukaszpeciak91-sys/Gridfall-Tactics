@@ -74,7 +74,7 @@ test('formats HP-related healing and damage language without replacing unrelated
   assert.equal(formatCardEffectTextShort('Śmierć w walce: obie bazy otrzymują 1.', 'pl'), 'Śmierć w walce: obie bazy otrzymują 1 ●.');
   assert.equal(formatCardEffectTextShort('Po śmierci: wroga baza otrzymuje 1.', 'pl'), 'Po śmierci: wroga baza otrzymuje 1 ●.');
   assert.equal(formatCardEffectTextShort('Celowany wróg atakuje własną bazę w następnej walce, potem otrzymuje 1 obrażenie.', 'pl'), 'Celowany wróg atakuje własną bazę w następnej walce, potem otrzymuje 1 ●.');
-  assert.equal(formatCardEffectTextShort('Pierwsze 2 zgony [ALLIES] w walce:\npo 1 ● [ENEMY] naprzeciw.', 'pl'), 'Pierwsze 2 zgony ♙♙ w walce:\npo 1 ● ♟ naprzeciw.');
+  assert.equal(formatCardEffectTextShort('Pierwsze 2 zgony [ALLY]:\n1 [HP] [ENEMY] naprzeciw.', 'pl'), 'Pierwsze 2 zgony ♙♙:\n1 ● ♟ naprzeciw.');
   assert.equal(formatCardEffectTextShort('Zniszcz [ALLY]. Dobierz 1.', 'pl'), 'Zniszcz ♙. Dobierz 1.');
   assert.equal(formatCardEffectTextShort('Śmierć w walce: przyzwij tutaj 1/1.', 'pl'), 'Śmierć w walce: przyzwij tutaj 1/1.');
 });
@@ -89,7 +89,7 @@ test('formats HP symbols for localized Attrition Swarm card effect display text'
   assert.equal(getCardDisplayContent(cardById('attrition_swarm_abomination_1'), 'en').body, 'Combat death: both bases lose 1 ●.');
   assert.equal(getCardDisplayContent(cardById('attrition_swarm_abomination_1'), 'pl').body, 'Śmierć w walce: obie bazy tracą 1 ●.');
   assert.equal(getCardDisplayContent(cardById('attrition_swarm_funeral_pyre_1'), 'en').body, 'First 2 ♙♙\ncombat deaths:\n1 ● to opposed ♟.');
-  assert.equal(getCardDisplayContent(cardById('attrition_swarm_funeral_pyre_1'), 'pl').body, 'Pierwsze 2 zgony ♙♙ w walce:\npo 1 ● ♟ naprzeciw.');
+  assert.equal(getCardDisplayContent(cardById('attrition_swarm_funeral_pyre_1'), 'pl').body, 'Pierwsze 2 zgony ♙♙:\n1 ● ♟ naprzeciw.');
 });
 
 
@@ -178,7 +178,7 @@ test('Polish Mercy uses established inline ally, HP, and ATK icons with readable
 
   assert.equal(
     getCardDisplayContent(mercy, 'pl').body,
-    'Ulecz ♙ o +1 ●. +1 ▲ do walki. Zabije w walce: dobierz 1.',
+    '+1 ●, +1 ▲ do walki.\nZabije: dobierz 1.',
   );
   assert.equal(
     getCardDisplayContent(mercy, 'en').body,
