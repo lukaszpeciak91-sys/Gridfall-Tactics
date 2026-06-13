@@ -2097,6 +2097,121 @@ def build_card_telemetry_comparison(
 
 
 
+
+def card_leverage_score(row: dict[str, Any]) -> float:
+    play_signal = row["playImpact"]
+    draw_signal = row["drawImpact"]
+    carry_signal = row["carryScore"]
+    dead_signal = row["deadCardScore"]
+    return (0.60 * play_signal) + (0.25 * draw_signal) + (0.10 * carry_signal) - (0.05 * dead_signal)
+
+
+def card_leverage_rows(card_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    rows = []
+    for row in card_rows:
+        if row["drawn"] == 0 and row["drawnGames"] == 0:
+            continue
+        leverage = card_leverage_score(row)
+        rows.append({
+            **row,
+            "leverageScore": leverage,
+        })
+    return rows
+
+
+def card_leverage_formula_lines() -> list[str]:
+    return [
+        "Leverage is a reporting-only association score from existing simulator card telemetry; it does not change gameplay.",
+        "Formula per card: `0.60 * Play Impact + 0.25 * Draw Impact + 0.10 * Carry Score - 0.05 * Dead Card Score`.",
+        "For matchup leverage, Balance Lab uses the cards from Faction A in each changed matchup and multiplies the card score by the sign of that matchup's non-draw WR delta, so positive rows are aligned with the direction of the matchup move.",
+        "For campaign movers, Balance Lab uses the same card score for each faction and multiplies by the sign of that faction's campaign-estimate delta.",
+        "Generated-token rows that were never drawn are excluded so leverage focuses on deck cards and generated units do not dominate low-sample carry scores.",
+        "Limitations: card telemetry is aggregate across the experiment, not isolated per matchup; scores are best used for relative ranking and audit triage, not as exact percentage-point attribution.",
+    ]
+
+
+def leverage_bullet_lines(rows: list[dict[str, Any]], positive: bool, limit: int = 5) -> list[str]:
+    filtered = [row for row in rows if row["score"] > 0] if positive else [row for row in rows if row["score"] < 0]
+    ranked = sorted(filtered, key=lambda row: (-row["score"], row["card"]) if positive else (row["score"], row["card"]))[:limit]
+    if not ranked:
+        return ["- None"]
+    return [f"- {markdown_cell(row['card'])} {format_pp(row['score'])}" for row in ranked]
+
+
+def matchup_leverage_sections(matchup_rows: list[dict[str, Any]], leverage_rows: list[dict[str, Any]], threshold_pp: float = 3.0) -> tuple[list[str], list[str]]:
+    by_faction: dict[str, list[dict[str, Any]]] = {}
+    for row in leverage_rows:
+        by_faction.setdefault(row["faction"], []).append(row)
+    changed_matchups = sorted(
+        [row for row in matchup_rows if abs(row["deltaPp"]) >= threshold_pp],
+        key=lambda row: (-abs(row["deltaPp"]), row["factionA"], row["factionB"]),
+    )
+    report_lines = [
+        "## Matchup Leverage",
+        "",
+        *card_leverage_formula_lines(),
+        "",
+    ]
+    paste_lines = ["Matchup Leverage"]
+    if not changed_matchups:
+        report_lines.append(f"No matchup deltas reached abs(delta) >= {threshold_pp:g} pp.")
+        paste_lines.append("No matchup deltas reached leverage threshold.")
+        return report_lines, paste_lines
+    for matchup in changed_matchups:
+        direction = 1 if matchup["deltaPp"] >= 0 else -1
+        faction_cards = by_faction.get(matchup["factionA"], [])
+        scored = [{"card": row["card"], "score": row["leverageScore"] * direction} for row in faction_cards]
+        label = f"{matchup['factionA']} vs {matchup['factionB']}"
+        report_lines.extend([
+            f"### {label}",
+            "",
+            f"Matchup delta: {format_delta(matchup['deltaPp'])} pp ({matchup['baselineFactionANonDrawWr']} → {matchup['experimentFactionANonDrawWr']}).",
+            "",
+            "#### Top Positive Influence",
+            "",
+            *leverage_bullet_lines(scored, positive=True),
+            "",
+            "#### Top Negative Influence",
+            "",
+            *leverage_bullet_lines(scored, positive=False),
+            "",
+        ])
+        paste_lines.extend([label, "", *[f"+ {line[2:].rsplit(' ', 1)[0]}" for line in leverage_bullet_lines(scored, True) if line != "- None"], "", *[f"- {line[2:].rsplit(' ', 1)[0]}" for line in leverage_bullet_lines(scored, False) if line != "- None"], ""])
+    return report_lines, paste_lines
+
+
+def global_leverage_lines(leverage_rows: list[dict[str, Any]]) -> list[str]:
+    positive = sorted([row for row in leverage_rows if row["leverageScore"] > 0], key=lambda row: (-row["leverageScore"], row["card"]))[:5]
+    negative = sorted([row for row in leverage_rows if row["leverageScore"] < 0], key=lambda row: (row["leverageScore"], row["card"]))[:5]
+    return [
+        "## Most Influential Cards Overall",
+        "",
+        "### Most Positive",
+        "",
+        *([f"- {markdown_cell(row['card'])} {format_pp(row['leverageScore'])}" for row in positive] or ["- None"]),
+        "",
+        "### Most Negative",
+        "",
+        *([f"- {markdown_cell(row['card'])} {format_pp(row['leverageScore'])}" for row in negative] or ["- None"]),
+    ]
+
+
+def campaign_mover_lines(campaign_rows: list[dict[str, Any]], leverage_rows: list[dict[str, Any]]) -> list[str]:
+    by_faction: dict[str, list[dict[str, Any]]] = {}
+    for row in leverage_rows:
+        by_faction.setdefault(row["faction"], []).append(row)
+    lines = ["## Campaign Movers", "", "Cards most associated with campaign estimate movement by faction.", ""]
+    for campaign in sorted(campaign_rows, key=lambda row: (-abs(row["deltaPp"]), row["faction"])):
+        direction = 1 if campaign["deltaPp"] >= 0 else -1
+        scored = sorted(
+            [{"card": row["card"], "score": row["leverageScore"] * direction} for row in by_faction.get(campaign["faction"], []) if row["leverageScore"] * direction > 0],
+            key=lambda row: (-row["score"], row["card"]),
+        )[:5]
+        lines.extend([f"### {campaign['faction']}", "", f"Campaign delta: {format_delta(campaign['deltaPp'])} pp.", ""])
+        lines.extend([f"- {markdown_cell(row['card'])} {format_pp(row['score'])} campaign influence" for row in scored] or ["- None"] )
+        lines.append("")
+    return lines
+
 def dead_card_table_lines(rows: list[dict[str, Any]]) -> list[str]:
     lines = [
         "| Card | Drawn | Played | Held At Defeat | Dead Card Score |",
@@ -2695,7 +2810,19 @@ def build_comparison_report(
         card_draw_play_impact_lines = ["_Skipped because card telemetry parsing failed._"]
         dead_card_lines = ["_Skipped because card telemetry parsing failed._"]
         carry_card_lines = ["_Skipped because card telemetry parsing failed._"]
+        leverage_rows: list[dict[str, Any]] = []
+        matchup_leverage_lines, matchup_leverage_paste_lines = ([
+            "## Matchup Leverage",
+            "",
+            "_Skipped because card telemetry parsing failed._",
+        ], ["Matchup Leverage", "Not available; card telemetry parsing failed."])
+        global_leverage_report_lines = ["## Most Influential Cards Overall", "", "_Skipped because card telemetry parsing failed._"]
+        campaign_movers_report_lines = ["## Campaign Movers", "", "_Skipped because card telemetry parsing failed._"]
     else:
+        leverage_rows = card_leverage_rows(card_telemetry_comparison["experimentImpactRows"])
+        matchup_leverage_lines, matchup_leverage_paste_lines = matchup_leverage_sections(matchup_delta_rows, leverage_rows)
+        global_leverage_report_lines = global_leverage_lines(leverage_rows)
+        campaign_movers_report_lines = campaign_mover_lines(campaign_delta_rows, leverage_rows)
         card_comparison_lines = card_comparison_table_lines(card_telemetry_comparison["changedRows"])
         card_draw_play_impact_lines = card_draw_play_impact_table_lines(card_telemetry_comparison["experimentImpactRows"])
         dead_card_lines = dead_card_table_lines(card_telemetry_comparison["experimentImpactRows"])
@@ -2723,6 +2850,12 @@ def build_comparison_report(
         "### Campaign Card Intelligence",
         "",
         *campaign_card_intelligence_lines(campaign_delta_rows, card_telemetry_comparison["experimentImpactRows"]),
+        "",
+        *matchup_leverage_lines,
+        "",
+        *global_leverage_report_lines,
+        "",
+        *campaign_movers_report_lines,
     ])
     card_telemetry_line = (
         f"`{baseline_card_path.name}`, `{experiment_card_path.name}`"
@@ -2852,6 +2985,12 @@ def build_comparison_report(
         "",
         *campaign_card_intelligence_lines(campaign_delta_rows, card_telemetry_comparison["experimentImpactRows"]),
         "",
+        *matchup_leverage_lines,
+        "",
+        *global_leverage_report_lines,
+        "",
+        *campaign_movers_report_lines,
+        "",
         "## Effect Variant Runtime Telemetry",
         "",
         "### On-Death Runtime Telemetry",
@@ -2906,6 +3045,12 @@ def build_comparison_report(
         "",
         "Top 5 matchup non-draw WR deltas:",
         *top_matchup_lines,
+        "",
+        *matchup_leverage_paste_lines,
+        "",
+        "Most Influential Cards Overall:",
+        *([f"+ {row['card']} {format_pp(row['leverageScore'])}" for row in sorted([row for row in leverage_rows if row["leverageScore"] > 0], key=lambda row: (-row["leverageScore"], row["card"]))[:5]] or ["None"]),
+        *([f"- {row['card']} {format_pp(row['leverageScore'])}" for row in sorted([row for row in leverage_rows if row["leverageScore"] < 0], key=lambda row: (row["leverageScore"], row["card"]))[:5]] or []),
         "",
         "Warnings/dangers:",
         *paste_flag_lines,

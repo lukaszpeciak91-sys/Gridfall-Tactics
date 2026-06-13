@@ -325,7 +325,7 @@ The summary also lists the biggest faction delta, biggest matchup delta, biggest
 
 ## Paste into ChatGPT
 
-At the end of `comparison-report.md`, Balance Lab writes a compact `Paste into ChatGPT` block for balance-review conversations. It includes the experiment name, patch summary, verdict, faction WR deltas, campaign deltas, top 5 matchup deltas, warning/danger flags, top 10 card telemetry deltas when parsing succeeds, and raw card telemetry file names when telemetry is present.
+At the end of `comparison-report.md`, Balance Lab writes a compact `Paste into ChatGPT` block for balance-review conversations. It includes the experiment name, patch summary, verdict, faction WR deltas, campaign deltas, top 5 matchup deltas, matchup leverage, global card leverage, warning/danger flags, top 10 card telemetry deltas when parsing succeeds, and raw card telemetry file names when telemetry is present.
 
 ## Card telemetry
 
@@ -336,6 +336,25 @@ The comparison table matches baseline and experiment card rows by `(faction, id)
 The card telemetry comparison shows changed cards by default. A card is changed when drawn, played, held-at-defeat, or average-turn-played values differ after parsing. Rows are sorted by largest absolute played delta first, then largest absolute drawn delta. The report also lists baseline-only and experiment-only cards when a card id appears on only one side.
 
 Card telemetry parsing is reporting-only and non-fatal. If the simulator table format changes, required columns are missing, numeric conversions fail, or duplicate `(faction, id)` keys are found, Balance Lab prints a warning, keeps the run successful, keeps writing `card-telemetry-baseline.txt` and `card-telemetry-experiment.txt`, and skips only the parsed card comparison table for that report.
+
+## Matchup leverage analytics
+
+When card telemetry parses successfully, `comparison-report.md` adds reporting-only leverage sections after the card intelligence tables:
+
+- **Matchup Leverage** lists every matchup whose non-draw WR delta has `abs(delta) >= 3 pp`, then shows up to five positive and five negative cards for the Faction A side of that matchup.
+- **Most Influential Cards Overall** ranks cards across the whole experiment by the same leverage score.
+- **Campaign Movers** ranks cards within each faction by their association with the faction campaign-estimate direction.
+
+Leverage formula per card:
+
+```text
+0.60 * Play Impact
++ 0.25 * Draw Impact
++ 0.10 * Carry Score
+- 0.05 * Dead Card Score
+```
+
+For matchup leverage, Balance Lab multiplies that card score by the sign of the matchup delta, so positive cards are aligned with the direction of the matchup move and negative cards point against it. For campaign movers, Balance Lab multiplies by the sign of the faction campaign-estimate delta. Generated-token rows that were never drawn are excluded so leverage focuses on deck cards and generated units do not dominate low-sample carry scores. This uses only existing drawn/played/win-loss/dead-card/carry telemetry. It is an aggregate association score for relative ranking and audit triage, not exact percentage-point attribution, because current card telemetry is not isolated by matchup.
 
 ## Safety smoke checks for invalid configs
 
