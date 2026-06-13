@@ -53,7 +53,7 @@
       "textShort": "On attack: heal your base 1."
     },
     "attrition_swarm_rotcaller_1": {
-      "name": "Rotcaller",
+      "name": "Party Host",
       "textShort": "First adjacent [ALLY] death in combat: +1 ATK until combat."
     },
     "attrition_swarm_abomination_1": {
@@ -177,7 +177,7 @@
       "textShort": ""
     },
     "tank_bruiser_1": {
-      "name": "Bruiser",
+      "name": "Fang Veteran",
       "textShort": "After surviving damage: +1 ATK until next combat."
     },
     "tank_fortify_1": {

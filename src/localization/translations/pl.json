@@ -38,7 +38,7 @@
     },
     "aggro_quick_fix_1": {
       "name": "Szybka Naprawa",
-      "textShort": "Ulecz [ALLY] o 1. +1 ATK do walki. Zabije w walce: dobierz 1."
+      "textShort": "+1 [HP], +1 [ATK] do walki.\nZabije: dobierz 1."
     },
     "attrition_swarm_husk_1": {
       "name": "Łupina",
@@ -53,16 +53,16 @@
       "textShort": "Przy ataku: ulecz swoją bazę o 1."
     },
     "attrition_swarm_rotcaller_1": {
-      "name": "Zew Rozkładu",
-      "textShort": "Pierwsza śmierć sąsiedniego [ALLY] w walce: +1 ATK do walki."
+      "name": "Wodzirej",
+      "textShort": "Gdy zginie sąsiad:\n+1 [ATK] do walki."
     },
     "attrition_swarm_abomination_1": {
       "name": "Abominacja",
       "textShort": "Śmierć w walce: obie bazy tracą 1 HP."
     },
     "attrition_swarm_funeral_pyre_1": {
-      "name": "Stos Pogrzebowy",
-      "textShort": "Pierwsze 2 zgony [ALLIES] w walce:\npo 1 ● [ENEMY] naprzeciw."
+      "name": "Stos",
+      "textShort": "Pierwsze 2 zgony [ALLY]:\n1 [HP] [ENEMY] naprzeciw."
     },
     "attrition_swarm_infect_1": {
       "name": "Zgniły Upominek",
@@ -177,7 +177,7 @@
       "textShort": ""
     },
     "tank_bruiser_1": {
-      "name": "Zabijaka",
+      "name": "Weteran Kła",
       "textShort": "Po przetrwaniu obrażeń: +1 ATK do następnej walki."
     },
     "tank_fortify_1": {
