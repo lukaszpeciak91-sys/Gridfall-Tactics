@@ -1,0 +1,31 @@
+{
+  "name": "Example effect variant drawOne execution",
+  "matchCount": 100,
+  "seed": 1337,
+  "telemetry": "all",
+  "changes": [
+    {
+      "mode": "effectVariant",
+      "effectVariant": {
+        "schemaVersion": 1,
+        "variantId": "example_draw_one_v1",
+        "label": "Base effect plus drawOne example",
+        "scope": {
+          "factionId": "swarm",
+          "cardId": "swarm_spawn_1",
+          "baseEffectId": "summon_grunt_empty_slot"
+        },
+        "timing": "afterBaseEffectBeforeDiscard",
+        "sequence": [
+          { "operation": "runBaseEffect" },
+          { "operation": "drawOne" }
+        ],
+        "telemetryTags": ["example", "draw-one", "execution"]
+      }
+    }
+  ],
+  "flags": {
+    "warningDeltaPp": 3,
+    "dangerDeltaPp": 8
+  }
+}

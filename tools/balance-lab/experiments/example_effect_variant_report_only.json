@@ -1,5 +1,5 @@
 {
-  "name": "Example effect variant report-only recognition",
+  "name": "Example effect variant drawOne recognition and execution",
   "matchCount": 100,
   "seed": 1337,
   "telemetry": "all",
@@ -8,8 +8,8 @@
       "mode": "effectVariant",
       "effectVariant": {
         "schemaVersion": 1,
-        "variantId": "example_report_only_draw_one_v1",
-        "label": "Report-only unsupported drawOne operation",
+        "variantId": "example_report_draw_one_v1",
+        "label": "Executable drawOne operation with report text patch",
         "scope": {
           "factionId": "control",
           "cardId": "control_jam_signal_1",
@@ -17,13 +17,22 @@
         },
         "timing": "afterBaseEffectBeforeDiscard",
         "sequence": [
-          { "operation": "runBaseEffect" },
-          { "operation": "drawOne" }
+          {
+            "operation": "runBaseEffect"
+          },
+          {
+            "operation": "drawOne"
+          }
         ],
         "textPatch": {
           "textShort": "Temporary report-only variant text."
         },
-        "telemetryTags": ["example", "report-only", "unsupported-execution"]
+        "telemetryTags": [
+          "example",
+          "draw-one",
+          "execution",
+          "text-patch"
+        ]
       }
     }
   ],
