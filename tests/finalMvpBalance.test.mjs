@@ -500,7 +500,7 @@ test('Flood creates temporary 1/1 Tokens that attack and vanish after combat', (
   assert.equal(state.board[6], null);
   assert.equal(state.board[7], null);
   assert.deepEqual(state.player.discard.map((card) => card.id), [flood.id]);
-  assert.equal(flood.textShort, 'Fill up to 2 empty slots with 1/1s. They vanish after combat.');
+  assert.equal(flood.textShort, 'Fill up to 2 empty slots with temporary 1/1s. They vanish after combat.');
 });
 
 test('Flood temporary Tokens skip combat death trigger paths', () => {
