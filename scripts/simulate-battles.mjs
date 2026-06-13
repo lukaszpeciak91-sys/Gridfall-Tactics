@@ -193,8 +193,43 @@ function ensureCardTelemetry(simTelemetry, faction, card) {
     played: 0,
     heldAtDefeat: 0,
     turnPlayedTotal: 0,
+    drawnGames: 0,
+    drawnWins: 0,
+    drawnLosses: 0,
+    notDrawnGames: 0,
+    notDrawnWins: 0,
+    notDrawnLosses: 0,
+    playedGames: 0,
+    playedWins: 0,
+    playedLosses: 0,
+    notPlayedGames: 0,
+    notPlayedWins: 0,
+    notPlayedLosses: 0,
   };
   return simTelemetry.cards[key];
+}
+
+function createCardGameTelemetrySide(factionName, cards) {
+  const side = { faction: factionName ?? 'Unknown', cards: new Map(), drawn: new Set(), played: new Set() };
+  cards.forEach((card) => {
+    const key = card?.id ?? 'unknown';
+    side.cards.set(key, card);
+  });
+  return side;
+}
+
+function createCardGameTelemetry(state) {
+  return {
+    player: createCardGameTelemetrySide(state.player.factionName, state.player.deck),
+    enemy: createCardGameTelemetrySide(state.enemy.factionName, state.enemy.deck),
+  };
+}
+
+function rememberGameCard(gameCardTelemetry, side, card, status) {
+  if (!gameCardTelemetry || !side || !card) return;
+  const key = card?.id ?? 'unknown';
+  gameCardTelemetry.cards.set(key, card);
+  gameCardTelemetry[status]?.add(key);
 }
 
 function countCards(cards) {
@@ -206,7 +241,7 @@ function countCards(cards) {
   return counts;
 }
 
-function recordDrawTelemetry(simTelemetry, side, beforeDeck) {
+function recordDrawTelemetry(simTelemetry, side, beforeDeck, gameCardTelemetry = null) {
   if (!simTelemetry || !side) return;
   const beforeCards = beforeDeck ?? [];
   const afterCounts = countCards(side.deck ?? []);
@@ -218,10 +253,11 @@ function recordDrawTelemetry(simTelemetry, side, beforeDeck) {
       return;
     }
     ensureCardTelemetry(simTelemetry, side.factionName ?? 'Unknown', card).drawn += 1;
+    rememberGameCard(gameCardTelemetry, side, card, 'drawn');
   });
 }
 
-function recordActionTelemetry(simTelemetry, state, owner, action, result = null) {
+function recordActionTelemetry(simTelemetry, state, owner, action, result = null, gameCardTelemetry = null) {
   if (!simTelemetry || !state || !action) return;
   const faction = state?.[owner]?.factionName ?? owner;
   const row = ensureFactionTelemetry(simTelemetry, faction);
@@ -240,7 +276,31 @@ function recordActionTelemetry(simTelemetry, state, owner, action, result = null
     const cardRow = ensureCardTelemetry(simTelemetry, faction, result.card);
     cardRow.played += 1;
     cardRow.turnPlayedTotal += (state.turnsCompleted ?? 0) + 1;
+    rememberGameCard(gameCardTelemetry, state?.[owner], result.card, 'played');
   }
+}
+
+function recordCardOutcomeTelemetryForSide(simTelemetry, sideGameTelemetry, winner, sideOwner) {
+  if (!simTelemetry || !sideGameTelemetry) return;
+  const won = winner === sideOwner;
+  const lost = winner !== 'draw' && winner !== sideOwner;
+  sideGameTelemetry.cards.forEach((card, cardId) => {
+    const row = ensureCardTelemetry(simTelemetry, sideGameTelemetry.faction, card);
+    const wasDrawn = sideGameTelemetry.drawn.has(cardId);
+    const wasPlayed = sideGameTelemetry.played.has(cardId);
+    const drawPrefix = wasDrawn ? 'drawn' : 'notDrawn';
+    const playPrefix = wasPlayed ? 'played' : 'notPlayed';
+    row[`${drawPrefix}Games`] += 1;
+    row[`${playPrefix}Games`] += 1;
+    if (won) {
+      row[`${drawPrefix}Wins`] += 1;
+      row[`${playPrefix}Wins`] += 1;
+    }
+    if (lost) {
+      row[`${drawPrefix}Losses`] += 1;
+      row[`${playPrefix}Losses`] += 1;
+    }
+  });
 }
 
 function classifyEnding(result) {
@@ -268,6 +328,9 @@ function recordGameEndTelemetry(simTelemetry, result) {
     enemyRow.draws += 1;
   }
 
+  recordCardOutcomeTelemetryForSide(simTelemetry, result.cardGameTelemetry?.player, result.winner, 'player');
+  recordCardOutcomeTelemetryForSide(simTelemetry, result.cardGameTelemetry?.enemy, result.winner, 'enemy');
+
   const ending = classifyEnding(result);
   simTelemetry.endings[ending] = (simTelemetry.endings[ending] ?? 0) + 1;
 
@@ -292,18 +355,20 @@ function recordMulliganTelemetry(telemetry, factionName, replaced) {
   row.cardsReplaced += replaced;
 }
 
-function applyAiOpeningMulligan(state, owner, randomFn, telemetry) {
+function applyAiOpeningMulligan(state, owner, randomFn, telemetry, simTelemetry = null, gameCardTelemetry = null) {
   const side = owner === 'player' ? state.player : state.enemy;
   const selectedIds = selectOpeningMulliganCardIds(side);
+  const deckBeforeMulligan = [...(side.deck ?? [])];
   const result = performOpeningMulligan(state, owner, selectedIds, randomFn);
   if (!result.ok) {
     telemetry.invalidActions = (telemetry.invalidActions ?? 0) + 1;
     return;
   }
+  recordDrawTelemetry(simTelemetry, side, deckBeforeMulligan, gameCardTelemetry?.[owner]);
   recordMulliganTelemetry(telemetry, side.factionName ?? 'Unknown', result.replaced);
 }
 
-function applyAction(state, owner, passStats, decisionOptions, telemetry, simTelemetry) {
+function applyAction(state, owner, passStats, decisionOptions, telemetry, simTelemetry, gameCardTelemetry = null) {
   const action = chooseBattleAction(state, owner, { ...decisionOptions, telemetry });
   const cancelKey = owner === 'enemy' ? 'player' : 'enemy';
   const nonUnit = action.type === 'play-effect' || action.type === 'play-targeted-effect';
@@ -349,8 +414,8 @@ function applyAction(state, owner, passStats, decisionOptions, telemetry, simTel
     telemetry.invalidActions = (telemetry.invalidActions ?? 0) + 1;
     return;
   }
-  recordDrawTelemetry(simTelemetry, state?.[owner], deckBeforeAction);
-  recordActionTelemetry(simTelemetry, state, owner, action, result);
+  recordDrawTelemetry(simTelemetry, state?.[owner], deckBeforeAction, gameCardTelemetry?.[owner]);
+  recordActionTelemetry(simTelemetry, state, owner, action, result, gameCardTelemetry?.[owner]);
   if (result.card?.id === 'aggro_quick_fix_1') {
     telemetry.quickFixUses = (telemetry.quickFixUses ?? 0) + 1;
   }
@@ -376,14 +441,16 @@ function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, simTel
     shuffleDeck(state.enemy.deck, gameRng);
   }
 
+  const cardGameTelemetry = createCardGameTelemetry(state);
+
   const initialPlayerDeck = [...state.player.deck];
   const initialEnemyDeck = [...state.enemy.deck];
   drawCards(state.player, STARTING_HAND_SIZE);
   drawCards(state.enemy, STARTING_HAND_SIZE);
-  recordDrawTelemetry(simTelemetry, state.player, initialPlayerDeck);
-  recordDrawTelemetry(simTelemetry, state.enemy, initialEnemyDeck);
-  applyAiOpeningMulligan(state, 'player', gameRng, telemetry);
-  applyAiOpeningMulligan(state, 'enemy', gameRng, telemetry);
+  recordDrawTelemetry(simTelemetry, state.player, initialPlayerDeck, cardGameTelemetry.player);
+  recordDrawTelemetry(simTelemetry, state.enemy, initialEnemyDeck, cardGameTelemetry.enemy);
+  applyAiOpeningMulligan(state, 'player', gameRng, telemetry, simTelemetry, cardGameTelemetry);
+  applyAiOpeningMulligan(state, 'enemy', gameRng, telemetry, simTelemetry, cardGameTelemetry);
   let turns = 0;
 
   const initialFirstActor = state.firstActor;
@@ -402,13 +469,13 @@ function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, simTel
     const firstActor = state.firstActor;
     const secondActor = firstActor === 'player' ? 'enemy' : 'player';
 
-    applyAction(state, firstActor, passStats, firstDecisionOptions, telemetry, simTelemetry);
-    applyAction(state, secondActor, passStats, secondDecisionOptions, telemetry, simTelemetry);
+    applyAction(state, firstActor, passStats, firstDecisionOptions, telemetry, simTelemetry, cardGameTelemetry);
+    applyAction(state, secondActor, passStats, secondDecisionOptions, telemetry, simTelemetry, cardGameTelemetry);
     const playerDeckBeforeCombat = [...state.player.deck];
     const enemyDeckBeforeCombat = [...state.enemy.deck];
     resolveCombat(state);
-    recordDrawTelemetry(simTelemetry, state.player, playerDeckBeforeCombat);
-    recordDrawTelemetry(simTelemetry, state.enemy, enemyDeckBeforeCombat);
+    recordDrawTelemetry(simTelemetry, state.player, playerDeckBeforeCombat, cardGameTelemetry.player);
+    recordDrawTelemetry(simTelemetry, state.enemy, enemyDeckBeforeCombat, cardGameTelemetry.enemy);
     turns += 1;
     state.turnsCompleted = turns;
     resolveImmediateResourceExhaustionWinner(state);
@@ -421,8 +488,8 @@ function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, simTel
     resolveImmediateResourceExhaustionWinner(state);
     resolveImmediateNoProgressWinner(state);
     resolveTurnCapWinner(state, turns);
-    recordDrawTelemetry(simTelemetry, state.player, playerDeckBeforeTurnDraw);
-    recordDrawTelemetry(simTelemetry, state.enemy, enemyDeckBeforeTurnDraw);
+    recordDrawTelemetry(simTelemetry, state.player, playerDeckBeforeTurnDraw, cardGameTelemetry.player);
+    recordDrawTelemetry(simTelemetry, state.enemy, enemyDeckBeforeTurnDraw, cardGameTelemetry.enemy);
     if (!state.winner) toggleFirstActor(state);
   }
   return {
@@ -448,6 +515,7 @@ function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, simTel
     leechCombatHeals: state.leechCombatHeals ?? 0,
     rotcallerCombatTriggers: state.rotcallerCombatTriggers ?? 0,
     effectVariantOperationTelemetry: [...(state.effectVariantOperationTelemetry ?? [])],
+    cardGameTelemetry,
   };
 }
 
@@ -456,6 +524,23 @@ const percent = (count, total) => percentValue(count, total).toFixed(1);
 const avgValue = (value, count) => (count > 0 ? value / count : 0);
 const avg = (value, count) => avgValue(value, count).toFixed(2);
 const pct = (value) => `${value.toFixed(1)}%`;
+const percentagePoints = (value) => `${value >= 0 ? '+' : ''}${value.toFixed(1)} pp`;
+
+function cardImpactRow(row) {
+  const wrWhenDrawn = percentValue(row.drawnWins, row.drawnGames);
+  const wrWhenNotDrawn = percentValue(row.notDrawnWins, row.notDrawnGames);
+  const wrWhenPlayed = percentValue(row.playedWins, row.playedGames);
+  const wrWhenNotPlayed = percentValue(row.notPlayedWins, row.notPlayedGames);
+  return {
+    ...row,
+    wrWhenDrawn,
+    wrWhenNotDrawn,
+    wrWhenPlayed,
+    wrWhenNotPlayed,
+    drawImpact: wrWhenDrawn - wrWhenNotDrawn,
+    playImpact: wrWhenPlayed - wrWhenNotPlayed,
+  };
+}
 
 function createStats() {
   return {
@@ -536,9 +621,10 @@ function printBasicSimulatorTelemetry(simTelemetry, factionKeys, totalGames) {
 
 function printCardSimulatorTelemetry(simTelemetry) {
   console.log('\nSimulator telemetry: per-card summary');
-  console.table(Object.values(simTelemetry.cards)
+  const rows = Object.values(simTelemetry.cards)
     .sort((a, b) => a.faction.localeCompare(b.faction) || a.cardName.localeCompare(b.cardName))
-    .map((row) => ({
+    .map((row) => cardImpactRow(row));
+  console.table(rows.map((row) => ({
       faction: row.faction,
       card: row.cardName,
       id: row.cardId,
@@ -546,7 +632,42 @@ function printCardSimulatorTelemetry(simTelemetry) {
       played: row.played,
       'held at defeat': row.heldAtDefeat,
       'avg turn played': avg(row.turnPlayedTotal, row.played),
+      drawnGames: row.drawnGames,
+      drawnWins: row.drawnWins,
+      drawnLosses: row.drawnLosses,
+      'WR When Drawn': `${percent(row.drawnWins, row.drawnGames)}%`,
+      notDrawnGames: row.notDrawnGames,
+      notDrawnWins: row.notDrawnWins,
+      notDrawnLosses: row.notDrawnLosses,
+      'WR When Not Drawn': `${percent(row.notDrawnWins, row.notDrawnGames)}%`,
+      playedGames: row.playedGames,
+      playedWins: row.playedWins,
+      playedLosses: row.playedLosses,
+      'WR When Played': `${percent(row.playedWins, row.playedGames)}%`,
+      notPlayedGames: row.notPlayedGames,
+      notPlayedWins: row.notPlayedWins,
+      notPlayedLosses: row.notPlayedLosses,
+      'WR When Not Played': `${percent(row.notPlayedWins, row.notPlayedGames)}%`,
+      'Draw Impact': percentagePoints(row.drawImpact),
+      'Play Impact': percentagePoints(row.playImpact),
     })));
+
+  const rank = (label, values) => {
+    console.log(`\n${label}`);
+    console.table(values.map((row) => ({
+      faction: row.faction,
+      card: row.cardName,
+      id: row.cardId,
+      'Draw Impact': percentagePoints(row.drawImpact),
+      'Play Impact': percentagePoints(row.playImpact),
+      'WR When Drawn': `${pct(row.wrWhenDrawn)}`,
+      'WR When Played': `${pct(row.wrWhenPlayed)}`,
+    })));
+  };
+  rank('Top 10 Draw Impact', [...rows].sort((a, b) => b.drawImpact - a.drawImpact).slice(0, 10));
+  rank('Worst 10 Draw Impact', [...rows].sort((a, b) => a.drawImpact - b.drawImpact).slice(0, 10));
+  rank('Top 10 Play Impact', [...rows].sort((a, b) => b.playImpact - a.playImpact).slice(0, 10));
+  rank('Worst 10 Play Impact', [...rows].sort((a, b) => a.playImpact - b.playImpact).slice(0, 10));
 }
 
 

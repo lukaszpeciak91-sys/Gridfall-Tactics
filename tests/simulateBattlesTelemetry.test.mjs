@@ -22,6 +22,12 @@ test('simulator telemetry modes work with ordered matchup filtering', () => {
   assert.match(output, /Simulator telemetry: per-card summary/);
   assert.match(output, /held at defeat/);
   assert.match(output, /avg turn played/);
+  assert.match(output, /WR When Drawn/);
+  assert.match(output, /WR When Played/);
+  assert.match(output, /Draw Impact/);
+  assert.match(output, /Play Impact/);
+  assert.match(output, /Top 10 Draw Impact/);
+  assert.match(output, /Worst 10 Play Impact/);
   assert.match(output, /Simulator telemetry: AI health/);
   assert.match(output, /invalid actions/);
   assert.match(output, /turn-cap rate/);
