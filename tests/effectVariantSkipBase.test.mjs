@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { createInitialBattleState, playEffectCard } from '../src/systems/GameState.js';
+import { createInitialBattleState, playEffectCard, resolveTargetedEffectCard } from '../src/systems/GameState.js';
 import { chooseBattleAction } from '../src/systems/enemyDecision.js';
 
 const substrate = {
@@ -122,4 +122,50 @@ test('AI can score and play skipBaseEffect Substrate with targeting override non
   assert.equal(state.effectVariantOperationTelemetry[0].targetsResolved, 2);
   assert.equal(state.effectVariantOperationTelemetry[1].operation, 'drawOne');
   assert.equal(state.effectVariantOperationTelemetry[1].cardsDrawn, 1);
+});
+
+test('AI preserves targeting override enemy_unit selection for selectedOpponentUnit variant operations', () => {
+  const state = createInitialBattleState(faction, faction, { firstActor: 'player' });
+  state.player.hand = [{ ...substrate, targeting: 'enemy_unit' }];
+  state.player.deck = [];
+  state.board[6] = unit('friendly_target', 'player');
+  state.board[0] = unit('enemy_target', 'enemy', { hp: 3, maxHp: 3, armor: 1 });
+  state.effectVariantRegistry = {
+    [registryKey]: {
+      schemaVersion: 1,
+      registryKey,
+      variantId: 'substrate_melt_bite_enemy_unit',
+      label: 'Substrate melt bite enemy target',
+      baseEffectId: 'destroy_friendly_draw_1',
+      timing: 'afterBaseEffectBeforeDiscard',
+      targeting: 'enemy_unit',
+      sequence: [
+        { operation: 'skipBaseEffect' },
+        { operation: 'debuffArmor', selector: 'selectedOpponentUnit', amount: 1, duration: 'untilCombatCleanup' },
+        { operation: 'damageUnit', selector: 'selectedOpponentUnit', amount: 1, cleanup: 'nonCombat' },
+      ],
+    },
+  };
+
+  const action = chooseBattleAction(state, 'player', { aiSafeSurrenderEnabled: false });
+
+  assert.equal(action.type, 'play-targeted-effect');
+  assert.equal(action.cardId, 'swarm_recycle_1');
+  assert.equal(action.effectId, 'destroy_friendly_draw_1');
+  assert.deepEqual(action.targetIndexes, [0]);
+
+  const result = resolveTargetedEffectCard(state, 'player', action.cardId, action.targetIndex, action.targetIndexes);
+
+  assert.equal(result.ok, true);
+  assert.equal(state.board[6]?.id, 'friendly_target');
+  assert.equal(state.player.fallen.length, 0);
+  assert.equal(state.board[0]?.id, 'enemy_target');
+  assert.equal(state.board[0]?.tempArmorMod, -1);
+  assert.equal(state.board[0]?.hp, 2);
+  assert.equal(state.effectVariantOperationTelemetry.length, 2);
+  assert.deepEqual(state.effectVariantOperationTelemetry.map((entry) => entry.operation), ['debuffArmor', 'damageUnit']);
+  assert.deepEqual(state.effectVariantOperationTelemetry.map((entry) => entry.targetsResolved), [1, 1]);
+  assert.deepEqual(state.effectVariantOperationTelemetry.map((entry) => entry.skippedTargets.length), [0, 0]);
+  assert.equal(state.effectVariantOperationTelemetry[0].totalArmorReduced, 1);
+  assert.equal(state.effectVariantOperationTelemetry[1].damageDealt, 1);
 });
