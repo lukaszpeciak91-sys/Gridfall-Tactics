@@ -83,16 +83,18 @@ function recordMulliganTelemetry(telemetry, factionName, replaced) {
   row.cardsReplaced += replaced;
 }
 
-function applyAiOpeningMulligan(state, owner, randomFn, telemetry, gameLog) {
+function applyAiOpeningMulligan(state, owner, randomFn, telemetry, gameLog, cardGameTelemetry = null) {
   const side = owner === 'player' ? state.player : state.enemy;
   const selectedIds = selectOpeningMulliganCardIds(side);
   const selectedNames = side.hand.filter((card) => selectedIds.includes(card.id)).map(cardLabel);
+  const deckBeforeMulligan = [...(side.deck ?? [])];
   const result = performOpeningMulligan(state, owner, selectedIds, randomFn);
   if (!result.ok) {
     telemetry.invalidActions = (telemetry.invalidActions ?? 0) + 1;
     gameLog?.push(`${ownerLabel(owner)} mulligan invalid: ${result.reason ?? 'unknown reason'}`);
     return;
   }
+  recordDrawTelemetry(telemetry, side, deckBeforeMulligan, cardGameTelemetry?.[owner]);
   recordMulliganTelemetry(telemetry, side.factionName ?? 'Unknown', result.replaced);
   if (result.replaced > 0) gameLog?.push(`${ownerLabel(owner)} mulligan replaced ${result.replaced}: ${selectedNames.join(', ')}`);
 }
@@ -114,11 +116,109 @@ function describeAction(action, result, state, owner) {
 function addCardUse(telemetry, result) {
   if (!result?.card) return;
   const key = result.card.id;
-  telemetry.cardUses[key] ??= { name: result.card.name ?? key, uses: 0 };
+  telemetry.cardUses[key] ??= createCardTelemetryRow(result.card);
   telemetry.cardUses[key].uses += 1;
 }
 
-function applyAction(state, owner, passStats, decisionOptions, telemetry, gameLog) {
+function createCardTelemetryRow(card, faction = '') {
+  return {
+    faction,
+    id: card?.id ?? 'unknown',
+    name: card?.name ?? card?.id ?? 'Unknown',
+    uses: 0,
+    drawnGames: 0,
+    drawnWins: 0,
+    drawnLosses: 0,
+    notDrawnGames: 0,
+    notDrawnWins: 0,
+    notDrawnLosses: 0,
+    playedGames: 0,
+    playedWins: 0,
+    playedLosses: 0,
+    notPlayedGames: 0,
+    notPlayedWins: 0,
+    notPlayedLosses: 0,
+  };
+}
+
+function cardTelemetryKey(faction, card) {
+  return `${faction}|${card?.id ?? 'unknown'}`;
+}
+
+function ensureCardTelemetry(telemetry, faction, card) {
+  const key = cardTelemetryKey(faction, card);
+  telemetry.cardImpact[key] ??= createCardTelemetryRow(card, faction);
+  return telemetry.cardImpact[key];
+}
+
+function createCardGameTelemetrySide(factionName, cards) {
+  const side = { faction: factionName ?? 'Unknown', cards: new Map(), drawn: new Set(), played: new Set() };
+  cards.forEach((card) => side.cards.set(card?.id ?? 'unknown', card));
+  return side;
+}
+
+function createCardGameTelemetry(state) {
+  return {
+    player: createCardGameTelemetrySide(state.player.factionName, state.player.deck),
+    enemy: createCardGameTelemetrySide(state.enemy.factionName, state.enemy.deck),
+  };
+}
+
+function countCards(cards) {
+  const counts = new Map();
+  cards.forEach((card) => {
+    const key = card?.id ?? 'unknown';
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  });
+  return counts;
+}
+
+function recordDrawTelemetry(telemetry, side, beforeDeck, gameCardTelemetry) {
+  if (!telemetry || !side || !gameCardTelemetry) return;
+  const afterCounts = countCards(side.deck ?? []);
+  (beforeDeck ?? []).forEach((card) => {
+    const key = card?.id ?? 'unknown';
+    const remaining = afterCounts.get(key) ?? 0;
+    if (remaining > 0) {
+      afterCounts.set(key, remaining - 1);
+      return;
+    }
+    gameCardTelemetry.cards.set(key, card);
+    gameCardTelemetry.drawn.add(key);
+    ensureCardTelemetry(telemetry, side.factionName ?? 'Unknown', card);
+  });
+}
+
+function recordPlayedGameTelemetry(telemetry, side, card, gameCardTelemetry) {
+  if (!telemetry || !side || !card || !gameCardTelemetry) return;
+  const key = card?.id ?? 'unknown';
+  gameCardTelemetry.cards.set(key, card);
+  gameCardTelemetry.played.add(key);
+  ensureCardTelemetry(telemetry, side.factionName ?? 'Unknown', card);
+}
+
+function recordCardOutcomeTelemetryForSide(telemetry, sideGameTelemetry, winner, sideOwner) {
+  if (!telemetry || !sideGameTelemetry) return;
+  const won = winner === sideOwner;
+  const lost = winner !== 'draw' && winner !== sideOwner;
+  sideGameTelemetry.cards.forEach((card, cardId) => {
+    const row = ensureCardTelemetry(telemetry, sideGameTelemetry.faction, card);
+    const drawPrefix = sideGameTelemetry.drawn.has(cardId) ? 'drawn' : 'notDrawn';
+    const playPrefix = sideGameTelemetry.played.has(cardId) ? 'played' : 'notPlayed';
+    row[`${drawPrefix}Games`] += 1;
+    row[`${playPrefix}Games`] += 1;
+    if (won) {
+      row[`${drawPrefix}Wins`] += 1;
+      row[`${playPrefix}Wins`] += 1;
+    }
+    if (lost) {
+      row[`${drawPrefix}Losses`] += 1;
+      row[`${playPrefix}Losses`] += 1;
+    }
+  });
+}
+
+function applyAction(state, owner, passStats, decisionOptions, telemetry, gameLog, cardGameTelemetry = null) {
   const action = chooseBattleAction(state, owner, { ...decisionOptions, telemetry });
   const cancelKey = owner === 'enemy' ? 'player' : 'enemy';
   const nonUnit = action.type === 'play-effect' || action.type === 'play-targeted-effect';
@@ -135,6 +235,7 @@ function applyAction(state, owner, passStats, decisionOptions, telemetry, gameLo
     gameLog?.push(`${ownerLabel(owner)} ${action.type} cancelled by order cancel`);
     return;
   }
+  const deckBeforeAction = [...(state?.[owner]?.deck ?? [])];
   let result = { ok: true };
   if (action.type === 'play-unit') {
     result = playOrRedeployUnit(state, owner, action.cardId, action.slotIndex);
@@ -156,6 +257,8 @@ function applyAction(state, owner, passStats, decisionOptions, telemetry, gameLo
     gameLog?.push(`${ownerLabel(owner)} invalid ${action.type}: ${result.reason ?? 'unknown reason'}`);
     return;
   }
+  recordDrawTelemetry(telemetry, state?.[owner], deckBeforeAction, cardGameTelemetry?.[owner]);
+  recordPlayedGameTelemetry(telemetry, state?.[owner], result.card, cardGameTelemetry?.[owner]);
   addCardUse(telemetry, result);
   recordBattleActionUse(state, owner, action, telemetry);
   gameLog?.push(describeAction(action, result, state, owner));
@@ -180,11 +283,17 @@ function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, gameSe
     shuffleDeck(state.enemy.deck, gameRng);
   }
 
+  const cardGameTelemetry = createCardGameTelemetry(state);
+
+  const initialPlayerDeck = [...state.player.deck];
+  const initialEnemyDeck = [...state.enemy.deck];
   drawCards(state.player, STARTING_HAND_SIZE);
   drawCards(state.enemy, STARTING_HAND_SIZE);
+  recordDrawTelemetry(telemetry, state.player, initialPlayerDeck, cardGameTelemetry.player);
+  recordDrawTelemetry(telemetry, state.enemy, initialEnemyDeck, cardGameTelemetry.enemy);
   gameLog?.push(`Initial first actor: ${state.firstActor}; opening hands P=${state.player.hand.map(cardLabel).join('; ')} | E=${state.enemy.hand.map(cardLabel).join('; ')}`);
-  applyAiOpeningMulligan(state, 'player', gameRng, telemetry, gameLog);
-  applyAiOpeningMulligan(state, 'enemy', gameRng, telemetry, gameLog);
+  applyAiOpeningMulligan(state, 'player', gameRng, telemetry, gameLog, cardGameTelemetry);
+  applyAiOpeningMulligan(state, 'enemy', gameRng, telemetry, gameLog, cardGameTelemetry);
   let turns = 0;
   const initialFirstActor = state.firstActor;
 
@@ -199,9 +308,13 @@ function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, gameSe
     const firstActor = state.firstActor;
     const secondActor = firstActor === 'player' ? 'enemy' : 'player';
     gameLog?.push(`Turn ${turns + 1} (${ownerLabel(firstActor)} first), HP before P:${state.playerHP} E:${state.enemyHP}`);
-    applyAction(state, firstActor, passStats, { randomFn: turnRng, tieBreakPolicy: TIE_BREAK_POLICY }, telemetry, gameLog);
-    applyAction(state, secondActor, passStats, { randomFn: turnRng, tieBreakPolicy: TIE_BREAK_POLICY }, telemetry, gameLog);
+    applyAction(state, firstActor, passStats, { randomFn: turnRng, tieBreakPolicy: TIE_BREAK_POLICY }, telemetry, gameLog, cardGameTelemetry);
+    applyAction(state, secondActor, passStats, { randomFn: turnRng, tieBreakPolicy: TIE_BREAK_POLICY }, telemetry, gameLog, cardGameTelemetry);
+    const playerDeckBeforeCombat = [...state.player.deck];
+    const enemyDeckBeforeCombat = [...state.enemy.deck];
     const events = resolveCombat(state);
+    recordDrawTelemetry(telemetry, state.player, playerDeckBeforeCombat, cardGameTelemetry.player);
+    recordDrawTelemetry(telemetry, state.enemy, enemyDeckBeforeCombat, cardGameTelemetry.enemy);
     turns += 1;
     state.turnsCompleted = turns;
     const heroDamageEvents = events.filter((event) => event?.type === 'hero-damage').length;
@@ -210,11 +323,15 @@ function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, gameSe
     resolveImmediateResourceExhaustionWinner(state);
     resolveImmediateNoProgressWinner(state);
     if (state.winner) break;
+    const playerDeckBeforeTurnDraw = [...state.player.deck];
+    const enemyDeckBeforeTurnDraw = [...state.enemy.deck];
     drawCards(state.player, 1);
     drawCards(state.enemy, 1);
     resolveImmediateResourceExhaustionWinner(state);
     resolveImmediateNoProgressWinner(state);
     resolveTurnCapWinner(state, turns);
+    recordDrawTelemetry(telemetry, state.player, playerDeckBeforeTurnDraw, cardGameTelemetry.player);
+    recordDrawTelemetry(telemetry, state.enemy, enemyDeckBeforeTurnDraw, cardGameTelemetry.enemy);
     if (!state.winner) toggleFirstActor(state);
   }
 
@@ -229,6 +346,7 @@ function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, gameSe
     noProgressResolvedBy: state.noProgressResolvedBy,
     heroDeathResolution: state.heroDeathResolution,
     log: gameLog,
+    cardGameTelemetry,
   };
   result.winCondition = classifyWinCondition(result);
   gameLog?.push(`Final: winner=${result.winner}, condition=${result.winCondition}, turns=${turns}, final HP P:${result.playerHP} E:${result.enemyHP}`);
@@ -289,6 +407,30 @@ function fmt(value, decimals = 1) {
   return Number(value).toFixed(decimals);
 }
 
+function signedFmt(value, decimals = 1) {
+  return `${value >= 0 ? '+' : ''}${fmt(value, decimals)}`;
+}
+
+function cardImpactMetrics(row) {
+  const wrWhenDrawn = pct(row.drawnWins, row.drawnGames);
+  const wrWhenNotDrawn = pct(row.notDrawnWins, row.notDrawnGames);
+  const wrWhenPlayed = pct(row.playedWins, row.playedGames);
+  const wrWhenNotPlayed = pct(row.notPlayedWins, row.notPlayedGames);
+  return {
+    ...row,
+    wrWhenDrawn,
+    wrWhenNotDrawn,
+    wrWhenPlayed,
+    wrWhenNotPlayed,
+    drawImpact: wrWhenDrawn - wrWhenNotDrawn,
+    playImpact: wrWhenPlayed - wrWhenNotPlayed,
+  };
+}
+
+function cardImpactLabel(value) {
+  return `${signedFmt(value)} pp`;
+}
+
 function mostCommonWinCondition(row) {
   return Object.entries(row.winConditions).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0] ?? 'n/a';
 }
@@ -320,6 +462,51 @@ function summarizeLog(sample) {
   if (sample.winCondition.includes('tiebreak')) why = `${sample.winCondition} resolved at P ${sample.playerHP} HP vs E ${sample.enemyHP} HP`;
   if (sample.winCondition === 'draw') why = `draw/stall finished at P ${sample.playerHP} HP vs E ${sample.enemyHP} HP`;
   return `- **${sample.playerFaction} vs ${sample.enemyFaction}, game ${sample.gameIndex}, seed ${sample.seed}:** ${why} in ${sample.turns} turns. Key sequence: ${early.join(' → ')}.`;
+}
+
+function buildCardImpactSections(cardImpactRows) {
+  const rows = cardImpactRows
+    .map(cardImpactMetrics)
+    .sort((a, b) => a.faction.localeCompare(b.faction) || a.name.localeCompare(b.name));
+  const detailLines = rows.map((row) => [
+    `### ${row.name}`,
+    '',
+    `Drawn: ${row.drawnGames} games, ${row.drawnWins} wins, ${row.drawnLosses} losses, WR When Drawn ${fmt(row.wrWhenDrawn)}%`,
+    `Not Drawn: ${row.notDrawnGames} games, ${row.notDrawnWins} wins, ${row.notDrawnLosses} losses, WR When Not Drawn ${fmt(row.wrWhenNotDrawn)}%`,
+    `Played: ${row.playedGames} games, ${row.playedWins} wins, ${row.playedLosses} losses, WR When Played ${fmt(row.wrWhenPlayed)}%`,
+    `Not Played: ${row.notPlayedGames} games, ${row.notPlayedWins} wins, ${row.notPlayedLosses} losses, WR When Not Played ${fmt(row.wrWhenNotPlayed)}%`,
+    `Draw Impact: ${cardImpactLabel(row.drawImpact)}`,
+    `Play Impact: ${cardImpactLabel(row.playImpact)}`,
+  ].join('\n')).join('\n\n');
+
+  const compactRows = [...rows]
+    .sort((a, b) => Math.max(Math.abs(b.drawImpact), Math.abs(b.playImpact)) - Math.max(Math.abs(a.drawImpact), Math.abs(a.playImpact)))
+    .map((row) => ({
+      Card: `${row.name} (${row.faction})`,
+      'Draw Impact': cardImpactLabel(row.drawImpact),
+      'Play Impact': cardImpactLabel(row.playImpact),
+      'WR Drawn': `${fmt(row.wrWhenDrawn)}%`,
+      'WR Played': `${fmt(row.wrWhenPlayed)}%`,
+    }));
+  const rankingLine = (row) => `- ${row.name} (${row.faction}): Draw Impact ${signedFmt(row.drawImpact)}, Play Impact ${signedFmt(row.playImpact)}`;
+  return {
+    detailLines,
+    compactTable: markdownTable(Object.keys(compactRows[0]), compactRows),
+    topDraw: [...rows].sort((a, b) => b.drawImpact - a.drawImpact).slice(0, 10).map(rankingLine).join('\n'),
+    worstDraw: [...rows].sort((a, b) => a.drawImpact - b.drawImpact).slice(0, 10).map(rankingLine).join('\n'),
+    topPlay: [...rows].sort((a, b) => b.playImpact - a.playImpact).slice(0, 10).map(rankingLine).join('\n'),
+    worstPlay: [...rows].sort((a, b) => a.playImpact - b.playImpact).slice(0, 10).map(rankingLine).join('\n'),
+    harmful: [...rows]
+      .sort((a, b) => (a.drawImpact + a.playImpact) - (b.drawImpact + b.playImpact))
+      .slice(0, 6)
+      .map((row) => `${row.name}\nDraw Impact ${signedFmt(row.drawImpact)}\nPlay Impact ${signedFmt(row.playImpact)}`)
+      .join('\n\n'),
+    helpful: [...rows]
+      .sort((a, b) => (b.drawImpact + b.playImpact) - (a.drawImpact + a.playImpact))
+      .slice(0, 6)
+      .map((row) => `${row.name}\nDraw Impact ${signedFmt(row.drawImpact)}\nPlay Impact ${signedFmt(row.playImpact)}`)
+      .join('\n\n'),
+  };
 }
 
 function buildReport({ baseSeed, matchCount, factionKeys, orderedRows, factionStats, telemetry, representativeLogs }) {
@@ -365,6 +552,7 @@ function buildReport({ baseSeed, matchCount, factionKeys, orderedRows, factionSt
 
   const underperformers = rankingRows.filter((row) => Number.parseFloat(row['Overall win %']) < 40).map((row) => row.Faction);
   const overperformers = rankingRows.filter((row) => Number.parseFloat(row['Overall win %']) > 60).map((row) => row.Faction);
+  const cardImpactSections = buildCardImpactSections(Object.values(telemetry.cardImpact));
 
   return `# MVP Balance Simulation Report\n\n` +
 `Generated from the implemented battle system on ${new Date().toISOString().slice(0, 10)}. No gameplay behavior was changed by this report.\n\n` +
@@ -384,6 +572,13 @@ function buildReport({ baseSeed, matchCount, factionKeys, orderedRows, factionSt
 `${markdownTable(Object.keys(cardRows[0]), cardRows)}\n\n` +
 `- High-frequency proactive units/effects in severe matchups should be reviewed first, especially cards that repeatedly created open-lane damage or resilient board stalls.\n` +
 `- Stalling flags should focus review on defensive HP/armor, zero-attack units, revive/summon effects, and no-progress tiebreak patterns before changing global rules.\n\n` +
+`## Card Draw / Play Impact\n\n${cardImpactSections.compactTable}\n\n` +
+`### Top 10 Draw Impact\n\n${cardImpactSections.topDraw}\n\n` +
+`### Worst 10 Draw Impact\n\n${cardImpactSections.worstDraw}\n\n` +
+`### Top 10 Play Impact\n\n${cardImpactSections.topPlay}\n\n` +
+`### Worst 10 Play Impact\n\n${cardImpactSections.worstPlay}\n\n` +
+`### Card impact details\n\n${cardImpactSections.detailLines}\n\n` +
+`### Paste into ChatGPT: Card Impact\n\n\`\`\`text\nMost Harmful Cards\n\n${cardImpactSections.harmful}\n\nMost Helpful Cards\n\n${cardImpactSections.helpful}\n\`\`\`\n\n` +
 `### Representative extreme-game log summaries\n\n${representativeLogs.map(summarizeLog).join('\n')}\n\n` +
 `## 5. Recommended balance changes (not implemented)\n\n` +
 `1. Prioritize severe ordered matchups first; do not tune around mirrors until asymmetric seats are within the 40–60% critical band.\n` +
@@ -404,7 +599,7 @@ function main() {
   const orderedStats = new Map();
   const factionStats = new Map(factionKeys.map((key) => [key, createFactionStats()]));
   const passStats = { pass: 0, cancelled: 0 };
-  const telemetry = { replaceUsed: 0, repositionUsed: 0, meaningfulGameplayActions: 0, pointlessGameplayActions: 0, invalidActions: 0, cardUses: {}, mulliganByFaction: {} };
+  const telemetry = { replaceUsed: 0, repositionUsed: 0, meaningfulGameplayActions: 0, pointlessGameplayActions: 0, invalidActions: 0, cardUses: {}, cardImpact: {}, mulliganByFaction: {} };
 
   for (const playerKey of factionKeys) {
     for (const enemyKey of factionKeys) {
@@ -414,6 +609,8 @@ function main() {
         const seed = buildGameSeed(baseSeed, playerKey, enemyKey, i);
         const captureLog = i < SAMPLE_LOGS_PER_MATCHUP;
         const result = runSingleGame(factions[playerKey], factions[enemyKey], passStats, telemetry, seed, i, playerKey, enemyKey, captureLog);
+        recordCardOutcomeTelemetryForSide(telemetry, result.cardGameTelemetry?.player, result.winner, 'player');
+        recordCardOutcomeTelemetryForSide(telemetry, result.cardGameTelemetry?.enemy, result.winner, 'enemy');
         addOrderedResult(row, result, i, seed);
         const draw = result.winner === 'draw';
         addFactionStats(factionStats.get(playerKey), result.winner === 'player', draw, result.turns);

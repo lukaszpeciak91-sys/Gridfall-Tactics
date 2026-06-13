@@ -1728,6 +1728,24 @@ CARD_TELEMETRY_COLUMNS = [
     "played",
     "held at defeat",
     "avg turn played",
+    "drawnGames",
+    "drawnWins",
+    "drawnLosses",
+    "WR When Drawn",
+    "notDrawnGames",
+    "notDrawnWins",
+    "notDrawnLosses",
+    "WR When Not Drawn",
+    "playedGames",
+    "playedWins",
+    "playedLosses",
+    "WR When Played",
+    "notPlayedGames",
+    "notPlayedWins",
+    "notPlayedLosses",
+    "WR When Not Played",
+    "Draw Impact",
+    "Play Impact",
 ]
 
 
@@ -1751,6 +1769,14 @@ def parse_float_cell(value: str, field: str, row_label: str) -> float:
         return float(value)
     except ValueError as error:
         raise CardTelemetryParseError(f"{row_label} field '{field}' is not a number: {value!r}") from error
+
+
+def parse_percent_cell(value: str, field: str, row_label: str) -> float:
+    return parse_float_cell(value.removesuffix("%"), field, row_label)
+
+
+def parse_pp_cell(value: str, field: str, row_label: str) -> float:
+    return parse_float_cell(value.removesuffix(" pp"), field, row_label)
 
 
 def console_table_cells(line: str) -> list[str]:
@@ -1803,6 +1829,24 @@ def parse_card_telemetry_table(output_text: str, label: str) -> list[dict[str, A
             "played": parse_int_cell(row["played"], "played", row_label),
             "heldAtDefeat": parse_int_cell(row["held at defeat"], "held at defeat", row_label),
             "avgTurnPlayed": parse_float_cell(row["avg turn played"], "avg turn played", row_label),
+            "drawnGames": parse_int_cell(row["drawnGames"], "drawnGames", row_label),
+            "drawnWins": parse_int_cell(row["drawnWins"], "drawnWins", row_label),
+            "drawnLosses": parse_int_cell(row["drawnLosses"], "drawnLosses", row_label),
+            "wrWhenDrawn": parse_percent_cell(row["WR When Drawn"], "WR When Drawn", row_label),
+            "notDrawnGames": parse_int_cell(row["notDrawnGames"], "notDrawnGames", row_label),
+            "notDrawnWins": parse_int_cell(row["notDrawnWins"], "notDrawnWins", row_label),
+            "notDrawnLosses": parse_int_cell(row["notDrawnLosses"], "notDrawnLosses", row_label),
+            "wrWhenNotDrawn": parse_percent_cell(row["WR When Not Drawn"], "WR When Not Drawn", row_label),
+            "playedGames": parse_int_cell(row["playedGames"], "playedGames", row_label),
+            "playedWins": parse_int_cell(row["playedWins"], "playedWins", row_label),
+            "playedLosses": parse_int_cell(row["playedLosses"], "playedLosses", row_label),
+            "wrWhenPlayed": parse_percent_cell(row["WR When Played"], "WR When Played", row_label),
+            "notPlayedGames": parse_int_cell(row["notPlayedGames"], "notPlayedGames", row_label),
+            "notPlayedWins": parse_int_cell(row["notPlayedWins"], "notPlayedWins", row_label),
+            "notPlayedLosses": parse_int_cell(row["notPlayedLosses"], "notPlayedLosses", row_label),
+            "wrWhenNotPlayed": parse_percent_cell(row["WR When Not Played"], "WR When Not Played", row_label),
+            "drawImpact": parse_pp_cell(row["Draw Impact"], "Draw Impact", row_label),
+            "playImpact": parse_pp_cell(row["Play Impact"], "Play Impact", row_label),
         })
     return parsed_rows
 
@@ -1817,6 +1861,14 @@ def format_avg_value(value: float) -> str:
 
 def format_avg_delta(value: float) -> str:
     return f"{value:+.2f}"
+
+
+def format_pp(value: float) -> str:
+    return f"{value:+.1f}"
+
+
+def format_pp_label(value: float) -> str:
+    return f"{format_pp(value)} pp"
 
 
 def build_card_telemetry_comparison(
@@ -1834,7 +1886,10 @@ def build_card_telemetry_comparison(
             "changedRows": [],
             "baselineOnlyRows": [],
             "experimentOnlyRows": [],
+            "experimentImpactRows": [],
             "pasteLines": ["- Not available; card telemetry parsing failed. See raw card telemetry files."],
+            "harmfulLines": ["- Not available; card telemetry parsing failed. See raw card telemetry files."],
+            "helpfulLines": ["- Not available; card telemetry parsing failed. See raw card telemetry files."],
         }
 
     baseline_by_key = {(row["faction"], row["id"]): row for row in baseline_rows}
@@ -1910,12 +1965,33 @@ def build_card_telemetry_comparison(
     if not paste_lines:
         paste_lines = ["- No changed card telemetry rows parsed."]
 
+    experiment_impact_rows = sorted(
+        experiment_rows,
+        key=lambda row: max(abs(row["drawImpact"]), abs(row["playImpact"])),
+        reverse=True,
+    )
+    impact_ranked = sorted(
+        experiment_rows,
+        key=lambda row: row["drawImpact"] + row["playImpact"],
+    )
+    harmful_lines = [
+        f"{row['card']}\nDraw Impact {format_pp(row['drawImpact'])}\nPlay Impact {format_pp(row['playImpact'])}"
+        for row in impact_ranked[:6]
+    ] or ["- No card impact rows parsed."]
+    helpful_lines = [
+        f"{row['card']}\nDraw Impact {format_pp(row['drawImpact'])}\nPlay Impact {format_pp(row['playImpact'])}"
+        for row in reversed(impact_ranked[-6:])
+    ] or ["- No card impact rows parsed."]
+
     return {
         "warning": "",
         "changedRows": changed_rows,
         "baselineOnlyRows": baseline_only_rows,
         "experimentOnlyRows": experiment_only_rows,
+        "experimentImpactRows": experiment_impact_rows,
         "pasteLines": paste_lines,
+        "harmfulLines": harmful_lines,
+        "helpfulLines": helpful_lines,
     }
 
 
@@ -1948,6 +2024,21 @@ def card_presence_table_lines(rows: list[dict[str, Any]], empty_message: str) ->
         lines.append(
             f"| {markdown_cell(row['faction'])} | {markdown_cell(row['card'])} | {markdown_cell(row['id'])} | "
             f"{row['drawn']} | {row['played']} | {row['heldAtDefeat']} | {format_avg_value(row['avgTurnPlayed'])} |"
+        )
+    return lines
+
+
+def card_draw_play_impact_table_lines(rows: list[dict[str, Any]]) -> list[str]:
+    lines = [
+        "| Card | Draw Impact | Play Impact | WR Drawn | WR Played |",
+        "|---|---:|---:|---:|---:|",
+    ]
+    if not rows:
+        return [*lines, "| _No card impact rows parsed_ |  |  |  |  |"]
+    for row in rows:
+        lines.append(
+            f"| {markdown_cell(row['card'])} | {format_pp_label(row['drawImpact'])} | "
+            f"{format_pp_label(row['playImpact'])} | {row['wrWhenDrawn']:.1f}% | {row['wrWhenPlayed']:.1f}% |"
         )
     return lines
 
@@ -2424,8 +2515,10 @@ def build_comparison_report(
         card_comparison_lines = ["_Parsed card telemetry comparison table skipped._"]
         baseline_only_card_lines = ["_Skipped because card telemetry parsing failed._"]
         experiment_only_card_lines = ["_Skipped because card telemetry parsing failed._"]
+        card_draw_play_impact_lines = ["_Skipped because card telemetry parsing failed._"]
     else:
         card_comparison_lines = card_comparison_table_lines(card_telemetry_comparison["changedRows"])
+        card_draw_play_impact_lines = card_draw_play_impact_table_lines(card_telemetry_comparison["experimentImpactRows"])
         baseline_only_card_lines = card_presence_table_lines(
             card_telemetry_comparison["baselineOnlyRows"],
             "No baseline-only cards",
@@ -2562,6 +2655,12 @@ def build_comparison_report(
         *( [f"- Warning: {card_telemetry_comparison['warning']}", ""] if card_telemetry_comparison["warning"] else [""] ),
         *card_comparison_lines,
         "",
+        "## Card Draw / Play Impact",
+        "",
+        "Experiment card impact rows sorted by absolute impact descending. Values come from simulator game outcomes only.",
+        "",
+        *card_draw_play_impact_lines,
+        "",
         "### Baseline only cards",
         "",
         *baseline_only_card_lines,
@@ -2600,6 +2699,12 @@ def build_comparison_report(
         "",
         "Top 10 card telemetry deltas:",
         *card_telemetry_comparison["pasteLines"],
+        "",
+        "Most Harmful Cards",
+        *card_telemetry_comparison["harmfulLines"],
+        "",
+        "Most Helpful Cards",
+        *card_telemetry_comparison["helpfulLines"],
         "",
         f"Card telemetry files: {card_telemetry_line}",
         f"Effect variant runtime telemetry files: {effect_variant_runtime_file_line}",
