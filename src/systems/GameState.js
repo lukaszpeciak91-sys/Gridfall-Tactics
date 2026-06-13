@@ -792,6 +792,7 @@ function cleanupDefeatedUnitsWithTriggers(state, boardIndexes, options = {}) {
     state.board[index] = null;
     if (!unit.temporaryFloodToken) {
       recordFallenUnit(state, unit, options.combat ? 'combat-death' : 'damage-death');
+      if (!options.suppressEffectVariantOnDeath) executeOnDeathEffectVariantOperations(state, index, unit);
       triggerUnitDeathEffects(state, index, unit, options);
     }
   });
@@ -1200,21 +1201,27 @@ function isRunBaseEffectOnlyActiveVariant(variant, effectId) {
     && isRunBaseEffectOperation(sequence[0]);
 }
 
-function isEffectVariantExecutableActiveVariant(variant, effectId) {
+function isEffectVariantExecutableActiveVariant(variant, effectId, timing = 'afterBaseEffectBeforeDiscard') {
   const sequence = variant?.sequence;
-  return Boolean(variant && variant.baseEffectId === effectId)
-    && variant.timing === 'afterBaseEffectBeforeDiscard'
-    && Array.isArray(sequence)
-    && sequence.length >= 2
-    && isRunBaseEffectOperation(sequence[0])
-    && sequence.slice(1).every(isExecutableEffectVariantOperation);
+  if (!Boolean(variant && variant.baseEffectId === effectId) || variant.timing !== timing || !Array.isArray(sequence)) return false;
+  if (timing === 'afterBaseEffectBeforeDiscard') {
+    return sequence.length >= 2
+      && isRunBaseEffectOperation(sequence[0])
+      && sequence.slice(1).every(isExecutableEffectVariantOperation);
+  }
+  if (timing === 'onDeath') {
+    const operations = sequence.filter((operation) => !isRunBaseEffectOperation(operation));
+    return operations.length > 0 && operations.every(isExecutableEffectVariantOperation);
+  }
+  return false;
 }
 
 function getActiveEffectVariant(state, owner, sourceCard, effectId) {
   const registryKey = getEffectVariantRegistryKey(state, owner, sourceCard, effectId);
   if (!registryKey) return null;
-  const variant = ACTIVE_EFFECT_VARIANTS[registryKey];
-  if (isRunBaseEffectOnlyActiveVariant(variant, effectId) || isEffectVariantExecutableActiveVariant(variant, effectId)) {
+  const registry = state?.effectVariantRegistry ?? ACTIVE_EFFECT_VARIANTS;
+  const variant = registry[registryKey];
+  if (isRunBaseEffectOnlyActiveVariant(variant, effectId) || isEffectVariantExecutableActiveVariant(variant, effectId) || isEffectVariantExecutableActiveVariant(variant, effectId, 'onDeath')) {
     return variant;
   }
   return null;
@@ -1257,6 +1264,7 @@ function resolveEffectVariantContext(capturedContext) {
   return {
     selectedTargets: Array.isArray(capturedContext?.selectedTargets) ? capturedContext.selectedTargets : [],
     sourceBoardIndex: Number.isInteger(capturedContext?.sourceBoardIndex) ? capturedContext.sourceBoardIndex : null,
+    sourceUnit: capturedContext?.sourceUnit ?? null,
   };
 }
 
@@ -1269,7 +1277,7 @@ function resolveEffectVariantEmptyOwnerSlots(state, owner, selector) {
 }
 
 function resolveEffectVariantUnitTargets(state, owner, selector, capturedContext) {
-  const { selectedTargets, sourceBoardIndex } = resolveEffectVariantContext(capturedContext);
+  const { selectedTargets, sourceBoardIndex, sourceUnit } = resolveEffectVariantContext(capturedContext);
   const targetAt = (selectedPosition) => {
     const capturedTarget = selectedTargets[selectedPosition];
     const index = findCapturedUnitIndex(state, capturedTarget);
@@ -1280,7 +1288,7 @@ function resolveEffectVariantUnitTargets(state, owner, selector, capturedContext
   };
   const sourceTarget = () => {
     if (!Number.isInteger(sourceBoardIndex)) return { index: null, unit: null, skipped: 'missing_source_context' };
-    const unit = state.board[sourceBoardIndex];
+    const unit = state.board[sourceBoardIndex] ?? sourceUnit;
     if (!unit) return { index: sourceBoardIndex, unit: null, skipped: 'missing_source_after_base_effect' };
     return { index: sourceBoardIndex, unit, skipped: null };
   };
@@ -1306,6 +1314,7 @@ function recordEffectVariantOperationTelemetry(state, variant, operation, teleme
     duration: operation.duration,
     token: operation.token,
     temporary: operation.temporary,
+    triggerType: variant.timing ?? 'afterBaseEffectBeforeDiscard',
     ...telemetry,
   });
 }
@@ -1353,7 +1362,10 @@ function executeDamageUnitOperation(state, owner, variant, operation, capturedTa
     targetTelemetry.push({ index: target.index, owner: target.unit.owner, damageDealt: dealt });
   });
 
-  cleanupDefeatedUnitsWithTriggers(state, cleanupIndexes, { combat: false });
+  cleanupDefeatedUnitsWithTriggers(state, cleanupIndexes, {
+    combat: false,
+    suppressEffectVariantOnDeath: variant.timing === 'onDeath',
+  });
   targetTelemetry.forEach((entry) => {
     if (entry.skipped || !Number.isInteger(entry.index)) return;
     if (!state.board[entry.index]) {
@@ -1505,15 +1517,46 @@ function executeStatModifierOperation(state, owner, variant, operation, captured
   });
 }
 
-function executeEffectVariantOperations(state, owner, sourceCard, effectId, capturedTargets = []) {
+function executeEffectVariantOperations(state, owner, sourceCard, effectId, capturedTargets = [], timing = 'afterBaseEffectBeforeDiscard') {
   const variant = getActiveEffectVariant(state, owner, sourceCard, effectId);
-  if (!variant || !isEffectVariantExecutableActiveVariant(variant, effectId)) return;
+  if (!variant || !isEffectVariantExecutableActiveVariant(variant, effectId, timing)) return;
 
-  variant.sequence.slice(1).forEach((operation) => {
+  variant.sequence.forEach((operation, index) => {
+    if (index === 0 && isRunBaseEffectOperation(operation)) return;
     const handler = getEffectVariantOperationHandler(operation);
-    if (!handler) return;
+    if (!handler) {
+      recordEffectVariantOperationTelemetry(state, variant, operation, { status: 'operation_skipped', skippedExecutions: 1 });
+      return;
+    }
     handler.execute(state, owner, variant, operation, capturedTargets, sourceCard);
   });
+}
+
+function executeOnDeathEffectVariantOperations(state, index, unit) {
+  if (!unit || state.resolvingEffectVariantOnDeath) return;
+  const variant = getActiveEffectVariant(state, unit.owner, unit, unit.effectId);
+  if (!variant || !isEffectVariantExecutableActiveVariant(variant, unit.effectId, 'onDeath')) return;
+
+  state.effectVariantDeathTriggerExecutions ??= {};
+  const deathRow = state.effectVariantDeathTriggerExecutions[variant.variantId] ?? {
+    variantId: variant.variantId,
+    triggerType: 'onDeath',
+    executions: 0,
+    skippedExecutions: 0,
+  };
+  state.effectVariantDeathTriggerExecutions[variant.variantId] = deathRow;
+  deathRow.executions += 1;
+
+  state.resolvingEffectVariantOnDeath = true;
+  try {
+    executeEffectVariantOperations(state, unit.owner, unit, unit.effectId, {
+      selectedTargets: [{ originalIndex: index, unit: null }],
+      sourceBoardIndex: index,
+      sourceUnit: unit,
+    }, 'onDeath');
+  } finally {
+    state.resolvingEffectVariantOnDeath = false;
+  }
 }
 
 
