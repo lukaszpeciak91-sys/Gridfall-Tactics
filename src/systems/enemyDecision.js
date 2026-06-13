@@ -376,6 +376,25 @@ export function recordBattleActionUse(state, owner, action, telemetry = null) {
   }
 }
 
+function getCandidateTargetIndexesForTargeting(state, owner, targeting) {
+  const board = Array.isArray(state?.board) ? state.board : [];
+  const friendlyOwner = owner;
+  const opponentOwner = owner === 'enemy' ? 'player' : 'enemy';
+
+  switch (targeting) {
+    case 'enemy_unit':
+    case 'enemy_units':
+    case 'any_enemy_unit':
+      return board.map((unit, index) => (unit?.owner === opponentOwner ? index : -1)).filter((index) => index >= 0);
+    case 'friendly_unit':
+      return board.map((unit, index) => (unit?.owner === friendlyOwner ? index : -1)).filter((index) => index >= 0);
+    case 'any_unit':
+      return board.map((unit, index) => (unit ? index : -1)).filter((index) => index >= 0);
+    default:
+      return null;
+  }
+}
+
 function getCandidateTargetIndexes(state, owner, effectId) {
   const board = Array.isArray(state?.board) ? state.board : [];
   const friendlyOwner = owner;
@@ -643,7 +662,10 @@ function buildActionCandidates(state, owner, hand, telemetry = null) {
 
     if (targetingOverrideNone) return;
 
-    const targets = getCandidateTargetIndexes(state, owner, card.effectId ?? null);
+    const variantTargetCandidates = isSkipBaseEffectVariantAction(state, owner, { cardId: card.id, effectId: card.effectId ?? null })
+      ? getCandidateTargetIndexesForTargeting(state, owner, card.targeting)
+      : null;
+    const targets = variantTargetCandidates ?? getCandidateTargetIndexes(state, owner, card.effectId ?? null);
     targets.forEach((targetIndex) => {
       const targetedProbe = resolveTargetedEffectCard(cloneState(state), owner, card.id, targetIndex, [targetIndex]);
       if (targetedProbe.ok && targetedProbe.type !== 'targeted-effect-pending' && targetedProbe.type !== 'targeted-effect-blocked') {
