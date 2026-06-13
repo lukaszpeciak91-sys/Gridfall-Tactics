@@ -26,8 +26,9 @@ test('normal base panels render centered HP without title labels or action-slot 
   assert.doesNotMatch(drawHeroPanels, /createActionSlotBadge|getActionSlotBadgeState|ui\.battle\.act(One|Two)|ACT 1\/2|ACT 2\/2/);
   assert.match(drawHeroPanels, /this\.enemyHpText = this\.add\.text\(enemyPanel\.x, enemyPanel\.y, ''/);
   assert.match(drawHeroPanels, /this\.playerHpText = this\.add\.text\(playerPanel\.x, playerPanel\.y, ''/);
-  assert.match(source, /this\.enemyHpText\.setText\(`\$\{this\.gameState\.enemyHP\} \/ 12`\);/);
-  assert.match(source, /this\.playerHpText\.setText\(`\$\{this\.gameState\.playerHP\} \/ 12`\);/);
+  assert.match(source, /this\.enemyHpText\.setText\(`\$\{this\.gameState\.enemyHP\}`\);/);
+  assert.match(source, /this\.playerHpText\.setText\(`\$\{this\.gameState\.playerHP\}`\);/);
+  assert.doesNotMatch(source, /setText\(`\$\{this\.gameState\.(enemy|player)HP\} \/ 12`\)/);
 });
 
 test('initiative remains icon-only with subtle side-colored active panel highlight', () => {
