@@ -42,7 +42,7 @@
     },
     "attrition_swarm_husk_1": {
       "name": "Łupina",
-      "textShort": "Śmierć w walce: 1 [HP] [ENEMY] naprzeciw."
+      "textShort": "Śmierć w walce:\n-1 [HP] [ENEMY] naprzeciw."
     },
     "attrition_swarm_carrier_1": {
       "name": "Nosiciel",
@@ -62,7 +62,7 @@
     },
     "attrition_swarm_funeral_pyre_1": {
       "name": "Stos",
-      "textShort": "Pierwsze 2 zgony [ALLY]:\n1 [HP] [ENEMY] naprzeciw."
+      "textShort": "Pierwsze 2 zgony [ALLY]:\n-1 [HP] [ENEMY] naprzeciw."
     },
     "attrition_swarm_infect_1": {
       "name": "Zgniły Upominek",

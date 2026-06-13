@@ -189,8 +189,8 @@ test('selected Control cards keep their intended German-themed names in both dic
 test('selected localized card texts use enemy board-unit markers without changing base, effect, or UI copy', () => {
   const migrated = {
     en: {
-      attrition_swarm_husk_1: 'Combat death: 1 [HP] to opposed [ENEMY].',
-      attrition_swarm_funeral_pyre_1: 'First 2 [ALLY]\ncombat deaths:\n1 [HP] to opposed [ENEMY].',
+      attrition_swarm_husk_1: 'Combat death:\n-1 [HP] to opposed [ENEMY].',
+      attrition_swarm_funeral_pyre_1: 'First 2 [ALLY] combat deaths:\n-1 [HP] to opposed [ENEMY].',
       attrition_swarm_infect_1: 'Deal 1 to [ENEMY].\nOpposed [ALLY] gains +1 [ATK].',
       control_hacker_1: 'Opposed [ENEMY]: -1 ATK until combat.',
       control_sniper_1: 'Attacks the lowest-HP [ENEMY].',
@@ -203,8 +203,8 @@ test('selected localized card texts use enemy board-unit markers without changin
       wardens_shield_push_1: 'Swap two adjacent [ENEMIES].',
     },
     pl: {
-      attrition_swarm_husk_1: 'Śmierć w walce: 1 [HP] [ENEMY] naprzeciw.',
-      attrition_swarm_funeral_pyre_1: 'Pierwsze 2 zgony [ALLY]:\n1 [HP] [ENEMY] naprzeciw.',
+      attrition_swarm_husk_1: 'Śmierć w walce:\n-1 [HP] [ENEMY] naprzeciw.',
+      attrition_swarm_funeral_pyre_1: 'Pierwsze 2 zgony [ALLY]:\n-1 [HP] [ENEMY] naprzeciw.',
       attrition_swarm_infect_1: 'Zadaj 1 [ENEMY].\n[ALLY] naprzeciwko +1 [ATK].',
       control_hacker_1: '[ENEMY] naprzeciwko: -1 ATK do walki.',
       control_sniper_1: 'Atakuje [ENEMY] z najniższym HP.',

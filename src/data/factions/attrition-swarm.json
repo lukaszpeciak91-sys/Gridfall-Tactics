@@ -11,7 +11,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": "combat_death_damage_enemy_lane_1",
-      "textShort": "Combat death: 1 [HP] to opposed [ENEMY].",
+      "textShort": "Combat death:\n-1 [HP] to opposed [ENEMY].",
       "attack": 1,
       "hp": 1,
       "armor": 0
@@ -76,7 +76,7 @@
       "type": "order",
       "targeting": "none",
       "effectId": "funeral_pyre",
-      "textShort": "First 2 [ALLY]\ncombat deaths:\n1 [HP] to opposed [ENEMY]."
+      "textShort": "First 2 [ALLY] combat deaths:\n-1 [HP] to opposed [ENEMY]."
     },
     {
       "id": "attrition_swarm_infect_1",

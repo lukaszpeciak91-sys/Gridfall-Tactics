@@ -78,7 +78,7 @@ Use short, repeatable sentence patterns. These examples are canonical style refe
 
 - `On play: deal 1 to opposed [ENEMY].`
 - `On death: summon 1/1 here.`
-- `Combat death: 1 [HP] to opposed [ENEMY].`
+- `Combat death:\n-1 [HP] to opposed [ENEMY].`
 - `Adjacent allies gain +1 ARM until combat.`
 - `Target ally gains +1 ARM until combat.`
 - `If opposed: +1 ATK.`
@@ -97,6 +97,8 @@ Current convention:
 - `[ENEMY]` / `[ENEMIES]` must not replace references to the enemy base, enemy player, or UI labels.
 - The enemy/enemies icon is rose-red `#fb7185`, visually distinct from the yellow ally icon.
 - The formatter renders gameplay-icon markers consistently in collection, hand, and inspect card previews through the shared card preview renderer.
+- Treat gameplay and stat icons as words. Use one space before and after unit/stat icons when adjacent text exists, such as `[ALLY] +1 [ATK]`, `-1 [HP] to opposed [ENEMY]`, `Atakuje [ENEMY] z najniższym [HP]`, and `[ENEMY] naprzeciw`.
+- Do not remove icon-adjacent spaces to save width unless a very specific UI exception is documented.
 - Do not introduce icons for `adjacent`, `combat`, `until combat`, or `on play` yet.
 - Avoid emoji in production UI; use game-consistent glyphs or icons.
 - Icons must not create “hieroglyph soup.” Text should remain understandable at mobile size.
@@ -146,6 +148,7 @@ Use these rules when wording is precise but too long:
 
 - Prefer short, readable mobile wording over exhaustive legal precision.
 - Use existing icon tokens for units and stats where they reduce length and improve clarity.
+- For space-tight damage wording, prefer compact HP-loss language such as `-1 [HP] to opposed [ENEMY]` / `-1 [HP] [ENEMY] naprzeciw` when it accurately describes unit HP loss.
 - Do not create “icon soup”; keep text readable at card size.
 - If a precise wording overflows, shorten the text while preserving player-understandable meaning.
 - Do not solve text overflow by changing global layout or font size unless the issue is systemic across many cards.
