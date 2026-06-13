@@ -67,9 +67,11 @@ function parseTelemetryModes(value) {
       modes.add('basic');
       modes.add('cards');
       modes.add('ai');
+      modes.add('effectvariants');
       return;
     }
     if (mode === 'basic' || mode === 'cards' || mode === 'ai') modes.add(mode);
+    if (mode === 'effectvariants') modes.add('effectvariants');
   });
   return modes;
 }
@@ -82,6 +84,7 @@ function createSimulatorTelemetry() {
   return {
     factions: {},
     cards: {},
+    effectVariantOperations: {},
     endings: {
       heroDefeated: 0,
       draw: 0,
@@ -92,6 +95,73 @@ function createSimulatorTelemetry() {
       other: 0,
     },
   };
+}
+
+
+function numberMetric(value) {
+  return Number.isFinite(value) ? value : 0;
+}
+
+function skippedTargetCount(value) {
+  if (Array.isArray(value)) return value.length;
+  return numberMetric(value);
+}
+
+function getEffectVariantOperationTelemetryKey(entry) {
+  return [
+    entry?.variantId ?? 'unknown',
+    entry?.registryKey ?? 'unknown',
+    entry?.operation ?? 'unknown',
+    entry?.selector ?? '',
+    entry?.status ?? 'unknown',
+  ].join('|');
+}
+
+function ensureEffectVariantOperationTelemetry(simTelemetry, entry) {
+  const key = getEffectVariantOperationTelemetryKey(entry);
+  simTelemetry.effectVariantOperations[key] ??= {
+    variantId: entry?.variantId ?? 'unknown',
+    registryKey: entry?.registryKey ?? 'unknown',
+    operation: entry?.operation ?? 'unknown',
+    selector: entry?.selector ?? '',
+    status: entry?.status ?? 'unknown',
+    executions: 0,
+    resolvedTargets: 0,
+    skippedTargets: 0,
+    damageDealt: 0,
+    kills: 0,
+    attackAdded: 0,
+    attackReduced: 0,
+    armorAdded: 0,
+    armorReduced: 0,
+    baseDamageDealt: 0,
+    enemyBaseDamage: 0,
+    playerBaseDamage: 0,
+  };
+  return simTelemetry.effectVariantOperations[key];
+}
+
+function recordEffectVariantOperationTelemetry(simTelemetry, entries) {
+  if (!simTelemetry || !Array.isArray(entries)) return;
+  entries.forEach((entry) => {
+    if (!entry) return;
+    const row = ensureEffectVariantOperationTelemetry(simTelemetry, entry);
+    const damageDealt = numberMetric(entry.damageDealt);
+    row.executions += 1;
+    row.resolvedTargets += numberMetric(entry.targetsResolved);
+    row.skippedTargets += skippedTargetCount(entry.skippedTargets);
+    row.damageDealt += damageDealt;
+    row.kills += numberMetric(entry.kills);
+    row.attackAdded += numberMetric(entry.totalAttackAdded);
+    row.attackReduced += numberMetric(entry.totalAttackReduced);
+    row.armorAdded += numberMetric(entry.totalArmorAdded);
+    row.armorReduced += numberMetric(entry.totalArmorReduced);
+    if (entry.operation === 'damageEnemyBase' || entry.operation === 'damagePlayerBase') {
+      row.baseDamageDealt += damageDealt;
+      if (entry.baseDamaged === 'enemyHP') row.enemyBaseDamage += damageDealt;
+      if (entry.baseDamaged === 'playerHP') row.playerBaseDamage += damageDealt;
+    }
+  });
 }
 
 function ensureFactionTelemetry(simTelemetry, faction) {
@@ -377,6 +447,7 @@ function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, simTel
     combatOnlyDeathSummons: state.combatOnlyDeathSummons ?? 0,
     leechCombatHeals: state.leechCombatHeals ?? 0,
     rotcallerCombatTriggers: state.rotcallerCombatTriggers ?? 0,
+    effectVariantOperationTelemetry: [...(state.effectVariantOperationTelemetry ?? [])],
   };
 }
 
@@ -476,6 +547,39 @@ function printCardSimulatorTelemetry(simTelemetry) {
       'held at defeat': row.heldAtDefeat,
       'avg turn played': avg(row.turnPlayedTotal, row.played),
     })));
+}
+
+
+function printEffectVariantOperationSimulatorTelemetry(simTelemetry) {
+  console.log('\nSimulator telemetry: effectVariant operations');
+  const rows = Object.values(simTelemetry.effectVariantOperations ?? {})
+    .sort((a, b) => a.variantId.localeCompare(b.variantId)
+      || a.registryKey.localeCompare(b.registryKey)
+      || a.operation.localeCompare(b.operation)
+      || a.selector.localeCompare(b.selector)
+      || a.status.localeCompare(b.status));
+  if (rows.length === 0) {
+    console.log('No effectVariant operation telemetry recorded.');
+    return;
+  }
+  console.table(rows.map((row) => ({
+    variantId: row.variantId,
+    operation: row.operation,
+    selector: row.selector,
+    executions: row.executions,
+    'resolved targets': row.resolvedTargets,
+    'skipped targets': row.skippedTargets,
+    'damage dealt': row.damageDealt,
+    kills: row.kills,
+    'atk added': row.attackAdded,
+    'atk reduced': row.attackReduced,
+    'arm added': row.armorAdded,
+    'arm reduced': row.armorReduced,
+    'base damage': row.baseDamageDealt,
+    'enemy base damage': row.enemyBaseDamage,
+    'player base damage': row.playerBaseDamage,
+    status: row.status,
+  })));
 }
 
 function printAiSimulatorTelemetry(telemetry, simTelemetry, totalGames) {
@@ -581,6 +685,7 @@ function main() {
       const gameSeed = buildGameSeed(baseSeed, playerKey, enemyKey, i);
       const result = runSingleGame(factions[playerKey], factions[enemyKey], passStats, telemetry, simTelemetry, gameSeed, i, playerKey, enemyKey);
       recordGameEndTelemetry(simTelemetry, result);
+      recordEffectVariantOperationTelemetry(simTelemetry, result.effectVariantOperationTelemetry);
       telemetry.quickFixTriggers += result.quickFixTempoDraws ?? 0;
       telemetry.defensiveFrictionApplications += result.defensiveFrictionApplications ?? 0;
       telemetry.funeralPyreTriggers += result.funeralPyreCombatTriggers ?? 0;
@@ -846,6 +951,9 @@ Battle simulation complete (${matchCount} games per matchup${filterSummary}, max
   }
   if (simTelemetry && hasTelemetryMode(telemetryModes, 'ai')) {
     printAiSimulatorTelemetry(telemetry, simTelemetry, audit.games);
+  }
+  if (simTelemetry && hasTelemetryMode(telemetryModes, 'effectvariants')) {
+    printEffectVariantOperationSimulatorTelemetry(simTelemetry);
   }
 
   console.log('\nSimulation parity and validity notes:');

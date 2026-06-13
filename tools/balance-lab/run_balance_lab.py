@@ -45,7 +45,7 @@ def utf8_subprocess_env() -> dict[str, str]:
 ALLOWED_STAT_FIELDS = {"attack", "hp", "armor"}
 REQUIRED_REPLACE_CARD_FIELDS = {"id", "name", "type", "targeting", "textShort"}
 REQUIRED_UNIT_REPLACE_CARD_FIELDS = {"attack", "hp", "armor"}
-ALLOWED_TELEMETRY_MODES = {"", "basic", "cards", "ai", "all"}
+ALLOWED_TELEMETRY_MODES = {"", "basic", "cards", "ai", "effectVariants", "all"}
 EFFECT_VARIANT_SCHEMA_VERSION = 1
 EFFECT_VARIANT_STATUS = "recognized_not_executed"
 EFFECT_VARIANT_REGISTRY_GENERATED_STATUS = "registry_generated"
@@ -169,6 +169,8 @@ PATCH_SUMMARY_FILENAME = "patch-summary.md"
 COMPARISON_REPORT_FILENAME = "comparison-report.md"
 CARD_TELEMETRY_BASELINE_FILENAME = "card-telemetry-baseline.txt"
 CARD_TELEMETRY_EXPERIMENT_FILENAME = "card-telemetry-experiment.txt"
+EFFECT_VARIANT_TELEMETRY_BASELINE_FILENAME = "effect-variant-telemetry-baseline.txt"
+EFFECT_VARIANT_TELEMETRY_EXPERIMENT_FILENAME = "effect-variant-telemetry-experiment.txt"
 SUMMARY_FILENAME = "summary.md"
 BATCH_SUMMARY_FILENAME = "batch-summary.md"
 COPY_EXCLUDE_DIRS = {
@@ -242,7 +244,7 @@ def validate_experiment_shape(data: dict[str, Any]) -> None:
         raise BalanceLabError("Experiment field 'seed' must be 0 or greater.")
     if telemetry not in ALLOWED_TELEMETRY_MODES and not is_comma_telemetry_list(telemetry):
         raise BalanceLabError(
-            "Experiment field 'telemetry' must be one of: basic, cards, ai, all, "
+            "Experiment field 'telemetry' must be one of: basic, cards, ai, effectVariants, all, "
             "or a comma-separated combination such as basic,cards."
         )
 
@@ -501,7 +503,7 @@ def is_comma_telemetry_list(value: str) -> bool:
     if not value or " " in value:
         return False
     modes = [mode.strip() for mode in value.split(",")]
-    return all(mode in {"basic", "cards", "ai"} for mode in modes)
+    return all(mode in {"basic", "cards", "ai", "effectVariants"} for mode in modes)
 
 
 def load_faction_files(root: Path) -> list[tuple[Path, dict[str, Any]]]:
@@ -1357,6 +1359,19 @@ def write_report(
     baseline_output_path.write_text(baseline_result.stdout, encoding="utf-8")
     experiment_output_path.write_text(experiment_result.stdout, encoding="utf-8")
     experiment_stderr_path.write_text(experiment_result.stderr, encoding="utf-8")
+    baseline_effect_variant_runtime_path, experiment_effect_variant_runtime_path = write_effect_variant_runtime_telemetry_sections(
+        report_dir,
+        baseline_result.stdout,
+        experiment_result.stdout,
+    )
+    effect_variant_runtime_files = [
+        path.name for path in (baseline_effect_variant_runtime_path, experiment_effect_variant_runtime_path)
+        if path is not None
+    ]
+    effect_variant_runtime_recorded = bool(
+        effect_variant_runtime_telemetry_has_rows(extract_effect_variant_runtime_telemetry(baseline_result.stdout))
+        or effect_variant_runtime_telemetry_has_rows(extract_effect_variant_runtime_telemetry(experiment_result.stdout))
+    )
 
     summary = [
         "# Balance Lab Run Summary",
@@ -1373,6 +1388,8 @@ def write_report(
         "PR5 executes runBaseEffect-only parity variants, generic damageUnit operations, generic temporary stat modifier operations, and absolute damageEnemyBase/damagePlayerBase operations after the base effect; drawOne remains report-only.",
         f"Full card replacement tested: {'yes' if has_full_card_replacement(data) else 'no'}",
         f"Effect Variant entries recognized: {'yes' if has_effect_variants(data) else 'no'}",
+        f"Effect Variant runtime telemetry recorded: {'yes' if effect_variant_runtime_recorded else 'no'}",
+        f"Effect Variant runtime telemetry files: {', '.join(effect_variant_runtime_files) if effect_variant_runtime_files else 'none generated'}",
         "",
         "## Effect Variant Recognition",
         "",
@@ -1387,6 +1404,7 @@ def write_report(
         f"Experiment stderr: `{EXPERIMENT_STDERR_FILENAME}`",
         f"Patch summary: `{PATCH_SUMMARY_FILENAME}`",
         f"Comparison report: `{COMPARISON_REPORT_FILENAME}`",
+        *( [f"Effect Variant runtime telemetry file: `{name}`" for name in effect_variant_runtime_files] ),
         "",
     ]
     summary_path.write_text("\n".join(summary), encoding="utf-8")
@@ -1760,6 +1778,246 @@ def card_presence_table_lines(rows: list[dict[str, Any]], empty_message: str) ->
         )
     return lines
 
+EFFECT_VARIANT_RUNTIME_TELEMETRY_COLUMNS = [
+    "variantId",
+    "operation",
+    "selector",
+    "executions",
+    "resolved targets",
+    "skipped targets",
+    "damage dealt",
+    "kills",
+    "atk added",
+    "atk reduced",
+    "arm added",
+    "arm reduced",
+    "base damage",
+    "enemy base damage",
+    "player base damage",
+    "status",
+]
+EFFECT_VARIANT_RUNTIME_NUMERIC_FIELDS = [
+    "executions",
+    "resolved targets",
+    "skipped targets",
+    "damage dealt",
+    "kills",
+    "atk added",
+    "atk reduced",
+    "arm added",
+    "arm reduced",
+    "base damage",
+    "enemy base damage",
+    "player base damage",
+]
+EFFECT_VARIANT_RUNTIME_DELTA_FIELDS = [
+    ("executions", "executions"),
+    ("resolved targets", "resolvedTargets"),
+    ("skipped targets", "skippedTargets"),
+    ("damage dealt", "damageDealt"),
+    ("kills", "kills"),
+    ("atk added", "attackAdded"),
+    ("atk reduced", "attackReduced"),
+    ("arm added", "armorAdded"),
+    ("arm reduced", "armorReduced"),
+    ("base damage", "baseDamage"),
+    ("enemy base damage", "enemyBaseDamage"),
+    ("player base damage", "playerBaseDamage"),
+]
+
+
+class EffectVariantRuntimeTelemetryParseError(Exception):
+    """A non-fatal effectVariant runtime telemetry parsing error."""
+
+
+def extract_effect_variant_runtime_telemetry(output_text: str) -> str:
+    return extract_named_section(output_text, "Simulator telemetry: effectVariant operations").strip() + "\n"
+
+
+def effect_variant_runtime_telemetry_has_rows(section: str) -> bool:
+    return "│" in section and "variantId" in section
+
+
+def write_effect_variant_runtime_telemetry_sections(report_dir: Path, baseline_text: str, experiment_text: str) -> tuple[Path | None, Path | None]:
+    baseline_section = extract_effect_variant_runtime_telemetry(baseline_text)
+    experiment_section = extract_effect_variant_runtime_telemetry(experiment_text)
+    baseline_path: Path | None = None
+    experiment_path: Path | None = None
+    if baseline_section.strip():
+        baseline_path = report_dir / EFFECT_VARIANT_TELEMETRY_BASELINE_FILENAME
+        baseline_path.write_text(baseline_section, encoding="utf-8")
+    if experiment_section.strip():
+        experiment_path = report_dir / EFFECT_VARIANT_TELEMETRY_EXPERIMENT_FILENAME
+        experiment_path.write_text(experiment_section, encoding="utf-8")
+    return baseline_path, experiment_path
+
+
+def parse_effect_variant_runtime_int(value: str, field: str, row_label: str) -> int:
+    try:
+        return int(value)
+    except ValueError as error:
+        raise EffectVariantRuntimeTelemetryParseError(
+            f"{row_label} field '{field}' is not an integer: {value!r}"
+        ) from error
+
+
+def parse_effect_variant_runtime_table(output_text: str, label: str) -> list[dict[str, Any]]:
+    section = extract_named_section(output_text, "Simulator telemetry: effectVariant operations")
+    if not section.strip() or "No effectVariant operation telemetry recorded." in section:
+        return []
+
+    header_columns: list[str] | None = None
+    for line in section.splitlines():
+        if "│" not in line:
+            continue
+        cells = [clean_table_value(cell) for cell in console_table_cells(line)]
+        if cells and cells[0] == "(index)":
+            header_columns = cells[1:]
+            break
+
+    if header_columns != EFFECT_VARIANT_RUNTIME_TELEMETRY_COLUMNS:
+        raise EffectVariantRuntimeTelemetryParseError(
+            f"{label} effectVariant runtime telemetry columns were {header_columns or 'not found'}, "
+            f"expected {EFFECT_VARIANT_RUNTIME_TELEMETRY_COLUMNS}"
+        )
+
+    raw_rows = parse_console_table_section(
+        output_text,
+        "Simulator telemetry: effectVariant operations",
+        EFFECT_VARIANT_RUNTIME_TELEMETRY_COLUMNS,
+    )
+    parsed_rows: list[dict[str, Any]] = []
+    seen_keys: set[tuple[str, str, str, str]] = set()
+    for index, row in enumerate(raw_rows, start=1):
+        row_label = f"{label} effectVariant runtime telemetry row {index}"
+        variant_id = row["variantId"]
+        operation = row["operation"]
+        selector = row["selector"]
+        status = row["status"]
+        key = (variant_id, operation, selector, status)
+        if key in seen_keys:
+            raise EffectVariantRuntimeTelemetryParseError(
+                f"{label} effectVariant runtime telemetry has duplicate key {key}"
+            )
+        seen_keys.add(key)
+        parsed = {
+            "variantId": variant_id,
+            "operation": operation,
+            "selector": selector,
+            "status": status,
+        }
+        for field in EFFECT_VARIANT_RUNTIME_NUMERIC_FIELDS:
+            parsed[field] = parse_effect_variant_runtime_int(row[field], field, row_label)
+        parsed_rows.append(parsed)
+    return parsed_rows
+
+
+def build_effect_variant_runtime_telemetry_comparison(baseline_text: str, experiment_text: str) -> dict[str, Any]:
+    try:
+        baseline_rows = parse_effect_variant_runtime_table(baseline_text, "Baseline")
+        experiment_rows = parse_effect_variant_runtime_table(experiment_text, "Experiment")
+    except EffectVariantRuntimeTelemetryParseError as error:
+        warning = f"EffectVariant runtime telemetry comparison skipped: {error}. Raw telemetry files are still available when generated."
+        print(f"Warning: {warning}", flush=True)
+        return {
+            "warning": warning,
+            "baselineRows": [],
+            "experimentRows": [],
+            "changedRows": [],
+            "pasteLines": ["- Not available; effectVariant runtime telemetry parsing failed. See raw telemetry files."],
+        }
+
+    baseline_by_key = {(row["variantId"], row["operation"], row["selector"], row["status"]): row for row in baseline_rows}
+    experiment_by_key = {(row["variantId"], row["operation"], row["selector"], row["status"]): row for row in experiment_rows}
+    comparison_rows: list[dict[str, Any]] = []
+    for key in sorted(set(baseline_by_key) | set(experiment_by_key)):
+        baseline_row = baseline_by_key.get(key)
+        experiment_row = experiment_by_key.get(key)
+        source = experiment_row or baseline_row or {}
+        row: dict[str, Any] = {
+            "variantId": source.get("variantId", key[0]),
+            "operation": source.get("operation", key[1]),
+            "selector": source.get("selector", key[2]),
+            "status": source.get("status", key[3]),
+        }
+        changed = baseline_row is None or experiment_row is None
+        for source_field, report_field in EFFECT_VARIANT_RUNTIME_DELTA_FIELDS:
+            baseline_value = baseline_row[source_field] if baseline_row else 0
+            experiment_value = experiment_row[source_field] if experiment_row else 0
+            delta = experiment_value - baseline_value
+            row[f"baseline{report_field[0].upper()}{report_field[1:]}"] = baseline_value
+            row[f"experiment{report_field[0].upper()}{report_field[1:]}"] = experiment_value
+            row[f"{report_field}Delta"] = delta
+            changed = changed or delta != 0
+        if changed:
+            comparison_rows.append(row)
+
+    comparison_rows.sort(key=lambda row: (-abs(row["executionsDelta"]), row["variantId"], row["operation"], row["selector"], row["status"]))
+    paste_lines = effect_variant_runtime_paste_lines(experiment_rows)
+    return {
+        "warning": "",
+        "baselineRows": baseline_rows,
+        "experimentRows": experiment_rows,
+        "changedRows": comparison_rows,
+        "pasteLines": paste_lines,
+    }
+
+
+def effect_variant_runtime_table_lines(rows: list[dict[str, Any]]) -> list[str]:
+    lines = [
+        "| variantId | operation | selector | executions | resolved targets | skipped targets | damage dealt | kills | attack added | attack reduced | armor added | armor reduced | base damage | enemy base damage | player base damage | status |",
+        "|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|",
+    ]
+    if not rows:
+        return [*lines, "| _No effectVariant runtime telemetry rows_ |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |"]
+    for row in rows:
+        lines.append(
+            f"| {markdown_cell(row['variantId'])} | {markdown_cell(row['operation'])} | {markdown_cell(row['selector'])} | "
+            f"{row['executions']} | {row['resolved targets']} | {row['skipped targets']} | {row['damage dealt']} | {row['kills']} | "
+            f"{row['atk added']} | {row['atk reduced']} | {row['arm added']} | {row['arm reduced']} | {row['base damage']} | "
+            f"{row['enemy base damage']} | {row['player base damage']} | {markdown_cell(row['status'])} |"
+        )
+    return lines
+
+
+def effect_variant_runtime_comparison_table_lines(rows: list[dict[str, Any]]) -> list[str]:
+    lines = [
+        "| variantId | operation | selector | status | executions Δ | resolved targets Δ | skipped targets Δ | damage dealt Δ | kills Δ | attack added Δ | attack reduced Δ | armor added Δ | armor reduced Δ | base damage Δ | enemy base damage Δ | player base damage Δ |",
+        "|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+    ]
+    if not rows:
+        return [*lines, "| _No changed effectVariant runtime telemetry rows_ |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |"]
+    for row in rows:
+        lines.append(
+            f"| {markdown_cell(row['variantId'])} | {markdown_cell(row['operation'])} | {markdown_cell(row['selector'])} | {markdown_cell(row['status'])} | "
+            f"{format_count_delta(row['executionsDelta'])} | {format_count_delta(row['resolvedTargetsDelta'])} | {format_count_delta(row['skippedTargetsDelta'])} | "
+            f"{format_count_delta(row['damageDealtDelta'])} | {format_count_delta(row['killsDelta'])} | {format_count_delta(row['attackAddedDelta'])} | "
+            f"{format_count_delta(row['attackReducedDelta'])} | {format_count_delta(row['armorAddedDelta'])} | {format_count_delta(row['armorReducedDelta'])} | "
+            f"{format_count_delta(row['baseDamageDelta'])} | {format_count_delta(row['enemyBaseDamageDelta'])} | {format_count_delta(row['playerBaseDamageDelta'])} |"
+        )
+    return lines
+
+
+def effect_variant_runtime_paste_lines(rows: list[dict[str, Any]]) -> list[str]:
+    if not rows:
+        return ["- No effectVariant runtime telemetry rows parsed."]
+    lines: list[str] = []
+    for row in sorted(rows, key=lambda item: item["executions"], reverse=True)[:10]:
+        lines.extend([
+            f"- {row['variantId']} / {row['operation']} / {row['selector']}:",
+            f"  executions {row['executions']}",
+            f"  resolved targets {row['resolved targets']}",
+            f"  skipped targets {row['skipped targets']}",
+            f"  damage dealt {row['damage dealt']}",
+            f"  kills {row['kills']}",
+            f"  attack added/reduced {row['atk added']}/{row['atk reduced']}",
+            f"  armor added/reduced {row['arm added']}/{row['arm reduced']}",
+            f"  base damage {row['base damage']}",
+            f"  enemy base damage {row['enemy base damage']}",
+            f"  player base damage {row['player base damage']}",
+        ])
+    return lines
+
 def extract_card_telemetry(output_text: str) -> str:
     return extract_named_section(output_text, "Simulator telemetry: per-card summary").strip() + "\n"
 
@@ -1777,6 +2035,24 @@ def write_card_telemetry_sections(report_dir: Path, baseline_text: str, experime
     experiment_path.write_text(experiment_section, encoding="utf-8")
     return baseline_path, experiment_path
 
+
+
+def append_effect_variant_runtime_files_to_patch_summary(patch_summary_path: Path, file_names: list[str]) -> None:
+    if not file_names:
+        return
+    text = patch_summary_path.read_text(encoding="utf-8")
+    marker = "## Effect Variant Runtime Telemetry Files"
+    if marker in text:
+        return
+    lines = [
+        "",
+        marker,
+        "",
+        "Runtime telemetry files generated after simulation:",
+        *[f"- `{name}`" for name in file_names],
+        "",
+    ]
+    patch_summary_path.write_text(text.rstrip() + "\n" + "\n".join(lines), encoding="utf-8")
 
 def build_comparison_report(
     report_dir: Path,
@@ -1982,6 +2258,44 @@ def build_comparison_report(
         if baseline_card_telemetry_present or experiment_card_telemetry_present
         else "Not present; files contain guidance placeholders."
     )
+    baseline_effect_variant_runtime_path, experiment_effect_variant_runtime_path = write_effect_variant_runtime_telemetry_sections(
+        report_dir,
+        baseline_text,
+        experiment_text,
+    )
+    effect_variant_runtime_files = [
+        path.name for path in (baseline_effect_variant_runtime_path, experiment_effect_variant_runtime_path)
+        if path is not None
+    ]
+    effect_variant_runtime_file_line = (
+        ", ".join(f"`{name}`" for name in effect_variant_runtime_files)
+        if effect_variant_runtime_files else "No raw effectVariant runtime telemetry files were generated."
+    )
+    effect_variant_runtime_comparison = build_effect_variant_runtime_telemetry_comparison(baseline_text, experiment_text)
+    baseline_effect_variant_runtime_rows = effect_variant_runtime_comparison["baselineRows"]
+    experiment_effect_variant_runtime_rows = effect_variant_runtime_comparison["experimentRows"]
+    if effect_variant_runtime_comparison["warning"]:
+        effect_variant_runtime_lines = [
+            "Parsing failed; raw telemetry files are linked below when generated.",
+            f"- Warning: {effect_variant_runtime_comparison['warning']}",
+        ]
+    elif not baseline_effect_variant_runtime_rows and experiment_effect_variant_runtime_rows:
+        effect_variant_runtime_lines = [
+            "Baseline recorded no effectVariant operations. Experiment recorded runtime operation telemetry.",
+            "",
+            *effect_variant_runtime_table_lines(experiment_effect_variant_runtime_rows),
+        ]
+    elif baseline_effect_variant_runtime_rows and experiment_effect_variant_runtime_rows:
+        effect_variant_runtime_lines = effect_variant_runtime_comparison_table_lines(effect_variant_runtime_comparison["changedRows"])
+    elif baseline_effect_variant_runtime_rows and not experiment_effect_variant_runtime_rows:
+        effect_variant_runtime_lines = [
+            "Baseline recorded effectVariant operation telemetry. Experiment recorded no effectVariant operations.",
+            "",
+            *effect_variant_runtime_table_lines(baseline_effect_variant_runtime_rows),
+        ]
+    else:
+        effect_variant_runtime_lines = ["No effectVariant runtime telemetry rows were parsed from baseline or experiment output."]
+    append_effect_variant_runtime_files_to_patch_summary(patch_summary_path, effect_variant_runtime_files)
     effect_variant_rows = effect_variant_report_rows_from_data(data)
 
     comparison_report_path = report_dir / COMPARISON_REPORT_FILENAME
@@ -2051,6 +2365,12 @@ def build_comparison_report(
         "",
         *campaign_lines,
         "",
+        "## Effect Variant Runtime Telemetry",
+        "",
+        f"Raw telemetry files: {effect_variant_runtime_file_line}",
+        "",
+        *effect_variant_runtime_lines,
+        "",
         "## Card telemetry comparison",
         "",
         "Rows are matched by `(faction, id)`, not by card name. The table shows changed cards only, sorted by absolute played delta and then absolute drawn delta.",
@@ -2078,6 +2398,9 @@ def build_comparison_report(
         "",
         *effect_variant_paste_lines(effect_variant_rows),
         "",
+        "Effect variant runtime telemetry:",
+        *effect_variant_runtime_comparison["pasteLines"],
+        "",
         "Faction non-draw WR deltas:",
         *paste_faction_lines,
         "",
@@ -2094,6 +2417,7 @@ def build_comparison_report(
         *card_telemetry_comparison["pasteLines"],
         "",
         f"Card telemetry files: {card_telemetry_line}",
+        f"Effect variant runtime telemetry files: {effect_variant_runtime_file_line}",
         "```",
         "",
     ]

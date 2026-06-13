@@ -892,3 +892,16 @@ Rationale:
 Recommended first implementation task:
 
 > Implement Phase 1 only: variant loader, strict validation, safety checks, and validation-only reports. Do not execute variants and do not modify gameplay or simulator logic in that phase.
+
+## PR8 runtime telemetry foundation
+
+PR8 adds aggregate runtime telemetry for executed `effectVariant` operations without adding new operations, selectors, production faction JSON, production `effectParams`, or gameplay behavior changes. The simulator reads `state.effectVariantOperationTelemetry` only after each simulated game completes, aggregates operation counters, and Balance Lab extracts/parses the runtime section into raw files and comparison reports.
+
+This foundation is intentionally limited to proving whether operations executed, how often they executed, how many targets resolved or skipped, and how much damage/stat/base damage they applied. Future analytics can build on the same runtime telemetry model for:
+
+- win rate when drawn
+- win rate when played
+- dead card score
+- campaign ranking
+- biggest matchup movers
+- matchup leverage
