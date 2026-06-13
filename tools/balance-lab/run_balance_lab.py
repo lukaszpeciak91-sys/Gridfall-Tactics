@@ -1542,6 +1542,179 @@ def count_flags(rows: list[dict[str, Any]]) -> tuple[int, int]:
     return warnings, dangers
 
 
+def campaign_ranking_lines(campaign_rows: list[dict[str, Any]], value_key: str) -> list[str]:
+    ranked_rows = sorted(
+        campaign_rows,
+        key=lambda row: (-number_value(row[value_key]), row["faction"]),
+    )
+    return [
+        f"{index}. {row['faction']} {row[value_key]}%"
+        for index, row in enumerate(ranked_rows, start=1)
+    ] or ["No campaign estimates available."]
+
+
+def matchup_mover_lines(rows: list[dict[str, Any]], positive: bool) -> list[str]:
+    filtered_rows = [row for row in rows if row["deltaPp"] > 0] if positive else [row for row in rows if row["deltaPp"] < 0]
+    sorted_rows = sorted(
+        filtered_rows,
+        key=lambda row: (-row["deltaPp"], row["factionA"], row["factionB"])
+        if positive else (row["deltaPp"], row["factionA"], row["factionB"]),
+    )[:5]
+    if not sorted_rows and not positive:
+        return ["No matchup regressions detected."]
+    return [
+        f"- {row['factionA']} vs {row['factionB']}: {format_delta(row['deltaPp'])} pp"
+        for row in sorted_rows
+    ] or ["No matchup improvements detected."]
+
+
+def campaign_delta_table_lines(campaign_rows: list[dict[str, Any]]) -> list[str]:
+    lines = [
+        "| Faction | Before | After | Delta |",
+        "|---|---:|---:|---:|",
+    ]
+    for row in sorted(campaign_rows, key=lambda item: (-item["deltaPp"], item["faction"])):
+        lines.append(
+            f"| {row['faction']} | {row['baselineCampaignPct']}% | "
+            f"{row['experimentCampaignPct']}% | {format_delta(row['deltaPp'])} pp |"
+        )
+    if len(lines) == 2:
+        lines.append("| No campaign estimates available | N/A | N/A | N/A |")
+    return lines
+
+
+def row_label(row: dict[str, Any]) -> str:
+    if "factionA" in row:
+        return f"{row['factionA']} vs {row['factionB']}"
+    return row.get("faction", "Unknown")
+
+
+def auto_verdict_lines(
+    all_flag_rows: list[dict[str, Any]],
+    campaign_rows: list[dict[str, Any]],
+    matchup_rows: list[dict[str, Any]],
+    danger_count: int,
+) -> list[str]:
+    positive_rows = [row for row in all_flag_rows if row.get("deltaPp", 0) > 0]
+    largest_positive = max(positive_rows, key=lambda row: row["deltaPp"], default=None)
+    best_campaign_gain = max(campaign_rows, key=lambda row: row["deltaPp"], default=None)
+    best_matchup_gain = max(matchup_rows, key=lambda row: row["deltaPp"], default=None)
+
+    if danger_count:
+        largest_positive_text = (
+            f"{row_label(largest_positive)} {format_delta(largest_positive['deltaPp'])} pp"
+            if largest_positive else "No positive deltas detected"
+        )
+        return [
+            "Verdict:",
+            "Experiment likely overpowered.",
+            f"- Danger deltas: {danger_count}",
+            f"- Largest positive delta: {largest_positive_text}",
+        ]
+
+    if best_campaign_gain and best_campaign_gain["deltaPp"] > 5:
+        best_matchup_text = (
+            f"{best_matchup_gain['factionA']} vs {best_matchup_gain['factionB']} {format_delta(best_matchup_gain['deltaPp'])} pp"
+            if best_matchup_gain and best_matchup_gain["deltaPp"] > 0 else "No positive matchup gains detected"
+        )
+        return [
+            "Verdict:",
+            "Significant improvement detected.",
+            f"- Faction: {best_campaign_gain['faction']}",
+            f"- Campaign delta: {format_delta(best_campaign_gain['deltaPp'])} pp",
+            f"- Best matchup gain: {best_matchup_text}",
+        ]
+
+    return [
+        "Verdict:",
+        "Minor balance change detected.",
+    ]
+
+
+def quick_summary_lines(
+    campaign_rows: list[dict[str, Any]],
+    matchup_rows: list[dict[str, Any]],
+    warning_count: int,
+    danger_count: int,
+    include_title: bool = True,
+) -> list[str]:
+    notable_campaign_rows = [row for row in campaign_rows if round(row["deltaPp"], 1) != 0]
+    top_campaign_rows = sorted(notable_campaign_rows, key=lambda row: (-row["deltaPp"], row["faction"]))[:5]
+    top_gains = sorted(
+        [row for row in matchup_rows if row["deltaPp"] > 0],
+        key=lambda row: (-row["deltaPp"], row["factionA"], row["factionB"]),
+    )[:5]
+    top_regressions = sorted(
+        [row for row in matchup_rows if row["deltaPp"] < 0],
+        key=lambda row: (row["deltaPp"], row["factionA"], row["factionB"]),
+    )[:5]
+    lines = [
+        "Campaign:",
+        *([f"{row['faction']} {format_delta(row['deltaPp'])}" for row in top_campaign_rows] or ["No campaign movement"]),
+        "",
+        "Best matchup gains:",
+        *([f"{row['factionA']} vs {row['factionB']} {format_delta(row['deltaPp'])}" for row in top_gains] or ["None"]),
+        "",
+        "Worst regressions:",
+        *([f"{row['factionA']} vs {row['factionB']} {format_delta(row['deltaPp'])}" for row in top_regressions] or ["None"]),
+        "",
+        f"Warnings: {warning_count}",
+        f"Dangers: {danger_count}",
+    ]
+    if include_title:
+        return ["Quick Summary", "", *lines]
+    return lines
+
+
+def balance_intelligence_sections(
+    matchup_rows: list[dict[str, Any]],
+    campaign_rows: list[dict[str, Any]],
+    all_flag_rows: list[dict[str, Any]],
+    warning_count: int,
+    danger_count: int,
+) -> list[str]:
+    return [
+        "## Top Matchup Improvements",
+        "",
+        *matchup_mover_lines(matchup_rows, positive=True),
+        "",
+        "## Top Matchup Regressions",
+        "",
+        *matchup_mover_lines(matchup_rows, positive=False),
+        "",
+        "## Campaign Ranking Before",
+        "",
+        *campaign_ranking_lines(campaign_rows, "baselineCampaignPct"),
+        "",
+        "## Campaign Ranking After",
+        "",
+        *campaign_ranking_lines(campaign_rows, "experimentCampaignPct"),
+        "",
+        "## Campaign Delta",
+        "",
+        *campaign_delta_table_lines(campaign_rows),
+        "",
+        "## Auto Verdict",
+        "",
+        *auto_verdict_lines(all_flag_rows, campaign_rows, matchup_rows, danger_count),
+        "",
+        "## Quick Summary",
+        "",
+        *quick_summary_lines(campaign_rows, matchup_rows, warning_count, danger_count, include_title=False),
+    ]
+
+
+def append_balance_intelligence_to_summary(report_dir: Path, sections: list[str]) -> None:
+    summary_path = report_dir / SUMMARY_FILENAME
+    if not summary_path.exists():
+        return
+    text = summary_path.read_text(encoding="utf-8")
+    marker = "## Top Matchup Improvements"
+    if marker in text:
+        return
+    summary_path.write_text(text.rstrip() + "\n\n" + "\n".join(sections) + "\n", encoding="utf-8")
+
+
 def index_by_key(rows: list[dict[str, str]], key_fields: tuple[str, ...]) -> dict[tuple[str, ...], dict[str, str]]:
     return {tuple(row.get(field, "") for field in key_fields): row for row in rows}
 
@@ -2170,6 +2343,14 @@ def build_comparison_report(
 
     all_flag_rows = [*faction_delta_rows, *matchup_delta_rows, *campaign_delta_rows]
     warning_count, danger_count = count_flags(all_flag_rows)
+    intelligence_lines = balance_intelligence_sections(
+        matchup_delta_rows,
+        campaign_delta_rows,
+        all_flag_rows,
+        warning_count,
+        danger_count,
+    )
+    append_balance_intelligence_to_summary(report_dir, intelligence_lines)
     verdict = "DANGER" if danger_count else "WATCH" if warning_count else "SAFE"
     biggest_faction_delta = top_abs_delta(faction_delta_rows)
     biggest_matchup_delta = top_abs_delta(matchup_delta_rows)
@@ -2365,6 +2546,8 @@ def build_comparison_report(
         "",
         *campaign_lines,
         "",
+        *intelligence_lines,
+        "",
         "## Effect Variant Runtime Telemetry",
         "",
         f"Raw telemetry files: {effect_variant_runtime_file_line}",
@@ -2395,6 +2578,8 @@ def build_comparison_report(
         f"Patch summary: {build_patch_summary_sentence(data)}",
         f"Verdict: {verdict} ({warning_count} warnings, {danger_count} dangers)",
         f"Recommendation: {recommendation}",
+        "",
+        *quick_summary_lines(campaign_delta_rows, matchup_delta_rows, warning_count, danger_count),
         "",
         *effect_variant_paste_lines(effect_variant_rows),
         "",
