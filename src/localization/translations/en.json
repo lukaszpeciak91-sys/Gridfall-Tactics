@@ -42,7 +42,7 @@
     },
     "attrition_swarm_husk_1": {
       "name": "Husk",
-      "textShort": "Combat death: deal 1 to opposed [ENEMY]."
+      "textShort": "Combat death: 1 [HP] to opposed [ENEMY]."
     },
     "attrition_swarm_carrier_1": {
       "name": "Carrier",
@@ -62,7 +62,7 @@
     },
     "attrition_swarm_funeral_pyre_1": {
       "name": "Funeral Pyre",
-      "textShort": "First 2 [ALLY]\ncombat deaths:\n1 HP to opposed [ENEMY]."
+      "textShort": "First 2 [ALLY]\ncombat deaths:\n1 [HP] to opposed [ENEMY]."
     },
     "attrition_swarm_infect_1": {
       "name": "Rotten Gift",
@@ -162,7 +162,7 @@
     },
     "tank_shieldbearer_1": {
       "name": "Shieldbearer",
-      "textShort": "Adjacent [ALLY] +1 ARM in combat."
+      "textShort": "Adjacent [ALLY] +1 ARM until combat."
     },
     "tank_heavy_1": {
       "name": "Heavy",
@@ -186,7 +186,7 @@
     },
     "tank_stability_1": {
       "name": "Stability",
-      "textShort": "In combat: [ALLIES] can't be moved."
+      "textShort": "Until combat, [ALLIES] cannot be moved."
     },
     "tank_reinforce_1": {
       "name": "Reinforce",

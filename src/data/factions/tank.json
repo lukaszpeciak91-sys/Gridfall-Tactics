@@ -11,7 +11,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": "lane_armor_aura_1",
-      "textShort": "Adjacent [ALLY] +1 ARM in combat.",
+      "textShort": "Adjacent [ALLY] +1 ARM until combat.",
       "attack": 1,
       "hp": 2,
       "armor": 0
@@ -86,7 +86,7 @@
       "type": "order",
       "targeting": "all_friendly_units",
       "effectId": "immune_move_disable_this_turn",
-      "textShort": "In combat: [ALLIES] can't be moved."
+      "textShort": "Until combat, [ALLIES] cannot be moved."
     },
     {
       "id": "tank_reinforce_1",

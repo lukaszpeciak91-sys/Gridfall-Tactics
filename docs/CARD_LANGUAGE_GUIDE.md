@@ -11,6 +11,7 @@ The guide is documentation only. It does not define gameplay changes, balance ch
 - Prefer clarity over flavor.
 - Prefer consistency over clever wording.
 - Optimize for mobile readability: short lines, predictable phrases, and minimal visual noise.
+- Card rules text must fit in Collection, Hand, and Inspect views.
 - Do not create gameplay changes through wording. If wording and behavior disagree, fix the implementation or data in a dedicated gameplay/content task, not through silent text drift.
 - Card text should describe player-facing behavior, not code internals.
 
@@ -45,22 +46,22 @@ Avoid these forms in canonical card text.
 - Vague flavor-only text on vanilla units.
 - Inconsistent verbs. For example, do not alternate between `gets` and `gains` if `gains` is the chosen canonical verb.
 - Implementation-detail wording unless required for gameplay clarity, including:
-  - `first`
   - `leftmost`
-  - `lowest-index`
-  - `deterministic`
-  - `board index`
+  - `lowest index` / `lowest-index`
+  - raw board index values
+  - code-only ordering or resolver terms
 
 ## 5. Implementation-detail policy
 
 Card text should avoid leaking code concepts, scan order, array order, or renderer implementation details. Players should not need to understand board indices or deterministic resolver internals to understand a card.
 
-However, deterministic wording is acceptable when the player needs it to predict the result. For example, if an effect always chooses a specific valid target and the UI does not preview that target, wording may need to explain the selection rule.
+However, deterministic wording is acceptable when the player needs it to predict the result. Player-facing words such as `first`, `newest`, or `lowest-HP` are allowed when they are strategically relevant and describe something the player can reason about. For example, if an effect always chooses a specific valid target and the UI does not preview that target, wording may need to explain the selection rule. Forbidden implementation details are code-only ordering terms such as `leftmost`, `lowest index`, raw board index values, or internal resolver language.
 
 Use these guidelines:
 
 - Avoid code or scan-order language by default.
 - Keep deterministic wording when it is necessary for player prediction.
+- Prefer player-facing deterministic words over implementation details: `first` can be acceptable; `leftmost`, `lowest index`, and raw board indices are not.
 - If the UI preview clearly highlights affected targets, card text may be shorter.
 - If no preview exists, deterministic wording may be acceptable.
 - Prefer player-facing spatial terms over implementation terms whenever possible.
@@ -77,7 +78,7 @@ Use short, repeatable sentence patterns. These examples are canonical style refe
 
 - `On play: deal 1 to opposed [ENEMY].`
 - `On death: summon 1/1 here.`
-- `Combat death: deal 1 to opposed [ENEMY].`
+- `Combat death: 1 [HP] to opposed [ENEMY].`
 - `Adjacent allies gain +1 ARM until combat.`
 - `Target ally gains +1 ARM until combat.`
 - `If opposed: +1 ATK.`
@@ -137,7 +138,20 @@ Preferred Polish canonical equivalents:
 - Revive text should use `fallen unit` / `poległa jednostka`, not generic discard/archive wording.
 - Temporary Flood tokens are temporary board-only units that vanish after combat; do not describe them as normal persistent summons.
 
-## 11. MVP scope
+## 11. Mobile readability and fit
+
+Card text is written for mobile cards first. Every player-facing card rule must fit in Collection, Hand, and Inspect card views without changing global layout or font sizing for a one-off wording issue.
+
+Use these rules when wording is precise but too long:
+
+- Prefer short, readable mobile wording over exhaustive legal precision.
+- Use existing icon tokens for units and stats where they reduce length and improve clarity.
+- Do not create “icon soup”; keep text readable at card size.
+- If a precise wording overflows, shorten the text while preserving player-understandable meaning.
+- Do not solve text overflow by changing global layout or font size unless the issue is systemic across many cards.
+- Manual line breaks are acceptable only when they protect localized readability or fit in the shared card views.
+
+## 12. MVP scope
 
 This guide does not require broad keyword expansion, renderer redesigns, or gameplay logic changes. Keep card rule text within the shared rules panel width, avoid manual line breaks unless needed for localized readability, and prefer existing icon markers over long repeated ally/allies or enemy/enemies words when the result remains clear.
 
