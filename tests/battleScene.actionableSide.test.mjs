@@ -132,17 +132,15 @@ test('initiative indicator and enemy-first unlock refresh use current actionabil
   assert.match(resolveEnemyFirstTurnOpening, /this\.isFlowResolving = false;\s*this\.updateInitiativeIndicator\(\);\s*this\.resetCardHighlights\(\);/);
 });
 
-test('actionable broadcast beacons sit above the base HP area', () => {
+test('actionable arrows use left-side base-panel placement for both sides', () => {
   const drawHeroPanels = extractMethodBody('drawHeroPanels', 'updateActionSlotBadge');
-  const renderBaseBroadcastBeacon = extractMethodBody('renderBaseBroadcastBeacon', 'renderBaseBroadcastFrame');
 
-  assert.doesNotMatch(drawHeroPanels, /'▶'/);
-  assert.match(renderBaseBroadcastBeacon, /const x = panel\.x;/);
-  assert.match(renderBaseBroadcastBeacon, /const y = panel\.y - panelHeight \* 0\.27;/);
-  assert.match(renderBaseBroadcastBeacon, /duration: BASE_BEACON_PULSE_MS/);
+  assert.match(drawHeroPanels, /enemyInitiativeIcon = this\.add\.text\(enemyPanel\.x - panelWidth \* 0\.44, enemyPanel\.y, '▶'/);
+  assert.match(drawHeroPanels, /playerInitiativeIcon = this\.add\.text\(playerPanel\.x - panelWidth \* 0\.44, playerPanel\.y, '▶'/);
+  assert.doesNotMatch(drawHeroPanels, /enemyInitiativeIcon = this\.add\.text\(enemyPanel\.x \+ panelWidth/);
 });
 
-test('actionable beacons and base highlights follow current actionable side', () => {
+test('actionable arrows and base highlights follow current actionable side', () => {
   const updateActionableSideVisualState = extractMethodBody('updateActionableSideVisualState', 'updateInitiativeIndicator');
   const updatePlayerBaseActionState = extractMethodBody('updatePlayerBaseActionState', 'onPlayerBasePointerUp');
 
@@ -150,7 +148,8 @@ test('actionable beacons and base highlights follow current actionable side', ()
   assert.match(updateActionableSideVisualState, /const enemyActive = active === 'enemy';/);
   assert.match(updateActionableSideVisualState, /playerHeroPanel\.setStrokeStyle\(playerActive \? 3 : 2, 0x60a5fa, playerActive \? HERO_PANEL_ACTIVE_STROKE_ALPHA : HERO_PANEL_STROKE_ALPHA\)/);
   assert.match(updateActionableSideVisualState, /enemyHeroPanel\.setStrokeStyle\(enemyActive \? 3 : 2, 0xf87171, enemyActive \? HERO_PANEL_ACTIVE_STROKE_ALPHA : HERO_PANEL_STROKE_ALPHA\)/);
-  assert.match(updateActionableSideVisualState, /this\.updateBaseBroadcastFrameState\(\);/);
+  assert.match(updateActionableSideVisualState, /playerInitiativeIcon\) this\.playerInitiativeIcon\.setVisible\(playerActive\);/);
+  assert.match(updateActionableSideVisualState, /enemyInitiativeIcon\) this\.enemyInitiativeIcon\.setVisible\(enemyActive\);/);
   assert.doesNotMatch(updateActionableSideVisualState, /isPlayerBaseActionStateActive/);
   assert.match(updatePlayerBaseActionState, /this\.updateActionableSideVisualState\(\);/);
 });

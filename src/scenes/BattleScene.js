@@ -55,8 +55,6 @@ const BASE_SCREEN_BAND = 0x38bdf8;
 const BASE_SCREEN_GLITCH_RED = 0xff3b30;
 const BASE_SCREEN_GLITCH_CYAN = 0x22d3ee;
 const BASE_FRAME_OVERLOAD_MS = 135;
-const BASE_BEACON_PULSE_MS = 2600;
-const BASE_BEACON_CUTOUT_MS = 95;
 const BASE_UTILITY_CONTROL_FILL = 0x020617;
 const BASE_UTILITY_CONTROL_FILL_ALPHA = 0.62;
 const BASE_UTILITY_CONTROL_HOVER_FILL = 0x0f172a;
@@ -1167,7 +1165,6 @@ export default class BattleScene extends Phaser.Scene {
 
   createBaseBroadcastFrame(side, panel, panelWidth, panelHeight) {
     const graphics = this.add.graphics();
-    graphics.setDepth(110);
     const frameView = {
       side,
       panel,
@@ -1176,8 +1173,6 @@ export default class BattleScene extends Phaser.Scene {
       panelHeight,
       overloadEvent: null,
       overloadActive: false,
-      beacon: this.createBaseBroadcastBeacon(side),
-      beaconCutoutEvent: null,
     };
     graphics.setData('side', side);
     graphics.setData('baseFrameMetrics', {
@@ -1192,80 +1187,6 @@ export default class BattleScene extends Phaser.Scene {
     return frameView;
   }
 
-  createBaseBroadcastBeacon(side) {
-    const container = this.add.container(0, 0).setDepth(118).setVisible(false);
-    const graphics = this.add.graphics();
-    container.add(graphics);
-    container.setData('side', side);
-    container.setData('pulseTween', null);
-    return { container, graphics };
-  }
-
-  renderBaseBroadcastBeacon(frameView, isActive) {
-    const { beacon, panel, panelWidth, panelHeight, side } = frameView;
-    const container = beacon?.container;
-    const graphics = beacon?.graphics;
-    if (!container?.active || !graphics?.active) return;
-
-    const isCutOut = Boolean(frameView.beaconCutoutActive);
-    const beaconVisible = isActive && !isCutOut;
-    container.setVisible(beaconVisible);
-    if (!beaconVisible) {
-      this.tweens?.killTweensOf?.(container);
-      container.setAlpha(0.72).setScale(1);
-      container.setData('pulseTween', null);
-      return;
-    }
-
-    const yDirection = 1;
-    const radius = Math.max(3.5, Math.min(6.5, panelHeight * 0.115));
-    const x = panel.x;
-    const y = panel.y - panelHeight * 0.27;
-    container.setPosition(x, y);
-
-    graphics.clear();
-    graphics.lineStyle(1, 0x7dd3fc, 0.5);
-    graphics.fillStyle(0x38bdf8, 0.14);
-    graphics.fillPoints([
-      new Phaser.Geom.Point(0, -radius),
-      new Phaser.Geom.Point(radius, 0),
-      new Phaser.Geom.Point(0, radius),
-      new Phaser.Geom.Point(-radius, 0),
-    ], true);
-    graphics.strokePoints([
-      new Phaser.Geom.Point(0, -radius),
-      new Phaser.Geom.Point(radius, 0),
-      new Phaser.Geom.Point(0, radius),
-      new Phaser.Geom.Point(-radius, 0),
-    ], true);
-    graphics.fillStyle(0xe0f2fe, 0.72);
-    graphics.fillCircle(0, 0, Math.max(1.2, radius * 0.22));
-    graphics.lineStyle(1, 0x38bdf8, 0.26);
-    graphics.beginPath();
-    graphics.arc(0, 0, radius * 1.75, Phaser.Math.DegToRad(215), Phaser.Math.DegToRad(325), false);
-    graphics.arc(0, 0, radius * 2.35, Phaser.Math.DegToRad(225), Phaser.Math.DegToRad(315), false);
-    graphics.strokePath();
-    graphics.lineStyle(1, 0x7dd3fc, 0.18);
-    graphics.beginPath();
-    graphics.moveTo(0, radius * 1.05 * yDirection);
-    graphics.lineTo(0, radius * 2.8 * yDirection);
-    graphics.strokePath();
-
-    if (!container.getData('pulseTween')) {
-      const tween = this.tweens.add({
-        targets: container,
-        alpha: { from: 0.48, to: 0.86 },
-        scaleX: { from: 0.98, to: 1.08 },
-        scaleY: { from: 0.98, to: 1.08 },
-        duration: BASE_BEACON_PULSE_MS,
-        ease: 'Sine.easeInOut',
-        yoyo: true,
-        repeat: -1,
-      });
-      container.setData('pulseTween', tween);
-    }
-  }
-
   renderBaseBroadcastFrame(frameView) {
     if (!frameView?.graphics?.active || !frameView?.panel?.active) return;
 
@@ -1276,11 +1197,11 @@ export default class BattleScene extends Phaser.Scene {
     const height = panelHeight;
     const left = panel.x - width / 2;
     const top = panel.y - height / 2;
-    const centerBandHeight = Math.max(3, height * 0.2);
+    const centerBandHeight = Math.max(3, height * 0.18);
     const scanlineStep = Math.max(4, Math.floor(height * 0.15));
-    const scanlineAlpha = overloadActive ? 0.18 : 0.05;
-    const bandAlpha = overloadActive ? 0.18 : (isActive ? 0.1 : 0.062);
-    const centerAlpha = overloadActive ? 0.24 : (isActive ? 0.2 : 0.13);
+    const scanlineAlpha = overloadActive ? 0.18 : 0.055;
+    const bandAlpha = overloadActive ? 0.18 : (isActive ? 0.115 : 0.075);
+    const centerAlpha = overloadActive ? 0.24 : (isActive ? 0.18 : 0.14);
 
     graphics.clear();
 
@@ -1289,21 +1210,8 @@ export default class BattleScene extends Phaser.Scene {
     graphics.fillStyle(BASE_SCREEN_FILL, isActive ? HERO_PANEL_ACTIVE_FILL_ALPHA : HERO_PANEL_FILL_ALPHA);
     graphics.fillRect(left, top, width, height);
 
-    const cut = Math.max(5, Math.min(10, height * 0.16));
-    graphics.fillStyle(0x020817, 0.28);
-    graphics.fillTriangle(left, top, left + cut, top, left, top + cut);
-    graphics.fillTriangle(left + width, top, left + width - cut, top, left + width, top + cut);
-    graphics.fillTriangle(left, top + height, left + cut, top + height, left, top + height - cut);
-    graphics.fillTriangle(left + width, top + height, left + width - cut, top + height, left + width, top + height - cut);
-
     graphics.fillStyle(BASE_SCREEN_CENTER, centerAlpha);
     graphics.fillRect(left + width * 0.12, panel.y - centerBandHeight / 2, width * 0.76, centerBandHeight);
-
-    graphics.fillStyle(0x020617, 0.14);
-    graphics.fillRect(left, top, width, height * 0.18);
-    graphics.fillRect(left, top + height * 0.82, width, height * 0.18);
-    graphics.fillRect(left, top, width * 0.08, height);
-    graphics.fillRect(left + width * 0.92, top, width * 0.08, height);
 
     graphics.lineStyle(1, BASE_SCREEN_SCANLINE, scanlineAlpha);
     for (let y = top + scanlineStep; y < top + height; y += scanlineStep) {
@@ -1321,19 +1229,6 @@ export default class BattleScene extends Phaser.Scene {
     graphics.lineTo(left + width * 0.92, panel.y + height * 0.19);
     graphics.strokePath();
 
-    const accentLength = Math.max(8, width * 0.08);
-    graphics.lineStyle(1, BASE_SCREEN_BAND, isActive ? 0.28 : 0.16);
-    graphics.beginPath();
-    graphics.moveTo(left + cut * 1.15, top + 1);
-    graphics.lineTo(left + cut * 1.15 + accentLength, top + 1);
-    graphics.moveTo(left + width - cut * 1.15, top + 1);
-    graphics.lineTo(left + width - cut * 1.15 - accentLength, top + 1);
-    graphics.moveTo(left + cut * 1.15, top + height - 1);
-    graphics.lineTo(left + cut * 1.15 + accentLength, top + height - 1);
-    graphics.moveTo(left + width - cut * 1.15, top + height - 1);
-    graphics.lineTo(left + width - cut * 1.15 - accentLength, top + height - 1);
-    graphics.strokePath();
-
     if (overloadActive) {
       const glitchRows = [
         { y: top + height * 0.3, offset: -width * 0.015, color: BASE_SCREEN_GLITCH_RED },
@@ -1345,7 +1240,6 @@ export default class BattleScene extends Phaser.Scene {
         graphics.fillRect(left + width * 0.1 + row.offset, row.y, width * 0.8, Math.max(1.2, height * 0.045));
       });
     }
-    this.renderBaseBroadcastBeacon(frameView, isActive);
   }
 
   updateBaseBroadcastFrameState() {
@@ -1358,26 +1252,10 @@ export default class BattleScene extends Phaser.Scene {
 
     frameView.overloadEvent?.remove?.(false);
     frameView.overloadActive = true;
-    this.triggerBaseBeaconCutout(side);
     this.renderBaseBroadcastFrame(frameView);
     frameView.overloadEvent = this.time.delayedCall(BASE_FRAME_OVERLOAD_MS, () => {
       frameView.overloadEvent = null;
       frameView.overloadActive = false;
-      this.renderBaseBroadcastFrame(frameView);
-    });
-  }
-
-  triggerBaseBeaconCutout(side) {
-    const frameView = this.baseFrameViews?.[side];
-    if (!frameView?.beacon?.container?.active) return;
-    if (this.getCurrentActionableSide?.() !== side) return;
-
-    frameView.beaconCutoutEvent?.remove?.(false);
-    frameView.beaconCutoutActive = true;
-    this.renderBaseBroadcastFrame(frameView);
-    frameView.beaconCutoutEvent = this.time.delayedCall(BASE_BEACON_CUTOUT_MS, () => {
-      frameView.beaconCutoutEvent = null;
-      frameView.beaconCutoutActive = false;
       this.renderBaseBroadcastFrame(frameView);
     });
   }
@@ -1633,8 +1511,16 @@ export default class BattleScene extends Phaser.Scene {
       this.onPlayerBasePointerCancel(event);
     });
 
-    this.enemyInitiativeIcon = null;
-    this.playerInitiativeIcon = null;
+    const iconStyle = {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: `${Math.max(16, Math.floor(topHero.h * 0.38))}px`,
+      color: '#facc15',
+      fontStyle: 'bold',
+    };
+    this.enemyInitiativeIcon = this.add.text(enemyPanel.x - panelWidth * 0.44, enemyPanel.y, '▶', iconStyle).setOrigin(0.5).setVisible(false);
+    this.playerInitiativeIcon = this.add.text(playerPanel.x - panelWidth * 0.44, playerPanel.y, '▶', iconStyle).setOrigin(0.5).setVisible(false);
+    this.enemyInitiativeIcon.setDepth(120);
+    this.playerInitiativeIcon.setDepth(120);
 
     this.enemyHeroTitleText = null;
     this.playerHeroTitleText = null;
@@ -1643,17 +1529,17 @@ export default class BattleScene extends Phaser.Scene {
 
     this.enemyHpText = this.add.text(enemyPanel.x, enemyPanel.y, '', {
       fontFamily: 'Arial, sans-serif',
-      fontSize: `${Math.max(31, Math.floor(topHero.h * 0.82))}px`,
+      fontSize: `${Math.max(24, Math.floor(topHero.h * 0.62))}px`,
       color: '#f8fafc',
       fontStyle: 'bold',
-    }).setOrigin(0.5, 0.5).setDepth(123);
+    }).setOrigin(0.5, 0.5);
 
     this.playerHpText = this.add.text(playerPanel.x, playerPanel.y, '', {
       fontFamily: 'Arial, sans-serif',
-      fontSize: `${Math.max(30, Math.floor(playerHero.h * 0.8))}px`,
+      fontSize: `${Math.max(23, Math.floor(playerHero.h * 0.6))}px`,
       color: '#f8fafc',
       fontStyle: 'bold',
-    }).setOrigin(0.5, 0.5).setDepth(123);
+    }).setOrigin(0.5, 0.5);
 
     this.playerBaseActionLabelText = this.add.text(playerPanel.x, playerPanel.y, '', {
       fontFamily: 'Arial, sans-serif',
@@ -6261,8 +6147,8 @@ export default class BattleScene extends Phaser.Scene {
   refreshHeroHP() {
     if (!this.enemyHpText || !this.playerHpText) {
       const { width, topHero, playerHero } = this.layout;
-      this.enemyHpText = this.add.text(width * 0.5, topHero.centerY, '', { fontFamily: 'Arial, sans-serif', fontSize: `${Math.max(31, Math.floor(topHero.h * 0.82))}px`, color: '#f8fafc', fontStyle: 'bold' }).setOrigin(0.5).setDepth(123);
-      this.playerHpText = this.add.text(width * 0.5, playerHero.centerY, '', { fontFamily: 'Arial, sans-serif', fontSize: `${Math.max(30, Math.floor(playerHero.h * 0.8))}px`, color: '#f8fafc', fontStyle: 'bold' }).setOrigin(0.5).setDepth(123);
+      this.enemyHpText = this.add.text(width * 0.5, topHero.centerY, '', { fontFamily: 'Arial, sans-serif', fontSize: `${Math.max(24, Math.floor(topHero.h * 0.62))}px`, color: '#f8fafc', fontStyle: 'bold' }).setOrigin(0.5);
+      this.playerHpText = this.add.text(width * 0.5, playerHero.centerY, '', { fontFamily: 'Arial, sans-serif', fontSize: `${Math.max(23, Math.floor(playerHero.h * 0.6))}px`, color: '#f8fafc', fontStyle: 'bold' }).setOrigin(0.5);
     }
     this.enemyHpText.setText(`${this.gameState.enemyHP}`);
     this.playerHpText.setText(`${this.gameState.playerHP}`);

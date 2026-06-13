@@ -31,15 +31,14 @@ test('normal base panels render centered HP without title labels or action-slot 
   assert.doesNotMatch(source, /setText\(`\$\{this\.gameState\.(enemy|player)HP\} \/ 12`\)/);
 });
 
-test('initiative uses broadcast beacons with subtle side-colored active panel highlight', () => {
-  assert.doesNotMatch(drawHeroPanels, /'▶'|facc15/);
-  assert.match(source, /createBaseBroadcastBeacon\(side\)/);
-  assert.match(source, /renderBaseBroadcastBeacon\(frameView, isActive\)/);
-  assert.match(source, /BASE_BEACON_PULSE_MS = 2600/);
+test('initiative remains icon-only with subtle side-colored active panel highlight', () => {
+  assert.match(drawHeroPanels, /this\.enemyInitiativeIcon = this\.add\.text\(enemyPanel\.x - panelWidth \* 0\.44, enemyPanel\.y, '▶'/);
+  assert.match(drawHeroPanels, /this\.playerInitiativeIcon = this\.add\.text\(playerPanel\.x - panelWidth \* 0\.44, playerPanel\.y, '▶'/);
   assert.match(updateActionableSideVisualState, /const active = this\.getCurrentActionableSide\(\);/);
   assert.match(updateActionableSideVisualState, /this\.playerHeroPanel\.setStrokeStyle\(playerActive \? 3 : 2, 0x60a5fa/);
   assert.match(updateActionableSideVisualState, /this\.enemyHeroPanel\.setStrokeStyle\(enemyActive \? 3 : 2, 0xf87171/);
-  assert.match(updateActionableSideVisualState, /this\.updateBaseBroadcastFrameState\(\);/);
+  assert.match(updateActionableSideVisualState, /this\.playerInitiativeIcon\.setVisible\(playerActive\)/);
+  assert.match(updateActionableSideVisualState, /this\.enemyInitiativeIcon\.setVisible\(enemyActive\)/);
   assert.match(updateInitiativeIndicator, /this\.updateActionableSideVisualState\(\);/);
   assert.doesNotMatch(updateActionableSideVisualState, /turn label|TURN|AKCJA 1\/2|ACT 1\/2/);
 });
