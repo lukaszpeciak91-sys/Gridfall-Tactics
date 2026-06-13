@@ -1111,6 +1111,10 @@ const EFFECT_VARIANT_OPERATION_HANDLERS = Object.freeze({
     isExecutable: isStatModifierOperation,
     execute: executeStatModifierOperation,
   }),
+  buffHp: Object.freeze({
+    isExecutable: isBuffHpOperation,
+    execute: executeBuffHpOperation,
+  }),
   damageEnemyBase: Object.freeze({
     isExecutable: isBaseDamageOperation,
     execute: executeBaseDamageOperation,
@@ -1168,6 +1172,15 @@ function isDamageUnitOperation(operation) {
 
 function isStatModifierOperation(operation) {
   return EFFECT_VARIANT_STAT_MODIFIER_OPERATIONS.has(operation?.operation)
+    && EFFECT_VARIANT_UNIT_SELECTORS.has(operation.selector)
+    && Number.isInteger(operation.amount)
+    && operation.amount > 0
+    && operation.duration === 'untilCombatCleanup'
+    && Object.keys(operation).every((key) => ['operation', 'selector', 'amount', 'duration'].includes(key));
+}
+
+function isBuffHpOperation(operation) {
+  return operation?.operation === 'buffHp'
     && EFFECT_VARIANT_UNIT_SELECTORS.has(operation.selector)
     && Number.isInteger(operation.amount)
     && operation.amount > 0
@@ -1472,6 +1485,44 @@ function executeSummonTokenOperation(state, owner, variant, operation, capturedT
     targetsResolved: tokensSummoned,
     skippedTargets: tokenTelemetry.filter((entry) => entry.skipped),
     targets: tokenTelemetry,
+  });
+}
+
+function executeBuffHpOperation(state, owner, variant, operation, capturedTargets) {
+  const targetResults = resolveEffectVariantUnitTargets(state, owner, operation.selector, capturedTargets);
+  const targetTelemetry = [];
+  let totalHpAdded = 0;
+
+  targetResults.forEach((target) => {
+    if (!target.unit || target.skipped) {
+      targetTelemetry.push({ index: target.index, skipped: target.skipped ?? 'no_target' });
+      return;
+    }
+
+    const beforeHp = target.unit.hp;
+    const beforeMaxHp = target.unit.maxHp ?? target.unit.hp;
+    target.unit.tempHpMod = (target.unit.tempHpMod ?? 0) + operation.amount;
+    target.unit.hp += operation.amount;
+    totalHpAdded += operation.amount;
+
+    targetTelemetry.push({
+      index: target.index,
+      owner: target.unit.owner,
+      hpAdded: operation.amount,
+      beforeHp,
+      afterHp: target.unit.hp,
+      beforeMaxHp,
+      temporaryHp: target.unit.tempHpMod,
+    });
+  });
+
+  recordEffectVariantOperationTelemetry(state, variant, operation, {
+    status: 'hp_modifier_executed',
+    duration: operation.duration,
+    targetsResolved: targetTelemetry.filter((entry) => !entry.skipped).length,
+    totalHpAdded,
+    skippedTargets: targetTelemetry.filter((entry) => entry.skipped),
+    targets: targetTelemetry,
   });
 }
 
@@ -2844,6 +2895,11 @@ export function resolveCombat(state) {
     }
     if (unit?.tempArmorMod) {
       delete unit.tempArmorMod;
+    }
+    if (unit?.tempHpMod) {
+      const normalMaxHp = unit.maxHp ?? unit.hp;
+      if (unit.hp > normalMaxHp) unit.hp = normalMaxHp;
+      delete unit.tempHpMod;
     }
     if (unit?.quickFixDrawTriggers) {
       delete unit.quickFixDrawTriggers;

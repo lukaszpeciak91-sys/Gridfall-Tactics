@@ -51,6 +51,7 @@ EFFECT_VARIANT_STATUS = "recognized_not_executed"
 EFFECT_VARIANT_REGISTRY_GENERATED_STATUS = "registry_generated"
 EFFECT_VARIANT_DAMAGE_UNIT_EXECUTED_STATUS = "damage_unit_executed"
 EFFECT_VARIANT_STAT_MODIFIER_EXECUTED_STATUS = "stat_modifier_executed"
+EFFECT_VARIANT_HP_MODIFIER_EXECUTED_STATUS = "hp_modifier_executed"
 EFFECT_VARIANT_BASE_DAMAGE_EXECUTED_STATUS = "base_damage_executed"
 EFFECT_VARIANT_MIXED_OPERATIONS_EXECUTED_STATUS = "mixed_operations_executed"
 EFFECT_VARIANT_DRAW_ONE_EXECUTED_STATUS = "draw_one_executed"
@@ -174,6 +175,12 @@ EFFECT_VARIANT_OPERATION_METADATA = {
         "validation": "statModifier",
         "executable_group": "statModifier",
         "report_kind": "statModifier",
+    },
+    "buffHp": {
+        "keys": {"operation", "selector", "amount", "duration"},
+        "validation": "hpModifier",
+        "executable_group": "hpModifier",
+        "report_kind": "hpModifier",
     },
     "drawOne": {
         "keys": {"operation"},
@@ -484,6 +491,13 @@ def validate_effect_variant_operation_block(operation_block: Any, change_index: 
         validate_positive_int(operation_block.get("amount"), f"{context}.amount")
         if operation_block.get("cleanup") != "nonCombat":
             raise BalanceLabError(f"{context}.cleanup must be nonCombat.")
+        return
+    if validation == "hpModifier":
+        require_exact_operation_keys(operation_block, operation_keys, context)
+        validate_unit_selector(operation_block.get("selector"), context)
+        validate_positive_int(operation_block.get("amount"), f"{context}.amount")
+        if operation_block.get("duration") != "untilCombatCleanup":
+            raise BalanceLabError(f"{context}.duration must be untilCombatCleanup.")
         return
     if validation == "baseDamage":
         require_exact_operation_keys(operation_block, operation_keys, context)
@@ -797,11 +811,15 @@ def effect_variant_operation_group(block: dict[str, Any]) -> str | None:
     if not metadata:
         return None
     group = metadata.get("executable_group")
-    return group if group in {"damageUnit", "statModifier", "baseDamage", "drawOne", "summonToken"} else None
+    return group if group in {"damageUnit", "statModifier", "hpModifier", "baseDamage", "drawOne", "summonToken"} else None
 
 
 def is_stat_modifier_operation_block(block: dict[str, Any]) -> bool:
     return effect_variant_operation_group(block) == "statModifier"
+
+
+def is_hp_modifier_operation_block(block: dict[str, Any]) -> bool:
+    return effect_variant_operation_group(block) == "hpModifier"
 
 
 def is_base_damage_operation_block(block: dict[str, Any]) -> bool:
@@ -840,6 +858,11 @@ def is_stat_modifier_executable_variant(variant: dict[str, Any]) -> bool:
     return is_pr5_executable_variant(variant) and any(is_stat_modifier_operation_block(block) for block in sequence[1:])
 
 
+def is_hp_modifier_executable_variant(variant: dict[str, Any]) -> bool:
+    sequence = variant.get("sequence")
+    return is_pr5_executable_variant(variant) and any(is_hp_modifier_operation_block(block) for block in sequence[1:])
+
+
 def is_base_damage_executable_variant(variant: dict[str, Any]) -> bool:
     sequence = variant.get("sequence")
     return is_pr5_executable_variant(variant) and any(is_base_damage_operation_block(block) for block in sequence[1:])
@@ -872,6 +895,8 @@ def effect_variant_execution_status(variant: dict[str, Any]) -> str:
         return EFFECT_VARIANT_REGISTRY_GENERATED_STATUS
     if has_mixed_executable_operations(variant):
         return EFFECT_VARIANT_MIXED_OPERATIONS_EXECUTED_STATUS
+    if is_hp_modifier_executable_variant(variant):
+        return EFFECT_VARIANT_HP_MODIFIER_EXECUTED_STATUS
     if is_base_damage_executable_variant(variant):
         return EFFECT_VARIANT_BASE_DAMAGE_EXECUTED_STATUS
     if is_summon_token_executable_variant(variant):
@@ -894,6 +919,7 @@ def effect_variant_runtime_metadata(variant: dict[str, Any], registry_path: Path
     run_base_effect_only = is_run_base_effect_only_variant(variant)
     damage_unit_executable = is_damage_unit_executable_variant(variant)
     stat_modifier_executable = is_stat_modifier_executable_variant(variant)
+    hp_modifier_executable = is_hp_modifier_executable_variant(variant)
     base_damage_executable = is_base_damage_executable_variant(variant)
     draw_one_executable = is_draw_one_executable_variant(variant)
     summon_token_executable = is_summon_token_executable_variant(variant)
@@ -904,7 +930,8 @@ def effect_variant_runtime_metadata(variant: dict[str, Any], registry_path: Path
         "baseEffectControl": base_effect_control(variant),
         "damageUnitExecutable": damage_unit_executable,
         "statModifierExecutable": stat_modifier_executable,
-        "baseDamageExecutable": base_damage_executable,
+        "hpModifierExecutable": hp_modifier_executable,
+            "baseDamageExecutable": base_damage_executable,
         "drawOneExecutable": draw_one_executable,
         "summonTokenExecutable": summon_token_executable,
         "registryPath": str(registry_path),
@@ -1102,7 +1129,7 @@ def apply_patches(temp_copy_dir: Path, validated_changes: list[dict[str, Any]]) 
 def build_effect_variant_registry_entries(applied_changes: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     entries: dict[str, dict[str, Any]] = {}
     for change in applied_changes:
-        if change.get("mode") != "effectVariant" or change.get("status") not in {EFFECT_VARIANT_REGISTRY_GENERATED_STATUS, EFFECT_VARIANT_DAMAGE_UNIT_EXECUTED_STATUS, EFFECT_VARIANT_STAT_MODIFIER_EXECUTED_STATUS, EFFECT_VARIANT_BASE_DAMAGE_EXECUTED_STATUS, EFFECT_VARIANT_MIXED_OPERATIONS_EXECUTED_STATUS, EFFECT_VARIANT_DRAW_ONE_EXECUTED_STATUS, EFFECT_VARIANT_SUMMON_TOKEN_EXECUTED_STATUS}:
+        if change.get("mode") != "effectVariant" or change.get("status") not in {EFFECT_VARIANT_REGISTRY_GENERATED_STATUS, EFFECT_VARIANT_DAMAGE_UNIT_EXECUTED_STATUS, EFFECT_VARIANT_STAT_MODIFIER_EXECUTED_STATUS, EFFECT_VARIANT_BASE_DAMAGE_EXECUTED_STATUS, EFFECT_VARIANT_MIXED_OPERATIONS_EXECUTED_STATUS, EFFECT_VARIANT_DRAW_ONE_EXECUTED_STATUS, EFFECT_VARIANT_SUMMON_TOKEN_EXECUTED_STATUS, EFFECT_VARIANT_HP_MODIFIER_EXECUTED_STATUS}:
             continue
         variant = change["effectVariant"]
         scope = variant["scope"]
@@ -1205,6 +1232,14 @@ def effect_variant_operation_telemetry_summary(variant: dict[str, Any], status: 
                 "attack/armor added/reduced and skips recorded in GameState telemetry, "
                 f"status={status}"
             )
+        elif report_kind == "hpModifier":
+            operation_parts.append(
+                "buffHp: "
+                f"selector={block.get('selector')} ({selector_report_detail(block.get('selector'))}), amount={block.get('amount')}, duration={block.get('duration')}, "
+                "targets resolved at runtime by selector semantics (including preserved selected-target identity when applicable), "
+                "temporary HP added/skips recorded in GameState telemetry and cleared at combat cleanup, "
+                f"status={status}"
+            )
         elif report_kind == "drawOne":
             operation_parts.append(
                 "drawOne: draws exactly one card for the acting owner via GameState drawCardsWithResult; "
@@ -1231,7 +1266,7 @@ def effect_variant_operation_report_lines(rows: list[dict[str, Any]]) -> list[st
         lines.extend([
             f"- `{row['variantId']}` (`{row['registryKey']}`) status `{row['status']}`",
             f"  - Operation telemetry metadata: {row['operationTelemetrySummary']}",
-            "  - Runtime counters: damageUnit/stat modifier/base damage/drawOne/summonToken execution writes per-operation entries to `state.effectVariantOperationTelemetry`; simulator aggregation includes draw and summon counters.",
+            "  - Runtime counters: damageUnit/stat modifier/buffHp/base damage/drawOne/summonToken execution writes per-operation entries to `state.effectVariantOperationTelemetry`; simulator aggregation includes HP, draw, and summon counters.",
         ])
     return lines
 
@@ -1253,6 +1288,7 @@ def effect_variant_report_rows_from_changes(changes: list[dict[str, Any]]) -> li
         targeting_override_applied = change.get("targetingOverrideApplied", runtime.get("targetingOverrideApplied", bool(targeting_override)))
         damage_unit_executable = change.get("damageUnitExecutable", runtime.get("damageUnitExecutable", metadata["damageUnitExecutable"]))
         stat_modifier_executable = change.get("statModifierExecutable", runtime.get("statModifierExecutable", metadata["statModifierExecutable"]))
+        hp_modifier_executable = change.get("hpModifierExecutable", runtime.get("hpModifierExecutable", metadata["hpModifierExecutable"]))
         base_damage_executable = change.get("baseDamageExecutable", runtime.get("baseDamageExecutable", metadata["baseDamageExecutable"]))
         draw_one_executable = change.get("drawOneExecutable", runtime.get("drawOneExecutable", metadata["drawOneExecutable"]))
         summon_token_executable = change.get("summonTokenExecutable", runtime.get("summonTokenExecutable", metadata["summonTokenExecutable"]))
@@ -1272,6 +1308,7 @@ def effect_variant_report_rows_from_changes(changes: list[dict[str, Any]]) -> li
             "targetingOverrideApplied": targeting_override_applied,
             "damageUnitExecutable": damage_unit_executable,
             "statModifierExecutable": stat_modifier_executable,
+            "hpModifierExecutable": hp_modifier_executable,
             "baseDamageExecutable": base_damage_executable,
             "drawOneExecutable": draw_one_executable,
             "summonTokenExecutable": summon_token_executable,
@@ -2388,6 +2425,7 @@ EFFECT_VARIANT_RUNTIME_TELEMETRY_COLUMNS = [
     "atk reduced",
     "arm added",
     "arm reduced",
+    "hp added",
     "base damage",
     "enemy base damage",
     "player base damage",
@@ -2410,6 +2448,7 @@ EFFECT_VARIANT_RUNTIME_NUMERIC_FIELDS = [
     "atk reduced",
     "arm added",
     "arm reduced",
+    "hp added",
     "base damage",
     "enemy base damage",
     "player base damage",
@@ -2429,6 +2468,7 @@ EFFECT_VARIANT_RUNTIME_DELTA_FIELDS = [
     ("atk reduced", "attackReduced"),
     ("arm added", "armorAdded"),
     ("arm reduced", "armorReduced"),
+    ("hp added", "hpAdded"),
     ("base damage", "baseDamage"),
     ("enemy base damage", "enemyBaseDamage"),
     ("player base damage", "playerBaseDamage"),
@@ -2588,7 +2628,7 @@ def build_effect_variant_runtime_telemetry_comparison(baseline_text: str, experi
 
 def effect_variant_runtime_table_lines(rows: list[dict[str, Any]]) -> list[str]:
     lines = [
-        "| variantId | baseEffectControl | triggerType | operation | selector | executions | resolved targets | skipped targets | damage dealt | kills | attack added | attack reduced | armor added | armor reduced | base damage | enemy base damage | player base damage | cards drawn | failed draws | skipped draws | tokens summoned | skipped summons | token | temporary | status |",
+        "| variantId | baseEffectControl | triggerType | operation | selector | executions | resolved targets | skipped targets | damage dealt | kills | attack added | attack reduced | armor added | armor reduced | hp added | base damage | enemy base damage | player base damage | cards drawn | failed draws | skipped draws | tokens summoned | skipped summons | token | temporary | status |",
         "|---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---|---|",
     ]
     if not rows:
@@ -2597,7 +2637,7 @@ def effect_variant_runtime_table_lines(rows: list[dict[str, Any]]) -> list[str]:
         lines.append(
             f"| {markdown_cell(row['variantId'])} | {markdown_cell(row.get('baseEffectControl', 'runBaseEffect'))} | {markdown_cell(row.get('triggerType', ''))} | {markdown_cell(row['operation'])} | {markdown_cell(row['selector'])} | "
             f"{row['executions']} | {row['resolved targets']} | {row['skipped targets']} | {row['damage dealt']} | {row['kills']} | "
-            f"{row['atk added']} | {row['atk reduced']} | {row['arm added']} | {row['arm reduced']} | {row['base damage']} | "
+            f"{row['atk added']} | {row['atk reduced']} | {row['arm added']} | {row['arm reduced']} | {row['hp added']} | {row['base damage']} | "
             f"{row['enemy base damage']} | {row['player base damage']} | {row['cards drawn']} | {row['failed draws']} | {row['skipped draws']} | "
             f"{row['tokens summoned']} | {row['skipped summons']} | {markdown_cell(row.get('token', ''))} | {markdown_cell(row.get('temporary', ''))} | {markdown_cell(row['status'])} |"
         )
@@ -2606,7 +2646,7 @@ def effect_variant_runtime_table_lines(rows: list[dict[str, Any]]) -> list[str]:
 
 def effect_variant_runtime_comparison_table_lines(rows: list[dict[str, Any]]) -> list[str]:
     lines = [
-        "| variantId | baseEffectControl | triggerType | operation | selector | status | executions Δ | resolved targets Δ | skipped targets Δ | damage dealt Δ | kills Δ | attack added Δ | attack reduced Δ | armor added Δ | armor reduced Δ | base damage Δ | enemy base damage Δ | player base damage Δ | cards drawn Δ | failed draws Δ | skipped draws Δ | tokens summoned Δ | skipped summons Δ |",
+        "| variantId | baseEffectControl | triggerType | operation | selector | status | executions Δ | resolved targets Δ | skipped targets Δ | damage dealt Δ | kills Δ | attack added Δ | attack reduced Δ | armor added Δ | armor reduced Δ | hp added Δ | base damage Δ | enemy base damage Δ | player base damage Δ | cards drawn Δ | failed draws Δ | skipped draws Δ | tokens summoned Δ | skipped summons Δ |",
         "|---|---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     if not rows:
@@ -2638,6 +2678,7 @@ def effect_variant_runtime_paste_lines(rows: list[dict[str, Any]]) -> list[str]:
             f"  kills {row['kills']}",
             f"  attack added/reduced {row['atk added']}/{row['atk reduced']}",
             f"  armor added/reduced {row['arm added']}/{row['arm reduced']}",
+            f"  hp added {row['hp added']}",
             f"  base damage {row['base damage']}",
             f"  enemy base damage {row['enemy base damage']}",
             f"  player base damage {row['player base damage']}",

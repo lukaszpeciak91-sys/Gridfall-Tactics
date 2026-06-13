@@ -140,6 +140,7 @@ function ensureEffectVariantOperationTelemetry(simTelemetry, entry) {
     attackReduced: 0,
     armorAdded: 0,
     armorReduced: 0,
+    hpAdded: 0,
     baseDamageDealt: 0,
     enemyBaseDamage: 0,
     playerBaseDamage: 0,
@@ -169,6 +170,7 @@ function recordEffectVariantOperationTelemetry(simTelemetry, entries) {
     row.attackReduced += numberMetric(entry.totalAttackReduced);
     row.armorAdded += numberMetric(entry.totalArmorAdded);
     row.armorReduced += numberMetric(entry.totalArmorReduced);
+    row.hpAdded += numberMetric(entry.totalHpAdded);
     row.cardsDrawn += numberMetric(entry.cardsDrawn);
     row.failedDraws += numberMetric(entry.failedDraws);
     row.skippedDraws += numberMetric(entry.skippedDraws);
@@ -796,6 +798,7 @@ function printEffectVariantOperationSimulatorTelemetry(simTelemetry) {
     'atk reduced': row.attackReduced,
     'arm added': row.armorAdded,
     'arm reduced': row.armorReduced,
+    'hp added': row.hpAdded,
     'base damage': row.baseDamageDealt,
     'enemy base damage': row.enemyBaseDamage,
     'player base damage': row.playerBaseDamage,
