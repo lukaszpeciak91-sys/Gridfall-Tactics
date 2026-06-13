@@ -617,12 +617,16 @@ function buildActionCandidates(state, owner, hand, telemetry = null) {
       return;
     }
 
-    if (!isTargetedOnlyEffect(card.effectId ?? null)) {
+    const targetingOverrideNone = card.targeting === 'none';
+
+    if (targetingOverrideNone || !isTargetedOnlyEffect(card.effectId ?? null)) {
       const simpleProbe = playEffectCard(cloneState(state), owner, card.id);
       if (simpleProbe.ok && simpleProbe.type !== 'effect-blocked') {
         actions.push({ type: 'play-effect', cardId: card.id, effectId: card.effectId ?? null });
       }
     }
+
+    if (targetingOverrideNone) return;
 
     const targets = getCandidateTargetIndexes(state, owner, card.effectId ?? null);
     targets.forEach((targetIndex) => {

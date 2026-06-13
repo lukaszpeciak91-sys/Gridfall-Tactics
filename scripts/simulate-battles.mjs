@@ -111,6 +111,7 @@ function getEffectVariantOperationTelemetryKey(entry) {
   return [
     entry?.variantId ?? 'unknown',
     entry?.registryKey ?? 'unknown',
+    entry?.baseEffectControl ?? 'runBaseEffect',
     entry?.triggerType ?? 'afterBaseEffectBeforeDiscard',
     entry?.operation ?? 'unknown',
     entry?.selector ?? '',
@@ -125,6 +126,7 @@ function ensureEffectVariantOperationTelemetry(simTelemetry, entry) {
   simTelemetry.effectVariantOperations[key] ??= {
     variantId: entry?.variantId ?? 'unknown',
     registryKey: entry?.registryKey ?? 'unknown',
+    baseEffectControl: entry?.baseEffectControl ?? 'runBaseEffect',
     triggerType: entry?.triggerType ?? 'afterBaseEffectBeforeDiscard',
     operation: entry?.operation ?? 'unknown',
     selector: entry?.selector ?? '',
@@ -781,6 +783,7 @@ function printEffectVariantOperationSimulatorTelemetry(simTelemetry) {
   }
   console.table(rows.map((row) => ({
     variantId: row.variantId,
+    baseEffectControl: row.baseEffectControl,
     triggerType: row.triggerType,
     operation: row.operation,
     selector: row.selector,

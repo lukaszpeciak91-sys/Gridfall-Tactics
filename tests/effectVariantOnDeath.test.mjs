@@ -33,7 +33,7 @@ function addVariant(state, cardId, operation, variantId = `${cardId}_variant`) {
     label: variantId,
     baseEffectId: 'test_on_death',
     timing: 'onDeath',
-    sequence: [operation],
+    sequence: [{ operation: 'runBaseEffect' }, operation],
   };
 }
 

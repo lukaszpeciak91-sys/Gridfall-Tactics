@@ -83,6 +83,21 @@ EFFECT_VARIANT_BASE_SELECTORS = {"enemyBase", "playerBase"}
 EFFECT_VARIANT_EMPTY_OWNER_SLOT_SELECTORS = {"firstEmptyOwnerSlot", "allEmptyOwnerSlots", "upToTwoEmptyOwnerSlots"}
 EFFECT_VARIANT_SELECTORS = EFFECT_VARIANT_UNIT_SELECTORS | EFFECT_VARIANT_BASE_SELECTORS | EFFECT_VARIANT_EMPTY_OWNER_SLOT_SELECTORS
 EFFECT_VARIANT_TOKEN_IDS = {"grunt", "flood"}
+SUPPORTED_CARD_TARGETING_VALUES = {
+    "all_enemy_units",
+    "all_friendly_units",
+    "any_enemy_unit",
+    "any_units",
+    "empty_friendly_slot",
+    "empty_friendly_slots",
+    "enemy",
+    "enemy_unit",
+    "enemy_units",
+    "friendly_fallen",
+    "friendly_unit",
+    "lane",
+    "none",
+}
 
 EFFECT_VARIANT_SELECTOR_REPORT_METADATA = {
     "selectedOpponentUnit": "unit selector; preserved selected target identity; requires selected opponent unit",
@@ -107,6 +122,12 @@ EFFECT_VARIANT_OPERATION_METADATA = {
         "validation": "exact",
         "executable_group": "runBaseEffect",
         "report_kind": "runBaseEffect",
+    },
+    "skipBaseEffect": {
+        "keys": {"operation"},
+        "validation": "exact",
+        "executable_group": "baseEffectControl",
+        "report_kind": "skipBaseEffect",
     },
     "damageUnit": {
         "keys": {"operation", "selector", "amount", "cleanup"},
@@ -394,22 +415,29 @@ def validate_effect_variant_shape(change: dict[str, Any], index: int) -> None:
             f"Change #{index} effectVariant.timing must be afterBaseEffectBeforeDiscard or onDeath."
         )
 
+    targeting = variant.get("targeting")
+    if targeting is not None and targeting not in SUPPORTED_CARD_TARGETING_VALUES:
+        allowed = ", ".join(sorted(SUPPORTED_CARD_TARGETING_VALUES))
+        raise BalanceLabError(
+            f"Change #{index} effectVariant.targeting '{targeting}' is unsupported. Supported targeting values: {allowed}."
+        )
+
     sequence = variant.get("sequence")
     if not isinstance(sequence, list) or not sequence:
         raise BalanceLabError(f"Change #{index} effectVariant.sequence must be a non-empty array.")
 
-    run_base_indexes: list[int] = []
+    base_control_indexes: list[int] = []
     for block_index, operation_block in enumerate(sequence, start=1):
         validate_effect_variant_operation_block(operation_block, index, block_index)
-        if operation_block.get("operation") == "runBaseEffect":
-            run_base_indexes.append(block_index)
+        if operation_block.get("operation") in {"runBaseEffect", "skipBaseEffect"}:
+            base_control_indexes.append(block_index)
 
-    if len(run_base_indexes) != 1:
+    if len(base_control_indexes) != 1:
         raise BalanceLabError(
-            f"Change #{index} effectVariant.sequence must include runBaseEffect exactly once."
+            f"Change #{index} effectVariant.sequence must include exactly one base-effect control operation: runBaseEffect or skipBaseEffect."
         )
-    if run_base_indexes[0] != 1:
-        raise BalanceLabError(f"Change #{index} effectVariant.sequence must start with runBaseEffect.")
+    if base_control_indexes[0] != 1:
+        raise BalanceLabError(f"Change #{index} effectVariant.sequence must start with runBaseEffect or skipBaseEffect.")
 
     text_patch = variant.get("textPatch")
     if text_patch is not None:
@@ -744,6 +772,12 @@ def is_run_base_effect_only_variant(variant: dict[str, Any]) -> bool:
         and sequence[0] == {"operation": "runBaseEffect"}
     )
 
+def base_effect_control(variant: dict[str, Any]) -> str:
+    sequence = variant.get("sequence")
+    if isinstance(sequence, list) and sequence and isinstance(sequence[0], dict) and sequence[0].get("operation") == "skipBaseEffect":
+        return "skipBaseEffect"
+    return "runBaseEffect"
+
 
 def is_damage_unit_executable_variant(variant: dict[str, Any]) -> bool:
     sequence = variant.get("sequence")
@@ -751,7 +785,7 @@ def is_damage_unit_executable_variant(variant: dict[str, Any]) -> bool:
         isinstance(sequence, list)
         and len(sequence) >= 2
         and isinstance(sequence[0], dict)
-        and sequence[0] == {"operation": "runBaseEffect"}
+        and sequence[0] in ({"operation": "runBaseEffect"}, {"operation": "skipBaseEffect"})
         and all(isinstance(block, dict) and block.get("operation") == "damageUnit" for block in sequence[1:])
     )
 
@@ -796,7 +830,7 @@ def is_pr5_executable_variant(variant: dict[str, Any]) -> bool:
         isinstance(sequence, list)
         and len(sequence) >= 2
         and isinstance(sequence[0], dict)
-        and sequence[0] == {"operation": "runBaseEffect"}
+        and sequence[0] in ({"operation": "runBaseEffect"}, {"operation": "skipBaseEffect"})
         and all(is_pr5_executable_operation_block(block) for block in sequence[1:])
     )
 
@@ -867,6 +901,7 @@ def effect_variant_runtime_metadata(variant: dict[str, Any], registry_path: Path
         "registryKey": effect_variant_registry_key(variant),
         "variantHash": effect_variant_hash(variant),
         "runBaseEffectOnly": run_base_effect_only,
+        "baseEffectControl": base_effect_control(variant),
         "damageUnitExecutable": damage_unit_executable,
         "statModifierExecutable": stat_modifier_executable,
         "baseDamageExecutable": base_damage_executable,
@@ -1019,10 +1054,25 @@ def apply_patches(temp_copy_dir: Path, validated_changes: list[dict[str, Any]]) 
     for change in validated_changes:
         if change.get("mode") == "effectVariant":
             recognized_change = dict(change)
-            recognized_change["tempJsonPath"] = temp_copy_dir / change["relativePath"]
+            temp_json_path = temp_copy_dir / change["relativePath"]
+            recognized_change["tempJsonPath"] = temp_json_path
             recognized_change["registryPath"] = str(temp_copy_dir / EFFECT_VARIANT_REGISTRY_RELATIVE_PATH)
             recognized_change["textPatchApplied"] = False
+            recognized_change["targetingOverrideApplied"] = False
             recognized_change["behaviorExecuted"] = False
+            targeting_override = change["effectVariant"].get("targeting")
+            if targeting_override is not None:
+                data = json.loads(temp_json_path.read_text(encoding="utf-8"))
+                deck = data.get("deck", [])
+                card_index = next(
+                    index for index, entry in enumerate(deck)
+                    if isinstance(entry, dict) and entry.get("id") == change["cardId"]
+                )
+                recognized_change["oldTargeting"] = deck[card_index].get("targeting")
+                deck[card_index]["targeting"] = targeting_override
+                recognized_change["newTargeting"] = targeting_override
+                recognized_change["targetingOverrideApplied"] = True
+                temp_json_path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
             applied.append(recognized_change)
             continue
         by_path.setdefault(change["relativePath"], []).append(change)
@@ -1064,6 +1114,9 @@ def build_effect_variant_registry_entries(applied_changes: list[dict[str, Any]])
             "registryKey": registry_key,
             "variantHash": change["variantHash"],
             "runBaseEffectOnly": bool(change.get("runBaseEffectOnly")),
+            "baseEffectControl": change.get("baseEffectControl", base_effect_control(variant)),
+            "targetingOverride": variant.get("targeting"),
+            "targetingOverrideApplied": bool(change.get("targetingOverrideApplied")),
             "damageUnitExecutable": bool(change.get("damageUnitExecutable")),
             "statModifierExecutable": bool(change.get("statModifierExecutable")),
             "baseDamageExecutable": bool(change.get("baseDamageExecutable")),
@@ -1127,6 +1180,8 @@ def effect_variant_operation_telemetry_summary(variant: dict[str, Any], status: 
         report_kind = metadata["report_kind"]
         if report_kind == "runBaseEffect":
             operation_parts.append("runBaseEffect: base effect executed by normal resolver")
+        elif report_kind == "skipBaseEffect":
+            operation_parts.append("skipBaseEffect: original base effect skipped; subsequent variant operations execute in order")
         elif report_kind == "damageUnit":
             operation_parts.append(
                 "damageUnit: "
@@ -1193,6 +1248,9 @@ def effect_variant_report_rows_from_changes(changes: list[dict[str, Any]]) -> li
         registry_path = change.get("registryPath", runtime.get("registryPath", metadata["registryPath"]))
         variant_hash = change.get("variantHash", runtime.get("variantHash", metadata["variantHash"]))
         run_base_effect_only = change.get("runBaseEffectOnly", runtime.get("runBaseEffectOnly", metadata["runBaseEffectOnly"]))
+        base_effect_control_value = change.get("baseEffectControl", runtime.get("baseEffectControl", metadata["baseEffectControl"]))
+        targeting_override = change.get("targetingOverride", runtime.get("targetingOverride", variant.get("targeting")))
+        targeting_override_applied = change.get("targetingOverrideApplied", runtime.get("targetingOverrideApplied", bool(targeting_override)))
         damage_unit_executable = change.get("damageUnitExecutable", runtime.get("damageUnitExecutable", metadata["damageUnitExecutable"]))
         stat_modifier_executable = change.get("statModifierExecutable", runtime.get("statModifierExecutable", metadata["statModifierExecutable"]))
         base_damage_executable = change.get("baseDamageExecutable", runtime.get("baseDamageExecutable", metadata["baseDamageExecutable"]))
@@ -1209,6 +1267,9 @@ def effect_variant_report_rows_from_changes(changes: list[dict[str, Any]]) -> li
             "registryPath": str(registry_path),
             "variantHash": variant_hash,
             "runBaseEffectOnly": run_base_effect_only,
+            "baseEffectControl": base_effect_control_value,
+            "targetingOverride": targeting_override or "",
+            "targetingOverrideApplied": targeting_override_applied,
             "damageUnitExecutable": damage_unit_executable,
             "statModifierExecutable": stat_modifier_executable,
             "baseDamageExecutable": base_damage_executable,
@@ -1253,6 +1314,9 @@ def annotate_experiment_data_with_effect_variant_runtime(data: dict[str, Any], a
                 "registryPath": applied.get("registryPath", str(EFFECT_VARIANT_REGISTRY_RELATIVE_PATH)),
                 "variantHash": applied.get("variantHash", ""),
                 "runBaseEffectOnly": bool(applied.get("runBaseEffectOnly")),
+                "baseEffectControl": applied.get("baseEffectControl", base_effect_control(applied["effectVariant"])),
+                "targetingOverride": applied.get("effectVariant", {}).get("targeting"),
+                "targetingOverrideApplied": bool(applied.get("targetingOverrideApplied")),
                 "damageUnitExecutable": bool(applied.get("damageUnitExecutable")),
                 "statModifierExecutable": bool(applied.get("statModifierExecutable")),
                 "baseDamageExecutable": bool(applied.get("baseDamageExecutable")),
@@ -1273,17 +1337,17 @@ def has_effect_variants(data: dict[str, Any]) -> bool:
 
 def effect_variant_table_lines(rows: list[dict[str, Any]]) -> list[str]:
     lines = [
-        "| # | Variant ID | Label | Faction ID | Card ID | Registry key | Registry path | Base effectId | Timing | Sequence | Telemetry tags | Status |",
-        "|---:|---|---|---|---|---|---|---|---|---|---|---|",
+        "| # | Variant ID | Label | Faction ID | Card ID | Registry key | Registry path | Base effectId | Targeting override | Timing | Sequence | Telemetry tags | Status |",
+        "|---:|---|---|---|---|---|---|---|---|---|---|---|---|",
     ]
     if not rows:
-        lines.append("| N/A | None | None | None | None | None | None | None | None | None | None | none |")
+        lines.append("| N/A | None | None | None | None | None | None | None | None | None | None | None | none |")
         return lines
     for row in rows:
         lines.append(
             f"| {row['index']} | {row['variantId']} | {escape_markdown_table_cell(row['label'])} | "
             f"{row['factionId']} | {row['cardId']} | {escape_markdown_table_cell(row['registryKey'])} | "
-            f"`{escape_markdown_table_cell(row['registryPath'])}` | {row['baseEffectId']} | {row['timing']} | "
+            f"`{escape_markdown_table_cell(row['registryPath'])}` | {row['baseEffectId']} | {escape_markdown_table_cell(row['targetingOverride'] or 'None')} | {row['timing']} | "
             f"{escape_markdown_table_cell(row['sequence'])} | {escape_markdown_table_cell(row['telemetryTags'])} | "
             f"{row['status']} |"
         )
@@ -1302,6 +1366,8 @@ def effect_variant_summary_lines(rows: list[dict[str, Any]]) -> list[str]:
             f"  - Registry path: `{row['registryPath']}`",
             f"  - Variant hash: `{row['variantHash']}`",
             f"  - runBaseEffect-only: `{str(row['runBaseEffectOnly']).lower()}`",
+            f"  - baseEffectControl: `{row['baseEffectControl']}`",
+            f"  - Targeting override: `{row['targetingOverride'] or 'None'}` (applied in temp copy: `{str(row['targetingOverrideApplied']).lower()}`)",
             f"  - damageUnit executable: `{str(row['damageUnitExecutable']).lower()}`",
             f"  - stat modifier executable: `{str(row['statModifierExecutable']).lower()}`",
             f"  - base damage executable: `{str(row['baseDamageExecutable']).lower()}`",
@@ -1331,6 +1397,9 @@ def effect_variant_paste_lines(rows: list[dict[str, Any]]) -> list[str]:
             f"  registryPath: {row['registryPath']}",
             f"  variantHash: {row['variantHash']}",
             f"  runBaseEffectOnly: {str(row['runBaseEffectOnly']).lower()}",
+            f"  baseEffectControl: {row['baseEffectControl']}",
+            f"  targetingOverride: {row['targetingOverride'] or 'None'}",
+            f"  targetingOverrideApplied: {str(row['targetingOverrideApplied']).lower()}",
             f"  damageUnitExecutable: {str(row['damageUnitExecutable']).lower()}",
             f"  statModifierExecutable: {str(row['statModifierExecutable']).lower()}",
             f"  baseDamageExecutable: {str(row['baseDamageExecutable']).lower()}",
@@ -2306,6 +2375,7 @@ def card_draw_play_impact_table_lines(rows: list[dict[str, Any]]) -> list[str]:
 
 EFFECT_VARIANT_RUNTIME_TELEMETRY_COLUMNS = [
     "variantId",
+    "baseEffectControl",
     "triggerType",
     "operation",
     "selector",
@@ -2439,7 +2509,7 @@ def parse_effect_variant_runtime_table(output_text: str, label: str) -> list[dic
         operation = row["operation"]
         selector = row["selector"]
         status = row["status"]
-        key = (variant_id, trigger_type, operation, selector, row.get("token", ""), row.get("temporary", ""), status)
+        key = (variant_id, row.get("baseEffectControl", "runBaseEffect"), trigger_type, operation, selector, row.get("token", ""), row.get("temporary", ""), status)
         if key in seen_keys:
             raise EffectVariantRuntimeTelemetryParseError(
                 f"{label} effectVariant runtime telemetry has duplicate key {key}"
@@ -2447,6 +2517,7 @@ def parse_effect_variant_runtime_table(output_text: str, label: str) -> list[dic
         seen_keys.add(key)
         parsed = {
             "variantId": variant_id,
+            "baseEffectControl": row.get("baseEffectControl", "runBaseEffect"),
             "triggerType": trigger_type,
             "operation": operation,
             "selector": selector,
@@ -2475,8 +2546,8 @@ def build_effect_variant_runtime_telemetry_comparison(baseline_text: str, experi
             "pasteLines": ["- Not available; effectVariant runtime telemetry parsing failed. See raw telemetry files."],
         }
 
-    baseline_by_key = {(row["variantId"], row["triggerType"], row["operation"], row["selector"], row.get("token", ""), row.get("temporary", ""), row["status"]): row for row in baseline_rows}
-    experiment_by_key = {(row["variantId"], row["triggerType"], row["operation"], row["selector"], row.get("token", ""), row.get("temporary", ""), row["status"]): row for row in experiment_rows}
+    baseline_by_key = {(row["variantId"], row.get("baseEffectControl", "runBaseEffect"), row["triggerType"], row["operation"], row["selector"], row.get("token", ""), row.get("temporary", ""), row["status"]): row for row in baseline_rows}
+    experiment_by_key = {(row["variantId"], row.get("baseEffectControl", "runBaseEffect"), row["triggerType"], row["operation"], row["selector"], row.get("token", ""), row.get("temporary", ""), row["status"]): row for row in experiment_rows}
     comparison_rows: list[dict[str, Any]] = []
     for key in sorted(set(baseline_by_key) | set(experiment_by_key)):
         baseline_row = baseline_by_key.get(key)
@@ -2484,12 +2555,13 @@ def build_effect_variant_runtime_telemetry_comparison(baseline_text: str, experi
         source = experiment_row or baseline_row or {}
         row: dict[str, Any] = {
             "variantId": source.get("variantId", key[0]),
-            "triggerType": source.get("triggerType", key[1]),
-            "operation": source.get("operation", key[2]),
-            "selector": source.get("selector", key[3]),
-            "token": source.get("token", key[4]),
-            "temporary": source.get("temporary", key[5]),
-            "status": source.get("status", key[6]),
+            "baseEffectControl": source.get("baseEffectControl", key[1]),
+            "triggerType": source.get("triggerType", key[2]),
+            "operation": source.get("operation", key[3]),
+            "selector": source.get("selector", key[4]),
+            "token": source.get("token", key[5]),
+            "temporary": source.get("temporary", key[6]),
+            "status": source.get("status", key[7]),
         }
         changed = baseline_row is None or experiment_row is None
         for source_field, report_field in EFFECT_VARIANT_RUNTIME_DELTA_FIELDS:
@@ -2516,14 +2588,14 @@ def build_effect_variant_runtime_telemetry_comparison(baseline_text: str, experi
 
 def effect_variant_runtime_table_lines(rows: list[dict[str, Any]]) -> list[str]:
     lines = [
-        "| variantId | triggerType | operation | selector | executions | resolved targets | skipped targets | damage dealt | kills | attack added | attack reduced | armor added | armor reduced | base damage | enemy base damage | player base damage | cards drawn | failed draws | skipped draws | tokens summoned | skipped summons | token | temporary | status |",
-        "|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---|---|",
+        "| variantId | baseEffectControl | triggerType | operation | selector | executions | resolved targets | skipped targets | damage dealt | kills | attack added | attack reduced | armor added | armor reduced | base damage | enemy base damage | player base damage | cards drawn | failed draws | skipped draws | tokens summoned | skipped summons | token | temporary | status |",
+        "|---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---|---|",
     ]
     if not rows:
         return [*lines, "| _No effectVariant runtime telemetry rows_ |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |"]
     for row in rows:
         lines.append(
-            f"| {markdown_cell(row['variantId'])} | {markdown_cell(row.get('triggerType', ''))} | {markdown_cell(row['operation'])} | {markdown_cell(row['selector'])} | "
+            f"| {markdown_cell(row['variantId'])} | {markdown_cell(row.get('baseEffectControl', 'runBaseEffect'))} | {markdown_cell(row.get('triggerType', ''))} | {markdown_cell(row['operation'])} | {markdown_cell(row['selector'])} | "
             f"{row['executions']} | {row['resolved targets']} | {row['skipped targets']} | {row['damage dealt']} | {row['kills']} | "
             f"{row['atk added']} | {row['atk reduced']} | {row['arm added']} | {row['arm reduced']} | {row['base damage']} | "
             f"{row['enemy base damage']} | {row['player base damage']} | {row['cards drawn']} | {row['failed draws']} | {row['skipped draws']} | "
@@ -2534,14 +2606,14 @@ def effect_variant_runtime_table_lines(rows: list[dict[str, Any]]) -> list[str]:
 
 def effect_variant_runtime_comparison_table_lines(rows: list[dict[str, Any]]) -> list[str]:
     lines = [
-        "| variantId | triggerType | operation | selector | status | executions Δ | resolved targets Δ | skipped targets Δ | damage dealt Δ | kills Δ | attack added Δ | attack reduced Δ | armor added Δ | armor reduced Δ | base damage Δ | enemy base damage Δ | player base damage Δ | cards drawn Δ | failed draws Δ | skipped draws Δ | tokens summoned Δ | skipped summons Δ |",
-        "|---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+        "| variantId | baseEffectControl | triggerType | operation | selector | status | executions Δ | resolved targets Δ | skipped targets Δ | damage dealt Δ | kills Δ | attack added Δ | attack reduced Δ | armor added Δ | armor reduced Δ | base damage Δ | enemy base damage Δ | player base damage Δ | cards drawn Δ | failed draws Δ | skipped draws Δ | tokens summoned Δ | skipped summons Δ |",
+        "|---|---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     if not rows:
         return [*lines, "| _No changed effectVariant runtime telemetry rows_ |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |"]
     for row in rows:
         lines.append(
-            f"| {markdown_cell(row['variantId'])} | {markdown_cell(row.get('triggerType', ''))} | {markdown_cell(row['operation'])} | {markdown_cell(row['selector'])} | {markdown_cell(row['status'])} | "
+            f"| {markdown_cell(row['variantId'])} | {markdown_cell(row.get('baseEffectControl', 'runBaseEffect'))} | {markdown_cell(row.get('triggerType', ''))} | {markdown_cell(row['operation'])} | {markdown_cell(row['selector'])} | {markdown_cell(row['status'])} | "
             f"{format_count_delta(row['executionsDelta'])} | {format_count_delta(row['resolvedTargetsDelta'])} | {format_count_delta(row['skippedTargetsDelta'])} | "
             f"{format_count_delta(row['damageDealtDelta'])} | {format_count_delta(row['killsDelta'])} | {format_count_delta(row['attackAddedDelta'])} | "
             f"{format_count_delta(row['attackReducedDelta'])} | {format_count_delta(row['armorAddedDelta'])} | {format_count_delta(row['armorReducedDelta'])} | "
@@ -2558,7 +2630,7 @@ def effect_variant_runtime_paste_lines(rows: list[dict[str, Any]]) -> list[str]:
     lines: list[str] = []
     for row in sorted(rows, key=lambda item: item["executions"], reverse=True)[:10]:
         lines.extend([
-            f"- {row['variantId']} / {row.get('triggerType', '')} / {row['operation']} / {row['selector']}:",
+            f"- {row['variantId']} / baseEffectControl: {row.get('baseEffectControl', 'runBaseEffect')} / {row.get('triggerType', '')} / {row['operation']} / {row['selector']}:",
             f"  executions {row['executions']}",
             f"  resolved targets {row['resolved targets']}",
             f"  skipped targets {row['skipped targets']}",
