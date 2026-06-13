@@ -168,7 +168,8 @@ test('shared visual renderer leaves empty rules areas blank instead of using typ
   const visualSource = fs.readFileSync('src/rendering/cardVisualLayout.js', 'utf8');
 
   assert.doesNotMatch(visualSource, /content\.body \|\| content\.type/);
-  assert.match(visualSource, /createInlineStatText\(scene, zones\.text\.centerX, zones\.text\.y \+ bodyTopPadding, content\.body,/);
+  assert.match(visualSource, /const bodyTextY = zones\.text\.y \+ bodyTopPadding \+ CARD_DESCRIPTION_TEXT_VERTICAL_OFFSET_PX;/);
+  assert.match(visualSource, /createInlineStatText\(scene, zones\.text\.centerX, bodyTextY, content\.body,/);
 });
 
 

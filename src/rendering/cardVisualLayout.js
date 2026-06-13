@@ -13,6 +13,7 @@ export const CARD_ZONE_RATIOS = Object.freeze({
 });
 
 export const CARD_CORNER_RADIUS_RATIO = 0.055;
+export const CARD_DESCRIPTION_TEXT_VERTICAL_OFFSET_PX = -3;
 
 export const BASE_CARD_SURFACE_THEME = Object.freeze({
   frameFill: 0x1f2937,
@@ -1325,7 +1326,8 @@ export function createCardPreviewView(scene, {
   );
   const bodyTopPadding = Math.max(5, zones.text.height * (typographyScale > 1 ? 0.11 : 0.1));
   const bodyBottomPadding = Math.max(5, zones.text.height * (typographyScale > 1 ? 0.1 : 0.09));
-  const bodyText = createInlineStatText(scene, zones.text.centerX, zones.text.y + bodyTopPadding, content.body, {
+  const bodyTextY = zones.text.y + bodyTopPadding + CARD_DESCRIPTION_TEXT_VERTICAL_OFFSET_PX;
+  const bodyText = createInlineStatText(scene, zones.text.centerX, bodyTextY, content.body, {
     fontFamily: 'Arial, sans-serif',
     fontSize: typography.body,
     minFontSize: Math.max(8, typography.body - 2),
