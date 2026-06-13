@@ -111,6 +111,7 @@ function getEffectVariantOperationTelemetryKey(entry) {
   return [
     entry?.variantId ?? 'unknown',
     entry?.registryKey ?? 'unknown',
+    entry?.triggerType ?? 'afterBaseEffectBeforeDiscard',
     entry?.operation ?? 'unknown',
     entry?.selector ?? '',
     entry?.token ?? '',
@@ -124,6 +125,7 @@ function ensureEffectVariantOperationTelemetry(simTelemetry, entry) {
   simTelemetry.effectVariantOperations[key] ??= {
     variantId: entry?.variantId ?? 'unknown',
     registryKey: entry?.registryKey ?? 'unknown',
+    triggerType: entry?.triggerType ?? 'afterBaseEffectBeforeDiscard',
     operation: entry?.operation ?? 'unknown',
     selector: entry?.selector ?? '',
     status: entry?.status ?? 'unknown',
@@ -769,6 +771,7 @@ function printEffectVariantOperationSimulatorTelemetry(simTelemetry) {
   const rows = Object.values(simTelemetry.effectVariantOperations ?? {})
     .sort((a, b) => a.variantId.localeCompare(b.variantId)
       || a.registryKey.localeCompare(b.registryKey)
+      || a.triggerType.localeCompare(b.triggerType)
       || a.operation.localeCompare(b.operation)
       || a.selector.localeCompare(b.selector)
       || a.status.localeCompare(b.status));
@@ -778,6 +781,7 @@ function printEffectVariantOperationSimulatorTelemetry(simTelemetry) {
   }
   console.table(rows.map((row) => ({
     variantId: row.variantId,
+    triggerType: row.triggerType,
     operation: row.operation,
     selector: row.selector,
     executions: row.executions,

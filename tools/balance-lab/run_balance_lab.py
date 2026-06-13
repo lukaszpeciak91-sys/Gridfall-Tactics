@@ -389,9 +389,9 @@ def validate_effect_variant_shape(change: dict[str, Any], index: int) -> None:
         require_non_empty_string(scope, key, f"Change #{index} effectVariant.scope")
 
     timing = variant.get("timing")
-    if timing != "afterBaseEffectBeforeDiscard":
+    if timing not in {"afterBaseEffectBeforeDiscard", "onDeath"}:
         raise BalanceLabError(
-            f"Change #{index} effectVariant.timing must be afterBaseEffectBeforeDiscard."
+            f"Change #{index} effectVariant.timing must be afterBaseEffectBeforeDiscard or onDeath."
         )
 
     sequence = variant.get("sequence")
@@ -2191,6 +2191,7 @@ def card_draw_play_impact_table_lines(rows: list[dict[str, Any]]) -> list[str]:
 
 EFFECT_VARIANT_RUNTIME_TELEMETRY_COLUMNS = [
     "variantId",
+    "triggerType",
     "operation",
     "selector",
     "executions",
@@ -2319,10 +2320,11 @@ def parse_effect_variant_runtime_table(output_text: str, label: str) -> list[dic
     for index, row in enumerate(raw_rows, start=1):
         row_label = f"{label} effectVariant runtime telemetry row {index}"
         variant_id = row["variantId"]
+        trigger_type = row["triggerType"]
         operation = row["operation"]
         selector = row["selector"]
         status = row["status"]
-        key = (variant_id, operation, selector, row.get("token", ""), row.get("temporary", ""), status)
+        key = (variant_id, trigger_type, operation, selector, row.get("token", ""), row.get("temporary", ""), status)
         if key in seen_keys:
             raise EffectVariantRuntimeTelemetryParseError(
                 f"{label} effectVariant runtime telemetry has duplicate key {key}"
@@ -2330,6 +2332,7 @@ def parse_effect_variant_runtime_table(output_text: str, label: str) -> list[dic
         seen_keys.add(key)
         parsed = {
             "variantId": variant_id,
+            "triggerType": trigger_type,
             "operation": operation,
             "selector": selector,
             "status": status,
@@ -2357,8 +2360,8 @@ def build_effect_variant_runtime_telemetry_comparison(baseline_text: str, experi
             "pasteLines": ["- Not available; effectVariant runtime telemetry parsing failed. See raw telemetry files."],
         }
 
-    baseline_by_key = {(row["variantId"], row["operation"], row["selector"], row.get("token", ""), row.get("temporary", ""), row["status"]): row for row in baseline_rows}
-    experiment_by_key = {(row["variantId"], row["operation"], row["selector"], row.get("token", ""), row.get("temporary", ""), row["status"]): row for row in experiment_rows}
+    baseline_by_key = {(row["variantId"], row["triggerType"], row["operation"], row["selector"], row.get("token", ""), row.get("temporary", ""), row["status"]): row for row in baseline_rows}
+    experiment_by_key = {(row["variantId"], row["triggerType"], row["operation"], row["selector"], row.get("token", ""), row.get("temporary", ""), row["status"]): row for row in experiment_rows}
     comparison_rows: list[dict[str, Any]] = []
     for key in sorted(set(baseline_by_key) | set(experiment_by_key)):
         baseline_row = baseline_by_key.get(key)
@@ -2366,11 +2369,12 @@ def build_effect_variant_runtime_telemetry_comparison(baseline_text: str, experi
         source = experiment_row or baseline_row or {}
         row: dict[str, Any] = {
             "variantId": source.get("variantId", key[0]),
-            "operation": source.get("operation", key[1]),
-            "selector": source.get("selector", key[2]),
-            "token": source.get("token", key[3]),
-            "temporary": source.get("temporary", key[4]),
-            "status": source.get("status", key[5]),
+            "triggerType": source.get("triggerType", key[1]),
+            "operation": source.get("operation", key[2]),
+            "selector": source.get("selector", key[3]),
+            "token": source.get("token", key[4]),
+            "temporary": source.get("temporary", key[5]),
+            "status": source.get("status", key[6]),
         }
         changed = baseline_row is None or experiment_row is None
         for source_field, report_field in EFFECT_VARIANT_RUNTIME_DELTA_FIELDS:
@@ -2384,7 +2388,7 @@ def build_effect_variant_runtime_telemetry_comparison(baseline_text: str, experi
         if changed:
             comparison_rows.append(row)
 
-    comparison_rows.sort(key=lambda row: (-abs(row["executionsDelta"]), row["variantId"], row["operation"], row["selector"], row["status"]))
+    comparison_rows.sort(key=lambda row: (-abs(row["executionsDelta"]), row["variantId"], row["triggerType"], row["operation"], row["selector"], row["status"]))
     paste_lines = effect_variant_runtime_paste_lines(experiment_rows)
     return {
         "warning": "",
@@ -2397,14 +2401,14 @@ def build_effect_variant_runtime_telemetry_comparison(baseline_text: str, experi
 
 def effect_variant_runtime_table_lines(rows: list[dict[str, Any]]) -> list[str]:
     lines = [
-        "| variantId | operation | selector | executions | resolved targets | skipped targets | damage dealt | kills | attack added | attack reduced | armor added | armor reduced | base damage | enemy base damage | player base damage | cards drawn | failed draws | skipped draws | tokens summoned | skipped summons | token | temporary | status |",
-        "|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---|---|",
+        "| variantId | triggerType | operation | selector | executions | resolved targets | skipped targets | damage dealt | kills | attack added | attack reduced | armor added | armor reduced | base damage | enemy base damage | player base damage | cards drawn | failed draws | skipped draws | tokens summoned | skipped summons | token | temporary | status |",
+        "|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---|---|",
     ]
     if not rows:
-        return [*lines, "| _No effectVariant runtime telemetry rows_ |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |"]
+        return [*lines, "| _No effectVariant runtime telemetry rows_ |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |"]
     for row in rows:
         lines.append(
-            f"| {markdown_cell(row['variantId'])} | {markdown_cell(row['operation'])} | {markdown_cell(row['selector'])} | "
+            f"| {markdown_cell(row['variantId'])} | {markdown_cell(row.get('triggerType', ''))} | {markdown_cell(row['operation'])} | {markdown_cell(row['selector'])} | "
             f"{row['executions']} | {row['resolved targets']} | {row['skipped targets']} | {row['damage dealt']} | {row['kills']} | "
             f"{row['atk added']} | {row['atk reduced']} | {row['arm added']} | {row['arm reduced']} | {row['base damage']} | "
             f"{row['enemy base damage']} | {row['player base damage']} | {row['cards drawn']} | {row['failed draws']} | {row['skipped draws']} | "
@@ -2415,14 +2419,14 @@ def effect_variant_runtime_table_lines(rows: list[dict[str, Any]]) -> list[str]:
 
 def effect_variant_runtime_comparison_table_lines(rows: list[dict[str, Any]]) -> list[str]:
     lines = [
-        "| variantId | operation | selector | status | executions Δ | resolved targets Δ | skipped targets Δ | damage dealt Δ | kills Δ | attack added Δ | attack reduced Δ | armor added Δ | armor reduced Δ | base damage Δ | enemy base damage Δ | player base damage Δ | cards drawn Δ | failed draws Δ | skipped draws Δ | tokens summoned Δ | skipped summons Δ |",
-        "|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+        "| variantId | triggerType | operation | selector | status | executions Δ | resolved targets Δ | skipped targets Δ | damage dealt Δ | kills Δ | attack added Δ | attack reduced Δ | armor added Δ | armor reduced Δ | base damage Δ | enemy base damage Δ | player base damage Δ | cards drawn Δ | failed draws Δ | skipped draws Δ | tokens summoned Δ | skipped summons Δ |",
+        "|---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     if not rows:
-        return [*lines, "| _No changed effectVariant runtime telemetry rows_ |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |"]
+        return [*lines, "| _No changed effectVariant runtime telemetry rows_ |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |"]
     for row in rows:
         lines.append(
-            f"| {markdown_cell(row['variantId'])} | {markdown_cell(row['operation'])} | {markdown_cell(row['selector'])} | {markdown_cell(row['status'])} | "
+            f"| {markdown_cell(row['variantId'])} | {markdown_cell(row.get('triggerType', ''))} | {markdown_cell(row['operation'])} | {markdown_cell(row['selector'])} | {markdown_cell(row['status'])} | "
             f"{format_count_delta(row['executionsDelta'])} | {format_count_delta(row['resolvedTargetsDelta'])} | {format_count_delta(row['skippedTargetsDelta'])} | "
             f"{format_count_delta(row['damageDealtDelta'])} | {format_count_delta(row['killsDelta'])} | {format_count_delta(row['attackAddedDelta'])} | "
             f"{format_count_delta(row['attackReducedDelta'])} | {format_count_delta(row['armorAddedDelta'])} | {format_count_delta(row['armorReducedDelta'])} | "
@@ -2439,7 +2443,7 @@ def effect_variant_runtime_paste_lines(rows: list[dict[str, Any]]) -> list[str]:
     lines: list[str] = []
     for row in sorted(rows, key=lambda item: item["executions"], reverse=True)[:10]:
         lines.extend([
-            f"- {row['variantId']} / {row['operation']} / {row['selector']}:",
+            f"- {row['variantId']} / {row.get('triggerType', '')} / {row['operation']} / {row['selector']}:",
             f"  executions {row['executions']}",
             f"  resolved targets {row['resolved targets']}",
             f"  skipped targets {row['skipped targets']}",
@@ -2850,6 +2854,8 @@ def build_comparison_report(
         "",
         "## Effect Variant Runtime Telemetry",
         "",
+        "### On-Death Runtime Telemetry",
+        "",
         f"Raw telemetry files: {effect_variant_runtime_file_line}",
         "",
         *effect_variant_runtime_lines,
@@ -2889,7 +2895,7 @@ def build_comparison_report(
         "",
         *effect_variant_paste_lines(effect_variant_rows),
         "",
-        "Effect variant runtime telemetry:",
+        "On-Death Runtime Telemetry / Effect variant runtime telemetry:",
         *effect_variant_runtime_comparison["pasteLines"],
         "",
         "Faction non-draw WR deltas:",
