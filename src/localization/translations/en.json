@@ -18,7 +18,7 @@
     },
     "aggro_scout_1": {
       "name": "Scout",
-      "textShort": "Until opponent's next action: they cannot play a unit in this lane."
+      "textShort": "Until opponent's next action: no unit in this lane."
     },
     "aggro_full_attack_1": {
       "name": "Full Attack",
@@ -42,7 +42,7 @@
     },
     "attrition_swarm_husk_1": {
       "name": "Husk",
-      "textShort": "Combat death: 1 [HP] to opposed [ENEMY]."
+      "textShort": "Combat death:\n-1 [HP] to opposed [ENEMY]."
     },
     "attrition_swarm_carrier_1": {
       "name": "Carrier",
@@ -62,7 +62,7 @@
     },
     "attrition_swarm_funeral_pyre_1": {
       "name": "Funeral Pyre",
-      "textShort": "First 2 [ALLY]\ncombat deaths:\n1 [HP] to opposed [ENEMY]."
+      "textShort": "First 2 [ALLY] combat deaths:\n-1 [HP] to opposed [ENEMY]."
     },
     "attrition_swarm_infect_1": {
       "name": "Rotten Gift",

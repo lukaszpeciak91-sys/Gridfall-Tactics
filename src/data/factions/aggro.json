@@ -63,7 +63,7 @@
       "type": "unit",
       "targeting": "enemy",
       "effectId": "block_enemy_lane_play_this_turn",
-      "textShort": "Until opponent's next action: they cannot play a unit in this lane.",
+      "textShort": "Until opponent's next action: no unit in this lane.",
       "attack": 2,
       "hp": 1,
       "armor": 0
