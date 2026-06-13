@@ -1796,7 +1796,7 @@ def append_balance_intelligence_to_summary(report_dir: Path, sections: list[str]
     if not summary_path.exists():
         return
     text = summary_path.read_text(encoding="utf-8")
-    marker = "## Top Matchup Improvements"
+    marker = next((line for line in sections if line.startswith("## ")), "## Top Matchup Improvements")
     if marker in text:
         return
     summary_path.write_text(text.rstrip() + "\n\n" + "\n".join(sections) + "\n", encoding="utf-8")
@@ -1814,6 +1814,9 @@ CARD_TELEMETRY_COLUMNS = [
     "drawn",
     "played",
     "held at defeat",
+    "deathsTotal",
+    "deathsInCombat",
+    "deathsNonCombat",
     "avg turn played",
     "drawnGames",
     "drawnWins",
@@ -1833,6 +1836,8 @@ CARD_TELEMETRY_COLUMNS = [
     "WR When Not Played",
     "Draw Impact",
     "Play Impact",
+    "Dead Card Score",
+    "Carry Score",
 ]
 
 
@@ -1915,6 +1920,9 @@ def parse_card_telemetry_table(output_text: str, label: str) -> list[dict[str, A
             "drawn": parse_int_cell(row["drawn"], "drawn", row_label),
             "played": parse_int_cell(row["played"], "played", row_label),
             "heldAtDefeat": parse_int_cell(row["held at defeat"], "held at defeat", row_label),
+            "deathsTotal": parse_int_cell(row["deathsTotal"], "deathsTotal", row_label),
+            "deathsInCombat": parse_int_cell(row["deathsInCombat"], "deathsInCombat", row_label),
+            "deathsNonCombat": parse_int_cell(row["deathsNonCombat"], "deathsNonCombat", row_label),
             "avgTurnPlayed": parse_float_cell(row["avg turn played"], "avg turn played", row_label),
             "drawnGames": parse_int_cell(row["drawnGames"], "drawnGames", row_label),
             "drawnWins": parse_int_cell(row["drawnWins"], "drawnWins", row_label),
@@ -1934,6 +1942,8 @@ def parse_card_telemetry_table(output_text: str, label: str) -> list[dict[str, A
             "wrWhenNotPlayed": parse_percent_cell(row["WR When Not Played"], "WR When Not Played", row_label),
             "drawImpact": parse_pp_cell(row["Draw Impact"], "Draw Impact", row_label),
             "playImpact": parse_pp_cell(row["Play Impact"], "Play Impact", row_label),
+            "deadCardScore": parse_int_cell(row["Dead Card Score"], "Dead Card Score", row_label),
+            "carryScore": parse_int_cell(row["Carry Score"], "Carry Score", row_label),
         })
     return parsed_rows
 
@@ -1977,6 +1987,8 @@ def build_card_telemetry_comparison(
             "pasteLines": ["- Not available; card telemetry parsing failed. See raw card telemetry files."],
             "harmfulLines": ["- Not available; card telemetry parsing failed. See raw card telemetry files."],
             "helpfulLines": ["- Not available; card telemetry parsing failed. See raw card telemetry files."],
+            "deadCardLines": ["- Not available; card telemetry parsing failed. See raw card telemetry files."],
+            "carryCardLines": ["- Not available; card telemetry parsing failed. See raw card telemetry files."],
         }
 
     baseline_by_key = {(row["faction"], row["id"]): row for row in baseline_rows}
@@ -2079,8 +2091,56 @@ def build_card_telemetry_comparison(
         "pasteLines": paste_lines,
         "harmfulLines": harmful_lines,
         "helpfulLines": helpful_lines,
+        "deadCardLines": [f"{row['card']}: Dead Card Score {row['deadCardScore']}" for row in sorted(experiment_rows, key=lambda row: row['deadCardScore'], reverse=True)[:10]],
+        "carryCardLines": [f"{row['card']}: Carry Score {row['carryScore']}" for row in sorted(experiment_rows, key=lambda row: row['carryScore'], reverse=True)[:10]],
     }
 
+
+
+def dead_card_table_lines(rows: list[dict[str, Any]]) -> list[str]:
+    lines = [
+        "| Card | Drawn | Played | Held At Defeat | Dead Card Score |",
+        "|---|---:|---:|---:|---:|",
+    ]
+    ranked = sorted(rows, key=lambda row: (row["deadCardScore"], row["heldAtDefeat"]), reverse=True)[:10]
+    if not ranked:
+        return [*lines, "| _No card telemetry rows parsed_ |  |  |  |  |"]
+    for row in ranked:
+        lines.append(f"| {markdown_cell(row['card'])} | {row['drawn']} | {row['played']} | {row['heldAtDefeat']} | {row['deadCardScore']} |")
+    return lines
+
+
+def carry_card_table_lines(rows: list[dict[str, Any]]) -> list[str]:
+    lines = [
+        "| Card | Win Rate When Played | Played | Carry Score |",
+        "|---|---:|---:|---:|",
+    ]
+    ranked = sorted(rows, key=lambda row: (row["carryScore"], row["playedWins"]), reverse=True)[:10]
+    if not ranked:
+        return [*lines, "| _No card telemetry rows parsed_ |  |  |  |"]
+    for row in ranked:
+        wr = "N/A" if row["playedGames"] == 0 else f"{row['wrWhenPlayed']:.1f}%"
+        lines.append(f"| {markdown_cell(row['card'])} | {wr} | {row['played']} | {row['carryScore']} |")
+    return lines
+
+
+def campaign_card_intelligence_lines(campaign_rows: list[dict[str, Any]], card_rows: list[dict[str, Any]]) -> list[str]:
+    by_faction: dict[str, list[dict[str, Any]]] = {}
+    for row in card_rows:
+        by_faction.setdefault(row["faction"], []).append(row)
+    lines = [
+        "| Faction | Campaign | Average dead card score | Dead Cards >80 |",
+        "|---|---:|---:|---:|",
+    ]
+    if not campaign_rows:
+        return [*lines, "| _No campaign rows parsed_ |  |  |  |"]
+    for campaign in campaign_rows:
+        faction = campaign["faction"]
+        faction_cards = by_faction.get(faction, [])
+        avg_dead = sum(row["deadCardScore"] for row in faction_cards) / len(faction_cards) if faction_cards else 0
+        dead_over_80 = sum(1 for row in faction_cards if row["deadCardScore"] > 80)
+        lines.append(f"| {markdown_cell(faction)} | {campaign['experimentCampaignPct']}% | {avg_dead:.1f} | {dead_over_80} |")
+    return lines
 
 def card_comparison_table_lines(rows: list[dict[str, Any]]) -> list[str]:
     lines = [
@@ -2629,9 +2689,13 @@ def build_comparison_report(
         baseline_only_card_lines = ["_Skipped because card telemetry parsing failed._"]
         experiment_only_card_lines = ["_Skipped because card telemetry parsing failed._"]
         card_draw_play_impact_lines = ["_Skipped because card telemetry parsing failed._"]
+        dead_card_lines = ["_Skipped because card telemetry parsing failed._"]
+        carry_card_lines = ["_Skipped because card telemetry parsing failed._"]
     else:
         card_comparison_lines = card_comparison_table_lines(card_telemetry_comparison["changedRows"])
         card_draw_play_impact_lines = card_draw_play_impact_table_lines(card_telemetry_comparison["experimentImpactRows"])
+        dead_card_lines = dead_card_table_lines(card_telemetry_comparison["experimentImpactRows"])
+        carry_card_lines = carry_card_table_lines(card_telemetry_comparison["experimentImpactRows"])
         baseline_only_card_lines = card_presence_table_lines(
             card_telemetry_comparison["baselineOnlyRows"],
             "No baseline-only cards",
@@ -2640,6 +2704,22 @@ def build_comparison_report(
             card_telemetry_comparison["experimentOnlyRows"],
             "No experiment-only cards",
         )
+
+    append_balance_intelligence_to_summary(report_dir, [
+        "## Card Intelligence",
+        "",
+        "### Most Dead Cards",
+        "",
+        *dead_card_lines,
+        "",
+        "### Carry Cards",
+        "",
+        *carry_card_lines,
+        "",
+        "### Campaign Card Intelligence",
+        "",
+        *campaign_card_intelligence_lines(campaign_delta_rows, card_telemetry_comparison["experimentImpactRows"]),
+    ])
     card_telemetry_line = (
         f"`{baseline_card_path.name}`, `{experiment_card_path.name}`"
         if baseline_card_telemetry_present or experiment_card_telemetry_present
@@ -2754,6 +2834,20 @@ def build_comparison_report(
         "",
         *intelligence_lines,
         "",
+        "## Card Intelligence",
+        "",
+        "### Most Dead Cards",
+        "",
+        *dead_card_lines,
+        "",
+        "### Carry Cards",
+        "",
+        *carry_card_lines,
+        "",
+        "### Campaign Card Intelligence",
+        "",
+        *campaign_card_intelligence_lines(campaign_delta_rows, card_telemetry_comparison["experimentImpactRows"]),
+        "",
         "## Effect Variant Runtime Telemetry",
         "",
         f"Raw telemetry files: {effect_variant_runtime_file_line}",
@@ -2818,6 +2912,12 @@ def build_comparison_report(
         "",
         "Most Helpful Cards",
         *card_telemetry_comparison["helpfulLines"],
+        "",
+        "Most Dead Cards",
+        *card_telemetry_comparison["deadCardLines"],
+        "",
+        "Carry Cards",
+        *card_telemetry_comparison["carryCardLines"],
         "",
         f"Card telemetry files: {card_telemetry_line}",
         f"Effect variant runtime telemetry files: {effect_variant_runtime_file_line}",

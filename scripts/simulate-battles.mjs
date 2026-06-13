@@ -208,6 +208,9 @@ function ensureCardTelemetry(simTelemetry, faction, card) {
     drawn: 0,
     played: 0,
     heldAtDefeat: 0,
+    deathsTotal: 0,
+    deathsInCombat: 0,
+    deathsNonCombat: 0,
     turnPlayedTotal: 0,
     drawnGames: 0,
     drawnWins: 0,
@@ -319,6 +322,19 @@ function recordCardOutcomeTelemetryForSide(simTelemetry, sideGameTelemetry, winn
   });
 }
 
+
+function recordDeathTelemetryForSide(simTelemetry, faction, fallen) {
+  if (!simTelemetry || !Array.isArray(fallen)) return;
+  fallen.forEach((entry) => {
+    const card = entry?.card;
+    if (!card) return;
+    const row = ensureCardTelemetry(simTelemetry, faction, card);
+    row.deathsTotal += 1;
+    if (entry.reason === 'combat-death' || entry.combat === true) row.deathsInCombat += 1;
+    else if (entry.reason === 'damage-death' || entry.reason === 'destroy') row.deathsNonCombat += 1;
+  });
+}
+
 function classifyEnding(result) {
   if (result.endingReason === 'turn-cap') return 'turnCap';
   if (result.endingReason === 'resource_exhaustion') return 'resourceExhaustion';
@@ -346,6 +362,8 @@ function recordGameEndTelemetry(simTelemetry, result) {
 
   recordCardOutcomeTelemetryForSide(simTelemetry, result.cardGameTelemetry?.player, result.winner, 'player');
   recordCardOutcomeTelemetryForSide(simTelemetry, result.cardGameTelemetry?.enemy, result.winner, 'enemy');
+  recordDeathTelemetryForSide(simTelemetry, result.playerFaction, result.playerFallenAtEnd);
+  recordDeathTelemetryForSide(simTelemetry, result.enemyFaction, result.enemyFallenAtEnd);
 
   const ending = classifyEnding(result);
   simTelemetry.endings[ending] = (simTelemetry.endings[ending] ?? 0) + 1;
@@ -521,6 +539,8 @@ function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, simTel
     heroDeathResolution: state.heroDeathResolution,
     playerHandAtEnd: [...state.player.hand],
     enemyHandAtEnd: [...state.enemy.hand],
+    playerFallenAtEnd: [...state.player.fallen],
+    enemyFallenAtEnd: [...state.enemy.fallen],
     quickFixTempoDraws: state.quickFixTempoDraws ?? 0,
     defensiveFrictionApplications: state.wardenDefensiveFrictionApplications ?? 0,
     funeralPyreCombatTriggers: state.funeralPyreCombatTriggers ?? 0,
@@ -542,19 +562,41 @@ const avg = (value, count) => avgValue(value, count).toFixed(2);
 const pct = (value) => `${value.toFixed(1)}%`;
 const percentagePoints = (value) => `${value >= 0 ? '+' : ''}${value.toFixed(1)} pp`;
 
-function cardImpactRow(row) {
+function clampScore(value) {
+  return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+function cardImpactRow(row, factionBaselines = {}) {
   const wrWhenDrawn = percentValue(row.drawnWins, row.drawnGames);
   const wrWhenNotDrawn = percentValue(row.notDrawnWins, row.notDrawnGames);
   const wrWhenPlayed = percentValue(row.playedWins, row.playedGames);
   const wrWhenNotPlayed = percentValue(row.notPlayedWins, row.notPlayedGames);
+  const playRate = row.drawn > 0 ? row.played / row.drawn : 0;
+  const heldRate = row.drawn > 0 ? row.heldAtDefeat / row.drawn : 0;
+  const drawFrequency = row.drawnGames > 0 ? Math.min(1, row.drawn / row.drawnGames) : 0;
+  const factionBaseline = factionBaselines[row.faction] ?? 50;
+  const drawImpact = wrWhenDrawn - wrWhenNotDrawn;
+  const playImpact = wrWhenPlayed - wrWhenNotPlayed;
+  const isDeckCard = row.drawnGames > 0 || row.notDrawnGames > 0 || row.drawn > 0;
+  const deadCardScore = isDeckCard
+    ? clampScore((drawFrequency * 25) + ((1 - playRate) * 35) + (heldRate * 30) + Math.max(0, factionBaseline - wrWhenDrawn) * 0.4 + Math.max(0, -playImpact) * 0.3)
+    : 0;
+  const playedWinShare = row.played > 0 ? row.playedWins / row.played : 0;
+  const carryScore = isDeckCard
+    ? clampScore((playRate * 25) + (playedWinShare * 25) + Math.max(0, wrWhenPlayed - factionBaseline) * 0.8 + Math.max(0, playImpact) * 0.5)
+    : 0;
   return {
     ...row,
     wrWhenDrawn,
     wrWhenNotDrawn,
     wrWhenPlayed,
     wrWhenNotPlayed,
-    drawImpact: wrWhenDrawn - wrWhenNotDrawn,
-    playImpact: wrWhenPlayed - wrWhenNotPlayed,
+    drawImpact,
+    playImpact,
+    deadCardScore,
+    carryScore,
+    factionBaseline,
+    isDeckCard,
   };
 }
 
@@ -637,9 +679,10 @@ function printBasicSimulatorTelemetry(simTelemetry, factionKeys, totalGames) {
 
 function printCardSimulatorTelemetry(simTelemetry) {
   console.log('\nSimulator telemetry: per-card summary');
+  const factionBaselines = Object.fromEntries(Object.entries(simTelemetry.factions ?? {}).map(([faction, row]) => [faction, percentValue(row.wins, row.games - row.draws)]));
   const rows = Object.values(simTelemetry.cards)
     .sort((a, b) => a.faction.localeCompare(b.faction) || a.cardName.localeCompare(b.cardName))
-    .map((row) => cardImpactRow(row));
+    .map((row) => cardImpactRow(row, factionBaselines));
   console.table(rows.map((row) => ({
       faction: row.faction,
       card: row.cardName,
@@ -647,6 +690,9 @@ function printCardSimulatorTelemetry(simTelemetry) {
       drawn: row.drawn,
       played: row.played,
       'held at defeat': row.heldAtDefeat,
+      deathsTotal: row.deathsTotal,
+      deathsInCombat: row.deathsInCombat,
+      deathsNonCombat: row.deathsNonCombat,
       'avg turn played': avg(row.turnPlayedTotal, row.played),
       drawnGames: row.drawnGames,
       drawnWins: row.drawnWins,
@@ -666,6 +712,8 @@ function printCardSimulatorTelemetry(simTelemetry) {
       'WR When Not Played': `${percent(row.notPlayedWins, row.notPlayedGames)}%`,
       'Draw Impact': percentagePoints(row.drawImpact),
       'Play Impact': percentagePoints(row.playImpact),
+      'Dead Card Score': row.deadCardScore,
+      'Carry Score': row.carryScore,
     })));
 
   const rank = (label, values) => {
@@ -684,6 +732,35 @@ function printCardSimulatorTelemetry(simTelemetry) {
   rank('Worst 10 Draw Impact', [...rows].sort((a, b) => a.drawImpact - b.drawImpact).slice(0, 10));
   rank('Top 10 Play Impact', [...rows].sort((a, b) => b.playImpact - a.playImpact).slice(0, 10));
   rank('Worst 10 Play Impact', [...rows].sort((a, b) => a.playImpact - b.playImpact).slice(0, 10));
+
+  console.log('\nMost Dead Cards');
+  console.table([...rows].sort((a, b) => b.deadCardScore - a.deadCardScore || b.heldAtDefeat - a.heldAtDefeat).slice(0, 10).map((row) => ({
+    Card: row.cardName,
+    Drawn: row.drawn,
+    Played: row.played,
+    'Held At Defeat': row.heldAtDefeat,
+    'Dead Card Score': row.deadCardScore,
+  })));
+
+  console.log('\nCarry Cards');
+  console.table([...rows].sort((a, b) => b.carryScore - a.carryScore || b.playedWins - a.playedWins).slice(0, 10).map((row) => ({
+    Card: row.cardName,
+    'Win Rate When Played': row.playedGames > 0 ? `${pct(row.wrWhenPlayed)}` : 'N/A',
+    Played: row.played,
+    'Carry Score': row.carryScore,
+  })));
+
+  console.log('\nCampaign Intelligence');
+  console.table(Object.entries(factionBaselines).sort(([a], [b]) => a.localeCompare(b)).map(([faction, campaignEstimate]) => {
+    const factionRows = rows.filter((row) => row.faction === faction && row.isDeckCard);
+    const avgDead = factionRows.length > 0 ? factionRows.reduce((sum, row) => sum + row.deadCardScore, 0) / factionRows.length : 0;
+    return {
+      Faction: faction,
+      Campaign: `${pct(campaignEstimate)}`,
+      'Average Dead Card Score': avgDead.toFixed(1),
+      'Dead Cards >80': factionRows.filter((row) => row.deadCardScore > 80).length,
+    };
+  }));
 }
 
 
