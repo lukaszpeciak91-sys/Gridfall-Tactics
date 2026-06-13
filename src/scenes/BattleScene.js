@@ -49,12 +49,16 @@ const HERO_PANEL_HIT_FILL_ALPHA = 0.52;
 const HERO_PANEL_HIT_STROKE_ALPHA = 0.86;
 const HERO_PANEL_WIDTH_RATIO = 0.66;
 const BASE_SCREEN_FILL = 0x07111f;
-const BASE_SCREEN_CENTER = 0x122033;
+const BASE_SCREEN_CENTER = 0x14243a;
+const BASE_SCREEN_EDGE = 0x020617;
+const BASE_SCREEN_INNER_GLOW = 0x38bdf8;
 const BASE_SCREEN_SCANLINE = 0x93c5fd;
 const BASE_SCREEN_BAND = 0x38bdf8;
+const BASE_SCREEN_REFLECTION = 0xe0f2fe;
 const BASE_SCREEN_GLITCH_RED = 0xff3b30;
 const BASE_SCREEN_GLITCH_CYAN = 0x22d3ee;
 const BASE_FRAME_OVERLOAD_MS = 135;
+const BASE_FRAME_BOOT_MS = 330;
 const BASE_UTILITY_CONTROL_FILL = 0x020617;
 const BASE_UTILITY_CONTROL_FILL_ALPHA = 0.62;
 const BASE_UTILITY_CONTROL_HOVER_FILL = 0x0f172a;
@@ -1173,7 +1177,11 @@ export default class BattleScene extends Phaser.Scene {
       panelHeight,
       overloadEvent: null,
       overloadActive: false,
+      booting: true,
+      bootSweep: null,
     };
+    graphics.setDepth(112);
+    graphics.setAlpha(0);
     graphics.setData('side', side);
     graphics.setData('baseFrameMetrics', {
       panelWidth,
@@ -1184,7 +1192,41 @@ export default class BattleScene extends Phaser.Scene {
     });
     this.baseFrameViews[side] = frameView;
     this.renderBaseBroadcastFrame(frameView);
+    this.playBaseBroadcastBoot(frameView);
     return frameView;
+  }
+
+
+  playBaseBroadcastBoot(frameView) {
+    if (!frameView?.graphics?.active || !frameView?.panel?.active) return;
+
+    const { panel, panelWidth, panelHeight } = frameView;
+    const left = panel.x - panelWidth / 2;
+    const top = panel.y - panelHeight / 2;
+    const sweep = this.add.graphics().setDepth(113).setAlpha(0);
+    sweep.fillStyle(BASE_SCREEN_BAND, 0.16);
+    sweep.fillRect(left + panelWidth * 0.06, top, panelWidth * 0.88, Math.max(2, panelHeight * 0.13));
+    frameView.bootSweep = sweep;
+
+    this.tweens.add({
+      targets: frameView.graphics,
+      alpha: 1,
+      duration: BASE_FRAME_BOOT_MS,
+      ease: 'Sine.easeOut',
+    });
+    this.tweens.add({
+      targets: sweep,
+      y: panelHeight * 0.86,
+      alpha: { from: 0.22, to: 0 },
+      duration: BASE_FRAME_BOOT_MS,
+      ease: 'Cubic.easeOut',
+      onComplete: () => {
+        sweep.destroy();
+        frameView.bootSweep = null;
+        frameView.booting = false;
+        this.renderBaseBroadcastFrame(frameView);
+      },
+    });
   }
 
   renderBaseBroadcastFrame(frameView) {
@@ -1197,11 +1239,12 @@ export default class BattleScene extends Phaser.Scene {
     const height = panelHeight;
     const left = panel.x - width / 2;
     const top = panel.y - height / 2;
-    const centerBandHeight = Math.max(3, height * 0.18);
-    const scanlineStep = Math.max(4, Math.floor(height * 0.15));
-    const scanlineAlpha = overloadActive ? 0.18 : 0.055;
-    const bandAlpha = overloadActive ? 0.18 : (isActive ? 0.115 : 0.075);
-    const centerAlpha = overloadActive ? 0.24 : (isActive ? 0.18 : 0.14);
+    const centerBandHeight = Math.max(3, height * 0.22);
+    const scanlineStep = Math.max(3, Math.floor(height * 0.12));
+    const scanlineAlpha = overloadActive ? 0.16 : 0.045;
+    const bandAlpha = overloadActive ? 0.16 : (isActive ? 0.1 : 0.065);
+    const centerAlpha = overloadActive ? 0.26 : (isActive ? 0.2 : 0.16);
+    const glowAlpha = overloadActive ? 0.14 : (isActive ? 0.095 : 0.06);
 
     graphics.clear();
 
@@ -1211,7 +1254,17 @@ export default class BattleScene extends Phaser.Scene {
     graphics.fillRect(left, top, width, height);
 
     graphics.fillStyle(BASE_SCREEN_CENTER, centerAlpha);
-    graphics.fillRect(left + width * 0.12, panel.y - centerBandHeight / 2, width * 0.76, centerBandHeight);
+    graphics.fillRect(left + width * 0.1, panel.y - centerBandHeight / 2, width * 0.8, centerBandHeight);
+
+    graphics.fillStyle(BASE_SCREEN_INNER_GLOW, glowAlpha);
+    graphics.fillRect(left + width * 0.08, top + height * 0.18, width * 0.84, Math.max(1.5, height * 0.035));
+    graphics.fillRect(left + width * 0.08, top + height * 0.78, width * 0.84, Math.max(1.5, height * 0.035));
+
+    graphics.fillStyle(BASE_SCREEN_EDGE, 0.2);
+    graphics.fillRect(left, top, width, Math.max(2, height * 0.16));
+    graphics.fillRect(left, top + height * 0.84, width, Math.max(2, height * 0.16));
+    graphics.fillRect(left, top, Math.max(2, width * 0.045), height);
+    graphics.fillRect(left + width * 0.955, top, Math.max(2, width * 0.045), height);
 
     graphics.lineStyle(1, BASE_SCREEN_SCANLINE, scanlineAlpha);
     for (let y = top + scanlineStep; y < top + height; y += scanlineStep) {
@@ -1220,6 +1273,14 @@ export default class BattleScene extends Phaser.Scene {
       graphics.lineTo(left + width * 0.96, y);
       graphics.strokePath();
     }
+
+    graphics.fillStyle(BASE_SCREEN_REFLECTION, side === 'enemy' ? 0.055 : 0.045);
+    const reflectionX = side === 'enemy' ? left + width * 0.68 : left + width * 0.12;
+    graphics.fillTriangle(
+      reflectionX, top + height * 0.12,
+      reflectionX + width * 0.18, top + height * 0.12,
+      reflectionX + width * 0.05, top + height * 0.36,
+    );
 
     graphics.lineStyle(1, BASE_SCREEN_BAND, bandAlpha);
     graphics.beginPath();
@@ -1532,14 +1593,14 @@ export default class BattleScene extends Phaser.Scene {
       fontSize: `${Math.max(24, Math.floor(topHero.h * 0.62))}px`,
       color: '#f8fafc',
       fontStyle: 'bold',
-    }).setOrigin(0.5, 0.5);
+    }).setOrigin(0.5, 0.5).setDepth(123).setStroke('#020617', 4);
 
     this.playerHpText = this.add.text(playerPanel.x, playerPanel.y, '', {
       fontFamily: 'Arial, sans-serif',
       fontSize: `${Math.max(23, Math.floor(playerHero.h * 0.6))}px`,
       color: '#f8fafc',
       fontStyle: 'bold',
-    }).setOrigin(0.5, 0.5);
+    }).setOrigin(0.5, 0.5).setDepth(123).setStroke('#020617', 4);
 
     this.playerBaseActionLabelText = this.add.text(playerPanel.x, playerPanel.y, '', {
       fontFamily: 'Arial, sans-serif',
@@ -3058,9 +3119,11 @@ export default class BattleScene extends Phaser.Scene {
     }
     const playerHero = this.layout?.playerHero;
     const centerY = this.playerHeroPanel?.y ?? playerHero?.centerY ?? this.playerHpText?.y ?? 0;
-    const passHpOffset = playerHero ? Math.max(7, Math.floor(playerHero.h * 0.18)) : 10;
-    const passLabelOffset = playerHero ? Math.max(10, Math.floor(playerHero.h * 0.24)) : 14;
-    const passFontSize = playerHero ? Math.max(13, Math.floor(playerHero.h * 0.27)) : 14;
+    const passHpOffset = playerHero ? Math.max(8, Math.floor(playerHero.h * 0.21)) : 10;
+    const passLabelOffset = playerHero ? Math.max(12, Math.floor(playerHero.h * 0.27)) : 14;
+    const passFontSize = playerHero ? Math.max(14, Math.floor(playerHero.h * 0.3)) : 14;
+    const passHpFontSize = playerHero ? Math.max(16, Math.floor(playerHero.h * 0.34)) : 16;
+    const normalHpFontSize = playerHero ? Math.max(23, Math.floor(playerHero.h * 0.6)) : 23;
     const mulliganFontSize = playerHero ? Math.max(22, Math.floor(playerHero.h * 0.58)) : 22;
 
     if (this.playerBaseActionLabelText) {
@@ -3077,6 +3140,7 @@ export default class BattleScene extends Phaser.Scene {
 
     if (this.playerHpText) {
       this.playerHpText
+        .setFontSize(passActionActive ? passHpFontSize : normalHpFontSize)
         .setY(passActionActive ? centerY - passHpOffset : centerY)
         .setVisible(!mulliganActionActive);
     }
@@ -3523,11 +3587,11 @@ export default class BattleScene extends Phaser.Scene {
 
     if (this.playerHeroPanel) {
       this.playerHeroPanel.setStrokeStyle(playerActive ? 3 : 2, 0x60a5fa, playerActive ? HERO_PANEL_ACTIVE_STROKE_ALPHA : HERO_PANEL_STROKE_ALPHA);
-      this.playerHeroPanel.setFillStyle(0x111827, playerActive ? HERO_PANEL_ACTIVE_FILL_ALPHA : HERO_PANEL_FILL_ALPHA);
+      this.playerHeroPanel.setFillStyle(BASE_SCREEN_FILL, playerActive ? HERO_PANEL_ACTIVE_FILL_ALPHA : HERO_PANEL_FILL_ALPHA);
     }
     if (this.enemyHeroPanel) {
       this.enemyHeroPanel.setStrokeStyle(enemyActive ? 3 : 2, 0xf87171, enemyActive ? HERO_PANEL_ACTIVE_STROKE_ALPHA : HERO_PANEL_STROKE_ALPHA);
-      this.enemyHeroPanel.setFillStyle(0x111827, enemyActive ? HERO_PANEL_ACTIVE_FILL_ALPHA : HERO_PANEL_FILL_ALPHA);
+      this.enemyHeroPanel.setFillStyle(BASE_SCREEN_FILL, enemyActive ? HERO_PANEL_ACTIVE_FILL_ALPHA : HERO_PANEL_FILL_ALPHA);
     }
     if (this.playerInitiativeIcon) this.playerInitiativeIcon.setVisible(playerActive);
     if (this.enemyInitiativeIcon) this.enemyInitiativeIcon.setVisible(enemyActive);
@@ -6147,8 +6211,8 @@ export default class BattleScene extends Phaser.Scene {
   refreshHeroHP() {
     if (!this.enemyHpText || !this.playerHpText) {
       const { width, topHero, playerHero } = this.layout;
-      this.enemyHpText = this.add.text(width * 0.5, topHero.centerY, '', { fontFamily: 'Arial, sans-serif', fontSize: `${Math.max(24, Math.floor(topHero.h * 0.62))}px`, color: '#f8fafc', fontStyle: 'bold' }).setOrigin(0.5);
-      this.playerHpText = this.add.text(width * 0.5, playerHero.centerY, '', { fontFamily: 'Arial, sans-serif', fontSize: `${Math.max(23, Math.floor(playerHero.h * 0.6))}px`, color: '#f8fafc', fontStyle: 'bold' }).setOrigin(0.5);
+      this.enemyHpText = this.add.text(width * 0.5, topHero.centerY, '', { fontFamily: 'Arial, sans-serif', fontSize: `${Math.max(24, Math.floor(topHero.h * 0.62))}px`, color: '#f8fafc', fontStyle: 'bold' }).setOrigin(0.5).setDepth(123).setStroke('#020617', 4);
+      this.playerHpText = this.add.text(width * 0.5, playerHero.centerY, '', { fontFamily: 'Arial, sans-serif', fontSize: `${Math.max(23, Math.floor(playerHero.h * 0.6))}px`, color: '#f8fafc', fontStyle: 'bold' }).setOrigin(0.5).setDepth(123).setStroke('#020617', 4);
     }
     this.enemyHpText.setText(`${this.gameState.enemyHP}`);
     this.playerHpText.setText(`${this.gameState.playerHP}`);
