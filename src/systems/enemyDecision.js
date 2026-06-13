@@ -1,4 +1,5 @@
 import { canPlayOrRedeploy, canSwap, performSwap, playEffectCard, playOrRedeployUnit, resolveTargetedEffectCard, resolveTargetedUnitOnPlayEffect, getUnitAttack, getUnitArmor, RUNNER_OPEN_LANE_HERO_BONUS, resolveImmediateNoProgressWinner, battleCanRealisticallyChangeOutcome, canPlayEffectCard } from './GameState.js';
+import { ACTIVE_EFFECT_VARIANTS } from './effectVariantRegistry.generated.js';
 
 const ENEMY_ROW_INDEXES = [0, 1, 2];
 const PLAYER_ROW_INDEXES = [6, 7, 8];
@@ -405,6 +406,20 @@ function getCandidateTargetIndexes(state, owner, effectId) {
   }
 }
 
+
+function isSkipBaseEffectVariantAction(state, owner, action) {
+  if (!state || !action?.cardId || !action?.effectId) return false;
+  const side = owner === 'enemy' ? state.enemy : state.player;
+  const factionId = side?.factionId;
+  if (!factionId) return false;
+  const registryKey = `${factionId}::${action.cardId}::${action.effectId}`;
+  const registry = state.effectVariantRegistry ?? ACTIVE_EFFECT_VARIANTS;
+  const variant = registry?.[registryKey];
+  const firstOperation = Array.isArray(variant?.sequence) ? variant.sequence[0] : null;
+  return variant?.baseEffectId === action.effectId
+    && firstOperation?.operation === 'skipBaseEffect'
+    && Object.keys(firstOperation).length === 1;
+}
 
 function getActionTargetIndexes(action) {
   if (Array.isArray(action?.targetIndexes) && action.targetIndexes.length > 0) {
@@ -901,7 +916,7 @@ function scoreAction(state, owner, action) {
     if ((target?.hp ?? 0) <= 1) score += 650;
   }
 
-  if (action.effectId === 'destroy_friendly_draw_1') {
+  if (action.effectId === 'destroy_friendly_draw_1' && !isSkipBaseEffectVariantAction(state, owner, action)) {
     const targetValue = getFeastTargetValue(state, owner, action.targetIndex);
     if (!Number.isFinite(targetValue)) return Number.NEGATIVE_INFINITY;
     const side = owner === 'enemy' ? state.enemy : state.player;
