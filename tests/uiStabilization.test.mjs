@@ -190,11 +190,18 @@ test('BattleScene renders clean base transmission screens without decorative emi
   assert.doesNotMatch(battleSource, /setDepth\(BASE_BACKDROP_DEPTH\)/);
   assert.match(battleSource, /const BASE_SCREEN_FILL = 0x0a1728;/);
   assert.match(battleSource, /const BASE_FRAME_OVERLOAD_MS = 135;/);
+  assert.match(battleSource, /const BASE_FRAME_GRAPHICS_DEPTH = 112;/);
+  assert.match(battleSource, /const BASE_TERMINAL_TEXT_DEPTH = 123;/);
+  assert.match(battleSource, /const BASE_GLASS_REFLECTION_DEPTH = 124;/);
+  assert.match(battleSource, /const FLOATING_FEEDBACK_DEPTH = 250;/);
   assert.match(battleSource, /createBaseBroadcastFrame\('enemy', enemyPanel, panelWidth, topHero\.h\);/);
   assert.match(battleSource, /createBaseBroadcastFrame\('player', playerPanel, panelWidth, playerHero\.h\);/);
   assert.match(battleSource, /slightly brighter center/);
   assert.match(battleSource, /scanlineStep/);
   assert.match(battleSource, /BASE_SCREEN_GLITCH_RED/);
+  assert.match(battleSource, /const glassGraphics = this\.add\.graphics\(\);/);
+  assert.match(battleSource, /this\.renderBaseBroadcastGlass\(frameView, \{ screenLeft, screenTop, screenWidth, screenHeight \}\);/);
+  assert.match(battleSource, /renderBaseBroadcastGlass\(frameView, screenMetrics\)/);
   assert.doesNotMatch(battleSource, /fillCircle\(leftNodeX/);
   assert.doesNotMatch(battleSource, /if \(!isBlocked\) this\.shakeHeroPanel\(side\)/);
   assert.match(baseDocs, /ui\.baseBackdrop\.base/);
