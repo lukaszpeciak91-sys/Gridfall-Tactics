@@ -188,7 +188,7 @@ test('BattleScene renders clean base transmission screens without decorative emi
   assert.doesNotMatch(battleSource, /preloadImageAsset\(this, BASE_BACKDROP_ASSET/);
   assert.doesNotMatch(battleSource, /drawBaseBackdrops/);
   assert.doesNotMatch(battleSource, /setDepth\(BASE_BACKDROP_DEPTH\)/);
-  assert.match(battleSource, /const BASE_SCREEN_FILL = 0x07111f;/);
+  assert.match(battleSource, /const BASE_SCREEN_FILL = 0x0a1728;/);
   assert.match(battleSource, /const BASE_FRAME_OVERLOAD_MS = 135;/);
   assert.match(battleSource, /createBaseBroadcastFrame\('enemy', enemyPanel, panelWidth, topHero\.h\);/);
   assert.match(battleSource, /createBaseBroadcastFrame\('player', playerPanel, panelWidth, playerHero\.h\);/);
