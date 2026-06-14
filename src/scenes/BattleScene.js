@@ -66,6 +66,11 @@ const BASE_BEACON_FADE_MS = 240;
 const BASE_SCREEN_REFLECTION = 0xe0f2fe;
 const BASE_SCREEN_GLITCH_RED = 0xff3b30;
 const BASE_SCREEN_GLITCH_CYAN = 0x22d3ee;
+const BASE_TERMINAL_TEXT_COLOR = '#fff7df';
+const BASE_TERMINAL_TEXT_STROKE = '#083344';
+const BASE_TERMINAL_TEXT_STROKE_WIDTH = 3;
+const BASE_TERMINAL_TEXT_GLOW = 'rgba(56, 189, 248, 0.42)';
+const BASE_TERMINAL_TEXT_GLOW_BLUR = 4;
 const BASE_FRAME_SHADOW = 0x020617;
 const BASE_FRAME_RECESS = 0x0f172a;
 const BASE_FRAME_OVERLOAD_MS = 135;
@@ -1815,25 +1820,25 @@ export default class BattleScene extends Phaser.Scene {
     this.enemyHpText = this.add.text(enemyPanel.x, enemyPanel.y, '', {
       fontFamily: 'Arial, sans-serif',
       fontSize: `${Math.max(24, Math.floor(topHero.h * 0.62))}px`,
-      color: '#f8fafc',
+      color: BASE_TERMINAL_TEXT_COLOR,
       fontStyle: 'bold',
-    }).setOrigin(0.5, 0.5).setDepth(123).setStroke('#020617', 4);
+    }).setOrigin(0.5, 0.5).setDepth(123).setStroke(BASE_TERMINAL_TEXT_STROKE, BASE_TERMINAL_TEXT_STROKE_WIDTH).setShadow(0, 0, BASE_TERMINAL_TEXT_GLOW, BASE_TERMINAL_TEXT_GLOW_BLUR, true, true);
 
     this.playerHpText = this.add.text(playerPanel.x, playerPanel.y, '', {
       fontFamily: 'Arial, sans-serif',
       fontSize: `${Math.max(23, Math.floor(playerHero.h * 0.6))}px`,
-      color: '#f8fafc',
+      color: BASE_TERMINAL_TEXT_COLOR,
       fontStyle: 'bold',
-    }).setOrigin(0.5, 0.5).setDepth(123).setStroke('#020617', 4);
+    }).setOrigin(0.5, 0.5).setDepth(123).setStroke(BASE_TERMINAL_TEXT_STROKE, BASE_TERMINAL_TEXT_STROKE_WIDTH).setShadow(0, 0, BASE_TERMINAL_TEXT_GLOW, BASE_TERMINAL_TEXT_GLOW_BLUR, true, true);
 
     this.playerBaseActionLabelText = this.add.text(playerPanel.x, playerPanel.y, '', {
       fontFamily: 'Arial, sans-serif',
       fontSize: `${Math.max(22, Math.floor(playerHero.h * 0.58))}px`,
-      color: '#fffbeb',
+      color: BASE_TERMINAL_TEXT_COLOR,
       fontStyle: 'bold',
       align: 'center',
       fixedWidth: Math.floor(panelWidth * 0.86),
-    }).setOrigin(0.5).setDepth(123).setStroke('#0f172a', 4).setVisible(false);
+    }).setOrigin(0.5).setDepth(123).setStroke(BASE_TERMINAL_TEXT_STROKE, BASE_TERMINAL_TEXT_STROKE_WIDTH).setShadow(0, 0, BASE_TERMINAL_TEXT_GLOW, BASE_TERMINAL_TEXT_GLOW_BLUR, true, true).setVisible(false);
 
     this.updateActionSlotBadge();
   }
@@ -6433,8 +6438,8 @@ export default class BattleScene extends Phaser.Scene {
   refreshHeroHP() {
     if (!this.enemyHpText || !this.playerHpText) {
       const { width, topHero, playerHero } = this.layout;
-      this.enemyHpText = this.add.text(width * 0.5, topHero.centerY, '', { fontFamily: 'Arial, sans-serif', fontSize: `${Math.max(24, Math.floor(topHero.h * 0.62))}px`, color: '#f8fafc', fontStyle: 'bold' }).setOrigin(0.5).setDepth(123).setStroke('#020617', 4);
-      this.playerHpText = this.add.text(width * 0.5, playerHero.centerY, '', { fontFamily: 'Arial, sans-serif', fontSize: `${Math.max(23, Math.floor(playerHero.h * 0.6))}px`, color: '#f8fafc', fontStyle: 'bold' }).setOrigin(0.5).setDepth(123).setStroke('#020617', 4);
+      this.enemyHpText = this.add.text(width * 0.5, topHero.centerY, '', { fontFamily: 'Arial, sans-serif', fontSize: `${Math.max(24, Math.floor(topHero.h * 0.62))}px`, color: BASE_TERMINAL_TEXT_COLOR, fontStyle: 'bold' }).setOrigin(0.5).setDepth(123).setStroke(BASE_TERMINAL_TEXT_STROKE, BASE_TERMINAL_TEXT_STROKE_WIDTH).setShadow(0, 0, BASE_TERMINAL_TEXT_GLOW, BASE_TERMINAL_TEXT_GLOW_BLUR, true, true);
+      this.playerHpText = this.add.text(width * 0.5, playerHero.centerY, '', { fontFamily: 'Arial, sans-serif', fontSize: `${Math.max(23, Math.floor(playerHero.h * 0.6))}px`, color: BASE_TERMINAL_TEXT_COLOR, fontStyle: 'bold' }).setOrigin(0.5).setDepth(123).setStroke(BASE_TERMINAL_TEXT_STROKE, BASE_TERMINAL_TEXT_STROKE_WIDTH).setShadow(0, 0, BASE_TERMINAL_TEXT_GLOW, BASE_TERMINAL_TEXT_GLOW_BLUR, true, true);
     }
     this.enemyHpText.setText(`${this.gameState.enemyHP}`);
     this.playerHpText.setText(`${this.gameState.playerHP}`);
