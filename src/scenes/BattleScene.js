@@ -1292,10 +1292,13 @@ export default class BattleScene extends Phaser.Scene {
     const screenInset = outerLip + recessedGap + innerLip;
     const moduleWidth = Math.max(17, Math.min(width * 0.105, height * 0.5));
     const moduleGap = Math.max(3, Math.round(width * 0.014));
-    const horizontalHardwareInset = outerLip;
-    const screenLeft = left + horizontalHardwareInset + moduleWidth + moduleGap;
+    const screenHardwareInset = outerLip;
+    // Beacons mount to the outer housing, not the inset scanline glass, so
+    // their casing inset is independent of the recessed screen anchor.
+    const beaconHardwareInset = Math.max(recessedGap, Math.round(outerLip * 0.35));
+    const screenLeft = left + screenHardwareInset + moduleWidth + moduleGap;
     const screenTop = top + screenInset;
-    const screenWidth = width - horizontalHardwareInset * 2 - (moduleWidth + moduleGap) * 2;
+    const screenWidth = width - screenHardwareInset * 2 - (moduleWidth + moduleGap) * 2;
     const screenHeight = height - screenInset * 2;
     const centerBandHeight = Math.max(3, screenHeight * 0.34);
     const scanlineStep = Math.max(3, Math.floor(height * 0.12));
@@ -1432,8 +1435,8 @@ export default class BattleScene extends Phaser.Scene {
     const beaconColor = side === 'player' ? BASE_BEACON_PLAYER_ACTIVE : BASE_BEACON_ENEMY_ACTIVE;
     const beaconHeight = Math.max(screenHeight, height - screenInset * 2);
     const beaconY = panel.y;
-    const leftBeaconX = left + horizontalHardwareInset + moduleWidth / 2;
-    const rightBeaconX = left + width - horizontalHardwareInset - moduleWidth / 2;
+    const leftBeaconX = left + beaconHardwareInset + moduleWidth / 2;
+    const rightBeaconX = left + width - beaconHardwareInset - moduleWidth / 2;
     [leftBeaconX, rightBeaconX].forEach((beaconX) => {
       this.drawBaseBroadcastBeaconModule(graphics, beaconX, beaconY, moduleWidth, beaconHeight, {
         intensity: overloadActive ? 1 : (frameView.beaconIntensity ?? (isActive ? 1 : 0)),
