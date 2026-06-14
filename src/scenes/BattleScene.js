@@ -41,6 +41,11 @@ const BOARD_TARGET_STROKE_ALPHA = 0.9;
 const BOARD_LANE_HIGHLIGHT_STROKE_ALPHA = 0.72;
 const BOARD_GUIDE_LANE_HIGHLIGHT_STROKE_ALPHA = 0.52;
 const BOARD_FEEDBACK_STROKE_ALPHA = 0.88;
+const DEATH_OVERLAY_DEPTH = 239;
+const DEATH_OVERLAY_HOLD_MS = 35;
+const DEATH_OVERLAY_FADE_MS = 185;
+const DEATH_OVERLAY_FINAL_SCALE = 0.9;
+const DEATH_OVERLAY_DRIFT_PX = 4;
 const HERO_PANEL_FILL_ALPHA = 0.5;
 const HERO_PANEL_ACTIVE_FILL_ALPHA = 0.58;
 const HERO_PANEL_STROKE_ALPHA = 0.5;
@@ -4196,9 +4201,14 @@ export default class BattleScene extends Phaser.Scene {
     if (combatEvents.length > 0) {
       console.debug('Combat feedback events', combatEvents);
     }
-    await this.playCombatAnimations(combatEvents, preCombatFeedbackSnapshot.board);
+    const deathOverlayCandidates = this.getCombatDeathOverlayCandidates(preCombatFeedbackSnapshot.board);
+    await this.withSuppressedLethalFadeIndexes(deathOverlayCandidates.map((candidate) => candidate.index), async () => {
+      await this.playCombatAnimations(combatEvents, preCombatFeedbackSnapshot.board);
+    });
     await this.playCombatDeathTriggerFeedback(preCombatFeedbackSnapshot);
+    const deathOverlays = this.createCombatDeathOverlays(deathOverlayCandidates);
     this.refreshBoardLabels();
+    await this.playCombatDeathOverlays(deathOverlays);
     await this.playCombatCreationFeedback(preCombatFeedbackSnapshot);
     this.refreshHeroHP();
 
@@ -4985,9 +4995,19 @@ export default class BattleScene extends Phaser.Scene {
     if (!Array.isArray(combatEvents) || combatEvents.length === 0) return;
     if (!Array.isArray(combatSnapshot?.board)) return;
 
-    this.refreshBoardLabelsFromSnapshot(combatSnapshot.board);
-    await this.playCombatAnimations(combatEvents, combatSnapshot.board);
+    const deathOverlayCandidates = this.getCombatDeathOverlayCandidates(combatSnapshot.board);
+    const previousSuppressedLethalFadeIndexes = this.suppressedLethalFadeIndexes;
+    this.suppressedLethalFadeIndexes = new Set(deathOverlayCandidates.map((candidate) => candidate.index));
+    try {
+      this.refreshBoardLabelsFromSnapshot(combatSnapshot.board);
+      await this.playCombatAnimations(combatEvents, combatSnapshot.board);
+    } finally {
+      this.suppressedLethalFadeIndexes = previousSuppressedLethalFadeIndexes;
+    }
     await this.playCombatDeathTriggerFeedback(combatSnapshot);
+    const deathOverlays = this.createCombatDeathOverlays(deathOverlayCandidates);
+    this.refreshBoardLabels();
+    await this.playCombatDeathOverlays(deathOverlays);
   }
 
   async playImmediateCombatCreationFeedback(immediateCombatFeedback = null) {
@@ -5112,6 +5132,75 @@ export default class BattleScene extends Phaser.Scene {
       .map((unit, index) => ({ unit, index }))
       .filter(({ unit, index }) => unit && !this.isSameBoardUnit(unit, this.gameState.board[index]))
       .map(({ index }) => index);
+  }
+
+  getSnapshotUnitHealth(unit) {
+    if (Number.isFinite(unit?.hp)) return unit.hp;
+    if (Number.isFinite(unit?.health)) return unit.health;
+    return 0;
+  }
+
+  getCombatDeathOverlayCandidates(beforeSnapshot) {
+    if (!Array.isArray(beforeSnapshot) || !this.gameState?.board) return [];
+    const seenIndexes = new Set();
+    return beforeSnapshot
+      .map((unit, index) => ({ unit, index }))
+      .filter(({ unit, index }) => {
+        if (!unit || seenIndexes.has(index)) return false;
+        if (this.getSnapshotUnitHealth(unit) <= 0) return false;
+        if (this.isSameBoardUnit(unit, this.gameState.board[index])) return false;
+        seenIndexes.add(index);
+        return true;
+      });
+  }
+
+  withSuppressedLethalFadeIndexes(indexes, callback) {
+    const previous = this.suppressedLethalFadeIndexes;
+    this.suppressedLethalFadeIndexes = new Set((Array.isArray(indexes) ? indexes : []).filter(Number.isInteger));
+    return Promise.resolve()
+      .then(callback)
+      .finally(() => {
+        this.suppressedLethalFadeIndexes = previous;
+      });
+  }
+
+  shouldSuppressLethalFade(index) {
+    return Number.isInteger(index) && this.suppressedLethalFadeIndexes?.has(index);
+  }
+
+  createCombatDeathOverlays(candidates = []) {
+    if (!Array.isArray(candidates) || candidates.length === 0) return [];
+    return candidates
+      .map(({ unit, index }) => {
+        const cell = this.getCellByIndex(index);
+        const center = this.getBoardCellCenter(index);
+        if (!cell || !center || !unit) return null;
+        const overlay = this.add.container(center.x, center.y)
+          .setDepth(DEATH_OVERLAY_DEPTH)
+          .setAlpha(1)
+          .setScale(1);
+        overlay.add(this.createBoardUnitView(cell, unit));
+        return overlay;
+      })
+      .filter(Boolean);
+  }
+
+  playCombatDeathOverlays(overlays = []) {
+    if (!Array.isArray(overlays) || overlays.length === 0) return Promise.resolve();
+    return Promise.all(overlays.map((overlay) => {
+      if (!overlay?.active) return Promise.resolve();
+      return this.delay(DEATH_OVERLAY_HOLD_MS)
+        .then(() => this.tweenToPromise({
+          targets: overlay,
+          alpha: 0,
+          scaleX: DEATH_OVERLAY_FINAL_SCALE,
+          scaleY: DEATH_OVERLAY_FINAL_SCALE,
+          y: overlay.y - DEATH_OVERLAY_DRIFT_PX,
+          duration: DEATH_OVERLAY_FADE_MS,
+          ease: 'Quad.easeIn',
+        }))
+        .finally(() => overlay.destroy());
+    }));
   }
 
   getHeroHpFromSnapshot(snapshot, side) {
@@ -6338,7 +6427,7 @@ export default class BattleScene extends Phaser.Scene {
             this.showUnitCombatText(target, event);
             animations.push(this.flashCellHit(target, event));
             if (event.prevention?.prevented) animations.push(this.showLastStandPreventionFeedback(targetIndex, event.prevention));
-            if (event.lethal) animations.push(this.playLethalFade(target));
+            if (event.lethal && !this.shouldSuppressLethalFade(targetIndex)) animations.push(this.playLethalFade(target));
           }
         }
       }
