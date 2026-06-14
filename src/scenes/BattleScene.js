@@ -69,7 +69,8 @@ const BASE_SCREEN_GLITCH_CYAN = 0x22d3ee;
 const BASE_TERMINAL_TEXT_COLOR = '#fff7df';
 const BASE_TERMINAL_TEXT_STROKE = '#083344';
 const BASE_TERMINAL_TEXT_STROKE_WIDTH = 3;
-const BASE_TERMINAL_TEXT_GLOW = 'rgba(56, 189, 248, 0.42)';
+const BASE_TERMINAL_TEXT_PLAYER_GLOW = 'rgba(56, 189, 248, 0.42)';
+const BASE_TERMINAL_TEXT_ENEMY_GLOW = 'rgba(248, 113, 113, 0.46)';
 const BASE_TERMINAL_TEXT_GLOW_BLUR = 4;
 const BASE_TERMINAL_TEXT_OPTICAL_Y_OFFSET_PX = -2;
 const BASE_SCREEN_FILL_BRIGHTNESS_ALPHA_BOOST = 0.06;
@@ -1548,19 +1549,35 @@ export default class BattleScene extends Phaser.Scene {
     const hp = this.getBaseHpForSide(side);
     if (!this.shouldShowBaseCrackForHp(hp)) return;
 
-    // Keep the central 60% text safe zone clean. This short fracture is anchored
-    // to the outer glass edge and ends before the left/right 20% boundary.
+    // Keep the central 50% text safe zone clean. The v1 fracture originates
+    // from the outer display-glass edge and stays within the outer 26% band so
+    // HP, PASS, and mulligan glyphs remain unobstructed.
     const edgeSign = side === 'enemy' ? 1 : -1;
     const anchorX = side === 'enemy' ? screenLeft + screenWidth * 0.985 : screenLeft + screenWidth * 0.015;
-    const anchorY = screenTop + screenHeight * (side === 'enemy' ? 0.34 : 0.66);
-    const endX = anchorX - edgeSign * screenWidth * 0.16;
-    const midX = anchorX - edgeSign * screenWidth * 0.08;
+    const anchorY = screenTop + screenHeight * (side === 'enemy' ? 0.28 : 0.72);
+    const midX = anchorX - edgeSign * screenWidth * 0.12;
+    const endX = anchorX - edgeSign * screenWidth * 0.255;
+    const forkX = anchorX - edgeSign * screenWidth * 0.19;
+    const midY = anchorY + screenHeight * (side === 'enemy' ? 0.055 : -0.055);
+    const endY = anchorY + screenHeight * (side === 'enemy' ? 0.025 : -0.025);
+    const forkY = anchorY + screenHeight * (side === 'enemy' ? 0.135 : -0.135);
 
-    crackGraphics.lineStyle(1, BASE_SCREEN_REFLECTION, 0.28);
+    crackGraphics.lineStyle(2, BASE_FRAME_SHADOW, 0.42);
     crackGraphics.beginPath();
     crackGraphics.moveTo(anchorX, anchorY);
-    crackGraphics.lineTo(midX, anchorY + screenHeight * 0.035);
-    crackGraphics.lineTo(endX, anchorY + screenHeight * 0.018);
+    crackGraphics.lineTo(midX, midY);
+    crackGraphics.lineTo(endX, endY);
+    crackGraphics.moveTo(midX, midY);
+    crackGraphics.lineTo(forkX, forkY);
+    crackGraphics.strokePath();
+
+    crackGraphics.lineStyle(1, BASE_SCREEN_REFLECTION, 0.62);
+    crackGraphics.beginPath();
+    crackGraphics.moveTo(anchorX, anchorY);
+    crackGraphics.lineTo(midX, midY);
+    crackGraphics.lineTo(endX, endY);
+    crackGraphics.moveTo(midX, midY);
+    crackGraphics.lineTo(forkX, forkY);
     crackGraphics.strokePath();
   }
 
@@ -1891,14 +1908,14 @@ export default class BattleScene extends Phaser.Scene {
       fontSize: `${Math.max(24, Math.floor(topHero.h * 0.62))}px`,
       color: BASE_TERMINAL_TEXT_COLOR,
       fontStyle: 'bold',
-    }).setOrigin(0.5, 0.5).setDepth(BASE_TERMINAL_TEXT_DEPTH).setStroke(BASE_TERMINAL_TEXT_STROKE, BASE_TERMINAL_TEXT_STROKE_WIDTH).setShadow(0, 0, BASE_TERMINAL_TEXT_GLOW, BASE_TERMINAL_TEXT_GLOW_BLUR, true, true).setY(enemyPanel.y + BASE_TERMINAL_TEXT_OPTICAL_Y_OFFSET_PX);
+    }).setOrigin(0.5, 0.5).setDepth(BASE_TERMINAL_TEXT_DEPTH).setStroke(BASE_TERMINAL_TEXT_STROKE, BASE_TERMINAL_TEXT_STROKE_WIDTH).setShadow(0, 0, BASE_TERMINAL_TEXT_ENEMY_GLOW, BASE_TERMINAL_TEXT_GLOW_BLUR, true, true).setY(enemyPanel.y + BASE_TERMINAL_TEXT_OPTICAL_Y_OFFSET_PX);
 
     this.playerHpText = this.add.text(playerPanel.x, playerPanel.y, '', {
       fontFamily: 'Arial, sans-serif',
       fontSize: `${Math.max(23, Math.floor(playerHero.h * 0.6))}px`,
       color: BASE_TERMINAL_TEXT_COLOR,
       fontStyle: 'bold',
-    }).setOrigin(0.5, 0.5).setDepth(BASE_TERMINAL_TEXT_DEPTH).setStroke(BASE_TERMINAL_TEXT_STROKE, BASE_TERMINAL_TEXT_STROKE_WIDTH).setShadow(0, 0, BASE_TERMINAL_TEXT_GLOW, BASE_TERMINAL_TEXT_GLOW_BLUR, true, true).setY(playerPanel.y + BASE_TERMINAL_TEXT_OPTICAL_Y_OFFSET_PX);
+    }).setOrigin(0.5, 0.5).setDepth(BASE_TERMINAL_TEXT_DEPTH).setStroke(BASE_TERMINAL_TEXT_STROKE, BASE_TERMINAL_TEXT_STROKE_WIDTH).setShadow(0, 0, BASE_TERMINAL_TEXT_PLAYER_GLOW, BASE_TERMINAL_TEXT_GLOW_BLUR, true, true).setY(playerPanel.y + BASE_TERMINAL_TEXT_OPTICAL_Y_OFFSET_PX);
 
     this.playerBaseActionLabelText = this.add.text(playerPanel.x, playerPanel.y, '', {
       fontFamily: 'Arial, sans-serif',
@@ -1907,7 +1924,7 @@ export default class BattleScene extends Phaser.Scene {
       fontStyle: 'bold',
       align: 'center',
       fixedWidth: Math.floor(panelWidth * 0.86),
-    }).setOrigin(0.5).setDepth(BASE_TERMINAL_TEXT_DEPTH).setStroke(BASE_TERMINAL_TEXT_STROKE, BASE_TERMINAL_TEXT_STROKE_WIDTH).setShadow(0, 0, BASE_TERMINAL_TEXT_GLOW, BASE_TERMINAL_TEXT_GLOW_BLUR, true, true).setY(playerPanel.y + BASE_TERMINAL_TEXT_OPTICAL_Y_OFFSET_PX).setVisible(false);
+    }).setOrigin(0.5).setDepth(BASE_TERMINAL_TEXT_DEPTH).setStroke(BASE_TERMINAL_TEXT_STROKE, BASE_TERMINAL_TEXT_STROKE_WIDTH).setShadow(0, 0, BASE_TERMINAL_TEXT_PLAYER_GLOW, BASE_TERMINAL_TEXT_GLOW_BLUR, true, true).setY(playerPanel.y + BASE_TERMINAL_TEXT_OPTICAL_Y_OFFSET_PX).setVisible(false);
 
     this.updateActionSlotBadge();
   }
@@ -6507,8 +6524,8 @@ export default class BattleScene extends Phaser.Scene {
   refreshHeroHP() {
     if (!this.enemyHpText || !this.playerHpText) {
       const { width, topHero, playerHero } = this.layout;
-      this.enemyHpText = this.add.text(width * 0.5, topHero.centerY + BASE_TERMINAL_TEXT_OPTICAL_Y_OFFSET_PX, '', { fontFamily: 'Arial, sans-serif', fontSize: `${Math.max(24, Math.floor(topHero.h * 0.62))}px`, color: BASE_TERMINAL_TEXT_COLOR, fontStyle: 'bold' }).setOrigin(0.5).setDepth(BASE_TERMINAL_TEXT_DEPTH).setStroke(BASE_TERMINAL_TEXT_STROKE, BASE_TERMINAL_TEXT_STROKE_WIDTH).setShadow(0, 0, BASE_TERMINAL_TEXT_GLOW, BASE_TERMINAL_TEXT_GLOW_BLUR, true, true);
-      this.playerHpText = this.add.text(width * 0.5, playerHero.centerY + BASE_TERMINAL_TEXT_OPTICAL_Y_OFFSET_PX, '', { fontFamily: 'Arial, sans-serif', fontSize: `${Math.max(23, Math.floor(playerHero.h * 0.6))}px`, color: BASE_TERMINAL_TEXT_COLOR, fontStyle: 'bold' }).setOrigin(0.5).setDepth(BASE_TERMINAL_TEXT_DEPTH).setStroke(BASE_TERMINAL_TEXT_STROKE, BASE_TERMINAL_TEXT_STROKE_WIDTH).setShadow(0, 0, BASE_TERMINAL_TEXT_GLOW, BASE_TERMINAL_TEXT_GLOW_BLUR, true, true);
+      this.enemyHpText = this.add.text(width * 0.5, topHero.centerY + BASE_TERMINAL_TEXT_OPTICAL_Y_OFFSET_PX, '', { fontFamily: 'Arial, sans-serif', fontSize: `${Math.max(24, Math.floor(topHero.h * 0.62))}px`, color: BASE_TERMINAL_TEXT_COLOR, fontStyle: 'bold' }).setOrigin(0.5).setDepth(BASE_TERMINAL_TEXT_DEPTH).setStroke(BASE_TERMINAL_TEXT_STROKE, BASE_TERMINAL_TEXT_STROKE_WIDTH).setShadow(0, 0, BASE_TERMINAL_TEXT_ENEMY_GLOW, BASE_TERMINAL_TEXT_GLOW_BLUR, true, true);
+      this.playerHpText = this.add.text(width * 0.5, playerHero.centerY + BASE_TERMINAL_TEXT_OPTICAL_Y_OFFSET_PX, '', { fontFamily: 'Arial, sans-serif', fontSize: `${Math.max(23, Math.floor(playerHero.h * 0.6))}px`, color: BASE_TERMINAL_TEXT_COLOR, fontStyle: 'bold' }).setOrigin(0.5).setDepth(BASE_TERMINAL_TEXT_DEPTH).setStroke(BASE_TERMINAL_TEXT_STROKE, BASE_TERMINAL_TEXT_STROKE_WIDTH).setShadow(0, 0, BASE_TERMINAL_TEXT_PLAYER_GLOW, BASE_TERMINAL_TEXT_GLOW_BLUR, true, true);
     }
     this.enemyHpText.setText(`${this.gameState.enemyHP}`);
     this.playerHpText.setText(`${this.gameState.playerHP}`);
