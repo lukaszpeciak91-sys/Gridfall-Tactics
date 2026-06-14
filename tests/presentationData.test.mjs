@@ -200,7 +200,7 @@ test('faction select metadata covers every faction with two updated chip tags', 
     ['Tank', ['Armor', 'Sustain']],
     ['Control', ['Disrupt', 'Move']],
     ['Swarm', ['Swarm', 'Growth']],
-    ['Wardens', ['Armor', 'Formation']],
+    ['Wardens', ['Support', 'Formation']],
     ['Attrition Swarm', ['Attrition', 'Return']],
   ]);
 

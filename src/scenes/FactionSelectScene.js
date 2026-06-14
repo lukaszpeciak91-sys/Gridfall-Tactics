@@ -47,7 +47,7 @@ const FACTION_CARD_DETAILS = {
   },
   Wardens: {
     description: 'Defensive friction and zone control.',
-    tags: ['Armor', 'Formation'],
+    tags: ['Support', 'Formation'],
     accentColor: 0xfacc15,
     fallbackTopColor: 0x713f12,
     fallbackBottomColor: 0x0f172a,
