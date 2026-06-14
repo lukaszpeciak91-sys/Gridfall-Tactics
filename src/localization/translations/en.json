@@ -70,7 +70,7 @@
     },
     "attrition_swarm_feast_1": {
       "name": "Feast",
-      "textShort": "Destroy an ally. Enemy base loses 1 HP."
+      "textShort": "Destroy [ALLY]. Enemy base loses 1 HP."
     },
     "attrition_swarm_rise_again_1": {
       "name": "Rise Again",
@@ -158,7 +158,7 @@
     },
     "swarm_recycle_1": {
       "name": "Substrate",
-      "textShort": "Enemies get -1 ARM this combat."
+      "textShort": "[ENEMIES]: -1 ARM until combat."
     },
     "tank_shieldbearer_1": {
       "name": "Shieldbearer",
@@ -226,7 +226,7 @@
     },
     "wardens_shield_push_1": {
       "name": "Mammoth Stampede",
-      "textShort": "Swap two adjacent enemies. They get -1 ATK this combat."
+      "textShort": "Swap two adjacent [ENEMIES].\nThey get -1 ATK until combat."
     },
     "wardens_stand_firm_1": {
       "name": "Endure the Cold",

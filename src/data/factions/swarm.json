@@ -116,7 +116,7 @@
       "type": "utility",
       "targeting": "none",
       "effectId": "enemy_all_armor_minus_1",
-      "textShort": "Enemies get -1 ARM this combat."
+      "textShort": "[ENEMIES]: -1 ARM until combat."
     }
   ]
 }

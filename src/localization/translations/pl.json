@@ -70,7 +70,7 @@
     },
     "attrition_swarm_feast_1": {
       "name": "Uczta",
-      "textShort": "Zniszcz sojusznika. Wroga baza traci 1 HP."
+      "textShort": "Zniszcz [ALLY]. Baza wroga traci 1 HP."
     },
     "attrition_swarm_rise_again_1": {
       "name": "Powstań Znowu",
@@ -158,7 +158,7 @@
     },
     "swarm_recycle_1": {
       "name": "Pożywka",
-      "textShort": "Wrogowie dostają -1 ARM w tej walce."
+      "textShort": "[ENEMIES]: -1 ARM do walki."
     },
     "tank_shieldbearer_1": {
       "name": "Tarczownik",
@@ -226,7 +226,7 @@
     },
     "wardens_shield_push_1": {
       "name": "Mamuci Napór",
-      "textShort": "Zamień miejscami dwóch sąsiednich wrogów. Dostają -1 ATK w tej walce."
+      "textShort": "Zamień miejscami dwóch sąsiednich [ENEMIES].\nDostają -1 ATK do walki."
     },
     "wardens_stand_firm_1": {
       "name": "Przetrwać Mróz",

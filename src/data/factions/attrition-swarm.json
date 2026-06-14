@@ -96,7 +96,7 @@
       "type": "utility",
       "targeting": "friendly_unit",
       "effectId": "destroy_friendly_damage_enemy_base_1",
-      "textShort": "Destroy an ally. Enemy base loses 1 HP."
+      "textShort": "Destroy [ALLY]. Enemy base loses 1 HP."
     },
     {
       "id": "attrition_swarm_rise_again_1",
