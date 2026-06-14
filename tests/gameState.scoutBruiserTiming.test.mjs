@@ -153,3 +153,131 @@ test('Bruiser pending attack bonus is capped at +1 across repeated pre-combat da
   assert.equal(state.board[6].hp, 1);
   assert.equal(getUnitAttack(state.board[6]), 3);
 });
+
+const emptyFaction = { id: 'test-faction', name: 'Test', deck: [] };
+
+function makeBlockedPlacementState(card) {
+  const state = createInitialBattleState(emptyFaction, emptyFaction, { skipInitialDraw: true });
+  state.player.hand.push(card);
+  state.playerLanePlayBlockedThisTurn = [true, false, false];
+  return state;
+}
+
+function placementEffectCard(id, effectId) {
+  return {
+    id,
+    name: id,
+    type: 'order',
+    targeting: 'none',
+    effectId,
+    textShort: '',
+  };
+}
+
+function fallenUnit(id = 'fallen-unit') {
+  return {
+    id,
+    name: id,
+    type: 'unit',
+    attack: 1,
+    hp: 2,
+    armor: 0,
+    effectId: null,
+  };
+}
+
+function addSummonTokenVariant(state, cardId, effectId = 'heal_2') {
+  const registryKey = `test-faction::${cardId}::${effectId}`;
+  state.effectVariantRegistry = {
+    [registryKey]: {
+      schemaVersion: 1,
+      registryKey,
+      variantId: `${cardId}_summon_token_variant`,
+      label: `${cardId} summon token variant`,
+      baseEffectId: effectId,
+      timing: 'afterBaseEffectBeforeDiscard',
+      sequence: [
+        { operation: 'runBaseEffect' },
+        { operation: 'summonToken', selector: 'firstEmptyOwnerSlot', token: 'grunt' },
+      ],
+    },
+  };
+}
+
+test('Tea Courier lane block makes Flood skip blocked placement slots', () => {
+  const state = makeBlockedPlacementState(placementEffectCard('flood', 'fill_empty_slots_0_1'));
+  state.board[7] = boardUnit('player', { id: 'existing-player-unit' });
+
+  const result = playEffectCard(state, 'player', 'flood');
+
+  assert.equal(result.ok, true);
+  assert.equal(state.board[6], null);
+  assert.equal(state.board[8]?.temporaryFloodToken, true);
+  assert.equal(state.board.filter((unit) => unit?.temporaryFloodToken).length, 1);
+});
+
+test('Tea Courier lane block can reduce Flood to zero tokens when every empty slot is blocked', () => {
+  const state = makeBlockedPlacementState(placementEffectCard('flood', 'fill_empty_slots_0_1'));
+  state.playerLanePlayBlockedThisTurn = [true, true, true];
+
+  const result = playEffectCard(state, 'player', 'flood');
+
+  assert.equal(result.ok, true);
+  assert.equal(state.board.filter((unit) => unit?.temporaryFloodToken).length, 0);
+  assert.deepEqual(state.board.slice(6, 9), [null, null, null]);
+});
+
+test('Tea Courier lane block makes revive_friendly_1hp use the next available placement slot', () => {
+  const state = makeBlockedPlacementState(placementEffectCard('revive', 'revive_friendly_1hp'));
+  state.player.fallen.push({ card: fallenUnit('revived-unit') });
+
+  const result = playEffectCard(state, 'player', 'revive');
+
+  assert.equal(result.ok, true);
+  assert.equal(state.board[6], null);
+  assert.equal(state.board[7]?.id, 'revived-unit');
+  assert.equal(state.board[7]?.hp, 1);
+});
+
+test('Tea Courier lane block makes Grave Call skip blocked placement slots', () => {
+  const state = makeBlockedPlacementState(placementEffectCard('grave-call', 'grave_call'));
+
+  const result = playEffectCard(state, 'player', 'grave-call');
+
+  assert.equal(result.ok, true);
+  assert.equal(state.board[6], null);
+  assert.match(state.board[7]?.id, /grave_call_grunt/);
+  assert.match(state.board[8]?.id, /grave_call_grunt/);
+});
+
+test('Tea Courier lane block makes summon_grunt_empty_slot skip blocked placement slots', () => {
+  const state = makeBlockedPlacementState(placementEffectCard('spawn', 'summon_grunt_empty_slot'));
+
+  const result = playEffectCard(state, 'player', 'spawn');
+
+  assert.equal(result.ok, true);
+  assert.equal(state.board[6], null);
+  assert.match(state.board[7]?.id, /summoned_grunt/);
+});
+
+test('Tea Courier lane block makes effectVariant summonToken skip blocked placement slots', () => {
+  const state = makeBlockedPlacementState(placementEffectCard('variant-card', 'heal_2'));
+  addSummonTokenVariant(state, 'variant-card');
+
+  const result = playEffectCard(state, 'player', 'variant-card');
+
+  assert.equal(result.ok, true);
+  assert.equal(state.board[6], null);
+  assert.match(state.board[7]?.id, /effect_variant_grunt/);
+  assert.equal(state.effectVariantOperationTelemetry[0].tokensSummoned, 1);
+});
+
+test('Tea Courier lane block expiration lets placement effects use the formerly blocked slot again', () => {
+  const state = makeBlockedPlacementState(placementEffectCard('spawn', 'summon_grunt_empty_slot'));
+
+  recordPassAction(state, 'player');
+  const result = playEffectCard(state, 'player', 'spawn');
+
+  assert.equal(result.ok, true);
+  assert.match(state.board[6]?.id, /summoned_grunt/);
+});
