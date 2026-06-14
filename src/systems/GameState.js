@@ -191,6 +191,7 @@ function cardCanRealisticallyAffectOutcome(card, state, owner, visitedCardIds = 
       return friendlyEmptySlotIsReachable && friendlyFallenUnits;
     case 'infect_damage_1_opposite_ally_atk_1':
       return enemyUnitIsReachable;
+    case 'destroy_friendly_damage_enemy_base_1':
     case 'destroy_friendly_draw_1':
     case 'return_friendly_draw_1': {
       if (!friendlyUnitIsReachable || visitedCardIds.has(card.id)) return false;
@@ -202,6 +203,7 @@ function cardCanRealisticallyAffectOutcome(card, state, owner, visitedCardIds = 
     case 'enemy_all_atk_minus_1':
     case 'enemy_lane_atk_minus_1':
     case 'buff_all_armor_1':
+    case 'enemy_all_armor_minus_1':
     case 'heal_all_1':
     case 'cannot_drop_below_1_this_turn':
     case 'temp_armor_1':
@@ -977,6 +979,8 @@ function canApplyEffectById(state, owner, effectId) {
     case 'swap_adjacent_enemy_units':
     case 'enemy_up_to_2_atk_minus_1':
       return false;
+    case 'enemy_all_armor_minus_1':
+      return getRowForOwner(getOpponentOwner(owner)).some((index) => state.board[index]?.owner === getOpponentOwner(owner));
     case 'swap_leftmost_adjacent_enemies':
       return Boolean(findLeftmostAdjacentEnemyPair(state, owner))
         && !hasMoveDisableImmunity(state, getOpponentOwner(owner), owner, effectId);
@@ -1679,6 +1683,15 @@ function applyEffectById(state, owner, effectId, sourceCard = null) {
       });
       break;
     }
+    case 'enemy_all_armor_minus_1': {
+      const enemyIndexes = getRowForOwner(getOpponentOwner(owner));
+      enemyIndexes.forEach((index) => {
+        const unit = state.board[index];
+        if (!unit) return;
+        unit.tempArmorMod = (unit.tempArmorMod ?? 0) - 1;
+      });
+      break;
+    }
     case 'adjacent_allies_temp_armor_1': {
       const friendlyIndexes = getAdjacentFriendlyFormationIndexes(state, owner);
       friendlyIndexes.forEach((index) => {
@@ -2130,6 +2143,15 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
       card.drawResult = drawCardsWithResult(side, 1);
       break;
     }
+    case 'destroy_friendly_damage_enemy_base_1': {
+      if (targetUnit.owner !== owner) return { ok: false, reason: 'Target must be friendly' };
+      state.board[boardIndex] = null;
+      recordFallenUnit(state, targetUnit, 'destroy');
+      const hpKey = owner === 'player' ? 'enemyHP' : 'playerHP';
+      state[hpKey] -= 1;
+      clampHeroHpAndResolveWinner(state);
+      break;
+    }
     case 'enemy_lane_atk_minus_1': {
       if (targetUnit.owner !== getOpponentOwner(owner)) return { ok: false, reason: 'Target must be enemy' };
       targetUnit.tempAttackMod = (targetUnit.tempAttackMod ?? 0) - 1;
@@ -2283,6 +2305,10 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
       }
       state.board[firstIndex] = secondUnit;
       state.board[secondIndex] = firstUnit;
+      if (card.effectId === 'swap_adjacent_enemy_units') {
+        firstUnit.tempAttackMod = (firstUnit.tempAttackMod ?? 0) - 1;
+        secondUnit.tempAttackMod = (secondUnit.tempAttackMod ?? 0) - 1;
+      }
       break;
     }
       default:

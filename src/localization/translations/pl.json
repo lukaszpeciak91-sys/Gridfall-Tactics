@@ -70,7 +70,7 @@
     },
     "attrition_swarm_feast_1": {
       "name": "Uczta",
-      "textShort": "Zniszcz [ALLY]. Dobierz 1."
+      "textShort": "Zniszcz sojusznika. Wroga baza traci 1 HP."
     },
     "attrition_swarm_rise_again_1": {
       "name": "Powstań Znowu",
@@ -158,7 +158,7 @@
     },
     "swarm_recycle_1": {
       "name": "Pożywka",
-      "textShort": "Zniszcz [ALLY]. Dobierz 1."
+      "textShort": "Wrogowie dostają -1 ARM w tej walce."
     },
     "tank_shieldbearer_1": {
       "name": "Tarczownik",
@@ -226,7 +226,7 @@
     },
     "wardens_shield_push_1": {
       "name": "Mamuci Napór",
-      "textShort": "Zamień dwóch sąsiadujących [ENEMIES]."
+      "textShort": "Zamień miejscami dwóch sąsiednich wrogów. Dostają -1 ATK w tej walce."
     },
     "wardens_stand_firm_1": {
       "name": "Przetrwać Mróz",
@@ -389,13 +389,15 @@
         "revive_friendly_1hp": "Wskrześ jednostkę z 1 HP",
         "fill_empty_slots_0_1": "Wypełnij sloty Tokenami",
         "destroy_friendly_draw_1": "Zniszcz sojusznika, dobierz 1",
+        "destroy_friendly_damage_enemy_base_1": "Zniszcz sojusznika, uszkodź bazę",
+        "enemy_all_armor_minus_1": "Wrogowie -1 ARM",
         "friendly_immovable_this_turn": "Sojusznicy nie mogą być przesuwani",
         "funeral_pyre": "Pierwsze 2 śmierci sojuszników zadają 1",
         "grave_call": "Przyzwij 1/1; 2, jeśli jesteś sam",
         "infect_damage_1_opposite_ally_atk_1": "Zadaj 1, wzmocnij przeciwnego sojusznika",
         "adjacent_allies_temp_armor_1": "Sąsiedni sojusznicy +1 ARM",
         "swap_leftmost_adjacent_enemies": "Zamień dwóch sąsiadujących wrogów",
-        "swap_adjacent_enemy_units": "Zamień dwóch sąsiadujących wrogów"
+        "swap_adjacent_enemy_units": "Zamień sąsiednich wrogów, -1 ATK"
       },
       "targeting": {
         "selectEnemy": "WYBIERZ WROGA",

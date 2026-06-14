@@ -70,7 +70,7 @@
     },
     "attrition_swarm_feast_1": {
       "name": "Feast",
-      "textShort": "Destroy [ALLY]. Draw 1."
+      "textShort": "Destroy an ally. Enemy base loses 1 HP."
     },
     "attrition_swarm_rise_again_1": {
       "name": "Rise Again",
@@ -158,7 +158,7 @@
     },
     "swarm_recycle_1": {
       "name": "Substrate",
-      "textShort": "Destroy [ALLY]. Draw 1."
+      "textShort": "Enemies get -1 ARM this combat."
     },
     "tank_shieldbearer_1": {
       "name": "Shieldbearer",
@@ -226,7 +226,7 @@
     },
     "wardens_shield_push_1": {
       "name": "Mammoth Stampede",
-      "textShort": "Swap two adjacent [ENEMIES]."
+      "textShort": "Swap two adjacent enemies. They get -1 ATK this combat."
     },
     "wardens_stand_firm_1": {
       "name": "Endure the Cold",
@@ -389,13 +389,15 @@
         "revive_friendly_1hp": "Revive a unit at 1 HP",
         "fill_empty_slots_0_1": "Fill slots with Tokens",
         "destroy_friendly_draw_1": "Destroy ally, draw 1",
+        "destroy_friendly_damage_enemy_base_1": "Destroy ally, damage base",
+        "enemy_all_armor_minus_1": "Enemies -1 ARM",
         "friendly_immovable_this_turn": "Allies cannot be moved",
         "funeral_pyre": "First 2 ally deaths deal 1",
         "grave_call": "Summon 1/1; 2 if alone",
         "infect_damage_1_opposite_ally_atk_1": "Deal 1, empower opposite ally",
         "adjacent_allies_temp_armor_1": "Adjacent allies +1 ARM",
         "swap_leftmost_adjacent_enemies": "Swap two adjacent enemies",
-        "swap_adjacent_enemy_units": "Swap two adjacent enemies"
+        "swap_adjacent_enemy_units": "Swap adjacent enemies, -1 ATK"
       },
       "targeting": {
         "selectEnemy": "SELECT ENEMY",

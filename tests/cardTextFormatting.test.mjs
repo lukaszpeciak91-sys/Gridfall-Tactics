@@ -201,7 +201,7 @@ test('pilot card display content renders ally icon markers', () => {
   assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_rusher_1'), 'en').body, '');
   assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_alpha_1'), 'en').body, 'Adjacent ♙♙ in combat: +1 ▲ and ignores 1 ◆.');
   assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_swarm_attack_1'), 'en').body, 'All ♙♙ +1 ▲ until combat.');
-  assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_recycle_1'), 'en').body, 'Destroy ♙. Draw 1.');
+  assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_recycle_1'), 'en').body, 'Enemies get -1 ◆ this combat.');
   assert.equal(getCardDisplayContent(cardById(tank, 'tank_repair_kit_1'), 'en').body, 'Target ♙ +1 ◆ until combat.');
   assert.equal(getCardDisplayContent(cardById(tank, 'tank_shieldbearer_1'), 'en').body, 'Adjacent ♙♙ +1 ◆ until combat.');
   assert.equal(getCardDisplayContent(cardById(tank, 'tank_fortify_1'), 'en').body, 'All ♙♙ +1 ◆ until combat.');
@@ -226,7 +226,7 @@ test('pilot card display content renders ally icon markers', () => {
   assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_rusher_1'), 'pl').body, '');
   assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_alpha_1'), 'pl').body, 'Sąsiedni ♙♙ w walce: +1 ▲ i ignoruje 1 ◆.');
   assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_swarm_attack_1'), 'pl').body, '♙♙ +1 ▲ do walki.');
-  assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_recycle_1'), 'pl').body, 'Zniszcz ♙. Dobierz 1.');
+  assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_recycle_1'), 'pl').body, 'Wrogowie dostają -1 ◆ w tej walce.');
   assert.equal(getCardDisplayContent(cardById(tank, 'tank_repair_kit_1'), 'pl').body, 'Wybrany ♙ +1 ◆ do walki.');
   assert.equal(getCardDisplayContent(cardById(tank, 'tank_shieldbearer_1'), 'pl').body, 'Sąsiedni ♙♙ +1 ◆ do walki.');
   assert.equal(getCardDisplayContent(cardById(tank, 'tank_fortify_1'), 'pl').body, '♙♙ +1 ◆ do walki.');

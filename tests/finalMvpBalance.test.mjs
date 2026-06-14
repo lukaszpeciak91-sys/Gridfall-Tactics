@@ -525,32 +525,24 @@ test('Flood temporary Tokens skip combat death trigger paths', () => {
   assert.equal(state.funeralPyreCombatTriggers ?? 0, 0);
 });
 
-test('Substrate destroys only a friendly unit and draws exactly one card', () => {
+test('Substrate applies -1 temporary armor to all current enemies only', () => {
   const swarm = loadFaction('src/data/factions/swarm.json');
   const substrate = swarm.deck.find((card) => card.id === 'swarm_recycle_1');
-  const nextCard = swarm.deck.find((card) => card.id === 'swarm_grunt_1');
-  const state = createInitialBattleState({ name: 'Test', deck: [{ ...nextCard }] });
+  const state = createInitialBattleState({ name: 'Test', deck: [] });
 
   state.player.hand.push({ ...substrate });
-  state.board[6] = unit('player', { id: 'friendly-sacrifice' });
-  state.board[0] = unit('enemy', { id: 'enemy-unit' });
+  state.board[6] = unit('player', { id: 'friendly-unit', armor: 1 });
+  state.board[0] = unit('enemy', { id: 'enemy-a', armor: 1 });
+  state.board[1] = unit('enemy', { id: 'enemy-b', armor: 0 });
 
-  const enemyResult = resolveTargetedEffectCard(state, 'player', substrate.id, 0);
-  assert.equal(enemyResult.ok, false);
-  assert.equal(enemyResult.reason, 'Target must be friendly');
-  assert.equal(state.board[0].id, 'enemy-unit');
-  assert.equal(state.board[6].id, 'friendly-sacrifice');
-  assert.equal(state.player.hand.length, 1);
-  assert.equal(state.player.deck.length, 1);
+  const result = playEffectCard(state, 'player', substrate.id);
 
-  const friendlyResult = resolveTargetedEffectCard(state, 'player', substrate.id, 6);
-  assert.equal(friendlyResult.ok, true);
-  assert.equal(state.board[6], null);
-  assert.equal(state.board[0].id, 'enemy-unit');
-  assert.deepEqual(state.player.hand.map((card) => card.id), [nextCard.id]);
-  assert.equal(state.player.deck.length, 0);
+  assert.equal(result.ok, true);
+  assert.equal(state.board[0].tempArmorMod, -1);
+  assert.equal(state.board[1].tempArmorMod, -1);
+  assert.equal(state.board[6].tempArmorMod ?? 0, 0);
   assert.equal(state.player.discard.map((card) => card.id).includes(substrate.id), true);
-  assert.equal(substrate.targeting, 'friendly_unit');
-  assert.equal(substrate.effectId, 'destroy_friendly_draw_1');
-  assert.equal(substrate.textShort, 'Destroy [ALLY]. Draw 1.');
+  assert.equal(substrate.targeting, 'none');
+  assert.equal(substrate.effectId, 'enemy_all_armor_minus_1');
+  assert.equal(substrate.textShort, 'Enemies get -1 ARM this combat.');
 });
