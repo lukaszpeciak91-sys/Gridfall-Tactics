@@ -3287,7 +3287,7 @@ export default class BattleScene extends Phaser.Scene {
     const playerHero = this.layout?.playerHero;
     const centerY = this.playerHeroPanel?.y ?? playerHero?.centerY ?? this.playerHpText?.y ?? 0;
     const passHpOffset = playerHero ? Math.max(6, Math.floor(playerHero.h * 0.13)) : 7;
-    const passLabelOffset = playerHero ? Math.max(8, Math.floor(playerHero.h * 0.18)) : 9;
+    const passLabelOffset = 0;
     const passFontSize = playerHero ? Math.max(22, Math.floor(playerHero.h * 0.48)) : 22;
     const passHpFontSize = playerHero ? Math.max(16, Math.floor(playerHero.h * 0.34)) : 16;
     const normalHpFontSize = playerHero ? Math.max(23, Math.floor(playerHero.h * 0.6)) : 23;
