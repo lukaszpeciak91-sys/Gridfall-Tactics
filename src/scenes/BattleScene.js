@@ -42,10 +42,10 @@ const BOARD_LANE_HIGHLIGHT_STROKE_ALPHA = 0.72;
 const BOARD_GUIDE_LANE_HIGHLIGHT_STROKE_ALPHA = 0.52;
 const BOARD_FEEDBACK_STROKE_ALPHA = 0.88;
 const DEATH_OVERLAY_DEPTH = 239;
-const DEATH_OVERLAY_HOLD_MS = 35;
-const DEATH_OVERLAY_FADE_MS = 185;
+const DEATH_OVERLAY_HOLD_MS = 40;
+const DEATH_OVERLAY_FADE_MS = 160;
 const DEATH_OVERLAY_FINAL_SCALE = 0.9;
-const DEATH_OVERLAY_DRIFT_PX = 4;
+const DEATH_OVERLAY_DRIFT_PX = 8;
 const HERO_PANEL_FILL_ALPHA = 0.5;
 const HERO_PANEL_ACTIVE_FILL_ALPHA = 0.58;
 const HERO_PANEL_STROKE_ALPHA = 0.5;
@@ -5153,17 +5153,19 @@ export default class BattleScene extends Phaser.Scene {
     return 0;
   }
 
+  hasSameBoardUnitInSnapshot(unit, boardSnapshot) {
+    if (!unit || !Array.isArray(boardSnapshot)) return false;
+    return boardSnapshot.some((candidate) => this.isSameBoardUnit(unit, candidate));
+  }
+
   getCombatDeathOverlayCandidates(beforeSnapshot) {
     if (!Array.isArray(beforeSnapshot) || !this.gameState?.board) return [];
-    const seenIndexes = new Set();
     return beforeSnapshot
       .map((unit, index) => ({ unit, index }))
-      .filter(({ unit, index }) => {
-        if (!unit || seenIndexes.has(index)) return false;
+      .filter(({ unit }) => {
+        if (!unit) return false;
         if (this.getSnapshotUnitHealth(unit) <= 0) return false;
-        if (this.isSameBoardUnit(unit, this.gameState.board[index])) return false;
-        seenIndexes.add(index);
-        return true;
+        return !this.hasSameBoardUnitInSnapshot(unit, this.gameState.board);
       });
   }
 
@@ -5192,6 +5194,7 @@ export default class BattleScene extends Phaser.Scene {
           .setDepth(DEATH_OVERLAY_DEPTH)
           .setAlpha(1)
           .setScale(1);
+        overlay.disableInteractive?.();
         overlay.add(this.createBoardUnitView(cell, unit));
         return overlay;
       })
@@ -6758,18 +6761,9 @@ export default class BattleScene extends Phaser.Scene {
     hero.setStrokeStyle(previousStyle.lineWidth, previousStyle.strokeColor, previousStyle.strokeAlpha);
   }
 
-  async playLethalFade(cell) {
-    if (!cell?.label) return;
-
-    await this.delay(70);
-    await this.tweenToPromise({
-      targets: cell.label,
-      alpha: 0.18,
-      scaleX: 0.92,
-      scaleY: 0.92,
-      duration: 180,
-      ease: 'Quad.easeIn',
-    });
+  async playLethalFade() {
+    // Death presentation is handled by snapshot overlays after the real board refresh.
+    // Keep this hook as a no-op so lethal hit feedback does not double-fade the live slot.
   }
 
 
