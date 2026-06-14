@@ -58,6 +58,11 @@ const BASE_SCREEN_CONNECTOR = 0x1f2937;
 const BASE_SCREEN_INNER_GLOW = 0x38bdf8;
 const BASE_SCREEN_SCANLINE = 0x93c5fd;
 const BASE_SCREEN_BAND = 0x38bdf8;
+const BASE_BEACON_INACTIVE = 0x162033;
+const BASE_BEACON_PLAYER_ACTIVE = 0x38bdf8;
+const BASE_BEACON_ENEMY_ACTIVE = 0xf87171;
+const BASE_BEACON_BRASS = 0xc8a85a;
+const BASE_BEACON_PULSE_HALF_MS = 1250;
 const BASE_SCREEN_REFLECTION = 0xe0f2fe;
 const BASE_SCREEN_GLITCH_RED = 0xff3b30;
 const BASE_SCREEN_GLITCH_CYAN = 0x22d3ee;
@@ -1185,6 +1190,8 @@ export default class BattleScene extends Phaser.Scene {
       overloadActive: false,
       booting: true,
       bootSweep: null,
+      beaconPulse: 0,
+      beaconPulseTween: null,
     };
     graphics.setDepth(112);
     graphics.setAlpha(0);
@@ -1199,9 +1206,55 @@ export default class BattleScene extends Phaser.Scene {
     this.baseFrameViews[side] = frameView;
     this.renderBaseBroadcastFrame(frameView);
     this.playBaseBroadcastBoot(frameView);
+    this.playBaseBeaconPulse(frameView);
     return frameView;
   }
 
+
+  playBaseBeaconPulse(frameView) {
+    if (!frameView?.graphics?.active) return;
+
+    frameView.beaconPulseTween?.stop?.();
+    frameView.beaconPulseTween = this.tweens.add({
+      targets: frameView,
+      beaconPulse: 1,
+      duration: BASE_BEACON_PULSE_HALF_MS,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
+      onUpdate: () => this.renderBaseBroadcastFrame(frameView),
+    });
+  }
+
+  drawBaseBroadcastBeacon(graphics, x, y, radius, { active, color, pulse, overloadActive }) {
+    const activePulse = active ? pulse : 0;
+    const glowAlpha = overloadActive ? 0.34 : (active ? 0.18 + activePulse * 0.14 : 0.055);
+    const ringAlpha = overloadActive ? 0.72 : (active ? 0.48 + activePulse * 0.24 : 0.14);
+    const coreAlpha = overloadActive ? 0.86 : (active ? 0.58 + activePulse * 0.22 : 0.16);
+    const inactiveGlassAlpha = active ? 0.18 : 0.3;
+
+    graphics.fillStyle(color, glowAlpha);
+    graphics.fillCircle(x, y, radius * (active ? 2.1 + activePulse * 0.35 : 1.55));
+    graphics.fillStyle(BASE_BEACON_INACTIVE, inactiveGlassAlpha);
+    graphics.fillCircle(x, y, radius * 1.25);
+    graphics.lineStyle(Math.max(1, radius * 0.14), BASE_SCREEN_FRAME_LIGHT, active ? 0.2 : 0.12);
+    graphics.strokeCircle(x, y, radius * 1.25);
+
+    graphics.lineStyle(Math.max(1, radius * 0.16), color, ringAlpha * 0.78);
+    graphics.strokeCircle(x, y, radius * 0.92);
+    graphics.lineStyle(Math.max(1, radius * 0.13), color, ringAlpha);
+    graphics.strokeCircle(x, y, radius * 0.58);
+
+    graphics.fillStyle(color, coreAlpha);
+    graphics.fillCircle(x, y, radius * 0.28);
+    graphics.lineStyle(Math.max(1, radius * 0.12), BASE_BEACON_BRASS, active ? 0.32 : 0.16);
+    graphics.beginPath();
+    graphics.moveTo(x - radius * 0.72, y);
+    graphics.lineTo(x - radius * 0.42, y);
+    graphics.moveTo(x + radius * 0.42, y);
+    graphics.lineTo(x + radius * 0.72, y);
+    graphics.strokePath();
+  }
 
   playBaseBroadcastBoot(frameView) {
     if (!frameView?.graphics?.active || !frameView?.panel?.active) return;
@@ -1384,6 +1437,19 @@ export default class BattleScene extends Phaser.Scene {
     graphics.lineTo(screenLeft + 2, screenTop + 2);
     graphics.lineTo(screenLeft + screenWidth - 2, screenTop + 2);
     graphics.strokePath();
+
+    const beaconColor = side === 'player' ? BASE_BEACON_PLAYER_ACTIVE : BASE_BEACON_ENEMY_ACTIVE;
+    const beaconRadius = Math.max(4, Math.min(screenHeight * 0.18, screenWidth * 0.035));
+    const beaconY = panel.y;
+    const beaconInsetX = screenWidth * 0.13;
+    [screenLeft + beaconInsetX, screenLeft + screenWidth - beaconInsetX].forEach((beaconX) => {
+      this.drawBaseBroadcastBeacon(graphics, beaconX, beaconY, beaconRadius, {
+        active: isActive,
+        color: isActive || overloadActive ? beaconColor : BASE_BEACON_INACTIVE,
+        pulse: frameView.beaconPulse ?? 0,
+        overloadActive,
+      });
+    });
 
     if (overloadActive) {
       const glitchRows = [
@@ -1645,8 +1711,8 @@ export default class BattleScene extends Phaser.Scene {
     const { width, topHero, playerHero, contentWidth } = this.layout;
     const panelWidth = contentWidth * HERO_PANEL_WIDTH_RATIO;
 
-    const enemyPanel = this.add.rectangle(width * 0.5, topHero.centerY, panelWidth, topHero.h, 0x111827, HERO_PANEL_FILL_ALPHA).setStrokeStyle(2, 0xf87171, HERO_PANEL_STROKE_ALPHA);
-    const playerPanel = this.add.rectangle(width * 0.5, playerHero.centerY, panelWidth, playerHero.h, 0x111827, HERO_PANEL_FILL_ALPHA).setStrokeStyle(2, 0x60a5fa, HERO_PANEL_STROKE_ALPHA);
+    const enemyPanel = this.add.rectangle(width * 0.5, topHero.centerY, panelWidth, topHero.h, BASE_SCREEN_FILL, HERO_PANEL_FILL_ALPHA).setStrokeStyle(2, BASE_SCREEN_FRAME_LIGHT, HERO_PANEL_STROKE_ALPHA);
+    const playerPanel = this.add.rectangle(width * 0.5, playerHero.centerY, panelWidth, playerHero.h, BASE_SCREEN_FILL, HERO_PANEL_FILL_ALPHA).setStrokeStyle(2, BASE_SCREEN_FRAME_LIGHT, HERO_PANEL_STROKE_ALPHA);
     this.enemyHeroPanel = enemyPanel;
     this.playerHeroPanel = playerPanel;
     this.createBaseBroadcastFrame('enemy', enemyPanel, panelWidth, topHero.h);
@@ -1667,16 +1733,8 @@ export default class BattleScene extends Phaser.Scene {
       this.onPlayerBasePointerCancel(event);
     });
 
-    const iconStyle = {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: `${Math.max(16, Math.floor(topHero.h * 0.38))}px`,
-      color: '#facc15',
-      fontStyle: 'bold',
-    };
-    this.enemyInitiativeIcon = this.add.text(enemyPanel.x - panelWidth * 0.44, enemyPanel.y, '▶', iconStyle).setOrigin(0.5).setVisible(false);
-    this.playerInitiativeIcon = this.add.text(playerPanel.x - panelWidth * 0.44, playerPanel.y, '▶', iconStyle).setOrigin(0.5).setVisible(false);
-    this.enemyInitiativeIcon.setDepth(120);
-    this.playerInitiativeIcon.setDepth(120);
+    this.enemyInitiativeIcon = null;
+    this.playerInitiativeIcon = null;
 
     this.enemyHeroTitleText = null;
     this.playerHeroTitleText = null;
@@ -3237,7 +3295,7 @@ export default class BattleScene extends Phaser.Scene {
       this.playerHpText
         .setFontSize(passActionActive ? passHpFontSize : normalHpFontSize)
         .setY(passActionActive ? centerY - passHpOffset : centerY)
-        .setVisible(!mulliganActionActive);
+        .setVisible(!mulliganActionActive && !passActionActive);
     }
 
     this.updateActionableSideVisualState();
@@ -3681,15 +3739,13 @@ export default class BattleScene extends Phaser.Scene {
     const enemyActive = active === 'enemy';
 
     if (this.playerHeroPanel) {
-      this.playerHeroPanel.setStrokeStyle(playerActive ? 3 : 2, 0x60a5fa, playerActive ? HERO_PANEL_ACTIVE_STROKE_ALPHA : HERO_PANEL_STROKE_ALPHA);
+      this.playerHeroPanel.setStrokeStyle(playerActive ? 3 : 2, BASE_SCREEN_FRAME_LIGHT, playerActive ? HERO_PANEL_ACTIVE_STROKE_ALPHA : HERO_PANEL_STROKE_ALPHA);
       this.playerHeroPanel.setFillStyle(BASE_SCREEN_FILL, playerActive ? HERO_PANEL_ACTIVE_FILL_ALPHA : HERO_PANEL_FILL_ALPHA);
     }
     if (this.enemyHeroPanel) {
-      this.enemyHeroPanel.setStrokeStyle(enemyActive ? 3 : 2, 0xf87171, enemyActive ? HERO_PANEL_ACTIVE_STROKE_ALPHA : HERO_PANEL_STROKE_ALPHA);
+      this.enemyHeroPanel.setStrokeStyle(enemyActive ? 3 : 2, BASE_SCREEN_FRAME_LIGHT, enemyActive ? HERO_PANEL_ACTIVE_STROKE_ALPHA : HERO_PANEL_STROKE_ALPHA);
       this.enemyHeroPanel.setFillStyle(BASE_SCREEN_FILL, enemyActive ? HERO_PANEL_ACTIVE_FILL_ALPHA : HERO_PANEL_FILL_ALPHA);
     }
-    if (this.playerInitiativeIcon) this.playerInitiativeIcon.setVisible(playerActive);
-    if (this.enemyInitiativeIcon) this.enemyInitiativeIcon.setVisible(enemyActive);
     this.updateBaseBroadcastFrameState();
   }
 

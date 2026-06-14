@@ -132,29 +132,29 @@ test('initiative indicator and enemy-first unlock refresh use current actionabil
   assert.match(resolveEnemyFirstTurnOpening, /this\.isFlowResolving = false;\s*this\.updateInitiativeIndicator\(\);\s*this\.resetCardHighlights\(\);/);
 });
 
-test('actionable arrows use left-side base-panel placement for both sides', () => {
+test('active turn indicator no longer creates arrow icons', () => {
   const drawHeroPanels = extractMethodBody('drawHeroPanels', 'updateActionSlotBadge');
 
-  assert.match(drawHeroPanels, /enemyInitiativeIcon = this\.add\.text\(enemyPanel\.x - panelWidth \* 0\.44, enemyPanel\.y, '▶'/);
-  assert.match(drawHeroPanels, /playerInitiativeIcon = this\.add\.text\(playerPanel\.x - panelWidth \* 0\.44, playerPanel\.y, '▶'/);
-  assert.doesNotMatch(drawHeroPanels, /enemyInitiativeIcon = this\.add\.text\(enemyPanel\.x \+ panelWidth/);
+  assert.match(drawHeroPanels, /this\.enemyInitiativeIcon = null;/);
+  assert.match(drawHeroPanels, /this\.playerInitiativeIcon = null;/);
+  assert.doesNotMatch(drawHeroPanels, /'▶'|triangle|chevron/i);
 });
 
-test('actionable arrows and base highlights follow current actionable side', () => {
+test('actionable beacons and neutral base highlights follow current actionable side', () => {
   const updateActionableSideVisualState = extractMethodBody('updateActionableSideVisualState', 'updateInitiativeIndicator');
   const updatePlayerBaseActionState = extractMethodBody('updatePlayerBaseActionState', 'onPlayerBasePointerUp');
 
   assert.match(updateActionableSideVisualState, /const playerActive = active === 'player';/);
   assert.match(updateActionableSideVisualState, /const enemyActive = active === 'enemy';/);
-  assert.match(updateActionableSideVisualState, /playerHeroPanel\.setStrokeStyle\(playerActive \? 3 : 2, 0x60a5fa, playerActive \? HERO_PANEL_ACTIVE_STROKE_ALPHA : HERO_PANEL_STROKE_ALPHA\)/);
-  assert.match(updateActionableSideVisualState, /enemyHeroPanel\.setStrokeStyle\(enemyActive \? 3 : 2, 0xf87171, enemyActive \? HERO_PANEL_ACTIVE_STROKE_ALPHA : HERO_PANEL_STROKE_ALPHA\)/);
-  assert.match(updateActionableSideVisualState, /playerInitiativeIcon\) this\.playerInitiativeIcon\.setVisible\(playerActive\);/);
-  assert.match(updateActionableSideVisualState, /enemyInitiativeIcon\) this\.enemyInitiativeIcon\.setVisible\(enemyActive\);/);
+  assert.match(updateActionableSideVisualState, /playerHeroPanel\.setStrokeStyle\(playerActive \? 3 : 2, BASE_SCREEN_FRAME_LIGHT, playerActive \? HERO_PANEL_ACTIVE_STROKE_ALPHA : HERO_PANEL_STROKE_ALPHA\)/);
+  assert.match(updateActionableSideVisualState, /enemyHeroPanel\.setStrokeStyle\(enemyActive \? 3 : 2, BASE_SCREEN_FRAME_LIGHT, enemyActive \? HERO_PANEL_ACTIVE_STROKE_ALPHA : HERO_PANEL_STROKE_ALPHA\)/);
+  assert.match(updateActionableSideVisualState, /this\.updateBaseBroadcastFrameState\(\);/);
+  assert.doesNotMatch(updateActionableSideVisualState, /InitiativeIcon\) this\..*setVisible/);
   assert.doesNotMatch(updateActionableSideVisualState, /isPlayerBaseActionStateActive/);
   assert.match(updatePlayerBaseActionState, /this\.updateActionableSideVisualState\(\);/);
 });
 
-test('PASS remains player-base only while enemy side only receives arrow and highlight', () => {
+test('PASS remains player-base only while enemy side only receives beacon highlight', () => {
   const drawHeroPanels = extractMethodBody('drawHeroPanels', 'updateActionSlotBadge');
   const getPlayerBaseActionLabel = extractMethodBody('getPlayerBaseActionLabel', 'isPlayerBaseActionStateActive');
 

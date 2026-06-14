@@ -31,14 +31,15 @@ test('normal base panels render centered HP without title labels or action-slot 
   assert.doesNotMatch(source, /setText\(`\$\{this\.gameState\.(enemy|player)HP\} \/ 12`\)/);
 });
 
-test('initiative remains icon-only with subtle side-colored active panel highlight', () => {
-  assert.match(drawHeroPanels, /this\.enemyInitiativeIcon = this\.add\.text\(enemyPanel\.x - panelWidth \* 0\.44, enemyPanel\.y, '▶'/);
-  assert.match(drawHeroPanels, /this\.playerInitiativeIcon = this\.add\.text\(playerPanel\.x - panelWidth \* 0\.44, playerPanel\.y, '▶'/);
+test('initiative uses integrated beacons with neutral active panel highlight', () => {
+  assert.match(drawHeroPanels, /this\.enemyInitiativeIcon = null;/);
+  assert.match(drawHeroPanels, /this\.playerInitiativeIcon = null;/);
+  assert.doesNotMatch(drawHeroPanels, /'▶'/);
   assert.match(updateActionableSideVisualState, /const active = this\.getCurrentActionableSide\(\);/);
-  assert.match(updateActionableSideVisualState, /this\.playerHeroPanel\.setStrokeStyle\(playerActive \? 3 : 2, 0x60a5fa/);
-  assert.match(updateActionableSideVisualState, /this\.enemyHeroPanel\.setStrokeStyle\(enemyActive \? 3 : 2, 0xf87171/);
-  assert.match(updateActionableSideVisualState, /this\.playerInitiativeIcon\.setVisible\(playerActive\)/);
-  assert.match(updateActionableSideVisualState, /this\.enemyInitiativeIcon\.setVisible\(enemyActive\)/);
+  assert.match(updateActionableSideVisualState, /this\.playerHeroPanel\.setStrokeStyle\(playerActive \? 3 : 2, BASE_SCREEN_FRAME_LIGHT/);
+  assert.match(updateActionableSideVisualState, /this\.enemyHeroPanel\.setStrokeStyle\(enemyActive \? 3 : 2, BASE_SCREEN_FRAME_LIGHT/);
+  assert.match(updateActionableSideVisualState, /this\.updateBaseBroadcastFrameState\(\);/);
+  assert.doesNotMatch(updateActionableSideVisualState, /InitiativeIcon\) this\..*setVisible/);
   assert.match(updateInitiativeIndicator, /this\.updateActionableSideVisualState\(\);/);
   assert.doesNotMatch(updateActionableSideVisualState, /turn label|TURN|AKCJA 1\/2|ACT 1\/2/);
 });
@@ -48,7 +49,7 @@ test('mulligan base action remains on the player base and hides normal HP', () =
   assert.match(source, /getPlayerBaseMode\(\) \{\s*if \(this\.openingMulliganPending\) return 'mulligan';\s*if \(this\.isBasePassAvailable\(\)\) return 'pass';\s*return null;\s*\}/);
   assert.match(source, /getPlayerBaseActionLabel\(\) \{[\s\S]*return this\.getOpeningMulliganActionLabel\(\);[\s\S]*translateActive\('ui\.common\.pass', 'PASS'\)/);
   assert.match(updatePlayerBaseActionState, /this\.playerBaseActionLabelText[\s\S]*\.setText\(actionLabel \?\? ''\)[\s\S]*\.setVisible\(actionStateActive\)/);
-  assert.match(updatePlayerBaseActionState, /this\.playerHpText[\s\S]*\.setVisible\(!mulliganActionActive\)/);
+  assert.match(updatePlayerBaseActionState, /this\.playerHpText[\s\S]*\.setVisible\(!mulliganActionActive && !passActionActive\)/);
   assert.match(source, /onPlayerBasePointerUp\(event\) \{\s*if \(this\.openingMulliganPending\) \{\s*event\?\.stopPropagation\?\.\(\);\s*this\.cancelPassHoldToSurrender\(\);\s*this\.confirmOpeningMulligan\(\);\s*return;\s*\}[\s\S]*if \(!basePassAvailable\) return;[\s\S]*this\.resolvePassTurn\(\);\s*\}/);
 });
 
