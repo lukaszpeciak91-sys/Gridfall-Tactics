@@ -422,6 +422,7 @@ export default class BattleScene extends Phaser.Scene {
     const enemyFactionData = getFactionByKey(enemyFactionKey) ?? { name: `Unknown (${enemyFactionKey})`, deck: [] };
 
     this.gameState = createInitialBattleState(playerFactionData, enemyFactionData);
+    this.terminalShatterTriggeredSides = new Set();
     this.gameState.player.factionKey = playerFactionKey;
     this.gameState.enemy.factionKey = enemyFactionKey;
     shuffleDeck(this.gameState.player.deck);
@@ -1554,21 +1555,47 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   getBaseCrackSegmentsForDamage(damageLevel) {
-    const steps = [
-      { path: 0, pointCount: 3, branches: 0 },
-      { path: 0, pointCount: 4, branches: 0 },
-      { path: 0, pointCount: 4, branches: 1 },
-      { path: 1, pointCount: 3, branches: 0 },
-      { path: 1, pointCount: 4, branches: 0 },
-      { path: 1, pointCount: 4, branches: 1 },
-      { path: 2, pointCount: 3, branches: 0 },
-      { path: 2, pointCount: 4, branches: 1 },
-      { path: 3, pointCount: 3, branches: 0 },
-      { path: 3, pointCount: 4, branches: 1 },
-      { path: 0, pointCount: 5, branches: 2 },
-      { path: 1, pointCount: 5, branches: 2 },
+    const level = Math.max(0, Math.min(BASE_MAX_HP, damageLevel));
+    if (level <= 0) return [];
+
+    const primaryPointCount = Math.min(6, 2 + Math.ceil(level / 3));
+    const primaryBranches = Math.min(3, Math.max(0, Math.floor((level - 2) / 3)));
+    const segments = [{ path: 0, pointCount: primaryPointCount, branches: primaryBranches, lengthScale: 0.54 + level * 0.046 }];
+
+    if (level >= 5) {
+      segments.push({ path: 1, pointCount: Math.min(5, 2 + Math.ceil((level - 4) / 3)), branches: level >= 9 ? 2 : 1, lengthScale: 0.42 + level * 0.03 });
+    }
+    if (level >= 8) {
+      segments.push({ path: 2, pointCount: 3, branches: level >= 11 ? 1 : 0, lengthScale: 0.36 + level * 0.018 });
+    }
+
+    return segments;
+  }
+
+  getBaseCrackProfile(pathIndex, pointIndex) {
+    const profiles = [
+      {
+        travel: [0, 0.12, 0.25, 0.39, 0.51, 0.62],
+        drift: [0, 0.025, -0.012, 0.044, 0.018, 0.055],
+        wobble: [0, -0.014, 0.018, -0.009, 0.012, -0.016],
+      },
+      {
+        travel: [0, 0.09, 0.19, 0.31, 0.43],
+        drift: [0, -0.03, -0.052, -0.028, -0.064],
+        wobble: [0, 0.018, -0.011, 0.015, -0.006],
+      },
+      {
+        travel: [0, 0.075, 0.165, 0.26],
+        drift: [0, 0.055, 0.032, 0.07],
+        wobble: [0, -0.02, 0.014, -0.012],
+      },
     ];
-    return steps.slice(0, Math.max(0, Math.min(steps.length, damageLevel)));
+    const profile = profiles[pathIndex % profiles.length];
+    return {
+      travel: profile.travel[Math.min(pointIndex, profile.travel.length - 1)],
+      drift: profile.drift[Math.min(pointIndex, profile.drift.length - 1)],
+      wobble: profile.wobble[Math.min(pointIndex, profile.wobble.length - 1)],
+    };
   }
 
   clampBaseCrackPoint(point, bounds, safeZone) {
@@ -1580,7 +1607,7 @@ export default class BattleScene extends Phaser.Scene {
     return { x, y };
   }
 
-  buildBaseCrackPath(origin, pathIndex, pointCount, screenMetrics, safeZone) {
+  buildBaseCrackPath(origin, pathIndex, pointCount, screenMetrics, safeZone, lengthScale = 1) {
     const { glassLeft, glassTop, glassWidth, glassHeight } = screenMetrics;
     const bounds = {
       left: glassLeft + glassWidth * 0.035,
@@ -1588,15 +1615,15 @@ export default class BattleScene extends Phaser.Scene {
       top: glassTop + glassHeight * 0.08,
       bottom: glassTop + glassHeight * 0.92,
     };
-    const lengthSteps = [0, 0.105, 0.205, 0.305, 0.385];
-    const bend = [0, 0.035, -0.018, 0.045, -0.026];
     const points = [{ x: origin.x, y: origin.y }];
     for (let index = 1; index < pointCount; index += 1) {
-      const travel = glassWidth * lengthSteps[index];
-      const vertical = glassHeight * (lengthSteps[index] * 0.38 + bend[(pathIndex + index) % bend.length]);
+      const profile = this.getBaseCrackProfile(pathIndex, index);
+      const travel = glassWidth * profile.travel * lengthScale;
+      const vertical = glassHeight * (profile.travel * 0.32 + profile.drift) * lengthScale;
+      const crossWobble = glassHeight * profile.wobble;
       points.push(this.clampBaseCrackPoint({
-        x: origin.x + origin.directionX * travel,
-        y: origin.y + origin.directionY * vertical,
+        x: origin.x + origin.directionX * (travel + crossWobble * 0.35),
+        y: origin.y + origin.directionY * vertical + crossWobble,
       }, bounds, safeZone));
     }
     return points;
@@ -1607,15 +1634,43 @@ export default class BattleScene extends Phaser.Scene {
     crackGraphics.moveTo(points[0].x, points[0].y);
     points.slice(1).forEach((point) => crackGraphics.lineTo(point.x, point.y));
     for (let index = 0; index < branches; index += 1) {
-      const root = points[Math.min(points.length - 1, 1 + index)];
-      const prev = points[Math.max(0, Math.min(points.length - 2, index))];
+      const rootIndex = Math.min(points.length - 2, 1 + index);
+      const root = points[rootIndex];
+      const prev = points[Math.max(0, rootIndex - 1)];
+      const next = points[Math.min(points.length - 1, rootIndex + 1)];
+      const dx = next.x - prev.x;
+      const dy = next.y - prev.y;
       const sideSign = index % 2 === 0 ? 1 : -1;
-      const branchX = root.x + (root.x - prev.x) * 0.42;
-      const branchY = root.y + sideSign * Math.max(6, Math.abs(root.x - prev.x) * 0.28);
+      const branchLength = 0.22 + index * 0.08;
+      const branchX = root.x + dx * branchLength - sideSign * dy * 0.28;
+      const branchY = root.y + dy * branchLength + sideSign * dx * 0.22;
       crackGraphics.moveTo(root.x, root.y);
       crackGraphics.lineTo(branchX, branchY);
     }
     crackGraphics.strokePath();
+  }
+
+  maybeTriggerTerminalShatterHook() {
+    const resolution = this.gameState?.heroDeathResolution;
+    if (!resolution || !this.gameState?.winner) return;
+    const lethalSides = [
+      resolution.rawPlayerHP <= 0 ? 'player' : null,
+      resolution.rawEnemyHP <= 0 ? 'enemy' : null,
+    ].filter(Boolean);
+
+    lethalSides.forEach((side) => {
+      if (this.terminalShatterTriggeredSides?.has(side)) return;
+      this.terminalShatterTriggeredSides ??= new Set();
+      this.terminalShatterTriggeredSides.add(side);
+      this.futureTerminalShatter(side);
+    });
+  }
+
+  futureTerminalShatter(side) {
+    // TODO: Future lethal terminal shatter animation hook:
+    // brief flash, rapid cracks from both beacon sides, screen failure, then result UI layering.
+    // Intentionally no particles, shards, screen shake, or modal delay in this polish pass.
+    console.debug?.('futureTerminalShatter hook', side);
   }
 
   renderBaseBroadcastCracks(frameView, screenMetrics) {
@@ -1644,7 +1699,7 @@ export default class BattleScene extends Phaser.Scene {
       const origin = originsById.get(originOrder[segment.path]);
       if (!origin) return null;
       return {
-        points: this.buildBaseCrackPath(origin, segment.path, segment.pointCount, screenMetrics, safeZone),
+        points: this.buildBaseCrackPath(origin, segment.path, segment.pointCount, screenMetrics, safeZone, segment.lengthScale),
         branches: segment.branches,
       };
     }).filter(Boolean);
@@ -6602,6 +6657,7 @@ export default class BattleScene extends Phaser.Scene {
       this.enemyHpText = this.add.text(width * 0.5, topHero.centerY + BASE_TERMINAL_TEXT_OPTICAL_Y_OFFSET_PX, '', { fontFamily: 'Arial, sans-serif', fontSize: `${Math.max(24, Math.floor(topHero.h * 0.62))}px`, color: BASE_TERMINAL_TEXT_COLOR, fontStyle: 'bold' }).setOrigin(0.5).setDepth(BASE_TERMINAL_TEXT_DEPTH).setStroke(BASE_TERMINAL_TEXT_STROKE, BASE_TERMINAL_TEXT_STROKE_WIDTH).setShadow(0, 0, BASE_TERMINAL_TEXT_ENEMY_GLOW, BASE_TERMINAL_TEXT_GLOW_BLUR, true, true);
       this.playerHpText = this.add.text(width * 0.5, playerHero.centerY + BASE_TERMINAL_TEXT_OPTICAL_Y_OFFSET_PX, '', { fontFamily: 'Arial, sans-serif', fontSize: `${Math.max(23, Math.floor(playerHero.h * 0.6))}px`, color: BASE_TERMINAL_TEXT_COLOR, fontStyle: 'bold' }).setOrigin(0.5).setDepth(BASE_TERMINAL_TEXT_DEPTH).setStroke(BASE_TERMINAL_TEXT_STROKE, BASE_TERMINAL_TEXT_STROKE_WIDTH).setShadow(0, 0, BASE_TERMINAL_TEXT_PLAYER_GLOW, BASE_TERMINAL_TEXT_GLOW_BLUR, true, true);
     }
+    this.maybeTriggerTerminalShatterHook();
     this.enemyHpText.setText(`${this.gameState.enemyHP}`);
     this.playerHpText.setText(`${this.gameState.playerHP}`);
     this.renderBaseBroadcastFrame(this.baseFrameViews?.enemy);
