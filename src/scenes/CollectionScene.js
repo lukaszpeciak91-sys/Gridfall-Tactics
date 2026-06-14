@@ -41,6 +41,10 @@ const COLLECTION_GRID_GAP_X = 10;
 const COLLECTION_CARD_GAP_Y = 12;
 const COLLECTION_SECTION_GAP_Y = 26;
 const COLLECTION_CARDS_PER_COLUMN = 5;
+const COLLECTION_SECTION_TITLE_STRIP_HEIGHT = 30;
+const COLLECTION_SECTION_TITLE_STRIP_RADIUS = 8;
+const COLLECTION_SECTION_TITLE_STRIP_ALPHA = 0.58;
+const COLLECTION_SECTION_TITLE_STRIP_STROKE_ALPHA = 0.22;
 
 export default class CollectionScene extends Phaser.Scene {
   constructor() {
@@ -147,6 +151,16 @@ export default class CollectionScene extends Phaser.Scene {
   }
 
   drawFactionSection(content, factionKey, faction, { x, y, cardWidth, cardHeight, columnGap }) {
+    const stripWidth = this.scale.width - x * 2;
+    const stripY = y - 2;
+    const titleStrip = this.add.graphics();
+    titleStrip.fillStyle(0x020817, COLLECTION_SECTION_TITLE_STRIP_ALPHA);
+    titleStrip.fillRoundedRect(x, stripY, stripWidth, COLLECTION_SECTION_TITLE_STRIP_HEIGHT, COLLECTION_SECTION_TITLE_STRIP_RADIUS);
+    titleStrip.lineStyle(1, 0x38bdf8, COLLECTION_SECTION_TITLE_STRIP_STROKE_ALPHA);
+    titleStrip.strokeRoundedRect(x, stripY, stripWidth, COLLECTION_SECTION_TITLE_STRIP_HEIGHT, COLLECTION_SECTION_TITLE_STRIP_RADIUS);
+    content.add(titleStrip);
+    this.uiElements.push(titleStrip);
+
     const header = this.add
       .text(this.scale.width / 2, y, getFactionPresentationName(faction?.id, getActiveLocale(), faction?.name ?? factionKey), {
         fontFamily: 'Arial, sans-serif',
