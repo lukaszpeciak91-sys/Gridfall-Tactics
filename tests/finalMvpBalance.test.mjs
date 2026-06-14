@@ -544,5 +544,5 @@ test('Substrate applies -1 temporary armor to all current enemies only', () => {
   assert.equal(state.player.discard.map((card) => card.id).includes(substrate.id), true);
   assert.equal(substrate.targeting, 'none');
   assert.equal(substrate.effectId, 'enemy_all_armor_minus_1');
-  assert.equal(substrate.textShort, 'Enemies get -1 ARM this combat.');
+  assert.equal(substrate.textShort, '[ENEMIES]: -1 ARM until combat.');
 });

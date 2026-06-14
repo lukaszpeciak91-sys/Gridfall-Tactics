@@ -86,7 +86,7 @@
       "type": "order",
       "targeting": "enemy_units",
       "effectId": "swap_adjacent_enemy_units",
-      "textShort": "Swap two adjacent enemies. They get -1 ATK this combat."
+      "textShort": "Swap two adjacent [ENEMIES].\nThey get -1 ATK until combat."
     },
     {
       "id": "wardens_stand_firm_1",
