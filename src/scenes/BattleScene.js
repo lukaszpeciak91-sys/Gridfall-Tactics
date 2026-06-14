@@ -58,9 +58,9 @@ const BASE_SCREEN_CONNECTOR = 0x1f2937;
 const BASE_SCREEN_INNER_GLOW = 0x38bdf8;
 const BASE_SCREEN_SCANLINE = 0x93c5fd;
 const BASE_SCREEN_BAND = 0x38bdf8;
-const BASE_BEACON_INACTIVE = 0x0b1220;
-const BASE_BEACON_PLAYER_ACTIVE = 0x38bdf8;
-const BASE_BEACON_ENEMY_ACTIVE = 0xdc4b3f;
+const BASE_BEACON_INACTIVE = 0x334155;
+const BASE_BEACON_PLAYER_ACTIVE = 0x22d3ee;
+const BASE_BEACON_ENEMY_ACTIVE = 0xfbbf24;
 const BASE_BEACON_BRASS = 0xc8a85a;
 const BASE_BEACON_FADE_MS = 240;
 const BASE_SCREEN_REFLECTION = 0xe0f2fe;
@@ -1213,58 +1213,88 @@ export default class BattleScene extends Phaser.Scene {
   drawBaseBroadcastBeaconModule(graphics, x, y, width, height, { intensity, color }) {
     const left = x - width / 2;
     const top = y - height / 2;
-    const podRailWidth = Math.max(2, Math.round(width * 0.13));
-    const podInsetX = Math.max(3, Math.round(width * 0.19));
-    const podInsetY = Math.max(4, Math.round(height * 0.055));
+    const casingInset = Math.max(1, Math.round(width * 0.045));
+    const railWidth = Math.max(2, Math.round(width * 0.1));
+    const podInsetX = Math.max(4, Math.round(width * 0.2));
+    const podInsetY = Math.max(5, Math.round(height * 0.04));
     const wellLeft = left + podInsetX;
     const wellTop = top + podInsetY;
     const wellWidth = width - podInsetX * 2;
     const wellHeight = height - podInsetY * 2;
-    const lightRadius = Math.max(5, Math.min(width * 0.32, height * 0.095));
+    const lightRadius = Math.max(5, Math.min(width * 0.29, height * 0.088));
     const lightAlpha = Phaser.Math.Clamp(intensity, 0, 1);
-    const offAlpha = 0.62 - lightAlpha * 0.24;
-    const onCoreAlpha = 0.08 + lightAlpha * 0.82;
-    const onRingAlpha = 0.06 + lightAlpha * 0.54;
+    const offAlpha = 0.58 - lightAlpha * 0.12;
+    const onGlassAlpha = 0.08 + lightAlpha * 0.74;
+    const onCoreAlpha = 0.04 + lightAlpha * 0.44;
+    const onRingAlpha = 0.05 + lightAlpha * 0.46;
 
-    // Tall side-mounted hardware pod: graphite casing, brass retaining rails,
-    // recessed lamp well. Kept within the original panel graphics so hitboxes
-    // and layout remain unchanged.
-    graphics.fillStyle(BASE_FRAME_SHADOW, 0.46);
+    // Full-height side-mounted hardware pod: the same graphite casing, brass
+    // restraint, bevel language, and recessed glass treatment as the terminal
+    // frame. Kept within the original panel graphics so hitboxes and layout
+    // remain unchanged.
+    graphics.fillStyle(BASE_FRAME_SHADOW, 0.5);
     graphics.fillRect(left + 1, top + 2, width, height);
-    graphics.fillStyle(BASE_SCREEN_FRAME_DARK, 0.98);
+    graphics.fillStyle(BASE_SCREEN_FRAME_DARK, 0.96);
     graphics.fillRect(left, top, width, height);
-    graphics.fillStyle(BASE_SCREEN_CONNECTOR, 0.7);
-    graphics.fillRect(left + 1, top + 1, podRailWidth, height - 2);
-    graphics.fillRect(left + width - podRailWidth - 1, top + 1, podRailWidth, height - 2);
-    graphics.lineStyle(2, BASE_BEACON_BRASS, 0.58);
-    graphics.strokeRect(left + 1, top + 1, width - 2, height - 2);
-    graphics.lineStyle(1, BASE_BEACON_BRASS, 0.34);
+    graphics.fillStyle(BASE_SCREEN_CONNECTOR, 0.42);
+    graphics.fillRect(left + casingInset, top + casingInset, width - casingInset * 2, height - casingInset * 2);
+
+    graphics.lineStyle(2, BASE_SCREEN_FRAME_LIGHT, 0.15);
     graphics.beginPath();
-    graphics.moveTo(left + podRailWidth + 1.5, top + 3);
-    graphics.lineTo(left + podRailWidth + 1.5, top + height - 3);
-    graphics.moveTo(left + width - podRailWidth - 1.5, top + 3);
-    graphics.lineTo(left + width - podRailWidth - 1.5, top + height - 3);
+    graphics.moveTo(left + 1, top + height - 1);
+    graphics.lineTo(left + 1, top + 1);
+    graphics.lineTo(left + width - 1, top + 1);
+    graphics.strokePath();
+    graphics.lineStyle(2, BASE_FRAME_SHADOW, 0.48);
+    graphics.beginPath();
+    graphics.moveTo(left + width - 1, top + 1);
+    graphics.lineTo(left + width - 1, top + height - 1);
+    graphics.lineTo(left + 1, top + height - 1);
     graphics.strokePath();
 
-    graphics.fillStyle(BASE_FRAME_RECESS, 0.94);
+    graphics.lineStyle(1, BASE_BEACON_BRASS, 0.38);
+    graphics.strokeRect(left + 1.5, top + 1.5, width - 3, height - 3);
+    graphics.lineStyle(1, BASE_BEACON_BRASS, 0.22);
+    graphics.beginPath();
+    graphics.moveTo(left + railWidth + 1.5, top + 4);
+    graphics.lineTo(left + railWidth + 1.5, top + height - 4);
+    graphics.moveTo(left + width - railWidth - 1.5, top + 4);
+    graphics.lineTo(left + width - railWidth - 1.5, top + height - 4);
+    graphics.strokePath();
+
+    graphics.fillStyle(BASE_FRAME_SHADOW, 0.68);
+    graphics.fillRect(wellLeft - 1, wellTop - 1, wellWidth + 2, wellHeight + 2);
+    graphics.fillStyle(BASE_FRAME_RECESS, 0.95);
     graphics.fillRect(wellLeft, wellTop, wellWidth, wellHeight);
-    graphics.fillStyle(BASE_FRAME_SHADOW, 0.5);
-    graphics.fillRect(wellLeft + 1, wellTop + 1, wellWidth - 2, Math.max(2, wellHeight * 0.08));
-    graphics.lineStyle(1, BASE_FRAME_SHADOW, 0.78);
+    graphics.fillStyle(BASE_SCREEN_EDGE, 0.42);
+    graphics.fillRect(wellLeft + 1, wellTop + 1, wellWidth - 2, Math.max(2, wellHeight * 0.075));
+    graphics.lineStyle(1, BASE_SCREEN_FRAME_LIGHT, 0.13);
+    graphics.beginPath();
+    graphics.moveTo(wellLeft + 1, wellTop + wellHeight - 1);
+    graphics.lineTo(wellLeft + 1, wellTop + 1);
+    graphics.lineTo(wellLeft + wellWidth - 1, wellTop + 1);
+    graphics.strokePath();
+    graphics.lineStyle(1, BASE_FRAME_SHADOW, 0.76);
     graphics.strokeRect(wellLeft + 0.5, wellTop + 0.5, wellWidth - 1, wellHeight - 1);
 
-    [-0.29, 0, 0.29].forEach((offset) => {
+    [-0.3, 0, 0.3].forEach((offset) => {
       const lightY = y + height * offset;
       graphics.fillStyle(BASE_FRAME_SHADOW, 0.82);
-      graphics.fillCircle(x, lightY + 1.5, lightRadius * 1.48);
-      graphics.fillStyle(BASE_BEACON_INACTIVE, offAlpha);
-      graphics.fillCircle(x, lightY, lightRadius * 1.24);
-      graphics.lineStyle(Math.max(1.4, lightRadius * 0.2), BASE_BEACON_BRASS, 0.34 + lightAlpha * 0.2);
+      graphics.fillCircle(x, lightY + 1.5, lightRadius * 1.46);
+      graphics.lineStyle(Math.max(1.4, lightRadius * 0.22), BASE_BEACON_BRASS, 0.25 + lightAlpha * 0.15);
       graphics.strokeCircle(x, lightY, lightRadius * 1.24);
-      graphics.lineStyle(Math.max(1, lightRadius * 0.15), color, onRingAlpha);
-      graphics.strokeCircle(x, lightY, lightRadius * 0.8);
+      graphics.fillStyle(BASE_BEACON_INACTIVE, offAlpha);
+      graphics.fillCircle(x, lightY, lightRadius * 1.05);
+      graphics.lineStyle(Math.max(1, lightRadius * 0.13), BASE_SCREEN_REFLECTION, 0.12);
+      graphics.strokeCircle(x, lightY, lightRadius * 0.92);
+      graphics.fillStyle(color, onGlassAlpha);
+      graphics.fillCircle(x, lightY, lightRadius * 0.82);
+      graphics.lineStyle(Math.max(1, lightRadius * 0.13), color, onRingAlpha);
+      graphics.strokeCircle(x, lightY, lightRadius * 0.62);
       graphics.fillStyle(color, onCoreAlpha);
-      graphics.fillCircle(x, lightY, lightRadius * 0.56);
+      graphics.fillCircle(x, lightY, lightRadius * 0.42);
+      graphics.fillStyle(BASE_SCREEN_REFLECTION, 0.16 + lightAlpha * 0.14);
+      graphics.fillCircle(x - lightRadius * 0.26, lightY - lightRadius * 0.3, Math.max(1, lightRadius * 0.18));
     });
   }
 
@@ -1457,7 +1487,7 @@ export default class BattleScene extends Phaser.Scene {
     graphics.strokePath();
 
     const beaconColor = side === 'player' ? BASE_BEACON_PLAYER_ACTIVE : BASE_BEACON_ENEMY_ACTIVE;
-    const beaconHeight = Math.max(screenHeight, height * 0.86);
+    const beaconHeight = Math.max(screenHeight, height * 0.96);
     const beaconY = panel.y;
     const leftBeaconX = left + beaconHardwareInset + moduleWidth / 2;
     const rightBeaconX = left + width - beaconHardwareInset - moduleWidth / 2;
