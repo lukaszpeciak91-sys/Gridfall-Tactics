@@ -48,9 +48,9 @@ const HERO_PANEL_ACTIVE_STROKE_ALPHA = 0.82;
 const HERO_PANEL_HIT_FILL_ALPHA = 0.52;
 const HERO_PANEL_HIT_STROKE_ALPHA = 0.86;
 const HERO_PANEL_WIDTH_RATIO = 0.66;
-const BASE_SCREEN_FILL = 0x07111f;
-const BASE_SCREEN_CENTER = 0x18283c;
-const BASE_SCREEN_EDGE = 0x020617;
+const BASE_SCREEN_FILL = 0x0a1728;
+const BASE_SCREEN_CENTER = 0x21344b;
+const BASE_SCREEN_EDGE = 0x031022;
 const BASE_SCREEN_FRAME_DARK = 0x111827;
 const BASE_SCREEN_FRAME_LIGHT = 0x94a3b8;
 const BASE_SCREEN_FRAME_MID = 0x475569;
@@ -1257,8 +1257,8 @@ export default class BattleScene extends Phaser.Scene {
     const scanlineStep = Math.max(3, Math.floor(height * 0.12));
     const scanlineAlpha = overloadActive ? 0.16 : 0.04;
     const bandAlpha = overloadActive ? 0.16 : (isActive ? 0.085 : 0.055);
-    const centerAlpha = overloadActive ? 0.26 : (isActive ? 0.18 : 0.135);
-    const glowAlpha = overloadActive ? 0.14 : (isActive ? 0.075 : 0.045);
+    const centerAlpha = overloadActive ? 0.28 : (isActive ? 0.205 : 0.155);
+    const glowAlpha = overloadActive ? 0.145 : (isActive ? 0.08 : 0.052);
     const connectorWidth = Math.max(5, Math.round(width * 0.035));
     const connectorHeight = Math.max(8, Math.round(height * 0.5));
 
@@ -1353,14 +1353,14 @@ export default class BattleScene extends Phaser.Scene {
       graphics.strokePath();
     }
 
-    graphics.fillStyle(BASE_SCREEN_REFLECTION, side === 'enemy' ? 0.042 : 0.036);
+    graphics.fillStyle(BASE_SCREEN_REFLECTION, side === 'enemy' ? 0.065 : 0.055);
     const reflectionX = side === 'enemy' ? screenLeft + screenWidth * 0.64 : screenLeft + screenWidth * 0.1;
     graphics.fillTriangle(
       reflectionX, screenTop + screenHeight * 0.1,
       reflectionX + screenWidth * 0.25, screenTop + screenHeight * 0.1,
       reflectionX + screenWidth * 0.06, screenTop + screenHeight * 0.3,
     );
-    graphics.lineStyle(1, BASE_SCREEN_REFLECTION, 0.07);
+    graphics.lineStyle(1, BASE_SCREEN_REFLECTION, 0.105);
     graphics.beginPath();
     graphics.moveTo(reflectionX + screenWidth * 0.02, screenTop + screenHeight * 0.13);
     graphics.lineTo(reflectionX + screenWidth * 0.22, screenTop + screenHeight * 0.13);
@@ -3214,9 +3214,9 @@ export default class BattleScene extends Phaser.Scene {
     }
     const playerHero = this.layout?.playerHero;
     const centerY = this.playerHeroPanel?.y ?? playerHero?.centerY ?? this.playerHpText?.y ?? 0;
-    const passHpOffset = playerHero ? Math.max(8, Math.floor(playerHero.h * 0.21)) : 10;
-    const passLabelOffset = playerHero ? Math.max(12, Math.floor(playerHero.h * 0.27)) : 14;
-    const passFontSize = playerHero ? Math.max(18, Math.floor(playerHero.h * 0.38)) : 18;
+    const passHpOffset = playerHero ? Math.max(6, Math.floor(playerHero.h * 0.13)) : 7;
+    const passLabelOffset = playerHero ? Math.max(11, Math.floor(playerHero.h * 0.24)) : 12;
+    const passFontSize = playerHero ? Math.max(22, Math.floor(playerHero.h * 0.48)) : 22;
     const passHpFontSize = playerHero ? Math.max(16, Math.floor(playerHero.h * 0.34)) : 16;
     const normalHpFontSize = playerHero ? Math.max(23, Math.floor(playerHero.h * 0.6)) : 23;
     const mulliganFontSize = playerHero ? Math.max(22, Math.floor(playerHero.h * 0.58)) : 22;
