@@ -49,8 +49,12 @@ const HERO_PANEL_HIT_FILL_ALPHA = 0.52;
 const HERO_PANEL_HIT_STROKE_ALPHA = 0.86;
 const HERO_PANEL_WIDTH_RATIO = 0.66;
 const BASE_SCREEN_FILL = 0x07111f;
-const BASE_SCREEN_CENTER = 0x14243a;
+const BASE_SCREEN_CENTER = 0x18283c;
 const BASE_SCREEN_EDGE = 0x020617;
+const BASE_SCREEN_FRAME_DARK = 0x111827;
+const BASE_SCREEN_FRAME_LIGHT = 0x94a3b8;
+const BASE_SCREEN_FRAME_MID = 0x475569;
+const BASE_SCREEN_CONNECTOR = 0x1f2937;
 const BASE_SCREEN_INNER_GLOW = 0x38bdf8;
 const BASE_SCREEN_SCANLINE = 0x93c5fd;
 const BASE_SCREEN_BAND = 0x38bdf8;
@@ -1239,32 +1243,44 @@ export default class BattleScene extends Phaser.Scene {
     const height = panelHeight;
     const left = panel.x - width / 2;
     const top = panel.y - height / 2;
-    const centerBandHeight = Math.max(3, height * 0.22);
+    const centerBandHeight = Math.max(3, height * 0.24);
     const scanlineStep = Math.max(3, Math.floor(height * 0.12));
-    const scanlineAlpha = overloadActive ? 0.16 : 0.045;
-    const bandAlpha = overloadActive ? 0.16 : (isActive ? 0.1 : 0.065);
-    const centerAlpha = overloadActive ? 0.26 : (isActive ? 0.2 : 0.16);
-    const glowAlpha = overloadActive ? 0.14 : (isActive ? 0.095 : 0.06);
+    const scanlineAlpha = overloadActive ? 0.16 : 0.04;
+    const bandAlpha = overloadActive ? 0.16 : (isActive ? 0.085 : 0.055);
+    const centerAlpha = overloadActive ? 0.26 : (isActive ? 0.18 : 0.135);
+    const glowAlpha = overloadActive ? 0.14 : (isActive ? 0.075 : 0.045);
+    const frameLip = Math.max(2, Math.round(height * 0.08));
+    const connectorWidth = Math.max(5, Math.round(width * 0.035));
+    const connectorHeight = Math.max(8, Math.round(height * 0.5));
 
     graphics.clear();
 
-    // The base is now a restrained transmission screen: dark terminal glass,
-    // a slightly brighter center, and low-contrast horizontal signal structure.
+    // The base is a restrained transmission screen: dark terminal glass,
+    // a slightly brighter center, protected edges, and low-contrast signal structure.
+    graphics.fillStyle(BASE_SCREEN_CONNECTOR, 0.44);
+    graphics.fillRect(left - connectorWidth, panel.y - connectorHeight / 2, connectorWidth, connectorHeight);
+    graphics.fillRect(left + width, panel.y - connectorHeight / 2, connectorWidth, connectorHeight);
+    graphics.lineStyle(1, BASE_SCREEN_FRAME_LIGHT, 0.16);
+    graphics.strokeRect(left - connectorWidth, panel.y - connectorHeight / 2, connectorWidth, connectorHeight);
+    graphics.strokeRect(left + width, panel.y - connectorHeight / 2, connectorWidth, connectorHeight);
+
     graphics.fillStyle(BASE_SCREEN_FILL, isActive ? HERO_PANEL_ACTIVE_FILL_ALPHA : HERO_PANEL_FILL_ALPHA);
     graphics.fillRect(left, top, width, height);
 
     graphics.fillStyle(BASE_SCREEN_CENTER, centerAlpha);
-    graphics.fillRect(left + width * 0.1, panel.y - centerBandHeight / 2, width * 0.8, centerBandHeight);
+    graphics.fillEllipse(panel.x, panel.y, width * 0.82, centerBandHeight);
+    graphics.fillStyle(BASE_SCREEN_CENTER, centerAlpha * 0.55);
+    graphics.fillRect(left + width * 0.12, panel.y - centerBandHeight / 2, width * 0.76, centerBandHeight);
 
     graphics.fillStyle(BASE_SCREEN_INNER_GLOW, glowAlpha);
-    graphics.fillRect(left + width * 0.08, top + height * 0.18, width * 0.84, Math.max(1.5, height * 0.035));
-    graphics.fillRect(left + width * 0.08, top + height * 0.78, width * 0.84, Math.max(1.5, height * 0.035));
+    graphics.fillRect(left + width * 0.08, top + height * 0.2, width * 0.84, Math.max(1.2, height * 0.028));
+    graphics.fillRect(left + width * 0.08, top + height * 0.78, width * 0.84, Math.max(1.2, height * 0.028));
 
-    graphics.fillStyle(BASE_SCREEN_EDGE, 0.2);
-    graphics.fillRect(left, top, width, Math.max(2, height * 0.16));
-    graphics.fillRect(left, top + height * 0.84, width, Math.max(2, height * 0.16));
-    graphics.fillRect(left, top, Math.max(2, width * 0.045), height);
-    graphics.fillRect(left + width * 0.955, top, Math.max(2, width * 0.045), height);
+    graphics.fillStyle(BASE_SCREEN_EDGE, 0.26);
+    graphics.fillRect(left, top, width, frameLip);
+    graphics.fillRect(left, top + height - frameLip, width, frameLip);
+    graphics.fillRect(left, top, Math.max(2, width * 0.04), height);
+    graphics.fillRect(left + width * 0.96, top, Math.max(2, width * 0.04), height);
 
     graphics.lineStyle(1, BASE_SCREEN_SCANLINE, scanlineAlpha);
     for (let y = top + scanlineStep; y < top + height; y += scanlineStep) {
@@ -1274,13 +1290,18 @@ export default class BattleScene extends Phaser.Scene {
       graphics.strokePath();
     }
 
-    graphics.fillStyle(BASE_SCREEN_REFLECTION, side === 'enemy' ? 0.055 : 0.045);
-    const reflectionX = side === 'enemy' ? left + width * 0.68 : left + width * 0.12;
+    graphics.fillStyle(BASE_SCREEN_REFLECTION, side === 'enemy' ? 0.042 : 0.036);
+    const reflectionX = side === 'enemy' ? left + width * 0.64 : left + width * 0.1;
     graphics.fillTriangle(
-      reflectionX, top + height * 0.12,
-      reflectionX + width * 0.18, top + height * 0.12,
-      reflectionX + width * 0.05, top + height * 0.36,
+      reflectionX, top + height * 0.1,
+      reflectionX + width * 0.25, top + height * 0.1,
+      reflectionX + width * 0.06, top + height * 0.3,
     );
+    graphics.lineStyle(1, BASE_SCREEN_REFLECTION, 0.07);
+    graphics.beginPath();
+    graphics.moveTo(reflectionX + width * 0.02, top + height * 0.13);
+    graphics.lineTo(reflectionX + width * 0.22, top + height * 0.13);
+    graphics.strokePath();
 
     graphics.lineStyle(1, BASE_SCREEN_BAND, bandAlpha);
     graphics.beginPath();
@@ -1289,6 +1310,13 @@ export default class BattleScene extends Phaser.Scene {
     graphics.moveTo(left + width * 0.08, panel.y + height * 0.19);
     graphics.lineTo(left + width * 0.92, panel.y + height * 0.19);
     graphics.strokePath();
+
+    graphics.lineStyle(2, BASE_SCREEN_FRAME_DARK, 0.62);
+    graphics.strokeRect(left + 1, top + 1, width - 2, height - 2);
+    graphics.lineStyle(1, BASE_SCREEN_FRAME_LIGHT, 0.26);
+    graphics.strokeRect(left + 2, top + 2, width - 4, height - 4);
+    graphics.lineStyle(1, BASE_SCREEN_FRAME_MID, 0.2);
+    graphics.strokeRect(left + frameLip, top + frameLip, width - frameLip * 2, height - frameLip * 2);
 
     if (overloadActive) {
       const glitchRows = [
@@ -3121,7 +3149,7 @@ export default class BattleScene extends Phaser.Scene {
     const centerY = this.playerHeroPanel?.y ?? playerHero?.centerY ?? this.playerHpText?.y ?? 0;
     const passHpOffset = playerHero ? Math.max(8, Math.floor(playerHero.h * 0.21)) : 10;
     const passLabelOffset = playerHero ? Math.max(12, Math.floor(playerHero.h * 0.27)) : 14;
-    const passFontSize = playerHero ? Math.max(14, Math.floor(playerHero.h * 0.3)) : 14;
+    const passFontSize = playerHero ? Math.max(18, Math.floor(playerHero.h * 0.38)) : 18;
     const passHpFontSize = playerHero ? Math.max(16, Math.floor(playerHero.h * 0.34)) : 16;
     const normalHpFontSize = playerHero ? Math.max(23, Math.floor(playerHero.h * 0.6)) : 23;
     const mulliganFontSize = playerHero ? Math.max(22, Math.floor(playerHero.h * 0.58)) : 22;
