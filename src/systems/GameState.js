@@ -375,6 +375,10 @@ function isLanePlayBlockedForOwner(state, owner, boardIndex) {
   return false;
 }
 
+function isOwnerSlotAvailableForUnitPlacement(state, owner, index) {
+  return state.board[index] === null && !isLanePlayBlockedForOwner(state, owner, index);
+}
+
 function createBoardUnitFromCard(card, owner, cardIdOverride = null) {
   const boardUnit = {
     ...card,
@@ -979,10 +983,10 @@ function canApplyEffectById(state, owner, effectId) {
     case 'adjacent_allies_temp_armor_1':
       return getAdjacentFriendlyFormationIndexes(state, owner).length > 0;
     case 'grave_call':
-      return getRowForOwner(owner).some((index) => state.board[index] === null);
+      return getRowForOwner(owner).some((index) => isOwnerSlotAvailableForUnitPlacement(state, owner, index));
     case 'revive_friendly_1hp': {
       const side = owner === 'player' ? state.player : state.enemy;
-      return getRowForOwner(owner).some((index) => state.board[index] === null)
+      return getRowForOwner(owner).some((index) => isOwnerSlotAvailableForUnitPlacement(state, owner, index))
         && findNewestReviveableFallenIndex(side) >= 0;
     }
     default:
@@ -1292,7 +1296,8 @@ function resolveEffectVariantContext(capturedContext) {
 }
 
 function resolveEffectVariantEmptyOwnerSlots(state, owner, selector) {
-  const emptyIndexes = getRowForOwner(owner).filter((index) => state.board[index] === null);
+  const emptyIndexes = getRowForOwner(owner)
+    .filter((index) => isOwnerSlotAvailableForUnitPlacement(state, owner, index));
   if (selector === 'firstEmptyOwnerSlot') return emptyIndexes.slice(0, 1);
   if (selector === 'upToTwoEmptyOwnerSlots') return emptyIndexes.slice(0, 2);
   if (selector === 'allEmptyOwnerSlots') return emptyIndexes;
@@ -1425,7 +1430,7 @@ function createEffectVariantFloodTokenCard(id, temporary) {
 }
 
 function summonEffectVariantTokenAt(state, index, owner, token, temporary, sourceCard) {
-  if (state.board[index] !== null) return false;
+  if (!isOwnerSlotAvailableForUnitPlacement(state, owner, index)) return false;
   if (token === 'grunt' && !temporary) {
     return summonGruntAt(state, index, owner, 'effect_variant_grunt', getGeneratedGruntArtForSource(sourceCard));
   }
@@ -1693,7 +1698,7 @@ function applyEffectById(state, owner, effectId, sourceCard = null) {
     }
     case 'summon_grunt_empty_slot': {
       const friendlyIndexes = getRowForOwner(owner);
-      const emptySlot = friendlyIndexes.find((index) => state.board[index] === null);
+      const emptySlot = friendlyIndexes.find((index) => isOwnerSlotAvailableForUnitPlacement(state, owner, index));
       if (emptySlot === undefined) {
         break;
       }
@@ -1706,7 +1711,7 @@ function applyEffectById(state, owner, effectId, sourceCard = null) {
       const summonLimit = hasAlly ? 1 : 2;
       let summoned = 0;
       friendlyIndexes.forEach((index) => {
-        if (summoned >= summonLimit || state.board[index]) return;
+        if (summoned >= summonLimit || !isOwnerSlotAvailableForUnitPlacement(state, owner, index)) return;
         if (summonGruntAt(state, index, owner, 'grave_call_grunt', getGeneratedGruntArtForSource(sourceCard))) summoned += 1;
       });
       break;
@@ -1722,7 +1727,7 @@ function applyEffectById(state, owner, effectId, sourceCard = null) {
       const friendlyIndexes = getRowForOwner(owner);
       let summoned = 0;
       friendlyIndexes.forEach((index) => {
-        if (summoned >= 2 || state.board[index]) return;
+        if (summoned >= 2 || !isOwnerSlotAvailableForUnitPlacement(state, owner, index)) return;
         state.board[index] = createBoardUnitFromCard({
           id: `${owner}_flood_token_${index}_${summoned}`,
           name: 'Token',
@@ -1775,7 +1780,7 @@ function applyEffectById(state, owner, effectId, sourceCard = null) {
     }
     case 'revive_friendly_1hp': {
       const friendlyIndexes = getRowForOwner(owner);
-      const emptySlot = friendlyIndexes.find((index) => state.board[index] === null);
+      const emptySlot = friendlyIndexes.find((index) => isOwnerSlotAvailableForUnitPlacement(state, owner, index));
       if (emptySlot === undefined) break;
       const side = owner === 'player' ? state.player : state.enemy;
       const reviveIndex = findNewestReviveableFallenIndex(side);
