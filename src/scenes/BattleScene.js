@@ -81,6 +81,7 @@ const BASE_FRAME_BOOT_MS = 330;
 const BASE_FRAME_GRAPHICS_DEPTH = 112;
 const BASE_FRAME_BOOT_SWEEP_DEPTH = 113;
 const BASE_TERMINAL_TEXT_DEPTH = 123;
+const BASE_CRACK_OVERLAY_DEPTH = 123.5;
 const BASE_GLASS_REFLECTION_DEPTH = 124;
 const FLOATING_FEEDBACK_DEPTH = 250;
 const BASE_UTILITY_CONTROL_FILL = 0x020617;
@@ -1193,11 +1194,13 @@ export default class BattleScene extends Phaser.Scene {
 
   createBaseBroadcastFrame(side, panel, panelWidth, panelHeight) {
     const graphics = this.add.graphics();
+    const crackGraphics = this.add.graphics();
     const glassGraphics = this.add.graphics();
     const frameView = {
       side,
       panel,
       graphics,
+      crackGraphics,
       glassGraphics,
       panelWidth,
       panelHeight,
@@ -1209,10 +1212,13 @@ export default class BattleScene extends Phaser.Scene {
       beaconFadeTween: null,
     };
     graphics.setDepth(BASE_FRAME_GRAPHICS_DEPTH);
+    crackGraphics.setDepth(BASE_CRACK_OVERLAY_DEPTH);
     glassGraphics.setDepth(BASE_GLASS_REFLECTION_DEPTH);
     graphics.setAlpha(0);
+    crackGraphics.setAlpha(0);
     glassGraphics.setAlpha(0);
     graphics.setData('side', side);
+    crackGraphics.setData('side', side);
     glassGraphics.setData('side', side);
     graphics.setData('baseFrameMetrics', {
       panelWidth,
@@ -1328,7 +1334,7 @@ export default class BattleScene extends Phaser.Scene {
     frameView.bootSweep = sweep;
 
     this.tweens.add({
-      targets: [frameView.graphics, frameView.glassGraphics],
+      targets: [frameView.graphics, frameView.crackGraphics, frameView.glassGraphics],
       alpha: 1,
       duration: BASE_FRAME_BOOT_MS,
       ease: 'Sine.easeOut',
@@ -1516,7 +1522,46 @@ export default class BattleScene extends Phaser.Scene {
       });
     }
 
-    this.renderBaseBroadcastGlass(frameView, { screenLeft, screenTop, screenWidth, screenHeight });
+    const screenMetrics = { screenLeft, screenTop, screenWidth, screenHeight };
+    this.renderBaseBroadcastCracks(frameView, screenMetrics);
+    this.renderBaseBroadcastGlass(frameView, screenMetrics);
+  }
+
+  getBaseHpForSide(side) {
+    if (!this.gameState) return 12;
+    return side === 'enemy' ? this.gameState.enemyHP : this.gameState.playerHP;
+  }
+
+  shouldShowBaseCrackForHp(hp) {
+    // Architecture validation v1: 12-9 HP is pristine; every damaged state at
+    // 8 HP or below reuses this one subtle edge crack until crack tiers exist.
+    return Number.isFinite(hp) && hp <= 8;
+  }
+
+  renderBaseBroadcastCracks(frameView, screenMetrics) {
+    const { crackGraphics, side } = frameView ?? {};
+    if (!crackGraphics?.active || !screenMetrics) return;
+
+    const { screenLeft, screenTop, screenWidth, screenHeight } = screenMetrics;
+    crackGraphics.clear();
+
+    const hp = this.getBaseHpForSide(side);
+    if (!this.shouldShowBaseCrackForHp(hp)) return;
+
+    // Keep the central 60% text safe zone clean. This short fracture is anchored
+    // to the outer glass edge and ends before the left/right 20% boundary.
+    const edgeSign = side === 'enemy' ? 1 : -1;
+    const anchorX = side === 'enemy' ? screenLeft + screenWidth * 0.985 : screenLeft + screenWidth * 0.015;
+    const anchorY = screenTop + screenHeight * (side === 'enemy' ? 0.34 : 0.66);
+    const endX = anchorX - edgeSign * screenWidth * 0.16;
+    const midX = anchorX - edgeSign * screenWidth * 0.08;
+
+    crackGraphics.lineStyle(1, BASE_SCREEN_REFLECTION, 0.28);
+    crackGraphics.beginPath();
+    crackGraphics.moveTo(anchorX, anchorY);
+    crackGraphics.lineTo(midX, anchorY + screenHeight * 0.035);
+    crackGraphics.lineTo(endX, anchorY + screenHeight * 0.018);
+    crackGraphics.strokePath();
   }
 
   renderBaseBroadcastGlass(frameView, screenMetrics) {
@@ -6467,6 +6512,8 @@ export default class BattleScene extends Phaser.Scene {
     }
     this.enemyHpText.setText(`${this.gameState.enemyHP}`);
     this.playerHpText.setText(`${this.gameState.playerHP}`);
+    this.renderBaseBroadcastFrame(this.baseFrameViews?.enemy);
+    this.renderBaseBroadcastFrame(this.baseFrameViews?.player);
     this.updatePlayerBaseActionState();
   }
 
