@@ -226,7 +226,7 @@
     },
     "wardens_shield_push_1": {
       "name": "Mammoth Stampede",
-      "textShort": "Swap two adjacent [ENEMIES].\nThey get -1 ATK until combat."
+      "textShort": "Swap two adjacent [ENEMIES].\n-1 ATK this combat."
     },
     "wardens_stand_firm_1": {
       "name": "Endure the Cold",

@@ -103,6 +103,8 @@ test('polished card text stays within mobile collection and inspect rules panels
     { factionKey: 'Attrition Swarm', cardId: 'attrition_swarm_infect_1', locale: 'pl', expectedBody: 'Zadaj 1 ♟.\n♙ naprzeciwko +1 ▲.' },
     { factionKey: 'Tank', cardId: 'tank_stability_1', locale: 'en', expectedBody: "Until combat, ♙♙ cannot be moved." },
     { factionKey: 'Tank', cardId: 'tank_stability_1', locale: 'pl', expectedBody: 'Do walki ♙♙ nie można przesuwać.' },
+    { factionKey: 'Wardens', cardId: 'wardens_shield_push_1', locale: 'en', expectedBody: 'Swap two adjacent ♟♟.\n-1 ▲ this combat.' },
+    { factionKey: 'Wardens', cardId: 'wardens_shield_push_1', locale: 'pl', expectedBody: 'Zamień dwóch sąsiednich ♟♟.\n-1 ▲ do walki.' },
   ];
 
   const measureFits = ({ body, width, height, typographyScale, lineSpacing }) => {

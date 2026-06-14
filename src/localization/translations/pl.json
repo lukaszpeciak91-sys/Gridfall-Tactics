@@ -226,7 +226,7 @@
     },
     "wardens_shield_push_1": {
       "name": "Mamuci Napór",
-      "textShort": "Zamień miejscami dwóch sąsiednich [ENEMIES].\nDostają -1 ATK do walki."
+      "textShort": "Zamień dwóch sąsiednich [ENEMIES].\n-1 ATK do walki."
     },
     "wardens_stand_firm_1": {
       "name": "Przetrwać Mróz",
