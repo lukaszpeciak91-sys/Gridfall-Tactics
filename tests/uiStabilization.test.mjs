@@ -212,7 +212,9 @@ test('BattleScene renders clean base transmission screens without decorative emi
   assert.match(battleSource, /getBaseCrackSegmentsForDamage\(damageLevel\)/);
   assert.match(battleSource, /beaconOrigins/);
   assert.match(battleSource, /const BASE_TERMINAL_TEXT_PLAYER_GLOW = 'rgba\(56, 189, 248, 0\.42\)';/);
-  assert.match(battleSource, /const BASE_TERMINAL_TEXT_ENEMY_GLOW = 'rgba\(248, 113, 113, 0\.46\)';/);
+  assert.match(battleSource, /const BASE_BEACON_ENEMY_ACTIVE = 0xef4444;/);
+  assert.match(battleSource, /const BASE_BEACON_ENEMY_DAMAGE_REACTION_INTENSITY = 0\.78;/);
+  assert.match(battleSource, /const BASE_TERMINAL_TEXT_ENEMY_GLOW = 'rgba\(239, 68, 68, 0\.66\)';/);
   assert.match(battleSource, /safeZone =/);
   assert.match(battleSource, /originOrder/);
   assert.match(battleSource, /crackGraphics\.lineStyle\(2, BASE_FRAME_SHADOW, 0\.42\);/);
