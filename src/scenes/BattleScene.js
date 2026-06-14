@@ -60,9 +60,9 @@ const BASE_SCREEN_SCANLINE = 0x93c5fd;
 const BASE_SCREEN_BAND = 0x38bdf8;
 const BASE_BEACON_INACTIVE = 0x162033;
 const BASE_BEACON_PLAYER_ACTIVE = 0x38bdf8;
-const BASE_BEACON_ENEMY_ACTIVE = 0xf87171;
+const BASE_BEACON_ENEMY_ACTIVE = 0x38bdf8;
 const BASE_BEACON_BRASS = 0xc8a85a;
-const BASE_BEACON_PULSE_HALF_MS = 1250;
+const BASE_BEACON_FADE_MS = 240;
 const BASE_SCREEN_REFLECTION = 0xe0f2fe;
 const BASE_SCREEN_GLITCH_RED = 0xff3b30;
 const BASE_SCREEN_GLITCH_CYAN = 0x22d3ee;
@@ -1190,8 +1190,8 @@ export default class BattleScene extends Phaser.Scene {
       overloadActive: false,
       booting: true,
       bootSweep: null,
-      beaconPulse: 0,
-      beaconPulseTween: null,
+      beaconIntensity: 0,
+      beaconFadeTween: null,
     };
     graphics.setDepth(112);
     graphics.setAlpha(0);
@@ -1205,55 +1205,43 @@ export default class BattleScene extends Phaser.Scene {
     });
     this.baseFrameViews[side] = frameView;
     this.renderBaseBroadcastFrame(frameView);
+    frameView.beaconIntensity = this.getCurrentActionableSide?.() === side ? 1 : 0;
     this.playBaseBroadcastBoot(frameView);
-    this.playBaseBeaconPulse(frameView);
     return frameView;
   }
 
+  drawBaseBroadcastBeaconModule(graphics, x, y, width, height, { intensity, color }) {
+    const left = x - width / 2;
+    const top = y - height / 2;
+    const inset = Math.max(2, Math.round(width * 0.18));
+    const lightRadius = Math.max(2.5, Math.min(width * 0.26, height * 0.115));
+    const lightAlpha = Phaser.Math.Clamp(intensity, 0, 1);
+    const offAlpha = 0.82 - lightAlpha * 0.32;
+    const onCoreAlpha = 0.18 + lightAlpha * 0.72;
+    const onRingAlpha = 0.14 + lightAlpha * 0.56;
 
-  playBaseBeaconPulse(frameView) {
-    if (!frameView?.graphics?.active) return;
+    graphics.fillStyle(BASE_SCREEN_FRAME_DARK, 0.92);
+    graphics.fillRect(left, top, width, height);
+    graphics.lineStyle(1, BASE_BEACON_BRASS, 0.48);
+    graphics.strokeRect(left + 0.5, top + 0.5, width - 1, height - 1);
+    graphics.fillStyle(BASE_FRAME_RECESS, 0.74);
+    graphics.fillRect(left + inset, top + inset, width - inset * 2, height - inset * 2);
+    graphics.lineStyle(1, BASE_FRAME_SHADOW, 0.58);
+    graphics.strokeRect(left + inset + 0.5, top + inset + 0.5, width - inset * 2 - 1, height - inset * 2 - 1);
 
-    frameView.beaconPulseTween?.stop?.();
-    frameView.beaconPulseTween = this.tweens.add({
-      targets: frameView,
-      beaconPulse: 1,
-      duration: BASE_BEACON_PULSE_HALF_MS,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut',
-      onUpdate: () => this.renderBaseBroadcastFrame(frameView),
+    [-0.27, 0, 0.27].forEach((offset) => {
+      const lightY = y + height * offset;
+      graphics.fillStyle(BASE_FRAME_SHADOW, 0.64);
+      graphics.fillCircle(x, lightY + 1, lightRadius * 1.38);
+      graphics.fillStyle(BASE_BEACON_INACTIVE, offAlpha);
+      graphics.fillCircle(x, lightY, lightRadius * 1.18);
+      graphics.lineStyle(Math.max(1, lightRadius * 0.18), BASE_BEACON_BRASS, 0.28 + lightAlpha * 0.18);
+      graphics.strokeCircle(x, lightY, lightRadius * 1.18);
+      graphics.lineStyle(Math.max(1, lightRadius * 0.13), color, onRingAlpha);
+      graphics.strokeCircle(x, lightY, lightRadius * 0.72);
+      graphics.fillStyle(color, onCoreAlpha);
+      graphics.fillCircle(x, lightY, lightRadius * 0.48);
     });
-  }
-
-  drawBaseBroadcastBeacon(graphics, x, y, radius, { active, color, pulse, overloadActive }) {
-    const activePulse = active ? pulse : 0;
-    const glowAlpha = overloadActive ? 0.34 : (active ? 0.18 + activePulse * 0.14 : 0.055);
-    const ringAlpha = overloadActive ? 0.72 : (active ? 0.48 + activePulse * 0.24 : 0.14);
-    const coreAlpha = overloadActive ? 0.86 : (active ? 0.58 + activePulse * 0.22 : 0.16);
-    const inactiveGlassAlpha = active ? 0.18 : 0.3;
-
-    graphics.fillStyle(color, glowAlpha);
-    graphics.fillCircle(x, y, radius * (active ? 2.1 + activePulse * 0.35 : 1.55));
-    graphics.fillStyle(BASE_BEACON_INACTIVE, inactiveGlassAlpha);
-    graphics.fillCircle(x, y, radius * 1.25);
-    graphics.lineStyle(Math.max(1, radius * 0.14), BASE_SCREEN_FRAME_LIGHT, active ? 0.2 : 0.12);
-    graphics.strokeCircle(x, y, radius * 1.25);
-
-    graphics.lineStyle(Math.max(1, radius * 0.16), color, ringAlpha * 0.78);
-    graphics.strokeCircle(x, y, radius * 0.92);
-    graphics.lineStyle(Math.max(1, radius * 0.13), color, ringAlpha);
-    graphics.strokeCircle(x, y, radius * 0.58);
-
-    graphics.fillStyle(color, coreAlpha);
-    graphics.fillCircle(x, y, radius * 0.28);
-    graphics.lineStyle(Math.max(1, radius * 0.12), BASE_BEACON_BRASS, active ? 0.32 : 0.16);
-    graphics.beginPath();
-    graphics.moveTo(x - radius * 0.72, y);
-    graphics.lineTo(x - radius * 0.42, y);
-    graphics.moveTo(x + radius * 0.42, y);
-    graphics.lineTo(x + radius * 0.72, y);
-    graphics.strokePath();
   }
 
   playBaseBroadcastBoot(frameView) {
@@ -1302,9 +1290,11 @@ export default class BattleScene extends Phaser.Scene {
     const recessedGap = Math.max(2, Math.round(height * 0.055));
     const innerLip = Math.max(2, Math.round(height * 0.075));
     const screenInset = outerLip + recessedGap + innerLip;
-    const screenLeft = left + screenInset;
+    const moduleWidth = Math.max(12, Math.min(width * 0.07, height * 0.34));
+    const moduleGap = Math.max(3, Math.round(width * 0.018));
+    const screenLeft = left + screenInset + moduleWidth + moduleGap;
     const screenTop = top + screenInset;
-    const screenWidth = width - screenInset * 2;
+    const screenWidth = width - screenInset * 2 - (moduleWidth + moduleGap) * 2;
     const screenHeight = height - screenInset * 2;
     const centerBandHeight = Math.max(3, screenHeight * 0.34);
     const scanlineStep = Math.max(3, Math.floor(height * 0.12));
@@ -1439,15 +1429,14 @@ export default class BattleScene extends Phaser.Scene {
     graphics.strokePath();
 
     const beaconColor = side === 'player' ? BASE_BEACON_PLAYER_ACTIVE : BASE_BEACON_ENEMY_ACTIVE;
-    const beaconRadius = Math.max(4, Math.min(screenHeight * 0.18, screenWidth * 0.035));
+    const beaconHeight = Math.max(screenHeight, height - screenInset * 2);
     const beaconY = panel.y;
-    const beaconInsetX = screenWidth * 0.13;
-    [screenLeft + beaconInsetX, screenLeft + screenWidth - beaconInsetX].forEach((beaconX) => {
-      this.drawBaseBroadcastBeacon(graphics, beaconX, beaconY, beaconRadius, {
-        active: isActive,
-        color: isActive || overloadActive ? beaconColor : BASE_BEACON_INACTIVE,
-        pulse: frameView.beaconPulse ?? 0,
-        overloadActive,
+    const leftBeaconX = left + screenInset + moduleWidth / 2;
+    const rightBeaconX = left + width - screenInset - moduleWidth / 2;
+    [leftBeaconX, rightBeaconX].forEach((beaconX) => {
+      this.drawBaseBroadcastBeaconModule(graphics, beaconX, beaconY, moduleWidth, beaconHeight, {
+        intensity: overloadActive ? 1 : (frameView.beaconIntensity ?? (isActive ? 1 : 0)),
+        color: beaconColor,
       });
     });
 
@@ -1465,7 +1454,31 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   updateBaseBroadcastFrameState() {
-    ['enemy', 'player'].forEach((side) => this.renderBaseBroadcastFrame(this.baseFrameViews?.[side]));
+    const activeSide = this.getCurrentActionableSide?.() ?? null;
+    ['enemy', 'player'].forEach((side) => {
+      const frameView = this.baseFrameViews?.[side];
+      if (!frameView?.graphics?.active) return;
+
+      const targetIntensity = activeSide === side ? 1 : 0;
+      if (Math.abs((frameView.beaconIntensity ?? 0) - targetIntensity) < 0.01) {
+        frameView.beaconIntensity = targetIntensity;
+        this.renderBaseBroadcastFrame(frameView);
+        return;
+      }
+
+      frameView.beaconFadeTween?.stop?.();
+      frameView.beaconFadeTween = this.tweens.add({
+        targets: frameView,
+        beaconIntensity: targetIntensity,
+        duration: BASE_BEACON_FADE_MS,
+        ease: 'Sine.easeOut',
+        onUpdate: () => this.renderBaseBroadcastFrame(frameView),
+        onComplete: () => {
+          frameView.beaconFadeTween = null;
+          this.renderBaseBroadcastFrame(frameView);
+        },
+      });
+    });
   }
 
   triggerBaseBroadcastOverload(side) {
