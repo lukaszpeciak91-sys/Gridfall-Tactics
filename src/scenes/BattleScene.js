@@ -79,6 +79,8 @@ const BASE_SCREEN_CENTER_BRIGHTNESS_ALPHA_BOOST = 0.025;
 const BASE_FRAME_SHADOW = 0x020617;
 const BASE_FRAME_RECESS = 0x0f172a;
 const BASE_FRAME_OVERLOAD_MS = 135;
+const BASE_TERMINAL_FAILURE_MS = 420;
+const BASE_TERMINAL_FAILURE_MODAL_DELAY_MS = 360;
 const BASE_FRAME_BOOT_MS = 330;
 const BASE_FRAME_GRAPHICS_DEPTH = 112;
 const BASE_FRAME_BOOT_SWEEP_DEPTH = 113;
@@ -881,6 +883,10 @@ export default class BattleScene extends Phaser.Scene {
 
   scheduleBattleResultModal(delayMs = 500) {
     if (!this.gameState?.winner || this.battleResultModalShown || this.battleResultModalPending) return;
+    const hasLethalTerminalFailure = Boolean(this.getLethalTerminalFailureSides().length);
+    if (hasLethalTerminalFailure) {
+      delayMs = Math.min(Math.max(delayMs, BASE_TERMINAL_FAILURE_MODAL_DELAY_MS), BASE_TERMINAL_FAILURE_MS);
+    }
     this.battleResultModalPending = true;
     this.isFlowResolving = true;
     this.updateActionSlotBadge();
@@ -1215,6 +1221,10 @@ export default class BattleScene extends Phaser.Scene {
       bootSweep: null,
       beaconIntensity: 0,
       beaconFadeTween: null,
+      terminalFailureProgress: 0,
+      terminalFailureFlash: 0,
+      terminalFailureDim: 0,
+      terminalFailureTween: null,
     };
     graphics.setDepth(BASE_FRAME_GRAPHICS_DEPTH);
     crackGraphics.setDepth(BASE_CRACK_OVERLAY_DEPTH);
@@ -1233,6 +1243,10 @@ export default class BattleScene extends Phaser.Scene {
       cleanCenterRatio: 0.86,
     });
     this.baseFrameViews[side] = frameView;
+    if (this.terminalShatterTriggeredSides?.has(side) && this.getBaseHpForSide(side) <= 0) {
+      frameView.terminalFailureProgress = 1;
+      frameView.terminalFailureDim = 1;
+    }
     this.renderBaseBroadcastFrame(frameView);
     frameView.beaconIntensity = this.getCurrentActionableSide?.() === side ? 1 : 0;
     this.playBaseBroadcastBoot(frameView);
@@ -1668,27 +1682,143 @@ export default class BattleScene extends Phaser.Scene {
     crackGraphics.strokePath();
   }
 
-  maybeTriggerTerminalShatterHook() {
+  getLethalTerminalFailureSides() {
     const resolution = this.gameState?.heroDeathResolution;
-    if (!resolution || !this.gameState?.winner) return;
-    const lethalSides = [
+    if (!resolution || !this.gameState?.winner) return [];
+    return [
       resolution.rawPlayerHP <= 0 ? 'player' : null,
       resolution.rawEnemyHP <= 0 ? 'enemy' : null,
     ].filter(Boolean);
+  }
 
-    lethalSides.forEach((side) => {
+  maybeTriggerTerminalShatterHook() {
+    this.getLethalTerminalFailureSides().forEach((side) => {
       if (this.terminalShatterTriggeredSides?.has(side)) return;
       this.terminalShatterTriggeredSides ??= new Set();
       this.terminalShatterTriggeredSides.add(side);
-      this.futureTerminalShatter(side);
+      this.playTerminalFailureShatter(side);
     });
   }
 
-  futureTerminalShatter(side) {
-    // TODO: Future lethal terminal shatter animation hook:
-    // brief flash, rapid cracks from both beacon sides, screen failure, then result UI layering.
-    // Intentionally no particles, shards, screen shake, or modal delay in this polish pass.
-    console.debug?.('futureTerminalShatter hook', side);
+  getBaseHpTextForSide(side) {
+    return side === 'enemy' ? this.enemyHpText : this.playerHpText;
+  }
+
+  playTerminalFailureShatter(side) {
+    const frameView = this.baseFrameViews?.[side];
+    if (!frameView?.crackGraphics?.active) return;
+
+    frameView.terminalFailureTween?.stop?.();
+    frameView.terminalFailureProgress = 0;
+    frameView.terminalFailureFlash = 1;
+    frameView.terminalFailureDim = 0;
+    this.triggerBaseBroadcastOverload(side);
+    this.renderBaseBroadcastFrame(frameView);
+
+    frameView.terminalFailureTween = this.tweens.add({
+      targets: frameView,
+      terminalFailureFlash: 0,
+      terminalFailureProgress: 1,
+      terminalFailureDim: 1,
+      duration: BASE_TERMINAL_FAILURE_MS,
+      ease: 'Cubic.easeOut',
+      onUpdate: () => this.renderBaseBroadcastFrame(frameView),
+      onComplete: () => {
+        frameView.terminalFailureTween = null;
+        frameView.terminalFailureProgress = 1;
+        frameView.terminalFailureFlash = 0;
+        frameView.terminalFailureDim = 1;
+        this.renderBaseBroadcastFrame(frameView);
+      },
+    });
+
+    const hpText = this.getBaseHpTextForSide(side);
+    if (hpText?.active) {
+      this.tweens.add({
+        targets: hpText,
+        alpha: { from: 1, to: 0.58 },
+        duration: 70,
+        yoyo: true,
+        repeat: 2,
+        ease: 'Stepped',
+      });
+    }
+  }
+
+  getTerminalFailureCrackPaths(screenMetrics, progress) {
+    const { screenLeft, screenTop, screenWidth, screenHeight, glassLeft, glassTop, glassWidth, glassHeight, beaconOrigins = [] } = screenMetrics;
+    const reveal = Phaser.Math.Clamp(progress, 0, 1);
+    const originsById = new Map(beaconOrigins.map((origin) => [origin.id, origin]));
+    const safeZone = {
+      left: screenLeft + screenWidth * 0.34,
+      right: screenLeft + screenWidth * 0.66,
+      top: screenTop + screenHeight * 0.3,
+      bottom: screenTop + screenHeight * 0.7,
+    };
+    const bounds = {
+      left: glassLeft + glassWidth * 0.025,
+      right: glassLeft + glassWidth * 0.975,
+      top: glassTop + glassHeight * 0.06,
+      bottom: glassTop + glassHeight * 0.94,
+    };
+    const configs = [
+      { origin: 'top-left', tx: 0.7, ty: 0.22, kinks: [[0.18, 0.11], [0.38, -0.04], [0.57, 0.08]], branches: 2 },
+      { origin: 'bottom-right', tx: 0.31, ty: 0.78, kinks: [[-0.16, -0.1], [-0.36, 0.03], [-0.55, -0.07]], branches: 2 },
+      { origin: 'bottom-left', tx: 0.78, ty: 0.66, kinks: [[0.2, -0.08], [0.43, 0.04], [0.62, -0.06]], branches: 1 },
+      { origin: 'top-right', tx: 0.22, ty: 0.35, kinks: [[-0.17, 0.09], [-0.41, -0.03], [-0.6, 0.06]], branches: 1 },
+    ];
+
+    return configs.map((config) => {
+      const origin = originsById.get(config.origin);
+      if (!origin) return null;
+      const end = {
+        x: screenLeft + screenWidth * config.tx,
+        y: screenTop + screenHeight * config.ty,
+      };
+      const points = [{ x: origin.x, y: origin.y }];
+      config.kinks.forEach(([travelRatio, verticalRatio], index) => {
+        const pointProgress = Phaser.Math.Clamp(reveal * (config.kinks.length + 1) - index, 0, 1);
+        if (pointProgress <= 0) return;
+        const finalTravelRatio = Math.abs(config.kinks[config.kinks.length - 1][0]) || 1;
+        const targetRatio = Math.abs(travelRatio) / finalTravelRatio;
+        const target = {
+          x: origin.x + (end.x - origin.x) * targetRatio,
+          y: origin.y + (end.y - origin.y) * targetRatio + glassHeight * verticalRatio,
+        };
+        points.push(this.clampBaseCrackPoint({
+          x: Phaser.Math.Linear(origin.x, target.x, pointProgress),
+          y: Phaser.Math.Linear(origin.y, target.y, pointProgress),
+        }, bounds, safeZone));
+      });
+      if (reveal >= 0.95) points.push(this.clampBaseCrackPoint(end, bounds, safeZone));
+      return { points, branches: Math.floor(config.branches * reveal), bounds };
+    }).filter((path) => path && path.points.length > 1);
+  }
+
+  renderTerminalFailureShatter(frameView, screenMetrics) {
+    const { crackGraphics } = frameView;
+    const progress = frameView.terminalFailureTween
+      ? (frameView.terminalFailureProgress ?? 0)
+      : Math.max(frameView.terminalFailureProgress ?? 0, this.terminalShatterTriggeredSides?.has(frameView.side) ? 1 : 0);
+    if (progress <= 0 && (frameView.terminalFailureFlash ?? 0) <= 0 && (frameView.terminalFailureDim ?? 0) <= 0) return;
+
+    const { screenLeft, screenTop, screenWidth, screenHeight } = screenMetrics;
+    if ((frameView.terminalFailureFlash ?? 0) > 0) {
+      crackGraphics.fillStyle(BASE_SCREEN_REFLECTION, 0.3 * frameView.terminalFailureFlash);
+      crackGraphics.fillRect(screenLeft, screenTop, screenWidth, screenHeight);
+    }
+
+    const dimAlpha = 0.22 * Math.max(frameView.terminalFailureDim ?? 0, progress);
+    if (dimAlpha > 0) {
+      crackGraphics.fillStyle(BASE_FRAME_SHADOW, dimAlpha);
+      crackGraphics.fillRect(screenLeft, screenTop, screenWidth, screenHeight);
+    }
+
+    const paths = this.getTerminalFailureCrackPaths(screenMetrics, progress);
+    crackGraphics.lineStyle(2.4, BASE_FRAME_SHADOW, 0.52);
+    paths.forEach(({ points, branches, bounds }) => this.strokeBaseCrackPath(crackGraphics, points, branches, bounds, { left: 0, right: 0, top: 0, bottom: 0 }));
+    crackGraphics.lineStyle(1.15, BASE_SCREEN_REFLECTION, 0.72);
+    paths.forEach(({ points, branches, bounds }) => this.strokeBaseCrackPath(crackGraphics, points, branches, bounds, { left: 0, right: 0, top: 0, bottom: 0 }));
   }
 
   renderBaseBroadcastCracks(frameView, screenMetrics) {
@@ -1728,6 +1858,8 @@ export default class BattleScene extends Phaser.Scene {
 
     crackGraphics.lineStyle(1, BASE_SCREEN_REFLECTION, 0.62);
     paths.forEach(({ points, branches, bounds }) => this.strokeBaseCrackPath(crackGraphics, points, branches, bounds, safeZone));
+
+    this.renderTerminalFailureShatter(frameView, screenMetrics);
   }
 
   renderBaseBroadcastGlass(frameView, screenMetrics) {
