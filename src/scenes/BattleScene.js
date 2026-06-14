@@ -120,6 +120,7 @@ const HAND_CARD_TYPOGRAPHY_SCALE = 1.12;
 const HAND_CARD_TITLE_TYPOGRAPHY_SCALE = 1.2;
 const HAND_CARD_BODY_LINE_SPACING = 3;
 const HAND_CARD_SELECTED_DEPTH = 760;
+const MULLIGAN_HAND_CARD_SELECTED_DEPTH = 80;
 const HAND_CARD_SELECTED_LIFT_PX = 14;
 const MULLIGAN_HAND_CARD_SELECTED_LIFT_PX = HAND_CARD_SELECTED_LIFT_PX;
 const MULLIGAN_SELECTION_BORDER_WIDTH_PX = 1.5;
@@ -3224,14 +3225,24 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   clearOpeningMulliganPreviewFromOutsideTap(pointer, currentlyOver = []) {
-    if (!this.previewedMulliganCardId && !this.selectedHandCardZoom) return;
+    if (!this.previewedMulliganCardId && !this.selectedHandCardZoom && this.selectedMulliganCardIds.length === 0) return;
     if (this.isPointerInsideMulliganHandOrPreview(pointer, currentlyOver)) return;
+    if (this.isPointerInsidePlayerBaseAction(pointer, currentlyOver)) return;
 
     this.previewedMulliganCardId = null;
     this.hoverInspectCardId = null;
     this.boardInspectIndex = null;
     this.pressedHandCardId = null;
+    this.selectedMulliganCardIds = [];
+    this.updatePlayerBaseActionState();
     this.resetCardHighlights({ showPreview: false });
+  }
+
+  isPointerInsidePlayerBaseAction(pointer, currentlyOver = []) {
+    if (!this.playerHeroPanel) return false;
+
+    const overObjects = this.normalizePointerUpObjects(currentlyOver);
+    return overObjects.includes(this.playerHeroPanel) || this.isPointerInsideGameObject(pointer, this.playerHeroPanel);
   }
 
   isPointerInsideMulliganHandOrPreview(pointer, currentlyOver = []) {
@@ -7234,6 +7245,7 @@ export default class BattleScene extends Phaser.Scene {
       const activeFrameFillAlpha = usesSelectionTreatment ? 0.98 : 0.95;
       const activeFrameStrokeAlpha = usesSelectionTreatment ? 0.9 : 1;
       const selectedLift = isMulliganSelected ? MULLIGAN_HAND_CARD_SELECTED_LIFT_PX : HAND_CARD_SELECTED_LIFT_PX;
+      const selectedDepth = isMulliganSelected ? MULLIGAN_HAND_CARD_SELECTED_DEPTH : HAND_CARD_SELECTED_DEPTH;
 
       card.background.setStrokeStyle(isActiveHandCard ? activeFrameStrokeWidth : 3, isActiveHandCard ? 0xfacc15 : accentColor, isActiveHandCard ? activeFrameStrokeAlpha : viewCard ? 0.76 : 0.7);
       card.background.setFillStyle(isActiveHandCard ? frameSelectedFillColor : frameFillColor, isActiveHandCard ? activeFrameFillAlpha : viewCard ? 0.74 : 0.48);
@@ -7250,7 +7262,7 @@ export default class BattleScene extends Phaser.Scene {
       card.blockedIconBubble?.setAlpha(isBlockedEffectCard ? 0.86 : 0);
       card.blockedIcon?.setAlpha(isBlockedEffectCard ? 0.92 : 0);
       card.root.setAlpha(viewCard ? (isBlockedEffectCard ? 0.68 : (isDimmedByActiveCard ? HAND_CARD_DIM_ALPHA : HAND_CARD_SELECTED_ALPHA)) : 0.45);
-      card.root.setPosition(card.baseX, isActiveHandCard ? card.baseY - selectedLift : card.baseY).setScale(1).setDepth(isActiveHandCard ? HAND_CARD_SELECTED_DEPTH : card.baseDepth);
+      card.root.setPosition(card.baseX, isActiveHandCard ? card.baseY - selectedLift : card.baseY).setScale(1).setDepth(isActiveHandCard ? selectedDepth : card.baseDepth);
     });
 
     if (showPreview) {
