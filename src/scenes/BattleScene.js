@@ -82,6 +82,7 @@ const BASE_FRAME_OVERLOAD_MS = 135;
 const BASE_TERMINAL_FAILURE_MS = 420;
 const BASE_TERMINAL_FAILURE_MODAL_DELAY_MS = 360;
 const BASE_FRAME_BOOT_MS = 330;
+const BASE_TERMINAL_TEXT_REVEAL_MS = 120;
 const BASE_FRAME_GRAPHICS_DEPTH = 112;
 const BASE_FRAME_BOOT_SWEEP_DEPTH = 113;
 const BASE_TERMINAL_TEXT_DEPTH = 123;
@@ -253,6 +254,9 @@ export default class BattleScene extends Phaser.Scene {
     this.backgroundArtAsset = null;
     this.backgroundLayer = null;
     this.baseFrameViews = { player: null, enemy: null };
+    this.terminalShatterTriggeredSides = new Set();
+    this.terminalFailedSides = new Set();
+    this.terminalTextBootComplete = false;
     this.battlefieldCenterLight = null;
     this.selectedHandCardZoom = null;
     this.hoverInspectCardId = null;
@@ -427,6 +431,8 @@ export default class BattleScene extends Phaser.Scene {
 
     this.gameState = createInitialBattleState(playerFactionData, enemyFactionData);
     this.terminalShatterTriggeredSides = new Set();
+    this.terminalFailedSides = new Set();
+    this.terminalTextBootComplete = false;
     this.gameState.player.factionKey = playerFactionKey;
     this.gameState.enemy.factionKey = enemyFactionKey;
     shuffleDeck(this.gameState.player.deck);
@@ -1253,6 +1259,48 @@ export default class BattleScene extends Phaser.Scene {
     return frameView;
   }
 
+  isTerminalTextVisibleForSide(side) {
+    return Boolean(this.terminalTextBootComplete) && !this.terminalFailedSides?.has(side);
+  }
+
+  setTerminalTextAlpha(alpha) {
+    [this.enemyHpText, this.playerHpText, this.playerBaseActionLabelText].forEach((text) => {
+      if (text?.active) text.setAlpha(alpha);
+    });
+  }
+
+  refreshTerminalTextVisibility() {
+    if (this.enemyHpText?.active) {
+      this.enemyHpText.setVisible(this.isTerminalTextVisibleForSide('enemy'));
+    }
+    this.updatePlayerBaseActionState();
+  }
+
+  maybeRevealTerminalTextAfterBoot() {
+    if (this.terminalTextBootComplete) return;
+    const views = [this.baseFrameViews?.enemy, this.baseFrameViews?.player].filter(Boolean);
+    if (views.length < 2 || views.some((view) => view.booting)) return;
+    this.terminalTextBootComplete = true;
+    this.setTerminalTextAlpha(0);
+    this.refreshTerminalTextVisibility();
+    this.tweens.add({
+      targets: [this.enemyHpText, this.playerHpText, this.playerBaseActionLabelText].filter((text) => text?.active),
+      alpha: 1,
+      duration: BASE_TERMINAL_TEXT_REVEAL_MS,
+      ease: 'Sine.easeOut',
+    });
+  }
+
+  hideTerminalTextForFailureSide(side) {
+    this.terminalFailedSides ??= new Set();
+    this.terminalFailedSides.add(side);
+    const hpText = this.getBaseHpTextForSide(side);
+    if (hpText?.active) hpText.setVisible(false);
+    if (side === 'player' && this.playerBaseActionLabelText?.active) {
+      this.playerBaseActionLabelText.setVisible(false);
+    }
+  }
+
   drawBaseBroadcastBeaconModule(graphics, x, y, width, height, { intensity, color }) {
     const left = x - width / 2;
     const top = y - height / 2;
@@ -1369,6 +1417,7 @@ export default class BattleScene extends Phaser.Scene {
         frameView.bootSweep = null;
         frameView.booting = false;
         this.renderBaseBroadcastFrame(frameView);
+        this.maybeRevealTerminalTextAfterBoot();
       },
     });
   }
@@ -1696,6 +1745,7 @@ export default class BattleScene extends Phaser.Scene {
       if (this.terminalShatterTriggeredSides?.has(side)) return;
       this.terminalShatterTriggeredSides ??= new Set();
       this.terminalShatterTriggeredSides.add(side);
+      this.hideTerminalTextForFailureSide(side);
       this.playTerminalFailureShatter(side);
     });
   }
@@ -1732,17 +1782,6 @@ export default class BattleScene extends Phaser.Scene {
       },
     });
 
-    const hpText = this.getBaseHpTextForSide(side);
-    if (hpText?.active) {
-      this.tweens.add({
-        targets: hpText,
-        alpha: { from: 1, to: 0.58 },
-        duration: 70,
-        yoyo: true,
-        repeat: 2,
-        ease: 'Stepped',
-      });
-    }
   }
 
   getTerminalFailureCrackPaths(screenMetrics, progress) {
@@ -2205,8 +2244,10 @@ export default class BattleScene extends Phaser.Scene {
       fontStyle: 'bold',
       align: 'center',
       fixedWidth: Math.floor(panelWidth * 0.86),
-    }).setOrigin(0.5).setDepth(BASE_TERMINAL_TEXT_DEPTH).setStroke(BASE_TERMINAL_TEXT_STROKE, BASE_TERMINAL_TEXT_STROKE_WIDTH).setShadow(0, 0, BASE_TERMINAL_TEXT_PLAYER_GLOW, BASE_TERMINAL_TEXT_GLOW_BLUR, true, true).setY(playerPanel.y + BASE_TERMINAL_TEXT_OPTICAL_Y_OFFSET_PX).setVisible(false);
+    }).setOrigin(0.5).setDepth(BASE_TERMINAL_TEXT_DEPTH).setStroke(BASE_TERMINAL_TEXT_STROKE, BASE_TERMINAL_TEXT_STROKE_WIDTH).setShadow(0, 0, BASE_TERMINAL_TEXT_PLAYER_GLOW, BASE_TERMINAL_TEXT_GLOW_BLUR, true, true).setY(playerPanel.y + BASE_TERMINAL_TEXT_OPTICAL_Y_OFFSET_PX).setVisible(false).setAlpha(0);
 
+    this.enemyHpText.setAlpha(0).setVisible(false);
+    this.playerHpText.setAlpha(0).setVisible(false);
     this.updateActionSlotBadge();
   }
 
@@ -3727,7 +3768,8 @@ export default class BattleScene extends Phaser.Scene {
         .setText(actionLabel ?? '')
         .setFontSize(passActionActive ? passFontSize : mulliganFontSize)
         .setY((passActionActive ? centerY + passLabelOffset : centerY) + BASE_TERMINAL_TEXT_OPTICAL_Y_OFFSET_PX)
-        .setVisible(actionStateActive);
+        .setVisible(actionStateActive)
+        .setVisible(actionStateActive && this.isTerminalTextVisibleForSide('player'));
     }
 
     if (this.playerHeroTitleText) {
@@ -3738,7 +3780,8 @@ export default class BattleScene extends Phaser.Scene {
       this.playerHpText
         .setFontSize(passActionActive ? passHpFontSize : normalHpFontSize)
         .setY((passActionActive ? centerY - passHpOffset : centerY) + BASE_TERMINAL_TEXT_OPTICAL_Y_OFFSET_PX)
-        .setVisible(!mulliganActionActive && !passActionActive);
+        .setVisible(!mulliganActionActive && !passActionActive)
+        .setVisible(!mulliganActionActive && !passActionActive && this.isTerminalTextVisibleForSide('player'));
     }
 
     this.updateActionableSideVisualState();
@@ -6805,12 +6848,17 @@ export default class BattleScene extends Phaser.Scene {
   refreshHeroHP() {
     if (!this.enemyHpText || !this.playerHpText) {
       const { width, topHero, playerHero } = this.layout;
-      this.enemyHpText = this.add.text(width * 0.5, topHero.centerY + BASE_TERMINAL_TEXT_OPTICAL_Y_OFFSET_PX, '', { fontFamily: 'Arial, sans-serif', fontSize: `${Math.max(24, Math.floor(topHero.h * 0.62))}px`, color: BASE_TERMINAL_TEXT_COLOR, fontStyle: 'bold' }).setOrigin(0.5).setDepth(BASE_TERMINAL_TEXT_DEPTH).setStroke(BASE_TERMINAL_TEXT_STROKE, BASE_TERMINAL_TEXT_STROKE_WIDTH).setShadow(0, 0, BASE_TERMINAL_TEXT_ENEMY_GLOW, BASE_TERMINAL_TEXT_GLOW_BLUR, true, true);
-      this.playerHpText = this.add.text(width * 0.5, playerHero.centerY + BASE_TERMINAL_TEXT_OPTICAL_Y_OFFSET_PX, '', { fontFamily: 'Arial, sans-serif', fontSize: `${Math.max(23, Math.floor(playerHero.h * 0.6))}px`, color: BASE_TERMINAL_TEXT_COLOR, fontStyle: 'bold' }).setOrigin(0.5).setDepth(BASE_TERMINAL_TEXT_DEPTH).setStroke(BASE_TERMINAL_TEXT_STROKE, BASE_TERMINAL_TEXT_STROKE_WIDTH).setShadow(0, 0, BASE_TERMINAL_TEXT_PLAYER_GLOW, BASE_TERMINAL_TEXT_GLOW_BLUR, true, true);
+      this.enemyHpText = this.add.text(width * 0.5, topHero.centerY + BASE_TERMINAL_TEXT_OPTICAL_Y_OFFSET_PX, '', { fontFamily: 'Arial, sans-serif', fontSize: `${Math.max(24, Math.floor(topHero.h * 0.62))}px`, color: BASE_TERMINAL_TEXT_COLOR, fontStyle: 'bold' }).setOrigin(0.5).setDepth(BASE_TERMINAL_TEXT_DEPTH).setStroke(BASE_TERMINAL_TEXT_STROKE, BASE_TERMINAL_TEXT_STROKE_WIDTH).setShadow(0, 0, BASE_TERMINAL_TEXT_ENEMY_GLOW, BASE_TERMINAL_TEXT_GLOW_BLUR, true, true).setAlpha(0).setVisible(false);
+      this.playerHpText = this.add.text(width * 0.5, playerHero.centerY + BASE_TERMINAL_TEXT_OPTICAL_Y_OFFSET_PX, '', { fontFamily: 'Arial, sans-serif', fontSize: `${Math.max(23, Math.floor(playerHero.h * 0.6))}px`, color: BASE_TERMINAL_TEXT_COLOR, fontStyle: 'bold' }).setOrigin(0.5).setDepth(BASE_TERMINAL_TEXT_DEPTH).setStroke(BASE_TERMINAL_TEXT_STROKE, BASE_TERMINAL_TEXT_STROKE_WIDTH).setShadow(0, 0, BASE_TERMINAL_TEXT_PLAYER_GLOW, BASE_TERMINAL_TEXT_GLOW_BLUR, true, true).setAlpha(0).setVisible(false);
     }
     this.maybeTriggerTerminalShatterHook();
-    this.enemyHpText.setText(`${this.gameState.enemyHP}`);
-    this.playerHpText.setText(`${this.gameState.playerHP}`);
+    if (!this.terminalFailedSides?.has('enemy')) {
+      this.enemyHpText.setText(`${this.gameState.enemyHP}`);
+    }
+    if (!this.terminalFailedSides?.has('player')) {
+      this.playerHpText.setText(`${this.gameState.playerHP}`);
+    }
+    this.refreshTerminalTextVisibility();
     this.renderBaseBroadcastFrame(this.baseFrameViews?.enemy);
     this.renderBaseBroadcastFrame(this.baseFrameViews?.player);
     this.updatePlayerBaseActionState();
