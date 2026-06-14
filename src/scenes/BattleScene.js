@@ -1213,34 +1213,58 @@ export default class BattleScene extends Phaser.Scene {
   drawBaseBroadcastBeaconModule(graphics, x, y, width, height, { intensity, color }) {
     const left = x - width / 2;
     const top = y - height / 2;
-    const inset = Math.max(2, Math.round(width * 0.16));
-    const lightRadius = Math.max(3.5, Math.min(width * 0.31, height * 0.14));
+    const podRailWidth = Math.max(2, Math.round(width * 0.13));
+    const podInsetX = Math.max(3, Math.round(width * 0.19));
+    const podInsetY = Math.max(4, Math.round(height * 0.055));
+    const wellLeft = left + podInsetX;
+    const wellTop = top + podInsetY;
+    const wellWidth = width - podInsetX * 2;
+    const wellHeight = height - podInsetY * 2;
+    const lightRadius = Math.max(5, Math.min(width * 0.32, height * 0.095));
     const lightAlpha = Phaser.Math.Clamp(intensity, 0, 1);
-    const offAlpha = 0.5 - lightAlpha * 0.22;
-    const onCoreAlpha = 0.1 + lightAlpha * 0.76;
-    const onRingAlpha = 0.08 + lightAlpha * 0.48;
+    const offAlpha = 0.62 - lightAlpha * 0.24;
+    const onCoreAlpha = 0.08 + lightAlpha * 0.82;
+    const onRingAlpha = 0.06 + lightAlpha * 0.54;
 
-    graphics.fillStyle(BASE_SCREEN_FRAME_DARK, 0.92);
+    // Tall side-mounted hardware pod: graphite casing, brass retaining rails,
+    // recessed lamp well. Kept within the original panel graphics so hitboxes
+    // and layout remain unchanged.
+    graphics.fillStyle(BASE_FRAME_SHADOW, 0.46);
+    graphics.fillRect(left + 1, top + 2, width, height);
+    graphics.fillStyle(BASE_SCREEN_FRAME_DARK, 0.98);
     graphics.fillRect(left, top, width, height);
-    graphics.lineStyle(1, BASE_BEACON_BRASS, 0.48);
-    graphics.strokeRect(left + 0.5, top + 0.5, width - 1, height - 1);
-    graphics.fillStyle(BASE_FRAME_RECESS, 0.74);
-    graphics.fillRect(left + inset, top + inset, width - inset * 2, height - inset * 2);
-    graphics.lineStyle(1, BASE_FRAME_SHADOW, 0.58);
-    graphics.strokeRect(left + inset + 0.5, top + inset + 0.5, width - inset * 2 - 1, height - inset * 2 - 1);
+    graphics.fillStyle(BASE_SCREEN_CONNECTOR, 0.7);
+    graphics.fillRect(left + 1, top + 1, podRailWidth, height - 2);
+    graphics.fillRect(left + width - podRailWidth - 1, top + 1, podRailWidth, height - 2);
+    graphics.lineStyle(2, BASE_BEACON_BRASS, 0.58);
+    graphics.strokeRect(left + 1, top + 1, width - 2, height - 2);
+    graphics.lineStyle(1, BASE_BEACON_BRASS, 0.34);
+    graphics.beginPath();
+    graphics.moveTo(left + podRailWidth + 1.5, top + 3);
+    graphics.lineTo(left + podRailWidth + 1.5, top + height - 3);
+    graphics.moveTo(left + width - podRailWidth - 1.5, top + 3);
+    graphics.lineTo(left + width - podRailWidth - 1.5, top + height - 3);
+    graphics.strokePath();
 
-    [-0.27, 0, 0.27].forEach((offset) => {
+    graphics.fillStyle(BASE_FRAME_RECESS, 0.94);
+    graphics.fillRect(wellLeft, wellTop, wellWidth, wellHeight);
+    graphics.fillStyle(BASE_FRAME_SHADOW, 0.5);
+    graphics.fillRect(wellLeft + 1, wellTop + 1, wellWidth - 2, Math.max(2, wellHeight * 0.08));
+    graphics.lineStyle(1, BASE_FRAME_SHADOW, 0.78);
+    graphics.strokeRect(wellLeft + 0.5, wellTop + 0.5, wellWidth - 1, wellHeight - 1);
+
+    [-0.29, 0, 0.29].forEach((offset) => {
       const lightY = y + height * offset;
-      graphics.fillStyle(BASE_FRAME_SHADOW, 0.64);
-      graphics.fillCircle(x, lightY + 1, lightRadius * 1.38);
+      graphics.fillStyle(BASE_FRAME_SHADOW, 0.82);
+      graphics.fillCircle(x, lightY + 1.5, lightRadius * 1.48);
       graphics.fillStyle(BASE_BEACON_INACTIVE, offAlpha);
-      graphics.fillCircle(x, lightY, lightRadius * 1.18);
-      graphics.lineStyle(Math.max(1, lightRadius * 0.18), BASE_BEACON_BRASS, 0.28 + lightAlpha * 0.18);
-      graphics.strokeCircle(x, lightY, lightRadius * 1.18);
-      graphics.lineStyle(Math.max(1, lightRadius * 0.13), color, onRingAlpha);
-      graphics.strokeCircle(x, lightY, lightRadius * 0.72);
+      graphics.fillCircle(x, lightY, lightRadius * 1.24);
+      graphics.lineStyle(Math.max(1.4, lightRadius * 0.2), BASE_BEACON_BRASS, 0.34 + lightAlpha * 0.2);
+      graphics.strokeCircle(x, lightY, lightRadius * 1.24);
+      graphics.lineStyle(Math.max(1, lightRadius * 0.15), color, onRingAlpha);
+      graphics.strokeCircle(x, lightY, lightRadius * 0.8);
       graphics.fillStyle(color, onCoreAlpha);
-      graphics.fillCircle(x, lightY, lightRadius * 0.48);
+      graphics.fillCircle(x, lightY, lightRadius * 0.56);
     });
   }
 
@@ -1290,8 +1314,8 @@ export default class BattleScene extends Phaser.Scene {
     const recessedGap = Math.max(2, Math.round(height * 0.055));
     const innerLip = Math.max(2, Math.round(height * 0.075));
     const screenInset = outerLip + recessedGap + innerLip;
-    const moduleWidth = Math.max(17, Math.min(width * 0.105, height * 0.5));
-    const moduleGap = Math.max(3, Math.round(width * 0.014));
+    const moduleWidth = Math.max(23, Math.min(width * 0.135, height * 0.42));
+    const moduleGap = Math.max(4, Math.round(width * 0.018));
     const screenHardwareInset = outerLip;
     // Beacons mount to the outer housing, not the inset scanline glass, so
     // their casing inset is independent of the recessed screen anchor.
@@ -1433,7 +1457,7 @@ export default class BattleScene extends Phaser.Scene {
     graphics.strokePath();
 
     const beaconColor = side === 'player' ? BASE_BEACON_PLAYER_ACTIVE : BASE_BEACON_ENEMY_ACTIVE;
-    const beaconHeight = Math.max(screenHeight, height - screenInset * 2);
+    const beaconHeight = Math.max(screenHeight, height * 0.86);
     const beaconY = panel.y;
     const leftBeaconX = left + beaconHardwareInset + moduleWidth / 2;
     const rightBeaconX = left + width - beaconHardwareInset - moduleWidth / 2;
