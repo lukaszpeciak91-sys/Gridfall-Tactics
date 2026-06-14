@@ -61,6 +61,8 @@ const BASE_SCREEN_BAND = 0x38bdf8;
 const BASE_SCREEN_REFLECTION = 0xe0f2fe;
 const BASE_SCREEN_GLITCH_RED = 0xff3b30;
 const BASE_SCREEN_GLITCH_CYAN = 0x22d3ee;
+const BASE_FRAME_SHADOW = 0x020617;
+const BASE_FRAME_RECESS = 0x0f172a;
 const BASE_FRAME_OVERLOAD_MS = 135;
 const BASE_FRAME_BOOT_MS = 330;
 const BASE_UTILITY_CONTROL_FILL = 0x020617;
@@ -1243,13 +1245,20 @@ export default class BattleScene extends Phaser.Scene {
     const height = panelHeight;
     const left = panel.x - width / 2;
     const top = panel.y - height / 2;
-    const centerBandHeight = Math.max(3, height * 0.24);
+    const outerLip = Math.max(3, Math.round(height * 0.12));
+    const recessedGap = Math.max(2, Math.round(height * 0.055));
+    const innerLip = Math.max(2, Math.round(height * 0.075));
+    const screenInset = outerLip + recessedGap + innerLip;
+    const screenLeft = left + screenInset;
+    const screenTop = top + screenInset;
+    const screenWidth = width - screenInset * 2;
+    const screenHeight = height - screenInset * 2;
+    const centerBandHeight = Math.max(3, screenHeight * 0.34);
     const scanlineStep = Math.max(3, Math.floor(height * 0.12));
     const scanlineAlpha = overloadActive ? 0.16 : 0.04;
     const bandAlpha = overloadActive ? 0.16 : (isActive ? 0.085 : 0.055);
     const centerAlpha = overloadActive ? 0.26 : (isActive ? 0.18 : 0.135);
     const glowAlpha = overloadActive ? 0.14 : (isActive ? 0.075 : 0.045);
-    const frameLip = Math.max(2, Math.round(height * 0.08));
     const connectorWidth = Math.max(5, Math.round(width * 0.035));
     const connectorHeight = Math.max(8, Math.round(height * 0.5));
 
@@ -1257,6 +1266,9 @@ export default class BattleScene extends Phaser.Scene {
 
     // The base is a restrained transmission screen: dark terminal glass,
     // a slightly brighter center, protected edges, and low-contrast signal structure.
+    graphics.fillStyle(BASE_FRAME_SHADOW, 0.22);
+    graphics.fillRect(left + 2, top + 3, width, height);
+
     graphics.fillStyle(BASE_SCREEN_CONNECTOR, 0.44);
     graphics.fillRect(left - connectorWidth, panel.y - connectorHeight / 2, connectorWidth, connectorHeight);
     graphics.fillRect(left + width, panel.y - connectorHeight / 2, connectorWidth, connectorHeight);
@@ -1264,69 +1276,124 @@ export default class BattleScene extends Phaser.Scene {
     graphics.strokeRect(left - connectorWidth, panel.y - connectorHeight / 2, connectorWidth, connectorHeight);
     graphics.strokeRect(left + width, panel.y - connectorHeight / 2, connectorWidth, connectorHeight);
 
-    graphics.fillStyle(BASE_SCREEN_FILL, isActive ? HERO_PANEL_ACTIVE_FILL_ALPHA : HERO_PANEL_FILL_ALPHA);
+    // Nested hardware frame: outer matte frame, recessed trough, inner retaining
+    // frame, then an inset illuminated screen. All layers remain inside the
+    // original panel bounds so layout, hitboxes, and control positions are fixed.
+    graphics.fillStyle(BASE_SCREEN_FRAME_DARK, 0.78);
     graphics.fillRect(left, top, width, height);
 
+    // Restrained top-left / bottom-right bevel cues keep the frame structural
+    // without introducing new ornaments or indicators.
+    graphics.lineStyle(2, BASE_SCREEN_FRAME_LIGHT, 0.18);
+    graphics.beginPath();
+    graphics.moveTo(left + 1, top + height - 1);
+    graphics.lineTo(left + 1, top + 1);
+    graphics.lineTo(left + width - 1, top + 1);
+    graphics.strokePath();
+    graphics.lineStyle(2, BASE_FRAME_SHADOW, 0.42);
+    graphics.beginPath();
+    graphics.moveTo(left + width - 1, top + 1);
+    graphics.lineTo(left + width - 1, top + height - 1);
+    graphics.lineTo(left + 1, top + height - 1);
+    graphics.strokePath();
+
+    const gapLeft = left + outerLip;
+    const gapTop = top + outerLip;
+    const gapWidth = width - outerLip * 2;
+    const gapHeight = height - outerLip * 2;
+    graphics.fillStyle(BASE_FRAME_RECESS, 0.72);
+    graphics.fillRect(gapLeft, gapTop, gapWidth, gapHeight);
+    graphics.lineStyle(1, BASE_FRAME_SHADOW, 0.5);
+    graphics.strokeRect(gapLeft + 0.5, gapTop + 0.5, gapWidth - 1, gapHeight - 1);
+
+    const innerLeft = gapLeft + recessedGap;
+    const innerTop = gapTop + recessedGap;
+    const innerWidth = gapWidth - recessedGap * 2;
+    const innerHeight = gapHeight - recessedGap * 2;
+    graphics.fillStyle(BASE_SCREEN_FRAME_MID, 0.34);
+    graphics.fillRect(innerLeft, innerTop, innerWidth, innerHeight);
+    graphics.lineStyle(1, BASE_SCREEN_FRAME_LIGHT, 0.16);
+    graphics.beginPath();
+    graphics.moveTo(innerLeft + 1, innerTop + innerHeight - 1);
+    graphics.lineTo(innerLeft + 1, innerTop + 1);
+    graphics.lineTo(innerLeft + innerWidth - 1, innerTop + 1);
+    graphics.strokePath();
+    graphics.lineStyle(2, BASE_FRAME_SHADOW, 0.38);
+    graphics.beginPath();
+    graphics.moveTo(innerLeft + innerWidth - 1, innerTop + 1);
+    graphics.lineTo(innerLeft + innerWidth - 1, innerTop + innerHeight - 1);
+    graphics.lineTo(innerLeft + 1, innerTop + innerHeight - 1);
+    graphics.strokePath();
+
+    graphics.fillStyle(BASE_SCREEN_EDGE, 0.5);
+    graphics.fillRect(screenLeft - 1, screenTop - 1, screenWidth + 2, screenHeight + 2);
+    graphics.fillStyle(BASE_SCREEN_FILL, isActive ? HERO_PANEL_ACTIVE_FILL_ALPHA : HERO_PANEL_FILL_ALPHA);
+    graphics.fillRect(screenLeft, screenTop, screenWidth, screenHeight);
+
     graphics.fillStyle(BASE_SCREEN_CENTER, centerAlpha);
-    graphics.fillEllipse(panel.x, panel.y, width * 0.82, centerBandHeight);
+    graphics.fillEllipse(panel.x, panel.y, screenWidth * 0.88, centerBandHeight);
     graphics.fillStyle(BASE_SCREEN_CENTER, centerAlpha * 0.55);
-    graphics.fillRect(left + width * 0.12, panel.y - centerBandHeight / 2, width * 0.76, centerBandHeight);
+    graphics.fillRect(screenLeft + screenWidth * 0.08, panel.y - centerBandHeight / 2, screenWidth * 0.84, centerBandHeight);
 
     graphics.fillStyle(BASE_SCREEN_INNER_GLOW, glowAlpha);
-    graphics.fillRect(left + width * 0.08, top + height * 0.2, width * 0.84, Math.max(1.2, height * 0.028));
-    graphics.fillRect(left + width * 0.08, top + height * 0.78, width * 0.84, Math.max(1.2, height * 0.028));
+    graphics.fillRect(screenLeft + screenWidth * 0.08, screenTop + screenHeight * 0.2, screenWidth * 0.84, Math.max(1.2, height * 0.028));
+    graphics.fillRect(screenLeft + screenWidth * 0.08, screenTop + screenHeight * 0.78, screenWidth * 0.84, Math.max(1.2, height * 0.028));
 
     graphics.fillStyle(BASE_SCREEN_EDGE, 0.26);
-    graphics.fillRect(left, top, width, frameLip);
-    graphics.fillRect(left, top + height - frameLip, width, frameLip);
-    graphics.fillRect(left, top, Math.max(2, width * 0.04), height);
-    graphics.fillRect(left + width * 0.96, top, Math.max(2, width * 0.04), height);
+    graphics.fillRect(screenLeft, screenTop, screenWidth, Math.max(2, screenHeight * 0.14));
+    graphics.fillRect(screenLeft, screenTop + screenHeight * 0.86, screenWidth, Math.max(2, screenHeight * 0.14));
+    graphics.fillRect(screenLeft, screenTop, Math.max(2, screenWidth * 0.05), screenHeight);
+    graphics.fillRect(screenLeft + screenWidth * 0.95, screenTop, Math.max(2, screenWidth * 0.05), screenHeight);
 
     graphics.lineStyle(1, BASE_SCREEN_SCANLINE, scanlineAlpha);
-    for (let y = top + scanlineStep; y < top + height; y += scanlineStep) {
+    for (let y = screenTop + scanlineStep; y < screenTop + screenHeight; y += scanlineStep) {
       graphics.beginPath();
-      graphics.moveTo(left + width * 0.04, y);
-      graphics.lineTo(left + width * 0.96, y);
+      graphics.moveTo(screenLeft + screenWidth * 0.04, y);
+      graphics.lineTo(screenLeft + screenWidth * 0.96, y);
       graphics.strokePath();
     }
 
     graphics.fillStyle(BASE_SCREEN_REFLECTION, side === 'enemy' ? 0.042 : 0.036);
-    const reflectionX = side === 'enemy' ? left + width * 0.64 : left + width * 0.1;
+    const reflectionX = side === 'enemy' ? screenLeft + screenWidth * 0.64 : screenLeft + screenWidth * 0.1;
     graphics.fillTriangle(
-      reflectionX, top + height * 0.1,
-      reflectionX + width * 0.25, top + height * 0.1,
-      reflectionX + width * 0.06, top + height * 0.3,
+      reflectionX, screenTop + screenHeight * 0.1,
+      reflectionX + screenWidth * 0.25, screenTop + screenHeight * 0.1,
+      reflectionX + screenWidth * 0.06, screenTop + screenHeight * 0.3,
     );
     graphics.lineStyle(1, BASE_SCREEN_REFLECTION, 0.07);
     graphics.beginPath();
-    graphics.moveTo(reflectionX + width * 0.02, top + height * 0.13);
-    graphics.lineTo(reflectionX + width * 0.22, top + height * 0.13);
+    graphics.moveTo(reflectionX + screenWidth * 0.02, screenTop + screenHeight * 0.13);
+    graphics.lineTo(reflectionX + screenWidth * 0.22, screenTop + screenHeight * 0.13);
     graphics.strokePath();
 
     graphics.lineStyle(1, BASE_SCREEN_BAND, bandAlpha);
     graphics.beginPath();
-    graphics.moveTo(left + width * 0.08, panel.y - height * 0.19);
-    graphics.lineTo(left + width * 0.92, panel.y - height * 0.19);
-    graphics.moveTo(left + width * 0.08, panel.y + height * 0.19);
-    graphics.lineTo(left + width * 0.92, panel.y + height * 0.19);
+    graphics.moveTo(screenLeft + screenWidth * 0.08, panel.y - screenHeight * 0.22);
+    graphics.lineTo(screenLeft + screenWidth * 0.92, panel.y - screenHeight * 0.22);
+    graphics.moveTo(screenLeft + screenWidth * 0.08, panel.y + screenHeight * 0.22);
+    graphics.lineTo(screenLeft + screenWidth * 0.92, panel.y + screenHeight * 0.22);
     graphics.strokePath();
 
-    graphics.lineStyle(2, BASE_SCREEN_FRAME_DARK, 0.62);
-    graphics.strokeRect(left + 1, top + 1, width - 2, height - 2);
-    graphics.lineStyle(1, BASE_SCREEN_FRAME_LIGHT, 0.26);
-    graphics.strokeRect(left + 2, top + 2, width - 4, height - 4);
-    graphics.lineStyle(1, BASE_SCREEN_FRAME_MID, 0.2);
-    graphics.strokeRect(left + frameLip, top + frameLip, width - frameLip * 2, height - frameLip * 2);
+    // Inner screen shadow separates glass from the retaining frame and makes the
+    // display surface read as recessed rather than painted onto the hardware.
+    graphics.lineStyle(2, BASE_FRAME_SHADOW, 0.6);
+    graphics.strokeRect(screenLeft + 1, screenTop + 1, screenWidth - 2, screenHeight - 2);
+    graphics.lineStyle(1, BASE_SCREEN_FRAME_LIGHT, 0.2);
+    graphics.beginPath();
+    graphics.moveTo(screenLeft + 2, screenTop + screenHeight - 2);
+    graphics.lineTo(screenLeft + 2, screenTop + 2);
+    graphics.lineTo(screenLeft + screenWidth - 2, screenTop + 2);
+    graphics.strokePath();
 
     if (overloadActive) {
       const glitchRows = [
-        { y: top + height * 0.3, offset: -width * 0.015, color: BASE_SCREEN_GLITCH_RED },
-        { y: top + height * 0.48, offset: width * 0.018, color: BASE_SCREEN_GLITCH_CYAN },
-        { y: top + height * 0.64, offset: -width * 0.01, color: BASE_SCREEN_SCANLINE },
+        { y: screenTop + screenHeight * 0.3, offset: -screenWidth * 0.015, color: BASE_SCREEN_GLITCH_RED },
+        { y: screenTop + screenHeight * 0.48, offset: screenWidth * 0.018, color: BASE_SCREEN_GLITCH_CYAN },
+        { y: screenTop + screenHeight * 0.64, offset: -screenWidth * 0.01, color: BASE_SCREEN_SCANLINE },
       ];
       glitchRows.forEach((row, index) => {
         graphics.fillStyle(row.color, index === 2 ? 0.14 : 0.2);
-        graphics.fillRect(left + width * 0.1 + row.offset, row.y, width * 0.8, Math.max(1.2, height * 0.045));
+        graphics.fillRect(screenLeft + screenWidth * 0.1 + row.offset, row.y, screenWidth * 0.8, Math.max(1.2, height * 0.045));
       });
     }
   }
