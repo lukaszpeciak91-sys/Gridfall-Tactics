@@ -37,7 +37,7 @@ const expectedTextShort = new Map(Object.entries({
   wardens_spearwall_1: 'Attackers of adjacent [ALLIES]: -1 ATK.',
   wardens_halberdier_1: 'If opposed: +1 ATK.',
   wardens_brace_1: 'Target [ALLY] +1 ARM until combat.',
-  wardens_shield_push_1: 'Swap two adjacent [ENEMIES].\nThey get -1 ATK until combat.',
+  wardens_shield_push_1: 'Swap two adjacent [ENEMIES].\n-1 ATK this combat.',
   wardens_stand_firm_1: "Until combat, [ALLIES] cannot be moved.",
   wardens_reinforce_line_1: 'Adjacent [ALLY] +1 ARM until combat.',
   wardens_hold_the_line_1: 'Adjacent [ALLY] +1 ARM until combat.',

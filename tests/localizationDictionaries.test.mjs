@@ -202,7 +202,7 @@ test('selected localized card texts use enemy board-unit markers without changin
       control_pulse_wave_1: 'Deal 1 to all [ENEMIES], ignoring ARM.',
       control_system_override_1: 'Selected [ENEMY] attacks its own base, then loses 1 HP.',
       swarm_spitter_1: 'On play: deal 1 to opposed [ENEMY].',
-      wardens_shield_push_1: 'Swap two adjacent [ENEMIES].\nThey get -1 ATK until combat.',
+      wardens_shield_push_1: 'Swap two adjacent [ENEMIES].\n-1 ATK this combat.',
     },
     pl: {
       attrition_swarm_husk_1: 'Śmierć w walce:\n-1 [HP] [ENEMY] naprzeciw.',
@@ -217,7 +217,7 @@ test('selected localized card texts use enemy board-unit markers without changin
       control_system_override_1: 'Wybrany [ENEMY] atakuje własną bazę, potem traci 1 HP.',
       swarm_spitter_1: 'Po zagraniu: zadaj 1 [ENEMY] naprzeciw.',
       wardens_spearwall_1: '[ENEMIES] atakujący\nsąsiednich [ALLIES]: -1 ATK.',
-      wardens_shield_push_1: 'Zamień miejscami dwóch sąsiednich [ENEMIES].\nDostają -1 ATK do walki.',
+      wardens_shield_push_1: 'Zamień dwóch sąsiednich [ENEMIES].\n-1 ATK do walki.',
     },
   };
 
