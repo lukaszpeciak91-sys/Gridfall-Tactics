@@ -207,10 +207,14 @@ test('BattleScene renders clean base transmission screens without decorative emi
   assert.match(battleSource, /this\.renderBaseBroadcastGlass\(frameView, screenMetrics\);/);
   assert.match(battleSource, /renderBaseBroadcastCracks\(frameView, screenMetrics\)/);
   assert.match(battleSource, /renderBaseBroadcastGlass\(frameView, screenMetrics\)/);
-  assert.match(battleSource, /return Number\.isFinite\(hp\) && hp <= 8;/);
+  assert.match(battleSource, /return Number\.isFinite\(hp\) && hp < BASE_MAX_HP;/);
+  assert.match(battleSource, /getBaseCrackDamageLevel\(hp\)/);
+  assert.match(battleSource, /getBaseCrackSegmentsForDamage\(damageLevel\)/);
+  assert.match(battleSource, /beaconOrigins/);
   assert.match(battleSource, /const BASE_TERMINAL_TEXT_PLAYER_GLOW = 'rgba\(56, 189, 248, 0\.42\)';/);
   assert.match(battleSource, /const BASE_TERMINAL_TEXT_ENEMY_GLOW = 'rgba\(248, 113, 113, 0\.46\)';/);
-  assert.match(battleSource, /stays within the outer 26% band/);
+  assert.match(battleSource, /safeZone =/);
+  assert.match(battleSource, /originOrder/);
   assert.match(battleSource, /crackGraphics\.lineStyle\(2, BASE_FRAME_SHADOW, 0\.42\);/);
   assert.match(battleSource, /crackGraphics\.lineStyle\(1, BASE_SCREEN_REFLECTION, 0\.62\);/);
   assert.doesNotMatch(battleSource, /fillCircle\(leftNodeX/);

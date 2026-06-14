@@ -64,6 +64,7 @@ const BASE_BEACON_ENEMY_ACTIVE = 0xfbbf24;
 const BASE_BEACON_BRASS = 0xc8a85a;
 const BASE_BEACON_FADE_MS = 240;
 const BASE_SCREEN_REFLECTION = 0xe0f2fe;
+const BASE_MAX_HP = 12;
 const BASE_SCREEN_GLITCH_RED = 0xff3b30;
 const BASE_SCREEN_GLITCH_CYAN = 0x22d3ee;
 const BASE_TERMINAL_TEXT_COLOR = '#fff7df';
@@ -1523,7 +1524,17 @@ export default class BattleScene extends Phaser.Scene {
       });
     }
 
-    const screenMetrics = { screenLeft, screenTop, screenWidth, screenHeight };
+    const glassLeft = left + beaconHardwareInset;
+    const glassTop = top + outerLip;
+    const glassWidth = width - beaconHardwareInset * 2;
+    const glassHeight = height - outerLip * 2;
+    const beaconOrigins = [
+      { id: 'top-left', x: leftBeaconX + moduleWidth * 0.34, y: beaconY - beaconHeight * 0.34, directionX: 1, directionY: 1 },
+      { id: 'top-right', x: rightBeaconX - moduleWidth * 0.34, y: beaconY - beaconHeight * 0.34, directionX: -1, directionY: 1 },
+      { id: 'bottom-left', x: leftBeaconX + moduleWidth * 0.34, y: beaconY + beaconHeight * 0.34, directionX: 1, directionY: -1 },
+      { id: 'bottom-right', x: rightBeaconX - moduleWidth * 0.34, y: beaconY + beaconHeight * 0.34, directionX: -1, directionY: -1 },
+    ];
+    const screenMetrics = { screenLeft, screenTop, screenWidth, screenHeight, glassLeft, glassTop, glassWidth, glassHeight, beaconOrigins };
     this.renderBaseBroadcastCracks(frameView, screenMetrics);
     this.renderBaseBroadcastGlass(frameView, screenMetrics);
   }
@@ -1534,51 +1545,115 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   shouldShowBaseCrackForHp(hp) {
-    // Architecture validation v1: 12-9 HP is pristine; every damaged state at
-    // 8 HP or below reuses this one subtle edge crack until crack tiers exist.
-    return Number.isFinite(hp) && hp <= 8;
+    return Number.isFinite(hp) && hp < BASE_MAX_HP;
+  }
+
+  getBaseCrackDamageLevel(hp) {
+    if (!Number.isFinite(hp)) return 0;
+    return Math.max(0, Math.min(BASE_MAX_HP, BASE_MAX_HP - hp));
+  }
+
+  getBaseCrackSegmentsForDamage(damageLevel) {
+    const steps = [
+      { path: 0, pointCount: 3, branches: 0 },
+      { path: 0, pointCount: 4, branches: 0 },
+      { path: 0, pointCount: 4, branches: 1 },
+      { path: 1, pointCount: 3, branches: 0 },
+      { path: 1, pointCount: 4, branches: 0 },
+      { path: 1, pointCount: 4, branches: 1 },
+      { path: 2, pointCount: 3, branches: 0 },
+      { path: 2, pointCount: 4, branches: 1 },
+      { path: 3, pointCount: 3, branches: 0 },
+      { path: 3, pointCount: 4, branches: 1 },
+      { path: 0, pointCount: 5, branches: 2 },
+      { path: 1, pointCount: 5, branches: 2 },
+    ];
+    return steps.slice(0, Math.max(0, Math.min(steps.length, damageLevel)));
+  }
+
+  clampBaseCrackPoint(point, bounds, safeZone) {
+    const x = Phaser.Math.Clamp(point.x, bounds.left, bounds.right);
+    let y = Phaser.Math.Clamp(point.y, bounds.top, bounds.bottom);
+    if (x > safeZone.left && x < safeZone.right && y > safeZone.top && y < safeZone.bottom) {
+      y = point.y < (safeZone.top + safeZone.bottom) / 2 ? safeZone.top : safeZone.bottom;
+    }
+    return { x, y };
+  }
+
+  buildBaseCrackPath(origin, pathIndex, pointCount, screenMetrics, safeZone) {
+    const { glassLeft, glassTop, glassWidth, glassHeight } = screenMetrics;
+    const bounds = {
+      left: glassLeft + glassWidth * 0.035,
+      right: glassLeft + glassWidth * 0.965,
+      top: glassTop + glassHeight * 0.08,
+      bottom: glassTop + glassHeight * 0.92,
+    };
+    const lengthSteps = [0, 0.105, 0.205, 0.305, 0.385];
+    const bend = [0, 0.035, -0.018, 0.045, -0.026];
+    const points = [{ x: origin.x, y: origin.y }];
+    for (let index = 1; index < pointCount; index += 1) {
+      const travel = glassWidth * lengthSteps[index];
+      const vertical = glassHeight * (lengthSteps[index] * 0.38 + bend[(pathIndex + index) % bend.length]);
+      points.push(this.clampBaseCrackPoint({
+        x: origin.x + origin.directionX * travel,
+        y: origin.y + origin.directionY * vertical,
+      }, bounds, safeZone));
+    }
+    return points;
+  }
+
+  strokeBaseCrackPath(crackGraphics, points, branches) {
+    crackGraphics.beginPath();
+    crackGraphics.moveTo(points[0].x, points[0].y);
+    points.slice(1).forEach((point) => crackGraphics.lineTo(point.x, point.y));
+    for (let index = 0; index < branches; index += 1) {
+      const root = points[Math.min(points.length - 1, 1 + index)];
+      const prev = points[Math.max(0, Math.min(points.length - 2, index))];
+      const sideSign = index % 2 === 0 ? 1 : -1;
+      const branchX = root.x + (root.x - prev.x) * 0.42;
+      const branchY = root.y + sideSign * Math.max(6, Math.abs(root.x - prev.x) * 0.28);
+      crackGraphics.moveTo(root.x, root.y);
+      crackGraphics.lineTo(branchX, branchY);
+    }
+    crackGraphics.strokePath();
   }
 
   renderBaseBroadcastCracks(frameView, screenMetrics) {
     const { crackGraphics, side } = frameView ?? {};
     if (!crackGraphics?.active || !screenMetrics) return;
 
-    const { screenLeft, screenTop, screenWidth, screenHeight } = screenMetrics;
     crackGraphics.clear();
 
     const hp = this.getBaseHpForSide(side);
     if (!this.shouldShowBaseCrackForHp(hp)) return;
 
-    // Keep the central 50% text safe zone clean. The v1 fracture originates
-    // from the outer display-glass edge and stays within the outer 26% band so
-    // HP, PASS, and mulligan glyphs remain unobstructed.
-    const edgeSign = side === 'enemy' ? 1 : -1;
-    const anchorX = side === 'enemy' ? screenLeft + screenWidth * 0.985 : screenLeft + screenWidth * 0.015;
-    const anchorY = screenTop + screenHeight * (side === 'enemy' ? 0.28 : 0.72);
-    const midX = anchorX - edgeSign * screenWidth * 0.12;
-    const endX = anchorX - edgeSign * screenWidth * 0.255;
-    const forkX = anchorX - edgeSign * screenWidth * 0.19;
-    const midY = anchorY + screenHeight * (side === 'enemy' ? 0.055 : -0.055);
-    const endY = anchorY + screenHeight * (side === 'enemy' ? 0.025 : -0.025);
-    const forkY = anchorY + screenHeight * (side === 'enemy' ? 0.135 : -0.135);
+    const damageLevel = this.getBaseCrackDamageLevel(hp);
+    const { screenLeft, screenTop, screenWidth, screenHeight, beaconOrigins = [] } = screenMetrics;
+    const safeZone = {
+      left: screenLeft + screenWidth * 0.26,
+      right: screenLeft + screenWidth * 0.74,
+      top: screenTop + screenHeight * 0.24,
+      bottom: screenTop + screenHeight * 0.76,
+    };
+    const originOrder = side === 'enemy'
+      ? ['bottom-right', 'top-left', 'top-right', 'bottom-left']
+      : ['top-left', 'bottom-right', 'bottom-left', 'top-right'];
+    const originsById = new Map(beaconOrigins.map((origin) => [origin.id, origin]));
+    const damageSegments = this.getBaseCrackSegmentsForDamage(damageLevel);
+    const paths = damageSegments.map((segment) => {
+      const origin = originsById.get(originOrder[segment.path]);
+      if (!origin) return null;
+      return {
+        points: this.buildBaseCrackPath(origin, segment.path, segment.pointCount, screenMetrics, safeZone),
+        branches: segment.branches,
+      };
+    }).filter(Boolean);
 
     crackGraphics.lineStyle(2, BASE_FRAME_SHADOW, 0.42);
-    crackGraphics.beginPath();
-    crackGraphics.moveTo(anchorX, anchorY);
-    crackGraphics.lineTo(midX, midY);
-    crackGraphics.lineTo(endX, endY);
-    crackGraphics.moveTo(midX, midY);
-    crackGraphics.lineTo(forkX, forkY);
-    crackGraphics.strokePath();
+    paths.forEach(({ points, branches }) => this.strokeBaseCrackPath(crackGraphics, points, branches));
 
     crackGraphics.lineStyle(1, BASE_SCREEN_REFLECTION, 0.62);
-    crackGraphics.beginPath();
-    crackGraphics.moveTo(anchorX, anchorY);
-    crackGraphics.lineTo(midX, midY);
-    crackGraphics.lineTo(endX, endY);
-    crackGraphics.moveTo(midX, midY);
-    crackGraphics.lineTo(forkX, forkY);
-    crackGraphics.strokePath();
+    paths.forEach(({ points, branches }) => this.strokeBaseCrackPath(crackGraphics, points, branches));
   }
 
   renderBaseBroadcastGlass(frameView, screenMetrics) {
