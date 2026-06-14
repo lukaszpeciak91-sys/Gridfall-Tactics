@@ -58,9 +58,9 @@ const BASE_SCREEN_CONNECTOR = 0x1f2937;
 const BASE_SCREEN_INNER_GLOW = 0x38bdf8;
 const BASE_SCREEN_SCANLINE = 0x93c5fd;
 const BASE_SCREEN_BAND = 0x38bdf8;
-const BASE_BEACON_INACTIVE = 0x162033;
+const BASE_BEACON_INACTIVE = 0x0b1220;
 const BASE_BEACON_PLAYER_ACTIVE = 0x38bdf8;
-const BASE_BEACON_ENEMY_ACTIVE = 0x38bdf8;
+const BASE_BEACON_ENEMY_ACTIVE = 0xdc4b3f;
 const BASE_BEACON_BRASS = 0xc8a85a;
 const BASE_BEACON_FADE_MS = 240;
 const BASE_SCREEN_REFLECTION = 0xe0f2fe;
@@ -1213,12 +1213,12 @@ export default class BattleScene extends Phaser.Scene {
   drawBaseBroadcastBeaconModule(graphics, x, y, width, height, { intensity, color }) {
     const left = x - width / 2;
     const top = y - height / 2;
-    const inset = Math.max(2, Math.round(width * 0.18));
-    const lightRadius = Math.max(2.5, Math.min(width * 0.26, height * 0.115));
+    const inset = Math.max(2, Math.round(width * 0.16));
+    const lightRadius = Math.max(3.5, Math.min(width * 0.31, height * 0.14));
     const lightAlpha = Phaser.Math.Clamp(intensity, 0, 1);
-    const offAlpha = 0.82 - lightAlpha * 0.32;
-    const onCoreAlpha = 0.18 + lightAlpha * 0.72;
-    const onRingAlpha = 0.14 + lightAlpha * 0.56;
+    const offAlpha = 0.5 - lightAlpha * 0.22;
+    const onCoreAlpha = 0.1 + lightAlpha * 0.76;
+    const onRingAlpha = 0.08 + lightAlpha * 0.48;
 
     graphics.fillStyle(BASE_SCREEN_FRAME_DARK, 0.92);
     graphics.fillRect(left, top, width, height);
@@ -1290,11 +1290,12 @@ export default class BattleScene extends Phaser.Scene {
     const recessedGap = Math.max(2, Math.round(height * 0.055));
     const innerLip = Math.max(2, Math.round(height * 0.075));
     const screenInset = outerLip + recessedGap + innerLip;
-    const moduleWidth = Math.max(12, Math.min(width * 0.07, height * 0.34));
-    const moduleGap = Math.max(3, Math.round(width * 0.018));
-    const screenLeft = left + screenInset + moduleWidth + moduleGap;
+    const moduleWidth = Math.max(17, Math.min(width * 0.105, height * 0.5));
+    const moduleGap = Math.max(3, Math.round(width * 0.014));
+    const horizontalHardwareInset = outerLip;
+    const screenLeft = left + horizontalHardwareInset + moduleWidth + moduleGap;
     const screenTop = top + screenInset;
-    const screenWidth = width - screenInset * 2 - (moduleWidth + moduleGap) * 2;
+    const screenWidth = width - horizontalHardwareInset * 2 - (moduleWidth + moduleGap) * 2;
     const screenHeight = height - screenInset * 2;
     const centerBandHeight = Math.max(3, screenHeight * 0.34);
     const scanlineStep = Math.max(3, Math.floor(height * 0.12));
@@ -1431,8 +1432,8 @@ export default class BattleScene extends Phaser.Scene {
     const beaconColor = side === 'player' ? BASE_BEACON_PLAYER_ACTIVE : BASE_BEACON_ENEMY_ACTIVE;
     const beaconHeight = Math.max(screenHeight, height - screenInset * 2);
     const beaconY = panel.y;
-    const leftBeaconX = left + screenInset + moduleWidth / 2;
-    const rightBeaconX = left + width - screenInset - moduleWidth / 2;
+    const leftBeaconX = left + horizontalHardwareInset + moduleWidth / 2;
+    const rightBeaconX = left + width - horizontalHardwareInset - moduleWidth / 2;
     [leftBeaconX, rightBeaconX].forEach((beaconX) => {
       this.drawBaseBroadcastBeaconModule(graphics, beaconX, beaconY, moduleWidth, beaconHeight, {
         intensity: overloadActive ? 1 : (frameView.beaconIntensity ?? (isActive ? 1 : 0)),
@@ -3286,7 +3287,7 @@ export default class BattleScene extends Phaser.Scene {
     const playerHero = this.layout?.playerHero;
     const centerY = this.playerHeroPanel?.y ?? playerHero?.centerY ?? this.playerHpText?.y ?? 0;
     const passHpOffset = playerHero ? Math.max(6, Math.floor(playerHero.h * 0.13)) : 7;
-    const passLabelOffset = playerHero ? Math.max(11, Math.floor(playerHero.h * 0.24)) : 12;
+    const passLabelOffset = playerHero ? Math.max(8, Math.floor(playerHero.h * 0.18)) : 9;
     const passFontSize = playerHero ? Math.max(22, Math.floor(playerHero.h * 0.48)) : 22;
     const passHpFontSize = playerHero ? Math.max(16, Math.floor(playerHero.h * 0.34)) : 16;
     const normalHpFontSize = playerHero ? Math.max(23, Math.floor(playerHero.h * 0.6)) : 23;
