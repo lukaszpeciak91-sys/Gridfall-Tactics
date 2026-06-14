@@ -80,9 +80,9 @@ test('Husk deals combat-only lane damage with no hero fallback, and not from Fea
   feast.player.deck = [unit({ id: 'draw-a' }), unit({ id: 'draw-b' })];
   const result = resolveTargetedEffectCard(feast, 'player', 'attrition_swarm_feast_1', 6);
   assert.equal(result.ok, true);
-  assert.equal(feast.enemyHP, 12);
+  assert.equal(feast.enemyHP, 11);
   assert.equal(feast.board[6], null);
-  assert.equal(feast.player.hand.length, 1);
+  assert.equal(feast.player.hand.length, 0);
 });
 
 test('Carrier summons only on combat death and preserves owner', () => {
@@ -114,7 +114,7 @@ test('Abomination damages both heroes only on combat death', () => {
   addHand(feast, 'player', card('attrition_swarm_feast_1'));
   resolveTargetedEffectCard(feast, 'player', 'attrition_swarm_feast_1', 6);
   assert.equal(feast.playerHP, 12);
-  assert.equal(feast.enemyHP, 12);
+  assert.equal(feast.enemyHP, 11);
 });
 
 test('Funeral Pyre deals capped lane-only damage, cleans defeated units, does not stack, and clears', () => {
@@ -179,10 +179,9 @@ test('Feast and non-combat targeted kills do not count for Funeral Pyre', () => 
   const feastResult = resolveTargetedEffectCard(feast, 'player', 'attrition_swarm_feast_1', 6);
   assert.equal(feastResult.ok, true);
   assert.equal(feast.board[6], null);
-  assert.equal(feast.player.hand.length, 1);
-  assert.equal(feast.player.hand[0].id, 'draw-a');
-  assert.equal(feast.player.deck.length, 1);
-  assert.equal(feast.enemyHP, 12);
+  assert.equal(feast.player.hand.length, 0);
+  assert.equal(feast.player.deck.length, 2);
+  assert.equal(feast.enemyHP, 11);
 
   const enemyFeast = state();
   enemyFeast.board[0] = unit({ owner: 'enemy', id: 'enemy-victim' });
@@ -194,8 +193,8 @@ test('Feast and non-combat targeted kills do not count for Funeral Pyre', () => 
   assert.equal(enemyFeastResult.ok, true);
   assert.equal(enemyFeast.board[0], null);
   assert.equal(enemyFeast.board[6].owner, 'player');
-  assert.equal(enemyFeast.enemy.hand.length, 1);
-  assert.equal(enemyFeast.enemy.hand[0].id, 'enemy-draw');
+  assert.equal(enemyFeast.enemy.hand.length, 0);
+  assert.equal(enemyFeast.playerHP, 11);
 
   const infect = state();
   infect.board[0] = unit({ owner: 'enemy', id: 'target', hp: 1 });
@@ -393,24 +392,22 @@ test('Attrition Swarm UI targeting metadata matches resolver expectations', () =
   });
 });
 
-test('Base Swarm Substrate destroys a friendly unit and draws exactly 1 without changing Feast', () => {
-  const s = createInitialBattleState(baseSwarm, emptyFaction, { firstActor: 'player' });
-  s.player.hand = [swarmCard('swarm_recycle_1')];
-  s.player.deck = [swarmCard('swarm_grunt_1'), swarmCard('swarm_rusher_1')];
-  s.board[6] = unit({ owner: 'player', id: 'substrate-victim' });
-  s.board[0] = unit({ owner: 'enemy', id: 'enemy-unit' });
-  assert.equal(resolveTargetedEffectCard(s, 'player', 'swarm_recycle_1', 0).ok, false);
-  const result = resolveTargetedEffectCard(s, 'player', 'swarm_recycle_1', 6);
+test('Base Swarm Substrate applies temporary enemy armor debuff without draw or sacrifice', () => {
+  const s = state();
+  const substrate = getFactionByKey('Swarm').deck.find((item) => item.id === 'swarm_recycle_1');
+  s.board[0] = unit({ owner: 'enemy', id: 'substrate-target', armor: 1 });
+  s.board[6] = unit({ owner: 'player', id: 'substrate-ally' });
+  addHand(s, 'player', substrate);
+
+  const result = playEffectCard(s, 'player', 'swarm_recycle_1');
+
   assert.equal(result.ok, true);
-  assert.equal(s.board[6], null);
-  assert.equal(s.board[0].owner, 'enemy');
-  assert.equal(s.player.fallen.length, 1);
-  assert.equal(s.player.fallen[0].card.id, 'substrate-victim');
-  assert.equal(s.player.fallen[0].reason, 'destroy');
-  assert.equal(s.player.fallen[0].combat, false);
-  assert.equal(s.player.hand.length, 1);
-  assert.equal(s.player.hand[0].id, 'swarm_grunt_1');
-  assert.equal(s.player.deck.length, 1);
+  assert.equal(s.board[0].tempArmorMod, -1);
+  assert.equal(s.board[6].id, 'substrate-ally');
+  assert.equal(s.player.hand.length, 0);
+  assert.equal(s.player.fallen.length, 0);
+  assert.equal(substrate.targeting, 'none');
+  assert.equal(substrate.effectId, 'enemy_all_armor_minus_1');
 });
 
 test('AI handles Attrition Swarm legal action constraints and Funeral Pyre valuation', () => {

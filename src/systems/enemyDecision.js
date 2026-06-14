@@ -37,11 +37,13 @@ const SAFE_SURRENDER_MEANINGFUL_EFFECT_IDS = new Set([
   'fill_empty_slots_0_1',
   'infect_damage_1_opposite_ally_atk_1',
   'destroy_friendly_draw_1',
+  'destroy_friendly_damage_enemy_base_1',
   'return_friendly_draw_1',
   'enemy_up_to_2_atk_minus_1',
   'enemy_all_atk_minus_1',
   'enemy_lane_atk_minus_1',
   'buff_all_armor_1',
+  'enemy_all_armor_minus_1',
   'heal_all_1',
   'cannot_drop_below_1_this_turn',
   'temp_armor_1',
@@ -403,6 +405,7 @@ function getCandidateTargetIndexes(state, owner, effectId) {
   switch (effectId) {
     case 'return_friendly_draw_1':
     case 'destroy_friendly_draw_1':
+    case 'destroy_friendly_damage_enemy_base_1':
     case 'heal_2':
     case 'heal_1_atk_1_draw_on_kill_this_turn':
     case 'heal_3':
@@ -462,6 +465,7 @@ function isTargetedOnlyEffect(effectId) {
   return isTwoTargetSwapEffect(effectId)
     || effectId === 'return_friendly_draw_1'
     || effectId === 'destroy_friendly_draw_1'
+    || effectId === 'destroy_friendly_damage_enemy_base_1'
     || effectId === 'heal_2'
     || effectId === 'heal_1_atk_1_draw_on_kill_this_turn'
     || effectId === 'heal_3'
@@ -938,12 +942,13 @@ function scoreAction(state, owner, action) {
     if ((target?.hp ?? 0) <= 1) score += 650;
   }
 
-  if (action.effectId === 'destroy_friendly_draw_1' && !isSkipBaseEffectVariantAction(state, owner, action)) {
+  if ((action.effectId === 'destroy_friendly_draw_1' || action.effectId === 'destroy_friendly_damage_enemy_base_1') && !isSkipBaseEffectVariantAction(state, owner, action)) {
     const targetValue = getFeastTargetValue(state, owner, action.targetIndex);
     if (!Number.isFinite(targetValue)) return Number.NEGATIVE_INFINITY;
     const side = owner === 'enemy' ? state.enemy : state.player;
-    const lowHandBonus = (side?.hand?.length ?? 0) <= 2 ? 420 : 0;
-    score += 520 + targetValue + lowHandBonus;
+    const lowHandBonus = action.effectId === 'destroy_friendly_draw_1' && (side?.hand?.length ?? 0) <= 2 ? 420 : 0;
+    const baseDamageBonus = action.effectId === 'destroy_friendly_damage_enemy_base_1' ? 360 : 0;
+    score += 520 + targetValue + lowHandBonus + baseDamageBonus;
   }
 
   if (action.effectId === 'quick_strike') {
@@ -972,7 +977,7 @@ function scoreAction(state, owner, action) {
     if (targetCanPressureHero) score += 500;
   }
 
-  if (action.effectId === 'buff_all_atk_1' || action.effectId === 'aggro_buff_all_atk_2' || action.effectId === 'buff_all_armor_1') {
+  if (action.effectId === 'buff_all_atk_1' || action.effectId === 'aggro_buff_all_atk_2' || action.effectId === 'buff_all_armor_1' || action.effectId === 'enemy_all_armor_minus_1') {
     const friendlyUnits = nextState.board.filter((unit) => unit && unit.owner === owner).length;
     if (friendlyUnits <= 1) score -= 1200;
     else score += friendlyUnits * 120;

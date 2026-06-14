@@ -203,7 +203,9 @@ const ENEMY_EFFECT_SUMMARY_OVERRIDES = Object.freeze({
   quick_strike: 'Resolve line combat now',
   heal_1_atk_1_draw_on_kill_this_turn: 'Heal, +1 ATK, draw on kill',
   swap_any_two_units: 'Swap two units',
-  swap_adjacent_enemy_units: 'Swap adjacent enemies',
+  swap_adjacent_enemy_units: 'Swap adjacent enemies, -1 ATK',
+  enemy_all_armor_minus_1: 'Enemies -1 ARM',
+  destroy_friendly_damage_enemy_base_1: 'Destroy ally, damage base',
   enemy_all_atk_minus_1: 'Leftmost enemies -1 ATK',
   enemy_up_to_2_atk_minus_1: 'Chosen enemies -1 ATK',
   damage_all_enemies_1_ignore_armor: 'Damage all enemies',
@@ -5303,6 +5305,30 @@ export default class BattleScene extends Phaser.Scene {
       });
     }
 
+    if (effectId === 'swap_adjacent_enemy_units') {
+      beforeSnapshot.forEach((before) => {
+        if (!before) return;
+        const afterIndex = this.gameState.board.findIndex((unit) => unit?.cardId === before.cardId && unit?.owner === before.owner);
+        const after = this.gameState.board[afterIndex];
+        if (!this.isSameBoardUnit(before, after)) return;
+        const attackDelta = getUnitAttack(after) - before.attack;
+        if (attackDelta < 0) {
+          feedback.push({ type: 'slot-text', index: afterIndex, label: `${attackDelta} ATK`, kind: 'debuff', phase: 'pre', order: 10 });
+        }
+      });
+    }
+
+    if (effectId === 'enemy_all_armor_minus_1') {
+      beforeSnapshot.forEach((before, index) => {
+        const after = this.gameState.board[index];
+        if (!before || !this.isSameBoardUnit(before, after)) return;
+        const armorDelta = getUnitArmor(after) - before.armor;
+        if (armorDelta < 0) {
+          feedback.push({ type: 'slot-text', index, label: `${armorDelta} ARM`, kind: 'debuff', phase: 'pre', order: 10 });
+        }
+      });
+    }
+
     if (healEffects.has(effectId)) {
       beforeSnapshot.forEach((before, index) => {
         const after = this.gameState.board[index];
@@ -5348,7 +5374,7 @@ export default class BattleScene extends Phaser.Scene {
       });
     }
 
-    if (effectId === 'destroy_friendly_draw_1') {
+    if (effectId === 'destroy_friendly_draw_1' || effectId === 'destroy_friendly_damage_enemy_base_1') {
       this.findRemovedUnitIndexes(beforeSnapshot).forEach((index) => {
         feedback.push({ type: 'remove', index, label: 'DESTROYED', kind: 'damage' });
       });
