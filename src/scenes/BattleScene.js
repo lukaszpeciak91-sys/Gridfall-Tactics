@@ -84,6 +84,8 @@ const BASE_FRAME_GRAPHICS_DEPTH = 112;
 const BASE_FRAME_BOOT_SWEEP_DEPTH = 113;
 const BASE_TERMINAL_TEXT_DEPTH = 123;
 const BASE_CRACK_OVERLAY_DEPTH = 123.5;
+const BASE_NON_LETHAL_CRACK_MAX_REACH_RATIO = 0.35;
+const BASE_NON_LETHAL_CRACK_SIDE_ZONE_RATIO = 0.38;
 const BASE_GLASS_REFLECTION_DEPTH = 124;
 const FLOATING_FEEDBACK_DEPTH = 250;
 const BASE_UTILITY_CONTROL_FILL = 0x020617;
@@ -1558,15 +1560,15 @@ export default class BattleScene extends Phaser.Scene {
     const level = Math.max(0, Math.min(BASE_MAX_HP, damageLevel));
     if (level <= 0) return [];
 
-    const primaryPointCount = Math.min(6, 2 + Math.ceil(level / 3));
+    const primaryPointCount = Math.min(5, 2 + Math.ceil(level / 4));
     const primaryBranches = Math.min(3, Math.max(0, Math.floor((level - 2) / 3)));
-    const segments = [{ path: 0, pointCount: primaryPointCount, branches: primaryBranches, lengthScale: 0.54 + level * 0.046 }];
+    const segments = [{ path: 0, pointCount: primaryPointCount, branches: primaryBranches, lengthScale: 0.42 + level * 0.026 }];
 
     if (level >= 5) {
-      segments.push({ path: 1, pointCount: Math.min(5, 2 + Math.ceil((level - 4) / 3)), branches: level >= 9 ? 2 : 1, lengthScale: 0.42 + level * 0.03 });
+      segments.push({ path: 1, pointCount: Math.min(4, 2 + Math.ceil((level - 4) / 4)), branches: 1, lengthScale: 0.32 + level * 0.018 });
     }
     if (level >= 8) {
-      segments.push({ path: 2, pointCount: 3, branches: level >= 11 ? 1 : 0, lengthScale: 0.36 + level * 0.018 });
+      segments.push({ path: 2, pointCount: 3, branches: level >= 11 ? 1 : 0, lengthScale: 0.28 + level * 0.012 });
     }
 
     return segments;
@@ -1598,6 +1600,25 @@ export default class BattleScene extends Phaser.Scene {
     };
   }
 
+  getBaseNonLethalCrackBounds(origin, screenMetrics) {
+    const { screenLeft, screenWidth, glassLeft, glassTop, glassWidth, glassHeight } = screenMetrics;
+    const travelLimit = screenWidth * BASE_NON_LETHAL_CRACK_MAX_REACH_RATIO;
+    const sideLimit = screenWidth * BASE_NON_LETHAL_CRACK_SIDE_ZONE_RATIO;
+    const leftInset = glassLeft + glassWidth * 0.035;
+    const rightInset = glassLeft + glassWidth * 0.965;
+    const travelsFromLeft = origin.directionX > 0;
+    return {
+      left: travelsFromLeft
+        ? leftInset
+        : Math.max(leftInset, origin.x - travelLimit, screenLeft + screenWidth * (1 - BASE_NON_LETHAL_CRACK_SIDE_ZONE_RATIO)),
+      right: travelsFromLeft
+        ? Math.min(rightInset, origin.x + travelLimit, screenLeft + sideLimit)
+        : rightInset,
+      top: glassTop + glassHeight * 0.08,
+      bottom: glassTop + glassHeight * 0.92,
+    };
+  }
+
   clampBaseCrackPoint(point, bounds, safeZone) {
     const x = Phaser.Math.Clamp(point.x, bounds.left, bounds.right);
     let y = Phaser.Math.Clamp(point.y, bounds.top, bounds.bottom);
@@ -1608,13 +1629,8 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   buildBaseCrackPath(origin, pathIndex, pointCount, screenMetrics, safeZone, lengthScale = 1) {
-    const { glassLeft, glassTop, glassWidth, glassHeight } = screenMetrics;
-    const bounds = {
-      left: glassLeft + glassWidth * 0.035,
-      right: glassLeft + glassWidth * 0.965,
-      top: glassTop + glassHeight * 0.08,
-      bottom: glassTop + glassHeight * 0.92,
-    };
+    const { glassWidth, glassHeight } = screenMetrics;
+    const bounds = this.getBaseNonLethalCrackBounds(origin, screenMetrics);
     const points = [{ x: origin.x, y: origin.y }];
     for (let index = 1; index < pointCount; index += 1) {
       const profile = this.getBaseCrackProfile(pathIndex, index);
@@ -1629,7 +1645,7 @@ export default class BattleScene extends Phaser.Scene {
     return points;
   }
 
-  strokeBaseCrackPath(crackGraphics, points, branches) {
+  strokeBaseCrackPath(crackGraphics, points, branches, bounds, safeZone) {
     crackGraphics.beginPath();
     crackGraphics.moveTo(points[0].x, points[0].y);
     points.slice(1).forEach((point) => crackGraphics.lineTo(point.x, point.y));
@@ -1642,10 +1658,12 @@ export default class BattleScene extends Phaser.Scene {
       const dy = next.y - prev.y;
       const sideSign = index % 2 === 0 ? 1 : -1;
       const branchLength = 0.22 + index * 0.08;
-      const branchX = root.x + dx * branchLength - sideSign * dy * 0.28;
-      const branchY = root.y + dy * branchLength + sideSign * dx * 0.22;
+      const branchPoint = this.clampBaseCrackPoint({
+        x: root.x + dx * branchLength - sideSign * dy * 0.22,
+        y: root.y + dy * branchLength + sideSign * dx * 0.16,
+      }, bounds, safeZone);
       crackGraphics.moveTo(root.x, root.y);
-      crackGraphics.lineTo(branchX, branchY);
+      crackGraphics.lineTo(branchPoint.x, branchPoint.y);
     }
     crackGraphics.strokePath();
   }
@@ -1701,14 +1719,15 @@ export default class BattleScene extends Phaser.Scene {
       return {
         points: this.buildBaseCrackPath(origin, segment.path, segment.pointCount, screenMetrics, safeZone, segment.lengthScale),
         branches: segment.branches,
+        bounds: this.getBaseNonLethalCrackBounds(origin, screenMetrics),
       };
     }).filter(Boolean);
 
     crackGraphics.lineStyle(2, BASE_FRAME_SHADOW, 0.42);
-    paths.forEach(({ points, branches }) => this.strokeBaseCrackPath(crackGraphics, points, branches));
+    paths.forEach(({ points, branches, bounds }) => this.strokeBaseCrackPath(crackGraphics, points, branches, bounds, safeZone));
 
     crackGraphics.lineStyle(1, BASE_SCREEN_REFLECTION, 0.62);
-    paths.forEach(({ points, branches }) => this.strokeBaseCrackPath(crackGraphics, points, branches));
+    paths.forEach(({ points, branches, bounds }) => this.strokeBaseCrackPath(crackGraphics, points, branches, bounds, safeZone));
   }
 
   renderBaseBroadcastGlass(frameView, screenMetrics) {
