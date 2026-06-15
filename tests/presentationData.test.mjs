@@ -104,7 +104,7 @@ test('Gravehearts Polish presentation names match the short-name localization pa
     [5, 'attrition_swarm_abomination_1', 'Mourning Giant', 'Żałobny Olbrzym'],
     [6, 'attrition_swarm_funeral_pyre_1', 'Funeral Pyre', 'Stos'],
     [7, 'attrition_swarm_infect_1', 'Rotten Gift', 'Zgniły Upominek'],
-    [8, 'attrition_swarm_feast_1', 'Last Supper', 'Ostatnia Wieczerza'],
+    [8, 'attrition_swarm_feast_1', 'Feast', 'Ostatnia Wieczerza'],
     [9, 'attrition_swarm_rise_again_1', 'Dance Again', 'Zatańcz Raz Jeszcze'],
     [10, 'attrition_swarm_grave_call_1', 'Grave Call', 'Wezwanie Grobu'],
   ];

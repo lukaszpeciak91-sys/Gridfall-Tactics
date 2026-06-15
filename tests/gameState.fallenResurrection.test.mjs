@@ -47,9 +47,9 @@ function addHand(stateObj, owner, ...cards) {
   stateObj[owner].hand.push(...cards);
 }
 
-function destroyFriendlyWithFeast(stateObj, boardIndex) {
-  addHand(stateObj, 'player', factionCard(attrition, 'attrition_swarm_feast_1'));
-  assert.equal(resolveTargetedEffectCard(stateObj, 'player', 'attrition_swarm_feast_1', boardIndex).ok, true);
+function destroyFriendlyWithSyntheticCard(stateObj, boardIndex) {
+  addHand(stateObj, 'player', { id: 'synthetic_destroy', type: 'utility', effectId: 'destroy_friendly_draw_1' });
+  assert.equal(resolveTargetedEffectCard(stateObj, 'player', 'synthetic_destroy', boardIndex).ok, true);
 }
 
 test('a played living unit in discard is archive-only and cannot be revived', () => {
@@ -96,9 +96,9 @@ test('combat death enters fallen and resurrection consumes only that death event
 test('resurrection is LIFO and consumes only the newest valid fallen entry', () => {
   const s = state();
   s.board[6] = unit('fallen-a');
-  destroyFriendlyWithFeast(s, 6);
+  destroyFriendlyWithSyntheticCard(s, 6);
   s.board[7] = unit('fallen-b');
-  destroyFriendlyWithFeast(s, 7);
+  destroyFriendlyWithSyntheticCard(s, 7);
   assert.deepEqual(s.player.fallen.map((entry) => entry.card.id), ['fallen-a', 'fallen-b']);
 
   addHand(s, 'player', factionCard(attrition, 'attrition_swarm_rise_again_1'));
@@ -127,10 +127,10 @@ test('recall and redeploy displacement return persistent units without adding fa
   assert.deepEqual(redeployed.player.fallen, []);
 });
 
-test('Feast destruction records fallen without firing combat-death-only effects', () => {
+test('non-combat destroy records fallen without firing combat-death-only effects', () => {
   const s = state();
   s.board[6] = unit('carrier', { effectId: 'combat_death_summon_grunt' });
-  destroyFriendlyWithFeast(s, 6);
+  destroyFriendlyWithSyntheticCard(s, 6);
 
   assert.equal(s.board[6], null);
   assert.equal(s.player.fallen.length, 1);

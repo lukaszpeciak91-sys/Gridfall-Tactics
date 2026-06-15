@@ -94,9 +94,9 @@
       "artAssetId": "attrition-swarm_08",
       "name": "Feast",
       "type": "utility",
-      "targeting": "friendly_unit",
-      "effectId": "destroy_friendly_damage_enemy_base_1",
-      "textShort": "Destroy [ALLY]. Enemy base loses 1 HP."
+      "targeting": "none",
+      "effectId": "draw_1",
+      "textShort": "Draw 1."
     },
     {
       "id": "attrition_swarm_rise_again_1",

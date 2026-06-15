@@ -804,6 +804,10 @@ function scoreAction(state, owner, action) {
     score += 900;
   }
 
+  if (action.effectId === 'draw_1') {
+    score += 250;
+  }
+
   if (action.effectId === 'swap_two_enemy_units') {
     const meaningful = boardPressureGain > 20 || heroPressureGain > 0 || opponentPressureReduced > 0 || openLaneImprovement > 0;
     action.aiEvaluation = {
