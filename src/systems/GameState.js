@@ -189,6 +189,12 @@ function cardCanRealisticallyAffectOutcome(card, state, owner, visitedCardIds = 
       return friendlyUnits.length > 0 && effectCanEnableOutcome(state, owner, card.effectId);
     case 'revive_friendly_1hp':
       return friendlyEmptySlotIsReachable && friendlyFallenUnits;
+    case 'draw_1': {
+      if (visitedCardIds.has(card.id)) return false;
+      const nextVisitedCardIds = new Set(visitedCardIds).add(card.id);
+      return (owner === 'player' ? state.player.deck : state.enemy.deck)
+        .some((deckCard) => cardCanRealisticallyAffectOutcome(deckCard, state, owner, nextVisitedCardIds));
+    }
     case 'infect_damage_1_opposite_ally_atk_1':
       return enemyUnitIsReachable;
     case 'destroy_friendly_damage_enemy_base_1':
@@ -1637,7 +1643,13 @@ function executeOnDeathEffectVariantOperations(state, index, unit) {
 
 
 function applyEffectById(state, owner, effectId, sourceCard = null) {
+  const side = owner === 'player' ? state.player : state.enemy;
   switch (effectId) {
+    case 'draw_1': {
+      if (sourceCard) sourceCard.drawResult = drawCardsWithResult(side, 1);
+      else drawCards(side, 1);
+      break;
+    }
     case 'damage_all_enemies_1_ignore_armor': {
       const enemyIndexes = getRowForOwner(getOpponentOwner(owner))
         .filter((index) => state.board[index]);

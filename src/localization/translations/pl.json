@@ -69,8 +69,8 @@
       "textShort": "Zadaj 1 [ENEMY].\n[ALLY] naprzeciwko +1 [ATK]."
     },
     "attrition_swarm_feast_1": {
-      "name": "Uczta",
-      "textShort": "Zniszcz [ALLY]. Baza wroga traci 1 HP."
+      "name": "Ostatnia Wieczerza",
+      "textShort": "Dobierz kartę."
     },
     "attrition_swarm_rise_again_1": {
       "name": "Powstań Znowu",
@@ -391,6 +391,7 @@
         "fill_empty_slots_0_1": "Wypełnij sloty Tokenami",
         "destroy_friendly_draw_1": "Zniszcz sojusznika, dobierz 1",
         "destroy_friendly_damage_enemy_base_1": "Zniszcz sojusznika, uszkodź bazę",
+        "draw_1": "Dobierz 1",
         "enemy_all_armor_minus_1": "Wrogowie -1 ARM",
         "friendly_immovable_this_turn": "Sojusznicy nie mogą być przesuwani",
         "funeral_pyre": "Pierwsze 2 śmierci sojuszników zadają 1",

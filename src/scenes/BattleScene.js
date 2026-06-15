@@ -207,6 +207,7 @@ const ENEMY_EFFECT_SUMMARY_OVERRIDES = Object.freeze({
   swap_adjacent_enemy_units: 'Swap adjacent enemies, -1 ATK',
   enemy_all_armor_minus_1: 'Enemies -1 ARM',
   destroy_friendly_damage_enemy_base_1: 'Destroy ally, damage base',
+  draw_1: 'Draw 1',
   enemy_all_atk_minus_1: 'Leftmost enemies -1 ATK',
   enemy_up_to_2_atk_minus_1: 'Chosen enemies -1 ATK',
   damage_all_enemies_1_ignore_armor: 'Damage all enemies',

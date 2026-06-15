@@ -48,7 +48,7 @@ const expectedTextShort = new Map(Object.entries({
   attrition_swarm_abomination_1: 'Combat death: both bases lose 1 HP.',
   attrition_swarm_funeral_pyre_1: 'First 2 [ALLY] combat deaths:\n-1 [HP] to opposed [ENEMY].',
   attrition_swarm_infect_1: 'Deal 1 to [ENEMY].\nOpposed [ALLY] gains +1 [ATK].',
-  attrition_swarm_feast_1: 'Destroy [ALLY]. Enemy base loses 1 HP.',
+  attrition_swarm_feast_1: 'Draw 1.',
   attrition_swarm_rise_again_1: 'Revive the newest fallen unit with 1 HP.',
   attrition_swarm_grave_call_1: 'Summon a 1/1. If you have no [ALLY], summon up to 2.',
 }));

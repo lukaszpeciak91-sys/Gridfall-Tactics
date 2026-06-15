@@ -131,7 +131,7 @@ test('AI may play Stability when a meaningful board faces a public movement arch
   assert.equal(action.cardId, 'tank_stability_1');
 });
 
-test('AI may Feast a low-value unit that would die anyway', () => {
+test('AI may play Feast as draw-only cycle without targeting a unit', () => {
   const state = createInitialBattleState(emptyFaction, emptyFaction, { firstActor: 'enemy' });
   state.enemy.hand.push(factionCard('Attrition Swarm', 'attrition_swarm_feast_1'));
   state.enemy.deck.push(factionCard('Attrition Swarm', 'attrition_swarm_husk_1'));
@@ -140,12 +140,12 @@ test('AI may Feast a low-value unit that would die anyway', () => {
 
   const action = chooseBattleAction(state, 'enemy');
 
-  assert.equal(action.type, 'play-targeted-effect');
+  assert.equal(action.type, 'play-effect');
   assert.equal(action.cardId, 'attrition_swarm_feast_1');
-  assert.equal(action.targetIndex, 0);
+  assert.equal(action.targetIndex, undefined);
 });
 
-test('AI does not Feast the only blocker preventing lethal open-lane damage', () => {
+test('AI Feast cycle does not remove the only blocker preventing lethal open-lane damage', () => {
   const state = createInitialBattleState(emptyFaction, emptyFaction, { firstActor: 'enemy' });
   state.enemyHP = 2;
   state.enemy.hand.push(factionCard('Attrition Swarm', 'attrition_swarm_feast_1'));
@@ -155,5 +155,7 @@ test('AI does not Feast the only blocker preventing lethal open-lane damage', ()
 
   const action = chooseBattleAction(state, 'enemy');
 
-  assert.notEqual(action.cardId, 'attrition_swarm_feast_1');
+  assert.equal(action.type, 'play-effect');
+  assert.equal(action.cardId, 'attrition_swarm_feast_1');
+  assert.equal(state.board[0]?.id, 'only-blocker');
 });

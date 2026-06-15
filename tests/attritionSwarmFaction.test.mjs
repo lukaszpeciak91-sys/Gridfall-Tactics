@@ -54,7 +54,7 @@ test('Attrition Swarm faction exists, is selectable, has exactly 10 no-cost card
   });
 });
 
-test('Husk deals combat-only lane damage with no hero fallback, and not from Feast destruction', () => {
+test('Husk deals combat-only lane damage with no hero fallback, and not from draw-only Feast', () => {
   const combat = state();
   combat.board[6] = unit({ id: 'husk', effectId: 'combat_death_damage_enemy_lane_1' });
   combat.board[0] = unit({ owner: 'enemy', id: 'killer', attack: 1, hp: 3 });
@@ -78,11 +78,12 @@ test('Husk deals combat-only lane damage with no hero fallback, and not from Fea
   feast.board[6] = unit({ id: 'husk', effectId: 'combat_death_damage_enemy_lane_1' });
   addHand(feast, 'player', card('attrition_swarm_feast_1'));
   feast.player.deck = [unit({ id: 'draw-a' }), unit({ id: 'draw-b' })];
-  const result = resolveTargetedEffectCard(feast, 'player', 'attrition_swarm_feast_1', 6);
+  const result = playEffectCard(feast, 'player', 'attrition_swarm_feast_1');
   assert.equal(result.ok, true);
-  assert.equal(feast.enemyHP, 11);
-  assert.equal(feast.board[6], null);
-  assert.equal(feast.player.hand.length, 0);
+  assert.equal(feast.enemyHP, 12);
+  assert.equal(feast.board[6]?.id, 'husk');
+  assert.equal(feast.player.hand.length, 1);
+  assert.equal(feast.player.deck.length, 1);
 });
 
 test('Carrier summons only on combat death and preserves owner', () => {
@@ -96,9 +97,10 @@ test('Carrier summons only on combat death and preserves owner', () => {
 
   const feast = state();
   feast.board[6] = unit({ id: 'carrier', effectId: 'combat_death_summon_grunt' });
+  feast.player.deck = [unit({ id: 'draw-a' })];
   addHand(feast, 'player', card('attrition_swarm_feast_1'));
-  resolveTargetedEffectCard(feast, 'player', 'attrition_swarm_feast_1', 6);
-  assert.equal(feast.board[6], null);
+  playEffectCard(feast, 'player', 'attrition_swarm_feast_1');
+  assert.equal(feast.board[6]?.id, 'carrier');
 });
 
 test('Abomination damages both heroes only on combat death', () => {
@@ -111,10 +113,11 @@ test('Abomination damages both heroes only on combat death', () => {
 
   const feast = state();
   feast.board[6] = unit({ id: 'abomination', effectId: 'combat_death_damage_both_heroes_1' });
+  feast.player.deck = [unit({ id: 'draw-a' })];
   addHand(feast, 'player', card('attrition_swarm_feast_1'));
-  resolveTargetedEffectCard(feast, 'player', 'attrition_swarm_feast_1', 6);
+  playEffectCard(feast, 'player', 'attrition_swarm_feast_1');
   assert.equal(feast.playerHP, 12);
-  assert.equal(feast.enemyHP, 11);
+  assert.equal(feast.enemyHP, 12);
 });
 
 test('Funeral Pyre deals capped lane-only damage, cleans defeated units, does not stack, and clears', () => {
@@ -170,31 +173,23 @@ test('Funeral Pyre deals capped lane-only damage, cleans defeated units, does no
   assert.equal(capped.board[0]?.hp, 2, 'pyre cleared before the next combat');
 });
 
-test('Feast and non-combat targeted kills do not count for Funeral Pyre', () => {
+test('Feast is draw-only utility with no target, sacrifice, base damage, or death trigger', () => {
   const feast = state();
   feast.board[6] = unit({ id: 'victim' });
+  feast.board[0] = unit({ owner: 'enemy', id: 'enemy-unit' });
   addHand(feast, 'player', card('attrition_swarm_funeral_pyre_1'), card('attrition_swarm_feast_1'));
   feast.player.deck = [unit({ id: 'draw-a' }), unit({ id: 'draw-b' })];
   playEffectCard(feast, 'player', 'attrition_swarm_funeral_pyre_1');
-  const feastResult = resolveTargetedEffectCard(feast, 'player', 'attrition_swarm_feast_1', 6);
+  const feastResult = playEffectCard(feast, 'player', 'attrition_swarm_feast_1');
   assert.equal(feastResult.ok, true);
-  assert.equal(feast.board[6], null);
-  assert.equal(feast.player.hand.length, 0);
-  assert.equal(feast.player.deck.length, 2);
-  assert.equal(feast.enemyHP, 11);
-
-  const enemyFeast = state();
-  enemyFeast.board[0] = unit({ owner: 'enemy', id: 'enemy-victim' });
-  enemyFeast.board[6] = unit({ owner: 'player', id: 'player-unit' });
-  enemyFeast.enemy.deck = [unit({ owner: 'enemy', id: 'enemy-draw' })];
-  addHand(enemyFeast, 'enemy', card('attrition_swarm_feast_1'));
-  assert.equal(resolveTargetedEffectCard(enemyFeast, 'enemy', 'attrition_swarm_feast_1', 6).ok, false);
-  const enemyFeastResult = resolveTargetedEffectCard(enemyFeast, 'enemy', 'attrition_swarm_feast_1', 0);
-  assert.equal(enemyFeastResult.ok, true);
-  assert.equal(enemyFeast.board[0], null);
-  assert.equal(enemyFeast.board[6].owner, 'player');
-  assert.equal(enemyFeast.enemy.hand.length, 0);
-  assert.equal(enemyFeast.playerHP, 11);
+  assert.equal(resolveTargetedEffectCard(feast, 'player', 'attrition_swarm_feast_1', 6).ok, false);
+  assert.equal(feast.board[6]?.id, 'victim');
+  assert.equal(feast.board[0]?.id, 'enemy-unit');
+  assert.equal(feast.player.hand.length, 1);
+  assert.equal(feast.player.deck.length, 1);
+  assert.equal(feast.player.discard.some((item) => item.id === 'attrition_swarm_feast_1'), true);
+  assert.equal(feast.playerHP, 12);
+  assert.equal(feast.enemyHP, 12);
 
   const infect = state();
   infect.board[0] = unit({ owner: 'enemy', id: 'target', hp: 1 });
@@ -384,12 +379,7 @@ test('Attrition Swarm UI targeting metadata matches resolver expectations', () =
     requiredTargets: 1,
     targetIndexes: [],
   });
-  assert.deepEqual(getTargetingStateForEffect('destroy_friendly_draw_1', 'attrition_swarm_feast_1'), {
-    cardId: 'attrition_swarm_feast_1',
-    targetType: 'friendly-unit',
-    requiredTargets: 1,
-    targetIndexes: [],
-  });
+  assert.equal(getTargetingStateForEffect('draw_1', 'attrition_swarm_feast_1'), null);
 });
 
 test('Base Swarm Substrate applies temporary enemy armor debuff without draw or sacrifice', () => {

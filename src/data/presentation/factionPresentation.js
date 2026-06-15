@@ -215,7 +215,7 @@ const presentation = {
       attrition_swarm_abomination_1: { nameEn: 'Mourning Giant', namePl: 'Żałobny Olbrzym' },
       attrition_swarm_funeral_pyre_1: { nameEn: 'Funeral Pyre', namePl: 'Stos' },
       attrition_swarm_infect_1: { nameEn: 'Rotten Gift', namePl: 'Zgniły Upominek' },
-      attrition_swarm_feast_1: { nameEn: 'Last Supper', namePl: 'Ostatnia Wieczerza' },
+      attrition_swarm_feast_1: { nameEn: 'Feast', namePl: 'Ostatnia Wieczerza' },
       attrition_swarm_rise_again_1: { nameEn: 'Dance Again', namePl: 'Zatańcz Raz Jeszcze' },
       attrition_swarm_grave_call_1: { nameEn: 'Grave Call', namePl: 'Wezwanie Grobu' },
     },
