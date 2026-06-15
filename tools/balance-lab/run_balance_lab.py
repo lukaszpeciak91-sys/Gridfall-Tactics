@@ -209,6 +209,8 @@ EXPERIMENT_OUTPUT_FILENAME = "experiment-output.txt"
 EXPERIMENT_STDERR_FILENAME = "experiment-stderr.txt"
 PATCH_SUMMARY_FILENAME = "patch-summary.md"
 COMPARISON_REPORT_FILENAME = "comparison-report.md"
+CURRENT_OUTPUT_FILENAME = "current-output.txt"
+CURRENT_REPORT_FILENAME = "current-state-report.md"
 CARD_TELEMETRY_BASELINE_FILENAME = "card-telemetry-baseline.txt"
 CARD_TELEMETRY_EXPERIMENT_FILENAME = "card-telemetry-experiment.txt"
 EFFECT_VARIANT_TELEMETRY_BASELINE_FILENAME = "effect-variant-telemetry-baseline.txt"
@@ -984,6 +986,20 @@ def create_run_paths(root: Path, experiment_name: str) -> tuple[str, Path, Path]
     report_dir.mkdir(parents=True, exist_ok=False)
     temp_copy_dir.parent.mkdir(parents=True, exist_ok=True)
     return run_name, report_dir, temp_copy_dir
+
+
+def current_snapshot_config() -> dict[str, Any]:
+    return {
+        "name": "Current Repo Balance Snapshot",
+        "matchCount": 100,
+        "seed": 12345,
+        "telemetry": "cards",
+        "changes": [],
+        "flags": {
+            "warningDeltaPp": 3,
+            "dangerDeltaPp": 6,
+        },
+    }
 
 
 def print_intro(root: Path, experiment_path: Path, data: dict[str, Any], command: list[str]) -> None:
@@ -3202,6 +3218,197 @@ def build_comparison_report(
         )[:3],
     }
 
+
+def markdown_table_from_rows(rows: list[dict[str, str]], columns: list[str], empty_message: str) -> list[str]:
+    header = "| " + " | ".join(markdown_cell(column) for column in columns) + " |"
+    separator = "| " + " | ".join("---" for _ in columns) + " |"
+    if not rows:
+        cells = [f"_{empty_message}_", *["" for _ in columns[1:]]]
+        return [header, separator, "| " + " | ".join(markdown_cell(cell) for cell in cells) + " |"]
+    lines = [header, separator]
+    for row in rows:
+        lines.append("| " + " | ".join(markdown_cell(row.get(column, "")) for column in columns) + " |")
+    return lines
+
+
+def current_campaign_table_lines(campaign_rows: list[dict[str, Any]]) -> list[str]:
+    lines = [
+        "| Faction | Opponents | Campaign estimate |",
+        "|---|---:|---:|",
+    ]
+    if not campaign_rows:
+        return [*lines, "| _No campaign rows parsed_ |  |  |"]
+    for row in sorted(campaign_rows, key=lambda item: item["faction"]):
+        lines.append(f"| {markdown_cell(row['faction'])} | {row['opponents']} | {row['currentCampaignPct']}% |")
+    return lines
+
+
+def current_campaign_ranking_lines(campaign_rows: list[dict[str, Any]]) -> list[str]:
+    if not campaign_rows:
+        return ["- No campaign rows parsed."]
+    return [
+        f"{index}. {row['faction']} — {row['currentCampaignPct']}%"
+        for index, row in enumerate(
+            sorted(campaign_rows, key=lambda item: (-number_value(str(item["currentCampaignPct"])), item["faction"])),
+            start=1,
+        )
+    ]
+
+
+def build_current_card_telemetry(output_text: str) -> dict[str, Any]:
+    try:
+        card_rows = parse_card_telemetry_table(output_text, "Current")
+    except CardTelemetryParseError as error:
+        return {
+            "warning": f"Card telemetry skipped: {error}. Use telemetry=cards or telemetry=all.",
+            "impactRows": [],
+            "harmfulLines": ["- Not available; card telemetry parsing failed. See raw current output."],
+            "helpfulLines": ["- Not available; card telemetry parsing failed. See raw current output."],
+        }
+
+    impact_rows = sorted(
+        card_rows,
+        key=lambda row: max(abs(row["drawImpact"]), abs(row["playImpact"])),
+        reverse=True,
+    )
+    impact_ranked = sorted(card_rows, key=lambda row: row["drawImpact"] + row["playImpact"])
+    harmful_lines = [
+        f"{row['card']}\nDraw Impact {format_pp(row['drawImpact'])}\nPlay Impact {format_pp(row['playImpact'])}"
+        for row in impact_ranked[:6]
+    ] or ["- No card impact rows parsed."]
+    helpful_lines = [
+        f"{row['card']}\nDraw Impact {format_pp(row['drawImpact'])}\nPlay Impact {format_pp(row['playImpact'])}"
+        for row in reversed(impact_ranked[-6:])
+    ] or ["- No card impact rows parsed."]
+    return {
+        "warning": "",
+        "impactRows": impact_rows,
+        "harmfulLines": harmful_lines,
+        "helpfulLines": helpful_lines,
+    }
+
+
+def build_current_state_report(
+    report_dir: Path,
+    data: dict[str, Any],
+    command: list[str],
+    result: subprocess.CompletedProcess[str],
+) -> tuple[Path, dict[str, Any]]:
+    aggregate_columns = [
+        "faction",
+        "games",
+        "win %",
+        "non-draw win %",
+        "draw %",
+        "turn-cap %",
+        "avg turns",
+        "avg remaining hero HP",
+    ]
+    matchup_columns = [
+        "faction A",
+        "faction B",
+        "games",
+        "faction A wins",
+        "faction B wins",
+        "draws",
+        "faction A all-games WR",
+        "faction A non-draw WR",
+        "draw %",
+        "turn-cap %",
+        "avg turns",
+    ]
+    output_path = report_dir / CURRENT_OUTPUT_FILENAME
+    report_path = report_dir / CURRENT_REPORT_FILENAME
+    summary_path = report_dir / SUMMARY_FILENAME
+    output_path.write_text(result.stdout, encoding="utf-8")
+
+    current_factions = parse_console_table_section(result.stdout, "Balance audit: aggregate faction table", aggregate_columns)
+    current_matchups = parse_console_table_section(result.stdout, "Balance audit: combined matchup table across both seats", matchup_columns)
+    campaign = estimate_campaign_success(current_matchups)
+    campaign_rows = [
+        {
+            "faction": faction,
+            "opponents": values["opponents"],
+            "currentCampaignPct": format_percent(values["success"]),
+        }
+        for faction, values in campaign.items()
+    ]
+    card_telemetry = build_current_card_telemetry(result.stdout)
+    card_warning_lines = [f"- Warning: {card_telemetry['warning']}", ""] if card_telemetry["warning"] else [""]
+    dead_card_lines = dead_card_table_lines(card_telemetry["impactRows"])
+    helpful_lines = card_telemetry["helpfulLines"]
+    harmful_lines = card_telemetry["harmfulLines"]
+    card_draw_play_lines = card_draw_play_impact_table_lines(card_telemetry["impactRows"])
+
+    lines = [
+        "# Current Repo Balance Snapshot",
+        "",
+        "No experiment changes were applied. This report describes the current repo state only.",
+        "",
+        f"Run name: {data['name']}",
+        f"Match count per matchup: {data['matchCount']}",
+        f"Seed: {data['seed']}",
+        f"Telemetry: {data['telemetry']}",
+        f"Command: `{format_command(command)}`",
+        f"Simulator exit code: {result.returncode}",
+        f"Raw simulator output: `{CURRENT_OUTPUT_FILENAME}`",
+        "",
+        "## Faction WR table",
+        "",
+        *markdown_table_from_rows(current_factions, aggregate_columns, "No faction rows parsed"),
+        "",
+        "## Matchup table",
+        "",
+        *markdown_table_from_rows(current_matchups, matchup_columns, "No matchup rows parsed"),
+        "",
+        "## Campaign estimate table",
+        "",
+        "This is an estimate from combined matchup non-draw win rates across both seats, not a true campaign simulator.",
+        "For each faction and opponent, Balance Lab converts matchup non-draw WR `p` into `1 - (1 - p)^3`, the probability of winning at least 1 game out of 3. It then multiplies those values across all parsed opponents.",
+        "",
+        *current_campaign_table_lines(campaign_rows),
+        "",
+        "## Campaign ranking",
+        "",
+        *current_campaign_ranking_lines(campaign_rows),
+        "",
+        "## Most dead cards",
+        "",
+        *dead_card_lines,
+        "",
+        "## Most harmful/helpful cards",
+        "",
+        "### Most Harmful Cards",
+        "",
+        *harmful_lines,
+        "",
+        "### Most Helpful Cards",
+        "",
+        *helpful_lines,
+        "",
+        "## Card telemetry",
+        "",
+        *card_warning_lines,
+        *card_draw_play_lines,
+        "",
+    ]
+    report_path.write_text("\n".join(lines), encoding="utf-8")
+    summary_path.write_text("\n".join([
+        "# Balance Lab Current-State Run Summary",
+        "",
+        "No experiment changes were applied. This report describes the current repo state only.",
+        f"Command: `{format_command(command)}`",
+        f"Simulator exit code: {result.returncode}",
+        f"Raw simulator output: `{CURRENT_OUTPUT_FILENAME}`",
+        f"Current-state report: `{CURRENT_REPORT_FILENAME}`",
+        "",
+    ]), encoding="utf-8")
+    return report_path, {
+        "factionRows": len(current_factions),
+        "matchupRows": len(current_matchups),
+        "simulatorExitCode": result.returncode,
+    }
+
 def print_finished(
     report_dir: Path,
     temp_copy_dir: Path,
@@ -3239,6 +3446,8 @@ def has_full_card_replacement(data: dict[str, Any]) -> bool:
 def run_one_experiment(root: Path, experiment_path: Path, *, verbose: bool = True) -> dict[str, Any]:
     data = load_experiment(experiment_path)
     validate_experiment_shape(data)
+    if not data["changes"]:
+        return run_current_state_snapshot(root, data, verbose=verbose)
     validated_changes = validate_requested_changes(root, data["changes"])
     command = build_simulator_command(data, verbose=verbose)
     _, report_dir, temp_copy_dir = create_run_paths(root, data["name"])
@@ -3310,6 +3519,47 @@ def run_one_experiment(root: Path, experiment_path: Path, *, verbose: bool = Tru
         ],
         "error": "",
         "passed": experiment_result.returncode == 0,
+    }
+
+
+def run_current_state_snapshot(root: Path, data: dict[str, Any] | None = None, *, verbose: bool = True) -> dict[str, Any]:
+    data = data or current_snapshot_config()
+    validate_experiment_shape(data)
+    if data["changes"]:
+        raise BalanceLabError("Current-state snapshot mode requires an empty changes list.")
+    command = build_simulator_command(data, verbose=verbose)
+    _, report_dir, _temp_copy_dir = create_run_paths(root, data["name"])
+
+    if verbose:
+        print("Balance Lab current-state runner", flush=True)
+        print(f"Report folder: {report_dir}", flush=True)
+        print("No experiment changes were applied. This report describes the current repo state only.", flush=True)
+        print("", flush=True)
+        print("Simulator command:", flush=True)
+        print(f"  {format_command(command)}", flush=True)
+    result = run_simulation(root, command)
+    report_path, stats = build_current_state_report(report_dir, data, command, result)
+    if verbose:
+        print("", flush=True)
+        print("Balance Lab current-state run complete", flush=True)
+        print(f"Current-state report: {report_path}", flush=True)
+        print(f"Faction rows parsed: {stats['factionRows']}", flush=True)
+        print(f"Matchup rows parsed: {stats['matchupRows']}", flush=True)
+        print(f"Simulator exit code: {result.returncode}", flush=True)
+    return {
+        "name": data["name"],
+        "configPath": None,
+        "reportDir": report_dir,
+        "reportPath": report_path,
+        "simulatorExitCode": result.returncode,
+        "warningCount": 0,
+        "dangerCount": 0,
+        "topFactionNonDrawWrDeltas": [],
+        "effectVariantCount": 0,
+        "effectVariantIds": [],
+        "effectVariantSummaries": [],
+        "error": "",
+        "passed": result.returncode == 0,
     }
 
 
@@ -3453,16 +3703,21 @@ def main(argv: list[str]) -> int:
         print(
             "Usage: python tools/balance-lab/run_balance_lab.py "
             "tools/balance-lab/experiments/example_experiment.json\n"
-            "   or: python tools/balance-lab/run_balance_lab.py tools/balance-lab/experiments/",
+            "   or: python tools/balance-lab/run_balance_lab.py tools/balance-lab/experiments/\n"
+            "   or: python tools/balance-lab/run_balance_lab.py --current",
             file=sys.stderr,
         )
         return 2
 
     root = repo_root()
-    input_path = Path(argv[1])
+    input_arg = argv[1]
+    input_path = Path(input_arg)
 
     try:
         validate_repo_root(root)
+        if input_arg in {"--current", "--no-change", "current"}:
+            result = run_current_state_snapshot(root)
+            return result["simulatorExitCode"]
         experiment_paths = discover_experiment_files(input_path)
         if input_path.is_dir():
             return run_batch(root, input_path, experiment_paths)
