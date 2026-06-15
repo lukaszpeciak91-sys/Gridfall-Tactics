@@ -42,10 +42,15 @@ const BOARD_LANE_HIGHLIGHT_STROKE_ALPHA = 0.72;
 const BOARD_GUIDE_LANE_HIGHLIGHT_STROKE_ALPHA = 0.52;
 const BOARD_FEEDBACK_STROKE_ALPHA = 0.88;
 const DEATH_OVERLAY_DEPTH = 239;
-const DEATH_OVERLAY_HOLD_MS = 40;
-const DEATH_OVERLAY_FADE_MS = 160;
-const DEATH_OVERLAY_FINAL_SCALE = 0.9;
-const DEATH_OVERLAY_DRIFT_PX = 8;
+const DEATH_OVERLAY_SHAKE_MS = 65;
+const DEATH_OVERLAY_SHAKE_OFFSET_PX = 2;
+const DEATH_OVERLAY_FLASH_MS = 70;
+const DEATH_OVERLAY_COLLAPSE_MS = 170;
+const DEATH_OVERLAY_FINAL_SCALE = 0.89;
+const DEATH_OVERLAY_DRIFT_PX = 6;
+const DEATH_OVERLAY_FRACTURE_ALPHA = 0.82;
+const DEATH_OVERLAY_SHARD_COUNT = 4;
+const DEATH_OVERLAY_SHARD_DRIFT_PX = 10;
 const HERO_PANEL_FILL_ALPHA = 0.5;
 const HERO_PANEL_ACTIVE_FILL_ALPHA = 0.58;
 const HERO_PANEL_STROKE_ALPHA = 0.5;
@@ -5197,27 +5202,105 @@ export default class BattleScene extends Phaser.Scene {
           .setScale(1);
         overlay.disableInteractive?.();
         overlay.add(this.createBoardUnitView(cell, unit));
+        this.addDeathOverlayFailureCues(overlay, cell);
         return overlay;
       })
       .filter(Boolean);
   }
 
+  addDeathOverlayFailureCues(overlay, cell) {
+    const width = Math.max(1, cell?.background?.width ?? this.layout.board.cellWidth);
+    const height = Math.max(1, cell?.background?.height ?? this.layout.board.cellHeight);
+    const flash = this.add.rectangle(0, 0, width - 8, height - 8, 0x7f1d1d, 0)
+      .setStrokeStyle(2, 0xfca5a5, 0);
+    const fracture = this.add.graphics()
+      .setAlpha(0);
+    fracture.lineStyle(Math.max(1, Math.round(width * 0.012)), 0xfee2e2, DEATH_OVERLAY_FRACTURE_ALPHA);
+    fracture.beginPath();
+    fracture.moveTo(-width * 0.32, -height * 0.36);
+    fracture.lineTo(-width * 0.06, -height * 0.08);
+    fracture.lineTo(width * 0.04, height * 0.04);
+    fracture.lineTo(width * 0.34, height * 0.38);
+    fracture.strokePath();
+    fracture.lineStyle(Math.max(1, Math.round(width * 0.008)), 0x450a0a, 0.52);
+    fracture.beginPath();
+    fracture.moveTo(-width * 0.02, -height * 0.04);
+    fracture.lineTo(width * 0.14, -height * 0.18);
+    fracture.moveTo(width * 0.06, height * 0.08);
+    fracture.lineTo(-width * 0.12, height * 0.22);
+    fracture.strokePath();
+
+    const shards = this.createDeathOverlayShards(width, height);
+    overlay.add([flash, fracture, ...shards]);
+    overlay.setData('deathFlash', flash);
+    overlay.setData('deathFracture', fracture);
+    overlay.setData('deathShards', shards);
+  }
+
+  createDeathOverlayShards(width, height) {
+    return Array.from({ length: DEATH_OVERLAY_SHARD_COUNT }, (_, shardIndex) => {
+      const direction = shardIndex % 2 === 0 ? -1 : 1;
+      const x = direction * width * (0.08 + shardIndex * 0.035);
+      const y = -height * 0.08 + shardIndex * height * 0.045;
+      const size = Math.max(2, Math.round(Math.min(width, height) * (0.025 + shardIndex * 0.002)));
+      const shard = this.add.triangle(x, y, 0, -size, size * 0.8, size * 0.6, -size * 0.8, size * 0.6, 0xfecaca, 0)
+        .setStrokeStyle(1, 0x7f1d1d, 0);
+      shard.setData('deathShardDriftX', direction * (DEATH_OVERLAY_SHARD_DRIFT_PX + shardIndex * 2));
+      shard.setData('deathShardDriftY', -DEATH_OVERLAY_SHARD_DRIFT_PX * (0.35 + shardIndex * 0.08));
+      return shard;
+    });
+  }
+
   playCombatDeathOverlays(overlays = []) {
     if (!Array.isArray(overlays) || overlays.length === 0) return Promise.resolve();
-    return Promise.all(overlays.map((overlay) => {
-      if (!overlay?.active) return Promise.resolve();
-      return this.delay(DEATH_OVERLAY_HOLD_MS)
-        .then(() => this.tweenToPromise({
+    return Promise.all(overlays.map((overlay) => this.playCombatDeathOverlay(overlay)));
+  }
+
+  playCombatDeathOverlay(overlay) {
+    if (!overlay?.active) return Promise.resolve();
+    const baseX = overlay.x;
+    const flash = overlay.getData('deathFlash');
+    const fracture = overlay.getData('deathFracture');
+    const shards = overlay.getData('deathShards') ?? [];
+    const flashTween = flash?.active
+      ? this.tweenToPromise({ targets: flash, alpha: 0.46, duration: DEATH_OVERLAY_FLASH_MS / 2, yoyo: true, ease: 'Quad.easeOut' })
+      : Promise.resolve();
+    const fractureTween = fracture?.active
+      ? this.tweenToPromise({ targets: fracture, alpha: 1, duration: DEATH_OVERLAY_SHAKE_MS, ease: 'Quad.easeOut' })
+      : Promise.resolve();
+    const shakeTween = this.tweenToPromise({
+      targets: overlay,
+      x: baseX + DEATH_OVERLAY_SHAKE_OFFSET_PX,
+      duration: Math.round(DEATH_OVERLAY_SHAKE_MS / 3),
+      yoyo: true,
+      repeat: 1,
+      ease: 'Linear',
+    }).then(() => {
+      if (overlay?.active) overlay.x = baseX;
+    });
+
+    return Promise.all([flashTween, fractureTween, shakeTween])
+      .then(() => Promise.all([
+        this.tweenToPromise({
           targets: overlay,
           alpha: 0,
           scaleX: DEATH_OVERLAY_FINAL_SCALE,
           scaleY: DEATH_OVERLAY_FINAL_SCALE,
           y: overlay.y - DEATH_OVERLAY_DRIFT_PX,
-          duration: DEATH_OVERLAY_FADE_MS,
+          duration: DEATH_OVERLAY_COLLAPSE_MS,
           ease: 'Quad.easeIn',
-        }))
-        .finally(() => overlay.destroy());
-    }));
+        }),
+        ...shards.filter((shard) => shard?.active).map((shard) => this.tweenToPromise({
+          targets: shard,
+          alpha: 0.72,
+          x: shard.x + (shard.getData('deathShardDriftX') ?? 0),
+          y: shard.y + (shard.getData('deathShardDriftY') ?? 0),
+          duration: Math.round(DEATH_OVERLAY_COLLAPSE_MS * 0.45),
+          yoyo: true,
+          ease: 'Quad.easeOut',
+        })),
+      ]))
+      .finally(() => overlay.destroy());
   }
 
   getHeroHpFromSnapshot(snapshot, side) {
