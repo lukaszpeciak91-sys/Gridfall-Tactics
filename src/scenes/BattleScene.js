@@ -2024,7 +2024,23 @@ export default class BattleScene extends Phaser.Scene {
 
   exitBattleToFactionSelect() {
     if (!this.prepareUtilityMenuNavigation({ includeBattleResultModal: true })) return;
+
+    if (this.isCampaignBattle()) {
+      this.exitBattleToCampaignEnemySelect();
+      return;
+    }
+
     this.scene.start('FactionSelectScene');
+  }
+
+  exitBattleToCampaignEnemySelect() {
+    const campaign = loadCampaign();
+    if (isValidCampaignState(campaign) && campaign.status === 'active') {
+      this.scene.start('CampaignEnemySelectScene', { campaign });
+      return;
+    }
+
+    this.scene.start('CampaignEnemySelectScene');
   }
 
 

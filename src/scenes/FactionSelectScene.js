@@ -15,8 +15,8 @@ import {
 } from '../rendering/backgroundArt.js';
 import { createNewCampaign, saveCampaign } from '../systems/campaignState.js';
 import { drawFactionCardVisual, preloadFactionPreviewArt } from '../ui/factionCards.js';
+import { createTapVsDragInteraction } from '../ui/tapVsDragInteraction.js';
 
-const CARD_SCROLL_DRAG_THRESHOLD = 8;
 const MIN_FACTION_LIST_TOP = 106;
 const HEADER_TO_FACTION_LIST_GAP = 24;
 export default class FactionSelectScene extends Phaser.Scene {
@@ -27,6 +27,7 @@ export default class FactionSelectScene extends Phaser.Scene {
     this.scrollMask = null;
     this.scrollState = null;
     this.isStartingBattle = false;
+    this.tapVsDrag = createTapVsDragInteraction();
   }
 
   preload() {
@@ -126,7 +127,6 @@ export default class FactionSelectScene extends Phaser.Scene {
       pointerId: null,
       pointerStartY: 0,
       contentStartY: viewportTop,
-      lastDragDistance: 0,
     };
 
     this.input.on('wheel', this.onScrollWheel, this);
@@ -150,10 +150,17 @@ export default class FactionSelectScene extends Phaser.Scene {
       .zone(0, y + cardHeight / 2, cardWidth, cardHeight)
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
-    button.on('pointerdown', () => pressOverlay.setVisible(true));
+    button.on('pointerdown', (pointer) => {
+      this.tapVsDrag.begin(pointer, this.scrollState?.content?.y ?? 0);
+      pressOverlay.setVisible(true);
+    });
     button.on('pointerout', () => pressOverlay.setVisible(false));
-    button.on('pointerup', () => pressOverlay.setVisible(false));
-    button.on('pointerup', () => this.selectFaction(factionKey));
+    button.on('pointerup', (pointer) => {
+      pressOverlay.setVisible(false);
+      if (this.tapVsDrag.end(pointer, this.scrollState?.content?.y ?? 0)) {
+        this.selectFaction(factionKey);
+      }
+    });
     content.add(button);
     this.uiElements.push(button);
     this.interactiveElements.push(button);
@@ -169,16 +176,11 @@ export default class FactionSelectScene extends Phaser.Scene {
   }
 
   startCampaign(factionKey) {
-    if (this.wasScrollDragging()) return;
     if (!getFactionKeys().includes(factionKey)) return;
 
     const campaign = createNewCampaign(factionKey);
     const savedCampaign = saveCampaign(campaign) ?? campaign;
     this.scene.start('CampaignEnemySelectScene', { campaign: savedCampaign });
-  }
-
-  wasScrollDragging() {
-    return Math.abs(this.scrollState?.lastDragDistance ?? 0) > CARD_SCROLL_DRAG_THRESHOLD;
   }
 
   onScrollWheel(pointer, gameObjects, deltaX, deltaY) {
@@ -199,7 +201,6 @@ export default class FactionSelectScene extends Phaser.Scene {
     state.pointerId = pointer.id;
     state.pointerStartY = pointer.y;
     state.contentStartY = state.content.y;
-    state.lastDragDistance = 0;
   }
 
   onScrollPointerMove(pointer) {
@@ -208,8 +209,9 @@ export default class FactionSelectScene extends Phaser.Scene {
       return;
     }
 
-    state.lastDragDistance = pointer.y - state.pointerStartY;
-    this.setFactionScrollY(state.contentStartY + state.lastDragDistance);
+    const dragDistance = pointer.y - state.pointerStartY;
+    this.setFactionScrollY(state.contentStartY + dragDistance);
+    this.tapVsDrag.update(pointer, state.content.y);
   }
 
   onScrollPointerUp(pointer) {
@@ -219,11 +221,6 @@ export default class FactionSelectScene extends Phaser.Scene {
     }
 
     state.pointerId = null;
-    globalThis.setTimeout(() => {
-      if (this.scrollState) {
-        this.scrollState.lastDragDistance = 0;
-      }
-    }, 0);
   }
 
   setFactionScrollY(nextY) {
@@ -286,10 +283,6 @@ export default class FactionSelectScene extends Phaser.Scene {
   }
 
   startBattle(factionKey) {
-    if (this.wasScrollDragging()) {
-      return;
-    }
-
     if (this.isStartingBattle) {
       return;
     }
@@ -395,6 +388,7 @@ export default class FactionSelectScene extends Phaser.Scene {
     this.input?.off('pointermove', this.onScrollPointerMove, this);
     this.input?.off('pointerup', this.onScrollPointerUp, this);
 
+    this.tapVsDrag?.cancel?.();
     this.scrollMask?.destroy?.();
     this.scrollMask = null;
     this.scrollState = null;
