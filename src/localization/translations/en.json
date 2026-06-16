@@ -545,7 +545,15 @@
     "gameMenu": {
       "continue": "CONTINUE",
       "newGame": "NEW GAME",
-      "arena": "ARENA"
+      "arena": "ARENA",
+      "newGameConfirmTitle": "START NEW GAME?",
+      "newGameConfirmBody": "This will overwrite your current campaign progress.",
+      "confirmNewGame": "NEW GAME"
+    },
+    "campaignEnemySelect": {
+      "title": "SELECT ENEMY",
+      "battleComingSoon": "Battle routing coming soon.",
+      "invalidEnemy": "Enemy unavailable."
     }
   },
   "diagnostics": {

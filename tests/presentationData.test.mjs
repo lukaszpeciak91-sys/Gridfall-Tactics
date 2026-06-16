@@ -191,7 +191,7 @@ test('Empire of the Golden Sun render-fit diagnostic stays inside previous prese
 
 
 test('faction select metadata covers every faction with two updated chip tags', () => {
-  const source = fs.readFileSync('src/scenes/FactionSelectScene.js', 'utf8');
+  const source = fs.readFileSync('src/ui/factionCards.js', 'utf8');
   const detailsStart = source.indexOf('const FACTION_CARD_DETAILS = {');
   const detailsEnd = source.indexOf('const CARD_SCROLL_DRAG_THRESHOLD');
   const detailsSource = source.slice(detailsStart, detailsEnd);

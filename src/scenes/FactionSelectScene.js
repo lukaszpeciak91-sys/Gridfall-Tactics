@@ -1,10 +1,9 @@
 import Phaser from 'phaser';
-import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
-import { getFactionPresentationName } from '../data/presentation/factionPresentation.js';
+import { getFactionKeys } from '../data/factions/index.js';
 import { createBuildMarker } from '../ui/buildMarker.js';
 import { createMenuScreenHeader } from '../ui/screenHeader.js';
 import { createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
-import { getActiveLocale, translateActive } from '../localization/localeService.js';
+import { translateActive } from '../localization/localeService.js';
 import { applyAudioSettings, loadSettings } from '../systems/settingsState.js';
 import {
   MENU_BACKGROUND_FALLBACK_COLOR,
@@ -13,85 +12,13 @@ import {
   createMenuArenaLightSweep,
   getMenuBackgroundAsset,
   preloadMenuBackgroundArt,
-  resolvePublicAssetPath,
 } from '../rendering/backgroundArt.js';
-
-const FACTION_CARD_DETAILS = {
-  Aggro: {
-    description: 'Fast pressure.',
-    tags: ['Rush', 'Burst'],
-    accentColor: 0xf97316,
-    fallbackTopColor: 0x7c2d12,
-    fallbackBottomColor: 0x0f172a,
-  },
-  Tank: {
-    description: 'Armor and sustain.',
-    tags: ['Armor', 'Sustain'],
-    accentColor: 0x38bdf8,
-    fallbackTopColor: 0x164e63,
-    fallbackBottomColor: 0x0f172a,
-  },
-  Control: {
-    description: 'Disrupt and reposition.',
-    tags: ['Disrupt', 'Move'],
-    accentColor: 0xa78bfa,
-    fallbackTopColor: 0x4c1d95,
-    fallbackBottomColor: 0x0f172a,
-  },
-  Swarm: {
-    description: 'Board swarm tactics.',
-    tags: ['Swarm', 'Growth'],
-    accentColor: 0x84cc16,
-    fallbackTopColor: 0x365314,
-    fallbackBottomColor: 0x0f172a,
-  },
-  Wardens: {
-    description: 'Defensive friction and zone control.',
-    tags: ['Support', 'Formation'],
-    accentColor: 0xfacc15,
-    fallbackTopColor: 0x713f12,
-    fallbackBottomColor: 0x0f172a,
-  },
-  'Attrition Swarm': {
-    description: 'Death value and recursion.',
-    tags: ['Attrition', 'Return'],
-    accentColor: 0xec4899,
-    fallbackTopColor: 0x4c0519,
-    fallbackBottomColor: 0x0f172a,
-  },
-};
+import { createNewCampaign, saveCampaign } from '../systems/campaignState.js';
+import { drawFactionCardVisual, preloadFactionPreviewArt } from '../ui/factionCards.js';
 
 const CARD_SCROLL_DRAG_THRESHOLD = 8;
 const MIN_FACTION_LIST_TOP = 106;
 const HEADER_TO_FACTION_LIST_GAP = 24;
-const POSTER_TITLE_SCRIM_HEIGHT = 96;
-const POSTER_TITLE_BOTTOM_PADDING = 18;
-const POSTER_TITLE_LEFT_PADDING = 18;
-const POSTER_TITLE_RIGHT_PADDING = 16;
-const POSTER_TITLE_WIDTH_RATIO = 0.92;
-const POSTER_TITLE_MAX_FONT_SIZE = 29;
-const POSTER_TITLE_WRAP_FONT_SIZE = 24;
-const POSTER_TITLE_MIN_SINGLE_LINE_FONT_SIZE = 20;
-
-function getFactionAssetSlug(factionKey) {
-  const faction = getFactionByKey(factionKey);
-  return (faction?.id ?? factionKey).toLowerCase();
-}
-
-function getFactionPreviewPath(factionKey) {
-  return resolvePublicAssetPath(`assets/factions/${getFactionAssetSlug(factionKey)}/preview.webp`);
-}
-
-function getFactionPreviewTextureKey(factionKey) {
-  return `faction-preview-${getFactionAssetSlug(factionKey)}`;
-}
-
-function preloadFactionPreviewArt(scene) {
-  getFactionKeys().forEach((factionKey) => {
-    scene.load.image(getFactionPreviewTextureKey(factionKey), getFactionPreviewPath(factionKey));
-  });
-}
-
 export default class FactionSelectScene extends Phaser.Scene {
   constructor() {
     super('FactionSelectScene');
@@ -107,7 +34,8 @@ export default class FactionSelectScene extends Phaser.Scene {
     preloadFactionPreviewArt(this);
   }
 
-  init() {
+  init(data = {}) {
+    this.mode = data?.mode === 'campaign' ? 'campaign' : 'arena';
     this.isStartingBattle = false;
     this.cleanupScene();
   }
@@ -208,77 +136,12 @@ export default class FactionSelectScene extends Phaser.Scene {
   }
 
   drawFactionCard(content, factionKey, { y, cardWidth, cardHeight }) {
-    const faction = getFactionByKey(factionKey);
-    const details = FACTION_CARD_DETAILS[factionKey] ?? FACTION_CARD_DETAILS.Aggro;
-    const displayName = getFactionPresentationName(faction?.id, getActiveLocale(), faction?.name ?? factionKey);
-    const x = -cardWidth / 2;
-    const posterInset = 4;
-    const posterWidth = cardWidth - posterInset * 2;
-    const posterHeight = cardHeight - posterInset * 2;
-    const posterX = x + posterInset;
-    const posterY = y + posterInset;
-
-    const shadow = this.add.graphics();
-    shadow.fillStyle(0x020617, 0.42);
-    shadow.fillRoundedRect(x + 2, y + 5, cardWidth, cardHeight, 20);
-    content.add(shadow);
-    this.uiElements.push(shadow);
-
-    const card = this.add.graphics();
-    card.fillStyle(0x020617, 0.94);
-    card.fillRoundedRect(x, y, cardWidth, cardHeight, 20);
-    card.lineStyle(1, details.accentColor, 0.72);
-    card.strokeRoundedRect(x + 1, y + 1, cardWidth - 2, cardHeight - 2, 19);
-    content.add(card);
-    this.uiElements.push(card);
-
-    this.drawFactionPreview(content, factionKey, details, {
-      x: posterX,
-      y: posterY,
-      width: posterWidth,
-      height: posterHeight,
-    });
-
-    const titleScrimHeight = Math.min(POSTER_TITLE_SCRIM_HEIGHT, posterHeight - 24);
-    const titleScrimY = posterY + posterHeight - titleScrimHeight;
-    const titleScrim = this.add.graphics();
-    titleScrim.fillGradientStyle(0x020617, 0x020617, 0x020617, 0x020617, 0, 0, 0.78, 0.58);
-    titleScrim.fillRect(posterX, titleScrimY, posterWidth, titleScrimHeight);
-    content.add(titleScrim);
-    this.uiElements.push(titleScrim);
-
-    this.drawFactionTags(content, details.tags, {
-      rightX: posterX + posterWidth - 12,
-      y: posterY + 12,
-      accentColor: details.accentColor,
-    });
-
-    const titleMaxWidth = Math.min(
-      posterWidth - POSTER_TITLE_LEFT_PADDING - POSTER_TITLE_RIGHT_PADDING,
-      Math.max(190, posterWidth * POSTER_TITLE_WIDTH_RATIO),
-    );
-    const name = this.add
-      .text(
-        posterX + POSTER_TITLE_LEFT_PADDING,
-        posterY + posterHeight - POSTER_TITLE_BOTTOM_PADDING,
-        displayName,
-        {
-          fontFamily: 'Arial, sans-serif',
-          fontSize: `${POSTER_TITLE_MAX_FONT_SIZE}px`,
-          color: '#f8fafc',
-          fontStyle: 'bold',
-          stroke: '#020617',
-          strokeThickness: 4,
-        },
-      )
-      .setOrigin(0, 1);
-    this.fitFactionTitleText(name, titleMaxWidth);
-    content.add(name);
-    this.uiElements.push(name);
+    const { items } = drawFactionCardVisual(this, content, factionKey, { y, cardWidth, cardHeight });
+    this.uiElements.push(...items);
 
     const pressOverlay = this.add.graphics();
     pressOverlay.fillStyle(0xffffff, 0.08);
-    pressOverlay.fillRoundedRect(x, y, cardWidth, cardHeight, 20);
+    pressOverlay.fillRoundedRect(-cardWidth / 2, y, cardWidth, cardHeight, 20);
     pressOverlay.setVisible(false);
     content.add(pressOverlay);
     this.uiElements.push(pressOverlay);
@@ -290,100 +153,28 @@ export default class FactionSelectScene extends Phaser.Scene {
     button.on('pointerdown', () => pressOverlay.setVisible(true));
     button.on('pointerout', () => pressOverlay.setVisible(false));
     button.on('pointerup', () => pressOverlay.setVisible(false));
-    button.on('pointerup', () => this.startBattle(factionKey));
+    button.on('pointerup', () => this.selectFaction(factionKey));
     content.add(button);
     this.uiElements.push(button);
     this.interactiveElements.push(button);
   }
 
-
-  fitFactionTitleText(title, maxWidth) {
-    title.setWordWrapWidth(null);
-    title.setMaxLines(1);
-
-    for (let fontSize = POSTER_TITLE_MAX_FONT_SIZE; fontSize >= POSTER_TITLE_MIN_SINGLE_LINE_FONT_SIZE; fontSize -= 1) {
-      title.setFontSize(`${fontSize}px`);
-      if (title.width <= maxWidth) {
-        return title;
-      }
+  selectFaction(factionKey) {
+    if (this.mode === 'campaign') {
+      this.startCampaign(factionKey);
+      return;
     }
 
-    title.setFontSize(`${POSTER_TITLE_WRAP_FONT_SIZE}px`);
-    title.setWordWrapWidth(maxWidth, true);
-    title.setMaxLines(2);
-    return title;
+    this.startBattle(factionKey);
   }
 
-  drawFactionPreview(content, factionKey, details, { x, y, width, height }) {
-    const textureKey = getFactionPreviewTextureKey(factionKey);
-    if (this.textures.exists(textureKey)) {
-      const texture = this.textures.get(textureKey);
-      const source = texture.getSourceImage();
-      const sourceWidth = source?.width ?? width;
-      const sourceHeight = source?.height ?? height;
-      const targetRatio = width / height;
-      const sourceRatio = sourceWidth / sourceHeight;
-      const cropWidth = sourceRatio > targetRatio ? sourceHeight * targetRatio : sourceWidth;
-      const cropHeight = sourceRatio > targetRatio ? sourceHeight : sourceWidth / targetRatio;
-      const image = this.add.image(x + width / 2, y + height / 2, textureKey)
-        .setCrop((sourceWidth - cropWidth) / 2, (sourceHeight - cropHeight) / 2, cropWidth, cropHeight)
-        .setDisplaySize(width, height);
-      content.add(image);
-      this.uiElements.push(image);
+  startCampaign(factionKey) {
+    if (this.wasScrollDragging()) return;
+    if (!getFactionKeys().includes(factionKey)) return;
 
-      const frame = this.add.graphics();
-      frame.lineStyle(1, details.accentColor, 0.48);
-      frame.strokeRoundedRect(x + 0.5, y + 0.5, width - 1, height - 1, 14);
-      content.add(frame);
-      this.uiElements.push(frame);
-    } else {
-      const fallback = this.add.graphics();
-      fallback.fillGradientStyle(
-        details.fallbackTopColor,
-        details.fallbackTopColor,
-        details.fallbackBottomColor,
-        details.fallbackBottomColor,
-        1,
-      );
-      fallback.fillRoundedRect(x, y, width, height, 16);
-      fallback.lineStyle(1, details.accentColor, 0.52);
-      fallback.strokeRoundedRect(x + 1, y + 1, width - 2, height - 2, 15);
-      content.add(fallback);
-      this.uiElements.push(fallback);
-    }
-  }
-
-  drawFactionTags(content, tags, { rightX, y, accentColor }) {
-    const chipGap = 6;
-    const chipHeight = 24;
-    const chips = tags.map((tag) => {
-      const text = this.add
-        .text(0, y + 5, translateActive(`ui.factionSelect.tags.${tag}`, tag), {
-          fontFamily: 'Arial, sans-serif',
-          fontSize: '11px',
-          color: '#f8fafc',
-          stroke: '#020617',
-          strokeThickness: 3,
-        })
-        .setOrigin(0, 0);
-
-      return { text, width: Math.ceil(text.width + 18) };
-    });
-    const totalWidth = chips.reduce((sum, chip) => sum + chip.width, 0) + Math.max(0, chips.length - 1) * chipGap;
-    let currentX = rightX - totalWidth;
-
-    chips.forEach(({ text, width: pillWidth }) => {
-      const pill = this.add.graphics();
-      pill.fillStyle(0x020617, 0.68);
-      pill.fillRoundedRect(currentX, y, pillWidth, chipHeight, 12);
-      pill.lineStyle(1.5, accentColor, 0.9);
-      pill.strokeRoundedRect(currentX + 0.75, y + 0.75, pillWidth - 1.5, chipHeight - 1.5, 11);
-      text.setPosition(currentX + 9, y + 5);
-      content.add(pill);
-      content.add(text);
-      this.uiElements.push(pill, text);
-      currentX += pillWidth + chipGap;
-    });
+    const campaign = createNewCampaign(factionKey);
+    const savedCampaign = saveCampaign(campaign) ?? campaign;
+    this.scene.start('CampaignEnemySelectScene', { campaign: savedCampaign });
   }
 
   wasScrollDragging() {

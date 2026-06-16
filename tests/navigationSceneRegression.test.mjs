@@ -7,7 +7,7 @@ const readScene = (path) => fs.readFileSync(path, 'utf8');
 test('faction selection starts BattleScene without stopping itself or clearing global input listeners', () => {
   const source = readScene('src/scenes/FactionSelectScene.js');
 
-  assert.match(source, /button\.on\('pointerup', \(\) => this\.startBattle\(factionKey\)\)/);
+  assert.match(source, /button\.on\('pointerup', \(\) => this\.selectFaction\(factionKey\)\)/);
   assert.match(source, /this\.scene\.start\('BattleScene', \{ factionKey \}\)/);
   assert.doesNotMatch(source, /this\.scene\.stop\('FactionSelectScene'\)/);
   assert.doesNotMatch(source, /this\.input\.removeAllListeners\(\)/);
@@ -352,7 +352,7 @@ test('GameMenuScene provides campaign choices and preserves Arena routing', () =
   assert.match(source, /translateActive\('ui\.gameMenu\.continue', 'CONTINUE'\)/);
   assert.match(source, /translateActive\('ui\.gameMenu\.newGame', 'NEW GAME'\)/);
   assert.match(source, /translateActive\('ui\.gameMenu\.arena', 'ARENA'\), \(\) => \{[\s\S]*this\.scene\.start\('FactionSelectScene'\)/);
-  assert.match(source, /import \{ hasActiveCampaign \} from '\.\.\/systems\/campaignState\.js';/);
+  assert.match(source, /import \{ clearCampaign, hasActiveCampaign \} from '\.\.\/systems\/campaignState\.js';/);
   assert.match(source, /if \(hasActiveCampaign\(\)\) \{[\s\S]*resetImageButtonState\(this\.continueButton, \{ interactive: true \}\)/);
   assert.match(source, /resetImageButtonState\(this\.continueButton, \{ interactive: false \}\)/);
   assert.doesNotMatch(source, /this\.scene\.start\('BattleScene'/);
@@ -377,6 +377,12 @@ test('Game menu localization resolves exact English and Polish labels', () => {
   assert.equal(pl.ui.mainMenu.game, 'GRA');
   assert.equal(en.ui.mainMenu.arena, 'ARENA');
   assert.equal(pl.ui.mainMenu.arena, 'ARENA');
-  assert.deepEqual(en.ui.gameMenu, { continue: 'CONTINUE', newGame: 'NEW GAME', arena: 'ARENA' });
-  assert.deepEqual(pl.ui.gameMenu, { continue: 'KONTYNUUJ', newGame: 'NOWA GRA', arena: 'ARENA' });
+  assert.equal(en.ui.gameMenu.continue, 'CONTINUE');
+  assert.equal(en.ui.gameMenu.newGame, 'NEW GAME');
+  assert.equal(en.ui.gameMenu.arena, 'ARENA');
+  assert.equal(en.ui.gameMenu.confirmNewGame, 'NEW GAME');
+  assert.equal(pl.ui.gameMenu.continue, 'KONTYNUUJ');
+  assert.equal(pl.ui.gameMenu.newGame, 'NOWA GRA');
+  assert.equal(pl.ui.gameMenu.arena, 'ARENA');
+  assert.equal(pl.ui.gameMenu.confirmNewGame, 'NOWA GRA');
 });

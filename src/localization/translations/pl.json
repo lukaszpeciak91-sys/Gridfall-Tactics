@@ -545,7 +545,15 @@
     "gameMenu": {
       "continue": "KONTYNUUJ",
       "newGame": "NOWA GRA",
-      "arena": "ARENA"
+      "arena": "ARENA",
+      "newGameConfirmTitle": "ROZPOCZĄĆ NOWĄ GRĘ?",
+      "newGameConfirmBody": "To nadpisze obecny postęp kampanii.",
+      "confirmNewGame": "NOWA GRA"
+    },
+    "campaignEnemySelect": {
+      "title": "WYBIERZ WROGA",
+      "battleComingSoon": "Trasa walki zostanie dodana później.",
+      "invalidEnemy": "Wróg niedostępny."
     }
   }
 }

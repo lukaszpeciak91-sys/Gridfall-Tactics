@@ -17,7 +17,7 @@ import {
   resetImageButtonState,
 } from '../ui/imageButton.js';
 import { translateActive } from '../localization/localeService.js';
-import { hasActiveCampaign } from '../systems/campaignState.js';
+import { clearCampaign, hasActiveCampaign } from '../systems/campaignState.js';
 import {
   GRIDFALL_LOGO_ASSET,
   MAIN_MENU_FIRST_BUTTON_Y_RATIO,
@@ -39,6 +39,7 @@ export default class GameMenuScene extends Phaser.Scene {
     this.menuButtonViews = [];
     this.menuButtons = [];
     this.continueButton = null;
+    this.confirmNewGameModal = null;
   }
 
   init() {
@@ -187,10 +188,50 @@ export default class GameMenuScene extends Phaser.Scene {
 
   continueCampaign() {
     if (!hasActiveCampaign()) return;
+    this.scene.start('CampaignEnemySelectScene');
   }
 
   startNewCampaignFlow() {
-    // Campaign creation and enemy selection are intentionally implemented in later campaign steps.
+    if (hasActiveCampaign()) {
+      this.showNewGameConfirmation();
+      return;
+    }
+
+    this.openCampaignFactionSelect();
+  }
+
+  openCampaignFactionSelect() {
+    this.scene.start('FactionSelectScene', { mode: 'campaign' });
+  }
+
+  showNewGameConfirmation() {
+    if (this.confirmNewGameModal) return;
+
+    const { width, height } = this.scale;
+    const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x020617, 0.72).setDepth(40).setInteractive();
+    const panelWidth = Math.min(width * 0.86, 430);
+    const panelHeight = 250;
+    const panel = this.add.graphics().setDepth(41);
+    panel.fillStyle(0x0f172a, 0.96);
+    panel.fillRoundedRect(width / 2 - panelWidth / 2, height / 2 - panelHeight / 2, panelWidth, panelHeight, 22);
+    panel.lineStyle(1.5, 0xfde68a, 0.7);
+    panel.strokeRoundedRect(width / 2 - panelWidth / 2, height / 2 - panelHeight / 2, panelWidth, panelHeight, 22);
+    const title = this.add.text(width / 2, height / 2 - 78, translateActive('ui.gameMenu.newGameConfirmTitle', 'START NEW GAME?'), { fontFamily: PREMIUM_BROADCAST_FONT_STACK, fontSize: '22px', color: '#f8fafc', fontStyle: '700', align: 'center' }).setOrigin(0.5).setDepth(42);
+    const message = this.add.text(width / 2, height / 2 - 26, translateActive('ui.gameMenu.newGameConfirmBody', 'This will overwrite your current campaign progress.'), { fontFamily: 'Arial, sans-serif', fontSize: '15px', color: '#cbd5e1', align: 'center', wordWrap: { width: panelWidth - 42 } }).setOrigin(0.5).setDepth(42);
+    const cancel = this.createMenuButton(width / 2 - panelWidth * 0.24, height / 2 + 72, panelWidth * 0.38, translateActive('ui.common.cancel', 'CANCEL'), () => this.closeNewGameConfirmation());
+    const confirm = this.createMenuButton(width / 2 + panelWidth * 0.24, height / 2 + 72, panelWidth * 0.38, translateActive('ui.gameMenu.confirmNewGame', 'NEW GAME'), () => {
+      clearCampaign();
+      this.closeNewGameConfirmation();
+      this.openCampaignFactionSelect();
+    });
+    cancel.items.forEach((item) => item.setDepth?.(42));
+    confirm.items.forEach((item) => item.setDepth?.(42));
+    this.confirmNewGameModal = { items: [overlay, panel, title, message, ...cancel.items, ...confirm.items], buttons: [cancel, confirm] };
+  }
+
+  closeNewGameConfirmation() {
+    this.confirmNewGameModal?.items?.forEach((item) => { item.removeAllListeners?.(); item.destroy?.(); });
+    this.confirmNewGameModal = null;
   }
 
   drawNavigationControls() {
@@ -240,12 +281,14 @@ export default class GameMenuScene extends Phaser.Scene {
   }
 
   resetGameMenuDisplayList() {
+    this.closeNewGameConfirmation?.();
     this.tweens?.killAll?.();
     this.children?.removeAll?.(true);
     this.title = null;
     this.menuButtonViews = [];
     this.menuButtons = [];
     this.continueButton = null;
+    this.confirmNewGameModal = null;
   }
 
   createMenuButton(x, y, width, label, onPointerUp) {
