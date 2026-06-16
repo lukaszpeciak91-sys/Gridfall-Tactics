@@ -615,7 +615,7 @@ function addRepositionCandidates(actions, state, owner, telemetry = null) {
   }
 }
 
-function buildActionCandidates(state, owner, hand, telemetry = null) {
+export function buildActionCandidates(state, owner, hand, telemetry = null) {
   const actions = [];
 
   addRepositionCandidates(actions, state, owner, telemetry);
@@ -687,7 +687,7 @@ function buildActionCandidates(state, owner, hand, telemetry = null) {
   return actions;
 }
 
-function scoreAction(state, owner, action) {
+export function scoreAction(state, owner, action) {
   const nextState = cloneState(state);
   const currentOpponentHp = state?.[getOpponentHpKey(owner)] ?? 0;
   const currentOwnHp = state?.[getHeroHpKey(owner)] ?? 0;
