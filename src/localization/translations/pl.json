@@ -270,7 +270,9 @@
       "none": "Brak",
       "empty": "Pusto",
       "unknownCard": "Nieznana karta",
-      "unit": "Jednostka"
+      "unit": "Jednostka",
+      "continue": "KONTYNUUJ",
+      "mainMenu": "MENU GŁÓWNE"
     },
     "start": {
       "title": "GRIDFALL TACTICS",
@@ -554,6 +556,10 @@
       "title": "WYBIERZ WROGA",
       "battleComingSoon": "Trasa walki zostanie dodana później.",
       "invalidEnemy": "Wróg niedostępny."
+    },
+    "campaignResult": {
+      "won": "KAMPANIA WYGRANA",
+      "lost": "KAMPANIA PRZEGRANA"
     }
   }
 }

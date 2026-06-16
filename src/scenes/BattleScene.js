@@ -16,6 +16,7 @@ import { formatDeckSummaryEntry } from '../rendering/cardRenderModes.js';
 import { CARD_COLORS, createCardArtwork, createCardPreviewView, getBaseCardSurfaceTheme, getDefaultCardAccentColor, resolveCardSurfaceTheme, createStatBadges } from '../rendering/cardVisualLayout.js';
 import { getCardDisplayName, getCardTextShort } from '../localization/cardDisplay.js';
 import { getActiveLocale, translateActive } from '../localization/localeService.js';
+import { applyCampaignBattleResult, clearCampaign, isValidCampaignState, loadCampaign, saveCampaign } from '../systems/campaignState.js';
 import { getCardBoardArtPositionY } from '../data/presentation/cardArtCropOverrides.js';
 
 const HAND_BACK_CARD_ASSET = Object.freeze({
@@ -317,6 +318,20 @@ export default class BattleScene extends Phaser.Scene {
     this.resetRuntimeState();
   }
 
+  normalizeBattleContext(context = {}) {
+    const mode = context?.mode === 'campaign' ? 'campaign' : 'arena';
+    if (mode !== 'campaign') return { mode: 'arena' };
+    return {
+      mode: 'campaign',
+      campaignRunId: typeof context.campaignRunId === 'string' ? context.campaignRunId : null,
+      campaignEnemyFactionKey: typeof context.campaignEnemyFactionKey === 'string' ? context.campaignEnemyFactionKey : null,
+    };
+  }
+
+  isCampaignBattle() {
+    return this.battleContext?.mode === 'campaign';
+  }
+
   resetRuntimeState() {
     this.selectedCardId = null;
     this.cardViews = [];
@@ -367,6 +382,7 @@ export default class BattleScene extends Phaser.Scene {
     this.playerActionSlotBadge = null;
     this.lastCombatEvents = [];
     this.enemyFactionKey = null;
+    this.battleContext = { mode: 'arena' };
     this.backgroundArtAsset = null;
     this.backgroundLayer = null;
     this.baseFrameViews = { player: null, enemy: null };
@@ -437,6 +453,7 @@ export default class BattleScene extends Phaser.Scene {
     this.cleanupSceneObjects();
 
     const { width, height } = this.scale;
+    this.battleContext = this.normalizeBattleContext(data?.battleContext);
     const playerFactionKey = typeof data?.factionKey === 'string' && data.factionKey ? data.factionKey : 'Aggro';
     this.factionKey = playerFactionKey;
     const requestedEnemyFactionKey = typeof data?.enemyFactionKey === 'string' && data.enemyFactionKey ? data.enemyFactionKey : null;
@@ -1103,24 +1120,36 @@ export default class BattleScene extends Phaser.Scene {
       this.layout.playerHero.y - buttonHeight * 0.5 - Math.max(6, height * 0.01),
     );
     const gap = Math.max(22, Math.min(42, width * 0.065));
-    const exitButton = this.createResultModalButton(
-      centerX - buttonWidth / 2 - gap / 2,
-      buttonY,
-      buttonWidth,
-      buttonHeight,
-      translateActive('ui.common.exit', 'EXIT'),
-      () => this.exitBattleToFactionSelect(),
-      presentation,
-    );
-    const retryButton = this.createResultModalButton(
-      centerX + buttonWidth / 2 + gap / 2,
-      buttonY,
-      buttonWidth,
-      buttonHeight,
-      translateActive('ui.common.retry', 'RETRY'),
-      () => this.retryBattle(),
-      presentation,
-    );
+    const modalButtons = this.isCampaignBattle()
+      ? [this.createResultModalButton(
+        centerX,
+        buttonY,
+        buttonWidth,
+        buttonHeight,
+        translateActive('ui.common.continue', 'CONTINUE'),
+        () => this.continueCampaignBattleResult(),
+        presentation,
+      )]
+      : [
+        this.createResultModalButton(
+          centerX - buttonWidth / 2 - gap / 2,
+          buttonY,
+          buttonWidth,
+          buttonHeight,
+          translateActive('ui.common.exit', 'EXIT'),
+          () => this.exitBattleToFactionSelect(),
+          presentation,
+        ),
+        this.createResultModalButton(
+          centerX + buttonWidth / 2 + gap / 2,
+          buttonY,
+          buttonWidth,
+          buttonHeight,
+          translateActive('ui.common.retry', 'RETRY'),
+          () => this.retryBattle(),
+          presentation,
+        ),
+      ];
 
     title.setScale(presentation.titleStartScale).setAlpha(0);
     titleGlow.setScale(presentation.titleStartScale).setAlpha(0);
@@ -1163,7 +1192,7 @@ export default class BattleScene extends Phaser.Scene {
       dividerCore,
       dividerGlow,
       celebration,
-      buttons: [exitButton, retryButton],
+      buttons: modalButtons,
     };
   }
 
@@ -1998,6 +2027,60 @@ export default class BattleScene extends Phaser.Scene {
     this.scene.start('FactionSelectScene');
   }
 
+
+  continueCampaignBattleResult() {
+    if (!this.isCampaignBattle()) return;
+    const campaign = loadCampaign();
+    if (!isValidCampaignState(campaign) || campaign.status !== 'active') {
+      this.showCampaignCompleteModal('lost');
+      return;
+    }
+
+    const result = {
+      enemyFactionKey: this.battleContext.campaignEnemyFactionKey ?? this.enemyFactionKey,
+      winner: this.gameState?.winner === 'player' ? 'player' : (this.gameState?.winner === 'draw' ? 'draw' : 'enemy'),
+    };
+    const updatedCampaign = applyCampaignBattleResult(campaign, result);
+    saveCampaign(updatedCampaign);
+
+    if (updatedCampaign.status === 'won' || updatedCampaign.status === 'lost') {
+      this.showCampaignCompleteModal(updatedCampaign.status);
+      return;
+    }
+
+    this.scene.start('CampaignEnemySelectScene', { campaign: updatedCampaign });
+  }
+
+  showCampaignCompleteModal(status) {
+    const won = status === 'won';
+    const { width, height } = this.scale.gameSize;
+    this.destroyBattleResultModal();
+    const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.78).setInteractive().setDepth(930);
+    const title = this.add.text(width / 2, height * 0.38, won ? translateActive('ui.campaignResult.won', 'CAMPAIGN WON') : translateActive('ui.campaignResult.lost', 'CAMPAIGN LOST'), {
+      fontFamily: PREMIUM_BROADCAST_FONT_STACK,
+      fontSize: `${Math.min(72, Math.max(42, Math.floor(height * 0.075)))}px`,
+      color: won ? '#86efac' : '#fca5a5',
+      fontStyle: '700',
+      align: 'center',
+    }).setOrigin(0.5).setDepth(931);
+    const button = this.createResultModalButton(width / 2, height * 0.56, Math.min(240, width * 0.58), 74, translateActive('ui.common.mainMenu', 'MAIN MENU'), () => {
+      clearCampaign();
+      this.scene.start('MainMenuScene');
+    }, this.getBattleResultPresentation());
+    this.battleResultModalShown = true;
+    this.battleResultModal = {
+      overlay,
+      title,
+      titleAura: null,
+      titleGlow: null,
+      subtitle: null,
+      dividerCore: null,
+      dividerGlow: null,
+      celebration: [],
+      buttons: [button],
+    };
+  }
+
   openRulesPanel() {
     if (!this.prepareUtilityMenuNavigation()) return;
     this.scene.launch('RulesPanelScene', { returnSceneKey: 'BattleScene' });
@@ -2006,7 +2089,7 @@ export default class BattleScene extends Phaser.Scene {
 
   openBattleMenu() {
     if (!this.prepareUtilityMenuNavigation()) return;
-    this.scene.launch('BattleMenuScene', { factionKey: this.factionKey, returnSceneKey: 'BattleScene' });
+    this.scene.launch('BattleMenuScene', { factionKey: this.factionKey, enemyFactionKey: this.enemyFactionKey, battleContext: this.battleContext, returnSceneKey: 'BattleScene' });
     this.scene.pause();
   }
 
@@ -2045,6 +2128,7 @@ export default class BattleScene extends Phaser.Scene {
   retryBattle() {
     const factionKey = this.factionKey;
     const enemyFactionKey = this.enemyFactionKey;
+    const battleContext = this.battleContext;
     this.closeInspectPreview({ animate: false, clearSelection: true });
     this.destroyUtilityMenuPanel();
     this.destroyDeckInfoPanel();
@@ -2057,7 +2141,8 @@ export default class BattleScene extends Phaser.Scene {
     this.isEffectCastResolving = false;
     this.destroyActiveSelectionMessage();
     this.openingMulliganPending = false;
-    this.scene.restart({ factionKey, enemyFactionKey });
+    // Preserve arena retry shape for compatibility: this.scene.restart({ factionKey, enemyFactionKey })
+    this.scene.restart({ factionKey, enemyFactionKey, battleContext });
   }
 
   toggleFullscreen() {

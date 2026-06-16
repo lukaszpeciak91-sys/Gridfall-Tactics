@@ -9,6 +9,8 @@ export default class BattleMenuScene extends Phaser.Scene {
   create(data) {
     const { width, height } = this.scale;
     const factionKey = typeof data?.factionKey === 'string' && data.factionKey ? data.factionKey : 'Aggro';
+    const enemyFactionKey = typeof data?.enemyFactionKey === 'string' && data.enemyFactionKey ? data.enemyFactionKey : null;
+    const battleContext = data?.battleContext && typeof data.battleContext === 'object' ? data.battleContext : { mode: 'arena' };
     const returnSceneKey = typeof data?.returnSceneKey === 'string' && data.returnSceneKey
       ? data.returnSceneKey
       : 'BattleScene';
@@ -67,7 +69,7 @@ export default class BattleMenuScene extends Phaser.Scene {
         returnScene.resumeFromBattleMenu();
         return;
       }
-      this.scene.start('BattleScene', { factionKey });
+      this.scene.start('BattleScene', { factionKey, enemyFactionKey, battleContext });
     });
   }
 
