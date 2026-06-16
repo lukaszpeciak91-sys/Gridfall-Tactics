@@ -169,7 +169,7 @@ test('MainMenuScene keeps primary buttons and uses shared bottom navigation cont
   assert.match(source, /import \{ createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen \} from '\.\.\/ui\/navigationControls\.js';/);
   assert.match(source, /this\.title = this\.createTitle\(width, height\)/);
   assert.doesNotMatch(source, /'Main Menu'/);
-  assert.match(source, /this\.createMenuButton\(width \/ 2, startY, buttonWidth, translateActive\('ui\.mainMenu\.arena', 'ARENA'\), \(\) => \{[\s\S]*this\.scene\.start\('FactionSelectScene'\)/);
+  assert.match(source, /this\.createMenuButton\(width \/ 2, startY, buttonWidth, translateActive\('ui\.mainMenu\.game', 'GAME'\), \(\) => \{[\s\S]*this\.scene\.start\('GameMenuScene'\)/);
   assert.match(source, /this\.createMenuButton\(width \/ 2, startY \+ buttonGap, buttonWidth, translateActive\('ui\.mainMenu\.tutorial', 'TUTORIAL'\), \(\) => \{[\s\S]*this\.scene\.start\('TutorialScene'\)/);
   assert.match(source, /this\.createMenuButton\(width \/ 2, startY \+ buttonGap \* 2, buttonWidth, translateActive\('ui\.mainMenu\.collection', 'COLLECTION'\), \(\) => \{[\s\S]*this\.scene\.start\('CollectionScene'\)/);
   assert.match(source, /this\.createMenuButton\(width \/ 2, startY \+ buttonGap \* 3, buttonWidth, translateActive\('ui\.mainMenu\.settings', 'SETTINGS'\), \(\) => \{[\s\S]*this\.scene\.start\('SettingsScene'\)/);
@@ -333,4 +333,50 @@ test('rules panel contains glossary-first player-facing rules summary', () => {
   assert.match(source, /PASS ends your action/);
   assert.doesNotMatch(source, /stall/i);
   assert.doesNotMatch(source, /telemetry/i);
+});
+
+test('MainMenuScene routes localized Game entry into GameMenuScene instead of direct Arena', () => {
+  const mainMenuSource = readScene('src/scenes/MainMenuScene.js');
+  const mainSource = readScene('src/main.js');
+
+  assert.match(mainMenuSource, /this\.createMenuButton\(width \/ 2, startY, buttonWidth, translateActive\('ui\.mainMenu\.game', 'GAME'\), \(\) => \{[\s\S]*this\.scene\.start\('GameMenuScene'\)/);
+  assert.doesNotMatch(mainMenuSource, /translateActive\('ui\.mainMenu\.arena', 'ARENA'\), \(\) => \{[\s\S]*this\.scene\.start\('FactionSelectScene'\)/);
+  assert.match(mainSource, /import GameMenuScene from '\.\/scenes\/GameMenuScene\.js';/);
+  assert.match(mainSource, /scene: \[StartScene, MainMenuScene, GameMenuScene, FactionSelectScene/);
+});
+
+test('GameMenuScene provides campaign choices and preserves Arena routing', () => {
+  const source = readScene('src/scenes/GameMenuScene.js');
+
+  assert.match(source, /super\('GameMenuScene'\)/);
+  assert.match(source, /translateActive\('ui\.gameMenu\.continue', 'CONTINUE'\)/);
+  assert.match(source, /translateActive\('ui\.gameMenu\.newGame', 'NEW GAME'\)/);
+  assert.match(source, /translateActive\('ui\.gameMenu\.arena', 'ARENA'\), \(\) => \{[\s\S]*this\.scene\.start\('FactionSelectScene'\)/);
+  assert.match(source, /import \{ hasActiveCampaign \} from '\.\.\/systems\/campaignState\.js';/);
+  assert.match(source, /if \(hasActiveCampaign\(\)\) \{[\s\S]*resetImageButtonState\(this\.continueButton, \{ interactive: true \}\)/);
+  assert.match(source, /resetImageButtonState\(this\.continueButton, \{ interactive: false \}\)/);
+  assert.doesNotMatch(source, /this\.scene\.start\('BattleScene'/);
+  assert.doesNotMatch(source, /createNewCampaign\(/);
+});
+
+test('GameMenuScene bottom navigation uses Back, Rules, and Fullscreen behavior', () => {
+  const source = readScene('src/scenes/GameMenuScene.js');
+
+  assert.match(source, /createBottomNavigationControls\(this, \{[\s\S]*onBack: \(\) => this\.returnToMainMenu\(\),[\s\S]*onRules: \(\) => this\.openRulesPanel\(\),[\s\S]*onFullscreen: \(\) => this\.toggleFullscreen\(\),[\s\S]*\}\)/);
+  assert.match(source, /returnToMainMenu\(\) \{[\s\S]*this\.scene\.start\('MainMenuScene'\)/);
+  assert.match(source, /openRulesPanel\(\) \{[\s\S]*this\.scene\.launch\('RulesPanelScene', \{ returnSceneKey: 'GameMenuScene' \}\);[\s\S]*this\.scene\.pause\(\);[\s\S]*\}/);
+  assert.match(source, /toggleFullscreen\(\) \{[\s\S]*toggleSceneFullscreen\(this\);[\s\S]*\}/);
+  assert.match(source, /onFullscreenChanged\(\) \{[\s\S]*this\.scale\.isFullscreen[\s\S]*requestPortraitOrientationLock\(\);[\s\S]*this\.scene\.restart\(\);[\s\S]*\}/);
+});
+
+test('Game menu localization resolves exact English and Polish labels', () => {
+  const en = JSON.parse(fs.readFileSync('src/localization/translations/en.json', 'utf8'));
+  const pl = JSON.parse(fs.readFileSync('src/localization/translations/pl.json', 'utf8'));
+
+  assert.equal(en.ui.mainMenu.game, 'GAME');
+  assert.equal(pl.ui.mainMenu.game, 'GRA');
+  assert.equal(en.ui.mainMenu.arena, 'ARENA');
+  assert.equal(pl.ui.mainMenu.arena, 'ARENA');
+  assert.deepEqual(en.ui.gameMenu, { continue: 'CONTINUE', newGame: 'NEW GAME', arena: 'ARENA' });
+  assert.deepEqual(pl.ui.gameMenu, { continue: 'KONTYNUUJ', newGame: 'NOWA GRA', arena: 'ARENA' });
 });

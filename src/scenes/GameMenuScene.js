@@ -1,0 +1,279 @@
+import Phaser from 'phaser';
+import {
+  MENU_BACKGROUND_FALLBACK_COLOR,
+  MENU_BACKGROUND_FALLBACK_COLOR_HEX,
+  createCoverBackground,
+  createMenuArenaLightSweep,
+  getMenuBackgroundAsset,
+  preloadImageAsset,
+  preloadMenuBackgroundArt,
+} from '../rendering/backgroundArt.js';
+import { createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
+import {
+  PREMIUM_BROADCAST_FONT_STACK,
+  calculateSecondaryButtonHeight,
+  createImageButton,
+  preloadSecondaryButtonAsset,
+  resetImageButtonState,
+} from '../ui/imageButton.js';
+import { translateActive } from '../localization/localeService.js';
+import { hasActiveCampaign } from '../systems/campaignState.js';
+import {
+  GRIDFALL_LOGO_ASSET,
+  MAIN_MENU_FIRST_BUTTON_Y_RATIO,
+  createLogoFallbackText,
+  getMainMenuLogoPosition,
+  setMainMenuLogoDisplaySize,
+} from '../ui/menuLogoLayout.js';
+
+const GAME_MENU_TITLE_DEPTH = 5;
+const GAME_MENU_BUTTON_WIDTH_RATIO = 0.72;
+const GAME_MENU_BUTTON_VERTICAL_GAP = 14;
+const GAME_MENU_BUTTON_FONT_SIZE = 27;
+const GAME_MENU_MIN_RECOVERED_TITLE_WIDTH = 96;
+
+export default class GameMenuScene extends Phaser.Scene {
+  constructor() {
+    super('GameMenuScene');
+    this.title = null;
+    this.menuButtonViews = [];
+    this.menuButtons = [];
+    this.continueButton = null;
+  }
+
+  init() {
+    this.cleanupScene();
+    this.resetGameMenuDisplayList();
+  }
+
+  preload() {
+    preloadMenuBackgroundArt(this);
+    preloadImageAsset(this, GRIDFALL_LOGO_ASSET, {
+      onError: (asset) => console.warn(`Game menu logo failed to load: ${asset.path}`),
+    });
+    preloadSecondaryButtonAsset(this);
+  }
+
+  create() {
+    this.resetGameMenuDisplayList();
+
+    const { width, height } = this.scale;
+    this.cameras.main.setBackgroundColor(MENU_BACKGROUND_FALLBACK_COLOR_HEX);
+    createCoverBackground(this, {
+      asset: getMenuBackgroundAsset(),
+      fallbackColor: MENU_BACKGROUND_FALLBACK_COLOR,
+      width,
+      height,
+    });
+    createMenuArenaLightSweep(this, { width, height });
+
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.cleanupScene, this);
+    this.events.on(Phaser.Scenes.Events.RESUME, this.restoreGameMenuInteractivity, this);
+    this.events.on(Phaser.Scenes.Events.WAKE, this.restoreGameMenuInteractivity, this);
+    this.scale.on('enterfullscreen', this.onFullscreenChanged, this);
+    this.scale.on('leavefullscreen', this.onFullscreenChanged, this);
+
+    this.title = this.createTitle(width, height);
+    this.ensureTitleExistsAndVisible({ width, height });
+
+    const buttonWidth = Math.round(width * GAME_MENU_BUTTON_WIDTH_RATIO);
+    const buttonHeight = calculateSecondaryButtonHeight(buttonWidth);
+    const buttonGap = buttonHeight + GAME_MENU_BUTTON_VERTICAL_GAP;
+    const startY = height * MAIN_MENU_FIRST_BUTTON_Y_RATIO;
+
+    this.continueButton = this.createMenuButton(width / 2, startY, buttonWidth, translateActive('ui.gameMenu.continue', 'CONTINUE'), () => {
+      this.continueCampaign();
+    });
+    this.updateContinueAvailability();
+
+    this.createMenuButton(width / 2, startY + buttonGap, buttonWidth, translateActive('ui.gameMenu.newGame', 'NEW GAME'), () => {
+      this.startNewCampaignFlow();
+    });
+
+    this.createMenuButton(width / 2, startY + buttonGap * 2, buttonWidth, translateActive('ui.gameMenu.arena', 'ARENA'), () => {
+      this.scene.start('FactionSelectScene');
+    });
+
+    this.restoreGameMenuInteractivity();
+    this.updateContinueAvailability();
+    this.scale.on('resize', this.layoutGameMenuScene, this);
+    this.drawNavigationControls();
+  }
+
+  createTitle(width, height) {
+    const position = getMainMenuLogoPosition(width, height);
+
+    if (this.textures.exists(GRIDFALL_LOGO_ASSET.key)) {
+      const logo = this.add.image(position.x, position.y, GRIDFALL_LOGO_ASSET.key).setOrigin(0.5).setDepth(GAME_MENU_TITLE_DEPTH);
+      logo.disableInteractive();
+      this.scaleLogoToFit(logo, width, height);
+      return logo;
+    }
+
+    return createLogoFallbackText(this, position.x, position.y, 'ui.mainMenu.title', '30px', width * 0.86)
+      .setDepth(GAME_MENU_TITLE_DEPTH)
+      .disableInteractive();
+  }
+
+  layoutGameMenuScene(gameSize) {
+    const width = gameSize?.width ?? this.scale.width;
+    const height = gameSize?.height ?? this.scale.height;
+    this.ensureTitleExistsAndVisible({ width, height });
+  }
+
+  ensureTitleExistsAndVisible({ width = null, height = null } = {}) {
+    const resolvedWidth = width ?? this.scale.gameSize?.width ?? this.scale.width;
+    const resolvedHeight = height ?? this.scale.gameSize?.height ?? this.scale.height;
+
+    if (!this.title || !this.title.active || this.title.scene !== this) {
+      this.title?.destroy?.();
+      this.title = this.createTitle(resolvedWidth, resolvedHeight);
+    }
+
+    if (!this.title) return null;
+    const position = getMainMenuLogoPosition(resolvedWidth, resolvedHeight);
+    this.title.setPosition(position.x, position.y);
+    this.title.setDepth?.(GAME_MENU_TITLE_DEPTH);
+    this.title.disableInteractive?.();
+    if (this.title.type === 'Image') {
+      this.scaleLogoToFit(this.title, resolvedWidth, resolvedHeight);
+    } else if (this.title.setWordWrapWidth) {
+      this.title.setWordWrapWidth(resolvedWidth * 0.86);
+    }
+    this.ensureTitleHasDisplaySize(this.title, resolvedWidth);
+    this.title.setVisible?.(true);
+    this.title.setAlpha?.(1);
+    return this.title;
+  }
+
+  ensureTitleHasDisplaySize(title, width) {
+    const hasValidDisplaySize = Number.isFinite(title.displayWidth)
+      && Number.isFinite(title.displayHeight)
+      && title.displayWidth > 0
+      && title.displayHeight > 0;
+
+    if (hasValidDisplaySize) return;
+
+    if (title.type === 'Image' && title.setDisplaySize) {
+      const aspectRatio = title.width > 0 && title.height > 0 ? title.height / title.width : 0.5;
+      const recoveredWidth = Math.max(GAME_MENU_MIN_RECOVERED_TITLE_WIDTH, Math.round(width * 0.5));
+      title.setDisplaySize(recoveredWidth, Math.max(1, Math.round(recoveredWidth * aspectRatio)));
+    } else if (title.setFontSize) {
+      title.setFontSize('30px');
+    }
+  }
+
+  scaleLogoToFit(logo, width, height) {
+    setMainMenuLogoDisplaySize(this, logo, width, height);
+  }
+
+  restoreGameMenuInteractivity() {
+    this.ensureTitleExistsAndVisible();
+    this.menuButtons.forEach((button) => resetImageButtonState(button, { interactive: true }));
+    this.updateContinueAvailability();
+  }
+
+  updateContinueAvailability() {
+    if (hasActiveCampaign()) {
+      resetImageButtonState(this.continueButton, { interactive: true });
+      return;
+    }
+
+    resetImageButtonState(this.continueButton, { interactive: false });
+    this.continueButton?.backing?.setAlpha?.(0.42);
+    this.continueButton?.text?.setAlpha?.(0.5);
+    this.continueButton?.shadow?.setAlpha?.(0.12);
+  }
+
+  continueCampaign() {
+    if (!hasActiveCampaign()) return;
+  }
+
+  startNewCampaignFlow() {
+    // Campaign creation and enemy selection are intentionally implemented in later campaign steps.
+  }
+
+  drawNavigationControls() {
+    createBottomNavigationControls(this, {
+      onBack: () => this.returnToMainMenu(),
+      onRules: () => this.openRulesPanel(),
+      onFullscreen: () => this.toggleFullscreen(),
+    });
+  }
+
+  returnToMainMenu() {
+    this.scene.start('MainMenuScene');
+  }
+
+  openRulesPanel() {
+    this.scene.launch('RulesPanelScene', { returnSceneKey: 'GameMenuScene' });
+    this.scene.pause();
+  }
+
+  resumeFromRulesPanel() {
+    this.scene.resume();
+    this.restoreGameMenuInteractivity();
+  }
+
+  toggleFullscreen() {
+    toggleSceneFullscreen(this);
+  }
+
+  onFullscreenChanged() {
+    if (this.scale.isFullscreen) {
+      requestPortraitOrientationLock();
+    }
+
+    if (this.scene.isActive('GameMenuScene')) {
+      this.scene.restart();
+    }
+  }
+
+  cleanupScene() {
+    this.tweens?.killTweensOf?.(this.menuButtonViews.flat());
+    if (this.title) this.tweens?.killTweensOf?.(this.title);
+    this.events?.off(Phaser.Scenes.Events.RESUME, this.restoreGameMenuInteractivity, this);
+    this.events?.off(Phaser.Scenes.Events.WAKE, this.restoreGameMenuInteractivity, this);
+    this.scale?.off('enterfullscreen', this.onFullscreenChanged, this);
+    this.scale?.off('leavefullscreen', this.onFullscreenChanged, this);
+    this.scale?.off('resize', this.layoutGameMenuScene, this);
+  }
+
+  resetGameMenuDisplayList() {
+    this.tweens?.killAll?.();
+    this.children?.removeAll?.(true);
+    this.title = null;
+    this.menuButtonViews = [];
+    this.menuButtons = [];
+    this.continueButton = null;
+  }
+
+  createMenuButton(x, y, width, label, onPointerUp) {
+    const button = createImageButton(this, {
+      x,
+      y,
+      width,
+      height: calculateSecondaryButtonHeight(width),
+      label,
+      onPointerUp,
+      depth: 4,
+      fontSize: `${GAME_MENU_BUTTON_FONT_SIZE}px`,
+      textStyle: {
+        color: '#f5f1e6',
+        fontFamily: PREMIUM_BROADCAST_FONT_STACK,
+        fontStyle: '700',
+        letterSpacing: 2.2,
+      },
+      fallbackFill: 0x93c5fd,
+      fallbackStroke: 0xbfdbfe,
+      fallbackStrokeAlpha: 0.7,
+      shadowAlpha: 0.24,
+      hoverScale: 1.03,
+      downScale: 0.98,
+    });
+
+    this.menuButtonViews.push(button.items);
+    this.menuButtons.push(button);
+    return button;
+  }
+}
