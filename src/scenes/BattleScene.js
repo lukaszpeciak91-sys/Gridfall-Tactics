@@ -105,6 +105,14 @@ const BASE_NON_LETHAL_CRACK_MAX_REACH_RATIO = 0.35;
 const BASE_NON_LETHAL_CRACK_SIDE_ZONE_RATIO = 0.38;
 const BASE_GLASS_REFLECTION_DEPTH = 124;
 const FLOATING_FEEDBACK_DEPTH = 250;
+
+const CAMPAIGN_COMPLETION_OVERLAY_DEPTH = 1200;
+const CAMPAIGN_COMPLETION_CONTENT_DEPTH = CAMPAIGN_COMPLETION_OVERLAY_DEPTH + 1;
+const CAMPAIGN_COMPLETION_BUTTON_DEPTH = CAMPAIGN_COMPLETION_OVERLAY_DEPTH + 2;
+const CAMPAIGN_COMPLETION_OVERLAY_ALPHA = 0.84;
+const CAMPAIGN_COMPLETION_TITLE_MAX_WIDTH_RATIO = 0.9;
+const CAMPAIGN_COMPLETION_TITLE_MIN_FONT_SIZE = 28;
+const CAMPAIGN_COMPLETION_TITLE_MAX_FONT_SIZE = 64;
 const BASE_UTILITY_CONTROL_FILL = 0x020617;
 const BASE_UTILITY_CONTROL_FILL_ALPHA = 0.62;
 const BASE_UTILITY_CONTROL_HOVER_FILL = 0x0f172a;
@@ -1196,7 +1204,7 @@ export default class BattleScene extends Phaser.Scene {
     };
   }
 
-  createResultModalButton(x, y, width, height, label, onClick, presentation = null) {
+  createResultModalButton(x, y, width, height, label, onClick, presentation = null, options = {}) {
     return createImageButton(this, {
       x,
       y,
@@ -1208,7 +1216,7 @@ export default class BattleScene extends Phaser.Scene {
         if (this.navigationInProgress) return;
         onClick();
       },
-      depth: 902,
+      depth: options.depth ?? 902,
       fontSize: `${Math.max(18, Math.floor(height * 0.34))}px`,
       textStyle: {
         color: '#f5f1e6',
@@ -2094,19 +2102,40 @@ export default class BattleScene extends Phaser.Scene {
   showCampaignCompleteModal(status) {
     const won = status === 'won';
     const { width, height } = this.scale.gameSize;
+    const centerX = width * 0.5;
+    const titleText = won ? translateActive('ui.campaignResult.won', 'CAMPAIGN WON') : translateActive('ui.campaignResult.lost', 'CAMPAIGN LOST');
+    const titleMaxWidth = Math.floor(width * CAMPAIGN_COMPLETION_TITLE_MAX_WIDTH_RATIO);
+    const titleFontSize = Math.min(
+      CAMPAIGN_COMPLETION_TITLE_MAX_FONT_SIZE,
+      Math.max(CAMPAIGN_COMPLETION_TITLE_MIN_FONT_SIZE, Math.floor(height * 0.066), Math.floor(titleMaxWidth / 8.9)),
+    );
+    const buttonWidth = Math.min(240, Math.max(176, width * 0.62));
+    const buttonHeight = Math.max(68, Math.min(76, Math.floor(height * 0.09)));
+    const titleY = Math.max(height * 0.28, titleFontSize * 1.8);
+    const buttonY = Math.min(height - buttonHeight * 0.95, titleY + titleFontSize * 1.35 + buttonHeight * 0.55);
+
     this.destroyBattleResultModal();
-    const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.78).setInteractive().setDepth(930);
-    const title = this.add.text(width / 2, height * 0.38, won ? translateActive('ui.campaignResult.won', 'CAMPAIGN WON') : translateActive('ui.campaignResult.lost', 'CAMPAIGN LOST'), {
+    const overlay = this.add.rectangle(centerX, height / 2, width, height, 0x000000, CAMPAIGN_COMPLETION_OVERLAY_ALPHA)
+      .setInteractive()
+      .setDepth(CAMPAIGN_COMPLETION_OVERLAY_DEPTH);
+    overlay.on('pointerdown', (_pointer, _localX, _localY, event) => event?.stopPropagation?.());
+    overlay.on('pointerup', (_pointer, _localX, _localY, event) => event?.stopPropagation?.());
+
+    const title = this.add.text(centerX, titleY, titleText, {
       fontFamily: PREMIUM_BROADCAST_FONT_STACK,
-      fontSize: `${Math.min(72, Math.max(42, Math.floor(height * 0.075)))}px`,
+      fontSize: `${titleFontSize}px`,
       color: won ? '#86efac' : '#fca5a5',
       fontStyle: '700',
       align: 'center',
-    }).setOrigin(0.5).setDepth(931);
-    const button = this.createResultModalButton(width / 2, height * 0.56, Math.min(240, width * 0.58), 74, translateActive('ui.common.mainMenu', 'MAIN MENU'), () => {
+      wordWrap: { width: titleMaxWidth, useAdvancedWrap: true },
+      fixedWidth: titleMaxWidth,
+    }).setOrigin(0.5).setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH);
+    title.setShadow(0, 3, 'rgba(0, 0, 0, 0.72)', 5, true, true);
+
+    const button = this.createResultModalButton(centerX, buttonY, buttonWidth, buttonHeight, translateActive('ui.common.mainMenu', 'MAIN MENU'), () => {
       clearCampaign();
       this.scene.start('MainMenuScene');
-    }, this.getBattleResultPresentation());
+    }, this.getBattleResultPresentation(), { depth: CAMPAIGN_COMPLETION_BUTTON_DEPTH });
     this.battleResultModalShown = true;
     this.battleResultModal = {
       overlay,
