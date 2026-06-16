@@ -32,7 +32,9 @@ test('non-battle menu screens use the shared premium broadcast screen header', (
 });
 
 test('faction select list keeps breathing room below wrapped title while using full-bleed faction poster artwork', () => {
-  const source = read('src/scenes/FactionSelectScene.js');
+  const sceneSource = read('src/scenes/FactionSelectScene.js');
+  const source = `${sceneSource}
+${read('src/ui/factionCards.js')}`;
 
   assert.match(source, /const MIN_FACTION_LIST_TOP = 106;/);
   assert.match(source, /const HEADER_TO_FACTION_LIST_GAP = 24;/);
@@ -58,8 +60,8 @@ test('faction select list keeps breathing room below wrapped title while using f
   assert.match(source, /title\.setMaxLines\(2\);/);
   assert.match(source, /\.setOrigin\(0, 1\)/);
   assert.doesNotMatch(source, /translateActive\(`ui\.factionSelect\.descriptions\.\$\{factionKey\}`/);
-  assert.match(source, /pill\.fillStyle\(0x020617, 0\.68\)/);
-  assert.match(source, /pill\.lineStyle\(1\.5, accentColor, 0\.9\)/);
+  assert.match(source, /pill\.fillStyle\(0x020617, 0\.68(?: \* alpha)?\)/);
+  assert.match(source, /pill\.lineStyle\(1\.5, accentColor, 0\.9(?: \* alpha)?\)/);
   assert.match(source, /fontSize: '11px'/);
   assert.match(source, /color: '#f8fafc'/);
 });

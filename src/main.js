@@ -3,6 +3,7 @@ import StartScene from './scenes/StartScene.js';
 import MainMenuScene from './scenes/MainMenuScene.js';
 import GameMenuScene from './scenes/GameMenuScene.js';
 import FactionSelectScene from './scenes/FactionSelectScene.js';
+import CampaignEnemySelectScene from './scenes/CampaignEnemySelectScene.js';
 import CollectionScene from './scenes/CollectionScene.js';
 import SettingsScene from './scenes/SettingsScene.js';
 import TutorialScene from './scenes/TutorialScene.js';
@@ -32,7 +33,7 @@ const config = {
     antialiasGL: true,
     pixelArt: false,
   },
-  scene: [StartScene, MainMenuScene, GameMenuScene, FactionSelectScene, CollectionScene, SettingsScene, TutorialScene, BattleScene, BattleMenuScene, RulesPanelScene, ArtDebugModeSelectScene, ArtViewportDebugScene, BoardUnitArtViewportDebugScene],
+  scene: [StartScene, MainMenuScene, GameMenuScene, FactionSelectScene, CampaignEnemySelectScene, CollectionScene, SettingsScene, TutorialScene, BattleScene, BattleMenuScene, RulesPanelScene, ArtDebugModeSelectScene, ArtViewportDebugScene, BoardUnitArtViewportDebugScene],
 };
 
 const game = new Phaser.Game(config);
