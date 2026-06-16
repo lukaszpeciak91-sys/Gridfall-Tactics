@@ -37,6 +37,7 @@ export default class FactionSelectScene extends Phaser.Scene {
 
   init(data = {}) {
     this.mode = data?.mode === 'campaign' ? 'campaign' : 'arena';
+    this.returnSceneKey = data?.returnSceneKey === 'GameMenuScene' ? 'GameMenuScene' : 'MainMenuScene';
     this.isStartingBattle = false;
     this.cleanupScene();
   }
@@ -247,7 +248,7 @@ export default class FactionSelectScene extends Phaser.Scene {
   }
 
   returnToMainMenu() {
-    this.scene.start('MainMenuScene');
+    this.scene.start(this.returnSceneKey);
   }
 
   openRulesPanel() {
@@ -278,7 +279,7 @@ export default class FactionSelectScene extends Phaser.Scene {
     }
 
     if (this.scene.isActive('FactionSelectScene')) {
-      this.scene.restart();
+      this.scene.restart({ mode: this.mode, returnSceneKey: this.returnSceneKey });
     }
   }
 

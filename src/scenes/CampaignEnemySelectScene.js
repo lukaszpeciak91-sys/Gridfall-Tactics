@@ -15,7 +15,11 @@ const CARD_GAP = 34;
 const VIEWPORT_TOP_MIN = 118;
 const HEADER_GAP = 22;
 const ATTEMPT_INDICATOR_RIGHT_MARGIN = 14;
-const ATTEMPT_INDICATOR_BOTTOM_MARGIN = 13;
+const ATTEMPT_INDICATOR_BOTTOM_MARGIN = 8;
+const ATTEMPT_INDICATOR_WIDTH = 74;
+const ATTEMPT_INDICATOR_HEIGHT = 34;
+const ATTEMPT_INDICATOR_PADDING_X = 12;
+const ATTEMPT_INDICATOR_PADDING_Y = 7;
 
 export default class CampaignEnemySelectScene extends Phaser.Scene {
   constructor() {
@@ -93,26 +97,26 @@ export default class CampaignEnemySelectScene extends Phaser.Scene {
   drawEnemyCard(content, enemy, { y, cardWidth }) {
     const { items } = drawFactionCardVisual(this, content, enemy.factionKey, { y, cardWidth, cardHeight: CARD_HEIGHT, alpha: enemy.defeated ? 0.62 : 1, completed: enemy.defeated });
     this.uiElements.push(...items);
-    const indicatorX = cardWidth / 2 - ATTEMPT_INDICATOR_RIGHT_MARGIN;
-    const indicatorY = y + CARD_HEIGHT - ATTEMPT_INDICATOR_BOTTOM_MARGIN;
-    const indicator = this.add.text(indicatorX, indicatorY, enemy.indicator, { fontFamily: 'Arial, sans-serif', fontSize: enemy.defeated ? '22px' : '18px', color: enemy.defeated ? '#86efac' : '#fde68a', stroke: '#020617', strokeThickness: 3 }).setOrigin(1, 1);
-    const indicatorPaddingX = 9;
-    const indicatorPaddingY = 5;
+    const indicatorPanelWidth = ATTEMPT_INDICATOR_WIDTH + ATTEMPT_INDICATOR_PADDING_X * 2;
+    const indicatorPanelHeight = ATTEMPT_INDICATOR_HEIGHT + ATTEMPT_INDICATOR_PADDING_Y * 2;
+    const indicatorX = cardWidth / 2 - ATTEMPT_INDICATOR_RIGHT_MARGIN - indicatorPanelWidth / 2;
+    const indicatorY = y + CARD_HEIGHT - ATTEMPT_INDICATOR_BOTTOM_MARGIN - indicatorPanelHeight / 2;
+    const indicator = this.add.text(indicatorX, indicatorY, enemy.indicator, { fontFamily: 'Arial, sans-serif', fontSize: enemy.defeated ? '22px' : '18px', color: enemy.defeated ? '#86efac' : '#fde68a', stroke: '#020617', strokeThickness: 3, align: 'center', fixedWidth: ATTEMPT_INDICATOR_WIDTH }).setOrigin(0.5);
     const indicatorBadge = this.add.graphics();
     indicatorBadge.fillStyle(0x020617, enemy.defeated ? 0.58 : 0.66);
     indicatorBadge.fillRoundedRect(
-      indicatorX - indicator.width - indicatorPaddingX * 2,
-      indicatorY - indicator.height - indicatorPaddingY * 2 + 1,
-      indicator.width + indicatorPaddingX * 2,
-      indicator.height + indicatorPaddingY * 2,
+      indicatorX - indicatorPanelWidth / 2,
+      indicatorY - indicatorPanelHeight / 2,
+      indicatorPanelWidth,
+      indicatorPanelHeight,
       12,
     );
     indicatorBadge.lineStyle(1, enemy.defeated ? 0x86efac : 0xfde68a, enemy.defeated ? 0.38 : 0.48);
     indicatorBadge.strokeRoundedRect(
-      indicatorX - indicator.width - indicatorPaddingX * 2 + 0.5,
-      indicatorY - indicator.height - indicatorPaddingY * 2 + 1.5,
-      indicator.width + indicatorPaddingX * 2 - 1,
-      indicator.height + indicatorPaddingY * 2 - 1,
+      indicatorX - indicatorPanelWidth / 2 + 0.5,
+      indicatorY - indicatorPanelHeight / 2 + 0.5,
+      indicatorPanelWidth - 1,
+      indicatorPanelHeight - 1,
       11,
     );
     content.add(indicatorBadge);

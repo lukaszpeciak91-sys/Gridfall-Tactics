@@ -92,7 +92,7 @@ export default class GameMenuScene extends Phaser.Scene {
     });
 
     this.createMenuButton(width / 2, startY + buttonGap * 2, buttonWidth, translateActive('ui.gameMenu.arena', 'ARENA'), () => {
-      this.scene.start('FactionSelectScene');
+      this.scene.start('FactionSelectScene', { returnSceneKey: 'GameMenuScene' });
     });
 
     this.restoreGameMenuInteractivity();
@@ -201,7 +201,7 @@ export default class GameMenuScene extends Phaser.Scene {
   }
 
   openCampaignFactionSelect() {
-    this.scene.start('FactionSelectScene', { mode: 'campaign' });
+    this.scene.start('FactionSelectScene', { mode: 'campaign', returnSceneKey: 'GameMenuScene' });
   }
 
   showNewGameConfirmation() {
@@ -218,8 +218,8 @@ export default class GameMenuScene extends Phaser.Scene {
     panel.strokeRoundedRect(width / 2 - panelWidth / 2, height / 2 - panelHeight / 2, panelWidth, panelHeight, 22);
     const title = this.add.text(width / 2, height / 2 - 78, translateActive('ui.gameMenu.newGameConfirmTitle', 'START NEW GAME?'), { fontFamily: PREMIUM_BROADCAST_FONT_STACK, fontSize: '22px', color: '#f8fafc', fontStyle: '700', align: 'center' }).setOrigin(0.5).setDepth(42);
     const message = this.add.text(width / 2, height / 2 - 26, translateActive('ui.gameMenu.newGameConfirmBody', 'This will overwrite your current campaign progress.'), { fontFamily: 'Arial, sans-serif', fontSize: '15px', color: '#cbd5e1', align: 'center', wordWrap: { width: panelWidth - 42 } }).setOrigin(0.5).setDepth(42);
-    const cancel = this.createMenuButton(width / 2 - panelWidth * 0.24, height / 2 + 72, panelWidth * 0.38, translateActive('ui.common.cancel', 'CANCEL'), () => this.closeNewGameConfirmation());
-    const confirm = this.createMenuButton(width / 2 + panelWidth * 0.24, height / 2 + 72, panelWidth * 0.38, translateActive('ui.gameMenu.confirmNewGame', 'NEW GAME'), () => {
+    const cancel = this.createMenuButton(width / 2 - panelWidth * 0.24, height / 2 + 72, panelWidth * 0.38, translateActive('ui.gameMenu.cancelNewGame', 'BACK'), () => this.closeNewGameConfirmation());
+    const confirm = this.createMenuButton(width / 2 + panelWidth * 0.24, height / 2 + 72, panelWidth * 0.38, translateActive('ui.gameMenu.confirmNewGame', 'START'), () => {
       clearCampaign();
       this.closeNewGameConfirmation();
       this.openCampaignFactionSelect();

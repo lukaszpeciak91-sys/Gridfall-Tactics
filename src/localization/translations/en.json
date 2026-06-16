@@ -550,7 +550,8 @@
       "arena": "ARENA",
       "newGameConfirmTitle": "START NEW GAME?",
       "newGameConfirmBody": "This will overwrite your current campaign progress.",
-      "confirmNewGame": "NEW GAME"
+      "confirmNewGame": "START",
+      "cancelNewGame": "BACK"
     },
     "campaignEnemySelect": {
       "title": "SELECT ENEMY",
