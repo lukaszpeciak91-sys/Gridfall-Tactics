@@ -52,13 +52,17 @@ function firstEnemyKey(campaign) {
   return Object.keys(campaign.enemies)[0];
 }
 
+function resolveCampaignBattle(campaign, enemyFactionKey, winner) {
+  return applyCampaignBattleResult(selectCampaignEnemy(campaign, enemyFactionKey), {
+    enemyFactionKey,
+    winner,
+  });
+}
+
 function playOutEnemyLosses(campaign, enemyFactionKey, count = 3) {
   let nextCampaign = campaign;
   for (let index = 0; index < count; index += 1) {
-    nextCampaign = applyCampaignBattleResult(nextCampaign, {
-      enemyFactionKey,
-      winner: 'enemy',
-    });
+    nextCampaign = resolveCampaignBattle(nextCampaign, enemyFactionKey, 'enemy');
   }
   return nextCampaign;
 }
@@ -100,10 +104,7 @@ test('selectCampaignEnemy sets currentEnemyFactionKey for an available enemy', (
 test('selectCampaignEnemy rejects defeated enemies and enemies with no attempts', () => {
   const campaign = createNewCampaign('Aggro');
   const enemyFactionKey = firstEnemyKey(campaign);
-  const defeatedCampaign = applyCampaignBattleResult(campaign, {
-    enemyFactionKey,
-    winner: 'player',
-  });
+  const defeatedCampaign = resolveCampaignBattle(campaign, enemyFactionKey, 'player');
 
   assert.throws(() => selectCampaignEnemy(defeatedCampaign, enemyFactionKey), RangeError);
 
@@ -115,10 +116,7 @@ test('player win marks only selected enemy defeated and does not decrement attem
   const campaign = createNewCampaign('Aggro');
   const [enemyFactionKey, untouchedEnemyFactionKey] = Object.keys(campaign.enemies);
 
-  const resolved = applyCampaignBattleResult(campaign, {
-    enemyFactionKey,
-    winner: 'player',
-  });
+  const resolved = resolveCampaignBattle(campaign, enemyFactionKey, 'player');
 
   assert.equal(resolved.enemies[enemyFactionKey].defeated, true);
   assert.equal(resolved.enemies[enemyFactionKey].attemptsRemaining, 3);
@@ -133,27 +131,40 @@ test('enemy win decrements only selected enemy', () => {
   const campaign = createNewCampaign('Aggro');
   const [enemyFactionKey, untouchedEnemyFactionKey] = Object.keys(campaign.enemies);
 
-  const resolved = applyCampaignBattleResult(campaign, {
-    enemyFactionKey,
-    winner: 'enemy',
-  });
+  const resolved = resolveCampaignBattle(campaign, enemyFactionKey, 'enemy');
 
   assert.equal(resolved.enemies[enemyFactionKey].attemptsRemaining, 2);
   assert.equal(resolved.enemies[untouchedEnemyFactionKey].attemptsRemaining, 3);
   assert.equal(resolved.status, 'active');
 });
 
-test('draw decrements attempts', () => {
+test('draw is neutral, clears current enemy, and keeps campaign active', () => {
   const campaign = createNewCampaign('Aggro');
   const enemyFactionKey = firstEnemyKey(campaign);
 
-  const resolved = applyCampaignBattleResult(campaign, {
-    enemyFactionKey,
-    winner: 'draw',
-  });
+  const resolved = resolveCampaignBattle(campaign, enemyFactionKey, 'draw');
 
-  assert.equal(resolved.enemies[enemyFactionKey].attemptsRemaining, 2);
+  assert.equal(resolved.enemies[enemyFactionKey].attemptsRemaining, 3);
+  assert.equal(resolved.enemies[enemyFactionKey].defeated, false);
+  assert.equal(resolved.status, 'active');
+  assert.equal(resolved.currentEnemyFactionKey, null);
   assert.equal(resolved.lastResult.winner, 'draw');
+});
+
+
+test('campaign result rejects non-current enemy without mutating campaign', () => {
+  const campaign = createNewCampaign('Aggro');
+  const [currentEnemyFactionKey, otherEnemyFactionKey] = Object.keys(campaign.enemies);
+  const selected = selectCampaignEnemy(campaign, currentEnemyFactionKey);
+  const snapshot = JSON.stringify(selected);
+
+  assert.throws(() => applyCampaignBattleResult(selected, {
+    enemyFactionKey: otherEnemyFactionKey,
+    winner: 'player',
+  }), RangeError);
+  assert.equal(JSON.stringify(selected), snapshot);
+  assert.equal(selected.enemies[otherEnemyFactionKey].defeated, false);
+  assert.equal(selected.enemies[otherEnemyFactionKey].attemptsRemaining, 3);
 });
 
 test('third failed attempt marks campaign lost', () => {
@@ -171,10 +182,7 @@ test('defeating all enemies marks campaign won', () => {
   let campaign = createNewCampaign('Aggro');
 
   for (const enemyFactionKey of Object.keys(campaign.enemies)) {
-    campaign = applyCampaignBattleResult(campaign, {
-      enemyFactionKey,
-      winner: 'player',
-    });
+    campaign = resolveCampaignBattle(campaign, enemyFactionKey, 'player');
   }
 
   assert.equal(campaign.status, 'won');
@@ -187,10 +195,7 @@ test('applyCampaignBattleResult does not mutate input state', () => {
   const enemyFactionKey = firstEnemyKey(campaign);
   const originalSnapshot = JSON.stringify(campaign);
 
-  const resolved = applyCampaignBattleResult(campaign, {
-    enemyFactionKey,
-    winner: 'enemy',
-  });
+  const resolved = resolveCampaignBattle(campaign, enemyFactionKey, 'enemy');
 
   assert.equal(JSON.stringify(campaign), originalSnapshot);
   assert.notEqual(resolved, campaign);
@@ -244,10 +249,7 @@ test('hasActiveCampaign returns true only for active campaigns', () => {
 
     let wonCampaign = createNewCampaign('Aggro');
     for (const enemyFactionKey of Object.keys(wonCampaign.enemies)) {
-      wonCampaign = applyCampaignBattleResult(wonCampaign, {
-        enemyFactionKey,
-        winner: 'player',
-      });
+      wonCampaign = resolveCampaignBattle(wonCampaign, enemyFactionKey, 'player');
     }
     saveCampaign(wonCampaign);
     assert.equal(hasActiveCampaign(), false);
