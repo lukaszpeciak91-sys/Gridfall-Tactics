@@ -253,7 +253,7 @@ test('FactionSelectScene uses shared bottom navigation controls for back, rules,
   assert.doesNotMatch(factionSource, /drawNavigationControls\(\) \{[\s\S]*onMute: \(\) => \{\}/);
   assert.match(factionSource, /openRulesPanel\(\) \{[\s\S]*this\.scene\.launch\('RulesPanelScene', \{ returnSceneKey: 'FactionSelectScene' \}\);[\s\S]*this\.scene\.pause\(\);[\s\S]*\}/);
   assert.match(factionSource, /toggleFullscreen\(\) \{[\s\S]*toggleSceneFullscreen\(this\);[\s\S]*\}/);
-  assert.match(factionSource, /onFullscreenChanged\(\) \{[\s\S]*this\.scale\.isFullscreen[\s\S]*requestPortraitOrientationLock\(\);[\s\S]*this\.scene\.restart\(\);[\s\S]*\}/);
+  assert.match(factionSource, /onFullscreenChanged\(\) \{[\s\S]*this\.scale\.isFullscreen[\s\S]*requestPortraitOrientationLock\(\);[\s\S]*this\.scene\.restart\(\{ mode: this\.mode, returnSceneKey: this\.returnSceneKey \}\);[\s\S]*\}/);
   assert.match(battleSource, /onFullscreenChanged\(\) \{[\s\S]*this\.scale\.isFullscreen[\s\S]*requestPortraitOrientationLock\(\);[\s\S]*this\.recoverFromLifecycle\(this\.scale\.isFullscreen \? 'enterfullscreen' : 'leavefullscreen'\);[\s\S]*\}/);
   assert.match(menuSource, /const returnSceneKey = typeof data\?\.returnSceneKey === 'string'/);
 });
@@ -340,7 +340,7 @@ test('MainMenuScene routes localized Game entry into GameMenuScene instead of di
   const mainSource = readScene('src/main.js');
 
   assert.match(mainMenuSource, /this\.createMenuButton\(width \/ 2, startY, buttonWidth, translateActive\('ui\.mainMenu\.game', 'GAME'\), \(\) => \{[\s\S]*this\.scene\.start\('GameMenuScene'\)/);
-  assert.doesNotMatch(mainMenuSource, /translateActive\('ui\.mainMenu\.arena', 'ARENA'\), \(\) => \{[\s\S]*this\.scene\.start\('FactionSelectScene'\)/);
+  assert.doesNotMatch(mainMenuSource, /translateActive\('ui\.mainMenu\.arena', 'ARENA'\), \(\) => \{[\s\S]*this\.scene\.start\('FactionSelectScene', \{ returnSceneKey: 'GameMenuScene' \}\)/);
   assert.match(mainSource, /import GameMenuScene from '\.\/scenes\/GameMenuScene\.js';/);
   assert.match(mainSource, /scene: \[StartScene, MainMenuScene, GameMenuScene, FactionSelectScene/);
 });
@@ -351,7 +351,7 @@ test('GameMenuScene provides campaign choices and preserves Arena routing', () =
   assert.match(source, /super\('GameMenuScene'\)/);
   assert.match(source, /translateActive\('ui\.gameMenu\.continue', 'CONTINUE'\)/);
   assert.match(source, /translateActive\('ui\.gameMenu\.newGame', 'NEW GAME'\)/);
-  assert.match(source, /translateActive\('ui\.gameMenu\.arena', 'ARENA'\), \(\) => \{[\s\S]*this\.scene\.start\('FactionSelectScene'\)/);
+  assert.match(source, /translateActive\('ui\.gameMenu\.arena', 'ARENA'\), \(\) => \{[\s\S]*this\.scene\.start\('FactionSelectScene', \{ returnSceneKey: 'GameMenuScene' \}\)/);
   assert.match(source, /import \{ clearCampaign, hasActiveCampaign \} from '\.\.\/systems\/campaignState\.js';/);
   assert.match(source, /if \(hasActiveCampaign\(\)\) \{[\s\S]*resetImageButtonState\(this\.continueButton, \{ interactive: true \}\)/);
   assert.match(source, /resetImageButtonState\(this\.continueButton, \{ interactive: false \}\)/);
@@ -380,9 +380,11 @@ test('Game menu localization resolves exact English and Polish labels', () => {
   assert.equal(en.ui.gameMenu.continue, 'CONTINUE');
   assert.equal(en.ui.gameMenu.newGame, 'NEW GAME');
   assert.equal(en.ui.gameMenu.arena, 'ARENA');
-  assert.equal(en.ui.gameMenu.confirmNewGame, 'NEW GAME');
+  assert.equal(en.ui.gameMenu.cancelNewGame, 'BACK');
+  assert.equal(en.ui.gameMenu.confirmNewGame, 'START');
   assert.equal(pl.ui.gameMenu.continue, 'KONTYNUUJ');
   assert.equal(pl.ui.gameMenu.newGame, 'NOWA GRA');
   assert.equal(pl.ui.gameMenu.arena, 'ARENA');
-  assert.equal(pl.ui.gameMenu.confirmNewGame, 'NOWA GRA');
+  assert.equal(pl.ui.gameMenu.cancelNewGame, 'POWRÓT');
+  assert.equal(pl.ui.gameMenu.confirmNewGame, 'START');
 });

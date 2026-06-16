@@ -29,6 +29,28 @@ test('new game requires confirmation when campaign exists', () => {
   assert.match(source, /translateActive\('ui\.gameMenu\.newGameConfirmBody'/);
 });
 
+
+test('FactionSelectScene back route can return arena and campaign launches to game menu', () => {
+  const faction = read('src/scenes/FactionSelectScene.js');
+  const gameMenu = read('src/scenes/GameMenuScene.js');
+  assert.match(faction, /this\.returnSceneKey = data\?\.returnSceneKey === 'GameMenuScene' \? 'GameMenuScene' : 'MainMenuScene'/);
+  assert.match(faction, /returnToMainMenu\(\) \{[\s\S]*this\.scene\.start\(this\.returnSceneKey\)/);
+  assert.match(gameMenu, /this\.scene\.start\('FactionSelectScene', \{ returnSceneKey: 'GameMenuScene' \}\)/);
+  assert.match(gameMenu, /this\.scene\.start\('FactionSelectScene', \{ mode: 'campaign', returnSceneKey: 'GameMenuScene' \}\)/);
+});
+
+test('new game confirmation modal uses short localized labels and preserves actions', () => {
+  const source = read('src/scenes/GameMenuScene.js');
+  const en = JSON.parse(read('src/localization/translations/en.json'));
+  const pl = JSON.parse(read('src/localization/translations/pl.json'));
+  assert.equal(en.ui.gameMenu.cancelNewGame, 'BACK');
+  assert.equal(en.ui.gameMenu.confirmNewGame, 'START');
+  assert.equal(pl.ui.gameMenu.cancelNewGame, 'POWRÓT');
+  assert.equal(pl.ui.gameMenu.confirmNewGame, 'START');
+  assert.match(source, /translateActive\('ui\.gameMenu\.cancelNewGame', 'BACK'\), \(\) => this\.closeNewGameConfirmation\(\)\)/);
+  assert.match(source, /translateActive\('ui\.gameMenu\.confirmNewGame', 'START'\), \(\) => \{[\s\S]*clearCampaign\(\);[\s\S]*this\.openCampaignFactionSelect\(\)/);
+});
+
 test('continue campaign opens enemy selection scene', () => {
   const source = read('src/scenes/GameMenuScene.js');
   assert.match(source, /continueCampaign\(\) \{[\s\S]*if \(!hasActiveCampaign\(\)\) return;[\s\S]*this\.scene\.start\('CampaignEnemySelectScene'\)/);
@@ -76,6 +98,7 @@ test('campaign scene registered and localization keys exist', () => {
     const translations = JSON.parse(read(`src/localization/translations/${locale}.json`));
     assert.ok(translations.ui.campaignEnemySelect.title);
     assert.ok(translations.ui.gameMenu.newGameConfirmTitle);
+    assert.ok(translations.ui.gameMenu.cancelNewGame);
     assert.ok(translations.ui.gameMenu.confirmNewGame);
   }
 });
@@ -182,9 +205,29 @@ test('attempt indicators render inside every campaign enemy card including attri
   assert.ok(models.some((enemy) => enemy.factionKey === 'Attrition Swarm'));
   assert.equal(models.every((enemy) => enemy.indicator === '●●●'), true);
   const source = read('src/scenes/CampaignEnemySelectScene.js');
-  assert.match(source, /const indicatorX = cardWidth \/ 2 - ATTEMPT_INDICATOR_RIGHT_MARGIN/);
-  assert.match(source, /const indicatorY = y \+ CARD_HEIGHT - ATTEMPT_INDICATOR_BOTTOM_MARGIN/);
-  assert.match(source, /\.setOrigin\(1, 1\)/);
+  assert.match(source, /const indicatorX = cardWidth \/ 2 - ATTEMPT_INDICATOR_RIGHT_MARGIN - indicatorPanelWidth \/ 2/);
+  assert.match(source, /const indicatorY = y \+ CARD_HEIGHT - ATTEMPT_INDICATOR_BOTTOM_MARGIN - indicatorPanelHeight \/ 2/);
+  assert.match(source, /fixedWidth: ATTEMPT_INDICATOR_WIDTH/);
+  assert.match(source, /\.setOrigin\(0\.5\)/);
+});
+
+test('attempt marker layout keeps centered lower-right panel inside card bounds', () => {
+  const source = read('src/scenes/CampaignEnemySelectScene.js');
+  assert.match(source, /const ATTEMPT_INDICATOR_BOTTOM_MARGIN = 8/);
+  assert.match(source, /const ATTEMPT_INDICATOR_PADDING_X = 12/);
+  assert.match(source, /const ATTEMPT_INDICATOR_PADDING_Y = 7/);
+  assert.match(source, /indicatorX - indicatorPanelWidth \/ 2/);
+  assert.match(source, /indicatorY - indicatorPanelHeight \/ 2/);
+});
+
+test('attempt marker indicators remain available for active, damaged, and defeated enemies', () => {
+  let campaign = createNewCampaign('Aggro');
+  const enemyKey = Object.keys(campaign.enemies)[0];
+  assert.equal(getCampaignEnemyViewModels(campaign).find((enemy) => enemy.factionKey === enemyKey).indicator, '●●●');
+  campaign = applyCampaignBattleResult(selectCampaignEnemy(campaign, enemyKey), { enemyFactionKey: enemyKey, winner: 'enemy' });
+  assert.equal(getCampaignEnemyViewModels(campaign).find((enemy) => enemy.factionKey === enemyKey).indicator, '●●○');
+  campaign = applyCampaignBattleResult(selectCampaignEnemy(campaign, enemyKey), { enemyFactionKey: enemyKey, winner: 'player' });
+  assert.equal(getCampaignEnemyViewModels(campaign).find((enemy) => enemy.factionKey === enemyKey).indicator, '✓');
 });
 
 test('campaign localization keys exist', () => {

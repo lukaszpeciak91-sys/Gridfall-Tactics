@@ -550,7 +550,8 @@
       "arena": "ARENA",
       "newGameConfirmTitle": "ROZPOCZĄĆ NOWĄ GRĘ?",
       "newGameConfirmBody": "To nadpisze obecny postęp kampanii.",
-      "confirmNewGame": "NOWA GRA"
+      "confirmNewGame": "START",
+      "cancelNewGame": "POWRÓT"
     },
     "campaignEnemySelect": {
       "title": "WYBIERZ WROGA",
