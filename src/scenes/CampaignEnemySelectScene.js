@@ -8,6 +8,7 @@ import { isValidCampaignState, loadCampaign, saveCampaign, selectCampaignEnemy }
 import { getCampaignEnemyViewModels } from '../systems/campaignEnemySelection.js';
 import { MENU_BACKGROUND_FALLBACK_COLOR, MENU_BACKGROUND_FALLBACK_COLOR_HEX, createCoverBackground, createMenuArenaLightSweep, getMenuBackgroundAsset, preloadMenuBackgroundArt } from '../rendering/backgroundArt.js';
 import { drawFactionCardVisual, preloadFactionPreviewArt } from '../ui/factionCards.js';
+import { createTapVsDragInteraction } from '../ui/tapVsDragInteraction.js';
 
 const CARD_HEIGHT = 196;
 const CARD_GAP = 34;
@@ -25,6 +26,7 @@ export default class CampaignEnemySelectScene extends Phaser.Scene {
     this.scrollMask = null;
     this.campaign = null;
     this.statusText = null;
+    this.tapVsDrag = createTapVsDragInteraction();
   }
 
   preload() {
@@ -119,7 +121,12 @@ export default class CampaignEnemySelectScene extends Phaser.Scene {
 
     if (!enemy.selectable) return;
     const button = this.add.zone(0, y + CARD_HEIGHT / 2, cardWidth, CARD_HEIGHT).setOrigin(0.5).setInteractive({ useHandCursor: true });
-    button.on('pointerup', () => this.selectEnemy(enemy.factionKey));
+    button.on('pointerdown', (pointer) => this.tapVsDrag.begin(pointer, this.scrollState?.content?.y ?? 0));
+    button.on('pointerup', (pointer) => {
+      if (this.tapVsDrag.end(pointer, this.scrollState?.content?.y ?? 0)) {
+        this.selectEnemy(enemy.factionKey);
+      }
+    });
     content.add(button);
     this.uiElements.push(button);
     this.interactiveElements.push(button);
@@ -157,7 +164,7 @@ export default class CampaignEnemySelectScene extends Phaser.Scene {
 
   onScrollWheel(pointer, gameObjects, deltaX, deltaY) { const s = this.scrollState; if (!s || pointer.y < s.viewportTop || pointer.y > s.viewportBottom) return; this.setScrollY(s.content.y - deltaY * 0.45); }
   onScrollPointerDown(pointer) { const s = this.scrollState; if (!s || pointer.y < s.viewportTop || pointer.y > s.viewportBottom) return; s.pointerId = pointer.id; s.pointerStartY = pointer.y; s.contentStartY = s.content.y; }
-  onScrollPointerMove(pointer) { const s = this.scrollState; if (!s || s.pointerId !== pointer.id) return; this.setScrollY(s.contentStartY + pointer.y - s.pointerStartY); }
+  onScrollPointerMove(pointer) { const s = this.scrollState; if (!s || s.pointerId !== pointer.id) return; this.setScrollY(s.contentStartY + pointer.y - s.pointerStartY); this.tapVsDrag.update(pointer, s.content.y); }
   onScrollPointerUp(pointer) { const s = this.scrollState; if (s?.pointerId === pointer.id) s.pointerId = null; }
   setScrollY(nextY) { const s = this.scrollState; if (s) s.content.y = Phaser.Math.Clamp(nextY, s.minY, s.maxY); }
 
@@ -171,7 +178,7 @@ export default class CampaignEnemySelectScene extends Phaser.Scene {
   cleanupScene() {
     this.scale?.off('enterfullscreen', this.onFullscreenChanged, this); this.scale?.off('leavefullscreen', this.onFullscreenChanged, this);
     this.input?.off('wheel', this.onScrollWheel, this); this.input?.off('pointerdown', this.onScrollPointerDown, this); this.input?.off('pointermove', this.onScrollPointerMove, this); this.input?.off('pointerup', this.onScrollPointerUp, this);
-    this.scrollMask?.destroy?.(); this.scrollMask = null; this.scrollState = null;
+    this.tapVsDrag?.cancel?.(); this.scrollMask?.destroy?.(); this.scrollMask = null; this.scrollState = null;
     this.uiElements.forEach((element) => { if (element?.active) { element.removeAllListeners?.(); element.destroy(); } });
     this.uiElements = []; this.interactiveElements = []; this.statusText = null;
   }

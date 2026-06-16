@@ -100,6 +100,14 @@ test('BattleScene defaults to arena context and preserves arena result exit', ()
   assert.match(source, /exitBattleToFactionSelect\(\) \{[\s\S]*this\.scene\.start\('FactionSelectScene'\)/);
 });
 
+
+
+test('BattleScene campaign exit routes back to campaign enemy selection', () => {
+  const source = read('src/scenes/BattleScene.js');
+  assert.match(source, /exitBattleToFactionSelect\(\) \{[\s\S]*if \(this\.isCampaignBattle\(\)\) \{[\s\S]*this\.exitBattleToCampaignEnemySelect\(\)/);
+  assert.match(source, /exitBattleToCampaignEnemySelect\(\) \{[\s\S]*this\.scene\.start\('CampaignEnemySelectScene', \{ campaign \}\)/);
+});
+
 test('BattleScene routes campaign results through campaign state only', () => {
   const source = read('src/scenes/BattleScene.js');
   assert.match(source, /continueCampaignBattleResult\(\)/);

@@ -7,7 +7,7 @@ const readScene = (path) => fs.readFileSync(path, 'utf8');
 test('faction selection starts BattleScene without stopping itself or clearing global input listeners', () => {
   const source = readScene('src/scenes/FactionSelectScene.js');
 
-  assert.match(source, /button\.on\('pointerup', \(\) => this\.selectFaction\(factionKey\)\)/);
+  assert.match(source, /button\.on\('pointerup', \(pointer\) => \{[\s\S]*this\.tapVsDrag\.end\(pointer, this\.scrollState\?\.content\?\.y \?\? 0\)[\s\S]*this\.selectFaction\(factionKey\)/);
   assert.match(source, /this\.scene\.start\('BattleScene', \{ factionKey \}\)/);
   assert.doesNotMatch(source, /this\.scene\.stop\('FactionSelectScene'\)/);
   assert.doesNotMatch(source, /this\.input\.removeAllListeners\(\)/);
