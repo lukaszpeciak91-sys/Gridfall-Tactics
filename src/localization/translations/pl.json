@@ -282,7 +282,8 @@
       "tutorial": "SAMOUCZEK",
       "collection": "KOLEKCJA",
       "settings": "USTAWIENIA",
-      "tutorialComingSoon": "Samouczek wkrótce"
+      "tutorialComingSoon": "Samouczek wkrótce",
+      "game": "GRA"
     },
     "factionSelect": {
       "title": "WYBIERZ DRUŻYNĘ",
@@ -540,6 +541,11 @@
         "Zakończ turę po wykorzystaniu akcji.",
         "Obniż PŻ bazy wroga do 0, aby wygrać."
       ]
+    },
+    "gameMenu": {
+      "continue": "KONTYNUUJ",
+      "newGame": "NOWA GRA",
+      "arena": "ARENA"
     }
   }
 }

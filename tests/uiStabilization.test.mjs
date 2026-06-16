@@ -170,7 +170,7 @@ test('start, main menu, and faction select use optional menu background art with
   assert.match(startSource, /START_TRANSITION_MS = 720/);
   assert.match(startSource, /this\.scene\.launch\('MainMenuScene', \{ revealFromStart: true, awaitSharedLogo: true \}\)/);
   assert.match(startSource, /createMenuArenaLightSweep\(this, \{ width, height \}\)/);
-  assert.match(mainMenuSource, /this\.scene\.start\('FactionSelectScene'\)/);
+  assert.match(mainMenuSource, /this\.scene\.start\('GameMenuScene'\)/);
   assert.match(mainMenuSource, /createMenuArenaLightSweep\(this, \{ width, height \}\)/);
   assert.match(factionSource, /preloadMenuBackgroundArt\(this\)/);
   assert.match(factionSource, /createCoverBackground\(this, \{/);

@@ -282,7 +282,8 @@
       "tutorial": "TUTORIAL",
       "collection": "COLLECTION",
       "settings": "SETTINGS",
-      "tutorialComingSoon": "Tutorial coming soon"
+      "tutorialComingSoon": "Tutorial coming soon",
+      "game": "GAME"
     },
     "factionSelect": {
       "title": "SELECT YOUR TEAM",
@@ -540,6 +541,11 @@
         "End your turn after spending your action.",
         "Reduce the enemy base to 0 HP to win."
       ]
+    },
+    "gameMenu": {
+      "continue": "CONTINUE",
+      "newGame": "NEW GAME",
+      "arena": "ARENA"
     }
   },
   "diagnostics": {

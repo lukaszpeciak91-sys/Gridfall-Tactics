@@ -102,8 +102,8 @@ export default class MainMenuScene extends Phaser.Scene {
     const buttonGap = buttonHeight + MAIN_MENU_BUTTON_VERTICAL_GAP;
     const startY = height * MAIN_MENU_FIRST_BUTTON_Y_RATIO;
 
-    this.createMenuButton(width / 2, startY, buttonWidth, translateActive('ui.mainMenu.arena', 'ARENA'), () => {
-      this.scene.start('FactionSelectScene');
+    this.createMenuButton(width / 2, startY, buttonWidth, translateActive('ui.mainMenu.game', 'GAME'), () => {
+      this.scene.start('GameMenuScene');
     });
 
     this.createMenuButton(width / 2, startY + buttonGap, buttonWidth, translateActive('ui.mainMenu.tutorial', 'TUTORIAL'), () => {
