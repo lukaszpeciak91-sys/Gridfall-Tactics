@@ -270,7 +270,9 @@
       "none": "None",
       "empty": "Empty",
       "unknownCard": "Unknown Card",
-      "unit": "Unit"
+      "unit": "Unit",
+      "continue": "CONTINUE",
+      "mainMenu": "MAIN MENU"
     },
     "start": {
       "title": "GRIDFALL TACTICS",
@@ -554,6 +556,10 @@
       "title": "SELECT ENEMY",
       "battleComingSoon": "Battle routing coming soon.",
       "invalidEnemy": "Enemy unavailable."
+    },
+    "campaignResult": {
+      "won": "CAMPAIGN WON",
+      "lost": "CAMPAIGN LOST"
     }
   },
   "diagnostics": {

@@ -13,6 +13,8 @@ const CARD_HEIGHT = 196;
 const CARD_GAP = 34;
 const VIEWPORT_TOP_MIN = 118;
 const HEADER_GAP = 22;
+const ATTEMPT_INDICATOR_RIGHT_MARGIN = 14;
+const ATTEMPT_INDICATOR_BOTTOM_MARGIN = 13;
 
 export default class CampaignEnemySelectScene extends Phaser.Scene {
   constructor() {
@@ -89,9 +91,31 @@ export default class CampaignEnemySelectScene extends Phaser.Scene {
   drawEnemyCard(content, enemy, { y, cardWidth }) {
     const { items } = drawFactionCardVisual(this, content, enemy.factionKey, { y, cardWidth, cardHeight: CARD_HEIGHT, alpha: enemy.defeated ? 0.62 : 1, completed: enemy.defeated });
     this.uiElements.push(...items);
-    const indicator = this.add.text(0, y + CARD_HEIGHT + 7, enemy.indicator, { fontFamily: 'Arial, sans-serif', fontSize: enemy.defeated ? '22px' : '18px', color: enemy.defeated ? '#86efac' : '#fde68a', stroke: '#020617', strokeThickness: 3 }).setOrigin(0.5, 0);
+    const indicatorX = cardWidth / 2 - ATTEMPT_INDICATOR_RIGHT_MARGIN;
+    const indicatorY = y + CARD_HEIGHT - ATTEMPT_INDICATOR_BOTTOM_MARGIN;
+    const indicator = this.add.text(indicatorX, indicatorY, enemy.indicator, { fontFamily: 'Arial, sans-serif', fontSize: enemy.defeated ? '22px' : '18px', color: enemy.defeated ? '#86efac' : '#fde68a', stroke: '#020617', strokeThickness: 3 }).setOrigin(1, 1);
+    const indicatorPaddingX = 9;
+    const indicatorPaddingY = 5;
+    const indicatorBadge = this.add.graphics();
+    indicatorBadge.fillStyle(0x020617, enemy.defeated ? 0.58 : 0.66);
+    indicatorBadge.fillRoundedRect(
+      indicatorX - indicator.width - indicatorPaddingX * 2,
+      indicatorY - indicator.height - indicatorPaddingY * 2 + 1,
+      indicator.width + indicatorPaddingX * 2,
+      indicator.height + indicatorPaddingY * 2,
+      12,
+    );
+    indicatorBadge.lineStyle(1, enemy.defeated ? 0x86efac : 0xfde68a, enemy.defeated ? 0.38 : 0.48);
+    indicatorBadge.strokeRoundedRect(
+      indicatorX - indicator.width - indicatorPaddingX * 2 + 0.5,
+      indicatorY - indicator.height - indicatorPaddingY * 2 + 1.5,
+      indicator.width + indicatorPaddingX * 2 - 1,
+      indicator.height + indicatorPaddingY * 2 - 1,
+      11,
+    );
+    content.add(indicatorBadge);
     content.add(indicator);
-    this.uiElements.push(indicator);
+    this.uiElements.push(indicatorBadge, indicator);
 
     if (!enemy.selectable) return;
     const button = this.add.zone(0, y + CARD_HEIGHT / 2, cardWidth, CARD_HEIGHT).setOrigin(0.5).setInteractive({ useHandCursor: true });
@@ -103,10 +127,22 @@ export default class CampaignEnemySelectScene extends Phaser.Scene {
 
   selectEnemy(enemyFactionKey) {
     try {
-      const selected = selectCampaignEnemy(this.campaign, enemyFactionKey);
-      this.campaign = saveCampaign(selected) ?? selected;
-      console.log('Campaign enemy selected; battle routing will be added later.', { enemyFactionKey });
-      this.showTemporaryMessage(translateActive('ui.campaignEnemySelect.battleComingSoon', 'Battle routing coming soon.'));
+      const currentCampaign = loadCampaign() ?? this.campaign;
+      if (!isValidCampaignState(currentCampaign) || currentCampaign.status !== 'active') {
+        throw new RangeError('Campaign is not active.');
+      }
+      const selected = selectCampaignEnemy(currentCampaign, enemyFactionKey);
+      const updatedCampaign = saveCampaign(selected) ?? selected;
+      this.campaign = updatedCampaign;
+      this.scene.start('BattleScene', {
+        factionKey: updatedCampaign.playerFactionKey,
+        enemyFactionKey,
+        battleContext: {
+          mode: 'campaign',
+          campaignRunId: updatedCampaign.runId,
+          campaignEnemyFactionKey: enemyFactionKey,
+        },
+      });
     } catch (error) {
       console.warn('Campaign enemy selection failed.', error);
       this.showTemporaryMessage(translateActive('ui.campaignEnemySelect.invalidEnemy', 'Enemy unavailable.'));
