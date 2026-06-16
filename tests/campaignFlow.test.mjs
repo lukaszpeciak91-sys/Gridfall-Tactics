@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
-import { createNewCampaign, applyCampaignBattleResult } from '../src/systems/campaignState.js';
+import { createNewCampaign, applyCampaignBattleResult, selectCampaignEnemy } from '../src/systems/campaignState.js';
 import { getCampaignEnemyFactionKeys, getCampaignEnemyViewModels } from '../src/systems/campaignEnemySelection.js';
 
 const read = (path) => fs.readFileSync(path, 'utf8');
@@ -46,7 +46,7 @@ test('campaign enemy select excludes player and shows exactly five stable enemie
 test('defeated enemy remains visible and disabled', () => {
   const campaign = createNewCampaign('Aggro');
   const defeatedKey = Object.keys(campaign.enemies)[0];
-  const resolved = applyCampaignBattleResult(campaign, { enemyFactionKey: defeatedKey, winner: 'player' });
+  const resolved = applyCampaignBattleResult(selectCampaignEnemy(campaign, defeatedKey), { enemyFactionKey: defeatedKey, winner: 'player' });
   const model = getCampaignEnemyViewModels(resolved).find((enemy) => enemy.factionKey === defeatedKey);
   assert.ok(model);
   assert.equal(model.defeated, true);
@@ -57,7 +57,7 @@ test('defeated enemy remains visible and disabled', () => {
 test('attempt indicators reflect campaign state', () => {
   const campaign = createNewCampaign('Aggro');
   const enemyKey = Object.keys(campaign.enemies)[0];
-  const damaged = applyCampaignBattleResult(campaign, { enemyFactionKey: enemyKey, winner: 'enemy' });
+  const damaged = applyCampaignBattleResult(selectCampaignEnemy(campaign, enemyKey), { enemyFactionKey: enemyKey, winner: 'enemy' });
   const model = getCampaignEnemyViewModels(damaged).find((enemy) => enemy.factionKey === enemyKey);
   assert.equal(model.attemptsRemaining, 2);
   assert.equal(model.indicator, '●●○');
@@ -112,6 +112,8 @@ test('BattleScene routes campaign results through campaign state only', () => {
   const source = read('src/scenes/BattleScene.js');
   assert.match(source, /continueCampaignBattleResult\(\)/);
   assert.match(source, /winner: this\.gameState\?\.winner === 'player' \? 'player' : \(this\.gameState\?\.winner === 'draw' \? 'draw' : 'enemy'\)/);
+  assert.match(source, /campaign\.runId !== this\.battleContext\.campaignRunId/);
+  assert.match(source, /routeAfterIgnoredCampaignResult\(campaign\)/);
   assert.match(source, /applyCampaignBattleResult\(campaign, result\)/);
   assert.match(source, /saveCampaign\(updatedCampaign\)/);
   assert.match(source, /this\.scene\.start\('CampaignEnemySelectScene', \{ campaign: updatedCampaign \}\)/);
@@ -127,19 +129,39 @@ test('campaign result modal uses continue without direct retry and clears comple
   assert.match(source, /clearCampaign\(\);[\s\S]*this\.scene\.start\('MainMenuScene'\)/);
 });
 
+test('campaign result guards run id before applying progression', () => {
+  const source = read('src/scenes/BattleScene.js');
+  assert.match(source, /campaign\.runId !== this\.battleContext\.campaignRunId/);
+  assert.match(source, /Campaign battle result ignored because campaign run id changed/);
+  assert.match(source, /routeAfterIgnoredCampaignResult\(campaign\)/);
+});
+
+test('campaign result guard safely routes valid campaigns back to enemy select', () => {
+  const source = read('src/scenes/BattleScene.js');
+  assert.match(source, /routeAfterIgnoredCampaignResult\(campaign = loadCampaign\(\)\)/);
+  assert.match(source, /this\.scene\.start\('CampaignEnemySelectScene', \{ campaign \}\)/);
+  assert.match(source, /this\.scene\.start\('GameMenuScene'\)/);
+});
+
+test('campaign draw routes back to campaign enemy selection', () => {
+  const source = read('src/scenes/BattleScene.js');
+  assert.match(source, /winner: this\.gameState\?\.winner === 'player' \? 'player' : \(this\.gameState\?\.winner === 'draw' \? 'draw' : 'enemy'\)/);
+  assert.match(source, /this\.scene\.start\('CampaignEnemySelectScene', \{ campaign: updatedCampaign \}\)/);
+});
+
 test('campaign progression handles losses and wins at state level', () => {
   let campaign = createNewCampaign('Aggro');
   const enemyKey = Object.keys(campaign.enemies)[0];
-  campaign = applyCampaignBattleResult(campaign, { enemyFactionKey: enemyKey, winner: 'enemy' });
+  campaign = applyCampaignBattleResult(selectCampaignEnemy(campaign, enemyKey), { enemyFactionKey: enemyKey, winner: 'enemy' });
   assert.equal(campaign.enemies[enemyKey].attemptsRemaining, 2);
   assert.equal(campaign.status, 'active');
-  campaign = applyCampaignBattleResult(campaign, { enemyFactionKey: enemyKey, winner: 'enemy' });
-  campaign = applyCampaignBattleResult(campaign, { enemyFactionKey: enemyKey, winner: 'enemy' });
+  campaign = applyCampaignBattleResult(selectCampaignEnemy(campaign, enemyKey), { enemyFactionKey: enemyKey, winner: 'enemy' });
+  campaign = applyCampaignBattleResult(selectCampaignEnemy(campaign, enemyKey), { enemyFactionKey: enemyKey, winner: 'enemy' });
   assert.equal(campaign.status, 'lost');
 
   let winningCampaign = createNewCampaign('Aggro');
   for (const key of Object.keys(winningCampaign.enemies)) {
-    winningCampaign = applyCampaignBattleResult(winningCampaign, { enemyFactionKey: key, winner: 'player' });
+    winningCampaign = applyCampaignBattleResult(selectCampaignEnemy(winningCampaign, key), { enemyFactionKey: key, winner: 'player' });
   }
   assert.equal(winningCampaign.status, 'won');
 });

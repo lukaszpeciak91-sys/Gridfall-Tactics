@@ -272,10 +272,13 @@ export function applyCampaignBattleResult(state, result) {
 
   const nextState = cloneCampaignState(state);
   const enemy = assertValidEnemy(nextState, enemyFactionKey);
+  if (nextState.currentEnemyFactionKey !== enemyFactionKey) {
+    throw new RangeError(`Campaign battle result does not match current enemy: ${enemyFactionKey}`);
+  }
 
   if (winner === 'player') {
     enemy.defeated = true;
-  } else {
+  } else if (winner === 'enemy') {
     enemy.attemptsRemaining = Math.max(0, enemy.attemptsRemaining - 1);
     if (enemy.attemptsRemaining === 0) {
       nextState.status = 'lost';

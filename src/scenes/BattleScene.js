@@ -2051,12 +2051,27 @@ export default class BattleScene extends Phaser.Scene {
       this.showCampaignCompleteModal('lost');
       return;
     }
+    if (campaign.runId !== this.battleContext.campaignRunId) {
+      console.warn('Campaign battle result ignored because campaign run id changed.', {
+        battleRunId: this.battleContext.campaignRunId,
+        loadedRunId: campaign.runId,
+      });
+      this.routeAfterIgnoredCampaignResult(campaign);
+      return;
+    }
 
     const result = {
       enemyFactionKey: this.battleContext.campaignEnemyFactionKey ?? this.enemyFactionKey,
       winner: this.gameState?.winner === 'player' ? 'player' : (this.gameState?.winner === 'draw' ? 'draw' : 'enemy'),
     };
-    const updatedCampaign = applyCampaignBattleResult(campaign, result);
+    let updatedCampaign;
+    try {
+      updatedCampaign = applyCampaignBattleResult(campaign, result);
+    } catch (error) {
+      console.warn('Campaign battle result ignored because it no longer matches campaign state.', error);
+      this.routeAfterIgnoredCampaignResult(campaign);
+      return;
+    }
     saveCampaign(updatedCampaign);
 
     if (updatedCampaign.status === 'won' || updatedCampaign.status === 'lost') {
@@ -2065,6 +2080,15 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     this.scene.start('CampaignEnemySelectScene', { campaign: updatedCampaign });
+  }
+
+  routeAfterIgnoredCampaignResult(campaign = loadCampaign()) {
+    if (isValidCampaignState(campaign) && campaign.status === 'active') {
+      this.scene.start('CampaignEnemySelectScene', { campaign });
+      return;
+    }
+
+    this.scene.start('GameMenuScene');
   }
 
   showCampaignCompleteModal(status) {
