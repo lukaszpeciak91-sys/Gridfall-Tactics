@@ -504,6 +504,8 @@ export default class BattleScene extends Phaser.Scene {
     this.scale.on('resize', this.onViewportChanged, this);
     this.input.on('pointerup', this.onScenePointerUp, this);
     this.input.on('pointerupoutside', this.onScenePointerUpOutside, this);
+    this.events.on(Phaser.Scenes.Events.RESUME, this.onSceneResume, this);
+    this.events.on(Phaser.Scenes.Events.WAKE, this.onSceneWake, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this);
 
   }
@@ -2218,6 +2220,14 @@ export default class BattleScene extends Phaser.Scene {
     toggleSceneFullscreen(this);
   }
 
+  onSceneResume() {
+    this.recoverFromLifecycle('scene-resume');
+  }
+
+  onSceneWake() {
+    this.recoverFromLifecycle('scene-wake');
+  }
+
   onFullscreenChanged() {
     if (this.scale.isFullscreen) {
       requestPortraitOrientationLock();
@@ -2247,6 +2257,8 @@ export default class BattleScene extends Phaser.Scene {
 
     this.cameras.main.setBackgroundColor(BATTLE_BACKGROUND_FALLBACK_COLOR_HEX);
 
+    this.normalizeLifecycleUiState(reason);
+
     if (this.shouldRebuildBattleView(reason, recoveryDiagnostics)) {
       this.rebuildBattleView(reason);
     } else {
@@ -2260,6 +2272,38 @@ export default class BattleScene extends Phaser.Scene {
     this.game.renderer?.resetTextures?.();
     this.game.renderer?.snapshotArea?.(0, 0, 1, 1, () => {});
     this.game.canvas?.focus?.();
+  }
+
+  normalizeLifecycleUiState(reason = 'unknown') {
+    this.clearPointerInputGuard();
+    this.cancelInterruptedPointerGesture();
+    this.deferredTransientBattleBanner = null;
+
+    if (this.openingMulliganPending) {
+      this.targetingState = null;
+      this.effectCastState = null;
+      this.pendingSwapIndex = null;
+      this.destroyActiveSelectionMessage(null, { flushDeferred: false });
+      this.destroyTransientBattleBanners();
+      const liveHandIds = new Set((this.gameState?.player?.hand ?? []).map((card) => card.id));
+      this.selectedMulliganCardIds = this.selectedMulliganCardIds.filter((cardId) => liveHandIds.has(cardId));
+      if (this.cardViews.length !== (this.gameState?.player?.hand?.length ?? 0)) {
+        this.rebuildBattleView(`${reason}:mulligan-hand-repair`);
+        return;
+      }
+      this.redrawHand();
+    } else if (this.turnStartBanner?.active) {
+      this.destroyEnemyActionBanner();
+      this.destroyPlayerActionBanner();
+      this.destroyInvalidActionBanner();
+    } else if (!this.restorePersistentBattleBanner()) {
+      this.destroyTransientBattleBanners();
+    }
+
+    this.refreshHeroHP();
+    this.updatePlayerBaseActionState();
+    this.updateInitiativeIndicator();
+    this.resetCardHighlights({ showPreview: false });
   }
 
   shouldRebuildBattleView(reason, diagnostics) {
@@ -2280,7 +2324,10 @@ export default class BattleScene extends Phaser.Scene {
       || this.children.length === 0
       || !this.battleFrame?.active
       || this.boardCells.length !== 9
-      || this.cardViews.length === 0;
+      || this.cardViews.length === 0
+      || !this.enemyHpText?.active
+      || !this.playerHpText?.active
+      || !this.playerBaseActionLabelText?.active;
   }
 
   getLifecycleDiagnostics(reason, externalDiagnostics = null) {
@@ -2357,6 +2404,8 @@ export default class BattleScene extends Phaser.Scene {
     this.scale.off('resize', this.onViewportChanged, this);
     this.input.off('pointerup', this.onScenePointerUp, this);
     this.input.off('pointerupoutside', this.onScenePointerUpOutside, this);
+    this.events.off(Phaser.Scenes.Events.RESUME, this.onSceneResume, this);
+    this.events.off(Phaser.Scenes.Events.WAKE, this.onSceneWake, this);
     this.resetRuntimeState();
   }
 
