@@ -436,7 +436,8 @@
         "occupied": "Slot occupied",
         "invalidSwap": "Invalid swap",
         "effectCardPlayBlocked": "You cannot play effect cards."
-      }
+      },
+      "confirmSurrender": "SURRENDER"
     },
     "rules": {
       "title": "RULES",

@@ -255,6 +255,7 @@ export default class BattleScene extends Phaser.Scene {
     this.pendingSwapIndex = null;
     this.playerActionUsed = false;
     this.enemyActionUsed = false;
+    this.playerSurrenderArmed = false;
     this.targetingState = null;
     this.effectCastState = null;
     this.isEffectCastResolving = false;
@@ -311,6 +312,7 @@ export default class BattleScene extends Phaser.Scene {
     this.passHoldToSurrenderEnabled = false;
     this.passHoldToSurrenderProgress = false;
     this.passHoldToSurrenderEvent = null;
+    this.playerSurrenderArmed = false;
   }
 
   preload() {
@@ -422,6 +424,7 @@ export default class BattleScene extends Phaser.Scene {
     this.passHoldToSurrenderEnabled = false;
     this.passHoldToSurrenderProgress = false;
     this.passHoldToSurrenderEvent = null;
+    this.playerSurrenderArmed = false;
   }
 
   cleanupSceneObjects({ preserveTimers = false, preserveTweens = false } = {}) {
@@ -2420,6 +2423,7 @@ export default class BattleScene extends Phaser.Scene {
     this.cancelHandCardPressState();
     this.cancelBoardCellPressState();
     this.cancelPassHoldToSurrender();
+    this.disarmPlayerSurrender();
   }
 
   drawHeroPanels() {
@@ -3316,6 +3320,10 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     if (this.isPointerEventGuarded(pointer) || this.navigationInProgress) return;
+    if (this.playerSurrenderArmed) {
+      this.disarmPlayerSurrender();
+      return;
+    }
     if (this.battleResultModalShown || this.isFlowResolving || this.isEffectCastResolving) return;
 
     if (this.openingMulliganPending) {
@@ -3964,6 +3972,9 @@ export default class BattleScene extends Phaser.Scene {
       return this.getOpeningMulliganActionLabel();
     }
     if (playerBaseMode === 'pass') {
+      if (this.playerSurrenderArmed && this.canPlayerBaseHoldToSurrender()) {
+        return translateActive('ui.battle.confirmSurrender', 'SURRENDER');
+      }
       return translateActive('ui.common.pass', 'PASS');
     }
 
@@ -3996,6 +4007,7 @@ export default class BattleScene extends Phaser.Scene {
     this.passHoldToSurrenderEnabled = passActionActive && this.canHoldPassToSurrender();
     if (!this.passHoldToSurrenderEnabled) {
       this.cancelPassHoldToSurrender();
+      this.disarmPlayerSurrender();
     }
     const playerHero = this.layout?.playerHero;
     const centerY = this.playerHeroPanel?.y ?? playerHero?.centerY ?? this.playerHpText?.y ?? 0;
@@ -4048,16 +4060,24 @@ export default class BattleScene extends Phaser.Scene {
     if (this.openingMulliganPending) {
       event?.stopPropagation?.();
       this.cancelPassHoldToSurrender();
+      this.disarmPlayerSurrender();
       this.confirmOpeningMulligan();
       return;
     }
 
     const basePassAvailable = this.isBasePassAvailable();
-    if (this.passHoldToSurrenderProgress) {
+    const releasedArmingHold = this.passHoldToSurrenderProgress;
+    if (releasedArmingHold) {
       this.cancelPassHoldToSurrender();
     }
     if (!basePassAvailable) return;
     event?.stopPropagation?.();
+    if (this.playerSurrenderArmed) {
+      if (!releasedArmingHold) {
+        this.resolvePlayerHoldToSurrender();
+      }
+      return;
+    }
     this.resolvePassTurn();
   }
 
@@ -4161,13 +4181,26 @@ export default class BattleScene extends Phaser.Scene {
       this.passHoldToSurrenderEvent = null;
       this.passHoldToSurrenderEnabled = this.canPlayerBaseHoldToSurrender();
       if (!this.passHoldToSurrenderProgress || !this.passHoldToSurrenderEnabled || this.gameState?.winner || this.battleResultModalShown) return;
-      this.resolvePlayerHoldToSurrender();
+      this.armPlayerSurrender();
     });
   }
 
   onPlayerBasePointerCancel(event) {
     event?.stopPropagation?.();
     this.cancelPassHoldToSurrender();
+    this.disarmPlayerSurrender();
+  }
+
+  armPlayerSurrender() {
+    if (!this.canPlayerBaseHoldToSurrender()) return;
+    this.playerSurrenderArmed = true;
+    this.updatePlayerBaseActionState();
+  }
+
+  disarmPlayerSurrender() {
+    if (!this.playerSurrenderArmed) return;
+    this.playerSurrenderArmed = false;
+    this.updatePlayerBaseActionState();
   }
 
   cancelPassHoldToSurrender() {
@@ -4180,15 +4213,17 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   resolvePlayerHoldToSurrender() {
-    if (!this.gameState || this.gameState.winner || this.battleResultModalShown || !this.passHoldToSurrenderEnabled) return;
+    if (!this.gameState || this.gameState.winner || this.battleResultModalShown || !this.passHoldToSurrenderEnabled || !this.playerSurrenderArmed) return;
     this.gameState.winner = 'enemy';
     this.gameState.endingReason = 'player_hold_surrender';
     this.cancelPassHoldToSurrender();
+    this.playerSurrenderArmed = false;
     this.completeBattleFlow(0);
   }
 
   resolvePassTurn() {
     this.cancelPassHoldToSurrender();
+    this.disarmPlayerSurrender();
     if (this.battleResultModalShown || this.isFlowResolving || this.isEffectCastResolving || this.targetingState) return;
 
     if (this.gameState.winner || !canPass(this.gameState) || this.playerActionUsed) return;
@@ -4304,6 +4339,7 @@ export default class BattleScene extends Phaser.Scene {
 
     this.playerActionUsed = false;
     this.enemyActionUsed = false;
+    this.playerSurrenderArmed = false;
     this.selectedCardId = null;
     this.pendingSwapIndex = null;
     this.targetingState = null;

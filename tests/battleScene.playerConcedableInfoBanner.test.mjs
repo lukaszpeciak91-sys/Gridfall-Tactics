@@ -39,7 +39,9 @@ test('player hold-to-surrender eligibility is HP-threshold-only before base PASS
 
 test('pass hold-to-surrender release early cancels and successful hold routes to enemy winner reason without combat', () => {
   const source = readFileSync(new URL('../src/scenes/BattleScene.js', import.meta.url), 'utf8');
-  assert.match(source, /onPlayerBasePointerCancel\(event\)\s*\{\s*event\?\.stopPropagation\?\.\(\);\s*this\.cancelPassHoldToSurrender\(\);\s*\}/);
+  assert.match(source, /onPlayerBasePointerCancel\(event\)\s*\{\s*event\?\.stopPropagation\?\.\(\);\s*this\.cancelPassHoldToSurrender\(\);\s*this\.disarmPlayerSurrender\(\);\s*\}/);
+  assert.match(source, /this\.armPlayerSurrender\(\);/);
+  assert.match(source, /if \(!this\.passHoldToSurrenderProgress \|\| !this\.passHoldToSurrenderEnabled[\s\S]*return;/);
   assert.match(source, /resolvePlayerHoldToSurrender\(\)\s*\{[\s\S]*this\.gameState\.winner = 'enemy';[\s\S]*this\.gameState\.endingReason = 'player_hold_surrender';[\s\S]*this\.completeBattleFlow\(0\);/);
   const fn = source.match(/resolvePlayerHoldToSurrender\(\)\s*\{[\s\S]*?\n  \}/)?.[0] ?? '';
   assert.doesNotMatch(fn, /resolveCombat\(/);
