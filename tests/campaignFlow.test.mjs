@@ -206,14 +206,16 @@ test('attempt indicators render inside every campaign enemy card including attri
   assert.equal(models.every((enemy) => enemy.indicator === '●●●'), true);
   const source = read('src/scenes/CampaignEnemySelectScene.js');
   assert.match(source, /const indicatorX = cardWidth \/ 2 - ATTEMPT_INDICATOR_RIGHT_MARGIN - indicatorPanelWidth \/ 2/);
-  assert.match(source, /const indicatorY = y \+ CARD_HEIGHT - ATTEMPT_INDICATOR_BOTTOM_MARGIN - indicatorPanelHeight \/ 2/);
+  assert.match(source, /const indicatorBottomMargin = enemy\.defeated \? ATTEMPT_INDICATOR_BOTTOM_MARGIN : ACTIVE_ATTEMPT_INDICATOR_BOTTOM_MARGIN/);
+  assert.match(source, /const indicatorY = y \+ CARD_HEIGHT - indicatorBottomMargin - indicatorPanelHeight \/ 2/);
   assert.match(source, /fixedWidth: ATTEMPT_INDICATOR_WIDTH/);
   assert.match(source, /\.setOrigin\(0\.5\)/);
 });
 
-test('attempt marker layout keeps centered lower-right panel inside card bounds', () => {
+test('attempt marker layout keeps right-aligned active panel above the title line inside card bounds', () => {
   const source = read('src/scenes/CampaignEnemySelectScene.js');
   assert.match(source, /const ATTEMPT_INDICATOR_BOTTOM_MARGIN = 8/);
+  assert.match(source, /const ACTIVE_ATTEMPT_INDICATOR_BOTTOM_MARGIN = 44/);
   assert.match(source, /const ATTEMPT_INDICATOR_PADDING_X = 12/);
   assert.match(source, /const ATTEMPT_INDICATOR_PADDING_Y = 7/);
   assert.match(source, /indicatorX - indicatorPanelWidth \/ 2/);
