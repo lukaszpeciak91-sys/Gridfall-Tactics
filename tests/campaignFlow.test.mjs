@@ -214,8 +214,8 @@ test('attempt indicators render inside every campaign enemy card including attri
 
 test('attempt marker layout keeps right-aligned active panel above the title line inside card bounds', () => {
   const source = read('src/scenes/CampaignEnemySelectScene.js');
-  assert.match(source, /const ATTEMPT_INDICATOR_BOTTOM_MARGIN = 8/);
-  assert.match(source, /const ACTIVE_ATTEMPT_INDICATOR_BOTTOM_MARGIN = 44/);
+  assert.match(source, /const ATTEMPT_INDICATOR_BOTTOM_MARGIN = 19/);
+  assert.match(source, /const ACTIVE_ATTEMPT_INDICATOR_BOTTOM_MARGIN = 55/);
   assert.match(source, /const ATTEMPT_INDICATOR_PADDING_X = 12/);
   assert.match(source, /const ATTEMPT_INDICATOR_PADDING_Y = 7/);
   assert.match(source, /indicatorX - indicatorPanelWidth \/ 2/);
