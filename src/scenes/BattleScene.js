@@ -151,6 +151,7 @@ const HAND_CARD_LONG_PRESS_MS = 425;
 const CARD_INSPECT_LONG_PRESS_MS = 350;
 const BOARD_INSPECT_LONG_PRESS_MS = 350;
 const PASS_HOLD_TO_SURRENDER_MS = 425;
+const PLAYER_SURRENDER_HP_THRESHOLD = 10;
 const ENEMY_ACTION_NOTIFICATION_FADE_IN_MS = 110;
 const ENEMY_ACTION_NOTIFICATION_HOLD_MS = 800;
 const ENEMY_ACTION_NOTIFICATION_FADE_OUT_MS = 140;
@@ -4142,8 +4143,7 @@ export default class BattleScene extends Phaser.Scene {
 
   canHoldPassToSurrender() {
     if (!this.gameState || this.gameState.winner) return false;
-    if (this.gameState.firstActor !== 'player') return false;
-    return isVerySafeConcedableState(this.gameState, 'player');
+    return (this.gameState.playerHP ?? 0) < PLAYER_SURRENDER_HP_THRESHOLD;
   }
 
   canPlayerBaseHoldToSurrender() {
