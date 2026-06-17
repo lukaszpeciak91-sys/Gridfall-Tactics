@@ -2366,6 +2366,7 @@ export default class BattleScene extends Phaser.Scene {
 
     const resultModalWasShown = this.battleResultModalShown;
     this.cleanupSceneObjects({ preserveTimers: true });
+    this.terminalTextBootComplete = false;
     this.layout = this.getLayoutMetrics(width, height);
     this.cameras.main.setBackgroundColor(BATTLE_BACKGROUND_FALLBACK_COLOR_HEX);
     this.backgroundArtAsset = getBattleBackgroundAsset({ playerFactionKey: this.factionKey, enemyFactionKey: this.enemyFactionKey });

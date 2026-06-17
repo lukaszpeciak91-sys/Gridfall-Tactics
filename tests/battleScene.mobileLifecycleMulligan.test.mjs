@@ -41,6 +41,14 @@ test('lifecycle recovery refreshes missing or hidden base label state', () => {
   assert.match(shouldRebuild, /!this\.playerBaseActionLabelText\?\.active/);
 });
 
+test('fullscreen rebuild resets terminal text boot state before recreating base labels', () => {
+  const rebuild = extractMethodBody('rebuildBattleView', 'shutdown');
+
+  assert.match(rebuild, /this\.cleanupSceneObjects\(\{ preserveTimers: true \}\);\s*this\.terminalTextBootComplete = false;/);
+  assert.match(rebuild, /this\.terminalTextBootComplete = false;[\s\S]*this\.drawHeroPanels\(\);/);
+  assert.match(rebuild, /this\.drawHeroPanels\(\);[\s\S]*this\.refreshHeroHP\(\);[\s\S]*this\.updatePlayerBaseActionState\(\);/);
+});
+
 test('mulligan lifecycle recovery restores mulligan UI without changing gameplay state', () => {
   const normalize = extractMethodBody('normalizeLifecycleUiState', 'shouldRebuildBattleView');
 
