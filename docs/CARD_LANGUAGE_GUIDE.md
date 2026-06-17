@@ -12,6 +12,7 @@ The guide is documentation only. It does not define gameplay changes, balance ch
 - Prefer consistency over clever wording.
 - Optimize for mobile readability: short lines, predictable phrases, and minimal visual noise.
 - Card rules text must fit in Collection, Hand, and Inspect views.
+- Card rules do not end with a trailing period. Use punctuation only when needed inside the text; the final character of a card description should not be a period.
 - Do not create gameplay changes through wording. If wording and behavior disagree, fix the implementation or data in a dedicated gameplay/content task, not through silent text drift.
 - Card text should describe player-facing behavior, not code internals.
 
@@ -76,13 +77,13 @@ Do not add flavor filler such as `Durable guard.` just to occupy the rules text 
 
 Use short, repeatable sentence patterns. These examples are canonical style references, not new card designs.
 
-- `On play: deal 1 to opposed [ENEMY].`
-- `On death: summon 1/1 here.`
+- `On play: deal 1 to opposed [ENEMY]`
+- `On death: summon 1/1 here`
 - `Combat death:\n-1 [HP] to opposed [ENEMY].`
 - `Adjacent allies gain +1 ARM until combat.`
 - `Target ally gains +1 ARM until combat.`
-- `If opposed: +1 ATK.`
-- `Attackers: -1 ATK.`
+- `If opposed: +1 ATK`
+- `Attackers: -1 ATK`
 
 ## 8. Icons policy
 
