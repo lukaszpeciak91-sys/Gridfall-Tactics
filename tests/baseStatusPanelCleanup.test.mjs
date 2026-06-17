@@ -50,7 +50,7 @@ test('mulligan base action remains on the player base and hides normal HP', () =
   assert.match(source, /getPlayerBaseActionLabel\(\) \{[\s\S]*return this\.getOpeningMulliganActionLabel\(\);[\s\S]*translateActive\('ui\.common\.pass', 'PASS'\)/);
   assert.match(updatePlayerBaseActionState, /this\.playerBaseActionLabelText[\s\S]*\.setText\(actionLabel \?\? ''\)[\s\S]*\.setVisible\(actionStateActive\)/);
   assert.match(updatePlayerBaseActionState, /this\.playerHpText[\s\S]*\.setVisible\(!mulliganActionActive && !passActionActive\)/);
-  assert.match(source, /onPlayerBasePointerUp\(event\) \{\s*if \(this\.openingMulliganPending\) \{\s*event\?\.stopPropagation\?\.\(\);\s*this\.cancelPassHoldToSurrender\(\);\s*this\.confirmOpeningMulligan\(\);\s*return;\s*\}[\s\S]*if \(!basePassAvailable\) return;[\s\S]*this\.resolvePassTurn\(\);\s*\}/);
+  assert.match(source, /onPlayerBasePointerUp\(event\) \{\s*if \(this\.openingMulliganPending\) \{\s*event\?\.stopPropagation\?\.\(\);\s*this\.cancelPassHoldToSurrender\(\);[\s\S]*this\.confirmOpeningMulligan\(\);\s*return;\s*\}[\s\S]*if \(!basePassAvailable\) return;[\s\S]*if \(this\.playerSurrenderArmed\) \{[\s\S]*this\.resolvePlayerHoldToSurrender\(\);[\s\S]*return;\s*\}[\s\S]*this\.resolvePassTurn\(\);\s*\}/);
 });
 
 test('base PASS uses existing pass path and gates PASS-only base action blockers', () => {
@@ -74,7 +74,7 @@ test('player base owns PASS hold-to-surrender timing and cancellation', () => {
   assert.match(source, /playerPanel\.on\('pointerout'[\s\S]*this\.onPlayerBasePointerCancel\(event\);/);
   assert.match(source, /playerPanel\.on\('pointercancel'[\s\S]*this\.onPlayerBasePointerCancel\(event\);/);
   assert.match(source, /canPlayerBaseHoldToSurrender\(\) \{\s*return this\.isBasePassAvailable\(\) && this\.canHoldPassToSurrender\(\);\s*\}/);
-  assert.match(source, /onPlayerBasePointerDown\(event\) \{\s*if \(!this\.canPlayerBaseHoldToSurrender\(\)\) return;[\s\S]*this\.time\.delayedCall\(PASS_HOLD_TO_SURRENDER_MS,[\s\S]*this\.resolvePlayerHoldToSurrender\(\);/);
-  assert.match(source, /onPlayerBasePointerCancel\(event\) \{\s*event\?\.stopPropagation\?\.\(\);\s*this\.cancelPassHoldToSurrender\(\);\s*\}/);
-  assert.match(source, /onPlayerBasePointerUp\(event\) \{[\s\S]*if \(this\.passHoldToSurrenderProgress\) \{\s*this\.cancelPassHoldToSurrender\(\);\s*\}[\s\S]*this\.resolvePassTurn\(\);\s*\}/);
+  assert.match(source, /onPlayerBasePointerDown\(event\) \{\s*if \(!this\.canPlayerBaseHoldToSurrender\(\)\) return;[\s\S]*this\.time\.delayedCall\(PASS_HOLD_TO_SURRENDER_MS,[\s\S]*this\.armPlayerSurrender\(\);/);
+  assert.match(source, /onPlayerBasePointerCancel\(event\) \{\s*event\?\.stopPropagation\?\.\(\);\s*this\.cancelPassHoldToSurrender\(\);\s*this\.disarmPlayerSurrender\(\);\s*\}/);
+  assert.match(source, /onPlayerBasePointerUp\(event\) \{[\s\S]*const releasedArmingHold = this\.passHoldToSurrenderProgress;[\s\S]*if \(this\.playerSurrenderArmed\) \{[\s\S]*this\.resolvePlayerHoldToSurrender\(\);[\s\S]*return;\s*\}[\s\S]*this\.resolvePassTurn\(\);\s*\}/);
 });
