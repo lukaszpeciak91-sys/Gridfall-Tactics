@@ -2,123 +2,123 @@
   "cards": {
     "aggro_runner_1": {
       "name": "Runner",
-      "textShort": "Open line: enemy base loses 2 HP."
+      "textShort": "Open line: enemy base loses 2 HP"
     },
     "aggro_berserker_1": {
       "name": "Berserker",
-      "textShort": "While damaged: +1 ATK."
+      "textShort": "While damaged: +1 ATK"
     },
     "aggro_glass_cannon_1": {
       "name": "Glass Cannon",
-      "textShort": "After attack: lose 1 HP."
+      "textShort": "After attack: lose 1 HP"
     },
     "aggro_flanker_1": {
       "name": "Flanker",
-      "textShort": "Empty adjacent slot on your side: +1 ATK."
+      "textShort": "Empty adjacent slot on your side: +1 ATK"
     },
     "aggro_scout_1": {
       "name": "Scout",
-      "textShort": "Until opponent's next action: no unit in this lane."
+      "textShort": "Until opponent's next action: no unit in this lane"
     },
     "aggro_full_attack_1": {
       "name": "Full Attack",
-      "textShort": "All [ALLY] +2 ATK until combat."
+      "textShort": "All [ALLY] +2 ATK until combat"
     },
     "aggro_rush_1": {
       "name": "Rush",
-      "textShort": "Swap with adjacent [ALLY], then that lane immediately fights."
+      "textShort": "Swap with adjacent [ALLY], then that lane immediately fights"
     },
     "aggro_pierce_strike_1": {
       "name": "Pierce Strike",
-      "textShort": "Deal 1 to [ENEMY].\nNext hit ignores [ARM]."
+      "textShort": "Deal 1 to [ENEMY].\nNext hit ignores [ARM]"
     },
     "aggro_adrenaline_1": {
       "name": "Adrenaline",
-      "textShort": "Selected [ALLY] immediately fights in its lane."
+      "textShort": "Selected [ALLY] immediately fights in its lane"
     },
     "aggro_quick_fix_1": {
       "name": "Quick Fix",
-      "textShort": "Heal [ALLY] 1. +1 ATK until combat. Kills in combat: draw 1."
+      "textShort": "Heal [ALLY] 1. +1 ATK until combat. Kills in combat: draw 1"
     },
     "attrition_swarm_husk_1": {
       "name": "Husk",
-      "textShort": "Combat death:\n-1 [HP] to opposed [ENEMY]."
+      "textShort": "Combat death:\n-1 [HP] to opposed [ENEMY]"
     },
     "attrition_swarm_carrier_1": {
       "name": "Carrier",
-      "textShort": "Combat death: summon 1/1 here."
+      "textShort": "Combat death: summon 1/1 here"
     },
     "attrition_swarm_leech_1": {
       "name": "Leech",
-      "textShort": "On attack: heal your base 1."
+      "textShort": "On attack: heal your base 1"
     },
     "attrition_swarm_rotcaller_1": {
       "name": "Party Host",
-      "textShort": "First adjacent [ALLY] death in combat: +1 ATK until combat."
+      "textShort": "First adjacent [ALLY] death in combat: +1 ATK until combat"
     },
     "attrition_swarm_abomination_1": {
       "name": "Abomination",
-      "textShort": "Combat death: both bases lose 1 HP."
+      "textShort": "Combat death: both bases lose 1 HP"
     },
     "attrition_swarm_funeral_pyre_1": {
       "name": "Funeral Pyre",
-      "textShort": "First 2 [ALLY] combat deaths:\n-1 [HP] to opposed [ENEMY]."
+      "textShort": "First 2 [ALLY] combat deaths:\n-1 [HP] to opposed [ENEMY]"
     },
     "attrition_swarm_infect_1": {
       "name": "Rotten Gift",
-      "textShort": "Deal 1 to [ENEMY].\nOpposed [ALLY] gains +1 [ATK]."
+      "textShort": "Deal 1 to [ENEMY].\nOpposed [ALLY] gains +1 [ATK]"
     },
     "attrition_swarm_feast_1": {
       "name": "Feast",
-      "textShort": "Draw 1."
+      "textShort": "Draw 1"
     },
     "attrition_swarm_rise_again_1": {
       "name": "Rise Again",
-      "textShort": "Revive the newest fallen unit with 1 HP."
+      "textShort": "Revive the newest fallen unit with 1 HP"
     },
     "attrition_swarm_grave_call_1": {
       "name": "Grave Call",
-      "textShort": "Summon a 1/1. If you have no [ALLY], summon up to 2."
+      "textShort": "Summon a 1/1. If you have no [ALLY], summon up to 2"
     },
     "control_hacker_1": {
       "name": "Signalegel",
-      "textShort": "Opposed [ENEMY]: -1 ATK until combat."
+      "textShort": "Opposed [ENEMY]: -1 ATK until combat"
     },
     "control_disruptor_1": {
       "name": "Störführer",
-      "textShort": "Until combat, opponent cannot play effect cards."
+      "textShort": "Until combat, opponent cannot play effect cards"
     },
     "control_sniper_1": {
       "name": "Rotes Auge",
-      "textShort": "Attacks the lowest-HP [ENEMY]."
+      "textShort": "Attacks the lowest-HP [ENEMY]"
     },
     "control_controller_1": {
       "name": "Kommandant",
-      "textShort": "On play: swap two [ENEMIES]."
+      "textShort": "On play: swap two [ENEMIES]"
     },
     "control_drone_1": {
       "name": "Relay",
-      "textShort": "On death: enemy base loses 1 HP."
+      "textShort": "On death: enemy base loses 1 HP"
     },
     "control_swap_1": {
       "name": "Signal Shift",
-      "textShort": "Swap 2 [ALLY] or 2 [ENEMIES]."
+      "textShort": "Swap 2 [ALLY] or 2 [ENEMIES]"
     },
     "control_jam_signal_1": {
       "name": "Signal Jam",
-      "textShort": "Up to 2 [ENEMIES]: -1 ATK until combat."
+      "textShort": "Up to 2 [ENEMIES]: -1 ATK until combat"
     },
     "control_pulse_wave_1": {
       "name": "Wunderwaffe",
-      "textShort": "Deal 1 to all [ENEMIES], ignoring ARM."
+      "textShort": "Deal 1 to all [ENEMIES], ignoring ARM"
     },
     "control_system_override_1": {
       "name": "System Override",
-      "textShort": "Selected [ENEMY] attacks its own base, then loses 1 HP."
+      "textShort": "Selected [ENEMY] attacks its own base, then loses 1 HP"
     },
     "control_recall_1": {
       "name": "Extraction",
-      "textShort": "Return [ALLY] to hand. Draw 1."
+      "textShort": "Return [ALLY] to hand. Draw 1"
     },
     "swarm_grunt_1": {
       "name": "Grunt",
@@ -126,11 +126,11 @@
     },
     "swarm_spitter_1": {
       "name": "Spitter",
-      "textShort": "On play: deal 1 to opposed [ENEMY]."
+      "textShort": "On play: deal 1 to opposed [ENEMY]"
     },
     "swarm_brood_1": {
       "name": "Brood",
-      "textShort": "On death: summon 1/1 here."
+      "textShort": "On death: summon 1/1 here"
     },
     "swarm_rusher_1": {
       "name": "Rusher",
@@ -138,31 +138,31 @@
     },
     "swarm_alpha_1": {
       "name": "Alpha",
-      "textShort": "Adjacent [ALLY] in combat: +1 ATK and ignores 1 ARM."
+      "textShort": "Adjacent [ALLY] in combat: +1 ATK and ignores 1 ARM"
     },
     "swarm_spawn_1": {
       "name": "Spawn",
-      "textShort": "Summon a 1/1 in the first empty slot."
+      "textShort": "Summon a 1/1 in the first empty slot"
     },
     "swarm_swarm_attack_1": {
       "name": "Swarm Attack",
-      "textShort": "All [ALLY] +1 ATK until combat."
+      "textShort": "All [ALLY] +1 ATK until combat"
     },
     "swarm_regrow_1": {
       "name": "Regrow",
-      "textShort": "Revive the newest fallen unit with 1 HP."
+      "textShort": "Revive the newest fallen unit with 1 HP"
     },
     "swarm_flood_1": {
       "name": "Flood",
-      "textShort": "Fill up to 2 empty slots with 1/1s. They vanish after combat."
+      "textShort": "Fill up to 2 empty slots with 1/1s. They vanish after combat"
     },
     "swarm_recycle_1": {
       "name": "Substrate",
-      "textShort": "[ENEMIES]: -1 ARM until combat."
+      "textShort": "[ENEMIES]: -1 ARM until combat"
     },
     "tank_shieldbearer_1": {
       "name": "Shieldbearer",
-      "textShort": "Adjacent [ALLY] +1 ARM until combat."
+      "textShort": "Adjacent [ALLY] +1 ARM until combat"
     },
     "tank_heavy_1": {
       "name": "Heavy",
@@ -170,7 +170,7 @@
     },
     "tank_guardian_1": {
       "name": "Guardian",
-      "textShort": "Takes combat damage for adjacent [ALLY]."
+      "textShort": "Takes combat damage for adjacent [ALLY]"
     },
     "tank_wall_1": {
       "name": "Wall",
@@ -178,39 +178,39 @@
     },
     "tank_bruiser_1": {
       "name": "Fang Veteran",
-      "textShort": "After surviving damage: +1 ATK until next combat."
+      "textShort": "After surviving damage: +1 ATK until next combat"
     },
     "tank_fortify_1": {
       "name": "Fortify",
-      "textShort": "All [ALLY] +1 ARM until combat."
+      "textShort": "All [ALLY] +1 ARM until combat"
     },
     "tank_stability_1": {
       "name": "Stability",
-      "textShort": "Until combat, [ALLIES] cannot be moved."
+      "textShort": "Until combat, [ALLIES] cannot be moved"
     },
     "tank_reinforce_1": {
       "name": "Reinforce",
-      "textShort": "Heal all [ALLY] by 1."
+      "textShort": "Heal all [ALLY] by 1"
     },
     "tank_last_stand_1": {
       "name": "Last Stand",
-      "textShort": "Until combat, [ALLIES] cannot drop below 1 HP."
+      "textShort": "Until combat, [ALLIES] cannot drop below 1 HP"
     },
     "tank_repair_kit_1": {
       "name": "Reactive Plating",
-      "textShort": "Target [ALLY] +1 ARM until combat."
+      "textShort": "Target [ALLY] +1 ARM until combat"
     },
     "wardens_sentinel_1": {
       "name": "Tusk Guard",
-      "textShort": "Attackers: -1 ATK."
+      "textShort": "Attackers: -1 ATK"
     },
     "wardens_spearwall_1": {
       "name": "Tundra Hunter",
-      "textShort": "Attackers of adjacent [ALLIES]: -1 ATK."
+      "textShort": "Attackers of adjacent [ALLIES]: -1 ATK"
     },
     "wardens_halberdier_1": {
       "name": "Ice Pike",
-      "textShort": "If opposed: +1 ATK."
+      "textShort": "If opposed: +1 ATK"
     },
     "wardens_bastion_guard_1": {
       "name": "Tururuk",
@@ -222,23 +222,23 @@
     },
     "wardens_brace_1": {
       "name": "Bone Shields",
-      "textShort": "Target [ALLY] +1 ARM until combat."
+      "textShort": "Target [ALLY] +1 ARM until combat"
     },
     "wardens_shield_push_1": {
       "name": "Mammoth Stampede",
-      "textShort": "Swap two adjacent [ENEMIES].\n-1 ATK this combat."
+      "textShort": "Swap two adjacent [ENEMIES].\n-1 ATK this combat"
     },
     "wardens_stand_firm_1": {
       "name": "Endure the Cold",
-      "textShort": "Until combat, [ALLIES] cannot be moved."
+      "textShort": "Until combat, [ALLIES] cannot be moved"
     },
     "wardens_reinforce_line_1": {
       "name": "Lock the Line",
-      "textShort": "Adjacent [ALLY] +1 ARM until combat."
+      "textShort": "Adjacent [ALLY] +1 ARM until combat"
     },
     "wardens_hold_the_line_1": {
       "name": "Hold the Ice Pass",
-      "textShort": "Adjacent [ALLY] +1 ARM until combat."
+      "textShort": "Adjacent [ALLY] +1 ARM until combat"
     }
   },
   "cardTypes": {

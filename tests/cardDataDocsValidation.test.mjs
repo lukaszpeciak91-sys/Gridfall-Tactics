@@ -8,49 +8,49 @@ import { createInitialBattleState, playOrRedeployUnit, resolveTargetedUnitOnPlay
 import { getCardPresentationName } from '../src/data/presentation/factionPresentation.js';
 
 const expectedTextShort = new Map(Object.entries({
-  aggro_runner_1: 'Open line: enemy base loses 2 HP.',
-  aggro_flanker_1: 'Empty adjacent slot on your side: +1 ATK.',
-  aggro_scout_1: "Until opponent\'s next action: no unit in this lane.",
-  aggro_rush_1: 'Swap with adjacent [ALLY], then that lane immediately fights.',
-  aggro_pierce_strike_1: 'Deal 1 to [ENEMY].\nNext hit ignores [ARM].',
-  aggro_quick_fix_1: 'Heal [ALLY] 1. +1 ATK until combat. Kills in combat: draw 1.',
-  control_disruptor_1: "Until combat, opponent cannot play effect cards.",
-  control_sniper_1: 'Attacks the lowest-HP [ENEMY].',
-  control_controller_1: 'On play: swap two [ENEMIES].',
-  control_jam_signal_1: 'Up to 2 [ENEMIES]: -1 ATK until combat.',
-  control_pulse_wave_1: 'Deal 1 to all [ENEMIES], ignoring ARM.',
-  control_system_override_1: 'Selected [ENEMY] attacks its own base, then loses 1 HP.',
-  swarm_spitter_1: 'On play: deal 1 to opposed [ENEMY].',
-  swarm_brood_1: 'On death: summon 1/1 here.',
-  swarm_alpha_1: 'Adjacent [ALLY] in combat: +1 ATK and ignores 1 ARM.',
-  swarm_spawn_1: 'Summon a 1/1 in the first empty slot.',
-  swarm_regrow_1: 'Revive the newest fallen unit with 1 HP.',
-  swarm_flood_1: 'Fill up to 2 empty slots with 1/1s. They vanish after combat.',
-  swarm_recycle_1: '[ENEMIES]: -1 ARM until combat.',
-  tank_shieldbearer_1: 'Adjacent [ALLY] +1 ARM until combat.',
-  tank_guardian_1: 'Takes combat damage for adjacent [ALLY].',
-  tank_bruiser_1: 'After surviving damage: +1 ATK until next combat.',
-  tank_stability_1: "Until combat, [ALLIES] cannot be moved.",
-  tank_last_stand_1: "Until combat, [ALLIES] cannot drop below 1 HP.",
-  tank_repair_kit_1: 'Target [ALLY] +1 ARM until combat.',
-  wardens_sentinel_1: 'Attackers: -1 ATK.',
-  wardens_spearwall_1: 'Attackers of adjacent [ALLIES]: -1 ATK.',
-  wardens_halberdier_1: 'If opposed: +1 ATK.',
-  wardens_brace_1: 'Target [ALLY] +1 ARM until combat.',
-  wardens_shield_push_1: 'Swap two adjacent [ENEMIES].\n-1 ATK this combat.',
-  wardens_stand_firm_1: "Until combat, [ALLIES] cannot be moved.",
-  wardens_reinforce_line_1: 'Adjacent [ALLY] +1 ARM until combat.',
-  wardens_hold_the_line_1: 'Adjacent [ALLY] +1 ARM until combat.',
-  attrition_swarm_husk_1: 'Combat death:\n-1 [HP] to opposed [ENEMY].',
-  attrition_swarm_carrier_1: 'Combat death: summon 1/1 here.',
-  attrition_swarm_leech_1: 'On attack: heal your base 1.',
-  attrition_swarm_rotcaller_1: 'First adjacent [ALLY] death in combat: +1 ATK until combat.',
-  attrition_swarm_abomination_1: 'Combat death: both bases lose 1 HP.',
-  attrition_swarm_funeral_pyre_1: 'First 2 [ALLY] combat deaths:\n-1 [HP] to opposed [ENEMY].',
-  attrition_swarm_infect_1: 'Deal 1 to [ENEMY].\nOpposed [ALLY] gains +1 [ATK].',
-  attrition_swarm_feast_1: 'Draw 1.',
-  attrition_swarm_rise_again_1: 'Revive the newest fallen unit with 1 HP.',
-  attrition_swarm_grave_call_1: 'Summon a 1/1. If you have no [ALLY], summon up to 2.',
+  aggro_runner_1: 'Open line: enemy base loses 2 HP',
+  aggro_flanker_1: 'Empty adjacent slot on your side: +1 ATK',
+  aggro_scout_1: "Until opponent\'s next action: no unit in this lane",
+  aggro_rush_1: 'Swap with adjacent [ALLY], then that lane immediately fights',
+  aggro_pierce_strike_1: 'Deal 1 to [ENEMY].\nNext hit ignores [ARM]',
+  aggro_quick_fix_1: 'Heal [ALLY] 1. +1 ATK until combat. Kills in combat: draw 1',
+  control_disruptor_1: "Until combat, opponent cannot play effect cards",
+  control_sniper_1: 'Attacks the lowest-HP [ENEMY]',
+  control_controller_1: 'On play: swap two [ENEMIES]',
+  control_jam_signal_1: 'Up to 2 [ENEMIES]: -1 ATK until combat',
+  control_pulse_wave_1: 'Deal 1 to all [ENEMIES], ignoring ARM',
+  control_system_override_1: 'Selected [ENEMY] attacks its own base, then loses 1 HP',
+  swarm_spitter_1: 'On play: deal 1 to opposed [ENEMY]',
+  swarm_brood_1: 'On death: summon 1/1 here',
+  swarm_alpha_1: 'Adjacent [ALLY] in combat: +1 ATK and ignores 1 ARM',
+  swarm_spawn_1: 'Summon a 1/1 in the first empty slot',
+  swarm_regrow_1: 'Revive the newest fallen unit with 1 HP',
+  swarm_flood_1: 'Fill up to 2 empty slots with 1/1s. They vanish after combat',
+  swarm_recycle_1: '[ENEMIES]: -1 ARM until combat',
+  tank_shieldbearer_1: 'Adjacent [ALLY] +1 ARM until combat',
+  tank_guardian_1: 'Takes combat damage for adjacent [ALLY]',
+  tank_bruiser_1: 'After surviving damage: +1 ATK until next combat',
+  tank_stability_1: "Until combat, [ALLIES] cannot be moved",
+  tank_last_stand_1: "Until combat, [ALLIES] cannot drop below 1 HP",
+  tank_repair_kit_1: 'Target [ALLY] +1 ARM until combat',
+  wardens_sentinel_1: 'Attackers: -1 ATK',
+  wardens_spearwall_1: 'Attackers of adjacent [ALLIES]: -1 ATK',
+  wardens_halberdier_1: 'If opposed: +1 ATK',
+  wardens_brace_1: 'Target [ALLY] +1 ARM until combat',
+  wardens_shield_push_1: 'Swap two adjacent [ENEMIES].\n-1 ATK this combat',
+  wardens_stand_firm_1: "Until combat, [ALLIES] cannot be moved",
+  wardens_reinforce_line_1: 'Adjacent [ALLY] +1 ARM until combat',
+  wardens_hold_the_line_1: 'Adjacent [ALLY] +1 ARM until combat',
+  attrition_swarm_husk_1: 'Combat death:\n-1 [HP] to opposed [ENEMY]',
+  attrition_swarm_carrier_1: 'Combat death: summon 1/1 here',
+  attrition_swarm_leech_1: 'On attack: heal your base 1',
+  attrition_swarm_rotcaller_1: 'First adjacent [ALLY] death in combat: +1 ATK until combat',
+  attrition_swarm_abomination_1: 'Combat death: both bases lose 1 HP',
+  attrition_swarm_funeral_pyre_1: 'First 2 [ALLY] combat deaths:\n-1 [HP] to opposed [ENEMY]',
+  attrition_swarm_infect_1: 'Deal 1 to [ENEMY].\nOpposed [ALLY] gains +1 [ATK]',
+  attrition_swarm_feast_1: 'Draw 1',
+  attrition_swarm_rise_again_1: 'Revive the newest fallen unit with 1 HP',
+  attrition_swarm_grave_call_1: 'Summon a 1/1. If you have no [ALLY], summon up to 2',
 }));
 
 function loadFactions() {
@@ -112,6 +112,20 @@ test('visible textShort values match the MVP wording pass', () => {
   }
 });
 
+
+test('card descriptions do not end with trailing periods', () => {
+  for (const { card } of allCards()) {
+    assert.doesNotMatch(card.textShort, /\.$/, `${card.id} source textShort`);
+  }
+
+  for (const locale of ['en', 'pl']) {
+    const translations = JSON.parse(fs.readFileSync(`src/localization/translations/${locale}.json`, 'utf8'));
+    for (const [cardId, cardText] of Object.entries(translations.cards ?? {})) {
+      assert.doesNotMatch(cardText.textShort, /\.$/, `${locale} ${cardId} textShort`);
+    }
+  }
+});
+
 test('all source cards have exactly one English and Polish localization entry', () => {
   const sourceIds = allCards().map(({ card }) => card.id).sort();
 
@@ -164,7 +178,7 @@ test('canonical behavior matrix matches source card faction, type, stats, and ef
 
 test('Reactive Plating wording avoids immediate-lane-combat cleanup language', () => {
   const reactivePlating = allCards().find(({ card }) => card.id === 'tank_repair_kit_1').card;
-  assert.equal(reactivePlating.textShort, 'Target [ALLY] +1 ARM until combat.');
+  assert.equal(reactivePlating.textShort, 'Target [ALLY] +1 ARM until combat');
   assert.doesNotMatch(reactivePlating.textShort, /this combat/i);
 
   const doc = fs.readFileSync('docs/rules/mvp-battle-rules.md', 'utf8');

@@ -11,7 +11,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": "lane_armor_aura_1",
-      "textShort": "Adjacent [ALLY] +1 ARM until combat.",
+      "textShort": "Adjacent [ALLY] +1 ARM until combat",
       "attack": 1,
       "hp": 2,
       "armor": 0
@@ -37,7 +37,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": "intercept_lane_damage",
-      "textShort": "Takes combat damage for adjacent [ALLY].",
+      "textShort": "Takes combat damage for adjacent [ALLY]",
       "attack": 1,
       "hp": 3,
       "armor": 0
@@ -63,7 +63,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": "gain_atk_when_damaged",
-      "textShort": "After surviving damage: +1 ATK until next combat.",
+      "textShort": "After surviving damage: +1 ATK until next combat",
       "attack": 2,
       "hp": 3,
       "armor": 0
@@ -76,7 +76,7 @@
       "type": "order",
       "targeting": "all_friendly_units",
       "effectId": "buff_all_armor_1",
-      "textShort": "All [ALLY] +1 ARM until combat."
+      "textShort": "All [ALLY] +1 ARM until combat"
     },
     {
       "id": "tank_stability_1",
@@ -86,7 +86,7 @@
       "type": "order",
       "targeting": "all_friendly_units",
       "effectId": "immune_move_disable_this_turn",
-      "textShort": "Until combat, [ALLIES] cannot be moved."
+      "textShort": "Until combat, [ALLIES] cannot be moved"
     },
     {
       "id": "tank_reinforce_1",
@@ -96,7 +96,7 @@
       "type": "order",
       "targeting": "all_friendly_units",
       "effectId": "heal_all_1",
-      "textShort": "Heal all [ALLY] by 1."
+      "textShort": "Heal all [ALLY] by 1"
     },
     {
       "id": "tank_last_stand_1",
@@ -106,7 +106,7 @@
       "type": "special",
       "targeting": "all_friendly_units",
       "effectId": "cannot_drop_below_1_this_turn",
-      "textShort": "Until combat, [ALLIES] cannot drop below 1 HP."
+      "textShort": "Until combat, [ALLIES] cannot drop below 1 HP"
     },
     {
       "id": "tank_repair_kit_1",
@@ -116,7 +116,7 @@
       "type": "utility",
       "targeting": "friendly_unit",
       "effectId": "temp_armor_1",
-      "textShort": "Target [ALLY] +1 ARM until combat."
+      "textShort": "Target [ALLY] +1 ARM until combat"
     }
   ]
 }

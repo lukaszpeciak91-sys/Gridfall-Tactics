@@ -11,7 +11,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": "lane_empty_bonus_damage",
-      "textShort": "Open line: enemy base loses 2 HP.",
+      "textShort": "Open line: enemy base loses 2 HP",
       "attack": 2,
       "hp": 1,
       "armor": 0
@@ -24,7 +24,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": "wounded_atk_plus_1",
-      "textShort": "While damaged: +1 ATK.",
+      "textShort": "While damaged: +1 ATK",
       "attack": 2,
       "hp": 2,
       "armor": 0
@@ -37,7 +37,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": "self_damage_after_attack",
-      "textShort": "After attack: lose 1 HP.",
+      "textShort": "After attack: lose 1 HP",
       "attack": 3,
       "hp": 1,
       "armor": 0
@@ -50,7 +50,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": "empty_adjacent_bonus_atk",
-      "textShort": "Empty adjacent slot on your side: +1 ATK.",
+      "textShort": "Empty adjacent slot on your side: +1 ATK",
       "attack": 2,
       "hp": 2,
       "armor": 0
@@ -63,7 +63,7 @@
       "type": "unit",
       "targeting": "enemy",
       "effectId": "block_enemy_lane_play_this_turn",
-      "textShort": "Until opponent's next action: no unit in this lane.",
+      "textShort": "Until opponent's next action: no unit in this lane",
       "attack": 2,
       "hp": 1,
       "armor": 0
@@ -76,7 +76,7 @@
       "type": "order",
       "targeting": "all_friendly_units",
       "effectId": "aggro_buff_all_atk_2",
-      "textShort": "All [ALLY] +2 ATK until combat."
+      "textShort": "All [ALLY] +2 ATK until combat"
     },
     {
       "id": "aggro_rush_1",
@@ -86,7 +86,7 @@
       "type": "order",
       "targeting": "friendly_unit",
       "effectId": "swap_adjacent_then_resolve",
-      "textShort": "Swap with adjacent [ALLY], then that lane immediately fights."
+      "textShort": "Swap with adjacent [ALLY], then that lane immediately fights"
     },
     {
       "id": "aggro_pierce_strike_1",
@@ -96,7 +96,7 @@
       "type": "order",
       "targeting": "enemy_unit",
       "effectId": "ignore_armor_next_attack",
-      "textShort": "Deal 1 to [ENEMY].\nNext hit ignores [ARM]."
+      "textShort": "Deal 1 to [ENEMY].\nNext hit ignores [ARM]"
     },
     {
       "id": "aggro_adrenaline_1",
@@ -106,7 +106,7 @@
       "type": "special",
       "targeting": "friendly_unit",
       "effectId": "quick_strike",
-      "textShort": "Selected [ALLY] immediately fights in its lane."
+      "textShort": "Selected [ALLY] immediately fights in its lane"
     },
     {
       "id": "aggro_quick_fix_1",
@@ -116,7 +116,7 @@
       "type": "utility",
       "targeting": "friendly_unit",
       "effectId": "heal_1_atk_1_draw_on_kill_this_turn",
-      "textShort": "Heal [ALLY] 1. +1 ATK until combat. Kills in combat: draw 1."
+      "textShort": "Heal [ALLY] 1. +1 ATK until combat. Kills in combat: draw 1"
     }
   ]
 }
