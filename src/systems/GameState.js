@@ -2109,6 +2109,81 @@ export function playEffectCard(state, owner, handCardId) {
   return { ok: true, type: blockedByImmunity ? 'effect-blocked' : 'effect', card: playedCard };
 }
 
+
+function validateTargetedEffectResolution(state, owner, card, boardIndex, targetIndexes = [boardIndex]) {
+  const targetUnit = state.board[boardIndex];
+  const selectedTargets = Array.isArray(targetIndexes) ? targetIndexes : [boardIndex];
+  const opponentOwner = getOpponentOwner(owner);
+
+  switch (card.effectId) {
+    case 'return_friendly_draw_1':
+    case 'destroy_friendly_draw_1':
+    case 'destroy_friendly_damage_enemy_base_1':
+    case 'quick_strike':
+    case 'heal_2':
+    case 'heal_1_atk_1_draw_on_kill_this_turn':
+    case 'heal_3':
+    case 'temp_armor_1':
+      return targetUnit.owner === owner ? { ok: true } : { ok: false, reason: 'Target must be friendly' };
+    case 'enemy_lane_atk_minus_1':
+    case 'control_enemy_unit_this_turn':
+    case 'infect_damage_1_opposite_ally_atk_1':
+    case 'ignore_armor_next_attack':
+      return targetUnit.owner === opponentOwner ? { ok: true } : { ok: false, reason: 'Target must be enemy' };
+    case 'enemy_up_to_2_atk_minus_1': {
+      if (targetUnit.owner !== opponentOwner) return { ok: false, reason: 'Target must be enemy' };
+      if (selectedTargets.length < 1) return { ok: false, reason: 'Select at least one enemy target' };
+      if (selectedTargets.length > 2) return { ok: false, reason: 'Select up to two enemy targets' };
+      if (new Set(selectedTargets).size !== selectedTargets.length) return { ok: false, reason: 'Select different enemy targets' };
+      const selectedUnits = selectedTargets.map((index) => state.board[index]);
+      if (selectedUnits.some((unit) => !unit)) return { ok: false, reason: 'Targets must contain units' };
+      if (selectedUnits.some((unit) => unit.owner !== opponentOwner)) return { ok: false, reason: 'Targets must be enemies' };
+      if (selectedUnits.some((unit) => getUnitAttack(unit) <= 0)) return { ok: false, reason: 'Targets must have ATK above 0' };
+      return { ok: true };
+    }
+    case 'swap_any_two_units': {
+      if (selectedTargets.length < 2) return { ok: true, type: 'targeted-effect-pending' };
+      const [firstIndex, secondIndex] = selectedTargets;
+      if (firstIndex === secondIndex) return { ok: false, reason: 'Select two different targets' };
+      const firstUnit = state.board[firstIndex];
+      const secondUnit = state.board[secondIndex];
+      if (!firstUnit || !secondUnit) return { ok: false, reason: 'Both targets must contain units' };
+      if (firstUnit.owner !== secondUnit.owner) return { ok: false, reason: 'Swap targets must be on the same side' };
+      return { ok: true };
+    }
+    case 'swap_adjacent_then_resolve': {
+      if (targetUnit.owner !== owner) return { ok: false, reason: 'Target must be friendly' };
+      const leftIndex = boardIndex - 1;
+      const rightIndex = boardIndex + 1;
+      const sameRow = (candidateIndex) => Math.floor(candidateIndex / 3) === Math.floor(boardIndex / 3);
+      const hasFriendlyAdjacent = [leftIndex, rightIndex].some((candidateIndex) => (
+        candidateIndex >= 0
+        && candidateIndex < BOARD_SIZE
+        && sameRow(candidateIndex)
+        && state.board[candidateIndex]?.owner === owner
+      ));
+      return hasFriendlyAdjacent ? { ok: true } : { ok: false, reason: 'No adjacent friendly unit to swap with' };
+    }
+    case 'swap_two_enemy_units':
+    case 'swap_adjacent_enemy_units': {
+      if (targetUnit.owner !== opponentOwner) return { ok: false, reason: 'Target must be enemy' };
+      if (selectedTargets.length < 2) return { ok: true, type: 'targeted-effect-pending' };
+      const [firstIndex, secondIndex] = selectedTargets;
+      if (firstIndex === secondIndex) return { ok: false, reason: 'Select two different enemy targets' };
+      const firstUnit = state.board[firstIndex];
+      const secondUnit = state.board[secondIndex];
+      if (!firstUnit || !secondUnit) return { ok: false, reason: 'Both targets must contain units' };
+      if (firstUnit.owner !== opponentOwner || secondUnit.owner !== opponentOwner) return { ok: false, reason: 'Targets must be enemies' };
+      if (card.effectId === 'swap_adjacent_enemy_units' && !areSameRowAdjacentIndexes(firstIndex, secondIndex)) {
+        return { ok: false, reason: 'Targets must be adjacent enemies' };
+      }
+      return { ok: true };
+    }
+    default:
+      return { ok: false, reason: 'Effect does not support targeted resolution' };
+  }
+}
+
 export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, targetIndexes = [boardIndex]) {
   if (!state || state.winner) return { ok: false, reason: 'Battle is over' };
   const side = owner === 'player' ? state.player : state.enemy;
@@ -2138,11 +2213,19 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
     return { ok: true, type: 'targeted-effect-blocked', card: playedCard };
   }
 
-  if (shouldRunBaseEffectForEffectVariant(state, owner, card, card.effectId)) {
+  const baseEffectWillRun = shouldRunBaseEffectForEffectVariant(state, owner, card, card.effectId);
+  if (baseEffectWillRun) {
+    const validation = validateTargetedEffectResolution(state, owner, card, boardIndex, selectedTargets);
+    if (!validation.ok || validation.type === 'targeted-effect-pending') return validation;
+  }
+
+  const [playedCard] = side.hand.splice(handIndex, 1);
+  side.discard.push(playedCard);
+
+  if (baseEffectWillRun) {
     switch (card.effectId) {
     case 'return_friendly_draw_1': {
       if (targetUnit.owner !== owner) return { ok: false, reason: 'Target must be friendly' };
-      if (side.hand.length >= side.maxHandSize) return { ok: false, reason: 'Hand is full' };
       returnBoardUnitToHand(side, targetUnit);
       state.board[boardIndex] = null;
       card.drawResult = drawCardsWithResult(side, 1);
@@ -2332,8 +2415,6 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
 
   const drawResult = card.drawResult ?? null;
   if (card.drawResult) delete card.drawResult;
-  const [playedCard] = side.hand.splice(handIndex, 1);
-  side.discard.push(playedCard);
   recordProgressAction(state, owner, 'targeted-effect');
   completeActionOpportunity(state, owner);
   return {
