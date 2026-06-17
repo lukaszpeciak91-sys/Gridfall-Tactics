@@ -670,15 +670,8 @@ export default class BattleScene extends Phaser.Scene {
         backing.setStrokeStyle(1, BASE_UTILITY_CONTROL_STROKE, BASE_UTILITY_CONTROL_STROKE_ALPHA);
         halo.setAlpha(1);
       });
-      const handlePointerUp = (pointer, localX, localY, event) => {
-        if (this.cancelArmedPlayerSurrenderFromOutsideTap(pointer)) {
-          event?.stopPropagation?.();
-          return;
-        }
-        onPointerUp(pointer, localX, localY, event);
-      };
-      backing.on('pointerup', handlePointerUp);
-      text.on('pointerup', handlePointerUp);
+      backing.on('pointerup', onPointerUp);
+      text.on('pointerup', onPointerUp);
     }
 
     return { halo, backing, text };
@@ -704,12 +697,6 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   toggleUtilityMenuPanel() {
-    if (this.playerSurrenderArmed) {
-      this.cancelPassHoldToSurrender();
-      this.disarmPlayerSurrender();
-      this.guardPointerEvent();
-      return;
-    }
     if (this.navigationInProgress) return;
 
     if (this.utilityMenuPanel) {
@@ -2591,12 +2578,6 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   openDeckInfoPanel() {
-    if (this.playerSurrenderArmed) {
-      this.cancelPassHoldToSurrender();
-      this.disarmPlayerSurrender();
-      this.guardPointerEvent();
-      return;
-    }
     if (!this.gameState?.player || this.battleResultModalShown || this.isFlowResolving) return;
     if (this.effectCastState?.source === 'unit-on-play') {
       this.cancelEffectTargeting();
@@ -3037,12 +3018,6 @@ export default class BattleScene extends Phaser.Scene {
 
   onBoardCellPointerDown(boardIndex) {
     if (this.openingMulliganPending || this.utilityMenuPanel || this.navigationInProgress || this.pointerInputGuardActive) return;
-    if (this.playerSurrenderArmed) {
-      this.cancelPassHoldToSurrender();
-      this.disarmPlayerSurrender();
-      this.guardPointerEvent();
-      return;
-    }
 
     this.cancelBoardCellLongPress();
     this.pressedBoardCellIndex = boardIndex;
@@ -3136,12 +3111,6 @@ export default class BattleScene extends Phaser.Scene {
 
   onCardPointerDown(cardId) {
     if (this.utilityMenuPanel || this.navigationInProgress || this.pointerInputGuardActive) return;
-    if (this.playerSurrenderArmed) {
-      this.cancelPassHoldToSurrender();
-      this.disarmPlayerSurrender();
-      this.guardPointerEvent();
-      return;
-    }
 
     this.cancelHandCardLongPress();
     this.longPressTriggeredCardId = null;
@@ -3352,11 +3321,7 @@ export default class BattleScene extends Phaser.Scene {
 
     if (this.isPointerEventGuarded(pointer) || this.navigationInProgress) return;
     if (this.playerSurrenderArmed) {
-      if (this.isPointerInsidePlayerBaseAction(pointer, currentlyOver)) {
-        this.resolvePlayerHoldToSurrender();
-      } else {
-        this.cancelArmedPlayerSurrenderFromOutsideTap(pointer);
-      }
+      this.disarmPlayerSurrender();
       return;
     }
     if (this.battleResultModalShown || this.isFlowResolving || this.isEffectCastResolving) return;
@@ -3563,15 +3528,6 @@ export default class BattleScene extends Phaser.Scene {
     return [this.selectedHandCardZoom.background, this.selectedHandCardZoom.label, this.selectedHandCardZoom.glow]
       .filter(Boolean)
       .some((item) => overObjects.includes(item) || this.isPointerInsideGameObject(pointer, item));
-  }
-
-  cancelArmedPlayerSurrenderFromOutsideTap(pointer = null, currentlyOver = []) {
-    if (!this.playerSurrenderArmed) return false;
-    if (this.isPointerInsidePlayerBaseAction(pointer, currentlyOver)) return false;
-    this.cancelPassHoldToSurrender();
-    this.disarmPlayerSurrender();
-    this.guardPointerEvent(pointer);
-    return true;
   }
 
   isPointerUpReservedForUi(pointer, currentlyOver = []) {
