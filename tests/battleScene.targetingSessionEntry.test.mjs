@@ -264,6 +264,7 @@ test('long-press inspect keeps selected targeted card session and hand card inta
     boardInspectIndex: null,
     hoverInspectCardId: null,
     gameState: { player: { hand: [card] } },
+    isUnitCard(candidate) { return candidate?.type === 'unit'; },
     cancelHandCardLongPress() {},
     time: { delayedCall(_delay, callback) { callback(); return { remove() {} }; } },
     destroyTargetingInstruction() { calls.push('destroy-instruction'); },

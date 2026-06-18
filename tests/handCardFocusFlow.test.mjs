@@ -62,7 +62,9 @@ test('normal gameplay quick tap selects only and long press opens inspect while 
   assert.match(source, /onHandCardPointerOver\(cardId\) \{\s*\/\/ Hand-card inspect is intentionally long-press driven so quick taps only select for play\.\s*if \(!cardId\) return;\s*\}/);
   assert.match(source, /this\.pendingSwapIndex = null;\s*this\.clearSwapPrompt\(\);\s*this\.selectedCardId = cardId;\s*const targetingState = this\.isUnitCard\(card\) \? null : this\.getTargetingStateForCard\(card\);\s*if \(targetingState\) \{\s*this\.beginPlayerTargetingSession\(targetingState\);\s*\} else \{\s*this\.targetingState = null;\s*this\.resetCardHighlights\(\{ showPreview: false \}\);\s*this\.updatePlayerBaseActionState\(\);\s*\}\s*this\.startHandCardLongPress\(cardId\);/);
   assert.match(longPressMethod, /this\.longPressTriggeredCardId = cardId;/);
-  assert.match(longPressMethod, /const preserveTargetingSession = this\.selectedCardId === cardId && Boolean\(this\.targetingState\);/);
+  assert.match(longPressMethod, /const isSelectedCard = this\.selectedCardId === cardId;/);
+  assert.match(longPressMethod, /const preserveTargetingSession = isSelectedCard && Boolean\(this\.targetingState\);/);
+  assert.match(longPressMethod, /const preserveSelectedUnit = isSelectedCard && this\.isUnitCard\(card\);/);
   assert.match(longPressMethod, /this\.resetCardHighlights\(\{ showPreview: true \}\);/);
   assert.match(source, /cancelHandCardLongPress\(\) \{\s*if \(!this\.handCardLongPressEvent\) return;\s*this\.handCardLongPressEvent\.remove\(false\);\s*this\.handCardLongPressEvent = null;\s*\}/);
   assert.match(source, /onCardPointerUp\(cardId, pointer\) \{[\s\S]*this\.cancelHandCardLongPress\(\);[\s\S]*if \(this\.longPressTriggeredCardId === cardId\) \{[\s\S]*return;\s*\}[\s\S]*this\.resetCardHighlights\(\{ showPreview: false \}\);/);

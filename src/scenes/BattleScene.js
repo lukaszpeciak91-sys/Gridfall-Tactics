@@ -3213,8 +3213,10 @@ export default class BattleScene extends Phaser.Scene {
       // Pointer-down keeps quick taps responsive, but a completed long press is inspect-only.
       // Preserve an active targeting session so dismissing Inspect returns to the same target
       // selection. Non-targeting cards still discard their provisional gameplay selection.
-      const preserveTargetingSession = this.selectedCardId === cardId && Boolean(this.targetingState);
-      if (!preserveTargetingSession) {
+      const isSelectedCard = this.selectedCardId === cardId;
+      const preserveTargetingSession = isSelectedCard && Boolean(this.targetingState);
+      const preserveSelectedUnit = isSelectedCard && this.isUnitCard(card);
+      if (!preserveTargetingSession && !preserveSelectedUnit) {
         this.selectedCardId = null;
         this.targetingState = null;
         this.effectCastState = null;
