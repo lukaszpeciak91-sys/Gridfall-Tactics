@@ -39,6 +39,20 @@ test('battle result overlay polish keeps hierarchy panel-free while elevating su
   assert.doesNotMatch(showBattleResultModalSource, /panelFill|setStrokeStyle\(4|innerSheen/);
 });
 
+
+test('battle result stats insert compact turns and time block without changing result buttons', () => {
+  assert.match(source, /this\.battleStartedAt = Date\.now\(\)/);
+  assert.match(source, /this\.battleEndedAt \?\?= Date\.now\(\)/);
+  assert.match(source, /formatBattleDuration\(totalSeconds\)/);
+  assert.match(source, /turnsLabel.*turns.*timeLabel.*formatBattleDuration\(elapsedSeconds\)/s);
+  assert.match(showBattleResultModalSource, /const resultStatsText = this\.getBattleResultStatsText\(\)/);
+  assert.match(showBattleResultModalSource, /const stats = this\.add\.text\(centerX, centerY \+ overlayHeight \* 0\.43, resultStatsText,/);
+  assert.match(showBattleResultModalSource, /fontSize: `\$\{Math\.max\(16, Math\.min\(22, Math\.floor\(height \* 0\.024\)\)\)\}px`/);
+  assert.match(showBattleResultModalSource, /translateActive\('ui\.common\.continue', 'CONTINUE'\)/);
+  assert.match(showBattleResultModalSource, /translateActive\('ui\.common\.exit', 'EXIT'\)/);
+  assert.match(showBattleResultModalSource, /translateActive\('ui\.common\.retry', 'RETRY'\)/);
+});
+
 test('victory celebration reuses particles across three staggered waves', () => {
   assert.match(source, /\[0, 800, 1600\]\.forEach\(\(delayMs, waveIndex\) => \{/);
   assert.match(source, /const spawnWave = \(waveIndex\) => \{/);

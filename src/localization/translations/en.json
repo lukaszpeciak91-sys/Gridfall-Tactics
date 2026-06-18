@@ -482,6 +482,10 @@
         "defeat": "Audience demands more.",
         "draw": "Production ordered a rematch."
       },
+      "resultStats": {
+        "turns": "Turns",
+        "time": "Time"
+      },
       "invalidAction": {
         "handFull": "Hand full",
         "noValidTarget": "No valid target",

@@ -482,6 +482,10 @@
         "defeat": "Publiczność domaga się więcej.",
         "draw": "Produkcja zarządziła dogrywkę."
       },
+      "resultStats": {
+        "turns": "Tury",
+        "time": "Czas"
+      },
       "invalidAction": {
         "handFull": "Ręka pełna",
         "noValidTarget": "Brak prawidłowego celu",

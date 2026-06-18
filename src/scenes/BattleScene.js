@@ -278,6 +278,8 @@ export default class BattleScene extends Phaser.Scene {
     this.battleResultModal = null;
     this.battleResultModalShown = false;
     this.battleResultModalPending = false;
+    this.battleStartedAt = null;
+    this.battleEndedAt = null;
     this.backgroundArtAsset = null;
     this.backgroundLayer = null;
     this.baseFrameViews = { player: null, enemy: null };
@@ -375,6 +377,8 @@ export default class BattleScene extends Phaser.Scene {
     this.battleResultModal = null;
     this.battleResultModalShown = false;
     this.battleResultModalPending = false;
+    this.battleStartedAt = null;
+    this.battleEndedAt = null;
     this.gameState = null;
     this.factionKey = null;
     this.layout = null;
@@ -475,6 +479,8 @@ export default class BattleScene extends Phaser.Scene {
     const enemyFactionData = getFactionByKey(enemyFactionKey) ?? { name: `Unknown (${enemyFactionKey})`, deck: [] };
 
     this.gameState = createInitialBattleState(playerFactionData, enemyFactionData);
+    this.battleStartedAt = Date.now();
+    this.battleEndedAt = null;
     this.terminalShatterTriggeredSides = new Set();
     this.terminalFailedSides = new Set();
     this.terminalTextBootComplete = false;
@@ -934,8 +940,26 @@ export default class BattleScene extends Phaser.Scene {
     return translateActive('ui.battle.resultSubtitles.draw', 'Production ordered a rematch.');
   }
 
+  formatBattleDuration(totalSeconds) {
+    const safeSeconds = Math.max(0, Math.floor(Number.isFinite(totalSeconds) ? totalSeconds : 0));
+    const minutes = Math.floor(safeSeconds / 60);
+    const seconds = safeSeconds % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  }
+
+  getBattleResultStatsText() {
+    const turns = Math.max(0, this.gameState?.turnsCompleted ?? 0);
+    const startedAt = Number.isFinite(this.battleStartedAt) ? this.battleStartedAt : Date.now();
+    const endedAt = Number.isFinite(this.battleEndedAt) ? this.battleEndedAt : Date.now();
+    const elapsedSeconds = Math.max(0, (endedAt - startedAt) / 1000);
+    const turnsLabel = translateActive('ui.battle.resultStats.turns', 'Turns');
+    const timeLabel = translateActive('ui.battle.resultStats.time', 'Time');
+    return `${turnsLabel}: ${turns}\n${timeLabel}: ${this.formatBattleDuration(elapsedSeconds)}`;
+  }
+
   scheduleBattleResultModal(delayMs = 500) {
     if (!this.gameState?.winner || this.battleResultModalShown || this.battleResultModalPending) return;
+    this.battleEndedAt ??= Date.now();
     const hasLethalTerminalFailure = Boolean(this.getLethalTerminalFailureSides().length);
     if (hasLethalTerminalFailure) {
       delayMs = Math.min(Math.max(delayMs, BASE_TERMINAL_FAILURE_MODAL_DELAY_MS), BASE_TERMINAL_FAILURE_MS);
@@ -1082,6 +1106,7 @@ export default class BattleScene extends Phaser.Scene {
     const overlayHeight = Math.min(Math.max(height * 0.27, 230), 310);
     const resultText = this.getBattleResultText();
     const resultSubtitle = this.getBattleResultSubtitle();
+    const resultStatsText = this.getBattleResultStatsText();
     const presentation = this.getBattleResultPresentation();
 
     const overlay = this.add.rectangle(centerX, height * 0.5, width, height, 0x000000, presentation.overlayAlpha)
@@ -1117,6 +1142,16 @@ export default class BattleScene extends Phaser.Scene {
       wordWrap: { width: Math.min(width * 0.86, 620), useAdvancedWrap: true },
     }).setOrigin(0.5).setDepth(903);
     subtitle.setShadow(0, 2, presentation.subtitleShadowColor, 5, true, true);
+
+    const stats = this.add.text(centerX, centerY + overlayHeight * 0.43, resultStatsText, {
+      fontFamily: PREMIUM_BROADCAST_FONT_STACK,
+      fontSize: `${Math.max(16, Math.min(22, Math.floor(height * 0.024)))}px`,
+      color: '#e5e7eb',
+      align: 'center',
+      lineSpacing: Math.max(2, Math.floor(height * 0.004)),
+      wordWrap: { width: Math.min(width * 0.82, 520), useAdvancedWrap: true },
+    }).setOrigin(0.5).setDepth(903);
+    stats.setShadow(0, 2, 'rgba(0, 0, 0, 0.68)', 4, true, true);
 
     const dividerWidth = Math.min(overlayWidth * 0.52, 360);
     const dividerY = centerY + overlayHeight * 0.34;
@@ -1202,6 +1237,7 @@ export default class BattleScene extends Phaser.Scene {
       titleGlow,
       title,
       subtitle,
+      stats,
       dividerCore,
       dividerGlow,
       celebration,
@@ -1252,6 +1288,7 @@ export default class BattleScene extends Phaser.Scene {
       this.battleResultModal.titleGlow,
       this.battleResultModal.title,
       this.battleResultModal.subtitle,
+      this.battleResultModal.stats,
       this.battleResultModal.dividerCore,
       this.battleResultModal.dividerGlow,
       ...(this.battleResultModal.celebration?.particles ?? this.battleResultModal.celebration ?? []),
