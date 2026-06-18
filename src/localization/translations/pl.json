@@ -310,6 +310,43 @@
         "Attrition": "Wyniszczenie",
         "Return": "Powrót",
         "Formation": "Formacja"
+      },
+      "campaignAccordion": {
+        "lore": {
+          "Aggro": [
+            "Nieśmiertelni arystokraci zamknięci w porcelanowych ciałach.",
+            "Zachowują piękno, etykietę i władzę przez okrutne rytuały oraz serum z cudzego życia."
+          ],
+          "Tank": [
+            "Gadzi solarni imperialiści maszerują ku zagładzie po wyroku proroctwa.",
+            "Ich chwała trwa długo po śmierci nadziei."
+          ],
+          "Control": [
+            "Ocalali z techno-okultystycznej katastrofy przechowują głowy w szklanych naczyniach.",
+            "Szukają sygnału zdolnego przywrócić samą rzeczywistość."
+          ],
+          "Swarm": [
+            "Planetarny superorganizm wchłonął całą biosferę w jedną świadomość.",
+            "Każde stworzenie, narośl i instynkt śpiewa tę samą nieskończoną pieśń."
+          ],
+          "Wardens": [
+            "Klany potomków neandertalczyków przemierzają zamarzniętą równikową tundrę na kolosalnych mamutach.",
+            "Trwają między gasnącym ciepłem a kosmicznym Mrozem."
+          ],
+          "Attrition Swarm": [
+            "Świat skończył się w sylwestra 1999 roku, lecz nikt tego nie zauważył.",
+            "Dekady później martwi powtarzają zapomniane rutyny, których już nie rozumieją."
+          ]
+        },
+        "gameplay": {
+          "Aggro": "Wybuchowa agresja i bezlitosna presja.",
+          "Tank": "Przetrwaj, umocnij się i zmiażdż wroga przewagą wytrzymałości.",
+          "Control": "Kontroluj pole bitwy przez zakłócenia i manipulację.",
+          "Swarm": "Rozrastaj się nieustannie, aż pole bitwy będzie twoje.",
+          "Wardens": "Wspieraj linię, trzymaj szyk i przetrwaj przeciwnika.",
+          "Attrition Swarm": "Czerp wartość ze strat, rozkładu i nieuniknionego powrotu."
+        },
+        "select": "WYBIERZ"
       }
     },
     "settings": {

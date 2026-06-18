@@ -310,6 +310,43 @@
         "Attrition": "Attrition",
         "Return": "Return",
         "Formation": "Formation"
+      },
+      "campaignAccordion": {
+        "lore": {
+          "Aggro": [
+            "Immortal aristocrats sealed inside porcelain bodies.",
+            "They preserve beauty, etiquette, and power through cruel rituals and harvested life-serums."
+          ],
+          "Tank": [
+            "A reptilian solar empire marches toward extinction after a doomed prophecy.",
+            "Its glory survives long after hope has faded."
+          ],
+          "Control": [
+            "Survivors of a techno-occult catastrophe preserve their heads in glass vessels.",
+            "They search for a signal capable of restoring reality itself."
+          ],
+          "Swarm": [
+            "A planetary superorganism absorbed an entire biosphere into one consciousness.",
+            "Every creature, growth, and instinct sings the same endless song."
+          ],
+          "Wardens": [
+            "Neanderthal-descended clans cross the frozen equatorial tundra atop colossal mammoths.",
+            "They endure between dying warmth and the cosmic Frost."
+          ],
+          "Attrition Swarm": [
+            "The world ended on New Year's Eve 1999, but nobody realized.",
+            "Decades later, the dead repeat forgotten routines they no longer understand."
+          ]
+        },
+        "gameplay": {
+          "Aggro": "Explosive aggression and ruthless pressure.",
+          "Tank": "Endure, fortify, and crush through superior staying power.",
+          "Control": "Control the battlefield through disruption and manipulation.",
+          "Swarm": "Expand relentlessly until the battlefield belongs to you.",
+          "Wardens": "Support your line, hold formation, and outlast the enemy.",
+          "Attrition Swarm": "Gain value from loss, decay, and inevitable return."
+        },
+        "select": "SELECT"
       }
     },
     "settings": {

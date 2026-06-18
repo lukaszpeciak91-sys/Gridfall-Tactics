@@ -3,7 +3,7 @@ import { getFactionKeys } from '../data/factions/index.js';
 import { createBuildMarker } from '../ui/buildMarker.js';
 import { createMenuScreenHeader } from '../ui/screenHeader.js';
 import { createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
-import { translateActive } from '../localization/localeService.js';
+import { translateActive, translateActiveList } from '../localization/localeService.js';
 import { applyAudioSettings, loadSettings } from '../systems/settingsState.js';
 import {
   MENU_BACKGROUND_FALLBACK_COLOR,
@@ -238,22 +238,36 @@ export default class FactionSelectScene extends Phaser.Scene {
     accentRail.fillGradientStyle(accentColor, accentColor, accentColor, accentColor, 0.1, 0.02, 0.32, 0.08);
     accentRail.fillRoundedRect(panelX + 18, panelY + panelH - 18, panelW - 36, 1, 1);
 
-    const label = this.add.text(0, panelY + 58, 'Faction details coming soon', {
+    const textWrapWidth = panelW - 46;
+    const loreLines = translateActiveList(`ui.factionSelect.campaignAccordion.lore.${factionKey}`, []);
+    const loreText = this.add.text(0, panelY + 31, loreLines.join('\n'), {
       fontFamily: 'Arial, sans-serif',
-      fontSize: '15px',
+      fontSize: '14px',
       color: '#e2e8f0',
       align: 'center',
       stroke: '#020617',
       strokeThickness: 3,
-      wordWrap: { width: panelW - 48 },
-    }).setOrigin(0.5);
+      lineSpacing: 4,
+      wordWrap: { width: textWrapWidth },
+    }).setOrigin(0.5, 0);
+
+    const gameplayText = this.add.text(0, panelY + 111, translateActive(`ui.factionSelect.campaignAccordion.gameplay.${factionKey}`, ''), {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: '14px',
+      color: '#f8fafc',
+      align: 'center',
+      fontStyle: '700',
+      stroke: '#020617',
+      strokeThickness: 3,
+      wordWrap: { width: textWrapWidth },
+    }).setOrigin(0.5, 0);
 
     const selectButton = createImageButton(this, {
       x: 0,
       y: selectButtonY,
       width: selectButtonWidth,
       height: selectButtonHeight,
-      label: 'Select Faction',
+      label: translateActive('ui.factionSelect.campaignAccordion.select', 'SELECT'),
       depth: 6,
       fontSize: '17px',
       textStyle: {
@@ -280,9 +294,9 @@ export default class FactionSelectScene extends Phaser.Scene {
       }
     });
 
-    container.add([glow, panel, accentRail, label, ...selectButton.items]);
+    container.add([glow, panel, accentRail, loreText, gameplayText, ...selectButton.items]);
     this.interactiveElements.push(selectButton.hitZone);
-    return { container, items: [container, glow, panel, accentRail, label, ...selectButton.items] };
+    return { container, items: [container, glow, panel, accentRail, loreText, gameplayText, ...selectButton.items] };
   }
 
   handleFactionBannerTap(factionKey) {
