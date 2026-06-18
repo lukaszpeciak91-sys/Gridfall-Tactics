@@ -15,12 +15,13 @@ import {
 } from '../rendering/backgroundArt.js';
 import { createNewCampaign, saveCampaign } from '../systems/campaignState.js';
 import { drawFactionCardVisual, preloadFactionPreviewArt } from '../ui/factionCards.js';
+import { createImageButton, preloadSecondaryButtonAsset, PREMIUM_BROADCAST_FONT_STACK } from '../ui/imageButton.js';
 import { createTapVsDragInteraction } from '../ui/tapVsDragInteraction.js';
 
 const MIN_FACTION_LIST_TOP = 106;
 const HEADER_TO_FACTION_LIST_GAP = 24;
 const FACTION_CARD_GAP = 14;
-const CAMPAIGN_ACCORDION_PANEL_HEIGHT = 156;
+const CAMPAIGN_ACCORDION_PANEL_HEIGHT = 218;
 const CAMPAIGN_ACCORDION_TWEEN_MS = 180;
 const CAMPAIGN_ACCORDION_AUTO_SCROLL_PADDING = 12;
 export default class FactionSelectScene extends Phaser.Scene {
@@ -39,6 +40,7 @@ export default class FactionSelectScene extends Phaser.Scene {
   preload() {
     preloadMenuBackgroundArt(this);
     preloadFactionPreviewArt(this);
+    preloadSecondaryButtonAsset(this);
   }
 
   init(data = {}) {
@@ -146,7 +148,7 @@ export default class FactionSelectScene extends Phaser.Scene {
 
     const { items, details } = drawFactionCardVisual(this, root, factionKey, { y: 0, cardWidth, cardHeight });
 
-    const panel = this.createCampaignAccordionPanel(root, { cardWidth, cardHeight, details });
+    const panel = this.createCampaignAccordionPanel(root, factionKey, { cardWidth, cardHeight, details });
 
     const pressOverlay = this.add.graphics();
     pressOverlay.fillStyle(0xffffff, 0.08);
@@ -190,7 +192,7 @@ export default class FactionSelectScene extends Phaser.Scene {
     return view;
   }
 
-  createCampaignAccordionPanel(root, { cardWidth, cardHeight, details }) {
+  createCampaignAccordionPanel(root, factionKey, { cardWidth, cardHeight, details }) {
     const container = this.add.container(0, cardHeight);
     container.setVisible(false);
     container.setAlpha(0);
@@ -210,6 +212,9 @@ export default class FactionSelectScene extends Phaser.Scene {
     const panelW = panelWidth - 20;
     const panelH = panelHeight - 18;
     const panelRadius = 18;
+    const selectButtonWidth = Math.min(panelW - 56, 246);
+    const selectButtonHeight = 54;
+    const selectButtonY = panelY + panelH - 47;
 
     const glow = this.add.graphics();
     glow.fillStyle(accentColor, 0.08);
@@ -233,7 +238,7 @@ export default class FactionSelectScene extends Phaser.Scene {
     accentRail.fillGradientStyle(accentColor, accentColor, accentColor, accentColor, 0.1, 0.02, 0.32, 0.08);
     accentRail.fillRoundedRect(panelX + 18, panelY + panelH - 18, panelW - 36, 1, 1);
 
-    const label = this.add.text(0, panelY + panelH / 2 + 2, 'Faction details coming soon', {
+    const label = this.add.text(0, panelY + 58, 'Faction details coming soon', {
       fontFamily: 'Arial, sans-serif',
       fontSize: '15px',
       color: '#e2e8f0',
@@ -243,8 +248,41 @@ export default class FactionSelectScene extends Phaser.Scene {
       wordWrap: { width: panelW - 48 },
     }).setOrigin(0.5);
 
-    container.add([glow, panel, accentRail, label]);
-    return { container, items: [container, glow, panel, accentRail, label] };
+    const selectButton = createImageButton(this, {
+      x: 0,
+      y: selectButtonY,
+      width: selectButtonWidth,
+      height: selectButtonHeight,
+      label: 'Select Faction',
+      depth: 6,
+      fontSize: '17px',
+      textStyle: {
+        color: '#f5f1e6',
+        fontFamily: PREMIUM_BROADCAST_FONT_STACK,
+        fontStyle: '700',
+        letterSpacing: 1.8,
+      },
+      fallbackFill: 0x93c5fd,
+      fallbackStroke: 0xbfdbfe,
+      fallbackStrokeAlpha: 0.7,
+      shadowAlpha: 0.24,
+      hoverScale: 1.025,
+      downScale: 0.98,
+      minTouchHeight: 50,
+    });
+
+    selectButton.hitZone.on('pointerdown', (pointer) => {
+      this.tapVsDrag.begin(pointer, this.scrollState?.content?.y ?? 0);
+    });
+    selectButton.hitZone.on('pointerup', (pointer) => {
+      if (this.tapVsDrag.end(pointer, this.scrollState?.content?.y ?? 0)) {
+        this.selectFaction(factionKey);
+      }
+    });
+
+    container.add([glow, panel, accentRail, label, ...selectButton.items]);
+    this.interactiveElements.push(selectButton.hitZone);
+    return { container, items: [container, glow, panel, accentRail, label, ...selectButton.items] };
   }
 
   handleFactionBannerTap(factionKey) {
@@ -339,7 +377,14 @@ export default class FactionSelectScene extends Phaser.Scene {
   }
 
   startCampaign(factionKey) {
+    if (this.isStartingBattle) {
+      return;
+    }
+
     if (!getFactionKeys().includes(factionKey)) return;
+
+    this.isStartingBattle = true;
+    this.interactiveElements.forEach((element) => element?.disableInteractive?.());
 
     const campaign = createNewCampaign(factionKey);
     const savedCampaign = saveCampaign(campaign) ?? campaign;
