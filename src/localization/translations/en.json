@@ -346,7 +346,33 @@
           "Wardens": "Support your line, hold formation, and outlast the enemy.",
           "Attrition Swarm": "Gain value from loss, decay, and inevitable return."
         },
-        "select": "SELECT"
+        "select": "SELECT",
+        "descriptions": {
+          "Aggro": [
+            "Ladies and gentlemen, the Porcelain Court!",
+            "They defeated death three centuries ago. Everyone else has regretted it ever since."
+          ],
+          "Tank": [
+            "And here are the remnants of a proud civilization!",
+            "Their Emperor promised them solar maidens. The delivery never arrived."
+          ],
+          "Control": [
+            "Please welcome the Order of the Glass Head!",
+            "They saved their heads. Reality was less fortunate."
+          ],
+          "Swarm": [
+            "A big round of applause for the Spore Choir!",
+            "Mom said to throw it away. It controls a planet now."
+          ],
+          "Wardens": [
+            "A warm welcome to the Neanderthal Clans!",
+            "In their world, you'll need a fur coat even at the equator."
+          ],
+          "Attrition Swarm": [
+            "And here come the tireless partygoers!",
+            "The world ended on New Year's Eve '99. They still haven't noticed."
+          ]
+        }
       }
     },
     "settings": {

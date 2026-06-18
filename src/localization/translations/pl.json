@@ -346,7 +346,33 @@
           "Wardens": "Wspieraj linię, trzymaj szyk i przetrwaj przeciwnika.",
           "Attrition Swarm": "Czerp wartość ze strat, rozkładu i nieuniknionego powrotu."
         },
-        "select": "WYBIERZ"
+        "select": "WYBIERZ",
+        "descriptions": {
+          "Aggro": [
+            "Przed państwem Porcelanowy Dwór!",
+            "Trzysta lat temu pokonali śmierć. Od tamtej pory wszyscy inni żałują."
+          ],
+          "Tank": [
+            "A oto resztki dumnej cywilizacji!",
+            "Imperator obiecał im słoneczne dziewice. Dziewice nie dotarły."
+          ],
+          "Control": [
+            "Proszę powitać Zakon Szklanej Głowy!",
+            "Głowy uratowali. Reszta rzeczywistości miała mniej szczęścia."
+          ],
+          "Swarm": [
+            "Wielkie brawa dla Chóru Zarodników!",
+            "Mama mówiła, żeby to wyrzucić. Teraz kontroluje planetę."
+          ],
+          "Wardens": [
+            "Powitajmy gorąco Neandertalskie Klany!",
+            "W ich świecie nawet na równiku potrzebujesz futra."
+          ],
+          "Attrition Swarm": [
+            "A oto niestrudzeni imprezowicze!",
+            "Świat skończył się w sylwestra '99. Oni jeszcze tego nie zauważyli."
+          ]
+        }
       }
     },
     "settings": {

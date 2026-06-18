@@ -239,27 +239,16 @@ export default class FactionSelectScene extends Phaser.Scene {
     accentRail.fillRoundedRect(panelX + 18, panelY + panelH - 18, panelW - 36, 1, 1);
 
     const textWrapWidth = panelW - 46;
-    const loreLines = translateActiveList(`ui.factionSelect.campaignAccordion.lore.${factionKey}`, []);
-    const loreText = this.add.text(0, panelY + 31, loreLines.join('\n'), {
-      fontFamily: 'Arial, sans-serif',
+    const descriptionLines = translateActiveList(`ui.factionSelect.campaignAccordion.descriptions.${factionKey}`, []);
+    const descriptionText = this.add.text(0, panelY + 34, descriptionLines.join('\n'), {
+      fontFamily: PREMIUM_BROADCAST_FONT_STACK,
       fontSize: '14px',
       color: '#e2e8f0',
       align: 'center',
       stroke: '#020617',
       strokeThickness: 3,
-      lineSpacing: 4,
-      wordWrap: { width: textWrapWidth },
-    }).setOrigin(0.5, 0);
-
-    const gameplayText = this.add.text(0, panelY + 111, translateActive(`ui.factionSelect.campaignAccordion.gameplay.${factionKey}`, ''), {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: '14px',
-      color: '#f8fafc',
-      align: 'center',
-      fontStyle: '700',
-      stroke: '#020617',
-      strokeThickness: 3,
-      wordWrap: { width: textWrapWidth },
+      lineSpacing: 6,
+      wordWrap: { width: textWrapWidth, useAdvancedWrap: true },
     }).setOrigin(0.5, 0);
 
     const selectButton = createImageButton(this, {
@@ -294,9 +283,9 @@ export default class FactionSelectScene extends Phaser.Scene {
       }
     });
 
-    container.add([glow, panel, accentRail, loreText, gameplayText, ...selectButton.items]);
+    container.add([glow, panel, accentRail, descriptionText, ...selectButton.items]);
     this.interactiveElements.push(selectButton.hitZone);
-    return { container, items: [container, glow, panel, accentRail, loreText, gameplayText, ...selectButton.items] };
+    return { container, items: [container, glow, panel, accentRail, descriptionText, ...selectButton.items] };
   }
 
   handleFactionBannerTap(factionKey) {
