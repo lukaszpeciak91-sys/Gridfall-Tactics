@@ -101,11 +101,10 @@ test('AI can score and play skipBaseEffect Substrate with targeting override non
 
   const action = chooseBattleAction(state, 'player', { aiSafeSurrenderEnabled: false });
 
-  assert.deepEqual(action, {
-    type: 'play-effect',
-    cardId: 'swarm_recycle_1',
-    effectId: 'destroy_friendly_draw_1',
-  });
+  assert.equal(action.type, 'play-effect');
+  assert.equal(action.cardId, 'swarm_recycle_1');
+  assert.equal(action.effectId, 'destroy_friendly_draw_1');
+  assert.equal(action.aiEvaluation.utilityReason, 'variant creates direct utility value');
 
   const result = playEffectCard(state, 'player', action.cardId);
 

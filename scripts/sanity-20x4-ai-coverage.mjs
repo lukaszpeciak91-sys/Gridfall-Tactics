@@ -101,6 +101,7 @@ function applyAction(state, owner, metrics, rng) {
   }
 
   const cancelKey = owner === 'enemy' ? 'player' : 'enemy';
+  state.cancelEnemyOrderThisTurn ??= { player: false, enemy: false };
   const nonUnit = action.type === 'play-effect' || action.type === 'play-targeted-effect';
   if (state.cancelEnemyOrderThisTurn?.[cancelKey] && nonUnit) {
     state.cancelEnemyOrderThisTurn[cancelKey] = false;

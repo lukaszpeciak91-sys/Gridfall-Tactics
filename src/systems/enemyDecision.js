@@ -84,6 +84,47 @@ const MOVEMENT_TOOL_ARCHETYPES = new Set([
   'Wardens',
 ]);
 
+const UTILITY_EFFECT_IDS = new Set([
+  'draw_1',
+  'return_friendly_draw_1',
+  'destroy_friendly_draw_1',
+  'destroy_friendly_damage_enemy_base_1',
+  'revive_friendly_1hp',
+  'grave_call',
+  'fill_empty_slots_0_1',
+  'summon_grunt_empty_slot',
+  'heal_2',
+  'heal_3',
+  'heal_all_1',
+  'temp_armor_1',
+  'adjacent_allies_temp_armor_1',
+  'buff_all_armor_1',
+  'cannot_drop_below_1_this_turn',
+  'immune_move_disable_this_turn',
+  'friendly_immovable_this_turn',
+  'swap_any_two_units',
+  'swap_two_enemy_units',
+  'swap_adjacent_enemy_units',
+  'swap_leftmost_adjacent_enemies',
+  'enemy_up_to_2_atk_minus_1',
+  'enemy_lane_atk_minus_1',
+  'enemy_all_atk_minus_1',
+  'control_enemy_unit_this_turn',
+]);
+
+const DELAYED_VALUE_EFFECT_IDS = new Set([
+  'draw_1',
+  'return_friendly_draw_1',
+  'destroy_friendly_draw_1',
+  'revive_friendly_1hp',
+  'grave_call',
+  'fill_empty_slots_0_1',
+  'summon_grunt_empty_slot',
+  'cannot_drop_below_1_this_turn',
+  'immune_move_disable_this_turn',
+  'friendly_immovable_this_turn',
+]);
+
 function scoreOpeningCard(card, hand, factionName = '') {
   if (!card) return Number.NEGATIVE_INFINITY;
   const unitsInHand = hand.filter((item) => item?.type === 'unit').length;
@@ -616,7 +657,7 @@ function addRepositionCandidates(actions, state, owner, telemetry = null) {
 }
 
 export function buildActionCandidates(state, owner, hand, telemetry = null) {
-  const actions = [];
+  const actions = [{ type: 'pass', reason: 'hold-card-action' }];
 
   addRepositionCandidates(actions, state, owner, telemetry);
 
@@ -687,7 +728,65 @@ export function buildActionCandidates(state, owner, hand, telemetry = null) {
   return actions;
 }
 
+
+function getActionCard(state, owner, action) {
+  if (!action?.cardId) return null;
+  const side = owner === 'enemy' ? state?.enemy : state?.player;
+  return (Array.isArray(side?.hand) ? side.hand : []).find((card) => card?.id === action.cardId) ?? null;
+}
+
+function isUtilityAction(state, owner, action) {
+  if (!action || action.type === 'pass' || action.type === 'swap-units') return false;
+  if (action.type === 'play-unit') return UTILITY_EFFECT_IDS.has(action.effectId ?? null) && action.effectId === 'swap_two_enemy_units';
+  const card = getActionCard(state, owner, action);
+  return card?.type !== 'unit' && UTILITY_EFFECT_IDS.has(action.effectId ?? null);
+}
+
+function getUtilityOpportunityCost(state, owner, action) {
+  if (!isUtilityAction(state, owner, action)) return 0;
+  const side = owner === 'enemy' ? state?.enemy : state?.player;
+  const hand = Array.isArray(side?.hand) ? side.hand : [];
+  const unitsInHand = hand.filter((card) => card?.type === 'unit').length;
+  const { friendly } = getRowsForOwner(owner);
+  const emptySlots = friendly.filter((index) => !state.board?.[index]).length;
+  let cost = 360;
+  if (action.type === 'play-effect' || action.type === 'play-targeted-effect') cost += 240;
+  if (DELAYED_VALUE_EFFECT_IDS.has(action.effectId ?? null)) cost += 220;
+  if (unitsInHand > 0 && emptySlots > 0) cost += 180;
+  if ((side?.hand?.length ?? 0) <= 2) cost -= 120;
+  if (action.effectId === 'destroy_friendly_draw_1' || action.effectId === 'return_friendly_draw_1') cost += 180;
+  if (action.effectId === 'revive_friendly_1hp') cost += 260;
+  if (action.effectId === 'temp_armor_1' || action.effectId === 'adjacent_allies_temp_armor_1' || action.effectId === 'buff_all_armor_1') cost += 180;
+  if (isTwoTargetSwapEffect(action.effectId ?? null) || action.effectId === 'enemy_up_to_2_atk_minus_1' || action.effectId === 'control_enemy_unit_this_turn') cost += 140;
+  return Math.max(0, cost);
+}
+
+function getUtilityChoiceReason(state, owner, action, metrics) {
+  if (isSkipBaseEffectVariantAction(state, owner, action)) return 'variant creates direct utility value';
+  if (metrics.nextOpponentHp <= 0) return 'creates lethal';
+  if (metrics.currentOpponentPressure >= metrics.currentOwnHp && metrics.opponentPressureReduced > 0) return 'prevents lethal';
+  if (metrics.kills > 0) return 'removes immediate major threat';
+  if (metrics.savedThreatenedUnits > 0) return 'saves a key unit';
+  if (metrics.heroPressureGain > 0 || metrics.openLaneImprovement > 0) return 'creates clear lane/hero pressure improvement';
+  if (metrics.opponentPressureReduced >= 2 || metrics.boardPressureGain >= 600) return 'meaningful pressure swing';
+  return null;
+}
+
+function getUtilityThreshold(action, reason) {
+  if (!action || action.type === 'pass' || action.type === 'swap-units') return 0;
+  if (!UTILITY_EFFECT_IDS.has(action.effectId ?? null)) return 0;
+  if (reason) return 0;
+  if (DELAYED_VALUE_EFFECT_IDS.has(action.effectId ?? null)) return 900;
+  if (action.effectId === 'temp_armor_1' || action.effectId === 'adjacent_allies_temp_armor_1' || action.effectId === 'buff_all_armor_1') return 760;
+  return 650;
+}
+
 export function scoreAction(state, owner, action) {
+  if (action?.type === 'pass') {
+    action.aiEvaluation = { kind: 'hold', holdScore: 0, reason: 'do not spend this action/card now' };
+    return 0;
+  }
+
   const nextState = cloneState(state);
   const currentOpponentHp = state?.[getOpponentHpKey(owner)] ?? 0;
   const currentOwnHp = state?.[getHeroHpKey(owner)] ?? 0;
@@ -806,6 +905,10 @@ export function scoreAction(state, owner, action) {
 
   if (action.effectId === 'draw_1') {
     score += 250;
+  }
+
+  if (isSkipBaseEffectVariantAction(state, owner, action)) {
+    score += 1100;
   }
 
   if (action.effectId === 'swap_two_enemy_units') {
@@ -1018,7 +1121,31 @@ export function scoreAction(state, owner, action) {
     score += hasEnemyMoveCard ? 260 : -600;
   }
 
-  if (action.type !== 'pass') score += 20;
+  const savedThreatenedUnits = Math.max(0, getLikelyFriendlyCombatDeaths(state, owner) - getLikelyFriendlyCombatDeaths(nextState, owner));
+  const utilityOpportunityCost = getUtilityOpportunityCost(state, owner, action);
+  const utilityReason = utilityOpportunityCost > 0 ? getUtilityChoiceReason(state, owner, action, {
+    nextOpponentHp,
+    currentOpponentPressure,
+    currentOwnHp,
+    opponentPressureReduced,
+    kills,
+    savedThreatenedUnits,
+    heroPressureGain,
+    openLaneImprovement,
+    boardPressureGain,
+  }) : null;
+  if (utilityOpportunityCost > 0) {
+    score -= utilityOpportunityCost;
+    action.aiEvaluation = {
+      ...(action.aiEvaluation ?? {}),
+      utility: true,
+      utilityOpportunityCost,
+      utilityReason,
+      utilityThreshold: getUtilityThreshold(action, utilityReason),
+    };
+  }
+
+  score += 20;
   return score;
 }
 
@@ -1105,9 +1232,20 @@ export function chooseBattleAction(state, owner = 'enemy', options = {}) {
 
   if (actions.length === 0) return { type: 'pass' };
 
+  const holdAction = actions.find((action) => action.type === 'pass') ?? { type: 'pass', reason: 'hold-card-action' };
+  const holdScore = scoreAction(state, owner, holdAction);
   const scoredActions = actions
-    .map((action) => ({ action, score: scoreAction(state, owner, action) }))
-    .filter(({ score }) => Number.isFinite(score));
+    .map((action) => ({ action, score: action === holdAction ? holdScore : scoreAction(state, owner, action) }))
+    .filter(({ action, score }) => {
+      if (!Number.isFinite(score)) return false;
+      const threshold = action?.aiEvaluation?.utilityThreshold ?? 0;
+      if (threshold > 0 && score < holdScore + threshold) {
+        action.aiEvaluation = { ...(action.aiEvaluation ?? {}), holdScore, marginOverHold: score - holdScore, utilityRejectedReason: 'below utility usefulness threshold' };
+        return false;
+      }
+      action.aiEvaluation = { ...(action.aiEvaluation ?? {}), holdScore, marginOverHold: score - holdScore };
+      return true;
+    });
 
   if (scoredActions.length === 0) return { type: 'pass' };
 

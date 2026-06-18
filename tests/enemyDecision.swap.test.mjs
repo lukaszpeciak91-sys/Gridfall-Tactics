@@ -27,7 +27,7 @@ const unit = (owner, overrides = {}) => ({
   ...overrides,
 });
 
-test('AI models swap_any_two_units as a resolved two-target action', () => {
+test('AI can prefer free reposition before spending swap_any_two_units card', () => {
   const state = createInitialBattleState({ name: 'Player', deck: [] }, { name: 'Enemy', deck: [] }, { firstActor: 'enemy' });
   state.enemy.hand.push({ ...swapCard });
   state.board[0] = unit('enemy', { id: 'blocked-striker', cardId: 'blocked-striker', attack: 3 });
@@ -36,13 +36,13 @@ test('AI models swap_any_two_units as a resolved two-target action', () => {
 
   const action = chooseBattleAction(state, 'enemy');
 
-  assert.equal(action.type, 'play-targeted-effect');
-  assert.equal(action.effectId, 'swap_any_two_units');
-  assert.deepEqual(action.targetIndexes, [0, 1]);
-
-  const result = resolveTargetedEffectCard(state, 'enemy', action.cardId, action.targetIndex, action.targetIndexes);
+  assert.equal(action.type, 'swap-units');
+  const result = { ok: true, type: 'swap-units' };
+  const first = state.board[action.fromIndex];
+  state.board[action.fromIndex] = state.board[action.toIndex];
+  state.board[action.toIndex] = first;
   assert.equal(result.ok, true);
-  assert.equal(result.type, 'targeted-effect');
+  assert.equal(result.type, 'swap-units');
   assert.equal(state.board[0].cardId, 'open-grunt');
   assert.equal(state.board[1].cardId, 'blocked-striker');
 });

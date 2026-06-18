@@ -117,7 +117,7 @@ test('AI does not play Stability on an empty or irrelevant board', () => {
   assert.notEqual(action.cardId, 'tank_stability_1');
 });
 
-test('AI may play Stability when a meaningful board faces a public movement archetype', () => {
+test('AI may hold Stability when movement protection does not beat HOLD by enough', () => {
   const state = createInitialBattleState(getFactionByKey('Control'), getFactionByKey('Tank'), { firstActor: 'enemy' });
   state.player.hand = [];
   state.enemy.hand = [factionCard('Tank', 'tank_stability_1')];
@@ -127,11 +127,10 @@ test('AI may play Stability when a meaningful board faces a public movement arch
 
   const action = chooseBattleAction(state, 'enemy');
 
-  assert.equal(action.type, 'play-effect');
-  assert.equal(action.cardId, 'tank_stability_1');
+  assert.equal(action.type, 'pass');
 });
 
-test('AI may play Feast as draw-only cycle without targeting a unit', () => {
+test('AI may hold Feast as draw-only cycle without enough immediate value', () => {
   const state = createInitialBattleState(emptyFaction, emptyFaction, { firstActor: 'enemy' });
   state.enemy.hand.push(factionCard('Attrition Swarm', 'attrition_swarm_feast_1'));
   state.enemy.deck.push(factionCard('Attrition Swarm', 'attrition_swarm_husk_1'));
@@ -140,9 +139,7 @@ test('AI may play Feast as draw-only cycle without targeting a unit', () => {
 
   const action = chooseBattleAction(state, 'enemy');
 
-  assert.equal(action.type, 'play-effect');
-  assert.equal(action.cardId, 'attrition_swarm_feast_1');
-  assert.equal(action.targetIndex, undefined);
+  assert.equal(action.type, 'pass');
 });
 
 test('AI Feast cycle does not remove the only blocker preventing lethal open-lane damage', () => {
@@ -155,7 +152,6 @@ test('AI Feast cycle does not remove the only blocker preventing lethal open-lan
 
   const action = chooseBattleAction(state, 'enemy');
 
-  assert.equal(action.type, 'play-effect');
-  assert.equal(action.cardId, 'attrition_swarm_feast_1');
+  assert.equal(action.type, 'pass');
   assert.equal(state.board[0]?.id, 'only-blocker');
 });
