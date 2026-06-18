@@ -144,9 +144,9 @@ export default class FactionSelectScene extends Phaser.Scene {
     content.add(root);
     this.uiElements.push(root);
 
-    const { items } = drawFactionCardVisual(this, root, factionKey, { y: 0, cardWidth, cardHeight });
+    const { items, details } = drawFactionCardVisual(this, root, factionKey, { y: 0, cardWidth, cardHeight });
 
-    const panel = this.createCampaignAccordionPanel(root, { cardWidth, cardHeight });
+    const panel = this.createCampaignAccordionPanel(root, { cardWidth, cardHeight, details });
 
     const pressOverlay = this.add.graphics();
     pressOverlay.fillStyle(0xffffff, 0.08);
@@ -190,7 +190,7 @@ export default class FactionSelectScene extends Phaser.Scene {
     return view;
   }
 
-  createCampaignAccordionPanel(root, { cardWidth, cardHeight }) {
+  createCampaignAccordionPanel(root, { cardWidth, cardHeight, details }) {
     const container = this.add.container(0, cardHeight);
     container.setVisible(false);
     container.setAlpha(0);
@@ -203,21 +203,48 @@ export default class FactionSelectScene extends Phaser.Scene {
     const x = -cardWidth / 2;
     const panelWidth = cardWidth;
     const panelHeight = CAMPAIGN_ACCORDION_PANEL_HEIGHT;
-    const panel = this.add.graphics();
-    panel.fillStyle(0x020617, 0.9);
-    panel.fillRoundedRect(x + 8, 8, panelWidth - 16, panelHeight - 16, 18);
-    panel.lineStyle(1, 0x38bdf8, 0.5);
-    panel.strokeRoundedRect(x + 9, 9, panelWidth - 18, panelHeight - 18, 17);
+    const accentColor = details?.accentColor ?? 0x38bdf8;
+    const tintColor = details?.fallbackTopColor ?? accentColor;
+    const panelX = x + 10;
+    const panelY = 8;
+    const panelW = panelWidth - 20;
+    const panelH = panelHeight - 18;
+    const panelRadius = 18;
 
-    const label = this.add.text(0, panelHeight / 2, 'Faction details coming soon', {
+    const glow = this.add.graphics();
+    glow.fillStyle(accentColor, 0.08);
+    glow.fillRoundedRect(panelX - 3, panelY - 2, panelW + 6, panelH + 6, panelRadius + 4);
+    glow.lineStyle(2, accentColor, 0.12);
+    glow.strokeRoundedRect(panelX - 2, panelY - 1, panelW + 4, panelH + 4, panelRadius + 3);
+
+    const panel = this.add.graphics();
+    panel.fillGradientStyle(tintColor, tintColor, 0x020617, 0x020617, 0.18, 0.1, 0.92, 0.96);
+    panel.fillRoundedRect(panelX, panelY, panelW, panelH, panelRadius);
+    panel.fillStyle(0x020617, 0.62);
+    panel.fillRoundedRect(panelX + 1, panelY + 1, panelW - 2, panelH - 2, panelRadius - 1);
+    panel.lineStyle(1, accentColor, 0.68);
+    panel.strokeRoundedRect(panelX + 0.5, panelY + 0.5, panelW - 1, panelH - 1, panelRadius - 1);
+    panel.lineStyle(1, 0xf8fafc, 0.08);
+    panel.strokeRoundedRect(panelX + 2.5, panelY + 2.5, panelW - 5, panelH - 5, panelRadius - 3);
+
+    const accentRail = this.add.graphics();
+    accentRail.fillGradientStyle(accentColor, accentColor, accentColor, accentColor, 0.42, 0.18, 0.02, 0.02);
+    accentRail.fillRoundedRect(panelX + 16, panelY + 13, panelW - 32, 2, 1);
+    accentRail.fillGradientStyle(accentColor, accentColor, accentColor, accentColor, 0.1, 0.02, 0.32, 0.08);
+    accentRail.fillRoundedRect(panelX + 18, panelY + panelH - 18, panelW - 36, 1, 1);
+
+    const label = this.add.text(0, panelY + panelH / 2 + 2, 'Faction details coming soon', {
       fontFamily: 'Arial, sans-serif',
       fontSize: '15px',
-      color: '#cbd5e1',
+      color: '#e2e8f0',
       align: 'center',
+      stroke: '#020617',
+      strokeThickness: 3,
+      wordWrap: { width: panelW - 48 },
     }).setOrigin(0.5);
 
-    container.add([panel, label]);
-    return { container, items: [container, panel, label] };
+    container.add([glow, panel, accentRail, label]);
+    return { container, items: [container, glow, panel, accentRail, label] };
   }
 
   handleFactionBannerTap(factionKey) {
