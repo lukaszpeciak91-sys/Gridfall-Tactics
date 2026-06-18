@@ -250,7 +250,7 @@ Candidate audit for the same rule:
 
 | Faction | Card | Type | Stats | effectId | Implemented behavior | Targeting model | MVP simplifications / notes |
 |---|---|---|---|---|---|---|---|
-| Aggro | Runner | unit | 2/1/0 | lane_empty_bonus_damage | Open line: enemy base loses 2 HP. | Lane combat | Implemented in combat resolver. |
+| Aggro | Runner | unit | 2/1/0 | lane_empty_bonus_damage | Open lane: +2 ATK | Lane combat | Projected in effective ATK and applied as an open-lane ATK combat modifier. |
 | Aggro | Berserker | unit | 2/2/0 | wounded_atk_plus_1 | While damaged: +1 ATK. | Lane combat | Continuous card-local wounded check; bonus disappears when healed to full HP. |
 | Aggro | Glass Cannon | unit | 3/1/0 | self_damage_after_attack | After attack: lose 1 HP. | Lane combat | Implemented as pending self-damage. |
 | Aggro | Flanker | unit | 2/2/0 | empty_adjacent_bonus_atk | Empty adjacent slot on your side: +1 ATK. | Lane combat | Adjacent check is board-state based. |

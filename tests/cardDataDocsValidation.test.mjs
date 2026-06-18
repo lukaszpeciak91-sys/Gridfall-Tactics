@@ -8,7 +8,7 @@ import { createInitialBattleState, playOrRedeployUnit, resolveTargetedUnitOnPlay
 import { getCardPresentationName } from '../src/data/presentation/factionPresentation.js';
 
 const expectedTextShort = new Map(Object.entries({
-  aggro_runner_1: 'Open line: enemy base loses 2 HP.',
+  aggro_runner_1: 'Open lane: +2 ATK',
   aggro_flanker_1: 'Empty adjacent slot on your side: +1 ATK.',
   aggro_scout_1: "Until opponent\'s next action: no unit in this lane.",
   aggro_rush_1: 'Swap with adjacent [ALLY], then that lane immediately fights.',

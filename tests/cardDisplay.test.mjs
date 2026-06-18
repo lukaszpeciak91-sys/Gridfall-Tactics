@@ -50,9 +50,9 @@ test('card display helper can resolve future nameKey and textKey fields through 
   };
 
   assert.equal(getCardDisplayName(keyedCard, 'en'), 'Ballroom Duelist');
-  assert.equal(getCardTextShort(keyedCard, 'en'), 'Open line: enemy base loses 2 HP.');
+  assert.equal(getCardTextShort(keyedCard, 'en'), 'Open lane: +2 ATK');
   assert.equal(getCardDisplayName(keyedCard, 'pl'), 'Balowy Pojedynkowicz');
-  assert.equal(getCardTextShort(keyedCard, 'pl'), 'Otwarta linia: baza wroga traci 2 HP.');
+  assert.equal(getCardTextShort(keyedCard, 'pl'), 'Pusta linia: +2 ATK');
 });
 
 test('Swarm Substrate display name resolves in English and Polish', () => {
@@ -485,7 +485,7 @@ test('presentation overrides resolve through render modes and preserve gameplay 
   assert.deepEqual(formatCollectionRowLabel(runner, 'en'), {
     name: 'Ballroom Duelist',
     typeStats: 'Unit • ATK 2 / HP 1',
-    textShort: 'Open line: enemy base loses 2 ●.',
+    textShort: 'Open lane: +2 ▲',
   });
   assert.equal(formatDeckSummaryEntry(runner, 'en').name, 'Ballroom Duelist');
   assert.equal(getCardDisplayName(runner, 'pl'), 'Balowy Pojedynkowicz');
@@ -494,7 +494,7 @@ test('presentation overrides resolve through render modes and preserve gameplay 
   assert.deepEqual(formatCollectionRowLabel(runner, 'pl'), {
     name: 'Balowy Pojedynkowicz',
     typeStats: 'Jednostka • ATK 2 / HP 1',
-    textShort: 'Otwarta linia: baza wroga traci 2 ●.',
+    textShort: 'Pusta linia: +2 ▲',
   });
   assert.equal(formatDeckSummaryEntry(runner, 'pl').name, 'Balowy Pojedynkowicz');
   assert.equal(runner.id, 'aggro_runner_1');

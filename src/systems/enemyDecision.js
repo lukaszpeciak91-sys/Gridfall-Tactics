@@ -1,4 +1,4 @@
-import { canPlayOrRedeploy, canSwap, performSwap, playEffectCard, playOrRedeployUnit, resolveTargetedEffectCard, resolveTargetedUnitOnPlayEffect, getUnitAttack, getUnitArmor, RUNNER_OPEN_LANE_HERO_BONUS, resolveImmediateNoProgressWinner, battleCanRealisticallyChangeOutcome, canPlayEffectCard } from './GameState.js';
+import { canPlayOrRedeploy, canSwap, performSwap, playEffectCard, playOrRedeployUnit, resolveTargetedEffectCard, resolveTargetedUnitOnPlayEffect, getUnitAttack, getUnitArmor, RUNNER_OPEN_LANE_ATK_BONUS, resolveImmediateNoProgressWinner, battleCanRealisticallyChangeOutcome, canPlayEffectCard } from './GameState.js';
 import { ACTIVE_EFFECT_VARIANTS } from './effectVariantRegistry.generated.js';
 
 const ENEMY_ROW_INDEXES = [0, 1, 2];
@@ -172,7 +172,7 @@ function getGuaranteedHeroDamage(state, owner) {
     const attacker = state?.board?.[friendlyIndex];
     const blocker = state?.board?.[opposing[lane]];
     if (!attacker || blocker) return;
-    const laneBonus = attacker.effectId === 'lane_empty_bonus_damage' ? RUNNER_OPEN_LANE_HERO_BONUS : 0;
+    const laneBonus = attacker.effectId === 'lane_empty_bonus_damage' ? RUNNER_OPEN_LANE_ATK_BONUS : 0;
     total += getUnitAttack(attacker) + laneBonus;
   });
   return total;
@@ -196,7 +196,7 @@ function getOpenLaneStats(state, owner) {
     const unit = state?.board?.[friendlyIndex];
     if (!unit || state?.board?.[opposing[lane]]) return;
     lanes += 1;
-    damage += getUnitAttack(unit) + (unit.effectId === 'lane_empty_bonus_damage' ? RUNNER_OPEN_LANE_HERO_BONUS : 0);
+    damage += getUnitAttack(unit) + (unit.effectId === 'lane_empty_bonus_damage' ? RUNNER_OPEN_LANE_ATK_BONUS : 0);
   });
   return { lanes, damage };
 }
@@ -239,7 +239,7 @@ function getFriendlyBoardStats(state, owner) {
     const enemyUnit = state?.board?.[opposing[lane]];
     count += 1;
     attack += unitAttack;
-    if (!enemyUnit) openLaneAttack += unitAttack + (friendlyUnit.effectId === 'lane_empty_bonus_damage' ? RUNNER_OPEN_LANE_HERO_BONUS : 0);
+    if (!enemyUnit) openLaneAttack += unitAttack + (friendlyUnit.effectId === 'lane_empty_bonus_damage' ? RUNNER_OPEN_LANE_ATK_BONUS : 0);
     if (enemyUnit && getUnitAttack(enemyUnit) >= getEffectiveHp(friendlyUnit)) threatened += 1;
   });
   return { count, attack, openLaneAttack, emptySlots, threatened };
