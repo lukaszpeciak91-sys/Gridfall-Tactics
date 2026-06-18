@@ -24,6 +24,10 @@ const FACTION_CARD_GAP = 14;
 const CAMPAIGN_ACCORDION_PANEL_HEIGHT = 218;
 const CAMPAIGN_ACCORDION_TWEEN_MS = 180;
 const CAMPAIGN_ACCORDION_AUTO_SCROLL_PADDING = 12;
+const CAMPAIGN_ACCORDION_DESCRIPTION_FONT_SIZE = 17;
+const CAMPAIGN_ACCORDION_DESCRIPTION_FIRST_LINE_FONT_SIZE = 18;
+const CAMPAIGN_ACCORDION_DESCRIPTION_LINE_SPACING = 8;
+const CAMPAIGN_ACCORDION_DESCRIPTION_SECTION_GAP = 12;
 export default class FactionSelectScene extends Phaser.Scene {
   constructor() {
     super('FactionSelectScene');
@@ -212,9 +216,9 @@ export default class FactionSelectScene extends Phaser.Scene {
     const panelW = panelWidth - 20;
     const panelH = panelHeight - 18;
     const panelRadius = 18;
-    const selectButtonWidth = Math.min(panelW - 56, 246);
-    const selectButtonHeight = 54;
-    const selectButtonY = panelY + panelH - 47;
+    const selectButtonWidth = Math.min(panelW - 82, 214);
+    const selectButtonHeight = 42;
+    const selectButtonY = panelY + panelH - 39;
 
     const glow = this.add.graphics();
     glow.fillStyle(accentColor, 0.08);
@@ -240,14 +244,26 @@ export default class FactionSelectScene extends Phaser.Scene {
 
     const textWrapWidth = panelW - 46;
     const descriptionLines = translateActiveList(`ui.factionSelect.campaignAccordion.descriptions.${factionKey}`, []);
-    const descriptionText = this.add.text(0, panelY + 34, descriptionLines.join('\n'), {
+    const [descriptionIntro = '', ...descriptionBodyLines] = descriptionLines;
+    const descriptionIntroText = this.add.text(0, panelY + 32, descriptionIntro, {
       fontFamily: PREMIUM_BROADCAST_FONT_STACK,
-      fontSize: '14px',
+      fontSize: `${CAMPAIGN_ACCORDION_DESCRIPTION_FIRST_LINE_FONT_SIZE}px`,
+      fontStyle: '700',
       color: '#e2e8f0',
       align: 'center',
       stroke: '#020617',
       strokeThickness: 3,
-      lineSpacing: 6,
+      lineSpacing: CAMPAIGN_ACCORDION_DESCRIPTION_LINE_SPACING,
+      wordWrap: { width: textWrapWidth, useAdvancedWrap: true },
+    }).setOrigin(0.5, 0);
+    const descriptionBodyText = this.add.text(0, descriptionIntroText.y + descriptionIntroText.height + CAMPAIGN_ACCORDION_DESCRIPTION_SECTION_GAP, descriptionBodyLines.join('\n'), {
+      fontFamily: PREMIUM_BROADCAST_FONT_STACK,
+      fontSize: `${CAMPAIGN_ACCORDION_DESCRIPTION_FONT_SIZE}px`,
+      color: '#e2e8f0',
+      align: 'center',
+      stroke: '#020617',
+      strokeThickness: 3,
+      lineSpacing: CAMPAIGN_ACCORDION_DESCRIPTION_LINE_SPACING,
       wordWrap: { width: textWrapWidth, useAdvancedWrap: true },
     }).setOrigin(0.5, 0);
 
@@ -258,7 +274,7 @@ export default class FactionSelectScene extends Phaser.Scene {
       height: selectButtonHeight,
       label: translateActive('ui.factionSelect.campaignAccordion.select', 'SELECT'),
       depth: 6,
-      fontSize: '17px',
+      fontSize: '15px',
       textStyle: {
         color: '#f5f1e6',
         fontFamily: PREMIUM_BROADCAST_FONT_STACK,
@@ -271,7 +287,7 @@ export default class FactionSelectScene extends Phaser.Scene {
       shadowAlpha: 0.24,
       hoverScale: 1.025,
       downScale: 0.98,
-      minTouchHeight: 50,
+      minTouchHeight: 44,
     });
 
     selectButton.hitZone.on('pointerdown', (pointer) => {
@@ -283,9 +299,9 @@ export default class FactionSelectScene extends Phaser.Scene {
       }
     });
 
-    container.add([glow, panel, accentRail, descriptionText, ...selectButton.items]);
+    container.add([glow, panel, accentRail, descriptionIntroText, descriptionBodyText, ...selectButton.items]);
     this.interactiveElements.push(selectButton.hitZone);
-    return { container, items: [container, glow, panel, accentRail, descriptionText, ...selectButton.items] };
+    return { container, items: [container, glow, panel, accentRail, descriptionIntroText, descriptionBodyText, ...selectButton.items] };
   }
 
   handleFactionBannerTap(factionKey) {
