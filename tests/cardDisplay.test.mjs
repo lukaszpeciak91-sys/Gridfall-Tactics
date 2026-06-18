@@ -67,12 +67,12 @@ test('card display helper uses existing card fields when future translation keys
   const keyedCard = {
     name: 'Fallback Name',
     nameKey: 'cards.missing.name',
-    textShort: 'Fallback text.',
+    textShort: 'Fallback text',
     textKey: 'cards.missing.textShort',
   };
 
   assert.equal(getCardDisplayName(keyedCard, 'en'), 'Fallback Name');
-  assert.equal(getCardTextShort(keyedCard, 'en'), 'Fallback text.');
+  assert.equal(getCardTextShort(keyedCard, 'en'), 'Fallback text');
 });
 
 test('card display helper keeps current English type and stat labels', () => {
@@ -149,10 +149,10 @@ test('hand/full formatter includes effect card textShort without unit stats', ()
     attack: 99,
     hp: 99,
     armor: 99,
-    textShort: 'Heal 3.',
+    textShort: 'Heal 3',
   };
 
-  assert.equal(formatHandCardLabel(card), 'Repair Kit\nHeal +3 ●.');
+  assert.equal(formatHandCardLabel(card), 'Repair Kit\nHeal +3 ●');
 });
 
 
@@ -226,7 +226,7 @@ test('battle hand cards route content through card visual layout helpers and pre
   const effectCard = {
     name: 'Repair Kit',
     type: 'effect',
-    textShort: 'Heal 3.',
+    textShort: 'Heal 3',
   };
 
   assert.match(source, /import \{ formatDeckSummaryEntry \} from '\.\.\/rendering\/cardRenderModes\.js';/);
@@ -237,7 +237,7 @@ test('battle hand cards route content through card visual layout helpers and pre
   assert.doesNotMatch(source, /card\.textShort/);
   assert.doesNotMatch(source, /`\$\{atk\}\/\$\{hp\} ARM \$\{armor\}`/);
   assert.equal(formatHandCardLabel(unitCard), 'Shield Drone\n1/4 ARM 2\nBlocks line. This unit can’t attack.');
-  assert.equal(formatHandCardLabel(effectCard), 'Repair Kit\nHeal +3 ●.');
+  assert.equal(formatHandCardLabel(effectCard), 'Repair Kit\nHeal +3 ●');
   assert.equal(formatHandCardLabel(null), 'Empty');
 });
 

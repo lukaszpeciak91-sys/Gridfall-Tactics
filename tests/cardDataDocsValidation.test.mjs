@@ -112,6 +112,20 @@ test('visible textShort values match the MVP wording pass', () => {
   }
 });
 
+
+test('card descriptions do not end with trailing periods', () => {
+  for (const { card } of allCards()) {
+    assert.doesNotMatch(card.textShort, /\.$/, `${card.id} source textShort`);
+  }
+
+  for (const locale of ['en', 'pl']) {
+    const translations = JSON.parse(fs.readFileSync(`src/localization/translations/${locale}.json`, 'utf8'));
+    for (const [cardId, cardText] of Object.entries(translations.cards ?? {})) {
+      assert.doesNotMatch(cardText.textShort, /\.$/, `${locale} ${cardId} textShort`);
+    }
+  }
+});
+
 test('all source cards have exactly one English and Polish localization entry', () => {
   const sourceIds = allCards().map(({ card }) => card.id).sort();
 
@@ -164,7 +178,7 @@ test('canonical behavior matrix matches source card faction, type, stats, and ef
 
 test('Reactive Plating wording avoids immediate-lane-combat cleanup language', () => {
   const reactivePlating = allCards().find(({ card }) => card.id === 'tank_repair_kit_1').card;
-  assert.equal(reactivePlating.textShort, 'Target [ALLY] +1 ARM until combat.');
+  assert.equal(reactivePlating.textShort, 'Target [ALLY] +1 ARM until combat');
   assert.doesNotMatch(reactivePlating.textShort, /this combat/i);
 
   const doc = fs.readFileSync('docs/rules/mvp-battle-rules.md', 'utf8');

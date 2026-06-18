@@ -11,7 +11,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": "enemy_lane_atk_minus_1",
-      "textShort": "Opposed [ENEMY]: -1 ATK until combat.",
+      "textShort": "Opposed [ENEMY]: -1 ATK until combat",
       "attack": 1,
       "hp": 2,
       "armor": 0
@@ -24,7 +24,7 @@
       "type": "unit",
       "targeting": "enemy",
       "effectId": "block_enemy_effect_cards_until_combat",
-      "textShort": "Until combat, opponent cannot play effect cards.",
+      "textShort": "Until combat, opponent cannot play effect cards",
       "attack": 1,
       "hp": 2,
       "armor": 0
@@ -37,7 +37,7 @@
       "type": "unit",
       "targeting": "any_enemy_unit",
       "effectId": "can_hit_any_lane",
-      "textShort": "Attacks the lowest-HP [ENEMY].",
+      "textShort": "Attacks the lowest-HP [ENEMY]",
       "attack": 2,
       "hp": 1,
       "armor": 0,
@@ -51,7 +51,7 @@
       "type": "unit",
       "targeting": "enemy_units",
       "effectId": "swap_two_enemy_units",
-      "textShort": "On play: swap two [ENEMIES].",
+      "textShort": "On play: swap two [ENEMIES]",
       "attack": 1,
       "hp": 2,
       "armor": 0
@@ -64,7 +64,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": "death_damage_enemy_hero_1",
-      "textShort": "On death: enemy base loses 1 HP.",
+      "textShort": "On death: enemy base loses 1 HP",
       "attack": 1,
       "hp": 1,
       "armor": 0
@@ -77,7 +77,7 @@
       "type": "order",
       "targeting": "any_units",
       "effectId": "swap_any_two_units",
-      "textShort": "Swap 2 [ALLY] or 2 [ENEMIES]."
+      "textShort": "Swap 2 [ALLY] or 2 [ENEMIES]"
     },
     {
       "id": "control_jam_signal_1",
@@ -87,7 +87,7 @@
       "type": "order",
       "targeting": "enemy_units",
       "effectId": "enemy_up_to_2_atk_minus_1",
-      "textShort": "Up to 2 [ENEMIES]: -1 ATK until combat."
+      "textShort": "Up to 2 [ENEMIES]: -1 ATK until combat"
     },
     {
       "id": "control_pulse_wave_1",
@@ -97,7 +97,7 @@
       "type": "order",
       "targeting": "all_enemy_units",
       "effectId": "damage_all_enemies_1_ignore_armor",
-      "textShort": "Deal 1 to all [ENEMIES], ignoring ARM."
+      "textShort": "Deal 1 to all [ENEMIES], ignoring ARM"
     },
     {
       "id": "control_system_override_1",
@@ -107,7 +107,7 @@
       "type": "special",
       "targeting": "enemy_unit",
       "effectId": "control_enemy_unit_this_turn",
-      "textShort": "Selected [ENEMY] attacks its own base, then loses 1 HP."
+      "textShort": "Selected [ENEMY] attacks its own base, then loses 1 HP"
     },
     {
       "id": "control_recall_1",
@@ -117,7 +117,7 @@
       "type": "utility",
       "targeting": "friendly_unit",
       "effectId": "return_friendly_draw_1",
-      "textShort": "Return [ALLY] to hand. Draw 1."
+      "textShort": "Return [ALLY] to hand. Draw 1"
     }
   ]
 }

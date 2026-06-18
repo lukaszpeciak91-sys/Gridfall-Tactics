@@ -10,7 +10,7 @@ const substrate = {
   type: 'utility',
   targeting: 'friendly_unit',
   effectId: 'destroy_friendly_draw_1',
-  textShort: 'Destroy [ALLY]. Draw 1.',
+  textShort: 'Destroy [ALLY]. Draw 1',
 };
 
 const faction = {

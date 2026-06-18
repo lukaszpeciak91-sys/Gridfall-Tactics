@@ -11,7 +11,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": "combat_death_damage_enemy_lane_1",
-      "textShort": "Combat death:\n-1 [HP] to opposed [ENEMY].",
+      "textShort": "Combat death:\n-1 [HP] to opposed [ENEMY]",
       "attack": 1,
       "hp": 1,
       "armor": 0
@@ -24,7 +24,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": "combat_death_summon_grunt",
-      "textShort": "Combat death: summon 1/1 here.",
+      "textShort": "Combat death: summon 1/1 here",
       "attack": 1,
       "hp": 2,
       "armor": 0
@@ -37,7 +37,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": "leech_heal_hero_on_attack",
-      "textShort": "On attack: heal your base 1.",
+      "textShort": "On attack: heal your base 1",
       "attack": 2,
       "hp": 1,
       "armor": 0
@@ -50,7 +50,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": "rotcaller_adjacent_death_atk_1",
-      "textShort": "First adjacent [ALLY] death in combat: +1 ATK until combat.",
+      "textShort": "First adjacent [ALLY] death in combat: +1 ATK until combat",
       "attack": 1,
       "hp": 2,
       "armor": 0
@@ -63,7 +63,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": "combat_death_damage_both_heroes_1",
-      "textShort": "Combat death: both bases lose 1 HP.",
+      "textShort": "Combat death: both bases lose 1 HP",
       "attack": 2,
       "hp": 2,
       "armor": 0
@@ -76,7 +76,7 @@
       "type": "order",
       "targeting": "none",
       "effectId": "funeral_pyre",
-      "textShort": "First 2 [ALLY] combat deaths:\n-1 [HP] to opposed [ENEMY]."
+      "textShort": "First 2 [ALLY] combat deaths:\n-1 [HP] to opposed [ENEMY]"
     },
     {
       "id": "attrition_swarm_infect_1",
@@ -86,7 +86,7 @@
       "type": "order",
       "targeting": "enemy_unit",
       "effectId": "infect_damage_1_opposite_ally_atk_1",
-      "textShort": "Deal 1 to [ENEMY].\nOpposed [ALLY] gains +1 [ATK]."
+      "textShort": "Deal 1 to [ENEMY].\nOpposed [ALLY] gains +1 [ATK]"
     },
     {
       "id": "attrition_swarm_feast_1",
@@ -96,7 +96,7 @@
       "type": "utility",
       "targeting": "none",
       "effectId": "draw_1",
-      "textShort": "Draw 1."
+      "textShort": "Draw 1"
     },
     {
       "id": "attrition_swarm_rise_again_1",
@@ -106,7 +106,7 @@
       "type": "order",
       "targeting": "none",
       "effectId": "revive_friendly_1hp",
-      "textShort": "Revive the newest fallen unit with 1 HP."
+      "textShort": "Revive the newest fallen unit with 1 HP"
     },
     {
       "id": "attrition_swarm_grave_call_1",
@@ -116,7 +116,7 @@
       "type": "order",
       "targeting": "none",
       "effectId": "grave_call",
-      "textShort": "Summon a 1/1. If you have no [ALLY], summon up to 2."
+      "textShort": "Summon a 1/1. If you have no [ALLY], summon up to 2"
     }
   ]
 }
