@@ -19,6 +19,10 @@ import { createTapVsDragInteraction } from '../ui/tapVsDragInteraction.js';
 
 const MIN_FACTION_LIST_TOP = 106;
 const HEADER_TO_FACTION_LIST_GAP = 24;
+const FACTION_CARD_GAP = 14;
+const CAMPAIGN_ACCORDION_PANEL_HEIGHT = 156;
+const CAMPAIGN_ACCORDION_TWEEN_MS = 180;
+const CAMPAIGN_ACCORDION_AUTO_SCROLL_PADDING = 12;
 export default class FactionSelectScene extends Phaser.Scene {
   constructor() {
     super('FactionSelectScene');
@@ -26,6 +30,8 @@ export default class FactionSelectScene extends Phaser.Scene {
     this.interactiveElements = [];
     this.scrollMask = null;
     this.scrollState = null;
+    this.factionCardViews = [];
+    this.openFactionKey = null;
     this.isStartingBattle = false;
     this.tapVsDrag = createTapVsDragInteraction();
   }
@@ -93,11 +99,9 @@ export default class FactionSelectScene extends Phaser.Scene {
   drawFactionCards(factionKeys, { width, height, headerBottomY }) {
     const cardWidth = Math.min(width - 24, 382);
     const cardHeight = 196;
-    const gap = 14;
     const viewportTop = Math.max(MIN_FACTION_LIST_TOP, Math.ceil(headerBottomY + HEADER_TO_FACTION_LIST_GAP));
     const viewportBottom = Math.max(viewportTop + cardHeight, height - 88);
     const viewportHeight = viewportBottom - viewportTop;
-    const contentHeight = factionKeys.length * cardHeight + Math.max(0, factionKeys.length - 1) * gap;
     const content = this.add.container(width / 2, viewportTop);
     this.uiElements.push(content);
 
@@ -110,25 +114,24 @@ export default class FactionSelectScene extends Phaser.Scene {
     this.scrollMask = maskShape.createGeometryMask();
     content.setMask(this.scrollMask);
 
-    factionKeys.forEach((factionKey, index) => {
-      const y = index * (cardHeight + gap);
-      this.drawFactionCard(content, factionKey, {
-        y,
-        cardWidth,
-        cardHeight,
-      });
-    });
-
     this.scrollState = {
       content,
+      contentHeight: 0,
       maxY: viewportTop,
-      minY: viewportTop - Math.max(0, contentHeight - viewportHeight),
+      minY: viewportTop,
       viewportTop,
       viewportBottom,
+      viewportHeight,
       pointerId: null,
       pointerStartY: 0,
       contentStartY: viewportTop,
     };
+
+    this.factionCardViews = factionKeys.map((factionKey) => this.createFactionCardView(content, factionKey, {
+      cardWidth,
+      cardHeight,
+    }));
+    this.layoutFactionCards();
 
     this.input.on('wheel', this.onScrollWheel, this);
     this.input.on('pointerdown', this.onScrollPointerDown, this);
@@ -136,19 +139,23 @@ export default class FactionSelectScene extends Phaser.Scene {
     this.input.on('pointerup', this.onScrollPointerUp, this);
   }
 
-  drawFactionCard(content, factionKey, { y, cardWidth, cardHeight }) {
-    const { items } = drawFactionCardVisual(this, content, factionKey, { y, cardWidth, cardHeight });
-    this.uiElements.push(...items);
+  createFactionCardView(content, factionKey, { cardWidth, cardHeight }) {
+    const root = this.add.container(0, 0);
+    content.add(root);
+    this.uiElements.push(root);
+
+    const { items } = drawFactionCardVisual(this, root, factionKey, { y: 0, cardWidth, cardHeight });
+
+    const panel = this.createCampaignAccordionPanel(root, { cardWidth, cardHeight });
 
     const pressOverlay = this.add.graphics();
     pressOverlay.fillStyle(0xffffff, 0.08);
-    pressOverlay.fillRoundedRect(-cardWidth / 2, y, cardWidth, cardHeight, 20);
+    pressOverlay.fillRoundedRect(-cardWidth / 2, 0, cardWidth, cardHeight, 20);
     pressOverlay.setVisible(false);
-    content.add(pressOverlay);
-    this.uiElements.push(pressOverlay);
+    root.add(pressOverlay);
 
     const button = this.add
-      .zone(0, y + cardHeight / 2, cardWidth, cardHeight)
+      .zone(0, cardHeight / 2, cardWidth, cardHeight)
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
     button.on('pointerdown', (pointer) => {
@@ -159,12 +166,140 @@ export default class FactionSelectScene extends Phaser.Scene {
     button.on('pointerup', (pointer) => {
       pressOverlay.setVisible(false);
       if (this.tapVsDrag.end(pointer, this.scrollState?.content?.y ?? 0)) {
-        this.selectFaction(factionKey);
+        this.handleFactionBannerTap(factionKey);
       }
     });
-    content.add(button);
-    this.uiElements.push(button);
+    root.add(button);
+
+    const view = {
+      factionKey,
+      root,
+      collapsedHeight: cardHeight,
+      expandedPanelHeight: this.mode === 'campaign' ? CAMPAIGN_ACCORDION_PANEL_HEIGHT : 0,
+      currentHeight: cardHeight,
+      panelContainer: panel.container,
+      panelItems: panel.items,
+      panelProgress: 0,
+      isOpen: false,
+      bannerTapZone: button,
+      tween: null,
+      items: [...items, ...panel.items, pressOverlay, button],
+    };
+
     this.interactiveElements.push(button);
+    return view;
+  }
+
+  createCampaignAccordionPanel(root, { cardWidth, cardHeight }) {
+    const container = this.add.container(0, cardHeight);
+    container.setVisible(false);
+    container.setAlpha(0);
+    root.add(container);
+
+    if (this.mode !== 'campaign') {
+      return { container, items: [container] };
+    }
+
+    const x = -cardWidth / 2;
+    const panelWidth = cardWidth;
+    const panelHeight = CAMPAIGN_ACCORDION_PANEL_HEIGHT;
+    const panel = this.add.graphics();
+    panel.fillStyle(0x020617, 0.9);
+    panel.fillRoundedRect(x + 8, 8, panelWidth - 16, panelHeight - 16, 18);
+    panel.lineStyle(1, 0x38bdf8, 0.5);
+    panel.strokeRoundedRect(x + 9, 9, panelWidth - 18, panelHeight - 18, 17);
+
+    const label = this.add.text(0, panelHeight / 2, 'Faction details coming soon', {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: '15px',
+      color: '#cbd5e1',
+      align: 'center',
+    }).setOrigin(0.5);
+
+    container.add([panel, label]);
+    return { container, items: [container, panel, label] };
+  }
+
+  handleFactionBannerTap(factionKey) {
+    if (this.mode !== 'campaign') {
+      this.selectFaction(factionKey);
+      return;
+    }
+
+    this.toggleCampaignAccordion(factionKey);
+  }
+
+  toggleCampaignAccordion(factionKey) {
+    const selectedView = this.factionCardViews.find((view) => view.factionKey === factionKey);
+    if (!selectedView) return;
+
+    const shouldOpen = this.openFactionKey !== factionKey;
+    this.factionCardViews.forEach((view) => {
+      this.animateCampaignAccordion(view, shouldOpen && view === selectedView);
+    });
+    this.openFactionKey = shouldOpen ? factionKey : null;
+  }
+
+  animateCampaignAccordion(view, open) {
+    if (view.isOpen === open && ((open && view.panelProgress >= 1) || (!open && view.panelProgress <= 0))) {
+      return;
+    }
+
+    view.isOpen = open;
+    view.tween?.stop?.();
+    const progress = { value: view.panelProgress };
+    view.panelContainer?.setVisible(true);
+
+    view.tween = this.tweens.add({
+      targets: progress,
+      value: open ? 1 : 0,
+      duration: CAMPAIGN_ACCORDION_TWEEN_MS,
+      ease: open ? 'Quad.easeOut' : 'Quad.easeIn',
+      onUpdate: () => {
+        this.setCampaignAccordionProgress(view, progress.value);
+        if (open) this.autoScrollFactionCardIntoView(view);
+      },
+      onComplete: () => {
+        this.setCampaignAccordionProgress(view, open ? 1 : 0);
+        view.panelContainer?.setVisible(open);
+        view.tween = null;
+        if (open) this.autoScrollFactionCardIntoView(view);
+      },
+    });
+  }
+
+  setCampaignAccordionProgress(view, progress) {
+    view.panelProgress = Phaser.Math.Clamp(progress, 0, 1);
+    view.currentHeight = view.collapsedHeight + view.expandedPanelHeight * view.panelProgress;
+    view.panelContainer?.setAlpha(view.panelProgress);
+    view.panelContainer?.setVisible(view.panelProgress > 0.01 || view.isOpen);
+    this.layoutFactionCards();
+  }
+
+  layoutFactionCards() {
+    if (!this.scrollState) return;
+
+    let y = 0;
+    this.factionCardViews.forEach((view, index) => {
+      view.root.setPosition(0, y);
+      y += view.currentHeight;
+      if (index < this.factionCardViews.length - 1) y += FACTION_CARD_GAP;
+    });
+
+    this.scrollState.contentHeight = y;
+    this.scrollState.minY = this.scrollState.viewportTop - Math.max(0, y - this.scrollState.viewportHeight);
+    this.setFactionScrollY(this.scrollState.content.y);
+  }
+
+  autoScrollFactionCardIntoView(view) {
+    const state = this.scrollState;
+    if (!state) return;
+
+    const cardBottom = state.content.y + view.root.y + view.currentHeight;
+    const overflow = cardBottom - state.viewportBottom + CAMPAIGN_ACCORDION_AUTO_SCROLL_PADDING;
+    if (overflow > 0) {
+      this.setFactionScrollY(state.content.y - overflow);
+    }
   }
 
   selectFaction(factionKey) {
@@ -390,6 +525,10 @@ export default class FactionSelectScene extends Phaser.Scene {
     this.input?.off('pointerup', this.onScrollPointerUp, this);
 
     this.tapVsDrag?.cancel?.();
+    this.factionCardViews.forEach((view) => view.tween?.stop?.());
+    this.factionCardViews = [];
+    this.openFactionKey = null;
+
     this.scrollMask?.destroy?.();
     this.scrollMask = null;
     this.scrollState = null;
