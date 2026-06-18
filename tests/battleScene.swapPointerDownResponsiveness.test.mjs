@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { playOrRedeployUnit } from '../src/systems/GameState.js';
 
 const source = readFileSync(new URL('../src/scenes/BattleScene.js', import.meta.url), 'utf8');
 
@@ -359,6 +360,168 @@ test('hand-card long press preserves targeted session, suppresses release, and a
   assert.equal(scene.selectedCardId, signalShift.id);
   assert.deepEqual(scene.targetingState, { targetType: 'any-unit' });
   assert.equal(scene.quickTapLongPressStartedFor, signalShift.id);
+});
+
+// Regression coverage for unit-card inspect preserving redeploy intent.
+test('selected unit hand long press preserves selectedCardId and does not arm swap source', () => {
+  const startHandCardLongPress = compileMethod('startHandCardLongPress', 'cancelHandCardLongPress', ['cardId', 'CARD_INSPECT_LONG_PRESS_MS']);
+  const trySelectImplicitSwapSourceOnPointerDown = compileMethod('trySelectImplicitSwapSourceOnPointerDown', 'onCardPointerDown', ['boardIndex']);
+
+  const wall = { id: 'tank_wall_1', type: 'unit', effectId: 'cannot_attack', attack: 0, hp: 2, armor: 0 };
+  let timerCallback = null;
+  const scene = {
+    utilityMenuPanel: null,
+    navigationInProgress: false,
+    pointerInputGuardActive: false,
+    battleResultModalShown: false,
+    isFlowResolving: false,
+    playerActionUsed: false,
+    openingMulliganPending: false,
+    isEffectCastResolving: false,
+    pressedHandCardId: wall.id,
+    longPressTriggeredCardId: null,
+    handCardLongPressEvent: null,
+    selectedCardId: wall.id,
+    targetingState: null,
+    effectCastState: null,
+    hoverInspectCardId: null,
+    boardInspectIndex: null,
+    pendingSwapIndex: null,
+    boardPointerDownSelectedSwapSource: false,
+    gameState: {
+      player: { hand: [wall] },
+      board: [null, null, null, null, null, null, { owner: 'player' }, null, null],
+    },
+    time: { delayedCall(ms, callback) { assert.equal(ms, 350); timerCallback = callback; return { remove() {} }; } },
+    cancelHandCardLongPress() { this.handCardLongPressEvent = null; },
+    destroyTargetingInstruction() { throw new Error('selected unit inspect must not clear targeting instruction state'); },
+    resetCardHighlights() {},
+    updatePlayerBaseActionState() {},
+    isUnitCard(card) { return card?.type === 'unit'; },
+    showSwapPrompt() { throw new Error('selected unit board press must not start adjacent swap'); },
+    clearBoardInspect() {},
+  };
+
+  startHandCardLongPress.call(scene, wall.id, 350);
+  timerCallback();
+
+  assert.equal(scene.selectedCardId, wall.id);
+  assert.equal(scene.targetingState, null);
+  assert.equal(scene.effectCastState, null);
+  assert.equal(scene.hoverInspectCardId, wall.id);
+  assert.equal(trySelectImplicitSwapSourceOnPointerDown.call(scene, 6), false);
+  assert.equal(scene.pendingSwapIndex, null);
+});
+
+
+test('selected unit after hand inspect plays empty slot and redeploys over occupied friendly slot before swap', () => {
+  const onBoardCellTap = compileMethod('onBoardCellTap', 'getActivePlayerEffectCard', ['boardIndex', 'playOrRedeployUnit']);
+
+  const replacement = { id: 'aggro_runner_1', type: 'unit', effectId: 'lane_empty_bonus_damage', attack: 2, hp: 1, armor: 0 };
+  const wall = { id: 'tank_wall_1', type: 'unit', effectId: 'cannot_attack', attack: 0, hp: 2, armor: 0 };
+  const makeScene = ({ boardUnit = null, card = replacement } = {}) => {
+    const state = {
+      board: [null, null, null, null, null, null, boardUnit, null, null],
+      player: { hand: [card], discard: [], maxHandSize: 10 },
+      enemy: { hand: [], discard: [], maxHandSize: 10 },
+      playerLanePlayBlockedThisTurn: [false, false, false],
+      enemyLanePlayBlockedThisTurn: [false, false, false],
+    };
+    return {
+      utilityMenuPanel: null,
+      navigationInProgress: false,
+      pointerInputGuardActive: false,
+      battleResultModalShown: false,
+      isFlowResolving: false,
+      isEffectCastResolving: false,
+      playerActionUsed: false,
+      selectedCardId: card.id,
+      targetingState: null,
+      effectCastState: null,
+      pendingSwapIndex: null,
+      hoverInspectCardId: card.id,
+      boardInspectIndex: null,
+      gameState: state,
+      completed: false,
+      swapPromptShown: false,
+      getActivePlayerEffectCard: () => null,
+      isUnitCard: (candidate) => candidate?.type === 'unit',
+      captureBoardStats: () => [],
+      buildActionFeedback: () => [],
+      completePlayerAction() { this.completed = true; },
+      startPlayerUnitOnPlayTargeting() { throw new Error('plain unit should not enter on-play targeting'); },
+      startPlayerEffectCast() { throw new Error('unit card should not start effect cast'); },
+      clearHandCardSelection() { throw new Error('valid unit placement should not clear selection as invalid'); },
+      showInvalidActionFeedback() { throw new Error('valid unit placement should not show invalid feedback'); },
+      getInvalidActionScope: () => 'global',
+      showSwapPrompt() { this.swapPromptShown = true; },
+      clearSwapPrompt() {},
+      clearBoardInspect() {},
+      resetCardHighlights() {},
+      updatePlayerBaseActionState() {},
+    };
+  };
+
+  const playScene = makeScene();
+  onBoardCellTap.call(playScene, 6, playOrRedeployUnit);
+  assert.equal(playScene.completed, true);
+  assert.equal(playScene.swapPromptShown, false);
+  assert.equal(playScene.pendingSwapIndex, null);
+  assert.equal(playScene.gameState.board[6].cardId, replacement.id);
+  assert.equal(playScene.gameState.player.hand.length, 0);
+
+  const redeployScene = makeScene({ boardUnit: { ...wall, owner: 'player', cardId: wall.id } });
+  onBoardCellTap.call(redeployScene, 6, playOrRedeployUnit);
+  assert.equal(redeployScene.completed, true);
+  assert.equal(redeployScene.swapPromptShown, false);
+  assert.equal(redeployScene.pendingSwapIndex, null);
+  assert.equal(redeployScene.gameState.board[6].cardId, replacement.id);
+  assert.equal(redeployScene.gameState.player.hand.length, 1);
+  assert.equal(redeployScene.gameState.player.hand[0].id, wall.id);
+});
+
+test('selected zero-attack tank wall after hand inspect redeploys over a zero-attack Elder Tam-Tam', () => {
+  const onBoardCellTap = compileMethod('onBoardCellTap', 'getActivePlayerEffectCard', ['boardIndex', 'playOrRedeployUnit']);
+
+  const handWall = { id: 'tank_wall_1_replacement', type: 'unit', effectId: 'cannot_attack', attack: 0, hp: 2, armor: 0 };
+  const boardWall = { id: 'tank_wall_1', type: 'unit', effectId: 'cannot_attack', attack: 0, hp: 2, armor: 0, owner: 'player', cardId: 'tank_wall_1' };
+  const scene = {
+    utilityMenuPanel: null,
+    navigationInProgress: false,
+    pointerInputGuardActive: false,
+    battleResultModalShown: false,
+    isFlowResolving: false,
+    isEffectCastResolving: false,
+    playerActionUsed: false,
+    selectedCardId: handWall.id,
+    targetingState: null,
+    effectCastState: null,
+    pendingSwapIndex: null,
+    hoverInspectCardId: handWall.id,
+    gameState: {
+      board: [null, null, null, null, null, null, boardWall, null, null],
+      player: { hand: [handWall], discard: [], maxHandSize: 10 },
+      enemy: { hand: [], discard: [], maxHandSize: 10 },
+      playerLanePlayBlockedThisTurn: [false, false, false],
+      enemyLanePlayBlockedThisTurn: [false, false, false],
+    },
+    getActivePlayerEffectCard: () => null,
+    isUnitCard: (candidate) => candidate?.type === 'unit',
+    captureBoardStats: () => [],
+    buildActionFeedback: () => [],
+    completePlayerAction() { this.completed = true; },
+    startPlayerUnitOnPlayTargeting() {},
+    clearHandCardSelection() { throw new Error('zero-attack redeploy should remain valid'); },
+    showInvalidActionFeedback() { throw new Error('zero-attack redeploy should not be invalid'); },
+    getInvalidActionScope: () => 'global',
+  };
+
+  onBoardCellTap.call(scene, 6, playOrRedeployUnit);
+
+  assert.equal(scene.completed, true);
+  assert.equal(scene.pendingSwapIndex, null);
+  assert.equal(scene.gameState.board[6].cardId, handWall.id);
+  assert.equal(scene.gameState.player.hand[0].id, boardWall.id);
 });
 
 function createBoardInspectScene(overrides = {}) {
