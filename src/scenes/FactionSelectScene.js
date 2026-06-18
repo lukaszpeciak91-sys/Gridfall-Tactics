@@ -24,10 +24,53 @@ const FACTION_CARD_GAP = 14;
 const CAMPAIGN_ACCORDION_PANEL_HEIGHT = 218;
 const CAMPAIGN_ACCORDION_TWEEN_MS = 180;
 const CAMPAIGN_ACCORDION_AUTO_SCROLL_PADDING = 12;
-const CAMPAIGN_ACCORDION_DESCRIPTION_FONT_SIZE = 17;
-const CAMPAIGN_ACCORDION_DESCRIPTION_FIRST_LINE_FONT_SIZE = 18;
-const CAMPAIGN_ACCORDION_DESCRIPTION_LINE_SPACING = 8;
-const CAMPAIGN_ACCORDION_DESCRIPTION_SECTION_GAP = 12;
+const CAMPAIGN_ACCORDION_DESCRIPTION_FONT_SIZE = 16;
+const CAMPAIGN_ACCORDION_DESCRIPTION_FIRST_LINE_FONT_SIZE = 17;
+const CAMPAIGN_ACCORDION_DESCRIPTION_MIN_FONT_SIZE = 12;
+const CAMPAIGN_ACCORDION_DESCRIPTION_FIRST_LINE_MIN_FONT_SIZE = 13;
+const CAMPAIGN_ACCORDION_DESCRIPTION_LINE_SPACING = 2;
+const CAMPAIGN_ACCORDION_DESCRIPTION_SECTION_GAP = 3;
+const CAMPAIGN_ACCORDION_TEXT_TOP_PADDING = 28;
+const CAMPAIGN_ACCORDION_TEXT_SIDE_PADDING = 23;
+const CAMPAIGN_ACCORDION_TEXT_TO_BUTTON_GAP = 10;
+const CAMPAIGN_ACCORDION_SELECT_BUTTON_WIDTH = 176;
+const CAMPAIGN_ACCORDION_SELECT_BUTTON_HEIGHT = 34;
+const CAMPAIGN_ACCORDION_SELECT_BUTTON_MIN_TOUCH_HEIGHT = 44;
+
+function measureTextBlockHeight(introText, bodyText, sectionGap = CAMPAIGN_ACCORDION_DESCRIPTION_SECTION_GAP) {
+  const introHeight = introText?.height ?? 0;
+  const bodyHeight = bodyText?.text ? (bodyText.height ?? 0) : 0;
+  return introHeight + (bodyHeight > 0 ? sectionGap + bodyHeight : 0);
+}
+
+function fitCampaignAccordionDescription({ introText, bodyText, regionTop, regionHeight }) {
+  let introFontSize = CAMPAIGN_ACCORDION_DESCRIPTION_FIRST_LINE_FONT_SIZE;
+  let bodyFontSize = CAMPAIGN_ACCORDION_DESCRIPTION_FONT_SIZE;
+
+  while (introFontSize >= CAMPAIGN_ACCORDION_DESCRIPTION_FIRST_LINE_MIN_FONT_SIZE && bodyFontSize >= CAMPAIGN_ACCORDION_DESCRIPTION_MIN_FONT_SIZE) {
+    introText.setFontSize(introFontSize);
+    bodyText.setFontSize(bodyFontSize);
+    introText.setLineSpacing(CAMPAIGN_ACCORDION_DESCRIPTION_LINE_SPACING);
+    bodyText.setLineSpacing(CAMPAIGN_ACCORDION_DESCRIPTION_LINE_SPACING);
+
+    const blockHeight = measureTextBlockHeight(introText, bodyText);
+    if (blockHeight <= regionHeight) break;
+
+    if (bodyFontSize > CAMPAIGN_ACCORDION_DESCRIPTION_MIN_FONT_SIZE) {
+      bodyFontSize -= 1;
+    } else if (introFontSize > CAMPAIGN_ACCORDION_DESCRIPTION_FIRST_LINE_MIN_FONT_SIZE) {
+      introFontSize -= 1;
+    } else {
+      break;
+    }
+  }
+
+  const fittedHeight = measureTextBlockHeight(introText, bodyText);
+  const y = regionTop + Math.max(0, Math.floor((regionHeight - fittedHeight) / 2));
+  introText.setY(y);
+  bodyText.setY(y + (introText.height ?? 0) + CAMPAIGN_ACCORDION_DESCRIPTION_SECTION_GAP);
+}
+
 export default class FactionSelectScene extends Phaser.Scene {
   constructor() {
     super('FactionSelectScene');
@@ -216,9 +259,12 @@ export default class FactionSelectScene extends Phaser.Scene {
     const panelW = panelWidth - 20;
     const panelH = panelHeight - 18;
     const panelRadius = 18;
-    const selectButtonWidth = Math.min(panelW - 82, 214);
-    const selectButtonHeight = 42;
-    const selectButtonY = panelY + panelH - 39;
+    const selectButtonWidth = Math.min(panelW - 112, CAMPAIGN_ACCORDION_SELECT_BUTTON_WIDTH);
+    const selectButtonHeight = CAMPAIGN_ACCORDION_SELECT_BUTTON_HEIGHT;
+    const selectButtonY = panelY + panelH - 31;
+    const textRegionTop = panelY + CAMPAIGN_ACCORDION_TEXT_TOP_PADDING;
+    const textRegionBottom = selectButtonY - (selectButtonHeight / 2) - CAMPAIGN_ACCORDION_TEXT_TO_BUTTON_GAP;
+    const textRegionHeight = Math.max(1, textRegionBottom - textRegionTop);
 
     const glow = this.add.graphics();
     glow.fillStyle(accentColor, 0.08);
@@ -242,10 +288,10 @@ export default class FactionSelectScene extends Phaser.Scene {
     accentRail.fillGradientStyle(accentColor, accentColor, accentColor, accentColor, 0.1, 0.02, 0.32, 0.08);
     accentRail.fillRoundedRect(panelX + 18, panelY + panelH - 18, panelW - 36, 1, 1);
 
-    const textWrapWidth = panelW - 46;
+    const textWrapWidth = panelW - (CAMPAIGN_ACCORDION_TEXT_SIDE_PADDING * 2);
     const descriptionLines = translateActiveList(`ui.factionSelect.campaignAccordion.descriptions.${factionKey}`, []);
     const [descriptionIntro = '', ...descriptionBodyLines] = descriptionLines;
-    const descriptionIntroText = this.add.text(0, panelY + 32, descriptionIntro, {
+    const descriptionIntroText = this.add.text(0, textRegionTop, descriptionIntro, {
       fontFamily: PREMIUM_BROADCAST_FONT_STACK,
       fontSize: `${CAMPAIGN_ACCORDION_DESCRIPTION_FIRST_LINE_FONT_SIZE}px`,
       fontStyle: '700',
@@ -267,6 +313,13 @@ export default class FactionSelectScene extends Phaser.Scene {
       wordWrap: { width: textWrapWidth, useAdvancedWrap: true },
     }).setOrigin(0.5, 0);
 
+    fitCampaignAccordionDescription({
+      introText: descriptionIntroText,
+      bodyText: descriptionBodyText,
+      regionTop: textRegionTop,
+      regionHeight: textRegionHeight,
+    });
+
     const selectButton = createImageButton(this, {
       x: 0,
       y: selectButtonY,
@@ -287,7 +340,8 @@ export default class FactionSelectScene extends Phaser.Scene {
       shadowAlpha: 0.24,
       hoverScale: 1.025,
       downScale: 0.98,
-      minTouchHeight: 44,
+      preserveImageAspect: false,
+      minTouchHeight: CAMPAIGN_ACCORDION_SELECT_BUTTON_MIN_TOUCH_HEIGHT,
     });
 
     selectButton.hitZone.on('pointerdown', (pointer) => {
