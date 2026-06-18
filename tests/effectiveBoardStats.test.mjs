@@ -51,6 +51,17 @@ test('getEffectiveBoardAttack projects Ice Pike and Halberdier opposing-lane bon
   assert.equal(getEffectiveBoardAttack(state, 1), 2);
 });
 
+test('getEffectiveBoardAttack projects Runner open-lane bonus on and off', () => {
+  const state = stateWithBoard();
+  state.board[6] = unit('player', { attack: 2, effectId: 'lane_empty_bonus_damage' });
+
+  assert.equal(getEffectiveBoardAttack(state, 6), 4);
+  assert.equal(getUnitAttack(state.board[6]), 2);
+
+  state.board[0] = unit('enemy');
+  assert.equal(getEffectiveBoardAttack(state, 6), 2);
+});
+
 test('getEffectiveBoardAttack projects Alpha adjacent aura on and off without ignore-armor ARM math', () => {
   const state = stateWithBoard();
   state.board[6] = unit('player', { attack: 1, effectId: 'adjacent_allies_atk_plus_1_ignore_armor_1' });

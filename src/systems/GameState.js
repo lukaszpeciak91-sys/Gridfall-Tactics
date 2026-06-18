@@ -10,7 +10,7 @@ const WARDEN_SELF_FRICTION_EFFECT_ID = 'warden_defensive_friction_self';
 const WARDEN_SPEARWALL_EFFECT_ID = 'warden_defensive_friction_adjacent';
 const WARDEN_FRICTION_CAP = 1;
 const FUNERAL_PYRE_TRIGGER_CAP = 2;
-export const RUNNER_OPEN_LANE_HERO_BONUS = 2;
+export const RUNNER_OPEN_LANE_ATK_BONUS = 2;
 
 function hasSwarmAlphaAura(unit) {
   return unit?.effectId === SWARM_ALPHA_AURA_EFFECT_ID;
@@ -573,6 +573,18 @@ function getSystemOverrideAttackWithCombatBonuses(state, unit, unitIndex) {
       }));
     }
   }
+  if (unit.effectId === 'lane_empty_bonus_damage') {
+    const opposingIndex = unit.owner === 'player' ? unitIndex - 6 : unitIndex + 6;
+    if (state.board[opposingIndex] === null) {
+      attack += RUNNER_OPEN_LANE_ATK_BONUS;
+      combatModifiers.push(createSystemOverrideCombatModifier({
+        type: 'attack-bonus',
+        amount: RUNNER_OPEN_LANE_ATK_BONUS,
+        source: 'lane_empty_bonus_damage',
+        label: `+${RUNNER_OPEN_LANE_ATK_BONUS} ATK`,
+      }));
+    }
+  }
   return { attack: Math.max(0, attack), combatModifiers };
 }
 
@@ -864,6 +876,11 @@ function getOpposingLaneIndex(unit, boardIndex) {
   return unit.owner === 'player' ? boardIndex - 6 : boardIndex + 6;
 }
 
+function hasOpenOpposingLane(state, unit, boardIndex) {
+  const opposingIndex = getOpposingLaneIndex(unit, boardIndex);
+  return Number.isInteger(opposingIndex) && state?.board?.[opposingIndex] === null;
+}
+
 function getBoardDefensiveFrictionPenalty(state, defenderIndex) {
   const defender = state?.board?.[defenderIndex];
   if (!defender) return 0;
@@ -896,6 +913,10 @@ export function getEffectiveBoardAttack(state, boardIndex) {
     const hasEmptyAdjacent = getAdjacentBoardAllyIndexes(unit, boardIndex)
       .some((index) => state.board[index] === null);
     if (hasEmptyAdjacent) attack += 1;
+  }
+
+  if (unit.effectId === 'lane_empty_bonus_damage' && hasOpenOpposingLane(state, unit, boardIndex)) {
+    attack += RUNNER_OPEN_LANE_ATK_BONUS;
   }
 
   const auraAttackBonus = getAdjacentBoardAllyIndexes(unit, boardIndex).reduce((total, index) => (
@@ -2666,6 +2687,18 @@ function resolveCombatLane(state, col, combatContext = null) {
         }));
       }
     }
+    if (unit.effectId === 'lane_empty_bonus_damage') {
+      const opposingIndex = unit.owner === 'player' ? unitIndex - 6 : unitIndex + 6;
+      if (state.board[opposingIndex] === null) {
+        attack += RUNNER_OPEN_LANE_ATK_BONUS;
+        combatModifiers.push(createCombatModifier({
+          type: 'attack-bonus',
+          amount: RUNNER_OPEN_LANE_ATK_BONUS,
+          source: 'lane_empty_bonus_damage',
+          label: `+${RUNNER_OPEN_LANE_ATK_BONUS} ATK`,
+        }));
+      }
+    }
     return { attack: Math.max(0, attack), combatModifiers };
   };
 
@@ -2907,13 +2940,8 @@ function resolveCombatLane(state, col, combatContext = null) {
         addPendingUnitDamage(enemyIndex, damage);
       }
     } else {
-      const laneBonus = player.effectId === 'lane_empty_bonus_damage' ? RUNNER_OPEN_LANE_HERO_BONUS : 0;
-      const damage = playerAttack + laneBonus;
-      const combatModifiers = laneBonus > 0
-        ? [...playerAttackModifiers, createCombatModifier({ type: 'base-damage-bonus', amount: laneBonus, source: 'lane_empty_bonus_damage', label: `OPEN +${laneBonus}` })]
-        : playerAttackModifiers;
-      recordHeroAttack('player', playerIndex, 'enemy', damage, true, combatModifiers);
-      state.enemyHP -= damage;
+      recordHeroAttack('player', playerIndex, 'enemy', playerAttack, true, playerAttackModifiers);
+      state.enemyHP -= playerAttack;
     }
     if (player.effectId === 'self_damage_after_attack') addPendingUnitDamage(playerIndex, 1);
   }
@@ -2952,13 +2980,8 @@ function resolveCombatLane(state, col, combatContext = null) {
         addPendingUnitDamage(playerIndex, damage);
       }
     } else {
-      const laneBonus = enemy.effectId === 'lane_empty_bonus_damage' ? RUNNER_OPEN_LANE_HERO_BONUS : 0;
-      const damage = enemyAttack + laneBonus;
-      const combatModifiers = laneBonus > 0
-        ? [...enemyAttackModifiers, createCombatModifier({ type: 'base-damage-bonus', amount: laneBonus, source: 'lane_empty_bonus_damage', label: `OPEN +${laneBonus}` })]
-        : enemyAttackModifiers;
-      recordHeroAttack('enemy', enemyIndex, 'player', damage, true, combatModifiers);
-      state.playerHP -= damage;
+      recordHeroAttack('enemy', enemyIndex, 'player', enemyAttack, true, enemyAttackModifiers);
+      state.playerHP -= enemyAttack;
     }
     if (enemy.effectId === 'self_damage_after_attack') addPendingUnitDamage(enemyIndex, 1);
   }

@@ -294,7 +294,7 @@ test('Quick Strike combatEvents represent both attacks and damage is applied onc
   assert.equal(state.board[7].hp, 3);
 });
 
-test('Runner deals +2 extra hero damage through an empty opposing lane', () => {
+test('Runner gains +2 ATK through an empty opposing lane', () => {
   const state = makeState();
   state.board[6] = unit('player', { attack: 2, effectId: 'lane_empty_bonus_damage' });
 
@@ -311,10 +311,10 @@ test('Runner deals +2 extra hero damage through an empty opposing lane', () => {
       lethal: false,
       combatModifiers: [
         {
-          type: 'base-damage-bonus',
+          type: 'attack-bonus',
           amount: 2,
           source: 'lane_empty_bonus_damage',
-          label: 'OPEN +2',
+          label: '+2 ATK',
         },
       ],
     },
@@ -353,7 +353,7 @@ test('Runner behaves normally when an enemy unit is present', () => {
   assert.equal(state.board[0].hp, 1);
 });
 
-test('Runner open-lane bonus affects hero only, not units', () => {
+test('Runner open-lane ATK bonus affects open lanes only, not opposed units', () => {
   const state = makeState();
   state.board[7] = unit('player', { attack: 2, effectId: 'lane_empty_bonus_damage' });
   state.board[1] = unit('enemy', { attack: 0, hp: 4, maxHp: 4 });
@@ -384,10 +384,10 @@ test('Runner keeps existing combat timing and simultaneous open-lane order', () 
       lethal: false,
       combatModifiers: [
         {
-          type: 'base-damage-bonus',
+          type: 'attack-bonus',
           amount: 2,
           source: 'lane_empty_bonus_damage',
-          label: 'OPEN +2',
+          label: '+2 ATK',
         },
       ],
     },
@@ -401,10 +401,10 @@ test('Runner keeps existing combat timing and simultaneous open-lane order', () 
       lethal: false,
       combatModifiers: [
         {
-          type: 'base-damage-bonus',
+          type: 'attack-bonus',
           amount: 2,
           source: 'lane_empty_bonus_damage',
-          label: 'OPEN +2',
+          label: '+2 ATK',
         },
       ],
     },
@@ -771,10 +771,10 @@ test('Warden friction metadata is omitted for unprotected defenders and open-lan
   assert.equal(openLaneEvents[0].openLane, true);
   assert.deepEqual(openLaneEvents[0].combatModifiers, [
     {
-      type: 'base-damage-bonus',
+      type: 'attack-bonus',
       amount: 2,
       source: 'lane_empty_bonus_damage',
-      label: 'OPEN +2',
+      label: '+2 ATK',
     },
   ]);
 });
@@ -871,7 +871,7 @@ test('Halberdier, Flanker, Runner, Pierce, Guardian, and Sniper emit combat feed
   const runnerHit = resolveCombat(runnerState)[0];
   assert.equal(runnerHit.damage, 4);
   assert.deepEqual(runnerHit.combatModifiers, [
-    { type: 'base-damage-bonus', amount: 2, source: 'lane_empty_bonus_damage', label: 'OPEN +2' },
+    { type: 'attack-bonus', amount: 2, source: 'lane_empty_bonus_damage', label: '+2 ATK' },
   ]);
 
   const pierceState = makeState();

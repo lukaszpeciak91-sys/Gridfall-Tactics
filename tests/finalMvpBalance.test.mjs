@@ -27,7 +27,7 @@ const unit = (owner, overrides = {}) => ({
 });
 
 
-test('Runner remains a 2/1 Aggro unit with +2 open-lane base damage text', () => {
+test('Runner remains a 2/1 Aggro unit with +2 open-lane ATK text', () => {
   const aggro = loadFaction('src/data/factions/aggro.json');
   const runner = aggro.deck.find((card) => card.id === 'aggro_runner_1');
 
@@ -36,7 +36,7 @@ test('Runner remains a 2/1 Aggro unit with +2 open-lane base damage text', () =>
   assert.equal(runner.armor, 0);
   assert.equal(runner.effectId, 'lane_empty_bonus_damage');
   assert.equal(runner.targeting, 'lane');
-  assert.equal(runner.textShort, 'Open line: enemy base loses 2 HP');
+  assert.equal(runner.textShort, 'Open lane: +2 ATK');
 });
 
 

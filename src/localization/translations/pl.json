@@ -2,7 +2,7 @@
   "cards": {
     "aggro_runner_1": {
       "name": "Biegacz",
-      "textShort": "Otwarta linia: baza wroga traci 2 HP"
+      "textShort": "Pusta linia: +2 ATK"
     },
     "aggro_berserker_1": {
       "name": "Berserker",

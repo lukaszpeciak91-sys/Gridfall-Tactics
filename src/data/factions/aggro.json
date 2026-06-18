@@ -11,7 +11,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": "lane_empty_bonus_damage",
-      "textShort": "Open line: enemy base loses 2 HP",
+      "textShort": "Open lane: +2 ATK",
       "attack": 2,
       "hp": 1,
       "armor": 0

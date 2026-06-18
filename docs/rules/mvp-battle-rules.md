@@ -250,13 +250,13 @@ Candidate audit for the same rule:
 
 | Faction | Card | Type | Stats | effectId | Implemented behavior | Targeting model | MVP simplifications / notes |
 |---|---|---|---|---|---|---|---|
-| Aggro | Runner | unit | 2/1/0 | lane_empty_bonus_damage | Open line: enemy base loses 2 HP | Lane combat | Implemented in combat resolver. |
-| Aggro | Berserker | unit | 2/2/0 | wounded_atk_plus_1 | While damaged: +1 ATK | Lane combat | Continuous card-local wounded check; bonus disappears when healed to full HP. |
-| Aggro | Glass Cannon | unit | 3/1/0 | self_damage_after_attack | After attack: lose 1 HP | Lane combat | Implemented as pending self-damage. |
-| Aggro | Flanker | unit | 2/2/0 | empty_adjacent_bonus_atk | Empty adjacent slot on your side: +1 ATK | Lane combat | Adjacent check is board-state based. |
-| Aggro | Scout | unit | 2/1/0 | block_enemy_lane_play_this_turn | Until opponent's next action: no unit in this lane | On-play lane | Symmetric for player/enemy; clears after the opponent's next action opportunity resolves. |
-| Aggro | Full Attack | order | - | aggro_buff_all_atk_2 | All [ALLY] +2 ATK until combat | Non-targeted effect | Expires after combat. |
-| Aggro | Rush | order | - | swap_adjacent_then_resolve | Swap with adjacent [ALLY], then that lane immediately fights | Targeted friendly | Fails if no adjacent friendly; prefers left if both sides are available; additional immediate lane combat does not replace standard combat. |
+| Aggro | Runner | unit | 2/1/0 | lane_empty_bonus_damage | Open lane: +2 ATK | Lane combat | Projected in effective ATK and applied as an open-lane ATK combat modifier. |
+| Aggro | Berserker | unit | 2/2/0 | wounded_atk_plus_1 | While damaged: +1 ATK. | Lane combat | Continuous card-local wounded check; bonus disappears when healed to full HP. |
+| Aggro | Glass Cannon | unit | 3/1/0 | self_damage_after_attack | After attack: lose 1 HP. | Lane combat | Implemented as pending self-damage. |
+| Aggro | Flanker | unit | 2/2/0 | empty_adjacent_bonus_atk | Empty adjacent slot on your side: +1 ATK. | Lane combat | Adjacent check is board-state based. |
+| Aggro | Scout | unit | 2/1/0 | block_enemy_lane_play_this_turn | Until opponent's next action: no unit in this lane. | On-play lane | Symmetric for player/enemy; clears after the opponent's next action opportunity resolves. |
+| Aggro | Full Attack | order | - | aggro_buff_all_atk_2 | All [ALLY] +2 ATK until combat. | Non-targeted effect | Expires after combat. |
+| Aggro | Rush | order | - | swap_adjacent_then_resolve | Swap with adjacent [ALLY], then that lane immediately fights. | Targeted friendly | Fails if no adjacent friendly; prefers left if both sides are available; additional immediate lane combat does not replace standard combat. |
 | Aggro | Pierce Strike | order | - | ignore_armor_next_attack | Deal 1 to [ENEMY].\nNext hit ignores [ARM]. | Targeted enemy | If the target survives, consumes ignore flag on first mitigated hit. |
 | Aggro | Adrenaline | special | - | quick_strike | Selected [ALLY] immediately fights in its lane | Targeted friendly | Additional lane-only immediate combat slice; surviving units may still fight in standard combat. |
 | Aggro | Quick Fix | utility | - | heal_1_atk_1_draw_on_kill_this_turn | Heal [ALLY] 1. +1 ATK until combat. Kills in combat: draw 1 | Targeted friendly | Heal is capped by max HP; draw uses one-shot combat kill tracking and temporary trigger cleanup after combat. |
