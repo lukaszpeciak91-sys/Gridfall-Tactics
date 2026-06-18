@@ -92,6 +92,14 @@ test('battle result modal flavor subtitles are localized for English and Polish'
   );
 });
 
+
+test('battle result stat labels are localized for English and Polish', () => {
+  assert.equal(getPath(en, 'ui.battle.resultStats.turns'), 'Turns');
+  assert.equal(getPath(en, 'ui.battle.resultStats.time'), 'Time');
+  assert.equal(getPath(pl, 'ui.battle.resultStats.turns'), 'Tury');
+  assert.equal(getPath(pl, 'ui.battle.resultStats.time'), 'Czas');
+});
+
 test('battle utility drawer labels are explicit in English and Polish', () => {
   assert.deepEqual(
     ['utilityMenuRules', 'utilityMenuSettings', 'utilityMenuReturn', 'utilityMenuMainMenu'].map((key) => getPath(en, `ui.battle.${key}`)),
