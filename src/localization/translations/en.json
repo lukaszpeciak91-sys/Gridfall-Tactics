@@ -628,7 +628,13 @@
     },
     "campaignResult": {
       "won": "CAMPAIGN WON",
-      "lost": "CAMPAIGN LOST"
+      "lost": "CAMPAIGN LOST",
+      "tapToContinue": "TAP TO CONTINUE",
+      "wonBattles": "Won battles",
+      "lostBattles": "Lost battles",
+      "campaignTime": "Campaign time",
+      "wonFlavor": "The sector is secured. Your command endures.",
+      "lostFlavor": "The line has fallen, but the war is not over."
     }
   },
   "diagnostics": {

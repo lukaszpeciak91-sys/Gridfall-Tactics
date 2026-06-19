@@ -628,7 +628,13 @@
     },
     "campaignResult": {
       "won": "KAMPANIA WYGRANA",
-      "lost": "KAMPANIA PRZEGRANA"
+      "lost": "KAMPANIA PRZEGRANA",
+      "tapToContinue": "DOTKNIJ, ABY KONTYNUOWAĆ",
+      "wonBattles": "Wygrane bitwy",
+      "lostBattles": "Przegrane bitwy",
+      "campaignTime": "Czas kampanii",
+      "wonFlavor": "Sektor zabezpieczony. Twoje dowództwo przetrwało.",
+      "lostFlavor": "Linia upadła, ale wojna jeszcze się nie skończyła."
     }
   }
 }
