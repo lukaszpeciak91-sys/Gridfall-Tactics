@@ -1143,18 +1143,19 @@ export default class BattleScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(903);
     subtitle.setShadow(0, 2, presentation.subtitleShadowColor, 5, true, true);
 
-    const stats = this.add.text(centerX, centerY + overlayHeight * 0.43, resultStatsText, {
+    const stats = this.add.text(centerX, centerY + overlayHeight * 0.48, resultStatsText, {
       fontFamily: PREMIUM_BROADCAST_FONT_STACK,
-      fontSize: `${Math.max(16, Math.min(22, Math.floor(height * 0.024)))}px`,
-      color: '#e5e7eb',
+      fontSize: `${Math.max(14, Math.min(20, Math.floor(height * 0.021)))}px`,
+      color: '#d1d5db',
+      fontStyle: '500',
       align: 'center',
-      lineSpacing: Math.max(2, Math.floor(height * 0.004)),
+      lineSpacing: Math.max(5, Math.floor(height * 0.007)),
       wordWrap: { width: Math.min(width * 0.82, 520), useAdvancedWrap: true },
-    }).setOrigin(0.5).setDepth(903);
+    }).setOrigin(0.5).setDepth(903).setAlpha(0.86);
     stats.setShadow(0, 2, 'rgba(0, 0, 0, 0.68)', 4, true, true);
 
     const dividerWidth = Math.min(overlayWidth * 0.52, 360);
-    const dividerY = centerY + overlayHeight * 0.34;
+    const dividerY = centerY + overlayHeight * 0.37;
     const dividerCore = this.add.rectangle(centerX, dividerY, dividerWidth, 1, presentation.accentColor, 0.52)
       .setDepth(903);
     const dividerGlow = this.add.rectangle(centerX, dividerY, dividerWidth * 0.84, 3, presentation.glowColor, 0.12)
@@ -1164,7 +1165,7 @@ export default class BattleScene extends Phaser.Scene {
     const buttonWidth = Math.min(198, Math.max(160, width * 0.39));
     const buttonHeight = Math.max(68, Math.min(80, Math.floor(height * 0.088)));
     const buttonY = Math.min(
-      height * 0.58,
+      height * 0.6,
       this.layout.playerHero.y - buttonHeight * 0.5 - Math.max(6, height * 0.01),
     );
     const gap = Math.max(22, Math.min(42, width * 0.065));
