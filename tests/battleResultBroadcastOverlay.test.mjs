@@ -31,11 +31,11 @@ test('battle result overlay polish keeps hierarchy panel-free while elevating su
   assert.match(showBattleResultModalSource, /fontSize: `\$\{Math\.max\(20, Math\.floor\(height \* 0\.029\)\)\}px`/);
   assert.match(showBattleResultModalSource, /color: presentation\.subtitleColor/);
   assert.match(showBattleResultModalSource, /const subtitle = this\.add\.text\(centerX, centerY \+ overlayHeight \* 0\.2, resultSubtitle,/);
-  assert.match(showBattleResultModalSource, /const dividerY = centerY \+ overlayHeight \* 0\.34/);
+  assert.match(showBattleResultModalSource, /const dividerY = centerY \+ overlayHeight \* 0\.37/);
   assert.match(showBattleResultModalSource, /const dividerCore = this\.add\.rectangle\(centerX, dividerY, dividerWidth, 1, presentation\.accentColor, 0\.52\)/);
   assert.match(showBattleResultModalSource, /const buttonWidth = Math\.min\(198, Math\.max\(160, width \* 0\.39\)\)/);
   assert.match(showBattleResultModalSource, /const buttonHeight = Math\.max\(68, Math\.min\(80, Math\.floor\(height \* 0\.088\)\)\)/);
-  assert.match(showBattleResultModalSource, /const buttonY = Math\.min\([\s\S]*height \* 0\.58,[\s\S]*this\.layout\.playerHero\.y - buttonHeight \* 0\.5 - Math\.max\(6, height \* 0\.01\),[\s\S]*\)/);
+  assert.match(showBattleResultModalSource, /const buttonY = Math\.min\([\s\S]*height \* 0\.6,[\s\S]*this\.layout\.playerHero\.y - buttonHeight \* 0\.5 - Math\.max\(6, height \* 0\.01\),[\s\S]*\)/);
   assert.doesNotMatch(showBattleResultModalSource, /panelFill|setStrokeStyle\(4|innerSheen/);
 });
 
@@ -46,8 +46,8 @@ test('battle result stats insert compact turns and time block without changing r
   assert.match(source, /formatBattleDuration\(totalSeconds\)/);
   assert.match(source, /turnsLabel.*turns.*timeLabel.*formatBattleDuration\(elapsedSeconds\)/s);
   assert.match(showBattleResultModalSource, /const resultStatsText = this\.getBattleResultStatsText\(\)/);
-  assert.match(showBattleResultModalSource, /const stats = this\.add\.text\(centerX, centerY \+ overlayHeight \* 0\.43, resultStatsText,/);
-  assert.match(showBattleResultModalSource, /fontSize: `\$\{Math\.max\(16, Math\.min\(22, Math\.floor\(height \* 0\.024\)\)\)\}px`/);
+  assert.match(showBattleResultModalSource, /const stats = this\.add\.text\(centerX, centerY \+ overlayHeight \* 0\.48, resultStatsText,/);
+  assert.match(showBattleResultModalSource, /fontSize: `\$\{Math\.max\(14, Math\.min\(20, Math\.floor\(height \* 0\.021\)\)\)\}px`/);
   assert.match(showBattleResultModalSource, /translateActive\('ui\.common\.continue', 'CONTINUE'\)/);
   assert.match(showBattleResultModalSource, /translateActive\('ui\.common\.exit', 'EXIT'\)/);
   assert.match(showBattleResultModalSource, /translateActive\('ui\.common\.retry', 'RETRY'\)/);
