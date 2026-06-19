@@ -32,6 +32,7 @@ export default class SettingsScene extends Phaser.Scene {
     this.languageValueText = null;
     this.languageMenuItems = [];
     this.languageMenuOpen = false;
+    this.localizedTextItems = [];
     this.musicValueText = null;
     this.sfxValueText = null;
     this.returnSceneKey = null;
@@ -54,6 +55,7 @@ export default class SettingsScene extends Phaser.Scene {
     applyAudioSettings(this, this.settings);
     this.languageMenuItems = [];
     this.languageMenuOpen = false;
+    this.localizedTextItems = [];
 
     this.cameras.main.setBackgroundColor(MENU_BACKGROUND_FALLBACK_COLOR_HEX);
     createCoverBackground(this, {
@@ -67,14 +69,17 @@ export default class SettingsScene extends Phaser.Scene {
     this.scale.on('enterfullscreen', this.onFullscreenChanged, this);
     this.scale.on('leavefullscreen', this.onFullscreenChanged, this);
 
-    createMenuScreenHeader(this, {
+    const header = createMenuScreenHeader(this, {
       title: translateActive('ui.settings.title', 'SETTINGS'),
       width,
       height,
     });
+    this.registerLocalizedText(header.title, 'ui.settings.title', 'SETTINGS', { uppercase: true });
+    this.registerLocalizedText(header.glow, 'ui.settings.title', 'SETTINGS', { uppercase: true });
 
     const panelWidth = Math.min(width - 32, 342);
-    this.addPanel(width / 2, height * 0.3, panelWidth, 154, translateActive('ui.settings.languagePanel', 'LANGUAGE'));
+    const languagePanelTitle = this.addPanel(width / 2, height * 0.3, panelWidth, 154, translateActive('ui.settings.languagePanel', 'LANGUAGE'));
+    this.registerLocalizedText(languagePanelTitle, 'ui.settings.languagePanel', 'LANGUAGE');
     this.createLanguageSelect(width / 2, height * 0.32, panelWidth - 74);
 
     const audioPanelHeight = 300;
@@ -83,7 +88,8 @@ export default class SettingsScene extends Phaser.Scene {
     const muteToggleY = audioPanelTop + 70;
     const musicSliderY = audioPanelTop + 132;
     const sfxSliderY = audioPanelTop + 222;
-    this.addPanel(width / 2, audioPanelY, panelWidth, audioPanelHeight, translateActive('ui.settings.audioPanel', 'AUDIO'));
+    const audioPanelTitle = this.addPanel(width / 2, audioPanelY, panelWidth, audioPanelHeight, translateActive('ui.settings.audioPanel', 'AUDIO'));
+    this.registerLocalizedText(audioPanelTitle, 'ui.settings.audioPanel', 'AUDIO');
     createMuteToggleControl(this, width / 2, muteToggleY, 44, {
       onToggle: (settings) => {
         this.settings = settings;
@@ -110,7 +116,7 @@ export default class SettingsScene extends Phaser.Scene {
   addPanel(x, y, width, height, title) {
     this.add.rectangle(x + 2, y + 4, width, height, 0x020617, 0.36).setOrigin(0.5).setDepth(SETTINGS_PANEL_DEPTH);
     this.add.rectangle(x, y, width, height, 0x0f172a, 0.88).setStrokeStyle(1, 0x334155, 0.9).setOrigin(0.5).setDepth(SETTINGS_PANEL_DEPTH);
-    this.add
+    const titleText = this.add
       .text(x, y - height / 2 + 22, title, {
         fontFamily: 'Arial, sans-serif',
         fontSize: '16px',
@@ -119,6 +125,7 @@ export default class SettingsScene extends Phaser.Scene {
       })
       .setOrigin(0.5)
       .setDepth(SETTINGS_PANEL_DEPTH);
+    return titleText;
   }
 
   createLanguageSelect(x, y, width) {
@@ -149,13 +156,14 @@ export default class SettingsScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     const statusText = this.add
-      .text(x, y + 54, translateActive('ui.settings.languageHelp', 'Select display language for card and faction names'), {
+      .text(x, y + 46, translateActive('ui.settings.languageHelp', 'Select display language for card and faction names'), {
         fontFamily: 'Arial, sans-serif',
         fontSize: '13px',
         color: '#fde68a',
         align: 'center',
       })
       .setOrigin(0.5);
+    this.registerLocalizedText(statusText, 'ui.settings.languageHelp', 'Select display language for card and faction names');
 
     const toggleMenu = () => {
       this.languageMenuOpen = !this.languageMenuOpen;
@@ -195,10 +203,11 @@ export default class SettingsScene extends Phaser.Scene {
       const selectLanguage = () => {
         this.settings.language = setActiveLocale(option.value);
         this.saveSettings();
-        this.languageValueText.setText(option.label);
-        statusText.setText(translateActive('ui.settings.languageStatus', 'Language: {language}', { language: option.label }));
+        const selectedLanguageOption = this.getSelectedLanguageOption();
+        this.languageValueText.setText(selectedLanguageOption.label);
         this.languageMenuOpen = false;
         arrowText.setText('▾');
+        this.refreshLocalizedTexts();
         this.refreshLanguageMenuItems();
       };
 
@@ -237,6 +246,18 @@ export default class SettingsScene extends Phaser.Scene {
       });
   }
 
+  refreshLocalizedTexts() {
+    this.localizedTextItems.forEach(({ textObject, key, fallbackValue, uppercase }) => {
+      const nextText = translateActive(key, fallbackValue);
+      textObject.setText(uppercase ? nextText.toLocaleUpperCase() : nextText);
+    });
+  }
+
+  registerLocalizedText(textObject, key, fallbackValue, { uppercase = false } = {}) {
+    this.localizedTextItems.push({ textObject, key, fallbackValue, uppercase });
+    return textObject;
+  }
+
   getSelectedLanguageOption() {
     const languageOptions = getLanguageOptions(this.settings.language);
     return languageOptions.find((option) => option.value === this.settings.language) ?? languageOptions[0];
@@ -247,7 +268,12 @@ export default class SettingsScene extends Phaser.Scene {
     const trackY = y + 34;
     const valueText = this.add.text(x + width / 2, y, `${this.settings[settingKey]}%`, LABEL_STYLE).setOrigin(1, 0.5);
 
-    this.add.text(x - width / 2, y, label, LABEL_STYLE).setOrigin(0, 0.5);
+    const labelText = this.add.text(x - width / 2, y, label, LABEL_STYLE).setOrigin(0, 0.5);
+    if (settingKey === 'musicVolume') {
+      this.registerLocalizedText(labelText, 'ui.settings.musicVolume', 'Music Volume');
+    } else if (settingKey === 'sfxVolume') {
+      this.registerLocalizedText(labelText, 'ui.settings.sfxVolume', 'SFX Volume');
+    }
     const track = this.add
       .rectangle(x, trackY, width, trackHeight, 0x334155, 1)
       .setOrigin(0.5)
