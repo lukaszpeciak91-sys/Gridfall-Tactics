@@ -114,8 +114,31 @@ export default class SettingsScene extends Phaser.Scene {
   }
 
   addPanel(x, y, width, height, title) {
-    this.add.rectangle(x + 2, y + 4, width, height, 0x020617, 0.36).setOrigin(0.5).setDepth(SETTINGS_PANEL_DEPTH);
-    this.add.rectangle(x, y, width, height, 0x0f172a, 0.88).setStrokeStyle(1, 0x334155, 0.9).setOrigin(0.5).setDepth(SETTINGS_PANEL_DEPTH);
+    const radius = 18;
+    const left = x - width / 2;
+    const top = y - height / 2;
+    const panel = this.add.graphics().setDepth(SETTINGS_PANEL_DEPTH);
+
+    panel.fillStyle(0x38bdf8, 0.055);
+    panel.fillRoundedRect(left - 4, top - 3, width + 8, height + 8, radius + 4);
+    panel.lineStyle(2, 0x7dd3fc, 0.1);
+    panel.strokeRoundedRect(left - 3, top - 2, width + 6, height + 6, radius + 3);
+
+    panel.fillGradientStyle(0x1e3a5f, 0x172554, 0x020617, 0x020617, 0.26, 0.18, 0.92, 0.96);
+    panel.fillRoundedRect(left, top, width, height, radius);
+    panel.fillStyle(0x020617, 0.52);
+    panel.fillRoundedRect(left + 1, top + 1, width - 2, height - 2, radius - 1);
+
+    panel.lineStyle(1.25, 0x93c5fd, 0.62);
+    panel.strokeRoundedRect(left + 0.5, top + 0.5, width - 1, height - 1, radius - 1);
+    panel.lineStyle(1, 0xf8fafc, 0.08);
+    panel.strokeRoundedRect(left + 2.5, top + 2.5, width - 5, height - 5, radius - 3);
+
+    panel.fillGradientStyle(0x38bdf8, 0x93c5fd, 0x38bdf8, 0x93c5fd, 0.32, 0.16, 0.02, 0.02);
+    panel.fillRoundedRect(left + 18, top + 14, width - 36, 2, 1);
+    panel.fillGradientStyle(0x38bdf8, 0x93c5fd, 0x38bdf8, 0x93c5fd, 0.06, 0.02, 0.18, 0.06);
+    panel.fillRoundedRect(left + 20, top + height - 16, width - 40, 1, 1);
+
     const titleText = this.add
       .text(x, y - height / 2 + 22, title, {
         fontFamily: 'Arial, sans-serif',
