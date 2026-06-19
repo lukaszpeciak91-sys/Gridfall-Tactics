@@ -34,7 +34,7 @@ const CAMPAIGN_ACCORDION_TEXT_TOP_PADDING = 28;
 const CAMPAIGN_ACCORDION_TEXT_SIDE_PADDING = 23;
 const CAMPAIGN_ACCORDION_TEXT_TO_BUTTON_GAP = 10;
 const CAMPAIGN_ACCORDION_SELECT_BUTTON_WIDTH = 198;
-const CAMPAIGN_ACCORDION_SELECT_BUTTON_HEIGHT = 44;
+const CAMPAIGN_ACCORDION_SELECT_BUTTON_HEIGHT = 47;
 const CAMPAIGN_ACCORDION_SELECT_BUTTON_MIN_TOUCH_HEIGHT = 48;
 
 function measureTextBlockHeight(introText, bodyText, sectionGap = CAMPAIGN_ACCORDION_DESCRIPTION_SECTION_GAP) {
@@ -261,7 +261,7 @@ export default class FactionSelectScene extends Phaser.Scene {
     const panelRadius = 18;
     const selectButtonWidth = Math.min(panelW - 112, CAMPAIGN_ACCORDION_SELECT_BUTTON_WIDTH);
     const selectButtonHeight = CAMPAIGN_ACCORDION_SELECT_BUTTON_HEIGHT;
-    const selectButtonY = panelY + panelH - 34;
+    const selectButtonY = panelY + panelH - 42;
     const legacySelectButtonTopY = (panelY + panelH - 29) - (38 / 2);
     const textRegionTop = panelY + CAMPAIGN_ACCORDION_TEXT_TOP_PADDING;
     const textRegionBottom = legacySelectButtonTopY - CAMPAIGN_ACCORDION_TEXT_TO_BUTTON_GAP;
