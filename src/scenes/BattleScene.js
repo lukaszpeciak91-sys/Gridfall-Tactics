@@ -2143,54 +2143,162 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   showCampaignCompleteModal(status) {
+    const campaign = loadCampaign();
     const won = status === 'won';
+    const safeCampaign = isValidCampaignState(campaign) ? campaign : null;
     const { width, height } = this.scale.gameSize;
     const centerX = width * 0.5;
+    const centerY = height * 0.5;
     const titleText = won ? translateActive('ui.campaignResult.won', 'CAMPAIGN WON') : translateActive('ui.campaignResult.lost', 'CAMPAIGN LOST');
     const titleMaxWidth = Math.floor(width * CAMPAIGN_COMPLETION_TITLE_MAX_WIDTH_RATIO);
     const titleFontSize = Math.min(
       CAMPAIGN_COMPLETION_TITLE_MAX_FONT_SIZE,
       Math.max(CAMPAIGN_COMPLETION_TITLE_MIN_FONT_SIZE, Math.floor(height * 0.066), Math.floor(titleMaxWidth / 8.9)),
     );
-    const buttonWidth = Math.min(240, Math.max(176, width * 0.62));
-    const buttonHeight = Math.max(68, Math.min(76, Math.floor(height * 0.09)));
-    const titleY = Math.max(height * 0.28, titleFontSize * 1.8);
-    const buttonY = Math.min(height - buttonHeight * 0.95, titleY + titleFontSize * 1.35 + buttonHeight * 0.55);
+    const accentColor = won ? 0x22c55e : 0xef4444;
+    const accentTextColor = won ? '#86efac' : '#fca5a5';
+    const softAccentColor = won ? 0xfacc15 : 0xf97316;
+    const promptText = translateActive('ui.campaignResult.tapToContinue', 'TAP TO CONTINUE');
+    const flavorText = won
+      ? translateActive('ui.campaignResult.wonFlavor', 'The sector is secured. Your command endures.')
+      : translateActive('ui.campaignResult.lostFlavor', 'The line has fallen, but the war is not over.');
 
     this.destroyBattleResultModal();
     const overlay = this.add.rectangle(centerX, height / 2, width, height, 0x000000, CAMPAIGN_COMPLETION_OVERLAY_ALPHA)
       .setInteractive()
       .setDepth(CAMPAIGN_COMPLETION_OVERLAY_DEPTH);
     overlay.on('pointerdown', (_pointer, _localX, _localY, event) => event?.stopPropagation?.());
-    overlay.on('pointerup', (_pointer, _localX, _localY, event) => event?.stopPropagation?.());
 
+    const cinematicItems = [];
+    const summaryItems = [];
+    const showSummary = () => {
+      cinematicItems.forEach((item) => item?.destroy?.());
+      summaryItems.forEach((item) => item?.setVisible?.(true)?.setAlpha?.(1));
+      overlay.removeAllListeners('pointerup');
+      overlay.on('pointerup', (_pointer, _localX, _localY, event) => event?.stopPropagation?.());
+    };
+    overlay.on('pointerup', (_pointer, _localX, _localY, event) => {
+      event?.stopPropagation?.();
+      showSummary();
+    });
+
+    const titleY = Math.max(height * 0.32, titleFontSize * 2.1);
+    const titleAura = this.add.circle(centerX, titleY, Math.min(width, height) * 0.28, accentColor, 0.09)
+      .setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH);
     const title = this.add.text(centerX, titleY, titleText, {
       fontFamily: PREMIUM_BROADCAST_FONT_STACK,
       fontSize: `${titleFontSize}px`,
-      color: won ? '#86efac' : '#fca5a5',
+      color: accentTextColor,
       fontStyle: '700',
       align: 'center',
       wordWrap: { width: titleMaxWidth, useAdvancedWrap: true },
       fixedWidth: titleMaxWidth,
+      letterSpacing: 2.2,
     }).setOrigin(0.5).setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH);
     title.setShadow(0, 3, 'rgba(0, 0, 0, 0.72)', 5, true, true);
+    const emblem = this.add.text(centerX, titleY - titleFontSize * 1.05, won ? '◆' : '◇', {
+      fontFamily: PREMIUM_BROADCAST_FONT_STACK,
+      fontSize: `${Math.max(30, Math.floor(titleFontSize * 0.82))}px`,
+      color: won ? '#facc15' : '#fb7185',
+      align: 'center',
+    }).setOrigin(0.5).setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH).setAlpha(0.86);
+    const prompt = this.add.text(centerX, Math.min(height * 0.78, titleY + titleFontSize * 1.7), promptText, {
+      fontFamily: PREMIUM_BROADCAST_FONT_STACK,
+      fontSize: `${Math.max(18, Math.min(26, Math.floor(height * 0.028)))}px`,
+      color: '#f5f1e6',
+      fontStyle: '700',
+      align: 'center',
+      wordWrap: { width: titleMaxWidth, useAdvancedWrap: true },
+      fixedWidth: titleMaxWidth,
+      letterSpacing: 1.6,
+    }).setOrigin(0.5).setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH);
+    prompt.setShadow(0, 2, 'rgba(0, 0, 0, 0.76)', 5, true, true);
+    cinematicItems.push(titleAura, emblem, title, prompt);
 
+    const panelWidth = Math.min(width * 0.9, 520);
+    const panelHeight = Math.min(height * 0.62, 470);
+    const panelY = height * 0.47;
+    const panel = this.add.rectangle(centerX, panelY, panelWidth, panelHeight, 0x07111f, 0.94)
+      .setStrokeStyle(2, accentColor, 0.72)
+      .setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH)
+      .setVisible(false);
+    const summaryTitle = this.add.text(centerX, panelY - panelHeight * 0.36, titleText, {
+      fontFamily: PREMIUM_BROADCAST_FONT_STACK,
+      fontSize: `${Math.max(24, Math.min(38, Math.floor(height * 0.044)))}px`,
+      color: accentTextColor,
+      fontStyle: '700',
+      align: 'center',
+      wordWrap: { width: panelWidth * 0.86, useAdvancedWrap: true },
+      fixedWidth: panelWidth * 0.86,
+    }).setOrigin(0.5).setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH).setVisible(false);
+    const flavor = this.add.text(centerX, panelY - panelHeight * 0.2, flavorText, {
+      fontFamily: PREMIUM_BROADCAST_FONT_STACK,
+      fontSize: `${Math.max(15, Math.min(20, Math.floor(height * 0.022)))}px`,
+      color: '#dbeafe',
+      align: 'center',
+      wordWrap: { width: panelWidth * 0.78, useAdvancedWrap: true },
+    }).setOrigin(0.5).setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH).setVisible(false);
+    const statsText = this.getCampaignCompletionStatsText(safeCampaign);
+    const stats = this.add.text(centerX, panelY + panelHeight * 0.06, statsText, {
+      fontFamily: PREMIUM_BROADCAST_FONT_STACK,
+      fontSize: `${Math.max(17, Math.min(22, Math.floor(height * 0.025)))}px`,
+      color: '#f5f1e6',
+      fontStyle: '600',
+      align: 'left',
+      lineSpacing: Math.max(8, Math.floor(height * 0.012)),
+      wordWrap: { width: panelWidth * 0.72, useAdvancedWrap: true },
+      fixedWidth: panelWidth * 0.72,
+    }).setOrigin(0.5).setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH).setVisible(false);
+    const dividerCore = this.add.rectangle(centerX, panelY - panelHeight * 0.08, panelWidth * 0.62, 1, softAccentColor, 0.62)
+      .setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH).setVisible(false);
+    const buttonWidth = Math.min(240, Math.max(176, width * 0.62));
+    const buttonHeight = Math.max(68, Math.min(76, Math.floor(height * 0.09)));
+    const buttonY = Math.min(height - buttonHeight * 0.82, panelY + panelHeight * 0.42);
     const button = this.createResultModalButton(centerX, buttonY, buttonWidth, buttonHeight, translateActive('ui.common.mainMenu', 'MAIN MENU'), () => {
       clearCampaign();
       this.scene.start('MainMenuScene');
     }, this.getBattleResultPresentation(), { depth: CAMPAIGN_COMPLETION_BUTTON_DEPTH });
+    button.items.forEach((item) => item?.setVisible?.(false));
+    summaryItems.push(panel, summaryTitle, flavor, stats, dividerCore, ...button.items);
     this.battleResultModalShown = true;
     this.battleResultModal = {
       overlay,
       title,
-      titleAura: null,
+      titleAura,
       titleGlow: null,
-      subtitle: null,
-      dividerCore: null,
+      subtitle: flavor,
+      stats,
+      dividerCore,
       dividerGlow: null,
-      celebration: [],
+      celebration: [...cinematicItems.filter((item) => item !== title && item !== titleAura), panel, summaryTitle],
       buttons: [button],
     };
+  }
+
+  getCampaignCompletionStatsText(campaign) {
+    const enemies = Object.values(campaign?.enemies ?? {});
+    const wonBattles = enemies.filter((enemy) => enemy.defeated).length;
+    const lostBattles = enemies.reduce((total, enemy) => total + Math.max(0, 3 - (enemy.attemptsRemaining ?? 3)), 0);
+    const rows = [
+      `${translateActive('ui.campaignResult.wonBattles', 'Won battles')}: ${wonBattles}`,
+      `${translateActive('ui.campaignResult.lostBattles', 'Lost battles')}: ${lostBattles}`,
+    ];
+    const createdAt = Date.parse(campaign?.createdAt);
+    const updatedAt = Date.parse(campaign?.updatedAt);
+    if (Number.isFinite(createdAt) && Number.isFinite(updatedAt) && updatedAt >= createdAt) {
+      rows.push(`${translateActive('ui.campaignResult.campaignTime', 'Campaign time')}: ${this.formatCampaignDuration(updatedAt - createdAt)}`);
+    }
+    return rows.join('\n');
+  }
+
+  formatCampaignDuration(durationMs) {
+    const totalMinutes = Math.max(0, Math.round(durationMs / 60000));
+    if (totalMinutes < 60) {
+      return `${totalMinutes}m`;
+    }
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
   }
 
   openRulesPanel() {
