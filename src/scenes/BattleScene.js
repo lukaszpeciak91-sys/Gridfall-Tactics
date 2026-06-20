@@ -2451,7 +2451,7 @@ export default class BattleScene extends Phaser.Scene {
   openRulesPanel() {
     if (!this.prepareUtilityMenuNavigation()) return;
     this.hideRulesPanelBackgroundHelpers();
-    this.scene.launch('RulesPanelScene', { returnSceneKey: 'BattleScene' });
+    this.scene.launch('RulesPanelScene', { returnSceneKey: 'BattleScene', hideScrollHint: true });
     this.scene.pause();
   }
 
@@ -2958,7 +2958,7 @@ export default class BattleScene extends Phaser.Scene {
       fontFamily: 'Arial, sans-serif',
       fontSize: '12px',
       color: '#94a3b8',
-    }).setDepth(762);
+    }).setDepth(762).setVisible(false);
 
     const backButton = createModalBackButton(this, {
       x: centerX,
@@ -3102,6 +3102,10 @@ export default class BattleScene extends Phaser.Scene {
       this.playerActionBanner,
       this.invalidActionBanner,
       this.turnStartBanner,
+      this.deckInfoPanel?.scrollHint,
+      ...(this.boardCells ?? [])
+        .filter((cell) => cell?.row === 1)
+        .map((cell) => cell.background),
     ]
       .filter((item, index, items) => item?.active && items.indexOf(item) === index);
   }

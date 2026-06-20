@@ -151,7 +151,9 @@ export default class RulesPanelScene extends Phaser.Scene {
     this.scrollContainer.setMask(this.scrollMask);
 
     this.maxScrollY = Math.max(0, content.bottomY - viewportY - viewportHeight + 8);
-    this.addScrollHint(panelLeft, panelTop, panelWidth, panelHeight, padding, this.maxScrollY > 0);
+    if (!data?.hideScrollHint) {
+      this.addScrollHint(panelLeft, panelTop, panelWidth, panelHeight, padding, this.maxScrollY > 0);
+    }
     this.bindScrollHandlers(viewportHeight);
 
     createModalBackButton(this, {
