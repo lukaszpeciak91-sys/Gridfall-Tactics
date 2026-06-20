@@ -134,11 +134,6 @@ export default class SettingsScene extends Phaser.Scene {
     panel.lineStyle(1, 0xf8fafc, 0.08);
     panel.strokeRoundedRect(left + 2.5, top + 2.5, width - 5, height - 5, radius - 3);
 
-    panel.fillGradientStyle(0x38bdf8, 0x93c5fd, 0x38bdf8, 0x93c5fd, 0.32, 0.16, 0.02, 0.02);
-    panel.fillRoundedRect(left + 18, top + 14, width - 36, 2, 1);
-    panel.fillGradientStyle(0x38bdf8, 0x93c5fd, 0x38bdf8, 0x93c5fd, 0.06, 0.02, 0.18, 0.06);
-    panel.fillRoundedRect(left + 20, top + height - 16, width - 40, 1, 1);
-
     const titleText = this.add
       .text(x, y - height / 2 + 22, title, {
         fontFamily: 'Arial, sans-serif',
