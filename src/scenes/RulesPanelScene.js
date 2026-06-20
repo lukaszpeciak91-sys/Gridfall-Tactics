@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
 import { createModalBackButton } from '../ui/modalControls.js';
 import { createMenuScreenHeader } from '../ui/screenHeader.js';
-import { preloadSecondaryButtonAsset } from '../ui/imageButton.js';
 import { translateActive, translateActiveList } from '../localization/localeService.js';
 import { CARD_EFFECT_GAMEPLAY_SYMBOLS, CARD_EFFECT_STAT_SYMBOLS, CARD_EFFECT_STAT_SYMBOL_STYLES } from '../localization/cardTextFormatting.js';
 import { GAMEPLAY_SYMBOL_COLORS, NON_UNIT_EFFECT_STAT_SYMBOL, NON_UNIT_EFFECT_STAT_SYMBOL_CSS_COLOR } from '../rendering/cardVisualLayout.js';
@@ -91,10 +90,6 @@ export default class RulesPanelScene extends Phaser.Scene {
     this.dragStartScrollY = 0;
   }
 
-  preload() {
-    preloadSecondaryButtonAsset(this);
-  }
-
   create(data) {
     const { width, height } = this.scale;
     this.returnSceneKey = typeof data?.returnSceneKey === 'string' && data.returnSceneKey
@@ -122,10 +117,14 @@ export default class RulesPanelScene extends Phaser.Scene {
     const viewportWidth = panelWidth - padding * 2;
     const viewportHeight = panelHeight - headerHeight - footerHeight;
 
-    this.add.rectangle(panelX, panelY, panelWidth, panelHeight, 0x0f172a, 0.98)
-      .setStrokeStyle(2, 0x7dd3fc, 0.7)
-      .setDepth(1)
+    this.addGlassPanel(panelX, panelY, panelWidth, panelHeight, 1);
+
+    const panelCatcher = this.add.zone(panelLeft, panelTop, panelWidth, panelHeight)
+      .setOrigin(0, 0)
+      .setDepth(1.5)
       .setInteractive();
+    panelCatcher.on('pointerdown', (_pointer, _localX, _localY, event) => event?.stopPropagation?.());
+    panelCatcher.on('pointerup', (_pointer, _localX, _localY, event) => event?.stopPropagation?.());
 
     createMenuScreenHeader(this, {
       title: translateActive('ui.rules.title', 'Rules / How To Play'),
@@ -133,6 +132,7 @@ export default class RulesPanelScene extends Phaser.Scene {
       height: panelHeight,
       x: panelX,
       y: panelTop + 44,
+      color: '#e0f2fe',
       depth: 2,
     });
 
@@ -157,10 +157,42 @@ export default class RulesPanelScene extends Phaser.Scene {
     createModalBackButton(this, {
       x: panelX,
       y: panelTop + panelHeight - 28,
+      width: Math.min(panelWidth - padding * 2, 198),
+      height: 44,
       onPointerUp: () => this.closePanel(),
     });
 
     this.input.keyboard?.once('keydown-ESC', () => this.closePanel());
+  }
+
+
+  addGlassPanel(x, y, width, height, depth = 1) {
+    const radius = 20;
+    const left = x - width / 2;
+    const top = y - height / 2;
+    const panel = this.add.graphics().setDepth(depth);
+
+    panel.fillStyle(0x38bdf8, 0.075);
+    panel.fillRoundedRect(left - 5, top - 4, width + 10, height + 10, radius + 5);
+    panel.lineStyle(2, 0x7dd3fc, 0.12);
+    panel.strokeRoundedRect(left - 4, top - 3, width + 8, height + 8, radius + 4);
+
+    panel.fillGradientStyle(0x1e3a5f, 0x172554, 0x020617, 0x020617, 0.28, 0.18, 0.94, 0.97);
+    panel.fillRoundedRect(left, top, width, height, radius);
+    panel.fillStyle(0x020617, 0.56);
+    panel.fillRoundedRect(left + 1, top + 1, width - 2, height - 2, radius - 1);
+
+    panel.lineStyle(1.35, 0x93c5fd, 0.66);
+    panel.strokeRoundedRect(left + 0.5, top + 0.5, width - 1, height - 1, radius - 1);
+    panel.lineStyle(1, 0xf8fafc, 0.09);
+    panel.strokeRoundedRect(left + 3, top + 3, width - 6, height - 6, radius - 4);
+
+    panel.fillGradientStyle(0x38bdf8, 0x38bdf8, 0x38bdf8, 0x38bdf8, 0.34, 0.16, 0.02, 0.02);
+    panel.fillRoundedRect(left + 18, top + 14, width - 36, 2, 1);
+    panel.fillGradientStyle(0x38bdf8, 0x38bdf8, 0x38bdf8, 0x38bdf8, 0.08, 0.02, 0.24, 0.06);
+    panel.fillRoundedRect(left + 20, top + height - 19, width - 40, 1, 1);
+
+    return panel;
   }
 
   createRulesContent(x, startY, width, panelWidth) {
@@ -190,7 +222,7 @@ export default class RulesPanelScene extends Phaser.Scene {
         const bullet = this.add.text(x + 4, y + 1, '•', {
           fontFamily: 'Arial, sans-serif',
           fontSize: `${bodyFontSize}px`,
-          color: '#facc15',
+          color: '#7dd3fc',
         });
         const text = this.add.text(x + 18, y, line, {
           fontFamily: 'Arial, sans-serif',
@@ -218,8 +250,8 @@ export default class RulesPanelScene extends Phaser.Scene {
     resolveGlossaryRows().forEach((row) => {
       const rowTop = y;
       const iconCenterY = rowTop + iconBoxSize * 0.5 + 1;
-      const iconBackdrop = this.add.circle(x + iconBoxSize * 0.5, iconCenterY, iconBoxSize * 0.5, 0x0b1220, 0.98)
-        .setStrokeStyle(1.5, 0x334155, 0.95);
+      const iconBackdrop = this.add.circle(x + iconBoxSize * 0.5, iconCenterY, iconBoxSize * 0.5, 0x0b1220, 0.92)
+        .setStrokeStyle(1.5, 0x38bdf8, 0.42);
       const icon = this.add.text(x + iconBoxSize * 0.5, iconCenterY, row.icon, {
         fontFamily: 'Arial, sans-serif',
         fontSize: `${Math.round(iconBoxSize * (row.iconFontSizeRatio ?? 0.72))}px`,
