@@ -272,6 +272,7 @@ export default class BattleScene extends Phaser.Scene {
     this.deckCounterView = null;
     this.deckInfoPanel = null;
     this.deckInfoHiddenHelpers = [];
+    this.rulesPanelHiddenHelpers = [];
     this.bottomControlViews = [];
     this.utilityMenuPanel = null;
     this.isFlowResolving = false;
@@ -385,6 +386,7 @@ export default class BattleScene extends Phaser.Scene {
     this.deckCounterView = null;
     this.deckInfoPanel = null;
     this.deckInfoHiddenHelpers = [];
+    this.rulesPanelHiddenHelpers = [];
     this.bottomControlViews = [];
     this.utilityMenuPanel = null;
     this.isFlowResolving = false;
@@ -2448,6 +2450,7 @@ export default class BattleScene extends Phaser.Scene {
 
   openRulesPanel() {
     if (!this.prepareUtilityMenuNavigation()) return;
+    this.hideRulesPanelBackgroundHelpers();
     this.scene.launch('RulesPanelScene', { returnSceneKey: 'BattleScene' });
     this.scene.pause();
   }
@@ -2459,6 +2462,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   resumeFromRulesPanel() {
+    this.restoreRulesPanelBackgroundHelpers();
     this.navigationInProgress = false;
     this.clearPointerInputGuard();
     this.scene.resume();
@@ -3090,9 +3094,8 @@ export default class BattleScene extends Phaser.Scene {
     return panel;
   }
 
-  hideDeckInfoBackgroundHelpers() {
-    this.restoreDeckInfoBackgroundHelpers();
-    this.deckInfoHiddenHelpers = [
+  getBattleOverlayBackgroundHelpers() {
+    return [
       this.activeSelectionBanner,
       this.targetingInstructionText,
       this.enemyActionBanner,
@@ -3100,22 +3103,43 @@ export default class BattleScene extends Phaser.Scene {
       this.invalidActionBanner,
       this.turnStartBanner,
     ]
-      .filter((item, index, items) => item?.active && items.indexOf(item) === index)
-      .map((item) => ({ item, visible: item.visible }));
-
-    this.deckInfoHiddenHelpers.forEach(({ item }) => item.setVisible?.(false));
+      .filter((item, index, items) => item?.active && items.indexOf(item) === index);
   }
 
-  restoreDeckInfoBackgroundHelpers() {
-    if (!this.deckInfoHiddenHelpers?.length) {
-      this.deckInfoHiddenHelpers = [];
+  hideBattleOverlayBackgroundHelpers(storageKey) {
+    this.restoreBattleOverlayBackgroundHelpers(storageKey);
+    this[storageKey] = this.getBattleOverlayBackgroundHelpers()
+      .map((item) => ({ item, visible: item.visible }));
+
+    this[storageKey].forEach(({ item }) => item.setVisible?.(false));
+  }
+
+  restoreBattleOverlayBackgroundHelpers(storageKey) {
+    if (!this[storageKey]?.length) {
+      this[storageKey] = [];
       return;
     }
 
-    this.deckInfoHiddenHelpers.forEach(({ item, visible }) => {
+    this[storageKey].forEach(({ item, visible }) => {
       if (item?.active) item.setVisible?.(visible);
     });
-    this.deckInfoHiddenHelpers = [];
+    this[storageKey] = [];
+  }
+
+  hideRulesPanelBackgroundHelpers() {
+    this.hideBattleOverlayBackgroundHelpers('rulesPanelHiddenHelpers');
+  }
+
+  restoreRulesPanelBackgroundHelpers() {
+    this.restoreBattleOverlayBackgroundHelpers('rulesPanelHiddenHelpers');
+  }
+
+  hideDeckInfoBackgroundHelpers() {
+    this.hideBattleOverlayBackgroundHelpers('deckInfoHiddenHelpers');
+  }
+
+  restoreDeckInfoBackgroundHelpers() {
+    this.restoreBattleOverlayBackgroundHelpers('deckInfoHiddenHelpers');
   }
 
   getDeckInfoPanelText() {
