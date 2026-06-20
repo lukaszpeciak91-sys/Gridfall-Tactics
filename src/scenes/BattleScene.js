@@ -271,6 +271,7 @@ export default class BattleScene extends Phaser.Scene {
     this.previewedMulliganCardId = null;
     this.deckCounterView = null;
     this.deckInfoPanel = null;
+    this.battleModalScrollHintObjects = [];
     this.deckInfoHiddenHelpers = [];
     this.rulesPanelHiddenHelpers = [];
     this.bottomControlViews = [];
@@ -385,6 +386,7 @@ export default class BattleScene extends Phaser.Scene {
     this.previewedMulliganCardId = null;
     this.deckCounterView = null;
     this.deckInfoPanel = null;
+    this.battleModalScrollHintObjects = [];
     this.deckInfoHiddenHelpers = [];
     this.rulesPanelHiddenHelpers = [];
     this.bottomControlViews = [];
@@ -3020,6 +3022,8 @@ export default class BattleScene extends Phaser.Scene {
       color: '#94a3b8',
     }).setDepth(762).setVisible(false);
 
+    this.trackBattleModalScrollHint(scrollHint);
+
     const backButton = createModalBackButton(this, {
       x: centerX,
       y: panelTop + panelHeight - 30,
@@ -3120,6 +3124,7 @@ export default class BattleScene extends Phaser.Scene {
       item?.removeAllListeners?.();
       item?.destroy?.();
     });
+    this.unregisterBattleModalScrollHint(panelState.scrollHint);
     this.deckInfoPanel = null;
     this.restoreDeckInfoBackgroundHelpers();
     this.updatePlayerBaseActionState();
@@ -3156,7 +3161,22 @@ export default class BattleScene extends Phaser.Scene {
     return panel;
   }
 
+  trackBattleModalScrollHint(scrollHint) {
+    if (!scrollHint) return;
+    this.battleModalScrollHintObjects = (this.battleModalScrollHintObjects ?? [])
+      .filter((item) => item?.active && item !== scrollHint);
+    this.battleModalScrollHintObjects.push(scrollHint);
+  }
+
+  unregisterBattleModalScrollHint(scrollHint) {
+    this.battleModalScrollHintObjects = (this.battleModalScrollHintObjects ?? [])
+      .filter((item) => item?.active && item !== scrollHint);
+  }
+
   getBattleOverlayBackgroundHelpers() {
+    this.battleModalScrollHintObjects = (this.battleModalScrollHintObjects ?? [])
+      .filter((item) => item?.active);
+
     return [
       this.activeSelectionBanner,
       this.targetingInstructionText,
@@ -3165,9 +3185,10 @@ export default class BattleScene extends Phaser.Scene {
       this.invalidActionBanner,
       this.turnStartBanner,
       this.deckInfoPanel?.scrollHint,
+      ...(this.battleModalScrollHintObjects ?? []),
       ...(this.boardCells ?? [])
         .filter((cell) => cell?.row === 1)
-        .map((cell) => cell.background),
+        .flatMap((cell) => [cell.background, cell.label, cell.blockedMarker]),
     ]
       .filter((item, index, items) => item?.active && items.indexOf(item) === index);
   }
