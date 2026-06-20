@@ -24,6 +24,11 @@ const HAND_BACK_CARD_ASSET = Object.freeze({
   path: resolvePublicAssetPath('assets/ui/card_back.webp'),
 });
 
+const CAMPAIGN_TROPHY_ASSET = Object.freeze({
+  key: 'ui.campaign.victoryArtefact',
+  path: resolvePublicAssetPath('assets/ui/campaign/campaign-trophy.webp'),
+});
+
 
 const INSPECT_CARD_TARGET_SCALE = 2.06;
 const INSPECT_CARD_VERTICAL_COMPACT_RATIO = 0.96;
@@ -320,6 +325,9 @@ export default class BattleScene extends Phaser.Scene {
     preloadBattleBackgroundArt(this);
     preloadImageAsset(this, HAND_BACK_CARD_ASSET, {
       onError: (asset) => console.warn(`Hand back card failed to load: ${asset.path}`),
+    });
+    preloadImageAsset(this, CAMPAIGN_TROPHY_ASSET, {
+      onError: (asset) => console.warn(`Campaign trophy failed to load: ${asset.path}`),
     });
     preloadSecondaryButtonAsset(this);
     preloadAllCardIllustrations(this);
@@ -2200,6 +2208,7 @@ export default class BattleScene extends Phaser.Scene {
     const flavorText = won
       ? translateActive('ui.campaignResult.wonFlavor', 'The sector is secured. Your command endures.')
       : translateActive('ui.campaignResult.lostFlavor', 'The line has fallen, but the war is not over.');
+    const hasTrophyTexture = won && hasLoadedImageAsset(this, CAMPAIGN_TROPHY_ASSET);
 
     this.destroyBattleResultModal();
     const overlay = this.add.rectangle(centerX, height / 2, width, height, 0x000000, CAMPAIGN_COMPLETION_OVERLAY_ALPHA)
@@ -2209,20 +2218,76 @@ export default class BattleScene extends Phaser.Scene {
 
     const cinematicItems = [];
     const summaryItems = [];
+    const passiveItems = [];
+    let transitionStarted = false;
+
+    const heroMaxWidth = Math.min(width * 0.82, 520);
+    const heroMaxHeight = Math.min(height * 0.48, 520);
+    const compactMaxWidth = Math.min(width * 0.36, 190);
+    const compactMaxHeight = Math.min(height * 0.18, 150);
+    const summaryTitleY = Math.max(height * 0.28, Math.min(height * 0.39, height * 0.32));
+    const compactTrophyY = Math.max(height * 0.13, summaryTitleY - Math.max(84, compactMaxHeight * 0.58));
+    const heroTrophyY = Math.max(height * 0.24, Math.min(height * 0.43, centerY - titleFontSize * 0.55));
+
     const showSummary = () => {
+      if (transitionStarted) return;
+      transitionStarted = true;
+      overlay.disableInteractive();
+      overlay.removeAllListeners('pointerup');
       cinematicItems.forEach((item) => item?.destroy?.());
       summaryItems.forEach((item) => item?.setVisible?.(true)?.setAlpha?.(1));
-      overlay.removeAllListeners('pointerup');
-      overlay.on('pointerup', (_pointer, _localX, _localY, event) => event?.stopPropagation?.());
+      passiveItems.forEach((item) => item?.setVisible?.(hasTrophyTexture)?.setAlpha?.(item.summaryAlpha ?? item.alpha ?? 1));
+      if (hasTrophyTexture && trophy) {
+        this.tweens.add({
+          targets: trophy,
+          x: centerX,
+          y: compactTrophyY,
+          displayWidth: trophy.compactDisplayWidth,
+          displayHeight: trophy.compactDisplayHeight,
+          duration: 420,
+          ease: 'Cubic.easeInOut',
+        });
+      }
     };
     overlay.on('pointerup', (_pointer, _localX, _localY, event) => {
       event?.stopPropagation?.();
       showSummary();
     });
 
-    const titleY = Math.max(height * 0.32, titleFontSize * 2.1);
+    let trophy = null;
+    if (hasTrophyTexture) {
+      const trophySource = this.textures.get(CAMPAIGN_TROPHY_ASSET.key)?.getSourceImage?.();
+      const trophyAspect = Math.max(0.1, (trophySource?.width ?? 1) / Math.max(1, trophySource?.height ?? 1));
+      const heroDisplayWidth = Math.min(heroMaxWidth, heroMaxHeight * trophyAspect);
+      const heroDisplayHeight = heroDisplayWidth / trophyAspect;
+      const compactDisplayWidth = Math.min(compactMaxWidth, compactMaxHeight * trophyAspect);
+      const compactDisplayHeight = compactDisplayWidth / trophyAspect;
+      const rayRadius = Math.max(heroDisplayWidth, heroDisplayHeight) * 0.62;
+      const glow = this.add.circle(centerX, heroTrophyY, rayRadius, 0xfacc15, 0.12)
+        .setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 0.1);
+      const rays = this.add.graphics().setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 0.2);
+      rays.lineStyle(Math.max(1, Math.floor(Math.min(width, height) * 0.004)), 0xfde68a, 0.18);
+      for (let i = 0; i < 18; i += 1) {
+        const angle = (Math.PI * 2 * i) / 18;
+        rays.beginPath();
+        rays.moveTo(centerX + Math.cos(angle) * rayRadius * 0.28, heroTrophyY + Math.sin(angle) * rayRadius * 0.28);
+        rays.lineTo(centerX + Math.cos(angle) * rayRadius * 1.08, heroTrophyY + Math.sin(angle) * rayRadius * 1.08);
+        rays.strokePath();
+      }
+      trophy = this.add.image(centerX, heroTrophyY, CAMPAIGN_TROPHY_ASSET.key)
+        .setOrigin(0.5)
+        .setDisplaySize(heroDisplayWidth, heroDisplayHeight)
+        .setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 0.6);
+      trophy.compactDisplayWidth = compactDisplayWidth;
+      trophy.compactDisplayHeight = compactDisplayHeight;
+      glow.summaryAlpha = 0.05;
+      rays.summaryAlpha = 0.07;
+      passiveItems.push(glow, rays);
+    }
+
+    const titleY = hasTrophyTexture ? Math.min(height * 0.68, heroTrophyY + heroMaxHeight * 0.52 + titleFontSize * 0.64) : Math.max(height * 0.32, titleFontSize * 2.1);
     const titleAura = this.add.circle(centerX, titleY, Math.min(width, height) * 0.28, accentColor, 0.09)
-      .setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH);
+      .setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 0.3);
     const title = this.add.text(centerX, titleY, titleText, {
       fontFamily: PREMIUM_BROADCAST_FONT_STACK,
       fontSize: `${titleFontSize}px`,
@@ -2232,15 +2297,15 @@ export default class BattleScene extends Phaser.Scene {
       wordWrap: { width: titleMaxWidth, useAdvancedWrap: true },
       fixedWidth: titleMaxWidth,
       letterSpacing: 2.2,
-    }).setOrigin(0.5).setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH);
+    }).setOrigin(0.5).setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 1);
     title.setShadow(0, 3, 'rgba(0, 0, 0, 0.72)', 5, true, true);
-    const emblem = this.add.text(centerX, titleY - titleFontSize * 1.05, won ? '◆' : '◇', {
+    const emblem = hasTrophyTexture ? null : this.add.text(centerX, titleY - titleFontSize * 1.05, won ? '◆' : '◇', {
       fontFamily: PREMIUM_BROADCAST_FONT_STACK,
       fontSize: `${Math.max(30, Math.floor(titleFontSize * 0.82))}px`,
       color: won ? '#facc15' : '#fb7185',
       align: 'center',
-    }).setOrigin(0.5).setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH).setAlpha(0.86);
-    const prompt = this.add.text(centerX, Math.min(height * 0.78, titleY + titleFontSize * 1.7), promptText, {
+    }).setOrigin(0.5).setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 1).setAlpha(0.86);
+    const prompt = this.add.text(centerX, Math.min(height * 0.86, titleY + titleFontSize * 1.55), promptText, {
       fontFamily: PREMIUM_BROADCAST_FONT_STACK,
       fontSize: `${Math.max(18, Math.min(26, Math.floor(height * 0.028)))}px`,
       color: '#f5f1e6',
@@ -2249,55 +2314,57 @@ export default class BattleScene extends Phaser.Scene {
       wordWrap: { width: titleMaxWidth, useAdvancedWrap: true },
       fixedWidth: titleMaxWidth,
       letterSpacing: 1.6,
-    }).setOrigin(0.5).setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH);
+    }).setOrigin(0.5).setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 1);
     prompt.setShadow(0, 2, 'rgba(0, 0, 0, 0.76)', 5, true, true);
-    cinematicItems.push(titleAura, emblem, title, prompt);
+    cinematicItems.push(titleAura, title, prompt);
+    if (emblem) cinematicItems.push(emblem);
 
-    const panelWidth = Math.min(width * 0.9, 520);
-    const panelHeight = Math.min(height * 0.62, 470);
-    const panelY = height * 0.47;
-    const panel = this.add.rectangle(centerX, panelY, panelWidth, panelHeight, 0x07111f, 0.94)
+    const contentWidth = Math.min(width * 0.9, 540);
+    const fallbackPanelWidth = Math.min(width * 0.9, 520);
+    const fallbackPanelHeight = Math.min(height * 0.62, 470);
+    const fallbackPanelY = height * 0.47;
+    const fallbackPanel = hasTrophyTexture ? null : this.add.rectangle(centerX, fallbackPanelY, fallbackPanelWidth, fallbackPanelHeight, 0x07111f, 0.94)
       .setStrokeStyle(2, accentColor, 0.72)
       .setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH)
       .setVisible(false);
-    const summaryTitle = this.add.text(centerX, panelY - panelHeight * 0.36, titleText, {
+    const summaryTitle = this.add.text(centerX, summaryTitleY, titleText, {
       fontFamily: PREMIUM_BROADCAST_FONT_STACK,
       fontSize: `${Math.max(24, Math.min(38, Math.floor(height * 0.044)))}px`,
       color: accentTextColor,
       fontStyle: '700',
       align: 'center',
-      wordWrap: { width: panelWidth * 0.86, useAdvancedWrap: true },
-      fixedWidth: panelWidth * 0.86,
-    }).setOrigin(0.5).setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH).setVisible(false);
-    const flavor = this.add.text(centerX, panelY - panelHeight * 0.2, flavorText, {
+      wordWrap: { width: contentWidth, useAdvancedWrap: true },
+      fixedWidth: contentWidth,
+    }).setOrigin(0.5).setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 1).setVisible(false);
+    const flavor = this.add.text(centerX, summaryTitleY + Math.max(46, height * 0.07), flavorText, {
       fontFamily: PREMIUM_BROADCAST_FONT_STACK,
       fontSize: `${Math.max(15, Math.min(20, Math.floor(height * 0.022)))}px`,
       color: '#dbeafe',
       align: 'center',
-      wordWrap: { width: panelWidth * 0.78, useAdvancedWrap: true },
-    }).setOrigin(0.5).setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH).setVisible(false);
+      wordWrap: { width: contentWidth * 0.9, useAdvancedWrap: true },
+    }).setOrigin(0.5).setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 1).setVisible(false);
     const statsText = this.getCampaignCompletionStatsText(safeCampaign);
-    const stats = this.add.text(centerX, panelY + panelHeight * 0.06, statsText, {
+    const stats = this.add.text(centerX, summaryTitleY + Math.max(126, height * 0.18), statsText, {
       fontFamily: PREMIUM_BROADCAST_FONT_STACK,
       fontSize: `${Math.max(17, Math.min(22, Math.floor(height * 0.025)))}px`,
       color: '#f5f1e6',
       fontStyle: '600',
       align: 'left',
       lineSpacing: Math.max(8, Math.floor(height * 0.012)),
-      wordWrap: { width: panelWidth * 0.72, useAdvancedWrap: true },
-      fixedWidth: panelWidth * 0.72,
-    }).setOrigin(0.5).setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH).setVisible(false);
-    const dividerCore = this.add.rectangle(centerX, panelY - panelHeight * 0.08, panelWidth * 0.62, 1, softAccentColor, 0.62)
-      .setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH).setVisible(false);
+      wordWrap: { width: contentWidth * 0.78, useAdvancedWrap: true },
+      fixedWidth: contentWidth * 0.78,
+    }).setOrigin(0.5).setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 1).setVisible(false);
+    const dividerCore = this.add.rectangle(centerX, summaryTitleY + Math.max(86, height * 0.125), contentWidth * 0.62, 1, softAccentColor, 0.62)
+      .setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 1).setVisible(false);
     const buttonWidth = Math.min(240, Math.max(176, width * 0.62));
     const buttonHeight = Math.max(68, Math.min(76, Math.floor(height * 0.09)));
-    const buttonY = Math.min(height - buttonHeight * 0.82, panelY + panelHeight * 0.42);
+    const buttonY = Math.min(height - buttonHeight * 0.82, Math.max(stats.y + 100, height * 0.78));
     const button = this.createResultModalButton(centerX, buttonY, buttonWidth, buttonHeight, translateActive('ui.common.mainMenu', 'MAIN MENU'), () => {
       clearCampaign();
       this.scene.start('MainMenuScene');
     }, this.getBattleResultPresentation(), { depth: CAMPAIGN_COMPLETION_BUTTON_DEPTH });
     button.items.forEach((item) => item?.setVisible?.(false));
-    summaryItems.push(panel, summaryTitle, flavor, stats, dividerCore, ...button.items);
+    summaryItems.push(...[fallbackPanel, summaryTitle, flavor, stats, dividerCore].filter(Boolean), ...button.items);
     this.battleResultModalShown = true;
     this.battleResultModal = {
       overlay,
@@ -2308,7 +2375,7 @@ export default class BattleScene extends Phaser.Scene {
       stats,
       dividerCore,
       dividerGlow: null,
-      celebration: [...cinematicItems.filter((item) => item !== title && item !== titleAura), panel, summaryTitle],
+      celebration: [...cinematicItems.filter((item) => item !== title && item !== titleAura), ...passiveItems, trophy, fallbackPanel, summaryTitle].filter(Boolean),
       buttons: [button],
     };
   }
