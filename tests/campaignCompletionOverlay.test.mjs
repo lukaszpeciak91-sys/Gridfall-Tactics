@@ -11,7 +11,7 @@ const buttonEnd = source.indexOf('  destroyBattleResultModal()', buttonStart);
 const buttonSource = source.slice(buttonStart, buttonEnd);
 
 test('BattleScene preloads campaign trophy asset with the required key and runtime path', () => {
-  assert.match(source, /const CAMPAIGN_TROPHY_ASSET = Object\.freeze\(\{[\s\S]*key: 'ui\.campaign\.victoryArtefact',[\s\S]*path: resolvePublicAssetPath\('assets\/ui\/campaign\/campaign-trophy\.webp'\)/);
+  assert.match(source, /const CAMPAIGN_TROPHY_ASSET = Object\.freeze\(\{[\s\S]*key: 'ui\.campaign\.victoryArtefact',[\s\S]*path: resolvePublicAssetPath\('assets\/ui\/campaign-trophy\.webp'\)/);
   assert.match(source, /preloadImageAsset\(this, CAMPAIGN_TROPHY_ASSET,[\s\S]*Campaign trophy failed to load/);
 });
 

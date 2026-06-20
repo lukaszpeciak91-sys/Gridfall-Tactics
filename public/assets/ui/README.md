@@ -14,6 +14,20 @@ assets/ui/gridfall-logo.png
 
 When present, StartScene renders it as the large centered title treatment, and MainMenuScene renders the same asset as the smaller top title treatment. If the PNG asset is missing or fails to load, both scenes keep their localized text fallback and their buttons remain usable.
 
+Place the shared campaign victory trophy at:
+
+```text
+public/assets/ui/campaign-trophy.webp
+```
+
+It is loaded at runtime from:
+
+```text
+assets/ui/campaign-trophy.webp
+```
+
+When present, BattleScene renders it in the campaign completion victory overlay with the Phaser key `ui.campaign.victoryArtefact`. If the WebP asset is missing or fails to load, the campaign completion overlay keeps its existing text emblem fallback and remains usable.
+
 ## Manual logo export rules
 
 Use these settings when uploading or replacing `public/assets/ui/gridfall-logo.png`:
