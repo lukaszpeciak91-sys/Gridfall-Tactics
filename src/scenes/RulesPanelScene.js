@@ -95,8 +95,6 @@ export default class RulesPanelScene extends Phaser.Scene {
     this.returnSceneKey = typeof data?.returnSceneKey === 'string' && data.returnSceneKey
       ? data.returnSceneKey
       : null;
-    const isBattleModalPresentation = this.returnSceneKey === 'BattleScene' || data?.battleModalPresentation === true;
-
     this.cameras.main.setBackgroundColor('rgba(0,0,0,0)');
 
     const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x020617, 0.78)
@@ -118,9 +116,7 @@ export default class RulesPanelScene extends Phaser.Scene {
     const viewportWidth = panelWidth - padding * 2;
     const viewportHeight = panelHeight - headerHeight - footerHeight;
 
-    this.addGlassPanel(panelX, panelY, panelWidth, panelHeight, 1, {
-      showDecorativeRails: !isBattleModalPresentation,
-    });
+    this.addGlassPanel(panelX, panelY, panelWidth, panelHeight, 1);
 
     const panelCatcher = this.add.zone(panelLeft, panelTop, panelWidth, panelHeight)
       .setOrigin(0, 0)
@@ -154,9 +150,6 @@ export default class RulesPanelScene extends Phaser.Scene {
     this.scrollContainer.setMask(this.scrollMask);
 
     this.maxScrollY = Math.max(0, content.bottomY - viewportY - viewportHeight + 8);
-    if (!data?.hideScrollHint && !isBattleModalPresentation) {
-      this.addScrollHint(panelLeft, panelTop, panelWidth, panelHeight, padding, this.maxScrollY > 0);
-    }
     this.bindScrollHandlers(viewportHeight);
 
     createModalBackButton(this, {
@@ -171,7 +164,7 @@ export default class RulesPanelScene extends Phaser.Scene {
   }
 
 
-  addGlassPanel(x, y, width, height, depth = 1, { showDecorativeRails = true } = {}) {
+  addGlassPanel(x, y, width, height, depth = 1) {
     const radius = 20;
     const left = x - width / 2;
     const top = y - height / 2;
@@ -191,13 +184,6 @@ export default class RulesPanelScene extends Phaser.Scene {
     panel.strokeRoundedRect(left + 0.5, top + 0.5, width - 1, height - 1, radius - 1);
     panel.lineStyle(1, 0xf8fafc, 0.09);
     panel.strokeRoundedRect(left + 3, top + 3, width - 6, height - 6, radius - 4);
-
-    if (showDecorativeRails) {
-      panel.fillGradientStyle(0x38bdf8, 0x38bdf8, 0x38bdf8, 0x38bdf8, 0.34, 0.16, 0.02, 0.02);
-      panel.fillRoundedRect(left + 18, top + 14, width - 36, 2, 1);
-      panel.fillGradientStyle(0x38bdf8, 0x38bdf8, 0x38bdf8, 0x38bdf8, 0.08, 0.02, 0.24, 0.06);
-      panel.fillRoundedRect(left + 20, top + height - 19, width - 40, 1, 1);
-    }
 
     return panel;
   }
@@ -284,17 +270,6 @@ export default class RulesPanelScene extends Phaser.Scene {
     });
 
     return y;
-  }
-
-  addScrollHint(panelLeft, panelTop, panelWidth, panelHeight, padding, isScrollable) {
-    const hint = isScrollable
-      ? translateActive('ui.common.swipeScroll', 'Swipe or mouse wheel to scroll')
-      : translateActive('ui.common.noScroll', 'No scrolling needed');
-    this.add.text(panelLeft + padding, panelTop + panelHeight - 48, hint, {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: '12px',
-      color: '#94a3b8',
-    }).setDepth(3);
   }
 
   bindScrollHandlers(viewportHeight) {

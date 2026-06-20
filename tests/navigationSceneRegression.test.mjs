@@ -342,6 +342,10 @@ test('rules panel contains glossary-first player-facing rules summary', () => {
   assert.match(source, /PASS ends your action/);
   assert.doesNotMatch(source, /stall/i);
   assert.doesNotMatch(source, /telemetry/i);
+  assert.doesNotMatch(source, /addScrollHint/);
+  assert.doesNotMatch(source, /swipeScroll/);
+  assert.doesNotMatch(source, /showDecorativeRails/);
+  assert.doesNotMatch(source, /fillRoundedRect\(left \+ 18, top \+ 14/);
 });
 
 test('MainMenuScene routes localized Game entry into GameMenuScene instead of direct Arena', () => {
