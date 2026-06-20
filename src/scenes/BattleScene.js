@@ -271,6 +271,7 @@ export default class BattleScene extends Phaser.Scene {
     this.previewedMulliganCardId = null;
     this.deckCounterView = null;
     this.deckInfoPanel = null;
+    this.deckInfoHiddenHelpers = [];
     this.bottomControlViews = [];
     this.utilityMenuPanel = null;
     this.isFlowResolving = false;
@@ -373,6 +374,7 @@ export default class BattleScene extends Phaser.Scene {
     this.previewedMulliganCardId = null;
     this.deckCounterView = null;
     this.deckInfoPanel = null;
+    this.deckInfoHiddenHelpers = [];
     this.bottomControlViews = [];
     this.utilityMenuPanel = null;
     this.isFlowResolving = false;
@@ -2860,13 +2862,15 @@ export default class BattleScene extends Phaser.Scene {
     const contentWidth = panelWidth - padding * 2;
     const contentHeight = panelHeight - headerHeight - footerHeight;
 
-    const overlay = this.add.rectangle(centerX, height * 0.5, width, height, 0x000000, 0.58)
+    this.hideDeckInfoBackgroundHelpers();
+
+    const overlay = this.add.rectangle(centerX, height * 0.5, width, height, 0x000000, 0.64)
       .setInteractive()
       .setDepth(760);
-    const panel = this.add.rectangle(centerX, centerY, panelWidth, panelHeight, 0x0f172a, 0.97)
-      .setStrokeStyle(3, 0x38bdf8, 0.9)
-      .setInteractive()
-      .setDepth(761);
+    const panel = this.addDeckInfoGlassPanel(centerX, centerY, panelWidth, panelHeight, 761)
+      .setInteractive(new Phaser.Geom.Rectangle(panelLeft, panelTop, panelWidth, panelHeight), Phaser.Geom.Rectangle.Contains);
+    panel.on('pointerdown', (_pointer, _localX, _localY, event) => event?.stopPropagation?.());
+    panel.on('pointerup', (_pointer, _localX, _localY, event) => event?.stopPropagation?.());
     const title = this.add.text(centerX, panelTop + 28, translateActive('ui.battle.deckInfo.title', 'Deck Info'), {
       fontFamily: 'Arial, sans-serif',
       fontSize: `${Math.max(21, Math.floor(panelHeight * 0.052))}px`,
@@ -2877,7 +2881,7 @@ export default class BattleScene extends Phaser.Scene {
     const subtitle = this.add.text(centerX, panelTop + 54, translateActive('ui.battle.deckInfo.subtitle', 'Player cards • read-only'), {
       fontFamily: 'Arial, sans-serif',
       fontSize: `${Math.max(12, Math.floor(panelHeight * 0.031))}px`,
-      color: '#94a3b8',
+      color: '#bae6fd',
       align: 'center',
     }).setOrigin(0.5).setDepth(762);
 
@@ -3015,7 +3019,65 @@ export default class BattleScene extends Phaser.Scene {
       item?.destroy?.();
     });
     this.deckInfoPanel = null;
+    this.restoreDeckInfoBackgroundHelpers();
     this.updatePlayerBaseActionState();
+  }
+
+  addDeckInfoGlassPanel(x, y, width, height, depth = 761) {
+    const radius = 20;
+    const left = x - width / 2;
+    const top = y - height / 2;
+    const panel = this.add.graphics().setDepth(depth);
+
+    panel.fillStyle(0x38bdf8, 0.07);
+    panel.fillRoundedRect(left - 5, top - 4, width + 10, height + 10, radius + 5);
+    panel.lineStyle(2, 0x7dd3fc, 0.11);
+    panel.strokeRoundedRect(left - 4, top - 3, width + 8, height + 8, radius + 4);
+
+    panel.fillGradientStyle(0x1e3a5f, 0x172554, 0x020617, 0x020617, 0.27, 0.18, 0.94, 0.97);
+    panel.fillRoundedRect(left, top, width, height, radius);
+    panel.fillStyle(0x020617, 0.58);
+    panel.fillRoundedRect(left + 1, top + 1, width - 2, height - 2, radius - 1);
+
+    panel.lineStyle(1.35, 0x93c5fd, 0.66);
+    panel.strokeRoundedRect(left + 0.5, top + 0.5, width - 1, height - 1, radius - 1);
+    panel.lineStyle(1, 0xf8fafc, 0.09);
+    panel.strokeRoundedRect(left + 3, top + 3, width - 6, height - 6, radius - 4);
+
+    panel.fillGradientStyle(0x38bdf8, 0x38bdf8, 0x38bdf8, 0x38bdf8, 0.34, 0.16, 0.02, 0.02);
+    panel.fillRoundedRect(left + 18, top + 14, width - 36, 2, 1);
+    panel.fillGradientStyle(0x38bdf8, 0x38bdf8, 0x38bdf8, 0x38bdf8, 0.08, 0.02, 0.24, 0.06);
+    panel.fillRoundedRect(left + 20, top + height - 19, width - 40, 1, 1);
+
+    return panel;
+  }
+
+  hideDeckInfoBackgroundHelpers() {
+    this.restoreDeckInfoBackgroundHelpers();
+    this.deckInfoHiddenHelpers = [
+      this.activeSelectionBanner,
+      this.targetingInstructionText,
+      this.enemyActionBanner,
+      this.playerActionBanner,
+      this.invalidActionBanner,
+      this.turnStartBanner,
+    ]
+      .filter((item, index, items) => item?.active && items.indexOf(item) === index)
+      .map((item) => ({ item, visible: item.visible }));
+
+    this.deckInfoHiddenHelpers.forEach(({ item }) => item.setVisible?.(false));
+  }
+
+  restoreDeckInfoBackgroundHelpers() {
+    if (!this.deckInfoHiddenHelpers?.length) {
+      this.deckInfoHiddenHelpers = [];
+      return;
+    }
+
+    this.deckInfoHiddenHelpers.forEach(({ item, visible }) => {
+      if (item?.active) item.setVisible?.(visible);
+    });
+    this.deckInfoHiddenHelpers = [];
   }
 
   getDeckInfoPanelText() {
