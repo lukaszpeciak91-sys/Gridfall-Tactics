@@ -17,7 +17,8 @@ test('BattleScene preloads campaign trophy asset with the required key and runti
 
 test('campaign won uses trophy texture when loaded and safely falls back to emblem flow when missing', () => {
   assert.match(completionSource, /const hasTrophyTexture = won && hasLoadedImageAsset\(this, CAMPAIGN_TROPHY_ASSET\)/);
-  assert.match(completionSource, /this\.add\.image\(centerX, heroTrophyY, CAMPAIGN_TROPHY_ASSET\.key\)/);
+  assert.match(completionSource, /trophyHeroGroup = this\.add\.container\(centerX, heroTrophyY\)/);
+  assert.match(completionSource, /this\.add\.image\(0, 0, CAMPAIGN_TROPHY_ASSET\.key\)/);
   assert.match(completionSource, /const emblem = hasTrophyTexture \? null : this\.add\.text\(centerX, titleY - titleFontSize \* 1\.05, won \? '◆' : '◇'/);
 });
 
@@ -26,22 +27,23 @@ test('campaign won trophy presentation is mobile-safe and transitions to compact
   assert.match(completionSource, /const heroMaxHeight = Math\.min\(height \* 0\.48, 520\)/);
   assert.match(completionSource, /const compactMaxWidth = Math\.min\(width \* 0\.36, 190\)/);
   assert.match(completionSource, /setDisplaySize\(heroDisplayWidth, heroDisplayHeight\)/);
-  assert.match(completionSource, /displayWidth: trophy\.compactDisplayWidth,[\s\S]*displayHeight: trophy\.compactDisplayHeight/);
+  assert.match(completionSource, /targets: trophyHeroGroup,[\s\S]*scale: trophyHeroGroup\.compactScale/);
   assert.match(completionSource, /duration: 420,[\s\S]*ease: 'Cubic\.easeInOut'/);
 });
 
 test('campaign won adds passive soft bloom backlight and shimmer below the trophy', () => {
-  assert.match(completionSource, /const glow = this\.add\.graphics\(\)\.setDepth\(CAMPAIGN_COMPLETION_CONTENT_DEPTH \+ 0\.1\)/);
+  assert.match(completionSource, /trophyHeroGroup = this\.add\.container\(centerX, heroTrophyY\)\.setDepth\(CAMPAIGN_COMPLETION_CONTENT_DEPTH \+ 0\.1\)/);
+  assert.match(completionSource, /const glow = this\.add\.graphics\(\)/);
   assert.match(completionSource, /const glowLayerCount = 30/);
   assert.match(completionSource, /for \(let i = glowLayerCount; i >= 1; i -= 1\)/);
-  assert.match(completionSource, /const alpha = 0\.004 \+ Math\.pow\(coreBias, 2\.15\) \* 0\.034/);
-  assert.match(completionSource, /const bloomCore = this\.add\.graphics\(\)\.setDepth\(CAMPAIGN_COMPLETION_CONTENT_DEPTH \+ 0\.2\)/);
+  assert.match(completionSource, /const alpha = 0\.0045 \+ Math\.pow\(coreBias, 2\.15\) \* 0\.038/);
+  assert.match(completionSource, /const bloomCore = this\.add\.graphics\(\)/);
   assert.match(completionSource, /const coreLayerCount = 18/);
-  assert.match(completionSource, /const shimmer = this\.add\.graphics\(\)\.setDepth\(CAMPAIGN_COMPLETION_CONTENT_DEPTH \+ 0\.25\)/);
+  assert.match(completionSource, /const shimmer = this\.add\.graphics\(\)/);
   assert.match(completionSource, /targets: shimmer,[\s\S]*duration: 3600,[\s\S]*yoyo: true,[\s\S]*repeat: -1/);
   assert.match(completionSource, /targets: \[glow, bloomCore\],[\s\S]*x: \{ from: -backlightRadius \* 0\.018, to: backlightRadius \* 0\.018 \}/);
   assert.doesNotMatch(completionSource, /const rays = this\.add\.graphics/);
-  assert.match(completionSource, /setDepth\(CAMPAIGN_COMPLETION_CONTENT_DEPTH \+ 0\.6\)/);
+  assert.match(completionSource, /trophyHeroGroup\.add\(\[glow, bloomCore, shimmer, trophy\]\)/);
 });
 
 test('won trophy first screen keeps title and summary content out of cinematic pass', () => {
