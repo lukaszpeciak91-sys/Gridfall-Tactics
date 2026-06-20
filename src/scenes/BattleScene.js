@@ -723,16 +723,18 @@ export default class BattleScene extends Phaser.Scene {
     const { width, height, margin } = this.layout;
     const { x: triggerX, y: triggerY, width: triggerWidth, height: triggerHeight } = this.getPlayerBaseUtilityControlMetrics('menu');
     const panelLeft = triggerX + triggerWidth / 2;
-    const panelWidth = Math.min(236, width - margin - panelLeft);
+    const panelContentWidth = 208;
+    const panelHorizontalPadding = 4;
+    const panelWidth = Math.min(panelContentWidth + panelHorizontalPadding * 2, width - margin - panelLeft);
     const panelHeight = 228;
     const panelTop = triggerY - triggerHeight / 2;
-    const panelX = panelLeft + panelWidth / 2;
+    const panelX = panelLeft + panelContentWidth / 2 + 14;
     const panelY = panelTop + panelHeight / 2;
     const rowY = panelTop + 28;
-    const buttonWidth = panelWidth - 28;
+    const buttonWidth = panelContentWidth;
     const buttonHeight = 36;
     const buttonX = panelX;
-    const firstButtonY = rowY + 42;
+    const firstButtonY = rowY + 50;
     const buttonGap = 42;
     const depth = 720;
 
