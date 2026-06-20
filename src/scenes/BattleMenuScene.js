@@ -49,8 +49,12 @@ export default class BattleMenuScene extends Phaser.Scene {
 
     rulesButton.on('pointerup', () => {
       const returnScene = this.scene.get(returnSceneKey);
-      returnScene?.hideRulesPanelBackgroundHelpers?.();
       this.scene.stop();
+      if (returnScene?.launchBattleRulesPanel) {
+        returnScene.launchBattleRulesPanel({ prepareNavigation: false });
+        return;
+      }
+      returnScene?.hideRulesPanelBackgroundHelpers?.();
       this.scene.launch('RulesPanelScene', returnScene?.getBattleRulesPanelLaunchData?.() ?? { returnSceneKey, hideScrollHint: true, battleModalPresentation: returnSceneKey === 'BattleScene' });
     });
 

@@ -2495,11 +2495,16 @@ export default class BattleScene extends Phaser.Scene {
     return { returnSceneKey: 'BattleScene', hideScrollHint: true, battleModalPresentation: true };
   }
 
-  openRulesPanel() {
-    if (!this.prepareUtilityMenuNavigation()) return;
+  launchBattleRulesPanel({ prepareNavigation = true } = {}) {
+    if (prepareNavigation && !this.prepareUtilityMenuNavigation()) return false;
     this.hideRulesPanelBackgroundHelpers();
     this.scene.launch('RulesPanelScene', this.getBattleRulesPanelLaunchData());
     this.scene.pause();
+    return true;
+  }
+
+  openRulesPanel() {
+    return this.launchBattleRulesPanel();
   }
 
   openBattleMenu() {
