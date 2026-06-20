@@ -751,11 +751,29 @@ export default class BattleScene extends Phaser.Scene {
       this.destroyUtilityMenuPanel();
     }, { fontScale: 0.5 });
 
-    const glow = this.add.rectangle(panelX, panelY + 4, panelWidth + 8, panelHeight + 8, 0x38bdf8, 0.08)
-      .setStrokeStyle(1, 0x38bdf8, 0.12)
-      .setDepth(depth + 1);
-    const panel = this.add.rectangle(panelX, panelY, panelWidth, panelHeight, 0x020617, 0.9)
-      .setStrokeStyle(1, 0x7dd3fc, 0.72)
+    const panelRadius = 18;
+    const panelLeftEdge = panelX - panelWidth / 2;
+    const panelTopEdge = panelY - panelHeight / 2;
+    const glow = this.add.graphics().setDepth(depth + 1);
+    glow.fillStyle(0x38bdf8, 0.07);
+    glow.fillRoundedRect(panelLeftEdge - 4, panelTopEdge - 3, panelWidth + 8, panelHeight + 8, panelRadius + 4);
+    glow.lineStyle(2, 0x7dd3fc, 0.1);
+    glow.strokeRoundedRect(panelLeftEdge - 3, panelTopEdge - 2, panelWidth + 6, panelHeight + 6, panelRadius + 3);
+
+    const panelFrame = this.add.graphics().setDepth(depth + 2);
+    panelFrame.fillGradientStyle(0x1e3a5f, 0x172554, 0x020617, 0x020617, 0.26, 0.18, 0.92, 0.96);
+    panelFrame.fillRoundedRect(panelLeftEdge, panelTopEdge, panelWidth, panelHeight, panelRadius);
+    panelFrame.fillStyle(0x020617, 0.54);
+    panelFrame.fillRoundedRect(panelLeftEdge + 1, panelTopEdge + 1, panelWidth - 2, panelHeight - 2, panelRadius - 1);
+    panelFrame.lineStyle(1.25, 0x93c5fd, 0.62);
+    panelFrame.strokeRoundedRect(panelLeftEdge + 0.5, panelTopEdge + 0.5, panelWidth - 1, panelHeight - 1, panelRadius - 1);
+    panelFrame.lineStyle(1, 0xf8fafc, 0.08);
+    panelFrame.strokeRoundedRect(panelLeftEdge + 2.5, panelTopEdge + 2.5, panelWidth - 5, panelHeight - 5, panelRadius - 3);
+    panelFrame.fillGradientStyle(0x38bdf8, 0x38bdf8, 0x38bdf8, 0x38bdf8, 0.34, 0.16, 0.02, 0.02);
+    panelFrame.fillRoundedRect(panelLeftEdge + 16, panelTopEdge + 12, panelWidth - 32, 2, 1);
+    panelFrame.fillGradientStyle(0x38bdf8, 0x38bdf8, 0x38bdf8, 0x38bdf8, 0.08, 0.02, 0.24, 0.06);
+    panelFrame.fillRoundedRect(panelLeftEdge + 18, panelTopEdge + panelHeight - 17, panelWidth - 36, 1, 1);
+    const panel = this.add.rectangle(panelX, panelY, panelWidth, panelHeight, 0x020617, 0.001)
       .setDepth(depth + 2)
       .setInteractive();
     panel.on('pointerdown', (pointer, localX, localY, event) => {
@@ -791,6 +809,7 @@ export default class BattleScene extends Phaser.Scene {
       outsideCatcher,
       glow,
       panel,
+      panelFrame,
       triggerControl,
       fullscreenToggle,
       muteToggle,
@@ -800,9 +819,26 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   createUtilityMenuButton(x, y, width, height, label, onClick) {
-    const background = this.add.rectangle(x, y, width, height, 0x0f172a, 0.92)
-      .setStrokeStyle(1, 0x38bdf8, 0.42)
-      .setInteractive({ useHandCursor: true });
+    const radius = 10;
+    const left = x - width / 2;
+    const top = y - height / 2;
+    const background = this.add.graphics()
+      .setInteractive(new Phaser.Geom.Rectangle(left, top, width, height), Phaser.Geom.Rectangle.Contains);
+    background.input.cursor = 'pointer';
+    const drawBackground = (isHovering = false) => {
+      background.clear();
+      background.fillStyle(0x38bdf8, isHovering ? 0.09 : 0.045);
+      background.fillRoundedRect(left - 1, top - 1, width + 2, height + 2, radius + 2);
+      background.fillGradientStyle(0x1e3a5f, 0x172554, 0x0f172a, 0x020617, isHovering ? 0.34 : 0.24, isHovering ? 0.26 : 0.16, 0.94, 0.96);
+      background.fillRoundedRect(left, top, width, height, radius);
+      background.fillStyle(0x020617, isHovering ? 0.28 : 0.38);
+      background.fillRoundedRect(left + 1, top + 1, width - 2, height - 2, radius - 1);
+      background.lineStyle(1.25, isHovering ? 0x93c5fd : 0x38bdf8, isHovering ? 0.78 : 0.52);
+      background.strokeRoundedRect(left + 0.5, top + 0.5, width - 1, height - 1, radius - 1);
+      background.lineStyle(1, 0xf8fafc, isHovering ? 0.12 : 0.07);
+      background.strokeRoundedRect(left + 2, top + 2, width - 4, height - 4, radius - 3);
+    };
+    drawBackground();
     const text = this.add.text(x, y, label, {
       fontFamily: 'Arial, sans-serif',
       fontSize: '15px',
@@ -813,8 +849,7 @@ export default class BattleScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true });
 
     const setHover = (isHovering) => {
-      background.setFillStyle(isHovering ? 0x14304a : 0x0f172a, isHovering ? 0.98 : 0.92);
-      background.setStrokeStyle(1, isHovering ? 0x7dd3fc : 0x38bdf8, isHovering ? 0.88 : 0.42);
+      drawBackground(isHovering);
     };
     const handlePointerUp = (pointer, localX, localY, event) => {
       event?.stopPropagation?.();
@@ -835,11 +870,12 @@ export default class BattleScene extends Phaser.Scene {
   destroyUtilityMenuPanel() {
     if (!this.utilityMenuPanel) return;
 
-    const { outsideCatcher, glow, panel, triggerControl, fullscreenToggle, muteToggle, buttons } = this.utilityMenuPanel;
+    const { outsideCatcher, glow, panel, panelFrame, triggerControl, fullscreenToggle, muteToggle, buttons } = this.utilityMenuPanel;
     const items = [
       outsideCatcher,
       glow,
       panel,
+      panelFrame,
       triggerControl?.halo,
       triggerControl?.backing,
       triggerControl?.text,
