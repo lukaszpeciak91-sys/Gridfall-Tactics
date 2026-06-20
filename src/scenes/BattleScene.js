@@ -26,7 +26,7 @@ const HAND_BACK_CARD_ASSET = Object.freeze({
 
 const CAMPAIGN_TROPHY_ASSET = Object.freeze({
   key: 'ui.campaign.victoryArtefact',
-  path: resolvePublicAssetPath('assets/ui/campaign/campaign-trophy.webp'),
+  path: resolvePublicAssetPath('assets/ui/campaign-trophy.webp'),
 });
 
 
