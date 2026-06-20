@@ -756,19 +756,21 @@ export default class BattleScene extends Phaser.Scene {
     const { width, height, margin } = this.layout;
     const { x: triggerX, y: triggerY, width: triggerWidth, height: triggerHeight } = this.getPlayerBaseUtilityControlMetrics('menu');
     const panelLeft = triggerX + triggerWidth / 2;
-    const panelContentWidth = 208;
-    const panelHorizontalPadding = 4;
+    const menuScale = 1.1;
+    const basePanelContentWidth = 208;
+    const panelContentWidth = Math.round(basePanelContentWidth * menuScale);
+    const panelHorizontalPadding = Math.round(4 * menuScale);
     const panelWidth = Math.min(panelContentWidth + panelHorizontalPadding * 2, width - margin - panelLeft);
-    const panelHeight = 228;
-    const panelTop = triggerY - triggerHeight / 2;
-    const panelX = panelLeft + panelContentWidth / 2 + 14;
+    const panelHeight = Math.round(228 * menuScale);
+    const panelTop = triggerY - triggerHeight / 2 - (panelHeight - 228) / 2;
+    const panelX = Math.min(width - margin - panelWidth / 2, panelLeft + basePanelContentWidth / 2 + 14);
     const panelY = panelTop + panelHeight / 2;
-    const rowY = panelTop + 28;
-    const buttonWidth = panelContentWidth;
-    const buttonHeight = 36;
+    const rowY = panelTop + Math.round(28 * menuScale);
+    const buttonWidth = Math.max(0, panelWidth - panelHorizontalPadding * 2);
+    const buttonHeight = Math.round(36 * menuScale);
     const buttonX = panelX;
-    const firstButtonY = rowY + 50;
-    const buttonGap = 42;
+    const firstButtonY = rowY + Math.round(50 * menuScale);
+    const buttonGap = Math.round(42 * menuScale);
     const depth = 720;
 
     const outsideCatcher = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.001)
@@ -790,15 +792,15 @@ export default class BattleScene extends Phaser.Scene {
     const panelLeftEdge = panelX - panelWidth / 2;
     const panelTopEdge = panelY - panelHeight / 2;
     const glow = this.add.graphics().setDepth(depth + 1);
-    glow.fillStyle(0x38bdf8, 0.07);
+    glow.fillStyle(0x38bdf8, 0.09);
     glow.fillRoundedRect(panelLeftEdge - 4, panelTopEdge - 3, panelWidth + 8, panelHeight + 8, panelRadius + 4);
     glow.lineStyle(2, 0x7dd3fc, 0.1);
     glow.strokeRoundedRect(panelLeftEdge - 3, panelTopEdge - 2, panelWidth + 6, panelHeight + 6, panelRadius + 3);
 
     const panelFrame = this.add.graphics().setDepth(depth + 2);
-    panelFrame.fillGradientStyle(0x1e3a5f, 0x172554, 0x020617, 0x020617, 0.26, 0.18, 0.92, 0.96);
+    panelFrame.fillGradientStyle(0x1e3a5f, 0x172554, 0x020617, 0x020617, 0.34, 0.26, 0.96, 0.98);
     panelFrame.fillRoundedRect(panelLeftEdge, panelTopEdge, panelWidth, panelHeight, panelRadius);
-    panelFrame.fillStyle(0x020617, 0.54);
+    panelFrame.fillStyle(0x020617, 0.72);
     panelFrame.fillRoundedRect(panelLeftEdge + 1, panelTopEdge + 1, panelWidth - 2, panelHeight - 2, panelRadius - 1);
     panelFrame.lineStyle(1.25, 0x93c5fd, 0.62);
     panelFrame.strokeRoundedRect(panelLeftEdge + 0.5, panelTopEdge + 0.5, panelWidth - 1, panelHeight - 1, panelRadius - 1);
@@ -808,7 +810,7 @@ export default class BattleScene extends Phaser.Scene {
     panelFrame.fillRoundedRect(panelLeftEdge + 16, panelTopEdge + 12, panelWidth - 32, 2, 1);
     panelFrame.fillGradientStyle(0x38bdf8, 0x38bdf8, 0x38bdf8, 0x38bdf8, 0.08, 0.02, 0.24, 0.06);
     panelFrame.fillRoundedRect(panelLeftEdge + 18, panelTopEdge + panelHeight - 17, panelWidth - 36, 1, 1);
-    const panel = this.add.rectangle(panelX, panelY, panelWidth, panelHeight, 0x020617, 0.001)
+    const panel = this.add.rectangle(panelX, panelY, panelWidth, panelHeight, 0x020617, 0.01)
       .setDepth(depth + 2)
       .setInteractive();
     panel.on('pointerdown', (pointer, localX, localY, event) => {
@@ -876,7 +878,7 @@ export default class BattleScene extends Phaser.Scene {
     drawBackground();
     const text = this.add.text(x, y, label, {
       fontFamily: 'Arial, sans-serif',
-      fontSize: '15px',
+      fontSize: '16px',
       color: '#f8fafc',
       fontStyle: 'bold',
       align: 'center',
