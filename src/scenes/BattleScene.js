@@ -2234,7 +2234,6 @@ export default class BattleScene extends Phaser.Scene {
     const showSummary = () => {
       if (transitionStarted) return;
       transitionStarted = true;
-      overlay.disableInteractive();
       overlay.removeAllListeners('pointerup');
       cinematicItems.forEach((item) => item?.destroy?.());
       summaryItems.forEach((item) => item?.setVisible?.(true)?.setAlpha?.(1));
@@ -2351,8 +2350,8 @@ export default class BattleScene extends Phaser.Scene {
       fontSize: `${Math.max(17, Math.min(22, Math.floor(height * 0.025)))}px`,
       color: '#f5f1e6',
       fontStyle: '600',
-      align: 'left',
-      lineSpacing: Math.max(8, Math.floor(height * 0.012)),
+      align: 'center',
+      lineSpacing: Math.max(10, Math.floor(height * 0.014)),
       wordWrap: { width: contentWidth * 0.78, useAdvancedWrap: true },
       fixedWidth: contentWidth * 0.78,
     }).setOrigin(0.5).setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 1).setVisible(false);

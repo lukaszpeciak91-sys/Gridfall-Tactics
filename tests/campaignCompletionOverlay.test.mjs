@@ -36,15 +36,21 @@ test('campaign won adds passive procedural glow and rays below the trophy', () =
   assert.match(completionSource, /setDepth\(CAMPAIGN_COMPLETION_CONTENT_DEPTH \+ 0\.6\)/);
 });
 
-test('tap-to-summary is guarded and disables fullscreen interaction before revealing main menu button', () => {
+test('tap-to-summary is guarded and background remains inert before revealing main menu button', () => {
   assert.match(completionSource, /let transitionStarted = false/);
   assert.match(completionSource, /if \(transitionStarted\) return;[\s\S]*transitionStarted = true/);
-  assert.match(completionSource, /overlay\.disableInteractive\(\);[\s\S]*overlay\.removeAllListeners\('pointerup'\)/);
+  assert.match(completionSource, /overlay\.removeAllListeners\('pointerup'\)/);
+  assert.doesNotMatch(completionSource, /overlay\.disableInteractive\(\)/);
 });
 
 test('won trophy summary removes large framed panel while fallback and lost keep safe framed summary', () => {
   assert.match(completionSource, /const fallbackPanel = hasTrophyTexture \? null : this\.add\.rectangle/);
   assert.match(completionSource, /summaryItems\.push\(\.\.\.\[fallbackPanel, summaryTitle, flavor, stats, dividerCore\]\.filter\(Boolean\), \.\.\.button\.items\)/);
+});
+
+test('won trophy summary stats are centered and secondary', () => {
+  assert.match(completionSource, /const stats = this\.add\.text\(centerX,[\s\S]*align: 'center'/);
+  assert.match(completionSource, /lineSpacing: Math\.max\(10, Math\.floor\(height \* 0\.014\)\)/);
 });
 
 test('campaign completion stats still use existing save-duration timing only', () => {
