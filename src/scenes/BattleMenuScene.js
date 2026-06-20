@@ -48,7 +48,7 @@ export default class BattleMenuScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true });
 
     rulesButton.on('pointerup', () => {
-      this.scene.launch('RulesPanelScene', { returnSceneKey: 'BattleMenuScene' });
+      this.scene.launch('RulesPanelScene', { returnSceneKey: 'BattleMenuScene', hideScrollHint: true });
       this.scene.pause();
     });
 
