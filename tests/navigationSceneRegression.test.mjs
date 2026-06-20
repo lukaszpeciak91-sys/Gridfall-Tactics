@@ -128,7 +128,8 @@ test('battle utility menu opens panel actions and rules resume the existing scen
   assert.match(battleSource, /openSettingsScene\(\) \{[\s\S]*this\.prepareUtilityMenuNavigation\(\{ preserveBattleFlow: true \}\)[\s\S]*this\.scene\.launch\('SettingsScene', \{ returnSceneKey: 'BattleScene' \}\);[\s\S]*this\.scene\.pause\(\);[\s\S]*\}/);
   assert.match(battleSource, /exitBattleToMainMenu\(\) \{[\s\S]*this\.scene\.start\('MainMenuScene'\);[\s\S]*\}/);
   assert.doesNotMatch(battleSource, /deckLabel: `x\$\{deckCount\}`/);
-  assert.match(battleSource, /openRulesPanel\(\) \{[\s\S]*this\.scene\.launch\('RulesPanelScene', \{ returnSceneKey: 'BattleScene', hideScrollHint: true \}\);[\s\S]*this\.scene\.pause\(\);[\s\S]*\}/);
+  assert.match(battleSource, /getBattleRulesPanelLaunchData\(\) \{[\s\S]*return \{ returnSceneKey: 'BattleScene', hideScrollHint: true, battleModalPresentation: true \};[\s\S]*\}/);
+  assert.match(battleSource, /openRulesPanel\(\) \{[\s\S]*this\.scene\.launch\('RulesPanelScene', this\.getBattleRulesPanelLaunchData\(\)\);[\s\S]*this\.scene\.pause\(\);[\s\S]*\}/);
   assert.match(battleSource, /resumeFromRulesPanel\(\) \{[\s\S]*this\.navigationInProgress = false;[\s\S]*this\.scene\.resume\(\);[\s\S]*this\.recoverFromLifecycle\('rules-panel-return'\);[\s\S]*\}/);
   assert.match(factionSource, /openRulesPanel\(\) \{[\s\S]*this\.scene\.launch\('RulesPanelScene', \{ returnSceneKey: 'FactionSelectScene' \}\);[\s\S]*this\.scene\.pause\(\);[\s\S]*\}/);
   assert.doesNotMatch(rulesSource, /closeButton|['"]×['"]/);

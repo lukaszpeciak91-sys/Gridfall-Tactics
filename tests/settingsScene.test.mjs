@@ -74,8 +74,9 @@ test('SettingsScene uses shared full-screen bottom navigation controls', () => {
   assert.match(source, /this\.drawNavigationControls\(\);/);
   assert.match(source, /drawNavigationControls\(\) \{[\s\S]*createBottomNavigationControls\(this, \{[\s\S]*onBack: \(\) => this\.returnToMainMenu\(\),[\s\S]*onRules: \(\) => this\.openRulesPanel\(\),[\s\S]*onFullscreen: \(\) => this\.toggleFullscreen\(\),[\s\S]*\}\)/);
   assert.match(source, /returnToMainMenu\(\) \{[\s\S]*this\.scene\.start\('MainMenuScene'\)/);
-  assert.match(source, /openRulesPanel\(\) \{[\s\S]*this\.scene\.launch\('RulesPanelScene', \{ returnSceneKey: 'SettingsScene' \}\);[\s\S]*this\.scene\.pause\(\);[\s\S]*\}/);
-  assert.match(source, /resumeFromRulesPanel\(\) \{[\s\S]*this\.scene\.resume\(\);[\s\S]*\}/);
+  assert.match(source, /openRulesPanel\(\) \{[\s\S]*const battleScene = this\.getBattleReturnScene\(\);[\s\S]*battleScene\.hideRulesPanelBackgroundHelpers\?\.\(\);[\s\S]*this\.scene\.launch\('RulesPanelScene', battleScene[\s\S]*returnSceneKey: 'SettingsScene'[\s\S]*this\.scene\.pause\(\);[\s\S]*\}/);
+  assert.match(source, /getBattleReturnScene\(\) \{[\s\S]*return this\.returnSceneKey === 'BattleScene' \? this\.scene\.get\('BattleScene'\) : null;[\s\S]*\}/);
+  assert.match(source, /resumeFromRulesPanel\(\) \{[\s\S]*this\.rulesPanelHiddenBattleScene\?\.restoreRulesPanelBackgroundHelpers\?\.\(\);[\s\S]*this\.scene\.resume\(\);[\s\S]*\}/);
   assert.match(source, /toggleFullscreen\(\) \{[\s\S]*toggleSceneFullscreen\(this\);[\s\S]*\}/);
   assert.match(source, /onFullscreenChanged\(\) \{[\s\S]*this\.scale\.isFullscreen[\s\S]*requestPortraitOrientationLock\(\);[\s\S]*this\.scene\.restart\(\{ returnSceneKey: this\.returnSceneKey \}\);[\s\S]*\}/);
   assert.doesNotMatch(source, /createModalBackButton/);

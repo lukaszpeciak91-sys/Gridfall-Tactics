@@ -51,7 +51,7 @@ export default class BattleMenuScene extends Phaser.Scene {
       const returnScene = this.scene.get(returnSceneKey);
       returnScene?.hideRulesPanelBackgroundHelpers?.();
       this.scene.stop();
-      this.scene.launch('RulesPanelScene', { returnSceneKey, hideScrollHint: true });
+      this.scene.launch('RulesPanelScene', returnScene?.getBattleRulesPanelLaunchData?.() ?? { returnSceneKey, hideScrollHint: true, battleModalPresentation: returnSceneKey === 'BattleScene' });
     });
 
     const backButton = this.add
