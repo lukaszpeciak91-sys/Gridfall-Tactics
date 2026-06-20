@@ -95,6 +95,7 @@ export default class RulesPanelScene extends Phaser.Scene {
     this.returnSceneKey = typeof data?.returnSceneKey === 'string' && data.returnSceneKey
       ? data.returnSceneKey
       : null;
+    const isBattleModalPresentation = this.returnSceneKey === 'BattleScene' || data?.battleModalPresentation === true;
 
     this.cameras.main.setBackgroundColor('rgba(0,0,0,0)');
 
@@ -117,7 +118,9 @@ export default class RulesPanelScene extends Phaser.Scene {
     const viewportWidth = panelWidth - padding * 2;
     const viewportHeight = panelHeight - headerHeight - footerHeight;
 
-    this.addGlassPanel(panelX, panelY, panelWidth, panelHeight, 1);
+    this.addGlassPanel(panelX, panelY, panelWidth, panelHeight, 1, {
+      showDecorativeRails: !isBattleModalPresentation,
+    });
 
     const panelCatcher = this.add.zone(panelLeft, panelTop, panelWidth, panelHeight)
       .setOrigin(0, 0)
@@ -151,7 +154,7 @@ export default class RulesPanelScene extends Phaser.Scene {
     this.scrollContainer.setMask(this.scrollMask);
 
     this.maxScrollY = Math.max(0, content.bottomY - viewportY - viewportHeight + 8);
-    if (!data?.hideScrollHint) {
+    if (!data?.hideScrollHint && !isBattleModalPresentation) {
       this.addScrollHint(panelLeft, panelTop, panelWidth, panelHeight, padding, this.maxScrollY > 0);
     }
     this.bindScrollHandlers(viewportHeight);
@@ -168,7 +171,7 @@ export default class RulesPanelScene extends Phaser.Scene {
   }
 
 
-  addGlassPanel(x, y, width, height, depth = 1) {
+  addGlassPanel(x, y, width, height, depth = 1, { showDecorativeRails = true } = {}) {
     const radius = 20;
     const left = x - width / 2;
     const top = y - height / 2;
@@ -189,10 +192,12 @@ export default class RulesPanelScene extends Phaser.Scene {
     panel.lineStyle(1, 0xf8fafc, 0.09);
     panel.strokeRoundedRect(left + 3, top + 3, width - 6, height - 6, radius - 4);
 
-    panel.fillGradientStyle(0x38bdf8, 0x38bdf8, 0x38bdf8, 0x38bdf8, 0.34, 0.16, 0.02, 0.02);
-    panel.fillRoundedRect(left + 18, top + 14, width - 36, 2, 1);
-    panel.fillGradientStyle(0x38bdf8, 0x38bdf8, 0x38bdf8, 0x38bdf8, 0.08, 0.02, 0.24, 0.06);
-    panel.fillRoundedRect(left + 20, top + height - 19, width - 40, 1, 1);
+    if (showDecorativeRails) {
+      panel.fillGradientStyle(0x38bdf8, 0x38bdf8, 0x38bdf8, 0x38bdf8, 0.34, 0.16, 0.02, 0.02);
+      panel.fillRoundedRect(left + 18, top + 14, width - 36, 2, 1);
+      panel.fillGradientStyle(0x38bdf8, 0x38bdf8, 0x38bdf8, 0x38bdf8, 0.08, 0.02, 0.24, 0.06);
+      panel.fillRoundedRect(left + 20, top + height - 19, width - 40, 1, 1);
+    }
 
     return panel;
   }

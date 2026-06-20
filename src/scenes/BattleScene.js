@@ -2918,7 +2918,9 @@ export default class BattleScene extends Phaser.Scene {
     const overlay = this.add.rectangle(centerX, height * 0.5, width, height, 0x000000, 0.64)
       .setInteractive()
       .setDepth(760);
-    const panel = this.addDeckInfoGlassPanel(centerX, centerY, panelWidth, panelHeight, 761)
+    const panel = this.addDeckInfoGlassPanel(centerX, centerY, panelWidth, panelHeight, 761, {
+      showDecorativeRails: false,
+    })
       .setInteractive(new Phaser.Geom.Rectangle(panelLeft, panelTop, panelWidth, panelHeight), Phaser.Geom.Rectangle.Contains);
     panel.on('pointerdown', (_pointer, _localX, _localY, event) => event?.stopPropagation?.());
     panel.on('pointerup', (_pointer, _localX, _localY, event) => event?.stopPropagation?.());
@@ -3074,7 +3076,7 @@ export default class BattleScene extends Phaser.Scene {
     this.updatePlayerBaseActionState();
   }
 
-  addDeckInfoGlassPanel(x, y, width, height, depth = 761) {
+  addDeckInfoGlassPanel(x, y, width, height, depth = 761, { showDecorativeRails = true } = {}) {
     const radius = 20;
     const left = x - width / 2;
     const top = y - height / 2;
@@ -3095,10 +3097,12 @@ export default class BattleScene extends Phaser.Scene {
     panel.lineStyle(1, 0xf8fafc, 0.09);
     panel.strokeRoundedRect(left + 3, top + 3, width - 6, height - 6, radius - 4);
 
-    panel.fillGradientStyle(0x38bdf8, 0x38bdf8, 0x38bdf8, 0x38bdf8, 0.34, 0.16, 0.02, 0.02);
-    panel.fillRoundedRect(left + 18, top + 14, width - 36, 2, 1);
-    panel.fillGradientStyle(0x38bdf8, 0x38bdf8, 0x38bdf8, 0x38bdf8, 0.08, 0.02, 0.24, 0.06);
-    panel.fillRoundedRect(left + 20, top + height - 19, width - 40, 1, 1);
+    if (showDecorativeRails) {
+      panel.fillGradientStyle(0x38bdf8, 0x38bdf8, 0x38bdf8, 0x38bdf8, 0.34, 0.16, 0.02, 0.02);
+      panel.fillRoundedRect(left + 18, top + 14, width - 36, 2, 1);
+      panel.fillGradientStyle(0x38bdf8, 0x38bdf8, 0x38bdf8, 0x38bdf8, 0.08, 0.02, 0.24, 0.06);
+      panel.fillRoundedRect(left + 20, top + height - 19, width - 40, 1, 1);
+    }
 
     return panel;
   }
