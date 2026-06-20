@@ -30,9 +30,12 @@ test('campaign won trophy presentation is mobile-safe and transitions to compact
   assert.match(completionSource, /duration: 420,[\s\S]*ease: 'Cubic\.easeInOut'/);
 });
 
-test('campaign won adds passive procedural glow and rays below the trophy', () => {
-  assert.match(completionSource, /const glow = this\.add\.circle\(centerX, heroTrophyY, rayRadius, 0xfacc15, 0\.12\)[\s\S]*CAMPAIGN_COMPLETION_CONTENT_DEPTH \+ 0\.1/);
+test('campaign won adds passive layered backlight, rays, and shimmer below the trophy', () => {
+  assert.match(completionSource, /const glow = this\.add\.graphics\(\)\.setDepth\(CAMPAIGN_COMPLETION_CONTENT_DEPTH \+ 0\.1\)/);
+  assert.match(completionSource, /glow\.fillEllipse\(centerX, heroTrophyY, backlightRadius \* layer\.scaleX \* 2, backlightRadius \* layer\.scaleY \* 2\)/);
   assert.match(completionSource, /const rays = this\.add\.graphics\(\)\.setDepth\(CAMPAIGN_COMPLETION_CONTENT_DEPTH \+ 0\.2\)/);
+  assert.match(completionSource, /const shimmer = this\.add\.graphics\(\)\.setDepth\(CAMPAIGN_COMPLETION_CONTENT_DEPTH \+ 0\.25\)/);
+  assert.match(completionSource, /targets: shimmer,[\s\S]*duration: 3200,[\s\S]*yoyo: true,[\s\S]*repeat: -1/);
   assert.match(completionSource, /setDepth\(CAMPAIGN_COMPLETION_CONTENT_DEPTH \+ 0\.6\)/);
 });
 

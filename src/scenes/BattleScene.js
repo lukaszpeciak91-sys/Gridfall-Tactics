@@ -2307,27 +2307,61 @@ export default class BattleScene extends Phaser.Scene {
       const heroDisplayHeight = heroDisplayWidth / trophyAspect;
       const compactDisplayWidth = Math.min(compactMaxWidth, compactMaxHeight * trophyAspect);
       const compactDisplayHeight = compactDisplayWidth / trophyAspect;
-      const rayRadius = Math.max(heroDisplayWidth, heroDisplayHeight) * 0.62;
-      const glow = this.add.circle(centerX, heroTrophyY, rayRadius, 0xfacc15, 0.12)
-        .setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 0.1);
+      const backlightRadius = Math.max(heroDisplayWidth, heroDisplayHeight) * 0.68;
+      const glow = this.add.graphics().setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 0.1);
+      [
+        { scaleX: 1.08, scaleY: 0.88, alpha: 0.035, color: 0xfef3c7 },
+        { scaleX: 0.82, scaleY: 0.68, alpha: 0.052, color: 0xfde68a },
+        { scaleX: 0.56, scaleY: 0.48, alpha: 0.065, color: 0xfffbeb },
+        { scaleX: 0.34, scaleY: 0.3, alpha: 0.055, color: 0xffffff },
+      ].forEach((layer) => {
+        glow.fillStyle(layer.color, layer.alpha);
+        glow.fillEllipse(centerX, heroTrophyY, backlightRadius * layer.scaleX * 2, backlightRadius * layer.scaleY * 2);
+      });
       const rays = this.add.graphics().setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 0.2);
-      rays.lineStyle(Math.max(1, Math.floor(Math.min(width, height) * 0.004)), 0xfde68a, 0.18);
-      for (let i = 0; i < 18; i += 1) {
-        const angle = (Math.PI * 2 * i) / 18;
+      const rayCount = 16;
+      for (let i = 0; i < rayCount; i += 1) {
+        const angle = (Math.PI * 2 * i) / rayCount;
+        const lengthVariance = i % 2 === 0 ? 1.06 : 0.86;
+        const startRadius = backlightRadius * 0.18;
+        const endRadius = backlightRadius * lengthVariance;
+        rays.lineStyle(Math.max(1, Math.floor(Math.min(width, height) * 0.0026)), 0xfde68a, i % 2 === 0 ? 0.115 : 0.075);
         rays.beginPath();
-        rays.moveTo(centerX + Math.cos(angle) * rayRadius * 0.28, heroTrophyY + Math.sin(angle) * rayRadius * 0.28);
-        rays.lineTo(centerX + Math.cos(angle) * rayRadius * 1.08, heroTrophyY + Math.sin(angle) * rayRadius * 1.08);
+        rays.moveTo(centerX + Math.cos(angle) * startRadius, heroTrophyY + Math.sin(angle) * startRadius);
+        rays.lineTo(centerX + Math.cos(angle) * endRadius, heroTrophyY + Math.sin(angle) * endRadius);
         rays.strokePath();
       }
+      const shimmer = this.add.graphics().setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 0.25);
+      shimmer.fillStyle(0xfff7cc, 0.04);
+      shimmer.fillEllipse(centerX - backlightRadius * 0.1, heroTrophyY, backlightRadius * 0.42, backlightRadius * 1.28);
+      shimmer.setAngle(-13);
+      this.tweens.add({
+        targets: shimmer,
+        x: backlightRadius * 0.16,
+        alpha: { from: 0.36, to: 0.72 },
+        duration: 3200,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+      });
+      this.tweens.add({
+        targets: [glow, rays],
+        alpha: { from: 0.82, to: 1 },
+        duration: 3800,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+      });
       trophy = this.add.image(centerX, heroTrophyY, CAMPAIGN_TROPHY_ASSET.key)
         .setOrigin(0.5)
         .setDisplaySize(heroDisplayWidth, heroDisplayHeight)
         .setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 0.6);
       trophy.compactDisplayWidth = compactDisplayWidth;
       trophy.compactDisplayHeight = compactDisplayHeight;
-      glow.summaryAlpha = 0.05;
-      rays.summaryAlpha = 0.07;
-      passiveItems.push(glow, rays);
+      glow.summaryAlpha = 0.045;
+      rays.summaryAlpha = 0.055;
+      shimmer.summaryAlpha = 0.035;
+      passiveItems.push(glow, rays, shimmer);
     }
 
     const titleY = hasTrophyTexture ? Math.min(height * 0.68, heroTrophyY + heroMaxHeight * 0.52 + titleFontSize * 0.64) : Math.max(height * 0.32, titleFontSize * 2.1);
