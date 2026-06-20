@@ -129,7 +129,8 @@ test('battle utility menu opens panel actions and rules resume the existing scen
   assert.match(battleSource, /exitBattleToMainMenu\(\) \{[\s\S]*this\.scene\.start\('MainMenuScene'\);[\s\S]*\}/);
   assert.doesNotMatch(battleSource, /deckLabel: `x\$\{deckCount\}`/);
   assert.match(battleSource, /getBattleRulesPanelLaunchData\(\) \{[\s\S]*return \{ returnSceneKey: 'BattleScene', hideScrollHint: true, battleModalPresentation: true \};[\s\S]*\}/);
-  assert.match(battleSource, /openRulesPanel\(\) \{[\s\S]*this\.scene\.launch\('RulesPanelScene', this\.getBattleRulesPanelLaunchData\(\)\);[\s\S]*this\.scene\.pause\(\);[\s\S]*\}/);
+  assert.match(battleSource, /launchBattleRulesPanel\(\{ prepareNavigation = true \} = \{\}\) \{[\s\S]*if \(prepareNavigation && !this\.prepareUtilityMenuNavigation\(\)\) return false;[\s\S]*this\.hideRulesPanelBackgroundHelpers\(\);[\s\S]*this\.scene\.launch\('RulesPanelScene', this\.getBattleRulesPanelLaunchData\(\)\);[\s\S]*this\.scene\.pause\(\);[\s\S]*return true;[\s\S]*\}/);
+  assert.match(battleSource, /openRulesPanel\(\) \{[\s\S]*return this\.launchBattleRulesPanel\(\);[\s\S]*\}/);
   assert.match(battleSource, /resumeFromRulesPanel\(\) \{[\s\S]*this\.navigationInProgress = false;[\s\S]*this\.scene\.resume\(\);[\s\S]*this\.recoverFromLifecycle\('rules-panel-return'\);[\s\S]*\}/);
   assert.match(factionSource, /openRulesPanel\(\) \{[\s\S]*this\.scene\.launch\('RulesPanelScene', \{ returnSceneKey: 'FactionSelectScene' \}\);[\s\S]*this\.scene\.pause\(\);[\s\S]*\}/);
   assert.doesNotMatch(rulesSource, /closeButton|['"]×['"]/);
@@ -257,6 +258,8 @@ test('FactionSelectScene uses shared bottom navigation controls for back, rules,
   assert.match(factionSource, /onFullscreenChanged\(\) \{[\s\S]*this\.scale\.isFullscreen[\s\S]*requestPortraitOrientationLock\(\);[\s\S]*this\.scene\.restart\(\{ mode: this\.mode, returnSceneKey: this\.returnSceneKey \}\);[\s\S]*\}/);
   assert.match(battleSource, /onFullscreenChanged\(\) \{[\s\S]*this\.scale\.isFullscreen[\s\S]*requestPortraitOrientationLock\(\);[\s\S]*this\.recoverFromLifecycle\(this\.scale\.isFullscreen \? 'enterfullscreen' : 'leavefullscreen'\);[\s\S]*\}/);
   assert.match(menuSource, /const returnSceneKey = typeof data\?\.returnSceneKey === 'string'/);
+  assert.match(menuSource, /if \(returnScene\?\.launchBattleRulesPanel\) \{[\s\S]*returnScene\.launchBattleRulesPanel\(\{ prepareNavigation: false \}\);[\s\S]*return;[\s\S]*\}/);
+  assert.match(menuSource, /returnScene\?\.hideRulesPanelBackgroundHelpers\?\.\(\);[\s\S]*this\.scene\.launch\('RulesPanelScene', returnScene\?\.getBattleRulesPanelLaunchData\?\.\(\) \?\? \{ returnSceneKey, hideScrollHint: true, battleModalPresentation: returnSceneKey === 'BattleScene' \}\);/);
 });
 
 
