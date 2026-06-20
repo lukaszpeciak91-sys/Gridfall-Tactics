@@ -36,6 +36,7 @@ export default class SettingsScene extends Phaser.Scene {
     this.musicValueText = null;
     this.sfxValueText = null;
     this.returnSceneKey = null;
+    this.rulesPanelHiddenBattleScene = null;
   }
 
   init(data) {
@@ -357,12 +358,26 @@ export default class SettingsScene extends Phaser.Scene {
     this.scene.start('MainMenuScene');
   }
 
+  getBattleReturnScene() {
+    return this.returnSceneKey === 'BattleScene' ? this.scene.get('BattleScene') : null;
+  }
+
   openRulesPanel() {
-    this.scene.launch('RulesPanelScene', { returnSceneKey: 'SettingsScene' });
+    const battleScene = this.getBattleReturnScene();
+    if (battleScene) {
+      battleScene.hideRulesPanelBackgroundHelpers?.();
+      this.rulesPanelHiddenBattleScene = battleScene;
+    }
+
+    this.scene.launch('RulesPanelScene', battleScene
+      ? { ...(battleScene.getBattleRulesPanelLaunchData?.() ?? { returnSceneKey: 'BattleScene', hideScrollHint: true, battleModalPresentation: true }), returnSceneKey: 'SettingsScene' }
+      : { returnSceneKey: 'SettingsScene' });
     this.scene.pause();
   }
 
   resumeFromRulesPanel() {
+    this.rulesPanelHiddenBattleScene?.restoreRulesPanelBackgroundHelpers?.();
+    this.rulesPanelHiddenBattleScene = null;
     this.scene.resume();
   }
 

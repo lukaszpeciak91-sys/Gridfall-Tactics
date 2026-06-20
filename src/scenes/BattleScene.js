@@ -2491,10 +2491,14 @@ export default class BattleScene extends Phaser.Scene {
     return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
   }
 
+  getBattleRulesPanelLaunchData() {
+    return { returnSceneKey: 'BattleScene', hideScrollHint: true, battleModalPresentation: true };
+  }
+
   openRulesPanel() {
     if (!this.prepareUtilityMenuNavigation()) return;
     this.hideRulesPanelBackgroundHelpers();
-    this.scene.launch('RulesPanelScene', { returnSceneKey: 'BattleScene', hideScrollHint: true });
+    this.scene.launch('RulesPanelScene', this.getBattleRulesPanelLaunchData());
     this.scene.pause();
   }
 
