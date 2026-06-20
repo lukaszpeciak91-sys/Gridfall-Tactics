@@ -16,7 +16,7 @@ import { formatDeckSummaryEntry } from '../rendering/cardRenderModes.js';
 import { CARD_COLORS, createCardArtwork, createCardPreviewView, getBaseCardSurfaceTheme, getDefaultCardAccentColor, resolveCardSurfaceTheme, createStatBadges } from '../rendering/cardVisualLayout.js';
 import { getCardDisplayName, getCardTextShort } from '../localization/cardDisplay.js';
 import { getActiveLocale, translateActive } from '../localization/localeService.js';
-import { applyCampaignBattleResult, clearCampaign, isValidCampaignState, loadCampaign, saveCampaign } from '../systems/campaignState.js';
+import { applyCampaignBattleResult, clearCampaign, createNewCampaign, isValidCampaignState, loadCampaign, saveCampaign } from '../systems/campaignState.js';
 import { getCardBoardArtPositionY } from '../data/presentation/cardArtCropOverrides.js';
 
 const HAND_BACK_CARD_ASSET = Object.freeze({
@@ -340,6 +340,12 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   normalizeBattleContext(context = {}) {
+    if (context?.mode === 'campaignCompletionPreview') {
+      return {
+        mode: 'campaignCompletionPreview',
+        previewStatus: context.previewStatus === 'won' ? 'won' : 'lost',
+      };
+    }
     const mode = context?.mode === 'campaign' ? 'campaign' : 'arena';
     if (mode !== 'campaign') return { mode: 'arena' };
     return {
@@ -351,6 +357,10 @@ export default class BattleScene extends Phaser.Scene {
 
   isCampaignBattle() {
     return this.battleContext?.mode === 'campaign';
+  }
+
+  isCampaignCompletionPreview() {
+    return this.battleContext?.mode === 'campaignCompletionPreview';
   }
 
   resetRuntimeState() {
@@ -526,6 +536,17 @@ export default class BattleScene extends Phaser.Scene {
     this.events.on(Phaser.Scenes.Events.RESUME, this.onSceneResume, this);
     this.events.on(Phaser.Scenes.Events.WAKE, this.onSceneWake, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this);
+
+    if (this.isCampaignCompletionPreview()) {
+      const previewStatus = this.battleContext.previewStatus;
+      this.time.delayedCall(0, () => {
+        this.campaignCompletionModalOptions = {
+          preview: true,
+          campaign: this.createCampaignCompletionPreviewState(previewStatus),
+        };
+        this.showCampaignCompleteModal(previewStatus);
+      });
+    }
 
   }
 
@@ -2190,8 +2211,26 @@ export default class BattleScene extends Phaser.Scene {
     this.scene.start('GameMenuScene');
   }
 
+  createCampaignCompletionPreviewState(status) {
+    const campaign = createNewCampaign(this.factionKey);
+    const now = new Date().toISOString();
+    const enemies = Object.fromEntries(Object.entries(campaign.enemies).map(([factionKey, enemy], index) => {
+      if (status === 'won') return [factionKey, { ...enemy, defeated: true }];
+      return [factionKey, { ...enemy, attemptsRemaining: index === 0 ? 0 : enemy.attemptsRemaining }];
+    }));
+    return {
+      ...campaign,
+      status,
+      enemies,
+      updatedAt: now,
+      currentEnemyFactionKey: null,
+    };
+  }
+
   showCampaignCompleteModal(status) {
-    const campaign = loadCampaign();
+    const options = this.campaignCompletionModalOptions ?? {};
+    this.campaignCompletionModalOptions = null;
+    const campaign = options.campaign ?? loadCampaign();
     const won = status === 'won';
     const safeCampaign = isValidCampaignState(campaign) ? campaign : null;
     const { width, height } = this.scale.gameSize;
@@ -2361,7 +2400,7 @@ export default class BattleScene extends Phaser.Scene {
     const buttonHeight = Math.max(68, Math.min(76, Math.floor(height * 0.09)));
     const buttonY = Math.min(height - buttonHeight * 0.82, Math.max(stats.y + 100, height * 0.78));
     const button = this.createResultModalButton(centerX, buttonY, buttonWidth, buttonHeight, translateActive('ui.common.mainMenu', 'MAIN MENU'), () => {
-      clearCampaign();
+      if (!options.preview) clearCampaign();
       this.scene.start('MainMenuScene');
     }, this.getBattleResultPresentation(), { depth: CAMPAIGN_COMPLETION_BUTTON_DEPTH });
     button.items.forEach((item) => item?.setVisible?.(false));
