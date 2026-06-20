@@ -2271,6 +2271,7 @@ export default class BattleScene extends Phaser.Scene {
     const summaryTitleY = Math.max(height * 0.28, Math.min(height * 0.39, height * 0.32));
     const compactTrophyY = Math.max(height * 0.13, summaryTitleY - Math.max(84, compactMaxHeight * 0.58));
     const heroTrophyY = Math.max(height * 0.24, Math.min(height * 0.43, centerY - titleFontSize * 0.55));
+    const isWonTrophyPresentation = won && hasTrophyTexture;
 
     const showSummary = () => {
       if (transitionStarted) return;
@@ -2328,9 +2329,9 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     const titleY = hasTrophyTexture ? Math.min(height * 0.68, heroTrophyY + heroMaxHeight * 0.52 + titleFontSize * 0.64) : Math.max(height * 0.32, titleFontSize * 2.1);
-    const titleAura = this.add.circle(centerX, titleY, Math.min(width, height) * 0.28, accentColor, 0.09)
+    const titleAura = isWonTrophyPresentation ? null : this.add.circle(centerX, titleY, Math.min(width, height) * 0.28, accentColor, 0.09)
       .setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 0.3);
-    const title = this.add.text(centerX, titleY, titleText, {
+    const title = isWonTrophyPresentation ? null : this.add.text(centerX, titleY, titleText, {
       fontFamily: PREMIUM_BROADCAST_FONT_STACK,
       fontSize: `${titleFontSize}px`,
       color: accentTextColor,
@@ -2340,25 +2341,31 @@ export default class BattleScene extends Phaser.Scene {
       fixedWidth: titleMaxWidth,
       letterSpacing: 2.2,
     }).setOrigin(0.5).setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 1);
-    title.setShadow(0, 3, 'rgba(0, 0, 0, 0.72)', 5, true, true);
+    title?.setShadow(0, 3, 'rgba(0, 0, 0, 0.72)', 5, true, true);
     const emblem = hasTrophyTexture ? null : this.add.text(centerX, titleY - titleFontSize * 1.05, won ? '◆' : '◇', {
       fontFamily: PREMIUM_BROADCAST_FONT_STACK,
       fontSize: `${Math.max(30, Math.floor(titleFontSize * 0.82))}px`,
       color: won ? '#facc15' : '#fb7185',
       align: 'center',
     }).setOrigin(0.5).setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 1).setAlpha(0.86);
-    const prompt = this.add.text(centerX, Math.min(height * 0.86, titleY + titleFontSize * 1.55), promptText, {
+    const promptY = isWonTrophyPresentation
+      ? Math.min(height * 0.84, heroTrophyY + heroMaxHeight * 0.5 + Math.max(28, height * 0.036))
+      : Math.min(height * 0.86, titleY + titleFontSize * 1.55);
+    const promptFontSize = isWonTrophyPresentation
+      ? Math.max(13, Math.min(18, Math.floor(height * 0.02)))
+      : Math.max(18, Math.min(26, Math.floor(height * 0.028)));
+    const prompt = this.add.text(centerX, promptY, promptText, {
       fontFamily: PREMIUM_BROADCAST_FONT_STACK,
-      fontSize: `${Math.max(18, Math.min(26, Math.floor(height * 0.028)))}px`,
-      color: '#f5f1e6',
-      fontStyle: '700',
+      fontSize: `${promptFontSize}px`,
+      color: isWonTrophyPresentation ? '#efe7c8' : '#f5f1e6',
+      fontStyle: isWonTrophyPresentation ? '600' : '700',
       align: 'center',
       wordWrap: { width: titleMaxWidth, useAdvancedWrap: true },
       fixedWidth: titleMaxWidth,
-      letterSpacing: 1.6,
-    }).setOrigin(0.5).setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 1);
-    prompt.setShadow(0, 2, 'rgba(0, 0, 0, 0.76)', 5, true, true);
-    cinematicItems.push(titleAura, title, prompt);
+      letterSpacing: isWonTrophyPresentation ? 1.1 : 1.6,
+    }).setOrigin(0.5).setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 1).setAlpha(isWonTrophyPresentation ? 0.74 : 1);
+    prompt.setShadow(0, 2, 'rgba(0, 0, 0, 0.68)', isWonTrophyPresentation ? 3 : 5, true, true);
+    cinematicItems.push(...[titleAura, title, prompt].filter(Boolean));
     if (emblem) cinematicItems.push(emblem);
 
     const contentWidth = Math.min(width * 0.9, 540);

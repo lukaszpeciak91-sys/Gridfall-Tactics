@@ -36,6 +36,13 @@ test('campaign won adds passive procedural glow and rays below the trophy', () =
   assert.match(completionSource, /setDepth\(CAMPAIGN_COMPLETION_CONTENT_DEPTH \+ 0\.6\)/);
 });
 
+test('won trophy first screen keeps title and summary content out of cinematic pass', () => {
+  assert.match(completionSource, /const isWonTrophyPresentation = won && hasTrophyTexture/);
+  assert.match(completionSource, /const titleAura = isWonTrophyPresentation \? null : this\.add\.circle/);
+  assert.match(completionSource, /const title = isWonTrophyPresentation \? null : this\.add\.text\(centerX, titleY, titleText/);
+  assert.match(completionSource, /cinematicItems\.push\(\.\.\.\[titleAura, title, prompt\]\.filter\(Boolean\)\)/);
+});
+
 test('tap-to-summary is guarded and background remains inert before revealing main menu button', () => {
   assert.match(completionSource, /let transitionStarted = false/);
   assert.match(completionSource, /if \(transitionStarted\) return;[\s\S]*transitionStarted = true/);
