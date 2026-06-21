@@ -2272,8 +2272,10 @@ export default class BattleScene extends Phaser.Scene {
     const heroMaxHeight = Math.min(height * 0.48, 520);
     const compactMaxWidth = Math.min(width * 0.36, 190);
     const compactMaxHeight = Math.min(height * 0.18, 150);
-    const summaryTitleY = Math.max(height * 0.28, Math.min(height * 0.39, height * 0.32));
-    const compactTrophyY = Math.max(height * 0.13, summaryTitleY - Math.max(84, compactMaxHeight * 0.58));
+    const baseSummaryTitleY = Math.max(height * 0.28, Math.min(height * 0.39, height * 0.32));
+    const summaryTextOffsetY = hasTrophyTexture ? Math.min(58, Math.max(34, height * 0.055)) : 0;
+    const summaryTitleY = Math.min(height * 0.46, baseSummaryTitleY + summaryTextOffsetY);
+    const compactTrophyY = Math.max(height * 0.13, summaryTitleY - Math.max(96, compactMaxHeight * 0.68));
     const heroTrophyY = Math.max(height * 0.24, Math.min(height * 0.43, centerY - titleFontSize * 0.55));
     const isWonTrophyPresentation = won && hasTrophyTexture;
 
@@ -2313,7 +2315,7 @@ export default class BattleScene extends Phaser.Scene {
           y: compactTrophyY,
           scaleX: compactGlowScale,
           scaleY: compactGlowScale,
-          alpha: 0.04,
+          alpha: { getEnd: (target) => target.summaryAlpha ?? 0.055 },
           duration: 420,
           ease: 'Cubic.easeInOut',
         });
@@ -2402,9 +2404,9 @@ export default class BattleScene extends Phaser.Scene {
         .setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 0.6);
       trophy.compactDisplayWidth = compactDisplayWidth;
       trophy.compactDisplayHeight = compactDisplayHeight;
-      glow.summaryAlpha = 0.04;
-      bloomCore.summaryAlpha = 0.035;
-      shimmer.summaryAlpha = 0.03;
+      glow.summaryAlpha = 0.09;
+      bloomCore.summaryAlpha = 0.075;
+      shimmer.summaryAlpha = 0.055;
       passiveItems.push(glow, bloomCore, shimmer);
     }
 
@@ -2487,7 +2489,8 @@ export default class BattleScene extends Phaser.Scene {
       .setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 1).setVisible(false);
     const buttonWidth = Math.min(240, Math.max(176, width * 0.62));
     const buttonHeight = Math.max(68, Math.min(76, Math.floor(height * 0.09)));
-    const buttonY = Math.min(height - buttonHeight * 0.82, Math.max(stats.y + 100, height * 0.78));
+    const baseStatsY = baseSummaryTitleY + Math.max(126, height * 0.18);
+    const buttonY = Math.min(height - buttonHeight * 0.82, Math.max(baseStatsY + 100, height * 0.78));
     const button = this.createResultModalButton(centerX, buttonY, buttonWidth, buttonHeight, translateActive('ui.common.mainMenu', 'MAIN MENU'), () => {
       if (!options.preview) clearCampaign();
       this.scene.start('MainMenuScene');
