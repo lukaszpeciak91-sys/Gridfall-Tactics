@@ -173,3 +173,10 @@ canonical_ref: docs/rules/mvp-battle-rules.md
 - Campaign fairness must be evaluated separately from PvP parity; preferred low-risk mitigations are multiple attempts and curated opponent order rather than permanent progression rewards.
 - Reference summary: `docs/project/balance-audit-june-2026.md`.
 
+
+## Overlay / Panel Frame Standard (2026-06-21)
+- Adopted `docs/ui/overlay-frame-standard.md` as the canonical source for modern Settings, Battle Menu, Rules, Deck / Deck Info, and Campaign accordion/faction-info panel chrome.
+- Current panel direction is rounded, dark translucent panel bodies with a cyan / blue premium frame family, subtle glow, thin outer stroke, and restrained inner highlight.
+- Older flat cyan-stroke prototype panels, decorative Rules rails, and persistent lower-left Rules scroll-helper text are historical context and should not be reintroduced without an explicit new design decision.
+- Rules / How To Play is one shared panel presentation across entry points; future fixes must distinguish shared panel rendering from launch-path issues and underlying scene bleed-through.
+- Translucent overlay debugging should inspect foreground panel chrome, Rules scroll affordances, underlying BattleScene/helper objects, board guide/deck info hint objects, and entry-point differences before assuming the panel itself draws an artifact.

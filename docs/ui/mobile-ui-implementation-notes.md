@@ -81,6 +81,8 @@ Safe cleanup completed in this pass intentionally stayed small:
 - Card UI uses one card data source with multiple display modes: hand cards now use the HAND/FULL render mode with presentation-aware name, relevant unit stats, and `textShort`; full detail labels can include short rules text, while board/compact labels may use presentation-aware names but must remain name plus ATK/HP/ARM-style stats only. Future board tap or long-press previews can expose full rules text without crowding the combat board.
 - Card artwork remains language-neutral; localized strings should come from display adapters and render-mode formatting rather than from art assets.
 - In-game overlays, including Rules / How To Play and Deck Info, dim gameplay behind the panel, reserve pointer input while open, and restore gameplay input only after dismissal.
+- Modern in-game and menu overlays use the shared premium panel frame family: rounded dark translucent bodies, cyan / blue frame accents, subtle glow, thin outer stroke, and restrained inner highlight. Avoid reverting Rules, Deck Info, Settings, Battle Menu, or Campaign information panels to older flat cyan-stroke prototype panels.
+- Rules / How To Play uses one shared final panel presentation across entry points. Do not reintroduce historical decorative horizontal rails or persistent lower-left swipe/scroll helper text without an explicit new design reason.
 - In-game overlays do not use top-right `X` close controls. The standard dismissal pattern is a centered, bottom-aligned `BACK` button sized for mobile tapping plus tap/click outside the panel.
 - Tapping outside an in-game overlay closes only that overlay; the dimmed overlay layer consumes the tap so underlying gameplay controls do not also act on it.
 - Deck Info can be viewed during the opening mulligan, is blocked while battle flow animations are resolving, and keeps masked scrolling available when card groups exceed the reduced panel height.
@@ -88,6 +90,10 @@ Safe cleanup completed in this pass intentionally stayed small:
 - Controller play/redeploy uses explicit manual unit-on-play targeting; Hacker keeps its automatic lane behavior.
 - Persistent targeting/swap instructions and transient action/turn banners are centrally coordinated so transient notices defer rather than overlap.
 
+
+## Overlay artifact debugging guardrails
+
+For translucent overlays, visible lines, helper text, or ghosted elements may come from the foreground panel or from the active scene behind it. Before changing Rules or Deck Info panel rendering, check Rules panel chrome, scroll hints, masks, underlying BattleScene helper objects, board guide elements, deck info hints, and whether the issue appears only from one launch path. Not every Rules artifact is a BattleScene bug; first identify which scene owns the button, whether the panel is shared, and whether the artifact belongs to launch path, panel rendering, or scene bleed-through.
 
 ## Card preview decorative-layer guardrails
 
