@@ -21,8 +21,9 @@ const ATTEMPT_INDICATOR_WIDTH = 58;
 const ATTEMPT_INDICATOR_HEIGHT = 28;
 const ATTEMPT_INDICATOR_PADDING_X = 12;
 const ATTEMPT_INDICATOR_PADDING_Y = 7;
-// Internal preview hook for campaign completion screen QA. Keep disabled for normal gameplay UI.
-const CAMPAIGN_END_SCENE_PREVIEW_ENABLED = false;
+// TEMP MOBILE TEST HOOK:
+// Remove before public/release build. Intentionally visible in main/mobile builds for campaign completion screen QA.
+const TEMP_MOBILE_END_SCENE_PREVIEW_ENABLED = true;
 
 
 export default class CampaignEnemySelectScene extends Phaser.Scene {
@@ -69,14 +70,16 @@ export default class CampaignEnemySelectScene extends Phaser.Scene {
     this.uiElements.push(createBuildMarker(this, { width, height }));
     this.drawNavigationControls();
     this.drawEnemyCards({ width, height, headerBottomY: header.bottomY });
-    if (CAMPAIGN_END_SCENE_PREVIEW_ENABLED) this.drawEndScenePreviewControl({ width, height });
+    // TEMP MOBILE TEST HOOK:
+    // Remove before public/release build. Do not hide behind the Vite DEV flag while phone/main testing needs direct access.
+    if (TEMP_MOBILE_END_SCENE_PREVIEW_ENABLED) this.drawEndScenePreviewControl({ width, height });
   }
 
   drawEnemyCards({ width, height, headerBottomY }) {
     const enemies = getCampaignEnemyViewModels(this.campaign);
     const cardWidth = Math.min(width - 24, 382);
     const viewportTop = Math.max(VIEWPORT_TOP_MIN, Math.ceil(headerBottomY + HEADER_GAP));
-    const viewportBottom = Math.max(viewportTop + CARD_HEIGHT, height - (CAMPAIGN_END_SCENE_PREVIEW_ENABLED ? 168 : 88));
+    const viewportBottom = Math.max(viewportTop + CARD_HEIGHT, height - (TEMP_MOBILE_END_SCENE_PREVIEW_ENABLED ? 168 : 88));
     const viewportHeight = viewportBottom - viewportTop;
     const contentHeight = enemies.length * CARD_HEIGHT + Math.max(0, enemies.length - 1) * CARD_GAP;
     const content = this.add.container(width / 2, viewportTop);

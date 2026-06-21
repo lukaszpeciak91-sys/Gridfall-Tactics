@@ -15,7 +15,7 @@ import { PREMIUM_BROADCAST_FONT_STACK, createImageButton, preloadSecondaryButton
 import { formatDeckSummaryEntry } from '../rendering/cardRenderModes.js';
 import { CARD_COLORS, createCardArtwork, createCardPreviewView, getBaseCardSurfaceTheme, getDefaultCardAccentColor, resolveCardSurfaceTheme, createStatBadges } from '../rendering/cardVisualLayout.js';
 import { getCardDisplayName, getCardTextShort } from '../localization/cardDisplay.js';
-import { getActiveLocale, translateActive, translateActiveList } from '../localization/localeService.js';
+import { getActiveLocale, translateActive } from '../localization/localeService.js';
 import { applyCampaignBattleResult, clearCampaign, createNewCampaign, isValidCampaignState, loadCampaign, saveCampaign } from '../systems/campaignState.js';
 import { getCardBoardArtPositionY } from '../data/presentation/cardArtCropOverrides.js';
 
@@ -1012,16 +1012,10 @@ export default class BattleScene extends Phaser.Scene {
     return translateActive('ui.battle.draw', 'DRAW');
   }
 
-  pickLocalizedText(key, fallbackValue = '') {
-    const options = translateActiveList(key, []);
-    if (options.length === 0) return translateActive(key, fallbackValue);
-    return options[Phaser.Math.Between(0, options.length - 1)] ?? fallbackValue;
-  }
-
   getBattleResultSubtitle() {
     if (!this.gameState?.winner) return '';
-    if (this.gameState.winner === 'player') return this.pickLocalizedText('ui.battle.resultSubtitles.victory', 'Audience delighted.');
-    if (this.gameState.winner === 'enemy') return this.pickLocalizedText('ui.battle.resultSubtitles.defeat', 'Audience demands more.');
+    if (this.gameState.winner === 'player') return translateActive('ui.battle.resultSubtitles.victory', 'Audience delighted.');
+    if (this.gameState.winner === 'enemy') return translateActive('ui.battle.resultSubtitles.defeat', 'Audience demands more.');
     return translateActive('ui.battle.resultSubtitles.draw', 'Production ordered a rematch.');
   }
 
@@ -2316,8 +2310,8 @@ export default class BattleScene extends Phaser.Scene {
     const promptText = translateActive('ui.campaignResult.tapToContinue', 'TAP TO CONTINUE');
     const victorySplashText = translateActive('ui.campaignResult.victorySplash', 'VICTORY');
     const flavorText = won
-      ? this.pickLocalizedText('ui.campaignResult.wonFlavor', 'The sector is secured. Your command endures.')
-      : this.pickLocalizedText('ui.campaignResult.lostFlavor', 'The line has fallen, but the war is not over.');
+      ? translateActive('ui.campaignResult.wonFlavor', 'The sector is secured. Your command endures.')
+      : translateActive('ui.campaignResult.lostFlavor', 'The line has fallen, but the war is not over.');
     const hasTrophyTexture = won && hasLoadedImageAsset(this, CAMPAIGN_TROPHY_ASSET);
 
     this.destroyBattleResultModal();

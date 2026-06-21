@@ -500,18 +500,8 @@
       "playerStarts": "Ty zaczynasz",
       "enemyStarts": "Wróg zaczyna",
       "resultSubtitles": {
-        "victory": [
-          "Publiczność zachwycona.",
-          "Co za wspaniałe widowisko!",
-          "Totalna dominacja!",
-          "Widzowie oszaleli z zachwytu!"
-        ],
-        "defeat": [
-          "Publiczność domaga się więcej.",
-          "Widzowie liczyli na coś więcej.",
-          "Tym razem to nie wystarczyło.",
-          "Nie każdy schodzi ze sceny w chwale."
-        ],
+        "victory": "Publiczność zachwycona.",
+        "defeat": "Publiczność domaga się więcej.",
         "draw": "Produkcja zarządziła dogrywkę."
       },
       "resultStats": {
@@ -666,18 +656,8 @@
       "wonBattles": "Wygrane bitwy",
       "lostBattles": "Przegrane bitwy",
       "campaignTime": "Czas kampanii",
-      "wonFlavor": [
-        "Gratulacje. Puchar należy do was.\nA teraz wracajcie do domu, zanim wszystko skończy się tam na dobre.",
-        "Doskonały występ. W pełni zasłużone trofeum.\nA teraz do domu, żebyście zdążyli na apokalipsę.",
-        "Publiczność zachwycona. Puchar jest wasz.\nNie trzymamy was dłużej — wasz koniec świata raczej sam się nie opóźni.",
-        "Wspaniałe widowisko! Co prawda nie zmienia to waszej sytuacji…\nale przynajmniej wracacie do domu z pucharem."
-      ],
-      "lostFlavor": [
-        "To już wszystko na dziś. Dziękujemy za udział w widowisku.",
-        "Tym razem to nie był wasz wieczór, ale publiczność i tak dziękuje za występ.",
-        "Dziękujemy za udział i życzymy powodzenia przy kolejnych katastrofach.",
-        "Szkoda. Jedni wracają z pucharem, inni po prostu wracają."
-      ]
+      "wonFlavor": "Sektor zabezpieczony. Twoje dowództwo przetrwało.",
+      "lostFlavor": "Linia upadła, ale wojna jeszcze się nie skończyła."
     }
   }
 }
