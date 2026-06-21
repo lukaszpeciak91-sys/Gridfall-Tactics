@@ -410,7 +410,6 @@
       "deckCounter": "DECK {count}",
       "deckInfo": {
         "title": "Deck Info",
-        "subtitle": "Player cards • read-only",
         "inDeck": "In Deck",
         "inHand": "In Hand",
         "playedDiscarded": "Played / Discarded",
