@@ -410,7 +410,6 @@
       "deckCounter": "TALIA {count}",
       "deckInfo": {
         "title": "Informacje o talii",
-        "subtitle": "Karty gracza • tylko podgląd",
         "inDeck": "W talii",
         "inHand": "Na ręce",
         "playedDiscarded": "Zagrane / odrzucone",

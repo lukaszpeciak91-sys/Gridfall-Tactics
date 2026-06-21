@@ -3185,7 +3185,7 @@ export default class BattleScene extends Phaser.Scene {
     const panelTop = centerY - panelHeight / 2;
     const panelLeft = centerX - panelWidth / 2;
     const padding = Math.max(16, Math.floor(panelWidth * 0.045));
-    const headerHeight = Math.max(126, Math.floor(panelHeight * 0.235));
+    const headerHeight = Math.max(136, Math.floor(panelHeight * 0.255));
     const footerHeight = 68;
     const contentX = panelLeft + padding;
     const contentY = panelTop + headerHeight;
@@ -3210,15 +3210,17 @@ export default class BattleScene extends Phaser.Scene {
       fontStyle: 'bold',
       align: 'center',
     }).setOrigin(0.5).setDepth(762);
-    const historyLabel = this.add.text(centerX, panelTop + 59, translateActive('ui.battle.deckInfo.historyLabel', 'Battle History'), {
+    const summaryView = this.createDeckSummaryHeader(centerX, panelTop + 68, panelWidth, panelHeight);
+    const historyLabel = this.add.text(centerX, panelTop + 106, translateActive('ui.battle.deckInfo.historyLabel', 'Battle History'), {
       fontFamily: 'Arial, sans-serif',
       fontSize: `${Math.max(12, Math.floor(panelHeight * 0.029))}px`,
       color: '#bae6fd',
-      alpha: 0.82,
+      alpha: 0.86,
       align: 'center',
+      fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(762);
-
-    const summaryView = this.createDeckSummaryHeader(centerX, panelTop + 96, panelWidth, panelHeight);
+    const historyDivider = this.add.rectangle(centerX, panelTop + 126, contentWidth, 1, 0x7dd3fc, 0.22)
+      .setDepth(762);
 
     const contentContainer = this.add.container(0, 0).setDepth(762);
     const contentHeightActual = this.renderDeckInfoHistoryContent(contentContainer, contentX, contentY, contentWidth, panelHeight);
@@ -3258,6 +3260,7 @@ export default class BattleScene extends Phaser.Scene {
       panel,
       title,
       historyLabel,
+      historyDivider,
       summaryView,
       contentContainer,
 
@@ -3282,6 +3285,7 @@ export default class BattleScene extends Phaser.Scene {
       keyDownHandler: null,
     };
 
+    this.scrollDeckInfoHistoryToLatest();
     this.bindDeckInfoScrollHandlers(contentHeight);
     this.updatePlayerBaseActionState();
   }
@@ -3318,6 +3322,11 @@ export default class BattleScene extends Phaser.Scene {
     this.input.keyboard?.on('keydown-DOWN', panelState.keyDownHandler);
   }
 
+  scrollDeckInfoHistoryToLatest() {
+    if (!this.deckInfoPanel) return;
+    this.setDeckInfoScrollY(this.deckInfoPanel.maxScrollY ?? 0);
+  }
+
   setDeckInfoScrollY(value) {
     if (!this.deckInfoPanel) return;
     this.deckInfoPanel.scrollY = Phaser.Math.Clamp(value, 0, this.deckInfoPanel.maxScrollY);
@@ -3339,6 +3348,7 @@ export default class BattleScene extends Phaser.Scene {
       panelState.panel,
       panelState.title,
       panelState.historyLabel,
+      panelState.historyDivider,
       panelState.summaryView,
       panelState.contentContainer,
       panelState.maskShape,
@@ -3564,7 +3574,7 @@ export default class BattleScene extends Phaser.Scene {
       return maxBottom - y;
     };
 
-    const entries = this.battleHistory ?? [];
+    const entries = [...(this.battleHistory ?? [])].reverse();
     if (entries.length === 0) {
       return addTokenLine([{ text: translateActive('ui.battle.deckInfo.noHistory', 'No battle history yet.'), color: 'muted' }], 0);
     }
