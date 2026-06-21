@@ -332,9 +332,22 @@ test('deck info battle history groups one logical cycle into one chronological t
   assert.match(queueBlock, /pendingBattleHistoryEntries\.push\(\{\s*actingSide: side,\s*action,\s*\}\);/);
   assert.doesNotMatch(queueBlock, /turnNumber:/);
   assert.match(commitBlock, /const turnEntry = \{\s*turnNumber: \(this\.gameState\?\.turnsCompleted \?\? 0\) \+ 1,\s*actions,\s*resolution,/);
-  assert.match(commitBlock, /this\.battleHistory = \[\.\.\.\(this\.battleHistory \?\? \[\]\), turnEntry\]\.slice\(-30\);/);
+  assert.match(commitBlock, /this\.battleHistory = \[\.\.\.\(this\.battleHistory \?\? \[\]\), turnEntry\];/);
   assert.match(renderBlock, /this\.getBattleHistoryActions\(entry\)\.forEach\(\(actionEntry\) => \{/);
   assert.doesNotMatch(renderBlock, /\.reverse\(\)/);
+});
+
+
+test('battle history is initialized only for a new battle and is not reset at turn start', () => {
+  const source = fs.readFileSync('src/scenes/BattleScene.js', 'utf8');
+  const initializeBlock = source.slice(source.indexOf('  initializeBattleInfoPanelState() {'), source.indexOf('  getDeckSummaryCounters() {'));
+  const startTurnBlock = source.slice(source.indexOf('  startTurn() {'), source.indexOf('  updateActionableSideVisualState() {'));
+
+  assert.match(initializeBlock, /this\.battleHistory = \[\];/);
+  assert.match(initializeBlock, /this\.pendingBattleHistoryEntries = \[\];/);
+  assert.doesNotMatch(startTurnBlock, /this\.battleHistory = \[\];/);
+  assert.doesNotMatch(startTurnBlock, /this\.pendingBattleHistoryEntries = \[\];/);
+  assert.doesNotMatch(startTurnBlock, /this\.playerInitialDeckTypeCounts = null;/);
 });
 
 test('visible UI surfaces route names through active-locale presentation helpers', () => {
