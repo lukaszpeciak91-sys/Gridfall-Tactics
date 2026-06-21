@@ -316,9 +316,10 @@ test('deck info panel battle recap output covers actions and resolutions', () =>
 
   assert.match(source, /plays unit/);
   assert.match(source, /plays effect/);
-  assert.match(source, /replaces \$\{action\.oldCard\?\.name\} with \$\{action\.card\?\.name\} from hand/);
+  assert.match(source, /formatBattleHistoryActionTokens\(entry\)/);
+  assert.match(source, /ui\.battle\.deckInfo\.history\.replaces/);
   assert.match(source, /killed each other/);
-  assert.match(source, /dealt \$\{item\.amount\} damage to/);
+  assert.match(source, /ui\.battle\.deckInfo\.history\.dealtDamageTo/);
 });
 
 test('visible UI surfaces route names through active-locale presentation helpers', () => {
