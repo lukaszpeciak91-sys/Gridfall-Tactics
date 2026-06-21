@@ -82,14 +82,32 @@ test('retry button copy stays short in Polish without changing English', () => {
 
 
 test('battle result modal flavor subtitles are localized for English and Polish', () => {
-  assert.deepEqual(
-    ['victory', 'defeat', 'draw'].map((key) => getPath(en, `ui.battle.resultSubtitles.${key}`)),
-    ['Audience delighted.', 'Audience demands more.', 'Production ordered a rematch.'],
-  );
-  assert.deepEqual(
-    ['victory', 'defeat', 'draw'].map((key) => getPath(pl, `ui.battle.resultSubtitles.${key}`)),
-    ['Publiczność zachwycona.', 'Publiczność domaga się więcej.', 'Produkcja zarządziła dogrywkę.'],
-  );
+  assert.deepEqual(getPath(en, 'ui.battle.resultSubtitles.victory'), [
+    'The audience is delighted.',
+    'What a spectacle!',
+    'Total domination!',
+    'The crowd is going wild!',
+  ]);
+  assert.deepEqual(getPath(en, 'ui.battle.resultSubtitles.defeat'), [
+    'The audience demands more.',
+    'The crowd expected more.',
+    'It wasn’t enough this time.',
+    'Not everyone gets to leave the stage in glory.',
+  ]);
+  assert.equal(getPath(en, 'ui.battle.resultSubtitles.draw'), 'Production ordered a rematch.');
+  assert.deepEqual(getPath(pl, 'ui.battle.resultSubtitles.victory'), [
+    'Publiczność zachwycona.',
+    'Co za wspaniałe widowisko!',
+    'Totalna dominacja!',
+    'Widzowie oszaleli z zachwytu!',
+  ]);
+  assert.deepEqual(getPath(pl, 'ui.battle.resultSubtitles.defeat'), [
+    'Publiczność domaga się więcej.',
+    'Widzowie liczyli na coś więcej.',
+    'Tym razem to nie wystarczyło.',
+    'Nie każdy schodzi ze sceny w chwale.',
+  ]);
+  assert.equal(getPath(pl, 'ui.battle.resultSubtitles.draw'), 'Produkcja zarządziła dogrywkę.');
 });
 
 
@@ -290,4 +308,17 @@ test('card detail targeting labels cover every source targeting value in English
     assert.equal(typeof getPath(en, `ui.cardDetails.targetingLabels.${targeting}`), 'string', `missing English targeting label for ${targeting}`);
     assert.equal(typeof getPath(pl, `ui.cardDetails.targetingLabels.${targeting}`), 'string', `missing Polish targeting label for ${targeting}`);
   }
+});
+
+
+
+test('campaign result flavor pools are localized for English and Polish', () => {
+  assert.equal(getPath(en, 'ui.campaignResult.wonFlavor').length, 4);
+  assert.equal(getPath(en, 'ui.campaignResult.lostFlavor').length, 4);
+  assert.equal(getPath(pl, 'ui.campaignResult.wonFlavor').length, 4);
+  assert.equal(getPath(pl, 'ui.campaignResult.lostFlavor').length, 4);
+  assert.ok(getPath(en, 'ui.campaignResult.wonFlavor').every((entry) => entry.split('\n').length === 2));
+  assert.ok(getPath(pl, 'ui.campaignResult.wonFlavor').every((entry) => entry.split('\n').length === 2));
+  assert.ok(getPath(en, 'ui.campaignResult.lostFlavor').every((entry) => !entry.includes('\n')));
+  assert.ok(getPath(pl, 'ui.campaignResult.lostFlavor').every((entry) => !entry.includes('\n')));
 });

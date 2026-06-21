@@ -104,17 +104,16 @@ test('campaign scene registered and localization keys exist', () => {
 });
 
 
-test('temporary mobile end scenes hook is visible in main builds without campaign mutation', () => {
+test('campaign end scenes preview hook is disabled in normal campaign selection UI', () => {
   const source = read('src/scenes/CampaignEnemySelectScene.js');
-  assert.match(source, /TEMP MOBILE TEST HOOK:[\s\S]*Remove before public\/release build/);
-  assert.match(source, /const TEMP_MOBILE_END_SCENE_PREVIEW_ENABLED = true/);
-  assert.doesNotMatch(source, /import\.meta\.env\.DEV/);
-  assert.match(source, /this\.drawEnemyCards\(\{ width, height, headerBottomY: header\.bottomY \}\);[\s\S]*this\.drawEndScenePreviewControl\(\{ width, height \}\)/);
-  assert.match(source, /height - \(TEMP_MOBILE_END_SCENE_PREVIEW_ENABLED \? 168 : 88\)/);
-  assert.match(source, /'END SCENES'[\s\S]*'DEV PREVIEW ONLY'/);
-  assert.match(source, /makeChoice\(panelX - 72, panelY \+ 4, 'VICTORY', 'won'/);
-  assert.match(source, /makeChoice\(panelX \+ 72, panelY \+ 4, 'DEFEAT', 'lost'/);
-  assert.match(source, /'CANCEL'[\s\S]*cancel\.on\('pointerup', closeChoice\)/);
+  assert.match(source, /const CAMPAIGN_END_SCENE_PREVIEW_ENABLED = false/);
+  assert.match(source, /if \(CAMPAIGN_END_SCENE_PREVIEW_ENABLED\) this\.drawEndScenePreviewControl\(\{ width, height \}\)/);
+  assert.match(source, /height - \(CAMPAIGN_END_SCENE_PREVIEW_ENABLED \? 168 : 88\)/);
+  assert.match(source, /drawEndScenePreviewControl\(\{ width, height \}\)/);
+  assert.match(source, /openEndScenePreviewChoice\(\)/);
+  assert.match(source, /startCampaignCompletionPreview\(status\)/);
+  assert.doesNotMatch(source, /TEMP_MOBILE_END_SCENE_PREVIEW_ENABLED = true/);
+  assert.doesNotMatch(source, /TEMP MOBILE TEST HOOK/);
   assert.doesNotMatch(source, /saveCampaign\([^\n]*(preview|completionPreview|previewStatus)/);
 });
 
