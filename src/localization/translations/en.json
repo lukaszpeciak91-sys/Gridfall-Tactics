@@ -500,8 +500,18 @@
       "playerStarts": "YOU START",
       "enemyStarts": "ENEMY STARTS",
       "resultSubtitles": {
-        "victory": "Audience delighted.",
-        "defeat": "Audience demands more.",
+        "victory": [
+          "The audience is delighted.",
+          "What a spectacle!",
+          "Total domination!",
+          "The crowd is going wild!"
+        ],
+        "defeat": [
+          "The audience demands more.",
+          "The crowd expected more.",
+          "It wasn’t enough this time.",
+          "Not everyone gets to leave the stage in glory."
+        ],
         "draw": "Production ordered a rematch."
       },
       "resultStats": {
@@ -656,8 +666,18 @@
       "wonBattles": "Won battles",
       "lostBattles": "Lost battles",
       "campaignTime": "Campaign time",
-      "wonFlavor": "The sector is secured. Your command endures.",
-      "lostFlavor": "The line has fallen, but the war is not over."
+      "wonFlavors": [
+        "Congratulations. The trophy is yours.\nNow hurry home before everything ends there for good.",
+        "A magnificent performance. A well-earned trophy.\nNow run along — you might still catch the apocalypse.",
+        "The audience is delighted. The trophy is yours.\nWe won’t keep you any longer — your apocalypse is probably still right on schedule.",
+        "A marvelous spectacle! It may not improve your situation…\nbut at least you’re going home with a trophy."
+      ],
+      "lostFlavors": [
+        "That’s all for tonight. Thank you for taking part in the show.",
+        "It wasn’t your night, but the audience appreciates the performance all the same.",
+        "Thank you for participating, and best of luck with your next catastrophe.",
+        "A pity. Some return with a trophy. Others simply return."
+      ]
     }
   },
   "diagnostics": {

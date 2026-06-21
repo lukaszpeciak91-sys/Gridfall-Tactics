@@ -82,14 +82,33 @@ test('retry button copy stays short in Polish without changing English', () => {
 
 
 test('battle result modal flavor subtitles are localized for English and Polish', () => {
-  assert.deepEqual(
-    ['victory', 'defeat', 'draw'].map((key) => getPath(en, `ui.battle.resultSubtitles.${key}`)),
-    ['Audience delighted.', 'Audience demands more.', 'Production ordered a rematch.'],
-  );
-  assert.deepEqual(
-    ['victory', 'defeat', 'draw'].map((key) => getPath(pl, `ui.battle.resultSubtitles.${key}`)),
-    ['Publiczność zachwycona.', 'Publiczność domaga się więcej.', 'Produkcja zarządziła dogrywkę.'],
-  );
+  assert.deepEqual(getPath(en, 'ui.battle.resultSubtitles.victory'), [
+    'The audience is delighted.',
+    'What a spectacle!',
+    'Total domination!',
+    'The crowd is going wild!',
+  ]);
+  assert.deepEqual(getPath(en, 'ui.battle.resultSubtitles.defeat'), [
+    'The audience demands more.',
+    'The crowd expected more.',
+    'It wasn’t enough this time.',
+    'Not everyone gets to leave the stage in glory.',
+  ]);
+  assert.equal(getPath(en, 'ui.battle.resultSubtitles.draw'), 'Production ordered a rematch.');
+
+  assert.deepEqual(getPath(pl, 'ui.battle.resultSubtitles.victory'), [
+    'Publiczność zachwycona.',
+    'Co za wspaniałe widowisko!',
+    'Totalna dominacja!',
+    'Widzowie oszaleli z zachwytu!',
+  ]);
+  assert.deepEqual(getPath(pl, 'ui.battle.resultSubtitles.defeat'), [
+    'Publiczność domaga się więcej.',
+    'Widzowie liczyli na coś więcej.',
+    'Tym razem to nie wystarczyło.',
+    'Nie każdy schodzi ze sceny w chwale.',
+  ]);
+  assert.equal(getPath(pl, 'ui.battle.resultSubtitles.draw'), 'Produkcja zarządziła dogrywkę.');
 });
 
 
