@@ -2589,7 +2589,7 @@ export default class BattleScene extends Phaser.Scene {
       .setStrokeStyle(2, accentColor, 0.72)
       .setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH)
       .setVisible(false);
-    const summaryBodyOffsetY = won ? Math.min(14, Math.max(8, Math.floor(height * 0.012))) : 0;
+    const summaryBodyOffsetY = won || status === 'lost' ? Math.min(14, Math.max(8, Math.floor(height * 0.012))) : 0;
     const summaryTitle = this.add.text(centerX, summaryTitleY, titleText, {
       fontFamily: PREMIUM_BROADCAST_FONT_STACK,
       fontSize: `${Math.max(24, Math.min(38, Math.floor(height * 0.044)))}px`,
