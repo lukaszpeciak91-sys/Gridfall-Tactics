@@ -3149,10 +3149,8 @@ export default class BattleScene extends Phaser.Scene {
     if (!this.gameState || !action || action.type === 'pass') return;
     this.pendingBattleHistoryEntries ??= [];
     this.pendingBattleHistoryEntries.push({
-      turnNumber: (this.gameState.turnsCompleted ?? 0) + 1,
       actingSide: side,
       action,
-      resolution: [],
     });
   }
 
@@ -3187,11 +3185,15 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   commitBattleHistoryTurn(combatEvents, snapshot) {
-    const entries = this.pendingBattleHistoryEntries ?? [];
-    if (entries.length === 0) return;
+    const actions = [...(this.pendingBattleHistoryEntries ?? [])];
+    if (actions.length === 0) return;
     const resolution = this.buildResolutionFromCombatEvents(combatEvents, snapshot);
-    entries[entries.length - 1].resolution = resolution;
-    this.battleHistory = [...entries.reverse(), ...(this.battleHistory ?? [])].slice(0, 30);
+    const turnEntry = {
+      turnNumber: (this.gameState?.turnsCompleted ?? 0) + 1,
+      actions,
+      resolution,
+    };
+    this.battleHistory = [...(this.battleHistory ?? []), turnEntry].slice(-30);
     this.pendingBattleHistoryEntries = [];
   }
 
@@ -3609,7 +3611,7 @@ export default class BattleScene extends Phaser.Scene {
       return maxBottom - y;
     };
 
-    const entries = [...(this.battleHistory ?? [])].reverse();
+    const entries = this.battleHistory ?? [];
     if (entries.length === 0) {
       return addTokenLine([{ text: translateActive('ui.battle.deckInfo.noHistory', 'No battle history yet.'), color: 'muted' }], 0);
     }
@@ -3617,7 +3619,9 @@ export default class BattleScene extends Phaser.Scene {
     let offsetY = 0;
     entries.forEach((entry) => {
       offsetY = addTokenLine(this.formatBattleHistoryHeaderTokens(entry), offsetY, { bold: true });
-      offsetY = addTokenLine(this.formatBattleHistoryActionTokens(entry), offsetY);
+      this.getBattleHistoryActions(entry).forEach((actionEntry) => {
+        offsetY = addTokenLine(this.formatBattleHistoryActionTokens(actionEntry), offsetY);
+      });
       if (entry.resolution?.length) {
         offsetY = addTokenLine([{ text: translateActive('ui.battle.deckInfo.resolution', 'Resolution:'), color: 'neutral' }], offsetY);
         entry.resolution.forEach((item) => {
@@ -3656,10 +3660,16 @@ export default class BattleScene extends Phaser.Scene {
     return [
       {
         text: translateActive('ui.battle.deckInfo.turnHeader', 'Turn {turn}', { turn: entry.turnNumber }),
-        color: entry.actingSide === 'enemy' ? 'enemy' : 'player',
+        color: 'neutral',
         bold: true,
       },
     ];
+  }
+
+  getBattleHistoryActions(entry) {
+    if (Array.isArray(entry?.actions)) return entry.actions;
+    if (entry?.action) return [{ actingSide: entry.actingSide, action: entry.action }];
+    return [];
   }
 
   formatBattleHistoryActionTokens(entry) {
@@ -3691,7 +3701,7 @@ export default class BattleScene extends Phaser.Scene {
   formatBattleHistoryEntry(entry) {
     const lines = [
       this.formatBattleHistoryHeaderTokens(entry).map((token) => token.text).join(''),
-      this.formatBattleHistoryAction(entry),
+      ...this.getBattleHistoryActions(entry).map((actionEntry) => this.formatBattleHistoryAction(actionEntry)),
     ].filter(Boolean);
     if (entry.resolution?.length) {
       lines.push(translateActive('ui.battle.deckInfo.resolution', 'Resolution:'));
