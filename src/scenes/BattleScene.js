@@ -2603,15 +2603,21 @@ export default class BattleScene extends Phaser.Scene {
       wordWrap: { width: contentWidth, useAdvancedWrap: true },
       fixedWidth: contentWidth,
     }).setOrigin(0.5).setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 1).setVisible(false);
-    const flavor = this.add.text(centerX, summaryTitleY + Math.max(46, height * 0.07) + summaryBodyOffsetY, flavorText, {
+    const titleFlavorGap = Math.max(34, height * 0.048);
+    const flavorStatsGap = Math.max(38, height * 0.054);
+    const dividerStatsGap = Math.max(40, height * 0.056);
+    const flavor = this.add.text(centerX, summaryTitleY, flavorText, {
       fontFamily: PREMIUM_BROADCAST_FONT_STACK,
       fontSize: `${Math.max(15, Math.min(20, Math.floor(height * 0.022)))}px`,
       color: '#dbeafe',
       align: 'center',
       wordWrap: { width: contentWidth * 0.9, useAdvancedWrap: true },
     }).setOrigin(0.5).setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 1).setVisible(false);
+    const flavorY = summaryTitleY + summaryTitle.height * 0.5 + titleFlavorGap + flavor.height * 0.5 + summaryBodyOffsetY;
+    flavor.setY(flavorY);
     const statsText = this.getCampaignCompletionStatsText(safeCampaign);
-    const stats = this.add.text(centerX, summaryTitleY + Math.max(126, height * 0.18) + summaryBodyOffsetY, statsText, {
+    const dividerY = flavorY + flavor.height * 0.5 + flavorStatsGap;
+    const stats = this.add.text(centerX, dividerY + dividerStatsGap, statsText, {
       fontFamily: PREMIUM_BROADCAST_FONT_STACK,
       fontSize: `${Math.max(17, Math.min(22, Math.floor(height * 0.025)))}px`,
       color: '#f5f1e6',
@@ -2621,7 +2627,7 @@ export default class BattleScene extends Phaser.Scene {
       wordWrap: { width: contentWidth * 0.78, useAdvancedWrap: true },
       fixedWidth: contentWidth * 0.78,
     }).setOrigin(0.5).setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 1).setVisible(false);
-    const dividerCore = this.add.rectangle(centerX, summaryTitleY + Math.max(86, height * 0.125) + summaryBodyOffsetY, contentWidth * 0.62, 1, softAccentColor, 0.62)
+    const dividerCore = this.add.rectangle(centerX, dividerY, contentWidth * 0.62, 1, softAccentColor, 0.62)
       .setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 1).setVisible(false);
     const buttonWidth = Math.min(240, Math.max(176, width * 0.62));
     const buttonHeight = Math.max(68, Math.min(76, Math.floor(height * 0.09)));
