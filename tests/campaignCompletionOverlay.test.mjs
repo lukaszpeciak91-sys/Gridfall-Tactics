@@ -73,6 +73,16 @@ test('won trophy summary removes large framed panel while fallback and lost keep
   assert.match(completionSource, /summaryItems\.push\(\.\.\.\[fallbackPanel, summaryTitle, flavor, stats, dividerCore\]\.filter\(Boolean\), \.\.\.button\.items\)/);
 });
 
+
+test('final campaign summary stack protects CTA and compresses middle spacing only', () => {
+  assert.match(completionSource, /const ctaSafeTopY = buttonY - buttonHeight \* 0\.5 - Math\.max\(30, height \* 0\.036\)/);
+  assert.match(completionSource, /const statsSafeY = ctaSafeTopY - stats\.height \* 0\.5/);
+  assert.match(completionSource, /const statsY = Math\.min\(idealStatsY, statsSafeY\)/);
+  assert.match(completionSource, /const compressedFlavorStatsGap = Math\.max\(minFlavorStatsGap, Math\.min\(idealFlavorStatsGap, availableGap - minTitleFlavorGap\)\)/);
+  assert.match(completionSource, /const titleFlavorGap = Math\.max\(minTitleFlavorGap, Math\.min\(idealTitleFlavorGap, availableGap - compressedFlavorStatsGap\)\)/);
+  assert.match(completionSource, /stats\.setY\(statsY\)/);
+});
+
 test('won trophy summary stats are centered and secondary', () => {
   assert.match(completionSource, /const stats = this\.add\.text\(centerX,[\s\S]*align: 'center'/);
   assert.match(completionSource, /lineSpacing: Math\.max\(10, Math\.floor\(height \* 0\.014\)\)/);

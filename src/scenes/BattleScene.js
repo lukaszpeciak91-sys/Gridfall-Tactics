@@ -2604,9 +2604,12 @@ export default class BattleScene extends Phaser.Scene {
       wordWrap: { width: contentWidth, useAdvancedWrap: true },
       fixedWidth: contentWidth,
     }).setOrigin(0.5).setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 1).setVisible(false);
-    const titleFlavorGap = Math.max(34, height * 0.048);
-    const flavorStatsGap = Math.max(38, height * 0.054);
-    const dividerStatsGap = Math.max(40, height * 0.056);
+    const buttonWidth = Math.min(240, Math.max(176, width * 0.62));
+    const buttonHeight = Math.max(68, Math.min(76, Math.floor(height * 0.09)));
+    const baseStatsY = baseSummaryTitleY + Math.max(126, height * 0.18);
+    const buttonY = Math.min(height - buttonHeight * 0.82, Math.max(baseStatsY + 100, height * 0.78));
+    const ctaSafeTopY = buttonY - buttonHeight * 0.5 - Math.max(30, height * 0.036);
+    const statsText = this.getCampaignCompletionStatsText(safeCampaign);
     const flavor = this.add.text(centerX, summaryTitleY, flavorText, {
       fontFamily: PREMIUM_BROADCAST_FONT_STACK,
       fontSize: `${Math.max(15, Math.min(20, Math.floor(height * 0.022)))}px`,
@@ -2614,11 +2617,7 @@ export default class BattleScene extends Phaser.Scene {
       align: 'center',
       wordWrap: { width: contentWidth * 0.9, useAdvancedWrap: true },
     }).setOrigin(0.5).setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 1).setVisible(false);
-    const flavorY = summaryTitleY + summaryTitle.height * 0.5 + titleFlavorGap + flavor.height * 0.5 + summaryBodyOffsetY;
-    flavor.setY(flavorY);
-    const statsText = this.getCampaignCompletionStatsText(safeCampaign);
-    const dividerY = flavorY + flavor.height * 0.5 + flavorStatsGap;
-    const stats = this.add.text(centerX, dividerY + dividerStatsGap, statsText, {
+    const stats = this.add.text(centerX, summaryTitleY, statsText, {
       fontFamily: PREMIUM_BROADCAST_FONT_STACK,
       fontSize: `${Math.max(17, Math.min(22, Math.floor(height * 0.025)))}px`,
       color: '#f5f1e6',
@@ -2628,12 +2627,27 @@ export default class BattleScene extends Phaser.Scene {
       wordWrap: { width: contentWidth * 0.78, useAdvancedWrap: true },
       fixedWidth: contentWidth * 0.78,
     }).setOrigin(0.5).setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 1).setVisible(false);
+    const idealTitleFlavorGap = Math.max(34, height * 0.048);
+    const idealFlavorStatsGap = Math.max(38, height * 0.054);
+    const dividerStatsGap = Math.max(40, height * 0.056);
+    const minTitleFlavorGap = Math.max(20, height * 0.028);
+    const minFlavorStatsGap = Math.max(22, height * 0.03);
+    const titleBottomY = summaryTitleY + summaryTitle.height * 0.5 + summaryBodyOffsetY;
+    const statsSafeY = ctaSafeTopY - stats.height * 0.5;
+    const idealStatsY = titleBottomY + idealTitleFlavorGap + flavor.height + idealFlavorStatsGap + dividerStatsGap + stats.height * 0.5;
+    const statsY = Math.min(idealStatsY, statsSafeY);
+    const availableGap = Math.max(0, statsY - stats.height * 0.5 - dividerStatsGap - titleBottomY - flavor.height);
+    const compressedFlavorStatsGap = Math.max(minFlavorStatsGap, Math.min(idealFlavorStatsGap, availableGap - minTitleFlavorGap));
+    const titleFlavorGap = Math.max(minTitleFlavorGap, Math.min(idealTitleFlavorGap, availableGap - compressedFlavorStatsGap));
+    const flavorY = titleBottomY + titleFlavorGap + flavor.height * 0.5;
+    const dividerY = Math.min(
+      statsY - stats.height * 0.5 - dividerStatsGap,
+      flavorY + flavor.height * 0.5 + compressedFlavorStatsGap,
+    );
+    flavor.setY(flavorY);
+    stats.setY(statsY);
     const dividerCore = this.add.rectangle(centerX, dividerY, contentWidth * 0.62, 1, softAccentColor, 0.62)
       .setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 1).setVisible(false);
-    const buttonWidth = Math.min(240, Math.max(176, width * 0.62));
-    const buttonHeight = Math.max(68, Math.min(76, Math.floor(height * 0.09)));
-    const baseStatsY = baseSummaryTitleY + Math.max(126, height * 0.18);
-    const buttonY = Math.min(height - buttonHeight * 0.82, Math.max(baseStatsY + 100, height * 0.78));
     const button = this.createResultModalButton(centerX, buttonY, buttonWidth, buttonHeight, translateActive('ui.common.mainMenu', 'MAIN MENU'), () => {
       if (!options.preview) clearCampaign();
       this.scene.start('MainMenuScene');
