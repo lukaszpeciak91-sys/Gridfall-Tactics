@@ -54,7 +54,7 @@
     },
     "attrition_swarm_rotcaller_1": {
       "name": "Wodzirej",
-      "textShort": "Pierwszy zgon sąsiedniego [ALLY] w walce:\n+1 [ATK] do walki"
+      "textShort": "Zgon pierwszego sąsiedniego [ALLY]:\n+1 [ATK] do walki"
     },
     "attrition_swarm_abomination_1": {
       "name": "Abominacja",
