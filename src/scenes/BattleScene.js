@@ -2526,7 +2526,8 @@ export default class BattleScene extends Phaser.Scene {
     const trophyHeroHeight = Math.min(heroDisplayHeight ?? heroMaxHeight, heroMaxHeight);
     const victoryTitleFontSize = Math.max(44, Math.min(69, Math.floor(height * 0.074)));
     const finalWonTitleY = Math.min(height * 0.78, heroTrophyY + trophyHeroHeight * 0.52 + victoryTitleFontSize * 1.18);
-    const titleY = hasTrophyTexture ? finalWonTitleY : (won ? Math.max(height * 0.32, titleFontSize * 2.1) : finalWonTitleY);
+    const finalLostTitleY = centerY;
+    const titleY = hasTrophyTexture ? finalWonTitleY : (won ? Math.max(height * 0.32, titleFontSize * 2.1) : finalLostTitleY);
     const titleAura = isWonTrophyPresentation ? null : this.add.circle(centerX, titleY, Math.min(width, height) * 0.28, accentColor, 0.09)
       .setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 0.3)
       .setVisible(won);
