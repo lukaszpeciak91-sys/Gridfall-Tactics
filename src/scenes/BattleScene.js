@@ -3218,7 +3218,7 @@ export default class BattleScene extends Phaser.Scene {
       actions,
       resolution,
     };
-    this.battleHistory = [...(this.battleHistory ?? []), turnEntry].slice(-30);
+    this.battleHistory = [...(this.battleHistory ?? []), turnEntry];
     this.pendingBattleHistoryEntries = [];
   }
 
@@ -5324,9 +5324,6 @@ export default class BattleScene extends Phaser.Scene {
     this.playerActionUsed = false;
     this.enemyActionUsed = false;
     this.playerSurrenderArmed = false;
-    this.battleHistory = [];
-    this.pendingBattleHistoryEntries = [];
-    this.playerInitialDeckTypeCounts = null;
     this.selectedCardId = null;
     this.pendingSwapIndex = null;
     this.targetingState = null;
