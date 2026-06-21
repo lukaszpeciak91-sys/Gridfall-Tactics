@@ -2525,7 +2525,8 @@ export default class BattleScene extends Phaser.Scene {
 
     const trophyHeroHeight = Math.min(heroDisplayHeight ?? heroMaxHeight, heroMaxHeight);
     const victoryTitleFontSize = Math.max(44, Math.min(69, Math.floor(height * 0.074)));
-    const titleY = hasTrophyTexture ? Math.min(height * 0.78, heroTrophyY + trophyHeroHeight * 0.52 + victoryTitleFontSize * 1.18) : (won ? Math.max(height * 0.32, titleFontSize * 2.1) : heroTrophyY);
+    const finalWonTitleY = Math.min(height * 0.78, heroTrophyY + trophyHeroHeight * 0.52 + victoryTitleFontSize * 1.18);
+    const titleY = hasTrophyTexture ? finalWonTitleY : (won ? Math.max(height * 0.32, titleFontSize * 2.1) : finalWonTitleY);
     const titleAura = isWonTrophyPresentation ? null : this.add.circle(centerX, titleY, Math.min(width, height) * 0.28, accentColor, 0.09)
       .setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 0.3)
       .setVisible(won);
@@ -2540,18 +2541,17 @@ export default class BattleScene extends Phaser.Scene {
       letterSpacing: 2.2,
     }).setOrigin(0.5).setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 1);
     title?.setShadow(0, 3, 'rgba(0, 0, 0, 0.72)', 5, true, true);
-    const emblem = hasTrophyTexture ? null : this.add.text(centerX, titleY - titleFontSize * 1.05, won ? '◆' : '◇', {
+    const emblem = hasTrophyTexture || !won ? null : this.add.text(centerX, titleY - titleFontSize * 1.05, '◆', {
       fontFamily: PREMIUM_BROADCAST_FONT_STACK,
       fontSize: `${Math.max(30, Math.floor(titleFontSize * 0.82))}px`,
-      color: won ? '#facc15' : '#fb7185',
+      color: '#facc15',
       align: 'center',
     }).setOrigin(0.5).setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 1).setAlpha(0.86);
     const useWonPromptStyle = isWonTrophyPresentation || !won;
-    const promptY = isWonTrophyPresentation
-      ? Math.max(height * 0.12, heroTrophyY - trophyHeroHeight * 0.5 - Math.max(30, height * 0.038))
-      : (!won
-        ? Math.max(height * 0.12, titleY - titleFontSize * 0.5 - Math.max(30, height * 0.038))
-        : Math.min(height * 0.86, titleY + titleFontSize * 1.55));
+    const finalWonPromptY = Math.max(height * 0.12, heroTrophyY - trophyHeroHeight * 0.5 - Math.max(30, height * 0.038));
+    const promptY = (isWonTrophyPresentation || !won)
+      ? finalWonPromptY
+      : Math.min(height * 0.86, titleY + titleFontSize * 1.55);
     const promptFontSize = useWonPromptStyle
       ? Math.max(13, Math.min(18, Math.floor(height * 0.02)))
       : Math.max(18, Math.min(26, Math.floor(height * 0.028)));

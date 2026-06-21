@@ -18,7 +18,15 @@ test('BattleScene preloads campaign trophy asset with the required key and runti
 test('campaign won uses trophy texture when loaded and safely falls back to emblem flow when missing', () => {
   assert.match(completionSource, /const hasTrophyTexture = won && hasLoadedImageAsset\(this, CAMPAIGN_TROPHY_ASSET\)/);
   assert.match(completionSource, /this\.add\.image\(centerX, heroTrophyY, CAMPAIGN_TROPHY_ASSET\.key\)/);
-  assert.match(completionSource, /const emblem = hasTrophyTexture \? null : this\.add\.text\(centerX, titleY - titleFontSize \* 1\.05, won \? '◆' : '◇'/);
+  assert.match(completionSource, /const emblem = hasTrophyTexture \|\| !won \? null : this\.add\.text\(centerX, titleY - titleFontSize \* 1\.05, '◆'/);
+});
+
+test('campaign lost final overlay aligns to final won title and prompt without diamond', () => {
+  assert.match(completionSource, /const finalWonTitleY = Math\.min\(height \* 0\.78, heroTrophyY \+ trophyHeroHeight \* 0\.52 \+ victoryTitleFontSize \* 1\.18\)/);
+  assert.match(completionSource, /const titleY = hasTrophyTexture \? finalWonTitleY : \(won \? Math\.max\(height \* 0\.32, titleFontSize \* 2\.1\) : finalWonTitleY\)/);
+  assert.match(completionSource, /const finalWonPromptY = Math\.max\(height \* 0\.12, heroTrophyY - trophyHeroHeight \* 0\.5 - Math\.max\(30, height \* 0\.038\)\)/);
+  assert.match(completionSource, /const promptY = \(isWonTrophyPresentation \|\| !won\)[\s\S]*\? finalWonPromptY[\s\S]*: Math\.min\(height \* 0\.86, titleY \+ titleFontSize \* 1\.55\)/);
+  assert.doesNotMatch(completionSource, /won \? '◆' : '◇'/);
 });
 
 test('campaign won trophy presentation is mobile-safe and transitions to compact summary', () => {
