@@ -2525,9 +2525,10 @@ export default class BattleScene extends Phaser.Scene {
 
     const trophyHeroHeight = Math.min(heroDisplayHeight ?? heroMaxHeight, heroMaxHeight);
     const victoryTitleFontSize = Math.max(44, Math.min(69, Math.floor(height * 0.074)));
-    const titleY = hasTrophyTexture ? Math.min(height * 0.78, heroTrophyY + trophyHeroHeight * 0.52 + victoryTitleFontSize * 1.18) : Math.max(height * 0.32, titleFontSize * 2.1);
+    const titleY = hasTrophyTexture ? Math.min(height * 0.78, heroTrophyY + trophyHeroHeight * 0.52 + victoryTitleFontSize * 1.18) : (won ? Math.max(height * 0.32, titleFontSize * 2.1) : heroTrophyY);
     const titleAura = isWonTrophyPresentation ? null : this.add.circle(centerX, titleY, Math.min(width, height) * 0.28, accentColor, 0.09)
-      .setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 0.3);
+      .setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 0.3)
+      .setVisible(won);
     const title = this.add.text(centerX, titleY, isWonTrophyPresentation ? victorySplashText : titleText, {
       fontFamily: PREMIUM_BROADCAST_FONT_STACK,
       fontSize: `${isWonTrophyPresentation ? victoryTitleFontSize : titleFontSize}px`,
@@ -2545,23 +2546,26 @@ export default class BattleScene extends Phaser.Scene {
       color: won ? '#facc15' : '#fb7185',
       align: 'center',
     }).setOrigin(0.5).setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 1).setAlpha(0.86);
+    const useWonPromptStyle = isWonTrophyPresentation || !won;
     const promptY = isWonTrophyPresentation
       ? Math.max(height * 0.12, heroTrophyY - trophyHeroHeight * 0.5 - Math.max(30, height * 0.038))
-      : Math.min(height * 0.86, titleY + titleFontSize * 1.55);
-    const promptFontSize = isWonTrophyPresentation
+      : (!won
+        ? Math.max(height * 0.12, titleY - titleFontSize * 0.5 - Math.max(30, height * 0.038))
+        : Math.min(height * 0.86, titleY + titleFontSize * 1.55));
+    const promptFontSize = useWonPromptStyle
       ? Math.max(13, Math.min(18, Math.floor(height * 0.02)))
       : Math.max(18, Math.min(26, Math.floor(height * 0.028)));
     const prompt = this.add.text(centerX, promptY, promptText, {
       fontFamily: PREMIUM_BROADCAST_FONT_STACK,
       fontSize: `${promptFontSize}px`,
-      color: isWonTrophyPresentation ? '#efe7c8' : '#f5f1e6',
-      fontStyle: isWonTrophyPresentation ? '600' : '700',
+      color: useWonPromptStyle ? '#efe7c8' : '#f5f1e6',
+      fontStyle: useWonPromptStyle ? '600' : '700',
       align: 'center',
       wordWrap: { width: titleMaxWidth, useAdvancedWrap: true },
       fixedWidth: titleMaxWidth,
-      letterSpacing: isWonTrophyPresentation ? 1.1 : 1.6,
-    }).setOrigin(0.5).setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 1).setAlpha(isWonTrophyPresentation ? 0.74 : 1);
-    prompt.setShadow(0, 2, 'rgba(0, 0, 0, 0.68)', isWonTrophyPresentation ? 3 : 5, true, true);
+      letterSpacing: useWonPromptStyle ? 1.1 : 1.6,
+    }).setOrigin(0.5).setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 1).setAlpha(useWonPromptStyle ? 0.74 : 1);
+    prompt.setShadow(0, 2, 'rgba(0, 0, 0, 0.68)', useWonPromptStyle ? 3 : 5, true, true);
     if (isWonTrophyPresentation) {
       campaignCelebration = this.addBattleResultVictoryCelebration(
         centerX,
