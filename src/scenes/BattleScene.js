@@ -2589,6 +2589,7 @@ export default class BattleScene extends Phaser.Scene {
       .setStrokeStyle(2, accentColor, 0.72)
       .setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH)
       .setVisible(false);
+    const summaryBodyOffsetY = won ? Math.min(14, Math.max(8, Math.floor(height * 0.012))) : 0;
     const summaryTitle = this.add.text(centerX, summaryTitleY, titleText, {
       fontFamily: PREMIUM_BROADCAST_FONT_STACK,
       fontSize: `${Math.max(24, Math.min(38, Math.floor(height * 0.044)))}px`,
@@ -2598,7 +2599,7 @@ export default class BattleScene extends Phaser.Scene {
       wordWrap: { width: contentWidth, useAdvancedWrap: true },
       fixedWidth: contentWidth,
     }).setOrigin(0.5).setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 1).setVisible(false);
-    const flavor = this.add.text(centerX, summaryTitleY + Math.max(46, height * 0.07), flavorText, {
+    const flavor = this.add.text(centerX, summaryTitleY + Math.max(46, height * 0.07) + summaryBodyOffsetY, flavorText, {
       fontFamily: PREMIUM_BROADCAST_FONT_STACK,
       fontSize: `${Math.max(15, Math.min(20, Math.floor(height * 0.022)))}px`,
       color: '#dbeafe',
@@ -2606,7 +2607,7 @@ export default class BattleScene extends Phaser.Scene {
       wordWrap: { width: contentWidth * 0.9, useAdvancedWrap: true },
     }).setOrigin(0.5).setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 1).setVisible(false);
     const statsText = this.getCampaignCompletionStatsText(safeCampaign);
-    const stats = this.add.text(centerX, summaryTitleY + Math.max(126, height * 0.18), statsText, {
+    const stats = this.add.text(centerX, summaryTitleY + Math.max(126, height * 0.18) + summaryBodyOffsetY, statsText, {
       fontFamily: PREMIUM_BROADCAST_FONT_STACK,
       fontSize: `${Math.max(17, Math.min(22, Math.floor(height * 0.025)))}px`,
       color: '#f5f1e6',
@@ -2616,7 +2617,7 @@ export default class BattleScene extends Phaser.Scene {
       wordWrap: { width: contentWidth * 0.78, useAdvancedWrap: true },
       fixedWidth: contentWidth * 0.78,
     }).setOrigin(0.5).setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 1).setVisible(false);
-    const dividerCore = this.add.rectangle(centerX, summaryTitleY + Math.max(86, height * 0.125), contentWidth * 0.62, 1, softAccentColor, 0.62)
+    const dividerCore = this.add.rectangle(centerX, summaryTitleY + Math.max(86, height * 0.125) + summaryBodyOffsetY, contentWidth * 0.62, 1, softAccentColor, 0.62)
       .setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 1).setVisible(false);
     const buttonWidth = Math.min(240, Math.max(176, width * 0.62));
     const buttonHeight = Math.max(68, Math.min(76, Math.floor(height * 0.09)));
