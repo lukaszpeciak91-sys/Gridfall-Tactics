@@ -322,6 +322,9 @@ export default class BattleScene extends Phaser.Scene {
     this.passHoldToSurrenderProgress = false;
     this.passHoldToSurrenderEvent = null;
     this.playerSurrenderArmed = false;
+    this.battleHistory = [];
+    this.pendingBattleHistoryEntries = [];
+    this.playerInitialDeckTypeCounts = null;
   }
 
   preload() {
@@ -514,6 +517,7 @@ export default class BattleScene extends Phaser.Scene {
     shuffleDeck(this.gameState.enemy.deck);
     drawCards(this.gameState.player, STARTING_HAND_SIZE);
     drawCards(this.gameState.enemy, STARTING_HAND_SIZE);
+    this.initializeBattleInfoPanelState();
     this.applyEnemyOpeningMulligan();
     this.openingMulliganPending = true;
 
@@ -2957,9 +2961,7 @@ export default class BattleScene extends Phaser.Scene {
   refreshDeckCounter() {
     if (!this.deckCounterView?.text || !this.gameState?.player) return;
     this.deckCounterView.text.setText(translateActive('ui.battle.deckCounter', 'DECK {count}', { count: this.gameState.player.deck.length }));
-    if (this.deckInfoPanel?.contentText) {
-      this.deckInfoPanel.contentText.setText(this.getDeckInfoPanelText());
-    }
+    if (this.deckInfoPanel) this.refreshDeckInfoPanelContent();
   }
 
   destroyDeckCounterView() {
@@ -2969,6 +2971,97 @@ export default class BattleScene extends Phaser.Scene {
       item?.destroy?.();
     });
     this.deckCounterView = null;
+  }
+
+  initializeBattleInfoPanelState() {
+    const cards = [...(this.gameState?.player?.deck ?? []), ...(this.gameState?.player?.hand ?? [])];
+    this.playerInitialDeckTypeCounts = {
+      ally: cards.filter((card) => card?.type === 'unit').length,
+      effect: cards.filter((card) => card?.type !== 'unit').length,
+    };
+    this.battleHistory = [];
+    this.pendingBattleHistoryEntries = [];
+  }
+
+  getDeckSummaryCounters() {
+    const player = this.gameState?.player ?? {};
+    const deck = player.deck ?? [];
+    const initial = this.playerInitialDeckTypeCounts ?? {
+      ally: [...deck, ...(player.hand ?? []), ...(player.discard ?? [])].filter((card) => card?.type === 'unit').length,
+      effect: [...deck, ...(player.hand ?? []), ...(player.discard ?? [])].filter((card) => card?.type !== 'unit').length,
+    };
+    const allyHidden = deck.filter((card) => card?.type === 'unit').length;
+    const effectHidden = deck.filter((card) => card?.type !== 'unit').length;
+    return {
+      ally: { revealed: Math.max(0, initial.ally - allyHidden), hidden: allyHidden },
+      effect: { revealed: Math.max(0, initial.effect - effectHidden), hidden: effectHidden },
+      grave: {
+        units: (player.fallen ?? []).filter((entry) => entry?.card?.type === 'unit').length,
+        effects: (player.discard ?? []).filter((card) => card?.type !== 'unit').length,
+      },
+    };
+  }
+
+  createCardRef(card, side) {
+    return {
+      name: getCardDisplayName(card, getActiveLocale()) ?? card?.name ?? translateActive('ui.common.unknownCard', 'Unknown Card'),
+      side,
+    };
+  }
+
+  getBoardUnitLabelFromSnapshot(snapshot, index) {
+    const unit = snapshot?.board?.[index] ?? this.gameState?.board?.[index];
+    return unit ? this.createCardRef(unit, unit.owner) : null;
+  }
+
+  queueBattleHistoryAction(side, action) {
+    if (!this.gameState || !action || action.type === 'pass') return;
+    this.pendingBattleHistoryEntries ??= [];
+    this.pendingBattleHistoryEntries.push({
+      turnNumber: (this.gameState.turnsCompleted ?? 0) + 1,
+      actingSide: side,
+      action,
+      resolution: [],
+    });
+  }
+
+  buildResolutionFromCombatEvents(combatEvents, snapshot) {
+    const lines = [];
+    const mutualKeys = new Set();
+    (combatEvents ?? []).forEach((event) => {
+      const attacker = this.getBoardUnitLabelFromSnapshot(snapshot, event.attackerIndex);
+      if (!attacker || !event.damage || event.damage <= 0) return;
+      if (event.targetType === 'hero') {
+        lines.push({ type: 'base_damage', source: attacker, targetSide: event.targetSide, amount: event.damage });
+        return;
+      }
+      const target = this.getBoardUnitLabelFromSnapshot(snapshot, event.targetIndex);
+      if (!target) return;
+      if (event.lethal) {
+        const reverse = (combatEvents ?? []).find((other) => other !== event && other.lethal && other.attackerIndex === event.targetIndex && other.targetIndex === event.attackerIndex);
+        if (reverse) {
+          const key = [event.attackerIndex, event.targetIndex].sort().join(':');
+          if (!mutualKeys.has(key)) {
+            mutualKeys.add(key);
+            lines.push({ type: 'mutual_kill', unitA: attacker, unitB: target });
+          }
+          return;
+        }
+        lines.push({ type: 'kill', attacker, target });
+        return;
+      }
+      lines.push({ type: 'unit_damage', source: attacker, target, amount: event.damage });
+    });
+    return lines;
+  }
+
+  commitBattleHistoryTurn(combatEvents, snapshot) {
+    const entries = this.pendingBattleHistoryEntries ?? [];
+    if (entries.length === 0) return;
+    const resolution = this.buildResolutionFromCombatEvents(combatEvents, snapshot);
+    entries[entries.length - 1].resolution = resolution;
+    this.battleHistory = [...entries.reverse(), ...(this.battleHistory ?? [])].slice(0, 30);
+    this.pendingBattleHistoryEntries = [];
   }
 
   openDeckInfoPanel() {
@@ -2996,7 +3089,7 @@ export default class BattleScene extends Phaser.Scene {
     const panelTop = centerY - panelHeight / 2;
     const panelLeft = centerX - panelWidth / 2;
     const padding = Math.max(16, Math.floor(panelWidth * 0.045));
-    const headerHeight = Math.max(78, Math.floor(panelHeight * 0.155));
+    const headerHeight = Math.max(116, Math.floor(panelHeight * 0.22));
     const footerHeight = 68;
     const contentX = panelLeft + padding;
     const contentY = panelTop + headerHeight;
@@ -3021,12 +3114,14 @@ export default class BattleScene extends Phaser.Scene {
       fontStyle: 'bold',
       align: 'center',
     }).setOrigin(0.5).setDepth(762);
-    const subtitle = this.add.text(centerX, panelTop + 54, translateActive('ui.battle.deckInfo.subtitle', 'Player cards • read-only'), {
+    const subtitle = this.add.text(centerX, panelTop + 54, translateActive('ui.battle.deckInfo.subtitle', 'Deck summary • recent turns'), {
       fontFamily: 'Arial, sans-serif',
       fontSize: `${Math.max(12, Math.floor(panelHeight * 0.031))}px`,
       color: '#bae6fd',
       align: 'center',
     }).setOrigin(0.5).setDepth(762);
+
+    const summaryView = this.createDeckSummaryHeader(centerX, panelTop + 86, panelWidth, panelHeight);
 
     const contentText = this.add.text(
       contentX,
@@ -3077,8 +3172,11 @@ export default class BattleScene extends Phaser.Scene {
       panel,
       title,
       subtitle,
+      summaryView,
       contentContainer,
       contentText,
+      contentY,
+      contentHeight,
       maskShape,
       scrollMask,
       scrollArea,
@@ -3152,6 +3250,7 @@ export default class BattleScene extends Phaser.Scene {
       panelState.panel,
       panelState.title,
       panelState.subtitle,
+      panelState.summaryView,
       panelState.contentContainer,
       panelState.contentText,
       panelState.maskShape,
@@ -3268,17 +3367,101 @@ export default class BattleScene extends Phaser.Scene {
     this.restoreBattleOverlayBackgroundHelpers('deckInfoHiddenHelpers');
   }
 
-  getDeckInfoPanelText() {
-    const player = this.gameState?.player ?? { deck: [], hand: [], discard: [] };
-    const onBoard = (this.gameState?.board ?? []).filter((card) => card?.owner === 'player');
-    const groups = [
-      [translateActive('ui.battle.deckInfo.inDeck', 'In Deck'), player.deck],
-      [translateActive('ui.battle.deckInfo.inHand', 'In Hand'), player.hand],
-      [translateActive('ui.battle.deckInfo.playedDiscarded', 'Played / Discarded'), player.discard],
-      [translateActive('ui.battle.deckInfo.onBoard', 'On Board'), onBoard],
-    ];
+  refreshDeckInfoPanelContent() {
+    if (!this.deckInfoPanel) return;
+    this.updateDeckSummaryHeaderView(this.deckInfoPanel.summaryView);
+    this.deckInfoPanel.contentText?.setText(this.getDeckInfoPanelText());
+    const contentHeight = this.deckInfoPanel.contentHeight ?? 0;
+    const contentY = this.deckInfoPanel.contentY ?? 0;
+    const bottom = contentY + (this.deckInfoPanel.contentText?.height ?? 0);
+    this.deckInfoPanel.maxScrollY = Math.max(0, bottom - contentY - contentHeight + 8);
+    this.setDeckInfoScrollY(this.deckInfoPanel.scrollY ?? 0);
+  }
 
-    return groups.map(([heading, cards]) => this.formatDeckInfoGroup(heading, cards)).join('\n\n');
+  getDeckSummaryHeaderText() {
+    const counts = this.getDeckSummaryCounters();
+    return `♟ ${counts.ally.revealed}/${counts.ally.hidden}    ✦ ${counts.effect.revealed}/${counts.effect.hidden}    ☠ ${counts.grave.units}/${counts.grave.effects}`;
+  }
+
+  createDeckSummaryHeader(centerX, y, panelWidth, panelHeight) {
+    const fontSize = Math.max(15, Math.floor(panelHeight * 0.034));
+    const style = {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: `${fontSize}px`,
+      align: 'center',
+      fontStyle: 'bold',
+    };
+    const allyColor = '#f8e7b2';
+    const effectColor = '#5eead4';
+    const iconColor = '#facc15';
+    const graveColor = '#cbd5e1';
+    const gap = Math.min(112, Math.max(82, panelWidth * 0.245));
+    const makeText = (x, text, color) => this.add.text(x, y, text, { ...style, color }).setOrigin(0.5);
+    const view = this.add.container(0, 0, [
+      makeText(centerX - gap, '♟', allyColor),
+      makeText(centerX - gap + 24, '0/0', allyColor),
+      makeText(centerX, '✦', iconColor),
+      makeText(centerX + 25, '0/0', effectColor),
+      makeText(centerX + gap - 22, '☠', graveColor),
+      makeText(centerX + gap + 2, '0', allyColor),
+      makeText(centerX + gap + 11, '/', '#f8fafc'),
+      makeText(centerX + gap + 22, '0', effectColor),
+    ]).setDepth(762);
+    view.summaryTexts = {
+      ally: view.list[1],
+      effect: view.list[3],
+      graveUnits: view.list[5],
+      graveEffects: view.list[7],
+    };
+    this.updateDeckSummaryHeaderView(view);
+    return view;
+  }
+
+  updateDeckSummaryHeaderView(view) {
+    if (!view?.summaryTexts) return;
+    const counts = this.getDeckSummaryCounters();
+    view.summaryTexts.ally.setText(`${counts.ally.revealed}/${counts.ally.hidden}`);
+    view.summaryTexts.effect.setText(`${counts.effect.revealed}/${counts.effect.hidden}`);
+    view.summaryTexts.graveUnits.setText(`${counts.grave.units}`);
+    view.summaryTexts.graveEffects.setText(`${counts.grave.effects}`);
+  }
+
+  getDeckInfoPanelText() {
+    const entries = this.battleHistory ?? [];
+    if (entries.length === 0) return translateActive('ui.battle.deckInfo.noHistory', 'No battle history yet.');
+    return entries.map((entry) => this.formatBattleHistoryEntry(entry)).join('\n\n');
+  }
+
+  formatBattleHistoryEntry(entry) {
+    const lines = [
+      `Turn ${entry.turnNumber} — ${entry.actingSide === 'player' ? 'Player' : 'Enemy'}`,
+      this.formatBattleHistoryAction(entry),
+    ].filter(Boolean);
+    if (entry.resolution?.length) {
+      lines.push(translateActive('ui.battle.deckInfo.resolution', 'Resolution:'));
+      entry.resolution.forEach((item) => lines.push(`- ${this.formatBattleHistoryResolution(item)}`));
+    }
+    return lines.join('\n');
+  }
+
+  formatBattleHistoryAction(entry) {
+    const who = entry.actingSide === 'player' ? 'Player' : 'Enemy';
+    const action = entry.action ?? {};
+    if (action.type === 'play_unit') return `${who} plays unit ${action.card?.name}`;
+    if (action.type === 'play_effect') return `${who} plays effect ${action.card?.name}`;
+    if (action.type === 'replace_from_hand') return `${who} replaces ${action.oldCard?.name} with ${action.card?.name} from hand`;
+    if (action.type === 'swap_positions') return `${who} swaps ${action.cardA?.name} and ${action.cardB?.name}`;
+    return `${who} acts`;
+  }
+
+  formatBattleHistoryResolution(item) {
+    if (item.type === 'kill') return `${item.attacker.name} killed ${item.target.name}`;
+    if (item.type === 'mutual_kill') return `${item.unitA.name} and ${item.unitB.name} killed each other`;
+    if (item.type === 'unit_damage') return `${item.source.name} dealt ${item.amount} damage to ${item.target.name}`;
+    if (item.type === 'base_damage') {
+      return `${item.source.name} dealt ${item.amount} damage to ${item.targetSide === 'player' ? 'player base' : 'enemy base'}`;
+    }
+    return '';
   }
 
   formatDeckInfoGroup(heading, cards) {
@@ -4121,6 +4304,8 @@ export default class BattleScene extends Phaser.Scene {
 
         const beforeStats = this.captureBoardStats();
         const fromIndex = this.pendingSwapIndex;
+        const swapA = this.getBoardUnitLabelFromSnapshot?.(beforeStats, fromIndex);
+        const swapB = this.getBoardUnitLabelFromSnapshot?.(beforeStats, boardIndex);
         const result = performSwap(this.gameState, 'player', fromIndex, boardIndex);
         this.pendingSwapIndex = null;
 
@@ -4131,6 +4316,7 @@ export default class BattleScene extends Phaser.Scene {
           this.updatePlayerBaseActionState();
           return;
         }
+        this.queueBattleHistoryAction?.('player', { type: 'swap_positions', cardA: swapA, cardB: swapB });
         this.clearSwapPrompt();
         this.completePlayerAction(beforeStats, [], [{ type: 'swap', fromIndex, toIndex: boardIndex, label: 'SWAP', kind: 'swap' }]);
         return;
@@ -4215,6 +4401,10 @@ export default class BattleScene extends Phaser.Scene {
         this.showInvalidActionFeedback?.({ reason: result.reason, cardId: effectCardId, boardIndex, scope: this.getInvalidActionScope(result.reason) });
         return;
       }
+      this.queueBattleHistoryAction?.('player', {
+        type: this.effectCastState?.source === 'unit-on-play' ? 'play_unit' : 'play_effect',
+        card: this.createCardRef?.(result.card ?? selectedCard, 'player') ?? { name: (result.card ?? selectedCard)?.name ?? 'Card', side: 'player' },
+      });
       const movementFeedback = this.buildMovementFeedbackForAction({
         effectId: selectedCard.effectId,
         owner: 'player',
@@ -4253,6 +4443,11 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
+    this.queueBattleHistoryAction?.('player', {
+      type: result.type === 'redeploy' ? 'replace_from_hand' : 'play_unit',
+      card: this.createCardRef?.(result.card, 'player') ?? { name: result.card?.name ?? 'Card', side: 'player' },
+      oldCard: this.getBoardUnitLabelFromSnapshot?.(beforeStats, boardIndex),
+    });
     this.completePlayerAction(beforeStats, this.buildActionFeedback(beforeStats, result));
   }
 
@@ -4272,6 +4467,11 @@ export default class BattleScene extends Phaser.Scene {
       this.completePlayerAction(beforeStats);
       return;
     }
+    this.queueBattleHistoryAction?.('player', {
+      type: 'play_unit',
+      card: this.createCardRef?.(card, 'player') ?? { name: card?.name ?? 'Card', side: 'player' },
+      oldCard: this.getBoardUnitLabelFromSnapshot?.(beforeStats, boardIndex),
+    });
 
     this.effectCastState = { source: 'unit-on-play', cardId: card.id, card, boardIndex, targetingState, beforeStats };
     this.selectedCardId = null;
@@ -4355,6 +4555,7 @@ export default class BattleScene extends Phaser.Scene {
       beforeSnapshot: beforeStats,
       result,
     });
+    this.queueBattleHistoryAction?.('player', { type: 'play_effect', card: this.createCardRef?.(result.card ?? card, 'player') ?? { name: (result.card ?? card)?.name ?? 'Card', side: 'player' } });
     this.completePlayerAction(beforeStats, this.buildActionFeedback(beforeStats, result), movementFeedback);
   }
 
@@ -4844,6 +5045,9 @@ export default class BattleScene extends Phaser.Scene {
     this.playerActionUsed = false;
     this.enemyActionUsed = false;
     this.playerSurrenderArmed = false;
+    this.battleHistory = [];
+    this.pendingBattleHistoryEntries = [];
+    this.playerInitialDeckTypeCounts = null;
     this.selectedCardId = null;
     this.pendingSwapIndex = null;
     this.targetingState = null;
@@ -4959,6 +5163,7 @@ export default class BattleScene extends Phaser.Scene {
     await this.delay(enemyActionPacing?.preCombatDelayMs ?? ENEMY_ACTION_PRE_COMBAT_DELAY_MS);
     const preCombatFeedbackSnapshot = this.captureCombatFeedbackSnapshot();
     const combatEvents = resolveCombat(this.gameState);
+    this.commitBattleHistoryTurn(combatEvents, preCombatFeedbackSnapshot);
     this.lastCombatEvents = combatEvents;
     if (combatEvents.length > 0) {
       console.debug('Combat feedback events', combatEvents);
@@ -5060,6 +5265,24 @@ export default class BattleScene extends Phaser.Scene {
     const beforeStats = this.captureBoardStats();
     const result = this.enemyTakeAction(action);
     this.enemyActionUsed = true;
+    if (result?.ok && action.type !== 'pass' && action.type !== 'surrender') {
+      const cardRef = this.createCardRef?.(result.card ?? card, 'enemy') ?? { name: (result.card ?? card)?.name ?? 'Card', side: 'enemy' };
+      if (action.type === 'swap-units') {
+        this.queueBattleHistoryAction?.('enemy', {
+          type: 'swap_positions',
+          cardA: this.getBoardUnitLabelFromSnapshot?.(beforeStats, action.fromIndex),
+          cardB: this.getBoardUnitLabelFromSnapshot?.(beforeStats, action.toIndex),
+        });
+      } else if (action.type === 'play-unit') {
+        this.queueBattleHistoryAction?.('enemy', {
+          type: result.type === 'redeploy' ? 'replace_from_hand' : 'play_unit',
+          card: cardRef,
+          oldCard: this.getBoardUnitLabelFromSnapshot?.(beforeStats, action.slotIndex),
+        });
+      } else if (action.type === 'play-effect' || action.type === 'play-targeted-effect') {
+        this.queueBattleHistoryAction?.('enemy', { type: 'play_effect', card: cardRef });
+      }
+    }
     const movementFeedback = this.buildEnemyMovementFeedback(action, beforeStats, result);
     const actionFeedback = this.buildActionFeedback(beforeStats, result);
     const immediateCombatFeedback = this.getImmediateCombatFeedback(result);
