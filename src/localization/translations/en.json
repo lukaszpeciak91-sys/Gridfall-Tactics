@@ -629,6 +629,7 @@
     "campaignResult": {
       "won": "CAMPAIGN WON",
       "lost": "CAMPAIGN LOST",
+      "victorySplash": "VICTORY",
       "tapToContinue": "TAP TO CONTINUE",
       "wonBattles": "Won battles",
       "lostBattles": "Lost battles",

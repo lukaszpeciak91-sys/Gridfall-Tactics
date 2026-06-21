@@ -30,24 +30,25 @@ test('campaign won trophy presentation is mobile-safe and transitions to compact
   assert.match(completionSource, /duration: 420,[\s\S]*ease: 'Cubic\.easeInOut'/);
 });
 
-test('campaign won adds passive soft bloom backlight and shimmer below the trophy', () => {
-  assert.match(completionSource, /const glow = this\.add\.graphics\(\)\.setDepth\(CAMPAIGN_COMPLETION_CONTENT_DEPTH \+ 0\.1\)/);
-  assert.match(completionSource, /const glowLayerCount = 30/);
-  assert.match(completionSource, /for \(let i = glowLayerCount; i >= 1; i -= 1\)/);
-  assert.match(completionSource, /const alpha = 0\.004 \+ Math\.pow\(coreBias, 2\.15\) \* 0\.034/);
-  assert.match(completionSource, /const bloomCore = this\.add\.graphics\(\)\.setDepth\(CAMPAIGN_COMPLETION_CONTENT_DEPTH \+ 0\.2\)/);
-  assert.match(completionSource, /const coreLayerCount = 18/);
-  assert.match(completionSource, /const shimmer = this\.add\.graphics\(\)\.setDepth\(CAMPAIGN_COMPLETION_CONTENT_DEPTH \+ 0\.25\)/);
-  assert.match(completionSource, /targets: shimmer,[\s\S]*duration: 3600,[\s\S]*yoyo: true,[\s\S]*repeat: -1/);
-  assert.match(completionSource, /targets: \[glow, bloomCore\],[\s\S]*x: \{ from: centerX - backlightRadius \* 0\.018, to: centerX \+ backlightRadius \* 0\.018 \}/);
+test('campaign won uses separate large and compact soft trophy glows', () => {
+  assert.match(completionSource, /const createTrophyGlow = \(x, y, displayWidth, displayHeight, depth, alphaScale = 1\) =>/);
+  assert.match(completionSource, /const glow = this\.add\.graphics\(\)\.setDepth\(depth\)\.setPosition\(x, y\)/);
+  assert.match(completionSource, /const glowLayerCount = 26/);
+  assert.match(completionSource, /const bloomCore = this\.add\.graphics\(\)\.setDepth\(depth \+ 0\.1\)\.setPosition\(x, y\)/);
+  assert.match(completionSource, /largeGlowItems\.push\(\.\.\.newLargeGlowItems\)/);
+  assert.match(completionSource, /targets: largeGlowItems,[\s\S]*alpha: 0,[\s\S]*onComplete: \(\) => largeGlowItems\.forEach\(\(item\) => item\?\.destroy\?\.\(\)\)/);
+  assert.match(completionSource, /const newCompactGlowItems = createTrophyGlow\([\s\S]*trophy\.compactDisplayWidth,[\s\S]*trophy\.compactDisplayHeight/);
+  assert.match(completionSource, /targets: newCompactGlowItems,[\s\S]*onComplete: \(\) => revealSummary\(\)/);
   assert.doesNotMatch(completionSource, /const rays = this\.add\.graphics/);
   assert.match(completionSource, /setDepth\(CAMPAIGN_COMPLETION_CONTENT_DEPTH \+ 0\.6\)/);
 });
 
-test('won trophy first screen keeps title and summary content out of cinematic pass', () => {
+test('won trophy first screen shows localized victory title and keeps summary content out of cinematic pass', () => {
   assert.match(completionSource, /const isWonTrophyPresentation = won && hasTrophyTexture/);
+  assert.match(completionSource, /const victorySplashText = translateActive\('ui\.campaignResult\.victorySplash', 'VICTORY'\)/);
   assert.match(completionSource, /const titleAura = isWonTrophyPresentation \? null : this\.add\.circle/);
-  assert.match(completionSource, /const title = isWonTrophyPresentation \? null : this\.add\.text\(centerX, titleY, titleText/);
+  assert.match(completionSource, /const title = this\.add\.text\(centerX, titleY, isWonTrophyPresentation \? victorySplashText : titleText/);
+  assert.match(completionSource, /campaignCelebration = this\.addBattleResultVictoryCelebration/);
   assert.match(completionSource, /cinematicItems\.push\(\.\.\.\[titleAura, title, prompt\]\.filter\(Boolean\)\)/);
 });
 

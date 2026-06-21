@@ -1372,6 +1372,7 @@ export default class BattleScene extends Phaser.Scene {
       this.battleResultModal.dividerCore,
       this.battleResultModal.dividerGlow,
       ...(this.battleResultModal.celebration?.particles ?? this.battleResultModal.celebration ?? []),
+      ...(this.battleResultModal.celebration?.modalItems ?? []),
       ...this.battleResultModal.buttons.flatMap((button) => button.items ?? []),
     ];
     this.battleResultModal.celebration?.timers?.forEach((timer) => timer?.remove?.(false));
@@ -2256,6 +2257,7 @@ export default class BattleScene extends Phaser.Scene {
     const accentTextColor = won ? '#86efac' : '#fca5a5';
     const softAccentColor = won ? 0xfacc15 : 0xf97316;
     const promptText = translateActive('ui.campaignResult.tapToContinue', 'TAP TO CONTINUE');
+    const victorySplashText = translateActive('ui.campaignResult.victorySplash', 'VICTORY');
     const flavorText = won
       ? translateActive('ui.campaignResult.wonFlavor', 'The sector is secured. Your command endures.')
       : translateActive('ui.campaignResult.lostFlavor', 'The line has fallen, but the war is not over.');
@@ -2270,6 +2272,9 @@ export default class BattleScene extends Phaser.Scene {
     const cinematicItems = [];
     const summaryItems = [];
     const passiveItems = [];
+    const largeGlowItems = [];
+    const compactGlowItems = [];
+    let campaignCelebration = null;
     let transitionStarted = false;
 
     const heroMaxWidth = Math.min(width * 0.82, 520);
@@ -2280,8 +2285,40 @@ export default class BattleScene extends Phaser.Scene {
     const summaryTextOffsetY = hasTrophyTexture ? Math.min(58, Math.max(34, height * 0.055)) : 0;
     const summaryTitleY = Math.min(height * 0.46, baseSummaryTitleY + summaryTextOffsetY);
     const compactTrophyY = Math.max(height * 0.13, summaryTitleY - Math.max(96, compactMaxHeight * 0.68));
-    const heroTrophyY = Math.max(height * 0.24, Math.min(height * 0.43, centerY - titleFontSize * 0.55));
+    const heroTrophyY = Math.max(height * 0.24, Math.min(height * 0.38, centerY - titleFontSize * 0.92));
     const isWonTrophyPresentation = won && hasTrophyTexture;
+
+    const createTrophyGlow = (x, y, displayWidth, displayHeight, depth, alphaScale = 1) => {
+      const backlightRadius = Math.max(displayWidth, displayHeight) * 0.72;
+      const glow = this.add.graphics().setDepth(depth).setPosition(x, y);
+      glow.setBlendMode?.('ADD');
+      const glowLayerCount = 26;
+      for (let i = glowLayerCount; i >= 1; i -= 1) {
+        const progress = i / glowLayerCount;
+        const coreBias = 1 - progress;
+        const layerWidth = backlightRadius * (0.16 + progress * 1.34) * 2;
+        const layerHeight = backlightRadius * (0.12 + progress * 0.96) * 2;
+        const alpha = (0.004 + Math.pow(coreBias, 2.15) * 0.032) * alphaScale;
+        const color = coreBias > 0.72 ? 0xffffff : (i % 5 === 0 ? 0x7dd3fc : 0xfde68a);
+        glow.fillStyle(color, alpha);
+        glow.fillEllipse(0, 0, layerWidth, layerHeight);
+      }
+      const bloomCore = this.add.graphics().setDepth(depth + 0.1).setPosition(x, y);
+      bloomCore.setBlendMode?.('ADD');
+      const coreLayerCount = 16;
+      for (let i = coreLayerCount; i >= 1; i -= 1) {
+        const progress = i / coreLayerCount;
+        const coreBias = 1 - progress;
+        bloomCore.fillStyle(coreBias > 0.66 ? 0xffffff : 0xfff7cc, (0.006 + Math.pow(coreBias, 2.4) * 0.026) * alphaScale);
+        bloomCore.fillEllipse(
+          -backlightRadius * 0.035,
+          -backlightRadius * 0.02,
+          backlightRadius * (0.12 + progress * 0.58) * 2,
+          backlightRadius * (0.1 + progress * 0.44) * 2,
+        );
+      }
+      return [glow, bloomCore];
+    };
 
     const revealSummary = () => {
       summaryItems.filter((item) => !button.items.includes(item)).forEach((item) => item?.setVisible?.(true)?.setAlpha?.(0));
@@ -2308,20 +2345,17 @@ export default class BattleScene extends Phaser.Scene {
       if (transitionStarted) return;
       transitionStarted = true;
       overlay.removeAllListeners('pointerup');
+      campaignCelebration?.timers?.forEach((timer) => timer?.remove?.(false));
+      campaignCelebration?.particles?.forEach((particle) => particle?.destroy?.());
       cinematicItems.forEach((item) => item?.destroy?.());
       if (hasTrophyTexture && trophy) {
-        const compactGlowScale = Math.max(0.18, trophy.compactDisplayWidth / Math.max(1, trophy.displayWidth)) * 0.86;
-        this.tweens.killTweensOf([trophy, ...passiveItems]);
-        passiveItems.forEach((item) => item?.setVisible?.(true));
+        this.tweens.killTweensOf([trophy, ...largeGlowItems]);
         this.tweens.add({
-          targets: passiveItems,
-          x: centerX,
-          y: compactTrophyY,
-          scaleX: compactGlowScale,
-          scaleY: compactGlowScale,
-          alpha: { getEnd: (target) => target.summaryAlpha ?? 0.055 },
-          duration: 420,
-          ease: 'Cubic.easeInOut',
+          targets: largeGlowItems,
+          alpha: 0,
+          duration: 180,
+          ease: 'Sine.easeOut',
+          onComplete: () => largeGlowItems.forEach((item) => item?.destroy?.()),
         });
         this.tweens.add({
           targets: trophy,
@@ -2331,7 +2365,26 @@ export default class BattleScene extends Phaser.Scene {
           displayHeight: trophy.compactDisplayHeight,
           duration: 420,
           ease: 'Cubic.easeInOut',
-          onComplete: () => revealSummary(),
+          onComplete: () => {
+            const newCompactGlowItems = createTrophyGlow(
+              centerX,
+              compactTrophyY,
+              trophy.compactDisplayWidth,
+              trophy.compactDisplayHeight,
+              CAMPAIGN_COMPLETION_CONTENT_DEPTH + 0.1,
+              0.88,
+            );
+            newCompactGlowItems.forEach((item) => item.setAlpha(0));
+            compactGlowItems.push(...newCompactGlowItems);
+            passiveItems.push(...newCompactGlowItems);
+            this.tweens.add({
+              targets: newCompactGlowItems,
+              alpha: 1,
+              duration: 160,
+              ease: 'Sine.easeOut',
+              onComplete: () => revealSummary(),
+            });
+          },
         });
         return;
       }
@@ -2344,58 +2397,27 @@ export default class BattleScene extends Phaser.Scene {
     });
 
     let trophy = null;
+    let heroDisplayHeight = heroMaxHeight;
     if (hasTrophyTexture) {
       const trophySource = this.textures.get(CAMPAIGN_TROPHY_ASSET.key)?.getSourceImage?.();
       const trophyAspect = Math.max(0.1, (trophySource?.width ?? 1) / Math.max(1, trophySource?.height ?? 1));
       const heroDisplayWidth = Math.min(heroMaxWidth, heroMaxHeight * trophyAspect);
-      const heroDisplayHeight = heroDisplayWidth / trophyAspect;
+      heroDisplayHeight = heroDisplayWidth / trophyAspect;
       const compactDisplayWidth = Math.min(compactMaxWidth, compactMaxHeight * trophyAspect);
       const compactDisplayHeight = compactDisplayWidth / trophyAspect;
-      const backlightRadius = Math.max(heroDisplayWidth, heroDisplayHeight) * 0.72;
-      const glow = this.add.graphics().setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 0.1).setPosition(centerX, heroTrophyY);
-      glow.setBlendMode?.('ADD');
-      const glowLayerCount = 30;
-      for (let i = glowLayerCount; i >= 1; i -= 1) {
-        const progress = i / glowLayerCount;
-        const coreBias = 1 - progress;
-        const layerWidth = backlightRadius * (0.16 + progress * 1.42) * 2;
-        const layerHeight = backlightRadius * (0.12 + progress * 1.02) * 2;
-        const alpha = 0.004 + Math.pow(coreBias, 2.15) * 0.034;
-        const color = coreBias > 0.72 ? 0xffffff : (i % 5 === 0 ? 0x7dd3fc : 0xfde68a);
-        glow.fillStyle(color, alpha);
-        glow.fillEllipse(0, 0, layerWidth, layerHeight);
-      }
-      const bloomCore = this.add.graphics().setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 0.2).setPosition(centerX, heroTrophyY);
-      bloomCore.setBlendMode?.('ADD');
-      const coreLayerCount = 18;
-      for (let i = coreLayerCount; i >= 1; i -= 1) {
-        const progress = i / coreLayerCount;
-        const coreBias = 1 - progress;
-        bloomCore.fillStyle(coreBias > 0.66 ? 0xffffff : 0xfff7cc, 0.006 + Math.pow(coreBias, 2.4) * 0.028);
-        bloomCore.fillEllipse(
-          -backlightRadius * 0.035,
-          -backlightRadius * 0.02,
-          backlightRadius * (0.12 + progress * 0.62) * 2,
-          backlightRadius * (0.1 + progress * 0.48) * 2,
-        );
-      }
-      const shimmer = this.add.graphics().setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 0.25).setPosition(centerX, heroTrophyY);
-      shimmer.setBlendMode?.('ADD');
-      shimmer.fillStyle(0xfff7cc, 0.018);
-      shimmer.fillEllipse(-backlightRadius * 0.12, 0, backlightRadius * 0.34, backlightRadius * 1.08);
-      shimmer.setAngle(-13);
+      const newLargeGlowItems = createTrophyGlow(
+        centerX,
+        heroTrophyY,
+        heroDisplayWidth,
+        heroDisplayHeight,
+        CAMPAIGN_COMPLETION_CONTENT_DEPTH + 0.1,
+        1,
+      );
+      largeGlowItems.push(...newLargeGlowItems);
+      passiveItems.push(...newLargeGlowItems);
       this.tweens.add({
-        targets: shimmer,
-        x: centerX + backlightRadius * 0.08,
-        alpha: { from: 0.34, to: 0.58 },
-        duration: 3600,
-        yoyo: true,
-        repeat: -1,
-        ease: 'Sine.easeInOut',
-      });
-      this.tweens.add({
-        targets: [glow, bloomCore],
-        x: { from: centerX - backlightRadius * 0.018, to: centerX + backlightRadius * 0.018 },
+        targets: newLargeGlowItems,
+        x: { from: centerX - Math.max(heroDisplayWidth, heroDisplayHeight) * 0.013, to: centerX + Math.max(heroDisplayWidth, heroDisplayHeight) * 0.013 },
         alpha: { from: 0.82, to: 0.96 },
         duration: 4200,
         yoyo: true,
@@ -2408,19 +2430,15 @@ export default class BattleScene extends Phaser.Scene {
         .setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 0.6);
       trophy.compactDisplayWidth = compactDisplayWidth;
       trophy.compactDisplayHeight = compactDisplayHeight;
-      glow.summaryAlpha = 0.09;
-      bloomCore.summaryAlpha = 0.075;
-      shimmer.summaryAlpha = 0.055;
-      passiveItems.push(glow, bloomCore, shimmer);
     }
 
-    const titleY = hasTrophyTexture ? Math.min(height * 0.68, heroTrophyY + heroMaxHeight * 0.52 + titleFontSize * 0.64) : Math.max(height * 0.32, titleFontSize * 2.1);
+    const titleY = hasTrophyTexture ? Math.min(height * 0.72, heroTrophyY + Math.min(heroDisplayHeight ?? heroMaxHeight, heroMaxHeight) * 0.52 + titleFontSize * 0.72) : Math.max(height * 0.32, titleFontSize * 2.1);
     const titleAura = isWonTrophyPresentation ? null : this.add.circle(centerX, titleY, Math.min(width, height) * 0.28, accentColor, 0.09)
       .setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 0.3);
-    const title = isWonTrophyPresentation ? null : this.add.text(centerX, titleY, titleText, {
+    const title = this.add.text(centerX, titleY, isWonTrophyPresentation ? victorySplashText : titleText, {
       fontFamily: PREMIUM_BROADCAST_FONT_STACK,
-      fontSize: `${titleFontSize}px`,
-      color: accentTextColor,
+      fontSize: `${isWonTrophyPresentation ? Math.max(34, Math.min(54, Math.floor(height * 0.058))) : titleFontSize}px`,
+      color: isWonTrophyPresentation ? '#fef3c7' : accentTextColor,
       fontStyle: '700',
       align: 'center',
       wordWrap: { width: titleMaxWidth, useAdvancedWrap: true },
@@ -2435,7 +2453,7 @@ export default class BattleScene extends Phaser.Scene {
       align: 'center',
     }).setOrigin(0.5).setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 1).setAlpha(0.86);
     const promptY = isWonTrophyPresentation
-      ? Math.max(height * 0.11, heroTrophyY - heroMaxHeight * 0.5 - Math.max(22, height * 0.028))
+      ? Math.min(height * 0.88, titleY + Math.max(30, titleFontSize * 0.78))
       : Math.min(height * 0.86, titleY + titleFontSize * 1.55);
     const promptFontSize = isWonTrophyPresentation
       ? Math.max(13, Math.min(18, Math.floor(height * 0.02)))
@@ -2451,6 +2469,9 @@ export default class BattleScene extends Phaser.Scene {
       letterSpacing: isWonTrophyPresentation ? 1.1 : 1.6,
     }).setOrigin(0.5).setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 1).setAlpha(isWonTrophyPresentation ? 0.74 : 1);
     prompt.setShadow(0, 2, 'rgba(0, 0, 0, 0.68)', isWonTrophyPresentation ? 3 : 5, true, true);
+    if (isWonTrophyPresentation) {
+      campaignCelebration = this.addBattleResultVictoryCelebration(centerX, titleY + Math.max(10, titleFontSize * 0.18), Math.min(width * 0.62, 420), Math.min(height * 0.34, 260), { key: 'victory', accentColor: 0xfacc15 });
+    }
     cinematicItems.push(...[titleAura, title, prompt].filter(Boolean));
     if (emblem) cinematicItems.push(emblem);
 
@@ -2501,6 +2522,9 @@ export default class BattleScene extends Phaser.Scene {
     }, this.getBattleResultPresentation(), { depth: CAMPAIGN_COMPLETION_BUTTON_DEPTH });
     button.items.forEach((item) => item?.setVisible?.(false));
     summaryItems.push(...[fallbackPanel, summaryTitle, flavor, stats, dividerCore].filter(Boolean), ...button.items);
+    if (campaignCelebration) {
+      campaignCelebration.modalItems = [...cinematicItems.filter((item) => item !== title && item !== titleAura), ...passiveItems, trophy, fallbackPanel, summaryTitle].filter(Boolean);
+    }
     this.battleResultModalShown = true;
     this.battleResultModal = {
       overlay,
@@ -2511,7 +2535,7 @@ export default class BattleScene extends Phaser.Scene {
       stats,
       dividerCore,
       dividerGlow: null,
-      celebration: [...cinematicItems.filter((item) => item !== title && item !== titleAura), ...passiveItems, trophy, fallbackPanel, summaryTitle].filter(Boolean),
+      celebration: campaignCelebration ?? [...cinematicItems.filter((item) => item !== title && item !== titleAura), ...passiveItems, trophy, fallbackPanel, summaryTitle].filter(Boolean),
       buttons: [button],
     };
   }
