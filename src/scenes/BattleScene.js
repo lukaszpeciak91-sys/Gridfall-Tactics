@@ -3179,7 +3179,7 @@ export default class BattleScene extends Phaser.Scene {
     const panelTop = centerY - panelHeight / 2;
     const panelLeft = centerX - panelWidth / 2;
     const padding = Math.max(16, Math.floor(panelWidth * 0.045));
-    const headerHeight = Math.max(116, Math.floor(panelHeight * 0.22));
+    const headerHeight = Math.max(126, Math.floor(panelHeight * 0.235));
     const footerHeight = 68;
     const contentX = panelLeft + padding;
     const contentY = panelTop + headerHeight;
@@ -3204,28 +3204,18 @@ export default class BattleScene extends Phaser.Scene {
       fontStyle: 'bold',
       align: 'center',
     }).setOrigin(0.5).setDepth(762);
-    const subtitle = this.add.text(centerX, panelTop + 54, translateActive('ui.battle.deckInfo.subtitle', 'Deck summary • recent turns'), {
+    const historyLabel = this.add.text(centerX, panelTop + 59, translateActive('ui.battle.deckInfo.historyLabel', 'Battle History'), {
       fontFamily: 'Arial, sans-serif',
-      fontSize: `${Math.max(12, Math.floor(panelHeight * 0.031))}px`,
+      fontSize: `${Math.max(12, Math.floor(panelHeight * 0.029))}px`,
       color: '#bae6fd',
+      alpha: 0.82,
       align: 'center',
     }).setOrigin(0.5).setDepth(762);
 
-    const summaryView = this.createDeckSummaryHeader(centerX, panelTop + 86, panelWidth, panelHeight);
+    const summaryView = this.createDeckSummaryHeader(centerX, panelTop + 96, panelWidth, panelHeight);
 
-    const contentText = this.add.text(
-      contentX,
-      contentY,
-      this.getDeckInfoPanelText(),
-      {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: `${Math.max(13, Math.floor(panelHeight * 0.029))}px`,
-        color: '#f8fafc',
-        lineSpacing: Math.max(4, Math.floor(panelHeight * 0.006)),
-        wordWrap: { width: contentWidth },
-      },
-    ).setOrigin(0, 0);
-    const contentContainer = this.add.container(0, 0, [contentText]).setDepth(762);
+    const contentContainer = this.add.container(0, 0).setDepth(762);
+    const contentHeightActual = this.renderDeckInfoHistoryContent(contentContainer, contentX, contentY, contentWidth, panelHeight);
 
     const maskShape = this.make.graphics({ x: 0, y: 0, add: false });
     maskShape.fillStyle(0xffffff);
@@ -3238,7 +3228,7 @@ export default class BattleScene extends Phaser.Scene {
       .setDepth(763)
       .setInteractive();
 
-    const contentBottom = contentY + contentText.height;
+    const contentBottom = contentY + contentHeightActual;
     const maxScrollY = Math.max(0, contentBottom - contentY - contentHeight + 8);
     const scrollHint = this.add.text(panelLeft + padding, panelTop + panelHeight - 58, maxScrollY > 0 ? translateActive('ui.common.swipeScroll', 'Swipe or mouse wheel to scroll') : translateActive('ui.common.noScroll', 'No scrolling needed'), {
       fontFamily: 'Arial, sans-serif',
@@ -3261,12 +3251,15 @@ export default class BattleScene extends Phaser.Scene {
       overlay,
       panel,
       title,
-      subtitle,
+      historyLabel,
       summaryView,
       contentContainer,
-      contentText,
+
+      contentX,
       contentY,
+      contentWidth,
       contentHeight,
+      panelHeight,
       maskShape,
       scrollMask,
       scrollArea,
@@ -3339,10 +3332,9 @@ export default class BattleScene extends Phaser.Scene {
       panelState.overlay,
       panelState.panel,
       panelState.title,
-      panelState.subtitle,
+      panelState.historyLabel,
       panelState.summaryView,
       panelState.contentContainer,
-      panelState.contentText,
       panelState.maskShape,
       panelState.scrollArea,
       panelState.scrollHint,
@@ -3460,10 +3452,17 @@ export default class BattleScene extends Phaser.Scene {
   refreshDeckInfoPanelContent() {
     if (!this.deckInfoPanel) return;
     this.updateDeckSummaryHeaderView(this.deckInfoPanel.summaryView);
-    this.deckInfoPanel.contentText?.setText(this.getDeckInfoPanelText());
+    this.deckInfoPanel.contentContainer?.removeAll(true);
     const contentHeight = this.deckInfoPanel.contentHeight ?? 0;
     const contentY = this.deckInfoPanel.contentY ?? 0;
-    const bottom = contentY + (this.deckInfoPanel.contentText?.height ?? 0);
+    const contentHeightActual = this.renderDeckInfoHistoryContent(
+      this.deckInfoPanel.contentContainer,
+      this.deckInfoPanel.contentX,
+      contentY,
+      this.deckInfoPanel.contentWidth,
+      this.deckInfoPanel.panelHeight,
+    );
+    const bottom = contentY + contentHeightActual;
     this.deckInfoPanel.maxScrollY = Math.max(0, bottom - contentY - contentHeight + 8);
     this.setDeckInfoScrollY(this.deckInfoPanel.scrollY ?? 0);
   }
@@ -3522,9 +3521,125 @@ export default class BattleScene extends Phaser.Scene {
     return entries.map((entry) => this.formatBattleHistoryEntry(entry)).join('\n\n');
   }
 
+  renderDeckInfoHistoryContent(container, x, y, width, panelHeight) {
+    if (!container) return 0;
+    const fontSize = Math.max(13, Math.floor(panelHeight * 0.029));
+    const lineHeight = fontSize + Math.max(6, Math.floor(panelHeight * 0.01));
+    const paragraphGap = Math.max(8, Math.floor(panelHeight * 0.016));
+    const tokenStyle = {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: `${fontSize}px`,
+    };
+    const colors = {
+      neutral: '#f8fafc',
+      muted: '#cbd5e1',
+      player: '#7dd3fc',
+      enemy: '#fca5a5',
+    };
+    const addTokenLine = (tokens, offsetY, { bold = false } = {}) => {
+      let cursorX = x;
+      let cursorY = y + offsetY;
+      let maxBottom = cursorY + lineHeight;
+      tokens.filter((token) => token?.text).forEach((token) => {
+        const text = this.add.text(cursorX, cursorY, token.text, {
+          ...tokenStyle,
+          color: colors[token.color] ?? colors.neutral,
+          fontStyle: token.bold || bold ? 'bold' : '',
+        }).setOrigin(0, 0);
+        if (cursorX > x && cursorX + text.width > x + width) {
+          cursorX = x;
+          cursorY += lineHeight;
+          text.setPosition(cursorX, cursorY);
+        }
+        container.add(text);
+        cursorX += text.width;
+        maxBottom = Math.max(maxBottom, cursorY + lineHeight);
+      });
+      return maxBottom - y;
+    };
+
+    const entries = this.battleHistory ?? [];
+    if (entries.length === 0) {
+      return addTokenLine([{ text: translateActive('ui.battle.deckInfo.noHistory', 'No battle history yet.'), color: 'muted' }], 0);
+    }
+
+    let offsetY = 0;
+    entries.forEach((entry) => {
+      offsetY = addTokenLine(this.formatBattleHistoryHeaderTokens(entry), offsetY, { bold: true });
+      offsetY = addTokenLine(this.formatBattleHistoryActionTokens(entry), offsetY);
+      if (entry.resolution?.length) {
+        offsetY = addTokenLine([{ text: translateActive('ui.battle.deckInfo.resolution', 'Resolution:'), color: 'neutral' }], offsetY);
+        entry.resolution.forEach((item) => {
+          offsetY = addTokenLine([
+            { text: '- ', color: 'muted' },
+            ...this.formatBattleHistoryResolutionTokens(item),
+          ], offsetY);
+        });
+      }
+      offsetY += paragraphGap;
+    });
+    return Math.max(0, offsetY - paragraphGap);
+  }
+
+  getBattleHistorySideLabel(side) {
+    return side === 'player'
+      ? translateActive('ui.battle.deckInfo.player', 'Player')
+      : translateActive('ui.battle.deckInfo.enemy', 'Enemy');
+  }
+
+  getBattleHistoryBaseSideLabel(side) {
+    return side === 'player'
+      ? translateActive('ui.battle.deckInfo.playerBaseSide', this.getBattleHistorySideLabel(side))
+      : translateActive('ui.battle.deckInfo.enemyBaseSide', this.getBattleHistorySideLabel(side));
+  }
+
+  cardHistoryToken(card) {
+    return {
+      text: card?.name ?? translateActive('ui.common.unknownCard', 'Unknown Card'),
+      color: card?.side === 'enemy' ? 'enemy' : card?.side === 'player' ? 'player' : 'neutral',
+      bold: true,
+    };
+  }
+
+  formatBattleHistoryHeaderTokens(entry) {
+    return [
+      {
+        text: translateActive('ui.battle.deckInfo.turnHeader', 'Turn {turn}', { turn: entry.turnNumber }),
+        color: entry.actingSide === 'enemy' ? 'enemy' : 'player',
+        bold: true,
+      },
+    ];
+  }
+
+  formatBattleHistoryActionTokens(entry) {
+    const sideColor = entry.actingSide === 'enemy' ? 'enemy' : 'player';
+    const who = { text: this.getBattleHistorySideLabel(entry.actingSide), color: sideColor, bold: true };
+    const action = entry.action ?? {};
+    if (action.type === 'play_unit') return [who, { text: translateActive('ui.battle.deckInfo.history.playsUnit', ' plays unit '), color: 'neutral' }, this.cardHistoryToken(action.card)];
+    if (action.type === 'play_effect') return [who, { text: translateActive('ui.battle.deckInfo.history.playsEffect', ' plays effect '), color: 'neutral' }, this.cardHistoryToken(action.card)];
+    if (action.type === 'replace_from_hand') return [who, { text: translateActive('ui.battle.deckInfo.history.replaces', ' replaces '), color: 'neutral' }, this.cardHistoryToken(action.oldCard), { text: translateActive('ui.battle.deckInfo.history.withFromHand', ' with '), color: 'neutral' }, this.cardHistoryToken(action.card), { text: translateActive('ui.battle.deckInfo.history.fromHand', ' from hand'), color: 'neutral' }];
+    if (action.type === 'swap_positions') return [who, { text: translateActive('ui.battle.deckInfo.history.swaps', ' swaps '), color: 'neutral' }, this.cardHistoryToken(action.cardA), { text: translateActive('ui.battle.deckInfo.history.and', ' and '), color: 'neutral' }, this.cardHistoryToken(action.cardB)];
+    return [who, { text: translateActive('ui.battle.deckInfo.history.acts', ' acts'), color: 'neutral' }];
+  }
+
+  formatBattleHistoryResolutionTokens(item) {
+    if (item.type === 'kill') return [this.cardHistoryToken(item.attacker), { text: translateActive('ui.battle.deckInfo.history.killed', ' killed '), color: 'neutral' }, this.cardHistoryToken(item.target)];
+    if (item.type === 'mutual_kill') return [this.cardHistoryToken(item.unitA), { text: translateActive('ui.battle.deckInfo.history.and', ' and '), color: 'neutral' }, this.cardHistoryToken(item.unitB), { text: translateActive('ui.battle.deckInfo.history.killedEachOther', ' killed each other'), color: 'neutral' }];
+    if (item.type === 'unit_damage') return [this.cardHistoryToken(item.source), { text: translateActive('ui.battle.deckInfo.history.dealtDamageTo', ' dealt {amount} damage to ', { amount: item.amount }), color: 'neutral' }, this.cardHistoryToken(item.target)];
+    if (item.type === 'base_damage') {
+      return [
+        this.cardHistoryToken(item.source),
+        { text: translateActive('ui.battle.deckInfo.history.dealtDamageToBasePrefix', ' dealt {amount} damage to ', { amount: item.amount }), color: 'neutral' },
+        { text: this.getBattleHistoryBaseSideLabel(item.targetSide), color: item.targetSide === 'enemy' ? 'enemy' : 'player', bold: true },
+        { text: translateActive('ui.battle.deckInfo.history.baseSuffix', ' base'), color: 'neutral' },
+      ];
+    }
+    return [];
+  }
+
   formatBattleHistoryEntry(entry) {
     const lines = [
-      `Turn ${entry.turnNumber} — ${entry.actingSide === 'player' ? 'Player' : 'Enemy'}`,
+      this.formatBattleHistoryHeaderTokens(entry).map((token) => token.text).join(''),
       this.formatBattleHistoryAction(entry),
     ].filter(Boolean);
     if (entry.resolution?.length) {
@@ -3535,23 +3650,11 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   formatBattleHistoryAction(entry) {
-    const who = entry.actingSide === 'player' ? 'Player' : 'Enemy';
-    const action = entry.action ?? {};
-    if (action.type === 'play_unit') return `${who} plays unit ${action.card?.name}`;
-    if (action.type === 'play_effect') return `${who} plays effect ${action.card?.name}`;
-    if (action.type === 'replace_from_hand') return `${who} replaces ${action.oldCard?.name} with ${action.card?.name} from hand`;
-    if (action.type === 'swap_positions') return `${who} swaps ${action.cardA?.name} and ${action.cardB?.name}`;
-    return `${who} acts`;
+    return this.formatBattleHistoryActionTokens(entry).map((token) => token.text).join('');
   }
 
   formatBattleHistoryResolution(item) {
-    if (item.type === 'kill') return `${item.attacker.name} killed ${item.target.name}`;
-    if (item.type === 'mutual_kill') return `${item.unitA.name} and ${item.unitB.name} killed each other`;
-    if (item.type === 'unit_damage') return `${item.source.name} dealt ${item.amount} damage to ${item.target.name}`;
-    if (item.type === 'base_damage') {
-      return `${item.source.name} dealt ${item.amount} damage to ${item.targetSide === 'player' ? 'player base' : 'enemy base'}`;
-    }
-    return '';
+    return this.formatBattleHistoryResolutionTokens(item).map((token) => token.text).join('');
   }
 
   formatDeckInfoGroup(heading, cards) {
