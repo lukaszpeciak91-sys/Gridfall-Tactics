@@ -6234,7 +6234,18 @@ export default class BattleScene extends Phaser.Scene {
     const beforeBoard = preCombatSnapshot?.board;
     if (!Array.isArray(beforeBoard) || !this.gameState?.board) return { beforeRefresh: [], afterRefresh: [] };
 
-    const beforeRefresh = [];
+    const recordedRotcallerFeedback = Array.isArray(this.gameState?.rotcallerCombatFeedbackEvents)
+      ? this.gameState.rotcallerCombatFeedbackEvents
+        .filter((event) => event?.source === 'rotcaller_adjacent_death_atk_1' && Number.isInteger(event.index))
+        .map((event) => ({
+          type: 'slot-text',
+          index: event.index,
+          label: event.label ?? '+1 ATK',
+          kind: event.kind ?? 'buff',
+        }))
+      : [];
+    const recordedRotcallerIndexes = new Set(recordedRotcallerFeedback.map((event) => event.index));
+    const beforeRefresh = [...recordedRotcallerFeedback];
     const afterRefresh = [];
     const sourceLabels = new Set();
     const pyreTriggersByOwner = {
@@ -6302,6 +6313,7 @@ export default class BattleScene extends Phaser.Scene {
         [lane > 0 ? row[lane - 1] : null, lane < 2 ? row[lane + 1] : null]
           .filter((candidateIndex) => Number.isInteger(candidateIndex))
           .forEach((candidateIndex) => {
+            if (recordedRotcallerIndexes.has(candidateIndex)) return;
             const beforeRotcaller = beforeBoard[candidateIndex];
             const afterRotcaller = this.gameState.board[candidateIndex];
             if (beforeRotcaller?.owner !== owner || beforeRotcaller.effectId !== 'rotcaller_adjacent_death_atk_1') return;

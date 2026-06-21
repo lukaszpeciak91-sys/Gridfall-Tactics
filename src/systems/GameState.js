@@ -489,6 +489,7 @@ function finalizeImmediateLaneCombat(state) {
 function beginCombatWindow(state) {
   state.nextCombatId = (state.nextCombatId ?? 0) + 1;
   state.activeCombatId = state.nextCombatId;
+  state.rotcallerCombatFeedbackEvents = [];
   return state.activeCombatId;
 }
 
@@ -752,6 +753,15 @@ function triggerAdjacentRotcallers(state, deadIndex, deadOwner) {
     rotcaller.rotcallerTriggeredThisCombat = true;
     rotcaller.tempAttackMod = (rotcaller.tempAttackMod ?? 0) + 1;
     state.rotcallerCombatTriggers = (state.rotcallerCombatTriggers ?? 0) + 1;
+    state.rotcallerCombatFeedbackEvents ??= [];
+    state.rotcallerCombatFeedbackEvents.push({
+      type: 'slot-text',
+      index,
+      label: '+1 ATK',
+      kind: 'buff',
+      source: 'rotcaller_adjacent_death_atk_1',
+      combatId: state.activeCombatId ?? null,
+    });
   });
 }
 
