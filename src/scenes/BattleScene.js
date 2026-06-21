@@ -2277,14 +2277,46 @@ export default class BattleScene extends Phaser.Scene {
     const heroTrophyY = Math.max(height * 0.24, Math.min(height * 0.43, centerY - titleFontSize * 0.55));
     const isWonTrophyPresentation = won && hasTrophyTexture;
 
+    const revealSummary = () => {
+      summaryItems.filter((item) => !button.items.includes(item)).forEach((item) => item?.setVisible?.(true)?.setAlpha?.(0));
+      this.tweens.add({
+        targets: summaryTitle,
+        alpha: 1,
+        duration: 180,
+        ease: 'Sine.easeOut',
+        onComplete: () => {
+          this.tweens.add({
+            targets: [flavor, dividerCore, stats].filter(Boolean),
+            alpha: 1,
+            duration: 180,
+            ease: 'Sine.easeOut',
+            onComplete: () => {
+              button.items.forEach((item) => item?.setVisible?.(true)?.setAlpha?.(1));
+            },
+          });
+        },
+      });
+    };
+
     const showSummary = () => {
       if (transitionStarted) return;
       transitionStarted = true;
       overlay.removeAllListeners('pointerup');
       cinematicItems.forEach((item) => item?.destroy?.());
-      summaryItems.forEach((item) => item?.setVisible?.(true)?.setAlpha?.(1));
-      passiveItems.forEach((item) => item?.setVisible?.(hasTrophyTexture)?.setAlpha?.(item.summaryAlpha ?? item.alpha ?? 1));
       if (hasTrophyTexture && trophy) {
+        const compactGlowScale = Math.max(0.18, trophy.compactDisplayWidth / Math.max(1, trophy.displayWidth)) * 0.86;
+        this.tweens.killTweensOf([trophy, ...passiveItems]);
+        passiveItems.forEach((item) => item?.setVisible?.(true));
+        this.tweens.add({
+          targets: passiveItems,
+          x: centerX,
+          y: compactTrophyY,
+          scaleX: compactGlowScale,
+          scaleY: compactGlowScale,
+          alpha: 0.04,
+          duration: 420,
+          ease: 'Cubic.easeInOut',
+        });
         this.tweens.add({
           targets: trophy,
           x: centerX,
@@ -2293,8 +2325,12 @@ export default class BattleScene extends Phaser.Scene {
           displayHeight: trophy.compactDisplayHeight,
           duration: 420,
           ease: 'Cubic.easeInOut',
+          onComplete: () => revealSummary(),
         });
+        return;
       }
+      passiveItems.forEach((item) => item?.setVisible?.(hasTrophyTexture)?.setAlpha?.(item.summaryAlpha ?? item.alpha ?? 1));
+      revealSummary();
     };
     overlay.on('pointerup', (_pointer, _localX, _localY, event) => {
       event?.stopPropagation?.();
@@ -2310,7 +2346,7 @@ export default class BattleScene extends Phaser.Scene {
       const compactDisplayWidth = Math.min(compactMaxWidth, compactMaxHeight * trophyAspect);
       const compactDisplayHeight = compactDisplayWidth / trophyAspect;
       const backlightRadius = Math.max(heroDisplayWidth, heroDisplayHeight) * 0.72;
-      const glow = this.add.graphics().setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 0.1);
+      const glow = this.add.graphics().setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 0.1).setPosition(centerX, heroTrophyY);
       glow.setBlendMode?.('ADD');
       const glowLayerCount = 30;
       for (let i = glowLayerCount; i >= 1; i -= 1) {
@@ -2321,9 +2357,9 @@ export default class BattleScene extends Phaser.Scene {
         const alpha = 0.004 + Math.pow(coreBias, 2.15) * 0.034;
         const color = coreBias > 0.72 ? 0xffffff : (i % 5 === 0 ? 0x7dd3fc : 0xfde68a);
         glow.fillStyle(color, alpha);
-        glow.fillEllipse(centerX, heroTrophyY, layerWidth, layerHeight);
+        glow.fillEllipse(0, 0, layerWidth, layerHeight);
       }
-      const bloomCore = this.add.graphics().setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 0.2);
+      const bloomCore = this.add.graphics().setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 0.2).setPosition(centerX, heroTrophyY);
       bloomCore.setBlendMode?.('ADD');
       const coreLayerCount = 18;
       for (let i = coreLayerCount; i >= 1; i -= 1) {
@@ -2331,20 +2367,20 @@ export default class BattleScene extends Phaser.Scene {
         const coreBias = 1 - progress;
         bloomCore.fillStyle(coreBias > 0.66 ? 0xffffff : 0xfff7cc, 0.006 + Math.pow(coreBias, 2.4) * 0.028);
         bloomCore.fillEllipse(
-          centerX - backlightRadius * 0.035,
-          heroTrophyY - backlightRadius * 0.02,
+          -backlightRadius * 0.035,
+          -backlightRadius * 0.02,
           backlightRadius * (0.12 + progress * 0.62) * 2,
           backlightRadius * (0.1 + progress * 0.48) * 2,
         );
       }
-      const shimmer = this.add.graphics().setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 0.25);
+      const shimmer = this.add.graphics().setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 0.25).setPosition(centerX, heroTrophyY);
       shimmer.setBlendMode?.('ADD');
       shimmer.fillStyle(0xfff7cc, 0.018);
-      shimmer.fillEllipse(centerX - backlightRadius * 0.12, heroTrophyY, backlightRadius * 0.34, backlightRadius * 1.08);
+      shimmer.fillEllipse(-backlightRadius * 0.12, 0, backlightRadius * 0.34, backlightRadius * 1.08);
       shimmer.setAngle(-13);
       this.tweens.add({
         targets: shimmer,
-        x: backlightRadius * 0.08,
+        x: centerX + backlightRadius * 0.08,
         alpha: { from: 0.34, to: 0.58 },
         duration: 3600,
         yoyo: true,
@@ -2353,7 +2389,7 @@ export default class BattleScene extends Phaser.Scene {
       });
       this.tweens.add({
         targets: [glow, bloomCore],
-        x: { from: -backlightRadius * 0.018, to: backlightRadius * 0.018 },
+        x: { from: centerX - backlightRadius * 0.018, to: centerX + backlightRadius * 0.018 },
         alpha: { from: 0.82, to: 0.96 },
         duration: 4200,
         yoyo: true,
@@ -2393,7 +2429,7 @@ export default class BattleScene extends Phaser.Scene {
       align: 'center',
     }).setOrigin(0.5).setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 1).setAlpha(0.86);
     const promptY = isWonTrophyPresentation
-      ? Math.min(height * 0.84, heroTrophyY + heroMaxHeight * 0.5 + Math.max(28, height * 0.036))
+      ? Math.max(height * 0.11, heroTrophyY - heroMaxHeight * 0.5 - Math.max(22, height * 0.028))
       : Math.min(height * 0.86, titleY + titleFontSize * 1.55);
     const promptFontSize = isWonTrophyPresentation
       ? Math.max(13, Math.min(18, Math.floor(height * 0.02)))
