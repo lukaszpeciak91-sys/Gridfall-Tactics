@@ -2635,15 +2635,25 @@ export default class BattleScene extends Phaser.Scene {
     const titleBottomY = summaryTitleY + summaryTitle.height * 0.5 + summaryBodyOffsetY;
     const statsSafeY = ctaSafeTopY - stats.height * 0.5;
     const idealStatsY = titleBottomY + idealTitleFlavorGap + flavor.height + idealFlavorStatsGap + dividerStatsGap + stats.height * 0.5;
-    const statsY = Math.min(idealStatsY, statsSafeY);
+    let statsY = Math.min(idealStatsY, statsSafeY);
     const availableGap = Math.max(0, statsY - stats.height * 0.5 - dividerStatsGap - titleBottomY - flavor.height);
     const compressedFlavorStatsGap = Math.max(minFlavorStatsGap, Math.min(idealFlavorStatsGap, availableGap - minTitleFlavorGap));
     const titleFlavorGap = Math.max(minTitleFlavorGap, Math.min(idealTitleFlavorGap, availableGap - compressedFlavorStatsGap));
     const flavorY = titleBottomY + titleFlavorGap + flavor.height * 0.5;
-    const dividerY = Math.min(
+    const flavorBottomY = flavorY + flavor.height * 0.5;
+    const wonDividerFlavorGap = Math.max(14, height * 0.018);
+    const wonDividerStatsGap = Math.max(18, height * 0.024);
+    let dividerY = Math.min(
       statsY - stats.height * 0.5 - dividerStatsGap,
-      flavorY + flavor.height * 0.5 + compressedFlavorStatsGap,
+      flavorBottomY + compressedFlavorStatsGap,
     );
+    if (won) {
+      dividerY = flavorBottomY + wonDividerFlavorGap;
+      statsY = Math.min(
+        statsSafeY,
+        Math.max(statsY, dividerY + wonDividerStatsGap + stats.height * 0.5),
+      );
+    }
     flavor.setY(flavorY);
     stats.setY(statsY);
     const dividerCore = this.add.rectangle(centerX, dividerY, contentWidth * 0.62, 1, softAccentColor, 0.62)

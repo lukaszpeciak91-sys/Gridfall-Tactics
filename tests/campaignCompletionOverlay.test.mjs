@@ -77,10 +77,17 @@ test('won trophy summary removes large framed panel while fallback and lost keep
 test('final campaign summary stack protects CTA and compresses middle spacing only', () => {
   assert.match(completionSource, /const ctaSafeTopY = buttonY - buttonHeight \* 0\.5 - Math\.max\(30, height \* 0\.036\)/);
   assert.match(completionSource, /const statsSafeY = ctaSafeTopY - stats\.height \* 0\.5/);
-  assert.match(completionSource, /const statsY = Math\.min\(idealStatsY, statsSafeY\)/);
+  assert.match(completionSource, /let statsY = Math\.min\(idealStatsY, statsSafeY\)/);
   assert.match(completionSource, /const compressedFlavorStatsGap = Math\.max\(minFlavorStatsGap, Math\.min\(idealFlavorStatsGap, availableGap - minTitleFlavorGap\)\)/);
   assert.match(completionSource, /const titleFlavorGap = Math\.max\(minTitleFlavorGap, Math\.min\(idealTitleFlavorGap, availableGap - compressedFlavorStatsGap\)\)/);
   assert.match(completionSource, /stats\.setY\(statsY\)/);
+});
+
+
+test('campaign won summary divider is anchored below the flavor block', () => {
+  assert.match(completionSource, /const flavorBottomY = flavorY \+ flavor\.height \* 0\.5/);
+  assert.match(completionSource, /const wonDividerFlavorGap = Math\.max\(14, height \* 0\.018\)/);
+  assert.match(completionSource, /if \(won\) \{[\s\S]*dividerY = flavorBottomY \+ wonDividerFlavorGap;[\s\S]*statsY = Math\.min\([\s\S]*statsSafeY,[\s\S]*Math\.max\(statsY, dividerY \+ wonDividerStatsGap \+ stats\.height \* 0\.5\),[\s\S]*\);[\s\S]*\}/);
 });
 
 test('won trophy summary stats are centered and secondary', () => {
