@@ -1108,13 +1108,58 @@ export default class BattleScene extends Phaser.Scene {
     };
   }
 
-  addBattleResultVictoryCelebration(centerX, centerY, overlayWidth, overlayHeight, presentation) {
+  addBattleResultVictoryCelebration(centerX, centerY, overlayWidth, overlayHeight, presentation, options = {}) {
     if (presentation.key !== 'victory') return { particles: [], timers: [] };
 
     const particles = [];
     const timers = [];
-    const particleColors = [0xfacc15, 0x86efac, 0x38bdf8, 0xfef3c7];
+    const particleColors = options.particleColors ?? [0xfacc15, 0x86efac, 0x38bdf8, 0xfef3c7];
+    const particleDepth = options.particleDepth ?? 904;
+    const burstDepth = options.burstDepth ?? 903;
+    const titleAnchored = options.titleAnchored === true;
+    const spawnTitleBurst = (burstIndex) => {
+      const sideBias = burstIndex % 2 === 0 ? -1 : 1;
+      const burstX = centerX + sideBias * overlayWidth * (0.17 + Math.random() * 0.16) + (Math.random() - 0.5) * overlayWidth * 0.08;
+      const burstY = centerY + (Math.random() - 0.5) * overlayHeight * 0.46;
+      const ringColor = particleColors[burstIndex % particleColors.length];
+      const ring = this.add.circle(burstX, burstY, 7 + Math.random() * 5, ringColor, 0.84)
+        .setDepth(burstDepth);
+      ring.setBlendMode?.(Phaser.BlendModes.ADD);
+      particles.push(ring);
+      this.tweens.add({
+        targets: ring,
+        scale: { from: 0.75, to: 3.6 + Math.random() * 0.9 },
+        alpha: 0,
+        duration: 560 + Math.random() * 160,
+        ease: 'Cubic.easeOut',
+      });
+
+      const sparkCount = 12;
+      for (let i = 0; i < sparkCount; i += 1) {
+        const angle = (Math.PI * 2 * i) / sparkCount + Math.random() * 0.18;
+        const distance = 22 + Math.random() * 34;
+        const color = particleColors[(i + burstIndex) % particleColors.length];
+        const spark = this.add.rectangle(burstX, burstY, 3.5 + Math.random() * 2.4, 8 + Math.random() * 6, color, 0.98)
+          .setDepth(particleDepth)
+          .setRotation(angle);
+        spark.setBlendMode?.(Phaser.BlendModes.ADD);
+        particles.push(spark);
+        this.tweens.add({
+          targets: spark,
+          x: burstX + Math.cos(angle) * distance,
+          y: burstY + Math.sin(angle) * distance * 0.72,
+          alpha: 0,
+          scale: { from: 1.08, to: 0.18 },
+          duration: 480 + Math.random() * 220,
+          ease: 'Quad.easeOut',
+        });
+      }
+    };
     const spawnWave = (waveIndex) => {
+      if (titleAnchored) {
+        spawnTitleBurst(waveIndex);
+        return;
+      }
       const waveOffsetX = (Math.random() - 0.5) * overlayWidth * 0.08;
       const waveOffsetY = (Math.random() - 0.5) * overlayHeight * 0.08;
       const count = 22;
@@ -1125,7 +1170,7 @@ export default class BattleScene extends Phaser.Scene {
         const size = 3 + Math.random() * 5;
         const color = particleColors[(i + waveIndex) % particleColors.length];
         const particle = this.add.rectangle(startX, startY, size, size * (1.35 + Math.random()), color, 0.9)
-          .setDepth(904)
+          .setDepth(particleDepth)
           .setRotation(Math.random() * Math.PI);
         particles.push(particle);
         this.tweens.add({
@@ -1146,7 +1191,7 @@ export default class BattleScene extends Phaser.Scene {
           2 + Math.random() * 2.2,
           presentation.accentColor,
           0.7,
-        ).setDepth(903);
+        ).setDepth(burstDepth);
         particles.push(burst);
         this.tweens.add({
           targets: burst,
@@ -1158,9 +1203,15 @@ export default class BattleScene extends Phaser.Scene {
       }
     };
 
-    [0, 800, 1600].forEach((delayMs, waveIndex) => {
-      timers.push(this.time.delayedCall(delayMs, () => spawnWave(waveIndex)));
-    });
+    if (options.waveDelays) {
+      options.waveDelays.forEach((delayMs, waveIndex) => {
+        timers.push(this.time.delayedCall(delayMs, () => spawnWave(waveIndex)));
+      });
+    } else {
+      [0, 800, 1600].forEach((delayMs, waveIndex) => {
+        timers.push(this.time.delayedCall(delayMs, () => spawnWave(waveIndex)));
+      });
+    }
 
     return { particles, timers };
   }
@@ -2432,12 +2483,14 @@ export default class BattleScene extends Phaser.Scene {
       trophy.compactDisplayHeight = compactDisplayHeight;
     }
 
-    const titleY = hasTrophyTexture ? Math.min(height * 0.72, heroTrophyY + Math.min(heroDisplayHeight ?? heroMaxHeight, heroMaxHeight) * 0.52 + titleFontSize * 0.72) : Math.max(height * 0.32, titleFontSize * 2.1);
+    const trophyHeroHeight = Math.min(heroDisplayHeight ?? heroMaxHeight, heroMaxHeight);
+    const victoryTitleFontSize = Math.max(38, Math.min(60, Math.floor(height * 0.064)));
+    const titleY = hasTrophyTexture ? Math.min(height * 0.75, heroTrophyY + trophyHeroHeight * 0.52 + victoryTitleFontSize * 0.92) : Math.max(height * 0.32, titleFontSize * 2.1);
     const titleAura = isWonTrophyPresentation ? null : this.add.circle(centerX, titleY, Math.min(width, height) * 0.28, accentColor, 0.09)
       .setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 0.3);
     const title = this.add.text(centerX, titleY, isWonTrophyPresentation ? victorySplashText : titleText, {
       fontFamily: PREMIUM_BROADCAST_FONT_STACK,
-      fontSize: `${isWonTrophyPresentation ? Math.max(34, Math.min(54, Math.floor(height * 0.058))) : titleFontSize}px`,
+      fontSize: `${isWonTrophyPresentation ? victoryTitleFontSize : titleFontSize}px`,
       color: isWonTrophyPresentation ? '#fef3c7' : accentTextColor,
       fontStyle: '700',
       align: 'center',
@@ -2453,7 +2506,7 @@ export default class BattleScene extends Phaser.Scene {
       align: 'center',
     }).setOrigin(0.5).setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 1).setAlpha(0.86);
     const promptY = isWonTrophyPresentation
-      ? Math.min(height * 0.88, titleY + Math.max(30, titleFontSize * 0.78))
+      ? Math.max(height * 0.12, heroTrophyY - trophyHeroHeight * 0.5 - Math.max(30, height * 0.038))
       : Math.min(height * 0.86, titleY + titleFontSize * 1.55);
     const promptFontSize = isWonTrophyPresentation
       ? Math.max(13, Math.min(18, Math.floor(height * 0.02)))
@@ -2470,7 +2523,20 @@ export default class BattleScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 1).setAlpha(isWonTrophyPresentation ? 0.74 : 1);
     prompt.setShadow(0, 2, 'rgba(0, 0, 0, 0.68)', isWonTrophyPresentation ? 3 : 5, true, true);
     if (isWonTrophyPresentation) {
-      campaignCelebration = this.addBattleResultVictoryCelebration(centerX, titleY + Math.max(10, titleFontSize * 0.18), Math.min(width * 0.62, 420), Math.min(height * 0.34, 260), { key: 'victory', accentColor: 0xfacc15 });
+      campaignCelebration = this.addBattleResultVictoryCelebration(
+        centerX,
+        titleY,
+        Math.min(width * 0.58, 360),
+        Math.min(height * 0.16, 128),
+        { key: 'victory', accentColor: 0xfacc15 },
+        {
+          titleAnchored: true,
+          particleDepth: CAMPAIGN_COMPLETION_CONTENT_DEPTH + 0.92,
+          burstDepth: CAMPAIGN_COMPLETION_CONTENT_DEPTH + 0.86,
+          waveDelays: [0, 280, 620, 980],
+          particleColors: [0xffffff, 0xfef08a, 0xfacc15, 0x7dd3fc, 0x86efac],
+        },
+      );
     }
     cinematicItems.push(...[titleAura, title, prompt].filter(Boolean));
     if (emblem) cinematicItems.push(emblem);
