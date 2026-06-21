@@ -245,6 +245,13 @@ test('selected localized card texts use enemy board-unit markers without changin
   assert.doesNotMatch(JSON.stringify(pl.ui), /\[(?:ENEMY|ENEMIES)\]/u);
 });
 
+test('Party Host Polish text states first adjacent ally combat death and keeps temporary ATK wording', () => {
+  assert.equal(
+    pl.cards.attrition_swarm_rotcaller_1.textShort,
+    'Pierwszy zgon sąsiedniego [ALLY] w walce:\n+1 [ATK] do walki',
+  );
+});
+
 test('card type and stat labels exist in English and Polish dictionaries', () => {
   for (const key of ['cardTypes.unit', 'cardTypes.effect', 'stats.attack', 'stats.hp', 'stats.armor']) {
     assert.equal(typeof getPath(en, key), 'string', `missing English ${key}`);

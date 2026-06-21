@@ -261,6 +261,14 @@ test('Rotcaller gets capped temporary attack from first adjacent ally combat dea
   resolveCombat(adjacent);
   assert.equal(adjacent.board[1], null, 'Rotcaller used +1 ATK before its lane resolved');
   assert.equal(adjacent.board[7]?.tempAttackMod, undefined, 'temporary ATK clears after combat');
+  assert.deepEqual(adjacent.rotcallerCombatFeedbackEvents, [{
+    type: 'slot-text',
+    index: 7,
+    label: '+1 ATK',
+    kind: 'buff',
+    source: 'rotcaller_adjacent_death_atk_1',
+    combatId: 1,
+  }]);
 
   const nonAdjacent = state();
   nonAdjacent.board[6] = unit({ id: 'far-victim', attack: 0 });
@@ -279,6 +287,21 @@ test('Rotcaller gets capped temporary attack from first adjacent ally combat dea
   capped.board[2] = unit({ owner: 'enemy', id: 'right-killer', attack: 1, hp: 2 });
   resolveCombat(capped);
   assert.equal(capped.board[1]?.hp, 1, 'Rotcaller gained exactly +1 ATK, not +2');
+  assert.equal(capped.rotcallerCombatFeedbackEvents.length, 1, 'Rotcaller emits one +1 ATK feedback payload per combat');
+});
+
+test('Rotcaller does not trigger from adjacent ally non-combat death', () => {
+  const nonCombat = state();
+  nonCombat.board[6] = unit({ id: 'non-combat-victim', hp: 1 });
+  nonCombat.board[7] = unit({ id: 'rotcaller', attack: 1, hp: 2, effectId: 'rotcaller_adjacent_death_atk_1' });
+  addHand(nonCombat, 'enemy', card('attrition_swarm_infect_1'));
+
+  const result = resolveTargetedEffectCard(nonCombat, 'enemy', 'attrition_swarm_infect_1', 6);
+  assert.equal(result.ok, true);
+  assert.equal(nonCombat.board[6], null);
+  assert.equal(nonCombat.board[7]?.tempAttackMod, undefined);
+  assert.equal(nonCombat.rotcallerCombatTriggers, undefined);
+  assert.equal(nonCombat.rotcallerCombatFeedbackEvents, undefined);
 });
 
 test('Infect targets enemies, deals 1, buffs opposite ally on survivor, and never damages heroes', () => {
