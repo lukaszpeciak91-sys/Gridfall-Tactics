@@ -15,7 +15,7 @@ import { PREMIUM_BROADCAST_FONT_STACK, createImageButton, preloadSecondaryButton
 import { formatDeckSummaryEntry } from '../rendering/cardRenderModes.js';
 import { CARD_COLORS, createCardArtwork, createCardPreviewView, getBaseCardSurfaceTheme, getDefaultCardAccentColor, resolveCardSurfaceTheme, createStatBadges } from '../rendering/cardVisualLayout.js';
 import { getCardDisplayName, getCardTextShort } from '../localization/cardDisplay.js';
-import { getActiveLocale, translateActive } from '../localization/localeService.js';
+import { getActiveLocale, translateActive, translateActiveList } from '../localization/localeService.js';
 import { applyCampaignBattleResult, clearCampaign, createNewCampaign, isValidCampaignState, loadCampaign, saveCampaign } from '../systems/campaignState.js';
 import { getCardBoardArtPositionY } from '../data/presentation/cardArtCropOverrides.js';
 
@@ -28,6 +28,42 @@ const CAMPAIGN_TROPHY_ASSET = Object.freeze({
   key: 'ui.campaign.victoryArtefact',
   path: resolvePublicAssetPath('assets/ui/campaign-trophy.webp'),
 });
+
+const BATTLE_RESULT_SUBTITLE_FALLBACKS = Object.freeze({
+  victory: Object.freeze([
+    'The audience is delighted.',
+    'What a spectacle!',
+    'Total domination!',
+    'The crowd is going wild!',
+  ]),
+  defeat: Object.freeze([
+    'The audience demands more.',
+    'The crowd expected more.',
+    'It wasn’t enough this time.',
+    'Not everyone gets to leave the stage in glory.',
+  ]),
+});
+
+const CAMPAIGN_RESULT_FLAVOR_FALLBACKS = Object.freeze({
+  won: Object.freeze([
+    'Congratulations. The trophy is yours.\nNow hurry home before everything ends there for good.',
+    'A magnificent performance. A well-earned trophy.\nNow run along — you might still catch the apocalypse.',
+    'The audience is delighted. The trophy is yours.\nWe won’t keep you any longer — your apocalypse is probably still right on schedule.',
+    'A marvelous spectacle! It may not improve your situation…\nbut at least you’re going home with a trophy.',
+  ]),
+  lost: Object.freeze([
+    'That’s all for tonight. Thank you for taking part in the show.',
+    'It wasn’t your night, but the audience appreciates the performance all the same.',
+    'Thank you for participating, and best of luck with your next catastrophe.',
+    'A pity. Some return with a trophy. Others simply return.',
+  ]),
+});
+
+function pickRandomTextEntry(entries, fallback = '') {
+  const pool = Array.isArray(entries) ? entries.filter((entry) => typeof entry === 'string' && entry.length > 0) : [];
+  if (pool.length === 0) return fallback;
+  return pool[Phaser.Math.Between(0, pool.length - 1)] ?? fallback;
+}
 
 
 const INSPECT_CARD_TARGET_SCALE = 2.06;
@@ -1014,8 +1050,12 @@ export default class BattleScene extends Phaser.Scene {
 
   getBattleResultSubtitle() {
     if (!this.gameState?.winner) return '';
-    if (this.gameState.winner === 'player') return translateActive('ui.battle.resultSubtitles.victory', 'Audience delighted.');
-    if (this.gameState.winner === 'enemy') return translateActive('ui.battle.resultSubtitles.defeat', 'Audience demands more.');
+    if (this.gameState.winner === 'player') {
+      return pickRandomTextEntry(translateActiveList('ui.battle.resultSubtitles.victory', BATTLE_RESULT_SUBTITLE_FALLBACKS.victory), BATTLE_RESULT_SUBTITLE_FALLBACKS.victory[0]);
+    }
+    if (this.gameState.winner === 'enemy') {
+      return pickRandomTextEntry(translateActiveList('ui.battle.resultSubtitles.defeat', BATTLE_RESULT_SUBTITLE_FALLBACKS.defeat), BATTLE_RESULT_SUBTITLE_FALLBACKS.defeat[0]);
+    }
     return translateActive('ui.battle.resultSubtitles.draw', 'Production ordered a rematch.');
   }
 
@@ -2309,9 +2349,9 @@ export default class BattleScene extends Phaser.Scene {
     const softAccentColor = won ? 0xfacc15 : 0xf97316;
     const promptText = translateActive('ui.campaignResult.tapToContinue', 'TAP TO CONTINUE');
     const victorySplashText = translateActive('ui.campaignResult.victorySplash', 'VICTORY');
-    const flavorText = won
-      ? translateActive('ui.campaignResult.wonFlavor', 'The sector is secured. Your command endures.')
-      : translateActive('ui.campaignResult.lostFlavor', 'The line has fallen, but the war is not over.');
+    const flavorPoolKey = won ? 'ui.campaignResult.wonFlavors' : 'ui.campaignResult.lostFlavors';
+    const flavorFallbacks = won ? CAMPAIGN_RESULT_FLAVOR_FALLBACKS.won : CAMPAIGN_RESULT_FLAVOR_FALLBACKS.lost;
+    const flavorText = pickRandomTextEntry(translateActiveList(flavorPoolKey, flavorFallbacks), flavorFallbacks[0]);
     const hasTrophyTexture = won && hasLoadedImageAsset(this, CAMPAIGN_TROPHY_ASSET);
 
     this.destroyBattleResultModal();
