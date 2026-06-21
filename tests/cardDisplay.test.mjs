@@ -296,16 +296,13 @@ test('card render mode helpers preserve English fallback behavior for future loc
   assert.deepEqual(formatDeckSummaryEntry({}, 'pl'), { name: 'Nieznana karta', typeLabel: 'Jednostka', count: 1 });
 });
 
-test('deck info panel routes card summary entries through render mode formatter', () => {
+test('deck info panel renders battle recap instead of raw card summary lists', () => {
   const source = fs.readFileSync('src/scenes/BattleScene.js', 'utf8');
-  const start = source.indexOf('  summarizeCardEntries(cards) {');
-  const end = source.indexOf('  drawHand() {');
-  const deckInfoSummarySource = source.slice(start, end);
 
-  assert.match(source, /import \{ formatDeckSummaryEntry \} from '\.\.\/rendering\/cardRenderModes\.js';/);
-  assert.match(deckInfoSummarySource, /const entry = formatDeckSummaryEntry\(card, getActiveLocale\(\)\);/);
-  assert.doesNotMatch(deckInfoSummarySource, /const name = card\.name \?\? 'Unknown Card'/);
-  assert.doesNotMatch(deckInfoSummarySource, /card\.type === 'effect' \? 'Effect' : 'Unit'/);
+  assert.match(source, /getDeckSummaryHeaderText\(\)/);
+  assert.match(source, /formatBattleHistoryEntry\(entry\)/);
+  assert.match(source, /No battle history yet\./);
+  assert.doesNotMatch(source, /return groups\.map\(\(\[heading, cards\]\) => this\.formatDeckInfoGroup\(heading, cards\)\)\.join\('\\n\\n'\);/);
 });
 
 test('deck summary entry output remains unchanged', () => {
@@ -314,15 +311,14 @@ test('deck summary entry output remains unchanged', () => {
   assert.equal(`• ${entry.name} — ${entry.typeLabel} ×${entry.count}`, '• Shield Drone — Unit ×1');
 });
 
-test('deck info panel output templates remain unchanged', () => {
+test('deck info panel battle recap output covers actions and resolutions', () => {
   const source = fs.readFileSync('src/scenes/BattleScene.js', 'utf8');
-  const start = source.indexOf('  formatDeckInfoGroup(heading, cards) {');
-  const end = source.indexOf('  summarizeCardEntries(cards) {');
-  const deckInfoFormattingSource = source.slice(start, end);
 
-  assert.match(deckInfoFormattingSource, /translateActive\('ui\.common\.none', 'None'\)/);
-  assert.match(deckInfoFormattingSource, /`• \$\{entry\.name\} — \$\{entry\.typeLabel\} ×\$\{entry\.count\}`/);
-  assert.match(source, /return groups\.map\(\(\[heading, cards\]\) => this\.formatDeckInfoGroup\(heading, cards\)\)\.join\('\\n\\n'\);/);
+  assert.match(source, /plays unit/);
+  assert.match(source, /plays effect/);
+  assert.match(source, /replaces \$\{action\.oldCard\?\.name\} with \$\{action\.card\?\.name\} from hand/);
+  assert.match(source, /killed each other/);
+  assert.match(source, /dealt \$\{item\.amount\} damage to/);
 });
 
 test('visible UI surfaces route names through active-locale presentation helpers', () => {
