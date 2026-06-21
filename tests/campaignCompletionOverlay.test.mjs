@@ -23,7 +23,8 @@ test('campaign won uses trophy texture when loaded and safely falls back to embl
 
 test('campaign lost final overlay aligns to final won title and prompt without diamond', () => {
   assert.match(completionSource, /const finalWonTitleY = Math\.min\(height \* 0\.78, heroTrophyY \+ trophyHeroHeight \* 0\.52 \+ victoryTitleFontSize \* 1\.18\)/);
-  assert.match(completionSource, /const titleY = hasTrophyTexture \? finalWonTitleY : \(won \? Math\.max\(height \* 0\.32, titleFontSize \* 2\.1\) : finalWonTitleY\)/);
+  assert.match(completionSource, /const finalLostTitleY = centerY/);
+  assert.match(completionSource, /const titleY = hasTrophyTexture \? finalWonTitleY : \(won \? Math\.max\(height \* 0\.32, titleFontSize \* 2\.1\) : finalLostTitleY\)/);
   assert.match(completionSource, /const finalWonPromptY = Math\.max\(height \* 0\.12, heroTrophyY - trophyHeroHeight \* 0\.5 - Math\.max\(30, height \* 0\.038\)\)/);
   assert.match(completionSource, /const promptY = \(isWonTrophyPresentation \|\| !won\)[\s\S]*\? finalWonPromptY[\s\S]*: Math\.min\(height \* 0\.86, titleY \+ titleFontSize \* 1\.55\)/);
   assert.doesNotMatch(completionSource, /won \? '◆' : '◇'/);
