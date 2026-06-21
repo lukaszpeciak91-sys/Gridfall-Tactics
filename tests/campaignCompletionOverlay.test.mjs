@@ -39,7 +39,7 @@ test('campaign won adds passive soft bloom backlight and shimmer below the troph
   assert.match(completionSource, /const coreLayerCount = 18/);
   assert.match(completionSource, /const shimmer = this\.add\.graphics\(\)\.setDepth\(CAMPAIGN_COMPLETION_CONTENT_DEPTH \+ 0\.25\)/);
   assert.match(completionSource, /targets: shimmer,[\s\S]*duration: 3600,[\s\S]*yoyo: true,[\s\S]*repeat: -1/);
-  assert.match(completionSource, /targets: \[glow, bloomCore\],[\s\S]*x: \{ from: -backlightRadius \* 0\.018, to: backlightRadius \* 0\.018 \}/);
+  assert.match(completionSource, /targets: \[glow, bloomCore\],[\s\S]*x: \{ from: centerX - backlightRadius \* 0\.018, to: centerX \+ backlightRadius \* 0\.018 \}/);
   assert.doesNotMatch(completionSource, /const rays = this\.add\.graphics/);
   assert.match(completionSource, /setDepth\(CAMPAIGN_COMPLETION_CONTENT_DEPTH \+ 0\.6\)/);
 });
