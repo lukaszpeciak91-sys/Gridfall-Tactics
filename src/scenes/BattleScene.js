@@ -2484,8 +2484,8 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     const trophyHeroHeight = Math.min(heroDisplayHeight ?? heroMaxHeight, heroMaxHeight);
-    const victoryTitleFontSize = Math.max(38, Math.min(60, Math.floor(height * 0.064)));
-    const titleY = hasTrophyTexture ? Math.min(height * 0.75, heroTrophyY + trophyHeroHeight * 0.52 + victoryTitleFontSize * 0.92) : Math.max(height * 0.32, titleFontSize * 2.1);
+    const victoryTitleFontSize = Math.max(44, Math.min(69, Math.floor(height * 0.074)));
+    const titleY = hasTrophyTexture ? Math.min(height * 0.78, heroTrophyY + trophyHeroHeight * 0.52 + victoryTitleFontSize * 1.18) : Math.max(height * 0.32, titleFontSize * 2.1);
     const titleAura = isWonTrophyPresentation ? null : this.add.circle(centerX, titleY, Math.min(width, height) * 0.28, accentColor, 0.09)
       .setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 0.3);
     const title = this.add.text(centerX, titleY, isWonTrophyPresentation ? victorySplashText : titleText, {
@@ -2526,14 +2526,14 @@ export default class BattleScene extends Phaser.Scene {
       campaignCelebration = this.addBattleResultVictoryCelebration(
         centerX,
         titleY,
-        Math.min(width * 0.58, 360),
-        Math.min(height * 0.16, 128),
+        Math.min(width * 0.66, 420),
+        Math.min(height * 0.2, 156),
         { key: 'victory', accentColor: 0xfacc15 },
         {
           titleAnchored: true,
           particleDepth: CAMPAIGN_COMPLETION_CONTENT_DEPTH + 0.92,
           burstDepth: CAMPAIGN_COMPLETION_CONTENT_DEPTH + 0.86,
-          waveDelays: [0, 280, 620, 980],
+          waveDelays: [0, 260, 560, 900, 1260, 1680],
           particleColors: [0xffffff, 0xfef08a, 0xfacc15, 0x7dd3fc, 0x86efac],
         },
       );
