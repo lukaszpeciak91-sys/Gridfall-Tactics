@@ -4067,7 +4067,14 @@ export default class BattleScene extends Phaser.Scene {
   trySelectImplicitSwapSourceOnPointerDown(boardIndex) {
     if (this.openingMulliganPending) return false;
     if (this.pendingSwapIndex !== null) return false;
-    if (this.selectedCardId || this.targetingState || this.effectCastState) return false;
+    const hasActiveHandCardInteraction = this.hasActiveHandCardInteraction?.() ?? Boolean(
+      this.selectedCardId
+      || this.pressedHandCardId
+      || this.pressedHandCardWasSelected
+      || this.handCardLongPressEvent
+      || this.longPressTriggeredCardId
+    );
+    if (hasActiveHandCardInteraction || this.targetingState || this.effectCastState) return false;
     if (this.battleResultModalShown || this.isFlowResolving || this.isEffectCastResolving || this.playerActionUsed) return false;
 
     const unit = this.gameState?.board?.[boardIndex] ?? null;
@@ -4546,6 +4553,7 @@ export default class BattleScene extends Phaser.Scene {
     this.selectedCardId = null;
     this.targetingState = null;
     this.effectCastState = null;
+    this.pendingSwapIndex = null;
     this.hoverInspectCardId = null;
     this.boardInspectIndex = null;
     this.pressedHandCardWasSelected = false;
@@ -4577,6 +4585,17 @@ export default class BattleScene extends Phaser.Scene {
 
     if (!this.selectedCardId && !this.targetingState && !this.effectCastState) {
       const unit = this.gameState.board[boardIndex];
+
+      const hasActiveHandCardInteraction = this.hasActiveHandCardInteraction?.() ?? Boolean(
+        this.selectedCardId
+        || this.pressedHandCardId
+        || this.pressedHandCardWasSelected
+        || this.handCardLongPressEvent
+        || this.longPressTriggeredCardId
+      );
+      if (hasActiveHandCardInteraction) {
+        return;
+      }
 
       if (this.pendingSwapIndex !== null) {
         this.hoverInspectCardId = null;
