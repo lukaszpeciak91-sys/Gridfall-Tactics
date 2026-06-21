@@ -115,7 +115,6 @@ const CAMPAIGN_COMPLETION_OVERLAY_DEPTH = 1200;
 const CAMPAIGN_COMPLETION_CONTENT_DEPTH = CAMPAIGN_COMPLETION_OVERLAY_DEPTH + 1;
 const CAMPAIGN_COMPLETION_BUTTON_DEPTH = CAMPAIGN_COMPLETION_OVERLAY_DEPTH + 2;
 const CAMPAIGN_COMPLETION_OVERLAY_ALPHA = 0.84;
-const CAMPAIGN_COMPLETION_OVERLAY_COLOR = 0x000000;
 const CAMPAIGN_COMPLETION_TITLE_MAX_WIDTH_RATIO = 0.9;
 const CAMPAIGN_COMPLETION_TITLE_MIN_FONT_SIZE = 28;
 const CAMPAIGN_COMPLETION_TITLE_MAX_FONT_SIZE = 64;
@@ -2234,16 +2233,6 @@ export default class BattleScene extends Phaser.Scene {
     };
   }
 
-  createCampaignCompletionOverlay(width, height, centerX) {
-    return this.add.rectangle(centerX, height * 0.5, width, height, CAMPAIGN_COMPLETION_OVERLAY_COLOR, CAMPAIGN_COMPLETION_OVERLAY_ALPHA)
-      .setOrigin(0.5)
-      .setScrollFactor(0)
-      .setInteractive()
-      .setDepth(CAMPAIGN_COMPLETION_OVERLAY_DEPTH)
-      .setAlpha(CAMPAIGN_COMPLETION_OVERLAY_ALPHA)
-      .setVisible(true);
-  }
-
   showCampaignCompleteModal(status) {
     const options = this.campaignCompletionModalOptions ?? {};
     this.campaignCompletionModalOptions = null;
@@ -2269,7 +2258,9 @@ export default class BattleScene extends Phaser.Scene {
     const hasTrophyTexture = won && hasLoadedImageAsset(this, CAMPAIGN_TROPHY_ASSET);
 
     this.destroyBattleResultModal();
-    const overlay = this.createCampaignCompletionOverlay(width, height, centerX);
+    const overlay = this.add.rectangle(centerX, height / 2, width, height, 0x000000, CAMPAIGN_COMPLETION_OVERLAY_ALPHA)
+      .setInteractive()
+      .setDepth(CAMPAIGN_COMPLETION_OVERLAY_DEPTH);
     overlay.on('pointerdown', (_pointer, _localX, _localY, event) => event?.stopPropagation?.());
 
     const cinematicItems = [];

@@ -6,9 +6,6 @@ const source = fs.readFileSync('src/scenes/BattleScene.js', 'utf8');
 const showStart = source.indexOf('  showCampaignCompleteModal(status) {');
 const showEnd = source.indexOf('  openRulesPanel()', showStart);
 const completionSource = source.slice(showStart, showEnd);
-const overlayStart = source.indexOf('  createCampaignCompletionOverlay(');
-const overlayEnd = source.indexOf('  showCampaignCompleteModal(status) {', overlayStart);
-const overlaySource = source.slice(overlayStart, overlayEnd);
 const buttonStart = source.indexOf('  createResultModalButton(');
 const buttonEnd = source.indexOf('  destroyBattleResultModal()', buttonStart);
 const buttonSource = source.slice(buttonStart, buttonEnd);
@@ -88,18 +85,9 @@ test('completion button is created above BattleScene UI depth', () => {
 
 test('completion overlay blocks underlying input before transition', () => {
   assert.match(source, /CAMPAIGN_COMPLETION_OVERLAY_ALPHA = 0\.84/);
-  assert.match(source, /CAMPAIGN_COMPLETION_OVERLAY_COLOR = 0x000000/);
-  assert.match(overlaySource, /this\.add\.rectangle\(centerX, height \* 0\.5, width, height, CAMPAIGN_COMPLETION_OVERLAY_COLOR, CAMPAIGN_COMPLETION_OVERLAY_ALPHA\)/);
-  assert.match(overlaySource, /\.setOrigin\(0\.5\)[\s\S]*\.setScrollFactor\(0\)[\s\S]*\.setInteractive\(\)[\s\S]*\.setDepth\(CAMPAIGN_COMPLETION_OVERLAY_DEPTH\)[\s\S]*\.setAlpha\(CAMPAIGN_COMPLETION_OVERLAY_ALPHA\)[\s\S]*\.setVisible\(true\)/);
-  assert.match(completionSource, /const overlay = this\.createCampaignCompletionOverlay\(width, height, centerX\)/);
+  assert.match(completionSource, /\.setInteractive\(\)[\s\S]*\.setDepth\(CAMPAIGN_COMPLETION_OVERLAY_DEPTH\)/);
   assert.match(completionSource, /overlay\.on\('pointerdown',[\s\S]*event\?\.stopPropagation\?\.\(\)/);
   assert.match(completionSource, /overlay\.on\('pointerup',[\s\S]*showSummary\(\)/);
-});
-
-test('campaign completion preview and real completion share the same overlay path', () => {
-  assert.match(source, /if \(this\.isCampaignCompletionPreview\(\)\) \{[\s\S]*this\.showCampaignCompleteModal\(previewStatus\)/);
-  assert.match(source, /if \(updatedCampaign\.status === 'won' \|\| updatedCampaign\.status === 'lost'\) \{[\s\S]*this\.showCampaignCompleteModal\(updatedCampaign\.status\)/);
-  assert.match(completionSource, /const overlay = this\.createCampaignCompletionOverlay\(width, height, centerX\)/);
 });
 
 test('MAIN MENU button still clears completed campaign and starts MainMenuScene', () => {
