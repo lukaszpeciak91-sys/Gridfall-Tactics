@@ -18,6 +18,8 @@ import { getCardDisplayName, getCardTextShort } from '../localization/cardDispla
 import { getActiveLocale, translateActive, translateActiveList } from '../localization/localeService.js';
 import { applyCampaignBattleResult, clearCampaign, createNewCampaign, isValidCampaignState, loadCampaign, saveCampaign } from '../systems/campaignState.js';
 import { getCardBoardArtPositionY } from '../data/presentation/cardArtCropOverrides.js';
+import { AUDIO_KEYS, preloadAudioAssets } from '../audio/audioAssets.js';
+import { playSfx } from '../audio/audioPlayback.js';
 
 const HAND_BACK_CARD_ASSET = Object.freeze({
   key: 'ui.card.back',
@@ -373,6 +375,7 @@ export default class BattleScene extends Phaser.Scene {
     });
     preloadSecondaryButtonAsset(this);
     preloadAllCardIllustrations(this);
+    preloadAudioAssets(this);
   }
 
   init() {
@@ -934,6 +937,7 @@ export default class BattleScene extends Phaser.Scene {
       event?.stopPropagation?.();
       this.guardPointerEvent(pointer);
       if (this.navigationInProgress) return;
+      playSfx(this, AUDIO_KEYS.UI_CLICK);
       onClick();
     };
 
@@ -1278,6 +1282,11 @@ export default class BattleScene extends Phaser.Scene {
     const resultSubtitle = this.getBattleResultSubtitle();
     const resultStatsText = this.getBattleResultStatsText();
     const presentation = this.getBattleResultPresentation();
+    if (presentation.key === 'victory') {
+      playSfx(this, AUDIO_KEYS.BATTLE_VICTORY);
+    } else if (presentation.key === 'defeat') {
+      playSfx(this, AUDIO_KEYS.BATTLE_DEFEAT);
+    }
 
     const overlay = this.add.rectangle(centerX, height * 0.5, width, height, 0x000000, presentation.overlayAlpha)
       .setInteractive()
@@ -5090,6 +5099,7 @@ export default class BattleScene extends Phaser.Scene {
       }
       return;
     }
+    playSfx(this, AUDIO_KEYS.UI_CLICK);
     this.resolvePassTurn();
   }
 
@@ -5115,6 +5125,7 @@ export default class BattleScene extends Phaser.Scene {
     const result = performOpeningMulligan(this.gameState, 'player', selectedIds);
     if (!result.ok) return;
 
+    playSfx(this, AUDIO_KEYS.UI_CLICK);
     this.resetOpeningMulliganInputState();
     this.openingMulliganPending = false;
     this.redrawHand();
@@ -5784,6 +5795,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   showInvalidActionFeedback({ reason, cardId = null, boardIndex = null, scope = 'global', card = null } = {}) {
+    playSfx(this, AUDIO_KEYS.UI_INVALID);
     const message = this.getInvalidActionMessage(reason, card);
     const reasonKey = this.getInvalidActionReasonKey(reason, card);
     const isSlotSpecific = scope === 'slot' && Number.isInteger(boardIndex);

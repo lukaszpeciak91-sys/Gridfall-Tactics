@@ -76,9 +76,7 @@ export function saveSettings(settings) {
 export function applyAudioSettings(scene, settings = loadSettings()) {
   if (scene?.sound) {
     scene.sound.mute = settings.muted;
-    if (Number.isFinite(settings.musicVolume)) {
-      scene.sound.volume = settings.musicVolume / 100;
-    }
+    scene.sound.volume = 1;
   }
 }
 
