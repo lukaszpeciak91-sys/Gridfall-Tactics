@@ -363,6 +363,9 @@ export default class BattleScene extends Phaser.Scene {
     this.battleHistory = [];
     this.pendingBattleHistoryEntries = [];
     this.playerInitialDeckTypeCounts = null;
+    this.baseBreakSfxPlayed = false;
+    this.battleOutcomeSfxPlayed = false;
+    this.campaignOutcomeSfxPlayed = false;
   }
 
   preload() {
@@ -494,6 +497,9 @@ export default class BattleScene extends Phaser.Scene {
     this.passHoldToSurrenderProgress = false;
     this.passHoldToSurrenderEvent = null;
     this.playerSurrenderArmed = false;
+    this.baseBreakSfxPlayed = false;
+    this.battleOutcomeSfxPlayed = false;
+    this.campaignOutcomeSfxPlayed = false;
   }
 
   cleanupSceneObjects({ preserveTimers = false, preserveTweens = false } = {}) {
@@ -937,7 +943,7 @@ export default class BattleScene extends Phaser.Scene {
       event?.stopPropagation?.();
       this.guardPointerEvent(pointer);
       if (this.navigationInProgress) return;
-      playSfx(this, AUDIO_KEYS.UI_CLICK);
+      this.playBattleSfx?.(AUDIO_KEYS.UI_CLICK);
       onClick();
     };
 
@@ -1052,6 +1058,35 @@ export default class BattleScene extends Phaser.Scene {
     return translateActive('ui.battle.draw', 'DRAW');
   }
 
+  playBattleSfx(key, options = {}) {
+    return playSfx(this, key, options);
+  }
+
+  isBaseDestructionResult() {
+    if (!this.gameState?.winner) return false;
+    return (this.gameState.playerHP ?? 1) <= 0 || (this.gameState.enemyHP ?? 1) <= 0;
+  }
+
+  playBaseBreakSfxOnce() {
+    if (this.baseBreakSfxPlayed || !this.isBaseDestructionResult()) return false;
+    this.baseBreakSfxPlayed = true;
+    return this.playBattleSfx?.(AUDIO_KEYS.BASE_BREAK);
+  }
+
+  playBattleOutcomeSfxOnce() {
+    if (this.battleOutcomeSfxPlayed || !this.gameState?.winner) return false;
+    this.battleOutcomeSfxPlayed = true;
+    if (this.gameState.winner === 'player') return this.playBattleSfx?.(AUDIO_KEYS.BATTLE_VICTORY);
+    if (this.gameState.winner === 'enemy') return this.playBattleSfx?.(AUDIO_KEYS.BATTLE_DEFEAT);
+    return false;
+  }
+
+  playCampaignOutcomeSfxOnce(status) {
+    if (this.campaignOutcomeSfxPlayed) return false;
+    this.campaignOutcomeSfxPlayed = true;
+    return this.playBattleSfx?.(status === 'won' ? AUDIO_KEYS.BATTLE_VICTORY : AUDIO_KEYS.BATTLE_DEFEAT);
+  }
+
   getBattleResultSubtitle() {
     if (!this.gameState?.winner) return '';
     if (this.gameState.winner === 'player') {
@@ -1095,6 +1130,7 @@ export default class BattleScene extends Phaser.Scene {
 
   completeBattleFlow(delayMs = 500) {
     if (!this.gameState?.winner || this.battleResultModalShown) return false;
+    this.playBaseBreakSfxOnce();
     this.updateInitiativeIndicator();
     this.scheduleBattleResultModal(delayMs);
     return true;
@@ -1282,11 +1318,7 @@ export default class BattleScene extends Phaser.Scene {
     const resultSubtitle = this.getBattleResultSubtitle();
     const resultStatsText = this.getBattleResultStatsText();
     const presentation = this.getBattleResultPresentation();
-    if (presentation.key === 'victory') {
-      playSfx(this, AUDIO_KEYS.BATTLE_VICTORY);
-    } else if (presentation.key === 'defeat') {
-      playSfx(this, AUDIO_KEYS.BATTLE_DEFEAT);
-    }
+    this.playBattleOutcomeSfxOnce();
 
     const overlay = this.add.rectangle(centerX, height * 0.5, width, height, 0x000000, presentation.overlayAlpha)
       .setInteractive()
@@ -2339,6 +2371,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   showCampaignCompleteModal(status) {
+    this.playCampaignOutcomeSfxOnce(status);
     const options = this.campaignCompletionModalOptions ?? {};
     this.campaignCompletionModalOptions = null;
     const campaign = options.campaign ?? loadCampaign();
@@ -4729,6 +4762,11 @@ export default class BattleScene extends Phaser.Scene {
         beforeSnapshot: beforeStats,
         result,
       });
+      if (this.effectCastState?.source === 'unit-on-play') {
+        this.playBattleSfx?.(AUDIO_KEYS.CARD_DEPLOY);
+      } else {
+        this.playBattleSfx?.(AUDIO_KEYS.SPELL_GENERIC);
+      }
       this.completePlayerAction(
         beforeStats,
         [...(result.feedback ?? []), ...this.buildActionFeedback(beforeStats, result)],
@@ -4760,6 +4798,7 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
+    this.playBattleSfx?.(AUDIO_KEYS.CARD_DEPLOY);
     this.queueBattleHistoryAction?.('player', {
       type: result.type === 'redeploy' ? 'replace_from_hand' : 'play_unit',
       card: this.createCardRef?.(result.card, 'player') ?? { name: result.card?.name ?? 'Card', side: 'player' },
@@ -4805,9 +4844,10 @@ export default class BattleScene extends Phaser.Scene {
 
     this.isEffectCastResolving = true;
     this.showPlayerEffectConfirmation(card, { allowUnit: true });
+    this.playBattleSfx?.(AUDIO_KEYS.CARD_DEPLOY);
 
     await Promise.all([
-      this.playEffectCastSweep({ side: 'player' }),
+      this.playEffectCastSweep({ side: 'player', playSound: false }),
       this.delay(PLAYER_EFFECT_CAST_BEAT_MS),
     ]);
 
@@ -4896,7 +4936,8 @@ export default class BattleScene extends Phaser.Scene {
   }
 
 
-  async playEffectCastSweep({ side = 'player' } = {}) {
+  async playEffectCastSweep({ side = 'player', playSound = true } = {}) {
+    if (playSound) this.playBattleSfx?.(AUDIO_KEYS.SPELL_GENERIC);
     const style = EFFECT_CAST_SWEEP_STYLE[side] ?? EFFECT_CAST_SWEEP_STYLE.player;
     const middleCells = this.boardCells
       .filter((cell) => cell.row === 1 && cell.background?.active)
@@ -5099,7 +5140,7 @@ export default class BattleScene extends Phaser.Scene {
       }
       return;
     }
-    playSfx(this, AUDIO_KEYS.UI_CLICK);
+    this.playBattleSfx?.(AUDIO_KEYS.UI_CLICK);
     this.resolvePassTurn();
   }
 
@@ -5125,7 +5166,7 @@ export default class BattleScene extends Phaser.Scene {
     const result = performOpeningMulligan(this.gameState, 'player', selectedIds);
     if (!result.ok) return;
 
-    playSfx(this, AUDIO_KEYS.UI_CLICK);
+    this.playBattleSfx?.(AUDIO_KEYS.UI_CLICK);
     this.resetOpeningMulliganInputState();
     this.openingMulliganPending = false;
     this.redrawHand();
@@ -5504,11 +5545,13 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     await this.delay(500);
+    const playerHandCountBeforeDraw = this.gameState.player?.hand?.length ?? 0;
     drawCards(this.gameState.player, 1);
     drawCards(this.gameState.enemy, 1);
     resolveImmediateResourceExhaustionWinner(this.gameState);
     resolveImmediateNoProgressWinner(this.gameState);
     resolveTurnCapWinner(this.gameState, this.gameState.turnsCompleted);
+    if ((this.gameState.player?.hand?.length ?? 0) > playerHandCountBeforeDraw) this.playBattleSfx?.(AUDIO_KEYS.CARD_DRAW);
 
     this.refreshBoardLabels();
     this.redrawHand();
@@ -5590,6 +5633,7 @@ export default class BattleScene extends Phaser.Scene {
           cardB: this.getBoardUnitLabelFromSnapshot?.(beforeStats, action.toIndex),
         });
       } else if (action.type === 'play-unit') {
+        this.playBattleSfx?.(AUDIO_KEYS.CARD_DEPLOY);
         this.queueBattleHistoryAction?.('enemy', {
           type: result.type === 'redeploy' ? 'replace_from_hand' : 'play_unit',
           card: cardRef,
@@ -5795,7 +5839,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   showInvalidActionFeedback({ reason, cardId = null, boardIndex = null, scope = 'global', card = null } = {}) {
-    playSfx(this, AUDIO_KEYS.UI_INVALID);
+    this.playBattleSfx?.(AUDIO_KEYS.UI_INVALID);
     const message = this.getInvalidActionMessage(reason, card);
     const reasonKey = this.getInvalidActionReasonKey(reason, card);
     const isSlotSpecific = scope === 'slot' && Number.isInteger(boardIndex);
@@ -6536,6 +6580,7 @@ export default class BattleScene extends Phaser.Scene {
 
   playCombatDeathOverlays(overlays = []) {
     if (!Array.isArray(overlays) || overlays.length === 0) return Promise.resolve();
+    this.playBattleSfx?.(AUDIO_KEYS.UNIT_DEATH);
     return Promise.all(overlays.map((overlay) => this.playCombatDeathOverlay(overlay)));
   }
 
@@ -6975,6 +7020,7 @@ export default class BattleScene extends Phaser.Scene {
       .filter((feedback) => !this.isPreRefreshFeedback(feedback))
       .map((feedback) => {
         if (feedback?.type === 'draw') {
+          if ((feedback.drawn ?? 0) > 0) this.playBattleSfx?.(AUDIO_KEYS.CARD_DRAW);
           const label = this.getDrawFeedbackLabel(feedback);
           if (!label) return Promise.resolve();
           return this.showHandFloatingText(label, feedback.drawn > 0 ? '#bfdbfe' : '#fecaca');
@@ -7132,6 +7178,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   showRemoveFeedback(index, label = 'DESTROYED', kind = 'damage') {
+    this.playBattleSfx?.(AUDIO_KEYS.UNIT_DEATH);
     return Promise.all([
       this.showSlotPulse(index, kind),
       this.showFloatingTextAtSlot(index, label, kind),
@@ -7830,6 +7877,12 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   async playCombatEventFeedback(events) {
+    if (Array.isArray(events) && events.some((event) => (event?.damage ?? 0) > 0 || (event?.selfDamageFeedback?.amount ?? 0) > 0)) {
+      this.playBattleSfx?.(AUDIO_KEYS.ATTACK_IMPACT);
+    }
+    if (Array.isArray(events) && events.some((event) => event?.targetType === 'hero' && (event?.damage ?? 0) > 0 && !event?.lethal)) {
+      this.playBattleSfx?.(AUDIO_KEYS.BASE_HIT);
+    }
     const feedback = events.map(async (event) => {
       await this.playGuardianInterceptCue(event);
 
