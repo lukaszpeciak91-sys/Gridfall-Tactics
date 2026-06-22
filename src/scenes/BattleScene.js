@@ -19,7 +19,7 @@ import { getActiveLocale, translateActive, translateActiveList } from '../locali
 import { applyCampaignBattleResult, clearCampaign, createNewCampaign, isValidCampaignState, loadCampaign, saveCampaign } from '../systems/campaignState.js';
 import { getCardBoardArtPositionY } from '../data/presentation/cardArtCropOverrides.js';
 import { AUDIO_KEYS, preloadAudioAssets } from '../audio/audioAssets.js';
-import { playSfx } from '../audio/audioPlayback.js';
+import { playManagedSfx, playSfx, stopManagedSfx } from '../audio/audioPlayback.js';
 
 const HAND_BACK_CARD_ASSET = Object.freeze({
   key: 'ui.card.back',
@@ -366,6 +366,7 @@ export default class BattleScene extends Phaser.Scene {
     this.baseBreakSfxPlayed = false;
     this.battleOutcomeSfxPlayed = false;
     this.campaignOutcomeSfxPlayed = false;
+    this.activeOutcomeStinger = null;
   }
 
   preload() {
@@ -500,6 +501,7 @@ export default class BattleScene extends Phaser.Scene {
     this.baseBreakSfxPlayed = false;
     this.battleOutcomeSfxPlayed = false;
     this.campaignOutcomeSfxPlayed = false;
+    this.activeOutcomeStinger = null;
   }
 
   cleanupSceneObjects({ preserveTimers = false, preserveTweens = false } = {}) {
@@ -1062,6 +1064,29 @@ export default class BattleScene extends Phaser.Scene {
     return playSfx(this, key, options);
   }
 
+  playOutcomeStinger(key) {
+    if (![AUDIO_KEYS.BATTLE_VICTORY, AUDIO_KEYS.BATTLE_DEFEAT].includes(key)) return false;
+    if (this.activeOutcomeStinger?.key === key && this.activeOutcomeStinger.sound?.isPlaying) return true;
+
+    this.stopOutcomeStinger({ fadeMs: 0 });
+    const sound = playManagedSfx(this, key, { cooldownMs: 0 });
+    if (!sound) return false;
+
+    this.activeOutcomeStinger = { key, sound };
+    sound.once?.('complete', () => {
+      if (this.activeOutcomeStinger?.sound === sound) {
+        this.activeOutcomeStinger = null;
+      }
+    });
+    return true;
+  }
+
+  stopOutcomeStinger(options = {}) {
+    const activeStinger = this.activeOutcomeStinger;
+    this.activeOutcomeStinger = null;
+    return stopManagedSfx(this, activeStinger?.sound, options);
+  }
+
   isBaseDestructionResult() {
     if (!this.gameState?.winner) return false;
     return (this.gameState.playerHP ?? 1) <= 0 || (this.gameState.enemyHP ?? 1) <= 0;
@@ -1076,15 +1101,15 @@ export default class BattleScene extends Phaser.Scene {
   playBattleOutcomeSfxOnce() {
     if (this.battleOutcomeSfxPlayed || !this.gameState?.winner) return false;
     this.battleOutcomeSfxPlayed = true;
-    if (this.gameState.winner === 'player') return this.playBattleSfx?.(AUDIO_KEYS.BATTLE_VICTORY);
-    if (this.gameState.winner === 'enemy') return this.playBattleSfx?.(AUDIO_KEYS.BATTLE_DEFEAT);
+    if (this.gameState.winner === 'player') return this.playOutcomeStinger(AUDIO_KEYS.BATTLE_VICTORY);
+    if (this.gameState.winner === 'enemy') return this.playOutcomeStinger(AUDIO_KEYS.BATTLE_DEFEAT);
     return false;
   }
 
   playCampaignOutcomeSfxOnce(status) {
     if (this.campaignOutcomeSfxPlayed) return false;
     this.campaignOutcomeSfxPlayed = true;
-    return this.playBattleSfx?.(status === 'won' ? AUDIO_KEYS.BATTLE_VICTORY : AUDIO_KEYS.BATTLE_DEFEAT);
+    return this.playOutcomeStinger(status === 'won' ? AUDIO_KEYS.BATTLE_VICTORY : AUDIO_KEYS.BATTLE_DEFEAT);
   }
 
   getBattleResultSubtitle() {
@@ -1488,6 +1513,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   destroyBattleResultModal() {
+    this.stopOutcomeStinger({ fadeMs: 200 });
     if (!this.battleResultModal) {
       this.battleResultModalShown = false;
       this.battleResultModalPending = false;
@@ -2371,9 +2397,10 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   showCampaignCompleteModal(status) {
-    this.playCampaignOutcomeSfxOnce(status);
     const options = this.campaignCompletionModalOptions ?? {};
     this.campaignCompletionModalOptions = null;
+    this.destroyBattleResultModal();
+    this.playCampaignOutcomeSfxOnce(status);
     const campaign = options.campaign ?? loadCampaign();
     const won = status === 'won';
     const safeCampaign = isValidCampaignState(campaign) ? campaign : null;
@@ -2396,7 +2423,6 @@ export default class BattleScene extends Phaser.Scene {
     const flavorText = pickRandomTextEntry(translateActiveList(flavorPoolKey, flavorFallbacks), flavorFallbacks[0]);
     const hasTrophyTexture = won && hasLoadedImageAsset(this, CAMPAIGN_TROPHY_ASSET);
 
-    this.destroyBattleResultModal();
     const overlay = this.add.rectangle(centerX, height / 2, width, height, 0x000000, CAMPAIGN_COMPLETION_OVERLAY_ALPHA)
       .setInteractive()
       .setDepth(CAMPAIGN_COMPLETION_OVERLAY_DEPTH);
