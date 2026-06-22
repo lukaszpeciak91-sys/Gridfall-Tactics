@@ -749,15 +749,17 @@ function getUtilityOpportunityCost(state, owner, action) {
   const unitsInHand = hand.filter((card) => card?.type === 'unit').length;
   const { friendly } = getRowsForOwner(owner);
   const emptySlots = friendly.filter((index) => !state.board?.[index]).length;
-  let cost = 360;
-  if (action.type === 'play-effect' || action.type === 'play-targeted-effect') cost += 240;
-  if (DELAYED_VALUE_EFFECT_IDS.has(action.effectId ?? null)) cost += 220;
+  let cost = 280;
+  if (action.type === 'play-effect' || action.type === 'play-targeted-effect') cost += 160;
+  if (DELAYED_VALUE_EFFECT_IDS.has(action.effectId ?? null)) cost += 120;
   if (unitsInHand > 0 && emptySlots > 0) cost += 180;
   if ((side?.hand?.length ?? 0) <= 2) cost -= 120;
-  if (action.effectId === 'destroy_friendly_draw_1' || action.effectId === 'return_friendly_draw_1') cost += 180;
+  if (action.effectId === 'draw_1') cost -= 260;
+  if (action.effectId === 'destroy_friendly_draw_1' || action.effectId === 'return_friendly_draw_1') cost += 60;
   if (action.effectId === 'revive_friendly_1hp') cost += 260;
-  if (action.effectId === 'temp_armor_1' || action.effectId === 'adjacent_allies_temp_armor_1' || action.effectId === 'buff_all_armor_1') cost += 180;
-  if (isTwoTargetSwapEffect(action.effectId ?? null) || action.effectId === 'enemy_up_to_2_atk_minus_1' || action.effectId === 'control_enemy_unit_this_turn') cost += 140;
+  if (action.effectId === 'temp_armor_1' || action.effectId === 'adjacent_allies_temp_armor_1' || action.effectId === 'buff_all_armor_1') cost += 80;
+  if (isTwoTargetSwapEffect(action.effectId ?? null) || action.effectId === 'enemy_up_to_2_atk_minus_1' || action.effectId === 'control_enemy_unit_this_turn') cost += 80;
+  if (action.effectId === 'swap_any_two_units') cost += 180;
   return Math.max(0, cost);
 }
 
@@ -767,6 +769,10 @@ function getUtilityChoiceReason(state, owner, action, metrics) {
   if (metrics.currentOpponentPressure >= metrics.currentOwnHp && metrics.opponentPressureReduced > 0) return 'prevents lethal';
   if (metrics.kills > 0) return 'removes immediate major threat';
   if (metrics.savedThreatenedUnits > 0) return 'saves a key unit';
+  if (metrics.preventedMeaningfulBaseDamage) return 'prevents meaningful incoming base damage';
+  if (metrics.cardAdvantageWithoutTempoLoss) return 'creates card advantage without major tempo loss';
+  if (metrics.acceptableSacrificeValue) return 'uses acceptable sacrifice target for card advantage';
+  if (metrics.protectsImportantBoard) return 'protects an important board';
   if (metrics.heroPressureGain > 0 || metrics.openLaneImprovement > 0) return 'creates clear lane/hero pressure improvement';
   if (metrics.opponentPressureReduced >= 2 || metrics.boardPressureGain >= 600) return 'meaningful pressure swing';
   return null;
@@ -776,9 +782,21 @@ function getUtilityThreshold(action, reason) {
   if (!action || action.type === 'pass' || action.type === 'swap-units') return 0;
   if (!UTILITY_EFFECT_IDS.has(action.effectId ?? null)) return 0;
   if (reason) return 0;
-  if (DELAYED_VALUE_EFFECT_IDS.has(action.effectId ?? null)) return 900;
-  if (action.effectId === 'temp_armor_1' || action.effectId === 'adjacent_allies_temp_armor_1' || action.effectId === 'buff_all_armor_1') return 760;
-  return 650;
+  if (action.effectId === 'draw_1') return 120;
+  if (DELAYED_VALUE_EFFECT_IDS.has(action.effectId ?? null)) return 420;
+  if (action.effectId === 'temp_armor_1' || action.effectId === 'adjacent_allies_temp_armor_1' || action.effectId === 'buff_all_armor_1') return 340;
+  return 320;
+}
+
+function getUtilityCategory(action) {
+  const effectId = action?.effectId ?? null;
+  if (effectId === 'draw_1') return 'draw-only';
+  if (effectId === 'destroy_friendly_draw_1' || effectId === 'destroy_friendly_damage_enemy_base_1') return 'sacrifice';
+  if (effectId === 'return_friendly_draw_1') return 'recall';
+  if (effectId === 'temp_armor_1' || effectId === 'adjacent_allies_temp_armor_1' || effectId === 'buff_all_armor_1' || effectId === 'heal_all_1' || effectId === 'cannot_drop_below_1_this_turn') return 'defensive';
+  if (effectId === 'immune_move_disable_this_turn' || effectId === 'friendly_immovable_this_turn') return 'stability';
+  if (isTwoTargetSwapEffect(effectId) || effectId === 'enemy_up_to_2_atk_minus_1' || effectId === 'control_enemy_unit_this_turn') return 'control';
+  return effectId ? 'utility' : null;
 }
 
 export function scoreAction(state, owner, action) {
@@ -904,7 +922,11 @@ export function scoreAction(state, owner, action) {
   }
 
   if (action.effectId === 'draw_1') {
-    score += 250;
+    const side = owner === 'enemy' ? state.enemy : state.player;
+    const hasDeck = (side?.deck?.length ?? 0) > 0;
+    const handAfterSpend = Math.max(0, (side?.hand?.length ?? 0) - 1);
+    score += hasDeck ? 620 : -1200;
+    if (hasDeck && handAfterSpend <= 2) score += 260;
   }
 
   if (isSkipBaseEffectVariantAction(state, owner, action)) {
@@ -1066,6 +1088,24 @@ export function scoreAction(state, owner, action) {
     score -= 2000;
   }
 
+  if (action.effectId === 'heal_all_1') {
+    const { friendly } = getRowsForOwner(owner);
+    const healedUnits = friendly.filter((index) => {
+      const before = state.board[index];
+      const after = nextState.board[index];
+      return before?.owner === owner && after?.owner === owner && (after.hp ?? 0) > (before.hp ?? 0);
+    });
+    if (healedUnits.length <= 0) score -= 2200;
+    else {
+      const threatenedHealedUnits = healedUnits.filter((index) => {
+        const lane = friendly.indexOf(index);
+        const enemyUnit = state.board[getRowsForOwner(owner).opposing[lane]];
+        return enemyUnit && getUnitAttack(enemyUnit) >= getEffectiveHp(state.board[index]);
+      }).length;
+      score += 500 + healedUnits.length * 180 + threatenedHealedUnits * 420;
+    }
+  }
+
   if (action.effectId === 'temp_armor_1') {
     const targetUnit = nextState.board[action.targetIndex];
     const armorGain = Math.max(0, getUnitArmor(targetUnit) - getUnitArmor(state.board[action.targetIndex]));
@@ -1082,6 +1122,19 @@ export function scoreAction(state, owner, action) {
       && !nextState.board[opposing[lane]];
     score += 250;
     if (targetCanPressureHero) score += 500;
+  }
+
+  if (action.effectId === 'return_friendly_draw_1') {
+    const target = state.board[action.targetIndex];
+    const { friendly, opposing } = getRowsForOwner(owner);
+    const lane = friendly.indexOf(action.targetIndex);
+    const enemyUnit = lane >= 0 ? state.board[opposing[lane]] : null;
+    const targetAttack = getUnitAttack(target);
+    const targetWouldDie = Boolean(target?.owner === owner && enemyUnit && getUnitAttack(enemyUnit) >= getEffectiveHp(target));
+    const hasDeck = (owner === 'enemy' ? state.enemy?.deck : state.player?.deck)?.length > 0;
+    if (targetWouldDie) score += 720 + targetAttack * 160;
+    if (hasDeck) score += 240;
+    if (!targetWouldDie && targetAttack <= 1) score -= 360;
   }
 
   if (action.effectId === 'buff_all_atk_1' || action.effectId === 'aggro_buff_all_atk_2' || action.effectId === 'buff_all_armor_1' || action.effectId === 'enemy_all_armor_minus_1') {
@@ -1118,11 +1171,32 @@ export function scoreAction(state, owner, action) {
       || card?.effectId === 'swap_adjacent_then_resolve'
       || card?.effectId === 'swap_leftmost_adjacent_enemies'
     ));
-    score += hasEnemyMoveCard ? 260 : -600;
+    const friendlyStats = getFriendlyBoardStats(state, owner);
+    const importantBoardBonus = friendlyStats.attack * 70 + friendlyStats.count * 90 + (friendlyStats.openLaneAttack > 0 ? 260 : 0);
+    score += hasEnemyMoveCard ? 260 + importantBoardBonus : -600;
   }
 
   const savedThreatenedUnits = Math.max(0, getLikelyFriendlyCombatDeaths(state, owner) - getLikelyFriendlyCombatDeaths(nextState, owner));
   const utilityOpportunityCost = getUtilityOpportunityCost(state, owner, action);
+  const utilityScoreBeforeCost = score;
+  const side = owner === 'enemy' ? state.enemy : state.player;
+  const preventedMeaningfulBaseDamage = opponentPressureReduced >= 2;
+  const cardAdvantageWithoutTempoLoss = action.effectId === 'draw_1'
+    && (side?.deck?.length ?? 0) > 0
+    && ((side?.hand?.length ?? 0) <= 3 || currentOpponentPressure <= 0);
+  const acceptableSacrificeValue = action.effectId === 'destroy_friendly_draw_1'
+    && Number.isFinite(getFeastTargetValue(state, owner, action.targetIndex))
+    && getFeastTargetValue(state, owner, action.targetIndex) >= 500;
+  const friendlyStatsForUtility = getFriendlyBoardStats(state, owner);
+  const protectsImportantBoard = (
+    action.effectId === 'immune_move_disable_this_turn'
+    || action.effectId === 'friendly_immovable_this_turn'
+    || action.effectId === 'temp_armor_1'
+    || action.effectId === 'adjacent_allies_temp_armor_1'
+    || action.effectId === 'buff_all_armor_1'
+    || action.effectId === 'heal_all_1'
+    || action.effectId === 'cannot_drop_below_1_this_turn'
+  ) && (savedThreatenedUnits > 0 || friendlyStatsForUtility.attack >= 4 || friendlyStatsForUtility.openLaneAttack >= 2);
   const utilityReason = utilityOpportunityCost > 0 ? getUtilityChoiceReason(state, owner, action, {
     nextOpponentHp,
     currentOpponentPressure,
@@ -1133,13 +1207,22 @@ export function scoreAction(state, owner, action) {
     heroPressureGain,
     openLaneImprovement,
     boardPressureGain,
+    preventedMeaningfulBaseDamage,
+    cardAdvantageWithoutTempoLoss,
+    acceptableSacrificeValue,
+    protectsImportantBoard,
   }) : null;
   if (utilityOpportunityCost > 0) {
     score -= utilityOpportunityCost;
     action.aiEvaluation = {
       ...(action.aiEvaluation ?? {}),
       utility: true,
+      cardId: action.cardId ?? null,
+      utilityCategory: getUtilityCategory(action),
+      utilityScoreBeforeCost,
       utilityOpportunityCost,
+      utilityCostApplied: utilityOpportunityCost,
+      utilityScoreAfterCost: score,
       utilityReason,
       utilityThreshold: getUtilityThreshold(action, utilityReason),
     };
@@ -1240,10 +1323,10 @@ export function chooseBattleAction(state, owner = 'enemy', options = {}) {
       if (!Number.isFinite(score)) return false;
       const threshold = action?.aiEvaluation?.utilityThreshold ?? 0;
       if (threshold > 0 && score < holdScore + threshold) {
-        action.aiEvaluation = { ...(action.aiEvaluation ?? {}), holdScore, marginOverHold: score - holdScore, utilityRejectedReason: 'below utility usefulness threshold' };
+        action.aiEvaluation = { ...(action.aiEvaluation ?? {}), holdScore, marginOverHold: score - holdScore, chosenAction: false, utilityRejectedReason: 'below utility usefulness threshold' };
         return false;
       }
-      action.aiEvaluation = { ...(action.aiEvaluation ?? {}), holdScore, marginOverHold: score - holdScore };
+      action.aiEvaluation = { ...(action.aiEvaluation ?? {}), holdScore, marginOverHold: score - holdScore, chosenAction: false };
       return true;
     });
 
@@ -1253,6 +1336,7 @@ export function chooseBattleAction(state, owner = 'enemy', options = {}) {
   const tiedBest = scoredActions.filter((entry) => entry.score === bestScore).map((entry) => entry.action);
 
   if (tiedBest.length === 1) {
+    tiedBest[0].aiEvaluation = { ...(tiedBest[0].aiEvaluation ?? {}), chosenAction: true, utilityChosenReason: tiedBest[0].aiEvaluation?.utilityReason ?? tiedBest[0].aiEvaluation?.reason ?? 'highest scored legal action' };
     if (owner === 'enemy' && tiedBest[0]?.type !== 'pass') updateSafeSurrenderPassCounter(state, owner, false);
     return tiedBest[0];
   }
@@ -1263,6 +1347,7 @@ export function chooseBattleAction(state, owner = 'enemy', options = {}) {
   if (tieBreakPolicy === 'seeded-random' && randomFn) {
     const index = Math.floor(randomFn() * tiedBest.length);
     const picked = tiedBest[Math.max(0, Math.min(tiedBest.length - 1, index))];
+    picked.aiEvaluation = { ...(picked.aiEvaluation ?? {}), chosenAction: true, utilityChosenReason: picked.aiEvaluation?.utilityReason ?? picked.aiEvaluation?.reason ?? 'seeded random tie break' };
     if (owner === 'enemy' && picked?.type !== 'pass') updateSafeSurrenderPassCounter(state, owner, false);
     return picked;
   }
@@ -1271,10 +1356,12 @@ export function chooseBattleAction(state, owner = 'enemy', options = {}) {
     const rotationIndex = Number.isInteger(options.tieBreakIndex) ? options.tieBreakIndex : 0;
     const normalized = ((rotationIndex % tiedBest.length) + tiedBest.length) % tiedBest.length;
     const picked = tiedBest[normalized];
+    picked.aiEvaluation = { ...(picked.aiEvaluation ?? {}), chosenAction: true, utilityChosenReason: picked.aiEvaluation?.utilityReason ?? picked.aiEvaluation?.reason ?? 'rotation tie break' };
     if (owner === 'enemy' && picked?.type !== 'pass') updateSafeSurrenderPassCounter(state, owner, false);
     return picked;
   }
 
+  tiedBest[0].aiEvaluation = { ...(tiedBest[0].aiEvaluation ?? {}), chosenAction: true, utilityChosenReason: tiedBest[0].aiEvaluation?.utilityReason ?? tiedBest[0].aiEvaluation?.reason ?? 'first best action' };
   if (owner === 'enemy' && tiedBest[0]?.type !== 'pass') updateSafeSurrenderPassCounter(state, owner, false);
   return tiedBest[0];
 }

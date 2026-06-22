@@ -118,11 +118,11 @@ test('AI does not play Stability on an empty or irrelevant board', () => {
 });
 
 test('AI may hold Stability when movement protection does not beat HOLD by enough', () => {
-  const state = createInitialBattleState(getFactionByKey('Control'), getFactionByKey('Tank'), { firstActor: 'enemy' });
+  const state = createInitialBattleState(emptyFaction, getFactionByKey('Tank'), { firstActor: 'enemy' });
   state.player.hand = [];
   state.enemy.hand = [factionCard('Tank', 'tank_stability_1')];
-  state.board[0] = unit({ owner: 'enemy', id: 'important-left', attack: 2, hp: 3 });
-  state.board[1] = unit({ owner: 'enemy', id: 'important-mid', attack: 2, hp: 3 });
+  state.board[0] = unit({ owner: 'enemy', id: 'minor-left', attack: 1, hp: 3 });
+  state.board[1] = unit({ owner: 'enemy', id: 'minor-mid', attack: 1, hp: 3 });
   state.board[6] = unit({ owner: 'player', id: 'player-left', attack: 1, hp: 2 });
 
   const action = chooseBattleAction(state, 'enemy');
@@ -133,7 +133,7 @@ test('AI may hold Stability when movement protection does not beat HOLD by enoug
 test('AI may hold Feast as draw-only cycle without enough immediate value', () => {
   const state = createInitialBattleState(emptyFaction, emptyFaction, { firstActor: 'enemy' });
   state.enemy.hand.push(factionCard('Attrition Swarm', 'attrition_swarm_feast_1'));
-  state.enemy.deck.push(factionCard('Attrition Swarm', 'attrition_swarm_husk_1'));
+  state.enemy.deck = [];
   state.board[0] = unit({ owner: 'enemy', id: 'doomed-wall', attack: 0, hp: 1 });
   state.board[6] = unit({ owner: 'player', id: 'attacker', attack: 2, hp: 2 });
 
@@ -142,7 +142,90 @@ test('AI may hold Feast as draw-only cycle without enough immediate value', () =
   assert.equal(action.type, 'pass');
 });
 
-test('AI Feast cycle does not remove the only blocker preventing lethal open-lane damage', () => {
+test('AI plays Reinforce when healing threatened allies creates clear defensive value', () => {
+  const state = createInitialBattleState(emptyFaction, emptyFaction, { firstActor: 'enemy' });
+  state.enemy.hand.push(factionCard('Tank', 'tank_reinforce_1'));
+  state.board[0] = unit({ owner: 'enemy', id: 'hurt-left', attack: 2, hp: 1 });
+  state.board[0].maxHp = 3;
+  state.board[1] = unit({ owner: 'enemy', id: 'hurt-mid', attack: 1, hp: 1 });
+  state.board[1].maxHp = 3;
+  state.board[6] = unit({ owner: 'player', id: 'player-left', attack: 1, hp: 2 });
+  state.board[7] = unit({ owner: 'player', id: 'player-mid', attack: 1, hp: 2 });
+
+  const action = chooseBattleAction(state, 'enemy');
+
+  assert.equal(action.cardId, 'tank_reinforce_1');
+  assert.equal(action.aiEvaluation.utilityCategory, 'defensive');
+  assert.equal(action.aiEvaluation.utilityCostApplied, action.aiEvaluation.utilityOpportunityCost);
+});
+
+test('AI plays Stability when an important board faces movement tools', () => {
+  const state = createInitialBattleState(getFactionByKey('Control'), getFactionByKey('Tank'), { firstActor: 'enemy' });
+  state.player.hand = [factionCard('Control', 'control_swap_1')];
+  state.enemy.hand = [factionCard('Tank', 'tank_stability_1')];
+  state.board[0] = unit({ owner: 'enemy', id: 'open-left', attack: 3, hp: 3 });
+  state.board[1] = unit({ owner: 'enemy', id: 'open-mid', attack: 2, hp: 3 });
+
+  const action = chooseBattleAction(state, 'enemy');
+
+  assert.equal(action.cardId, 'tank_stability_1');
+  assert.equal(action.aiEvaluation.utilityCategory, 'stability');
+  assert.equal(action.aiEvaluation.utilityReason, 'protects an important board');
+});
+
+test('AI plays Stand Firm when it protects an important open-lane board', () => {
+  const state = createInitialBattleState(getFactionByKey('Control'), getFactionByKey('Wardens'), { firstActor: 'enemy' });
+  state.player.hand = [factionCard('Control', 'control_swap_1')];
+  state.enemy.hand = [factionCard('Wardens', 'wardens_stand_firm_1')];
+  state.board[0] = unit({ owner: 'enemy', id: 'warden-left', attack: 2, hp: 3 });
+  state.board[1] = unit({ owner: 'enemy', id: 'warden-mid', attack: 2, hp: 3 });
+
+  const action = chooseBattleAction(state, 'enemy');
+
+  assert.equal(action.cardId, 'wardens_stand_firm_1');
+  assert.equal(action.aiEvaluation.utilityCategory, 'stability');
+});
+
+test('AI plays Feast draw-only utility when it creates card advantage without tempo loss', () => {
+  const state = createInitialBattleState(emptyFaction, emptyFaction, { firstActor: 'enemy' });
+  state.enemy.hand.push(factionCard('Attrition Swarm', 'attrition_swarm_feast_1'));
+  state.enemy.deck.push(factionCard('Attrition Swarm', 'attrition_swarm_husk_1'));
+
+  const action = chooseBattleAction(state, 'enemy');
+
+  assert.equal(action.cardId, 'attrition_swarm_feast_1');
+  assert.equal(action.aiEvaluation.utilityCategory, 'draw-only');
+  assert.equal(action.aiEvaluation.utilityReason, 'creates card advantage without major tempo loss');
+});
+
+test('AI plays Recall when it saves a key unit and replaces the card', () => {
+  const state = createInitialBattleState(emptyFaction, emptyFaction, { firstActor: 'enemy' });
+  state.enemy.hand.push(factionCard('Control', 'control_recall_1'));
+  state.enemy.deck.push(factionCard('Control', 'control_hacker_1'));
+  state.board[0] = unit({ owner: 'enemy', id: 'key-unit', attack: 3, hp: 1 });
+  state.board[6] = unit({ owner: 'player', id: 'player-threat', attack: 2, hp: 3 });
+
+  const action = chooseBattleAction(state, 'enemy');
+
+  assert.equal(action.cardId, 'control_recall_1');
+  assert.equal(action.aiEvaluation.utilityCategory, 'recall');
+  assert.equal(action.aiEvaluation.utilityReason, 'saves a key unit');
+});
+
+test('AI Controller diagnostics expose useful control utility over HOLD', () => {
+  const state = createInitialBattleState(emptyFaction, emptyFaction, { firstActor: 'enemy' });
+  state.enemy.hand.push(factionCard('Control', 'control_controller_1'));
+  state.board[6] = unit({ owner: 'player', id: 'left-runner', attack: 3, hp: 1, effectId: 'lane_empty_bonus_damage' });
+  state.board[7] = unit({ owner: 'player', id: 'mid-guard', attack: 0, hp: 3 });
+
+  const action = chooseBattleAction(state, 'enemy');
+
+  assert.equal(action.cardId, 'control_controller_1');
+  assert.equal(action.aiEvaluation.utilityCategory, 'control');
+  assert.ok(action.aiEvaluation.marginOverHold > 0);
+});
+
+test('AI Feast draw cycle does not remove the only blocker preventing lethal open-lane damage', () => {
   const state = createInitialBattleState(emptyFaction, emptyFaction, { firstActor: 'enemy' });
   state.enemyHP = 2;
   state.enemy.hand.push(factionCard('Attrition Swarm', 'attrition_swarm_feast_1'));
@@ -152,6 +235,6 @@ test('AI Feast cycle does not remove the only blocker preventing lethal open-lan
 
   const action = chooseBattleAction(state, 'enemy');
 
-  assert.equal(action.type, 'pass');
+  assert.equal(action.cardId, 'attrition_swarm_feast_1');
   assert.equal(state.board[0]?.id, 'only-blocker');
 });

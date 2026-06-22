@@ -7,7 +7,7 @@ import {
 import { getFactionByKey, getFactionKeys } from '../src/data/factions/index.js';
 import { chooseBattleAction, recordBattleActionUse, selectOpeningMulliganCardIds, buildActionCandidates, scoreAction } from '../src/systems/enemyDecision.js';
 
-const FOCUS = new Set(['attrition_swarm_feast_1','swarm_recycle_1','swarm_spawn_1','tank_reinforce_1','wardens_stand_firm_1','wardens_shield_push_1','control_controller_1','control_jam_signal_1','attrition_swarm_rise_again_1','attrition_swarm_leech_1']);
+const FOCUS = new Set(['attrition_swarm_feast_1','swarm_recycle_1','swarm_spawn_1','tank_reinforce_1','tank_stability_1','wardens_stand_firm_1','wardens_shield_push_1','control_controller_1','control_recall_1','control_jam_signal_1','attrition_swarm_rise_again_1','attrition_swarm_leech_1']);
 const LIMIT = Number(process.argv.find(a=>a.startsWith('--per-card='))?.split('=')[1] ?? 5);
 const MAX_GAMES = Number(process.argv.find(a=>a.startsWith('--max-games='))?.split('=')[1] ?? 1200);
 const BASE_SEED = Number(process.argv.find(a=>a.startsWith('--seed='))?.split('=')[1] ?? 20260616) >>> 0;
@@ -25,7 +25,10 @@ function apply(state, owner, action){if(action.type==='pass'){recordPassAction(s
 function allDone(){return Object.values(samples).every(a=>a.length>=LIMIT)}
 function actionLabel(action){if(action?.type==='pass')return 'HOLD'; return action?.cardId??`${action?.fromIndex}->${action?.toIndex}`;}
 function utilityCost(action){return action?.aiEvaluation?.utilityOpportunityCost??0;}
-function utilityReason(action){return action?.aiEvaluation?.utilityReason??'n/a';}
+function utilityReason(action){return action?.aiEvaluation?.utilityReason??action?.aiEvaluation?.utilityRejectedReason??action?.aiEvaluation?.utilityChosenReason??'n/a';}
+function utilityCategory(action){return action?.aiEvaluation?.utilityCategory??'n/a';}
+function utilityBefore(action){return action?.aiEvaluation?.utilityScoreBeforeCost??'n/a';}
+function utilityAfter(action){return action?.aiEvaluation?.utilityScoreAfterCost??'n/a';}
 function grade(sample){const chosen=sample.legalActions.find(x=>x.chosen); const id=sample.focusCardId; const chosenFocus=chosen?.action?.cardId===id; if(!chosenFocus) return 'reasonable (held for higher score action)'; const ev=chosen.action.aiEvaluation; if(ev && ev.meaningful===false) return 'bad'; if(['wardens_stand_firm_1','tank_reinforce_1'].includes(id) && chosen.score<1000) return 'questionable'; if(['attrition_swarm_feast_1','swarm_recycle_1'].includes(id) && chosen.score<1200) return 'questionable'; return 'reasonable';}
 function sampleDecision(state, owner, meta){const side=state[owner]; const focusInHand=side.hand.filter(c=>FOCUS.has(c.id)); if(!focusInHand.length)return; const candidates=buildActionCandidates(state,owner,side.hand,{}); const scored=candidates.map(a=>({action:a,score:scoreAction(state,owner,a)})).filter(x=>Number.isFinite(x.score)).sort((a,b)=>b.score-a.score); for(const card of focusInHand){ if(samples[card.id].length>=LIMIT) continue; if(!scored.some(x=>x.action.cardId===card.id)) continue; const before=JSON.parse(JSON.stringify(state)); const chosen=chooseBattleAction(state,owner,{randomFn:rng(meta.seed),tieBreakPolicy:'seeded-random',aiSafeSurrenderEnabled:false}); const chosenKey=actionKey(chosen); const after=JSON.parse(JSON.stringify(state)); const result=apply(after,owner,chosen); samples[card.id].push({focusCardId:card.id,focusCardName:card.name,actingFaction:side.factionName,opponentFaction:state[owner==='player'?'enemy':'player'].factionName,turn:state.turnsCompleted+1,side:owner,hp:{player:state.playerHP,enemy:state.enemyHP},boardBefore:board(before),handBefore:hand(side),legalActions:scored.map(x=>({...x,chosen:actionKey(x.action)===chosenKey})),chosenAction:chosen,result:{ok:result.ok,type:result.type,card:fmtCard(result.card)},boardAfter:board(after)}); }}
 const factions=Object.fromEntries(getFactionKeys().map(k=>[k,getFactionByKey(k)])); const keys=getFactionKeys(); let games=0;
