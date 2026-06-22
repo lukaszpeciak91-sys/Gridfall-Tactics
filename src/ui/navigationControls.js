@@ -1,3 +1,5 @@
+import { AUDIO_KEYS } from '../audio/audioAssets.js';
+import { playSfx } from '../audio/audioPlayback.js';
 import { SETTINGS_CHANGED_EVENT, loadSettings, toggleMuted } from '../systems/settingsState.js';
 
 const PREMIUM_GOLD_ACCENT = 0xfacc15;
@@ -54,8 +56,12 @@ export function createFloatingControl(scene, x, y, size, label, onPointerUp, { f
       backing.setStrokeStyle(1, PREMIUM_GOLD_ACCENT, 0.58);
       halo.setAlpha(1);
     });
-    backing.on('pointerup', onPointerUp);
-    text.on('pointerup', onPointerUp);
+    const handlePointerUp = (...args) => {
+      playSfx(scene, AUDIO_KEYS.UI_CLICK);
+      onPointerUp(...args);
+    };
+    backing.on('pointerup', handlePointerUp);
+    text.on('pointerup', handlePointerUp);
   }
 
   return { halo, backing, text };
@@ -137,6 +143,7 @@ export function createMuteToggleControl(scene, x, y, size, { onToggle = null, de
     refreshButton();
   });
   button.on('pointerup', () => {
+    playSfx(scene, AUDIO_KEYS.UI_CLICK);
     const settings = toggleMuted(scene);
     refreshButton(settings);
     onToggle?.(settings);

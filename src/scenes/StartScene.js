@@ -18,6 +18,7 @@ import {
 } from '../ui/menuLogoLayout.js';
 import { preloadSecondaryButtonAsset } from '../ui/imageButton.js';
 import { createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
+import { preloadAudioAssets } from '../audio/audioAssets.js';
 import { applyAudioSettings, loadSettings } from '../systems/settingsState.js';
 
 const START_TRANSITION_MS = 720;
@@ -51,6 +52,7 @@ export default class StartScene extends Phaser.Scene {
       onError: (asset) => console.warn(`Start logo failed to load: ${asset.path}`),
     });
     preloadSecondaryButtonAsset(this);
+    preloadAudioAssets(this);
   }
 
   create() {
