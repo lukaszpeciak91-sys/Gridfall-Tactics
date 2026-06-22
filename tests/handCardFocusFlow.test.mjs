@@ -106,7 +106,7 @@ test('outside taps clear selection without intercepting board, pass, or card inp
   assert.doesNotMatch(source, /confirmTargetingSelection|drawActionZone/);
   assert.match(source, /playerPanel\.on\('pointerdown', \(pointer, localX, localY, event\) => \{\s*this\.onPlayerBasePointerDown\(event\);\s*\}\);/);
   assert.match(source, /playerPanel\.on\('pointerup', \(pointer, localX, localY, event\) => \{\s*this\.onPlayerBasePointerUp\(event\);\s*\}\);/);
-  assert.match(source, /onPlayerBasePointerUp\(event\) \{\s*if \(this\.openingMulliganPending\) \{\s*event\?\.stopPropagation\?\.\(\);\s*this\.cancelPassHoldToSurrender\(\);[\s\S]*this\.confirmOpeningMulligan\(\);\s*return;\s*\}[\s\S]*if \(!basePassAvailable\) return;[\s\S]*this\.resolvePassTurn\(\);\s*\}/);
+  assert.match(source, /onPlayerBasePointerUp\(event\) \{\s*if \(\(this\.isOpeningMulliganInputLocked\?\.\(\) \?\? false\)\) \{[\s\S]*?return;\s*\}\s*if \(this\.openingMulliganPending\) \{\s*event\?\.stopPropagation\?\.\(\);\s*this\.cancelPassHoldToSurrender\(\);[\s\S]*this\.confirmOpeningMulligan\(\);\s*return;\s*\}[\s\S]*if \(!basePassAvailable\) return;[\s\S]*this\.resolvePassTurn\(\);\s*\}/);
   assert.match(source, /background\.on\('pointerdown', \(\) => \{\s*this\.onBoardCellPointerDown\(boardIndex\);\s*\}\);/);
   assert.match(source, /background\.on\('pointerup', \(pointer\) => \{\s*this\.onBoardCellPointerUp\(boardIndex, pointer\);\s*\}\);/);
 });
