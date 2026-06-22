@@ -102,7 +102,7 @@ test('outside taps clear selection without intercepting board, pass, or card inp
   assert.match(source, /if \(this\.utilityMenuPanel\) return true;/);
   assert.match(source, /this\.bottomControlViews\.some\(\(control\) => \[control\.backing, control\.text\]/);
   assert.match(source, /getBoardCellFromPointerUp\(pointer, currentlyOver = \[\]\) \{[\s\S]*this\.boardCells\.find\(\(cell\) => overObjects\.includes\(cell\.background\)/);
-  assert.match(source, /isBoardCellTapReservedForCardAction\(boardIndex, selectedCard\) \{\s*if \(this\.targetingState\) \{\s*return this\.isValidTarget\(boardIndex, this\.targetingState\.targetType, this\.targetingState\.targetIndexes, this\.targetingState\.targetConstraint\);\s*\}\s*if \(!this\.isUnitCard\(selectedCard\)\) \{\s*return true;\s*\}\s*return canPlayOrRedeploy\(this\.gameState, 'player', selectedCard\.id, boardIndex\)\.ok;\s*\}/);
+  assert.match(source, /isBoardCellTapReservedForCardAction\(boardIndex, selectedCard\) \{\s*if \(this\.targetingState\) \{\s*return this\.isValidTarget\(boardIndex, this\.targetingState\.targetType, this\.targetingState\.targetIndexes, this\.targetingState\.targetConstraint\);\s*\}\s*if \(!selectedCard \|\| !this\.isUnitCard\(selectedCard\)\) \{\s*return true;\s*\}\s*return true;\s*\}/);
   assert.doesNotMatch(source, /confirmTargetingSelection|drawActionZone/);
   assert.match(source, /playerPanel\.on\('pointerdown', \(pointer, localX, localY, event\) => \{\s*this\.onPlayerBasePointerDown\(event\);\s*\}\);/);
   assert.match(source, /playerPanel\.on\('pointerup', \(pointer, localX, localY, event\) => \{\s*this\.onPlayerBasePointerUp\(event\);\s*\}\);/);

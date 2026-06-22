@@ -4583,11 +4583,11 @@ export default class BattleScene extends Phaser.Scene {
       return this.isValidTarget(boardIndex, this.targetingState.targetType, this.targetingState.targetIndexes, this.targetingState.targetConstraint);
     }
 
-    if (!this.isUnitCard(selectedCard)) {
+    if (!selectedCard || !this.isUnitCard(selectedCard)) {
       return true;
     }
 
-    return canPlayOrRedeploy(this.gameState, 'player', selectedCard.id, boardIndex).ok;
+    return true;
   }
 
   clearHandCardSelection() {

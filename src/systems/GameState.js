@@ -2101,7 +2101,10 @@ export function canPlayOrRedeploy(state, owner, handCardId, boardIndex) {
   if (!occupyingUnit) return { ok: true, type: 'play' };
   if (occupyingUnit.owner !== owner) return { ok: false, reason: 'Slot is occupied by opponent' };
 
-  if (!occupyingUnit.temporaryFloodToken && side.hand.length >= side.maxHandSize) {
+  const selectedCardLeavesHand = 1;
+  const displacedUnitReturnsToHand = occupyingUnit.temporaryFloodToken ? 0 : 1;
+  const finalHandSize = side.hand.length - selectedCardLeavesHand + displacedUnitReturnsToHand;
+  if (finalHandSize > side.maxHandSize) {
     return { ok: false, reason: 'Redeploy blocked: hand is full' };
   }
 
