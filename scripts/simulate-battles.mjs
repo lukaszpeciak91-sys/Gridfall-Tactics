@@ -432,7 +432,9 @@ function applyAction(state, owner, passStats, decisionOptions, telemetry, simTel
   if (action.type === 'play-unit') {
     result = playOrRedeployUnit(state, owner, action.cardId, action.slotIndex);
     if (result.ok && Array.isArray(action.targetIndexes) && action.effectId === 'swap_two_enemy_units') {
+      const playResult = result;
       result = resolveTargetedUnitOnPlayEffect(state, owner, action.slotIndex, action.targetIndexes);
+      if (result.ok && !result.card) result.card = playResult.card;
     }
   }
   if (action.type === 'swap-units') result = performSwap(state, owner, action.fromIndex, action.toIndex);
