@@ -1,3 +1,5 @@
+import { AUDIO_KEYS } from '../audio/audioAssets.js';
+import { playSfx } from '../audio/audioPlayback.js';
 import { preloadImageAsset, resolvePublicAssetPath } from '../rendering/backgroundArt.js';
 
 const SECONDARY_BUTTON_PUBLIC_PATH = 'assets/ui/button-secondary.png';
@@ -163,6 +165,7 @@ export function createImageButton(scene, {
   hitZone.on('pointerup', () => {
     setVisualState({ scale: hoverScale, alpha: hasButtonTexture ? 1 : 0.96, tint: hasButtonTexture ? 0xfffbef : null, glowAlpha: 0.08, textGlow: true });
     if (typeof onPointerUp === 'function') {
+      playSfx(scene, AUDIO_KEYS.UI_CLICK);
       onPointerUp();
     }
   });
