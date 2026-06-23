@@ -211,6 +211,9 @@ function ensureCardTelemetry(simTelemetry, faction, card) {
     faction,
     cardId: card?.id ?? 'unknown',
     cardName: card?.name ?? card?.id ?? 'Unknown',
+    isToken: card?.isToken === true,
+    collectible: card?.collectible,
+    tokenType: card?.tokenType,
     drawn: 0,
     played: 0,
     heldAtDefeat: 0,
@@ -574,6 +577,14 @@ function clampScore(value) {
   return Math.max(0, Math.min(100, Math.round(value)));
 }
 
+function isGeneratedCardTelemetryRow(row) {
+  const id = row?.cardId ?? '';
+  return row?.isToken === true
+    || row?.collectible === false
+    || typeof row?.tokenType === 'string'
+    || /(?:^|_)(?:grave_call_grunt|combat_death_grunt|summoned_grunt|effect_variant_grunt|flood_token)(?:_|$)/.test(id);
+}
+
 function cardImpactRow(row, factionBaselines = {}) {
   const wrWhenDrawn = percentValue(row.drawnWins, row.drawnGames);
   const wrWhenNotDrawn = percentValue(row.notDrawnWins, row.notDrawnGames);
@@ -736,13 +747,14 @@ function printCardSimulatorTelemetry(simTelemetry) {
       'WR When Played': `${pct(row.wrWhenPlayed)}`,
     })));
   };
-  rank('Top 10 Draw Impact', [...rows].sort((a, b) => b.drawImpact - a.drawImpact).slice(0, 10));
-  rank('Worst 10 Draw Impact', [...rows].sort((a, b) => a.drawImpact - b.drawImpact).slice(0, 10));
-  rank('Top 10 Play Impact', [...rows].sort((a, b) => b.playImpact - a.playImpact).slice(0, 10));
-  rank('Worst 10 Play Impact', [...rows].sort((a, b) => a.playImpact - b.playImpact).slice(0, 10));
+  const cardRankingRows = rows.filter((row) => !isGeneratedCardTelemetryRow(row));
+  rank('Top 10 Draw Impact', [...cardRankingRows].sort((a, b) => b.drawImpact - a.drawImpact).slice(0, 10));
+  rank('Worst 10 Draw Impact', [...cardRankingRows].sort((a, b) => a.drawImpact - b.drawImpact).slice(0, 10));
+  rank('Top 10 Play Impact', [...cardRankingRows].sort((a, b) => b.playImpact - a.playImpact).slice(0, 10));
+  rank('Worst 10 Play Impact', [...cardRankingRows].sort((a, b) => a.playImpact - b.playImpact).slice(0, 10));
 
   console.log('\nMost Dead Cards');
-  console.table([...rows].sort((a, b) => b.deadCardScore - a.deadCardScore || b.heldAtDefeat - a.heldAtDefeat).slice(0, 10).map((row) => ({
+  console.table([...cardRankingRows].sort((a, b) => b.deadCardScore - a.deadCardScore || b.heldAtDefeat - a.heldAtDefeat).slice(0, 10).map((row) => ({
     Card: row.cardName,
     Drawn: row.drawn,
     Played: row.played,
@@ -751,7 +763,7 @@ function printCardSimulatorTelemetry(simTelemetry) {
   })));
 
   console.log('\nCarry Cards');
-  console.table([...rows].sort((a, b) => b.carryScore - a.carryScore || b.playedWins - a.playedWins).slice(0, 10).map((row) => ({
+  console.table([...cardRankingRows].sort((a, b) => b.carryScore - a.carryScore || b.playedWins - a.playedWins).slice(0, 10).map((row) => ({
     Card: row.cardName,
     'Win Rate When Played': row.playedGames > 0 ? `${pct(row.wrWhenPlayed)}` : 'N/A',
     Played: row.played,
