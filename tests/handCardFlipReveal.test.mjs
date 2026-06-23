@@ -60,11 +60,11 @@ test('flip reveal swaps the visual at midpoint and restores an interactive real 
   const { backCard, cardView, background } = createVisuals();
 
   const reveal = startHandCardFlipReveal({ tweens, backCard, cardView });
-  assert.equal(HAND_CARD_FLIP_REVEAL_DURATION, 220);
+  assert.equal(HAND_CARD_FLIP_REVEAL_DURATION, 300);
   assert.equal(pending.length, 1);
   assert.equal(pending[0].config.targets, backCard);
   assert.equal(pending[0].config.scaleX, 0);
-  assert.equal(pending[0].config.duration, 110);
+  assert.equal(pending[0].config.duration, 150);
   assert.equal(cardView.root.scaleX, 0);
   assert.equal(backCard.depth, cardView.root.depth, 'temporary reveal back-card is lifted above the redrawn future-card stack');
   assert.equal(background.interactive, false);
