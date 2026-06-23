@@ -8,7 +8,7 @@ import { BATTLE_BACKGROUND_FALLBACK_COLOR, BATTLE_BACKGROUND_FALLBACK_COLOR_HEX,
 import { preloadAllCardIllustrations } from '../rendering/cardIllustrationAssets.js';
 import { calculateBattleLayoutMetrics } from '../ui/battleLayout.js';
 import { calculateHandBackCardCoverCrop, calculateHandBackCardDepth, shouldRenderHandBackCard } from '../ui/handBackCardPresentation.js';
-import { findHandCardFlipRevealSlots, shouldSkipHandCardFlipReveal, startHandCardFlipReveal } from '../ui/handCardFlipReveal.js';
+import { HAND_CARD_FLIP_REVEAL_DURATION, findHandCardFlipRevealSlots, shouldSkipHandCardFlipReveal, startHandCardFlipReveal } from '../ui/handCardFlipReveal.js';
 import { createFloatingControl, createMuteToggleControl, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
 import { createModalBackButton } from '../ui/modalControls.js';
 import { PREMIUM_BROADCAST_FONT_STACK, createImageButton, preloadSecondaryButtonAsset } from '../ui/imageButton.js';
@@ -191,8 +191,9 @@ const BOARD_CARD_ARTWORK_PLAYER_CROP_POSITION_Y = 0.43;
 const BOARD_CARD_ARTWORK_ENEMY_CROP_POSITION_Y = 0.57;
 const BOARD_CARD_ART_HEIGHT_EXPANSION_PX = 10;
 const HAND_CARD_LONG_PRESS_MS = 425;
-const OPENING_MULLIGAN_REVEAL_CARD_MS = 120;
-const OPENING_MULLIGAN_REVEAL_STAGGER_MS = 75;
+const OPENING_MULLIGAN_REVEAL_CARD_MS = HAND_CARD_FLIP_REVEAL_DURATION;
+const OPENING_MULLIGAN_REVEAL_STAGGER_MS = 120;
+const OPENING_MULLIGAN_REVEAL_POST_HOLD_MS = 150;
 const CARD_INSPECT_LONG_PRESS_MS = 350;
 const BOARD_INSPECT_LONG_PRESS_MS = 350;
 const PASS_HOLD_TO_SURRENDER_MS = 425;
@@ -3982,7 +3983,22 @@ export default class BattleScene extends Phaser.Scene {
       cardView.root?.setScale?.(1);
       cardView.background?.disableInteractive?.();
       this.openingMulliganRevealVisibleCount = Math.max(this.openingMulliganRevealVisibleCount, index + 1);
-      if (isLast) this.completeOpeningMulliganReveal({ skipAnimation: true, redraw: false });
+      if (!isLast) return;
+
+      if (!this.time || OPENING_MULLIGAN_REVEAL_POST_HOLD_MS <= 0) {
+        this.completeOpeningMulliganReveal({ skipAnimation: true, redraw: false });
+        return;
+      }
+
+      const holdTimer = this.time.delayedCall(OPENING_MULLIGAN_REVEAL_POST_HOLD_MS, () => {
+        if (generation !== this.openingMulliganRevealGeneration || !this.openingMulliganRevealPending) return;
+        this.completeOpeningMulliganReveal({ skipAnimation: true, redraw: false });
+      });
+      this.openingMulliganRevealControllers.push({
+        type: 'opening-reveal-post-hold',
+        timer: holdTimer,
+        cleanup: () => holdTimer.remove?.(false),
+      });
     };
 
     if (!backCard || typeof this.tweens?.add !== 'function') {

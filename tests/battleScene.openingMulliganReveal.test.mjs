@@ -4,6 +4,12 @@ import test from 'node:test';
 
 const source = readFileSync(new URL('../src/scenes/BattleScene.js', import.meta.url), 'utf8');
 
+test('opening mulligan reveal timing matches global hand flip pacing with a post-reveal hold', () => {
+  assert.match(source, /OPENING_MULLIGAN_REVEAL_CARD_MS = HAND_CARD_FLIP_REVEAL_DURATION/);
+  assert.match(source, /OPENING_MULLIGAN_REVEAL_STAGGER_MS = 120/);
+  assert.match(source, /OPENING_MULLIGAN_REVEAL_POST_HOLD_MS = 150/);
+});
+
 function extractMethodBody(name, nextName) {
   const methodPattern = new RegExp(`\\n  (?:async )?${name}\\(`);
   const nextPattern = new RegExp(`\\n  (?:async )?${nextName}\\(`, 'g');
@@ -74,6 +80,11 @@ test('opening mulligan reveal uses hand backs, sequential timing, and reduced-mo
   assert.match(startReveal, /this\.completeOpeningMulliganReveal\(\{ skipAnimation: true \}\);/);
   assert.match(startReveal, /index \* OPENING_MULLIGAN_REVEAL_STAGGER_MS/);
   assert.match(startReveal, /this\.time\.delayedCall\(delay/);
+
+  const revealSlot = extractMethodBody('revealOpeningMulliganCardSlot', 'completeOpeningMulliganReveal');
+  assert.match(revealSlot, /Math\.round\(OPENING_MULLIGAN_REVEAL_CARD_MS \/ 2\)/);
+  assert.match(revealSlot, /this\.time\.delayedCall\(OPENING_MULLIGAN_REVEAL_POST_HOLD_MS/);
+  assert.match(revealSlot, /type: 'opening-reveal-post-hold'/);
 });
 
 test('lifecycle recovery completes opening reveal before mulligan redraw/rebuild', () => {

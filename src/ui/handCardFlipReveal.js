@@ -1,4 +1,4 @@
-export const HAND_CARD_FLIP_REVEAL_DURATION = 220;
+export const HAND_CARD_FLIP_REVEAL_DURATION = 300;
 
 export function shouldSkipHandCardFlipReveal() {
   return typeof window !== 'undefined'
