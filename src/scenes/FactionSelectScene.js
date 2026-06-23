@@ -13,6 +13,8 @@ import {
   getMenuBackgroundAsset,
   preloadMenuBackgroundArt,
 } from '../rendering/backgroundArt.js';
+import { AUDIO_KEYS } from '../audio/audioAssets.js';
+import { playSfx } from '../audio/audioPlayback.js';
 import { createNewCampaign, saveCampaign } from '../systems/campaignState.js';
 import { drawFactionCardVisual, preloadFactionPreviewArt } from '../ui/factionCards.js';
 import { createImageButton, preloadSecondaryButtonAsset, PREMIUM_BROADCAST_FONT_STACK } from '../ui/imageButton.js';
@@ -215,6 +217,7 @@ export default class FactionSelectScene extends Phaser.Scene {
     button.on('pointerup', (pointer) => {
       pressOverlay.setVisible(false);
       if (this.tapVsDrag.end(pointer, this.scrollState?.content?.y ?? 0)) {
+        this.playFactionBannerClick();
         this.handleFactionBannerTap(factionKey);
       }
     });
@@ -350,6 +353,7 @@ export default class FactionSelectScene extends Phaser.Scene {
     });
     selectButton.hitZone.on('pointerup', (pointer) => {
       if (this.tapVsDrag.end(pointer, this.scrollState?.content?.y ?? 0)) {
+        this.playFactionBannerClick();
         this.selectFaction(factionKey);
       }
     });
@@ -357,6 +361,10 @@ export default class FactionSelectScene extends Phaser.Scene {
     container.add([glow, panel, accentRail, descriptionIntroText, descriptionBodyText, ...selectButton.items]);
     this.interactiveElements.push(selectButton.hitZone);
     return { container, items: [container, glow, panel, accentRail, descriptionIntroText, descriptionBodyText, ...selectButton.items] };
+  }
+
+  playFactionBannerClick() {
+    playSfx(this, AUDIO_KEYS.UI_CLICK);
   }
 
   handleFactionBannerTap(factionKey) {

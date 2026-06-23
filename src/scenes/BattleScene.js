@@ -5414,11 +5414,14 @@ export default class BattleScene extends Phaser.Scene {
     const card = this.gameState.player.hand.find((item) => item.id === cardId);
     if (!card) return;
 
+    const mulliganSelectionBefore = this.selectedMulliganCardIds.join('|');
     if (this.selectedMulliganCardIds.includes(cardId)) {
       this.selectedMulliganCardIds = this.selectedMulliganCardIds.filter((id) => id !== cardId);
     } else if (this.selectedMulliganCardIds.length < MAX_OPENING_MULLIGAN_CARDS) {
       this.selectedMulliganCardIds.push(cardId);
     }
+
+    if (this.selectedMulliganCardIds.join('|') !== mulliganSelectionBefore) this.playBattleSfx?.(AUDIO_KEYS.UI_CLICK);
 
     this.updatePlayerBaseActionState();
     this.resetCardHighlights({ showPreview });
