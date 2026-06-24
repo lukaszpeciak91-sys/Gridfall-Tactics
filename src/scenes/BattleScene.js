@@ -1507,6 +1507,7 @@ export default class BattleScene extends Phaser.Scene {
       label,
       onPointerUp: () => {
         this.guardPointerEvent();
+        this.stopOutcomeStinger({ fadeMs: 200 });
         if (this.navigationInProgress) return;
         onClick();
       },
