@@ -3976,6 +3976,9 @@ export default class BattleScene extends Phaser.Scene {
       controller?.type === 'opening-reveal-back' && controller.backCard?.slotIndex === index
     ));
     const backCard = backController?.backCard;
+    const playRevealSfx = () => {
+      this.playBattleSfx?.(AUDIO_KEYS.CARD_DRAW, { cooldownMs: 0 });
+    };
     const finishSlot = () => {
       if (generation !== this.openingMulliganRevealGeneration || !this.openingMulliganRevealPending) return;
       backCard?.destroy?.();
@@ -4002,6 +4005,7 @@ export default class BattleScene extends Phaser.Scene {
     };
 
     if (!backCard || typeof this.tweens?.add !== 'function') {
+      playRevealSfx();
       finishSlot();
       return;
     }
@@ -4017,6 +4021,7 @@ export default class BattleScene extends Phaser.Scene {
       ease: 'Quad.easeIn',
       onComplete: () => {
         if (generation !== this.openingMulliganRevealGeneration || !this.openingMulliganRevealPending) return;
+        playRevealSfx();
         backCard.destroy?.();
         const expandTween = this.tweens.add({
           targets: cardView.root,

@@ -83,6 +83,9 @@ test('opening mulligan reveal uses hand backs, sequential timing, and reduced-mo
 
   const revealSlot = extractMethodBody('revealOpeningMulliganCardSlot', 'completeOpeningMulliganReveal');
   assert.match(revealSlot, /Math\.round\(OPENING_MULLIGAN_REVEAL_CARD_MS \/ 2\)/);
+  assert.match(revealSlot, /const playRevealSfx = \(\) => \{\s*this\.playBattleSfx\?\.\(AUDIO_KEYS\.CARD_DRAW, \{ cooldownMs: 0 \}\);\s*\};/);
+  assert.match(revealSlot, /onComplete: \(\) => \{[\s\S]*?playRevealSfx\(\);[\s\S]*?backCard\.destroy\?\.\(\);[\s\S]*?const expandTween = this\.tweens\.add/);
+  assert.match(revealSlot, /if \(!backCard \|\| typeof this\.tweens\?\.add !== 'function'\) \{\s*playRevealSfx\(\);\s*finishSlot\(\);/);
   assert.match(revealSlot, /this\.time\.delayedCall\(OPENING_MULLIGAN_REVEAL_POST_HOLD_MS/);
   assert.match(revealSlot, /type: 'opening-reveal-post-hold'/);
 });
