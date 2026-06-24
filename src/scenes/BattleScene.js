@@ -331,6 +331,8 @@ export default class BattleScene extends Phaser.Scene {
     this.battleResultModal = null;
     this.battleResultModalShown = false;
     this.battleResultModalPending = false;
+    this.battleResultModalPendingEvent = null;
+    this.resultOverlayState = null;
     this.battleStartedAt = null;
     this.battleEndedAt = null;
     this.backgroundArtAsset = null;
@@ -458,6 +460,8 @@ export default class BattleScene extends Phaser.Scene {
     this.battleResultModal = null;
     this.battleResultModalShown = false;
     this.battleResultModalPending = false;
+    this.battleResultModalPendingEvent = null;
+    this.resultOverlayState = null;
     this.battleStartedAt = null;
     this.battleEndedAt = null;
     this.gameState = null;
@@ -1166,7 +1170,8 @@ export default class BattleScene extends Phaser.Scene {
     this.battleResultModalPending = true;
     this.isFlowResolving = true;
     this.updateActionSlotBadge();
-    this.time.delayedCall(delayMs, () => this.showBattleResultModal());
+    const pendingResultModalEvent = this.time.delayedCall(delayMs, () => this.showBattleResultModal());
+    this.battleResultModalPendingEvent = pendingResultModalEvent;
   }
 
   completeBattleFlow(delayMs = 500) {
@@ -1338,10 +1343,16 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   showBattleResultModal() {
+    const options = arguments[0] ?? {};
+    const skipReveal = options.skipReveal === true;
     this.battleResultModalPending = false;
     if (!this.gameState?.winner || this.battleResultModalShown) return;
 
     this.battleResultModalShown = true;
+    this.resultOverlayState = {
+      kind: this.isCampaignBattle() ? 'campaign-battle-result' : 'arena-battle-result',
+      phase: 'interactive',
+    };
     this.isFlowResolving = false;
     this.updateActionSlotBadge();
     this.selectedCardId = null;
@@ -1452,37 +1463,43 @@ export default class BattleScene extends Phaser.Scene {
         ),
       ];
 
-    title.setScale(presentation.titleStartScale).setAlpha(0);
-    titleGlow.setScale(presentation.titleStartScale).setAlpha(0);
-    titleAura.setScale(presentation.titleStartScale).setAlpha(0);
-    this.tweens.add({
-      targets: [title, titleGlow, titleAura],
-      scale: presentation.titleEndScale,
-      alpha: { from: 0, to: 1 },
-      duration: presentation.revealDuration,
-      ease: 'Sine.easeOut',
-      onComplete: () => {
-        this.tweens.add({
-          targets: [title, titleGlow],
-          scale: presentation.titlePulseScale,
-          duration: 1850,
-          yoyo: true,
-          repeat: -1,
-          ease: 'Sine.easeInOut',
-        });
-        this.tweens.add({
-          targets: titleAura,
-          scale: 1.04,
-          alpha: { from: presentation.glowPulseAlpha * 0.35, to: presentation.glowPulseAlpha },
-          duration: 1850,
-          yoyo: true,
-          repeat: -1,
-          ease: 'Sine.easeInOut',
-        });
-      },
-    });
-
-    const celebration = this.addBattleResultVictoryCelebration(centerX, centerY, overlayWidth, overlayHeight, presentation);
+    let celebration = { particles: [], timers: [] };
+    if (skipReveal) {
+      title.setScale(presentation.titleEndScale).setAlpha(1);
+      titleGlow.setScale(presentation.titleEndScale).setAlpha(1);
+      titleAura.setScale(presentation.titleEndScale).setAlpha(presentation.glowPulseAlpha);
+    } else {
+      title.setScale(presentation.titleStartScale).setAlpha(0);
+      titleGlow.setScale(presentation.titleStartScale).setAlpha(0);
+      titleAura.setScale(presentation.titleStartScale).setAlpha(0);
+      this.tweens.add({
+        targets: [title, titleGlow, titleAura],
+        scale: presentation.titleEndScale,
+        alpha: { from: 0, to: 1 },
+        duration: presentation.revealDuration,
+        ease: 'Sine.easeOut',
+        onComplete: () => {
+          this.tweens.add({
+            targets: [title, titleGlow],
+            scale: presentation.titlePulseScale,
+            duration: 1850,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut',
+          });
+          this.tweens.add({
+            targets: titleAura,
+            scale: 1.04,
+            alpha: { from: presentation.glowPulseAlpha * 0.35, to: presentation.glowPulseAlpha },
+            duration: 1850,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut',
+          });
+        },
+      });
+      celebration = this.addBattleResultVictoryCelebration(centerX, centerY, overlayWidth, overlayHeight, presentation);
+    }
 
     this.battleResultModal = {
       overlay,
@@ -1531,9 +1548,12 @@ export default class BattleScene extends Phaser.Scene {
 
   destroyBattleResultModal() {
     this.stopOutcomeStinger({ fadeMs: 200 });
+    this.battleResultModalPendingEvent?.remove?.(false);
+    this.battleResultModalPendingEvent = null;
     if (!this.battleResultModal) {
       this.battleResultModalShown = false;
       this.battleResultModalPending = false;
+      this.resultOverlayState = null;
       this.updateActionSlotBadge();
       return;
     }
@@ -1558,6 +1578,7 @@ export default class BattleScene extends Phaser.Scene {
     this.battleResultModal = null;
     this.battleResultModalShown = false;
     this.battleResultModalPending = false;
+    this.resultOverlayState = null;
     this.updateActionSlotBadge();
   }
 
@@ -2414,11 +2435,14 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   showCampaignCompleteModal(status) {
-    const options = this.campaignCompletionModalOptions ?? {};
+    const restoreOptions = arguments[1] ?? null;
+    const options = restoreOptions ?? this.campaignCompletionModalOptions ?? {};
     this.campaignCompletionModalOptions = null;
     this.destroyBattleResultModal();
     this.playCampaignOutcomeSfxOnce(status);
     const campaign = options.campaign ?? loadCampaign();
+    const restorePhase = options.restorePhase === 'cinematic' ? 'cinematic' : (options.restorePhase ? 'interactive' : 'cinematic');
+    const restoreAsInteractive = restorePhase !== 'cinematic';
     const won = status === 'won';
     const safeCampaign = isValidCampaignState(campaign) ? campaign : null;
     const { width, height } = this.scale.gameSize;
@@ -2452,6 +2476,7 @@ export default class BattleScene extends Phaser.Scene {
     const compactGlowItems = [];
     let campaignCelebration = null;
     let transitionStarted = false;
+    if (restoreAsInteractive) transitionStarted = true;
 
     const heroMaxWidth = Math.min(width * 0.82, 520);
     const heroMaxHeight = Math.min(height * 0.48, 520);
@@ -2497,6 +2522,7 @@ export default class BattleScene extends Phaser.Scene {
     };
 
     const revealSummary = () => {
+      this.resultOverlayState = { kind: 'campaign-completion', status, phase: 'summary', preview: options.preview === true, campaign: safeCampaign };
       summaryItems.filter((item) => !button.items.includes(item)).forEach((item) => item?.setVisible?.(true)?.setAlpha?.(0));
       this.tweens.add({
         targets: summaryTitle,
@@ -2511,6 +2537,7 @@ export default class BattleScene extends Phaser.Scene {
             ease: 'Sine.easeOut',
             onComplete: () => {
               button.items.forEach((item) => item?.setVisible?.(true)?.setAlpha?.(1));
+              this.resultOverlayState = { kind: 'campaign-completion', status, phase: 'interactive', preview: options.preview === true, campaign: safeCampaign };
             },
           });
         },
@@ -2520,6 +2547,7 @@ export default class BattleScene extends Phaser.Scene {
     const showSummary = () => {
       if (transitionStarted) return;
       transitionStarted = true;
+      this.resultOverlayState = { kind: 'campaign-completion', status, phase: 'summary', preview: options.preview === true, campaign: safeCampaign };
       overlay.removeAllListeners('pointerup');
       campaignCelebration?.timers?.forEach((timer) => timer?.remove?.(false));
       campaignCelebration?.particles?.forEach((particle) => particle?.destroy?.());
@@ -2749,10 +2777,24 @@ export default class BattleScene extends Phaser.Scene {
     }, this.getBattleResultPresentation(), { depth: CAMPAIGN_COMPLETION_BUTTON_DEPTH });
     button.items.forEach((item) => item?.setVisible?.(false));
     summaryItems.push(...[fallbackPanel, summaryTitle, flavor, stats, dividerCore].filter(Boolean), ...button.items);
+    if (restoreAsInteractive) {
+      overlay.removeAllListeners('pointerup');
+      campaignCelebration?.timers?.forEach((timer) => timer?.remove?.(false));
+      campaignCelebration?.particles?.forEach((particle) => particle?.destroy?.());
+      cinematicItems.forEach((item) => item?.destroy?.());
+      summaryItems.forEach((item) => item?.setVisible?.(true)?.setAlpha?.(1));
+    }
     if (campaignCelebration) {
       campaignCelebration.modalItems = [...cinematicItems.filter((item) => item !== title && item !== titleAura), ...passiveItems, trophy, fallbackPanel, summaryTitle].filter(Boolean);
     }
     this.battleResultModalShown = true;
+    this.resultOverlayState = {
+      kind: 'campaign-completion',
+      status,
+      phase: restoreAsInteractive ? 'interactive' : 'cinematic',
+      preview: options.preview === true,
+      campaign: safeCampaign,
+    };
     this.battleResultModal = {
       overlay,
       title,
@@ -3012,11 +3054,47 @@ export default class BattleScene extends Phaser.Scene {
     };
   }
 
+
+  captureResultOverlayState() {
+    if (!this.battleResultModalShown && !this.battleResultModalPending) return null;
+    if (this.resultOverlayState) {
+      return {
+        ...this.resultOverlayState,
+        campaign: this.resultOverlayState.campaign ? { ...this.resultOverlayState.campaign } : this.resultOverlayState.campaign,
+      };
+    }
+    if (this.battleResultModalShown) {
+      return {
+        kind: this.isCampaignBattle() ? 'campaign-battle-result' : 'arena-battle-result',
+        phase: 'interactive',
+      };
+    }
+    return null;
+  }
+
+  restoreResultOverlayFromSnapshot(snapshot) {
+    if (!snapshot?.kind) return false;
+    if (snapshot.kind === 'campaign-completion') {
+      const phase = snapshot.phase === 'cinematic' ? 'cinematic' : 'interactive';
+      this.showCampaignCompleteModal(snapshot.status === 'won' ? 'won' : 'lost', {
+        preview: snapshot.preview === true,
+        campaign: snapshot.campaign,
+        restorePhase: phase,
+      });
+      return true;
+    }
+    if ((snapshot.kind === 'arena-battle-result' || snapshot.kind === 'campaign-battle-result') && this.gameState?.winner) {
+      this.showBattleResultModal({ skipReveal: true });
+      return true;
+    }
+    return false;
+  }
+
   rebuildBattleView(reason = 'unknown') {
     const width = this.scale.gameSize.width;
     const height = this.scale.gameSize.height;
 
-    const resultModalWasShown = this.battleResultModalShown;
+    const resultOverlaySnapshot = this.captureResultOverlayState();
     this.cleanupSceneObjects({ preserveTimers: true });
     this.terminalTextBootComplete = false;
     this.layout = this.getLayoutMetrics(width, height);
@@ -3038,10 +3116,7 @@ export default class BattleScene extends Phaser.Scene {
     this.resetCardHighlights();
     this.restorePersistentBattleBanner();
 
-    if (this.gameState?.winner && resultModalWasShown) {
-      this.battleResultModalShown = false;
-      this.showBattleResultModal();
-    }
+    this.restoreResultOverlayFromSnapshot(resultOverlaySnapshot);
 
     console.debug('BattleScene view rebuilt from runtime GameState', {
       reason,
