@@ -28,6 +28,9 @@ function getMusicPlaybackVolume(settings, asset, options) {
   const settingsVolume = clampUnit(settings.musicVolume / 100, 0.5);
   const assetVolume = clampUnit(asset.volume, 1);
   const optionVolume = clampUnit(options.volume, 1);
+  if (Number.isFinite(asset.busVolume)) {
+    return clampUnit(settingsVolume * assetVolume * optionVolume * clampUnit(asset.busVolume, MUSIC_BUS_VOLUME));
+  }
   return clampUnit(settingsVolume * assetVolume * optionVolume * MUSIC_BUS_VOLUME);
 }
 

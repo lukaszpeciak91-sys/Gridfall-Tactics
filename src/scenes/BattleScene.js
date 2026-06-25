@@ -19,7 +19,7 @@ import { getActiveLocale, translateActive, translateActiveList } from '../locali
 import { applyCampaignBattleResult, clearCampaign, createNewCampaign, isValidCampaignState, loadCampaign, saveCampaign } from '../systems/campaignState.js';
 import { getCardBoardArtPositionY } from '../data/presentation/cardArtCropOverrides.js';
 import { AUDIO_KEYS, preloadAudioAssets } from '../audio/audioAssets.js';
-import { playManagedSfx, playSfx, stopManagedSfx, stopMusic } from '../audio/audioPlayback.js';
+import { playManagedSfx, playMusic, playSfx, stopManagedSfx, stopMusic } from '../audio/audioPlayback.js';
 
 const HAND_BACK_CARD_ASSET = Object.freeze({
   key: 'ui.card.back',
@@ -376,6 +376,7 @@ export default class BattleScene extends Phaser.Scene {
     this.battleOutcomeSfxPlayed = false;
     this.campaignOutcomeSfxPlayed = false;
     this.activeOutcomeStinger = null;
+    this.battleAmbienceStopping = false;
   }
 
   preload() {
@@ -464,6 +465,7 @@ export default class BattleScene extends Phaser.Scene {
     this.resultOverlayState = null;
     this.battleStartedAt = null;
     this.battleEndedAt = null;
+    this.battleAmbienceStopping = false;
     this.gameState = null;
     this.factionKey = null;
     this.layout = null;
@@ -613,6 +615,8 @@ export default class BattleScene extends Phaser.Scene {
     this.events.on(Phaser.Scenes.Events.RESUME, this.onSceneResume, this);
     this.events.on(Phaser.Scenes.Events.WAKE, this.onSceneWake, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this);
+
+    this.startBattleAmbience();
 
     if (this.isCampaignCompletionPreview()) {
       const previewStatus = this.battleContext.previewStatus;
@@ -1086,8 +1090,20 @@ export default class BattleScene extends Phaser.Scene {
     return playSfx(this, key, options);
   }
 
+  startBattleAmbience() {
+    if (this.isCampaignCompletionPreview() || this.gameState?.winner) return null;
+    this.battleAmbienceStopping = false;
+    return playMusic(this, AUDIO_KEYS.BATTLE_AMBIENCE);
+  }
+
+  stopBattleAmbience({ fadeMs = 350 } = {}) {
+    this.battleAmbienceStopping = true;
+    return stopMusic(this, { fadeMs });
+  }
+
   playOutcomeStinger(key) {
     if (![AUDIO_KEYS.BATTLE_VICTORY, AUDIO_KEYS.BATTLE_DEFEAT].includes(key)) return false;
+    this.stopBattleAmbience({ fadeMs: 0 });
     if (this.activeOutcomeStinger?.key === key && this.activeOutcomeStinger.sound?.isPlaying) return true;
 
     this.stopOutcomeStinger({ fadeMs: 0 });
@@ -1171,6 +1187,7 @@ export default class BattleScene extends Phaser.Scene {
     }
     this.battleResultModalPending = true;
     this.isFlowResolving = true;
+    this.stopBattleAmbience({ fadeMs: 350 });
     this.updateActionSlotBadge();
     const pendingResultModalEvent = this.time.delayedCall(delayMs, () => this.showBattleResultModal());
     this.battleResultModalPendingEvent = pendingResultModalEvent;
@@ -2969,6 +2986,10 @@ export default class BattleScene extends Phaser.Scene {
       this.resetCardHighlights();
     }
 
+    if (!this.gameState?.winner && !this.battleAmbienceStopping) {
+      this.startBattleAmbience();
+    }
+
     this.game.renderer?.resetTextures?.();
     this.game.renderer?.snapshotArea?.(0, 0, 1, 1, () => {});
     this.game.canvas?.focus?.();
@@ -3133,6 +3154,7 @@ export default class BattleScene extends Phaser.Scene {
 
   shutdown() {
     this.cleanupSceneObjects();
+    this.stopBattleAmbience({ fadeMs: 0 });
     this.scale.off('enterfullscreen', this.onFullscreenChanged, this);
     this.scale.off('leavefullscreen', this.onFullscreenChanged, this);
     this.scale.off('resize', this.onViewportChanged, this);
