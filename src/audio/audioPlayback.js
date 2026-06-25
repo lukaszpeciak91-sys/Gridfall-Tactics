@@ -13,6 +13,13 @@ function clampUnit(value, fallback = 1) {
   return Math.max(0, Math.min(1, numericValue));
 }
 
+function getSfxPlaybackVolume(settings, asset, options) {
+  const settingsVolume = clampUnit(settings.sfxVolume / 100, 0.5);
+  const assetVolume = clampUnit(asset.volume, 1);
+  const optionVolume = clampUnit(options.volume, 1);
+  return clampUnit(settingsVolume * assetVolume * optionVolume);
+}
+
 export function playSfx(scene, key, options = {}) {
   const asset = getAudioAsset(key);
   if (!asset || asset.category !== 'sfx' || !scene?.sound?.play) return false;
@@ -26,9 +33,7 @@ export function playSfx(scene, key, options = {}) {
   const lastPlayedAt = lastPlayedAtByKey.get(asset.key) ?? -Infinity;
   if (cooldownMs > 0 && now - lastPlayedAt < cooldownMs) return false;
 
-  const settingsVolume = clampUnit(settings.sfxVolume / 100, 0.5);
-  const optionVolume = clampUnit(options.volume, 1);
-  const volume = settingsVolume * optionVolume;
+  const volume = getSfxPlaybackVolume(settings, asset, options);
   if (volume <= 0) return false;
 
   try {
@@ -61,9 +66,7 @@ export function playManagedSfx(scene, key, options = {}) {
   const lastPlayedAt = lastPlayedAtByKey.get(asset.key) ?? -Infinity;
   if (cooldownMs > 0 && now - lastPlayedAt < cooldownMs) return null;
 
-  const settingsVolume = clampUnit(settings.sfxVolume / 100, 0.5);
-  const optionVolume = clampUnit(options.volume, 1);
-  const volume = settingsVolume * optionVolume;
+  const volume = getSfxPlaybackVolume(settings, asset, options);
   if (volume <= 0) return null;
 
   try {
