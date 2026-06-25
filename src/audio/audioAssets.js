@@ -25,7 +25,7 @@ export const AUDIO_ASSETS = Object.freeze({
   [AUDIO_KEYS.ATTACK_IMPACT]: Object.freeze({ key: AUDIO_KEYS.ATTACK_IMPACT, path: sfxPath('attack-impact.mp3'), category: 'sfx', cooldownMs: 70 }),
   [AUDIO_KEYS.UNIT_DEATH]: Object.freeze({ key: AUDIO_KEYS.UNIT_DEATH, path: sfxPath('unit-death.mp3'), category: 'sfx', cooldownMs: 110 }),
   [AUDIO_KEYS.BASE_BREAK]: Object.freeze({ key: AUDIO_KEYS.BASE_BREAK, path: sfxPath('base-break.mp3'), category: 'sfx', cooldownMs: 250 }),
-  [AUDIO_KEYS.BATTLE_VICTORY]: Object.freeze({ key: AUDIO_KEYS.BATTLE_VICTORY, path: sfxPath('battle-victory.mp3'), category: 'sfx', cooldownMs: 1000 }),
+  [AUDIO_KEYS.BATTLE_VICTORY]: Object.freeze({ key: AUDIO_KEYS.BATTLE_VICTORY, path: sfxPath('battle-victory.mp3'), category: 'sfx', cooldownMs: 1000, volume: 0.45 }),
   [AUDIO_KEYS.BATTLE_DEFEAT]: Object.freeze({ key: AUDIO_KEYS.BATTLE_DEFEAT, path: sfxPath('battle-defeat.mp3'), category: 'sfx', cooldownMs: 1000 }),
   [AUDIO_KEYS.BASE_HIT]: Object.freeze({ key: AUDIO_KEYS.BASE_HIT, path: sfxPath('base-hit.mp3'), category: 'sfx', cooldownMs: 120 }),
 });
