@@ -1,7 +1,8 @@
 import { SETTINGS_CHANGED_EVENT, loadSettings } from '../systems/settingsState.js';
 import { getAudioAsset, hasCachedAudioAsset } from './audioAssets.js';
 
-export const MUSIC_BUS_VOLUME = 0.25;
+export const MUSIC_BUS_VOLUME = 0.20;
+export const SFX_BUS_VOLUME = 0.60;
 
 const lastPlayedAtByKey = new Map();
 let activeMusic = null;
@@ -20,7 +21,7 @@ function getSfxPlaybackVolume(settings, asset, options) {
   const settingsVolume = clampUnit(settings.sfxVolume / 100, 0.5);
   const assetVolume = clampUnit(asset.volume, 1);
   const optionVolume = clampUnit(options.volume, 1);
-  return clampUnit(settingsVolume * assetVolume * optionVolume);
+  return clampUnit(settingsVolume * assetVolume * optionVolume * SFX_BUS_VOLUME);
 }
 
 function getMusicPlaybackVolume(settings, asset, options) {
