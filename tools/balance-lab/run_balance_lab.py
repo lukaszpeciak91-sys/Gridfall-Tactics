@@ -650,6 +650,24 @@ def find_faction_file(root: Path, faction: str) -> tuple[Path, dict[str, Any]] |
     return None
 
 
+def find_requested_replacement_card_for_scope(
+    root: Path,
+    changes: list[dict[str, Any]],
+    faction_id: str,
+    card_id: str,
+) -> dict[str, Any] | None:
+    for change in changes:
+        if "replaceCard" not in change or change.get("cardId") != card_id:
+            continue
+        faction_match = find_faction_file(root, change["faction"])
+        if faction_match is None:
+            continue
+        _source_path, faction_data = faction_match
+        if faction_data.get("id") == faction_id:
+            return change["replaceCard"]
+    return None
+
+
 def validate_requested_changes(root: Path, changes: list[dict[str, Any]]) -> list[dict[str, Any]]:
     validate_production_card_safety(root)
     validated = []
@@ -659,7 +677,7 @@ def validate_requested_changes(root: Path, changes: list[dict[str, Any]]) -> lis
 
     for index, change in enumerate(changes, start=1):
         if is_effect_variant_change(change):
-            validated.append(validate_requested_effect_variant(root, change, index))
+            validated.append(validate_requested_effect_variant(root, change, index, changes))
             variant = validated[-1]["effectVariant"]
             variant_id = variant["variantId"]
             if variant_id in seen_variant_ids:
@@ -730,7 +748,12 @@ def is_effect_variant_change(change: dict[str, Any]) -> bool:
     return change.get("mode") == "effectVariant" or "effectVariant" in change
 
 
-def validate_requested_effect_variant(root: Path, change: dict[str, Any], index: int) -> dict[str, Any]:
+def validate_requested_effect_variant(
+    root: Path,
+    change: dict[str, Any],
+    index: int,
+    all_changes: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
     variant = dict(change["effectVariant"])
     scope = dict(variant["scope"])
     faction_id = scope["factionId"]
@@ -753,11 +776,13 @@ def validate_requested_effect_variant(root: Path, change: dict[str, Any], index:
         raise BalanceLabError(
             f"Change #{index} effectVariant.scope.cardId '{card_id}' was not found in {source_path}."
         )
+    requested_card = find_requested_replacement_card_for_scope(root, all_changes or [], faction_id, card_id) or card
     base_effect_id = scope["baseEffectId"]
-    if card.get("effectId") != base_effect_id:
+    if requested_card.get("effectId") != base_effect_id:
+        effect_source = "requested replacement card.effectId" if requested_card is not card else "current card.effectId"
         raise BalanceLabError(
-            f"Change #{index} effectVariant.scope.baseEffectId '{base_effect_id}' does not match current card.effectId "
-            f"'{card.get('effectId')}' for {card_id}."
+            f"Change #{index} effectVariant.scope.baseEffectId '{base_effect_id}' does not match {effect_source} "
+            f"'{requested_card.get('effectId')}' for {card_id}."
         )
 
     variant["scope"] = scope

@@ -41,8 +41,8 @@
         "artAssetId": "wardens_06",
         "name": "Bone Shields",
         "type": "utility",
-        "targeting": "friendly_unit",
-        "effectId": "temp_armor_1",
+        "targeting": "none",
+        "effectId": "grave_call",
         "textShort": "Summon Bone Shields in an empty slot."
       }
     },
@@ -55,7 +55,7 @@
         "scope": {
           "factionId": "wardens",
           "cardId": "wardens_brace_1",
-          "baseEffectId": "temp_armor_1"
+          "baseEffectId": "grave_call"
         },
         "timing": "afterBaseEffectBeforeDiscard",
         "sequence": [
