@@ -13,8 +13,9 @@ import {
   getMenuBackgroundAsset,
   preloadMenuBackgroundArt,
 } from '../rendering/backgroundArt.js';
-import { AUDIO_KEYS } from '../audio/audioAssets.js';
-import { playSfx } from '../audio/audioPlayback.js';
+import { AUDIO_KEYS, preloadAudioAssets } from '../audio/audioAssets.js';
+import { playSfx, stopMusic } from '../audio/audioPlayback.js';
+import { playMenuMusic } from '../audio/menuMusic.js';
 import { createNewCampaign, saveCampaign } from '../systems/campaignState.js';
 import { drawFactionCardVisual, preloadFactionPreviewArt } from '../ui/factionCards.js';
 import { createImageButton, preloadSecondaryButtonAsset, PREMIUM_BROADCAST_FONT_STACK } from '../ui/imageButton.js';
@@ -90,6 +91,7 @@ export default class FactionSelectScene extends Phaser.Scene {
     preloadMenuBackgroundArt(this);
     preloadFactionPreviewArt(this);
     preloadSecondaryButtonAsset(this);
+    preloadAudioAssets(this);
   }
 
   init(data = {}) {
@@ -108,6 +110,7 @@ export default class FactionSelectScene extends Phaser.Scene {
 
     const { width, height } = this.scale;
     applyAudioSettings(this, loadSettings());
+    playMenuMusic(this);
     const factionKeys = getFactionKeys();
 
     this.cameras.main.setBackgroundColor(MENU_BACKGROUND_FALLBACK_COLOR_HEX);
@@ -595,6 +598,7 @@ export default class FactionSelectScene extends Phaser.Scene {
     this.stopStaleBattleScenes(transitionDiagnostics);
 
     try {
+      stopMusic(this);
       this.scene.start('BattleScene', { factionKey });
     } catch (error) {
       console.error('Faction select battle transition threw before BattleScene start', {

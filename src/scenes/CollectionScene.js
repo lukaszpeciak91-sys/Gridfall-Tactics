@@ -13,6 +13,8 @@ import { getActiveLocale, translateActive } from '../localization/localeService.
 import { createModalBackButton } from '../ui/modalControls.js';
 import { createMenuScreenHeader } from '../ui/screenHeader.js';
 import { preloadSecondaryButtonAsset } from '../ui/imageButton.js';
+import { preloadAudioAssets } from '../audio/audioAssets.js';
+import { playMenuMusic } from '../audio/menuMusic.js';
 import { CARD_COLORS, createCardPreviewView, getDefaultCardAccentColor, resolveCardSurfaceTheme } from '../rendering/cardVisualLayout.js';
 import { HAND_CARD_ASPECT_RATIO } from '../ui/handLayout.js';
 import { getCollectionInspectCardTransform, getCollectionViewportBounds } from '../ui/collectionInspectTransform.js';
@@ -63,6 +65,7 @@ export default class CollectionScene extends Phaser.Scene {
     preloadMenuBackgroundArt(this);
     preloadSecondaryButtonAsset(this);
     preloadAllCardIllustrations(this);
+    preloadAudioAssets(this);
   }
 
   init() {
@@ -71,6 +74,7 @@ export default class CollectionScene extends Phaser.Scene {
 
   create() {
     this.cleanupScene();
+    playMenuMusic(this);
 
     const { width, height } = this.scale;
 

@@ -11,6 +11,8 @@ import { createMenuScreenHeader } from '../ui/screenHeader.js';
 import { createBottomNavigationControls, createMuteToggleControl, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
 import { getSupportedLocales, setActiveLocale, translateActive, translate } from '../localization/localeService.js';
 import { DEFAULT_SETTINGS, applyAudioSettings, loadSettings, saveSettings, updateSettings } from '../systems/settingsState.js';
+import { preloadAudioAssets } from '../audio/audioAssets.js';
+import { playMenuMusicForReturnScene } from '../audio/menuMusic.js';
 function getLanguageOptions(displayLocale) {
   return getSupportedLocales().map((locale) => ({
     value: locale,
@@ -36,6 +38,7 @@ export default class SettingsScene extends Phaser.Scene {
     this.musicValueText = null;
     this.sfxValueText = null;
     this.returnSceneKey = null;
+    this.musicReturnSceneKey = null;
     this.rulesPanelHiddenBattleScene = null;
   }
 
@@ -44,16 +47,21 @@ export default class SettingsScene extends Phaser.Scene {
     this.returnSceneKey = typeof data?.returnSceneKey === 'string' && data.returnSceneKey
       ? data.returnSceneKey
       : null;
+    this.musicReturnSceneKey = typeof data?.musicReturnSceneKey === 'string' && data.musicReturnSceneKey
+      ? data.musicReturnSceneKey
+      : (this.returnSceneKey ?? 'MainMenuScene');
   }
 
   preload() {
     preloadMenuBackgroundArt(this);
+    preloadAudioAssets(this);
   }
 
   create() {
     const { width, height } = this.scale;
     this.settings = this.loadSettings();
     applyAudioSettings(this, this.settings);
+    playMenuMusicForReturnScene(this, this.musicReturnSceneKey);
     this.languageMenuItems = [];
     this.languageMenuOpen = false;
     this.localizedTextItems = [];

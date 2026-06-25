@@ -4,6 +4,7 @@ import { createMenuScreenHeader } from '../ui/screenHeader.js';
 import { translateActive, translateActiveList } from '../localization/localeService.js';
 import { CARD_EFFECT_GAMEPLAY_SYMBOLS, CARD_EFFECT_STAT_SYMBOLS, CARD_EFFECT_STAT_SYMBOL_STYLES } from '../localization/cardTextFormatting.js';
 import { GAMEPLAY_SYMBOL_COLORS, NON_UNIT_EFFECT_STAT_SYMBOL, NON_UNIT_EFFECT_STAT_SYMBOL_CSS_COLOR } from '../rendering/cardVisualLayout.js';
+import { playMenuMusicForReturnScene } from '../audio/menuMusic.js';
 
 // Player-facing summary derived from docs/rules/mvp-battle-rules.md.
 const RULE_SECTIONS = Object.freeze([
@@ -95,6 +96,10 @@ export default class RulesPanelScene extends Phaser.Scene {
     this.returnSceneKey = typeof data?.returnSceneKey === 'string' && data.returnSceneKey
       ? data.returnSceneKey
       : null;
+    const musicReturnSceneKey = typeof data?.musicReturnSceneKey === 'string' && data.musicReturnSceneKey
+      ? data.musicReturnSceneKey
+      : (this.returnSceneKey === 'SettingsScene' ? this.scene.get('SettingsScene')?.musicReturnSceneKey : this.returnSceneKey);
+    playMenuMusicForReturnScene(this, musicReturnSceneKey);
     this.cameras.main.setBackgroundColor('rgba(0,0,0,0)');
 
     const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x020617, 0.78)

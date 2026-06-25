@@ -19,7 +19,7 @@ import { getActiveLocale, translateActive, translateActiveList } from '../locali
 import { applyCampaignBattleResult, clearCampaign, createNewCampaign, isValidCampaignState, loadCampaign, saveCampaign } from '../systems/campaignState.js';
 import { getCardBoardArtPositionY } from '../data/presentation/cardArtCropOverrides.js';
 import { AUDIO_KEYS, preloadAudioAssets } from '../audio/audioAssets.js';
-import { playManagedSfx, playSfx, stopManagedSfx } from '../audio/audioPlayback.js';
+import { playManagedSfx, playSfx, stopManagedSfx, stopMusic } from '../audio/audioPlayback.js';
 
 const HAND_BACK_CARD_ASSET = Object.freeze({
   key: 'ui.card.back',
@@ -557,6 +557,7 @@ export default class BattleScene extends Phaser.Scene {
 
   create(data) {
     this.cleanupSceneObjects();
+    stopMusic(this, { fadeMs: 0 });
 
     const { width, height } = this.scale;
     this.battleContext = this.normalizeBattleContext(data?.battleContext);

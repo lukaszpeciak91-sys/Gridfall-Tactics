@@ -25,6 +25,8 @@ import {
   getMainMenuLogoPosition,
   setMainMenuLogoDisplaySize,
 } from '../ui/menuLogoLayout.js';
+import { preloadAudioAssets } from '../audio/audioAssets.js';
+import { playMenuMusic } from '../audio/menuMusic.js';
 
 const GAME_MENU_TITLE_DEPTH = 5;
 const GAME_MENU_BUTTON_WIDTH_RATIO = 0.72;
@@ -53,10 +55,12 @@ export default class GameMenuScene extends Phaser.Scene {
       onError: (asset) => console.warn(`Game menu logo failed to load: ${asset.path}`),
     });
     preloadSecondaryButtonAsset(this);
+    preloadAudioAssets(this);
   }
 
   create() {
     this.resetGameMenuDisplayList();
+    playMenuMusic(this);
 
     const { width, height } = this.scale;
     this.cameras.main.setBackgroundColor(MENU_BACKGROUND_FALLBACK_COLOR_HEX);

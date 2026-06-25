@@ -4,8 +4,9 @@ import { createMenuScreenHeader } from '../ui/screenHeader.js';
 import { createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
 import { translateActive } from '../localization/localeService.js';
 import { applyAudioSettings, loadSettings } from '../systems/settingsState.js';
-import { AUDIO_KEYS } from '../audio/audioAssets.js';
-import { playSfx } from '../audio/audioPlayback.js';
+import { AUDIO_KEYS, preloadAudioAssets } from '../audio/audioAssets.js';
+import { playSfx, stopMusic } from '../audio/audioPlayback.js';
+import { playMenuMusic } from '../audio/menuMusic.js';
 import { isValidCampaignState, loadCampaign, saveCampaign, selectCampaignEnemy } from '../systems/campaignState.js';
 import { getCampaignEnemyViewModels } from '../systems/campaignEnemySelection.js';
 import { MENU_BACKGROUND_FALLBACK_COLOR, MENU_BACKGROUND_FALLBACK_COLOR_HEX, createCoverBackground, createMenuArenaLightSweep, getMenuBackgroundAsset, preloadMenuBackgroundArt } from '../rendering/backgroundArt.js';
@@ -43,6 +44,7 @@ export default class CampaignEnemySelectScene extends Phaser.Scene {
   preload() {
     preloadMenuBackgroundArt(this);
     preloadFactionPreviewArt(this);
+    preloadAudioAssets(this);
   }
 
   init(data = {}) {
@@ -59,6 +61,7 @@ export default class CampaignEnemySelectScene extends Phaser.Scene {
 
     const { width, height } = this.scale;
     applyAudioSettings(this, loadSettings());
+    playMenuMusic(this);
     this.cameras.main.setBackgroundColor(MENU_BACKGROUND_FALLBACK_COLOR_HEX);
     createCoverBackground(this, { asset: getMenuBackgroundAsset(), fallbackColor: MENU_BACKGROUND_FALLBACK_COLOR, width, height });
     createMenuArenaLightSweep(this, { width, height, opacity: 0.075, y: height * 0.24 });
@@ -205,6 +208,7 @@ export default class CampaignEnemySelectScene extends Phaser.Scene {
   }
 
   startCampaignCompletionPreview(status) {
+    stopMusic(this);
     this.scene.start('BattleScene', {
       factionKey: this.campaign.playerFactionKey,
       enemyFactionKey: Object.keys(this.campaign.enemies)[0],
@@ -225,6 +229,7 @@ export default class CampaignEnemySelectScene extends Phaser.Scene {
       const updatedCampaign = saveCampaign(selected) ?? selected;
       this.campaign = updatedCampaign;
       playSfx(this, AUDIO_KEYS.UI_CLICK);
+      stopMusic(this);
       this.scene.start('BattleScene', {
         factionKey: updatedCampaign.playerFactionKey,
         enemyFactionKey,

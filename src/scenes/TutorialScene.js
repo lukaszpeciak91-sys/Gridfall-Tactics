@@ -11,6 +11,8 @@ import { createBuildMarker } from '../ui/buildMarker.js';
 import { createMenuScreenHeader } from '../ui/screenHeader.js';
 import { createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
 import { translateActive, translateActiveList } from '../localization/localeService.js';
+import { preloadAudioAssets } from '../audio/audioAssets.js';
+import { playMenuMusic } from '../audio/menuMusic.js';
 
 const TUTORIAL_STEPS = Object.freeze([
   'Pick a faction in Arena.',
@@ -32,10 +34,12 @@ export default class TutorialScene extends Phaser.Scene {
 
   preload() {
     preloadMenuBackgroundArt(this);
+    preloadAudioAssets(this);
   }
 
   create() {
     this.cleanupScene();
+    playMenuMusic(this);
 
     const { width, height } = this.scale;
 

@@ -12,9 +12,11 @@ export const AUDIO_KEYS = Object.freeze({
   BATTLE_VICTORY: 'battle.victory',
   BATTLE_DEFEAT: 'battle.defeat',
   BASE_HIT: 'base.hit',
+  MENU_MUSIC: 'music.menu',
 });
 
 const sfxPath = (filename) => resolvePublicAssetPath(`assets/audio/sfx/${filename}`);
+const musicPath = (filename) => resolvePublicAssetPath(`assets/audio/music/${filename}`);
 
 export const AUDIO_ASSETS = Object.freeze({
   [AUDIO_KEYS.UI_CLICK]: Object.freeze({ key: AUDIO_KEYS.UI_CLICK, path: sfxPath('ui-click.mp3'), category: 'sfx', cooldownMs: 45 }),
@@ -28,6 +30,7 @@ export const AUDIO_ASSETS = Object.freeze({
   [AUDIO_KEYS.BATTLE_VICTORY]: Object.freeze({ key: AUDIO_KEYS.BATTLE_VICTORY, path: sfxPath('battle-victory.mp3'), category: 'sfx', cooldownMs: 1000, volume: 0.45 }),
   [AUDIO_KEYS.BATTLE_DEFEAT]: Object.freeze({ key: AUDIO_KEYS.BATTLE_DEFEAT, path: sfxPath('battle-defeat.mp3'), category: 'sfx', cooldownMs: 1000 }),
   [AUDIO_KEYS.BASE_HIT]: Object.freeze({ key: AUDIO_KEYS.BASE_HIT, path: sfxPath('base-hit.mp3'), category: 'sfx', cooldownMs: 120 }),
+  [AUDIO_KEYS.MENU_MUSIC]: Object.freeze({ key: AUDIO_KEYS.MENU_MUSIC, path: musicPath('menu-music.mp3'), category: 'music', loop: true }),
 });
 
 export function getAudioAsset(key) {
