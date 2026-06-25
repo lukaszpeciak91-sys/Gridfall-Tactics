@@ -186,7 +186,7 @@ function fallenUnit(id = 'fallen-unit') {
   };
 }
 
-function addSummonTokenVariant(state, cardId, effectId = 'heal_2') {
+function addSummonTokenVariant(state, cardId, effectId = 'heal_2', token = 'grunt', temporary = undefined) {
   const registryKey = `test-faction::${cardId}::${effectId}`;
   state.effectVariantRegistry = {
     [registryKey]: {
@@ -198,7 +198,12 @@ function addSummonTokenVariant(state, cardId, effectId = 'heal_2') {
       timing: 'afterBaseEffectBeforeDiscard',
       sequence: [
         { operation: 'runBaseEffect' },
-        { operation: 'summonToken', selector: 'firstEmptyOwnerSlot', token: 'grunt' },
+        {
+          operation: 'summonToken',
+          selector: 'firstEmptyOwnerSlot',
+          token,
+          ...(temporary === undefined ? {} : { temporary }),
+        },
       ],
     },
   };
@@ -270,6 +275,46 @@ test('Tea Courier lane block makes effectVariant summonToken skip blocked placem
   assert.equal(state.board[6], null);
   assert.match(state.board[7]?.id, /effect_variant_grunt/);
   assert.equal(state.effectVariantOperationTelemetry[0].tokensSummoned, 1);
+});
+
+test('effectVariant summonToken can create temporary Bone Shields and clean them up after combat', () => {
+  const state = createInitialBattleState(emptyFaction, emptyFaction, { skipInitialDraw: true });
+  state.player.hand.push(placementEffectCard('bone-shields-card', 'heal_2'));
+  addSummonTokenVariant(state, 'bone-shields-card', 'heal_2', 'bone_shields', true);
+
+  const result = playEffectCard(state, 'player', 'bone-shields-card');
+
+  assert.equal(result.ok, true);
+  const token = state.board[6];
+  assert.match(token.id, /bone_shields_token/);
+  assert.equal(token.name, 'Bone Shields');
+  assert.equal(token.namePl, 'Kościane Tarcze');
+  assert.equal(token.attack, 0);
+  assert.equal(token.armor, 1);
+  assert.equal(token.hp, 1);
+  assert.equal(token.maxHp, 1);
+  assert.equal(token.effectId, 'cannot_attack');
+  assert.equal(getUnitAttack(token), 0);
+  assert.equal(token.temporaryFloodToken, true);
+  assert.equal(state.effectVariantOperationTelemetry[0].token, 'bone_shields');
+  assert.equal(state.effectVariantOperationTelemetry[0].temporary, true);
+  assert.equal(state.effectVariantOperationTelemetry[0].tokensSummoned, 1);
+
+  resolveCombat(state);
+
+  assert.equal(state.board[6], null);
+});
+
+test('effectVariant summonToken rejects unknown token IDs without summoning', () => {
+  const state = createInitialBattleState(emptyFaction, emptyFaction, { skipInitialDraw: true });
+  state.player.hand.push(placementEffectCard('unknown-token-card', 'heal_2'));
+  addSummonTokenVariant(state, 'unknown-token-card', 'heal_2', 'mystery_token', true);
+
+  const result = playEffectCard(state, 'player', 'unknown-token-card');
+
+  assert.equal(result.ok, true);
+  assert.equal(state.board[6], null);
+  assert.equal(state.effectVariantOperationTelemetry, undefined);
 });
 
 test('Tea Courier lane block expiration lets placement effects use the formerly blocked slot again', () => {
