@@ -520,6 +520,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   cleanupSceneObjects({ preserveTimers = false, preserveTweens = false } = {}) {
+    this.stopOutcomeStinger({ fadeMs: 0 });
     this.deferredTransientBattleBanner = null;
     this.destroyEnemyActionBanner();
     this.destroyTurnStartBanner();
@@ -1524,7 +1525,7 @@ export default class BattleScene extends Phaser.Scene {
       label,
       onPointerUp: () => {
         this.guardPointerEvent();
-        this.stopOutcomeStinger({ fadeMs: 200 });
+        this.stopOutcomeStinger({ fadeMs: 0 });
         if (this.navigationInProgress) return;
         onClick();
       },

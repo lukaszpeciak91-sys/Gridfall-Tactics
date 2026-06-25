@@ -53,10 +53,10 @@ test('battle result stats insert compact turns and time block without changing r
   assert.match(showBattleResultModalSource, /translateActive\('ui\.common\.retry', 'RETRY'\)/);
 });
 
-test('result buttons stop active outcome stingers before navigation handlers run', () => {
+test('result buttons immediately stop active outcome stingers before navigation handlers run', () => {
   const buttonEnd = source.indexOf('  destroyBattleResultModal()', buttonStart);
   const buttonSource = source.slice(buttonStart, buttonEnd);
-  assert.match(buttonSource, /onPointerUp: \(\) => \{[\s\S]*this\.guardPointerEvent\(\);[\s\S]*this\.stopOutcomeStinger\(\{ fadeMs: 200 \}\);[\s\S]*if \(this\.navigationInProgress\) return;[\s\S]*onClick\(\);/);
+  assert.match(buttonSource, /onPointerUp: \(\) => \{[\s\S]*this\.guardPointerEvent\(\);[\s\S]*this\.stopOutcomeStinger\(\{ fadeMs: 0 \}\);[\s\S]*if \(this\.navigationInProgress\) return;[\s\S]*onClick\(\);/);
 });
 
 test('victory celebration reuses particles across three staggered waves', () => {

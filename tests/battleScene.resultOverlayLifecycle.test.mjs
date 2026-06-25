@@ -11,6 +11,13 @@ function extractMethodBody(name, nextName) {
   return source.slice(start, end);
 }
 
+
+test('scene cleanup immediately stops active outcome stingers before killing tweens', () => {
+  const cleanup = extractMethodBody('cleanupSceneObjects', 'create');
+  assert.match(cleanup, /this\.stopOutcomeStinger\(\{ fadeMs: 0 \}\);[\s\S]*this\.destroyBattleResultModal\(\);/);
+  assert.match(cleanup, /this\.stopOutcomeStinger\(\{ fadeMs: 0 \}\);[\s\S]*if \(!preserveTweens\) \{[\s\S]*this\.tweens\?\.killAll\?\.\(\);/);
+});
+
 test('result overlay lifecycle uses explicit overlay state instead of boolean-only rebuild restore', () => {
   const rebuild = extractMethodBody('rebuildBattleView', 'shutdown');
   assert.match(source, /this\.resultOverlayState = null;/);
