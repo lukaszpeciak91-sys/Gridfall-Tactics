@@ -18,6 +18,9 @@ test('managed music helpers are separate from SFX cooldown playback', () => {
   assert.match(source, /activeMusic\?\.key === asset\.key/);
   assert.match(source, /export function updateMusicVolume\(settings = loadSettings\(\)\) \{/);
   assert.match(source, /settings\.musicVolume \/ 100/);
+  assert.match(source, /export const MUSIC_BUS_VOLUME = 0\.45;/);
+  assert.match(source, /settingsVolume \* assetVolume \* optionVolume \* MUSIC_BUS_VOLUME/);
+  assert.doesNotMatch(source.slice(source.indexOf('function getSfxPlaybackVolume'), source.indexOf('function getMusicPlaybackVolume')), /MUSIC_BUS_VOLUME/);
   assert.doesNotMatch(source.slice(source.indexOf('export function playMusic')), /lastPlayedAtByKey/);
   assert.match(source, /export function stopMusic\(scene, \{ fadeMs = 300 \} = \{\}\) \{/);
 });
