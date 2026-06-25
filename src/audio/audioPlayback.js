@@ -1,6 +1,8 @@
 import { SETTINGS_CHANGED_EVENT, loadSettings } from '../systems/settingsState.js';
 import { getAudioAsset, hasCachedAudioAsset } from './audioAssets.js';
 
+export const MUSIC_BUS_VOLUME = 0.45;
+
 const lastPlayedAtByKey = new Map();
 let activeMusic = null;
 
@@ -25,7 +27,7 @@ function getMusicPlaybackVolume(settings, asset, options) {
   const settingsVolume = clampUnit(settings.musicVolume / 100, 0.5);
   const assetVolume = clampUnit(asset.volume, 1);
   const optionVolume = clampUnit(options.volume, 1);
-  return clampUnit(settingsVolume * assetVolume * optionVolume);
+  return clampUnit(settingsVolume * assetVolume * optionVolume * MUSIC_BUS_VOLUME);
 }
 
 function unregisterActiveMusicSettingsHandler() {
