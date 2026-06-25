@@ -19,7 +19,7 @@ test('SettingsScene exposes future-ready language, audio, and persistence contro
   assert.match(source, /createLanguageSelect\(width \/ 2, height \* 0\.32, panelWidth - 74\)/);
   assert.doesNotMatch(source, /createChoiceButton\(width \/ 2 - 76[\s\S]*English/);
 
-  assert.match(settingsState, /musicVolume: 40/);
+  assert.match(settingsState, /musicVolume: 20/);
   assert.match(settingsState, /sfxVolume: 50/);
   assert.match(settingsState, /muted: false/);
   assert.match(source, /const audioPanelHeight = 300/);
