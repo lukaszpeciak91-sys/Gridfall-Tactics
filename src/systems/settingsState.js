@@ -4,7 +4,7 @@ import { SETTINGS_STORAGE_KEY, normalizeLocale } from '../localization/localeSer
 export const SETTINGS_CHANGED_EVENT = 'gridfall:settings:changed';
 export const DEFAULT_SETTINGS = {
   language: 'en',
-  musicVolume: 50,
+  musicVolume: 40,
   sfxVolume: 50,
   muted: false,
 };
