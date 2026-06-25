@@ -1,0 +1,86 @@
+{
+  "name": "Wardens armor roles and Bone Shields token",
+  "matchCount": 100,
+  "seed": 1337,
+  "telemetry": "all",
+  "changes": [
+    {
+      "faction": "wardens",
+      "cardId": "wardens_hold_the_line_1",
+      "replaceCard": {
+        "id": "wardens_hold_the_line_1",
+        "cardNumber": 10,
+        "artAssetId": "wardens_10",
+        "name": "Hold The Line",
+        "type": "order",
+        "targeting": "all_friendly_units",
+        "effectId": "buff_all_armor_1",
+        "textShort": "All [ALLY] +1 [ARM] until combat."
+      }
+    },
+    {
+      "faction": "wardens",
+      "cardId": "wardens_reinforce_line_1",
+      "replaceCard": {
+        "id": "wardens_reinforce_line_1",
+        "cardNumber": 9,
+        "artAssetId": "wardens_09",
+        "name": "Reinforce Line",
+        "type": "order",
+        "targeting": "friendly_unit",
+        "effectId": "temp_armor_1",
+        "textShort": "Selected [ALLY] +1 [ARM] until combat."
+      }
+    },
+    {
+      "faction": "wardens",
+      "cardId": "wardens_brace_1",
+      "replaceCard": {
+        "id": "wardens_brace_1",
+        "cardNumber": 6,
+        "artAssetId": "wardens_06",
+        "name": "Bone Shields",
+        "type": "utility",
+        "targeting": "friendly_unit",
+        "effectId": "temp_armor_1",
+        "textShort": "Summon Bone Shields in an empty slot."
+      }
+    },
+    {
+      "mode": "effectVariant",
+      "effectVariant": {
+        "schemaVersion": 1,
+        "variantId": "wardens_bone_shields_token_v1",
+        "label": "Bone Shields summons a temporary shield token",
+        "scope": {
+          "factionId": "wardens",
+          "cardId": "wardens_brace_1",
+          "baseEffectId": "temp_armor_1"
+        },
+        "timing": "afterBaseEffectBeforeDiscard",
+        "sequence": [
+          {
+            "operation": "skipBaseEffect"
+          },
+          {
+            "operation": "summonToken",
+            "selector": "firstEmptyOwnerSlot",
+            "token": "bone_shields",
+            "temporary": true
+          }
+        ],
+        "telemetryTags": [
+          "wardens",
+          "bone-shields",
+          "summon-token",
+          "temporary-token",
+          "skip-base-effect"
+        ]
+      }
+    }
+  ],
+  "flags": {
+    "warningDeltaPp": 3,
+    "dangerDeltaPp": 8
+  }
+}
