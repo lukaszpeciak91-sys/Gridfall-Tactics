@@ -18,6 +18,8 @@ import {
 } from '../ui/imageButton.js';
 import { translateActive } from '../localization/localeService.js';
 import { createBuildMarker } from '../ui/buildMarker.js';
+import { preloadAudioAssets } from '../audio/audioAssets.js';
+import { playMenuMusic } from '../audio/menuMusic.js';
 import { applyAudioSettings, loadSettings } from '../systems/settingsState.js';
 import {
   GRIDFALL_LOGO_ASSET,
@@ -66,6 +68,7 @@ export default class MainMenuScene extends Phaser.Scene {
       onError: (asset) => console.warn(`Main menu logo failed to load: ${asset.path}`),
     });
     preloadSecondaryButtonAsset(this);
+    preloadAudioAssets(this);
   }
 
   create(data = {}) {
@@ -78,6 +81,7 @@ export default class MainMenuScene extends Phaser.Scene {
     this.menuButtonViews = [];
     this.menuButtons = [];
     applyAudioSettings(this, loadSettings());
+    playMenuMusic(this);
 
     this.cameras.main.setBackgroundColor(MENU_BACKGROUND_FALLBACK_COLOR_HEX);
     createCoverBackground(this, {
