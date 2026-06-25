@@ -1131,7 +1131,7 @@ const EFFECT_VARIANT_EMPTY_OWNER_SLOT_SELECTORS = new Set([
   'upToTwoEmptyOwnerSlots',
 ]);
 
-const SUPPORTED_EFFECT_VARIANT_TOKEN_IDS = new Set(['grunt', 'flood']);
+const SUPPORTED_EFFECT_VARIANT_TOKEN_IDS = new Set(['grunt', 'flood', 'bone_shields']);
 
 const EFFECT_VARIANT_UNIT_SELECTORS = new Set(Object.keys(EFFECT_VARIANT_SELECTOR_HANDLERS));
 
@@ -1470,6 +1470,24 @@ function createEffectVariantFloodTokenCard(id, temporary) {
   };
 }
 
+function createEffectVariantBoneShieldsTokenCard(id, temporary) {
+  return {
+    id,
+    name: 'Bone Shields',
+    namePl: 'Kościane Tarcze',
+    type: 'unit',
+    attack: 0,
+    hp: 1,
+    armor: 1,
+    effectId: 'cannot_attack',
+    factionId: 'wardens',
+    tokenType: 'bone_shields',
+    isToken: true,
+    collectible: false,
+    ...(temporary ? { temporaryFloodToken: true } : {}),
+  };
+}
+
 function summonEffectVariantTokenAt(state, index, owner, token, temporary, sourceCard) {
   if (!isOwnerSlotAvailableForUnitPlacement(state, owner, index)) return false;
   if (token === 'grunt' && !temporary) {
@@ -1487,6 +1505,11 @@ function summonEffectVariantTokenAt(state, index, owner, token, temporary, sourc
   if (token === 'flood') {
     const tokenId = `${owner}_flood_token_${index}_${tokenSequence}`;
     state.board[index] = createBoardUnitFromCard(createEffectVariantFloodTokenCard(tokenId, temporary), owner);
+    return true;
+  }
+  if (token === 'bone_shields') {
+    const tokenId = `${owner}_bone_shields_token_${index}_${tokenSequence}`;
+    state.board[index] = createBoardUnitFromCard(createEffectVariantBoneShieldsTokenCard(tokenId, temporary), owner);
     return true;
   }
   return false;
