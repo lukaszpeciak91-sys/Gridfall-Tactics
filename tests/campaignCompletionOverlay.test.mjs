@@ -95,10 +95,10 @@ test('won trophy summary stats are centered and secondary', () => {
   assert.match(completionSource, /lineSpacing: Math\.max\(10, Math\.floor\(height \* 0\.014\)\)/);
 });
 
-test('campaign completion stats still use existing save-duration timing only', () => {
-  assert.match(completionSource, /const createdAt = Date\.parse\(campaign\?\.createdAt\)/);
-  assert.match(completionSource, /const updatedAt = Date\.parse\(campaign\?\.updatedAt\)/);
-  assert.match(completionSource, /this\.formatCampaignDuration\(updatedAt - createdAt\)/);
+test('campaign completion stats use accumulated completed battle duration only', () => {
+  assert.match(completionSource, /const totalBattleDurationMs = campaign\?\.totalBattleDurationMs/);
+  assert.match(completionSource, /this\.formatCampaignDuration\(totalBattleDurationMs\)/);
+  assert.doesNotMatch(completionSource, /updatedAt - createdAt/);
 });
 
 test('completion button is created above BattleScene UI depth', () => {

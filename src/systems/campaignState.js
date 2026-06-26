@@ -29,9 +29,14 @@ function createRunId() {
   return `campaign-${Date.now().toString(36)}-${randomPart}`;
 }
 
+function getSafeBattleDurationMs(value) {
+  return Number.isFinite(value) && value >= 0 ? Math.floor(value) : 0;
+}
+
 function cloneCampaignState(state) {
   return {
     ...state,
+    totalBattleDurationMs: getSafeBattleDurationMs(state.totalBattleDurationMs),
     enemies: Object.fromEntries(
       Object.entries(state.enemies ?? {}).map(([factionKey, enemy]) => [
         factionKey,
@@ -80,7 +85,8 @@ function validateLastResult(lastResult, enemies) {
       && Number.isInteger(lastResult.attemptsRemainingAfter)
       && lastResult.attemptsRemainingAfter >= 0
       && lastResult.attemptsRemainingAfter <= INITIAL_ATTEMPTS_REMAINING
-      && isIsoDateString(lastResult.resolvedAt),
+      && isIsoDateString(lastResult.resolvedAt)
+      && (lastResult.battleDurationMs === undefined || getSafeBattleDurationMs(lastResult.battleDurationMs) === lastResult.battleDurationMs),
   );
 }
 
@@ -155,6 +161,7 @@ export function createNewCampaign(playerFactionKey) {
     playerFactionKey,
     enemies,
     currentEnemyFactionKey: null,
+    totalBattleDurationMs: 0,
   };
 }
 
@@ -164,6 +171,7 @@ export function isValidCampaignState(value) {
   if (!isNonEmptyString(value.runId)) return false;
   if (!isIsoDateString(value.createdAt) || !isIsoDateString(value.updatedAt)) return false;
   if (!CAMPAIGN_STATUSES.has(value.status)) return false;
+  if (value.totalBattleDurationMs !== undefined && getSafeBattleDurationMs(value.totalBattleDurationMs) !== value.totalBattleDurationMs) return false;
   if (!isKnownFactionKey(value.playerFactionKey)) return false;
   if (!value.enemies || typeof value.enemies !== 'object' || Array.isArray(value.enemies)) return false;
 
@@ -266,6 +274,7 @@ export function applyCampaignBattleResult(state, result) {
 
   const enemyFactionKey = result?.enemyFactionKey;
   const winner = result?.winner;
+  const battleDurationMs = getSafeBattleDurationMs(result?.battleDurationMs);
   if (!RESULT_WINNERS.has(winner)) {
     throw new RangeError(`Invalid campaign battle winner: ${winner}`);
   }
@@ -291,10 +300,12 @@ export function applyCampaignBattleResult(state, result) {
 
   const now = getTimestamp();
   nextState.currentEnemyFactionKey = null;
+  nextState.totalBattleDurationMs = getSafeBattleDurationMs(nextState.totalBattleDurationMs) + battleDurationMs;
   nextState.lastResult = {
     enemyFactionKey,
     winner,
     attemptsRemainingAfter: enemy.attemptsRemaining,
+    battleDurationMs,
     resolvedAt: now,
   };
   nextState.updatedAt = now;

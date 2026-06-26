@@ -335,6 +335,8 @@ export default class BattleScene extends Phaser.Scene {
     this.resultOverlayState = null;
     this.battleStartedAt = null;
     this.battleEndedAt = null;
+    this.activeBattleDurationMs = 0;
+    this.activeBattleTimerStartedAt = null;
     this.backgroundArtAsset = null;
     this.backgroundLayer = null;
     this.baseFrameViews = { player: null, enemy: null };
@@ -465,6 +467,8 @@ export default class BattleScene extends Phaser.Scene {
     this.resultOverlayState = null;
     this.battleStartedAt = null;
     this.battleEndedAt = null;
+    this.activeBattleDurationMs = 0;
+    this.activeBattleTimerStartedAt = null;
     this.battleAmbienceStopping = false;
     this.gameState = null;
     this.factionKey = null;
@@ -573,8 +577,10 @@ export default class BattleScene extends Phaser.Scene {
     const enemyFactionData = getFactionByKey(enemyFactionKey) ?? { name: `Unknown (${enemyFactionKey})`, deck: [] };
 
     this.gameState = createInitialBattleState(playerFactionData, enemyFactionData);
-    this.battleStartedAt = Date.now();
+    this.battleStartedAt = null;
     this.battleEndedAt = null;
+    this.activeBattleDurationMs = 0;
+    this.activeBattleTimerStartedAt = null;
     this.terminalShatterTriggeredSides = new Set();
     this.terminalFailedSides = new Set();
     this.terminalTextBootComplete = false;
@@ -612,10 +618,13 @@ export default class BattleScene extends Phaser.Scene {
     this.scale.on('resize', this.onViewportChanged, this);
     this.input.on('pointerup', this.onScenePointerUp, this);
     this.input.on('pointerupoutside', this.onScenePointerUpOutside, this);
+    this.events.on(Phaser.Scenes.Events.PAUSE, this.onScenePause, this);
+    this.events.on(Phaser.Scenes.Events.SLEEP, this.onSceneSleep, this);
     this.events.on(Phaser.Scenes.Events.RESUME, this.onSceneResume, this);
     this.events.on(Phaser.Scenes.Events.WAKE, this.onSceneWake, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this);
 
+    this.startCampaignBattleTimer();
     this.startBattleAmbience();
 
     if (this.isCampaignCompletionPreview()) {
@@ -1161,6 +1170,42 @@ export default class BattleScene extends Phaser.Scene {
     return translateActive('ui.battle.resultSubtitles.draw', 'Production ordered a rematch.');
   }
 
+  getActiveBattleTimestamp() {
+    return Date.now();
+  }
+
+  startCampaignBattleTimer() {
+    if (this.battleStartedAt !== null || this.gameState?.winner) return;
+    const now = this.getActiveBattleTimestamp();
+    this.battleStartedAt = now;
+    this.activeBattleTimerStartedAt = now;
+  }
+
+  pauseCampaignBattleTimer() {
+    if (!Number.isFinite(this.activeBattleTimerStartedAt)) return;
+    const now = this.getActiveBattleTimestamp();
+    this.activeBattleDurationMs += Math.max(0, now - this.activeBattleTimerStartedAt);
+    this.activeBattleTimerStartedAt = null;
+  }
+
+  resumeCampaignBattleTimer() {
+    if (this.gameState?.winner || !Number.isFinite(this.battleStartedAt) || Number.isFinite(this.activeBattleTimerStartedAt)) return;
+    this.activeBattleTimerStartedAt = this.getActiveBattleTimestamp();
+  }
+
+  stopCampaignBattleTimer() {
+    this.pauseCampaignBattleTimer();
+    this.battleEndedAt ??= this.getActiveBattleTimestamp();
+    return this.getActiveBattleDurationMs();
+  }
+
+  getActiveBattleDurationMs() {
+    const runningDuration = Number.isFinite(this.activeBattleTimerStartedAt)
+      ? Math.max(0, this.getActiveBattleTimestamp() - this.activeBattleTimerStartedAt)
+      : 0;
+    return Math.max(0, this.activeBattleDurationMs + runningDuration);
+  }
+
   formatBattleDuration(totalSeconds) {
     const safeSeconds = Math.max(0, Math.floor(Number.isFinite(totalSeconds) ? totalSeconds : 0));
     const minutes = Math.floor(safeSeconds / 60);
@@ -1170,9 +1215,7 @@ export default class BattleScene extends Phaser.Scene {
 
   getBattleResultStatsText() {
     const turns = Math.max(0, this.gameState?.turnsCompleted ?? 0);
-    const startedAt = Number.isFinite(this.battleStartedAt) ? this.battleStartedAt : Date.now();
-    const endedAt = Number.isFinite(this.battleEndedAt) ? this.battleEndedAt : Date.now();
-    const elapsedSeconds = Math.max(0, (endedAt - startedAt) / 1000);
+    const elapsedSeconds = this.getActiveBattleDurationMs() / 1000;
     const turnsLabel = translateActive('ui.battle.resultStats.turns', 'Turns');
     const timeLabel = translateActive('ui.battle.resultStats.time', 'Time');
     return `${turnsLabel}: ${turns}\n${timeLabel}: ${this.formatBattleDuration(elapsedSeconds)}`;
@@ -1180,7 +1223,7 @@ export default class BattleScene extends Phaser.Scene {
 
   scheduleBattleResultModal(delayMs = 500) {
     if (!this.gameState?.winner || this.battleResultModalShown || this.battleResultModalPending) return;
-    this.battleEndedAt ??= Date.now();
+    this.stopCampaignBattleTimer();
     const hasLethalTerminalFailure = Boolean(this.getLethalTerminalFailureSides().length);
     if (hasLethalTerminalFailure) {
       delayMs = Math.min(Math.max(delayMs, BASE_TERMINAL_FAILURE_MODAL_DELAY_MS), BASE_TERMINAL_FAILURE_MS);
@@ -2409,6 +2452,7 @@ export default class BattleScene extends Phaser.Scene {
     const result = {
       enemyFactionKey: this.battleContext.campaignEnemyFactionKey ?? this.enemyFactionKey,
       winner: this.gameState?.winner === 'player' ? 'player' : (this.gameState?.winner === 'draw' ? 'draw' : 'enemy'),
+      battleDurationMs: this.getActiveBattleDurationMs(),
     };
     let updatedCampaign;
     try {
@@ -2836,10 +2880,9 @@ export default class BattleScene extends Phaser.Scene {
       `${translateActive('ui.campaignResult.wonBattles', 'Won battles')}: ${wonBattles}`,
       `${translateActive('ui.campaignResult.lostBattles', 'Lost battles')}: ${lostBattles}`,
     ];
-    const createdAt = Date.parse(campaign?.createdAt);
-    const updatedAt = Date.parse(campaign?.updatedAt);
-    if (Number.isFinite(createdAt) && Number.isFinite(updatedAt) && updatedAt >= createdAt) {
-      rows.push(`${translateActive('ui.campaignResult.campaignTime', 'Campaign time')}: ${this.formatCampaignDuration(updatedAt - createdAt)}`);
+    const totalBattleDurationMs = campaign?.totalBattleDurationMs;
+    if (Number.isFinite(totalBattleDurationMs) && totalBattleDurationMs >= 0) {
+      rows.push(`${translateActive('ui.campaignResult.campaignTime', 'Campaign time')}: ${this.formatCampaignDuration(totalBattleDurationMs)}`);
     }
     return rows.join('\n');
   }
@@ -2933,11 +2976,21 @@ export default class BattleScene extends Phaser.Scene {
     toggleSceneFullscreen(this);
   }
 
+  onScenePause() {
+    this.pauseCampaignBattleTimer();
+  }
+
+  onSceneSleep() {
+    this.pauseCampaignBattleTimer();
+  }
+
   onSceneResume() {
+    this.resumeCampaignBattleTimer();
     this.recoverFromLifecycle('scene-resume');
   }
 
   onSceneWake() {
+    this.resumeCampaignBattleTimer();
     this.recoverFromLifecycle('scene-wake');
   }
 
@@ -2987,6 +3040,7 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     if (!this.gameState?.winner && !this.battleAmbienceStopping) {
+      this.startCampaignBattleTimer();
       this.startBattleAmbience();
     }
 
@@ -3160,6 +3214,8 @@ export default class BattleScene extends Phaser.Scene {
     this.scale.off('resize', this.onViewportChanged, this);
     this.input.off('pointerup', this.onScenePointerUp, this);
     this.input.off('pointerupoutside', this.onScenePointerUpOutside, this);
+    this.events.off(Phaser.Scenes.Events.PAUSE, this.onScenePause, this);
+    this.events.off(Phaser.Scenes.Events.SLEEP, this.onSceneSleep, this);
     this.events.off(Phaser.Scenes.Events.RESUME, this.onSceneResume, this);
     this.events.off(Phaser.Scenes.Events.WAKE, this.onSceneWake, this);
     this.resetRuntimeState();

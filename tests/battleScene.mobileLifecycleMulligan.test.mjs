@@ -12,10 +12,16 @@ function extractMethodBody(name, nextName) {
 }
 
 test('BattleScene registers Phaser resume and wake lifecycle recovery hooks', () => {
+  assert.match(source, /this\.events\.on\(Phaser\.Scenes\.Events\.PAUSE, this\.onScenePause, this\);/);
+  assert.match(source, /this\.events\.on\(Phaser\.Scenes\.Events\.SLEEP, this\.onSceneSleep, this\);/);
   assert.match(source, /this\.events\.on\(Phaser\.Scenes\.Events\.RESUME, this\.onSceneResume, this\);/);
   assert.match(source, /this\.events\.on\(Phaser\.Scenes\.Events\.WAKE, this\.onSceneWake, this\);/);
-  assert.match(source, /onSceneResume\(\) \{\s*this\.recoverFromLifecycle\('scene-resume'\);\s*\}/);
-  assert.match(source, /onSceneWake\(\) \{\s*this\.recoverFromLifecycle\('scene-wake'\);\s*\}/);
+  assert.match(source, /onScenePause\(\) \{\s*this\.pauseCampaignBattleTimer\(\);\s*\}/);
+  assert.match(source, /onSceneSleep\(\) \{\s*this\.pauseCampaignBattleTimer\(\);\s*\}/);
+  assert.match(source, /onSceneResume\(\) \{\s*this\.resumeCampaignBattleTimer\(\);\s*this\.recoverFromLifecycle\('scene-resume'\);\s*\}/);
+  assert.match(source, /onSceneWake\(\) \{\s*this\.resumeCampaignBattleTimer\(\);\s*this\.recoverFromLifecycle\('scene-wake'\);\s*\}/);
+  assert.match(source, /this\.events\.off\(Phaser\.Scenes\.Events\.PAUSE, this\.onScenePause, this\);/);
+  assert.match(source, /this\.events\.off\(Phaser\.Scenes\.Events\.SLEEP, this\.onSceneSleep, this\);/);
   assert.match(source, /this\.events\.off\(Phaser\.Scenes\.Events\.RESUME, this\.onSceneResume, this\);/);
   assert.match(source, /this\.events\.off\(Phaser\.Scenes\.Events\.WAKE, this\.onSceneWake, this\);/);
 });
