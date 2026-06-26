@@ -78,6 +78,7 @@ test('createNewCampaign creates five enemies, excludes the player, and initializ
   assert.equal(campaign.status, 'active');
   assert.equal(campaign.playerFactionKey, 'Aggro');
   assert.equal(campaign.currentEnemyFactionKey, null);
+  assert.equal(campaign.totalBattleDurationMs, 0);
   assert.equal(enemyKeys.length, 5);
   assert.equal(enemyKeys.includes('Aggro'), false);
 
@@ -85,6 +86,28 @@ test('createNewCampaign creates five enemies, excludes the player, and initializ
     assert.equal(enemy.attemptsRemaining, 3);
     assert.equal(enemy.defeated, false);
   }
+});
+
+
+test('applyCampaignBattleResult accumulates completed battle duration', () => {
+  const campaign = createNewCampaign('Aggro');
+  const [firstEnemy, secondEnemy] = Object.keys(campaign.enemies);
+
+  const firstResolved = applyCampaignBattleResult(selectCampaignEnemy(campaign, firstEnemy), {
+    enemyFactionKey: firstEnemy,
+    winner: 'player',
+    battleDurationMs: 70_000,
+  });
+  const secondResolved = applyCampaignBattleResult(selectCampaignEnemy(firstResolved, secondEnemy), {
+    enemyFactionKey: secondEnemy,
+    winner: 'enemy',
+    battleDurationMs: 45_250,
+  });
+
+  assert.equal(firstResolved.totalBattleDurationMs, 70_000);
+  assert.equal(firstResolved.lastResult.battleDurationMs, 70_000);
+  assert.equal(secondResolved.totalBattleDurationMs, 115_250);
+  assert.equal(secondResolved.lastResult.battleDurationMs, 45_250);
 });
 
 test('createNewCampaign rejects an invalid player faction', () => {

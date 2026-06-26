@@ -150,6 +150,7 @@ test('BattleScene routes campaign results through campaign state only', () => {
   const source = read('src/scenes/BattleScene.js');
   assert.match(source, /continueCampaignBattleResult\(\)/);
   assert.match(source, /winner: this\.gameState\?\.winner === 'player' \? 'player' : \(this\.gameState\?\.winner === 'draw' \? 'draw' : 'enemy'\)/);
+  assert.match(source, /battleDurationMs: this\.getActiveBattleDurationMs\(\)/);
   assert.match(source, /campaign\.runId !== this\.battleContext\.campaignRunId/);
   assert.match(source, /routeAfterIgnoredCampaignResult\(campaign\)/);
   assert.match(source, /applyCampaignBattleResult\(campaign, result\)/);
@@ -184,6 +185,7 @@ test('campaign result guard safely routes valid campaigns back to enemy select',
 test('campaign draw routes back to campaign enemy selection', () => {
   const source = read('src/scenes/BattleScene.js');
   assert.match(source, /winner: this\.gameState\?\.winner === 'player' \? 'player' : \(this\.gameState\?\.winner === 'draw' \? 'draw' : 'enemy'\)/);
+  assert.match(source, /battleDurationMs: this\.getActiveBattleDurationMs\(\)/);
   assert.match(source, /this\.scene\.start\('CampaignEnemySelectScene', \{ campaign: updatedCampaign \}\)/);
 });
 

@@ -41,10 +41,10 @@ test('battle result overlay polish keeps hierarchy panel-free while elevating su
 
 
 test('battle result stats insert compact turns and time block without changing result buttons', () => {
-  assert.match(source, /this\.battleStartedAt = Date\.now\(\)/);
-  assert.match(source, /this\.battleEndedAt \?\?= Date\.now\(\)/);
+  assert.match(source, /this\.startCampaignBattleTimer\(\)/);
+  assert.match(source, /this\.stopCampaignBattleTimer\(\)/);
   assert.match(source, /formatBattleDuration\(totalSeconds\)/);
-  assert.match(source, /turnsLabel.*turns.*timeLabel.*formatBattleDuration\(elapsedSeconds\)/s);
+  assert.match(source, /turnsLabel.*timeLabel.*formatBattleDuration\(elapsedSeconds\)/s);
   assert.match(showBattleResultModalSource, /const resultStatsText = this\.getBattleResultStatsText\(\)/);
   assert.match(showBattleResultModalSource, /const stats = this\.add\.text\(centerX, centerY \+ overlayHeight \* 0\.48, resultStatsText,/);
   assert.match(showBattleResultModalSource, /fontSize: `\$\{Math\.max\(14, Math\.min\(20, Math\.floor\(height \* 0\.021\)\)\)\}px`/);
