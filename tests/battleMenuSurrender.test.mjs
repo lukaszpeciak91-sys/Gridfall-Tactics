@@ -81,8 +81,12 @@ test('menu surrender uses a synchronous dedicated result panel instead of the no
   assert.match(panelSource, /this\.destroyDeckInfoPanel\(\);/);
   assert.match(panelSource, /this\.destroyActiveSelectionMessage\(\);/);
   assert.match(panelSource, /this\.resetCardHighlights\(\{ showPreview: false \}\);/);
-  assert.match(panelSource, /this\.showBattleResultModal\(\);/);
-  assert.doesNotMatch(panelSource, /completeBattleFlow|scheduleBattleResultModal|delayedCall|showBattleExhaustedBannerThenScheduleResult/);
+  assert.match(panelSource, /this\.add\.rectangle\(centerX, height \* 0\.5, width, height, 0x000000, presentation\.overlayAlpha\)/);
+  assert.match(panelSource, /translateActive\('ui\.common\.continue', 'CONTINUE'\)/);
+  assert.match(panelSource, /translateActive\('ui\.common\.exit', 'EXIT'\)/);
+  assert.match(panelSource, /translateActive\('ui\.common\.retry', 'RETRY'\)/);
+  assert.match(panelSource, /this\.battleResultModalShown = true;[\s\S]*this\.playBattleOutcomeSfxOnce\(\);/);
+  assert.doesNotMatch(panelSource, /showBattleResultModal|completeBattleFlow|scheduleBattleResultModal|delayedCall|showBattleExhaustedBannerThenScheduleResult/);
 });
 
 test('menu surrender result title and flavor use surrender-specific defeat copy', () => {
@@ -98,6 +102,16 @@ test('menu surrender result stats display at least one turn without changing oth
   assert.match(statsSource, /this\.gameState\?\.endingReason === 'player_menu_surrender'/);
   assert.match(statsSource, /Math\.max\(1, rawTurns\)/);
   assert.match(statsSource, /: rawTurns;/);
+});
+
+
+test('normal result modal pipeline ignores menu surrender results', () => {
+  const scheduleSource = methodSource(battleSource, '  scheduleBattleResultModal(delayMs = 500) {', '  completeBattleFlow(delayMs = 500) {');
+  const completeSource = methodSource(battleSource, '  completeBattleFlow(delayMs = 500) {', '  showBattleExhaustedBannerThenScheduleResult');
+  const showSource = methodSource(battleSource, '  showBattleResultModal() {', '  createResultModalButton');
+  assert.match(scheduleSource, /this\.gameState\?\.endingReason === 'player_menu_surrender'/);
+  assert.match(completeSource, /this\.gameState\?\.endingReason === 'player_menu_surrender'/);
+  assert.match(showSource, /this\.gameState\?\.endingReason === 'player_menu_surrender'/);
 });
 
 test('menu surrender modal depth cannot outlive cleanup above normal result modal depth', () => {
