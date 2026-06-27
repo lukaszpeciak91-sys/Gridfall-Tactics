@@ -38,7 +38,8 @@ test('BattleScene utility menu exposes canonical active-battle surrender and res
   const resolveSource = methodSource(battleSource, '  resolvePlayerMenuSurrender() {', '  guardPointerEvent(pointer = null) {');
   assert.match(resolveSource, /this\.gameState\.winner = 'enemy';/);
   assert.match(resolveSource, /this\.gameState\.endingReason = 'player_menu_surrender';/);
-  assert.match(resolveSource, /this\.completeBattleFlow\(0\);/);
+  assert.match(resolveSource, /this\.showPlayerMenuSurrenderResultPanel\(\);/);
+  assert.doesNotMatch(resolveSource, /completeBattleFlow|scheduleBattleResultModal/);
   assert.match(resolveSource, /this\.destroyBattleMenuSurrenderConfirmation\(\);/);
   assert.match(resolveSource, /this\.destroyUtilityMenuPanel\(\);/);
   assert.match(resolveSource, /this\.closeInspectPreview\(\{ animate: false, clearSelection: true \}\);/);
@@ -64,6 +65,31 @@ test('surrender defeat flavor uses the normal defeat result subtitle path', () =
   assert.match(subtitleSource, /if \(this\.gameState\.winner === 'enemy'\) \{/);
   assert.match(subtitleSource, /this\.gameState\.endingReason === 'player_menu_surrender'/);
   assert.match(subtitleSource, /translateActive\('ui\.battle\.resultSubtitles\.surrenderDefeat'/);
+});
+
+test('menu surrender uses a synchronous dedicated result panel instead of the normal completion pipeline', () => {
+  const panelSource = methodSource(battleSource, '  showPlayerMenuSurrenderResultPanel() {', '  showBattleResultModal() {');
+  assert.match(panelSource, /this\.gameState\?\.endingReason !== 'player_menu_surrender'/);
+  assert.match(panelSource, /this\.gameState\?\.winner !== 'enemy'/);
+  assert.match(panelSource, /this\.battleResultModalPendingEvent\?\.remove\?\.\(false\);/);
+  assert.match(panelSource, /this\.battleResultModalPending = false;/);
+  assert.match(panelSource, /this\.stopCampaignBattleTimer\(\);/);
+  assert.match(panelSource, /this\.stopBattleAmbience\(\{ fadeMs: 350 \}\);/);
+  assert.match(panelSource, /this\.destroyBattleMenuSurrenderConfirmation\(\);/);
+  assert.match(panelSource, /this\.destroyUtilityMenuPanel\(\);/);
+  assert.match(panelSource, /this\.closeInspectPreview\(\{ animate: false, clearSelection: true \}\);/);
+  assert.match(panelSource, /this\.destroyDeckInfoPanel\(\);/);
+  assert.match(panelSource, /this\.destroyActiveSelectionMessage\(\);/);
+  assert.match(panelSource, /this\.resetCardHighlights\(\{ showPreview: false \}\);/);
+  assert.match(panelSource, /this\.showBattleResultModal\(\);/);
+  assert.doesNotMatch(panelSource, /completeBattleFlow|scheduleBattleResultModal|delayedCall|showBattleExhaustedBannerThenScheduleResult/);
+});
+
+test('menu surrender result title and flavor use surrender-specific defeat copy', () => {
+  const titleSource = methodSource(battleSource, '  getBattleResultText() {', '  playBattleSfx(key, options = {}) {');
+  assert.match(titleSource, /this\.gameState\.endingReason === 'player_menu_surrender'/);
+  assert.match(titleSource, /translateActive\('ui\.battle\.surrenderDefeatTitle', 'DEFEAT'\)/);
+  assert.match(battleSource, /surrenderDefeat: 'Not every story earns applause\.'/);
 });
 
 test('menu surrender result stats display at least one turn without changing other results', () => {
