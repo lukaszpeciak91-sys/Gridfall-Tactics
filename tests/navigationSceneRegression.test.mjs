@@ -335,9 +335,14 @@ test('rules panel contains glossary-first player-facing rules summary', () => {
   assert.match(source, /CARD_EFFECT_GAMEPLAY_SYMBOLS\.enemy, iconColor: GAMEPLAY_SYMBOL_COLORS\.enemy, label: 'ENEMY'/);
   assert.match(source, /CARD_EFFECT_GAMEPLAY_SYMBOLS\.enemies, iconColor: GAMEPLAY_SYMBOL_COLORS\.enemy, label: 'ENEMIES'/);
   assert.match(source, /Reduce the enemy Base to 0 HP/);
-  assert.match(source, /Players take one action each, alternating/);
-  assert.match(source, /combat resolves automatically/);
-  assert.match(source, /Battles use 3 lanes/);
+  assert.match(source, /The starting player may differ; initiative alternates/);
+  assert.match(source, /Each side performs one action or PASS/);
+  assert.match(source, /After both sides act or pass, combat resolves automatically/);
+  assert.match(source, /Before battle begins, you may mulligan up to 2 cards/);
+  assert.match(source, /The middle row is visual\/effect space and cannot hold units/);
+  assert.match(source, /Some effects require targets; others resolve automatically/);
+  assert.match(source, /If available, hold PASS to surrender/);
+  assert.match(source, /Exhausted late battles may be decided by remaining Base HP/);
   assert.match(source, /Tap one of your units/);
   assert.match(source, /PASS ends your action/);
   assert.doesNotMatch(source, /stall/i);

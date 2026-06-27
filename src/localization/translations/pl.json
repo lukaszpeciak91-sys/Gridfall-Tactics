@@ -549,7 +549,9 @@
             "HP — Życie jednostki lub bazy.",
             "ARM — Pancerz zmniejszający obrażenia bojowe.",
             "ALLY — Jedna twoja jednostka.",
-            "ALLIES — Wszystkie twoje jednostki."
+            "ALLIES — Wszystkie twoje jednostki.",
+            "ENEMY — Jedna jednostka przeciwnika.",
+            "ENEMIES — Jednostki przeciwnika."
           ]
         },
         {
@@ -564,25 +566,35 @@
             "Talia składa się z 10 kart.",
             "Maksymalna wielkość ręki to 5 kart.",
             "Karty dzielą się na: jednostki i efekty.",
-            "Na początku bitwy dobierasz 4 karty."
+            "Na początku bitwy dobierasz 4 karty.",
+            "Przed bitwą możesz wymienić do 2 kart."
           ]
         },
         {
           "heading": "Przebieg walki",
           "lines": [
-            "Gracze wykonują akcje naprzemiennie.",
-            "Po obu akcjach walka rozstrzyga się automatycznie.",
+            "Pierwszy gracz może się zmieniać; inicjatywa jest naprzemienna.",
+            "Każda strona wykonuje jedną akcję albo PASS.",
+            "Po akcjach lub PASS obu stron walka rozstrzyga się automatycznie.",
             "Jednostki atakują przeciwników naprzeciwko.",
             "Otwarta linia atakuje bazę przeciwnika.",
-            "Po walce obaj gracze dobierają kartę."
+            "Po walce obie strony dobierają kartę.",
+            "Jeśli twoja talia jest pusta, po prostu nie dobierasz."
+          ]
+        },
+        {
+          "heading": "Plansza",
+          "lines": [
+            "Jednostki zajmują tylko górny i dolny rząd.",
+            "Środkowy rząd to przestrzeń wizualna/efektów i nie mieści jednostek."
           ]
         },
         {
           "heading": "Zagrywanie kart",
           "lines": [
             "Jednostki zagrywasz na własne pola.",
-            "Efekty rzucasz na planszę.",
-            "Efekty celowane wymagają wskazania celu tapem."
+            "Efekty zagrywasz z ręki.",
+            "Niektóre efekty wymagają celu, inne rozstrzygają się automatycznie."
           ]
         },
         {
@@ -597,7 +609,14 @@
           "heading": "PASS",
           "lines": [
             "PASS kończy twoją akcję.",
-            "Przytrzymaj PASS, aby się poddać."
+            "Jeśli dostępne, przytrzymaj PASS, aby się poddać."
+          ]
+        },
+        {
+          "heading": "Wyczerpana bitwa",
+          "lines": [
+            "Wyczerpane końcówki bitew mogą rozstrzygać się według pozostałego HP baz.",
+            "Równe HP baz oznacza remis."
           ]
         }
       ],

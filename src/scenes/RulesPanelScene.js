@@ -27,24 +27,44 @@ const RULE_SECTIONS = Object.freeze([
     ],
   },
   {
-    heading: 'Your Turn',
+    heading: 'Deck',
     lines: [
-      'Players take one action each, alternating.',
-      'After both actions, combat resolves automatically.',
-      'After combat, both players draw 1 card.',
+      'Your deck has 10 cards.',
+      'Maximum hand size is 5 cards.',
+      'Cards are split into: units and effects.',
+      'At battle start, draw 4 cards.',
+      'Before battle begins, you may mulligan up to 2 cards.',
     ],
   },
   {
-    heading: 'Board and Combat',
+    heading: 'Combat Flow',
     lines: [
-      'Battles use 3 lanes.',
+      'The starting player may differ; initiative alternates.',
+      'Each side performs one action or PASS.',
+      'After both sides act or pass, combat resolves automatically.',
       'Units fight directly opposite units.',
       'If a lane is open, that attack hits the enemy Base.',
-      'The middle row is visual only.',
+      'After combat, both sides draw 1 card.',
+      'If your deck is empty, you simply do not draw.',
     ],
   },
   {
-    heading: 'Swap',
+    heading: 'Board',
+    lines: [
+      'Only the top and bottom rows contain units.',
+      'The middle row is visual/effect space and cannot hold units.',
+    ],
+  },
+  {
+    heading: 'Playing Cards',
+    lines: [
+      'Play units to your side of the board.',
+      'Cast effects from your hand.',
+      'Some effects require targets; others resolve automatically.',
+    ],
+  },
+  {
+    heading: 'Unit Swap',
     lines: [
       'Tap one of your units.',
       'Tap an adjacent allied unit.',
@@ -56,6 +76,13 @@ const RULE_SECTIONS = Object.freeze([
     lines: [
       'PASS ends your action.',
       'If available, hold PASS to surrender.',
+    ],
+  },
+  {
+    heading: 'Battle Exhausted',
+    lines: [
+      'Exhausted late battles may be decided by remaining Base HP.',
+      'Equal Base HP results in a draw.',
     ],
   },
 ]);

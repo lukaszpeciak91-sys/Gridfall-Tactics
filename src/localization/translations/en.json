@@ -549,7 +549,9 @@
             "HP — Health of a unit or base.",
             "ARM — Armor that reduces combat damage.",
             "ALLY — One of your units.",
-            "ALLIES — All your units."
+            "ALLIES — All your units.",
+            "ENEMY — One opposing unit.",
+            "ENEMIES — Opposing units."
           ]
         },
         {
@@ -564,25 +566,35 @@
             "Your deck has 10 cards.",
             "Maximum hand size is 5 cards.",
             "Cards are split into: units and effects.",
-            "At battle start, draw 4 cards."
+            "At battle start, draw 4 cards.",
+            "Before battle begins, you may mulligan up to 2 cards."
           ]
         },
         {
           "heading": "Combat Flow",
           "lines": [
-            "Players take actions in alternating order.",
-            "After both actions, combat resolves automatically.",
+            "The starting player may differ; initiative alternates.",
+            "Each side performs one action or PASS.",
+            "After both sides act or pass, combat resolves automatically.",
             "Units attack enemies directly opposite.",
             "An open lane hits the enemy base.",
-            "After combat, both players draw a card."
+            "After combat, both sides draw a card.",
+            "If your deck is empty, you simply do not draw."
+          ]
+        },
+        {
+          "heading": "Board",
+          "lines": [
+            "Only the top and bottom rows contain units.",
+            "The middle row is visual/effect space and cannot hold units."
           ]
         },
         {
           "heading": "Playing Cards",
           "lines": [
             "Play units to your side of the board.",
-            "Cast effects onto the board.",
-            "Targeted effects require tapping a valid target."
+            "Cast effects from your hand.",
+            "Some effects require targets; others resolve automatically."
           ]
         },
         {
@@ -597,7 +609,14 @@
           "heading": "PASS",
           "lines": [
             "PASS ends your action.",
-            "Hold PASS to surrender."
+            "If available, hold PASS to surrender."
+          ]
+        },
+        {
+          "heading": "Battle Exhausted",
+          "lines": [
+            "Exhausted late battles may be decided by remaining Base HP.",
+            "Equal Base HP results in a draw."
           ]
         }
       ],
