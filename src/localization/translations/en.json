@@ -395,8 +395,8 @@
     },
     "battleMenu": {
       "title": "MENU",
-      "comingSoon": "Menu options coming soon.",
       "howToPlay": "HOW TO PLAY",
+      "settings": "SETTINGS",
       "surrender": "SURRENDER"
     },
     "battle": {
@@ -542,7 +542,7 @@
       "battleExhausted": "BATTLE EXHAUSTED",
       "utilityMenuSurrender": "Surrender",
       "surrenderConfirmTitle": "SURRENDER?",
-      "surrenderConfirmBody": "Leaving now counts as a defeat.",
+      "surrenderConfirmBody": "This counts as a defeat.",
       "surrenderConfirmButton": "Surrender"
     },
     "rules": {

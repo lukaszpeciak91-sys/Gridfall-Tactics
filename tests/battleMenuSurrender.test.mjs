@@ -40,7 +40,7 @@ test('BattleScene utility menu wires battle-exit buttons to canonical surrender 
   assert.doesNotMatch(guardSource, /canPlayerBaseHoldToSurrender|canHoldPassToSurrender|isVerySafeConcedableState/);
   const modalSource = methodSource(battleSource, '  showBattleMenuSurrenderConfirmation() {', '  destroyBattleMenuSurrenderConfirmation() {');
   assert.match(modalSource, /translateActive\('ui\.battle\.surrenderConfirmTitle', 'SURRENDER\?'\)/);
-  assert.match(modalSource, /translateActive\('ui\.battle\.surrenderConfirmBody', 'Leaving now counts as a defeat\.'\)/);
+  assert.match(modalSource, /translateActive\('ui\.battle\.surrenderConfirmBody', 'This counts as a defeat\.'\)/);
   assert.match(modalSource, /translateActive\('ui\.common\.cancel', 'Cancel'\)/);
   assert.match(modalSource, /translateActive\('ui\.battle\.surrenderConfirmButton', 'Surrender'\)/);
   const resolveSource = methodSource(battleSource, '  resolvePlayerMenuSurrender() {', '  guardPointerEvent(pointer = null) {');
@@ -49,11 +49,12 @@ test('BattleScene utility menu wires battle-exit buttons to canonical surrender 
   assert.match(resolveSource, /this\.completeBattleFlow\(0\);/);
 });
 
-test('separate BattleMenuScene no longer exposes a surrender button', () => {
-  assert.doesNotMatch(battleMenuSource, /translateActive\('ui\.battleMenu\.surrender', 'SURRENDER'\)/);
+test('separate BattleMenuScene exposes explicit active-battle surrender through the safe BattleScene path', () => {
+  assert.match(battleMenuSource, /translateActive\('ui\.battleMenu\.surrender', 'SURRENDER'\)/);
+  assert.match(battleMenuSource, /canPlayerMenuSurrender\?\.\(\{ allowMenuNavigation: true \}\)/);
+  assert.match(battleMenuSource, /returnScene\?\.requestActiveBattleExit\?\.\(\{ battleMenuScene: this \}\)/);
   assert.doesNotMatch(battleMenuSource, /showSurrenderConfirmation\(returnScene, returnSceneKey\)/);
   assert.doesNotMatch(battleMenuSource, /resolvePlayerMenuSurrender/);
-  assert.match(battleMenuSource, /returnScene\?\.requestActiveBattleExit\?\.\(\{ battleMenuScene: this \}\)/);
 });
 
 test('surrender defeat flavor uses the normal defeat result subtitle path', () => {

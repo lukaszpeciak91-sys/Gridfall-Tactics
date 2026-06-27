@@ -206,13 +206,14 @@ test('campaign progression handles losses and wins at state level', () => {
   assert.equal(winningCampaign.status, 'won');
 });
 
-test('BattleMenuScene preserves enemy faction and battle context when falling back to restart', () => {
+test('BattleMenuScene uses active battle menu actions without fallback battle restart', () => {
   const battle = read('src/scenes/BattleScene.js');
   const menu = read('src/scenes/BattleMenuScene.js');
   assert.match(battle, /this\.scene\.launch\('BattleMenuScene', \{ factionKey: this\.factionKey, enemyFactionKey: this\.enemyFactionKey, battleContext: this\.battleContext/);
-  assert.match(menu, /const enemyFactionKey = typeof data\?\.enemyFactionKey === 'string'/);
-  assert.match(menu, /const battleContext = data\?\.battleContext/);
-  assert.match(menu, /this\.scene\.start\('BattleScene', \{ factionKey, enemyFactionKey, battleContext \}\)/);
+  assert.match(menu, /translateActive\('ui\.battleMenu\.howToPlay', 'HOW TO PLAY'\)/);
+  assert.match(menu, /translateActive\('ui\.battleMenu\.settings', 'SETTINGS'\)/);
+  assert.match(menu, /translateActive\('ui\.battleMenu\.surrender', 'SURRENDER'\)/);
+  assert.doesNotMatch(menu, /this\.scene\.start\('BattleScene'/);
 });
 
 test('attempt indicators render inside every campaign enemy card including attrition swarm', () => {
