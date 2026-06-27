@@ -542,7 +542,7 @@
       "battleExhausted": "BATTLE EXHAUSTED",
       "utilityMenuSurrender": "Surrender",
       "surrenderConfirmTitle": "SURRENDER?",
-      "surrenderConfirmBody": "This counts as a defeat.",
+      "surrenderConfirmBody": "Leaving now counts as a defeat.",
       "surrenderConfirmButton": "Surrender"
     },
     "rules": {
