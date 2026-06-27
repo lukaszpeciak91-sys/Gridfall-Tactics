@@ -12,6 +12,7 @@ export const AUDIO_KEYS = Object.freeze({
   BATTLE_VICTORY: 'battle.victory',
   BATTLE_DEFEAT: 'battle.defeat',
   BASE_HIT: 'base.hit',
+  BATTLE_START: 'battle.start',
   BATTLE_AMBIENCE: 'music.battleAmbience',
   MENU_MUSIC: 'music.menu',
 });
@@ -31,6 +32,7 @@ export const AUDIO_ASSETS = Object.freeze({
   [AUDIO_KEYS.BATTLE_VICTORY]: Object.freeze({ key: AUDIO_KEYS.BATTLE_VICTORY, path: sfxPath('battle-victory.mp3'), category: 'sfx', cooldownMs: 1000, volume: 0.45 }),
   [AUDIO_KEYS.BATTLE_DEFEAT]: Object.freeze({ key: AUDIO_KEYS.BATTLE_DEFEAT, path: sfxPath('battle-defeat.mp3'), category: 'sfx', cooldownMs: 1000, volume: 0.45 }),
   [AUDIO_KEYS.BASE_HIT]: Object.freeze({ key: AUDIO_KEYS.BASE_HIT, path: sfxPath('base-hit.mp3'), category: 'sfx', cooldownMs: 120 }),
+  [AUDIO_KEYS.BATTLE_START]: Object.freeze({ key: AUDIO_KEYS.BATTLE_START, path: sfxPath('battle-start.mp3'), category: 'sfx', cooldownMs: 1000, volume: 0.5 }),
   [AUDIO_KEYS.BATTLE_AMBIENCE]: Object.freeze({ key: AUDIO_KEYS.BATTLE_AMBIENCE, path: musicPath('battle-ambience.mp3'), category: 'music', loop: true, volume: 0.08, busVolume: 1 }),
   [AUDIO_KEYS.MENU_MUSIC]: Object.freeze({ key: AUDIO_KEYS.MENU_MUSIC, path: musicPath('menu-music.mp3'), category: 'music', loop: true }),
 });

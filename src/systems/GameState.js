@@ -1910,6 +1910,7 @@ export function createInitialBattleState(playerFactionData, enemyFactionData = p
     turnsCompleted: 0,
     nextFallenSequence: 0,
     firstActor,
+    battleStartPresentationSfxPlayed: false,
     player: {
       factionId: playerFactionData?.id ?? 'unknown',
       factionName: playerFactionData?.name ?? 'Unknown',
