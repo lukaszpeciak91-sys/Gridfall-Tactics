@@ -35,6 +35,7 @@ test('BattleScene utility menu exposes canonical active-battle surrender and res
   assert.match(modalSource, /translateActive\('ui\.battle\.surrenderConfirmBody', 'This counts as a defeat\.'\)/);
   assert.match(modalSource, /translateActive\('ui\.common\.cancel', 'Cancel'\)/);
   assert.match(modalSource, /translateActive\('ui\.battle\.surrenderConfirmButton', 'Surrender'\)/);
+  assert.doesNotMatch(modalSource, /robustMobileRelease: true/);
   const resolveSource = methodSource(battleSource, '  resolvePlayerMenuSurrender() {', '  guardPointerEvent(pointer = null) {');
   assert.match(resolveSource, /this\.gameState\.winner = 'enemy';/);
   assert.match(resolveSource, /this\.gameState\.endingReason = 'player_menu_surrender';/);
