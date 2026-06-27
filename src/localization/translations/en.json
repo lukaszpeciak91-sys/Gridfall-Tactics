@@ -396,7 +396,8 @@
     "battleMenu": {
       "title": "MENU",
       "comingSoon": "Menu options coming soon.",
-      "howToPlay": "HOW TO PLAY"
+      "howToPlay": "HOW TO PLAY",
+      "surrender": "SURRENDER"
     },
     "battle": {
       "utilityMenuRules": "Rules",
@@ -512,7 +513,8 @@
           "It wasn’t enough this time.",
           "Not everyone gets to leave the stage in glory."
         ],
-        "draw": "Production ordered a rematch."
+        "draw": "Production ordered a rematch.",
+        "surrenderDefeat": "You chose silence before the crowd chose it for you."
       },
       "resultStats": {
         "turns": "Turns",
@@ -537,7 +539,11 @@
         "effectCardPlayBlocked": "You cannot play effect cards."
       },
       "confirmSurrender": "SURRENDER",
-      "battleExhausted": "BATTLE EXHAUSTED"
+      "battleExhausted": "BATTLE EXHAUSTED",
+      "utilityMenuSurrender": "Surrender",
+      "surrenderConfirmTitle": "SURRENDER?",
+      "surrenderConfirmBody": "This counts as a defeat.",
+      "surrenderConfirmButton": "Surrender"
     },
     "rules": {
       "title": "RULES",
