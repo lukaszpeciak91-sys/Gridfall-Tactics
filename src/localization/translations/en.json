@@ -230,7 +230,7 @@
     },
     "wardens_stand_firm_1": {
       "name": "Endure the Cold",
-      "textShort": "Heal [ALLY] 1"
+      "textShort": "Heal [ALLY] +1 [HP]"
     },
     "wardens_reinforce_line_1": {
       "name": "Lock the Line",

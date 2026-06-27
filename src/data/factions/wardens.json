@@ -96,7 +96,7 @@
       "type": "order",
       "targeting": "friendly_unit",
       "effectId": "heal_1",
-      "textShort": "Heal [ALLY] 1"
+      "textShort": "Heal [ALLY] +1 [HP]"
     },
     {
       "id": "wardens_reinforce_line_1",
