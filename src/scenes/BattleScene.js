@@ -859,7 +859,7 @@ export default class BattleScene extends Phaser.Scene {
     const panelContentWidth = Math.round(basePanelContentWidth * menuScale);
     const panelHorizontalPadding = Math.round(4 * menuScale);
     const panelWidth = Math.min(panelContentWidth + panelHorizontalPadding * 2, width - margin - panelLeft);
-    const panelHeight = Math.round(228 * menuScale);
+    const panelHeight = Math.round(192 * menuScale);
     const panelTop = triggerY - triggerHeight / 2 - (panelHeight - 228) / 2;
     const panelX = Math.min(width - margin - panelWidth / 2, panelLeft + basePanelContentWidth / 2 + 14);
     const panelY = panelTop + panelHeight / 2;
@@ -932,9 +932,8 @@ export default class BattleScene extends Phaser.Scene {
     const buttons = [
       this.createUtilityMenuButton(buttonX, firstButtonY, buttonWidth, buttonHeight, translateActive('ui.battle.utilityMenuRules', 'Rules'), () => this.openRulesPanel()),
       this.createUtilityMenuButton(buttonX, firstButtonY + buttonGap, buttonWidth, buttonHeight, translateActive('ui.battle.utilityMenuSettings', 'Settings'), () => this.openSettingsScene()),
-      this.createUtilityMenuButton(buttonX, firstButtonY + buttonGap * 2, buttonWidth, buttonHeight, translateActive('ui.battle.utilityMenuReturn', 'Return'), () => this.exitBattleToFactionSelect()),
-      this.createUtilityMenuButton(buttonX, firstButtonY + buttonGap * 3, buttonWidth, buttonHeight, translateActive('ui.battle.utilityMenuSurrender', 'Surrender'), () => this.showBattleMenuSurrenderConfirmation()),
-      this.createUtilityMenuButton(buttonX, firstButtonY + buttonGap * 4, buttonWidth, buttonHeight, translateActive('ui.battle.utilityMenuMainMenu', 'Main Menu'), () => this.exitBattleToMainMenu()),
+      this.createUtilityMenuButton(buttonX, firstButtonY + buttonGap * 2, buttonWidth, buttonHeight, translateActive('ui.battle.utilityMenuReturn', 'Return'), () => this.handleUtilityMenuReturn()),
+      this.createUtilityMenuButton(buttonX, firstButtonY + buttonGap * 3, buttonWidth, buttonHeight, translateActive('ui.battle.utilityMenuMainMenu', 'Main Menu'), () => this.exitBattleToMainMenu()),
     ];
 
     buttons.forEach((button) => {
@@ -1031,6 +1030,15 @@ export default class BattleScene extends Phaser.Scene {
     this.updatePlayerBaseActionState();
   }
 
+
+  handleUtilityMenuReturn() {
+    if (this.canPlayerMenuSurrender()) {
+      this.showBattleMenuSurrenderConfirmation();
+      return;
+    }
+    this.exitBattleToFactionSelect();
+  }
+
   canPlayerMenuSurrender() {
     return Boolean(
       this.gameState
@@ -1039,6 +1047,7 @@ export default class BattleScene extends Phaser.Scene {
       && !this.battleResultModalPending
       && !this.openingMulliganPending
       && !this.isFlowResolving
+      && !this.navigationInProgress
       && !this.isEffectCastResolving
       && !this.effectCastState
       && !this.battleMenuSurrenderModal,
