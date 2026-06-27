@@ -134,7 +134,7 @@
     },
     "swarm_rusher_1": {
       "name": "Rusher",
-      "textShort": ""
+      "textShort": "This unit ignores [ARM]"
     },
     "swarm_alpha_1": {
       "name": "Alpha",
@@ -234,7 +234,7 @@
     },
     "wardens_reinforce_line_1": {
       "name": "Lock the Line",
-      "textShort": "Adjacent [ALLY] +1 ARM until combat"
+      "textShort": "Until combat, [ALLIES] cannot be moved"
     },
     "wardens_hold_the_line_1": {
       "name": "Hold the Ice Pass",
