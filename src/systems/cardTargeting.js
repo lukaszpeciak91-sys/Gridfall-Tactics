@@ -3,6 +3,7 @@ const FRIENDLY_SINGLE_TARGET_EFFECTS = new Set([
   'destroy_friendly_draw_1',
   'destroy_friendly_damage_enemy_base_1',
   'quick_strike',
+  'heal_1',
   'heal_2',
   'heal_1_atk_1_draw_on_kill_this_turn',
   'heal_3',

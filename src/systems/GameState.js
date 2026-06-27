@@ -270,6 +270,7 @@ function cardCanRealisticallyAffectOutcome(card, state, owner, visitedCardIds = 
     case 'heal_all_1':
     case 'cannot_drop_below_1_this_turn':
     case 'temp_armor_1':
+    case 'heal_1':
     case 'heal_2':
     case 'heal_3':
     case 'adjacent_allies_temp_armor_1':
@@ -1806,6 +1807,7 @@ function applyEffectById(state, owner, effectId, sourceCard = null) {
       removeDefeatedUnits(state, enemyIndexes);
       break;
     }
+    case 'heal_1':
     case 'heal_2':
     case 'heal_1_atk_1_draw_on_kill_this_turn':
     case 'heal_3':
@@ -2272,6 +2274,7 @@ function validateTargetedEffectResolution(state, owner, card, boardIndex, target
     case 'destroy_friendly_draw_1':
     case 'destroy_friendly_damage_enemy_base_1':
     case 'quick_strike':
+    case 'heal_1':
     case 'heal_2':
     case 'heal_1_atk_1_draw_on_kill_this_turn':
     case 'heal_3':
@@ -2463,6 +2466,7 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
       }
       break;
     }
+    case 'heal_1':
     case 'heal_2':
     case 'heal_1_atk_1_draw_on_kill_this_turn':
     case 'heal_3': {

@@ -94,9 +94,9 @@
       "artAssetId": "wardens_08",
       "name": "Stand Firm",
       "type": "order",
-      "targeting": "none",
-      "effectId": "friendly_immovable_this_turn",
-      "textShort": "Until combat, [ALLIES] cannot be moved"
+      "targeting": "friendly_unit",
+      "effectId": "heal_1",
+      "textShort": "Heal [ALLY] 1"
     },
     {
       "id": "wardens_reinforce_line_1",

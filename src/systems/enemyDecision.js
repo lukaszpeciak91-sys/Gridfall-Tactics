@@ -45,6 +45,7 @@ const SAFE_SURRENDER_MEANINGFUL_EFFECT_IDS = new Set([
   'buff_all_armor_1',
   'enemy_all_armor_minus_1',
   'heal_all_1',
+  'heal_1',
   'cannot_drop_below_1_this_turn',
   'temp_armor_1',
   'swap_leftmost_adjacent_enemies',
@@ -55,6 +56,7 @@ const SAFE_SURRENDER_MEANINGFUL_EFFECT_IDS = new Set([
 
 
 const LOW_TEMPO_EFFECTS = new Set([
+  'heal_1',
   'heal_2',
   'heal_3',
   'temp_armor_1',
@@ -93,6 +95,7 @@ const UTILITY_EFFECT_IDS = new Set([
   'grave_call',
   'fill_empty_slots_0_1',
   'summon_grunt_empty_slot',
+  'heal_1',
   'heal_2',
   'heal_3',
   'heal_all_1',
@@ -447,6 +450,7 @@ function getCandidateTargetIndexes(state, owner, effectId) {
     case 'return_friendly_draw_1':
     case 'destroy_friendly_draw_1':
     case 'destroy_friendly_damage_enemy_base_1':
+    case 'heal_1':
     case 'heal_2':
     case 'heal_1_atk_1_draw_on_kill_this_turn':
     case 'heal_3':
@@ -507,6 +511,7 @@ function isTargetedOnlyEffect(effectId) {
     || effectId === 'return_friendly_draw_1'
     || effectId === 'destroy_friendly_draw_1'
     || effectId === 'destroy_friendly_damage_enemy_base_1'
+    || effectId === 'heal_1'
     || effectId === 'heal_2'
     || effectId === 'heal_1_atk_1_draw_on_kill_this_turn'
     || effectId === 'heal_3'
@@ -1084,8 +1089,14 @@ export function scoreAction(state, owner, action) {
     score += immediateHeroDamage > 0 || kills > 0 ? 2000 : -2500;
   }
 
-  if ((action.effectId === 'heal_2' || action.effectId === 'heal_3') && hpSaved <= 0) {
-    score -= 2000;
+  if (action.effectId === 'heal_1' || action.effectId === 'heal_2' || action.effectId === 'heal_3') {
+    const beforeTarget = state.board[action.targetIndex];
+    const afterTarget = nextState.board[action.targetIndex];
+    const unitHpRestored = beforeTarget?.owner === owner && afterTarget?.owner === owner
+      ? Math.max(0, (afterTarget.hp ?? 0) - (beforeTarget.hp ?? 0))
+      : 0;
+    if (unitHpRestored <= 0) score -= 2000;
+    else score += 1800 + unitHpRestored * 260;
   }
 
   if (action.effectId === 'heal_all_1') {

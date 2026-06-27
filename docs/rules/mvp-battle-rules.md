@@ -307,7 +307,7 @@ Candidate audit for the same rule:
 | Wardens | Tererek | unit | 2/2/0 | null |  | Lane combat | Vanilla unit with empty rules text. |
 | Wardens | Bone Shields | utility | - | temp_armor_1 | Target [ALLY] +1 ARM until combat | Targeted friendly | Reuses temporary armor cleanup; no costs. |
 | Wardens | Mammoth Stampede | order | - | swap_adjacent_enemy_units | Swap two adjacent [ENEMIES]. | Manual two-enemy targeting | Select two adjacent enemies in the same row; no cross-side movement; no ownership changes. |
-| Wardens | Endure the Cold | order | - | friendly_immovable_this_turn | Until combat, [ALLIES] cannot be moved | Non-targeted effect | Move-only protection; unlike Tank Stability, it does not block disable effects. |
+| Wardens | Endure the Cold | order | - | heal_1 | Heal [ALLY] 1 | Targeted friendly | Heal is capped by unit max HP. |
 | Wardens | Lock the Line | order | - | immune_move_disable_this_turn | Until combat, [ALLIES] cannot be moved | Non-targeted effect | Same mechanical behavior as Tank Stability; blocks swap/disable effects by opponent. |
 | Wardens | Hold the Ice Pass | order | - | adjacent_allies_temp_armor_1 | Adjacent [ALLY] +1 ARM until combat | Non-targeted formation effect | Adjacent-allies formation armor; reinforces Wardens shield-wall formation identity and reuses temporary armor cleanup. |
 

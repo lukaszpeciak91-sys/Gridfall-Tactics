@@ -186,6 +186,43 @@ test('Halberdier gets +1 ATK only when opposing lane has enemy', () => {
   assert.equal(open.enemyHP, 10);
 });
 
+
+test('Endure the Cold targets a friendly unit and heals 1 HP up to max HP', () => {
+  const state = createWardensState();
+  state.player.hand.push({ ...card('wardens_stand_firm_1') });
+  state.board[6] = unit({ id: 'damaged-ally', owner: 'player', hp: 3 });
+  state.board[6].hp = 1;
+  state.board[7] = unit({ id: 'full-ally', owner: 'player', hp: 2 });
+  state.board[0] = unit({ id: 'enemy', owner: 'enemy', hp: 3 });
+
+  const enemyResult = resolveTargetedEffectCard(state, 'player', 'wardens_stand_firm_1', 0);
+  assert.equal(enemyResult.ok, false);
+  assert.equal(enemyResult.reason, 'Target must be friendly');
+
+  const result = resolveTargetedEffectCard(state, 'player', 'wardens_stand_firm_1', 6);
+  assert.equal(result.ok, true);
+  assert.equal(state.board[6].hp, 2);
+  assert.equal(state.player.discard.at(-1).id, 'wardens_stand_firm_1');
+});
+
+test('AI targets damaged friendly units for Endure the Cold and skips it when no heal is gained', () => {
+  const damaged = createWardensState();
+  damaged.enemy.hand.push({ ...card('wardens_stand_firm_1') });
+  damaged.board[1] = unit({ id: 'damaged-ally', owner: 'enemy', hp: 3 });
+  damaged.board[1].hp = 1;
+  damaged.board[7] = unit({ id: 'opposing-threat', owner: 'player', attack: 1, hp: 3 });
+
+  const healAction = chooseBattleAction(damaged, 'enemy');
+  assert.equal(healAction.type, 'play-targeted-effect');
+  assert.equal(healAction.effectId, 'heal_1');
+  assert.equal(healAction.targetIndex, 1);
+
+  const full = createWardensState();
+  full.enemy.hand.push({ ...card('wardens_stand_firm_1') });
+  full.board[0] = unit({ id: 'full-ally', owner: 'enemy', hp: 3 });
+  assert.notEqual(chooseBattleAction(full, 'enemy').cardId, 'wardens_stand_firm_1');
+});
+
 test('Brace and Hold The Line grant adjacent temporary armor while Reinforce Line blocks movement until combat', () => {
   const state = createWardensState();
   state.player.hand.push({ ...card('wardens_brace_1') }, { ...card('wardens_reinforce_line_1') }, { ...card('wardens_hold_the_line_1') });
@@ -243,6 +280,12 @@ test('Hold The Line adjacent armor order is rejected for isolated units and does
 });
 
 test('Wardens targeting metadata uses Brace and Shield Push manual targeting', () => {
+  assert.deepEqual(getTargetingStateForEffect('heal_1', 'wardens_stand_firm_1'), {
+    cardId: 'wardens_stand_firm_1',
+    targetType: 'friendly-unit',
+    requiredTargets: 1,
+    targetIndexes: [],
+  });
   assert.deepEqual(getTargetingStateForEffect('temp_armor_1', 'wardens_brace_1'), {
     cardId: 'wardens_brace_1',
     targetType: 'friendly-unit',

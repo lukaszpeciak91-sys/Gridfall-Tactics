@@ -280,6 +280,7 @@ const ENEMY_EFFECT_SUMMARY_OVERRIDES = Object.freeze({
   buff_all_armor_1: 'All allies +1 ARM',
   immune_move_disable_this_turn: 'Block move effects',
   heal_all_1: 'Heal all allies 1',
+  heal_1: 'Heal ally 1',
   cannot_drop_below_1_this_turn: 'Allies survive at 1 HP',
   temp_armor_1: 'Target ally +1 ARM',
   summon_grunt_empty_slot: 'Summon a Grunt',
@@ -7367,7 +7368,7 @@ export default class BattleScene extends Phaser.Scene {
       'on_play_lane_damage_1',
     ]);
     const debuffEffects = new Set(['enemy_lane_atk_minus_1', 'enemy_up_to_2_atk_minus_1']);
-    const healEffects = new Set(['heal_all_1', 'heal_1_atk_1_draw_on_kill_this_turn', 'heal_2', 'heal_3']);
+    const healEffects = new Set(['heal_all_1', 'heal_1', 'heal_1_atk_1_draw_on_kill_this_turn', 'heal_2', 'heal_3']);
 
     if (directDamageEffects.has(effectId)) {
       beforeSnapshot.forEach((before, index) => {
