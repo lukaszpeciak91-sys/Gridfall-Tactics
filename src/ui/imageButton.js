@@ -94,6 +94,8 @@ export function createImageButton(scene, {
   height,
   label,
   onPointerUp,
+  onPointerDown,
+  onPointerUpTrace,
   depth = 1,
   fontSize = '20px',
   textStyle = {},
@@ -161,8 +163,12 @@ export function createImageButton(scene, {
 
   hitZone.on('pointerover', () => setVisualState({ scale: hoverScale, alpha: 1, tint: hasButtonTexture ? 0xfffbef : null, glowAlpha: 0.08, textGlow: true }));
   hitZone.on('pointerout', () => setVisualState({ scale: 1, alpha: 1, textAlpha: 1 }));
-  hitZone.on('pointerdown', () => setVisualState({ scale: downScale, alpha: 0.9, textAlpha: 0.94 }));
+  hitZone.on('pointerdown', () => {
+    setVisualState({ scale: downScale, alpha: 0.9, textAlpha: 0.94 });
+    onPointerDown?.();
+  });
   hitZone.on('pointerup', () => {
+    onPointerUpTrace?.();
     setVisualState({ scale: hoverScale, alpha: hasButtonTexture ? 1 : 0.96, tint: hasButtonTexture ? 0xfffbef : null, glowAlpha: 0.08, textGlow: true });
     if (typeof onPointerUp === 'function') {
       playSfx(scene, AUDIO_KEYS.UI_CLICK);

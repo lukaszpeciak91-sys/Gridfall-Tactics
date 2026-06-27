@@ -1031,6 +1031,51 @@ export default class BattleScene extends Phaser.Scene {
   }
 
 
+  updateSurrenderTrace(message) {
+    const text = String(message ?? 'unknown');
+    const displayText = text.startsWith('SURRENDER TRACE') ? text : `SURRENDER TRACE: ${text}`;
+    try {
+      const { width } = this.scale?.gameSize ?? { width: 360 };
+      if (!this.surrenderTraceOverlay || this.surrenderTraceOverlay.destroyed) {
+        this.surrenderTraceOverlay = this.add.text(8, 8, displayText, {
+          fontFamily: 'Arial, sans-serif',
+          fontSize: '14px',
+          color: '#ffffff',
+          backgroundColor: 'rgba(127, 29, 29, 0.86)',
+          padding: { x: 8, y: 6 },
+          wordWrap: { width: Math.max(260, width - 16), useAdvancedWrap: true },
+        }).setOrigin(0, 0).setScrollFactor(0).setDepth(9999);
+      } else {
+        this.surrenderTraceOverlay.setText(displayText).setDepth(9999).setVisible(true);
+      }
+    } catch (error) {
+      console.error(displayText, error);
+    }
+  }
+
+  updateSurrenderTraceError(error) {
+    const message = error?.message ?? String(error ?? 'unknown error');
+    this.updateSurrenderTrace(`SURRENDER TRACE ERROR: ${message}`);
+  }
+
+  getPlayerMenuSurrenderBlockReason({ allowMenuNavigation = false, ignorePointerGuard = false } = {}) {
+    const sceneActive = this.scene?.isActive?.('BattleScene') === true;
+    const scenePaused = this.scene?.isPaused?.('BattleScene') === true;
+    if (!sceneActive && !scenePaused) return 'scene paused/inactive';
+    if (!this.gameState) return 'no gameState';
+    if (this.battleStartedAt === null) return 'battle not started';
+    if (this.gameState.winner) return 'winner already exists';
+    if (this.battleResultModalShown) return 'battleResultModalShown';
+    if (this.battleResultModalPending) return 'battleResultModalPending';
+    if (this.openingMulliganPending) return 'mulligan active';
+    if (this.isEffectCastResolving || this.effectCastState) return 'effect resolving';
+    if (this.isFlowResolving) return 'isFlowResolving';
+    if (!allowMenuNavigation && this.navigationInProgress) return 'navigationInProgress';
+    if (this.battleMenuSurrenderModal) return 'modal already exists';
+    if (!ignorePointerGuard && this.pointerInputGuardActive) return 'pointer guard blocking input';
+    return null;
+  }
+
   canPlayerMenuSurrender({ allowMenuNavigation = false } = {}) {
     const sceneActiveOrResumable = this.scene?.isActive?.('BattleScene') || this.scene?.isPaused?.('BattleScene');
     return Boolean(
@@ -1043,12 +1088,19 @@ export default class BattleScene extends Phaser.Scene {
       && !this.openingMulliganPending
       && !this.isFlowResolving
       && (allowMenuNavigation || !this.navigationInProgress)
-      && !this.battleMenuSurrenderModal,
+      && !this.battleMenuSurrenderModal
+      && this.getPlayerMenuSurrenderBlockReason({ allowMenuNavigation }) === null,
     );
   }
 
   showBattleMenuSurrenderConfirmation() {
-    if (!this.canPlayerMenuSurrender()) return false;
+    this.updateSurrenderTrace('Battle Menu Surrender button clicked');
+    try {
+      const blockReason = this.getPlayerMenuSurrenderBlockReason();
+      if (blockReason) {
+        this.updateSurrenderTrace(`resolvePlayerMenuSurrender bails early: ${blockReason}`);
+        return false;
+      }
 
     this.destroyUtilityMenuPanel();
     this.closeInspectPreview({ animate: false, clearSelection: true });
@@ -1108,11 +1160,27 @@ export default class BattleScene extends Phaser.Scene {
     const buttonY = top + modalHeight * 0.76;
     const gap = Math.max(18, modalWidth * 0.06);
     const cancelButton = this.createResultModalButton(centerX - buttonWidth / 2 - gap / 2, buttonY, buttonWidth, buttonHeight, translateActive('ui.common.cancel', 'Cancel'), () => this.destroyBattleMenuSurrenderConfirmation(), presentation, { depth: depth + 4 });
-    const surrenderButton = this.createResultModalButton(centerX + buttonWidth / 2 + gap / 2, buttonY, buttonWidth, buttonHeight, translateActive('ui.battle.surrenderConfirmButton', 'Surrender'), () => this.resolvePlayerMenuSurrender(), presentation, { depth: depth + 4 });
+    let surrenderPointerDownSeen = false;
+    const surrenderButton = this.createResultModalButton(centerX + buttonWidth / 2 + gap / 2, buttonY, buttonWidth, buttonHeight, translateActive('ui.battle.surrenderConfirmButton', 'Surrender'), () => this.resolvePlayerMenuSurrender(), presentation, {
+      depth: depth + 4,
+      onPointerDown: () => {
+        surrenderPointerDownSeen = true;
+        this.updateSurrenderTrace('Confirmation Surrender button receives pointerdown');
+      },
+      onPointerUpTrace: () => {
+        this.updateSurrenderTrace(surrenderPointerDownSeen ? 'Confirmation Surrender button receives pointerup' : 'button destroyed before pointerup');
+      },
+    });
+
 
     this.battleMenuSurrenderModal = { overlay, glow, frame, title, body, buttons: [cancelButton, surrenderButton] };
+    this.updateSurrenderTrace('Surrender confirmation popup is created');
     this.updatePlayerBaseActionState();
     return true;
+    } catch (error) {
+      this.updateSurrenderTraceError(error);
+      return false;
+    }
   }
 
   destroyBattleMenuSurrenderConfirmation() {
@@ -1134,7 +1202,15 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   resolvePlayerMenuSurrender() {
-    if (!this.gameState || this.gameState.winner || this.battleResultModalShown || this.openingMulliganPending || this.isFlowResolving || this.isEffectCastResolving || this.effectCastState) return;
+    this.updateSurrenderTrace('Confirmation Surrender callback starts');
+    try {
+      this.updateSurrenderTrace('resolvePlayerMenuSurrender() starts');
+      const blockReason = this.getPlayerMenuSurrenderBlockReason({ allowMenuNavigation: true, ignorePointerGuard: true });
+      if (blockReason) {
+        this.updateSurrenderTrace(`resolvePlayerMenuSurrender() bails early: ${blockReason}`);
+        return;
+      }
+      this.updateSurrenderTrace('resolvePlayerMenuSurrender() passes guards');
     this.destroyBattleMenuSurrenderConfirmation();
     this.destroyUtilityMenuPanel();
     this.closeInspectPreview({ animate: false, clearSelection: true });
@@ -1151,6 +1227,9 @@ export default class BattleScene extends Phaser.Scene {
     this.gameState.winner = 'enemy';
     this.gameState.endingReason = 'player_menu_surrender';
     this.showPlayerMenuSurrenderResultPanel();
+    } catch (error) {
+      this.updateSurrenderTraceError(error);
+    }
   }
 
   guardPointerEvent(pointer = null) {
@@ -1609,8 +1688,16 @@ export default class BattleScene extends Phaser.Scene {
 
 
   showPlayerMenuSurrenderResultPanel() {
-    if (this.gameState?.endingReason !== 'player_menu_surrender' || this.gameState?.winner !== 'enemy') return false;
-    if (this.battleResultModalShown) return false;
+    this.updateSurrenderTrace('showPlayerMenuSurrenderResultPanel() starts');
+    try {
+      if (this.gameState?.endingReason !== 'player_menu_surrender' || this.gameState?.winner !== 'enemy') {
+        this.updateSurrenderTrace('showPlayerMenuSurrenderResultPanel() bails early: winner/reason mismatch');
+        return false;
+      }
+      if (this.battleResultModalShown) {
+        this.updateSurrenderTrace('showPlayerMenuSurrenderResultPanel() bails early: battleResultModalShown');
+        return false;
+      }
 
     this.battleResultModalPendingEvent?.remove?.(false);
     this.battleResultModalPendingEvent = null;
@@ -1628,7 +1715,20 @@ export default class BattleScene extends Phaser.Scene {
     this.updateInitiativeIndicator();
     this.updateActionSlotBadge();
     this.showBattleResultModal();
+    if (this.battleResultModal) {
+      this.updateSurrenderTrace('First surrender result panel object is created');
+    }
+    if ((this.battleResultModal?.buttons?.length ?? 0) > 0) {
+      this.updateSurrenderTrace('Surrender result buttons are created');
+    }
+    if (this.battleResultModalShown) {
+      this.updateSurrenderTrace('Surrender result panel creation finishes successfully');
+    }
     return this.battleResultModalShown;
+    } catch (error) {
+      this.updateSurrenderTraceError(error);
+      return false;
+    }
   }
 
   showBattleResultModal() {
@@ -1840,6 +1940,8 @@ export default class BattleScene extends Phaser.Scene {
         if (this.navigationInProgress) return;
         onClick();
       },
+      onPointerDown: options.onPointerDown,
+      onPointerUpTrace: options.onPointerUpTrace,
       depth: options.depth ?? 902,
       fontSize: `${Math.max(18, Math.floor(height * 0.34))}px`,
       textStyle: {
