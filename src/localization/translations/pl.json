@@ -542,7 +542,7 @@
       "battleExhausted": "BITWA WYCZERPANA",
       "utilityMenuSurrender": "Poddaj",
       "surrenderConfirmTitle": "PODDAĆ BITWĘ?",
-      "surrenderConfirmBody": "To zostanie uznane za porażkę.",
+      "surrenderConfirmBody": "Wyjście teraz zostanie uznane za porażkę.",
       "surrenderConfirmButton": "Poddaj"
     },
     "rules": {

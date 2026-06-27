@@ -71,6 +71,7 @@ export default class BattleMenuScene extends Phaser.Scene {
 
     backButton.on('pointerup', () => {
       const returnScene = this.scene.get(returnSceneKey);
+      if (returnScene?.requestActiveBattleExit?.({ battleMenuScene: this })) return;
       this.scene.stop();
       if (returnScene?.resumeFromBattleMenu) {
         returnScene.resumeFromBattleMenu();

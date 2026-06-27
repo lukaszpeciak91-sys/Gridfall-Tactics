@@ -13,27 +13,34 @@ function methodSource(source, startNeedle, endNeedle) {
   return source.slice(start, end);
 }
 
-test('BattleScene utility menu wires Return to guarded surrender confirmation and resolves as enemy win', () => {
+test('BattleScene utility menu wires battle-exit buttons to canonical surrender confirmation and resolves as enemy win', () => {
   assert.doesNotMatch(battleSource, /translateActive\('ui\.battle\.utilityMenuSurrender', 'Surrender'\)/);
   assert.match(battleSource, /translateActive\('ui\.battle\.utilityMenuReturn', 'Return'\), \(\) => this\.handleUtilityMenuReturn\(\)\)/);
-  const returnSource = methodSource(battleSource, '  handleUtilityMenuReturn() {', '  canPlayerMenuSurrender() {');
-  assert.match(returnSource, /if \(this\.canPlayerMenuSurrender\(\)\) \{/);
-  assert.match(returnSource, /this\.showBattleMenuSurrenderConfirmation\(\);/);
-  assert.match(returnSource, /this\.exitBattleToFactionSelect\(\);/);
-  const guardSource = methodSource(battleSource, '  canPlayerMenuSurrender() {', '  showBattleMenuSurrenderConfirmation() {');
+  assert.match(battleSource, /translateActive\('ui\.battle\.utilityMenuMainMenu', 'Main Menu'\), \(\) => this\.handleUtilityMenuMainMenu\(\)\)/);
+  const returnSource = methodSource(battleSource, '  handleUtilityMenuReturn() {', '  handleUtilityMenuMainMenu() {');
+  assert.match(returnSource, /this\.requestActiveBattleExit\(\{ fallback: \(\) => this\.exitBattleToFactionSelect\(\) \}\);/);
+  const mainMenuSource = methodSource(battleSource, '  handleUtilityMenuMainMenu() {', '  requestActiveBattleExit(');
+  assert.match(mainMenuSource, /this\.requestActiveBattleExit\(\{ fallback: \(\) => this\.exitBattleToMainMenu\(\) \}\);/);
+  const requestSource = methodSource(battleSource, '  requestActiveBattleExit(', '  canPlayerMenuSurrender(');
+  assert.match(requestSource, /this\.canPlayerMenuSurrender\(\{ allowMenuNavigation: Boolean\(battleMenuScene\) \}\)/);
+  assert.match(requestSource, /battleMenuScene\.scene\.stop\(\);/);
+  assert.match(requestSource, /this\.showBattleMenuSurrenderConfirmation\(\);/);
+  const guardSource = methodSource(battleSource, '  canPlayerMenuSurrender(', '  showBattleMenuSurrenderConfirmation() {');
   [
+    'sceneActiveOrResumable',
+    'this.battleStartedAt !== null',
     '!this.gameState.winner',
     '!this.battleResultModalShown',
+    '!this.battleResultModalPending',
     '!this.openingMulliganPending',
     '!this.isFlowResolving',
-    '!this.navigationInProgress',
-    '!this.isEffectCastResolving',
-    '!this.effectCastState',
+    '(allowMenuNavigation || !this.navigationInProgress)',
     '!this.battleMenuSurrenderModal',
   ].forEach((needle) => assert.ok(guardSource.includes(needle), `${needle} guard should be present`));
+  assert.doesNotMatch(guardSource, /canPlayerBaseHoldToSurrender|canHoldPassToSurrender|isVerySafeConcedableState/);
   const modalSource = methodSource(battleSource, '  showBattleMenuSurrenderConfirmation() {', '  destroyBattleMenuSurrenderConfirmation() {');
   assert.match(modalSource, /translateActive\('ui\.battle\.surrenderConfirmTitle', 'SURRENDER\?'\)/);
-  assert.match(modalSource, /translateActive\('ui\.battle\.surrenderConfirmBody', 'This counts as a defeat\.'\)/);
+  assert.match(modalSource, /translateActive\('ui\.battle\.surrenderConfirmBody', 'Leaving now counts as a defeat\.'\)/);
   assert.match(modalSource, /translateActive\('ui\.common\.cancel', 'Cancel'\)/);
   assert.match(modalSource, /translateActive\('ui\.battle\.surrenderConfirmButton', 'Surrender'\)/);
   const resolveSource = methodSource(battleSource, '  resolvePlayerMenuSurrender() {', '  guardPointerEvent(pointer = null) {');
@@ -46,6 +53,7 @@ test('separate BattleMenuScene no longer exposes a surrender button', () => {
   assert.doesNotMatch(battleMenuSource, /translateActive\('ui\.battleMenu\.surrender', 'SURRENDER'\)/);
   assert.doesNotMatch(battleMenuSource, /showSurrenderConfirmation\(returnScene, returnSceneKey\)/);
   assert.doesNotMatch(battleMenuSource, /resolvePlayerMenuSurrender/);
+  assert.match(battleMenuSource, /returnScene\?\.requestActiveBattleExit\?\.\(\{ battleMenuScene: this \}\)/);
 });
 
 test('surrender defeat flavor uses the normal defeat result subtitle path', () => {

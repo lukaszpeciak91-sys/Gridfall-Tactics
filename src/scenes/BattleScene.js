@@ -933,7 +933,7 @@ export default class BattleScene extends Phaser.Scene {
       this.createUtilityMenuButton(buttonX, firstButtonY, buttonWidth, buttonHeight, translateActive('ui.battle.utilityMenuRules', 'Rules'), () => this.openRulesPanel()),
       this.createUtilityMenuButton(buttonX, firstButtonY + buttonGap, buttonWidth, buttonHeight, translateActive('ui.battle.utilityMenuSettings', 'Settings'), () => this.openSettingsScene()),
       this.createUtilityMenuButton(buttonX, firstButtonY + buttonGap * 2, buttonWidth, buttonHeight, translateActive('ui.battle.utilityMenuReturn', 'Return'), () => this.handleUtilityMenuReturn()),
-      this.createUtilityMenuButton(buttonX, firstButtonY + buttonGap * 3, buttonWidth, buttonHeight, translateActive('ui.battle.utilityMenuMainMenu', 'Main Menu'), () => this.exitBattleToMainMenu()),
+      this.createUtilityMenuButton(buttonX, firstButtonY + buttonGap * 3, buttonWidth, buttonHeight, translateActive('ui.battle.utilityMenuMainMenu', 'Main Menu'), () => this.handleUtilityMenuMainMenu()),
     ];
 
     buttons.forEach((button) => {
@@ -1032,24 +1032,41 @@ export default class BattleScene extends Phaser.Scene {
 
 
   handleUtilityMenuReturn() {
-    if (this.canPlayerMenuSurrender()) {
-      this.showBattleMenuSurrenderConfirmation();
-      return;
-    }
-    this.exitBattleToFactionSelect();
+    this.requestActiveBattleExit({ fallback: () => this.exitBattleToFactionSelect() });
   }
 
-  canPlayerMenuSurrender() {
+  handleUtilityMenuMainMenu() {
+    this.requestActiveBattleExit({ fallback: () => this.exitBattleToMainMenu() });
+  }
+
+  requestActiveBattleExit({ fallback = null, battleMenuScene = null } = {}) {
+    if (!this.canPlayerMenuSurrender({ allowMenuNavigation: Boolean(battleMenuScene) })) {
+      fallback?.();
+      return false;
+    }
+
+    if (battleMenuScene) {
+      battleMenuScene.scene.stop();
+      this.navigationInProgress = false;
+      this.clearPointerInputGuard();
+      this.scene.resume();
+    }
+
+    return this.showBattleMenuSurrenderConfirmation();
+  }
+
+  canPlayerMenuSurrender({ allowMenuNavigation = false } = {}) {
+    const sceneActiveOrResumable = this.scene?.isActive?.('BattleScene') || this.scene?.isPaused?.('BattleScene');
     return Boolean(
-      this.gameState
+      sceneActiveOrResumable
+      && this.gameState
+      && this.battleStartedAt !== null
       && !this.gameState.winner
       && !this.battleResultModalShown
       && !this.battleResultModalPending
       && !this.openingMulliganPending
       && !this.isFlowResolving
-      && !this.navigationInProgress
-      && !this.isEffectCastResolving
-      && !this.effectCastState
+      && (allowMenuNavigation || !this.navigationInProgress)
       && !this.battleMenuSurrenderModal,
     );
   }
@@ -1081,31 +1098,29 @@ export default class BattleScene extends Phaser.Scene {
       .setInteractive()
       .setDepth(depth);
     const glow = this.add.graphics().setDepth(depth + 1);
-    glow.fillStyle(0xf97316, 0.1);
+    glow.fillStyle(0xfde68a, 0.1);
     glow.fillRoundedRect(left - 5, top - 5, modalWidth + 10, modalHeight + 10, 24);
-    glow.lineStyle(2, 0xfbbf24, 0.18);
+    glow.lineStyle(2, 0xfde68a, 0.18);
     glow.strokeRoundedRect(left - 4, top - 4, modalWidth + 8, modalHeight + 8, 24);
 
     const frame = this.add.graphics().setDepth(depth + 2);
-    frame.fillGradientStyle(0x431407, 0x1e293b, 0x020617, 0x020617, 0.82, 0.76, 0.98, 0.98);
+    frame.fillStyle(0x0f172a, 0.96);
     frame.fillRoundedRect(left, top, modalWidth, modalHeight, 22);
-    frame.lineStyle(1.5, 0xf97316, 0.76);
+    frame.lineStyle(1.5, 0xfde68a, 0.7);
     frame.strokeRoundedRect(left + 0.5, top + 0.5, modalWidth - 1, modalHeight - 1, 21);
-    frame.lineStyle(1, 0xf8fafc, 0.12);
-    frame.strokeRoundedRect(left + 3, top + 3, modalWidth - 6, modalHeight - 6, 18);
 
     const title = this.add.text(centerX, top + modalHeight * 0.24, translateActive('ui.battle.surrenderConfirmTitle', 'SURRENDER?'), {
       fontFamily: PREMIUM_BROADCAST_FONT_STACK,
       fontSize: `${Math.min(46, Math.max(34, Math.floor(height * 0.06)))}px`,
-      color: '#fed7aa',
+      color: '#f8fafc',
       fontStyle: '700',
       align: 'center',
       letterSpacing: 1.8,
     }).setOrigin(0.5).setDepth(depth + 3);
     title.setShadow(0, 3, 'rgba(0, 0, 0, 0.72)', 6, true, true);
 
-    const body = this.add.text(centerX, top + modalHeight * 0.47, translateActive('ui.battle.surrenderConfirmBody', 'This counts as a defeat.'), {
-      fontFamily: PREMIUM_BROADCAST_FONT_STACK,
+    const body = this.add.text(centerX, top + modalHeight * 0.47, translateActive('ui.battle.surrenderConfirmBody', 'Leaving now counts as a defeat.'), {
+      fontFamily: 'Arial, sans-serif',
       fontSize: `${Math.max(20, Math.floor(height * 0.029))}px`,
       color: '#f8fafc',
       align: 'center',
