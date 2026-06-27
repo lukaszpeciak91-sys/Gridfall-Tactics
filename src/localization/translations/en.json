@@ -608,8 +608,7 @@
         {
           "heading": "PASS",
           "lines": [
-            "PASS ends your action.",
-            "If available, hold PASS to surrender."
+            "PASS ends your action."
           ]
         },
         {

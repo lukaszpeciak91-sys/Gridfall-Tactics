@@ -72,10 +72,9 @@ const RULE_SECTIONS = Object.freeze([
     ],
   },
   {
-    heading: 'PASS and Surrender',
+    heading: 'PASS',
     lines: [
       'PASS ends your action.',
-      'If available, hold PASS to surrender.',
     ],
   },
   {
