@@ -536,7 +536,8 @@
         "invalidSwap": "Invalid swap",
         "effectCardPlayBlocked": "You cannot play effect cards."
       },
-      "confirmSurrender": "SURRENDER"
+      "confirmSurrender": "SURRENDER",
+      "battleExhausted": "BATTLE EXHAUSTED"
     },
     "rules": {
       "title": "RULES",

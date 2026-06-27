@@ -18,6 +18,8 @@ function hasSwarmAlphaAura(unit) {
 export const MAX_TURNS = 24;
 export const STARTING_HAND_SIZE = 4;
 export const MAX_OPENING_MULLIGAN_CARDS = 2;
+export const BATTLE_EXHAUSTED_BASE_HP_THRESHOLD = 3;
+export const BATTLE_EXHAUSTED_REQUIRED_FULL_PASS_ROUNDS = 2;
 
 
 function resolveHeroHpTiebreakWinner(state, endingReason, resolvedByKey) {
@@ -39,10 +41,49 @@ export function completeActionOpportunity(state, owner) {
 
 export function recordPassAction(state = null, owner = null) {
   completeActionOpportunity(state, owner);
-  // PASS no longer feeds any counter; dead games are resolved by board/resource state.
+  recordBattleExhaustedPass(state, owner);
+  // PASS no longer feeds any legacy counter; dead games are resolved by board/resource state.
 }
 
-function recordProgressAction() {
+export function resetBattleExhaustedTracker(state) {
+  if (!state) return;
+  state.battleExhausted = { pendingPassOwner: null, fullPassRounds: 0 };
+}
+
+export function isBattleExhaustedEligible(state) {
+  return Boolean(state)
+    && !state.winner
+    && Math.min(state.playerHP ?? Infinity, state.enemyHP ?? Infinity) <= BATTLE_EXHAUSTED_BASE_HP_THRESHOLD;
+}
+
+export function recordBattleExhaustedPass(state, owner) {
+  if (!state || (owner !== 'player' && owner !== 'enemy')) return null;
+  if (!isBattleExhaustedEligible(state)) {
+    resetBattleExhaustedTracker(state);
+    return null;
+  }
+
+  state.battleExhausted ??= { pendingPassOwner: null, fullPassRounds: 0 };
+  if (state.battleExhausted.pendingPassOwner && state.battleExhausted.pendingPassOwner !== owner) {
+    state.battleExhausted.fullPassRounds = (state.battleExhausted.fullPassRounds ?? 0) + 1;
+    state.battleExhausted.pendingPassOwner = null;
+  } else {
+    state.battleExhausted.pendingPassOwner = owner;
+  }
+
+  if ((state.battleExhausted.fullPassRounds ?? 0) >= BATTLE_EXHAUSTED_REQUIRED_FULL_PASS_ROUNDS) {
+    return resolveBattleExhaustedWinner(state);
+  }
+  return null;
+}
+
+export function resolveBattleExhaustedWinner(state) {
+  if (!state || state.winner) return state?.winner ?? null;
+  return resolveHeroHpTiebreakWinner(state, 'battle_exhausted', 'battleExhaustedResolvedBy');
+}
+
+function recordProgressAction(state = null) {
+  resetBattleExhaustedTracker(state);
   // Meaningful-action tracking is no longer counter-based.
 }
 
@@ -1907,6 +1948,8 @@ export function createInitialBattleState(playerFactionData, enemyFactionData = p
     endingReason: null,
     turnCapResolvedBy: null,
     noProgressResolvedBy: null,
+    battleExhaustedResolvedBy: null,
+    battleExhausted: { pendingPassOwner: null, fullPassRounds: 0 },
     turnsCompleted: 0,
     nextFallenSequence: 0,
     firstActor,
@@ -3039,6 +3082,11 @@ function resolveCombatLane(state, col, combatContext = null) {
 }
 
 export function resolveCombat(state) {
+  const battleExhaustedProgressSnapshot = state ? JSON.stringify({
+    playerHP: state.playerHP,
+    enemyHP: state.enemyHP,
+    board: state.board?.map((unit) => unit ? { owner: unit.owner, id: unit.cardId ?? unit.id, hp: unit.hp, maxHp: unit.maxHp } : null),
+  }) : null;
   const combatContext = { guardiansUsed: new Set(), events: [] };
   const combatId = beginCombatWindow(state);
   const previousPreserveRawHeroHP = state.preserveRawHeroHPUntilCombatFinalization;
@@ -3096,6 +3144,14 @@ export function resolveCombat(state) {
   delete state.funeralPyreThisCombat;
 
   clampHeroHpAndResolveWinner(state);
+  const battleExhaustedProgressAfter = state ? JSON.stringify({
+    playerHP: state.playerHP,
+    enemyHP: state.enemyHP,
+    board: state.board?.map((unit) => unit ? { owner: unit.owner, id: unit.cardId ?? unit.id, hp: unit.hp, maxHp: unit.maxHp } : null),
+  }) : null;
+  if (battleExhaustedProgressSnapshot !== null && battleExhaustedProgressSnapshot !== battleExhaustedProgressAfter) {
+    resetBattleExhaustedTracker(state);
+  }
   endCombatWindow(state, combatId);
 
   if (previousPreserveRawHeroHP) {

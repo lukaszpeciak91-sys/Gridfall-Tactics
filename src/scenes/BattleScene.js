@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
-import { createInitialBattleState, drawCards, shuffleDeck, canPass, canPlayOrRedeploy, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, resolveTargetedUnitOnPlayEffect, getUnitAttack, getUnitArmor, toggleFirstActor, resolveTurnCapWinner, resolveImmediateResourceExhaustionWinner, resolveImmediateNoProgressWinner, recordPassAction, completeActionOpportunity, performOpeningMulligan, STARTING_HAND_SIZE, MAX_OPENING_MULLIGAN_CARDS, getEffectiveBoardAttack, getEffectiveBoardArmor, canPlayEffectCard, isEffectCardBlockedForOwner } from '../systems/GameState.js';
+import { createInitialBattleState, drawCards, shuffleDeck, canPass, canPlayOrRedeploy, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, resolveTargetedUnitOnPlayEffect, getUnitAttack, getUnitArmor, toggleFirstActor, resolveTurnCapWinner, resolveImmediateResourceExhaustionWinner, resolveImmediateNoProgressWinner, recordPassAction, completeActionOpportunity, performOpeningMulligan, STARTING_HAND_SIZE, MAX_OPENING_MULLIGAN_CARDS, getEffectiveBoardAttack, getEffectiveBoardArmor, canPlayEffectCard, isEffectCardBlockedForOwner, isBattleExhaustedEligible } from '../systems/GameState.js';
 import { chooseEnemyAction, isVerySafeConcedableState, recordBattleActionUse, selectOpeningMulliganCardIds } from '../systems/enemyDecision.js';
 import { getTargetingStateForEffect } from '../systems/cardTargeting.js';
 import { COMBAT_ATTACK_PRESENTATIONS, getCombatAttackPresentation, getCombatEventAttackerIndex, getCombatEventInterceptOriginalTargetIndex, getCombatEventTargetIndex, getLaneLethalTargetIndexes, getLaneSimultaneousUnitClash, shouldAnimateCombatAttacker, shouldUseControlledHeroStrikePresentation } from '../systems/combatAnimation.js';
@@ -211,6 +211,7 @@ const INVALID_ACTION_BANNER_HOLD_MS = 760;
 const TURN_START_BANNER_FADE_IN_MS = 110;
 const TURN_START_BANNER_HOLD_MS = 820;
 const TURN_START_BANNER_FADE_OUT_MS = 140;
+const BATTLE_EXHAUSTED_BANNER_DEPTH = 222;
 const PLAYER_EFFECT_CAST_BEAT_MS = 620;
 const PLAYER_EFFECT_CAST_SWEEP_STEP_MS = 70;
 const HERO_HIT_SHAKE_DURATION_MS = 100;
@@ -375,6 +376,8 @@ export default class BattleScene extends Phaser.Scene {
     this.pendingBattleHistoryEntries = [];
     this.playerInitialDeckTypeCounts = null;
     this.baseBreakSfxPlayed = false;
+    this.battleExhaustedBanner = null;
+    this.battleExhaustedBannerEvent = null;
     this.battleOutcomeSfxPlayed = false;
     this.campaignOutcomeSfxPlayed = false;
     this.activeOutcomeStinger = null;
@@ -528,6 +531,10 @@ export default class BattleScene extends Phaser.Scene {
   cleanupSceneObjects({ preserveTimers = false, preserveTweens = false } = {}) {
     this.stopOutcomeStinger({ fadeMs: 0 });
     this.deferredTransientBattleBanner = null;
+    this.battleExhaustedBannerEvent?.remove?.(false);
+    this.battleExhaustedBannerEvent = null;
+    this.battleExhaustedBanner?.destroy?.();
+    this.battleExhaustedBanner = null;
     this.destroyEnemyActionBanner();
     this.destroyTurnStartBanner();
     this.destroyPlayerActionBanner();
@@ -1240,8 +1247,67 @@ export default class BattleScene extends Phaser.Scene {
     if (!this.gameState?.winner || this.battleResultModalShown) return false;
     this.playBaseBreakSfxOnce();
     this.updateInitiativeIndicator();
+    if (this.gameState.endingReason === 'battle_exhausted') {
+      this.showBattleExhaustedBannerThenScheduleResult(delayMs);
+      return true;
+    }
     this.scheduleBattleResultModal(delayMs);
     return true;
+  }
+
+  showBattleExhaustedBannerThenScheduleResult(delayMs = 500) {
+    if (this.battleExhaustedBanner || this.battleExhaustedBannerEvent || this.battleResultModalPending || this.battleResultModalShown) return;
+    if (!this.prepareTransientBattleBanner('battle-exhausted')) {
+      this.scheduleBattleResultModal(delayMs);
+      return;
+    }
+
+    const { height, board } = this.layout;
+    const bannerLayout = this.getCentralBattleBannerLayout({ baseWidthRatio: 0.88, horizontalPadding: 16 });
+    const fontSize = Math.min(20, Math.max(15, Math.floor(Math.max(board.cellWidth * 0.14, height * 0.018))));
+    const banner = this.add.text(bannerLayout.x, bannerLayout.startY, translateActive('ui.battle.battleExhausted', 'BATTLE EXHAUSTED'), {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: `${fontSize}px`,
+      color: '#fde68a',
+      backgroundColor: '#713f12',
+      align: 'center',
+      padding: { x: 16, y: 12 },
+      wordWrap: { width: bannerLayout.maxTextWidth },
+      fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(BATTLE_EXHAUSTED_BANNER_DEPTH).setAlpha(0).setScale(0.98).setStroke('#422006', 1);
+
+    this.battleExhaustedBanner = banner;
+    this.tweens.add({
+      targets: banner,
+      alpha: 1,
+      y: bannerLayout.targetY,
+      scaleX: 1,
+      scaleY: 1,
+      duration: TURN_START_BANNER_FADE_IN_MS,
+      ease: 'Quad.easeOut',
+    });
+
+    this.battleExhaustedBannerEvent = this.time.delayedCall(
+      TURN_START_BANNER_FADE_IN_MS + TURN_START_BANNER_HOLD_MS,
+      () => {
+        this.battleExhaustedBannerEvent = null;
+        this.tweens.add({
+          targets: banner,
+          alpha: 0,
+          y: bannerLayout.targetY - 6,
+          scaleX: 0.98,
+          scaleY: 0.98,
+          duration: TURN_START_BANNER_FADE_OUT_MS,
+          ease: 'Quad.easeIn',
+          onComplete: () => {
+            if (this.battleExhaustedBanner === banner) this.battleExhaustedBanner = null;
+            banner.destroy();
+            this.flushDeferredTransientBattleBanner();
+            this.scheduleBattleResultModal(delayMs);
+          },
+        });
+      },
+    );
   }
 
   getBattleResultPresentation() {
@@ -5837,7 +5903,7 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     resolveImmediateResourceExhaustionWinner(this.gameState);
-    resolveImmediateNoProgressWinner(this.gameState);
+    if (!isBattleExhaustedEligible(this.gameState)) resolveImmediateNoProgressWinner(this.gameState);
     if (this.gameState.winner) {
       this.updateInitiativeIndicator();
       this.scheduleBattleResultModal();
@@ -5980,7 +6046,7 @@ export default class BattleScene extends Phaser.Scene {
 
     this.gameState.turnsCompleted += 1;
     resolveImmediateResourceExhaustionWinner(this.gameState);
-    resolveImmediateNoProgressWinner(this.gameState);
+    if (!isBattleExhaustedEligible(this.gameState)) resolveImmediateNoProgressWinner(this.gameState);
     if (this.gameState.winner) {
       this.completeBattleFlow(500);
       return;
@@ -5991,7 +6057,7 @@ export default class BattleScene extends Phaser.Scene {
     drawCards(this.gameState.player, 1);
     drawCards(this.gameState.enemy, 1);
     resolveImmediateResourceExhaustionWinner(this.gameState);
-    resolveImmediateNoProgressWinner(this.gameState);
+    if (!isBattleExhaustedEligible(this.gameState)) resolveImmediateNoProgressWinner(this.gameState);
     resolveTurnCapWinner(this.gameState, this.gameState.turnsCompleted);
     if ((this.gameState.player?.hand?.length ?? 0) > playerHandCountBeforeDraw) this.playBattleSfx?.(AUDIO_KEYS.CARD_DRAW);
 
