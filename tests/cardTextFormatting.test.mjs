@@ -391,7 +391,7 @@ test('inline effect icon typography uses glyph-sized symbols, centered baseline,
   assert.equal(INLINE_EFFECT_ICON_MIN_FONT_SIZE, 15);
   assert.equal(INLINE_EFFECT_ICON_BASELINE_OFFSET_RATIO, -0.16);
   assert.equal(INLINE_STAT_ICON_LEADING_SPACE_SCALE, 0.4);
-  assert.equal(INLINE_STAT_ICON_TRAILING_SPACE_SCALE, 0.6);
+  assert.equal(INLINE_STAT_ICON_TRAILING_SPACE_SCALE, 0.72);
   assert.equal(INLINE_ATTACK_ICON_OPTICAL_OFFSET_X, -1);
   assert.equal(INLINE_GAMEPLAY_ICON_BASELINE_OFFSET_RATIO, -0.06);
   assert.equal(INLINE_GAMEPLAY_ICON_SPACE_SCALE, 1);
@@ -404,7 +404,7 @@ test('inline effect icon typography uses glyph-sized symbols, centered baseline,
   assert.equal(lines[0].segments[1].text, '▲');
   assert.equal(lines[0].segments[1].x, 24);
   assert.equal(lines[0].segments[2].text, 'until');
-  assert.equal(lines[0].segments[2].x, 40);
+  assert.equal(lines[0].segments[2].x, 42);
 });
 
 test('inline gameplay icons keep full word spacing while stat icons retain compact spacing', () => {
@@ -490,7 +490,7 @@ test('inline stat text layout keeps number-stat modifiers compact while giving f
   const statSegment = measuredLine.segments.find((segment) => segment.text === '▲');
   const followingWord = measuredLine.segments.find((segment) => segment.text === 'do');
   assert.equal(statSegment.x, 24);
-  assert.equal(followingWord.x - (statSegment.x + statSegment.width), 6);
+  assert.equal(followingWord.x - (statSegment.x + statSegment.width), 8);
 });
 
 test('inline stat text layout wraps by measured token width and keeps symbols inline', () => {
