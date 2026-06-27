@@ -14,8 +14,9 @@ import {
   getCardTypography,
   INLINE_EFFECT_ICON_BASELINE_OFFSET_RATIO,
   INLINE_EFFECT_ICON_MIN_FONT_SIZE,
-  INLINE_EFFECT_ICON_SPACE_SCALE,
   INLINE_EFFECT_ICON_STAT_FONT_SCALE,
+  INLINE_STAT_ICON_LEADING_SPACE_SCALE,
+  INLINE_STAT_ICON_TRAILING_SPACE_SCALE,
   INLINE_GAMEPLAY_ICON_BASELINE_OFFSET_RATIO,
   INLINE_GAMEPLAY_ICON_SPACE_SCALE,
   layoutInlineStatText,
@@ -388,7 +389,8 @@ test('inline effect icon typography uses glyph-sized symbols, centered baseline,
   assert.equal(INLINE_EFFECT_ICON_STAT_FONT_SCALE, 1.38);
   assert.equal(INLINE_EFFECT_ICON_MIN_FONT_SIZE, 15);
   assert.equal(INLINE_EFFECT_ICON_BASELINE_OFFSET_RATIO, -0.16);
-  assert.equal(INLINE_EFFECT_ICON_SPACE_SCALE, 0.4);
+  assert.equal(INLINE_STAT_ICON_LEADING_SPACE_SCALE, 0.4);
+  assert.equal(INLINE_STAT_ICON_TRAILING_SPACE_SCALE, 0.6);
   assert.equal(INLINE_GAMEPLAY_ICON_BASELINE_OFFSET_RATIO, -0.06);
   assert.equal(INLINE_GAMEPLAY_ICON_SPACE_SCALE, 1);
 
@@ -400,7 +402,7 @@ test('inline effect icon typography uses glyph-sized symbols, centered baseline,
   assert.equal(lines[0].segments[1].text, '▲');
   assert.equal(lines[0].segments[1].x, 24);
   assert.equal(lines[0].segments[2].text, 'until');
-  assert.equal(lines[0].segments[2].x, 38);
+  assert.equal(lines[0].segments[2].x, 40);
 });
 
 
@@ -419,7 +421,7 @@ test('inline gameplay icons keep full word spacing while stat icons retain compa
   })));
 });
 
-test('inline stat text layout groups numbers with stat icons and keeps ally icon buffs in sentence flow', () => {
+test('inline stat text layout keeps number-stat modifiers compact while giving following words breathing room', () => {
   const measureTokenWidth = (token) => token.length;
   const compactTextLines = (text, maxWidth) => layoutInlineStatText(text, {
     maxWidth,
@@ -438,6 +440,15 @@ test('inline stat text layout groups numbers with stat icons and keeps ally icon
     'do',
     'walki.',
   ]);
+
+  const measuredLine = layoutInlineStatText('+2 ▲ do walki', {
+    maxWidth: 500,
+    measureTokenWidth: (token) => (token === ' ' ? 10 : token.length * 10),
+  })[0];
+  const statSegment = measuredLine.segments.find((segment) => segment.text === '▲');
+  const followingWord = measuredLine.segments.find((segment) => segment.text === 'do');
+  assert.equal(statSegment.x, 24);
+  assert.equal(followingWord.x - (statSegment.x + statSegment.width), 6);
 });
 
 test('inline stat text layout wraps by measured token width and keeps symbols inline', () => {
