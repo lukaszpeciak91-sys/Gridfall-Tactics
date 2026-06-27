@@ -85,6 +85,25 @@ test('menu surrender uses a synchronous dedicated result panel instead of the no
   assert.doesNotMatch(panelSource, /completeBattleFlow|scheduleBattleResultModal|delayedCall|showBattleExhaustedBannerThenScheduleResult/);
 });
 
+test('menu surrender cannot bypass defeat result navigation', () => {
+  const resolveSource = methodSource(battleSource, '  resolvePlayerMenuSurrender() {', '  guardPointerEvent(pointer = null) {');
+  const panelSource = methodSource(battleSource, '  showPlayerMenuSurrenderResultPanel() {', '  showBattleResultModal() {');
+  assert.match(resolveSource, /this\.gameState\.winner = 'enemy';/);
+  assert.match(resolveSource, /this\.gameState\.endingReason = 'player_menu_surrender';/);
+  assert.match(resolveSource, /this\.showPlayerMenuSurrenderResultPanel\(\);/);
+  assert.match(panelSource, /this\.showBattleResultModal\(\);/);
+  assert.doesNotMatch(resolveSource + panelSource, /scene\.start\('MainMenuScene'|scene\.start\('FactionSelectScene'|exitBattleToFactionSelect|exitBattleToCampaignEnemySelect|handleUtilityMenuReturn/);
+});
+
+test('campaign menu surrender continues through normal defeat attempt loss', () => {
+  const modalSource = methodSource(battleSource, '  showBattleResultModal() {', '  createResultModalButton');
+  const continueSource = methodSource(battleSource, '  continueCampaignBattleResult() {', '  routeAfterIgnoredCampaignResult');
+  assert.match(modalSource, /this\.isCampaignBattle\(\)[\s\S]*translateActive\('ui\.common\.continue', 'CONTINUE'\)[\s\S]*\(\) => this\.continueCampaignBattleResult\(\)/);
+  assert.match(continueSource, /winner: this\.gameState\?\.winner === 'player' \? 'player' : \(this\.gameState\?\.winner === 'draw' \? 'draw' : 'enemy'\)/);
+  assert.match(continueSource, /applyCampaignBattleResult\(campaign, result\)/);
+  assert.match(continueSource, /this\.scene\.start\('CampaignEnemySelectScene', \{ campaign: updatedCampaign \}\)/);
+});
+
 test('menu surrender result title and flavor use surrender-specific defeat copy', () => {
   const titleSource = methodSource(battleSource, '  getBattleResultText() {', '  playBattleSfx(key, options = {}) {');
   assert.match(titleSource, /this\.gameState\.endingReason === 'player_menu_surrender'/);
