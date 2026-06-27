@@ -1058,7 +1058,7 @@ export default class BattleScene extends Phaser.Scene {
     this.updateSurrenderTrace(`SURRENDER TRACE ERROR: ${message}`);
   }
 
-  getPlayerMenuSurrenderBlockReason({ allowMenuNavigation = false, ignorePointerGuard = false } = {}) {
+  getPlayerMenuSurrenderBlockReason({ allowMenuNavigation = false, ignorePointerGuard = false, allowExistingSurrenderModal = false } = {}) {
     const sceneActive = this.scene?.isActive?.('BattleScene') === true;
     const scenePaused = this.scene?.isPaused?.('BattleScene') === true;
     if (!sceneActive && !scenePaused) return 'scene paused/inactive';
@@ -1071,7 +1071,7 @@ export default class BattleScene extends Phaser.Scene {
     if (this.isEffectCastResolving || this.effectCastState) return 'effect resolving';
     if (this.isFlowResolving) return 'isFlowResolving';
     if (!allowMenuNavigation && this.navigationInProgress) return 'navigationInProgress';
-    if (this.battleMenuSurrenderModal) return 'modal already exists';
+    if (this.battleMenuSurrenderModal && !allowExistingSurrenderModal) return 'modal already exists';
     if (!ignorePointerGuard && this.pointerInputGuardActive) return 'pointer guard blocking input';
     return null;
   }
@@ -1096,9 +1096,9 @@ export default class BattleScene extends Phaser.Scene {
   showBattleMenuSurrenderConfirmation() {
     this.updateSurrenderTrace('Battle Menu Surrender button clicked');
     try {
-      const blockReason = this.getPlayerMenuSurrenderBlockReason();
+      const blockReason = this.getPlayerMenuSurrenderBlockReason({ ignorePointerGuard: true });
       if (blockReason) {
-        this.updateSurrenderTrace(`resolvePlayerMenuSurrender bails early: ${blockReason}`);
+        this.updateSurrenderTrace(`showBattleMenuSurrenderConfirmation bails early: ${blockReason}`);
         return false;
       }
 
@@ -1161,7 +1161,10 @@ export default class BattleScene extends Phaser.Scene {
     const gap = Math.max(18, modalWidth * 0.06);
     const cancelButton = this.createResultModalButton(centerX - buttonWidth / 2 - gap / 2, buttonY, buttonWidth, buttonHeight, translateActive('ui.common.cancel', 'Cancel'), () => this.destroyBattleMenuSurrenderConfirmation(), presentation, { depth: depth + 4 });
     let surrenderPointerDownSeen = false;
-    const surrenderButton = this.createResultModalButton(centerX + buttonWidth / 2 + gap / 2, buttonY, buttonWidth, buttonHeight, translateActive('ui.battle.surrenderConfirmButton', 'Surrender'), () => this.resolvePlayerMenuSurrender(), presentation, {
+    const surrenderButton = this.createResultModalButton(centerX + buttonWidth / 2 + gap / 2, buttonY, buttonWidth, buttonHeight, translateActive('ui.battle.surrenderConfirmButton', 'Surrender'), () => {
+      this.clearPointerInputGuard();
+      this.resolvePlayerMenuSurrender({ ignorePointerGuard: true });
+    }, presentation, {
       depth: depth + 4,
       onPointerDown: () => {
         surrenderPointerDownSeen = true;
@@ -1202,10 +1205,11 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   resolvePlayerMenuSurrender() {
+    const { ignorePointerGuard = false } = arguments[0] ?? {};
     this.updateSurrenderTrace('Confirmation Surrender callback starts');
     try {
       this.updateSurrenderTrace('resolvePlayerMenuSurrender() starts');
-      const blockReason = this.getPlayerMenuSurrenderBlockReason({ allowMenuNavigation: true, ignorePointerGuard: true });
+      const blockReason = this.getPlayerMenuSurrenderBlockReason({ allowMenuNavigation: true, ignorePointerGuard, allowExistingSurrenderModal: true });
       if (blockReason) {
         this.updateSurrenderTrace(`resolvePlayerMenuSurrender() bails early: ${blockReason}`);
         return;

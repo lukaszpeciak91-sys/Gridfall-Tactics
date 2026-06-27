@@ -53,6 +53,23 @@ test('BattleScene utility menu exposes canonical active-battle surrender and res
   assert.match(resolveSource, /this\.clearPointerInputGuard\(\);/);
 });
 
+
+test('confirmed menu surrender explicitly bypasses the self-created pointer guard', () => {
+  const guardSource = methodSource(battleSource, '  getPlayerMenuSurrenderBlockReason(', '  canPlayerMenuSurrender(');
+  assert.match(guardSource, /ignorePointerGuard = false/);
+  assert.match(guardSource, /if \(!ignorePointerGuard && this\.pointerInputGuardActive\) return 'pointer guard blocking input';/);
+  assert.match(guardSource, /allowExistingSurrenderModal = false/);
+  assert.match(guardSource, /this\.battleMenuSurrenderModal && !allowExistingSurrenderModal/);
+
+  const modalSource = methodSource(battleSource, '  showBattleMenuSurrenderConfirmation() {', '  destroyBattleMenuSurrenderConfirmation() {');
+  assert.match(modalSource, /this\.clearPointerInputGuard\(\);[\s\S]*this\.resolvePlayerMenuSurrender\(\{ ignorePointerGuard: true \}\);/);
+
+  const resolveSource = methodSource(battleSource, '  resolvePlayerMenuSurrender() {', '  guardPointerEvent(pointer = null) {');
+  assert.match(resolveSource, /ignorePointerGuard = false/);
+  assert.match(resolveSource, /getPlayerMenuSurrenderBlockReason\(\{ allowMenuNavigation: true, ignorePointerGuard, allowExistingSurrenderModal: true \}\)/);
+  assert.match(resolveSource, /this\.updateSurrenderTrace\('resolvePlayerMenuSurrender\(\) passes guards'\);/);
+});
+
 test('separate BattleMenuScene no longer owns active-battle surrender behavior', () => {
   assert.doesNotMatch(battleMenuSource, /translateActive\('ui\.battleMenu\.surrender', 'SURRENDER'\)/);
   assert.doesNotMatch(battleMenuSource, /canPlayerMenuSurrender/);
