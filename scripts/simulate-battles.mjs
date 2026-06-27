@@ -151,6 +151,7 @@ function ensureEffectVariantOperationTelemetry(simTelemetry, entry) {
     skippedSummons: 0,
     token: entry?.token ?? '',
     temporary: entry?.temporary === true,
+    summonedTokenStats: entry?.summonedTokenStats ?? null,
   };
   return simTelemetry.effectVariantOperations[key];
 }
@@ -178,6 +179,7 @@ function recordEffectVariantOperationTelemetry(simTelemetry, entries) {
     row.skippedSummons += numberMetric(entry.skippedSummons);
     if (entry.token) row.token = entry.token;
     if (entry.temporary === true) row.temporary = true;
+    if (entry.summonedTokenStats) row.summonedTokenStats = entry.summonedTokenStats;
     if (entry.operation === 'damageEnemyBase' || entry.operation === 'damagePlayerBase') {
       row.baseDamageDealt += damageDealt;
       if (entry.baseDamaged === 'enemyHP') row.enemyBaseDamage += damageDealt;
@@ -823,6 +825,9 @@ function printEffectVariantOperationSimulatorTelemetry(simTelemetry) {
     'skipped summons': row.skippedSummons,
     token: row.token,
     temporary: row.temporary,
+    'summoned token stats': row.summonedTokenStats
+      ? `${row.summonedTokenStats.atk}/${row.summonedTokenStats.arm}/${row.summonedTokenStats.hp}`
+      : '',
     status: row.status,
   })));
 }

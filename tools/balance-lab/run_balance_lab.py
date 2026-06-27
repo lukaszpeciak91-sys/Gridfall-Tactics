@@ -189,7 +189,7 @@ EFFECT_VARIANT_OPERATION_METADATA = {
         "report_kind": "drawOne",
     },
     "summonToken": {
-        "keys": {"operation", "selector", "token", "temporary"},
+        "keys": {"operation", "selector", "token", "temporary", "tokenStats"},
         "validation": "summonToken",
         "executable_group": "summonToken",
         "report_kind": "summonToken",
@@ -533,7 +533,23 @@ def validate_effect_variant_operation_block(operation_block: Any, change_index: 
             raise BalanceLabError(f"{context}.token '{token}' is unsupported. Supported tokens: {allowed}.")
         if "temporary" in operation_block and not isinstance(operation_block.get("temporary"), bool):
             raise BalanceLabError(f"{context}.temporary must be a boolean when provided.")
+        if "tokenStats" in operation_block:
+            validate_token_stats(operation_block.get("tokenStats"), f"{context}.tokenStats")
         return
+
+
+def validate_token_stats(value: Any, context: str) -> None:
+    if not isinstance(value, dict) or not value:
+        raise BalanceLabError(f"{context} must be a non-empty object when provided.")
+    allowed_keys = {"atk", "arm", "hp"}
+    unknown = sorted(set(value) - allowed_keys)
+    if unknown:
+        raise BalanceLabError(f"{context} has unsupported keys: {', '.join(unknown)}. Supported keys: atk, arm, hp.")
+    for key, stat_value in value.items():
+        if not isinstance(stat_value, int) or isinstance(stat_value, bool):
+            raise BalanceLabError(f"{context}.{key} must be an integer >= 0.")
+        if stat_value < 0:
+            raise BalanceLabError(f"{context}.{key} must be >= 0.")
 
 
 def require_exact_operation_keys(operation_block: dict[str, Any], expected_keys: set[str], context: str) -> None:
@@ -1235,6 +1251,8 @@ def sequence_summary(sequence: list[dict[str, Any]]) -> str:
         for key in ("selector", "amount", "cleanup", "duration", "token", "temporary"):
             if key in block:
                 args.append(f"{key}={block[key]}")
+        if "tokenStats" in block:
+            args.append(f"tokenStats={json.dumps(block['tokenStats'], sort_keys=True)}")
         parts.append(f"{operation}({', '.join(args)})" if args else operation)
     return " -> ".join(parts)
 
@@ -2477,6 +2495,7 @@ EFFECT_VARIANT_RUNTIME_TELEMETRY_COLUMNS = [
     "skipped summons",
     "token",
     "temporary",
+    "summoned token stats",
     "status",
 ]
 EFFECT_VARIANT_RUNTIME_NUMERIC_FIELDS = [
@@ -2605,6 +2624,7 @@ def parse_effect_variant_runtime_table(output_text: str, label: str) -> list[dic
             "status": status,
             "token": row.get("token", ""),
             "temporary": row.get("temporary", ""),
+            "summoned token stats": row.get("summoned token stats", ""),
         }
         for field in EFFECT_VARIANT_RUNTIME_NUMERIC_FIELDS:
             parsed[field] = parse_effect_variant_runtime_int(row[field], field, row_label)
@@ -2642,6 +2662,7 @@ def build_effect_variant_runtime_telemetry_comparison(baseline_text: str, experi
             "selector": source.get("selector", key[4]),
             "token": source.get("token", key[5]),
             "temporary": source.get("temporary", key[6]),
+            "summoned token stats": source.get("summoned token stats", ""),
             "status": source.get("status", key[7]),
         }
         changed = baseline_row is None or experiment_row is None
@@ -2669,18 +2690,18 @@ def build_effect_variant_runtime_telemetry_comparison(baseline_text: str, experi
 
 def effect_variant_runtime_table_lines(rows: list[dict[str, Any]]) -> list[str]:
     lines = [
-        "| variantId | baseEffectControl | triggerType | operation | selector | executions | resolved targets | skipped targets | damage dealt | kills | attack added | attack reduced | armor added | armor reduced | hp added | base damage | enemy base damage | player base damage | cards drawn | failed draws | skipped draws | tokens summoned | skipped summons | token | temporary | status |",
-        "|---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---|---|",
+        "| variantId | baseEffectControl | triggerType | operation | selector | executions | resolved targets | skipped targets | damage dealt | kills | attack added | attack reduced | armor added | armor reduced | hp added | base damage | enemy base damage | player base damage | cards drawn | failed draws | skipped draws | tokens summoned | skipped summons | token | temporary | summoned token stats | status |",
+        "|---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---|---|---|",
     ]
     if not rows:
-        return [*lines, "| _No effectVariant runtime telemetry rows_ |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |"]
+        return [*lines, "| _No effectVariant runtime telemetry rows_ |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  | |"]
     for row in rows:
         lines.append(
             f"| {markdown_cell(row['variantId'])} | {markdown_cell(row.get('baseEffectControl', 'runBaseEffect'))} | {markdown_cell(row.get('triggerType', ''))} | {markdown_cell(row['operation'])} | {markdown_cell(row['selector'])} | "
             f"{row['executions']} | {row['resolved targets']} | {row['skipped targets']} | {row['damage dealt']} | {row['kills']} | "
             f"{row['atk added']} | {row['atk reduced']} | {row['arm added']} | {row['arm reduced']} | {row['hp added']} | {row['base damage']} | "
             f"{row['enemy base damage']} | {row['player base damage']} | {row['cards drawn']} | {row['failed draws']} | {row['skipped draws']} | "
-            f"{row['tokens summoned']} | {row['skipped summons']} | {markdown_cell(row.get('token', ''))} | {markdown_cell(row.get('temporary', ''))} | {markdown_cell(row['status'])} |"
+            f"{row['tokens summoned']} | {row['skipped summons']} | {markdown_cell(row.get('token', ''))} | {markdown_cell(row.get('temporary', ''))} | {markdown_cell(row.get('summoned token stats', ''))} | {markdown_cell(row['status'])} |"
         )
     return lines
 
@@ -2724,7 +2745,7 @@ def effect_variant_runtime_paste_lines(rows: list[dict[str, Any]]) -> list[str]:
             f"  enemy base damage {row['enemy base damage']}",
             f"  player base damage {row['player base damage']}",
             f"  cards drawn/failed/skipped {row['cards drawn']}/{row['failed draws']}/{row['skipped draws']}",
-            f"  tokens summoned/skipped {row['tokens summoned']}/{row['skipped summons']} token={row.get('token', '')} temporary={row.get('temporary', '')}",
+            f"  tokens summoned/skipped {row['tokens summoned']}/{row['skipped summons']} token={row.get('token', '')} temporary={row.get('temporary', '')} token stats={row.get('summoned token stats', '')}",
         ])
     return lines
 
