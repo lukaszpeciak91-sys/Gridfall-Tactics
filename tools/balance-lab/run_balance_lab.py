@@ -226,6 +226,10 @@ COPY_EXCLUDE_DIRS = {
     "test",
     "tests",
 }
+BALANCE_LAB_GENERATED_DIRS = {
+    Path("tools/balance-lab/reports"),
+    Path("tools/balance-lab/temp"),
+}
 
 
 class BalanceLabError(Exception):
@@ -1117,19 +1121,72 @@ def run_simulation(root: Path, command: list[str]) -> subprocess.CompletedProces
 
 
 def copy_repo_to_temp(root: Path, temp_copy_dir: Path) -> None:
-    def ignore(src: str, names: list[str]) -> set[str]:
-        src_path = Path(src).resolve()
-        root_path = root.resolve()
-        ignored = {name for name in names if name in COPY_EXCLUDE_DIRS}
+    root_path = root.resolve()
+
+    def is_missing_transient_path_error(error: OSError) -> bool:
+        return isinstance(error, FileNotFoundError) or getattr(error, "winerror", None) == 3
+
+    def relative_to_root(path: Path) -> Path:
         try:
-            relative = src_path.relative_to(root_path)
+            return path.resolve().relative_to(root_path)
         except ValueError:
-            relative = Path()
-        if relative == Path("tools/balance-lab"):
-            ignored.update({"reports", "temp", "__pycache__"})
+            return Path()
+
+    def is_balance_lab_generated_path(relative: Path) -> bool:
+        return any(
+            relative == generated or generated in relative.parents
+            for generated in BALANCE_LAB_GENERATED_DIRS
+        )
+
+    def ignore(src: str, names: list[str]) -> set[str]:
+        relative = relative_to_root(Path(src))
+        ignored = {name for name in names if name in COPY_EXCLUDE_DIRS}
+        ignored.update(
+            name
+            for name in names
+            if is_balance_lab_generated_path(relative / name)
+        )
         return ignored
 
-    shutil.copytree(root, temp_copy_dir, ignore=ignore)
+    def copy_existing_file(src: str, dst: str) -> str:
+        try:
+            return str(shutil.copy2(src, dst))
+        except OSError as error:
+            if is_missing_transient_path_error(error):
+                print(
+                    f"Warning: skipped missing transient path during temp copy: {src}",
+                    flush=True,
+                )
+                return dst
+            raise
+
+    try:
+        shutil.copytree(
+            root,
+            temp_copy_dir,
+            ignore=ignore,
+            copy_function=copy_existing_file,
+        )
+    except shutil.Error as error:
+        non_transient_errors = [
+            item
+            for item in error.args[0]
+            if not (
+                len(item) >= 3
+                and (
+                    isinstance(item[2], FileNotFoundError)
+                    or "WinError 3" in str(item[2])
+                    or "No such file or directory" in str(item[2])
+                )
+            )
+        ]
+        if non_transient_errors:
+            raise shutil.Error(non_transient_errors) from error
+        for src, _dst, message in error.args[0]:
+            print(
+                f"Warning: skipped missing transient path during temp copy: {src} ({message})",
+                flush=True,
+            )
 
 
 def apply_patches(temp_copy_dir: Path, validated_changes: list[dict[str, Any]]) -> list[dict[str, Any]]:
