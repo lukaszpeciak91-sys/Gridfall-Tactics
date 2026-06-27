@@ -536,7 +536,8 @@
         "invalidSwap": "Nieprawidłowa zamiana",
         "effectCardPlayBlocked": "Nie możesz zagrać karty efektu."
       },
-      "confirmSurrender": "PODDAJ SIĘ"
+      "confirmSurrender": "PODDAJ SIĘ",
+      "battleExhausted": "BITWA WYCZERPANA"
     },
     "rules": {
       "title": "ZASADY",

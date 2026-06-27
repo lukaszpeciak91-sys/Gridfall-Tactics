@@ -3,8 +3,9 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const read = (path) => fs.readFileSync(path, 'utf8');
-const stableBoundaryPattern = /resolveImmediateResourceExhaustionWinner\([^)]*\);\s*(?:resolveImmediateNoProgressWinner|resolveNoProgressDeadlockWinner)\([^)]*\);/;
-const postDrawPattern = /drawCards\([^,]+, 1\);\s*drawCards\([^,]+, 1\);\s*resolveImmediateResourceExhaustionWinner\([^)]*\);\s*(?:resolveImmediateNoProgressWinner|resolveNoProgressDeadlockWinner)\([^)]*\);\s*resolveTurnCapWinner\(/;
+const maybeBattleExhaustedGuard = String.raw`(?:if \(!isBattleExhaustedEligible\([^)]*\)\)\s*)?`;
+const stableBoundaryPattern = new RegExp(String.raw`resolveImmediateResourceExhaustionWinner\([^)]*\);\s*${maybeBattleExhaustedGuard}(?:resolveImmediateNoProgressWinner|resolveNoProgressDeadlockWinner)\([^)]*\);`);
+const postDrawPattern = new RegExp(String.raw`drawCards\([^,]+, 1\);\s*drawCards\([^,]+, 1\);\s*resolveImmediateResourceExhaustionWinner\([^)]*\);\s*${maybeBattleExhaustedGuard}(?:resolveImmediateNoProgressWinner|resolveNoProgressDeadlockWinner)\([^)]*\);\s*resolveTurnCapWinner\(`);
 
 test('live battle and simulation runners import shared MAX_TURNS where a turn cap is used', () => {
   assert.match(read('src/systems/GameState.js'), /export const MAX_TURNS = 24;/);
