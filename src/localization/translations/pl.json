@@ -514,7 +514,7 @@
           "Nie każdy schodzi ze sceny w chwale."
         ],
         "draw": "Produkcja zarządziła dogrywkę.",
-        "surrenderDefeat": "Wybrałeś ciszę, zanim tłum zrobił to za ciebie."
+        "surrenderDefeat": "Nie każda historia zasługuje na oklaski."
       },
       "resultStats": {
         "turns": "Tury",
@@ -543,7 +543,8 @@
       "utilityMenuSurrender": "Poddaj",
       "surrenderConfirmTitle": "PODDAĆ BITWĘ?",
       "surrenderConfirmBody": "To zostanie uznane za porażkę.",
-      "surrenderConfirmButton": "Poddaj"
+      "surrenderConfirmButton": "Poddaj",
+      "surrenderDefeatTitle": "PORAŻKA"
     },
     "rules": {
       "title": "ZASADY",

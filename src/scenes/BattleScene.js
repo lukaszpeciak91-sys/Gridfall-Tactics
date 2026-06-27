@@ -44,7 +44,7 @@ const BATTLE_RESULT_SUBTITLE_FALLBACKS = Object.freeze({
     'It wasn’t enough this time.',
     'Not everyone gets to leave the stage in glory.',
   ]),
-  surrenderDefeat: 'You chose silence before the crowd chose it for you.',
+  surrenderDefeat: 'Not every story earns applause.',
 });
 
 const CAMPAIGN_RESULT_FLAVOR_FALLBACKS = Object.freeze({
@@ -1149,7 +1149,7 @@ export default class BattleScene extends Phaser.Scene {
     this.clearPointerInputGuard();
     this.gameState.winner = 'enemy';
     this.gameState.endingReason = 'player_menu_surrender';
-    this.completeBattleFlow(0);
+    this.showPlayerMenuSurrenderResultPanel();
   }
 
   guardPointerEvent(pointer = null) {
@@ -1223,7 +1223,12 @@ export default class BattleScene extends Phaser.Scene {
   getBattleResultText() {
     if (!this.gameState?.winner) return '';
     if (this.gameState.winner === 'player') return translateActive('ui.battle.youWin', 'YOU WIN');
-    if (this.gameState.winner === 'enemy') return translateActive('ui.battle.youLose', 'YOU LOSE');
+    if (this.gameState.winner === 'enemy') {
+      if (this.gameState.endingReason === 'player_menu_surrender') {
+        return translateActive('ui.battle.surrenderDefeatTitle', 'DEFEAT');
+      }
+      return translateActive('ui.battle.youLose', 'YOU LOSE');
+    }
     return translateActive('ui.battle.draw', 'DRAW');
   }
 
@@ -1599,6 +1604,30 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     return { particles, timers };
+  }
+
+
+  showPlayerMenuSurrenderResultPanel() {
+    if (this.gameState?.endingReason !== 'player_menu_surrender' || this.gameState?.winner !== 'enemy') return false;
+    if (this.battleResultModalShown) return false;
+
+    this.battleResultModalPendingEvent?.remove?.(false);
+    this.battleResultModalPendingEvent = null;
+    this.battleResultModalPending = false;
+    this.isFlowResolving = false;
+    this.navigationInProgress = false;
+    this.stopCampaignBattleTimer();
+    this.stopBattleAmbience({ fadeMs: 350 });
+    this.destroyBattleMenuSurrenderConfirmation();
+    this.destroyUtilityMenuPanel();
+    this.closeInspectPreview({ animate: false, clearSelection: true });
+    this.destroyDeckInfoPanel();
+    this.destroyActiveSelectionMessage();
+    this.resetCardHighlights({ showPreview: false });
+    this.updateInitiativeIndicator();
+    this.updateActionSlotBadge();
+    this.showBattleResultModal();
+    return this.battleResultModalShown;
   }
 
   showBattleResultModal() {

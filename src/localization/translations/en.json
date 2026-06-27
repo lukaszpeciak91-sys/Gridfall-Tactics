@@ -514,7 +514,7 @@
           "Not everyone gets to leave the stage in glory."
         ],
         "draw": "Production ordered a rematch.",
-        "surrenderDefeat": "You chose silence before the crowd chose it for you."
+        "surrenderDefeat": "Not every story earns applause."
       },
       "resultStats": {
         "turns": "Turns",
@@ -543,7 +543,8 @@
       "utilityMenuSurrender": "Surrender",
       "surrenderConfirmTitle": "SURRENDER?",
       "surrenderConfirmBody": "This counts as a defeat.",
-      "surrenderConfirmButton": "Surrender"
+      "surrenderConfirmButton": "Surrender",
+      "surrenderDefeatTitle": "DEFEAT"
     },
     "rules": {
       "title": "RULES",
