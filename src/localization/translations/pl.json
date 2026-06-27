@@ -396,7 +396,8 @@
     "battleMenu": {
       "title": "MENU",
       "comingSoon": "Opcje menu wkrótce.",
-      "howToPlay": "JAK GRAĆ"
+      "howToPlay": "JAK GRAĆ",
+      "surrender": "PODDAJ"
     },
     "battle": {
       "utilityMenuRules": "Zasady",
@@ -512,7 +513,8 @@
           "Tym razem to nie wystarczyło.",
           "Nie każdy schodzi ze sceny w chwale."
         ],
-        "draw": "Produkcja zarządziła dogrywkę."
+        "draw": "Produkcja zarządziła dogrywkę.",
+        "surrenderDefeat": "Wybrałeś ciszę, zanim tłum zrobił to za ciebie."
       },
       "resultStats": {
         "turns": "Tury",
@@ -537,7 +539,11 @@
         "effectCardPlayBlocked": "Nie możesz zagrać karty efektu."
       },
       "confirmSurrender": "PODDAJ SIĘ",
-      "battleExhausted": "BITWA WYCZERPANA"
+      "battleExhausted": "BITWA WYCZERPANA",
+      "utilityMenuSurrender": "Poddaj",
+      "surrenderConfirmTitle": "PODDAĆ BITWĘ?",
+      "surrenderConfirmBody": "To zostanie uznane za porażkę.",
+      "surrenderConfirmButton": "Poddaj"
     },
     "rules": {
       "title": "ZASADY",

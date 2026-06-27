@@ -44,6 +44,7 @@ const BATTLE_RESULT_SUBTITLE_FALLBACKS = Object.freeze({
     'It wasn’t enough this time.',
     'Not everyone gets to leave the stage in glory.',
   ]),
+  surrenderDefeat: 'You chose silence before the crowd chose it for you.',
 });
 
 const CAMPAIGN_RESULT_FLAVOR_FALLBACKS = Object.freeze({
@@ -322,6 +323,7 @@ export default class BattleScene extends Phaser.Scene {
     this.rulesPanelHiddenHelpers = [];
     this.bottomControlViews = [];
     this.utilityMenuPanel = null;
+    this.battleMenuSurrenderModal = null;
     this.isFlowResolving = false;
     this.enemyActionBanner = null;
     this.enemyActionBannerFadeOutEvent = null;
@@ -456,6 +458,7 @@ export default class BattleScene extends Phaser.Scene {
     this.rulesPanelHiddenHelpers = [];
     this.bottomControlViews = [];
     this.utilityMenuPanel = null;
+    this.battleMenuSurrenderModal = null;
     this.isFlowResolving = false;
     this.enemyActionBanner = null;
     this.enemyActionBannerFadeOutEvent = null;
@@ -862,10 +865,10 @@ export default class BattleScene extends Phaser.Scene {
     const panelY = panelTop + panelHeight / 2;
     const rowY = panelTop + Math.round(28 * menuScale);
     const buttonWidth = Math.max(0, panelWidth - panelHorizontalPadding * 2);
-    const buttonHeight = Math.round(36 * menuScale);
+    const buttonHeight = Math.round(30 * menuScale);
     const buttonX = panelX;
     const firstButtonY = rowY + Math.round(50 * menuScale);
-    const buttonGap = Math.round(42 * menuScale);
+    const buttonGap = Math.round(36 * menuScale);
     const depth = 720;
 
     const outsideCatcher = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.001)
@@ -930,7 +933,8 @@ export default class BattleScene extends Phaser.Scene {
       this.createUtilityMenuButton(buttonX, firstButtonY, buttonWidth, buttonHeight, translateActive('ui.battle.utilityMenuRules', 'Rules'), () => this.openRulesPanel()),
       this.createUtilityMenuButton(buttonX, firstButtonY + buttonGap, buttonWidth, buttonHeight, translateActive('ui.battle.utilityMenuSettings', 'Settings'), () => this.openSettingsScene()),
       this.createUtilityMenuButton(buttonX, firstButtonY + buttonGap * 2, buttonWidth, buttonHeight, translateActive('ui.battle.utilityMenuReturn', 'Return'), () => this.exitBattleToFactionSelect()),
-      this.createUtilityMenuButton(buttonX, firstButtonY + buttonGap * 3, buttonWidth, buttonHeight, translateActive('ui.battle.utilityMenuMainMenu', 'Main Menu'), () => this.exitBattleToMainMenu()),
+      this.createUtilityMenuButton(buttonX, firstButtonY + buttonGap * 3, buttonWidth, buttonHeight, translateActive('ui.battle.utilityMenuSurrender', 'Surrender'), () => this.showBattleMenuSurrenderConfirmation()),
+      this.createUtilityMenuButton(buttonX, firstButtonY + buttonGap * 4, buttonWidth, buttonHeight, translateActive('ui.battle.utilityMenuMainMenu', 'Main Menu'), () => this.exitBattleToMainMenu()),
     ];
 
     buttons.forEach((button) => {
@@ -1025,6 +1029,119 @@ export default class BattleScene extends Phaser.Scene {
     });
     this.utilityMenuPanel = null;
     this.updatePlayerBaseActionState();
+  }
+
+  canPlayerMenuSurrender() {
+    return Boolean(
+      this.gameState
+      && !this.gameState.winner
+      && !this.battleResultModalShown
+      && !this.battleResultModalPending
+      && !this.openingMulliganPending
+      && !this.isFlowResolving
+      && !this.isEffectCastResolving
+      && !this.effectCastState
+      && !this.battleMenuSurrenderModal,
+    );
+  }
+
+  showBattleMenuSurrenderConfirmation() {
+    if (!this.canPlayerMenuSurrender()) return false;
+
+    this.destroyUtilityMenuPanel();
+    this.closeInspectPreview({ animate: false, clearSelection: true });
+    this.destroyDeckInfoPanel();
+    this.cancelPassHoldToSurrender();
+    this.disarmPlayerSurrender();
+
+    const { width, height } = this.scale.gameSize;
+    const centerX = width * 0.5;
+    const centerY = height * 0.46;
+    const modalWidth = Math.min(width * 0.9, 560);
+    const modalHeight = Math.min(Math.max(height * 0.34, 250), 330);
+    const left = centerX - modalWidth / 2;
+    const top = centerY - modalHeight / 2;
+    const depth = 940;
+    const presentation = {
+      frameColor: 0xf97316,
+      accentColor: 0xf97316,
+      glowColor: 0xf97316,
+    };
+
+    const overlay = this.add.rectangle(centerX, height * 0.5, width, height, 0x020617, 0.72)
+      .setInteractive()
+      .setDepth(depth);
+    const glow = this.add.graphics().setDepth(depth + 1);
+    glow.fillStyle(0xf97316, 0.1);
+    glow.fillRoundedRect(left - 5, top - 5, modalWidth + 10, modalHeight + 10, 24);
+    glow.lineStyle(2, 0xfbbf24, 0.18);
+    glow.strokeRoundedRect(left - 4, top - 4, modalWidth + 8, modalHeight + 8, 24);
+
+    const frame = this.add.graphics().setDepth(depth + 2);
+    frame.fillGradientStyle(0x431407, 0x1e293b, 0x020617, 0x020617, 0.82, 0.76, 0.98, 0.98);
+    frame.fillRoundedRect(left, top, modalWidth, modalHeight, 22);
+    frame.lineStyle(1.5, 0xf97316, 0.76);
+    frame.strokeRoundedRect(left + 0.5, top + 0.5, modalWidth - 1, modalHeight - 1, 21);
+    frame.lineStyle(1, 0xf8fafc, 0.12);
+    frame.strokeRoundedRect(left + 3, top + 3, modalWidth - 6, modalHeight - 6, 18);
+
+    const title = this.add.text(centerX, top + modalHeight * 0.24, translateActive('ui.battle.surrenderConfirmTitle', 'SURRENDER?'), {
+      fontFamily: PREMIUM_BROADCAST_FONT_STACK,
+      fontSize: `${Math.min(46, Math.max(34, Math.floor(height * 0.06)))}px`,
+      color: '#fed7aa',
+      fontStyle: '700',
+      align: 'center',
+      letterSpacing: 1.8,
+    }).setOrigin(0.5).setDepth(depth + 3);
+    title.setShadow(0, 3, 'rgba(0, 0, 0, 0.72)', 6, true, true);
+
+    const body = this.add.text(centerX, top + modalHeight * 0.47, translateActive('ui.battle.surrenderConfirmBody', 'This counts as a defeat.'), {
+      fontFamily: PREMIUM_BROADCAST_FONT_STACK,
+      fontSize: `${Math.max(20, Math.floor(height * 0.029))}px`,
+      color: '#f8fafc',
+      align: 'center',
+      wordWrap: { width: modalWidth * 0.78, useAdvancedWrap: true },
+    }).setOrigin(0.5).setDepth(depth + 3);
+
+    const buttonWidth = Math.min(190, modalWidth * 0.38);
+    const buttonHeight = 64;
+    const buttonY = top + modalHeight * 0.76;
+    const gap = Math.max(18, modalWidth * 0.06);
+    const cancelButton = this.createResultModalButton(centerX - buttonWidth / 2 - gap / 2, buttonY, buttonWidth, buttonHeight, translateActive('ui.common.cancel', 'Cancel'), () => this.destroyBattleMenuSurrenderConfirmation(), presentation, { depth: depth + 4 });
+    const surrenderButton = this.createResultModalButton(centerX + buttonWidth / 2 + gap / 2, buttonY, buttonWidth, buttonHeight, translateActive('ui.battle.surrenderConfirmButton', 'Surrender'), () => this.resolvePlayerMenuSurrender(), presentation, { depth: depth + 4 });
+
+    this.battleMenuSurrenderModal = { overlay, glow, frame, title, body, buttons: [cancelButton, surrenderButton] };
+    this.updatePlayerBaseActionState();
+    return true;
+  }
+
+  destroyBattleMenuSurrenderConfirmation() {
+    const modal = this.battleMenuSurrenderModal;
+    if (!modal) return;
+    [
+      modal.overlay,
+      modal.glow,
+      modal.frame,
+      modal.title,
+      modal.body,
+      ...(modal.buttons ?? []).flatMap((button) => button.items ?? []),
+    ].forEach((item) => {
+      item?.removeAllListeners?.();
+      item?.destroy?.();
+    });
+    this.battleMenuSurrenderModal = null;
+    this.updatePlayerBaseActionState();
+  }
+
+  resolvePlayerMenuSurrender() {
+    if (!this.gameState || this.gameState.winner || this.battleResultModalShown || this.openingMulliganPending || this.isFlowResolving || this.isEffectCastResolving || this.effectCastState) return;
+    this.destroyBattleMenuSurrenderConfirmation();
+    this.destroyUtilityMenuPanel();
+    this.cancelPassHoldToSurrender();
+    this.disarmPlayerSurrender();
+    this.gameState.winner = 'enemy';
+    this.gameState.endingReason = 'player_menu_surrender';
+    this.completeBattleFlow(0);
   }
 
   guardPointerEvent(pointer = null) {
@@ -1172,6 +1289,9 @@ export default class BattleScene extends Phaser.Scene {
       return pickRandomTextEntry(translateActiveList('ui.battle.resultSubtitles.victory', BATTLE_RESULT_SUBTITLE_FALLBACKS.victory), BATTLE_RESULT_SUBTITLE_FALLBACKS.victory[0]);
     }
     if (this.gameState.winner === 'enemy') {
+      if (this.gameState.endingReason === 'player_menu_surrender') {
+        return translateActive('ui.battle.resultSubtitles.surrenderDefeat', BATTLE_RESULT_SUBTITLE_FALLBACKS.surrenderDefeat);
+      }
       return pickRandomTextEntry(translateActiveList('ui.battle.resultSubtitles.defeat', BATTLE_RESULT_SUBTITLE_FALLBACKS.defeat), BATTLE_RESULT_SUBTITLE_FALLBACKS.defeat[0]);
     }
     return translateActive('ui.battle.resultSubtitles.draw', 'Production ordered a rematch.');
