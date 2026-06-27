@@ -13,18 +13,10 @@ function methodSource(source, startNeedle, endNeedle) {
   return source.slice(start, end);
 }
 
-test('BattleScene utility menu wires battle-exit buttons to canonical surrender confirmation and resolves as enemy win', () => {
-  assert.doesNotMatch(battleSource, /translateActive\('ui\.battle\.utilityMenuSurrender', 'Surrender'\)/);
-  assert.match(battleSource, /translateActive\('ui\.battle\.utilityMenuReturn', 'Return'\), \(\) => this\.handleUtilityMenuReturn\(\)\)/);
-  assert.match(battleSource, /translateActive\('ui\.battle\.utilityMenuMainMenu', 'Main Menu'\), \(\) => this\.handleUtilityMenuMainMenu\(\)\)/);
-  const returnSource = methodSource(battleSource, '  handleUtilityMenuReturn() {', '  handleUtilityMenuMainMenu() {');
-  assert.match(returnSource, /this\.requestActiveBattleExit\(\{ fallback: \(\) => this\.exitBattleToFactionSelect\(\) \}\);/);
-  const mainMenuSource = methodSource(battleSource, '  handleUtilityMenuMainMenu() {', '  requestActiveBattleExit(');
-  assert.match(mainMenuSource, /this\.requestActiveBattleExit\(\{ fallback: \(\) => this\.exitBattleToMainMenu\(\) \}\);/);
-  const requestSource = methodSource(battleSource, '  requestActiveBattleExit(', '  canPlayerMenuSurrender(');
-  assert.match(requestSource, /this\.canPlayerMenuSurrender\(\{ allowMenuNavigation: Boolean\(battleMenuScene\) \}\)/);
-  assert.match(requestSource, /battleMenuScene\.scene\.stop\(\);/);
-  assert.match(requestSource, /this\.showBattleMenuSurrenderConfirmation\(\);/);
+test('BattleScene utility menu exposes canonical active-battle surrender and resolves as enemy win', () => {
+  assert.match(battleSource, /translateActive\('ui\.battle\.utilityMenuSurrender', 'Surrender'\), \(\) => this\.showBattleMenuSurrenderConfirmation\(\)\)/);
+  assert.doesNotMatch(battleSource, /translateActive\('ui\.battle\.utilityMenuReturn', 'Return'\), \(\) => this\.handleUtilityMenuReturn\(\)\)/);
+  assert.doesNotMatch(battleSource, /translateActive\('ui\.battle\.utilityMenuMainMenu', 'Main Menu'\), \(\) => this\.handleUtilityMenuMainMenu\(\)\)/);
   const guardSource = methodSource(battleSource, '  canPlayerMenuSurrender(', '  showBattleMenuSurrenderConfirmation() {');
   [
     'sceneActiveOrResumable',
@@ -49,11 +41,10 @@ test('BattleScene utility menu wires battle-exit buttons to canonical surrender 
   assert.match(resolveSource, /this\.completeBattleFlow\(0\);/);
 });
 
-test('separate BattleMenuScene exposes explicit active-battle surrender through the safe BattleScene path', () => {
-  assert.match(battleMenuSource, /translateActive\('ui\.battleMenu\.surrender', 'SURRENDER'\)/);
-  assert.match(battleMenuSource, /canPlayerMenuSurrender\?\.\(\{ allowMenuNavigation: true \}\)/);
-  assert.match(battleMenuSource, /returnScene\?\.requestActiveBattleExit\?\.\(\{ battleMenuScene: this \}\)/);
-  assert.doesNotMatch(battleMenuSource, /showSurrenderConfirmation\(returnScene, returnSceneKey\)/);
+test('separate BattleMenuScene no longer owns active-battle surrender behavior', () => {
+  assert.doesNotMatch(battleMenuSource, /translateActive\('ui\.battleMenu\.surrender', 'SURRENDER'\)/);
+  assert.doesNotMatch(battleMenuSource, /canPlayerMenuSurrender/);
+  assert.doesNotMatch(battleMenuSource, /requestActiveBattleExit/);
   assert.doesNotMatch(battleMenuSource, /resolvePlayerMenuSurrender/);
 });
 

@@ -206,13 +206,13 @@ test('campaign progression handles losses and wins at state level', () => {
   assert.equal(winningCampaign.status, 'won');
 });
 
-test('BattleMenuScene uses active battle menu actions without fallback battle restart', () => {
+test('BattleMenuScene keeps non-battle menu actions without active-battle surrender', () => {
   const battle = read('src/scenes/BattleScene.js');
   const menu = read('src/scenes/BattleMenuScene.js');
-  assert.match(battle, /this\.scene\.launch\('BattleMenuScene', \{ factionKey: this\.factionKey, enemyFactionKey: this\.enemyFactionKey, battleContext: this\.battleContext/);
+  assert.doesNotMatch(battle, /this\.scene\.launch\('BattleMenuScene', \{ factionKey: this\.factionKey, enemyFactionKey: this\.enemyFactionKey, battleContext: this\.battleContext/);
   assert.match(menu, /translateActive\('ui\.battleMenu\.howToPlay', 'HOW TO PLAY'\)/);
   assert.match(menu, /translateActive\('ui\.battleMenu\.settings', 'SETTINGS'\)/);
-  assert.match(menu, /translateActive\('ui\.battleMenu\.surrender', 'SURRENDER'\)/);
+  assert.doesNotMatch(menu, /translateActive\('ui\.battleMenu\.surrender', 'SURRENDER'\)/);
   assert.doesNotMatch(menu, /this\.scene\.start\('BattleScene'/);
 });
 
