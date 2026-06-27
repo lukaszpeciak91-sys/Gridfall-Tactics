@@ -50,10 +50,13 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": null,
-      "textShort": "",
+      "textShort": "This unit ignores [ARM]",
       "attack": 2,
       "hp": 1,
-      "armor": 0
+      "armor": 0,
+      "combatKeywords": [
+        "ignoreArmor"
+      ]
     },
     {
       "id": "swarm_alpha_1",

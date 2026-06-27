@@ -203,7 +203,7 @@ test('pilot card display content renders ally icon markers', () => {
   assert.equal(getCardDisplayContent(cardById(aggro, 'aggro_rush_1'), 'en').body, 'Swap with adjacent ♙, then that lane immediately fights');
   assert.equal(getCardDisplayContent(cardById(aggro, 'aggro_adrenaline_1'), 'en').body, 'Selected ♙ immediately fights in its lane');
   assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_grunt_1'), 'en').body, '');
-  assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_rusher_1'), 'en').body, '');
+  assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_rusher_1'), 'en').body, 'This unit ignores ◆');
   assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_alpha_1'), 'en').body, 'Adjacent ♙♙ in combat: +1 ▲ and ignores 1 ◆');
   assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_swarm_attack_1'), 'en').body, 'All ♙♙ +1 ▲ until combat');
   assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_recycle_1'), 'en').body, '♟♟: -1 ◆ until combat');
@@ -228,7 +228,7 @@ test('pilot card display content renders ally icon markers', () => {
   assert.equal(getCardDisplayContent(cardById(aggro, 'aggro_rush_1'), 'pl').body, 'Zamień z sąsiednim ♙, potem ta linia natychmiast walczy');
   assert.equal(getCardDisplayContent(cardById(aggro, 'aggro_adrenaline_1'), 'pl').body, 'Wybrany ♙ natychmiast walczy w swojej linii');
   assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_grunt_1'), 'pl').body, '');
-  assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_rusher_1'), 'pl').body, '');
+  assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_rusher_1'), 'pl').body, 'Ignoruje ◆');
   assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_alpha_1'), 'pl').body, 'Sąsiedni ♙♙ w walce: +1 ▲ i ignoruje 1 ◆');
   assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_swarm_attack_1'), 'pl').body, '♙♙ +1 ▲ do walki');
   assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_recycle_1'), 'pl').body, '♟♟: -1 ◆ do walki');
@@ -252,7 +252,8 @@ test('pilot card display content renders ally icon markers', () => {
   assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_halberdier_1'), 'pl').body, 'Jeśli naprzeciw: +1 ▲');
   assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_spearwall_1'), 'pl').body, '♟♟ atakujący\nsąsiednich ♙♙: -1 ▲');
   assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_stand_firm_1'), 'pl').body, 'Do walki ♙♙ nie można przesuwać');
-  assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_reinforce_line_1'), 'pl').body, 'Sąsiedni ♙♙ +1 ◆ do walki');
+  assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_reinforce_line_1'), 'en').body, 'Until combat, ♙♙ cannot be moved');
+  assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_reinforce_line_1'), 'pl').body, 'Do walki ♙♙ nie można przesuwać');
 });
 
 test('visual card content keeps empty rules text empty instead of falling back to type labels', () => {

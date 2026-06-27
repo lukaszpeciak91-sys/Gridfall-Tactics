@@ -273,7 +273,7 @@ Candidate audit for the same rule:
 | Swarm | Grunt | unit | 1/1/0 | null |  | Lane combat | Vanilla unit with empty rules text. |
 | Swarm | Spitter | unit | 1/1/0 | on_play_lane_damage_1 | On play: deal 1 to opposed [ENEMY] | Lane on-play | No base damage from this trigger. |
 | Swarm | Brood | unit | 1/2/0 | on_death_summon_grunt | On death: summon 1/1 here | Death trigger | Uses generated token cardId if same slot is now empty. |
-| Swarm | Rusher | unit | 2/1/0 | null |  | Lane combat | Vanilla unit with empty rules text. |
+| Swarm | Rusher | unit | 2/1/0 | null | This unit ignores [ARM] | Lane combat | Combat attacks ignore defender ARM. |
 | Swarm | Alpha | unit | 1/2/0 | adjacent_allies_atk_plus_1_ignore_armor_1 | Adjacent [ALLY] in combat: +1 ATK and ignores 1 ARM | Passive adjacency aura | Calculated at combat time; Alpha only benefits if adjacent to another Alpha. |
 | Swarm | Spawn | order | - | summon_grunt_empty_slot | Summon a 1/1 in the first empty slot | Non-targeted deterministic effect | Rejected if no empty slot; no manual target UI. |
 | Swarm | Swarm Attack | order | - | buff_all_atk_1 | All [ALLY] +1 ATK until combat | Non-targeted effect | Swarm-specific behavior remains unchanged. |
@@ -308,8 +308,8 @@ Candidate audit for the same rule:
 | Wardens | Bone Shields | utility | - | temp_armor_1 | Target [ALLY] +1 ARM until combat | Targeted friendly | Reuses temporary armor cleanup; no costs. |
 | Wardens | Mammoth Stampede | order | - | swap_adjacent_enemy_units | Swap two adjacent [ENEMIES]. | Manual two-enemy targeting | Select two adjacent enemies in the same row; no cross-side movement; no ownership changes. |
 | Wardens | Endure the Cold | order | - | friendly_immovable_this_turn | Until combat, [ALLIES] cannot be moved | Non-targeted effect | Move-only protection; unlike Tank Stability, it does not block disable effects. |
-| Wardens | Lock the Line | order | - | adjacent_allies_temp_armor_1 | Adjacent [ALLY] +1 ARM until combat | Non-targeted formation effect | Same-row friendly units with adjacent allies gain +1 temporary ARM; isolated allies have no legal deterministic resolution; no lane targeting UI. |
-| Wardens | Hold the Ice Pass | order | - | adjacent_allies_temp_armor_1 | Adjacent [ALLY] +1 ARM until combat | Non-targeted formation effect | Same adjacency behavior as Reinforce Line; reinforces Wardens shield-wall formation identity and reuses temporary armor cleanup. |
+| Wardens | Lock the Line | order | - | immune_move_disable_this_turn | Until combat, [ALLIES] cannot be moved | Non-targeted effect | Same mechanical behavior as Tank Stability; blocks swap/disable effects by opponent. |
+| Wardens | Hold the Ice Pass | order | - | adjacent_allies_temp_armor_1 | Adjacent [ALLY] +1 ARM until combat | Non-targeted formation effect | Adjacent-allies formation armor; reinforces Wardens shield-wall formation identity and reuses temporary armor cleanup. |
 
 ## 9) Implemented vs Deferred (Explicit)
 

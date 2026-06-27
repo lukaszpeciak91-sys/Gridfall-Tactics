@@ -104,9 +104,9 @@
       "artAssetId": "wardens_09",
       "name": "Reinforce Line",
       "type": "order",
-      "targeting": "none",
-      "effectId": "adjacent_allies_temp_armor_1",
-      "textShort": "Adjacent [ALLY] +1 ARM until combat"
+      "targeting": "all_friendly_units",
+      "effectId": "immune_move_disable_this_turn",
+      "textShort": "Until combat, [ALLIES] cannot be moved"
     },
     {
       "id": "wardens_hold_the_line_1",

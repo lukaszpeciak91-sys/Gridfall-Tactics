@@ -134,7 +134,7 @@
     },
     "swarm_rusher_1": {
       "name": "Napastnik",
-      "textShort": ""
+      "textShort": "Ignoruje [ARM]"
     },
     "swarm_alpha_1": {
       "name": "Alfa",
@@ -234,7 +234,7 @@
     },
     "wardens_reinforce_line_1": {
       "name": "Zewrzeć Szereg",
-      "textShort": "Sąsiedni [ALLY] +1 ARM do walki"
+      "textShort": "Do walki [ALLIES] nie można przesuwać"
     },
     "wardens_hold_the_line_1": {
       "name": "Utrzymać Przełęcz",
