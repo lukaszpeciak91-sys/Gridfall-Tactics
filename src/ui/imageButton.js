@@ -96,6 +96,9 @@ export function createImageButton(scene, {
   onPointerUp,
   onPointerDown,
   onPointerUpTrace,
+  onPointerReleaseCanceledTrace,
+  robustMobileRelease = false,
+  releaseTolerance = 18,
   depth = 1,
   fontSize = '20px',
   textStyle = {},
@@ -161,20 +164,79 @@ export function createImageButton(scene, {
     text.setShadow(0, 1, textGlow ? 'rgba(245, 241, 230, 0.24)' : 'rgba(3, 17, 40, 0.62)', textGlow ? 2 : 1, true, true);
   };
 
-  hitZone.on('pointerover', () => setVisualState({ scale: hoverScale, alpha: 1, tint: hasButtonTexture ? 0xfffbef : null, glowAlpha: 0.08, textGlow: true }));
-  hitZone.on('pointerout', () => setVisualState({ scale: 1, alpha: 1, textAlpha: 1 }));
-  hitZone.on('pointerdown', () => {
-    setVisualState({ scale: downScale, alpha: 0.9, textAlpha: 0.94 });
-    onPointerDown?.();
-  });
-  hitZone.on('pointerup', () => {
+  const resetVisualState = () => setVisualState({ scale: 1, alpha: 1, textAlpha: 1 });
+  const pressedVisualState = () => setVisualState({ scale: downScale, alpha: 0.9, textAlpha: 0.94 });
+  const releasedVisualState = () => setVisualState({ scale: hoverScale, alpha: hasButtonTexture ? 1 : 0.96, tint: hasButtonTexture ? 0xfffbef : null, glowAlpha: 0.08, textGlow: true });
+  const activateButton = () => {
     onPointerUpTrace?.();
-    setVisualState({ scale: hoverScale, alpha: hasButtonTexture ? 1 : 0.96, tint: hasButtonTexture ? 0xfffbef : null, glowAlpha: 0.08, textGlow: true });
+    releasedVisualState();
     if (typeof onPointerUp === 'function') {
       playSfx(scene, AUDIO_KEYS.UI_CLICK);
       onPointerUp();
     }
+  };
+  const getPointerId = (pointer) => pointer?.id ?? pointer?.pointerId ?? null;
+  const pointerWithinHitZone = (pointer, bounds, tolerance) => {
+    if (!pointer || !bounds) return false;
+    const x = pointer.x ?? pointer.worldX;
+    const y = pointer.y ?? pointer.worldY;
+    return Number.isFinite(x)
+      && Number.isFinite(y)
+      && x >= bounds.left - tolerance
+      && x <= bounds.right + tolerance
+      && y >= bounds.top - tolerance
+      && y <= bounds.bottom + tolerance;
+  };
+  let robustReleaseState = null;
+  const cleanupRobustRelease = () => {
+    if (!robustReleaseState) return;
+    const { onGlobalPointerUp, onGlobalPointerUpOutside } = robustReleaseState;
+    scene.input?.off?.('pointerup', onGlobalPointerUp);
+    scene.input?.off?.('pointerupoutside', onGlobalPointerUpOutside);
+    robustReleaseState = null;
+  };
+  const completeRobustRelease = (pointer, { forceInside = false } = {}) => {
+    if (!robustReleaseState) return;
+    const { pointerId, bounds } = robustReleaseState;
+    const releasePointerId = getPointerId(pointer);
+    if (pointerId !== null && releasePointerId !== null && pointerId !== releasePointerId) return;
+    cleanupRobustRelease();
+    if (forceInside || pointerWithinHitZone(pointer, bounds, releaseTolerance)) {
+      activateButton();
+      return;
+    }
+    onPointerReleaseCanceledTrace?.();
+    resetVisualState();
+  };
+
+  hitZone.on('pointerover', () => setVisualState({ scale: hoverScale, alpha: 1, tint: hasButtonTexture ? 0xfffbef : null, glowAlpha: 0.08, textGlow: true }));
+  hitZone.on('pointerout', () => {
+    if (!robustReleaseState) resetVisualState();
   });
+  hitZone.on('pointerdown', (pointer) => {
+    pressedVisualState();
+    onPointerDown?.();
+    if (!robustMobileRelease) return;
+    cleanupRobustRelease();
+    const onGlobalPointerUp = (releasePointer) => completeRobustRelease(releasePointer);
+    const onGlobalPointerUpOutside = (releasePointer) => completeRobustRelease(releasePointer);
+    robustReleaseState = {
+      pointerId: getPointerId(pointer),
+      bounds: hitZone.getBounds?.(),
+      onGlobalPointerUp,
+      onGlobalPointerUpOutside,
+    };
+    scene.input?.on?.('pointerup', onGlobalPointerUp);
+    scene.input?.on?.('pointerupoutside', onGlobalPointerUpOutside);
+  });
+  hitZone.on('pointerup', (pointer) => {
+    if (robustMobileRelease) {
+      completeRobustRelease(pointer, { forceInside: true });
+      return;
+    }
+    activateButton();
+  });
+  hitZone.once('destroy', cleanupRobustRelease);
 
   return {
     shadow,

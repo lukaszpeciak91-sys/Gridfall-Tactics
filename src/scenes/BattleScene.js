@@ -1159,19 +1159,23 @@ export default class BattleScene extends Phaser.Scene {
     const buttonHeight = 64;
     const buttonY = top + modalHeight * 0.76;
     const gap = Math.max(18, modalWidth * 0.06);
-    const cancelButton = this.createResultModalButton(centerX - buttonWidth / 2 - gap / 2, buttonY, buttonWidth, buttonHeight, translateActive('ui.common.cancel', 'Cancel'), () => this.destroyBattleMenuSurrenderConfirmation(), presentation, { depth: depth + 4 });
+    const cancelButton = this.createResultModalButton(centerX - buttonWidth / 2 - gap / 2, buttonY, buttonWidth, buttonHeight, translateActive('ui.common.cancel', 'Cancel'), () => this.destroyBattleMenuSurrenderConfirmation(), presentation, { depth: depth + 4, robustMobileRelease: true });
     let surrenderPointerDownSeen = false;
     const surrenderButton = this.createResultModalButton(centerX + buttonWidth / 2 + gap / 2, buttonY, buttonWidth, buttonHeight, translateActive('ui.battle.surrenderConfirmButton', 'Surrender'), () => {
       this.clearPointerInputGuard();
       this.resolvePlayerMenuSurrender({ ignorePointerGuard: true });
     }, presentation, {
       depth: depth + 4,
+      robustMobileRelease: true,
       onPointerDown: () => {
         surrenderPointerDownSeen = true;
         this.updateSurrenderTrace('Confirmation Surrender button receives pointerdown');
       },
       onPointerUpTrace: () => {
         this.updateSurrenderTrace(surrenderPointerDownSeen ? 'Confirmation Surrender button receives pointerup' : 'button destroyed before pointerup');
+      },
+      onPointerReleaseCanceledTrace: () => {
+        this.updateSurrenderTrace('Confirmation Surrender button release canceled');
       },
     });
 
@@ -1946,6 +1950,9 @@ export default class BattleScene extends Phaser.Scene {
       },
       onPointerDown: options.onPointerDown,
       onPointerUpTrace: options.onPointerUpTrace,
+      onPointerReleaseCanceledTrace: options.onPointerReleaseCanceledTrace,
+      robustMobileRelease: options.robustMobileRelease ?? false,
+      releaseTolerance: options.releaseTolerance,
       depth: options.depth ?? 902,
       fontSize: `${Math.max(18, Math.floor(height * 0.34))}px`,
       textStyle: {
