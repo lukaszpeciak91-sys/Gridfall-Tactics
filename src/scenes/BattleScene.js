@@ -5749,6 +5749,13 @@ export default class BattleScene extends Phaser.Scene {
     };
   }
 
+
+  playBattleStartPresentationSfx() {
+    if (!this.gameState || this.gameState.battleStartPresentationSfxPlayed) return null;
+    this.gameState.battleStartPresentationSfxPlayed = true;
+    return this.playBattleSfx?.(AUDIO_KEYS.BATTLE_START, { cooldownMs: 0 });
+  }
+
   async showOpeningTurnStartBanner() {
     if (this.hasShownOpeningTurnStartBanner || !this.layout || !this.gameState) return;
     if (!this.prepareTransientBattleBanner('turn-start')) {
@@ -5756,6 +5763,7 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
     this.hasShownOpeningTurnStartBanner = true;
+    this.playBattleStartPresentationSfx();
 
     const { height, board } = this.layout;
     const bannerLayout = this.getCentralBattleBannerLayout({ baseWidthRatio: 0.88, horizontalPadding: 16 });
