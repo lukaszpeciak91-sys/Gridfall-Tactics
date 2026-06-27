@@ -241,7 +241,7 @@ test('pilot card display content renders ally icon markers', () => {
   assert.equal(getCardDisplayContent(cardById(tank, 'tank_heavy_1'), 'pl').body, '');
   assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_brace_1'), 'en').body, 'Target ♙ +1 ◆ until combat');
   assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_halberdier_1'), 'en').body, 'If opposed: +1 ▲');
-  assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_stand_firm_1'), 'en').body, "Until combat, ♙♙ cannot be moved");
+  assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_stand_firm_1'), 'en').body, "Heal ♙ 1");
   assert.equal(getCardDisplayContent(cardById(control, 'control_disruptor_1'), 'pl').body, 'Do walki przeciwnik nie może zagrać kart efektu');
   assert.equal(getCardDisplayContent(cardById(control, 'control_swap_1'), 'pl').body, 'Zamień miejscami 2 ♙♙ lub 2 ♟♟');
   assert.equal(getCardDisplayContent(cardById(control, 'control_system_override_1'), 'pl').body, 'Wybrany ♟ atakuje własną bazę, potem traci 1 ●');
@@ -251,7 +251,7 @@ test('pilot card display content renders ally icon markers', () => {
   assert.equal(getCardDisplayContent(cardById(attritionSwarm, 'attrition_swarm_infect_1'), 'pl').body, 'Zadaj 1 ♟.\n♙ naprzeciwko +1 ▲');
   assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_halberdier_1'), 'pl').body, 'Jeśli naprzeciw: +1 ▲');
   assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_spearwall_1'), 'pl').body, '♟♟ atakujący\nsąsiednich ♙♙: -1 ▲');
-  assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_stand_firm_1'), 'pl').body, 'Do walki ♙♙ nie można przesuwać');
+  assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_stand_firm_1'), 'pl').body, 'Ulecz ♙ 1');
   assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_reinforce_line_1'), 'en').body, 'Until combat, ♙♙ cannot be moved');
   assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_reinforce_line_1'), 'pl').body, 'Do walki ♙♙ nie można przesuwać');
 });

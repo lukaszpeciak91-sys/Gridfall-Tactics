@@ -173,16 +173,16 @@ test('AI plays Stability when an important board faces movement tools', () => {
   assert.equal(action.aiEvaluation.utilityReason, 'protects an important board');
 });
 
-test('AI plays Stand Firm when it protects an important open-lane board', () => {
+test('AI plays Lock the Line when it protects an important open-lane board', () => {
   const state = createInitialBattleState(getFactionByKey('Control'), getFactionByKey('Wardens'), { firstActor: 'enemy' });
   state.player.hand = [factionCard('Control', 'control_swap_1')];
-  state.enemy.hand = [factionCard('Wardens', 'wardens_stand_firm_1')];
+  state.enemy.hand = [factionCard('Wardens', 'wardens_reinforce_line_1')];
   state.board[0] = unit({ owner: 'enemy', id: 'warden-left', attack: 2, hp: 3 });
   state.board[1] = unit({ owner: 'enemy', id: 'warden-mid', attack: 2, hp: 3 });
 
   const action = chooseBattleAction(state, 'enemy');
 
-  assert.equal(action.cardId, 'wardens_stand_firm_1');
+  assert.equal(action.cardId, 'wardens_reinforce_line_1');
   assert.equal(action.aiEvaluation.utilityCategory, 'stability');
 });
 

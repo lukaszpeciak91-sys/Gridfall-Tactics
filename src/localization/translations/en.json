@@ -230,7 +230,7 @@
     },
     "wardens_stand_firm_1": {
       "name": "Endure the Cold",
-      "textShort": "Until combat, [ALLIES] cannot be moved"
+      "textShort": "Heal [ALLY] 1"
     },
     "wardens_reinforce_line_1": {
       "name": "Lock the Line",
@@ -472,6 +472,7 @@
         "buff_all_armor_1": "All allies +1 ARM",
         "immune_move_disable_this_turn": "Block move effects",
         "heal_all_1": "Heal all allies 1",
+        "heal_1": "Heal ally 1",
         "cannot_drop_below_1_this_turn": "Allies survive at 1 HP",
         "temp_armor_1": "Target ally +1 ARM",
         "summon_grunt_empty_slot": "Summon a Grunt",

@@ -230,7 +230,7 @@
     },
     "wardens_stand_firm_1": {
       "name": "Przetrwać Mróz",
-      "textShort": "Do walki [ALLIES] nie można przesuwać"
+      "textShort": "Ulecz [ALLY] 1"
     },
     "wardens_reinforce_line_1": {
       "name": "Zewrzeć Szereg",
@@ -472,6 +472,7 @@
         "buff_all_armor_1": "Wszyscy sojusznicy +1 PANC",
         "immune_move_disable_this_turn": "Blokuje efekty ruchu",
         "heal_all_1": "Ulecz wszystkich sojuszników o 1",
+        "heal_1": "Ulecz sojusznika o 1",
         "cannot_drop_below_1_this_turn": "Sojusznicy przetrwają z 1 HP",
         "temp_armor_1": "Wybrany sojusznik +1 PANC",
         "summon_grunt_empty_slot": "Przyzwij Rekruta",
