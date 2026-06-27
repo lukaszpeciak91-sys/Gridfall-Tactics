@@ -230,7 +230,7 @@
     },
     "wardens_stand_firm_1": {
       "name": "Przetrwać Mróz",
-      "textShort": "Ulecz [ALLY] 1"
+      "textShort": "Ulecz [ALLY] +1 [HP]"
     },
     "wardens_reinforce_line_1": {
       "name": "Zewrzeć Szereg",
