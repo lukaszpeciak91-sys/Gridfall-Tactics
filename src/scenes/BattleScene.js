@@ -1119,7 +1119,7 @@ export default class BattleScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(depth + 3);
     title.setShadow(0, 3, 'rgba(0, 0, 0, 0.72)', 6, true, true);
 
-    const body = this.add.text(centerX, top + modalHeight * 0.47, translateActive('ui.battle.surrenderConfirmBody', 'Leaving now counts as a defeat.'), {
+    const body = this.add.text(centerX, top + modalHeight * 0.47, translateActive('ui.battle.surrenderConfirmBody', 'This counts as a defeat.'), {
       fontFamily: 'Arial, sans-serif',
       fontSize: `${Math.max(20, Math.floor(height * 0.029))}px`,
       color: '#f8fafc',

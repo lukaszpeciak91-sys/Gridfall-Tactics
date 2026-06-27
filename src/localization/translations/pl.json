@@ -395,8 +395,8 @@
     },
     "battleMenu": {
       "title": "MENU",
-      "comingSoon": "Opcje menu wkrótce.",
       "howToPlay": "JAK GRAĆ",
+      "settings": "USTAWIENIA",
       "surrender": "PODDAJ"
     },
     "battle": {
@@ -542,7 +542,7 @@
       "battleExhausted": "BITWA WYCZERPANA",
       "utilityMenuSurrender": "Poddaj",
       "surrenderConfirmTitle": "PODDAĆ BITWĘ?",
-      "surrenderConfirmBody": "Wyjście teraz zostanie uznane za porażkę.",
+      "surrenderConfirmBody": "To zostanie uznane za porażkę.",
       "surrenderConfirmButton": "Poddaj"
     },
     "rules": {
