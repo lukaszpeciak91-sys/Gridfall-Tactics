@@ -62,7 +62,7 @@
     },
     "attrition_swarm_funeral_pyre_1": {
       "name": "Stos",
-      "textShort": "Pierwsze 2 zgony [ALLY]:\n-1 [HP] [ENEMY] naprzeciw"
+      "textShort": "Zgony 2 [ALLIES]: -1 HP ich [ENEMIES] naprzeciw"
     },
     "attrition_swarm_infect_1": {
       "name": "Zgniły Upominek",
