@@ -926,3 +926,49 @@ test('Halberdier, Flanker, Runner, Pierce, Guardian, and Sniper emit combat feed
     { type: 'retarget', amount: 0, source: 'can_hit_any_lane', label: 'LOWEST HP' },
   ]);
 });
+
+test('overflow keyword deals only excess armor-mitigated combat damage to defender base', () => {
+  const state = makeState();
+  state.enemyHP = 12;
+  state.board[0] = unit('enemy', { attack: 0, hp: 1, maxHp: 1, armor: 1 });
+  state.board[6] = unit('player', {
+    id: 'swarm_rusher_1',
+    cardId: 'swarm_rusher_1',
+    attack: 3,
+    hp: 1,
+    maxHp: 1,
+    combatKeywords: ['overflow'],
+  });
+
+  resolveCombat(state);
+
+  assert.equal(state.enemyHP, 11);
+  assert.equal(state.board[0], null);
+  assert.equal(state.overflowCombatTriggers, 1);
+  assert.equal(state.overflowCombatDamage, 1);
+  assert.deepEqual(state.overflowCombatTriggersByCardId, { swarm_rusher_1: 1 });
+  assert.deepEqual(state.overflowCombatDamageByCardId, { swarm_rusher_1: 1 });
+});
+
+test('overflow keyword does not trigger without excess damage, on survivors, or on open lanes', () => {
+  const noExcess = makeState();
+  noExcess.board[0] = unit('enemy', { attack: 0, hp: 1, maxHp: 1, armor: 1 });
+  noExcess.board[6] = unit('player', { attack: 2, hp: 1, maxHp: 1, combatKeywords: ['overflow'] });
+  resolveCombat(noExcess);
+  assert.equal(noExcess.enemyHP, 12);
+  assert.equal(noExcess.overflowCombatTriggers ?? 0, 0);
+
+  const survivor = makeState();
+  survivor.board[0] = unit('enemy', { attack: 0, hp: 3, maxHp: 3, armor: 0 });
+  survivor.board[6] = unit('player', { attack: 2, hp: 1, maxHp: 1, combatKeywords: ['overflow'] });
+  resolveCombat(survivor);
+  assert.equal(survivor.enemyHP, 12);
+  assert.equal(survivor.board[0].hp, 1);
+  assert.equal(survivor.overflowCombatTriggers ?? 0, 0);
+
+  const openLane = makeState();
+  openLane.board[6] = unit('player', { attack: 2, hp: 1, maxHp: 1, combatKeywords: ['overflow'] });
+  resolveCombat(openLane);
+  assert.equal(openLane.enemyHP, 10);
+  assert.equal(openLane.overflowCombatTriggers ?? 0, 0);
+});

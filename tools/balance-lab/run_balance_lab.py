@@ -387,6 +387,10 @@ def validate_replace_card_shape(change: dict[str, Any], index: int) -> None:
             value = replace_card.get(key)
             if not isinstance(value, int) or value < 0:
                 raise BalanceLabError(f"Change #{index} replaceCard.{key} must be an integer >= 0 for unit cards.")
+        combat_keywords = replace_card.get("combatKeywords")
+        if combat_keywords is not None:
+            if not isinstance(combat_keywords, list) or not all(isinstance(keyword, str) and keyword for keyword in combat_keywords):
+                raise BalanceLabError(f"Change #{index} replaceCard.combatKeywords must be an array of non-empty strings when provided.")
 
 
 def require_non_empty_string(data: dict[str, Any], key: str, context: str) -> str:
