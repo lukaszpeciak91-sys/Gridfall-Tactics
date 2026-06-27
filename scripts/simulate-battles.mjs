@@ -26,8 +26,91 @@ const SHUFFLE_DECKS = true;
 const FIRST_ACTOR_POLICY = 'random-initial-then-alternating';
 const TIE_BREAK_POLICY = 'seeded-random';
 
-function loadFactions() {
-  return Object.fromEntries(getFactionKeys().map((factionKey) => [factionKey, getFactionByKey(factionKey)]));
+
+function cloneCardData(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function findCard(factions, factionKey, cardId) {
+  return factions?.[factionKey]?.deck?.find((card) => card.id === cardId) ?? null;
+}
+
+function applyCrawlerIgnoreArmorBalanceLab(factions) {
+  const lichencrawler = findCard(factions, 'Swarm', 'swarm_rusher_1');
+  if (lichencrawler) {
+    lichencrawler.attack = 2;
+    lichencrawler.hp = 1;
+    lichencrawler.armor = 0;
+    lichencrawler.combatKeywords = ['ignoreArmor'];
+    lichencrawler.textShort = 'This unit ignores [ARM].';
+  }
+}
+
+function applyWardensMoveLockBalanceLab(factions) {
+  const wardensBrace = findCard(factions, 'Wardens', 'wardens_brace_1');
+  if (wardensBrace) {
+    wardensBrace.targeting = 'none';
+    wardensBrace.effectId = 'grave_call';
+    wardensBrace.effectVariant = {
+      baseEffectId: 'grave_call',
+      timing: 'afterBaseEffectBeforeDiscard',
+      sequence: [
+        { operation: 'skipBaseEffect' },
+        {
+          operation: 'summonToken',
+          selector: 'firstEmptyOwnerSlot',
+          token: 'bone_shields',
+          temporary: true,
+          tokenStats: { atk: 0, arm: 0, hp: 1 },
+        },
+      ],
+    };
+  }
+
+  const reinforceLine = findCard(factions, 'Wardens', 'wardens_reinforce_line_1');
+  if (reinforceLine) {
+    reinforceLine.targeting = 'none';
+    reinforceLine.effectId = 'friendly_immovable_this_turn';
+    reinforceLine.textShort = 'Allied units cannot move until combat.';
+  }
+
+  const lichencrawler = findCard(factions, 'Swarm', 'swarm_rusher_1');
+  if (lichencrawler) {
+    lichencrawler.attack = 2;
+    lichencrawler.hp = 1;
+    lichencrawler.armor = 0;
+    lichencrawler.combatKeywords = ['ignoreArmor'];
+    lichencrawler.textShort = 'This unit ignores [ARM].';
+  }
+
+  const grunt = findCard(factions, 'Swarm', 'swarm_grunt_1');
+  if (grunt) grunt.hp = 2;
+}
+
+function loadFactions(balanceLabId = null) {
+  const factions = Object.fromEntries(getFactionKeys().map((factionKey) => [factionKey, cloneCardData(getFactionByKey(factionKey))]));
+  if (balanceLabId === 'crawler-ignorearmor') applyCrawlerIgnoreArmorBalanceLab(factions);
+  if (balanceLabId === 'wardens-movelock') applyWardensMoveLockBalanceLab(factions);
+  return factions;
+}
+
+function buildEffectVariantRegistryForFactions(factions, balanceLabId = null) {
+  const registry = {};
+  Object.values(factions).forEach((faction) => {
+    faction.deck?.forEach((card) => {
+      if (!card.effectVariant) return;
+      const effectId = card.effectId;
+      const registryKey = `${faction.id}::${card.id}::${effectId}`;
+      registry[registryKey] = {
+        variantId: `${balanceLabId ?? 'sim'}::${card.id}`,
+        registryKey,
+        baseEffectId: card.effectVariant.baseEffectId ?? effectId,
+        timing: card.effectVariant.timing ?? 'afterBaseEffectBeforeDiscard',
+        sequence: card.effectVariant.sequence,
+      };
+    });
+  });
+  return registry;
 }
 
 function createSeededRng(seedInput) {
@@ -475,13 +558,20 @@ function applyAction(state, owner, passStats, decisionOptions, telemetry, simTel
   if (result.card?.id === 'control_system_override_1') {
     telemetry.systemOverrideUses = (telemetry.systemOverrideUses ?? 0) + 1;
   }
+  if (result.card?.id === 'wardens_reinforce_line_1') {
+    telemetry.reinforceLineUses = (telemetry.reinforceLineUses ?? 0) + 1;
+  }
+  if (result.card?.effectId === 'friendly_immovable_this_turn') {
+    telemetry.friendlyImmovableUses = (telemetry.friendlyImmovableUses ?? 0) + 1;
+  }
   recordBattleActionUse(state, owner, action, telemetry);
 }
 
 
-function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, simTelemetry, gameSeed, gameIndex, playerKey, enemyKey) {
+function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, simTelemetry, gameSeed, gameIndex, playerKey, enemyKey, effectVariantRegistry = null) {
   const gameRng = createSeededRng(gameSeed);
   const state = createInitialBattleState(playerFaction, enemyFaction, { randomFn: gameRng });
+  if (effectVariantRegistry) state.effectVariantRegistry = effectVariantRegistry;
 
   if (SHUFFLE_DECKS) {
     shuffleDeck(state.player.deck, gameRng);
@@ -915,7 +1005,10 @@ function main() {
   const parsedSeed = Number.parseInt(seedArg ?? `${DEFAULT_BASE_SEED}`, 10);
   const baseSeed = Number.isInteger(parsedSeed) ? parsedSeed >>> 0 : DEFAULT_BASE_SEED;
 
-  const factions = loadFactions();
+  const balanceLabArg = process.argv.find((arg) => arg.startsWith('--balance-lab='));
+  const balanceLabId = balanceLabArg?.split('=')[1] ?? null;
+  const factions = loadFactions(balanceLabId);
+  const effectVariantRegistry = buildEffectVariantRegistryForFactions(factions, balanceLabId);
   const factionKeys = Object.keys(factions);
   const factionOrder = new Map(factionKeys.map((key, index) => [key, index]));
   const aggregate = new Map(factionKeys.map((key) => [key, createStats()]));
@@ -937,7 +1030,7 @@ function main() {
 
     for (let i = 0; i < gamesForMatchup; i += 1) {
       const gameSeed = buildGameSeed(baseSeed, playerKey, enemyKey, i);
-      const result = runSingleGame(factions[playerKey], factions[enemyKey], passStats, telemetry, simTelemetry, gameSeed, i, playerKey, enemyKey);
+      const result = runSingleGame(factions[playerKey], factions[enemyKey], passStats, telemetry, simTelemetry, gameSeed, i, playerKey, enemyKey, effectVariantRegistry);
       recordGameEndTelemetry(simTelemetry, result);
       recordEffectVariantOperationTelemetry(simTelemetry, result.effectVariantOperationTelemetry);
       telemetry.quickFixTriggers += result.quickFixTempoDraws ?? 0;
@@ -1183,6 +1276,8 @@ Battle simulation complete (${matchCount} games per matchup${filterSummary}, max
     { metric: 'Quick Fix triggered draws', count: telemetry.quickFixTriggers },
     { metric: 'Quick Fix trigger rate', count: `${percent(telemetry.quickFixTriggers, telemetry.quickFixUses)}%` },
     { metric: 'Shield Push uses', count: telemetry.shieldPushUses },
+    { metric: 'Reinforce Line uses', count: telemetry.reinforceLineUses },
+    { metric: 'friendly immovable uses', count: telemetry.friendlyImmovableUses },
     { metric: 'Jam Signal uses', count: telemetry.jamSignalUses },
     { metric: 'Controller uses', count: telemetry.controllerUses },
     { metric: 'defensive friction applications', count: telemetry.defensiveFrictionApplications },
