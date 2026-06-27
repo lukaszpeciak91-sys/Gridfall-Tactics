@@ -17,6 +17,7 @@ import {
   INLINE_EFFECT_ICON_STAT_FONT_SCALE,
   INLINE_STAT_ICON_LEADING_SPACE_SCALE,
   INLINE_STAT_ICON_TRAILING_SPACE_SCALE,
+  INLINE_ATTACK_ICON_OPTICAL_OFFSET_X,
   INLINE_GAMEPLAY_ICON_BASELINE_OFFSET_RATIO,
   INLINE_GAMEPLAY_ICON_SPACE_SCALE,
   layoutInlineStatText,
@@ -391,6 +392,7 @@ test('inline effect icon typography uses glyph-sized symbols, centered baseline,
   assert.equal(INLINE_EFFECT_ICON_BASELINE_OFFSET_RATIO, -0.16);
   assert.equal(INLINE_STAT_ICON_LEADING_SPACE_SCALE, 0.4);
   assert.equal(INLINE_STAT_ICON_TRAILING_SPACE_SCALE, 0.6);
+  assert.equal(INLINE_ATTACK_ICON_OPTICAL_OFFSET_X, -1);
   assert.equal(INLINE_GAMEPLAY_ICON_BASELINE_OFFSET_RATIO, -0.06);
   assert.equal(INLINE_GAMEPLAY_ICON_SPACE_SCALE, 1);
 
@@ -405,7 +407,6 @@ test('inline effect icon typography uses glyph-sized symbols, centered baseline,
   assert.equal(lines[0].segments[2].x, 40);
 });
 
-
 test('inline gameplay icons keep full word spacing while stat icons retain compact spacing', () => {
   const measureTokenWidth = (token) => (token === ' ' ? 10 : token.length * 10);
   const allyLine = layoutInlineStatText('Atakuje ♙ z najniższym HP.', { maxWidth: 500, measureTokenWidth })[0];
@@ -419,6 +420,47 @@ test('inline gameplay icons keep full word spacing while stat icons retain compa
     ...segment,
     text: segment.text === '♙' ? '♟' : segment.text,
   })));
+});
+
+test('inline ATK icon renderer applies only a subtle visual optical x-offset', () => {
+  const drawInlineText = (text) => {
+    const drawnTexts = [];
+    const scene = {
+      add: {
+        container: () => ({ add: () => {} }),
+        text: (x, y, value) => {
+          const node = {
+            x,
+            y,
+            text: value,
+            width: String(value).length * 10,
+            setVisible() { return this; },
+            setText(nextValue) { this.text = nextValue; this.width = String(nextValue).length * 10; return this; },
+            setFontSize() { return this; },
+            setOrigin() { return this; },
+            setAlpha() { return this; },
+            setShadow() { return this; },
+            destroy() {},
+          };
+          drawnTexts.push(node);
+          return node;
+        },
+      },
+    };
+
+    createInlineStatText(scene, 0, 0, text, {
+      align: 'left',
+      fontSize: 12,
+      maxWidth: 500,
+    });
+    return drawnTexts.filter((node) => node.text === text)[0];
+  };
+
+  assert.equal(drawInlineText('▲').x, INLINE_ATTACK_ICON_OPTICAL_OFFSET_X);
+  assert.equal(drawInlineText('◆').x, 0);
+  assert.equal(drawInlineText('●').x, 0);
+  assert.equal(drawInlineText('♙').x, 0);
+  assert.equal(drawInlineText('♟').x, 0);
 });
 
 test('inline stat text layout keeps number-stat modifiers compact while giving following words breathing room', () => {

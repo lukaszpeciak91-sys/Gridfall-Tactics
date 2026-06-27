@@ -279,6 +279,7 @@ export const INLINE_EFFECT_ICON_MIN_FONT_SIZE = 15;
 export const INLINE_EFFECT_ICON_BASELINE_OFFSET_RATIO = -0.16;
 export const INLINE_STAT_ICON_LEADING_SPACE_SCALE = 0.4;
 export const INLINE_STAT_ICON_TRAILING_SPACE_SCALE = 0.6;
+export const INLINE_ATTACK_ICON_OPTICAL_OFFSET_X = -1;
 export const INLINE_GAMEPLAY_ICON_BASELINE_OFFSET_RATIO = -0.06;
 export const INLINE_GAMEPLAY_ICON_SPACE_SCALE = 1;
 
@@ -361,6 +362,7 @@ function getInlineSymbolStyle(symbol) {
       fontStyle: 'bold',
       fontScale: INLINE_EFFECT_ICON_STAT_FONT_SCALE,
       widthScale: 0.823,
+      visualOffsetX: symbol === '▲' ? INLINE_ATTACK_ICON_OPTICAL_OFFSET_X : 0,
     };
   }
 
@@ -631,7 +633,7 @@ export function createInlineStatText(scene, x, y, text, {
         ? INLINE_GAMEPLAY_ICON_BASELINE_OFFSET_RATIO
         : INLINE_EFFECT_ICON_BASELINE_OFFSET_RATIO;
       const inlineIconYOffset = Math.round(fittedFontSize * baselineOffsetRatio);
-      const segmentX = startX + segment.x;
+      const segmentX = startX + segment.x + (symbolStyle.visualOffsetX ?? 0);
       if (symbolStyle.type === 'gameplaySymbol' && symbolStyle.icon === 'group') {
         const group = scene.add.container(segmentX + segment.width / 2, iconCenterY + inlineIconYOffset);
         const iconFontSize = getInlineIconFontSize(fittedFontSize, symbolStyle);
