@@ -186,7 +186,7 @@ function fallenUnit(id = 'fallen-unit') {
   };
 }
 
-function addSummonTokenVariant(state, cardId, effectId = 'heal_2', token = 'grunt', temporary = undefined) {
+function addSummonTokenVariant(state, cardId, effectId = 'heal_2', token = 'grunt', temporary = undefined, tokenStats = undefined) {
   const registryKey = `test-faction::${cardId}::${effectId}`;
   state.effectVariantRegistry = {
     [registryKey]: {
@@ -203,6 +203,7 @@ function addSummonTokenVariant(state, cardId, effectId = 'heal_2', token = 'grun
           selector: 'firstEmptyOwnerSlot',
           token,
           ...(temporary === undefined ? {} : { temporary }),
+          ...(tokenStats === undefined ? {} : { tokenStats }),
         },
       ],
     },
@@ -303,6 +304,46 @@ test('effectVariant summonToken can create temporary Bone Shields and clean them
   resolveCombat(state);
 
   assert.equal(state.board[6], null);
+});
+
+
+
+test('effectVariant summonToken tokenStats overrides only the summoned Bone Shields instance', () => {
+  const state = createInitialBattleState(emptyFaction, emptyFaction, { skipInitialDraw: true });
+  state.player.hand.push(placementEffectCard('bone-shields-card', 'heal_2'));
+  addSummonTokenVariant(state, 'bone-shields-card', 'heal_2', 'bone_shields', true, { atk: 0, arm: 0, hp: 1 });
+
+  const result = playEffectCard(state, 'player', 'bone-shields-card');
+
+  assert.equal(result.ok, true);
+  const token = state.board[6];
+  assert.equal(token.attack, 0);
+  assert.equal(token.armor, 0);
+  assert.equal(token.hp, 1);
+  assert.equal(token.maxHp, 1);
+  assert.equal(token.effectId, 'cannot_attack');
+  assert.equal(token.temporaryFloodToken, true);
+  assert.deepEqual(state.effectVariantOperationTelemetry[0].tokenStats, { atk: 0, arm: 0, hp: 1 });
+  assert.deepEqual(state.effectVariantOperationTelemetry[0].summonedTokenStats, { atk: 0, arm: 0, hp: 1 });
+
+  const nextState = createInitialBattleState(emptyFaction, emptyFaction, { skipInitialDraw: true });
+  nextState.player.hand.push(placementEffectCard('bone-shields-card', 'heal_2'));
+  addSummonTokenVariant(nextState, 'bone-shields-card', 'heal_2', 'bone_shields', true);
+  assert.equal(playEffectCard(nextState, 'player', 'bone-shields-card').ok, true);
+  assert.equal(nextState.board[6].armor, 1);
+});
+
+
+test('effectVariant summonToken rejects malformed tokenStats without summoning', () => {
+  const state = createInitialBattleState(emptyFaction, emptyFaction, { skipInitialDraw: true });
+  state.player.hand.push(placementEffectCard('bad-token-stats-card', 'heal_2'));
+  addSummonTokenVariant(state, 'bad-token-stats-card', 'heal_2', 'bone_shields', true, { atk: 0, armor: 0, hp: 1 });
+
+  const result = playEffectCard(state, 'player', 'bad-token-stats-card');
+
+  assert.equal(result.ok, true);
+  assert.equal(state.board[6], null);
+  assert.equal(state.effectVariantOperationTelemetry, undefined);
 });
 
 test('effectVariant summonToken rejects unknown token IDs without summoning', () => {

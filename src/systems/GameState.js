@@ -1288,12 +1288,22 @@ function isDrawOneOperation(operation) {
     && Object.keys(operation).length === 1;
 }
 
+function isEffectVariantTokenStats(stats) {
+  if (stats === undefined) return true;
+  if (!stats || typeof stats !== 'object' || Array.isArray(stats)) return false;
+  const keys = Object.keys(stats);
+  return keys.length > 0
+    && keys.every((key) => ['atk', 'arm', 'hp'].includes(key))
+    && keys.every((key) => Number.isInteger(stats[key]) && stats[key] >= 0);
+}
+
 function isSummonTokenOperation(operation) {
   return operation?.operation === 'summonToken'
     && EFFECT_VARIANT_EMPTY_OWNER_SLOT_SELECTORS.has(operation.selector)
     && SUPPORTED_EFFECT_VARIANT_TOKEN_IDS.has(operation.token)
     && (operation.temporary === undefined || typeof operation.temporary === 'boolean')
-    && Object.keys(operation).every((key) => ['operation', 'selector', 'token', 'temporary'].includes(key));
+    && isEffectVariantTokenStats(operation.tokenStats)
+    && Object.keys(operation).every((key) => ['operation', 'selector', 'token', 'temporary', 'tokenStats'].includes(key));
 }
 
 function isExecutableEffectVariantOperation(operation) {
@@ -1424,6 +1434,7 @@ function recordEffectVariantOperationTelemetry(state, variant, operation, teleme
     duration: operation.duration,
     token: operation.token,
     temporary: operation.temporary,
+    tokenStats: operation.tokenStats,
     baseEffectControl: getEffectVariantBaseEffectControl(variant),
     triggerType: variant.timing ?? 'afterBaseEffectBeforeDiscard',
     ...telemetry,
@@ -1529,10 +1540,29 @@ function createEffectVariantBoneShieldsTokenCard(id, temporary) {
   };
 }
 
-function summonEffectVariantTokenAt(state, index, owner, token, temporary, sourceCard) {
+function applyEffectVariantTokenStats(card, tokenStats) {
+  if (!tokenStats) return card;
+  return {
+    ...card,
+    ...(Object.hasOwn(tokenStats, 'atk') ? { attack: tokenStats.atk } : {}),
+    ...(Object.hasOwn(tokenStats, 'arm') ? { armor: tokenStats.arm } : {}),
+    ...(Object.hasOwn(tokenStats, 'hp') ? { hp: tokenStats.hp } : {}),
+  };
+}
+
+function effectVariantTokenStatsTelemetry(unit) {
+  if (!unit) return null;
+  return {
+    atk: unit.attack,
+    arm: unit.armor,
+    hp: unit.hp,
+  };
+}
+
+function summonEffectVariantTokenAt(state, index, owner, token, temporary, sourceCard, tokenStats = null) {
   if (!isOwnerSlotAvailableForUnitPlacement(state, owner, index)) return false;
-  if (token === 'grunt' && !temporary) {
-    return summonGruntAt(state, index, owner, 'effect_variant_grunt', getGeneratedGruntArtForSource(sourceCard));
+  if (token === 'grunt' && !temporary && !tokenStats) {
+    return summonGruntAt(state, index, owner, 'effect_variant_grunt', getGeneratedGruntArtForSource(sourceCard)) ? state.board[index] : false;
   }
 
   const tokenSequence = state.nextTokenId ?? 0;
@@ -1540,18 +1570,21 @@ function summonEffectVariantTokenAt(state, index, owner, token, temporary, sourc
   if (token === 'grunt') {
     const tokenId = `${owner}_effect_variant_grunt_${index}_${tokenSequence}`;
     const card = createGruntCard(tokenId, 'Grunt', 1, 1, getGeneratedGruntArtForSource(sourceCard));
-    state.board[index] = createBoardUnitFromCard(temporary ? { ...card, temporaryFloodToken: true } : card, owner);
-    return true;
+    const tokenCard = temporary ? { ...card, temporaryFloodToken: true } : card;
+    state.board[index] = createBoardUnitFromCard(applyEffectVariantTokenStats(tokenCard, tokenStats), owner);
+    return state.board[index];
   }
   if (token === 'flood') {
     const tokenId = `${owner}_flood_token_${index}_${tokenSequence}`;
-    state.board[index] = createBoardUnitFromCard(createEffectVariantFloodTokenCard(tokenId, temporary), owner);
-    return true;
+    const card = applyEffectVariantTokenStats(createEffectVariantFloodTokenCard(tokenId, temporary), tokenStats);
+    state.board[index] = createBoardUnitFromCard(card, owner);
+    return state.board[index];
   }
   if (token === 'bone_shields') {
     const tokenId = `${owner}_bone_shields_token_${index}_${tokenSequence}`;
-    state.board[index] = createBoardUnitFromCard(createEffectVariantBoneShieldsTokenCard(tokenId, temporary), owner);
-    return true;
+    const card = applyEffectVariantTokenStats(createEffectVariantBoneShieldsTokenCard(tokenId, temporary), tokenStats);
+    state.board[index] = createBoardUnitFromCard(card, owner);
+    return state.board[index];
   }
   return false;
 }
@@ -1576,10 +1609,10 @@ function executeSummonTokenOperation(state, owner, variant, operation, capturedT
   let tokensSummoned = 0;
 
   targetIndexes.forEach((index) => {
-    const summoned = summonEffectVariantTokenAt(state, index, owner, operation.token, temporary, sourceCard);
+    const summoned = summonEffectVariantTokenAt(state, index, owner, operation.token, temporary, sourceCard, operation.tokenStats);
     if (summoned) {
       tokensSummoned += 1;
-      tokenTelemetry.push({ index, token: operation.token, temporary, summoned: true });
+      tokenTelemetry.push({ index, token: operation.token, temporary, summoned: true, tokenStats: effectVariantTokenStatsTelemetry(summoned) });
       return;
     }
     tokenTelemetry.push({ index, token: operation.token, temporary, skipped: 'slot_occupied' });
@@ -1590,6 +1623,8 @@ function executeSummonTokenOperation(state, owner, variant, operation, capturedT
     status: tokensSummoned > 0 ? 'summon_executed' : 'summon_skipped',
     token: operation.token,
     temporary,
+    tokenStats: operation.tokenStats,
+    summonedTokenStats: tokenTelemetry.find((entry) => entry.summoned)?.tokenStats ?? null,
     tokensSummoned,
     skippedSummons,
     targetsResolved: tokensSummoned,
