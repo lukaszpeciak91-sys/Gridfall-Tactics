@@ -341,7 +341,8 @@ test('rules panel contains glossary-first player-facing rules summary', () => {
   assert.match(source, /Before battle begins, you may mulligan up to 2 cards/);
   assert.match(source, /The middle row is visual\/effect space and cannot hold units/);
   assert.match(source, /Some effects require targets; others resolve automatically/);
-  assert.match(source, /If available, hold PASS to surrender/);
+  assert.doesNotMatch(source, /hold PASS to surrender/i);
+  assert.doesNotMatch(source, /PASS and Surrender/);
   assert.match(source, /Exhausted late battles may be decided by remaining Base HP/);
   assert.match(source, /Tap one of your units/);
   assert.match(source, /PASS ends your action/);
