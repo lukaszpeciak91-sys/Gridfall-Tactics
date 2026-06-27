@@ -10,10 +10,26 @@ const WARDEN_SELF_FRICTION_EFFECT_ID = 'warden_defensive_friction_self';
 const WARDEN_SPEARWALL_EFFECT_ID = 'warden_defensive_friction_adjacent';
 const WARDEN_FRICTION_CAP = 1;
 const FUNERAL_PYRE_TRIGGER_CAP = 2;
+const COMBAT_KEYWORD_OVERFLOW = 'overflow';
 export const RUNNER_OPEN_LANE_ATK_BONUS = 2;
 
 function hasSwarmAlphaAura(unit) {
   return unit?.effectId === SWARM_ALPHA_AURA_EFFECT_ID;
+}
+
+function hasCombatKeyword(unit, keyword) {
+  return Array.isArray(unit?.combatKeywords) && unit.combatKeywords.includes(keyword);
+}
+
+function recordOverflowTelemetry(state, attacker, damage) {
+  if (!state || !attacker || damage <= 0) return;
+  const cardId = attacker.cardId ?? attacker.id ?? 'unknown';
+  state.overflowCombatTriggers = (state.overflowCombatTriggers ?? 0) + 1;
+  state.overflowCombatDamage = (state.overflowCombatDamage ?? 0) + damage;
+  state.overflowCombatTriggersByCardId ??= {};
+  state.overflowCombatDamageByCardId ??= {};
+  state.overflowCombatTriggersByCardId[cardId] = (state.overflowCombatTriggersByCardId[cardId] ?? 0) + 1;
+  state.overflowCombatDamageByCardId[cardId] = (state.overflowCombatDamageByCardId[cardId] ?? 0) + damage;
 }
 export const MAX_TURNS = 24;
 export const STARTING_HAND_SIZE = 4;
@@ -2987,6 +3003,7 @@ function resolveCombatLane(state, col, combatContext = null) {
     const target = state.board[targetIndex];
     if (!target) return;
     const prevention = getUnitDamagePrevention(targetIndex, damage);
+    const lethal = wouldUnitDamageBeLethal(targetIndex, damage);
     recordCombatEvent({
       attackerSide,
       attackerIndex,
@@ -2995,11 +3012,20 @@ function resolveCombatLane(state, col, combatContext = null) {
       targetIndex,
       damage,
       openLane: false,
-      lethal: wouldUnitDamageBeLethal(targetIndex, damage),
+      lethal,
       prevention,
       combatModifiers,
       interceptOriginalTargetIndex: options.interceptOriginalTargetIndex ?? null,
     });
+    const attacker = Number.isInteger(attackerIndex) ? state.board[attackerIndex] : null;
+    if (!lethal || prevention?.prevented || !hasCombatKeyword(attacker, COMBAT_KEYWORD_OVERFLOW)) return;
+    const accumulatedDamage = pendingUnitDamage.get(targetIndex) ?? 0;
+    const lethalDamageNeeded = Math.max(0, target.hp - accumulatedDamage);
+    const overflowDamage = Math.max(0, damage - lethalDamageNeeded);
+    if (overflowDamage <= 0) return;
+    if (target.owner === 'player') state.playerHP -= overflowDamage;
+    else if (target.owner === 'enemy') state.enemyHP -= overflowDamage;
+    recordOverflowTelemetry(state, attacker, overflowDamage);
   };
   const recordHeroAttack = (attackerSide, attackerIndex, targetSide, damage, openLane, combatModifiers = []) => recordCombatEvent({
       attackerSide,

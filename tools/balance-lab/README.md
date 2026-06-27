@@ -234,6 +234,8 @@ If `type` is `"unit"`, these fields are also required and must be integers great
 - `hp`
 - `armor`
 
+Unit replacements may also include optional `combatKeywords`, an array of non-empty strings. The experimental `"overflow"` keyword makes excess combat damage after armor reduction hit the defender owner's base when the defender is killed; direct empty-lane base attacks are unchanged.
+
 Full replacement may update display fields such as `name`, `textShort`, `targeting`, `artAssetId`, and `cardNumber`. When present, `replaceCard.effectId` must be either an existing effectId already present in the repo card data or `null` for a vanilla/no-effect card. Omitting `effectId` is also allowed for replacement objects that intentionally have no effect field. Balance Lab v2-lite does not add new effect logic, does not support `effectParams`, and does not make unknown custom effects work. New effect behavior still requires the normal repo implementation path in gameplay code and AI support.
 
 Example:

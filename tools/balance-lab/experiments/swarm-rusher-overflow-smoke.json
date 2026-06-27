@@ -1,0 +1,30 @@
+{
+  "name": "Swarm Rusher overflow smoke",
+  "matchCount": 100,
+  "seed": 1337,
+  "telemetry": "all",
+  "changes": [
+    {
+      "faction": "swarm",
+      "cardId": "swarm_rusher_1",
+      "replaceCard": {
+        "id": "swarm_rusher_1",
+        "cardNumber": 4,
+        "artAssetId": "swarm_04",
+        "name": "Rusher",
+        "type": "unit",
+        "targeting": "lane",
+        "effectId": null,
+        "textShort": "Excess attack damage hits the base.",
+        "attack": 2,
+        "hp": 1,
+        "armor": 0,
+        "combatKeywords": ["overflow"]
+      }
+    }
+  ],
+  "flags": {
+    "warningDeltaPp": 3,
+    "dangerDeltaPp": 8
+  }
+}

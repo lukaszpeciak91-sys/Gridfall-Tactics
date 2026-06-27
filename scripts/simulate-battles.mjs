@@ -563,6 +563,10 @@ function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, simTel
     combatOnlyDeathSummons: state.combatOnlyDeathSummons ?? 0,
     leechCombatHeals: state.leechCombatHeals ?? 0,
     rotcallerCombatTriggers: state.rotcallerCombatTriggers ?? 0,
+    overflowCombatTriggers: state.overflowCombatTriggers ?? 0,
+    overflowCombatDamage: state.overflowCombatDamage ?? 0,
+    overflowCombatTriggersByCardId: { ...(state.overflowCombatTriggersByCardId ?? {}) },
+    overflowCombatDamageByCardId: { ...(state.overflowCombatDamageByCardId ?? {}) },
     effectVariantOperationTelemetry: [...(state.effectVariantOperationTelemetry ?? [])],
     cardGameTelemetry,
   };
@@ -918,7 +922,7 @@ function main() {
   const combinedPairs = new Map();
   const orderedMatchups = new Map();
   const passStats = { pass: 0, cancelled: 0 };
-  const telemetry = { replaceUsed: 0, repositionUsed: 0, meaningfulGameplayActions: 0, pointlessGameplayActions: 0, openLaneImprovements: 0, repeatedLoopPreventions: 0, invalidActions: 0, crashes: 0, quickFixUses: 0, quickFixTriggers: 0, shieldPushUses: 0, defensiveFrictionApplications: 0, funeralPyreUses: 0, systemOverrideUses: 0, funeralPyreTriggers: 0, funeralPyreLaneDamageTriggers: 0, combatOnlyDeathHeroTriggers: 0, combatOnlyDeathLaneDamageTriggers: 0, combatOnlyDeathSummons: 0, leechCombatHeals: 0, rotcallerCombatTriggers: 0, mulliganByFaction: {} };
+  const telemetry = { replaceUsed: 0, repositionUsed: 0, meaningfulGameplayActions: 0, pointlessGameplayActions: 0, openLaneImprovements: 0, repeatedLoopPreventions: 0, invalidActions: 0, crashes: 0, quickFixUses: 0, quickFixTriggers: 0, shieldPushUses: 0, defensiveFrictionApplications: 0, funeralPyreUses: 0, systemOverrideUses: 0, funeralPyreTriggers: 0, funeralPyreLaneDamageTriggers: 0, combatOnlyDeathHeroTriggers: 0, combatOnlyDeathLaneDamageTriggers: 0, combatOnlyDeathSummons: 0, leechCombatHeals: 0, rotcallerCombatTriggers: 0, overflowCombatTriggers: 0, overflowCombatDamage: 0, overflowCombatTriggersByCardId: {}, overflowCombatDamageByCardId: {}, mulliganByFaction: {} };
   const audit = { games: 0, draws: 0, turnCaps: 0, aggroTurnCapWins: 0, aggroGames: 0, nonSwarmGames: 0, nonSwarmDraws: 0, nonSwarmTurnCaps: 0, swarmMirrorGames: 0, swarmMirrorDraws: 0, simultaneousLethals: 0, simultaneousLethalDrawsAfter: 0 };
 
   for (let playerIndex = 0; playerIndex < factionKeys.length; playerIndex += 1) for (let enemyIndex = 0; enemyIndex < factionKeys.length; enemyIndex += 1) {
@@ -945,6 +949,14 @@ function main() {
       telemetry.combatOnlyDeathSummons += result.combatOnlyDeathSummons ?? 0;
       telemetry.leechCombatHeals += result.leechCombatHeals ?? 0;
       telemetry.rotcallerCombatTriggers += result.rotcallerCombatTriggers ?? 0;
+      telemetry.overflowCombatTriggers += result.overflowCombatTriggers ?? 0;
+      telemetry.overflowCombatDamage += result.overflowCombatDamage ?? 0;
+      Object.entries(result.overflowCombatTriggersByCardId ?? {}).forEach(([cardId, count]) => {
+        telemetry.overflowCombatTriggersByCardId[cardId] = (telemetry.overflowCombatTriggersByCardId[cardId] ?? 0) + count;
+      });
+      Object.entries(result.overflowCombatDamageByCardId ?? {}).forEach(([cardId, damage]) => {
+        telemetry.overflowCombatDamageByCardId[cardId] = (telemetry.overflowCombatDamageByCardId[cardId] ?? 0) + damage;
+      });
       const wasDraw = result.winner === 'draw';
       const wasTurnCap = result.endingReason === 'turn-cap';
       addOrderedResult(orderedStats, result);
@@ -1184,7 +1196,24 @@ Battle simulation complete (${matchCount} games per matchup${filterSummary}, max
     { metric: 'combat-only death summons', count: telemetry.combatOnlyDeathSummons },
     { metric: 'Leech combat heals', count: telemetry.leechCombatHeals },
     { metric: 'Rotcaller combat triggers', count: telemetry.rotcallerCombatTriggers },
+    { metric: 'overflow combat triggers', count: telemetry.overflowCombatTriggers },
+    { metric: 'overflow base damage total', count: telemetry.overflowCombatDamage },
   ]);
+  console.log('\nOverflow combat telemetry by card id:');
+  const overflowCardIds = [...new Set([
+    ...Object.keys(telemetry.overflowCombatTriggersByCardId ?? {}),
+    ...Object.keys(telemetry.overflowCombatDamageByCardId ?? {}),
+  ])].sort();
+  if (overflowCardIds.length === 0) {
+    console.log('No overflow combat telemetry recorded.');
+  } else {
+    console.table(overflowCardIds.map((cardId) => ({
+      cardId,
+      triggers: telemetry.overflowCombatTriggersByCardId[cardId] ?? 0,
+      baseDamage: telemetry.overflowCombatDamageByCardId[cardId] ?? 0,
+    })));
+  }
+
   console.log('\nPASS reason counts:');
   console.table(Object.entries(passStats)
     .filter(([, count]) => typeof count === 'number')
