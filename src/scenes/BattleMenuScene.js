@@ -12,8 +12,6 @@ export default class BattleMenuScene extends Phaser.Scene {
       ? data.returnSceneKey
       : 'BattleScene';
     const returnScene = this.scene.get(returnSceneKey);
-    const isBattleMenu = returnSceneKey === 'BattleScene' && returnScene;
-
     this.cameras.main.setBackgroundColor('#05080f');
 
     this.add
@@ -67,19 +65,8 @@ export default class BattleMenuScene extends Phaser.Scene {
 
     createMenuButton(firstButtonY + buttonGap + buttonHeight, translateActive('ui.battleMenu.settings', 'SETTINGS'), () => {
       this.scene.stop();
-      if (isBattleMenu && returnScene?.openSettingsScene) {
-        returnScene.navigationInProgress = false;
-        returnScene.clearPointerInputGuard?.();
-        returnScene.openSettingsScene();
-        return;
-      }
       this.scene.launch('SettingsScene', { returnSceneKey });
     }, { backgroundColor: '#c4b5fd' });
-
-    const surrenderAvailable = Boolean(returnScene?.canPlayerMenuSurrender?.({ allowMenuNavigation: true }));
-    createMenuButton(firstButtonY + (buttonGap + buttonHeight) * 2, translateActive('ui.battleMenu.surrender', 'SURRENDER'), () => {
-      returnScene?.requestActiveBattleExit?.({ battleMenuScene: this });
-    }, { enabled: surrenderAvailable, backgroundColor: '#fb7185' });
   }
 
   resumeFromRulesPanel() {

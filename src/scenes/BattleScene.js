@@ -859,7 +859,7 @@ export default class BattleScene extends Phaser.Scene {
     const panelContentWidth = Math.round(basePanelContentWidth * menuScale);
     const panelHorizontalPadding = Math.round(4 * menuScale);
     const panelWidth = Math.min(panelContentWidth + panelHorizontalPadding * 2, width - margin - panelLeft);
-    const panelHeight = Math.round(192 * menuScale);
+    const panelHeight = Math.round(156 * menuScale);
     const panelTop = triggerY - triggerHeight / 2 - (panelHeight - 228) / 2;
     const panelX = Math.min(width - margin - panelWidth / 2, panelLeft + basePanelContentWidth / 2 + 14);
     const panelY = panelTop + panelHeight / 2;
@@ -932,8 +932,7 @@ export default class BattleScene extends Phaser.Scene {
     const buttons = [
       this.createUtilityMenuButton(buttonX, firstButtonY, buttonWidth, buttonHeight, translateActive('ui.battle.utilityMenuRules', 'Rules'), () => this.openRulesPanel()),
       this.createUtilityMenuButton(buttonX, firstButtonY + buttonGap, buttonWidth, buttonHeight, translateActive('ui.battle.utilityMenuSettings', 'Settings'), () => this.openSettingsScene()),
-      this.createUtilityMenuButton(buttonX, firstButtonY + buttonGap * 2, buttonWidth, buttonHeight, translateActive('ui.battle.utilityMenuReturn', 'Return'), () => this.handleUtilityMenuReturn()),
-      this.createUtilityMenuButton(buttonX, firstButtonY + buttonGap * 3, buttonWidth, buttonHeight, translateActive('ui.battle.utilityMenuMainMenu', 'Main Menu'), () => this.handleUtilityMenuMainMenu()),
+      this.createUtilityMenuButton(buttonX, firstButtonY + buttonGap * 2, buttonWidth, buttonHeight, translateActive('ui.battle.utilityMenuSurrender', 'Surrender'), () => this.showBattleMenuSurrenderConfirmation()),
     ];
 
     buttons.forEach((button) => {
@@ -1030,30 +1029,6 @@ export default class BattleScene extends Phaser.Scene {
     this.updatePlayerBaseActionState();
   }
 
-
-  handleUtilityMenuReturn() {
-    this.requestActiveBattleExit({ fallback: () => this.exitBattleToFactionSelect() });
-  }
-
-  handleUtilityMenuMainMenu() {
-    this.requestActiveBattleExit({ fallback: () => this.exitBattleToMainMenu() });
-  }
-
-  requestActiveBattleExit({ fallback = null, battleMenuScene = null } = {}) {
-    if (!this.canPlayerMenuSurrender({ allowMenuNavigation: Boolean(battleMenuScene) })) {
-      fallback?.();
-      return false;
-    }
-
-    if (battleMenuScene) {
-      battleMenuScene.scene.stop();
-      this.navigationInProgress = false;
-      this.clearPointerInputGuard();
-      this.scene.resume();
-    }
-
-    return this.showBattleMenuSurrenderConfirmation();
-  }
 
   canPlayerMenuSurrender({ allowMenuNavigation = false } = {}) {
     const sceneActiveOrResumable = this.scene?.isActive?.('BattleScene') || this.scene?.isPaused?.('BattleScene');
@@ -3121,12 +3096,6 @@ export default class BattleScene extends Phaser.Scene {
 
   openRulesPanel() {
     return this.launchBattleRulesPanel();
-  }
-
-  openBattleMenu() {
-    if (!this.prepareUtilityMenuNavigation()) return;
-    this.scene.launch('BattleMenuScene', { factionKey: this.factionKey, enemyFactionKey: this.enemyFactionKey, battleContext: this.battleContext, returnSceneKey: 'BattleScene' });
-    this.scene.pause();
   }
 
   resumeFromRulesPanel() {
