@@ -222,7 +222,7 @@ test('selected localized card texts use enemy board-unit markers without changin
       attrition_swarm_funeral_pyre_1: 'First 2 [ALLY] combat deaths:\n-1 [HP] to opposed [ENEMY]',
       attrition_swarm_infect_1: 'Deal 1 to [ENEMY].\nOpposed [ALLY] gains +1 [ATK]',
       control_hacker_1: 'Opposed [ENEMY]: -1 ATK until combat',
-      control_sniper_1: 'Attacks the lowest-HP [ENEMY]',
+      control_sniper_1: 'Attacks the [ENEMY] with lowest HP',
       control_controller_1: 'On play: swap two [ENEMIES]',
       control_swap_1: 'Swap 2 [ALLY] or 2 [ENEMIES]',
       control_jam_signal_1: 'Up to 2 [ENEMIES]: -1 ATK until combat',
