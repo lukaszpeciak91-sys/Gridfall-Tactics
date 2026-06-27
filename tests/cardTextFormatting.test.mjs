@@ -76,7 +76,7 @@ test('formats HP-related healing and damage language without replacing unrelated
   assert.equal(formatCardEffectTextShort('Śmierć w walce: obie bazy otrzymują 1', 'pl'), 'Śmierć w walce: obie bazy otrzymują 1 ●');
   assert.equal(formatCardEffectTextShort('Po śmierci: wroga baza otrzymuje 1', 'pl'), 'Po śmierci: wroga baza otrzymuje 1 ●');
   assert.equal(formatCardEffectTextShort('Celowany wróg atakuje własną bazę w następnej walce, potem otrzymuje 1 obrażenie', 'pl'), 'Celowany wróg atakuje własną bazę w następnej walce, potem otrzymuje 1 ●');
-  assert.equal(formatCardEffectTextShort('Pierwsze 2 zgony [ALLY]:\n-1 [HP] [ENEMY] naprzeciw', 'pl'), 'Pierwsze 2 zgony ♙♙:\n-1 ● ♟ naprzeciw');
+  assert.equal(formatCardEffectTextShort('Zgony 2 [ALLIES]: -1 HP ich [ENEMIES] naprzeciw', 'pl'), 'Zgony 2 ♙♙: -1 ● ich ♟♟ naprzeciw');
   assert.equal(formatCardEffectTextShort('Zniszcz [ALLY]. Dobierz 1', 'pl'), 'Zniszcz ♙. Dobierz 1');
   assert.equal(formatCardEffectTextShort('Śmierć w walce: przyzwij tutaj 1/1', 'pl'), 'Śmierć w walce: przyzwij tutaj 1/1');
 });
@@ -91,7 +91,7 @@ test('formats HP symbols for localized Attrition Swarm card effect display text'
   assert.equal(getCardDisplayContent(cardById('attrition_swarm_abomination_1'), 'en').body, 'Combat death: both bases lose 1 ●');
   assert.equal(getCardDisplayContent(cardById('attrition_swarm_abomination_1'), 'pl').body, 'Śmierć w walce: obie bazy tracą 1 ●');
   assert.equal(getCardDisplayContent(cardById('attrition_swarm_funeral_pyre_1'), 'en').body, 'First 2 ♙♙ combat deaths:\n-1 ● to opposed ♟');
-  assert.equal(getCardDisplayContent(cardById('attrition_swarm_funeral_pyre_1'), 'pl').body, 'Pierwsze 2 zgony ♙♙:\n-1 ● ♟ naprzeciw');
+  assert.equal(getCardDisplayContent(cardById('attrition_swarm_funeral_pyre_1'), 'pl').body, 'Zgony 2 ♙♙: -1 ● ich ♟♟ naprzeciw');
 });
 
 
@@ -101,6 +101,7 @@ test('polished card text stays within mobile collection and inspect rules panels
     { factionKey: 'Aggro', cardId: 'aggro_pierce_strike_1', locale: 'en', expectedBody: 'Deal 1 to ♟.\nNext hit ignores ◆' },
     { factionKey: 'Aggro', cardId: 'aggro_pierce_strike_1', locale: 'pl', expectedBody: 'Zadaj 1 ♟.\nNastępny cios ignoruje ◆' },
     { factionKey: 'Attrition Swarm', cardId: 'attrition_swarm_funeral_pyre_1', locale: 'en', expectedBody: 'First 2 ♙♙ combat deaths:\n-1 ● to opposed ♟' },
+    { factionKey: 'Attrition Swarm', cardId: 'attrition_swarm_funeral_pyre_1', locale: 'pl', expectedBody: 'Zgony 2 ♙♙: -1 ● ich ♟♟ naprzeciw' },
     { factionKey: 'Attrition Swarm', cardId: 'attrition_swarm_infect_1', locale: 'en', expectedBody: 'Deal 1 to ♟.\nOpposed ♙ gains +1 ▲' },
     { factionKey: 'Attrition Swarm', cardId: 'attrition_swarm_infect_1', locale: 'pl', expectedBody: 'Zadaj 1 ♟.\n♙ naprzeciwko +1 ▲' },
     { factionKey: 'Tank', cardId: 'tank_stability_1', locale: 'en', expectedBody: "Until combat, ♙♙ cannot be moved" },
