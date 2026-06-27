@@ -38,6 +38,20 @@ test('arena and campaign intermediate battle result overlays restore as immediat
   assert.match(restore, /this\.showBattleResultModal\(\{ skipReveal: true \}\);/);
 });
 
+test('battle result modal creation resets lifecycle flags if visible creation fails', () => {
+  const showBattle = extractMethodBody('showBattleResultModal', 'createResultModalButton');
+  assert.match(showBattle, /const modalItems = \[\];/);
+  assert.match(showBattle, /try \{/);
+  assert.match(showBattle, /this\.playBattleOutcomeSfxOnce\(\);/);
+  assert.match(showBattle, /this\.battleResultModalShown = true;/);
+  assert.match(showBattle, /catch \(error\) \{/);
+  assert.match(showBattle, /console\.error\('Failed to create battle result modal\.', error\);/);
+  assert.match(showBattle, /this\.battleResultModalShown = false;/);
+  assert.match(showBattle, /this\.battleResultModalPending = false;/);
+  assert.match(showBattle, /this\.resultOverlayState = null;/);
+  assert.match(showBattle, /this\.isFlowResolving = false;/);
+});
+
 test('campaign completion phase is persisted and summary restore bypasses reveal gating', () => {
   const campaign = extractMethodBody('showCampaignCompleteModal', 'getCampaignCompletionStatsText');
   assert.match(campaign, /restorePhase/);

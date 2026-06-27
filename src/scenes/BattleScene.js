@@ -1136,8 +1136,17 @@ export default class BattleScene extends Phaser.Scene {
     if (!this.gameState || this.gameState.winner || this.battleResultModalShown || this.openingMulliganPending || this.isFlowResolving || this.isEffectCastResolving || this.effectCastState) return;
     this.destroyBattleMenuSurrenderConfirmation();
     this.destroyUtilityMenuPanel();
+    this.closeInspectPreview({ animate: false, clearSelection: true });
+    this.destroyDeckInfoPanel();
     this.cancelPassHoldToSurrender();
     this.disarmPlayerSurrender();
+    this.selectedCardId = null;
+    this.pendingSwapIndex = null;
+    this.targetingState = null;
+    this.effectCastState = null;
+    this.isEffectCastResolving = false;
+    this.navigationInProgress = false;
+    this.clearPointerInputGuard();
     this.gameState.winner = 'enemy';
     this.gameState.endingReason = 'player_menu_surrender';
     this.completeBattleFlow(0);
@@ -1340,7 +1349,10 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   getBattleResultStatsText() {
-    const turns = Math.max(0, this.gameState?.turnsCompleted ?? 0);
+    const rawTurns = Math.max(0, this.gameState?.turnsCompleted ?? 0);
+    const turns = this.gameState?.endingReason === 'player_menu_surrender'
+      ? Math.max(1, rawTurns)
+      : rawTurns;
     const elapsedSeconds = this.getActiveBattleDurationMs() / 1000;
     const turnsLabel = translateActive('ui.battle.resultStats.turns', 'Turns');
     const timeLabel = translateActive('ui.battle.resultStats.time', 'Time');
@@ -1594,66 +1606,67 @@ export default class BattleScene extends Phaser.Scene {
     const skipReveal = options.skipReveal === true;
     this.battleResultModalPending = false;
     if (!this.gameState?.winner || this.battleResultModalShown) return;
+    const modalItems = [];
+    try {
+      this.isFlowResolving = false;
+      this.updateActionSlotBadge();
+      this.selectedCardId = null;
+      this.pendingSwapIndex = null;
+      this.targetingState = null;
+      this.destroyActiveSelectionMessage();
+      this.resetCardHighlights();
 
-    this.battleResultModalShown = true;
-    this.resultOverlayState = {
-      kind: this.isCampaignBattle() ? 'campaign-battle-result' : 'arena-battle-result',
-      phase: 'interactive',
-    };
-    this.isFlowResolving = false;
-    this.updateActionSlotBadge();
-    this.selectedCardId = null;
-    this.pendingSwapIndex = null;
-    this.targetingState = null;
-    this.destroyActiveSelectionMessage();
-    this.resetCardHighlights();
+      const { width, height } = this.scale.gameSize;
+      const centerX = width * 0.5;
+      const centerY = height * 0.38;
+      const overlayWidth = Math.min(width * 0.94, 720);
+      const overlayHeight = Math.min(Math.max(height * 0.27, 230), 310);
+      const resultText = this.getBattleResultText();
+      const resultSubtitle = this.getBattleResultSubtitle();
+      const resultStatsText = this.getBattleResultStatsText();
+      const presentation = this.getBattleResultPresentation();
+      this.playBattleOutcomeSfxOnce();
 
-    const { width, height } = this.scale.gameSize;
-    const centerX = width * 0.5;
-    const centerY = height * 0.38;
-    const overlayWidth = Math.min(width * 0.94, 720);
-    const overlayHeight = Math.min(Math.max(height * 0.27, 230), 310);
-    const resultText = this.getBattleResultText();
-    const resultSubtitle = this.getBattleResultSubtitle();
-    const resultStatsText = this.getBattleResultStatsText();
-    const presentation = this.getBattleResultPresentation();
-    this.playBattleOutcomeSfxOnce();
-
-    const overlay = this.add.rectangle(centerX, height * 0.5, width, height, 0x000000, presentation.overlayAlpha)
-      .setInteractive()
-      .setDepth(900);
-    const titleAura = this.add.ellipse(centerX, centerY - overlayHeight * 0.1, overlayWidth * 0.76, overlayHeight * 0.34, presentation.glowColor, 0.08)
-      .setDepth(901);
-    titleAura.setBlendMode?.(Phaser.BlendModes.ADD);
-    const titleFontSize = Math.min(Math.max(58, Math.floor(height * 0.092)), 96);
-    const titleGlow = this.add.text(centerX, centerY - overlayHeight * 0.1, resultText, {
+      const overlay = this.add.rectangle(centerX, height * 0.5, width, height, 0x000000, presentation.overlayAlpha)
+        .setInteractive()
+        .setDepth(900);
+      modalItems.push(overlay);
+      const titleAura = this.add.ellipse(centerX, centerY - overlayHeight * 0.1, overlayWidth * 0.76, overlayHeight * 0.34, presentation.glowColor, 0.08)
+        .setDepth(901);
+      modalItems.push(titleAura);
+      titleAura.setBlendMode?.(Phaser.BlendModes.ADD);
+      const titleFontSize = Math.min(Math.max(58, Math.floor(height * 0.092)), 96);
+      const titleGlow = this.add.text(centerX, centerY - overlayHeight * 0.1, resultText, {
       fontFamily: PREMIUM_BROADCAST_FONT_STACK,
       fontSize: `${titleFontSize}px`,
       color: presentation.titleColor,
       fontStyle: '700',
       align: 'center',
       letterSpacing: 2.2,
-    }).setOrigin(0.5).setDepth(902).setAlpha(0.2);
-    titleGlow.setShadow(0, 0, presentation.titleColor, 12, true, true);
-    const title = this.add.text(centerX, centerY - overlayHeight * 0.1, resultText, {
+      }).setOrigin(0.5).setDepth(902).setAlpha(0.2);
+      modalItems.push(titleGlow);
+      titleGlow.setShadow(0, 0, presentation.titleColor, 12, true, true);
+      const title = this.add.text(centerX, centerY - overlayHeight * 0.1, resultText, {
       fontFamily: PREMIUM_BROADCAST_FONT_STACK,
       fontSize: `${titleFontSize}px`,
       color: presentation.titleColor,
       fontStyle: '700',
       align: 'center',
       letterSpacing: 2.2,
-    }).setOrigin(0.5).setDepth(904);
-    title.setShadow(0, 3, 'rgba(0, 0, 0, 0.62)', 5, true, true);
-    const subtitle = this.add.text(centerX, centerY + overlayHeight * 0.2, resultSubtitle, {
+      }).setOrigin(0.5).setDepth(904);
+      modalItems.push(title);
+      title.setShadow(0, 3, 'rgba(0, 0, 0, 0.62)', 5, true, true);
+      const subtitle = this.add.text(centerX, centerY + overlayHeight * 0.2, resultSubtitle, {
       fontFamily: PREMIUM_BROADCAST_FONT_STACK,
       fontSize: `${Math.max(20, Math.floor(height * 0.029))}px`,
       color: presentation.subtitleColor,
       align: 'center',
       wordWrap: { width: Math.min(width * 0.86, 620), useAdvancedWrap: true },
-    }).setOrigin(0.5).setDepth(903);
-    subtitle.setShadow(0, 2, presentation.subtitleShadowColor, 5, true, true);
+      }).setOrigin(0.5).setDepth(903);
+      modalItems.push(subtitle);
+      subtitle.setShadow(0, 2, presentation.subtitleShadowColor, 5, true, true);
 
-    const stats = this.add.text(centerX, centerY + overlayHeight * 0.48, resultStatsText, {
+      const stats = this.add.text(centerX, centerY + overlayHeight * 0.48, resultStatsText, {
       fontFamily: PREMIUM_BROADCAST_FONT_STACK,
       fontSize: `${Math.max(14, Math.min(20, Math.floor(height * 0.021)))}px`,
       color: '#d1d5db',
@@ -1661,36 +1674,39 @@ export default class BattleScene extends Phaser.Scene {
       align: 'center',
       lineSpacing: Math.max(5, Math.floor(height * 0.007)),
       wordWrap: { width: Math.min(width * 0.82, 520), useAdvancedWrap: true },
-    }).setOrigin(0.5).setDepth(903).setAlpha(0.86);
-    stats.setShadow(0, 2, 'rgba(0, 0, 0, 0.68)', 4, true, true);
+      }).setOrigin(0.5).setDepth(903).setAlpha(0.86);
+      modalItems.push(stats);
+      stats.setShadow(0, 2, 'rgba(0, 0, 0, 0.68)', 4, true, true);
 
-    const dividerWidth = Math.min(overlayWidth * 0.52, 360);
-    const dividerY = centerY + overlayHeight * 0.37;
-    const dividerCore = this.add.rectangle(centerX, dividerY, dividerWidth, 1, presentation.accentColor, 0.52)
-      .setDepth(903);
-    const dividerGlow = this.add.rectangle(centerX, dividerY, dividerWidth * 0.84, 3, presentation.glowColor, 0.12)
-      .setDepth(902);
-    dividerGlow.setBlendMode?.(Phaser.BlendModes.ADD);
+      const dividerWidth = Math.min(overlayWidth * 0.52, 360);
+      const dividerY = centerY + overlayHeight * 0.37;
+      const dividerCore = this.add.rectangle(centerX, dividerY, dividerWidth, 1, presentation.accentColor, 0.52)
+        .setDepth(903);
+      modalItems.push(dividerCore);
+      const dividerGlow = this.add.rectangle(centerX, dividerY, dividerWidth * 0.84, 3, presentation.glowColor, 0.12)
+        .setDepth(902);
+      modalItems.push(dividerGlow);
+      dividerGlow.setBlendMode?.(Phaser.BlendModes.ADD);
 
-    const buttonWidth = Math.min(198, Math.max(160, width * 0.39));
-    const buttonHeight = Math.max(68, Math.min(80, Math.floor(height * 0.088)));
-    const buttonY = Math.min(
-      height * 0.6,
-      this.layout.playerHero.y - buttonHeight * 0.5 - Math.max(6, height * 0.01),
-    );
-    const gap = Math.max(22, Math.min(42, width * 0.065));
-    const modalButtons = this.isCampaignBattle()
-      ? [this.createResultModalButton(
-        centerX,
-        buttonY,
-        buttonWidth,
-        buttonHeight,
-        translateActive('ui.common.continue', 'CONTINUE'),
-        () => this.continueCampaignBattleResult(),
-        presentation,
-      )]
-      : [
-        this.createResultModalButton(
+      const buttonWidth = Math.min(198, Math.max(160, width * 0.39));
+      const buttonHeight = Math.max(68, Math.min(80, Math.floor(height * 0.088)));
+      const buttonY = Math.min(
+        height * 0.6,
+        this.layout.playerHero.y - buttonHeight * 0.5 - Math.max(6, height * 0.01),
+      );
+      const gap = Math.max(22, Math.min(42, width * 0.065));
+      const modalButtons = this.isCampaignBattle()
+        ? [this.createResultModalButton(
+          centerX,
+          buttonY,
+          buttonWidth,
+          buttonHeight,
+          translateActive('ui.common.continue', 'CONTINUE'),
+          () => this.continueCampaignBattleResult(),
+          presentation,
+        )]
+        : [
+          this.createResultModalButton(
           centerX - buttonWidth / 2 - gap / 2,
           buttonY,
           buttonWidth,
@@ -1698,8 +1714,8 @@ export default class BattleScene extends Phaser.Scene {
           translateActive('ui.common.exit', 'EXIT'),
           () => this.exitBattleToFactionSelect(),
           presentation,
-        ),
-        this.createResultModalButton(
+          ),
+          this.createResultModalButton(
           centerX + buttonWidth / 2 + gap / 2,
           buttonY,
           buttonWidth,
@@ -1707,59 +1723,78 @@ export default class BattleScene extends Phaser.Scene {
           translateActive('ui.common.retry', 'RETRY'),
           () => this.retryBattle(),
           presentation,
-        ),
-      ];
+          ),
+        ];
+      modalButtons.forEach((button) => modalItems.push(...(button.items ?? [])));
 
-    let celebration = { particles: [], timers: [] };
-    if (skipReveal) {
-      title.setScale(presentation.titleEndScale).setAlpha(1);
-      titleGlow.setScale(presentation.titleEndScale).setAlpha(1);
-      titleAura.setScale(presentation.titleEndScale).setAlpha(presentation.glowPulseAlpha);
-    } else {
-      title.setScale(presentation.titleStartScale).setAlpha(0);
-      titleGlow.setScale(presentation.titleStartScale).setAlpha(0);
-      titleAura.setScale(presentation.titleStartScale).setAlpha(0);
-      this.tweens.add({
-        targets: [title, titleGlow, titleAura],
-        scale: presentation.titleEndScale,
-        alpha: { from: 0, to: 1 },
-        duration: presentation.revealDuration,
-        ease: 'Sine.easeOut',
-        onComplete: () => {
-          this.tweens.add({
-            targets: [title, titleGlow],
-            scale: presentation.titlePulseScale,
-            duration: 1850,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut',
-          });
-          this.tweens.add({
-            targets: titleAura,
-            scale: 1.04,
-            alpha: { from: presentation.glowPulseAlpha * 0.35, to: presentation.glowPulseAlpha },
-            duration: 1850,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut',
-          });
-        },
+      let celebration = { particles: [], timers: [] };
+      if (skipReveal) {
+        title.setScale(presentation.titleEndScale).setAlpha(1);
+        titleGlow.setScale(presentation.titleEndScale).setAlpha(1);
+        titleAura.setScale(presentation.titleEndScale).setAlpha(presentation.glowPulseAlpha);
+      } else {
+        title.setScale(presentation.titleStartScale).setAlpha(0);
+        titleGlow.setScale(presentation.titleStartScale).setAlpha(0);
+        titleAura.setScale(presentation.titleStartScale).setAlpha(0);
+        this.tweens.add({
+          targets: [title, titleGlow, titleAura],
+          scale: presentation.titleEndScale,
+          alpha: { from: 0, to: 1 },
+          duration: presentation.revealDuration,
+          ease: 'Sine.easeOut',
+          onComplete: () => {
+            this.tweens.add({
+              targets: [title, titleGlow],
+              scale: presentation.titlePulseScale,
+              duration: 1850,
+              yoyo: true,
+              repeat: -1,
+              ease: 'Sine.easeInOut',
+            });
+            this.tweens.add({
+              targets: titleAura,
+              scale: 1.04,
+              alpha: { from: presentation.glowPulseAlpha * 0.35, to: presentation.glowPulseAlpha },
+              duration: 1850,
+              yoyo: true,
+              repeat: -1,
+              ease: 'Sine.easeInOut',
+            });
+          },
+        });
+        celebration = this.addBattleResultVictoryCelebration(centerX, centerY, overlayWidth, overlayHeight, presentation);
+      }
+
+      this.battleResultModal = {
+        overlay,
+        titleAura,
+        titleGlow,
+        title,
+        subtitle,
+        stats,
+        dividerCore,
+        dividerGlow,
+        celebration,
+        buttons: modalButtons,
+      };
+      this.battleResultModalShown = true;
+      this.resultOverlayState = {
+        kind: this.isCampaignBattle() ? 'campaign-battle-result' : 'arena-battle-result',
+        phase: 'interactive',
+      };
+    } catch (error) {
+      console.error('Failed to create battle result modal.', error);
+      modalItems.forEach((item) => {
+        item?.removeAllListeners?.();
+        item?.destroy?.();
       });
-      celebration = this.addBattleResultVictoryCelebration(centerX, centerY, overlayWidth, overlayHeight, presentation);
+      this.battleResultModal = null;
+      this.battleResultModalShown = false;
+      this.battleResultModalPending = false;
+      this.resultOverlayState = null;
+      this.isFlowResolving = false;
+      this.updateActionSlotBadge();
     }
-
-    this.battleResultModal = {
-      overlay,
-      titleAura,
-      titleGlow,
-      title,
-      subtitle,
-      stats,
-      dividerCore,
-      dividerGlow,
-      celebration,
-      buttons: modalButtons,
-    };
   }
 
   createResultModalButton(x, y, width, height, label, onClick, presentation = null, options = {}) {

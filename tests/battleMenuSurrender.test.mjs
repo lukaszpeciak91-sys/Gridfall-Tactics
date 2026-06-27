@@ -39,6 +39,17 @@ test('BattleScene utility menu exposes canonical active-battle surrender and res
   assert.match(resolveSource, /this\.gameState\.winner = 'enemy';/);
   assert.match(resolveSource, /this\.gameState\.endingReason = 'player_menu_surrender';/);
   assert.match(resolveSource, /this\.completeBattleFlow\(0\);/);
+  assert.match(resolveSource, /this\.destroyBattleMenuSurrenderConfirmation\(\);/);
+  assert.match(resolveSource, /this\.destroyUtilityMenuPanel\(\);/);
+  assert.match(resolveSource, /this\.closeInspectPreview\(\{ animate: false, clearSelection: true \}\);/);
+  assert.match(resolveSource, /this\.destroyDeckInfoPanel\(\);/);
+  assert.match(resolveSource, /this\.selectedCardId = null;/);
+  assert.match(resolveSource, /this\.pendingSwapIndex = null;/);
+  assert.match(resolveSource, /this\.targetingState = null;/);
+  assert.match(resolveSource, /this\.effectCastState = null;/);
+  assert.match(resolveSource, /this\.isEffectCastResolving = false;/);
+  assert.match(resolveSource, /this\.navigationInProgress = false;/);
+  assert.match(resolveSource, /this\.clearPointerInputGuard\(\);/);
 });
 
 test('separate BattleMenuScene no longer owns active-battle surrender behavior', () => {
@@ -53,6 +64,31 @@ test('surrender defeat flavor uses the normal defeat result subtitle path', () =
   assert.match(subtitleSource, /if \(this\.gameState\.winner === 'enemy'\) \{/);
   assert.match(subtitleSource, /this\.gameState\.endingReason === 'player_menu_surrender'/);
   assert.match(subtitleSource, /translateActive\('ui\.battle\.resultSubtitles\.surrenderDefeat'/);
+});
+
+test('menu surrender result stats display at least one turn without changing other results', () => {
+  const statsSource = methodSource(battleSource, '  getBattleResultStatsText() {', '  scheduleBattleResultModal');
+  assert.match(statsSource, /const rawTurns = Math\.max\(0, this\.gameState\?\.turnsCompleted \?\? 0\);/);
+  assert.match(statsSource, /this\.gameState\?\.endingReason === 'player_menu_surrender'/);
+  assert.match(statsSource, /Math\.max\(1, rawTurns\)/);
+  assert.match(statsSource, /: rawTurns;/);
+});
+
+test('menu surrender modal depth cannot outlive cleanup above normal result modal depth', () => {
+  const modalSource = methodSource(battleSource, '  showBattleMenuSurrenderConfirmation() {', '  destroyBattleMenuSurrenderConfirmation() {');
+  const destroySource = methodSource(battleSource, '  destroyBattleMenuSurrenderConfirmation() {', '  resolvePlayerMenuSurrender() {');
+  const resultSource = methodSource(battleSource, '  showBattleResultModal() {', '  createResultModalButton');
+  assert.match(modalSource, /const depth = 940;/);
+  assert.match(modalSource, /depth: depth \+ 4/);
+  assert.match(destroySource, /modal\.overlay/);
+  assert.match(destroySource, /modal\.glow/);
+  assert.match(destroySource, /modal\.frame/);
+  assert.match(destroySource, /modal\.title/);
+  assert.match(destroySource, /modal\.body/);
+  assert.match(destroySource, /modal\.buttons \?\? \[\]\)\.flatMap\(\(button\) => button\.items \?\? \[\]\)/);
+  assert.match(destroySource, /this\.battleMenuSurrenderModal = null;/);
+  assert.match(resultSource, /\.setDepth\(900\)/);
+  assert.match(resultSource, /\.setDepth\(904\)/);
 });
 
 test('opening Battle Menu clears active gameplay selection layers', () => {
