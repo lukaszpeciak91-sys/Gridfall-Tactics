@@ -1365,7 +1365,6 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   scheduleBattleResultModal(delayMs = 500) {
-    if (this.gameState?.endingReason === 'player_menu_surrender') return;
     if (!this.gameState?.winner || this.battleResultModalShown || this.battleResultModalPending) return;
     this.stopCampaignBattleTimer();
     const hasLethalTerminalFailure = Boolean(this.getLethalTerminalFailureSides().length);
@@ -1381,7 +1380,6 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   completeBattleFlow(delayMs = 500) {
-    if (this.gameState?.endingReason === 'player_menu_surrender') return false;
     if (!this.gameState?.winner || this.battleResultModalShown) return false;
     this.playBaseBreakSfxOnce();
     this.updateInitiativeIndicator();
@@ -1613,7 +1611,6 @@ export default class BattleScene extends Phaser.Scene {
     if (this.gameState?.endingReason !== 'player_menu_surrender' || this.gameState?.winner !== 'enemy') return false;
     if (this.battleResultModalShown) return false;
 
-    const modalItems = [];
     this.battleResultModalPendingEvent?.remove?.(false);
     this.battleResultModalPendingEvent = null;
     this.battleResultModalPending = false;
@@ -1629,158 +1626,11 @@ export default class BattleScene extends Phaser.Scene {
     this.resetCardHighlights({ showPreview: false });
     this.updateInitiativeIndicator();
     this.updateActionSlotBadge();
-
-    try {
-      const { width, height } = this.scale.gameSize;
-      const centerX = width * 0.5;
-      const centerY = height * 0.38;
-      const overlayWidth = Math.min(width * 0.94, 720);
-      const overlayHeight = Math.min(Math.max(height * 0.27, 230), 310);
-      const resultText = this.getBattleResultText();
-      const resultSubtitle = this.getBattleResultSubtitle();
-      const resultStatsText = this.getBattleResultStatsText();
-      const presentation = this.getBattleResultPresentation();
-
-      const overlay = this.add.rectangle(centerX, height * 0.5, width, height, 0x000000, presentation.overlayAlpha)
-        .setInteractive()
-        .setDepth(900);
-      modalItems.push(overlay);
-      const titleAura = this.add.ellipse(centerX, centerY - overlayHeight * 0.1, overlayWidth * 0.76, overlayHeight * 0.34, presentation.glowColor, 0.08)
-        .setDepth(901);
-      modalItems.push(titleAura);
-      titleAura.setBlendMode?.(Phaser.BlendModes.ADD);
-
-      const titleFontSize = Math.min(Math.max(58, Math.floor(height * 0.092)), 96);
-      const titleGlow = this.add.text(centerX, centerY - overlayHeight * 0.1, resultText, {
-        fontFamily: PREMIUM_BROADCAST_FONT_STACK,
-        fontSize: `${titleFontSize}px`,
-        color: presentation.titleColor,
-        fontStyle: '700',
-        align: 'center',
-        letterSpacing: 2.2,
-      }).setOrigin(0.5).setDepth(902).setAlpha(0.2);
-      modalItems.push(titleGlow);
-      titleGlow.setShadow(0, 0, presentation.titleColor, 12, true, true);
-
-      const title = this.add.text(centerX, centerY - overlayHeight * 0.1, resultText, {
-        fontFamily: PREMIUM_BROADCAST_FONT_STACK,
-        fontSize: `${titleFontSize}px`,
-        color: presentation.titleColor,
-        fontStyle: '700',
-        align: 'center',
-        letterSpacing: 2.2,
-      }).setOrigin(0.5).setDepth(904);
-      modalItems.push(title);
-      title.setShadow(0, 3, 'rgba(0, 0, 0, 0.62)', 5, true, true);
-
-      const subtitle = this.add.text(centerX, centerY + overlayHeight * 0.2, resultSubtitle, {
-        fontFamily: PREMIUM_BROADCAST_FONT_STACK,
-        fontSize: `${Math.max(20, Math.floor(height * 0.029))}px`,
-        color: presentation.subtitleColor,
-        align: 'center',
-        wordWrap: { width: Math.min(width * 0.86, 620), useAdvancedWrap: true },
-      }).setOrigin(0.5).setDepth(903);
-      modalItems.push(subtitle);
-      subtitle.setShadow(0, 2, presentation.subtitleShadowColor, 5, true, true);
-
-      const stats = this.add.text(centerX, centerY + overlayHeight * 0.48, resultStatsText, {
-        fontFamily: PREMIUM_BROADCAST_FONT_STACK,
-        fontSize: `${Math.max(14, Math.min(20, Math.floor(height * 0.021)))}px`,
-        color: '#d1d5db',
-        fontStyle: '500',
-        align: 'center',
-        lineSpacing: Math.max(5, Math.floor(height * 0.007)),
-        wordWrap: { width: Math.min(width * 0.82, 520), useAdvancedWrap: true },
-      }).setOrigin(0.5).setDepth(903).setAlpha(0.86);
-      modalItems.push(stats);
-      stats.setShadow(0, 2, 'rgba(0, 0, 0, 0.68)', 4, true, true);
-
-      const dividerWidth = Math.min(overlayWidth * 0.52, 360);
-      const dividerY = centerY + overlayHeight * 0.37;
-      const dividerCore = this.add.rectangle(centerX, dividerY, dividerWidth, 1, presentation.accentColor, 0.52)
-        .setDepth(903);
-      modalItems.push(dividerCore);
-      const dividerGlow = this.add.rectangle(centerX, dividerY, dividerWidth * 0.84, 3, presentation.glowColor, 0.12)
-        .setDepth(902);
-      modalItems.push(dividerGlow);
-      dividerGlow.setBlendMode?.(Phaser.BlendModes.ADD);
-
-      const buttonWidth = Math.min(198, Math.max(160, width * 0.39));
-      const buttonHeight = Math.max(68, Math.min(80, Math.floor(height * 0.088)));
-      const buttonY = Math.min(
-        height * 0.6,
-        this.layout.playerHero.y - buttonHeight * 0.5 - Math.max(6, height * 0.01),
-      );
-      const gap = Math.max(22, Math.min(42, width * 0.065));
-      const modalButtons = this.isCampaignBattle()
-        ? [this.createResultModalButton(
-          centerX,
-          buttonY,
-          buttonWidth,
-          buttonHeight,
-          translateActive('ui.common.continue', 'CONTINUE'),
-          () => this.continueCampaignBattleResult(),
-          presentation,
-        )]
-        : [
-          this.createResultModalButton(
-            centerX - buttonWidth / 2 - gap / 2,
-            buttonY,
-            buttonWidth,
-            buttonHeight,
-            translateActive('ui.common.exit', 'EXIT'),
-            () => this.exitBattleToFactionSelect(),
-            presentation,
-          ),
-          this.createResultModalButton(
-            centerX + buttonWidth / 2 + gap / 2,
-            buttonY,
-            buttonWidth,
-            buttonHeight,
-            translateActive('ui.common.retry', 'RETRY'),
-            () => this.retryBattle(),
-            presentation,
-          ),
-        ];
-      modalButtons.forEach((button) => modalItems.push(...(button.items ?? [])));
-
-      this.battleResultModal = {
-        overlay,
-        titleAura,
-        titleGlow,
-        title,
-        subtitle,
-        stats,
-        dividerCore,
-        dividerGlow,
-        celebration: { particles: [], timers: [] },
-        buttons: modalButtons,
-      };
-      this.battleResultModalShown = true;
-      this.resultOverlayState = {
-        kind: 'player-menu-surrender-result',
-        phase: 'interactive',
-      };
-      this.playBattleOutcomeSfxOnce();
-      return true;
-    } catch (error) {
-      console.error('Failed to create player menu surrender result panel.', error);
-      modalItems.forEach((item) => {
-        item?.removeAllListeners?.();
-        item?.destroy?.();
-      });
-      this.battleResultModal = null;
-      this.battleResultModalShown = false;
-      this.battleResultModalPending = false;
-      this.resultOverlayState = null;
-      this.isFlowResolving = false;
-      this.updateActionSlotBadge();
-      return false;
-    }
+    this.showBattleResultModal();
+    return this.battleResultModalShown;
   }
 
   showBattleResultModal() {
-    if (this.gameState?.endingReason === 'player_menu_surrender') return;
     const options = arguments[0] ?? {};
     const skipReveal = options.skipReveal === true;
     this.battleResultModalPending = false;
@@ -3551,10 +3401,6 @@ export default class BattleScene extends Phaser.Scene {
         campaign: snapshot.campaign,
         restorePhase: phase,
       });
-      return true;
-    }
-    if (snapshot.kind === 'player-menu-surrender-result' && this.gameState?.endingReason === 'player_menu_surrender') {
-      this.showPlayerMenuSurrenderResultPanel();
       return true;
     }
     if ((snapshot.kind === 'arena-battle-result' || snapshot.kind === 'campaign-battle-result') && this.gameState?.winner) {
