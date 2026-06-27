@@ -117,7 +117,7 @@ test('tactical menu and inspect are mutually safe during navigation', () => {
   assert.match(source, /this\.navigationInProgress = false;/);
   assert.match(source, /this\.pointerInputGuardActive = false;/);
   assert.match(source, /clearPointerInputGuard\(\) \{\s*this\.pointerInputGuardActive = false;\s*this\.pointerInputGuardEventId = null;\s*\}/);
-  assert.match(source, /showUtilityMenuPanel\(\) \{\s*if \(this\.navigationInProgress\) return;\s*this\.closeInspectPreview\(\{ animate: false \}\);\s*this\.destroyUtilityMenuPanel\(\);/);
+  assert.match(source, /showUtilityMenuPanel\(\) \{\s*if \(this\.navigationInProgress\) return;\s*this\.closeInspectPreview\(\{ animate: false, clearSelection: true \}\);\s*this\.destroyUtilityMenuPanel\(\);/);
   assert.match(source, /closeInspectPreview\(\{ animate = false, clearSelection = false \} = \{\}\) \{[\s\S]*this\.cancelHandCardLongPress\(\);[\s\S]*this\.hoverInspectCardId = null;[\s\S]*this\.boardInspectIndex = null;[\s\S]*this\.previewedMulliganCardId = null;[\s\S]*this\.pressedHandCardId = null;[\s\S]*this\.longPressTriggeredCardId = null;[\s\S]*this\.destroySelectedHandCardZoom\(\{ animate \}\);/);
   assert.match(source, /prepareUtilityMenuNavigation\(\{ includeBattleResultModal = false, preserveBattleFlow = false \} = \{\}\) \{[\s\S]*this\.navigationInProgress = true;[\s\S]*this\.closeInspectPreview\(\{ animate: false, clearSelection: true \}\);[\s\S]*this\.destroyUtilityMenuPanel\(\);[\s\S]*this\.destroyDeckInfoPanel\(\);/);
   assert.match(source, /onCardPointerDown\(cardId\) \{\s*if \(this\.utilityMenuPanel \|\| this\.navigationInProgress \|\| this\.pointerInputGuardActive\) return;/);

@@ -848,7 +848,7 @@ export default class BattleScene extends Phaser.Scene {
   showUtilityMenuPanel() {
     if (this.navigationInProgress) return;
 
-    this.closeInspectPreview({ animate: false });
+    this.closeInspectPreview({ animate: false, clearSelection: true });
     this.destroyUtilityMenuPanel();
 
     const { width, height, margin } = this.layout;
