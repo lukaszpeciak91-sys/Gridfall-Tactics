@@ -401,8 +401,11 @@
     "battle": {
       "utilityMenuRules": "Rules",
       "utilityMenuSettings": "Settings",
-      "utilityMenuReturn": "Return",
-      "utilityMenuMainMenu": "Main Menu",
+      "utilityMenuSurrender": "Surrender",
+      "surrenderConfirmTitle": "SURRENDER?",
+      "surrenderConfirmBody": "This counts as a defeat.",
+      "surrenderConfirm": "Surrender",
+      "surrenderCancel": "Cancel",
       "enemyHero": "ENEMY BASE",
       "playerHero": "PLAYER BASE",
       "actOne": "ACT 1/2",

@@ -401,8 +401,11 @@
     "battle": {
       "utilityMenuRules": "Zasady",
       "utilityMenuSettings": "Ustawienia",
-      "utilityMenuReturn": "Powrót",
-      "utilityMenuMainMenu": "Menu główne",
+      "utilityMenuSurrender": "Poddaj",
+      "surrenderConfirmTitle": "PODDAĆ BITWĘ?",
+      "surrenderConfirmBody": "To zostanie uznane za porażkę.",
+      "surrenderConfirm": "Poddaj",
+      "surrenderCancel": "Anuluj",
       "enemyHero": "BAZA WROGA",
       "playerHero": "TWOJA BAZA",
       "actOne": "AKCJA 1/2",

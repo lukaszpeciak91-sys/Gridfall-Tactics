@@ -323,6 +323,7 @@ export default class BattleScene extends Phaser.Scene {
     this.rulesPanelHiddenHelpers = [];
     this.bottomControlViews = [];
     this.utilityMenuPanel = null;
+    this.surrenderConfirmationModal = null;
     this.isFlowResolving = false;
     this.enemyActionBanner = null;
     this.enemyActionBannerFadeOutEvent = null;
@@ -457,6 +458,7 @@ export default class BattleScene extends Phaser.Scene {
     this.rulesPanelHiddenHelpers = [];
     this.bottomControlViews = [];
     this.utilityMenuPanel = null;
+    this.surrenderConfirmationModal = null;
     this.isFlowResolving = false;
     this.enemyActionBanner = null;
     this.enemyActionBannerFadeOutEvent = null;
@@ -543,6 +545,7 @@ export default class BattleScene extends Phaser.Scene {
     this.destroyActiveSelectionMessage();
     this.destroyBattleResultModal();
     this.destroyUtilityMenuPanel();
+    this.closeSurrenderConfirmation();
     this.destroyDeckInfoPanel();
     this.destroyDeckCounterView();
     this.destroySelectedHandCardZoom();
@@ -854,11 +857,12 @@ export default class BattleScene extends Phaser.Scene {
     const panelLeft = triggerX + triggerWidth / 2;
     const menuScale = 1.1;
     const basePanelContentWidth = 208;
+    const basePanelHeight = 186;
     const panelContentWidth = Math.round(basePanelContentWidth * menuScale);
     const panelHorizontalPadding = Math.round(4 * menuScale);
     const panelWidth = Math.min(panelContentWidth + panelHorizontalPadding * 2, width - margin - panelLeft);
-    const panelHeight = Math.round(228 * menuScale);
-    const panelTop = triggerY - triggerHeight / 2 - (panelHeight - 228) / 2;
+    const panelHeight = Math.round(basePanelHeight * menuScale);
+    const panelTop = triggerY - triggerHeight / 2 - (panelHeight - basePanelHeight) / 2;
     const panelX = Math.min(width - margin - panelWidth / 2, panelLeft + basePanelContentWidth / 2 + 14);
     const panelY = panelTop + panelHeight / 2;
     const rowY = panelTop + Math.round(28 * menuScale);
@@ -930,8 +934,7 @@ export default class BattleScene extends Phaser.Scene {
     const buttons = [
       this.createUtilityMenuButton(buttonX, firstButtonY, buttonWidth, buttonHeight, translateActive('ui.battle.utilityMenuRules', 'Rules'), () => this.openRulesPanel()),
       this.createUtilityMenuButton(buttonX, firstButtonY + buttonGap, buttonWidth, buttonHeight, translateActive('ui.battle.utilityMenuSettings', 'Settings'), () => this.openSettingsScene()),
-      this.createUtilityMenuButton(buttonX, firstButtonY + buttonGap * 2, buttonWidth, buttonHeight, translateActive('ui.battle.utilityMenuReturn', 'Return'), () => this.exitBattleToFactionSelect()),
-      this.createUtilityMenuButton(buttonX, firstButtonY + buttonGap * 3, buttonWidth, buttonHeight, translateActive('ui.battle.utilityMenuMainMenu', 'Main Menu'), () => this.exitBattleToMainMenu()),
+      this.createUtilityMenuButton(buttonX, firstButtonY + buttonGap * 2, buttonWidth, buttonHeight, translateActive('ui.battle.utilityMenuSurrender', 'Surrender'), () => this.showSurrenderConfirmation()),
     ];
 
     buttons.forEach((button) => {
@@ -949,6 +952,86 @@ export default class BattleScene extends Phaser.Scene {
       buttons,
     };
     this.updatePlayerBaseActionState();
+  }
+
+
+  showSurrenderConfirmation() {
+    if (this.surrenderConfirmationModal || this.gameState?.winner || this.battleResultModalShown) return;
+
+    const { width, height } = this.scale.gameSize;
+    const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x020617, 0.72)
+      .setDepth(760)
+      .setInteractive();
+    const panelWidth = Math.min(width * 0.86, 430);
+    const panelHeight = 250;
+    const panel = this.add.graphics().setDepth(761);
+    panel.fillStyle(0x0f172a, 0.96);
+    panel.fillRoundedRect(width / 2 - panelWidth / 2, height / 2 - panelHeight / 2, panelWidth, panelHeight, 22);
+    panel.lineStyle(1.5, 0xfb7185, 0.72);
+    panel.strokeRoundedRect(width / 2 - panelWidth / 2, height / 2 - panelHeight / 2, panelWidth, panelHeight, 22);
+    const title = this.add.text(width / 2, height / 2 - 78, translateActive('ui.battle.surrenderConfirmTitle', 'SURRENDER?'), {
+      fontFamily: PREMIUM_BROADCAST_FONT_STACK,
+      fontSize: '22px',
+      color: '#f8fafc',
+      fontStyle: '700',
+      align: 'center',
+    }).setOrigin(0.5).setDepth(762);
+    const message = this.add.text(width / 2, height / 2 - 26, translateActive('ui.battle.surrenderConfirmBody', 'This counts as a defeat.'), {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: '15px',
+      color: '#cbd5e1',
+      align: 'center',
+      wordWrap: { width: panelWidth - 42 },
+    }).setOrigin(0.5).setDepth(762);
+    const cancel = this.createSurrenderConfirmationButton(width / 2 - panelWidth * 0.24, height / 2 + 72, panelWidth * 0.42, translateActive('ui.battle.surrenderCancel', 'Cancel'), () => this.closeSurrenderConfirmation());
+    const confirm = this.createSurrenderConfirmationButton(width / 2 + panelWidth * 0.24, height / 2 + 72, panelWidth * 0.42, translateActive('ui.battle.surrenderConfirm', 'Surrender'), () => this.confirmPlayerMenuSurrender());
+    cancel.items.forEach((item) => item.setDepth?.(762));
+    confirm.items.forEach((item) => item.setDepth?.(762));
+    this.surrenderConfirmationModal = { items: [overlay, panel, title, message, ...cancel.items, ...confirm.items], buttons: [cancel, confirm] };
+  }
+
+  createSurrenderConfirmationButton(x, y, width, label, onPointerUp) {
+    return createImageButton(this, {
+      x,
+      y,
+      width,
+      height: 58,
+      label,
+      onPointerUp,
+      depth: 762,
+      fontSize: '18px',
+      textStyle: {
+        color: '#f5f1e6',
+        fontFamily: PREMIUM_BROADCAST_FONT_STACK,
+        fontStyle: '700',
+        letterSpacing: 1.7,
+      },
+      fallbackFill: 0x1e293b,
+      fallbackStroke: 0xfb7185,
+      fallbackStrokeAlpha: 0.9,
+      shadowAlpha: 0.26,
+      hoverScale: 1.03,
+      downScale: 0.98,
+      minTouchHeight: 58,
+    });
+  }
+
+  closeSurrenderConfirmation() {
+    this.surrenderConfirmationModal?.items?.forEach((item) => { item.removeAllListeners?.(); item.destroy?.(); });
+    this.surrenderConfirmationModal = null;
+  }
+
+  confirmPlayerMenuSurrender() {
+    if (!this.gameState || this.gameState.winner || this.battleResultModalShown) return;
+
+    this.closeSurrenderConfirmation();
+    this.destroyUtilityMenuPanel();
+    this.closeInspectPreview({ animate: false, clearSelection: true });
+    this.destroyDeckInfoPanel();
+    this.navigationInProgress = false;
+    this.gameState.winner = 'enemy';
+    this.gameState.endingReason = 'player_menu_surrender';
+    this.completeBattleFlow(0);
   }
 
   createUtilityMenuButton(x, y, width, height, label, onClick) {
