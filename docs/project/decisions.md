@@ -158,6 +158,14 @@ canonical_ref: docs/rules/mvp-battle-rules.md
 - Title glow should remain animated and outcome-colored but restrained enough that battlefield art and UI remain visible beneath it.
 - Victory celebrations use three staggered waves of the existing procedural fireworks/particles with slight position randomization; no new assets or reward/battle-end logic changes are part of this presentation decision.
 
+
+## Menu Surrender Must Use Stable Defeat Boundary (2026-06-28)
+- Problem: player menu surrender routed through `completeBattleFlow(0)` could create the battle result modal logically while the canvas remained visually frozen on the board.
+- False leads ruled out by diagnostics: this was not a missing defeat condition, missing result modal, bad depth, offscreen object placement, alpha/camera/display-list issue, or a dedicated surrender-panel problem.
+- Confirmed diagnostic facts: `battleResultModal` existed, `battleResultModalShown` was true, modal items were visible, on-screen, and in the display list, a separate Phaser render-test object also existed, and `BattleScene` remained active rather than paused or sleeping; despite that, the canvas still did not visually update.
+- Final decision: menu surrender must not call `completeBattleFlow(0)`. It must close the surrender popup/menu, set `gameState.winner = 'enemy'` and `gameState.endingReason = 'player_menu_surrender'`, then use the normal stable defeat-style boundary: `completeBattleFlow(500)`.
+- Future-work rule: do not create a dedicated surrender result panel, do not modify `showBattleResultModal()` for surrender, do not change `src/ui/imageButton.js` for this issue, and do not use the old hold-to-surrender path as evidence that menu surrender can safely use zero-delay result flow. If surrender is touched again, preserve the stable battle-flow boundary.
+
 ## Screen Header Presentation Standard v2 (2026-06-04)
 - All non-battle menu screens use the same premium broadcast header pattern: centered title text only, with the previous decorative line removed to reduce visual noise.
 - Typography remains locked to the premium UI font stack (`Segoe UI, Arial, sans-serif`) with bold weight, localized uppercase text, subtle glow, and subtle shadow; this applies uniformly to Polish, English, and future localizations with no per-screen font special casing.
