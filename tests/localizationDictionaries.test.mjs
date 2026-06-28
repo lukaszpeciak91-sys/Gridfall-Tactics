@@ -121,13 +121,21 @@ test('battle result stat labels are localized for English and Polish', () => {
 
 test('battle utility drawer labels are explicit in English and Polish', () => {
   assert.deepEqual(
-    ['utilityMenuRules', 'utilityMenuSettings', 'utilityMenuReturn', 'utilityMenuMainMenu'].map((key) => getPath(en, `ui.battle.${key}`)),
-    ['Rules', 'Settings', 'Return', 'Main Menu'],
+    ['utilityMenuRules', 'utilityMenuSettings', 'utilityMenuSurrender'].map((key) => getPath(en, `ui.battle.${key}`)),
+    ['Rules', 'Settings', 'Surrender'],
   );
   assert.deepEqual(
-    ['utilityMenuRules', 'utilityMenuSettings', 'utilityMenuReturn', 'utilityMenuMainMenu'].map((key) => getPath(pl, `ui.battle.${key}`)),
-    ['Zasady', 'Ustawienia', 'Powrót', 'Menu główne'],
+    ['utilityMenuRules', 'utilityMenuSettings', 'utilityMenuSurrender'].map((key) => getPath(pl, `ui.battle.${key}`)),
+    ['Zasady', 'Ustawienia', 'Poddaj'],
   );
+  assert.equal(getPath(en, 'ui.battle.surrenderConfirmTitle'), 'SURRENDER?');
+  assert.equal(getPath(en, 'ui.battle.surrenderConfirmBody'), 'This counts as a defeat.');
+  assert.equal(getPath(en, 'ui.battle.surrenderConfirm'), 'Surrender');
+  assert.equal(getPath(en, 'ui.battle.surrenderCancel'), 'Cancel');
+  assert.equal(getPath(pl, 'ui.battle.surrenderConfirmTitle'), 'PODDAĆ BITWĘ?');
+  assert.equal(getPath(pl, 'ui.battle.surrenderConfirmBody'), 'To zostanie uznane za porażkę.');
+  assert.equal(getPath(pl, 'ui.battle.surrenderConfirm'), 'Poddaj');
+  assert.equal(getPath(pl, 'ui.battle.surrenderCancel'), 'Anuluj');
 });
 
 test('player effect confirmation banner copy is localized for English and Polish', () => {
