@@ -561,6 +561,15 @@ export default class FactionSelectScene extends Phaser.Scene {
     this.scene.resume();
   }
 
+  recoverAfterVisibilityReturn() {
+    this.cameras?.main?.setBackgroundColor(MENU_BACKGROUND_FALLBACK_COLOR_HEX);
+    if (this.input) this.input.enabled = true;
+    this.scale?.refresh?.();
+    if (!this.children?.length || !this.factionCardViews?.length) {
+      this.scene.restart({ mode: this.mode, returnSceneKey: this.returnSceneKey });
+    }
+  }
+
   toggleFullscreen() {
     toggleSceneFullscreen(this);
   }

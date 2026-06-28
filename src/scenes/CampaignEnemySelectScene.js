@@ -262,6 +262,13 @@ export default class CampaignEnemySelectScene extends Phaser.Scene {
   }
   openRulesPanel() { this.scene.launch('RulesPanelScene', { returnSceneKey: 'CampaignEnemySelectScene' }); this.scene.pause(); }
   resumeFromRulesPanel() { this.scene.resume(); }
+  recoverAfterVisibilityReturn() {
+    if (!isValidCampaignState(this.campaign) || this.campaign.status !== 'active') return;
+    this.cameras?.main?.setBackgroundColor(MENU_BACKGROUND_FALLBACK_COLOR_HEX);
+    if (this.input) this.input.enabled = true;
+    this.scale?.refresh?.();
+    if (!this.children?.length || !this.scrollState?.content?.active) this.scene.restart({ campaign: this.campaign });
+  }
   toggleFullscreen() { toggleSceneFullscreen(this); }
   onFullscreenChanged() { if (this.scale.isFullscreen) requestPortraitOrientationLock(); if (this.scene.isActive('CampaignEnemySelectScene')) this.scene.restart({ campaign: this.campaign }); }
   cleanupScene() {
