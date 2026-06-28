@@ -1066,7 +1066,7 @@ export default class BattleScene extends Phaser.Scene {
     this.navigationInProgress = false;
     this.gameState.winner = 'enemy';
     this.gameState.endingReason = 'player_menu_surrender';
-    this.completeBattleFlow(0);
+    this.completeBattleFlow(500);
     this.game?.loop?.wake?.();
   }
 
