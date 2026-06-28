@@ -31,9 +31,9 @@ const CAMPAIGN_TROPHY_ASSET = Object.freeze({
   path: resolvePublicAssetPath('assets/ui/campaign-trophy.webp'),
 });
 
-const RESULT_TRACE_DEBUG_MARKER_TEXT = 'DEBUG BUILD: defeat-compare-v1';
-const RESULT_TRACE_PREFIX = 'DEFEAT COMPARE:';
-const RESULT_TRACE_LINE_LIMIT = 6;
+const RESULT_TRACE_DEBUG_MARKER_TEXT = 'DEBUG BUILD: modal-render-v1';
+const RESULT_TRACE_PREFIX = 'MODAL RENDER:';
+const RESULT_TRACE_LINE_LIMIT = 8;
 
 const BATTLE_RESULT_SUBTITLE_FALLBACKS = Object.freeze({
   victory: Object.freeze([
@@ -394,8 +394,8 @@ export default class BattleScene extends Phaser.Scene {
 
   ensureResultTraceV4Dom() {
     if (typeof document === 'undefined') return;
-    const markerId = 'gridfall-defeat-compare-v1-marker';
-    const traceId = 'gridfall-defeat-compare-v1-overlay';
+    const markerId = 'gridfall-modal-render-v1-marker';
+    const traceId = 'gridfall-modal-render-v1-overlay';
     let marker = document.getElementById(markerId);
     if (!marker) {
       marker = document.createElement('div');
@@ -408,10 +408,10 @@ export default class BattleScene extends Phaser.Scene {
         zIndex: '2147483647',
         pointerEvents: 'none',
         padding: '4px 7px',
-        background: 'rgba(127, 29, 29, 0.92)',
+        background: 'rgba(30, 41, 59, 0.92)',
         color: '#fff7ed',
         font: '700 11px/1.25 monospace',
-        border: '1px solid rgba(254, 202, 202, 0.8)',
+        border: '1px solid rgba(125, 211, 252, 0.8)',
         borderRadius: '4px',
       });
       document.body?.appendChild?.(marker);
@@ -422,18 +422,18 @@ export default class BattleScene extends Phaser.Scene {
       trace.id = traceId;
       Object.assign(trace.style, {
         position: 'fixed',
-        top: '30px',
+        top: '28px',
         left: '6px',
         zIndex: '2147483647',
         pointerEvents: 'none',
-        maxWidth: 'min(96vw, 720px)',
-        maxHeight: '112px',
+        maxWidth: 'min(96vw, 760px)',
+        maxHeight: '150px',
         overflow: 'hidden',
         whiteSpace: 'pre-wrap',
         padding: '4px 6px',
         background: 'rgba(2, 6, 23, 0.78)',
         color: '#bbf7d0',
-        font: '700 10px/1.25 monospace',
+        font: '700 9px/1.22 monospace',
         textShadow: '0 1px 2px #000',
         border: '1px solid rgba(74, 222, 128, 0.72)',
         borderRadius: '5px',
@@ -445,7 +445,7 @@ export default class BattleScene extends Phaser.Scene {
 
   updateResultTraceV4Dom() {
     if (typeof document === 'undefined') return;
-    const trace = document.getElementById('gridfall-defeat-compare-v1-overlay');
+    const trace = document.getElementById('gridfall-modal-render-v1-overlay');
     if (!trace) return;
     const lines = this.resultTraceV4Lines?.slice(-RESULT_TRACE_LINE_LIMIT) ?? [];
     trace.textContent = lines.length ? lines.join('\n') : `${RESULT_TRACE_PREFIX} ready`;
@@ -460,15 +460,10 @@ export default class BattleScene extends Phaser.Scene {
     console.log(line);
   }
 
-  describeModalObjectForTraceV4(object, index) {
-    if (!object) return `modal object ${index}: <empty>`;
-    const type = object.constructor?.name ?? object.type ?? typeof object;
-    const visible = object.visible ?? 'n/a';
-    const alpha = object.alpha ?? 'n/a';
-    const depth = object.depth ?? 'n/a';
-    const active = object.active ?? 'n/a';
-    const destroyed = object.destroyed ?? object._destroyed ?? object.scene === undefined ?? 'n/a';
-    return `modal object ${index}: type=${type} visible=${visible} alpha=${alpha} depth=${depth} active=${active} destroyed=${destroyed}`;
+  formatResultTraceValue(value, digits = 1) {
+    const numberValue = Number(value);
+    if (!Number.isFinite(numberValue)) return value ?? 'n/a';
+    return Number.isInteger(numberValue) ? String(numberValue) : numberValue.toFixed(digits);
   }
 
   getBattleResultModalTraceItemsV4() {
@@ -494,27 +489,107 @@ export default class BattleScene extends Phaser.Scene {
     return `${this.gameState?.winner ?? 'unknown'}-${this.gameState?.endingReason ?? 'result'}`;
   }
 
+  getModalObjectRenderSnapshotV4(object, index, camera) {
+    const type = object?.constructor?.name ?? object?.type ?? typeof object;
+    const destroyed = object?.destroyed === true || object?._destroyed === true || object?.scene === undefined;
+    const bounds = object?.getBounds ? object.getBounds() : null;
+    const rawWidth = Number(object?.width);
+    const rawHeight = Number(object?.height);
+    const rawDisplayWidth = Number(object?.displayWidth);
+    const rawDisplayHeight = Number(object?.displayHeight);
+    const width = Number.isFinite(rawWidth) ? rawWidth : null;
+    const height = Number.isFinite(rawHeight) ? rawHeight : null;
+    const displayWidth = Number.isFinite(rawDisplayWidth) ? rawDisplayWidth : width;
+    const displayHeight = Number.isFinite(rawDisplayHeight) ? rawDisplayHeight : height;
+    const x = Number(object?.x);
+    const y = Number(object?.y);
+    const boundsX = Number(bounds?.x);
+    const boundsY = Number(bounds?.y);
+    const boundsWidth = Number(bounds?.width);
+    const boundsHeight = Number(bounds?.height);
+    const renderBounds = {
+      x: Number.isFinite(boundsX) ? boundsX : (Number.isFinite(x) ? x : null),
+      y: Number.isFinite(boundsY) ? boundsY : (Number.isFinite(y) ? y : null),
+      width: Number.isFinite(boundsWidth) ? boundsWidth : (Number.isFinite(displayWidth) ? displayWidth : null),
+      height: Number.isFinite(boundsHeight) ? boundsHeight : (Number.isFinite(displayHeight) ? displayHeight : null),
+    };
+    const viewport = {
+      x: Number(camera?.worldView?.x ?? camera?.scrollX ?? 0),
+      y: Number(camera?.worldView?.y ?? camera?.scrollY ?? 0),
+      width: Number(camera?.worldView?.width ?? camera?.width ?? this.scale?.gameSize?.width),
+      height: Number(camera?.worldView?.height ?? camera?.height ?? this.scale?.gameSize?.height),
+    };
+    const hasRenderableBounds = [renderBounds.x, renderBounds.y, renderBounds.width, renderBounds.height, viewport.x, viewport.y, viewport.width, viewport.height].every(Number.isFinite);
+    const onScreen = hasRenderableBounds
+      && renderBounds.x + renderBounds.width >= viewport.x
+      && renderBounds.x <= viewport.x + viewport.width
+      && renderBounds.y + renderBounds.height >= viewport.y
+      && renderBounds.y <= viewport.y + viewport.height;
+    const inDisplayList = Boolean(object?.displayList) || Boolean(this.sys?.displayList?.exists?.(object));
+    const hasParentContainer = Boolean(object?.parentContainer);
+    const cameraFilter = Number(object?.cameraFilter ?? 0);
+    return {
+      index,
+      type,
+      visible: object?.visible ?? null,
+      alpha: object?.alpha ?? null,
+      depth: object?.depth ?? null,
+      x: Number.isFinite(x) ? x : null,
+      y: Number.isFinite(y) ? y : null,
+      width,
+      height,
+      displayWidth: Number.isFinite(displayWidth) ? displayWidth : null,
+      displayHeight: Number.isFinite(displayHeight) ? displayHeight : null,
+      active: object?.active ?? null,
+      destroyed,
+      cameraFilter: Number.isFinite(cameraFilter) ? cameraFilter : object?.cameraFilter ?? null,
+      hasParentContainer,
+      inDisplayList,
+      hasDisplayList: inDisplayList,
+      onScreen,
+      bounds: renderBounds,
+    };
+  }
+
   getBattleResultModalSnapshotStats() {
     const items = this.getBattleResultModalTraceItemsV4();
-    const depths = items.map((item) => Number(item?.depth)).filter(Number.isFinite);
-    const xs = items.map((item) => Number(item?.x)).filter(Number.isFinite);
-    const ys = items.map((item) => Number(item?.y)).filter(Number.isFinite);
+    const camera = this.cameras?.main;
+    const objects = items.map((item, index) => this.getModalObjectRenderSnapshotV4(item, index, camera));
+    const depths = objects.map((item) => Number(item.depth)).filter(Number.isFinite);
+    const boundsLeft = objects.map((item) => Number(item.bounds?.x)).filter(Number.isFinite);
+    const boundsRight = objects.map((item) => Number(item.bounds?.x) + Number(item.bounds?.width)).filter(Number.isFinite);
+    const boundsTop = objects.map((item) => Number(item.bounds?.y)).filter(Number.isFinite);
+    const boundsBottom = objects.map((item) => Number(item.bounds?.y) + Number(item.bounds?.height)).filter(Number.isFinite);
+    const widths = objects.map((item) => Number(item.displayWidth ?? item.width ?? item.bounds?.width)).filter(Number.isFinite);
+    const heights = objects.map((item) => Number(item.displayHeight ?? item.height ?? item.bounds?.height)).filter(Number.isFinite);
     return {
       items,
-      visible: items.filter((item) => item?.visible !== false && item?.active !== false).length,
-      alphaPositive: items.filter((item) => Number(item?.alpha ?? 1) > 0).length,
-      destroyed: items.filter((item) => item?.destroyed === true || item?._destroyed === true || item?.scene === undefined).length,
+      objects,
+      visible: objects.filter((item) => item.visible !== false && item.active !== false && !item.destroyed).length,
+      alphaPositive: objects.filter((item) => Number(item.alpha ?? 1) > 0).length,
+      onScreen: objects.filter((item) => item.onScreen).length,
+      displayList: objects.filter((item) => item.inDisplayList).length,
+      parent: objects.filter((item) => item.hasParentContainer).length,
+      camFilterNonZero: objects.filter((item) => Number(item.cameraFilter) !== 0).length,
+      destroyed: objects.filter((item) => item.destroyed).length,
       minDepth: depths.length ? Math.min(...depths) : null,
       maxDepth: depths.length ? Math.max(...depths) : null,
-      minX: xs.length ? Math.min(...xs) : null,
-      maxX: xs.length ? Math.max(...xs) : null,
-      minY: ys.length ? Math.min(...ys) : null,
-      maxY: ys.length ? Math.max(...ys) : null,
+      bounds: {
+        minX: boundsLeft.length ? Math.min(...boundsLeft) : null,
+        maxX: boundsRight.length ? Math.max(...boundsRight) : null,
+        minY: boundsTop.length ? Math.min(...boundsTop) : null,
+        maxY: boundsBottom.length ? Math.max(...boundsBottom) : null,
+        minW: widths.length ? Math.min(...widths) : null,
+        maxW: widths.length ? Math.max(...widths) : null,
+        minH: heights.length ? Math.min(...heights) : null,
+        maxH: heights.length ? Math.max(...heights) : null,
+      },
     };
   }
 
   captureResultModalSnapshot(label) {
     const stats = this.getBattleResultModalSnapshotStats();
+    const camera = this.cameras?.main;
     const buttonLabels = (this.battleResultModal?.buttons ?? []).map((button) => button?.text?.text ?? button?.label ?? '').filter(Boolean);
     const snapshot = {
       label,
@@ -532,27 +607,38 @@ export default class BattleScene extends Phaser.Scene {
       modalItemCount: stats.items.length,
       visibleItemCount: stats.visible,
       alphaPositiveItemCount: stats.alphaPositive,
+      onScreenItemCount: stats.onScreen,
+      displayListItemCount: stats.displayList,
+      parentContainerItemCount: stats.parent,
+      camFilterNonZeroItemCount: stats.camFilterNonZero,
       destroyedItemCount: stats.destroyed,
       minDepth: stats.minDepth,
       maxDepth: stats.maxDepth,
-      minX: stats.minX,
-      maxX: stats.maxX,
-      minY: stats.minY,
-      maxY: stats.maxY,
+      bounds: stats.bounds,
       sceneKey: this.scene?.key ?? this.sys?.settings?.key ?? null,
       sceneName: this.sys?.settings?.key ?? null,
-      cameraSize: { width: this.cameras?.main?.width ?? null, height: this.cameras?.main?.height ?? null },
-      displaySize: { width: this.scale?.gameSize?.width ?? null, height: this.scale?.gameSize?.height ?? null },
+      scaleGameSize: { width: this.scale?.gameSize?.width ?? null, height: this.scale?.gameSize?.height ?? null },
+      mainCamera: {
+        width: camera?.width ?? null,
+        height: camera?.height ?? null,
+        scrollX: camera?.scrollX ?? null,
+        scrollY: camera?.scrollY ?? null,
+        zoom: camera?.zoom ?? null,
+      },
       buttonCount: this.battleResultModal?.buttons?.length ?? 0,
       buttonLabels,
-      modalObjects: stats.items.map((item, index) => this.describeModalObjectForTraceV4(item, index)),
+      modalObjects: stats.objects,
     };
     this.resultModalSnapshots ??= [];
     this.resultModalSnapshots.push(snapshot);
     console.log(`${RESULT_TRACE_PREFIX} snapshot`, snapshot);
-    const shortLabel = label.includes('surrender') ? 'surrender' : (label.includes('normal') ? 'normal' : label);
-    const phase = label.split(' ')[0];
-    this.traceResultV4(`${phase} ${shortLabel} modal=${snapshot.battleResultModalExists ? 'yes' : 'no'} shown=${snapshot.battleResultModalShown} items=${snapshot.modalItemCount} vis=${snapshot.visibleItemCount} depth=${snapshot.minDepth ?? 'n/a'}-${snapshot.maxDepth ?? 'n/a'}`);
+    this.resultTraceV4Lines = [];
+    this.traceResultV4(`items=${snapshot.modalItemCount} vis=${snapshot.visibleItemCount} alpha>0=${snapshot.alphaPositiveItemCount} onScreen=${snapshot.onScreenItemCount} displayList=${snapshot.displayListItemCount} parent=${snapshot.parentContainerItemCount} camFilterNonZero=${snapshot.camFilterNonZeroItemCount}`);
+    this.traceResultV4(`view game=${snapshot.scaleGameSize.width}x${snapshot.scaleGameSize.height} cam=${snapshot.mainCamera.width}x${snapshot.mainCamera.height} scroll=${this.formatResultTraceValue(snapshot.mainCamera.scrollX)},${this.formatResultTraceValue(snapshot.mainCamera.scrollY)} zoom=${this.formatResultTraceValue(snapshot.mainCamera.zoom, 2)}`);
+    this.traceResultV4(`bounds x=${this.formatResultTraceValue(stats.bounds.minX)}-${this.formatResultTraceValue(stats.bounds.maxX)} y=${this.formatResultTraceValue(stats.bounds.minY)}-${this.formatResultTraceValue(stats.bounds.maxY)} w=${this.formatResultTraceValue(stats.bounds.minW)}-${this.formatResultTraceValue(stats.bounds.maxW)} h=${this.formatResultTraceValue(stats.bounds.minH)}-${this.formatResultTraceValue(stats.bounds.maxH)}`);
+    stats.objects.slice(0, 5).forEach((object) => {
+      this.traceResultV4(`obj${object.index} ${object.type} x=${this.formatResultTraceValue(object.x)} y=${this.formatResultTraceValue(object.y)} a=${this.formatResultTraceValue(object.alpha, 2)} d=${this.formatResultTraceValue(object.depth)} v=${object.visible} dl=${object.inDisplayList ? 'yes' : 'no'} p=${object.hasParentContainer ? 'yes' : 'no'} cf=${object.cameraFilter}`);
+    });
     return snapshot;
   }
 
