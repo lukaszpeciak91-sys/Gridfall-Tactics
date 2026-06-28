@@ -16,6 +16,7 @@ import BoardUnitArtViewportDebugScene from './scenes/BoardUnitArtViewportDebugSc
 import { installSessionLifecycle } from './systems/sessionLifecycle.js';
 import { installFullscreenPortraitFit } from './systems/fullscreenPortraitFit.js';
 import { installHighDpiCanvas } from './rendering/highDpiCanvas.js';
+import { installSurrenderTraceBuildMarker } from './ui/domResultTrace.js';
 
 const config = {
   type: Phaser.AUTO,
@@ -36,6 +37,7 @@ const config = {
   scene: [StartScene, MainMenuScene, GameMenuScene, FactionSelectScene, CampaignEnemySelectScene, CollectionScene, SettingsScene, TutorialScene, BattleScene, BattleMenuScene, RulesPanelScene, ArtDebugModeSelectScene, ArtViewportDebugScene, BoardUnitArtViewportDebugScene],
 };
 
+installSurrenderTraceBuildMarker();
 const game = new Phaser.Game(config);
 installHighDpiCanvas(game);
 installSessionLifecycle(game);
