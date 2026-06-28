@@ -52,6 +52,20 @@ test('battle result modal creation resets lifecycle flags if visible creation fa
   assert.match(showBattle, /this\.isFlowResolving = false;/);
 });
 
+test('battle result modal enters terminal overlay state before card cleanup', () => {
+  const showBattle = extractMethodBody('showBattleResultModal', 'createResultModalButton');
+  const shownIndex = showBattle.indexOf('this.battleResultModalShown = true;');
+  const overlayIndex = showBattle.indexOf('this.resultOverlayState = {');
+  const cleanupIndex = showBattle.indexOf('this.resetCardHighlights({ showPreview: false });');
+  const modalAssignmentIndex = showBattle.indexOf('this.battleResultModal = {');
+
+  assert.ok(shownIndex >= 0, 'battleResultModalShown should be set in showBattleResultModal');
+  assert.ok(overlayIndex > shownIndex, 'resultOverlayState should be initialized after the shown flag');
+  assert.ok(cleanupIndex > overlayIndex, 'card cleanup should run after result overlay state is active');
+  assert.ok(modalAssignmentIndex > cleanupIndex, 'modal object assignment should remain after modal construction');
+  assert.match(showBattle, /this\.resetCardHighlights\(\{ showPreview: false \}\);/);
+});
+
 test('campaign completion phase is persisted and summary restore bypasses reveal gating', () => {
   const campaign = extractMethodBody('showCampaignCompleteModal', 'getCampaignCompletionStatsText');
   assert.match(campaign, /restorePhase/);
