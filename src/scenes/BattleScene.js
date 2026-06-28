@@ -686,12 +686,29 @@ export default class BattleScene extends Phaser.Scene {
     };
   }
 
+  getResultRenderLoopWarnings(state) {
+    const warnings = [];
+    if (state.sceneActive === false) warnings.push('scene-inactive');
+    if (state.scenePaused === true) warnings.push('scene-paused');
+    if (state.sceneSleeping === true) warnings.push('scene-sleeping');
+    if (state.sysActive === false) warnings.push('sys-inactive');
+    if (state.sysSettingsActive === false) warnings.push('settings-inactive');
+    if (state.sysSettingsVisible === false) warnings.push('settings-invisible');
+    if (state.loopRunning === false) warnings.push('loop-stopped');
+    if (state.gamePaused === true) warnings.push('game-paused');
+    if (state.cameraVisible === false) warnings.push('camera-invisible');
+    if (Number(state.cameraAlpha) === 0) warnings.push('camera-alpha-zero');
+    return warnings;
+  }
+
   traceResultRenderLoopState(label) {
     const state = this.getResultRenderLoopState();
+    const warnings = this.getResultRenderLoopWarnings(state);
     console.log(`${RESULT_TRACE_PREFIX} state ${label}`, state);
     this.traceResultV4(`${label} scene active=${state.sceneActive ?? 'n/a'} paused=${state.scenePaused ?? 'n/a'} sleep=${state.sceneSleeping ?? 'n/a'} sysActive=${state.sysActive ?? 'n/a'} visible=${state.sysSettingsVisible ?? 'n/a'} loop=${state.loopRunning ?? 'n/a'} input=${state.inputEnabled ?? 'n/a'}`);
     this.traceResultV4(`${label} sysSet active=${state.sysSettingsActive ?? 'n/a'} status=${state.sysSettingsStatus ?? 'n/a'} gamePaused=${state.gamePaused ?? 'n/a'} renderer=${state.rendererType ?? 'n/a'} cam vis=${state.cameraVisible ?? 'n/a'} alpha=${this.formatResultTraceValue(state.cameraAlpha, 2)}`);
     this.traceResultV4(`${label} cam rtt=${state.cameraRenderToTexture ?? 'n/a'} round=${state.cameraRoundPixels ?? 'n/a'} dl=${state.displayListLength ?? 'n/a'} ul=${state.updateListLength ?? 'n/a'}`);
+    if (warnings.length) this.traceResultV4(`${label} WARN ${warnings.join(',')}`);
     return state;
   }
 
