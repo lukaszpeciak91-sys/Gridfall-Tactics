@@ -118,7 +118,6 @@ export default class RulesPanelScene extends Phaser.Scene {
   }
 
   create(data) {
-    this.recoveryLaunchData = data ?? {};
     const { width, height } = this.scale;
     this.returnSceneKey = typeof data?.returnSceneKey === 'string' && data.returnSceneKey
       ? data.returnSceneKey
@@ -334,13 +333,6 @@ export default class RulesPanelScene extends Phaser.Scene {
     if (this.scrollContainer) {
       this.scrollContainer.y = -this.scrollY;
     }
-  }
-
-  recoverAfterVisibilityReturn() {
-    this.cameras?.main?.setBackgroundColor('rgba(0,0,0,0)');
-    if (this.input) this.input.enabled = true;
-    this.scale?.refresh?.();
-    if (!this.children?.length || !this.scrollContainer?.active) this.scene.restart(this.recoveryLaunchData ?? {});
   }
 
   closePanel() {

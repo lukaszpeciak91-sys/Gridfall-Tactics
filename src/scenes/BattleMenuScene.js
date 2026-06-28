@@ -8,7 +8,6 @@ export default class BattleMenuScene extends Phaser.Scene {
   }
 
   create(data) {
-    this.recoveryLaunchData = data ?? {};
     const { width, height } = this.scale;
     const factionKey = typeof data?.factionKey === 'string' && data.factionKey ? data.factionKey : 'Aggro';
     const enemyFactionKey = typeof data?.enemyFactionKey === 'string' && data.enemyFactionKey ? data.enemyFactionKey : null;
@@ -80,13 +79,6 @@ export default class BattleMenuScene extends Phaser.Scene {
       stopMusic(this);
       this.scene.start('BattleScene', { factionKey, enemyFactionKey, battleContext });
     });
-  }
-
-  recoverAfterVisibilityReturn() {
-    this.cameras?.main?.setBackgroundColor('#05080f');
-    if (this.input) this.input.enabled = true;
-    this.scale?.refresh?.();
-    if (!this.children?.length) this.scene.restart(this.recoveryLaunchData ?? {});
   }
 
   resumeFromRulesPanel() {

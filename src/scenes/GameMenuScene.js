@@ -260,18 +260,6 @@ export default class GameMenuScene extends Phaser.Scene {
     this.restoreGameMenuInteractivity();
   }
 
-  recoverAfterVisibilityReturn() {
-    this.cameras?.main?.setBackgroundColor(MENU_BACKGROUND_FALLBACK_COLOR_HEX);
-    if (this.input) this.input.enabled = true;
-    this.scale?.refresh?.();
-    if (!this.children?.length) {
-      this.scene.restart();
-      return;
-    }
-    this.restoreGameMenuInteractivity();
-    this.layoutGameMenuScene(this.scale?.gameSize);
-  }
-
   toggleFullscreen() {
     toggleSceneFullscreen(this);
   }
