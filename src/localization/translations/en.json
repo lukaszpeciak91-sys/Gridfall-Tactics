@@ -395,9 +395,8 @@
     },
     "battleMenu": {
       "title": "MENU",
-      "howToPlay": "HOW TO PLAY",
-      "settings": "SETTINGS",
-      "surrender": "SURRENDER"
+      "comingSoon": "Menu options coming soon.",
+      "howToPlay": "HOW TO PLAY"
     },
     "battle": {
       "utilityMenuRules": "Rules",
@@ -514,8 +513,7 @@
           "It wasn’t enough this time.",
           "Not everyone gets to leave the stage in glory."
         ],
-        "draw": "Production ordered a rematch.",
-        "surrenderDefeat": "Not every story earns applause."
+        "draw": "Production ordered a rematch."
       },
       "resultStats": {
         "turns": "Turns",
@@ -540,12 +538,7 @@
         "effectCardPlayBlocked": "You cannot play effect cards."
       },
       "confirmSurrender": "SURRENDER",
-      "battleExhausted": "BATTLE EXHAUSTED",
-      "utilityMenuSurrender": "Surrender",
-      "surrenderConfirmTitle": "SURRENDER?",
-      "surrenderConfirmBody": "This counts as a defeat.",
-      "surrenderConfirmButton": "Surrender",
-      "surrenderDefeatTitle": "DEFEAT"
+      "battleExhausted": "BATTLE EXHAUSTED"
     },
     "rules": {
       "title": "RULES",
