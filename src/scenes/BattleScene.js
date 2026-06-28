@@ -20,6 +20,7 @@ import { applyCampaignBattleResult, clearCampaign, createNewCampaign, isValidCam
 import { getCardBoardArtPositionY } from '../data/presentation/cardArtCropOverrides.js';
 import { AUDIO_KEYS, preloadAudioAssets } from '../audio/audioAssets.js';
 import { playManagedSfx, playMusic, playSfx, stopManagedSfx, stopMusic } from '../audio/audioPlayback.js';
+import { appendResultTraceV2 } from '../ui/domResultTrace.js';
 
 const HAND_BACK_CARD_ASSET = Object.freeze({
   key: 'ui.card.back',
@@ -957,6 +958,8 @@ export default class BattleScene extends Phaser.Scene {
 
   showSurrenderConfirmation() {
     if (this.surrenderConfirmationModal || this.gameState?.winner || this.battleResultModalShown) return;
+    this.showResultTrace('battle menu surrender clicked');
+    this.showResultTrace('surrender confirmation opened');
 
     const { width, height } = this.scale.gameSize;
     const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x020617, 0.72)
@@ -1023,11 +1026,8 @@ export default class BattleScene extends Phaser.Scene {
 
   showResultTrace(message) {
     const { width } = this.scale.gameSize;
-    const prefix = String(message).startsWith('ERROR:') ? 'RESULT TRACE ERROR:' : 'RESULT TRACE:';
-    const traceMessage = String(message).startsWith('ERROR:')
-      ? String(message).replace(/^ERROR:\s*/, '')
-      : message;
-    this.resultTraceMessages = [...(this.resultTraceMessages ?? []), `${prefix} ${traceMessage}`].slice(-10);
+    const traceLine = appendResultTraceV2(message);
+    this.resultTraceMessages = [...(this.resultTraceMessages ?? []), traceLine].slice(-10);
     if (!this.resultTraceText) {
       this.resultTraceText = this.add.text(12, 12, '', {
         fontFamily: 'monospace',
@@ -1045,20 +1045,22 @@ export default class BattleScene extends Phaser.Scene {
   confirmPlayerMenuSurrender() {
     if (!this.gameState || this.gameState.winner || this.battleResultModalShown) return;
 
-    this.showResultTrace('surrender confirm callback');
-    this.showResultTrace('popup/menu cleanup start');
+    this.showResultTrace('surrender confirm clicked');
+    this.showResultTrace('surrender cleanup start');
     this.closeSurrenderConfirmation();
     this.destroyUtilityMenuPanel();
     this.closeInspectPreview({ animate: false, clearSelection: true });
     this.destroyDeckInfoPanel();
     this.navigationInProgress = false;
-    this.showResultTrace('popup/menu cleanup done');
+    this.showResultTrace('surrender cleanup done');
+    this.showResultTrace('winner about to set enemy');
     this.gameState.winner = 'enemy';
     this.showResultTrace('winner set enemy');
     this.gameState.endingReason = 'player_menu_surrender';
     this.showResultTrace('endingReason set player_menu_surrender');
-    this.showResultTrace('completeBattleFlow(0) called');
+    this.showResultTrace('completeBattleFlow(0) about to call');
     this.completeBattleFlow(0);
+    this.showResultTrace('completeBattleFlow(0) returned');
   }
 
   createUtilityMenuButton(x, y, width, height, label, onClick) {
@@ -1340,6 +1342,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   scheduleBattleResultModal(delayMs = 500) {
+    this.showResultTrace('scheduleBattleResultModal entered');
     if (!this.gameState?.winner || this.battleResultModalShown || this.battleResultModalPending) return;
     this.stopCampaignBattleTimer();
     const hasLethalTerminalFailure = Boolean(this.getLethalTerminalFailureSides().length);
@@ -1355,6 +1358,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   completeBattleFlow(delayMs = 500) {
+    this.showResultTrace('completeBattleFlow entered');
     if (!this.gameState?.winner || this.battleResultModalShown) return false;
     this.playBaseBreakSfxOnce();
     this.updateInitiativeIndicator();
@@ -1589,7 +1593,7 @@ export default class BattleScene extends Phaser.Scene {
     if (!this.gameState?.winner || this.battleResultModalShown) return;
     const modalItems = [];
     try {
-      this.showResultTrace(`winner=${this.gameState?.winner} reason=${this.gameState?.endingReason}`);
+      this.showResultTrace(`showBattleResultModal winner=${this.gameState?.winner} reason=${this.gameState?.endingReason}`);
       this.isFlowResolving = false;
       this.updateActionSlotBadge();
       this.selectedCardId = null;
@@ -1786,8 +1790,9 @@ export default class BattleScene extends Phaser.Scene {
       };
       this.showResultTrace('showBattleResultModal completed');
     } catch (error) {
-      this.showResultTrace(`ERROR: ${error?.message ?? error}`);
+      this.showResultTrace(`ERROR in showBattleResultModal: ${error?.message ?? error}`);
       console.error('Failed to create battle result modal.', error);
+      console.error('Failed to create battle result modal stack.', error?.stack ?? error);
       modalItems.forEach((item) => {
         item?.removeAllListeners?.();
         item?.destroy?.();
