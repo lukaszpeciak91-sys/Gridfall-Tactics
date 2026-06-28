@@ -1021,16 +1021,43 @@ export default class BattleScene extends Phaser.Scene {
     this.surrenderConfirmationModal = null;
   }
 
+  showResultTrace(message) {
+    const { width } = this.scale.gameSize;
+    const prefix = String(message).startsWith('ERROR:') ? 'RESULT TRACE ERROR:' : 'RESULT TRACE:';
+    const traceMessage = String(message).startsWith('ERROR:')
+      ? String(message).replace(/^ERROR:\s*/, '')
+      : message;
+    this.resultTraceMessages = [...(this.resultTraceMessages ?? []), `${prefix} ${traceMessage}`].slice(-10);
+    if (!this.resultTraceText) {
+      this.resultTraceText = this.add.text(12, 12, '', {
+        fontFamily: 'monospace',
+        fontSize: '13px',
+        color: '#ffffff',
+        backgroundColor: 'rgba(127, 29, 29, 0.92)',
+        padding: { x: 8, y: 6 },
+        wordWrap: { width: Math.max(240, width - 24) },
+      }).setDepth(9999).setScrollFactor(0);
+    }
+    this.resultTraceText.setText(this.resultTraceMessages.join('\n'));
+    this.resultTraceText.setVisible(true).setDepth(9999);
+  }
+
   confirmPlayerMenuSurrender() {
     if (!this.gameState || this.gameState.winner || this.battleResultModalShown) return;
 
+    this.showResultTrace('surrender confirm callback');
+    this.showResultTrace('popup/menu cleanup start');
     this.closeSurrenderConfirmation();
     this.destroyUtilityMenuPanel();
     this.closeInspectPreview({ animate: false, clearSelection: true });
     this.destroyDeckInfoPanel();
     this.navigationInProgress = false;
+    this.showResultTrace('popup/menu cleanup done');
     this.gameState.winner = 'enemy';
+    this.showResultTrace('winner set enemy');
     this.gameState.endingReason = 'player_menu_surrender';
+    this.showResultTrace('endingReason set player_menu_surrender');
+    this.showResultTrace('completeBattleFlow(0) called');
     this.completeBattleFlow(0);
   }
 
@@ -1555,12 +1582,14 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   showBattleResultModal() {
+    this.showResultTrace('showBattleResultModal entered');
     const options = arguments[0] ?? {};
     const skipReveal = options.skipReveal === true;
     this.battleResultModalPending = false;
     if (!this.gameState?.winner || this.battleResultModalShown) return;
     const modalItems = [];
     try {
+      this.showResultTrace(`winner=${this.gameState?.winner} reason=${this.gameState?.endingReason}`);
       this.isFlowResolving = false;
       this.updateActionSlotBadge();
       this.selectedCardId = null;
@@ -1578,17 +1607,26 @@ export default class BattleScene extends Phaser.Scene {
       const resultSubtitle = this.getBattleResultSubtitle();
       const resultStatsText = this.getBattleResultStatsText();
       const presentation = this.getBattleResultPresentation();
+      this.showResultTrace('text/stats computed');
+      this.showResultTrace(`state shown=${this.battleResultModalShown} pending=${this.battleResultModalPending} flow=${this.isFlowResolving} nav=${this.navigationInProgress} menu=${Boolean(this.utilityMenuPanel)} surrender=${Boolean(this.surrenderConfirmationModal)} hero=${Boolean(this.layout?.playerHero)} size=${width}x${height}`);
+      this.showResultTrace('outcome SFX about to play');
       this.playBattleOutcomeSfxOnce();
+      this.showResultTrace('outcome SFX played');
 
+      this.showResultTrace('creating overlay');
       const overlay = this.add.rectangle(centerX, height * 0.5, width, height, 0x000000, presentation.overlayAlpha)
         .setInteractive()
         .setDepth(900);
       modalItems.push(overlay);
+      this.showResultTrace('overlay created');
+      this.showResultTrace('creating panel graphics');
       const titleAura = this.add.ellipse(centerX, centerY - overlayHeight * 0.1, overlayWidth * 0.76, overlayHeight * 0.34, presentation.glowColor, 0.08)
         .setDepth(901);
       modalItems.push(titleAura);
       titleAura.setBlendMode?.(Phaser.BlendModes.ADD);
+      this.showResultTrace('panel graphics created');
       const titleFontSize = Math.min(Math.max(58, Math.floor(height * 0.092)), 96);
+      this.showResultTrace('creating title');
       const titleGlow = this.add.text(centerX, centerY - overlayHeight * 0.1, resultText, {
       fontFamily: PREMIUM_BROADCAST_FONT_STACK,
       fontSize: `${titleFontSize}px`,
@@ -1609,6 +1647,8 @@ export default class BattleScene extends Phaser.Scene {
       }).setOrigin(0.5).setDepth(904);
       modalItems.push(title);
       title.setShadow(0, 3, 'rgba(0, 0, 0, 0.62)', 5, true, true);
+      this.showResultTrace('title created');
+      this.showResultTrace('creating subtitle');
       const subtitle = this.add.text(centerX, centerY + overlayHeight * 0.2, resultSubtitle, {
       fontFamily: PREMIUM_BROADCAST_FONT_STACK,
       fontSize: `${Math.max(20, Math.floor(height * 0.029))}px`,
@@ -1618,7 +1658,9 @@ export default class BattleScene extends Phaser.Scene {
       }).setOrigin(0.5).setDepth(903);
       modalItems.push(subtitle);
       subtitle.setShadow(0, 2, presentation.subtitleShadowColor, 5, true, true);
+      this.showResultTrace('subtitle created');
 
+      this.showResultTrace('creating stats');
       const stats = this.add.text(centerX, centerY + overlayHeight * 0.48, resultStatsText, {
       fontFamily: PREMIUM_BROADCAST_FONT_STACK,
       fontSize: `${Math.max(14, Math.min(20, Math.floor(height * 0.021)))}px`,
@@ -1630,7 +1672,9 @@ export default class BattleScene extends Phaser.Scene {
       }).setOrigin(0.5).setDepth(903).setAlpha(0.86);
       modalItems.push(stats);
       stats.setShadow(0, 2, 'rgba(0, 0, 0, 0.68)', 4, true, true);
+      this.showResultTrace('stats created');
 
+      this.showResultTrace('creating divider');
       const dividerWidth = Math.min(overlayWidth * 0.52, 360);
       const dividerY = centerY + overlayHeight * 0.37;
       const dividerCore = this.add.rectangle(centerX, dividerY, dividerWidth, 1, presentation.accentColor, 0.52)
@@ -1640,7 +1684,9 @@ export default class BattleScene extends Phaser.Scene {
         .setDepth(902);
       modalItems.push(dividerGlow);
       dividerGlow.setBlendMode?.(Phaser.BlendModes.ADD);
+      this.showResultTrace('divider created');
 
+      this.showResultTrace('creating buttons');
       const buttonWidth = Math.min(198, Math.max(160, width * 0.39));
       const buttonHeight = Math.max(68, Math.min(80, Math.floor(height * 0.088)));
       const buttonY = Math.min(
@@ -1679,6 +1725,7 @@ export default class BattleScene extends Phaser.Scene {
           ),
         ];
       modalButtons.forEach((button) => modalItems.push(...(button.items ?? [])));
+      this.showResultTrace('buttons created');
 
       let celebration = { particles: [], timers: [] };
       if (skipReveal) {
@@ -1718,6 +1765,7 @@ export default class BattleScene extends Phaser.Scene {
         celebration = this.addBattleResultVictoryCelebration(centerX, centerY, overlayWidth, overlayHeight, presentation);
       }
 
+      this.showResultTrace('assigning battleResultModal');
       this.battleResultModal = {
         overlay,
         titleAura,
@@ -1731,11 +1779,14 @@ export default class BattleScene extends Phaser.Scene {
         buttons: modalButtons,
       };
       this.battleResultModalShown = true;
+      this.showResultTrace('battleResultModalShown true');
       this.resultOverlayState = {
         kind: this.isCampaignBattle() ? 'campaign-battle-result' : 'arena-battle-result',
         phase: 'interactive',
       };
+      this.showResultTrace('showBattleResultModal completed');
     } catch (error) {
+      this.showResultTrace(`ERROR: ${error?.message ?? error}`);
       console.error('Failed to create battle result modal.', error);
       modalItems.forEach((item) => {
         item?.removeAllListeners?.();
