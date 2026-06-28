@@ -3262,10 +3262,6 @@ export default class BattleScene extends Phaser.Scene {
     this.game.canvas?.focus?.();
   }
 
-  recoverAfterVisibilityReturn(reason = 'unknown', context = null) {
-    this.recoverFromLifecycle(reason, context);
-  }
-
   normalizeLifecycleUiState(reason = 'unknown') {
     this.clearPointerInputGuard();
     this.cancelInterruptedPointerGesture();

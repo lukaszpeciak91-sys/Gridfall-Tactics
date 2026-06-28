@@ -40,117 +40,30 @@ function getSceneDiagnostics(game) {
   }));
 }
 
-function isFullscreenActive(game) {
-  if (typeof document === 'undefined') return Boolean(game?.scale?.isFullscreen);
-  return Boolean(document.fullscreenElement
-    ?? document.webkitFullscreenElement
-    ?? document.mozFullScreenElement
-    ?? document.msFullscreenElement
-    ?? game?.scale?.isFullscreen);
-}
-
-function getSceneKey(scene) {
-  return scene?.scene?.key ?? 'unknown';
-}
-
-function getSceneStack(game) {
-  const manager = game?.scene ?? null;
-  const scenes = manager?.getScenes?.(false) ?? [];
-  return scenes.map((scene, index) => ({ scene, index }))
-    .filter(({ scene }) => scene?.scene)
-    .map(({ scene, index }) => ({
-      scene,
-      index,
-      key: getSceneKey(scene),
-      active: Boolean(scene.scene.isActive?.()),
-      paused: Boolean(scene.scene.isPaused?.()),
-      sleeping: Boolean(scene.scene.isSleeping?.()),
-      visible: Boolean(scene.scene.isVisible?.()),
-    }));
-}
-
-function getRecoveryContext(game, reason, previousDocumentHidden) {
-  const documentHidden = typeof document !== 'undefined' ? Boolean(document.hidden) : undefined;
-  const sceneStack = getSceneStack(game);
-
-  return {
+function recoverActiveBattleScene(game, reason) {
+  const scenePlugin = game?.scene;
+  const battleScene = scenePlugin?.getScene?.('BattleScene') ?? scenePlugin?.get?.('BattleScene') ?? null;
+  const activeScene = scenePlugin?.getScenes?.(true)?.at?.(-1) ?? null;
+  const activeSceneKey = activeScene?.scene?.key ?? null;
+  const diagnostics = {
     reason,
-    documentHidden,
-    previousDocumentHidden,
-    returningFromHidden: previousDocumentHidden === true && documentHidden === false,
-    fullscreen: isFullscreenActive(game),
-    activeSceneKey: sceneStack.filter((entry) => entry.active).at(-1)?.key ?? null,
+    documentHidden: typeof document !== 'undefined' ? document.hidden : undefined,
+    activeSceneKey,
     scenes: getSceneDiagnostics(game),
     renderer: getRendererDiagnostics(game),
   };
-}
 
-function addSceneCandidate(candidates, scene) {
-  if (scene?.scene) candidates.push(scene);
-}
-
-function getReturnSceneCandidate(game, scene) {
-  const returnSceneKey = scene?.returnSceneKey;
-  if (typeof returnSceneKey !== 'string' || !returnSceneKey) return null;
-  return game?.scene?.getScene?.(returnSceneKey) ?? game?.scene?.get?.(returnSceneKey) ?? null;
-}
-
-function getRecoveryCandidates(game) {
-  const sceneStack = getSceneStack(game);
-  const candidates = [];
-
-  sceneStack
-    .filter((entry) => entry.visible || entry.active)
-    .sort((a, b) => b.index - a.index)
-    .forEach((entry) => addSceneCandidate(candidates, entry.scene));
-
-  [...candidates].forEach((scene) => addSceneCandidate(candidates, getReturnSceneCandidate(game, scene)));
-
-  const battleScene = game?.scene?.getScene?.('BattleScene') ?? game?.scene?.get?.('BattleScene') ?? null;
-  addSceneCandidate(candidates, battleScene);
-
-  return candidates;
-}
-
-function recoverScene(scene, reason, context) {
-  if (typeof scene?.recoverAfterVisibilityReturn === 'function') {
-    scene.recoverAfterVisibilityReturn(reason, context);
-    return true;
+  if (!battleScene) {
+    console.debug('Session lifecycle recovery skipped: BattleScene missing', diagnostics);
+    return;
   }
 
-  if (getSceneKey(scene) === 'BattleScene' && typeof scene?.recoverFromLifecycle === 'function') {
-    scene.recoverFromLifecycle(reason, context);
-    return true;
+  if (typeof battleScene.recoverFromLifecycle === 'function') {
+    battleScene.recoverFromLifecycle(reason, diagnostics);
+    return;
   }
 
-  return false;
-}
-
-function recoverSceneStack(game, reason, previousDocumentHidden) {
-  game?.loop?.wake?.();
-  game?.scale?.refresh?.();
-
-  const context = getRecoveryContext(game, reason, previousDocumentHidden);
-  const recoveredScenes = new Set();
-  let recoveredCount = 0;
-
-  getRecoveryCandidates(game).forEach((scene) => {
-    const key = getSceneKey(scene);
-    if (recoveredScenes.has(scene)) return;
-    recoveredScenes.add(scene);
-
-    try {
-      if (recoverScene(scene, reason, context)) recoveredCount += 1;
-    } catch (error) {
-      console.warn(`Session lifecycle recovery failed for ${key}.`, { reason, error, context });
-    }
-  });
-
-  game?.canvas?.focus?.();
-
-  if (recoveredCount === 0) {
-    console.debug('Session lifecycle recovery completed without scene hooks', context);
-  }
+  console.debug('Session lifecycle recovery diagnostics', diagnostics);
 }
 
 export function installSessionLifecycle(game) {
@@ -158,12 +71,8 @@ export function installSessionLifecycle(game) {
     return () => {};
   }
 
-  let previousDocumentHidden = typeof document !== 'undefined' ? Boolean(document.hidden) : undefined;
-
   const scheduleRecovery = (reason) => {
-    const hiddenBeforeEvent = previousDocumentHidden;
-    previousDocumentHidden = typeof document !== 'undefined' ? Boolean(document.hidden) : previousDocumentHidden;
-    window.requestAnimationFrame(() => recoverSceneStack(game, reason, hiddenBeforeEvent));
+    window.requestAnimationFrame(() => recoverActiveBattleScene(game, reason));
   };
 
   const onDocumentLifecycle = (event) => {
