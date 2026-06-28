@@ -31,8 +31,8 @@ const CAMPAIGN_TROPHY_ASSET = Object.freeze({
   path: resolvePublicAssetPath('assets/ui/campaign-trophy.webp'),
 });
 
-const RESULT_TRACE_DEBUG_MARKER_TEXT = 'DEBUG BUILD: render-loop-v1';
-const RESULT_TRACE_PREFIX = 'RENDER LOOP:';
+const RESULT_TRACE_DEBUG_MARKER_TEXT = 'DEBUG BUILD: render-stop-v1';
+const RESULT_TRACE_PREFIX = 'RENDER STOP:';
 const RESULT_TRACE_LINE_LIMIT = 8;
 
 const BATTLE_RESULT_SUBTITLE_FALLBACKS = Object.freeze({
@@ -392,13 +392,16 @@ export default class BattleScene extends Phaser.Scene {
     this.resultModalSnapshots = [];
     this.resultRenderTestObject = null;
     this.resultPostRenderCount = 0;
-    this.resultPostRenderListenerAttached = false;
+    this.resultRenderEventCounts = null;
+    this.resultRenderListenerAttached = false;
+    this.resultMonkeyPatchAttached = false;
+    this.resultMonkeyPatchRestores = [];
   }
 
   ensureResultTraceV4Dom() {
     if (typeof document === 'undefined') return;
-    const markerId = 'gridfall-render-loop-v1-marker';
-    const traceId = 'gridfall-render-loop-v1-overlay';
+    const markerId = 'gridfall-render-stop-v1-marker';
+    const traceId = 'gridfall-render-stop-v1-overlay';
     let marker = document.getElementById(markerId);
     if (!marker) {
       marker = document.createElement('div');
@@ -448,7 +451,7 @@ export default class BattleScene extends Phaser.Scene {
 
   updateResultTraceV4Dom() {
     if (typeof document === 'undefined') return;
-    const trace = document.getElementById('gridfall-render-loop-v1-overlay');
+    const trace = document.getElementById('gridfall-render-stop-v1-overlay');
     if (!trace) return;
     const lines = this.resultTraceV4Lines?.slice(-RESULT_TRACE_LINE_LIMIT) ?? [];
     trace.textContent = lines.length ? lines.join('\n') : `${RESULT_TRACE_PREFIX} ready`;
@@ -645,18 +648,79 @@ export default class BattleScene extends Phaser.Scene {
     return snapshot;
   }
 
-  attachResultPostRenderCounter() {
-    if (this.resultPostRenderListenerAttached) return;
-    const increment = () => {
-      this.resultPostRenderCount = (this.resultPostRenderCount ?? 0) + 1;
+  attachResultRenderEventCounters() {
+    if (this.resultRenderListenerAttached) return;
+    this.resultRenderEventCounts = {
+      gamePre: 0,
+      gamePost: 0,
+      rendererPre: 0,
+      rendererPost: 0,
+      sceneRender: 0,
+      scenePost: 0,
     };
-    this.resultPostRenderListenerAttached = true;
+    const attach = (emitter, eventName, key) => {
+      if (!emitter?.on || !eventName) return;
+      const increment = () => {
+        this.resultRenderEventCounts[key] = (this.resultRenderEventCounts[key] ?? 0) + 1;
+        if (key === 'gamePost' || key === 'rendererPost') {
+          this.resultPostRenderCount = (this.resultPostRenderCount ?? 0) + 1;
+        }
+      };
+      emitter.on(eventName, increment);
+      this.resultMonkeyPatchRestores ??= [];
+      this.resultMonkeyPatchRestores.push(() => emitter.off?.(eventName, increment));
+      this.traceResultV4(`attached ${key}:${eventName}`);
+    };
+
+    this.resultRenderListenerAttached = true;
+    attach(this.game?.events, 'prerender', 'gamePre');
+    attach(this.game?.events, 'postrender', 'gamePost');
+    attach(this.renderer?.events ?? this.game?.renderer?.events, 'prerender', 'rendererPre');
+    attach(this.renderer?.events ?? this.game?.renderer?.events, 'postrender', 'rendererPost');
+    attach(this.events, 'render', 'sceneRender');
+    attach(this.events, 'postrender', 'scenePost');
     this.events?.once?.(Phaser.Scenes.Events.SHUTDOWN, () => {
-      this.game?.events?.off?.('postrender', increment);
-      this.renderer?.events?.off?.('postrender', increment);
+      this.resultMonkeyPatchRestores?.forEach((restore) => restore?.());
+      this.resultMonkeyPatchRestores = [];
     });
-    this.game?.events?.on?.('postrender', increment);
-    this.renderer?.events?.on?.('postrender', increment);
+  }
+
+  attachResultStopMonkeyPatches() {
+    if (this.resultMonkeyPatchAttached) return;
+    this.resultMonkeyPatchAttached = true;
+    this.resultMonkeyPatchRestores ??= [];
+    const shortStack = () => {
+      const stack = new Error().stack ?? '';
+      console.log(`${RESULT_TRACE_PREFIX} full call stack`, stack);
+      return stack.split('\n').slice(2, 5).map((line) => line.trim().replace(/^at\s+/, '')).join(' <- ') || 'unknown';
+    };
+    const patchMethod = (target, methodName, label, shouldTraceArgs = null) => {
+      if (!target || typeof target[methodName] !== 'function') return;
+      const original = target[methodName];
+      if (original.__gridfallRenderStopPatched) return;
+      const scene = this;
+      const patched = function patchedRenderStopTrace(...args) {
+        if (!shouldTraceArgs || shouldTraceArgs(args)) {
+          scene.traceResultV4(`CALL ${label} from ${shortStack()}`);
+        }
+        return original.apply(this, args);
+      };
+      patched.__gridfallRenderStopPatched = true;
+      target[methodName] = patched;
+      this.resultMonkeyPatchRestores.push(() => {
+        if (target[methodName] === patched) target[methodName] = original;
+      });
+      this.traceResultV4(`patched ${label}`);
+    };
+
+    ['stop', 'sleep', 'pause', 'blur', 'destroy'].forEach((name) => patchMethod(this.game?.loop, name, `game.loop.${name}`));
+    ['pause', 'sleep', 'stop'].forEach((name) => patchMethod(this.scene, name, `scene.${name}`));
+    patchMethod(this.scene, 'setVisible', 'scene.setVisible(false)', (args) => args[0] === false);
+  }
+
+  getResultRenderCountsText() {
+    const counts = this.resultRenderEventCounts ?? {};
+    return `renderCounts gamePre=${counts.gamePre ?? 0} gamePost=${counts.gamePost ?? 0} sceneRender=${counts.sceneRender ?? 0} scenePost=${counts.scenePost ?? 0} rendererPre=${counts.rendererPre ?? 0} rendererPost=${counts.rendererPost ?? 0}`;
   }
 
   getResultRenderLoopState() {
@@ -675,8 +739,23 @@ export default class BattleScene extends Phaser.Scene {
       sysSettingsStatus: sysSettings?.status,
       inputEnabled: this.input?.enabled,
       loopRunning: this.game?.loop?.running,
+      loopSleeping: this.game?.loop?.sleeping,
+      loopHasFocus: this.game?.loop?.hasFocus,
+      loopActualFps: this.game?.loop?.actualFps,
+      loopTargetFps: this.game?.loop?.targetFps,
+      loopDelta: this.game?.loop?.delta,
+      loopNow: this.game?.loop?.now,
       gamePaused: this.game?.isPaused,
+      rendererExists: Boolean(this.game?.renderer ?? this.renderer),
       rendererType: this.game?.renderer?.type ?? this.renderer?.type,
+      rendererWidth: this.game?.renderer?.width ?? this.renderer?.width,
+      rendererHeight: this.game?.renderer?.height ?? this.renderer?.height,
+      canvasExists: Boolean((this.game?.canvas ?? this.sys?.game?.canvas ?? this.renderer?.canvas)),
+      canvasWidth: (this.game?.canvas ?? this.sys?.game?.canvas ?? this.renderer?.canvas)?.width,
+      canvasHeight: (this.game?.canvas ?? this.sys?.game?.canvas ?? this.renderer?.canvas)?.height,
+      canvasCssDisplay: typeof window !== 'undefined' ? window.getComputedStyle?.(this.game?.canvas ?? this.sys?.game?.canvas ?? this.renderer?.canvas)?.display : undefined,
+      canvasCssVisibility: typeof window !== 'undefined' ? window.getComputedStyle?.(this.game?.canvas ?? this.sys?.game?.canvas ?? this.renderer?.canvas)?.visibility : undefined,
+      canvasCssOpacity: typeof window !== 'undefined' ? window.getComputedStyle?.(this.game?.canvas ?? this.sys?.game?.canvas ?? this.renderer?.canvas)?.opacity : undefined,
       cameraVisible: camera?.visible,
       cameraAlpha: camera?.alpha,
       cameraRenderToTexture: camera?.renderToTexture,
@@ -705,9 +784,9 @@ export default class BattleScene extends Phaser.Scene {
     const state = this.getResultRenderLoopState();
     const warnings = this.getResultRenderLoopWarnings(state);
     console.log(`${RESULT_TRACE_PREFIX} state ${label}`, state);
-    this.traceResultV4(`${label} scene active=${state.sceneActive ?? 'n/a'} paused=${state.scenePaused ?? 'n/a'} sleep=${state.sceneSleeping ?? 'n/a'} sysActive=${state.sysActive ?? 'n/a'} visible=${state.sysSettingsVisible ?? 'n/a'} loop=${state.loopRunning ?? 'n/a'} input=${state.inputEnabled ?? 'n/a'}`);
-    this.traceResultV4(`${label} sysSet active=${state.sysSettingsActive ?? 'n/a'} status=${state.sysSettingsStatus ?? 'n/a'} gamePaused=${state.gamePaused ?? 'n/a'} renderer=${state.rendererType ?? 'n/a'} cam vis=${state.cameraVisible ?? 'n/a'} alpha=${this.formatResultTraceValue(state.cameraAlpha, 2)}`);
-    this.traceResultV4(`${label} cam rtt=${state.cameraRenderToTexture ?? 'n/a'} round=${state.cameraRoundPixels ?? 'n/a'} dl=${state.displayListLength ?? 'n/a'} ul=${state.updateListLength ?? 'n/a'}`);
+    this.traceResultV4(`${label} loopRun=${state.loopRunning ?? 'n/a'} sleep=${state.loopSleeping ?? 'n/a'} focus=${state.loopHasFocus ?? 'n/a'} fps=${this.formatResultTraceValue(state.loopActualFps, 1)}/${state.loopTargetFps ?? 'n/a'} delta=${this.formatResultTraceValue(state.loopDelta, 1)} now=${this.formatResultTraceValue(state.loopNow, 0)} gamePaused=${state.gamePaused ?? 'n/a'}`);
+    this.traceResultV4(`${label} scene=${state.sceneActive ?? 'n/a'}/${state.scenePaused ?? 'n/a'}/${state.sceneSleeping ?? 'n/a'} sysAct=${state.sysSettingsActive ?? 'n/a'} sysVis=${state.sysSettingsVisible ?? 'n/a'} status=${state.sysSettingsStatus ?? 'n/a'} camVis=${state.cameraVisible ?? 'n/a'} camA=${this.formatResultTraceValue(state.cameraAlpha, 2)}`);
+    this.traceResultV4(`${label} renderer=${state.rendererExists ? 'yes' : 'no'} type=${state.rendererType ?? 'n/a'} size=${state.rendererWidth ?? 'n/a'}x${state.rendererHeight ?? 'n/a'} canvas=${state.canvasExists ? 'yes' : 'no'} ${state.canvasWidth ?? 'n/a'}x${state.canvasHeight ?? 'n/a'} css=${state.canvasCssDisplay ?? 'n/a'}/${state.canvasCssVisibility ?? 'n/a'}/${state.canvasCssOpacity ?? 'n/a'} dl=${state.displayListLength ?? 'n/a'} ul=${state.updateListLength ?? 'n/a'}`);
     if (warnings.length) this.traceResultV4(`${label} WARN ${warnings.join(',')}`);
     return state;
   }
@@ -727,7 +806,22 @@ export default class BattleScene extends Phaser.Scene {
     this.traceResultV4(`${label} PHASER RENDER TEST created dl=${this.sys?.displayList?.exists?.(this.resultRenderTestObject) ? 'yes' : 'no'} depth=${this.resultRenderTestObject.depth}`);
   }
 
+  runResultForceRenderProbe() {
+    const before = { ...(this.resultRenderEventCounts ?? {}) };
+    if (typeof this.game?.loop?.wake === 'function') {
+      this.game.loop.wake();
+      this.traceResultV4('called loop.wake');
+    } else {
+      this.traceResultV4('loop.wake unavailable');
+    }
+    window.setTimeout(() => {
+      const counts = this.resultRenderEventCounts ?? {};
+      this.traceResultV4(`wake probe beforePost=${before.gamePost ?? 0}/${before.rendererPost ?? 0} afterPost=${counts.gamePost ?? 0}/${counts.rendererPost ?? 0}`);
+    }, 100);
+  }
+
   traceResultRenderTestProbe(delayMs, label) {
+    this.traceResultV4(`${delayMs}ms ${this.getResultRenderCountsText()}`);
     const test = this.resultRenderTestObject;
     const exists = Boolean(test && !test.destroyed && test.scene);
     const displayList = exists && (Boolean(test.displayList) || Boolean(this.sys?.displayList?.exists?.(test)));
@@ -1396,7 +1490,10 @@ export default class BattleScene extends Phaser.Scene {
   confirmPlayerMenuSurrender() {
     if (!this.gameState || this.gameState.winner || this.battleResultModalShown || this.surrenderConfirmationResolving) return;
 
+    this.attachResultRenderEventCounters();
+    this.attachResultStopMonkeyPatches();
     this.traceResultV4('confirm clicked');
+    this.traceResultRenderLoopState('sync confirm');
     this.surrenderConfirmationResolving = true;
     this.closeSurrenderConfirmation();
     this.traceResultV4('confirmation closed');
@@ -2134,9 +2231,11 @@ export default class BattleScene extends Phaser.Scene {
       };
       this.traceResultV4('showResult completed');
       const comparisonLabel = this.getResultModalComparisonLabel();
-      this.attachResultPostRenderCounter();
+      this.attachResultRenderEventCounters();
+      this.attachResultStopMonkeyPatches();
       this.traceResultRenderLoopState(`sync ${comparisonLabel}`);
       this.createResultRenderTestObject(comparisonLabel);
+      this.runResultForceRenderProbe();
       this.captureResultModalSnapshot(`sync ${comparisonLabel}`);
       this.schedulePostBattleResultModalTraceV4(100, comparisonLabel);
       this.schedulePostBattleResultModalTraceV4(500, comparisonLabel);
