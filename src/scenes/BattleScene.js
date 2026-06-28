@@ -31,6 +31,10 @@ const CAMPAIGN_TROPHY_ASSET = Object.freeze({
   path: resolvePublicAssetPath('assets/ui/campaign-trophy.webp'),
 });
 
+const RESULT_TRACE_DEBUG_MARKER_TEXT = 'DEBUG BUILD: surrender-result-v3';
+const RESULT_TRACE_PREFIX = 'RESULT TRACE V3:';
+const RESULT_TRACE_LINE_LIMIT = 12;
+
 const BATTLE_RESULT_SUBTITLE_FALLBACKS = Object.freeze({
   victory: Object.freeze([
     'The audience is delighted.',
@@ -384,6 +388,119 @@ export default class BattleScene extends Phaser.Scene {
     this.campaignOutcomeSfxPlayed = false;
     this.activeOutcomeStinger = null;
     this.battleAmbienceStopping = false;
+    this.resultTraceV3Lines = [];
+  }
+
+  ensureResultTraceV3Dom() {
+    if (typeof document === 'undefined') return;
+    const markerId = 'gridfall-surrender-result-v3-marker';
+    const traceId = 'gridfall-result-trace-v3-overlay';
+    let marker = document.getElementById(markerId);
+    if (!marker) {
+      marker = document.createElement('div');
+      marker.id = markerId;
+      marker.textContent = RESULT_TRACE_DEBUG_MARKER_TEXT;
+      Object.assign(marker.style, {
+        position: 'fixed',
+        top: '6px',
+        left: '6px',
+        zIndex: '2147483647',
+        pointerEvents: 'none',
+        padding: '4px 7px',
+        background: 'rgba(127, 29, 29, 0.92)',
+        color: '#fff7ed',
+        font: '700 11px/1.25 monospace',
+        border: '1px solid rgba(254, 202, 202, 0.8)',
+        borderRadius: '4px',
+      });
+      document.body?.appendChild?.(marker);
+    }
+    let trace = document.getElementById(traceId);
+    if (!trace) {
+      trace = document.createElement('div');
+      trace.id = traceId;
+      Object.assign(trace.style, {
+        position: 'fixed',
+        left: '6px',
+        bottom: '6px',
+        zIndex: '2147483647',
+        pointerEvents: 'none',
+        maxWidth: 'min(94vw, 760px)',
+        maxHeight: '42vh',
+        overflow: 'hidden',
+        whiteSpace: 'pre-wrap',
+        padding: '7px 9px',
+        background: 'rgba(2, 6, 23, 0.86)',
+        color: '#bbf7d0',
+        font: '700 11px/1.35 monospace',
+        textShadow: '0 1px 2px #000',
+        border: '1px solid rgba(74, 222, 128, 0.72)',
+        borderRadius: '5px',
+      });
+      document.body?.appendChild?.(trace);
+    }
+    this.updateResultTraceV3Dom();
+  }
+
+  updateResultTraceV3Dom() {
+    if (typeof document === 'undefined') return;
+    const trace = document.getElementById('gridfall-result-trace-v3-overlay');
+    if (!trace) return;
+    const lines = this.resultTraceV3Lines?.slice(-RESULT_TRACE_LINE_LIMIT) ?? [];
+    trace.textContent = lines.length ? lines.join('\n') : `${RESULT_TRACE_PREFIX} ready`;
+  }
+
+  traceResultV3(message) {
+    this.resultTraceV3Lines ??= [];
+    const line = `${RESULT_TRACE_PREFIX} ${message}`;
+    this.resultTraceV3Lines.push(line);
+    this.resultTraceV3Lines = this.resultTraceV3Lines.slice(-RESULT_TRACE_LINE_LIMIT);
+    this.ensureResultTraceV3Dom();
+    console.log(line);
+  }
+
+  describeModalObjectForTraceV3(object, index) {
+    if (!object) return `modal object ${index}: <empty>`;
+    const type = object.constructor?.name ?? object.type ?? typeof object;
+    const visible = object.visible ?? 'n/a';
+    const alpha = object.alpha ?? 'n/a';
+    const depth = object.depth ?? 'n/a';
+    const active = object.active ?? 'n/a';
+    const destroyed = object.destroyed ?? object._destroyed ?? object.scene === undefined ?? 'n/a';
+    return `modal object ${index}: type=${type} visible=${visible} alpha=${alpha} depth=${depth} active=${active} destroyed=${destroyed}`;
+  }
+
+  getBattleResultModalTraceItemsV3() {
+    if (!this.battleResultModal) return [];
+    return [
+      this.battleResultModal.overlay,
+      this.battleResultModal.titleAura,
+      this.battleResultModal.titleGlow,
+      this.battleResultModal.title,
+      this.battleResultModal.subtitle,
+      this.battleResultModal.stats,
+      this.battleResultModal.dividerCore,
+      this.battleResultModal.dividerGlow,
+      ...(this.battleResultModal.celebration?.particles ?? this.battleResultModal.celebration ?? []),
+      ...(this.battleResultModal.celebration?.modalItems ?? []),
+      ...((this.battleResultModal.buttons ?? []).flatMap((button) => button.items ?? [])),
+    ];
+  }
+
+  schedulePostBattleResultModalTraceV3(delayMs) {
+    const inspect = () => {
+      this.traceResultV3(`post modal check ${delayMs}ms`);
+      this.traceResultV3(`battleResultModal exists=${this.battleResultModal ? 'yes' : 'no'}`);
+      this.traceResultV3(`battleResultModalShown=${Boolean(this.battleResultModalShown)}`);
+      this.traceResultV3(`battleResultModalPending=${Boolean(this.battleResultModalPending)}`);
+      this.traceResultV3(`isFlowResolving=${Boolean(this.isFlowResolving)}`);
+      this.traceResultV3(`navigationInProgress=${Boolean(this.navigationInProgress)}`);
+      const items = this.getBattleResultModalTraceItemsV3();
+      this.traceResultV3(`modal item count=${items.length}`);
+      items.slice(0, 4).forEach((item, index) => this.traceResultV3(this.describeModalObjectForTraceV3(item, index)));
+    };
+    if (this.time?.delayedCall) this.time.delayedCall(delayMs, inspect);
+    else setTimeout(inspect, delayMs);
   }
 
   preload() {
@@ -532,6 +649,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   cleanupSceneObjects({ preserveTimers = false, preserveTweens = false } = {}) {
+    this.traceResultV3?.('cleanupSceneObjects called');
     this.stopOutcomeStinger({ fadeMs: 0 });
     this.deferredTransientBattleBanner = null;
     this.battleExhaustedBannerEvent?.remove?.(false);
@@ -575,6 +693,8 @@ export default class BattleScene extends Phaser.Scene {
   create(data) {
     this.cleanupSceneObjects();
     stopMusic(this, { fadeMs: 0 });
+    this.ensureResultTraceV3Dom();
+    this.traceResultV3('game loaded');
 
     const { width, height } = this.scale;
     this.battleContext = this.normalizeBattleContext(data?.battleContext);
@@ -1024,6 +1144,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   closeSurrenderConfirmation() {
+    this.traceResultV3('closeSurrenderConfirmation start');
     const modal = this.surrenderConfirmationModal;
     this.surrenderConfirmationModal = null;
 
@@ -1032,23 +1153,37 @@ export default class BattleScene extends Phaser.Scene {
       item?.removeAllListeners?.();
       item?.destroy?.();
     });
+    this.traceResultV3('closeSurrenderConfirmation done');
   }
 
   confirmPlayerMenuSurrender() {
     if (!this.gameState || this.gameState.winner || this.battleResultModalShown || this.surrenderConfirmationResolving) return;
 
+    this.traceResultV3('surrender confirm clicked');
     this.surrenderConfirmationResolving = true;
     this.closeSurrenderConfirmation();
     this.destroyUtilityMenuPanel();
+    this.traceResultV3('cleanup selection/input start');
     this.closeInspectPreview({ animate: false, clearSelection: true });
     this.destroyDeckInfoPanel();
     this.navigationInProgress = false;
+    this.traceResultV3('cleanup selection/input done');
     this.gameState.winner = 'enemy';
+    this.traceResultV3('winner set enemy');
     this.gameState.endingReason = 'player_menu_surrender';
+    this.traceResultV3('endingReason set player_menu_surrender');
     if (this.time?.delayedCall) {
-      this.time.delayedCall(0, () => this.completeBattleFlow(0));
+      this.traceResultV3('terminal flow scheduled');
+      this.time.delayedCall(0, () => {
+        this.traceResultV3('terminal flow callback entered');
+        this.traceResultV3('completeBattleFlow(0) about to call');
+        const completed = this.completeBattleFlow(0);
+        this.traceResultV3(`completeBattleFlow(0) returned ${completed}`);
+      });
     } else {
-      this.completeBattleFlow(0);
+      this.traceResultV3('completeBattleFlow(0) about to call');
+      const completed = this.completeBattleFlow(0);
+      this.traceResultV3(`completeBattleFlow(0) returned ${completed}`);
     }
   }
 
@@ -1103,7 +1238,11 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   destroyUtilityMenuPanel() {
-    if (!this.utilityMenuPanel) return;
+    this.traceResultV3('destroyUtilityMenuPanel start');
+    if (!this.utilityMenuPanel) {
+      this.traceResultV3('destroyUtilityMenuPanel done');
+      return;
+    }
 
     const { outsideCatcher, glow, panel, panelFrame, triggerControl, fullscreenToggle, muteToggle, buttons } = this.utilityMenuPanel;
     const items = [
@@ -1127,6 +1266,7 @@ export default class BattleScene extends Phaser.Scene {
     });
     this.utilityMenuPanel = null;
     this.updatePlayerBaseActionState();
+    this.traceResultV3('destroyUtilityMenuPanel done');
   }
 
   guardPointerEvent(pointer = null) {
@@ -1147,6 +1287,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   closeInspectPreview({ animate = false, clearSelection = false } = {}) {
+    this.traceResultV3?.('closeInspectPreview called during surrender/result');
     this.cancelHandCardLongPress();
     this.cancelBoardCellLongPress();
     this.hoverInspectCardId = null;
@@ -1331,6 +1472,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   scheduleBattleResultModal(delayMs = 500) {
+    this.traceResultV3('scheduleBattleResultModal entered');
     if (!this.gameState?.winner || this.battleResultModalShown || this.battleResultModalPending) return;
     this.stopCampaignBattleTimer();
     const hasLethalTerminalFailure = Boolean(this.getLethalTerminalFailureSides().length);
@@ -1346,6 +1488,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   completeBattleFlow(delayMs = 500) {
+    this.traceResultV3('completeBattleFlow entered');
     if (!this.gameState?.winner || this.battleResultModalShown) return false;
     this.playBaseBreakSfxOnce();
     this.updateInitiativeIndicator();
@@ -1573,12 +1716,14 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   showBattleResultModal() {
+    this.traceResultV3('showBattleResultModal entered');
     const options = arguments[0] ?? {};
     const skipReveal = options.skipReveal === true;
     this.battleResultModalPending = false;
     if (!this.gameState?.winner || this.battleResultModalShown) return;
     const modalItems = [];
     try {
+      this.traceResultV3(`winner=${this.gameState?.winner} reason=${this.gameState?.endingReason}`);
       this.isFlowResolving = false;
       this.updateActionSlotBadge();
       this.selectedCardId = null;
@@ -1596,12 +1741,16 @@ export default class BattleScene extends Phaser.Scene {
       const resultSubtitle = this.getBattleResultSubtitle();
       const resultStatsText = this.getBattleResultStatsText();
       const presentation = this.getBattleResultPresentation();
+      this.traceResultV3('outcome SFX about to play');
       this.playBattleOutcomeSfxOnce();
+      this.traceResultV3('outcome SFX played');
 
+      this.traceResultV3('creating overlay');
       const overlay = this.add.rectangle(centerX, height * 0.5, width, height, 0x000000, presentation.overlayAlpha)
         .setInteractive()
         .setDepth(900);
       modalItems.push(overlay);
+      this.traceResultV3('overlay created');
       const titleAura = this.add.ellipse(centerX, centerY - overlayHeight * 0.1, overlayWidth * 0.76, overlayHeight * 0.34, presentation.glowColor, 0.08)
         .setDepth(901);
       modalItems.push(titleAura);
@@ -1659,6 +1808,7 @@ export default class BattleScene extends Phaser.Scene {
       modalItems.push(dividerGlow);
       dividerGlow.setBlendMode?.(Phaser.BlendModes.ADD);
 
+      this.traceResultV3('creating buttons');
       const buttonWidth = Math.min(198, Math.max(160, width * 0.39));
       const buttonHeight = Math.max(68, Math.min(80, Math.floor(height * 0.088)));
       const buttonY = Math.min(
@@ -1697,6 +1847,7 @@ export default class BattleScene extends Phaser.Scene {
           ),
         ];
       modalButtons.forEach((button) => modalItems.push(...(button.items ?? [])));
+      this.traceResultV3('buttons created');
 
       let celebration = { particles: [], timers: [] };
       if (skipReveal) {
@@ -1748,12 +1899,18 @@ export default class BattleScene extends Phaser.Scene {
         celebration,
         buttons: modalButtons,
       };
+      this.traceResultV3('battleResultModal assigned');
       this.battleResultModalShown = true;
+      this.traceResultV3('battleResultModalShown true');
       this.resultOverlayState = {
         kind: this.isCampaignBattle() ? 'campaign-battle-result' : 'arena-battle-result',
         phase: 'interactive',
       };
+      this.traceResultV3('showBattleResultModal completed');
+      this.schedulePostBattleResultModalTraceV3(100);
+      this.schedulePostBattleResultModalTraceV3(500);
     } catch (error) {
+      this.traceResultV3(`ERROR showBattleResultModal: ${error?.message ?? error}`);
       console.error('Failed to create battle result modal.', error);
       console.error('Failed to create battle result modal stack.', error?.stack ?? error);
       modalItems.forEach((item) => {
@@ -1763,6 +1920,7 @@ export default class BattleScene extends Phaser.Scene {
       this.battleResultModal = null;
       this.battleResultModalShown = false;
       this.battleResultModalPending = false;
+      this.traceResultV3('clearing resultOverlayState');
       this.resultOverlayState = null;
       this.isFlowResolving = false;
       this.updateActionSlotBadge();
@@ -1801,12 +1959,14 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   destroyBattleResultModal() {
+    this.traceResultV3?.('destroying battleResultModal');
     this.stopOutcomeStinger({ fadeMs: 200 });
     this.battleResultModalPendingEvent?.remove?.(false);
     this.battleResultModalPendingEvent = null;
     if (!this.battleResultModal) {
       this.battleResultModalShown = false;
       this.battleResultModalPending = false;
+      this.traceResultV3?.('clearing resultOverlayState');
       this.resultOverlayState = null;
       this.updateActionSlotBadge();
       return;
@@ -1832,6 +1992,7 @@ export default class BattleScene extends Phaser.Scene {
     this.battleResultModal = null;
     this.battleResultModalShown = false;
     this.battleResultModalPending = false;
+    this.traceResultV3?.('clearing resultOverlayState');
     this.resultOverlayState = null;
     this.updateActionSlotBadge();
   }
