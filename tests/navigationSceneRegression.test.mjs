@@ -129,11 +129,14 @@ test('battle utility menu opens panel actions and rules resume the existing scen
   assert.doesNotMatch(battleSource, /translateActive\('ui\.battle\.utilityMenuReturn', 'Return'\)[\s\S]*createUtilityMenuButton/);
   assert.doesNotMatch(battleSource, /translateActive\('ui\.battle\.utilityMenuMainMenu', 'Main Menu'\)[\s\S]*createUtilityMenuButton/);
   assert.match(battleSource, /showSurrenderConfirmation\(\) \{[\s\S]*this\.add\.rectangle\(width \/ 2, height \/ 2, width, height, 0x020617, 0\.72\)[\s\S]*translateActive\('ui\.battle\.surrenderConfirmTitle', 'SURRENDER\?'\)[\s\S]*translateActive\('ui\.battle\.surrenderConfirmBody', 'This counts as a defeat\.'\)[\s\S]*translateActive\('ui\.battle\.surrenderCancel', 'Cancel'\), \(\) => this\.closeSurrenderConfirmation\(\)\)[\s\S]*translateActive\('ui\.battle\.surrenderConfirm', 'Surrender'\), \(\) => this\.confirmPlayerMenuSurrender\(\)\)[\s\S]*this\.surrenderConfirmationModal = \{ items:/);
-  assert.match(battleSource, /confirmPlayerMenuSurrender\(\) \{[\s\S]*this\.closeSurrenderConfirmation\(\);[\s\S]*this\.destroyUtilityMenuPanel\(\);[\s\S]*this\.closeInspectPreview\(\{ animate: false, clearSelection: true \}\);[\s\S]*this\.destroyDeckInfoPanel\(\);[\s\S]*this\.navigationInProgress = false;[\s\S]*this\.gameState\.winner = 'enemy';[\s\S]*this\.gameState\.endingReason = 'player_menu_surrender';[\s\S]*this\.completeBattleFlow\(0\);[\s\S]*\}/);
   const surrenderConfirmSource = battleSource.slice(
     battleSource.indexOf('  confirmPlayerMenuSurrender() {'),
     battleSource.indexOf('  createUtilityMenuButton(', battleSource.indexOf('  confirmPlayerMenuSurrender() {')),
   );
+  assert.match(surrenderConfirmSource, /confirmPlayerMenuSurrender\(\) \{[\s\S]*this\.surrenderConfirmationResolving = true;[\s\S]*this\.schedulePlayerMenuSurrenderResolution\(\);[\s\S]*\}/);
+  assert.match(surrenderConfirmSource, /schedulePlayerMenuSurrenderResolution\(\) \{[\s\S]*scheduleFrame\(\(\) => \{[\s\S]*scheduleTask\(\(\) => this\.resolvePlayerMenuSurrender\(\), 0\);[\s\S]*\}\);[\s\S]*\}/);
+  assert.match(surrenderConfirmSource, /resolvePlayerMenuSurrender\(\) \{[\s\S]*this\.closeSurrenderConfirmation\(\);[\s\S]*this\.destroyUtilityMenuPanel\(\);[\s\S]*this\.closeInspectPreview\(\{ animate: false, clearSelection: true \}\);[\s\S]*this\.destroyDeckInfoPanel\(\);[\s\S]*this\.navigationInProgress = false;[\s\S]*this\.gameState\.winner = 'enemy';[\s\S]*this\.gameState\.endingReason = 'player_menu_surrender';[\s\S]*this\.completeBattleFlow\(500\);[\s\S]*\}/);
+  assert.doesNotMatch(surrenderConfirmSource, /completeBattleFlow\(0\)/);
   assert.doesNotMatch(surrenderConfirmSource, /showBattleResultModal\(/);
   assert.doesNotMatch(surrenderConfirmSource, /exitBattleToMainMenu\(/);
   assert.doesNotMatch(surrenderConfirmSource, /exitBattleToFactionSelect\(/);
