@@ -101,7 +101,7 @@ export default class CollectionScene extends Phaser.Scene {
     });
     this.uiElements.push(...header.items);
 
-    this.expandedFactionKeys = new Set(getFactionKeys());
+    this.expandedFactionKeys = new Set();
     this.drawCollectionList({ width, height });
     this.createBackButton(width, height);
   }

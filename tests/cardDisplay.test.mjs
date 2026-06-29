@@ -391,7 +391,7 @@ test('collection accordion sections are local, non-exclusive, and preserve card 
   const drawSectionSource = source.slice(source.indexOf('  drawFactionSection('), source.indexOf('  toggleFactionSection('));
   const toggleSource = source.slice(source.indexOf('  toggleFactionSection('), source.indexOf('  onFactionHeaderPointerDown('));
 
-  assert.match(source, /this\.expandedFactionKeys = new Set\(getFactionKeys\(\)\);/);
+  assert.match(source, /this\.expandedFactionKeys = new Set\(\);/);
   assert.match(source, /this\.collectionContentElements = \[\];/);
   assert.match(toggleSource, /this\.expandedFactionKeys\.delete\(factionKey\);/);
   assert.match(toggleSource, /this\.expandedFactionKeys\.add\(factionKey\);/);
