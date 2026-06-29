@@ -383,6 +383,54 @@ test('modified stat state compares displayed ATK and ARM against base values wit
   assert.equal(getModifiedStatState('health', { health: 1 }, { health: 3 }), 'base');
 });
 
+
+test('collection accordion sections are local, non-exclusive, and preserve card rendering contracts', () => {
+  const source = fs.readFileSync('src/scenes/CollectionScene.js', 'utf8');
+  const drawListSource = source.slice(source.indexOf('  drawCollectionList('), source.indexOf('  rebuildCollectionContent('));
+  const rebuildSource = source.slice(source.indexOf('  rebuildCollectionContent('), source.indexOf('  trackCollectionContentElement('));
+  const drawSectionSource = source.slice(source.indexOf('  drawFactionSection('), source.indexOf('  toggleFactionSection('));
+  const toggleSource = source.slice(source.indexOf('  toggleFactionSection('), source.indexOf('  onFactionHeaderPointerDown('));
+
+  assert.match(source, /this\.expandedFactionKeys = new Set\(getFactionKeys\(\)\);/);
+  assert.match(source, /this\.collectionContentElements = \[\];/);
+  assert.match(toggleSource, /this\.expandedFactionKeys\.delete\(factionKey\);/);
+  assert.match(toggleSource, /this\.expandedFactionKeys\.add\(factionKey\);/);
+  assert.doesNotMatch(toggleSource, /new Set\(\[factionKey\]\)|clear\(\)/);
+  assert.match(rebuildSource, /expanded: this\.expandedFactionKeys\.has\(factionKey\),/);
+  assert.match(drawSectionSource, /if \(!expanded\) \{\s*return headerBottom \+ COLLECTION_SECTION_HEADER_TOP_INSET;\s*\}/);
+  assert.match(drawSectionSource, /deck\.forEach\(\(card, index\) => \{[\s\S]*this\.drawCardPreview\(content, card,/);
+  assert.match(rebuildSource, /state\.minY = state\.viewportTop - Math\.max\(0, cursorY - state\.viewportHeight\);/);
+  assert.match(rebuildSource, /this\.setCollectionScrollY\(state\.content\.y\);/);
+  assert.match(drawListSource, /this\.rebuildCollectionContent\(\{ width \}\);/);
+  assert.doesNotMatch(source, /from '\.\.\/scenes\/BattleScene\.js'|from '\.\/BattleScene\.js'/);
+});
+
+test('collection accordion headers are taller and guard taps from scroll/inspect state', () => {
+  const source = fs.readFileSync('src/scenes/CollectionScene.js', 'utf8');
+  const pointerDownSource = source.slice(source.indexOf('  onFactionHeaderPointerDown('), source.indexOf('  onFactionHeaderPointerUp('));
+  const pointerUpSource = source.slice(source.indexOf('  onFactionHeaderPointerUp('), source.indexOf('  drawCardPreview('));
+
+  assert.match(source, /const COLLECTION_SECTION_TITLE_STRIP_HEIGHT = 40;/);
+  assert.match(source, /const COLLECTION_SECTION_CARD_TOP_GAP = 8;/);
+  assert.doesNotMatch(source, /const COLLECTION_SECTION_TITLE_STRIP_HEIGHT = 30;/);
+  assert.match(source, /const gridTop = headerBottom \+ COLLECTION_SECTION_CARD_TOP_GAP;/);
+  assert.match(pointerDownSource, /this\.inspectPreview/);
+  assert.match(pointerUpSource, /this\.inspectPreview/);
+  assert.match(pointerUpSource, /this\.wasScrollDragging\(\)/);
+  assert.match(pointerUpSource, /this\.toggleFactionSection\(factionKey\);/);
+});
+
+test('collection back button behavior remains unchanged while accordion is added', () => {
+  const source = fs.readFileSync('src/scenes/CollectionScene.js', 'utf8');
+  const backButtonSource = source.slice(source.indexOf('  createBackButton(width, height) {'), source.indexOf('  wasScrollDragging() {'));
+
+  assert.match(backButtonSource, /x: width \/ 2,/);
+  assert.match(backButtonSource, /y: height - 48,/);
+  assert.match(backButtonSource, /width: Math\.min\(220, Math\.max\(160, Math\.round\(width \* 0\.48\)\)\),/);
+  assert.match(backButtonSource, /height: 54,/);
+  assert.match(backButtonSource, /if \(this\.inspectPreview\) \{\s*this\.destroyInspectPreview\(\{ animate: true \}\);\s*return;\s*\}\s*this\.scene\.start\('MainMenuScene'\);/);
+});
+
 test('collection cards use the hand-card visual contract instead of collection-only styling', () => {
   const source = fs.readFileSync('src/scenes/CollectionScene.js', 'utf8');
   const previewSource = source.slice(source.indexOf('  drawCardPreview('), source.indexOf('  onCardPointerDown('));

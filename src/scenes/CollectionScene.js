@@ -43,10 +43,13 @@ const COLLECTION_GRID_GAP_X = 10;
 const COLLECTION_CARD_GAP_Y = 12;
 const COLLECTION_SECTION_GAP_Y = 26;
 const COLLECTION_CARDS_PER_COLUMN = 5;
-const COLLECTION_SECTION_TITLE_STRIP_HEIGHT = 30;
+const COLLECTION_SECTION_TITLE_STRIP_HEIGHT = 40;
 const COLLECTION_SECTION_TITLE_STRIP_RADIUS = 8;
 const COLLECTION_SECTION_TITLE_STRIP_ALPHA = 0.58;
 const COLLECTION_SECTION_TITLE_STRIP_STROKE_ALPHA = 0.22;
+const COLLECTION_SECTION_HEADER_TEXT_FONT_SIZE = 21;
+const COLLECTION_SECTION_HEADER_TOP_INSET = 6;
+const COLLECTION_SECTION_CARD_TOP_GAP = 8;
 
 export default class CollectionScene extends Phaser.Scene {
   constructor() {
@@ -59,6 +62,9 @@ export default class CollectionScene extends Phaser.Scene {
     this.cardTapHandled = false;
     this.cardLongPressEvent = null;
     this.longPressTriggeredCard = null;
+    this.expandedFactionKeys = new Set();
+    this.collectionContentElements = [];
+    this.headerPress = null;
   }
 
   preload() {
@@ -95,6 +101,7 @@ export default class CollectionScene extends Phaser.Scene {
     });
     this.uiElements.push(...header.items);
 
+    this.expandedFactionKeys = new Set(getFactionKeys());
     this.drawCollectionList({ width, height });
     this.createBackButton(width, height);
   }
@@ -114,35 +121,20 @@ export default class CollectionScene extends Phaser.Scene {
     this.scrollMask = maskShape.createGeometryMask();
     content.setMask(this.scrollMask);
 
-    const sideMargin = 14;
-    const columnGap = COLLECTION_GRID_GAP_X;
-    const cardWidth = (width - sideMargin * 2 - columnGap) / 2;
-    const cardHeight = Math.round(cardWidth * HAND_CARD_ASPECT_RATIO);
-    let cursorY = 0;
-
-    getFactionKeys().forEach((factionKey) => {
-      const faction = getFactionByKey(factionKey);
-      cursorY = this.drawFactionSection(content, factionKey, faction, {
-        x: sideMargin,
-        y: cursorY,
-        cardWidth,
-        cardHeight,
-        columnGap,
-      });
-      cursorY += COLLECTION_SECTION_GAP_Y;
-    });
-
     this.scrollState = {
       content,
       maxY: viewportTop,
-      minY: viewportTop - Math.max(0, cursorY - viewportHeight),
+      minY: viewportTop,
       viewportTop,
       viewportBottom,
+      viewportHeight,
       pointerId: null,
       pointerStartY: 0,
       contentStartY: viewportTop,
       lastDragDistance: 0,
     };
+
+    this.rebuildCollectionContent({ width });
 
     this.input.on('wheel', this.onScrollWheel, this);
     this.input.on('pointerdown', this.onScrollPointerDown, this);
@@ -154,7 +146,57 @@ export default class CollectionScene extends Phaser.Scene {
     this.input.keyboard?.on('keydown-BACKSPACE', this.onBackRequested, this);
   }
 
-  drawFactionSection(content, factionKey, faction, { x, y, cardWidth, cardHeight, columnGap }) {
+  rebuildCollectionContent({ width }) {
+    const state = this.scrollState;
+    if (!state) {
+      return;
+    }
+
+    this.destroyCollectionContentElements();
+
+    const sideMargin = 14;
+    const columnGap = COLLECTION_GRID_GAP_X;
+    const cardWidth = (width - sideMargin * 2 - columnGap) / 2;
+    const cardHeight = Math.round(cardWidth * HAND_CARD_ASPECT_RATIO);
+    let cursorY = 0;
+
+    getFactionKeys().forEach((factionKey) => {
+      const faction = getFactionByKey(factionKey);
+      cursorY = this.drawFactionSection(state.content, factionKey, faction, {
+        x: sideMargin,
+        y: cursorY,
+        cardWidth,
+        cardHeight,
+        columnGap,
+        expanded: this.expandedFactionKeys.has(factionKey),
+      });
+      cursorY += COLLECTION_SECTION_GAP_Y;
+    });
+
+    state.minY = state.viewportTop - Math.max(0, cursorY - state.viewportHeight);
+    this.setCollectionScrollY(state.content.y);
+  }
+
+  trackCollectionContentElement(element) {
+    this.collectionContentElements.push(element);
+    this.uiElements.push(element);
+    return element;
+  }
+
+  destroyCollectionContentElements() {
+    const elements = this.collectionContentElements;
+    if (!elements.length) return;
+
+    const elementSet = new Set(elements);
+    elements.forEach((element) => {
+      element?.removeAllListeners?.();
+      element?.destroy?.();
+    });
+    this.uiElements = this.uiElements.filter((element) => !elementSet.has(element));
+    this.collectionContentElements = [];
+  }
+
+  drawFactionSection(content, factionKey, faction, { x, y, cardWidth, cardHeight, columnGap, expanded = true }) {
     const stripWidth = this.scale.width - x * 2;
     const stripY = y - 2;
     const titleStrip = this.add.graphics();
@@ -162,24 +204,38 @@ export default class CollectionScene extends Phaser.Scene {
     titleStrip.fillRoundedRect(x, stripY, stripWidth, COLLECTION_SECTION_TITLE_STRIP_HEIGHT, COLLECTION_SECTION_TITLE_STRIP_RADIUS);
     titleStrip.lineStyle(1, 0x38bdf8, COLLECTION_SECTION_TITLE_STRIP_STROKE_ALPHA);
     titleStrip.strokeRoundedRect(x, stripY, stripWidth, COLLECTION_SECTION_TITLE_STRIP_HEIGHT, COLLECTION_SECTION_TITLE_STRIP_RADIUS);
+    titleStrip.setInteractive(
+      new Phaser.Geom.Rectangle(x, stripY, stripWidth, COLLECTION_SECTION_TITLE_STRIP_HEIGHT),
+      Phaser.Geom.Rectangle.Contains,
+    );
+    titleStrip.on('pointerdown', (pointer) => this.onFactionHeaderPointerDown(factionKey, pointer));
+    titleStrip.on('pointerup', (pointer) => this.onFactionHeaderPointerUp(factionKey, pointer));
     content.add(titleStrip);
-    this.uiElements.push(titleStrip);
+    this.trackCollectionContentElement(titleStrip);
 
     const header = this.add
-      .text(this.scale.width / 2, y, getFactionPresentationName(faction?.id, getActiveLocale(), faction?.name ?? factionKey), {
+      .text(this.scale.width / 2, stripY + COLLECTION_SECTION_TITLE_STRIP_HEIGHT / 2, getFactionPresentationName(faction?.id, getActiveLocale(), faction?.name ?? factionKey), {
         fontFamily: 'Arial, sans-serif',
-        fontSize: '21px',
+        fontSize: `${COLLECTION_SECTION_HEADER_TEXT_FONT_SIZE}px`,
         color: '#93c5fd',
         fontStyle: 'bold',
         align: 'center',
       })
-      .setOrigin(0.5, 0);
+      .setOrigin(0.5, 0.5);
+    header.setInteractive({ useHandCursor: true });
+    header.on('pointerdown', (pointer) => this.onFactionHeaderPointerDown(factionKey, pointer));
+    header.on('pointerup', (pointer) => this.onFactionHeaderPointerUp(factionKey, pointer));
     content.add(header);
-    this.uiElements.push(header);
+    this.trackCollectionContentElement(header);
+
+    const headerBottom = stripY + COLLECTION_SECTION_TITLE_STRIP_HEIGHT;
+    if (!expanded) {
+      return headerBottom + COLLECTION_SECTION_HEADER_TOP_INSET;
+    }
 
     const deck = faction?.deck ?? [];
     const rowsPerColumn = Math.max(COLLECTION_CARDS_PER_COLUMN, Math.ceil(deck.length / 2));
-    const gridTop = y + 34;
+    const gridTop = headerBottom + COLLECTION_SECTION_CARD_TOP_GAP;
 
     deck.forEach((card, index) => {
       const column = Math.floor(index / rowsPerColumn);
@@ -194,6 +250,44 @@ export default class CollectionScene extends Phaser.Scene {
     });
 
     return gridTop + rowsPerColumn * cardHeight + Math.max(0, rowsPerColumn - 1) * COLLECTION_CARD_GAP_Y;
+  }
+
+  toggleFactionSection(factionKey) {
+    if (this.inspectPreview) {
+      return;
+    }
+
+    if (this.expandedFactionKeys.has(factionKey)) {
+      this.expandedFactionKeys.delete(factionKey);
+    } else {
+      this.expandedFactionKeys.add(factionKey);
+    }
+
+    this.rebuildCollectionContent({ width: this.scale.width });
+  }
+
+  onFactionHeaderPointerDown(factionKey, pointer) {
+    const state = this.scrollState;
+    if (!state || this.inspectPreview || pointer.y < state.viewportTop || pointer.y > state.viewportBottom) {
+      return;
+    }
+
+    this.headerPress = { factionKey, pointerId: pointer.id };
+  }
+
+  onFactionHeaderPointerUp(factionKey, pointer) {
+    const press = this.headerPress;
+    this.headerPress = null;
+
+    const state = this.scrollState;
+    if (!state || this.inspectPreview || !press || press.factionKey !== factionKey || press.pointerId !== pointer.id) {
+      return;
+    }
+    if (pointer.y < state.viewportTop || pointer.y > state.viewportBottom || this.wasScrollDragging()) {
+      return;
+    }
+
+    this.toggleFactionSection(factionKey);
   }
 
   drawCardPreview(content, card, { x, y, width, height, factionThemeId = '' }) {
@@ -215,7 +309,7 @@ export default class CollectionScene extends Phaser.Scene {
       showNonUnitEffectStatSymbols: true,
     });
     content.add(preview.root);
-    this.uiElements.push(preview.root);
+    this.trackCollectionContentElement(preview.root);
 
     preview.background.setInteractive({ useHandCursor: true });
     preview.background.on('pointerdown', (pointer) => {
@@ -519,11 +613,13 @@ export default class CollectionScene extends Phaser.Scene {
     this.input?.off('pointerup', this.onScrollPointerUp, this);
     this.input?.off('pointerup', this.onCollectionPointerUp, this);
     this.input?.off('pointerupoutside', this.onCollectionPointerUp, this);
+    this.headerPress = null;
     this.input?.keyboard?.off('keydown-ESC', this.onBackRequested, this);
     this.input?.keyboard?.off('keydown-BACKSPACE', this.onBackRequested, this);
 
     this.cancelCardLongPress();
     this.destroyInspectPreview();
+    this.destroyCollectionContentElements();
     this.scrollMask?.destroy?.();
     this.scrollMask = null;
     this.scrollState = null;
