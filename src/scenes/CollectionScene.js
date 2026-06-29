@@ -44,7 +44,7 @@ const COLLECTION_GRID_GAP_X = 10;
 const COLLECTION_CARD_GAP_Y = 12;
 const COLLECTION_SECTION_GAP_Y = 26;
 const COLLECTION_CARDS_PER_COLUMN = 5;
-const COLLECTION_SECTION_TITLE_STRIP_HEIGHT = 48;
+const COLLECTION_SECTION_TITLE_STRIP_HEIGHT = 54;
 const COLLECTION_SECTION_TITLE_STRIP_RADIUS = 10;
 const COLLECTION_SECTION_TITLE_STRIP_ALPHA = 0.58;
 const COLLECTION_SECTION_TITLE_STRIP_TINT_ALPHA = 0.055;
@@ -52,6 +52,7 @@ const COLLECTION_SECTION_TITLE_STRIP_STROKE_ALPHA = 0.48;
 const COLLECTION_SECTION_HEADER_TEXT_FONT_SIZE = 22;
 const COLLECTION_SECTION_HEADER_TOP_INSET = 6;
 const COLLECTION_SECTION_CARD_TOP_GAP = 8;
+const COLLECTION_ACCORDION_TOP_OFFSET = 8;
 
 export default class CollectionScene extends Phaser.Scene {
   constructor() {
@@ -160,7 +161,7 @@ export default class CollectionScene extends Phaser.Scene {
     const columnGap = COLLECTION_GRID_GAP_X;
     const cardWidth = (width - sideMargin * 2 - columnGap) / 2;
     const cardHeight = Math.round(cardWidth * HAND_CARD_ASPECT_RATIO);
-    let cursorY = 0;
+    let cursorY = COLLECTION_ACCORDION_TOP_OFFSET;
 
     getFactionKeys().forEach((factionKey) => {
       const faction = getFactionByKey(factionKey);
