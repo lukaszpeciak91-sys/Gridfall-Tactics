@@ -52,7 +52,7 @@ test('battle result modal creation resets lifecycle flags if visible creation fa
   assert.match(showBattle, /this\.isFlowResolving = false;/);
 });
 
-test('battle result modal enters terminal overlay state before card cleanup', () => {
+test('battle result modal enters terminal overlay state only after modal assignment', () => {
   const showBattle = extractMethodBody('showBattleResultModal', 'createResultModalButton');
   const shownIndex = showBattle.indexOf('this.battleResultModalShown = true;');
   const overlayIndex = showBattle.indexOf('this.resultOverlayState = {');
@@ -60,9 +60,10 @@ test('battle result modal enters terminal overlay state before card cleanup', ()
   const modalAssignmentIndex = showBattle.indexOf('this.battleResultModal = {');
 
   assert.ok(shownIndex >= 0, 'battleResultModalShown should be set in showBattleResultModal');
-  assert.ok(overlayIndex > shownIndex, 'resultOverlayState should be initialized after the shown flag');
-  assert.ok(cleanupIndex > overlayIndex, 'card cleanup should run after result overlay state is active');
+  assert.ok(cleanupIndex > 0, 'card cleanup should run during modal construction');
   assert.ok(modalAssignmentIndex > cleanupIndex, 'modal object assignment should remain after modal construction');
+  assert.ok(shownIndex > modalAssignmentIndex, 'battleResultModalShown should be set only after the modal object exists');
+  assert.ok(overlayIndex > shownIndex, 'resultOverlayState should be initialized after the shown flag');
   assert.match(showBattle, /this\.resetCardHighlights\(\{ showPreview: false \}\);/);
 });
 

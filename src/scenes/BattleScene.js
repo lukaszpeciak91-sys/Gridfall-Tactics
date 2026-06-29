@@ -1597,11 +1597,6 @@ export default class BattleScene extends Phaser.Scene {
     const skipReveal = options.skipReveal === true;
     this.battleResultModalPending = false;
     if (!this.gameState?.winner || this.battleResultModalShown) return;
-    this.battleResultModalShown = true;
-    this.resultOverlayState = {
-      kind: this.isCampaignBattle() ? 'campaign-battle-result' : 'arena-battle-result',
-      phase: 'interactive',
-    };
     const modalItems = [];
     try {
       this.isFlowResolving = false;
@@ -1773,6 +1768,11 @@ export default class BattleScene extends Phaser.Scene {
         dividerGlow,
         celebration,
         buttons: modalButtons,
+      };
+      this.battleResultModalShown = true;
+      this.resultOverlayState = {
+        kind: this.isCampaignBattle() ? 'campaign-battle-result' : 'arena-battle-result',
+        phase: 'interactive',
       };
     } catch (error) {
       console.error('Failed to create battle result modal.', error);
