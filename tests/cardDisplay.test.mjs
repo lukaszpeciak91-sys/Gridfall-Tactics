@@ -405,14 +405,16 @@ test('collection accordion sections are local, non-exclusive, and preserve card 
   assert.doesNotMatch(source, /from '\.\.\/scenes\/BattleScene\.js'|from '\.\/BattleScene\.js'/);
 });
 
-test('collection accordion headers are taller and guard taps from scroll/inspect state', () => {
+test('collection accordion headers are polished for mobile touch targets and title spacing', () => {
   const source = fs.readFileSync('src/scenes/CollectionScene.js', 'utf8');
   const pointerDownSource = source.slice(source.indexOf('  onFactionHeaderPointerDown('), source.indexOf('  onFactionHeaderPointerUp('));
   const pointerUpSource = source.slice(source.indexOf('  onFactionHeaderPointerUp('), source.indexOf('  drawCardPreview('));
 
-  assert.match(source, /const COLLECTION_SECTION_TITLE_STRIP_HEIGHT = 40;/);
+  assert.match(source, /const COLLECTION_SECTION_TITLE_STRIP_HEIGHT = 54;/);
   assert.match(source, /const COLLECTION_SECTION_CARD_TOP_GAP = 8;/);
+  assert.match(source, /const COLLECTION_ACCORDION_TOP_OFFSET = 8;/);
   assert.doesNotMatch(source, /const COLLECTION_SECTION_TITLE_STRIP_HEIGHT = 30;/);
+  assert.match(source, /let cursorY = COLLECTION_ACCORDION_TOP_OFFSET;/);
   assert.match(source, /const gridTop = headerBottom \+ COLLECTION_SECTION_CARD_TOP_GAP;/);
   assert.match(pointerDownSource, /this\.inspectPreview/);
   assert.match(pointerUpSource, /this\.inspectPreview/);
