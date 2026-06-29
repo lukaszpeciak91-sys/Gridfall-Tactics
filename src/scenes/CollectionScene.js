@@ -13,6 +13,7 @@ import { getActiveLocale, translateActive } from '../localization/localeService.
 import { createModalBackButton } from '../ui/modalControls.js';
 import { createMenuScreenHeader } from '../ui/screenHeader.js';
 import { preloadSecondaryButtonAsset } from '../ui/imageButton.js';
+import { FACTION_CARD_DETAILS } from '../ui/factionCards.js';
 import { preloadAudioAssets } from '../audio/audioAssets.js';
 import { playMenuMusic } from '../audio/menuMusic.js';
 import { CARD_COLORS, createCardPreviewView, getDefaultCardAccentColor, resolveCardSurfaceTheme } from '../rendering/cardVisualLayout.js';
@@ -43,11 +44,11 @@ const COLLECTION_GRID_GAP_X = 10;
 const COLLECTION_CARD_GAP_Y = 12;
 const COLLECTION_SECTION_GAP_Y = 26;
 const COLLECTION_CARDS_PER_COLUMN = 5;
-const COLLECTION_SECTION_TITLE_STRIP_HEIGHT = 40;
-const COLLECTION_SECTION_TITLE_STRIP_RADIUS = 8;
+const COLLECTION_SECTION_TITLE_STRIP_HEIGHT = 48;
+const COLLECTION_SECTION_TITLE_STRIP_RADIUS = 10;
 const COLLECTION_SECTION_TITLE_STRIP_ALPHA = 0.58;
-const COLLECTION_SECTION_TITLE_STRIP_STROKE_ALPHA = 0.22;
-const COLLECTION_SECTION_HEADER_TEXT_FONT_SIZE = 21;
+const COLLECTION_SECTION_TITLE_STRIP_STROKE_ALPHA = 0.48;
+const COLLECTION_SECTION_HEADER_TEXT_FONT_SIZE = 22;
 const COLLECTION_SECTION_HEADER_TOP_INSET = 6;
 const COLLECTION_SECTION_CARD_TOP_GAP = 8;
 
@@ -199,10 +200,11 @@ export default class CollectionScene extends Phaser.Scene {
   drawFactionSection(content, factionKey, faction, { x, y, cardWidth, cardHeight, columnGap, expanded = true }) {
     const stripWidth = this.scale.width - x * 2;
     const stripY = y - 2;
+    const factionAccentColor = FACTION_CARD_DETAILS[factionKey]?.accentColor ?? 0x38bdf8;
     const titleStrip = this.add.graphics();
     titleStrip.fillStyle(0x020817, COLLECTION_SECTION_TITLE_STRIP_ALPHA);
     titleStrip.fillRoundedRect(x, stripY, stripWidth, COLLECTION_SECTION_TITLE_STRIP_HEIGHT, COLLECTION_SECTION_TITLE_STRIP_RADIUS);
-    titleStrip.lineStyle(1, 0x38bdf8, COLLECTION_SECTION_TITLE_STRIP_STROKE_ALPHA);
+    titleStrip.lineStyle(1, factionAccentColor, COLLECTION_SECTION_TITLE_STRIP_STROKE_ALPHA);
     titleStrip.strokeRoundedRect(x, stripY, stripWidth, COLLECTION_SECTION_TITLE_STRIP_HEIGHT, COLLECTION_SECTION_TITLE_STRIP_RADIUS);
     titleStrip.setInteractive(
       new Phaser.Geom.Rectangle(x, stripY, stripWidth, COLLECTION_SECTION_TITLE_STRIP_HEIGHT),
