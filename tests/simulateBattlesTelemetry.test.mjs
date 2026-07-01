@@ -37,6 +37,16 @@ test('default simulator output does not include optional simulator telemetry sec
   const output = runSimulator(['1', '--only=Aggro:Aggro']);
 
   assert.match(output, /Battle simulation complete/);
+  assert.match(output, /HAND LOCK ANALYSIS/);
+  assert.match(output, /Full hand events/);
+  assert.match(output, /Burn-eligible opportunities/);
+  assert.match(output, /True hand-lock events/);
+  assert.match(output, /Lock streaks/);
+  assert.match(output, /Remaining deck during burn-eligible states/);
+  assert.match(output, /Faction hand-lock statistics/);
+  assert.match(output, /Cards most frequently present during true hand-lock states/);
+  assert.match(output, /Example traces/);
+  assert.match(output, /Recommendation/);
   assert.doesNotMatch(output, /Simulator telemetry: per-faction summary/);
   assert.doesNotMatch(output, /Simulator telemetry: per-card summary/);
   assert.doesNotMatch(output, /Simulator telemetry: AI health/);

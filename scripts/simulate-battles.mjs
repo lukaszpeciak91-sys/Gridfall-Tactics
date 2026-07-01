@@ -18,7 +18,7 @@ import {
   MAX_TURNS,
 } from '../src/systems/GameState.js';
 import { getFactionByKey, getFactionKeys } from '../src/data/factions/index.js';
-import { chooseBattleAction, recordBattleActionUse, selectOpeningMulliganCardIds } from '../src/systems/enemyDecision.js';
+import { buildActionCandidates, chooseBattleAction, recordBattleActionUse, selectOpeningMulliganCardIds } from '../src/systems/enemyDecision.js';
 
 const DEFAULT_MATCH_COUNT = 100;
 const DEFAULT_BASE_SEED = 1337;
@@ -483,6 +483,144 @@ function recordMulliganTelemetry(telemetry, factionName, replaced) {
   row.cardsReplaced += replaced;
 }
 
+function createHandLockAnalysis() {
+  return {
+    opportunities: { player: 0, enemy: 0, total: 0 },
+    fullHand: { player: 0, enemy: 0, total: 0 },
+    burnEligible: { player: 0, enemy: 0, total: 0, deckTotal: 0, deckMin: Infinity, deckMax: 0 },
+    trueLocks: { player: 0, enemy: 0, total: 0 },
+    factions: {},
+    cards: {},
+    examples: [],
+    streaks: {
+      player: { current: 0, total: 0, count: 0, longest: 0 },
+      enemy: { current: 0, total: 0, count: 0, longest: 0 },
+    },
+  };
+}
+
+function ensureHandLockFactionRow(analysis, faction) {
+  analysis.factions[faction] ??= {
+    faction,
+    opportunities: 0,
+    fullHand: 0,
+    burnEligible: 0,
+    trueLocks: 0,
+  };
+  return analysis.factions[faction];
+}
+
+function finishHandLockStreak(streak) {
+  if (!streak || streak.current <= 0) return;
+  streak.total += streak.current;
+  streak.count += 1;
+  streak.longest = Math.max(streak.longest, streak.current);
+  streak.current = 0;
+}
+
+function recordHandLockStreak(analysis, owner, isTrueLock) {
+  const streak = analysis?.streaks?.[owner];
+  if (!streak) return;
+  if (isTrueLock) {
+    streak.current += 1;
+    streak.longest = Math.max(streak.longest, streak.current);
+    return;
+  }
+  finishHandLockStreak(streak);
+}
+
+function getHandLockActionSummary(actions) {
+  const nonPassActions = actions.filter((action) => action?.type !== 'pass');
+  return {
+    canPlay: nonPassActions.some((action) => action.type === 'play-unit' && action.placementType !== 'redeploy')
+      || nonPassActions.some((action) => action.type === 'play-effect' || action.type === 'play-targeted-effect'),
+    canRedeploy: nonPassActions.some((action) => action.type === 'play-unit' && action.placementType === 'redeploy'),
+    canSwap: nonPassActions.some((action) => action.type === 'swap-units'),
+    canPass: actions.some((action) => action?.type === 'pass'),
+    nonPassActions,
+  };
+}
+
+function getHandLockCardKey(faction, card) {
+  return `${faction}|${card?.id ?? 'unknown'}`;
+}
+
+function recordTrueLockCards(analysis, faction, hand) {
+  hand.forEach((card) => {
+    const key = getHandLockCardKey(faction, card);
+    analysis.cards[key] ??= {
+      faction,
+      cardId: card?.id ?? 'unknown',
+      cardName: card?.name ?? card?.id ?? 'Unknown',
+      count: 0,
+    };
+    analysis.cards[key].count += 1;
+  });
+}
+
+function recordHandLockExample(analysis, state, owner, context, actionSummary, burnEligible) {
+  if (analysis.examples.length >= 5) return;
+  const side = state?.[owner];
+  analysis.examples.push({
+    turn: context?.turn ?? ((state?.turnsCompleted ?? 0) + 1),
+    side: owner,
+    faction: side?.factionName ?? owner,
+    matchup: `${context?.playerFaction ?? state?.player?.factionName ?? 'player'} vs ${context?.enemyFaction ?? state?.enemy?.factionName ?? 'enemy'}`,
+    hand: side?.hand?.length ?? 0,
+    deck: side?.deck?.length ?? 0,
+    canPlay: actionSummary.canPlay,
+    canRedeploy: actionSummary.canRedeploy,
+    canSwap: actionSummary.canSwap,
+    canPass: actionSummary.canPass,
+    burnEligible,
+  });
+}
+
+function recordHandLockOpportunity(analysis, state, owner, context = null) {
+  if (!analysis || !state || state.winner || (owner !== 'player' && owner !== 'enemy')) return;
+  const side = state[owner];
+  if (!side) return;
+  const faction = side.factionName ?? owner;
+  const handLength = side.hand?.length ?? 0;
+  const maxHandSize = Number.isFinite(side.maxHandSize) ? side.maxHandSize : 5;
+  const deckLength = side.deck?.length ?? 0;
+  const isFullHand = handLength === maxHandSize;
+  const isBurnEligible = isFullHand && deckLength > 0 && !state.winner;
+  const actions = buildActionCandidates(state, owner, side.hand ?? [], null);
+  const actionSummary = getHandLockActionSummary(actions);
+  const isTrueLock = isBurnEligible && actionSummary.canPass && actionSummary.nonPassActions.length === 0;
+  const factionRow = ensureHandLockFactionRow(analysis, faction);
+
+  analysis.opportunities[owner] += 1;
+  analysis.opportunities.total += 1;
+  factionRow.opportunities += 1;
+
+  if (isFullHand) {
+    analysis.fullHand[owner] += 1;
+    analysis.fullHand.total += 1;
+    factionRow.fullHand += 1;
+  }
+
+  if (isBurnEligible) {
+    analysis.burnEligible[owner] += 1;
+    analysis.burnEligible.total += 1;
+    analysis.burnEligible.deckTotal += deckLength;
+    analysis.burnEligible.deckMin = Math.min(analysis.burnEligible.deckMin, deckLength);
+    analysis.burnEligible.deckMax = Math.max(analysis.burnEligible.deckMax, deckLength);
+    factionRow.burnEligible += 1;
+  }
+
+  if (isTrueLock) {
+    analysis.trueLocks[owner] += 1;
+    analysis.trueLocks.total += 1;
+    factionRow.trueLocks += 1;
+    recordTrueLockCards(analysis, faction, side.hand ?? []);
+    recordHandLockExample(analysis, state, owner, context, actionSummary, isBurnEligible);
+  }
+
+  recordHandLockStreak(analysis, owner, isTrueLock);
+}
+
 function applyAiOpeningMulligan(state, owner, randomFn, telemetry, simTelemetry = null, gameCardTelemetry = null) {
   const side = owner === 'player' ? state.player : state.enemy;
   const selectedIds = selectOpeningMulliganCardIds(side);
@@ -496,7 +634,8 @@ function applyAiOpeningMulligan(state, owner, randomFn, telemetry, simTelemetry 
   recordMulliganTelemetry(telemetry, side.factionName ?? 'Unknown', result.replaced);
 }
 
-function applyAction(state, owner, passStats, decisionOptions, telemetry, simTelemetry, gameCardTelemetry = null) {
+function applyAction(state, owner, passStats, decisionOptions, telemetry, simTelemetry, gameCardTelemetry = null, handLockAnalysis = null, opportunityContext = null) {
+  recordHandLockOpportunity(handLockAnalysis, state, owner, opportunityContext);
   const action = chooseBattleAction(state, owner, { ...decisionOptions, telemetry });
   const cancelKey = owner === 'enemy' ? 'player' : 'enemy';
   const nonUnit = action.type === 'play-effect' || action.type === 'play-targeted-effect';
@@ -568,7 +707,7 @@ function applyAction(state, owner, passStats, decisionOptions, telemetry, simTel
 }
 
 
-function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, simTelemetry, gameSeed, gameIndex, playerKey, enemyKey, effectVariantRegistry = null) {
+function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, simTelemetry, gameSeed, gameIndex, playerKey, enemyKey, effectVariantRegistry = null, handLockAnalysis = null) {
   const gameRng = createSeededRng(gameSeed);
   const state = createInitialBattleState(playerFaction, enemyFaction, { randomFn: gameRng });
   if (effectVariantRegistry) state.effectVariantRegistry = effectVariantRegistry;
@@ -606,8 +745,8 @@ function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, simTel
     const firstActor = state.firstActor;
     const secondActor = firstActor === 'player' ? 'enemy' : 'player';
 
-    applyAction(state, firstActor, passStats, firstDecisionOptions, telemetry, simTelemetry, cardGameTelemetry);
-    applyAction(state, secondActor, passStats, secondDecisionOptions, telemetry, simTelemetry, cardGameTelemetry);
+    applyAction(state, firstActor, passStats, firstDecisionOptions, telemetry, simTelemetry, cardGameTelemetry, handLockAnalysis, { turn: turns + 1, actingOrder: 'first', playerFaction: playerKey, enemyFaction: enemyKey, gameIndex });
+    applyAction(state, secondActor, passStats, secondDecisionOptions, telemetry, simTelemetry, cardGameTelemetry, handLockAnalysis, { turn: turns + 1, actingOrder: 'second', playerFaction: playerKey, enemyFaction: enemyKey, gameIndex });
     const playerDeckBeforeCombat = [...state.player.deck];
     const enemyDeckBeforeCombat = [...state.enemy.deck];
     resolveCombat(state);
@@ -936,6 +1075,125 @@ function printAiSimulatorTelemetry(telemetry, simTelemetry, totalGames) {
   ]);
 }
 
+function yesNo(value) {
+  return value ? '✅' : '❌';
+}
+
+function printHandLockAnalysis(analysis) {
+  Object.values(analysis.streaks).forEach(finishHandLockStreak);
+  const totalOpportunities = analysis.opportunities.total;
+  const burnEligible = analysis.burnEligible;
+  const burnEligibleDeckCount = burnEligible.total;
+
+  console.log('\n====================================');
+  console.log('HAND LOCK ANALYSIS');
+  console.log('====================================');
+
+  console.log('\nFull hand events:');
+  console.table([
+    { side: 'player', events: analysis.fullHand.player, opportunities: analysis.opportunities.player, percentage: `${percent(analysis.fullHand.player, analysis.opportunities.player)}%` },
+    { side: 'enemy', events: analysis.fullHand.enemy, opportunities: analysis.opportunities.enemy, percentage: `${percent(analysis.fullHand.enemy, analysis.opportunities.enemy)}%` },
+    { side: 'total', events: analysis.fullHand.total, opportunities: totalOpportunities, percentage: `${percent(analysis.fullHand.total, totalOpportunities)}%` },
+  ]);
+
+  console.log('\nBurn-eligible opportunities:');
+  console.table([
+    { side: 'player', events: burnEligible.player, opportunities: analysis.opportunities.player, percentage: `${percent(burnEligible.player, analysis.opportunities.player)}%` },
+    { side: 'enemy', events: burnEligible.enemy, opportunities: analysis.opportunities.enemy, percentage: `${percent(burnEligible.enemy, analysis.opportunities.enemy)}%` },
+    { side: 'total', events: burnEligible.total, opportunities: totalOpportunities, percentage: `${percent(burnEligible.total, totalOpportunities)}%` },
+  ]);
+
+  console.log('\nTrue hand-lock events:');
+  console.table([
+    { side: 'player', events: analysis.trueLocks.player, opportunities: analysis.opportunities.player, percentage: `${percent(analysis.trueLocks.player, analysis.opportunities.player)}%` },
+    { side: 'enemy', events: analysis.trueLocks.enemy, opportunities: analysis.opportunities.enemy, percentage: `${percent(analysis.trueLocks.enemy, analysis.opportunities.enemy)}%` },
+    { side: 'total', events: analysis.trueLocks.total, opportunities: totalOpportunities, percentage: `${percent(analysis.trueLocks.total, totalOpportunities)}%` },
+  ]);
+
+  console.log('\nLock streaks:');
+  console.table(['player', 'enemy'].map((side) => {
+    const row = analysis.streaks[side];
+    return {
+      side,
+      streaks: row.count,
+      'average streak': avg(row.total, row.count),
+      'longest streak': row.longest,
+    };
+  }));
+
+  console.log('\nRemaining deck during burn-eligible states:');
+  console.table([{
+    samples: burnEligibleDeckCount,
+    average: avg(burnEligible.deckTotal, burnEligibleDeckCount),
+    minimum: burnEligibleDeckCount > 0 ? burnEligible.deckMin : 0,
+    maximum: burnEligibleDeckCount > 0 ? burnEligible.deckMax : 0,
+  }]);
+
+  console.log('\nFaction hand-lock statistics:');
+  console.table(Object.values(analysis.factions)
+    .sort((a, b) => percentValue(b.trueLocks, b.opportunities) - percentValue(a.trueLocks, a.opportunities)
+      || percentValue(b.burnEligible, b.opportunities) - percentValue(a.burnEligible, a.opportunities)
+      || a.faction.localeCompare(b.faction))
+    .map((row) => ({
+      faction: row.faction,
+      opportunities: row.opportunities,
+      'full hand rate': `${percent(row.fullHand, row.opportunities)}%`,
+      'burn eligible rate': `${percent(row.burnEligible, row.opportunities)}%`,
+      'true hand lock rate': `${percent(row.trueLocks, row.opportunities)}%`,
+      'true locks': row.trueLocks,
+    })));
+
+  console.log('\nCards most frequently present during true hand-lock states:');
+  const cardRows = Object.values(analysis.cards)
+    .sort((a, b) => b.count - a.count || a.faction.localeCompare(b.faction) || a.cardName.localeCompare(b.cardName))
+    .slice(0, 10);
+  if (cardRows.length === 0) {
+    console.log('No true hand-lock card samples recorded.');
+  } else {
+    console.table(cardRows.map((row) => ({
+      faction: row.faction,
+      card: row.cardName,
+      id: row.cardId,
+      'true-lock hand appearances': row.count,
+    })));
+  }
+
+  console.log('\nExample traces:');
+  if (analysis.examples.length === 0) {
+    console.log('No true hand-lock examples recorded.');
+  } else {
+    analysis.examples.forEach((example, index) => {
+      console.log(`\nExample ${index + 1}: ${example.matchup}, ${example.faction} ${example.side}, Turn ${example.turn}`);
+      console.log(`Hand: ${example.hand}`);
+      console.log(`Deck: ${example.deck}`);
+      console.log('Legal actions');
+      console.log(`Play ${yesNo(example.canPlay)}`);
+      console.log(`Redeploy ${yesNo(example.canRedeploy)}`);
+      console.log(`Swap ${yesNo(example.canSwap)}`);
+      console.log(`PASS ${yesNo(example.canPass)}`);
+      console.log(example.burnEligible ? 'This would have been Burn eligible.' : 'This would not have been Burn eligible.');
+    });
+  }
+
+  console.log('\nRecommendation');
+  const trueLockRate = percentValue(analysis.trueLocks.total, totalOpportunities);
+  const burnEligibleRate = percentValue(burnEligible.total, totalOpportunities);
+  if (analysis.trueLocks.total === 0) {
+    console.log(`No true hand-lock situations were observed across ${totalOpportunities} action opportunities. Burn mechanic appears unnecessary in this sample.`);
+  } else {
+    const factionRows = Object.values(analysis.factions)
+      .filter((row) => row.trueLocks > 0)
+      .sort((a, b) => percentValue(b.trueLocks, b.opportunities) - percentValue(a.trueLocks, a.opportunities))
+      .slice(0, 3)
+      .map((row) => row.faction);
+    console.log(`True hand-lock situations were observed ${analysis.trueLocks.total} time(s) across ${totalOpportunities} action opportunities (${pct(trueLockRate)}). Burn-eligible states occurred ${burnEligible.total} time(s) (${pct(burnEligibleRate)}).`);
+    if (factionRows.length > 0) {
+      console.log(`Observed true locks were most concentrated in: ${factionRows.join(', ')}.`);
+    }
+    console.log('Use these measured rates to decide whether a Burn mechanic is worth prototyping.');
+  }
+}
+
 function createOrderedStats(playerFaction, enemyFaction) {
   return {
     playerFaction,
@@ -1017,6 +1275,7 @@ function main() {
   const passStats = { pass: 0, cancelled: 0 };
   const telemetry = { replaceUsed: 0, repositionUsed: 0, meaningfulGameplayActions: 0, pointlessGameplayActions: 0, openLaneImprovements: 0, repeatedLoopPreventions: 0, invalidActions: 0, crashes: 0, quickFixUses: 0, quickFixTriggers: 0, shieldPushUses: 0, defensiveFrictionApplications: 0, funeralPyreUses: 0, systemOverrideUses: 0, funeralPyreTriggers: 0, funeralPyreLaneDamageTriggers: 0, combatOnlyDeathHeroTriggers: 0, combatOnlyDeathLaneDamageTriggers: 0, combatOnlyDeathSummons: 0, leechCombatHeals: 0, rotcallerCombatTriggers: 0, overflowCombatTriggers: 0, overflowCombatDamage: 0, overflowCombatTriggersByCardId: {}, overflowCombatDamageByCardId: {}, mulliganByFaction: {} };
   const audit = { games: 0, draws: 0, turnCaps: 0, aggroTurnCapWins: 0, aggroGames: 0, nonSwarmGames: 0, nonSwarmDraws: 0, nonSwarmTurnCaps: 0, swarmMirrorGames: 0, swarmMirrorDraws: 0, simultaneousLethals: 0, simultaneousLethalDrawsAfter: 0 };
+  const handLockAnalysis = createHandLockAnalysis();
 
   for (let playerIndex = 0; playerIndex < factionKeys.length; playerIndex += 1) for (let enemyIndex = 0; enemyIndex < factionKeys.length; enemyIndex += 1) {
     const playerKey = factionKeys[playerIndex];
@@ -1030,7 +1289,7 @@ function main() {
 
     for (let i = 0; i < gamesForMatchup; i += 1) {
       const gameSeed = buildGameSeed(baseSeed, playerKey, enemyKey, i);
-      const result = runSingleGame(factions[playerKey], factions[enemyKey], passStats, telemetry, simTelemetry, gameSeed, i, playerKey, enemyKey, effectVariantRegistry);
+      const result = runSingleGame(factions[playerKey], factions[enemyKey], passStats, telemetry, simTelemetry, gameSeed, i, playerKey, enemyKey, effectVariantRegistry, handLockAnalysis);
       recordGameEndTelemetry(simTelemetry, result);
       recordEffectVariantOperationTelemetry(simTelemetry, result.effectVariantOperationTelemetry);
       telemetry.quickFixTriggers += result.quickFixTempoDraws ?? 0;
@@ -1249,6 +1508,8 @@ Battle simulation complete (${matchCount} games per matchup${filterSummary}, max
     { metric: 'simultaneous lethal draws before rule', value: audit.simultaneousLethals, count: `${audit.simultaneousLethals}/${audit.simultaneousLethals}` },
     { metric: 'simultaneous lethal draws after rule', value: audit.simultaneousLethalDrawsAfter, count: `${audit.simultaneousLethalDrawsAfter}/${audit.simultaneousLethals}` },
   ]);
+  printHandLockAnalysis(handLockAnalysis);
+
   console.log('\nOpening mulligan usage by faction:');
   console.table(factionKeys.map((key) => {
     const row = telemetry.mulliganByFaction[key] ?? { games: 0, used: 0, cardsReplaced: 0 };
