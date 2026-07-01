@@ -2201,7 +2201,8 @@ export function canSwap(state, fromIndex, toIndex, owner) {
   if (!state || state.winner || fromIndex === toIndex) return false;
   const rowIndexes = owner === 'player' ? PLAYER_ROW : ENEMY_ROW;
   if (!rowIndexes.includes(fromIndex) || !rowIndexes.includes(toIndex)) return false;
-  return Boolean(state.board[fromIndex] && state.board[toIndex]);
+  if (!areSameRowAdjacentIndexes(fromIndex, toIndex)) return false;
+  return Boolean(state.board[fromIndex]?.owner === owner && state.board[toIndex]?.owner === owner);
 }
 
 export function canPlayOrRedeploy(state, owner, handCardId, boardIndex) {
