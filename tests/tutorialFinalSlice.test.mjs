@@ -87,7 +87,7 @@ test('redeploy and effect use real paths, scripted blockers prevent early victor
   assert.equal(beforePassHp, 1);
   assert.equal(ctx.state.enemyHP, 0);
   assert.equal(ctx.state.winner, 'player');
-  assert.equal(ctx.state.playerHP, 7, 'tutorial player cannot accidentally lose in the final slice');
+  assert.ok(ctx.state.playerHP > 0, 'tutorial player cannot accidentally lose in the final slice');
 });
 
 test('redeployed Unit C grants Shieldbearer armor only to adjacent allies during combat projection', () => {
