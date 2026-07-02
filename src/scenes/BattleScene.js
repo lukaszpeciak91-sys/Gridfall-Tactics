@@ -4597,6 +4597,7 @@ export default class BattleScene extends Phaser.Scene {
     if (redraw && !skipAnimation) this.redrawHand();
     this.updatePlayerBaseActionState();
     this.resetCardHighlights({ showPreview: false });
+    this.updateTutorialFocus?.();
   }
 
   clearHandPanelViews() {
@@ -6179,13 +6180,16 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   getTutorialBannerLayout() {
-    const layout = this.getCentralBattleBannerLayout({ baseWidthRatio: 0.92, horizontalPadding: 16, startOffset: 5 });
-    const { height, board } = this.layout;
+    const { width, height, board, playerHero, hand, margin } = this.layout;
+    const maxTextWidth = Math.min(board.width * 0.86, width - margin * 2 - 32);
+    const targetY = Math.max(playerHero.centerY + playerHero.h * 0.35, Math.min(hand.y - 26, board.y + board.height + 22));
     return {
-      ...layout,
+      x: width * 0.5,
+      targetY,
+      maxTextWidth,
       fontSize: Math.min(18, Math.max(14, Math.floor(Math.max(board.cellWidth * 0.125, height * 0.016)))),
-      overlayWidth: Math.min(board.width * 0.96, this.layout.width - this.layout.margin * 2),
-      overlayHeight: Math.max(72, Math.min(116, height * 0.12)),
+      overlayWidth: width,
+      overlayHeight: height,
     };
   }
 
@@ -6220,17 +6224,24 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     if (!this.tutorialBannerOverlay?.active) {
-      this.tutorialBannerOverlay = this.add.rectangle(layout.x, layout.targetY, layout.overlayWidth, layout.overlayHeight, 0x000000, 0.001)
+      this.tutorialBannerOverlay = this.add.rectangle(this.layout.width * 0.5, this.layout.height * 0.5, layout.overlayWidth, layout.overlayHeight, 0x000000, 0.001)
         .setOrigin(0.5)
         .setDepth(223)
         .setInteractive({ useHandCursor: true })
+        .on('pointerdown', (pointer, localX, localY, event) => this.onTutorialBannerPointerDown(pointer, localX, localY, event))
         .on('pointerup', (pointer, localX, localY, event) => this.onTutorialBannerPointerUp(pointer, localX, localY, event));
     }
-    this.tutorialBannerOverlay.setPosition(layout.x, layout.targetY).setSize(layout.overlayWidth, layout.overlayHeight);
+    this.tutorialBannerOverlay.setPosition(this.layout.width * 0.5, this.layout.height * 0.5).setSize(layout.overlayWidth, layout.overlayHeight);
     this.tutorialBannerOverlay.input.enabled = canTapContinue;
     this.tutorialBannerOverlay.setVisible(canTapContinue);
     this.updateTutorialFocus(step);
     return this.tutorialBanner;
+  }
+
+  onTutorialBannerPointerDown(pointer, localX, localY, event) {
+    if (!this.isTutorialBattle() || !this.isCurrentTutorialStepTapContinue()) return false;
+    event?.stopPropagation?.();
+    return true;
   }
 
   onTutorialBannerPointerUp(pointer, localX, localY, event) {
@@ -6331,9 +6342,13 @@ export default class BattleScene extends Phaser.Scene {
       const handBounds = type === 'player_hand_and_lanes' ? { x: this.layout.width * 0.5, y: this.layout.hand.centerY, width: this.layout.width - this.layout.margin * 2, height: this.layout.hand.h } : null;
       return this.getMergedFocusBounds([handBounds, ...((this.boardCells ?? []).map((cell) => this.getGameObjectFocusBounds(cell.background, 4)))]);
     }
-    if (type === 'board_slot' || type === 'occupied_board_slot' || type === 'open_lane' || type === 'empty_lane') return this.getBoardSlotFocusBounds(target.slotIndex ?? target.index ?? target.laneIndex ?? 0);
+    if (type === 'empty_lane') {
+      if (!Number.isInteger(target.slotIndex) || target.slotIndex < 6 || target.slotIndex > 8) return null;
+      return this.getBoardSlotFocusBounds(target.slotIndex);
+    }
+    if (type === 'board_slot' || type === 'occupied_board_slot' || type === 'open_lane') return this.getBoardSlotFocusBounds(target.slotIndex ?? target.index ?? 0);
     if (type === 'adjacent_units' || type === 'adjacent_board_slots') return this.getMergedFocusBounds([this.getBoardSlotFocusBounds(target.fromIndex ?? 0), this.getBoardSlotFocusBounds(target.toIndex ?? 1)]);
-    if (type === 'hand_card' || type === 'specific_hand_card' || type === 'mulligan_card' || type === 'effect_card') return this.getHandCardFocusBounds(target.cardId ?? (type === 'mulligan_card' ? getTutorialBattleData().openingConfig.requiredPlayerMulliganCardId : null)) ?? (type === 'effect_card' ? this.getHandCardFocusBounds((this.gameState?.player?.hand ?? []).find((card) => card?.type !== 'unit')?.id) : null);
+    if (type === 'hand_card' || type === 'specific_hand_card' || type === 'mulligan_card' || type === 'effect_card') return this.getHandCardFocusBounds(target.cardId ?? (type === 'mulligan_card' ? getTutorialBattleData().openingConfig.requiredPlayerMulliganCardId : null));
     return null;
   }
 
@@ -6371,8 +6386,9 @@ export default class BattleScene extends Phaser.Scene {
       this.clearTutorialFocusGraphics();
       return null;
     }
-    if (this.currentTutorialFocusKey === key && this.tutorialFocusGraphics?.length > 0) return this.tutorialFocusGraphics[1] ?? this.tutorialFocusGraphics[0];
-    return this.drawTutorialFocusBounds(bounds, key);
+    const boundsKey = `${key}:${Math.round(bounds.x)},${Math.round(bounds.y)},${Math.round(bounds.width)},${Math.round(bounds.height)}`;
+    if (this.currentTutorialFocusKey === boundsKey && this.tutorialFocusGraphics?.length > 0) return this.tutorialFocusGraphics[1] ?? this.tutorialFocusGraphics[0];
+    return this.drawTutorialFocusBounds(bounds, boundsKey);
   }
 
   async showOpeningTurnStartBanner() {

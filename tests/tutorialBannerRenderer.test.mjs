@@ -11,6 +11,7 @@ test('tutorial BattleScene creates and shows a tutorial banner only in tutorial 
   assert.match(source, /updateTutorialBanner\(\) \{[\s\S]*!this\.isTutorialBattle\(\)[\s\S]*this\.destroyTutorialBanner\(\)/);
   assert.match(source, /const step = this\.getCurrentTutorialStep\(\);[\s\S]*const message = this\.getTutorialStepText\(step\);/);
   assert.match(source, /this\.tutorialBanner = this\.add\.text\(layout\.x, layout\.targetY, message/);
+  assert.match(source, /getTutorialBannerLayout\(\) \{[\s\S]*playerHero[\s\S]*hand[\s\S]*const targetY = Math\.max\(playerHero\.centerY/);
   assert.match(source, /this\.startOpeningMulliganReveal\(\);\s*this\.updateTutorialBanner\(\);/);
   const updateSource = source.slice(source.indexOf('  updateTutorialBanner() {'), source.indexOf('  onTutorialBannerPointerUp('));
   assert.match(updateSource, /!this\.isTutorialBattle\(\)/);
@@ -28,7 +29,7 @@ test('tap_continue tutorial banner advances and updates text without global batt
   const source = battleSource();
 
   assert.match(source, /onTutorialBannerPointerUp\(pointer, localX, localY, event\) \{[\s\S]*!this\.isCurrentTutorialStepTapContinue\(\)[\s\S]*event\?\.stopPropagation\?\.\(\);[\s\S]*this\.handleTutorialEvent\('tap_continue'\)/);
-  assert.match(source, /this\.tutorialBannerOverlay = this\.add\.rectangle[\s\S]*\.setInteractive\(\{ useHandCursor: true \}\)[\s\S]*\.on\('pointerup'/);
+  assert.match(source, /this\.tutorialBannerOverlay = this\.add\.rectangle\(this\.layout\.width \* 0\.5, this\.layout\.height \* 0\.5[\s\S]*\.setInteractive\(\{ useHandCursor: true \}\)[\s\S]*\.on\('pointerdown'[\s\S]*\.on\('pointerup'/);
   assert.match(source, /this\.tutorialBannerOverlay\.input\.enabled = canTapContinue;/);
   assert.match(source, /if \(result\.matched\) this\.updateTutorialBanner\(\);/);
 });
@@ -38,6 +39,7 @@ test('required-action tutorial steps show text but unrelated tap_continue does n
 
   assert.match(source, /const canTapContinue = step\.expected\?\.type === 'tap_continue';/);
   assert.match(source, /this\.tutorialBannerOverlay\.setVisible\(canTapContinue\);/);
+  assert.match(source, /onTutorialBannerPointerDown\(pointer, localX, localY, event\) \{[\s\S]*!this\.isCurrentTutorialStepTapContinue\(\)[\s\S]*event\?\.stopPropagation\?\.\(\);/);
   assert.match(source, /handleTutorialControllerEvent\(this\.tutorialControllerState, eventName, payload\)/);
   assert.doesNotMatch(source, /advanceTutorialControllerStep\(this\.tutorialControllerState, \{ eventName: 'tap_continue'/);
 });
