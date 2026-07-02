@@ -412,6 +412,9 @@ export default class BattleScene extends Phaser.Scene {
         previewStatus: context.previewStatus === 'won' ? 'won' : 'lost',
       };
     }
+    if (context?.mode === 'tutorial') {
+      return { mode: 'tutorial' };
+    }
     const mode = context?.mode === 'campaign' ? 'campaign' : 'arena';
     if (mode !== 'campaign') return { mode: 'arena' };
     return {
@@ -423,6 +426,10 @@ export default class BattleScene extends Phaser.Scene {
 
   isCampaignBattle() {
     return this.battleContext?.mode === 'campaign';
+  }
+
+  isTutorialBattle() {
+    return this.battleContext?.mode === 'tutorial';
   }
 
   isCampaignCompletionPreview() {
@@ -1592,6 +1599,60 @@ export default class BattleScene extends Phaser.Scene {
     return { particles, timers };
   }
 
+
+  getBattleResultOverlayKind() {
+    if (this.isCampaignBattle()) return 'campaign-battle-result';
+    if (this.isTutorialBattle()) return 'tutorial-battle-result';
+    return 'arena-battle-result';
+  }
+
+  getBattleResultModalButtons({ centerX, buttonY, buttonWidth, buttonHeight, gap, presentation }) {
+    if (this.isCampaignBattle()) {
+      return [this.createResultModalButton(
+        centerX,
+        buttonY,
+        buttonWidth,
+        buttonHeight,
+        translateActive('ui.common.continue', 'CONTINUE'),
+        () => this.continueCampaignBattleResult(),
+        presentation,
+      )];
+    }
+
+    if (this.isTutorialBattle()) {
+      return [this.createResultModalButton(
+        centerX,
+        buttonY,
+        buttonWidth,
+        buttonHeight,
+        translateActive('ui.common.exit', 'EXIT'),
+        () => this.exitTutorialBattleToGameMenu(),
+        presentation,
+      )];
+    }
+
+    return [
+      this.createResultModalButton(
+        centerX - buttonWidth / 2 - gap / 2,
+        buttonY,
+        buttonWidth,
+        buttonHeight,
+        translateActive('ui.common.exit', 'EXIT'),
+        () => this.exitBattleToFactionSelect(),
+        presentation,
+      ),
+      this.createResultModalButton(
+        centerX + buttonWidth / 2 + gap / 2,
+        buttonY,
+        buttonWidth,
+        buttonHeight,
+        translateActive('ui.common.retry', 'RETRY'),
+        () => this.retryBattle(),
+        presentation,
+      ),
+    ];
+  }
+
   showBattleResultModal() {
     const options = arguments[0] ?? {};
     const skipReveal = options.skipReveal === true;
@@ -1687,36 +1748,14 @@ export default class BattleScene extends Phaser.Scene {
         this.layout.playerHero.y - buttonHeight * 0.5 - Math.max(6, height * 0.01),
       );
       const gap = Math.max(22, Math.min(42, width * 0.065));
-      const modalButtons = this.isCampaignBattle()
-        ? [this.createResultModalButton(
-          centerX,
-          buttonY,
-          buttonWidth,
-          buttonHeight,
-          translateActive('ui.common.continue', 'CONTINUE'),
-          () => this.continueCampaignBattleResult(),
-          presentation,
-        )]
-        : [
-          this.createResultModalButton(
-          centerX - buttonWidth / 2 - gap / 2,
-          buttonY,
-          buttonWidth,
-          buttonHeight,
-          translateActive('ui.common.exit', 'EXIT'),
-          () => this.exitBattleToFactionSelect(),
-          presentation,
-          ),
-          this.createResultModalButton(
-          centerX + buttonWidth / 2 + gap / 2,
-          buttonY,
-          buttonWidth,
-          buttonHeight,
-          translateActive('ui.common.retry', 'RETRY'),
-          () => this.retryBattle(),
-          presentation,
-          ),
-        ];
+      const modalButtons = this.getBattleResultModalButtons({
+        centerX,
+        buttonY,
+        buttonWidth,
+        buttonHeight,
+        gap,
+        presentation,
+      });
       modalButtons.forEach((button) => modalItems.push(...(button.items ?? [])));
 
       let celebration = { particles: [], timers: [] };
@@ -1771,7 +1810,7 @@ export default class BattleScene extends Phaser.Scene {
       };
       this.battleResultModalShown = true;
       this.resultOverlayState = {
-        kind: this.isCampaignBattle() ? 'campaign-battle-result' : 'arena-battle-result',
+        kind: this.getBattleResultOverlayKind(),
         phase: 'interactive',
       };
     } catch (error) {
@@ -2627,12 +2666,21 @@ export default class BattleScene extends Phaser.Scene {
   exitBattleToFactionSelect() {
     if (!this.prepareUtilityMenuNavigation({ includeBattleResultModal: true })) return;
 
+    if (this.isTutorialBattle()) {
+      this.exitTutorialBattleToGameMenu();
+      return;
+    }
+
     if (this.isCampaignBattle()) {
       this.exitBattleToCampaignEnemySelect();
       return;
     }
 
     this.scene.start('FactionSelectScene');
+  }
+
+  exitTutorialBattleToGameMenu() {
+    this.scene.start('GameMenuScene');
   }
 
   exitBattleToCampaignEnemySelect() {
@@ -3355,7 +3403,7 @@ export default class BattleScene extends Phaser.Scene {
     }
     if (this.battleResultModalShown) {
       return {
-        kind: this.isCampaignBattle() ? 'campaign-battle-result' : 'arena-battle-result',
+        kind: this.getBattleResultOverlayKind(),
         phase: 'interactive',
       };
     }
@@ -3373,7 +3421,7 @@ export default class BattleScene extends Phaser.Scene {
       });
       return true;
     }
-    if ((snapshot.kind === 'arena-battle-result' || snapshot.kind === 'campaign-battle-result') && this.gameState?.winner) {
+    if ((snapshot.kind === 'arena-battle-result' || snapshot.kind === 'campaign-battle-result' || snapshot.kind === 'tutorial-battle-result') && this.gameState?.winner) {
       this.showBattleResultModal({ skipReveal: true });
       return true;
     }
