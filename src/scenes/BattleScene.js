@@ -3,6 +3,7 @@ import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
 import { getTutorialBattleData } from '../data/tutorial/tutorialDecks.js';
 import { applyTutorialOpeningSetup, isTutorialBattleContext, performTutorialOpeningMulligan } from '../systems/tutorialOpening.js';
 import { selectNextTutorialEnemyAction } from '../systems/tutorialEnemyActions.js';
+import { checkTutorialInputGate } from '../systems/tutorialInputGate.js';
 import { advanceTutorialStep as advanceTutorialControllerStep, createTutorialControllerState, getCurrentTutorialStep as getCurrentTutorialControllerStep, handleTutorialEvent as handleTutorialControllerEvent, isTutorialComplete } from '../systems/tutorialController.js';
 import { createInitialBattleState, drawCards, shuffleDeck, canPass, canPlayOrRedeploy, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, resolveTargetedUnitOnPlayEffect, getUnitAttack, getUnitArmor, toggleFirstActor, resolveTurnCapWinner, resolveImmediateResourceExhaustionWinner, resolveImmediateNoProgressWinner, recordPassAction, completeActionOpportunity, performOpeningMulligan, STARTING_HAND_SIZE, MAX_OPENING_MULLIGAN_CARDS, getEffectiveBoardAttack, getEffectiveBoardArmor, canPlayEffectCard, isEffectCardBlockedForOwner, isBattleExhaustedEligible } from '../systems/GameState.js';
 import { chooseEnemyAction, isVerySafeConcedableState, recordBattleActionUse, selectOpeningMulliganCardIds } from '../systems/enemyDecision.js';
@@ -465,6 +466,15 @@ export default class BattleScene extends Phaser.Scene {
     return step;
   }
 
+  checkTutorialInputGate(proposal = {}) {
+    if (!this.isTutorialBattle?.() || !this.tutorialControllerState) return { allowed: true, reason: 'not_tutorial' };
+    return checkTutorialInputGate(this.tutorialControllerState, proposal);
+  }
+
+  isTutorialInputAllowed(proposal = {}) {
+    return this.checkTutorialInputGate(proposal).allowed;
+  }
+
   handleTutorialEvent(eventName, payload = {}) {
     if (!this.isTutorialBattle() || !this.tutorialControllerState) {
       return { matched: false, completed: false, currentStep: null };
@@ -913,6 +923,8 @@ export default class BattleScene extends Phaser.Scene {
       (pointer, localX, localY, event) => {
         event?.stopPropagation?.();
         this.guardPointerEvent(pointer);
+        if (!this.utilityMenuPanel && !(this.isTutorialInputAllowed?.({ type: 'click_battle_menu', target: 'battle_menu_button' }) ?? true)) return;
+        if (this.utilityMenuPanel && !(this.isTutorialInputAllowed?.({ type: 'close_battle_menu', target: 'battle_menu_panel' }) ?? true)) return;
         this.toggleUtilityMenuPanel();
       },
       { fontScale: 0.5 },
@@ -968,12 +980,14 @@ export default class BattleScene extends Phaser.Scene {
     outsideCatcher.on('pointerup', (pointer, localX, localY, event) => {
       event?.stopPropagation?.();
       this.guardPointerEvent(pointer);
+      if (!(this.isTutorialInputAllowed?.({ type: 'close_battle_menu', target: 'battle_menu_panel' }) ?? true)) return;
       this.destroyUtilityMenuPanel();
     });
 
     const triggerControl = this.createPlayerBaseUtilityControl(triggerX, triggerY, triggerWidth, triggerHeight, '☰', (pointer, localX, localY, event) => {
       event?.stopPropagation?.();
       this.guardPointerEvent(pointer);
+      if (!(this.isTutorialInputAllowed?.({ type: 'close_battle_menu', target: 'battle_menu_panel' }) ?? true)) return;
       this.destroyUtilityMenuPanel();
     }, { fontScale: 0.5 });
 
@@ -3710,7 +3724,10 @@ export default class BattleScene extends Phaser.Scene {
       width,
       height,
       deckLabel,
-      () => this.openDeckInfoPanel(),
+      () => {
+        if (!(this.isTutorialInputAllowed?.({ type: 'click_deck', target: 'deck_counter' }) ?? true)) return;
+        this.openDeckInfoPanel();
+      },
       { fontScale: 0.33 },
     );
 
@@ -4005,6 +4022,7 @@ export default class BattleScene extends Phaser.Scene {
 
   destroyDeckInfoPanel() {
     if (!this.deckInfoPanel) return;
+    if (!(this.isTutorialInputAllowed?.({ type: 'close_deck', target: 'deck_info_panel' }) ?? true)) return;
     const panelState = this.deckInfoPanel;
     if (panelState.wheelHandler) this.input.off('wheel', panelState.wheelHandler);
     if (panelState.pointerMoveHandler) this.input.off('pointermove', panelState.pointerMoveHandler);
@@ -5425,8 +5443,12 @@ export default class BattleScene extends Phaser.Scene {
           return;
         }
 
-        const beforeStats = this.captureBoardStats();
         const fromIndex = this.pendingSwapIndex;
+        if (!(this.isTutorialInputAllowed?.({ type: 'swap_adjacent_units', fromIndex, toIndex: boardIndex }) ?? true)) {
+          this.showInvalidActionFeedback?.({ reason: 'Tutorial step requires a different action.', boardIndex, scope: 'slot' });
+          return;
+        }
+        const beforeStats = this.captureBoardStats();
         const swapA = this.getBoardUnitLabelFromSnapshot?.(beforeStats, fromIndex);
         const swapB = this.getBoardUnitLabelFromSnapshot?.(beforeStats, boardIndex);
         const result = performSwap(this.gameState, 'player', fromIndex, boardIndex);
@@ -5555,10 +5577,20 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     if (!this.isUnitCard(selectedCard)) {
+      if (!(this.isTutorialInputAllowed?.({ type: 'play_effect', cardId: selectedCard.id, slotIndex: boardIndex }) ?? true)) {
+        this.showInvalidActionFeedback?.({ reason: 'Tutorial step requires a different action.', cardId: selectedCard.id, boardIndex, scope: 'global' });
+        return;
+      }
       this.startPlayerEffectCast(selectedCard);
       return;
     }
 
+    const existingUnit = this.gameState?.board?.[boardIndex];
+    const proposedType = existingUnit?.owner === 'player' ? 'redeploy_unit' : 'play_card_to_slot';
+    if (!(this.isTutorialInputAllowed?.({ type: proposedType, cardId: selectedCard.id, slotIndex: boardIndex }) ?? true)) {
+      this.showInvalidActionFeedback?.({ reason: 'Tutorial step requires a different action.', cardId: selectedCard.id, boardIndex, scope: 'slot' });
+      return;
+    }
     const beforeStats = this.captureBoardStats();
     const result = playOrRedeployUnit(this.gameState, 'player', this.selectedCardId, boardIndex);
     if (!result.ok) {
@@ -5937,6 +5969,7 @@ export default class BattleScene extends Phaser.Scene {
 
   toggleOpeningMulliganCard(cardId, { showPreview = true } = {}) {
     if ((this.isOpeningMulliganInputLocked?.() ?? false)) return;
+    if (!(this.isTutorialInputAllowed?.({ type: 'select_mulligan_card', cardId }) ?? true)) return;
     const card = this.gameState.player.hand.find((item) => item.id === cardId);
     if (!card) return;
 
@@ -5961,6 +5994,7 @@ export default class BattleScene extends Phaser.Scene {
     if ((this.isOpeningMulliganInputLocked?.() ?? false)) return;
     if (this.isFlowResolving) return;
 
+    if (!(this.isTutorialInputAllowed?.({ type: 'confirm_mulligan', target: 'player_base_button' }) ?? true)) return;
     const selectedIds = [...this.selectedMulliganCardIds];
     const result = isTutorialBattleContext(this.battleContext)
       ? performTutorialOpeningMulligan(this.gameState, selectedIds, getTutorialBattleData().openingConfig)
@@ -6097,6 +6131,7 @@ export default class BattleScene extends Phaser.Scene {
     if (this.battleResultModalShown || this.isFlowResolving || this.isEffectCastResolving || this.targetingState) return;
 
     if (this.gameState.winner || !canPass(this.gameState) || this.playerActionUsed) return;
+    if (!(this.isTutorialInputAllowed?.({ type: 'pass', target: 'player_base_button' }) ?? true)) return;
     recordPassAction(this.gameState, 'player');
     this.pendingTutorialEvent = { eventName: 'pass_completed' };
     this.pendingSwapIndex = null;
