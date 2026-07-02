@@ -66,6 +66,28 @@ test('tutorial focus uses independent Phaser primitives and does not gate input'
   assert.doesNotMatch(focusSource, /onlyTutorial|blockWrong|tutorialInputGate|preventWrong|checkTutorialInputGate/);
 });
 
+
+test('tutorial focus waits for visible banner and suppresses resolving/uninteractable timing', () => {
+  assert.match(battleSource, /isTutorialStepBannerVisible\(step = this\.getCurrentTutorialStep\(\)\) \{[\s\S]*this\.tutorialBanner\.text === this\.getTutorialStepText\(step\)/);
+  assert.match(battleSource, /isTutorialFocusTimingSuppressed\(step = this\.getCurrentTutorialStep\(\)\) \{[\s\S]*!this\.isTutorialStepBannerVisible\(step\)[\s\S]*this\.isFlowResolving \|\| this\.isEffectCastResolving[\s\S]*wait_enemy_action[\s\S]*wait_combat/);
+  assert.match(battleSource, /updateTutorialFocus\(step = this\.getCurrentTutorialStep\(\)\) \{[\s\S]*this\.isTutorialFocusTimingSuppressed\(step\)[\s\S]*this\.clearTutorialFocusGraphics\(\)/);
+  assert.match(battleSource, /type === 'mulligan_card'[\s\S]*this\.openingMulliganPending[\s\S]*!\(this\.isOpeningMulliganInputLocked\?\.\(\) \?\? false\)[\s\S]*select_mulligan_card/);
+  assert.match(battleSource, /calculateHandCardFocusBounds\(this\.cardViews \?\? \[\], cardId/);
+});
+
+test('tutorial focus gives two-step hand card then board slot guidance', () => {
+  assert.match(battleSource, /expected\.type === 'play_card_to_slot' \|\| expected\.type === 'redeploy_unit'/);
+  assert.match(battleSource, /this\.selectedCardId === expected\.cardId[\s\S]*\? \{ type: expected\.type === 'redeploy_unit' \? 'occupied_board_slot' : 'board_slot', slotIndex: expected\.slotIndex \}[\s\S]*: \{ type: 'hand_card', cardId: expected\.cardId \}/);
+  assert.match(battleSource, /type === 'board_slot' \|\| type === 'occupied_board_slot'[\s\S]*const proposedType = existingUnit\?\.owner === 'player' \? 'redeploy_unit' : 'play_card_to_slot'[\s\S]*this\.isTutorialInputAllowed\?\.\(\{ type: proposedType, cardId: card\.id, slotIndex \}\)/);
+  assert.match(battleSource, /this\.selectedCardId = cardId;[\s\S]*this\.startHandCardLongPress\(cardId\);\s*this\.updateTutorialFocus\?\.\(\);/);
+});
+
+test('tutorial focus gates effect card and mulligan confirm to playable states', () => {
+  assert.match(battleSource, /type === 'effect_card'[\s\S]*canPlayEffectCard\(this\.gameState, 'player', card\)\.ok[\s\S]*play_effect/);
+  assert.match(battleSource, /type === 'player_base_button' && expected\.type === 'confirm_mulligan'[\s\S]*confirm_mulligan/);
+  assert.match(battleSource, /handleTutorialEvent\?\.\('mulligan_card_selected', \{ cardId \}\);[\s\S]*this\.updateTutorialFocus\?\.\(\);/);
+});
+
 test('GameMenuScene Tutorial launches playable tutorial BattleScene', () => {
   assert.match(gameMenuSource, /this\.scene\.start\('BattleScene', \{[\s\S]*battleContext:[\s\S]*mode:\s*'tutorial'[\s\S]*tutorialId:\s*'tutorial_v1'[\s\S]*returnSceneKey:\s*'GameMenuScene'/);
   assert.doesNotMatch(gameMenuSource, /this\.scene\.start\('TutorialScene'/);
