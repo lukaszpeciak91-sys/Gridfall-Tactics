@@ -21,7 +21,7 @@ export const TUTORIAL_STEP_IDS = Object.freeze([
 
 export const TUTORIAL_STEPS = Object.freeze([
   { id: 'bases_goal', phase: 'ui', expected: { type: 'tap_continue' }, highlightTarget: { type: 'enemy_base' }, text: { pl: 'Zbij bazę przeciwnika. Chroń swoją.', en: 'Break the enemy base. Protect yours.' } },
-  { id: 'hand_lanes', phase: 'ui', expected: { type: 'tap_continue' }, highlightTarget: { type: 'player_hand_and_lanes' }, text: { pl: 'Zagrywaj karty na trzy linie walki.', en: 'Play cards into three battle lanes.' } },
+  { id: 'hand_lanes', phase: 'ui', expected: { type: 'tap_continue' }, highlightTarget: { type: 'player_board_lanes', slotIndexes: [6, 7, 8] }, text: { pl: 'Zagrywaj karty na trzy linie walki.', en: 'Play cards into three battle lanes.' } },
   { id: 'deck_counter_open', phase: 'ui', expected: { type: 'click_deck', target: 'deck_counter' }, highlightTarget: { type: 'deck_counter' }, text: { pl: 'TALIA pokazuje, ile kart zostało. Kliknij ją.', en: 'DECK shows how many cards remain. Tap it.' } },
   { id: 'battle_history', phase: 'ui', expected: { type: 'close_deck', target: 'deck_info_panel' }, highlightTarget: { type: 'battle_history' }, text: { pl: 'Tu zapisuje się historia walki.', en: 'Battle history is recorded here.' } },
   { id: 'battle_menu_open', phase: 'ui', expected: { type: 'click_battle_menu', target: 'battle_menu_button' }, highlightTarget: { type: 'battle_menu_button' }, text: { pl: 'Otwórz menu bitwy.', en: 'Open the battle menu.' } },

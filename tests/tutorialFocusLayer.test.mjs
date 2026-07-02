@@ -10,6 +10,7 @@ const step = (id) => TUTORIAL_STEPS.find((item) => item.id === id);
 
 test('tutorial focus targets are represented as practical BattleScene target objects', () => {
   assert.deepEqual(step('bases_goal').highlightTarget, { type: 'enemy_base' });
+  assert.deepEqual(step('hand_lanes').highlightTarget, { type: 'player_board_lanes', slotIndexes: [6, 7, 8] });
   assert.deepEqual(step('deck_counter_open').highlightTarget, { type: 'deck_counter' });
   assert.deepEqual(step('battle_menu_open').highlightTarget, { type: 'battle_menu_button' });
   assert.deepEqual(step('mulligan_select').highlightTarget, { type: 'mulligan_card', cardId: 'tutorial_mulligan_bait_1' });
@@ -54,7 +55,24 @@ test('tutorial focus supports base, UI button, hand card, and board/lane targets
   assert.doesNotMatch(battleSource, /empty_lane'\) return this\.getBoardSlotFocusBounds\(target\.slotIndex \?\? target\.index \?\? target\.laneIndex/);
   assert.doesNotMatch(battleSource, /type === 'effect_card'[\s\S]*find\(\(card\) => card\?\.type !== 'unit'\)/);
   assert.match(battleSource, /getBoardSlotFocusBounds\(slotIndex\)/);
+  assert.match(battleSource, /type === 'player_board_lanes'[\s\S]*\[6, 7, 8\][\s\S]*getBoardSlotFocusBounds\(slotIndex\)/);
   assert.match(battleSource, /type === 'adjacent_units'[\s\S]*this\.getMergedFocusBounds/);
+});
+
+
+test('hand_lanes tutorial focus targets only the three player board lanes', () => {
+  assert.deepEqual(step('hand_lanes').highlightTarget, { type: 'player_board_lanes', slotIndexes: [6, 7, 8] });
+  assert.notEqual(step('hand_lanes').highlightTarget?.type, 'player_hand_and_lanes');
+  assert.notEqual(step('hand_lanes').highlightTarget?.type, 'battle_lanes');
+
+  const playerLaneSource = battleSource.slice(
+    battleSource.indexOf("if (type === 'player_board_lanes')"),
+    battleSource.indexOf("if (type === 'empty_lane')"),
+  );
+
+  assert.match(playerLaneSource, /slotIndexes[\s\S]*\[6, 7, 8\]/);
+  assert.match(playerLaneSource, /getBoardSlotFocusBounds\(slotIndex\)/);
+  assert.doesNotMatch(playerLaneSource, /this\.boardCells|layout\.hand|player_hand_and_lanes|battle_lanes|type === 'board_lanes'/);
 });
 
 test('tutorial focus uses independent Phaser primitives and does not gate input', () => {
