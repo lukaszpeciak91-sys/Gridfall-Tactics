@@ -39,3 +39,15 @@ node scripts/simulate-battles.mjs 20
 ```
 
 The runner evaluates all faction pairings, uses the same opening mulligan, no-progress, and 24-completed-turn remaining-base-HP fallback rule as live battle flow, and reports matchup plus aggregate faction win rates.
+
+### Balance Lab temporary custom factions
+
+Balance Lab can append temporary, experiment-local factions without editing `src/data/factions/*.json`:
+
+```bash
+node scripts/simulate-battles.mjs --experiment=path/to/experiment.json
+```
+
+The experiment may include `matchCount`, `seed`, `telemetry`, existing `changes`/`replaceCard` edits, and `customFactions`. Custom factions are validated before the run, then appended only to the in-memory simulator faction registry. Their ids must not collide with production faction keys or production faction ids, decks must contain exactly 10 schema-compatible cards, card ids/card numbers must be unique, targeting/effect ids must already be supported by production simulator logic, and combat keywords must already exist in production data.
+
+When custom factions are present, the runner prints a temporary-faction summary with production/custom/total faction counts, custom faction ids/names, and custom card ids/names. The full ordered matchup matrix uses all production factions plus the appended custom factions; with the current 6 production factions plus 2 custom factions, that is 8 factions and 64 ordered matchups. Card telemetry and the campaign-intelligence section include custom faction cards when telemetry is enabled. The campaign-intelligence section is an estimate across the current simulated faction set, not a true campaign simulator.

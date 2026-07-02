@@ -17,6 +17,7 @@ import {
   completeActionOpportunity,
   MAX_TURNS,
 } from '../src/systems/GameState.js';
+import { readFileSync } from 'node:fs';
 import { getFactionByKey, getFactionKeys } from '../src/data/factions/index.js';
 import { buildActionCandidates, chooseBattleAction, recordBattleActionUse, selectOpeningMulliganCardIds } from '../src/systems/enemyDecision.js';
 
@@ -87,12 +88,125 @@ function applyWardensMoveLockBalanceLab(factions) {
   if (grunt) grunt.hp = 2;
 }
 
-function loadFactions(balanceLabId = null) {
-  const factions = Object.fromEntries(getFactionKeys().map((factionKey) => [factionKey, cloneCardData(getFactionByKey(factionKey))]));
+
+function loadProductionFactions() {
+  return Object.fromEntries(getFactionKeys().map((factionKey) => [factionKey, cloneCardData(getFactionByKey(factionKey))]));
+}
+
+function createValidationContext(productionFactions) {
+  const productionIds = new Set();
+  const cardIds = new Set();
+  const effectIds = new Set([null]);
+  const targetingValues = new Set();
+  const combatKeywords = new Set();
+  Object.entries(productionFactions).forEach(([factionKey, faction]) => {
+    productionIds.add(factionKey);
+    productionIds.add(faction.id);
+    faction.deck?.forEach((card) => {
+      cardIds.add(card.id);
+      if ('effectId' in card) effectIds.add(card.effectId ?? null);
+      if (typeof card.targeting === 'string') targetingValues.add(card.targeting);
+      card.combatKeywords?.forEach((keyword) => combatKeywords.add(keyword));
+    });
+  });
+  return { productionIds, cardIds, effectIds, targetingValues, combatKeywords };
+}
+
+function validationError(message) {
+  return new Error(`Invalid customFactions experiment: ${message}`);
+}
+
+function validateRequiredString(value, path) {
+  if (typeof value !== 'string' || value.trim() === '') throw validationError(`${path} is required and must be a non-empty string`);
+}
+
+function validateCustomFactionCard(card, faction, index, context, seenCardIds, seenCardNumbers) {
+  const path = `customFactions[${faction.id}].deck[${index}]`;
+  if (!card || typeof card !== 'object' || Array.isArray(card)) throw validationError(`${path} must be an object`);
+  validateRequiredString(card.id, `${path}.id`);
+  if (context.cardIds.has(card.id) || seenCardIds.has(card.id)) throw validationError(`${path}.id '${card.id}' must be globally unique`);
+  seenCardIds.add(card.id);
+  validateRequiredString(card.name, `${path}.name`);
+  validateRequiredString(card.type, `${path}.type`);
+  if (!Number.isInteger(card.cardNumber)) throw validationError(`${path}.cardNumber is required and must be an integer`);
+  if (card.cardNumber < 1 || card.cardNumber > 10) throw validationError(`${path}.cardNumber must be in the range 1-10`);
+  if (seenCardNumbers.has(card.cardNumber)) throw validationError(`${path}.cardNumber ${card.cardNumber} is duplicated`);
+  seenCardNumbers.add(card.cardNumber);
+  if (typeof card.targeting !== 'string' || !context.targetingValues.has(card.targeting)) throw validationError(`${path}.targeting '${card.targeting}' is unsupported`);
+  if (!('effectId' in card)) throw validationError(`${path}.effectId is required (use null for no effect)`);
+  if (!context.effectIds.has(card.effectId ?? null)) throw validationError(`${path}.effectId '${card.effectId}' is unsupported`);
+  if (card.type === 'unit') {
+    for (const stat of ['attack', 'hp', 'armor']) {
+      if (!Number.isFinite(card[stat])) throw validationError(`${path}.${stat} is required for unit cards`);
+    }
+  }
+  if (card.combatKeywords !== undefined) {
+    if (!Array.isArray(card.combatKeywords)) throw validationError(`${path}.combatKeywords must be an array when present`);
+    card.combatKeywords.forEach((keyword) => {
+      if (typeof keyword !== 'string' || !context.combatKeywords.has(keyword)) throw validationError(`${path}.combatKeywords '${keyword}' is unsupported`);
+    });
+  }
+}
+
+function validateAndAppendCustomFactions(factions, customFactions = []) {
+  if (customFactions === undefined) return [];
+  if (!Array.isArray(customFactions)) throw validationError('customFactions must be an array');
+  const context = createValidationContext(factions);
+  const customIds = new Set();
+  const appended = [];
+  customFactions.forEach((faction, index) => {
+    if (!faction || typeof faction !== 'object' || Array.isArray(faction)) throw validationError(`customFactions[${index}] must be an object`);
+    validateRequiredString(faction.id, `customFactions[${index}].id`);
+    validateRequiredString(faction.name, `customFactions[${index}].name`);
+    if (context.productionIds.has(faction.id)) throw validationError(`custom faction id '${faction.id}' collides with a production faction id`);
+    if (customIds.has(faction.id)) throw validationError(`duplicate custom faction id '${faction.id}'`);
+    customIds.add(faction.id);
+    if (!Array.isArray(faction.deck) || faction.deck.length !== 10) throw validationError(`custom faction '${faction.id}' deck must contain exactly 10 cards`);
+    const seenCardIds = new Set();
+    const seenCardNumbers = new Set();
+    faction.deck.forEach((card, cardIndex) => validateCustomFactionCard(card, faction, cardIndex, context, seenCardIds, seenCardNumbers));
+    for (let cardNumber = 1; cardNumber <= 10; cardNumber += 1) {
+      if (!seenCardNumbers.has(cardNumber)) throw validationError(`custom faction '${faction.id}' cardNumber values must cover 1-10`);
+    }
+    const key = faction.id;
+    factions[key] = cloneCardData({ frameImage: 'frame_default', ...faction });
+    appended.push({ key, id: faction.id, name: faction.name, deck: faction.deck.map((card) => ({ id: card.id, name: card.name })) });
+  });
+  return appended;
+}
+
+function loadExperiment(path) {
+  if (!path) return null;
+  const experiment = JSON.parse(readFileSync(path, 'utf8'));
+  if (!experiment || typeof experiment !== 'object' || Array.isArray(experiment)) throw validationError('experiment JSON root must be an object');
+  return experiment;
+}
+
+function applyExperimentChanges(factions, experiment) {
+  const changes = experiment?.changes;
+  if (!Array.isArray(changes)) return;
+  changes.forEach((change, index) => {
+    if (change?.type !== 'replaceCard') throw validationError(`changes[${index}].type '${change?.type}' is unsupported by the simulator runner`);
+    const factionKey = change.factionKey ?? change.faction ?? change.factionId;
+    const cardId = change.cardId ?? change.replaceCardId;
+    const replacement = change.card ?? change.replacement;
+    const deck = factions[factionKey]?.deck;
+    if (!deck) throw validationError(`changes[${index}] faction '${factionKey}' was not found`);
+    const cardIndex = deck.findIndex((card) => card.id === cardId);
+    if (cardIndex < 0) throw validationError(`changes[${index}] card '${cardId}' was not found in '${factionKey}'`);
+    deck[cardIndex] = cloneCardData(replacement);
+  });
+}
+
+function loadFactions(balanceLabId = null, experiment = null) {
+  const factions = loadProductionFactions();
   if (balanceLabId === 'crawler-ignorearmor') applyCrawlerIgnoreArmorBalanceLab(factions);
   if (balanceLabId === 'wardens-movelock') applyWardensMoveLockBalanceLab(factions);
-  return factions;
+  applyExperimentChanges(factions, experiment);
+  const customFactions = validateAndAppendCustomFactions(factions, experiment?.customFactions);
+  return { factions, customFactions, productionFactionCount: getFactionKeys().length };
 }
+
 
 function buildEffectVariantRegistryForFactions(factions, balanceLabId = null) {
   const registry = {};
@@ -1005,7 +1119,7 @@ function printCardSimulatorTelemetry(simTelemetry) {
     'Carry Score': row.carryScore,
   })));
 
-  console.log('\nCampaign Intelligence');
+  console.log('\nCampaign Intelligence (estimate based on the current simulated faction set, not a true campaign simulator)');
   console.table(Object.entries(factionBaselines).sort(([a], [b]) => a.localeCompare(b)).map(([faction, campaignEstimate]) => {
     const factionRows = rows.filter((row) => row.faction === faction && row.isDeckCard);
     const avgDead = factionRows.length > 0 ? factionRows.reduce((sum, row) => sum + row.deadCardScore, 0) / factionRows.length : 0;
@@ -1243,10 +1357,12 @@ function getMatchupCount(playerIndex, enemyIndex, factionCount, requestedTotal) 
 }
 
 function main() {
+  const experimentArg = process.argv.find((arg) => arg.startsWith('--experiment='));
+  const experiment = loadExperiment(experimentArg?.split('=')[1] ?? null);
   const totalArg = process.argv.find((arg) => arg.startsWith('--total='));
   const requestedTotal = totalArg ? Number.parseInt(totalArg.split('=')[1], 10) : null;
   const telemetryArg = process.argv.find((arg) => arg.startsWith('--telemetry='));
-  const telemetryModes = parseTelemetryModes(telemetryArg?.split('=')[1] ?? '');
+  const telemetryModes = parseTelemetryModes(telemetryArg?.split('=')[1] ?? experiment?.telemetry ?? '');
   const simTelemetry = telemetryModes.size > 0 ? createSimulatorTelemetry() : null;
   const onlyArg = process.argv.find((arg) => arg.startsWith('--only='));
   const onlyOrderedMatchups = onlyArg
@@ -1265,7 +1381,9 @@ function main() {
 
   const balanceLabArg = process.argv.find((arg) => arg.startsWith('--balance-lab='));
   const balanceLabId = balanceLabArg?.split('=')[1] ?? null;
-  const factions = loadFactions(balanceLabId);
+  const { factions, customFactions, productionFactionCount } = loadFactions(balanceLabId, experiment);
+  const effectiveMatchCount = Number.isInteger(experiment?.matchCount) && experiment.matchCount > 0 ? experiment.matchCount : matchCount;
+  const effectiveBaseSeed = Number.isInteger(experiment?.seed) ? experiment.seed >>> 0 : baseSeed;
   const effectVariantRegistry = buildEffectVariantRegistryForFactions(factions, balanceLabId);
   const factionKeys = Object.keys(factions);
   const factionOrder = new Map(factionKeys.map((key, index) => [key, index]));
@@ -1281,14 +1399,14 @@ function main() {
     const playerKey = factionKeys[playerIndex];
     const enemyKey = factionKeys[enemyIndex];
     if (onlyOrderedMatchups && !onlyOrderedMatchups.has(`${playerKey}|${enemyKey}`)) continue;
-    const gamesForMatchup = getMatchupCount(playerIndex, enemyIndex, factionKeys.length, requestedTotal) ?? matchCount;
+    const gamesForMatchup = getMatchupCount(playerIndex, enemyIndex, factionKeys.length, requestedTotal) ?? effectiveMatchCount;
     if (gamesForMatchup <= 0) continue;
     const orderedKey = `${playerKey}|${enemyKey}`;
     const orderedStats = createOrderedStats(playerKey, enemyKey);
     orderedMatchups.set(orderedKey, orderedStats);
 
     for (let i = 0; i < gamesForMatchup; i += 1) {
-      const gameSeed = buildGameSeed(baseSeed, playerKey, enemyKey, i);
+      const gameSeed = buildGameSeed(effectiveBaseSeed, playerKey, enemyKey, i);
       const result = runSingleGame(factions[playerKey], factions[enemyKey], passStats, telemetry, simTelemetry, gameSeed, i, playerKey, enemyKey, effectVariantRegistry, handLockAnalysis);
       recordGameEndTelemetry(simTelemetry, result);
       recordEffectVariantOperationTelemetry(simTelemetry, result.effectVariantOperationTelemetry);
@@ -1481,8 +1599,20 @@ function main() {
   const filterSummary = onlyOrderedMatchups ? `, filtered to ${onlyOrderedMatchups.size} ordered matchup(s)` : '';
   console.log(requestedTotal ? `
 Battle simulation complete (${audit.games} total games${filterSummary}, max ${MAX_TURNS} turns).` : `
-Battle simulation complete (${matchCount} games per matchup${filterSummary}, max ${MAX_TURNS} turns).`);
-  console.log(`Base seed: ${baseSeed}`);
+Battle simulation complete (${effectiveMatchCount} games per matchup${filterSummary}, max ${MAX_TURNS} turns).`);
+  console.log(`Base seed: ${effectiveBaseSeed}`);
+  console.log(`Simulated faction matrix: ${factionKeys.length} factions, ${factionKeys.length * factionKeys.length} ordered matchups.`);
+  if (customFactions.length > 0) {
+    console.log('\nBalance Lab temporary custom factions enabled.');
+    console.log(`Production factions: ${productionFactionCount}`);
+    console.log(`Custom factions: ${customFactions.length}`);
+    console.log(`Total simulated factions: ${factionKeys.length}`);
+    console.log('Custom faction deck summary:');
+    customFactions.forEach((faction) => {
+      console.log(`- ${faction.id} (${faction.name})`);
+      faction.deck.forEach((card) => console.log(`  - ${card.id}: ${card.name}`));
+    });
+  }
   console.log('\nBalance audit: aggregate faction table');
   console.table(aggregateRows);
   console.log('\nBalance audit: combined matchup table across both seats');
@@ -1592,7 +1722,7 @@ Battle simulation complete (${matchCount} games per matchup${filterSummary}, max
   }
 
   console.log('\nSimulation parity and validity notes:');
-  console.log(`- baseSeed: ${baseSeed}`);
+  console.log(`- baseSeed: ${effectiveBaseSeed}`);
   console.log(`- decks shuffled: ${SHUFFLE_DECKS ? 'yes (seeded Fisher-Yates per game)' : 'no'}`);
   console.log(`- first actor policy: ${FIRST_ACTOR_POLICY} (seeded random at battle start, toggles after each full turn)`);
   console.log(`- tie-break policy: ${TIE_BREAK_POLICY}`);
