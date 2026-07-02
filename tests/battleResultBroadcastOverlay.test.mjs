@@ -48,9 +48,9 @@ test('battle result stats insert compact turns and time block without changing r
   assert.match(showBattleResultModalSource, /const resultStatsText = this\.getBattleResultStatsText\(\)/);
   assert.match(showBattleResultModalSource, /const stats = this\.add\.text\(centerX, centerY \+ overlayHeight \* 0\.48, resultStatsText,/);
   assert.match(showBattleResultModalSource, /fontSize: `\$\{Math\.max\(14, Math\.min\(20, Math\.floor\(height \* 0\.021\)\)\)\}px`/);
-  assert.match(showBattleResultModalSource, /translateActive\('ui\.common\.continue', 'CONTINUE'\)/);
-  assert.match(showBattleResultModalSource, /translateActive\('ui\.common\.exit', 'EXIT'\)/);
-  assert.match(showBattleResultModalSource, /translateActive\('ui\.common\.retry', 'RETRY'\)/);
+  assert.match(source, /translateActive\('ui\.common\.continue', 'CONTINUE'\)/);
+  assert.match(source, /translateActive\('ui\.common\.exit', 'EXIT'\)/);
+  assert.match(source, /translateActive\('ui\.common\.retry', 'RETRY'\)/);
 });
 
 test('result buttons immediately stop active outcome stingers before navigation handlers run', () => {

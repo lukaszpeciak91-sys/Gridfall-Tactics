@@ -140,6 +140,26 @@ test('BattleScene defaults to arena context and preserves arena result exit', ()
 
 
 
+
+test('BattleScene preserves tutorial context without treating it as campaign', () => {
+  const source = read('src/scenes/BattleScene.js');
+  assert.match(source, /if \(context\?\.mode === 'tutorial'\) \{[\s\S]*return \{ mode: 'tutorial' \}/);
+  assert.match(source, /isTutorialBattle\(\) \{[\s\S]*return this\.battleContext\?\.mode === 'tutorial'/);
+  assert.match(source, /isCampaignBattle\(\) \{[\s\S]*return this\.battleContext\?\.mode === 'campaign'/);
+});
+
+test('BattleScene tutorial result exits to game menu without campaign progression', () => {
+  const source = read('src/scenes/BattleScene.js');
+  assert.match(source, /if \(this\.isTutorialBattle\(\)\) \{[\s\S]*translateActive\('ui\.common\.exit', 'EXIT'\)[\s\S]*\(\) => this\.exitTutorialBattleToGameMenu\(\)/);
+  assert.match(source, /exitTutorialBattleToGameMenu\(\) \{[\s\S]*this\.scene\.start\('GameMenuScene'\)/);
+  assert.match(source, /if \(this\.isTutorialBattle\(\)\) \{[\s\S]*this\.exitTutorialBattleToGameMenu\(\);[\s\S]*return;[\s\S]*\}/);
+  assert.match(source, /getBattleResultOverlayKind\(\) \{[\s\S]*if \(this\.isTutorialBattle\(\)\) return 'tutorial-battle-result'/);
+  const tutorialButtonStart = source.indexOf('if (this.isTutorialBattle()) {', source.indexOf('getBattleResultModalButtons'));
+  const tutorialButtonBranch = source.slice(tutorialButtonStart, source.indexOf('return [', tutorialButtonStart));
+  assert.doesNotMatch(tutorialButtonBranch, /continueCampaignBattleResult/);
+  assert.doesNotMatch(tutorialButtonBranch, /exitBattleToFactionSelect\(\)/);
+});
+
 test('BattleScene campaign exit routes back to campaign enemy selection', () => {
   const source = read('src/scenes/BattleScene.js');
   assert.match(source, /exitBattleToFactionSelect\(\) \{[\s\S]*if \(this\.isCampaignBattle\(\)\) \{[\s\S]*this\.exitBattleToCampaignEnemySelect\(\)/);

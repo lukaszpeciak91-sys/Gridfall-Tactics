@@ -31,10 +31,10 @@ test('result overlay lifecycle uses explicit overlay state instead of boolean-on
 test('arena and campaign intermediate battle result overlays restore as immediate interactive overlays', () => {
   const showBattle = extractMethodBody('showBattleResultModal', 'createResultModalButton');
   const restore = extractMethodBody('restoreResultOverlayFromSnapshot', 'rebuildBattleView');
-  assert.match(showBattle, /kind: this\.isCampaignBattle\(\) \? 'campaign-battle-result' : 'arena-battle-result'/);
+  assert.match(showBattle, /kind: this\.getBattleResultOverlayKind\(\)/);
   assert.match(showBattle, /phase: 'interactive'/);
   assert.match(showBattle, /const skipReveal = options\.skipReveal === true;/);
-  assert.match(restore, /snapshot\.kind === 'arena-battle-result' \|\| snapshot\.kind === 'campaign-battle-result'/);
+  assert.match(restore, /snapshot\.kind === 'arena-battle-result' \|\| snapshot\.kind === 'campaign-battle-result' \|\| snapshot\.kind === 'tutorial-battle-result'/);
   assert.match(restore, /this\.showBattleResultModal\(\{ skipReveal: true \}\);/);
 });
 

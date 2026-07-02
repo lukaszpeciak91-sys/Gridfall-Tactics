@@ -125,7 +125,8 @@ test('arena result modal behavior remains unchanged', () => {
   const showBattleEnd = source.indexOf('  createResultModalButton(', showBattleStart);
   const battleResultSource = source.slice(showBattleStart, showBattleEnd);
   assert.match(battleResultSource, /const overlay = this\.add\.rectangle\(centerX, height \* 0\.5, width, height, 0x000000, presentation\.overlayAlpha\)[\s\S]*\.setDepth\(900\)/);
-  assert.match(battleResultSource, /const modalButtons = this\.isCampaignBattle\(\)/);
-  assert.match(battleResultSource, /translateActive\('ui\.common\.retry', 'RETRY'\)/);
+  assert.match(battleResultSource, /const modalButtons = this\.getBattleResultModalButtons\(\{/);
+  assert.match(source, /if \(this\.isCampaignBattle\(\)\) \{[\s\S]*translateActive\('ui\.common\.continue', 'CONTINUE'\)/);
+  assert.match(source, /translateActive\('ui\.common\.retry', 'RETRY'\)/);
   assert.doesNotMatch(battleResultSource, /CAMPAIGN_COMPLETION_/);
 });
