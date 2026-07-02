@@ -18,6 +18,43 @@ test('tutorial BattleScene creates and shows a tutorial banner only in tutorial 
   assert.doesNotMatch(updateSource, /mode === 'campaign'/);
 });
 
+
+test('tutorial banner uses lower tutorial-specific layout and distinct readable style', () => {
+  const source = battleSource();
+  const layoutSource = source.slice(source.indexOf('  getTutorialBannerLayout() {'), source.indexOf('  isTutorialBannerSuppressed() {'));
+
+  assert.match(layoutSource, /const playerRowBottom = board\.centerY \+ \(board\.cellHeight \* 1\.5\);/);
+  assert.match(layoutSource, /const safeBottom = playerHero\.y - Math\.max\(4, height \* 0\.006\);/);
+  assert.match(layoutSource, /const targetY = safeBottom > safeTop/);
+  assert.match(layoutSource, /fontSize: Math\.min\(20, Math\.max\(15, Math\.floor\(Math\.max\(board\.cellWidth \* 0\.14, height \* 0\.018\)\)\)\)/);
+  assert.match(source, /backgroundColor: '#020617'/);
+  assert.match(source, /padding: \{ x: 18, y: 13 \}/);
+  assert.match(source, /setAlpha\(0\.98\)\.setStroke\('#38bdf8', 2\)/);
+});
+
+test('tap_continue overlay covers the screen and consumes pointerdown before gameplay', () => {
+  const source = battleSource();
+  const layoutSource = source.slice(source.indexOf('  getTutorialBannerLayout() {'), source.indexOf('  isTutorialBannerSuppressed() {'));
+
+  assert.match(layoutSource, /overlayWidth: width,/);
+  assert.match(layoutSource, /overlayHeight: height,/);
+  assert.match(layoutSource, /overlayX: width \* 0\.5,/);
+  assert.match(layoutSource, /overlayY: height \* 0\.5,/);
+  assert.match(source, /this\.tutorialBannerOverlay = this\.add\.rectangle\(layout\.overlayX, layout\.overlayY, layout\.overlayWidth, layout\.overlayHeight/);
+  assert.match(source, /\.on\('pointerdown', \(pointer, localX, localY, event\) => event\?\.stopPropagation\?\.\(\)\)/);
+  assert.match(source, /this\.tutorialBannerOverlay\.input\.enabled = canTapContinue;/);
+});
+
+test('tutorial banner suppresses during resolving flows and restores after flow ends', () => {
+  const source = battleSource();
+
+  assert.match(source, /isTutorialBannerSuppressed\(\) \{[\s\S]*this\.isFlowResolving[\s\S]*this\.isEffectCastResolving[\s\S]*this\.gameState\?\.winner/);
+  assert.match(source, /if \(this\.isTutorialBannerSuppressed\(\)\) \{[\s\S]*this\.tutorialBanner\?\.setVisible\?\.\(false\)[\s\S]*this\.tutorialBannerOverlay\?\.setVisible\?\.\(false\)[\s\S]*this\.tutorialBannerOverlay\.input\.enabled = false/);
+  assert.match(source, /this\.isFlowResolving = true;\s*this\.updateTutorialBanner\?\.\(\);\s*this\.destroyActiveSelectionMessage\(\);/);
+  assert.match(source, /this\.isFlowResolving = true;\s*this\.updateTutorialBanner\?\.\(\);\s*let enemyActionPacing = null;/);
+  assert.match(source, /this\.isFlowResolving = false;\s*this\.updateTutorialBanner\?\.\(\);\s*await this\.showOpeningTurnStartBanner\(\);/);
+});
+
 test('tutorial banner uses localized tutorial step text', () => {
   const source = battleSource();
 
