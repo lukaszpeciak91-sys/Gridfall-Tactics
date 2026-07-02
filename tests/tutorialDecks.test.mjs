@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { getFactionByKey, getFactionKeys } from '../src/data/factions/index.js';
 import {
   getTutorialBattleData,
+  getTutorialEnemyActionScript,
   tutorialEnemyFaction,
   tutorialOpeningConfig,
   tutorialPlayerFaction,
@@ -71,6 +72,7 @@ test('tutorial battle helper returns tutorial data without normal faction regist
     playerFaction: tutorialPlayerFaction,
     enemyFaction: tutorialEnemyFaction,
     openingConfig: tutorialOpeningConfig,
+    enemyActionScript: getTutorialEnemyActionScript(),
   });
 
   assert.deepEqual(getFactionKeys(), EXPECTED_NORMAL_FACTION_KEYS);
