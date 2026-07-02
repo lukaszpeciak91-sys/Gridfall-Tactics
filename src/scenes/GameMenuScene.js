@@ -95,7 +95,11 @@ export default class GameMenuScene extends Phaser.Scene {
       this.startNewCampaignFlow();
     });
 
-    this.createMenuButton(width / 2, startY + buttonGap * 2, buttonWidth, translateActive('ui.gameMenu.arena', 'ARENA'), () => {
+    this.createMenuButton(width / 2, startY + buttonGap * 2, buttonWidth, translateActive('ui.gameMenu.tutorial', 'TUTORIAL'), () => {
+      this.scene.start('TutorialScene', { returnSceneKey: 'GameMenuScene' });
+    });
+
+    this.createMenuButton(width / 2, startY + buttonGap * 3, buttonWidth, translateActive('ui.gameMenu.arena', 'ARENA'), () => {
       this.scene.start('FactionSelectScene', { returnSceneKey: 'GameMenuScene' });
     });
 

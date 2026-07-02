@@ -10,28 +10,18 @@ import {
 import { createBuildMarker } from '../ui/buildMarker.js';
 import { createMenuScreenHeader } from '../ui/screenHeader.js';
 import { createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
-import { translateActive, translateActiveList } from '../localization/localeService.js';
+import { translateActive } from '../localization/localeService.js';
 import { preloadAudioAssets } from '../audio/audioAssets.js';
 import { playMenuMusic } from '../audio/menuMusic.js';
 
-const TUTORIAL_STEPS = Object.freeze([
-  'Pick a faction in Arena.',
-  'Play units into lines to pressure the enemy base.',
-  'Use effect cards and swaps to control combat timing.',
-  'End your turn after spending your action.',
-  'Reduce the enemy base to 0 HP to win.',
-]);
-
-export default class TutorialScene extends Phaser.Scene {
+export default class AchievementsScene extends Phaser.Scene {
   constructor() {
-    super('TutorialScene');
+    super('AchievementsScene');
     this.uiElements = [];
-    this.returnSceneKey = 'MainMenuScene';
   }
 
-  init(data = {}) {
+  init() {
     this.cleanupScene();
-    this.returnSceneKey = data?.returnSceneKey === 'GameMenuScene' ? 'GameMenuScene' : 'MainMenuScene';
   }
 
   preload() {
@@ -64,34 +54,33 @@ export default class TutorialScene extends Phaser.Scene {
     this.scale.on('leavefullscreen', this.onFullscreenChanged, this);
 
     const header = createMenuScreenHeader(this, {
-      title: translateActive('ui.tutorial.title', 'TUTORIAL'),
+      title: translateActive('ui.achievements.title', 'ACHIEVEMENTS'),
       width,
       height,
     });
     this.uiElements.push(...header.items);
-    this.drawTutorialCard(width, height);
+    this.drawPlaceholderPanel(width, height);
     this.drawNavigationControls();
     this.uiElements.push(createBuildMarker(this, { width, height }));
   }
 
-  drawTutorialCard(width, height) {
-    const cardWidth = Math.min(width - 32, 360);
-    const cardHeight = Math.min(height * 0.56, 470);
-    const cardX = width / 2;
-    const cardY = height * 0.47;
-    const panel = this.add.rectangle(cardX, cardY, cardWidth, cardHeight, 0x0f172a, 0.9)
+  drawPlaceholderPanel(width, height) {
+    const panelWidth = Math.min(width - 32, 360);
+    const panelHeight = Math.min(height * 0.28, 220);
+    const panelX = width / 2;
+    const panelY = height * 0.47;
+    const panel = this.add.rectangle(panelX, panelY, panelWidth, panelHeight, 0x0f172a, 0.9)
       .setStrokeStyle(1, 0x7dd3fc, 0.58)
       .setOrigin(0.5);
     this.uiElements.push(panel);
 
-    const lines = translateActiveList('ui.tutorial.steps', TUTORIAL_STEPS);
-    const body = this.add.text(cardX - cardWidth / 2 + 24, cardY - cardHeight / 2 + 28, lines.map((line, index) => `${index + 1}. ${line}`).join('\n\n'), {
+    const body = this.add.text(panelX, panelY, translateActive('ui.achievements.comingSoon', 'Coming soon.'), {
       fontFamily: 'Arial, sans-serif',
-      fontSize: '17px',
+      fontSize: '18px',
       color: '#e5e7eb',
-      lineSpacing: 8,
-      wordWrap: { width: cardWidth - 48 },
-    }).setOrigin(0, 0);
+      align: 'center',
+      wordWrap: { width: panelWidth - 48 },
+    }).setOrigin(0.5);
     this.uiElements.push(body);
   }
 
@@ -108,11 +97,11 @@ export default class TutorialScene extends Phaser.Scene {
   }
 
   returnToMainMenu() {
-    this.scene.start(this.returnSceneKey);
+    this.scene.start('MainMenuScene');
   }
 
   openRulesPanel() {
-    this.scene.launch('RulesPanelScene', { returnSceneKey: 'TutorialScene' });
+    this.scene.launch('RulesPanelScene', { returnSceneKey: 'AchievementsScene' });
     this.scene.pause();
   }
 
@@ -129,8 +118,8 @@ export default class TutorialScene extends Phaser.Scene {
       requestPortraitOrientationLock();
     }
 
-    if (this.scene.isActive('TutorialScene')) {
-      this.scene.restart({ returnSceneKey: this.returnSceneKey });
+    if (this.scene.isActive('AchievementsScene')) {
+      this.scene.restart();
     }
   }
 
@@ -140,7 +129,6 @@ export default class TutorialScene extends Phaser.Scene {
 
     this.uiElements.forEach((element) => {
       if (element && element.active) {
-        element.removeAllListeners?.();
         element.destroy();
       }
     });

@@ -7,6 +7,7 @@ export const MENU_MUSIC_SCENE_KEYS = Object.freeze([
   'FactionSelectScene',
   'CampaignEnemySelectScene',
   'CollectionScene',
+  'AchievementsScene',
   'TutorialScene',
 ]);
 

@@ -285,7 +285,8 @@
       "collection": "KOLEKCJA",
       "settings": "USTAWIENIA",
       "tutorialComingSoon": "Samouczek wkrótce",
-      "game": "GRA"
+      "game": "GRA",
+      "achievements": "OSIĄGNIĘCIA"
     },
     "factionSelect": {
       "title": "WYBIERZ DRUŻYNĘ",
@@ -674,7 +675,8 @@
       "newGameConfirmTitle": "ROZPOCZĄĆ NOWĄ GRĘ?",
       "newGameConfirmBody": "To nadpisze obecny postęp kampanii.",
       "confirmNewGame": "START",
-      "cancelNewGame": "POWRÓT"
+      "cancelNewGame": "POWRÓT",
+      "tutorial": "SAMOUCZEK"
     },
     "campaignEnemySelect": {
       "title": "WYBIERZ WROGA",
@@ -701,6 +703,10 @@
         "Dziękujemy za udział i życzymy powodzenia przy kolejnych katastrofach.",
         "Szkoda. Jedni wracają z pucharem, inni po prostu wracają."
       ]
+    },
+    "achievements": {
+      "title": "OSIĄGNIĘCIA",
+      "comingSoon": "Wkrótce."
     }
   }
 }

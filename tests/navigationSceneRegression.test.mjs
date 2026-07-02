@@ -192,9 +192,11 @@ test('MainMenuScene keeps primary buttons and uses shared bottom navigation cont
   assert.match(source, /this\.title = this\.createTitle\(width, height\)/);
   assert.doesNotMatch(source, /'Main Menu'/);
   assert.match(source, /this\.createMenuButton\(width \/ 2, startY, buttonWidth, translateActive\('ui\.mainMenu\.game', 'GAME'\), \(\) => \{[\s\S]*this\.scene\.start\('GameMenuScene'\)/);
-  assert.match(source, /this\.createMenuButton\(width \/ 2, startY \+ buttonGap, buttonWidth, translateActive\('ui\.mainMenu\.tutorial', 'TUTORIAL'\), \(\) => \{[\s\S]*this\.scene\.start\('TutorialScene'\)/);
-  assert.match(source, /this\.createMenuButton\(width \/ 2, startY \+ buttonGap \* 2, buttonWidth, translateActive\('ui\.mainMenu\.collection', 'COLLECTION'\), \(\) => \{[\s\S]*this\.scene\.start\('CollectionScene'\)/);
+  assert.match(source, /this\.createMenuButton\(width \/ 2, startY \+ buttonGap, buttonWidth, translateActive\('ui\.mainMenu\.collection', 'COLLECTION'\), \(\) => \{[\s\S]*this\.scene\.start\('CollectionScene'\)/);
+  assert.match(source, /this\.createMenuButton\(width \/ 2, startY \+ buttonGap \* 2, buttonWidth, translateActive\('ui\.mainMenu\.achievements', 'ACHIEVEMENTS'\), \(\) => \{[\s\S]*this\.scene\.start\('AchievementsScene'\)/);
   assert.match(source, /this\.createMenuButton\(width \/ 2, startY \+ buttonGap \* 3, buttonWidth, translateActive\('ui\.mainMenu\.settings', 'SETTINGS'\), \(\) => \{[\s\S]*this\.scene\.start\('SettingsScene'\)/);
+  assert.doesNotMatch(source, /ui\.mainMenu\.tutorial/);
+  assert.doesNotMatch(source, /this\.scene\.start\('TutorialScene'/);
   assert.match(source, /drawNavigationControls\(\) \{[\s\S]*createBottomNavigationControls\(this, \{[\s\S]*onMute: \(\) => \{\},[\s\S]*onRules: \(\) => this\.openRulesPanel\(\),[\s\S]*onFullscreen: \(\) => this\.toggleFullscreen\(\),[\s\S]*\}\)/);
   assert.match(source, /openRulesPanel\(\) \{[\s\S]*this\.scene\.launch\('RulesPanelScene', \{ returnSceneKey: 'MainMenuScene' \}\);[\s\S]*this\.scene\.pause\(\);[\s\S]*\}/);
   assert.match(source, /resumeFromRulesPanel\(\) \{[\s\S]*this\.scene\.resume\(\);[\s\S]*\}/);
@@ -227,6 +229,20 @@ test('main menu debug gear opens isolated art debug mode selection flow', () => 
   assert.match(boardDebugSource, /this\.scene\.start\('ArtDebugModeSelectScene'\)/);
 });
 
+
+test('AchievementsScene is a localized placeholder that returns to MainMenuScene', () => {
+  const mainSource = readScene('src/main.js');
+  const source = readScene('src/scenes/AchievementsScene.js');
+
+  assert.match(mainSource, /import AchievementsScene from '\.\/scenes\/AchievementsScene\.js';/);
+  assert.match(mainSource, /CollectionScene, AchievementsScene, SettingsScene/);
+  assert.match(source, /super\('AchievementsScene'\)/);
+  assert.match(source, /title: translateActive\('ui\.achievements\.title', 'ACHIEVEMENTS'\)/);
+  assert.match(source, /translateActive\('ui\.achievements\.comingSoon', 'Coming soon\.'\)/);
+  assert.match(source, /returnToMainMenu\(\) \{[\s\S]*this\.scene\.start\('MainMenuScene'\)/);
+  assert.match(source, /this\.scene\.launch\('RulesPanelScene', \{ returnSceneKey: 'AchievementsScene' \}\)/);
+});
+
 test('MainMenuScene restores full menu state for direct returns and abandoned start-logo transitions', () => {
   const source = readScene('src/scenes/MainMenuScene.js');
   const imageButtonSource = readScene('src/ui/imageButton.js');
@@ -247,16 +263,17 @@ test('MainMenuScene restores full menu state for direct returns and abandoned st
   assert.match(imageButtonSource, /button\.hitZone\?\.setInteractive\?\.\(\{ useHandCursor: true \}\)/);
 });
 
-test('TutorialScene returns to a fully recreated MainMenuScene with shared navigation controls', () => {
+test('TutorialScene returns through configured menu route with shared navigation controls', () => {
   const mainSource = readScene('src/main.js');
   const menuSource = readScene('src/scenes/MainMenuScene.js');
   const tutorialSource = readScene('src/scenes/TutorialScene.js');
 
   assert.match(mainSource, /import TutorialScene from '\.\/scenes\/TutorialScene\.js';/);
   assert.match(mainSource, /SettingsScene, TutorialScene, BattleScene/);
-  assert.match(menuSource, /this\.scene\.start\('TutorialScene'\)/);
+  assert.doesNotMatch(menuSource, /this\.scene\.start\('TutorialScene'/);
   assert.match(tutorialSource, /createBottomNavigationControls\(this, \{[\s\S]*onBack: \(\) => this\.returnToMainMenu\(\),[\s\S]*onRules: \(\) => this\.openRulesPanel\(\),[\s\S]*onFullscreen: \(\) => this\.toggleFullscreen\(\),[\s\S]*\}\)/);
-  assert.match(tutorialSource, /returnToMainMenu\(\) \{[\s\S]*this\.scene\.start\('MainMenuScene'\)/);
+  assert.match(tutorialSource, /this\.returnSceneKey = data\?\.returnSceneKey === 'GameMenuScene' \? 'GameMenuScene' : 'MainMenuScene'/);
+  assert.match(tutorialSource, /returnToMainMenu\(\) \{[\s\S]*this\.scene\.start\(this\.returnSceneKey\)/);
   assert.match(tutorialSource, /openRulesPanel\(\) \{[\s\S]*this\.scene\.launch\('RulesPanelScene', \{ returnSceneKey: 'TutorialScene' \}\);[\s\S]*this\.scene\.pause\(\);[\s\S]*\}/);
 });
 
@@ -385,6 +402,7 @@ test('GameMenuScene provides campaign choices and preserves Arena routing', () =
   assert.match(source, /super\('GameMenuScene'\)/);
   assert.match(source, /translateActive\('ui\.gameMenu\.continue', 'CONTINUE'\)/);
   assert.match(source, /translateActive\('ui\.gameMenu\.newGame', 'NEW GAME'\)/);
+  assert.match(source, /translateActive\('ui\.gameMenu\.tutorial', 'TUTORIAL'\), \(\) => \{[\s\S]*this\.scene\.start\('TutorialScene', \{ returnSceneKey: 'GameMenuScene' \}\)/);
   assert.match(source, /translateActive\('ui\.gameMenu\.arena', 'ARENA'\), \(\) => \{[\s\S]*this\.scene\.start\('FactionSelectScene', \{ returnSceneKey: 'GameMenuScene' \}\)/);
   assert.match(source, /import \{ clearCampaign, hasActiveCampaign \} from '\.\.\/systems\/campaignState\.js';/);
   assert.match(source, /if \(hasActiveCampaign\(\)\) \{[\s\S]*resetImageButtonState\(this\.continueButton, \{ interactive: true \}\)/);
@@ -409,15 +427,17 @@ test('Game menu localization resolves exact English and Polish labels', () => {
 
   assert.equal(en.ui.mainMenu.game, 'GAME');
   assert.equal(pl.ui.mainMenu.game, 'GRA');
-  assert.equal(en.ui.mainMenu.arena, 'ARENA');
-  assert.equal(pl.ui.mainMenu.arena, 'ARENA');
+  assert.equal(en.ui.mainMenu.achievements, 'ACHIEVEMENTS');
+  assert.equal(pl.ui.mainMenu.achievements, 'OSIĄGNIĘCIA');
   assert.equal(en.ui.gameMenu.continue, 'CONTINUE');
   assert.equal(en.ui.gameMenu.newGame, 'NEW GAME');
+  assert.equal(en.ui.gameMenu.tutorial, 'TUTORIAL');
   assert.equal(en.ui.gameMenu.arena, 'ARENA');
   assert.equal(en.ui.gameMenu.cancelNewGame, 'BACK');
   assert.equal(en.ui.gameMenu.confirmNewGame, 'START');
   assert.equal(pl.ui.gameMenu.continue, 'KONTYNUUJ');
   assert.equal(pl.ui.gameMenu.newGame, 'NOWA GRA');
+  assert.equal(pl.ui.gameMenu.tutorial, 'SAMOUCZEK');
   assert.equal(pl.ui.gameMenu.arena, 'ARENA');
   assert.equal(pl.ui.gameMenu.cancelNewGame, 'POWRÓT');
   assert.equal(pl.ui.gameMenu.confirmNewGame, 'START');
