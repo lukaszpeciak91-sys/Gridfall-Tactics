@@ -5,6 +5,7 @@ import { getFactionByKey, getFactionKeys } from '../src/data/factions/index.js';
 import {
   getTutorialBattleData,
   tutorialEnemyFaction,
+  tutorialOpeningConfig,
   tutorialPlayerFaction,
 } from '../src/data/tutorial/tutorialDecks.js';
 
@@ -69,6 +70,7 @@ test('tutorial battle helper returns tutorial data without normal faction regist
   assert.deepEqual(getTutorialBattleData(), {
     playerFaction: tutorialPlayerFaction,
     enemyFaction: tutorialEnemyFaction,
+    openingConfig: tutorialOpeningConfig,
   });
 
   assert.deepEqual(getFactionKeys(), EXPECTED_NORMAL_FACTION_KEYS);
