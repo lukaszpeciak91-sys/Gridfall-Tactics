@@ -3,6 +3,7 @@ import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
 import { getTutorialBattleData } from '../data/tutorial/tutorialDecks.js';
 import { applyTutorialOpeningSetup, isTutorialBattleContext, performTutorialOpeningMulligan } from '../systems/tutorialOpening.js';
 import { selectNextTutorialEnemyAction } from '../systems/tutorialEnemyActions.js';
+import { advanceTutorialStep as advanceTutorialControllerStep, createTutorialControllerState, getCurrentTutorialStep as getCurrentTutorialControllerStep, handleTutorialEvent as handleTutorialControllerEvent, isTutorialComplete } from '../systems/tutorialController.js';
 import { createInitialBattleState, drawCards, shuffleDeck, canPass, canPlayOrRedeploy, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, resolveTargetedUnitOnPlayEffect, getUnitAttack, getUnitArmor, toggleFirstActor, resolveTurnCapWinner, resolveImmediateResourceExhaustionWinner, resolveImmediateNoProgressWinner, recordPassAction, completeActionOpportunity, performOpeningMulligan, STARTING_HAND_SIZE, MAX_OPENING_MULLIGAN_CARDS, getEffectiveBoardAttack, getEffectiveBoardArmor, canPlayEffectCard, isEffectCardBlockedForOwner, isBattleExhaustedEligible } from '../systems/GameState.js';
 import { chooseEnemyAction, isVerySafeConcedableState, recordBattleActionUse, selectOpeningMulliganCardIds } from '../systems/enemyDecision.js';
 import { getTargetingStateForEffect } from '../systems/cardTargeting.js';
@@ -307,6 +308,8 @@ export default class BattleScene extends Phaser.Scene {
     this.playerActionUsed = false;
     this.enemyActionUsed = false;
     this.tutorialEnemyActionCursor = 0;
+    this.tutorialControllerState = null;
+    this.pendingTutorialEvent = null;
     this.playerSurrenderArmed = false;
     this.targetingState = null;
     this.effectCastState = null;
@@ -436,6 +439,31 @@ export default class BattleScene extends Phaser.Scene {
     return this.battleContext?.mode === 'tutorial';
   }
 
+  initializeTutorialController() {
+    this.tutorialControllerState = this.isTutorialBattle() ? createTutorialControllerState() : null;
+    return this.tutorialControllerState;
+  }
+
+  getCurrentTutorialStep() {
+    return getCurrentTutorialControllerStep(this.tutorialControllerState);
+  }
+
+  advanceTutorialStep(reason = null) {
+    if (!this.isTutorialBattle() || !this.tutorialControllerState) return null;
+    return advanceTutorialControllerStep(this.tutorialControllerState, reason);
+  }
+
+  handleTutorialEvent(eventName, payload = {}) {
+    if (!this.isTutorialBattle() || !this.tutorialControllerState) {
+      return { matched: false, completed: false, currentStep: null };
+    }
+    return handleTutorialControllerEvent(this.tutorialControllerState, eventName, payload);
+  }
+
+  isTutorialStepComplete() {
+    return isTutorialComplete(this.tutorialControllerState);
+  }
+
   isCampaignCompletionPreview() {
     return this.battleContext?.mode === 'campaignCompletionPreview';
   }
@@ -450,6 +478,8 @@ export default class BattleScene extends Phaser.Scene {
     this.pendingSwapIndex = null;
     this.playerActionUsed = false;
     this.enemyActionUsed = false;
+    this.tutorialControllerState = null;
+    this.pendingTutorialEvent = null;
     this.targetingState = null;
     this.effectCastState = null;
     this.isEffectCastResolving = false;
@@ -591,6 +621,7 @@ export default class BattleScene extends Phaser.Scene {
     const { width, height } = this.scale;
     this.battleContext = this.normalizeBattleContext(data?.battleContext);
     const isTutorialBattle = this.battleContext?.mode === 'tutorial';
+    this.initializeTutorialController();
     const tutorialBattleData = isTutorialBattle ? getTutorialBattleData() : null;
     const playerFactionKey = isTutorialBattle
       ? tutorialBattleData.playerFaction.id
@@ -984,6 +1015,7 @@ export default class BattleScene extends Phaser.Scene {
       muteToggle,
       buttons,
     };
+    this.handleTutorialEvent?.('battle_menu_opened');
     this.updatePlayerBaseActionState();
   }
 
@@ -1178,6 +1210,7 @@ export default class BattleScene extends Phaser.Scene {
       item?.destroy?.();
     });
     this.utilityMenuPanel = null;
+    this.handleTutorialEvent?.('battle_menu_closed');
     this.updatePlayerBaseActionState();
   }
 
@@ -3201,6 +3234,7 @@ export default class BattleScene extends Phaser.Scene {
 
   openBattleMenu() {
     if (!this.prepareUtilityMenuNavigation()) return;
+    this.handleTutorialEvent?.('battle_menu_opened');
     this.scene.launch('BattleMenuScene', { factionKey: this.factionKey, enemyFactionKey: this.enemyFactionKey, battleContext: this.battleContext, returnSceneKey: 'BattleScene' });
     this.scene.pause();
   }
@@ -3217,6 +3251,7 @@ export default class BattleScene extends Phaser.Scene {
     this.navigationInProgress = false;
     this.clearPointerInputGuard();
     this.scene.resume();
+    this.handleTutorialEvent?.('battle_menu_closed');
     this.recoverFromLifecycle('battle-menu-return');
   }
 
@@ -3889,6 +3924,7 @@ export default class BattleScene extends Phaser.Scene {
 
     this.scrollDeckInfoHistoryToLatest();
     this.bindDeckInfoScrollHandlers(contentHeight);
+    this.handleTutorialEvent?.('deck_opened');
     this.updatePlayerBaseActionState();
   }
 
@@ -3965,6 +4001,7 @@ export default class BattleScene extends Phaser.Scene {
     this.unregisterBattleModalScrollHint(panelState.scrollHint);
     this.deckInfoPanel = null;
     this.restoreDeckInfoBackgroundHelpers();
+    this.handleTutorialEvent?.('deck_closed');
     this.updatePlayerBaseActionState();
   }
 
@@ -5372,6 +5409,7 @@ export default class BattleScene extends Phaser.Scene {
         }
         this.queueBattleHistoryAction?.('player', { type: 'swap_positions', cardA: swapA, cardB: swapB });
         this.clearSwapPrompt();
+        this.pendingTutorialEvent = { eventName: 'adjacent_swap_completed', payload: { fromIndex, toIndex: boardIndex } };
         this.completePlayerAction(beforeStats, [], [{ type: 'swap', fromIndex, toIndex: boardIndex, label: 'SWAP', kind: 'swap' }]);
         return;
       }
@@ -5471,6 +5509,10 @@ export default class BattleScene extends Phaser.Scene {
       } else {
         this.playBattleSfx?.(AUDIO_KEYS.SPELL_GENERIC);
       }
+      this.pendingTutorialEvent = {
+        eventName: this.effectCastState?.source === 'unit-on-play' ? 'unit_played' : 'effect_played',
+        payload: { cardId: (result.card ?? selectedCard)?.id, slotIndex: this.effectCastState?.boardIndex },
+      };
       this.completePlayerAction(
         beforeStats,
         [...(result.feedback ?? []), ...this.buildActionFeedback(beforeStats, result)],
@@ -5508,6 +5550,10 @@ export default class BattleScene extends Phaser.Scene {
       card: this.createCardRef?.(result.card, 'player') ?? { name: result.card?.name ?? 'Card', side: 'player' },
       oldCard: this.getBoardUnitLabelFromSnapshot?.(beforeStats, boardIndex),
     });
+    this.pendingTutorialEvent = {
+      eventName: result.type === 'redeploy' ? 'redeploy_completed' : 'unit_played',
+      payload: { cardId: result.card?.id ?? this.selectedCardId, slotIndex: boardIndex },
+    };
     this.completePlayerAction(beforeStats, this.buildActionFeedback(beforeStats, result));
   }
 
@@ -5617,6 +5663,7 @@ export default class BattleScene extends Phaser.Scene {
       result,
     });
     this.queueBattleHistoryAction?.('player', { type: 'play_effect', card: this.createCardRef?.(result.card ?? card, 'player') ?? { name: (result.card ?? card)?.name ?? 'Card', side: 'player' } });
+    this.pendingTutorialEvent = { eventName: 'effect_played', payload: { cardId: (result.card ?? card)?.id } };
     this.completePlayerAction(beforeStats, this.buildActionFeedback(beforeStats, result), movementFeedback);
   }
 
@@ -5868,7 +5915,10 @@ export default class BattleScene extends Phaser.Scene {
       this.selectedMulliganCardIds.push(cardId);
     }
 
-    if (this.selectedMulliganCardIds.join('|') !== mulliganSelectionBefore) this.playBattleSfx?.(AUDIO_KEYS.UI_CLICK);
+    if (this.selectedMulliganCardIds.join('|') !== mulliganSelectionBefore) {
+      this.playBattleSfx?.(AUDIO_KEYS.UI_CLICK);
+      this.handleTutorialEvent?.('mulligan_card_selected', { cardId });
+    }
 
     this.updatePlayerBaseActionState();
     this.resetCardHighlights({ showPreview });
@@ -5886,6 +5936,7 @@ export default class BattleScene extends Phaser.Scene {
     if (!result.ok) return;
 
     this.playBattleSfx?.(AUDIO_KEYS.UI_CLICK);
+    this.handleTutorialEvent?.('mulligan_confirmed', { selectedIds });
     this.resetOpeningMulliganInputState();
     this.openingMulliganPending = false;
     this.openingMulliganRevealPending = false;
@@ -6015,6 +6066,7 @@ export default class BattleScene extends Phaser.Scene {
 
     if (this.gameState.winner || !canPass(this.gameState) || this.playerActionUsed) return;
     recordPassAction(this.gameState, 'player');
+    this.pendingTutorialEvent = { eventName: 'pass_completed' };
     this.pendingSwapIndex = null;
     this.destroyActiveSelectionMessage();
     this.completePlayerAction();
@@ -6188,6 +6240,9 @@ export default class BattleScene extends Phaser.Scene {
     if (!this.gameState || this.playerActionUsed || this.isFlowResolving) return;
 
     this.playerActionUsed = true;
+    const tutorialEvent = this.pendingTutorialEvent;
+    this.pendingTutorialEvent = null;
+    if (tutorialEvent?.eventName) this.handleTutorialEvent?.(tutorialEvent.eventName, tutorialEvent.payload ?? {});
     this.isFlowResolving = true;
     this.destroyActiveSelectionMessage();
     this.flushDeferredTransientBattleBanner();
@@ -6250,6 +6305,7 @@ export default class BattleScene extends Phaser.Scene {
     await this.delay(enemyActionPacing?.preCombatDelayMs ?? ENEMY_ACTION_PRE_COMBAT_DELAY_MS);
     const preCombatFeedbackSnapshot = this.captureCombatFeedbackSnapshot();
     const combatEvents = resolveCombat(this.gameState);
+    this.handleTutorialEvent?.('combat_completed', { combatEvents });
     this.commitBattleHistoryTurn(combatEvents, preCombatFeedbackSnapshot);
     this.lastCombatEvents = combatEvents;
     if (combatEvents.length > 0) {
@@ -6354,6 +6410,7 @@ export default class BattleScene extends Phaser.Scene {
     const beforeStats = this.captureBoardStats();
     const result = this.enemyTakeAction(action);
     this.enemyActionUsed = true;
+    this.handleTutorialEvent?.('enemy_action_completed', { actionType: action?.type, cardId: action?.cardId, slotIndex: action?.slotIndex });
     if (result?.ok && action.type !== 'pass' && action.type !== 'surrender') {
       const cardRef = this.createCardRef?.(result.card ?? card, 'enemy') ?? { name: (result.card ?? card)?.name ?? 'Card', side: 'enemy' };
       if (action.type === 'swap-units') {
