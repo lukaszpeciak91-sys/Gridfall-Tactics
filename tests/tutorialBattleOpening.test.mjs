@@ -81,10 +81,10 @@ test('normal opening shuffle and mulligan helpers remain random-function driven 
   assert.equal(state.player.hand.length, STARTING_HAND_SIZE);
 });
 
-test('tutorial data stays outside normal faction registry and GameMenu tutorial launch is unchanged', () => {
+test('tutorial data stays outside normal faction registry and GameMenu tutorial launches playable BattleScene', () => {
   assert.equal(getFactionKeys().includes('tutorial'), false);
   assert.equal(getFactionByKey('tutorial'), null);
   const source = readFileSync(new URL('../src/scenes/GameMenuScene.js', import.meta.url), 'utf8');
-  assert.match(source, /this\.scene\.start\('TutorialScene', \{ returnSceneKey: 'GameMenuScene' \}\)/);
-  assert.doesNotMatch(source, /BattleScene[^]*mode:\s*'tutorial'/);
+  assert.match(source, /this\.scene\.start\('BattleScene', \{[\s\S]*battleContext:[\s\S]*mode:\s*'tutorial'[\s\S]*tutorialId:\s*'tutorial_v1'[\s\S]*returnSceneKey:\s*'GameMenuScene'/);
+  assert.doesNotMatch(source, /this\.scene\.start\('TutorialScene'/);
 });

@@ -143,7 +143,7 @@ test('BattleScene defaults to arena context and preserves arena result exit', ()
 
 test('BattleScene preserves tutorial context without treating it as campaign', () => {
   const source = read('src/scenes/BattleScene.js');
-  assert.match(source, /if \(context\?\.mode === 'tutorial'\) \{[\s\S]*return \{ mode: 'tutorial' \}/);
+  assert.match(source, /if \(context\?\.mode === 'tutorial'\) \{[\s\S]*return \{[\s\S]*mode: 'tutorial'[\s\S]*tutorialId:[\s\S]*returnSceneKey:/);
   assert.match(source, /isTutorialBattle\(\) \{[\s\S]*return this\.battleContext\?\.mode === 'tutorial'/);
   assert.match(source, /isCampaignBattle\(\) \{[\s\S]*return this\.battleContext\?\.mode === 'campaign'/);
 });
