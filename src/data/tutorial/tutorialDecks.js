@@ -216,6 +216,20 @@ export const tutorialEnemyFaction = {
 };
 
 
+
+export const tutorialEnemyActionScript = Object.freeze([
+  Object.freeze({ type: 'play-unit', cardId: 'tutorial_enemy_blocker_a_1', slotIndex: 0 }),
+  Object.freeze({ type: 'pass' }),
+  Object.freeze({ type: 'play-unit', cardId: 'tutorial_enemy_blocker_b_1', slotIndex: 1 }),
+  Object.freeze({ type: 'play-unit', cardId: 'tutorial_enemy_blocker_c_1', slotIndex: 2 }),
+  Object.freeze({ type: 'play-unit', cardId: 'tutorial_enemy_blocker_d_1', slotIndex: 0 }),
+  Object.freeze({ type: 'pass' }),
+]);
+
+export function getTutorialEnemyActionScript() {
+  return tutorialEnemyActionScript.map((action) => ({ ...action }));
+}
+
 export const tutorialOpeningConfig = Object.freeze({
   playerStartingHp: 7,
   enemyStartingHp: 5,
@@ -243,5 +257,6 @@ export function getTutorialBattleData() {
     playerFaction: tutorialPlayerFaction,
     enemyFaction: tutorialEnemyFaction,
     openingConfig: tutorialOpeningConfig,
+    enemyActionScript: getTutorialEnemyActionScript(),
   };
 }

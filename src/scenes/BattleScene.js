@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
 import { getTutorialBattleData } from '../data/tutorial/tutorialDecks.js';
 import { applyTutorialOpeningSetup, isTutorialBattleContext, performTutorialOpeningMulligan } from '../systems/tutorialOpening.js';
+import { selectNextTutorialEnemyAction } from '../systems/tutorialEnemyActions.js';
 import { createInitialBattleState, drawCards, shuffleDeck, canPass, canPlayOrRedeploy, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, resolveTargetedUnitOnPlayEffect, getUnitAttack, getUnitArmor, toggleFirstActor, resolveTurnCapWinner, resolveImmediateResourceExhaustionWinner, resolveImmediateNoProgressWinner, recordPassAction, completeActionOpportunity, performOpeningMulligan, STARTING_HAND_SIZE, MAX_OPENING_MULLIGAN_CARDS, getEffectiveBoardAttack, getEffectiveBoardArmor, canPlayEffectCard, isEffectCardBlockedForOwner, isBattleExhaustedEligible } from '../systems/GameState.js';
 import { chooseEnemyAction, isVerySafeConcedableState, recordBattleActionUse, selectOpeningMulliganCardIds } from '../systems/enemyDecision.js';
 import { getTargetingStateForEffect } from '../systems/cardTargeting.js';
@@ -305,6 +306,7 @@ export default class BattleScene extends Phaser.Scene {
     this.pendingSwapIndex = null;
     this.playerActionUsed = false;
     this.enemyActionUsed = false;
+    this.tutorialEnemyActionCursor = 0;
     this.playerSurrenderArmed = false;
     this.targetingState = null;
     this.effectCastState = null;
@@ -624,6 +626,7 @@ export default class BattleScene extends Phaser.Scene {
     this.gameState.player.factionKey = playerFactionKey;
     this.gameState.enemy.factionKey = enemyFactionKey;
     if (isTutorialBattle) {
+      this.tutorialEnemyActionCursor = 0;
       applyTutorialOpeningSetup(this.gameState, tutorialOpeningConfig);
     } else {
       shuffleDeck(this.gameState.player.deck);
@@ -6339,7 +6342,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   async revealAndApplyEnemyAction() {
-    const action = chooseEnemyAction(this.gameState);
+    const action = this.selectEnemyAction();
     const card = action.cardId ? this.gameState.enemy.hand.find((item) => item.id === action.cardId) : null;
     const pacing = this.getEnemyActionPacing(action);
     this.showEnemyActionBanner(this.getEnemyActionMessage(action, card), pacing);
@@ -6387,6 +6390,19 @@ export default class BattleScene extends Phaser.Scene {
     await this.playActionFeedback(actionFeedback);
     await this.delay(pacing.postActionDelayMs);
     return pacing;
+  }
+
+
+  getNextTutorialEnemyAction() {
+    const result = selectNextTutorialEnemyAction(this.gameState, this.tutorialEnemyActionCursor);
+    this.tutorialEnemyActionCursor = result.nextCursor;
+    if (result.fallbackReason) console.warn(`Tutorial enemy script fallback PASS: ${result.fallbackReason}`);
+    return result.action;
+  }
+
+  selectEnemyAction() {
+    if (this.isTutorialBattle()) return this.getNextTutorialEnemyAction();
+    return chooseEnemyAction(this.gameState);
   }
 
   buildEnemyMovementFeedback(action, beforeStats, result) {
