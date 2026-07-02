@@ -5000,6 +5000,7 @@ export default class BattleScene extends Phaser.Scene {
       this.updatePlayerBaseActionState();
     }
     this.startHandCardLongPress(cardId);
+    this.updateTutorialFocus?.();
   }
 
   startHandCardLongPress(cardId) {
@@ -5994,6 +5995,7 @@ export default class BattleScene extends Phaser.Scene {
 
     this.updatePlayerBaseActionState();
     this.resetCardHighlights({ showPreview });
+    this.updateTutorialFocus?.();
   }
 
   async confirmOpeningMulligan() {
@@ -6277,9 +6279,84 @@ export default class BattleScene extends Phaser.Scene {
   getTutorialFocusTarget(step = this.getCurrentTutorialStep()) {
     const target = step?.highlightTarget;
     if (!target) return null;
-    if (typeof target === 'string') return { type: target };
-    if (typeof target === 'object') return target;
-    return null;
+    const normalizedTarget = typeof target === 'string' ? { type: target } : target;
+    if (typeof normalizedTarget !== 'object') return null;
+
+    const expected = step?.expected ?? {};
+    if ((expected.type === 'play_card_to_slot' || expected.type === 'redeploy_unit') && expected.cardId && expected.slotIndex !== undefined) {
+      return this.selectedCardId === expected.cardId
+        ? { type: expected.type === 'redeploy_unit' ? 'occupied_board_slot' : 'board_slot', slotIndex: expected.slotIndex }
+        : { type: 'hand_card', cardId: expected.cardId };
+    }
+
+    return normalizedTarget;
+  }
+
+  isTutorialStepBannerVisible(step = this.getCurrentTutorialStep()) {
+    if (!step || !this.tutorialBanner?.active || this.tutorialBanner.visible === false) return false;
+    return this.tutorialBanner.text === this.getTutorialStepText(step);
+  }
+
+  isTutorialFocusTimingSuppressed(step = this.getCurrentTutorialStep()) {
+    if (!step) return true;
+    if (!this.isTutorialStepBannerVisible(step)) return true;
+    if (this.isFlowResolving || this.isEffectCastResolving) return true;
+    if (step.expected?.type === 'wait_enemy_action' || step.expected?.type === 'wait_combat') return true;
+    return false;
+  }
+
+  isTutorialFocusTargetMechanicallyPossible(target, step = this.getCurrentTutorialStep()) {
+    if (!target || !step) return false;
+    const expected = step.expected ?? {};
+    const type = target.type;
+
+    if (type === 'mulligan_card') {
+      const cardId = target.cardId ?? getTutorialBattleData().openingConfig.requiredPlayerMulliganCardId;
+      return Boolean(
+        this.openingMulliganPending
+        && !(this.isOpeningMulliganInputLocked?.() ?? false)
+        && this.gameState?.player?.hand?.some((card) => card.id === cardId)
+        && (this.isTutorialInputAllowed?.({ type: 'select_mulligan_card', cardId }) ?? true)
+      );
+    }
+
+    if (type === 'player_base_button' && expected.type === 'confirm_mulligan') {
+      return Boolean(
+        this.openingMulliganPending
+        && !(this.isOpeningMulliganInputLocked?.() ?? false)
+        && (this.isTutorialInputAllowed?.({ type: 'confirm_mulligan', target: 'player_base_button' }) ?? true)
+      );
+    }
+
+    if (type === 'hand_card') {
+      return Boolean(
+        !this.openingMulliganPending
+        && !this.playerActionUsed
+        && this.gameState?.player?.hand?.some((card) => card.id === target.cardId)
+      );
+    }
+
+    if (type === 'effect_card') {
+      const card = this.gameState?.player?.hand?.find((item) => item.id === target.cardId);
+      return Boolean(
+        card
+        && !this.openingMulliganPending
+        && !this.playerActionUsed
+        && canPlayEffectCard(this.gameState, 'player', card).ok
+        && (this.isTutorialInputAllowed?.({ type: 'play_effect', cardId: card.id }) ?? true)
+      );
+    }
+
+    if (type === 'board_slot' || type === 'occupied_board_slot') {
+      const card = this.gameState?.player?.hand?.find((item) => item.id === this.selectedCardId);
+      if (!card || this.playerActionUsed || this.openingMulliganPending) return false;
+      const slotIndex = target.slotIndex ?? target.index;
+      const existingUnit = this.gameState?.board?.[slotIndex];
+      const proposedType = existingUnit?.owner === 'player' ? 'redeploy_unit' : 'play_card_to_slot';
+      return this.isTutorialInputAllowed?.({ type: proposedType, cardId: card.id, slotIndex }) ?? true;
+    }
+
+    return true;
   }
 
   ensureTutorialFocusLayer() {
@@ -6381,8 +6458,12 @@ export default class BattleScene extends Phaser.Scene {
       this.destroyTutorialFocus();
       return null;
     }
+    if (this.isTutorialFocusTimingSuppressed(step)) {
+      this.clearTutorialFocusGraphics();
+      return null;
+    }
     const target = this.getTutorialFocusTarget(step);
-    if (!target) {
+    if (!target || !this.isTutorialFocusTargetMechanicallyPossible(target, step)) {
       this.clearTutorialFocusGraphics();
       return null;
     }
