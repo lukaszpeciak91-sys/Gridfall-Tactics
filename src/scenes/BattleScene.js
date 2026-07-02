@@ -4597,6 +4597,7 @@ export default class BattleScene extends Phaser.Scene {
     if (redraw && !skipAnimation) this.redrawHand();
     this.updatePlayerBaseActionState();
     this.resetCardHighlights({ showPreview: false });
+    this.updateTutorialFocus?.();
   }
 
   clearHandPanelViews() {
@@ -6179,26 +6180,18 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   getTutorialBannerLayout() {
-    const centralLayout = this.getCentralBattleBannerLayout({ baseWidthRatio: 0.92, horizontalPadding: 16, startOffset: 5 });
-    const { width, height, margin, board, playerHero } = this.layout;
-    const playerRowBottom = board.centerY + (board.cellHeight * 1.5);
-    const safeTop = playerRowBottom + Math.max(6, height * 0.008);
-    const safeBottom = playerHero.y - Math.max(4, height * 0.006);
-    const fallbackY = board.centerY + (board.cellHeight * 1.16);
-    const targetY = safeBottom > safeTop
-      ? (safeTop + safeBottom) / 2
-      : Math.min(playerHero.centerY - playerHero.h * 0.72, fallbackY);
-    const panelWidth = Math.min(board.width * 1.08, width - margin * 2);
+    const { width, height, board, playerHero, hand, margin } = this.layout;
+    const maxTextWidth = Math.min(board.width * 0.86, width - margin * 2 - 32);
+    const targetY = Math.max(playerHero.centerY + playerHero.h * 0.35, Math.min(hand.y - 26, board.y + board.height + 22));
     return {
-      ...centralLayout,
+      x: width * 0.5,
       targetY,
-      startY: targetY + 5,
-      maxTextWidth: Math.min(panelWidth - 32, width - margin * 2 - 32),
-      fontSize: Math.min(20, Math.max(15, Math.floor(Math.max(board.cellWidth * 0.14, height * 0.018)))),
-      overlayWidth: width,
-      overlayHeight: height,
+      maxTextWidth,
+      fontSize: Math.min(18, Math.max(14, Math.floor(Math.max(board.cellWidth * 0.125, height * 0.016)))),
       overlayX: width * 0.5,
       overlayY: height * 0.5,
+      overlayWidth: width,
+      overlayHeight: height,
     };
   }
 
@@ -6263,6 +6256,12 @@ export default class BattleScene extends Phaser.Scene {
     this.tutorialBannerOverlay.setVisible(canTapContinue);
     this.updateTutorialFocus(step);
     return this.tutorialBanner;
+  }
+
+  onTutorialBannerPointerDown(pointer, localX, localY, event) {
+    if (!this.isTutorialBattle() || !this.isCurrentTutorialStepTapContinue()) return false;
+    event?.stopPropagation?.();
+    return true;
   }
 
   onTutorialBannerPointerUp(pointer, localX, localY, event) {
@@ -6363,9 +6362,13 @@ export default class BattleScene extends Phaser.Scene {
       const handBounds = type === 'player_hand_and_lanes' ? { x: this.layout.width * 0.5, y: this.layout.hand.centerY, width: this.layout.width - this.layout.margin * 2, height: this.layout.hand.h } : null;
       return this.getMergedFocusBounds([handBounds, ...((this.boardCells ?? []).map((cell) => this.getGameObjectFocusBounds(cell.background, 4)))]);
     }
-    if (type === 'board_slot' || type === 'occupied_board_slot' || type === 'open_lane' || type === 'empty_lane') return this.getBoardSlotFocusBounds(target.slotIndex ?? target.index ?? target.laneIndex ?? 0);
+    if (type === 'empty_lane') {
+      if (!Number.isInteger(target.slotIndex) || target.slotIndex < 6 || target.slotIndex > 8) return null;
+      return this.getBoardSlotFocusBounds(target.slotIndex);
+    }
+    if (type === 'board_slot' || type === 'occupied_board_slot' || type === 'open_lane') return this.getBoardSlotFocusBounds(target.slotIndex ?? target.index ?? 0);
     if (type === 'adjacent_units' || type === 'adjacent_board_slots') return this.getMergedFocusBounds([this.getBoardSlotFocusBounds(target.fromIndex ?? 0), this.getBoardSlotFocusBounds(target.toIndex ?? 1)]);
-    if (type === 'hand_card' || type === 'specific_hand_card' || type === 'mulligan_card' || type === 'effect_card') return this.getHandCardFocusBounds(target.cardId ?? (type === 'mulligan_card' ? getTutorialBattleData().openingConfig.requiredPlayerMulliganCardId : null)) ?? (type === 'effect_card' ? this.getHandCardFocusBounds((this.gameState?.player?.hand ?? []).find((card) => card?.type !== 'unit')?.id) : null);
+    if (type === 'hand_card' || type === 'specific_hand_card' || type === 'mulligan_card' || type === 'effect_card') return this.getHandCardFocusBounds(target.cardId ?? (type === 'mulligan_card' ? getTutorialBattleData().openingConfig.requiredPlayerMulliganCardId : null));
     return null;
   }
 
@@ -6403,8 +6406,9 @@ export default class BattleScene extends Phaser.Scene {
       this.clearTutorialFocusGraphics();
       return null;
     }
-    if (this.currentTutorialFocusKey === key && this.tutorialFocusGraphics?.length > 0) return this.tutorialFocusGraphics[1] ?? this.tutorialFocusGraphics[0];
-    return this.drawTutorialFocusBounds(bounds, key);
+    const boundsKey = `${key}:${Math.round(bounds.x)},${Math.round(bounds.y)},${Math.round(bounds.width)},${Math.round(bounds.height)}`;
+    if (this.currentTutorialFocusKey === boundsKey && this.tutorialFocusGraphics?.length > 0) return this.tutorialFocusGraphics[1] ?? this.tutorialFocusGraphics[0];
+    return this.drawTutorialFocusBounds(bounds, boundsKey);
   }
 
   async showOpeningTurnStartBanner() {
