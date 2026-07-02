@@ -6188,6 +6188,8 @@ export default class BattleScene extends Phaser.Scene {
       targetY,
       maxTextWidth,
       fontSize: Math.min(18, Math.max(14, Math.floor(Math.max(board.cellWidth * 0.125, height * 0.016)))),
+      overlayX: width * 0.5,
+      overlayY: height * 0.5,
       overlayWidth: width,
       overlayHeight: height,
     };
@@ -6224,14 +6226,14 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     if (!this.tutorialBannerOverlay?.active) {
-      this.tutorialBannerOverlay = this.add.rectangle(this.layout.width * 0.5, this.layout.height * 0.5, layout.overlayWidth, layout.overlayHeight, 0x000000, 0.001)
+      this.tutorialBannerOverlay = this.add.rectangle(layout.overlayX, layout.overlayY, layout.overlayWidth, layout.overlayHeight, 0x000000, 0.001)
         .setOrigin(0.5)
         .setDepth(223)
         .setInteractive({ useHandCursor: true })
         .on('pointerdown', (pointer, localX, localY, event) => this.onTutorialBannerPointerDown(pointer, localX, localY, event))
         .on('pointerup', (pointer, localX, localY, event) => this.onTutorialBannerPointerUp(pointer, localX, localY, event));
     }
-    this.tutorialBannerOverlay.setPosition(this.layout.width * 0.5, this.layout.height * 0.5).setSize(layout.overlayWidth, layout.overlayHeight);
+    this.tutorialBannerOverlay.setPosition(layout.overlayX, layout.overlayY).setSize(layout.overlayWidth, layout.overlayHeight);
     this.tutorialBannerOverlay.input.enabled = canTapContinue;
     this.tutorialBannerOverlay.setVisible(canTapContinue);
     this.updateTutorialFocus(step);
