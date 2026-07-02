@@ -52,9 +52,9 @@ test('tutorial banner cleans up on result, reset, rebuild, and shutdown paths', 
   assert.match(source, /shutdown\(\) \{\s*this\.cleanupSceneObjects\(\);/);
 });
 
-test('GameMenuScene Tutorial still launches existing TutorialScene, not tutorial BattleScene', () => {
+test('GameMenuScene Tutorial launches playable tutorial BattleScene', () => {
   const source = gameMenuSource();
 
-  assert.match(source, /this\.scene\.start\('TutorialScene', \{ returnSceneKey: 'GameMenuScene' \}\)/);
-  assert.doesNotMatch(source, /this\.scene\.start\('BattleScene', \{[\s\S]*mode:\s*'tutorial'/);
+  assert.match(source, /this\.scene\.start\('BattleScene', \{[\s\S]*battleContext:[\s\S]*mode:\s*'tutorial'[\s\S]*tutorialId:\s*'tutorial_v1'[\s\S]*returnSceneKey:\s*'GameMenuScene'/);
+  assert.doesNotMatch(source, /this\.scene\.start\('TutorialScene'/);
 });

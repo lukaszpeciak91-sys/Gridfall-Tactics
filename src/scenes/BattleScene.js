@@ -430,7 +430,11 @@ export default class BattleScene extends Phaser.Scene {
       };
     }
     if (context?.mode === 'tutorial') {
-      return { mode: 'tutorial' };
+      return {
+        mode: 'tutorial',
+        tutorialId: typeof context.tutorialId === 'string' ? context.tutorialId : 'tutorial_v1',
+        returnSceneKey: typeof context.returnSceneKey === 'string' ? context.returnSceneKey : 'GameMenuScene',
+      };
     }
     const mode = context?.mode === 'campaign' ? 'campaign' : 'arena';
     if (mode !== 'campaign') return { mode: 'arena' };

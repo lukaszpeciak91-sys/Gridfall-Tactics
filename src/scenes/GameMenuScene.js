@@ -96,7 +96,13 @@ export default class GameMenuScene extends Phaser.Scene {
     });
 
     this.createMenuButton(width / 2, startY + buttonGap * 2, buttonWidth, translateActive('ui.gameMenu.tutorial', 'TUTORIAL'), () => {
-      this.scene.start('TutorialScene', { returnSceneKey: 'GameMenuScene' });
+      this.scene.start('BattleScene', {
+        battleContext: {
+          mode: 'tutorial',
+          tutorialId: 'tutorial_v1',
+          returnSceneKey: 'GameMenuScene',
+        },
+      });
     });
 
     this.createMenuButton(width / 2, startY + buttonGap * 3, buttonWidth, translateActive('ui.gameMenu.arena', 'ARENA'), () => {

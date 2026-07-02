@@ -108,6 +108,6 @@ test('Arena, Campaign, Balance Lab, and GameMenu tutorial launch remain separate
   const factionSource = readFileSync(new URL('../src/data/factions/index.js', import.meta.url), 'utf8');
   const gameMenuSource = readFileSync(new URL('../src/scenes/GameMenuScene.js', import.meta.url), 'utf8');
   assert.doesNotMatch(factionSource, /tutorialEnemyActionScript|tutorial-enemy|tutorial_enemy_blocker/);
-  assert.match(gameMenuSource, /this\.scene\.start\('TutorialScene', \{ returnSceneKey: 'GameMenuScene' \}\)/);
-  assert.doesNotMatch(gameMenuSource, /BattleScene[^]*mode:\s*'tutorial'/);
+  assert.match(gameMenuSource, /this\.scene\.start\('BattleScene', \{[\s\S]*battleContext:[\s\S]*mode:\s*'tutorial'[\s\S]*tutorialId:\s*'tutorial_v1'[\s\S]*returnSceneKey:\s*'GameMenuScene'/);
+  assert.doesNotMatch(gameMenuSource, /this\.scene\.start\('TutorialScene'/);
 });

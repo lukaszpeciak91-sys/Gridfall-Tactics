@@ -52,7 +52,7 @@ test('tutorial focus uses independent Phaser primitives and does not gate input'
   assert.doesNotMatch(focusSource, /onlyTutorial|blockWrong|tutorialInputGate|preventWrong|checkTutorialInputGate/);
 });
 
-test('GameMenuScene Tutorial still launches existing TutorialScene', () => {
-  assert.match(gameMenuSource, /this\.scene\.start\('TutorialScene', \{ returnSceneKey: 'GameMenuScene' \}\)/);
-  assert.doesNotMatch(gameMenuSource, /this\.scene\.start\('BattleScene'[\s\S]*tutorial_v1/);
+test('GameMenuScene Tutorial launches playable tutorial BattleScene', () => {
+  assert.match(gameMenuSource, /this\.scene\.start\('BattleScene', \{[\s\S]*battleContext:[\s\S]*mode:\s*'tutorial'[\s\S]*tutorialId:\s*'tutorial_v1'[\s\S]*returnSceneKey:\s*'GameMenuScene'/);
+  assert.doesNotMatch(gameMenuSource, /this\.scene\.start\('TutorialScene'/);
 });
