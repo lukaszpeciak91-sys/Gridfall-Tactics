@@ -34,7 +34,7 @@ test('tutorial battle opening uses tutorial-only data, HP, deterministic hands, 
   assert.equal(scene.gameState.player.factionId, 'tutorial');
   assert.equal(scene.gameState.enemy.factionId, 'tutorial-enemy');
   assert.equal(scene.gameState.playerHP, 7);
-  assert.equal(scene.gameState.enemyHP, 5);
+  assert.equal(scene.gameState.enemyHP, 7);
   assert.deepEqual(scene.gameState.player.hand.map((card) => card.id), openingConfig.playerStartingHandCardIds);
   assert.equal(scene.gameState.player.hand.length, STARTING_HAND_SIZE);
   assert.equal(scene.gameState.player.hand.some((card) => card.id === 'tutorial_mulligan_bait_1'), true);

@@ -232,7 +232,7 @@ export function getTutorialEnemyActionScript() {
 
 export const tutorialOpeningConfig = Object.freeze({
   playerStartingHp: 7,
-  enemyStartingHp: 5,
+  enemyStartingHp: 7,
   startingHandSize: 4,
   playerStartingHandCardIds: Object.freeze([
     'tutorial_unit_a_1',
