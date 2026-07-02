@@ -6414,6 +6414,12 @@ export default class BattleScene extends Phaser.Scene {
   resolveTutorialFocusBounds(target) {
     const type = target?.type;
     if (!type || !this.layout) return null;
+    if (type === 'base_pair') {
+      const targets = Array.isArray(target.targets) && target.targets.length > 0
+        ? target.targets
+        : [{ type: 'enemy_base' }, { type: 'player_base' }];
+      return this.getMergedFocusBounds(targets.map((item) => this.resolveTutorialFocusBounds(item)));
+    }
     if (type === 'enemy_base') return this.getGameObjectFocusBounds(this.enemyHeroPanel, 10);
     if (type === 'player_base') return this.getGameObjectFocusBounds(this.playerHeroPanel, 10);
     if (type === 'player_base_button') return this.getGameObjectFocusBounds(this.playerBaseActionLabelText, 12) ?? this.getGameObjectFocusBounds(this.playerHeroPanel, 10);
