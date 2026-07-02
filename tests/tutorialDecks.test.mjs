@@ -62,9 +62,11 @@ test('tutorial enemy data exports a tutorial-only 6-card blocker deck', () => {
       { id: 'tutorial_enemy_blocker_a_1', type: 'unit', targeting: 'lane', attack: 0, hp: 2, armor: 0 },
       { id: 'tutorial_enemy_blocker_b_1', type: 'unit', targeting: 'lane', attack: 0, hp: 2, armor: 0 },
       { id: 'tutorial_enemy_blocker_c_1', type: 'unit', targeting: 'lane', attack: 0, hp: 1, armor: 0 },
-      { id: 'tutorial_enemy_blocker_d_1', type: 'unit', targeting: 'lane', attack: 0, hp: 3, armor: 0 },
+      { id: 'tutorial_enemy_blocker_d_1', type: 'unit', targeting: 'lane', attack: 1, hp: 3, armor: 0 },
     ],
   );
+
+  assert.equal(cardById(tutorialEnemyFaction.deck, 'tutorial_enemy_blocker_d_1').attack, 1, 'late final scripted blocker applies light tutorial-only ATK pressure');
 });
 
 test('tutorial battle helper returns tutorial data without normal faction registry exposure', () => {

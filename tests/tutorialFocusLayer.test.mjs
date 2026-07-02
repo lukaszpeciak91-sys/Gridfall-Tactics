@@ -9,7 +9,7 @@ const gameMenuSource = readFileSync(new URL('../src/scenes/GameMenuScene.js', im
 const step = (id) => TUTORIAL_STEPS.find((item) => item.id === id);
 
 test('tutorial focus targets are represented as practical BattleScene target objects', () => {
-  assert.deepEqual(step('bases_goal').highlightTarget, { type: 'enemy_base' });
+  assert.deepEqual(step('bases_goal').highlightTarget, { type: 'base_pair', targets: [{ type: 'enemy_base' }, { type: 'player_base' }] });
   assert.deepEqual(step('hand_lanes').highlightTarget, { type: 'player_board_lanes', slotIndexes: [6, 7, 8] });
   assert.deepEqual(step('deck_counter_open').highlightTarget, { type: 'deck_counter' });
   assert.deepEqual(step('battle_menu_open').highlightTarget, { type: 'battle_menu_button' });
@@ -41,6 +41,7 @@ test('tutorial focus clears previous graphics before drawing a new target and du
 });
 
 test('tutorial focus supports base, UI button, hand card, and board/lane targets', () => {
+  assert.match(battleSource, /type === 'base_pair'[\s\S]*this\.getMergedFocusBounds\(targets\.map\(\(item\) => this\.resolveTutorialFocusBounds\(item\)\)\)/);
   assert.match(battleSource, /type === 'enemy_base'[\s\S]*this\.enemyHeroPanel/);
   assert.match(battleSource, /type === 'player_base'[\s\S]*this\.playerHeroPanel/);
   assert.match(battleSource, /type === 'deck_counter'[\s\S]*this\.deckCounterView\?\.focusBounds/);
@@ -57,6 +58,15 @@ test('tutorial focus supports base, UI button, hand card, and board/lane targets
   assert.match(battleSource, /getBoardSlotFocusBounds\(slotIndex\)/);
   assert.match(battleSource, /type === 'player_board_lanes'[\s\S]*\[6, 7, 8\][\s\S]*getBoardSlotFocusBounds\(slotIndex\)/);
   assert.match(battleSource, /type === 'adjacent_units'[\s\S]*this\.getMergedFocusBounds/);
+});
+
+test('first tutorial banner focuses both bases without becoming a battlefield or input gate', () => {
+  const target = step('bases_goal').highlightTarget;
+  assert.deepEqual(target, { type: 'base_pair', targets: [{ type: 'enemy_base' }, { type: 'player_base' }] });
+  assert.notEqual(target.type, 'battle_lanes');
+  assert.notEqual(target.type, 'board_lanes');
+  assert.notEqual(target.type, 'player_hand_and_lanes');
+  assert.equal(step('bases_goal').expected.type, 'tap_continue');
 });
 
 
