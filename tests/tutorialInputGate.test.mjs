@@ -32,9 +32,9 @@ test('mulligan confirm, unit play, swap, redeploy, effect, and pass are metadata
   assert.equal(allowed('mulligan_confirm', { type: 'confirm_mulligan', target: 'player_base_button' }), true);
   assert.equal(allowed('mulligan_confirm', { type: 'pass', target: 'player_base_button' }), false);
 
-  assert.equal(allowed('play_unit_a', { type: 'play_card_to_slot', cardId: 'wrong', slotIndex: 0 }), false);
-  assert.equal(allowed('play_unit_a', { type: 'play_card_to_slot', cardId: 'tutorial_unit_a_1', slotIndex: 1 }), false);
-  assert.equal(allowed('play_unit_a', { type: 'play_card_to_slot', cardId: 'tutorial_unit_a_1', slotIndex: 0 }), true);
+  assert.equal(allowed('play_unit_a', { type: 'play_card_to_slot', cardId: 'wrong', slotIndex: 6 }), false);
+  assert.equal(allowed('play_unit_a', { type: 'play_card_to_slot', cardId: 'tutorial_unit_a_1', slotIndex: 7 }), false);
+  assert.equal(allowed('play_unit_a', { type: 'play_card_to_slot', cardId: 'tutorial_unit_a_1', slotIndex: 6 }), true);
 
   assert.equal(allowed('adjacent_swap', { type: 'swap_adjacent_units', fromIndex: 1, toIndex: 0 }), false);
   assert.equal(allowed('adjacent_swap', { type: 'swap_adjacent_units', fromIndex: 0, toIndex: 1 }), true);
@@ -52,10 +52,10 @@ test('mulligan confirm, unit play, swap, redeploy, effect, and pass are metadata
 
 test('wait and tap_continue steps block gameplay until their expected event', () => {
   for (const stepId of ['enemy_action', 'combat_after_actions']) {
-    assert.equal(allowed(stepId, { type: 'play_card_to_slot', cardId: 'tutorial_unit_a_1', slotIndex: 0 }), false);
+    assert.equal(allowed(stepId, { type: 'play_card_to_slot', cardId: 'tutorial_unit_a_1', slotIndex: 6 }), false);
     assert.equal(allowed(stepId, { type: 'pass', target: 'player_base_button' }), false);
   }
   assert.equal(allowed('enemy_action', { type: 'wait_enemy_action' }), true);
   assert.equal(allowed('combat_after_actions', { type: 'wait_combat' }), true);
-  assert.equal(allowed('bases_goal', { type: 'play_card_to_slot', cardId: 'tutorial_unit_a_1', slotIndex: 0 }), false);
+  assert.equal(allowed('bases_goal', { type: 'play_card_to_slot', cardId: 'tutorial_unit_a_1', slotIndex: 6 }), false);
 });
