@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 
 import { TUTORIAL_STEPS } from '../src/data/tutorial/tutorialSteps.js';
 import { getTutorialBattleData, getTutorialEnemyActionScript } from '../src/data/tutorial/tutorialDecks.js';
-import { createInitialBattleState, drawCards, performSwap, playEffectCard, playOrRedeployUnit, resolveCombat } from '../src/systems/GameState.js';
+import { createInitialBattleState, drawCards, getEffectiveBoardArmor, performSwap, playEffectCard, playOrRedeployUnit, resolveCombat } from '../src/systems/GameState.js';
 import { applyTutorialOpeningSetup, performTutorialOpeningMulligan } from '../src/systems/tutorialOpening.js';
 import { selectNextTutorialEnemyAction } from '../src/systems/tutorialEnemyActions.js';
 
@@ -88,6 +88,32 @@ test('redeploy and effect use real paths, scripted blockers prevent early victor
   assert.equal(ctx.state.enemyHP, 0);
   assert.equal(ctx.state.winner, 'player');
   assert.equal(ctx.state.playerHP, 7, 'tutorial player cannot accidentally lose in the final slice');
+});
+
+test('redeployed Unit C grants Shieldbearer armor only to adjacent allies during combat projection', () => {
+  const ctx = createReadyTutorialState();
+
+  playPlayerActionAndResolve(ctx, () => playOrRedeployUnit(ctx.state, 'player', 'tutorial_unit_a_1', 6));
+  playPlayerActionAndResolve(ctx, () => playOrRedeployUnit(ctx.state, 'player', 'tutorial_unit_b_1', 7));
+  playPlayerActionAndResolve(ctx, () => performSwap(ctx.state, 'player', 6, 7));
+
+  const redeployResult = playOrRedeployUnit(ctx.state, 'player', 'tutorial_unit_c_1', 6);
+  assert.equal(redeployResult.ok, true);
+  assert.equal(redeployResult.type, 'redeploy');
+  assert.equal(ctx.state.board[6].effectId, 'lane_armor_aura_1');
+  assert.equal(ctx.state.player.hand.some((card) => card.id === 'tutorial_unit_b_1'), true);
+
+  ctx.state.board[8] = { id: 'distant-ally', cardId: 'distant-ally', owner: 'player', type: 'unit', attack: 0, hp: 2, maxHp: 2, armor: 0 };
+  ctx.state.board[0] = { id: 'enemy-left', cardId: 'enemy-left', owner: 'enemy', type: 'unit', attack: 0, hp: 2, maxHp: 2, armor: 0 };
+
+  assert.equal(getEffectiveBoardArmor(ctx.state, 7), 1, 'adjacent ally receives +1 ARM from Unit C');
+  assert.equal(getEffectiveBoardArmor(ctx.state, 8), 0, 'non-adjacent ally is not buffed');
+  assert.equal(getEffectiveBoardArmor(ctx.state, 0), 0, 'enemy unit is not buffed');
+
+  const combatEvents = resolveCombat(ctx.state);
+  assert.equal(ctx.state.board[7].armor, 0, 'armor aura does not leave a permanent stat modifier after combat');
+  assert.equal(ctx.state.board[8].armor, 0, 'non-adjacent ally remains unmodified after combat');
+  assert.ok(combatEvents.some((event) => event.combatModifiers?.some((modifier) => modifier.source === 'lane_armor_aura_1')));
 });
 
 test('tutorial-only final enemy script remains deterministic and separate from normal AI', () => {

@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { getFactionByKey, getFactionKeys } from '../src/data/factions/index.js';
+import { getCardTextShort } from '../src/localization/cardDisplay.js';
 import { getCardIllustrationAsset } from '../src/rendering/cardIllustrationAssets.js';
 import {
   getTutorialBattleData,
@@ -64,12 +65,12 @@ test('tutorial player data exports a tutorial-only 10-card deck with required ca
   assert.deepEqual(
     ['tutorial_unit_a_1', 'tutorial_unit_b_1', 'tutorial_unit_c_1'].map((id) => {
       const card = cardById(tutorialPlayerFaction.deck, id);
-      return { id: card.id, type: card.type, targeting: card.targeting, attack: card.attack, hp: card.hp, armor: card.armor };
+      return { id: card.id, type: card.type, targeting: card.targeting, effectId: card.effectId ?? null, textKey: card.textKey ?? null, textShort: card.textShort, attack: card.attack, hp: card.hp, armor: card.armor };
     }),
     [
-      { id: 'tutorial_unit_a_1', type: 'unit', targeting: 'lane', attack: 1, hp: 3, armor: 0 },
-      { id: 'tutorial_unit_b_1', type: 'unit', targeting: 'lane', attack: 1, hp: 2, armor: 0 },
-      { id: 'tutorial_unit_c_1', type: 'unit', targeting: 'lane', attack: 2, hp: 2, armor: 0 },
+      { id: 'tutorial_unit_a_1', type: 'unit', targeting: 'lane', effectId: null, textKey: null, textShort: 'Simple 1/3 unit', attack: 1, hp: 3, armor: 0 },
+      { id: 'tutorial_unit_b_1', type: 'unit', targeting: 'lane', effectId: null, textKey: null, textShort: 'Simple 1/2 unit', attack: 1, hp: 2, armor: 0 },
+      { id: 'tutorial_unit_c_1', type: 'unit', targeting: 'lane', effectId: 'lane_armor_aura_1', textKey: 'cards.tank_shieldbearer_1.textShort', textShort: 'Adjacent [ALLY] +1 ARM until combat', attack: 2, hp: 2, armor: 0 },
     ],
   );
 
@@ -132,4 +133,17 @@ test('normal faction card art asset ids remain unchanged', () => {
     ])),
     EXPECTED_NORMAL_FACTION_ART_ASSET_IDS,
   );
+});
+
+test('tutorial Unit C reuses Shieldbearer adjacent armor aura data and localized text', () => {
+  const tutorialUnitC = cardById(tutorialPlayerFaction.deck, 'tutorial_unit_c_1');
+  const shieldbearer = cardById(getFactionByKey('Tank').deck, 'tank_shieldbearer_1');
+
+  assert.equal(tutorialUnitC.effectId, shieldbearer.effectId);
+  assert.equal(tutorialUnitC.textShort, shieldbearer.textShort);
+  assert.equal(getCardTextShort(tutorialUnitC, 'en'), getCardTextShort(shieldbearer, 'en'));
+  assert.equal(getCardTextShort(tutorialUnitC, 'pl'), getCardTextShort(shieldbearer, 'pl'));
+  assert.equal(tutorialUnitC.attack, 2, 'Unit C keeps tutorial-specific ATK');
+  assert.equal(tutorialUnitC.hp, 2, 'Unit C keeps tutorial-specific HP');
+  assert.equal(tutorialUnitC.armor, 0, 'Unit C keeps tutorial-specific ARM');
 });
