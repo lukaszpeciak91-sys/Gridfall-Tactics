@@ -40,8 +40,9 @@ test('mulligan confirm, unit play, swap, redeploy, effect, and pass are metadata
   assert.equal(allowed('play_unit_b', { type: 'play_card_to_slot', cardId: 'tutorial_unit_b_1', slotIndex: 8 }), false);
   assert.equal(allowed('play_unit_b', { type: 'play_card_to_slot', cardId: 'tutorial_unit_b_1', slotIndex: 7 }), true);
 
-  assert.equal(allowed('adjacent_swap', { type: 'swap_adjacent_units', fromIndex: 7, toIndex: 6 }), false);
+  assert.equal(allowed('adjacent_swap', { type: 'swap_adjacent_units', fromIndex: 7, toIndex: 6 }), true);
   assert.equal(allowed('adjacent_swap', { type: 'swap_adjacent_units', fromIndex: 6, toIndex: 7 }), true);
+  assert.equal(allowed('adjacent_swap', { type: 'swap_adjacent_units', fromIndex: 6, toIndex: 8 }), false);
 
   assert.equal(allowed('redeploy', { type: 'redeploy_unit', cardId: 'tutorial_unit_b_1', slotIndex: 6 }), false);
   assert.equal(allowed('redeploy', { type: 'redeploy_unit', cardId: 'tutorial_unit_c_1', slotIndex: 1 }), false);

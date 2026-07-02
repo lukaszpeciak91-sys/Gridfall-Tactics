@@ -152,7 +152,7 @@ test('tutorial adjacent swap gates wrong pairs and real swap advances to redeplo
   playOrRedeployUnit(state, 'player', 'tutorial_unit_b_1', 7);
   handleTutorialEvent(controller, 'unit_played', { cardId: 'tutorial_unit_b_1', slotIndex: 7 });
 
-  assert.equal(checkTutorialInputGate(controller, { type: 'swap_adjacent_units', fromIndex: 7, toIndex: 6, board: state.board }).allowed, false);
+  assert.equal(checkTutorialInputGate(controller, { type: 'swap_adjacent_units', fromIndex: 7, toIndex: 6, board: state.board }).allowed, true);
   assert.equal(checkTutorialInputGate(controller, { type: 'swap_adjacent_units', fromIndex: 6, toIndex: 8, board: state.board }).allowed, false);
   assert.equal(checkTutorialInputGate(controller, { type: 'swap_adjacent_units', fromIndex: 6, toIndex: 0, board: state.board }).allowed, false);
   assert.equal(checkTutorialInputGate(controller, { type: 'swap_adjacent_units', fromIndex: 6, toIndex: 7, board: Array(9).fill(null) }).allowed, false);

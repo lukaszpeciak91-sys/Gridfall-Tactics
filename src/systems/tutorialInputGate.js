@@ -31,6 +31,18 @@ function valuesMatch(expected, proposal, key) {
   return !Object.hasOwn(expected, key) || expected[key] === proposal[key];
 }
 
+function isExpectedAdjacentSwapMetadata(step, proposal) {
+  const expected = step?.expected ?? {};
+  if (step?.id !== 'adjacent_swap') return null;
+  const expectedFrom = expected.fromIndex;
+  const expectedTo = expected.toIndex;
+  const proposedFrom = proposal.fromIndex;
+  const proposedTo = proposal.toIndex;
+  const isForward = proposedFrom === expectedFrom && proposedTo === expectedTo;
+  const isReverse = proposedFrom === expectedTo && proposedTo === expectedFrom;
+  return isForward || isReverse;
+}
+
 export function checkTutorialInputGate(tutorialControllerState, proposal = {}) {
   const step = getCurrentTutorialStep(tutorialControllerState);
   if (!step) return { allowed: true, reason: 'no_tutorial_step', step: null };
@@ -54,12 +66,15 @@ export function checkTutorialInputGate(tutorialControllerState, proposal = {}) {
     if (actionType !== expectedType) return { allowed: false, reason: `expected_${expectedType}`, step };
   }
 
-  const allowed = ['cardId', 'slotIndex', 'fromIndex', 'toIndex', 'target'].every((key) => valuesMatch(expected, proposal, key));
+  const adjacentSwapMatches = isExpectedAdjacentSwapMetadata(step, proposal);
+  const metadataKeys = adjacentSwapMatches === null ? ['cardId', 'slotIndex', 'fromIndex', 'toIndex', 'target'] : ['cardId', 'slotIndex', 'target'];
+  const allowed = metadataKeys.every((key) => valuesMatch(expected, proposal, key))
+    && (adjacentSwapMatches ?? true);
   if (!allowed) return { allowed: false, reason: `expected_${expectedType}_metadata`, step };
 
   if (step.id === 'adjacent_swap' && Array.isArray(proposal.board)) {
-    const fromUnit = proposal.board[expected.fromIndex];
-    const toUnit = proposal.board[expected.toIndex];
+    const fromUnit = proposal.board[proposal.fromIndex];
+    const toUnit = proposal.board[proposal.toIndex];
     const hasExpectedPlayerUnits = fromUnit?.owner === 'player' && toUnit?.owner === 'player';
     if (!hasExpectedPlayerUnits) return { allowed: false, reason: 'expected_adjacent_player_units', step };
   }

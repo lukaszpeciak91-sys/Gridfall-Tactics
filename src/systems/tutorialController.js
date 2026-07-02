@@ -51,6 +51,11 @@ export function isTutorialEventExpected(state, eventName, payload = {}) {
   const expectedType = TUTORIAL_EVENT_TO_EXPECTED_TYPE[eventName] ?? eventName;
   if (!step || !expectedType || step.expected?.type !== expectedType) return false;
   const expected = step.expected ?? {};
+  if (step.id === 'adjacent_swap' && expected.type === 'swap_adjacent_units') {
+    const isForward = payload.fromIndex === expected.fromIndex && payload.toIndex === expected.toIndex;
+    const isReverse = payload.fromIndex === expected.toIndex && payload.toIndex === expected.fromIndex;
+    if (Object.hasOwn(payload, 'fromIndex') || Object.hasOwn(payload, 'toIndex')) return isForward || isReverse;
+  }
   for (const key of ['cardId', 'slotIndex', 'fromIndex', 'toIndex', 'target']) {
     if (Object.hasOwn(expected, key) && Object.hasOwn(payload, key) && payload[key] !== expected[key]) return false;
   }

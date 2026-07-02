@@ -12,6 +12,7 @@ import { COMBAT_ATTACK_PRESENTATIONS, getCombatAttackPresentation, getCombatEven
 import { BATTLE_BACKGROUND_FALLBACK_COLOR, BATTLE_BACKGROUND_FALLBACK_COLOR_HEX, createCoverBackground, getBattleBackgroundAsset, hasLoadedImageAsset, preloadBattleBackgroundArt, preloadImageAsset, resolvePublicAssetPath } from '../rendering/backgroundArt.js';
 import { preloadAllCardIllustrations } from '../rendering/cardIllustrationAssets.js';
 import { calculateBattleLayoutMetrics } from '../ui/battleLayout.js';
+import { calculateHandCardFocusBounds, calculateTutorialBannerLayout } from '../ui/tutorialUxLayout.js';
 import { calculateHandBackCardCoverCrop, calculateHandBackCardDepth, shouldRenderHandBackCard } from '../ui/handBackCardPresentation.js';
 import { HAND_CARD_FLIP_REVEAL_DURATION, findHandCardFlipRevealSlots, shouldSkipHandCardFlipReveal, startHandCardFlipReveal } from '../ui/handCardFlipReveal.js';
 import { createFloatingControl, createMuteToggleControl, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
@@ -6180,25 +6181,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   getTutorialBannerLayout() {
-    const { width, height, board, playerHero, hand, margin } = this.layout;
-    const maxTextWidth = Math.min(board.width * 0.86, width - margin * 2 - 32);
-    const playerRowBottom = board.centerY + (board.cellHeight * 1.5);
-    const safeTop = playerRowBottom + Math.max(8, height * 0.012);
-    const safeBottom = playerHero.y - Math.max(4, height * 0.006);
-    const fallbackY = Math.max(playerHero.centerY + playerHero.h * 0.35, Math.min(hand.y - 26, board.y + board.height + 22));
-    const targetY = safeBottom > safeTop
-      ? (safeTop + safeBottom) * 0.5
-      : fallbackY;
-    return {
-      x: width * 0.5,
-      targetY,
-      maxTextWidth,
-      fontSize: Math.min(20, Math.max(15, Math.floor(Math.max(board.cellWidth * 0.14, height * 0.018)))),
-      overlayX: width * 0.5,
-      overlayY: height * 0.5,
-      overlayWidth: width,
-      overlayHeight: height,
-    };
+    return calculateTutorialBannerLayout(this.layout);
   }
 
   isTutorialBannerSuppressed() {
@@ -6331,10 +6314,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   getHandCardFocusBounds(cardId) {
-    const view = (this.cardViews ?? []).find((cardView) => cardView?.card?.id === cardId || cardView?.cardId === cardId);
-    if (!view?.background) return null;
-    if (view.root && (view.root.alpha ?? 1) <= 0) return null;
-    return this.getGameObjectFocusBounds(view.background, 7);
+    return calculateHandCardFocusBounds(this.cardViews ?? [], cardId, (object, padding) => this.getGameObjectFocusBounds(object, padding));
   }
 
   getBoardSlotFocusBounds(slotIndex) {

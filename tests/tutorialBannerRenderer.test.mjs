@@ -11,8 +11,9 @@ test('tutorial BattleScene creates and shows a tutorial banner only in tutorial 
   assert.match(source, /updateTutorialBanner\(\) \{[\s\S]*!this\.isTutorialBattle\(\)[\s\S]*this\.destroyTutorialBanner\(\)/);
   assert.match(source, /const step = this\.getCurrentTutorialStep\(\);[\s\S]*const message = this\.getTutorialStepText\(step\);/);
   assert.match(source, /this\.tutorialBanner = this\.add\.text\(layout\.x, layout\.targetY, message/);
-  assert.match(source, /getTutorialBannerLayout\(\) \{[\s\S]*playerHero[\s\S]*hand[\s\S]*const fallbackY = Math\.max\(playerHero\.centerY/);
-  assert.match(source, /overlayX: width \* 0\.5,[\s\S]*overlayY: height \* 0\.5,[\s\S]*overlayWidth: width,[\s\S]*overlayHeight: height/);
+  assert.match(source, /getTutorialBannerLayout\(\) \{[\s\S]*calculateTutorialBannerLayout\(this\.layout\)/);
+  const layoutSource = fs.readFileSync('src/ui/tutorialUxLayout.js', 'utf8');
+  assert.match(layoutSource, /overlayX: width \* 0\.5,[\s\S]*overlayY: height \* 0\.5,[\s\S]*overlayWidth: width,[\s\S]*overlayHeight: height/);
   assert.match(source, /this\.startOpeningMulliganReveal\(\);\s*this\.updateTutorialBanner\(\);/);
   const updateSource = source.slice(source.indexOf('  updateTutorialBanner() {'), source.indexOf('  onTutorialBannerPointerUp('));
   assert.match(updateSource, /!this\.isTutorialBattle\(\)/);
@@ -21,13 +22,13 @@ test('tutorial BattleScene creates and shows a tutorial banner only in tutorial 
 });
 
 
-test('tutorial banner uses lower tutorial-specific layout and distinct readable style', () => {
+test('tutorial banner uses above-player-row tutorial-specific layout and distinct readable style', () => {
   const source = battleSource();
-  const layoutSource = source.slice(source.indexOf('  getTutorialBannerLayout() {'), source.indexOf('  isTutorialBannerSuppressed() {'));
+  const layoutSource = fs.readFileSync('src/ui/tutorialUxLayout.js', 'utf8');
 
-  assert.match(layoutSource, /const playerRowBottom = board\.centerY \+ \(board\.cellHeight \* 1\.5\);/);
-  assert.match(layoutSource, /const safeBottom = playerHero\.y - Math\.max\(4, height \* 0\.006\);/);
-  assert.match(layoutSource, /const targetY = safeBottom > safeTop/);
+  assert.match(layoutSource, /const enemyRowBottom = board\.centerY - board\.cellHeight \* 0\.5;/);
+  assert.match(layoutSource, /const playerRowTop = board\.centerY \+ board\.cellHeight \* 0\.5;/);
+  assert.match(layoutSource, /const targetY = Math\.min\(playerRowTop - gap/);
   assert.match(layoutSource, /fontSize: Math\.min\(20, Math\.max\(15, Math\.floor\(Math\.max\(board\.cellWidth \* 0\.14, height \* 0\.018\)\)\)\)/);
   assert.match(source, /backgroundColor: '#020617'/);
   assert.match(source, /padding: \{ x: 18, y: 13 \}/);
@@ -36,7 +37,7 @@ test('tutorial banner uses lower tutorial-specific layout and distinct readable 
 
 test('tap_continue overlay covers the screen and consumes pointerdown before gameplay', () => {
   const source = battleSource();
-  const layoutSource = source.slice(source.indexOf('  getTutorialBannerLayout() {'), source.indexOf('  isTutorialBannerSuppressed() {'));
+  const layoutSource = fs.readFileSync('src/ui/tutorialUxLayout.js', 'utf8');
 
   assert.match(layoutSource, /overlayWidth: width,/);
   assert.match(layoutSource, /overlayHeight: height,/);
