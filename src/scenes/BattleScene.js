@@ -155,6 +155,8 @@ const BASE_NON_LETHAL_CRACK_MAX_REACH_RATIO = 0.35;
 const BASE_NON_LETHAL_CRACK_SIDE_ZONE_RATIO = 0.38;
 const BASE_GLASS_REFLECTION_DEPTH = 124;
 const FLOATING_FEEDBACK_DEPTH = 250;
+const TUTORIAL_BANNER_OVERLAY_DEPTH = 223;
+const TUTORIAL_BANNER_DEPTH = 224;
 const TUTORIAL_FOCUS_DEPTH = 226;
 const TUTORIAL_FOCUS_COLOR = 0xfacc15;
 const TUTORIAL_FOCUS_FILL = 0xf59e0b;
@@ -6227,7 +6229,7 @@ export default class BattleScene extends Phaser.Scene {
         padding: { x: 18, y: 13 },
         wordWrap: { width: layout.maxTextWidth },
         fontStyle: 'bold',
-      }).setOrigin(0.5).setDepth(224).setAlpha(0.98).setStroke('#38bdf8', 2);
+      }).setOrigin(0.5).setDepth(TUTORIAL_BANNER_DEPTH).setAlpha(0.98).setStroke('#38bdf8', 2);
     } else {
       this.tutorialBanner.setText(message).setPosition(layout.x, layout.targetY).setVisible(true);
       this.tutorialBanner.setStyle?.({ fontSize: `${layout.fontSize}px` });
@@ -6237,7 +6239,7 @@ export default class BattleScene extends Phaser.Scene {
     if (!this.tutorialBannerOverlay?.active) {
       this.tutorialBannerOverlay = this.add.rectangle(layout.overlayX, layout.overlayY, layout.overlayWidth, layout.overlayHeight, 0x000000, 0.001)
         .setOrigin(0.5)
-        .setDepth(223)
+        .setDepth(TUTORIAL_BANNER_OVERLAY_DEPTH)
         .setInteractive({ useHandCursor: true })
         .on('pointerdown', (pointer, localX, localY, event) => this.onTutorialBannerPointerDown(pointer, localX, localY, event))
         .on('pointerup', (pointer, localX, localY, event) => this.onTutorialBannerPointerUp(pointer, localX, localY, event));
@@ -6485,7 +6487,7 @@ export default class BattleScene extends Phaser.Scene {
   async showOpeningTurnStartBanner() {
     if (this.hasShownOpeningTurnStartBanner || !this.layout || !this.gameState) return;
     if (!this.prepareTransientBattleBanner('turn-start')) {
-      this.deferTransientBattleBanner('turn-start');
+      if (!this.shouldSuppressTransientBattleBannerForTutorial()) this.deferTransientBattleBanner('turn-start');
       return;
     }
     this.hasShownOpeningTurnStartBanner = true;
@@ -7069,7 +7071,7 @@ export default class BattleScene extends Phaser.Scene {
   showInvalidActionBanner(message) {
     if (!message) return;
     if (!this.prepareTransientBattleBanner('invalid-action')) {
-      this.deferTransientBattleBanner('invalid-action', { message });
+      if (!this.shouldSuppressTransientBattleBannerForTutorial()) this.deferTransientBattleBanner('invalid-action', { message });
       return;
     }
 
@@ -7124,7 +7126,7 @@ export default class BattleScene extends Phaser.Scene {
   showPlayerActionBanner(message) {
     if (!message) return;
     if (!this.prepareTransientBattleBanner('player-action')) {
-      this.deferTransientBattleBanner('player-action', { message });
+      if (!this.shouldSuppressTransientBattleBannerForTutorial()) this.deferTransientBattleBanner('player-action', { message });
       return;
     }
 
@@ -7284,7 +7286,7 @@ export default class BattleScene extends Phaser.Scene {
 
   showEnemyActionBanner(message, pacing = ENEMY_ACTION_PACING.unit) {
     if (!this.prepareTransientBattleBanner('enemy-action')) {
-      this.deferTransientBattleBanner('enemy-action', { message, pacing });
+      if (!this.shouldSuppressTransientBattleBannerForTutorial()) this.deferTransientBattleBanner('enemy-action', { message, pacing });
       return;
     }
 
@@ -7453,6 +7455,24 @@ export default class BattleScene extends Phaser.Scene {
     this.destroyInvalidActionBanner();
   }
 
+  shouldSuppressTransientBattleBannerForTutorial() {
+    if (!this.isTutorialBattle?.() || this.battleResultModalShown || this.battleResultModalPending || this.gameState?.winner) return false;
+    const step = this.getCurrentTutorialStep?.();
+    return Boolean(step && this.getTutorialStepText?.(step));
+  }
+
+  recoverTutorialBannerAfterSuppressedBattleBanner() {
+    if (!this.shouldSuppressTransientBattleBannerForTutorial()) return false;
+    this.destroyTransientBattleBanners();
+    this.updateTutorialBanner?.();
+    this.time?.delayedCall?.(0, () => {
+      if (!this.shouldSuppressTransientBattleBannerForTutorial()) return;
+      this.updateTutorialBanner?.();
+      this.updateTutorialFocus?.();
+    });
+    return true;
+  }
+
   deferTransientBattleBanner(owner, payload = {}) {
     const deferredOwner = this.deferredTransientBattleBanner?.owner;
     if (this.getBattleBannerPriority(deferredOwner) > this.getBattleBannerPriority(owner)) return;
@@ -7461,6 +7481,10 @@ export default class BattleScene extends Phaser.Scene {
 
   flushDeferredTransientBattleBanner() {
     const deferred = this.deferredTransientBattleBanner;
+    if (this.recoverTutorialBannerAfterSuppressedBattleBanner?.()) {
+      this.deferredTransientBattleBanner = null;
+      return false;
+    }
     if (!deferred || this.getPersistentBattleBannerOwner()) return false;
     this.deferredTransientBattleBanner = null;
     if (deferred.owner === 'enemy-action') {
@@ -7482,7 +7506,9 @@ export default class BattleScene extends Phaser.Scene {
     return false;
   }
 
+
   prepareTransientBattleBanner(owner) {
+    if (this.recoverTutorialBannerAfterSuppressedBattleBanner?.()) return false;
     if (this.restorePersistentBattleBanner()) return false;
     const renderedOwner = this.getRenderedTransientBattleBannerOwner();
     if (this.getBattleBannerPriority(renderedOwner) > this.getBattleBannerPriority(owner)) return false;
