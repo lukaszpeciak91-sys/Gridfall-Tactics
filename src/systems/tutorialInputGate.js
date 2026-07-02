@@ -55,5 +55,14 @@ export function checkTutorialInputGate(tutorialControllerState, proposal = {}) {
   }
 
   const allowed = ['cardId', 'slotIndex', 'fromIndex', 'toIndex', 'target'].every((key) => valuesMatch(expected, proposal, key));
-  return { allowed, reason: allowed ? 'allowed' : `expected_${expectedType}_metadata`, step };
+  if (!allowed) return { allowed: false, reason: `expected_${expectedType}_metadata`, step };
+
+  if (step.id === 'adjacent_swap' && Array.isArray(proposal.board)) {
+    const fromUnit = proposal.board[expected.fromIndex];
+    const toUnit = proposal.board[expected.toIndex];
+    const hasExpectedPlayerUnits = fromUnit?.owner === 'player' && toUnit?.owner === 'player';
+    if (!hasExpectedPlayerUnits) return { allowed: false, reason: 'expected_adjacent_player_units', step };
+  }
+
+  return { allowed: true, reason: 'allowed', step };
 }
