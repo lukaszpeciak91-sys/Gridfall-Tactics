@@ -68,8 +68,8 @@ test('tutorial player data exports a tutorial-only 10-card deck with required ca
       return { id: card.id, type: card.type, targeting: card.targeting, effectId: card.effectId ?? null, textKey: card.textKey ?? null, textShort: card.textShort, attack: card.attack, hp: card.hp, armor: card.armor };
     }),
     [
-      { id: 'tutorial_unit_a_1', type: 'unit', targeting: 'lane', effectId: null, textKey: null, textShort: 'Simple 1/3 unit', attack: 1, hp: 3, armor: 0 },
-      { id: 'tutorial_unit_b_1', type: 'unit', targeting: 'lane', effectId: null, textKey: null, textShort: 'Simple 1/2 unit', attack: 1, hp: 2, armor: 0 },
+      { id: 'tutorial_unit_a_1', type: 'unit', targeting: 'lane', effectId: null, textKey: null, textShort: 'Simple 1/4 unit', attack: 1, hp: 4, armor: 0 },
+      { id: 'tutorial_unit_b_1', type: 'unit', targeting: 'lane', effectId: null, textKey: null, textShort: 'Simple 1/3 unit', attack: 1, hp: 3, armor: 0 },
       { id: 'tutorial_unit_c_1', type: 'unit', targeting: 'lane', effectId: 'lane_armor_aura_1', textKey: 'cards.tank_shieldbearer_1.textShort', textShort: 'Adjacent [ALLY] +1 ARM until combat', attack: 2, hp: 2, armor: 0 },
     ],
   );
@@ -89,14 +89,16 @@ test('tutorial enemy data exports a tutorial-only 6-card blocker deck', () => {
       return { id: card.id, type: card.type, targeting: card.targeting, attack: card.attack, hp: card.hp, armor: card.armor };
     }),
     [
-      { id: 'tutorial_enemy_blocker_a_1', type: 'unit', targeting: 'lane', attack: 0, hp: 2, armor: 0 },
-      { id: 'tutorial_enemy_blocker_b_1', type: 'unit', targeting: 'lane', attack: 0, hp: 2, armor: 0 },
-      { id: 'tutorial_enemy_blocker_c_1', type: 'unit', targeting: 'lane', attack: 0, hp: 1, armor: 0 },
+      { id: 'tutorial_enemy_blocker_a_1', type: 'unit', targeting: 'lane', attack: 1, hp: 2, armor: 0 },
+      { id: 'tutorial_enemy_blocker_b_1', type: 'unit', targeting: 'lane', attack: 1, hp: 2, armor: 0 },
+      { id: 'tutorial_enemy_blocker_c_1', type: 'unit', targeting: 'lane', attack: 1, hp: 1, armor: 0 },
       { id: 'tutorial_enemy_blocker_d_1', type: 'unit', targeting: 'lane', attack: 1, hp: 3, armor: 0 },
     ],
   );
 
-  assert.equal(cardById(tutorialEnemyFaction.deck, 'tutorial_enemy_blocker_d_1').attack, 1, 'late final scripted blocker applies light tutorial-only ATK pressure');
+  for (const card of tutorialEnemyFaction.deck.filter((entry) => entry.type === 'unit')) {
+    assert.equal(card.attack, 1, `${card.id} applies light tutorial-only ATK pressure`);
+  }
 });
 
 test('tutorial battle helper returns tutorial data without normal faction registry exposure', () => {
