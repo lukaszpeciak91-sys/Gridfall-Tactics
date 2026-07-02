@@ -6295,7 +6295,9 @@ export default class BattleScene extends Phaser.Scene {
 
   getHandCardFocusBounds(cardId) {
     const view = (this.cardViews ?? []).find((cardView) => cardView?.card?.id === cardId || cardView?.cardId === cardId);
-    return this.getGameObjectFocusBounds(view?.background, 7);
+    if (!view?.background) return null;
+    if (view.root && (view.root.alpha ?? 1) <= 0) return null;
+    return this.getGameObjectFocusBounds(view.background, 7);
   }
 
   getBoardSlotFocusBounds(slotIndex) {

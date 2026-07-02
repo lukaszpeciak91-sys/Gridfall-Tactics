@@ -15,7 +15,8 @@ test('tutorial focus targets are represented as practical BattleScene target obj
   assert.deepEqual(step('mulligan_select').highlightTarget, { type: 'mulligan_card', cardId: 'tutorial_mulligan_bait_1' });
   assert.deepEqual(step('play_unit_a').highlightTarget, { type: 'board_slot', slotIndex: 6 });
   assert.equal(step('enemy_action').highlightTarget, null);
-  assert.deepEqual(step('adjacent_swap').highlightTarget, { type: 'adjacent_units', fromIndex: 0, toIndex: 1 });
+  assert.deepEqual(step('play_unit_b').highlightTarget, { type: 'board_slot', slotIndex: 7 });
+  assert.deepEqual(step('adjacent_swap').highlightTarget, { type: 'adjacent_units', fromIndex: 6, toIndex: 7 });
   assert.deepEqual(step('final_pass').highlightTarget, { type: 'player_base_button' });
 });
 
@@ -39,6 +40,8 @@ test('tutorial focus supports base, UI button, hand card, and board/lane targets
   assert.match(battleSource, /type === 'deck_counter'[\s\S]*this\.deckCounterView\?\.focusBounds/);
   assert.match(battleSource, /type === 'battle_menu_button'[\s\S]*this\.battleMenuButtonFocusBounds/);
   assert.match(battleSource, /getHandCardFocusBounds\(cardId\)/);
+  assert.match(battleSource, /if \(!view\?\.background\) return null;/);
+  assert.match(battleSource, /if \(view\.root && \(view\.root\.alpha \?\? 1\) <= 0\) return null;/);
   assert.match(battleSource, /type === 'hand_card'[\s\S]*type === 'mulligan_card'[\s\S]*getTutorialBattleData\(\)\.openingConfig\.requiredPlayerMulliganCardId/);
   assert.match(battleSource, /getBoardSlotFocusBounds\(slotIndex\)/);
   assert.match(battleSource, /type === 'adjacent_units'[\s\S]*this\.getMergedFocusBounds/);

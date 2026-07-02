@@ -87,7 +87,30 @@ test('tutorial enemy response uses scripted Blocker A, then normal combat advanc
   assert.equal(state.board[6].hp, 3);
   assert.equal(state.board[0].hp, 1);
   assert.equal(state.winner, null);
+  assert.equal(getCurrentTutorialStep(controller).id, 'play_unit_b');
+  assert.equal(checkTutorialInputGate(controller, { type: 'swap_adjacent_units', fromIndex: 6, toIndex: 7 }).allowed, false);
+});
+
+test('tutorial Unit B is required before adjacent swap can be reached', () => {
+  const { state, controller } = createTutorialHarness();
+  playOrRedeployUnit(state, 'player', 'tutorial_unit_a_1', 6);
+  handleTutorialEvent(controller, 'unit_played', { cardId: 'tutorial_unit_a_1', slotIndex: 6 });
+  const selected = selectNextTutorialEnemyAction(state, 0);
+  playOrRedeployUnit(state, 'enemy', selected.action.cardId, selected.action.slotIndex);
+  handleTutorialEvent(controller, 'enemy_action_completed', { actionType: 'play-unit', cardId: selected.action.cardId, slotIndex: selected.action.slotIndex });
+  resolveCombat(state);
+  handleTutorialEvent(controller, 'combat_completed', {});
+
+  assert.equal(getCurrentTutorialStep(controller).id, 'play_unit_b');
+  assert.equal(applyGatedPlayerUnitPlay(state, controller, 'tutorial_unit_a_1', 7).ok, false);
+  assert.equal(applyGatedPlayerUnitPlay(state, controller, 'tutorial_unit_b_1', 8).ok, false);
+  assert.equal(state.board[7], null);
+  const result = applyGatedPlayerUnitPlay(state, controller, 'tutorial_unit_b_1', 7);
+  assert.equal(result.ok, true);
+  assert.equal(state.board[7].id, 'tutorial_unit_b_1');
+  handleTutorialEvent(controller, 'unit_played', { cardId: 'tutorial_unit_b_1', slotIndex: 7 });
   assert.equal(getCurrentTutorialStep(controller).id, 'adjacent_swap');
+  assert.equal(checkTutorialInputGate(controller, { type: 'swap_adjacent_units', fromIndex: 6, toIndex: 7 }).allowed, true);
 });
 
 test('BattleScene enforces tutorial player-first without changing normal first actor option and does not focus enemy action', () => {

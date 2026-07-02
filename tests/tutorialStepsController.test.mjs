@@ -17,6 +17,7 @@ const approvedStepIds = [
   'play_unit_a',
   'enemy_action',
   'combat_after_actions',
+  'play_unit_b',
   'adjacent_swap',
   'redeploy',
   'effect_card',
