@@ -11,7 +11,7 @@ test('tutorial BattleScene creates and shows a tutorial banner only in tutorial 
   assert.match(source, /updateTutorialBanner\(\) \{[\s\S]*!this\.isTutorialBattle\(\)[\s\S]*this\.destroyTutorialBanner\(\)/);
   assert.match(source, /const step = this\.getCurrentTutorialStep\(\);[\s\S]*const message = this\.getTutorialStepText\(step\);/);
   assert.match(source, /this\.tutorialBanner = this\.add\.text\(layout\.x, layout\.targetY, message/);
-  assert.match(source, /getTutorialBannerLayout\(\) \{[\s\S]*playerHero[\s\S]*hand[\s\S]*const targetY = Math\.max\(playerHero\.centerY/);
+  assert.match(source, /getTutorialBannerLayout\(\) \{[\s\S]*playerHero[\s\S]*hand[\s\S]*const fallbackY = Math\.max\(playerHero\.centerY/);
   assert.match(source, /overlayX: width \* 0\.5,[\s\S]*overlayY: height \* 0\.5,[\s\S]*overlayWidth: width,[\s\S]*overlayHeight: height/);
   assert.match(source, /this\.startOpeningMulliganReveal\(\);\s*this\.updateTutorialBanner\(\);/);
   const updateSource = source.slice(source.indexOf('  updateTutorialBanner() {'), source.indexOf('  onTutorialBannerPointerUp('));
@@ -43,7 +43,7 @@ test('tap_continue overlay covers the screen and consumes pointerdown before gam
   assert.match(layoutSource, /overlayX: width \* 0\.5,/);
   assert.match(layoutSource, /overlayY: height \* 0\.5,/);
   assert.match(source, /this\.tutorialBannerOverlay = this\.add\.rectangle\(layout\.overlayX, layout\.overlayY, layout\.overlayWidth, layout\.overlayHeight/);
-  assert.match(source, /\.on\('pointerdown', \(pointer, localX, localY, event\) => event\?\.stopPropagation\?\.\(\)\)/);
+  assert.match(source, /\.on\('pointerdown', \(pointer, localX, localY, event\) => this\.onTutorialBannerPointerDown\(pointer, localX, localY, event\)\)/);
   assert.match(source, /this\.tutorialBannerOverlay\.input\.enabled = canTapContinue;/);
 });
 

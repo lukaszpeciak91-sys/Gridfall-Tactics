@@ -6182,12 +6182,18 @@ export default class BattleScene extends Phaser.Scene {
   getTutorialBannerLayout() {
     const { width, height, board, playerHero, hand, margin } = this.layout;
     const maxTextWidth = Math.min(board.width * 0.86, width - margin * 2 - 32);
-    const targetY = Math.max(playerHero.centerY + playerHero.h * 0.35, Math.min(hand.y - 26, board.y + board.height + 22));
+    const playerRowBottom = board.centerY + (board.cellHeight * 1.5);
+    const safeTop = playerRowBottom + Math.max(8, height * 0.012);
+    const safeBottom = playerHero.y - Math.max(4, height * 0.006);
+    const fallbackY = Math.max(playerHero.centerY + playerHero.h * 0.35, Math.min(hand.y - 26, board.y + board.height + 22));
+    const targetY = safeBottom > safeTop
+      ? (safeTop + safeBottom) * 0.5
+      : fallbackY;
     return {
       x: width * 0.5,
       targetY,
       maxTextWidth,
-      fontSize: Math.min(18, Math.max(14, Math.floor(Math.max(board.cellWidth * 0.125, height * 0.016)))),
+      fontSize: Math.min(20, Math.max(15, Math.floor(Math.max(board.cellWidth * 0.14, height * 0.018)))),
       overlayX: width * 0.5,
       overlayY: height * 0.5,
       overlayWidth: width,
@@ -6248,7 +6254,7 @@ export default class BattleScene extends Phaser.Scene {
         .setOrigin(0.5)
         .setDepth(223)
         .setInteractive({ useHandCursor: true })
-        .on('pointerdown', (pointer, localX, localY, event) => event?.stopPropagation?.())
+        .on('pointerdown', (pointer, localX, localY, event) => this.onTutorialBannerPointerDown(pointer, localX, localY, event))
         .on('pointerup', (pointer, localX, localY, event) => this.onTutorialBannerPointerUp(pointer, localX, localY, event));
     }
     this.tutorialBannerOverlay.setPosition(layout.overlayX, layout.overlayY).setSize(layout.overlayWidth, layout.overlayHeight);
