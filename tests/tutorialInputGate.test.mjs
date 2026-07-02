@@ -64,3 +64,36 @@ test('wait and tap_continue steps block gameplay until their expected event', ()
   assert.equal(allowed('combat_after_actions', { type: 'wait_combat' }), true);
   assert.equal(allowed('bases_goal', { type: 'play_card_to_slot', cardId: 'tutorial_unit_a_1', slotIndex: 6 }), false);
 });
+
+test('deck utility unlocks after deck introduction without advancing later gameplay steps', () => {
+  assert.equal(allowed('bases_goal', { type: 'click_deck', target: 'deck_counter' }), false);
+  assert.equal(allowed('deck_counter_open', { type: 'click_deck', target: 'deck_counter' }), true);
+
+  const state = stateAt('play_unit_b');
+  assert.equal(checkTutorialInputGate(state, { type: 'click_deck', target: 'deck_counter' }).allowed, true);
+  assert.equal(checkTutorialInputGate(state, { type: 'close_deck', target: 'deck_info_panel' }).allowed, true);
+  assert.equal(handleTutorialEvent(state, 'deck_opened').matched, false);
+  assert.equal(state.steps[state.currentStepIndex].id, 'play_unit_b');
+  assert.equal(handleTutorialEvent(state, 'deck_closed').matched, false);
+  assert.equal(state.steps[state.currentStepIndex].id, 'play_unit_b');
+});
+
+test('battle menu utility unlocks after menu introduction without advancing later gameplay steps', () => {
+  assert.equal(allowed('bases_goal', { type: 'click_battle_menu', target: 'battle_menu_button' }), false);
+  assert.equal(allowed('battle_menu_open', { type: 'click_battle_menu', target: 'battle_menu_button' }), true);
+
+  const state = stateAt('play_unit_b');
+  assert.equal(checkTutorialInputGate(state, { type: 'click_battle_menu', target: 'battle_menu_button' }).allowed, true);
+  assert.equal(checkTutorialInputGate(state, { type: 'close_battle_menu', target: 'battle_menu_panel' }).allowed, true);
+  assert.equal(handleTutorialEvent(state, 'battle_menu_opened').matched, false);
+  assert.equal(state.steps[state.currentStepIndex].id, 'play_unit_b');
+  assert.equal(handleTutorialEvent(state, 'battle_menu_closed').matched, false);
+  assert.equal(state.steps[state.currentStepIndex].id, 'play_unit_b');
+});
+
+test('unlocked tutorial utilities do not bypass enemy action and combat waits', () => {
+  for (const stepId of ['enemy_action', 'combat_after_actions']) {
+    assert.equal(allowed(stepId, { type: 'click_deck', target: 'deck_counter' }), false);
+    assert.equal(allowed(stepId, { type: 'click_battle_menu', target: 'battle_menu_button' }), false);
+  }
+});

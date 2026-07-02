@@ -27,6 +27,26 @@ const GAMEPLAY_ACTIONS = new Set([
   TUTORIAL_GATE_ACTIONS.PASS,
 ]);
 
+
+const UNLOCKABLE_UTILITY_ACTIONS = Object.freeze({
+  [TUTORIAL_GATE_ACTIONS.CLICK_DECK]: 'deck_counter_open',
+  [TUTORIAL_GATE_ACTIONS.CLOSE_DECK]: 'deck_counter_open',
+  [TUTORIAL_GATE_ACTIONS.CLICK_BATTLE_MENU]: 'battle_menu_open',
+  [TUTORIAL_GATE_ACTIONS.CLOSE_BATTLE_MENU]: 'battle_menu_open',
+});
+
+function isTutorialStepCompleted(tutorialControllerState, stepId) {
+  const steps = tutorialControllerState?.steps ?? [];
+  const stepIndex = steps.findIndex((step) => step.id === stepId);
+  if (stepIndex < 0) return false;
+  return tutorialControllerState.completed || tutorialControllerState.currentStepIndex > stepIndex;
+}
+
+function isUnlockedUtilityAction(tutorialControllerState, actionType) {
+  const unlockStepId = UNLOCKABLE_UTILITY_ACTIONS[actionType];
+  return Boolean(unlockStepId && isTutorialStepCompleted(tutorialControllerState, unlockStepId));
+}
+
 function valuesMatch(expected, proposal, key) {
   return !Object.hasOwn(expected, key) || expected[key] === proposal[key];
 }
@@ -57,6 +77,9 @@ export function checkTutorialInputGate(tutorialControllerState, proposal = {}) {
     const allowed = actionType === expectedType;
     return { allowed, reason: allowed ? 'allowed_wait_event' : `waiting_for_${expectedType}`, step };
   }
+
+  const utilityUnlocked = actionType !== expectedType && isUnlockedUtilityAction(tutorialControllerState, actionType);
+  if (utilityUnlocked) return { allowed: true, reason: 'allowed_unlocked_utility', step };
 
   if (expectedType === TUTORIAL_GATE_ACTIONS.TAP_CONTINUE && GAMEPLAY_ACTIONS.has(actionType)) {
     return { allowed: false, reason: 'tap_continue_required', step };
