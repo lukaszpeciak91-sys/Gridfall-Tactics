@@ -6425,6 +6425,10 @@ export default class BattleScene extends Phaser.Scene {
       const handBounds = type === 'player_hand_and_lanes' ? { x: this.layout.width * 0.5, y: this.layout.hand.centerY, width: this.layout.width - this.layout.margin * 2, height: this.layout.hand.h } : null;
       return this.getMergedFocusBounds([handBounds, ...((this.boardCells ?? []).map((cell) => this.getGameObjectFocusBounds(cell.background, 4)))]);
     }
+    if (type === 'player_board_lanes') {
+      const slotIndexes = Array.isArray(target.slotIndexes) && target.slotIndexes.length > 0 ? target.slotIndexes : [6, 7, 8];
+      return this.getMergedFocusBounds(slotIndexes.map((slotIndex) => this.getBoardSlotFocusBounds(slotIndex)));
+    }
     if (type === 'empty_lane') {
       if (!Number.isInteger(target.slotIndex) || target.slotIndex < 6 || target.slotIndex > 8) return null;
       return this.getBoardSlotFocusBounds(target.slotIndex);
