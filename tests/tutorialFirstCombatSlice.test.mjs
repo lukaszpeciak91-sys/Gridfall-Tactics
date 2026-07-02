@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { getTutorialBattleData } from '../src/data/tutorial/tutorialDecks.js';
-import { createInitialBattleState, playOrRedeployUnit, resolveCombat } from '../src/systems/GameState.js';
+import { createInitialBattleState, performSwap, playOrRedeployUnit, resolveCombat } from '../src/systems/GameState.js';
 import { applyTutorialOpeningSetup, performTutorialOpeningMulligan } from '../src/systems/tutorialOpening.js';
 import { checkTutorialInputGate } from '../src/systems/tutorialInputGate.js';
 import { createTutorialControllerState, handleTutorialEvent, getCurrentTutorialStep } from '../src/systems/tutorialController.js';
@@ -111,6 +111,59 @@ test('tutorial Unit B is required before adjacent swap can be reached', () => {
   handleTutorialEvent(controller, 'unit_played', { cardId: 'tutorial_unit_b_1', slotIndex: 7 });
   assert.equal(getCurrentTutorialStep(controller).id, 'adjacent_swap');
   assert.equal(checkTutorialInputGate(controller, { type: 'swap_adjacent_units', fromIndex: 6, toIndex: 7 }).allowed, true);
+});
+
+test('tutorial Unit B survives scripted enemy pass and combat before adjacent swap', () => {
+  const { state, controller } = createTutorialHarness();
+  playOrRedeployUnit(state, 'player', 'tutorial_unit_a_1', 6);
+  handleTutorialEvent(controller, 'unit_played', { cardId: 'tutorial_unit_a_1', slotIndex: 6 });
+  const blockerA = selectNextTutorialEnemyAction(state, 0);
+  playOrRedeployUnit(state, 'enemy', blockerA.action.cardId, blockerA.action.slotIndex);
+  handleTutorialEvent(controller, 'enemy_action_completed', { actionType: 'play-unit', cardId: blockerA.action.cardId, slotIndex: blockerA.action.slotIndex });
+  resolveCombat(state);
+  handleTutorialEvent(controller, 'combat_completed', {});
+
+  assert.equal(playOrRedeployUnit(state, 'player', 'tutorial_unit_b_1', 7).ok, true);
+  handleTutorialEvent(controller, 'unit_played', { cardId: 'tutorial_unit_b_1', slotIndex: 7 });
+  assert.equal(getCurrentTutorialStep(controller).id, 'adjacent_swap');
+  const scriptedPass = selectNextTutorialEnemyAction(state, blockerA.nextCursor);
+  assert.deepEqual(scriptedPass.action, { type: 'pass' });
+  handleTutorialEvent(controller, 'enemy_action_completed', { actionType: 'pass' });
+  const combatEvents = resolveCombat(state);
+  handleTutorialEvent(controller, 'combat_completed', { combatEvents });
+
+  assert.equal(state.board[6].owner, 'player');
+  assert.equal(state.board[6].id, 'tutorial_unit_a_1');
+  assert.equal(state.board[7].owner, 'player');
+  assert.equal(state.board[7].id, 'tutorial_unit_b_1');
+  assert.equal(state.winner, null);
+  assert.equal(getCurrentTutorialStep(controller).id, 'adjacent_swap');
+});
+
+test('tutorial adjacent swap gates wrong pairs and real swap advances to redeploy', () => {
+  const { state, controller } = createTutorialHarness();
+  playOrRedeployUnit(state, 'player', 'tutorial_unit_a_1', 6);
+  handleTutorialEvent(controller, 'unit_played', { cardId: 'tutorial_unit_a_1', slotIndex: 6 });
+  const selected = selectNextTutorialEnemyAction(state, 0);
+  playOrRedeployUnit(state, 'enemy', selected.action.cardId, selected.action.slotIndex);
+  handleTutorialEvent(controller, 'enemy_action_completed', { actionType: 'play-unit', cardId: selected.action.cardId, slotIndex: selected.action.slotIndex });
+  resolveCombat(state);
+  handleTutorialEvent(controller, 'combat_completed', {});
+  playOrRedeployUnit(state, 'player', 'tutorial_unit_b_1', 7);
+  handleTutorialEvent(controller, 'unit_played', { cardId: 'tutorial_unit_b_1', slotIndex: 7 });
+
+  assert.equal(checkTutorialInputGate(controller, { type: 'swap_adjacent_units', fromIndex: 7, toIndex: 6, board: state.board }).allowed, false);
+  assert.equal(checkTutorialInputGate(controller, { type: 'swap_adjacent_units', fromIndex: 6, toIndex: 8, board: state.board }).allowed, false);
+  assert.equal(checkTutorialInputGate(controller, { type: 'swap_adjacent_units', fromIndex: 6, toIndex: 0, board: state.board }).allowed, false);
+  assert.equal(checkTutorialInputGate(controller, { type: 'swap_adjacent_units', fromIndex: 6, toIndex: 7, board: Array(9).fill(null) }).allowed, false);
+
+  const beforeSix = state.board[6].id;
+  const beforeSeven = state.board[7].id;
+  assert.deepEqual(performSwap(state, 'player', 6, 7), { ok: true });
+  assert.equal(state.board[6].id, beforeSeven);
+  assert.equal(state.board[7].id, beforeSix);
+  handleTutorialEvent(controller, 'adjacent_swap_completed', { fromIndex: 6, toIndex: 7 });
+  assert.equal(getCurrentTutorialStep(controller).id, 'redeploy');
 });
 
 test('BattleScene enforces tutorial player-first without changing normal first actor option and does not focus enemy action', () => {

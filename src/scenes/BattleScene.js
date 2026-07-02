@@ -5449,7 +5449,7 @@ export default class BattleScene extends Phaser.Scene {
         }
 
         const fromIndex = this.pendingSwapIndex;
-        if (!(this.isTutorialInputAllowed?.({ type: 'swap_adjacent_units', fromIndex, toIndex: boardIndex }) ?? true)) {
+        if (!(this.isTutorialInputAllowed?.({ type: 'swap_adjacent_units', fromIndex, toIndex: boardIndex, board: this.gameState?.board }) ?? true)) {
           this.showInvalidActionFeedback?.({ reason: 'Tutorial step requires a different action.', boardIndex, scope: 'slot' });
           return;
         }
