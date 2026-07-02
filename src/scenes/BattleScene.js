@@ -153,6 +153,9 @@ const BASE_NON_LETHAL_CRACK_MAX_REACH_RATIO = 0.35;
 const BASE_NON_LETHAL_CRACK_SIDE_ZONE_RATIO = 0.38;
 const BASE_GLASS_REFLECTION_DEPTH = 124;
 const FLOATING_FEEDBACK_DEPTH = 250;
+const TUTORIAL_FOCUS_DEPTH = 226;
+const TUTORIAL_FOCUS_COLOR = 0xfacc15;
+const TUTORIAL_FOCUS_FILL = 0xf59e0b;
 
 const CAMPAIGN_COMPLETION_OVERLAY_DEPTH = 1200;
 const CAMPAIGN_COMPLETION_CONTENT_DEPTH = CAMPAIGN_COMPLETION_OVERLAY_DEPTH + 1;
@@ -377,6 +380,10 @@ export default class BattleScene extends Phaser.Scene {
     this.turnStartBannerFadeOutEvent = null;
     this.tutorialBanner = null;
     this.tutorialBannerOverlay = null;
+    this.tutorialFocusLayer = null;
+    this.tutorialFocusGraphics = [];
+    this.currentTutorialFocusKey = null;
+    this.battleMenuButtonFocusBounds = null;
     this.deferredTransientBattleBanner = null;
     this.hasShownOpeningTurnStartBanner = false;
     this.playerConcedableHintState = { shownKey: null, stableChecks: 0, lastEligibleKey: null };
@@ -569,6 +576,10 @@ export default class BattleScene extends Phaser.Scene {
     this.turnStartBannerFadeOutEvent = null;
     this.tutorialBanner = null;
     this.tutorialBannerOverlay = null;
+    this.tutorialFocusLayer = null;
+    this.tutorialFocusGraphics = [];
+    this.currentTutorialFocusKey = null;
+    this.battleMenuButtonFocusBounds = null;
     this.deferredTransientBattleBanner = null;
     this.hasShownOpeningTurnStartBanner = false;
     this.playerConcedableHintState = { shownKey: null, stableChecks: 0, lastEligibleKey: null };
@@ -593,6 +604,7 @@ export default class BattleScene extends Phaser.Scene {
     this.destroyTurnStartBanner();
     this.destroyPlayerActionBanner();
     this.destroyTutorialBanner();
+    this.destroyTutorialFocus();
     this.destroyTargetingInstruction();
     this.destroyActiveSelectionMessage();
     this.destroyBattleResultModal();
@@ -907,6 +919,8 @@ export default class BattleScene extends Phaser.Scene {
     );
 
     this.bottomControlViews = [menu];
+    this.battleMenuButtonFocusBounds = { x, y, width, height };
+    this.updateTutorialFocus?.();
   }
 
   toggleUtilityMenuPanel() {
@@ -1736,6 +1750,7 @@ export default class BattleScene extends Phaser.Scene {
       this.targetingState = null;
       this.destroyActiveSelectionMessage();
       this.destroyTutorialBanner();
+      this.destroyTutorialFocus();
       this.resetCardHighlights({ showPreview: false });
 
       const { width, height } = this.scale.gameSize;
@@ -3699,7 +3714,8 @@ export default class BattleScene extends Phaser.Scene {
       { fontScale: 0.33 },
     );
 
-    this.deckCounterView = { backing: deck.backing, text: deck.text, halo: deck.halo };
+    this.deckCounterView = { backing: deck.backing, text: deck.text, halo: deck.halo, focusBounds: { x, y, width, height } };
+    this.updateTutorialFocus?.();
   }
 
   refreshDeckCounter() {
@@ -3826,6 +3842,7 @@ export default class BattleScene extends Phaser.Scene {
     this.destroyActiveSelectionMessage();
     this.updatePlayerBaseActionState();
     this.resetCardHighlights({ showPreview: false });
+    this.updateTutorialFocus?.();
 
     const { width, height } = this.scale.gameSize;
     const panelWidth = Math.min(width * 0.84, 470);
@@ -4438,6 +4455,7 @@ export default class BattleScene extends Phaser.Scene {
     this.cleanupOpeningMulliganRevealControllers({ advanceGeneration: false });
     this.openingMulliganRevealVisibleCount = Math.min(this.openingMulliganRevealVisibleCount, revealCount);
     this.applyOpeningMulliganRevealPresentation();
+    this.updateTutorialFocus?.();
     const generation = this.openingMulliganRevealGeneration;
 
     for (let index = this.openingMulliganRevealVisibleCount; index < revealCount; index += 1) {
@@ -4626,6 +4644,7 @@ export default class BattleScene extends Phaser.Scene {
     });
 
     this.applyOpeningMulliganRevealPresentation();
+    this.updateTutorialFocus?.();
 
     for (let index = handCount; index < hand.cardsVisible; index += 1) {
       if (!shouldRenderHandBackCard({ handCount, maxHandSize, deckCount, index }) || !hasHandBackCardAsset) continue;
@@ -6170,6 +6189,7 @@ export default class BattleScene extends Phaser.Scene {
     this.tutorialBannerOverlay.setPosition(layout.x, layout.targetY).setSize(layout.overlayWidth, layout.overlayHeight);
     this.tutorialBannerOverlay.input.enabled = canTapContinue;
     this.tutorialBannerOverlay.setVisible(canTapContinue);
+    this.updateTutorialFocus(step);
     return this.tutorialBanner;
   }
 
@@ -6191,6 +6211,126 @@ export default class BattleScene extends Phaser.Scene {
       this.tutorialBanner.destroy?.();
       this.tutorialBanner = null;
     }
+  }
+
+
+  getTutorialFocusTarget(step = this.getCurrentTutorialStep()) {
+    const target = step?.highlightTarget;
+    if (!target) return null;
+    if (typeof target === 'string') return { type: target };
+    if (typeof target === 'object') return target;
+    return null;
+  }
+
+  ensureTutorialFocusLayer() {
+    if (!this.isTutorialBattle() || !this.add) return null;
+    if (!this.tutorialFocusLayer?.active) {
+      this.tutorialFocusLayer = this.add.container(0, 0).setDepth(TUTORIAL_FOCUS_DEPTH);
+    }
+    return this.tutorialFocusLayer;
+  }
+
+  clearTutorialFocusGraphics() {
+    (this.tutorialFocusGraphics ?? []).forEach((item) => {
+      this.tweens?.killTweensOf?.(item);
+      item?.destroy?.();
+    });
+    this.tutorialFocusGraphics = [];
+    this.currentTutorialFocusKey = null;
+  }
+
+  destroyTutorialFocus() {
+    this.clearTutorialFocusGraphics();
+    this.tutorialFocusLayer?.destroy?.();
+    this.tutorialFocusLayer = null;
+  }
+
+  getGameObjectFocusBounds(object, padding = 8) {
+    if (!object?.active) return null;
+    const width = object.displayWidth ?? object.width;
+    const height = object.displayHeight ?? object.height;
+    if (!Number.isFinite(object.x) || !Number.isFinite(object.y) || !Number.isFinite(width) || !Number.isFinite(height)) return null;
+    return { x: object.x, y: object.y, width: width + padding * 2, height: height + padding * 2 };
+  }
+
+  getHandCardFocusBounds(cardId) {
+    const view = (this.cardViews ?? []).find((cardView) => cardView?.card?.id === cardId || cardView?.cardId === cardId);
+    return this.getGameObjectFocusBounds(view?.background, 7);
+  }
+
+  getBoardSlotFocusBounds(slotIndex) {
+    const cell = (this.boardCells ?? []).find((candidate) => candidate?.index === slotIndex);
+    return this.getGameObjectFocusBounds(cell?.background, 5);
+  }
+
+  getMergedFocusBounds(boundsList) {
+    const bounds = boundsList.filter(Boolean);
+    if (bounds.length === 0) return null;
+    const left = Math.min(...bounds.map((bound) => bound.x - bound.width / 2));
+    const right = Math.max(...bounds.map((bound) => bound.x + bound.width / 2));
+    const top = Math.min(...bounds.map((bound) => bound.y - bound.height / 2));
+    const bottom = Math.max(...bounds.map((bound) => bound.y + bound.height / 2));
+    return { x: (left + right) / 2, y: (top + bottom) / 2, width: right - left, height: bottom - top };
+  }
+
+  resolveTutorialFocusBounds(target) {
+    const type = target?.type;
+    if (!type || !this.layout) return null;
+    if (type === 'enemy_base') return this.getGameObjectFocusBounds(this.enemyHeroPanel, 10);
+    if (type === 'player_base') return this.getGameObjectFocusBounds(this.playerHeroPanel, 10);
+    if (type === 'player_base_button') return this.getGameObjectFocusBounds(this.playerBaseActionLabelText, 12) ?? this.getGameObjectFocusBounds(this.playerHeroPanel, 10);
+    if (type === 'deck_counter') return this.deckCounterView?.focusBounds ?? this.getGameObjectFocusBounds(this.deckCounterView?.backing, 8);
+    if (type === 'battle_menu_button') return this.battleMenuButtonFocusBounds ?? this.getGameObjectFocusBounds(this.bottomControlViews?.[0]?.backing, 8);
+    if (type === 'player_hand' || type === 'hand_group') return { x: this.layout.width * 0.5, y: this.layout.hand.centerY, width: this.layout.width - this.layout.margin * 2, height: this.layout.hand.h };
+    if (type === 'enemy_hand') return { x: this.layout.width * 0.5, y: this.layout.topHero.centerY + this.layout.topHero.h * 0.72, width: this.layout.contentWidth * 0.7, height: Math.max(34, this.layout.topHero.h * 0.42) };
+    if (type === 'battle_history') return this.deckInfoPanel ? { x: this.deckInfoPanel.contentX + this.deckInfoPanel.contentWidth / 2, y: this.deckInfoPanel.contentY + this.deckInfoPanel.contentHeight / 2, width: this.deckInfoPanel.contentWidth, height: this.deckInfoPanel.contentHeight } : null;
+    if (type === 'battle_menu_panel') return this.utilityMenuPanel ? this.getGameObjectFocusBounds(this.utilityMenuPanel.panel, 8) : null;
+    if (type === 'battle_lanes' || type === 'board_lanes' || type === 'player_hand_and_lanes') {
+      const handBounds = type === 'player_hand_and_lanes' ? { x: this.layout.width * 0.5, y: this.layout.hand.centerY, width: this.layout.width - this.layout.margin * 2, height: this.layout.hand.h } : null;
+      return this.getMergedFocusBounds([handBounds, ...((this.boardCells ?? []).map((cell) => this.getGameObjectFocusBounds(cell.background, 4)))]);
+    }
+    if (type === 'board_slot' || type === 'occupied_board_slot' || type === 'open_lane' || type === 'empty_lane') return this.getBoardSlotFocusBounds(target.slotIndex ?? target.index ?? target.laneIndex ?? 0);
+    if (type === 'adjacent_units' || type === 'adjacent_board_slots') return this.getMergedFocusBounds([this.getBoardSlotFocusBounds(target.fromIndex ?? 0), this.getBoardSlotFocusBounds(target.toIndex ?? 1)]);
+    if (type === 'hand_card' || type === 'specific_hand_card' || type === 'mulligan_card' || type === 'effect_card') return this.getHandCardFocusBounds(target.cardId ?? (type === 'mulligan_card' ? getTutorialBattleData().openingConfig.requiredPlayerMulliganCardId : null)) ?? (type === 'effect_card' ? this.getHandCardFocusBounds((this.gameState?.player?.hand ?? []).find((card) => card?.type !== 'unit')?.id) : null);
+    return null;
+  }
+
+  drawTutorialFocusBounds(bounds, key) {
+    const layer = this.ensureTutorialFocusLayer();
+    if (!layer || !bounds) return null;
+    this.clearTutorialFocusGraphics();
+    this.currentTutorialFocusKey = key;
+    const radius = Math.max(10, Math.min(bounds.width, bounds.height) * 0.18);
+    const glow = this.add.rectangle(bounds.x, bounds.y, bounds.width + 14, bounds.height + 14, TUTORIAL_FOCUS_FILL, 0.07)
+      .setRounded(radius + 6)
+      .setStrokeStyle(4, TUTORIAL_FOCUS_COLOR, 0.24);
+    const outline = this.add.rectangle(bounds.x, bounds.y, bounds.width, bounds.height, TUTORIAL_FOCUS_FILL, 0.025)
+      .setRounded(radius)
+      .setStrokeStyle(2, TUTORIAL_FOCUS_COLOR, 0.82);
+    layer.add([glow, outline]);
+    this.tutorialFocusGraphics = [glow, outline];
+    this.tweens?.add?.({ targets: [glow, outline], alpha: { from: 0.38, to: 1 }, scale: { from: 0.985, to: 1.018 }, duration: 760, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    return outline;
+  }
+
+  updateTutorialFocus(step = this.getCurrentTutorialStep()) {
+    if (!this.isTutorialBattle() || !this.layout || this.battleResultModalShown || this.battleResultModalPending) {
+      this.destroyTutorialFocus();
+      return null;
+    }
+    const target = this.getTutorialFocusTarget(step);
+    if (!target) {
+      this.clearTutorialFocusGraphics();
+      return null;
+    }
+    const key = JSON.stringify(target);
+    const bounds = this.resolveTutorialFocusBounds(target);
+    if (!bounds) {
+      this.clearTutorialFocusGraphics();
+      return null;
+    }
+    if (this.currentTutorialFocusKey === key && this.tutorialFocusGraphics?.length > 0) return this.tutorialFocusGraphics[1] ?? this.tutorialFocusGraphics[0];
+    return this.drawTutorialFocusBounds(bounds, key);
   }
 
   async showOpeningTurnStartBanner() {
