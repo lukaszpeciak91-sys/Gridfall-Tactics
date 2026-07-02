@@ -1,4 +1,8 @@
 export const TUTORIAL_STEP_IDS = Object.freeze([
+  'intro_01',
+  'intro_02',
+  'intro_03',
+  'intro_04',
   'bases_goal',
   'hand_lanes',
   'deck_counter_open',
@@ -20,6 +24,10 @@ export const TUTORIAL_STEP_IDS = Object.freeze([
 ]);
 
 export const TUTORIAL_STEPS = Object.freeze([
+  { id: 'intro_01', phase: 'intro', variant: 'flavor', expected: { type: 'tap_continue' }, highlightTarget: null, text: { pl: 'TRANSMISJA ARENY\n\nWitajcie w kolejnym sezonie Gridfall.\n(kliknij gdziekolwiek, aby przejść dalej)', en: 'ARENA BROADCAST\n\nWelcome to another season of Gridfall.\n(tap anywhere to continue)' } },
+  { id: 'intro_02', phase: 'intro', variant: 'flavor', expected: { type: 'tap_continue' }, highlightTarget: null, text: { pl: 'Znów znaleźliśmy światy na granicy zagłady.\n\nPomóc im nie możemy.', en: 'Once again, we found worlds on the edge of collapse.\n\nWe cannot save them.' } },
+  { id: 'intro_03', phase: 'intro', variant: 'flavor', expected: { type: 'tap_continue' }, highlightTarget: null, text: { pl: 'Możemy za to sprawdzić, jak pięknie potrafią walczyć.', en: 'But we can see how beautifully they fight.' } },
+  { id: 'intro_04', phase: 'intro', variant: 'flavor', expected: { type: 'tap_continue' }, highlightTarget: null, text: { pl: 'Na początek sprzątacze areny oczyszczą pole z resztek poprzedniej edycji.', en: 'First, the arena cleaners will clear the field of what remains from the last edition.' } },
   { id: 'bases_goal', phase: 'ui', expected: { type: 'tap_continue' }, highlightTarget: { type: 'base_pair', targets: [{ type: 'enemy_base' }, { type: 'player_base' }] }, text: { pl: 'Zbij bazę przeciwnika. Chroń swoją.', en: 'Break the enemy base. Protect yours.' } },
   { id: 'hand_lanes', phase: 'ui', expected: { type: 'tap_continue' }, highlightTarget: { type: 'player_board_lanes', slotIndexes: [6, 7, 8] }, text: { pl: 'Zagrywaj karty na trzy linie walki.', en: 'Play cards into three battle lanes.' } },
   { id: 'deck_counter_open', phase: 'ui', expected: { type: 'click_deck', target: 'deck_counter' }, highlightTarget: { type: 'deck_counter' }, text: { pl: 'TALIA pokazuje, ile kart zostało. Kliknij ją.', en: 'DECK shows how many cards remain. Tap it.' } },

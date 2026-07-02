@@ -6190,6 +6190,21 @@ export default class BattleScene extends Phaser.Scene {
     return calculateTutorialBannerLayout(this.layout);
   }
 
+  getTutorialBannerStyle(step = this.getCurrentTutorialStep()) {
+    if (step?.variant === 'flavor') {
+      return {
+        color: '#fef3c7',
+        backgroundColor: '#1f1608',
+        stroke: '#f59e0b',
+      };
+    }
+    return {
+      color: '#e0f2fe',
+      backgroundColor: '#020617',
+      stroke: '#38bdf8',
+    };
+  }
+
   isTutorialBannerSuppressed() {
     return Boolean(
       this.isFlowResolving
@@ -6220,21 +6235,27 @@ export default class BattleScene extends Phaser.Scene {
     }
     const layout = this.getTutorialBannerLayout();
     const canTapContinue = step.expected?.type === 'tap_continue';
+    const bannerStyle = this.getTutorialBannerStyle(step);
 
     if (!this.tutorialBanner?.active) {
       this.tutorialBanner = this.add.text(layout.x, layout.targetY, message, {
         fontFamily: 'Arial, sans-serif',
         fontSize: `${layout.fontSize}px`,
-        color: '#e0f2fe',
-        backgroundColor: '#020617',
+        color: bannerStyle.color,
+        backgroundColor: bannerStyle.backgroundColor,
         align: 'center',
         padding: { x: 18, y: 13 },
         wordWrap: { width: layout.maxTextWidth },
         fontStyle: 'bold',
-      }).setOrigin(0.5).setDepth(TUTORIAL_BANNER_DEPTH).setAlpha(0.98).setStroke('#38bdf8', 2);
+      }).setOrigin(0.5).setDepth(TUTORIAL_BANNER_DEPTH).setAlpha(0.98).setStroke(bannerStyle.stroke, 2);
     } else {
       this.tutorialBanner.setText(message).setPosition(layout.x, layout.targetY).setVisible(true);
-      this.tutorialBanner.setStyle?.({ fontSize: `${layout.fontSize}px` });
+      this.tutorialBanner.setStyle?.({
+        fontSize: `${layout.fontSize}px`,
+        color: bannerStyle.color,
+        backgroundColor: bannerStyle.backgroundColor,
+      });
+      this.tutorialBanner.setStroke?.(bannerStyle.stroke, 2);
       this.tutorialBanner.setWordWrapWidth?.(layout.maxTextWidth);
     }
 

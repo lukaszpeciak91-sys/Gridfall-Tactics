@@ -62,10 +62,12 @@ test('wait and tap_continue steps block gameplay until their expected event', ()
   }
   assert.equal(allowed('enemy_action', { type: 'wait_enemy_action' }), true);
   assert.equal(allowed('combat_after_actions', { type: 'wait_combat' }), true);
+  assert.equal(allowed('intro_01', { type: 'play_card_to_slot', cardId: 'tutorial_unit_a_1', slotIndex: 6 }), false);
   assert.equal(allowed('bases_goal', { type: 'play_card_to_slot', cardId: 'tutorial_unit_a_1', slotIndex: 6 }), false);
 });
 
 test('deck utility unlocks after deck introduction without advancing later gameplay steps', () => {
+  assert.equal(allowed('intro_01', { type: 'click_deck', target: 'deck_counter' }), false);
   assert.equal(allowed('bases_goal', { type: 'click_deck', target: 'deck_counter' }), false);
   assert.equal(allowed('deck_counter_open', { type: 'click_deck', target: 'deck_counter' }), true);
 
@@ -79,6 +81,7 @@ test('deck utility unlocks after deck introduction without advancing later gamep
 });
 
 test('battle menu utility unlocks after menu introduction without advancing later gameplay steps', () => {
+  assert.equal(allowed('intro_01', { type: 'click_battle_menu', target: 'battle_menu_button' }), false);
   assert.equal(allowed('bases_goal', { type: 'click_battle_menu', target: 'battle_menu_button' }), false);
   assert.equal(allowed('battle_menu_open', { type: 'click_battle_menu', target: 'battle_menu_button' }), true);
 

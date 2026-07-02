@@ -32,7 +32,8 @@ test('tutorial banner uses above-player-row tutorial-specific layout and distinc
   assert.match(layoutSource, /fontSize: Math\.min\(20, Math\.max\(15, Math\.floor\(Math\.max\(board\.cellWidth \* 0\.14, height \* 0\.018\)\)\)\)/);
   assert.match(source, /backgroundColor: '#020617'/);
   assert.match(source, /padding: \{ x: 18, y: 13 \}/);
-  assert.match(source, /setAlpha\(0\.98\)\.setStroke\('#38bdf8', 2\)/);
+  assert.match(source, /setAlpha\(0\.98\)\.setStroke\(bannerStyle\.stroke, 2\)/);
+  assert.match(source, /getTutorialBannerStyle\(step = this\.getCurrentTutorialStep\(\)\) \{[\s\S]*step\?\.variant === 'flavor'[\s\S]*color: '#fef3c7'[\s\S]*backgroundColor: '#1f1608'[\s\S]*stroke: '#f59e0b'[\s\S]*color: '#e0f2fe'[\s\S]*backgroundColor: '#020617'[\s\S]*stroke: '#38bdf8'/);
 });
 
 test('tap_continue overlay covers the screen and consumes pointerdown before gameplay', () => {
