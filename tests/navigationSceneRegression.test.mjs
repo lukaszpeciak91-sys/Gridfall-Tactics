@@ -104,7 +104,7 @@ test('BattleScene player-base utility menu uses resolved base metrics and no bot
   assert.match(menuSource, /this\.bottomControlViews = \[menu\];/);
   assert.match(deckSource, /const \{ x, y, width, height \} = this\.getPlayerBaseUtilityControlMetrics\('deck'\);/);
   assert.match(deckSource, /translateActive\('ui\.battle\.deckCounter', 'DECK \{count\}', \{ count: deckCount \}\);/);
-  assert.match(deckSource, /\(\) => this\.openDeckInfoPanel\(\),/);
+  assert.match(deckSource, /this\.openDeckInfoPanel\(\);/);
   assert.match(source, /const HERO_PANEL_WIDTH_RATIO = 0\.66/);
   assert.doesNotMatch(source, /drawBottomUtilityBar/);
   assert.doesNotMatch(source, /controls\.fullscreen/);

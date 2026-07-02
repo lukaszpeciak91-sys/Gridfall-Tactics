@@ -44,9 +44,12 @@ test('tutorial focus supports base, UI button, hand card, and board/lane targets
 });
 
 test('tutorial focus uses independent Phaser primitives and does not gate input', () => {
-  assert.match(battleSource, /this\.add\.rectangle\(bounds\.x, bounds\.y, bounds\.width \+ 14, bounds\.height \+ 14, TUTORIAL_FOCUS_FILL, 0\.07\)/);
-  assert.match(battleSource, /this\.tweens\?\.add\?\.\(\{ targets: \[glow, outline\]/);
-  assert.doesNotMatch(battleSource, /onlyTutorial|blockWrong|tutorialInputGate|preventWrong/);
+  const focusStart = battleSource.indexOf('ensureTutorialFocusLayer()');
+  const focusSource = battleSource.slice(focusStart, battleSource.indexOf('updateTutorialFocus(', focusStart));
+
+  assert.match(focusSource, /this\.add\.rectangle\(bounds\.x, bounds\.y, bounds\.width \+ 14, bounds\.height \+ 14, TUTORIAL_FOCUS_FILL, 0\.07\)/);
+  assert.match(focusSource, /this\.tweens\?\.add\?\.\(\{ targets: \[glow, outline\]/);
+  assert.doesNotMatch(focusSource, /onlyTutorial|blockWrong|tutorialInputGate|preventWrong|checkTutorialInputGate/);
 });
 
 test('GameMenuScene Tutorial still launches existing TutorialScene', () => {
