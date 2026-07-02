@@ -285,7 +285,8 @@
       "collection": "COLLECTION",
       "settings": "SETTINGS",
       "tutorialComingSoon": "Tutorial coming soon",
-      "game": "GAME"
+      "game": "GAME",
+      "achievements": "ACHIEVEMENTS"
     },
     "factionSelect": {
       "title": "SELECT YOUR TEAM",
@@ -674,7 +675,8 @@
       "newGameConfirmTitle": "START NEW GAME?",
       "newGameConfirmBody": "This will overwrite your current campaign progress.",
       "confirmNewGame": "START",
-      "cancelNewGame": "BACK"
+      "cancelNewGame": "BACK",
+      "tutorial": "TUTORIAL"
     },
     "campaignEnemySelect": {
       "title": "SELECT ENEMY",
@@ -701,6 +703,10 @@
         "Thank you for participating, and best of luck with your next catastrophe.",
         "A pity. Some return with a trophy. Others simply return."
       ]
+    },
+    "achievements": {
+      "title": "ACHIEVEMENTS",
+      "comingSoon": "Coming soon."
     }
   },
   "diagnostics": {

@@ -110,12 +110,12 @@ export default class MainMenuScene extends Phaser.Scene {
       this.scene.start('GameMenuScene');
     });
 
-    this.createMenuButton(width / 2, startY + buttonGap, buttonWidth, translateActive('ui.mainMenu.tutorial', 'TUTORIAL'), () => {
-      this.scene.start('TutorialScene');
+    this.createMenuButton(width / 2, startY + buttonGap, buttonWidth, translateActive('ui.mainMenu.collection', 'COLLECTION'), () => {
+      this.scene.start('CollectionScene');
     });
 
-    this.createMenuButton(width / 2, startY + buttonGap * 2, buttonWidth, translateActive('ui.mainMenu.collection', 'COLLECTION'), () => {
-      this.scene.start('CollectionScene');
+    this.createMenuButton(width / 2, startY + buttonGap * 2, buttonWidth, translateActive('ui.mainMenu.achievements', 'ACHIEVEMENTS'), () => {
+      this.scene.start('AchievementsScene');
     });
 
     this.createMenuButton(width / 2, startY + buttonGap * 3, buttonWidth, translateActive('ui.mainMenu.settings', 'SETTINGS'), () => {

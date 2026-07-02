@@ -7,6 +7,7 @@ const read = (path) => fs.readFileSync(path, 'utf8');
 const MENU_SCREENS = Object.freeze([
   { path: 'src/scenes/FactionSelectScene.js', titleKey: 'ui.factionSelect.title' },
   { path: 'src/scenes/CollectionScene.js', titleKey: 'ui.collection.title' },
+  { path: 'src/scenes/AchievementsScene.js', titleKey: 'ui.achievements.title' },
   { path: 'src/scenes/TutorialScene.js', titleKey: 'ui.tutorial.title' },
   { path: 'src/scenes/SettingsScene.js', titleKey: 'ui.settings.title' },
   { path: 'src/scenes/RulesPanelScene.js', titleKey: 'ui.rules.title' },
