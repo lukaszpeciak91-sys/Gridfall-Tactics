@@ -1,5 +1,7 @@
 import Phaser from 'phaser';
 import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
+import { getTutorialBattleData } from '../data/tutorial/tutorialDecks.js';
+import { applyTutorialOpeningSetup, isTutorialBattleContext, performTutorialOpeningMulligan } from '../systems/tutorialOpening.js';
 import { createInitialBattleState, drawCards, shuffleDeck, canPass, canPlayOrRedeploy, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, resolveTargetedUnitOnPlayEffect, getUnitAttack, getUnitArmor, toggleFirstActor, resolveTurnCapWinner, resolveImmediateResourceExhaustionWinner, resolveImmediateNoProgressWinner, recordPassAction, completeActionOpportunity, performOpeningMulligan, STARTING_HAND_SIZE, MAX_OPENING_MULLIGAN_CARDS, getEffectiveBoardAttack, getEffectiveBoardArmor, canPlayEffectCard, isEffectCardBlockedForOwner, isBattleExhaustedEligible } from '../systems/GameState.js';
 import { chooseEnemyAction, isVerySafeConcedableState, recordBattleActionUse, selectOpeningMulliganCardIds } from '../systems/enemyDecision.js';
 import { getTargetingStateForEffect } from '../systems/cardTargeting.js';
@@ -586,16 +588,32 @@ export default class BattleScene extends Phaser.Scene {
 
     const { width, height } = this.scale;
     this.battleContext = this.normalizeBattleContext(data?.battleContext);
-    const playerFactionKey = typeof data?.factionKey === 'string' && data.factionKey ? data.factionKey : 'Aggro';
+    const isTutorialBattle = this.battleContext?.mode === 'tutorial';
+    const tutorialBattleData = isTutorialBattle ? getTutorialBattleData() : null;
+    const playerFactionKey = isTutorialBattle
+      ? tutorialBattleData.playerFaction.id
+      : (typeof data?.factionKey === 'string' && data.factionKey ? data.factionKey : 'Aggro');
     this.factionKey = playerFactionKey;
     const requestedEnemyFactionKey = typeof data?.enemyFactionKey === 'string' && data.enemyFactionKey ? data.enemyFactionKey : null;
-    const enemyFactionKey = requestedEnemyFactionKey ?? this.selectEnemyFactionKey(playerFactionKey);
+    const enemyFactionKey = isTutorialBattle
+      ? tutorialBattleData.enemyFaction.id
+      : (requestedEnemyFactionKey ?? this.selectEnemyFactionKey(playerFactionKey));
     this.enemyFactionKey = enemyFactionKey;
 
-    const playerFactionData = getFactionByKey(playerFactionKey) ?? { name: `Unknown (${playerFactionKey})`, deck: [] };
-    const enemyFactionData = getFactionByKey(enemyFactionKey) ?? { name: `Unknown (${enemyFactionKey})`, deck: [] };
+    const playerFactionData = isTutorialBattle
+      ? tutorialBattleData.playerFaction
+      : (getFactionByKey(playerFactionKey) ?? { name: `Unknown (${playerFactionKey})`, deck: [] });
+    const enemyFactionData = isTutorialBattle
+      ? tutorialBattleData.enemyFaction
+      : (getFactionByKey(enemyFactionKey) ?? { name: `Unknown (${enemyFactionKey})`, deck: [] });
 
-    this.gameState = createInitialBattleState(playerFactionData, enemyFactionData);
+    const tutorialOpeningConfig = tutorialBattleData?.openingConfig ?? null;
+    this.gameState = createInitialBattleState(playerFactionData, enemyFactionData, {
+      playerHP: tutorialOpeningConfig?.playerStartingHp,
+      playerMaxHP: tutorialOpeningConfig?.playerStartingHp,
+      enemyHP: tutorialOpeningConfig?.enemyStartingHp,
+      enemyMaxHP: tutorialOpeningConfig?.enemyStartingHp,
+    });
     this.battleStartedAt = null;
     this.battleEndedAt = null;
     this.activeBattleDurationMs = 0;
@@ -605,10 +623,14 @@ export default class BattleScene extends Phaser.Scene {
     this.terminalTextBootComplete = false;
     this.gameState.player.factionKey = playerFactionKey;
     this.gameState.enemy.factionKey = enemyFactionKey;
-    shuffleDeck(this.gameState.player.deck);
-    shuffleDeck(this.gameState.enemy.deck);
-    drawCards(this.gameState.player, STARTING_HAND_SIZE);
-    drawCards(this.gameState.enemy, STARTING_HAND_SIZE);
+    if (isTutorialBattle) {
+      applyTutorialOpeningSetup(this.gameState, tutorialOpeningConfig);
+    } else {
+      shuffleDeck(this.gameState.player.deck);
+      shuffleDeck(this.gameState.enemy.deck);
+      drawCards(this.gameState.player, STARTING_HAND_SIZE);
+      drawCards(this.gameState.enemy, STARTING_HAND_SIZE);
+    }
     this.initializeBattleInfoPanelState();
     this.applyEnemyOpeningMulligan();
     this.openingMulliganPending = true;
@@ -5687,8 +5709,8 @@ export default class BattleScene extends Phaser.Scene {
     }
   }
 
-
   applyEnemyOpeningMulligan() {
+    if (isTutorialBattleContext(this.battleContext) && getTutorialBattleData().openingConfig.disableEnemyOpeningMulligan) return;
     if (!this.gameState?.enemy) return;
     const selectedIds = selectOpeningMulliganCardIds(this.gameState.enemy);
     performOpeningMulligan(this.gameState, 'enemy', selectedIds);
@@ -5855,7 +5877,9 @@ export default class BattleScene extends Phaser.Scene {
     if (this.isFlowResolving) return;
 
     const selectedIds = [...this.selectedMulliganCardIds];
-    const result = performOpeningMulligan(this.gameState, 'player', selectedIds);
+    const result = isTutorialBattleContext(this.battleContext)
+      ? performTutorialOpeningMulligan(this.gameState, selectedIds, getTutorialBattleData().openingConfig)
+      : performOpeningMulligan(this.gameState, 'player', selectedIds);
     if (!result.ok) return;
 
     this.playBattleSfx?.(AUDIO_KEYS.UI_CLICK);

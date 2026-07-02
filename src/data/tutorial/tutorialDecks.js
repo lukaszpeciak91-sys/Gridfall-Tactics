@@ -215,9 +215,33 @@ export const tutorialEnemyFaction = {
   ],
 };
 
+
+export const tutorialOpeningConfig = Object.freeze({
+  playerStartingHp: 7,
+  enemyStartingHp: 5,
+  startingHandSize: 4,
+  playerStartingHandCardIds: Object.freeze([
+    'tutorial_unit_a_1',
+    'tutorial_mulligan_bait_1',
+    'tutorial_filler_guard_1',
+    'tutorial_filler_sentinel_1',
+  ]),
+  enemyStartingHandCardIds: Object.freeze([
+    'tutorial_enemy_blocker_a_1',
+    'tutorial_enemy_blocker_b_1',
+    'tutorial_enemy_blocker_c_1',
+    'tutorial_enemy_blocker_d_1',
+  ]),
+  requiredPlayerMulliganCardId: 'tutorial_mulligan_bait_1',
+  deterministicMulliganReplacementCardId: 'tutorial_unit_b_1',
+  disableInitialShuffle: true,
+  disableEnemyOpeningMulligan: true,
+});
+
 export function getTutorialBattleData() {
   return {
     playerFaction: tutorialPlayerFaction,
     enemyFaction: tutorialEnemyFaction,
+    openingConfig: tutorialOpeningConfig,
   };
 }

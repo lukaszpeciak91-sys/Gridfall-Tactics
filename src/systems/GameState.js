@@ -1993,10 +1993,10 @@ export function createInitialBattleState(playerFactionData, enemyFactionData = p
 
   return {
     board: Array(BOARD_SIZE).fill(null),
-    playerHP: HERO_START_HP,
-    enemyHP: HERO_START_HP,
-    playerMaxHP: HERO_START_HP,
-    enemyMaxHP: HERO_START_HP,
+    playerHP: Number.isFinite(options.playerHP) ? options.playerHP : HERO_START_HP,
+    enemyHP: Number.isFinite(options.enemyHP) ? options.enemyHP : HERO_START_HP,
+    playerMaxHP: Number.isFinite(options.playerMaxHP) ? options.playerMaxHP : (Number.isFinite(options.playerHP) ? options.playerHP : HERO_START_HP),
+    enemyMaxHP: Number.isFinite(options.enemyMaxHP) ? options.enemyMaxHP : (Number.isFinite(options.enemyHP) ? options.enemyHP : HERO_START_HP),
     winner: null,
     endingReason: null,
     turnCapResolvedBy: null,
