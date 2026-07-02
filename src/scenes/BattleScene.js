@@ -6195,10 +6195,27 @@ export default class BattleScene extends Phaser.Scene {
     };
   }
 
+  isTutorialBannerSuppressed() {
+    return Boolean(
+      this.isFlowResolving
+      || this.isEffectCastResolving
+      || this.battleResultModalShown
+      || this.battleResultModalPending
+      || this.gameState?.winner
+    );
+  }
+
   updateTutorialBanner() {
     if (!this.isTutorialBattle() || !this.layout || this.battleResultModalShown || this.battleResultModalPending) {
       this.destroyTutorialBanner();
       return null;
+    }
+    if (this.isTutorialBannerSuppressed()) {
+      this.tutorialBanner?.setVisible?.(false);
+      this.tutorialBannerOverlay?.setVisible?.(false);
+      if (this.tutorialBannerOverlay?.input) this.tutorialBannerOverlay.input.enabled = false;
+      this.updateTutorialFocus(null);
+      return this.tutorialBanner;
     }
     const step = this.getCurrentTutorialStep();
     const message = this.getTutorialStepText(step);
@@ -6214,14 +6231,15 @@ export default class BattleScene extends Phaser.Scene {
         fontFamily: 'Arial, sans-serif',
         fontSize: `${layout.fontSize}px`,
         color: '#e0f2fe',
-        backgroundColor: '#0f172a',
+        backgroundColor: '#020617',
         align: 'center',
-        padding: { x: 16, y: 12 },
+        padding: { x: 18, y: 13 },
         wordWrap: { width: layout.maxTextWidth },
         fontStyle: 'bold',
-      }).setOrigin(0.5).setDepth(224).setAlpha(0.96).setStroke('#075985', 1);
+      }).setOrigin(0.5).setDepth(224).setAlpha(0.98).setStroke('#38bdf8', 2);
     } else {
-      this.tutorialBanner.setText(message).setPosition(layout.x, layout.targetY);
+      this.tutorialBanner.setText(message).setPosition(layout.x, layout.targetY).setVisible(true);
+      this.tutorialBanner.setStyle?.({ fontSize: `${layout.fontSize}px` });
       this.tutorialBanner.setWordWrapWidth?.(layout.maxTextWidth);
     }
 
@@ -6230,7 +6248,7 @@ export default class BattleScene extends Phaser.Scene {
         .setOrigin(0.5)
         .setDepth(223)
         .setInteractive({ useHandCursor: true })
-        .on('pointerdown', (pointer, localX, localY, event) => this.onTutorialBannerPointerDown(pointer, localX, localY, event))
+        .on('pointerdown', (pointer, localX, localY, event) => event?.stopPropagation?.())
         .on('pointerup', (pointer, localX, localY, event) => this.onTutorialBannerPointerUp(pointer, localX, localY, event));
     }
     this.tutorialBannerOverlay.setPosition(layout.overlayX, layout.overlayY).setSize(layout.overlayWidth, layout.overlayHeight);
@@ -6541,6 +6559,7 @@ export default class BattleScene extends Phaser.Scene {
     this.pendingTutorialEvent = null;
     if (tutorialEvent?.eventName) this.handleTutorialEvent?.(tutorialEvent.eventName, tutorialEvent.payload ?? {});
     this.isFlowResolving = true;
+    this.updateTutorialBanner?.();
     this.destroyActiveSelectionMessage();
     this.flushDeferredTransientBattleBanner();
     this.currentActionFeedback = actionFeedback;
@@ -6564,6 +6583,7 @@ export default class BattleScene extends Phaser.Scene {
     if (this.isFlowResolving || this.enemyActionUsed || !this.gameState || this.gameState.winner) return;
 
     this.isFlowResolving = true;
+    this.updateTutorialBanner?.();
     await this.delay(650);
     await this.revealAndApplyEnemyAction();
     if (this.gameState.winner) {
@@ -6571,6 +6591,7 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
     this.isFlowResolving = false;
+    this.updateTutorialBanner?.();
     this.updateInitiativeIndicator();
     this.resetCardHighlights();
   }
@@ -6583,6 +6604,7 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     this.isFlowResolving = true;
+    this.updateTutorialBanner?.();
 
     let enemyActionPacing = null;
     if (!this.enemyActionUsed) {
@@ -6649,6 +6671,7 @@ export default class BattleScene extends Phaser.Scene {
 
     toggleFirstActor(this.gameState);
     this.isFlowResolving = false;
+    this.updateTutorialBanner?.();
     await this.showOpeningTurnStartBanner();
     this.startTurn();
   }

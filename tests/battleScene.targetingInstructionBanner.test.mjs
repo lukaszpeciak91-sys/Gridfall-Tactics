@@ -313,7 +313,7 @@ test('pass, turn transition, player-action refresh, and scene shutdown retain in
   assert.match(startTurn, /this\.targetingState = null;[\s\S]*this\.destroyActiveSelectionMessage\(\);/);
   assert.match(refreshAfterPlayerAction, /this\.targetingState = null;[\s\S]*this\.destroyActiveSelectionMessage\(\);/);
   assert.match(cleanupSceneObjects, /this\.destroyActiveSelectionMessage\(\);/);
-  assert.match(completePlayerAction, /this\.isFlowResolving = true;\s*this\.destroyActiveSelectionMessage\(\);/);
+  assert.match(completePlayerAction, /this\.isFlowResolving = true;\s*(?:this\.updateTutorialBanner\?\.\(\);\s*)?this\.destroyActiveSelectionMessage\(\);/);
 });
 
 test('card selection cleanup clears targeting and board-swap owners through their scoped cleanup paths', () => {
