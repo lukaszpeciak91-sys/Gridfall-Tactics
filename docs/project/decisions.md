@@ -188,3 +188,10 @@ canonical_ref: docs/rules/mvp-battle-rules.md
 - Older flat cyan-stroke prototype panels, decorative Rules rails, and persistent lower-left Rules scroll-helper text are historical context and should not be reintroduced without an explicit new design decision.
 - Rules / How To Play is one shared panel presentation across entry points; future fixes must distinguish shared panel rendering from launch-path issues and underlying scene bleed-through.
 - Translucent overlay debugging should inspect foreground panel chrome, Rules scroll affordances, underlying BattleScene/helper objects, board guide/deck info hint objects, and entry-point differences before assuming the panel itself draws an artifact.
+
+## Tutorial V1 Architecture Approval (2026-07-02)
+- Approved `docs/tutorial-v1-architecture.md` as the canonical planning source for playable Tutorial V1 implementation.
+- Tutorial V1 must be a separate `BattleScene` mode (`battleContext.mode = 'tutorial'`) launched from Game Menu only, with no duplicate Main Menu Tutorial entry and no Arena fallback.
+- Tutorial cards/decks must remain separate from normal faction registry, Campaign, Arena, and Balance Lab data.
+- Tutorial flow uses real mechanics with tutorial-only deterministic opening/mulligan, scripted enemy actions, input gating, `buff_all_atk_1`, final PASS victory, standard result presentation, and return to `GameMenuScene`.
+- Campaign save/progression functions must remain untouched by Tutorial.
