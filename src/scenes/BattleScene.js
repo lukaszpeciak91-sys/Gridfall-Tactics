@@ -1259,6 +1259,7 @@ export default class BattleScene extends Phaser.Scene {
     this.utilityMenuPanel = null;
     this.handleTutorialEvent?.('battle_menu_closed');
     this.updatePlayerBaseActionState();
+    this.updateTutorialBanner?.();
   }
 
   guardPointerEvent(pointer = null) {
@@ -4059,6 +4060,7 @@ export default class BattleScene extends Phaser.Scene {
     this.restoreDeckInfoBackgroundHelpers();
     this.handleTutorialEvent?.('deck_closed');
     this.updatePlayerBaseActionState();
+    this.updateTutorialBanner?.();
   }
 
   addDeckInfoGlassPanel(x, y, width, height, depth = 761, { showDecorativeRails = true } = {}) {

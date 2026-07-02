@@ -120,3 +120,17 @@ test('GameMenuScene Tutorial launches playable tutorial BattleScene', () => {
   assert.match(gameMenuSource, /this\.scene\.start\('BattleScene', \{[\s\S]*battleContext:[\s\S]*mode:\s*'tutorial'[\s\S]*tutorialId:\s*'tutorial_v1'[\s\S]*returnSceneKey:\s*'GameMenuScene'/);
   assert.doesNotMatch(gameMenuSource, /this\.scene\.start\('TutorialScene'/);
 });
+
+test('utility panel close refreshes tutorial banner and focus for the current step', () => {
+  const deckCloseSource = battleSource.slice(
+    battleSource.indexOf('  destroyDeckInfoPanel()'),
+    battleSource.indexOf('  addDeckInfoGlassPanel('),
+  );
+  const menuCloseSource = battleSource.slice(
+    battleSource.indexOf('  destroyUtilityMenuPanel()'),
+    battleSource.indexOf('  guardPointerEvent('),
+  );
+
+  assert.match(deckCloseSource, /this\.handleTutorialEvent\?\.\('deck_closed'\);[\s\S]*this\.updatePlayerBaseActionState\(\);[\s\S]*this\.updateTutorialBanner\?\.\(\);/);
+  assert.match(menuCloseSource, /this\.handleTutorialEvent\?\.\('battle_menu_closed'\);[\s\S]*this\.updatePlayerBaseActionState\(\);[\s\S]*this\.updateTutorialBanner\?\.\(\);/);
+});
