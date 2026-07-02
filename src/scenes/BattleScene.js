@@ -6179,20 +6179,50 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   getTutorialBannerLayout() {
-    const layout = this.getCentralBattleBannerLayout({ baseWidthRatio: 0.92, horizontalPadding: 16, startOffset: 5 });
-    const { height, board } = this.layout;
+    const centralLayout = this.getCentralBattleBannerLayout({ baseWidthRatio: 0.92, horizontalPadding: 16, startOffset: 5 });
+    const { width, height, margin, board, playerHero } = this.layout;
+    const playerRowBottom = board.centerY + (board.cellHeight * 1.5);
+    const safeTop = playerRowBottom + Math.max(6, height * 0.008);
+    const safeBottom = playerHero.y - Math.max(4, height * 0.006);
+    const fallbackY = board.centerY + (board.cellHeight * 1.16);
+    const targetY = safeBottom > safeTop
+      ? (safeTop + safeBottom) / 2
+      : Math.min(playerHero.centerY - playerHero.h * 0.72, fallbackY);
+    const panelWidth = Math.min(board.width * 1.08, width - margin * 2);
     return {
-      ...layout,
-      fontSize: Math.min(18, Math.max(14, Math.floor(Math.max(board.cellWidth * 0.125, height * 0.016)))),
-      overlayWidth: Math.min(board.width * 0.96, this.layout.width - this.layout.margin * 2),
-      overlayHeight: Math.max(72, Math.min(116, height * 0.12)),
+      ...centralLayout,
+      targetY,
+      startY: targetY + 5,
+      maxTextWidth: Math.min(panelWidth - 32, width - margin * 2 - 32),
+      fontSize: Math.min(20, Math.max(15, Math.floor(Math.max(board.cellWidth * 0.14, height * 0.018)))),
+      overlayWidth: width,
+      overlayHeight: height,
+      overlayX: width * 0.5,
+      overlayY: height * 0.5,
     };
+  }
+
+  isTutorialBannerSuppressed() {
+    return Boolean(
+      this.isFlowResolving
+      || this.isEffectCastResolving
+      || this.battleResultModalShown
+      || this.battleResultModalPending
+      || this.gameState?.winner
+    );
   }
 
   updateTutorialBanner() {
     if (!this.isTutorialBattle() || !this.layout || this.battleResultModalShown || this.battleResultModalPending) {
       this.destroyTutorialBanner();
       return null;
+    }
+    if (this.isTutorialBannerSuppressed()) {
+      this.tutorialBanner?.setVisible?.(false);
+      this.tutorialBannerOverlay?.setVisible?.(false);
+      if (this.tutorialBannerOverlay?.input) this.tutorialBannerOverlay.input.enabled = false;
+      this.updateTutorialFocus(null);
+      return this.tutorialBanner;
     }
     const step = this.getCurrentTutorialStep();
     const message = this.getTutorialStepText(step);
@@ -6208,25 +6238,27 @@ export default class BattleScene extends Phaser.Scene {
         fontFamily: 'Arial, sans-serif',
         fontSize: `${layout.fontSize}px`,
         color: '#e0f2fe',
-        backgroundColor: '#0f172a',
+        backgroundColor: '#020617',
         align: 'center',
-        padding: { x: 16, y: 12 },
+        padding: { x: 18, y: 13 },
         wordWrap: { width: layout.maxTextWidth },
         fontStyle: 'bold',
-      }).setOrigin(0.5).setDepth(224).setAlpha(0.96).setStroke('#075985', 1);
+      }).setOrigin(0.5).setDepth(224).setAlpha(0.98).setStroke('#38bdf8', 2);
     } else {
-      this.tutorialBanner.setText(message).setPosition(layout.x, layout.targetY);
+      this.tutorialBanner.setText(message).setPosition(layout.x, layout.targetY).setVisible(true);
+      this.tutorialBanner.setStyle?.({ fontSize: `${layout.fontSize}px` });
       this.tutorialBanner.setWordWrapWidth?.(layout.maxTextWidth);
     }
 
     if (!this.tutorialBannerOverlay?.active) {
-      this.tutorialBannerOverlay = this.add.rectangle(layout.x, layout.targetY, layout.overlayWidth, layout.overlayHeight, 0x000000, 0.001)
+      this.tutorialBannerOverlay = this.add.rectangle(layout.overlayX, layout.overlayY, layout.overlayWidth, layout.overlayHeight, 0x000000, 0.001)
         .setOrigin(0.5)
         .setDepth(223)
         .setInteractive({ useHandCursor: true })
+        .on('pointerdown', (pointer, localX, localY, event) => event?.stopPropagation?.())
         .on('pointerup', (pointer, localX, localY, event) => this.onTutorialBannerPointerUp(pointer, localX, localY, event));
     }
-    this.tutorialBannerOverlay.setPosition(layout.x, layout.targetY).setSize(layout.overlayWidth, layout.overlayHeight);
+    this.tutorialBannerOverlay.setPosition(layout.overlayX, layout.overlayY).setSize(layout.overlayWidth, layout.overlayHeight);
     this.tutorialBannerOverlay.input.enabled = canTapContinue;
     this.tutorialBannerOverlay.setVisible(canTapContinue);
     this.updateTutorialFocus(step);
@@ -6523,6 +6555,7 @@ export default class BattleScene extends Phaser.Scene {
     this.pendingTutorialEvent = null;
     if (tutorialEvent?.eventName) this.handleTutorialEvent?.(tutorialEvent.eventName, tutorialEvent.payload ?? {});
     this.isFlowResolving = true;
+    this.updateTutorialBanner?.();
     this.destroyActiveSelectionMessage();
     this.flushDeferredTransientBattleBanner();
     this.currentActionFeedback = actionFeedback;
@@ -6546,6 +6579,7 @@ export default class BattleScene extends Phaser.Scene {
     if (this.isFlowResolving || this.enemyActionUsed || !this.gameState || this.gameState.winner) return;
 
     this.isFlowResolving = true;
+    this.updateTutorialBanner?.();
     await this.delay(650);
     await this.revealAndApplyEnemyAction();
     if (this.gameState.winner) {
@@ -6553,6 +6587,7 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
     this.isFlowResolving = false;
+    this.updateTutorialBanner?.();
     this.updateInitiativeIndicator();
     this.resetCardHighlights();
   }
@@ -6565,6 +6600,7 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     this.isFlowResolving = true;
+    this.updateTutorialBanner?.();
 
     let enemyActionPacing = null;
     if (!this.enemyActionUsed) {
@@ -6631,6 +6667,7 @@ export default class BattleScene extends Phaser.Scene {
 
     toggleFirstActor(this.gameState);
     this.isFlowResolving = false;
+    this.updateTutorialBanner?.();
     await this.showOpeningTurnStartBanner();
     this.startTurn();
   }

@@ -129,7 +129,7 @@ test('initiative indicator and enemy-first unlock refresh use current actionabil
   assert.match(updateActionableSideVisualState, /const active = this\.getCurrentActionableSide\(\);/);
   assert.doesNotMatch(updateActionableSideVisualState, /this\.gameState\.firstActor/);
   assert.match(updateInitiativeIndicator, /this\.updateActionableSideVisualState\(\);/);
-  assert.match(resolveEnemyFirstTurnOpening, /this\.isFlowResolving = false;\s*this\.updateInitiativeIndicator\(\);\s*this\.resetCardHighlights\(\);/);
+  assert.match(resolveEnemyFirstTurnOpening, /this\.isFlowResolving = false;\s*(?:this\.updateTutorialBanner\?\.\(\);\s*)?this\.updateInitiativeIndicator\(\);\s*this\.resetCardHighlights\(\);/);
 });
 
 test('active turn indicator no longer creates arrow icons', () => {
