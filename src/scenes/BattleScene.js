@@ -682,6 +682,7 @@ export default class BattleScene extends Phaser.Scene {
       playerMaxHP: tutorialOpeningConfig?.playerStartingHp,
       enemyHP: tutorialOpeningConfig?.enemyStartingHp,
       enemyMaxHP: tutorialOpeningConfig?.enemyStartingHp,
+      firstActor: isTutorialBattle ? 'player' : undefined,
     });
     this.battleStartedAt = null;
     this.battleEndedAt = null;

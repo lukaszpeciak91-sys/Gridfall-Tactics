@@ -13,7 +13,8 @@ test('tutorial focus targets are represented as practical BattleScene target obj
   assert.deepEqual(step('deck_counter_open').highlightTarget, { type: 'deck_counter' });
   assert.deepEqual(step('battle_menu_open').highlightTarget, { type: 'battle_menu_button' });
   assert.deepEqual(step('mulligan_select').highlightTarget, { type: 'mulligan_card', cardId: 'tutorial_mulligan_bait_1' });
-  assert.deepEqual(step('play_unit_a').highlightTarget, { type: 'board_slot', slotIndex: 0 });
+  assert.deepEqual(step('play_unit_a').highlightTarget, { type: 'board_slot', slotIndex: 6 });
+  assert.equal(step('enemy_action').highlightTarget, null);
   assert.deepEqual(step('adjacent_swap').highlightTarget, { type: 'adjacent_units', fromIndex: 0, toIndex: 1 });
   assert.deepEqual(step('final_pass').highlightTarget, { type: 'player_base_button' });
 });
