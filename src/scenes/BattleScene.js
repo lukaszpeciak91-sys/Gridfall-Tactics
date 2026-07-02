@@ -375,6 +375,8 @@ export default class BattleScene extends Phaser.Scene {
     this.currentBoardRenderStats = null;
     this.turnStartBanner = null;
     this.turnStartBannerFadeOutEvent = null;
+    this.tutorialBanner = null;
+    this.tutorialBannerOverlay = null;
     this.deferredTransientBattleBanner = null;
     this.hasShownOpeningTurnStartBanner = false;
     this.playerConcedableHintState = { shownKey: null, stableChecks: 0, lastEligibleKey: null };
@@ -441,6 +443,7 @@ export default class BattleScene extends Phaser.Scene {
 
   initializeTutorialController() {
     this.tutorialControllerState = this.isTutorialBattle() ? createTutorialControllerState() : null;
+    this.updateTutorialBanner?.();
     return this.tutorialControllerState;
   }
 
@@ -450,14 +453,18 @@ export default class BattleScene extends Phaser.Scene {
 
   advanceTutorialStep(reason = null) {
     if (!this.isTutorialBattle() || !this.tutorialControllerState) return null;
-    return advanceTutorialControllerStep(this.tutorialControllerState, reason);
+    const step = advanceTutorialControllerStep(this.tutorialControllerState, reason);
+    this.updateTutorialBanner?.();
+    return step;
   }
 
   handleTutorialEvent(eventName, payload = {}) {
     if (!this.isTutorialBattle() || !this.tutorialControllerState) {
       return { matched: false, completed: false, currentStep: null };
     }
-    return handleTutorialControllerEvent(this.tutorialControllerState, eventName, payload);
+    const result = handleTutorialControllerEvent(this.tutorialControllerState, eventName, payload);
+    if (result.matched) this.updateTutorialBanner();
+    return result;
   }
 
   isTutorialStepComplete() {
@@ -560,6 +567,8 @@ export default class BattleScene extends Phaser.Scene {
     this.currentBoardRenderStats = null;
     this.turnStartBanner = null;
     this.turnStartBannerFadeOutEvent = null;
+    this.tutorialBanner = null;
+    this.tutorialBannerOverlay = null;
     this.deferredTransientBattleBanner = null;
     this.hasShownOpeningTurnStartBanner = false;
     this.playerConcedableHintState = { shownKey: null, stableChecks: 0, lastEligibleKey: null };
@@ -583,6 +592,7 @@ export default class BattleScene extends Phaser.Scene {
     this.destroyEnemyActionBanner();
     this.destroyTurnStartBanner();
     this.destroyPlayerActionBanner();
+    this.destroyTutorialBanner();
     this.destroyTargetingInstruction();
     this.destroyActiveSelectionMessage();
     this.destroyBattleResultModal();
@@ -687,6 +697,7 @@ export default class BattleScene extends Phaser.Scene {
     this.drawPlayerBaseUtilityMenuTrigger();
     this.updatePlayerBaseActionState();
     this.startOpeningMulliganReveal();
+    this.updateTutorialBanner();
 
     this.scale.on('enterfullscreen', this.onFullscreenChanged, this);
     this.scale.on('leavefullscreen', this.onFullscreenChanged, this);
@@ -1724,6 +1735,7 @@ export default class BattleScene extends Phaser.Scene {
       this.pendingSwapIndex = null;
       this.targetingState = null;
       this.destroyActiveSelectionMessage();
+      this.destroyTutorialBanner();
       this.resetCardHighlights({ showPreview: false });
 
       const { width, height } = this.scale.gameSize;
@@ -3513,6 +3525,7 @@ export default class BattleScene extends Phaser.Scene {
     this.updateInitiativeIndicator();
     this.resetCardHighlights();
     this.restorePersistentBattleBanner();
+    this.updateTutorialBanner();
 
     this.restoreResultOverlayFromSnapshot(resultOverlaySnapshot);
 
@@ -6094,6 +6107,90 @@ export default class BattleScene extends Phaser.Scene {
     if (!this.gameState || this.gameState.battleStartPresentationSfxPlayed) return null;
     this.gameState.battleStartPresentationSfxPlayed = true;
     return this.playBattleSfx?.(AUDIO_KEYS.BATTLE_START, { cooldownMs: 0 });
+  }
+
+  getTutorialStepText(step = this.getCurrentTutorialStep()) {
+    if (!step?.text) return '';
+    const locale = getActiveLocale();
+    return step.text[locale] ?? step.text.en ?? Object.values(step.text)[0] ?? '';
+  }
+
+  isCurrentTutorialStepTapContinue() {
+    return this.getCurrentTutorialStep()?.expected?.type === 'tap_continue';
+  }
+
+  getTutorialBannerLayout() {
+    const layout = this.getCentralBattleBannerLayout({ baseWidthRatio: 0.92, horizontalPadding: 16, startOffset: 5 });
+    const { height, board } = this.layout;
+    return {
+      ...layout,
+      fontSize: Math.min(18, Math.max(14, Math.floor(Math.max(board.cellWidth * 0.125, height * 0.016)))),
+      overlayWidth: Math.min(board.width * 0.96, this.layout.width - this.layout.margin * 2),
+      overlayHeight: Math.max(72, Math.min(116, height * 0.12)),
+    };
+  }
+
+  updateTutorialBanner() {
+    if (!this.isTutorialBattle() || !this.layout || this.battleResultModalShown || this.battleResultModalPending) {
+      this.destroyTutorialBanner();
+      return null;
+    }
+    const step = this.getCurrentTutorialStep();
+    const message = this.getTutorialStepText(step);
+    if (!step || !message) {
+      this.destroyTutorialBanner();
+      return null;
+    }
+    const layout = this.getTutorialBannerLayout();
+    const canTapContinue = step.expected?.type === 'tap_continue';
+
+    if (!this.tutorialBanner?.active) {
+      this.tutorialBanner = this.add.text(layout.x, layout.targetY, message, {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: `${layout.fontSize}px`,
+        color: '#e0f2fe',
+        backgroundColor: '#0f172a',
+        align: 'center',
+        padding: { x: 16, y: 12 },
+        wordWrap: { width: layout.maxTextWidth },
+        fontStyle: 'bold',
+      }).setOrigin(0.5).setDepth(224).setAlpha(0.96).setStroke('#075985', 1);
+    } else {
+      this.tutorialBanner.setText(message).setPosition(layout.x, layout.targetY);
+      this.tutorialBanner.setWordWrapWidth?.(layout.maxTextWidth);
+    }
+
+    if (!this.tutorialBannerOverlay?.active) {
+      this.tutorialBannerOverlay = this.add.rectangle(layout.x, layout.targetY, layout.overlayWidth, layout.overlayHeight, 0x000000, 0.001)
+        .setOrigin(0.5)
+        .setDepth(223)
+        .setInteractive({ useHandCursor: true })
+        .on('pointerup', (pointer, localX, localY, event) => this.onTutorialBannerPointerUp(pointer, localX, localY, event));
+    }
+    this.tutorialBannerOverlay.setPosition(layout.x, layout.targetY).setSize(layout.overlayWidth, layout.overlayHeight);
+    this.tutorialBannerOverlay.input.enabled = canTapContinue;
+    this.tutorialBannerOverlay.setVisible(canTapContinue);
+    return this.tutorialBanner;
+  }
+
+  onTutorialBannerPointerUp(pointer, localX, localY, event) {
+    if (!this.isTutorialBattle() || !this.isCurrentTutorialStepTapContinue()) return false;
+    event?.stopPropagation?.();
+    this.handleTutorialEvent('tap_continue');
+    return true;
+  }
+
+  destroyTutorialBanner() {
+    if (this.tutorialBannerOverlay) {
+      this.tutorialBannerOverlay.removeAllListeners?.();
+      this.tutorialBannerOverlay.destroy?.();
+      this.tutorialBannerOverlay = null;
+    }
+    if (this.tutorialBanner) {
+      this.tweens?.killTweensOf?.(this.tutorialBanner);
+      this.tutorialBanner.destroy?.();
+      this.tutorialBanner = null;
+    }
   }
 
   async showOpeningTurnStartBanner() {
