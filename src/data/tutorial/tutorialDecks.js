@@ -6,7 +6,6 @@
 //
 // Expected future card art source paths follow the current card art resolver style:
 // - public/assets/cards/tutorial/<artAssetId>.webp
-// - public/assets/cards/tutorial-enemy/<artAssetId>.webp
 // Binary assets are intentionally not included here; they are uploaded manually.
 
 export const tutorialPlayerFaction = {
@@ -17,7 +16,8 @@ export const tutorialPlayerFaction = {
     {
       id: 'tutorial_unit_a_1',
       cardNumber: 1,
-      artAssetId: 'tutorial_01',
+      factionId: 'tutorial',
+      artAssetId: 'ally_01',
       name: 'Unit A',
       type: 'unit',
       targeting: 'lane',
@@ -29,7 +29,8 @@ export const tutorialPlayerFaction = {
     {
       id: 'tutorial_unit_b_1',
       cardNumber: 2,
-      artAssetId: 'tutorial_02',
+      factionId: 'tutorial',
+      artAssetId: 'ally_02',
       name: 'Unit B',
       type: 'unit',
       targeting: 'lane',
@@ -41,7 +42,8 @@ export const tutorialPlayerFaction = {
     {
       id: 'tutorial_unit_c_1',
       cardNumber: 3,
-      artAssetId: 'tutorial_03',
+      factionId: 'tutorial',
+      artAssetId: 'ally_03',
       name: 'Unit C',
       type: 'unit',
       targeting: 'lane',
@@ -53,7 +55,8 @@ export const tutorialPlayerFaction = {
     {
       id: 'tutorial_all_attack_1',
       cardNumber: 4,
-      artAssetId: 'tutorial_04',
+      factionId: 'tutorial',
+      artAssetId: 'effect_01',
       name: 'Practice Rally',
       type: 'order',
       targeting: 'all_friendly_units',
@@ -63,7 +66,8 @@ export const tutorialPlayerFaction = {
     {
       id: 'tutorial_mulligan_bait_1',
       cardNumber: 5,
-      artAssetId: 'tutorial_05',
+      factionId: 'tutorial',
+      artAssetId: 'ally_token',
       name: 'Mulligan Bait',
       type: 'unit',
       targeting: 'lane',
@@ -75,7 +79,8 @@ export const tutorialPlayerFaction = {
     {
       id: 'tutorial_filler_guard_1',
       cardNumber: 6,
-      artAssetId: 'tutorial_06',
+      factionId: 'tutorial',
+      artAssetId: 'ally_token',
       name: 'Practice Guard',
       type: 'unit',
       targeting: 'lane',
@@ -87,7 +92,8 @@ export const tutorialPlayerFaction = {
     {
       id: 'tutorial_filler_guard_2',
       cardNumber: 7,
-      artAssetId: 'tutorial_07',
+      factionId: 'tutorial',
+      artAssetId: 'ally_token',
       name: 'Practice Guard',
       type: 'unit',
       targeting: 'lane',
@@ -99,7 +105,8 @@ export const tutorialPlayerFaction = {
     {
       id: 'tutorial_filler_sentinel_1',
       cardNumber: 8,
-      artAssetId: 'tutorial_08',
+      factionId: 'tutorial',
+      artAssetId: 'ally_token',
       name: 'Practice Sentinel',
       type: 'unit',
       targeting: 'lane',
@@ -111,7 +118,8 @@ export const tutorialPlayerFaction = {
     {
       id: 'tutorial_filler_scout_1',
       cardNumber: 9,
-      artAssetId: 'tutorial_09',
+      factionId: 'tutorial',
+      artAssetId: 'ally_token',
       name: 'Practice Scout',
       type: 'unit',
       targeting: 'lane',
@@ -123,7 +131,8 @@ export const tutorialPlayerFaction = {
     {
       id: 'tutorial_filler_recruit_1',
       cardNumber: 10,
-      artAssetId: 'tutorial_10',
+      factionId: 'tutorial',
+      artAssetId: 'ally_token',
       name: 'Practice Recruit',
       type: 'unit',
       targeting: 'lane',
@@ -143,7 +152,8 @@ export const tutorialEnemyFaction = {
     {
       id: 'tutorial_enemy_blocker_a_1',
       cardNumber: 1,
-      artAssetId: 'tutorial_enemy_01',
+      factionId: 'tutorial',
+      artAssetId: 'enemy_01',
       name: 'Blocker A',
       type: 'unit',
       targeting: 'lane',
@@ -155,7 +165,8 @@ export const tutorialEnemyFaction = {
     {
       id: 'tutorial_enemy_blocker_b_1',
       cardNumber: 2,
-      artAssetId: 'tutorial_enemy_02',
+      factionId: 'tutorial',
+      artAssetId: 'enemy_01',
       name: 'Blocker B',
       type: 'unit',
       targeting: 'lane',
@@ -167,7 +178,8 @@ export const tutorialEnemyFaction = {
     {
       id: 'tutorial_enemy_blocker_c_1',
       cardNumber: 3,
-      artAssetId: 'tutorial_enemy_03',
+      factionId: 'tutorial',
+      artAssetId: 'enemy_02',
       name: 'Blocker C',
       type: 'unit',
       targeting: 'lane',
@@ -179,7 +191,8 @@ export const tutorialEnemyFaction = {
     {
       id: 'tutorial_enemy_blocker_d_1',
       cardNumber: 4,
-      artAssetId: 'tutorial_enemy_04',
+      factionId: 'tutorial',
+      artAssetId: 'enemy_03',
       name: 'Blocker D',
       type: 'unit',
       targeting: 'lane',
@@ -191,7 +204,8 @@ export const tutorialEnemyFaction = {
     {
       id: 'tutorial_enemy_filler_blocker_1',
       cardNumber: 5,
-      artAssetId: 'tutorial_enemy_05',
+      factionId: 'tutorial',
+      artAssetId: 'enemy_01',
       name: 'Filler Blocker',
       type: 'unit',
       targeting: 'lane',
@@ -203,7 +217,8 @@ export const tutorialEnemyFaction = {
     {
       id: 'tutorial_enemy_filler_blocker_2',
       cardNumber: 6,
-      artAssetId: 'tutorial_enemy_06',
+      factionId: 'tutorial',
+      artAssetId: 'enemy_02',
       name: 'Filler Blocker',
       type: 'unit',
       targeting: 'lane',
