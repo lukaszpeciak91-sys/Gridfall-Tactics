@@ -455,3 +455,11 @@ These examples are documentation examples only. They describe intended variant s
 - Damage blocks must use existing damage and defeated-unit cleanup patterns.
 - Variant reports should include the active `variantId`, base commit SHA, seed, match count, and telemetry tags so results are interpretable.
 - Any future implementation should prefer a small registry of supported selectors and operations over arbitrary custom code.
+
+## Overclock v1 concrete effectIds
+
+These are implemented concrete repo `effectId` values for Balance Lab replacement-card testing. They are not generic v3 block composition and do not use `effectParams` or custom JavaScript blocks.
+
+- `decay_attack_after_combat` — Unit passive. A board-unit instance starts from printed ATK, then after each combat cleanup loses 1 ATK contribution while it remains on board. The decay is instance-local and cannot reduce that unit below 1 ATK by itself.
+- `atk_plus_per_other_ally` — Unit passive. Effective ATK gains +1 for each other living/current board unit owned by the same owner. It does not count itself or enemy units and does not mutate card data.
+- `swap_any_two_friendly_units_buff_both_atk_1` — Order/utility targeted effect. The acting owner selects two different friendly units in any friendly slots, swaps those board-unit objects, then gives both swapped units +1 temporary ATK until combat cleanup. Invalid target pairs do not partially resolve.

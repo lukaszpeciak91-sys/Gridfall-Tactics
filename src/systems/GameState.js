@@ -11,6 +11,9 @@ const WARDEN_SPEARWALL_EFFECT_ID = 'warden_defensive_friction_adjacent';
 const WARDEN_FRICTION_CAP = 1;
 const FUNERAL_PYRE_TRIGGER_CAP = 2;
 const COMBAT_KEYWORD_OVERFLOW = 'overflow';
+const DECAY_ATTACK_AFTER_COMBAT_EFFECT_ID = 'decay_attack_after_combat';
+const ATK_PLUS_PER_OTHER_ALLY_EFFECT_ID = 'atk_plus_per_other_ally';
+const FRIENDLY_SWAP_BUFF_EFFECT_ID = 'swap_any_two_friendly_units_buff_both_atk_1';
 export const RUNNER_OPEN_LANE_ATK_BONUS = 2;
 
 function hasSwarmAlphaAura(unit) {
@@ -196,6 +199,8 @@ function cardCanRealisticallyAffectOutcome(card, state, owner, visitedCardIds = 
       'wounded_atk_plus_1',
       'can_hit_any_lane',
       'opposing_lane_atk_plus_1',
+      DECAY_ATTACK_AFTER_COMBAT_EFFECT_ID,
+      ATK_PLUS_PER_OTHER_ALLY_EFFECT_ID,
     ].includes(card.effectId);
   }
 
@@ -225,6 +230,8 @@ function cardCanRealisticallyAffectOutcome(card, state, owner, visitedCardIds = 
       return enemyUnits.length > 0 && applyingEffectCanUnlockOutcome(state, owner, card.effectId);
     case 'control_enemy_unit_this_turn':
       return enemyUnits.some((unit) => getUnitAttack(unit) > 0);
+    case FRIENDLY_SWAP_BUFF_EFFECT_ID:
+      return friendlyUnits.length >= 2;
     case 'swap_any_two_units': {
       const ownersWithTwoUnits = ['player', 'enemy']
         .some((unitOwner) => state.board.filter((unit) => unit?.owner === unitOwner).length >= 2);
@@ -321,6 +328,21 @@ function cloneStateForDeadGameCheck(state) {
   }));
 }
 
+function getOtherAllyAttackBonus(state, unit, boardIndex) {
+  if (!state || !unit || unit.effectId !== ATK_PLUS_PER_OTHER_ALLY_EFFECT_ID) return 0;
+  return getRowForOwner(unit.owner).filter((index) => index !== boardIndex && state.board[index]?.owner === unit.owner).length;
+}
+
+function applyAttackDecayAfterCombat(state) {
+  state?.board?.forEach((unit) => {
+    if (unit?.effectId !== DECAY_ATTACK_AFTER_COMBAT_EFFECT_ID) return;
+    const printedAttack = Math.max(0, unit.attack ?? 0);
+    const currentDecay = Math.max(0, unit.attackDecay ?? 0);
+    if (printedAttack - currentDecay <= 1) return;
+    unit.attackDecay = currentDecay + 1;
+  });
+}
+
 function createDeadGameCombatSnapshot(state) {
   return JSON.stringify({
     playerHP: state.playerHP,
@@ -332,8 +354,9 @@ function createDeadGameCombatSnapshot(state) {
         id: unit.cardId ?? unit.id,
         hp: unit.hp,
         maxHp: unit.maxHp,
-        attack: unit.attack,
+        attack: getEffectiveBoardAttack(state, state.board.indexOf(unit)),
         armor: unit.armor,
+        attackDecay: unit.attackDecay ?? 0,
         effectId: unit.effectId,
       };
     }),
@@ -644,6 +667,16 @@ function getSystemOverrideAttackWithCombatBonuses(state, unit, unitIndex) {
       }));
     }
   }
+  const otherAllyBonus = getOtherAllyAttackBonus(state, unit, unitIndex);
+  if (otherAllyBonus > 0) {
+    attack += otherAllyBonus;
+    combatModifiers.push(createSystemOverrideCombatModifier({
+      type: 'attack-bonus',
+      amount: otherAllyBonus,
+      source: ATK_PLUS_PER_OTHER_ALLY_EFFECT_ID,
+      label: `+${otherAllyBonus} ATK`,
+    }));
+  }
   return { attack: Math.max(0, attack), combatModifiers };
 }
 
@@ -911,12 +944,16 @@ export function getUnitAttack(unit, options = {}) {
   if (!unit) return 0;
   const baseAttack = unit.attack ?? 0;
   const tempAttack = unit.tempAttackMod ?? 0;
+  const attackDecay = unit.effectId === DECAY_ATTACK_AFTER_COMBAT_EFFECT_ID ? Math.max(0, unit.attackDecay ?? 0) : 0;
   const woundedAttack = unit.effectId === 'wounded_atk_plus_1' && unit.hp < (unit.maxHp ?? unit.hp) ? 1 : 0;
   const bruiserPendingAttack = unit.effectId === 'gain_atk_when_damaged'
     && unit.bruiserPendingAttackBonusCombatId !== options.excludeCombatId
     ? Math.min(1, Math.max(0, unit.bruiserPendingAttackBonus ?? 0))
     : 0;
-  return Math.max(0, baseAttack + tempAttack + woundedAttack + bruiserPendingAttack);
+  const decayAdjustedBaseAttack = unit.effectId === DECAY_ATTACK_AFTER_COMBAT_EFFECT_ID
+    ? Math.max(1, baseAttack - attackDecay)
+    : baseAttack;
+  return Math.max(0, decayAdjustedBaseAttack + tempAttack + woundedAttack + bruiserPendingAttack);
 }
 
 export function getUnitArmor(unit) {
@@ -987,6 +1024,8 @@ export function getEffectiveBoardAttack(state, boardIndex) {
     attack += RUNNER_OPEN_LANE_ATK_BONUS;
   }
 
+  attack += getOtherAllyAttackBonus(state, unit, boardIndex);
+
   const auraAttackBonus = getAdjacentBoardAllyIndexes(unit, boardIndex).reduce((total, index) => (
     total + (state.board[index]?.owner === unit.owner && hasSwarmAlphaAura(state.board[index]) ? 1 : 0)
   ), 0);
@@ -1017,7 +1056,8 @@ function isMoveEffectId(effectId) {
     || effectId === 'swap_two_enemy_units'
     || effectId === 'swap_adjacent_enemy_units'
     || effectId === 'swap_adjacent_then_resolve'
-    || effectId === 'swap_leftmost_adjacent_enemies';
+    || effectId === 'swap_leftmost_adjacent_enemies'
+    || effectId === FRIENDLY_SWAP_BUFF_EFFECT_ID;
 }
 
 function isDisableEffectId(effectId) {
@@ -1072,6 +1112,7 @@ function applyLeftmostAdjacentEnemySwap(state, owner) {
 function canApplyEffectById(state, owner, effectId) {
   switch (effectId) {
     case 'swap_adjacent_enemy_units':
+    case FRIENDLY_SWAP_BUFF_EFFECT_ID:
     case 'enemy_up_to_2_atk_minus_1':
       return false;
     case 'enemy_all_armor_minus_1':
@@ -2297,6 +2338,7 @@ function validateTargetedEffectResolution(state, owner, card, boardIndex, target
       if (selectedUnits.some((unit) => getUnitAttack(unit) <= 0)) return { ok: false, reason: 'Targets must have ATK above 0' };
       return { ok: true };
     }
+    case FRIENDLY_SWAP_BUFF_EFFECT_ID:
     case 'swap_any_two_units': {
       if (selectedTargets.length < 2) return { ok: true, type: 'targeted-effect-pending' };
       const [firstIndex, secondIndex] = selectedTargets;
@@ -2304,7 +2346,9 @@ function validateTargetedEffectResolution(state, owner, card, boardIndex, target
       const firstUnit = state.board[firstIndex];
       const secondUnit = state.board[secondIndex];
       if (!firstUnit || !secondUnit) return { ok: false, reason: 'Both targets must contain units' };
-      if (firstUnit.owner !== secondUnit.owner) return { ok: false, reason: 'Swap targets must be on the same side' };
+      if (card.effectId === FRIENDLY_SWAP_BUFF_EFFECT_ID) {
+        if (firstUnit.owner !== owner || secondUnit.owner !== owner) return { ok: false, reason: 'Targets must be friendly' };
+      } else if (firstUnit.owner !== secondUnit.owner) return { ok: false, reason: 'Swap targets must be on the same side' };
       return { ok: true };
     }
     case 'swap_adjacent_then_resolve': {
@@ -2491,6 +2535,7 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
       targetUnit.tempArmorMod = (targetUnit.tempArmorMod ?? 0) + 1;
       break;
     }
+    case FRIENDLY_SWAP_BUFF_EFFECT_ID:
     case 'swap_any_two_units': {
       const selectedTargets = Array.isArray(targetIndexes) ? targetIndexes : [boardIndex];
       if (selectedTargets.length < 2) {
@@ -2501,11 +2546,17 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
       const firstUnit = state.board[firstIndex];
       const secondUnit = state.board[secondIndex];
       if (!firstUnit || !secondUnit) return { ok: false, reason: 'Both targets must contain units' };
-      if (firstUnit.owner !== secondUnit.owner) {
+      if (card.effectId === FRIENDLY_SWAP_BUFF_EFFECT_ID) {
+        if (firstUnit.owner !== owner || secondUnit.owner !== owner) return { ok: false, reason: 'Targets must be friendly' };
+      } else if (firstUnit.owner !== secondUnit.owner) {
         return { ok: false, reason: 'Swap targets must be on the same side' };
       }
       state.board[firstIndex] = secondUnit;
       state.board[secondIndex] = firstUnit;
+      if (card.effectId === FRIENDLY_SWAP_BUFF_EFFECT_ID) {
+        firstUnit.tempAttackMod = (firstUnit.tempAttackMod ?? 0) + 1;
+        secondUnit.tempAttackMod = (secondUnit.tempAttackMod ?? 0) + 1;
+      }
       break;
     }
     case 'swap_adjacent_then_resolve': {
@@ -2834,6 +2885,16 @@ function resolveCombatLane(state, col, combatContext = null) {
           label: `+${RUNNER_OPEN_LANE_ATK_BONUS} ATK`,
         }));
       }
+    }
+    const otherAllyBonus = getOtherAllyAttackBonus(state, unit, unitIndex);
+    if (otherAllyBonus > 0) {
+      attack += otherAllyBonus;
+      combatModifiers.push(createCombatModifier({
+        type: 'attack-bonus',
+        amount: otherAllyBonus,
+        source: ATK_PLUS_PER_OTHER_ALLY_EFFECT_ID,
+        label: `+${otherAllyBonus} ATK`,
+      }));
     }
     return { attack: Math.max(0, attack), combatModifiers };
   };
@@ -3182,6 +3243,8 @@ export function resolveCombat(state) {
     state.immovableThisTurn.player = false;
     state.immovableThisTurn.enemy = false;
   }
+
+  applyAttackDecayAfterCombat(state);
 
   state.board.forEach((unit, index) => {
     if (unit?.temporaryFloodToken) {

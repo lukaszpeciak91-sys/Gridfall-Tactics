@@ -1,4 +1,4 @@
-import { canPlayOrRedeploy, canSwap, performSwap, playEffectCard, playOrRedeployUnit, resolveTargetedEffectCard, resolveTargetedUnitOnPlayEffect, getUnitAttack, getUnitArmor, RUNNER_OPEN_LANE_ATK_BONUS, resolveImmediateNoProgressWinner, battleCanRealisticallyChangeOutcome, canPlayEffectCard } from './GameState.js';
+import { canPlayOrRedeploy, canSwap, performSwap, playEffectCard, playOrRedeployUnit, resolveTargetedEffectCard, resolveTargetedUnitOnPlayEffect, getUnitAttack, getUnitArmor, getEffectiveBoardAttack, RUNNER_OPEN_LANE_ATK_BONUS, resolveImmediateNoProgressWinner, battleCanRealisticallyChangeOutcome, canPlayEffectCard } from './GameState.js';
 import { ACTIVE_EFFECT_VARIANTS } from './effectVariantRegistry.generated.js';
 
 const ENEMY_ROW_INDEXES = [0, 1, 2];
@@ -52,6 +52,9 @@ const SAFE_SURRENDER_MEANINGFUL_EFFECT_IDS = new Set([
   'heal_2',
   'heal_3',
   'swap_two_enemy_units',
+  'decay_attack_after_combat',
+  'atk_plus_per_other_ally',
+  'swap_any_two_friendly_units_buff_both_atk_1',
 ]);
 
 
@@ -113,6 +116,7 @@ const UTILITY_EFFECT_IDS = new Set([
   'enemy_lane_atk_minus_1',
   'enemy_all_atk_minus_1',
   'control_enemy_unit_this_turn',
+  'swap_any_two_friendly_units_buff_both_atk_1',
 ]);
 
 const DELAYED_VALUE_EFFECT_IDS = new Set([
@@ -153,6 +157,8 @@ function scoreOpeningCard(card, hand, factionName = '') {
     if (card.effectId === 'warden_defensive_friction_adjacent') score += unitsInHand >= 2 ? 20 : 8;
     if (card.effectId === 'opposing_lane_atk_plus_1') score += 12;
     if (card.effectId === 'adjacent_allies_atk_plus_1_ignore_armor_1') score += unitsInHand >= 2 ? 18 : -4;
+    if (card.effectId === 'atk_plus_per_other_ally') score += unitsInHand >= 2 ? 20 : -2;
+    if (card.effectId === 'decay_attack_after_combat') score += Math.max(0, attack - 1) * 4;
     if (faction === 'aggro') score += attack >= 2 ? 14 : -8;
     if (faction === 'control' && attack <= 1 && hp <= 1) score -= 10;
     return score;
@@ -216,8 +222,7 @@ function getGuaranteedHeroDamage(state, owner) {
     const attacker = state?.board?.[friendlyIndex];
     const blocker = state?.board?.[opposing[lane]];
     if (!attacker || blocker) return;
-    const laneBonus = attacker.effectId === 'lane_empty_bonus_damage' ? RUNNER_OPEN_LANE_ATK_BONUS : 0;
-    total += getUnitAttack(attacker) + laneBonus;
+    total += getEffectiveBoardAttack(state, friendlyIndex);
   });
   return total;
 }
@@ -240,7 +245,7 @@ function getOpenLaneStats(state, owner) {
     const unit = state?.board?.[friendlyIndex];
     if (!unit || state?.board?.[opposing[lane]]) return;
     lanes += 1;
-    damage += getUnitAttack(unit) + (unit.effectId === 'lane_empty_bonus_damage' ? RUNNER_OPEN_LANE_ATK_BONUS : 0);
+    damage += getEffectiveBoardAttack(state, friendlyIndex);
   });
   return { lanes, damage };
 }
@@ -252,7 +257,7 @@ function getLikelyFriendlyCombatDeaths(state, owner) {
     const friendlyUnit = state?.board?.[friendlyIndex];
     const enemyUnit = state?.board?.[opposing[lane]];
     if (!friendlyUnit || !enemyUnit) return;
-    if (getUnitAttack(enemyUnit) >= getEffectiveHp(friendlyUnit)) deaths += 1;
+    if (getEffectiveBoardAttack(state, opposing[lane]) >= getEffectiveHp(friendlyUnit)) deaths += 1;
   });
   return deaths;
 }
@@ -262,7 +267,7 @@ function getLikelyThreatenedFriendlyIndexes(state, owner) {
   return friendly.filter((friendlyIndex, lane) => {
     const friendlyUnit = state?.board?.[friendlyIndex];
     const enemyUnit = state?.board?.[opposing[lane]];
-    return Boolean(friendlyUnit && enemyUnit && getUnitAttack(enemyUnit) >= getEffectiveHp(friendlyUnit));
+    return Boolean(friendlyUnit && enemyUnit && getEffectiveBoardAttack(state, opposing[lane]) >= getEffectiveHp(friendlyUnit));
   });
 }
 
@@ -279,12 +284,12 @@ function getFriendlyBoardStats(state, owner) {
       emptySlots += 1;
       return;
     }
-    const unitAttack = getUnitAttack(friendlyUnit);
+    const unitAttack = getEffectiveBoardAttack(state, friendlyIndex);
     const enemyUnit = state?.board?.[opposing[lane]];
     count += 1;
     attack += unitAttack;
-    if (!enemyUnit) openLaneAttack += unitAttack + (friendlyUnit.effectId === 'lane_empty_bonus_damage' ? RUNNER_OPEN_LANE_ATK_BONUS : 0);
-    if (enemyUnit && getUnitAttack(enemyUnit) >= getEffectiveHp(friendlyUnit)) threatened += 1;
+    if (!enemyUnit) openLaneAttack += unitAttack;
+    if (enemyUnit && getEffectiveBoardAttack(state, opposing[lane]) >= getEffectiveHp(friendlyUnit)) threatened += 1;
   });
   return { count, attack, openLaneAttack, emptySlots, threatened };
 }
@@ -466,6 +471,8 @@ function getCandidateTargetIndexes(state, owner, effectId) {
     case 'swap_two_enemy_units':
     case 'swap_adjacent_enemy_units':
       return board.map((unit, index) => (unit?.owner === opponentOwner ? index : -1)).filter((index) => index >= 0);
+    case 'swap_any_two_friendly_units_buff_both_atk_1':
+      return board.map((unit, index) => (unit?.owner === friendlyOwner ? index : -1)).filter((index) => index >= 0);
     case 'swap_any_two_units':
       return board.map((unit, index) => (unit ? index : -1)).filter((index) => index >= 0);
     default:
@@ -497,6 +504,7 @@ function getActionTargetIndexes(action) {
 
 function isTwoTargetSwapEffect(effectId) {
   return effectId === 'swap_any_two_units'
+    || effectId === 'swap_any_two_friendly_units_buff_both_atk_1'
     || effectId === 'swap_two_enemy_units'
     || effectId === 'swap_adjacent_enemy_units';
 }
@@ -535,7 +543,7 @@ function getBoardPressureSignature(state, owner) {
       return {
         owner: unit.owner ?? null,
         id: unit.cardId ?? unit.id ?? null,
-        attack: getUnitAttack(unit),
+        attack: getEffectiveBoardAttack(state, state.board.indexOf(unit)),
         hp: unit.hp ?? null,
         armor: unit.armor ?? null,
         effectId: unit.effectId ?? null,
@@ -765,6 +773,7 @@ function getUtilityOpportunityCost(state, owner, action) {
   if (action.effectId === 'temp_armor_1' || action.effectId === 'adjacent_allies_temp_armor_1' || action.effectId === 'buff_all_armor_1') cost += 80;
   if (isTwoTargetSwapEffect(action.effectId ?? null) || action.effectId === 'enemy_up_to_2_atk_minus_1' || action.effectId === 'control_enemy_unit_this_turn') cost += 80;
   if (action.effectId === 'swap_any_two_units') cost += 180;
+  if (action.effectId === 'swap_any_two_friendly_units_buff_both_atk_1') cost -= 80;
   return Math.max(0, cost);
 }
 
