@@ -14,6 +14,7 @@ import {
   preloadCardIllustrationAsset,
   preloadCardIllustrationsForFaction,
 } from '../src/rendering/cardIllustrationAssets.js';
+import { tutorialEnemyFaction } from '../src/data/tutorial/tutorialDecks.js';
 
 function walkTextFiles(root) {
   const ignoredDirectories = new Set(['.git', 'node_modules', 'dist', 'build']);
@@ -126,6 +127,25 @@ test('faction preload returns queued count without duplicating later calls', () 
   assert.equal(secondCount, 0);
   assert.equal(scene.loadCalls.length, firstCount);
   assert.equal(scene.loadCalls[0].key, 'card.aggro.aggro_01');
+});
+
+test('faction preload respects per-card faction ids for tutorial enemy art paths', () => {
+  const scene = createFakeScene();
+  const queuedCount = preloadCardIllustrationsForFaction(scene, tutorialEnemyFaction);
+
+  assert.equal(queuedCount, 4);
+  assert.deepEqual(scene.loadCalls.map((call) => call.key), [
+    'card.tutorial.enemy_01',
+    'card.tutorial.enemy_02',
+    'card.tutorial.enemy_03',
+    'card.tutorial.enemy_04',
+  ]);
+  assert.deepEqual(scene.loadCalls.map((call) => call.path), [
+    './assets/cards/tutorial/enemy_01.webp',
+    './assets/cards/tutorial/enemy_02.webp',
+    './assets/cards/tutorial/enemy_03.webp',
+    './assets/cards/tutorial/enemy_04.webp',
+  ]);
 });
 
 test('missing illustrations fall back to placeholder-compatible null texture keys and warn once', () => {
