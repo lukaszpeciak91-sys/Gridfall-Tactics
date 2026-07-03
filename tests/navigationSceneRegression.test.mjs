@@ -225,6 +225,12 @@ test('main menu debug gear opens isolated art debug mode selection flow', () => 
   assert.match(modeSelectSource, /this\.scene\.start\('MainMenuScene'\)/);
   assert.match(boardDebugSource, /super\('BoardUnitArtViewportDebugScene'\)/);
   assert.match(boardDebugSource, /'Board Unit Art Debug'/);
+  assert.match(boardDebugSource, /tutorialPlayerFaction/);
+  assert.match(boardDebugSource, /tutorialEnemyFaction/);
+  assert.match(boardDebugSource, /preloadCardIllustrationsForFaction\(this, tutorialPlayerFaction\)/);
+  assert.match(boardDebugSource, /preloadCardIllustrationsForFaction\(this, tutorialEnemyFaction\)/);
+  assert.match(boardDebugSource, /groupLabel: 'Tutorial \/ Player'/);
+  assert.match(boardDebugSource, /groupLabel: 'Tutorial \/ Enemy'/);
   assert.match(boardDebugSource, /'Stage 1 placeholder'/);
   assert.match(boardDebugSource, /this\.scene\.start\('ArtDebugModeSelectScene'\)/);
 });

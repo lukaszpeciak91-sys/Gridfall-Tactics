@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
-import { preloadAllCardIllustrations } from '../rendering/cardIllustrationAssets.js';
+import { tutorialEnemyFaction, tutorialPlayerFaction } from '../data/tutorial/tutorialDecks.js';
+import { preloadAllCardIllustrations, preloadCardIllustrationsForFaction } from '../rendering/cardIllustrationAssets.js';
 import {
   CARD_COLORS,
   createCardArtwork,
@@ -87,6 +88,8 @@ export default class BoardUnitArtViewportDebugScene extends Phaser.Scene {
 
   preload() {
     preloadAllCardIllustrations(this);
+    preloadCardIllustrationsForFaction(this, tutorialPlayerFaction);
+    preloadCardIllustrationsForFaction(this, tutorialEnemyFaction);
   }
 
   create() {
@@ -114,20 +117,35 @@ export default class BoardUnitArtViewportDebugScene extends Phaser.Scene {
   }
 
   buildCardEntries() {
-    const entries = [];
-    getFactionKeys().forEach((factionKey) => {
-      const faction = getFactionByKey(factionKey);
-      (faction?.deck ?? []).forEach((card) => {
-        entries.push({ card, factionKey });
-      });
-    });
-
-    return entries.sort((a, b) => {
+    const compareCardsByIdThenName = (a, b) => {
       const aId = String(a.card?.id ?? '');
       const bId = String(b.card?.id ?? '');
       if (aId !== bId) return aId.localeCompare(bId);
       return String(a.card?.name ?? '').localeCompare(String(b.card?.name ?? ''));
+    };
+
+    const normalEntries = [];
+    getFactionKeys().forEach((factionKey) => {
+      const faction = getFactionByKey(factionKey);
+      (faction?.deck ?? []).forEach((card) => {
+        normalEntries.push({ card, factionKey });
+      });
     });
+
+    const tutorialEntries = [
+      { faction: tutorialPlayerFaction, groupLabel: 'Tutorial / Player' },
+      { faction: tutorialEnemyFaction, groupLabel: 'Tutorial / Enemy' },
+    ].flatMap(({ faction, groupLabel }) => (faction?.deck ?? []).map((card) => ({
+      card,
+      faction,
+      factionKey: faction?.id,
+      groupLabel,
+    })));
+
+    return [
+      ...normalEntries.sort(compareCardsByIdThenName),
+      ...tutorialEntries.sort(compareCardsByIdThenName),
+    ];
   }
 
   createLayout() {
@@ -328,13 +346,14 @@ export default class BoardUnitArtViewportDebugScene extends Phaser.Scene {
 
     const selected = this.cardEntries[this.selectedIndex];
     const card = selected.card;
-    const faction = getFactionByKey(selected.factionKey);
+    const faction = selected.faction ?? getFactionByKey(selected.factionKey);
     const deck = faction?.deck ?? [];
     const deckIndex = deck.findIndex((deckCard) => deckCard?.id === card?.id);
     const deckPositionLabel = deckIndex >= 0
       ? `${deckIndex + 1}/${deck.length}`
       : `?/${deck.length || '?'}`;
-    const factionLabel = getFactionPresentationName(faction?.id, getActiveLocale(), faction?.name ?? selected.factionKey);
+    const factionLabel = selected.groupLabel
+      ?? getFactionPresentationName(faction?.id, getActiveLocale(), faction?.name ?? selected.factionKey);
     const localizedDisplayName = getCardDisplayName(card, getActiveLocale()) ?? card?.name ?? 'Unknown';
     const cardNumberLabel = Number.isInteger(card?.cardNumber) ? `#${card.cardNumber}` : '#?';
 
