@@ -63,6 +63,8 @@ EFFECT_VARIANT_DRAW_ONE_EXECUTED_STATUS = "draw_one_executed"
 EFFECT_VARIANT_SUMMON_TOKEN_EXECUTED_STATUS = "summon_token_executed"
 EFFECT_VARIANT_REGISTRY_RELATIVE_PATH = Path("src/systems/effectVariantRegistry.generated.js")
 EFFECT_VARIANT_SAFE_ID_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_-]{2,96}$")
+CUSTOM_FACTION_ID_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+CUSTOM_FACTION_DECK_SIZE = 10
 EFFECT_VARIANT_BLOCKED_OPERATION_KEYS = {"code", "script", "function", "eval", "import", "module", "path", "patch"}
 PRODUCTION_CARD_BLOCKED_DYNAMIC_KEYS = {
     "effectParams",
@@ -289,6 +291,9 @@ def validate_experiment_shape(data: dict[str, Any]) -> None:
     require_type(data, "seed", int)
     telemetry = require_type(data, "telemetry", str)
     changes = require_type(data, "changes", list)
+    custom_factions = data.get("customFactions", [])
+    if not isinstance(custom_factions, list):
+        raise BalanceLabError("Experiment field 'customFactions' must be an array when provided.")
     flags = require_type(data, "flags", dict)
 
     if data["matchCount"] <= 0:
@@ -666,6 +671,89 @@ def collect_known_effect_ids(root: Path) -> set[str]:
                 effect_ids.add(card["effectId"])
     effect_ids.update(IMPLEMENTED_CONCRETE_EFFECT_IDS)
     return effect_ids
+
+
+def validate_custom_factions(root: Path, custom_factions: list[Any]) -> list[dict[str, Any]]:
+    production_ids = {
+        str(data.get("id", "")).strip()
+        for _path, data in load_faction_files(root)
+        if isinstance(data.get("id"), str) and data.get("id").strip()
+    }
+    known_effect_ids = collect_known_effect_ids(root)
+    seen_faction_ids: set[str] = set()
+    validated: list[dict[str, Any]] = []
+
+    for faction_index, faction in enumerate(custom_factions, start=1):
+        context = f"customFactions[{faction_index}]"
+        if not isinstance(faction, dict):
+            raise BalanceLabError(f"{context} must be an object.")
+        for field in ("id", "name", "deck"):
+            if field not in faction:
+                raise BalanceLabError(f"{context} is missing required field: {field}.")
+        faction_id = faction["id"]
+        if not isinstance(faction_id, str) or not CUSTOM_FACTION_ID_PATTERN.fullmatch(faction_id):
+            raise BalanceLabError(f"{context}.id must use lowercase kebab-case: /^[a-z0-9]+(?:-[a-z0-9]+)*$/")
+        if faction_id in production_ids:
+            raise BalanceLabError(f"{context}.id '{faction_id}' collides with an existing production faction id.")
+        if faction_id in seen_faction_ids:
+            raise BalanceLabError(f"{context}.id '{faction_id}' is duplicated in customFactions.")
+        seen_faction_ids.add(faction_id)
+        if not isinstance(faction["name"], str) or not faction["name"].strip():
+            raise BalanceLabError(f"{context}.name must be a non-empty string.")
+        deck = faction["deck"]
+        if not isinstance(deck, list):
+            raise BalanceLabError(f"{context}.deck must be an array.")
+        if not deck:
+            raise BalanceLabError(f"{context}.deck must not be empty.")
+        if len(deck) != CUSTOM_FACTION_DECK_SIZE:
+            raise BalanceLabError(f"{context}.deck must contain exactly {CUSTOM_FACTION_DECK_SIZE} cards.")
+        seen_card_ids: set[str] = set()
+        for card_index, card in enumerate(deck, start=1):
+            card_context = f"{context}.deck[{card_index}]"
+            if not isinstance(card, dict):
+                raise BalanceLabError(f"{card_context} must be an object.")
+            for field in ("id", "name", "type", "targeting", "textShort"):
+                if not isinstance(card.get(field), str) or not card.get(field).strip():
+                    raise BalanceLabError(f"{card_context}.{field} must be a non-empty string.")
+            if card["id"] in seen_card_ids:
+                raise BalanceLabError(f"{card_context}.id '{card['id']}' is duplicated in custom faction '{faction_id}'.")
+            seen_card_ids.add(card["id"])
+            if "effectParams" in card:
+                raise BalanceLabError(f"{card_context} includes effectParams, which customFactions does not support.")
+            effect_id = card.get("effectId")
+            if effect_id is not None:
+                if not isinstance(effect_id, str) or not effect_id:
+                    raise BalanceLabError(f"{card_context}.effectId must be a non-empty string, null, or omitted.")
+                if effect_id not in known_effect_ids:
+                    raise BalanceLabError(f"{card_context}.effectId '{effect_id}' is not an existing effectId.")
+            if card["type"] == "unit":
+                for field in sorted(REQUIRED_UNIT_REPLACE_CARD_FIELDS):
+                    value = card.get(field)
+                    if not isinstance(value, int) or value < 0:
+                        raise BalanceLabError(f"{card_context}.{field} must be an integer >= 0 for unit cards.")
+        validated.append(json.loads(json.dumps(faction)))
+    return validated
+
+
+def write_custom_factions(temp_copy_dir: Path, custom_factions: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    applied: list[dict[str, Any]] = []
+    faction_dir = temp_copy_dir / FACTIONS_DIR
+    faction_dir.mkdir(parents=True, exist_ok=True)
+    for faction in custom_factions:
+        temp_json_path = faction_dir / f"{faction['id']}.json"
+        if temp_json_path.exists():
+            raise BalanceLabError(f"Refusing to overwrite temp faction JSON for custom faction id '{faction['id']}'.")
+        temp_json_path.write_text(json.dumps(faction, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        applied.append({
+            "mode": "customFaction",
+            "id": faction["id"],
+            "name": faction["name"],
+            "deckSize": len(faction["deck"]),
+            "faction": faction,
+            "relativePath": temp_json_path.relative_to(temp_copy_dir),
+            "tempJsonPath": temp_json_path,
+        })
+    return applied
 
 def find_faction_file(root: Path, faction: str) -> tuple[Path, dict[str, Any]] | None:
     wanted = normalize_key(faction)
@@ -1081,6 +1169,10 @@ def print_intro(root: Path, experiment_path: Path, data: dict[str, Any], command
     print(f"  Danger delta: {flags['dangerDeltaPp']} percentage points", flush=True)
     print("", flush=True)
     print("Requested changes:", flush=True)
+    if data.get("customFactions"):
+        print("  Custom factions:", flush=True)
+        for faction in data["customFactions"]:
+            print(f"    - {faction['id']} — {len(faction['deck'])} cards", flush=True)
     if data["changes"]:
         for index, change in enumerate(data["changes"], start=1):
             if is_effect_variant_change(change):
@@ -1599,7 +1691,8 @@ def replacement_delta_lines(old_card: dict[str, Any], new_card: dict[str, Any]) 
 def write_patch_summary(report_dir: Path, applied_changes: list[dict[str, Any]]) -> Path:
     patch_summary_path = report_dir / PATCH_SUMMARY_FILENAME
     effect_variant_changes = [change for change in applied_changes if change.get("mode") == "effectVariant"]
-    patchable_changes = [change for change in applied_changes if change.get("mode") != "effectVariant"]
+    custom_faction_changes = [change for change in applied_changes if change.get("mode") == "customFaction"]
+    patchable_changes = [change for change in applied_changes if change.get("mode") not in {"effectVariant", "customFaction"}]
     lines = [
         "# Balance Lab Patch Summary",
         "",
@@ -1645,6 +1738,23 @@ def write_patch_summary(report_dir: Path, applied_changes: list[dict[str, Any]])
                     *format_json_block(change["newCard"]),
                     "",
                 ])
+    if custom_faction_changes:
+        lines.extend([
+            "## Custom factions",
+            "",
+            "These faction JSON files were written to the temporary experiment copy only. They were not written to the real repository.",
+            "",
+        ])
+        for change in custom_faction_changes:
+            lines.extend([
+                f"### {change['id']} — {change['deckSize']} cards",
+                "",
+                f"Temp faction JSON path: `{change['tempJsonPath']}`",
+                "",
+                "Custom faction JSON:",
+                *format_json_block(change["faction"]),
+                "",
+            ])
     lines.extend([
         "## Effect Variant Recognition",
         "",
@@ -2891,6 +3001,12 @@ def build_comparison_report(
     danger_delta = float(data["flags"]["dangerDeltaPp"])
 
     experiment_factions_by_key = index_by_key(experiment_factions, ("faction",))
+    custom_faction_ids = {faction["id"] for faction in data.get("customFactions", []) if isinstance(faction, dict) and isinstance(faction.get("id"), str)}
+    custom_faction_lines = [
+        f"- {faction['id']} — {len(faction.get('deck', []))} cards"
+        for faction in data.get("customFactions", [])
+        if isinstance(faction, dict) and isinstance(faction.get("id"), str)
+    ] or ["- None"]
     faction_lines = [
         "| Faction | Baseline win % | Experiment win % | Delta pp | Baseline non-draw win % | Experiment non-draw win % | Delta pp | Flag |",
         "|---|---:|---:|---:|---:|---:|---:|---|",
@@ -2914,6 +3030,22 @@ def build_comparison_report(
             "experimentNonDrawWr": experiment_row["non-draw win %"],
             "deltaPp": non_draw_delta,
             "flag": flag or "OK",
+        })
+    baseline_faction_names = {row["faction"] for row in baseline_factions}
+    experiment_only_faction_rows: list[dict[str, Any]] = []
+    for experiment_row in experiment_factions:
+        faction = experiment_row["faction"]
+        if faction in baseline_faction_names:
+            continue
+        faction_lines.append(
+            f"| {faction} | N/A | {experiment_row['win %']} | N/A | N/A | "
+            f"{experiment_row['non-draw win %']} | N/A | EXPERIMENT_ONLY |"
+        )
+        experiment_only_faction_rows.append({
+            "faction": faction,
+            "experimentWinWr": experiment_row["win %"],
+            "experimentNonDrawWr": experiment_row["non-draw win %"],
+            "games": experiment_row.get("games", "N/A"),
         })
 
     experiment_matchups_by_key = index_by_key(experiment_matchups, ("faction A", "faction B"))
@@ -2941,6 +3073,23 @@ def build_comparison_report(
             "deltaPp": non_draw_delta,
             "flag": flag or "OK",
         })
+    baseline_matchup_keys = {(row["faction A"], row["faction B"]) for row in baseline_matchups}
+    experiment_only_matchup_rows: list[dict[str, Any]] = []
+    for experiment_row in experiment_matchups:
+        key = (experiment_row["faction A"], experiment_row["faction B"])
+        if key in baseline_matchup_keys:
+            continue
+        if custom_faction_ids and key[0] not in custom_faction_ids and key[1] not in custom_faction_ids:
+            continue
+        matchup_lines.append(
+            f"| {key[0]} | {key[1]} | N/A | {experiment_row['faction A non-draw WR']} | N/A | EXPERIMENT_ONLY |"
+        )
+        experiment_only_matchup_rows.append({
+            "factionA": key[0],
+            "factionB": key[1],
+            "experimentFactionANonDrawWr": experiment_row["faction A non-draw WR"],
+            "games": experiment_row.get("games", "N/A"),
+        })
 
     baseline_campaign = estimate_campaign_success(baseline_matchups)
     experiment_campaign = estimate_campaign_success(experiment_matchups)
@@ -2964,6 +3113,20 @@ def build_comparison_report(
             "experimentCampaignPct": format_percent(experiment_success),
             "deltaPp": campaign_delta,
             "flag": flag or "OK",
+        })
+    experiment_only_campaign_rows: list[dict[str, Any]] = []
+    for faction in sorted(set(experiment_campaign) - set(baseline_campaign)):
+        if custom_faction_ids and faction not in custom_faction_ids:
+            continue
+        experiment_success = experiment_campaign[faction]["success"]
+        campaign_lines.append(
+            f"| {faction} | {experiment_campaign[faction]['opponents']} | N/A | "
+            f"{format_percent(experiment_success)}% | N/A | EXPERIMENT_ONLY |"
+        )
+        experiment_only_campaign_rows.append({
+            "faction": faction,
+            "opponents": experiment_campaign[faction]["opponents"],
+            "experimentCampaignPct": format_percent(experiment_success),
         })
 
     all_flag_rows = [*faction_delta_rows, *matchup_delta_rows, *campaign_delta_rows]
@@ -3017,6 +3180,18 @@ def build_comparison_report(
         f"- {row['factionA']} vs {row['factionB']}: {format_delta(row['deltaPp'])} pp "
         f"({row['baselineFactionANonDrawWr']} → {row['experimentFactionANonDrawWr']}, {row['flag']})"
         for row in top_matchup_rows
+    ] or ["- Not available"]
+    custom_faction_wr_lines = [
+        f"- {row['faction']}: {row['experimentNonDrawWr']} non-draw WR ({row['games']} games; baseline N/A)"
+        for row in experiment_only_faction_rows
+    ] or ["- Not available"]
+    custom_matchup_lines = [
+        f"- {row['factionA']} vs {row['factionB']}: {row['experimentFactionANonDrawWr']} faction A non-draw WR ({row['games']} games; baseline N/A)"
+        for row in experiment_only_matchup_rows[:5]
+    ] or ["- Not available"]
+    custom_campaign_lines = [
+        f"- {row['faction']}: {row['experimentCampaignPct']}% ({row['opponents']} opponents; baseline N/A)"
+        for row in experiment_only_campaign_rows
     ] or ["- Not available"]
     paste_faction_lines = [
         f"- {row['faction']}: {format_delta(row['deltaPp'])} pp "
@@ -3195,6 +3370,8 @@ def build_comparison_report(
         "",
         *faction_lines,
         "",
+        "Experiment-only custom factions are shown with baseline `N/A`.",
+        "",
         "## Matchup comparison across both seats",
         "",
         *matchup_lines,
@@ -3272,6 +3449,18 @@ def build_comparison_report(
         f"Verdict: {verdict} ({warning_count} warnings, {danger_count} dangers)",
         f"Recommendation: {recommendation}",
         "",
+        "Custom factions:",
+        *custom_faction_lines,
+        "",
+        "Custom faction global non-draw WR:",
+        *custom_faction_wr_lines,
+        "",
+        "Top custom faction matchups:",
+        *custom_matchup_lines,
+        "",
+        "Custom faction campaign estimate:",
+        *custom_campaign_lines,
+        "",
         *quick_summary_lines(campaign_delta_rows, matchup_delta_rows, warning_count, danger_count),
         "",
         *effect_variant_paste_lines(effect_variant_rows),
@@ -3299,6 +3488,9 @@ def build_comparison_report(
         "",
         "Top 10 card telemetry deltas:",
         *card_telemetry_comparison["pasteLines"],
+        "",
+        "Custom faction card telemetry summary:",
+        *card_presence_table_lines(card_telemetry_comparison.get("experimentOnlyRows", []), "Not available"),
         "",
         "Most Harmful Cards",
         *card_telemetry_comparison["harmfulLines"],
@@ -3559,7 +3751,8 @@ def has_full_card_replacement(data: dict[str, Any]) -> bool:
 def run_one_experiment(root: Path, experiment_path: Path, *, verbose: bool = True) -> dict[str, Any]:
     data = load_experiment(experiment_path)
     validate_experiment_shape(data)
-    if not data["changes"]:
+    custom_factions = validate_custom_factions(root, data.get("customFactions", []))
+    if not data["changes"] and not custom_factions:
         return run_current_state_snapshot(root, data, verbose=verbose)
     validated_changes = validate_requested_changes(root, data["changes"])
     command = build_simulator_command(data, verbose=verbose)
@@ -3578,7 +3771,8 @@ def run_one_experiment(root: Path, experiment_path: Path, *, verbose: bool = Tru
     if verbose:
         print(f"Temp copy created: {temp_copy_dir}", flush=True)
 
-    applied_changes = apply_patches(temp_copy_dir, validated_changes)
+    applied_custom_factions = write_custom_factions(temp_copy_dir, custom_factions)
+    applied_changes = [*applied_custom_factions, *apply_patches(temp_copy_dir, validated_changes)]
     data = annotate_experiment_data_with_effect_variant_runtime(data, applied_changes)
     patch_summary_path = write_patch_summary(report_dir, applied_changes)
     if verbose:

@@ -12,10 +12,11 @@ For Balance Lab v3 planning, see the controlled Experimental Effect Blocks catal
 
 ## Supported scope
 
-Balance Lab v2-lite supports two local card-data experiment modes:
+Balance Lab v2-lite supports three local card-data experiment modes:
 
 1. **Stat patch mode** — changes exactly one allowed numeric stat per change: `attack`, `hp`, or `armor`.
 2. **replaceCard mode** — replaces one full card object in the temporary experiment copy only. The replacement must keep the same `id` as `cardId`; `effectId` may be an existing effect id, `null`, or omitted; and the replacement must not include `effectParams`.
+3. **customFactions mode** — adds one or more temporary faction JSON files to the experiment temp copy only, so candidate 7th/8th factions can be tested against the existing production factions without writing new faction files to the real repo.
 
 Balance Lab v2-lite does **not** add new effect behavior. It does not patch `GameState.js`, create temporary effect variants, run custom effect logic, make permanent card changes, or automatically balance cards for you.
 
@@ -259,6 +260,69 @@ Example:
   }
 }
 ```
+
+
+### customFactions mode
+
+`customFactions` is the recommended Balance Lab mode for testing candidate 7th/8th factions, such as Overclock, against the existing production faction pool. The baseline run always uses the real repository exactly as-is and does **not** include these custom factions. The experiment run copies the repository to `tools/balance-lab/temp/`, writes each custom faction to `src/data/factions/<customFaction.id>.json` inside that temp copy only, then applies any normal `changes` entries and runs the simulator from the temp copy.
+
+Custom factions are experiment-only. Balance Lab never writes custom faction JSON files to production `src/data/factions/`, and the generated `patch-summary.md` lists the temp path for every custom faction JSON it created.
+
+Top-level shape:
+
+```json
+{
+  "name": "overclock_v1_custom_faction_smoke",
+  "matchCount": 300,
+  "seed": 1337,
+  "telemetry": "all",
+  "customFactions": [
+    {
+      "id": "overclock",
+      "name": "Overclock",
+      "frameImage": "frame_default",
+      "deck": [
+        {
+          "id": "overclock_runner_1",
+          "cardNumber": 1,
+          "artAssetId": "overclock_01",
+          "name": "Hot Runner",
+          "type": "unit",
+          "targeting": "lane",
+          "effectId": "lane_empty_bonus_damage",
+          "textShort": "Open lane: +2 ATK",
+          "attack": 2,
+          "hp": 1,
+          "armor": 0
+        }
+      ]
+    }
+  ],
+  "changes": [],
+  "flags": {
+    "warningDeltaPp": 3,
+    "dangerDeltaPp": 8
+  }
+}
+```
+
+A full valid 10-card example is available at `tools/balance-lab/experiments/example_custom_faction_overclock.json`.
+
+Validation rules for `customFactions`:
+
+- Faction fields `id`, `name`, and `deck` are required.
+- Faction ids must be lowercase kebab-case matching `/^[a-z0-9]+(?:-[a-z0-9]+)*$/`.
+- Custom faction ids must not collide with production faction ids. For now, collision is a validation error.
+- Duplicate ids within `customFactions` are rejected.
+- Decks must contain exactly 10 cards. Empty or short decks are rejected.
+- Card fields `id`, `name`, `type`, `targeting`, and `textShort` are required.
+- Duplicate card ids inside one custom faction are rejected.
+- Unit cards require integer `attack`, `hp`, and `armor` values greater than or equal to 0.
+- `effectId` may be omitted or `null`; string `effectId` values must already exist in repo card data or the implemented concrete effect registry.
+- Unknown `effectId` values are rejected because Balance Lab does not add custom effect logic.
+- `effectParams` is rejected.
+
+Reports mark custom factions as experiment-only. Faction win-rate rows, matchup rows, campaign estimates, and card telemetry for custom factions show baseline as `N/A` instead of treating the missing baseline rows as parse errors. The Paste into ChatGPT block includes a custom-factions section, custom faction global non-draw WR, top custom faction matchups, custom campaign estimates when available, and experiment-only custom card telemetry.
 
 ## Output
 
