@@ -50,6 +50,29 @@ function registerActiveMusicSettingsHandler(scene) {
   activeMusic.settingsHandler = settingsHandler;
 }
 
+
+function isUsableSound(sound) {
+  if (!sound || sound.destroyed || sound.pendingRemove) return false;
+  if (sound.manager == null && sound.soundManager == null) return false;
+  if ('source' in sound && sound.source == null) return false;
+  if ('audio' in sound && sound.audio == null) return false;
+  return true;
+}
+
+function safelySetSoundVolume(sound, volume) {
+  if (!isUsableSound(sound)) return false;
+  try {
+    if (typeof sound.setVolume === 'function') {
+      sound.setVolume(volume);
+    } else {
+      sound.volume = volume;
+    }
+    return true;
+  } catch (_error) {
+    return false;
+  }
+}
+
 function destroyManagedSound(sound) {
   sound?.stop?.();
   sound?.destroy?.();
@@ -198,10 +221,9 @@ export function updateMusicVolume(settings = loadSettings()) {
   if (!activeMusic?.sound || !activeMusic?.asset) return false;
 
   const volume = getMusicPlaybackVolume(settings, activeMusic.asset, activeMusic.options ?? {});
-  if (typeof activeMusic.sound.setVolume === 'function') {
-    activeMusic.sound.setVolume(volume);
-  } else {
-    activeMusic.sound.volume = volume;
+  if (!safelySetSoundVolume(activeMusic.sound, volume)) {
+    destroyActiveMusic();
+    return false;
   }
   return true;
 }

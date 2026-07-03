@@ -1474,6 +1474,7 @@ export default class BattleScene extends Phaser.Scene {
     }
     this.battleResultModalPending = true;
     this.isFlowResolving = true;
+    this.disableCardHoverInteractions();
     this.stopBattleAmbience({ fadeMs: 350 });
     this.updateActionSlotBadge();
     const pendingResultModalEvent = this.time.delayedCall(delayMs, () => this.showBattleResultModal());
@@ -1800,6 +1801,7 @@ export default class BattleScene extends Phaser.Scene {
     const options = arguments[0] ?? {};
     const skipReveal = options.skipReveal === true;
     this.battleResultModalPending = false;
+    this.disableCardHoverInteractions();
     if (!this.gameState?.winner || this.battleResultModalShown) return;
     const modalItems = [];
     try {
@@ -4715,9 +4717,11 @@ export default class BattleScene extends Phaser.Scene {
         this.onCardPointerUp(cardId, pointer);
       });
       cardView.background.on('pointerover', () => {
+        if (!this.isCardViewPointerMutationAllowed(cardView)) return;
         this.onHandCardPointerOver(cardId);
       });
       cardView.background.on('pointerout', () => {
+        if (!this.isCardViewPointerMutationAllowed(cardView)) return;
         this.onHandCardPointerOut(cardId);
       });
 
@@ -4834,6 +4838,29 @@ export default class BattleScene extends Phaser.Scene {
       surfaceTheme: resolveCardSurfaceTheme({ factionId: factionThemeId, mode: surfaceThemeMode }),
       showNonUnitEffectStatSymbols: true,
     });
+  }
+
+  isCardViewPointerMutationAllowed(cardView = null) {
+    if (typeof this.scene?.isActive === 'function' && !this.scene.isActive()) return false;
+    if (this.battleResultModalPending || this.battleResultModalShown || this.isFlowResolving) return false;
+    if (cardView && cardView.isActive === false) return false;
+    if (cardView?.root && (cardView.root.active === false || cardView.root.scene == null)) return false;
+    return true;
+  }
+
+  disableCardViewInteractions(cardView) {
+    cardView?.items?.forEach((item) => {
+      item?.disableInteractive?.();
+    });
+    cardView?.background?.removeAllListeners?.('pointerover');
+    cardView?.background?.removeAllListeners?.('pointerout');
+    cardView?.background?.removeAllListeners?.('pointerdown');
+    cardView?.background?.removeAllListeners?.('pointerup');
+  }
+
+  disableCardHoverInteractions() {
+    this.cardViews?.forEach((cardView) => this.disableCardViewInteractions(cardView));
+    this.handBackCards?.forEach((backCard) => backCard?.disableInteractive?.());
   }
 
   getHandCardAccentColor(card) {
@@ -9560,7 +9587,9 @@ export default class BattleScene extends Phaser.Scene {
     });
     this.handBackCards = [];
     this.cardViews.forEach((view) => {
-      view.root?.destroy();
+      this.disableCardViewInteractions(view);
+      view.destroy?.();
+      view.root?.destroy?.();
     });
     this.cardViews = [];
     this.drawHand();
