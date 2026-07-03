@@ -5028,6 +5028,7 @@ export default class BattleScene extends Phaser.Scene {
         this.boardInspectIndex = null;
         this.resetCardHighlights({ showPreview: true });
         this.handleTutorialEvent?.('card_inspected', { cardId });
+        this.updateTutorialFocus?.();
         return;
       }
 
@@ -6441,6 +6442,10 @@ export default class BattleScene extends Phaser.Scene {
   resolveTutorialFocusBounds(target) {
     const type = target?.type;
     if (!type || !this.layout) return null;
+    if (type === 'multi') {
+      const targets = Array.isArray(target.targets) ? target.targets : [];
+      return targets.map((item) => this.resolveTutorialFocusBounds(item)).filter(Boolean);
+    }
     if (type === 'base_pair') {
       const targets = Array.isArray(target.targets) && target.targets.length > 0
         ? target.targets
@@ -6479,17 +6484,28 @@ export default class BattleScene extends Phaser.Scene {
     if (!layer || !bounds) return null;
     this.clearTutorialFocusGraphics();
     this.currentTutorialFocusKey = key;
-    const radius = Math.max(10, Math.min(bounds.width, bounds.height) * 0.18);
-    const glow = this.add.rectangle(bounds.x, bounds.y, bounds.width + 14, bounds.height + 14, TUTORIAL_FOCUS_FILL, 0.07)
-      .setRounded(radius + 6)
-      .setStrokeStyle(4, TUTORIAL_FOCUS_COLOR, 0.24);
-    const outline = this.add.rectangle(bounds.x, bounds.y, bounds.width, bounds.height, TUTORIAL_FOCUS_FILL, 0.025)
-      .setRounded(radius)
-      .setStrokeStyle(2, TUTORIAL_FOCUS_COLOR, 0.82);
-    layer.add([glow, outline]);
-    this.tutorialFocusGraphics = [glow, outline];
-    this.tweens?.add?.({ targets: [glow, outline], alpha: { from: 0.38, to: 1 }, scale: { from: 0.985, to: 1.018 }, duration: 760, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-    return outline;
+    const boundsList = Array.isArray(bounds) ? bounds.filter(Boolean) : [bounds];
+    const graphics = boundsList.flatMap((item) => {
+      const radius = Math.max(10, Math.min(item.width, item.height) * 0.18);
+      const glow = this.add.rectangle(item.x, item.y, item.width + 14, item.height + 14, TUTORIAL_FOCUS_FILL, 0.07)
+        .setRounded(radius + 6)
+        .setStrokeStyle(4, TUTORIAL_FOCUS_COLOR, 0.24);
+      const outline = this.add.rectangle(item.x, item.y, item.width, item.height, TUTORIAL_FOCUS_FILL, 0.025)
+        .setRounded(radius)
+        .setStrokeStyle(2, TUTORIAL_FOCUS_COLOR, 0.82);
+      return [glow, outline];
+    });
+    layer.add(graphics);
+    this.tutorialFocusGraphics = graphics;
+    this.tweens?.add?.({ targets: graphics, alpha: { from: 0.38, to: 1 }, scale: { from: 0.985, to: 1.018 }, duration: 760, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    return graphics[1] ?? graphics[0] ?? null;
+  }
+
+  getTutorialFocusBoundsKey(bounds) {
+    const boundsList = Array.isArray(bounds) ? bounds.filter(Boolean) : [bounds];
+    return boundsList
+      .map((item) => `${Math.round(item.x)},${Math.round(item.y)},${Math.round(item.width)},${Math.round(item.height)}`)
+      .join('|');
   }
 
   updateTutorialFocus(step = this.getCurrentTutorialStep()) {
@@ -6512,7 +6528,7 @@ export default class BattleScene extends Phaser.Scene {
       this.clearTutorialFocusGraphics();
       return null;
     }
-    const boundsKey = `${key}:${Math.round(bounds.x)},${Math.round(bounds.y)},${Math.round(bounds.width)},${Math.round(bounds.height)}`;
+    const boundsKey = `${key}:${this.getTutorialFocusBoundsKey(bounds)}`;
     if (this.currentTutorialFocusKey === boundsKey && this.tutorialFocusGraphics?.length > 0) return this.tutorialFocusGraphics[1] ?? this.tutorialFocusGraphics[0];
     return this.drawTutorialFocusBounds(bounds, boundsKey);
   }
@@ -9891,6 +9907,7 @@ export default class BattleScene extends Phaser.Scene {
 
   restoreInspectDimming() {
     this.resetCardHighlights({ showPreview: false });
+    this.updateTutorialFocus?.();
   }
 
   resetCardHighlights({ showPreview = true } = {}) {
