@@ -1270,7 +1270,7 @@ export function createCardPreviewView(scene, {
       statRowOptions,
     );
   })();
-  const persistentArtPositionY = getCardArtPositionY(card);
+  const persistentArtPositionY = getCardArtPositionY(cardId ?? card);
   const hasTemporaryArtPositionY = Number.isFinite(temporaryArtCropY01);
   const effectiveArtPositionY = hasTemporaryArtPositionY
     ? Math.min(1, Math.max(0, temporaryArtCropY01))
