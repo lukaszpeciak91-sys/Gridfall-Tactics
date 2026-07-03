@@ -27,12 +27,42 @@ import {
   isCardUnit,
 } from '../src/rendering/cardVisualLayout.js';
 import { getFactionByKey, getFactionKeys } from '../src/data/factions/index.js';
+import { tutorialEnemyFaction, tutorialPlayerFaction } from '../src/data/tutorial/tutorialDecks.js';
+
+test('tutorial card display names resolve in English and Polish', () => {
+  const cardsById = Object.fromEntries([
+    ...tutorialPlayerFaction.deck,
+    ...tutorialEnemyFaction.deck,
+  ].map((card) => [card.id, card]));
+  const expectedNames = {
+    tutorial_unit_a_1: { en: 'Sweeper', pl: 'Zamiatacz' },
+    tutorial_unit_b_1: { en: 'Scrap Cart', pl: 'Kolaska' },
+    tutorial_unit_c_1: { en: 'Dozer', pl: 'Spychacz' },
+    tutorial_mulligan_bait_1: { en: 'Mop Bot', pl: 'Mopobot' },
+    tutorial_all_attack_1: { en: 'Alarm Siren', pl: 'Syrena Alarmowa' },
+    tutorial_enemy_blocker_a_1: { en: 'Rejected Contestant', pl: 'Odrzucony Uczestnik' },
+    tutorial_enemy_blocker_b_1: { en: 'Test Dummy', pl: 'Manekin Testowy' },
+    tutorial_enemy_blocker_c_1: { en: 'Fan Mascot', pl: 'Pluszak' },
+    tutorial_enemy_blocker_d_1: { en: 'Stray Fan', pl: 'Zbłąkany Kibic' },
+    tutorial_enemy_filler_blocker_1: { en: 'Rejected Contestant', pl: 'Odrzucony Uczestnik' },
+    tutorial_enemy_filler_blocker_2: { en: 'Test Dummy', pl: 'Manekin Testowy' },
+  };
+
+  for (const [cardId, expected] of Object.entries(expectedNames)) {
+    const card = cardsById[cardId];
+    assert.ok(card, `${cardId} should exist in tutorial decks`);
+    assert.equal(getCardDisplayName(card, 'en'), expected.en, `English display name for ${cardId}`);
+    assert.equal(getCardDisplayName(card, 'pl'), expected.pl, `Polish display name for ${cardId}`);
+  }
+});
 
 test('card display helper falls back to current card name fields when card keys are absent', () => {
   assert.equal(getCardDisplayName({ name: 'Shield Drone' }), 'Shield Drone');
   assert.equal(getCardDisplayName({ name: 'Shield Drone' }, 'pl'), 'Shield Drone');
   assert.equal(getCardDisplayName({}), undefined);
 });
+
+
 
 test('card display helper falls back to current textShort fields when card keys are absent', () => {
   assert.equal(getCardTextShort({ textShort: 'Target ally +1 ARM until combat.' }), 'Target ally +1 ARM until combat.');
