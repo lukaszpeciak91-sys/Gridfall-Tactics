@@ -650,7 +650,7 @@ export function createInlineStatText(scene, x, y, text, {
             stroke: symbolStyle.stroke,
             strokeThickness: Math.max(1, Math.round(iconFontSize * 0.12)),
           }).setOrigin(0.5).setAlpha(alpha);
-          icon.setShadow(0, 1, 'rgba(0, 0, 0, 0.55)', 1);
+          safeSetTextShadow(icon, 0, 1, 'rgba(0, 0, 0, 0.55)', 1);
           return icon;
         });
         group.add(icons);
@@ -672,7 +672,7 @@ export function createInlineStatText(scene, x, y, text, {
         strokeThickness: isInlineSymbol ? Math.max(1, Math.round(iconFontSize * 0.1)) : 0,
       }).setOrigin(0, isInlineSymbol ? 0.5 : 0);
       if (isInlineSymbol) {
-        segmentText.setShadow(0, 1, 'rgba(0, 0, 0, 0.58)', 1);
+        safeSetTextShadow(segmentText, 0, 1, 'rgba(0, 0, 0, 0.58)', 1);
       }
       container.add(segmentText);
     });
@@ -759,6 +759,30 @@ export function getCardTypography(width, height) {
   };
 }
 
+
+function isRenderableTextObject(text) {
+  if (!text || text.active === false || text.scene == null) return false;
+  if (text._destroyed || text.destroyed) return false;
+  if ('texture' in text && text.texture == null) return false;
+  if ('canvas' in text && text.canvas == null) return false;
+  if ('context' in text && text.context == null) return false;
+  return true;
+}
+
+function safeSetTextShadow(text, ...args) {
+  if (!isRenderableTextObject(text) || typeof text.setShadow !== 'function') return text;
+  return text.setShadow(...args);
+}
+
+function deactivateCardPreviewView(view) {
+  if (!view || view.isActive === false) return;
+  view.isActive = false;
+  view.items?.forEach((item) => {
+    item?.disableInteractive?.();
+    item?.removeAllListeners?.();
+  });
+}
+
 export function drawStatSymbol(scene, x, y, size, statKey, color, alpha = 1) {
   if (statKey === 'attack') {
     const symbol = scene.add.graphics({ x, y });
@@ -829,7 +853,7 @@ function createStatGlyph(scene, x, y, size, key, value, style, isKnown, fontSize
     fixedHeight: Math.ceil(size * 0.84),
   }).setOrigin(0.5);
   if (isKnown) {
-    text.setShadow(0, 1, modifiedStyle?.shadow ?? 'rgba(0, 0, 0, 0.68)', modifiedStyle ? 4 : 2);
+    safeSetTextShadow(text, 0, 1, modifiedStyle?.shadow ?? 'rgba(0, 0, 0, 0.68)', modifiedStyle ? 4 : 2);
   }
   if (modifiedStyle) {
     numberPlate.setStrokeStyle(Math.max(1, Math.round(size * 0.05)), modifiedStyle.plateStroke, modifiedStyle.plateStrokeAlpha);
@@ -1116,7 +1140,7 @@ export function createCardNumberOverlay(scene, zones, card, { width, height, typ
     stroke: '#020617',
     strokeThickness: Math.max(1, Math.round(fontSize * 0.12)),
   }).setOrigin(1, 1).setAlpha(0.46);
-  marker.setShadow(0, 1, 'rgba(0, 0, 0, 0.42)', 1);
+  safeSetTextShadow(marker, 0, 1, 'rgba(0, 0, 0, 0.42)', 1);
   return marker;
 }
 
@@ -1391,7 +1415,7 @@ export function createCardPreviewView(scene, {
     art.artMask = artViewportMask;
   }
 
-  return {
+  const previewView = {
     cardId,
     root,
     glow,
@@ -1411,5 +1435,33 @@ export function createCardPreviewView(scene, {
     baseDepth: depth,
     baseFontSize: typography.name,
     surfaceTheme: resolvedSurfaceTheme,
+    isActive: true,
   };
+  previewView.items = [
+    root,
+    glow,
+    background,
+    inner,
+    statPanel,
+    statPanelTopEdge,
+    artRecessShadow,
+    art,
+    statBadges,
+    namePanel,
+    namePanelHighlight,
+    nameText,
+    textPanel,
+    textPanelHighlight,
+    bodyText,
+    ...dividers,
+    cardNumberOverlay,
+    selectionOutline,
+  ].filter(Boolean);
+  const originalRootDestroy = root.destroy?.bind(root);
+  previewView.destroy = () => {
+    deactivateCardPreviewView(previewView);
+    originalRootDestroy?.();
+  };
+  root.once?.('destroy', () => deactivateCardPreviewView(previewView));
+  return previewView;
 }
