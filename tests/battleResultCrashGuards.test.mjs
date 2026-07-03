@@ -18,7 +18,8 @@ test('card preview teardown deactivates child interactions before destroyed text
   assert.match(source, /function isRenderableTextObject\(text\) \{[\s\S]*text\.scene == null[\s\S]*text\.texture == null[\s\S]*text\.canvas == null[\s\S]*text\.context == null/);
   assert.match(source, /function safeSetTextShadow\(text, \.\.\.args\) \{\s*if \(!isRenderableTextObject\(text\) \|\| typeof text\.setShadow !== 'function'\) return text;/);
   assert.match(source, /function deactivateCardPreviewView\(view\) \{[\s\S]*item\?\.disableInteractive\?\.\(\);[\s\S]*item\?\.removeAllListeners\?\.\(\);/);
-  assert.match(source, /previewView\.destroy = \(\) => \{\s*deactivateCardPreviewView\(previewView\);\s*originalRootDestroy\?\.\(\);/);
+  assert.match(source, /previewView\.deactivate = \(\) => deactivateCardPreviewView\(previewView\);/);
+  assert.match(source, /previewView\.destroy = \(\) => \{\s*previewView\.deactivate\?\.\(\);\s*originalRootDestroy\?\.\(\);/);
 });
 
 test('music volume updates tolerate destroyed or unloaded sound backends', () => {
