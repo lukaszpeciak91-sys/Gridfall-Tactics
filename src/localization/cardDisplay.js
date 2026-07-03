@@ -23,8 +23,11 @@ function translateCardField(key, locale, fallbackValue) {
 
 export function getCardDisplayName(card, locale = 'en') {
   const idNameKey = typeof card?.id === 'string' ? `cards.${card.id}.name` : null;
+  const localizedFallbackName = locale === 'pl' && typeof card?.namePl === 'string' && card.namePl.length > 0
+    ? card.namePl
+    : card?.name;
   const keyedName = translateCardField(card?.nameKey, locale, undefined);
-  const localizedName = keyedName ?? translateCardField(idNameKey, locale, card?.name);
+  const localizedName = keyedName ?? translateCardField(idNameKey, locale, localizedFallbackName);
   return getCardPresentationName({ ...card, name: localizedName }, locale);
 }
 
