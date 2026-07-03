@@ -155,29 +155,41 @@ const CARD_ART_POSITION_OVERRIDES = Object.freeze({
   tank_wall_1: Object.freeze({
     artPositionY: 0.425,
   }),
+  tutorial_all_attack_1: Object.freeze({
+    artPositionY: 0.325,
+    boardArtPositionY: 0.405,
+  }),
   tutorial_enemy_blocker_a_1: Object.freeze({
+    artPositionY: 0.075,
     boardArtPositionY: 0.18,
   }),
   tutorial_enemy_blocker_b_1: Object.freeze({
-    boardArtPositionY: 0.13,
+    artPositionY: 0.125,
+    boardArtPositionY: 0.18,
   }),
   tutorial_enemy_blocker_c_1: Object.freeze({
-    boardArtPositionY: 0.23,
-  }),
-  tutorial_enemy_blocker_d_1: Object.freeze({
+    artPositionY: 0.325,
     boardArtPositionY: 0.255,
   }),
+  tutorial_enemy_blocker_d_1: Object.freeze({
+    artPositionY: 0.175,
+    boardArtPositionY: 0.23,
+  }),
   tutorial_enemy_filler_blocker_1: Object.freeze({
+    artPositionY: 0.1,
     boardArtPositionY: 0.18,
   }),
   tutorial_enemy_filler_blocker_2: Object.freeze({
-    boardArtPositionY: 0.13,
+    artPositionY: 0.125,
+    boardArtPositionY: 0.18,
   }),
   tutorial_unit_a_1: Object.freeze({
-    boardArtPositionY: 0.555,
+    artPositionY: 0.475,
+    boardArtPositionY: 0.505,
   }),
   tutorial_unit_b_1: Object.freeze({
-    boardArtPositionY: 0.405,
+    artPositionY: 0.275,
+    boardArtPositionY: 0.38,
   }),
   tutorial_unit_c_1: Object.freeze({
     boardArtPositionY: 0.53,
