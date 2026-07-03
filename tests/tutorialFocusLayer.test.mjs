@@ -9,7 +9,7 @@ const gameMenuSource = readFileSync(new URL('../src/scenes/GameMenuScene.js', im
 const step = (id) => TUTORIAL_STEPS.find((item) => item.id === id);
 
 test('tutorial focus targets are represented as practical BattleScene target objects', () => {
-  assert.deepEqual(step('bases_goal').highlightTarget, { type: 'base_pair', targets: [{ type: 'enemy_base' }, { type: 'player_base' }] });
+  assert.deepEqual(step('bases_goal').highlightTarget, { type: 'multi', targets: [{ type: 'enemy_base' }, { type: 'player_base' }] });
   assert.deepEqual(step('hand_lanes').highlightTarget, { type: 'player_board_lanes', slotIndexes: [6, 7, 8] });
   assert.deepEqual(step('deck_counter_open').highlightTarget, { type: 'deck_counter' });
   assert.deepEqual(step('battle_menu_open').highlightTarget, { type: 'battle_menu_button' });
@@ -30,7 +30,7 @@ test('BattleScene creates and updates tutorial focus only for tutorial battles',
   assert.match(battleSource, /this\.tutorialFocusLayer = this\.add\.container\(0, 0\)\.setDepth\(TUTORIAL_FOCUS_DEPTH\)/);
   assert.match(battleSource, /this\.updateTutorialFocus\(step\);/);
   assert.match(battleSource, /completeOpeningMulliganReveal\([\s\S]*this\.updateTutorialFocus\?\.\(\);/);
-  assert.match(battleSource, /const boundsKey = `\$\{key\}:\$\{Math\.round\(bounds\.x\)\}/);
+  assert.match(battleSource, /const boundsKey = `\$\{key\}:\$\{this\.getTutorialFocusBoundsKey\(bounds\)\}`/);
 });
 
 test('tutorial focus clears previous graphics before drawing a new target and during cleanup', () => {
@@ -41,7 +41,9 @@ test('tutorial focus clears previous graphics before drawing a new target and du
 });
 
 test('tutorial focus supports base, UI button, hand card, and board/lane targets', () => {
-  assert.match(battleSource, /type === 'base_pair'[\s\S]*this\.getMergedFocusBounds\(targets\.map\(\(item\) => this\.resolveTutorialFocusBounds\(item\)\)\)/);
+  assert.match(battleSource, /type === 'multi'[\s\S]*targets\.map\(\(item\) => this\.resolveTutorialFocusBounds\(item\)\)\.filter\(Boolean\)/);
+  assert.match(battleSource, /drawTutorialFocusBounds\(bounds, key\)[\s\S]*const boundsList = Array\.isArray\(bounds\)[\s\S]*boundsList\.flatMap/);
+  assert.match(battleSource, /getTutorialFocusBoundsKey\(bounds\)[\s\S]*join\('\|'/);
   assert.match(battleSource, /type === 'enemy_base'[\s\S]*this\.enemyHeroPanel/);
   assert.match(battleSource, /type === 'player_base'[\s\S]*this\.playerHeroPanel/);
   assert.match(battleSource, /type === 'deck_counter'[\s\S]*this\.deckCounterView\?\.focusBounds/);
@@ -62,7 +64,7 @@ test('tutorial focus supports base, UI button, hand card, and board/lane targets
 
 test('first tutorial banner focuses both bases without becoming a battlefield or input gate', () => {
   const target = step('bases_goal').highlightTarget;
-  assert.deepEqual(target, { type: 'base_pair', targets: [{ type: 'enemy_base' }, { type: 'player_base' }] });
+  assert.deepEqual(target, { type: 'multi', targets: [{ type: 'enemy_base' }, { type: 'player_base' }] });
   assert.notEqual(target.type, 'battle_lanes');
   assert.notEqual(target.type, 'board_lanes');
   assert.notEqual(target.type, 'player_hand_and_lanes');
@@ -89,8 +91,8 @@ test('tutorial focus uses independent Phaser primitives and does not gate input'
   const focusStart = battleSource.indexOf('ensureTutorialFocusLayer()');
   const focusSource = battleSource.slice(focusStart, battleSource.indexOf('updateTutorialFocus(', focusStart));
 
-  assert.match(focusSource, /this\.add\.rectangle\(bounds\.x, bounds\.y, bounds\.width \+ 14, bounds\.height \+ 14, TUTORIAL_FOCUS_FILL, 0\.07\)/);
-  assert.match(focusSource, /this\.tweens\?\.add\?\.\(\{ targets: \[glow, outline\]/);
+  assert.match(focusSource, /this\.add\.rectangle\(item\.x, item\.y, item\.width \+ 14, item\.height \+ 14, TUTORIAL_FOCUS_FILL, 0\.07\)/);
+  assert.match(focusSource, /this\.tweens\?\.add\?\.\(\{ targets: graphics/);
   assert.doesNotMatch(focusSource, /onlyTutorial|blockWrong|tutorialInputGate|preventWrong|checkTutorialInputGate/);
 });
 
@@ -114,6 +116,15 @@ test('tutorial focus gates effect card and mulligan confirm to playable states',
   assert.match(battleSource, /type === 'effect_card'[\s\S]*canPlayEffectCard\(this\.gameState, 'player', card\)\.ok[\s\S]*play_effect/);
   assert.match(battleSource, /type === 'player_base_button' && expected\.type === 'confirm_mulligan'[\s\S]*confirm_mulligan/);
   assert.match(battleSource, /handleTutorialEvent\?\.\('mulligan_card_selected', \{ cardId \}\);[\s\S]*this\.updateTutorialFocus\?\.\(\);/);
+});
+
+test('inspect and mulligan selection keep the same guided card before focusing confirm', () => {
+  assert.deepEqual(step('inspect_card').highlightTarget, { type: 'mulligan_card', cardId: 'tutorial_mulligan_bait_1' });
+  assert.deepEqual(step('mulligan_select').highlightTarget, { type: 'mulligan_card', cardId: 'tutorial_mulligan_bait_1' });
+  assert.deepEqual(step('mulligan_confirm').highlightTarget, { type: 'player_base_button' });
+  assert.match(battleSource, /this\.handleTutorialEvent\?\.\('card_inspected', \{ cardId \}\);\n\s*this\.updateTutorialFocus\?\.\(\);/);
+  assert.match(battleSource, /restoreInspectDimming\(\) \{\n\s*this\.resetCardHighlights\(\{ showPreview: false \}\);\n\s*this\.updateTutorialFocus\?\.\(\);/);
+  assert.match(battleSource, /if \(this\.longPressTriggeredCardId === cardId\) \{[\s\S]*return;\n\s*\}/);
 });
 
 test('GameMenuScene Tutorial launches playable tutorial BattleScene', () => {

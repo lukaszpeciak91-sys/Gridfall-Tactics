@@ -71,7 +71,7 @@ test('intro tap sequence advances into existing technical flow without gameplay 
     assert.equal(handleTutorialEvent(state, 'tap_continue').matched, true);
   }
   assert.equal(getCurrentTutorialStep(state).id, 'bases_goal');
-  assert.deepEqual(getCurrentTutorialStep(state).highlightTarget, { type: 'base_pair', targets: [{ type: 'enemy_base' }, { type: 'player_base' }] });
+  assert.deepEqual(getCurrentTutorialStep(state).highlightTarget, { type: 'multi', targets: [{ type: 'enemy_base' }, { type: 'player_base' }] });
 });
 
 
@@ -86,6 +86,28 @@ test('inspect lesson sits between mulligan intro and selection with exact text a
   assert.deepEqual(step.highlightTarget, { type: 'mulligan_card', cardId: 'tutorial_mulligan_bait_1' });
   assert.equal(step.text.pl, 'Długi tap powiększa kartę.');
   assert.equal(step.text.en, 'Long tap enlarges a card.');
+});
+
+test('inspect advances only to mulligan selection and real confirm is required to leave confirm step', () => {
+  const state = createTutorialControllerState();
+  while (getCurrentTutorialStep(state)?.id !== 'inspect_card') {
+    advanceTutorialStep(state, 'setup');
+  }
+
+  assert.equal(handleTutorialEvent(state, 'card_inspected', { cardId: 'tutorial_mulligan_bait_1' }).matched, true);
+  assert.equal(getCurrentTutorialStep(state).id, 'mulligan_select');
+  assert.deepEqual(getCurrentTutorialStep(state).highlightTarget, { type: 'mulligan_card', cardId: 'tutorial_mulligan_bait_1' });
+
+  assert.equal(handleTutorialEvent(state, 'card_inspected', { cardId: 'tutorial_mulligan_bait_1' }).matched, false);
+  assert.equal(getCurrentTutorialStep(state).id, 'mulligan_select');
+  assert.equal(handleTutorialEvent(state, 'mulligan_card_selected', { cardId: 'tutorial_mulligan_bait_1' }).matched, true);
+  assert.equal(getCurrentTutorialStep(state).id, 'mulligan_confirm');
+  assert.deepEqual(getCurrentTutorialStep(state).highlightTarget, { type: 'player_base_button' });
+
+  assert.equal(handleTutorialEvent(state, 'card_inspected', { cardId: 'tutorial_mulligan_bait_1' }).matched, false);
+  assert.equal(getCurrentTutorialStep(state).id, 'mulligan_confirm');
+  assert.equal(handleTutorialEvent(state, 'mulligan_confirmed', { selectedIds: ['tutorial_mulligan_bait_1'] }).matched, true);
+  assert.equal(getCurrentTutorialStep(state).id, 'play_unit_a');
 });
 
 test('final_pass tutorial text is exact', () => {
