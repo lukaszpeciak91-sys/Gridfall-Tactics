@@ -209,6 +209,7 @@ REQUIRED_REPO_PATHS = [
     Path("src/data/factions"),
 ]
 FACTIONS_DIR = Path("src/data/factions")
+FACTION_REGISTRY_RELATIVE_PATH = FACTIONS_DIR / "index.js"
 REPORTS_DIR = Path("tools/balance-lab/reports")
 TEMP_DIR = Path("tools/balance-lab/temp")
 BASELINE_OUTPUT_FILENAME = "baseline-output.txt"
@@ -735,6 +736,38 @@ def validate_custom_factions(root: Path, custom_factions: list[Any]) -> list[dic
     return validated
 
 
+def custom_faction_import_name(faction_id: str) -> str:
+    parts = re.split(r"[^a-zA-Z0-9]+", faction_id)
+    suffix = "".join(part[:1].upper() + part[1:] for part in parts if part)
+    return f"customFaction{suffix or 'Data'}"
+
+
+def patch_faction_registry_for_custom_factions(temp_copy_dir: Path, custom_factions: list[dict[str, Any]]) -> tuple[bool, Path | None]:
+    if not custom_factions:
+        return False, None
+    registry_path = temp_copy_dir / FACTION_REGISTRY_RELATIVE_PATH
+    if not registry_path.exists():
+        return False, None
+
+    text = registry_path.read_text(encoding="utf-8")
+    import_lines: list[str] = []
+    faction_lines: list[str] = []
+    for faction in custom_factions:
+        import_name = custom_faction_import_name(faction["id"])
+        import_lines.append(f"import {import_name} from './{faction['id']}.json' with {{ type: 'json' }};")
+        faction_lines.append(f"  '{faction['id']}': {import_name},")
+
+    if import_lines and import_lines[-1] not in text:
+        text = "\n".join(import_lines) + "\n" + text
+    marker = "const FACTIONS = {\n"
+    if marker not in text:
+        raise BalanceLabError(f"Could not patch temp faction registry: marker not found in {registry_path}.")
+    if faction_lines and faction_lines[-1] not in text:
+        text = text.replace(marker, marker + "\n".join(faction_lines) + "\n", 1)
+    registry_path.write_text(text, encoding="utf-8")
+    return True, registry_path
+
+
 def write_custom_factions(temp_copy_dir: Path, custom_factions: list[dict[str, Any]]) -> list[dict[str, Any]]:
     applied: list[dict[str, Any]] = []
     faction_dir = temp_copy_dir / FACTIONS_DIR
@@ -752,7 +785,13 @@ def write_custom_factions(temp_copy_dir: Path, custom_factions: list[dict[str, A
             "faction": faction,
             "relativePath": temp_json_path.relative_to(temp_copy_dir),
             "tempJsonPath": temp_json_path,
+            "registryPatched": False,
+            "registryPath": None,
         })
+    registry_patched, registry_path = patch_faction_registry_for_custom_factions(temp_copy_dir, custom_factions)
+    for change in applied:
+        change["registryPatched"] = registry_patched
+        change["registryPath"] = registry_path
     return applied
 
 def find_faction_file(root: Path, faction: str) -> tuple[Path, dict[str, Any]] | None:
@@ -1750,6 +1789,8 @@ def write_patch_summary(report_dir: Path, applied_changes: list[dict[str, Any]])
                 f"### {change['id']} — {change['deckSize']} cards",
                 "",
                 f"Temp faction JSON path: `{change['tempJsonPath']}`",
+                f"Simulator faction registry/list patched: `{str(change.get('registryPatched', False)).lower()}`",
+                f"Temp registry path: `{change.get('registryPath') or 'N/A'}`",
                 "",
                 "Custom faction JSON:",
                 *format_json_block(change["faction"]),
@@ -3777,6 +3818,11 @@ def run_one_experiment(root: Path, experiment_path: Path, *, verbose: bool = Tru
     patch_summary_path = write_patch_summary(report_dir, applied_changes)
     if verbose:
         print(f"Changes processed: {len(applied_changes)}", flush=True)
+        if applied_custom_factions:
+            production_count = len(load_faction_files(root))
+            custom_ids = ", ".join(change["id"] for change in applied_custom_factions)
+            print(f"Custom factions written: {custom_ids}", flush=True)
+            print(f"Experiment faction count expected: {production_count + len(applied_custom_factions)}", flush=True)
 
     experiment_result = run_simulation(temp_copy_dir, command)
     (
