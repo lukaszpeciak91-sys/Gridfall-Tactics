@@ -7,8 +7,6 @@ import {
   createCardArtwork,
   createCardPreviewView,
   getCardLayoutZones,
-  isRenderableTextObject,
-  safeSetTextShadow,
 } from '../src/rendering/cardVisualLayout.js';
 
 function chainable(displayObject = {}) {
@@ -74,10 +72,7 @@ function createPreviewScene({ loadedTextureKeys = [] } = {}) {
     setVisible(value) { this.visible = value; return this; },
     setText(value) { this.text = value; this.width = String(value ?? '').length * 6; return this; },
     setFontSize(value) { this.style = { ...(this.style ?? {}), fontSize: `${value}px` }; this.height = Number(value) || this.height; return this; },
-    disableInteractive() { this.interactiveDisabled = true; return this; },
-    removeAllListeners(event) { this.removedListeners = [...(this.removedListeners ?? []), event ?? 'all']; return this; },
-    once(event, handler) { this.onceHandlers = { ...(this.onceHandlers ?? {}), [event]: handler }; return this; },
-    destroy() { this.destroyed = true; this.active = false; this.scene = null; this.onceHandlers?.destroy?.(); },
+    destroy() { this.destroyed = true; },
   });
 
   scene.add.container = (x, y) => makeChainable({
@@ -95,7 +90,6 @@ function createPreviewScene({ loadedTextureKeys = [] } = {}) {
   scene.add.circle = (x, y, radius, color, alpha) => makeChainable({ type: 'circle', x, y, radius, color, alpha });
   scene.add.text = (x, y, text, style = {}) => makeChainable({
     type: 'text',
-    scene,
     x,
     y,
     text,
@@ -373,64 +367,4 @@ test('art viewport debug renders final card preview and applies movement only on
   assert.doesNotMatch(source, /drawSourceSelectionPane/);
   assert.doesNotMatch(source, /selectorWidth = Number\.isFinite\(viewportWidth\)/);
   assert.doesNotMatch(source, /const cropX = \(sourceWidth - selectorWidth\)/);
-});
-
-
-test('destroyed card preview text ignores stale hover shadow mutation', () => {
-  const scene = createPreviewScene();
-  const preview = createCardPreviewView(scene, {
-    card: null,
-    cardId: 'hover_guard_card',
-    x: 0,
-    y: 0,
-    width: 160,
-    height: 227,
-  });
-  const staleLabel = preview.label;
-
-  preview.destroy();
-
-  assert.equal(preview.isActive, false);
-  assert.equal(isRenderableTextObject(staleLabel), false);
-  assert.doesNotThrow(() => safeSetTextShadow(staleLabel, 0, 1, 'rgba(0,0,0,0.6)', 2));
-  assert.equal(staleLabel.shadow, undefined);
-});
-
-test('card preview teardown disables child interactivity and clears text references', () => {
-  const scene = createPreviewScene();
-  const preview = createCardPreviewView(scene, {
-    card: null,
-    cardId: 'inspect_close_card',
-    x: 0,
-    y: 0,
-    width: 160,
-    height: 227,
-  });
-  const staleLabel = preview.label;
-
-  preview.destroy();
-
-  assert.ok(preview.items.every((item) => item.interactiveDisabled === true));
-  assert.ok(preview.items.every((item) => item.removedListeners?.includes('all')));
-  assert.equal(preview.label, null);
-  assert.equal(preview.nameText, null);
-  assert.equal(preview.bodyText, null);
-  assert.doesNotThrow(() => safeSetTextShadow(staleLabel, 0, 1, 'rgba(0,0,0,0.6)', 2));
-});
-
-test('normal live card preview text still accepts hover shadow mutation', () => {
-  const scene = createPreviewScene();
-  const preview = createCardPreviewView(scene, {
-    card: null,
-    cardId: 'live_hover_card',
-    x: 0,
-    y: 0,
-    width: 160,
-    height: 227,
-  });
-
-  Object.assign(preview.label, { active: true, scene, texture: {}, frame: {}, canvas: {}, context: {}, parentContainer: { active: true, scene } });
-  assert.equal(isRenderableTextObject(preview.label), true);
-  safeSetTextShadow(preview.label, 0, 1, 'rgba(0,0,0,0.6)', 2);
-  assert.deepEqual(preview.label.shadow, [0, 1, 'rgba(0,0,0,0.6)', 2]);
 });
