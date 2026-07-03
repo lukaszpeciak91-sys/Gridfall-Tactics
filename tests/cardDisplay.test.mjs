@@ -61,6 +61,20 @@ test('tutorial card display names resolve in English and Polish', () => {
   }
 });
 
+
+test('tutorial all-attack effect card text resolves in English and Polish', () => {
+  const effectCard = tutorialPlayerFaction.deck.find((card) => card.id === 'tutorial_all_attack_1');
+
+  assert.ok(effectCard, 'tutorial all-attack card should exist');
+  assert.equal(effectCard.effectId, 'buff_all_atk_1');
+  assert.equal(effectCard.textShort, 'All [ALLY] +1 ATK until combat');
+  assert.equal(effectCard.textShortPl, '[ALLIES] +1 ATK do walki');
+  assert.equal(getCardTextShort(effectCard, 'en'), 'All [ALLY] +1 ATK until combat');
+  assert.equal(getCardTextShort(effectCard, 'pl'), '[ALLIES] +1 ATK do walki');
+  assert.equal(formatHandCardLabel(effectCard, 'en'), 'Alarm Siren\nAll ♙♙ +1 ▲ until combat');
+  assert.equal(formatHandCardLabel(effectCard, 'pl'), 'Syrena Alarmowa\n♙♙ +1 ▲ do walki');
+});
+
 test('card display helper falls back to current card name fields when card keys are absent', () => {
   assert.equal(getCardDisplayName({ name: 'Shield Drone' }), 'Shield Drone');
   assert.equal(getCardDisplayName({ name: 'Shield Drone' }, 'pl'), 'Shield Drone');

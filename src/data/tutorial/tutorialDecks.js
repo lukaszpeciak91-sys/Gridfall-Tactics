@@ -68,6 +68,7 @@ export const tutorialPlayerFaction = {
       targeting: 'all_friendly_units',
       effectId: 'buff_all_atk_1',
       textShort: 'All [ALLY] +1 ATK until combat',
+      textShortPl: '[ALLIES] +1 ATK do walki',
     },
     {
       id: 'tutorial_mulligan_bait_1',

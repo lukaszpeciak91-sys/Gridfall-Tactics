@@ -14,6 +14,7 @@ test('tutorial focus targets are represented as practical BattleScene target obj
   assert.deepEqual(step('deck_counter_open').highlightTarget, { type: 'deck_counter' });
   assert.deepEqual(step('battle_menu_open').highlightTarget, { type: 'battle_menu_button' });
   assert.deepEqual(step('mulligan_select').highlightTarget, { type: 'mulligan_card', cardId: 'tutorial_mulligan_bait_1' });
+  assert.equal(step('inspect_card').highlightTarget.cardId, step('mulligan_select').highlightTarget.cardId);
   assert.deepEqual(step('play_unit_a').highlightTarget, { type: 'hand_card', cardId: 'tutorial_unit_a_1' });
   assert.equal(step('enemy_action').highlightTarget, null);
   assert.deepEqual(step('play_unit_b').highlightTarget, { type: 'hand_card', cardId: 'tutorial_unit_b_1' });
@@ -101,7 +102,7 @@ test('tutorial focus waits for visible banner and suppresses resolving/uninterac
   assert.match(battleSource, /isTutorialStepBannerVisible\(step = this\.getCurrentTutorialStep\(\)\) \{[\s\S]*this\.tutorialBanner\.text === this\.getTutorialStepText\(step\)/);
   assert.match(battleSource, /isTutorialFocusTimingSuppressed\(step = this\.getCurrentTutorialStep\(\)\) \{[\s\S]*!this\.isTutorialStepBannerVisible\(step\)[\s\S]*this\.isFlowResolving \|\| this\.isEffectCastResolving[\s\S]*wait_enemy_action[\s\S]*wait_combat/);
   assert.match(battleSource, /updateTutorialFocus\(step = this\.getCurrentTutorialStep\(\)\) \{[\s\S]*this\.isTutorialFocusTimingSuppressed\(step\)[\s\S]*this\.clearTutorialFocusGraphics\(\)/);
-  assert.match(battleSource, /type === 'mulligan_card'[\s\S]*this\.openingMulliganPending[\s\S]*!\(this\.isOpeningMulliganInputLocked\?\.\(\) \?\? false\)[\s\S]*select_mulligan_card/);
+  assert.match(battleSource, /type === 'mulligan_card'[\s\S]*const inputType = expected\.type === 'inspect_card' \? 'inspect_card' : 'select_mulligan_card'[\s\S]*this\.openingMulliganPending[\s\S]*!\(this\.isOpeningMulliganInputLocked\?\.\(\) \?\? false\)[\s\S]*type: inputType, cardId/);
   assert.match(battleSource, /calculateHandCardFocusBounds\(this\.cardViews \?\? \[\], cardId/);
 });
 
@@ -121,6 +122,7 @@ test('tutorial focus gates effect card and mulligan confirm to playable states',
 test('inspect and mulligan selection keep the same guided card before focusing confirm', () => {
   assert.deepEqual(step('inspect_card').highlightTarget, { type: 'mulligan_card', cardId: 'tutorial_mulligan_bait_1' });
   assert.deepEqual(step('mulligan_select').highlightTarget, { type: 'mulligan_card', cardId: 'tutorial_mulligan_bait_1' });
+  assert.equal(step('inspect_card').highlightTarget.cardId, step('mulligan_select').highlightTarget.cardId);
   assert.deepEqual(step('mulligan_confirm').highlightTarget, { type: 'player_base_button' });
   assert.match(battleSource, /this\.handleTutorialEvent\?\.\('card_inspected', \{ cardId \}\);\n\s*this\.updateTutorialFocus\?\.\(\);/);
   assert.match(battleSource, /restoreInspectDimming\(\) \{\n\s*this\.resetCardHighlights\(\{ showPreview: false \}\);\n\s*this\.updateTutorialFocus\?\.\(\);/);

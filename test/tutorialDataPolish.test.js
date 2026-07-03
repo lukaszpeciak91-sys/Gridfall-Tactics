@@ -4,6 +4,7 @@ import path from 'node:path';
 import test from 'node:test';
 
 import { tutorialEnemyFaction } from '../src/data/tutorial/tutorialDecks.js';
+import { getCardTextShort } from '../src/localization/cardDisplay.js';
 
 const TUTORIAL_ENEMY_UNIT_IDS = [
   'tutorial_enemy_blocker_a_1',
@@ -51,6 +52,11 @@ test('tutorial visible rules text omits prototype filler while preserving real e
     assert.doesNotMatch(card.textShort, /simple|blocker/i);
   }
 
-  assert.equal(playerById.tutorial_all_attack_1.textShort, 'All [ALLY] +1 ATK until combat');
+  const effectCard = playerById.tutorial_all_attack_1;
+  assert.equal(effectCard.textShort, 'All [ALLY] +1 ATK until combat');
+  assert.equal(effectCard.textShortPl, '[ALLIES] +1 ATK do walki');
+  assert.equal(getCardTextShort(effectCard, 'en'), 'All [ALLY] +1 ATK until combat');
+  assert.equal(getCardTextShort(effectCard, 'pl'), '[ALLIES] +1 ATK do walki');
+  assert.equal(effectCard.effectId, 'buff_all_atk_1');
   assert.equal(playerById.tutorial_unit_c_1.textShort, 'Adjacent [ALLY] +1 ARM until combat');
 });
