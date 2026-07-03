@@ -760,33 +760,27 @@ export function getCardTypography(width, height) {
 }
 
 
-export function isRenderableTextObject(text) {
+function isRenderableTextObject(text) {
   if (!text || text.active === false || text.scene == null) return false;
   if (text._destroyed || text.destroyed) return false;
-  if (text.parentContainer?.active === false || text.parentContainer?.scene == null) return false;
   if ('texture' in text && text.texture == null) return false;
-  if ('frame' in text && text.frame == null) return false;
   if ('canvas' in text && text.canvas == null) return false;
   if ('context' in text && text.context == null) return false;
-  if ('renderer' in text.scene && text.scene.renderer == null) return false;
   return true;
 }
 
-export function safeSetTextShadow(text, ...args) {
+function safeSetTextShadow(text, ...args) {
   if (!isRenderableTextObject(text) || typeof text.setShadow !== 'function') return text;
   return text.setShadow(...args);
 }
 
-export function deactivateCardPreviewView(view) {
+function deactivateCardPreviewView(view) {
   if (!view || view.isActive === false) return;
   view.isActive = false;
   view.items?.forEach((item) => {
     item?.disableInteractive?.();
     item?.removeAllListeners?.();
   });
-  view.label = null;
-  view.nameText = null;
-  view.bodyText = null;
 }
 
 export function drawStatSymbol(scene, x, y, size, statKey, color, alpha = 1) {
