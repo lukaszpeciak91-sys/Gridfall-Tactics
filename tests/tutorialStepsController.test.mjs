@@ -62,6 +62,21 @@ test('flavor intro steps precede technical tutorial and carry safe tap-only meta
   assert.match(firstIntro.text.en, /\(tap anywhere to continue\)/);
 });
 
+test('flavor intro and battle menu tutorial copy matches approved PL and EN text', () => {
+  const byId = Object.fromEntries(TUTORIAL_STEPS.map((step) => [step.id, step]));
+
+  assert.equal(byId.intro_01.text.pl, 'Witajcie w kolejnej edycji Gridfall.\n(kliknij gdziekolwiek, aby przejść dalej)');
+  assert.equal(byId.intro_01.text.en, 'Welcome to another edition of Gridfall.\n(tap anywhere to continue)');
+  assert.equal(byId.intro_02.text.pl, 'Przed nami kolejne obłąkane światy na granicy zagłady.\n\nCo prawda nie możemy im pomóc.');
+  assert.equal(byId.intro_02.text.en, 'Before us: another set of deranged worlds on the edge of collapse.\n\nWe cannot help them, of course.');
+  assert.equal(byId.intro_03.text.pl, 'Możemy za to sprawdzić, jak pięknie walczą!\n\nBukmacher już przyjmuje zakłady.');
+  assert.equal(byId.intro_03.text.en, 'But we can see how beautifully they fight!\n\nThe bookie is already taking bets.');
+  assert.equal(byId.intro_04.text.pl, 'Zanim zaczniemy, sprzątacze oczyszczą arenę z pozostałości poprzedniego sezonu.');
+  assert.equal(byId.intro_04.text.en, 'Before we begin, the arena cleaners will clear away what remains of the previous season.');
+  assert.equal(byId.battle_menu_contents.text.pl, 'Tu są zasady, ustawienia i poddanie.\n\nMożesz się poddać, jeśli jesteś leszczem.');
+  assert.equal(byId.battle_menu_contents.text.en, "Rules, settings, and surrender are here.\n\nYou can surrender if you're lame.");
+});
+
 test('intro tap sequence advances into existing technical flow without gameplay events', () => {
   const state = createTutorialControllerState();
   for (const stepId of ['intro_01', 'intro_02', 'intro_03', 'intro_04']) {
