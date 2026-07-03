@@ -1457,9 +1457,10 @@ export function createCardPreviewView(scene, {
     cardNumberOverlay,
     selectionOutline,
   ].filter(Boolean);
+  previewView.deactivate = () => deactivateCardPreviewView(previewView);
   const originalRootDestroy = root.destroy?.bind(root);
   previewView.destroy = () => {
-    deactivateCardPreviewView(previewView);
+    previewView.deactivate?.();
     originalRootDestroy?.();
   };
   root.once?.('destroy', () => deactivateCardPreviewView(previewView));

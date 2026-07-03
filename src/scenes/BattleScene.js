@@ -4863,6 +4863,41 @@ export default class BattleScene extends Phaser.Scene {
     this.handBackCards?.forEach((backCard) => backCard?.disableInteractive?.());
   }
 
+  deactivateInspectPreviewView(inspect) {
+    if (!inspect) return;
+    inspect.deactivate?.();
+    inspect.isActive = false;
+    this.disableCardViewInteractions(inspect);
+
+    const inspectItems = [
+      ...(inspect.items ?? []),
+      inspect.root,
+      inspect.overlay,
+      inspect.glow,
+      inspect.background,
+      inspect.label,
+      inspect.nameText,
+      inspect.bodyText,
+      inspect.cardNumberOverlay,
+      inspect.selectionOutline,
+      inspect.statBar,
+      inspect.statBadges,
+      inspect.art,
+      ...(inspect.previewItems ?? []),
+    ].filter(Boolean);
+    const uniqueInspectItems = [...new Set(inspectItems)];
+
+    uniqueInspectItems.forEach((item) => {
+      item?.disableInteractive?.();
+      item?.removeAllListeners?.('pointerover');
+      item?.removeAllListeners?.('pointerout');
+      item?.removeAllListeners?.('pointerdown');
+      item?.removeAllListeners?.('pointerup');
+      item?.removeAllListeners?.('pointermove');
+      item?.removeAllListeners?.('pointercancel');
+    });
+  }
+
   getHandCardAccentColor(card) {
     return getDefaultCardAccentColor(card);
   }
@@ -9793,6 +9828,7 @@ export default class BattleScene extends Phaser.Scene {
     if (!this.selectedHandCardZoom) return;
 
     const inspect = this.selectedHandCardZoom;
+    this.deactivateInspectPreviewView(inspect);
     const items = [inspect.root, inspect.overlay, inspect.glow, inspect.background, inspect.label].filter(Boolean);
     this.tweens?.killTweensOf?.(items);
     this.selectedHandCardZoom = null;
