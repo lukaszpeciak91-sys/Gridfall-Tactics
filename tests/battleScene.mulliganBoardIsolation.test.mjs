@@ -218,3 +218,29 @@ test('confirming mulligan input reset clears hand inspect preview and pending pr
   assert.equal(scene.boardInspectIndex, null);
   assert.deepEqual(scene.destroySelectedHandCardZoomCalledWith, { animate: true });
 });
+
+test('closing mulligan inspect preview preserves selected exchange cards and consumes the outside tap', () => {
+  const clearOpeningMulliganPreviewFromOutsideTap = compileMethod('clearOpeningMulliganPreviewFromOutsideTap', 'isPointerInsidePlayerBaseAction', ['pointer', 'currentlyOver']);
+  const scene = {
+    previewedMulliganCardId: 'unit-a',
+    selectedHandCardZoom: { root: {} },
+    selectedMulliganCardIds: ['unit-a'],
+    hoverInspectCardId: 'unit-a',
+    boardInspectIndex: null,
+    pressedHandCardId: 'unit-a',
+    isPointerInsideMulliganHandOrPreview() { return false; },
+    isPointerInsidePlayerBaseAction() { return false; },
+    updatePlayerBaseActionStateCalled: false,
+    updatePlayerBaseActionState() { this.updatePlayerBaseActionStateCalled = true; },
+    resetCardHighlightsCalledWith: null,
+    resetCardHighlights(options) { this.resetCardHighlightsCalledWith = options; },
+  };
+
+  clearOpeningMulliganPreviewFromOutsideTap.call(scene, {}, []);
+
+  assert.deepEqual(scene.selectedMulliganCardIds, ['unit-a']);
+  assert.equal(scene.previewedMulliganCardId, null);
+  assert.equal(scene.pressedHandCardId, null);
+  assert.equal(scene.updatePlayerBaseActionStateCalled, true);
+  assert.deepEqual(scene.resetCardHighlightsCalledWith, { showPreview: false });
+});

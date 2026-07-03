@@ -20,6 +20,17 @@ test('tutorial gate allows normal behavior when controller state is null', () =>
   assert.equal(checkTutorialInputGate(null, { type: 'play_card_to_slot', cardId: 'any', slotIndex: 2 }).allowed, true);
 });
 
+test('inspect step gates mulligan selection until the card is inspected', () => {
+  const state = stateAt('inspect_card');
+  assert.equal(checkTutorialInputGate(state, { type: 'select_mulligan_card', cardId: 'tutorial_mulligan_bait_1' }).allowed, false);
+  assert.equal(handleTutorialEvent(state, 'mulligan_card_selected', { cardId: 'tutorial_mulligan_bait_1' }).matched, false);
+  assert.equal(checkTutorialInputGate(state, { type: 'inspect_card', cardId: 'wrong' }).allowed, false);
+  assert.equal(handleTutorialEvent(state, 'card_inspected', { cardId: 'wrong' }).matched, false);
+  assert.equal(checkTutorialInputGate(state, { type: 'inspect_card', cardId: 'tutorial_mulligan_bait_1' }).allowed, true);
+  assert.equal(handleTutorialEvent(state, 'card_inspected', { cardId: 'tutorial_mulligan_bait_1' }).matched, true);
+  assert.equal(state.steps[state.currentStepIndex].id, 'mulligan_select');
+});
+
 test('mulligan selection gates only the tutorial bait card and advances through controller events', () => {
   const state = stateAt('mulligan_select');
   assert.equal(checkTutorialInputGate(state, { type: 'select_mulligan_card', cardId: 'wrong' }).allowed, false);

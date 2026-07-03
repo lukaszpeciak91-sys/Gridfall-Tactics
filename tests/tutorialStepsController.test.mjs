@@ -16,6 +16,7 @@ const approvedStepIds = [
   'battle_menu_open',
   'battle_menu_contents',
   'mulligan_intro',
+  'inspect_card',
   'mulligan_select',
   'mulligan_confirm',
   'play_unit_a',
@@ -71,6 +72,20 @@ test('intro tap sequence advances into existing technical flow without gameplay 
   }
   assert.equal(getCurrentTutorialStep(state).id, 'bases_goal');
   assert.deepEqual(getCurrentTutorialStep(state).highlightTarget, { type: 'base_pair', targets: [{ type: 'enemy_base' }, { type: 'player_base' }] });
+});
+
+
+test('inspect lesson sits between mulligan intro and selection with exact text and highlight', () => {
+  const mulliganIds = TUTORIAL_STEPS
+    .filter((step) => step.phase === 'mulligan')
+    .map((step) => step.id);
+  assert.deepEqual(mulliganIds, ['mulligan_intro', 'inspect_card', 'mulligan_select', 'mulligan_confirm']);
+
+  const step = TUTORIAL_STEPS.find((item) => item.id === 'inspect_card');
+  assert.deepEqual(step.expected, { type: 'inspect_card', cardId: 'tutorial_mulligan_bait_1' });
+  assert.deepEqual(step.highlightTarget, { type: 'mulligan_card', cardId: 'tutorial_mulligan_bait_1' });
+  assert.equal(step.text.pl, 'Długi tap powiększa kartę.');
+  assert.equal(step.text.en, 'Long tap enlarges a card.');
 });
 
 test('final_pass tutorial text is exact', () => {
@@ -141,6 +156,7 @@ test('BattleScene initializes tutorial controller only in tutorial mode and igno
   assert.match(source, /if \(!this\.isTutorialBattle\(\) \|\| !this\.tutorialControllerState\) \{[\s\S]*matched: false/);
   assert.match(source, /this\.handleTutorialEvent\?\.\('deck_opened'\)/);
   assert.match(source, /this\.handleTutorialEvent\?\.\('deck_closed'\)/);
+  assert.match(source, /this\.handleTutorialEvent\?\.\('card_inspected'/);
   assert.match(source, /this\.handleTutorialEvent\?\.\('mulligan_card_selected'/);
   assert.match(source, /this\.handleTutorialEvent\?\.\('mulligan_confirmed'/);
   assert.match(source, /eventName: 'adjacent_swap_completed'/);

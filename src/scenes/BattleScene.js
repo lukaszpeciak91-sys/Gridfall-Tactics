@@ -5022,10 +5022,12 @@ export default class BattleScene extends Phaser.Scene {
       this.longPressTriggeredCardId = cardId;
 
       if (this.openingMulliganPending) {
+        if (!(this.isTutorialInputAllowed?.({ type: 'inspect_card', cardId }) ?? true)) return;
         this.previewedMulliganCardId = cardId;
         this.hoverInspectCardId = null;
         this.boardInspectIndex = null;
         this.resetCardHighlights({ showPreview: true });
+        this.handleTutorialEvent?.('card_inspected', { cardId });
         return;
       }
 
@@ -5270,7 +5272,8 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   clearOpeningMulliganPreviewFromOutsideTap(pointer, currentlyOver = []) {
-    if (!this.previewedMulliganCardId && !this.selectedHandCardZoom && this.selectedMulliganCardIds.length === 0) return;
+    const hasPreview = Boolean(this.previewedMulliganCardId || this.selectedHandCardZoom);
+    if (!hasPreview && this.selectedMulliganCardIds.length === 0) return;
     if (this.isPointerInsideMulliganHandOrPreview(pointer, currentlyOver)) return;
     if (this.isPointerInsidePlayerBaseAction(pointer, currentlyOver)) return;
 
@@ -5278,7 +5281,7 @@ export default class BattleScene extends Phaser.Scene {
     this.hoverInspectCardId = null;
     this.boardInspectIndex = null;
     this.pressedHandCardId = null;
-    this.selectedMulliganCardIds = [];
+    if (!hasPreview) this.selectedMulliganCardIds = [];
     this.updatePlayerBaseActionState();
     this.resetCardHighlights({ showPreview: false });
   }
@@ -6009,6 +6012,7 @@ export default class BattleScene extends Phaser.Scene {
 
     if (!(this.isTutorialInputAllowed?.({ type: 'confirm_mulligan', target: 'player_base_button' }) ?? true)) return;
     const selectedIds = [...this.selectedMulliganCardIds];
+    if (this.isTutorialBattle?.() && selectedIds.length === 0) return;
     const result = isTutorialBattleContext(this.battleContext)
       ? performTutorialOpeningMulligan(this.gameState, selectedIds, getTutorialBattleData().openingConfig)
       : performOpeningMulligan(this.gameState, 'player', selectedIds);

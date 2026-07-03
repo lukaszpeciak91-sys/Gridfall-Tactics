@@ -6,6 +6,7 @@ export const TUTORIAL_GATE_ACTIONS = Object.freeze({
   CLOSE_DECK: 'close_deck',
   CLICK_BATTLE_MENU: 'click_battle_menu',
   CLOSE_BATTLE_MENU: 'close_battle_menu',
+  INSPECT_CARD: 'inspect_card',
   SELECT_MULLIGAN_CARD: 'select_mulligan_card',
   CONFIRM_MULLIGAN: 'confirm_mulligan',
   PLAY_CARD_TO_SLOT: 'play_card_to_slot',
