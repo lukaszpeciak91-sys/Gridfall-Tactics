@@ -47,6 +47,7 @@ IMPLEMENTED_CONCRETE_EFFECT_IDS = {
     "decay_attack_after_combat",
     "atk_plus_per_other_ally",
     "swap_any_two_friendly_units_buff_both_atk_1",
+    "swap_any_two_friendly_units",
 }
 REQUIRED_REPLACE_CARD_FIELDS = {"id", "name", "type", "targeting", "textShort"}
 REQUIRED_UNIT_REPLACE_CARD_FIELDS = {"attack", "hp", "armor"}

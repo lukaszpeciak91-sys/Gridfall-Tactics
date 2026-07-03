@@ -63,6 +63,15 @@ test('Balance Lab rejects custom faction id collisions and duplicates', () => {
   assertPythonRaises("bl.validate_custom_factions(root, [custom('dupe-faction'), custom('dupe-faction')])", /duplicated/);
 });
 
+
+test('Balance Lab accepts friendly-only swap effect for custom factions', () => {
+  const output = runPython(`${pyPrelude}
+f=custom(); f['deck'][0]['type']='order'; f['deck'][0].pop('attack', None); f['deck'][0].pop('hp', None); f['deck'][0].pop('armor', None); f['deck'][0]['targeting']='friendly_unit'; f['deck'][0]['effectId']='swap_any_two_friendly_units'; f['deck'][0]['textShort']='Swap any 2 [ALLY].'; validated=bl.validate_custom_factions(root, [f]); assert validated[0]['deck'][0]['effectId']=='swap_any_two_friendly_units'
+print('ok')
+`);
+  assert.match(output.trim(), /ok$/);
+});
+
 test('Balance Lab rejects duplicate card ids, unknown effectIds, and effectParams', () => {
   assertPythonRaises("f=custom(); f['deck'][1]['id']=f['deck'][0]['id']; bl.validate_custom_factions(root, [f])", /duplicated/);
   assertPythonRaises("f=custom(); f['deck'][0]['effectId']='brand_new_effect'; bl.validate_custom_factions(root, [f])", /not an existing effectId/);

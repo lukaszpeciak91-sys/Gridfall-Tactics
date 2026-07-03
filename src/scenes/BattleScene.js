@@ -7817,7 +7817,7 @@ export default class BattleScene extends Phaser.Scene {
       }
     }
 
-    if (effectId === 'swap_any_two_units' || effectId === 'swap_two_enemy_units' || effectId === 'swap_adjacent_enemy_units') {
+    if (effectId === 'swap_any_two_units' || effectId === 'swap_any_two_friendly_units' || effectId === 'swap_two_enemy_units' || effectId === 'swap_adjacent_enemy_units') {
       const [fromIndex, toIndex] = targetIndexes;
       if (Number.isInteger(fromIndex) && Number.isInteger(toIndex)) {
         return [{
