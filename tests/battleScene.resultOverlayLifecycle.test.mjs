@@ -6,7 +6,11 @@ const source = readFileSync(new URL('../src/scenes/BattleScene.js', import.meta.
 
 function extractMethodBody(name, nextName) {
   const start = source.indexOf(`\n  ${name}(`);
-  const end = source.indexOf(`\n  ${nextName}(`, start + 1);
+  const standardEnd = source.indexOf(`\n  ${nextName}(`, start + 1);
+  const asyncEnd = source.indexOf(`\n  async ${nextName}(`, start + 1);
+  const end = standardEnd >= 0 && asyncEnd >= 0
+    ? Math.min(standardEnd, asyncEnd)
+    : Math.max(standardEnd, asyncEnd);
   if (start < 0 || end < 0) throw new Error(`Failed to extract ${name}`);
   return source.slice(start, end);
 }
@@ -95,4 +99,50 @@ test('result overlay rebuild cleanup cancels stale pending and celebration timer
   assert.match(destroy, /this\.battleResultModalPendingEvent\?\.remove\?\.\(false\);/);
   assert.match(destroy, /this\.battleResultModal\.celebration\?\.timers\?\.forEach\(\(timer\) => timer\?\.remove\?\.\(false\)\);/);
   assert.match(destroy, /item\?\.removeAllListeners\?\.\(\);/);
+});
+
+test('stale battle result pending state is recovered without duplicating live pending timers', () => {
+  const liveCheck = extractMethodBody('isLiveBattleResultModalPendingEvent', 'ensureBattleResultModalVisible');
+  const ensure = extractMethodBody('ensureBattleResultModalVisible', 'completeBattleFlow');
+
+  assert.match(liveCheck, /if \(!event\) return false;/);
+  assert.match(liveCheck, /event\.destroyed \|\| event\.removed \|\| event\.pendingDelete \|\| event\.hasDispatched/);
+  assert.match(liveCheck, /event\.active === false/);
+  assert.match(liveCheck, /'callback' in event && typeof event\.callback !== 'function'/);
+
+  assert.match(ensure, /if \(!this\.gameState\?\.winner\) return false;/);
+  assert.match(ensure, /if \(this\.battleResultModalShown && this\.battleResultModal\) return false;/);
+  assert.match(ensure, /if \(this\.battleResultModalPending && this\.isLiveBattleResultModalPendingEvent\(\)\) \{/);
+  assert.match(ensure, /return false;/);
+  assert.match(ensure, /this\.battleResultModalPendingEvent\?\.remove\?\.\(false\);/);
+  assert.match(ensure, /this\.battleResultModalPendingEvent = null;/);
+  assert.match(ensure, /this\.battleResultModalPending = false;/);
+  assert.match(ensure, /this\.showBattleResultModal\(\{ skipReveal: true \}\);/);
+});
+
+test('battle result recovery hooks lifecycle and rebuild paths after normal UI refresh', () => {
+  const complete = extractMethodBody('completeBattleFlow', 'showBattleExhaustedBannerThenScheduleResult');
+  const lifecycle = extractMethodBody('recoverFromLifecycle', 'normalizeLifecycleUiState');
+  const rebuild = extractMethodBody('rebuildBattleView', 'shutdown');
+
+  assert.match(complete, /this\.scheduleBattleResultModal\(delayMs\);[\s\S]*this\.ensureBattleResultModalVisible\('complete-battle-flow'\);/);
+  assert.match(lifecycle, /this\.refreshLifecycleBanners\(reason\);[\s\S]*this\.ensureBattleResultModalVisible\(`lifecycle:\$\{reason\}`\);/);
+  assert.match(rebuild, /this\.restoreResultOverlayFromSnapshot\(resultOverlaySnapshot\);[\s\S]*this\.ensureBattleResultModalVisible\(`rebuild:\$\{reason\}`\);/);
+});
+
+test('result recovery preserves tutorial overlay priority and tutorial result routing', () => {
+  const ensure = extractMethodBody('ensureBattleResultModalVisible', 'completeBattleFlow');
+  const refresh = extractMethodBody('refreshLifecycleBanners', 'shouldRebuildBattleView');
+  const updateBanner = extractMethodBody('updateTutorialBanner', 'destroyTutorialBanner');
+  const updateFocus = extractMethodBody('updateTutorialFocus', 'showOpeningTurnStartBanner');
+  const buttons = extractMethodBody('getBattleResultModalButtons', 'showBattleResultModal');
+
+  assert.match(ensure, /this\.destroyTutorialBanner\?\.\(\);/);
+  assert.match(ensure, /this\.destroyTutorialFocus\?\.\(\);/);
+  assert.match(refresh, /if \(this\.battleResultModalShown \|\| this\.battleResultModalPending \|\| this\.gameState\?\.winner\) return;/);
+  assert.match(updateBanner, /this\.battleResultModalShown \|\| this\.battleResultModalPending/);
+  assert.match(updateFocus, /this\.battleResultModalShown \|\| this\.battleResultModalPending/);
+  assert.match(buttons, /if \(this\.isTutorialBattle\(\)\) \{/);
+  assert.match(buttons, /translateActive\('ui\.common\.exit', 'EXIT'\)/);
+  assert.match(buttons, /\(\) => this\.exitTutorialBattleToGameMenu\(\)/);
 });

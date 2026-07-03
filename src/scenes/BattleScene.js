@@ -1480,6 +1480,40 @@ export default class BattleScene extends Phaser.Scene {
     this.battleResultModalPendingEvent = pendingResultModalEvent;
   }
 
+  isLiveBattleResultModalPendingEvent(event = this.battleResultModalPendingEvent) {
+    if (!event) return false;
+    if (event.destroyed || event.removed || event.pendingDelete || event.hasDispatched) return false;
+    if (event.active === false) return false;
+    if ('callback' in event && typeof event.callback !== 'function') return false;
+    return true;
+  }
+
+  ensureBattleResultModalVisible(reason = 'unknown') {
+    if (!this.gameState?.winner) return false;
+    if (this.battleResultModalShown && this.battleResultModal) return false;
+
+    if (this.battleResultModalPending && this.isLiveBattleResultModalPendingEvent()) {
+      this.destroyTutorialBanner?.();
+      this.destroyTutorialFocus?.();
+      return false;
+    }
+
+    if (this.battleResultModalPending || this.battleResultModalPendingEvent) {
+      console.warn('Recovering stale battle result modal pending state', {
+        reason,
+        winner: this.gameState.winner,
+      });
+      this.battleResultModalPendingEvent?.remove?.(false);
+      this.battleResultModalPendingEvent = null;
+      this.battleResultModalPending = false;
+    }
+
+    this.destroyTutorialBanner?.();
+    this.destroyTutorialFocus?.();
+    this.showBattleResultModal({ skipReveal: true });
+    return Boolean(this.battleResultModalShown && this.battleResultModal);
+  }
+
   completeBattleFlow(delayMs = 500) {
     if (!this.gameState?.winner || this.battleResultModalShown) return false;
     this.playBaseBreakSfxOnce();
@@ -1489,6 +1523,7 @@ export default class BattleScene extends Phaser.Scene {
       return true;
     }
     this.scheduleBattleResultModal(delayMs);
+    this.ensureBattleResultModalVisible('complete-battle-flow');
     return true;
   }
 
@@ -3413,6 +3448,7 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     this.refreshLifecycleBanners(reason);
+    this.ensureBattleResultModalVisible(`lifecycle:${reason}`);
 
     if (!this.gameState?.winner && !this.battleAmbienceStopping) {
       this.startCampaignBattleTimer();
@@ -3582,6 +3618,7 @@ export default class BattleScene extends Phaser.Scene {
     this.updateTutorialBanner();
 
     this.restoreResultOverlayFromSnapshot(resultOverlaySnapshot);
+    this.ensureBattleResultModalVisible(`rebuild:${reason}`);
 
     console.debug('BattleScene view rebuilt from runtime GameState', {
       reason,
