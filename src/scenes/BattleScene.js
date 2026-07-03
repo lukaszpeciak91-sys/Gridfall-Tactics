@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
-import { getTutorialBattleData } from '../data/tutorial/tutorialDecks.js';
+import { getTutorialBattleData, tutorialEnemyFaction, tutorialPlayerFaction } from '../data/tutorial/tutorialDecks.js';
 import { applyTutorialOpeningSetup, isTutorialBattleContext, performTutorialOpeningMulligan } from '../systems/tutorialOpening.js';
 import { selectNextTutorialEnemyAction } from '../systems/tutorialEnemyActions.js';
 import { checkTutorialInputGate } from '../systems/tutorialInputGate.js';
@@ -10,7 +10,7 @@ import { chooseEnemyAction, isVerySafeConcedableState, recordBattleActionUse, se
 import { getTargetingStateForEffect } from '../systems/cardTargeting.js';
 import { COMBAT_ATTACK_PRESENTATIONS, getCombatAttackPresentation, getCombatEventAttackerIndex, getCombatEventInterceptOriginalTargetIndex, getCombatEventTargetIndex, getLaneLethalTargetIndexes, getLaneSimultaneousUnitClash, shouldAnimateCombatAttacker, shouldUseControlledHeroStrikePresentation } from '../systems/combatAnimation.js';
 import { BATTLE_BACKGROUND_FALLBACK_COLOR, BATTLE_BACKGROUND_FALLBACK_COLOR_HEX, createCoverBackground, getBattleBackgroundAsset, hasLoadedImageAsset, preloadBattleBackgroundArt, preloadImageAsset, resolvePublicAssetPath } from '../rendering/backgroundArt.js';
-import { preloadAllCardIllustrations } from '../rendering/cardIllustrationAssets.js';
+import { preloadAllCardIllustrations, preloadCardIllustrationsForFaction } from '../rendering/cardIllustrationAssets.js';
 import { calculateBattleLayoutMetrics } from '../ui/battleLayout.js';
 import { calculateHandCardFocusBounds, calculateTutorialBannerLayout } from '../ui/tutorialUxLayout.js';
 import { calculateHandBackCardCoverCrop, calculateHandBackCardDepth, shouldRenderHandBackCard } from '../ui/handBackCardPresentation.js';
@@ -417,6 +417,8 @@ export default class BattleScene extends Phaser.Scene {
     });
     preloadSecondaryButtonAsset(this);
     preloadAllCardIllustrations(this);
+    preloadCardIllustrationsForFaction(this, tutorialPlayerFaction);
+    preloadCardIllustrationsForFaction(this, tutorialEnemyFaction);
     preloadAudioAssets(this);
   }
 

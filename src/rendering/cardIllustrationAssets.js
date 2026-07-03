@@ -133,9 +133,9 @@ export function preloadCardIllustration(scene, card, options = {}) {
 
 export function preloadCardIllustrationsForFaction(scene, factionKeyOrData) {
   const faction = typeof factionKeyOrData === 'string' ? getFactionByKey(factionKeyOrData) : factionKeyOrData;
-  const factionId = getCardIllustrationFactionId({ factionId: faction?.id }, faction?.id);
+  const fallbackFactionId = getCardIllustrationFactionId({ factionId: faction?.id }, faction?.id);
   return (faction?.deck ?? [])
-    .map((card) => preloadCardIllustration(scene, card, { factionId }))
+    .map((card) => preloadCardIllustration(scene, card, { factionId: getCardIllustrationFactionId(card) || fallbackFactionId }))
     .filter(Boolean).length;
 }
 
