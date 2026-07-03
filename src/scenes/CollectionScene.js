@@ -469,6 +469,14 @@ export default class CollectionScene extends Phaser.Scene {
     if (!this.inspectPreview) return;
 
     const inspect = this.inspectPreview;
+    inspect.deactivate?.();
+    inspect.overlay?.disableInteractive?.();
+    inspect.overlay?.removeAllListeners?.();
+    inspect.previewItems?.forEach((item) => {
+      item?.disableInteractive?.();
+      item?.removeAllListeners?.();
+    });
+
     const items = [inspect.root, inspect.overlay, inspect.glow, inspect.background, inspect.label].filter(Boolean);
     this.tweens?.killTweensOf?.(items);
     this.inspectPreview = null;
@@ -476,7 +484,11 @@ export default class CollectionScene extends Phaser.Scene {
     const destroyItems = () => {
       inspect.overlay?.removeAllListeners?.();
       inspect.overlay?.destroy?.();
-      inspect.root?.destroy?.();
+      if (typeof inspect.destroy === 'function') {
+        inspect.destroy();
+      } else {
+        inspect.root?.destroy?.();
+      }
     };
 
     if (!animate || !inspect.root?.active) {
