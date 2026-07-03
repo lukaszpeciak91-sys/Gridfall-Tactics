@@ -9,6 +9,7 @@ const FRIENDLY_SINGLE_TARGET_EFFECTS = new Set([
   'heal_3',
   'temp_armor_1',
   'swap_adjacent_then_resolve',
+  'swap_any_two_friendly_units_buff_both_atk_1',
 ]);
 
 const ENEMY_SINGLE_TARGET_EFFECTS = new Set([
@@ -33,6 +34,9 @@ export function getTargetingStateForEffect(effectId, cardId) {
   }
   if (effectId === 'enemy_up_to_2_atk_minus_1') {
     return { cardId, targetType: 'enemy-unit', requiredTargets: 2, targetLimit: 2, targetConstraint: 'positive-attack', targetIndexes: [] };
+  }
+  if (effectId === 'swap_any_two_friendly_units_buff_both_atk_1') {
+    return { cardId, targetType: 'friendly-unit', requiredTargets: 2, targetIndexes: [] };
   }
   if (effectId === 'swap_any_two_units') {
     return { cardId, targetType: 'any-unit', requiredTargets: 2, targetIndexes: [] };

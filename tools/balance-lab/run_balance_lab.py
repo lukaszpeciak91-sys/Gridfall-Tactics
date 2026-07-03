@@ -43,6 +43,11 @@ def utf8_subprocess_env() -> dict[str, str]:
 
 
 ALLOWED_STAT_FIELDS = {"attack", "hp", "armor"}
+IMPLEMENTED_CONCRETE_EFFECT_IDS = {
+    "decay_attack_after_combat",
+    "atk_plus_per_other_ally",
+    "swap_any_two_friendly_units_buff_both_atk_1",
+}
 REQUIRED_REPLACE_CARD_FIELDS = {"id", "name", "type", "targeting", "textShort"}
 REQUIRED_UNIT_REPLACE_CARD_FIELDS = {"attack", "hp", "armor"}
 ALLOWED_TELEMETRY_MODES = {"", "basic", "cards", "ai", "effectVariants", "all"}
@@ -659,6 +664,7 @@ def collect_known_effect_ids(root: Path) -> set[str]:
         for card in deck:
             if isinstance(card, dict) and isinstance(card.get("effectId"), str) and card["effectId"]:
                 effect_ids.add(card["effectId"])
+    effect_ids.update(IMPLEMENTED_CONCRETE_EFFECT_IDS)
     return effect_ids
 
 def find_faction_file(root: Path, faction: str) -> tuple[Path, dict[str, Any]] | None:
