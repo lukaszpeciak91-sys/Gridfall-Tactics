@@ -4845,10 +4845,14 @@ export default class BattleScene extends Phaser.Scene {
     if (this.battleResultModalPending || this.battleResultModalShown || this.isFlowResolving) return false;
     if (cardView && cardView.isActive === false) return false;
     if (cardView?.root && (cardView.root.active === false || cardView.root.scene == null)) return false;
+    if (cardView?.label && !isRenderableTextObject(cardView.label)) return false;
+    if (cardView?.nameText && !isRenderableTextObject(cardView.nameText)) return false;
+    if (cardView?.bodyText && !isRenderableTextObject(cardView.bodyText)) return false;
     return true;
   }
 
   disableCardViewInteractions(cardView) {
+    deactivateCardPreviewView(cardView);
     cardView?.items?.forEach((item) => {
       item?.disableInteractive?.();
     });
@@ -9797,9 +9801,12 @@ export default class BattleScene extends Phaser.Scene {
     this.tweens?.killTweensOf?.(items);
     this.selectedHandCardZoom = null;
 
+    this.disableCardViewInteractions(inspect);
+
     const destroyItems = () => {
       inspect.overlay?.removeAllListeners?.();
       inspect.overlay?.destroy?.();
+      inspect.destroy?.();
       inspect.root?.destroy?.();
     };
 
@@ -10001,7 +10008,9 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   resetCardHighlights({ showPreview = true } = {}) {
+    if (this.battleResultModalPending || this.battleResultModalShown) return;
     this.cardViews.forEach((card) => {
+      if (!this.isCardViewPointerMutationAllowed(card) && card?.isActive === false) return;
       const isMulliganSelected = this.openingMulliganPending && this.selectedMulliganCardIds.includes(card.cardId);
       const isGameplaySelected = !this.openingMulliganPending && card.cardId === this.selectedCardId;
       const isHighlighted = isGameplaySelected || isMulliganSelected;
