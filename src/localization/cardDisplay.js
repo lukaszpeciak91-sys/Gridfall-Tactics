@@ -33,8 +33,11 @@ export function getCardDisplayName(card, locale = 'en') {
 
 export function getCardTextShort(card, locale = 'en') {
   const idTextKey = typeof card?.id === 'string' ? `cards.${card.id}.textShort` : null;
+  const localizedFallbackText = locale === 'pl' && typeof card?.textShortPl === 'string'
+    ? card.textShortPl
+    : card?.textShort;
   const keyedText = translateCardField(card?.textKey, locale, undefined);
-  return keyedText ?? translateCardField(idTextKey, locale, card?.textShort);
+  return keyedText ?? translateCardField(idTextKey, locale, localizedFallbackText);
 }
 
 export function getCardTypeLabel(card, locale = 'en') {

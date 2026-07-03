@@ -6344,11 +6344,12 @@ export default class BattleScene extends Phaser.Scene {
 
     if (type === 'mulligan_card') {
       const cardId = target.cardId ?? getTutorialBattleData().openingConfig.requiredPlayerMulliganCardId;
+      const inputType = expected.type === 'inspect_card' ? 'inspect_card' : 'select_mulligan_card';
       return Boolean(
         this.openingMulliganPending
         && !(this.isOpeningMulliganInputLocked?.() ?? false)
         && this.gameState?.player?.hand?.some((card) => card.id === cardId)
-        && (this.isTutorialInputAllowed?.({ type: 'select_mulligan_card', cardId }) ?? true)
+        && (this.isTutorialInputAllowed?.({ type: inputType, cardId }) ?? true)
       );
     }
 
