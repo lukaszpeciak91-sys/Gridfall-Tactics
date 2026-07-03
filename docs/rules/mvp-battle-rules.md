@@ -146,6 +146,7 @@ The no-progress detector still exists and uses the stricter "meaningful for outc
 - `type: "unit"` cards are board units and must be placed/redeployed onto valid friendly combat slots.
 - **All non-unit cards** are treated by gameplay logic as **effect cards**.
 - `order`, `special`, and `utility` currently behave as **descriptive taxonomy labels** in card data; gameplay execution path is non-unit effect resolution unless a specific effectId says otherwise.
+- Balance Lab custom/replacement cards may use implemented non-production effectId `swap_any_two_friendly_units` — Swap any 2 [ALLY]. It requires exactly two different acting-owner units and adds no stat buffs, damage, or draw.
 - Card JSON remains the gameplay source of truth. It still owns stable `id`, original `name`, `effectId`, targeting, stats, and `textShort`; do not remove original names, add translation files, or add `nameKey`/`textKey` until the later localization migration.
 - Presentation metadata is additive UI data. Card display strings flow through `src/localization/cardDisplay.js`, which now prefers locale-aware presentation-name overrides from `src/data/presentation/factionPresentation.js` and falls back to English presentation names or the original `card.name`.
 - UI-specific labels are separated by explicit render-mode helpers in `src/rendering/cardRenderModes.js`. This keeps gameplay data stable while allowing multiple UI render modes for hand/full cards, board/compact units, collection rows/details, and deck summaries.

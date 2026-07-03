@@ -322,6 +322,13 @@ Validation rules for `customFactions`:
 - Unknown `effectId` values are rejected because Balance Lab does not add custom effect logic.
 - `effectParams` is rejected.
 
+Implemented concrete non-production `effectId` values currently accepted by Balance Lab validation:
+
+- `swap_any_two_friendly_units` — Swap any 2 [ALLY]. Implemented, not report-only; swaps exactly two different acting-owner units without stat buffs, damage, or draw.
+- `swap_any_two_friendly_units_buff_both_atk_1` — Swap any 2 [ALLY], then give both +1 temporary ATK.
+- `decay_attack_after_combat` — Unit passive ATK decay after combat.
+- `atk_plus_per_other_ally` — Unit passive ATK bonus per other ally.
+
 Reports mark custom factions as experiment-only. Faction win-rate rows, matchup rows, campaign estimates, and card telemetry for custom factions show baseline as `N/A` instead of treating the missing baseline rows as parse errors. The Paste into ChatGPT block includes a custom-factions section, custom faction global non-draw WR, top custom faction matchups, custom campaign estimates when available, and experiment-only custom card telemetry.
 
 ## Output

@@ -13,6 +13,7 @@ const FUNERAL_PYRE_TRIGGER_CAP = 2;
 const COMBAT_KEYWORD_OVERFLOW = 'overflow';
 const DECAY_ATTACK_AFTER_COMBAT_EFFECT_ID = 'decay_attack_after_combat';
 const ATK_PLUS_PER_OTHER_ALLY_EFFECT_ID = 'atk_plus_per_other_ally';
+const FRIENDLY_SWAP_EFFECT_ID = 'swap_any_two_friendly_units';
 const FRIENDLY_SWAP_BUFF_EFFECT_ID = 'swap_any_two_friendly_units_buff_both_atk_1';
 export const RUNNER_OPEN_LANE_ATK_BONUS = 2;
 
@@ -230,6 +231,7 @@ function cardCanRealisticallyAffectOutcome(card, state, owner, visitedCardIds = 
       return enemyUnits.length > 0 && applyingEffectCanUnlockOutcome(state, owner, card.effectId);
     case 'control_enemy_unit_this_turn':
       return enemyUnits.some((unit) => getUnitAttack(unit) > 0);
+    case FRIENDLY_SWAP_EFFECT_ID:
     case FRIENDLY_SWAP_BUFF_EFFECT_ID:
       return friendlyUnits.length >= 2;
     case 'swap_any_two_units': {
@@ -1053,6 +1055,7 @@ export function getEffectiveBoardArmor(state, boardIndex) {
 
 function isMoveEffectId(effectId) {
   return effectId === 'swap_any_two_units'
+    || effectId === FRIENDLY_SWAP_EFFECT_ID
     || effectId === 'swap_two_enemy_units'
     || effectId === 'swap_adjacent_enemy_units'
     || effectId === 'swap_adjacent_then_resolve'
@@ -1112,6 +1115,7 @@ function applyLeftmostAdjacentEnemySwap(state, owner) {
 function canApplyEffectById(state, owner, effectId) {
   switch (effectId) {
     case 'swap_adjacent_enemy_units':
+    case FRIENDLY_SWAP_EFFECT_ID:
     case FRIENDLY_SWAP_BUFF_EFFECT_ID:
     case 'enemy_up_to_2_atk_minus_1':
       return false;
@@ -2338,6 +2342,7 @@ function validateTargetedEffectResolution(state, owner, card, boardIndex, target
       if (selectedUnits.some((unit) => getUnitAttack(unit) <= 0)) return { ok: false, reason: 'Targets must have ATK above 0' };
       return { ok: true };
     }
+    case FRIENDLY_SWAP_EFFECT_ID:
     case FRIENDLY_SWAP_BUFF_EFFECT_ID:
     case 'swap_any_two_units': {
       if (selectedTargets.length < 2) return { ok: true, type: 'targeted-effect-pending' };
@@ -2346,7 +2351,7 @@ function validateTargetedEffectResolution(state, owner, card, boardIndex, target
       const firstUnit = state.board[firstIndex];
       const secondUnit = state.board[secondIndex];
       if (!firstUnit || !secondUnit) return { ok: false, reason: 'Both targets must contain units' };
-      if (card.effectId === FRIENDLY_SWAP_BUFF_EFFECT_ID) {
+      if (card.effectId === FRIENDLY_SWAP_EFFECT_ID || card.effectId === FRIENDLY_SWAP_BUFF_EFFECT_ID) {
         if (firstUnit.owner !== owner || secondUnit.owner !== owner) return { ok: false, reason: 'Targets must be friendly' };
       } else if (firstUnit.owner !== secondUnit.owner) return { ok: false, reason: 'Swap targets must be on the same side' };
       return { ok: true };
@@ -2535,6 +2540,7 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
       targetUnit.tempArmorMod = (targetUnit.tempArmorMod ?? 0) + 1;
       break;
     }
+    case FRIENDLY_SWAP_EFFECT_ID:
     case FRIENDLY_SWAP_BUFF_EFFECT_ID:
     case 'swap_any_two_units': {
       const selectedTargets = Array.isArray(targetIndexes) ? targetIndexes : [boardIndex];
@@ -2546,7 +2552,7 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
       const firstUnit = state.board[firstIndex];
       const secondUnit = state.board[secondIndex];
       if (!firstUnit || !secondUnit) return { ok: false, reason: 'Both targets must contain units' };
-      if (card.effectId === FRIENDLY_SWAP_BUFF_EFFECT_ID) {
+      if (card.effectId === FRIENDLY_SWAP_EFFECT_ID || card.effectId === FRIENDLY_SWAP_BUFF_EFFECT_ID) {
         if (firstUnit.owner !== owner || secondUnit.owner !== owner) return { ok: false, reason: 'Targets must be friendly' };
       } else if (firstUnit.owner !== secondUnit.owner) {
         return { ok: false, reason: 'Swap targets must be on the same side' };

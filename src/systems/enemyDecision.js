@@ -55,6 +55,7 @@ const SAFE_SURRENDER_MEANINGFUL_EFFECT_IDS = new Set([
   'decay_attack_after_combat',
   'atk_plus_per_other_ally',
   'swap_any_two_friendly_units_buff_both_atk_1',
+  'swap_any_two_friendly_units',
 ]);
 
 
@@ -116,6 +117,7 @@ const UTILITY_EFFECT_IDS = new Set([
   'enemy_lane_atk_minus_1',
   'enemy_all_atk_minus_1',
   'control_enemy_unit_this_turn',
+  'swap_any_two_friendly_units',
   'swap_any_two_friendly_units_buff_both_atk_1',
 ]);
 
@@ -471,6 +473,7 @@ function getCandidateTargetIndexes(state, owner, effectId) {
     case 'swap_two_enemy_units':
     case 'swap_adjacent_enemy_units':
       return board.map((unit, index) => (unit?.owner === opponentOwner ? index : -1)).filter((index) => index >= 0);
+    case 'swap_any_two_friendly_units':
     case 'swap_any_two_friendly_units_buff_both_atk_1':
       return board.map((unit, index) => (unit?.owner === friendlyOwner ? index : -1)).filter((index) => index >= 0);
     case 'swap_any_two_units':
@@ -504,6 +507,7 @@ function getActionTargetIndexes(action) {
 
 function isTwoTargetSwapEffect(effectId) {
   return effectId === 'swap_any_two_units'
+    || effectId === 'swap_any_two_friendly_units'
     || effectId === 'swap_any_two_friendly_units_buff_both_atk_1'
     || effectId === 'swap_two_enemy_units'
     || effectId === 'swap_adjacent_enemy_units';
