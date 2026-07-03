@@ -1,9 +1,12 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 import { TUTORIAL_STEPS } from '../src/data/tutorial/tutorialSteps.js';
 import { checkTutorialInputGate } from '../src/systems/tutorialInputGate.js';
 import { calculateCentralBattleBannerLayout, calculateHandCardFocusBounds, calculateTutorialBannerLayout } from '../src/ui/tutorialUxLayout.js';
+
+const battleSceneSource = await readFile(new URL('../src/scenes/BattleScene.js', import.meta.url), 'utf8');
 
 function makeTutorialState(stepId = 'adjacent_swap') {
   return { steps: TUTORIAL_STEPS, currentStepIndex: TUTORIAL_STEPS.findIndex((step) => step.id === stepId), completed: false, lastEvent: null };
@@ -37,6 +40,39 @@ test('central battle banner layout remains centered for arena/campaign banners',
 
   const layout = calculateCentralBattleBannerLayout({ ...scene.layout, baseWidthRatio: 0.88, horizontalPadding: 16 });
   assert.equal(layout.targetY, scene.layout.board.centerY);
+});
+
+test('lifecycle recovery refreshes tutorial banners after rebuild or non-rebuild paths', () => {
+  const recoverBody = battleSceneSource.match(/recoverFromLifecycle\(reason = 'unknown', diagnostics = null\) \{(?<body>[\s\S]*?)\n  \}\n\n  normalizeLifecycleUiState/)?.groups?.body;
+  assert.ok(recoverBody, 'recoverFromLifecycle body should be present');
+  assert.match(recoverBody, /if \(this\.shouldRebuildBattleView\(reason, recoveryDiagnostics\)\) \{[\s\S]*?this\.rebuildBattleView\(reason\);[\s\S]*?\} else \{[\s\S]*?this\.resetCardHighlights\(\);[\s\S]*?\}\s*this\.refreshLifecycleBanners\(reason\);/);
+});
+
+test('lifecycle banner refresh is tutorial-only and result-modal safe', () => {
+  const helperBody = battleSceneSource.match(/refreshLifecycleBanners\(reason = 'unknown'\) \{(?<body>[\s\S]*?)\n  \}\n\n  shouldRebuildBattleView/)?.groups?.body;
+  assert.ok(helperBody, 'refreshLifecycleBanners helper should be present');
+  assert.match(helperBody, /!this\.isTutorialBattle\?\.\(\)/);
+  assert.match(helperBody, /this\.battleResultModalShown \|\| this\.battleResultModalPending \|\| this\.gameState\?\.winner/);
+  assert.match(helperBody, /this\.updateTutorialBanner\?\.\(\);/);
+  assert.match(helperBody, /this\.updateTutorialFocus\?\.\(step\);/);
+  assert.doesNotMatch(helperBody, /showEnemyActionBanner|showPlayerActionBanner|showInvalidActionBanner|showOpeningTurnStartBanner|deferTransientBattleBanner|flushDeferredTransientBattleBanner/);
+});
+
+test('existing tutorial banner object state is normalized when updated', () => {
+  const updateBody = battleSceneSource.match(/updateTutorialBanner\(\) \{(?<body>[\s\S]*?)\n  \}\n\n  onTutorialBannerPointerDown/)?.groups?.body;
+  assert.ok(updateBody, 'updateTutorialBanner body should be present');
+  assert.match(updateBody, /\.setVisible\(true\)\s*\.setAlpha\(0\.98\)\s*\.setDepth\(TUTORIAL_BANNER_DEPTH\)\s*\.setScale\(1\)/);
+  assert.match(updateBody, /setWordWrapWidth\?\.\(layout\.maxTextWidth\)/);
+});
+
+test('tap-continue overlay is re-laid out and reconfigured without duplication', () => {
+  const updateBody = battleSceneSource.match(/updateTutorialBanner\(\) \{(?<body>[\s\S]*?)\n  \}\n\n  onTutorialBannerPointerDown/)?.groups?.body;
+  assert.ok(updateBody, 'updateTutorialBanner body should be present');
+  assert.match(updateBody, /if \(!this\.tutorialBannerOverlay\?\.active\) \{/);
+  assert.match(updateBody, /this\.tutorialBannerOverlay\.setPosition\(layout\.overlayX, layout\.overlayY\)\.setSize\(layout\.overlayWidth, layout\.overlayHeight\);/);
+  assert.match(updateBody, /this\.tutorialBannerOverlay\.setDepth\(TUTORIAL_BANNER_OVERLAY_DEPTH\);/);
+  assert.match(updateBody, /this\.tutorialBannerOverlay\.setVisible\(canTapContinue\);/);
+  assert.match(updateBody, /this\.tutorialBannerOverlay\.input\.enabled = canTapContinue/);
 });
 
 for (const [stepId, cardId] of [

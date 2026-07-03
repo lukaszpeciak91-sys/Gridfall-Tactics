@@ -3412,6 +3412,8 @@ export default class BattleScene extends Phaser.Scene {
       this.resetCardHighlights();
     }
 
+    this.refreshLifecycleBanners(reason);
+
     if (!this.gameState?.winner && !this.battleAmbienceStopping) {
       this.startCampaignBattleTimer();
       this.startBattleAmbience();
@@ -3452,6 +3454,18 @@ export default class BattleScene extends Phaser.Scene {
     this.updatePlayerBaseActionState();
     this.updateInitiativeIndicator();
     this.resetCardHighlights({ showPreview: false });
+  }
+
+  refreshLifecycleBanners(reason = 'unknown') {
+    if (!this.scene || !this.gameState || !this.layout) return;
+    if (!this.isTutorialBattle?.() || !this.tutorialControllerState) return;
+    if (this.battleResultModalShown || this.battleResultModalPending || this.gameState?.winner) return;
+
+    const step = this.getCurrentTutorialStep?.();
+    if (!step || !this.getTutorialStepText?.(step)) return;
+
+    this.updateTutorialBanner?.();
+    this.updateTutorialFocus?.(step);
   }
 
   shouldRebuildBattleView(reason, diagnostics) {
@@ -6256,7 +6270,13 @@ export default class BattleScene extends Phaser.Scene {
         fontStyle: 'bold',
       }).setOrigin(0.5).setDepth(TUTORIAL_BANNER_DEPTH).setAlpha(0.98).setStroke(bannerStyle.stroke, 2);
     } else {
-      this.tutorialBanner.setText(message).setPosition(layout.x, layout.targetY).setVisible(true);
+      this.tutorialBanner
+        .setText(message)
+        .setPosition(layout.x, layout.targetY)
+        .setVisible(true)
+        .setAlpha(0.98)
+        .setDepth(TUTORIAL_BANNER_DEPTH)
+        .setScale(1);
       this.tutorialBanner.setStyle?.({
         fontSize: `${layout.fontSize}px`,
         color: bannerStyle.color,
@@ -6275,8 +6295,9 @@ export default class BattleScene extends Phaser.Scene {
         .on('pointerup', (pointer, localX, localY, event) => this.onTutorialBannerPointerUp(pointer, localX, localY, event));
     }
     this.tutorialBannerOverlay.setPosition(layout.overlayX, layout.overlayY).setSize(layout.overlayWidth, layout.overlayHeight);
-    this.tutorialBannerOverlay.input.enabled = canTapContinue;
+    this.tutorialBannerOverlay.setDepth(TUTORIAL_BANNER_OVERLAY_DEPTH);
     this.tutorialBannerOverlay.setVisible(canTapContinue);
+    if (this.tutorialBannerOverlay.input) this.tutorialBannerOverlay.input.enabled = canTapContinue;
     this.updateTutorialFocus(step);
     return this.tutorialBanner;
   }
