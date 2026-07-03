@@ -26,9 +26,9 @@ const EXPECTED_TUTORIAL_CARD_ART_PATHS = Object.freeze({
   tutorial_filler_scout_1: 'public/assets/cards/tutorial/ally_token.webp',
   tutorial_filler_recruit_1: 'public/assets/cards/tutorial/ally_token.webp',
   tutorial_enemy_blocker_a_1: 'public/assets/cards/tutorial/enemy_01.webp',
-  tutorial_enemy_blocker_b_1: 'public/assets/cards/tutorial/enemy_01.webp',
-  tutorial_enemy_blocker_c_1: 'public/assets/cards/tutorial/enemy_02.webp',
-  tutorial_enemy_blocker_d_1: 'public/assets/cards/tutorial/enemy_03.webp',
+  tutorial_enemy_blocker_b_1: 'public/assets/cards/tutorial/enemy_02.webp',
+  tutorial_enemy_blocker_c_1: 'public/assets/cards/tutorial/enemy_03.webp',
+  tutorial_enemy_blocker_d_1: 'public/assets/cards/tutorial/enemy_04.webp',
   tutorial_enemy_filler_blocker_1: 'public/assets/cards/tutorial/enemy_01.webp',
   tutorial_enemy_filler_blocker_2: 'public/assets/cards/tutorial/enemy_02.webp',
 });
@@ -93,6 +93,19 @@ test('tutorial enemy data exports a tutorial-only 6-card blocker deck', () => {
       { id: 'tutorial_enemy_blocker_b_1', type: 'unit', targeting: 'lane', attack: 1, hp: 2, armor: 0 },
       { id: 'tutorial_enemy_blocker_c_1', type: 'unit', targeting: 'lane', attack: 1, hp: 1, armor: 0 },
       { id: 'tutorial_enemy_blocker_d_1', type: 'unit', targeting: 'lane', attack: 1, hp: 3, armor: 0 },
+    ],
+  );
+
+  assert.deepEqual(
+    ['tutorial_enemy_blocker_a_1', 'tutorial_enemy_blocker_b_1', 'tutorial_enemy_blocker_c_1', 'tutorial_enemy_blocker_d_1'].map((id) => {
+      const card = cardById(tutorialEnemyFaction.deck, id);
+      return { id: card.id, artAssetId: card.artAssetId };
+    }),
+    [
+      { id: 'tutorial_enemy_blocker_a_1', artAssetId: 'enemy_01' },
+      { id: 'tutorial_enemy_blocker_b_1', artAssetId: 'enemy_02' },
+      { id: 'tutorial_enemy_blocker_c_1', artAssetId: 'enemy_03' },
+      { id: 'tutorial_enemy_blocker_d_1', artAssetId: 'enemy_04' },
     ],
   );
 
