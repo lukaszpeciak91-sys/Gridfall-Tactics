@@ -392,7 +392,11 @@ EN: Open the battle menu.
 ### 6. Menu contents
 
 PL: Tu są zasady, ustawienia i poddanie.
+
+Możesz się poddać, jeśli jesteś leszczem.
 EN: Rules, settings, and surrender are here.
+
+You can surrender if you're lame.
 
 Important:
 
