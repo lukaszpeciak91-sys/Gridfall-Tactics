@@ -37,3 +37,20 @@ test('tutorial-only cards stay out of normal faction data files', () => {
 
   assert.equal(tutorialEnemyFaction.deck.find((card) => card.id === 'tutorial_enemy_blocker_a_1').factionId, 'tutorial');
 });
+
+test('tutorial visible rules text omits prototype filler while preserving real effects', async () => {
+  const { tutorialPlayerFaction, tutorialEnemyFaction } = await import('../src/data/tutorial/tutorialDecks.js');
+  const playerById = Object.fromEntries(tutorialPlayerFaction.deck.map((card) => [card.id, card]));
+
+  for (const id of ['tutorial_unit_a_1', 'tutorial_unit_b_1', 'tutorial_mulligan_bait_1', 'tutorial_filler_guard_1', 'tutorial_filler_guard_2', 'tutorial_filler_sentinel_1', 'tutorial_filler_scout_1', 'tutorial_filler_recruit_1']) {
+    assert.equal(playerById[id].textShort, '', `${id} should not show prototype filler text`);
+  }
+
+  for (const card of tutorialEnemyFaction.deck) {
+    assert.equal(card.textShort, '', `${card.id} should not show blocker/prototype text`);
+    assert.doesNotMatch(card.textShort, /simple|blocker/i);
+  }
+
+  assert.equal(playerById.tutorial_all_attack_1.textShort, 'All [ALLY] +1 ATK until combat');
+  assert.equal(playerById.tutorial_unit_c_1.textShort, 'Adjacent [ALLY] +1 ARM until combat');
+});

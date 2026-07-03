@@ -28,6 +28,7 @@ function createTutorialHarness() {
   for (const eventName of ['tap_continue', 'tap_continue', 'tap_continue', 'tap_continue', 'tap_continue', 'tap_continue', 'deck_opened', 'deck_closed', 'battle_menu_opened', 'battle_menu_closed', 'tap_continue']) {
     handleTutorialEvent(controller, eventName);
   }
+  handleTutorialEvent(controller, 'card_inspected', { cardId: openingConfig.requiredPlayerMulliganCardId });
   handleTutorialEvent(controller, 'mulligan_card_selected', { cardId: openingConfig.requiredPlayerMulliganCardId });
   performTutorialOpeningMulligan(state, [openingConfig.requiredPlayerMulliganCardId], openingConfig);
   handleTutorialEvent(controller, 'mulligan_confirmed', { target: 'player_base_button' });

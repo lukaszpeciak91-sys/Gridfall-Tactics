@@ -6,6 +6,7 @@ export const TUTORIAL_EVENT_TO_EXPECTED_TYPE = Object.freeze({
   deck_closed: 'close_deck',
   battle_menu_opened: 'click_battle_menu',
   battle_menu_closed: 'close_battle_menu',
+  card_inspected: 'inspect_card',
   mulligan_card_selected: 'select_mulligan_card',
   mulligan_confirmed: 'confirm_mulligan',
   unit_played: 'play_card_to_slot',
