@@ -119,3 +119,43 @@ test('tutorial swap gate blocks wrong, enemy, and non-adjacent pairs', () => {
   wrongBoard[8] = { owner: 'player' };
   assert.equal(checkTutorialInputGate(makeTutorialState(), { type: 'swap_adjacent_units', fromIndex: 7, toIndex: 8, board: wrongBoard }).allowed, false);
 });
+
+test('victory celebration failures cannot block base result modal assignment', () => {
+  assert.match(battleSceneSource, /celebration = this\.addBattleResultVictoryCelebrationSafely\(centerX, centerY, overlayWidth, overlayHeight, presentation\);/);
+  const helperBody = battleSceneSource.match(/addBattleResultVictoryCelebrationSafely\(centerX, centerY, overlayWidth, overlayHeight, presentation\) \{(?<body>[\s\S]*?)\n  \}\n\n\n  getBattleResultOverlayKind/)?.groups?.body;
+  assert.ok(helperBody, 'victory celebration safe wrapper should be present');
+  assert.match(helperBody, /try \{[\s\S]*return this\.addBattleResultVictoryCelebration\(centerX, centerY, overlayWidth, overlayHeight, presentation\);[\s\S]*\} catch \(error\) \{/);
+  assert.match(helperBody, /showBattleResultModal:victory-celebration-failed/);
+  assert.match(helperBody, /return \{ particles: \[\], timers: \[\] \};/);
+
+  const modalBody = battleSceneSource.match(/showBattleResultModal\(\) \{(?<body>[\s\S]*?)\n  \}\n\n  createResultModalButton/)?.groups?.body;
+  assert.ok(modalBody, 'showBattleResultModal body should be present');
+  assert.ok(
+    modalBody.indexOf('this.playBattleOutcomeSfxOnce();') < modalBody.indexOf('this.addBattleResultVictoryCelebrationSafely'),
+    'victory SFX still plays before optional celebration',
+  );
+  assert.ok(
+    modalBody.indexOf('this.addBattleResultVictoryCelebrationSafely') < modalBody.indexOf('this.battleResultModal = {'),
+    'safe celebration remains before base modal assignment while no longer able to throw through it',
+  );
+});
+
+test('normal result pending teardown is shared by completeBattleFlow and result modal creation', () => {
+  const scheduleBody = battleSceneSource.match(/scheduleBattleResultModal\(delayMs = 500\) \{(?<body>[\s\S]*?)\n  \}\n\n\n  disableResultPendingOverlayInteractions/)?.groups?.body;
+  assert.ok(scheduleBody, 'scheduleBattleResultModal body should be present');
+  assert.match(scheduleBody, /this\.disableResultPendingOverlayInteractions\(\);/);
+
+  const teardownBody = battleSceneSource.match(/disableResultPendingOverlayInteractions\(\) \{(?<body>[\s\S]*?)\n  \}\n\n  isLiveBattleResultModalPendingEvent/)?.groups?.body;
+  assert.ok(teardownBody, 'disableResultPendingOverlayInteractions body should be present');
+  for (const call of [
+    'destroyUtilityMenuPanel',
+    'closeSurrenderConfirmation',
+    'destroyDeckInfoPanel',
+    'destroyTargetingInstruction',
+    'destroyActiveSelectionMessage',
+    'cancelPassHoldToSurrender',
+    'disarmPlayerSurrender',
+  ]) {
+    assert.match(teardownBody, new RegExp(`this\\.${call}\\?\\.\\(\\);`));
+  }
+});
