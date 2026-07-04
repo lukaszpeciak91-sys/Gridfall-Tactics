@@ -9829,14 +9829,37 @@ export default class BattleScene extends Phaser.Scene {
 
     const inspect = this.selectedHandCardZoom;
     this.deactivateInspectPreviewView(inspect);
-    const items = [inspect.root, inspect.overlay, inspect.glow, inspect.background, inspect.label].filter(Boolean);
+    const items = [
+      ...(inspect.items ?? []),
+      inspect.root,
+      inspect.overlay,
+      inspect.glow,
+      inspect.background,
+      inspect.label,
+      inspect.nameText,
+      inspect.bodyText,
+      inspect.cardNumberOverlay,
+      inspect.selectionOutline,
+      inspect.statBar,
+      inspect.statBadges,
+      inspect.art,
+      ...(inspect.previewItems ?? []),
+    ].filter(Boolean);
     this.tweens?.killTweensOf?.(items);
     this.selectedHandCardZoom = null;
 
+    let destroyed = false;
     const destroyItems = () => {
+      if (destroyed) return;
+      destroyed = true;
+      this.deactivateInspectPreviewView(inspect);
       inspect.overlay?.removeAllListeners?.();
       inspect.overlay?.destroy?.();
-      inspect.root?.destroy?.();
+      if (typeof inspect.destroy === 'function') {
+        inspect.destroy();
+      } else {
+        inspect.root?.destroy?.();
+      }
     };
 
     if (!animate || !inspect.root?.active) {
@@ -9845,6 +9868,11 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
+    this.time?.delayedCall?.(INSPECT_CARD_TWEEN_OUT_MS + 50, () => {
+      if (destroyed) return;
+      this.restoreInspectDimming();
+      destroyItems();
+    });
     this.tweens.add({
       targets: inspect.root,
       x: inspect.sourceX,

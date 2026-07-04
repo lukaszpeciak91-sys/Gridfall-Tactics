@@ -778,7 +778,9 @@ function deactivateCardPreviewView(view) {
   if (!view || view.isActive === false) return;
   view.isActive = false;
   view.items?.forEach((item) => {
-    item?.disableInteractive?.();
+    if (item?.scene) {
+      item?.disableInteractive?.();
+    }
     item?.removeAllListeners?.();
   });
 }

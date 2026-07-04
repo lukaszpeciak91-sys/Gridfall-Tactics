@@ -469,25 +469,75 @@ export default class CollectionScene extends Phaser.Scene {
     if (!this.inspectPreview) return;
 
     const inspect = this.inspectPreview;
-    inspect.deactivate?.();
-    inspect.overlay?.disableInteractive?.();
-    inspect.overlay?.removeAllListeners?.();
-    inspect.previewItems?.forEach((item) => {
-      item?.disableInteractive?.();
+    const safeDisableInteractive = (item) => {
+      if (!item || !item.scene || item.active === false) return;
+      item.disableInteractive?.();
+    };
+    const safeRemoveListeners = (item) => {
       item?.removeAllListeners?.();
+    };
+    const safeDestroy = (item) => {
+      if (!item || item.active === false || item.destroyed || item._destroyed) return;
+      try {
+        item.destroy?.();
+      } catch (error) {
+        // Stale Phaser objects can lose their scene during teardown; cleanup must remain no-throw.
+      }
+    };
+    const safeDeactivateInspect = () => {
+      if (typeof inspect.deactivate !== 'function') return;
+      try {
+        inspect.deactivate();
+      } catch (error) {
+        // Shared preview deactivate may encounter stale Phaser objects during scene teardown.
+      }
+    };
+    const inspectItems = [
+      ...(inspect.items ?? []),
+      inspect.root,
+      inspect.overlay,
+      inspect.glow,
+      inspect.background,
+      inspect.label,
+      inspect.nameText,
+      inspect.bodyText,
+      inspect.cardNumberOverlay,
+      inspect.selectionOutline,
+      inspect.statBar,
+      inspect.statBadges,
+      inspect.art,
+      ...(inspect.previewItems ?? []),
+    ].filter(Boolean);
+    const uniqueInspectItems = [...new Set(inspectItems)];
+
+    safeDeactivateInspect();
+    uniqueInspectItems.forEach((item) => {
+      safeDisableInteractive(item);
+      safeRemoveListeners(item);
     });
 
-    const items = [inspect.root, inspect.overlay, inspect.glow, inspect.background, inspect.label].filter(Boolean);
-    this.tweens?.killTweensOf?.(items);
+    this.tweens?.killTweensOf?.(uniqueInspectItems);
     this.inspectPreview = null;
 
+    let destroyed = false;
     const destroyItems = () => {
-      inspect.overlay?.removeAllListeners?.();
-      inspect.overlay?.destroy?.();
+      if (destroyed) return;
+      destroyed = true;
+      uniqueInspectItems.forEach((item) => {
+        safeDisableInteractive(item);
+        safeRemoveListeners(item);
+      });
+      safeRemoveListeners(inspect.overlay);
+      safeDestroy(inspect.overlay);
       if (typeof inspect.destroy === 'function') {
-        inspect.destroy();
+        try {
+          inspect.destroy();
+        } catch (error) {
+          // Shared preview destroy may re-run deactivate on stale objects; fall back to root cleanup.
+          safeDestroy(inspect.root);
+        }
       } else {
-        inspect.root?.destroy?.();
+        safeDestroy(inspect.root);
       }
     };
 
@@ -496,6 +546,7 @@ export default class CollectionScene extends Phaser.Scene {
       return;
     }
 
+    this.time?.delayedCall?.(INSPECT_CARD_TWEEN_OUT_MS + 50, destroyItems);
     this.tweens.add({
       targets: inspect.root,
       x: inspect.sourceX,
