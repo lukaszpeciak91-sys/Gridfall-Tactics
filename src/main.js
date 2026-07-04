@@ -17,6 +17,10 @@ import BoardUnitArtViewportDebugScene from './scenes/BoardUnitArtViewportDebugSc
 import { installSessionLifecycle } from './systems/sessionLifecycle.js';
 import { installFullscreenPortraitFit } from './systems/fullscreenPortraitFit.js';
 import { installHighDpiCanvas } from './rendering/highDpiCanvas.js';
+import { exposeBuildInfoGlobal, logBuildInfo } from './buildInfo.js';
+
+exposeBuildInfoGlobal();
+logBuildInfo();
 
 const config = {
   type: Phaser.AUTO,
