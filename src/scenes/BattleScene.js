@@ -1876,12 +1876,13 @@ export default class BattleScene extends Phaser.Scene {
     const options = arguments[0] ?? {};
     const skipReveal = options.skipReveal === true;
     this.logResultModalDiagnostic('showBattleResultModal:entered', { skipReveal });
-    this.battleResultModalPending = false;
     this.disableCardHoverInteractions();
-    if (!this.gameState?.winner || this.battleResultModalShown) return;
+    if (!this.gameState?.winner || this.battleResultModalShown) {
+      this.battleResultModalPending = false;
+      return;
+    }
     const modalItems = [];
     try {
-      this.isFlowResolving = false;
       this.updateActionSlotBadge();
       this.selectedCardId = null;
       this.pendingSwapIndex = null;
@@ -2025,6 +2026,8 @@ export default class BattleScene extends Phaser.Scene {
         skipReveal,
         pendingModalItemCount: modalItems.length,
       });
+      this.battleResultModalPending = false;
+      this.isFlowResolving = false;
       this.battleResultModal = {
         overlay,
         titleAura,
@@ -2102,6 +2105,7 @@ export default class BattleScene extends Phaser.Scene {
       this.battleResultModalShown = false;
       this.battleResultModalPending = false;
       this.resultOverlayState = null;
+      this.isFlowResolving = false;
       this.updateActionSlotBadge();
       return;
     }
@@ -4932,22 +4936,72 @@ export default class BattleScene extends Phaser.Scene {
     if (this.battleResultModalPending || this.battleResultModalShown || this.isFlowResolving) return false;
     if (cardView && cardView.isActive === false) return false;
     if (cardView?.root && (cardView.root.active === false || cardView.root.scene == null)) return false;
+    if (cardView?.background && (cardView.background.active === false || cardView.background.scene == null)) return false;
     return true;
   }
 
+  safeDisableInteractiveObject(item) {
+    if (!item || item.scene == null || typeof item.disableInteractive !== 'function') return;
+    item.disableInteractive();
+  }
+
+  removeCardPointerListeners(item) {
+    item?.removeAllListeners?.('pointerover');
+    item?.removeAllListeners?.('pointerout');
+    item?.removeAllListeners?.('pointerdown');
+    item?.removeAllListeners?.('pointerup');
+    item?.removeAllListeners?.('pointermove');
+    item?.removeAllListeners?.('pointercancel');
+  }
+
   disableCardViewInteractions(cardView) {
-    cardView?.items?.forEach((item) => {
-      item?.disableInteractive?.();
+    if (!cardView) return;
+    const wasActive = cardView.isActive !== false;
+    cardView.isActive = false;
+    if (wasActive) cardView.deactivate?.();
+    const cardItems = [
+      ...(cardView.items ?? []),
+      cardView.root,
+      cardView.background,
+      cardView.glow,
+      cardView.label,
+      cardView.nameText,
+      cardView.bodyText,
+      cardView.cardNumberOverlay,
+      cardView.selectionOutline,
+      cardView.statBar,
+      cardView.statBadges,
+      cardView.art,
+      cardView.blockedOverlay,
+      cardView.blockedIconBubble,
+      cardView.blockedIcon,
+    ].filter(Boolean);
+    const safeDisable = this.safeDisableInteractiveObject ?? ((item) => {
+      if (!item || item.scene == null || typeof item.disableInteractive !== 'function') return;
+      item.disableInteractive();
     });
-    cardView?.background?.removeAllListeners?.('pointerover');
-    cardView?.background?.removeAllListeners?.('pointerout');
-    cardView?.background?.removeAllListeners?.('pointerdown');
-    cardView?.background?.removeAllListeners?.('pointerup');
+    const removeListeners = this.removeCardPointerListeners ?? ((item) => {
+      item?.removeAllListeners?.('pointerover');
+      item?.removeAllListeners?.('pointerout');
+      item?.removeAllListeners?.('pointerdown');
+      item?.removeAllListeners?.('pointerup');
+      item?.removeAllListeners?.('pointermove');
+      item?.removeAllListeners?.('pointercancel');
+    });
+    [...new Set(cardItems)].forEach((item) => {
+      safeDisable(item);
+      removeListeners(item);
+    });
   }
 
   disableCardHoverInteractions() {
     this.cardViews?.forEach((cardView) => this.disableCardViewInteractions(cardView));
-    this.handBackCards?.forEach((backCard) => backCard?.disableInteractive?.());
+    this.disableCardViewInteractions(this.inspectPreview);
+    this.disableCardViewInteractions(this.selectedHandCardZoom);
+    this.handBackCards?.forEach((backCard) => {
+      this.safeDisableInteractiveObject(backCard);
+      this.removeCardPointerListeners(backCard);
+    });
   }
 
   deactivateInspectPreviewView(inspect) {
@@ -4974,14 +5028,21 @@ export default class BattleScene extends Phaser.Scene {
     ].filter(Boolean);
     const uniqueInspectItems = [...new Set(inspectItems)];
 
-    uniqueInspectItems.forEach((item) => {
-      item?.disableInteractive?.();
+    const safeDisable = this.safeDisableInteractiveObject ?? ((item) => {
+      if (!item || item.scene == null || typeof item.disableInteractive !== 'function') return;
+      item.disableInteractive();
+    });
+    const removeListeners = this.removeCardPointerListeners ?? ((item) => {
       item?.removeAllListeners?.('pointerover');
       item?.removeAllListeners?.('pointerout');
       item?.removeAllListeners?.('pointerdown');
       item?.removeAllListeners?.('pointerup');
       item?.removeAllListeners?.('pointermove');
       item?.removeAllListeners?.('pointercancel');
+    });
+    uniqueInspectItems.forEach((item) => {
+      safeDisable(item);
+      removeListeners(item);
     });
   }
 
@@ -10153,6 +10214,7 @@ export default class BattleScene extends Phaser.Scene {
 
   resetCardHighlights({ showPreview = true } = {}) {
     this.cardViews.forEach((card) => {
+      if (card?.isActive === false || card?.root?.scene == null) return;
       const isMulliganSelected = this.openingMulliganPending && this.selectedMulliganCardIds.includes(card.cardId);
       const isGameplaySelected = !this.openingMulliganPending && card.cardId === this.selectedCardId;
       const isHighlighted = isGameplaySelected || isMulliganSelected;
