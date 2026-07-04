@@ -1846,6 +1846,19 @@ export default class BattleScene extends Phaser.Scene {
   }
 
 
+  addBattleResultVictoryCelebrationSafely(centerX, centerY, overlayWidth, overlayHeight, presentation) {
+    try {
+      return this.addBattleResultVictoryCelebration(centerX, centerY, overlayWidth, overlayHeight, presentation);
+    } catch (error) {
+      this.logResultModalDiagnostic('showBattleResultModal:victory-celebration-failed', {
+        errorMessage: error?.message ?? String(error),
+      });
+      console.warn('Battle result victory celebration failed; continuing with base result modal.', error);
+      return { particles: [], timers: [] };
+    }
+  }
+
+
   getBattleResultOverlayKind() {
     if (this.isCampaignBattle()) return 'campaign-battle-result';
     if (this.isTutorialBattle()) return 'tutorial-battle-result';
@@ -2047,7 +2060,7 @@ export default class BattleScene extends Phaser.Scene {
             });
           },
         });
-        celebration = this.addBattleResultVictoryCelebration(centerX, centerY, overlayWidth, overlayHeight, presentation);
+        celebration = this.addBattleResultVictoryCelebrationSafely(centerX, centerY, overlayWidth, overlayHeight, presentation);
       }
 
       this.logResultModalDiagnostic('showBattleResultModal:before-modal-assignment', {
