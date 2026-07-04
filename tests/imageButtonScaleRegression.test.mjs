@@ -22,7 +22,7 @@ test('image button state changes preserve display-size base scale', () => {
   assert.match(source, /function storeBaseScale\(target\) \{[\s\S]*target\?\.setData\?\.\('baseScaleX', target\.scaleX \?\? 1\);[\s\S]*target\?\.setData\?\.\('baseScaleY', target\.scaleY \?\? 1\);[\s\S]*\}/);
   assert.match(source, /scene\.add\.image\(x, y, SECONDARY_BUTTON_ASSET\.key, buttonFrame\)\.setDisplaySize\(width, visualHeight\)/);
   assert.match(source, /backing\.setOrigin\(0\.5\)\.setDepth\(depth\);\s*storeBaseScale\(backing\);/);
-  assert.match(source, /scalableTargets\.forEach\(\(target\) => setTargetScaleFromBase\(target, scale\)\)/);
+  assert.match(source, /scalableTargets(?:\.filter\(isLiveGameObject\))?\.forEach\(\(target\) => setTargetScaleFromBase\(target, scale\)\)/);
   assert.match(source, /target\.setScale\(baseScale\.x \* stateScale, baseScale\.y \* stateScale\)/);
 });
 
