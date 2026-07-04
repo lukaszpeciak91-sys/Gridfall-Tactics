@@ -15,7 +15,6 @@ function extractMethodBody(name, nextName) {
   return source.slice(start, end);
 }
 
-
 test('scene cleanup immediately stops active outcome stingers before killing tweens', () => {
   const cleanup = extractMethodBody('cleanupSceneObjects', 'create');
   assert.match(cleanup, /this\.stopOutcomeStinger\(\{ fadeMs: 0 \}\);[\s\S]*this\.destroyBattleResultModal\(\);/);
@@ -69,6 +68,22 @@ test('battle result modal enters terminal overlay state only after modal assignm
   assert.ok(shownIndex > modalAssignmentIndex, 'battleResultModalShown should be set only after the modal object exists');
   assert.ok(overlayIndex > shownIndex, 'resultOverlayState should be initialized after the shown flag');
   assert.match(showBattle, /this\.resetCardHighlights\(\{ showPreview: false \}\);/);
+});
+
+test('successful battle result modal clears pending and flow flags before enabling buttons', () => {
+  const showBattle = extractMethodBody('showBattleResultModal', 'createResultModalButton');
+  const buttons = extractMethodBody('createResultModalButton', 'destroyBattleResultModal');
+  const modalAssignmentIndex = showBattle.indexOf('this.battleResultModal = {');
+  const pendingClearIndex = showBattle.indexOf('this.battleResultModalPending = false;', showBattle.indexOf('this.logResultModalDiagnostic(\'showBattleResultModal:before-modal-assignment\''));
+  const flowClearIndex = showBattle.indexOf('this.isFlowResolving = false;', pendingClearIndex);
+  const shownIndex = showBattle.indexOf('this.battleResultModalShown = true;', modalAssignmentIndex);
+
+  assert.ok(pendingClearIndex >= 0, 'successful modal construction should clear pending state');
+  assert.ok(flowClearIndex > pendingClearIndex, 'successful modal construction should clear flow lock after pending state');
+  assert.ok(modalAssignmentIndex > flowClearIndex, 'modal assignment should happen after pending/flow locks clear');
+  assert.ok(shownIndex > modalAssignmentIndex, 'shown flag should be set after modal assignment');
+  assert.match(buttons, /onPointerUp: \(\) => \{[\s\S]*this\.guardPointerEvent\(\);[\s\S]*this\.stopOutcomeStinger\(\{ fadeMs: 0 \}\);[\s\S]*if \(this\.navigationInProgress\) return;[\s\S]*onClick\(\);/);
+  assert.doesNotMatch(buttons, /battleResultModalPending|battleResultModalShown|isFlowResolving/);
 });
 
 test('campaign completion phase is persisted and summary restore bypasses reveal gating', () => {
