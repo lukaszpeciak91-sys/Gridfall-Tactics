@@ -166,6 +166,27 @@ canonical_ref: docs/rules/mvp-battle-rules.md
 - Final decision: menu surrender must not call `completeBattleFlow(0)`. It must close the surrender popup/menu, set `gameState.winner = 'enemy'` and `gameState.endingReason = 'player_menu_surrender'`, then use the normal stable defeat-style boundary: `completeBattleFlow(500)`.
 - Future-work rule: do not create a dedicated surrender result panel, do not modify `showBattleResultModal()` for surrender, do not change `src/ui/imageButton.js` for this issue, and do not use the old hold-to-surrender path as evidence that menu surrender can safely use zero-delay result flow. If surrender is touched again, preserve the stable battle-flow boundary.
 
+## Battle Result Modal Must Survive Optional Celebration Failure (2026-07-04)
+- Problem: normal Arena/Campaign player victories could play victory SFX but visually remain frozen on the final board state. Tutorial victory eventually worked, surrender results worked, and clicking or focusing DevTools before SFX sometimes made the modal appear, which made the regression look like an input, render, or focus issue.
+- Root cause: `showBattleResultModal()` played victory SFX before the result modal was fully assigned/shown. In normal Arena/Campaign wins, optional victory celebration work ran after SFX but before `this.battleResultModal` assignment and before `battleResultModalShown = true`; if celebration particles, tweens, or timers failed, the base result modal could be swallowed even though audio had already played.
+- Final decision: optional victory celebration must be fail-soft. Particles, tweens, timers, and celebration payload construction may enhance the result screen, but failure in that flourish must never block base result modal assignment/showing; the modal should still assign and show with an empty celebration payload.
+- Diagnostic rule: SFX does not prove the result modal was fully created. In this lifecycle, SFX only proves `showBattleResultModal()` started, so missing-modal investigations must inspect code after SFX and before modal assignment.
+- Critical UI rule: result presentation is mandatory UI and must not depend on optional celebration, particles, tweens, timers, or other flourish.
+- Pending-result input rule: before result reveal, stale BattleScene card and non-card input paths should be shut down aggressively so pointerover/out handlers, imageButton hover/down/up callbacks, utility menu, deck panel, surrender popup, base/pass controls, or stale overlays cannot mutate destroyed or detached Phaser objects.
+- Image-button lifecycle rule: hover/down/up callbacks must be guarded after destroy or scene detach so lingering input cannot touch invalid objects during result resolution.
+- Inspect/preview lifecycle rule: Collection inspect/back and BattleScene inspect surfaces must follow the shared preview contract from `createCardPreviewView()`. Treat returned preview objects as lifecycle-aware objects with `items`, `deactivate`, and `destroy`; call `deactivate` at close start, especially before animated teardown, and use `destroy` for final cleanup when possible. Do not directly destroy a root or overlay while listeners/interactivity remain alive.
+- Surrender distinction: this decision is separate from the older menu-surrender `completeBattleFlow(0)` boundary issue. Menu surrender must still preserve the stable defeat boundary by closing surrender/menu/inspect/deck UI, setting `winner` and `endingReason`, then calling `completeBattleFlow(500)`; the hold-to-surrender `completeBattleFlow(0)` path is still not proof that zero-delay menu-result flow is safe.
+- Compare result paths when diagnosing regressions: surrender worked because defeat presentation skipped victory celebration; tutorial victory worked because it avoided or recovered through a different/skipReveal path; normal Arena/Campaign victory failed because it used live victory celebration after SFX and before modal assignment.
+
+### BattleScene result-modal safety checklist
+- Set/clear pending and resolving flags deliberately.
+- Disable stale card and non-card input before reveal.
+- Never let optional particles/tweens/celebration block base modal assignment.
+- Guard imageButton hover/down/up callbacks after destroy or scene detach.
+- Use shared preview deactivate/destroy lifecycle for inspect previews.
+- Confirm Tutorial, Arena, Campaign, and Surrender result paths separately.
+- When SFX plays but modal is missing, inspect code after SFX and before modal assignment.
+
 ## Screen Header Presentation Standard v2 (2026-06-04)
 - All non-battle menu screens use the same premium broadcast header pattern: centered title text only, with the previous decorative line removed to reduce visual noise.
 - Typography remains locked to the premium UI font stack (`Segoe UI, Arial, sans-serif`) with bold weight, localized uppercase text, subtle glow, and subtle shadow; this applies uniformly to Polish, English, and future localizations with no per-screen font special casing.
