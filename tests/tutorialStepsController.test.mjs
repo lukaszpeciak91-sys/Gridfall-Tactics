@@ -69,10 +69,12 @@ test('flavor intro and battle menu tutorial copy matches approved PL and EN text
   assert.equal(byId.intro_01.text.en, 'Welcome to another edition of Gridfall.\n(tap anywhere to continue)');
   assert.equal(byId.intro_02.text.pl, 'Przed nami kolejne obłąkane światy na granicy zagłady.\n\nCo prawda nie możemy im pomóc.');
   assert.equal(byId.intro_02.text.en, 'Before us: another set of deranged worlds on the edge of collapse.\n\nWe cannot help them, of course.');
-  assert.equal(byId.intro_03.text.pl, 'Możemy za to sprawdzić, jak pięknie walczą!\n\nBukmacher już przyjmuje zakłady.');
-  assert.equal(byId.intro_03.text.en, 'But we can see how beautifully they fight!\n\nThe bookie is already taking bets.');
+  assert.equal(byId.intro_03.text.pl, 'Możemy za to sprawdzić, jak pięknie walczą!\n\nBukmacherzy już przyjmują zakłady.');
+  assert.equal(byId.intro_03.text.en, 'But we can see how beautifully they fight!\n\nThe bookmakers are already taking bets.');
   assert.equal(byId.intro_04.text.pl, 'Zanim zaczniemy, sprzątacze oczyszczą arenę z pozostałości poprzedniego sezonu.');
   assert.equal(byId.intro_04.text.en, 'Before we begin, the arena cleaners will clear away what remains of the previous season.');
+  assert.equal(byId.adjacent_swap.text.pl, 'Zamień sąsiednie jednostki miejscami.\n\n(kliknij jednostkę na planszy, potem wybierz sąsiada)');
+  assert.equal(byId.adjacent_swap.text.en, 'Swap adjacent units.\n\n(tap a unit on the board, then choose its neighbor)');
   assert.equal(byId.battle_menu_contents.text.pl, 'Tu są zasady, ustawienia i poddanie.\n\nMożesz się poddać, jeśli jesteś leszczem.');
   assert.equal(byId.battle_menu_contents.text.en, "Rules, settings, and surrender are here.\n\nYou can surrender if you're lame.");
 });
