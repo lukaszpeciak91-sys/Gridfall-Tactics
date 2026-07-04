@@ -301,6 +301,7 @@ const ENEMY_EFFECT_SUMMARY_OVERRIDES = Object.freeze({
   destroy_friendly_draw_1: 'Destroy ally, draw 1',
 });
 const BASE_CARD_SURFACE_THEME = getBaseCardSurfaceTheme();
+const RESULT_MODAL_DIAG_PREFIX = '[RESULT_MODAL_DIAG]';
 
 export default class BattleScene extends Phaser.Scene {
   constructor() {
@@ -658,6 +659,7 @@ export default class BattleScene extends Phaser.Scene {
   create(data) {
     this.cleanupSceneObjects();
     stopMusic(this, { fadeMs: 0 });
+    this.installResultModalDiagnostics();
 
     const { width, height } = this.scale;
     this.battleContext = this.normalizeBattleContext(data?.battleContext);
@@ -756,6 +758,79 @@ export default class BattleScene extends Phaser.Scene {
       });
     }
 
+  }
+
+  isResultModalDiagnosticsEnabled() {
+    return Boolean(import.meta.env?.DEV);
+  }
+
+  getBattleResultModalDiagnosticItems() {
+    if (!this.battleResultModal) return [];
+    return [
+      this.battleResultModal.overlay,
+      this.battleResultModal.titleAura,
+      this.battleResultModal.titleGlow,
+      this.battleResultModal.title,
+      this.battleResultModal.subtitle,
+      this.battleResultModal.stats,
+      this.battleResultModal.dividerCore,
+      this.battleResultModal.dividerGlow,
+      ...(this.battleResultModal.celebration?.particles ?? this.battleResultModal.celebration ?? []),
+      ...(this.battleResultModal.celebration?.modalItems ?? []),
+      ...((this.battleResultModal.buttons ?? []).flatMap((button) => button.items ?? [])),
+    ].filter(Boolean);
+  }
+
+  getResultModalDiagnosticSnapshot() {
+    const scenePlugin = this.scene;
+    const pendingEvent = this.battleResultModalPendingEvent;
+    const modalItems = this.getBattleResultModalDiagnosticItems();
+    return {
+      sceneKey: scenePlugin?.key ?? 'BattleScene',
+      winner: this.gameState?.winner ?? null,
+      endingReason: this.gameState?.endingReason ?? null,
+      battleResultModalPending: Boolean(this.battleResultModalPending),
+      battleResultModalShown: Boolean(this.battleResultModalShown),
+      battleResultModalExists: Boolean(this.battleResultModal),
+      modalItemCount: modalItems.length,
+      isFlowResolving: Boolean(this.isFlowResolving),
+      sceneActive: Boolean(scenePlugin?.isActive?.()),
+      scenePaused: Boolean(scenePlugin?.isPaused?.()),
+      sceneSleeping: Boolean(scenePlugin?.isSleeping?.()),
+      pendingEventExists: Boolean(pendingEvent),
+      pendingEventLive: pendingEvent ? this.isLiveBattleResultModalPendingEvent(pendingEvent) : false,
+    };
+  }
+
+  installResultModalDiagnostics() {
+    if (!this.isResultModalDiagnosticsEnabled()) return;
+    const target = globalThis.window ?? globalThis;
+    if (!target) return;
+    target.__gridfallResultSnapshot = () => {
+      try {
+        const battleScene = this.game?.scene?.getScene?.('BattleScene') ?? this;
+        if (!battleScene?.getResultModalDiagnosticSnapshot) {
+          return { battleSceneExists: false };
+        }
+        return {
+          battleSceneExists: true,
+          ...battleScene.getResultModalDiagnosticSnapshot(),
+        };
+      } catch (error) {
+        return {
+          battleSceneExists: false,
+          error: error?.message ?? String(error),
+        };
+      }
+    };
+  }
+
+  logResultModalDiagnostic(stage, extra = {}) {
+    if (!this.isResultModalDiagnosticsEnabled()) return;
+    console.debug(RESULT_MODAL_DIAG_PREFIX, stage, {
+      ...this.getResultModalDiagnosticSnapshot(),
+      ...extra,
+    });
   }
 
   selectEnemyFactionKey(playerFactionKey) {
@@ -1800,6 +1875,7 @@ export default class BattleScene extends Phaser.Scene {
   showBattleResultModal() {
     const options = arguments[0] ?? {};
     const skipReveal = options.skipReveal === true;
+    this.logResultModalDiagnostic('showBattleResultModal:entered', { skipReveal });
     this.battleResultModalPending = false;
     this.disableCardHoverInteractions();
     if (!this.gameState?.winner || this.battleResultModalShown) return;
@@ -1824,7 +1900,9 @@ export default class BattleScene extends Phaser.Scene {
       const resultSubtitle = this.getBattleResultSubtitle();
       const resultStatsText = this.getBattleResultStatsText();
       const presentation = this.getBattleResultPresentation();
+      this.logResultModalDiagnostic('showBattleResultModal:before-result-sfx', { skipReveal });
       this.playBattleOutcomeSfxOnce();
+      this.logResultModalDiagnostic('showBattleResultModal:after-result-sfx', { skipReveal });
 
       const overlay = this.add.rectangle(centerX, height * 0.5, width, height, 0x000000, presentation.overlayAlpha)
         .setInteractive()
@@ -1943,6 +2021,10 @@ export default class BattleScene extends Phaser.Scene {
         celebration = this.addBattleResultVictoryCelebration(centerX, centerY, overlayWidth, overlayHeight, presentation);
       }
 
+      this.logResultModalDiagnostic('showBattleResultModal:before-modal-assignment', {
+        skipReveal,
+        pendingModalItemCount: modalItems.length,
+      });
       this.battleResultModal = {
         overlay,
         titleAura,
@@ -1956,11 +2038,16 @@ export default class BattleScene extends Phaser.Scene {
         buttons: modalButtons,
       };
       this.battleResultModalShown = true;
+      this.logResultModalDiagnostic('showBattleResultModal:shown', { skipReveal });
       this.resultOverlayState = {
         kind: this.getBattleResultOverlayKind(),
         phase: 'interactive',
       };
     } catch (error) {
+      this.logResultModalDiagnostic('showBattleResultModal:catch', {
+        errorMessage: error?.message ?? String(error),
+        partialModalItemCount: modalItems.length,
+      });
       console.error('Failed to create battle result modal.', error);
       console.error('Failed to create battle result modal stack.', error?.stack ?? error);
       modalItems.forEach((item) => {
