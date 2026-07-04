@@ -1552,8 +1552,35 @@ export default class BattleScene extends Phaser.Scene {
     this.disableCardHoverInteractions();
     this.stopBattleAmbience({ fadeMs: 350 });
     this.updateActionSlotBadge();
+    this.disableResultPendingOverlayInteractions();
     const pendingResultModalEvent = this.time.delayedCall(delayMs, () => this.showBattleResultModal());
     this.battleResultModalPendingEvent = pendingResultModalEvent;
+  }
+
+
+  disableResultPendingOverlayInteractions() {
+    this.destroyUtilityMenuPanel?.();
+    this.closeSurrenderConfirmation?.();
+    this.destroyDeckInfoPanel?.();
+    this.destroyTargetingInstruction?.();
+    this.destroyActiveSelectionMessage?.();
+    this.cancelPassHoldToSurrender?.();
+    this.disarmPlayerSurrender?.();
+
+    const disableItem = (item) => {
+      if (!item || item.scene == null) return;
+      item.removeAllListeners?.('pointerover');
+      item.removeAllListeners?.('pointerout');
+      item.removeAllListeners?.('pointerdown');
+      item.removeAllListeners?.('pointerup');
+      item.disableInteractive?.();
+    };
+
+    [this.playerHeroPanel, this.deckCounterView?.backing, this.deckCounterView?.text]
+      .forEach(disableItem);
+    (this.bottomControlViews ?? []).forEach((control) => {
+      [control?.backing, control?.text].forEach(disableItem);
+    });
   }
 
   isLiveBattleResultModalPendingEvent(event = this.battleResultModalPendingEvent) {
@@ -1883,6 +1910,7 @@ export default class BattleScene extends Phaser.Scene {
     }
     const modalItems = [];
     try {
+      this.disableResultPendingOverlayInteractions();
       this.updateActionSlotBadge();
       this.selectedCardId = null;
       this.pendingSwapIndex = null;

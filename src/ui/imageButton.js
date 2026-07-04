@@ -32,6 +32,10 @@ const SECONDARY_BUTTON_ASPECT_RATIO = SECONDARY_BUTTON_VISIBLE_FRAME.width / SEC
 const SECONDARY_BUTTON_DISPLAY_HEIGHT_SCALE = 1.09;
 const DEFAULT_MIN_TOUCH_HEIGHT = 54;
 
+function isLiveGameObject(target) {
+  return Boolean(target && target.scene && target.active !== false);
+}
+
 function storeBaseScale(target) {
   target?.setData?.('baseScaleX', target.scaleX ?? 1);
   target?.setData?.('baseScaleY', target.scaleY ?? 1);
@@ -147,23 +151,25 @@ export function createImageButton(scene, {
 
   const scalableTargets = [shadow, backing, centerGlow, text].filter(Boolean);
   const setVisualState = ({ scale = 1, alpha = 1, textAlpha = 1, tint = null, glowAlpha = 0, textGlow = false } = {}) => {
-    scalableTargets.forEach((target) => setTargetScaleFromBase(target, scale));
+    if (!isLiveGameObject(hitZone) || !isLiveGameObject(backing) || !isLiveGameObject(text)) return false;
+    scalableTargets.filter(isLiveGameObject).forEach((target) => setTargetScaleFromBase(target, scale));
     backing.setAlpha(alpha);
     if (tint && backing.setTint) {
       backing.setTint(tint);
     } else if (backing.clearTint) {
       backing.clearTint();
     }
-    centerGlow.setAlpha(glowAlpha);
+    if (isLiveGameObject(centerGlow)) centerGlow.setAlpha(glowAlpha);
     text.setAlpha(textAlpha);
     text.setShadow(0, 1, textGlow ? 'rgba(245, 241, 230, 0.24)' : 'rgba(3, 17, 40, 0.62)', textGlow ? 2 : 1, true, true);
+    return true;
   };
 
   hitZone.on('pointerover', () => setVisualState({ scale: hoverScale, alpha: 1, tint: hasButtonTexture ? 0xfffbef : null, glowAlpha: 0.08, textGlow: true }));
   hitZone.on('pointerout', () => setVisualState({ scale: 1, alpha: 1, textAlpha: 1 }));
   hitZone.on('pointerdown', () => setVisualState({ scale: downScale, alpha: 0.9, textAlpha: 0.94 }));
   hitZone.on('pointerup', () => {
-    setVisualState({ scale: hoverScale, alpha: hasButtonTexture ? 1 : 0.96, tint: hasButtonTexture ? 0xfffbef : null, glowAlpha: 0.08, textGlow: true });
+    if (!setVisualState({ scale: hoverScale, alpha: hasButtonTexture ? 1 : 0.96, tint: hasButtonTexture ? 0xfffbef : null, glowAlpha: 0.08, textGlow: true })) return;
     if (typeof onPointerUp === 'function') {
       playSfx(scene, AUDIO_KEYS.UI_CLICK);
       onPointerUp();
@@ -206,5 +212,9 @@ export function resetImageButtonState(button, { interactive = true } = {}) {
 }
 
 export function destroyImageButton(button) {
-  button?.items?.forEach((item) => item?.destroy?.());
+  button?.items?.forEach((item) => {
+    item?.removeAllListeners?.();
+    item?.disableInteractive?.();
+    item?.destroy?.();
+  });
 }
