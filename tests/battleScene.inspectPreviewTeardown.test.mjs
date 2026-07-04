@@ -36,6 +36,7 @@ ${extractMethodBlock('destroySelectedHandCardZoom', 'getInspectCardTransform')}
 function createMockItem(name) {
   return {
     name,
+    scene: {},
     active: true,
     disabledCount: 0,
     removedEvents: [],
@@ -140,4 +141,16 @@ test('inspect close is safe when called repeatedly or without an active preview'
   assert.doesNotThrow(() => scene.destroySelectedHandCardZoom({ animate: true }));
   assert.doesNotThrow(() => scene.destroySelectedHandCardZoom({ animate: true }));
   assert.doesNotThrow(() => scene.destroySelectedHandCardZoom());
+});
+
+
+test('inspect close skips stale scene-less objects without throwing', () => {
+  const scene = createHarness();
+  const inspect = createInspectView();
+  inspect.overlay.scene = null;
+  scene.selectedHandCardZoom = inspect;
+
+  assert.doesNotThrow(() => scene.destroySelectedHandCardZoom({ animate: true }));
+  assert.equal(inspect.overlay.disabledCount, 0);
+  assert.ok(inspect.overlay.removedEvents.includes('pointerover'));
 });

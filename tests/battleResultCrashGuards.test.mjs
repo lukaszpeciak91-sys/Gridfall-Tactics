@@ -8,9 +8,35 @@ test('BattleScene disables and guards stale hand-card pointer hover during resul
   const source = read('src/scenes/BattleScene.js');
   assert.match(source, /disableCardHoverInteractions\(\);\s*this\.stopBattleAmbience\(\{ fadeMs: 350 \}\);/);
   assert.match(source, /disableCardHoverInteractions\(\) \{\s*this\.cardViews\?\.forEach\(\(cardView\) => this\.disableCardViewInteractions\(cardView\)\);/);
+  assert.match(source, /this\.disableCardViewInteractions\(this\.inspectPreview\);/);
+  assert.match(source, /this\.disableCardViewInteractions\(this\.selectedHandCardZoom\);/);
   assert.match(source, /if \(this\.battleResultModalPending \|\| this\.battleResultModalShown \|\| this\.isFlowResolving\) return false;/);
   assert.match(source, /cardView\.background\.on\('pointerover', \(\) => \{\s*if \(!this\.isCardViewPointerMutationAllowed\(cardView\)\) return;/);
   assert.match(source, /cardView\.background\.on\('pointerout', \(\) => \{\s*if \(!this\.isCardViewPointerMutationAllowed\(cardView\)\) return;/);
+  assert.match(source, /safeDisableInteractiveObject\(item\) \{\s*if \(!item \|\| item\.scene == null \|\| typeof item\.disableInteractive !== 'function'\) return;/);
+  assert.match(source, /removeCardPointerListeners\(item\) \{[\s\S]*removeAllListeners\?\.\('pointerover'\)[\s\S]*removeAllListeners\?\.\('pointerout'\)/);
+  assert.match(source, /cardView\.isActive = false;[\s\S]*cardView\.deactivate\?\.\(\);/);
+});
+
+test('BattleScene keeps result transition hover mutations disabled until modal assignment', () => {
+  const source = read('src/scenes/BattleScene.js');
+  assert.doesNotMatch(source, /showBattleResultModal\(\) \{[\s\S]*this\.battleResultModalPending = false;\s*this\.disableCardHoverInteractions\(\);/);
+  assert.match(source, /this\.disableCardHoverInteractions\(\);\s*if \(!this\.gameState\?\.winner \|\| this\.battleResultModalShown\) \{\s*this\.battleResultModalPending = false;/);
+  assert.match(source, /this\.resetCardHighlights\(\{ showPreview: false \}\);[\s\S]*this\.battleResultModalPending = false;\s*this\.isFlowResolving = false;\s*this\.battleResultModal = \{/);
+  assert.match(source, /this\.cardViews\.forEach\(\(card\) => \{\s*if \(card\?\.isActive === false \|\| card\?\.root\?\.scene == null\) return;/);
+});
+
+test('card hover shutdown remains scoped to card and inspect views only', () => {
+  const source = read('src/scenes/BattleScene.js');
+  const disableStart = source.indexOf('  disableCardHoverInteractions() {');
+  const disableEnd = source.indexOf('\n  deactivateInspectPreviewView', disableStart);
+  const disableSource = source.slice(disableStart, disableEnd);
+
+  assert.match(disableSource, /this\.cardViews\?\.forEach\(\(cardView\) => this\.disableCardViewInteractions\(cardView\)\);/);
+  assert.match(disableSource, /this\.disableCardViewInteractions\(this\.inspectPreview\);/);
+  assert.match(disableSource, /this\.disableCardViewInteractions\(this\.selectedHandCardZoom\);/);
+  assert.match(disableSource, /this\.handBackCards\?\.forEach/);
+  assert.doesNotMatch(disableSource, /battleResultModal|buttons|utilityMenuPanel|deckInfoPanel|surrenderConfirmationModal|input\./);
 });
 
 test('card preview teardown deactivates child interactions before destroyed text can be mutated', () => {
