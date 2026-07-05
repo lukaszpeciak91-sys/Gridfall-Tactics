@@ -20,7 +20,7 @@ test('tutorial focus targets are represented as practical BattleScene target obj
   assert.deepEqual(step('play_unit_b').highlightTarget, { type: 'hand_card', cardId: 'tutorial_unit_b_1' });
   assert.deepEqual(step('redeploy').highlightTarget, { type: 'hand_card', cardId: 'tutorial_unit_c_1' });
   assert.deepEqual(step('effect_card').highlightTarget, { type: 'effect_card', cardId: 'tutorial_all_attack_1' });
-  assert.deepEqual(step('empty_lane').highlightTarget, { type: 'board_slot', slotIndex: 1 });
+  assert.deepEqual(step('empty_lane').highlightTarget, { type: 'empty_lane', slotIndex: 8 });
   assert.deepEqual(step('adjacent_swap').highlightTarget, { type: 'adjacent_units', fromIndex: 6, toIndex: 7 });
   assert.deepEqual(step('final_pass').highlightTarget, { type: 'player_base_button' });
 });
