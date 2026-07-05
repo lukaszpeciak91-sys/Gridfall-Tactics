@@ -53,7 +53,7 @@ test('final Tutorial V1 step progression ends with redeploy, effect, empty-lane 
   ]);
   assert.deepEqual(TUTORIAL_STEPS.find((step) => step.id === 'redeploy').expected, { type: 'redeploy_unit', cardId: 'tutorial_unit_c_1', slotIndex: 6 });
   assert.deepEqual(TUTORIAL_STEPS.find((step) => step.id === 'effect_card').expected, { type: 'play_effect', cardId: 'tutorial_all_attack_1' });
-  assert.deepEqual(TUTORIAL_STEPS.find((step) => step.id === 'empty_lane').highlightTarget, { type: 'board_slot', slotIndex: 1 });
+  assert.deepEqual(TUTORIAL_STEPS.find((step) => step.id === 'empty_lane').highlightTarget, { type: 'empty_lane', slotIndex: 8 });
   assert.deepEqual(TUTORIAL_STEPS.find((step) => step.id === 'final_pass').highlightTarget, { type: 'player_base_button' });
 });
 
