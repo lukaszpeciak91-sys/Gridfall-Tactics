@@ -1,5 +1,6 @@
 import { SETTINGS_CHANGED_EVENT, loadSettings } from '../systems/settingsState.js';
 import { getAudioAsset, hasCachedAudioAsset } from './audioAssets.js';
+import { isLiveSound, safeApplySoundManagerSettings, safeDestroy, safePlay, safeSetVolume, safeStop } from './audioSafety.js';
 
 export const MUSIC_BUS_VOLUME = 0.20;
 export const SFX_BUS_VOLUME = 0.60;
@@ -51,32 +52,11 @@ function registerActiveMusicSettingsHandler(scene) {
 }
 
 
-function isUsableSound(sound) {
-  if (!sound || sound.destroyed || sound.pendingRemove) return false;
-  if (sound.manager == null && sound.soundManager == null) return false;
-  if ('source' in sound && sound.source == null) return false;
-  if ('audio' in sound && sound.audio == null) return false;
-  return true;
-}
-
-function safelySetSoundVolume(sound, volume) {
-  if (!isUsableSound(sound)) return false;
-  try {
-    if (typeof sound.setVolume === 'function') {
-      sound.setVolume(volume);
-    } else {
-      sound.volume = volume;
-    }
-    return true;
-  } catch (_error) {
-    return false;
-  }
-}
-
 function destroyManagedSound(sound) {
-  sound?.stop?.();
-  sound?.destroy?.();
+  safeStop(sound);
+  safeDestroy(sound);
 }
+
 
 function destroyActiveMusic() {
   unregisterActiveMusicSettingsHandler();
@@ -131,7 +111,7 @@ export function playManagedSfx(scene, key, options = {}) {
   try {
     const sound = scene.sound.add(asset.key, { ...options, volume });
     sound.once?.('complete', () => destroyManagedSound(sound));
-    if (sound.play?.() === false) {
+    if (!safePlay(sound)) {
       destroyManagedSound(sound);
       return null;
     }
@@ -150,7 +130,7 @@ export function stopManagedSfx(scene, sound, { fadeMs = 200 } = {}) {
 
   const stopSound = () => destroyManagedSound(sound);
   const duration = Math.max(0, Number.isFinite(fadeMs) ? fadeMs : 0);
-  if (duration > 0 && scene?.tweens?.add && sound.isPlaying) {
+  if (duration > 0 && scene?.tweens?.add && isLiveSound(sound) && sound.isPlaying) {
     scene.tweens.killTweensOf?.(sound);
     scene.tweens.add({
       targets: sound,
@@ -172,17 +152,14 @@ export function playMusic(scene, key, options = {}) {
 
   const settings = loadSettings();
   if (!hasCachedAudioAsset(scene, asset.key)) return null;
-  if (scene.sound) {
-    scene.sound.mute = settings.muted;
-    scene.sound.volume = 1;
-  }
+  safeApplySoundManagerSettings(scene.sound, { muted: settings.muted, volume: 1 });
 
-  if (activeMusic?.key === asset.key && activeMusic.sound && !activeMusic.sound.isDestroyed) {
+  if (activeMusic?.key === asset.key && isLiveSound(activeMusic.sound)) {
     registerActiveMusicSettingsHandler(scene);
     updateMusicVolume(settings);
     if (!activeMusic.sound.isPlaying && !settings.muted) {
       try {
-        activeMusic.sound.play?.();
+        safePlay(activeMusic.sound);
       } catch (error) {
         if (import.meta.env?.DEV) {
           console.debug(`Music resume skipped for ${asset.key}.`, error);
@@ -203,7 +180,7 @@ export function playMusic(scene, key, options = {}) {
     });
     activeMusic = { key: asset.key, sound, asset, options: { ...options } };
     registerActiveMusicSettingsHandler(scene);
-    if (sound.play?.() === false) {
+    if (!safePlay(sound)) {
       destroyActiveMusic();
       return null;
     }
@@ -221,7 +198,7 @@ export function updateMusicVolume(settings = loadSettings()) {
   if (!activeMusic?.sound || !activeMusic?.asset) return false;
 
   const volume = getMusicPlaybackVolume(settings, activeMusic.asset, activeMusic.options ?? {});
-  if (!safelySetSoundVolume(activeMusic.sound, volume)) {
+  if (!safeSetVolume(activeMusic.sound, volume)) {
     destroyActiveMusic();
     return false;
   }
@@ -244,7 +221,7 @@ export function stopMusic(scene, { fadeMs = 300 } = {}) {
     destroyManagedSound(sound);
   };
   const duration = Math.max(0, Number.isFinite(fadeMs) ? fadeMs : 0);
-  if (duration > 0 && scene?.tweens?.add && sound.isPlaying) {
+  if (duration > 0 && scene?.tweens?.add && isLiveSound(sound) && sound.isPlaying) {
     scene.tweens.killTweensOf?.(sound);
     scene.tweens.add({
       targets: sound,
