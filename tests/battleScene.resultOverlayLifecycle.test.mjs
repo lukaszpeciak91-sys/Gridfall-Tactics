@@ -107,6 +107,29 @@ test('campaign completion preview overlays restore without requiring gameState w
   assert.doesNotMatch(campaignRestoreBranch, /this\.gameState\?\.winner/);
 });
 
+test('pending battle result snapshot survives fullscreen and viewport rebuild cleanup', () => {
+  const capture = extractMethodBody('captureResultOverlayState', 'restoreResultOverlayFromSnapshot');
+  const restore = extractMethodBody('restoreResultOverlayFromSnapshot', 'rebuildBattleView');
+  const rebuild = extractMethodBody('rebuildBattleView', 'shutdown');
+
+  assert.match(capture, /if \(this\.battleResultModalPending && this\.gameState\?\.winner\) \{/);
+  assert.match(capture, /kind: this\.getBattleResultOverlayKind\(\),[\s\S]*phase: 'pending'/);
+  assert.match(restore, /snapshot\.kind === 'arena-battle-result' \|\| snapshot\.kind === 'campaign-battle-result' \|\| snapshot\.kind === 'tutorial-battle-result'/);
+  assert.match(restore, /this\.showBattleResultModal\(\{ skipReveal: true \}\);/);
+  assert.match(rebuild, /const resultOverlaySnapshot = this\.captureResultOverlayState\(\);[\s\S]*this\.cleanupSceneObjects\(\{ preserveTimers: true \}\);[\s\S]*this\.restoreResultOverlayFromSnapshot\(resultOverlaySnapshot\);/);
+});
+
+test('pending tutorial result can recover when fullscreen rebuild removed the delayed event', () => {
+  const capture = extractMethodBody('captureResultOverlayState', 'restoreResultOverlayFromSnapshot');
+  const ensure = extractMethodBody('ensureBattleResultModalVisible', 'completeBattleFlow');
+
+  assert.match(capture, /this\.battleResultModalPending && this\.gameState\?\.winner/);
+  assert.match(capture, /phase: 'pending'/);
+  assert.match(ensure, /if \(this\.battleResultModalPending && this\.isLiveBattleResultModalPendingEvent\(\)\) \{[\s\S]*return false;[\s\S]*\}/);
+  assert.match(ensure, /if \(this\.battleResultModalPending \|\| this\.battleResultModalPendingEvent\) \{[\s\S]*this\.battleResultModalPendingEvent\?\.remove\?\.\(false\);[\s\S]*this\.battleResultModalPending = false;[\s\S]*\}/);
+  assert.match(ensure, /this\.showBattleResultModal\(\{ skipReveal: true \}\);/);
+});
+
 test('result overlay rebuild cleanup cancels stale pending and celebration timers before restore', () => {
   const schedule = extractMethodBody('scheduleBattleResultModal', 'completeBattleFlow');
   const destroy = extractMethodBody('destroyBattleResultModal', 'createBaseBroadcastFrame');

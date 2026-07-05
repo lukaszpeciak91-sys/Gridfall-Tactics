@@ -3697,6 +3697,12 @@ export default class BattleScene extends Phaser.Scene {
         campaign: this.resultOverlayState.campaign ? { ...this.resultOverlayState.campaign } : this.resultOverlayState.campaign,
       };
     }
+    if (this.battleResultModalPending && this.gameState?.winner) {
+      return {
+        kind: this.getBattleResultOverlayKind(),
+        phase: 'pending',
+      };
+    }
     if (this.battleResultModalShown) {
       return {
         kind: this.getBattleResultOverlayKind(),
