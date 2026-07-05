@@ -50,7 +50,9 @@ test('card preview teardown deactivates child interactions before destroyed text
 
 test('music volume updates tolerate destroyed or unloaded sound backends', () => {
   const source = read('src/audio/audioPlayback.js');
-  assert.match(source, /function isUsableSound\(sound\) \{[\s\S]*sound\.destroyed[\s\S]*sound\.pendingRemove[\s\S]*sound\.source == null[\s\S]*sound\.audio == null/);
-  assert.match(source, /function safelySetSoundVolume\(sound, volume\) \{[\s\S]*try \{[\s\S]*sound\.setVolume\(volume\)[\s\S]*sound\.volume = volume[\s\S]*catch \(_error\) \{\s*return false;/);
-  assert.match(source, /if \(!safelySetSoundVolume\(activeMusic\.sound, volume\)\) \{\s*destroyActiveMusic\(\);\s*return false;/);
+  const safetySource = read('src/audio/audioSafety.js');
+  assert.match(safetySource, /function isSoundObject\(sound\) \{[\s\S]*sound\.destroyed[\s\S]*sound\.pendingRemove/);
+  assert.match(safetySource, /export function isLiveSound\(sound\) \{[\s\S]*isSoundObject\(sound\)[\s\S]*sound\.source == null[\s\S]*sound\.audio == null/);
+  assert.match(safetySource, /export function safeSetVolume\(sound, volume\) \{[\s\S]*try \{[\s\S]*sound\.setVolume\(volume\)[\s\S]*sound\.volume = volume[\s\S]*catch \(_error\) \{\s*return false;/);
+  assert.match(source, /if \(!safeSetVolume\(activeMusic\.sound, volume\)\) \{\s*destroyActiveMusic\(\);\s*return false;/);
 });

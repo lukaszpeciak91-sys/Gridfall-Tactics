@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { SETTINGS_STORAGE_KEY, normalizeLocale } from '../localization/localeService.js';
+import { safeApplySoundManagerSettings } from '../audio/audioSafety.js';
 
 export const SETTINGS_CHANGED_EVENT = 'gridfall:settings:changed';
 export const DEFAULT_SETTINGS = {
@@ -74,10 +75,7 @@ export function saveSettings(settings) {
 }
 
 export function applyAudioSettings(scene, settings = loadSettings()) {
-  if (scene?.sound) {
-    scene.sound.mute = settings.muted;
-    scene.sound.volume = 1;
-  }
+  safeApplySoundManagerSettings(scene?.sound, { muted: settings.muted, volume: 1 });
 }
 
 export function emitSettingsChanged(scene, settings) {
