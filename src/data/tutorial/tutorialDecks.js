@@ -215,7 +215,7 @@ export const tutorialEnemyFaction = {
       targeting: 'lane',
       textShort: '',
       attack: 1,
-      hp: 3,
+      hp: 4,
       armor: 0,
     },
     {
