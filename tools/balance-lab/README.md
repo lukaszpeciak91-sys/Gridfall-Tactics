@@ -326,6 +326,7 @@ Implemented concrete non-production `effectId` values currently accepted by Bala
 
 - `swap_any_two_friendly_units` — Swap any 2 [ALLY]. Implemented, not report-only; swaps exactly two different acting-owner units without stat buffs, damage, or draw.
 - `swap_any_two_friendly_units_buff_both_atk_1` — Swap any 2 [ALLY], then give both +1 temporary ATK.
+- `lane_empty_bonus_damage_1` — Open lane: +1 ATK / Pusta linia: +1 [ATK]. Implemented unit passive for Balance Lab replacement-card and custom-faction testing; no `effectParams` are required or supported.
 - `decay_attack_after_combat` — Unit passive ATK decay after combat.
 - `atk_plus_per_other_ally` — Unit passive ATK bonus per other ally.
 
@@ -439,7 +440,7 @@ Balance Lab rejects unsupported changes before it creates a temp copy or patches
 - `replaceCard.effectParams`.
 - empty-string `replaceCard.effectId`.
 - non-string/non-null `replaceCard.effectId` values such as numbers, objects, or arrays.
-- string `replaceCard.effectId` values that do not already exist in repo card data.
+- string `replaceCard.effectId` values that do not already exist in repo card data or the implemented concrete effect registry.
 - unknown `cardId` values that do not exist in the selected faction deck.
 - unknown `faction` values that do not match a file in `src/data/factions/`.
 
