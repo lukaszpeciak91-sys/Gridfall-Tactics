@@ -1,4 +1,3 @@
-import Phaser from 'phaser';
 import { SETTINGS_STORAGE_KEY, normalizeLocale } from '../localization/localeService.js';
 import { safeApplySoundManagerSettings } from '../audio/audioSafety.js';
 
@@ -29,7 +28,7 @@ export function clampVolume(value) {
     return DEFAULT_SETTINGS.musicVolume;
   }
 
-  return Phaser.Math.Clamp(Math.round(numericValue), 0, 100);
+  return Math.max(0, Math.min(100, Math.round(numericValue)));
 }
 
 export function normalizeSettings(settings = {}) {
