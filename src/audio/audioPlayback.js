@@ -52,15 +52,95 @@ function registerActiveMusicSettingsHandler(scene) {
 }
 
 
-function destroyManagedSound(sound) {
+const fadeStateBySound = new WeakMap();
+
+function safeKillSoundTweens(scene, sound) {
+  if (!scene?.tweens || !sound) return false;
+  let killed = false;
+  try {
+    scene.tweens.killTweensOf?.(sound);
+    killed = true;
+  } catch (_error) {
+    // Ignore tween cleanup failures; audio cleanup must remain non-fatal.
+  }
+
+  const fadeState = fadeStateBySound.get(sound);
+  if (fadeState) {
+    try {
+      scene.tweens.killTweensOf?.(fadeState);
+      killed = true;
+    } catch (_error) {
+      // Ignore tween cleanup failures; audio cleanup must remain non-fatal.
+    }
+    fadeStateBySound.delete(sound);
+  }
+
+  return killed;
+}
+
+function getSoundVolume(sound) {
+  try {
+    const volume = Number(sound?.volume);
+    return Number.isFinite(volume) ? clampUnit(volume) : 1;
+  } catch (_error) {
+    return 1;
+  }
+}
+
+function safeFadeVolume(scene, sound, targetVolume, { duration, ease = 'Sine.easeOut', onComplete, onFailure } = {}) {
+  if (!scene?.tweens?.add || !isLiveSound(sound) || !sound.isPlaying) return false;
+
+  safeKillSoundTweens(scene, sound);
+
+  const fadeState = { volume: getSoundVolume(sound) };
+  let settled = false;
+  const finish = () => {
+    if (settled) return;
+    settled = true;
+    if (fadeStateBySound.get(sound) === fadeState) {
+      fadeStateBySound.delete(sound);
+    }
+    onComplete?.();
+  };
+  const fail = () => {
+    if (settled) return;
+    settled = true;
+    safeKillSoundTweens(scene, sound);
+    onFailure?.();
+  };
+
+  fadeStateBySound.set(sound, fadeState);
+
+  try {
+    scene.tweens.add({
+      targets: fadeState,
+      volume: targetVolume,
+      duration,
+      ease,
+      onUpdate: () => {
+        if (!safeSetVolume(sound, fadeState.volume)) {
+          fail();
+        }
+      },
+      onComplete: finish,
+    });
+    return true;
+  } catch (_error) {
+    fail();
+    return false;
+  }
+}
+
+function destroyManagedSound(sound, scene = null) {
+  safeKillSoundTweens(scene, sound);
   safeStop(sound);
   safeDestroy(sound);
 }
 
 
-function destroyActiveMusic() {
+function destroyActiveMusic(scene = null) {
   unregisterActiveMusicSettingsHandler();
-  destroyManagedSound(activeMusic?.sound);
+  destroyManagedSound(activeMusic?.sound, scene);
   activeMusic = null;
 }
 
@@ -110,7 +190,7 @@ export function playManagedSfx(scene, key, options = {}) {
 
   try {
     const sound = scene.sound.add(asset.key, { ...options, volume });
-    sound.once?.('complete', () => destroyManagedSound(sound));
+    sound.once?.('complete', () => destroyManagedSound(sound, scene));
     if (!safePlay(sound)) {
       destroyManagedSound(sound);
       return null;
@@ -128,17 +208,9 @@ export function playManagedSfx(scene, key, options = {}) {
 export function stopManagedSfx(scene, sound, { fadeMs = 200 } = {}) {
   if (!sound) return false;
 
-  const stopSound = () => destroyManagedSound(sound);
+  const stopSound = () => destroyManagedSound(sound, scene);
   const duration = Math.max(0, Number.isFinite(fadeMs) ? fadeMs : 0);
-  if (duration > 0 && scene?.tweens?.add && isLiveSound(sound) && sound.isPlaying) {
-    scene.tweens.killTweensOf?.(sound);
-    scene.tweens.add({
-      targets: sound,
-      volume: 0,
-      duration,
-      ease: 'Sine.easeOut',
-      onComplete: stopSound,
-    });
+  if (duration > 0 && safeFadeVolume(scene, sound, 0, { duration, onComplete: stopSound, onFailure: stopSound })) {
     return true;
   }
 
@@ -215,21 +287,13 @@ export function stopMusic(scene, { fadeMs = 300 } = {}) {
   const sound = activeMusic.sound;
   const stopSound = () => {
     if (activeMusic?.sound === sound) {
-      destroyActiveMusic();
+      destroyActiveMusic(scene);
       return;
     }
-    destroyManagedSound(sound);
+    destroyManagedSound(sound, scene);
   };
   const duration = Math.max(0, Number.isFinite(fadeMs) ? fadeMs : 0);
-  if (duration > 0 && scene?.tweens?.add && isLiveSound(sound) && sound.isPlaying) {
-    scene.tweens.killTweensOf?.(sound);
-    scene.tweens.add({
-      targets: sound,
-      volume: 0,
-      duration,
-      ease: 'Sine.easeOut',
-      onComplete: stopSound,
-    });
+  if (duration > 0 && safeFadeVolume(scene, sound, 0, { duration, onComplete: stopSound, onFailure: stopSound })) {
     return true;
   }
 
