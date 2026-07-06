@@ -8,6 +8,7 @@ const AI_SAFE_SURRENDER_CONFIRMATION_PASSES = 2;
 
 const SAFE_SURRENDER_MEANINGFUL_EFFECT_IDS = new Set([
   'lane_empty_bonus_damage',
+  'lane_empty_bonus_damage_1',
   'on_play_lane_damage_1',
   'death_damage_enemy_hero_1',
   'combat_death_damage_enemy_lane_1',
@@ -148,6 +149,7 @@ function scoreOpeningCard(card, hand, factionName = '') {
     if (attack <= 0 || card.effectId === 'cannot_attack') score -= 42;
     if (attack >= 2) score += 16;
     if (card.effectId === 'lane_empty_bonus_damage') score += 22;
+    if (card.effectId === 'lane_empty_bonus_damage_1') score += 11;
     if (card.effectId === 'empty_adjacent_bonus_atk') score += 14;
     if (card.effectId === 'on_play_lane_damage_1') score += 12;
     if (card.effectId === 'combat_death_damage_enemy_lane_1') score += 8;
@@ -345,6 +347,7 @@ function getBoardPressureValue(state, owner) {
     if (friendlyUnit && !enemyUnit) {
       value += getUnitAttack(friendlyUnit) * 110 + getEffectiveHp(friendlyUnit) * 12;
       if (friendlyUnit.effectId === 'lane_empty_bonus_damage') value += 80;
+      if (friendlyUnit.effectId === 'lane_empty_bonus_damage_1') value += 40;
       if (friendlyUnit.effectId === 'combat_death_damage_enemy_lane_1') value += 20;
       if (friendlyUnit.effectId === 'combat_death_summon_grunt') value += 35;
       if (friendlyUnit.effectId === 'leech_heal_hero_on_attack') value += 30;
@@ -600,6 +603,7 @@ function getJamSignalTargetValue(state, owner, targetIndex) {
   if (!friendlyBlocker) value += attack * 180;
   else value += Math.max(0, attack - getUnitAttack(friendlyBlocker)) * 80;
   if (target.effectId === 'lane_empty_bonus_damage' && !friendlyBlocker) value += 180;
+  if (target.effectId === 'lane_empty_bonus_damage_1' && !friendlyBlocker) value += 90;
   return value;
 }
 

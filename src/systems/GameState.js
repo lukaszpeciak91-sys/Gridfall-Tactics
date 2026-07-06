@@ -16,6 +16,13 @@ const ATK_PLUS_PER_OTHER_ALLY_EFFECT_ID = 'atk_plus_per_other_ally';
 const FRIENDLY_SWAP_EFFECT_ID = 'swap_any_two_friendly_units';
 const FRIENDLY_SWAP_BUFF_EFFECT_ID = 'swap_any_two_friendly_units_buff_both_atk_1';
 export const RUNNER_OPEN_LANE_ATK_BONUS = 2;
+export const WEAK_OPEN_LANE_ATK_BONUS = 1;
+
+function getOpenLaneAttackBonus(effectId) {
+  if (effectId === 'lane_empty_bonus_damage') return RUNNER_OPEN_LANE_ATK_BONUS;
+  if (effectId === 'lane_empty_bonus_damage_1') return WEAK_OPEN_LANE_ATK_BONUS;
+  return 0;
+}
 
 function hasSwarmAlphaAura(unit) {
   return unit?.effectId === SWARM_ALPHA_AURA_EFFECT_ID;
@@ -187,6 +194,7 @@ function cardCanRealisticallyAffectOutcome(card, state, owner, visitedCardIds = 
     if (unitCardCanUnlockOutcome(card, state, owner)) return true;
     return [
       'lane_empty_bonus_damage',
+      'lane_empty_bonus_damage_1',
       'on_play_lane_damage_1',
       'death_damage_enemy_hero_1',
       'combat_death_damage_enemy_lane_1',
@@ -657,15 +665,16 @@ function getSystemOverrideAttackWithCombatBonuses(state, unit, unitIndex) {
       }));
     }
   }
-  if (unit.effectId === 'lane_empty_bonus_damage') {
+  const openLaneBonus = getOpenLaneAttackBonus(unit.effectId);
+  if (openLaneBonus > 0) {
     const opposingIndex = unit.owner === 'player' ? unitIndex - 6 : unitIndex + 6;
     if (state.board[opposingIndex] === null) {
-      attack += RUNNER_OPEN_LANE_ATK_BONUS;
+      attack += openLaneBonus;
       combatModifiers.push(createSystemOverrideCombatModifier({
         type: 'attack-bonus',
-        amount: RUNNER_OPEN_LANE_ATK_BONUS,
-        source: 'lane_empty_bonus_damage',
-        label: `+${RUNNER_OPEN_LANE_ATK_BONUS} ATK`,
+        amount: openLaneBonus,
+        source: unit.effectId,
+        label: `+${openLaneBonus} ATK`,
       }));
     }
   }
@@ -1022,8 +1031,9 @@ export function getEffectiveBoardAttack(state, boardIndex) {
     if (hasEmptyAdjacent) attack += 1;
   }
 
-  if (unit.effectId === 'lane_empty_bonus_damage' && hasOpenOpposingLane(state, unit, boardIndex)) {
-    attack += RUNNER_OPEN_LANE_ATK_BONUS;
+  const openLaneBonus = getOpenLaneAttackBonus(unit.effectId);
+  if (openLaneBonus > 0 && hasOpenOpposingLane(state, unit, boardIndex)) {
+    attack += openLaneBonus;
   }
 
   attack += getOtherAllyAttackBonus(state, unit, boardIndex);
@@ -2880,15 +2890,16 @@ function resolveCombatLane(state, col, combatContext = null) {
         }));
       }
     }
-    if (unit.effectId === 'lane_empty_bonus_damage') {
+    const openLaneBonus = getOpenLaneAttackBonus(unit.effectId);
+    if (openLaneBonus > 0) {
       const opposingIndex = unit.owner === 'player' ? unitIndex - 6 : unitIndex + 6;
       if (state.board[opposingIndex] === null) {
-        attack += RUNNER_OPEN_LANE_ATK_BONUS;
+        attack += openLaneBonus;
         combatModifiers.push(createCombatModifier({
           type: 'attack-bonus',
-          amount: RUNNER_OPEN_LANE_ATK_BONUS,
-          source: 'lane_empty_bonus_damage',
-          label: `+${RUNNER_OPEN_LANE_ATK_BONUS} ATK`,
+          amount: openLaneBonus,
+          source: unit.effectId,
+          label: `+${openLaneBonus} ATK`,
         }));
       }
     }
