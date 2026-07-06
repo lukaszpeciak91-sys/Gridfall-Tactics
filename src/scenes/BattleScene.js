@@ -388,6 +388,7 @@ export default class BattleScene extends Phaser.Scene {
     this.tutorialFocusLayer = null;
     this.tutorialFocusGraphics = [];
     this.currentTutorialFocusKey = null;
+    this.pendingTutorialUiRecoveryEvent = null;
     this.battleMenuButtonFocusBounds = null;
     this.deferredTransientBattleBanner = null;
     this.hasShownOpeningTurnStartBanner = false;
@@ -599,6 +600,7 @@ export default class BattleScene extends Phaser.Scene {
     this.tutorialFocusLayer = null;
     this.tutorialFocusGraphics = [];
     this.currentTutorialFocusKey = null;
+    this.pendingTutorialUiRecoveryEvent = null;
     this.battleMenuButtonFocusBounds = null;
     this.deferredTransientBattleBanner = null;
     this.hasShownOpeningTurnStartBanner = false;
@@ -623,6 +625,7 @@ export default class BattleScene extends Phaser.Scene {
     this.destroyEnemyActionBanner();
     this.destroyTurnStartBanner();
     this.destroyPlayerActionBanner();
+    this.cancelTutorialUiRecovery();
     this.destroyTutorialBanner();
     this.destroyTutorialFocus();
     this.destroyTargetingInstruction();
@@ -3547,6 +3550,7 @@ export default class BattleScene extends Phaser.Scene {
   onViewportChanged() {
     if (!this.gameState) return;
     this.rebuildBattleView('viewport-change');
+    this.scheduleTutorialUiRecovery('viewport-change');
   }
 
   recoverFromLifecycle(reason = 'unknown', diagnostics = null) {
@@ -3582,6 +3586,7 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     this.refreshLifecycleBanners(reason);
+    this.scheduleTutorialUiRecovery(reason);
     this.ensureBattleResultModalVisible(`lifecycle:${reason}`);
 
     if (!this.gameState?.winner && !this.battleAmbienceStopping) {
@@ -3636,6 +3641,43 @@ export default class BattleScene extends Phaser.Scene {
 
     this.updateTutorialBanner?.();
     this.updateTutorialFocus?.(step);
+  }
+
+  shouldSuppressTutorialUiRecovery() {
+    return Boolean(
+      !this.scene
+      || !this.gameState
+      || !this.layout
+      || !this.isTutorialBattle?.()
+      || !this.tutorialControllerState
+      || this.battleResultModalPending
+      || this.battleResultModalShown
+      || this.isFlowResolving
+      || this.isEffectCastResolving
+      || this.gameState?.winner
+    );
+  }
+
+  cancelTutorialUiRecovery() {
+    this.pendingTutorialUiRecoveryEvent?.remove?.(false);
+    this.pendingTutorialUiRecoveryEvent = null;
+  }
+
+  scheduleTutorialUiRecovery(reason = 'unknown') {
+    if (this.shouldSuppressTutorialUiRecovery()) return null;
+    if (this.scene && !this.scene.isActive?.() && !this.scene.isPaused?.()) return null;
+
+    this.cancelTutorialUiRecovery();
+
+    this.pendingTutorialUiRecoveryEvent = this.time?.delayedCall?.(50, () => {
+      this.pendingTutorialUiRecoveryEvent = null;
+      if (this.shouldSuppressTutorialUiRecovery()) return;
+      if (this.scene && !this.scene.isActive?.() && !this.scene.isPaused?.()) return;
+      this.updateTutorialBanner?.();
+      this.updateTutorialFocus?.();
+    });
+
+    return this.pendingTutorialUiRecoveryEvent;
   }
 
   shouldRebuildBattleView(reason, diagnostics) {
@@ -3756,6 +3798,7 @@ export default class BattleScene extends Phaser.Scene {
     this.resetCardHighlights();
     this.restorePersistentBattleBanner();
     this.updateTutorialBanner();
+    this.scheduleTutorialUiRecovery(reason);
 
     this.restoreResultOverlayFromSnapshot(resultOverlaySnapshot);
     this.ensureBattleResultModalVisible(`rebuild:${reason}`);
