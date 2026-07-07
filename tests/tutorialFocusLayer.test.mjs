@@ -53,7 +53,9 @@ test('tutorial focus supports base, UI button, hand card, and board/lane targets
   assert.match(battleSource, /calculateHandCardFocusBounds\(this\.cardViews \?\? \[\], cardId/);
   const layoutSource = readFileSync('src/ui/tutorialUxLayout.js', 'utf8');
   assert.match(layoutSource, /if \(!view\?\.background\) return null;/);
-  assert.match(layoutSource, /view\.root && \(!view\.root\.active \|\| \(view\.root\.alpha \?\? 1\) <= 0/);
+  assert.match(layoutSource, /export function isLiveCardView/);
+  assert.match(layoutSource, /if \(!isLiveDisplayObject\(boundsObject\)\) return false;/);
+  assert.match(layoutSource, /if \(cardView\.root && !isLiveDisplayObject\(cardView\.root\)\) return false;/);
   assert.match(battleSource, /type === 'hand_card'[\s\S]*type === 'mulligan_card'[\s\S]*getTutorialBattleData\(\)\.openingConfig\.requiredPlayerMulliganCardId/);
   assert.match(battleSource, /if \(type === 'empty_lane'\) \{[\s\S]*target\.slotIndex < 6 \|\| target\.slotIndex > 8\) return null;[\s\S]*getBoardSlotFocusBounds\(target\.slotIndex\)/);
   assert.doesNotMatch(battleSource, /empty_lane'\) return this\.getBoardSlotFocusBounds\(target\.slotIndex \?\? target\.index \?\? target\.laneIndex/);

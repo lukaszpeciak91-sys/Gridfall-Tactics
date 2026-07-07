@@ -29,10 +29,36 @@ export function calculateCentralBattleBannerLayout({ width, board, margin, baseW
 }
 
 
+function isLiveDisplayObject(object) {
+  if (!object) return false;
+  if (object.active === false || object.visible === false || object.destroyed === true) return false;
+  if ((object.alpha ?? 1) <= 0) return false;
+  if (!object.scene) return false;
+  return true;
+}
+
+export function isLiveCardView(cardView, getObjectBounds = null) {
+  if (!cardView) return false;
+  const boundsObject = cardView.background ?? cardView.container ?? cardView.root;
+  if (!isLiveDisplayObject(boundsObject)) return false;
+  if (cardView.root && !isLiveDisplayObject(cardView.root)) return false;
+  if (cardView.container && !isLiveDisplayObject(cardView.container)) return false;
+  if (boundsObject.parentContainer && !isLiveDisplayObject(boundsObject.parentContainer)) return false;
+  if (typeof getObjectBounds === 'function' && !getObjectBounds(boundsObject, 7)) return false;
+  return true;
+}
+
+export function getLiveHandCardViewById(cardViews = [], cardId, getObjectBounds = null) {
+  if (!cardId) return null;
+  return cardViews.find((cardView) => {
+    const matchesCard = cardView?.card?.id === cardId || cardView?.cardId === cardId;
+    return matchesCard && isLiveCardView(cardView, getObjectBounds);
+  }) ?? null;
+}
+
 export function calculateHandCardFocusBounds(cardViews = [], cardId, getObjectBounds) {
-  const view = cardViews.find((cardView) => cardView?.card?.id === cardId || cardView?.cardId === cardId);
+  const view = getLiveHandCardViewById(cardViews, cardId, getObjectBounds);
   if (!view?.background) return null;
-  if (view.root && (!view.root.active || (view.root.alpha ?? 1) <= 0 || view.root.visible === false)) return null;
   const bounds = getObjectBounds(view.background, 7);
   if (!bounds) return null;
   if (view.root && Number.isFinite(view.root.x) && Number.isFinite(view.root.y)) {

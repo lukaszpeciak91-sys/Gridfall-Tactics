@@ -12,7 +12,7 @@ import { COMBAT_ATTACK_PRESENTATIONS, getCombatAttackPresentation, getCombatEven
 import { BATTLE_BACKGROUND_FALLBACK_COLOR, BATTLE_BACKGROUND_FALLBACK_COLOR_HEX, createCoverBackground, getBattleBackgroundAsset, hasLoadedImageAsset, preloadBattleBackgroundArt, preloadImageAsset, resolvePublicAssetPath } from '../rendering/backgroundArt.js';
 import { preloadAllCardIllustrations, preloadCardIllustrationsForFaction } from '../rendering/cardIllustrationAssets.js';
 import { calculateBattleLayoutMetrics } from '../ui/battleLayout.js';
-import { calculateHandCardFocusBounds, calculateTutorialBannerLayout } from '../ui/tutorialUxLayout.js';
+import { calculateHandCardFocusBounds, calculateTutorialBannerLayout, getLiveHandCardViewById } from '../ui/tutorialUxLayout.js';
 import { calculateHandBackCardCoverCrop, calculateHandBackCardDepth, shouldRenderHandBackCard } from '../ui/handBackCardPresentation.js';
 import { HAND_CARD_FLIP_REVEAL_DURATION, findHandCardFlipRevealSlots, shouldSkipHandCardFlipReveal, startHandCardFlipReveal } from '../ui/handCardFlipReveal.js';
 import { createFloatingControl, createMuteToggleControl, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
@@ -681,6 +681,7 @@ export default class BattleScene extends Phaser.Scene {
     this.cleanupHandCardFlipReveals();
     this.cleanupOpeningMulliganRevealControllers();
     this.clearHandPanelViews();
+    this.clearHandCardViews();
     if (!preserveTweens) {
       this.tweens?.killAll?.();
     }
@@ -974,8 +975,8 @@ export default class BattleScene extends Phaser.Scene {
       let targetObject = null;
       if (target.type === 'hand_card' || target.type === 'specific_hand_card' || target.type === 'mulligan_card' || target.type === 'effect_card') {
         const cardId = target.cardId ?? getTutorialBattleData().openingConfig.requiredPlayerMulliganCardId;
-        targetObject = (this.cardViews ?? []).find((view) => view?.card?.id === cardId || view?.cardId === cardId)?.container
-          ?? (this.cardViews ?? []).find((view) => view?.card?.id === cardId || view?.cardId === cardId);
+        const cardView = getLiveHandCardViewById(this.cardViews ?? [], cardId, (object, padding) => this.getGameObjectFocusBounds(object, padding));
+        targetObject = cardView?.container ?? cardView?.background ?? cardView?.root ?? null;
       } else if (target.type === 'board_slot' || target.type === 'occupied_board_slot' || target.type === 'open_lane') {
         targetObject = (this.boardCells ?? []).find((cell) => cell?.index === (target.slotIndex ?? target.index ?? 0))?.background;
       } else if (target.type === 'enemy_base') {
@@ -5222,9 +5223,19 @@ export default class BattleScene extends Phaser.Scene {
     this.handPanelViews = [];
   }
 
+  clearHandCardViews() {
+    (this.cardViews ?? []).forEach((view) => {
+      this.disableCardViewInteractions?.(view);
+      view?.destroy?.();
+      view?.root?.destroy?.();
+    });
+    this.cardViews = [];
+  }
+
   drawHand() {
     this.clearOpeningMulliganRevealBackCards();
     this.clearHandPanelViews();
+    this.clearHandCardViews();
     const { width, hand, margin } = this.layout;
     const centerY = hand.centerY;
     const cardBaseY = hand.cardCenterY;
@@ -10318,12 +10329,7 @@ export default class BattleScene extends Phaser.Scene {
       if (!revealSlots.has(backCard.slotIndex)) backCard.destroy();
     });
     this.handBackCards = [];
-    this.cardViews.forEach((view) => {
-      this.disableCardViewInteractions(view);
-      view.destroy?.();
-      view.root?.destroy?.();
-    });
-    this.cardViews = [];
+    this.clearHandCardViews();
     this.drawHand();
     this.startHandCardFlipReveals(revealBackCards);
     if (this.openingMulliganRevealPending) this.startOpeningMulliganReveal();

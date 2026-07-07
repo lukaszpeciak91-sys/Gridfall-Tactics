@@ -90,7 +90,7 @@ for (const [stepId, cardId] of [
   ['effect_card', 'tutorial_all_attack_1'],
 ]) {
   test(`${stepId} resolves focus to ${cardId} hand card`, () => {
-    const cardViews = [{ cardId, card: { id: cardId }, root: { active: true, x: 123, y: 456, alpha: 1 }, background: { active: true, x: 0, y: 0, width: 70, height: 100, displayWidth: 70, displayHeight: 100 } }];
+    const cardViews = [{ cardId, card: { id: cardId }, root: { active: true, x: 123, y: 456, alpha: 1, scene: {} }, background: { active: true, x: 0, y: 0, width: 70, height: 100, displayWidth: 70, displayHeight: 100, scene: {} } }];
 
     const bounds = calculateHandCardFocusBounds(cardViews, cardId, (object, padding) => ({ x: object.x, y: object.y, width: object.displayWidth + padding * 2, height: object.displayHeight + padding * 2 }));
     assert.deepEqual(bounds, { x: 123, y: 456, width: 84, height: 114 });
