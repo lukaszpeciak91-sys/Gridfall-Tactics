@@ -6047,7 +6047,13 @@ export default class BattleScene extends Phaser.Scene {
     if (!card || this.isUnitCard(card) || this.isEffectCastResolving || this.playerActionUsed) return;
 
     const targetingState = this.getTargetingStateForCard(card);
-    this.effectCastState = { cardId: card.id, targetingState };
+    const castState = {
+      cardId: card.id,
+      targetingState,
+      castId: (this.effectCastSerial = (this.effectCastSerial ?? 0) + 1),
+      completed: false,
+    };
+    this.effectCastState = castState;
     this.selectedCardId = null;
     this.pendingSwapIndex = null;
     this.clearSwapPrompt();
@@ -6063,12 +6069,19 @@ export default class BattleScene extends Phaser.Scene {
     this.isEffectCastResolving = true;
     this.showPlayerEffectConfirmation(card);
 
-    await Promise.all([
-      this.playEffectCastSweep({ side: 'player' }),
-      this.delay(PLAYER_EFFECT_CAST_BEAT_MS),
-    ]);
+    try {
+      await Promise.all([
+        Promise.resolve(this.playEffectCastSweep({ side: 'player' })),
+        this.delay(PLAYER_EFFECT_CAST_BEAT_MS),
+      ]);
+    } catch (error) {
+      console.warn('Player effect cast presentation failed; continuing effect resolution.', {
+        cardId: card.id,
+        error,
+      });
+    }
 
-    if (!this.effectCastState || this.effectCastState.cardId !== card.id) {
+    if (castState.completed || this.effectCastState !== castState || !this.gameState || this.gameState.winner || this.battleResultModalShown || this.playerActionUsed) {
       this.isEffectCastResolving = false;
       return;
     }
@@ -6082,6 +6095,7 @@ export default class BattleScene extends Phaser.Scene {
     const beforeStats = this.captureBoardStats();
     const result = playEffectCard(this.gameState, 'player', card.id);
     this.isEffectCastResolving = false;
+    castState.completed = true;
     if (!result.ok) {
       this.effectCastState = null;
       this.resetCardHighlights({ showPreview: false });
@@ -6097,6 +6111,7 @@ export default class BattleScene extends Phaser.Scene {
     });
     this.queueBattleHistoryAction?.('player', { type: 'play_effect', card: this.createCardRef?.(result.card ?? card, 'player') ?? { name: (result.card ?? card)?.name ?? 'Card', side: 'player' } });
     this.pendingTutorialEvent = { eventName: 'effect_played', payload: { cardId: (result.card ?? card)?.id } };
+    this.effectCastState = null;
     this.completePlayerAction(beforeStats, this.buildActionFeedback(beforeStats, result), movementFeedback);
   }
 
@@ -6121,54 +6136,84 @@ export default class BattleScene extends Phaser.Scene {
 
 
   async playEffectCastSweep({ side = 'player', playSound = true } = {}) {
-    if (playSound) this.playBattleSfx?.(AUDIO_KEYS.SPELL_GENERIC);
-    const style = EFFECT_CAST_SWEEP_STYLE[side] ?? EFFECT_CAST_SWEEP_STYLE.player;
-    const middleCells = this.boardCells
-      .filter((cell) => cell.row === 1 && cell.background?.active)
-      .sort((a, b) => Math.abs(a.index - 4) - Math.abs(b.index - 4) || a.index - b.index);
+    try {
+      if (playSound) this.playBattleSfx?.(AUDIO_KEYS.SPELL_GENERIC);
+      const style = EFFECT_CAST_SWEEP_STYLE[side] ?? EFFECT_CAST_SWEEP_STYLE.player;
+      const middleCells = (this.boardCells ?? [])
+        .filter((cell) => cell.row === 1 && cell.background?.active)
+        .sort((a, b) => Math.abs(a.index - 4) - Math.abs(b.index - 4) || a.index - b.index);
 
-    if (middleCells.length === 0) return;
+      if (middleCells.length === 0) return;
 
-    const animations = middleCells.map((cell, order) => new Promise((resolve) => {
-      const background = cell.background;
-      const previousStyle = {
-        lineWidth: background.lineWidth ?? 2,
-        strokeColor: background.strokeColor ?? 0x94a3b8,
-        strokeAlpha: background.strokeAlpha ?? BOARD_GUIDE_SLOT_STROKE_ALPHA,
-        fillColor: background.fillColor ?? 0x111827,
-        fillAlpha: background.fillAlpha ?? BOARD_GUIDE_SLOT_FILL_ALPHA,
-        scaleX: background.scaleX,
-        scaleY: background.scaleY,
-      };
-
-      this.time.delayedCall(order * PLAYER_EFFECT_CAST_SWEEP_STEP_MS, () => {
-        if (!background.active) {
+      const animations = middleCells.map((cell, order) => new Promise((resolve) => {
+        let resolved = false;
+        const finish = () => {
+          if (resolved) return;
+          resolved = true;
           resolve();
+        };
+        const background = cell.background;
+        if (!background?.active) {
+          finish();
           return;
         }
-        background.setStrokeStyle(4, style.strokeColor, style.strokeAlpha);
-        background.setFillStyle(style.fillColor, style.fillAlpha);
-        this.tweens.add({
-          targets: background,
-          scaleX: previousStyle.scaleX * 1.045,
-          scaleY: previousStyle.scaleY * 1.045,
-          duration: 120,
-          yoyo: true,
-          repeat: 1,
-          ease: 'Sine.easeInOut',
-          onComplete: () => {
-            if (background.active) {
-              background.setScale(previousStyle.scaleX, previousStyle.scaleY);
-              background.setFillStyle(previousStyle.fillColor, previousStyle.fillAlpha);
-              background.setStrokeStyle(previousStyle.lineWidth, previousStyle.strokeColor, previousStyle.strokeAlpha);
-            }
-            resolve();
-          },
-        });
-      });
-    }));
+        const previousStyle = {
+          lineWidth: background.lineWidth ?? 2,
+          strokeColor: background.strokeColor ?? 0x94a3b8,
+          strokeAlpha: background.strokeAlpha ?? BOARD_GUIDE_SLOT_STROKE_ALPHA,
+          fillColor: background.fillColor ?? 0x111827,
+          fillAlpha: background.fillAlpha ?? BOARD_GUIDE_SLOT_FILL_ALPHA,
+          scaleX: background.scaleX,
+          scaleY: background.scaleY,
+        };
 
-    await Promise.all(animations);
+        const restore = () => {
+          if (background.active) {
+            background.setScale(previousStyle.scaleX, previousStyle.scaleY);
+            background.setFillStyle(previousStyle.fillColor, previousStyle.fillAlpha);
+            background.setStrokeStyle(previousStyle.lineWidth, previousStyle.strokeColor, previousStyle.strokeAlpha);
+          }
+        };
+
+        this.time?.delayedCall?.(order * PLAYER_EFFECT_CAST_SWEEP_STEP_MS, () => {
+          try {
+            if (!background.active) {
+              finish();
+              return;
+            }
+            background.setStrokeStyle(4, style.strokeColor, style.strokeAlpha);
+            background.setFillStyle(style.fillColor, style.fillAlpha);
+            const tween = this.tweens?.add?.({
+              targets: background,
+              scaleX: previousStyle.scaleX * 1.045,
+              scaleY: previousStyle.scaleY * 1.045,
+              duration: 120,
+              yoyo: true,
+              repeat: 1,
+              ease: 'Sine.easeInOut',
+              onComplete: () => {
+                restore();
+                finish();
+              },
+              onStop: () => {
+                restore();
+                finish();
+              },
+            });
+            if (!tween) {
+              restore();
+              finish();
+            }
+          } catch {
+            finish();
+          }
+        }) ?? finish();
+      }));
+
+      await Promise.all(animations);
+    } catch (error) {
+      console.warn('Effect cast sweep failed; skipping visual sweep.', { side, error });
+    }
   }
 
 

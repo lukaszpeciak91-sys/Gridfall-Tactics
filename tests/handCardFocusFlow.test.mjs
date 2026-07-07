@@ -129,7 +129,7 @@ test('tactical menu and inspect are mutually safe during navigation', () => {
 });
 
 test('effect casting is staged before targeted resolution without a dedicated cancel action control state', () => {
-  assert.match(source, /this\.effectCastState = \{ cardId: card\.id, targetingState \};/);
+  assert.match(source, /const castState = \{[\s\S]*cardId: card\.id,[\s\S]*targetingState,[\s\S]*castId:[\s\S]*\};\s*this\.effectCastState = castState;/);
   assert.match(source, /this\.selectedCardId = null;[\s\S]*this\.showPlayerEffectConfirmation\(card\);[\s\S]*this\.playEffectCastSweep\(\{ side: 'player' \}\)/);
   assert.match(source, /this\.showPlayerEffectConfirmation\(card, \{ allowUnit: true \}\);[\s\S]*this\.playEffectCastSweep\(\{ side: 'player' \}\)/);
   assert.match(source, /beginPlayerTargetingSession\(targetingState\) \{/);
