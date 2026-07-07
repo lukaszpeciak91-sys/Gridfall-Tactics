@@ -492,7 +492,8 @@
         "infect_damage_1_opposite_ally_atk_1": "Deal 1, empower opposite ally",
         "adjacent_allies_temp_armor_1": "Adjacent allies +1 ARM",
         "swap_leftmost_adjacent_enemies": "Swap two adjacent enemies",
-        "swap_adjacent_enemy_units": "Swap adjacent enemies, -1 ATK"
+        "swap_adjacent_enemy_units": "Swap adjacent enemies, -1 ATK",
+        "enemy_atk_to_0_until_combat": "Selected enemy 0 ATK"
       },
       "targeting": {
         "selectEnemy": "SELECT ENEMY",

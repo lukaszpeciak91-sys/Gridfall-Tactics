@@ -138,3 +138,49 @@ test('Overclock effects work for enemy owner', () => {
   resolveCombat(state);
   assert.equal(getEffectiveBoardAttack(state, 2), 1);
 });
+
+test('enemy_atk_to_0_until_combat zeroes selected enemy attack until combat without mutating card JSON', () => {
+  const debuff = { id: 'mercy', name: 'Mercy', type: 'utility', targeting: 'enemy_unit', effectId: 'enemy_atk_to_0_until_combat' };
+  const enemyCard = unitCard('enemy-bruiser', 3, 5);
+  const state = stateWithHands([debuff], [enemyCard]);
+  playOrRedeployUnit(state, 'enemy', 'enemy-bruiser', 0);
+  const beforeHp = state.board[0].hp;
+  const beforeArmor = state.board[0].armor;
+
+  const result = resolveTargetedEffectCard(state, 'player', 'mercy', 0, [0]);
+
+  assert.equal(result.ok, true);
+  assert.equal(getEffectiveBoardAttack(state, 0), 0);
+  assert.equal(state.board[0].hp, beforeHp);
+  assert.equal(state.board[0].armor, beforeArmor);
+  assert.equal(enemyCard.attack, 3);
+  assert.equal(enemyCard.tempAttackSetToZeroUntilCombat, undefined);
+
+  resolveCombat(state);
+  assert.equal(getEffectiveBoardAttack(state, 0), 3);
+  assert.equal(state.board[0].tempAttackSetToZeroUntilCombat, undefined);
+});
+
+test('enemy_atk_to_0_until_combat works for enemy owner and suppresses combat base damage', () => {
+  const debuff = { id: 'mercy', name: 'Mercy', type: 'utility', targeting: 'enemy_unit', effectId: 'enemy_atk_to_0_until_combat' };
+  const state = stateWithHands([unitCard('player-striker', 2, 5)], [debuff]);
+  playOrRedeployUnit(state, 'player', 'player-striker', 6);
+
+  const result = resolveTargetedEffectCard(state, 'enemy', 'mercy', 6, [6]);
+
+  assert.equal(result.ok, true);
+  assert.equal(getEffectiveBoardAttack(state, 6), 0);
+  resolveCombat(state);
+  assert.equal(state.enemyHP, 12);
+  assert.equal(getEffectiveBoardAttack(state, 6), 2);
+});
+
+test('enemy_atk_to_0_until_combat cleanup is safe when target leaves board before combat', () => {
+  const debuff = { id: 'mercy', name: 'Mercy', type: 'utility', targeting: 'enemy_unit', effectId: 'enemy_atk_to_0_until_combat' };
+  const state = stateWithHands([debuff], [unitCard('fragile-enemy', 1, 1)]);
+  playOrRedeployUnit(state, 'enemy', 'fragile-enemy', 0);
+  assert.equal(resolveTargetedEffectCard(state, 'player', 'mercy', 0, [0]).ok, true);
+  state.board[0] = null;
+
+  assert.doesNotThrow(() => resolveCombat(state));
+});

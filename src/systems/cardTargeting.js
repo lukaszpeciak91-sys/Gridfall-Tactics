@@ -13,6 +13,7 @@ const FRIENDLY_SINGLE_TARGET_EFFECTS = new Set([
 
 const ENEMY_SINGLE_TARGET_EFFECTS = new Set([
   'enemy_lane_atk_minus_1',
+  'enemy_atk_to_0_until_combat',
   'ignore_armor_next_attack',
   'control_enemy_unit_this_turn',
   'infect_damage_1_opposite_ally_atk_1',

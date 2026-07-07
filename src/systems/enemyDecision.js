@@ -41,6 +41,7 @@ const SAFE_SURRENDER_MEANINGFUL_EFFECT_IDS = new Set([
   'destroy_friendly_damage_enemy_base_1',
   'return_friendly_draw_1',
   'enemy_up_to_2_atk_minus_1',
+  'enemy_atk_to_0_until_combat',
   'enemy_all_atk_minus_1',
   'enemy_lane_atk_minus_1',
   'buff_all_armor_1',
@@ -115,6 +116,7 @@ const UTILITY_EFFECT_IDS = new Set([
   'swap_adjacent_enemy_units',
   'swap_leftmost_adjacent_enemies',
   'enemy_up_to_2_atk_minus_1',
+  'enemy_atk_to_0_until_combat',
   'enemy_lane_atk_minus_1',
   'enemy_all_atk_minus_1',
   'control_enemy_unit_this_turn',
@@ -175,7 +177,7 @@ function scoreOpeningCard(card, hand, factionName = '') {
 
   if (LOW_TEMPO_EFFECTS.has(card.effectId)) score -= 36;
   if (BOARD_SYNERGY_EFFECTS.has(card.effectId)) score += unitsInHand >= 2 ? 18 : -28;
-  if (card.effectId === 'damage_all_enemies_1_ignore_armor' || card.effectId === 'enemy_all_atk_minus_1' || card.effectId === 'enemy_up_to_2_atk_minus_1') score -= 12;
+  if (card.effectId === 'damage_all_enemies_1_ignore_armor' || card.effectId === 'enemy_all_atk_minus_1' || card.effectId === 'enemy_up_to_2_atk_minus_1' || card.effectId === 'enemy_atk_to_0_until_combat') score -= 12;
   if (card.effectId === 'summon_grunt_empty_slot' || card.effectId === 'fill_empty_slots_0_1' || card.effectId === 'grave_call') score += 22;
   if (card.effectId === 'funeral_pyre') score += unitsInHand >= 2 ? -4 : -34;
   if (card.effectId === 'ignore_armor_next_attack' || card.effectId === 'control_enemy_unit_this_turn') score -= 16;
@@ -472,6 +474,7 @@ function getCandidateTargetIndexes(state, owner, effectId) {
     case 'ignore_armor_next_attack':
     case 'infect_damage_1_opposite_ally_atk_1':
     case 'enemy_lane_atk_minus_1':
+    case 'enemy_atk_to_0_until_combat':
     case 'enemy_up_to_2_atk_minus_1':
     case 'swap_two_enemy_units':
     case 'swap_adjacent_enemy_units':
@@ -1084,6 +1087,15 @@ export function scoreAction(state, owner, action) {
     };
     if (!meaningful) return Number.NEGATIVE_INFINITY;
     score += 360 + targetValue + targetIndexes.length * 90;
+  }
+
+  if (action.effectId === 'enemy_atk_to_0_until_combat') {
+    const target = state.board[action.targetIndex];
+    const targetAttack = getEffectiveBoardAttack(state, action.targetIndex);
+    const meaningful = target?.owner === (owner === 'enemy' ? 'player' : 'enemy') && targetAttack > 0;
+    action.aiEvaluation = { kind: 'enemy-atk-to-0', meaningful, targetAttack, opponentPressureReduced };
+    if (!meaningful) return Number.NEGATIVE_INFINITY;
+    score += 420 + targetAttack * 180 + Math.max(0, opponentPressureReduced) * 90;
   }
 
   if (action.effectId === 'control_enemy_unit_this_turn') {

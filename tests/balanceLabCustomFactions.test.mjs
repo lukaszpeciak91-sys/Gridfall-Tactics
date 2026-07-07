@@ -80,6 +80,20 @@ test('custom faction validation rejects duplicate and production-colliding ids',
   runExperimentError({ customFactions: [customFaction('aggro', 'Bad Aggro Id')] });
 });
 
+test('Balance Lab accepts enemy_atk_to_0_until_combat in custom faction validation', () => {
+
+  const atkToZeroEffect = customFaction('atk-zero-candidate', 'Atk Zero Candidate');
+  atkToZeroEffect.deck[0] = {
+    ...atkToZeroEffect.deck[0],
+    type: 'utility',
+    targeting: 'enemy_unit',
+    effectId: 'enemy_atk_to_0_until_combat',
+    textShort: 'Selected [ENEMY] gets 0 ATK until combat.',
+  };
+  runExperiment({ customFactions: [atkToZeroEffect] });
+
+});
+
 test('custom faction validation rejects malformed decks and unsupported simulator features', () => {
   const nineCards = customFaction('nine-card-candidate', 'Nine Card Candidate');
   nineCards.deck = nineCards.deck.slice(0, 9);
