@@ -127,6 +127,7 @@ test('tutorial focus gives two-step hand card then board slot guidance', () => {
   assert.match(battleSource, /expected\.type === 'play_card_to_slot' \|\| expected\.type === 'redeploy_unit'/);
   assert.match(battleSource, /this\.selectedCardId === expected\.cardId[\s\S]*\? \{ type: expected\.type === 'redeploy_unit' \? 'occupied_board_slot' : 'board_slot', slotIndex: expected\.slotIndex \}[\s\S]*: \{ type: 'hand_card', cardId: expected\.cardId \}/);
   assert.match(battleSource, /type === 'board_slot' \|\| type === 'occupied_board_slot'[\s\S]*const proposedType = existingUnit\?\.owner === 'player' \? 'redeploy_unit' : 'play_card_to_slot'[\s\S]*this\.isTutorialInputAllowed\?\.\(\{ type: proposedType, cardId: card\.id, slotIndex \}\)/);
+  assert.match(battleSource, /expected\.type === 'tap_continue' && type === 'board_slot'[\s\S]*return true;[\s\S]*if \(type === 'board_slot' \|\| type === 'occupied_board_slot'\)/);
   assert.match(battleSource, /this\.selectedCardId = cardId;[\s\S]*this\.startHandCardLongPress\(cardId\);\s*this\.updateTutorialFocus\?\.\(\);/);
 });
 
@@ -163,4 +164,155 @@ test('utility panel close refreshes tutorial banner and focus for the current st
 
   assert.match(deckCloseSource, /this\.handleTutorialEvent\?\.\('deck_closed'\);[\s\S]*this\.updatePlayerBaseActionState\(\);[\s\S]*this\.updateTutorialBanner\?\.\(\);/);
   assert.match(menuCloseSource, /this\.handleTutorialEvent\?\.\('battle_menu_closed'\);[\s\S]*this\.updatePlayerBaseActionState\(\);[\s\S]*this\.updateTutorialBanner\?\.\(\);/);
+});
+
+function tutorialFocusMechanicallyPossible(target, step = this.getCurrentTutorialStep?.()) {
+  if (!target || !step) return false;
+  const expected = step.expected ?? {};
+  const type = target.type;
+
+  if (type === 'effect_card') {
+    const card = this.gameState?.player?.hand?.find((item) => item.id === target.cardId);
+    return Boolean(
+      card
+      && !this.openingMulliganPending
+      && !this.playerActionUsed
+      && card.playable
+      && (this.isTutorialInputAllowed?.({ type: 'play_effect', cardId: card.id }) ?? true)
+    );
+  }
+
+  if (expected.type === 'tap_continue' && type === 'board_slot') {
+    return true;
+  }
+
+  if (type === 'board_slot' || type === 'occupied_board_slot') {
+    const card = this.gameState?.player?.hand?.find((item) => item.id === this.selectedCardId);
+    if (!card || this.playerActionUsed || this.openingMulliganPending) return false;
+    const slotIndex = target.slotIndex ?? target.index;
+    const existingUnit = this.gameState?.board?.[slotIndex];
+    const proposedType = existingUnit?.owner === 'player' ? 'redeploy_unit' : 'play_card_to_slot';
+    return this.isTutorialInputAllowed?.({ type: proposedType, cardId: card.id, slotIndex }) ?? true;
+  }
+
+  return true;
+}
+
+function updateTutorialFocusForTest(step = this.getCurrentTutorialStep(), { forceRedraw = false } = {}) {
+  this.tutorialLifecycleDiagnostics.tutorialFocusUpdateCallCount += 1;
+  this.logTutorialLifecycleDiagnostic('updateTutorialFocus called', { forceRedraw, stepId: step?.id ?? step?.key ?? null });
+  if (!this.isTutorialBattle() || !this.layout || this.battleResultModalShown || this.battleResultModalPending) {
+    this.tutorialLifecycleDiagnostics.lastTutorialFocusSkipReason = 'not_tutorial_or_missing_layout_or_result_modal';
+    this.destroyTutorialFocus?.();
+    return null;
+  }
+  if (this.isTutorialFocusTimingSuppressed(step)) {
+    this.tutorialLifecycleDiagnostics.lastTutorialFocusSkipReason = 'timing_suppressed';
+    this.clearTutorialFocusGraphics();
+    return null;
+  }
+  const target = this.getTutorialFocusTarget(step);
+  if (!target || !this.isTutorialFocusTargetMechanicallyPossible(target, step)) {
+    this.tutorialLifecycleDiagnostics.lastTutorialFocusSkipReason = target ? 'target_not_mechanically_possible' : 'missing_target';
+    this.clearTutorialFocusGraphics();
+    return null;
+  }
+  const key = JSON.stringify(target);
+  const bounds = this.resolveTutorialFocusBounds(target);
+  if (!bounds) {
+    this.tutorialLifecycleDiagnostics.lastTutorialFocusSkipReason = 'bounds_not_resolved';
+    this.clearTutorialFocusGraphics();
+    return null;
+  }
+  const boundsKey = `${key}:test-bounds`;
+  if (!forceRedraw && this.currentTutorialFocusKey === boundsKey && this.tutorialFocusGraphics?.length > 0) return this.tutorialFocusGraphics[1] ?? this.tutorialFocusGraphics[0];
+  return this.drawTutorialFocusBounds(bounds, boundsKey);
+}
+
+function createFocusScene(overrides = {}) {
+  const scene = {};
+  Object.assign(scene, {
+    tutorialLifecycleDiagnostics: { tutorialFocusUpdateCallCount: 0, lastTutorialFocusSkipReason: null },
+    logTutorialLifecycleDiagnostic() {},
+    isTutorialBattle: () => true,
+    layout: { width: 100, margin: 10 },
+    battleResultModalShown: false,
+    battleResultModalPending: false,
+    isTutorialFocusTimingSuppressed: () => false,
+    getTutorialFocusTarget: (step) => step.highlightTarget,
+    currentTutorialFocusKey: null,
+    tutorialFocusGraphics: [],
+    clearTutorialFocusGraphics() { this.tutorialFocusGraphics = []; },
+    drawTutorialFocusBounds(bounds, key) {
+      this.drawnFocus = { bounds, key };
+      this.tutorialFocusGraphics = [{}, { allowed: true }];
+      return this.tutorialFocusGraphics[1];
+    },
+  }, overrides);
+  scene.isTutorialFocusTargetMechanicallyPossible = tutorialFocusMechanicallyPossible;
+  scene.updateTutorialFocus = updateTutorialFocusForTest;
+  return scene;
+}
+
+test('tap_continue board_slot focus can render without mechanical playability', () => {
+  const step = { id: 'empty_lane', expected: { type: 'tap_continue' }, highlightTarget: { type: 'board_slot', slotIndex: 1 } };
+  const scene = createFocusScene({
+    selectedCardId: null,
+    playerActionUsed: false,
+    openingMulliganPending: false,
+    gameState: { player: { hand: [] }, board: [] },
+    resolveTutorialFocusBounds: (target) => (target.type === 'board_slot' && target.slotIndex === 1 ? { x: 50, y: 20, width: 30, height: 30 } : null),
+  });
+
+  assert.equal(scene.isTutorialFocusTargetMechanicallyPossible(step.highlightTarget, step), true);
+  const focus = scene.updateTutorialFocus(step, { forceRedraw: true });
+
+  assert.deepEqual(focus, { allowed: true });
+  assert.deepEqual(scene.drawnFocus.bounds, { x: 50, y: 20, width: 30, height: 30 });
+  assert.equal(scene.tutorialLifecycleDiagnostics.lastTutorialFocusSkipReason, null);
+});
+
+test('real action board-slot focus remains mechanically gated', () => {
+  const actionSteps = [
+    { id: 'play_unit_a', expected: { type: 'play_card_to_slot', cardId: 'unit_a', slotIndex: 6 }, highlightTarget: { type: 'board_slot', slotIndex: 6 } },
+    { id: 'redeploy', expected: { type: 'redeploy_unit', cardId: 'unit_c', slotIndex: 7 }, highlightTarget: { type: 'occupied_board_slot', slotIndex: 7 } },
+  ];
+
+  for (const step of actionSteps) {
+    const scene = createFocusScene({
+      selectedCardId: null,
+      playerActionUsed: false,
+      openingMulliganPending: false,
+      gameState: { player: { hand: [] }, board: [] },
+      resolveTutorialFocusBounds: () => ({ x: 50, y: 20, width: 30, height: 30 }),
+    });
+
+    assert.equal(scene.isTutorialFocusTargetMechanicallyPossible(step.highlightTarget, step), false);
+    assert.equal(scene.updateTutorialFocus(step, { forceRedraw: true }), null);
+    assert.equal(scene.tutorialLifecycleDiagnostics.lastTutorialFocusSkipReason, 'target_not_mechanically_possible');
+  }
+});
+
+test('play_effect focus remains mechanically gated when effect is not playable', () => {
+  const step = { id: 'effect_card', expected: { type: 'play_effect', cardId: 'missing_effect' }, highlightTarget: { type: 'effect_card', cardId: 'missing_effect' } };
+  const scene = createFocusScene({
+    selectedCardId: null,
+    playerActionUsed: false,
+    openingMulliganPending: false,
+    gameState: { player: { hand: [] }, board: [] },
+    resolveTutorialFocusBounds: () => ({ x: 50, y: 20, width: 30, height: 30 }),
+  });
+
+  assert.equal(scene.isTutorialFocusTargetMechanicallyPossible(step.highlightTarget, step), false);
+  assert.equal(scene.updateTutorialFocus(step, { forceRedraw: true }), null);
+  assert.equal(scene.tutorialLifecycleDiagnostics.lastTutorialFocusSkipReason, 'target_not_mechanically_possible');
+});
+
+test('empty_lane tap-continue still advances to final_pass in tutorial flow', () => {
+  const emptyLaneIndex = TUTORIAL_STEPS.findIndex((item) => item.id === 'empty_lane');
+
+  assert.equal(TUTORIAL_STEPS[emptyLaneIndex].expected.type, 'tap_continue');
+  assert.equal(TUTORIAL_STEPS[emptyLaneIndex + 1].id, 'final_pass');
+  assert.equal(TUTORIAL_STEPS[emptyLaneIndex + 1].expected.type, 'pass');
+  assert.deepEqual(TUTORIAL_STEPS[emptyLaneIndex].highlightTarget, { type: 'board_slot', slotIndex: 1 });
 });
