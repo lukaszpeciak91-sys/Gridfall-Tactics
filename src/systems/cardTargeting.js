@@ -32,6 +32,9 @@ export function getTargetingStateForEffect(effectId, cardId) {
   if (effectId === 'swap_adjacent_enemy_units') {
     return { cardId, targetType: 'enemy-unit', requiredTargets: 2, targetIndexes: [], targetConstraint: 'adjacent-pair' };
   }
+  if (effectId === 'enemy_atk_to_0_ally_atk_plus_1_until_combat') {
+    return { cardId, targetType: 'enemy-and-friendly-unit', requiredTargets: 2, targetIndexes: [] };
+  }
   if (effectId === 'enemy_up_to_2_atk_minus_1') {
     return { cardId, targetType: 'enemy-unit', requiredTargets: 2, targetLimit: 2, targetConstraint: 'positive-attack', targetIndexes: [] };
   }

@@ -8049,6 +8049,12 @@ export default class BattleScene extends Phaser.Scene {
     if (state.targetConstraint === 'adjacent-pair' && selectedCount > 0) {
       return translateActive('ui.battle.targeting.selectAdjacentEnemy', 'SELECT ADJACENT ENEMIES');
     }
+    if (state.targetType === 'enemy-and-friendly-unit' && selectedCount === 0) {
+      return translateActive('ui.battle.targeting.selectEnemy', 'SELECT ENEMY');
+    }
+    if (state.targetType === 'enemy-and-friendly-unit' && selectedCount === 1) {
+      return translateActive('ui.battle.targeting.selectAlly', 'SELECT ALLY');
+    }
     if (state.requiredTargets > 1 && selectedCount === 0 && state.targetType === 'enemy-unit') {
       return translateActive('ui.battle.targeting.selectFirstEnemy', 'SELECT FIRST ENEMY');
     }
@@ -10850,6 +10856,10 @@ export default class BattleScene extends Phaser.Scene {
       } else if (this.targetingState?.targetType === 'any-unit' && isValidAnyTarget) {
         strokeColor = 0xa855f7;
         strokeAlpha = BOARD_TARGET_STROKE_ALPHA;
+      } else if (this.targetingState?.targetType === 'enemy-and-friendly-unit'
+        && this.isValidTarget(cell.index, 'enemy-and-friendly-unit', selectedTargetIndexes, targetConstraint)) {
+        strokeColor = selectedTargetIndexes.length === 0 ? 0xef4444 : 0x22c55e;
+        strokeAlpha = BOARD_TARGET_STROKE_ALPHA;
       }
       cell.background.setStrokeStyle(cell.row === 1 ? 2 : 3, strokeColor, strokeAlpha);
     });
@@ -10892,6 +10902,11 @@ export default class BattleScene extends Phaser.Scene {
     if (targetConstraint === 'positive-attack' && getUnitAttack(unit) <= 0) return false;
     if (targetType === 'friendly-unit') return unit.owner === 'player';
     if (targetType === 'enemy-unit') return unit.owner === 'enemy';
+    if (targetType === 'enemy-and-friendly-unit') {
+      if (selectedTargetIndexes.length === 0) return unit.owner === 'enemy';
+      if (selectedTargetIndexes.length === 1) return unit.owner === 'player';
+      return false;
+    }
     if (targetType === 'any-unit') {
       const firstSelectedIndex = selectedTargetIndexes[0];
       const firstSelectedUnit = this.gameState.board[firstSelectedIndex];
