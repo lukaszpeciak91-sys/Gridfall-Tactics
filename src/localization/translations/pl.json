@@ -492,7 +492,8 @@
         "infect_damage_1_opposite_ally_atk_1": "Zadaj 1, wzmocnij przeciwnego sojusznika",
         "adjacent_allies_temp_armor_1": "Sąsiedni sojusznicy +1 ARM",
         "swap_leftmost_adjacent_enemies": "Zamień dwóch sąsiadujących wrogów",
-        "swap_adjacent_enemy_units": "Zamień sąsiednich wrogów, -1 ATK"
+        "swap_adjacent_enemy_units": "Zamień sąsiednich wrogów, -1 ATK",
+        "enemy_atk_to_0_until_combat": "Wybrany wróg 0 ATK"
       },
       "targeting": {
         "selectEnemy": "WYBIERZ WROGA",

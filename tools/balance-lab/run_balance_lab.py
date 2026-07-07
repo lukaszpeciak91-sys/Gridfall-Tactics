@@ -49,6 +49,7 @@ IMPLEMENTED_CONCRETE_EFFECT_IDS = {
     "swap_any_two_friendly_units_buff_both_atk_1",
     "swap_any_two_friendly_units",
     "lane_empty_bonus_damage_1",
+    "enemy_atk_to_0_until_combat",
 }
 REQUIRED_REPLACE_CARD_FIELDS = {"id", "name", "type", "targeting", "textShort"}
 REQUIRED_UNIT_REPLACE_CARD_FIELDS = {"attack", "hp", "armor"}

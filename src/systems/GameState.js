@@ -953,6 +953,7 @@ function applyDamageToUnit(state, index, amount) {
 
 export function getUnitAttack(unit, options = {}) {
   if (!unit) return 0;
+  if (unit.tempAttackSetToZeroUntilCombat) return 0;
   const baseAttack = unit.attack ?? 0;
   const tempAttack = unit.tempAttackMod ?? 0;
   const attackDecay = unit.effectId === DECAY_ATTACK_AFTER_COMBAT_EFFECT_ID ? Math.max(0, unit.attackDecay ?? 0) : 0;
@@ -1048,6 +1049,8 @@ export function getEffectiveBoardAttack(state, boardIndex) {
   if (defender?.owner === getOpponentOwner(unit.owner)) {
     attack -= getBoardDefensiveFrictionPenalty(state, opposingIndex);
   }
+
+  if (unit.tempAttackSetToZeroUntilCombat) return 0;
 
   return Math.max(0, attack);
 }
@@ -2337,6 +2340,7 @@ function validateTargetedEffectResolution(state, owner, card, boardIndex, target
     case 'temp_armor_1':
       return targetUnit.owner === owner ? { ok: true } : { ok: false, reason: 'Target must be friendly' };
     case 'enemy_lane_atk_minus_1':
+    case 'enemy_atk_to_0_until_combat':
     case 'control_enemy_unit_this_turn':
     case 'infect_damage_1_opposite_ally_atk_1':
     case 'ignore_armor_next_attack':
@@ -2465,6 +2469,11 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
     case 'enemy_lane_atk_minus_1': {
       if (targetUnit.owner !== getOpponentOwner(owner)) return { ok: false, reason: 'Target must be enemy' };
       targetUnit.tempAttackMod = (targetUnit.tempAttackMod ?? 0) - 1;
+      break;
+    }
+    case 'enemy_atk_to_0_until_combat': {
+      if (targetUnit.owner !== getOpponentOwner(owner)) return { ok: false, reason: 'Target must be enemy' };
+      targetUnit.tempAttackSetToZeroUntilCombat = true;
       break;
     }
     case 'enemy_up_to_2_atk_minus_1': {
@@ -3270,6 +3279,9 @@ export function resolveCombat(state) {
     }
     if (unit?.tempAttackMod) {
       delete unit.tempAttackMod;
+    }
+    if (unit?.tempAttackSetToZeroUntilCombat) {
+      delete unit.tempAttackSetToZeroUntilCombat;
     }
     if (unit?.tempArmorMod) {
       delete unit.tempArmorMod;
