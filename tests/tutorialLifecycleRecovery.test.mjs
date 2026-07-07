@@ -21,7 +21,7 @@ test('tutorial UI recovery is deferred after fullscreen and viewport rebuild pat
   assert.match(fullscreen, /this\.recoverFromLifecycle\(this\.scale\.isFullscreen \? 'enterfullscreen' : 'leavefullscreen'\)/);
   assert.match(viewport, /this\.rebuildBattleView\('viewport-change'\);\s*this\.scheduleTutorialUiRecovery\('viewport-change'\);/);
   assert.match(recover, /this\.refreshLifecycleBanners\(reason\);\s*this\.scheduleTutorialUiRecovery\(reason\);\s*this\.ensureBattleResultModalVisible/);
-  assert.match(rebuild, /this\.restorePersistentBattleBanner\(\);\s*this\.restoreTutorialPresentationState\(reason\);\s*this\.scheduleTutorialUiRecovery\(reason\);/);
+  assert.match(rebuild, /this\.restorePersistentBattleBanner\(\);\s*this\.restoreTutorialPresentationState\(reason, \{ forceRecreate: true \}\);\s*this\.scheduleTutorialUiRecovery\(reason\);/);
 });
 
 test('deferred tutorial UI recovery retries across fullscreen layout settling windows', () => {
@@ -30,7 +30,7 @@ test('deferred tutorial UI recovery retries across fullscreen layout settling wi
   assert.match(schedule, /const delays = \[0, 50, 100\];/);
   assert.match(schedule, /this\.shouldBlockTutorialUiRecovery\(\)/);
   assert.match(schedule, /this\.shouldTemporarilySuppressTutorialUiRecovery\(\)[\s\S]*this\.scheduleTutorialUiRecovery\(`\$\{reason\}:retry`\)/);
-  assert.match(schedule, /this\.restoreTutorialPresentationState\?\.\(`\$\{reason\}:deferred:\$\{delay\}`, \{ forceFocusRedraw: true \}\);/);
+  assert.match(schedule, /this\.restoreTutorialPresentationState\?\.\(`\$\{reason\}:deferred:\$\{delay\}`, \{ forceFocusRedraw: true, forceRecreate: true \}\);/);
 });
 
 test('tutorial UI recovery keeps suppression rules for results and resolving flows', () => {
@@ -88,4 +88,54 @@ test('tutorial focus update can force redraw even when focus key is unchanged', 
   assert.match(focus, /updateTutorialFocus\(step = this\.getCurrentTutorialStep\(\), \{ forceRedraw = false \} = \{\}\)/);
   assert.match(focus, /if \(!forceRedraw && this\.currentTutorialFocusKey === boundsKey && this\.tutorialFocusGraphics\?\.length > 0\)/);
   assert.match(layer, /setVisible\?\.\(true\);[\s\S]*setAlpha\?\.\(1\);[\s\S]*setDepth\?\.\(TUTORIAL_FOCUS_DEPTH\);[\s\S]*setScale\?\.\(1\);[\s\S]*setPosition\?\.\(0, 0\);/);
+});
+
+test('forced lifecycle recreate destroys banner and focus before recreating from current step', () => {
+  const restore = extractMethodBody('restoreTutorialPresentationState', 'shouldRebuildBattleView');
+
+  assert.match(restore, /forceRecreate = false/);
+  assert.match(restore, /if \(forceRecreate\) \{[\s\S]*this\.destroyTutorialBanner\?\.\(\);[\s\S]*this\.destroyTutorialFocus\?\.\(\);[\s\S]*forceFocusRedraw = true;/);
+  assert.match(restore, /const banner = this\.updateTutorialBanner\?\.\(\);/);
+  assert.match(restore, /this\.updateTutorialFocus\?\.\(step, \{ forceRedraw: forceFocusRedraw \}\);/);
+  assert.match(restore, /tutorialForcedRecreateCount \+= 1/);
+  assert.match(restore, /lastTutorialForcedRecreateReason = reason/);
+});
+
+test('forced lifecycle recreate is wired only through lifecycle recovery paths', () => {
+  const refresh = extractMethodBody('refreshLifecycleBanners', 'shouldBlockTutorialUiRecovery');
+  const schedule = extractMethodBody('scheduleTutorialUiRecovery', 'shouldRebuildBattleView');
+  const rebuild = extractMethodBody('rebuildBattleView', 'shutdown');
+
+  assert.match(refresh, /this\.restoreTutorialPresentationState\(reason, \{ forceRecreate: true \}\);/);
+  assert.match(schedule, /this\.restoreTutorialPresentationState\?\.\(`\$\{reason\}:deferred:\$\{delay\}`, \{ forceFocusRedraw: true, forceRecreate: true \}\);/);
+  assert.match(rebuild, /this\.restorePersistentBattleBanner\(\);\s*this\.restoreTutorialPresentationState\(reason, \{ forceRecreate: true \}\);\s*this\.scheduleTutorialUiRecovery\(reason\);/);
+});
+
+test('forced lifecycle recreate keeps result and non-tutorial guards before creating UI', () => {
+  const restore = extractMethodBody('restoreTutorialPresentationState', 'shouldRebuildBattleView');
+  const guard = extractMethodBody('shouldBlockTutorialUiRecovery', 'shouldTemporarilySuppressTutorialUiRecovery');
+
+  assert.match(restore, /if \(this\.shouldBlockTutorialUiRecovery\(\)\) \{[\s\S]*return null;/);
+  assert.match(restore, /if \(this\.shouldTemporarilySuppressTutorialUiRecovery\(\)\) \{[\s\S]*this\.scheduleTutorialUiRecovery\(`\$\{reason\}:suppressed`\);[\s\S]*return null;/);
+  assert.match(guard, /!this\.isTutorialBattle\?\.\(\)/);
+  assert.match(guard, /this\.battleResultModalPending/);
+  assert.match(guard, /this\.battleResultModalShown/);
+  assert.match(guard, /this\.gameState\?\.winner/);
+});
+
+test('tutorial lifecycle diagnostics include display-list membership for stale presentation checks', () => {
+  const diagnostic = extractMethodBody('getDiagnosticGameObjectState', 'getTutorialFocusResolutionDiagnostic');
+
+  assert.match(diagnostic, /displayListExists: Boolean\(object\.scene\?\.children\?\.exists\?\.\(object\)\)/);
+  assert.match(diagnostic, /displayListIndex: typeof object\.scene\?\.children\?\.getIndex === 'function'/);
+  assert.match(diagnostic, /cameraFilter: object\.cameraFilter \?\? null/);
+});
+
+
+test('document fullscreen and Phaser resume lifecycle paths enter forced recovery', () => {
+  const docFullscreen = extractMethodBody('onTutorialDocumentFullscreenChanged', 'onViewportChanged');
+  const resume = extractMethodBody('onSceneResume', 'onSceneWake');
+
+  assert.match(docFullscreen, /const reason = event\?\.type \?\? 'fullscreenchange';[\s\S]*this\.recoverFromLifecycle\(reason\);/);
+  assert.match(resume, /this\.recoverFromLifecycle\('scene-resume'\);/);
 });

@@ -399,10 +399,12 @@ export default class BattleScene extends Phaser.Scene {
       tutorialUiRecoveryScheduledCount: 0,
       tutorialUiRecoveryFiredCount: 0,
       tutorialUiRecoverySkippedCount: 0,
+      tutorialForcedRecreateCount: 0,
       lastTutorialRestoreReason: null,
       lastTutorialRestoreSkipReason: null,
       lastTutorialBannerSkipReason: null,
       lastTutorialFocusSkipReason: null,
+      lastTutorialForcedRecreateReason: null,
       lastLifecycleReason: null,
       lastRebuildReason: null,
       lastViewportChangeAt: null,
@@ -630,10 +632,12 @@ export default class BattleScene extends Phaser.Scene {
       tutorialUiRecoveryScheduledCount: 0,
       tutorialUiRecoveryFiredCount: 0,
       tutorialUiRecoverySkippedCount: 0,
+      tutorialForcedRecreateCount: 0,
       lastTutorialRestoreReason: null,
       lastTutorialRestoreSkipReason: null,
       lastTutorialBannerSkipReason: null,
       lastTutorialFocusSkipReason: null,
+      lastTutorialForcedRecreateReason: null,
       lastLifecycleReason: null,
       lastRebuildReason: null,
       lastViewportChangeAt: null,
@@ -962,6 +966,9 @@ export default class BattleScene extends Phaser.Scene {
       pointerdownListeners: object.listenerCount?.('pointerdown'),
       pointerupListeners: object.listenerCount?.('pointerup'),
       bounds,
+      displayListExists: Boolean(object.scene?.children?.exists?.(object)),
+      displayListIndex: typeof object.scene?.children?.getIndex === 'function' ? object.scene.children.getIndex(object) : null,
+      cameraFilter: object.cameraFilter ?? null,
     };
   }
 
@@ -3799,6 +3806,7 @@ export default class BattleScene extends Phaser.Scene {
       scaleIsFullscreen: this.scale?.isFullscreen,
       documentFullscreenElement: Boolean(globalThis.document?.fullscreenElement ?? globalThis.document?.webkitFullscreenElement),
     });
+    this.recoverFromLifecycle(reason);
   }
 
   onViewportChanged() {
@@ -3905,7 +3913,7 @@ export default class BattleScene extends Phaser.Scene {
 
   refreshLifecycleBanners(reason = 'unknown') {
     this.logTutorialLifecycleDiagnostic('refreshLifecycleBanners', { reason });
-    this.restoreTutorialPresentationState(reason);
+    this.restoreTutorialPresentationState(reason, { forceRecreate: true });
   }
 
   shouldBlockTutorialUiRecovery() {
@@ -3976,7 +3984,7 @@ export default class BattleScene extends Phaser.Scene {
           this.scheduleTutorialUiRecovery(`${reason}:retry`);
           return;
         }
-        this.restoreTutorialPresentationState?.(`${reason}:deferred:${delay}`, { forceFocusRedraw: true });
+        this.restoreTutorialPresentationState?.(`${reason}:deferred:${delay}`, { forceFocusRedraw: true, forceRecreate: true });
       });
       return recoveryEvent;
     }).filter(Boolean);
@@ -3985,10 +3993,10 @@ export default class BattleScene extends Phaser.Scene {
     return this.pendingTutorialUiRecoveryEvents;
   }
 
-  restoreTutorialPresentationState(reason = 'unknown', { forceFocusRedraw = true } = {}) {
+  restoreTutorialPresentationState(reason = 'unknown', { forceFocusRedraw = true, forceRecreate = false } = {}) {
     this.tutorialLifecycleDiagnostics.tutorialRestoreCallCount += 1;
     this.tutorialLifecycleDiagnostics.lastTutorialRestoreReason = reason;
-    this.logTutorialLifecycleDiagnostic('restoreTutorialPresentationState called', { reason, forceFocusRedraw });
+    this.logTutorialLifecycleDiagnostic('restoreTutorialPresentationState called', { reason, forceFocusRedraw, forceRecreate });
     if (this.shouldBlockTutorialUiRecovery()) {
       this.tutorialLifecycleDiagnostics.tutorialRestoreSkipCount += 1;
       this.tutorialLifecycleDiagnostics.lastTutorialRestoreSkipReason = 'blocked';
@@ -4011,6 +4019,20 @@ export default class BattleScene extends Phaser.Scene {
       this.destroyTutorialBanner?.();
       this.destroyTutorialFocus?.();
       return null;
+    }
+
+    if (forceRecreate) {
+      this.tutorialLifecycleDiagnostics.tutorialForcedRecreateCount += 1;
+      this.tutorialLifecycleDiagnostics.lastTutorialForcedRecreateReason = reason;
+      this.logTutorialLifecycleDiagnostic('force recreate tutorial presentation', {
+        reason,
+        oldBannerInDisplayList: Boolean(this.children?.exists?.(this.tutorialBanner)),
+        oldFocusLayerInDisplayList: Boolean(this.children?.exists?.(this.tutorialFocusLayer)),
+        oldFocusGraphicsCount: this.tutorialFocusGraphics?.length ?? 0,
+      });
+      this.destroyTutorialBanner?.();
+      this.destroyTutorialFocus?.();
+      forceFocusRedraw = true;
     }
 
     const banner = this.updateTutorialBanner?.();
@@ -4166,7 +4188,7 @@ export default class BattleScene extends Phaser.Scene {
     this.updateInitiativeIndicator();
     this.resetCardHighlights();
     this.restorePersistentBattleBanner();
-    this.restoreTutorialPresentationState(reason);
+    this.restoreTutorialPresentationState(reason, { forceRecreate: true });
     this.scheduleTutorialUiRecovery(reason);
 
     this.restoreResultOverlayFromSnapshot(resultOverlaySnapshot);

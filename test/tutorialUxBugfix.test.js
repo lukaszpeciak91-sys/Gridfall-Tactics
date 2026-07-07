@@ -51,9 +51,9 @@ test('lifecycle recovery refreshes tutorial banners after rebuild or non-rebuild
 test('lifecycle banner refresh is tutorial-only and result-modal safe', () => {
   const helperBody = battleSceneSource.match(/refreshLifecycleBanners\(reason = 'unknown'\) \{(?<body>[\s\S]*?)\n  \}\n\n  shouldRebuildBattleView/)?.groups?.body;
   assert.ok(helperBody, 'refreshLifecycleBanners helper should be present');
-  assert.match(helperBody, /this\.restoreTutorialPresentationState\(reason\);/);
+  assert.match(helperBody, /this\.restoreTutorialPresentationState\(reason, \{ forceRecreate: true \}\);/);
 
-  const restoreBody = battleSceneSource.match(/restoreTutorialPresentationState\(reason = 'unknown', \{ forceFocusRedraw = true \} = \{\}\) \{(?<body>[\s\S]*?)\n  \}\n\n  shouldRebuildBattleView/)?.groups?.body;
+  const restoreBody = battleSceneSource.match(/restoreTutorialPresentationState\(reason = 'unknown', \{ forceFocusRedraw = true, forceRecreate = false \} = \{\}\) \{(?<body>[\s\S]*?)\n  \}\n\n  shouldRebuildBattleView/)?.groups?.body;
   assert.ok(restoreBody, 'restoreTutorialPresentationState body should be present');
   assert.match(restoreBody, /this\.shouldBlockTutorialUiRecovery\(\)/);
   const guardBody = battleSceneSource.match(/shouldBlockTutorialUiRecovery\(\) \{(?<body>[\s\S]*?)\n  \}\n\n  shouldTemporarilySuppressTutorialUiRecovery/)?.groups?.body;
