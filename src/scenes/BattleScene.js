@@ -389,6 +389,7 @@ export default class BattleScene extends Phaser.Scene {
     this.tutorialFocusGraphics = [];
     this.currentTutorialFocusKey = null;
     this.pendingTutorialUiRecoveryEvent = null;
+    this.pendingTutorialUiRecoveryEvents = [];
     this.battleMenuButtonFocusBounds = null;
     this.deferredTransientBattleBanner = null;
     this.hasShownOpeningTurnStartBanner = false;
@@ -601,6 +602,7 @@ export default class BattleScene extends Phaser.Scene {
     this.tutorialFocusGraphics = [];
     this.currentTutorialFocusKey = null;
     this.pendingTutorialUiRecoveryEvent = null;
+    this.pendingTutorialUiRecoveryEvents = [];
     this.battleMenuButtonFocusBounds = null;
     this.deferredTransientBattleBanner = null;
     this.hasShownOpeningTurnStartBanner = false;
@@ -3632,18 +3634,10 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   refreshLifecycleBanners(reason = 'unknown') {
-    if (!this.scene || !this.gameState || !this.layout) return;
-    if (!this.isTutorialBattle?.() || !this.tutorialControllerState) return;
-    if (this.battleResultModalShown || this.battleResultModalPending || this.gameState?.winner) return;
-
-    const step = this.getCurrentTutorialStep?.();
-    if (!step || !this.getTutorialStepText?.(step)) return;
-
-    this.updateTutorialBanner?.();
-    this.updateTutorialFocus?.(step);
+    this.restoreTutorialPresentationState(reason);
   }
 
-  shouldSuppressTutorialUiRecovery() {
+  shouldBlockTutorialUiRecovery() {
     return Boolean(
       !this.scene
       || !this.gameState
@@ -3652,32 +3646,97 @@ export default class BattleScene extends Phaser.Scene {
       || !this.tutorialControllerState
       || this.battleResultModalPending
       || this.battleResultModalShown
-      || this.isFlowResolving
-      || this.isEffectCastResolving
       || this.gameState?.winner
     );
+  }
+
+  shouldTemporarilySuppressTutorialUiRecovery() {
+    return Boolean(this.isFlowResolving || this.isEffectCastResolving);
+  }
+
+  shouldSuppressTutorialUiRecovery() {
+    return this.shouldBlockTutorialUiRecovery() || this.shouldTemporarilySuppressTutorialUiRecovery();
   }
 
   cancelTutorialUiRecovery() {
     this.pendingTutorialUiRecoveryEvent?.remove?.(false);
     this.pendingTutorialUiRecoveryEvent = null;
+    (this.pendingTutorialUiRecoveryEvents ?? []).forEach((event) => event?.remove?.(false));
+    this.pendingTutorialUiRecoveryEvents = [];
   }
 
   scheduleTutorialUiRecovery(reason = 'unknown') {
-    if (this.shouldSuppressTutorialUiRecovery()) return null;
+    if (this.shouldBlockTutorialUiRecovery()) return null;
     if (this.scene && !this.scene.isActive?.() && !this.scene.isPaused?.()) return null;
 
     this.cancelTutorialUiRecovery();
 
-    this.pendingTutorialUiRecoveryEvent = this.time?.delayedCall?.(50, () => {
-      this.pendingTutorialUiRecoveryEvent = null;
-      if (this.shouldSuppressTutorialUiRecovery()) return;
-      if (this.scene && !this.scene.isActive?.() && !this.scene.isPaused?.()) return;
-      this.updateTutorialBanner?.();
-      this.updateTutorialFocus?.();
-    });
+    const delays = [0, 50, 100];
+    this.pendingTutorialUiRecoveryEvents = delays.map((delay) => {
+      let recoveryEvent = null;
+      recoveryEvent = this.time?.delayedCall?.(delay, () => {
+        this.pendingTutorialUiRecoveryEvents = (this.pendingTutorialUiRecoveryEvents ?? []).filter((event) => event !== recoveryEvent);
+        if (this.shouldBlockTutorialUiRecovery()) return;
+        if (this.scene && !this.scene.isActive?.() && !this.scene.isPaused?.()) return;
+        if (this.shouldTemporarilySuppressTutorialUiRecovery()) {
+          this.scheduleTutorialUiRecovery(`${reason}:retry`);
+          return;
+        }
+        this.restoreTutorialPresentationState?.(`${reason}:deferred:${delay}`, { forceFocusRedraw: true });
+      });
+      return recoveryEvent;
+    }).filter(Boolean);
+    this.pendingTutorialUiRecoveryEvent = this.pendingTutorialUiRecoveryEvents[0] ?? null;
 
-    return this.pendingTutorialUiRecoveryEvent;
+    return this.pendingTutorialUiRecoveryEvents;
+  }
+
+  restoreTutorialPresentationState(reason = 'unknown', { forceFocusRedraw = true } = {}) {
+    if (this.shouldBlockTutorialUiRecovery()) return null;
+    if (this.shouldTemporarilySuppressTutorialUiRecovery()) {
+      this.scheduleTutorialUiRecovery(`${reason}:suppressed`);
+      return null;
+    }
+
+    const step = this.getCurrentTutorialStep?.();
+    if (!step || !this.getTutorialStepText?.(step)) {
+      this.destroyTutorialBanner?.();
+      this.destroyTutorialFocus?.();
+      return null;
+    }
+
+    const banner = this.updateTutorialBanner?.();
+    if (banner?.active) {
+      banner.setOrigin?.(0.5);
+      banner.setScrollFactor?.(0);
+      banner.setDepth?.(TUTORIAL_BANNER_DEPTH);
+      this.children?.bringToTop?.(banner);
+    }
+
+    if (this.tutorialBannerOverlay?.active) {
+      this.tutorialBannerOverlay.setOrigin?.(0.5);
+      this.tutorialBannerOverlay.setAlpha?.(0.001);
+      this.tutorialBannerOverlay.setScrollFactor?.(0);
+      this.tutorialBannerOverlay.setDepth?.(TUTORIAL_BANNER_OVERLAY_DEPTH);
+      this.children?.bringToTop?.(this.tutorialBannerOverlay);
+    }
+
+    const layer = this.ensureTutorialFocusLayer?.();
+    if (layer?.active) {
+      layer.setVisible?.(true);
+      layer.setAlpha?.(1);
+      layer.setDepth?.(TUTORIAL_FOCUS_DEPTH);
+      layer.setScale?.(1);
+      layer.setPosition?.(0, 0);
+      layer.setScrollFactor?.(0);
+      this.children?.bringToTop?.(layer);
+    }
+
+    if (forceFocusRedraw) {
+      this.clearTutorialFocusGraphics?.();
+    }
+    this.updateTutorialFocus?.(step, { forceRedraw: forceFocusRedraw });
+    return banner;
   }
 
   shouldRebuildBattleView(reason, diagnostics) {
@@ -3797,7 +3856,7 @@ export default class BattleScene extends Phaser.Scene {
     this.updateInitiativeIndicator();
     this.resetCardHighlights();
     this.restorePersistentBattleBanner();
-    this.updateTutorialBanner();
+    this.restoreTutorialPresentationState(reason);
     this.scheduleTutorialUiRecovery(reason);
 
     this.restoreResultOverlayFromSnapshot(resultOverlaySnapshot);
@@ -6651,14 +6710,17 @@ export default class BattleScene extends Phaser.Scene {
         wordWrap: { width: layout.maxTextWidth },
         fontStyle: 'bold',
       }).setOrigin(0.5).setDepth(TUTORIAL_BANNER_DEPTH).setAlpha(0.98).setStroke(bannerStyle.stroke, 2);
+      this.tutorialBanner.setScrollFactor?.(0);
     } else {
       this.tutorialBanner
         .setText(message)
         .setPosition(layout.x, layout.targetY)
+        .setOrigin(0.5)
         .setVisible(true)
         .setAlpha(0.98)
         .setDepth(TUTORIAL_BANNER_DEPTH)
         .setScale(1);
+      this.tutorialBanner.setScrollFactor?.(0);
       this.tutorialBanner.setStyle?.({
         fontSize: `${layout.fontSize}px`,
         color: bannerStyle.color,
@@ -6672,12 +6734,17 @@ export default class BattleScene extends Phaser.Scene {
       this.tutorialBannerOverlay = this.add.rectangle(layout.overlayX, layout.overlayY, layout.overlayWidth, layout.overlayHeight, 0x000000, 0.001)
         .setOrigin(0.5)
         .setDepth(TUTORIAL_BANNER_OVERLAY_DEPTH)
+        .setAlpha(0.001)
         .setInteractive({ useHandCursor: true })
         .on('pointerdown', (pointer, localX, localY, event) => this.onTutorialBannerPointerDown(pointer, localX, localY, event))
         .on('pointerup', (pointer, localX, localY, event) => this.onTutorialBannerPointerUp(pointer, localX, localY, event));
+      this.tutorialBannerOverlay.setScrollFactor?.(0);
     }
     this.tutorialBannerOverlay.setPosition(layout.overlayX, layout.overlayY).setSize(layout.overlayWidth, layout.overlayHeight);
+    this.tutorialBannerOverlay.setOrigin?.(0.5);
     this.tutorialBannerOverlay.setDepth(TUTORIAL_BANNER_OVERLAY_DEPTH);
+    this.tutorialBannerOverlay.setAlpha?.(0.001);
+    this.tutorialBannerOverlay.setScrollFactor?.(0);
     this.tutorialBannerOverlay.setVisible(canTapContinue);
     if (this.tutorialBannerOverlay.input) this.tutorialBannerOverlay.input.enabled = canTapContinue;
     this.updateTutorialFocus(step);
@@ -6800,6 +6867,12 @@ export default class BattleScene extends Phaser.Scene {
     if (!this.tutorialFocusLayer?.active) {
       this.tutorialFocusLayer = this.add.container(0, 0).setDepth(TUTORIAL_FOCUS_DEPTH);
     }
+    this.tutorialFocusLayer?.setVisible?.(true);
+    this.tutorialFocusLayer?.setAlpha?.(1);
+    this.tutorialFocusLayer?.setDepth?.(TUTORIAL_FOCUS_DEPTH);
+    this.tutorialFocusLayer?.setScale?.(1);
+    this.tutorialFocusLayer?.setPosition?.(0, 0);
+    this.tutorialFocusLayer?.setScrollFactor?.(0);
     return this.tutorialFocusLayer;
   }
 
@@ -6899,6 +6972,8 @@ export default class BattleScene extends Phaser.Scene {
       const outline = this.add.rectangle(item.x, item.y, item.width, item.height, TUTORIAL_FOCUS_FILL, 0.025)
         .setRounded(radius)
         .setStrokeStyle(2, TUTORIAL_FOCUS_COLOR, 0.82);
+      glow.setScrollFactor?.(0);
+      outline.setScrollFactor?.(0);
       return [glow, outline];
     });
     layer.add(graphics);
@@ -6914,7 +6989,7 @@ export default class BattleScene extends Phaser.Scene {
       .join('|');
   }
 
-  updateTutorialFocus(step = this.getCurrentTutorialStep()) {
+  updateTutorialFocus(step = this.getCurrentTutorialStep(), { forceRedraw = false } = {}) {
     if (!this.isTutorialBattle() || !this.layout || this.battleResultModalShown || this.battleResultModalPending) {
       this.destroyTutorialFocus();
       return null;
@@ -6935,7 +7010,7 @@ export default class BattleScene extends Phaser.Scene {
       return null;
     }
     const boundsKey = `${key}:${this.getTutorialFocusBoundsKey(bounds)}`;
-    if (this.currentTutorialFocusKey === boundsKey && this.tutorialFocusGraphics?.length > 0) return this.tutorialFocusGraphics[1] ?? this.tutorialFocusGraphics[0];
+    if (!forceRedraw && this.currentTutorialFocusKey === boundsKey && this.tutorialFocusGraphics?.length > 0) return this.tutorialFocusGraphics[1] ?? this.tutorialFocusGraphics[0];
     return this.drawTutorialFocusBounds(bounds, boundsKey);
   }
 

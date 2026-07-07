@@ -51,17 +51,23 @@ test('lifecycle recovery refreshes tutorial banners after rebuild or non-rebuild
 test('lifecycle banner refresh is tutorial-only and result-modal safe', () => {
   const helperBody = battleSceneSource.match(/refreshLifecycleBanners\(reason = 'unknown'\) \{(?<body>[\s\S]*?)\n  \}\n\n  shouldRebuildBattleView/)?.groups?.body;
   assert.ok(helperBody, 'refreshLifecycleBanners helper should be present');
-  assert.match(helperBody, /!this\.isTutorialBattle\?\.\(\)/);
-  assert.match(helperBody, /this\.battleResultModalShown \|\| this\.battleResultModalPending \|\| this\.gameState\?\.winner/);
-  assert.match(helperBody, /this\.updateTutorialBanner\?\.\(\);/);
-  assert.match(helperBody, /this\.updateTutorialFocus\?\.\(step\);/);
+  assert.match(helperBody, /this\.restoreTutorialPresentationState\(reason\);/);
+
+  const restoreBody = battleSceneSource.match(/restoreTutorialPresentationState\(reason = 'unknown', \{ forceFocusRedraw = true \} = \{\}\) \{(?<body>[\s\S]*?)\n  \}\n\n  shouldRebuildBattleView/)?.groups?.body;
+  assert.ok(restoreBody, 'restoreTutorialPresentationState body should be present');
+  assert.match(restoreBody, /this\.shouldBlockTutorialUiRecovery\(\)/);
+  const guardBody = battleSceneSource.match(/shouldBlockTutorialUiRecovery\(\) \{(?<body>[\s\S]*?)\n  \}\n\n  shouldTemporarilySuppressTutorialUiRecovery/)?.groups?.body;
+  assert.ok(guardBody, 'shouldBlockTutorialUiRecovery body should be present');
+  assert.match(guardBody, /!this\.isTutorialBattle\?\.\(\)/);
+  assert.match(guardBody, /this\.battleResultModalPending[\s\S]*this\.battleResultModalShown[\s\S]*this\.gameState\?\.winner/);
   assert.doesNotMatch(helperBody, /showEnemyActionBanner|showPlayerActionBanner|showInvalidActionBanner|showOpeningTurnStartBanner|deferTransientBattleBanner|flushDeferredTransientBattleBanner/);
 });
 
 test('existing tutorial banner object state is normalized when updated', () => {
   const updateBody = battleSceneSource.match(/updateTutorialBanner\(\) \{(?<body>[\s\S]*?)\n  \}\n\n  onTutorialBannerPointerDown/)?.groups?.body;
   assert.ok(updateBody, 'updateTutorialBanner body should be present');
-  assert.match(updateBody, /\.setVisible\(true\)\s*\.setAlpha\(0\.98\)\s*\.setDepth\(TUTORIAL_BANNER_DEPTH\)\s*\.setScale\(1\)/);
+  assert.match(updateBody, /\.setOrigin\(0\.5\)\s*\.setVisible\(true\)\s*\.setAlpha\(0\.98\)\s*\.setDepth\(TUTORIAL_BANNER_DEPTH\)\s*\.setScale\(1\)/);
+  assert.match(updateBody, /this\.tutorialBanner\.setScrollFactor\?\.\(0\);/);
   assert.match(updateBody, /setWordWrapWidth\?\.\(layout\.maxTextWidth\)/);
 });
 
@@ -70,7 +76,9 @@ test('tap-continue overlay is re-laid out and reconfigured without duplication',
   assert.ok(updateBody, 'updateTutorialBanner body should be present');
   assert.match(updateBody, /if \(!this\.tutorialBannerOverlay\?\.active\) \{/);
   assert.match(updateBody, /this\.tutorialBannerOverlay\.setPosition\(layout\.overlayX, layout\.overlayY\)\.setSize\(layout\.overlayWidth, layout\.overlayHeight\);/);
+  assert.match(updateBody, /this\.tutorialBannerOverlay\.setOrigin\?\.\(0\.5\);/);
   assert.match(updateBody, /this\.tutorialBannerOverlay\.setDepth\(TUTORIAL_BANNER_OVERLAY_DEPTH\);/);
+  assert.match(updateBody, /this\.tutorialBannerOverlay\.setAlpha\?\.\(0\.001\);/);
   assert.match(updateBody, /this\.tutorialBannerOverlay\.setVisible\(canTapContinue\);/);
   assert.match(updateBody, /this\.tutorialBannerOverlay\.input\.enabled = canTapContinue/);
 });
