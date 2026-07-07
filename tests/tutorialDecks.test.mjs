@@ -92,7 +92,7 @@ test('tutorial enemy data exports a tutorial-only 6-card blocker deck', () => {
       { id: 'tutorial_enemy_blocker_a_1', type: 'unit', targeting: 'lane', attack: 1, hp: 2, armor: 0 },
       { id: 'tutorial_enemy_blocker_b_1', type: 'unit', targeting: 'lane', attack: 1, hp: 2, armor: 0 },
       { id: 'tutorial_enemy_blocker_c_1', type: 'unit', targeting: 'lane', attack: 1, hp: 1, armor: 0 },
-      { id: 'tutorial_enemy_blocker_d_1', type: 'unit', targeting: 'lane', attack: 1, hp: 3, armor: 0 },
+      { id: 'tutorial_enemy_blocker_d_1', type: 'unit', targeting: 'lane', attack: 1, hp: 4, armor: 0 },
     ],
   );
 

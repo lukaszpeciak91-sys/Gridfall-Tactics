@@ -35,6 +35,20 @@ function createTutorialHarness() {
   return { state, controller };
 }
 
+test('tutorial Stray Fan data is tutorial-only and has 4 HP without changing other stats', () => {
+  const { enemyFaction } = getTutorialBattleData();
+  const strayFan = enemyFaction.deck.find((card) => card.id === 'tutorial_enemy_blocker_d_1');
+
+  assert.ok(strayFan, 'tutorial Stray Fan should exist');
+  assert.equal(enemyFaction.id, 'tutorial-enemy');
+  assert.equal(strayFan.name, 'Stray Fan');
+  assert.equal(strayFan.namePl, 'Zbłąkany Kibic');
+  assert.equal(strayFan.attack, 1);
+  assert.equal(strayFan.hp, 4);
+  assert.equal(strayFan.armor, 0);
+  assert.equal(strayFan.effectId, undefined);
+});
+
 test('tutorial first combat slice starts player-first and blocks enemy before Unit A', () => {
   const { state, controller } = createTutorialHarness();
 
