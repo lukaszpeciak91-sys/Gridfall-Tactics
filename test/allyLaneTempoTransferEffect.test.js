@@ -122,3 +122,43 @@ test('Balance Lab validation accepts lane tempo transfer and rejects unknown eff
   const script = `import importlib.util, json\nfrom pathlib import Path\nspec = importlib.util.spec_from_file_location('bl', '${process.cwd()}/tools/balance-lab/run_balance_lab.py')\nbl = importlib.util.module_from_spec(spec)\nspec.loader.exec_module(bl)\nroot = Path(${JSON.stringify(process.cwd())})\nvalidated = bl.validate_custom_factions(root, json.loads(${JSON.stringify(JSON.stringify([faction]))}))\nassert validated[0]['deck'][0]['effectId'] == '${EFFECT_ID}'\nreplace_card = dict(validated[0]['deck'][0])\nreplace_card['id'] = 'aggro_quick_fix_1'\nchanges = bl.validate_requested_changes(root, [{'faction':'Aggro','cardId':'aggro_quick_fix_1','replaceCard': replace_card}])\nassert changes[0]['newCard']['effectId'] == '${EFFECT_ID}'\nbad = json.loads(${JSON.stringify(JSON.stringify([{ ...faction, id: 'bad-ally-lane-tempo-test', deck: faction.deck.map((card, i) => (i == 0 ? { ...card, effectId: 'unknown_effect' } : card)) }]))})\ntry:\n    bl.validate_custom_factions(root, bad)\nexcept bl.BalanceLabError:\n    pass\nelse:\n    raise AssertionError('unknown effect was accepted')\n`;
   execFileSync('python3', ['-c', script], { stdio: 'pipe' });
 });
+
+
+test('parameterized lane tempo supports JSON ATK values, one friendly target, empty lane, and cleanup', () => {
+  const PARAM_EFFECT_ID = 'lane_tempo_mod_until_combat';
+  assert.deepEqual(getTargetingStateForEffect(PARAM_EFFECT_ID, 'c'), { cardId: 'c', targetType: 'friendly-unit', requiredTargets: 1, targetIndexes: [] });
+  const state = makeState('player');
+  state.player.hand[0] = { ...effectCard('mercy_param'), effectId: PARAM_EFFECT_ID, effectParams: { allyAtk: 2, opposingEnemyAtk: -1 } };
+  const result = resolveTargetedEffectCard(state, 'player', 'mercy_param', 6, [6]);
+  assert.equal(result.ok, true);
+  assert.equal(getEffectiveBoardAttack(state, 6), 4);
+  assert.equal(getEffectiveBoardAttack(state, 0), 3);
+  assert.equal(state.player.discard[0].effectParams.allyAtk, 2);
+  resolveCombat(state);
+  assert.equal(getEffectiveBoardAttack(state, 6), 2);
+
+  const emptyState = makeState('player');
+  emptyState.board[0] = null;
+  emptyState.player.hand[0] = { ...effectCard('mercy_param_empty'), effectId: PARAM_EFFECT_ID, effectParams: { allyAtk: 2, opposingEnemyAtk: -1 } };
+  assert.equal(resolveTargetedEffectCard(emptyState, 'player', 'mercy_param_empty', 6, [6]).ok, true);
+  assert.equal(getEffectiveBoardAttack(emptyState, 6), 4);
+});
+
+test('Balance Lab validation accepts parameterized lane tempo and rejects bad effectParams', () => {
+  const PARAM_EFFECT_ID = 'lane_tempo_mod_until_combat';
+  const faction = {
+    id: 'param-lane-tempo-test',
+    name: 'Param Lane Tempo Test',
+    deck: Array.from({ length: 10 }, (_, index) => ({
+      id: `param_lane_tempo_${index}`,
+      name: `Tempo ${index}`,
+      type: 'utility',
+      targeting: index === 0 ? 'friendly_unit' : 'none',
+      effectId: index === 0 ? PARAM_EFFECT_ID : 'draw_1',
+      ...(index === 0 ? { effectParams: { allyAtk: 2, opposingEnemyAtk: -1 } } : {}),
+      textShort: 'x',
+    })),
+  };
+  const script = `import importlib.util, json\nfrom pathlib import Path\nspec = importlib.util.spec_from_file_location('bl', '${process.cwd()}/tools/balance-lab/run_balance_lab.py')\nbl = importlib.util.module_from_spec(spec)\nspec.loader.exec_module(bl)\nroot = Path(${JSON.stringify(process.cwd())})\nvalidated = bl.validate_custom_factions(root, json.loads(${JSON.stringify(JSON.stringify([faction]))}))\nassert validated[0]['deck'][0]['effectParams']['allyAtk'] == 2\nreplace_card = dict(validated[0]['deck'][0])\nreplace_card['id'] = 'aggro_quick_fix_1'\nchanges = bl.validate_requested_changes(root, [{'faction':'Aggro','cardId':'aggro_quick_fix_1','replaceCard': replace_card}])\nassert changes[0]['newCard']['effectParams']['opposingEnemyAtk'] == -1\nfor expr in [\n  "f=custom(); f['deck'][0]['effectId']='lane_tempo_mod_until_combat'; f['deck'][0]['effectParams']={'bogus':1}; bl.validate_custom_factions(root, [f])",\n  "f=custom(); f['deck'][0]['effectId']='lane_tempo_mod_until_combat'; f['deck'][0]['effectParams']={'allyAtk':'2'}; bl.validate_custom_factions(root, [f])",\n  "f=custom(); f['deck'][0]['effectId']='draw_1'; f['deck'][0]['effectParams']={'allyAtk':2}; bl.validate_custom_factions(root, [f])",\n]:\n    def custom():\n        return json.loads(${JSON.stringify(JSON.stringify(faction))})\n    try:\n        exec(expr)\n    except bl.BalanceLabError:\n        pass\n    else:\n        raise AssertionError(f'accepted invalid params: {expr}')\n`;
+  execFileSync('python3', ['-c', script], { stdio: 'pipe' });
+});
