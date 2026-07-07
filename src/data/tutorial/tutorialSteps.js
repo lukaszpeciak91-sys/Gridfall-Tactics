@@ -46,7 +46,7 @@ export const TUTORIAL_STEPS = Object.freeze([
   { id: 'adjacent_swap', phase: 'gameplay', expected: { type: 'swap_adjacent_units', fromIndex: 6, toIndex: 7 }, highlightTarget: { type: 'adjacent_units', fromIndex: 6, toIndex: 7 }, text: { pl: 'Zamień sąsiednie jednostki miejscami.\n\n(kliknij jednostkę na planszy, potem wybierz sąsiada)', en: 'Swap adjacent units.\n\n(tap a unit on the board, then choose its neighbor)' } },
   { id: 'redeploy', phase: 'gameplay', expected: { type: 'redeploy_unit', cardId: 'tutorial_unit_c_1', slotIndex: 6 }, highlightTarget: { type: 'hand_card', cardId: 'tutorial_unit_c_1' }, text: { pl: 'Jednostka z ręki może zastąpić tę na planszy.', en: 'A unit from your hand can replace one on the board.' } },
   { id: 'effect_card', phase: 'gameplay', expected: { type: 'play_effect', cardId: 'tutorial_all_attack_1' }, highlightTarget: { type: 'effect_card', cardId: 'tutorial_all_attack_1' }, text: { pl: 'Efekty działają od razu i znikają.', en: 'Effects resolve immediately, then disappear.' } },
-  { id: 'empty_lane', phase: 'gameplay', expected: { type: 'tap_continue' }, highlightTarget: { type: 'empty_lane', slotIndex: 8 }, text: { pl: 'Pusta linia uderza w bazę.', en: 'An empty lane strikes the base.' } },
+  { id: 'empty_lane', phase: 'gameplay', expected: { type: 'tap_continue' }, highlightTarget: { type: 'board_slot', slotIndex: 1 }, text: { pl: 'Pusta linia uderza w bazę.', en: 'An empty lane strikes the base.' } },
   { id: 'final_pass', phase: 'gameplay', expected: { type: 'pass', target: 'player_base_button' }, highlightTarget: { type: 'player_base_button' }, text: { pl: 'Masz dobrą pozycję. Użyj PASS.', en: 'Your position is good. Use PASS.' } },
 ]);
 

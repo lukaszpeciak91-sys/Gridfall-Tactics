@@ -20,7 +20,7 @@ test('tutorial focus targets are represented as practical BattleScene target obj
   assert.deepEqual(step('play_unit_b').highlightTarget, { type: 'hand_card', cardId: 'tutorial_unit_b_1' });
   assert.deepEqual(step('redeploy').highlightTarget, { type: 'hand_card', cardId: 'tutorial_unit_c_1' });
   assert.deepEqual(step('effect_card').highlightTarget, { type: 'effect_card', cardId: 'tutorial_all_attack_1' });
-  assert.deepEqual(step('empty_lane').highlightTarget, { type: 'empty_lane', slotIndex: 8 });
+  assert.deepEqual(step('empty_lane').highlightTarget, { type: 'board_slot', slotIndex: 1 });
   assert.deepEqual(step('adjacent_swap').highlightTarget, { type: 'adjacent_units', fromIndex: 6, toIndex: 7 });
   assert.deepEqual(step('final_pass').highlightTarget, { type: 'player_base_button' });
 });
@@ -88,6 +88,21 @@ test('hand_lanes tutorial focus targets only the three player board lanes', () =
   assert.match(playerLaneSource, /slotIndexes[\s\S]*\[6, 7, 8\]/);
   assert.match(playerLaneSource, /getBoardSlotFocusBounds\(slotIndex\)/);
   assert.doesNotMatch(playerLaneSource, /this\.boardCells|layout\.hand|player_hand_and_lanes|battle_lanes|type === 'board_lanes'/);
+});
+
+test('empty-lane tutorial banner focuses the middle enemy-row board cell', () => {
+  const target = step('empty_lane').highlightTarget;
+  assert.deepEqual(target, { type: 'board_slot', slotIndex: 1 });
+  assert.notDeepEqual(target, { type: 'empty_lane', slotIndex: 8 });
+  assert.equal(target.slotIndex, 1, 'slot 1 is the top-row middle enemy slot');
+  assert.notEqual(target.slotIndex, 8, 'slot 8 is the bottom-right player slot');
+
+  const boardSlotSource = battleSource.slice(
+    battleSource.indexOf("if (type === 'board_slot'"),
+    battleSource.indexOf("if (type === 'adjacent_units'"),
+  );
+  assert.match(boardSlotSource, /getBoardSlotFocusBounds\(target\.slotIndex \?\? target\.index \?\? 0\)/);
+  assert.match(battleSource, /getBoardSlotFocusBounds\(slotIndex\) \{[\s\S]*this\.boardCells \?\? \[\][\s\S]*candidate\?\.index === slotIndex[\s\S]*cell\?\.background/);
 });
 
 test('tutorial focus uses independent Phaser primitives and does not gate input', () => {
