@@ -43,6 +43,16 @@ def utf8_subprocess_env() -> dict[str, str]:
 
 
 ALLOWED_STAT_FIELDS = {"attack", "hp", "armor"}
+PARAMETERIZED_EFFECT_IDS = {"lane_tempo_mod_until_combat"}
+LANE_TEMPO_MOD_PARAM_FIELDS = {
+    "allyAtk",
+    "allyHp",
+    "allyArmor",
+    "opposingEnemyAtk",
+    "opposingEnemyHp",
+    "opposingEnemyArmor",
+}
+
 IMPLEMENTED_CONCRETE_EFFECT_IDS = {
     "decay_attack_after_combat",
     "atk_plus_per_other_ally",
@@ -52,6 +62,7 @@ IMPLEMENTED_CONCRETE_EFFECT_IDS = {
     "enemy_atk_to_0_until_combat",
     "enemy_atk_to_0_ally_atk_plus_1_until_combat",
     "ally_atk_plus_1_opposing_enemy_atk_minus_1_until_combat",
+    "lane_tempo_mod_until_combat",
 }
 REQUIRED_REPLACE_CARD_FIELDS = {"id", "name", "type", "targeting", "textShort"}
 REQUIRED_UNIT_REPLACE_CARD_FIELDS = {"attack", "hp", "armor"}
@@ -379,12 +390,28 @@ def validate_stat_change_shape(change: dict[str, Any], index: int) -> None:
         raise BalanceLabError(f"Change #{index} value must be >= 0.")
 
 
+
+def validate_effect_params(effect_id: Any, effect_params: Any, context: str) -> None:
+    if effect_params is None:
+        return
+    if effect_id not in PARAMETERIZED_EFFECT_IDS:
+        raise BalanceLabError(f"{context} includes effectParams, but effectId '{effect_id}' does not support effectParams.")
+    if not isinstance(effect_params, dict):
+        raise BalanceLabError(f"{context}.effectParams must be an object.")
+    unknown = sorted(set(effect_params) - LANE_TEMPO_MOD_PARAM_FIELDS)
+    if unknown:
+        allowed = ", ".join(sorted(LANE_TEMPO_MOD_PARAM_FIELDS))
+        raise BalanceLabError(f"{context}.effectParams has unsupported field(s): {', '.join(unknown)}. Supported fields: {allowed}.")
+    for key, value in effect_params.items():
+        if not isinstance(value, (int, float)) or isinstance(value, bool):
+            raise BalanceLabError(f"{context}.effectParams.{key} must be a number.")
+
 def validate_replace_card_shape(change: dict[str, Any], index: int) -> None:
     replace_card = change.get("replaceCard")
     if not isinstance(replace_card, dict):
         raise BalanceLabError(f"Change #{index} replaceCard must be an object.")
     if "effectParams" in replace_card:
-        raise BalanceLabError(f"Change #{index} replaceCard includes effectParams, which Balance Lab v2-lite does not support.")
+        validate_effect_params(replace_card.get("effectId"), replace_card.get("effectParams"), f"Change #{index} replaceCard")
     missing_fields = sorted(field for field in REQUIRED_REPLACE_CARD_FIELDS if field not in replace_card)
     if missing_fields:
         raise BalanceLabError(
@@ -725,9 +752,9 @@ def validate_custom_factions(root: Path, custom_factions: list[Any]) -> list[dic
             if card["id"] in seen_card_ids:
                 raise BalanceLabError(f"{card_context}.id '{card['id']}' is duplicated in custom faction '{faction_id}'.")
             seen_card_ids.add(card["id"])
-            if "effectParams" in card:
-                raise BalanceLabError(f"{card_context} includes effectParams, which customFactions does not support.")
             effect_id = card.get("effectId")
+            if "effectParams" in card:
+                validate_effect_params(effect_id, card.get("effectParams"), card_context)
             if effect_id is not None:
                 if not isinstance(effect_id, str) or not effect_id:
                     raise BalanceLabError(f"{card_context}.effectId must be a non-empty string, null, or omitted.")
@@ -873,6 +900,8 @@ def validate_requested_changes(root: Path, changes: list[dict[str, Any]]) -> lis
         if "replaceCard" in change:
             replace_card = dict(change["replaceCard"])
             effect_id = replace_card.get("effectId")
+            if "effectParams" in replace_card:
+                validate_effect_params(effect_id, replace_card.get("effectParams"), f"Change #{index} replaceCard")
             if effect_id is not None and effect_id not in known_effect_ids:
                 raise BalanceLabError(
                     f"Change #{index} replaceCard.effectId '{effect_id}' is not an existing effectId. "

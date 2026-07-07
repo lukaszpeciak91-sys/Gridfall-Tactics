@@ -237,7 +237,7 @@ If `type` is `"unit"`, these fields are also required and must be integers great
 
 Unit replacements may also include optional `combatKeywords`, an array of non-empty strings. The experimental `"overflow"` keyword makes excess combat damage after armor reduction hit the defender owner's base when the defender is killed; direct empty-lane base attacks are unchanged.
 
-Full replacement may update display fields such as `name`, `textShort`, `targeting`, `artAssetId`, and `cardNumber`. When present, `replaceCard.effectId` must be either an existing effectId already present in the repo card data or `null` for a vanilla/no-effect card. Omitting `effectId` is also allowed for replacement objects that intentionally have no effect field. Balance Lab v2-lite does not add new effect logic, does not support `effectParams`, and does not make unknown custom effects work. New effect behavior still requires the normal repo implementation path in gameplay code and AI support.
+Full replacement may update display fields such as `name`, `textShort`, `targeting`, `artAssetId`, and `cardNumber`. When present, `replaceCard.effectId` must be either an existing effectId already present in the repo card data or `null` for a vanilla/no-effect card. Omitting `effectId` is also allowed for replacement objects that intentionally have no effect field. Balance Lab v2-lite does not add arbitrary new effect logic and does not make unknown custom effects work. `replaceCard.effectParams` is supported only for the implemented `lane_tempo_mod_until_combat` effect; other effects still reject `effectParams`. New effect behavior still requires the normal repo implementation path in gameplay code and AI support.
 
 Example:
 
@@ -320,7 +320,7 @@ Validation rules for `customFactions`:
 - Unit cards require integer `attack`, `hp`, and `armor` values greater than or equal to 0.
 - `effectId` may be omitted or `null`; string `effectId` values must already exist in repo card data or the implemented concrete effect registry.
 - Unknown `effectId` values are rejected because Balance Lab does not add custom effect logic.
-- `effectParams` is rejected.
+- `effectParams` is rejected except on `lane_tempo_mod_until_combat`, where the supported numeric fields are `allyAtk`, `allyHp`, `allyArmor`, `opposingEnemyAtk`, `opposingEnemyHp`, and `opposingEnemyArmor`; missing fields default to `0`, unknown fields and non-number values are rejected.
 
 Implemented concrete non-production `effectId` values currently accepted by Balance Lab validation:
 
@@ -329,6 +329,23 @@ Implemented concrete non-production `effectId` values currently accepted by Bala
 - `lane_empty_bonus_damage_1` — Open lane: +1 ATK / Pusta linia: +1 [ATK]. Implemented unit passive for Balance Lab replacement-card and custom-faction testing; no `effectParams` are required or supported.
 - `decay_attack_after_combat` — Unit passive ATK decay after combat.
 - `atk_plus_per_other_ally` — Unit passive ATK bonus per other ally.
+
+- `lane_tempo_mod_until_combat` — Parameterized friendly-unit Balance Lab tempo modifier. Targeting must be `friendly_unit`; the player or AI selects one friendly unit. The opposing enemy is derived from the selected ally's lane, so no random target and no second manual target are used. Empty opposing lanes are allowed: ally modifiers still apply and enemy modifiers are skipped. Temporary ATK, HP, and Armor use the normal combat cleanup path; ATK and Armor cannot evaluate below 0. Supported `effectParams` fields are optional numbers: `allyAtk`, `allyHp`, `allyArmor`, `opposingEnemyAtk`, `opposingEnemyHp`, and `opposingEnemyArmor`. Example card:
+
+  ```json
+  {
+    "id": "overclock_mercy_2",
+    "name": "Mercy Test +2/-1",
+    "type": "utility",
+    "targeting": "friendly_unit",
+    "effectId": "lane_tempo_mod_until_combat",
+    "effectParams": {
+      "allyAtk": 2,
+      "opposingEnemyAtk": -1
+    },
+    "textShort": "Selected ally +2 ATK. Opposing enemy -1 ATK until combat."
+  }
+  ```
 
 Reports mark custom factions as experiment-only. Faction win-rate rows, matchup rows, campaign estimates, and card telemetry for custom factions show baseline as `N/A` instead of treating the missing baseline rows as parse errors. The Paste into ChatGPT block includes a custom-factions section, custom faction global non-draw WR, top custom faction matchups, custom campaign estimates when available, and experiment-only custom card telemetry.
 

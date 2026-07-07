@@ -16,6 +16,7 @@ const ATK_PLUS_PER_OTHER_ALLY_EFFECT_ID = 'atk_plus_per_other_ally';
 const FRIENDLY_SWAP_EFFECT_ID = 'swap_any_two_friendly_units';
 const FRIENDLY_SWAP_BUFF_EFFECT_ID = 'swap_any_two_friendly_units_buff_both_atk_1';
 const ALLY_LANE_TEMPO_TRANSFER_EFFECT_ID = 'ally_atk_plus_1_opposing_enemy_atk_minus_1_until_combat';
+const PARAM_LANE_TEMPO_MOD_EFFECT_ID = 'lane_tempo_mod_until_combat';
 export const RUNNER_OPEN_LANE_ATK_BONUS = 2;
 export const WEAK_OPEN_LANE_ATK_BONUS = 1;
 
@@ -1848,6 +1849,33 @@ function executeOnDeathEffectVariantOperations(state, index, unit) {
 }
 
 
+
+function getLaneTempoModEffectParams(card = {}) {
+  const raw = card?.effectParams && typeof card.effectParams === 'object' ? card.effectParams : {};
+  return {
+    allyAtk: Number(raw.allyAtk ?? 0),
+    allyHp: Number(raw.allyHp ?? 0),
+    allyArmor: Number(raw.allyArmor ?? 0),
+    opposingEnemyAtk: Number(raw.opposingEnemyAtk ?? 0),
+    opposingEnemyHp: Number(raw.opposingEnemyHp ?? 0),
+    opposingEnemyArmor: Number(raw.opposingEnemyArmor ?? 0),
+  };
+}
+
+function applyTemporaryStatMods(unit, attackDelta = 0, hpDelta = 0, armorDelta = 0) {
+  if (!unit) return;
+  if (attackDelta) unit.tempAttackMod = (unit.tempAttackMod ?? 0) + attackDelta;
+  if (hpDelta) {
+    unit.tempHpMod = (unit.tempHpMod ?? 0) + hpDelta;
+    unit.normalMaxHpBeforeTempMod ??= unit.maxHp ?? unit.hp;
+    unit.maxHp = unit.normalMaxHpBeforeTempMod + unit.tempHpMod;
+    unit.hp += hpDelta;
+    if (unit.maxHp < 1) unit.maxHp = 1;
+    if (unit.hp < 1) unit.hp = 1;
+  }
+  if (armorDelta) unit.tempArmorMod = (unit.tempArmorMod ?? 0) + armorDelta;
+}
+
 function applyEffectById(state, owner, effectId, sourceCard = null) {
   const side = owner === 'player' ? state.player : state.enemy;
   switch (effectId) {
@@ -2340,6 +2368,7 @@ function validateTargetedEffectResolution(state, owner, card, boardIndex, target
     case 'heal_3':
     case 'temp_armor_1':
     case ALLY_LANE_TEMPO_TRANSFER_EFFECT_ID:
+    case PARAM_LANE_TEMPO_MOD_EFFECT_ID:
       return targetUnit.owner === owner ? { ok: true } : { ok: false, reason: 'Target must be friendly' };
     case 'enemy_lane_atk_minus_1':
     case 'enemy_atk_to_0_until_combat':
@@ -2502,13 +2531,15 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
       allyUnit.tempAttackMod = (allyUnit.tempAttackMod ?? 0) + 1;
       break;
     }
-    case ALLY_LANE_TEMPO_TRANSFER_EFFECT_ID: {
+    case ALLY_LANE_TEMPO_TRANSFER_EFFECT_ID:
+    case PARAM_LANE_TEMPO_MOD_EFFECT_ID: {
       if (targetUnit.owner !== owner) return { ok: false, reason: 'Target must be friendly' };
-      targetUnit.tempAttackMod = (targetUnit.tempAttackMod ?? 0) + 1;
+      const params = card.effectId === PARAM_LANE_TEMPO_MOD_EFFECT_ID ? getLaneTempoModEffectParams(card) : { allyAtk: 1, opposingEnemyAtk: -1 };
+      applyTemporaryStatMods(targetUnit, params.allyAtk, params.allyHp, params.allyArmor);
       const opposingIndex = getOpposingLaneIndex(targetUnit, boardIndex);
       const opposingUnit = Number.isInteger(opposingIndex) ? state.board[opposingIndex] : null;
       if (opposingUnit?.owner === getOpponentOwner(owner)) {
-        opposingUnit.tempAttackMod = (opposingUnit.tempAttackMod ?? 0) - 1;
+        applyTemporaryStatMods(opposingUnit, params.opposingEnemyAtk, params.opposingEnemyHp, params.opposingEnemyArmor);
       }
       break;
     }
@@ -3323,9 +3354,11 @@ export function resolveCombat(state) {
       delete unit.tempArmorMod;
     }
     if (unit?.tempHpMod) {
-      const normalMaxHp = unit.maxHp ?? unit.hp;
+      const normalMaxHp = unit.normalMaxHpBeforeTempMod ?? unit.maxHp ?? unit.hp;
+      unit.maxHp = normalMaxHp;
       if (unit.hp > normalMaxHp) unit.hp = normalMaxHp;
       delete unit.tempHpMod;
+      delete unit.normalMaxHpBeforeTempMod;
     }
     if (unit?.quickFixDrawTriggers) {
       delete unit.quickFixDrawTriggers;

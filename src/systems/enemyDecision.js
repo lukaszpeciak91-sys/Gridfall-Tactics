@@ -124,6 +124,7 @@ const UTILITY_EFFECT_IDS = new Set([
   'swap_any_two_friendly_units',
   'swap_any_two_friendly_units_buff_both_atk_1',
   'ally_atk_plus_1_opposing_enemy_atk_minus_1_until_combat',
+  'lane_tempo_mod_until_combat',
 ]);
 
 const DELAYED_VALUE_EFFECT_IDS = new Set([
@@ -472,6 +473,7 @@ function getCandidateTargetIndexes(state, owner, effectId) {
     case 'quick_strike':
     case 'swap_adjacent_then_resolve':
     case 'ally_atk_plus_1_opposing_enemy_atk_minus_1_until_combat':
+    case 'lane_tempo_mod_until_combat':
       return board.map((unit, index) => (unit?.owner === friendlyOwner ? index : -1)).filter((index) => index >= 0);
     case 'control_enemy_unit_this_turn':
     case 'ignore_armor_next_attack':
@@ -546,6 +548,7 @@ function isTargetedOnlyEffect(effectId) {
     || effectId === 'enemy_lane_atk_minus_1'
     || effectId === 'enemy_atk_to_0_ally_atk_plus_1_until_combat'
     || effectId === 'ally_atk_plus_1_opposing_enemy_atk_minus_1_until_combat'
+    || effectId === 'lane_tempo_mod_until_combat'
     || effectId === 'enemy_up_to_2_atk_minus_1';
 }
 
@@ -1133,17 +1136,26 @@ export function scoreAction(state, owner, action) {
     score += 360 + targetValue + targetIndexes.length * 90;
   }
 
-  if (action.effectId === 'ally_atk_plus_1_opposing_enemy_atk_minus_1_until_combat') {
+  if (action.effectId === 'ally_atk_plus_1_opposing_enemy_atk_minus_1_until_combat' || action.effectId === 'lane_tempo_mod_until_combat') {
     const target = state.board[action.targetIndex];
     const { friendly, opposing } = getRowsForOwner(owner);
     const lane = friendly.indexOf(action.targetIndex);
     const opposed = lane >= 0 ? state.board[opposing[lane]] : null;
     const targetAttack = getEffectiveBoardAttack(state, action.targetIndex);
     const opposedAttack = lane >= 0 ? getEffectiveBoardAttack(state, opposing[lane]) : 0;
-    const meaningful = target?.owner === owner && (opposed?.owner === (owner === 'enemy' ? 'player' : 'enemy') || targetAttack >= 0);
-    action.aiEvaluation = { kind: 'ally-lane-tempo-transfer', meaningful, targetAttack, opposedAttack, hasOpposingEnemy: opposed?.owner === (owner === 'enemy' ? 'player' : 'enemy') };
+    const side = owner === 'enemy' ? state.enemy : state.player;
+    const actionCard = side?.hand?.find((card) => card.id === action.cardId);
+    const params = action.effectId === 'lane_tempo_mod_until_combat' ? (actionCard?.effectParams ?? {}) : {};
+    const allyAtk = Number(params.allyAtk ?? 1);
+    const opposingEnemyAtk = Number(params.opposingEnemyAtk ?? -1);
+    const hasOpposingEnemy = opposed?.owner === (owner === 'enemy' ? 'player' : 'enemy');
+    const meaningfulAllyPressure = allyAtk > 0 && targetAttack + allyAtk > 0;
+    const meaningfulEnemyDebuff = hasOpposingEnemy && opposingEnemyAtk < 0 && opposedAttack > 0;
+    const meaningful = target?.owner === owner && (meaningfulAllyPressure || meaningfulEnemyDebuff);
+    action.aiEvaluation = { kind: 'ally-lane-tempo-transfer', meaningful, targetAttack, opposedAttack, allyAtk, opposingEnemyAtk, hasOpposingEnemy };
     if (!meaningful) return Number.NEGATIVE_INFINITY;
-    score += 360 + targetAttack * 80 + (opposed?.owner === (owner === 'enemy' ? 'player' : 'enemy') ? 320 + opposedAttack * 120 : 80);
+    score += 360 + Math.max(0, allyAtk) * 120 + targetAttack * 80;
+    score += hasOpposingEnemy ? 320 + Math.max(0, -opposingEnemyAtk) * 180 + opposedAttack * 120 : Math.max(0, allyAtk) * 80;
   }
 
   if (action.effectId === 'enemy_atk_to_0_until_combat') {
