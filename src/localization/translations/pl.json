@@ -493,7 +493,8 @@
         "adjacent_allies_temp_armor_1": "Sąsiedni sojusznicy +1 ARM",
         "swap_leftmost_adjacent_enemies": "Zamień dwóch sąsiadujących wrogów",
         "swap_adjacent_enemy_units": "Zamień sąsiednich wrogów, -1 ATK",
-        "enemy_atk_to_0_until_combat": "Wybrany wróg 0 ATK"
+        "enemy_atk_to_0_until_combat": "Wybrany wróg 0 ATK",
+        "ally_atk_plus_1_opposing_enemy_atk_minus_1_until_combat": "Wybrany sojusznik +1 ATK, przeciwnik -1 ATK"
       },
       "targeting": {
         "selectEnemy": "WYBIERZ WROGA",

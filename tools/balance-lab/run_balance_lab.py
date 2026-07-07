@@ -51,6 +51,7 @@ IMPLEMENTED_CONCRETE_EFFECT_IDS = {
     "lane_empty_bonus_damage_1",
     "enemy_atk_to_0_until_combat",
     "enemy_atk_to_0_ally_atk_plus_1_until_combat",
+    "ally_atk_plus_1_opposing_enemy_atk_minus_1_until_combat",
 }
 REQUIRED_REPLACE_CARD_FIELDS = {"id", "name", "type", "targeting", "textShort"}
 REQUIRED_UNIT_REPLACE_CARD_FIELDS = {"attack", "hp", "armor"}

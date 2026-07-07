@@ -99,7 +99,7 @@ function createValidationContext(productionFactions) {
   const effectIds = new Set([null, 'decay_attack_after_combat', 'atk_plus_per_other_ally', 'swap_any_two_friendly_units_buff_both_atk_1', 'swap_any_two_friendly_units', 'lane_empty_bonus_damage_1']);
   const targetingValues = new Set();
   const combatKeywords = new Set();
-  const implementedConcreteEffectIds = new Set(['enemy_atk_to_0_until_combat']);
+  const implementedConcreteEffectIds = new Set(['enemy_atk_to_0_until_combat', 'ally_atk_plus_1_opposing_enemy_atk_minus_1_until_combat']);
   Object.entries(productionFactions).forEach(([factionKey, faction]) => {
     productionIds.add(factionKey);
     productionIds.add(faction.id);
