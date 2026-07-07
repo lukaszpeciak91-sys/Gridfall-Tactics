@@ -42,6 +42,7 @@ const SAFE_SURRENDER_MEANINGFUL_EFFECT_IDS = new Set([
   'return_friendly_draw_1',
   'enemy_up_to_2_atk_minus_1',
   'enemy_atk_to_0_until_combat',
+  'enemy_atk_to_0_ally_atk_plus_1_until_combat',
   'enemy_all_atk_minus_1',
   'enemy_lane_atk_minus_1',
   'buff_all_armor_1',
@@ -475,6 +476,7 @@ function getCandidateTargetIndexes(state, owner, effectId) {
     case 'infect_damage_1_opposite_ally_atk_1':
     case 'enemy_lane_atk_minus_1':
     case 'enemy_atk_to_0_until_combat':
+    case 'enemy_atk_to_0_ally_atk_plus_1_until_combat':
     case 'enemy_up_to_2_atk_minus_1':
     case 'swap_two_enemy_units':
     case 'swap_adjacent_enemy_units':
@@ -540,6 +542,7 @@ function isTargetedOnlyEffect(effectId) {
     || effectId === 'ignore_armor_next_attack'
     || effectId === 'infect_damage_1_opposite_ally_atk_1'
     || effectId === 'enemy_lane_atk_minus_1'
+    || effectId === 'enemy_atk_to_0_ally_atk_plus_1_until_combat'
     || effectId === 'enemy_up_to_2_atk_minus_1';
 }
 
@@ -622,6 +625,39 @@ function addJamSignalCandidates(actions, state, owner, card) {
   const targetedProbe = resolveTargetedEffectCard(cloneState(state), owner, card.id, targetIndexes[0], targetIndexes);
   if (targetedProbe.ok && targetedProbe.type !== 'targeted-effect-pending' && targetedProbe.type !== 'targeted-effect-blocked') {
     actions.push({ type: 'play-targeted-effect', cardId: card.id, targetIndex: targetIndexes[0], targetIndexes, effectId: card.effectId ?? null });
+  }
+}
+
+function getTempoTransferAllyValue(state, owner, allyIndex) {
+  const ally = state?.board?.[allyIndex];
+  if (!ally || ally.owner !== owner) return Number.NEGATIVE_INFINITY;
+  const attack = getEffectiveBoardAttack(state, allyIndex);
+  const { friendly, opposing } = getRowsForOwner(owner);
+  const lane = friendly.indexOf(allyIndex);
+  const opposedEnemy = lane >= 0 ? state.board[opposing[lane]] : null;
+  let value = 120 + Math.max(0, attack) * 20;
+  if (!opposedEnemy) value += 180;
+  else value += Math.max(0, getEffectiveBoardAttack(state, allyIndex) + 1 - getEffectiveBoardAttack(state, opposing[lane])) * 60;
+  return value;
+}
+
+function addTempoTransferCandidates(actions, state, owner, card) {
+  const enemyTargets = getCandidateTargetIndexes(state, owner, 'enemy_atk_to_0_until_combat')
+    .map((targetIndex) => ({ targetIndex, value: getJamSignalTargetValue(state, owner, targetIndex) }))
+    .sort((a, b) => (b.value - a.value) || (a.targetIndex - b.targetIndex));
+  const allyTargets = getCandidateTargetIndexes(state, owner, 'temp_armor_1')
+    .map((targetIndex) => ({ targetIndex, value: getTempoTransferAllyValue(state, owner, targetIndex) }))
+    .sort((a, b) => (b.value - a.value) || (a.targetIndex - b.targetIndex));
+
+  for (const enemy of enemyTargets) {
+    for (const ally of allyTargets) {
+      const targetIndexes = [enemy.targetIndex, ally.targetIndex];
+      const targetedProbe = resolveTargetedEffectCard(cloneState(state), owner, card.id, targetIndexes[0], targetIndexes);
+      if (targetedProbe.ok && targetedProbe.type !== 'targeted-effect-pending' && targetedProbe.type !== 'targeted-effect-blocked') {
+        actions.push({ type: 'play-targeted-effect', cardId: card.id, targetIndex: targetIndexes[0], targetIndexes, effectId: card.effectId ?? null });
+        return;
+      }
+    }
   }
 }
 
@@ -717,6 +753,11 @@ export function buildActionCandidates(state, owner, hand, telemetry = null) {
 
     if (card.effectId === 'enemy_up_to_2_atk_minus_1') {
       addJamSignalCandidates(actions, state, owner, card);
+      return;
+    }
+
+    if (card.effectId === 'enemy_atk_to_0_ally_atk_plus_1_until_combat') {
+      addTempoTransferCandidates(actions, state, owner, card);
       return;
     }
 

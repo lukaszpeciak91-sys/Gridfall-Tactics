@@ -2341,9 +2341,22 @@ function validateTargetedEffectResolution(state, owner, card, boardIndex, target
       return targetUnit.owner === owner ? { ok: true } : { ok: false, reason: 'Target must be friendly' };
     case 'enemy_lane_atk_minus_1':
     case 'enemy_atk_to_0_until_combat':
+    case 'enemy_atk_to_0_ally_atk_plus_1_until_combat':
     case 'control_enemy_unit_this_turn':
     case 'infect_damage_1_opposite_ally_atk_1':
     case 'ignore_armor_next_attack':
+      if (card.effectId === 'enemy_atk_to_0_ally_atk_plus_1_until_combat') {
+        if (targetUnit.owner !== opponentOwner) return { ok: false, reason: 'First target must be enemy' };
+        if (selectedTargets.length < 2) return { ok: true, type: 'targeted-effect-pending' };
+        const [enemyIndex, allyIndex] = selectedTargets;
+        if (enemyIndex === allyIndex) return { ok: false, reason: 'Select different enemy and friendly targets' };
+        const enemyUnit = state.board[enemyIndex];
+        const allyUnit = state.board[allyIndex];
+        if (!enemyUnit || !allyUnit) return { ok: false, reason: 'Both targets must contain units' };
+        if (enemyUnit.owner !== opponentOwner) return { ok: false, reason: 'First target must be enemy' };
+        if (allyUnit.owner !== owner) return { ok: false, reason: 'Second target must be friendly' };
+        return { ok: true };
+      }
       return targetUnit.owner === opponentOwner ? { ok: true } : { ok: false, reason: 'Target must be enemy' };
     case 'enemy_up_to_2_atk_minus_1': {
       if (targetUnit.owner !== opponentOwner) return { ok: false, reason: 'Target must be enemy' };
@@ -2474,6 +2487,17 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
     case 'enemy_atk_to_0_until_combat': {
       if (targetUnit.owner !== getOpponentOwner(owner)) return { ok: false, reason: 'Target must be enemy' };
       targetUnit.tempAttackSetToZeroUntilCombat = true;
+      break;
+    }
+    case 'enemy_atk_to_0_ally_atk_plus_1_until_combat': {
+      const [enemyIndex, allyIndex] = selectedTargets;
+      const enemyUnit = state.board[enemyIndex];
+      const allyUnit = state.board[allyIndex];
+      if (!enemyUnit || !allyUnit) return { ok: false, reason: 'Both targets must contain units' };
+      if (enemyUnit.owner !== getOpponentOwner(owner)) return { ok: false, reason: 'First target must be enemy' };
+      if (allyUnit.owner !== owner) return { ok: false, reason: 'Second target must be friendly' };
+      enemyUnit.tempAttackSetToZeroUntilCombat = true;
+      allyUnit.tempAttackMod = (allyUnit.tempAttackMod ?? 0) + 1;
       break;
     }
     case 'enemy_up_to_2_atk_minus_1': {
