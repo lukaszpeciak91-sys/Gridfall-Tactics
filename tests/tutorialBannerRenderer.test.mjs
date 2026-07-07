@@ -91,7 +91,7 @@ test('tutorial banner cleans up on result, reset, rebuild, and shutdown paths', 
   assert.match(source, /destroyTutorialBanner\(\) \{[\s\S]*this\.tutorialBannerOverlay[\s\S]*destroy\?\.\(\)[\s\S]*this\.tutorialBanner[\s\S]*destroy\?\.\(\)/);
   assert.match(source, /cleanupSceneObjects\([\s\S]*this\.destroyTutorialBanner\(\);/);
   assert.match(source, /showBattleResultModal\(\)[\s\S]*this\.destroyTutorialBanner\(\);/);
-  assert.match(source, /rebuildBattleView\([\s\S]*this\.restoreTutorialPresentationState\(reason\);/);
+  assert.match(source, /rebuildBattleView\([\s\S]*this\.restoreTutorialPresentationState\(reason, \{ forceRecreate: true \}\);/);
   assert.match(source, /shutdown\(\) \{\s*this\.cleanupSceneObjects\(\);/);
 });
 

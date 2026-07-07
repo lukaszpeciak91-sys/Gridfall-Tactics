@@ -177,7 +177,7 @@ test('result recovery preserves tutorial overlay priority and tutorial result ro
 
   assert.match(ensure, /this\.destroyTutorialBanner\?\.\(\);/);
   assert.match(ensure, /this\.destroyTutorialFocus\?\.\(\);/);
-  assert.match(refresh, /this\.restoreTutorialPresentationState\(reason\);/);
+  assert.match(refresh, /this\.restoreTutorialPresentationState\(reason, \{ forceRecreate: true \}\);/);
   assert.match(refresh, /this\.battleResultModalPending[\s\S]*this\.battleResultModalShown[\s\S]*this\.gameState\?\.winner/);
   assert.match(updateBanner, /this\.battleResultModalShown \|\| this\.battleResultModalPending/);
   assert.match(updateFocus, /this\.battleResultModalShown \|\| this\.battleResultModalPending/);
