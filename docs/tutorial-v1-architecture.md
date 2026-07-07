@@ -428,7 +428,13 @@ EN: Confirm the replacement.
 ### 10. Unit play
 
 PL: Zagraj jednostkę na planszę.
+
+Masz 1 akcję na turę albo PASS.
+W następnej turze przeciwnik ruszy pierwszy.
 EN: Play a unit onto the board.
+
+You get 1 action per turn, or PASS.
+Next turn, the enemy acts first.
 
 ### 11. Enemy action
 
