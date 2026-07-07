@@ -15,6 +15,7 @@ const DECAY_ATTACK_AFTER_COMBAT_EFFECT_ID = 'decay_attack_after_combat';
 const ATK_PLUS_PER_OTHER_ALLY_EFFECT_ID = 'atk_plus_per_other_ally';
 const FRIENDLY_SWAP_EFFECT_ID = 'swap_any_two_friendly_units';
 const FRIENDLY_SWAP_BUFF_EFFECT_ID = 'swap_any_two_friendly_units_buff_both_atk_1';
+const ALLY_LANE_TEMPO_TRANSFER_EFFECT_ID = 'ally_atk_plus_1_opposing_enemy_atk_minus_1_until_combat';
 export const RUNNER_OPEN_LANE_ATK_BONUS = 2;
 export const WEAK_OPEN_LANE_ATK_BONUS = 1;
 
@@ -2338,6 +2339,7 @@ function validateTargetedEffectResolution(state, owner, card, boardIndex, target
     case 'heal_1_atk_1_draw_on_kill_this_turn':
     case 'heal_3':
     case 'temp_armor_1':
+    case ALLY_LANE_TEMPO_TRANSFER_EFFECT_ID:
       return targetUnit.owner === owner ? { ok: true } : { ok: false, reason: 'Target must be friendly' };
     case 'enemy_lane_atk_minus_1':
     case 'enemy_atk_to_0_until_combat':
@@ -2498,6 +2500,16 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
       if (allyUnit.owner !== owner) return { ok: false, reason: 'Second target must be friendly' };
       enemyUnit.tempAttackSetToZeroUntilCombat = true;
       allyUnit.tempAttackMod = (allyUnit.tempAttackMod ?? 0) + 1;
+      break;
+    }
+    case ALLY_LANE_TEMPO_TRANSFER_EFFECT_ID: {
+      if (targetUnit.owner !== owner) return { ok: false, reason: 'Target must be friendly' };
+      targetUnit.tempAttackMod = (targetUnit.tempAttackMod ?? 0) + 1;
+      const opposingIndex = getOpposingLaneIndex(targetUnit, boardIndex);
+      const opposingUnit = Number.isInteger(opposingIndex) ? state.board[opposingIndex] : null;
+      if (opposingUnit?.owner === getOpponentOwner(owner)) {
+        opposingUnit.tempAttackMod = (opposingUnit.tempAttackMod ?? 0) - 1;
+      }
       break;
     }
     case 'enemy_up_to_2_atk_minus_1': {

@@ -9,6 +9,7 @@ const FRIENDLY_SINGLE_TARGET_EFFECTS = new Set([
   'heal_3',
   'temp_armor_1',
   'swap_adjacent_then_resolve',
+  'ally_atk_plus_1_opposing_enemy_atk_minus_1_until_combat',
 ]);
 
 const ENEMY_SINGLE_TARGET_EFFECTS = new Set([
