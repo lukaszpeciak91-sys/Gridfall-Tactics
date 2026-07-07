@@ -7206,6 +7206,10 @@ export default class BattleScene extends Phaser.Scene {
       );
     }
 
+    if (expected.type === 'tap_continue' && type === 'board_slot') {
+      return true;
+    }
+
     if (type === 'board_slot' || type === 'occupied_board_slot') {
       const card = this.gameState?.player?.hand?.find((item) => item.id === this.selectedCardId);
       if (!card || this.playerActionUsed || this.openingMulliganPending) return false;
