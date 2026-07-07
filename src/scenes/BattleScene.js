@@ -160,6 +160,7 @@ const TUTORIAL_BANNER_DEPTH = 224;
 const TUTORIAL_FOCUS_DEPTH = 226;
 const TUTORIAL_FOCUS_COLOR = 0xfacc15;
 const TUTORIAL_FOCUS_FILL = 0xf59e0b;
+const TUTORIAL_LIFECYCLE_DIAG_PREFIX = '[TUTORIAL_LIFECYCLE_DIAG]';
 
 const CAMPAIGN_COMPLETION_OVERLAY_DEPTH = 1200;
 const CAMPAIGN_COMPLETION_CONTENT_DEPTH = CAMPAIGN_COMPLETION_OVERLAY_DEPTH + 1;
@@ -390,6 +391,24 @@ export default class BattleScene extends Phaser.Scene {
     this.currentTutorialFocusKey = null;
     this.pendingTutorialUiRecoveryEvent = null;
     this.pendingTutorialUiRecoveryEvents = [];
+    this.tutorialLifecycleDiagnostics = {
+      tutorialRestoreCallCount: 0,
+      tutorialRestoreSkipCount: 0,
+      tutorialBannerUpdateCallCount: 0,
+      tutorialFocusUpdateCallCount: 0,
+      tutorialUiRecoveryScheduledCount: 0,
+      tutorialUiRecoveryFiredCount: 0,
+      tutorialUiRecoverySkippedCount: 0,
+      lastTutorialRestoreReason: null,
+      lastTutorialRestoreSkipReason: null,
+      lastTutorialBannerSkipReason: null,
+      lastTutorialFocusSkipReason: null,
+      lastLifecycleReason: null,
+      lastRebuildReason: null,
+      lastViewportChangeAt: null,
+      lastFullscreenChangeAt: null,
+      lastRecoveryReason: null,
+    };
     this.battleMenuButtonFocusBounds = null;
     this.deferredTransientBattleBanner = null;
     this.hasShownOpeningTurnStartBanner = false;
@@ -603,6 +622,24 @@ export default class BattleScene extends Phaser.Scene {
     this.currentTutorialFocusKey = null;
     this.pendingTutorialUiRecoveryEvent = null;
     this.pendingTutorialUiRecoveryEvents = [];
+    this.tutorialLifecycleDiagnostics = {
+      tutorialRestoreCallCount: 0,
+      tutorialRestoreSkipCount: 0,
+      tutorialBannerUpdateCallCount: 0,
+      tutorialFocusUpdateCallCount: 0,
+      tutorialUiRecoveryScheduledCount: 0,
+      tutorialUiRecoveryFiredCount: 0,
+      tutorialUiRecoverySkippedCount: 0,
+      lastTutorialRestoreReason: null,
+      lastTutorialRestoreSkipReason: null,
+      lastTutorialBannerSkipReason: null,
+      lastTutorialFocusSkipReason: null,
+      lastLifecycleReason: null,
+      lastRebuildReason: null,
+      lastViewportChangeAt: null,
+      lastFullscreenChangeAt: null,
+      lastRecoveryReason: null,
+    };
     this.battleMenuButtonFocusBounds = null;
     this.deferredTransientBattleBanner = null;
     this.hasShownOpeningTurnStartBanner = false;
@@ -665,6 +702,7 @@ export default class BattleScene extends Phaser.Scene {
     this.cleanupSceneObjects();
     stopMusic(this, { fadeMs: 0 });
     this.installResultModalDiagnostics();
+    this.installTutorialLifecycleDiagnostics();
 
     const { width, height } = this.scale;
     this.battleContext = this.normalizeBattleContext(data?.battleContext);
@@ -741,6 +779,11 @@ export default class BattleScene extends Phaser.Scene {
     this.scale.on('enterfullscreen', this.onFullscreenChanged, this);
     this.scale.on('leavefullscreen', this.onFullscreenChanged, this);
     this.scale.on('resize', this.onViewportChanged, this);
+    this.boundTutorialFullscreenDocumentHandler = (event) => this.onTutorialDocumentFullscreenChanged(event);
+    this.boundTutorialViewportDocumentHandler = (event) => this.onTutorialViewportChanged(event);
+    globalThis.document?.addEventListener?.('fullscreenchange', this.boundTutorialFullscreenDocumentHandler);
+    globalThis.document?.addEventListener?.('webkitfullscreenchange', this.boundTutorialFullscreenDocumentHandler);
+    globalThis.window?.addEventListener?.('resize', this.boundTutorialViewportDocumentHandler);
     this.input.on('pointerup', this.onScenePointerUp, this);
     this.input.on('pointerupoutside', this.onScenePointerUpOutside, this);
     this.events.on(Phaser.Scenes.Events.PAUSE, this.onScenePause, this);
@@ -836,6 +879,203 @@ export default class BattleScene extends Phaser.Scene {
       ...this.getResultModalDiagnosticSnapshot(),
       ...extra,
     });
+  }
+
+  isTutorialLifecycleDiagnosticsEnabled() {
+    return Boolean(import.meta.env?.DEV);
+  }
+
+  logTutorialLifecycleDiagnostic(stage, extra = {}) {
+    if (!this.isTutorialLifecycleDiagnosticsEnabled()) return;
+    console.debug(TUTORIAL_LIFECYCLE_DIAG_PREFIX, stage, extra);
+  }
+
+  installTutorialLifecycleDiagnostics() {
+    const target = globalThis.window ?? globalThis;
+    if (!target) return;
+    target.__gridfallTutorialSnapshot = () => {
+      try {
+        const battleScene = this.game?.scene?.getScene?.('BattleScene') ?? this;
+        if (!battleScene?.getTutorialLifecycleDiagnosticSnapshot) {
+          return { battleSceneExists: false, error: 'BattleScene snapshot helper unavailable' };
+        }
+        return {
+          battleSceneExists: true,
+          ...battleScene.getTutorialLifecycleDiagnosticSnapshot(),
+        };
+      } catch (error) {
+        return {
+          battleSceneExists: false,
+          error: error?.message ?? String(error),
+        };
+      }
+    };
+  }
+
+  getTutorialSuppressionReasons() {
+    const reasons = [];
+    if (!this.scene) reasons.push('missing_scene');
+    if (!this.gameState) reasons.push('missing_gameState');
+    if (!this.layout) reasons.push('missing_layout');
+    if (!this.isTutorialBattle?.()) reasons.push('not_tutorial_battle');
+    if (!this.tutorialControllerState) reasons.push('missing_tutorialControllerState');
+    if (this.isFlowResolving) reasons.push('isFlowResolving');
+    if (this.isEffectCastResolving) reasons.push('isEffectCastResolving');
+    if (this.battleResultModalPending) reasons.push('battleResultModalPending');
+    if (this.battleResultModalShown) reasons.push('battleResultModalShown');
+    if (this.gameState?.winner) reasons.push('gameState.winner');
+    return reasons;
+  }
+
+  getDiagnosticGameObjectState(object) {
+    if (!object) return { exists: false };
+    let bounds = null;
+    try {
+      const rect = object.getBounds?.();
+      if (rect) bounds = { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+    } catch (error) {
+      bounds = { error: error?.message ?? String(error) };
+    }
+    return {
+      exists: true,
+      active: Boolean(object.active),
+      visible: object.visible,
+      alpha: object.alpha,
+      depth: object.depth,
+      x: object.x,
+      y: object.y,
+      width: object.width,
+      height: object.height,
+      displayWidth: object.displayWidth,
+      displayHeight: object.displayHeight,
+      scaleX: object.scaleX,
+      scaleY: object.scaleY,
+      originX: object.originX,
+      originY: object.originY,
+      scrollFactorX: object.scrollFactorX,
+      scrollFactorY: object.scrollFactorY,
+      parentContainerExists: Boolean(object.parentContainer),
+      sceneExists: Boolean(object.scene),
+      inputEnabled: object.input?.enabled,
+      interactive: Boolean(object.input),
+      pointerdownListeners: object.listenerCount?.('pointerdown'),
+      pointerupListeners: object.listenerCount?.('pointerup'),
+      bounds,
+    };
+  }
+
+  getTutorialFocusResolutionDiagnostic(step = this.getCurrentTutorialStep?.()) {
+    try {
+      const target = this.getTutorialFocusTarget?.(step);
+      if (!step) return { focusTargetResolved: false, focusTargetReason: 'missing_step', target: null };
+      if (!target) return { focusTargetResolved: false, focusTargetReason: 'missing_target', target: null };
+      const mechanicallyPossible = this.isTutorialFocusTargetMechanicallyPossible?.(target, step);
+      const bounds = this.resolveTutorialFocusBounds?.(target);
+      let targetObject = null;
+      if (target.type === 'hand_card' || target.type === 'specific_hand_card' || target.type === 'mulligan_card' || target.type === 'effect_card') {
+        const cardId = target.cardId ?? getTutorialBattleData().openingConfig.requiredPlayerMulliganCardId;
+        targetObject = (this.cardViews ?? []).find((view) => view?.card?.id === cardId || view?.cardId === cardId)?.container
+          ?? (this.cardViews ?? []).find((view) => view?.card?.id === cardId || view?.cardId === cardId);
+      } else if (target.type === 'board_slot' || target.type === 'occupied_board_slot' || target.type === 'open_lane') {
+        targetObject = (this.boardCells ?? []).find((cell) => cell?.index === (target.slotIndex ?? target.index ?? 0))?.background;
+      } else if (target.type === 'enemy_base') {
+        targetObject = this.enemyHeroPanel;
+      } else if (target.type === 'player_base' || target.type === 'player_base_button') {
+        targetObject = this.playerBaseActionLabelText ?? this.playerHeroPanel;
+      } else if (target.type === 'battle_menu_button') {
+        targetObject = this.bottomControlViews?.[0]?.backing;
+      } else if (target.type === 'deck_counter') {
+        targetObject = this.deckCounterView?.backing;
+      }
+      return {
+        focusTargetResolved: Boolean(bounds),
+        focusTargetReason: bounds ? null : (mechanicallyPossible ? 'bounds_not_resolved' : 'target_not_mechanically_possible'),
+        focusBounds: bounds,
+        target,
+        targetType: target.type ?? 'other',
+        mechanicallyPossible: Boolean(mechanicallyPossible),
+        liveBoardCellsCount: this.boardCells?.length ?? 0,
+        cardViewsCount: this.cardViews?.length ?? 0,
+        targetDisplayObject: this.getDiagnosticGameObjectState(targetObject),
+      };
+    } catch (error) {
+      return { focusTargetResolved: false, focusTargetReason: 'error', error: error?.message ?? String(error) };
+    }
+  }
+
+  getTutorialLifecycleDiagnosticSnapshot() {
+    const step = this.getCurrentTutorialStep?.();
+    const win = globalThis.window;
+    const doc = globalThis.document;
+    const focusResolution = this.getTutorialFocusResolutionDiagnostic(step);
+    return {
+      scene: {
+        key: this.scene?.key ?? null,
+        active: this.scene?.isActive?.(),
+        paused: this.scene?.isPaused?.(),
+        sleeping: this.scene?.isSleeping?.(),
+        visible: this.scene?.isVisible?.(),
+        scaleWidth: this.scale?.width,
+        scaleHeight: this.scale?.height,
+        gameSizeWidth: this.scale?.gameSize?.width,
+        gameSizeHeight: this.scale?.gameSize?.height,
+        canvasWidth: this.game?.canvas?.width,
+        canvasHeight: this.game?.canvas?.height,
+        scaleIsFullscreen: this.scale?.isFullscreen,
+        documentFullscreenElement: Boolean(doc?.fullscreenElement ?? doc?.webkitFullscreenElement),
+        viewportWidth: win?.innerWidth,
+        viewportHeight: win?.innerHeight,
+        lastLifecycleReason: this.tutorialLifecycleDiagnostics?.lastLifecycleReason ?? null,
+        lastRecoveryReason: this.tutorialLifecycleDiagnostics?.lastRecoveryReason ?? null,
+        lastRebuildReason: this.tutorialLifecycleDiagnostics?.lastRebuildReason ?? null,
+      },
+      tutorial: {
+        isTutorialBattle: Boolean(this.isTutorialBattle?.()),
+        tutorialControllerExists: Boolean(this.tutorialControllerState),
+        currentTutorialStepIndex: this.tutorialControllerState?.currentStepIndex ?? this.tutorialControllerState?.stepIndex ?? null,
+        currentTutorialStepId: step?.id ?? step?.key ?? step?.name ?? null,
+        expected: step?.expected ?? null,
+        bannerText: this.getTutorialStepText?.(step) ?? '',
+        focusTarget: step?.highlightTarget ?? null,
+        isTapContinue: Boolean(step?.expected?.type === 'tap_continue'),
+      },
+      suppression: {
+        isTutorialBannerSuppressed: Boolean(this.isTutorialBannerSuppressed?.()),
+        shouldSuppressTutorialUiRecovery: Boolean(this.shouldSuppressTutorialUiRecovery?.()),
+        reasons: this.getTutorialSuppressionReasons(),
+        isFlowResolving: Boolean(this.isFlowResolving),
+        isEffectCastResolving: Boolean(this.isEffectCastResolving),
+        battleResultModalPending: Boolean(this.battleResultModalPending),
+        battleResultModalShown: Boolean(this.battleResultModalShown),
+        winner: this.gameState?.winner ?? null,
+        openingMulliganPending: Boolean(this.openingMulliganPending),
+        deckInfoPanelExists: Boolean(this.deckInfoPanel),
+        deckInfoPanelOpen: Boolean(this.deckInfoPanel),
+        utilityMenuPanelExists: Boolean(this.utilityMenuPanel),
+        utilityMenuPanelOpen: Boolean(this.utilityMenuPanel),
+        boardInspectIndex: this.boardInspectIndex ?? null,
+        hoverInspectCardId: this.hoverInspectCardId ?? null,
+        selectedHandCardZoomExists: Boolean(this.selectedHandCardZoom),
+        targetingStateExists: Boolean(this.targetingState),
+        pendingSwapIndex: this.pendingSwapIndex ?? null,
+        effectCastStateExists: Boolean(this.effectCastState),
+      },
+      banner: {
+        tutorialBanner: { ...this.getDiagnosticGameObjectState(this.tutorialBanner), text: this.tutorialBanner?.text },
+        tutorialBannerOverlay: this.getDiagnosticGameObjectState(this.tutorialBannerOverlay),
+      },
+      focus: {
+        tutorialFocusLayer: {
+          ...this.getDiagnosticGameObjectState(this.tutorialFocusLayer),
+          childCount: this.tutorialFocusLayer?.length ?? this.tutorialFocusLayer?.list?.length ?? 0,
+        },
+        currentTutorialFocusKey: this.currentTutorialFocusKey ?? null,
+        tutorialFocusGraphicsCount: this.tutorialFocusGraphics?.length ?? 0,
+        tutorialFocusGraphics: (this.tutorialFocusGraphics ?? []).slice(0, 6).map((item) => this.getDiagnosticGameObjectState(item)),
+      },
+      focusResolution,
+      counters: { ...(this.tutorialLifecycleDiagnostics ?? {}) },
+    };
   }
 
   selectEnemyFactionKey(playerFactionKey) {
@@ -3542,20 +3782,49 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   onFullscreenChanged() {
+    this.tutorialLifecycleDiagnostics.lastFullscreenChangeAt = Date.now();
     if (this.scale.isFullscreen) {
       requestPortraitOrientationLock();
     }
 
+    this.logTutorialLifecycleDiagnostic(this.scale.isFullscreen ? 'enterfullscreen' : 'leavefullscreen', { snapshot: this.getTutorialLifecycleDiagnosticSnapshot?.() });
     this.recoverFromLifecycle(this.scale.isFullscreen ? 'enterfullscreen' : 'leavefullscreen');
+  }
+
+  onTutorialDocumentFullscreenChanged(event) {
+    this.tutorialLifecycleDiagnostics.lastFullscreenChangeAt = Date.now();
+    const reason = event?.type ?? 'fullscreenchange';
+    this.logTutorialLifecycleDiagnostic(reason, {
+      scaleIsFullscreen: this.scale?.isFullscreen,
+      documentFullscreenElement: Boolean(globalThis.document?.fullscreenElement ?? globalThis.document?.webkitFullscreenElement),
+    });
   }
 
   onViewportChanged() {
     if (!this.gameState) return;
+    this.tutorialLifecycleDiagnostics.lastViewportChangeAt = Date.now();
+    this.logTutorialLifecycleDiagnostic('viewport-change', {
+      width: this.scale?.gameSize?.width,
+      height: this.scale?.gameSize?.height,
+      viewportWidth: globalThis.window?.innerWidth,
+      viewportHeight: globalThis.window?.innerHeight,
+    });
     this.rebuildBattleView('viewport-change');
     this.scheduleTutorialUiRecovery('viewport-change');
   }
 
+  onTutorialViewportChanged(event) {
+    if (!this.gameState) return;
+    this.tutorialLifecycleDiagnostics.lastViewportChangeAt = Date.now();
+    this.logTutorialLifecycleDiagnostic(event?.type ?? 'resize', {
+      viewportWidth: globalThis.window?.innerWidth,
+      viewportHeight: globalThis.window?.innerHeight,
+    });
+  }
+
   recoverFromLifecycle(reason = 'unknown', diagnostics = null) {
+    this.tutorialLifecycleDiagnostics.lastLifecycleReason = reason;
+    this.tutorialLifecycleDiagnostics.lastRecoveryReason = reason;
     const recoveryDiagnostics = this.getLifecycleDiagnostics(reason, diagnostics);
     console.debug('BattleScene lifecycle recovery diagnostics', recoveryDiagnostics);
 
@@ -3634,6 +3903,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   refreshLifecycleBanners(reason = 'unknown') {
+    this.logTutorialLifecycleDiagnostic('refreshLifecycleBanners', { reason });
     this.restoreTutorialPresentationState(reason);
   }
 
@@ -3666,19 +3936,42 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   scheduleTutorialUiRecovery(reason = 'unknown') {
-    if (this.shouldBlockTutorialUiRecovery()) return null;
-    if (this.scene && !this.scene.isActive?.() && !this.scene.isPaused?.()) return null;
+    // Existing non-tutorial guard retained: if (this.shouldBlockTutorialUiRecovery()) return null;
+    if (this.shouldBlockTutorialUiRecovery()) {
+      this.tutorialLifecycleDiagnostics.tutorialUiRecoverySkippedCount += 1;
+      this.logTutorialLifecycleDiagnostic('scheduleTutorialUiRecovery skipped', { reason, skipReason: 'blocked', suppression: this.getTutorialSuppressionReasons() });
+      return null;
+    }
+    if (this.scene && !this.scene.isActive?.() && !this.scene.isPaused?.()) {
+      this.tutorialLifecycleDiagnostics.tutorialUiRecoverySkippedCount += 1;
+      this.logTutorialLifecycleDiagnostic('scheduleTutorialUiRecovery skipped', { reason, skipReason: 'scene_inactive' });
+      return null;
+    }
 
     this.cancelTutorialUiRecovery();
+    this.tutorialLifecycleDiagnostics.tutorialUiRecoveryScheduledCount += 1;
+    this.logTutorialLifecycleDiagnostic('scheduleTutorialUiRecovery scheduled', { reason });
 
     const delays = [0, 50, 100];
     this.pendingTutorialUiRecoveryEvents = delays.map((delay) => {
       let recoveryEvent = null;
       recoveryEvent = this.time?.delayedCall?.(delay, () => {
         this.pendingTutorialUiRecoveryEvents = (this.pendingTutorialUiRecoveryEvents ?? []).filter((event) => event !== recoveryEvent);
-        if (this.shouldBlockTutorialUiRecovery()) return;
-        if (this.scene && !this.scene.isActive?.() && !this.scene.isPaused?.()) return;
+        this.tutorialLifecycleDiagnostics.tutorialUiRecoveryFiredCount += 1;
+        this.logTutorialLifecycleDiagnostic('scheduleTutorialUiRecovery fired', { reason, delay });
+        if (this.shouldBlockTutorialUiRecovery()) {
+          this.tutorialLifecycleDiagnostics.tutorialUiRecoverySkippedCount += 1;
+          this.logTutorialLifecycleDiagnostic('scheduleTutorialUiRecovery fired skipped', { reason, delay, skipReason: 'blocked', suppression: this.getTutorialSuppressionReasons() });
+          return;
+        }
+        if (this.scene && !this.scene.isActive?.() && !this.scene.isPaused?.()) {
+          this.tutorialLifecycleDiagnostics.tutorialUiRecoverySkippedCount += 1;
+          this.logTutorialLifecycleDiagnostic('scheduleTutorialUiRecovery fired skipped', { reason, delay, skipReason: 'scene_inactive' });
+          return;
+        }
         if (this.shouldTemporarilySuppressTutorialUiRecovery()) {
+          this.tutorialLifecycleDiagnostics.tutorialUiRecoverySkippedCount += 1;
+          this.logTutorialLifecycleDiagnostic('scheduleTutorialUiRecovery fired skipped', { reason, delay, skipReason: 'temporarily_suppressed', suppression: this.getTutorialSuppressionReasons() });
           this.scheduleTutorialUiRecovery(`${reason}:retry`);
           return;
         }
@@ -3692,14 +3985,28 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   restoreTutorialPresentationState(reason = 'unknown', { forceFocusRedraw = true } = {}) {
-    if (this.shouldBlockTutorialUiRecovery()) return null;
+    this.tutorialLifecycleDiagnostics.tutorialRestoreCallCount += 1;
+    this.tutorialLifecycleDiagnostics.lastTutorialRestoreReason = reason;
+    this.logTutorialLifecycleDiagnostic('restoreTutorialPresentationState called', { reason, forceFocusRedraw });
+    if (this.shouldBlockTutorialUiRecovery()) {
+      this.tutorialLifecycleDiagnostics.tutorialRestoreSkipCount += 1;
+      this.tutorialLifecycleDiagnostics.lastTutorialRestoreSkipReason = 'blocked';
+      this.logTutorialLifecycleDiagnostic('restoreTutorialPresentationState skipped', { reason, skipReason: 'blocked', suppression: this.getTutorialSuppressionReasons() });
+      return null;
+    }
     if (this.shouldTemporarilySuppressTutorialUiRecovery()) {
+      this.tutorialLifecycleDiagnostics.tutorialRestoreSkipCount += 1;
+      this.tutorialLifecycleDiagnostics.lastTutorialRestoreSkipReason = 'temporarily_suppressed';
+      this.logTutorialLifecycleDiagnostic('restoreTutorialPresentationState skipped', { reason, skipReason: 'temporarily_suppressed', suppression: this.getTutorialSuppressionReasons() });
       this.scheduleTutorialUiRecovery(`${reason}:suppressed`);
       return null;
     }
 
     const step = this.getCurrentTutorialStep?.();
     if (!step || !this.getTutorialStepText?.(step)) {
+      this.tutorialLifecycleDiagnostics.tutorialRestoreSkipCount += 1;
+      this.tutorialLifecycleDiagnostics.lastTutorialRestoreSkipReason = 'missing_step_or_text';
+      this.logTutorialLifecycleDiagnostic('restoreTutorialPresentationState skipped', { reason, skipReason: 'missing_step_or_text', stepExists: Boolean(step) });
       this.destroyTutorialBanner?.();
       this.destroyTutorialFocus?.();
       return null;
@@ -3832,6 +4139,8 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   rebuildBattleView(reason = 'unknown') {
+    this.tutorialLifecycleDiagnostics.lastRebuildReason = reason;
+    this.logTutorialLifecycleDiagnostic('rebuildBattleView start', { reason });
     const width = this.scale.gameSize.width;
     const height = this.scale.gameSize.height;
 
@@ -3871,6 +4180,7 @@ export default class BattleScene extends Phaser.Scene {
       turnsCompleted: this.gameState.turnsCompleted,
       firstActor: this.gameState.firstActor,
     });
+    this.logTutorialLifecycleDiagnostic('rebuildBattleView end', { reason });
   }
 
   shutdown() {
@@ -3879,6 +4189,11 @@ export default class BattleScene extends Phaser.Scene {
     this.scale.off('enterfullscreen', this.onFullscreenChanged, this);
     this.scale.off('leavefullscreen', this.onFullscreenChanged, this);
     this.scale.off('resize', this.onViewportChanged, this);
+    globalThis.document?.removeEventListener?.('fullscreenchange', this.boundTutorialFullscreenDocumentHandler);
+    globalThis.document?.removeEventListener?.('webkitfullscreenchange', this.boundTutorialFullscreenDocumentHandler);
+    globalThis.window?.removeEventListener?.('resize', this.boundTutorialViewportDocumentHandler);
+    this.boundTutorialFullscreenDocumentHandler = null;
+    this.boundTutorialViewportDocumentHandler = null;
     this.input.off('pointerup', this.onScenePointerUp, this);
     this.input.off('pointerupoutside', this.onScenePointerUpOutside, this);
     this.events.off(Phaser.Scenes.Events.PAUSE, this.onScenePause, this);
@@ -6678,11 +6993,17 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   updateTutorialBanner() {
+    this.tutorialLifecycleDiagnostics.tutorialBannerUpdateCallCount += 1;
+    this.logTutorialLifecycleDiagnostic('updateTutorialBanner called', {});
     if (!this.isTutorialBattle() || !this.layout || this.battleResultModalShown || this.battleResultModalPending) {
+      this.tutorialLifecycleDiagnostics.lastTutorialBannerSkipReason = 'not_tutorial_or_missing_layout_or_result_modal';
+      this.logTutorialLifecycleDiagnostic('updateTutorialBanner skipped', { skipReason: this.tutorialLifecycleDiagnostics.lastTutorialBannerSkipReason });
       this.destroyTutorialBanner();
       return null;
     }
     if (this.isTutorialBannerSuppressed()) {
+      this.tutorialLifecycleDiagnostics.lastTutorialBannerSkipReason = 'suppressed';
+      this.logTutorialLifecycleDiagnostic('updateTutorialBanner skipped', { skipReason: 'suppressed', suppression: this.getTutorialSuppressionReasons() });
       this.tutorialBanner?.setVisible?.(false);
       this.tutorialBannerOverlay?.setVisible?.(false);
       if (this.tutorialBannerOverlay?.input) this.tutorialBannerOverlay.input.enabled = false;
@@ -6692,6 +7013,8 @@ export default class BattleScene extends Phaser.Scene {
     const step = this.getCurrentTutorialStep();
     const message = this.getTutorialStepText(step);
     if (!step || !message) {
+      this.tutorialLifecycleDiagnostics.lastTutorialBannerSkipReason = 'missing_step_or_message';
+      this.logTutorialLifecycleDiagnostic('updateTutorialBanner skipped', { skipReason: 'missing_step_or_message', stepExists: Boolean(step) });
       this.destroyTutorialBanner();
       return null;
     }
@@ -6990,22 +7313,32 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   updateTutorialFocus(step = this.getCurrentTutorialStep(), { forceRedraw = false } = {}) {
+    this.tutorialLifecycleDiagnostics.tutorialFocusUpdateCallCount += 1;
+    this.logTutorialLifecycleDiagnostic('updateTutorialFocus called', { forceRedraw, stepId: step?.id ?? step?.key ?? null });
     if (!this.isTutorialBattle() || !this.layout || this.battleResultModalShown || this.battleResultModalPending) {
+      this.tutorialLifecycleDiagnostics.lastTutorialFocusSkipReason = 'not_tutorial_or_missing_layout_or_result_modal';
+      this.logTutorialLifecycleDiagnostic('updateTutorialFocus skipped', { skipReason: this.tutorialLifecycleDiagnostics.lastTutorialFocusSkipReason });
       this.destroyTutorialFocus();
       return null;
     }
     if (this.isTutorialFocusTimingSuppressed(step)) {
+      this.tutorialLifecycleDiagnostics.lastTutorialFocusSkipReason = 'timing_suppressed';
+      this.logTutorialLifecycleDiagnostic('updateTutorialFocus skipped', { skipReason: 'timing_suppressed', suppression: this.getTutorialSuppressionReasons() });
       this.clearTutorialFocusGraphics();
       return null;
     }
     const target = this.getTutorialFocusTarget(step);
     if (!target || !this.isTutorialFocusTargetMechanicallyPossible(target, step)) {
+      this.tutorialLifecycleDiagnostics.lastTutorialFocusSkipReason = target ? 'target_not_mechanically_possible' : 'missing_target';
+      this.logTutorialLifecycleDiagnostic('updateTutorialFocus skipped', { skipReason: this.tutorialLifecycleDiagnostics.lastTutorialFocusSkipReason, target });
       this.clearTutorialFocusGraphics();
       return null;
     }
     const key = JSON.stringify(target);
     const bounds = this.resolveTutorialFocusBounds(target);
     if (!bounds) {
+      this.tutorialLifecycleDiagnostics.lastTutorialFocusSkipReason = 'bounds_not_resolved';
+      this.logTutorialLifecycleDiagnostic('updateTutorialFocus skipped', { skipReason: 'bounds_not_resolved', target });
       this.clearTutorialFocusGraphics();
       return null;
     }
