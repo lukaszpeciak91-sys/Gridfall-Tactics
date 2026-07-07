@@ -27,7 +27,7 @@ test('tutorial focus targets are represented as practical BattleScene target obj
 
 test('BattleScene creates and updates tutorial focus only for tutorial battles', () => {
   assert.match(battleSource, /ensureTutorialFocusLayer\(\) \{[\s\S]*if \(!this\.isTutorialBattle\(\) \|\| !this\.add\) return null;/);
-  assert.match(battleSource, /updateTutorialFocus\(step = this\.getCurrentTutorialStep\(\)\) \{[\s\S]*if \(!this\.isTutorialBattle\(\) \|\| !this\.layout \|\| this\.battleResultModalShown \|\| this\.battleResultModalPending\) \{/);
+  assert.match(battleSource, /updateTutorialFocus\(step = this\.getCurrentTutorialStep\(\), \{ forceRedraw = false \} = \{\}\) \{[\s\S]*if \(!this\.isTutorialBattle\(\) \|\| !this\.layout \|\| this\.battleResultModalShown \|\| this\.battleResultModalPending\) \{/);
   assert.match(battleSource, /this\.tutorialFocusLayer = this\.add\.container\(0, 0\)\.setDepth\(TUTORIAL_FOCUS_DEPTH\)/);
   assert.match(battleSource, /this\.updateTutorialFocus\(step\);/);
   assert.match(battleSource, /completeOpeningMulliganReveal\([\s\S]*this\.updateTutorialFocus\?\.\(\);/);
@@ -101,7 +101,7 @@ test('tutorial focus uses independent Phaser primitives and does not gate input'
 test('tutorial focus waits for visible banner and suppresses resolving/uninteractable timing', () => {
   assert.match(battleSource, /isTutorialStepBannerVisible\(step = this\.getCurrentTutorialStep\(\)\) \{[\s\S]*this\.tutorialBanner\.text === this\.getTutorialStepText\(step\)/);
   assert.match(battleSource, /isTutorialFocusTimingSuppressed\(step = this\.getCurrentTutorialStep\(\)\) \{[\s\S]*!this\.isTutorialStepBannerVisible\(step\)[\s\S]*this\.isFlowResolving \|\| this\.isEffectCastResolving[\s\S]*wait_enemy_action[\s\S]*wait_combat/);
-  assert.match(battleSource, /updateTutorialFocus\(step = this\.getCurrentTutorialStep\(\)\) \{[\s\S]*this\.isTutorialFocusTimingSuppressed\(step\)[\s\S]*this\.clearTutorialFocusGraphics\(\)/);
+  assert.match(battleSource, /updateTutorialFocus\(step = this\.getCurrentTutorialStep\(\), \{ forceRedraw = false \} = \{\}\) \{[\s\S]*this\.isTutorialFocusTimingSuppressed\(step\)[\s\S]*this\.clearTutorialFocusGraphics\(\)/);
   assert.match(battleSource, /type === 'mulligan_card'[\s\S]*const inputType = expected\.type === 'inspect_card' \? 'inspect_card' : 'select_mulligan_card'[\s\S]*this\.openingMulliganPending[\s\S]*!\(this\.isOpeningMulliganInputLocked\?\.\(\) \?\? false\)[\s\S]*type: inputType, cardId/);
   assert.match(battleSource, /calculateHandCardFocusBounds\(this\.cardViews \?\? \[\], cardId/);
 });
