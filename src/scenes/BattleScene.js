@@ -23,7 +23,7 @@ import { CARD_COLORS, createCardArtwork, createCardPreviewView, getBaseCardSurfa
 import { getCardDisplayName, getCardTextShort } from '../localization/cardDisplay.js';
 import { getActiveLocale, translateActive, translateActiveList } from '../localization/localeService.js';
 import { applyCampaignBattleResult, clearCampaign, createNewCampaign, isValidCampaignState, loadCampaign, saveCampaign } from '../systems/campaignState.js';
-import { incrementBattleStat, incrementCardPlayedStat, loadPlayerStats, savePlayerStats } from '../systems/playerStats.js';
+import { incrementBattleStat, incrementCardPlayedStat, loadPlayerStats, markTutorialCompleted, savePlayerStats } from '../systems/playerStats.js';
 import { incrementCampaignCompletedStat } from '../systems/playerStats.js';
 import { getCardBoardArtPositionY } from '../data/presentation/cardArtCropOverrides.js';
 import { AUDIO_KEYS, preloadAudioAssets } from '../audio/audioAssets.js';
@@ -432,6 +432,7 @@ export default class BattleScene extends Phaser.Scene {
     this.activeOutcomeStinger = null;
     this.battleAmbienceStopping = false;
     this.battleStatsTracked = false;
+    this.tutorialCompletionTracked = false;
   }
 
   preload() {
@@ -1828,6 +1829,20 @@ export default class BattleScene extends Phaser.Scene {
     }
   }
 
+
+  trackTutorialCompletionOnce() {
+    if (this.tutorialCompletionTracked || !this.isTutorialBattle() || this.gameState?.winner !== 'player') return false;
+
+    this.tutorialCompletionTracked = true;
+    try {
+      const nextStats = markTutorialCompleted(loadPlayerStats());
+      savePlayerStats(nextStats);
+    } catch (error) {
+      console.warn('Tutorial completion player stats tracking failed; battle flow will continue.', error);
+    }
+    return true;
+  }
+
   trackCompletedBattleStatsOnce() {
     if (this.battleStatsTracked || !this.gameState?.winner) return false;
 
@@ -1858,6 +1873,7 @@ export default class BattleScene extends Phaser.Scene {
   scheduleBattleResultModal(delayMs = 500) {
     if (!this.gameState?.winner || this.battleResultModalShown || this.battleResultModalPending) return;
     this.stopCampaignBattleTimer();
+    this.trackTutorialCompletionOnce();
     this.trackCompletedBattleStatsOnce();
     const hasLethalTerminalFailure = Boolean(this.getLethalTerminalFailureSides().length);
     if (hasLethalTerminalFailure) {
