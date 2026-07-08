@@ -24,6 +24,7 @@ import { getCardDisplayName, getCardTextShort } from '../localization/cardDispla
 import { getActiveLocale, translateActive, translateActiveList } from '../localization/localeService.js';
 import { applyCampaignBattleResult, clearCampaign, createNewCampaign, isValidCampaignState, loadCampaign, saveCampaign } from '../systems/campaignState.js';
 import { incrementBattleStat, loadPlayerStats, savePlayerStats } from '../systems/playerStats.js';
+import { incrementCampaignCompletedStat } from '../systems/playerStats.js';
 import { getCardBoardArtPositionY } from '../data/presentation/cardArtCropOverrides.js';
 import { AUDIO_KEYS, preloadAudioAssets } from '../audio/audioAssets.js';
 import { playManagedSfx, playMusic, playSfx, stopManagedSfx, stopMusic } from '../audio/audioPlayback.js';
@@ -1796,6 +1797,21 @@ export default class BattleScene extends Phaser.Scene {
     return `${turnsLabel}: ${turns}\n${timeLabel}: ${this.formatBattleDuration(elapsedSeconds)}`;
   }
 
+  trackCompletedCampaignLifecycleStats(previousCampaign, updatedCampaign) {
+    if (previousCampaign?.status !== 'active' || !['won', 'lost'].includes(updatedCampaign?.status)) return false;
+
+    try {
+      const nextStats = incrementCampaignCompletedStat(loadPlayerStats(), {
+        result: updatedCampaign.status,
+        playerFactionKey: updatedCampaign.playerFactionKey,
+      });
+      savePlayerStats(nextStats);
+    } catch (error) {
+      console.warn('Campaign lifecycle player stats tracking failed; campaign flow will continue.', error);
+    }
+    return true;
+  }
+
   trackCompletedBattleStatsOnce() {
     if (this.battleStatsTracked || !this.gameState?.winner) return false;
 
@@ -3287,6 +3303,7 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
     saveCampaign(updatedCampaign);
+    this.trackCompletedCampaignLifecycleStats(campaign, updatedCampaign);
 
     if (updatedCampaign.status === 'won' || updatedCampaign.status === 'lost') {
       this.showCampaignCompleteModal(updatedCampaign.status);

@@ -7,6 +7,8 @@ import {
   clonePlayerStats,
   createDefaultPlayerStats,
   incrementBattleStat,
+  incrementCampaignCompletedStat,
+  incrementCampaignStarted,
   incrementEnemyDefeatedStat,
   incrementFactionStat,
   loadPlayerStats,
@@ -222,6 +224,46 @@ test('incrementEnemyDefeatedStat increments totals and player-faction pair count
   assert.equal(nextStats.enemies.defeatedByPlayerFactionPair.Control.Tank, 0);
   assert.throws(() => incrementEnemyDefeatedStat(stats, 'Missing', 'Tank'), RangeError);
   assert.throws(() => incrementEnemyDefeatedStat(stats, 'Aggro', 'Missing'), RangeError);
+});
+
+
+test('incrementCampaignStarted increments campaign starts immutably only once per call', () => {
+  const stats = createDefaultPlayerStats();
+  const nextStats = incrementCampaignStarted(stats);
+
+  assert.equal(stats.campaignsStarted, 0);
+  assert.equal(nextStats.campaignsStarted, 1);
+  assert.equal(nextStats.campaignsCompleted, 0);
+});
+
+test('incrementCampaignCompletedStat increments campaign win lifecycle and player faction win counter', () => {
+  const stats = createDefaultPlayerStats();
+  const nextStats = incrementCampaignCompletedStat(stats, {
+    result: 'won',
+    playerFactionKey: 'Aggro',
+  });
+
+  assert.equal(nextStats.campaignsCompleted, 1);
+  assert.equal(nextStats.campaignsWon, 1);
+  assert.equal(nextStats.campaignsLost, 0);
+  assert.equal(nextStats.factions.Aggro.campaignsWon, 1);
+  assert.equal(nextStats.factions.Tank.campaignsWon, 0);
+  assert.equal(nextStats.campaignBattlesWon, 0);
+});
+
+test('incrementCampaignCompletedStat increments campaign loss lifecycle without faction win counter', () => {
+  const stats = createDefaultPlayerStats();
+  const nextStats = incrementCampaignCompletedStat(stats, {
+    result: 'lost',
+    playerFactionKey: 'Aggro',
+  });
+
+  assert.equal(nextStats.campaignsCompleted, 1);
+  assert.equal(nextStats.campaignsWon, 0);
+  assert.equal(nextStats.campaignsLost, 1);
+  assert.equal(nextStats.factions.Aggro.campaignsWon, 0);
+  assert.equal(nextStats.campaignBattlesLost, 0);
+  assert.throws(() => incrementCampaignCompletedStat(stats, { result: 'drawn' }), RangeError);
 });
 
 test('incrementBattleStat increments arena battle counters, faction counters, and defeated enemy stats', () => {
