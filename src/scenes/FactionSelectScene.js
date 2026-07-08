@@ -17,6 +17,7 @@ import { AUDIO_KEYS, preloadAudioAssets } from '../audio/audioAssets.js';
 import { playSfx, stopMusic } from '../audio/audioPlayback.js';
 import { playMenuMusic } from '../audio/menuMusic.js';
 import { createNewCampaign, saveCampaign } from '../systems/campaignState.js';
+import { incrementCampaignStarted, loadPlayerStats, savePlayerStats } from '../systems/playerStats.js';
 import { drawFactionCardVisual, preloadFactionPreviewArt } from '../ui/factionCards.js';
 import { createImageButton, preloadSecondaryButtonAsset, PREMIUM_BROADCAST_FONT_STACK } from '../ui/imageButton.js';
 import { createTapVsDragInteraction } from '../ui/tapVsDragInteraction.js';
@@ -504,6 +505,11 @@ export default class FactionSelectScene extends Phaser.Scene {
 
     const campaign = createNewCampaign(factionKey);
     const savedCampaign = saveCampaign(campaign) ?? campaign;
+    try {
+      savePlayerStats(incrementCampaignStarted(loadPlayerStats()));
+    } catch (error) {
+      console.warn('Campaign start player stats tracking failed; campaign flow will continue.', error);
+    }
     this.scene.start('CampaignEnemySelectScene', { campaign: savedCampaign });
   }
 

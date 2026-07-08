@@ -278,3 +278,17 @@ test('campaign localization keys exist', () => {
     assert.ok(translations.ui.campaignResult.lost);
   }
 });
+
+test('campaign start and continuation lifecycle tracking hooks are best-effort and idempotent by status transition', () => {
+  const factionSelect = read('src/scenes/FactionSelectScene.js');
+  assert.match(factionSelect, /import \{ incrementCampaignStarted, loadPlayerStats, savePlayerStats \} from '\.\.\/systems\/playerStats\.js';/);
+  assert.match(factionSelect, /const savedCampaign = saveCampaign\(campaign\) \?\? campaign;[\s\S]*savePlayerStats\(incrementCampaignStarted\(loadPlayerStats\(\)\)\);[\s\S]*this\.scene\.start\('CampaignEnemySelectScene', \{ campaign: savedCampaign \}\)/);
+  assert.match(factionSelect, /catch \(error\) \{[\s\S]*Campaign start player stats tracking failed; campaign flow will continue\./);
+
+  const battle = read('src/scenes/BattleScene.js');
+  assert.match(battle, /import \{ incrementCampaignCompletedStat \} from '\.\.\/systems\/playerStats\.js';/);
+  assert.match(battle, /trackCompletedCampaignLifecycleStats\(previousCampaign, updatedCampaign\) \{[\s\S]*previousCampaign\?\.status !== 'active'[\s\S]*!\['won', 'lost'\]\.includes\(updatedCampaign\?\.status\)[\s\S]*return false;/);
+  assert.match(battle, /incrementCampaignCompletedStat\(loadPlayerStats\(\), \{[\s\S]*result: updatedCampaign\.status,[\s\S]*playerFactionKey: updatedCampaign\.playerFactionKey,[\s\S]*\}\)/);
+  assert.match(battle, /catch \(error\) \{[\s\S]*Campaign lifecycle player stats tracking failed; campaign flow will continue\./);
+  assert.match(battle, /updatedCampaign = applyCampaignBattleResult\(campaign, result\);[\s\S]*saveCampaign\(updatedCampaign\);[\s\S]*this\.trackCompletedCampaignLifecycleStats\(campaign, updatedCampaign\);/);
+});

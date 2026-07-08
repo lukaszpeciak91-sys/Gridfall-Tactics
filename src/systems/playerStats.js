@@ -46,6 +46,7 @@ const FACTION_STATS = Object.freeze([
   'campaignBattlesWon',
   'campaignBattlesLost',
   'campaignBattlesDrawn',
+  'campaignsWon',
   'unitsPlayed',
   'effectsPlayed',
 ]);
@@ -250,6 +251,30 @@ export function incrementEnemyDefeatedStat(stats, playerFactionKey, enemyFaction
     nextStats.enemies.defeatedByPlayerFactionPair[playerFactionKey][enemyFactionKey],
     incrementAmount,
   );
+  return nextStats;
+}
+
+export function incrementCampaignStarted(stats, amount = 1) {
+  const nextStats = clonePlayerStats(stats);
+  nextStats.campaignsStarted = incrementCounter(nextStats.campaignsStarted, amount);
+  return nextStats;
+}
+
+export function incrementCampaignCompletedStat(stats, { result, playerFactionKey = null } = {}) {
+  if (result !== 'won' && result !== 'lost') {
+    throw new RangeError(`Invalid campaign lifecycle result: ${result}`);
+  }
+
+  let nextStats = clonePlayerStats(stats);
+  nextStats.campaignsCompleted = incrementCounter(nextStats.campaignsCompleted);
+  if (result === 'won') {
+    nextStats.campaignsWon = incrementCounter(nextStats.campaignsWon);
+    if (playerFactionKey !== null) {
+      nextStats = incrementFactionStat(nextStats, playerFactionKey, 'campaignsWon');
+    }
+  } else {
+    nextStats.campaignsLost = incrementCounter(nextStats.campaignsLost);
+  }
   return nextStats;
 }
 
