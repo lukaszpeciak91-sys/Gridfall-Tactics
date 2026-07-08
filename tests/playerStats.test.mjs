@@ -9,6 +9,7 @@ import {
   incrementBattleStat,
   incrementCampaignCompletedStat,
   incrementCampaignStarted,
+  incrementCardPlayedStat,
   incrementEnemyDefeatedStat,
   incrementFactionStat,
   loadPlayerStats,
@@ -226,6 +227,44 @@ test('incrementEnemyDefeatedStat increments totals and player-faction pair count
   assert.throws(() => incrementEnemyDefeatedStat(stats, 'Aggro', 'Missing'), RangeError);
 });
 
+
+
+test('incrementCardPlayedStat increments unit and effect globals immutably', () => {
+  const stats = createDefaultPlayerStats();
+  const afterUnit = incrementCardPlayedStat(stats, { statKey: 'unitsPlayed' });
+  const afterEffect = incrementCardPlayedStat(stats, { statKey: 'effectsPlayed' });
+
+  assert.equal(stats.unitsPlayed, 0);
+  assert.equal(stats.effectsPlayed, 0);
+  assert.equal(afterUnit.unitsPlayed, 1);
+  assert.equal(afterUnit.effectsPlayed, 0);
+  assert.equal(afterEffect.unitsPlayed, 0);
+  assert.equal(afterEffect.effectsPlayed, 1);
+  assert.notEqual(afterUnit, stats);
+});
+
+test('incrementCardPlayedStat increments player faction card counters immutably', () => {
+  const stats = createDefaultPlayerStats();
+  const afterUnit = incrementCardPlayedStat(stats, { statKey: 'unitsPlayed', playerFactionKey: 'Aggro' });
+  const afterEffect = incrementCardPlayedStat(stats, { statKey: 'effectsPlayed', playerFactionKey: 'Tank' });
+
+  assert.equal(stats.factions.Aggro.unitsPlayed, 0);
+  assert.equal(stats.factions.Tank.effectsPlayed, 0);
+  assert.equal(afterUnit.unitsPlayed, 1);
+  assert.equal(afterUnit.factions.Aggro.unitsPlayed, 1);
+  assert.equal(afterUnit.factions.Tank.unitsPlayed, 0);
+  assert.equal(afterEffect.effectsPlayed, 1);
+  assert.equal(afterEffect.factions.Tank.effectsPlayed, 1);
+  assert.equal(afterEffect.factions.Aggro.effectsPlayed, 0);
+});
+
+test('incrementCardPlayedStat rejects invalid stat and faction keys', () => {
+  const stats = createDefaultPlayerStats();
+
+  assert.throws(() => incrementCardPlayedStat(stats, { statKey: 'battlesPlayed' }), RangeError);
+  assert.throws(() => incrementCardPlayedStat(stats, { statKey: 'missingStat' }), RangeError);
+  assert.throws(() => incrementCardPlayedStat(stats, { statKey: 'unitsPlayed', playerFactionKey: 'Missing' }), RangeError);
+});
 
 test('incrementCampaignStarted increments campaign starts immutably only once per call', () => {
   const stats = createDefaultPlayerStats();

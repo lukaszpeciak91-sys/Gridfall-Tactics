@@ -53,6 +53,7 @@ const FACTION_STATS = Object.freeze([
 
 const BATTLE_RESULTS = new Set(['won', 'lost', 'drawn']);
 const BATTLE_MODES = new Set(['arena', 'campaign']);
+const CARD_PLAYED_STATS = new Set(CARD_STATS);
 
 function getLocalStorage() {
   if (typeof window === 'undefined') {
@@ -257,6 +258,19 @@ export function incrementEnemyDefeatedStat(stats, playerFactionKey, enemyFaction
 export function incrementCampaignStarted(stats, amount = 1) {
   const nextStats = clonePlayerStats(stats);
   nextStats.campaignsStarted = incrementCounter(nextStats.campaignsStarted, amount);
+  return nextStats;
+}
+
+export function incrementCardPlayedStat(stats, { statKey, playerFactionKey = null } = {}) {
+  if (!CARD_PLAYED_STATS.has(statKey)) {
+    throw new RangeError(`Invalid card played stat: ${statKey}`);
+  }
+
+  let nextStats = clonePlayerStats(stats);
+  nextStats[statKey] = incrementCounter(nextStats[statKey]);
+  if (playerFactionKey !== null) {
+    nextStats = incrementFactionStat(nextStats, playerFactionKey, statKey);
+  }
   return nextStats;
 }
 

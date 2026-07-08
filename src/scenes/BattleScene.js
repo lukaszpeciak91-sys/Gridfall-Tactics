@@ -23,7 +23,7 @@ import { CARD_COLORS, createCardArtwork, createCardPreviewView, getBaseCardSurfa
 import { getCardDisplayName, getCardTextShort } from '../localization/cardDisplay.js';
 import { getActiveLocale, translateActive, translateActiveList } from '../localization/localeService.js';
 import { applyCampaignBattleResult, clearCampaign, createNewCampaign, isValidCampaignState, loadCampaign, saveCampaign } from '../systems/campaignState.js';
-import { incrementBattleStat, loadPlayerStats, savePlayerStats } from '../systems/playerStats.js';
+import { incrementBattleStat, incrementCardPlayedStat, loadPlayerStats, savePlayerStats } from '../systems/playerStats.js';
 import { incrementCampaignCompletedStat } from '../systems/playerStats.js';
 import { getCardBoardArtPositionY } from '../data/presentation/cardArtCropOverrides.js';
 import { AUDIO_KEYS, preloadAudioAssets } from '../audio/audioAssets.js';
@@ -1810,6 +1810,22 @@ export default class BattleScene extends Phaser.Scene {
       console.warn('Campaign lifecycle player stats tracking failed; campaign flow will continue.', error);
     }
     return true;
+  }
+
+  trackPlayerCardPlayedStat(statKey) {
+    if (this.isTutorialBattle()) return false;
+
+    try {
+      const nextStats = incrementCardPlayedStat(loadPlayerStats(), {
+        statKey,
+        playerFactionKey: this.gameState?.player?.factionKey ?? this.factionKey,
+      });
+      savePlayerStats(nextStats);
+      return true;
+    } catch (error) {
+      console.warn('Card play player stats tracking failed; battle flow will continue.', error);
+      return false;
+    }
   }
 
   trackCompletedBattleStatsOnce() {
@@ -6371,6 +6387,9 @@ export default class BattleScene extends Phaser.Scene {
         this.showInvalidActionFeedback?.({ reason: result.reason, cardId: effectCardId, boardIndex, scope: this.getInvalidActionScope(result.reason) });
         return;
       }
+      if (this.effectCastState?.source !== 'unit-on-play' && result.type === 'targeted-effect') {
+        this.trackPlayerCardPlayedStat?.('effectsPlayed');
+      }
       this.queueBattleHistoryAction?.('player', {
         type: this.effectCastState?.source === 'unit-on-play' ? 'play_unit' : 'play_effect',
         card: this.createCardRef?.(result.card ?? selectedCard, 'player') ?? { name: (result.card ?? selectedCard)?.name ?? 'Card', side: 'player' },
@@ -6423,6 +6442,10 @@ export default class BattleScene extends Phaser.Scene {
       this.clearHandCardSelection();
       this.showInvalidActionFeedback?.({ reason: result.reason, cardId: invalidCardId, boardIndex, scope: this.getInvalidActionScope(result.reason) });
       return;
+    }
+
+    if (result.type === 'play') {
+      this.trackPlayerCardPlayedStat?.('unitsPlayed');
     }
 
     // Controller play/redeploy explicitly enters manual unit-on-play targeting. Hacker lane behavior
@@ -6557,6 +6580,9 @@ export default class BattleScene extends Phaser.Scene {
       this.updatePlayerBaseActionState();
       this.showInvalidActionFeedback?.({ reason: result.reason, cardId: card.id, card, scope: 'global' });
       return;
+    }
+    if (result.type === 'effect') {
+      this.trackPlayerCardPlayedStat?.('effectsPlayed');
     }
     const movementFeedback = this.buildMovementFeedbackForAction({
       effectId: card.effectId,
