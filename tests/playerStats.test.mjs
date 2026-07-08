@@ -68,7 +68,9 @@ test('createDefaultPlayerStats creates versioned zeroed stats for every faction 
   for (const factionKey of factionKeys) {
     assert.equal(stats.factions[factionKey].battlesPlayed, 0);
     assert.equal(stats.factions[factionKey].arenaBattlesDrawn, 0);
+    assert.equal(stats.factions[factionKey].campaignBattlesPlayed, 0);
     assert.equal(stats.factions[factionKey].campaignBattlesWon, 0);
+    assert.equal(stats.factions[factionKey].campaignBattlesDrawn, 0);
     assert.equal(stats.factions[factionKey].effectsPlayed, 0);
     assert.equal(stats.enemies.defeatedTotals[factionKey], 0);
     assert.deepEqual(Object.keys(stats.enemies.defeatedByPlayerFactionPair[factionKey]), factionKeys);
@@ -244,6 +246,67 @@ test('incrementBattleStat increments arena battle counters, faction counters, an
   assert.equal(nextStats.enemies.defeatedByPlayerFactionPair.Aggro.Tank, 1);
 });
 
+
+test('incrementBattleStat increments arena loss and draw counters without defeated enemy stats', () => {
+  const lossStats = incrementBattleStat(createDefaultPlayerStats(), {
+    mode: 'arena',
+    result: 'lost',
+    playerFactionKey: 'Aggro',
+    enemyFactionKey: 'Tank',
+  });
+  assert.equal(lossStats.battlesPlayed, 1);
+  assert.equal(lossStats.battlesLost, 1);
+  assert.equal(lossStats.arenaBattlesPlayed, 1);
+  assert.equal(lossStats.arenaBattlesLost, 1);
+  assert.equal(lossStats.factions.Aggro.arenaBattlesLost, 1);
+  assert.equal(lossStats.enemies.defeatedTotals.Tank, 0);
+
+  const drawStats = incrementBattleStat(createDefaultPlayerStats(), {
+    mode: 'arena',
+    result: 'drawn',
+    playerFactionKey: 'Aggro',
+    enemyFactionKey: 'Tank',
+  });
+  assert.equal(drawStats.battlesPlayed, 1);
+  assert.equal(drawStats.battlesDrawn, 1);
+  assert.equal(drawStats.arenaBattlesPlayed, 1);
+  assert.equal(drawStats.arenaBattlesDrawn, 1);
+  assert.equal(drawStats.factions.Aggro.arenaBattlesDrawn, 1);
+  assert.equal(drawStats.enemies.defeatedTotals.Tank, 0);
+});
+
+test('incrementBattleStat increments campaign win/loss battle stats without lifecycle stats', () => {
+  const winStats = incrementBattleStat(createDefaultPlayerStats(), {
+    mode: 'campaign',
+    result: 'won',
+    playerFactionKey: 'Aggro',
+    enemyFactionKey: 'Tank',
+  });
+  assert.equal(winStats.campaignBattlesPlayed, 1);
+  assert.equal(winStats.campaignBattlesWon, 1);
+  assert.equal(winStats.factions.Aggro.campaignBattlesPlayed, 1);
+  assert.equal(winStats.factions.Aggro.campaignBattlesWon, 1);
+  assert.equal(winStats.campaignsStarted, 0);
+  assert.equal(winStats.campaignsCompleted, 0);
+  assert.equal(winStats.campaignsWon, 0);
+  assert.equal(winStats.campaignsLost, 0);
+  assert.equal(winStats.enemies.defeatedTotals.Tank, 1);
+
+  const lossStats = incrementBattleStat(createDefaultPlayerStats(), {
+    mode: 'campaign',
+    result: 'lost',
+    playerFactionKey: 'Aggro',
+    enemyFactionKey: 'Tank',
+  });
+  assert.equal(lossStats.campaignBattlesPlayed, 1);
+  assert.equal(lossStats.campaignBattlesLost, 1);
+  assert.equal(lossStats.factions.Aggro.campaignBattlesPlayed, 1);
+  assert.equal(lossStats.factions.Aggro.campaignBattlesLost, 1);
+  assert.equal(lossStats.campaignsCompleted, 0);
+  assert.equal(lossStats.enemies.defeatedTotals.Tank, 0);
+});
+
+
 test('incrementBattleStat increments campaign draw counters without defeated enemy or campaign faction win/loss', () => {
   const stats = createDefaultPlayerStats();
   const nextStats = incrementBattleStat(stats, {
@@ -259,8 +322,10 @@ test('incrementBattleStat increments campaign draw counters without defeated ene
   assert.equal(nextStats.campaignBattlesDrawn, 1);
   assert.equal(nextStats.factions.Aggro.battlesPlayed, 1);
   assert.equal(nextStats.factions.Aggro.battlesDrawn, 1);
+  assert.equal(nextStats.factions.Aggro.campaignBattlesPlayed, 1);
   assert.equal(nextStats.factions.Aggro.campaignBattlesWon, 0);
   assert.equal(nextStats.factions.Aggro.campaignBattlesLost, 0);
+  assert.equal(nextStats.factions.Aggro.campaignBattlesDrawn, 1);
   assert.equal(nextStats.enemies.defeatedTotals.Tank, 0);
   assert.throws(() => incrementBattleStat(stats, { mode: 'tutorial', result: 'won' }), RangeError);
   assert.throws(() => incrementBattleStat(stats, { mode: 'arena', result: 'win' }), RangeError);
