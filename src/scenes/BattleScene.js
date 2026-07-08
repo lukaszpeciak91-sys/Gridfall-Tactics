@@ -23,6 +23,7 @@ import { CARD_COLORS, createCardArtwork, createCardPreviewView, getBaseCardSurfa
 import { getCardDisplayName, getCardTextShort } from '../localization/cardDisplay.js';
 import { getActiveLocale, translateActive, translateActiveList } from '../localization/localeService.js';
 import { applyCampaignBattleResult, clearCampaign, createNewCampaign, isValidCampaignState, loadCampaign, saveCampaign } from '../systems/campaignState.js';
+import { incrementBattleStat, loadPlayerStats, savePlayerStats } from '../systems/playerStats.js';
 import { getCardBoardArtPositionY } from '../data/presentation/cardArtCropOverrides.js';
 import { AUDIO_KEYS, preloadAudioAssets } from '../audio/audioAssets.js';
 import { playManagedSfx, playMusic, playSfx, stopManagedSfx, stopMusic } from '../audio/audioPlayback.js';
@@ -429,6 +430,7 @@ export default class BattleScene extends Phaser.Scene {
     this.campaignOutcomeSfxPlayed = false;
     this.activeOutcomeStinger = null;
     this.battleAmbienceStopping = false;
+    this.battleStatsTracked = false;
   }
 
   preload() {
@@ -656,6 +658,7 @@ export default class BattleScene extends Phaser.Scene {
     this.battleOutcomeSfxPlayed = false;
     this.campaignOutcomeSfxPlayed = false;
     this.activeOutcomeStinger = null;
+    this.battleStatsTracked = false;
   }
 
   cleanupSceneObjects({ preserveTimers = false, preserveTweens = false } = {}) {
@@ -1793,9 +1796,37 @@ export default class BattleScene extends Phaser.Scene {
     return `${turnsLabel}: ${turns}\n${timeLabel}: ${this.formatBattleDuration(elapsedSeconds)}`;
   }
 
+  trackCompletedBattleStatsOnce() {
+    if (this.battleStatsTracked || !this.gameState?.winner) return false;
+
+    const mode = this.isCampaignBattle() ? 'campaign' : (this.isTutorialBattle() ? null : 'arena');
+    const result = {
+      player: 'won',
+      enemy: 'lost',
+      draw: 'drawn',
+    }[this.gameState.winner];
+
+    if (!mode || !result) return false;
+
+    this.battleStatsTracked = true;
+    try {
+      const nextStats = incrementBattleStat(loadPlayerStats(), {
+        mode,
+        result,
+        playerFactionKey: this.gameState.player?.factionKey ?? this.factionKey,
+        enemyFactionKey: this.gameState.enemy?.factionKey ?? this.enemyFactionKey,
+      });
+      savePlayerStats(nextStats);
+    } catch (error) {
+      console.warn('Battle result player stats tracking failed; battle flow will continue.', error);
+    }
+    return true;
+  }
+
   scheduleBattleResultModal(delayMs = 500) {
     if (!this.gameState?.winner || this.battleResultModalShown || this.battleResultModalPending) return;
     this.stopCampaignBattleTimer();
+    this.trackCompletedBattleStatsOnce();
     const hasLethalTerminalFailure = Boolean(this.getLethalTerminalFailureSides().length);
     if (hasLethalTerminalFailure) {
       delayMs = Math.min(Math.max(delayMs, BASE_TERMINAL_FAILURE_MODAL_DELAY_MS), BASE_TERMINAL_FAILURE_MS);

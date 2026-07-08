@@ -42,8 +42,10 @@ const FACTION_STATS = Object.freeze([
   'arenaBattlesWon',
   'arenaBattlesLost',
   'arenaBattlesDrawn',
+  'campaignBattlesPlayed',
   'campaignBattlesWon',
   'campaignBattlesLost',
+  'campaignBattlesDrawn',
   'unitsPlayed',
   'effectsPlayed',
 ]);
@@ -280,10 +282,12 @@ export function incrementBattleStat(stats, { mode, result, playerFactionKey = nu
       }[result]);
     }
 
-    if (mode === 'campaign' && result !== 'drawn') {
+    if (mode === 'campaign') {
+      nextStats = incrementFactionStat(nextStats, playerFactionKey, 'campaignBattlesPlayed');
       nextStats = incrementFactionStat(nextStats, playerFactionKey, {
         won: 'campaignBattlesWon',
         lost: 'campaignBattlesLost',
+        drawn: 'campaignBattlesDrawn',
       }[result]);
     }
 
