@@ -216,3 +216,10 @@ canonical_ref: docs/rules/mvp-battle-rules.md
 - Tutorial cards/decks must remain separate from normal faction registry, Campaign, Arena, and Balance Lab data.
 - Tutorial flow uses real mechanics with tutorial-only deterministic opening/mulligan, scripted enemy actions, input gating, `buff_all_atk_1`, final PASS victory, standard result presentation, and return to `GameMenuScene`.
 - Campaign save/progression functions must remain untouched by Tutorial.
+
+## Tutorial V1 Stabilization Closeout (2026-07-08)
+- Tutorial V1 stabilization is considered closed enough for current project needs; remaining notes are historical/debugging guidance, not new rules authority.
+- Result UI safety: mandatory result modal assignment/showing must survive optional celebration failure, and pending result state must survive fullscreen/resize/rebuild when a winner already exists.
+- Tutorial lifecycle safety: recover presentation from canonical tutorial/game state, resolve focus only to live display objects, distinguish informational highlights from actionable gates, and prevent effect-cast visual interruption from orphaning gameplay/tutorial continuation.
+- Known non-blocking issue: aggressive fullscreen/blur/DevTools stress near the later redeploy step may leave stale action-window state; revisit only with runtime fields listed in `docs/tutorial-v1-architecture.md`.
+- Final polish state: Lost Fan / Zagubiony Kibic has 4 HP in tutorial-only data, no required enemy inspect gate was added, and the open-lane informational highlight targets enemy-row board slot index 1.

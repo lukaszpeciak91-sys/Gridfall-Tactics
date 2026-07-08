@@ -193,6 +193,7 @@ export const AUDIO_ASSETS = Object.freeze({
 - **Music/SFX volume conflict:** current global `scene.sound.volume = musicVolume / 100` would also scale SFX. Fix before adding SFX playback.
 - **Duplicate click sounds:** hand-card pointerdown/pointerup and scene pointerup can observe the same gesture. Hook only one successful owner per gesture.
 - **Duplicate battle sounds:** immediate combat, normal combat, and effect feedback share visual helpers. Use central hooks, cooldowns, and one-shot guards for `BASE_BREAK` / outcome sounds.
+- **Sound lifecycle safety:** never tween Phaser `sound.volume` directly. Tween a plain object and route updates through the project safe volume setter; if the setter fails, kill the tween and clear stale sound references. Missing/stale audio must no-op safely and never crash `BattleScene`. Binary audio files are user-supplied; Codex should wire paths only. If still desired, add `public/assets/audio/sfx/base-hit.mp3` manually.
 
 ## Proposed implementation order
 
