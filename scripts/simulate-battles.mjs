@@ -16,6 +16,8 @@ import {
   recordPassAction,
   completeActionOpportunity,
   MAX_TURNS,
+  getUnitAttack,
+  canPlayEffectCard,
 } from '../src/systems/GameState.js';
 import { readFileSync } from 'node:fs';
 import { getFactionByKey, getFactionKeys } from '../src/data/factions/index.js';
@@ -284,6 +286,7 @@ function createSimulatorTelemetry() {
     factions: {},
     cards: {},
     effectVariantOperations: {},
+    mercyDiagnostics: { uses: [], summary: { totalUses: 0 } },
     endings: {
       heroDefeated: 0,
       draw: 0,
@@ -507,6 +510,111 @@ function recordActionTelemetry(simTelemetry, state, owner, action, result = null
     cardRow.turnPlayedTotal += (state.turnsCompleted ?? 0) + 1;
     rememberGameCard(gameCardTelemetry, state?.[owner], result.card, 'played');
   }
+}
+
+const MERCY_EFFECT_ID = 'lane_tempo_mod_until_combat';
+const MERCY_PRIORITY_CARD_NAMES = ['Forced March', 'Ignition', 'Redline', 'Crack Strike'];
+
+function laneOf(index) {
+  return Number.isInteger(index) ? index % 3 : null;
+}
+
+function describeDiagnosticUnit(state, index) {
+  const unit = Number.isInteger(index) ? state?.board?.[index] : null;
+  if (!unit) return null;
+  return {
+    id: unit.cardId ?? unit.id ?? null,
+    name: unit.name ?? unit.id ?? 'Unknown',
+    lane: laneOf(index),
+    currentAtk: unit.attack ?? 0,
+    effectiveAtk: getUnitAttack(unit),
+  };
+}
+
+function getOpposingLaneIndexForOwner(owner, index) {
+  if (!Number.isInteger(index)) return null;
+  return owner === 'player' ? index - 6 : index + 6;
+}
+
+function isCardPlayableForPriority(state, owner, card) {
+  if (!card) return false;
+  if (card.type === 'unit') {
+    return buildActionCandidates(state, owner, [card], null).some((candidate) => candidate.type === 'play-unit' && candidate.cardId === card.id);
+  }
+  return canPlayEffectCard(state, owner, card).ok
+    && buildActionCandidates(state, owner, [card], null).some((candidate) => candidate.cardId === card.id);
+}
+
+function captureMercyActionDiagnostic(state, owner, action, result, opportunityContext = null) {
+  if (!state || !action || !result?.ok || result.card?.effectId !== MERCY_EFFECT_ID) return null;
+  const targetIndex = action.targetIndex;
+  const allyAfter = describeDiagnosticUnit(state, targetIndex);
+  const opposingIndex = getOpposingLaneIndexForOwner(owner, targetIndex);
+  const opposingAfter = describeDiagnosticUnit(state, opposingIndex);
+  const before = action.mercyDiagnosticBefore ?? {};
+  const side = state?.[owner] ?? {};
+  const opponentOwner = owner === 'player' ? 'enemy' : 'player';
+  const opponent = state?.[opponentOwner] ?? {};
+  const playableHand = action.mercyDiagnosticPlayableHand ?? {};
+  const diagnostic = {
+    gameIndex: opportunityContext?.gameIndex ?? null,
+    playerFactionKey: opportunityContext?.playerFaction ?? null,
+    enemyFactionKey: opportunityContext?.enemyFaction ?? null,
+    turn: opportunityContext?.turn ?? ((state.turnsCompleted ?? 0) + 1),
+    actingSide: owner,
+    actingFaction: side.factionName ?? opportunityContext?.[`${owner}Faction`] ?? owner,
+    opponentFaction: opponent.factionName ?? (owner === 'player' ? opportunityContext?.enemyFaction : opportunityContext?.playerFaction) ?? opponentOwner,
+    matchup: owner === 'player'
+      ? `${side.factionName ?? opportunityContext?.playerFaction} vs ${opponent.factionName ?? opportunityContext?.enemyFaction}`
+      : `${side.factionName ?? opportunityContext?.enemyFaction} vs ${opponent.factionName ?? opportunityContext?.playerFaction}`,
+    selectedAlly: {
+      ...(before.ally ?? describeDiagnosticUnit(state, targetIndex)),
+      effectiveAtkBefore: (before.ally ?? describeDiagnosticUnit(state, targetIndex))?.effectiveAtk ?? null,
+      effectiveAtkAfter: allyAfter?.effectiveAtk ?? null,
+    },
+    opposingEnemy: before.opposingEnemy ? {
+      ...before.opposingEnemy,
+      effectiveAtkBefore: before.opposingEnemy.effectiveAtk ?? null,
+      effectiveAtkAfter: opposingAfter?.effectiveAtk ?? null,
+    } : null,
+    opposingLaneEmpty: !before.opposingEnemy,
+    playableHand,
+    combat: {
+      allyFought: false,
+      allyDealtUnitDamage: false,
+      allyDealtBaseDamage: false,
+      opposingEnemyFought: false,
+      opposingEnemyDamageReducedOrPrevented: false,
+      opposingEnemyWouldHaveDealtDamage: false,
+    },
+    finalResult: null,
+  };
+  state.pendingMercyDiagnostics ??= [];
+  state.pendingMercyDiagnostics.push(diagnostic);
+  return diagnostic;
+}
+
+function attachMercyCombatDiagnostics(state, events) {
+  const pending = state?.pendingMercyDiagnostics;
+  if (!Array.isArray(pending) || pending.length === 0) return;
+  pending.forEach((entry) => {
+    if (entry.combatResolved) return;
+    const allyIndex = entry.actingSide === 'player' ? (entry.selectedAlly.lane + 6) : entry.selectedAlly.lane;
+    const enemyIndex = entry.actingSide === 'player' ? entry.selectedAlly.lane : (entry.selectedAlly.lane + 6);
+    const allyEvents = events.filter((event) => event.attackerSide === entry.actingSide && event.attackerIndex === allyIndex);
+    const enemyEvents = events.filter((event) => event.attackerSide !== entry.actingSide && event.attackerIndex === enemyIndex);
+    entry.combat.allyFought = allyEvents.length > 0;
+    entry.combat.allyDealtUnitDamage = allyEvents.some((event) => event.targetType === 'unit' && event.damage > 0);
+    entry.combat.allyDealtBaseDamage = allyEvents.some((event) => event.targetType === 'hero' && event.damage > 0);
+    entry.combat.opposingEnemyFought = enemyEvents.length > 0;
+    entry.combat.opposingEnemyWouldHaveDealtDamage = (entry.opposingEnemy?.effectiveAtkBefore ?? 0) > 0 && (entry.opposingEnemy || false);
+    entry.combat.opposingEnemyDamageReducedOrPrevented = enemyEvents.some((event) => (
+      event.damage <= Math.max(0, entry.opposingEnemy?.effectiveAtkBefore ?? 0)
+      && (entry.opposingEnemy?.effectiveAtkAfter ?? entry.opposingEnemy?.effectiveAtkBefore ?? 0) < (entry.opposingEnemy?.effectiveAtkBefore ?? 0)
+    ));
+    entry.combatResolved = true;
+  });
+  state.pendingMercyDiagnostics = pending.filter((entry) => !entry.combatResolved);
 }
 
 function recordCardOutcomeTelemetryForSide(simTelemetry, sideGameTelemetry, winner, sideOwner) {
@@ -753,6 +861,23 @@ function applyAiOpeningMulligan(state, owner, randomFn, telemetry, simTelemetry 
 function applyAction(state, owner, passStats, decisionOptions, telemetry, simTelemetry, gameCardTelemetry = null, handLockAnalysis = null, opportunityContext = null) {
   recordHandLockOpportunity(handLockAnalysis, state, owner, opportunityContext);
   const action = chooseBattleAction(state, owner, { ...decisionOptions, telemetry });
+  if (action?.effectId === MERCY_EFFECT_ID) {
+    const targetIndex = action.targetIndex;
+    const opposingIndex = getOpposingLaneIndexForOwner(owner, targetIndex);
+    const hand = state?.[owner]?.hand ?? [];
+    action.mercyDiagnosticBefore = {
+      ally: describeDiagnosticUnit(state, targetIndex),
+      opposingEnemy: describeDiagnosticUnit(state, opposingIndex),
+    };
+    action.mercyDiagnosticPlayableHand = {
+      forcedMarch: hand.some((card) => card.name === 'Forced March' && isCardPlayableForPriority(state, owner, card)),
+      ignition: hand.some((card) => card.name === 'Ignition' && isCardPlayableForPriority(state, owner, card)),
+      redline: hand.some((card) => card.name === 'Redline' && isCardPlayableForPriority(state, owner, card)),
+      crackStrike: hand.some((card) => card.name === 'Crack Strike' && isCardPlayableForPriority(state, owner, card)),
+      anyPlayableUnit: hand.some((card) => card.type === 'unit' && isCardPlayableForPriority(state, owner, card)),
+      playablePriorityCards: MERCY_PRIORITY_CARD_NAMES.filter((name) => hand.some((card) => card.name === name && isCardPlayableForPriority(state, owner, card))),
+    };
+  }
   const cancelKey = owner === 'enemy' ? 'player' : 'enemy';
   const nonUnit = action.type === 'play-effect' || action.type === 'play-targeted-effect';
   if (action.type === 'pass') {
@@ -801,6 +926,8 @@ function applyAction(state, owner, passStats, decisionOptions, telemetry, simTel
   }
   recordDrawTelemetry(simTelemetry, state?.[owner], deckBeforeAction, gameCardTelemetry?.[owner]);
   recordActionTelemetry(simTelemetry, state, owner, action, result, gameCardTelemetry?.[owner]);
+  const mercyDiagnostic = captureMercyActionDiagnostic(state, owner, action, result, opportunityContext);
+  if (mercyDiagnostic && simTelemetry?.mercyDiagnostics?.uses) simTelemetry.mercyDiagnostics.uses.push(mercyDiagnostic);
   if (result.card?.id === 'aggro_quick_fix_1') {
     telemetry.quickFixUses = (telemetry.quickFixUses ?? 0) + 1;
   }
@@ -865,7 +992,8 @@ function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, simTel
     applyAction(state, secondActor, passStats, secondDecisionOptions, telemetry, simTelemetry, cardGameTelemetry, handLockAnalysis, { turn: turns + 1, actingOrder: 'second', playerFaction: playerKey, enemyFaction: enemyKey, gameIndex });
     const playerDeckBeforeCombat = [...state.player.deck];
     const enemyDeckBeforeCombat = [...state.enemy.deck];
-    resolveCombat(state);
+    const combatEvents = resolveCombat(state);
+    attachMercyCombatDiagnostics(state, combatEvents);
     recordDrawTelemetry(simTelemetry, state.player, playerDeckBeforeCombat, cardGameTelemetry.player);
     recordDrawTelemetry(simTelemetry, state.enemy, enemyDeckBeforeCombat, cardGameTelemetry.enemy);
     turns += 1;
@@ -884,7 +1012,7 @@ function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, simTel
     recordDrawTelemetry(simTelemetry, state.enemy, enemyDeckBeforeTurnDraw, cardGameTelemetry.enemy);
     if (!state.winner) toggleFirstActor(state);
   }
-  return {
+  const result = {
     winner: state.winner ?? 'draw',
     playerFaction: playerKey,
     enemyFaction: enemyKey,
@@ -915,6 +1043,16 @@ function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, simTel
     effectVariantOperationTelemetry: [...(state.effectVariantOperationTelemetry ?? [])],
     cardGameTelemetry,
   };
+  for (const entry of simTelemetry?.mercyDiagnostics?.uses ?? []) {
+    if (entry.gameIndex === gameIndex
+      && entry.playerFactionKey === playerKey
+      && entry.enemyFactionKey === enemyKey
+      && entry.finalResult === null) {
+      const won = result.winner === entry.actingSide;
+      entry.finalResult = result.winner === 'draw' ? 'draw' : (won ? 'win' : 'loss');
+    }
+  }
+  return result;
 }
 
 const percentValue = (count, total) => (total > 0 ? (count / total) * 100 : 0);
@@ -1132,6 +1270,77 @@ function printCardSimulatorTelemetry(simTelemetry) {
       'Dead Cards >80': factionRows.filter((row) => row.deadCardScore > 80).length,
     };
   }));
+}
+
+function winRateForMercyUses(uses, predicate) {
+  const filtered = uses.filter(predicate);
+  const decisive = filtered.filter((entry) => entry.finalResult !== 'draw');
+  const wins = decisive.filter((entry) => entry.finalResult === 'win').length;
+  return `${percent(wins, decisive.length)}% (${wins}/${decisive.length})`;
+}
+
+function printMercyDiagnostics(simTelemetry) {
+  const uses = simTelemetry?.mercyDiagnostics?.uses ?? [];
+  console.log('\nSimulator telemetry: Mercy lane tempo diagnostics');
+  if (uses.length === 0) {
+    console.log('No lane_tempo_mod_until_combat uses recorded.');
+    return;
+  }
+  const pctOfUses = (count) => `${percent(count, uses.length)}%`;
+  console.table([{
+    'Mercy total uses': uses.length,
+    '% target fought next combat': pctOfUses(uses.filter((entry) => entry.combat.allyFought).length),
+    '% target dealt damage next combat': pctOfUses(uses.filter((entry) => entry.combat.allyDealtUnitDamage || entry.combat.allyDealtBaseDamage).length),
+    '% opposing enemy existed': pctOfUses(uses.filter((entry) => entry.opposingEnemy).length),
+    '% opposing enemy ATK > 0 before': pctOfUses(uses.filter((entry) => (entry.opposingEnemy?.effectiveAtkBefore ?? 0) > 0).length),
+    '% opposing enemy would have dealt damage': pctOfUses(uses.filter((entry) => entry.combat.opposingEnemyWouldHaveDealtDamage).length),
+    'WR target fought': winRateForMercyUses(uses, (entry) => entry.combat.allyFought),
+    'WR target did not fight': winRateForMercyUses(uses, (entry) => !entry.combat.allyFought),
+    'WR opposing enemy existed': winRateForMercyUses(uses, (entry) => entry.opposingEnemy),
+    'WR opposing lane empty': winRateForMercyUses(uses, (entry) => !entry.opposingEnemy),
+  }]);
+
+  console.log('\nMercy uses per matchup');
+  const byMatchup = new Map();
+  uses.forEach((entry) => {
+    const key = entry.matchup ?? 'unknown';
+    byMatchup.set(key, (byMatchup.get(key) ?? 0) + 1);
+  });
+  console.table([...byMatchup.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([matchup, count]) => ({ matchup, count })));
+
+  const priorityRows = [
+    ['Forced March playable', (entry) => entry.playableHand?.forcedMarch],
+    ['Ignition playable', (entry) => entry.playableHand?.ignition],
+    ['Redline playable', (entry) => entry.playableHand?.redline],
+    ['Crack Strike playable', (entry) => entry.playableHand?.crackStrike],
+    ['Any unit playable', (entry) => entry.playableHand?.anyPlayableUnit],
+  ];
+  console.log('\nMercy action-priority overlap');
+  console.table(priorityRows.map(([caseName, predicate]) => {
+    const count = uses.filter(predicate).length;
+    return {
+      case: caseName,
+      count,
+      '% uses': pctOfUses(count),
+      WR: winRateForMercyUses(uses, predicate),
+    };
+  }));
+
+  console.log('\nMercy detailed use log');
+  console.table(uses.map((entry) => ({
+    game: entry.gameIndex,
+    turn: entry.turn,
+    side: entry.actingSide,
+    faction: entry.actingFaction,
+    opponent: entry.opponentFaction,
+    ally: `${entry.selectedAlly?.name ?? 'Unknown'} L${entry.selectedAlly?.lane ?? '?'} ATK ${entry.selectedAlly?.effectiveAtkBefore ?? '?'}→${entry.selectedAlly?.effectiveAtkAfter ?? '?'}`,
+    opposing: entry.opposingEnemy ? `${entry.opposingEnemy.name} ATK ${entry.opposingEnemy.effectiveAtkBefore}→${entry.opposingEnemy.effectiveAtkAfter}` : 'EMPTY',
+    allyFought: entry.combat.allyFought,
+    allyDamage: entry.combat.allyDealtUnitDamage || entry.combat.allyDealtBaseDamage,
+    enemyFought: entry.combat.opposingEnemyFought,
+    enemyDamageReduced: entry.combat.opposingEnemyDamageReducedOrPrevented,
+    final: entry.finalResult,
+  })));
 }
 
 
@@ -1718,6 +1927,9 @@ Battle simulation complete (${effectiveMatchCount} games per matchup${filterSumm
   }
   if (simTelemetry && hasTelemetryMode(telemetryModes, 'ai')) {
     printAiSimulatorTelemetry(telemetry, simTelemetry, audit.games);
+  }
+  if (simTelemetry) {
+    printMercyDiagnostics(simTelemetry);
   }
   if (simTelemetry && hasTelemetryMode(telemetryModes, 'effectvariants')) {
     printEffectVariantOperationSimulatorTelemetry(simTelemetry);
