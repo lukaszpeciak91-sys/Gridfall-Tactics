@@ -1,4 +1,5 @@
-import { getFactionKeys } from '../data/factions/index.js';
+import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
+import { getFactionPresentationName } from '../data/presentation/factionPresentation.js';
 import { normalizePlayerStats } from './playerStats.js';
 
 export const ACHIEVEMENTS_STORAGE_KEY = 'gridfall:tactics:achievements:v1';
@@ -40,13 +41,14 @@ function getNestedCounter(source, path) {
   return getSafeCounter(path.reduce((value, key) => value?.[key], source));
 }
 
-function createThresholdDefinition({ id, category, title, description, statPath, target }) {
+function createThresholdDefinition({ id, category, title, description, statPath, target, ...metadata }) {
   return {
     id,
     category,
     title,
     description,
     target,
+    ...metadata,
     getCurrent: (stats) => getNestedCounter(stats, statPath),
     check(stats) {
       return this.getCurrent(stats) >= this.target;
@@ -60,6 +62,105 @@ function createThresholdDefinition({ id, category, title, description, statPath,
       };
     },
   };
+}
+
+
+export const FACTION_ACHIEVEMENT_TEMPLATES = Object.freeze([
+  {
+    key: 'win_first_battle',
+    idSuffix: 'win_first_battle',
+    sortOrder: 10,
+    statKey: 'battlesWon',
+    target: 1,
+    title: ({ factionNameEn }) => `${factionNameEn} Victor`,
+    description: ({ factionNameEn }) => `Win your first battle with ${factionNameEn}.`,
+    display: ({ factionNameEn, factionNamePl }) => ({
+      title: { en: `${factionNameEn} Victor`, pl: `Zwycięzca: ${factionNamePl}` },
+      description: { en: `Win your first battle with ${factionNameEn}.`, pl: `Wygraj pierwszą bitwę frakcją ${factionNamePl}.` },
+    }),
+  },
+  {
+    key: 'win_10_battles',
+    idSuffix: 'win_10_battles',
+    sortOrder: 20,
+    statKey: 'battlesWon',
+    target: 10,
+    title: ({ factionNameEn }) => `${factionNameEn} Champion`,
+    description: ({ factionNameEn }) => `Win 10 battles with ${factionNameEn}.`,
+    display: ({ factionNameEn, factionNamePl }) => ({
+      title: { en: `${factionNameEn} Champion`, pl: `Czempion: ${factionNamePl}` },
+      description: { en: `Win 10 battles with ${factionNameEn}.`, pl: `Wygraj 10 bitew frakcją ${factionNamePl}.` },
+    }),
+  },
+  {
+    key: 'win_campaign',
+    idSuffix: 'win_campaign',
+    sortOrder: 30,
+    statKey: 'campaignsWon',
+    target: 1,
+    title: ({ factionNameEn }) => `${factionNameEn} Campaign`,
+    description: ({ factionNameEn }) => `Win a campaign with ${factionNameEn}.`,
+    display: ({ factionNameEn, factionNamePl }) => ({
+      title: { en: `${factionNameEn} Campaign`, pl: `Kampania: ${factionNamePl}` },
+      description: { en: `Win a campaign with ${factionNameEn}.`, pl: `Wygraj kampanię frakcją ${factionNamePl}.` },
+    }),
+  },
+  {
+    key: 'play_10_units',
+    idSuffix: 'play_10_units',
+    sortOrder: 40,
+    statKey: 'unitsPlayed',
+    target: 10,
+    title: ({ factionNameEn }) => `${factionNameEn} Muster`,
+    description: ({ factionNameEn }) => `Play 10 units with ${factionNameEn}.`,
+    display: ({ factionNameEn, factionNamePl }) => ({
+      title: { en: `${factionNameEn} Muster`, pl: `Mobilizacja: ${factionNamePl}` },
+      description: { en: `Play 10 units with ${factionNameEn}.`, pl: `Zagraj 10 jednostek frakcją ${factionNamePl}.` },
+    }),
+  },
+  {
+    key: 'play_10_effects',
+    idSuffix: 'play_10_effects',
+    sortOrder: 50,
+    statKey: 'effectsPlayed',
+    target: 10,
+    title: ({ factionNameEn }) => `${factionNameEn} Tactics`,
+    description: ({ factionNameEn }) => `Play 10 effects with ${factionNameEn}.`,
+    display: ({ factionNameEn, factionNamePl }) => ({
+      title: { en: `${factionNameEn} Tactics`, pl: `Taktyka: ${factionNamePl}` },
+      description: { en: `Play 10 effects with ${factionNameEn}.`, pl: `Zagraj 10 efektów frakcją ${factionNamePl}.` },
+    }),
+  },
+]);
+
+function getFactionDisplayContext(factionKey) {
+  const factionId = getFactionByKey(factionKey)?.id ?? factionKey;
+  return {
+    factionKey,
+    factionId,
+    factionNameEn: getFactionPresentationName(factionId, 'en', factionKey),
+    factionNamePl: getFactionPresentationName(factionId, 'pl', factionKey),
+  };
+}
+
+function createFactionAchievementDefinition(factionKey, template, factionSortOrder) {
+  const displayContext = getFactionDisplayContext(factionKey);
+  return createThresholdDefinition({
+    id: `faction.${template.idSuffix}.${factionKey}`,
+    category: 'faction',
+    section: 'factions',
+    group: 'faction',
+    factionKey,
+    factionId: displayContext.factionId,
+    templateKey: template.key,
+    sortOrder: factionSortOrder * 100 + template.sortOrder,
+    factionSortOrder,
+    title: template.title(displayContext),
+    description: template.description(displayContext),
+    display: template.display(displayContext),
+    statPath: ['factions', factionKey, template.statKey],
+    target: template.target,
+  });
 }
 
 export function createDefaultAchievementState() {
@@ -166,16 +267,11 @@ export function getAchievementDefinitions() {
     createThresholdDefinition({ id: 'cards.play_first_effect', category: 'cards', title: 'Tactical Effect', description: 'Play your first effect card.', statPath: ['effectsPlayed'], target: 1 }),
   ];
 
-  for (const factionKey of getFactionKeys()) {
-    definitions.push(createThresholdDefinition({
-      id: `faction.win_first_battle.${factionKey}`,
-      category: 'faction',
-      title: `${factionKey} Victor`,
-      description: `Win your first battle with ${factionKey}.`,
-      statPath: ['factions', factionKey, 'battlesWon'],
-      target: 1,
-    }));
-  }
+  getFactionKeys().forEach((factionKey, factionIndex) => {
+    for (const template of FACTION_ACHIEVEMENT_TEMPLATES) {
+      definitions.push(createFactionAchievementDefinition(factionKey, template, factionIndex));
+    }
+  });
 
   return definitions;
 }
