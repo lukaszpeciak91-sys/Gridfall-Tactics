@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { getFactionKeys } from '../src/data/factions/index.js';
-import { createDefaultPlayerStats, incrementBattleStat } from '../src/systems/playerStats.js';
+import { createDefaultPlayerStats, incrementBattleStat, incrementCampaignCompletedStat, incrementCardPlayedStat } from '../src/systems/playerStats.js';
 import {
   ACHIEVEMENTS_STORAGE_KEY,
   ACHIEVEMENTS_VERSION,
+  FACTION_ACHIEVEMENT_TEMPLATES,
   createDefaultAchievementState,
   evaluateAchievements,
   getAchievementDefinitions,
@@ -135,17 +136,97 @@ test('evaluateAchievements handles partial and malformed Player Stats safely', (
   assert.equal(result.achievementState.version, ACHIEVEMENTS_VERSION);
 });
 
-test('faction achievement generation works for all runtime factions', () => {
+test('faction achievement generation creates every template for every runtime faction', () => {
+  const factionKeys = getFactionKeys();
   const definitions = getAchievementDefinitions();
   const factionDefinitions = definitions.filter((definition) => definition.category === 'faction');
-  assert.deepEqual(
-    factionDefinitions.map((definition) => definition.id),
-    getFactionKeys().map((factionKey) => `faction.win_first_battle.${factionKey}`),
-  );
 
-  for (const factionKey of getFactionKeys()) {
-    const stats = incrementBattleStat(createDefaultPlayerStats(), { mode: 'arena', result: 'won', playerFactionKey: factionKey });
-    const result = evaluateAchievements(stats, createDefaultAchievementState(), { now: 1 });
-    assert(result.newlyUnlocked.some((entry) => entry.id === `faction.win_first_battle.${factionKey}`));
+  assert.equal(factionDefinitions.length, factionKeys.length * FACTION_ACHIEVEMENT_TEMPLATES.length);
+
+  for (const [factionIndex, factionKey] of factionKeys.entries()) {
+    const definitionsForFaction = factionDefinitions.filter((definition) => definition.factionKey === factionKey);
+    assert.equal(definitionsForFaction.length, FACTION_ACHIEVEMENT_TEMPLATES.length);
+
+    for (const template of FACTION_ACHIEVEMENT_TEMPLATES) {
+      const definition = definitionsForFaction.find((item) => item.templateKey === template.key);
+      assert(definition, `${factionKey} should include ${template.key}`);
+      assert.equal(definition.id, `faction.${template.idSuffix}.${factionKey}`);
+      assert.equal(definition.factionKey, factionKey);
+      assert.equal(definition.section, 'factions');
+      assert.equal(definition.group, 'faction');
+      assert.equal(definition.sortOrder, factionIndex * 100 + template.sortOrder);
+      assert.equal(definition.factionSortOrder, factionIndex);
+      assert.equal(typeof definition.display.title.en, 'string');
+      assert.equal(typeof definition.display.title.pl, 'string');
+    }
   }
+});
+
+test('faction achievement progress reads faction battle win counters', () => {
+  const [factionKey] = getFactionKeys();
+  const stats = incrementBattleStat(createDefaultPlayerStats(), { mode: 'arena', result: 'won', playerFactionKey: factionKey });
+  const result = evaluateAchievements(stats, createDefaultAchievementState(), { now: 1 });
+
+  assert.deepEqual(result.progress[`faction.win_first_battle.${factionKey}`], {
+    current: 1,
+    target: 1,
+    completed: true,
+    unlocked: true,
+  });
+  assert.deepEqual(result.progress[`faction.win_10_battles.${factionKey}`], {
+    current: 1,
+    target: 10,
+    completed: false,
+    unlocked: false,
+  });
+  assert(result.newlyUnlocked.some((entry) => entry.id === `faction.win_first_battle.${factionKey}`));
+});
+
+test('faction achievement progress reads faction campaign win counters', () => {
+  const [factionKey] = getFactionKeys();
+  const stats = incrementCampaignCompletedStat(createDefaultPlayerStats(), { result: 'won', playerFactionKey: factionKey });
+  const result = evaluateAchievements(stats, createDefaultAchievementState(), { now: 1 });
+
+  assert.deepEqual(result.progress[`faction.win_campaign.${factionKey}`], {
+    current: 1,
+    target: 1,
+    completed: true,
+    unlocked: true,
+  });
+  assert(result.newlyUnlocked.some((entry) => entry.id === `faction.win_campaign.${factionKey}`));
+});
+
+test('faction achievement progress reads faction card play counters', () => {
+  const [factionKey] = getFactionKeys();
+  let stats = createDefaultPlayerStats();
+  for (let index = 0; index < 10; index += 1) {
+    stats = incrementCardPlayedStat(stats, { statKey: 'unitsPlayed', playerFactionKey: factionKey });
+    stats = incrementCardPlayedStat(stats, { statKey: 'effectsPlayed', playerFactionKey: factionKey });
+  }
+  const result = evaluateAchievements(stats, createDefaultAchievementState(), { now: 1 });
+
+  assert.deepEqual(result.progress[`faction.play_10_units.${factionKey}`], {
+    current: 10,
+    target: 10,
+    completed: true,
+    unlocked: true,
+  });
+  assert.deepEqual(result.progress[`faction.play_10_effects.${factionKey}`], {
+    current: 10,
+    target: 10,
+    completed: true,
+    unlocked: true,
+  });
+  assert(result.newlyUnlocked.some((entry) => entry.id === `faction.play_10_units.${factionKey}`));
+  assert(result.newlyUnlocked.some((entry) => entry.id === `faction.play_10_effects.${factionKey}`));
+});
+
+test('evaluateAchievements does not re-unlock already unlocked generated faction achievements', () => {
+  const [factionKey] = getFactionKeys();
+  const stats = incrementBattleStat(createDefaultPlayerStats(), { mode: 'arena', result: 'won', playerFactionKey: factionKey });
+  const first = evaluateAchievements(stats, createDefaultAchievementState(), { now: 1 });
+  const second = evaluateAchievements(stats, first.achievementState, { now: 2 });
+
+  assert.equal(second.newlyUnlocked.some((entry) => entry.id === `faction.win_first_battle.${factionKey}`), false);
+  assert.deepEqual(second.achievementState.unlocked[`faction.win_first_battle.${factionKey}`], { unlockedAt: 1 });
 });
