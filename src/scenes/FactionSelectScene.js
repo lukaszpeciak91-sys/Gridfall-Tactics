@@ -23,6 +23,9 @@ import { createTapVsDragInteraction } from '../ui/tapVsDragInteraction.js';
 
 const MIN_FACTION_LIST_TOP = 106;
 const HEADER_TO_FACTION_LIST_GAP = 24;
+const ARENA_HELPER_TO_HEADER_GAP = 14;
+const ARENA_HELPER_FONT_SIZE = 15;
+const ARENA_HELPER_MIN_FONT_SIZE = 13;
 const FACTION_CARD_GAP = 14;
 const CAMPAIGN_ACCORDION_PANEL_HEIGHT = 218;
 const CAMPAIGN_ACCORDION_TWEEN_MS = 180;
@@ -138,6 +141,8 @@ export default class FactionSelectScene extends Phaser.Scene {
     });
     this.uiElements.push(...header.items);
 
+    const arenaHelper = this.createArenaHelperText({ width, headerBottomY: header.bottomY });
+
     const buildMarker = createBuildMarker(this, { width, height });
     this.uiElements.push(buildMarker);
 
@@ -145,10 +150,36 @@ export default class FactionSelectScene extends Phaser.Scene {
     this.drawFactionCards(factionKeys, {
       width,
       height,
-      headerBottomY: header.bottomY,
+      headerBottomY: arenaHelper?.bottomY ?? header.bottomY,
     });
   }
 
+  createArenaHelperText({ width, headerBottomY }) {
+    if (this.mode === 'campaign') {
+      return null;
+    }
+
+    const helperText = translateActive('ui.factionSelect.arenaHelper', 'Choose a faction and test your deck against random enemies.');
+    let helperFontSize = ARENA_HELPER_FONT_SIZE;
+    const helper = this.add.text(width / 2, headerBottomY + ARENA_HELPER_TO_HEADER_GAP, helperText, {
+      fontFamily: PREMIUM_BROADCAST_FONT_STACK,
+      fontSize: `${ARENA_HELPER_FONT_SIZE}px`,
+      color: '#cbd5e1',
+      align: 'center',
+      stroke: '#020617',
+      strokeThickness: 3,
+      lineSpacing: 2,
+      wordWrap: { width: Math.max(220, width - 42), useAdvancedWrap: true },
+    }).setOrigin(0.5, 0).setDepth(5);
+
+    while (helper.height > 42 && helperFontSize > ARENA_HELPER_MIN_FONT_SIZE) {
+      helperFontSize -= 1;
+      helper.setFontSize(helperFontSize);
+    }
+
+    this.uiElements.push(helper);
+    return { text: helper, bottomY: helper.y + helper.height };
+  }
 
   drawFactionCards(factionKeys, { width, height, headerBottomY }) {
     const cardWidth = Math.min(width - 24, 382);

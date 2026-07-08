@@ -290,6 +290,7 @@
     },
     "factionSelect": {
       "title": "SELECT YOUR TEAM",
+      "arenaHelper": "Choose a faction and test your deck against random enemies.",
       "descriptions": {
         "Aggro": "Fast pressure.",
         "Tank": "Armor and sustain.",
