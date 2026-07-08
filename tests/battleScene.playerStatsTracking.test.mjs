@@ -13,7 +13,7 @@ function extractMethodBody(methodName, nextMethodName) {
 
 
 test('BattleScene imports and uses Player Stats public API at scheduleBattleResultModal hook point', () => {
-  assert.match(source, /import \{ incrementBattleStat, incrementCardPlayedStat, loadPlayerStats, savePlayerStats \} from '\.\.\/systems\/playerStats\.js';/);
+  assert.match(source, /import \{ incrementBattleStat, incrementCardPlayedStat, loadPlayerStats, markTutorialCompleted, savePlayerStats \} from '\.\.\/systems\/playerStats\.js';/);
   assert.match(source, /import \{ incrementCampaignCompletedStat \} from '\.\.\/systems\/playerStats\.js';/);
   const scheduleBody = extractMethodBody('scheduleBattleResultModal', 'disableResultPendingOverlayInteractions');
   assert.match(scheduleBody, /if \(!this\.gameState\?\.winner \|\| this\.battleResultModalShown \|\| this\.battleResultModalPending\) return;/);

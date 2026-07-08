@@ -221,6 +221,18 @@ export function savePlayerStats(stats) {
   return normalizedStats;
 }
 
+
+export function markTutorialCompleted(stats = {}) {
+  const nextStats = clonePlayerStats(stats);
+  if (nextStats.tutorialCompleted === true) {
+    return nextStats;
+  }
+  return {
+    ...nextStats,
+    tutorialCompleted: true,
+  };
+}
+
 export function incrementFactionStat(stats, factionKey, statKey, amount = 1) {
   if (!isKnownFactionKey(factionKey)) {
     throw new RangeError(`Invalid player stats faction: ${factionKey}`);
