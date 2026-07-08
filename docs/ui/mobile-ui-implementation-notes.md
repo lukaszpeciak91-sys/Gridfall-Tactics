@@ -29,6 +29,7 @@ Safe cleanup completed in this pass intentionally stayed small:
 - Card selection previews may rise from the hand, but they should not cover the player base, deck/menu controls, or bottom navigation row in normal portrait layout.
 - Result modal overlays intentionally block gameplay input after a winner is set.
 - Lifecycle rebuilds should redraw from the current `GameState` without changing card rules, turn rules, combat, or AI decisions.
+- Fullscreen, resize, DevTools opening, blur/resume, and viewport changes are lifecycle stress events. Rebuild from canonical state and do not trust `active === true` alone; display objects and references can remain logically present while stale, detached, hidden, offscreen, or invalid.
 
 ## Background/art safe zone
 

@@ -117,12 +117,15 @@ Tutorial result handling:
 
 Tutorial cards and decks must be separate from normal faction data.
 
+Safe rule: tutorial-only cards/decks must remain outside normal faction JSON and the main faction registry unless every normal consumer explicitly filters them. Keep tutorial data in a separate module/context so it cannot leak into Arena, Campaign, Collection, art preload, or Balance Lab.
+
 Do not:
 
 - add tutorial cards to existing faction JSON decks,
 - register a tutorial faction in the normal faction registry,
 - let tutorial cards enter Arena,
 - let tutorial cards enter Campaign,
+- let tutorial cards enter Collection or normal art preload by accident,
 - let tutorial cards enter Balance Lab.
 
 Preferred data model:
@@ -733,3 +736,47 @@ Tutorial V1 is successful if:
 - It ends with a standard victory/result panel.
 - It returns to Game Menu after completion.
 - Normal Arena/Campaign mulligan, decks, AI, results, and saves remain unchanged.
+
+
+---
+
+## 18. Stabilization notes / known pitfalls
+
+These notes capture the practical lessons from Tutorial V1 stabilization. They are future debugging guidance, not new gameplay rules.
+
+### Battle result lifecycle
+
+- Critical result modal creation must not depend on optional celebration, particles, or tweens.
+- Victory SFX only proves `showBattleResultModal()` started; it does not prove `battleResultModal` was assigned.
+- If a winner exists and result reveal is pending, fullscreen/resize/rebuild recovery must preserve that pending result even when no modal object exists yet.
+
+### Tutorial presentation recovery
+
+- Tutorial mechanics and tutorial presentation can desync: the controller may advance while banners, highlights, or focus objects disappear.
+- Recover banner/focus from the current tutorial step and current live layout; preserve result pending/result shown/winner guards.
+- After fullscreen, resize, DevTools opening, blur/resume, or viewport changes, forced recreate can be safer than trusting stale `active === true` display objects. Avoid duplicated handlers.
+- Tutorial focus must resolve only live display objects. Matching `cardId` is not enough; reject inactive, scene-less, parent-less, invisible, destroyed, or bounds-less card views. Clear/rebuild hand card views during cleanup/redraw.
+
+### Informational focus
+
+- Not every tutorial highlight is an actionable target. Keep gameplay input gates strict while allowing instructional highlights.
+- Final open-lane decision: the open-lane banner highlights the top-middle enemy-row slot, board slot index 1. The step is `tap_continue`, so the highlight is informational.
+
+### Effect-cast continuation
+
+- Gameplay-critical effect completion must not depend on visual sweep/tween completion.
+- Lifecycle interruption must not orphan effect application or tutorial advancement; use tokens/guards to prevent duplicate completion and clear resolving state safely.
+
+### Known non-blocking edge case
+
+Repeated aggressive fullscreen/blur/DevTools stress around the later redeploy step may leave action-window state stale, likely `playerActionUsed === true` while the tutorial controller has advanced to redeploy. This is not a V1 blocker if normal onboarding and fullscreen-at-start work. If revisited, inspect: `playerActionUsed`, `enemyActionUsed`, `gameState.firstActor`, `getCurrentActionableSide()`, `currentTutorialStepId`, `isFlowResolving`, and `isEffectCastResolving`.
+
+### Final polish state
+
+- Lost Fan / Zagubiony Kibic HP is 4 in tutorial-only data for optional flavor/inspect opportunity.
+- No required enemy inspect gate was added.
+- The open-lane highlight targets top-middle enemy-row slot / board slot index 1, keeps the existing highlight style/animation, and remains informational for `tap_continue`.
+
+### Runtime diagnostic helper
+
+If still present, `window.__gridfallTutorialSnapshot()` is for inspecting tutorial step, suppression flags, banner/focus state, focus target resolution, `cardViews` count, and lifecycle counters. Keep, dev-gate, or remove it according to project debug policy before release hardening.
