@@ -1,11 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFileSync } from 'node:fs';
 import { getFactionKeys } from '../src/data/factions/index.js';
 import { createDefaultPlayerStats, incrementBattleStat, incrementCampaignCompletedStat, incrementCardPlayedStat } from '../src/systems/playerStats.js';
 import {
   ACHIEVEMENTS_STORAGE_KEY,
   ACHIEVEMENTS_VERSION,
+  ACHIEVEMENT_CATEGORY_GROUPS,
+  ACHIEVEMENT_CATEGORY_LABELS,
   FACTION_ACHIEVEMENT_TEMPLATES,
+  createFactionAchievementDefinition,
   createDefaultAchievementState,
   evaluateAchievements,
   getAchievementDefinitions,
@@ -32,6 +36,63 @@ function withWindowStorage(storage, callback) {
     else globalThis.window = originalWindow;
   }
 }
+
+
+
+test('achievement definitions expose Polish and English localized display data', () => {
+  const definitions = getAchievementDefinitions();
+  const byId = Object.fromEntries(definitions.map((definition) => [definition.id, definition]));
+
+  assert.deepEqual(byId['general.win_first_battle'].display.title, {
+    en: 'The Crowd Liked That',
+    pl: 'Publiczności się podobało',
+  });
+  assert.deepEqual(byId['general.win_first_battle'].display.description, {
+    en: 'Win your first battle.',
+    pl: 'Wygraj pierwszą bitwę.',
+  });
+  assert.equal(byId['arena.win_first_battle'].display.title.en, 'Beginner’s Luck');
+  assert.equal(byId['arena.win_first_battle'].display.title.pl, 'Szczęście debiutanta');
+
+  for (const definition of definitions) {
+    assert.equal(typeof definition.display.title.en, 'string', `${definition.id} should expose an English title`);
+    assert.equal(typeof definition.display.title.pl, 'string', `${definition.id} should expose a Polish title`);
+    assert.equal(typeof definition.display.description.en, 'string', `${definition.id} should expose an English description`);
+    assert.equal(typeof definition.display.description.pl, 'string', `${definition.id} should expose a Polish description`);
+  }
+});
+
+test('achievement category label and UI grouping data exists for localized panel sections', () => {
+  assert.deepEqual(ACHIEVEMENT_CATEGORY_LABELS.general, { en: 'General', pl: 'Ogólne' });
+  assert.deepEqual(ACHIEVEMENT_CATEGORY_LABELS.arena, { en: 'Arena', pl: 'Arena' });
+  assert.deepEqual(ACHIEVEMENT_CATEGORY_LABELS.factions, { en: 'Factions', pl: 'Frakcje' });
+  assert.equal(ACHIEVEMENT_CATEGORY_GROUPS.general, 'general');
+  assert.equal(ACHIEVEMENT_CATEGORY_GROUPS.campaign, 'general');
+  assert.equal(ACHIEVEMENT_CATEGORY_GROUPS.cards, 'general');
+  assert.equal(ACHIEVEMENT_CATEGORY_GROUPS.arena, 'arena');
+  assert.equal(ACHIEVEMENT_CATEGORY_GROUPS.faction, 'factions');
+});
+
+test('existing achievement IDs remain available for compatibility', () => {
+  const ids = new Set(getAchievementDefinitions().map((definition) => definition.id));
+  for (const id of [
+    'general.complete_first_battle',
+    'general.win_first_battle',
+    'general.win_10_battles',
+    'general.lose_first_battle',
+    'arena.play_first_battle',
+    'arena.win_first_battle',
+    'arena.lose_first_battle',
+    'campaign.start_first_campaign',
+    'campaign.win_first_campaign',
+    'campaign.lose_first_campaign',
+    'cards.play_first_unit',
+    'cards.play_first_effect',
+  ]) {
+    assert(ids.has(id), `${id} should remain defined`);
+  }
+});
+
 
 test('createDefaultAchievementState creates a versioned empty unlock map', () => {
   assert.deepEqual(createDefaultAchievementState(), {
@@ -229,4 +290,34 @@ test('evaluateAchievements does not re-unlock already unlocked generated faction
 
   assert.equal(second.newlyUnlocked.some((entry) => entry.id === `faction.win_first_battle.${factionKey}`), false);
   assert.deepEqual(second.achievementState.unlocked[`faction.win_first_battle.${factionKey}`], { unlockedAt: 1 });
+});
+
+
+test('known faction achievements use custom localized copy', () => {
+  const definitions = getAchievementDefinitions();
+  const porcelain = definitions.find((definition) => definition.id === 'faction.win_first_battle.Aggro');
+  const goldenSun = definitions.find((definition) => definition.id === 'faction.play_10_effects.Tank');
+
+  assert.equal(porcelain.display.title.en, 'First Crack');
+  assert.equal(porcelain.display.title.pl, 'Pierwsza rysa');
+  assert.equal(goldenSun.display.title.en, 'Order from Above');
+  assert.equal(goldenSun.display.title.pl, 'Rozkaz z góry');
+});
+
+test('unknown faction achievement generation falls back to safe localized templates', () => {
+  const definition = createFactionAchievementDefinition('New Faction', FACTION_ACHIEVEMENT_TEMPLATES[0], 99);
+
+  assert.equal(definition.id, 'faction.win_first_battle.New Faction');
+  assert.equal(definition.display.title.en, 'First Win');
+  assert.equal(definition.display.description.en, 'Win your first battle with New Faction.');
+  assert.equal(definition.display.title.pl, 'Pierwsze zwycięstwo');
+  assert.equal(definition.display.description.pl, 'Wygraj pierwszą bitwę frakcją New Faction.');
+});
+
+test('achievement system module does not import UI or runtime scenes', () => {
+  const source = readFileSync(new URL('../src/systems/achievements.js', import.meta.url), 'utf8');
+
+  assert.doesNotMatch(source, /scenes\//);
+  assert.doesNotMatch(source, /BattleScene/);
+  assert.doesNotMatch(source, /Phaser/);
 });
