@@ -290,6 +290,7 @@
     },
     "factionSelect": {
       "title": "WYBIERZ DRUŻYNĘ",
+      "arenaHelper": "Wybierz frakcję i testuj talię przeciw losowym wrogom.",
       "descriptions": {
         "Aggro": "Szybka presja.",
         "Tank": "Pancerz i wytrzymałość.",
