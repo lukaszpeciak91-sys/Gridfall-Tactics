@@ -45,13 +45,31 @@ test('unlocked achievements sort above locked achievements while preserving defi
   assert.match(scene, /Number\(right\.unlocked\) - Number\(left\.unlocked\) \|\| left\.index - right\.index/);
 });
 
-test('locked achievements still expose localized title, description, and text-only progress counters', () => {
+test('achievement cards expose localized title, description, and text-only progress badges', () => {
   const scene = source();
+  assert.match(scene, /drawAchievementCard\(content, definition/);
   assert.match(scene, /definition\.display\?\.title\?\.\[locale\]/);
   assert.match(scene, /definition\.display\?\.description\?\.\[locale\]/);
   assert.match(scene, /`\$\{progress\.current\} \/ \$\{progress\.target\}`/);
-  assert.match(scene, /unlocked \? '#f8fafc' : '#cbd5e1'/);
-  assert.match(scene, /unlocked \? '#dbeafe' : '#94a3b8'/);
+  assert.match(scene, /progressBadgeWidth = 70/);
+  assert.match(scene, /unlocked \? '#fff7ed' : '#d1d5db'/);
+  assert.match(scene, /unlocked \? '#fde68a' : '#9ca3af'/);
+});
+
+test('top-level achievement section labels are centered without visible plus or minus prefixes', () => {
+  const scene = source();
+  assert.match(scene, /this\.add\.text\(x \+ width \/ 2, y \+ height \/ 2, section\.title/);
+  assert.match(scene, /align: 'center'/);
+  assert.match(scene, /\.setOrigin\(0\.5, 0\.5\)/);
+  assert.doesNotMatch(scene, /`\$\{expanded \? '−' : '\+'\} \$\{section\.title\}`/);
+});
+
+test('unlocked achievement badge uses localized fallbacks without showing unlock dates', () => {
+  const scene = source();
+  assert.match(scene, /translateActive\('ui\.achievements\.unlocked', locale === 'pl' \? 'ODBLOKOWANE' : 'UNLOCKED'\)/);
+  assert.match(scene, /unlockedBadgeWidth/);
+  assert.match(scene, /0xfacc15/);
+  assert.doesNotMatch(scene, /unlockedAt|unlock date/i);
 });
 
 test('progress can be computed directly from definitions and default player stats without unlocking', () => {

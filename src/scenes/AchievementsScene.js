@@ -200,7 +200,7 @@ export default class AchievementsScene extends Phaser.Scene {
     bg.on('pointerdown', (pointer) => this.onHeaderPointerDown({ type: 'section', key: section.key }, pointer));
     bg.on('pointerup', (pointer) => this.onHeaderPointerUp({ type: 'section', key: section.key }, pointer));
     content.add(bg); this.trackAchievementContentElement(bg);
-    const label = this.add.text(x + 18, y + height / 2, `${expanded ? '−' : '+'} ${section.title}`, { fontFamily: 'Arial, sans-serif', fontSize: '22px', color: '#e5e7eb', fontStyle: 'bold' }).setOrigin(0, 0.5).setInteractive({ useHandCursor: true });
+    const label = this.add.text(x + width / 2, y + height / 2, section.title, { fontFamily: 'Arial, sans-serif', fontSize: '22px', color: '#e5e7eb', fontStyle: 'bold', align: 'center' }).setOrigin(0.5, 0.5).setInteractive({ useHandCursor: true });
     label.on('pointerdown', (pointer) => this.onHeaderPointerDown({ type: 'section', key: section.key }, pointer));
     label.on('pointerup', (pointer) => this.onHeaderPointerUp({ type: 'section', key: section.key }, pointer));
     content.add(label); this.trackAchievementContentElement(label);
@@ -245,30 +245,58 @@ export default class AchievementsScene extends Phaser.Scene {
   drawAchievementRows(content, achievements, { x, y, width }) {
     let cursorY = y;
     for (const definition of achievements) {
-      const rowHeight = 92;
-      const unlocked = this.isAchievementUnlocked(definition.id);
-      const progress = this.getAchievementProgress(definition);
-      const accent = unlocked ? 0x7dd3fc : 0x64748b;
-      const bg = this.add.graphics();
-      bg.fillStyle(0x0f172a, unlocked ? 0.82 : 0.62); bg.fillRoundedRect(x, cursorY, width, rowHeight, 12);
-      bg.lineStyle(unlocked ? 1.5 : 1, accent, unlocked ? 0.7 : 0.42); bg.strokeRoundedRect(x, cursorY, width, rowHeight, 12);
-      content.add(bg); this.trackAchievementContentElement(bg);
-      const locale = getActiveLocale();
-      const title = definition.display?.title?.[locale] ?? definition.title ?? definition.id;
-      const description = definition.display?.description?.[locale] ?? definition.description ?? '';
-      const titleText = this.add.text(x + 14, cursorY + 13, title, { fontFamily: 'Arial, sans-serif', fontSize: '15px', color: unlocked ? '#f8fafc' : '#cbd5e1', fontStyle: 'bold', wordWrap: { width: width - 28 } });
-      const descriptionText = this.add.text(x + 14, cursorY + 35, description, { fontFamily: 'Arial, sans-serif', fontSize: '12px', color: unlocked ? '#dbeafe' : '#94a3b8', wordWrap: { width: width - 28 } });
-      const progressText = this.add.text(x + 14, cursorY + rowHeight - 18, `${progress.current} / ${progress.target}`, { fontFamily: 'Arial, sans-serif', fontSize: '12px', color: unlocked ? '#bae6fd' : '#94a3b8', fontStyle: 'bold' });
-      content.add([titleText, descriptionText, progressText]);
-      this.trackAchievementContentElement(titleText); this.trackAchievementContentElement(descriptionText); this.trackAchievementContentElement(progressText);
-      if (unlocked) {
-        const unlockedLabel = translateActive('ui.achievements.unlocked', locale === 'pl' ? 'ODBLOKOWANE' : 'UNLOCKED');
-        const label = this.add.text(x + width - 14, cursorY + rowHeight - 18, unlockedLabel, { fontFamily: 'Arial, sans-serif', fontSize: '11px', color: '#fef3c7', fontStyle: 'bold' }).setOrigin(1, 0);
-        content.add(label); this.trackAchievementContentElement(label);
-      }
-      cursorY += rowHeight + 8;
+      cursorY = this.drawAchievementCard(content, definition, { x, y: cursorY, width }) + 12;
     }
     return cursorY;
+  }
+
+  drawAchievementCard(content, definition, { x, y, width }) {
+    const cardHeight = 108;
+    const unlocked = this.isAchievementUnlocked(definition.id);
+    const progress = this.getAchievementProgress(definition);
+    const locale = getActiveLocale();
+    const title = definition.display?.title?.[locale] ?? definition.title ?? definition.id;
+    const description = definition.display?.description?.[locale] ?? definition.description ?? '';
+    const accent = unlocked ? 0xfacc15 : 0x64748b;
+    const fillAlpha = unlocked ? 0.9 : 0.66;
+    const textLeft = x + 18;
+    const textRightPadding = 18;
+    const progressBadgeWidth = 70;
+    const progressBadgeHeight = 22;
+    const unlockedBadgeWidth = locale === 'pl' ? 108 : 92;
+    const unlockedBadgeHeight = 22;
+    const progressBadgeX = x + width - textRightPadding - progressBadgeWidth;
+    const progressBadgeY = y + cardHeight - 31;
+    const textWrapWidth = Math.max(140, width - 36);
+
+    const bg = this.add.graphics();
+    bg.fillStyle(0x0f172a, fillAlpha); bg.fillRoundedRect(x, y, width, cardHeight, 14);
+    bg.fillStyle(unlocked ? 0x78350f : 0x111827, unlocked ? 0.2 : 0.16); bg.fillRoundedRect(x + 2, y + 2, width - 4, cardHeight - 4, 12);
+    bg.lineStyle(unlocked ? 1.6 : 1.1, accent, unlocked ? 0.76 : 0.38); bg.strokeRoundedRect(x, y, width, cardHeight, 14);
+    if (unlocked) {
+      bg.fillStyle(0xfacc15, 0.88); bg.fillRoundedRect(x + 8, y + 6, width - 16, 3, 2);
+    }
+    if (unlocked) {
+      bg.fillStyle(0x451a03, 0.82); bg.fillRoundedRect(textLeft, progressBadgeY, unlockedBadgeWidth, unlockedBadgeHeight, 8);
+      bg.lineStyle(1, 0xfacc15, 0.58); bg.strokeRoundedRect(textLeft, progressBadgeY, unlockedBadgeWidth, unlockedBadgeHeight, 8);
+    }
+    bg.fillStyle(unlocked ? 0x451a03 : 0x020817, unlocked ? 0.9 : 0.58); bg.fillRoundedRect(progressBadgeX, progressBadgeY, progressBadgeWidth, progressBadgeHeight, 8);
+    bg.lineStyle(1, accent, unlocked ? 0.68 : 0.34); bg.strokeRoundedRect(progressBadgeX, progressBadgeY, progressBadgeWidth, progressBadgeHeight, 8);
+    content.add(bg); this.trackAchievementContentElement(bg);
+
+    const titleText = this.add.text(textLeft, y + 18, title, { fontFamily: 'Arial, sans-serif', fontSize: '17px', color: unlocked ? '#fff7ed' : '#d1d5db', fontStyle: 'bold', wordWrap: { width: textWrapWidth } });
+    const descriptionText = this.add.text(textLeft, y + 43, description, { fontFamily: 'Arial, sans-serif', fontSize: '13px', color: unlocked ? '#fde68a' : '#9ca3af', wordWrap: { width: textWrapWidth } });
+    const progressText = this.add.text(progressBadgeX + progressBadgeWidth / 2, progressBadgeY + progressBadgeHeight / 2, `${progress.current} / ${progress.target}`, { fontFamily: 'Arial, sans-serif', fontSize: '12px', color: unlocked ? '#fef3c7' : '#cbd5e1', fontStyle: 'bold', align: 'center' }).setOrigin(0.5, 0.5);
+    content.add([titleText, descriptionText, progressText]);
+    this.trackAchievementContentElement(titleText); this.trackAchievementContentElement(descriptionText); this.trackAchievementContentElement(progressText);
+
+    if (unlocked) {
+      const unlockedLabel = translateActive('ui.achievements.unlocked', locale === 'pl' ? 'ODBLOKOWANE' : 'UNLOCKED');
+      const label = this.add.text(textLeft + unlockedBadgeWidth / 2, progressBadgeY + unlockedBadgeHeight / 2, unlockedLabel, { fontFamily: 'Arial, sans-serif', fontSize: '11px', color: '#fef3c7', fontStyle: 'bold', align: 'center' }).setOrigin(0.5, 0.5);
+      content.add(label); this.trackAchievementContentElement(label);
+    }
+
+    return y + cardHeight;
   }
 
   getAchievementProgress(definition) {
