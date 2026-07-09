@@ -57,6 +57,20 @@ test('achievement cards expose localized title, description, and text-only progr
   assert.match(scene, /descriptionColor: unlocked \? '#e2e8f0' : '#b8c2d0'/);
 });
 
+
+test('achievement cards render reusable difficulty stars with reserved right-aligned title-row space', () => {
+  const scene = source();
+  assert.match(scene, /getAchievementDifficultyStars\(definition\)/);
+  assert.match(scene, /return '★'\.repeat\(difficulty\)/);
+  assert.match(scene, /drawAchievementDifficultyStars\(content, definition, layout, theme\)/);
+  assert.match(scene, /fixedWidth: layout\.starAreaWidth/);
+  assert.match(scene, /\.setOrigin\(1, 0\)/);
+  assert.match(scene, /const starAreaWidth = 62/);
+  assert.match(scene, /titleWidth: Math\.max\(96, titleRight - textLeft - 10\)/);
+  assert.match(scene, /starAreaX: titleRight/);
+  assert.match(scene, /difficultyStarColor: unlocked \? '#facc15' : '#94a3b8'/);
+});
+
 test('achievement progress badges clamp completed progress for display only', () => {
   const scene = source();
   assert.match(scene, /const current = Number\.isFinite\(progress\.current\) \? progress\.current : 0/);

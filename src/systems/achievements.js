@@ -62,11 +62,16 @@ export const ACHIEVEMENT_CATEGORY_GROUPS = Object.freeze({
   faction: 'factions',
 });
 
-function createThresholdDefinition({ id, category, title, description, display, statPath, target, getCurrent, ...metadata }) {
+export function normalizeAchievementDifficulty(difficulty) {
+  return Number.isInteger(difficulty) && difficulty >= 1 && difficulty <= 3 ? difficulty : 1;
+}
+
+function createThresholdDefinition({ id, category, title, description, display, statPath, target, getCurrent, difficulty = 1, ...metadata }) {
   const localizedDisplay = display ?? createLocalizedDisplay({ en: title, pl: title }, { en: description, pl: description });
   return {
     id,
     category,
+    difficulty: normalizeAchievementDifficulty(difficulty),
     title: localizedDisplay.title.en,
     description: localizedDisplay.description.en,
     display: localizedDisplay,
@@ -152,11 +157,11 @@ function createFallbackFactionDisplay(templateKey, factionNameEn, factionNamePl)
 }
 
 export const FACTION_ACHIEVEMENT_TEMPLATES = Object.freeze([
-  { key: 'win_first_battle', idSuffix: 'win_first_battle', sortOrder: 10, statKey: 'battlesWon', target: 1 },
-  { key: 'win_10_battles', idSuffix: 'win_10_battles', sortOrder: 20, statKey: 'battlesWon', target: 10 },
-  { key: 'win_campaign', idSuffix: 'win_campaign', sortOrder: 30, statKey: 'campaignsWon', target: 1 },
-  { key: 'play_10_units', idSuffix: 'play_10_units', sortOrder: 40, statKey: 'unitsPlayed', target: 10 },
-  { key: 'play_10_effects', idSuffix: 'play_10_effects', sortOrder: 50, statKey: 'effectsPlayed', target: 10 },
+  { key: 'win_first_battle', idSuffix: 'win_first_battle', sortOrder: 10, statKey: 'battlesWon', target: 1, difficulty: 1 },
+  { key: 'win_10_battles', idSuffix: 'win_10_battles', sortOrder: 20, statKey: 'battlesWon', target: 10, difficulty: 2 },
+  { key: 'win_campaign', idSuffix: 'win_campaign', sortOrder: 30, statKey: 'campaignsWon', target: 1, difficulty: 3 },
+  { key: 'play_10_units', idSuffix: 'play_10_units', sortOrder: 40, statKey: 'unitsPlayed', target: 10, difficulty: 1 },
+  { key: 'play_10_effects', idSuffix: 'play_10_effects', sortOrder: 50, statKey: 'effectsPlayed', target: 10, difficulty: 1 },
 ]);
 
 function getFactionDisplayContext(factionKey) {
@@ -186,6 +191,7 @@ export function createFactionAchievementDefinition(factionKey, template, faction
     display,
     statPath: ['factions', factionKey, template.statKey],
     target: template.target,
+    difficulty: template.difficulty,
   });
 }
 
@@ -269,48 +275,48 @@ export function getAchievementDefinitions() {
       category: 'general',
       display: localized('Still Alive!', 'Complete the tutorial.', 'A jednak przeżył!', 'Ukończ samouczek.'),
       getCurrent: (stats) => (stats?.tutorialCompleted === true ? 1 : 0),
-      target: 1,
+      difficulty: 1, target: 1,
     }),
     createThresholdDefinition({
       id: 'general.complete_first_battle',
       category: 'general',
       display: localized('On Air Debut', 'Play your first battle.', 'Debiut na antenie', 'Rozegraj pierwszą bitwę.'),
       statPath: ['battlesPlayed'],
-      target: 1,
+      difficulty: 1, target: 1,
     }),
     createThresholdDefinition({
       id: 'general.win_first_battle',
       category: 'general',
       display: localized('The Crowd Liked That', 'Win your first battle.', 'Publiczności się podobało', 'Wygraj pierwszą bitwę.'),
       statPath: ['battlesWon'],
-      target: 1,
+      difficulty: 1, target: 1,
     }),
     createThresholdDefinition({
       id: 'general.lose_first_battle',
       category: 'general',
       display: localized('At Least You Tried', 'Lose your first battle.', 'Przynajmniej próbował', 'Przegraj pierwszą bitwę.'),
       statPath: ['battlesLost'],
-      target: 1,
+      difficulty: 1, target: 1,
     }),
-    createThresholdDefinition({ id: 'general.win_5_battles', category: 'general', display: localized('Old Hand', 'Win 5 battles.', 'Stary wyga', 'Wygraj 5 bitew.'), statPath: ['battlesWon'], target: 5 }),
-    createThresholdDefinition({ id: 'general.win_10_battles', category: 'general', display: localized('Crowd Favorite', 'Win 10 battles.', 'Ulubieniec publiczności', 'Wygraj 10 bitew.'), statPath: ['battlesWon'], target: 10 }),
-    createThresholdDefinition({ id: 'campaign.win_first_campaign', category: 'campaign', display: localized('Trophy Claimer', 'Win a campaign.', 'Zdobywca Pucharu', 'Wygraj kampanię.'), statPath: ['campaignsWon'], target: 1 }),
-    createThresholdDefinition({ id: 'campaign.win_campaign_every_faction', category: 'campaign', display: localized('Dominator', 'Win a campaign with every faction.', 'Dominator', 'Wygraj kampanię każdą frakcją.'), getCurrent: getEveryFactionCampaignWinCount, target: factionCount }),
-    createThresholdDefinition({ id: 'campaign.lose_first_campaign', category: 'campaign', display: localized('Next, Please!', 'Lose a campaign.', 'Następny, proszę!', 'Przegraj kampanię.'), statPath: ['campaignsLost'], target: 1 }),
-    createThresholdDefinition({ id: 'cards.play_first_unit', category: 'cards', display: localized('First Unit', 'Play your first unit.', 'Pierwsza jednostka', 'Zagraj pierwszą jednostkę.'), statPath: ['unitsPlayed'], target: 1 }),
-    createThresholdDefinition({ id: 'cards.play_10_units', category: 'cards', display: localized('Cannon Fodder', 'Play 10 units.', 'Mięso armatnie', 'Zagraj 10 jednostek.'), statPath: ['unitsPlayed'], target: 10 }),
-    createThresholdDefinition({ id: 'cards.play_25_units', category: 'cards', display: localized('Full Cast', 'Play 25 units.', 'Pełna obsada', 'Zagraj 25 jednostek.'), statPath: ['unitsPlayed'], target: 25 }),
-    createThresholdDefinition({ id: 'cards.play_first_effect', category: 'cards', display: localized('First Effect', 'Play your first effect.', 'Pierwszy efekt', 'Zagraj pierwszy efekt.'), statPath: ['effectsPlayed'], target: 1 }),
-    createThresholdDefinition({ id: 'cards.play_10_effects', category: 'cards', display: localized('Dirty Tricks', 'Play 10 effects.', 'Brudne sztuczki', 'Zagraj 10 efektów.'), statPath: ['effectsPlayed'], target: 10 }),
-    createThresholdDefinition({ id: 'cards.play_25_effects', category: 'cards', display: localized('Anything for Ratings!', 'Play 25 effects.', 'Wszystko dla oglądalności!', 'Zagraj 25 efektów.'), statPath: ['effectsPlayed'], target: 25 }),
-    createThresholdDefinition({ id: 'arena.win_first_battle', category: 'arena', display: localized('Beginner’s Luck', 'Win your first Arena battle.', 'Szczęście debiutanta', 'Wygraj pierwszą walkę w Arenie.'), statPath: ['arenaBattlesWon'], target: 1 }),
-    createThresholdDefinition({ id: 'arena.play_first_battle', category: 'arena', display: localized('Arena Debut', 'Play your first Arena battle.', 'Debiut w Arenie', 'Rozegraj pierwszą walkę w Arenie.'), statPath: ['arenaBattlesPlayed'], target: 1 }),
-    createThresholdDefinition({ id: 'arena.play_5_battles', category: 'arena', display: localized('One More Spin', 'Play 5 Arena battles.', 'Jeszcze jeden obrót', 'Rozegraj 5 walk w Arenie.'), statPath: ['arenaBattlesPlayed'], target: 5 }),
-    createThresholdDefinition({ id: 'arena.win_3_battles', category: 'arena', display: localized('Hot Streak', 'Win 3 Arena battles.', 'Dobra passa', 'Wygraj 3 walki w Arenie.'), statPath: ['arenaBattlesWon'], target: 3 }),
-    createThresholdDefinition({ id: 'arena.win_9_battles', category: 'arena', display: localized('Regular Customer', 'Win 9 Arena battles.', 'Stały klient', 'Wygraj 9 walk w Arenie.'), statPath: ['arenaBattlesWon'], target: 9 }),
-    createThresholdDefinition({ id: 'arena.win_every_faction', category: 'arena', display: localized('All In', 'Win an Arena battle with every faction.', 'All in', 'Wygraj walkę w Arenie każdą frakcją.'), getCurrent: getEveryFactionArenaWinCount, target: factionCount }),
-    createThresholdDefinition({ id: 'arena.lose_first_battle', category: 'arena', display: localized('Arena Setback', 'Lose your first Arena battle.', 'Porażka w Arenie', 'Przegraj pierwszą walkę w Arenie.'), statPath: ['arenaBattlesLost'], target: 1 }),
-    createThresholdDefinition({ id: 'campaign.start_first_campaign', category: 'campaign', display: localized('Campaign Begins', 'Start your first campaign.', 'Początek kampanii', 'Rozpocznij pierwszą kampanię.'), statPath: ['campaignsStarted'], target: 1 }),
+    createThresholdDefinition({ id: 'general.win_5_battles', category: 'general', display: localized('Old Hand', 'Win 5 battles.', 'Stary wyga', 'Wygraj 5 bitew.'), statPath: ['battlesWon'], difficulty: 2, target: 5 }),
+    createThresholdDefinition({ id: 'general.win_10_battles', category: 'general', display: localized('Crowd Favorite', 'Win 10 battles.', 'Ulubieniec publiczności', 'Wygraj 10 bitew.'), statPath: ['battlesWon'], difficulty: 2, target: 10 }),
+    createThresholdDefinition({ id: 'campaign.win_first_campaign', category: 'campaign', display: localized('Trophy Claimer', 'Win a campaign.', 'Zdobywca Pucharu', 'Wygraj kampanię.'), statPath: ['campaignsWon'], difficulty: 3, target: 1 }),
+    createThresholdDefinition({ id: 'campaign.win_campaign_every_faction', category: 'campaign', display: localized('Dominator', 'Win a campaign with every faction.', 'Dominator', 'Wygraj kampanię każdą frakcją.'), getCurrent: getEveryFactionCampaignWinCount, difficulty: 3, target: factionCount }),
+    createThresholdDefinition({ id: 'campaign.lose_first_campaign', category: 'campaign', display: localized('Next, Please!', 'Lose a campaign.', 'Następny, proszę!', 'Przegraj kampanię.'), statPath: ['campaignsLost'], difficulty: 1, target: 1 }),
+    createThresholdDefinition({ id: 'cards.play_first_unit', category: 'cards', display: localized('First Unit', 'Play your first unit.', 'Pierwsza jednostka', 'Zagraj pierwszą jednostkę.'), statPath: ['unitsPlayed'], difficulty: 1, target: 1 }),
+    createThresholdDefinition({ id: 'cards.play_10_units', category: 'cards', display: localized('Cannon Fodder', 'Play 10 units.', 'Mięso armatnie', 'Zagraj 10 jednostek.'), statPath: ['unitsPlayed'], difficulty: 1, target: 10 }),
+    createThresholdDefinition({ id: 'cards.play_25_units', category: 'cards', display: localized('Full Cast', 'Play 25 units.', 'Pełna obsada', 'Zagraj 25 jednostek.'), statPath: ['unitsPlayed'], difficulty: 2, target: 25 }),
+    createThresholdDefinition({ id: 'cards.play_first_effect', category: 'cards', display: localized('First Effect', 'Play your first effect.', 'Pierwszy efekt', 'Zagraj pierwszy efekt.'), statPath: ['effectsPlayed'], difficulty: 1, target: 1 }),
+    createThresholdDefinition({ id: 'cards.play_10_effects', category: 'cards', display: localized('Dirty Tricks', 'Play 10 effects.', 'Brudne sztuczki', 'Zagraj 10 efektów.'), statPath: ['effectsPlayed'], difficulty: 1, target: 10 }),
+    createThresholdDefinition({ id: 'cards.play_25_effects', category: 'cards', display: localized('Anything for Ratings!', 'Play 25 effects.', 'Wszystko dla oglądalności!', 'Zagraj 25 efektów.'), statPath: ['effectsPlayed'], difficulty: 2, target: 25 }),
+    createThresholdDefinition({ id: 'arena.win_first_battle', category: 'arena', display: localized('Beginner’s Luck', 'Win your first Arena battle.', 'Szczęście debiutanta', 'Wygraj pierwszą walkę w Arenie.'), statPath: ['arenaBattlesWon'], difficulty: 1, target: 1 }),
+    createThresholdDefinition({ id: 'arena.play_first_battle', category: 'arena', display: localized('Arena Debut', 'Play your first Arena battle.', 'Debiut w Arenie', 'Rozegraj pierwszą walkę w Arenie.'), statPath: ['arenaBattlesPlayed'], difficulty: 1, target: 1 }),
+    createThresholdDefinition({ id: 'arena.play_5_battles', category: 'arena', display: localized('One More Spin', 'Play 5 Arena battles.', 'Jeszcze jeden obrót', 'Rozegraj 5 walk w Arenie.'), statPath: ['arenaBattlesPlayed'], difficulty: 1, target: 5 }),
+    createThresholdDefinition({ id: 'arena.win_3_battles', category: 'arena', display: localized('Hot Streak', 'Win 3 Arena battles.', 'Dobra passa', 'Wygraj 3 walki w Arenie.'), statPath: ['arenaBattlesWon'], difficulty: 2, target: 3 }),
+    createThresholdDefinition({ id: 'arena.win_9_battles', category: 'arena', display: localized('Regular Customer', 'Win 9 Arena battles.', 'Stały klient', 'Wygraj 9 walk w Arenie.'), statPath: ['arenaBattlesWon'], difficulty: 3, target: 9 }),
+    createThresholdDefinition({ id: 'arena.win_every_faction', category: 'arena', display: localized('All In', 'Win an Arena battle with every faction.', 'All in', 'Wygraj walkę w Arenie każdą frakcją.'), getCurrent: getEveryFactionArenaWinCount, difficulty: 3, target: factionCount }),
+    createThresholdDefinition({ id: 'arena.lose_first_battle', category: 'arena', display: localized('Arena Setback', 'Lose your first Arena battle.', 'Porażka w Arenie', 'Przegraj pierwszą walkę w Arenie.'), statPath: ['arenaBattlesLost'], difficulty: 1, target: 1 }),
+    createThresholdDefinition({ id: 'campaign.start_first_campaign', category: 'campaign', display: localized('Campaign Begins', 'Start your first campaign.', 'Początek kampanii', 'Rozpocznij pierwszą kampanię.'), statPath: ['campaignsStarted'], difficulty: 1, target: 1 }),
   ];
 
   getFactionKeys().forEach((factionKey, factionIndex) => {
