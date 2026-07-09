@@ -16,6 +16,7 @@ import {
   loadAchievementState,
   normalizeAchievementState,
   saveAchievementState,
+  normalizeAchievementDifficulty,
 } from '../src/systems/achievements.js';
 
 function createMemoryStorage(initialValues = {}) {
@@ -60,6 +61,28 @@ test('achievement definitions expose Polish and English localized display data',
     assert.equal(typeof definition.display.description.en, 'string', `${definition.id} should expose an English description`);
     assert.equal(typeof definition.display.description.pl, 'string', `${definition.id} should expose a Polish description`);
   }
+});
+
+
+test('achievement definitions expose difficulty metadata and normalize missing or invalid difficulty to one star', () => {
+  const definitions = getAchievementDefinitions();
+  const byId = Object.fromEntries(definitions.map((definition) => [definition.id, definition]));
+
+  assert.equal(byId['general.complete_tutorial'].difficulty, 1);
+  assert.equal(byId['general.win_5_battles'].difficulty, 2);
+  assert.equal(byId['campaign.win_first_campaign'].difficulty, 3);
+  assert.equal(byId['arena.win_9_battles'].difficulty, 3);
+  assert.equal(byId['arena.win_every_faction'].difficulty, 3);
+
+  for (const definition of definitions) {
+    assert.ok([1, 2, 3].includes(definition.difficulty), `${definition.id} should expose a 1-3 difficulty`);
+  }
+
+  assert.equal(normalizeAchievementDifficulty(undefined), 1);
+  assert.equal(normalizeAchievementDifficulty(0), 1);
+  assert.equal(normalizeAchievementDifficulty(4), 1);
+  assert.equal(normalizeAchievementDifficulty(2.5), 1);
+  assert.equal(normalizeAchievementDifficulty(2), 2);
 });
 
 test('achievement category label and UI grouping data exists for localized panel sections', () => {

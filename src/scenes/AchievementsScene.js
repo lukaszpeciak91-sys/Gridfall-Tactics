@@ -256,6 +256,7 @@ export default class AchievementsScene extends Phaser.Scene {
     const rightPadding = 12;
     const badgeWidth = 82;
     const badgeHeight = 26;
+    const starAreaWidth = 62;
     const badgeX = x + width - rightPadding - badgeWidth;
     const titleTop = y + 13;
     const titleHeight = 30;
@@ -263,6 +264,7 @@ export default class AchievementsScene extends Phaser.Scene {
     const descriptionTop = y + 56;
     const textLeft = x + paddingX;
     const textRight = badgeX - 14;
+    const titleRight = x + width - rightPadding - starAreaWidth;
 
     return {
       cardHeight,
@@ -270,7 +272,10 @@ export default class AchievementsScene extends Phaser.Scene {
       textLeft,
       titleTop,
       titleHeight,
-      titleWidth: Math.max(132, width - paddingX * 2),
+      titleWidth: Math.max(96, titleRight - textLeft - 10),
+      starAreaX: titleRight,
+      starAreaY: titleTop + 1,
+      starAreaWidth,
       separatorY,
       separatorX: textLeft,
       separatorWidth: Math.max(80, width - paddingX * 2),
@@ -304,11 +309,31 @@ export default class AchievementsScene extends Phaser.Scene {
       titleColor: unlocked ? '#fff7d6' : titleTint,
       descriptionColor: unlocked ? '#e2e8f0' : '#b8c2d0',
       progressTextColor: unlocked ? '#fef3c7' : '#dbeafe',
+      difficultyStarColor: unlocked ? '#facc15' : '#94a3b8',
       badgeFill: unlocked ? 0x451a03 : 0x020817,
       badgeAlpha: unlocked ? 0.94 : 0.74,
       topStripAlpha: unlocked ? 0.82 : 0.18,
       glowAlpha: unlocked ? 0.22 : 0.08,
     };
+  }
+
+
+  getAchievementDifficultyStars(definition) {
+    const difficulty = Number.isInteger(definition?.difficulty) && definition.difficulty >= 1 && definition.difficulty <= 3 ? definition.difficulty : 1;
+    return '★'.repeat(difficulty);
+  }
+
+  drawAchievementDifficultyStars(content, definition, layout, theme) {
+    const starsText = this.add.text(layout.starAreaX + layout.starAreaWidth, layout.starAreaY, this.getAchievementDifficultyStars(definition), {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: '15px',
+      color: theme.difficultyStarColor,
+      fontStyle: 'bold',
+      align: 'right',
+      fixedWidth: layout.starAreaWidth,
+    }).setOrigin(1, 0);
+    content.add(starsText); this.trackAchievementContentElement(starsText);
+    return starsText;
   }
 
   drawAchievementCard(content, definition, { x, y, width }) {
@@ -343,6 +368,8 @@ export default class AchievementsScene extends Phaser.Scene {
       wordWrap: { width: layout.titleWidth },
       maxLines: 2,
     });
+    this.drawAchievementDifficultyStars(content, definition, layout, theme);
+
     const descriptionText = this.add.text(layout.textLeft, layout.descriptionTop, description, {
       fontFamily: 'Arial, sans-serif',
       fontSize: '13px',
