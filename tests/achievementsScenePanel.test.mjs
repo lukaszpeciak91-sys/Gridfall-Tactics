@@ -51,9 +51,10 @@ test('achievement cards expose localized title, description, and text-only progr
   assert.match(scene, /definition\.display\?\.title\?\.\[locale\]/);
   assert.match(scene, /definition\.display\?\.description\?\.\[locale\]/);
   assert.match(scene, /`\$\{progress\.current\} \/ \$\{progress\.target\}`/);
-  assert.match(scene, /progressBadgeWidth = 70/);
-  assert.match(scene, /unlocked \? '#fff7ed' : '#d1d5db'/);
-  assert.match(scene, /unlocked \? '#fde68a' : '#9ca3af'/);
+  assert.match(scene, /progressBadgeWidth = 74/);
+  assert.match(scene, /getAchievementCardTheme\(definition, unlocked\)/);
+  assert.match(scene, /titleColor: unlocked \? '#fff7ed' : '#dbeafe'/);
+  assert.match(scene, /descriptionColor: unlocked \? '#fde68a' : '#aeb8c7'/);
 });
 
 test('top-level achievement section labels are centered without visible plus or minus prefixes', () => {
@@ -62,6 +63,27 @@ test('top-level achievement section labels are centered without visible plus or 
   assert.match(scene, /align: 'center'/);
   assert.match(scene, /\.setOrigin\(0\.5, 0\.5\)/);
   assert.doesNotMatch(scene, /`\$\{expanded \? '−' : '\+'\} \$\{section\.title\}`/);
+});
+
+
+test('nested faction headers are centered without visible plus or minus prefixes', () => {
+  const scene = source();
+  assert.match(scene, /this\.add\.text\(x \+ width \/ 2, y \+ height \/ 2, name/);
+  assert.match(scene, /align: 'center'/);
+  assert.match(scene, /\.setOrigin\(0\.5, 0\.5\)/);
+  assert.doesNotMatch(scene, /`\$\{expanded \? '−' : '\+'\} \$\{name\}`/);
+  assert.doesNotMatch(scene, /`\$\{expanded \? '−' : '\+'\} \$\{section\.title\}`/);
+});
+
+test('achievement card theme uses group and faction accent colors for reusable card drawing', () => {
+  const scene = source();
+  assert.match(scene, /getAchievementCardTheme\(definition, unlocked\)/);
+  assert.match(scene, /groupKey === 'arena' \? 0xfacc15/);
+  assert.match(scene, /groupKey === 'factions' \? FACTION_CARD_DETAILS\[definition\.factionKey\]\?\.accentColor/);
+  assert.match(scene, /: 0x38bdf8/);
+  assert.match(scene, /rightColumnX - textLeft - 14/);
+  assert.match(scene, /maxLines: 2/);
+  assert.match(scene, /maxLines: 3/);
 });
 
 test('unlocked achievement badge uses localized fallbacks without showing unlock dates', () => {
