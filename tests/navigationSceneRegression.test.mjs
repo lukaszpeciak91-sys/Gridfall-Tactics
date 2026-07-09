@@ -236,7 +236,7 @@ test('main menu debug gear opens isolated art debug mode selection flow', () => 
 });
 
 
-test('AchievementsScene is a localized placeholder that returns to MainMenuScene', () => {
+test('AchievementsScene is a localized achievements panel that returns to MainMenuScene', () => {
   const mainSource = readScene('src/main.js');
   const source = readScene('src/scenes/AchievementsScene.js');
 
@@ -244,7 +244,8 @@ test('AchievementsScene is a localized placeholder that returns to MainMenuScene
   assert.match(mainSource, /CollectionScene, AchievementsScene, SettingsScene/);
   assert.match(source, /super\('AchievementsScene'\)/);
   assert.match(source, /title: translateActive\('ui\.achievements\.title', 'ACHIEVEMENTS'\)/);
-  assert.match(source, /translateActive\('ui\.achievements\.comingSoon', 'Coming soon\.'\)/);
+  assert.match(source, /drawAchievementsPanel\(width, height\)/);
+  assert.doesNotMatch(source, /ui\.achievements\.comingSoon|drawPlaceholderPanel/);
   assert.match(source, /returnToMainMenu\(\) \{[\s\S]*this\.scene\.start\('MainMenuScene'\)/);
   assert.match(source, /this\.scene\.launch\('RulesPanelScene', \{ returnSceneKey: 'AchievementsScene' \}\)/);
 });
