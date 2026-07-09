@@ -51,10 +51,10 @@ test('achievement cards expose localized title, description, and text-only progr
   assert.match(scene, /definition\.display\?\.title\?\.\[locale\]/);
   assert.match(scene, /definition\.display\?\.description\?\.\[locale\]/);
   assert.match(scene, /`\$\{progress\.current\} \/ \$\{progress\.target\}`/);
-  assert.match(scene, /progressBadgeWidth = 74/);
+  assert.match(scene, /badgeWidth = 88/);
   assert.match(scene, /getAchievementCardTheme\(definition, unlocked\)/);
-  assert.match(scene, /titleColor: unlocked \? '#fff7ed' : '#dbeafe'/);
-  assert.match(scene, /descriptionColor: unlocked \? '#fde68a' : '#aeb8c7'/);
+  assert.match(scene, /titleColor: unlocked \? '#fff7d6' : titleTint/);
+  assert.match(scene, /descriptionColor: unlocked \? '#d7dee9' : '#b8c2d0'/);
 });
 
 test('top-level achievement section labels are centered without visible plus or minus prefixes', () => {
@@ -81,16 +81,26 @@ test('achievement card theme uses group and faction accent colors for reusable c
   assert.match(scene, /groupKey === 'arena' \? 0xfacc15/);
   assert.match(scene, /groupKey === 'factions' \? FACTION_CARD_DETAILS\[definition\.factionKey\]\?\.accentColor/);
   assert.match(scene, /: 0x38bdf8/);
-  assert.match(scene, /rightColumnX - textLeft - 14/);
+  assert.match(scene, /textRight - textLeft/);
   assert.match(scene, /maxLines: 2/);
   assert.match(scene, /maxLines: 3/);
 });
 
-test('unlocked achievement badge uses localized fallbacks without showing unlock dates', () => {
+test('achievement card layout reserves fixed title, description, and progress badge zones', () => {
   const scene = source();
-  assert.match(scene, /translateActive\('ui\.achievements\.unlocked', locale === 'pl' \? 'ODBLOKOWANE' : 'UNLOCKED'\)/);
-  assert.match(scene, /unlockedBadgeWidth/);
-  assert.match(scene, /0xfacc15/);
+  assert.match(scene, /getAchievementCardLayout\(x, y, width\)/);
+  assert.match(scene, /const titleTop = y \+ 15/);
+  assert.match(scene, /const separatorY = y \+ 55/);
+  assert.match(scene, /const descriptionTop = y \+ 64/);
+  assert.match(scene, /badgeY: y \+ 70/);
+  assert.match(scene, /getAchievementTitleFontSize\(title, layout\)/);
+});
+
+test('unlocked achievement rows use subtle gold accents without permanent unlocked badges', () => {
+  const scene = source();
+  assert.match(scene, /if \(unlocked\) \{[\s\S]*bg\.fillStyle\(0xfacc15, 0\.78\)/);
+  assert.match(scene, /frameColor: unlocked \? 0xfacc15 : accent/);
+  assert.doesNotMatch(scene, /translateActive\('ui\.achievements\.unlocked'|ODBLOKOWANE|UNLOCKED|unlockedBadgeWidth|unlockedLabel/);
   assert.doesNotMatch(scene, /unlockedAt|unlock date/i);
 });
 

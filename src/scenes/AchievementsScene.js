@@ -250,70 +250,117 @@ export default class AchievementsScene extends Phaser.Scene {
     return cursorY;
   }
 
+  getAchievementCardLayout(x, y, width) {
+    const cardHeight = 116;
+    const paddingX = 18;
+    const rightPadding = 14;
+    const badgeWidth = 88;
+    const badgeHeight = 28;
+    const badgeX = x + width - rightPadding - badgeWidth;
+    const titleTop = y + 15;
+    const titleHeight = 34;
+    const separatorY = y + 55;
+    const descriptionTop = y + 64;
+    const textLeft = x + paddingX;
+    const textRight = badgeX - 16;
+
+    return {
+      cardHeight,
+      radius: 16,
+      textLeft,
+      titleTop,
+      titleHeight,
+      titleWidth: Math.max(132, width - paddingX * 2),
+      separatorY,
+      separatorX: textLeft,
+      separatorWidth: Math.max(80, width - paddingX * 2),
+      descriptionTop,
+      descriptionWidth: Math.max(128, textRight - textLeft),
+      badgeX,
+      badgeY: y + 70,
+      badgeWidth,
+      badgeHeight,
+    };
+  }
+
+  getAchievementTitleFontSize(title, layout) {
+    if ((title?.length ?? 0) > 52 || layout.titleWidth < 280) return '16px';
+    if ((title?.length ?? 0) > 38 || layout.titleWidth < 360) return '17px';
+    return '19px';
+  }
+
   getAchievementCardTheme(definition, unlocked) {
     const groupKey = ACHIEVEMENT_CATEGORY_GROUPS[definition.category] ?? 'general';
-    const groupAccent = groupKey === 'arena' ? 0xfacc15 : groupKey === 'factions' ? FACTION_CARD_DETAILS[definition.factionKey]?.accentColor ?? 0xa78bfa : 0x38bdf8;
+    const accent = groupKey === 'arena' ? 0xfacc15 : groupKey === 'factions' ? FACTION_CARD_DETAILS[definition.factionKey]?.accentColor ?? 0xa78bfa : 0x38bdf8;
+    const titleTint = groupKey === 'arena' ? '#fde68a' : groupKey === 'factions' ? '#ede9fe' : '#cffafe';
     return {
-      accent: groupAccent,
-      frameAlpha: unlocked ? 0.9 : 0.44,
-      innerAlpha: unlocked ? 0.22 : 0.11,
-      fillAlpha: unlocked ? 0.88 : 0.68,
-      titleColor: unlocked ? '#fff7ed' : '#dbeafe',
-      descriptionColor: unlocked ? '#fde68a' : '#aeb8c7',
+      accent,
+      titleTint,
+      frameColor: unlocked ? 0xfacc15 : accent,
+      frameAlpha: unlocked ? 0.9 : 0.42,
+      innerAlpha: unlocked ? 0.2 : 0.085,
+      fillAlpha: unlocked ? 0.9 : 0.7,
+      glassAlpha: unlocked ? 0.82 : 0.66,
+      titleColor: unlocked ? '#fff7d6' : titleTint,
+      descriptionColor: unlocked ? '#d7dee9' : '#b8c2d0',
+      progressTextColor: unlocked ? '#fef3c7' : '#dbeafe',
+      badgeFill: unlocked ? 0x451a03 : 0x020817,
+      badgeAlpha: unlocked ? 0.9 : 0.7,
     };
   }
 
   drawAchievementCard(content, definition, { x, y, width }) {
-    const cardHeight = 96;
     const unlocked = this.isAchievementUnlocked(definition.id);
     const progress = this.getAchievementProgress(definition);
     const locale = getActiveLocale();
     const title = definition.display?.title?.[locale] ?? definition.title ?? definition.id;
     const description = definition.display?.description?.[locale] ?? definition.description ?? '';
+    const layout = this.getAchievementCardLayout(x, y, width);
     const theme = this.getAchievementCardTheme(definition, unlocked);
-    const paddingX = 18;
-    const textLeft = x + paddingX;
-    const rightPadding = 14;
-    const rightColumnWidth = locale === 'pl' ? 116 : 98;
-    const rightColumnX = x + width - rightPadding - rightColumnWidth;
-    const progressBadgeWidth = 74;
-    const progressBadgeHeight = 24;
-    const progressBadgeX = x + width - rightPadding - progressBadgeWidth;
-    const progressBadgeY = y + cardHeight / 2 - progressBadgeHeight / 2;
-    const unlockedBadgeWidth = locale === 'pl' ? 108 : 92;
-    const unlockedBadgeHeight = 20;
-    const unlockedBadgeX = x + width - rightPadding - unlockedBadgeWidth;
-    const unlockedBadgeY = y + 15;
-    const textWrapWidth = Math.max(128, rightColumnX - textLeft - 14);
 
     const bg = this.add.graphics();
-    bg.fillStyle(0x020817, theme.fillAlpha); bg.fillRoundedRect(x, y, width, cardHeight, 16);
-    bg.fillStyle(theme.accent, theme.innerAlpha); bg.fillRoundedRect(x + 3, y + 3, width - 6, cardHeight - 6, 13);
-    bg.fillStyle(0x0f172a, unlocked ? 0.78 : 0.64); bg.fillRoundedRect(x + 7, y + 10, width - 14, cardHeight - 17, 11);
-    bg.lineStyle(unlocked ? 2.6 : 2.1, unlocked ? 0xfacc15 : theme.accent, unlocked ? 0.92 : theme.frameAlpha); bg.strokeRoundedRect(x, y, width, cardHeight, 16);
-    bg.lineStyle(1.1, theme.accent, unlocked ? 0.58 : 0.28); bg.strokeRoundedRect(x + 5, y + 5, width - 10, cardHeight - 10, 12);
+    bg.fillStyle(0x020817, theme.fillAlpha); bg.fillRoundedRect(x, y, width, layout.cardHeight, layout.radius);
+    bg.fillStyle(theme.accent, theme.innerAlpha); bg.fillRoundedRect(x + 3, y + 3, width - 6, layout.cardHeight - 6, 13);
+    bg.fillStyle(0x0f172a, theme.glassAlpha); bg.fillRoundedRect(x + 7, y + 10, width - 14, layout.cardHeight - 17, 11);
     if (unlocked) {
-      bg.fillStyle(0xfacc15, 0.92); bg.fillRoundedRect(x + 10, y + 7, width - 20, 4, 2);
-      bg.fillStyle(0x451a03, 0.88); bg.fillRoundedRect(unlockedBadgeX, unlockedBadgeY, unlockedBadgeWidth, unlockedBadgeHeight, 8);
-      bg.lineStyle(1, 0xfacc15, 0.72); bg.strokeRoundedRect(unlockedBadgeX, unlockedBadgeY, unlockedBadgeWidth, unlockedBadgeHeight, 8);
+      bg.fillStyle(0xfacc15, 0.78); bg.fillRoundedRect(x + 12, y + 7, width - 24, 4, 2);
     }
-    bg.fillStyle(unlocked ? 0x451a03 : 0x020817, unlocked ? 0.92 : 0.66); bg.fillRoundedRect(progressBadgeX, progressBadgeY, progressBadgeWidth, progressBadgeHeight, 8);
-    bg.lineStyle(1.2, unlocked ? 0xfacc15 : theme.accent, unlocked ? 0.76 : 0.42); bg.strokeRoundedRect(progressBadgeX, progressBadgeY, progressBadgeWidth, progressBadgeHeight, 8);
+    bg.lineStyle(unlocked ? 2.6 : 2.1, theme.frameColor, theme.frameAlpha); bg.strokeRoundedRect(x, y, width, layout.cardHeight, layout.radius);
+    bg.lineStyle(1.1, theme.accent, unlocked ? 0.48 : 0.24); bg.strokeRoundedRect(x + 5, y + 5, width - 10, layout.cardHeight - 10, 12);
+    bg.lineStyle(1, theme.accent, unlocked ? 0.34 : 0.22); bg.lineBetween(layout.separatorX, layout.separatorY, layout.separatorX + layout.separatorWidth, layout.separatorY);
+    bg.fillStyle(theme.badgeFill, theme.badgeAlpha); bg.fillRoundedRect(layout.badgeX, layout.badgeY, layout.badgeWidth, layout.badgeHeight, 9);
+    bg.fillStyle(theme.accent, unlocked ? 0.16 : 0.08); bg.fillRoundedRect(layout.badgeX + 2, layout.badgeY + 2, layout.badgeWidth - 4, layout.badgeHeight - 4, 7);
+    bg.lineStyle(1.2, unlocked ? 0xfacc15 : theme.accent, unlocked ? 0.78 : 0.44); bg.strokeRoundedRect(layout.badgeX, layout.badgeY, layout.badgeWidth, layout.badgeHeight, 9);
     content.add(bg); this.trackAchievementContentElement(bg);
 
-    const titleText = this.add.text(textLeft, y + 17, title, { fontFamily: 'Arial, sans-serif', fontSize: '18px', color: theme.titleColor, fontStyle: 'bold', wordWrap: { width: textWrapWidth }, maxLines: 2 });
-    const descriptionText = this.add.text(textLeft, y + 46, description, { fontFamily: 'Arial, sans-serif', fontSize: '12px', color: theme.descriptionColor, wordWrap: { width: textWrapWidth }, maxLines: 3 });
-    const progressText = this.add.text(progressBadgeX + progressBadgeWidth / 2, progressBadgeY + progressBadgeHeight / 2, `${progress.current} / ${progress.target}`, { fontFamily: 'Arial, sans-serif', fontSize: '12px', color: unlocked ? '#fef3c7' : '#dbeafe', fontStyle: 'bold', align: 'center' }).setOrigin(0.5, 0.5);
+    const titleText = this.add.text(layout.textLeft, layout.titleTop, title, {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: this.getAchievementTitleFontSize(title, layout),
+      color: theme.titleColor,
+      fontStyle: 'bold',
+      lineSpacing: 1,
+      wordWrap: { width: layout.titleWidth },
+      maxLines: 2,
+    });
+    const descriptionText = this.add.text(layout.textLeft, layout.descriptionTop, description, {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: '13px',
+      color: theme.descriptionColor,
+      lineSpacing: 3,
+      wordWrap: { width: layout.descriptionWidth },
+      maxLines: 3,
+    });
+    const progressText = this.add.text(layout.badgeX + layout.badgeWidth / 2, layout.badgeY + layout.badgeHeight / 2, `${progress.current} / ${progress.target}`, {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: '12px',
+      color: theme.progressTextColor,
+      fontStyle: 'bold',
+      align: 'center',
+    }).setOrigin(0.5, 0.5);
     content.add([titleText, descriptionText, progressText]);
     this.trackAchievementContentElement(titleText); this.trackAchievementContentElement(descriptionText); this.trackAchievementContentElement(progressText);
 
-    if (unlocked) {
-      const unlockedLabel = translateActive('ui.achievements.unlocked', locale === 'pl' ? 'ODBLOKOWANE' : 'UNLOCKED');
-      const label = this.add.text(unlockedBadgeX + unlockedBadgeWidth / 2, unlockedBadgeY + unlockedBadgeHeight / 2, unlockedLabel, { fontFamily: 'Arial, sans-serif', fontSize: '10px', color: '#fef3c7', fontStyle: 'bold', align: 'center' }).setOrigin(0.5, 0.5);
-      content.add(label); this.trackAchievementContentElement(label);
-    }
-
-    return y + cardHeight;
+    return y + layout.cardHeight;
   }
 
   getAchievementProgress(definition) {
