@@ -251,18 +251,18 @@ export default class AchievementsScene extends Phaser.Scene {
   }
 
   getAchievementCardLayout(x, y, width) {
-    const cardHeight = 116;
-    const paddingX = 18;
-    const rightPadding = 14;
-    const badgeWidth = 88;
-    const badgeHeight = 28;
+    const cardHeight = 102;
+    const paddingX = 16;
+    const rightPadding = 12;
+    const badgeWidth = 82;
+    const badgeHeight = 26;
     const badgeX = x + width - rightPadding - badgeWidth;
-    const titleTop = y + 15;
-    const titleHeight = 34;
-    const separatorY = y + 55;
-    const descriptionTop = y + 64;
+    const titleTop = y + 13;
+    const titleHeight = 30;
+    const separatorY = y + 47;
+    const descriptionTop = y + 56;
     const textLeft = x + paddingX;
-    const textRight = badgeX - 16;
+    const textRight = badgeX - 14;
 
     return {
       cardHeight,
@@ -291,21 +291,23 @@ export default class AchievementsScene extends Phaser.Scene {
 
   getAchievementCardTheme(definition, unlocked) {
     const groupKey = ACHIEVEMENT_CATEGORY_GROUPS[definition.category] ?? 'general';
-    const accent = groupKey === 'arena' ? 0xfacc15 : groupKey === 'factions' ? FACTION_CARD_DETAILS[definition.factionKey]?.accentColor ?? 0xa78bfa : 0x38bdf8;
-    const titleTint = groupKey === 'arena' ? '#fde68a' : groupKey === 'factions' ? '#ede9fe' : '#cffafe';
+    const accent = groupKey === 'arena' ? 0xfacc15 : groupKey === 'factions' ? FACTION_CARD_DETAILS[definition.factionKey]?.accentColor ?? 0xa78bfa : 0x7dd3fc;
+    const titleTint = groupKey === 'arena' ? '#fde68a' : groupKey === 'factions' ? '#ede9fe' : '#e0f2fe';
     return {
       accent,
       titleTint,
       frameColor: unlocked ? 0xfacc15 : accent,
-      frameAlpha: unlocked ? 0.9 : 0.42,
-      innerAlpha: unlocked ? 0.2 : 0.085,
-      fillAlpha: unlocked ? 0.9 : 0.7,
-      glassAlpha: unlocked ? 0.82 : 0.66,
+      frameAlpha: unlocked ? 0.96 : 0.5,
+      innerAlpha: unlocked ? 0.24 : 0.11,
+      fillAlpha: unlocked ? 0.92 : 0.74,
+      glassAlpha: unlocked ? 0.88 : 0.72,
       titleColor: unlocked ? '#fff7d6' : titleTint,
-      descriptionColor: unlocked ? '#d7dee9' : '#b8c2d0',
+      descriptionColor: unlocked ? '#e2e8f0' : '#b8c2d0',
       progressTextColor: unlocked ? '#fef3c7' : '#dbeafe',
       badgeFill: unlocked ? 0x451a03 : 0x020817,
-      badgeAlpha: unlocked ? 0.9 : 0.7,
+      badgeAlpha: unlocked ? 0.94 : 0.74,
+      topStripAlpha: unlocked ? 0.82 : 0.18,
+      glowAlpha: unlocked ? 0.22 : 0.08,
     };
   }
 
@@ -320,12 +322,11 @@ export default class AchievementsScene extends Phaser.Scene {
 
     const bg = this.add.graphics();
     bg.fillStyle(0x020817, theme.fillAlpha); bg.fillRoundedRect(x, y, width, layout.cardHeight, layout.radius);
-    bg.fillStyle(theme.accent, theme.innerAlpha); bg.fillRoundedRect(x + 3, y + 3, width - 6, layout.cardHeight - 6, 13);
-    bg.fillStyle(0x0f172a, theme.glassAlpha); bg.fillRoundedRect(x + 7, y + 10, width - 14, layout.cardHeight - 17, 11);
-    if (unlocked) {
-      bg.fillStyle(0xfacc15, 0.78); bg.fillRoundedRect(x + 12, y + 7, width - 24, 4, 2);
-    }
-    bg.lineStyle(unlocked ? 2.6 : 2.1, theme.frameColor, theme.frameAlpha); bg.strokeRoundedRect(x, y, width, layout.cardHeight, layout.radius);
+    bg.fillStyle(theme.accent, theme.glowAlpha); bg.fillRoundedRect(x + 2, y + 2, width - 4, layout.cardHeight - 4, 14);
+    bg.fillStyle(theme.accent, theme.innerAlpha); bg.fillRoundedRect(x + 4, y + 4, width - 8, layout.cardHeight - 8, 12);
+    bg.fillStyle(0x0f172a, theme.glassAlpha); bg.fillRoundedRect(x + 7, y + 9, width - 14, layout.cardHeight - 15, 10);
+    bg.fillStyle(unlocked ? 0xfacc15 : theme.accent, theme.topStripAlpha); bg.fillRoundedRect(x + 12, y + 7, width - 24, unlocked ? 5 : 3, 2);
+    bg.lineStyle(unlocked ? 2.8 : 2.1, theme.frameColor, theme.frameAlpha); bg.strokeRoundedRect(x, y, width, layout.cardHeight, layout.radius);
     bg.lineStyle(1.1, theme.accent, unlocked ? 0.48 : 0.24); bg.strokeRoundedRect(x + 5, y + 5, width - 10, layout.cardHeight - 10, 12);
     bg.lineStyle(1, theme.accent, unlocked ? 0.34 : 0.22); bg.lineBetween(layout.separatorX, layout.separatorY, layout.separatorX + layout.separatorWidth, layout.separatorY);
     bg.fillStyle(theme.badgeFill, theme.badgeAlpha); bg.fillRoundedRect(layout.badgeX, layout.badgeY, layout.badgeWidth, layout.badgeHeight, 9);
@@ -348,7 +349,7 @@ export default class AchievementsScene extends Phaser.Scene {
       color: theme.descriptionColor,
       lineSpacing: 3,
       wordWrap: { width: layout.descriptionWidth },
-      maxLines: 3,
+      maxLines: 2,
     });
     const progressText = this.add.text(layout.badgeX + layout.badgeWidth / 2, layout.badgeY + layout.badgeHeight / 2, `${progress.current} / ${progress.target}`, {
       fontFamily: 'Arial, sans-serif',
@@ -366,7 +367,9 @@ export default class AchievementsScene extends Phaser.Scene {
   getAchievementProgress(definition) {
     try {
       const progress = definition.getProgress?.(this.achievementData?.playerStats ?? {}) ?? {};
-      return { current: Number.isFinite(progress.current) ? progress.current : 0, target: Number.isFinite(progress.target) ? progress.target : definition.target ?? 0 };
+      const current = Number.isFinite(progress.current) ? progress.current : 0;
+      const target = Number.isFinite(progress.target) ? progress.target : definition.target ?? 0;
+      return { current: target > 0 ? Math.min(current, target) : current, target };
     } catch (error) {
       return { current: 0, target: definition.target ?? 0 };
     }
