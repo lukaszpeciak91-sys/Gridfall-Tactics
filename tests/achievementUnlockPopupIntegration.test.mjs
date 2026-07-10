@@ -26,6 +26,30 @@ test('popup integration limits batches to 3 and shows sequential non-stacked pop
   assert.match(start, /cursor \+= 1;[\s\S]*this\.time\.delayedCall\(ACHIEVEMENT_UNLOCK_POPUP_TIMING\.gapMs, showNext\)/);
 });
 
+test('popup start path plays achievement unlock SFX before each popup animation begins', () => {
+  const start = method('startAchievementUnlockPopupsForResultModal', 'createResultModalButton');
+  const create = start.indexOf('activePopup = createAchievementUnlockPopup(this, entry.definition, {');
+  const sfx = start.indexOf('this.playAchievementUnlockPopupSfx(entry.achievementId);', create);
+  const play = start.indexOf('activePopup.play({', sfx);
+  assert.ok(create >= 0 && sfx > create && play > sfx);
+});
+
+test('achievement unlock SFX is guarded per result modal lifecycle without changing queue completion', () => {
+  const guard = method('playAchievementUnlockPopupSfx', 'startAchievementUnlockPopupsForResultModal');
+  const start = method('startAchievementUnlockPopupsForResultModal', 'createResultModalButton');
+  const destroyPopup = method('destroyAchievementUnlockPopupController', 'playAchievementUnlockPopupSfx');
+  const destroyModal = method('destroyBattleResultModal', 'createBaseBroadcastFrame');
+
+  assert.match(guard, /if \(typeof achievementId !== 'string' \|\| achievementId\.length === 0\) return false;/);
+  assert.match(guard, /if \(!this\.achievementUnlockSfxPlayedIds\) this\.achievementUnlockSfxPlayedIds = new Set\(\);/);
+  assert.match(guard, /if \(this\.achievementUnlockSfxPlayedIds\.has\(achievementId\)\) return false;/);
+  assert.match(guard, /this\.achievementUnlockSfxPlayedIds\.add\(achievementId\);[\s\S]*return this\.playBattleSfx\?\.\(AUDIO_KEYS\.ACHIEVEMENT_UNLOCK, \{ cooldownMs: 0 \}\);/);
+  assert.match(start, /this\.playAchievementUnlockPopupSfx\(entry\.achievementId\);[\s\S]*activePopup\.play\(\{/);
+  assert.doesNotMatch(destroyPopup, /achievementUnlockSfxPlayedIds\s*=/);
+  assert.match(destroyModal, /this\.achievementUnlockSfxPlayedIds = new Set\(\);/);
+  assert.ok(start.lastIndexOf('markAchievementPresented(entry.achievementId);') > start.indexOf('activePopup.play({'), 'SFX guard must not mark achievement presented before popup completion');
+});
+
 test('achievement is marked presented only after popup completion and early destroy leaves unfinished pending', () => {
   const start = method('startAchievementUnlockPopupsForResultModal', 'createResultModalButton');
   assert.match(start, /activePopup\.play\(\{[\s\S]*onComplete: \(\) => \{[\s\S]*markAchievementPresented\(entry\.achievementId\);/);
