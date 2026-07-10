@@ -31,7 +31,7 @@ function createHarness({ stats = createDefaultPlayerStats(), state = createDefau
 }
 
 test('runtime helper unlocks satisfied achievements, persists state, and returns newlyUnlocked', () => {
-  const stats = { ...createDefaultPlayerStats(), battlesPlayed: 1, battlesWon: 1, arenaBattlesPlayed: 1, arenaBattlesWon: 1 };
+  const stats = { ...createDefaultPlayerStats(), battlesPlayed: 3, battlesWon: 1, arenaBattlesPlayed: 1, arenaBattlesWon: 1 };
   const harness = createHarness({ stats });
 
   const result = harness.run();
@@ -44,6 +44,21 @@ test('runtime helper unlocks satisfied achievements, persists state, and returns
   assert.equal(harness.saves.length, 1);
   assert.deepEqual(harness.queued, unlockedIds);
   assert.equal(harness.state.unlocked['general.win_first_battle'].unlockedAt, '2026-07-10T00:00:00.000Z');
+});
+
+
+test('first successful Arena battle no longer queues the general battle-play milestone', () => {
+  const stats = { ...createDefaultPlayerStats(), battlesPlayed: 1, battlesWon: 1, arenaBattlesPlayed: 1, arenaBattlesWon: 1 };
+  const harness = createHarness({ stats });
+
+  const result = harness.run();
+  const unlockedIds = result.newlyUnlocked.map((entry) => entry.id);
+
+  assert.equal(unlockedIds.includes('general.complete_first_battle'), false);
+  assert.ok(unlockedIds.includes('general.win_first_battle'));
+  assert.ok(unlockedIds.includes('arena.play_first_battle'));
+  assert.ok(unlockedIds.includes('arena.win_first_battle'));
+  assert.deepEqual(harness.queued, unlockedIds);
 });
 
 test('runtime helper is idempotent and preserves existing unlockedAt', () => {
