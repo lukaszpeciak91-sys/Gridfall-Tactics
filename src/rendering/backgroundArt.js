@@ -15,10 +15,10 @@ const ARENA_LIGHT_SWEEP_TEXTURE_KEY = 'effect.arena-light-sweep.soft-gradient';
 const ARENA_LIGHT_SWEEP_TEXTURE_SIZE = 512;
 
 const MENU_BACKGROUND_AMBIENT_DRIFT = {
-  scaleMultiplier: 1.02,
-  x: -5,
-  y: -7,
-  duration: 32000,
+  scaleMultiplier: 1.04,
+  x: 10,
+  y: -16,
+  duration: 18000,
   ease: 'Sine.easeInOut',
 };
 
@@ -254,11 +254,11 @@ export function createAnimatedMenuBackground(scene, {
     }
     scene.tweens.killTweensOf(background);
 
-    const coverScale = Math.max(nextWidth / background.width, nextHeight / background.height);
-    const targetScale = coverScale * driftOptions.scaleMultiplier;
+    const baseScale = calculateDriftSafeCoverScale(background, nextWidth, nextHeight, driftOptions);
+    const targetScale = baseScale * driftOptions.scaleMultiplier;
     background
       .setPosition(nextWidth * 0.5, nextHeight * 0.5)
-      .setScale(coverScale);
+      .setScale(baseScale);
 
     state.ambientTween = scene.tweens.add({
       targets: background,
@@ -341,6 +341,15 @@ export function createAnimatedMenuBackground(scene, {
     isImage: imageBackground,
     ambient: imageBackground ? { ...driftOptions } : null,
   };
+}
+
+function calculateDriftSafeCoverScale(background, width, height, driftOptions) {
+  const horizontalPadding = Math.abs(driftOptions?.x ?? 0) * 2;
+  const verticalPadding = Math.abs(driftOptions?.y ?? 0) * 2;
+  return Math.max(
+    (width + horizontalPadding) / background.width,
+    (height + verticalPadding) / background.height,
+  );
 }
 
 function isImageBackground(background) {

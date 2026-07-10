@@ -167,9 +167,9 @@ test('start, main menu, and faction select use optional menu background art with
   assert.match(backgroundSource, /export function createMenuArenaLightSweep/);
   assert.match(backgroundSource, /export function createAnimatedMenuBackground/);
   assert.match(backgroundSource, /duration = 12000/);
-  assert.match(backgroundSource, /duration: 32000/);
-  assert.match(backgroundSource, /scaleMultiplier: 1\.02/);
-  assert.match(backgroundSource, /Math\.max\(width \/ background\.width, height \/ background\.height\)/);
+  assert.match(backgroundSource, /duration: 18000/);
+  assert.match(backgroundSource, /scaleMultiplier: 1\.04/);
+  assert.match(backgroundSource, /calculateDriftSafeCoverScale\(background, nextWidth, nextHeight, driftOptions\)/);
   assert.match(startSource, /START_TRANSITION_MS = 720/);
   assert.match(startSource, /this\.scene\.launch\('MainMenuScene', \{ revealFromStart: true, awaitSharedLogo: true \}\)/);
   assert.match(startSource, /createAnimatedMenuBackground\(this, \{/);
