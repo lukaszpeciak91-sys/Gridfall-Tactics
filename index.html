@@ -91,11 +91,18 @@
           radial-gradient(circle at 50% 39%, rgba(37, 99, 235, 0.14), transparent 34%),
           linear-gradient(180deg, #111827 0%, #0b1220 100%);
         pointer-events: none;
+        touch-action: manipulation;
         transition: opacity 140ms ease;
+      }
+
+      #startup-splash.is-ready {
+        cursor: pointer;
+        pointer-events: auto;
       }
 
       #startup-splash.is-hidden {
         opacity: 0;
+        pointer-events: none;
       }
 
       .startup-splash__stage {
@@ -127,6 +134,7 @@
       }
 
       .startup-splash__copy {
+        min-height: 14px;
         color: rgba(245, 241, 230, 0.78);
         font: 700 11px/1.2 "Rajdhani", "Segoe UI", Arial, sans-serif;
         letter-spacing: 0.22em;
@@ -141,6 +149,7 @@
         border-radius: 50%;
         border: 1px solid rgba(125, 211, 252, 0.16);
         box-shadow: inset 0 0 14px rgba(125, 211, 252, 0.08);
+        transition: opacity 150ms ease;
       }
 
       .startup-splash__ring::before,
@@ -166,9 +175,34 @@
         animation-direction: reverse;
       }
 
+      #startup-splash.is-ready .startup-splash__ring {
+        opacity: 0;
+      }
+
+      #startup-splash.is-ready .startup-splash__ring::before,
+      #startup-splash.is-ready .startup-splash__ring::after {
+        animation-play-state: paused;
+      }
+
+      #startup-splash.is-ready .startup-splash__copy::before {
+        content: "TAP ANYWHERE";
+      }
+
+      #startup-splash.is-ready .startup-splash__copy {
+        color: transparent;
+        font-size: 13px;
+        text-shadow: 0 0 16px rgba(245, 198, 94, 0.28);
+      }
+
+      #startup-splash.is-ready .startup-splash__copy::before {
+        color: rgba(245, 241, 230, 0.9);
+      }
+
+      #startup-splash.is-tapped .startup-splash__meta,
       #startup-splash.is-handoff .startup-splash__meta {
         opacity: 0;
         transform: translateY(-14px);
+        pointer-events: none;
       }
 
       #startup-splash.is-handoff .startup-splash__logo {
