@@ -24,6 +24,7 @@ Use these status labels in docs when relevant:
 - **Card wording/style reference (CANONICAL for wording):** `docs/CARD_LANGUAGE_GUIDE.md`
 - **Premium UI typography (CANONICAL):** `docs/ui/premium-typography-standard.md`
 - **Overlay / panel frame standard (CANONICAL):** `docs/ui/overlay-frame-standard.md`
+- **Animation vocabulary (CANONICAL for animation terminology):** `docs/ui/animation-vocabulary.md`
 - **Tutorial V1 architecture (CANONICAL for planned Tutorial V1):** `docs/tutorial-v1-architecture.md`
 
 If any gameplay-rule conflict appears, `docs/rules/mvp-battle-rules.md` wins.
