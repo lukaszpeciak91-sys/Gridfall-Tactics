@@ -1196,13 +1196,14 @@ const EFFECT_VARIANT_SELECTOR_HANDLERS = Object.freeze({
   opposedOpponentUnit: ({ owner, targetAt, sourceTarget, targetFromIndex }) => {
     const opponent = getOpponentOwner(owner);
     const source = sourceTarget();
-    const context = source.unit?.owner === owner ? source : targetAt(0);
-    if (context.unit?.owner !== owner) {
-      return [{ index: context.index, unit: null, skipped: context.skipped ?? 'missing_owner_source_context' }];
+    if (source.unit?.owner === owner) {
+      const target = targetFromIndex(getOpposedBoardIndex(source.index), 'no_opposed_opponent_unit');
+      if (target.unit?.owner !== opponent) return [{ ...target, skipped: target.skipped ?? 'not_opponent_unit' }];
+      return [target];
     }
-    const target = targetFromIndex(getOpposedBoardIndex(context.index), 'no_opposed_opponent_unit');
-    if (target.unit?.owner !== opponent) return [{ ...target, skipped: target.skipped ?? 'not_opponent_unit' }];
-    return [target];
+    const selected = targetAt(0);
+    if (selected.unit?.owner === opponent) return [selected];
+    return [{ index: selected.index, unit: null, skipped: selected.skipped ?? 'missing_opposed_opponent_unit' }];
   },
   opposedOwnerUnit: ({ owner, targetAt, targetFromIndex }) => {
     const opponent = getOpponentOwner(owner);
@@ -1771,6 +1772,8 @@ function executeStatModifierOperation(state, owner, variant, operation, captured
       ? operation.amount
       : (operation.operation === 'debuffArmor' ? -operation.amount : 0);
 
+    const attackBefore = getUnitAttack(target.unit);
+    const armorBefore = getUnitArmor(target.unit);
     if (attackDelta !== 0) {
       target.unit.tempAttackMod = (target.unit.tempAttackMod ?? 0) + attackDelta;
       if (attackDelta > 0) totalAttackAdded += attackDelta;
@@ -1781,12 +1784,18 @@ function executeStatModifierOperation(state, owner, variant, operation, captured
       if (armorDelta > 0) totalArmorAdded += armorDelta;
       if (armorDelta < 0) totalArmorReduced += Math.abs(armorDelta);
     }
+    const attackAfter = getUnitAttack(target.unit);
+    const armorAfter = getUnitArmor(target.unit);
 
     targetTelemetry.push({
       index: target.index,
       owner: target.unit.owner,
       attackDelta,
       armorDelta,
+      attackBefore,
+      attackAfter,
+      armorBefore,
+      armorAfter,
     });
   });
 

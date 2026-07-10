@@ -120,6 +120,10 @@ function validationError(message) {
   return new Error(`Invalid customFactions experiment: ${message}`);
 }
 
+function effectVariantValidationError(message) {
+  return new Error(`Invalid effectVariants experiment: ${message}`);
+}
+
 function validateRequiredString(value, path) {
   if (typeof value !== 'string' || value.trim() === '') throw validationError(`${path} is required and must be a non-empty string`);
 }
@@ -220,7 +224,7 @@ function applyExperimentChanges(factions, experiment) {
   });
 }
 
-function loadFactions(balanceLabId = null, experiment = null) {
+export function loadFactions(balanceLabId = null, experiment = null) {
   const factions = loadProductionFactions();
   if (balanceLabId === 'crawler-ignorearmor') applyCrawlerIgnoreArmorBalanceLab(factions);
   if (balanceLabId === 'wardens-movelock') applyWardensMoveLockBalanceLab(factions);
@@ -230,8 +234,98 @@ function loadFactions(balanceLabId = null, experiment = null) {
 }
 
 
-function buildEffectVariantRegistryForFactions(factions, balanceLabId = null) {
+const SUPPORTED_ROOT_EFFECT_VARIANT_KEYS = new Set([
+  'schemaVersion', 'variantId', 'label', 'scope', 'timing', 'sequence', 'textPatch', 'ai', 'telemetryTags',
+]);
+const SUPPORTED_ROOT_EFFECT_VARIANT_SCOPE_KEYS = new Set(['factionId', 'cardId', 'baseEffectId']);
+const SUPPORTED_ROOT_EFFECT_VARIANT_SEQUENCE_KEYS = new Set(['operation', 'selector', 'amount', 'duration']);
+const SUPPORTED_ROOT_EFFECT_VARIANT_AI_KEYS = new Set(['reuseBaseEffectTargeting', 'reuseBaseEffectHeuristic', 'scoreByResolverProbe']);
+const SUPPORTED_ROOT_EFFECT_VARIANT_TEXT_PATCH_KEYS = new Set(['textShort']);
+const SUPPORTED_ROOT_EFFECT_VARIANT_SELECTORS = new Set(['opposedOpponentUnit']);
+const SUPPORTED_ROOT_EFFECT_VARIANT_DURATIONS = new Set(['untilCombatCleanup']);
+
+function assertNoUnsupportedKeys(value, allowed, path) {
+  Object.keys(value ?? {}).forEach((key) => {
+    if (!allowed.has(key)) throw effectVariantValidationError(`${path}.${key} is unsupported`);
+  });
+}
+
+function validateRootEffectVariantSequence(sequence, path) {
+  if (!Array.isArray(sequence) || sequence.length !== 2) throw effectVariantValidationError(`${path}.sequence is malformed`);
+  const [baseOperation, modifierOperation] = sequence;
+  if (!baseOperation || typeof baseOperation !== 'object' || Array.isArray(baseOperation)) throw effectVariantValidationError(`${path}.sequence[0] is malformed`);
+  if (baseOperation.operation !== 'runBaseEffect' || Object.keys(baseOperation).length !== 1) throw effectVariantValidationError(`${path}.sequence must begin with runBaseEffect`);
+  if (!modifierOperation || typeof modifierOperation !== 'object' || Array.isArray(modifierOperation)) throw effectVariantValidationError(`${path}.sequence[1] is malformed`);
+  assertNoUnsupportedKeys(modifierOperation, SUPPORTED_ROOT_EFFECT_VARIANT_SEQUENCE_KEYS, `${path}.sequence[1]`);
+  if (modifierOperation.operation === 'runBaseEffect') throw effectVariantValidationError(`${path}.sequence has duplicate runBaseEffect`);
+  if (modifierOperation.operation !== 'debuffAttack') throw effectVariantValidationError(`${path}.sequence[1].operation '${modifierOperation.operation}' is unknown`);
+  if (!SUPPORTED_ROOT_EFFECT_VARIANT_SELECTORS.has(modifierOperation.selector)) throw effectVariantValidationError(`${path}.sequence[1].selector '${modifierOperation.selector}' is invalid`);
+  if (!Number.isFinite(modifierOperation.amount) || modifierOperation.amount <= 0) throw effectVariantValidationError(`${path}.sequence[1].amount must be a positive number`);
+  if (!Number.isInteger(modifierOperation.amount)) throw effectVariantValidationError(`${path}.sequence[1].amount must be an integer`);
+  if (!SUPPORTED_ROOT_EFFECT_VARIANT_DURATIONS.has(modifierOperation.duration)) throw effectVariantValidationError(`${path}.sequence[1].duration '${modifierOperation.duration}' is unsupported`);
+}
+
+function validateRootEffectVariant(factions, variant, index) {
+  const path = `effectVariants[${index}]`;
+  if (!variant || typeof variant !== 'object' || Array.isArray(variant)) throw effectVariantValidationError(`${path} must be an object`);
+  assertNoUnsupportedKeys(variant, SUPPORTED_ROOT_EFFECT_VARIANT_KEYS, path);
+  if (variant.schemaVersion !== 1) throw effectVariantValidationError(`${path}.schemaVersion must be 1`);
+  validateRequiredString(variant.variantId, `${path}.variantId`);
+  if (!variant.scope || typeof variant.scope !== 'object' || Array.isArray(variant.scope)) throw effectVariantValidationError(`${path}.scope is required`);
+  assertNoUnsupportedKeys(variant.scope, SUPPORTED_ROOT_EFFECT_VARIANT_SCOPE_KEYS, `${path}.scope`);
+  validateRequiredString(variant.scope.factionId, `${path}.scope.factionId`);
+  validateRequiredString(variant.scope.cardId, `${path}.scope.cardId`);
+  validateRequiredString(variant.scope.baseEffectId, `${path}.scope.baseEffectId`);
+  const faction = factions[variant.scope.factionId] ?? Object.values(factions).find((candidate) => candidate.id === variant.scope.factionId);
+  if (!faction) throw effectVariantValidationError(`${path}.scope.factionId '${variant.scope.factionId}' is unknown`);
+  const card = faction.deck?.find((candidate) => candidate.id === variant.scope.cardId);
+  if (!card) throw effectVariantValidationError(`${path}.scope.cardId '${variant.scope.cardId}' is unknown for '${variant.scope.factionId}'`);
+  if (card.effectId !== variant.scope.baseEffectId) throw effectVariantValidationError(`${path}.scope.baseEffectId '${variant.scope.baseEffectId}' does not match card effectId '${card.effectId}'`);
+  if (variant.timing !== 'afterBaseEffectBeforeDiscard') throw effectVariantValidationError(`${path}.timing '${variant.timing}' is unsupported`);
+  validateRootEffectVariantSequence(variant.sequence, path);
+  if (variant.textPatch !== undefined) {
+    if (!variant.textPatch || typeof variant.textPatch !== 'object' || Array.isArray(variant.textPatch)) throw effectVariantValidationError(`${path}.textPatch must be an object`);
+    assertNoUnsupportedKeys(variant.textPatch, SUPPORTED_ROOT_EFFECT_VARIANT_TEXT_PATCH_KEYS, `${path}.textPatch`);
+  }
+  if (variant.ai !== undefined) {
+    if (!variant.ai || typeof variant.ai !== 'object' || Array.isArray(variant.ai)) throw effectVariantValidationError(`${path}.ai must be an object`);
+    assertNoUnsupportedKeys(variant.ai, SUPPORTED_ROOT_EFFECT_VARIANT_AI_KEYS, `${path}.ai`);
+  }
+  if (variant.telemetryTags !== undefined && (!Array.isArray(variant.telemetryTags) || variant.telemetryTags.some((tag) => typeof tag !== 'string'))) {
+    throw effectVariantValidationError(`${path}.telemetryTags must be an array of strings`);
+  }
+  return { faction, card };
+}
+
+function buildRootEffectVariantRegistry(factions, effectVariants = []) {
+  if (effectVariants === undefined) return {};
+  if (!Array.isArray(effectVariants)) throw effectVariantValidationError('effectVariants must be an array');
   const registry = {};
+  effectVariants.forEach((variant, index) => {
+    const { faction, card } = validateRootEffectVariant(factions, variant, index);
+    const registryKey = `${faction.id}::${card.id}::${variant.scope.baseEffectId}`;
+    if (registry[registryKey]) throw effectVariantValidationError(`effectVariants[${index}] duplicates registry key '${registryKey}'`);
+    if (variant.textPatch?.textShort) card.textShort = variant.textPatch.textShort;
+    registry[registryKey] = {
+      variantId: variant.variantId,
+      label: variant.label,
+      registryKey,
+      factionId: faction.id,
+      cardId: card.id,
+      baseEffectId: variant.scope.baseEffectId,
+      timing: variant.timing,
+      sequence: cloneCardData(variant.sequence),
+      ai: cloneCardData(variant.ai ?? {}),
+      telemetryTags: [...(variant.telemetryTags ?? [])],
+      source: 'experiment.effectVariants',
+    };
+  });
+  return registry;
+}
+
+
+export function buildEffectVariantRegistryForFactions(factions, balanceLabId = null, experiment = null) {
+  const registry = buildRootEffectVariantRegistry(factions, experiment?.effectVariants);
   Object.values(factions).forEach((faction) => {
     faction.deck?.forEach((card) => {
       if (!card.effectVariant) return;
@@ -1645,7 +1739,7 @@ function main() {
   const { factions, customFactions, productionFactionCount } = loadFactions(balanceLabId, experiment);
   const effectiveMatchCount = Number.isInteger(experiment?.matchCount) && experiment.matchCount > 0 ? experiment.matchCount : matchCount;
   const effectiveBaseSeed = Number.isInteger(experiment?.seed) ? experiment.seed >>> 0 : baseSeed;
-  const effectVariantRegistry = buildEffectVariantRegistryForFactions(factions, balanceLabId);
+  const effectVariantRegistry = buildEffectVariantRegistryForFactions(factions, balanceLabId, experiment);
   const factionKeys = Object.keys(factions);
   const factionOrder = new Map(factionKeys.map((key, index) => [key, index]));
   const aggregate = new Map(factionKeys.map((key) => [key, createStats()]));
@@ -2009,4 +2103,4 @@ Battle simulation complete (${effectiveMatchCount} games per matchup${filterSumm
   console.log(`- tie-break policy: ${TIE_BREAK_POLICY}`);
   console.log('- previous deterministic reports are invalid because fixed deck order and fixed first actor introduced structural bias.');
 }
-main();
+if (import.meta.url === `file://${process.argv[1]}`) main();
