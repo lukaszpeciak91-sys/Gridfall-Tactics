@@ -262,3 +262,49 @@ test('Hot Runner offline is consumed by immediate lane combat', () => {
   resolveCombat(state);
   assert.equal(state.enemyHP, 11);
 });
+
+test('lane_tempo_mod_until_combat enemy_unit validates target params and rejects friendly params', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const faction = {
+    id: 'overclock-v11-validation',
+    name: 'Overclock v11 Validation',
+    deck: Array.from({ length: 10 }, (_, index) => ({
+      id: `overclock_v11_validation_${index + 1}`,
+      cardNumber: index + 1,
+      artAssetId: `overclock_${String(index + 1).padStart(2, '0')}`,
+      name: index === 0 ? 'Mercy' : `Filler ${index + 1}`,
+      type: index === 0 ? 'order' : 'unit',
+      targeting: index === 0 ? 'enemy_unit' : 'lane',
+      effectId: index === 0 ? 'lane_tempo_mod_until_combat' : null,
+      textShort: index === 0 ? 'Selected enemy -1 ATK, opposing ally +2 ATK until combat.' : 'Filler unit.',
+      ...(index === 0 ? { effectParams: { targetEnemyAtk: -1, opposingAllyAtk: 2 } } : { attack: 1, hp: 1, armor: 0 }),
+    })),
+  };
+  const script = `import importlib.util, json\nfrom pathlib import Path\nspec = importlib.util.spec_from_file_location('bl', '${process.cwd()}/tools/balance-lab/run_balance_lab.py')\nbl = importlib.util.module_from_spec(spec)\nspec.loader.exec_module(bl)\nroot = Path(${JSON.stringify(process.cwd())})\nfaction = json.loads(${JSON.stringify(JSON.stringify(faction))})\nvalidated = bl.validate_custom_factions(root, [faction])\nassert validated[0]['deck'][0]['effectParams']['targetEnemyAtk'] == -1\nfor params in [\n  {'allyAtk': 2},\n  {'targetEnemyAtk': 'bad'},\n  {'targetEnemyHp': 1},\n  {'bogus': 1},\n]:\n    bad = json.loads(${JSON.stringify(JSON.stringify(faction))})\n    bad['id'] = 'bad-' + str(len(str(params)))\n    bad['deck'][0]['effectParams'] = params\n    try:\n        bl.validate_custom_factions(root, [bad])\n    except bl.BalanceLabError:\n        pass\n    else:\n        raise AssertionError(f'accepted invalid enemy_unit params: {params}')\n`;
+  execFileSync('python3', ['-c', script], { stdio: 'pipe' });
+});
+
+test('Hot Runner enemy-owner offline returns after forced combat and does not fire Attrition death triggers', () => {
+  const runner = unitCard('enemy-runner', 1, 1, 'opposed_enemy_offline_next_combat');
+  const rush = { id: 'rush', name: 'Ignition', type: 'order', targeting: 'friendly_unit', effectId: 'quick_strike' };
+  const carrier = unitCard('carrier', 2, 1, 'combat_death_summon_grunt');
+  const state = stateWithHands([carrier], [runner, unitCard('pivot', 0, 3), rush]);
+  playOrRedeployUnit(state, 'player', 'carrier', 6);
+  const reserved = state.board[6];
+  playOrRedeployUnit(state, 'enemy', 'pivot', 1);
+  playOrRedeployUnit(state, 'enemy', 'enemy-runner', 0);
+
+  assert.equal(state.board[6]?.offlineReservedSlot, true);
+  const result = resolveTargetedEffectCard(state, 'enemy', 'rush', 0, [0]);
+
+  assert.equal(result.ok, true);
+  assert.equal(state.board[6], reserved);
+  assert.equal(state.playerHP, 11, 'enemy Hot Runner hit base while the player unit was offline');
+  assert.equal(state.player.fallen.length, 0);
+  assert.equal(state.combatOnlyDeathSummons ?? 0, 0);
+  assert.equal(state.board.filter((unit) => unit === reserved).length, 1);
+  assert.equal(state.offlineReservations.length, 0);
+
+  resolveCombat(state);
+  assert.equal(state.playerHP, 11, 'returned player unit prevents a second free base hit');
+});
