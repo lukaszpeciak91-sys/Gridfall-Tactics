@@ -184,3 +184,81 @@ test('enemy_atk_to_0_until_combat cleanup is safe when target leaves board befor
 
   assert.doesNotThrow(() => resolveCombat(state));
 });
+
+test('lane_tempo_mod_until_combat supports enemy_unit target and opposing ally ATK until combat', () => {
+  const mercy = { id: 'mercy-v11', name: 'Mercy', type: 'order', targeting: 'enemy_unit', effectId: 'lane_tempo_mod_until_combat', effectParams: { targetEnemyAtk: -1, opposingAllyAtk: 2 } };
+  const state = stateWithHands([unitCard('ally', 1, 5), mercy], [unitCard('enemy', 1, 5)]);
+  playOrRedeployUnit(state, 'player', 'ally', 6);
+  playOrRedeployUnit(state, 'enemy', 'enemy', 0);
+
+  const result = resolveTargetedEffectCard(state, 'player', 'mercy-v11', 0, [0]);
+  assert.equal(result.ok, true);
+  assert.equal(getEffectiveBoardAttack(state, 0), 0);
+  assert.equal(getEffectiveBoardAttack(state, 6), 3);
+
+  resolveCombat(state);
+  assert.equal(state.board[0]?.tempAttackMod, undefined);
+  assert.equal(state.board[6]?.tempAttackMod, undefined);
+});
+
+test('lane_tempo_mod_until_combat enemy_unit works without opposing ally', () => {
+  const mercy = { id: 'mercy-v11', name: 'Mercy', type: 'order', targeting: 'enemy_unit', effectId: 'lane_tempo_mod_until_combat', effectParams: { targetEnemyAtk: -1, opposingAllyAtk: 2 } };
+  const state = stateWithHands([mercy], [unitCard('enemy', 0, 5)]);
+  playOrRedeployUnit(state, 'enemy', 'enemy', 0);
+
+  const result = resolveTargetedEffectCard(state, 'player', 'mercy-v11', 0, [0]);
+  assert.equal(result.ok, true);
+  assert.equal(getEffectiveBoardAttack(state, 0), 0);
+});
+
+test('Hot Runner takes opposed enemy offline for exactly one combat and returns it without Fallen bookkeeping', () => {
+  const runner = unitCard('runner', 1, 1, 'opposed_enemy_offline_next_combat');
+  const state = stateWithHands([runner], [unitCard('wall', 3, 5)]);
+  playOrRedeployUnit(state, 'enemy', 'wall', 0);
+  const enemyUnit = state.board[0];
+
+  const result = playOrRedeployUnit(state, 'player', 'runner', 6);
+  assert.equal(result.ok, true);
+  assert.equal(state.board[0]?.offlineReservedSlot, true);
+  assert.equal(state.offlineReservations.length, 1);
+
+  resolveCombat(state);
+  assert.equal(state.board[0], enemyUnit);
+  assert.equal(state.board[0].cardId, 'wall');
+  assert.equal(state.enemy.fallen.length, 0);
+  assert.equal(state.player.fallen.length, 0);
+  assert.equal(state.offlineReservations.length, 0);
+  assert.equal(state.enemyHP, 11);
+  assert.equal(state.hotRunnerOfflineTelemetry.baseHits, 1);
+  assert.equal(state.hotRunnerOfflineTelemetry.returned, 1);
+
+  resolveCombat(state);
+  assert.equal(state.enemyHP, 11, 'returned enemy blocks a second free base hit');
+});
+
+test('Hot Runner into empty lane creates no offline reservation', () => {
+  const runner = unitCard('runner', 1, 1, 'opposed_enemy_offline_next_combat');
+  const state = stateWithHands([runner]);
+  const result = playOrRedeployUnit(state, 'player', 'runner', 6);
+  assert.equal(result.ok, true);
+  assert.equal(state.offlineReservations, undefined);
+  assert.equal(state.hotRunnerOfflineTelemetry.noEnemy, 1);
+});
+
+test('Hot Runner offline is consumed by immediate lane combat', () => {
+  const runner = unitCard('runner', 1, 1, 'opposed_enemy_offline_next_combat');
+  const ignition = { id: 'ignition', name: 'Ignition', type: 'order', targeting: 'friendly_unit', effectId: 'quick_strike' };
+  const state = stateWithHands([runner, ignition], [unitCard('wall', 3, 5)]);
+  playOrRedeployUnit(state, 'enemy', 'wall', 0);
+  const enemyUnit = state.board[0];
+  playOrRedeployUnit(state, 'player', 'runner', 6);
+
+  const result = resolveTargetedEffectCard(state, 'player', 'ignition', 6, [6]);
+  assert.equal(result.ok, true);
+  assert.equal(state.board[0], enemyUnit);
+  assert.equal(state.offlineReservations.length, 0);
+  assert.equal(state.enemyHP, 11);
+
+  resolveCombat(state);
+  assert.equal(state.enemyHP, 11);
+});

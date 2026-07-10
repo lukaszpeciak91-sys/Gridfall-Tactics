@@ -17,6 +17,7 @@ const FRIENDLY_SWAP_EFFECT_ID = 'swap_any_two_friendly_units';
 const FRIENDLY_SWAP_BUFF_EFFECT_ID = 'swap_any_two_friendly_units_buff_both_atk_1';
 const ALLY_LANE_TEMPO_TRANSFER_EFFECT_ID = 'ally_atk_plus_1_opposing_enemy_atk_minus_1_until_combat';
 const PARAM_LANE_TEMPO_MOD_EFFECT_ID = 'lane_tempo_mod_until_combat';
+const OPPOSED_ENEMY_OFFLINE_EFFECT_ID = 'opposed_enemy_offline_next_combat';
 export const RUNNER_OPEN_LANE_ATK_BONUS = 2;
 export const WEAK_OPEN_LANE_ATK_BONUS = 1;
 
@@ -753,7 +754,7 @@ function captureImmediateCombatPresentationSnapshot(state) {
 function resolveImmediateLaneCombat(state, lane) {
   const combatSnapshot = captureImmediateCombatPresentationSnapshot(state);
   const combatId = beginCombatWindow(state);
-  const combatEvents = resolveCombatLane(state, lane);
+  const combatEvents = resolveCombatLane(state, lane, { guardiansUsed: new Set(), events: [], reason: 'immediate' });
   finalizeImmediateLaneCombat(state);
   endCombatWindow(state, combatId);
   return { combatEvents, combatSnapshot };
@@ -927,6 +928,7 @@ function cleanupDefeatedUnitsWithTriggers(state, boardIndexes, options = {}) {
   boardIndexes.forEach((index) => {
     const unit = state.board[index];
     if (!unit || unit.hp > 0) return;
+    if (unit.offlineReservedSlot) return;
     state.board[index] = null;
     if (!unit.temporaryFloodToken) {
       recordFallenUnit(state, unit, options.combat ? 'combat-death' : 'damage-death');
@@ -1862,6 +1864,74 @@ function getLaneTempoModEffectParams(card = {}) {
   };
 }
 
+function getEnemyLaneTempoModEffectParams(card = {}) {
+  const raw = card?.effectParams && typeof card.effectParams === 'object' ? card.effectParams : {};
+  return {
+    targetEnemyAtk: Number(raw.targetEnemyAtk ?? 0),
+    targetEnemyHp: Number(raw.targetEnemyHp ?? 0),
+    targetEnemyArmor: Number(raw.targetEnemyArmor ?? 0),
+    opposingAllyAtk: Number(raw.opposingAllyAtk ?? 0),
+    opposingAllyHp: Number(raw.opposingAllyHp ?? 0),
+    opposingAllyArmor: Number(raw.opposingAllyArmor ?? 0),
+  };
+}
+
+function reserveOpposedEnemyOffline(state, owner, boardIndex, sourceUnit) {
+  const enemyIndex = owner === 'player' ? boardIndex - 6 : boardIndex + 6;
+  const enemyUnit = state.board[enemyIndex];
+  state.hotRunnerOfflineTelemetry ??= { plays: 0, withEnemy: 0, noEnemy: 0, takenOffline: 0, returned: 0, baseHits: 0, baseDamage: 0, leaks: 0, duplicateReturns: 0 };
+  state.hotRunnerOfflineTelemetry.plays += 1;
+  if (!enemyUnit || enemyUnit.owner !== getOpponentOwner(owner)) {
+    state.hotRunnerOfflineTelemetry.noEnemy += 1;
+    return;
+  }
+  state.hotRunnerOfflineTelemetry.withEnemy += 1;
+  state.hotRunnerOfflineTelemetry.takenOffline += 1;
+  state.offlineReservations ??= [];
+  const reservation = {
+    id: `${state.nextCombatId ?? 0}:${boardIndex}:${enemyIndex}:${state.offlineReservations.length}`,
+    lane: boardIndex % 3,
+    owner,
+    sourceIndex: boardIndex,
+    sourceCardId: sourceUnit?.cardId ?? sourceUnit?.id ?? null,
+    reservedIndex: enemyIndex,
+    reservedUnit: enemyUnit,
+    consumed: false,
+  };
+  state.offlineReservations.push(reservation);
+  state.board[enemyIndex] = { offlineReservedSlot: true, reservationId: reservation.id };
+}
+
+function returnOfflineReservation(state, reservation) {
+  if (!reservation || reservation.returned) return false;
+  const occupying = state.board[reservation.reservedIndex];
+  if (occupying === null || occupying?.offlineReservedSlot === true) {
+    state.board[reservation.reservedIndex] = reservation.reservedUnit;
+    reservation.returned = true;
+    state.hotRunnerOfflineTelemetry ??= {};
+    state.hotRunnerOfflineTelemetry.returned = (state.hotRunnerOfflineTelemetry.returned ?? 0) + 1;
+    return true;
+  }
+  // Reserved slots are normally impossible to occupy because the unit is
+  // removed only while resolving combat. Preserve deterministically if a future
+  // mechanic violates that invariant.
+  state.offlineReturnConflicts ??= [];
+  state.offlineReturnConflicts.push(reservation);
+  state.hotRunnerOfflineTelemetry ??= {};
+  state.hotRunnerOfflineTelemetry.duplicateReturns = (state.hotRunnerOfflineTelemetry.duplicateReturns ?? 0) + 1;
+  reservation.returned = true;
+  return false;
+}
+
+function consumeOfflineReservationsForLane(state, lane, reason = 'normal') {
+  const reservations = (state.offlineReservations ?? []).filter((entry) => entry.lane === lane && !entry.consumed && !entry.returned);
+  reservations.forEach((entry) => {
+    entry.consumed = true;
+    entry.consumeReason = reason;
+  });
+  return reservations;
+}
+
 function applyTemporaryStatMods(unit, attackDelta = 0, hpDelta = 0, armorDelta = 0) {
   if (!unit) return;
   if (attackDelta) unit.tempAttackMod = (unit.tempAttackMod ?? 0) + attackDelta;
@@ -2369,6 +2439,9 @@ function validateTargetedEffectResolution(state, owner, card, boardIndex, target
     case 'temp_armor_1':
     case ALLY_LANE_TEMPO_TRANSFER_EFFECT_ID:
     case PARAM_LANE_TEMPO_MOD_EFFECT_ID:
+      if (card.effectId === PARAM_LANE_TEMPO_MOD_EFFECT_ID && card.targeting === 'enemy_unit') {
+        return targetUnit.owner === opponentOwner ? { ok: true } : { ok: false, reason: 'Target must be enemy' };
+      }
       return targetUnit.owner === owner ? { ok: true } : { ok: false, reason: 'Target must be friendly' };
     case 'enemy_lane_atk_minus_1':
     case 'enemy_atk_to_0_until_combat':
@@ -2533,6 +2606,17 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
     }
     case ALLY_LANE_TEMPO_TRANSFER_EFFECT_ID:
     case PARAM_LANE_TEMPO_MOD_EFFECT_ID: {
+      if (card.effectId === PARAM_LANE_TEMPO_MOD_EFFECT_ID && card.targeting === 'enemy_unit') {
+        if (targetUnit.owner !== getOpponentOwner(owner)) return { ok: false, reason: 'Target must be enemy' };
+        const params = getEnemyLaneTempoModEffectParams(card);
+        applyTemporaryStatMods(targetUnit, params.targetEnemyAtk, params.targetEnemyHp, params.targetEnemyArmor);
+        const opposingIndex = getOpposingLaneIndex(targetUnit, boardIndex);
+        const opposingUnit = Number.isInteger(opposingIndex) ? state.board[opposingIndex] : null;
+        if (opposingUnit?.owner === owner) {
+          applyTemporaryStatMods(opposingUnit, params.opposingAllyAtk, params.opposingAllyHp, params.opposingAllyArmor);
+        }
+        break;
+      }
       if (targetUnit.owner !== owner) return { ok: false, reason: 'Target must be friendly' };
       const params = card.effectId === PARAM_LANE_TEMPO_MOD_EFFECT_ID ? getLaneTempoModEffectParams(card) : { allyAtk: 1, opposingEnemyAtk: -1 };
       applyTemporaryStatMods(targetUnit, params.allyAtk, params.allyHp, params.allyArmor);
@@ -2822,6 +2906,10 @@ function resolveUnitOnPlayEffect(state, owner, boardIndex, card) {
       applyEffectById(state, owner, 'block_enemy_effect_cards_until_combat');
       break;
     }
+    case OPPOSED_ENEMY_OFFLINE_EFFECT_ID: {
+      reserveOpposedEnemyOffline(state, owner, boardIndex, state.board[boardIndex]);
+      break;
+    }
     default:
       break;
   }
@@ -3088,6 +3176,7 @@ function resolveCombatLane(state, col, combatContext = null) {
     return { damage, combatModifiers };
   };
 
+  const offlineReservations = consumeOfflineReservationsForLane(state, col, combatContext?.reason ?? 'normal');
   const enemyIndex = ENEMY_ROW[col];
   const playerIndex = PLAYER_ROW[col];
   const enemy = state.board[enemyIndex]?.hp > 0 ? { ...state.board[enemyIndex], __index: enemyIndex } : null;
@@ -3242,6 +3331,11 @@ function resolveCombatLane(state, col, combatContext = null) {
     } else {
       recordHeroAttack('player', playerIndex, 'enemy', playerAttack, true, playerAttackModifiers);
       state.enemyHP -= playerAttack;
+      if (offlineReservations.some((entry) => entry.owner === 'player' && entry.sourceIndex === playerIndex)) {
+        state.hotRunnerOfflineTelemetry ??= {};
+        state.hotRunnerOfflineTelemetry.baseHits = (state.hotRunnerOfflineTelemetry.baseHits ?? 0) + 1;
+        state.hotRunnerOfflineTelemetry.baseDamage = (state.hotRunnerOfflineTelemetry.baseDamage ?? 0) + playerAttack;
+      }
     }
     if (player.effectId === 'self_damage_after_attack') addPendingUnitDamage(playerIndex, 1);
   }
@@ -3282,6 +3376,11 @@ function resolveCombatLane(state, col, combatContext = null) {
     } else {
       recordHeroAttack('enemy', enemyIndex, 'player', enemyAttack, true, enemyAttackModifiers);
       state.playerHP -= enemyAttack;
+      if (offlineReservations.some((entry) => entry.owner === 'enemy' && entry.sourceIndex === enemyIndex)) {
+        state.hotRunnerOfflineTelemetry ??= {};
+        state.hotRunnerOfflineTelemetry.baseHits = (state.hotRunnerOfflineTelemetry.baseHits ?? 0) + 1;
+        state.hotRunnerOfflineTelemetry.baseDamage = (state.hotRunnerOfflineTelemetry.baseDamage ?? 0) + enemyAttack;
+      }
     }
     if (enemy.effectId === 'self_damage_after_attack') addPendingUnitDamage(enemyIndex, 1);
   }
@@ -3297,6 +3396,10 @@ function resolveCombatLane(state, col, combatContext = null) {
   const offLaneDamageIndexes = [...pendingUnitDamage.keys()].filter((index) => !laneIndexes.has(index));
   cleanupDefeatedUnitsWithTriggers(state, offLaneDamageIndexes, { combat: true });
   cleanupDefeatedUnitsWithTriggers(state, [enemyIndex, playerIndex], { combat: true });
+  offlineReservations.forEach((entry) => returnOfflineReservation(state, entry));
+  if (Array.isArray(state.offlineReservations)) {
+    state.offlineReservations = state.offlineReservations.filter((entry) => !entry.returned);
+  }
 
   return context.events;
 }

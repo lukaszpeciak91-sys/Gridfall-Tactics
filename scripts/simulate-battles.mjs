@@ -101,7 +101,7 @@ function createValidationContext(productionFactions) {
   const effectIds = new Set([null, 'decay_attack_after_combat', 'atk_plus_per_other_ally', 'swap_any_two_friendly_units_buff_both_atk_1', 'swap_any_two_friendly_units', 'lane_empty_bonus_damage_1']);
   const targetingValues = new Set();
   const combatKeywords = new Set();
-  const implementedConcreteEffectIds = new Set(['enemy_atk_to_0_until_combat', 'ally_atk_plus_1_opposing_enemy_atk_minus_1_until_combat']);
+  const implementedConcreteEffectIds = new Set(['enemy_atk_to_0_until_combat', 'ally_atk_plus_1_opposing_enemy_atk_minus_1_until_combat', 'lane_tempo_mod_until_combat', 'opposed_enemy_offline_next_combat']);
   Object.entries(productionFactions).forEach(([factionKey, faction]) => {
     productionIds.add(factionKey);
     productionIds.add(faction.id);
@@ -139,6 +139,26 @@ function validateCustomFactionCard(card, faction, index, context, seenCardIds, s
   if (typeof card.targeting !== 'string' || !context.targetingValues.has(card.targeting)) throw validationError(`${path}.targeting '${card.targeting}' is unsupported`);
   if (!('effectId' in card)) throw validationError(`${path}.effectId is required (use null for no effect)`);
   if (!context.effectIds.has(card.effectId ?? null)) throw validationError(`${path}.effectId '${card.effectId}' is unsupported`);
+  if (card.effectId === 'opposed_enemy_offline_next_combat') {
+    if (card.type !== 'unit') throw validationError(`${path}.effectId 'opposed_enemy_offline_next_combat' is only supported on unit cards`);
+    if (card.targeting !== 'lane') throw validationError(`${path}.effectId 'opposed_enemy_offline_next_combat' requires targeting 'lane'`);
+  }
+  if (card.effectId === 'lane_tempo_mod_until_combat') {
+    const params = card.effectParams ?? {};
+    if (params && (typeof params !== 'object' || Array.isArray(params))) throw validationError(`${path}.effectParams must be an object`);
+    const enemyKeys = new Set(['targetEnemyAtk', 'targetEnemyHp', 'targetEnemyArmor', 'opposingAllyAtk', 'opposingAllyHp', 'opposingAllyArmor']);
+    const friendlyKeys = new Set(['allyAtk', 'allyHp', 'allyArmor', 'opposingEnemyAtk', 'opposingEnemyHp', 'opposingEnemyArmor']);
+    const allowed = card.targeting === 'enemy_unit' ? enemyKeys : friendlyKeys;
+    Object.entries(params).forEach(([key, value]) => {
+      if (!allowed.has(key)) throw validationError(`${path}.effectParams.${key} is not supported for ${card.targeting} lane_tempo_mod_until_combat`);
+      if (!Number.isFinite(value)) throw validationError(`${path}.effectParams.${key} must be a number`);
+      if ((key.endsWith('Hp') || key.endsWith('Armor')) && value !== 0) {
+        throw validationError(`${path}.effectParams.${key} non-zero HP/Armor temporary params are not supported for custom lane_tempo_mod_until_combat`);
+      }
+    });
+  } else if (card.effectParams !== undefined) {
+    throw validationError(`${path}.effectParams is only supported for lane_tempo_mod_until_combat`);
+  }
   if (card.type === 'unit') {
     for (const stat of ['attack', 'hp', 'armor']) {
       if (!Number.isFinite(card[stat])) throw validationError(`${path}.${stat} is required for unit cards`);
@@ -548,10 +568,13 @@ function isCardPlayableForPriority(state, owner, card) {
 function captureMercyActionDiagnostic(state, owner, action, result, opportunityContext = null) {
   if (!state || !action || !result?.ok || result.card?.effectId !== MERCY_EFFECT_ID) return null;
   const targetIndex = action.targetIndex;
-  const allyAfter = describeDiagnosticUnit(state, targetIndex);
-  const opposingIndex = getOpposingLaneIndexForOwner(owner, targetIndex);
-  const opposingAfter = describeDiagnosticUnit(state, opposingIndex);
   const before = action.mercyDiagnosticBefore ?? {};
+  const enemyMode = before.mode === 'enemy_unit' || result.card?.targeting === 'enemy_unit';
+  const opposingIndex = enemyMode
+    ? getOpposingLaneIndexForOwner(owner === 'player' ? 'enemy' : 'player', targetIndex)
+    : getOpposingLaneIndexForOwner(owner, targetIndex);
+  const allyAfter = describeDiagnosticUnit(state, enemyMode ? opposingIndex : targetIndex);
+  const opposingAfter = describeDiagnosticUnit(state, enemyMode ? targetIndex : opposingIndex);
   const side = state?.[owner] ?? {};
   const opponentOwner = owner === 'player' ? 'enemy' : 'player';
   const opponent = state?.[opponentOwner] ?? {};
@@ -567,6 +590,18 @@ function captureMercyActionDiagnostic(state, owner, action, result, opportunityC
     matchup: owner === 'player'
       ? `${side.factionName ?? opportunityContext?.playerFaction} vs ${opponent.factionName ?? opportunityContext?.enemyFaction}`
       : `${side.factionName ?? opportunityContext?.enemyFaction} vs ${opponent.factionName ?? opportunityContext?.playerFaction}`,
+    mode: enemyMode ? 'enemy_unit' : 'friendly_unit',
+    selectedEnemy: enemyMode ? {
+      ...(before.selectedEnemy ?? describeDiagnosticUnit(state, targetIndex)),
+      effectiveAtkBefore: (before.selectedEnemy ?? describeDiagnosticUnit(state, targetIndex))?.effectiveAtk ?? null,
+      effectiveAtkAfter: opposingAfter?.effectiveAtk ?? null,
+      reducedToZero: (opposingAfter?.effectiveAtk ?? 0) === 0,
+    } : null,
+    opposingAlly: enemyMode && before.opposingAlly ? {
+      ...before.opposingAlly,
+      effectiveAtkBefore: before.opposingAlly.effectiveAtk ?? null,
+      effectiveAtkAfter: allyAfter?.effectiveAtk ?? null,
+    } : null,
     selectedAlly: {
       ...(before.ally ?? describeDiagnosticUnit(state, targetIndex)),
       effectiveAtkBefore: (before.ally ?? describeDiagnosticUnit(state, targetIndex))?.effectiveAtk ?? null,
@@ -577,7 +612,7 @@ function captureMercyActionDiagnostic(state, owner, action, result, opportunityC
       effectiveAtkBefore: before.opposingEnemy.effectiveAtk ?? null,
       effectiveAtkAfter: opposingAfter?.effectiveAtk ?? null,
     } : null,
-    opposingLaneEmpty: !before.opposingEnemy,
+    opposingLaneEmpty: enemyMode ? !before.opposingAlly : !before.opposingEnemy,
     playableHand,
     combat: {
       allyFought: false,
@@ -599,18 +634,24 @@ function attachMercyCombatDiagnostics(state, events) {
   if (!Array.isArray(pending) || pending.length === 0) return;
   pending.forEach((entry) => {
     if (entry.combatResolved) return;
-    const allyIndex = entry.actingSide === 'player' ? (entry.selectedAlly.lane + 6) : entry.selectedAlly.lane;
-    const enemyIndex = entry.actingSide === 'player' ? entry.selectedAlly.lane : (entry.selectedAlly.lane + 6);
+    const lane = entry.mode === 'enemy_unit' ? entry.selectedEnemy?.lane : entry.selectedAlly?.lane;
+    if (!Number.isInteger(lane)) {
+      entry.combatResolved = true;
+      return;
+    }
+    const allyIndex = entry.actingSide === 'player' ? (lane + 6) : lane;
+    const enemyIndex = entry.actingSide === 'player' ? lane : (lane + 6);
     const allyEvents = events.filter((event) => event.attackerSide === entry.actingSide && event.attackerIndex === allyIndex);
     const enemyEvents = events.filter((event) => event.attackerSide !== entry.actingSide && event.attackerIndex === enemyIndex);
     entry.combat.allyFought = allyEvents.length > 0;
     entry.combat.allyDealtUnitDamage = allyEvents.some((event) => event.targetType === 'unit' && event.damage > 0);
     entry.combat.allyDealtBaseDamage = allyEvents.some((event) => event.targetType === 'hero' && event.damage > 0);
     entry.combat.opposingEnemyFought = enemyEvents.length > 0;
-    entry.combat.opposingEnemyWouldHaveDealtDamage = (entry.opposingEnemy?.effectiveAtkBefore ?? 0) > 0 && (entry.opposingEnemy || false);
+    const enemyDiag = entry.mode === 'enemy_unit' ? entry.selectedEnemy : entry.opposingEnemy;
+    entry.combat.opposingEnemyWouldHaveDealtDamage = (enemyDiag?.effectiveAtkBefore ?? 0) > 0 && Boolean(enemyDiag);
     entry.combat.opposingEnemyDamageReducedOrPrevented = enemyEvents.some((event) => (
-      event.damage <= Math.max(0, entry.opposingEnemy?.effectiveAtkBefore ?? 0)
-      && (entry.opposingEnemy?.effectiveAtkAfter ?? entry.opposingEnemy?.effectiveAtkBefore ?? 0) < (entry.opposingEnemy?.effectiveAtkBefore ?? 0)
+      event.damage <= Math.max(0, enemyDiag?.effectiveAtkBefore ?? 0)
+      && (enemyDiag?.effectiveAtkAfter ?? enemyDiag?.effectiveAtkBefore ?? 0) < (enemyDiag?.effectiveAtkBefore ?? 0)
     ));
     entry.combatResolved = true;
   });
@@ -863,11 +904,18 @@ function applyAction(state, owner, passStats, decisionOptions, telemetry, simTel
   const action = chooseBattleAction(state, owner, { ...decisionOptions, telemetry });
   if (action?.effectId === MERCY_EFFECT_ID) {
     const targetIndex = action.targetIndex;
-    const opposingIndex = getOpposingLaneIndexForOwner(owner, targetIndex);
     const hand = state?.[owner]?.hand ?? [];
+    const actionCard = hand.find((card) => card.id === action.cardId);
+    const enemyMode = actionCard?.targeting === 'enemy_unit';
+    const opposingIndex = enemyMode
+      ? getOpposingLaneIndexForOwner(owner === 'player' ? 'enemy' : 'player', targetIndex)
+      : getOpposingLaneIndexForOwner(owner, targetIndex);
     action.mercyDiagnosticBefore = {
-      ally: describeDiagnosticUnit(state, targetIndex),
-      opposingEnemy: describeDiagnosticUnit(state, opposingIndex),
+      mode: enemyMode ? 'enemy_unit' : 'friendly_unit',
+      ally: describeDiagnosticUnit(state, enemyMode ? opposingIndex : targetIndex),
+      opposingEnemy: describeDiagnosticUnit(state, enemyMode ? targetIndex : opposingIndex),
+      selectedEnemy: enemyMode ? describeDiagnosticUnit(state, targetIndex) : null,
+      opposingAlly: enemyMode ? describeDiagnosticUnit(state, opposingIndex) : null,
     };
     action.mercyDiagnosticPlayableHand = {
       forcedMarch: hand.some((card) => card.name === 'Forced March' && isCardPlayableForPriority(state, owner, card)),
@@ -1040,6 +1088,8 @@ function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, simTel
     overflowCombatDamage: state.overflowCombatDamage ?? 0,
     overflowCombatTriggersByCardId: { ...(state.overflowCombatTriggersByCardId ?? {}) },
     overflowCombatDamageByCardId: { ...(state.overflowCombatDamageByCardId ?? {}) },
+    hotRunnerOfflineTelemetry: { ...(state.hotRunnerOfflineTelemetry ?? {}) },
+    offlineReservationLeaks: (state.offlineReservations ?? []).filter((entry) => !entry.returned).length,
     effectVariantOperationTelemetry: [...(state.effectVariantOperationTelemetry ?? [])],
     cardGameTelemetry,
   };
@@ -1287,17 +1337,19 @@ function printMercyDiagnostics(simTelemetry) {
     return;
   }
   const pctOfUses = (count) => `${percent(count, uses.length)}%`;
+  const enemyFor = (entry) => entry.mode === 'enemy_unit' ? entry.selectedEnemy : entry.opposingEnemy;
   console.table([{
     'Mercy total uses': uses.length,
+    '% enemy_unit mode selected enemy existed': pctOfUses(uses.filter((entry) => entry.mode === 'enemy_unit' && entry.selectedEnemy).length),
     '% target fought next combat': pctOfUses(uses.filter((entry) => entry.combat.allyFought).length),
     '% target dealt damage next combat': pctOfUses(uses.filter((entry) => entry.combat.allyDealtUnitDamage || entry.combat.allyDealtBaseDamage).length),
-    '% opposing enemy existed': pctOfUses(uses.filter((entry) => entry.opposingEnemy).length),
-    '% opposing enemy ATK > 0 before': pctOfUses(uses.filter((entry) => (entry.opposingEnemy?.effectiveAtkBefore ?? 0) > 0).length),
+    '% enemy existed': pctOfUses(uses.filter((entry) => enemyFor(entry)).length),
+    '% enemy ATK > 0 before': pctOfUses(uses.filter((entry) => (enemyFor(entry)?.effectiveAtkBefore ?? 0) > 0).length),
     '% opposing enemy would have dealt damage': pctOfUses(uses.filter((entry) => entry.combat.opposingEnemyWouldHaveDealtDamage).length),
     'WR target fought': winRateForMercyUses(uses, (entry) => entry.combat.allyFought),
     'WR target did not fight': winRateForMercyUses(uses, (entry) => !entry.combat.allyFought),
-    'WR opposing enemy existed': winRateForMercyUses(uses, (entry) => entry.opposingEnemy),
-    'WR opposing lane empty': winRateForMercyUses(uses, (entry) => !entry.opposingEnemy),
+    'WR enemy existed': winRateForMercyUses(uses, (entry) => enemyFor(entry)),
+    'WR enemy missing': winRateForMercyUses(uses, (entry) => !enemyFor(entry)),
   }]);
 
   console.log('\nMercy uses per matchup');
@@ -1602,7 +1654,7 @@ function main() {
   const combinedPairs = new Map();
   const orderedMatchups = new Map();
   const passStats = { pass: 0, cancelled: 0 };
-  const telemetry = { replaceUsed: 0, repositionUsed: 0, meaningfulGameplayActions: 0, pointlessGameplayActions: 0, openLaneImprovements: 0, repeatedLoopPreventions: 0, invalidActions: 0, crashes: 0, quickFixUses: 0, quickFixTriggers: 0, shieldPushUses: 0, defensiveFrictionApplications: 0, funeralPyreUses: 0, systemOverrideUses: 0, funeralPyreTriggers: 0, funeralPyreLaneDamageTriggers: 0, combatOnlyDeathHeroTriggers: 0, combatOnlyDeathLaneDamageTriggers: 0, combatOnlyDeathSummons: 0, leechCombatHeals: 0, rotcallerCombatTriggers: 0, overflowCombatTriggers: 0, overflowCombatDamage: 0, overflowCombatTriggersByCardId: {}, overflowCombatDamageByCardId: {}, mulliganByFaction: {} };
+  const telemetry = { replaceUsed: 0, repositionUsed: 0, meaningfulGameplayActions: 0, pointlessGameplayActions: 0, openLaneImprovements: 0, repeatedLoopPreventions: 0, invalidActions: 0, crashes: 0, quickFixUses: 0, quickFixTriggers: 0, shieldPushUses: 0, defensiveFrictionApplications: 0, funeralPyreUses: 0, systemOverrideUses: 0, funeralPyreTriggers: 0, funeralPyreLaneDamageTriggers: 0, combatOnlyDeathHeroTriggers: 0, combatOnlyDeathLaneDamageTriggers: 0, combatOnlyDeathSummons: 0, leechCombatHeals: 0, rotcallerCombatTriggers: 0, overflowCombatTriggers: 0, overflowCombatDamage: 0, overflowCombatTriggersByCardId: {}, overflowCombatDamageByCardId: {}, hotRunnerOffline: { plays: 0, withEnemy: 0, noEnemy: 0, takenOffline: 0, returned: 0, baseHits: 0, baseDamage: 0, leaks: 0, duplicateReturns: 0 }, mulliganByFaction: {} };
   const audit = { games: 0, draws: 0, turnCaps: 0, aggroTurnCapWins: 0, aggroGames: 0, nonSwarmGames: 0, nonSwarmDraws: 0, nonSwarmTurnCaps: 0, swarmMirrorGames: 0, swarmMirrorDraws: 0, simultaneousLethals: 0, simultaneousLethalDrawsAfter: 0 };
   const handLockAnalysis = createHandLockAnalysis();
 
@@ -1632,6 +1684,10 @@ function main() {
       telemetry.rotcallerCombatTriggers += result.rotcallerCombatTriggers ?? 0;
       telemetry.overflowCombatTriggers += result.overflowCombatTriggers ?? 0;
       telemetry.overflowCombatDamage += result.overflowCombatDamage ?? 0;
+      Object.entries(result.hotRunnerOfflineTelemetry ?? {}).forEach(([key, value]) => {
+        if (typeof value === 'number') telemetry.hotRunnerOffline[key] = (telemetry.hotRunnerOffline[key] ?? 0) + value;
+      });
+      telemetry.hotRunnerOffline.leaks += result.offlineReservationLeaks ?? 0;
       Object.entries(result.overflowCombatTriggersByCardId ?? {}).forEach(([cardId, count]) => {
         telemetry.overflowCombatTriggersByCardId[cardId] = (telemetry.overflowCombatTriggersByCardId[cardId] ?? 0) + count;
       });
@@ -1895,6 +1951,19 @@ Battle simulation complete (${effectiveMatchCount} games per matchup${filterSumm
     { metric: 'Rotcaller combat triggers', count: telemetry.rotcallerCombatTriggers },
     { metric: 'overflow combat triggers', count: telemetry.overflowCombatTriggers },
     { metric: 'overflow base damage total', count: telemetry.overflowCombatDamage },
+  ]);
+  console.log('\nHot Runner offline diagnostics:');
+  console.table([
+    { metric: 'total Hot Runner offline plays', count: telemetry.hotRunnerOffline.plays ?? 0 },
+    { metric: 'plays with opposing enemy present', count: telemetry.hotRunnerOffline.withEnemy ?? 0 },
+    { metric: 'plays with no opposing enemy', count: telemetry.hotRunnerOffline.noEnemy ?? 0 },
+    { metric: 'enemies taken offline', count: telemetry.hotRunnerOffline.takenOffline ?? 0 },
+    { metric: 'Hot Runner base hits due to offline', count: telemetry.hotRunnerOffline.baseHits ?? 0 },
+    { metric: 'base damage due to offline', count: telemetry.hotRunnerOffline.baseDamage ?? 0 },
+    { metric: 'reserved enemies returned', count: telemetry.hotRunnerOffline.returned ?? 0 },
+    { metric: 'reserved enemy leaks after games', count: telemetry.hotRunnerOffline.leaks ?? 0 },
+    { metric: 'duplicate/blocked returns', count: telemetry.hotRunnerOffline.duplicateReturns ?? 0 },
+    { metric: 'Attrition death triggers skipped because offline is not death', count: telemetry.hotRunnerOffline.takenOffline ?? 0 },
   ]);
   console.log('\nOverflow combat telemetry by card id:');
   const overflowCardIds = [...new Set([
