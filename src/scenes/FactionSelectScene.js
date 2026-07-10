@@ -8,9 +8,7 @@ import { applyAudioSettings, loadSettings } from '../systems/settingsState.js';
 import {
   MENU_BACKGROUND_FALLBACK_COLOR,
   MENU_BACKGROUND_FALLBACK_COLOR_HEX,
-  createCoverBackground,
-  createMenuArenaLightSweep,
-  getMenuBackgroundAsset,
+  createAnimatedMenuBackground,
   preloadMenuBackgroundArt,
 } from '../rendering/backgroundArt.js';
 import { AUDIO_KEYS, preloadAudioAssets } from '../audio/audioAssets.js';
@@ -119,17 +117,14 @@ export default class FactionSelectScene extends Phaser.Scene {
     const factionKeys = getFactionKeys();
 
     this.cameras.main.setBackgroundColor(MENU_BACKGROUND_FALLBACK_COLOR_HEX);
-    createCoverBackground(this, {
-      asset: getMenuBackgroundAsset(),
+    this.menuBackground = createAnimatedMenuBackground(this, {
       fallbackColor: MENU_BACKGROUND_FALLBACK_COLOR,
       width,
       height,
-    });
-    createMenuArenaLightSweep(this, {
-      width,
-      height,
-      opacity: 0.075,
-      y: height * 0.24,
+      lightSweepOptions: {
+        opacity: 0.075,
+        y: height * 0.24,
+      },
     });
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.cleanupScene, this);

@@ -4,8 +4,7 @@ import { getFactionPresentationName } from '../data/presentation/factionPresenta
 import {
   MENU_BACKGROUND_FALLBACK_COLOR,
   MENU_BACKGROUND_FALLBACK_COLOR_HEX,
-  createCoverBackground,
-  getMenuBackgroundAsset,
+  createAnimatedMenuBackground,
   preloadMenuBackgroundArt,
 } from '../rendering/backgroundArt.js';
 import { preloadAllCardIllustrations } from '../rendering/cardIllustrationAssets.js';
@@ -88,11 +87,11 @@ export default class CollectionScene extends Phaser.Scene {
     const { width, height } = this.scale;
 
     this.cameras.main.setBackgroundColor(MENU_BACKGROUND_FALLBACK_COLOR_HEX);
-    createCoverBackground(this, {
-      asset: getMenuBackgroundAsset(),
+    this.menuBackground = createAnimatedMenuBackground(this, {
       fallbackColor: MENU_BACKGROUND_FALLBACK_COLOR,
       width,
       height,
+      lightSweep: false,
     });
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.cleanupScene, this);

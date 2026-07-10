@@ -14,6 +14,14 @@ const DEFAULT_BATTLE_BACKGROUND_PUBLIC_PATH = 'assets/backgrounds/default/battle
 const ARENA_LIGHT_SWEEP_TEXTURE_KEY = 'effect.arena-light-sweep.soft-gradient';
 const ARENA_LIGHT_SWEEP_TEXTURE_SIZE = 512;
 
+const MENU_BACKGROUND_AMBIENT_DRIFT = {
+  scaleMultiplier: 1.02,
+  x: -5,
+  y: -7,
+  duration: 32000,
+  ease: 'Sine.easeInOut',
+};
+
 export function resolvePublicAssetPath(path) {
   const base = import.meta.env?.BASE_URL || './';
   const normalizedBase = base.endsWith('/') ? base : `${base}/`;
@@ -203,4 +211,138 @@ export function createCoverBackground(scene, {
 
   return scene.add.rectangle(centerX, centerY, width, height, fallbackColor, fallbackAlpha)
     .setDepth(depth);
+}
+
+
+export function createAnimatedMenuBackground(scene, {
+  width = scene.scale.width,
+  height = scene.scale.height,
+  depth = -1000,
+  fallbackColor = MENU_BACKGROUND_FALLBACK_COLOR,
+  fallbackAlpha = 1,
+  lightSweep = true,
+  lightSweepOptions = {},
+  ambientDrift = {},
+} = {}) {
+  const background = createCoverBackground(scene, {
+    asset: MENU_BACKGROUND_ASSET,
+    fallbackColor,
+    fallbackAlpha,
+    depth,
+    width,
+    height,
+  });
+
+  const state = {
+    background,
+    lightSweep: null,
+    ambientTween: null,
+  };
+
+  const imageBackground = isImageBackground(background);
+  const driftOptions = { ...MENU_BACKGROUND_AMBIENT_DRIFT, ...ambientDrift };
+
+  const startAmbientDrift = (nextWidth = scene.scale.width, nextHeight = scene.scale.height) => {
+    if (!imageBackground || !background?.active) {
+      return;
+    }
+
+    if (state.ambientTween) {
+      state.ambientTween.stop();
+      state.ambientTween.remove();
+      state.ambientTween = null;
+    }
+    scene.tweens.killTweensOf(background);
+
+    const coverScale = Math.max(nextWidth / background.width, nextHeight / background.height);
+    const targetScale = coverScale * driftOptions.scaleMultiplier;
+    background
+      .setPosition(nextWidth * 0.5, nextHeight * 0.5)
+      .setScale(coverScale);
+
+    state.ambientTween = scene.tweens.add({
+      targets: background,
+      x: nextWidth * 0.5 + driftOptions.x,
+      y: nextHeight * 0.5 + driftOptions.y,
+      scaleX: targetScale,
+      scaleY: targetScale,
+      duration: driftOptions.duration,
+      ease: driftOptions.ease,
+      yoyo: true,
+      repeat: -1,
+    });
+  };
+
+  const createSweep = (nextWidth = scene.scale.width, nextHeight = scene.scale.height) => {
+    if (!lightSweep) {
+      return;
+    }
+    if (state.lightSweep) {
+      scene.tweens.killTweensOf(state.lightSweep);
+      state.lightSweep.destroy();
+      state.lightSweep = null;
+    }
+    state.lightSweep = createMenuArenaLightSweep(scene, {
+      width: nextWidth,
+      height: nextHeight,
+      ...lightSweepOptions,
+    });
+  };
+
+  const resize = (nextWidth = scene.scale.width, nextHeight = scene.scale.height) => {
+    if (imageBackground) {
+      startAmbientDrift(nextWidth, nextHeight);
+    } else if (background?.active) {
+      background
+        .setPosition(nextWidth * 0.5, nextHeight * 0.5)
+        .setSize(nextWidth, nextHeight);
+    }
+    createSweep(nextWidth, nextHeight);
+  };
+
+  const cleanup = () => {
+    if (state.ambientTween) {
+      state.ambientTween.stop();
+      state.ambientTween.remove();
+      state.ambientTween = null;
+    }
+    if (background) {
+      scene.tweens.killTweensOf(background);
+    }
+    if (state.lightSweep) {
+      scene.tweens.killTweensOf(state.lightSweep);
+      state.lightSweep.destroy();
+      state.lightSweep = null;
+    }
+  };
+
+  const onScaleResize = (gameSize) => {
+    resize(gameSize?.width ?? scene.scale.width, gameSize?.height ?? scene.scale.height);
+  };
+
+  const cleanupWithListeners = () => {
+    scene.scale?.off?.('resize', onScaleResize);
+    cleanup();
+  };
+
+  createSweep(width, height);
+  startAmbientDrift(width, height);
+
+  scene.scale?.on?.('resize', onScaleResize);
+  scene.events.once(globalThis.Phaser?.Scenes?.Events?.SHUTDOWN ?? 'shutdown', cleanupWithListeners);
+
+  return {
+    background,
+    get lightSweep() {
+      return state.lightSweep;
+    },
+    resize,
+    cleanup: cleanupWithListeners,
+    isImage: imageBackground,
+    ambient: imageBackground ? { ...driftOptions } : null,
+  };
+}
+
+function isImageBackground(background) {
+  return Boolean(background?.texture?.key && background?.setScale && background?.type !== 'Rectangle');
 }
