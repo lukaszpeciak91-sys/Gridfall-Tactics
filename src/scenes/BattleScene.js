@@ -2491,15 +2491,18 @@ export default class BattleScene extends Phaser.Scene {
         });
       if (!batch.length) return;
       const layout = calculateAchievementUnlockPopupLayout(this, this.battleResultModal);
-      let activePopup = null;
-      let gapTimer = null;
+      let activeIncomingPopup = null;
+      let activeOutgoingPopup = null;
+      let initialDelayTimer = null;
       let destroyed = false;
       let cursor = 0;
       const cleanupActive = () => {
-        activePopup?.destroy?.();
-        activePopup = null;
-        gapTimer?.remove?.(false);
-        gapTimer = null;
+        activeIncomingPopup?.destroy?.();
+        activeIncomingPopup = null;
+        activeOutgoingPopup?.destroy?.();
+        activeOutgoingPopup = null;
+        initialDelayTimer?.remove?.(false);
+        initialDelayTimer = null;
       };
       const controller = {
         destroy: () => {
@@ -2507,33 +2510,41 @@ export default class BattleScene extends Phaser.Scene {
           destroyed = true;
           cleanupActive();
         },
-        getActivePopup: () => activePopup,
+        getActivePopup: () => activeIncomingPopup ?? activeOutgoingPopup,
+        getIncomingPopup: () => activeIncomingPopup,
+        getOutgoingPopup: () => activeOutgoingPopup,
       };
       const showNext = () => {
         if (destroyed || cursor >= batch.length || !this.battleResultModalShown || !this.battleResultModal) return;
         const entry = batch[cursor];
-        activePopup = createAchievementUnlockPopup(this, entry.definition, {
-          index: cursor + 1,
+        const popupIndex = cursor;
+        const popup = createAchievementUnlockPopup(this, entry.definition, {
+          index: popupIndex + 1,
           total: batch.length,
           layout,
           modal: this.battleResultModal,
           timing: ACHIEVEMENT_UNLOCK_POPUP_TIMING,
         });
+        activeIncomingPopup = popup;
+        cursor += 1;
         this.playAchievementUnlockPopupSfx(entry.achievementId);
-        activePopup.play({
+        popup.play({
+          onExitStart: () => {
+            if (destroyed) return;
+            if (activeIncomingPopup === popup) activeIncomingPopup = null;
+            activeOutgoingPopup = popup;
+            if (cursor < batch.length) showNext();
+          },
           onComplete: () => {
             if (destroyed) return;
             markAchievementPresented(entry.achievementId);
-            activePopup = null;
-            cursor += 1;
-            if (cursor < batch.length) {
-              gapTimer = this.time.delayedCall(ACHIEVEMENT_UNLOCK_POPUP_TIMING.gapMs, showNext);
-            }
+            if (activeOutgoingPopup === popup) activeOutgoingPopup = null;
+            if (activeIncomingPopup === popup) activeIncomingPopup = null;
           },
         });
       };
       this.achievementUnlockPopupController = controller;
-      showNext();
+      initialDelayTimer = this.time.delayedCall(ACHIEVEMENT_UNLOCK_POPUP_TIMING.initialDelayMs, showNext);
     } catch (error) {
       console.warn('Achievement unlock popup presentation failed; result modal remains usable.', error);
       this.destroyAchievementUnlockPopupController();

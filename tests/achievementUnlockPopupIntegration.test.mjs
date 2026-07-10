@@ -17,20 +17,32 @@ test('standard result modal starts achievement popups only after modal assignmen
   assert.ok(assignment >= 0 && shown > assignment && overlay > shown && start > overlay);
 });
 
-test('popup integration limits batches to 3 and shows sequential non-stacked popups', () => {
+test('popup integration limits batches to 3 and shows sequential overlapping non-stacked popups', () => {
   const start = method('startAchievementUnlockPopupsForResultModal', 'createResultModalButton');
   assert.match(start, /peekAchievementPresentation\(ACHIEVEMENT_UNLOCK_POPUP_MAX_BATCH\)/);
   assert.match(helper, /ACHIEVEMENT_UNLOCK_POPUP_MAX_BATCH = 3/);
-  assert.match(start, /let activePopup = null;/);
+  assert.match(start, /let activeIncomingPopup = null;/);
+  assert.match(start, /let activeOutgoingPopup = null;/);
   assert.match(start, /const layout = calculateAchievementUnlockPopupLayout\(this, this\.battleResultModal\);/);
-  assert.match(start, /cursor \+= 1;[\s\S]*this\.time\.delayedCall\(ACHIEVEMENT_UNLOCK_POPUP_TIMING\.gapMs, showNext\)/);
+  assert.match(start, /onExitStart: \(\) => \{[\s\S]*activeOutgoingPopup = popup;[\s\S]*if \(cursor < batch.length\) showNext\(\);/);
+  assert.doesNotMatch(start, /gapTimer|gapMs/);
+});
+
+
+
+test('popup startup uses a short owned delay that cleanup cancels', () => {
+  const start = method('startAchievementUnlockPopupsForResultModal', 'createResultModalButton');
+  assert.match(helper, /initialDelayMs: 420/);
+  assert.match(start, /let initialDelayTimer = null;/);
+  assert.match(start, /initialDelayTimer = this\.time\.delayedCall\(ACHIEVEMENT_UNLOCK_POPUP_TIMING\.initialDelayMs, showNext\);/);
+  assert.match(start, /initialDelayTimer\?\.remove\?\.\(false\);/);
 });
 
 test('popup start path plays achievement unlock SFX before each popup animation begins', () => {
   const start = method('startAchievementUnlockPopupsForResultModal', 'createResultModalButton');
-  const create = start.indexOf('activePopup = createAchievementUnlockPopup(this, entry.definition, {');
+  const create = start.indexOf('const popup = createAchievementUnlockPopup(this, entry.definition, {');
   const sfx = start.indexOf('this.playAchievementUnlockPopupSfx(entry.achievementId);', create);
-  const play = start.indexOf('activePopup.play({', sfx);
+  const play = start.indexOf('popup.play({', sfx);
   assert.ok(create >= 0 && sfx > create && play > sfx);
 });
 
@@ -44,16 +56,16 @@ test('achievement unlock SFX is guarded per result modal lifecycle without chang
   assert.match(guard, /if \(!this\.achievementUnlockSfxPlayedIds\) this\.achievementUnlockSfxPlayedIds = new Set\(\);/);
   assert.match(guard, /if \(this\.achievementUnlockSfxPlayedIds\.has\(achievementId\)\) return false;/);
   assert.match(guard, /this\.achievementUnlockSfxPlayedIds\.add\(achievementId\);[\s\S]*return this\.playBattleSfx\?\.\(AUDIO_KEYS\.ACHIEVEMENT_UNLOCK, \{ cooldownMs: 0 \}\);/);
-  assert.match(start, /this\.playAchievementUnlockPopupSfx\(entry\.achievementId\);[\s\S]*activePopup\.play\(\{/);
+  assert.match(start, /this\.playAchievementUnlockPopupSfx\(entry\.achievementId\);[\s\S]*popup\.play\(\{/);
   assert.doesNotMatch(destroyPopup, /achievementUnlockSfxPlayedIds\s*=/);
   assert.match(destroyModal, /this\.achievementUnlockSfxPlayedIds = new Set\(\);/);
-  assert.ok(start.lastIndexOf('markAchievementPresented(entry.achievementId);') > start.indexOf('activePopup.play({'), 'SFX guard must not mark achievement presented before popup completion');
+  assert.ok(start.lastIndexOf('markAchievementPresented(entry.achievementId);') > start.indexOf('popup.play({'), 'SFX guard must not mark achievement presented before popup completion');
 });
 
 test('achievement is marked presented only after popup completion and early destroy leaves unfinished pending', () => {
   const start = method('startAchievementUnlockPopupsForResultModal', 'createResultModalButton');
-  assert.match(start, /activePopup\.play\(\{[\s\S]*onComplete: \(\) => \{[\s\S]*markAchievementPresented\(entry\.achievementId\);/);
-  assert.ok(start.lastIndexOf('markAchievementPresented(entry.achievementId);') > start.indexOf('activePopup.play({'), 'valid entries should be marked only inside popup completion');
+  assert.match(start, /popup\.play\(\{[\s\S]*onComplete: \(\) => \{[\s\S]*markAchievementPresented\(entry\.achievementId\);/);
+  assert.ok(start.lastIndexOf('markAchievementPresented(entry.achievementId);') > start.indexOf('popup.play({'), 'valid entries should be marked only inside popup completion');
   assert.match(start, /destroy: \(\) => \{[\s\S]*cleanupActive\(\);[\s\S]*\}/);
 });
 
