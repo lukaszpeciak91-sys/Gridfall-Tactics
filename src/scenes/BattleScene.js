@@ -25,6 +25,7 @@ import { getActiveLocale, translateActive, translateActiveList } from '../locali
 import { applyCampaignBattleResult, clearCampaign, createNewCampaign, isValidCampaignState, loadCampaign, saveCampaign } from '../systems/campaignState.js';
 import { incrementBattleStat, incrementCardPlayedStat, loadPlayerStats, markTutorialCompleted, savePlayerStats } from '../systems/playerStats.js';
 import { incrementCampaignCompletedStat } from '../systems/playerStats.js';
+import { evaluateAndPersistAchievementUnlocks } from '../systems/runtimeAchievements.js';
 import { getCardBoardArtPositionY } from '../data/presentation/cardArtCropOverrides.js';
 import { AUDIO_KEYS, preloadAudioAssets } from '../audio/audioAssets.js';
 import { playManagedSfx, playMusic, playSfx, stopManagedSfx, stopMusic } from '../audio/audioPlayback.js';
@@ -1807,10 +1808,12 @@ export default class BattleScene extends Phaser.Scene {
         playerFactionKey: updatedCampaign.playerFactionKey,
       });
       savePlayerStats(nextStats);
+      evaluateAndPersistAchievementUnlocks();
+      return true;
     } catch (error) {
       console.warn('Campaign lifecycle player stats tracking failed; campaign flow will continue.', error);
+      return false;
     }
-    return true;
   }
 
   trackPlayerCardPlayedStat(statKey) {
@@ -1837,10 +1840,11 @@ export default class BattleScene extends Phaser.Scene {
     try {
       const nextStats = markTutorialCompleted(loadPlayerStats());
       savePlayerStats(nextStats);
+      return true;
     } catch (error) {
       console.warn('Tutorial completion player stats tracking failed; battle flow will continue.', error);
+      return false;
     }
-    return true;
   }
 
   trackCompletedBattleStatsOnce() {
@@ -1864,17 +1868,21 @@ export default class BattleScene extends Phaser.Scene {
         enemyFactionKey: this.gameState.enemy?.factionKey ?? this.enemyFactionKey,
       });
       savePlayerStats(nextStats);
+      return true;
     } catch (error) {
       console.warn('Battle result player stats tracking failed; battle flow will continue.', error);
+      return false;
     }
-    return true;
   }
 
   scheduleBattleResultModal(delayMs = 500) {
     if (!this.gameState?.winner || this.battleResultModalShown || this.battleResultModalPending) return;
     this.stopCampaignBattleTimer();
-    this.trackTutorialCompletionOnce();
-    this.trackCompletedBattleStatsOnce();
+    const tutorialStatsTracked = this.trackTutorialCompletionOnce();
+    const battleStatsTracked = this.trackCompletedBattleStatsOnce();
+    if (tutorialStatsTracked || battleStatsTracked) {
+      evaluateAndPersistAchievementUnlocks();
+    }
     const hasLethalTerminalFailure = Boolean(this.getLethalTerminalFailureSides().length);
     if (hasLethalTerminalFailure) {
       delayMs = Math.min(Math.max(delayMs, BASE_TERMINAL_FAILURE_MODAL_DELAY_MS), BASE_TERMINAL_FAILURE_MS);
