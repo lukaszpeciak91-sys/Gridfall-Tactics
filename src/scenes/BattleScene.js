@@ -2271,7 +2271,9 @@ export default class BattleScene extends Phaser.Scene {
       const overlayWidth = Math.min(width * 0.94, 720);
       const overlayHeight = Math.min(Math.max(height * 0.27, 230), 310);
       const resultText = this.getBattleResultText();
-      const resultSubtitle = this.getBattleResultSubtitle();
+      const resultSubtitle = typeof options.resultSubtitle === 'string'
+        ? options.resultSubtitle
+        : this.getBattleResultSubtitle();
       const resultStatsText = this.getBattleResultStatsText();
       const presentation = this.getBattleResultPresentation();
       this.logResultModalDiagnostic('showBattleResultModal:before-result-sfx', { skipReveal });
@@ -2418,6 +2420,7 @@ export default class BattleScene extends Phaser.Scene {
       this.resultOverlayState = {
         kind: this.getBattleResultOverlayKind(),
         phase: 'interactive',
+        resultSubtitle,
       };
     } catch (error) {
       this.logResultModalDiagnostic('showBattleResultModal:catch', {
@@ -3397,7 +3400,9 @@ export default class BattleScene extends Phaser.Scene {
     const victorySplashText = translateActive('ui.campaignResult.victorySplash', 'VICTORY');
     const flavorPoolKey = won ? 'ui.campaignResult.wonFlavors' : 'ui.campaignResult.lostFlavors';
     const flavorFallbacks = won ? CAMPAIGN_RESULT_FLAVOR_FALLBACKS.won : CAMPAIGN_RESULT_FLAVOR_FALLBACKS.lost;
-    const flavorText = pickRandomTextEntry(translateActiveList(flavorPoolKey, flavorFallbacks), flavorFallbacks[0]);
+    const flavorText = typeof options.flavorText === 'string'
+      ? options.flavorText
+      : pickRandomTextEntry(translateActiveList(flavorPoolKey, flavorFallbacks), flavorFallbacks[0]);
     const hasTrophyTexture = won && hasLoadedImageAsset(this, CAMPAIGN_TROPHY_ASSET);
 
     const overlay = this.add.rectangle(centerX, height / 2, width, height, 0x000000, CAMPAIGN_COMPLETION_OVERLAY_ALPHA)
@@ -3458,7 +3463,7 @@ export default class BattleScene extends Phaser.Scene {
     };
 
     const revealSummary = () => {
-      this.resultOverlayState = { kind: 'campaign-completion', status, phase: 'summary', preview: options.preview === true, campaign: safeCampaign };
+      this.resultOverlayState = { kind: 'campaign-completion', status, phase: 'summary', preview: options.preview === true, campaign: safeCampaign, flavorText };
       summaryItems.filter((item) => !button.items.includes(item)).forEach((item) => item?.setVisible?.(true)?.setAlpha?.(0));
       this.tweens.add({
         targets: summaryTitle,
@@ -3473,7 +3478,7 @@ export default class BattleScene extends Phaser.Scene {
             ease: 'Sine.easeOut',
             onComplete: () => {
               button.items.forEach((item) => item?.setVisible?.(true)?.setAlpha?.(1));
-              this.resultOverlayState = { kind: 'campaign-completion', status, phase: 'interactive', preview: options.preview === true, campaign: safeCampaign };
+              this.resultOverlayState = { kind: 'campaign-completion', status, phase: 'interactive', preview: options.preview === true, campaign: safeCampaign, flavorText };
             },
           });
         },
@@ -3483,7 +3488,7 @@ export default class BattleScene extends Phaser.Scene {
     const showSummary = () => {
       if (transitionStarted) return;
       transitionStarted = true;
-      this.resultOverlayState = { kind: 'campaign-completion', status, phase: 'summary', preview: options.preview === true, campaign: safeCampaign };
+      this.resultOverlayState = { kind: 'campaign-completion', status, phase: 'summary', preview: options.preview === true, campaign: safeCampaign, flavorText };
       overlay.removeAllListeners('pointerup');
       campaignCelebration?.timers?.forEach((timer) => timer?.remove?.(false));
       campaignCelebration?.particles?.forEach((particle) => particle?.destroy?.());
@@ -3730,6 +3735,7 @@ export default class BattleScene extends Phaser.Scene {
       phase: restoreAsInteractive ? 'interactive' : 'cinematic',
       preview: options.preview === true,
       campaign: safeCampaign,
+      flavorText,
     };
     this.battleResultModal = {
       overlay,
@@ -4231,11 +4237,15 @@ export default class BattleScene extends Phaser.Scene {
         preview: snapshot.preview === true,
         campaign: snapshot.campaign,
         restorePhase: phase,
+        flavorText: typeof snapshot.flavorText === 'string' ? snapshot.flavorText : undefined,
       });
       return true;
     }
     if ((snapshot.kind === 'arena-battle-result' || snapshot.kind === 'campaign-battle-result' || snapshot.kind === 'tutorial-battle-result') && this.gameState?.winner) {
-      this.showBattleResultModal({ skipReveal: true });
+      this.showBattleResultModal({
+        skipReveal: true,
+        resultSubtitle: typeof snapshot.resultSubtitle === 'string' ? snapshot.resultSubtitle : undefined,
+      });
       return true;
     }
     return false;
