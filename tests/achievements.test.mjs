@@ -117,6 +117,38 @@ test('existing achievement IDs remain available for compatibility', () => {
 });
 
 
+
+test('achievement balance thresholds and localized descriptions match current targets', () => {
+  const definitions = getAchievementDefinitions();
+  const byId = Object.fromEntries(definitions.map((definition) => [definition.id, definition]));
+
+  assert.equal(byId['general.complete_first_battle'].target, 3);
+  assert.deepEqual(byId['general.complete_first_battle'].display.description, { en: 'Play 3 battles.', pl: 'Rozegraj 3 bitwy.' });
+  assert.equal(byId['general.win_10_battles'].target, 12);
+  assert.deepEqual(byId['general.win_10_battles'].display.description, { en: 'Win 12 battles.', pl: 'Wygraj 12 bitew.' });
+  assert.equal(byId['cards.play_25_units'].target, 30);
+  assert.deepEqual(byId['cards.play_25_units'].display.description, { en: 'Play 30 units.', pl: 'Zagraj 30 jednostek.' });
+  assert.equal(byId['cards.play_25_effects'].target, 30);
+  assert.deepEqual(byId['cards.play_25_effects'].display.description, { en: 'Play 30 effects.', pl: 'Zagraj 30 efektów.' });
+
+  for (const factionKey of getFactionKeys()) {
+    const firstWin = byId[`faction.win_first_battle.${factionKey}`];
+    const winMilestone = byId[`faction.win_10_battles.${factionKey}`];
+    const campaignWin = byId[`faction.win_campaign.${factionKey}`];
+    const unitMilestone = byId[`faction.play_10_units.${factionKey}`];
+    const effectMilestone = byId[`faction.play_10_effects.${factionKey}`];
+    assert.equal(firstWin.target, 1);
+    assert.equal(winMilestone.target, 7);
+    assert.match(winMilestone.display.description.en, /^Win 7 battles with .+\.$/);
+    assert.match(winMilestone.display.description.pl, /^Wygraj 7 bitew frakcją .+\.$/);
+    assert.equal(campaignWin.target, 1);
+    assert.equal(unitMilestone.target, 20);
+    assert.match(unitMilestone.display.description.en, /^Play 20 units with .+\.$/);
+    assert.match(unitMilestone.display.description.pl, /^Zagraj 20 jednostek frakcją .+\.$/);
+    assert.equal(effectMilestone.target, 10);
+  }
+});
+
 test('createDefaultAchievementState creates a versioned empty unlock map', () => {
   assert.deepEqual(createDefaultAchievementState(), {
     version: ACHIEVEMENTS_VERSION,
@@ -172,7 +204,7 @@ test('saveAchievementState and loadAchievementState round-trip normalized achiev
 });
 
 test('evaluateAchievements unlocks first-time achievements', () => {
-  const stats = { ...createDefaultPlayerStats(), battlesPlayed: 1, battlesWon: 1 };
+  const stats = { ...createDefaultPlayerStats(), battlesPlayed: 3, battlesWon: 1 };
   const result = evaluateAchievements(stats, createDefaultAchievementState(), { now: 777 });
 
   assert(result.newlyUnlocked.some((entry) => entry.id === 'general.complete_first_battle'));
@@ -181,7 +213,7 @@ test('evaluateAchievements unlocks first-time achievements', () => {
 });
 
 test('evaluateAchievements does not re-unlock already unlocked achievements', () => {
-  const stats = { ...createDefaultPlayerStats(), battlesPlayed: 1, battlesWon: 1 };
+  const stats = { ...createDefaultPlayerStats(), battlesPlayed: 3, battlesWon: 1 };
   const first = evaluateAchievements(stats, createDefaultAchievementState(), { now: 1 });
   const second = evaluateAchievements(stats, first.achievementState, { now: 2 });
 
@@ -206,10 +238,35 @@ test('evaluateAchievements returns progress for locked threshold achievements', 
 
   assert.deepEqual(result.progress['general.win_10_battles'], {
     current: 3,
-    target: 10,
+    target: 12,
     completed: false,
     unlocked: false,
   });
+});
+
+
+test('evaluateAchievements respects updated thresholds before and at completion', () => {
+  let result = evaluateAchievements({ battlesPlayed: 2, battlesWon: 11, unitsPlayed: 29, effectsPlayed: 29 }, createDefaultAchievementState(), { now: 1 });
+  assert.equal(result.newlyUnlocked.some((entry) => entry.id === 'general.complete_first_battle'), false);
+  assert.equal(result.newlyUnlocked.some((entry) => entry.id === 'general.win_10_battles'), false);
+  assert.equal(result.newlyUnlocked.some((entry) => entry.id === 'cards.play_25_units'), false);
+  assert.equal(result.newlyUnlocked.some((entry) => entry.id === 'cards.play_25_effects'), false);
+
+  result = evaluateAchievements({ battlesPlayed: 3, battlesWon: 12, unitsPlayed: 30, effectsPlayed: 30 }, createDefaultAchievementState(), { now: 2 });
+  assert(result.newlyUnlocked.some((entry) => entry.id === 'general.complete_first_battle'));
+  assert(result.newlyUnlocked.some((entry) => entry.id === 'general.win_10_battles'));
+  assert(result.newlyUnlocked.some((entry) => entry.id === 'cards.play_25_units'));
+  assert(result.newlyUnlocked.some((entry) => entry.id === 'cards.play_25_effects'));
+});
+
+test('previously unlocked achievements remain unlocked when updated thresholds are not met', () => {
+  const state = { unlocked: { 'general.complete_first_battle': { unlockedAt: 123 } } };
+  const result = evaluateAchievements({ battlesPlayed: 1 }, state, { now: 456 });
+
+  assert.deepEqual(result.achievementState.unlocked['general.complete_first_battle'], { unlockedAt: 123 });
+  assert.equal(result.progress['general.complete_first_battle'].completed, true);
+  assert.equal(result.progress['general.complete_first_battle'].unlocked, true);
+  assert.equal(result.newlyUnlocked.some((entry) => entry.id === 'general.complete_first_battle'), false);
 });
 
 test('evaluateAchievements handles partial and malformed Player Stats safely', () => {
@@ -259,7 +316,7 @@ test('faction achievement progress reads faction battle win counters', () => {
   });
   assert.deepEqual(result.progress[`faction.win_10_battles.${factionKey}`], {
     current: 1,
-    target: 10,
+    target: 7,
     completed: false,
     unlocked: false,
   });
@@ -291,9 +348,9 @@ test('faction achievement progress reads faction card play counters', () => {
 
   assert.deepEqual(result.progress[`faction.play_10_units.${factionKey}`], {
     current: 10,
-    target: 10,
-    completed: true,
-    unlocked: true,
+    target: 20,
+    completed: false,
+    unlocked: false,
   });
   assert.deepEqual(result.progress[`faction.play_10_effects.${factionKey}`], {
     current: 10,
@@ -301,7 +358,7 @@ test('faction achievement progress reads faction card play counters', () => {
     completed: true,
     unlocked: true,
   });
-  assert(result.newlyUnlocked.some((entry) => entry.id === `faction.play_10_units.${factionKey}`));
+  assert.equal(result.newlyUnlocked.some((entry) => entry.id === `faction.play_10_units.${factionKey}`), false);
   assert(result.newlyUnlocked.some((entry) => entry.id === `faction.play_10_effects.${factionKey}`));
 });
 
