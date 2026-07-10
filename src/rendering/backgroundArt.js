@@ -14,6 +14,9 @@ const DEFAULT_BATTLE_BACKGROUND_PUBLIC_PATH = 'assets/backgrounds/default/battle
 const ARENA_LIGHT_SWEEP_TEXTURE_KEY = 'effect.arena-light-sweep.soft-gradient';
 const ARENA_LIGHT_SWEEP_TEXTURE_SIZE = 512;
 
+const MENU_BACKGROUND_MOTION_EPOCH_KEY = 'gridfall.menuBackgroundAmbientMotionEpoch';
+const MENU_LIGHT_SWEEP_MOTION_EPOCH_KEY = 'gridfall.menuLightSweepMotionEpoch';
+
 const MENU_BACKGROUND_AMBIENT_DRIFT = {
   scaleMultiplier: 1.08,
   x: 14,
@@ -135,15 +138,25 @@ export function createMenuArenaLightSweep(scene, {
 
   const startX = -displayWidth * 0.45;
   const endX = width + displayWidth * 0.45;
-  sweep.setX(startX);
+  const applySweepPhase = () => {
+    const { easedProgress } = calculateSharedYoyoPhase({
+      scene,
+      duration,
+      ease: 'Sine.easeInOut',
+      epochKey: MENU_LIGHT_SWEEP_MOTION_EPOCH_KEY,
+    });
+    sweep.setX(interpolate(startX, endX, easedProgress));
+  };
+  applySweepPhase();
 
-  scene.tweens.add({
-    targets: sweep,
-    x: endX,
-    duration,
-    ease: 'Sine.easeInOut',
-    yoyo: true,
-    repeat: -1,
+  const onSweepUpdate = () => {
+    if (sweep?.active) {
+      applySweepPhase();
+    }
+  };
+  scene.events.on(globalThis.Phaser?.Scenes?.Events?.UPDATE ?? 'update', onSweepUpdate);
+  sweep.once?.('destroy', () => {
+    scene.events.off(globalThis.Phaser?.Scenes?.Events?.UPDATE ?? 'update', onSweepUpdate);
   });
 
   return sweep;
@@ -236,41 +249,47 @@ export function createAnimatedMenuBackground(scene, {
   const state = {
     background,
     lightSweep: null,
-    ambientTween: null,
+    removeAmbientUpdate: null,
   };
 
   const imageBackground = isImageBackground(background);
   const driftOptions = { ...MENU_BACKGROUND_AMBIENT_DRIFT, ...ambientDrift };
+
+  const applyAmbientDrift = (nextWidth = scene.scale.width, nextHeight = scene.scale.height) => {
+    if (!imageBackground || !background?.active) {
+      return;
+    }
+
+    const baseScale = calculateDriftSafeCoverScale(background, nextWidth, nextHeight, driftOptions);
+    const transform = calculateMenuAmbientTransform({
+      scene,
+      width: nextWidth,
+      height: nextHeight,
+      baseScale,
+      driftOptions,
+    });
+    background
+      .setPosition(transform.x, transform.y)
+      .setScale(transform.scale);
+  };
 
   const startAmbientDrift = (nextWidth = scene.scale.width, nextHeight = scene.scale.height) => {
     if (!imageBackground || !background?.active) {
       return;
     }
 
-    if (state.ambientTween) {
-      state.ambientTween.stop();
-      state.ambientTween.remove();
-      state.ambientTween = null;
-    }
     scene.tweens.killTweensOf(background);
+    applyAmbientDrift(nextWidth, nextHeight);
 
-    const baseScale = calculateDriftSafeCoverScale(background, nextWidth, nextHeight, driftOptions);
-    const targetScale = baseScale * driftOptions.scaleMultiplier;
-    background
-      .setPosition(nextWidth * 0.5, nextHeight * 0.5)
-      .setScale(baseScale);
+    if (state.removeAmbientUpdate) {
+      return;
+    }
 
-    state.ambientTween = scene.tweens.add({
-      targets: background,
-      x: nextWidth * 0.5 + driftOptions.x,
-      y: nextHeight * 0.5 + driftOptions.y,
-      scaleX: targetScale,
-      scaleY: targetScale,
-      duration: driftOptions.duration,
-      ease: driftOptions.ease,
-      yoyo: true,
-      repeat: -1,
-    });
+    const onAmbientUpdate = () => applyAmbientDrift();
+    scene.events.on(globalThis.Phaser?.Scenes?.Events?.UPDATE ?? 'update', onAmbientUpdate);
+    state.removeAmbientUpdate = () => {
+      scene.events.off(globalThis.Phaser?.Scenes?.Events?.UPDATE ?? 'update', onAmbientUpdate);
+    };
   };
 
   const createSweep = (nextWidth = scene.scale.width, nextHeight = scene.scale.height) => {
@@ -301,10 +320,9 @@ export function createAnimatedMenuBackground(scene, {
   };
 
   const cleanup = () => {
-    if (state.ambientTween) {
-      state.ambientTween.stop();
-      state.ambientTween.remove();
-      state.ambientTween = null;
+    if (state.removeAmbientUpdate) {
+      state.removeAmbientUpdate();
+      state.removeAmbientUpdate = null;
     }
     if (background) {
       scene.tweens.killTweensOf(background);
@@ -341,6 +359,97 @@ export function createAnimatedMenuBackground(scene, {
     isImage: imageBackground,
     ambient: imageBackground ? { ...driftOptions } : null,
   };
+}
+
+export function calculateMenuAmbientTransform({
+  scene,
+  width,
+  height,
+  baseScale,
+  driftOptions = MENU_BACKGROUND_AMBIENT_DRIFT,
+} = {}) {
+  const { easedProgress, reversed } = calculateSharedYoyoPhase({
+    scene,
+    duration: driftOptions.duration,
+    ease: driftOptions.ease,
+    epochKey: MENU_BACKGROUND_MOTION_EPOCH_KEY,
+  });
+  const centerX = width * 0.5;
+  const centerY = height * 0.5;
+  const targetScale = baseScale * driftOptions.scaleMultiplier;
+
+  return {
+    x: interpolate(centerX, centerX + driftOptions.x, easedProgress),
+    y: interpolate(centerY, centerY + driftOptions.y, easedProgress),
+    scale: interpolate(baseScale, targetScale, easedProgress),
+    progress: easedProgress,
+    reversed,
+  };
+}
+
+export function calculateSharedYoyoPhase({
+  scene,
+  duration = MENU_BACKGROUND_AMBIENT_DRIFT.duration,
+  ease = MENU_BACKGROUND_AMBIENT_DRIFT.ease,
+  epochKey = MENU_BACKGROUND_MOTION_EPOCH_KEY,
+  now = getSceneClockTime(scene),
+} = {}) {
+  const safeDuration = Math.max(1, Number(duration) || MENU_BACKGROUND_AMBIENT_DRIFT.duration);
+  const epoch = getOrCreateMotionEpoch(scene, epochKey, now);
+  const elapsed = Math.max(0, now - epoch);
+  const cycleDuration = safeDuration * 2;
+  const cycleTime = elapsed % cycleDuration;
+  const reversed = cycleTime >= safeDuration;
+  const linearProgress = reversed
+    ? 1 - ((cycleTime - safeDuration) / safeDuration)
+    : cycleTime / safeDuration;
+
+  return {
+    elapsed,
+    cycleTime,
+    linearProgress,
+    easedProgress: easeProgress(linearProgress, ease),
+    reversed,
+  };
+}
+
+function getOrCreateMotionEpoch(scene, key, now = getSceneClockTime(scene)) {
+  const registry = scene?.game?.registry ?? scene?.registry;
+  const existingEpoch = registry?.get?.(key) ?? scene?.game?.[key];
+  if (Number.isFinite(existingEpoch)) {
+    return existingEpoch;
+  }
+
+  if (registry?.set) {
+    registry.set(key, now);
+  } else if (scene?.game) {
+    scene.game[key] = now;
+  }
+  return now;
+}
+
+function getSceneClockTime(scene) {
+  return scene?.game?.loop?.time
+    ?? scene?.time?.now
+    ?? globalThis.performance?.now?.()
+    ?? Date.now();
+}
+
+function easeProgress(progress, ease) {
+  const clamped = PhaserMathClamp(progress, 0, 1);
+  if (ease === 'Sine.easeInOut') {
+    return -(Math.cos(Math.PI * clamped) - 1) / 2;
+  }
+  const easeFunction = globalThis.Phaser?.Tweens?.Builders?.GetEaseFunction?.(ease);
+  return typeof easeFunction === 'function' ? easeFunction(clamped) : clamped;
+}
+
+function interpolate(start, end, progress) {
+  return start + ((end - start) * progress);
+}
+
+function PhaserMathClamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
 }
 
 function calculateDriftSafeCoverScale(background, width, height, driftOptions) {
