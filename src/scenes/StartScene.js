@@ -35,12 +35,15 @@ const START_MENU_REVEAL_LAG_MS = 90;
 const STARTUP_PRESENTATION_COMPLETE_KEY = 'gridfall.startupPresentationComplete';
 const STARTUP_SPLASH_ID = 'startup-splash';
 const STARTUP_SPLASH_READY_CLASS = 'is-ready';
+const STARTUP_SPLASH_LOADING_COMPLETE_CLASS = 'is-loading-complete';
 const STARTUP_SPLASH_HANDOFF_CLASS = 'is-handoff';
 const STARTUP_SPLASH_TAPPED_CLASS = 'is-tapped';
 const STARTUP_SPLASH_HIDDEN_CLASS = 'is-hidden';
 const STARTUP_SPLASH_REMOVE_MS = 180;
-const STARTUP_SIGNAL_SLIT_MS = 130;
-const STARTUP_PANEL_OPEN_MS = 620;
+const STARTUP_READY_TEXT_DELAY_MS = 520;
+const STARTUP_SIGNAL_SLIT_MS = 380;
+const STARTUP_PANEL_OPEN_MS = 700;
+const STARTUP_PANEL_OPEN_DELAY_MS = 80;
 const STARTUP_PANEL_DEPTH = START_TITLE_DEPTH - 1;
 const STARTUP_SIGNAL_DEPTH = START_TITLE_DEPTH + 0.25;
 const STARTUP_PANEL_COLOR = 0x111827;
@@ -308,12 +311,20 @@ export default class StartScene extends Phaser.Scene {
       return;
     }
 
-    splash.classList.add(STARTUP_SPLASH_READY_CLASS);
-    this.startupSplashTapHandler = (event) => {
-      event?.preventDefault?.();
-      this.acceptStartupTap(revealObjects);
-    };
-    splash.addEventListener('pointerup', this.startupSplashTapHandler, { once: false });
+    splash.classList.add(STARTUP_SPLASH_LOADING_COMPLETE_CLASS);
+
+    this.time.delayedCall(STARTUP_READY_TEXT_DELAY_MS, () => {
+      if (!this.startupIntroPending || this.startupTapAccepted) {
+        return;
+      }
+
+      splash.classList.add(STARTUP_SPLASH_READY_CLASS);
+      this.startupSplashTapHandler = (event) => {
+        event?.preventDefault?.();
+        this.acceptStartupTap(revealObjects);
+      };
+      splash.addEventListener('pointerup', this.startupSplashTapHandler, { once: false });
+    });
   }
 
   acceptStartupTap(revealObjects) {
@@ -355,20 +366,17 @@ export default class StartScene extends Phaser.Scene {
 
     this.tweens.add({
       targets: signalSlit,
-      alpha: { from: 0, to: 0.95 },
-      scaleX: { from: 0.2, to: 1 },
-      duration: Math.round(STARTUP_SIGNAL_SLIT_MS * 0.55),
+      alpha: { from: 0, to: 0.38 },
+      scaleX: { from: 0.18, to: 1.08 },
+      scaleY: { from: 0.7, to: 1.35 },
+      duration: STARTUP_SIGNAL_SLIT_MS,
       ease: 'Sine.easeOut',
-      yoyo: true,
-      hold: Math.round(STARTUP_SIGNAL_SLIT_MS * 0.15),
-      onComplete: () => {
-        signalSlit?.destroy();
-      },
     });
 
     this.tweens.add({
       targets: topPanel,
       y: -height * 0.25,
+      delay: STARTUP_PANEL_OPEN_DELAY_MS,
       duration: STARTUP_PANEL_OPEN_MS,
       ease: 'Sine.easeInOut',
       onComplete: () => {
@@ -379,9 +387,11 @@ export default class StartScene extends Phaser.Scene {
     this.tweens.add({
       targets: bottomPanel,
       y: height * 1.25,
+      delay: STARTUP_PANEL_OPEN_DELAY_MS,
       duration: STARTUP_PANEL_OPEN_MS,
       ease: 'Sine.easeInOut',
       onComplete: () => {
+        signalSlit?.destroy();
         bottomPanel?.destroy();
         this.playStartTransition();
       },
