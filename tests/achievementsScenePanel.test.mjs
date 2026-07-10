@@ -117,10 +117,10 @@ test('achievement card layout reserves fixed title, description, and progress ba
   const scene = source();
   assert.match(scene, /getAchievementCardLayout\(x, y, width\)/);
   assert.match(scene, /const cardHeight = 102/);
-  assert.match(scene, /const titleTop = y \+ 13/);
-  assert.match(scene, /const separatorY = y \+ 47/);
-  assert.match(scene, /const descriptionTop = y \+ 56/);
-  assert.match(scene, /badgeY: y \+ 70/);
+  assert.match(scene, /const titleTop = y \+ 11/);
+  assert.match(scene, /const separatorY = y \+ 45/);
+  assert.match(scene, /const descriptionTop = y \+ 52/);
+  assert.match(scene, /badgeY: y \+ 68/);
   assert.match(scene, /getAchievementTitleFontSize\(title, layout\)/);
 });
 
