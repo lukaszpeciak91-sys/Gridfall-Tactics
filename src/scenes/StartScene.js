@@ -31,6 +31,16 @@ const START_IDLE_PULSE_ALPHA = 0.96;
 const START_IDLE_PULSE_MS = 1800;
 const START_FEEDBACK_MS = 120;
 const START_MENU_REVEAL_LAG_MS = 90;
+const STARTUP_PRESENTATION_COMPLETE_KEY = 'gridfall.startupPresentationComplete';
+const STARTUP_SPLASH_ID = 'startup-splash';
+const STARTUP_SPLASH_HANDOFF_CLASS = 'is-handoff';
+const STARTUP_SPLASH_HIDDEN_CLASS = 'is-hidden';
+const STARTUP_SPLASH_REMOVE_MS = 180;
+const STARTUP_SIGNAL_SLIT_MS = 130;
+const STARTUP_PANEL_OPEN_MS = 620;
+const STARTUP_PANEL_DEPTH = START_TITLE_DEPTH - 1;
+const STARTUP_SIGNAL_DEPTH = START_TITLE_DEPTH + 0.25;
+const STARTUP_PANEL_COLOR = 0x111827;
 
 export default class StartScene extends Phaser.Scene {
   constructor() {
@@ -73,6 +83,8 @@ export default class StartScene extends Phaser.Scene {
     this.startLogoIdlePulse();
     this.drawNavigationControls();
     this.input.on('pointerup', this.onStartScenePointerUp, this);
+
+    this.setupStartupPresentationReveal(width, height);
 
     this.scale.on('resize', this.layoutStartScene, this);
     this.scale.on('enterfullscreen', this.onFullscreenChanged, this);
@@ -226,6 +238,123 @@ export default class StartScene extends Phaser.Scene {
 
   scaleLogoToFit(logo, width, height) {
     setStartHeroLogoDisplaySize(this, logo, width, height);
+  }
+
+  setupStartupPresentationReveal(width, height) {
+    if (this.game.registry.get(STARTUP_PRESENTATION_COMPLETE_KEY)) {
+      this.removeStartupSplash({ immediate: true });
+      return;
+    }
+
+    this.game.registry.set(STARTUP_PRESENTATION_COMPLETE_KEY, true);
+
+    try {
+      const revealObjects = this.createStartupRevealObjects(width, height);
+      this.waitForFirstRenderFrame(() => {
+        this.beginStartupPresentationHandoff(revealObjects);
+      });
+    } catch (error) {
+      console.warn('Startup presentation reveal failed; continuing to StartScene.', error);
+      this.removeStartupSplash({ immediate: true });
+    }
+  }
+
+  createStartupRevealObjects(width, height) {
+    const centerY = height * 0.5;
+    const panelOverlap = 2;
+    const topPanel = this.add.rectangle(width * 0.5, centerY * 0.5, width, centerY + panelOverlap, STARTUP_PANEL_COLOR, 1)
+      .setDepth(STARTUP_PANEL_DEPTH);
+    const bottomPanel = this.add.rectangle(width * 0.5, centerY + (centerY * 0.5), width, centerY + panelOverlap, STARTUP_PANEL_COLOR, 1)
+      .setDepth(STARTUP_PANEL_DEPTH);
+    const signalSlit = this.add.rectangle(width * 0.5, centerY, Math.max(110, width * 0.58), 2, 0xf5f1e6, 0)
+      .setDepth(STARTUP_SIGNAL_DEPTH);
+
+    if (signalSlit.setBlendMode) {
+      signalSlit.setBlendMode(Phaser.BlendModes.ADD);
+    }
+
+    return { topPanel, bottomPanel, signalSlit, width, height };
+  }
+
+  waitForFirstRenderFrame(callback) {
+    let called = false;
+    const runOnce = () => {
+      if (called) {
+        return;
+      }
+      called = true;
+      callback();
+    };
+
+    const postRenderEvent = Phaser.Core?.Events?.POST_RENDER ?? 'postrender';
+    this.game.events.once(postRenderEvent, runOnce);
+    this.time.delayedCall(80, runOnce);
+  }
+
+  beginStartupPresentationHandoff({ topPanel, bottomPanel, signalSlit, height }) {
+    const splash = this.getStartupSplashElement();
+
+    if (splash) {
+      splash.classList.add(STARTUP_SPLASH_HANDOFF_CLASS);
+    }
+
+    this.time.delayedCall(STARTUP_SPLASH_REMOVE_MS, () => {
+      this.removeStartupSplash();
+    });
+
+    this.tweens.add({
+      targets: signalSlit,
+      alpha: { from: 0, to: 0.95 },
+      scaleX: { from: 0.2, to: 1 },
+      duration: Math.round(STARTUP_SIGNAL_SLIT_MS * 0.55),
+      ease: 'Sine.easeOut',
+      yoyo: true,
+      hold: Math.round(STARTUP_SIGNAL_SLIT_MS * 0.15),
+      onComplete: () => {
+        signalSlit?.destroy();
+      },
+    });
+
+    this.tweens.add({
+      targets: topPanel,
+      y: -height * 0.25,
+      duration: STARTUP_PANEL_OPEN_MS,
+      ease: 'Sine.easeInOut',
+      onComplete: () => {
+        topPanel?.destroy();
+      },
+    });
+
+    this.tweens.add({
+      targets: bottomPanel,
+      y: height * 1.25,
+      duration: STARTUP_PANEL_OPEN_MS,
+      ease: 'Sine.easeInOut',
+      onComplete: () => {
+        bottomPanel?.destroy();
+      },
+    });
+  }
+
+  getStartupSplashElement() {
+    return globalThis.document?.getElementById?.(STARTUP_SPLASH_ID) ?? null;
+  }
+
+  removeStartupSplash({ immediate = false } = {}) {
+    const splash = this.getStartupSplashElement();
+    if (!splash) {
+      return;
+    }
+
+    splash.classList.add(STARTUP_SPLASH_HANDOFF_CLASS);
+
+    if (immediate) {
+      splash.remove();
+      return;
+    }
+
+    splash.classList.add(STARTUP_SPLASH_HIDDEN_CLASS);
+    globalThis.setTimeout?.(() => splash.remove(), STARTUP_SPLASH_REMOVE_MS);
   }
 
 
