@@ -17,6 +17,7 @@ import {
 import { preloadSecondaryButtonAsset } from '../ui/imageButton.js';
 import { createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
 import { preloadAudioAssets } from '../audio/audioAssets.js';
+import { playMenuMusic } from '../audio/menuMusic.js';
 import { applyAudioSettings, loadSettings } from '../systems/settingsState.js';
 
 const START_TRANSITION_MS = 720;
@@ -33,7 +34,9 @@ const START_FEEDBACK_MS = 120;
 const START_MENU_REVEAL_LAG_MS = 90;
 const STARTUP_PRESENTATION_COMPLETE_KEY = 'gridfall.startupPresentationComplete';
 const STARTUP_SPLASH_ID = 'startup-splash';
+const STARTUP_SPLASH_READY_CLASS = 'is-ready';
 const STARTUP_SPLASH_HANDOFF_CLASS = 'is-handoff';
+const STARTUP_SPLASH_TAPPED_CLASS = 'is-tapped';
 const STARTUP_SPLASH_HIDDEN_CLASS = 'is-hidden';
 const STARTUP_SPLASH_REMOVE_MS = 180;
 const STARTUP_SIGNAL_SLIT_MS = 130;
@@ -52,6 +55,9 @@ export default class StartScene extends Phaser.Scene {
     this.titleHovering = false;
     this.logoHitArea = null;
     this.logoIdleTween = null;
+    this.startupIntroPending = false;
+    this.startupTapAccepted = false;
+    this.startupSplashTapHandler = null;
   }
 
   preload() {
@@ -94,6 +100,7 @@ export default class StartScene extends Phaser.Scene {
       this.scale.off('enterfullscreen', this.onFullscreenChanged, this);
       this.scale.off('leavefullscreen', this.onFullscreenChanged, this);
       this.input.off('pointerup', this.onStartScenePointerUp, this);
+      this.detachStartupSplashTapHandler();
     });
   }
 
@@ -163,7 +170,7 @@ export default class StartScene extends Phaser.Scene {
   }
 
   setLogoHoverState(isHovering) {
-    if (this.isTransitioning || !this.title) {
+    if (this.startupIntroPending || this.isTransitioning || !this.title) {
       return;
     }
 
@@ -176,7 +183,7 @@ export default class StartScene extends Phaser.Scene {
   }
 
   setLogoPressState() {
-    if (this.isTransitioning || !this.title) {
+    if (this.startupIntroPending || this.isTransitioning || !this.title) {
       return;
     }
 
@@ -246,16 +253,19 @@ export default class StartScene extends Phaser.Scene {
       return;
     }
 
-    this.game.registry.set(STARTUP_PRESENTATION_COMPLETE_KEY, true);
+    this.startupIntroPending = true;
+    this.stopLogoIdlePulse();
+    this.title?.setAlpha?.(1);
+    this.logoHitArea?.disableInteractive();
 
     try {
       const revealObjects = this.createStartupRevealObjects(width, height);
       this.waitForFirstRenderFrame(() => {
-        this.beginStartupPresentationHandoff(revealObjects);
+        this.markStartupReadyForTap(revealObjects);
       });
     } catch (error) {
-      console.warn('Startup presentation reveal failed; continuing to StartScene.', error);
-      this.removeStartupSplash({ immediate: true });
+      console.warn('Startup presentation setup failed; continuing to StartScene.', error);
+      this.failStartupPresentationOpen();
     }
   }
 
@@ -291,11 +301,52 @@ export default class StartScene extends Phaser.Scene {
     this.time.delayedCall(80, runOnce);
   }
 
+  markStartupReadyForTap(revealObjects) {
+    const splash = this.getStartupSplashElement();
+    if (!splash) {
+      this.failStartupPresentationOpen();
+      return;
+    }
+
+    splash.classList.add(STARTUP_SPLASH_READY_CLASS);
+    this.startupSplashTapHandler = (event) => {
+      event?.preventDefault?.();
+      this.acceptStartupTap(revealObjects);
+    };
+    splash.addEventListener('pointerup', this.startupSplashTapHandler, { once: false });
+  }
+
+  acceptStartupTap(revealObjects) {
+    if (!this.startupIntroPending || this.startupTapAccepted || this.isTransitioning) {
+      return;
+    }
+
+    this.startupTapAccepted = true;
+    this.startupIntroPending = false;
+    this.game.registry.set(STARTUP_PRESENTATION_COMPLETE_KEY, true);
+    this.detachStartupSplashTapHandler();
+    this.logoHitArea?.disableInteractive();
+    this.unlockAudioAndStartMenuMusic();
+    this.beginStartupPresentationHandoff(revealObjects);
+  }
+
+  unlockAudioAndStartMenuMusic() {
+    try {
+      const context = this.sound?.context;
+      if (context?.state === 'suspended') {
+        context.resume?.();
+      }
+      playMenuMusic(this);
+    } catch (error) {
+      console.warn('Menu music unlock failed; continuing startup intro.', error);
+    }
+  }
+
   beginStartupPresentationHandoff({ topPanel, bottomPanel, signalSlit, height }) {
     const splash = this.getStartupSplashElement();
 
     if (splash) {
-      splash.classList.add(STARTUP_SPLASH_HANDOFF_CLASS);
+      splash.classList.add(STARTUP_SPLASH_TAPPED_CLASS, STARTUP_SPLASH_HANDOFF_CLASS);
     }
 
     this.time.delayedCall(STARTUP_SPLASH_REMOVE_MS, () => {
@@ -332,12 +383,29 @@ export default class StartScene extends Phaser.Scene {
       ease: 'Sine.easeInOut',
       onComplete: () => {
         bottomPanel?.destroy();
+        this.playStartTransition();
       },
     });
   }
 
   getStartupSplashElement() {
     return globalThis.document?.getElementById?.(STARTUP_SPLASH_ID) ?? null;
+  }
+
+  detachStartupSplashTapHandler() {
+    const splash = this.getStartupSplashElement();
+    if (splash && this.startupSplashTapHandler) {
+      splash.removeEventListener('pointerup', this.startupSplashTapHandler);
+    }
+    this.startupSplashTapHandler = null;
+  }
+
+  failStartupPresentationOpen() {
+    this.startupIntroPending = false;
+    this.startupTapAccepted = false;
+    this.detachStartupSplashTapHandler();
+    this.removeStartupSplash({ immediate: true });
+    this.logoHitArea?.setInteractive?.({ useHandCursor: true });
   }
 
   removeStartupSplash({ immediate = false } = {}) {
@@ -394,7 +462,7 @@ export default class StartScene extends Phaser.Scene {
 
 
   onStartScenePointerUp(pointer, currentlyOver = []) {
-    if (this.isTransitioning || !this.title) {
+    if (this.startupIntroPending || this.isTransitioning || !this.title) {
       return;
     }
 
@@ -405,7 +473,7 @@ export default class StartScene extends Phaser.Scene {
     }
   }
   playStartTransition() {
-    if (this.isTransitioning || !this.title) {
+    if (this.startupIntroPending || this.isTransitioning || !this.title) {
       return;
     }
 
