@@ -2,10 +2,11 @@ import { getActiveLocale } from '../localization/localeService.js';
 import { ACHIEVEMENT_CATEGORY_GROUPS, normalizeAchievementDifficulty } from '../systems/achievements.js';
 
 export const ACHIEVEMENT_UNLOCK_POPUP_TIMING = Object.freeze({
+  initialDelayMs: 420,
   entryMs: 280,
   visibleMs: 2350,
   exitMs: 280,
-  gapMs: 200,
+  overlapMs: 140,
 });
 
 export const ACHIEVEMENT_UNLOCK_POPUP_MAX_BATCH = 3;
@@ -66,21 +67,16 @@ export function calculateAchievementUnlockPopupLayout(scene, modal = {}) {
   const buttons = Array.isArray(modal.buttons) ? modal.buttons : [];
   const buttonItems = buttons.flatMap((button) => button.items ?? [])
     .filter((item) => Number.isFinite(item?.y) && Number.isFinite(item?.height));
-  const firstButtonItem = buttonItems[0];
-  const buttonTop = firstButtonItem ? firstButtonItem.y - (firstButtonItem.displayHeight ?? firstButtonItem.height) * 0.5 : height * 0.6 - 36;
   const buttonBottom = buttonItems.length
     ? Math.max(...buttonItems.map((item) => item.y + (item.displayHeight ?? item.height) * 0.5))
     : height * 0.6 + 36;
-  const statsBottom = modal.stats ? modal.stats.y + (modal.stats.displayHeight ?? modal.stats.height ?? 0) * 0.5 : height * 0.38 + Math.min(Math.max(height * 0.27, 230), 310) * 0.56;
   const safeGap = Math.max(10, height * 0.012);
   const bottomSafeGap = Math.max(18, height * 0.026);
   const maxWidth = Math.min(width * 0.86, 430);
   const popupWidth = Math.max(280, Math.min(maxWidth, width * 0.74));
-  const availableBelowButtons = Math.max(0, height - bottomSafeGap - buttonBottom - safeGap);
-  const popupHeight = Math.max(56, Math.min(86, availableBelowButtons || 56));
-  const desiredTop = Math.max(buttonBottom + safeGap, buttonTop + safeGap, statsBottom + safeGap);
+  const popupHeight = 86;
   const maxTop = height - bottomSafeGap - popupHeight;
-  const top = Math.min(maxTop, desiredTop);
+  const top = Math.max(buttonBottom + safeGap, maxTop);
   const y = top + popupHeight * 0.5;
   return { x: centerX, y, width: popupWidth, height: popupHeight, radius: 14 };
 }
@@ -145,13 +141,16 @@ export function createAchievementUnlockPopup(scene, definition, options = {}) {
     killTweens();
     items.splice(0).forEach((item) => { item?.removeAllListeners?.(); item?.destroy?.(); });
   };
-  const play = ({ onComplete } = {}) => {
-    const entryTween = scene.tweens.add({ targets: items, alpha: 1, y: `-=${Math.max(6, layout.height * 0.08)}`, duration: timing.entryMs, ease: 'Sine.easeOut' });
+  const play = ({ onExitStart, onComplete } = {}) => {
+    const travel = Math.max(7, Math.min(12, layout.height * 0.1));
+    items.forEach((item) => { if (Number.isFinite(item?.y)) item.y += travel; });
+    const entryTween = scene.tweens.add({ targets: items, alpha: 1, y: `-=${travel}`, duration: timing.entryMs, ease: 'Sine.easeOut' });
     tweens.push(entryTween);
     const visibleTimer = scene.time.delayedCall(timing.entryMs + timing.visibleMs, () => {
       if (destroyed) return;
+      onExitStart?.();
       const exitTween = scene.tweens.add({
-        targets: items, alpha: 0, y: `-=${Math.max(6, layout.height * 0.08)}`, duration: timing.exitMs, ease: 'Sine.easeIn',
+        targets: items, alpha: 0, y: `+=${Math.max(4, Math.min(8, layout.height * 0.07))}`, duration: timing.exitMs, ease: 'Sine.easeInOut',
         onComplete: () => { complete = true; destroy(); onComplete?.(); },
       });
       tweens.push(exitTween);

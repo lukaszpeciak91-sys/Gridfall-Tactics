@@ -65,6 +65,8 @@ test('popup renderer creates compact content and explicit cleanup ownership', ()
   const scene = createMockScene();
   const modal = { stats: { y: 410, height: 24 }, buttons: [{ items: [{ y: 620, height: 72 }] }] };
   const layout = calculateAchievementUnlockPopupLayout(scene, modal);
+  assert.ok(layout.y - layout.height * 0.5 > 620 + 36);
+  assert.ok(layout.y + layout.height * 0.5 <= 844 - Math.max(18, 844 * 0.026));
   const popup = createAchievementUnlockPopup(scene, definition, { index: 1, total: 2, locale: 'en', layout, timing: { ...ACHIEVEMENT_UNLOCK_POPUP_TIMING, visibleMs: 1 } });
   assert.equal(typeof popup.destroy, 'function');
   assert.equal(typeof popup.play, 'function');
@@ -88,4 +90,21 @@ test('cleanup cancels timers and tweens and destroys all popup objects', () => {
   assert.ok(scene.createdTimers.every((timer) => timer.removed));
   assert.ok(scene.createdTweens.every((tween) => tween.removed));
   assert.ok(scene.created.every((item) => item.destroyed));
+});
+
+
+test('popup enters from below and exits with a restrained downward drift', () => {
+  const scene = createMockScene();
+  const popup = createAchievementUnlockPopup(scene, definition, { index: 1, total: 1, locale: 'en' });
+  const originalYs = scene.created.map((item) => item.y).filter(Number.isFinite);
+  let exitStarted = false;
+  popup.play({ onExitStart: () => { exitStarted = true; } });
+  assert.equal(scene.createdTweens[0].config.alpha, 1);
+  assert.match(scene.createdTweens[0].config.y, /^-=/);
+  scene.createdTimers[0].callback();
+  assert.equal(exitStarted, true);
+  assert.equal(scene.createdTweens[1].config.alpha, 0);
+  assert.match(scene.createdTweens[1].config.y, /^\+=/);
+  const shiftedYs = scene.created.map((item) => item.y).filter(Number.isFinite);
+  assert.ok(shiftedYs.some((y, index) => y > originalYs[index]));
 });
