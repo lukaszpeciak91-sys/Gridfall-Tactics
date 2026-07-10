@@ -128,3 +128,28 @@ test('root effectVariant validation rejects invalid selector, amount, duration, 
   assert.throws(() => build({ sequence: [{ operation: 'runBaseEffect' }, { operation: 'debuffAttack', selector: 'opposedOpponentUnit', amount: 1, duration: 'forever' }] }), /duration 'forever' is unsupported/);
   assert.throws(() => build({ scope: { factionId: 'overclock', cardId: 'overclock_pain_engine_1', baseEffectId: 'wrong' } }), /does not match card effectId/);
 });
+
+test('generated effect variant registry module can be imported and Pain Engine runtime emits telemetry', async () => {
+  const { mkdtempSync, writeFileSync, mkdirSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const tmp = mkdtempSync(join(tmpdir(), 'gridfall-registry-'));
+  const systemsDir = join(tmp, 'src', 'systems');
+  mkdirSync(systemsDir, { recursive: true });
+  const key = 'overclock::overclock_pain_engine_1::enemy_lane_atk_minus_1';
+  writeFileSync(join(systemsDir, 'effectVariantRegistry.generated.js'), `export const EFFECT_VARIANT_REGISTRY_SCHEMA_VERSION = 1;\nexport const ACTIVE_EFFECT_VARIANTS = Object.freeze(${JSON.stringify({ [key]: build().registry[key] })});\n`);
+  const imported = await import(`file://${join(systemsDir, 'effectVariantRegistry.generated.js')}`);
+  assert.equal(imported.ACTIVE_EFFECT_VARIANTS[key].variantId, 'overclock_pain_engine_extra_minus1_v1');
+
+  const state = stateWithEnemyAttack(3);
+  const result = resolveTargetedEffectCard(state, 'player', 'overclock_pain_engine_1', 0);
+  assert.equal(result.ok, true);
+  const row = state.effectVariantOperationTelemetry[0];
+  assert.equal(row.baseEffectControl, 'runBaseEffect');
+  assert.equal(row.operation, 'debuffAttack');
+  assert.equal(row.selector, 'opposedOpponentUnit');
+  assert.equal(row.amount, 1);
+  assert.equal(row.status, 'stat_modifier_executed');
+  assert.equal(row.totalAttackReduced, 1);
+  assert.equal(state.board[0].tempAttackMod, -2);
+});

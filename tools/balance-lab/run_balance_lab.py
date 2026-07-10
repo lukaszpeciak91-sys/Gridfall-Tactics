@@ -238,6 +238,7 @@ PATCH_SUMMARY_FILENAME = "patch-summary.md"
 COMPARISON_REPORT_FILENAME = "comparison-report.md"
 CURRENT_OUTPUT_FILENAME = "current-output.txt"
 CURRENT_REPORT_FILENAME = "current-state-report.md"
+FAILED_REPORT_FILENAME = "failed-report.md"
 CARD_TELEMETRY_BASELINE_FILENAME = "card-telemetry-baseline.txt"
 CARD_TELEMETRY_EXPERIMENT_FILENAME = "card-telemetry-experiment.txt"
 EFFECT_VARIANT_TELEMETRY_BASELINE_FILENAME = "effect-variant-telemetry-baseline.txt"
@@ -1936,6 +1937,122 @@ def write_report(
     ]
     summary_path.write_text("\n".join(summary), encoding="utf-8")
     return baseline_output_path, experiment_output_path, experiment_stderr_path, summary_path
+
+
+def simulator_output_validation_errors(
+    result: subprocess.CompletedProcess[str],
+    output_text: str,
+    *,
+    telemetry: str = "",
+) -> list[str]:
+    """Return hard simulator-run failures that must block comparison reports."""
+    errors: list[str] = []
+    if result.returncode != 0:
+        errors.append(f"simulator exited with code {result.returncode}")
+    if getattr(result, "signal", None):
+        errors.append(f"simulator terminated by signal {getattr(result, 'signal')}")
+    if not output_text.strip():
+        errors.append("simulator stdout was empty")
+    if "Battle simulation complete" not in output_text:
+        errors.append("missing Battle simulation complete marker")
+
+    aggregate_columns = [
+        "faction",
+        "games",
+        "win %",
+        "non-draw win %",
+        "draw %",
+        "turn-cap %",
+        "avg turns",
+        "avg remaining hero HP",
+    ]
+    matchup_columns = [
+        "faction A",
+        "faction B",
+        "games",
+        "faction A wins",
+        "faction B wins",
+        "draws",
+        "faction A all-games WR",
+        "faction A non-draw WR",
+        "draw %",
+        "turn-cap %",
+        "avg turns",
+    ]
+    if not parse_console_table_section(output_text, "Balance audit: aggregate faction table", aggregate_columns):
+        errors.append("missing aggregate faction table rows")
+    if not parse_console_table_section(output_text, "Balance audit: combined matchup table across both seats", matchup_columns):
+        errors.append("missing matchup table rows")
+
+    requested = {part.strip().lower() for part in telemetry.split(",") if part.strip()}
+    if "all" in requested:
+        requested.update({"basic", "cards", "ai", "effectvariants"})
+    if "cards" in requested and "Simulator telemetry: per-card summary" not in output_text:
+        errors.append("missing per-card telemetry section for telemetry=all/cards")
+    if "basic" in requested and "Simulator telemetry: per-faction summary" not in output_text:
+        errors.append("missing per-faction telemetry section for telemetry=all/basic")
+    if "ai" in requested and "Simulator telemetry: AI health" not in output_text:
+        errors.append("missing AI telemetry section for telemetry=all/ai")
+    if "effectvariants" in requested and "Simulator telemetry: effectVariant operations" not in output_text:
+        errors.append("missing effectVariant runtime telemetry section for telemetry=all/effectVariants")
+    return errors
+
+
+def write_failed_report(
+    report_dir: Path,
+    temp_copy_dir: Path,
+    experiment_path: Path,
+    data: dict[str, Any],
+    command: list[str],
+    baseline_result: subprocess.CompletedProcess[str],
+    experiment_result: subprocess.CompletedProcess[str],
+    failures: list[str],
+) -> Path:
+    failed_report_path = report_dir / FAILED_REPORT_FILENAME
+    stderr_excerpt = (experiment_result.stderr or "").strip() or "(empty)"
+    stdout_excerpt = (experiment_result.stdout or "").strip() or "(empty)"
+    lines = [
+        "# Balance Lab FAILED Report",
+        "",
+        "The simulator run failed validation, so Balance Lab did not generate a SAFE/WATCH/ACCEPT/DANGER comparison verdict.",
+        "",
+        f"Experiment: {data['name']}",
+        f"Experiment file: `{experiment_path}`",
+        f"Command: `{format_command(command)}`",
+        f"Temporary experiment copy retained: `{temp_copy_dir}`",
+        f"Baseline exit code: {baseline_result.returncode}",
+        f"Experiment exit code: {experiment_result.returncode}",
+        f"Experiment signal: {getattr(experiment_result, 'signal', None)}",
+        "",
+        "## Failure reasons",
+        "",
+        *[f"- {failure}" for failure in failures],
+        "",
+        "## Experiment stderr",
+        "",
+        "```text",
+        stderr_excerpt,
+        "```",
+        "",
+        "## Experiment stdout",
+        "",
+        "```text",
+        stdout_excerpt[:8000],
+        "```",
+        "",
+    ]
+    failed_report_path.write_text("\n".join(lines), encoding="utf-8")
+    (report_dir / SUMMARY_FILENAME).write_text("\n".join([
+        "# Balance Lab Run Summary — FAILED",
+        "",
+        "The simulator run failed validation; no comparison verdict was produced.",
+        f"Failed report: `{FAILED_REPORT_FILENAME}`",
+        f"Experiment exit code: {experiment_result.returncode}",
+        f"Experiment signal: {getattr(experiment_result, 'signal', None)}",
+        *[f"- {failure}" for failure in failures],
+        "",
+    ]), encoding="utf-8")
+    return failed_report_path
 
 
 
@@ -3896,6 +4013,55 @@ def run_one_experiment(root: Path, experiment_path: Path, *, verbose: bool = Tru
         baseline_result,
         experiment_result,
     )
+    baseline_failures = simulator_output_validation_errors(
+        baseline_result,
+        baseline_output_path.read_text(encoding="utf-8"),
+        telemetry=data.get("telemetry", ""),
+    )
+    if baseline_failures:
+        failed_report_path = write_failed_report(
+            report_dir,
+            temp_copy_dir,
+            experiment_path,
+            data,
+            command,
+            baseline_result,
+            experiment_result,
+            [f"baseline: {failure}" for failure in baseline_failures],
+        )
+        raise BalanceLabError(
+            "Baseline simulator output failed validation; comparison report was not generated. "
+            f"See {failed_report_path}."
+        )
+    experiment_failures = simulator_output_validation_errors(
+        experiment_result,
+        experiment_output_path.read_text(encoding="utf-8"),
+        telemetry=data.get("telemetry", ""),
+    )
+    if experiment_failures:
+        failed_report_path = write_failed_report(
+            report_dir,
+            temp_copy_dir,
+            experiment_path,
+            data,
+            command,
+            baseline_result,
+            experiment_result,
+            experiment_failures,
+        )
+        if verbose:
+            print("Experiment FAILED.", flush=True)
+            print(f"Failed report: {failed_report_path}", flush=True)
+            print(f"Temporary experiment copy retained: {temp_copy_dir}", flush=True)
+            print(f"Experiment exit code: {experiment_result.returncode}", flush=True)
+            print(f"Experiment signal: {getattr(experiment_result, 'signal', None)}", flush=True)
+            if experiment_result.stderr:
+                print("Experiment stderr:", flush=True)
+                print(experiment_result.stderr, flush=True)
+        raise BalanceLabError(
+            "Experiment simulator output failed validation; comparison report was not generated. "
+            f"See {failed_report_path}."
+        )
     comparison_report_path, comparison_stats = build_comparison_report(
         report_dir,
         data,
