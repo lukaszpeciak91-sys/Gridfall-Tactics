@@ -64,15 +64,24 @@ export function calculateAchievementUnlockPopupLayout(scene, modal = {}) {
   const { width, height } = scene.scale.gameSize;
   const centerX = width * 0.5;
   const buttons = Array.isArray(modal.buttons) ? modal.buttons : [];
-  const firstButtonItem = buttons.flatMap((button) => button.items ?? []).find((item) => Number.isFinite(item?.y) && Number.isFinite(item?.height));
+  const buttonItems = buttons.flatMap((button) => button.items ?? [])
+    .filter((item) => Number.isFinite(item?.y) && Number.isFinite(item?.height));
+  const firstButtonItem = buttonItems[0];
   const buttonTop = firstButtonItem ? firstButtonItem.y - (firstButtonItem.displayHeight ?? firstButtonItem.height) * 0.5 : height * 0.6 - 36;
+  const buttonBottom = buttonItems.length
+    ? Math.max(...buttonItems.map((item) => item.y + (item.displayHeight ?? item.height) * 0.5))
+    : height * 0.6 + 36;
   const statsBottom = modal.stats ? modal.stats.y + (modal.stats.displayHeight ?? modal.stats.height ?? 0) * 0.5 : height * 0.38 + Math.min(Math.max(height * 0.27, 230), 310) * 0.56;
   const safeGap = Math.max(10, height * 0.012);
+  const bottomSafeGap = Math.max(18, height * 0.026);
   const maxWidth = Math.min(width * 0.86, 430);
   const popupWidth = Math.max(280, Math.min(maxWidth, width * 0.74));
-  const popupHeight = Math.max(72, Math.min(86, (buttonTop - statsBottom) - safeGap * 2));
-  const desiredY = statsBottom + safeGap + popupHeight * 0.5;
-  const y = Math.min(buttonTop - safeGap - popupHeight * 0.5, Math.max(statsBottom + safeGap + popupHeight * 0.5, desiredY));
+  const availableBelowButtons = Math.max(0, height - bottomSafeGap - buttonBottom - safeGap);
+  const popupHeight = Math.max(56, Math.min(86, availableBelowButtons || 56));
+  const desiredTop = Math.max(buttonBottom + safeGap, buttonTop + safeGap, statsBottom + safeGap);
+  const maxTop = height - bottomSafeGap - popupHeight;
+  const top = Math.min(maxTop, desiredTop);
+  const y = top + popupHeight * 0.5;
   return { x: centerX, y, width: popupWidth, height: popupHeight, radius: 14 };
 }
 
@@ -106,23 +115,23 @@ export function createAchievementUnlockPopup(scene, definition, options = {}) {
   bg.fillStyle(0xfacc15, 0.84); bg.fillRoundedRect(x + 12, y + 6, layout.width - 24, 5, 2);
   bg.lineStyle(2.4, theme.frameColor, 0.94); bg.strokeRoundedRect(x, y, layout.width, layout.height, layout.radius);
   bg.lineStyle(1, theme.accent, 0.42); bg.strokeRoundedRect(x + 5, y + 5, layout.width - 10, layout.height - 10, layout.radius - 3);
-  bg.lineStyle(1, theme.accent, 0.34); bg.lineBetween(x + 14, y + 40, x + layout.width - 96, y + 40);
-  bg.fillStyle(0x451a03, 0.94); bg.fillRoundedRect(x + layout.width - 96, y + layout.height - 29, 82, 22, 8);
-  bg.lineStyle(1.1, 0xfacc15, 0.78); bg.strokeRoundedRect(x + layout.width - 96, y + layout.height - 29, 82, 22, 8);
+  bg.lineStyle(1, theme.accent, 0.34); bg.lineBetween(x + 14, y + 38, x + layout.width - 96, y + 38);
+  bg.fillStyle(0x451a03, 0.94); bg.fillRoundedRect(x + layout.width - 96, y + layout.height - 27, 82, 22, 8);
+  bg.lineStyle(1.1, 0xfacc15, 0.78); bg.strokeRoundedRect(x + layout.width - 96, y + layout.height - 27, 82, 22, 8);
 
-  addItem(scene.add.text(x + 15, y + 15, view.title, {
-    fontFamily: 'Arial, sans-serif', fontSize: layout.width < 330 ? '15px' : '17px', color: theme.titleColor, fontStyle: 'bold', wordWrap: { width: layout.width - 122 }, maxLines: 1,
+  addItem(scene.add.text(x + 15, y + 12, view.title, {
+    fontFamily: 'Arial, sans-serif', fontSize: layout.width < 330 ? '17px' : '19px', color: theme.titleColor, fontStyle: 'bold', wordWrap: { width: layout.width - 122 }, maxLines: 1,
   }).setDepth(928));
   addItem(scene.add.text(x + layout.width - 15, y + 15, view.stars, {
-    fontFamily: 'Arial, sans-serif', fontSize: '14px', color: theme.starColor, fontStyle: 'bold', align: 'right', fixedWidth: 68,
+    fontFamily: 'Arial, sans-serif', fontSize: '15px', color: theme.starColor, fontStyle: 'bold', align: 'right', fixedWidth: 68,
   }).setOrigin(1, 0).setDepth(928));
-  addItem(scene.add.text(x + 15, y + 48, view.description, {
-    fontFamily: 'Arial, sans-serif', fontSize: '12px', color: theme.descriptionColor, wordWrap: { width: layout.width - 126 }, maxLines: 2,
+  addItem(scene.add.text(x + 15, y + 44, view.description, {
+    fontFamily: 'Arial, sans-serif', fontSize: '13px', color: theme.descriptionColor, wordWrap: { width: layout.width - 126 }, maxLines: 2,
   }).setDepth(928));
-  addItem(scene.add.text(x + layout.width - 55, y + layout.height - 18, view.badge, {
-    fontFamily: 'Arial, sans-serif', fontSize: view.badge.length > 8 ? '10px' : '11px', color: theme.badgeColor, fontStyle: 'bold', align: 'center', fixedWidth: 78,
+  addItem(scene.add.text(x + layout.width - 55, y + layout.height - 16, view.badge, {
+    fontFamily: 'Arial, sans-serif', fontSize: view.badge.length > 8 ? '11px' : '12px', color: theme.badgeColor, fontStyle: 'bold', align: 'center', fixedWidth: 78,
   }).setOrigin(0.5).setDepth(928));
-  addItem(scene.add.text(x + layout.width - 16, y + layout.height - 46, view.queuePosition, {
+  addItem(scene.add.text(x + layout.width - 16, y + layout.height - 43, view.queuePosition, {
     fontFamily: 'Arial, sans-serif', fontSize: '11px', color: theme.counterColor, align: 'right', fixedWidth: 60,
   }).setOrigin(1, 0.5).setDepth(928));
 

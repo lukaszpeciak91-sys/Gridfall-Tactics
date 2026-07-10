@@ -258,10 +258,10 @@ export default class AchievementsScene extends Phaser.Scene {
     const badgeHeight = 26;
     const starAreaWidth = 62;
     const badgeX = x + width - rightPadding - badgeWidth;
-    const titleTop = y + 13;
-    const titleHeight = 30;
-    const separatorY = y + 47;
-    const descriptionTop = y + 56;
+    const titleTop = y + 11;
+    const titleHeight = 31;
+    const separatorY = y + 45;
+    const descriptionTop = y + 52;
     const textLeft = x + paddingX;
     const textRight = badgeX - 14;
     const titleRight = x + width - rightPadding - starAreaWidth;
@@ -282,16 +282,16 @@ export default class AchievementsScene extends Phaser.Scene {
       descriptionTop,
       descriptionWidth: Math.max(128, textRight - textLeft),
       badgeX,
-      badgeY: y + 70,
+      badgeY: y + 68,
       badgeWidth,
       badgeHeight,
     };
   }
 
   getAchievementTitleFontSize(title, layout) {
-    if ((title?.length ?? 0) > 52 || layout.titleWidth < 280) return '16px';
-    if ((title?.length ?? 0) > 38 || layout.titleWidth < 360) return '17px';
-    return '19px';
+    if ((title?.length ?? 0) > 52 || layout.titleWidth < 280) return '18px';
+    if ((title?.length ?? 0) > 38 || layout.titleWidth < 360) return '19px';
+    return '21px';
   }
 
   getAchievementCardTheme(definition, unlocked) {
@@ -326,7 +326,7 @@ export default class AchievementsScene extends Phaser.Scene {
   drawAchievementDifficultyStars(content, definition, layout, theme) {
     const starsText = this.add.text(layout.starAreaX + layout.starAreaWidth, layout.starAreaY, this.getAchievementDifficultyStars(definition), {
       fontFamily: 'Arial, sans-serif',
-      fontSize: '15px',
+      fontSize: '16px',
       color: theme.difficultyStarColor,
       fontStyle: 'bold',
       align: 'right',
@@ -372,9 +372,9 @@ export default class AchievementsScene extends Phaser.Scene {
 
     const descriptionText = this.add.text(layout.textLeft, layout.descriptionTop, description, {
       fontFamily: 'Arial, sans-serif',
-      fontSize: '13px',
+      fontSize: '14px',
       color: theme.descriptionColor,
-      lineSpacing: 3,
+      lineSpacing: 2,
       wordWrap: { width: layout.descriptionWidth },
       maxLines: 2,
     });
