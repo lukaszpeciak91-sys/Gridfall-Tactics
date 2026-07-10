@@ -13,6 +13,7 @@ The modern shared overlay family applies to:
 - Rules / How To Play panel
 - Deck / Deck Info modal
 - Campaign accordion and faction information panels
+- Achievements accordion/panel
 
 Current intended visual language:
 

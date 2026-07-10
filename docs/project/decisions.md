@@ -223,3 +223,19 @@ canonical_ref: docs/rules/mvp-battle-rules.md
 - Tutorial lifecycle safety: recover presentation from canonical tutorial/game state, resolve focus only to live display objects, distinguish informational highlights from actionable gates, and prevent effect-cast visual interruption from orphaning gameplay/tutorial continuation.
 - Known non-blocking issue: aggressive fullscreen/blur/DevTools stress near the later redeploy step may leave stale action-window state; revisit only with runtime fields listed in `docs/tutorial-v1-architecture.md`.
 - Final polish state: Lost Fan / Zagubiony Kibic has 4 HP in tutorial-only data, no required enemy inspect gate was added, and the open-lane informational highlight targets enemy-row board slot index 1.
+
+## Achievements V1 Architecture Closeout (2026-07-10)
+- Player Stats, Achievement State, and achievement presentation queue are three separate persistent layers.
+- Achievement unlocks are monotonic: once unlocked, an achievement is never relocked.
+- `AchievementsScene` is read-only and does not evaluate or persist unlocks.
+- Runtime evaluation happens only at safe checkpoints/backfill paths, not after every card play.
+- Achievement popups are presentation-only and must never block result navigation.
+- Unfinished or unshown popups remain in the persistent presentation queue.
+- At most 3 popups are presented per eligible result panel.
+- Faction achievements are generated from runtime faction registry/templates, so new factions automatically receive the default faction achievement set.
+- Campaign-completion achievements are shown on the interactive Campaign completion summary panel.
+- Popup presentation must remain safe across sleep/wake/fullscreen/result-modal rebuilds.
+- Missing or stale achievement audio must not crash `BattleScene` or block popup presentation.
+- Binary audio assets are uploaded manually; Codex only wires registry/path references.
+- Full Achievements access is intentionally not added to the in-battle hamburger menu.
+- Future V1 work is limited to scoped content additions, thresholds, copy/localization, minor polish, and future mode/faction support.
