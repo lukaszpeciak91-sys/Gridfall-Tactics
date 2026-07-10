@@ -1630,6 +1630,15 @@ def effect_variant_report_rows_from_changes(changes: list[dict[str, Any]]) -> li
 
 def effect_variant_report_rows_from_data(data: dict[str, Any]) -> list[dict[str, Any]]:
     changes = []
+    for index, variant in enumerate(data.get("effectVariants", []) or [], start=1):
+        if isinstance(variant, dict):
+            changes.append({
+                "index": f"root:{index}",
+                "mode": "effectVariant",
+                "effectVariant": variant,
+                "effectVariantRuntime": variant.get("effectVariantRuntime", {}),
+                "status": variant.get("effectVariantRuntime", {}).get("status", effect_variant_runtime_metadata(variant)["status"]),
+            })
     for index, change in enumerate(data.get("changes", []), start=1):
         if isinstance(change, dict) and is_effect_variant_change(change):
             changes.append({
