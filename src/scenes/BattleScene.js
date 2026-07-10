@@ -437,6 +437,7 @@ export default class BattleScene extends Phaser.Scene {
     this.battleAmbienceStopping = false;
     this.battleStatsTracked = false;
     this.achievementUnlockPopupController = null;
+    this.achievementUnlockSfxPlayedIds = new Set();
     this.tutorialCompletionTracked = false;
   }
 
@@ -667,6 +668,7 @@ export default class BattleScene extends Phaser.Scene {
     this.activeOutcomeStinger = null;
     this.battleStatsTracked = false;
     this.achievementUnlockPopupController = null;
+    this.achievementUnlockSfxPlayedIds = new Set();
   }
 
   cleanupSceneObjects({ preserveTimers = false, preserveTweens = false } = {}) {
@@ -2463,6 +2465,14 @@ export default class BattleScene extends Phaser.Scene {
     this.achievementUnlockPopupController = null;
   }
 
+  playAchievementUnlockPopupSfx(achievementId) {
+    if (typeof achievementId !== 'string' || achievementId.length === 0) return false;
+    if (!this.achievementUnlockSfxPlayedIds) this.achievementUnlockSfxPlayedIds = new Set();
+    if (this.achievementUnlockSfxPlayedIds.has(achievementId)) return false;
+    this.achievementUnlockSfxPlayedIds.add(achievementId);
+    return this.playBattleSfx?.(AUDIO_KEYS.ACHIEVEMENT_UNLOCK, { cooldownMs: 0 });
+  }
+
   startAchievementUnlockPopupsForResultModal() {
     if (!this.battleResultModalShown || !this.battleResultModal) return;
     if (this.resultOverlayState?.kind === 'campaign-completion' && (this.resultOverlayState.phase !== 'interactive' || this.resultOverlayState.preview === true)) return;
@@ -2509,6 +2519,7 @@ export default class BattleScene extends Phaser.Scene {
           modal: this.battleResultModal,
           timing: ACHIEVEMENT_UNLOCK_POPUP_TIMING,
         });
+        this.playAchievementUnlockPopupSfx(entry.achievementId);
         activePopup.play({
           onComplete: () => {
             if (destroyed) return;
@@ -2570,6 +2581,7 @@ export default class BattleScene extends Phaser.Scene {
       this.battleResultModalPending = false;
       this.resultOverlayState = null;
       this.isFlowResolving = false;
+      this.achievementUnlockSfxPlayedIds = new Set();
       this.updateActionSlotBadge();
       return;
     }
@@ -2595,6 +2607,7 @@ export default class BattleScene extends Phaser.Scene {
     this.battleResultModalShown = false;
     this.battleResultModalPending = false;
     this.resultOverlayState = null;
+    this.achievementUnlockSfxPlayedIds = new Set();
     this.updateActionSlotBadge();
   }
 
