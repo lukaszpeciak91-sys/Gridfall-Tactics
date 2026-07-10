@@ -12,6 +12,8 @@ export const ACHIEVEMENT_UNLOCK_POPUP_TIMING = Object.freeze({
 export const ACHIEVEMENT_UNLOCK_POPUP_MAX_BATCH = 3;
 
 const BADGE_TEXT = Object.freeze({ en: 'UNLOCKED', pl: 'ODBLOKOWANE' });
+export const ACHIEVEMENT_UNLOCK_POPUP_ENTRANCE_OFFSET = 22;
+
 const FACTION_ACCENTS = Object.freeze({
   aggro: 0xf97316,
   tank: 0xfacc15,
@@ -70,15 +72,34 @@ export function calculateAchievementUnlockPopupLayout(scene, modal = {}) {
   const buttonBottom = buttonItems.length
     ? Math.max(...buttonItems.map((item) => item.y + (item.displayHeight ?? item.height) * 0.5))
     : height * 0.6 + 36;
-  const safeGap = Math.max(10, height * 0.012);
-  const bottomSafeGap = Math.max(18, height * 0.026);
+  const safeGap = Math.max(8, height * 0.01);
+  const bottomSafeGap = Math.max(24, height * 0.035);
   const maxWidth = Math.min(width * 0.86, 430);
   const popupWidth = Math.max(280, Math.min(maxWidth, width * 0.74));
   const popupHeight = 86;
-  const maxTop = height - bottomSafeGap - popupHeight;
-  const top = Math.max(buttonBottom + safeGap, maxTop);
-  const y = top + popupHeight * 0.5;
-  return { x: centerX, y, width: popupWidth, height: popupHeight, radius: 14 };
+  const entranceOffset = ACHIEVEMENT_UNLOCK_POPUP_ENTRANCE_OFFSET;
+  const buttonSafeTop = buttonBottom + safeGap;
+  const minCenterY = buttonSafeTop + popupHeight * 0.5;
+  const maxCenterY = height - bottomSafeGap - entranceOffset - popupHeight * 0.5;
+  const availableTravel = maxCenterY - minCenterY;
+  const preferredCenterY = availableTravel > 0
+    ? minCenterY + availableTravel * 0.58
+    : maxCenterY;
+  const y = availableTravel > 0
+    ? Math.max(minCenterY, Math.min(preferredCenterY, maxCenterY))
+    : maxCenterY;
+  const clampedY = Math.min(Math.max(y, popupHeight * 0.5), height - bottomSafeGap - popupHeight * 0.5);
+  return {
+    x: centerX,
+    y: clampedY,
+    width: popupWidth,
+    height: popupHeight,
+    radius: 14,
+    buttonBottom,
+    buttonSafeTop,
+    bottomSafeGap,
+    entranceOffset,
+  };
 }
 
 export function createAchievementUnlockPopup(scene, definition, options = {}) {
@@ -142,7 +163,7 @@ export function createAchievementUnlockPopup(scene, definition, options = {}) {
     items.splice(0).forEach((item) => { item?.removeAllListeners?.(); item?.destroy?.(); });
   };
   const play = ({ onExitStart, onComplete } = {}) => {
-    const travel = Math.max(7, Math.min(12, layout.height * 0.1));
+    const travel = Number.isFinite(layout.entranceOffset) ? layout.entranceOffset : ACHIEVEMENT_UNLOCK_POPUP_ENTRANCE_OFFSET;
     items.forEach((item) => { if (Number.isFinite(item?.y)) item.y += travel; });
     const entryTween = scene.tweens.add({ targets: items, alpha: 1, y: `-=${travel}`, duration: timing.entryMs, ease: 'Sine.easeOut' });
     tweens.push(entryTween);

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  ACHIEVEMENT_UNLOCK_POPUP_ENTRANCE_OFFSET,
   ACHIEVEMENT_UNLOCK_POPUP_TIMING,
   calculateAchievementUnlockPopupLayout,
   createAchievementUnlockPopup,
@@ -65,8 +66,9 @@ test('popup renderer creates compact content and explicit cleanup ownership', ()
   const scene = createMockScene();
   const modal = { stats: { y: 410, height: 24 }, buttons: [{ items: [{ y: 620, height: 72 }] }] };
   const layout = calculateAchievementUnlockPopupLayout(scene, modal);
-  assert.ok(layout.y - layout.height * 0.5 > 620 + 36);
-  assert.ok(layout.y + layout.height * 0.5 <= 844 - Math.max(18, 844 * 0.026));
+  assert.ok(layout.y - layout.height * 0.5 >= layout.buttonSafeTop);
+  assert.ok(layout.y + layout.height * 0.5 < 844 - layout.bottomSafeGap - ACHIEVEMENT_UNLOCK_POPUP_ENTRANCE_OFFSET);
+  assert.ok(layout.y + layout.height * 0.5 <= 844 - layout.bottomSafeGap);
   const popup = createAchievementUnlockPopup(scene, definition, { index: 1, total: 2, locale: 'en', layout, timing: { ...ACHIEVEMENT_UNLOCK_POPUP_TIMING, visibleMs: 1 } });
   assert.equal(typeof popup.destroy, 'function');
   assert.equal(typeof popup.play, 'function');
@@ -93,18 +95,55 @@ test('cleanup cancels timers and tweens and destroys all popup objects', () => {
 });
 
 
-test('popup enters from below and exits with a restrained downward drift', () => {
+test('popup enters from below by the configured offset and exits with a restrained downward drift', () => {
   const scene = createMockScene();
   const popup = createAchievementUnlockPopup(scene, definition, { index: 1, total: 1, locale: 'en' });
   const originalYs = scene.created.map((item) => item.y).filter(Number.isFinite);
   let exitStarted = false;
   popup.play({ onExitStart: () => { exitStarted = true; } });
   assert.equal(scene.createdTweens[0].config.alpha, 1);
-  assert.match(scene.createdTweens[0].config.y, /^-=/);
+  assert.equal(scene.createdTweens[0].config.y, `-=${ACHIEVEMENT_UNLOCK_POPUP_ENTRANCE_OFFSET}`);
   scene.createdTimers[0].callback();
   assert.equal(exitStarted, true);
   assert.equal(scene.createdTweens[1].config.alpha, 0);
   assert.match(scene.createdTweens[1].config.y, /^\+=/);
   const shiftedYs = scene.created.map((item) => item.y).filter(Number.isFinite);
   assert.ok(shiftedYs.some((y, index) => y > originalYs[index]));
+});
+
+
+test('mobile portrait layout balances final Y above bottom safe margin without bottom clamping', () => {
+  const scene = createMockScene();
+  const modal = { buttons: [{ items: [{ y: 620, height: 72, displayHeight: 72 }] }] };
+  const layout = calculateAchievementUnlockPopupLayout(scene, modal);
+  const top = layout.y - layout.height * 0.5;
+  const bottom = layout.y + layout.height * 0.5;
+  const lowestFinalBottom = scene.scale.gameSize.height - layout.bottomSafeGap;
+  assert.ok(top >= layout.buttonSafeTop, 'popup top must clear live result button hitboxes');
+  assert.ok(bottom <= lowestFinalBottom, 'popup bottom must preserve the safe margin');
+  assert.ok(bottom < lowestFinalBottom - ACHIEVEMENT_UNLOCK_POPUP_ENTRANCE_OFFSET, 'final Y should not be clamped directly against the viewport bottom');
+});
+
+test('short portrait layout keeps entrance visible and start position renderable', () => {
+  const scene = createMockScene();
+  scene.scale.gameSize = { width: 360, height: 640 };
+  const modal = { buttons: [{ items: [{ y: 470, height: 56, displayHeight: 56 }] }] };
+  const layout = calculateAchievementUnlockPopupLayout(scene, modal);
+  const startBottom = layout.y + ACHIEVEMENT_UNLOCK_POPUP_ENTRANCE_OFFSET + layout.height * 0.5;
+  assert.equal(layout.entranceOffset, ACHIEVEMENT_UNLOCK_POPUP_ENTRANCE_OFFSET);
+  assert.ok(ACHIEVEMENT_UNLOCK_POPUP_ENTRANCE_OFFSET >= 18);
+  assert.ok(startBottom <= scene.scale.gameSize.height - layout.bottomSafeGap, 'entrance start must remain fully renderable');
+});
+
+test('sequential popups share the same final Y and entrance offset', () => {
+  const scene = createMockScene();
+  const modal = { buttons: [{ items: [{ y: 620, height: 72 }] }] };
+  const layout = calculateAchievementUnlockPopupLayout(scene, modal);
+  const first = createAchievementUnlockPopup(scene, definition, { index: 1, total: 2, locale: 'en', layout });
+  const second = createAchievementUnlockPopup(scene, definition, { index: 2, total: 2, locale: 'en', layout });
+  first.play();
+  second.play();
+  assert.equal(first.layout.y, second.layout.y);
+  assert.equal(scene.createdTweens[0].config.y, `-=${ACHIEVEMENT_UNLOCK_POPUP_ENTRANCE_OFFSET}`);
+  assert.equal(scene.createdTweens[1].config.y, `-=${ACHIEVEMENT_UNLOCK_POPUP_ENTRANCE_OFFSET}`);
 });
