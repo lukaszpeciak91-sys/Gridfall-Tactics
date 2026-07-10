@@ -7,8 +7,10 @@ import { createDefaultAchievementState } from '../src/systems/achievements.js';
 
 function createHarness({ stats = createDefaultPlayerStats(), state = createDefaultAchievementState(), now = '2026-07-10T00:00:00.000Z' } = {}) {
   const saves = [];
+  const queued = [];
   return {
     saves,
+    queued,
     run(overrides = {}) {
       return evaluateAndPersistAchievementUnlocks({
         loadStats: () => stats,
@@ -19,6 +21,7 @@ function createHarness({ stats = createDefaultPlayerStats(), state = createDefau
           return nextState;
         },
         now,
+        enqueuePresentation: (ids) => queued.push(...ids),
         logger: { warn() {} },
         ...overrides,
       });
@@ -39,6 +42,7 @@ test('runtime helper unlocks satisfied achievements, persists state, and returns
   assert.ok(unlockedIds.includes('arena.play_first_battle'));
   assert.ok(unlockedIds.includes('arena.win_first_battle'));
   assert.equal(harness.saves.length, 1);
+  assert.deepEqual(harness.queued, unlockedIds);
   assert.equal(harness.state.unlocked['general.win_first_battle'].unlockedAt, '2026-07-10T00:00:00.000Z');
 });
 
