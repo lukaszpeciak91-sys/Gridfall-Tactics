@@ -14,6 +14,7 @@ import { preloadAllCardIllustrations, preloadCardIllustrationsForFaction } from 
 import { calculateBattleLayoutMetrics } from '../ui/battleLayout.js';
 import { calculateHandCardFocusBounds, calculateTutorialBannerLayout, getLiveHandCardViewById } from '../ui/tutorialUxLayout.js';
 import { calculateHandBackCardCoverCrop, calculateHandBackCardDepth, shouldRenderHandBackCard } from '../ui/handBackCardPresentation.js';
+import { ACHIEVEMENT_UNLOCK_POPUP_MAX_BATCH, ACHIEVEMENT_UNLOCK_POPUP_TIMING, calculateAchievementUnlockPopupLayout, createAchievementUnlockPopup } from '../ui/achievementUnlockPopup.js';
 import { HAND_CARD_FLIP_REVEAL_DURATION, findHandCardFlipRevealSlots, shouldSkipHandCardFlipReveal, startHandCardFlipReveal } from '../ui/handCardFlipReveal.js';
 import { createFloatingControl, createMuteToggleControl, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
 import { createModalBackButton } from '../ui/modalControls.js';
@@ -26,6 +27,8 @@ import { applyCampaignBattleResult, clearCampaign, createNewCampaign, isValidCam
 import { incrementBattleStat, incrementCardPlayedStat, loadPlayerStats, markTutorialCompleted, savePlayerStats } from '../systems/playerStats.js';
 import { incrementCampaignCompletedStat } from '../systems/playerStats.js';
 import { evaluateAndPersistAchievementUnlocks } from '../systems/runtimeAchievements.js';
+import { getAchievementDefinitions } from '../systems/achievements.js';
+import { markAchievementPresented, peekAchievementPresentation } from '../systems/achievementPresentationQueue.js';
 import { getCardBoardArtPositionY } from '../data/presentation/cardArtCropOverrides.js';
 import { AUDIO_KEYS, preloadAudioAssets } from '../audio/audioAssets.js';
 import { playManagedSfx, playMusic, playSfx, stopManagedSfx, stopMusic } from '../audio/audioPlayback.js';
@@ -433,6 +436,7 @@ export default class BattleScene extends Phaser.Scene {
     this.activeOutcomeStinger = null;
     this.battleAmbienceStopping = false;
     this.battleStatsTracked = false;
+    this.achievementUnlockPopupController = null;
     this.tutorialCompletionTracked = false;
   }
 
@@ -662,6 +666,7 @@ export default class BattleScene extends Phaser.Scene {
     this.campaignOutcomeSfxPlayed = false;
     this.activeOutcomeStinger = null;
     this.battleStatsTracked = false;
+    this.achievementUnlockPopupController = null;
   }
 
   cleanupSceneObjects({ preserveTimers = false, preserveTweens = false } = {}) {
@@ -680,6 +685,7 @@ export default class BattleScene extends Phaser.Scene {
     this.destroyTargetingInstruction();
     this.destroyActiveSelectionMessage();
     this.destroyBattleResultModal();
+    this.destroyAchievementUnlockPopupController();
     this.destroyUtilityMenuPanel();
     this.closeSurrenderConfirmation();
     this.destroyDeckInfoPanel();
@@ -2430,6 +2436,7 @@ export default class BattleScene extends Phaser.Scene {
         phase: 'interactive',
         resultSubtitle,
       };
+      this.startAchievementUnlockPopupsForResultModal();
     } catch (error) {
       this.logResultModalDiagnostic('showBattleResultModal:catch', {
         errorMessage: error?.message ?? String(error),
@@ -2447,6 +2454,77 @@ export default class BattleScene extends Phaser.Scene {
       this.resultOverlayState = null;
       this.isFlowResolving = false;
       this.updateActionSlotBadge();
+    }
+  }
+
+
+  destroyAchievementUnlockPopupController() {
+    this.achievementUnlockPopupController?.destroy?.();
+    this.achievementUnlockPopupController = null;
+  }
+
+  startAchievementUnlockPopupsForResultModal() {
+    if (!this.battleResultModalShown || !this.battleResultModal || this.resultOverlayState?.kind === 'campaign-completion') return;
+    this.destroyAchievementUnlockPopupController();
+    try {
+      const pendingIds = peekAchievementPresentation(ACHIEVEMENT_UNLOCK_POPUP_MAX_BATCH);
+      if (!pendingIds.length) return;
+      const definitionsById = new Map(getAchievementDefinitions().map((definition) => [definition.id, definition]));
+      const batch = pendingIds
+        .map((achievementId) => ({ achievementId, definition: definitionsById.get(achievementId) }))
+        .filter((entry) => {
+          if (entry.definition) return true;
+          console.warn('Skipping malformed achievement presentation entry; definition not found.', { achievementId: entry.achievementId });
+          markAchievementPresented(entry.achievementId);
+          return false;
+        });
+      if (!batch.length) return;
+      const layout = calculateAchievementUnlockPopupLayout(this, this.battleResultModal);
+      let activePopup = null;
+      let gapTimer = null;
+      let destroyed = false;
+      let cursor = 0;
+      const cleanupActive = () => {
+        activePopup?.destroy?.();
+        activePopup = null;
+        gapTimer?.remove?.(false);
+        gapTimer = null;
+      };
+      const controller = {
+        destroy: () => {
+          if (destroyed) return;
+          destroyed = true;
+          cleanupActive();
+        },
+        getActivePopup: () => activePopup,
+      };
+      const showNext = () => {
+        if (destroyed || cursor >= batch.length || !this.battleResultModalShown || !this.battleResultModal) return;
+        const entry = batch[cursor];
+        activePopup = createAchievementUnlockPopup(this, entry.definition, {
+          index: cursor + 1,
+          total: batch.length,
+          layout,
+          modal: this.battleResultModal,
+          timing: ACHIEVEMENT_UNLOCK_POPUP_TIMING,
+        });
+        activePopup.play({
+          onComplete: () => {
+            if (destroyed) return;
+            markAchievementPresented(entry.achievementId);
+            activePopup = null;
+            cursor += 1;
+            if (cursor < batch.length) {
+              gapTimer = this.time.delayedCall(ACHIEVEMENT_UNLOCK_POPUP_TIMING.gapMs, showNext);
+            }
+          },
+        });
+      };
+      this.achievementUnlockPopupController = controller;
+      showNext();
+    } catch (error) {
+      console.warn('Achievement unlock popup presentation failed; result modal remains usable.', error);
+      this.destroyAchievementUnlockPopupController();
     }
   }
 
@@ -2482,6 +2560,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   destroyBattleResultModal() {
+    this.destroyAchievementUnlockPopupController();
     this.stopOutcomeStinger({ fadeMs: 200 });
     this.battleResultModalPendingEvent?.remove?.(false);
     this.battleResultModalPendingEvent = null;
