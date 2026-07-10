@@ -65,7 +65,8 @@ test('achievement cards render reusable difficulty stars with reserved right-ali
   assert.match(scene, /drawAchievementDifficultyStars\(content, definition, layout, theme\)/);
   assert.match(scene, /fixedWidth: layout\.starAreaWidth/);
   assert.match(scene, /\.setOrigin\(1, 0\)/);
-  assert.match(scene, /const starAreaWidth = 62/);
+  assert.match(scene, /const starAreaWidth = 76/);
+  assert.match(scene, /normalizeAchievementDifficulty\(definition\?\.difficulty\)/);
   assert.match(scene, /titleWidth: Math\.max\(96, titleRight - textLeft - 10\)/);
   assert.match(scene, /starAreaX: titleRight/);
   assert.match(scene, /difficultyStarColor: unlocked \? '#facc15' : '#94a3b8'/);

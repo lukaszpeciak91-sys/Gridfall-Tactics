@@ -12,7 +12,7 @@ import { getActiveLocale, translateActive } from '../localization/localeService.
 import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
 import { getFactionPresentationName } from '../data/presentation/factionPresentation.js';
 import { FACTION_CARD_DETAILS } from '../ui/factionCards.js';
-import { getAchievementDefinitions, loadAchievementState, normalizeAchievementState, ACHIEVEMENT_CATEGORY_GROUPS, ACHIEVEMENT_CATEGORY_LABELS } from '../systems/achievements.js';
+import { getAchievementDefinitions, loadAchievementState, normalizeAchievementState, ACHIEVEMENT_CATEGORY_GROUPS, ACHIEVEMENT_CATEGORY_LABELS, normalizeAchievementDifficulty } from '../systems/achievements.js';
 import { loadPlayerStats, normalizePlayerStats } from '../systems/playerStats.js';
 import { preloadAudioAssets } from '../audio/audioAssets.js';
 import { playMenuMusic } from '../audio/menuMusic.js';
@@ -251,7 +251,7 @@ export default class AchievementsScene extends Phaser.Scene {
     const rightPadding = 12;
     const badgeWidth = 82;
     const badgeHeight = 26;
-    const starAreaWidth = 62;
+    const starAreaWidth = 76;
     const badgeX = x + width - rightPadding - badgeWidth;
     const titleTop = y + 11;
     const titleHeight = 31;
@@ -314,7 +314,7 @@ export default class AchievementsScene extends Phaser.Scene {
 
 
   getAchievementDifficultyStars(definition) {
-    const difficulty = Number.isInteger(definition?.difficulty) && definition.difficulty >= 1 && definition.difficulty <= 3 ? definition.difficulty : 1;
+    const difficulty = normalizeAchievementDifficulty(definition?.difficulty);
     return '★'.repeat(difficulty);
   }
 

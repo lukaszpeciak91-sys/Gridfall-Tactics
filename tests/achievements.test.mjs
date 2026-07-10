@@ -73,14 +73,17 @@ test('achievement definitions expose difficulty metadata and normalize missing o
   assert.equal(byId['campaign.win_first_campaign'].difficulty, 3);
   assert.equal(byId['arena.win_9_battles'].difficulty, 3);
   assert.equal(byId['arena.win_every_faction'].difficulty, 3);
+  assert.equal(byId['campaign.win_campaign_every_faction'].difficulty, 4);
+  assert.equal(byId['general.play_100_battles'].difficulty, 4);
 
   for (const definition of definitions) {
-    assert.ok([1, 2, 3].includes(definition.difficulty), `${definition.id} should expose a 1-3 difficulty`);
+    assert.ok([1, 2, 3, 4].includes(definition.difficulty), `${definition.id} should expose a 1-4 difficulty`);
   }
 
   assert.equal(normalizeAchievementDifficulty(undefined), 1);
   assert.equal(normalizeAchievementDifficulty(0), 1);
-  assert.equal(normalizeAchievementDifficulty(4), 1);
+  assert.equal(normalizeAchievementDifficulty(4), 4);
+  assert.equal(normalizeAchievementDifficulty(5), 1);
   assert.equal(normalizeAchievementDifficulty(2.5), 1);
   assert.equal(normalizeAchievementDifficulty(2), 2);
 });
@@ -130,6 +133,25 @@ test('achievement balance thresholds and localized descriptions match current ta
   assert.deepEqual(byId['cards.play_25_units'].display.description, { en: 'Play 30 units.', pl: 'Zagraj 30 jednostek.' });
   assert.equal(byId['cards.play_25_effects'].target, 30);
   assert.deepEqual(byId['cards.play_25_effects'].display.description, { en: 'Play 30 effects.', pl: 'Zagraj 30 efektów.' });
+
+  assert.equal(byId['general.play_100_battles'].target, 100);
+  assert.equal(byId['general.play_100_battles'].difficulty, 4);
+  assert.deepEqual(byId['general.play_100_battles'].display.title, { en: 'Still Broadcasting', pl: 'Jeszcze nadajemy' });
+  assert.deepEqual(byId['general.play_100_battles'].display.description, { en: 'Play 100 battles.', pl: 'Rozegraj 100 bitew.' });
+  assert.equal(byId['general.win_50_battles'].target, 50);
+  assert.equal(byId['general.win_50_battles'].difficulty, 4);
+  assert.deepEqual(byId['general.win_50_battles'].display.title, { en: 'Prime-Time Star', pl: 'Gwiazda ramówki' });
+  assert.deepEqual(byId['general.win_50_battles'].display.description, { en: 'Win 50 battles.', pl: 'Wygraj 50 bitew.' });
+  assert.equal(byId['arena.win_25_battles'].target, 25);
+  assert.equal(byId['arena.win_25_battles'].difficulty, 4);
+  assert.deepEqual(byId['arena.win_25_battles'].display.title, { en: 'The House Knows You', pl: 'Kasyno cię zna' });
+  assert.deepEqual(byId['arena.win_25_battles'].display.description, { en: 'Win 25 Arena battles.', pl: 'Wygraj 25 walk w Arenie.' });
+
+  const dominator = byId['campaign.win_campaign_every_faction'];
+  assert.equal(dominator.target, getFactionKeys().length);
+  assert.equal(dominator.difficulty, 4);
+  assert.deepEqual(dominator.display.title, { en: 'Dominator', pl: 'Dominator' });
+  assert.deepEqual(dominator.display.description, { en: 'Win a campaign with every faction.', pl: 'Wygraj kampanię każdą frakcją.' });
 
   for (const factionKey of getFactionKeys()) {
     const firstWin = byId[`faction.win_first_battle.${factionKey}`];
@@ -257,6 +279,19 @@ test('evaluateAchievements respects updated thresholds before and at completion'
   assert(result.newlyUnlocked.some((entry) => entry.id === 'general.win_10_battles'));
   assert(result.newlyUnlocked.some((entry) => entry.id === 'cards.play_25_units'));
   assert(result.newlyUnlocked.some((entry) => entry.id === 'cards.play_25_effects'));
+});
+
+
+test('evaluateAchievements gates prestige achievements below and exactly at thresholds', () => {
+  let result = evaluateAchievements({ battlesPlayed: 99, battlesWon: 49, arenaBattlesWon: 24 }, createDefaultAchievementState(), { now: 1 });
+  assert.equal(result.newlyUnlocked.some((entry) => entry.id === 'general.play_100_battles'), false);
+  assert.equal(result.newlyUnlocked.some((entry) => entry.id === 'general.win_50_battles'), false);
+  assert.equal(result.newlyUnlocked.some((entry) => entry.id === 'arena.win_25_battles'), false);
+
+  result = evaluateAchievements({ battlesPlayed: 100, battlesWon: 50, arenaBattlesWon: 25 }, createDefaultAchievementState(), { now: 2 });
+  assert(result.newlyUnlocked.some((entry) => entry.id === 'general.play_100_battles'));
+  assert(result.newlyUnlocked.some((entry) => entry.id === 'general.win_50_battles'));
+  assert(result.newlyUnlocked.some((entry) => entry.id === 'arena.win_25_battles'));
 });
 
 test('previously unlocked achievements remain unlocked when updated thresholds are not met', () => {
