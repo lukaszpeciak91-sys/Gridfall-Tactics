@@ -49,11 +49,16 @@ test('result modal destruction and cleanup destroy active popup controller witho
   assert.doesNotMatch(battle, /achievementUnlockPopupController[\s\S]{0,120}resultOverlayState|resultOverlayState[\s\S]{0,120}achievementUnlockPopupController/);
 });
 
-test('campaign completion modal remains excluded while standard campaign results can use result modal popups', () => {
+test('campaign completion modal starts achievement popups only after interactive summary', () => {
   const start = method('startAchievementUnlockPopupsForResultModal', 'createResultModalButton');
   const campaign = method('showCampaignCompleteModal', 'getCampaignCompletionStatsText');
-  assert.match(start, /this\.resultOverlayState\?\.kind === 'campaign-completion'/);
-  assert.doesNotMatch(campaign, /startAchievementUnlockPopupsForResultModal/);
+  assert.match(start, /this\.resultOverlayState\?\.kind === 'campaign-completion'[\s\S]*this\.resultOverlayState\.phase !== 'interactive'/);
+  assert.match(start, /this\.resultOverlayState\?\.kind === 'campaign-completion'[\s\S]*this\.resultOverlayState\.preview === true/);
+  const buttonVisible = campaign.indexOf('button.items.forEach((item) => item?.setVisible?.(true)?.setAlpha?.(1));');
+  const interactiveState = campaign.indexOf("phase: 'interactive'", buttonVisible);
+  const startPopup = campaign.indexOf('this.startAchievementUnlockPopupsForResultModal();', interactiveState);
+  assert.ok(buttonVisible >= 0 && interactiveState > buttonVisible && startPopup > interactiveState);
+  assert.match(campaign, /if \(restoreAsInteractive\) this\.startAchievementUnlockPopupsForResultModal\(\);/);
   assert.match(battle, /continueCampaignBattleResult\(\)[\s\S]*this\.showCampaignCompleteModal\(updatedCampaign\.status\);[\s\S]*this\.scene\.start\('CampaignEnemySelectScene'/);
 });
 
