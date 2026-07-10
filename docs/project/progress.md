@@ -165,3 +165,10 @@ canonical_ref: docs/rules/mvp-battle-rules.md
 - Future balance work should prioritize campaign viability, matchup severity, and faction identity preservation over broad AI changes.
 - Canonical short-form audit memory for this phase: `docs/project/balance-audit-june-2026.md`.
 
+## Achievements V1 Complete (2026-07-10)
+- Completed Achievements V1 as a persistent player progression milestone with Player Stats, persistent Achievement State, and a persistent achievement presentation queue.
+- Added global, Arena, Campaign, Tutorial, card-play, and per-faction tracking, including prestige achievements and dynamic faction achievement templates generated from the runtime faction set.
+- Added runtime achievement evaluation/backfill at safe checkpoints, PL/EN localization, difficulty tiers from 1 to 4 stars, locked/unlocked/progress display, and an Achievements panel with nested accordion sections.
+- Added standard result-screen achievement popups, Campaign completion summary popup support, a maximum of 3 sequential popups per eligible result panel, early-exit safety, sleep/wake/fullscreen lifecycle-safe presentation, and achievement unlock SFX integration.
+- Confirmed full Achievements access is intentionally not added to the in-battle hamburger menu.
+- Achievements V1 is complete; future work should be limited to adding individual achievements, adjusting thresholds, copy/localization changes, minor visual/audio polish, and support for future modes and factions.

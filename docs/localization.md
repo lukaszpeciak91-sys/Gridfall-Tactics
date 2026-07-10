@@ -43,19 +43,21 @@ Current groups:
 - `ui.battle.*`
 - `ui.rules.*`
 - `ui.cardDetails.*`
+- `ui.achievements.*`
 
 ## Localized UI surfaces
 
 The current dictionaries cover and the routed UI includes:
 
 - Start screen title and Start button.
-- Main menu title, Arena, Tutorial, Collection, Settings, and “coming soon” status text.
+- Main menu title, Arena, Tutorial, Collection, Achievements, Settings, and Game labels.
 - Faction select title, subtitle, faction descriptions, and tag pills.
 - Settings title, help text, language labels, language status, audio panel labels, and volume labels.
 - Collection title, subtitle, card detail back buttons, card type labels, stats, and card effect snippets.
 - Rules / How To Play title, sections, bullets, scroll hints, and back button.
 - Battle menu title, “coming soon” text, and How To Play button.
 - Battle UI labels including hero labels, action badges, PASS, mulligan/keep hand, deck counter, Deck Info panel headings, empty-group labels, result modal win/lose/draw/retry/exit text, enemy action banners, effect summaries, block text, card type labels, and stat labels.
+- Achievements panel copy including category labels, achievement titles/descriptions, locked/unlocked/progress display, achievement unlock popup copy, popup queue counter text, and PL/EN support.
 
 ## Card text
 
