@@ -2464,7 +2464,8 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   startAchievementUnlockPopupsForResultModal() {
-    if (!this.battleResultModalShown || !this.battleResultModal || this.resultOverlayState?.kind === 'campaign-completion') return;
+    if (!this.battleResultModalShown || !this.battleResultModal) return;
+    if (this.resultOverlayState?.kind === 'campaign-completion' && (this.resultOverlayState.phase !== 'interactive' || this.resultOverlayState.preview === true)) return;
     this.destroyAchievementUnlockPopupController();
     try {
       const pendingIds = peekAchievementPresentation(ACHIEVEMENT_UNLOCK_POPUP_MAX_BATCH);
@@ -3566,6 +3567,7 @@ export default class BattleScene extends Phaser.Scene {
             onComplete: () => {
               button.items.forEach((item) => item?.setVisible?.(true)?.setAlpha?.(1));
               this.resultOverlayState = { kind: 'campaign-completion', status, phase: 'interactive', preview: options.preview === true, campaign: safeCampaign, flavorText };
+              this.startAchievementUnlockPopupsForResultModal();
             },
           });
         },
@@ -3836,6 +3838,7 @@ export default class BattleScene extends Phaser.Scene {
       celebration: campaignCelebration ?? [...cinematicItems.filter((item) => item !== title && item !== titleAura), ...passiveItems, trophy, fallbackPanel, summaryTitle].filter(Boolean),
       buttons: [button],
     };
+    if (restoreAsInteractive) this.startAchievementUnlockPopupsForResultModal();
   }
 
   getCampaignCompletionStatsText(campaign) {
