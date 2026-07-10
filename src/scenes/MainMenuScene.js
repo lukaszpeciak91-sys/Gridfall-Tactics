@@ -2,9 +2,7 @@ import Phaser from 'phaser';
 import {
   MENU_BACKGROUND_FALLBACK_COLOR,
   MENU_BACKGROUND_FALLBACK_COLOR_HEX,
-  createCoverBackground,
-  createMenuArenaLightSweep,
-  getMenuBackgroundAsset,
+  createAnimatedMenuBackground,
   preloadImageAsset,
   preloadMenuBackgroundArt,
 } from '../rendering/backgroundArt.js';
@@ -84,13 +82,11 @@ export default class MainMenuScene extends Phaser.Scene {
     playMenuMusic(this);
 
     this.cameras.main.setBackgroundColor(MENU_BACKGROUND_FALLBACK_COLOR_HEX);
-    createCoverBackground(this, {
-      asset: getMenuBackgroundAsset(),
+    this.menuBackground = createAnimatedMenuBackground(this, {
       fallbackColor: MENU_BACKGROUND_FALLBACK_COLOR,
       width,
       height,
     });
-    createMenuArenaLightSweep(this, { width, height });
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.cleanupScene, this);
     this.events.on(Phaser.Scenes.Events.RESUME, this.restoreMainMenuInteractivity, this);

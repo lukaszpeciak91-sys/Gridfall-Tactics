@@ -9,7 +9,7 @@ import { playSfx, stopMusic } from '../audio/audioPlayback.js';
 import { playMenuMusic } from '../audio/menuMusic.js';
 import { isValidCampaignState, loadCampaign, saveCampaign, selectCampaignEnemy } from '../systems/campaignState.js';
 import { getCampaignEnemyViewModels } from '../systems/campaignEnemySelection.js';
-import { MENU_BACKGROUND_FALLBACK_COLOR, MENU_BACKGROUND_FALLBACK_COLOR_HEX, createCoverBackground, createMenuArenaLightSweep, getMenuBackgroundAsset, preloadMenuBackgroundArt } from '../rendering/backgroundArt.js';
+import { MENU_BACKGROUND_FALLBACK_COLOR, MENU_BACKGROUND_FALLBACK_COLOR_HEX, createAnimatedMenuBackground, preloadMenuBackgroundArt } from '../rendering/backgroundArt.js';
 import { drawFactionCardVisual, preloadFactionPreviewArt } from '../ui/factionCards.js';
 import { createTapVsDragInteraction } from '../ui/tapVsDragInteraction.js';
 
@@ -63,8 +63,7 @@ export default class CampaignEnemySelectScene extends Phaser.Scene {
     applyAudioSettings(this, loadSettings());
     playMenuMusic(this);
     this.cameras.main.setBackgroundColor(MENU_BACKGROUND_FALLBACK_COLOR_HEX);
-    createCoverBackground(this, { asset: getMenuBackgroundAsset(), fallbackColor: MENU_BACKGROUND_FALLBACK_COLOR, width, height });
-    createMenuArenaLightSweep(this, { width, height, opacity: 0.075, y: height * 0.24 });
+    this.menuBackground = createAnimatedMenuBackground(this, { fallbackColor: MENU_BACKGROUND_FALLBACK_COLOR, width, height, lightSweepOptions: { opacity: 0.075, y: height * 0.24 } });
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.cleanupScene, this);
     this.scale.on('enterfullscreen', this.onFullscreenChanged, this);

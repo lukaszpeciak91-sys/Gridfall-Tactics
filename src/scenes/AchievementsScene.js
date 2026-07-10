@@ -2,9 +2,7 @@ import Phaser from 'phaser';
 import {
   MENU_BACKGROUND_FALLBACK_COLOR,
   MENU_BACKGROUND_FALLBACK_COLOR_HEX,
-  createCoverBackground,
-  createMenuArenaLightSweep,
-  getMenuBackgroundAsset,
+  createAnimatedMenuBackground,
   preloadMenuBackgroundArt,
 } from '../rendering/backgroundArt.js';
 import { createBuildMarker } from '../ui/buildMarker.js';
@@ -48,17 +46,14 @@ export default class AchievementsScene extends Phaser.Scene {
     const { width, height } = this.scale;
 
     this.cameras.main.setBackgroundColor(MENU_BACKGROUND_FALLBACK_COLOR_HEX);
-    createCoverBackground(this, {
-      asset: getMenuBackgroundAsset(),
+    this.menuBackground = createAnimatedMenuBackground(this, {
       fallbackColor: MENU_BACKGROUND_FALLBACK_COLOR,
       width,
       height,
-    });
-    createMenuArenaLightSweep(this, {
-      width,
-      height,
-      opacity: 0.07,
-      y: height * 0.28,
+      lightSweepOptions: {
+        opacity: 0.07,
+        y: height * 0.28,
+      },
     });
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.cleanupScene, this);
