@@ -456,7 +456,7 @@ function getCandidateTargetIndexesForTargeting(state, owner, targeting) {
   }
 }
 
-function getCandidateTargetIndexes(state, owner, effectId) {
+function getCandidateTargetIndexes(state, owner, effectId, card = null) {
   const board = Array.isArray(state?.board) ? state.board : [];
   const friendlyOwner = owner;
   const opponentOwner = owner === 'enemy' ? 'player' : 'enemy';
@@ -474,6 +474,9 @@ function getCandidateTargetIndexes(state, owner, effectId) {
     case 'swap_adjacent_then_resolve':
     case 'ally_atk_plus_1_opposing_enemy_atk_minus_1_until_combat':
     case 'lane_tempo_mod_until_combat':
+      if (card?.targeting === 'enemy_unit') {
+        return board.map((unit, index) => (unit?.owner === opponentOwner ? index : -1)).filter((index) => index >= 0);
+      }
       return board.map((unit, index) => (unit?.owner === friendlyOwner ? index : -1)).filter((index) => index >= 0);
     case 'control_enemy_unit_this_turn':
     case 'ignore_armor_next_attack':
@@ -576,7 +579,7 @@ function hasMeaningfulBoardOrPressureChange(beforeState, afterState, owner) {
 }
 
 function addTwoTargetCandidates(actions, state, owner, card) {
-  const targets = getCandidateTargetIndexes(state, owner, card.effectId ?? null);
+  const targets = getCandidateTargetIndexes(state, owner, card.effectId ?? null, card);
   for (let first = 0; first < targets.length; first += 1) {
     for (let second = 0; second < targets.length; second += 1) {
       if (first === second) continue;
@@ -620,7 +623,7 @@ function getJamSignalTargetValue(state, owner, targetIndex) {
 }
 
 function addJamSignalCandidates(actions, state, owner, card) {
-  const rankedTargets = getCandidateTargetIndexes(state, owner, card.effectId ?? null)
+  const rankedTargets = getCandidateTargetIndexes(state, owner, card.effectId ?? null, card)
     .map((targetIndex) => ({ targetIndex, value: getJamSignalTargetValue(state, owner, targetIndex) }))
     .filter(({ value }) => Number.isFinite(value) && value > 0)
     .sort((a, b) => (b.value - a.value) || (a.targetIndex - b.targetIndex));
@@ -681,7 +684,7 @@ function hasMeaningfulPressureChange(beforeState, afterState, owner) {
 }
 
 function addControllerUnitCandidates(actions, state, owner, card, slotIndex, placementType) {
-  const targets = getCandidateTargetIndexes(state, owner, card.effectId ?? null);
+  const targets = getCandidateTargetIndexes(state, owner, card.effectId ?? null, card);
   if (targets.length < 2) return;
 
   for (let first = 0; first < targets.length - 1; first += 1) {
@@ -781,7 +784,7 @@ export function buildActionCandidates(state, owner, hand, telemetry = null) {
     const variantTargetCandidates = isSkipBaseEffectVariantAction(state, owner, { cardId: card.id, effectId: card.effectId ?? null })
       ? getCandidateTargetIndexesForTargeting(state, owner, card.targeting)
       : null;
-    const targets = variantTargetCandidates ?? getCandidateTargetIndexes(state, owner, card.effectId ?? null);
+    const targets = variantTargetCandidates ?? getCandidateTargetIndexes(state, owner, card.effectId ?? null, card);
     targets.forEach((targetIndex) => {
       const targetedProbe = resolveTargetedEffectCard(cloneState(state), owner, card.id, targetIndex, [targetIndex]);
       if (targetedProbe.ok && targetedProbe.type !== 'targeted-effect-pending' && targetedProbe.type !== 'targeted-effect-blocked') {
@@ -1139,12 +1142,30 @@ export function scoreAction(state, owner, action) {
   if (action.effectId === 'ally_atk_plus_1_opposing_enemy_atk_minus_1_until_combat' || action.effectId === 'lane_tempo_mod_until_combat') {
     const target = state.board[action.targetIndex];
     const { friendly, opposing } = getRowsForOwner(owner);
+    const side = owner === 'enemy' ? state.enemy : state.player;
+    const actionCard = side?.hand?.find((card) => card.id === action.cardId);
+    if (action.effectId === 'lane_tempo_mod_until_combat' && actionCard?.targeting === 'enemy_unit') {
+      const lane = opposing.indexOf(action.targetIndex);
+      const oppositeAlly = lane >= 0 ? state.board[friendly[lane]] : null;
+      const targetAttack = getEffectiveBoardAttack(state, action.targetIndex);
+      const allyAttack = lane >= 0 ? getEffectiveBoardAttack(state, friendly[lane]) : 0;
+      const params = actionCard?.effectParams ?? {};
+      const targetEnemyAtk = Number(params.targetEnemyAtk ?? 0);
+      const opposingAllyAtk = Number(params.opposingAllyAtk ?? 0);
+      const hasOpposingAlly = oppositeAlly?.owner === owner;
+      const meaningfulEnemyDebuff = target?.owner !== owner && targetEnemyAtk < 0 && targetAttack > 0;
+      const meaningfulAllyBuff = hasOpposingAlly && opposingAllyAtk > 0 && allyAttack + opposingAllyAtk > 0;
+      const meaningful = target?.owner === (owner === 'enemy' ? 'player' : 'enemy') && (meaningfulEnemyDebuff || meaningfulAllyBuff);
+      action.aiEvaluation = { kind: 'enemy-lane-tempo-transfer', meaningful, targetAttack, allyAttack, targetEnemyAtk, opposingAllyAtk, hasOpposingAlly };
+      if (!meaningful) return Number.NEGATIVE_INFINITY;
+      score += 420 + Math.max(0, -targetEnemyAtk) * 220 + targetAttack * 120;
+      if (hasOpposingAlly) score += 260 + Math.max(0, opposingAllyAtk) * 160 + allyAttack * 60;
+      return score;
+    }
     const lane = friendly.indexOf(action.targetIndex);
     const opposed = lane >= 0 ? state.board[opposing[lane]] : null;
     const targetAttack = getEffectiveBoardAttack(state, action.targetIndex);
     const opposedAttack = lane >= 0 ? getEffectiveBoardAttack(state, opposing[lane]) : 0;
-    const side = owner === 'enemy' ? state.enemy : state.player;
-    const actionCard = side?.hand?.find((card) => card.id === action.cardId);
     const params = action.effectId === 'lane_tempo_mod_until_combat' ? (actionCard?.effectParams ?? {}) : {};
     const allyAtk = Number(params.allyAtk ?? 1);
     const opposingEnemyAtk = Number(params.opposingEnemyAtk ?? -1);

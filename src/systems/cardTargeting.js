@@ -21,7 +21,13 @@ const ENEMY_SINGLE_TARGET_EFFECTS = new Set([
   'infect_damage_1_opposite_ally_atk_1',
 ]);
 
-export function getTargetingStateForEffect(effectId, cardId) {
+export function getTargetingStateForEffect(effectId, cardId, targeting = null) {
+  // Parametric lane tempo may be friendly- or enemy-targeted. The caller can
+  // pass the concrete targeting mode on custom-faction cards; keep the legacy
+  // one-argument behavior friendly for production Mercy.
+  if (effectId === 'lane_tempo_mod_until_combat' && targeting === 'enemy_unit') {
+    return { cardId, targetType: 'enemy-unit', requiredTargets: 1, targetIndexes: [] };
+  }
   if (FRIENDLY_SINGLE_TARGET_EFFECTS.has(effectId)) {
     return { cardId, targetType: 'friendly-unit', requiredTargets: 1, targetIndexes: [] };
   }
