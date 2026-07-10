@@ -142,21 +142,19 @@ function validateCustomFactionCard(card, faction, index, context, seenCardIds, s
   if (card.effectId === 'opposed_enemy_offline_next_combat') {
     if (card.type !== 'unit') throw validationError(`${path}.effectId 'opposed_enemy_offline_next_combat' is only supported on unit cards`);
     if (card.targeting !== 'lane') throw validationError(`${path}.effectId 'opposed_enemy_offline_next_combat' requires targeting 'lane'`);
+    if (card.effectParams !== undefined) throw validationError(`${path}.effectParams is not supported for opposed_enemy_offline_next_combat`);
   }
   if (card.effectId === 'lane_tempo_mod_until_combat') {
     const params = card.effectParams ?? {};
     if (params && (typeof params !== 'object' || Array.isArray(params))) throw validationError(`${path}.effectParams must be an object`);
-    const enemyKeys = new Set(['targetEnemyAtk', 'targetEnemyHp', 'targetEnemyArmor', 'opposingAllyAtk', 'opposingAllyHp', 'opposingAllyArmor']);
+    const enemyKeys = new Set(['targetEnemyAtk', 'opposingAllyAtk']);
     const friendlyKeys = new Set(['allyAtk', 'allyHp', 'allyArmor', 'opposingEnemyAtk', 'opposingEnemyHp', 'opposingEnemyArmor']);
     const allowed = card.targeting === 'enemy_unit' ? enemyKeys : friendlyKeys;
     Object.entries(params).forEach(([key, value]) => {
       if (!allowed.has(key)) throw validationError(`${path}.effectParams.${key} is not supported for ${card.targeting} lane_tempo_mod_until_combat`);
       if (!Number.isFinite(value)) throw validationError(`${path}.effectParams.${key} must be a number`);
-      if ((key.endsWith('Hp') || key.endsWith('Armor')) && value !== 0) {
-        throw validationError(`${path}.effectParams.${key} non-zero HP/Armor temporary params are not supported for custom lane_tempo_mod_until_combat`);
-      }
     });
-  } else if (card.effectParams !== undefined) {
+  } else if (card.effectParams !== undefined && card.effectId !== 'opposed_enemy_offline_next_combat') {
     throw validationError(`${path}.effectParams is only supported for lane_tempo_mod_until_combat`);
   }
   if (card.type === 'unit') {
