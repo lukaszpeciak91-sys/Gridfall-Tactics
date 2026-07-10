@@ -45,7 +45,7 @@ function createMockScene() {
 const definition = {
   id: 'arena_first_win',
   category: 'arena',
-  difficulty: 3,
+  difficulty: 4,
   display: {
     title: { en: 'First Roar', pl: 'Pierwszy ryk' },
     description: { en: 'Win an Arena battle.', pl: 'Wygraj bitwę Areny.' },
@@ -57,7 +57,7 @@ test('popup view model localizes title, description, unlock badge, stars, and qu
   assert.equal(view.title, 'Pierwszy ryk');
   assert.equal(view.description, 'Wygraj bitwę Areny.');
   assert.equal(view.badge, 'ODBLOKOWANE');
-  assert.equal(view.stars, '★★★');
+  assert.equal(view.stars, '★★★★');
   assert.equal(view.queuePosition, '2 / 3');
   assert.doesNotMatch(Object.values(view).join(' '), /10 \/ 10/);
 });
@@ -76,7 +76,7 @@ test('popup renderer creates compact content and explicit cleanup ownership', ()
   assert.ok(scene.created.some((item) => item.text === 'First Roar'));
   assert.ok(scene.created.some((item) => item.text === 'Win an Arena battle.'));
   assert.ok(scene.created.some((item) => item.text === 'UNLOCKED'));
-  assert.ok(scene.created.some((item) => item.text === '★★★'));
+  assert.ok(scene.created.some((item) => item.text === '★★★★'));
   assert.ok(scene.created.some((item) => item.text === '1 / 2'));
   popup.destroy();
   assert.ok(scene.created.every((item) => item.destroyed));
