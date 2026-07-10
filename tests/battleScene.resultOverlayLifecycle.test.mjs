@@ -38,7 +38,7 @@ test('arena and campaign intermediate battle result overlays restore as immediat
   assert.match(showBattle, /phase: 'interactive'/);
   assert.match(showBattle, /const skipReveal = options\.skipReveal === true;/);
   assert.match(restore, /snapshot\.kind === 'arena-battle-result' \|\| snapshot\.kind === 'campaign-battle-result' \|\| snapshot\.kind === 'tutorial-battle-result'/);
-  assert.match(restore, /this\.showBattleResultModal\(\{ skipReveal: true \}\);/);
+  assert.match(restore, /this\.showBattleResultModal\(\{[\s\S]*skipReveal: true,[\s\S]*resultSubtitle: typeof snapshot\.resultSubtitle === 'string' \? snapshot\.resultSubtitle : undefined,[\s\S]*\}\);/);
 });
 
 test('battle result modal creation resets lifecycle flags if visible creation fails', () => {
@@ -96,6 +96,31 @@ test('campaign completion phase is persisted and summary restore bypasses reveal
   assert.match(campaign, /if \(restoreAsInteractive\) \{[\s\S]*overlay\.removeAllListeners\('pointerup'\);[\s\S]*summaryItems\.forEach\(\(item\) => item\?\.setVisible\?\.\(true\)\?\.setAlpha\?\.\(1\)\);[\s\S]*\}/);
 });
 
+test('battle result overlay snapshots preserve and restore selected subtitle text without reveal replay', () => {
+  const showBattle = extractMethodBody('showBattleResultModal', 'createResultModalButton');
+  const capture = extractMethodBody('captureResultOverlayState', 'restoreResultOverlayFromSnapshot');
+  const restore = extractMethodBody('restoreResultOverlayFromSnapshot', 'rebuildBattleView');
+
+  assert.match(showBattle, /const resultSubtitle = typeof options\.resultSubtitle === 'string'[\s\S]*\? options\.resultSubtitle[\s\S]*: this\.getBattleResultSubtitle\(\);/);
+  assert.match(showBattle, /this\.resultOverlayState = \{[\s\S]*kind: this\.getBattleResultOverlayKind\(\),[\s\S]*phase: 'interactive',[\s\S]*resultSubtitle,[\s\S]*\};/);
+  assert.match(capture, /return \{[\s\S]*\.\.\.this\.resultOverlayState,[\s\S]*campaign: this\.resultOverlayState\.campaign \? \{ \.\.\.this\.resultOverlayState\.campaign \} : this\.resultOverlayState\.campaign,[\s\S]*\};/);
+  assert.match(restore, /this\.showBattleResultModal\(\{[\s\S]*skipReveal: true,[\s\S]*resultSubtitle: typeof snapshot\.resultSubtitle === 'string' \? snapshot\.resultSubtitle : undefined,[\s\S]*\}\);/);
+});
+
+test('campaign completion snapshots preserve flavor text and summary restore stays interactive', () => {
+  const campaign = extractMethodBody('showCampaignCompleteModal', 'getCampaignCompletionStatsText');
+  const capture = extractMethodBody('captureResultOverlayState', 'restoreResultOverlayFromSnapshot');
+  const restore = extractMethodBody('restoreResultOverlayFromSnapshot', 'rebuildBattleView');
+
+  assert.match(campaign, /const flavorText = typeof options\.flavorText === 'string'[\s\S]*\? options\.flavorText[\s\S]*: pickRandomTextEntry/);
+  assert.match(campaign, /this\.resultOverlayState = \{ kind: 'campaign-completion', status, phase: 'summary', preview: options\.preview === true, campaign: safeCampaign, flavorText \};/);
+  assert.match(campaign, /this\.resultOverlayState = \{ kind: 'campaign-completion', status, phase: 'interactive', preview: options\.preview === true, campaign: safeCampaign, flavorText \};/);
+  assert.match(campaign, /phase: restoreAsInteractive \? 'interactive' : 'cinematic',[\s\S]*preview: options\.preview === true,[\s\S]*campaign: safeCampaign,[\s\S]*flavorText,/);
+  assert.match(capture, /\.\.\.this\.resultOverlayState/);
+  assert.match(restore, /const phase = snapshot\.phase === 'cinematic' \? 'cinematic' : 'interactive';/);
+  assert.match(restore, /restorePhase: phase,[\s\S]*flavorText: typeof snapshot\.flavorText === 'string' \? snapshot\.flavorText : undefined,/);
+});
+
 test('campaign completion preview overlays restore without requiring gameState winner', () => {
   const capture = extractMethodBody('captureResultOverlayState', 'restoreResultOverlayFromSnapshot');
   const restore = extractMethodBody('restoreResultOverlayFromSnapshot', 'rebuildBattleView');
@@ -115,7 +140,7 @@ test('pending battle result snapshot survives fullscreen and viewport rebuild cl
   assert.match(capture, /if \(this\.battleResultModalPending && this\.gameState\?\.winner\) \{/);
   assert.match(capture, /kind: this\.getBattleResultOverlayKind\(\),[\s\S]*phase: 'pending'/);
   assert.match(restore, /snapshot\.kind === 'arena-battle-result' \|\| snapshot\.kind === 'campaign-battle-result' \|\| snapshot\.kind === 'tutorial-battle-result'/);
-  assert.match(restore, /this\.showBattleResultModal\(\{ skipReveal: true \}\);/);
+  assert.match(restore, /this\.showBattleResultModal\(\{[\s\S]*skipReveal: true,[\s\S]*resultSubtitle: typeof snapshot\.resultSubtitle === 'string' \? snapshot\.resultSubtitle : undefined,[\s\S]*\}\);/);
   assert.match(rebuild, /const resultOverlaySnapshot = this\.captureResultOverlayState\(\);[\s\S]*this\.cleanupSceneObjects\(\{ preserveTimers: true \}\);[\s\S]*this\.restoreResultOverlayFromSnapshot\(resultOverlaySnapshot\);/);
 });
 
