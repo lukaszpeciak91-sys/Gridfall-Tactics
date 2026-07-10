@@ -15,10 +15,10 @@ const ARENA_LIGHT_SWEEP_TEXTURE_KEY = 'effect.arena-light-sweep.soft-gradient';
 const ARENA_LIGHT_SWEEP_TEXTURE_SIZE = 512;
 
 const MENU_BACKGROUND_AMBIENT_DRIFT = {
-  scaleMultiplier: 1.04,
-  x: 10,
-  y: -16,
-  duration: 18000,
+  scaleMultiplier: 1.08,
+  x: 14,
+  y: -36,
+  duration: 12000,
   ease: 'Sine.easeInOut',
 };
 
