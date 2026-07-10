@@ -44,7 +44,7 @@ def utf8_subprocess_env() -> dict[str, str]:
 
 ALLOWED_STAT_FIELDS = {"attack", "hp", "armor"}
 PARAMETERIZED_EFFECT_IDS = {"lane_tempo_mod_until_combat"}
-LANE_TEMPO_MOD_PARAM_FIELDS = {
+LANE_TEMPO_MOD_FRIENDLY_PARAM_FIELDS = {
     "allyAtk",
     "allyHp",
     "allyArmor",
@@ -52,6 +52,7 @@ LANE_TEMPO_MOD_PARAM_FIELDS = {
     "opposingEnemyHp",
     "opposingEnemyArmor",
 }
+LANE_TEMPO_MOD_ENEMY_PARAM_FIELDS = {"targetEnemyAtk", "opposingAllyAtk"}
 
 IMPLEMENTED_CONCRETE_EFFECT_IDS = {
     "decay_attack_after_combat",
@@ -63,6 +64,7 @@ IMPLEMENTED_CONCRETE_EFFECT_IDS = {
     "enemy_atk_to_0_ally_atk_plus_1_until_combat",
     "ally_atk_plus_1_opposing_enemy_atk_minus_1_until_combat",
     "lane_tempo_mod_until_combat",
+    "opposed_enemy_offline_next_combat",
 }
 REQUIRED_REPLACE_CARD_FIELDS = {"id", "name", "type", "targeting", "textShort"}
 REQUIRED_UNIT_REPLACE_CARD_FIELDS = {"attack", "hp", "armor"}
@@ -391,17 +393,18 @@ def validate_stat_change_shape(change: dict[str, Any], index: int) -> None:
 
 
 
-def validate_effect_params(effect_id: Any, effect_params: Any, context: str) -> None:
+def validate_effect_params(effect_id: Any, effect_params: Any, context: str, targeting: Any = None) -> None:
     if effect_params is None:
         return
     if effect_id not in PARAMETERIZED_EFFECT_IDS:
         raise BalanceLabError(f"{context} includes effectParams, but effectId '{effect_id}' does not support effectParams.")
     if not isinstance(effect_params, dict):
         raise BalanceLabError(f"{context}.effectParams must be an object.")
-    unknown = sorted(set(effect_params) - LANE_TEMPO_MOD_PARAM_FIELDS)
+    allowed_fields = LANE_TEMPO_MOD_ENEMY_PARAM_FIELDS if targeting == "enemy_unit" else LANE_TEMPO_MOD_FRIENDLY_PARAM_FIELDS
+    unknown = sorted(set(effect_params) - allowed_fields)
     if unknown:
-        allowed = ", ".join(sorted(LANE_TEMPO_MOD_PARAM_FIELDS))
-        raise BalanceLabError(f"{context}.effectParams has unsupported field(s): {', '.join(unknown)}. Supported fields: {allowed}.")
+        allowed = ", ".join(sorted(allowed_fields))
+        raise BalanceLabError(f"{context}.effectParams has unsupported field(s): {', '.join(unknown)}. Supported fields for targeting '{targeting}': {allowed}.")
     for key, value in effect_params.items():
         if not isinstance(value, (int, float)) or isinstance(value, bool):
             raise BalanceLabError(f"{context}.effectParams.{key} must be a number.")
@@ -411,7 +414,7 @@ def validate_replace_card_shape(change: dict[str, Any], index: int) -> None:
     if not isinstance(replace_card, dict):
         raise BalanceLabError(f"Change #{index} replaceCard must be an object.")
     if "effectParams" in replace_card:
-        validate_effect_params(replace_card.get("effectId"), replace_card.get("effectParams"), f"Change #{index} replaceCard")
+        validate_effect_params(replace_card.get("effectId"), replace_card.get("effectParams"), f"Change #{index} replaceCard", replace_card.get("targeting"))
     missing_fields = sorted(field for field in REQUIRED_REPLACE_CARD_FIELDS if field not in replace_card)
     if missing_fields:
         raise BalanceLabError(
@@ -426,6 +429,11 @@ def validate_replace_card_shape(change: dict[str, Any], index: int) -> None:
         effect_id = replace_card["effectId"]
         if effect_id is not None and (not isinstance(effect_id, str) or not effect_id):
             raise BalanceLabError(f"Change #{index} replaceCard.effectId must be a non-empty string, null, or omitted.")
+        if effect_id == "opposed_enemy_offline_next_combat":
+            if replace_card["type"] != "unit":
+                raise BalanceLabError(f"Change #{index} replaceCard.effectId 'opposed_enemy_offline_next_combat' is only supported on unit cards.")
+            if replace_card["targeting"] != "lane":
+                raise BalanceLabError(f"Change #{index} replaceCard.effectId 'opposed_enemy_offline_next_combat' requires targeting 'lane'.")
     if replace_card["type"] == "unit":
         for key in sorted(REQUIRED_UNIT_REPLACE_CARD_FIELDS):
             value = replace_card.get(key)
@@ -754,12 +762,17 @@ def validate_custom_factions(root: Path, custom_factions: list[Any]) -> list[dic
             seen_card_ids.add(card["id"])
             effect_id = card.get("effectId")
             if "effectParams" in card:
-                validate_effect_params(effect_id, card.get("effectParams"), card_context)
+                validate_effect_params(effect_id, card.get("effectParams"), card_context, card.get("targeting"))
             if effect_id is not None:
                 if not isinstance(effect_id, str) or not effect_id:
                     raise BalanceLabError(f"{card_context}.effectId must be a non-empty string, null, or omitted.")
                 if effect_id not in known_effect_ids:
                     raise BalanceLabError(f"{card_context}.effectId '{effect_id}' is not an existing effectId.")
+                if effect_id == "opposed_enemy_offline_next_combat":
+                    if card["type"] != "unit":
+                        raise BalanceLabError(f"{card_context}.effectId 'opposed_enemy_offline_next_combat' is only supported on unit cards.")
+                    if card["targeting"] != "lane":
+                        raise BalanceLabError(f"{card_context}.effectId 'opposed_enemy_offline_next_combat' requires targeting 'lane'.")
             if card["type"] == "unit":
                 for field in sorted(REQUIRED_UNIT_REPLACE_CARD_FIELDS):
                     value = card.get(field)
@@ -901,7 +914,7 @@ def validate_requested_changes(root: Path, changes: list[dict[str, Any]]) -> lis
             replace_card = dict(change["replaceCard"])
             effect_id = replace_card.get("effectId")
             if "effectParams" in replace_card:
-                validate_effect_params(effect_id, replace_card.get("effectParams"), f"Change #{index} replaceCard")
+                validate_effect_params(effect_id, replace_card.get("effectParams"), f"Change #{index} replaceCard", replace_card.get("targeting"))
             if effect_id is not None and effect_id not in known_effect_ids:
                 raise BalanceLabError(
                     f"Change #{index} replaceCard.effectId '{effect_id}' is not an existing effectId. "
