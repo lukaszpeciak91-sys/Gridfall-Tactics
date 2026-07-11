@@ -42,6 +42,7 @@ const SAFE_SURRENDER_MEANINGFUL_EFFECT_IDS = new Set([
   'return_friendly_draw_1',
   'enemy_up_to_2_atk_minus_1',
   'enemy_atk_to_0_until_combat',
+  'all_enemies_atk_cap_until_combat',
   'enemy_atk_to_0_ally_atk_plus_1_until_combat',
   'enemy_all_atk_minus_1',
   'enemy_lane_atk_minus_1',
@@ -182,7 +183,7 @@ function scoreOpeningCard(card, hand, factionName = '') {
 
   if (LOW_TEMPO_EFFECTS.has(card.effectId)) score -= 36;
   if (BOARD_SYNERGY_EFFECTS.has(card.effectId)) score += unitsInHand >= 2 ? 18 : -28;
-  if (card.effectId === 'damage_all_enemies_1_ignore_armor' || card.effectId === 'enemy_all_atk_minus_1' || card.effectId === 'enemy_up_to_2_atk_minus_1' || card.effectId === 'enemy_atk_to_0_until_combat') score -= 12;
+  if (card.effectId === 'damage_all_enemies_1_ignore_armor' || card.effectId === 'enemy_all_atk_minus_1' || card.effectId === 'enemy_up_to_2_atk_minus_1' || card.effectId === 'enemy_atk_to_0_until_combat' || card.effectId === 'all_enemies_atk_cap_until_combat') score -= 12;
   if (card.effectId === 'summon_grunt_empty_slot' || card.effectId === 'fill_empty_slots_0_1' || card.effectId === 'grave_call') score += 22;
   if (card.effectId === 'funeral_pyre') score += unitsInHand >= 2 ? -4 : -34;
   if (card.effectId === 'ignore_armor_next_attack' || card.effectId === 'control_enemy_unit_this_turn') score -= 16;
@@ -1181,6 +1182,21 @@ export function scoreAction(state, owner, action) {
     if (!meaningful) return Number.NEGATIVE_INFINITY;
     score += 360 + Math.max(0, allyAtk) * 120 + targetAttack * 80;
     score += hasOpposingEnemy ? 320 + Math.max(0, -opposingEnemyAtk) * 180 + opposedAttack * 120 : Math.max(0, allyAtk) * 80;
+  }
+
+
+  if (action.effectId === 'all_enemies_atk_cap_until_combat') {
+    const opponentOwner = owner === 'enemy' ? 'player' : 'enemy';
+    const cappedTargets = state.board
+      .map((unit, index) => ({ unit, index }))
+      .filter(({ unit }) => unit?.owner === opponentOwner)
+      .map(({ index }) => Math.max(0, getEffectiveBoardAttack(state, index) - 2))
+      .filter((reduction) => reduction > 0);
+    const totalReduction = cappedTargets.reduce((total, reduction) => total + reduction, 0);
+    const meaningful = totalReduction > 0 || opponentPressureReduced > 0;
+    action.aiEvaluation = { kind: 'all-enemies-atk-cap', meaningful, cappedTargetCount: cappedTargets.length, totalReduction, opponentPressureReduced };
+    if (!meaningful) return Number.NEGATIVE_INFINITY;
+    score += 380 + cappedTargets.length * 140 + totalReduction * 220 + Math.max(0, opponentPressureReduced) * 90;
   }
 
   if (action.effectId === 'enemy_atk_to_0_until_combat') {

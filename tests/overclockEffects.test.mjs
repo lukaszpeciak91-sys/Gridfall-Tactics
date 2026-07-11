@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   createInitialBattleState,
   getEffectiveBoardAttack,
+  playEffectCard,
   playOrRedeployUnit,
   resolveCombat,
   resolveTargetedEffectCard,
@@ -429,4 +430,79 @@ test('decay_hp_after_combat works for both owners and preserves attack decay beh
   assert.equal(state.board[7].hp, 4);
   assert.equal(state.board[7].attackDecay, 1);
   assert.equal(getEffectiveBoardAttack(state, 7), 2);
+});
+
+test('Balance Lab validation accepts all_enemies_atk_cap_until_combat with all_enemy_units targeting', async () => {
+  const { mkdtempSync, writeFileSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const { execFileSync } = await import('node:child_process');
+  const { default: aggro } = await import('../src/data/factions/aggro.json', { with: { type: 'json' } });
+  const faction = {
+    id: 'atk-cap-validation-candidate',
+    name: 'Atk Cap Validation Candidate',
+    frameImage: 'frame_default',
+    deck: aggro.deck.map((card, index) => ({
+      ...structuredClone(card),
+      id: `atk_cap_validation_card_${index + 1}`,
+      name: `Atk Cap Validation ${index + 1}`,
+      artAssetId: card.artAssetId ?? 'aggro_01',
+    })),
+  };
+  faction.deck[0] = {
+    ...faction.deck[0],
+    type: 'order',
+    targeting: 'all_enemy_units',
+    effectId: 'all_enemies_atk_cap_until_combat',
+    textShort: 'All [ENEMY] ATK is capped at 2 until combat.',
+  };
+  const dir = mkdtempSync(join(tmpdir(), 'gridfall-atk-cap-validation-'));
+  const path = join(dir, 'experiment.json');
+  writeFileSync(path, JSON.stringify({ name: 'atk-cap-validation', customFactions: [faction] }), 'utf8');
+  const output = execFileSync('node', ['scripts/simulate-battles.mjs', '--total=1', `--experiment=${path}`], { cwd: process.cwd(), encoding: 'utf8' });
+  assert.match(output, /Battle simulation complete/);
+});
+
+test('all_enemies_atk_cap_until_combat caps all current enemies at 2 until combat without mutating cards', () => {
+  const cap = { id: 'global-cap', name: 'Global Cap', type: 'order', targeting: 'all_enemy_units', effectId: 'all_enemies_atk_cap_until_combat' };
+  const enemyOne = unitCard('enemy-one', 1, 8);
+  const enemyTwo = unitCard('enemy-two', 2, 8);
+  const enemyHigh = unitCard('enemy-high', 4, 8);
+  const state = stateWithHands([unitCard('ally-a', 0, 8), unitCard('ally-b', 0, 8), cap], [enemyOne, enemyTwo, enemyHigh]);
+  playOrRedeployUnit(state, 'player', 'ally-a', 6);
+  playOrRedeployUnit(state, 'player', 'ally-b', 8);
+  playOrRedeployUnit(state, 'enemy', 'enemy-one', 0);
+  playOrRedeployUnit(state, 'enemy', 'enemy-two', 1);
+  playOrRedeployUnit(state, 'enemy', 'enemy-high', 2);
+
+  const result = playEffectCard(state, 'player', 'global-cap');
+  assert.equal(result.ok, true);
+  assert.equal(getEffectiveBoardAttack(state, 0), 1);
+  assert.equal(getEffectiveBoardAttack(state, 1), 2);
+  assert.equal(getEffectiveBoardAttack(state, 2), 2);
+  assert.equal(enemyHigh.attack, 4);
+  assert.equal(enemyHigh.tempAttackMaxUntilCombat, undefined);
+
+  resolveCombat(state);
+  assert.equal(state.board[6].hp, 7);
+  assert.equal(state.board[8].hp, 6);
+  assert.equal(state.board[2]?.tempAttackMaxUntilCombat, undefined);
+  assert.equal(getEffectiveBoardAttack(state, 2), 4);
+});
+
+test('all_enemies_atk_cap_until_combat works for both owners and is invalid with no high-ATK enemies', () => {
+  const cap = { id: 'enemy-global-cap', name: 'Enemy Global Cap', type: 'utility', targeting: 'all_enemy_units', effectId: 'all_enemies_atk_cap_until_combat' };
+  const state = stateWithHands([unitCard('player-high', 3, 8)], [cap]);
+  playOrRedeployUnit(state, 'player', 'player-high', 6);
+
+  assert.equal(playEffectCard(state, 'enemy', 'enemy-global-cap').ok, true);
+  assert.equal(getEffectiveBoardAttack(state, 6), 2);
+  resolveCombat(state);
+  assert.equal(state.enemyHP, 10);
+  assert.equal(getEffectiveBoardAttack(state, 6), 3);
+
+  const lowState = stateWithHands([unitCard('player-low', 2, 8)], [{ ...cap, id: 'low-cap' }]);
+  playOrRedeployUnit(lowState, 'player', 'player-low', 6);
+  const lowResult = playEffectCard(lowState, 'enemy', 'low-cap');
+  assert.equal(lowResult.ok, false);
 });
