@@ -92,7 +92,27 @@
           linear-gradient(180deg, #111827 0%, #0b1220 100%);
         pointer-events: none;
         touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+        -webkit-touch-callout: none;
+        user-select: none;
         transition: opacity 140ms ease;
+      }
+
+      #startup-splash,
+      #startup-splash * {
+        -webkit-tap-highlight-color: transparent;
+        -webkit-touch-callout: none;
+        user-select: none;
+      }
+
+      #startup-splash:active,
+      #startup-splash:focus,
+      #startup-splash:focus-visible,
+      #startup-splash *:active,
+      #startup-splash *:focus,
+      #startup-splash *:focus-visible {
+        outline: none;
+        box-shadow: none;
       }
 
       #startup-splash.is-ready {
