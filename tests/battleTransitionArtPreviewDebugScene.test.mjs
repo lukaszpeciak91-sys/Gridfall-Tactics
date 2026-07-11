@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { buildDebugIllustrationEntries, summarizeDebugIllustrationEntries } from '../src/scenes/debugIllustrationPool.js';
+import { buildDebugIllustrationEntries, buildDebugIllustrationPool, summarizeDebugIllustrationEntries } from '../src/scenes/debugIllustrationPool.js';
 
 function read(path) {
   return fs.readFileSync(path, 'utf8');
@@ -25,11 +25,26 @@ test('debug illustration pool includes faction, tutorial, and generated art dedu
   const dedupeKeys = entries.map((entry) => entry.dedupeKey);
 
   assert.equal(new Set(dedupeKeys).size, entries.length);
-  assert.ok(summary['faction-card'] > 0);
-  assert.ok(summary['tutorial-card'] > 0);
-  assert.ok(summary['generated-unit'] >= 3);
+  assert.equal(summary.total, 72);
+  assert.equal(summary.normalFactionCount, 60);
+  assert.equal(summary.tutorialCount, 9);
+  assert.equal(summary.generatedTokenCount, 3);
+  assert.equal(summary.skippedDuplicates, 0);
+  assert.ok(entries.some((entry) => entry.sourceType === 'tutorial-card' && entry.factionId === 'tutorial' && entry.artAssetId === 'ally_01'));
+  assert.ok(entries.some((entry) => entry.sourceType === 'tutorial-card' && entry.factionId === 'tutorial' && entry.artAssetId === 'enemy_01'));
   assert.ok(entries.some((entry) => entry.sourceType === 'generated-unit' && entry.artAssetId === 'token_grunt_01'));
   assert.ok(entries.every((entry) => entry.dedupeKey === `${entry.factionId}::${entry.artAssetId}`));
+});
+
+test('debug illustration pool reports source counts and skipped duplicate candidates', () => {
+  const { entries, summary } = buildDebugIllustrationPool();
+
+  assert.equal(entries.length, 72);
+  assert.equal(summary.total, 72);
+  assert.equal(summary.normalFactionCount, 60);
+  assert.equal(summary.tutorialCount, 9);
+  assert.equal(summary.generatedTokenCount, 3);
+  assert.equal(summary.skippedDuplicates, 7);
 });
 
 test('battle transition preview defaults are slow and restrained debug-only values', () => {
@@ -76,5 +91,7 @@ test('battle transition preview debug exposes saved filter and immediate save co
   assert.match(scene, /toggleFilter/);
   assert.match(scene, /this\.activeFilter === FILTER_SAVED/);
   assert.match(scene, /No saved illustrations yet/);
+  assert.match(scene, /preloadCardIllustrationAsset/);
+  assert.match(scene, /buildDebugIllustrationPool/);
   assert.match(scene, /this\.saveButton\?\.text\?\.setText\(isSaved \? 'UNSAVE' : 'SAVE'\)/);
 });

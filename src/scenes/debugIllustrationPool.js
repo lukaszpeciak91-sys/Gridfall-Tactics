@@ -12,8 +12,10 @@ function normalizeLabel(value, fallback = 'Unknown') {
 }
 
 function createEntry({ card, faction, factionKey, sourceType, groupLabel, sortGroup }) {
-  const asset = getCardIllustrationAsset(card, { factionId: faction?.id ?? factionKey ?? null });
-  const factionId = normalizeLabel(asset?.factionId ?? faction?.id ?? factionKey, 'unknown');
+  const fallbackFactionId = normalizeLabel(faction?.id ?? factionKey, '');
+  const candidateFactionId = normalizeLabel(card?.factionId ?? card?.faction ?? fallbackFactionId, '');
+  const asset = getCardIllustrationAsset(card, { factionId: candidateFactionId || fallbackFactionId || null });
+  const factionId = normalizeLabel(asset?.factionId ?? candidateFactionId ?? fallbackFactionId, 'unknown');
   const artAssetId = normalizeLabel(asset?.artAssetId ?? card?.artAssetId ?? card?.id, 'unknown');
   const displayFaction = groupLabel
     ?? getFactionPresentationName(faction?.id ?? factionKey, getActiveLocale(), faction?.name ?? factionKey ?? factionId);
@@ -35,7 +37,7 @@ function createEntry({ card, faction, factionKey, sourceType, groupLabel, sortGr
   };
 }
 
-export function buildDebugIllustrationEntries() {
+function collectDebugIllustrationCandidates() {
   const entries = [];
 
   getFactionKeys().forEach((factionKey) => {
@@ -64,24 +66,51 @@ export function buildDebugIllustrationEntries() {
     }));
   });
 
+  return entries;
+}
+
+export function buildDebugIllustrationPool() {
+  const candidates = collectDebugIllustrationCandidates();
   const uniqueByAsset = new Map();
-  entries.forEach((entry) => {
-    if (!uniqueByAsset.has(entry.dedupeKey)) {
-      uniqueByAsset.set(entry.dedupeKey, entry);
+  let skippedDuplicates = 0;
+
+  candidates.forEach((entry) => {
+    if (uniqueByAsset.has(entry.dedupeKey)) {
+      skippedDuplicates += 1;
+      return;
     }
+    uniqueByAsset.set(entry.dedupeKey, entry);
   });
 
-  return Array.from(uniqueByAsset.values()).sort((a, b) => (
+  const entries = Array.from(uniqueByAsset.values()).sort((a, b) => (
     a.sortGroup - b.sortGroup
     || a.factionId.localeCompare(b.factionId)
     || a.artAssetId.localeCompare(b.artAssetId)
     || a.label.localeCompare(b.label)
   ));
+
+  return {
+    entries,
+    summary: summarizeDebugIllustrationEntries(entries, { skippedDuplicates }),
+  };
 }
 
-export function summarizeDebugIllustrationEntries(entries) {
-  return entries.reduce((summary, entry) => {
-    summary[entry.sourceType] = (summary[entry.sourceType] ?? 0) + 1;
-    return summary;
+export function buildDebugIllustrationEntries() {
+  return buildDebugIllustrationPool().entries;
+}
+
+export function summarizeDebugIllustrationEntries(entries, { skippedDuplicates = 0 } = {}) {
+  const summary = entries.reduce((counts, entry) => {
+    counts[entry.sourceType] = (counts[entry.sourceType] ?? 0) + 1;
+    return counts;
   }, { 'faction-card': 0, 'tutorial-card': 0, 'generated-unit': 0 });
+
+  return {
+    ...summary,
+    total: entries.length,
+    normalFactionCount: summary['faction-card'],
+    tutorialCount: summary['tutorial-card'],
+    generatedTokenCount: summary['generated-unit'],
+    skippedDuplicates,
+  };
 }

@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
-import { buildDebugIllustrationEntries, summarizeDebugIllustrationEntries } from './debugIllustrationPool.js';
-import { preloadAllCardIllustrations, getLoadedCardIllustrationTextureKey } from '../rendering/cardIllustrationAssets.js';
+import { buildDebugIllustrationPool } from './debugIllustrationPool.js';
+import { preloadAllCardIllustrations, preloadCardIllustrationAsset, getLoadedCardIllustrationTextureKey } from '../rendering/cardIllustrationAssets.js';
 import { calculateCardArtworkCoverPosition } from '../rendering/cardVisualLayout.js';
 
 const BACKGROUND_COLOR = '#020617';
@@ -42,17 +42,21 @@ export default class BattleTransitionArtPreviewDebugScene extends Phaser.Scene {
     this.filteredEntries = [];
     this.onBackRequested = null;
     this.onResize = null;
-    this.summary = { 'faction-card': 0, 'tutorial-card': 0, 'generated-unit': 0 };
+    this.summary = { 'faction-card': 0, 'tutorial-card': 0, 'generated-unit': 0, total: 0, normalFactionCount: 0, tutorialCount: 0, generatedTokenCount: 0, skippedDuplicates: 0 };
+    this.debugIllustrationPool = null;
   }
 
   preload() {
     preloadAllCardIllustrations(this);
+    this.debugIllustrationPool = buildDebugIllustrationPool();
+    this.debugIllustrationPool.entries.forEach((entry) => preloadCardIllustrationAsset(this, entry.asset));
   }
 
   create() {
     this.cameras.main.setBackgroundColor(BACKGROUND_COLOR);
-    this.illustrationEntries = buildDebugIllustrationEntries();
-    this.summary = summarizeDebugIllustrationEntries(this.illustrationEntries);
+    this.debugIllustrationPool ??= buildDebugIllustrationPool();
+    this.illustrationEntries = this.debugIllustrationPool.entries;
+    this.summary = this.debugIllustrationPool.summary;
     this.loadSavedSelections();
     this.syncFilterEntries();
     this.onBackRequested = () => this.returnToModeSelect();
@@ -283,7 +287,7 @@ export default class BattleTransitionArtPreviewDebugScene extends Phaser.Scene {
 
     const isSaved = this.isEntrySaved(entry);
     this.titleLabel?.setText(`${this.selectedIndex + 1}/${total} • ${isSaved ? '★ SAVED' : '☆ unsaved'} • ${entry.displayFaction} • ${entry.label}`);
-    this.metaLabel?.setText(`${entry.sourceType} • filter: ${this.activeFilter} • faction: ${entry.factionId} • art: ${entry.artAssetId} • pool ${this.summary['faction-card']} faction / ${this.summary['tutorial-card']} tutorial / ${this.summary['generated-unit']} generated`);
+    this.metaLabel?.setText(`${entry.sourceType} • filter: ${this.activeFilter} • faction: ${entry.factionId} • art: ${entry.artAssetId} • pool ${this.summary.total} total / ${this.summary.normalFactionCount} faction / ${this.summary.tutorialCount} tutorial / ${this.summary.generatedTokenCount} generated-token / ${this.summary.skippedDuplicates} duplicate skips`);
     this.savedLabel?.setText(this.createSavedCountsText(entry));
     this.saveButton?.text?.setText(isSaved ? 'UNSAVE' : 'SAVE');
     this.filterButton?.text?.setText(this.activeFilter);
