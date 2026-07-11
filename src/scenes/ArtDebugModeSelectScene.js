@@ -49,7 +49,11 @@ export default class ArtDebugModeSelectScene extends Phaser.Scene {
       this.scene.start('BoardUnitArtViewportDebugScene');
     });
 
-    this.createButton(width / 2, startY + buttonGap * 2, buttonWidth, buttonHeight, 'Back', () => this.returnToMainMenu(), {
+    this.createButton(width / 2, startY + buttonGap * 2, buttonWidth, buttonHeight, 'Battle Transition', () => {
+      this.scene.start('BattleTransitionArtPreviewDebugScene');
+    });
+
+    this.createButton(width / 2, startY + buttonGap * 3, buttonWidth, buttonHeight, 'Back', () => this.returnToMainMenu(), {
       fillColor: 0x334155,
       hoverColor: 0x475569,
     });
