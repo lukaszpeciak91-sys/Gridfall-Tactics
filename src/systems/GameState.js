@@ -983,7 +983,8 @@ export function getUnitAttack(unit, options = {}) {
   const decayAdjustedBaseAttack = unit.effectId === DECAY_ATTACK_AFTER_COMBAT_EFFECT_ID
     ? Math.max(1, baseAttack - attackDecay)
     : baseAttack;
-  return Math.max(0, decayAdjustedBaseAttack + tempAttack + woundedAttack + bruiserPendingAttack);
+  const attack = Math.max(0, decayAdjustedBaseAttack + tempAttack + woundedAttack + bruiserPendingAttack);
+  return Number.isFinite(unit.tempAttackMaxUntilCombat) ? Math.min(attack, unit.tempAttackMaxUntilCombat) : attack;
 }
 
 export function getUnitArmor(unit) {
@@ -1070,7 +1071,8 @@ export function getEffectiveBoardAttack(state, boardIndex) {
 
   if (unit.tempAttackSetToZeroUntilCombat) return 0;
 
-  return Math.max(0, attack);
+  attack = Math.max(0, attack);
+  return Number.isFinite(unit.tempAttackMaxUntilCombat) ? Math.min(attack, unit.tempAttackMaxUntilCombat) : attack;
 }
 
 export function getEffectiveBoardArmor(state, boardIndex) {
@@ -1896,6 +1898,7 @@ function getEnemyLaneTempoModEffectParams(card = {}) {
     opposingAllyAtk: Number(raw.opposingAllyAtk ?? 0),
     opposingAllyHp: Number(raw.opposingAllyHp ?? 0),
     opposingAllyArmor: Number(raw.opposingAllyArmor ?? 0),
+    targetEnemyMaxAtk: raw.targetEnemyMaxAtk === undefined ? null : Number(raw.targetEnemyMaxAtk),
   };
 }
 
@@ -2633,6 +2636,9 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
         if (targetUnit.owner !== getOpponentOwner(owner)) return { ok: false, reason: 'Target must be enemy' };
         const params = getEnemyLaneTempoModEffectParams(card);
         applyTemporaryStatMods(targetUnit, params.targetEnemyAtk, params.targetEnemyHp, params.targetEnemyArmor);
+        if (Number.isFinite(params.targetEnemyMaxAtk)) {
+          targetUnit.tempAttackMaxUntilCombat = params.targetEnemyMaxAtk;
+        }
         const opposingIndex = getOpposingLaneIndex(targetUnit, boardIndex);
         const opposingUnit = Number.isInteger(opposingIndex) ? state.board[opposingIndex] : null;
         if (opposingUnit?.owner === owner) {
@@ -3478,6 +3484,9 @@ export function resolveCombat(state) {
     }
     if (unit?.tempAttackSetToZeroUntilCombat) {
       delete unit.tempAttackSetToZeroUntilCombat;
+    }
+    if (unit?.tempAttackMaxUntilCombat !== undefined) {
+      delete unit.tempAttackMaxUntilCombat;
     }
     if (unit?.tempArmorMod) {
       delete unit.tempArmorMod;

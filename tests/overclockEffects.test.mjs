@@ -7,6 +7,7 @@ import {
   resolveCombat,
   resolveTargetedEffectCard,
 } from '../src/systems/GameState.js';
+import { buildActionCandidates, scoreAction } from '../src/systems/enemyDecision.js';
 
 const unitCard = (id, attack = 2, hp = 5, effectId = null) => ({
   id,
@@ -211,6 +212,53 @@ test('lane_tempo_mod_until_combat enemy_unit works without opposing ally', () =>
   assert.equal(getEffectiveBoardAttack(state, 0), 0);
 });
 
+
+test('lane_tempo_mod_until_combat enemy_unit targetEnemyMaxAtk caps high enemy ATK but does not raise low ATK', () => {
+  const cap = { id: 'atk-cap', name: 'ATK Cap', type: 'order', targeting: 'enemy_unit', effectId: 'lane_tempo_mod_until_combat', effectParams: { targetEnemyMaxAtk: 2 } };
+  const lowState = stateWithHands([unitCard('ally-low', 0, 5), cap], [unitCard('enemy-low', 1, 5)]);
+  playOrRedeployUnit(lowState, 'player', 'ally-low', 6);
+  playOrRedeployUnit(lowState, 'enemy', 'enemy-low', 0);
+  assert.equal(resolveTargetedEffectCard(lowState, 'player', 'atk-cap', 0, [0]).ok, true);
+  assert.equal(getEffectiveBoardAttack(lowState, 0), 1);
+  resolveCombat(lowState);
+  assert.equal(lowState.board[6].hp, 4);
+
+  const highState = stateWithHands([unitCard('ally-high', 0, 5), cap], [unitCard('enemy-high', 3, 5)]);
+  playOrRedeployUnit(highState, 'player', 'ally-high', 6);
+  playOrRedeployUnit(highState, 'enemy', 'enemy-high', 0);
+  assert.equal(resolveTargetedEffectCard(highState, 'player', 'atk-cap', 0, [0]).ok, true);
+  assert.equal(getEffectiveBoardAttack(highState, 0), 2);
+  resolveCombat(highState);
+  assert.equal(highState.board[6].hp, 3);
+});
+
+test('lane_tempo_mod_until_combat enemy_unit targetEnemyMaxAtk clears after combat cleanup', () => {
+  const cap = { id: 'atk-cap-clear', name: 'ATK Cap', type: 'order', targeting: 'enemy_unit', effectId: 'lane_tempo_mod_until_combat', effectParams: { targetEnemyMaxAtk: 2 } };
+  const state = stateWithHands([unitCard('ally-clear', 0, 8), cap], [unitCard('enemy-clear', 3, 8)]);
+  playOrRedeployUnit(state, 'player', 'ally-clear', 6);
+  playOrRedeployUnit(state, 'enemy', 'enemy-clear', 0);
+  assert.equal(resolveTargetedEffectCard(state, 'player', 'atk-cap-clear', 0, [0]).ok, true);
+  assert.equal(getEffectiveBoardAttack(state, 0), 2);
+  resolveCombat(state);
+  assert.equal(state.board[0]?.tempAttackMaxUntilCombat, undefined);
+  assert.equal(getEffectiveBoardAttack(state, 0), 3);
+});
+
+test('AI values targetEnemyMaxAtk on enemies above the cap more than enemies already under it', () => {
+  const cap = { id: 'enemy-cap-ai', name: 'Enemy Cap AI', type: 'order', targeting: 'enemy_unit', effectId: 'lane_tempo_mod_until_combat', effectParams: { targetEnemyMaxAtk: 2 } };
+  const state = stateWithHands([unitCard('player-low', 1, 5), unitCard('player-high', 4, 5)], [cap]);
+  playOrRedeployUnit(state, 'player', 'player-low', 6);
+  playOrRedeployUnit(state, 'player', 'player-high', 7);
+
+  const actions = buildActionCandidates(state, 'enemy', state.enemy.hand, {});
+  const lowAction = actions.find((action) => action.cardId === 'enemy-cap-ai' && action.targetIndex === 6);
+  const highAction = actions.find((action) => action.cardId === 'enemy-cap-ai' && action.targetIndex === 7);
+  assert.ok(lowAction);
+  assert.ok(highAction);
+  assert.equal(scoreAction(state, 'enemy', lowAction), Number.NEGATIVE_INFINITY);
+  assert.ok(scoreAction(state, 'enemy', highAction) > 0);
+});
+
 test('Hot Runner takes opposed enemy offline for exactly one combat and returns it without Fallen bookkeeping', () => {
   const runner = unitCard('runner', 1, 1, 'opposed_enemy_offline_next_combat');
   const state = stateWithHands([runner], [unitCard('wall', 3, 5)]);
@@ -280,7 +328,37 @@ test('lane_tempo_mod_until_combat enemy_unit validates target params and rejects
       ...(index === 0 ? { effectParams: { targetEnemyAtk: -1, opposingAllyAtk: 2 } } : { attack: 1, hp: 1, armor: 0 }),
     })),
   };
-  const script = `import importlib.util, json\nfrom pathlib import Path\nspec = importlib.util.spec_from_file_location('bl', '${process.cwd()}/tools/balance-lab/run_balance_lab.py')\nbl = importlib.util.module_from_spec(spec)\nspec.loader.exec_module(bl)\nroot = Path(${JSON.stringify(process.cwd())})\nfaction = json.loads(${JSON.stringify(JSON.stringify(faction))})\nvalidated = bl.validate_custom_factions(root, [faction])\nassert validated[0]['deck'][0]['effectParams']['targetEnemyAtk'] == -1\nfor params in [\n  {'allyAtk': 2},\n  {'targetEnemyAtk': 'bad'},\n  {'targetEnemyHp': 1},\n  {'bogus': 1},\n]:\n    bad = json.loads(${JSON.stringify(JSON.stringify(faction))})\n    bad['id'] = 'bad-' + str(len(str(params)))\n    bad['deck'][0]['effectParams'] = params\n    try:\n        bl.validate_custom_factions(root, [bad])\n    except bl.BalanceLabError:\n        pass\n    else:\n        raise AssertionError(f'accepted invalid enemy_unit params: {params}')\n`;
+  const script = `import importlib.util, json
+from pathlib import Path
+spec = importlib.util.spec_from_file_location('bl', '${process.cwd()}/tools/balance-lab/run_balance_lab.py')
+bl = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(bl)
+root = Path(${JSON.stringify(process.cwd())})
+faction = json.loads(${JSON.stringify(JSON.stringify(faction))})
+validated = bl.validate_custom_factions(root, [faction])
+assert validated[0]['deck'][0]['effectParams']['targetEnemyAtk'] == -1
+valid_cap = json.loads(${JSON.stringify(JSON.stringify(faction))})
+valid_cap['id'] = 'valid-cap'
+valid_cap['deck'][0]['effectParams'] = {'targetEnemyMaxAtk': 2}
+assert bl.validate_custom_factions(root, [valid_cap])[0]['deck'][0]['effectParams']['targetEnemyMaxAtk'] == 2
+for params in [
+  {'allyAtk': 2},
+  {'targetEnemyAtk': 'bad'},
+  {'targetEnemyMaxAtk': '2'},
+  {'targetEnemyMaxAtk': -1},
+  {'targetEnemyHp': 1},
+  {'bogus': 1},
+]:
+    bad = json.loads(${JSON.stringify(JSON.stringify(faction))})
+    bad['id'] = 'bad-' + str(len(str(params)))
+    bad['deck'][0]['effectParams'] = params
+    try:
+        bl.validate_custom_factions(root, [bad])
+    except bl.BalanceLabError:
+        pass
+    else:
+        raise AssertionError(f'accepted invalid enemy_unit params: {params}')
+`;
   execFileSync('python3', ['-c', script], { stdio: 'pipe' });
 });
 

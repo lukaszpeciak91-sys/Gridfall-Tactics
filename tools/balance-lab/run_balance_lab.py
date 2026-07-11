@@ -52,7 +52,7 @@ LANE_TEMPO_MOD_FRIENDLY_PARAM_FIELDS = {
     "opposingEnemyHp",
     "opposingEnemyArmor",
 }
-LANE_TEMPO_MOD_ENEMY_PARAM_FIELDS = {"targetEnemyAtk", "opposingAllyAtk"}
+LANE_TEMPO_MOD_ENEMY_PARAM_FIELDS = {"targetEnemyAtk", "opposingAllyAtk", "targetEnemyMaxAtk"}
 
 IMPLEMENTED_CONCRETE_EFFECT_IDS = {
     "decay_attack_after_combat",
@@ -410,6 +410,8 @@ def validate_effect_params(effect_id: Any, effect_params: Any, context: str, tar
     for key, value in effect_params.items():
         if not isinstance(value, (int, float)) or isinstance(value, bool):
             raise BalanceLabError(f"{context}.effectParams.{key} must be a number.")
+        if key == "targetEnemyMaxAtk" and value < 0:
+            raise BalanceLabError(f"{context}.effectParams.{key} must be >= 0.")
 
 def validate_replace_card_shape(change: dict[str, Any], index: int) -> None:
     replace_card = change.get("replaceCard")
