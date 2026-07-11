@@ -1154,13 +1154,15 @@ export function scoreAction(state, owner, action) {
       const params = actionCard?.effectParams ?? {};
       const targetEnemyAtk = Number(params.targetEnemyAtk ?? 0);
       const opposingAllyAtk = Number(params.opposingAllyAtk ?? 0);
+      const targetEnemyMaxAtk = Number.isFinite(params.targetEnemyMaxAtk) ? Number(params.targetEnemyMaxAtk) : null;
+      const cappedAttackReduction = targetEnemyMaxAtk === null ? 0 : Math.max(0, targetAttack - targetEnemyMaxAtk);
       const hasOpposingAlly = oppositeAlly?.owner === owner;
-      const meaningfulEnemyDebuff = target?.owner !== owner && targetEnemyAtk < 0 && targetAttack > 0;
+      const meaningfulEnemyDebuff = target?.owner !== owner && ((targetEnemyAtk < 0 && targetAttack > 0) || cappedAttackReduction > 0);
       const meaningfulAllyBuff = hasOpposingAlly && opposingAllyAtk > 0 && allyAttack + opposingAllyAtk > 0;
       const meaningful = target?.owner === (owner === 'enemy' ? 'player' : 'enemy') && (meaningfulEnemyDebuff || meaningfulAllyBuff);
-      action.aiEvaluation = { kind: 'enemy-lane-tempo-transfer', meaningful, targetAttack, allyAttack, targetEnemyAtk, opposingAllyAtk, hasOpposingAlly };
+      action.aiEvaluation = { kind: 'enemy-lane-tempo-transfer', meaningful, targetAttack, allyAttack, targetEnemyAtk, targetEnemyMaxAtk, cappedAttackReduction, opposingAllyAtk, hasOpposingAlly };
       if (!meaningful) return Number.NEGATIVE_INFINITY;
-      score += 420 + Math.max(0, -targetEnemyAtk) * 220 + targetAttack * 120;
+      score += 420 + Math.max(0, -targetEnemyAtk) * 220 + cappedAttackReduction * 260 + targetAttack * 120;
       if (hasOpposingAlly) score += 260 + Math.max(0, opposingAllyAtk) * 160 + allyAttack * 60;
       return score;
     }

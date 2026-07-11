@@ -151,12 +151,13 @@ function validateCustomFactionCard(card, faction, index, context, seenCardIds, s
   if (card.effectId === 'lane_tempo_mod_until_combat') {
     const params = card.effectParams ?? {};
     if (params && (typeof params !== 'object' || Array.isArray(params))) throw validationError(`${path}.effectParams must be an object`);
-    const enemyKeys = new Set(['targetEnemyAtk', 'opposingAllyAtk']);
+    const enemyKeys = new Set(['targetEnemyAtk', 'opposingAllyAtk', 'targetEnemyMaxAtk']);
     const friendlyKeys = new Set(['allyAtk', 'allyHp', 'allyArmor', 'opposingEnemyAtk', 'opposingEnemyHp', 'opposingEnemyArmor']);
     const allowed = card.targeting === 'enemy_unit' ? enemyKeys : friendlyKeys;
     Object.entries(params).forEach(([key, value]) => {
       if (!allowed.has(key)) throw validationError(`${path}.effectParams.${key} is not supported for ${card.targeting} lane_tempo_mod_until_combat`);
       if (!Number.isFinite(value)) throw validationError(`${path}.effectParams.${key} must be a number`);
+      if (key === 'targetEnemyMaxAtk' && value < 0) throw validationError(`${path}.effectParams.${key} must be >= 0`);
     });
   } else if (card.effectParams !== undefined && card.effectId !== 'opposed_enemy_offline_next_combat') {
     throw validationError(`${path}.effectParams is only supported for lane_tempo_mod_until_combat`);
