@@ -14,6 +14,7 @@ import RulesPanelScene from './scenes/RulesPanelScene.js';
 import ArtDebugModeSelectScene from './scenes/ArtDebugModeSelectScene.js';
 import ArtViewportDebugScene from './scenes/ArtViewportDebugScene.js';
 import BoardUnitArtViewportDebugScene from './scenes/BoardUnitArtViewportDebugScene.js';
+import BattleTransitionArtPreviewDebugScene from './scenes/BattleTransitionArtPreviewDebugScene.js';
 import { installSessionLifecycle } from './systems/sessionLifecycle.js';
 import { installFullscreenPortraitFit } from './systems/fullscreenPortraitFit.js';
 import { installHighDpiCanvas } from './rendering/highDpiCanvas.js';
@@ -38,7 +39,7 @@ const config = {
     antialiasGL: true,
     pixelArt: false,
   },
-  scene: [StartScene, MainMenuScene, GameMenuScene, FactionSelectScene, CampaignEnemySelectScene, CollectionScene, AchievementsScene, SettingsScene, TutorialScene, BattleScene, BattleMenuScene, RulesPanelScene, ArtDebugModeSelectScene, ArtViewportDebugScene, BoardUnitArtViewportDebugScene],
+  scene: [StartScene, MainMenuScene, GameMenuScene, FactionSelectScene, CampaignEnemySelectScene, CollectionScene, AchievementsScene, SettingsScene, TutorialScene, BattleScene, BattleMenuScene, RulesPanelScene, ArtDebugModeSelectScene, ArtViewportDebugScene, BoardUnitArtViewportDebugScene, BattleTransitionArtPreviewDebugScene],
 };
 
 const game = new Phaser.Game(config);
