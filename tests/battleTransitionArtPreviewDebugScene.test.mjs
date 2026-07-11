@@ -50,5 +50,31 @@ test('battle transition preview scene owns cleanup and does not write production
   assert.match(scene, /this\.previewTweens\.forEach\(\(tween\) => tween\?\.remove\?\.\(\)\)/);
   assert.match(scene, /this\.scale\.on\('resize', this\.onResize\)/);
   assert.match(scene, /this\.scale\.off\('resize', this\.onResize\)/);
-  assert.doesNotMatch(scene, /artPositionY01|boardArtPositionY01|cardArtCropOverrides|localStorage|clipboard/);
+  assert.doesNotMatch(scene, /artPositionY01|boardArtPositionY01|cardArtCropOverrides/);
+});
+
+
+test('battle transition preview debug saved selections use resolved asset identity and debug-only export', () => {
+  const scene = read('src/scenes/BattleTransitionArtPreviewDebugScene.js');
+
+  assert.match(scene, /SAVED_SELECTIONS_STORAGE_KEY = 'gridfall:battle-transition-art-preview-debug:saved-selections'/);
+  assert.ok(scene.includes('getEntryStorageKey(entry)'));
+  assert.ok(scene.includes('return entry ? `${entry.factionId}::${entry.artAssetId}` :'));
+  assert.match(scene, /tool: 'battle-transition-art-selection'/);
+  assert.match(scene, /version: 1/);
+  assert.match(scene, /navigator\.clipboard/);
+  assert.match(scene, /localStorage/);
+  assert.doesNotMatch(scene, /hand.*crop|board.*crop/i);
+});
+
+test('battle transition preview debug exposes saved filter and immediate save controls', () => {
+  const scene = read('src/scenes/BattleTransitionArtPreviewDebugScene.js');
+
+  assert.match(scene, /const FILTER_ALL = 'ALL';/);
+  assert.match(scene, /const FILTER_SAVED = 'SAVED';/);
+  assert.match(scene, /toggleSavedSelection/);
+  assert.match(scene, /toggleFilter/);
+  assert.match(scene, /this\.activeFilter === FILTER_SAVED/);
+  assert.match(scene, /No saved illustrations yet/);
+  assert.match(scene, /this\.saveButton\?\.text\?\.setText\(isSaved \? 'UNSAVE' : 'SAVE'\)/);
 });

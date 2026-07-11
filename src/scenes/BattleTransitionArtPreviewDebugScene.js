@@ -18,6 +18,9 @@ const DRIFT_X = 16;
 const DRIFT_Y = -30;
 const VEIL_ALPHA = 0.34;
 const FOG_ALPHA = 0.12;
+const SAVED_SELECTIONS_STORAGE_KEY = 'gridfall:battle-transition-art-preview-debug:saved-selections';
+const FILTER_ALL = 'ALL';
+const FILTER_SAVED = 'SAVED';
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
@@ -34,6 +37,9 @@ export default class BattleTransitionArtPreviewDebugScene extends Phaser.Scene {
     this.previewTweens = [];
     this.previewTimers = [];
     this.controls = [];
+    this.savedSelections = new Map();
+    this.activeFilter = FILTER_ALL;
+    this.filteredEntries = [];
     this.onBackRequested = null;
     this.onResize = null;
     this.summary = { 'faction-card': 0, 'tutorial-card': 0, 'generated-unit': 0 };
@@ -47,6 +53,8 @@ export default class BattleTransitionArtPreviewDebugScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(BACKGROUND_COLOR);
     this.illustrationEntries = buildDebugIllustrationEntries();
     this.summary = summarizeDebugIllustrationEntries(this.illustrationEntries);
+    this.loadSavedSelections();
+    this.syncFilterEntries();
     this.onBackRequested = () => this.returnToModeSelect();
     this.onResize = () => this.rebuildForResize();
 
@@ -57,6 +65,9 @@ export default class BattleTransitionArtPreviewDebugScene extends Phaser.Scene {
     this.input.keyboard?.on('keydown-LEFT', this.onPreviousKey, this);
     this.input.keyboard?.on('keydown-RIGHT', this.onNextKey, this);
     this.input.keyboard?.on('keydown-SPACE', this.onNextKey, this);
+    this.input.keyboard?.on('keydown-S', this.onSaveKey, this);
+    this.input.keyboard?.on('keydown-F', this.onFilterKey, this);
+    this.input.keyboard?.on('keydown-E', this.onExportKey, this);
     this.input.keyboard?.on('keydown-ESC', this.onBackRequested);
     this.input.keyboard?.on('keydown-BACKSPACE', this.onBackRequested);
     this.scale.on('resize', this.onResize);
@@ -79,6 +90,12 @@ export default class BattleTransitionArtPreviewDebugScene extends Phaser.Scene {
     this.controls.push(this.createButton(width * 0.5 + adjustButtonWidth + 4, bottomY, adjustButtonWidth, 40, 'Zoom -', () => this.adjustZoom(-1), { fontSize: '13px' }));
     this.controls.push(this.createButton(width * 0.5 + adjustButtonWidth * 2 + 8, bottomY, adjustButtonWidth, 40, 'Zoom +', () => this.adjustZoom(1), { fontSize: '13px' }));
     this.controls.push(this.createButton(width * 0.5, bottomY - 48, smallButtonWidth, 36, 'Reset', () => this.resetAdjustments(), { fontSize: '14px' }));
+    this.saveButton = this.createButton(width - 56, bottomY - 48, 96, 36, 'SAVE', () => this.toggleSavedSelection(), { fontSize: '14px', fillColor: 0x166534, hoverColor: 0x15803d });
+    this.controls.push(this.saveButton);
+    this.filterButton = this.createButton(56, bottomY - 48, 96, 36, 'ALL', () => this.toggleFilter(), { fontSize: '14px', fillColor: 0x4c1d95, hoverColor: 0x6d28d9 });
+    this.controls.push(this.filterButton);
+    this.exportButton = this.createButton(width - 56, bottomY - 92, 96, 34, 'Export', () => this.exportSavedSelectionsToClipboard(), { fontSize: '13px', fillColor: 0x0f766e, hoverColor: 0x0d9488 });
+    this.controls.push(this.exportButton);
 
     this.infoPanel = this.add.rectangle(width * 0.5, topY + 53, Math.min(width - 20, 660), 58, PANEL_COLOR, 0.58)
       .setStrokeStyle(1, 0x334155, 0.66)
@@ -88,6 +105,12 @@ export default class BattleTransitionArtPreviewDebugScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(91);
     this.metaLabel = this.add.text(width * 0.5, topY + 61, '', {
       fontFamily: 'Arial, sans-serif', fontSize: '12px', color: '#bfdbfe', align: 'center', wordWrap: { width: width - 32 },
+    }).setOrigin(0.5).setDepth(91);
+    this.savedLabel = this.add.text(width * 0.5, topY + 84, '', {
+      fontFamily: 'Arial, sans-serif', fontSize: '12px', color: '#fef08a', align: 'center', backgroundColor: 'rgba(2,6,23,0.48)', padding: { x: 8, y: 4 },
+    }).setOrigin(0.5).setDepth(91);
+    this.exportStatusLabel = this.add.text(width - 112, bottomY - 118, '', {
+      fontFamily: 'Arial, sans-serif', fontSize: '11px', color: '#99f6e4', align: 'center', wordWrap: { width: 208 },
     }).setOrigin(0.5).setDepth(91);
     this.adjustmentLabel = this.add.text(width * 0.5, height - 84, '', {
       fontFamily: 'Arial, sans-serif', fontSize: '12px', color: '#d9f99d', align: 'center', backgroundColor: 'rgba(2,6,23,0.48)', padding: { x: 8, y: 4 },
@@ -119,9 +142,21 @@ export default class BattleTransitionArtPreviewDebugScene extends Phaser.Scene {
     this.shiftEntry(1);
   }
 
+  onSaveKey() {
+    this.toggleSavedSelection();
+  }
+
+  onFilterKey() {
+    this.toggleFilter();
+  }
+
+  onExportKey() {
+    this.exportSavedSelectionsToClipboard();
+  }
+
   shiftEntry(delta) {
-    if (!this.illustrationEntries.length) return;
-    const total = this.illustrationEntries.length;
+    if (!this.filteredEntries.length) return;
+    const total = this.filteredEntries.length;
     this.selectedIndex = (this.selectedIndex + delta + total) % total;
     this.renderPreview();
     this.updateLabels();
@@ -148,7 +183,7 @@ export default class BattleTransitionArtPreviewDebugScene extends Phaser.Scene {
 
   renderPreview() {
     this.clearPreview();
-    const entry = this.illustrationEntries[this.selectedIndex];
+    const entry = this.getCurrentEntry();
     const { width, height } = this.scale;
     this.previewRoot = this.add.container(0, 0).setDepth(1);
 
@@ -234,18 +269,141 @@ export default class BattleTransitionArtPreviewDebugScene extends Phaser.Scene {
   }
 
   updateLabels() {
-    const entry = this.illustrationEntries[this.selectedIndex];
-    const total = this.illustrationEntries.length;
+    const entry = this.getCurrentEntry();
+    const total = this.filteredEntries.length;
     if (!entry) {
-      this.titleLabel?.setText('No illustrations found');
-      this.metaLabel?.setText('');
+      this.titleLabel?.setText(this.activeFilter === FILTER_SAVED ? 'No saved illustrations yet' : 'No illustrations found');
+      this.metaLabel?.setText(this.activeFilter === FILTER_SAVED ? 'Switch filter to ALL to review and save transition art candidates.' : '');
+      this.savedLabel?.setText(this.createSavedCountsText());
+      this.saveButton?.text?.setText('SAVE');
+      this.filterButton?.text?.setText(this.activeFilter);
       this.adjustmentLabel?.setText('');
       return;
     }
 
-    this.titleLabel?.setText(`${this.selectedIndex + 1}/${total} • ${entry.displayFaction} • ${entry.label}`);
-    this.metaLabel?.setText(`${entry.sourceType} • faction: ${entry.factionId} • art: ${entry.artAssetId} • pool ${this.summary['faction-card']} faction / ${this.summary['tutorial-card']} tutorial / ${this.summary['generated-unit']} generated`);
+    const isSaved = this.isEntrySaved(entry);
+    this.titleLabel?.setText(`${this.selectedIndex + 1}/${total} • ${isSaved ? '★ SAVED' : '☆ unsaved'} • ${entry.displayFaction} • ${entry.label}`);
+    this.metaLabel?.setText(`${entry.sourceType} • filter: ${this.activeFilter} • faction: ${entry.factionId} • art: ${entry.artAssetId} • pool ${this.summary['faction-card']} faction / ${this.summary['tutorial-card']} tutorial / ${this.summary['generated-unit']} generated`);
+    this.savedLabel?.setText(this.createSavedCountsText(entry));
+    this.saveButton?.text?.setText(isSaved ? 'UNSAVE' : 'SAVE');
+    this.filterButton?.text?.setText(this.activeFilter);
     this.adjustmentLabel?.setText(`Focal Y ${this.focalY01.toFixed(3)} • Zoom ${this.zoomMultiplier.toFixed(2)}x • motion ${MOTION_ZOOM_TO.toFixed(2)}x / ${DRIFT_X}px, ${DRIFT_Y}px • veil ${VEIL_ALPHA.toFixed(2)} • fog ${FOG_ALPHA.toFixed(2)}`);
+  }
+
+
+  getCurrentEntry() {
+    return this.filteredEntries[this.selectedIndex] ?? null;
+  }
+
+  syncFilterEntries() {
+    this.filteredEntries = this.activeFilter === FILTER_SAVED
+      ? this.illustrationEntries.filter((entry) => this.isEntrySaved(entry))
+      : [...this.illustrationEntries];
+    if (!this.filteredEntries.length) {
+      this.selectedIndex = 0;
+      return;
+    }
+    this.selectedIndex = clamp(this.selectedIndex, 0, this.filteredEntries.length - 1);
+  }
+
+  getEntryStorageKey(entry) {
+    return entry ? `${entry.factionId}::${entry.artAssetId}` : '';
+  }
+
+  isEntrySaved(entry) {
+    return this.savedSelections.has(this.getEntryStorageKey(entry));
+  }
+
+  createSavedRecord(entry) {
+    return {
+      factionId: entry.factionId,
+      artAssetId: entry.artAssetId,
+      cardId: entry.card?.id ?? null,
+      label: entry.label,
+      source: entry.sourceType,
+    };
+  }
+
+  toggleSavedSelection() {
+    const entry = this.getCurrentEntry();
+    if (!entry) return;
+    const key = this.getEntryStorageKey(entry);
+    const removingFromSavedFilter = this.activeFilter === FILTER_SAVED && this.savedSelections.has(key);
+    const nextSavedIndex = removingFromSavedFilter && this.selectedIndex >= this.filteredEntries.length - 1 ? 0 : this.selectedIndex;
+    if (this.savedSelections.has(key)) {
+      this.savedSelections.delete(key);
+    } else {
+      this.savedSelections.set(key, this.createSavedRecord(entry));
+    }
+    this.persistSavedSelections();
+    this.syncFilterEntries();
+    if (removingFromSavedFilter && this.filteredEntries.length) this.selectedIndex = nextSavedIndex;
+    this.renderPreview();
+    this.updateLabels();
+  }
+
+  toggleFilter() {
+    this.activeFilter = this.activeFilter === FILTER_SAVED ? FILTER_ALL : FILTER_SAVED;
+    this.selectedIndex = 0;
+    this.syncFilterEntries();
+    this.renderPreview();
+    this.updateLabels();
+  }
+
+  createSavedCountsText(entry = null) {
+    const factionId = entry?.factionId ?? this.getCurrentEntry()?.factionId ?? 'current faction';
+    const factionCount = Array.from(this.savedSelections.values()).filter((record) => record.factionId === factionId).length;
+    return `Saved ${factionId}: ${factionCount} • Total saved: ${this.savedSelections.size}`;
+  }
+
+  loadSavedSelections() {
+    this.savedSelections = new Map();
+    try {
+      const raw = typeof window === 'undefined' ? null : window.localStorage?.getItem(SAVED_SELECTIONS_STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : null;
+      (parsed?.saved ?? []).forEach((record) => {
+        if (record?.factionId && record?.artAssetId) {
+          this.savedSelections.set(`${record.factionId}::${record.artAssetId}`, {
+            factionId: record.factionId,
+            artAssetId: record.artAssetId,
+            cardId: record.cardId ?? null,
+            label: record.label ?? record.name ?? record.artAssetId,
+            source: record.source ?? 'unknown',
+          });
+        }
+      });
+    } catch (error) {
+      console.warn('Unable to load battle transition art debug selections', error);
+    }
+  }
+
+  buildSavedSelectionsExport() {
+    return {
+      version: 1,
+      tool: 'battle-transition-art-selection',
+      saved: Array.from(this.savedSelections.values()).sort((a, b) => (
+        a.factionId.localeCompare(b.factionId) || a.artAssetId.localeCompare(b.artAssetId)
+      )),
+    };
+  }
+
+  persistSavedSelections() {
+    try {
+      if (typeof window !== 'undefined') window.localStorage?.setItem(SAVED_SELECTIONS_STORAGE_KEY, JSON.stringify(this.buildSavedSelectionsExport()));
+    } catch (error) {
+      console.warn('Unable to persist battle transition art debug selections', error);
+    }
+  }
+
+  async exportSavedSelectionsToClipboard() {
+    const json = JSON.stringify(this.buildSavedSelectionsExport(), null, 2);
+    try {
+      await (typeof navigator === 'undefined' ? null : navigator.clipboard)?.writeText(json);
+      this.exportStatusLabel?.setText(`Copied ${this.savedSelections.size} saved selections`);
+    } catch (error) {
+      this.exportStatusLabel?.setText('Clipboard unavailable; JSON logged to console');
+      console.log(json);
+    }
   }
 
   rebuildForResize() {
@@ -274,10 +432,17 @@ export default class BattleTransitionArtPreviewDebugScene extends Phaser.Scene {
     this.titleLabel?.destroy();
     this.metaLabel?.destroy();
     this.adjustmentLabel?.destroy();
+    this.savedLabel?.destroy();
+    this.exportStatusLabel?.destroy();
     this.infoPanel = null;
     this.titleLabel = null;
     this.metaLabel = null;
     this.adjustmentLabel = null;
+    this.savedLabel = null;
+    this.exportStatusLabel = null;
+    this.saveButton = null;
+    this.filterButton = null;
+    this.exportButton = null;
   }
 
   returnToModeSelect() {
@@ -289,6 +454,9 @@ export default class BattleTransitionArtPreviewDebugScene extends Phaser.Scene {
     this.input.keyboard?.off('keydown-LEFT', this.onPreviousKey, this);
     this.input.keyboard?.off('keydown-RIGHT', this.onNextKey, this);
     this.input.keyboard?.off('keydown-SPACE', this.onNextKey, this);
+    this.input.keyboard?.off('keydown-S', this.onSaveKey, this);
+    this.input.keyboard?.off('keydown-F', this.onFilterKey, this);
+    this.input.keyboard?.off('keydown-E', this.onExportKey, this);
     this.input.keyboard?.off('keydown-ESC', this.onBackRequested);
     this.input.keyboard?.off('keydown-BACKSPACE', this.onBackRequested);
     if (this.onResize) this.scale.off('resize', this.onResize);
@@ -308,4 +476,5 @@ export const BATTLE_TRANSITION_PREVIEW_DEBUG_DEFAULTS = Object.freeze({
   durationMs: MOTION_DURATION_MS,
   veilAlpha: VEIL_ALPHA,
   fogAlpha: FOG_ALPHA,
+  savedSelectionsStorageKey: SAVED_SELECTIONS_STORAGE_KEY,
 });
