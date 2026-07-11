@@ -12,7 +12,7 @@ import {
   preloadMenuBackgroundArt,
 } from '../rendering/backgroundArt.js';
 import { AUDIO_KEYS, preloadAudioAssets } from '../audio/audioAssets.js';
-import { playSfx, stopMusic } from '../audio/audioPlayback.js';
+import { playSfx } from '../audio/audioPlayback.js';
 import { playMenuMusic } from '../audio/menuMusic.js';
 import { createNewCampaign, saveCampaign } from '../systems/campaignState.js';
 import { incrementCampaignStarted, loadPlayerStats, savePlayerStats } from '../systems/playerStats.js';
@@ -633,7 +633,7 @@ export default class FactionSelectScene extends Phaser.Scene {
     this.stopStaleBattleScenes(transitionDiagnostics);
 
     try {
-      stopMusic(this);
+      // Menu music intentionally continues through BattleTransitionScene until visual handoff.
       enterBattleScene(this, { factionKey });
     } catch (error) {
       console.error('Faction select battle transition threw before BattleScene start', {

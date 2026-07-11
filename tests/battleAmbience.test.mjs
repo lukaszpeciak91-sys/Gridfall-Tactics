@@ -16,11 +16,11 @@ test('music volume calculations allow per-music bus overrides for ambience', () 
   assert.match(source, /settingsVolume \* assetVolume \* optionVolume \* clampUnit\(asset\.busVolume, MUSIC_BUS_VOLUME\)/);
 });
 
-test('BattleScene starts ambience for gameplay and stops it before result SFX', () => {
+test('BattleScene starts ambience after transition-ready handoff and stops it before result SFX', () => {
   const source = read('src/scenes/BattleScene.js');
   assert.match(source, /import \{ playManagedSfx, playMusic, playSfx, stopManagedSfx, stopMusic \} from '\.\.\/audio\/audioPlayback\.js';/);
   assert.match(source, /startBattleAmbience\(\) \{\s*if \(this\.isCampaignCompletionPreview\(\) \|\| this\.gameState\?\.winner\) return null;[\s\S]*return playMusic\(this, AUDIO_KEYS\.BATTLE_AMBIENCE\);/);
-  assert.match(source, /this\.startBattleAmbience\(\);\s*this\.emitBattleVisuallyReady\(\);\s*if \(this\.isCampaignCompletionPreview\(\)\)/);
+  assert.match(source, /this\.emitBattleVisuallyReady\(\);\s*this\.time\.delayedCall\(560, \(\) => this\.startBattleAmbience\(\)\);\s*if \(this\.isCampaignCompletionPreview\(\)\)/);
   assert.match(source, /this\.stopBattleAmbience\(\{ fadeMs: 350 \}\);\s*this\.updateActionSlotBadge\(\);/);
   assert.match(source, /playOutcomeStinger\(key\) \{\s*if \(!\[AUDIO_KEYS\.BATTLE_VICTORY, AUDIO_KEYS\.BATTLE_DEFEAT\]\.includes\(key\)\) return false;\s*this\.stopBattleAmbience\(\{ fadeMs: 0 \}\);/);
   assert.match(source, /shutdown\(\) \{\s*this\.cleanupSceneObjects\(\);\s*this\.stopBattleAmbience\(\{ fadeMs: 0 \}\);/);

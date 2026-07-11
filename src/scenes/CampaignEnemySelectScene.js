@@ -5,7 +5,7 @@ import { createBottomNavigationControls, requestPortraitOrientationLock, toggleS
 import { translateActive } from '../localization/localeService.js';
 import { applyAudioSettings, loadSettings } from '../systems/settingsState.js';
 import { AUDIO_KEYS, preloadAudioAssets } from '../audio/audioAssets.js';
-import { playSfx, stopMusic } from '../audio/audioPlayback.js';
+import { playSfx } from '../audio/audioPlayback.js';
 import { playMenuMusic } from '../audio/menuMusic.js';
 import { isValidCampaignState, loadCampaign, saveCampaign, selectCampaignEnemy } from '../systems/campaignState.js';
 import { getCampaignEnemyViewModels } from '../systems/campaignEnemySelection.js';
@@ -208,7 +208,7 @@ export default class CampaignEnemySelectScene extends Phaser.Scene {
   }
 
   startCampaignCompletionPreview(status) {
-    stopMusic(this);
+    // Menu music intentionally continues through BattleTransitionScene until visual handoff.
     enterBattleScene(this, {
       factionKey: this.campaign.playerFactionKey,
       enemyFactionKey: Object.keys(this.campaign.enemies)[0],
@@ -229,7 +229,7 @@ export default class CampaignEnemySelectScene extends Phaser.Scene {
       const updatedCampaign = saveCampaign(selected) ?? selected;
       this.campaign = updatedCampaign;
       playSfx(this, AUDIO_KEYS.UI_CLICK);
-      stopMusic(this);
+      // Menu music intentionally continues through BattleTransitionScene until visual handoff.
       enterBattleScene(this, {
         factionKey: updatedCampaign.playerFactionKey,
         enemyFactionKey,

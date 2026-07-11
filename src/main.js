@@ -9,6 +9,7 @@ import AchievementsScene from './scenes/AchievementsScene.js';
 import SettingsScene from './scenes/SettingsScene.js';
 import TutorialScene from './scenes/TutorialScene.js';
 import BattleScene from './scenes/BattleScene.js';
+import BattleTransitionScene from './scenes/BattleTransitionScene.js';
 import BattleMenuScene from './scenes/BattleMenuScene.js';
 import RulesPanelScene from './scenes/RulesPanelScene.js';
 import ArtDebugModeSelectScene from './scenes/ArtDebugModeSelectScene.js';
@@ -39,7 +40,8 @@ const config = {
     antialiasGL: true,
     pixelArt: false,
   },
-  scene: [StartScene, MainMenuScene, GameMenuScene, FactionSelectScene, CampaignEnemySelectScene, CollectionScene, AchievementsScene, SettingsScene, TutorialScene, BattleScene, BattleMenuScene, RulesPanelScene, ArtDebugModeSelectScene, ArtViewportDebugScene, BoardUnitArtViewportDebugScene, BattleTransitionArtPreviewDebugScene],
+  // Registration preserves navigation order: SettingsScene, TutorialScene, BattleScene
+  scene: [StartScene, MainMenuScene, GameMenuScene, FactionSelectScene, CampaignEnemySelectScene, CollectionScene, AchievementsScene, SettingsScene, TutorialScene, BattleTransitionScene, BattleScene, BattleMenuScene, RulesPanelScene, ArtDebugModeSelectScene, ArtViewportDebugScene, BoardUnitArtViewportDebugScene, BattleTransitionArtPreviewDebugScene],
 };
 
 const game = new Phaser.Game(config);

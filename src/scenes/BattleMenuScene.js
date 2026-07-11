@@ -1,6 +1,5 @@
 import Phaser from 'phaser';
 import { translateActive } from '../localization/localeService.js';
-import { stopMusic } from '../audio/audioPlayback.js';
 import { enterBattleScene } from './battleEntryRouter.js';
 
 export default class BattleMenuScene extends Phaser.Scene {
@@ -77,7 +76,7 @@ export default class BattleMenuScene extends Phaser.Scene {
         returnScene.resumeFromBattleMenu();
         return;
       }
-      stopMusic(this);
+      // Existing battle/menu music continues through BattleTransitionScene until visual handoff.
       enterBattleScene(this, { factionKey, enemyFactionKey, battleContext });
     });
   }
