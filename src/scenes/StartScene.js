@@ -41,12 +41,13 @@ const STARTUP_SPLASH_TAPPED_CLASS = 'is-tapped';
 const STARTUP_SPLASH_HIDDEN_CLASS = 'is-hidden';
 const STARTUP_SPLASH_REMOVE_MS = 180;
 const STARTUP_READY_TEXT_DELAY_MS = 520;
-const STARTUP_SIGNAL_SLIT_MS = 380;
-const STARTUP_PANEL_OPEN_MS = 700;
-const STARTUP_PANEL_OPEN_DELAY_MS = 80;
-const STARTUP_PANEL_DEPTH = START_TITLE_DEPTH - 1;
-const STARTUP_SIGNAL_DEPTH = START_TITLE_DEPTH + 0.25;
-const STARTUP_PANEL_COLOR = 0x111827;
+const STARTUP_VEIL_FADE_MS = 780;
+const STARTUP_SIGNAL_SWEEP_MS = 250;
+const STARTUP_VEIL_DEPTH = START_TITLE_DEPTH - 1;
+const STARTUP_SIGNAL_DEPTH = START_TITLE_DEPTH - 0.5;
+const STARTUP_VEIL_COLOR = 0x111827;
+const STARTUP_SIGNAL_COLOR = 0x7dd3fc;
+const STARTUP_SIGNAL_PEAK_ALPHA = 0.16;
 
 export default class StartScene extends Phaser.Scene {
   constructor() {
@@ -54,6 +55,7 @@ export default class StartScene extends Phaser.Scene {
     this.isTransitioning = false;
     this.title = null;
     this.titleBaseScale = { x: 1, y: 1 };
+    this.titleBaseX = 0;
     this.titleBaseY = 0;
     this.titleHovering = false;
     this.logoHitArea = null;
@@ -61,6 +63,7 @@ export default class StartScene extends Phaser.Scene {
     this.startupIntroPending = false;
     this.startupTapAccepted = false;
     this.startupSplashTapHandler = null;
+    this.startupRevealObjects = null;
   }
 
   preload() {
@@ -104,6 +107,7 @@ export default class StartScene extends Phaser.Scene {
       this.scale.off('leavefullscreen', this.onFullscreenChanged, this);
       this.input.off('pointerup', this.onStartScenePointerUp, this);
       this.detachStartupSplashTapHandler();
+      this.cleanupStartupRevealObjects();
     });
   }
 
@@ -136,6 +140,7 @@ export default class StartScene extends Phaser.Scene {
     }
 
     this.titleBaseScale = { x: this.title.scaleX, y: this.title.scaleY };
+    this.titleBaseX = this.title.x;
     this.titleBaseY = this.title.y;
   }
 
@@ -274,19 +279,13 @@ export default class StartScene extends Phaser.Scene {
 
   createStartupRevealObjects(width, height) {
     const centerY = height * 0.5;
-    const panelOverlap = 2;
-    const topPanel = this.add.rectangle(width * 0.5, centerY * 0.5, width, centerY + panelOverlap, STARTUP_PANEL_COLOR, 1)
-      .setDepth(STARTUP_PANEL_DEPTH);
-    const bottomPanel = this.add.rectangle(width * 0.5, centerY + (centerY * 0.5), width, centerY + panelOverlap, STARTUP_PANEL_COLOR, 1)
-      .setDepth(STARTUP_PANEL_DEPTH);
-    const signalSlit = this.add.rectangle(width * 0.5, centerY, Math.max(110, width * 0.58), 2, 0xf5f1e6, 0)
+    const veil = this.add.rectangle(width * 0.5, height * 0.5, width, height, STARTUP_VEIL_COLOR, 1)
+      .setDepth(STARTUP_VEIL_DEPTH);
+    const signalSweep = this.add.rectangle(width * 0.5, centerY, Math.max(120, width * 0.68), 3, STARTUP_SIGNAL_COLOR, 0)
       .setDepth(STARTUP_SIGNAL_DEPTH);
 
-    if (signalSlit.setBlendMode) {
-      signalSlit.setBlendMode(Phaser.BlendModes.ADD);
-    }
-
-    return { topPanel, bottomPanel, signalSlit, width, height };
+    this.startupRevealObjects = { veil, signalSweep, width, height };
+    return this.startupRevealObjects;
   }
 
   waitForFirstRenderFrame(callback) {
@@ -353,46 +352,82 @@ export default class StartScene extends Phaser.Scene {
     }
   }
 
-  beginStartupPresentationHandoff({ topPanel, bottomPanel, signalSlit, height }) {
+  beginStartupPresentationHandoff(revealObjects) {
     const splash = this.getStartupSplashElement();
 
     if (splash) {
       splash.classList.add(STARTUP_SPLASH_TAPPED_CLASS, STARTUP_SPLASH_HANDOFF_CLASS);
     }
 
-    this.time.delayedCall(STARTUP_SPLASH_REMOVE_MS, () => {
+    this.alignTitleToStartupSplashLogo();
+    this.waitForFirstRenderFrame(() => {
       this.removeStartupSplash();
+      this.runStartupBroadcastReveal(revealObjects);
     });
+  }
 
+  alignTitleToStartupSplashLogo() {
+    const splashLogo = globalThis.document?.querySelector?.('.startup-splash__logo');
+    const canvas = this.game?.canvas;
+
+    if (!splashLogo || !canvas || !this.title) {
+      this.captureLogoBaseTransform();
+      return false;
+    }
+
+    const logoRect = splashLogo.getBoundingClientRect?.();
+    const canvasRect = canvas.getBoundingClientRect?.();
+
+    if (!logoRect?.width || !logoRect?.height || !canvasRect?.width || !canvasRect?.height) {
+      this.captureLogoBaseTransform();
+      return false;
+    }
+
+    const scaleX = this.scale.width / canvasRect.width;
+    const scaleY = this.scale.height / canvasRect.height;
+    const centerX = (logoRect.left + logoRect.width * 0.5 - canvasRect.left) * scaleX;
+    const centerY = (logoRect.top + logoRect.height * 0.5 - canvasRect.top) * scaleY;
+    const displayWidth = logoRect.width * scaleX;
+    const displayHeight = logoRect.height * scaleY;
+
+    this.title.setPosition(centerX, centerY);
+    if (this.title.type === 'Image' && this.title.setDisplaySize) {
+      this.title.setDisplaySize(displayWidth, displayHeight);
+    }
+    this.title.setAlpha(1);
+    this.captureLogoBaseTransform();
+    this.positionLogoHitArea();
+    return true;
+  }
+
+  runStartupBroadcastReveal(revealObjects) {
+    if (!revealObjects?.veil || !revealObjects?.signalSweep) {
+      this.failStartupPresentationOpen();
+      return;
+    }
+
+    const { veil, signalSweep, height } = revealObjects;
     this.tweens.add({
-      targets: signalSlit,
-      alpha: { from: 0, to: 0.38 },
-      scaleX: { from: 0.18, to: 1.08 },
-      scaleY: { from: 0.7, to: 1.35 },
-      duration: STARTUP_SIGNAL_SLIT_MS,
+      targets: signalSweep,
+      alpha: { from: 0, to: STARTUP_SIGNAL_PEAK_ALPHA },
+      scaleX: { from: 0.72, to: 1.05 },
+      y: { from: height * 0.505, to: height * 0.49 },
+      duration: STARTUP_SIGNAL_SWEEP_MS,
       ease: 'Sine.easeOut',
-    });
-
-    this.tweens.add({
-      targets: topPanel,
-      y: -height * 0.25,
-      delay: STARTUP_PANEL_OPEN_DELAY_MS,
-      duration: STARTUP_PANEL_OPEN_MS,
-      ease: 'Sine.easeInOut',
+      yoyo: true,
       onComplete: () => {
-        topPanel?.destroy();
+        signalSweep?.destroy();
       },
     });
 
     this.tweens.add({
-      targets: bottomPanel,
-      y: height * 1.25,
-      delay: STARTUP_PANEL_OPEN_DELAY_MS,
-      duration: STARTUP_PANEL_OPEN_MS,
+      targets: veil,
+      alpha: 0,
+      duration: STARTUP_VEIL_FADE_MS,
       ease: 'Sine.easeInOut',
       onComplete: () => {
-        signalSlit?.destroy();
-        bottomPanel?.destroy();
+        veil?.destroy();
+        this.startupRevealObjects = null;
         this.playStartTransition();
       },
     });
@@ -414,8 +449,23 @@ export default class StartScene extends Phaser.Scene {
     this.startupIntroPending = false;
     this.startupTapAccepted = false;
     this.detachStartupSplashTapHandler();
+    this.cleanupStartupRevealObjects();
     this.removeStartupSplash({ immediate: true });
     this.logoHitArea?.setInteractive?.({ useHandCursor: true });
+  }
+
+  cleanupStartupRevealObjects() {
+    if (!this.startupRevealObjects) {
+      return;
+    }
+
+    Object.values(this.startupRevealObjects).forEach((object) => {
+      if (object?.destroy) {
+        this.tweens?.killTweensOf?.(object);
+        object.destroy();
+      }
+    });
+    this.startupRevealObjects = null;
   }
 
   removeStartupSplash({ immediate = false } = {}) {
@@ -506,7 +556,7 @@ export default class StartScene extends Phaser.Scene {
       : 0.58;
 
     this.title.setAlpha(1);
-    this.title.setPosition(this.scale.width / 2, this.titleBaseY);
+    this.title.setPosition(this.titleBaseX, this.titleBaseY);
     this.title.setScale(this.titleBaseScale.x, this.titleBaseScale.y);
 
     this.tweens.add({
