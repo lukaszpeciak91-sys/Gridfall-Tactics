@@ -8,7 +8,8 @@ test('faction selection starts BattleScene without stopping itself or clearing g
   const source = readScene('src/scenes/FactionSelectScene.js');
 
   assert.match(source, /button\.on\('pointerup', \(pointer\) => \{[\s\S]*this\.tapVsDrag\.end\(pointer, this\.scrollState\?\.content\?\.y \?\? 0\)[\s\S]*this\.selectFaction\(factionKey\)/);
-  assert.match(source, /this\.scene\.start\('BattleScene', \{ factionKey \}\)/);
+  assert.match(source, /import \{ enterBattleScene \} from '\.\/battleEntryRouter\.js';/);
+  assert.match(source, /enterBattleScene\(this, \{ factionKey \}\)/);
   assert.doesNotMatch(source, /this\.scene\.stop\('FactionSelectScene'\)/);
   assert.doesNotMatch(source, /this\.input\.removeAllListeners\(\)/);
 });
@@ -58,9 +59,9 @@ test('BattleScene returns to faction select through a cleanup path and retry sta
 
   assert.match(source, /drawPlayerBaseUtilityMenuTrigger\(\) \{[\s\S]*getPlayerBaseUtilityControlMetrics\('menu'\);[\s\S]*createPlayerBaseUtilityControl\([\s\S]*'☰',[\s\S]*this\.guardPointerEvent\(pointer\);[\s\S]*this\.toggleUtilityMenuPanel\(\);[\s\S]*this\.bottomControlViews = \[menu\];[\s\S]*\}/);
   assert.match(source, /this\.scene\.start\('FactionSelectScene'\)/);
-  assert.match(source, /this\.scene\.restart\(\{ factionKey, enemyFactionKey \}\)/);
+  assert.match(source, /restartBattleScene\(this, \{ factionKey, enemyFactionKey, battleContext \}\)/);
   assert.match(source, /exitBattleToFactionSelect\(\) \{[\s\S]*this\.scene\.start\('FactionSelectScene'\)/);
-  assert.match(source, /retryBattle\(\) \{[\s\S]*this\.scene\.restart\(\{ factionKey, enemyFactionKey \}\)/);
+  assert.match(source, /retryBattle\(\) \{[\s\S]*restartBattleScene\(this, \{ factionKey, enemyFactionKey, battleContext \}\)/);
   assert.doesNotMatch(source, /this\.scene\.stop\('BattleScene'\)/);
 });
 
@@ -409,7 +410,7 @@ test('GameMenuScene provides campaign choices and preserves Arena routing', () =
   assert.match(source, /super\('GameMenuScene'\)/);
   assert.match(source, /translateActive\('ui\.gameMenu\.continue', 'CONTINUE'\)/);
   assert.match(source, /translateActive\('ui\.gameMenu\.newGame', 'NEW GAME'\)/);
-  assert.match(source, /translateActive\('ui\.gameMenu\.tutorial', 'TUTORIAL'\), \(\) => \{[\s\S]*this\.scene\.start\('BattleScene', \{[\s\S]*battleContext:[\s\S]*mode:\s*'tutorial'[\s\S]*tutorialId:\s*'tutorial_v1'[\s\S]*returnSceneKey:\s*'GameMenuScene'/);
+  assert.match(source, /translateActive\('ui\.gameMenu\.tutorial', 'TUTORIAL'\), \(\) => \{[\s\S]*enterBattleScene\(this, \{[\s\S]*battleContext:[\s\S]*mode:\s*'tutorial'[\s\S]*tutorialId:\s*'tutorial_v1'[\s\S]*returnSceneKey:\s*'GameMenuScene'/);
   assert.match(source, /translateActive\('ui\.gameMenu\.arena', 'ARENA'\), \(\) => \{[\s\S]*this\.scene\.start\('FactionSelectScene', \{ returnSceneKey: 'GameMenuScene' \}\)/);
   assert.match(source, /import \{ clearCampaign, hasActiveCampaign \} from '\.\.\/systems\/campaignState\.js';/);
   assert.match(source, /if \(hasActiveCampaign\(\)\) \{[\s\S]*resetImageButtonState\(this\.continueButton, \{ interactive: true \}\)/);

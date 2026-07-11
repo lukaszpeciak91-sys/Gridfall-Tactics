@@ -10,7 +10,7 @@ test('arena faction selection still routes through BattleScene by default', () =
   const source = read('src/scenes/FactionSelectScene.js');
   assert.match(source, /this\.mode = data\?\.mode === 'campaign' \? 'campaign' : 'arena'/);
   assert.match(source, /selectFaction\(factionKey\) \{[\s\S]*this\.startBattle\(factionKey\)/);
-  assert.match(source, /this\.scene\.start\('BattleScene', \{ factionKey \}\)/);
+  assert.match(source, /enterBattleScene\(this, \{ factionKey \}\)/);
 });
 
 test('campaign faction selection creates and saves campaign state', () => {
@@ -122,7 +122,7 @@ test('campaign enemy selection launches BattleScene with campaign context', () =
   const source = read('src/scenes/CampaignEnemySelectScene.js');
   assert.match(source, /const currentCampaign = loadCampaign\(\) \?\? this\.campaign/);
   assert.match(source, /selectCampaignEnemy\(currentCampaign, enemyFactionKey\)/);
-  assert.match(source, /this\.scene\.start\('BattleScene', \{[\s\S]*factionKey: updatedCampaign\.playerFactionKey,[\s\S]*enemyFactionKey,[\s\S]*battleContext: \{[\s\S]*mode: 'campaign',[\s\S]*campaignRunId: updatedCampaign\.runId,[\s\S]*campaignEnemyFactionKey: enemyFactionKey/);
+  assert.match(source, /enterBattleScene\(this, \{[\s\S]*factionKey: updatedCampaign\.playerFactionKey,[\s\S]*enemyFactionKey,[\s\S]*battleContext: \{[\s\S]*mode: 'campaign',[\s\S]*campaignRunId: updatedCampaign\.runId,[\s\S]*campaignEnemyFactionKey: enemyFactionKey/);
 });
 
 test('campaign enemy selection relies on state guards for defeated and exhausted enemies', () => {
@@ -232,7 +232,7 @@ test('BattleMenuScene preserves enemy faction and battle context when falling ba
   assert.match(battle, /this\.scene\.launch\('BattleMenuScene', \{ factionKey: this\.factionKey, enemyFactionKey: this\.enemyFactionKey, battleContext: this\.battleContext/);
   assert.match(menu, /const enemyFactionKey = typeof data\?\.enemyFactionKey === 'string'/);
   assert.match(menu, /const battleContext = data\?\.battleContext/);
-  assert.match(menu, /this\.scene\.start\('BattleScene', \{ factionKey, enemyFactionKey, battleContext \}\)/);
+  assert.match(menu, /enterBattleScene\(this, \{ factionKey, enemyFactionKey, battleContext \}\)/);
 });
 
 test('attempt indicators render inside every campaign enemy card including attrition swarm', () => {

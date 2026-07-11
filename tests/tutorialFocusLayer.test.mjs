@@ -148,7 +148,7 @@ test('inspect and mulligan selection keep the same guided card before focusing c
 });
 
 test('GameMenuScene Tutorial launches playable tutorial BattleScene', () => {
-  assert.match(gameMenuSource, /this\.scene\.start\('BattleScene', \{[\s\S]*battleContext:[\s\S]*mode:\s*'tutorial'[\s\S]*tutorialId:\s*'tutorial_v1'[\s\S]*returnSceneKey:\s*'GameMenuScene'/);
+  assert.match(gameMenuSource, /enterBattleScene\(this, \{[\s\S]*battleContext:[\s\S]*mode:\s*'tutorial'[\s\S]*tutorialId:\s*'tutorial_v1'[\s\S]*returnSceneKey:\s*'GameMenuScene'/);
   assert.doesNotMatch(gameMenuSource, /this\.scene\.start\('TutorialScene'/);
 });
 

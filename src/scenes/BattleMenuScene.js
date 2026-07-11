@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { translateActive } from '../localization/localeService.js';
 import { stopMusic } from '../audio/audioPlayback.js';
+import { enterBattleScene } from './battleEntryRouter.js';
 
 export default class BattleMenuScene extends Phaser.Scene {
   constructor() {
@@ -77,7 +78,7 @@ export default class BattleMenuScene extends Phaser.Scene {
         return;
       }
       stopMusic(this);
-      this.scene.start('BattleScene', { factionKey, enemyFactionKey, battleContext });
+      enterBattleScene(this, { factionKey, enemyFactionKey, battleContext });
     });
   }
 
