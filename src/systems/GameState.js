@@ -19,6 +19,8 @@ const FRIENDLY_SWAP_BUFF_EFFECT_ID = 'swap_any_two_friendly_units_buff_both_atk_
 const ALLY_LANE_TEMPO_TRANSFER_EFFECT_ID = 'ally_atk_plus_1_opposing_enemy_atk_minus_1_until_combat';
 const PARAM_LANE_TEMPO_MOD_EFFECT_ID = 'lane_tempo_mod_until_combat';
 const OPPOSED_ENEMY_OFFLINE_EFFECT_ID = 'opposed_enemy_offline_next_combat';
+const ALL_ENEMIES_ATK_CAP_UNTIL_COMBAT_EFFECT_ID = 'all_enemies_atk_cap_until_combat';
+const ALL_ENEMIES_ATK_CAP_UNTIL_COMBAT_VALUE = 2;
 export const RUNNER_OPEN_LANE_ATK_BONUS = 2;
 export const WEAK_OPEN_LANE_ATK_BONUS = 1;
 
@@ -242,6 +244,8 @@ function cardCanRealisticallyAffectOutcome(card, state, owner, visitedCardIds = 
       return enemyUnitIsReachable && friendlyAttackerIsReachable;
     case 'damage_all_enemies_1_ignore_armor':
       return enemyUnits.length > 0 && applyingEffectCanUnlockOutcome(state, owner, card.effectId);
+    case ALL_ENEMIES_ATK_CAP_UNTIL_COMBAT_EFFECT_ID:
+      return enemyUnits.some((unit) => getEffectiveBoardAttack(state, state.board.indexOf(unit)) > ALL_ENEMIES_ATK_CAP_UNTIL_COMBAT_VALUE);
     case 'control_enemy_unit_this_turn':
       return enemyUnits.some((unit) => getUnitAttack(unit) > 0);
     case FRIENDLY_SWAP_EFFECT_ID:
@@ -1154,6 +1158,11 @@ function canApplyEffectById(state, owner, effectId) {
       return false;
     case 'enemy_all_armor_minus_1':
       return getRowForOwner(getOpponentOwner(owner)).some((index) => state.board[index]?.owner === getOpponentOwner(owner));
+    case ALL_ENEMIES_ATK_CAP_UNTIL_COMBAT_EFFECT_ID:
+      return getRowForOwner(getOpponentOwner(owner)).some((index) => (
+        state.board[index]?.owner === getOpponentOwner(owner)
+        && getEffectiveBoardAttack(state, index) > ALL_ENEMIES_ATK_CAP_UNTIL_COMBAT_VALUE
+      ));
     case 'swap_leftmost_adjacent_enemies':
       return Boolean(findLeftmostAdjacentEnemyPair(state, owner))
         && !hasMoveDisableImmunity(state, getOpponentOwner(owner), owner, effectId);
@@ -1988,6 +1997,18 @@ function applyEffectById(state, owner, effectId, sourceCard = null) {
         state.board[index].hp -= 1;
       });
       removeDefeatedUnits(state, enemyIndexes);
+      break;
+    }
+    case ALL_ENEMIES_ATK_CAP_UNTIL_COMBAT_EFFECT_ID: {
+      getRowForOwner(getOpponentOwner(owner)).forEach((index) => {
+        const unit = state.board[index];
+        if (unit?.owner === getOpponentOwner(owner)) {
+          unit.tempAttackMaxUntilCombat = Math.min(
+            Number.isFinite(unit.tempAttackMaxUntilCombat) ? unit.tempAttackMaxUntilCombat : ALL_ENEMIES_ATK_CAP_UNTIL_COMBAT_VALUE,
+            ALL_ENEMIES_ATK_CAP_UNTIL_COMBAT_VALUE,
+          );
+        }
+      });
       break;
     }
     case 'heal_1':
