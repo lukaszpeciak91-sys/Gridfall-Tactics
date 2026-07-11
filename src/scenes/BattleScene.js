@@ -32,6 +32,7 @@ import { markAchievementPresented, peekAchievementPresentation } from '../system
 import { getCardBoardArtPositionY } from '../data/presentation/cardArtCropOverrides.js';
 import { AUDIO_KEYS, preloadAudioAssets } from '../audio/audioAssets.js';
 import { playManagedSfx, playMusic, playSfx, stopManagedSfx, stopMusic } from '../audio/audioPlayback.js';
+import { BATTLE_SCENE_VISUALLY_READY_EVENT, restartBattleScene } from './battleEntryRouter.js';
 
 const HAND_BACK_CARD_ASSET = Object.freeze({
   key: 'ui.card.back',
@@ -669,6 +670,7 @@ export default class BattleScene extends Phaser.Scene {
     this.battleStatsTracked = false;
     this.achievementUnlockPopupController = null;
     this.achievementUnlockSfxPlayedIds = new Set();
+    this.battleVisuallyReadyEmitted = false;
   }
 
   cleanupSceneObjects({ preserveTimers = false, preserveTweens = false } = {}) {
@@ -715,6 +717,18 @@ export default class BattleScene extends Phaser.Scene {
     }
     this.handBackCards = [];
     this.baseFrameViews = { player: null, enemy: null };
+  }
+
+  emitBattleVisuallyReady() {
+    if (this.battleVisuallyReadyEmitted) return false;
+    this.battleVisuallyReadyEmitted = true;
+    this.events.emit(BATTLE_SCENE_VISUALLY_READY_EVENT, {
+      scene: this,
+      factionKey: this.factionKey,
+      enemyFactionKey: this.enemyFactionKey,
+      battleContext: this.battleContext,
+    });
+    return true;
   }
 
   create(data) {
@@ -813,6 +827,7 @@ export default class BattleScene extends Phaser.Scene {
 
     this.startCampaignBattleTimer();
     this.startBattleAmbience();
+    this.emitBattleVisuallyReady();
 
     if (this.isCampaignCompletionPreview()) {
       const previewStatus = this.battleContext.previewStatus;
@@ -3964,7 +3979,7 @@ export default class BattleScene extends Phaser.Scene {
     this.destroyActiveSelectionMessage();
     this.openingMulliganPending = false;
     // Preserve arena retry shape for compatibility: this.scene.restart({ factionKey, enemyFactionKey })
-    this.scene.restart({ factionKey, enemyFactionKey, battleContext });
+    restartBattleScene(this, { factionKey, enemyFactionKey, battleContext });
   }
 
   toggleFullscreen() {

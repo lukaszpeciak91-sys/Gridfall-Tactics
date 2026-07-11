@@ -20,6 +20,7 @@ import { evaluateAndPersistAchievementUnlocks } from '../systems/runtimeAchievem
 import { drawFactionCardVisual, preloadFactionPreviewArt } from '../ui/factionCards.js';
 import { createImageButton, preloadSecondaryButtonAsset, PREMIUM_BROADCAST_FONT_STACK } from '../ui/imageButton.js';
 import { createTapVsDragInteraction } from '../ui/tapVsDragInteraction.js';
+import { enterBattleScene } from './battleEntryRouter.js';
 
 const MIN_FACTION_LIST_TOP = 106;
 const HEADER_TO_FACTION_LIST_GAP = 24;
@@ -633,7 +634,7 @@ export default class FactionSelectScene extends Phaser.Scene {
 
     try {
       stopMusic(this);
-      this.scene.start('BattleScene', { factionKey });
+      enterBattleScene(this, { factionKey });
     } catch (error) {
       console.error('Faction select battle transition threw before BattleScene start', {
         error,

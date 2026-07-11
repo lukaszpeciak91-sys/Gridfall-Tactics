@@ -25,6 +25,7 @@ import {
 } from '../ui/menuLogoLayout.js';
 import { preloadAudioAssets } from '../audio/audioAssets.js';
 import { playMenuMusic } from '../audio/menuMusic.js';
+import { enterBattleScene } from './battleEntryRouter.js';
 
 const GAME_MENU_TITLE_DEPTH = 5;
 const GAME_MENU_BUTTON_WIDTH_RATIO = 0.72;
@@ -92,7 +93,7 @@ export default class GameMenuScene extends Phaser.Scene {
     });
 
     this.createMenuButton(width / 2, startY + buttonGap * 2, buttonWidth, translateActive('ui.gameMenu.tutorial', 'TUTORIAL'), () => {
-      this.scene.start('BattleScene', {
+      enterBattleScene(this, {
         battleContext: {
           mode: 'tutorial',
           tutorialId: 'tutorial_v1',

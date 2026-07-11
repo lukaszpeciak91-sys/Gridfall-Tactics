@@ -12,6 +12,7 @@ import { getCampaignEnemyViewModels } from '../systems/campaignEnemySelection.js
 import { MENU_BACKGROUND_FALLBACK_COLOR, MENU_BACKGROUND_FALLBACK_COLOR_HEX, createAnimatedMenuBackground, preloadMenuBackgroundArt } from '../rendering/backgroundArt.js';
 import { drawFactionCardVisual, preloadFactionPreviewArt } from '../ui/factionCards.js';
 import { createTapVsDragInteraction } from '../ui/tapVsDragInteraction.js';
+import { enterBattleScene } from './battleEntryRouter.js';
 
 const CARD_HEIGHT = 196;
 const CARD_GAP = 34;
@@ -208,7 +209,7 @@ export default class CampaignEnemySelectScene extends Phaser.Scene {
 
   startCampaignCompletionPreview(status) {
     stopMusic(this);
-    this.scene.start('BattleScene', {
+    enterBattleScene(this, {
       factionKey: this.campaign.playerFactionKey,
       enemyFactionKey: Object.keys(this.campaign.enemies)[0],
       battleContext: {
@@ -229,7 +230,7 @@ export default class CampaignEnemySelectScene extends Phaser.Scene {
       this.campaign = updatedCampaign;
       playSfx(this, AUDIO_KEYS.UI_CLICK);
       stopMusic(this);
-      this.scene.start('BattleScene', {
+      enterBattleScene(this, {
         factionKey: updatedCampaign.playerFactionKey,
         enemyFactionKey,
         battleContext: {

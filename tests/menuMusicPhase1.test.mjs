@@ -54,8 +54,8 @@ test('whitelisted menu-flow scenes start or continue the managed menu loop', () 
 });
 
 test('battle entry paths stop menu music and BattleScene defensively stops it on entry', () => {
-  assert.match(read('src/scenes/FactionSelectScene.js'), /stopMusic\(this\);\s*this\.scene\.start\('BattleScene', \{ factionKey \}\);/);
-  assert.match(read('src/scenes/CampaignEnemySelectScene.js'), /stopMusic\(this\);\s*this\.scene\.start\('BattleScene', \{/);
-  assert.match(read('src/scenes/BattleMenuScene.js'), /stopMusic\(this\);\s*this\.scene\.start\('BattleScene'/);
+  assert.match(read('src/scenes/FactionSelectScene.js'), /stopMusic\(this\);\s*enterBattleScene\(this, \{ factionKey \}\);/);
+  assert.match(read('src/scenes/CampaignEnemySelectScene.js'), /stopMusic\(this\);\s*enterBattleScene\(this, \{/);
+  assert.match(read('src/scenes/BattleMenuScene.js'), /stopMusic\(this\);\s*enterBattleScene\(this,/);
   assert.match(read('src/scenes/BattleScene.js'), /create\(data\) \{\s*this\.cleanupSceneObjects\(\);\s*stopMusic\(this, \{ fadeMs: 0 \}\);/);
 });

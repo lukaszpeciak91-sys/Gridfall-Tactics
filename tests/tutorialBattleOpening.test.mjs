@@ -85,6 +85,6 @@ test('tutorial data stays outside normal faction registry and GameMenu tutorial 
   assert.equal(getFactionKeys().includes('tutorial'), false);
   assert.equal(getFactionByKey('tutorial'), null);
   const source = readFileSync(new URL('../src/scenes/GameMenuScene.js', import.meta.url), 'utf8');
-  assert.match(source, /this\.scene\.start\('BattleScene', \{[\s\S]*battleContext:[\s\S]*mode:\s*'tutorial'[\s\S]*tutorialId:\s*'tutorial_v1'[\s\S]*returnSceneKey:\s*'GameMenuScene'/);
+  assert.match(source, /enterBattleScene\(this, \{[\s\S]*battleContext:[\s\S]*mode:\s*'tutorial'[\s\S]*tutorialId:\s*'tutorial_v1'[\s\S]*returnSceneKey:\s*'GameMenuScene'/);
   assert.doesNotMatch(source, /this\.scene\.start\('TutorialScene'/);
 });
