@@ -56,6 +56,7 @@ const SAFE_SURRENDER_MEANINGFUL_EFFECT_IDS = new Set([
   'heal_3',
   'swap_two_enemy_units',
   'decay_attack_after_combat',
+  'decay_hp_after_combat',
   'atk_plus_per_other_ally',
   'swap_any_two_friendly_units_buff_both_atk_1',
   'swap_any_two_friendly_units',
@@ -168,6 +169,7 @@ function scoreOpeningCard(card, hand, factionName = '') {
     if (card.effectId === 'adjacent_allies_atk_plus_1_ignore_armor_1') score += unitsInHand >= 2 ? 18 : -4;
     if (card.effectId === 'atk_plus_per_other_ally') score += unitsInHand >= 2 ? 20 : -2;
     if (card.effectId === 'decay_attack_after_combat') score += Math.max(0, attack - 1) * 4;
+    if (card.effectId === 'decay_hp_after_combat') score += Math.max(0, hp - 1) * 2;
     if (faction === 'aggro') score += attack >= 2 ? 14 : -8;
     if (faction === 'control' && attack <= 1 && hp <= 1) score -= 10;
     return score;

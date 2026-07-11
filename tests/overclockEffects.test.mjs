@@ -308,3 +308,47 @@ test('Hot Runner enemy-owner offline returns after forced combat and does not fi
   resolveCombat(state);
   assert.equal(state.playerHP, 11, 'returned player unit prevents a second free base hit');
 });
+
+test('decay_hp_after_combat reduces HP after combat without mutating card JSON', () => {
+  const card = unitCard('hp-decayer', 1, 3, 'decay_hp_after_combat');
+  const state = stateWithHands([card]);
+  assert.equal(playOrRedeployUnit(state, 'player', 'hp-decayer', 6).ok, true);
+
+  resolveCombat(state);
+
+  assert.equal(state.board[6].hp, 2);
+  assert.equal(state.board[6].maxHp, 3);
+  assert.equal(card.hp, 3);
+});
+
+test('decay_hp_after_combat can kill through normal post-combat damage cleanup', () => {
+  const card = unitCard('hp-decayer', 0, 1, 'decay_hp_after_combat');
+  const state = stateWithHands([card]);
+  playOrRedeployUnit(state, 'player', 'hp-decayer', 6);
+
+  resolveCombat(state);
+
+  assert.equal(state.board[6], null);
+  assert.equal(state.player.fallen.length, 1);
+  assert.equal(state.player.fallen[0].card.id, 'hp-decayer');
+  assert.equal(state.player.fallen[0].reason, 'damage-death');
+  assert.equal(state.player.fallen[0].combat, false);
+});
+
+test('decay_hp_after_combat works for both owners and preserves attack decay behavior', () => {
+  const state = stateWithHands([
+    unitCard('player-hp-decayer', 1, 4, 'decay_hp_after_combat'),
+    unitCard('attack-decayer', 3, 4, 'decay_attack_after_combat'),
+  ], [unitCard('enemy-hp-decayer', 1, 4, 'decay_hp_after_combat')]);
+  playOrRedeployUnit(state, 'player', 'player-hp-decayer', 6);
+  playOrRedeployUnit(state, 'player', 'attack-decayer', 7);
+  playOrRedeployUnit(state, 'enemy', 'enemy-hp-decayer', 2);
+
+  resolveCombat(state);
+
+  assert.equal(state.board[6].hp, 3);
+  assert.equal(state.board[2].hp, 3);
+  assert.equal(state.board[7].hp, 4);
+  assert.equal(state.board[7].attackDecay, 1);
+  assert.equal(getEffectiveBoardAttack(state, 7), 2);
+});

@@ -328,6 +328,7 @@ Implemented concrete non-production `effectId` values currently accepted by Bala
 - `swap_any_two_friendly_units_buff_both_atk_1` — Swap any 2 [ALLY], then give both +1 temporary ATK.
 - `lane_empty_bonus_damage_1` — Open lane: +1 ATK / Pusta linia: +1 [ATK]. Implemented unit passive for Balance Lab replacement-card and custom-faction testing; no `effectParams` are required or supported.
 - `decay_attack_after_combat` — Unit passive ATK decay after combat.
+- `decay_hp_after_combat` — Unit passive HP decay after combat for custom-faction testing; post-combat direct damage uses normal non-combat damage/death cleanup.
 - `atk_plus_per_other_ally` — Unit passive ATK bonus per other ally.
 
 - `lane_tempo_mod_until_combat` — Parameterized friendly-unit Balance Lab tempo modifier. Targeting must be `friendly_unit`; the player or AI selects one friendly unit. The opposing enemy is derived from the selected ally's lane, so no random target and no second manual target are used. Empty opposing lanes are allowed: ally modifiers still apply and enemy modifiers are skipped. Temporary ATK, HP, and Armor use the normal combat cleanup path; ATK and Armor cannot evaluate below 0. Supported `effectParams` fields are optional numbers: `allyAtk`, `allyHp`, `allyArmor`, `opposingEnemyAtk`, `opposingEnemyHp`, and `opposingEnemyArmor`. Example card:
