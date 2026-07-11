@@ -733,7 +733,7 @@ export default class BattleScene extends Phaser.Scene {
 
   create(data) {
     this.cleanupSceneObjects();
-    stopMusic(this, { fadeMs: 0 });
+    // Menu music is faded by BattleTransitionScene after visual readiness.
     this.installResultModalDiagnostics();
     this.installTutorialLifecycleDiagnostics();
 
@@ -826,8 +826,8 @@ export default class BattleScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this);
 
     this.startCampaignBattleTimer();
-    this.startBattleAmbience();
     this.emitBattleVisuallyReady();
+    this.time.delayedCall(560, () => this.startBattleAmbience());
 
     if (this.isCampaignCompletionPreview()) {
       const previewStatus = this.battleContext.previewStatus;
@@ -4086,7 +4086,7 @@ export default class BattleScene extends Phaser.Scene {
 
     if (!this.gameState?.winner && !this.battleAmbienceStopping) {
       this.startCampaignBattleTimer();
-      this.startBattleAmbience();
+      this.time.delayedCall(560, () => this.startBattleAmbience());
     }
 
     this.game.renderer?.resetTextures?.();
