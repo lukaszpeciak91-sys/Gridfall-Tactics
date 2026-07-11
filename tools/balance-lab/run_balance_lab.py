@@ -56,6 +56,7 @@ LANE_TEMPO_MOD_ENEMY_PARAM_FIELDS = {"targetEnemyAtk", "opposingAllyAtk"}
 
 IMPLEMENTED_CONCRETE_EFFECT_IDS = {
     "decay_attack_after_combat",
+    "decay_hp_after_combat",
     "atk_plus_per_other_ally",
     "swap_any_two_friendly_units_buff_both_atk_1",
     "swap_any_two_friendly_units",

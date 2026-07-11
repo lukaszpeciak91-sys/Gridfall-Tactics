@@ -12,6 +12,7 @@ const WARDEN_FRICTION_CAP = 1;
 const FUNERAL_PYRE_TRIGGER_CAP = 2;
 const COMBAT_KEYWORD_OVERFLOW = 'overflow';
 const DECAY_ATTACK_AFTER_COMBAT_EFFECT_ID = 'decay_attack_after_combat';
+const DECAY_HP_AFTER_COMBAT_EFFECT_ID = 'decay_hp_after_combat';
 const ATK_PLUS_PER_OTHER_ALLY_EFFECT_ID = 'atk_plus_per_other_ally';
 const FRIENDLY_SWAP_EFFECT_ID = 'swap_any_two_friendly_units';
 const FRIENDLY_SWAP_BUFF_EFFECT_ID = 'swap_any_two_friendly_units_buff_both_atk_1';
@@ -212,6 +213,7 @@ function cardCanRealisticallyAffectOutcome(card, state, owner, visitedCardIds = 
       'can_hit_any_lane',
       'opposing_lane_atk_plus_1',
       DECAY_ATTACK_AFTER_COMBAT_EFFECT_ID,
+      DECAY_HP_AFTER_COMBAT_EFFECT_ID,
       ATK_PLUS_PER_OTHER_ALLY_EFFECT_ID,
     ].includes(card.effectId);
   }
@@ -344,6 +346,18 @@ function cloneStateForDeadGameCheck(state) {
 function getOtherAllyAttackBonus(state, unit, boardIndex) {
   if (!state || !unit || unit.effectId !== ATK_PLUS_PER_OTHER_ALLY_EFFECT_ID) return 0;
   return getRowForOwner(unit.owner).filter((index) => index !== boardIndex && state.board[index]?.owner === unit.owner).length;
+}
+
+function applyHpDecayAfterCombat(state, participatedIndexes = new Set()) {
+  const cleanupIndexes = [];
+  participatedIndexes.forEach((index) => {
+    const unit = state?.board?.[index];
+    if (unit?.effectId !== DECAY_HP_AFTER_COMBAT_EFFECT_ID) return;
+    // HP decay is post-combat direct damage, not combat damage; death cleanup uses the normal non-combat damage pipeline.
+    applyDamageToUnit(state, index, 1);
+    cleanupIndexes.push(index);
+  });
+  cleanupDefeatedUnitsWithTriggers(state, cleanupIndexes);
 }
 
 function applyAttackDecayAfterCombat(state) {
@@ -3190,6 +3204,8 @@ function resolveCombatLane(state, col, combatContext = null) {
   const playerIndex = PLAYER_ROW[col];
   const enemy = state.board[enemyIndex]?.hp > 0 ? { ...state.board[enemyIndex], __index: enemyIndex } : null;
   const player = state.board[playerIndex]?.hp > 0 ? { ...state.board[playerIndex], __index: playerIndex } : null;
+  if (enemy) context.participatedIndexes?.add(enemyIndex);
+  if (player) context.participatedIndexes?.add(playerIndex);
 
   const pendingUnitDamage = new Map();
   const addPendingUnitDamage = (index, amount) => {
@@ -3419,7 +3435,7 @@ export function resolveCombat(state) {
     enemyHP: state.enemyHP,
     board: state.board?.map((unit) => unit ? { owner: unit.owner, id: unit.cardId ?? unit.id, hp: unit.hp, maxHp: unit.maxHp } : null),
   }) : null;
-  const combatContext = { guardiansUsed: new Set(), events: [] };
+  const combatContext = { guardiansUsed: new Set(), events: [], participatedIndexes: new Set() };
   const combatId = beginCombatWindow(state);
   const previousPreserveRawHeroHP = state.preserveRawHeroHPUntilCombatFinalization;
   state.preserveRawHeroHPUntilCombatFinalization = true;
@@ -3429,6 +3445,7 @@ export function resolveCombat(state) {
   }
 
   cleanupDefeatedUnitsWithTriggers(state, [...ENEMY_ROW, ...PLAYER_ROW], { combat: true });
+  applyHpDecayAfterCombat(state, combatContext.participatedIndexes);
 
   if (state.cannotDropBelowOneThisTurn) {
     state.cannotDropBelowOneThisTurn.player = false;
