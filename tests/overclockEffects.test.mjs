@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {
   createInitialBattleState,
   getEffectiveBoardAttack,
+  isBoardUnitOffline,
+  normalizeOfflineReservations,
   playEffectCard,
   playOrRedeployUnit,
   resolveCombat,
@@ -268,7 +270,8 @@ test('Hot Runner takes opposed enemy offline for exactly one combat and returns 
 
   const result = playOrRedeployUnit(state, 'player', 'runner', 6);
   assert.equal(result.ok, true);
-  assert.equal(state.board[0]?.offlineReservedSlot, true);
+  assert.equal(state.board[0], enemyUnit);
+  assert.equal(isBoardUnitOffline(state, 0), true);
   assert.equal(state.offlineReservations.length, 1);
 
   resolveCombat(state);
@@ -277,6 +280,7 @@ test('Hot Runner takes opposed enemy offline for exactly one combat and returns 
   assert.equal(state.enemy.fallen.length, 0);
   assert.equal(state.player.fallen.length, 0);
   assert.equal(state.offlineReservations.length, 0);
+  assert.equal(isBoardUnitOffline(state, 0), false);
   assert.equal(state.enemyHP, 11);
   assert.equal(state.hotRunnerOfflineTelemetry.baseHits, 1);
   assert.equal(state.hotRunnerOfflineTelemetry.returned, 1);
@@ -294,6 +298,24 @@ test('Hot Runner into empty lane creates no offline reservation', () => {
   assert.equal(state.hotRunnerOfflineTelemetry.noEnemy, 1);
 });
 
+test('Hot Runner offline reservation keeps a real board unit renderable and normalizes legacy placeholders', () => {
+  const runner = unitCard('runner', 1, 1, 'opposed_enemy_offline_next_combat');
+  const state = stateWithHands([runner], [unitCard('wall', 3, 5)]);
+  playOrRedeployUnit(state, 'enemy', 'wall', 0);
+  const enemyUnit = state.board[0];
+  playOrRedeployUnit(state, 'player', 'runner', 6);
+
+  assert.equal(state.board[0], enemyUnit);
+  assert.equal(state.board[0]?.owner, 'enemy');
+  assert.equal(state.board[0]?.offlineReservedSlot, undefined);
+
+  const reservation = state.offlineReservations[0];
+  state.board[0] = { offlineReservedSlot: true, reservationId: reservation.id };
+  normalizeOfflineReservations(state);
+  assert.equal(state.board[0], enemyUnit);
+  assert.equal(isBoardUnitOffline(state, 0), true);
+});
+
 test('Hot Runner offline is consumed by immediate lane combat', () => {
   const runner = unitCard('runner', 1, 1, 'opposed_enemy_offline_next_combat');
   const ignition = { id: 'ignition', name: 'Ignition', type: 'order', targeting: 'friendly_unit', effectId: 'quick_strike' };
@@ -305,6 +327,7 @@ test('Hot Runner offline is consumed by immediate lane combat', () => {
   const result = resolveTargetedEffectCard(state, 'player', 'ignition', 6, [6]);
   assert.equal(result.ok, true);
   assert.equal(state.board[0], enemyUnit);
+  assert.equal(isBoardUnitOffline(state, 0), false);
   assert.equal(state.offlineReservations.length, 0);
   assert.equal(state.enemyHP, 11);
 
@@ -373,7 +396,8 @@ test('Hot Runner enemy-owner offline returns after forced combat and does not fi
   playOrRedeployUnit(state, 'enemy', 'pivot', 1);
   playOrRedeployUnit(state, 'enemy', 'enemy-runner', 0);
 
-  assert.equal(state.board[6]?.offlineReservedSlot, true);
+  assert.equal(state.board[6], reserved);
+  assert.equal(isBoardUnitOffline(state, 6), true);
   const result = resolveTargetedEffectCard(state, 'enemy', 'rush', 0, [0]);
 
   assert.equal(result.ok, true);
@@ -383,6 +407,7 @@ test('Hot Runner enemy-owner offline returns after forced combat and does not fi
   assert.equal(state.combatOnlyDeathSummons ?? 0, 0);
   assert.equal(state.board.filter((unit) => unit === reserved).length, 1);
   assert.equal(state.offlineReservations.length, 0);
+  assert.equal(isBoardUnitOffline(state, 6), false);
 
   resolveCombat(state);
   assert.equal(state.playerHP, 11, 'returned player unit prevents a second free base hit');
