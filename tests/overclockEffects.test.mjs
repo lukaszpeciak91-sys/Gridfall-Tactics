@@ -531,3 +531,125 @@ test('all_enemies_atk_cap_until_combat works for both owners and is invalid with
   const lowResult = playEffectCard(lowState, 'enemy', 'low-cap');
   assert.equal(lowResult.ok, false);
 });
+
+test('Stock Reassignment requires a selected adjacent ally instead of auto-selecting left', () => {
+  const swap = { id: 'stock', name: 'Stock Reassignment', type: 'order', targeting: 'friendly_unit', effectId: 'swap_adjacent_then_resolve' };
+  const state = stateWithHands([swap]);
+  state.board[6] = { ...unitCard('left', 0, 3), owner: 'player', cardId: 'left', maxHp: 3 };
+  state.board[7] = { ...unitCard('first', 0, 3), owner: 'player', cardId: 'first', maxHp: 3 };
+
+  const pending = resolveTargetedEffectCard(state, 'player', 'stock', 7, [7]);
+
+  assert.equal(pending.ok, true);
+  assert.equal(pending.type, 'targeted-effect-pending');
+  assert.equal(state.board[6].cardId, 'left');
+  assert.equal(state.board[7].cardId, 'first');
+  assert.equal(state.player.hand.some((card) => card.id === 'stock'), true);
+});
+
+test('Stock Reassignment swaps with only a left adjacent ally after explicit second selection', () => {
+  const swap = { id: 'stock-left', name: 'Stock Reassignment', type: 'order', targeting: 'friendly_unit', effectId: 'swap_adjacent_then_resolve' };
+  const state = stateWithHands([swap]);
+  state.board[6] = { ...unitCard('left', 0, 3), owner: 'player', cardId: 'left', maxHp: 3 };
+  state.board[7] = { ...unitCard('first', 0, 3), owner: 'player', cardId: 'first', maxHp: 3 };
+
+  const result = resolveTargetedEffectCard(state, 'player', 'stock-left', 7, [7, 6]);
+
+  assert.equal(result.ok, true);
+  assert.equal(state.board[6].cardId, 'first');
+  assert.equal(state.board[7].cardId, 'left');
+  assert.equal(result.combatSnapshot.board[6].cardId, 'first');
+});
+
+test('Stock Reassignment swaps with only a right adjacent ally after explicit second selection', () => {
+  const swap = { id: 'stock-right', name: 'Stock Reassignment', type: 'order', targeting: 'friendly_unit', effectId: 'swap_adjacent_then_resolve' };
+  const state = stateWithHands([swap]);
+  state.board[6] = { ...unitCard('first', 0, 3), owner: 'player', cardId: 'first', maxHp: 3 };
+  state.board[7] = { ...unitCard('right', 0, 3), owner: 'player', cardId: 'right', maxHp: 3 };
+
+  const result = resolveTargetedEffectCard(state, 'player', 'stock-right', 6, [6, 7]);
+
+  assert.equal(result.ok, true);
+  assert.equal(state.board[6].cardId, 'right');
+  assert.equal(state.board[7].cardId, 'first');
+  assert.equal(result.combatSnapshot.board[7].cardId, 'first');
+});
+
+test('Stock Reassignment middle unit can choose left when both adjacent allies are available', () => {
+  const swap = { id: 'stock-left-choice', name: 'Stock Reassignment', type: 'order', targeting: 'friendly_unit', effectId: 'swap_adjacent_then_resolve' };
+  const state = stateWithHands([swap]);
+  state.board[6] = { ...unitCard('left', 0, 3), owner: 'player', cardId: 'left', maxHp: 3 };
+  state.board[7] = { ...unitCard('first', 0, 3), owner: 'player', cardId: 'first', maxHp: 3 };
+  state.board[8] = { ...unitCard('right', 0, 3), owner: 'player', cardId: 'right', maxHp: 3 };
+
+  const result = resolveTargetedEffectCard(state, 'player', 'stock-left-choice', 7, [7, 6]);
+
+  assert.equal(result.ok, true);
+  assert.equal(state.board[6].cardId, 'first');
+  assert.equal(state.board[7].cardId, 'left');
+  assert.equal(state.board[8].cardId, 'right');
+});
+
+test('Stock Reassignment middle unit can choose right when both adjacent allies are available', () => {
+  const swap = { id: 'stock-right-choice', name: 'Stock Reassignment', type: 'order', targeting: 'friendly_unit', effectId: 'swap_adjacent_then_resolve' };
+  const state = stateWithHands([swap]);
+  state.board[6] = { ...unitCard('left', 0, 3), owner: 'player', cardId: 'left', maxHp: 3 };
+  state.board[7] = { ...unitCard('first', 0, 3), owner: 'player', cardId: 'first', maxHp: 3 };
+  state.board[8] = { ...unitCard('right', 0, 3), owner: 'player', cardId: 'right', maxHp: 3 };
+
+  const result = resolveTargetedEffectCard(state, 'player', 'stock-right-choice', 7, [7, 8]);
+
+  assert.equal(result.ok, true);
+  assert.equal(state.board[6].cardId, 'left');
+  assert.equal(state.board[7].cardId, 'right');
+  assert.equal(state.board[8].cardId, 'first');
+});
+
+test('Stock Reassignment rejects non-adjacent, enemy, and empty second targets without consuming action', () => {
+  const swap = { id: 'stock-invalid', name: 'Stock Reassignment', type: 'order', targeting: 'friendly_unit', effectId: 'swap_adjacent_then_resolve' };
+  const state = stateWithHands([swap], [unitCard('enemy', 1, 3)]);
+  state.board[6] = { ...unitCard('first', 0, 3), owner: 'player', cardId: 'first', maxHp: 3 };
+  state.board[8] = { ...unitCard('far', 0, 3), owner: 'player', cardId: 'far', maxHp: 3 };
+  playOrRedeployUnit(state, 'enemy', 'enemy', 0);
+
+  assert.equal(resolveTargetedEffectCard(state, 'player', 'stock-invalid', 6, [6, 8]).ok, false);
+  assert.equal(resolveTargetedEffectCard(state, 'player', 'stock-invalid', 6, [6, 0]).ok, false);
+  assert.equal(resolveTargetedEffectCard(state, 'player', 'stock-invalid', 6, [6, 7]).ok, false);
+  assert.equal(state.player.hand.some((card) => card.id === 'stock-invalid'), true);
+  assert.equal(state.board[6].cardId, 'first');
+  assert.equal(state.board[8].cardId, 'far');
+});
+
+test('Stock Reassignment resolves immediate combat in the first unit destination lane', () => {
+  const swap = { id: 'stock-lane', name: 'Stock Reassignment', type: 'order', targeting: 'friendly_unit', effectId: 'swap_adjacent_then_resolve' };
+  const state = stateWithHands([swap], [unitCard('enemy-left', 0, 5)]);
+  state.board[7] = { ...unitCard('first', 2, 3), owner: 'player', cardId: 'first', maxHp: 3 };
+  state.board[6] = { ...unitCard('left', 0, 3), owner: 'player', cardId: 'left', maxHp: 3 };
+  playOrRedeployUnit(state, 'enemy', 'enemy-left', 0);
+
+  const result = resolveTargetedEffectCard(state, 'player', 'stock-lane', 7, [7, 6]);
+
+  assert.equal(result.ok, true);
+  assert.equal(result.combatEvents.length, 2);
+  assert.equal(result.combatEvents[0].lane, 0);
+  assert.equal(result.combatEvents[0].attackerIndex, 6);
+  assert.equal(result.combatEvents[1].lane, 0);
+  assert.equal(result.combatEvents[1].attackerIndex, 0);
+  assert.equal(state.board[6].cardId, 'first');
+});
+
+test('Stock Reassignment handles unit death during immediate destination-lane combat', () => {
+  const swap = { id: 'stock-death', name: 'Stock Reassignment', type: 'order', targeting: 'friendly_unit', effectId: 'swap_adjacent_then_resolve' };
+  const state = stateWithHands([swap], [unitCard('enemy-left', 3, 1)]);
+  state.board[7] = { ...unitCard('first', 1, 1), owner: 'player', cardId: 'first', maxHp: 1 };
+  state.board[6] = { ...unitCard('left', 0, 3), owner: 'player', cardId: 'left', maxHp: 3 };
+  playOrRedeployUnit(state, 'enemy', 'enemy-left', 0);
+
+  const result = resolveTargetedEffectCard(state, 'player', 'stock-death', 7, [7, 6]);
+
+  assert.equal(result.ok, true);
+  assert.equal(state.board[6], null);
+  assert.equal(state.board[0], null);
+  assert.equal(state.player.fallen.some((entry) => entry.card.id === 'first'), true);
+  assert.equal(state.enemy.fallen.some((entry) => entry.card.id === 'enemy-left'), true);
+});

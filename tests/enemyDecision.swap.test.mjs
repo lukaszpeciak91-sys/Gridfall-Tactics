@@ -127,3 +127,29 @@ test('AI models Pulse Wave as deterministic armor-ignoring damage on all occupie
   assert.equal(state.board[7], null);
   assert.equal(state.board[8], null);
 });
+
+const rushCard = {
+  id: 'aggro_rush_1',
+  name: 'Rush',
+  type: 'order',
+  targeting: 'friendly_unit',
+  effectId: 'swap_adjacent_then_resolve',
+  textShort: 'Swap with adjacent [ALLY], then that lane immediately fights',
+};
+
+test('AI resolves swap_adjacent_then_resolve with deterministic two-target adjacent allies', () => {
+  const state = createInitialBattleState({ name: 'Player', deck: [] }, { name: 'Enemy', deck: [] }, { firstActor: 'enemy' });
+  state.enemy.hand.push({ ...rushCard });
+  state.board[0] = unit('enemy', { id: 'first', cardId: 'first', attack: 2 });
+  state.board[1] = unit('enemy', { id: 'partner', cardId: 'partner', attack: 0 });
+
+  const action = chooseBattleAction(state, 'enemy');
+
+  assert.equal(action.type, 'play-targeted-effect');
+  assert.equal(action.effectId, 'swap_adjacent_then_resolve');
+  assert.equal(action.targetIndexes.length, 2);
+  assert.equal(Math.abs((action.targetIndexes[0] % 3) - (action.targetIndexes[1] % 3)), 1);
+
+  const result = resolveTargetedEffectCard(state, 'enemy', action.cardId, action.targetIndex, action.targetIndexes);
+  assert.equal(result.ok, true);
+});

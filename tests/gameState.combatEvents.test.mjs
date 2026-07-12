@@ -223,7 +223,7 @@ test('Rush finalizes immediate lane combat after resolving only the swapped lane
   state.board[7] = unit('player', { id: 'rushing-ally', attack: 2, hp: 2, maxHp: 2 });
   state.board[1] = unit('enemy', { id: 'unresolved-enemy', attack: 3, hp: 2, maxHp: 2 });
 
-  const result = resolveTargetedEffectCard(state, 'player', rush.id, 7);
+  const result = resolveTargetedEffectCard(state, 'player', rush.id, 7, [7, 6]);
 
   assert.equal(result.ok, true);
   assert.equal(result.combatEvents.length, 1);
