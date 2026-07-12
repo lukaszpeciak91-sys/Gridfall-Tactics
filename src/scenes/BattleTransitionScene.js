@@ -8,17 +8,19 @@ import { BATTLE_SCENE_KEY, BATTLE_SCENE_VISUALLY_READY_EVENT, normalizeBattlePay
 const BACKGROUND_COLOR = '#020617';
 const MOTION_ZOOM_TO = 1.08;
 const MOTION_DURATION_MS = 11000;
-const DRIFT_X = 16;
-const DRIFT_Y = -30;
+const DRIFT_X = 3;
+const DRIFT_Y = -48;
 const VEIL_ALPHA = 0.34;
-const FOG_ALPHA = 0.12;
-const EXIT_COLLAPSE_MS = 210;
-const EXIT_HOLD_MS = 60;
-const EXIT_ACQUIRE_MS = 260;
-const EXIT_BAND_HEIGHT_RATIO = 0.11;
-const EXIT_BAND_MIN_HEIGHT = 36;
-const EXIT_BAND_MAX_HEIGHT = 96;
-const EXIT_SCANLINE_ALPHA = 0.18;
+const EXIT_PREP_VEIL_ALPHA = 0.54;
+const FOG_ALPHA = 0.08;
+const READY_SETTLE_MS = 120;
+const EXIT_PREP_MS = 190;
+const EXIT_COLLAPSE_MS = 190;
+const EXIT_ACQUIRE_MS = 280;
+const EXIT_BAND_HEIGHT_RATIO = 0.08;
+const EXIT_BAND_MIN_HEIGHT = 28;
+const EXIT_BAND_MAX_HEIGHT = 72;
+const EXIT_SCANLINE_ALPHA = 0.12;
 const MENU_MUSIC_FADE_OUT_MS = 560;
 const FRAME_SAFE_MIN_MS = 80;
 const FAILSAFE_REVEAL_MS = 8000;
@@ -46,9 +48,11 @@ export default class BattleTransitionScene extends Phaser.Scene {
     this.phaserPauseHandler = null;
     this.phaserResumeHandler = null;
     this.loadErrorHandler = null;
-    this.exitMask = null;
     this.signalBand = null;
     this.scanline = null;
+    this.transitionVeil = null;
+    this.fogLayer = null;
+    this.arenaCurtains = null;
   }
 
   init(data = {}) {
@@ -88,8 +92,10 @@ export default class BattleTransitionScene extends Phaser.Scene {
     } else {
       this.root.add(this.add.rectangle(width / 2, height / 2, width, height, 0x020617, 1));
     }
-    this.root.add(this.createFogLayer(width, height));
-    this.root.add(this.add.rectangle(width / 2, height / 2, width, height, 0x020617, VEIL_ALPHA));
+    this.fogLayer = this.createFogLayer(width, height);
+    this.root.add(this.fogLayer);
+    this.transitionVeil = this.add.rectangle(width / 2, height / 2, width, height, 0x020617, VEIL_ALPHA);
+    this.root.add(this.transitionVeil);
   }
 
   createIllustration(textureKey) {
@@ -116,7 +122,6 @@ export default class BattleTransitionScene extends Phaser.Scene {
       this.add.ellipse(width * 0.72, height * 0.58, width * 0.86, height * 0.15, fogColor, FOG_ALPHA * 0.48),
       this.add.rectangle(width * 0.5, height * 0.74, width * 1.18, height * 0.18, fogColor, FOG_ALPHA * 0.3),
     ]);
-    this.tweens.add({ targets: fog, x: 28, duration: MOTION_DURATION_MS * 1.8, ease: 'Sine.easeInOut', yoyo: true, repeat: -1 });
     return fog;
   }
 
@@ -146,28 +151,14 @@ export default class BattleTransitionScene extends Phaser.Scene {
     if (this.isCancelled || this.finishing) return;
     this.finishing = true;
     stopMusic(this, { fadeMs: MENU_MUSIC_FADE_OUT_MS });
-    const delay = Math.max(0, FRAME_SAFE_MIN_MS - (this.time.now - this.startedAt));
-    this.time.delayedCall(delay, () => this.playBroadcastExit());
+    const frameSafeDelay = Math.max(0, FRAME_SAFE_MIN_MS - (this.time.now - this.startedAt));
+    const delay = Math.max(READY_SETTLE_MS, frameSafeDelay);
+    this.time.delayedCall(delay, () => this.prepareSignalLoss());
   }
 
   getTransmissionBandHeight() {
     const { height } = this.scale;
     return Phaser.Math.Clamp(height * EXIT_BAND_HEIGHT_RATIO, EXIT_BAND_MIN_HEIGHT, Math.min(EXIT_BAND_MAX_HEIGHT, height));
-  }
-
-  createExitMask(height) {
-    const { width } = this.scale;
-    this.exitMask?.destroy?.();
-    this.exitMask = this.make.graphics({ x: 0, y: 0, add: false });
-    this.exitMask.fillStyle(0xffffff, 1).fillRect(0, (height - height) / 2, width, height);
-    this.root?.setMask?.(this.exitMask.createGeometryMask());
-  }
-
-  updateExitMask(maskHeight) {
-    if (!this.exitMask || !this.root) return;
-    const { width, height } = this.scale;
-    const y = (height - maskHeight) / 2;
-    this.exitMask.clear().fillStyle(0xffffff, 1).fillRect(0, y, width, maskHeight);
   }
 
   createSignalBand(maskHeight) {
@@ -183,41 +174,90 @@ export default class BattleTransitionScene extends Phaser.Scene {
     this.tweens.add({ targets: this.scanline, alpha: 0.08, duration: 46, ease: 'Sine.easeInOut', yoyo: true, repeat: -1 });
   }
 
+  prepareSignalLoss() {
+    if (this.isCancelled || !this.root) return;
+    this.createSignalBand(this.getTransmissionBandHeight());
+    this.tweens.add({
+      targets: this.transitionVeil,
+      alpha: EXIT_PREP_VEIL_ALPHA,
+      duration: EXIT_PREP_MS,
+      ease: 'Sine.easeOut',
+    });
+    this.tweens.add({
+      targets: this.fogLayer,
+      alpha: 0,
+      duration: EXIT_PREP_MS,
+      ease: 'Sine.easeOut',
+    });
+    this.tweens.add({
+      targets: this.signalBand,
+      alpha: 0.42,
+      duration: EXIT_PREP_MS,
+      ease: 'Sine.easeOut',
+      onComplete: () => this.playBroadcastExit(),
+    });
+  }
+
+  centerRootTransform() {
+    if (!this.root || this.root.getData('centeredForExit')) return;
+    const { height } = this.scale;
+    this.root.iterate((child) => {
+      if (child && typeof child.y === 'number') child.y -= height / 2;
+    });
+    this.root.setY(height / 2);
+    this.root.setData('centeredForExit', true);
+  }
+
+  createArenaCurtains(bandHeight) {
+    const { width, height } = this.scale;
+    this.arenaCurtains?.destroy?.(true);
+    const curtainHeight = Math.max(0, (height - bandHeight) / 2);
+    this.arenaCurtains = this.add.container(0, 0).setDepth(900);
+    this.arenaCurtains.add([
+      this.add.rectangle(width / 2, curtainHeight / 2, width, curtainHeight, 0x020617, 1),
+      this.add.rectangle(width / 2, height - curtainHeight / 2, width, curtainHeight, 0x020617, 1),
+    ]);
+  }
+
+  updateArenaCurtains(revealHeight) {
+    if (!this.arenaCurtains) return;
+    const { width, height } = this.scale;
+    const curtainHeight = Math.max(0, (height - revealHeight) / 2);
+    const [top, bottom] = this.arenaCurtains.list;
+    top.setDisplaySize(width, curtainHeight).setPosition(width / 2, curtainHeight / 2);
+    bottom.setDisplaySize(width, curtainHeight).setPosition(width / 2, height - curtainHeight / 2);
+  }
+
   playBroadcastExit() {
     if (this.isCancelled || !this.root) return;
     this.inputBlocker?.disableInteractive?.();
     const { height } = this.scale;
     const bandHeight = this.getTransmissionBandHeight();
-    const maskState = { height };
-    this.createExitMask(height);
-    this.createSignalBand(bandHeight);
+    this.centerRootTransform();
+    this.createArenaCurtains(bandHeight);
     this.tweens.add({
-      targets: maskState,
-      height: bandHeight,
+      targets: this.root,
+      scaleY: bandHeight / height,
       duration: EXIT_COLLAPSE_MS,
-      ease: 'Cubic.easeInOut',
-      onUpdate: () => this.updateExitMask(maskState.height),
-      onComplete: () => {
-        this.updateExitMask(bandHeight);
-        this.tweens.add({ targets: this.signalBand, alpha: 1, duration: EXIT_HOLD_MS / 2, ease: 'Sine.easeOut', yoyo: true, hold: EXIT_HOLD_MS / 2, onComplete: () => this.playArenaAcquisition(maskState, bandHeight) });
-      },
+      ease: 'Cubic.easeIn',
+      onComplete: () => this.playArenaAcquisition(bandHeight),
     });
   }
 
-  playArenaAcquisition(maskState, bandHeight) {
-    maskState.height = bandHeight;
+  playArenaAcquisition(bandHeight) {
+    const revealState = { height: bandHeight };
     this.tweens.add({
-      targets: maskState,
+      targets: revealState,
       height: this.scale.height,
       duration: EXIT_ACQUIRE_MS,
       ease: 'Cubic.easeOut',
-      onUpdate: () => this.updateExitMask(maskState.height),
+      onUpdate: () => this.updateArenaCurtains(revealState.height),
     });
     this.tweens.add({
-      targets: [this.root, this.signalBand].filter(Boolean),
+      targets: [this.root, this.signalBand, this.arenaCurtains].filter(Boolean),
       alpha: 0,
       duration: EXIT_ACQUIRE_MS,
-      ease: 'Sine.easeInOut',
+      ease: 'Sine.easeOut',
       onComplete: () => this.scene.stop(),
     });
   }
@@ -250,12 +290,11 @@ export default class BattleTransitionScene extends Phaser.Scene {
     this.inputBlocker?.disableInteractive?.();
     this.inputBlocker?.destroy?.();
     this.inputBlocker = null;
-    this.root?.clearMask?.(true);
-    this.exitMask?.destroy?.();
-    this.exitMask = null;
     this.signalBand?.destroy?.(true);
     this.signalBand = null;
     this.scanline = null;
+    this.arenaCurtains?.destroy?.(true);
+    this.arenaCurtains = null;
     this.root?.destroy?.(true);
     this.root = null;
     this.tweens?.killAll?.();
@@ -294,12 +333,11 @@ export default class BattleTransitionScene extends Phaser.Scene {
 
   rebuildPresentation() {
     if (this.isCancelled) return;
-    this.root?.clearMask?.(true);
-    this.exitMask?.destroy?.();
-    this.exitMask = null;
     this.signalBand?.destroy?.(true);
     this.signalBand = null;
     this.scanline = null;
+    this.arenaCurtains?.destroy?.(true);
+    this.arenaCurtains = null;
     this.root?.destroy?.(true);
     this.inputBlocker?.destroy?.();
     this.renderPresentation();
@@ -316,9 +354,8 @@ export default class BattleTransitionScene extends Phaser.Scene {
     }
     this.failsafeTimer?.remove?.(false);
     this.inputBlocker?.destroy?.();
-    this.root?.clearMask?.(true);
-    this.exitMask?.destroy?.();
     this.signalBand?.destroy?.(true);
+    this.arenaCurtains?.destroy?.(true);
     this.root?.destroy?.(true);
     this.tweens?.killAll?.();
     this.resetRuntimeState();
