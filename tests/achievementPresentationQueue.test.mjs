@@ -6,11 +6,13 @@ import {
   ACHIEVEMENT_PRESENTATION_VERSION,
   createDefaultAchievementPresentationQueue,
   enqueueAchievementPresentation,
+  setAchievementPresentationBatch,
   loadAchievementPresentationQueue,
   markAchievementPresented,
   normalizeAchievementPresentationQueue,
   peekAchievementPresentation,
   saveAchievementPresentationQueue,
+  clearPresentedQueue,
 } from '../src/systems/achievementPresentationQueue.js';
 
 function createMemoryStorage(initialValues = {}) {
@@ -50,6 +52,34 @@ test('enqueue stores multiple achievements preserving unlock order', () => {
   withWindowStorage(createMemoryStorage(), () => {
     enqueueAchievementPresentation(['a', 'b', 'c']);
     assert.deepEqual(peekAchievementPresentation(10), ['a', 'b', 'c']);
+  });
+});
+
+test('batch replacement scopes current checkpoint and clears stale pending entries', () => {
+  withWindowStorage(createMemoryStorage(), () => {
+    enqueueAchievementPresentation(['old-a', 'old-b']);
+    setAchievementPresentationBatch(['new-a', 'new-b', 'new-a']);
+    assert.deepEqual(loadAchievementPresentationQueue().pending, ['new-a', 'new-b']);
+  });
+});
+
+test('current checkpoint batch can include more than three achievements', () => {
+  withWindowStorage(createMemoryStorage(), () => {
+    setAchievementPresentationBatch(['a', 'b', 'c', 'd', 'e']);
+    assert.deepEqual(peekAchievementPresentation(), ['a', 'b', 'c', 'd', 'e']);
+  });
+});
+
+test('clearing skipped current batch drops unshown items without undoing presented markers', () => {
+  withWindowStorage(createMemoryStorage(), () => {
+    setAchievementPresentationBatch(['a', 'b', 'c']);
+    markAchievementPresented('a');
+    clearPresentedQueue();
+    assert.deepEqual(loadAchievementPresentationQueue(), {
+      version: ACHIEVEMENT_PRESENTATION_VERSION,
+      pending: [],
+      presented: { a: true },
+    });
   });
 });
 

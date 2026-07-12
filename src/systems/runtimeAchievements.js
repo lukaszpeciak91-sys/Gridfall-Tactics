@@ -1,5 +1,5 @@
 import { evaluateAchievements, loadAchievementState, saveAchievementState } from './achievements.js';
-import { enqueueAchievementPresentation } from './achievementPresentationQueue.js';
+import { setAchievementPresentationBatch } from './achievementPresentationQueue.js';
 import { loadPlayerStats } from './playerStats.js';
 
 export function evaluateAndPersistAchievementUnlocks(options = {}) {
@@ -8,7 +8,7 @@ export function evaluateAndPersistAchievementUnlocks(options = {}) {
     loadState = loadAchievementState,
     evaluate = evaluateAchievements,
     saveState = saveAchievementState,
-    enqueuePresentation = enqueueAchievementPresentation,
+    enqueuePresentation = setAchievementPresentationBatch,
     logger = console,
     ...evaluationOptions
   } = options;
@@ -30,13 +30,19 @@ export function evaluateAndPersistAchievementUnlocks(options = {}) {
       try {
         enqueuePresentation(newlyUnlocked.map((entry) => entry.id));
       } catch (error) {
-        logger?.warn?.('Achievement presentation queue update failed; gameplay will continue.', error);
+        logger?.warn?.('Achievement presentation batch update failed; gameplay will continue.', error);
       }
 
       return {
         ...result,
         achievementState,
       };
+    }
+
+    try {
+      enqueuePresentation([]);
+    } catch (error) {
+      logger?.warn?.('Achievement presentation batch clear failed; gameplay will continue.', error);
     }
 
     return result;

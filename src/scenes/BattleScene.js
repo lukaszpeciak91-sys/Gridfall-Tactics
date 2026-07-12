@@ -14,7 +14,7 @@ import { preloadAllCardIllustrations, preloadCardIllustrationsForFaction } from 
 import { calculateBattleLayoutMetrics } from '../ui/battleLayout.js';
 import { calculateHandCardFocusBounds, calculateTutorialBannerLayout, getLiveHandCardViewById } from '../ui/tutorialUxLayout.js';
 import { calculateHandBackCardCoverCrop, calculateHandBackCardDepth, shouldRenderHandBackCard } from '../ui/handBackCardPresentation.js';
-import { ACHIEVEMENT_UNLOCK_POPUP_MAX_BATCH, ACHIEVEMENT_UNLOCK_POPUP_TIMING, calculateAchievementUnlockPopupLayout, createAchievementUnlockPopup } from '../ui/achievementUnlockPopup.js';
+import { ACHIEVEMENT_UNLOCK_POPUP_TIMING, calculateAchievementUnlockPopupLayout, createAchievementUnlockPopup } from '../ui/achievementUnlockPopup.js';
 import { HAND_CARD_FLIP_REVEAL_DURATION, findHandCardFlipRevealSlots, shouldSkipHandCardFlipReveal, startHandCardFlipReveal } from '../ui/handCardFlipReveal.js';
 import { createFloatingControl, createMuteToggleControl, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
 import { createModalBackButton } from '../ui/modalControls.js';
@@ -28,7 +28,7 @@ import { incrementBattleStat, incrementCardPlayedStat, loadPlayerStats, markTuto
 import { incrementCampaignCompletedStat } from '../systems/playerStats.js';
 import { evaluateAndPersistAchievementUnlocks } from '../systems/runtimeAchievements.js';
 import { getAchievementDefinitions } from '../systems/achievements.js';
-import { markAchievementPresented, peekAchievementPresentation } from '../systems/achievementPresentationQueue.js';
+import { clearPresentedQueue, markAchievementPresented, peekAchievementPresentation } from '../systems/achievementPresentationQueue.js';
 import { getCardBoardArtPositionY } from '../data/presentation/cardArtCropOverrides.js';
 import { AUDIO_KEYS, preloadAudioAssets } from '../audio/audioAssets.js';
 import { playManagedSfx, playMusic, playSfx, stopManagedSfx, stopMusic } from '../audio/audioPlayback.js';
@@ -2480,6 +2480,14 @@ export default class BattleScene extends Phaser.Scene {
     this.achievementUnlockPopupController = null;
   }
 
+  clearAchievementPopupPresentationBatch() {
+    try {
+      clearPresentedQueue();
+    } catch (error) {
+      console.warn('Achievement presentation batch clear failed; continuing navigation.', error);
+    }
+  }
+
   playAchievementUnlockPopupSfx(achievementId) {
     if (typeof achievementId !== 'string' || achievementId.length === 0) return false;
     if (!this.achievementUnlockSfxPlayedIds) this.achievementUnlockSfxPlayedIds = new Set();
@@ -2493,7 +2501,7 @@ export default class BattleScene extends Phaser.Scene {
     if (this.resultOverlayState?.kind === 'campaign-completion' && (this.resultOverlayState.phase !== 'interactive' || this.resultOverlayState.preview === true)) return;
     this.destroyAchievementUnlockPopupController();
     try {
-      const pendingIds = peekAchievementPresentation(ACHIEVEMENT_UNLOCK_POPUP_MAX_BATCH);
+      const pendingIds = peekAchievementPresentation();
       if (!pendingIds.length) return;
       const definitionsById = new Map(getAchievementDefinitions().map((definition) => [definition.id, definition]));
       const batch = pendingIds
@@ -3417,20 +3425,24 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
+    this.clearAchievementPopupPresentationBatch();
     this.scene.start('FactionSelectScene');
   }
 
   exitTutorialBattleToGameMenu() {
+    this.clearAchievementPopupPresentationBatch();
     this.scene.start('GameMenuScene');
   }
 
   exitBattleToCampaignEnemySelect() {
     const campaign = loadCampaign();
     if (isValidCampaignState(campaign) && campaign.status === 'active') {
+      this.clearAchievementPopupPresentationBatch();
       this.scene.start('CampaignEnemySelectScene', { campaign });
       return;
     }
 
+    this.clearAchievementPopupPresentationBatch();
     this.scene.start('CampaignEnemySelectScene');
   }
 
@@ -3472,15 +3484,18 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
+    this.clearAchievementPopupPresentationBatch();
     this.scene.start('CampaignEnemySelectScene', { campaign: updatedCampaign });
   }
 
   routeAfterIgnoredCampaignResult(campaign = loadCampaign()) {
     if (isValidCampaignState(campaign) && campaign.status === 'active') {
+      this.clearAchievementPopupPresentationBatch();
       this.scene.start('CampaignEnemySelectScene', { campaign });
       return;
     }
 
+    this.clearAchievementPopupPresentationBatch();
     this.scene.start('GameMenuScene');
   }
 
@@ -3842,6 +3857,7 @@ export default class BattleScene extends Phaser.Scene {
       .setDepth(CAMPAIGN_COMPLETION_CONTENT_DEPTH + 1).setVisible(false);
     const button = this.createResultModalButton(centerX, buttonY, buttonWidth, buttonHeight, translateActive('ui.common.mainMenu', 'MAIN MENU'), () => {
       if (!options.preview) clearCampaign();
+      this.clearAchievementPopupPresentationBatch();
       this.scene.start('MainMenuScene');
     }, this.getBattleResultPresentation(), { depth: CAMPAIGN_COMPLETION_BUTTON_DEPTH });
     button.items.forEach((item) => item?.setVisible?.(false));
@@ -3959,6 +3975,7 @@ export default class BattleScene extends Phaser.Scene {
 
   exitBattleToMainMenu() {
     if (!this.prepareUtilityMenuNavigation({ includeBattleResultModal: true })) return;
+    this.clearAchievementPopupPresentationBatch();
     this.scene.start('MainMenuScene');
   }
 
@@ -3979,6 +3996,7 @@ export default class BattleScene extends Phaser.Scene {
     this.destroyActiveSelectionMessage();
     this.openingMulliganPending = false;
     // Preserve arena retry shape for compatibility: this.scene.restart({ factionKey, enemyFactionKey })
+    this.clearAchievementPopupPresentationBatch();
     restartBattleScene(this, { factionKey, enemyFactionKey, battleContext });
   }
 
