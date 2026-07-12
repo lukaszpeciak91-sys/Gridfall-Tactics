@@ -14,6 +14,7 @@ const SAFE_BATTLE_RETURN_SCENES = new Set([
   'CampaignEnemySelectScene',
   'GameMenuScene',
   'BattleMenuScene',
+  'CampaignEndScreenDebugScene',
 ]);
 
 export function getBattleTransitionReturnSceneKey(payload = {}, sourceSceneKey = null) {

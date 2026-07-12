@@ -115,9 +115,10 @@ test('completion overlay blocks underlying input before transition', () => {
   assert.match(completionSource, /overlay\.on\('pointerup',[\s\S]*showSummary\(\)/);
 });
 
-test('MAIN MENU button still clears completed campaign and starts MainMenuScene', () => {
+test('MAIN MENU button clears completed campaign while preview returns to configured debug route', () => {
   assert.match(completionSource, /translateActive\('ui\.common\.mainMenu', 'MAIN MENU'\)/);
-  assert.match(completionSource, /clearCampaign\(\);[\s\S]*this\.scene\.start\('MainMenuScene'\)/);
+  assert.match(completionSource, /if \(!options\.preview\) clearCampaign\(\)/);
+  assert.match(completionSource, /this\.scene\.start\(options\.preview \? \(this\.battleContext\?\.returnSceneKey \?\? 'DebugMenuScene'\) : 'MainMenuScene'\)/);
 });
 
 test('arena result modal behavior remains unchanged', () => {

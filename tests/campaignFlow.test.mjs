@@ -105,18 +105,21 @@ test('campaign scene registered and localization keys exist', () => {
 });
 
 
-test('temporary mobile end scenes hook is visible in main builds without campaign mutation', () => {
-  const source = read('src/scenes/CampaignEnemySelectScene.js');
-  assert.match(source, /TEMP MOBILE TEST HOOK:[\s\S]*Remove before public\/release build/);
-  assert.match(source, /const TEMP_MOBILE_END_SCENE_PREVIEW_ENABLED = true/);
-  assert.doesNotMatch(source, /import\.meta\.env\.DEV/);
-  assert.match(source, /this\.drawEnemyCards\(\{ width, height, headerBottomY: header\.bottomY \}\);[\s\S]*this\.drawEndScenePreviewControl\(\{ width, height \}\)/);
-  assert.match(source, /height - \(TEMP_MOBILE_END_SCENE_PREVIEW_ENABLED \? 168 : 88\)/);
-  assert.match(source, /'END SCENES'[\s\S]*'DEV PREVIEW ONLY'/);
-  assert.match(source, /makeChoice\(panelX - 72, panelY \+ 4, 'VICTORY', 'won'/);
-  assert.match(source, /makeChoice\(panelX \+ 72, panelY \+ 4, 'DEFEAT', 'lost'/);
-  assert.match(source, /'CANCEL'[\s\S]*cancel\.on\('pointerup', closeChoice\)/);
-  assert.doesNotMatch(source, /saveCampaign\([^\n]*(preview|completionPreview|previewStatus)/);
+test('campaign end screen preview lives in central debug flow without campaign mutation', () => {
+  const campaignSource = read('src/scenes/CampaignEnemySelectScene.js');
+  const debugSource = read('src/scenes/CampaignEndScreenDebugScene.js');
+  const battleSource = read('src/scenes/BattleScene.js');
+  assert.doesNotMatch(campaignSource, /TEMP_MOBILE_END_SCENE_PREVIEW_ENABLED/);
+  assert.doesNotMatch(campaignSource, /'END SCENES'/);
+  assert.doesNotMatch(campaignSource, /'DEV PREVIEW ONLY'/);
+  assert.match(campaignSource, /height - 88/);
+  assert.match(debugSource, /'VICTORY'/);
+  assert.match(debugSource, /'DEFEAT'/);
+  assert.match(debugSource, /mode: 'campaignCompletionPreview'/);
+  assert.match(debugSource, /previewStatus: status/);
+  assert.match(debugSource, /returnSceneKey: 'CampaignEndScreenDebugScene'/);
+  assert.doesNotMatch(debugSource, /saveCampaign/);
+  assert.match(battleSource, /if \(!options\.preview\) clearCampaign\(\)/);
 });
 
 test('campaign enemy selection launches BattleScene with campaign context', () => {

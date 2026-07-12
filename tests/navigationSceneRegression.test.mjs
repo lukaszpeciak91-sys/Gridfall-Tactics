@@ -206,24 +206,40 @@ test('MainMenuScene keeps primary buttons and uses shared bottom navigation cont
 });
 
 
-test('main menu debug gear opens isolated art debug mode selection flow', () => {
+test('main menu debug gear opens central debug menu with isolated art debug mode selection flow', () => {
   const mainSource = readScene('src/main.js');
   const menuSource = readScene('src/scenes/MainMenuScene.js');
+  const debugMenuSource = readScene('src/scenes/DebugMenuScene.js');
+  const campaignEndDebugSource = readScene('src/scenes/CampaignEndScreenDebugScene.js');
   const modeSelectSource = readScene('src/scenes/ArtDebugModeSelectScene.js');
   const boardDebugSource = readScene('src/scenes/BoardUnitArtViewportDebugScene.js');
 
+  assert.match(mainSource, /import DebugMenuScene from '\.\/scenes\/DebugMenuScene\.js';/);
+  assert.match(mainSource, /import CampaignEndScreenDebugScene from '\.\/scenes\/CampaignEndScreenDebugScene\.js';/);
   assert.match(mainSource, /import ArtDebugModeSelectScene from '\.\/scenes\/ArtDebugModeSelectScene\.js';/);
   assert.match(mainSource, /import ArtViewportDebugScene from '\.\/scenes\/ArtViewportDebugScene\.js';/);
   assert.match(mainSource, /import BoardUnitArtViewportDebugScene from '\.\/scenes\/BoardUnitArtViewportDebugScene\.js';/);
-  assert.match(mainSource, /RulesPanelScene, ArtDebugModeSelectScene, ArtViewportDebugScene, BoardUnitArtViewportDebugScene/);
-  assert.match(menuSource, /icon\.on\('pointerup', \(\) => \{[\s\S]*this\.scene\.start\('ArtDebugModeSelectScene'\)/);
+  assert.match(mainSource, /RulesPanelScene, DebugMenuScene, CampaignEndScreenDebugScene, ArtDebugModeSelectScene, ArtViewportDebugScene, BoardUnitArtViewportDebugScene/);
+  assert.match(menuSource, /icon\.on\('pointerup', \(\) => \{[\s\S]*this\.scene\.start\('DebugMenuScene'\)/);
+  assert.match(debugMenuSource, /super\('DebugMenuScene'\)/);
+  assert.match(debugMenuSource, /'ART DEBUG'/);
+  assert.match(debugMenuSource, /this\.scene\.start\('ArtDebugModeSelectScene', \{ returnSceneKey: 'DebugMenuScene' \}\)/);
+  assert.match(debugMenuSource, /'CAMPAIGN END SCREENS'/);
+  assert.match(debugMenuSource, /this\.scene\.start\('CampaignEndScreenDebugScene'\)/);
+  assert.match(debugMenuSource, /this\.scene\.start\('MainMenuScene'\)/);
+  assert.match(campaignEndDebugSource, /super\('CampaignEndScreenDebugScene'\)/);
+  assert.match(campaignEndDebugSource, /'VICTORY'/);
+  assert.match(campaignEndDebugSource, /'DEFEAT'/);
+  assert.match(campaignEndDebugSource, /mode: 'campaignCompletionPreview'/);
+  assert.match(campaignEndDebugSource, /returnSceneKey: 'CampaignEndScreenDebugScene'/);
   assert.match(modeSelectSource, /super\('ArtDebugModeSelectScene'\)/);
   assert.match(modeSelectSource, /'Hand \/ Inspect Debug'/);
   assert.match(modeSelectSource, /this\.scene\.start\('ArtViewportDebugScene'\)/);
   assert.match(modeSelectSource, /'Board Unit Debug'/);
   assert.match(modeSelectSource, /this\.scene\.start\('BoardUnitArtViewportDebugScene'\)/);
   assert.match(modeSelectSource, /'Back'/);
-  assert.match(modeSelectSource, /this\.scene\.start\('MainMenuScene'\)/);
+  assert.match(modeSelectSource, /this\.returnSceneKey = data\?\.returnSceneKey === 'DebugMenuScene' \? 'DebugMenuScene' : 'MainMenuScene'/);
+  assert.match(modeSelectSource, /this\.scene\.start\(this\.returnSceneKey \|\| 'MainMenuScene'\)/);
   assert.match(boardDebugSource, /super\('BoardUnitArtViewportDebugScene'\)/);
   assert.match(boardDebugSource, /'Board Unit Art Debug'/);
   assert.match(boardDebugSource, /tutorialPlayerFaction/);
