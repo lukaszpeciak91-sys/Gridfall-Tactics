@@ -25,8 +25,14 @@ function extractMethodBody(name, nextName) {
 test('opening mulligan reveal initializes before mulligan input is exposed', () => {
   const create = extractMethodBody('create', 'selectEnemyFactionKey');
   assert.match(create, /this\.applyEnemyOpeningMulligan\(\);\s*this\.openingMulliganPending = true;\s*this\.openingMulliganRevealPending = true;\s*this\.openingMulliganRevealVisibleCount = 0;/);
-  assert.match(create, /this\.drawHand\(\);[\s\S]*this\.updatePlayerBaseActionState\(\);\s*this\.startOpeningMulliganReveal\(\);/);
+  assert.match(create, /this\.drawHand\(\);[\s\S]*this\.updatePlayerBaseActionState\(\);\s*this\.applyOpeningMulliganRevealPresentation\(\);/);
+  assert.match(create, /this\.emitBattleVisuallyReady\(\);[\s\S]*if \(!this\.waitForBattleTransitionPresentation\) \{\s*this\.beginOpeningBattlePresentation\(\);\s*\}/);
   assert.doesNotMatch(create, /performOpeningMulligan\(this\.gameState, 'player'/);
+
+  const beginPresentation = extractMethodBody('beginOpeningBattlePresentation', 'isResultModalDiagnosticsEnabled');
+  assert.match(beginPresentation, /if \(this\.openingBattlePresentationStarted\) return false;/);
+  assert.match(beginPresentation, /this\.waitForBattleTransitionPresentation && battleTransitionLaunchId !== this\.battleTransitionLaunchId/);
+  assert.match(beginPresentation, /this\.startOpeningMulliganReveal\(\);\s*this\.updateTutorialBanner\(\);/);
 
   const lock = extractMethodBody('isOpeningMulliganInputLocked', 'getOpeningMulliganRevealCardCount');
   assert.match(lock, /this\.openingMulliganPending && this\.openingMulliganRevealPending/);

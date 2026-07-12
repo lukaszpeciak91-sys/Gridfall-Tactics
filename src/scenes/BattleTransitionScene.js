@@ -124,15 +124,15 @@ export default class BattleTransitionScene extends Phaser.Scene {
 
   launchBattleSceneBelow() {
     const battleScene = this.scene.get(BATTLE_SCENE_KEY);
-    this.readyHandler = () => {
-      if (this.isCancelled) return;
+    this.readyHandler = (event = {}) => {
+      if (this.isCancelled || event?.battleTransitionLaunchId !== this.payload?.battleTransitionLaunchId) return;
       this.finishTransition();
     };
     this.loadErrorHandler = () => {
       if (this.isCancelled) return;
       this.finishTransition({ failed: true });
     };
-    battleScene?.events?.once?.(BATTLE_SCENE_VISUALLY_READY_EVENT, this.readyHandler);
+    battleScene?.events?.on?.(BATTLE_SCENE_VISUALLY_READY_EVENT, this.readyHandler);
     battleScene?.load?.once?.(Phaser.Loader.Events.LOAD_ERROR, this.loadErrorHandler);
     this.scene.launch(BATTLE_SCENE_KEY, this.payload);
     this.scene.bringToTop();
@@ -161,14 +161,27 @@ export default class BattleTransitionScene extends Phaser.Scene {
 
   crossfadeToBattleScene() {
     if (this.isCancelled || !this.root) return;
-    this.inputBlocker?.disableInteractive?.();
     this.tweens.add({
       targets: this.root,
       alpha: 0,
       duration: EXIT_CROSSFADE_MS,
       ease: 'Sine.easeInOut',
-      onComplete: () => this.scene.stop(),
+      onComplete: () => this.completeTransitionToBattleScene(),
     });
+  }
+
+  completeTransitionToBattleScene() {
+    if (this.isCancelled) return;
+    const launchId = this.payload?.battleTransitionLaunchId ?? null;
+    this.detachBattleReadyListeners();
+    this.inputBlocker?.disableInteractive?.();
+    this.inputBlocker?.destroy?.();
+    this.inputBlocker = null;
+    this.root?.destroy?.(true);
+    this.root = null;
+    const battleScene = this.scene.get(BATTLE_SCENE_KEY);
+    battleScene?.beginOpeningBattlePresentation?.({ battleTransitionLaunchId: launchId });
+    this.scene.stop();
   }
 
   handleLifecycleSignal(event = {}) {
