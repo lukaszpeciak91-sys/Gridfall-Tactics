@@ -36,6 +36,7 @@ These presentation identities are the current lore/art direction source for fact
 - `src/data/factions/index.js` is the runtime faction registry and defines the runtime faction order returned by `getFactionKeys()`.
 - `src/data/factions/*.json` files are the gameplay data source for faction ids, faction names, decks, cards, card ids, `cardNumber`, and `artAssetId`.
 - `src/data/presentation/factionPresentation.js` is an additive presentation layer for display names, art direction metadata, and card display-name overrides. It must not rename gameplay faction ids or card ids.
+- `docs/art/frozen-art-bible.md` is the canonical art-direction and naming-presentation guide for faction visuals; it does not replace gameplay data in `src/data/factions/*.json`.
 - `src/scenes/FactionSelectScene.js` contains faction-select card styling/details for the selectable faction cards and must include all runtime faction keys so a base faction does not inherit another faction's fallback details.
 - `src/localization/translations/*.json` owns localized UI strings, including faction-select descriptions and tags.
 
