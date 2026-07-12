@@ -162,11 +162,15 @@ test('achievement balance thresholds and localized descriptions match current ta
     assert.equal(firstWin.target, 1);
     assert.equal(winMilestone.target, 7);
     assert.match(winMilestone.display.description.en, /^Win 7 battles with .+\.$/);
-    assert.match(winMilestone.display.description.pl, /^Wygraj 7 bitew frakcją .+\.$/);
+    if (factionKey !== 'Overclock') {
+      assert.match(winMilestone.display.description.pl, /^Wygraj 7 bitew frakcją .+\.$/);
+    }
     assert.equal(campaignWin.target, 1);
     assert.equal(unitMilestone.target, 20);
-    assert.match(unitMilestone.display.description.en, /^Play 20 units with .+\.$/);
-    assert.match(unitMilestone.display.description.pl, /^Zagraj 20 jednostek frakcją .+\.$/);
+    if (factionKey !== 'Overclock') {
+      assert.match(unitMilestone.display.description.en, /^Play 20 units with .+\.$/);
+      assert.match(unitMilestone.display.description.pl, /^Zagraj 20 jednostek frakcją .+\.$/);
+    }
     assert.equal(effectMilestone.target, 10);
   }
 });
@@ -412,11 +416,14 @@ test('known faction achievements use custom localized copy', () => {
   const definitions = getAchievementDefinitions();
   const porcelain = definitions.find((definition) => definition.id === 'faction.win_first_battle.Aggro');
   const goldenSun = definitions.find((definition) => definition.id === 'faction.play_10_effects.Tank');
+  const overclock = definitions.find((definition) => definition.id === 'faction.win_first_battle.Overclock');
 
   assert.equal(porcelain.display.title.en, 'First Crack');
   assert.equal(porcelain.display.title.pl, 'Pierwsza rysa');
   assert.equal(goldenSun.display.title.en, 'Order from Above');
   assert.equal(goldenSun.display.title.pl, 'Rozkaz z góry');
+  assert.deepEqual(overclock.display.title, { en: 'Inspection Passed', pl: 'Pozytywny Wynik Kontroli' });
+  assert.deepEqual(overclock.display.description, { en: 'Win your first battle with Project H.E.R.D.', pl: 'Wygraj pierwszą bitwę Programem P.A.S.Z.A.' });
 });
 
 test('unknown faction achievement generation falls back to safe localized templates', () => {
