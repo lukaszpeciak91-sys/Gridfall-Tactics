@@ -121,7 +121,11 @@ test('Sniper off-lane cleanup records fallen units and fires death triggers exac
 
   const events = resolveCombat(state);
 
-  assert.equal(events.length, 1);
+  assert.equal(events.length, 2);
+  assert.equal(events[1].type, 'death-trigger-hero-damage');
+  assert.equal(events[1].sourceDeathIndex, 2);
+  assert.equal(events[1].targetSide, 'player');
+  assert.equal(events[1].damage, 1);
   assert.equal(state.playerHP, 11);
   assert.equal(state.board[2], null);
   assert.equal(state.enemy.fallen.length, 1);
@@ -292,6 +296,33 @@ test('Quick Strike combatEvents represent both attacks and damage is applied onc
   ]);
   assert.equal(state.board[1].hp, 2);
   assert.equal(state.board[7].hp, 3);
+});
+
+test('Quick Strike immediate combat emits ordered death-trigger presentation events', () => {
+  const state = makeState();
+  const quickStrike = {
+    id: 'quick-strike-test-card',
+    name: 'Quick Strike',
+    type: 'special',
+    targeting: 'friendly_unit',
+    effectId: 'quick_strike',
+  };
+  state.player.hand.push(quickStrike);
+  state.board[6] = unit('player', { id: 'party-host', attack: 0, hp: 1, maxHp: 1, effectId: 'death_damage_enemy_hero_1' });
+  state.board[7] = unit('player', { id: 'rotcaller', attack: 1, hp: 2, maxHp: 2, effectId: 'rotcaller_adjacent_death_atk_1' });
+  state.board[0] = unit('enemy', { id: 'killer', attack: 1, hp: 2, maxHp: 2 });
+
+  const result = resolveTargetedEffectCard(state, 'player', quickStrike.id, 6);
+
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.combatEvents.map((event) => event.type ?? `${event.attackerSide}:${event.targetType}:${event.damage}`), [
+    'player:unit:0',
+    'enemy:unit:1',
+    'death-trigger-rotcaller-buff',
+    'death-trigger-hero-damage',
+  ]);
+  assert.equal(result.combatEvents[2].targetIndex, 7);
+  assert.equal(result.combatEvents[3].targetSide, 'enemy');
 });
 
 test('Runner gains +2 ATK through an empty opposing lane', () => {

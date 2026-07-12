@@ -8757,7 +8757,9 @@ export default class BattleScene extends Phaser.Scene {
 
     const deathOverlayCandidates = this.getCombatDeathOverlayCandidates(combatSnapshot.board);
     const previousSuppressedLethalFadeIndexes = this.suppressedLethalFadeIndexes;
+    const previousLastCombatEvents = this.lastCombatEvents;
     this.suppressedLethalFadeIndexes = new Set(deathOverlayCandidates.map((candidate) => candidate.index));
+    this.lastCombatEvents = combatEvents;
     try {
       this.refreshBoardLabelsFromSnapshot(combatSnapshot.board);
       await this.playCombatAnimations(combatEvents, combatSnapshot.board);
@@ -8768,6 +8770,7 @@ export default class BattleScene extends Phaser.Scene {
     const deathOverlays = this.createCombatDeathOverlays(deathOverlayCandidates);
     this.refreshBoardLabels();
     await this.playCombatDeathOverlays(deathOverlays);
+    this.lastCombatEvents = previousLastCombatEvents;
   }
 
   async playImmediateCombatCreationFeedback(immediateCombatFeedback = null) {
@@ -9259,6 +9262,8 @@ export default class BattleScene extends Phaser.Scene {
   getCombatDeathFeedback(preCombatSnapshot) {
     const beforeBoard = preCombatSnapshot?.board;
     if (!Array.isArray(beforeBoard) || !this.gameState?.board) return { beforeRefresh: [], afterRefresh: [] };
+    const hasOrderedDeathTriggerEvents = Array.isArray(this.lastCombatEvents)
+      && this.lastCombatEvents.some((event) => this.isDeathTriggerPresentationEvent(event));
 
     const recordedRotcallerFeedback = Array.isArray(this.gameState?.rotcallerCombatFeedbackEvents)
       ? this.gameState.rotcallerCombatFeedbackEvents
@@ -9271,7 +9276,7 @@ export default class BattleScene extends Phaser.Scene {
         }))
       : [];
     const recordedRotcallerIndexes = new Set(recordedRotcallerFeedback.map((event) => event.index));
-    const beforeRefresh = [...recordedRotcallerFeedback];
+    const beforeRefresh = hasOrderedDeathTriggerEvents ? [] : [...recordedRotcallerFeedback];
     const afterRefresh = [];
     const sourceLabels = new Set();
     const pyreTriggersByOwner = {
@@ -9304,23 +9309,23 @@ export default class BattleScene extends Phaser.Scene {
       const opposingUnit = beforeBoard[opposingIndex];
 
       const pyreState = preCombatSnapshot.funeralPyreThisCombat?.[owner];
-      if (pyreState?.active && pyreTriggersByOwner[owner] < 2) {
+      if (!hasOrderedDeathTriggerEvents && pyreState?.active && pyreTriggersByOwner[owner] < 2) {
         pyreTriggersByOwner[owner] += 1;
         addSourceDeath(index);
         if (opposingUnit?.owner === enemyOwner) addUnitDamage(opposingIndex, 1);
       }
 
-      if (unit.effectId === 'death_damage_enemy_hero_1') {
+      if (!hasOrderedDeathTriggerEvents && unit.effectId === 'death_damage_enemy_hero_1') {
         addSourceDeath(index);
         addHeroDamage(enemyOwner, 1);
       }
 
-      if (unit.effectId === 'combat_death_damage_enemy_lane_1') {
+      if (!hasOrderedDeathTriggerEvents && unit.effectId === 'combat_death_damage_enemy_lane_1') {
         addSourceDeath(index);
         if (opposingUnit?.owner === enemyOwner) addUnitDamage(opposingIndex, 1);
       }
 
-      if (unit.effectId === 'combat_death_damage_both_heroes_1') {
+      if (!hasOrderedDeathTriggerEvents && unit.effectId === 'combat_death_damage_both_heroes_1') {
         addSourceDeath(index);
         addHeroDamage('player', 1);
         addHeroDamage('enemy', 1);
@@ -9334,7 +9339,7 @@ export default class BattleScene extends Phaser.Scene {
       }
 
       const row = owner === 'player' ? [6, 7, 8] : [0, 1, 2];
-      if (row.includes(index)) {
+      if (!hasOrderedDeathTriggerEvents && row.includes(index)) {
         const lane = index % 3;
         [lane > 0 ? row[lane - 1] : null, lane < 2 ? row[lane + 1] : null]
           .filter((candidateIndex) => Number.isInteger(candidateIndex))
@@ -9897,6 +9902,11 @@ export default class BattleScene extends Phaser.Scene {
       for (const event of laneEvents) {
         if (clashEvents.has(event)) continue;
 
+        if (this.isDeathTriggerPresentationEvent(event)) {
+          await this.playDeathTriggerPresentationEvent(event, preCombatBoardSnapshot);
+          continue;
+        }
+
         const attackerIndex = getCombatEventAttackerIndex(event);
         const attackerWasDefeatedInThisLane = Number.isInteger(attackerIndex) && lethalTargetIndexes.has(attackerIndex);
         if (shouldUseControlledHeroStrikePresentation(event)) {
@@ -9913,6 +9923,97 @@ export default class BattleScene extends Phaser.Scene {
       }
     } finally {
       await laneHighlight?.clear?.();
+    }
+  }
+
+  isDeathTriggerPresentationEvent(event) {
+    return [
+      'death-trigger-hero-damage',
+      'death-trigger-lane-damage',
+      'death-trigger-both-hero-damage',
+      'death-trigger-rotcaller-buff',
+    ].includes(event?.type);
+  }
+
+  async playDeathTriggerSourceAcknowledgement(event, preCombatBoardSnapshot = null) {
+    const sourceIndex = event?.sourceDeathIndex;
+    if (!Number.isInteger(sourceIndex)) return;
+    const cell = this.getCellByIndex(sourceIndex);
+    if (!cell) return;
+    await Promise.all([
+      this.showSlotPulse(sourceIndex, 'death'),
+      this.showFloatingTextAtSlot(sourceIndex, 'DEATH', 'death'),
+    ]);
+  }
+
+  refreshBoardIndexWithPresentationStats(index, stats = {}) {
+    const cell = this.getCellByIndex(index);
+    const unit = this.gameState?.board?.[index];
+    if (!cell?.label || !unit) return;
+    const previousRenderStats = this.currentBoardRenderStats;
+    const baseStats = this.captureBoardRenderStats?.() ?? [];
+    const nextStats = [...baseStats];
+    nextStats[index] = {
+      ...(nextStats[index] ?? this.getBoardUnitStats(unit, index)),
+      ...stats,
+    };
+    this.currentBoardRenderStats = nextStats;
+    try {
+      cell.label.removeAll(true);
+      cell.label.setAlpha(1).setScale(1);
+      cell.label.add(this.createBoardUnitView(cell, unit));
+    } finally {
+      this.currentBoardRenderStats = previousRenderStats;
+    }
+  }
+
+  async playDeathTriggerPresentationEvent(event, preCombatBoardSnapshot = null) {
+    await this.playDeathTriggerSourceAcknowledgement(event, preCombatBoardSnapshot);
+
+    if (event.type !== 'death-trigger-rotcaller-buff') {
+      await this.delay(145);
+    }
+
+    if (event.type === 'death-trigger-hero-damage') {
+      this.showHeroDamage(event.targetSide, event.damage ?? 1);
+      await this.flashHeroHit(event.targetSide);
+      return;
+    }
+
+    if (event.type === 'death-trigger-both-hero-damage') {
+      const heroes = Array.isArray(event.affectedHeroes) ? event.affectedHeroes : ['player', 'enemy'];
+      for (const side of heroes) {
+        this.showHeroDamage(side, event.damage ?? 1);
+        await this.flashHeroHit(side);
+      }
+      return;
+    }
+
+    if (event.type === 'death-trigger-lane-damage') {
+      const indexes = Array.isArray(event.affectedIndexes) ? event.affectedIndexes : [];
+      for (const index of indexes) {
+        const cell = this.getCellByIndex(index);
+        if (!cell) continue;
+        await Promise.all([
+          this.flashCellHit(cell, { damage: event.damage ?? 1, lethal: false }),
+          this.showUnitFloatingText(cell, `-${event.damage ?? 1}`, '#fde68a'),
+        ]);
+      }
+      return;
+    }
+
+    if (event.type === 'death-trigger-rotcaller-buff') {
+      const targetIndex = event.targetIndex;
+      if (Number.isInteger(targetIndex)) {
+        if (Number.isFinite(event.resultingAttack)) {
+          this.refreshBoardIndexWithPresentationStats(targetIndex, { attack: event.resultingAttack });
+        }
+        await Promise.all([
+          this.showSlotPulse(targetIndex, 'buff'),
+          this.showFloatingTextAtSlot(targetIndex, `+${event.attackAdded ?? 1} ATK`, 'buff'),
+        ]);
+        await this.delay(110);
+      }
     }
   }
 

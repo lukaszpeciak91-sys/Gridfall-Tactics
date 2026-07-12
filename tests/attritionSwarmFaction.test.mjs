@@ -120,6 +120,93 @@ test('Abomination damages both heroes only on combat death', () => {
   assert.equal(feast.enemyHP, 12);
 });
 
+test('Gravehearts death triggers emit ordered presentation events during combat', () => {
+  const playerChain = state();
+  playerChain.board[6] = unit({ id: 'party-host', attack: 0, hp: 1, effectId: 'death_damage_enemy_hero_1' });
+  playerChain.board[7] = unit({ id: 'rotcaller', attack: 1, hp: 2, effectId: 'rotcaller_adjacent_death_atk_1' });
+  playerChain.board[0] = unit({ owner: 'enemy', id: 'killer', attack: 1, hp: 2 });
+  playerChain.board[1] = unit({ owner: 'enemy', id: 'prey', attack: 0, hp: 2 });
+
+  const playerEvents = resolveCombat(playerChain);
+  assert.deepEqual(playerEvents.map((event) => event.type ?? `${event.attackerSide}:${event.targetType}:${event.damage}`), [
+    'player:unit:0',
+    'enemy:unit:1',
+    'death-trigger-rotcaller-buff',
+    'death-trigger-hero-damage',
+    'player:unit:2',
+    'enemy:unit:0',
+  ]);
+  assert.equal(playerEvents[2].sourceDeathIndex, 6);
+  assert.equal(playerEvents[2].targetIndex, 7);
+  assert.equal(playerEvents[2].attackAdded, 1);
+  assert.equal(playerEvents[2].resultingAttack, 2);
+  assert.equal(playerEvents[3].sourceDeathIndex, 6);
+  assert.equal(playerEvents[3].targetSide, 'enemy');
+  assert.equal(playerEvents[3].damage, 1);
+  assert.equal(playerEvents[4].damage, 2, 'later lane attack uses the ordered Rotcaller buff');
+
+  const enemyChain = state();
+  enemyChain.board[0] = unit({ owner: 'enemy', id: 'enemy-party-host', attack: 0, hp: 1, effectId: 'death_damage_enemy_hero_1' });
+  enemyChain.board[1] = unit({ owner: 'enemy', id: 'enemy-rotcaller', attack: 1, hp: 2, effectId: 'rotcaller_adjacent_death_atk_1' });
+  enemyChain.board[6] = unit({ id: 'player-killer', attack: 1, hp: 2 });
+  enemyChain.board[7] = unit({ id: 'player-prey', attack: 0, hp: 2 });
+
+  const enemyEvents = resolveCombat(enemyChain);
+  assert.deepEqual(enemyEvents.map((event) => event.type ?? `${event.attackerSide}:${event.targetType}:${event.damage}`), [
+    'player:unit:1',
+    'enemy:unit:0',
+    'death-trigger-rotcaller-buff',
+    'death-trigger-hero-damage',
+    'player:unit:0',
+    'enemy:unit:2',
+  ]);
+  assert.equal(enemyEvents[2].sourceDeathIndex, 0);
+  assert.equal(enemyEvents[2].targetIndex, 1);
+  assert.equal(enemyEvents[3].targetSide, 'player');
+  assert.equal(enemyEvents[5].damage, 2);
+});
+
+test('Gravehearts ordered presentation covers no-Rotcaller, two Rotcallers, Husk, Abomination, and lethal triggers', () => {
+  const noRot = state();
+  noRot.board[6] = unit({ id: 'party-host', attack: 0, hp: 1, effectId: 'death_damage_enemy_hero_1' });
+  noRot.board[0] = unit({ owner: 'enemy', id: 'killer', attack: 1, hp: 2 });
+  const noRotEvents = resolveCombat(noRot);
+  assert.equal(noRotEvents.filter((event) => event.type === 'death-trigger-hero-damage').length, 1);
+  assert.equal(noRotEvents.some((event) => event.type === 'death-trigger-rotcaller-buff'), false);
+
+  const twoRot = state();
+  twoRot.board[7] = unit({ id: 'party-host', attack: 0, hp: 1, effectId: 'death_damage_enemy_hero_1' });
+  twoRot.board[6] = unit({ id: 'left-rotcaller', attack: 1, hp: 2, effectId: 'rotcaller_adjacent_death_atk_1' });
+  twoRot.board[8] = unit({ id: 'right-rotcaller', attack: 1, hp: 2, effectId: 'rotcaller_adjacent_death_atk_1' });
+  twoRot.board[1] = unit({ owner: 'enemy', id: 'killer', attack: 1, hp: 3 });
+  const twoRotEvents = resolveCombat(twoRot);
+  assert.deepEqual(twoRotEvents.filter((event) => event.type === 'death-trigger-rotcaller-buff').map((event) => event.targetIndex), [6, 8]);
+
+  const husk = state();
+  husk.board[6] = unit({ id: 'husk', attack: 0, hp: 1, effectId: 'combat_death_damage_enemy_lane_1' });
+  husk.board[0] = unit({ owner: 'enemy', id: 'killer', attack: 1, hp: 3 });
+  const huskEvents = resolveCombat(husk);
+  const huskPresentation = huskEvents.find((event) => event.type === 'death-trigger-lane-damage');
+  assert.deepEqual(huskPresentation.affectedIndexes, [0]);
+  assert.equal(huskPresentation.damage, 1);
+
+  const abomination = state();
+  abomination.board[6] = unit({ id: 'abomination', attack: 0, hp: 1, effectId: 'combat_death_damage_both_heroes_1' });
+  abomination.board[0] = unit({ owner: 'enemy', id: 'killer', attack: 1, hp: 3 });
+  const abominationEvents = resolveCombat(abomination);
+  const abominationPresentation = abominationEvents.find((event) => event.type === 'death-trigger-both-hero-damage');
+  assert.deepEqual(abominationPresentation.affectedHeroes, ['player', 'enemy']);
+  assert.equal(abominationPresentation.damage, 1);
+
+  const lethal = state();
+  lethal.enemyHP = 1;
+  lethal.board[6] = unit({ id: 'party-host', attack: 0, hp: 1, effectId: 'death_damage_enemy_hero_1' });
+  lethal.board[0] = unit({ owner: 'enemy', id: 'killer', attack: 1, hp: 2 });
+  const lethalEvents = resolveCombat(lethal);
+  assert.equal(lethalEvents.some((event) => event.type === 'death-trigger-hero-damage' && event.targetSide === 'enemy'), true);
+  assert.equal(lethal.winner, 'player');
+});
+
 test('Funeral Pyre deals capped lane-only damage, cleans defeated units, does not stack, and clears', () => {
   const noDeath = state();
   addHand(noDeath, 'player', card('attrition_swarm_funeral_pyre_1'));

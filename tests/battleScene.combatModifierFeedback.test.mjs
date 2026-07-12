@@ -15,10 +15,10 @@ test('Hacker and Signal Jam action-time debuff feedback remains in action delta 
   assert.match(source, /feedback\.push\(\{ type: 'slot-text', index, label: `\$\{attackDelta\} ATK`, kind: 'debuff', phase: 'pre', order: 10 \}\);/);
 });
 
-test('Party Host combat-death ATK feedback uses recorded trigger payloads after cleanup', () => {
+test('Party Host combat-death ATK feedback keeps recorded fallback payloads but skips them for ordered events', () => {
   assert.match(source, /recordedRotcallerFeedback = Array\.isArray\(this\.gameState\?\.rotcallerCombatFeedbackEvents\)/);
   assert.match(source, /source === 'rotcaller_adjacent_death_atk_1'[\s\S]*label: event\.label \?\? '\+1 ATK'[\s\S]*kind: event\.kind \?\? 'buff'/);
-  assert.match(source, /const beforeRefresh = \[\.\.\.recordedRotcallerFeedback\];/);
+  assert.match(source, /hasOrderedDeathTriggerEvents[\s\S]*const beforeRefresh = hasOrderedDeathTriggerEvents \? \[\] : \[\.\.\.recordedRotcallerFeedback\];/);
 });
 
 
