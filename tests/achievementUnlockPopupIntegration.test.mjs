@@ -17,10 +17,10 @@ test('standard result modal starts achievement popups only after modal assignmen
   assert.ok(assignment >= 0 && shown > assignment && overlay > shown && start > overlay);
 });
 
-test('popup integration limits batches to 3 and shows sequential overlapping non-stacked popups', () => {
+test('popup integration uses the complete current checkpoint batch and shows sequential overlapping non-stacked popups', () => {
   const start = method('startAchievementUnlockPopupsForResultModal', 'createResultModalButton');
-  assert.match(start, /peekAchievementPresentation\(ACHIEVEMENT_UNLOCK_POPUP_MAX_BATCH\)/);
-  assert.match(helper, /ACHIEVEMENT_UNLOCK_POPUP_MAX_BATCH = 3/);
+  assert.match(start, /peekAchievementPresentation\(\)/);
+  assert.doesNotMatch(helper, /ACHIEVEMENT_UNLOCK_POPUP_MAX_BATCH/);
   assert.match(start, /let activeIncomingPopup = null;/);
   assert.match(start, /let activeOutgoingPopup = null;/);
   assert.match(start, /const layout = calculateAchievementUnlockPopupLayout\(this, this\.battleResultModal\);/);
@@ -62,7 +62,7 @@ test('achievement unlock SFX is guarded per result modal lifecycle without chang
   assert.ok(start.lastIndexOf('markAchievementPresented(entry.achievementId);') > start.indexOf('popup.play({'), 'SFX guard must not mark achievement presented before popup completion');
 });
 
-test('achievement is marked presented only after popup completion and early destroy leaves unfinished pending', () => {
+test('achievement is marked presented only after popup completion and early destroy only stops visuals', () => {
   const start = method('startAchievementUnlockPopupsForResultModal', 'createResultModalButton');
   assert.match(start, /popup\.play\(\{[\s\S]*onComplete: \(\) => \{[\s\S]*markAchievementPresented\(entry\.achievementId\);/);
   assert.ok(start.lastIndexOf('markAchievementPresented(entry.achievementId);') > start.indexOf('popup.play({'), 'valid entries should be marked only inside popup completion');
@@ -81,6 +81,7 @@ test('result modal destruction and cleanup destroy active popup controller witho
   const destroy = method('destroyBattleResultModal', 'createBaseBroadcastFrame');
   const cleanup = method('cleanupSceneObjects', 'create');
   assert.match(destroy, /this\.destroyAchievementUnlockPopupController\(\);/);
+  assert.doesNotMatch(destroy, /clearAchievementPopupPresentationBatch/);
   assert.match(cleanup, /this\.destroyBattleResultModal\(\);[\s\S]*this\.destroyAchievementUnlockPopupController\(\);/);
   assert.doesNotMatch(battle, /achievementUnlockPopupController[\s\S]{0,120}resultOverlayState|resultOverlayState[\s\S]{0,120}achievementUnlockPopupController/);
 });
@@ -96,6 +97,15 @@ test('campaign completion modal starts achievement popups only after interactive
   assert.ok(buttonVisible >= 0 && interactiveState > buttonVisible && startPopup > interactiveState);
   assert.match(campaign, /if \(restoreAsInteractive\) this\.startAchievementUnlockPopupsForResultModal\(\);/);
   assert.match(battle, /continueCampaignBattleResult\(\)[\s\S]*this\.showCampaignCompleteModal\(updatedCampaign\.status\);[\s\S]*this\.scene\.start\('CampaignEnemySelectScene'/);
+});
+
+test('navigation clears remaining current checkpoint popup batch while preserving lifecycle rebuild recovery', () => {
+  const clear = method('clearAchievementPopupPresentationBatch', 'playAchievementUnlockPopupSfx');
+  const retry = method('retryBattle', 'toggleFullscreen');
+  const restore = method('restoreResultOverlayFromSnapshot', 'rebuildBattleView');
+  assert.match(clear, /clearPresentedQueue\(\);/);
+  assert.match(retry, /this\.clearAchievementPopupPresentationBatch\(\);[\s\S]*restartBattleScene/);
+  assert.doesNotMatch(restore, /clearAchievementPopupPresentationBatch/);
 });
 
 test('Achievements panel source remains read-only and popup helper is separate', () => {

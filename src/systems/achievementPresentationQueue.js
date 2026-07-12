@@ -94,6 +94,22 @@ export function saveAchievementPresentationQueue(queue) {
   return normalizedQueue;
 }
 
+
+export function setAchievementPresentationBatch(ids = []) {
+  const queue = loadAchievementPresentationQueue();
+  const pending = [];
+  const queued = new Set();
+
+  for (const entry of Array.isArray(ids) ? ids : [ids]) {
+    const achievementId = normalizeAchievementId(entry);
+    if (!achievementId || queue.presented[achievementId] === true || queued.has(achievementId)) continue;
+    queued.add(achievementId);
+    pending.push(achievementId);
+  }
+
+  return saveAchievementPresentationQueue({ ...queue, pending });
+}
+
 export function enqueueAchievementPresentation(ids = []) {
   const queue = loadAchievementPresentationQueue();
   const pending = [...queue.pending];

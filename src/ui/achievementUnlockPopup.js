@@ -9,7 +9,6 @@ export const ACHIEVEMENT_UNLOCK_POPUP_TIMING = Object.freeze({
   overlapMs: 140,
 });
 
-export const ACHIEVEMENT_UNLOCK_POPUP_MAX_BATCH = 3;
 
 const BADGE_TEXT = Object.freeze({ en: 'UNLOCKED', pl: 'ODBLOKOWANE' });
 export const ACHIEVEMENT_UNLOCK_POPUP_ENTRANCE_OFFSET = 22;
