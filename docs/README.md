@@ -20,6 +20,7 @@ Use these status labels in docs when relevant:
 - **Gameplay rules (CANONICAL):** `docs/rules/mvp-battle-rules.md`
 - **Project collaboration workflow (WORKFLOW):** `docs/project/workflow.md`
 - **Faction/data ownership alignment (CANONICAL):** `docs/project/faction-source-of-truth.md`
+- **Art direction and naming presentation (CANONICAL for art/presentation only):** `docs/art/frozen-art-bible.md`
 - **Current balance audit summary (HISTORY):** `docs/project/balance-audit-june-2026.md`
 - **Card wording/style reference (CANONICAL for wording):** `docs/CARD_LANGUAGE_GUIDE.md`
 - **Premium UI typography (CANONICAL):** `docs/ui/premium-typography-standard.md`
