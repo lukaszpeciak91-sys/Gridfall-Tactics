@@ -2,6 +2,13 @@ export const BATTLE_SCENE_KEY = 'BattleScene';
 export const BATTLE_TRANSITION_SCENE_KEY = 'BattleTransitionScene';
 export const BATTLE_SCENE_VISUALLY_READY_EVENT = 'battle-scene:visually-ready';
 
+let battleTransitionLaunchSequence = 0;
+
+export function createBattleTransitionLaunchId() {
+  battleTransitionLaunchSequence += 1;
+  return `battle-transition-${battleTransitionLaunchSequence}`;
+}
+
 const SAFE_BATTLE_RETURN_SCENES = new Set([
   'FactionSelectScene',
   'CampaignEnemySelectScene',
@@ -26,6 +33,8 @@ export function normalizeBattlePayload(payload = {}, sourceSceneKey = null) {
   if (Object.prototype.hasOwnProperty.call(payload, 'enemyFactionKey')) nextPayload.enemyFactionKey = payload.enemyFactionKey;
   if (Object.prototype.hasOwnProperty.call(payload, 'battleContext')) nextPayload.battleContext = payload.battleContext;
   if (Object.prototype.hasOwnProperty.call(payload, 'returnSceneKey')) nextPayload.returnSceneKey = payload.returnSceneKey;
+  if (Object.prototype.hasOwnProperty.call(payload, 'battleTransitionLaunchId')) nextPayload.battleTransitionLaunchId = payload.battleTransitionLaunchId;
+  if (Object.prototype.hasOwnProperty.call(payload, 'waitForBattleTransitionPresentation')) nextPayload.waitForBattleTransitionPresentation = payload.waitForBattleTransitionPresentation;
   if (typeof sourceSceneKey === 'string' && sourceSceneKey) nextPayload.transitionSourceSceneKey = sourceSceneKey;
   if (Object.prototype.hasOwnProperty.call(payload, 'transitionSourceSceneKey')) nextPayload.transitionSourceSceneKey = payload.transitionSourceSceneKey;
   nextPayload.returnSceneKey = getBattleTransitionReturnSceneKey(nextPayload, nextPayload.transitionSourceSceneKey);
@@ -34,10 +43,19 @@ export function normalizeBattlePayload(payload = {}, sourceSceneKey = null) {
 
 export function enterBattleScene(scene, payload = {}) {
   // Legacy direct entry shape retained for static regression coverage: scene?.scene?.start?.(BATTLE_SCENE_KEY, normalizeBattlePayload(payload))
-  return scene?.scene?.start?.(BATTLE_TRANSITION_SCENE_KEY, normalizeBattlePayload(payload, scene?.scene?.key));
+  return scene?.scene?.start?.(BATTLE_TRANSITION_SCENE_KEY, normalizeBattlePayload({
+    ...payload,
+    battleTransitionLaunchId: createBattleTransitionLaunchId(),
+    waitForBattleTransitionPresentation: true,
+  }, scene?.scene?.key));
 }
 
 export function restartBattleScene(scene, payload = {}) {
   // Legacy restart shape retained for static regression coverage: scene?.scene?.restart?.(normalizeBattlePayload(payload))
-  return scene?.scene?.start?.(BATTLE_TRANSITION_SCENE_KEY, normalizeBattlePayload({ ...payload, returnSceneKey: payload?.returnSceneKey ?? 'BattleMenuScene' }, scene?.scene?.key));
+  return scene?.scene?.start?.(BATTLE_TRANSITION_SCENE_KEY, normalizeBattlePayload({
+    ...payload,
+    returnSceneKey: payload?.returnSceneKey ?? 'BattleMenuScene',
+    battleTransitionLaunchId: createBattleTransitionLaunchId(),
+    waitForBattleTransitionPresentation: true,
+  }, scene?.scene?.key));
 }

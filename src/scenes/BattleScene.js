@@ -340,6 +340,9 @@ export default class BattleScene extends Phaser.Scene {
     this.openingMulliganRevealGeneration = 0;
     this.selectedMulliganCardIds = [];
     this.previewedMulliganCardId = null;
+    this.openingBattlePresentationStarted = false;
+    this.waitForBattleTransitionPresentation = false;
+    this.battleTransitionLaunchId = null;
     this.deckCounterView = null;
     this.deckInfoPanel = null;
     this.battleModalScrollHintObjects = [];
@@ -561,6 +564,9 @@ export default class BattleScene extends Phaser.Scene {
     this.openingMulliganRevealGeneration = 0;
     this.selectedMulliganCardIds = [];
     this.previewedMulliganCardId = null;
+    this.openingBattlePresentationStarted = false;
+    this.waitForBattleTransitionPresentation = false;
+    this.battleTransitionLaunchId = null;
     this.deckCounterView = null;
     this.deckInfoPanel = null;
     this.battleModalScrollHintObjects = [];
@@ -727,6 +733,8 @@ export default class BattleScene extends Phaser.Scene {
       factionKey: this.factionKey,
       enemyFactionKey: this.enemyFactionKey,
       battleContext: this.battleContext,
+      battleTransitionLaunchId: this.battleTransitionLaunchId,
+      openingPresentationDeferred: this.waitForBattleTransitionPresentation,
     });
     return true;
   }
@@ -739,6 +747,9 @@ export default class BattleScene extends Phaser.Scene {
 
     const { width, height } = this.scale;
     this.battleContext = this.normalizeBattleContext(data?.battleContext);
+    this.battleTransitionLaunchId = typeof data?.battleTransitionLaunchId === 'string' ? data.battleTransitionLaunchId : null;
+    this.waitForBattleTransitionPresentation = data?.waitForBattleTransitionPresentation === true && Boolean(this.battleTransitionLaunchId);
+    this.openingBattlePresentationStarted = false;
     const isTutorialBattle = this.battleContext?.mode === 'tutorial';
     this.initializeTutorialController();
     const tutorialBattleData = isTutorialBattle ? getTutorialBattleData() : null;
@@ -806,8 +817,7 @@ export default class BattleScene extends Phaser.Scene {
     this.drawHand();
     this.drawPlayerBaseUtilityMenuTrigger();
     this.updatePlayerBaseActionState();
-    this.startOpeningMulliganReveal();
-    this.updateTutorialBanner();
+    this.applyOpeningMulliganRevealPresentation();
 
     this.scale.on('enterfullscreen', this.onFullscreenChanged, this);
     this.scale.on('leavefullscreen', this.onFullscreenChanged, this);
@@ -840,6 +850,20 @@ export default class BattleScene extends Phaser.Scene {
       });
     }
 
+    if (!this.waitForBattleTransitionPresentation) {
+      this.beginOpeningBattlePresentation();
+    }
+
+  }
+
+  beginOpeningBattlePresentation({ battleTransitionLaunchId = null } = {}) {
+    if (this.openingBattlePresentationStarted) return false;
+    if (this.waitForBattleTransitionPresentation && battleTransitionLaunchId !== this.battleTransitionLaunchId) return false;
+    this.openingBattlePresentationStarted = true;
+    this.waitForBattleTransitionPresentation = false;
+    this.startOpeningMulliganReveal();
+    this.updateTutorialBanner();
+    return true;
   }
 
   isResultModalDiagnosticsEnabled() {
