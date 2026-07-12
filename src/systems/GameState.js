@@ -876,7 +876,23 @@ function summonGruntAt(state, index, owner, idPrefix = 'summoned_grunt', artMeta
   return true;
 }
 
-function triggerAdjacentRotcallers(state, deadIndex, deadOwner) {
+function createDeathTriggerSource(unit, index) {
+  return {
+    index,
+    id: unit?.id ?? null,
+    cardId: unit?.cardId ?? unit?.id ?? null,
+    name: unit?.name ?? unit?.cardId ?? unit?.id ?? 'Unit',
+    owner: unit?.owner ?? null,
+    effectId: unit?.effectId ?? null,
+  };
+}
+
+function appendDeathTriggerPresentationEvent(events, event) {
+  if (!Array.isArray(events) || !event) return;
+  events.push(event);
+}
+
+function triggerAdjacentRotcallers(state, deadIndex, deadOwner, options = {}) {
   const row = getRowForOwner(deadOwner);
   if (!row.includes(deadIndex)) return;
   const lane = deadIndex % 3;
@@ -890,6 +906,7 @@ function triggerAdjacentRotcallers(state, deadIndex, deadOwner) {
     if (rotcaller.rotcallerTriggeredThisCombat) return;
     rotcaller.rotcallerTriggeredThisCombat = true;
     rotcaller.tempAttackMod = (rotcaller.tempAttackMod ?? 0) + 1;
+    const resultingAttack = getUnitAttack(rotcaller, { excludeCombatId: state.activeCombatId });
     state.rotcallerCombatTriggers = (state.rotcallerCombatTriggers ?? 0) + 1;
     state.rotcallerCombatFeedbackEvents ??= [];
     state.rotcallerCombatFeedbackEvents.push({
@@ -900,17 +917,35 @@ function triggerAdjacentRotcallers(state, deadIndex, deadOwner) {
       source: 'rotcaller_adjacent_death_atk_1',
       combatId: state.activeCombatId ?? null,
     });
+    appendDeathTriggerPresentationEvent(options.events, {
+      type: 'death-trigger-rotcaller-buff',
+      lane: Number.isInteger(options.lane) ? options.lane : lane,
+      source: 'rotcaller_adjacent_death_atk_1',
+      sourceDeathIndex: deadIndex,
+      targetIndex: index,
+      attackAdded: 1,
+      resultingAttack,
+    });
   });
 }
 
-function dealCombatDeathLaneDamage(state, deadIndex, deadOwner, telemetryKey) {
+function dealCombatDeathLaneDamage(state, deadIndex, deadOwner, telemetryKey, options = {}) {
   const enemyOwner = getOpponentOwner(deadOwner);
   const opposingIndex = deadOwner === 'player' ? deadIndex - 6 : deadIndex + 6;
   const opposingUnit = state.board[opposingIndex];
   if (opposingUnit?.owner !== enemyOwner) return false;
   state[telemetryKey] = (state[telemetryKey] ?? 0) + 1;
   applyDamageToUnit(state, opposingIndex, 1);
-  cleanupDefeatedUnitsWithTriggers(state, [opposingIndex], { combat: true });
+  appendDeathTriggerPresentationEvent(options.events, {
+    type: 'death-trigger-lane-damage',
+    lane: Number.isInteger(options.lane) ? options.lane : deadIndex % 3,
+    source: options.source ?? 'combat_death_damage_enemy_lane_1',
+    sourceUnit: createDeathTriggerSource(options.sourceUnit, deadIndex),
+    sourceDeathIndex: deadIndex,
+    affectedIndexes: [opposingIndex],
+    damage: 1,
+  });
+  cleanupDefeatedUnitsWithTriggers(state, [opposingIndex], { combat: true, events: options.events, lane: options.lane });
   return true;
 }
 
@@ -929,22 +964,44 @@ function triggerUnitDeathEffects(state, index, unit, options = {}) {
   const isCombatDeath = Boolean(options.combat);
 
   if (isCombatDeath) {
-    triggerAdjacentRotcallers(state, index, owner);
+    triggerAdjacentRotcallers(state, index, owner, options);
     triggerFuneralPyre(state, index, owner);
   }
 
   if (unit.effectId === 'death_damage_enemy_hero_1') {
     damageHero(state, enemyOwner, 1);
+    appendDeathTriggerPresentationEvent(options.events, {
+      type: 'death-trigger-hero-damage',
+      lane: Number.isInteger(options.lane) ? options.lane : index % 3,
+      source: 'death_damage_enemy_hero_1',
+      sourceUnit: createDeathTriggerSource(unit, index),
+      sourceDeathIndex: index,
+      targetSide: enemyOwner,
+      damage: 1,
+    });
   }
 
   if (isCombatDeath && unit.effectId === 'combat_death_damage_enemy_lane_1') {
-    dealCombatDeathLaneDamage(state, index, owner, 'combatOnlyDeathLaneDamageTriggers');
+    dealCombatDeathLaneDamage(state, index, owner, 'combatOnlyDeathLaneDamageTriggers', {
+      ...options,
+      source: 'combat_death_damage_enemy_lane_1',
+      sourceUnit: unit,
+    });
   }
 
   if (isCombatDeath && unit.effectId === 'combat_death_damage_both_heroes_1') {
     state.combatOnlyDeathHeroTriggers = (state.combatOnlyDeathHeroTriggers ?? 0) + 1;
     damageHero(state, 'player', 1);
     damageHero(state, 'enemy', 1);
+    appendDeathTriggerPresentationEvent(options.events, {
+      type: 'death-trigger-both-hero-damage',
+      lane: Number.isInteger(options.lane) ? options.lane : index % 3,
+      source: 'combat_death_damage_both_heroes_1',
+      sourceUnit: createDeathTriggerSource(unit, index),
+      sourceDeathIndex: index,
+      affectedHeroes: ['player', 'enemy'],
+      damage: 1,
+    });
   }
 
   if (unit.effectId === 'on_death_summon_grunt' && state.board[index] === null) {
@@ -3482,8 +3539,8 @@ function resolveCombatLane(state, col, combatContext = null) {
 
   const laneIndexes = new Set([enemyIndex, playerIndex]);
   const offLaneDamageIndexes = [...pendingUnitDamage.keys()].filter((index) => !laneIndexes.has(index));
-  cleanupDefeatedUnitsWithTriggers(state, offLaneDamageIndexes, { combat: true });
-  cleanupDefeatedUnitsWithTriggers(state, [enemyIndex, playerIndex], { combat: true });
+  cleanupDefeatedUnitsWithTriggers(state, offLaneDamageIndexes, { combat: true, events: context.events, lane: col });
+  cleanupDefeatedUnitsWithTriggers(state, [enemyIndex, playerIndex], { combat: true, events: context.events, lane: col });
   offlineReservations.forEach((entry) => returnOfflineReservation(state, entry));
   if (Array.isArray(state.offlineReservations)) {
     state.offlineReservations = state.offlineReservations.filter((entry) => !entry.returned);
@@ -3508,7 +3565,7 @@ export function resolveCombat(state) {
     resolveCombatLane(state, col, combatContext);
   }
 
-  cleanupDefeatedUnitsWithTriggers(state, [...ENEMY_ROW, ...PLAYER_ROW], { combat: true });
+  cleanupDefeatedUnitsWithTriggers(state, [...ENEMY_ROW, ...PLAYER_ROW], { combat: true, events: combatContext.events });
   applyHpDecayAfterCombat(state, combatContext.participatedIndexes);
 
   if (state.cannotDropBelowOneThisTurn) {
