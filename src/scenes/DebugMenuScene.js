@@ -6,15 +6,10 @@ const DEBUG_BUTTON_COLOR = 0x1d4ed8;
 const DEBUG_BUTTON_HOVER_COLOR = 0x2563eb;
 const DEBUG_BUTTON_STROKE = 0x93c5fd;
 
-export default class ArtDebugModeSelectScene extends Phaser.Scene {
+export default class DebugMenuScene extends Phaser.Scene {
   constructor() {
-    super('ArtDebugModeSelectScene');
+    super('DebugMenuScene');
     this.onBackRequested = null;
-    this.returnSceneKey = 'MainMenuScene';
-  }
-
-  init(data = {}) {
-    this.returnSceneKey = data?.returnSceneKey === 'DebugMenuScene' ? 'DebugMenuScene' : 'MainMenuScene';
   }
 
   create() {
@@ -22,11 +17,10 @@ export default class ArtDebugModeSelectScene extends Phaser.Scene {
     this.onBackRequested = () => this.returnToMainMenu();
 
     this.cameras.main.setBackgroundColor(DEBUG_BACKGROUND_COLOR);
-
-    this.add.rectangle(width / 2, height / 2, Math.min(width - 32, 342), Math.min(height - 96, 420), DEBUG_PANEL_COLOR, 0.86)
+    this.add.rectangle(width / 2, height / 2, Math.min(width - 32, 342), Math.min(height - 96, 360), DEBUG_PANEL_COLOR, 0.86)
       .setStrokeStyle(1, 0x334155, 0.9);
 
-    this.add.text(width / 2, height * 0.22, 'Art Debug', {
+    this.add.text(width / 2, height * 0.25, 'Debug Menu', {
       fontFamily: 'Arial, sans-serif',
       fontSize: '30px',
       color: '#f8fafc',
@@ -34,7 +28,7 @@ export default class ArtDebugModeSelectScene extends Phaser.Scene {
       align: 'center',
     }).setOrigin(0.5);
 
-    this.add.text(width / 2, height * 0.22 + 34, 'Choose an isolated debug workflow.', {
+    this.add.text(width / 2, height * 0.25 + 34, 'Choose an isolated debug workflow.', {
       fontFamily: 'Arial, sans-serif',
       fontSize: '14px',
       color: '#bfdbfe',
@@ -43,22 +37,18 @@ export default class ArtDebugModeSelectScene extends Phaser.Scene {
 
     const buttonWidth = Math.min(width - 72, 282);
     const buttonHeight = 52;
-    const startY = height * 0.42;
+    const startY = height * 0.44;
     const buttonGap = 70;
 
-    this.createButton(width / 2, startY, buttonWidth, buttonHeight, 'Hand / Inspect Debug', () => {
-      this.scene.start('ArtViewportDebugScene');
+    this.createButton(width / 2, startY, buttonWidth, buttonHeight, 'ART DEBUG', () => {
+      this.scene.start('ArtDebugModeSelectScene', { returnSceneKey: 'DebugMenuScene' });
     });
 
-    this.createButton(width / 2, startY + buttonGap, buttonWidth, buttonHeight, 'Board Unit Debug', () => {
-      this.scene.start('BoardUnitArtViewportDebugScene');
+    this.createButton(width / 2, startY + buttonGap, buttonWidth, buttonHeight, 'CAMPAIGN END SCREENS', () => {
+      this.scene.start('CampaignEndScreenDebugScene');
     });
 
-    this.createButton(width / 2, startY + buttonGap * 2, buttonWidth, buttonHeight, 'Battle Transition', () => {
-      this.scene.start('BattleTransitionArtPreviewDebugScene');
-    });
-
-    this.createButton(width / 2, startY + buttonGap * 3, buttonWidth, buttonHeight, 'Back', () => this.returnToMainMenu(), {
+    this.createButton(width / 2, startY + buttonGap * 2, buttonWidth, buttonHeight, 'BACK', () => this.returnToMainMenu(), {
       fillColor: 0x334155,
       hoverColor: 0x475569,
     });
@@ -93,6 +83,6 @@ export default class ArtDebugModeSelectScene extends Phaser.Scene {
   }
 
   returnToMainMenu() {
-    this.scene.start(this.returnSceneKey || 'MainMenuScene');
+    this.scene.start('MainMenuScene');
   }
 }

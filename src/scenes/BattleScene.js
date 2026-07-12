@@ -475,6 +475,7 @@ export default class BattleScene extends Phaser.Scene {
       return {
         mode: 'campaignCompletionPreview',
         previewStatus: context.previewStatus === 'won' ? 'won' : 'lost',
+        returnSceneKey: typeof context.returnSceneKey === 'string' ? context.returnSceneKey : 'GameMenuScene',
       };
     }
     if (context?.mode === 'tutorial') {
@@ -3887,7 +3888,7 @@ export default class BattleScene extends Phaser.Scene {
     const button = this.createResultModalButton(centerX, buttonY, buttonWidth, buttonHeight, translateActive('ui.common.mainMenu', 'MAIN MENU'), () => {
       if (!options.preview) clearCampaign();
       this.clearAchievementPopupPresentationBatch();
-      this.scene.start('MainMenuScene');
+      this.scene.start(options.preview ? (this.battleContext?.returnSceneKey ?? 'DebugMenuScene') : 'MainMenuScene');
     }, this.getBattleResultPresentation(), { depth: CAMPAIGN_COMPLETION_BUTTON_DEPTH });
     button.items.forEach((item) => item?.setVisible?.(false));
     summaryItems.push(...[fallbackPanel, summaryTitle, flavor, stats, dividerCore].filter(Boolean), ...button.items);

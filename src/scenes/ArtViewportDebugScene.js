@@ -43,7 +43,7 @@ export default class ArtViewportDebugScene extends Phaser.Scene {
   }
 
   create() {
-    this.onBackRequested = () => this.scene.start('MainMenuScene');
+    this.onBackRequested = () => this.scene.start('ArtDebugModeSelectScene', { returnSceneKey: 'DebugMenuScene' });
     this.cameras.main.setBackgroundColor('#0b1220');
     this.cardEntries = this.buildCardEntries();
 
