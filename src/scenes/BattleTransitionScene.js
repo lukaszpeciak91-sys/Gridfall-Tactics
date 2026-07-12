@@ -32,7 +32,14 @@ export default class BattleTransitionScene extends Phaser.Scene {
     this.failsafeTimer = null;
     this.startedAt = 0;
     this.finishing = false;
+    this.isCancelled = false;
+    this.hasReturnedToSource = false;
+    this.returnPendingUntilActive = false;
     this.resizeHandler = null;
+    this.lifecycleHandler = null;
+    this.phaserPauseHandler = null;
+    this.phaserResumeHandler = null;
+    this.loadErrorHandler = null;
   }
 
   init(data = {}) {
@@ -52,6 +59,12 @@ export default class BattleTransitionScene extends Phaser.Scene {
     this.installInputBlocker();
     this.resizeHandler = () => this.rebuildPresentation();
     this.scale.on('resize', this.resizeHandler);
+    this.lifecycleHandler = (event = {}) => this.handleLifecycleSignal(event);
+    this.phaserPauseHandler = () => this.handleLifecycleSignal({ reason: 'phaser-pause' });
+    this.phaserResumeHandler = () => this.handleLifecycleSignal({ reason: 'phaser-resume' });
+    this.game?.events?.on?.('session-lifecycle:signal', this.lifecycleHandler);
+    this.game?.events?.on?.(Phaser.Core.Events.PAUSE, this.phaserPauseHandler);
+    this.game?.events?.on?.(Phaser.Core.Events.RESUME, this.phaserResumeHandler);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.cleanup, this);
     this.launchBattleSceneBelow();
   }
@@ -104,16 +117,23 @@ export default class BattleTransitionScene extends Phaser.Scene {
 
   launchBattleSceneBelow() {
     const battleScene = this.scene.get(BATTLE_SCENE_KEY);
-    this.readyHandler = () => this.finishTransition();
+    this.readyHandler = () => {
+      if (this.isCancelled) return;
+      this.finishTransition();
+    };
+    this.loadErrorHandler = () => {
+      if (this.isCancelled) return;
+      this.finishTransition({ failed: true });
+    };
     battleScene?.events?.once?.(BATTLE_SCENE_VISUALLY_READY_EVENT, this.readyHandler);
-    battleScene?.load?.once?.(Phaser.Loader.Events.LOAD_ERROR, () => this.finishTransition({ failed: true }));
+    battleScene?.load?.once?.(Phaser.Loader.Events.LOAD_ERROR, this.loadErrorHandler);
     this.scene.launch(BATTLE_SCENE_KEY, this.payload);
     this.scene.bringToTop();
     this.failsafeTimer = this.time.delayedCall(FAILSAFE_REVEAL_MS, () => this.finishTransition({ failed: true }));
   }
 
   finishTransition() {
-    if (this.finishing) return;
+    if (this.isCancelled || this.finishing) return;
     this.finishing = true;
     stopMusic(this, { fadeMs: MENU_MUSIC_FADE_OUT_MS });
     const delay = Math.max(0, FRAME_SAFE_MIN_MS - (this.time.now - this.startedAt));
@@ -123,7 +143,72 @@ export default class BattleTransitionScene extends Phaser.Scene {
     });
   }
 
+  handleLifecycleSignal(event = {}) {
+    const isHidden = event?.documentHidden === true || (typeof document !== 'undefined' && document.hidden === true);
+    const reason = typeof event?.reason === 'string' ? event.reason : null;
+    const shouldCancel = isHidden || reason === 'phaser-pause' || reason === 'pagehide' || reason === 'visibilitychange';
+    if (shouldCancel) {
+      this.cancelTransition({ deferReturn: isHidden || reason === 'phaser-pause' || reason === 'pagehide' });
+      return;
+    }
+    if (this.isCancelled && (reason === 'phaser-resume' || reason === 'pageshow' || reason === 'focus' || !isHidden)) {
+      this.returnPendingUntilActive = false;
+      this.returnToSourceWhenVisible();
+    }
+  }
+
+  cancelTransition({ deferReturn = false } = {}) {
+    if (this.isCancelled) {
+      if (!deferReturn) this.returnToSourceWhenVisible();
+      return;
+    }
+    this.isCancelled = true;
+    this.returnPendingUntilActive = deferReturn;
+    this.finishing = true;
+    this.detachBattleReadyListeners();
+    this.failsafeTimer?.remove?.(false);
+    this.failsafeTimer = null;
+    this.inputBlocker?.disableInteractive?.();
+    this.inputBlocker?.destroy?.();
+    this.inputBlocker = null;
+    this.root?.destroy?.(true);
+    this.root = null;
+    this.tweens?.killAll?.();
+    this.time?.removeAllEvents?.();
+    this.stopLaunchedBattleScene();
+    this.returnToSourceWhenVisible();
+  }
+
+  detachBattleReadyListeners() {
+    const battleScene = this.scene.get(BATTLE_SCENE_KEY);
+    if (this.readyHandler) battleScene?.events?.off?.(BATTLE_SCENE_VISUALLY_READY_EVENT, this.readyHandler);
+    if (this.loadErrorHandler) battleScene?.load?.off?.(Phaser.Loader.Events.LOAD_ERROR, this.loadErrorHandler);
+    this.readyHandler = null;
+    this.loadErrorHandler = null;
+  }
+
+  stopLaunchedBattleScene() {
+    const manager = this.scene;
+    if (manager?.isActive?.(BATTLE_SCENE_KEY) || manager?.isPaused?.(BATTLE_SCENE_KEY) || manager?.isSleeping?.(BATTLE_SCENE_KEY) || manager?.isVisible?.(BATTLE_SCENE_KEY)) {
+      manager.stop(BATTLE_SCENE_KEY);
+      return;
+    }
+    const battleScene = manager?.get?.(BATTLE_SCENE_KEY);
+    if (battleScene?.load?.isLoading?.()) manager.stop(BATTLE_SCENE_KEY);
+  }
+
+  returnToSourceWhenVisible() {
+    if (this.hasReturnedToSource) return;
+    if (typeof document !== 'undefined' && document.hidden === true) return;
+    if (this.returnPendingUntilActive) return;
+    this.hasReturnedToSource = true;
+    const returnSceneKey = this.payload?.returnSceneKey || 'FactionSelectScene';
+    this.scene.stop(BATTLE_SCENE_KEY);
+    this.scene.start(returnSceneKey);
+  }
+
   rebuildPresentation() {
+    if (this.isCancelled) return;
     this.root?.destroy?.(true);
     this.inputBlocker?.destroy?.();
     this.renderPresentation();
@@ -131,9 +216,13 @@ export default class BattleTransitionScene extends Phaser.Scene {
   }
 
   cleanup() {
-    const battleScene = this.scene.get(BATTLE_SCENE_KEY);
-    if (this.readyHandler) battleScene?.events?.off?.(BATTLE_SCENE_VISUALLY_READY_EVENT, this.readyHandler);
+    this.detachBattleReadyListeners();
     this.scale?.off?.('resize', this.resizeHandler);
+    if (this.lifecycleHandler) {
+      this.game?.events?.off?.('session-lifecycle:signal', this.lifecycleHandler);
+      this.game?.events?.off?.(Phaser.Core.Events.PAUSE, this.phaserPauseHandler);
+      this.game?.events?.off?.(Phaser.Core.Events.RESUME, this.phaserResumeHandler);
+    }
     this.failsafeTimer?.remove?.(false);
     this.inputBlocker?.destroy?.();
     this.root?.destroy?.(true);
