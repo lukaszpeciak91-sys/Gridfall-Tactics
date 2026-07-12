@@ -11,16 +11,11 @@ const MOTION_DURATION_MS = 11000;
 const DRIFT_X = 3;
 const DRIFT_Y = -48;
 const VEIL_ALPHA = 0.34;
-const EXIT_PREP_VEIL_ALPHA = 0.54;
+const EXIT_DIM_VEIL_ALPHA = 0.48;
 const FOG_ALPHA = 0.08;
-const READY_SETTLE_MS = 120;
-const EXIT_PREP_MS = 190;
-const EXIT_COLLAPSE_MS = 190;
-const EXIT_ACQUIRE_MS = 280;
-const EXIT_BAND_HEIGHT_RATIO = 0.08;
-const EXIT_BAND_MIN_HEIGHT = 28;
-const EXIT_BAND_MAX_HEIGHT = 72;
-const EXIT_SCANLINE_ALPHA = 0.12;
+const READY_SETTLE_MS = 100;
+const EXIT_DIM_MS = 150;
+const EXIT_CROSSFADE_MS = 560;
 const MENU_MUSIC_FADE_OUT_MS = 560;
 const FRAME_SAFE_MIN_MS = 80;
 const FAILSAFE_REVEAL_MS = 8000;
@@ -48,11 +43,8 @@ export default class BattleTransitionScene extends Phaser.Scene {
     this.phaserPauseHandler = null;
     this.phaserResumeHandler = null;
     this.loadErrorHandler = null;
-    this.signalBand = null;
-    this.scanline = null;
     this.transitionVeil = null;
     this.fogLayer = null;
-    this.arenaCurtains = null;
   }
 
   init(data = {}) {
@@ -110,7 +102,7 @@ export default class BattleTransitionScene extends Phaser.Scene {
     image.setOrigin((crop.cropX + crop.cropWidth / 2) / Math.max(1, sourceWidth), (crop.cropY + crop.cropHeight / 2) / Math.max(1, sourceHeight));
     image.setDisplaySize(sourceWidth * startScale, sourceHeight * startScale);
     image.setPosition(width / 2 - DRIFT_X / 2, height / 2 - DRIFT_Y / 2);
-    this.tweens.add({ targets: image, displayWidth: sourceWidth * endScale, displayHeight: sourceHeight * endScale, x: width / 2 + DRIFT_X / 2, y: height / 2 + DRIFT_Y / 2, duration: MOTION_DURATION_MS, ease: 'Sine.easeInOut', yoyo: true, repeat: -1 });
+    this.tweens.add({ targets: image, displayWidth: sourceWidth * endScale, displayHeight: sourceHeight * endScale, x: width / 2 + DRIFT_X / 2, y: height / 2 + DRIFT_Y / 2, duration: MOTION_DURATION_MS, ease: 'Sine.easeInOut' });
     return image;
   }
 
@@ -153,111 +145,28 @@ export default class BattleTransitionScene extends Phaser.Scene {
     stopMusic(this, { fadeMs: MENU_MUSIC_FADE_OUT_MS });
     const frameSafeDelay = Math.max(0, FRAME_SAFE_MIN_MS - (this.time.now - this.startedAt));
     const delay = Math.max(READY_SETTLE_MS, frameSafeDelay);
-    this.time.delayedCall(delay, () => this.prepareSignalLoss());
+    this.time.delayedCall(delay, () => this.dimIllustrationForCrossfade());
   }
 
-  getTransmissionBandHeight() {
-    const { height } = this.scale;
-    return Phaser.Math.Clamp(height * EXIT_BAND_HEIGHT_RATIO, EXIT_BAND_MIN_HEIGHT, Math.min(EXIT_BAND_MAX_HEIGHT, height));
-  }
-
-  createSignalBand(maskHeight) {
-    const { width, height } = this.scale;
-    this.signalBand?.destroy?.(true);
-    const y = height / 2;
-    this.signalBand = this.add.container(0, 0).setDepth(1500).setAlpha(0);
-    const bandCore = this.add.rectangle(width / 2, y, width, Math.max(2, maskHeight * 0.16), 0xdbeafe, 0.16);
-    const upperEdge = this.add.rectangle(width / 2, y - maskHeight / 2, width, 1, 0xe2e8f0, 0.18);
-    const lowerEdge = this.add.rectangle(width / 2, y + maskHeight / 2, width, 1, 0xe2e8f0, 0.16);
-    this.scanline = this.add.rectangle(width / 2, y, width, 1, 0xf8fafc, EXIT_SCANLINE_ALPHA).setAlpha(0.4);
-    this.signalBand.add([bandCore, upperEdge, lowerEdge, this.scanline]);
-    this.tweens.add({ targets: this.scanline, alpha: 0.08, duration: 46, ease: 'Sine.easeInOut', yoyo: true, repeat: -1 });
-  }
-
-  prepareSignalLoss() {
+  dimIllustrationForCrossfade() {
     if (this.isCancelled || !this.root) return;
-    this.createSignalBand(this.getTransmissionBandHeight());
     this.tweens.add({
       targets: this.transitionVeil,
-      alpha: EXIT_PREP_VEIL_ALPHA,
-      duration: EXIT_PREP_MS,
-      ease: 'Sine.easeOut',
-    });
-    this.tweens.add({
-      targets: this.fogLayer,
-      alpha: 0,
-      duration: EXIT_PREP_MS,
-      ease: 'Sine.easeOut',
-    });
-    this.tweens.add({
-      targets: this.signalBand,
-      alpha: 0.42,
-      duration: EXIT_PREP_MS,
-      ease: 'Sine.easeOut',
-      onComplete: () => this.playBroadcastExit(),
+      alpha: EXIT_DIM_VEIL_ALPHA,
+      duration: EXIT_DIM_MS,
+      ease: 'Sine.easeInOut',
+      onComplete: () => this.crossfadeToBattleScene(),
     });
   }
 
-  centerRootTransform() {
-    if (!this.root || this.root.getData('centeredForExit')) return;
-    const { height } = this.scale;
-    this.root.iterate((child) => {
-      if (child && typeof child.y === 'number') child.y -= height / 2;
-    });
-    this.root.setY(height / 2);
-    this.root.setData('centeredForExit', true);
-  }
-
-  createArenaCurtains(bandHeight) {
-    const { width, height } = this.scale;
-    this.arenaCurtains?.destroy?.(true);
-    const curtainHeight = Math.max(0, (height - bandHeight) / 2);
-    this.arenaCurtains = this.add.container(0, 0).setDepth(900);
-    this.arenaCurtains.add([
-      this.add.rectangle(width / 2, curtainHeight / 2, width, curtainHeight, 0x020617, 1),
-      this.add.rectangle(width / 2, height - curtainHeight / 2, width, curtainHeight, 0x020617, 1),
-    ]);
-  }
-
-  updateArenaCurtains(revealHeight) {
-    if (!this.arenaCurtains) return;
-    const { width, height } = this.scale;
-    const curtainHeight = Math.max(0, (height - revealHeight) / 2);
-    const [top, bottom] = this.arenaCurtains.list;
-    top.setDisplaySize(width, curtainHeight).setPosition(width / 2, curtainHeight / 2);
-    bottom.setDisplaySize(width, curtainHeight).setPosition(width / 2, height - curtainHeight / 2);
-  }
-
-  playBroadcastExit() {
+  crossfadeToBattleScene() {
     if (this.isCancelled || !this.root) return;
     this.inputBlocker?.disableInteractive?.();
-    const { height } = this.scale;
-    const bandHeight = this.getTransmissionBandHeight();
-    this.centerRootTransform();
-    this.createArenaCurtains(bandHeight);
     this.tweens.add({
       targets: this.root,
-      scaleY: bandHeight / height,
-      duration: EXIT_COLLAPSE_MS,
-      ease: 'Cubic.easeIn',
-      onComplete: () => this.playArenaAcquisition(bandHeight),
-    });
-  }
-
-  playArenaAcquisition(bandHeight) {
-    const revealState = { height: bandHeight };
-    this.tweens.add({
-      targets: revealState,
-      height: this.scale.height,
-      duration: EXIT_ACQUIRE_MS,
-      ease: 'Cubic.easeOut',
-      onUpdate: () => this.updateArenaCurtains(revealState.height),
-    });
-    this.tweens.add({
-      targets: [this.root, this.signalBand, this.arenaCurtains].filter(Boolean),
       alpha: 0,
-      duration: EXIT_ACQUIRE_MS,
-      ease: 'Sine.easeOut',
+      duration: EXIT_CROSSFADE_MS,
+      ease: 'Sine.easeInOut',
       onComplete: () => this.scene.stop(),
     });
   }
@@ -290,11 +199,6 @@ export default class BattleTransitionScene extends Phaser.Scene {
     this.inputBlocker?.disableInteractive?.();
     this.inputBlocker?.destroy?.();
     this.inputBlocker = null;
-    this.signalBand?.destroy?.(true);
-    this.signalBand = null;
-    this.scanline = null;
-    this.arenaCurtains?.destroy?.(true);
-    this.arenaCurtains = null;
     this.root?.destroy?.(true);
     this.root = null;
     this.tweens?.killAll?.();
@@ -333,11 +237,6 @@ export default class BattleTransitionScene extends Phaser.Scene {
 
   rebuildPresentation() {
     if (this.isCancelled) return;
-    this.signalBand?.destroy?.(true);
-    this.signalBand = null;
-    this.scanline = null;
-    this.arenaCurtains?.destroy?.(true);
-    this.arenaCurtains = null;
     this.root?.destroy?.(true);
     this.inputBlocker?.destroy?.();
     this.renderPresentation();
@@ -354,8 +253,6 @@ export default class BattleTransitionScene extends Phaser.Scene {
     }
     this.failsafeTimer?.remove?.(false);
     this.inputBlocker?.destroy?.();
-    this.signalBand?.destroy?.(true);
-    this.arenaCurtains?.destroy?.(true);
     this.root?.destroy?.(true);
     this.tweens?.killAll?.();
     this.resetRuntimeState();
