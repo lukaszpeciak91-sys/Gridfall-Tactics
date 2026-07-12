@@ -5,7 +5,7 @@ import { applyTutorialOpeningSetup, isTutorialBattleContext, performTutorialOpen
 import { selectNextTutorialEnemyAction } from '../systems/tutorialEnemyActions.js';
 import { checkTutorialInputGate } from '../systems/tutorialInputGate.js';
 import { advanceTutorialStep as advanceTutorialControllerStep, createTutorialControllerState, getCurrentTutorialStep as getCurrentTutorialControllerStep, handleTutorialEvent as handleTutorialControllerEvent, isTutorialComplete } from '../systems/tutorialController.js';
-import { createInitialBattleState, drawCards, shuffleDeck, canPass, canPlayOrRedeploy, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, resolveTargetedUnitOnPlayEffect, getUnitAttack, getUnitArmor, toggleFirstActor, resolveTurnCapWinner, resolveImmediateResourceExhaustionWinner, resolveImmediateNoProgressWinner, recordPassAction, completeActionOpportunity, performOpeningMulligan, STARTING_HAND_SIZE, MAX_OPENING_MULLIGAN_CARDS, getEffectiveBoardAttack, getEffectiveBoardArmor, canPlayEffectCard, isEffectCardBlockedForOwner, isBattleExhaustedEligible } from '../systems/GameState.js';
+import { createInitialBattleState, drawCards, shuffleDeck, canPass, canPlayOrRedeploy, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, resolveTargetedUnitOnPlayEffect, getUnitAttack, getUnitArmor, toggleFirstActor, resolveTurnCapWinner, resolveImmediateResourceExhaustionWinner, resolveImmediateNoProgressWinner, recordPassAction, completeActionOpportunity, performOpeningMulligan, STARTING_HAND_SIZE, MAX_OPENING_MULLIGAN_CARDS, getEffectiveBoardAttack, getEffectiveBoardArmor, canPlayEffectCard, isEffectCardBlockedForOwner, isBattleExhaustedEligible, isBoardUnitOffline, normalizeOfflineReservations } from '../systems/GameState.js';
 import { chooseEnemyAction, isVerySafeConcedableState, recordBattleActionUse, selectOpeningMulliganCardIds } from '../systems/enemyDecision.js';
 import { getTargetingStateForEffect } from '../systems/cardTargeting.js';
 import { COMBAT_ATTACK_PRESENTATIONS, getCombatAttackPresentation, getCombatEventAttackerIndex, getCombatEventInterceptOriginalTargetIndex, getCombatEventTargetIndex, getLaneLethalTargetIndexes, getLaneSimultaneousUnitClash, shouldAnimateCombatAttacker, shouldUseControlledHeroStrikePresentation } from '../systems/combatAnimation.js';
@@ -234,6 +234,10 @@ const TURN_START_BANNER_FADE_OUT_MS = 140;
 const BATTLE_EXHAUSTED_BANNER_DEPTH = 222;
 const PLAYER_EFFECT_CAST_BEAT_MS = 620;
 const PLAYER_EFFECT_CAST_SWEEP_STEP_MS = 70;
+const OFFLINE_UNIT_ALPHA = 0.38;
+const OFFLINE_UNIT_DIM_ALPHA = 0.36;
+const OFFLINE_UNIT_FADE_IN_MS = 160;
+const OFFLINE_UNIT_FADE_OUT_MS = 190;
 const HERO_HIT_SHAKE_DURATION_MS = 100;
 const HERO_HIT_SHAKE_OFFSET_PX = 3;
 const HERO_HIT_SHAKE_COOLDOWN_MS = 80;
@@ -392,6 +396,7 @@ export default class BattleScene extends Phaser.Scene {
     this.heroHitShakeBySide = null;
     this.lastRenderedBoardStats = null;
     this.currentBoardRenderStats = null;
+    this.offlineBoardVisualIndexes = new Set();
     this.turnStartBanner = null;
     this.turnStartBannerFadeOutEvent = null;
     this.tutorialBanner = null;
@@ -8698,9 +8703,21 @@ export default class BattleScene extends Phaser.Scene {
     return this.gameState.board.map((unit) => (unit ? { ...unit } : null));
   }
 
+  captureOfflineReservationsSnapshot() {
+    return (this.gameState?.offlineReservations ?? []).map((entry) => ({
+      id: entry?.id ?? null,
+      reservedIndex: entry?.reservedIndex,
+      consumed: Boolean(entry?.consumed),
+      returned: Boolean(entry?.returned),
+      reservedUnitId: entry?.reservedUnit?.cardId ?? entry?.reservedUnit?.id ?? null,
+      reservedUnitOwner: entry?.reservedUnit?.owner ?? null,
+    }));
+  }
+
   captureCombatFeedbackSnapshot() {
     return {
       board: this.captureBoardSnapshot(),
+      offlineReservations: this.captureOfflineReservationsSnapshot(),
       playerHP: this.gameState?.playerHP ?? 0,
       enemyHP: this.gameState?.enemyHP ?? 0,
       funeralPyreThisCombat: this.gameState?.funeralPyreThisCombat
@@ -8717,14 +8734,16 @@ export default class BattleScene extends Phaser.Scene {
     };
   }
 
-  refreshBoardLabelsFromSnapshot(boardSnapshot) {
+  refreshBoardLabelsFromSnapshot(boardSnapshot, offlineReservations = null) {
     if (!Array.isArray(boardSnapshot)) return;
     this.boardCells.forEach((cell) => {
       const unit = boardSnapshot[cell.index];
       cell.label.removeAll(true);
       cell.label.setAlpha(1).setScale(1);
-      if (unit) {
-        cell.label.add(this.createBoardUnitView(cell, unit));
+      if (unit && unit.offlineReservedSlot !== true) {
+        cell.label.add(this.createBoardUnitView(cell, unit, {
+          offline: this.isBoardIndexOffline(cell.index, boardSnapshot, offlineReservations),
+        }));
       }
     });
   }
@@ -8778,6 +8797,30 @@ export default class BattleScene extends Phaser.Scene {
 
   getBoardUnitVisual(index) {
     return this.getCellByIndex(index)?.label ?? null;
+  }
+
+  isSnapshotBoardUnitOffline(boardSnapshot, offlineReservations, boardIndex) {
+    if (!Array.isArray(boardSnapshot) || !Number.isInteger(boardIndex)) return false;
+    const unit = boardSnapshot[boardIndex];
+    if (!unit) return false;
+    if (unit.offlineReservedSlot === true) return true;
+    const unitId = unit.cardId ?? unit.id ?? null;
+    return (offlineReservations ?? []).some((entry) => (
+      entry
+      && !entry.consumed
+      && !entry.returned
+      && entry.reservedIndex === boardIndex
+      && (!entry.reservedUnitId || entry.reservedUnitId === unitId)
+      && (!entry.reservedUnitOwner || entry.reservedUnitOwner === unit.owner)
+    ));
+  }
+
+  isBoardIndexOffline(index, boardSnapshot = null, offlineReservations = null) {
+    if (!Number.isInteger(index)) return false;
+    if (Array.isArray(boardSnapshot)) {
+      return this.isSnapshotBoardUnitOffline(boardSnapshot, offlineReservations, index);
+    }
+    return isBoardUnitOffline(this.gameState, index);
   }
 
   getAdjacentFriendlySwapPartner(index, owner, boardSnapshot = this.gameState?.board) {
@@ -9799,6 +9842,7 @@ export default class BattleScene extends Phaser.Scene {
       y: label.y,
       scaleX: label.scaleX,
       scaleY: label.scaleY,
+      depth: label.depth,
     };
   }
 
@@ -9806,6 +9850,7 @@ export default class BattleScene extends Phaser.Scene {
     if (!state?.label?.active) return;
     state.label.setPosition(state.x, state.y);
     state.label.setScale(state.scaleX, state.scaleY);
+    state.label.setDepth?.(state.depth);
   }
 
   getUnitLungeTargets(cell) {
@@ -9814,6 +9859,7 @@ export default class BattleScene extends Phaser.Scene {
 
   prepareUnitLungeTargets(targets) {
     this.tweens?.killTweensOf?.(targets);
+    targets?.forEach?.((target) => target?.setDepth?.(246));
   }
 
   async playCombatAnimations(combatEvents, preCombatBoardSnapshot = null) {
@@ -10679,6 +10725,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   createBoardUnitView(cell, unit) {
+    const options = arguments[2] ?? {};
     const unitWidth = Math.max(1, cell.background.width - 8);
     const unitHeight = Math.max(1, cell.background.height - 8);
     const horizontalPad = Math.max(3, Math.round(unitWidth * 0.04));
@@ -10765,11 +10812,61 @@ export default class BattleScene extends Phaser.Scene {
     const artLocalContrast = this.add.rectangle(0, finalArtY, artRect.width, artRect.height, 0x000000, 0.03);
     const artShade = this.add.rectangle(0, finalArtY - artRect.height * 0.17, artRect.width, artRect.height * 0.52, CARD_COLORS.artTop, 0.18);
     const artBottomDim = this.add.rectangle(0, finalArtY + artRect.height * 0.29, artRect.width, artRect.height * 0.42, BASE_CARD_SURFACE_THEME.artBackdropFill, 0.14);
+    const offlineDim = this.add.rectangle(0, 0, unitWidth, unitHeight, 0x020617, options.offline ? OFFLINE_UNIT_DIM_ALPHA : 0);
+    offlineDim.name = 'offlineDim';
 
+    if (options.offline) return [cardBack, inner, artBackdrop, art, artStroke, artLocalContrast, artShade, artBottomDim, offlineDim, stats];
+    offlineDim.destroy?.();
     return [cardBack, inner, artBackdrop, art, artStroke, artLocalContrast, artShade, artBottomDim, stats];
   }
 
+  applyOfflineBoardUnitVisual(cell, offline, wasOffline) {
+    if (!cell?.label) return;
+    const label = cell.label;
+    const offlineDim = typeof label.getByName === 'function' ? label.getByName('offlineDim') : null;
+    this.tweens?.killTweensOf?.([label, offlineDim].filter(Boolean));
+
+    if (offline) {
+      label.setAlpha(wasOffline ? OFFLINE_UNIT_ALPHA : 1);
+      if (offlineDim) offlineDim.setAlpha(wasOffline ? OFFLINE_UNIT_DIM_ALPHA : 0);
+      this.tweens?.add?.({
+        targets: label,
+        alpha: OFFLINE_UNIT_ALPHA,
+        duration: wasOffline ? 0 : OFFLINE_UNIT_FADE_IN_MS,
+        ease: 'Sine.easeOut',
+      });
+      if (offlineDim) {
+        this.tweens?.add?.({
+          targets: offlineDim,
+          alpha: OFFLINE_UNIT_DIM_ALPHA,
+          duration: wasOffline ? 0 : OFFLINE_UNIT_FADE_IN_MS,
+          ease: 'Sine.easeOut',
+        });
+      }
+      return;
+    }
+
+    label.setAlpha(wasOffline ? OFFLINE_UNIT_ALPHA : 1);
+    if (offlineDim) offlineDim.setAlpha(wasOffline ? OFFLINE_UNIT_DIM_ALPHA : 0);
+    if (!wasOffline) return;
+    this.tweens?.add?.({
+      targets: label,
+      alpha: 1,
+      duration: OFFLINE_UNIT_FADE_OUT_MS,
+      ease: 'Sine.easeOut',
+    });
+    if (offlineDim) {
+      this.tweens?.add?.({
+        targets: offlineDim,
+        alpha: 0,
+        duration: OFFLINE_UNIT_FADE_OUT_MS,
+        ease: 'Sine.easeOut',
+      });
+    }
+  }
+
   refreshBoardLabels() {
+    normalizeOfflineReservations(this.gameState);
     if (this.boardInspectIndex !== null && !this.gameState.board[this.boardInspectIndex]) {
       this.clearBoardInspect({ animate: true });
     }
@@ -10779,10 +10876,19 @@ export default class BattleScene extends Phaser.Scene {
 
     this.boardCells.forEach((cell) => {
       const unit = this.gameState.board[cell.index];
+      const offline = this.isBoardIndexOffline(cell.index);
+      const wasOffline = this.offlineBoardVisualIndexes?.has(cell.index) ?? false;
       cell.label.removeAll(true);
-      cell.label.setAlpha(1).setScale(1);
-      if (unit) {
-        cell.label.add(this.createBoardUnitView(cell, unit));
+      cell.label.setAlpha(wasOffline ? OFFLINE_UNIT_ALPHA : 1).setScale(1);
+      if (unit && unit.offlineReservedSlot !== true) {
+        if (offline || wasOffline) {
+          cell.label.add(this.createBoardUnitView(cell, unit, { offline: offline || wasOffline }));
+        } else {
+          cell.label.add(this.createBoardUnitView(cell, unit));
+        }
+        this.applyOfflineBoardUnitVisual(cell, offline, wasOffline);
+      } else {
+        cell.label.setAlpha(1);
       }
       const lane = cell.index % 3;
       const isEnemyRow = cell.row === 0;
@@ -10797,6 +10903,9 @@ export default class BattleScene extends Phaser.Scene {
       cell.blockedMarker.setText(laneBlocked ? '✕' : '');
     });
 
+    this.offlineBoardVisualIndexes = new Set(this.boardCells
+      .filter((cell) => this.isBoardIndexOffline(cell.index))
+      .map((cell) => cell.index));
     this.lastRenderedBoardStats = currentRenderStats;
     this.currentBoardRenderStats = null;
     this.turnStartBanner = null;

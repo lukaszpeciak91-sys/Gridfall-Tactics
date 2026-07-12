@@ -741,13 +741,16 @@ function getSystemOverrideAttackProfile(state, unit, unitIndex) {
 function resolveCombatWithRawHeroDamage(state, callback) {
   const previousPreserveRawHeroHP = state.preserveRawHeroHPUntilCombatFinalization;
   state.preserveRawHeroHPUntilCombatFinalization = true;
-  const result = callback();
-  if (previousPreserveRawHeroHP) {
-    state.preserveRawHeroHPUntilCombatFinalization = previousPreserveRawHeroHP;
-  } else {
-    delete state.preserveRawHeroHPUntilCombatFinalization;
+  try {
+    return callback();
+  } finally {
+    normalizeOfflineReservations(state);
+    if (previousPreserveRawHeroHP) {
+      state.preserveRawHeroHPUntilCombatFinalization = previousPreserveRawHeroHP;
+    } else {
+      delete state.preserveRawHeroHPUntilCombatFinalization;
+    }
   }
-  return result;
 }
 
 function cloneBoardForCombatPresentation(state) {
@@ -760,9 +763,21 @@ function cloneFuneralPyreForCombatPresentation(state) {
     : null;
 }
 
+function cloneOfflineReservationsForCombatPresentation(state) {
+  return (state.offlineReservations ?? []).map((entry) => ({
+    id: entry?.id ?? null,
+    reservedIndex: entry?.reservedIndex,
+    consumed: Boolean(entry?.consumed),
+    returned: Boolean(entry?.returned),
+    reservedUnitId: entry?.reservedUnit?.cardId ?? entry?.reservedUnit?.id ?? null,
+    reservedUnitOwner: entry?.reservedUnit?.owner ?? null,
+  }));
+}
+
 function captureImmediateCombatPresentationSnapshot(state) {
   return {
     board: cloneBoardForCombatPresentation(state),
+    offlineReservations: cloneOfflineReservationsForCombatPresentation(state),
     playerHP: state.playerHP,
     enemyHP: state.enemyHP,
     funeralPyreThisCombat: cloneFuneralPyreForCombatPresentation(state),
@@ -1912,6 +1927,7 @@ function getEnemyLaneTempoModEffectParams(card = {}) {
 }
 
 function reserveOpposedEnemyOffline(state, owner, boardIndex, sourceUnit) {
+  normalizeOfflineReservations(state);
   const enemyIndex = owner === 'player' ? boardIndex - 6 : boardIndex + 6;
   const enemyUnit = state.board[enemyIndex];
   state.hotRunnerOfflineTelemetry ??= { plays: 0, withEnemy: 0, noEnemy: 0, takenOffline: 0, returned: 0, baseHits: 0, baseDamage: 0, leaks: 0, duplicateReturns: 0 };
@@ -1934,12 +1950,17 @@ function reserveOpposedEnemyOffline(state, owner, boardIndex, sourceUnit) {
     consumed: false,
   };
   state.offlineReservations.push(reservation);
-  state.board[enemyIndex] = { offlineReservedSlot: true, reservationId: reservation.id };
 }
 
 function returnOfflineReservation(state, reservation) {
   if (!reservation || reservation.returned) return false;
   const occupying = state.board[reservation.reservedIndex];
+  if (occupying === reservation.reservedUnit) {
+    reservation.returned = true;
+    state.hotRunnerOfflineTelemetry ??= {};
+    state.hotRunnerOfflineTelemetry.returned = (state.hotRunnerOfflineTelemetry.returned ?? 0) + 1;
+    return true;
+  }
   if (occupying === null || occupying?.offlineReservedSlot === true) {
     state.board[reservation.reservedIndex] = reservation.reservedUnit;
     reservation.returned = true;
@@ -1958,7 +1979,33 @@ function returnOfflineReservation(state, reservation) {
   return false;
 }
 
+export function isBoardUnitOffline(state, boardIndex) {
+  if (!state || !Number.isInteger(boardIndex)) return false;
+  const unit = state.board?.[boardIndex];
+  if (!unit) return false;
+  if (unit.offlineReservedSlot === true) return true;
+  return (state.offlineReservations ?? []).some((entry) => (
+    entry
+    && !entry.returned
+    && entry.reservedIndex === boardIndex
+    && entry.reservedUnit === unit
+  ));
+}
+
+export function normalizeOfflineReservations(state) {
+  if (!state || !Array.isArray(state.offlineReservations)) return;
+  state.offlineReservations.forEach((entry) => {
+    if (!entry || entry.returned) return;
+    const occupying = state.board?.[entry.reservedIndex];
+    if (occupying?.offlineReservedSlot === true && occupying.reservationId === entry.id) {
+      state.board[entry.reservedIndex] = entry.reservedUnit ?? null;
+    }
+  });
+  state.offlineReservations = state.offlineReservations.filter((entry) => entry && !entry.returned);
+}
+
 function consumeOfflineReservationsForLane(state, lane, reason = 'normal') {
+  normalizeOfflineReservations(state);
   const reservations = (state.offlineReservations ?? []).filter((entry) => entry.lane === lane && !entry.consumed && !entry.returned);
   reservations.forEach((entry) => {
     entry.consumed = true;
@@ -3229,8 +3276,8 @@ function resolveCombatLane(state, col, combatContext = null) {
   const offlineReservations = consumeOfflineReservationsForLane(state, col, combatContext?.reason ?? 'normal');
   const enemyIndex = ENEMY_ROW[col];
   const playerIndex = PLAYER_ROW[col];
-  const enemy = state.board[enemyIndex]?.hp > 0 ? { ...state.board[enemyIndex], __index: enemyIndex } : null;
-  const player = state.board[playerIndex]?.hp > 0 ? { ...state.board[playerIndex], __index: playerIndex } : null;
+  const enemy = state.board[enemyIndex]?.hp > 0 && !isBoardUnitOffline(state, enemyIndex) ? { ...state.board[enemyIndex], __index: enemyIndex } : null;
+  const player = state.board[playerIndex]?.hp > 0 && !isBoardUnitOffline(state, playerIndex) ? { ...state.board[playerIndex], __index: playerIndex } : null;
   if (enemy) context.participatedIndexes?.add(enemyIndex);
   if (player) context.participatedIndexes?.add(playerIndex);
 
@@ -3457,6 +3504,7 @@ function resolveCombatLane(state, col, combatContext = null) {
 }
 
 export function resolveCombat(state) {
+  normalizeOfflineReservations(state);
   const battleExhaustedProgressSnapshot = state ? JSON.stringify({
     playerHP: state.playerHP,
     enemyHP: state.enemyHP,
@@ -3545,6 +3593,7 @@ export function resolveCombat(state) {
   } else {
     delete state.preserveRawHeroHPUntilCombatFinalization;
   }
+  normalizeOfflineReservations(state);
 
   return combatContext.events;
 }

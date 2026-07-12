@@ -57,6 +57,25 @@ test('shared build marker helper is used by scene UI outside BattleScene gamepla
   assert.doesNotMatch(battleSource, /createBuildMarker/);
 });
 
+test('BattleScene derives Decoy Hare offline visuals from gameplay reservations, not fake board units', () => {
+  const battleSource = read('src/scenes/BattleScene.js');
+  assert.match(battleSource, /isBoardUnitOffline/);
+  assert.match(battleSource, /OFFLINE_UNIT_ALPHA = 0\.38/);
+  assert.match(battleSource, /OFFLINE_UNIT_FADE_IN_MS = 160/);
+  assert.match(battleSource, /OFFLINE_UNIT_FADE_OUT_MS = 190/);
+  assert.match(battleSource, /createBoardUnitView\(cell, unit, \{ offline: offline \|\| wasOffline \}\)/);
+  assert.match(battleSource, /unit && unit\.offlineReservedSlot !== true/);
+  assert.match(battleSource, /applyOfflineBoardUnitVisual/);
+});
+
+test('GameState keeps Decoy Hare offline reservations out of the renderable board array', () => {
+  const gameStateSource = read('src/systems/GameState.js');
+  assert.match(gameStateSource, /export function isBoardUnitOffline/);
+  assert.match(gameStateSource, /export function normalizeOfflineReservations/);
+  assert.doesNotMatch(gameStateSource, /state\.board\[enemyIndex\] = \{ offlineReservedSlot: true, reservationId: reservation\.id \};/);
+  assert.match(gameStateSource, /state\.board\[entry\.reservedIndex\] = entry\.reservedUnit \?\? null;/);
+});
+
 test('UI implementation notes cover the mobile regression checklist and remaining risk report', () => {
   const notes = read('docs/ui/mobile-ui-implementation-notes.md');
   const requiredChecklistItems = [
