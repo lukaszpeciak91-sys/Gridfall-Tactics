@@ -8,7 +8,6 @@ const FRIENDLY_SINGLE_TARGET_EFFECTS = new Set([
   'heal_1_atk_1_draw_on_kill_this_turn',
   'heal_3',
   'temp_armor_1',
-  'swap_adjacent_then_resolve',
   'ally_atk_plus_1_opposing_enemy_atk_minus_1_until_combat',
   'lane_tempo_mod_until_combat',
 ]);
@@ -27,6 +26,9 @@ export function getTargetingStateForEffect(effectId, cardId, targeting = null) {
   // one-argument behavior friendly for production Mercy.
   if (effectId === 'lane_tempo_mod_until_combat' && targeting === 'enemy_unit') {
     return { cardId, targetType: 'enemy-unit', requiredTargets: 1, targetIndexes: [] };
+  }
+  if (effectId === 'swap_adjacent_then_resolve') {
+    return { cardId, targetType: 'friendly-unit', requiredTargets: 2, targetIndexes: [], targetConstraint: 'adjacent-pair' };
   }
   if (FRIENDLY_SINGLE_TARGET_EFFECTS.has(effectId)) {
     return { cardId, targetType: 'friendly-unit', requiredTargets: 1, targetIndexes: [] };

@@ -8360,6 +8360,7 @@ export default class BattleScene extends Phaser.Scene {
 
     const selectedCount = state.targetIndexes?.length ?? 0;
     if (state.targetConstraint === 'adjacent-pair' && selectedCount > 0) {
+      if (state.targetType === 'friendly-unit') return translateActive('ui.battle.targeting.selectAdjacentAlly', 'SELECT ADJACENT ALLY');
       return translateActive('ui.battle.targeting.selectAdjacentEnemy', 'SELECT ADJACENT ENEMIES');
     }
     if (state.targetType === 'enemy-and-friendly-unit' && selectedCount === 0) {
@@ -8859,7 +8860,10 @@ export default class BattleScene extends Phaser.Scene {
 
     if (effectId === 'swap_adjacent_then_resolve') {
       const selectedIndex = targetIndexes[0];
-      const partnerIndex = this.getAdjacentFriendlySwapPartner(selectedIndex, owner, beforeSnapshot);
+      const selectedPartnerIndex = targetIndexes[1];
+      const partnerIndex = Number.isInteger(selectedPartnerIndex)
+        ? selectedPartnerIndex
+        : this.getAdjacentFriendlySwapPartner(selectedIndex, owner, beforeSnapshot);
       if (Number.isInteger(selectedIndex) && Number.isInteger(partnerIndex)) {
         return [{ type: 'swap', fromIndex: selectedIndex, toIndex: partnerIndex, label: label ?? 'RUSH', kind: 'rush' }];
       }

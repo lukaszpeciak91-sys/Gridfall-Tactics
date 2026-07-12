@@ -524,7 +524,8 @@ function getActionTargetIndexes(action) {
 }
 
 function isTwoTargetSwapEffect(effectId) {
-  return effectId === 'swap_any_two_units'
+  return effectId === 'swap_adjacent_then_resolve'
+    || effectId === 'swap_any_two_units'
     || effectId === 'swap_any_two_friendly_units'
     || effectId === 'swap_any_two_friendly_units_buff_both_atk_1'
     || effectId === 'swap_two_enemy_units'
@@ -586,9 +587,9 @@ function addTwoTargetCandidates(actions, state, owner, card) {
   for (let first = 0; first < targets.length; first += 1) {
     for (let second = 0; second < targets.length; second += 1) {
       if (first === second) continue;
-      if (isTwoTargetSwapEffect(card.effectId ?? null) && second < first) continue;
+      if (isTwoTargetSwapEffect(card.effectId ?? null) && card.effectId !== 'swap_adjacent_then_resolve' && second < first) continue;
       const targetIndexes = [targets[first], targets[second]];
-      if (card.effectId === 'swap_adjacent_enemy_units' && !areAdjacentTargetIndexes(targetIndexes[0], targetIndexes[1])) continue;
+      if ((card.effectId === 'swap_adjacent_enemy_units' || card.effectId === 'swap_adjacent_then_resolve') && !areAdjacentTargetIndexes(targetIndexes[0], targetIndexes[1])) continue;
       if (!state.board[targetIndexes[0]] || !state.board[targetIndexes[1]]) continue;
 
       const probeState = cloneState(state);

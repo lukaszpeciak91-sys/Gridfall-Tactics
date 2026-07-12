@@ -27,6 +27,17 @@ test('two-target effect metadata exposes required target counts without changing
 });
 
 
+test('Rush and Stock Reassignment use two-step adjacent friendly targeting metadata', () => {
+  assert.deepEqual(getTargetingStateForEffect('swap_adjacent_then_resolve', 'overclock_forced_march_1'), {
+    cardId: 'overclock_forced_march_1',
+    targetType: 'friendly-unit',
+    requiredTargets: 2,
+    targetIndexes: [],
+    targetConstraint: 'adjacent-pair',
+  });
+});
+
+
 test('Jam Signal uses max-target positive-ATK enemy metadata while Pulse Wave remains deterministic', () => {
   assert.deepEqual(getTargetingStateForEffect('enemy_up_to_2_atk_minus_1', 'control_jam_signal_1'), {
     cardId: 'control_jam_signal_1',
