@@ -4,6 +4,7 @@ import control from './control.json' with { type: 'json' };
 import swarm from './swarm.json' with { type: 'json' };
 import wardens from './wardens.json' with { type: 'json' };
 import attritionSwarm from './attrition-swarm.json' with { type: 'json' };
+import overclock from './overclock.json' with { type: 'json' };
 
 const FACTIONS = {
   Aggro: aggro,
@@ -12,6 +13,7 @@ const FACTIONS = {
   Swarm: swarm,
   Wardens: wardens,
   'Attrition Swarm': attritionSwarm,
+  Overclock: overclock,
 };
 
 export function getFactionByKey(factionKey) {

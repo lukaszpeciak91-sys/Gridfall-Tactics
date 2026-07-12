@@ -12,7 +12,7 @@ import {
   tutorialPlayerFaction,
 } from '../src/data/tutorial/tutorialDecks.js';
 
-const EXPECTED_NORMAL_FACTION_KEYS = ['Aggro', 'Tank', 'Control', 'Swarm', 'Wardens', 'Attrition Swarm'];
+const EXPECTED_NORMAL_FACTION_KEYS = ['Aggro', 'Tank', 'Control', 'Swarm', 'Wardens', 'Attrition Swarm', 'Overclock'];
 
 const EXPECTED_TUTORIAL_CARD_ART_PATHS = Object.freeze({
   tutorial_unit_a_1: 'public/assets/cards/tutorial/ally_01.webp',
@@ -40,6 +40,7 @@ const EXPECTED_NORMAL_FACTION_ART_ASSET_IDS = Object.freeze({
   Swarm: ['swarm_01', 'swarm_02', 'swarm_03', 'swarm_04', 'swarm_05', 'swarm_06', 'swarm_07', 'swarm_08', 'swarm_09', 'swarm_10'],
   Wardens: ['wardens_01', 'wardens_02', 'wardens_03', 'wardens_04', 'wardens_05', 'wardens_06', 'wardens_07', 'wardens_08', 'wardens_09', 'wardens_10'],
   'Attrition Swarm': ['attrition-swarm_01', 'attrition-swarm_02', 'attrition-swarm_03', 'attrition-swarm_04', 'attrition-swarm_05', 'attrition-swarm_06', 'attrition-swarm_07', 'attrition-swarm_08', 'attrition-swarm_09', 'attrition-swarm_10'],
+  Overclock: ['overclock_01', 'overclock_02', 'overclock_03', 'overclock_04', 'overclock_05', 'overclock_06', 'overclock_07', 'overclock_08', 'overclock_09', 'overclock_10'],
 });
 
 function cardById(deck, id) {

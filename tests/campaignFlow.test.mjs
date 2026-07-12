@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import test from 'node:test';
 import { createNewCampaign, applyCampaignBattleResult, selectCampaignEnemy } from '../src/systems/campaignState.js';
 import { getCampaignEnemyFactionKeys, getCampaignEnemyViewModels } from '../src/systems/campaignEnemySelection.js';
+import { getFactionKeys } from '../src/data/factions/index.js';
 
 const read = (path) => fs.readFileSync(path, 'utf8');
 
@@ -56,12 +57,12 @@ test('continue campaign opens enemy selection scene', () => {
   assert.match(source, /continueCampaign\(\) \{[\s\S]*if \(!hasActiveCampaign\(\)\) return;[\s\S]*this\.scene\.start\('CampaignEnemySelectScene'\)/);
 });
 
-test('campaign enemy select excludes player and shows exactly five stable enemies', () => {
+test('campaign enemy select excludes player and shows every other stable enemy', () => {
   const campaign = createNewCampaign('Aggro');
   const first = getCampaignEnemyFactionKeys(campaign);
   const second = getCampaignEnemyFactionKeys(campaign);
   assert.equal(first.includes('Aggro'), false);
-  assert.equal(first.length, 5);
+  assert.equal(first.length, getFactionKeys().length - 1);
   assert.deepEqual(first, second);
 });
 
@@ -235,11 +236,12 @@ test('BattleMenuScene preserves enemy faction and battle context when falling ba
   assert.match(menu, /enterBattleScene\(this, \{ factionKey, enemyFactionKey, battleContext \}\)/);
 });
 
-test('attempt indicators render inside every campaign enemy card including attrition swarm', () => {
+test('attempt indicators render inside every campaign enemy card including attrition swarm and overclock', () => {
   const campaign = createNewCampaign('Aggro');
   const models = getCampaignEnemyViewModels(campaign);
-  assert.equal(models.length, 5);
+  assert.equal(models.length, getFactionKeys().length - 1);
   assert.ok(models.some((enemy) => enemy.factionKey === 'Attrition Swarm'));
+  assert.ok(models.some((enemy) => enemy.factionKey === 'Overclock'));
   assert.equal(models.every((enemy) => enemy.indicator === '●●●'), true);
   const source = read('src/scenes/CampaignEnemySelectScene.js');
   assert.match(source, /const indicatorX = cardWidth \/ 2 - ATTEMPT_INDICATOR_RIGHT_MARGIN - indicatorPanelWidth \/ 2/);

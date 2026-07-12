@@ -55,6 +55,8 @@ test('faction select chip tag localization matches current English and Polish la
     Attrition: 'Attrition',
     Return: 'Return',
     Formation: 'Formation',
+    Tempo: 'Tempo',
+    Overload: 'Overload',
   };
   const expectedPl = {
     Rush: 'Szarża',
@@ -69,6 +71,8 @@ test('faction select chip tag localization matches current English and Polish la
     Attrition: 'Wyniszczenie',
     Return: 'Powrót',
     Formation: 'Formacja',
+    Tempo: 'Tempo',
+    Overload: 'Przeciążenie',
   };
 
   assert.deepEqual(getPath(en, 'ui.factionSelect.tags'), expectedEn);

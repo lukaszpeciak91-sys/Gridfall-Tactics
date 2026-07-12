@@ -67,9 +67,9 @@ function playOutEnemyLosses(campaign, enemyFactionKey, count = 3) {
   return nextCampaign;
 }
 
-test('createNewCampaign creates five enemies, excludes the player, and initializes attempts', () => {
+test('createNewCampaign creates enemies for every other faction, excludes the player, and initializes attempts', () => {
   const factionKeys = getFactionKeys();
-  assert.equal(factionKeys.length, 6);
+  assert.equal(factionKeys.includes('Overclock'), true);
 
   const campaign = createNewCampaign('Aggro');
   const enemyKeys = Object.keys(campaign.enemies);
@@ -79,7 +79,7 @@ test('createNewCampaign creates five enemies, excludes the player, and initializ
   assert.equal(campaign.playerFactionKey, 'Aggro');
   assert.equal(campaign.currentEnemyFactionKey, null);
   assert.equal(campaign.totalBattleDurationMs, 0);
-  assert.equal(enemyKeys.length, 5);
+  assert.equal(enemyKeys.length, factionKeys.length - 1);
   assert.equal(enemyKeys.includes('Aggro'), false);
 
   for (const enemy of Object.values(campaign.enemies)) {

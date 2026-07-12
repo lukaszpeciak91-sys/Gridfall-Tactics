@@ -239,6 +239,46 @@
     "wardens_hold_the_line_1": {
       "name": "Hold the Ice Pass",
       "textShort": "Adjacent [ALLY] +1 ARM until combat"
+    },
+    "overclock_hot_runner_1": {
+      "name": "Decoy Hare",
+      "textShort": "Opposed [ENEMY] offline for next combat"
+    },
+    "overclock_pain_engine_1": {
+      "name": "Suppressor Hog",
+      "textShort": "Opposed [ENEMY]: -1 ATK until combat"
+    },
+    "overclock_golem_1": {
+      "name": "Single-Use Ox",
+      "textShort": "After combat: lose 1 HP"
+    },
+    "overclock_gap_hunter_1": {
+      "name": "Breach Ram",
+      "textShort": "Empty adjacent slot on your side: +1 ATK"
+    },
+    "overclock_mob_champion_1": {
+      "name": "Central Specimen",
+      "textShort": "+1 ATK per other [ALLY]"
+    },
+    "overclock_redline_1": {
+      "name": "Quota Exceeded",
+      "textShort": "All [ALLY] +1 ATK until combat"
+    },
+    "overclock_forced_march_1": {
+      "name": "Stock Reassignment",
+      "textShort": "Swap with adjacent [ALLY], then that lane immediately fights"
+    },
+    "overclock_crack_strike_1": {
+      "name": "Breach Test",
+      "textShort": "Deal 1 to [ENEMY].\nNext hit ignores [ARM]"
+    },
+    "overclock_ignition_1": {
+      "name": "Conditioned Reflex",
+      "textShort": "Selected [ALLY] immediately fights in its lane"
+    },
+    "overclock_mercy_1": {
+      "name": "Temper Shift",
+      "textShort": "[ENEMY] -1 ATK; opposed [ALLY] +2 ATK until combat"
     }
   },
   "cardTypes": {
@@ -297,7 +337,8 @@
         "Control": "Disrupt and reposition.",
         "Swarm": "Board swarm tactics.",
         "Wardens": "Defensive friction and zone control.",
-        "Attrition Swarm": "Death value and recursion."
+        "Attrition Swarm": "Death value and recursion.",
+        "Overclock": "Forced fights and unstable tempo."
       },
       "tags": {
         "Rush": "Rush",
@@ -311,7 +352,9 @@
         "Growth": "Growth",
         "Attrition": "Attrition",
         "Return": "Return",
-        "Formation": "Formation"
+        "Formation": "Formation",
+        "Tempo": "Tempo",
+        "Overload": "Overload"
       },
       "campaignAccordion": {
         "lore": {
@@ -338,6 +381,10 @@
           "Attrition Swarm": [
             "The world ended on New Year's Eve 1999, but nobody realized.",
             "Decades later, the dead repeat forgotten routines they no longer understand."
+          ],
+          "Overclock": [
+            "A state livestock weaponization program kept running after humanity vanished.",
+            "Its files are official. Its animals are not safe."
           ]
         },
         "gameplay": {
@@ -346,7 +393,8 @@
           "Control": "Control the battlefield through disruption and manipulation.",
           "Swarm": "Expand relentlessly until the battlefield belongs to you.",
           "Wardens": "Support your line, hold formation, and outlast the enemy.",
-          "Attrition Swarm": "Gain value from loss, decay, and inevitable return."
+          "Attrition Swarm": "Gain value from loss, decay, and inevitable return.",
+          "Overclock": "Force fights, disrupt lanes, and spend short overload windows."
         },
         "select": "SELECT",
         "descriptions": {
@@ -373,6 +421,10 @@
           "Attrition Swarm": [
             "And here come the tireless partygoers!",
             "The world ended on New Year's Eve '99. They still haven't noticed."
+          ],
+          "Overclock": [
+            "Please welcome Project H.E.R.D.!",
+            "The government office is closed. The breeding directive is still active."
           ]
         }
       }
@@ -495,7 +547,11 @@
         "swap_leftmost_adjacent_enemies": "Swap two adjacent enemies",
         "swap_adjacent_enemy_units": "Swap adjacent enemies, -1 ATK",
         "enemy_atk_to_0_until_combat": "Selected enemy 0 ATK",
-        "ally_atk_plus_1_opposing_enemy_atk_minus_1_until_combat": "Selected ally +1 ATK, opposite enemy -1 ATK"
+        "ally_atk_plus_1_opposing_enemy_atk_minus_1_until_combat": "Selected ally +1 ATK, opposite enemy -1 ATK",
+        "opposed_enemy_offline_next_combat": "Opposed enemy offline next combat",
+        "decay_hp_after_combat": "Loses 1 HP after combat",
+        "atk_plus_per_other_ally": "+1 ATK per other ally",
+        "lane_tempo_mod_until_combat": "Shift lane tempo until combat"
       },
       "targeting": {
         "selectEnemy": "SELECT ENEMY",

@@ -6,7 +6,7 @@ This folder documents the MVP production contract for card illustration files. T
 
 The current faction roster is defined by `src/data/factions/index.js`, which imports the faction JSON files from `src/data/factions/`. Card illustration folders and filename stems must use each faction's `id` field from those JSON files.
 
-Current roster count: **6 full base gameplay factions**. `attrition-swarm` is a full permanent base faction, not a temporary variant. Future armies may be presentation/thematic expansions based on these mechanical bases, but the current six faction mechanics and card descriptions remain the base source.
+Current roster count: **7 full base gameplay factions**. `attrition-swarm` is a full permanent base faction, not a temporary variant. Future armies may be presentation/thematic expansions based on these mechanical bases, but the current seven faction mechanics and card descriptions remain the base source.
 
 | Faction key / display name | Faction id | Definition file |
 | --- | --- | --- |
@@ -16,6 +16,7 @@ Current roster count: **6 full base gameplay factions**. `attrition-swarm` is a 
 | `Swarm` | `swarm` | `src/data/factions/swarm.json` |
 | `Wardens` | `wardens` | `src/data/factions/wardens.json` |
 | `Attrition Swarm` | `attrition-swarm` | `src/data/factions/attrition-swarm.json` |
+| `Overclock` | `overclock` | `src/data/factions/overclock.json` |
 
 ## Production asset contract
 
@@ -38,6 +39,7 @@ public/assets/cards/control/
 public/assets/cards/swarm/
 public/assets/cards/wardens/
 public/assets/cards/attrition-swarm/
+public/assets/cards/overclock/
 ```
 
 Example paths for the current faction roster:
@@ -49,6 +51,7 @@ public/assets/cards/control/control_04.webp
 public/assets/cards/swarm/swarm_01.webp
 public/assets/cards/wardens/wardens_01.webp
 public/assets/cards/attrition-swarm/attrition-swarm_01.webp
+public/assets/cards/overclock/overclock_01.webp
 ```
 
 ## Stable card numbering metadata
@@ -80,6 +83,7 @@ Control cardNumber 4 -> artAssetId control_04 -> public/assets/cards/control/con
 Swarm cardNumber 1 -> artAssetId swarm_01 -> public/assets/cards/swarm/swarm_01.webp
 Wardens cardNumber 1 -> artAssetId wardens_01 -> public/assets/cards/wardens/wardens_01.webp
 Attrition Swarm cardNumber 1 -> artAssetId attrition-swarm_01 -> public/assets/cards/attrition-swarm/attrition-swarm_01.webp
+Overclock cardNumber 1 -> artAssetId overclock_01 -> public/assets/cards/overclock/overclock_01.webp
 ```
 
 ## Texture key convention
@@ -99,6 +103,7 @@ card.control.control_04
 card.swarm.swarm_01
 card.wardens.wardens_01
 card.attrition-swarm.attrition-swarm_01
+card.overclock.overclock_01
 ```
 
 If a card does not define `artAssetId`, the asset resolver falls back to the existing card-id-based path and key behavior for compatibility. Explicit renderer texture keys are still supported through `artTextureKey`, `artKey`, or `art.textureKey`.
@@ -157,6 +162,7 @@ public/assets/cards/control/control_04.webp
 public/assets/cards/swarm/swarm_01.webp
 public/assets/cards/wardens/wardens_01.webp
 public/assets/cards/attrition-swarm/attrition-swarm_01.webp
+public/assets/cards/overclock/overclock_01.webp
 ```
 
 Use manual assets to verify that:

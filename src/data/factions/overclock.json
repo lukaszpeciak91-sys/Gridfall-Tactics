@@ -1,0 +1,126 @@
+{
+  "id": "overclock",
+  "name": "Overclock",
+  "frameImage": "frame_default",
+  "deck": [
+    {
+      "id": "overclock_hot_runner_1",
+      "cardNumber": 1,
+      "artAssetId": "overclock_01",
+      "name": "Decoy Hare",
+      "type": "unit",
+      "targeting": "lane",
+      "effectId": "opposed_enemy_offline_next_combat",
+      "textShort": "Opposed [ENEMY] offline for next combat",
+      "attack": 1,
+      "hp": 1,
+      "armor": 0
+    },
+    {
+      "id": "overclock_pain_engine_1",
+      "cardNumber": 2,
+      "artAssetId": "overclock_02",
+      "name": "Suppressor Hog",
+      "type": "unit",
+      "targeting": "lane",
+      "effectId": "enemy_lane_atk_minus_1",
+      "textShort": "Opposed [ENEMY]: -1 ATK until combat",
+      "attack": 1,
+      "hp": 2,
+      "armor": 0
+    },
+    {
+      "id": "overclock_golem_1",
+      "cardNumber": 3,
+      "artAssetId": "overclock_03",
+      "name": "Single-Use Ox",
+      "type": "unit",
+      "targeting": "lane",
+      "effectId": "decay_hp_after_combat",
+      "textShort": "After combat: lose 1 HP",
+      "attack": 2,
+      "hp": 4,
+      "armor": 0
+    },
+    {
+      "id": "overclock_gap_hunter_1",
+      "cardNumber": 4,
+      "artAssetId": "overclock_04",
+      "name": "Breach Ram",
+      "type": "unit",
+      "targeting": "lane",
+      "effectId": "empty_adjacent_bonus_atk",
+      "textShort": "Empty adjacent slot on your side: +1 ATK",
+      "attack": 2,
+      "hp": 2,
+      "armor": 0
+    },
+    {
+      "id": "overclock_mob_champion_1",
+      "cardNumber": 5,
+      "artAssetId": "overclock_05",
+      "name": "Central Specimen",
+      "type": "unit",
+      "targeting": "lane",
+      "effectId": "atk_plus_per_other_ally",
+      "textShort": "+1 ATK per other [ALLY]",
+      "attack": 1,
+      "hp": 2,
+      "armor": 0
+    },
+    {
+      "id": "overclock_redline_1",
+      "cardNumber": 6,
+      "artAssetId": "overclock_06",
+      "name": "Quota Exceeded",
+      "type": "order",
+      "targeting": "all_friendly_units",
+      "effectId": "buff_all_atk_1",
+      "textShort": "All [ALLY] +1 ATK until combat"
+    },
+    {
+      "id": "overclock_forced_march_1",
+      "cardNumber": 7,
+      "artAssetId": "overclock_07",
+      "name": "Stock Reassignment",
+      "type": "order",
+      "targeting": "friendly_unit",
+      "effectId": "swap_adjacent_then_resolve",
+      "textShort": "Swap with adjacent [ALLY], then that lane immediately fights"
+    },
+    {
+      "id": "overclock_crack_strike_1",
+      "cardNumber": 8,
+      "artAssetId": "overclock_08",
+      "name": "Breach Test",
+      "type": "order",
+      "targeting": "enemy_unit",
+      "effectId": "ignore_armor_next_attack",
+      "textShort": "Deal 1 to [ENEMY].\nNext hit ignores [ARM]"
+    },
+    {
+      "id": "overclock_ignition_1",
+      "cardNumber": 9,
+      "artAssetId": "overclock_09",
+      "name": "Conditioned Reflex",
+      "type": "special",
+      "targeting": "friendly_unit",
+      "effectId": "quick_strike",
+      "textShort": "Selected [ALLY] immediately fights in its lane"
+    },
+    {
+      "id": "overclock_mercy_1",
+      "cardNumber": 10,
+      "artAssetId": "overclock_10",
+      "name": "Temper Shift",
+      "type": "utility",
+      "targeting": "enemy_unit",
+      "effectId": "lane_tempo_mod_until_combat",
+      "effectParams": {
+        "targetEnemyAtk": -1,
+        "opposingAllyAtk": 2
+      },
+      "textShort": "[ENEMY] -1 ATK; opposed [ALLY] +2 ATK until combat"
+    }
+  ]
+}

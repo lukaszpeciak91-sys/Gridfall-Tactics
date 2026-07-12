@@ -291,6 +291,16 @@ Candidate audit for the same rule:
 | Attrition Swarm | Feast | utility | - | draw_1 | Draw 1 | No target | Draw-only cycle utility; does not destroy allies, damage bases, summon, revive, or interact with fallen units. |
 | Attrition Swarm | Rise Again | order | - | revive_friendly_1hp | Revive the newest fallen unit with 1 HP | Non-targeted deterministic effect | First empty friendly slot + newest unit in fallen; no manual target UI. |
 | Attrition Swarm | Grave Call | order | - | grave_call | Summon a 1/1. If you have no [ALLY], summon up to 2 | Non-targeted deterministic effect | Fills first empty friendly slot, or up to 2 left-to-right if the owner has no allies; rejected if no empty slot exists. |
+| Overclock | Decoy Hare | unit | 1/1/0 | opposed_enemy_offline_next_combat | Opposed [ENEMY] offline for next combat | Lane on-play / next combat | Temporarily removes the opposed enemy for the next combat window, then returns it without Fallen bookkeeping. |
+| Overclock | Suppressor Hog | unit | 1/2/0 | enemy_lane_atk_minus_1 | Opposed [ENEMY]: -1 ATK until combat | Lane on-play | Reuses Control lane ATK suppression; expires after combat cleanup. |
+| Overclock | Single-Use Ox | unit | 2/4/0 | decay_hp_after_combat | After combat: lose 1 HP | Post-combat decay | After participating in combat, takes 1 post-combat direct damage and uses normal non-combat death cleanup. |
+| Overclock | Breach Ram | unit | 2/2/0 | empty_adjacent_bonus_atk | Empty adjacent slot on your side: +1 ATK | Lane combat | Adjacent check is board-state based. |
+| Overclock | Central Specimen | unit | 1/2/0 | atk_plus_per_other_ally | +1 ATK per other [ALLY] | Lane combat | Counts other same-owner units only, not itself or enemies. |
+| Overclock | Quota Exceeded | order | - | buff_all_atk_1 | All [ALLY] +1 ATK until combat | Non-targeted effect | Expires after combat cleanup. |
+| Overclock | Stock Reassignment | order | - | swap_adjacent_then_resolve | Swap with adjacent [ALLY], then that lane immediately fights | Targeted friendly | Fails if no adjacent friendly; immediate lane combat does not replace standard combat. |
+| Overclock | Breach Test | order | - | ignore_armor_next_attack | Deal 1 to [ENEMY].\nNext hit ignores [ARM] | Targeted enemy | If the target survives, consumes ignore flag on first mitigated hit. |
+| Overclock | Conditioned Reflex | special | - | quick_strike | Selected [ALLY] immediately fights in its lane | Targeted friendly | Additional lane-only immediate combat slice; surviving units may still fight in standard combat. |
+| Overclock | Temper Shift | utility | - | lane_tempo_mod_until_combat | [ENEMY] -1 ATK; opposed [ALLY] +2 ATK until combat | Targeted enemy | Uses enemy-unit lane tempo params `targetEnemyAtk: -1` and `opposingAllyAtk: 2`; expires after combat cleanup. |
 | Tank | Shieldbearer | unit | 1/2/0 | lane_armor_aura_1 | Adjacent [ALLY] +1 ARM until combat | Passive adjacency aura | Calculated during damage mitigation. |
 | Tank | Heavy | unit | 2/3/0 | null |  | Lane combat | Vanilla unit with empty rules text. |
 | Tank | Guardian | unit | 1/3/0 | intercept_lane_damage | Takes combat damage for adjacent [ALLY] | Deterministic adjacency intercept | One guardian intercept per index per resolve pass. |
@@ -324,6 +334,7 @@ Implemented now:
 - Flood capped at up to 2 temporary 1/1 Tokens that vanish after combat and do not trigger death effects.
 - Wardens defensive friction, Halberdier opposing-lane bonus, Shield Push, Stand Firm, and Reinforce Line.
 - Attrition Swarm combat-only death triggers, Funeral Pyre cap-2 death pressure, Rotten Gift, Feast, Rise Again, and Grave Call.
+- Overclock / Project H.E.R.D. opposed-offline windows, HP decay, per-ally ATK scaling, quick forced fights, armor breach setup, and parameterized lane tempo shift.
 - One-time opening mulligan with up to 2 replacements before game start.
 
 Deferred / intentionally simplified:

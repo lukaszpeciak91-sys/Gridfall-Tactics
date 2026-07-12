@@ -25,8 +25,8 @@ test('debug illustration pool includes faction, tutorial, and generated art dedu
   const dedupeKeys = entries.map((entry) => entry.dedupeKey);
 
   assert.equal(new Set(dedupeKeys).size, entries.length);
-  assert.equal(summary.total, 72);
-  assert.equal(summary.normalFactionCount, 60);
+  assert.equal(summary.total, 82);
+  assert.equal(summary.normalFactionCount, 70);
   assert.equal(summary.tutorialCount, 9);
   assert.equal(summary.generatedTokenCount, 3);
   assert.equal(summary.skippedDuplicates, 0);
@@ -39,9 +39,9 @@ test('debug illustration pool includes faction, tutorial, and generated art dedu
 test('debug illustration pool reports source counts and skipped duplicate candidates', () => {
   const { entries, summary } = buildDebugIllustrationPool();
 
-  assert.equal(entries.length, 72);
-  assert.equal(summary.total, 72);
-  assert.equal(summary.normalFactionCount, 60);
+  assert.equal(entries.length, 82);
+  assert.equal(summary.total, 82);
+  assert.equal(summary.normalFactionCount, 70);
   assert.equal(summary.tutorialCount, 9);
   assert.equal(summary.generatedTokenCount, 3);
   assert.equal(summary.skippedDuplicates, 7);

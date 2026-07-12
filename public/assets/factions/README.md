@@ -6,7 +6,7 @@ This folder is reserved for faction-level artwork only: preview images, banners,
 
 The current faction roster is defined by `src/data/factions/index.js`, which imports the faction JSON files from `src/data/factions/`. Each reserved artwork folder must use the faction's `id` from those JSON files, not a display name guessed from UI copy.
 
-Current roster count: **6 full base gameplay factions**. `attrition-swarm` is a full permanent base faction, not a temporary variant. Future armies may be presentation/thematic expansions based on these mechanical bases, but the current six faction mechanics and card descriptions remain the base source.
+Current roster count: **7 full base gameplay factions**. `attrition-swarm` is a full permanent base faction, not a temporary variant. Future armies may be presentation/thematic expansions based on these mechanical bases, but the current seven faction mechanics and card descriptions remain the base source.
 
 | Faction key / display name | Faction id | Definition file |
 | --- | --- | --- |
@@ -16,6 +16,7 @@ Current roster count: **6 full base gameplay factions**. `attrition-swarm` is a 
 | `Swarm` | `swarm` | `src/data/factions/swarm.json` |
 | `Wardens` | `wardens` | `src/data/factions/wardens.json` |
 | `Attrition Swarm` | `attrition-swarm` | `src/data/factions/attrition-swarm.json` |
+| `Overclock` | `overclock` | `src/data/factions/overclock.json` |
 
 ## Folder structure
 
@@ -33,6 +34,8 @@ public/assets/factions/
         preview.webp
     attrition-swarm/
         preview.webp
+    overclock/
+        preview.webp
 ```
 
 Current faction preview paths:
@@ -43,6 +46,7 @@ Current faction preview paths:
 - `public/assets/factions/swarm/preview.webp`
 - `public/assets/factions/wardens/preview.webp`
 - `public/assets/factions/attrition-swarm/preview.webp`
+- `public/assets/factions/overclock/preview.webp`
 
 Gameplay card illustrations must not be stored under `public/assets/factions/`. The canonical gameplay card illustration source is `public/assets/cards/{factionId}/{artAssetId}.webp`.
 

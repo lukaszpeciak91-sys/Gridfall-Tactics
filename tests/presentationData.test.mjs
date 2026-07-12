@@ -202,6 +202,7 @@ test('faction select metadata covers every faction with two updated chip tags', 
     ['Swarm', ['Swarm', 'Growth']],
     ['Wardens', ['Support', 'Formation']],
     ['Attrition Swarm', ['Attrition', 'Return']],
+    ['Overclock', ['Tempo', 'Overload']],
   ]);
 
   for (const [factionKey, tags] of expectedTags) {
