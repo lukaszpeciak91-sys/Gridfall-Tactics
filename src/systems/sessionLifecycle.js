@@ -40,6 +40,13 @@ function getSceneDiagnostics(game) {
   }));
 }
 
+function emitSessionLifecycleSignal(game, reason) {
+  game?.events?.emit?.('session-lifecycle:signal', {
+    reason,
+    documentHidden: typeof document !== 'undefined' ? document.hidden : undefined,
+  });
+}
+
 function recoverActiveBattleScene(game, reason) {
   const scenePlugin = game?.scene;
   const battleScene = scenePlugin?.getScene?.('BattleScene') ?? scenePlugin?.get?.('BattleScene') ?? null;
@@ -72,6 +79,7 @@ export function installSessionLifecycle(game) {
   }
 
   const scheduleRecovery = (reason) => {
+    emitSessionLifecycleSignal(game, reason);
     window.requestAnimationFrame(() => recoverActiveBattleScene(game, reason));
   };
 
