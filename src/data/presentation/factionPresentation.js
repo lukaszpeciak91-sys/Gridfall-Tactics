@@ -260,7 +260,7 @@ const presentation = {
       overclock_pain_engine_1: { nameEn: 'Suppressor Hog', namePl: 'Wieprz Tłumiący' },
       overclock_golem_1: { nameEn: 'Single-Use Ox', namePl: 'Wół Jednorazowy' },
       overclock_gap_hunter_1: { nameEn: 'Breach Ram', namePl: 'Baran Wyłomowy' },
-      overclock_mob_champion_1: { nameEn: 'Central Specimen', namePl: 'Sztuka Centralna' },
+      overclock_mob_champion_1: { nameEn: 'Command Hen', namePl: 'Kwoka Dowodząca' },
       overclock_redline_1: { nameEn: 'Quota Exceeded', namePl: 'Norma Przekroczona' },
       overclock_forced_march_1: { nameEn: 'Stock Reassignment', namePl: 'Korekta Obsady' },
       overclock_crack_strike_1: { nameEn: 'Breach Test', namePl: 'Test Przebicia' },
