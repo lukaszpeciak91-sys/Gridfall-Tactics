@@ -172,3 +172,9 @@ canonical_ref: docs/rules/mvp-battle-rules.md
 - Added standard result-screen achievement popups, Campaign completion summary popup support, a maximum of 3 sequential popups per eligible result panel, early-exit safety, sleep/wake/fullscreen lifecycle-safe presentation, and achievement unlock SFX integration.
 - Confirmed full Achievements access is intentionally not added to the in-battle hamburger menu.
 - Achievements V1 is complete; future work should be limited to adding individual achievements, adjusting thresholds, copy/localization changes, minor visual/audio polish, and support for future modes and factions.
+
+## Overclock / Project H.E.R.D. Production Faction Registration (2026-07-12)
+- Added Overclock v14 as production faction `overclock` with runtime key `Overclock` and player-facing presentation Project H.E.R.D. / Program P.A.S.Z.A.
+- Registered the accepted v14 checkpoint: 49.3% global non-draw WR, 31.6% worst matchup vs Aggro, 64.5% best matchup vs Swarm, 37.3% campaign estimate, 0 crashes, and 0 invalid actions.
+- Preserved existing faction balance and deck data; Overclock uses existing runtime effects for forced combat, temporary lane tempo, opposed offline windows, HP decay, and combat ATK manipulation.
+- Binary art remains a manual follow-up at `public/assets/factions/overclock/preview.webp` and `public/assets/cards/overclock/overclock_01.webp` through `overclock_10.webp`; current runtime fallbacks cover missing assets.

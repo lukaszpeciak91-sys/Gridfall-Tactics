@@ -86,7 +86,6 @@ CUSTOM_FACTION_ID_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 CUSTOM_FACTION_DECK_SIZE = 10
 EFFECT_VARIANT_BLOCKED_OPERATION_KEYS = {"code", "script", "function", "eval", "import", "module", "path", "patch"}
 PRODUCTION_CARD_BLOCKED_DYNAMIC_KEYS = {
-    "effectParams",
     "effectVariant",
     "effectBlocks",
     "script",
@@ -690,9 +689,16 @@ def validate_production_card_safety(root: Path) -> None:
         for card_index, card in enumerate(deck, start=1):
             if not isinstance(card, dict):
                 continue
+            card_id = card.get("id", f"deck entry #{card_index}")
+            if "effectParams" in card:
+                validate_effect_params(
+                    card.get("effectId"),
+                    card.get("effectParams"),
+                    f"{path} / {card_id}",
+                    card.get("targeting"),
+                )
             blocked_keys = sorted(PRODUCTION_CARD_BLOCKED_DYNAMIC_KEYS.intersection(card))
             if blocked_keys:
-                card_id = card.get("id", f"deck entry #{card_index}")
                 raise BalanceLabError(
                     f"Production card data contains unsupported dynamic effect field(s) in {path} / {card_id}: "
                     f"{', '.join(blocked_keys)}. Balance Lab v3 effect variants must remain temp-copy only."

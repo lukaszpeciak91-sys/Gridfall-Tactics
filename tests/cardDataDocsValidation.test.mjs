@@ -52,6 +52,16 @@ const expectedTextShort = new Map(Object.entries({
   attrition_swarm_feast_1: 'Draw 1',
   attrition_swarm_rise_again_1: 'Revive the newest fallen unit with 1 HP',
   attrition_swarm_grave_call_1: 'Summon a 1/1. If you have no [ALLY], summon up to 2',
+  overclock_hot_runner_1: 'Opposed [ENEMY] offline for next combat',
+  overclock_pain_engine_1: 'Opposed [ENEMY]: -1 ATK until combat',
+  overclock_golem_1: 'After combat: lose 1 HP',
+  overclock_gap_hunter_1: 'Empty adjacent slot on your side: +1 ATK',
+  overclock_mob_champion_1: '+1 ATK per other [ALLY]',
+  overclock_redline_1: 'All [ALLY] +1 ATK until combat',
+  overclock_forced_march_1: 'Swap with adjacent [ALLY], then that lane immediately fights',
+  overclock_crack_strike_1: 'Deal 1 to [ENEMY].\nNext hit ignores [ARM]',
+  overclock_ignition_1: 'Selected [ALLY] immediately fights in its lane',
+  overclock_mercy_1: '[ENEMY] -1 ATK; opposed [ALLY] +2 ATK until combat',
 }));
 
 function loadFactions() {

@@ -10,6 +10,7 @@ export const FACTION_CARD_DETAILS = {
   Swarm: { description: 'Board swarm tactics.', tags: ['Swarm', 'Growth'], accentColor: 0x84cc16, fallbackTopColor: 0x365314, fallbackBottomColor: 0x0f172a },
   Wardens: { description: 'Defensive friction and zone control.', tags: ['Support', 'Formation'], accentColor: 0xfacc15, fallbackTopColor: 0x713f12, fallbackBottomColor: 0x0f172a },
   'Attrition Swarm': { description: 'Death value and recursion.', tags: ['Attrition', 'Return'], accentColor: 0xec4899, fallbackTopColor: 0x4c0519, fallbackBottomColor: 0x0f172a },
+  Overclock: { description: 'Forced fights and unstable tempo.', tags: ['Tempo', 'Overload'], accentColor: 0xf59e0b, fallbackTopColor: 0x78350f, fallbackBottomColor: 0x1c1917 },
 };
 
 const POSTER_TITLE_SCRIM_HEIGHT = 96;

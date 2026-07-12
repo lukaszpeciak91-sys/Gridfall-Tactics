@@ -1,6 +1,6 @@
 # Frozen Art Bible: Gridfall Tactics
 
-This document freezes the visual and naming direction for faction/card presentation. It is additive art direction only: it must not change gameplay, balance, faction ids, card ids, deck composition, AI behavior, or tests. The current game has **6 full base gameplay factions**: `aggro`, `tank`, `control`, `swarm`, `wardens`, and `attrition-swarm`. `attrition-swarm` is a full permanent base faction, not a temporary variant. Future armies may be presentation or thematic expansions based on these mechanical bases, but the current six factions are not placeholders.
+This document freezes the visual and naming direction for faction/card presentation. It is additive art direction only: it must not change gameplay, balance, faction ids, card ids, deck composition, AI behavior, or tests. The current game has **7 full base gameplay factions**: `aggro`, `tank`, `control`, `swarm`, `wardens`, `attrition-swarm`, and `overclock`. `attrition-swarm` is a full permanent base faction, not a temporary variant. Future armies may be presentation or thematic expansions based on these mechanical bases, but the current seven factions are not placeholders.
 
 ## Global Visual Identity
 
@@ -131,6 +131,7 @@ Faction poster anchors:
 - **Spore Choir:** biological nexus on the left; living ecosystem beyond.
 - **Mammoth Clans:** mammoth fortress on the left; migration route beyond.
 - **Gravehearts:** endless final celebration on the left; lost civilization beyond.
+- **Project H.E.R.D. / Program P.A.S.Z.A.:** official livestock-program mark, feed silo, or tagged animal handling apparatus on the left; concrete agricultural facility beyond.
 
 ### Mobile crop rules
 
@@ -156,7 +157,36 @@ These notes extend the asset specs above; they do not replace the `1920x1080` so
 
 ## Faction Visual Identities
 
-These six visual identities map onto the six current base gameplay factions. Presentation names and art direction are additive layers over the stable faction ids; they must not rename the source faction ids or imply that any current base faction is temporary.
+These seven visual identities map onto the seven current base gameplay factions. Presentation names and art direction are additive layers over the stable faction ids; they must not rename the source faction ids or imply that any current base faction is temporary.
+
+### overclock — Project H.E.R.D. / Program P.A.S.Z.A.
+
+**Core identity:** A late-1980s state agricultural/military breeding program continued running after humanity disappeared. It is not a civilization, religion, political faction, robot army, or cyberpunk lab. It is an unattended government livestock weaponization directive whose products are biological military animals. The horror is bureaucratic, agricultural, absurd, official, and still stamped as normal work.
+
+**Lore names:** English presentation name is **Project H.E.R.D.** — Hostile Engineered Rural Directive. Polish presentation name is **Program P.A.S.Z.A.** — Program Adaptacyjnej Syntezy Zwierząt Agresywnych. The internal gameplay id remains `overclock` only and should not be used as player-facing faction branding except unavoidable debug/internal surfaces.
+
+**Style:** Late Eastern Bloc agricultural industry, government breeding facilities, veterinary labs, concrete barns, feed silos, livestock chutes, rubber tubing, industrial enamel, animal tags, official clipboards, stamped forms, dirty state machinery, absurd rural militarization, conditioned aggression, expendable biological specialization.
+
+**Visual tags:** feed yellow paint, warm milk white, dirty cream, straw, industrial orange markings, chipped enamel, weathered concrete, black rubber hoses, metal gates, restraint stalls, ear tags, feed troughs, silo ladders, fluorescent agricultural offices, official signage without readable baked text.
+
+**Color notes:** feed yellow, warm milk white, dirty cream, straw, industrial orange, chipped enamel, concrete gray, black rubber. Avoid cyberpunk neon, blue glow, cold lab green, glass aesthetics, signal towers, sleek robotics, or futuristic technology.
+
+**Gameplay feel:** Tempo disruption, forced engagements, conditioned aggression, temporary advantages, unstable biological specialization, and expendable military livestock. It is not Aggro 2.0: pressure comes from short overload windows, forced fights, lane manipulation, and temporary combat-state changes rather than raw speed alone.
+
+**Banner anchor:** A large official livestock-program symbol, tagged animal handling apparatus, or feed-silo/veterinary restraint silhouette as the dominant symbol; a concrete state breeding facility and agricultural-military bureaucracy beyond.
+
+**Updated card presentation and art-direction notes:**
+
+- `overclock_hot_runner_1` display name: **Decoy Hare / Zając Wabik**. Show a tagged biological decoy animal in a crude state breeding corridor; it should feel like official livestock handling, not a robot scout.
+- `overclock_pain_engine_1` display name: **Suppressor Hog / Wieprz Tłumiący**. Emphasize dense livestock mass, restraint gear, and conditioned intimidation that suppresses the opposing lane.
+- `overclock_golem_1` display name: **Single-Use Ox / Wół Jednorazowy**. Depict a doomed, heavy, expendable military ox with agricultural handling equipment and bureaucratic disposability.
+- `overclock_gap_hunter_1` display name: **Breach Ram / Baran Wyłomowy**. Keep the pun literal: an aggressive ram bred for breaking lines, with industrial farm context rather than medieval siege gear.
+- `overclock_mob_champion_1` display name: **Central Specimen / Sztuka Centralna**. Present the central prize specimen as a tagged, evaluated animal whose strength depends on the herd around it.
+- `overclock_redline_1` display name: **Quota Exceeded / Norma Przekroczona**. Show official production targets pushed past safe biological limits.
+- `overclock_forced_march_1` display name: **Stock Reassignment / Korekta Obsady**. Show livestock being reassigned through gates/chutes into forced contact.
+- `overclock_crack_strike_1` display name: **Breach Test / Test Przebicia**. Show a state-run penetration/breach trial with agricultural-military test absurdity.
+- `overclock_ignition_1` display name: **Conditioned Reflex / Odruch Warunkowy**. Show trained aggression triggered by official conditioning cues, not electronic hacking.
+- `overclock_mercy_1` display name: **Temper Shift / Korekta Temperamentu**. Show a veterinary temperament-correction procedure using restraint gates, hoses, forms, and animal tags; avoid futuristic neural control.
 
 ### aggro — Porcelain Court / Porcelanowy Dwór
 

@@ -2,7 +2,7 @@
 
 ## Current base faction roster
 
-Gridfall Tactics currently has **6 full base gameplay factions**:
+Gridfall Tactics currently has **7 full base gameplay factions**:
 
 | Runtime faction key | Faction id | Definition file | Presentation layer |
 | --- | --- | --- | --- |
@@ -12,8 +12,9 @@ Gridfall Tactics currently has **6 full base gameplay factions**:
 | `Swarm` | `swarm` | `src/data/factions/swarm.json` | `Spore Choir` |
 | `Wardens` | `wardens` | `src/data/factions/wardens.json` | `Mammoth Clans` |
 | `Attrition Swarm` | `attrition-swarm` | `src/data/factions/attrition-swarm.json` | `Gravehearts` |
+| `Overclock` | `overclock` | `src/data/factions/overclock.json` | `Project H.E.R.D.` / `Program P.A.S.Z.A.` |
 
-`attrition-swarm` is a full permanent base faction, not a temporary variant. All six current factions are base gameplay factions. Future armies may be presentation or thematic expansions built from these mechanical bases, but the current faction mechanics, IDs, card IDs, and card descriptions remain the base source.
+`attrition-swarm` is a full permanent base faction, not a temporary variant. All seven current factions are base gameplay factions. Future armies may be presentation or thematic expansions built from these mechanical bases, but the current faction mechanics, IDs, card IDs, and card descriptions remain the base source.
 
 
 ## Presentation identity freeze
@@ -28,6 +29,7 @@ These presentation identities are the current lore/art direction source for fact
 | `swarm` | Spore Choir | Planetary superorganism where all life is merged into one consciousness and mutates endlessly. |
 | `wardens` | Mammoth Clans | Eternal ice-age mammoth migration civilization, the last warmth against the cosmic Frost. |
 | `attrition-swarm` | Gravehearts | Humanity trapped after New Year's Eve 1999 in memory decay and endless repetition; civilization-wide confusion rather than necromancy. |
+| `overclock` | Project H.E.R.D. / Program P.A.S.Z.A. | A late-1980s state agricultural/military breeding program keeps weaponizing livestock after humanity disappears; bureaucratic, agricultural, absurd, official, and biological rather than cyberpunk or robotic. |
 
 ## Runtime source of truth
 
@@ -42,7 +44,7 @@ These presentation identities are the current lore/art direction source for fact
 Runtime gameplay order from `src/data/factions/index.js` is:
 
 ```text
-Aggro -> Tank -> Control -> Swarm -> Wardens -> Attrition Swarm
+Aggro -> Tank -> Control -> Swarm -> Wardens -> Attrition Swarm -> Overclock
 ```
 
 Before the source-of-truth alignment, simulator tooling loaded `src/data/factions/*.json` by filename sort and keyed entries by each JSON file's `name`. That produced this order:

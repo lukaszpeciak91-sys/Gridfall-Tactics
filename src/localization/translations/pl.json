@@ -239,6 +239,46 @@
     "wardens_hold_the_line_1": {
       "name": "Utrzymać Przełęcz",
       "textShort": "Sąsiedni [ALLY] +1 ARM do walki"
+    },
+    "overclock_hot_runner_1": {
+      "name": "Zając Wabik",
+      "textShort": "[ENEMY] naprzeciwko wyłączony na następną walkę"
+    },
+    "overclock_pain_engine_1": {
+      "name": "Wieprz Tłumiący",
+      "textShort": "[ENEMY] naprzeciwko: -1 ATK do walki"
+    },
+    "overclock_golem_1": {
+      "name": "Wół Jednorazowy",
+      "textShort": "Po walce: strać 1 HP"
+    },
+    "overclock_gap_hunter_1": {
+      "name": "Baran Wyłomowy",
+      "textShort": "Pusty sąsiedni slot po twojej stronie: +1 ATK"
+    },
+    "overclock_mob_champion_1": {
+      "name": "Sztuka Centralna",
+      "textShort": "+1 ATK za każdego innego [ALLY]"
+    },
+    "overclock_redline_1": {
+      "name": "Norma Przekroczona",
+      "textShort": "[ALLIES] +1 ATK do walki"
+    },
+    "overclock_forced_march_1": {
+      "name": "Korekta Obsady",
+      "textShort": "Zamień z sąsiednim [ALLY], potem ta linia natychmiast walczy"
+    },
+    "overclock_crack_strike_1": {
+      "name": "Test Przebicia",
+      "textShort": "Zadaj 1 [ENEMY].\nNastępny cios ignoruje [ARM]"
+    },
+    "overclock_ignition_1": {
+      "name": "Odruch Warunkowy",
+      "textShort": "Wybrany [ALLY] natychmiast walczy w swojej linii"
+    },
+    "overclock_mercy_1": {
+      "name": "Korekta Temperamentu",
+      "textShort": "[ENEMY] -1 ATK; [ALLY] naprzeciwko +2 ATK do walki"
     }
   },
   "cardTypes": {
@@ -297,7 +337,8 @@
         "Control": "Zakłócenia i przestawianie.",
         "Swarm": "Taktyka roju na planszy.",
         "Wardens": "Obrona i kontrola stref.",
-        "Attrition Swarm": "Wartość ze śmierci i powroty."
+        "Attrition Swarm": "Wartość ze śmierci i powroty.",
+        "Overclock": "Wymuszone walki i niestabilne tempo."
       },
       "tags": {
         "Rush": "Szarża",
@@ -311,7 +352,9 @@
         "Growth": "Wzrost",
         "Attrition": "Wyniszczenie",
         "Return": "Powrót",
-        "Formation": "Formacja"
+        "Formation": "Formacja",
+        "Tempo": "Tempo",
+        "Overload": "Przeciążenie"
       },
       "campaignAccordion": {
         "lore": {
@@ -338,6 +381,10 @@
           "Attrition Swarm": [
             "Świat skończył się w sylwestra 1999 roku, lecz nikt tego nie zauważył.",
             "Dekady później martwi powtarzają zapomniane rutyny, których już nie rozumieją."
+          ],
+          "Overclock": [
+            "Państwowy program uzbrajania inwentarza działał dalej po zniknięciu ludzkości.",
+            "Dokumenty są urzędowe. Zwierzęta nie są bezpieczne."
           ]
         },
         "gameplay": {
@@ -346,7 +393,8 @@
           "Control": "Kontroluj pole bitwy przez zakłócenia i manipulację.",
           "Swarm": "Rozrastaj się nieustannie, aż pole bitwy będzie twoje.",
           "Wardens": "Wspieraj linię, trzymaj szyk i przetrwaj przeciwnika.",
-          "Attrition Swarm": "Czerp wartość ze strat, rozkładu i nieuniknionego powrotu."
+          "Attrition Swarm": "Czerp wartość ze strat, rozkładu i nieuniknionego powrotu.",
+          "Overclock": "Wymuszaj walki, zakłócaj linie i wykorzystuj krótkie przeciążenia."
         },
         "select": "WYBIERZ",
         "descriptions": {
@@ -373,6 +421,10 @@
           "Attrition Swarm": [
             "A oto niestrudzeni imprezowicze!",
             "Świat skończył się w sylwestra '99. Oni jeszcze tego nie zauważyli."
+          ],
+          "Overclock": [
+            "Proszę powitać Program P.A.S.Z.A.!",
+            "Urząd zamknięty. Dyrektywa hodowlana nadal obowiązuje."
           ]
         }
       }
@@ -495,7 +547,11 @@
         "swap_leftmost_adjacent_enemies": "Zamień dwóch sąsiadujących wrogów",
         "swap_adjacent_enemy_units": "Zamień sąsiednich wrogów, -1 ATK",
         "enemy_atk_to_0_until_combat": "Wybrany wróg 0 ATK",
-        "ally_atk_plus_1_opposing_enemy_atk_minus_1_until_combat": "Wybrany sojusznik +1 ATK, przeciwnik -1 ATK"
+        "ally_atk_plus_1_opposing_enemy_atk_minus_1_until_combat": "Wybrany sojusznik +1 ATK, przeciwnik -1 ATK",
+        "opposed_enemy_offline_next_combat": "Wróg naprzeciw wyłączony na następną walkę",
+        "decay_hp_after_combat": "Traci 1 HP po walce",
+        "atk_plus_per_other_ally": "+1 ATK za innego sojusznika",
+        "lane_tempo_mod_until_combat": "Zmień tempo linii do walki"
       },
       "targeting": {
         "selectEnemy": "WYBIERZ WROGA",

@@ -16,7 +16,7 @@ canonical_ref: docs/rules/mvp-battle-rules.md
 - Use a **3x3 visual board framing** to keep systems and balancing simple.
 - Implement **turn-based** combat flow.
 - Limit players to **1 action per turn** in MVP.
-- Historical initial scope: start with **4 faction archetypes** to establish strategic variety. Current source-of-truth is **6 full base gameplay factions** (`aggro`, `tank`, `control`, `swarm`, `wardens`, `attrition-swarm`); `attrition-swarm` is permanent, not a temporary variant.
+- Historical initial scope: start with **4 faction archetypes** to establish strategic variety. Current source-of-truth is **7 full base gameplay factions** (`aggro`, `tank`, `control`, `swarm`, `wardens`, `attrition-swarm`, `overclock`); `attrition-swarm` and `overclock` are permanent, not temporary variants.
 
 ## Battle UI MVP Layout (2026-04-29)
 - Lock battle screen to a **mobile-first portrait 9:16** layout for MVP.
@@ -239,3 +239,9 @@ canonical_ref: docs/rules/mvp-battle-rules.md
 - Binary audio assets are uploaded manually; Codex only wires registry/path references.
 - Full Achievements access is intentionally not added to the in-battle hamburger menu.
 - Future V1 work is limited to scoped content additions, thresholds, copy/localization, minor polish, and future mode/faction support.
+
+## Overclock v14 Production Acceptance (2026-07-12)
+- Accepted Overclock v14 as the seventh base gameplay faction under stable internal id `overclock` and runtime key `Overclock`; player-facing presentation is Project H.E.R.D. / Program P.A.S.Z.A., not the internal id.
+- Project H.E.R.D. / Program P.A.S.Z.A. is a late-1980s unattended state agricultural/military breeding program that weaponizes biological livestock; it is explicitly not cyberpunk, robotic, religious, or a civilization faction.
+- Accepted checkpoint: global non-draw WR 49.3%, worst matchup vs Aggro 31.6%, best matchup vs Swarm 64.5%, campaign estimate 37.3%, crashes 0, invalid actions 0.
+- Rationale: the deck sits within the existing faction spread; worst matchup is comparable to existing Swarm vs Wardens 30.5%, best matchup remains below 65%, and attempts to force the Aggro matchup upward either overbuffed the deck or created dead tech cards.

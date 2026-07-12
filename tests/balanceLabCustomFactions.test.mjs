@@ -46,9 +46,9 @@ function runExperimentError(experiment) {
 
 test('Balance Lab accepts one temporary custom faction and includes it in reports', () => {
   const output = runExperiment({ name: 'one-custom', customFactions: [customFaction('candidate-one', 'Candidate One')], telemetry: 'all' });
-  assert.match(output, /Production factions: 6/);
+  assert.match(output, /Production factions: 7/);
   assert.match(output, /Custom factions: 1/);
-  assert.match(output, /Total simulated factions: 7/);
+  assert.match(output, /Total simulated factions: 8/);
   assert.match(output, /candidate-one.*Candidate One/);
   assert.match(output, /candidate-one_card_1/);
   assert.match(output, /Balance audit: aggregate faction table/);
@@ -61,8 +61,8 @@ test('Balance Lab accepts one temporary custom faction and includes it in report
 test('Balance Lab accepts two custom factions and runs the expanded full matrix', () => {
   const output = runExperiment({ matchCount: 1, customFactions: [customFaction('candidate-a', 'Candidate A'), customFaction('candidate-b', 'Candidate B')] }, []);
   assert.match(output, /Custom factions: 2/);
-  assert.match(output, /Total simulated factions: 8/);
-  assert.match(output, /Simulated faction matrix: 8 factions, 64 ordered matchups\./);
+  assert.match(output, /Total simulated factions: 9/);
+  assert.match(output, /Simulated faction matrix: 9 factions, 81 ordered matchups\./);
   assert.match(output, /candidate-a/);
   assert.match(output, /candidate-b/);
 });
