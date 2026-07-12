@@ -12,7 +12,13 @@ const DRIFT_X = 16;
 const DRIFT_Y = -30;
 const VEIL_ALPHA = 0.34;
 const FOG_ALPHA = 0.12;
-const FADE_OUT_MS = 560;
+const EXIT_COLLAPSE_MS = 210;
+const EXIT_HOLD_MS = 60;
+const EXIT_ACQUIRE_MS = 260;
+const EXIT_BAND_HEIGHT_RATIO = 0.11;
+const EXIT_BAND_MIN_HEIGHT = 36;
+const EXIT_BAND_MAX_HEIGHT = 96;
+const EXIT_SCANLINE_ALPHA = 0.18;
 const MENU_MUSIC_FADE_OUT_MS = 560;
 const FRAME_SAFE_MIN_MS = 80;
 const FAILSAFE_REVEAL_MS = 8000;
@@ -40,6 +46,9 @@ export default class BattleTransitionScene extends Phaser.Scene {
     this.phaserPauseHandler = null;
     this.phaserResumeHandler = null;
     this.loadErrorHandler = null;
+    this.exitMask = null;
+    this.signalBand = null;
+    this.scanline = null;
   }
 
   init(data = {}) {
@@ -72,6 +81,7 @@ export default class BattleTransitionScene extends Phaser.Scene {
   renderPresentation() {
     const { width, height } = this.scale;
     this.root = this.add.container(0, 0).setDepth(1000);
+    this.root.setSize(width, height);
     const textureKey = getLoadedCardIllustrationTextureKey(this, this.selection?.card, { factionId: this.selection?.factionId });
     if (textureKey && this.textures.exists(textureKey)) {
       this.root.add(this.createIllustration(textureKey));
@@ -137,9 +147,78 @@ export default class BattleTransitionScene extends Phaser.Scene {
     this.finishing = true;
     stopMusic(this, { fadeMs: MENU_MUSIC_FADE_OUT_MS });
     const delay = Math.max(0, FRAME_SAFE_MIN_MS - (this.time.now - this.startedAt));
-    this.time.delayedCall(delay, () => {
-      this.inputBlocker?.disableInteractive?.();
-      this.tweens.add({ targets: this.root, alpha: 0, duration: FADE_OUT_MS, ease: 'Sine.easeInOut', onComplete: () => this.scene.stop() });
+    this.time.delayedCall(delay, () => this.playBroadcastExit());
+  }
+
+  getTransmissionBandHeight() {
+    const { height } = this.scale;
+    return Phaser.Math.Clamp(height * EXIT_BAND_HEIGHT_RATIO, EXIT_BAND_MIN_HEIGHT, Math.min(EXIT_BAND_MAX_HEIGHT, height));
+  }
+
+  createExitMask(height) {
+    const { width } = this.scale;
+    this.exitMask?.destroy?.();
+    this.exitMask = this.make.graphics({ x: 0, y: 0, add: false });
+    this.exitMask.fillStyle(0xffffff, 1).fillRect(0, (height - height) / 2, width, height);
+    this.root?.setMask?.(this.exitMask.createGeometryMask());
+  }
+
+  updateExitMask(maskHeight) {
+    if (!this.exitMask || !this.root) return;
+    const { width, height } = this.scale;
+    const y = (height - maskHeight) / 2;
+    this.exitMask.clear().fillStyle(0xffffff, 1).fillRect(0, y, width, maskHeight);
+  }
+
+  createSignalBand(maskHeight) {
+    const { width, height } = this.scale;
+    this.signalBand?.destroy?.(true);
+    const y = height / 2;
+    this.signalBand = this.add.container(0, 0).setDepth(1500).setAlpha(0);
+    const bandCore = this.add.rectangle(width / 2, y, width, Math.max(2, maskHeight * 0.16), 0xdbeafe, 0.16);
+    const upperEdge = this.add.rectangle(width / 2, y - maskHeight / 2, width, 1, 0xe2e8f0, 0.18);
+    const lowerEdge = this.add.rectangle(width / 2, y + maskHeight / 2, width, 1, 0xe2e8f0, 0.16);
+    this.scanline = this.add.rectangle(width / 2, y, width, 1, 0xf8fafc, EXIT_SCANLINE_ALPHA).setAlpha(0.4);
+    this.signalBand.add([bandCore, upperEdge, lowerEdge, this.scanline]);
+    this.tweens.add({ targets: this.scanline, alpha: 0.08, duration: 46, ease: 'Sine.easeInOut', yoyo: true, repeat: -1 });
+  }
+
+  playBroadcastExit() {
+    if (this.isCancelled || !this.root) return;
+    this.inputBlocker?.disableInteractive?.();
+    const { height } = this.scale;
+    const bandHeight = this.getTransmissionBandHeight();
+    const maskState = { height };
+    this.createExitMask(height);
+    this.createSignalBand(bandHeight);
+    this.tweens.add({
+      targets: maskState,
+      height: bandHeight,
+      duration: EXIT_COLLAPSE_MS,
+      ease: 'Cubic.easeInOut',
+      onUpdate: () => this.updateExitMask(maskState.height),
+      onComplete: () => {
+        this.updateExitMask(bandHeight);
+        this.tweens.add({ targets: this.signalBand, alpha: 1, duration: EXIT_HOLD_MS / 2, ease: 'Sine.easeOut', yoyo: true, hold: EXIT_HOLD_MS / 2, onComplete: () => this.playArenaAcquisition(maskState, bandHeight) });
+      },
+    });
+  }
+
+  playArenaAcquisition(maskState, bandHeight) {
+    maskState.height = bandHeight;
+    this.tweens.add({
+      targets: maskState,
+      height: this.scale.height,
+      duration: EXIT_ACQUIRE_MS,
+      ease: 'Cubic.easeOut',
+      onUpdate: () => this.updateExitMask(maskState.height),
+    });
+    this.tweens.add({
+      targets: [this.root, this.signalBand].filter(Boolean),
+      alpha: 0,
+      duration: EXIT_ACQUIRE_MS,
+      ease: 'Sine.easeInOut',
+      onComplete: () => this.scene.stop(),
     });
   }
 
@@ -171,6 +250,12 @@ export default class BattleTransitionScene extends Phaser.Scene {
     this.inputBlocker?.disableInteractive?.();
     this.inputBlocker?.destroy?.();
     this.inputBlocker = null;
+    this.root?.clearMask?.(true);
+    this.exitMask?.destroy?.();
+    this.exitMask = null;
+    this.signalBand?.destroy?.(true);
+    this.signalBand = null;
+    this.scanline = null;
     this.root?.destroy?.(true);
     this.root = null;
     this.tweens?.killAll?.();
@@ -209,6 +294,12 @@ export default class BattleTransitionScene extends Phaser.Scene {
 
   rebuildPresentation() {
     if (this.isCancelled) return;
+    this.root?.clearMask?.(true);
+    this.exitMask?.destroy?.();
+    this.exitMask = null;
+    this.signalBand?.destroy?.(true);
+    this.signalBand = null;
+    this.scanline = null;
     this.root?.destroy?.(true);
     this.inputBlocker?.destroy?.();
     this.renderPresentation();
@@ -225,6 +316,9 @@ export default class BattleTransitionScene extends Phaser.Scene {
     }
     this.failsafeTimer?.remove?.(false);
     this.inputBlocker?.destroy?.();
+    this.root?.clearMask?.(true);
+    this.exitMask?.destroy?.();
+    this.signalBand?.destroy?.(true);
     this.root?.destroy?.(true);
     this.tweens?.killAll?.();
     this.resetRuntimeState();
