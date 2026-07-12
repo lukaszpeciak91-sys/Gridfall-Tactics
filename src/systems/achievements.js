@@ -143,6 +143,13 @@ const FACTION_ACHIEVEMENT_CUSTOM_COPY = Object.freeze({
     play_10_units: localized('Guests from Beyond', 'Play 20 units with Gravehearts.', 'Goście z zaświatów', 'Zagraj 20 jednostek frakcją Gravehearts.'),
     play_10_effects: localized('Toast After the End', 'Play 10 effects with Gravehearts.', 'Toast po końcu świata', 'Zagraj 10 efektów frakcją Gravehearts.'),
   }),
+  overclock: Object.freeze({
+    win_first_battle: localized('Inspection Passed', 'Win your first battle with Project H.E.R.D.', 'Pozytywny Wynik Kontroli', 'Wygraj pierwszą bitwę Programem P.A.S.Z.A.'),
+    win_10_battles: localized('Quota Met', 'Win 7 battles with Project H.E.R.D.', 'Norma Spełniona', 'Wygraj 7 bitew Programem P.A.S.Z.A.'),
+    win_campaign: localized('Directive Fulfilled', 'Win a Campaign with Project H.E.R.D.', 'Dyrektywa Wykonana', 'Wygraj kampanię Programem P.A.S.Z.A.'),
+    play_10_units: localized('Production Cycle', 'Play 20 Project H.E.R.D. units.', 'Cykl Produkcyjny', 'Zagraj 20 jednostek Programu P.A.S.Z.A.'),
+    play_10_effects: localized('By Procedure', 'Play 10 Project H.E.R.D. effects.', 'Zgodnie z Procedurą', 'Zagraj 10 efektów Programu P.A.S.Z.A.'),
+  }),
 });
 
 function createFallbackFactionDisplay(templateKey, factionNameEn, factionNamePl) {
