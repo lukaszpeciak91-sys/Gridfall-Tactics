@@ -11398,7 +11398,7 @@ export default class BattleScene extends Phaser.Scene {
   getTargetingStateForCard(card) {
     if (!card || this.isUnitCard(card)) return null;
     if (!canPlayEffectCard(this.gameState, 'player', card).ok) return null;
-    const targetingState = getTargetingStateForEffect(card.effectId, card.id);
+    const targetingState = getTargetingStateForEffect(card.effectId, card.id, card.targeting);
     if (!targetingState) return null;
     if (card.effectId === 'enemy_up_to_2_atk_minus_1') {
       const targetLimit = targetingState.targetLimit ?? targetingState.requiredTargets ?? 1;

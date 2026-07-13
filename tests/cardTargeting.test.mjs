@@ -49,3 +49,19 @@ test('Jam Signal uses max-target positive-ATK enemy metadata while Pulse Wave re
   });
   assert.equal(getTargetingStateForEffect('damage_all_enemies_1_ignore_armor', 'control_pulse_wave_1'), null);
 });
+
+test('parameterized lane tempo targeting follows the concrete card targeting mode', () => {
+  assert.deepEqual(getTargetingStateForEffect('lane_tempo_mod_until_combat', 'test', 'enemy_unit'), {
+    cardId: 'test',
+    targetType: 'enemy-unit',
+    requiredTargets: 1,
+    targetIndexes: [],
+  });
+  assert.deepEqual(getTargetingStateForEffect('lane_tempo_mod_until_combat', 'test', 'friendly_unit'), {
+    cardId: 'test',
+    targetType: 'friendly-unit',
+    requiredTargets: 1,
+    targetIndexes: [],
+  });
+});
+
