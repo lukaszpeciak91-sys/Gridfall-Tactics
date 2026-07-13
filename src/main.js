@@ -10,6 +10,7 @@ import SettingsScene from './scenes/SettingsScene.js';
 import TutorialScene from './scenes/TutorialScene.js';
 import BattleScene from './scenes/BattleScene.js';
 import BattleTransitionScene from './scenes/BattleTransitionScene.js';
+import SceneTransitionOverlayScene from './scenes/SceneTransitionOverlayScene.js';
 import BattleMenuScene from './scenes/BattleMenuScene.js';
 import RulesPanelScene from './scenes/RulesPanelScene.js';
 import DebugMenuScene from './scenes/DebugMenuScene.js';
@@ -43,7 +44,7 @@ const config = {
     pixelArt: false,
   },
   // Registration preserves navigation order: SettingsScene, TutorialScene, BattleScene
-  scene: [StartScene, MainMenuScene, GameMenuScene, FactionSelectScene, CampaignEnemySelectScene, CollectionScene, AchievementsScene, SettingsScene, TutorialScene, BattleTransitionScene, BattleScene, BattleMenuScene, RulesPanelScene, DebugMenuScene, CampaignEndScreenDebugScene, ArtDebugModeSelectScene, ArtViewportDebugScene, BoardUnitArtViewportDebugScene, BattleTransitionArtPreviewDebugScene],
+  scene: [StartScene, MainMenuScene, GameMenuScene, FactionSelectScene, CampaignEnemySelectScene, CollectionScene, AchievementsScene, SettingsScene, TutorialScene, SceneTransitionOverlayScene, BattleTransitionScene, BattleScene, BattleMenuScene, RulesPanelScene, DebugMenuScene, CampaignEndScreenDebugScene, ArtDebugModeSelectScene, ArtViewportDebugScene, BoardUnitArtViewportDebugScene, BattleTransitionArtPreviewDebugScene],
 };
 
 const game = new Phaser.Game(config);
