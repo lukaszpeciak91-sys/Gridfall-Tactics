@@ -361,6 +361,30 @@ test('Jam Signal targeting count is max valid positive-ATK enemies and blocks al
   assert.equal(getTargetingStateForCard.call(scene, jamSignal, getTargetingStateForEffect, () => ({ ok: true })).requiredTargets, 0);
 });
 
+
+test('Temper Shift card targeting passes card.targeting through to lane tempo metadata', () => {
+  const getTargetingStateForCard = compileMethod('getTargetingStateForCard', 'isValidTarget', ['card', 'getTargetingStateForEffect', 'canPlayEffectCard']);
+  const temperShift = {
+    id: 'overclock_mercy_1',
+    type: 'utility',
+    targeting: 'enemy_unit',
+    effectId: 'lane_tempo_mod_until_combat',
+    effectParams: { targetEnemyAtk: -1, opposingAllyAtk: 2 },
+  };
+  const scene = {
+    isUnitCard: () => false,
+    gameState: { board: [{ owner: 'enemy', attack: 1 }] },
+    isValidTarget() { return true; },
+  };
+
+  assert.deepEqual(getTargetingStateForCard.call(scene, temperShift, getTargetingStateForEffect, () => ({ ok: true })), {
+    cardId: 'overclock_mercy_1',
+    targetType: 'enemy-unit',
+    requiredTargets: 1,
+    targetIndexes: [],
+  });
+});
+
 test('Jam Signal one valid target resolves on first tap without CONFIRM', () => {
   const onBoardCellTapWithResolvers = compileMethod('onBoardCellTap', 'getActivePlayerEffectCard', [
     'boardIndex',
