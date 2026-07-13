@@ -98,9 +98,11 @@ const CARD_ART_POSITION_OVERRIDES = Object.freeze({
   }),
   overclock_gap_hunter_1: Object.freeze({
     artPositionY: 0.55,
+    boardArtPositionY: 0.505,
   }),
   overclock_golem_1: Object.freeze({
     artPositionY: 0.5,
+    boardArtPositionY: 0.605,
   }),
   overclock_hot_runner_1: Object.freeze({
     artPositionY: 0.325,
@@ -113,23 +115,14 @@ const CARD_ART_POSITION_OVERRIDES = Object.freeze({
   }),
   overclock_mob_champion_1: Object.freeze({
     artPositionY: 0.175,
-  }),
-  overclock_pain_engine_1: Object.freeze({
-    artPositionY: 0.325,
-  }),
-  overclock_redline_1: Object.freeze({
-    artPositionY: 0.175,
-  overclock_gap_hunter_1: Object.freeze({
-    boardArtPositionY: 0.505,
-  }),
-  overclock_golem_1: Object.freeze({
-    boardArtPositionY: 0.605,
-  }),
-  overclock_mob_champion_1: Object.freeze({
     boardArtPositionY: 0.33,
   }),
   overclock_pain_engine_1: Object.freeze({
+    artPositionY: 0.325,
     boardArtPositionY: 0.38,
+  }),
+  overclock_redline_1: Object.freeze({
+    artPositionY: 0.175,
   }),
   swarm_alpha_1: Object.freeze({
     artPositionY: 0.125,
