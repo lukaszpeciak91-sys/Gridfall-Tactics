@@ -8,6 +8,10 @@ const battleSource = readFileSync(new URL('../src/scenes/BattleScene.js', import
 test('board art position accessor returns only explicit boardArtPositionY overrides', () => {
   assert.equal(getCardBoardArtPositionY('aggro_scout_1'), 0.855);
   assert.equal(getCardBoardArtPositionY({ id: 'aggro_scout_1' }), 0.855);
+  assert.equal(getCardBoardArtPositionY('overclock_gap_hunter_1'), 0.505);
+  assert.equal(getCardBoardArtPositionY('overclock_golem_1'), 0.605);
+  assert.equal(getCardBoardArtPositionY('overclock_mob_champion_1'), 0.33);
+  assert.equal(getCardBoardArtPositionY('overclock_pain_engine_1'), 0.38);
 
   // aggro_adrenaline_1 has a hand/inspect artPositionY override but no boardArtPositionY.
   assert.equal(getCardBoardArtPositionY('aggro_adrenaline_1'), null);
