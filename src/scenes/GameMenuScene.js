@@ -26,7 +26,6 @@ import {
 import { preloadAudioAssets } from '../audio/audioAssets.js';
 import { playMenuMusic } from '../audio/menuMusic.js';
 import { enterBattleScene } from './battleEntryRouter.js';
-import { emitSceneTransitionVisuallyReady } from './sceneTransitionOverlay.js';
 
 const GAME_MENU_TITLE_DEPTH = 5;
 const GAME_MENU_BUTTON_WIDTH_RATIO = 0.72;
@@ -42,14 +41,11 @@ export default class GameMenuScene extends Phaser.Scene {
     this.menuButtons = [];
     this.continueButton = null;
     this.confirmNewGameModal = null;
-    this.sceneTransitionOverlay = null;
-    this.sceneTransitionReadyEmitted = false;
   }
 
-  init(data = {}) {
+  init() {
     this.cleanupScene();
-    this.captureSceneTransitionOverlay(data);
-    this.resetGameMenuDisplayList({ preserveTransitionOverlay: true });
+    this.resetGameMenuDisplayList();
   }
 
   preload() {
@@ -61,9 +57,8 @@ export default class GameMenuScene extends Phaser.Scene {
     preloadAudioAssets(this);
   }
 
-  create(data = {}) {
-    if (!this.sceneTransitionOverlay) this.captureSceneTransitionOverlay(data);
-    this.resetGameMenuDisplayList({ preserveTransitionOverlay: true });
+  create() {
+    this.resetGameMenuDisplayList();
     playMenuMusic(this);
 
     const { width, height } = this.scale;
@@ -115,21 +110,6 @@ export default class GameMenuScene extends Phaser.Scene {
     this.updateContinueAvailability();
     this.scale.on('resize', this.layoutGameMenuScene, this);
     this.drawNavigationControls();
-    this.emitTransitionReadyOnce({ hasActiveCampaign: hasActiveCampaign() });
-  }
-
-  captureSceneTransitionOverlay(data = {}) {
-    const overlay = data?.sceneTransitionOverlay;
-    this.sceneTransitionOverlay = typeof overlay?.transitionId === 'string' && overlay.transitionId
-      ? { transitionId: overlay.transitionId, sourceSceneKey: overlay.sourceSceneKey ?? null }
-      : null;
-    this.sceneTransitionReadyEmitted = false;
-  }
-
-  emitTransitionReadyOnce(payload = {}) {
-    if (this.sceneTransitionReadyEmitted || !this.sceneTransitionOverlay?.transitionId) return false;
-    this.sceneTransitionReadyEmitted = emitSceneTransitionVisuallyReady(this, { transitionId: this.sceneTransitionOverlay.transitionId, payload });
-    return this.sceneTransitionReadyEmitted;
   }
 
   createTitle(width, height) {
@@ -263,10 +243,6 @@ export default class GameMenuScene extends Phaser.Scene {
   closeNewGameConfirmation() {
     this.confirmNewGameModal?.items?.forEach((item) => { item.removeAllListeners?.(); item.destroy?.(); });
     this.confirmNewGameModal = null;
-    if (!preserveTransitionOverlay) {
-      this.sceneTransitionOverlay = null;
-      this.sceneTransitionReadyEmitted = false;
-    }
   }
 
   drawNavigationControls() {
@@ -315,7 +291,7 @@ export default class GameMenuScene extends Phaser.Scene {
     this.scale?.off('resize', this.layoutGameMenuScene, this);
   }
 
-  resetGameMenuDisplayList({ preserveTransitionOverlay = false } = {}) {
+  resetGameMenuDisplayList() {
     this.closeNewGameConfirmation?.();
     this.tweens?.killAll?.();
     this.children?.removeAll?.(true);
@@ -324,10 +300,6 @@ export default class GameMenuScene extends Phaser.Scene {
     this.menuButtons = [];
     this.continueButton = null;
     this.confirmNewGameModal = null;
-    if (!preserveTransitionOverlay) {
-      this.sceneTransitionOverlay = null;
-      this.sceneTransitionReadyEmitted = false;
-    }
   }
 
   createMenuButton(x, y, width, label, onPointerUp) {

@@ -26,7 +26,6 @@ import {
   getMainMenuLogoPosition,
   setMainMenuLogoDisplaySize,
 } from '../ui/menuLogoLayout.js';
-import { startSceneWithTransitionOverlay } from './sceneTransitionOverlay.js';
 
 const MAIN_MENU_TITLE_DEPTH = 5;
 const MAIN_MENU_REVEAL_DELAY_MS = 80;
@@ -108,8 +107,7 @@ export default class MainMenuScene extends Phaser.Scene {
     });
 
     this.createMenuButton(width / 2, startY + buttonGap, buttonWidth, translateActive('ui.mainMenu.collection', 'COLLECTION'), () => {
-      startSceneWithTransitionOverlay(this, 'CollectionScene');
-      // Legacy direct equivalent: this.scene.start('CollectionScene')
+      this.scene.start('CollectionScene');
     });
 
     this.createMenuButton(width / 2, startY + buttonGap * 2, buttonWidth, translateActive('ui.mainMenu.achievements', 'ACHIEVEMENTS'), () => {

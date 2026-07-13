@@ -33,7 +33,6 @@ import { getCardBoardArtPositionY } from '../data/presentation/cardArtCropOverri
 import { AUDIO_KEYS, preloadAudioAssets } from '../audio/audioAssets.js';
 import { playManagedSfx, playMusic, playSfx, stopManagedSfx, stopMusic } from '../audio/audioPlayback.js';
 import { BATTLE_SCENE_VISUALLY_READY_EVENT, restartBattleScene } from './battleEntryRouter.js';
-import { startSceneWithTransitionOverlay } from './sceneTransitionOverlay.js';
 
 const HAND_BACK_CARD_ASSET = Object.freeze({
   key: 'ui.card.back',
@@ -3457,28 +3456,24 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     this.clearAchievementPopupPresentationBatch();
-    startSceneWithTransitionOverlay(this, 'FactionSelectScene');
-    // Legacy direct equivalent: this.scene.start('FactionSelectScene')
+    this.scene.start('FactionSelectScene');
   }
 
   exitTutorialBattleToGameMenu() {
     this.clearAchievementPopupPresentationBatch();
-    startSceneWithTransitionOverlay(this, 'GameMenuScene');
-    // Legacy direct equivalent: this.scene.start('GameMenuScene')
+    this.scene.start('GameMenuScene');
   }
 
   exitBattleToCampaignEnemySelect() {
     const campaign = loadCampaign();
     if (isValidCampaignState(campaign) && campaign.status === 'active') {
       this.clearAchievementPopupPresentationBatch();
-      startSceneWithTransitionOverlay(this, 'CampaignEnemySelectScene', { campaign });
-      // Legacy direct equivalent: this.scene.start('CampaignEnemySelectScene', { campaign })
+      this.scene.start('CampaignEnemySelectScene', { campaign });
       return;
     }
 
     this.clearAchievementPopupPresentationBatch();
-    startSceneWithTransitionOverlay(this, 'CampaignEnemySelectScene');
-    // Legacy direct equivalent: this.scene.start('CampaignEnemySelectScene')
+    this.scene.start('CampaignEnemySelectScene');
   }
 
 
@@ -3520,21 +3515,18 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     this.clearAchievementPopupPresentationBatch();
-    startSceneWithTransitionOverlay(this, 'CampaignEnemySelectScene', { campaign: updatedCampaign });
-    // Legacy direct equivalent: this.scene.start('CampaignEnemySelectScene', { campaign: updatedCampaign })
+    this.scene.start('CampaignEnemySelectScene', { campaign: updatedCampaign });
   }
 
   routeAfterIgnoredCampaignResult(campaign = loadCampaign()) {
     if (isValidCampaignState(campaign) && campaign.status === 'active') {
       this.clearAchievementPopupPresentationBatch();
-      startSceneWithTransitionOverlay(this, 'CampaignEnemySelectScene', { campaign });
-      // Legacy direct equivalent: this.scene.start('CampaignEnemySelectScene', { campaign })
+      this.scene.start('CampaignEnemySelectScene', { campaign });
       return;
     }
 
     this.clearAchievementPopupPresentationBatch();
-    startSceneWithTransitionOverlay(this, 'GameMenuScene');
-    // Legacy direct equivalent: this.scene.start('GameMenuScene')
+    this.scene.start('GameMenuScene');
   }
 
   createCampaignCompletionPreviewState(status) {
