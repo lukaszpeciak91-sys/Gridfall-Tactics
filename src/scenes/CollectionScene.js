@@ -37,7 +37,6 @@ import {
   INSPECT_CARD_TYPOGRAPHY_SCALE,
   INSPECT_CARD_VERTICAL_COMPACT_RATIO,
 } from '../rendering/cardViewConfig.js';
-import { emitSceneTransitionVisuallyReady } from './sceneTransitionOverlay.js';
 
 const CARD_SCROLL_DRAG_THRESHOLD = 8;
 const COLLECTION_GRID_GAP_X = 10;
@@ -68,8 +67,6 @@ export default class CollectionScene extends Phaser.Scene {
     this.expandedFactionKeys = new Set();
     this.collectionContentElements = [];
     this.headerPress = null;
-    this.sceneTransitionOverlay = null;
-    this.sceneTransitionReadyEmitted = false;
   }
 
   preload() {
@@ -79,14 +76,12 @@ export default class CollectionScene extends Phaser.Scene {
     preloadAudioAssets(this);
   }
 
-  init(data = {}) {
+  init() {
     this.cleanupScene();
-    this.captureSceneTransitionOverlay(data);
   }
 
-  create(data = {}) {
-    if (!this.sceneTransitionOverlay) this.captureSceneTransitionOverlay(data);
-    this.cleanupScene({ preserveTransitionOverlay: true });
+  create() {
+    this.cleanupScene();
     playMenuMusic(this);
 
     const { width, height } = this.scale;
@@ -111,24 +106,6 @@ export default class CollectionScene extends Phaser.Scene {
     this.expandedFactionKeys = new Set();
     this.drawCollectionList({ width, height });
     this.createBackButton(width, height);
-    this.emitTransitionReadyOnce({ sections: this.collectionContentElements.length });
-  }
-
-  captureSceneTransitionOverlay(data = {}) {
-    const overlay = data?.sceneTransitionOverlay;
-    this.sceneTransitionOverlay = typeof overlay?.transitionId === 'string' && overlay.transitionId
-      ? { transitionId: overlay.transitionId, sourceSceneKey: overlay.sourceSceneKey ?? null }
-      : null;
-    this.sceneTransitionReadyEmitted = false;
-  }
-
-  emitTransitionReadyOnce(payload = {}) {
-    if (this.sceneTransitionReadyEmitted || !this.sceneTransitionOverlay?.transitionId) return false;
-    this.sceneTransitionReadyEmitted = emitSceneTransitionVisuallyReady(this, {
-      transitionId: this.sceneTransitionOverlay.transitionId,
-      payload,
-    });
-    return this.sceneTransitionReadyEmitted;
   }
 
   drawCollectionList({ width, height }) {
@@ -697,7 +674,7 @@ export default class CollectionScene extends Phaser.Scene {
     state.content.y = Phaser.Math.Clamp(nextY, state.minY, state.maxY);
   }
 
-  cleanupScene({ preserveTransitionOverlay = false } = {}) {
+  cleanupScene() {
     this.input?.off('wheel', this.onScrollWheel, this);
     this.input?.off('pointerdown', this.onScrollPointerDown, this);
     this.input?.off('pointermove', this.onScrollPointerMove, this);
@@ -722,9 +699,5 @@ export default class CollectionScene extends Phaser.Scene {
       }
     });
     this.uiElements = [];
-    if (!preserveTransitionOverlay) {
-      this.sceneTransitionOverlay = null;
-      this.sceneTransitionReadyEmitted = false;
-    }
   }
 }

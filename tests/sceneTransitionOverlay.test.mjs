@@ -77,6 +77,24 @@ test('failsafe cleanup is bounded and does not restart navigation or return to s
   assert.doesNotMatch(overlay, /returnToSource|sourceSceneKey[\s\S]{0,120}scene\.start/);
 });
 
+test('foundation is not referenced from existing production navigation paths yet', () => {
+  const paths = [
+    'src/scenes/CollectionScene.js',
+    'src/scenes/FactionSelectScene.js',
+    'src/scenes/CampaignEnemySelectScene.js',
+    'src/scenes/GameMenuScene.js',
+    'src/scenes/AchievementsScene.js',
+    'src/scenes/SettingsScene.js',
+    'src/scenes/RulesPanelScene.js',
+    'src/scenes/StartScene.js',
+    'src/scenes/BattleScene.js',
+  ];
+  for (const path of paths) {
+    const source = read(path);
+    assert.doesNotMatch(source, /startSceneWithTransitionOverlay|SCENE_TRANSITION_VISUALLY_READY_EVENT|emitSceneTransitionVisuallyReady|SceneTransitionOverlayScene/, path);
+  }
+});
+
 test('BattleTransitionScene remains independent', () => {
   assert.doesNotMatch(battleTransition, /SceneTransitionOverlayScene|SCENE_TRANSITION_VISUALLY_READY_EVENT|sceneTransitionOverlay/);
   assert.match(battleTransition, /BATTLE_SCENE_VISUALLY_READY_EVENT/);

@@ -13,7 +13,6 @@ import { MENU_BACKGROUND_FALLBACK_COLOR, MENU_BACKGROUND_FALLBACK_COLOR_HEX, cre
 import { drawFactionCardVisual, preloadFactionPreviewArt } from '../ui/factionCards.js';
 import { createTapVsDragInteraction } from '../ui/tapVsDragInteraction.js';
 import { enterBattleScene } from './battleEntryRouter.js';
-import { emitSceneTransitionVisuallyReady } from './sceneTransitionOverlay.js';
 
 const CARD_HEIGHT = 196;
 const CARD_GAP = 34;
@@ -36,8 +35,6 @@ export default class CampaignEnemySelectScene extends Phaser.Scene {
     this.campaign = null;
     this.statusText = null;
     this.tapVsDrag = createTapVsDragInteraction();
-    this.sceneTransitionOverlay = null;
-    this.sceneTransitionReadyEmitted = false;
   }
 
   preload() {
@@ -48,13 +45,11 @@ export default class CampaignEnemySelectScene extends Phaser.Scene {
 
   init(data = {}) {
     this.cleanupScene();
-    this.captureSceneTransitionOverlay(data);
     this.campaign = isValidCampaignState(data?.campaign) ? data.campaign : loadCampaign();
   }
 
-  create(data = {}) {
-    if (!this.sceneTransitionOverlay) this.captureSceneTransitionOverlay(data);
-    this.cleanupScene({ preserveTransitionOverlay: true });
+  create() {
+    this.cleanupScene();
     if (!isValidCampaignState(this.campaign) || this.campaign.status !== 'active') {
       this.scene.start('GameMenuScene');
       return;
@@ -74,22 +69,7 @@ export default class CampaignEnemySelectScene extends Phaser.Scene {
     this.uiElements.push(...header.items);
     this.uiElements.push(createBuildMarker(this, { width, height }));
     this.drawNavigationControls();
-    const enemyCount = this.drawEnemyCards({ width, height, headerBottomY: header.bottomY });
-    this.emitTransitionReadyOnce({ enemyCount });
-  }
-
-  captureSceneTransitionOverlay(data = {}) {
-    const overlay = data?.sceneTransitionOverlay;
-    this.sceneTransitionOverlay = typeof overlay?.transitionId === 'string' && overlay.transitionId
-      ? { transitionId: overlay.transitionId, sourceSceneKey: overlay.sourceSceneKey ?? null }
-      : null;
-    this.sceneTransitionReadyEmitted = false;
-  }
-
-  emitTransitionReadyOnce(payload = {}) {
-    if (this.sceneTransitionReadyEmitted || !this.sceneTransitionOverlay?.transitionId) return false;
-    this.sceneTransitionReadyEmitted = emitSceneTransitionVisuallyReady(this, { transitionId: this.sceneTransitionOverlay.transitionId, payload });
-    return this.sceneTransitionReadyEmitted;
+    this.drawEnemyCards({ width, height, headerBottomY: header.bottomY });
   }
 
   drawEnemyCards({ width, height, headerBottomY }) {
@@ -117,7 +97,6 @@ export default class CampaignEnemySelectScene extends Phaser.Scene {
     this.input.on('pointerdown', this.onScrollPointerDown, this);
     this.input.on('pointermove', this.onScrollPointerMove, this);
     this.input.on('pointerup', this.onScrollPointerUp, this);
-    return enemies.length;
   }
 
   drawEnemyCard(content, enemy, { y, cardWidth }) {
@@ -207,13 +186,12 @@ export default class CampaignEnemySelectScene extends Phaser.Scene {
   openRulesPanel() { this.scene.launch('RulesPanelScene', { returnSceneKey: 'CampaignEnemySelectScene' }); this.scene.pause(); }
   resumeFromRulesPanel() { this.scene.resume(); }
   toggleFullscreen() { toggleSceneFullscreen(this); }
-  onFullscreenChanged() { if (this.scale.isFullscreen) requestPortraitOrientationLock(); if (this.scene.isActive('CampaignEnemySelectScene')) this.scene.restart(); }
-  cleanupScene({ preserveTransitionOverlay = false } = {}) {
+  onFullscreenChanged() { if (this.scale.isFullscreen) requestPortraitOrientationLock(); if (this.scene.isActive('CampaignEnemySelectScene')) this.scene.restart({ campaign: this.campaign }); }
+  cleanupScene() {
     this.scale?.off('enterfullscreen', this.onFullscreenChanged, this); this.scale?.off('leavefullscreen', this.onFullscreenChanged, this);
     this.input?.off('wheel', this.onScrollWheel, this); this.input?.off('pointerdown', this.onScrollPointerDown, this); this.input?.off('pointermove', this.onScrollPointerMove, this); this.input?.off('pointerup', this.onScrollPointerUp, this);
     this.tapVsDrag?.cancel?.(); this.scrollMask?.destroy?.(); this.scrollMask = null; this.scrollState = null;
     this.uiElements.forEach((element) => { if (element?.active) { element.removeAllListeners?.(); element.destroy(); } });
     this.uiElements = []; this.interactiveElements = []; this.statusText = null;
-    if (!preserveTransitionOverlay) { this.sceneTransitionOverlay = null; this.sceneTransitionReadyEmitted = false; }
   }
 }
