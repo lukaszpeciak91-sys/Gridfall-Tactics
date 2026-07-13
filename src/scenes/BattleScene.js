@@ -9126,7 +9126,7 @@ export default class BattleScene extends Phaser.Scene {
       'ignore_armor_next_attack',
       'on_play_lane_damage_1',
     ]);
-    const debuffEffects = new Set(['enemy_lane_atk_minus_1', 'enemy_up_to_2_atk_minus_1']);
+    const debuffEffects = new Set(['enemy_lane_atk_minus_1', 'enemy_up_to_2_atk_minus_1', 'lane_tempo_mod_until_combat']);
     const healEffects = new Set(['heal_all_1', 'heal_1', 'heal_1_atk_1_draw_on_kill_this_turn', 'heal_2', 'heal_3']);
 
     if (directDamageEffects.has(effectId)) {
@@ -9211,7 +9211,7 @@ export default class BattleScene extends Phaser.Scene {
       });
     }
 
-    if (effectId === 'infect_damage_1_opposite_ally_atk_1' || effectId === 'heal_1_atk_1_draw_on_kill_this_turn') {
+    if (effectId === 'infect_damage_1_opposite_ally_atk_1' || effectId === 'heal_1_atk_1_draw_on_kill_this_turn' || effectId === 'lane_tempo_mod_until_combat') {
       beforeSnapshot.forEach((before, index) => {
         const after = this.gameState.board[index];
         if (!before || !this.isSameBoardUnit(before, after)) return;

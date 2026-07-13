@@ -10,8 +10,8 @@ test('combat modifier metadata produces grouped floating feedback at attacker or
   assert.match(source, /const modifierFeedback = this\.playCombatModifierFeedback\(event\);[\s\S]*if \(modifierFeedback\) animations\.push\(modifierFeedback\);/);
 });
 
-test('Hacker and Signal Jam action-time debuff feedback remains in action delta feedback', () => {
-  assert.match(source, /const debuffEffects = new Set\(\['enemy_lane_atk_minus_1', 'enemy_up_to_2_atk_minus_1'\]\);/);
+test('Hacker, Signal Jam, and Temper Shift action-time debuff feedback remains in action delta feedback', () => {
+  assert.match(source, /const debuffEffects = new Set\(\['enemy_lane_atk_minus_1', 'enemy_up_to_2_atk_minus_1', 'lane_tempo_mod_until_combat'\]\);/);
   assert.match(source, /feedback\.push\(\{ type: 'slot-text', index, label: `\$\{attackDelta\} ATK`, kind: 'debuff', phase: 'pre', order: 10 \}\);/);
 });
 

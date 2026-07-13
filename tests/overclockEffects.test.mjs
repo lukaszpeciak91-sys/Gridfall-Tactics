@@ -653,3 +653,23 @@ test('Stock Reassignment handles unit death during immediate destination-lane co
   assert.equal(state.player.fallen.some((entry) => entry.card.id === 'first'), true);
   assert.equal(state.enemy.fallen.some((entry) => entry.card.id === 'enemy-left'), true);
 });
+
+test('Temper Shift board feedback reuses existing buff and debuff stat-delta conventions', async () => {
+  const { readFileSync } = await import('node:fs');
+  const source = readFileSync(new URL('../src/scenes/BattleScene.js', import.meta.url), 'utf8');
+  const buildEffectDeltaFeedback = source.slice(
+    source.indexOf('  buildEffectDeltaFeedback('),
+    source.indexOf('  buildActionFeedback(', source.indexOf('  buildEffectDeltaFeedback(')),
+  );
+
+  assert.match(
+    buildEffectDeltaFeedback,
+    /const debuffEffects = new Set\(\['enemy_lane_atk_minus_1', 'enemy_up_to_2_atk_minus_1', 'lane_tempo_mod_until_combat'\]\);/,
+  );
+  assert.match(
+    buildEffectDeltaFeedback,
+    /effectId === 'infect_damage_1_opposite_ally_atk_1' \|\| effectId === 'heal_1_atk_1_draw_on_kill_this_turn' \|\| effectId === 'lane_tempo_mod_until_combat'/,
+  );
+  assert.match(buildEffectDeltaFeedback, /feedback\.push\(\{ type: 'slot-text', index, label: `\$\{attackDelta\} ATK`, kind: 'debuff', phase: 'pre', order: 10 \}\);/);
+  assert.match(buildEffectDeltaFeedback, /feedback\.push\(\{ type: 'slot-text', index, label: `\+\$\{attackDelta\} ATK`, kind: 'buff', phase: 'pre', order: 20 \}\);/);
+});
