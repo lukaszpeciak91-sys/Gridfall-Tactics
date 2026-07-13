@@ -21,6 +21,7 @@ import { drawFactionCardVisual, preloadFactionPreviewArt } from '../ui/factionCa
 import { createImageButton, preloadSecondaryButtonAsset, PREMIUM_BROADCAST_FONT_STACK } from '../ui/imageButton.js';
 import { createTapVsDragInteraction } from '../ui/tapVsDragInteraction.js';
 import { enterBattleScene } from './battleEntryRouter.js';
+import { emitSceneTransitionVisuallyReady } from './sceneTransitionOverlay.js';
 
 const MIN_FACTION_LIST_TOP = 106;
 const HEADER_TO_FACTION_LIST_GAP = 24;
@@ -89,6 +90,8 @@ export default class FactionSelectScene extends Phaser.Scene {
     this.openFactionKey = null;
     this.isStartingBattle = false;
     this.tapVsDrag = createTapVsDragInteraction();
+    this.sceneTransitionOverlay = null;
+    this.sceneTransitionReadyEmitted = false;
   }
 
   preload() {
@@ -103,10 +106,12 @@ export default class FactionSelectScene extends Phaser.Scene {
     this.returnSceneKey = data?.returnSceneKey === 'GameMenuScene' ? 'GameMenuScene' : 'MainMenuScene';
     this.isStartingBattle = false;
     this.cleanupScene();
+    this.captureSceneTransitionOverlay(data);
   }
 
-  create() {
-    this.cleanupScene();
+  create(data = {}) {
+    if (!this.sceneTransitionOverlay) this.captureSceneTransitionOverlay(data);
+    this.cleanupScene({ preserveTransitionOverlay: true });
 
     if (this.children) {
       this.children.removeAll(true);
@@ -150,6 +155,21 @@ export default class FactionSelectScene extends Phaser.Scene {
       height,
       headerBottomY: arenaHelper?.bottomY ?? header.bottomY,
     });
+    this.emitTransitionReadyOnce({ mode: this.mode, factionCount: factionKeys.length });
+  }
+
+  captureSceneTransitionOverlay(data = {}) {
+    const overlay = data?.sceneTransitionOverlay;
+    this.sceneTransitionOverlay = typeof overlay?.transitionId === 'string' && overlay.transitionId
+      ? { transitionId: overlay.transitionId, sourceSceneKey: overlay.sourceSceneKey ?? null }
+      : null;
+    this.sceneTransitionReadyEmitted = false;
+  }
+
+  emitTransitionReadyOnce(payload = {}) {
+    if (this.sceneTransitionReadyEmitted || !this.sceneTransitionOverlay?.transitionId) return false;
+    this.sceneTransitionReadyEmitted = emitSceneTransitionVisuallyReady(this, { transitionId: this.sceneTransitionOverlay.transitionId, payload });
+    return this.sceneTransitionReadyEmitted;
   }
 
   createArenaHelperText({ width, headerBottomY }) {
@@ -709,7 +729,7 @@ export default class FactionSelectScene extends Phaser.Scene {
     });
   }
 
-  cleanupScene() {
+  cleanupScene({ preserveTransitionOverlay = false } = {}) {
     this.scale?.off('enterfullscreen', this.onFullscreenChanged, this);
     this.scale?.off('leavefullscreen', this.onFullscreenChanged, this);
     this.input?.off('wheel', this.onScrollWheel, this);
@@ -734,6 +754,10 @@ export default class FactionSelectScene extends Phaser.Scene {
     });
     this.uiElements = [];
     this.interactiveElements = [];
+    if (!preserveTransitionOverlay) {
+      this.sceneTransitionOverlay = null;
+      this.sceneTransitionReadyEmitted = false;
+    }
   }
 }
 

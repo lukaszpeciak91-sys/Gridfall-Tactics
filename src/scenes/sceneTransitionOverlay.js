@@ -76,7 +76,7 @@ export function emitSceneTransitionVisuallyReady(scene, { transitionId, payload 
 export function startSceneWithTransitionOverlay(sourceScene, targetSceneKey, targetData = {}, options = {}) {
   if (!sourceScene?.scene || typeof targetSceneKey !== 'string' || !targetSceneKey) return null;
   const transitionId = options.transitionId ?? createSceneTransitionId();
-  const destinationScene = sourceScene.scene.get(targetSceneKey);
+  const destinationScene = sourceScene.scene.get?.(targetSceneKey);
 
   const onDestinationReady = (event = {}) => {
     if (event?.transitionId !== transitionId || event?.destinationSceneKey !== targetSceneKey) return;
@@ -96,12 +96,14 @@ export function startSceneWithTransitionOverlay(sourceScene, targetSceneKey, tar
 
   destinationScene?.events?.on?.(SCENE_TRANSITION_VISUALLY_READY_EVENT, onDestinationReady);
 
-  sourceScene.scene.launch(SCENE_TRANSITION_OVERLAY_SCENE_KEY, {
-    ...options,
-    transitionId,
-    destinationSceneKey: targetSceneKey,
-    sourceSceneKey: sourceScene.scene.key ?? null,
-  });
+  if (sourceScene.scene.launch) {
+    sourceScene.scene.launch(SCENE_TRANSITION_OVERLAY_SCENE_KEY, {
+      ...options,
+      transitionId,
+      destinationSceneKey: targetSceneKey,
+      sourceSceneKey: sourceScene.scene.key ?? null,
+    });
+  }
 
   const safeTargetData = targetData && typeof targetData === 'object' ? targetData : {};
 
