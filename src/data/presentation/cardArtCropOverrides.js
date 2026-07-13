@@ -90,6 +90,18 @@ const CARD_ART_POSITION_OVERRIDES = Object.freeze({
   control_system_override_1: Object.freeze({
     artPositionY: 0.45,
   }),
+  overclock_gap_hunter_1: Object.freeze({
+    boardArtPositionY: 0.505,
+  }),
+  overclock_golem_1: Object.freeze({
+    boardArtPositionY: 0.605,
+  }),
+  overclock_mob_champion_1: Object.freeze({
+    boardArtPositionY: 0.33,
+  }),
+  overclock_pain_engine_1: Object.freeze({
+    boardArtPositionY: 0.38,
+  }),
   swarm_alpha_1: Object.freeze({
     artPositionY: 0.125,
     boardArtPositionY: 0.255,
