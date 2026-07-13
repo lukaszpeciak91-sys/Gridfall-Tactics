@@ -144,18 +144,12 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
   scheduleDelayedShow() {
     this.showTimer = this.time.delayedCall(DELAYED_SHOW_MS, () => {
       this.showTimer = null;
-      if (this.reconcileReadiness('delayed-show')) return;
-      if (this.cleaningUp || this.completed || this.readyRecorded || !this.isTransitionCurrent()) {
+      if (this.cleaningUp || this.readyRecorded) {
         this.cleanupAndStop();
         return;
       }
       this.showOverlay();
     });
-  }
-
-  isTransitionCurrent() {
-    const state = getSceneTransitionState(this.game, this.transitionId);
-    return state?.transitionId === this.transitionId && state.destinationSceneKey === this.destinationSceneKey;
   }
 
   showOverlay() {
@@ -210,11 +204,7 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
 
   fadeOutAndStop() {
     if (this.cleaningUp) return;
-    this.destroyInputBlocker();
-    if (!this.root) {
-      this.cleanupAndStop();
-      return;
-    }
+    this.inputBlocker?.disableInteractive?.();
     this.tweens.add({
       targets: this.root,
       alpha: 0,
@@ -234,7 +224,6 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
     if (!hidden) this.activeElapsedMs += Math.max(0, now - this.lastActiveTick);
     this.lastActiveTick = now;
     if (this.activeElapsedMs < FAILSAFE_ACTIVE_MS || this.cleaningUp) return;
-    if (this.reconcileReadiness('failsafe')) return;
     console.warn('Scene transition overlay failsafe cleanup: destination readiness was not observed.', {
       transitionId: this.transitionId,
       destinationSceneKey: this.destinationSceneKey,
@@ -283,28 +272,13 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
 
   cleanupAndStop({ clearRegistry = true } = {}) {
     if (this.cleaningUp) return;
-    this.destroyInputBlocker();
-    this.hidePresentationRoot();
     this.cleaningUp = true;
     this.clearRegistryOnCleanup = clearRegistry;
     this.cleanup();
     this.scene.stop();
   }
 
-  destroyInputBlocker() {
-    this.inputBlocker?.disableInteractive?.();
-    this.inputBlocker?.destroy?.();
-    this.inputBlocker = null;
-  }
-
-  hidePresentationRoot() {
-    this.root?.setVisible?.(false);
-    this.root?.setAlpha?.(0);
-  }
-
   cleanup() {
-    this.destroyInputBlocker();
-    this.hidePresentationRoot();
     const state = getSceneTransitionState(this.game, this.transitionId);
     if (state?.readyListener && state?.destinationScene) {
       state.destinationScene.events?.off?.(SCENE_TRANSITION_VISUALLY_READY_EVENT, state.readyListener);
@@ -323,7 +297,7 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
     this.game?.events?.off?.(Phaser.Core.Events.RESUME, this.phaserResumeListener);
     this.ringTween?.remove?.(); this.ringTween = null;
     this.tweens?.killTweensOf?.([this.root, this.ring].filter(Boolean));
-    this.destroyInputBlocker();
+    this.inputBlocker?.destroy?.(); this.inputBlocker = null;
     this.root?.destroy?.(true); this.root = null;
     if (this.clearRegistryOnCleanup) clearSceneTransitionState(this.game, this.transitionId);
   }
