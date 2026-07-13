@@ -13,6 +13,11 @@ export const ACHIEVEMENT_UNLOCK_POPUP_TIMING = Object.freeze({
 const BADGE_TEXT = Object.freeze({ en: 'UNLOCKED', pl: 'ODBLOKOWANE' });
 export const ACHIEVEMENT_UNLOCK_POPUP_ENTRANCE_OFFSET = 22;
 
+const ACHIEVEMENT_UNLOCK_POPUP_HEIGHT = 94;
+const TITLE_MIN_FONT_SIZE = 15;
+const TITLE_NARROW_LENGTH_THRESHOLD = 17;
+const TITLE_LONG_LENGTH_THRESHOLD = 20;
+
 const FACTION_ACCENTS = Object.freeze({
   aggro: 0xf97316,
   tank: 0xfacc15,
@@ -20,6 +25,37 @@ const FACTION_ACCENTS = Object.freeze({
   swarm: 0xa3e635,
   balanced: 0xa78bfa,
 });
+
+function estimatePopupTitleWidth(title, fontSize) {
+  const safeTitle = typeof title === 'string' ? title : '';
+  return [...safeTitle].reduce((width, character) => {
+    if (character === ' ') return width + fontSize * 0.34;
+    if ("ilIł.,!’'".includes(character)) return width + fontSize * 0.34;
+    if ('mwMWą'.includes(character)) return width + fontSize * 0.9;
+    if (/[A-ZÓŻŹĆĄŚĘŁŃ]/.test(character)) return width + fontSize * 0.68;
+    return width + fontSize * 0.56;
+  }, 0);
+}
+
+export function getAchievementUnlockPopupTitleLayout(title, layout) {
+  const titleWidth = Math.max(96, layout.width - 122);
+  const baseFontSize = layout.width < 330 ? 17 : 19;
+  const estimatedBaseWidth = estimatePopupTitleWidth(title, baseFontSize);
+  const isNarrowTitleArea = titleWidth < 180;
+  const titleLength = typeof title === 'string' ? [...title].length : 0;
+  const usesTwoLines = estimatedBaseWidth > titleWidth;
+  const shouldReduceFont = usesTwoLines || (isNarrowTitleArea && titleLength > TITLE_NARROW_LENGTH_THRESHOLD) || titleLength > TITLE_LONG_LENGTH_THRESHOLD;
+  const fontSize = shouldReduceFont ? Math.max(TITLE_MIN_FONT_SIZE, baseFontSize - 2) : baseFontSize;
+
+  return {
+    fontSize: `${fontSize}px`,
+    maxLines: usesTwoLines ? 2 : 1,
+    titleWidth,
+    separatorY: usesTwoLines ? 50 : 38,
+    descriptionY: usesTwoLines ? 56 : 44,
+    mode: usesTwoLines ? 'two-line' : 'one-line',
+  };
+}
 
 function resolveLocaleText(definition, key, locale) {
   return definition?.display?.[key]?.[locale]
@@ -75,7 +111,7 @@ export function calculateAchievementUnlockPopupLayout(scene, modal = {}) {
   const bottomSafeGap = Math.max(24, height * 0.035);
   const maxWidth = Math.min(width * 0.86, 430);
   const popupWidth = Math.max(280, Math.min(maxWidth, width * 0.74));
-  const popupHeight = 86;
+  const popupHeight = ACHIEVEMENT_UNLOCK_POPUP_HEIGHT;
   const entranceOffset = ACHIEVEMENT_UNLOCK_POPUP_ENTRANCE_OFFSET;
   const buttonSafeTop = buttonBottom + safeGap;
   const minCenterY = buttonSafeTop + popupHeight * 0.5;
@@ -106,6 +142,7 @@ export function createAchievementUnlockPopup(scene, definition, options = {}) {
   const layout = options.layout ?? calculateAchievementUnlockPopupLayout(scene, options.modal);
   const view = getAchievementUnlockPopupViewModel(definition, options);
   const theme = getAchievementUnlockPopupTheme(definition);
+  const titleLayout = getAchievementUnlockPopupTitleLayout(view.title, layout);
   const items = [];
   const tweens = [];
   const timers = [];
@@ -131,17 +168,17 @@ export function createAchievementUnlockPopup(scene, definition, options = {}) {
   bg.fillStyle(0xfacc15, 0.84); bg.fillRoundedRect(x + 12, y + 6, layout.width - 24, 5, 2);
   bg.lineStyle(2.4, theme.frameColor, 0.94); bg.strokeRoundedRect(x, y, layout.width, layout.height, layout.radius);
   bg.lineStyle(1, theme.accent, 0.42); bg.strokeRoundedRect(x + 5, y + 5, layout.width - 10, layout.height - 10, layout.radius - 3);
-  bg.lineStyle(1, theme.accent, 0.34); bg.lineBetween(x + 14, y + 38, x + layout.width - 96, y + 38);
+  bg.lineStyle(1, theme.accent, 0.34); bg.lineBetween(x + 14, y + titleLayout.separatorY, x + layout.width - 96, y + titleLayout.separatorY);
   bg.fillStyle(0x451a03, 0.94); bg.fillRoundedRect(x + layout.width - 96, y + layout.height - 27, 82, 22, 8);
   bg.lineStyle(1.1, 0xfacc15, 0.78); bg.strokeRoundedRect(x + layout.width - 96, y + layout.height - 27, 82, 22, 8);
 
   addItem(scene.add.text(x + 15, y + 12, view.title, {
-    fontFamily: 'Arial, sans-serif', fontSize: layout.width < 330 ? '17px' : '19px', color: theme.titleColor, fontStyle: 'bold', wordWrap: { width: layout.width - 122 }, maxLines: 1,
+    fontFamily: 'Arial, sans-serif', fontSize: titleLayout.fontSize, color: theme.titleColor, fontStyle: 'bold', lineSpacing: 0, wordWrap: { width: titleLayout.titleWidth }, maxLines: titleLayout.maxLines,
   }).setDepth(928));
   addItem(scene.add.text(x + layout.width - 15, y + 15, view.stars, {
     fontFamily: 'Arial, sans-serif', fontSize: '15px', color: theme.starColor, fontStyle: 'bold', align: 'right', fixedWidth: 68,
   }).setOrigin(1, 0).setDepth(928));
-  addItem(scene.add.text(x + 15, y + 44, view.description, {
+  addItem(scene.add.text(x + 15, y + titleLayout.descriptionY, view.description, {
     fontFamily: 'Arial, sans-serif', fontSize: '13px', color: theme.descriptionColor, wordWrap: { width: layout.width - 126 }, maxLines: 2,
   }).setDepth(928));
   addItem(scene.add.text(x + layout.width - 55, y + layout.height - 16, view.badge, {
