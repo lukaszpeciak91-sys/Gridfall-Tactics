@@ -50,4 +50,16 @@ test('default simulator output does not include optional simulator telemetry sec
   assert.doesNotMatch(output, /Simulator telemetry: per-faction summary/);
   assert.doesNotMatch(output, /Simulator telemetry: per-card summary/);
   assert.doesNotMatch(output, /Simulator telemetry: AI health/);
+  assert.doesNotMatch(output, /AI Decision Audit/);
+});
+
+test('AI decision audit is opt-in, capped, and summarizes choices', () => {
+  const output = runSimulator(['3', '--only=Overclock:Aggro', '--ai-audit=3']);
+  const sampleHeaders = output.match(/^#\d+ /gm) ?? [];
+
+  assert.match(output, /AI Decision Audit \(3 sampled decisions\)/);
+  assert.equal(sampleHeaders.length, 3);
+  assert.match(output, /Chosen:/);
+  assert.match(output, /Next best:\n\s+1\)/);
+  assert.match(output, /Why:/);
 });
