@@ -262,6 +262,104 @@ test('AI values targetEnemyMaxAtk on enemies above the cap more than enemies alr
   assert.ok(scoreAction(state, 'enemy', highAction) > 0);
 });
 
+test('AI combat-swing valuation rewards temporary enemy ATK debuff preventing allied unit death', () => {
+  const mercy = { id: 'mercy-save', name: 'Mercy Save', type: 'order', targeting: 'enemy_unit', effectId: 'lane_tempo_mod_until_combat', effectParams: { targetEnemyAtk: -1, opposingAllyAtk: 2 } };
+  const saveState = stateWithHands([unitCard('ally-saved', 1, 3), mercy], [unitCard('enemy-threat', 3, 5)]);
+  playOrRedeployUnit(saveState, 'player', 'ally-saved', 6);
+  playOrRedeployUnit(saveState, 'enemy', 'enemy-threat', 0);
+  const saveAction = buildActionCandidates(saveState, 'player', saveState.player.hand, {})
+    .find((action) => action.cardId === 'mercy-save' && action.targetIndex === 0);
+
+  const noSaveState = stateWithHands([unitCard('ally-safe', 1, 5), mercy], [unitCard('enemy-threat', 3, 5)]);
+  playOrRedeployUnit(noSaveState, 'player', 'ally-safe', 6);
+  playOrRedeployUnit(noSaveState, 'enemy', 'enemy-threat', 0);
+  const noSaveAction = buildActionCandidates(noSaveState, 'player', noSaveState.player.hand, {})
+    .find((action) => action.cardId === 'mercy-save' && action.targetIndex === 0);
+
+  assert.ok(saveAction);
+  assert.ok(noSaveAction);
+  assert.ok(scoreAction(saveState, 'player', saveAction) > scoreAction(noSaveState, 'player', noSaveAction) + 800);
+});
+
+test('AI combat-swing valuation rewards temporary allied ATK buff enabling an opposing enemy kill', () => {
+  const mercy = { id: 'mercy-kill', name: 'Mercy Kill', type: 'order', targeting: 'enemy_unit', effectId: 'lane_tempo_mod_until_combat', effectParams: { targetEnemyAtk: -1, opposingAllyAtk: 2 } };
+  const killState = stateWithHands([unitCard('ally-killer', 1, 5), mercy], [unitCard('enemy-killable', 2, 3)]);
+  playOrRedeployUnit(killState, 'player', 'ally-killer', 6);
+  playOrRedeployUnit(killState, 'enemy', 'enemy-killable', 0);
+  const killAction = buildActionCandidates(killState, 'player', killState.player.hand, {})
+    .find((action) => action.cardId === 'mercy-kill' && action.targetIndex === 0);
+
+  const noKillState = stateWithHands([unitCard('ally-low', 0, 5), mercy], [unitCard('enemy-survivor', 2, 4)]);
+  playOrRedeployUnit(noKillState, 'player', 'ally-low', 6);
+  playOrRedeployUnit(noKillState, 'enemy', 'enemy-survivor', 0);
+  const noKillAction = buildActionCandidates(noKillState, 'player', noKillState.player.hand, {})
+    .find((action) => action.cardId === 'mercy-kill' && action.targetIndex === 0);
+
+  assert.ok(killAction);
+  assert.ok(noKillAction);
+  assert.ok(scoreAction(killState, 'player', killAction) > scoreAction(noKillState, 'player', noKillAction) + 700);
+});
+
+test('AI combat-swing valuation rewards enemy-only debuff reducing open-lane base damage', () => {
+  const mercy = { id: 'mercy-open', name: 'Mercy Open', type: 'order', targeting: 'enemy_unit', effectId: 'lane_tempo_mod_until_combat', effectParams: { targetEnemyAtk: -1, opposingAllyAtk: 2 } };
+  const state = stateWithHands([mercy], [unitCard('open-enemy', 1, 5)]);
+  playOrRedeployUnit(state, 'enemy', 'open-enemy', 0);
+  const action = buildActionCandidates(state, 'player', state.player.hand, {})
+    .find((candidate) => candidate.cardId === 'mercy-open' && candidate.targetIndex === 0);
+
+  assert.ok(action);
+  assert.ok(scoreAction(state, 'player', action) >= 2500);
+});
+
+test('AI combat-swing valuation stays conservative when buff/debuff does not change combat outcome', () => {
+  const mercy = { id: 'mercy-no-swing', name: 'Mercy No Swing', type: 'order', targeting: 'enemy_unit', effectId: 'lane_tempo_mod_until_combat', effectParams: { targetEnemyAtk: -1, opposingAllyAtk: 2 } };
+  const swingState = stateWithHands([unitCard('ally-swing', 1, 5), mercy], [unitCard('enemy-dies', 2, 3)]);
+  playOrRedeployUnit(swingState, 'player', 'ally-swing', 6);
+  playOrRedeployUnit(swingState, 'enemy', 'enemy-dies', 0);
+  const swingAction = buildActionCandidates(swingState, 'player', swingState.player.hand, {})
+    .find((action) => action.cardId === 'mercy-no-swing' && action.targetIndex === 0);
+
+  const noSwingState = stateWithHands([unitCard('ally-no-swing', 0, 5), mercy], [unitCard('enemy-lives', 2, 5)]);
+  playOrRedeployUnit(noSwingState, 'player', 'ally-no-swing', 6);
+  playOrRedeployUnit(noSwingState, 'enemy', 'enemy-lives', 0);
+  const noSwingAction = buildActionCandidates(noSwingState, 'player', noSwingState.player.hand, {})
+    .find((action) => action.cardId === 'mercy-no-swing' && action.targetIndex === 0);
+
+  assert.ok(swingAction);
+  assert.ok(noSwingAction);
+  assert.ok(scoreAction(swingState, 'player', swingAction) > scoreAction(noSwingState, 'player', noSwingAction) + 700);
+});
+
+test('Temper Shift remains generated and finite with and without an opposing ally', () => {
+  const mercy = { id: 'overclock_mercy_1', name: 'Temper Shift', type: 'order', targeting: 'enemy_unit', effectId: 'lane_tempo_mod_until_combat', effectParams: { targetEnemyAtk: -1, opposingAllyAtk: 2 } };
+  const withAlly = stateWithHands([unitCard('ally', 1, 5), mercy], [unitCard('enemy', 2, 5)]);
+  playOrRedeployUnit(withAlly, 'player', 'ally', 6);
+  playOrRedeployUnit(withAlly, 'enemy', 'enemy', 0);
+  const withAllyAction = buildActionCandidates(withAlly, 'player', withAlly.player.hand, {})
+    .find((action) => action.cardId === 'overclock_mercy_1' && action.targetIndex === 0);
+
+  const withoutAlly = stateWithHands([mercy], [unitCard('enemy', 2, 5)]);
+  playOrRedeployUnit(withoutAlly, 'enemy', 'enemy', 0);
+  const withoutAllyAction = buildActionCandidates(withoutAlly, 'player', withoutAlly.player.hand, {})
+    .find((action) => action.cardId === 'overclock_mercy_1' && action.targetIndex === 0);
+
+  assert.ok(withAllyAction);
+  assert.ok(withoutAllyAction);
+  assert.ok(Number.isFinite(scoreAction(withAlly, 'player', withAllyAction)));
+  assert.ok(Number.isFinite(scoreAction(withoutAlly, 'player', withoutAllyAction)));
+});
+
+test('AI combat-swing valuation improves enemy_lane_atk_minus_1 unit scoring without breaking candidates', () => {
+  const hog = unitCard('hog', 1, 2, 'enemy_lane_atk_minus_1');
+  const state = stateWithHands([hog], [unitCard('enemy-threat', 2, 2)]);
+  playOrRedeployUnit(state, 'enemy', 'enemy-threat', 0);
+  const action = buildActionCandidates(state, 'player', state.player.hand, {})
+    .find((candidate) => candidate.cardId === 'hog' && candidate.slotIndex === 6);
+
+  assert.ok(action);
+  assert.ok(scoreAction(state, 'player', action) > 0);
+});
+
 test('Hot Runner takes opposed enemy offline for exactly one combat and returns it without Fallen bookkeeping', () => {
   const runner = unitCard('runner', 1, 1, 'opposed_enemy_offline_next_combat');
   const state = stateWithHands([runner], [unitCard('wall', 3, 5)]);

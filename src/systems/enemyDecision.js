@@ -306,6 +306,65 @@ function getFriendlyBoardStats(state, owner) {
   return { count, attack, openLaneAttack, emptySlots, threatened };
 }
 
+function getLaneCombatSnapshot(state, owner, lane) {
+  if (!state || !Number.isInteger(lane) || lane < 0 || lane > 2) return null;
+  const { friendly, opposing } = getRowsForOwner(owner);
+  const friendlyIndex = friendly[lane];
+  const enemyIndex = opposing[lane];
+  const friendlyUnit = state.board?.[friendlyIndex] ?? null;
+  const enemyUnit = state.board?.[enemyIndex] ?? null;
+  const friendlyAttack = friendlyUnit?.owner === owner ? getEffectiveBoardAttack(state, friendlyIndex) : 0;
+  const enemyAttack = enemyUnit?.owner === (owner === 'enemy' ? 'player' : 'enemy') ? getEffectiveBoardAttack(state, enemyIndex) : 0;
+  const friendlyEffectiveHp = friendlyUnit?.owner === owner ? getEffectiveHp(friendlyUnit) : 0;
+  const enemyEffectiveHp = enemyUnit?.owner === (owner === 'enemy' ? 'player' : 'enemy') ? getEffectiveHp(enemyUnit) : 0;
+
+  return {
+    friendlyUnit,
+    enemyUnit,
+    friendlyAttack,
+    enemyAttack,
+    friendlyEffectiveHp,
+    enemyEffectiveHp,
+    friendlyDies: Boolean(friendlyUnit && enemyUnit && enemyAttack >= friendlyEffectiveHp),
+    enemyDies: Boolean(friendlyUnit && enemyUnit && friendlyAttack >= enemyEffectiveHp),
+    incomingOpenLaneDamage: !friendlyUnit && enemyUnit ? enemyAttack : 0,
+  };
+}
+
+function evaluateLaneCombatSwing(beforeState, afterState, owner, lane) {
+  const before = getLaneCombatSnapshot(beforeState, owner, lane);
+  const after = getLaneCombatSnapshot(afterState, owner, lane);
+  if (!before || !after) return 0;
+
+  let value = 0;
+
+  const preventedOpenLaneDamage = Math.max(0, before.incomingOpenLaneDamage - after.incomingOpenLaneDamage);
+  if (preventedOpenLaneDamage > 0) value += 500 + preventedOpenLaneDamage * 250;
+
+  if (before.friendlyUnit && before.enemyUnit && after.friendlyUnit && after.enemyUnit) {
+    if (before.friendlyDies && !after.friendlyDies) {
+      value += 900 + Math.min(4, Math.max(0, before.friendlyAttack)) * 80;
+    }
+    if (!before.enemyDies && after.enemyDies) {
+      value += 800 + Math.min(4, Math.max(0, after.friendlyAttack)) * 70;
+    }
+    if (before.friendlyDies && !before.enemyDies && !after.friendlyDies && after.enemyDies) {
+      value += 700;
+    } else if (before.friendlyDies && !before.enemyDies && after.friendlyDies && after.enemyDies) {
+      value += 400;
+    } else if (before.friendlyDies && before.enemyDies && !after.friendlyDies && after.enemyDies) {
+      value += 450;
+    }
+
+    const preventedUnitDamage = Math.max(0, Math.min(before.enemyAttack, before.friendlyEffectiveHp) - Math.min(after.enemyAttack, after.friendlyEffectiveHp));
+    if (preventedUnitDamage > 0 && before.friendlyDies === after.friendlyDies) {
+      value += preventedUnitDamage * 120;
+    }
+  }
+
+  return value;
+}
+
 function getImmediateOpenLaneThreat(state, owner) {
   return getGuaranteedHeroDamage(state, owner === 'enemy' ? 'player' : 'enemy');
 }
@@ -953,6 +1012,9 @@ export function scoreAction(state, owner, action) {
       }
     }
     const placedUnit = nextState.board[action.slotIndex];
+    if (placedUnit?.owner === owner && placedUnit.effectId === 'enemy_lane_atk_minus_1' && lane >= 0) {
+      score += evaluateLaneCombatSwing(state, nextState, owner, lane);
+    }
     if (placedUnit?.owner === owner && String(placedUnit.cardId ?? placedUnit.id ?? '').startsWith('wardens_')) {
       const adjacentAllyCount = [friendly[lane - 1], friendly[lane + 1]]
         .filter((index) => nextState.board[index]?.owner === owner).length;
@@ -1132,15 +1194,31 @@ export function scoreAction(state, owner, action) {
   if (action.effectId === 'enemy_up_to_2_atk_minus_1') {
     const targetIndexes = getActionTargetIndexes(action);
     const targetValue = targetIndexes.reduce((total, index) => total + Math.max(0, getJamSignalTargetValue(state, owner, index)), 0);
-    const meaningful = opponentPressureReduced > 0 || targetValue > 0;
+    const { opposing } = getRowsForOwner(owner);
+    const combatSwingValue = targetIndexes.reduce((total, index) => {
+      const lane = opposing.indexOf(index);
+      return total + (lane >= 0 ? evaluateLaneCombatSwing(state, nextState, owner, lane) : 0);
+    }, 0);
+    const meaningful = opponentPressureReduced > 0 || targetValue > 0 || combatSwingValue > 0;
     action.aiEvaluation = {
       kind: 'jam-signal',
       meaningful,
       targetCount: targetIndexes.length,
       opponentPressureReduced,
+      combatSwingValue,
     };
     if (!meaningful) return Number.NEGATIVE_INFINITY;
-    score += 360 + targetValue + targetIndexes.length * 90;
+    score += 360 + targetValue + targetIndexes.length * 90 + combatSwingValue;
+  }
+
+  if (action.effectId === 'enemy_lane_atk_minus_1') {
+    const { opposing } = getRowsForOwner(owner);
+    const lane = opposing.indexOf(action.targetIndex);
+    const combatSwingValue = lane >= 0 ? evaluateLaneCombatSwing(state, nextState, owner, lane) : 0;
+    if (combatSwingValue > 0) {
+      action.aiEvaluation = { ...(action.aiEvaluation ?? {}), kind: 'enemy-lane-atk-minus-1', combatSwingValue };
+      score += combatSwingValue;
+    }
   }
 
   if (action.effectId === 'ally_atk_plus_1_opposing_enemy_atk_minus_1_until_combat' || action.effectId === 'lane_tempo_mod_until_combat') {
@@ -1164,7 +1242,9 @@ export function scoreAction(state, owner, action) {
       const meaningful = target?.owner === (owner === 'enemy' ? 'player' : 'enemy') && (meaningfulEnemyDebuff || meaningfulAllyBuff);
       action.aiEvaluation = { kind: 'enemy-lane-tempo-transfer', meaningful, targetAttack, allyAttack, targetEnemyAtk, targetEnemyMaxAtk, cappedAttackReduction, opposingAllyAtk, hasOpposingAlly };
       if (!meaningful) return Number.NEGATIVE_INFINITY;
-      score += 420 + Math.max(0, -targetEnemyAtk) * 220 + cappedAttackReduction * 260 + targetAttack * 120;
+      const combatSwingValue = lane >= 0 ? evaluateLaneCombatSwing(state, nextState, owner, lane) : 0;
+      score += 420 + Math.max(0, -targetEnemyAtk) * 220 + cappedAttackReduction * 260 + targetAttack * 120 + combatSwingValue;
+      action.aiEvaluation.combatSwingValue = combatSwingValue;
       if (hasOpposingAlly) score += 260 + Math.max(0, opposingAllyAtk) * 160 + allyAttack * 60;
       return score;
     }
@@ -1181,8 +1261,11 @@ export function scoreAction(state, owner, action) {
     const meaningful = target?.owner === owner && (meaningfulAllyPressure || meaningfulEnemyDebuff);
     action.aiEvaluation = { kind: 'ally-lane-tempo-transfer', meaningful, targetAttack, opposedAttack, allyAtk, opposingEnemyAtk, hasOpposingEnemy };
     if (!meaningful) return Number.NEGATIVE_INFINITY;
+    const combatSwingValue = lane >= 0 ? evaluateLaneCombatSwing(state, nextState, owner, lane) : 0;
     score += 360 + Math.max(0, allyAtk) * 120 + targetAttack * 80;
     score += hasOpposingEnemy ? 320 + Math.max(0, -opposingEnemyAtk) * 180 + opposedAttack * 120 : Math.max(0, allyAtk) * 80;
+    score += combatSwingValue;
+    action.aiEvaluation.combatSwingValue = combatSwingValue;
   }
 
 
@@ -1204,9 +1287,11 @@ export function scoreAction(state, owner, action) {
     const target = state.board[action.targetIndex];
     const targetAttack = getEffectiveBoardAttack(state, action.targetIndex);
     const meaningful = target?.owner === (owner === 'enemy' ? 'player' : 'enemy') && targetAttack > 0;
-    action.aiEvaluation = { kind: 'enemy-atk-to-0', meaningful, targetAttack, opponentPressureReduced };
+    const lane = getRowsForOwner(owner).opposing.indexOf(action.targetIndex);
+    const combatSwingValue = lane >= 0 ? evaluateLaneCombatSwing(state, nextState, owner, lane) : 0;
+    action.aiEvaluation = { kind: 'enemy-atk-to-0', meaningful, targetAttack, opponentPressureReduced, combatSwingValue };
     if (!meaningful) return Number.NEGATIVE_INFINITY;
-    score += 420 + targetAttack * 180 + Math.max(0, opponentPressureReduced) * 90;
+    score += 420 + targetAttack * 180 + Math.max(0, opponentPressureReduced) * 90 + combatSwingValue;
   }
 
   if (action.effectId === 'control_enemy_unit_this_turn') {
