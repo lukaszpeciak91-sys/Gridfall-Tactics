@@ -21,7 +21,7 @@ import {
 } from '../src/systems/GameState.js';
 import { readFileSync } from 'node:fs';
 import { getFactionByKey, getFactionKeys } from '../src/data/factions/index.js';
-import { buildActionCandidates, chooseBattleAction, recordBattleActionUse, selectOpeningMulliganCardIds } from '../src/systems/enemyDecision.js';
+import { buildActionCandidates, chooseBattleAction, recordBattleActionUse, scoreAction, selectOpeningMulliganCardIds } from '../src/systems/enemyDecision.js';
 
 const DEFAULT_MATCH_COUNT = 100;
 const DEFAULT_BASE_SEED = 1337;
@@ -410,6 +410,225 @@ function createSimulatorTelemetry() {
       other: 0,
     },
   };
+}
+
+function parsePositiveIntegerOption(value) {
+  const parsed = Number.parseInt(value ?? '0', 10);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : 0;
+}
+
+function createAiDecisionAudit(limit = 0) {
+  return {
+    enabled: limit > 0,
+    limit,
+    samples: [],
+  };
+}
+
+function hasAiDecisionAuditCapacity(aiDecisionAudit) {
+  return Boolean(aiDecisionAudit?.enabled && aiDecisionAudit.samples.length < aiDecisionAudit.limit);
+}
+
+function cloneAuditValue(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function formatAuditNumber(value) {
+  if (!Number.isFinite(value)) return 'n/a';
+  if (Math.abs(value) >= 1000) return `${Math.round(value)}`;
+  return Number.isInteger(value) ? `${value}` : value.toFixed(1);
+}
+
+function formatAuditCard(card) {
+  if (!card) return 'unknown';
+  const name = card.name ?? card.id ?? 'unknown';
+  return card.effectId ? `${name}(${card.effectId})` : name;
+}
+
+function summarizeAuditHand(side) {
+  const hand = Array.isArray(side?.hand) ? side.hand : [];
+  if (hand.length === 0) return 'empty';
+  return hand.map(formatAuditCard).join(', ');
+}
+
+function summarizeAuditUnit(unit) {
+  if (!unit) return '.';
+  const label = unit.name ?? unit.cardId ?? unit.id ?? 'unit';
+  const attack = Number.isFinite(unit.attack) ? unit.attack : 0;
+  const hp = Number.isFinite(unit.hp) ? unit.hp : 0;
+  const armor = Number.isFinite(unit.armor) && unit.armor > 0 ? `/${unit.armor}` : '';
+  return `${label} ${attack}/${hp}${armor}`;
+}
+
+function summarizeAuditBoard(state) {
+  const enemy = [0, 1, 2].map((index) => summarizeAuditUnit(state?.board?.[index])).join(' | ');
+  const player = [6, 7, 8].map((index) => summarizeAuditUnit(state?.board?.[index])).join(' | ');
+  return `E [${enemy}] / P [${player}]`;
+}
+
+function getAuditActionCard(state, owner, action) {
+  if (!action?.cardId) return null;
+  const side = owner === 'player' ? state?.player : state?.enemy;
+  return (side?.hand ?? []).find((card) => card?.id === action.cardId) ?? null;
+}
+
+function summarizeAuditAction(state, owner, action) {
+  if (!action) return 'none';
+  if (action.type === 'pass') return 'PASS';
+  if (action.type === 'surrender') return 'SURRENDER';
+  if (action.type === 'swap-units') return `Swap lanes ${action.fromIndex % 3}<->${action.toIndex % 3}`;
+  const card = getAuditActionCard(state, owner, action);
+  const cardName = card?.name ?? action.cardId ?? 'card';
+  if (action.type === 'play-unit') {
+    const lane = Number.isInteger(action.slotIndex) ? action.slotIndex % 3 : '?';
+    const placement = action.placementType === 'redeploy' ? 'Redeploy' : 'Play';
+    return `${placement} ${cardName} lane ${lane}`;
+  }
+  if (action.type === 'play-effect') return `Play ${cardName}`;
+  if (action.type === 'play-targeted-effect') {
+    const targets = (action.targetIndexes ?? [action.targetIndex])
+      .filter((index) => Number.isInteger(index))
+      .map((index) => index % 3)
+      .join(',');
+    return `Play ${cardName}${targets ? ` target lane ${targets}` : ''}`;
+  }
+  return action.type ?? 'action';
+}
+
+function getAuditActionKey(action) {
+  if (!action) return 'none';
+  return JSON.stringify({
+    type: action.type ?? null,
+    cardId: action.cardId ?? null,
+    slotIndex: action.slotIndex ?? null,
+    placementType: action.placementType ?? null,
+    fromIndex: action.fromIndex ?? null,
+    toIndex: action.toIndex ?? null,
+    targetIndex: action.targetIndex ?? null,
+    targetIndexes: action.targetIndexes ?? null,
+    effectId: action.effectId ?? null,
+  });
+}
+
+function isAuditUtilityTempoOrEffect(entry) {
+  const action = entry?.action;
+  if (!action) return false;
+  if (action.type === 'play-effect' || action.type === 'play-targeted-effect') return true;
+  return Boolean(action.aiEvaluation?.utility || action.effectId === 'lane_tempo_mod_until_combat');
+}
+
+function isAuditPressureAction(entry) {
+  const action = entry?.action;
+  const evaluation = action?.aiEvaluation ?? {};
+  if (!action) return false;
+  if (action.type === 'play-unit' && action.placementType !== 'redeploy') return true;
+  if ((evaluation.heroPressureGain ?? 0) > 0) return true;
+  if ((evaluation.openLaneImprovement ?? 0) > 0) return true;
+  if (evaluation.utilityChosenReason && String(evaluation.utilityChosenReason).includes('hero pressure')) return true;
+  return false;
+}
+
+function getAuditWhy(entry) {
+  const evaluation = entry?.action?.aiEvaluation ?? {};
+  if (evaluation.utilityChosenReason) return evaluation.utilityChosenReason;
+  if (evaluation.utilityReason) return evaluation.utilityReason;
+  if (evaluation.reason) return evaluation.reason;
+  if (entry?.action?.type === 'play-unit') return 'unit/open-lane pressure scored highest';
+  if (entry?.action?.type === 'pass') return 'hold/pass was best or only valid action';
+  return 'highest scored legal action';
+}
+
+function beginAiDecisionAuditSample(aiDecisionAudit, state, owner, opportunityContext) {
+  if (!hasAiDecisionAuditCapacity(aiDecisionAudit)) return null;
+  const side = owner === 'player' ? state?.player : state?.enemy;
+  const hand = Array.isArray(side?.hand) ? side.hand : [];
+  const candidates = buildActionCandidates(state, owner, hand, null);
+  const scored = candidates
+    .map((action) => {
+      const candidate = cloneAuditValue(action);
+      const score = scoreAction(state, owner, candidate);
+      return {
+        action: candidate,
+        key: getAuditActionKey(candidate),
+        score,
+        finite: Number.isFinite(score),
+      };
+    })
+    .sort((a, b) => {
+      if (Number.isFinite(b.score) !== Number.isFinite(a.score)) return Number.isFinite(b.score) ? 1 : -1;
+      return (Number.isFinite(b.score) ? b.score : Number.NEGATIVE_INFINITY) - (Number.isFinite(a.score) ? a.score : Number.NEGATIVE_INFINITY);
+    });
+
+  return {
+    matchup: `${opportunityContext?.playerFaction ?? '?'} vs ${opportunityContext?.enemyFaction ?? '?'}`,
+    gameIndex: opportunityContext?.gameIndex ?? null,
+    turn: opportunityContext?.turn ?? ((state?.turnsCompleted ?? 0) + 1),
+    actingOrder: opportunityContext?.actingOrder ?? null,
+    owner,
+    hand: summarizeAuditHand(side),
+    board: summarizeAuditBoard(state),
+    scored,
+    noCandidates: candidates.length === 0,
+  };
+}
+
+function finishAiDecisionAuditSample(aiDecisionAudit, pendingSample, state, owner, chosenAction) {
+  if (!pendingSample || !hasAiDecisionAuditCapacity(aiDecisionAudit)) return;
+  const chosenKey = getAuditActionKey(chosenAction);
+  const chosenEntry = pendingSample.scored.find((entry) => entry.key === chosenKey) ?? null;
+  const finiteScored = pendingSample.scored.filter((entry) => entry.finite);
+  const chosenScore = chosenEntry?.score ?? null;
+  const alternatives = finiteScored
+    .filter((entry) => entry.key !== chosenKey)
+    .slice(0, 2);
+  const topThree = finiteScored.slice(0, 3);
+  const utilityAlternative = topThree.find((entry) => entry.key !== chosenKey && entry.score > 0 && isAuditUtilityTempoOrEffect(entry));
+  const suspicious = Boolean(chosenEntry && utilityAlternative && isAuditPressureAction(chosenEntry));
+
+  aiDecisionAudit.samples.push({
+    ...pendingSample,
+    chosen: summarizeAuditAction(state, owner, chosenAction),
+    chosenScore,
+    chosenMatched: Boolean(chosenEntry),
+    alternatives: alternatives.map((entry) => ({
+      summary: summarizeAuditAction(state, owner, entry.action),
+      score: entry.score,
+      delta: Number.isFinite(chosenScore) ? entry.score - chosenScore : null,
+    })),
+    flag: suspicious ? 'utility/tempo alternative lost to pressure/open-lane action' : null,
+    why: chosenEntry ? getAuditWhy(chosenEntry) : (chosenAction?.reason ?? 'special-case action not found in scored candidates'),
+  });
+}
+
+function printAiDecisionAudit(aiDecisionAudit) {
+  if (!aiDecisionAudit?.enabled) return;
+  console.log(`\nAI Decision Audit (${aiDecisionAudit.samples.length} sampled decisions)`);
+  if (aiDecisionAudit.samples.length === 0) {
+    console.log('No AI decision samples collected.');
+    console.log('Tip: with --only, use a positional match count if --total distributes zero games to the selected matchup.');
+    return;
+  }
+  aiDecisionAudit.samples.forEach((sample, index) => {
+    const game = sample.gameIndex === null ? 'G?' : `G${sample.gameIndex}`;
+    const turn = sample.turn === null ? 'T?' : `T${sample.turn}`;
+    const order = sample.actingOrder ? ` ${sample.actingOrder}` : '';
+    console.log(`\n#${index + 1} ${sample.matchup} | ${game} ${turn}${order} | ${sample.owner}`);
+    console.log(`Hand: ${sample.hand}`);
+    console.log(`Board: ${sample.board}`);
+    console.log(`Chosen: ${sample.chosen}`);
+    console.log(`Score: ${sample.chosenMatched ? formatAuditNumber(sample.chosenScore) : 'not scored / special case'}`);
+    if (sample.alternatives.length > 0) {
+      console.log('Next best:');
+      sample.alternatives.forEach((alternative, altIndex) => {
+        const delta = Number.isFinite(alternative.delta) ? ` (${formatAuditNumber(alternative.delta)})` : '';
+        console.log(`  ${altIndex + 1}) ${alternative.summary} | ${formatAuditNumber(alternative.score)}${delta}`);
+      });
+    } else {
+      console.log('Next best: none');
+    }
+    if (sample.flag) console.log(`Flag: ${sample.flag}`);
+    console.log(`Why: ${sample.why}`);
+  });
 }
 
 
@@ -992,9 +1211,11 @@ function applyAiOpeningMulligan(state, owner, randomFn, telemetry, simTelemetry 
   recordMulliganTelemetry(telemetry, side.factionName ?? 'Unknown', result.replaced);
 }
 
-function applyAction(state, owner, passStats, decisionOptions, telemetry, simTelemetry, gameCardTelemetry = null, handLockAnalysis = null, opportunityContext = null) {
+function applyAction(state, owner, passStats, decisionOptions, telemetry, simTelemetry, gameCardTelemetry = null, handLockAnalysis = null, opportunityContext = null, aiDecisionAudit = null) {
   recordHandLockOpportunity(handLockAnalysis, state, owner, opportunityContext);
+  const pendingAiDecisionAuditSample = beginAiDecisionAuditSample(aiDecisionAudit, state, owner, opportunityContext);
   const action = chooseBattleAction(state, owner, { ...decisionOptions, telemetry });
+  finishAiDecisionAuditSample(aiDecisionAudit, pendingAiDecisionAuditSample, state, owner, action);
   if (action?.effectId === MERCY_EFFECT_ID) {
     const targetIndex = action.targetIndex;
     const hand = state?.[owner]?.hand ?? [];
@@ -1091,7 +1312,7 @@ function applyAction(state, owner, passStats, decisionOptions, telemetry, simTel
 }
 
 
-function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, simTelemetry, gameSeed, gameIndex, playerKey, enemyKey, effectVariantRegistry = null, handLockAnalysis = null) {
+function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, simTelemetry, gameSeed, gameIndex, playerKey, enemyKey, effectVariantRegistry = null, handLockAnalysis = null, aiDecisionAudit = null) {
   const gameRng = createSeededRng(gameSeed);
   const state = createInitialBattleState(playerFaction, enemyFaction, { randomFn: gameRng });
   if (effectVariantRegistry) state.effectVariantRegistry = effectVariantRegistry;
@@ -1129,8 +1350,8 @@ function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, simTel
     const firstActor = state.firstActor;
     const secondActor = firstActor === 'player' ? 'enemy' : 'player';
 
-    applyAction(state, firstActor, passStats, firstDecisionOptions, telemetry, simTelemetry, cardGameTelemetry, handLockAnalysis, { turn: turns + 1, actingOrder: 'first', playerFaction: playerKey, enemyFaction: enemyKey, gameIndex });
-    applyAction(state, secondActor, passStats, secondDecisionOptions, telemetry, simTelemetry, cardGameTelemetry, handLockAnalysis, { turn: turns + 1, actingOrder: 'second', playerFaction: playerKey, enemyFaction: enemyKey, gameIndex });
+    applyAction(state, firstActor, passStats, firstDecisionOptions, telemetry, simTelemetry, cardGameTelemetry, handLockAnalysis, { turn: turns + 1, actingOrder: 'first', playerFaction: playerKey, enemyFaction: enemyKey, gameIndex }, aiDecisionAudit);
+    applyAction(state, secondActor, passStats, secondDecisionOptions, telemetry, simTelemetry, cardGameTelemetry, handLockAnalysis, { turn: turns + 1, actingOrder: 'second', playerFaction: playerKey, enemyFaction: enemyKey, gameIndex }, aiDecisionAudit);
     const playerDeckBeforeCombat = [...state.player.deck];
     const enemyDeckBeforeCombat = [...state.enemy.deck];
     const combatEvents = resolveCombat(state);
@@ -1720,6 +1941,8 @@ function main() {
   const telemetryArg = process.argv.find((arg) => arg.startsWith('--telemetry='));
   const telemetryModes = parseTelemetryModes(telemetryArg?.split('=')[1] ?? experiment?.telemetry ?? '');
   const simTelemetry = telemetryModes.size > 0 ? createSimulatorTelemetry() : null;
+  const aiAuditArg = process.argv.find((arg) => arg.startsWith('--ai-audit='));
+  const aiDecisionAudit = createAiDecisionAudit(parsePositiveIntegerOption(aiAuditArg?.split('=')[1]));
   const onlyArg = process.argv.find((arg) => arg.startsWith('--only='));
   const onlyOrderedMatchups = onlyArg
     ? new Set(onlyArg.split('=')[1]
@@ -1763,7 +1986,7 @@ function main() {
 
     for (let i = 0; i < gamesForMatchup; i += 1) {
       const gameSeed = buildGameSeed(effectiveBaseSeed, playerKey, enemyKey, i);
-      const result = runSingleGame(factions[playerKey], factions[enemyKey], passStats, telemetry, simTelemetry, gameSeed, i, playerKey, enemyKey, effectVariantRegistry, handLockAnalysis);
+      const result = runSingleGame(factions[playerKey], factions[enemyKey], passStats, telemetry, simTelemetry, gameSeed, i, playerKey, enemyKey, effectVariantRegistry, handLockAnalysis, aiDecisionAudit);
       recordGameEndTelemetry(simTelemetry, result);
       recordEffectVariantOperationTelemetry(simTelemetry, result.effectVariantOperationTelemetry);
       telemetry.quickFixTriggers += result.quickFixTempoDraws ?? 0;
@@ -2096,6 +2319,7 @@ Battle simulation complete (${effectiveMatchCount} games per matchup${filterSumm
   if (simTelemetry && hasTelemetryMode(telemetryModes, 'effectvariants')) {
     printEffectVariantOperationSimulatorTelemetry(simTelemetry);
   }
+  printAiDecisionAudit(aiDecisionAudit);
 
   console.log('\nSimulation parity and validity notes:');
   console.log(`- baseSeed: ${effectiveBaseSeed}`);
