@@ -107,7 +107,7 @@ export function createImageButton(scene, {
   shadowAlpha = 0.26,
   textOffsetY = 0,
   hoverScale = 1.03,
-  downScale = 0.98,
+  downScale = 0.975,
   preserveImageAspect = true,
   minTouchHeight = DEFAULT_MIN_TOUCH_HEIGHT,
 } = {}) {
@@ -150,6 +150,25 @@ export function createImageButton(scene, {
     .setInteractive({ useHandCursor: true });
 
   const scalableTargets = [shadow, backing, centerGlow, text].filter(Boolean);
+  const feedbackTargets = scalableTargets.filter(Boolean);
+  const feedbackState = {
+    hovering: false,
+    pressed: false,
+    activePointerId: null,
+    scenePointerUpOutsideHandler: null,
+    destroyed: false,
+  };
+
+  const killFeedbackTweens = () => {
+    scene.tweens?.killTweensOf?.(feedbackTargets.filter(isLiveGameObject));
+  };
+
+  const removeScenePointerUpOutsideHandler = () => {
+    if (!feedbackState.scenePointerUpOutsideHandler) return;
+    scene.input?.off?.('pointerupoutside', feedbackState.scenePointerUpOutsideHandler);
+    feedbackState.scenePointerUpOutsideHandler = null;
+  };
+
   const setVisualState = ({ scale = 1, alpha = 1, textAlpha = 1, tint = null, glowAlpha = 0, textGlow = false } = {}) => {
     if (!isLiveGameObject(hitZone) || !isLiveGameObject(backing) || !isLiveGameObject(text)) return false;
     scalableTargets.filter(isLiveGameObject).forEach((target) => setTargetScaleFromBase(target, scale));
@@ -165,16 +184,175 @@ export function createImageButton(scene, {
     return true;
   };
 
-  hitZone.on('pointerover', () => setVisualState({ scale: hoverScale, alpha: 1, tint: hasButtonTexture ? 0xfffbef : null, glowAlpha: 0.08, textGlow: true }));
-  hitZone.on('pointerout', () => setVisualState({ scale: 1, alpha: 1, textAlpha: 1 }));
-  hitZone.on('pointerdown', () => setVisualState({ scale: downScale, alpha: 0.9, textAlpha: 0.94 }));
-  hitZone.on('pointerup', () => {
+  const getVisualStateForMode = (mode) => {
+    if (mode === 'pressed') {
+      return { scale: downScale, alpha: 0.9, textAlpha: 0.96, tint: hasButtonTexture ? 0xe8dfc9 : null, glowAlpha: 0.035, textGlow: false };
+    }
+    if (mode === 'hover') {
+      return { scale: hoverScale, alpha: hasButtonTexture ? 1 : 0.96, textAlpha: 1, tint: hasButtonTexture ? 0xfffbef : null, glowAlpha: 0.08, textGlow: true };
+    }
+    return { scale: 1, alpha: 1, textAlpha: 1, tint: null, glowAlpha: 0, textGlow: false };
+  };
+
+  const tweenVisualState = (mode, { duration = 100, ease = 'Cubic.easeOut', immediate = false } = {}) => {
+    if (feedbackState.destroyed) return false;
+    const state = getVisualStateForMode(mode);
+    if (!isLiveGameObject(hitZone) || !isLiveGameObject(backing) || !isLiveGameObject(text)) return false;
+
+    killFeedbackTweens();
+
+    if (state.tint && backing.setTint) {
+      backing.setTint(state.tint);
+    } else if (backing.clearTint) {
+      backing.clearTint();
+    }
+    text.setShadow(0, 1, state.textGlow ? 'rgba(245, 241, 230, 0.24)' : 'rgba(3, 17, 40, 0.62)', state.textGlow ? 2 : 1, true, true);
+
+    const liveTargets = feedbackTargets.filter(isLiveGameObject);
+    const targetValues = new Map(liveTargets.map((target) => {
+      const baseScale = getBaseScale(target);
+      return [target, {
+        scaleX: baseScale.x * state.scale,
+        scaleY: baseScale.y * state.scale,
+      }];
+    }));
+
+    if (immediate || typeof scene.tweens?.add !== 'function') {
+      liveTargets.forEach((target) => {
+        const values = targetValues.get(target);
+        target.setScale?.(values.scaleX, values.scaleY);
+      });
+      backing.setAlpha(state.alpha);
+      text.setAlpha(state.textAlpha);
+      centerGlow?.setAlpha?.(state.glowAlpha);
+      return true;
+    }
+
+    liveTargets.forEach((target) => {
+      const values = targetValues.get(target);
+      scene.tweens.add({
+        targets: target,
+        scaleX: values.scaleX,
+        scaleY: values.scaleY,
+        duration,
+        ease,
+      });
+    });
+
+    scene.tweens.add({
+      targets: backing,
+      alpha: state.alpha,
+      duration,
+      ease,
+    });
+    scene.tweens.add({
+      targets: text,
+      alpha: state.textAlpha,
+      duration,
+      ease,
+    });
+    if (centerGlow) {
+      scene.tweens.add({
+        targets: centerGlow,
+        alpha: state.glowAlpha,
+        duration,
+        ease,
+      });
+    }
+    return true;
+  };
+
+  const finishPress = ({ triggerAction = false, pointer = null } = {}) => {
+    const wasPressed = feedbackState.pressed;
+    feedbackState.pressed = false;
+    feedbackState.activePointerId = null;
+    removeScenePointerUpOutsideHandler();
+    const nextMode = feedbackState.hovering ? 'hover' : 'base';
+    if (!tweenVisualState(nextMode, { duration: 105, ease: 'Cubic.easeOut' })) return;
+    if (triggerAction && wasPressed && typeof onPointerUp === 'function') {
+      playSfx(scene, AUDIO_KEYS.UI_CLICK);
+      onPointerUp(pointer);
+    }
+  };
+
+  const cancelPress = () => {
+    feedbackState.pressed = false;
+    feedbackState.activePointerId = null;
+    removeScenePointerUpOutsideHandler();
+    tweenVisualState(feedbackState.hovering ? 'hover' : 'base', { duration: 105, ease: 'Cubic.easeOut' });
+  };
+
+  const handleScenePointerUpOutside = (pointer) => {
+    if (!feedbackState.pressed) return;
+    if (feedbackState.activePointerId != null && pointer?.id !== feedbackState.activePointerId) return;
+    feedbackState.hovering = false;
+    cancelPress();
+  };
+
+  const cleanupFeedback = () => {
+    feedbackState.destroyed = true;
+    feedbackState.pressed = false;
+    feedbackState.hovering = false;
+    feedbackState.activePointerId = null;
+    removeScenePointerUpOutsideHandler();
+    killFeedbackTweens();
+  };
+
+  hitZone.setData?.('imageButtonFeedbackCleanup', cleanupFeedback);
+  hitZone.setData?.('imageButtonFeedbackReset', ({ interactive = true } = {}) => {
+    cleanupFeedback();
+    feedbackState.destroyed = false;
+    setVisualState({ scale: 1, alpha: 1, textAlpha: 1 });
+    if (interactive) {
+      hitZone?.setInteractive?.({ useHandCursor: true });
+    } else {
+      hitZone?.disableInteractive?.();
+    }
+  });
+  scene.events?.once?.('shutdown', cleanupFeedback);
+
+  hitZone.on('pointerover', () => {
+    feedbackState.hovering = true;
+    if (!feedbackState.pressed) tweenVisualState('hover', { duration: 95, ease: 'Cubic.easeOut' });
+  });
+  hitZone.on('pointerout', () => {
+    feedbackState.hovering = false;
+    if (feedbackState.pressed) {
+      cancelPress();
+      return;
+    }
+    tweenVisualState('base', { duration: 95, ease: 'Cubic.easeOut' });
+  });
+  hitZone.on('pointerdown', (pointer) => {
+    feedbackState.pressed = true;
+    feedbackState.activePointerId = pointer?.id ?? null;
+    removeScenePointerUpOutsideHandler();
+    feedbackState.scenePointerUpOutsideHandler = handleScenePointerUpOutside;
+    scene.input?.on?.('pointerupoutside', feedbackState.scenePointerUpOutsideHandler);
+    tweenVisualState('pressed', { duration: 65, ease: 'Quad.easeOut' });
+  });
+  hitZone.on('pointerup', (pointer) => {
+    if (feedbackState.activePointerId != null && pointer?.id !== feedbackState.activePointerId) return;
+    finishPress({ triggerAction: true, pointer });
+  });
+  hitZone.on('pointercancel', cancelPress);
+  hitZone.on('destroy', cleanupFeedback);
+
+  // Keep an immediate-state setter available for reset paths and tests.
+  hitZone.setData?.('imageButtonSetVisualState', setVisualState);
+
+  if (!setVisualState({ scale: 1, alpha: 1, textAlpha: 1 })) {
+    return null;
+  }
+
+  const triggerPointerUp = () => {
     if (!setVisualState({ scale: hoverScale, alpha: hasButtonTexture ? 1 : 0.96, tint: hasButtonTexture ? 0xfffbef : null, glowAlpha: 0.08, textGlow: true })) return;
     if (typeof onPointerUp === 'function') {
       playSfx(scene, AUDIO_KEYS.UI_CLICK);
       onPointerUp();
     }
-  });
+  };
+  hitZone.setData?.('legacyImageButtonPointerUp', triggerPointerUp);
 
   return {
     shadow,
@@ -191,6 +369,8 @@ export function resetImageButtonState(button, { interactive = true } = {}) {
   if (!button) {
     return;
   }
+
+  button.hitZone?.getData?.('imageButtonFeedbackReset')?.({ interactive });
 
   [button.shadow, button.backing, button.text].forEach((item) => {
     item?.setAlpha?.(1);
@@ -212,6 +392,7 @@ export function resetImageButtonState(button, { interactive = true } = {}) {
 }
 
 export function destroyImageButton(button) {
+  button?.hitZone?.getData?.('imageButtonFeedbackCleanup')?.();
   button?.items?.forEach((item) => {
     item?.removeAllListeners?.();
     item?.disableInteractive?.();

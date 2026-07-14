@@ -32,3 +32,20 @@ test('image button reset restores base visual scale without scaling the hit zone
   assert.doesNotMatch(source, /scalableTargets\.forEach\(\(target\) => target\.setScale\(scale\)\)/);
   assert.match(source, /button\.hitZone\?\.setScale\?\.\(1\)/);
 });
+
+test('image button press feedback uses restrained tweened premium timings', () => {
+  assert.match(source, /downScale = 0\.975/);
+  assert.match(source, /tweenVisualState\('pressed', \{ duration: 65, ease: 'Quad\.easeOut' \}\)/);
+  assert.match(source, /tweenVisualState\(nextMode, \{ duration: 105, ease: 'Cubic\.easeOut' \}\)/);
+  assert.match(source, /return \{ scale: downScale, alpha: 0\.9, textAlpha: 0\.96/);
+  assert.doesNotMatch(source, /Back\.easeOut/);
+});
+
+test('image button feedback cancels safely and avoids scale drift', () => {
+  assert.match(source, /scene\.tweens\?\.killTweensOf\?\.\(feedbackTargets\.filter\(isLiveGameObject\)\)/);
+  assert.match(source, /const baseScale = getBaseScale\(target\);[\s\S]*scaleX: baseScale\.x \* state\.scale,[\s\S]*scaleY: baseScale\.y \* state\.scale/);
+  assert.match(source, /scene\.input\?\.on\?\.\('pointerupoutside', feedbackState\.scenePointerUpOutsideHandler\)/);
+  assert.match(source, /scene\.input\?\.off\?\.\('pointerupoutside', feedbackState\.scenePointerUpOutsideHandler\)/);
+  assert.match(source, /hitZone\.on\('pointercancel', cancelPress\)/);
+  assert.match(source, /scene\.events\?\.once\?\.\('shutdown', cleanupFeedback\)/);
+});
