@@ -20,6 +20,7 @@ import { createFloatingControl, createMuteToggleControl, requestPortraitOrientat
 import { createModalBackButton } from '../ui/modalControls.js';
 import { PREMIUM_BROADCAST_FONT_STACK, createImageButton, preloadSecondaryButtonAsset } from '../ui/imageButton.js';
 import { formatDeckSummaryEntry } from '../rendering/cardRenderModes.js';
+import { beginSceneTransitionOverlay } from './sceneTransitionOverlay.js';
 import { CARD_COLORS, createCardArtwork, createCardPreviewView, getBaseCardSurfaceTheme, getDefaultCardAccentColor, resolveCardSurfaceTheme, createStatBadges } from '../rendering/cardVisualLayout.js';
 import { getCardDisplayName, getCardTextShort } from '../localization/cardDisplay.js';
 import { getActiveLocale, translateActive, translateActiveList } from '../localization/localeService.js';
@@ -3442,6 +3443,14 @@ export default class BattleScene extends Phaser.Scene {
     });
   }
 
+  startPostBattleDestinationWithOverlay(destinationSceneKey, data = {}) {
+    const transition = beginSceneTransitionOverlay(this, destinationSceneKey);
+    this.scene.start(destinationSceneKey, {
+      ...(data && typeof data === 'object' ? data : {}),
+      sceneTransitionOverlay: transition ? { transitionId: transition.transitionId, sourceSceneKey: this.scene.key } : null,
+    });
+  }
+
   exitBattleToFactionSelect() {
     if (!this.prepareUtilityMenuNavigation({ includeBattleResultModal: true })) return;
 
@@ -3456,24 +3465,24 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     this.clearAchievementPopupPresentationBatch();
-    this.scene.start('FactionSelectScene');
+    this.startPostBattleDestinationWithOverlay('FactionSelectScene');
   }
 
   exitTutorialBattleToGameMenu() {
     this.clearAchievementPopupPresentationBatch();
-    this.scene.start('GameMenuScene');
+    this.startPostBattleDestinationWithOverlay('GameMenuScene');
   }
 
   exitBattleToCampaignEnemySelect() {
     const campaign = loadCampaign();
     if (isValidCampaignState(campaign) && campaign.status === 'active') {
       this.clearAchievementPopupPresentationBatch();
-      this.scene.start('CampaignEnemySelectScene', { campaign });
+      this.startPostBattleDestinationWithOverlay('CampaignEnemySelectScene', { campaign });
       return;
     }
 
     this.clearAchievementPopupPresentationBatch();
-    this.scene.start('CampaignEnemySelectScene');
+    this.startPostBattleDestinationWithOverlay('CampaignEnemySelectScene');
   }
 
 
@@ -3515,18 +3524,18 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     this.clearAchievementPopupPresentationBatch();
-    this.scene.start('CampaignEnemySelectScene', { campaign: updatedCampaign });
+    this.startPostBattleDestinationWithOverlay('CampaignEnemySelectScene', { campaign: updatedCampaign });
   }
 
   routeAfterIgnoredCampaignResult(campaign = loadCampaign()) {
     if (isValidCampaignState(campaign) && campaign.status === 'active') {
       this.clearAchievementPopupPresentationBatch();
-      this.scene.start('CampaignEnemySelectScene', { campaign });
+      this.startPostBattleDestinationWithOverlay('CampaignEnemySelectScene', { campaign });
       return;
     }
 
     this.clearAchievementPopupPresentationBatch();
-    this.scene.start('GameMenuScene');
+    this.startPostBattleDestinationWithOverlay('GameMenuScene');
   }
 
   createCampaignCompletionPreviewState(status) {

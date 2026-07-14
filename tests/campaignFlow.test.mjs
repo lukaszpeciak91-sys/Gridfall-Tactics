@@ -89,7 +89,7 @@ test('attempt indicators reflect campaign state', () => {
 
 test('invalid campaign returns safely to game menu', () => {
   const source = read('src/scenes/CampaignEnemySelectScene.js');
-  assert.match(source, /if \(!isValidCampaignState\(this\.campaign\) \|\| this\.campaign\.status !== 'active'\) \{[\s\S]*this\.scene\.start\('GameMenuScene'\)/);
+  assert.match(source, /if \(!isValidCampaignState\(this\.campaign\) \|\| this\.campaign\.status !== 'active'\) \{[\s\S]*(?:this\.scene\.start\('GameMenuScene'\)|this\.startPostBattleDestinationWithOverlay\('GameMenuScene'\))/);
 });
 
 test('campaign scene registered and localization keys exist', () => {
@@ -139,7 +139,7 @@ test('BattleScene defaults to arena context and preserves arena result exit', ()
   const source = read('src/scenes/BattleScene.js');
   assert.match(source, /normalizeBattleContext\(context = \{\}\)[\s\S]*return \{ mode: 'arena' \}/);
   assert.match(source, /this\.isCampaignBattle\(\)[\s\S]*translateActive\('ui\.common\.exit', 'EXIT'\)[\s\S]*\(\) => this\.exitBattleToFactionSelect\(\)/);
-  assert.match(source, /exitBattleToFactionSelect\(\) \{[\s\S]*this\.scene\.start\('FactionSelectScene'\)/);
+  assert.match(source, /exitBattleToFactionSelect\(\) \{[\s\S]*(?:this\.scene\.start\('FactionSelectScene'\)|this\.startPostBattleDestinationWithOverlay\('FactionSelectScene'\))/);
 });
 
 
@@ -155,7 +155,7 @@ test('BattleScene preserves tutorial context without treating it as campaign', (
 test('BattleScene tutorial result exits to game menu without campaign progression', () => {
   const source = read('src/scenes/BattleScene.js');
   assert.match(source, /if \(this\.isTutorialBattle\(\)\) \{[\s\S]*translateActive\('ui\.common\.exit', 'EXIT'\)[\s\S]*\(\) => this\.exitTutorialBattleToGameMenu\(\)/);
-  assert.match(source, /exitTutorialBattleToGameMenu\(\) \{[\s\S]*this\.scene\.start\('GameMenuScene'\)/);
+  assert.match(source, /exitTutorialBattleToGameMenu\(\) \{[\s\S]*(?:this\.scene\.start\('GameMenuScene'\)|this\.startPostBattleDestinationWithOverlay\('GameMenuScene'\))/);
   assert.match(source, /if \(this\.isTutorialBattle\(\)\) \{[\s\S]*this\.exitTutorialBattleToGameMenu\(\);[\s\S]*return;[\s\S]*\}/);
   assert.match(source, /getBattleResultOverlayKind\(\) \{[\s\S]*if \(this\.isTutorialBattle\(\)\) return 'tutorial-battle-result'/);
   const tutorialButtonStart = source.indexOf('if (this.isTutorialBattle()) {', source.indexOf('getBattleResultModalButtons'));
@@ -167,7 +167,7 @@ test('BattleScene tutorial result exits to game menu without campaign progressio
 test('BattleScene campaign exit routes back to campaign enemy selection', () => {
   const source = read('src/scenes/BattleScene.js');
   assert.match(source, /exitBattleToFactionSelect\(\) \{[\s\S]*if \(this\.isCampaignBattle\(\)\) \{[\s\S]*this\.exitBattleToCampaignEnemySelect\(\)/);
-  assert.match(source, /exitBattleToCampaignEnemySelect\(\) \{[\s\S]*this\.scene\.start\('CampaignEnemySelectScene', \{ campaign \}\)/);
+  assert.match(source, /exitBattleToCampaignEnemySelect\(\) \{[\s\S]*(?:this\.scene\.start\('CampaignEnemySelectScene', \{ campaign \}\)|this\.startPostBattleDestinationWithOverlay\('CampaignEnemySelectScene', \{ campaign \}\))/);
 });
 
 test('BattleScene routes campaign results through campaign state only', () => {
@@ -179,7 +179,7 @@ test('BattleScene routes campaign results through campaign state only', () => {
   assert.match(source, /routeAfterIgnoredCampaignResult\(campaign\)/);
   assert.match(source, /applyCampaignBattleResult\(campaign, result\)/);
   assert.match(source, /saveCampaign\(updatedCampaign\)/);
-  assert.match(source, /this\.scene\.start\('CampaignEnemySelectScene', \{ campaign: updatedCampaign \}\)/);
+  assert.match(source, /(?:this\.scene\.start\('CampaignEnemySelectScene', \{ campaign: updatedCampaign \}\)|this\.startPostBattleDestinationWithOverlay\('CampaignEnemySelectScene', \{ campaign: updatedCampaign \}\))/);
   assert.doesNotMatch(source, /applyCampaignBattleResult\(campaign, \{[\s\S]*gameState/);
 });
 
@@ -202,15 +202,15 @@ test('campaign result guards run id before applying progression', () => {
 test('campaign result guard safely routes valid campaigns back to enemy select', () => {
   const source = read('src/scenes/BattleScene.js');
   assert.match(source, /routeAfterIgnoredCampaignResult\(campaign = loadCampaign\(\)\)/);
-  assert.match(source, /this\.scene\.start\('CampaignEnemySelectScene', \{ campaign \}\)/);
-  assert.match(source, /this\.scene\.start\('GameMenuScene'\)/);
+  assert.match(source, /(?:this\.scene\.start\('CampaignEnemySelectScene', \{ campaign \}\)|this\.startPostBattleDestinationWithOverlay\('CampaignEnemySelectScene', \{ campaign \}\))/);
+  assert.match(source, /(?:this\.scene\.start\('GameMenuScene'\)|this\.startPostBattleDestinationWithOverlay\('GameMenuScene'\))/);
 });
 
 test('campaign draw routes back to campaign enemy selection', () => {
   const source = read('src/scenes/BattleScene.js');
   assert.match(source, /winner: this\.gameState\?\.winner === 'player' \? 'player' : \(this\.gameState\?\.winner === 'draw' \? 'draw' : 'enemy'\)/);
   assert.match(source, /battleDurationMs: this\.getActiveBattleDurationMs\(\)/);
-  assert.match(source, /this\.scene\.start\('CampaignEnemySelectScene', \{ campaign: updatedCampaign \}\)/);
+  assert.match(source, /(?:this\.scene\.start\('CampaignEnemySelectScene', \{ campaign: updatedCampaign \}\)|this\.startPostBattleDestinationWithOverlay\('CampaignEnemySelectScene', \{ campaign: updatedCampaign \}\))/);
 });
 
 test('campaign progression handles losses and wins at state level', () => {

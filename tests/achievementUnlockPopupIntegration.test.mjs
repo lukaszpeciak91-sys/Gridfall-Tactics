@@ -96,7 +96,7 @@ test('campaign completion modal starts achievement popups only after interactive
   const startPopup = campaign.indexOf('this.startAchievementUnlockPopupsForResultModal();', interactiveState);
   assert.ok(buttonVisible >= 0 && interactiveState > buttonVisible && startPopup > interactiveState);
   assert.match(campaign, /if \(restoreAsInteractive\) this\.startAchievementUnlockPopupsForResultModal\(\);/);
-  assert.match(battle, /continueCampaignBattleResult\(\)[\s\S]*this\.showCampaignCompleteModal\(updatedCampaign\.status\);[\s\S]*this\.scene\.start\('CampaignEnemySelectScene'/);
+  assert.match(battle, /continueCampaignBattleResult\(\)[\s\S]*this\.showCampaignCompleteModal\(updatedCampaign\.status\);[\s\S]*(?:this\.scene\.start\('CampaignEnemySelectScene'|this\.startPostBattleDestinationWithOverlay\('CampaignEnemySelectScene')/);
 });
 
 test('navigation clears remaining current checkpoint popup batch while preserving lifecycle rebuild recovery', () => {

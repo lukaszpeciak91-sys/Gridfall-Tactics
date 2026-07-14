@@ -58,9 +58,9 @@ test('BattleScene returns to faction select through a cleanup path and retry sta
   const source = readScene('src/scenes/BattleScene.js');
 
   assert.match(source, /drawPlayerBaseUtilityMenuTrigger\(\) \{[\s\S]*getPlayerBaseUtilityControlMetrics\('menu'\);[\s\S]*createPlayerBaseUtilityControl\([\s\S]*'☰',[\s\S]*this\.guardPointerEvent\(pointer\);[\s\S]*this\.toggleUtilityMenuPanel\(\);[\s\S]*this\.bottomControlViews = \[menu\];[\s\S]*\}/);
-  assert.match(source, /this\.scene\.start\('FactionSelectScene'\)/);
+  assert.match(source, /(?:this\.scene\.start\('FactionSelectScene'\)|this\.startPostBattleDestinationWithOverlay\('FactionSelectScene'\))/);
   assert.match(source, /restartBattleScene\(this, \{ factionKey, enemyFactionKey, battleContext \}\)/);
-  assert.match(source, /exitBattleToFactionSelect\(\) \{[\s\S]*this\.scene\.start\('FactionSelectScene'\)/);
+  assert.match(source, /exitBattleToFactionSelect\(\) \{[\s\S]*(?:this\.scene\.start\('FactionSelectScene'\)|this\.startPostBattleDestinationWithOverlay\('FactionSelectScene'\))/);
   assert.match(source, /retryBattle\(\) \{[\s\S]*restartBattleScene\(this, \{ factionKey, enemyFactionKey, battleContext \}\)/);
   assert.doesNotMatch(source, /this\.scene\.stop\('BattleScene'\)/);
 });
@@ -192,8 +192,8 @@ test('MainMenuScene keeps primary buttons and uses shared bottom navigation cont
   assert.match(source, /import \{ createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen \} from '\.\.\/ui\/navigationControls\.js';/);
   assert.match(source, /this\.title = this\.createTitle\(width, height\)/);
   assert.doesNotMatch(source, /'Main Menu'/);
-  assert.match(source, /this\.createMenuButton\(width \/ 2, startY, buttonWidth, translateActive\('ui\.mainMenu\.game', 'GAME'\), \(\) => \{[\s\S]*this\.scene\.start\('GameMenuScene'\)/);
-  assert.match(source, /this\.createMenuButton\(width \/ 2, startY \+ buttonGap, buttonWidth, translateActive\('ui\.mainMenu\.collection', 'COLLECTION'\), \(\) => \{[\s\S]*this\.scene\.start\('CollectionScene'\)/);
+  assert.match(source, /this\.createMenuButton\(width \/ 2, startY, buttonWidth, translateActive\('ui\.mainMenu\.game', 'GAME'\), \(\) => \{[\s\S]*(?:this\.scene\.start\('GameMenuScene'\)|this\.startPostBattleDestinationWithOverlay\('GameMenuScene'\))/);
+  assert.match(source, /this\.createMenuButton\(width \/ 2, startY \+ buttonGap, buttonWidth, translateActive\('ui\.mainMenu\.collection', 'COLLECTION'\), \(\) => \{[\s\S]*beginSceneTransitionOverlay\(this, 'CollectionScene'\)[\s\S]*this\.scene\.start\('CollectionScene'/);
   assert.match(source, /this\.createMenuButton\(width \/ 2, startY \+ buttonGap \* 2, buttonWidth, translateActive\('ui\.mainMenu\.achievements', 'ACHIEVEMENTS'\), \(\) => \{[\s\S]*this\.scene\.start\('AchievementsScene'\)/);
   assert.match(source, /this\.createMenuButton\(width \/ 2, startY \+ buttonGap \* 3, buttonWidth, translateActive\('ui\.mainMenu\.settings', 'SETTINGS'\), \(\) => \{[\s\S]*this\.scene\.start\('SettingsScene'\)/);
   assert.doesNotMatch(source, /ui\.mainMenu\.tutorial/);
@@ -414,7 +414,7 @@ test('MainMenuScene routes localized Game entry into GameMenuScene instead of di
   const mainMenuSource = readScene('src/scenes/MainMenuScene.js');
   const mainSource = readScene('src/main.js');
 
-  assert.match(mainMenuSource, /this\.createMenuButton\(width \/ 2, startY, buttonWidth, translateActive\('ui\.mainMenu\.game', 'GAME'\), \(\) => \{[\s\S]*this\.scene\.start\('GameMenuScene'\)/);
+  assert.match(mainMenuSource, /this\.createMenuButton\(width \/ 2, startY, buttonWidth, translateActive\('ui\.mainMenu\.game', 'GAME'\), \(\) => \{[\s\S]*(?:this\.scene\.start\('GameMenuScene'\)|this\.startPostBattleDestinationWithOverlay\('GameMenuScene'\))/);
   assert.doesNotMatch(mainMenuSource, /translateActive\('ui\.mainMenu\.arena', 'ARENA'\), \(\) => \{[\s\S]*this\.scene\.start\('FactionSelectScene', \{ returnSceneKey: 'GameMenuScene' \}\)/);
   assert.match(mainSource, /import GameMenuScene from '\.\/scenes\/GameMenuScene\.js';/);
   assert.match(mainSource, /scene: \[StartScene, MainMenuScene, GameMenuScene, FactionSelectScene/);

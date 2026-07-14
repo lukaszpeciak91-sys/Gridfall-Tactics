@@ -7,6 +7,7 @@ import { applyAudioSettings, loadSettings } from '../systems/settingsState.js';
 import { AUDIO_KEYS, preloadAudioAssets } from '../audio/audioAssets.js';
 import { playSfx } from '../audio/audioPlayback.js';
 import { playMenuMusic } from '../audio/menuMusic.js';
+import { emitSceneTransitionVisuallyReady } from './sceneTransitionOverlay.js';
 import { isValidCampaignState, loadCampaign, saveCampaign, selectCampaignEnemy } from '../systems/campaignState.js';
 import { getCampaignEnemyViewModels } from '../systems/campaignEnemySelection.js';
 import { MENU_BACKGROUND_FALLBACK_COLOR, MENU_BACKGROUND_FALLBACK_COLOR_HEX, createAnimatedMenuBackground, preloadMenuBackgroundArt } from '../rendering/backgroundArt.js';
@@ -45,6 +46,7 @@ export default class CampaignEnemySelectScene extends Phaser.Scene {
 
   init(data = {}) {
     this.cleanupScene();
+    this.sceneTransitionOverlay = data?.sceneTransitionOverlay ?? null;
     this.campaign = isValidCampaignState(data?.campaign) ? data.campaign : loadCampaign();
   }
 
@@ -70,6 +72,7 @@ export default class CampaignEnemySelectScene extends Phaser.Scene {
     this.uiElements.push(createBuildMarker(this, { width, height }));
     this.drawNavigationControls();
     this.drawEnemyCards({ width, height, headerBottomY: header.bottomY });
+    this.emitTransitionReadyIfNeeded();
   }
 
   drawEnemyCards({ width, height, headerBottomY }) {
@@ -187,6 +190,12 @@ export default class CampaignEnemySelectScene extends Phaser.Scene {
   resumeFromRulesPanel() { this.scene.resume(); }
   toggleFullscreen() { toggleSceneFullscreen(this); }
   onFullscreenChanged() { if (this.scale.isFullscreen) requestPortraitOrientationLock(); if (this.scene.isActive('CampaignEnemySelectScene')) this.scene.restart({ campaign: this.campaign }); }
+  emitTransitionReadyIfNeeded() {
+    const transitionId = this.sceneTransitionOverlay?.transitionId;
+    if (typeof transitionId !== 'string' || !transitionId) return;
+    emitSceneTransitionVisuallyReady(this, { transitionId });
+  }
+
   cleanupScene() {
     this.scale?.off('enterfullscreen', this.onFullscreenChanged, this); this.scale?.off('leavefullscreen', this.onFullscreenChanged, this);
     this.input?.off('wheel', this.onScrollWheel, this); this.input?.off('pointerdown', this.onScrollPointerDown, this); this.input?.off('pointermove', this.onScrollPointerMove, this); this.input?.off('pointerup', this.onScrollPointerUp, this);
