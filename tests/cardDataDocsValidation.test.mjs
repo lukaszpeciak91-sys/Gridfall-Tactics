@@ -9,7 +9,7 @@ import { getCardPresentationName } from '../src/data/presentation/factionPresent
 
 const expectedTextShort = new Map(Object.entries({
   aggro_runner_1: 'Open lane: +2 ATK',
-  aggro_flanker_1: 'Empty adjacent slot on your side: +1 ATK',
+  aggro_flanker_1: 'If adjacent slot empty: +1 ATK',
   aggro_scout_1: "Until opponent\'s next action: no unit in this lane",
   aggro_rush_1: 'Swap with adjacent [ALLY], then that lane immediately fights',
   aggro_pierce_strike_1: 'Deal 1 to [ENEMY].\nNext hit ignores [ARM]',
@@ -55,7 +55,7 @@ const expectedTextShort = new Map(Object.entries({
   overclock_hot_runner_1: 'Opposed [ENEMY] offline for next combat',
   overclock_pain_engine_1: 'Opposed [ENEMY]: -1 ATK until combat',
   overclock_golem_1: 'After combat: lose 1 HP',
-  overclock_gap_hunter_1: 'Empty adjacent slot on your side: +1 ATK',
+  overclock_gap_hunter_1: 'If adjacent slot empty: +1 ATK',
   overclock_mob_champion_1: '+1 ATK per other [ALLY]',
   overclock_redline_1: 'All [ALLY] +1 ATK until combat',
   overclock_forced_march_1: 'Swap with adjacent [ALLY], then that lane immediately fights',

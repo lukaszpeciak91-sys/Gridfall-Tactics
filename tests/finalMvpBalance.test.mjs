@@ -193,7 +193,7 @@ test('Flanker is a 2/2 Aggro unit with the same empty-adjacent attack role', () 
   assert.equal(flanker.armor, 0);
   assert.equal(flanker.effectId, 'empty_adjacent_bonus_atk');
   assert.equal(flanker.targeting, 'lane');
-  assert.equal(flanker.textShort, 'Empty adjacent slot on your side: +1 ATK');
+  assert.equal(flanker.textShort, 'If adjacent slot empty: +1 ATK');
 });
 
 
