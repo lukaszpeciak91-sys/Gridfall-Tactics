@@ -14,6 +14,7 @@ import {
 import { AUDIO_KEYS, preloadAudioAssets } from '../audio/audioAssets.js';
 import { playSfx } from '../audio/audioPlayback.js';
 import { playMenuMusic } from '../audio/menuMusic.js';
+import { emitSceneTransitionVisuallyReady } from './sceneTransitionOverlay.js';
 import { createNewCampaign, saveCampaign } from '../systems/campaignState.js';
 import { incrementCampaignStarted, loadPlayerStats, savePlayerStats } from '../systems/playerStats.js';
 import { evaluateAndPersistAchievementUnlocks } from '../systems/runtimeAchievements.js';
@@ -101,6 +102,7 @@ export default class FactionSelectScene extends Phaser.Scene {
   init(data = {}) {
     this.mode = data?.mode === 'campaign' ? 'campaign' : 'arena';
     this.returnSceneKey = data?.returnSceneKey === 'GameMenuScene' ? 'GameMenuScene' : 'MainMenuScene';
+    this.sceneTransitionOverlay = data?.sceneTransitionOverlay ?? null;
     this.isStartingBattle = false;
     this.cleanupScene();
   }
@@ -150,6 +152,7 @@ export default class FactionSelectScene extends Phaser.Scene {
       height,
       headerBottomY: arenaHelper?.bottomY ?? header.bottomY,
     });
+    this.emitTransitionReadyIfNeeded();
   }
 
   createArenaHelperText({ width, headerBottomY }) {
@@ -707,6 +710,12 @@ export default class FactionSelectScene extends Phaser.Scene {
         element.setInteractive?.({ useHandCursor: true });
       }
     });
+  }
+
+  emitTransitionReadyIfNeeded() {
+    const transitionId = this.sceneTransitionOverlay?.transitionId;
+    if (typeof transitionId !== 'string' || !transitionId) return;
+    emitSceneTransitionVisuallyReady(this, { transitionId });
   }
 
   cleanupScene() {

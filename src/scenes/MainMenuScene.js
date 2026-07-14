@@ -18,6 +18,7 @@ import { translateActive } from '../localization/localeService.js';
 import { createBuildMarker } from '../ui/buildMarker.js';
 import { preloadAudioAssets } from '../audio/audioAssets.js';
 import { playMenuMusic } from '../audio/menuMusic.js';
+import { beginSceneTransitionOverlay } from './sceneTransitionOverlay.js';
 import { applyAudioSettings, loadSettings } from '../systems/settingsState.js';
 import {
   GRIDFALL_LOGO_ASSET,
@@ -107,7 +108,10 @@ export default class MainMenuScene extends Phaser.Scene {
     });
 
     this.createMenuButton(width / 2, startY + buttonGap, buttonWidth, translateActive('ui.mainMenu.collection', 'COLLECTION'), () => {
-      this.scene.start('CollectionScene');
+      const transition = beginSceneTransitionOverlay(this, 'CollectionScene');
+      this.scene.start('CollectionScene', {
+        sceneTransitionOverlay: transition ? { transitionId: transition.transitionId, sourceSceneKey: this.scene.key } : null,
+      });
     });
 
     this.createMenuButton(width / 2, startY + buttonGap * 2, buttonWidth, translateActive('ui.mainMenu.achievements', 'ACHIEVEMENTS'), () => {

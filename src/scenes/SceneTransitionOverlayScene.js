@@ -11,9 +11,8 @@ import {
 
 const BACKGROUND_COLOR = 0x020617;
 const BACKGROUND_ALPHA = 0.96;
-const DELAYED_SHOW_MS = 150;
-const MIN_VISIBLE_MS = 260;
-const FADE_IN_MS = 140;
+const DELAYED_SHOW_MS = 300;
+const FADE_IN_MS = 0;
 const FADE_OUT_MS = 220;
 const READY_STABLE_FRAME_MS = 32;
 const RESUME_STABILIZE_MS = 96;
@@ -102,8 +101,6 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
     this.ring = this.createLoadingRing(width / 2, Math.min(height * 0.69, logoY + Math.max(118, height * 0.18)), Math.max(22, Math.min(34, width * 0.07)));
     this.root.add(this.ring);
 
-    this.inputBlocker = this.add.zone(width / 2, height / 2, width, height).setDepth(BLOCKER_DEPTH).setInteractive();
-    this.inputBlocker.setVisible(false);
   }
 
   createLoadingRing(x, y, radius) {
@@ -144,8 +141,7 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
   scheduleDelayedShow() {
     this.showTimer = this.time.delayedCall(DELAYED_SHOW_MS, () => {
       this.showTimer = null;
-      if (this.cleaningUp || this.readyRecorded) {
-        this.cleanupAndStop();
+      if (this.cleaningUp || this.readyRecorded || this.reconcileReadiness('delayed-show')) {
         return;
       }
       this.showOverlay();
@@ -157,9 +153,21 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
     this.hasShown = true;
     this.visibleSince = this.time.now;
     this.root.setVisible(true);
-    this.inputBlocker?.setVisible(true);
+    this.createInputBlocker();
     this.startRingTween();
     this.tweens.add({ targets: this.root, alpha: 1, duration: FADE_IN_MS, ease: 'Sine.easeOut' });
+  }
+
+  createInputBlocker() {
+    if (this.inputBlocker) return;
+    const { width, height } = this.getCurrentSize();
+    this.inputBlocker = this.add.zone(width / 2, height / 2, width, height).setDepth(BLOCKER_DEPTH).setInteractive();
+  }
+
+  destroyInputBlocker() {
+    this.inputBlocker?.disableInteractive?.();
+    this.inputBlocker?.destroy?.();
+    this.inputBlocker = null;
   }
 
   startRingTween() {
@@ -196,15 +204,13 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
         this.cleanupAndStop();
         return;
       }
-      const visibleFor = this.time.now - this.visibleSince;
-      const waitMs = Math.max(0, MIN_VISIBLE_MS - visibleFor);
-      this.time.delayedCall(waitMs, () => this.fadeOutAndStop());
+      this.fadeOutAndStop();
     });
   }
 
   fadeOutAndStop() {
     if (this.cleaningUp) return;
-    this.inputBlocker?.disableInteractive?.();
+    this.destroyInputBlocker();
     this.tweens.add({
       targets: this.root,
       alpha: 0,
@@ -224,7 +230,11 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
     if (!hidden) this.activeElapsedMs += Math.max(0, now - this.lastActiveTick);
     this.lastActiveTick = now;
     if (this.activeElapsedMs < FAILSAFE_ACTIVE_MS || this.cleaningUp) return;
-    console.warn('Scene transition overlay failsafe cleanup: destination readiness was not observed.', {
+    if (this.reconcileReadiness('failsafe')) return;
+    const destinationActive = this.scene.isActive(this.destinationSceneKey);
+    console.warn(destinationActive
+      ? 'Scene transition overlay failsafe cleanup: destination active but readiness was not observed.'
+      : 'Scene transition overlay failsafe cleanup: destination readiness was not observed.', {
       transitionId: this.transitionId,
       destinationSceneKey: this.destinationSceneKey,
       destinationActive: this.scene.isActive(this.destinationSceneKey),
@@ -297,7 +307,7 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
     this.game?.events?.off?.(Phaser.Core.Events.RESUME, this.phaserResumeListener);
     this.ringTween?.remove?.(); this.ringTween = null;
     this.tweens?.killTweensOf?.([this.root, this.ring].filter(Boolean));
-    this.inputBlocker?.destroy?.(); this.inputBlocker = null;
+    this.destroyInputBlocker();
     this.root?.destroy?.(true); this.root = null;
     if (this.clearRegistryOnCleanup) clearSceneTransitionState(this.game, this.transitionId);
   }

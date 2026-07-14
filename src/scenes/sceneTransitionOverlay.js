@@ -73,7 +73,7 @@ export function emitSceneTransitionVisuallyReady(scene, { transitionId, payload 
   return true;
 }
 
-export function startSceneWithTransitionOverlay(sourceScene, targetSceneKey, targetData = {}, options = {}) {
+export function beginSceneTransitionOverlay(sourceScene, targetSceneKey, options = {}) {
   if (!sourceScene?.scene || typeof targetSceneKey !== 'string' || !targetSceneKey) return null;
   const transitionId = options.transitionId ?? createSceneTransitionId();
   const destinationScene = sourceScene.scene.get(targetSceneKey);
@@ -103,15 +103,19 @@ export function startSceneWithTransitionOverlay(sourceScene, targetSceneKey, tar
     sourceSceneKey: sourceScene.scene.key ?? null,
   });
 
-  const safeTargetData = targetData && typeof targetData === 'object' ? targetData : {};
+  return { transitionId, destinationSceneKey: targetSceneKey, destinationScene, onDestinationReady };
+}
 
+export function startSceneWithTransitionOverlay(sourceScene, targetSceneKey, targetData = {}, options = {}) {
+  const transition = beginSceneTransitionOverlay(sourceScene, targetSceneKey, options);
+  if (!transition) return null;
+  const safeTargetData = targetData && typeof targetData === 'object' ? targetData : {};
   sourceScene.scene.start(targetSceneKey, {
     ...safeTargetData,
     sceneTransitionOverlay: {
-      transitionId,
+      transitionId: transition.transitionId,
       sourceSceneKey: sourceScene.scene.key ?? null,
     },
   });
-
-  return { transitionId, destinationSceneKey: targetSceneKey, destinationScene, onDestinationReady };
+  return transition;
 }

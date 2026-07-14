@@ -15,6 +15,7 @@ import { preloadSecondaryButtonAsset } from '../ui/imageButton.js';
 import { FACTION_CARD_DETAILS } from '../ui/factionCards.js';
 import { preloadAudioAssets } from '../audio/audioAssets.js';
 import { playMenuMusic } from '../audio/menuMusic.js';
+import { emitSceneTransitionVisuallyReady } from './sceneTransitionOverlay.js';
 import { CARD_COLORS, createCardPreviewView, getDefaultCardAccentColor, resolveCardSurfaceTheme } from '../rendering/cardVisualLayout.js';
 import { HAND_CARD_ASPECT_RATIO } from '../ui/handLayout.js';
 import { getCollectionInspectCardTransform, getCollectionViewportBounds } from '../ui/collectionInspectTransform.js';
@@ -76,7 +77,8 @@ export default class CollectionScene extends Phaser.Scene {
     preloadAudioAssets(this);
   }
 
-  init() {
+  init(data = {}) {
+    this.sceneTransitionOverlay = data?.sceneTransitionOverlay ?? null;
     this.cleanupScene();
   }
 
@@ -146,6 +148,7 @@ export default class CollectionScene extends Phaser.Scene {
     this.input.on('pointerupoutside', this.onCollectionPointerUp, this);
     this.input.keyboard?.on('keydown-ESC', this.onBackRequested, this);
     this.input.keyboard?.on('keydown-BACKSPACE', this.onBackRequested, this);
+    this.emitTransitionReadyIfNeeded();
   }
 
   rebuildCollectionContent({ width }) {
@@ -672,6 +675,12 @@ export default class CollectionScene extends Phaser.Scene {
     }
 
     state.content.y = Phaser.Math.Clamp(nextY, state.minY, state.maxY);
+  }
+
+  emitTransitionReadyIfNeeded() {
+    const transitionId = this.sceneTransitionOverlay?.transitionId;
+    if (typeof transitionId !== 'string' || !transitionId) return;
+    emitSceneTransitionVisuallyReady(this, { transitionId });
   }
 
   cleanupScene() {

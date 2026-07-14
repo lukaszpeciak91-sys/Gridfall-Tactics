@@ -26,6 +26,7 @@ import {
 import { preloadAudioAssets } from '../audio/audioAssets.js';
 import { playMenuMusic } from '../audio/menuMusic.js';
 import { enterBattleScene } from './battleEntryRouter.js';
+import { emitSceneTransitionVisuallyReady } from './sceneTransitionOverlay.js';
 
 const GAME_MENU_TITLE_DEPTH = 5;
 const GAME_MENU_BUTTON_WIDTH_RATIO = 0.72;
@@ -43,7 +44,8 @@ export default class GameMenuScene extends Phaser.Scene {
     this.confirmNewGameModal = null;
   }
 
-  init() {
+  init(data = {}) {
+    this.sceneTransitionOverlay = data?.sceneTransitionOverlay ?? null;
     this.cleanupScene();
     this.resetGameMenuDisplayList();
   }
@@ -110,6 +112,7 @@ export default class GameMenuScene extends Phaser.Scene {
     this.updateContinueAvailability();
     this.scale.on('resize', this.layoutGameMenuScene, this);
     this.drawNavigationControls();
+    this.emitTransitionReadyIfNeeded();
   }
 
   createTitle(width, height) {
@@ -279,6 +282,12 @@ export default class GameMenuScene extends Phaser.Scene {
     if (this.scene.isActive('GameMenuScene')) {
       this.scene.restart();
     }
+  }
+
+  emitTransitionReadyIfNeeded() {
+    const transitionId = this.sceneTransitionOverlay?.transitionId;
+    if (typeof transitionId !== 'string' || !transitionId) return;
+    emitSceneTransitionVisuallyReady(this, { transitionId });
   }
 
   cleanupScene() {

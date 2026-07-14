@@ -44,7 +44,7 @@ test('faction select descriptions cover every runtime faction key in English and
 test('faction select chip tag localization matches current English and Polish labels', () => {
   const expectedEn = {
     Rush: 'Rush',
-    Burst: 'Burst',
+    Burst: 'Pressure',
     Armor: 'Armor',
     Sustain: 'Sustain',
     Support: 'Support',
@@ -60,7 +60,7 @@ test('faction select chip tag localization matches current English and Polish la
   };
   const expectedPl = {
     Rush: 'Szarża',
-    Burst: 'Wybuch',
+    Burst: 'Presja',
     Armor: 'Pancerz',
     Sustain: 'Utrzymanie',
     Support: 'Wsparcie',
