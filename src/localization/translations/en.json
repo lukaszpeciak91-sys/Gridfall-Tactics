@@ -14,7 +14,7 @@
     },
     "aggro_flanker_1": {
       "name": "Flanker",
-      "textShort": "Empty adjacent slot on your side: +1 ATK"
+      "textShort": "If adjacent slot empty: +1 ATK"
     },
     "aggro_scout_1": {
       "name": "Scout",
@@ -254,7 +254,7 @@
     },
     "overclock_gap_hunter_1": {
       "name": "Breach Ram",
-      "textShort": "Empty adjacent slot on your side: +1 ATK"
+      "textShort": "If adjacent slot empty: +1 ATK"
     },
     "overclock_mob_champion_1": {
       "name": "Command Hen",
