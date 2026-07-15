@@ -91,3 +91,29 @@ Next balance phase should focus on:
 2. Matchup severity.
 3. Faction identity preservation.
 4. Narrow, low-collateral redesign experiments only if needed.
+
+## AI-vs-AI Balance Lab interpretation update (2026-07-15)
+
+After the AI Competent v1 / combat-swing scoring work, Balance Lab should be read as **AI-vs-AI smoke coverage**, not as absolute human-balance truth.
+
+- Keep AI Competent v1 as the current simulator/runtime AI baseline.
+- Do not add deck-awareness now; setup/held-card concerns are real, but the smallest future AI improvement should be narrow hold/setup assistance rather than a broad deck-planning system.
+- Treat AI campaign smoke as diagnostic. Low AI-only campaign clear rates are not enough, by themselves, to prove the player campaign is unfair.
+- Keep current player campaign attempts at 3. The 4-attempt campaign variant improved AI-only completion substantially, but remains a diagnostic variant rather than a production campaign rule.
+- Do not rebalance Swarm or Attrition Swarm purely from AI-vs-AI campaign/smoke results without manual sanity testing.
+
+### AI piloting interpretation
+
+- Setup-heavy factions, especially Swarm and Attrition Swarm, may be underplayed by the current AI because their strongest lines depend on holding cards, sequencing setup into payoff, and preserving delayed-value resources.
+- Straightforward pressure, control, and durable-body plans are represented more accurately because their value is visible to immediate board/hand/action scoring.
+- Balance Lab results are therefore more trustworthy for direct pressure/control/body factions and more pessimistic for setup-heavy or sacrifice/revive sequencing factions.
+
+### Manual campaign sanity notes
+
+Manual sanity checks can override panic caused by AI-only campaign results:
+
+- Swarm campaign was cleared by a human on the first full campaign run under current 3-attempt rules.
+- Tank vs Aggro was won manually on the third attempt; the first two attempts were close, suggesting difficult but fair.
+- Aggro vs Control was won manually on the second attempt; the first attempt was close and affected by player decision-making.
+
+These checks suggest the current 3-attempt player campaign remains plausible/fair despite harsh AI-only campaign smoke. The project should not convert player campaign attempts from 3 to 4 unless manual testing also shows that 3 attempts is unfair.

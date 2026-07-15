@@ -178,3 +178,10 @@ canonical_ref: docs/rules/mvp-battle-rules.md
 - Registered the accepted v14 checkpoint: 49.3% global non-draw WR, 31.6% worst matchup vs Aggro, 64.5% best matchup vs Swarm, 37.3% campaign estimate, 0 crashes, and 0 invalid actions.
 - Preserved existing faction balance and deck data; Overclock uses existing runtime effects for forced combat, temporary lane tempo, opposed offline windows, HP decay, and combat ATK manipulation.
 - Binary art remains a manual follow-up at `public/assets/factions/overclock/preview.webp` and `public/assets/cards/overclock/overclock_01.webp` through `overclock_10.webp`; current runtime fallbacks cover missing assets.
+
+## AI-vs-AI Balance Lab Interpretation (2026-07-15)
+- Recorded the post-AI Competent v1 interpretation that Balance Lab is AI-vs-AI smoke coverage, not absolute human-balance truth.
+- Kept AI Competent v1 as the current simulator/runtime AI baseline and postponed broad deck-awareness.
+- Kept player campaign attempts at 3; 4-attempt campaign simulations remain diagnostic only unless manual testing also shows 3 attempts is unfair.
+- Captured manual sanity checks: Swarm cleared campaign on the first full human run under current 3-attempt rules, Tank vs Aggro was manually won on the third attempt after two close losses, and Aggro vs Control was manually won on the second attempt after a close first loss affected by player decisions.
+- Noted that Swarm and Attrition Swarm may be underplayed by AI due to setup/hold/sequencing requirements, so they should not be rebalanced purely from AI-only campaign or smoke results.
