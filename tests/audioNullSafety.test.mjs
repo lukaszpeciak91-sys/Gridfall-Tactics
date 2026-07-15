@@ -56,12 +56,14 @@ test('applying global audio settings tolerates a broken sound manager', () => {
   assert.equal(safeApplySoundManagerSettings(brokenManager, { muted: false, volume: 1 }), false);
 });
 
-test('base-hit remains registered as an optional SFX that is guarded by cache checks', () => {
+test('base-hit asset reference is removed and guarded attack-impact feedback remains', () => {
   const assets = read('src/audio/audioAssets.js');
+  const battle = read('src/scenes/BattleScene.js');
   const playback = read('src/audio/audioPlayback.js');
 
-  assert.match(assets, /BASE_HIT: 'base\.hit'/);
-  assert.match(assets, /sfxPath\('base-hit\.mp3'\)/);
+  assert.doesNotMatch(assets, /BASE_HIT|base-hit\.mp3/);
+  assert.doesNotMatch(battle, /AUDIO_KEYS\.BASE_HIT/);
+  assert.match(battle, /this\.playBattleSfx\?\.\(AUDIO_KEYS\.ATTACK_IMPACT\)/);
   assert.match(playback, /if \(!hasCachedAudioAsset\(scene, asset\.key\)\) return false;/);
   assert.match(playback, /if \(!hasCachedAudioAsset\(scene, asset\.key\)\) return null;/);
 });
