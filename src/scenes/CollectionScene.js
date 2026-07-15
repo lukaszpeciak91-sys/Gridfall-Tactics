@@ -68,6 +68,9 @@ export default class CollectionScene extends Phaser.Scene {
     this.expandedFactionKeys = new Set();
     this.collectionContentElements = [];
     this.headerPress = null;
+    this.transitionReadyEmitted = false;
+    this.transitionReadyPostRenderCallback = null;
+    this.transitionReadyFallbackEvent = null;
   }
 
   preload() {
@@ -78,8 +81,9 @@ export default class CollectionScene extends Phaser.Scene {
   }
 
   init(data = {}) {
-    this.sceneTransitionOverlay = data?.sceneTransitionOverlay ?? null;
     this.cleanupScene();
+    this.sceneTransitionOverlay = data?.sceneTransitionOverlay ?? null;
+    this.transitionReadyEmitted = false;
   }
 
   create() {
@@ -108,6 +112,7 @@ export default class CollectionScene extends Phaser.Scene {
     this.expandedFactionKeys = new Set();
     this.drawCollectionList({ width, height });
     this.createBackButton(width, height);
+    this.scheduleTransitionReadyAfterFirstRender();
   }
 
   drawCollectionList({ width, height }) {
@@ -148,7 +153,6 @@ export default class CollectionScene extends Phaser.Scene {
     this.input.on('pointerupoutside', this.onCollectionPointerUp, this);
     this.input.keyboard?.on('keydown-ESC', this.onBackRequested, this);
     this.input.keyboard?.on('keydown-BACKSPACE', this.onBackRequested, this);
-    this.emitTransitionReadyIfNeeded();
   }
 
   rebuildCollectionContent({ width }) {
@@ -677,9 +681,36 @@ export default class CollectionScene extends Phaser.Scene {
     state.content.y = Phaser.Math.Clamp(nextY, state.minY, state.maxY);
   }
 
+  scheduleTransitionReadyAfterFirstRender() {
+    const transitionId = this.sceneTransitionOverlay?.transitionId;
+    if (typeof transitionId !== 'string' || !transitionId || this.transitionReadyEmitted || this.transitionReadyPostRenderCallback) return;
+
+    const runOnce = () => {
+      if (this.transitionReadyEmitted || !this.scene?.isActive?.(this.scene.key)) return;
+      this.clearPendingTransitionReadyCallbacks();
+      this.emitTransitionReadyIfNeeded();
+    };
+
+    this.transitionReadyPostRenderCallback = runOnce;
+    const postRenderEvent = Phaser.Core?.Events?.POST_RENDER ?? 'postrender';
+    this.game?.events?.once?.(postRenderEvent, runOnce);
+    this.transitionReadyFallbackEvent = this.time?.delayedCall?.(120, runOnce) ?? null;
+  }
+
+  clearPendingTransitionReadyCallbacks() {
+    if (this.transitionReadyPostRenderCallback) {
+      const postRenderEvent = Phaser.Core?.Events?.POST_RENDER ?? 'postrender';
+      this.game?.events?.off?.(postRenderEvent, this.transitionReadyPostRenderCallback);
+      this.transitionReadyPostRenderCallback = null;
+    }
+    this.transitionReadyFallbackEvent?.remove?.(false);
+    this.transitionReadyFallbackEvent = null;
+  }
+
   emitTransitionReadyIfNeeded() {
     const transitionId = this.sceneTransitionOverlay?.transitionId;
-    if (typeof transitionId !== 'string' || !transitionId) return;
+    if (typeof transitionId !== 'string' || !transitionId || this.transitionReadyEmitted) return;
+    this.transitionReadyEmitted = true;
     emitSceneTransitionVisuallyReady(this, { transitionId });
   }
 
@@ -693,6 +724,7 @@ export default class CollectionScene extends Phaser.Scene {
     this.headerPress = null;
     this.input?.keyboard?.off('keydown-ESC', this.onBackRequested, this);
     this.input?.keyboard?.off('keydown-BACKSPACE', this.onBackRequested, this);
+    this.clearPendingTransitionReadyCallbacks();
 
     this.cancelCardLongPress();
     this.destroyInspectPreview();
