@@ -9,7 +9,8 @@ import { createInitialBattleState, drawCards, shuffleDeck, canPass, canPlayOrRed
 import { chooseEnemyAction, isVerySafeConcedableState, recordBattleActionUse, selectOpeningMulliganCardIds } from '../systems/enemyDecision.js';
 import { getTargetingStateForEffect } from '../systems/cardTargeting.js';
 import { COMBAT_ATTACK_PRESENTATIONS, getCombatAttackPresentation, getCombatEventAttackerIndex, getCombatEventInterceptOriginalTargetIndex, getCombatEventTargetIndex, getLaneLethalTargetIndexes, getLaneSimultaneousUnitClash, shouldAnimateCombatAttacker, shouldUseControlledHeroStrikePresentation } from '../systems/combatAnimation.js';
-import { BATTLE_BACKGROUND_FALLBACK_COLOR, BATTLE_BACKGROUND_FALLBACK_COLOR_HEX, createCoverBackground, getBattleBackgroundAsset, hasLoadedImageAsset, preloadBattleBackgroundArt, preloadImageAsset, resolvePublicAssetPath } from '../rendering/backgroundArt.js';
+import { BATTLE_BACKGROUND_ASSETS, BATTLE_BACKGROUND_FALLBACK_COLOR, BATTLE_BACKGROUND_FALLBACK_COLOR_HEX, createCoverBackground, getBattleBackgroundAsset, hasLoadedImageAsset, preloadBattleBackgroundArt, preloadImageAsset, resolvePublicAssetPath } from '../rendering/backgroundArt.js';
+import { getArenaBattlegroundAsset, getArenaBattlegrounds, resolveArenaBattlegroundId } from '../data/arenaBattlegrounds.js';
 import { preloadAllCardIllustrations, preloadCardIllustrationsForFaction } from '../rendering/cardIllustrationAssets.js';
 import { calculateBattleLayoutMetrics } from '../ui/battleLayout.js';
 import { calculateHandCardFocusBounds, calculateTutorialBannerLayout, getLiveHandCardViewById } from '../ui/tutorialUxLayout.js';
@@ -452,7 +453,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   preload() {
-    preloadBattleBackgroundArt(this);
+    preloadBattleBackgroundArt(this, getArenaBattlegrounds());
     preloadImageAsset(this, HAND_BACK_CARD_ASSET, {
       onError: (asset) => console.warn(`Hand back card failed to load: ${asset.path}`),
     });
@@ -487,7 +488,12 @@ export default class BattleScene extends Phaser.Scene {
       };
     }
     const mode = context?.mode === 'campaign' ? 'campaign' : 'arena';
-    if (mode !== 'campaign') return { mode: 'arena' };
+    if (mode !== 'campaign') {
+      return {
+        mode: 'arena',
+        battlegroundId: resolveArenaBattlegroundId(context?.battlegroundId),
+      };
+    }
     return {
       mode: 'campaign',
       campaignRunId: typeof context.campaignRunId === 'string' ? context.campaignRunId : null,
@@ -501,6 +507,18 @@ export default class BattleScene extends Phaser.Scene {
 
   isTutorialBattle() {
     return this.battleContext?.mode === 'tutorial';
+  }
+
+  resolveBattleBackgroundAsset() {
+    if (this.battleContext?.mode === 'arena') {
+      return getArenaBattlegroundAsset(this.battleContext?.battlegroundId);
+    }
+
+    if (this.battleContext?.mode === 'campaign') {
+      return BATTLE_BACKGROUND_ASSETS.default;
+    }
+
+    return getBattleBackgroundAsset({ playerFactionKey: this.factionKey, enemyFactionKey: this.enemyFactionKey });
   }
 
   initializeTutorialController() {
@@ -812,7 +830,7 @@ export default class BattleScene extends Phaser.Scene {
 
     this.cameras.main.setBackgroundColor(BATTLE_BACKGROUND_FALLBACK_COLOR_HEX);
     this.layout = this.getLayoutMetrics(width, height);
-    this.backgroundArtAsset = getBattleBackgroundAsset({ playerFactionKey, enemyFactionKey });
+    this.backgroundArtAsset = this.resolveBattleBackgroundAsset();
 
     this.drawBattleBackground();
     this.drawBattleFrame();
@@ -4451,7 +4469,7 @@ export default class BattleScene extends Phaser.Scene {
     this.terminalTextBootComplete = false;
     this.layout = this.getLayoutMetrics(width, height);
     this.cameras.main.setBackgroundColor(BATTLE_BACKGROUND_FALLBACK_COLOR_HEX);
-    this.backgroundArtAsset = getBattleBackgroundAsset({ playerFactionKey: this.factionKey, enemyFactionKey: this.enemyFactionKey });
+    this.backgroundArtAsset = this.resolveBattleBackgroundAsset();
 
     this.drawBattleBackground();
     this.drawBattleFrame();

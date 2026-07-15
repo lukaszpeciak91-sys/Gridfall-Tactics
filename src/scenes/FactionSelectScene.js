@@ -22,6 +22,7 @@ import { drawFactionCardVisual, preloadFactionPreviewArt } from '../ui/factionCa
 import { createImageButton, preloadSecondaryButtonAsset, PREMIUM_BROADCAST_FONT_STACK } from '../ui/imageButton.js';
 import { createTapVsDragInteraction } from '../ui/tapVsDragInteraction.js';
 import { enterBattleScene } from './battleEntryRouter.js';
+import { selectArenaBattlegroundId } from '../data/arenaBattlegrounds.js';
 
 const MIN_FACTION_LIST_TOP = 106;
 const HEADER_TO_FACTION_LIST_GAP = 24;
@@ -645,8 +646,15 @@ export default class FactionSelectScene extends Phaser.Scene {
     this.stopStaleBattleScenes(transitionDiagnostics);
 
     try {
+      const selectedBattlegroundId = selectArenaBattlegroundId();
       // Menu music intentionally continues through BattleTransitionScene until visual handoff.
-      enterBattleScene(this, { factionKey });
+      enterBattleScene(this, {
+        factionKey,
+        battleContext: {
+          mode: 'arena',
+          battlegroundId: selectedBattlegroundId,
+        },
+      });
     } catch (error) {
       console.error('Faction select battle transition threw before BattleScene start', {
         error,

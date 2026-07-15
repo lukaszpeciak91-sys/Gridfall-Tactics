@@ -53,11 +53,13 @@ export function getMenuBackgroundAsset() {
   return MENU_BACKGROUND_ASSET;
 }
 
-export function preloadBattleBackgroundArt(scene) {
+export function preloadBattleBackgroundArt(scene, additionalAssets = []) {
   const assets = [
     BATTLE_BACKGROUND_ASSETS.default,
     ...Object.values(BATTLE_BACKGROUND_ASSETS.factions),
-  ].filter((asset) => asset?.path && asset?.key);
+    ...additionalAssets,
+  ].filter((asset, index, allAssets) => asset?.path && asset?.key
+    && allAssets.findIndex((candidate) => candidate?.key === asset.key) === index);
 
   assets.forEach((asset) => preloadImageAsset(scene, asset, {
     onError: (failedAsset) => console.warn(`Battle background failed to load: ${failedAsset.path}`),
