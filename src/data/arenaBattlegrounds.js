@@ -20,9 +20,15 @@ export function createNumberedArenaBattleground(battlegroundId) {
 }
 
 export const NUMBERED_ARENA_BATTLEGROUNDS = Object.freeze([
-  // Future manually added Arena battlegrounds must use createNumberedArenaBattleground('b01'),
-  // createNumberedArenaBattleground('b02'), createNumberedArenaBattleground('b03'), etc.
-  // Keep this list empty until the matching public/assets/backgrounds/arena/bNN.webp file exists.
+  createNumberedArenaBattleground('b01'),
+  createNumberedArenaBattleground('b02'),
+  createNumberedArenaBattleground('b03'),
+  createNumberedArenaBattleground('b04'),
+  createNumberedArenaBattleground('b05'),
+  createNumberedArenaBattleground('b06'),
+  createNumberedArenaBattleground('b07'),
+  createNumberedArenaBattleground('b08'),
+  createNumberedArenaBattleground('b09'),
 ]);
 
 export const ARENA_BATTLEGROUNDS = Object.freeze([

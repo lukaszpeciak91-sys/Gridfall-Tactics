@@ -13,14 +13,24 @@ import {
   selectArenaBattlegroundId,
 } from '../src/data/arenaBattlegrounds.js';
 
-test('Arena battleground pool currently contains only the default battlefield', () => {
-  assert.deepEqual(NUMBERED_ARENA_BATTLEGROUNDS, []);
-  assert.equal(ARENA_BATTLEGROUNDS.length, 1);
-  assert.equal(ARENA_BATTLEGROUNDS[0].id, DEFAULT_ARENA_BATTLEGROUND_ID);
+test('Arena battleground pool contains the default battlefield and production Arena battlegrounds', () => {
+  const numberedIds = Array.from({ length: 9 }, (_value, index) => `b${String(index + 1).padStart(2, '0')}`);
+
+  assert.deepEqual(NUMBERED_ARENA_BATTLEGROUNDS.map((battleground) => battleground.id), numberedIds);
+  assert.deepEqual(ARENA_BATTLEGROUNDS.map((battleground) => battleground.id), [
+    DEFAULT_ARENA_BATTLEGROUND_ID,
+    ...numberedIds,
+  ]);
   assert.equal(ARENA_BATTLEGROUNDS[0].key, 'background.default.battlefield');
   assert.match(ARENA_BATTLEGROUNDS[0].path, /assets\/backgrounds\/default\/battlefield\.webp$/);
   assert.ok(fs.existsSync('public/assets/backgrounds/arena/.gitkeep'));
-  assert.equal(fs.readdirSync('public/assets/backgrounds/arena').filter((name) => name.endsWith('.webp')).length, 0);
+
+  for (const battlegroundId of numberedIds) {
+    const battleground = getArenaBattlegroundAsset(battlegroundId);
+    assert.equal(battleground.key, `background.arena.${battlegroundId}`);
+    assert.match(battleground.path, new RegExp(`assets/backgrounds/arena/${battlegroundId}\\.webp$`));
+    assert.ok(fs.existsSync(`public/assets/backgrounds/arena/${battlegroundId}.webp`));
+  }
 });
 
 test('Arena battleground selection is deterministic with injected randomness and does not mutate pool', () => {
