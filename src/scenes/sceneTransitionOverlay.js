@@ -73,6 +73,12 @@ export function emitSceneTransitionVisuallyReady(scene, { transitionId, payload 
   return true;
 }
 
+export function bringSceneTransitionOverlayToTop(scenePlugin) {
+  if (!scenePlugin?.isActive?.(SCENE_TRANSITION_OVERLAY_SCENE_KEY)) return false;
+  scenePlugin.bringToTop?.(SCENE_TRANSITION_OVERLAY_SCENE_KEY);
+  return true;
+}
+
 export function beginSceneTransitionOverlay(sourceScene, targetSceneKey, options = {}) {
   if (!sourceScene?.scene || typeof targetSceneKey !== 'string' || !targetSceneKey) return null;
   const transitionId = options.transitionId ?? createSceneTransitionId();
@@ -117,5 +123,6 @@ export function startSceneWithTransitionOverlay(sourceScene, targetSceneKey, tar
       sourceSceneKey: sourceScene.scene.key ?? null,
     },
   });
+  bringSceneTransitionOverlayToTop(sourceScene.scene);
   return transition;
 }

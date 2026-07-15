@@ -20,7 +20,7 @@ import { createFloatingControl, createMuteToggleControl, requestPortraitOrientat
 import { createModalBackButton } from '../ui/modalControls.js';
 import { PREMIUM_BROADCAST_FONT_STACK, createImageButton, preloadSecondaryButtonAsset } from '../ui/imageButton.js';
 import { formatDeckSummaryEntry } from '../rendering/cardRenderModes.js';
-import { beginSceneTransitionOverlay } from './sceneTransitionOverlay.js';
+import { beginSceneTransitionOverlay, bringSceneTransitionOverlayToTop } from './sceneTransitionOverlay.js';
 import { CARD_COLORS, createCardArtwork, createCardPreviewView, getBaseCardSurfaceTheme, getDefaultCardAccentColor, resolveCardSurfaceTheme, createStatBadges } from '../rendering/cardVisualLayout.js';
 import { getCardDisplayName, getCardTextShort } from '../localization/cardDisplay.js';
 import { getActiveLocale, translateActive, translateActiveList } from '../localization/localeService.js';
@@ -3449,6 +3449,7 @@ export default class BattleScene extends Phaser.Scene {
       ...(data && typeof data === 'object' ? data : {}),
       sceneTransitionOverlay: transition ? { transitionId: transition.transitionId, sourceSceneKey: this.scene.key } : null,
     });
+    bringSceneTransitionOverlayToTop(this.scene);
   }
 
   exitBattleToFactionSelect() {
