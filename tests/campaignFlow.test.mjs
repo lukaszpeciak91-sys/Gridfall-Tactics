@@ -247,21 +247,20 @@ test('attempt indicators render inside every campaign enemy card including attri
   assert.ok(models.some((enemy) => enemy.factionKey === 'Overclock'));
   assert.equal(models.every((enemy) => enemy.indicator === '●●●'), true);
   const source = read('src/scenes/CampaignEnemySelectScene.js');
-  assert.match(source, /const indicatorX = cardWidth \/ 2 - ATTEMPT_INDICATOR_RIGHT_MARGIN - indicatorPanelWidth \/ 2/);
-  assert.match(source, /const indicatorBottomMargin = enemy\.defeated \? ATTEMPT_INDICATOR_BOTTOM_MARGIN : ACTIVE_ATTEMPT_INDICATOR_BOTTOM_MARGIN/);
-  assert.match(source, /const indicatorY = y \+ CARD_HEIGHT - indicatorBottomMargin - indicatorPanelHeight \/ 2/);
-  assert.match(source, /fixedWidth: ATTEMPT_INDICATOR_WIDTH/);
+  assert.match(source, /const indicatorLayout = getCampaignEnemyStatusBadgeLayout\(\{ y, cardWidth, cardHeight: CARD_HEIGHT \}\)/);
+  assert.match(source, /indicatorLayout\.centerX, indicatorLayout\.centerY, enemy\.indicator/);
+  assert.match(source, /fixedWidth: indicatorLayout\.indicatorWidth/);
   assert.match(source, /\.setOrigin\(0\.5\)/);
 });
 
 test('attempt marker layout keeps right-aligned active panel above the title line inside card bounds', () => {
-  const source = read('src/scenes/CampaignEnemySelectScene.js');
-  assert.match(source, /const ATTEMPT_INDICATOR_BOTTOM_MARGIN = 19/);
+  const source = read('src/ui/campaignEnemyStatusLayout.js');
+  assert.match(source, /bottomMargin: ACTIVE_ATTEMPT_INDICATOR_BOTTOM_MARGIN/);
   assert.match(source, /const ACTIVE_ATTEMPT_INDICATOR_BOTTOM_MARGIN = 55/);
   assert.match(source, /const ATTEMPT_INDICATOR_PADDING_X = 12/);
   assert.match(source, /const ATTEMPT_INDICATOR_PADDING_Y = 7/);
-  assert.match(source, /indicatorX - indicatorPanelWidth \/ 2/);
-  assert.match(source, /indicatorY - indicatorPanelHeight \/ 2/);
+  assert.match(source, /centerX - panelWidth \/ 2/);
+  assert.match(source, /centerY - panelHeight \/ 2/);
 });
 
 test('attempt marker indicators remain available for active, damaged, and defeated enemies', () => {
