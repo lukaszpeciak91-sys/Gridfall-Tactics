@@ -12,6 +12,7 @@ import { isValidCampaignState, loadCampaign, saveCampaign, selectCampaignEnemy }
 import { getCampaignEnemyViewModels } from '../systems/campaignEnemySelection.js';
 import { MENU_BACKGROUND_FALLBACK_COLOR, MENU_BACKGROUND_FALLBACK_COLOR_HEX, createAnimatedMenuBackground, preloadMenuBackgroundArt } from '../rendering/backgroundArt.js';
 import { drawFactionCardVisual, preloadFactionPreviewArt } from '../ui/factionCards.js';
+import { getCampaignEnemyStatusBadgeLayout } from '../ui/campaignEnemyStatusLayout.js';
 import { createTapVsDragInteraction } from '../ui/tapVsDragInteraction.js';
 import { enterBattleScene } from './battleEntryRouter.js';
 
@@ -19,13 +20,6 @@ const CARD_HEIGHT = 196;
 const CARD_GAP = 34;
 const VIEWPORT_TOP_MIN = 118;
 const HEADER_GAP = 22;
-const ATTEMPT_INDICATOR_RIGHT_MARGIN = 14;
-const ATTEMPT_INDICATOR_BOTTOM_MARGIN = 19;
-const ACTIVE_ATTEMPT_INDICATOR_BOTTOM_MARGIN = 55;
-const ATTEMPT_INDICATOR_WIDTH = 58;
-const ATTEMPT_INDICATOR_HEIGHT = 28;
-const ATTEMPT_INDICATOR_PADDING_X = 12;
-const ATTEMPT_INDICATOR_PADDING_Y = 7;
 export default class CampaignEnemySelectScene extends Phaser.Scene {
   constructor() {
     super('CampaignEnemySelectScene');
@@ -105,27 +99,23 @@ export default class CampaignEnemySelectScene extends Phaser.Scene {
   drawEnemyCard(content, enemy, { y, cardWidth }) {
     const { items } = drawFactionCardVisual(this, content, enemy.factionKey, { y, cardWidth, cardHeight: CARD_HEIGHT, alpha: enemy.defeated ? 0.62 : 1, completed: enemy.defeated });
     this.uiElements.push(...items);
-    const indicatorPanelWidth = ATTEMPT_INDICATOR_WIDTH + ATTEMPT_INDICATOR_PADDING_X * 2;
-    const indicatorPanelHeight = ATTEMPT_INDICATOR_HEIGHT + ATTEMPT_INDICATOR_PADDING_Y * 2;
-    const indicatorX = cardWidth / 2 - ATTEMPT_INDICATOR_RIGHT_MARGIN - indicatorPanelWidth / 2;
-    const indicatorBottomMargin = enemy.defeated ? ATTEMPT_INDICATOR_BOTTOM_MARGIN : ACTIVE_ATTEMPT_INDICATOR_BOTTOM_MARGIN;
-    const indicatorY = y + CARD_HEIGHT - indicatorBottomMargin - indicatorPanelHeight / 2;
-    const indicator = this.add.text(indicatorX, indicatorY, enemy.indicator, { fontFamily: 'Arial, sans-serif', fontSize: enemy.defeated ? '25px' : '21px', color: enemy.defeated ? '#86efac' : '#fde68a', stroke: '#020617', strokeThickness: 3, align: 'center', fixedWidth: ATTEMPT_INDICATOR_WIDTH }).setOrigin(0.5);
+    const indicatorLayout = getCampaignEnemyStatusBadgeLayout({ y, cardWidth, cardHeight: CARD_HEIGHT });
+    const indicator = this.add.text(indicatorLayout.centerX, indicatorLayout.centerY, enemy.indicator, { fontFamily: 'Arial, sans-serif', fontSize: enemy.defeated ? '25px' : '21px', color: enemy.defeated ? '#86efac' : '#fde68a', stroke: '#020617', strokeThickness: 3, align: 'center', fixedWidth: indicatorLayout.indicatorWidth }).setOrigin(0.5);
     const indicatorBadge = this.add.graphics();
     indicatorBadge.fillStyle(0x020617, enemy.defeated ? 0.58 : 0.66);
     indicatorBadge.fillRoundedRect(
-      indicatorX - indicatorPanelWidth / 2,
-      indicatorY - indicatorPanelHeight / 2,
-      indicatorPanelWidth,
-      indicatorPanelHeight,
+      indicatorLayout.x,
+      indicatorLayout.y,
+      indicatorLayout.panelWidth,
+      indicatorLayout.panelHeight,
       12,
     );
     indicatorBadge.lineStyle(1, enemy.defeated ? 0x86efac : 0xfde68a, enemy.defeated ? 0.38 : 0.48);
     indicatorBadge.strokeRoundedRect(
-      indicatorX - indicatorPanelWidth / 2 + 0.5,
-      indicatorY - indicatorPanelHeight / 2 + 0.5,
-      indicatorPanelWidth - 1,
-      indicatorPanelHeight - 1,
+      indicatorLayout.x + 0.5,
+      indicatorLayout.y + 0.5,
+      indicatorLayout.panelWidth - 1,
+      indicatorLayout.panelHeight - 1,
       11,
     );
     content.add(indicatorBadge);
