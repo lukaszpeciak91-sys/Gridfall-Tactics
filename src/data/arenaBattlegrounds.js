@@ -1,8 +1,29 @@
-import { BATTLE_BACKGROUND_ASSETS } from '../rendering/backgroundArt.js';
+import { BATTLE_BACKGROUND_ASSETS, resolvePublicAssetPath } from '../rendering/backgroundArt.js';
 
 export const DEFAULT_ARENA_BATTLEGROUND_ID = 'default';
+export const NUMBERED_ARENA_BATTLEGROUND_ID_PATTERN = /^b\d{2,}$/;
 
-export const NUMBERED_ARENA_BATTLEGROUNDS = Object.freeze([]);
+export function isNumberedArenaBattlegroundId(battlegroundId) {
+  return typeof battlegroundId === 'string' && NUMBERED_ARENA_BATTLEGROUND_ID_PATTERN.test(battlegroundId);
+}
+
+export function createNumberedArenaBattleground(battlegroundId) {
+  if (!isNumberedArenaBattlegroundId(battlegroundId)) {
+    throw new TypeError(`Arena battleground id must use the bNN convention: ${String(battlegroundId)}`);
+  }
+
+  return Object.freeze({
+    id: battlegroundId,
+    key: `background.arena.${battlegroundId}`,
+    path: resolvePublicAssetPath(`assets/backgrounds/arena/${battlegroundId}.webp`),
+  });
+}
+
+export const NUMBERED_ARENA_BATTLEGROUNDS = Object.freeze([
+  // Future manually added Arena battlegrounds must use createNumberedArenaBattleground('b01'),
+  // createNumberedArenaBattleground('b02'), createNumberedArenaBattleground('b03'), etc.
+  // Keep this list empty until the matching public/assets/backgrounds/arena/bNN.webp file exists.
+]);
 
 export const ARENA_BATTLEGROUNDS = Object.freeze([
   Object.freeze({

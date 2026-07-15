@@ -98,17 +98,19 @@ The Arena folder is intentionally not auto-discovered at runtime. To add a battl
 1. Export a portrait WebP illustration.
 2. Use the recommended size `1440 × 2560` px and 9:16 portrait composition.
 3. Copy the WebP manually into `public/assets/backgrounds/arena/`.
-4. Name files sequentially with two digits: `01.webp`, `02.webp`, `03.webp`, and continue with `04.webp`, `05.webp`, `06.webp`, `07.webp`, `08.webp`, etc.
+4. Name files sequentially with battleground-prefixed ids: `b01.webp`, `b02.webp`, `b03.webp`, and continue with `b04.webp`, `b05.webp`, `b06.webp`, `b07.webp`, `b08.webp`, etc.
 5. Add exactly one configuration entry in `src/data/arenaBattlegrounds.js` with a stable id, texture key, and asset path.
 6. Never rename an existing battleground id after release; future achievement progress should derive from the currently enabled Arena battleground ids.
 7. Never use filesystem auto-discovery for the Arena pool.
 
-Numbered Arena battleground texture keys follow this convention:
+Numbered Arena battleground ids, texture keys, and runtime paths follow this convention:
 
 ```text
-01.webp -> background.arena.01
-02.webp -> background.arena.02
-03.webp -> background.arena.03
+b01 -> background.arena.b01 -> assets/backgrounds/arena/b01.webp
+b02 -> background.arena.b02 -> assets/backgrounds/arena/b02.webp
+b03 -> background.arena.b03 -> assets/backgrounds/arena/b03.webp
 ```
+
+The intended initial release target is the existing default battleground plus `b01.webp`, `b02.webp`, `b03.webp`, `b04.webp`, and `b05.webp`, for six total launch battlegrounds. Do not hard-code that launch target into runtime or future achievement logic.
 
 There is no maximum number of Arena battlegrounds. Missing or invalid Arena battleground ids safely fall back to the default battleground asset.
