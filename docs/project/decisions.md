@@ -245,3 +245,11 @@ canonical_ref: docs/rules/mvp-battle-rules.md
 - Project H.E.R.D. / Program P.A.S.Z.A. is a late-1980s unattended state agricultural/military breeding program that weaponizes biological livestock; it is explicitly not cyberpunk, robotic, religious, or a civilization faction.
 - Accepted checkpoint: global non-draw WR 49.3%, worst matchup vs Aggro 31.6%, best matchup vs Swarm 64.5%, campaign estimate 37.3%, crashes 0, invalid actions 0.
 - Rationale: the deck sits within the existing faction spread; worst matchup is comparable to existing Swarm vs Wardens 30.5%, best matchup remains below 65%, and attempts to force the Aggro matchup upward either overbuffed the deck or created dead tech cards.
+
+## AI-vs-AI Balance Lab Interpretation Lock (2026-07-15)
+- Keep AI Competent v1 as the current simulator/runtime AI baseline after combat-swing scoring work, focused AI audits, all-faction smoke, campaign smoke, campaign variants, and manual sanity checks.
+- Balance Lab is AI-vs-AI smoke coverage, not absolute human-balance truth. Use it to find risks and regressions, then interpret setup-heavy faction results with manual sanity.
+- Do not add broad deck-awareness now. If more AI work is needed, prefer a narrow held-card/setup threshold improvement over a larger planning system.
+- Do not change player campaign attempts from 3 to 4 based only on AI campaign smoke. Four-attempt campaign simulations improved AI-only completion and remain useful as a diagnostic variant, but they are not a production campaign rule.
+- Manual sanity can override panic from AI-only campaign failures: Swarm cleared campaign on the first full human run under current 3-attempt rules; Tank vs Aggro was won manually on the third attempt after two close losses; Aggro vs Control was won manually on the second attempt after a close, decision-affected first loss.
+- Do not rebalance Swarm or Attrition Swarm purely from AI-vs-AI campaign/smoke results without manual sanity, because the current AI may underplay setup-heavy hold/sequencing patterns.
