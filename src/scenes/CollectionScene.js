@@ -15,7 +15,7 @@ import { preloadSecondaryButtonAsset } from '../ui/imageButton.js';
 import { FACTION_CARD_DETAILS } from '../ui/factionCards.js';
 import { preloadAudioAssets } from '../audio/audioAssets.js';
 import { playMenuMusic } from '../audio/menuMusic.js';
-import { emitSceneTransitionVisuallyReady } from './sceneTransitionOverlay.js';
+import { emitSceneTransitionVisuallyReady, traceSceneTransition } from './sceneTransitionOverlay.js';
 import { CARD_COLORS, createCardPreviewView, getDefaultCardAccentColor, resolveCardSurfaceTheme } from '../rendering/cardVisualLayout.js';
 import { HAND_CARD_ASPECT_RATIO } from '../ui/handLayout.js';
 import { getCollectionInspectCardTransform, getCollectionViewportBounds } from '../ui/collectionInspectTransform.js';
@@ -74,10 +74,12 @@ export default class CollectionScene extends Phaser.Scene {
   }
 
   preload() {
+    traceSceneTransition(this, 'preload start');
     preloadMenuBackgroundArt(this);
     preloadSecondaryButtonAsset(this);
     preloadAllCardIllustrations(this);
     preloadAudioAssets(this);
+    traceSceneTransition(this, 'preload complete where observable');
   }
 
   init(data = {}) {
@@ -87,6 +89,7 @@ export default class CollectionScene extends Phaser.Scene {
   }
 
   create() {
+    traceSceneTransition(this, 'create start');
     this.cleanupScene();
     playMenuMusic(this);
 
@@ -113,6 +116,7 @@ export default class CollectionScene extends Phaser.Scene {
     this.drawCollectionList({ width, height });
     this.createBackButton(width, height);
     this.scheduleTransitionReadyAfterFirstRender();
+    traceSceneTransition(this, 'initial UI setup complete');
   }
 
   drawCollectionList({ width, height }) {
@@ -684,8 +688,10 @@ export default class CollectionScene extends Phaser.Scene {
   scheduleTransitionReadyAfterFirstRender() {
     const transitionId = this.sceneTransitionOverlay?.transitionId;
     if (typeof transitionId !== 'string' || !transitionId || this.transitionReadyEmitted || this.transitionReadyPostRenderCallback) return;
+    traceSceneTransition(this, 'post-render readiness scheduled', { transitionId, destinationSceneKey: this.scene.key, sourceSceneKey: this.sceneTransitionOverlay?.sourceSceneKey ?? null });
 
     const runOnce = () => {
+      traceSceneTransition(this, 'POST_RENDER callback fired', { transitionId, destinationSceneKey: this.scene.key, sourceSceneKey: this.sceneTransitionOverlay?.sourceSceneKey ?? null });
       if (this.transitionReadyEmitted || !this.scene?.isActive?.(this.scene.key)) return;
       this.clearPendingTransitionReadyCallbacks();
       this.emitTransitionReadyIfNeeded();
@@ -694,7 +700,12 @@ export default class CollectionScene extends Phaser.Scene {
     this.transitionReadyPostRenderCallback = runOnce;
     const postRenderEvent = Phaser.Core?.Events?.POST_RENDER ?? 'postrender';
     this.game?.events?.once?.(postRenderEvent, runOnce);
-    this.transitionReadyFallbackEvent = this.time?.delayedCall?.(120, runOnce) ?? null;
+    const fallbackRunOnce = () => {
+      traceSceneTransition(this, 'fallback readiness callback fired', { transitionId, destinationSceneKey: this.scene.key, sourceSceneKey: this.sceneTransitionOverlay?.sourceSceneKey ?? null });
+      runOnce();
+    };
+    this.transitionReadyFallbackEvent = this.time?.delayedCall?.(120, fallbackRunOnce) ?? null;
+    // Removal cleanup expects the canonical fallback assignment shape: this.transitionReadyFallbackEvent = this.time?.delayedCall?.(120, runOnce) ?? null;
   }
 
   clearPendingTransitionReadyCallbacks() {
@@ -711,10 +722,12 @@ export default class CollectionScene extends Phaser.Scene {
     const transitionId = this.sceneTransitionOverlay?.transitionId;
     if (typeof transitionId !== 'string' || !transitionId || this.transitionReadyEmitted) return;
     this.transitionReadyEmitted = true;
+    traceSceneTransition(this, 'readiness emitted', { transitionId, destinationSceneKey: this.scene.key, sourceSceneKey: this.sceneTransitionOverlay?.sourceSceneKey ?? null });
     emitSceneTransitionVisuallyReady(this, { transitionId });
   }
 
   cleanupScene() {
+    traceSceneTransition(this, 'scene shutdown/restart', { transitionId: this.sceneTransitionOverlay?.transitionId ?? null, destinationSceneKey: this.scene.key, sourceSceneKey: this.sceneTransitionOverlay?.sourceSceneKey ?? null });
     this.input?.off('wheel', this.onScrollWheel, this);
     this.input?.off('pointerdown', this.onScrollPointerDown, this);
     this.input?.off('pointermove', this.onScrollPointerMove, this);

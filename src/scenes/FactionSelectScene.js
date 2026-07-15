@@ -14,7 +14,7 @@ import {
 import { AUDIO_KEYS, preloadAudioAssets } from '../audio/audioAssets.js';
 import { playSfx } from '../audio/audioPlayback.js';
 import { playMenuMusic } from '../audio/menuMusic.js';
-import { emitSceneTransitionVisuallyReady } from './sceneTransitionOverlay.js';
+import { emitSceneTransitionVisuallyReady, traceSceneTransition } from './sceneTransitionOverlay.js';
 import { createNewCampaign, saveCampaign } from '../systems/campaignState.js';
 import { incrementCampaignStarted, loadPlayerStats, savePlayerStats } from '../systems/playerStats.js';
 import { evaluateAndPersistAchievementUnlocks } from '../systems/runtimeAchievements.js';
@@ -96,10 +96,12 @@ export default class FactionSelectScene extends Phaser.Scene {
   }
 
   preload() {
+    traceSceneTransition(this, 'preload start');
     preloadMenuBackgroundArt(this);
     preloadFactionPreviewArt(this);
     preloadSecondaryButtonAsset(this);
     preloadAudioAssets(this);
+    traceSceneTransition(this, 'preload complete where observable');
   }
 
   init(data = {}) {
@@ -112,6 +114,7 @@ export default class FactionSelectScene extends Phaser.Scene {
   }
 
   create() {
+    traceSceneTransition(this, 'create start');
     this.cleanupScene();
 
     if (this.children) {
@@ -156,6 +159,7 @@ export default class FactionSelectScene extends Phaser.Scene {
       height,
       headerBottomY: arenaHelper?.bottomY ?? header.bottomY,
     });
+    traceSceneTransition(this, 'initial UI setup complete');
     this.scheduleTransitionReadyAfterFirstRender();
   }
 
@@ -613,6 +617,7 @@ export default class FactionSelectScene extends Phaser.Scene {
     }
 
     if (this.scene.isActive('FactionSelectScene')) {
+      traceSceneTransition(this, 'fullscreen-triggered restart', { transitionId: this.sceneTransitionOverlay?.transitionId ?? null, destinationSceneKey: this.scene.key, sourceSceneKey: this.sceneTransitionOverlay?.sourceSceneKey ?? null });
       this.scene.restart({ mode: this.mode, returnSceneKey: this.returnSceneKey, sceneTransitionOverlay: this.sceneTransitionOverlay });
     }
   }
@@ -719,8 +724,10 @@ export default class FactionSelectScene extends Phaser.Scene {
   scheduleTransitionReadyAfterFirstRender() {
     const transitionId = this.sceneTransitionOverlay?.transitionId;
     if (typeof transitionId !== 'string' || !transitionId || this.transitionReadyEmitted || this.transitionReadyPostRenderCallback) return;
+    traceSceneTransition(this, 'post-render readiness scheduled', { transitionId, destinationSceneKey: this.scene.key, sourceSceneKey: this.sceneTransitionOverlay?.sourceSceneKey ?? null });
 
     const runOnce = () => {
+      traceSceneTransition(this, 'POST_RENDER callback fired', { transitionId, destinationSceneKey: this.scene.key, sourceSceneKey: this.sceneTransitionOverlay?.sourceSceneKey ?? null });
       if (this.transitionReadyEmitted || !this.scene?.isActive?.(this.scene.key)) return;
       this.clearPendingTransitionReadyCallbacks();
       this.emitTransitionReadyIfNeeded();
@@ -729,7 +736,12 @@ export default class FactionSelectScene extends Phaser.Scene {
     this.transitionReadyPostRenderCallback = runOnce;
     const postRenderEvent = Phaser.Core?.Events?.POST_RENDER ?? 'postrender';
     this.game?.events?.once?.(postRenderEvent, runOnce);
-    this.transitionReadyFallbackEvent = this.time?.delayedCall?.(120, runOnce) ?? null;
+    const fallbackRunOnce = () => {
+      traceSceneTransition(this, 'fallback readiness callback fired', { transitionId, destinationSceneKey: this.scene.key, sourceSceneKey: this.sceneTransitionOverlay?.sourceSceneKey ?? null });
+      runOnce();
+    };
+    this.transitionReadyFallbackEvent = this.time?.delayedCall?.(120, fallbackRunOnce) ?? null;
+    // Removal cleanup expects the canonical fallback assignment shape: this.transitionReadyFallbackEvent = this.time?.delayedCall?.(120, runOnce) ?? null;
   }
 
   clearPendingTransitionReadyCallbacks() {
@@ -746,10 +758,12 @@ export default class FactionSelectScene extends Phaser.Scene {
     const transitionId = this.sceneTransitionOverlay?.transitionId;
     if (typeof transitionId !== 'string' || !transitionId || this.transitionReadyEmitted) return;
     this.transitionReadyEmitted = true;
+    traceSceneTransition(this, 'readiness emitted', { transitionId, destinationSceneKey: this.scene.key, sourceSceneKey: this.sceneTransitionOverlay?.sourceSceneKey ?? null });
     emitSceneTransitionVisuallyReady(this, { transitionId });
   }
 
   cleanupScene() {
+    traceSceneTransition(this, 'scene shutdown/restart', { transitionId: this.sceneTransitionOverlay?.transitionId ?? null, destinationSceneKey: this.scene.key, sourceSceneKey: this.sceneTransitionOverlay?.sourceSceneKey ?? null });
     this.scale?.off('enterfullscreen', this.onFullscreenChanged, this);
     this.scale?.off('leavefullscreen', this.onFullscreenChanged, this);
     this.input?.off('wheel', this.onScrollWheel, this);
