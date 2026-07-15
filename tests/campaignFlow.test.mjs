@@ -11,7 +11,8 @@ test('arena faction selection still routes through BattleScene by default', () =
   const source = read('src/scenes/FactionSelectScene.js');
   assert.match(source, /this\.mode = data\?\.mode === 'campaign' \? 'campaign' : 'arena'/);
   assert.match(source, /selectFaction\(factionKey\) \{[\s\S]*this\.startBattle\(factionKey\)/);
-  assert.match(source, /enterBattleScene\(this, \{ factionKey \}\)/);
+  assert.match(source, /selectArenaBattlegroundId\(\)/);
+  assert.match(source, /enterBattleScene\(this, \{[\s\S]*factionKey,[\s\S]*battleContext:[\s\S]*mode: 'arena',[\s\S]*battlegroundId: selectedBattlegroundId/);
 });
 
 test('campaign faction selection creates and saves campaign state', () => {
@@ -137,7 +138,7 @@ test('campaign enemy selection relies on state guards for defeated and exhausted
 
 test('BattleScene defaults to arena context and preserves arena result exit', () => {
   const source = read('src/scenes/BattleScene.js');
-  assert.match(source, /normalizeBattleContext\(context = \{\}\)[\s\S]*return \{ mode: 'arena' \}/);
+  assert.match(source, /normalizeBattleContext\(context = \{\}\)[\s\S]*mode: 'arena',[\s\S]*battlegroundId: resolveArenaBattlegroundId\(context\?\.battlegroundId\)/);
   assert.match(source, /this\.isCampaignBattle\(\)[\s\S]*translateActive\('ui\.common\.exit', 'EXIT'\)[\s\S]*\(\) => this\.exitBattleToFactionSelect\(\)/);
   assert.match(source, /exitBattleToFactionSelect\(\) \{[\s\S]*(?:this\.scene\.start\('FactionSelectScene'\)|this\.startPostBattleDestinationWithOverlay\('FactionSelectScene'\))/);
 });

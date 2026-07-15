@@ -258,9 +258,10 @@ test('BattleScene preloads and renders the default battlefield background with d
   assert.match(backgroundSource, /key: 'background\.default\.battlefield'/);
   assert.match(backgroundSource, /path: resolvePublicAssetPath\(DEFAULT_BATTLE_BACKGROUND_PUBLIC_PATH\)/);
   assert.match(backgroundSource, /Battle background failed to load: \$\{failedAsset\.path}/);
-  assert.match(battleSource, /preloadBattleBackgroundArt\(this\)/);
+  assert.match(battleSource, /preloadBattleBackgroundArt\(this, getArenaBattlegrounds\(\)\)/);
   assert.match(battleSource, /createCoverBackground\(this, \{/);
   assert.match(battleSource, /asset: this\.backgroundArtAsset/);
+  assert.match(battleSource, /resolveBattleBackgroundAsset\(\)/);
   assert.match(battleSource, /fallbackColor: BATTLE_BACKGROUND_FALLBACK_COLOR/);
   assert.match(battleSource, /depth: -1000/);
   assert.match(battleSource, /BATTLE_FRAME_OVERLAY_ALPHA = 0\.26/);

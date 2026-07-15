@@ -9,7 +9,8 @@ test('faction selection starts BattleScene without stopping itself or clearing g
 
   assert.match(source, /button\.on\('pointerup', \(pointer\) => \{[\s\S]*this\.tapVsDrag\.end\(pointer, this\.scrollState\?\.content\?\.y \?\? 0\)[\s\S]*this\.selectFaction\(factionKey\)/);
   assert.match(source, /import \{ enterBattleScene \} from '\.\/battleEntryRouter\.js';/);
-  assert.match(source, /enterBattleScene\(this, \{ factionKey \}\)/);
+  assert.match(source, /selectArenaBattlegroundId\(\)/);
+  assert.match(source, /enterBattleScene\(this, \{[\s\S]*factionKey,[\s\S]*battleContext:[\s\S]*mode: 'arena',[\s\S]*battlegroundId: selectedBattlegroundId/);
   assert.doesNotMatch(source, /this\.scene\.stop\('FactionSelectScene'\)/);
   assert.doesNotMatch(source, /this\.input\.removeAllListeners\(\)/);
 });
@@ -60,6 +61,7 @@ test('BattleScene returns to faction select through a cleanup path and retry sta
   assert.match(source, /drawPlayerBaseUtilityMenuTrigger\(\) \{[\s\S]*getPlayerBaseUtilityControlMetrics\('menu'\);[\s\S]*createPlayerBaseUtilityControl\([\s\S]*'☰',[\s\S]*this\.guardPointerEvent\(pointer\);[\s\S]*this\.toggleUtilityMenuPanel\(\);[\s\S]*this\.bottomControlViews = \[menu\];[\s\S]*\}/);
   assert.match(source, /(?:this\.scene\.start\('FactionSelectScene'\)|this\.startPostBattleDestinationWithOverlay\('FactionSelectScene'\))/);
   assert.match(source, /restartBattleScene\(this, \{ factionKey, enemyFactionKey, battleContext \}\)/);
+  assert.match(source, /const battleContext = this\.battleContext;/);
   assert.match(source, /exitBattleToFactionSelect\(\) \{[\s\S]*(?:this\.scene\.start\('FactionSelectScene'\)|this\.startPostBattleDestinationWithOverlay\('FactionSelectScene'\))/);
   assert.match(source, /retryBattle\(\) \{[\s\S]*restartBattleScene\(this, \{ factionKey, enemyFactionKey, battleContext \}\)/);
   assert.doesNotMatch(source, /this\.scene\.stop\('BattleScene'\)/);
