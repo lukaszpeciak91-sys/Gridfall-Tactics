@@ -13,6 +13,7 @@ import { createModalBackButton } from '../ui/modalControls.js';
 import { createMenuScreenHeader } from '../ui/screenHeader.js';
 import { preloadSecondaryButtonAsset } from '../ui/imageButton.js';
 import { FACTION_CARD_DETAILS } from '../ui/factionCards.js';
+import { getFactionDossierViewModel } from '../ui/factionDossier.js';
 import { preloadAudioAssets } from '../audio/audioAssets.js';
 import { playMenuMusic } from '../audio/menuMusic.js';
 import { emitSceneTransitionVisuallyReady, traceSceneTransition } from './sceneTransitionOverlay.js';
@@ -52,6 +53,13 @@ const COLLECTION_SECTION_TITLE_STRIP_STROKE_ALPHA = 0.48;
 const COLLECTION_SECTION_HEADER_TEXT_FONT_SIZE = 22;
 const COLLECTION_SECTION_HEADER_TOP_INSET = 6;
 const COLLECTION_SECTION_CARD_TOP_GAP = 8;
+const COLLECTION_DOSSIER_TOP_GAP = 8;
+const COLLECTION_DOSSIER_BOTTOM_GAP = 10;
+const COLLECTION_DOSSIER_PADDING_X = 12;
+const COLLECTION_DOSSIER_PADDING_Y = 8;
+const COLLECTION_DOSSIER_MIN_HEIGHT = 52;
+const COLLECTION_DOSSIER_CHIP_HEIGHT = 20;
+const COLLECTION_DOSSIER_CHIP_GAP = 5;
 const COLLECTION_ACCORDION_TOP_OFFSET = 8;
 
 export default class CollectionScene extends Phaser.Scene {
@@ -252,20 +260,132 @@ export default class CollectionScene extends Phaser.Scene {
     const deck = faction?.deck ?? [];
     const rowsPerColumn = Math.max(COLLECTION_CARDS_PER_COLUMN, Math.ceil(deck.length / 2));
     const gridTop = headerBottom + COLLECTION_SECTION_CARD_TOP_GAP;
+    const dossierBottom = this.drawFactionDossierPanel(content, factionKey, {
+      x,
+      y: headerBottom + COLLECTION_DOSSIER_TOP_GAP,
+      width: stripWidth,
+      accentColor: factionAccentColor,
+    });
+    const cardGridTop = dossierBottom ? dossierBottom + COLLECTION_SECTION_CARD_TOP_GAP : gridTop;
 
     deck.forEach((card, index) => {
       const column = Math.floor(index / rowsPerColumn);
       const row = index % rowsPerColumn;
       this.drawCardPreview(content, card, {
         x: x + column * (cardWidth + columnGap),
-        y: gridTop + row * (cardHeight + COLLECTION_CARD_GAP_Y),
+        y: cardGridTop + row * (cardHeight + COLLECTION_CARD_GAP_Y),
         width: cardWidth,
         height: cardHeight,
         factionThemeId: faction?.id ?? factionKey,
       });
     });
 
-    return gridTop + rowsPerColumn * cardHeight + Math.max(0, rowsPerColumn - 1) * COLLECTION_CARD_GAP_Y;
+    return cardGridTop + rowsPerColumn * cardHeight + Math.max(0, rowsPerColumn - 1) * COLLECTION_CARD_GAP_Y;
+  }
+
+  drawFactionDossierPanel(content, factionKey, { x, y, width, accentColor }) {
+    const dossier = getFactionDossierViewModel(factionKey, getActiveLocale());
+    if (!dossier) {
+      return null;
+    }
+
+    const panelWidth = width;
+    const chipMaxRight = x + panelWidth - COLLECTION_DOSSIER_PADDING_X;
+    const titleY = y + COLLECTION_DOSSIER_PADDING_Y;
+    const bodyY = titleY + 17;
+    const bodyMaxWidth = panelWidth - COLLECTION_DOSSIER_PADDING_X * 2;
+    const body = dossier.description
+      ? this.add.text(x + COLLECTION_DOSSIER_PADDING_X, bodyY, dossier.description, {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '12px',
+        color: '#dbeafe',
+        align: 'left',
+        wordWrap: { width: bodyMaxWidth, useAdvancedWrap: true },
+        maxLines: 2,
+      }).setOrigin(0, 0)
+      : null;
+    const bodyHeight = body ? Math.min(body.height, 32) : 0;
+    const chipY = body ? bodyY + bodyHeight + 6 : bodyY;
+    const chipItems = this.drawFactionDossierChips(content, dossier.tags, {
+      rightX: chipMaxRight,
+      y: chipY,
+      accentColor,
+      maxWidth: bodyMaxWidth,
+    });
+    const hasChips = chipItems.length > 0;
+    const panelHeight = Math.max(
+      COLLECTION_DOSSIER_MIN_HEIGHT,
+      (hasChips ? chipY + COLLECTION_DOSSIER_CHIP_HEIGHT : bodyY + bodyHeight) - y + COLLECTION_DOSSIER_PADDING_Y,
+    );
+
+    const panel = this.add.graphics();
+    panel.fillStyle(0x020817, 0.46);
+    panel.fillRoundedRect(x, y, panelWidth, panelHeight, 10);
+    panel.lineStyle(1, accentColor, 0.28);
+    panel.strokeRoundedRect(x + 0.5, y + 0.5, panelWidth - 1, panelHeight - 1, 9);
+    content.add(panel);
+    this.trackCollectionContentElement(panel);
+
+    const title = this.add.text(x + COLLECTION_DOSSIER_PADDING_X, titleY, dossier.title, {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: '11px',
+      color: '#93c5fd',
+      fontStyle: 'bold',
+      letterSpacing: 0.8,
+    }).setOrigin(0, 0);
+    content.add(title);
+    this.trackCollectionContentElement(title);
+
+    if (body) {
+      content.add(body);
+      this.trackCollectionContentElement(body);
+    }
+    chipItems.forEach((item) => this.trackCollectionContentElement(item));
+    content.sendToBack(panel);
+    return y + panelHeight + COLLECTION_DOSSIER_BOTTOM_GAP;
+  }
+
+  drawFactionDossierChips(content, tags, { rightX, y, accentColor, maxWidth }) {
+    if (!Array.isArray(tags) || tags.length === 0) {
+      return [];
+    }
+
+    const chips = [];
+    let totalWidth = 0;
+    for (const tag of tags) {
+      const label = translateActive(`ui.factionSelect.tags.${tag}`, tag);
+      const text = this.add.text(0, y + 4, label, {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '10px',
+        color: '#f8fafc',
+        stroke: '#020617',
+        strokeThickness: 2,
+      }).setOrigin(0, 0);
+      const width = Math.ceil(text.width + 14);
+      const nextTotal = totalWidth + width + (chips.length ? COLLECTION_DOSSIER_CHIP_GAP : 0);
+      if (nextTotal > maxWidth) {
+        text.destroy();
+        break;
+      }
+      chips.push({ text, width });
+      totalWidth = nextTotal;
+    }
+
+    let currentX = rightX - totalWidth;
+    const items = [];
+    chips.forEach(({ text, width }) => {
+      const pill = this.add.graphics();
+      pill.fillStyle(0x020617, 0.62);
+      pill.fillRoundedRect(currentX, y, width, COLLECTION_DOSSIER_CHIP_HEIGHT, 10);
+      pill.lineStyle(1, accentColor, 0.75);
+      pill.strokeRoundedRect(currentX + 0.5, y + 0.5, width - 1, COLLECTION_DOSSIER_CHIP_HEIGHT - 1, 9);
+      text.setPosition(currentX + 7, y + 4);
+      content.add(pill);
+      content.add(text);
+      items.push(pill, text);
+      currentX += width + COLLECTION_DOSSIER_CHIP_GAP;
+    });
+    return items;
   }
 
   toggleFactionSection(factionKey) {

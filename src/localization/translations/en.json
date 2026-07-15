@@ -445,7 +445,10 @@
     },
     "collection": {
       "title": "COLLECTION",
-      "subtitle": "Long-press a card to inspect"
+      "subtitle": "Long-press a card to inspect",
+      "factionDossier": {
+        "title": "Faction dossier"
+      }
     },
     "battleMenu": {
       "title": "MENU",
