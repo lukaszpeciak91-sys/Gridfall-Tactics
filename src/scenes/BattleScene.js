@@ -10456,9 +10456,6 @@ export default class BattleScene extends Phaser.Scene {
     if (Array.isArray(events) && events.some((event) => (event?.damage ?? 0) > 0 || (event?.selfDamageFeedback?.amount ?? 0) > 0)) {
       this.playBattleSfx?.(AUDIO_KEYS.ATTACK_IMPACT);
     }
-    if (Array.isArray(events) && events.some((event) => event?.targetType === 'hero' && (event?.damage ?? 0) > 0 && !event?.lethal)) {
-      this.playBattleSfx?.(AUDIO_KEYS.BASE_HIT);
-    }
     const feedback = events.map(async (event) => {
       await this.playGuardianInterceptCue(event);
 

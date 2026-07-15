@@ -812,7 +812,7 @@ export default class CollectionScene extends Phaser.Scene {
 
     const runOnce = () => {
       traceSceneTransition(this, 'POST_RENDER callback fired', { transitionId, destinationSceneKey: this.scene.key, sourceSceneKey: this.sceneTransitionOverlay?.sourceSceneKey ?? null });
-      if (this.transitionReadyEmitted || !this.scene?.isActive?.(this.scene.key)) return;
+      if (this.transitionReadyEmitted || (!this.scene?.isActive?.(this.scene.key) && !this.scene?.isVisible?.(this.scene.key))) return;
       this.clearPendingTransitionReadyCallbacks();
       this.emitTransitionReadyIfNeeded();
     };

@@ -121,7 +121,7 @@ test('Collection post-render readiness is one-shot and cleans late callbacks on 
   const collection = read('src/scenes/CollectionScene.js');
   assert.match(collection, /this\.transitionReadyEmitted = false;/);
   assert.match(collection, /if \(typeof transitionId !== 'string' \|\| !transitionId \|\| this\.transitionReadyEmitted \|\| this\.transitionReadyPostRenderCallback\) return;/);
-  assert.match(collection, /if \(this\.transitionReadyEmitted \|\| !this\.scene\?\.isActive\?\.\(this\.scene\.key\)\) return;/);
+  assert.match(collection, /if \(this\.transitionReadyEmitted \|\| \(!this\.scene\?\.isActive\?\.\(this\.scene\.key\) && !this\.scene\?\.isVisible\?\.\(this\.scene\.key\)\)\) return;/);
   assert.match(collection, /this\.transitionReadyFallbackEvent = this\.time\?\.delayedCall\?\.\(120, runOnce\) \?\? null;/);
   assert.match(collection, /this\.clearPendingTransitionReadyCallbacks\(\);[\s\S]*this\.emitTransitionReadyIfNeeded\(\);/);
   assert.match(collection, /this\.game\?\.events\?\.off\?\.\(postRenderEvent, this\.transitionReadyPostRenderCallback\)/);
@@ -162,6 +162,7 @@ test('post-battle destination readiness waits for POST_RENDER and is not emitted
     assert.match(source, /const postRenderEvent = Phaser\.Core\?\.Events\?\.POST_RENDER \?\? 'postrender';/);
     assert.match(source, /this\.game\?\.events\?\.once\?\.\(postRenderEvent, runOnce\)/);
     assert.match(source, /this\.transitionReadyFallbackEvent = this\.time\?\.delayedCall\?\.\(120, runOnce\) \?\? null;/);
+    assert.match(source, /if \(this\.transitionReadyEmitted \|\| \(!this\.scene\?\.isActive\?\.\(this\.scene\.key\) && !this\.scene\?\.isVisible\?\.\(this\.scene\.key\)\)\) return;/);
     assert.match(source, /if \(typeof transitionId !== 'string' \|\| !transitionId \|\| this\.transitionReadyEmitted\) return;/);
   }
 });
