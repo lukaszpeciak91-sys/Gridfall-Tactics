@@ -90,6 +90,9 @@ export default class FactionSelectScene extends Phaser.Scene {
     this.openFactionKey = null;
     this.isStartingBattle = false;
     this.tapVsDrag = createTapVsDragInteraction();
+    this.transitionReadyEmitted = false;
+    this.transitionReadyPostRenderCallback = null;
+    this.transitionReadyFallbackEvent = null;
   }
 
   preload() {
@@ -104,6 +107,7 @@ export default class FactionSelectScene extends Phaser.Scene {
     this.returnSceneKey = data?.returnSceneKey === 'GameMenuScene' ? 'GameMenuScene' : 'MainMenuScene';
     this.sceneTransitionOverlay = data?.sceneTransitionOverlay ?? null;
     this.isStartingBattle = false;
+    this.transitionReadyEmitted = false;
     this.cleanupScene();
   }
 
@@ -152,7 +156,7 @@ export default class FactionSelectScene extends Phaser.Scene {
       height,
       headerBottomY: arenaHelper?.bottomY ?? header.bottomY,
     });
-    this.emitTransitionReadyIfNeeded();
+    this.scheduleTransitionReadyAfterFirstRender();
   }
 
   createArenaHelperText({ width, headerBottomY }) {
@@ -609,7 +613,7 @@ export default class FactionSelectScene extends Phaser.Scene {
     }
 
     if (this.scene.isActive('FactionSelectScene')) {
-      this.scene.restart({ mode: this.mode, returnSceneKey: this.returnSceneKey });
+      this.scene.restart({ mode: this.mode, returnSceneKey: this.returnSceneKey, sceneTransitionOverlay: this.sceneTransitionOverlay });
     }
   }
 
@@ -712,9 +716,36 @@ export default class FactionSelectScene extends Phaser.Scene {
     });
   }
 
+  scheduleTransitionReadyAfterFirstRender() {
+    const transitionId = this.sceneTransitionOverlay?.transitionId;
+    if (typeof transitionId !== 'string' || !transitionId || this.transitionReadyEmitted || this.transitionReadyPostRenderCallback) return;
+
+    const runOnce = () => {
+      if (this.transitionReadyEmitted || !this.scene?.isActive?.(this.scene.key)) return;
+      this.clearPendingTransitionReadyCallbacks();
+      this.emitTransitionReadyIfNeeded();
+    };
+
+    this.transitionReadyPostRenderCallback = runOnce;
+    const postRenderEvent = Phaser.Core?.Events?.POST_RENDER ?? 'postrender';
+    this.game?.events?.once?.(postRenderEvent, runOnce);
+    this.transitionReadyFallbackEvent = this.time?.delayedCall?.(120, runOnce) ?? null;
+  }
+
+  clearPendingTransitionReadyCallbacks() {
+    if (this.transitionReadyPostRenderCallback) {
+      const postRenderEvent = Phaser.Core?.Events?.POST_RENDER ?? 'postrender';
+      this.game?.events?.off?.(postRenderEvent, this.transitionReadyPostRenderCallback);
+      this.transitionReadyPostRenderCallback = null;
+    }
+    this.transitionReadyFallbackEvent?.remove?.(false);
+    this.transitionReadyFallbackEvent = null;
+  }
+
   emitTransitionReadyIfNeeded() {
     const transitionId = this.sceneTransitionOverlay?.transitionId;
-    if (typeof transitionId !== 'string' || !transitionId) return;
+    if (typeof transitionId !== 'string' || !transitionId || this.transitionReadyEmitted) return;
+    this.transitionReadyEmitted = true;
     emitSceneTransitionVisuallyReady(this, { transitionId });
   }
 
@@ -725,6 +756,7 @@ export default class FactionSelectScene extends Phaser.Scene {
     this.input?.off('pointerdown', this.onScrollPointerDown, this);
     this.input?.off('pointermove', this.onScrollPointerMove, this);
     this.input?.off('pointerup', this.onScrollPointerUp, this);
+    this.clearPendingTransitionReadyCallbacks();
 
     this.tapVsDrag?.cancel?.();
     this.factionCardViews.forEach((view) => view.tween?.stop?.());

@@ -316,7 +316,7 @@ test('FactionSelectScene uses shared bottom navigation controls for back, rules,
   assert.doesNotMatch(factionSource, /drawNavigationControls\(\) \{[\s\S]*onMute: \(\) => \{\}/);
   assert.match(factionSource, /openRulesPanel\(\) \{[\s\S]*this\.scene\.launch\('RulesPanelScene', \{ returnSceneKey: 'FactionSelectScene' \}\);[\s\S]*this\.scene\.pause\(\);[\s\S]*\}/);
   assert.match(factionSource, /toggleFullscreen\(\) \{[\s\S]*toggleSceneFullscreen\(this\);[\s\S]*\}/);
-  assert.match(factionSource, /onFullscreenChanged\(\) \{[\s\S]*this\.scale\.isFullscreen[\s\S]*requestPortraitOrientationLock\(\);[\s\S]*this\.scene\.restart\(\{ mode: this\.mode, returnSceneKey: this\.returnSceneKey \}\);[\s\S]*\}/);
+  assert.match(factionSource, /onFullscreenChanged\(\) \{[\s\S]*this\.scale\.isFullscreen[\s\S]*requestPortraitOrientationLock\(\);[\s\S]*this\.scene\.restart\(\{ mode: this\.mode, returnSceneKey: this\.returnSceneKey, sceneTransitionOverlay: this\.sceneTransitionOverlay \}\);[\s\S]*\}/);
   assert.match(battleSource, /onFullscreenChanged\(\) \{[\s\S]*this\.scale\.isFullscreen[\s\S]*requestPortraitOrientationLock\(\);[\s\S]*this\.recoverFromLifecycle\(this\.scale\.isFullscreen \? 'enterfullscreen' : 'leavefullscreen'\);[\s\S]*\}/);
   assert.match(menuSource, /const returnSceneKey = typeof data\?\.returnSceneKey === 'string'/);
   assert.match(menuSource, /if \(returnScene\?\.launchBattleRulesPanel\) \{[\s\S]*returnScene\.launchBattleRulesPanel\(\{ prepareNavigation: false \}\);[\s\S]*return;[\s\S]*\}/);
@@ -441,7 +441,7 @@ test('GameMenuScene bottom navigation uses Back, Rules, and Fullscreen behavior'
   assert.match(source, /returnToMainMenu\(\) \{[\s\S]*this\.scene\.start\('MainMenuScene'\)/);
   assert.match(source, /openRulesPanel\(\) \{[\s\S]*this\.scene\.launch\('RulesPanelScene', \{ returnSceneKey: 'GameMenuScene' \}\);[\s\S]*this\.scene\.pause\(\);[\s\S]*\}/);
   assert.match(source, /toggleFullscreen\(\) \{[\s\S]*toggleSceneFullscreen\(this\);[\s\S]*\}/);
-  assert.match(source, /onFullscreenChanged\(\) \{[\s\S]*this\.scale\.isFullscreen[\s\S]*requestPortraitOrientationLock\(\);[\s\S]*this\.scene\.restart\(\);[\s\S]*\}/);
+  assert.match(source, /onFullscreenChanged\(\) \{[\s\S]*this\.scale\.isFullscreen[\s\S]*requestPortraitOrientationLock\(\);[\s\S]*this\.scene\.restart\(\{ sceneTransitionOverlay: this\.sceneTransitionOverlay \}\);[\s\S]*\}/);
 });
 
 test('Game menu localization resolves exact English and Polish labels', () => {

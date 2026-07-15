@@ -42,10 +42,14 @@ export default class GameMenuScene extends Phaser.Scene {
     this.menuButtons = [];
     this.continueButton = null;
     this.confirmNewGameModal = null;
+    this.transitionReadyEmitted = false;
+    this.transitionReadyPostRenderCallback = null;
+    this.transitionReadyFallbackEvent = null;
   }
 
   init(data = {}) {
     this.sceneTransitionOverlay = data?.sceneTransitionOverlay ?? null;
+    this.transitionReadyEmitted = false;
     this.cleanupScene();
     this.resetGameMenuDisplayList();
   }
@@ -112,7 +116,7 @@ export default class GameMenuScene extends Phaser.Scene {
     this.updateContinueAvailability();
     this.scale.on('resize', this.layoutGameMenuScene, this);
     this.drawNavigationControls();
-    this.emitTransitionReadyIfNeeded();
+    this.scheduleTransitionReadyAfterFirstRender();
   }
 
   createTitle(width, height) {
@@ -280,17 +284,45 @@ export default class GameMenuScene extends Phaser.Scene {
     }
 
     if (this.scene.isActive('GameMenuScene')) {
-      this.scene.restart();
+      this.scene.restart({ sceneTransitionOverlay: this.sceneTransitionOverlay });
     }
+  }
+
+  scheduleTransitionReadyAfterFirstRender() {
+    const transitionId = this.sceneTransitionOverlay?.transitionId;
+    if (typeof transitionId !== 'string' || !transitionId || this.transitionReadyEmitted || this.transitionReadyPostRenderCallback) return;
+
+    const runOnce = () => {
+      if (this.transitionReadyEmitted || !this.scene?.isActive?.(this.scene.key)) return;
+      this.clearPendingTransitionReadyCallbacks();
+      this.emitTransitionReadyIfNeeded();
+    };
+
+    this.transitionReadyPostRenderCallback = runOnce;
+    const postRenderEvent = Phaser.Core?.Events?.POST_RENDER ?? 'postrender';
+    this.game?.events?.once?.(postRenderEvent, runOnce);
+    this.transitionReadyFallbackEvent = this.time?.delayedCall?.(120, runOnce) ?? null;
+  }
+
+  clearPendingTransitionReadyCallbacks() {
+    if (this.transitionReadyPostRenderCallback) {
+      const postRenderEvent = Phaser.Core?.Events?.POST_RENDER ?? 'postrender';
+      this.game?.events?.off?.(postRenderEvent, this.transitionReadyPostRenderCallback);
+      this.transitionReadyPostRenderCallback = null;
+    }
+    this.transitionReadyFallbackEvent?.remove?.(false);
+    this.transitionReadyFallbackEvent = null;
   }
 
   emitTransitionReadyIfNeeded() {
     const transitionId = this.sceneTransitionOverlay?.transitionId;
-    if (typeof transitionId !== 'string' || !transitionId) return;
+    if (typeof transitionId !== 'string' || !transitionId || this.transitionReadyEmitted) return;
+    this.transitionReadyEmitted = true;
     emitSceneTransitionVisuallyReady(this, { transitionId });
   }
 
   cleanupScene() {
+    this.clearPendingTransitionReadyCallbacks();
     this.tweens?.killTweensOf?.(this.menuButtonViews.flat());
     if (this.title) this.tweens?.killTweensOf?.(this.title);
     this.events?.off(Phaser.Scenes.Events.RESUME, this.restoreGameMenuInteractivity, this);
@@ -309,6 +341,9 @@ export default class GameMenuScene extends Phaser.Scene {
     this.menuButtons = [];
     this.continueButton = null;
     this.confirmNewGameModal = null;
+    this.transitionReadyEmitted = false;
+    this.transitionReadyPostRenderCallback = null;
+    this.transitionReadyFallbackEvent = null;
   }
 
   createMenuButton(x, y, width, label, onPointerUp) {
