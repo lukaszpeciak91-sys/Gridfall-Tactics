@@ -7,6 +7,7 @@ import {
   getSceneTransitionState,
   markSceneTransitionReady,
   setSceneTransitionState,
+  reconcileSceneTransitionOverlayOrdering,
 } from './sceneTransitionOverlay.js';
 
 const BACKGROUND_COLOR = 0x020617;
@@ -74,6 +75,7 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
     }
 
     this.lastActiveTick = this.time.now;
+    reconcileSceneTransitionOverlayOrdering(this.scene, { transitionId: this.transitionId, destinationSceneKey: this.destinationSceneKey });
     this.createHiddenPresentation();
     this.installListeners();
     this.scheduleDelayedShow();
@@ -152,6 +154,7 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
     if (this.hasShown || this.cleaningUp || !this.root) return;
     this.hasShown = true;
     this.visibleSince = this.time.now;
+    reconcileSceneTransitionOverlayOrdering(this.scene, { transitionId: this.transitionId, destinationSceneKey: this.destinationSceneKey });
     this.root.setVisible(true);
     this.createInputBlocker();
     this.startRingTween();

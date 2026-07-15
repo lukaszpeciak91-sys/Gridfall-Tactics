@@ -19,6 +19,7 @@ test('scene transition overlay scene is registered and exposes shared helper API
   assert.match(helper, /export function startSceneWithTransitionOverlay/);
   assert.match(helper, /export function emitSceneTransitionVisuallyReady/);
   assert.match(helper, /export function bringSceneTransitionOverlayToTop/);
+  assert.match(helper, /export function reconcileSceneTransitionOverlayOrdering/);
 });
 
 test('ready event subscription happens before destination start and overlay scene does not own navigation', () => {
@@ -32,14 +33,20 @@ test('ready event subscription happens before destination start and overlay scen
 });
 
 
-test('shared helper brings active overlay above destination after destination start', () => {
+test('overlay ordering is retried after queued launch and destination start', () => {
   const startIndex = helper.indexOf('sourceScene.scene.start(targetSceneKey');
-  const bringIndex = helper.indexOf('bringSceneTransitionOverlayToTop(sourceScene.scene)', startIndex);
-  assert.ok(startIndex >= 0 && bringIndex > startIndex);
-  assert.match(helper, /if \(!scenePlugin\?\.isActive\?\.\(SCENE_TRANSITION_OVERLAY_SCENE_KEY\)\) return false;/);
-  assert.match(helper, /scenePlugin\.bringToTop\?\.\(SCENE_TRANSITION_OVERLAY_SCENE_KEY\)/);
-  assert.match(read('src/scenes/MainMenuScene.js'), /this\.scene\.start\('CollectionScene',[\s\S]*bringSceneTransitionOverlayToTop\(this\.scene\)/);
-  assert.match(read('src/scenes/BattleScene.js'), /this\.scene\.start\(destinationSceneKey,[\s\S]*bringSceneTransitionOverlayToTop\(this\.scene\)/);
+  const reconcileIndex = helper.indexOf('reconcileSceneTransitionOverlayOrdering(sourceScene.scene', startIndex);
+  assert.ok(startIndex >= 0 && reconcileIndex > startIndex);
+  assert.match(helper, /managerEvents\?\.once\?\.\(Phaser\.Core\?\.Events\?\.POST_STEP \?\? 'poststep', deferred\)/);
+  assert.match(helper, /managerEvents\?\.once\?\.\(Phaser\.Core\?\.Events\?\.POST_RENDER \?\? 'postrender', deferred\)/);
+  assert.match(read('src/scenes/MainMenuScene.js'), /this\.scene\.start\('CollectionScene',[\s\S]*reconcileSceneTransitionOverlayOrdering\(this\.scene/);
+  assert.match(read('src/scenes/BattleScene.js'), /this\.scene\.start\(destinationSceneKey,[\s\S]*reconcileSceneTransitionOverlayOrdering\(this\.scene/);
+});
+
+test('overlay remains topmost until fade begins', () => {
+  assert.match(helper, /overlay\?\.transitionId && overlay\.transitionId !== transitionId/);
+  assert.match(helper, /overlay\?\.destinationSceneKey && overlay\.destinationSceneKey !== destinationSceneKey/);
+  assert.match(overlay, /reconcileSceneTransitionOverlayOrdering\(this\.scene, \{ transitionId: this\.transitionId, destinationSceneKey: this\.destinationSceneKey \}\);[\s\S]*this\.root\.setVisible\(true\)/);
 });
 
 test('fast readiness before delayed threshold stops silently without logo flash', () => {
@@ -132,7 +139,7 @@ test('overlay visible lifecycle remains delayed, full-root faded, and blocker cl
 test('post-battle overlay routes keep the same destinations while reordering overlay', () => {
   const battle = read('src/scenes/BattleScene.js');
   assert.match(battle, /startPostBattleDestinationWithOverlay\(destinationSceneKey, data = \{\}\) \{/);
-  assert.match(battle, /this\.scene\.start\(destinationSceneKey,[\s\S]*bringSceneTransitionOverlayToTop\(this\.scene\);/);
+  assert.match(battle, /this\.scene\.start\(destinationSceneKey,[\s\S]*reconcileSceneTransitionOverlayOrdering\(this\.scene/);
   assert.match(battle, /this\.startPostBattleDestinationWithOverlay\('FactionSelectScene'\)/);
   assert.match(battle, /this\.startPostBattleDestinationWithOverlay\('CampaignEnemySelectScene'\)/);
   assert.match(battle, /this\.startPostBattleDestinationWithOverlay\('GameMenuScene'\)/);
@@ -142,4 +149,42 @@ test('BattleTransitionScene remains independent', () => {
   assert.doesNotMatch(battleTransition, /SceneTransitionOverlayScene|SCENE_TRANSITION_VISUALLY_READY_EVENT|sceneTransitionOverlay/);
   assert.match(battleTransition, /BATTLE_SCENE_VISUALLY_READY_EVENT/);
   assert.match(battleTransition, /returnToSourceWhenVisible/);
+});
+
+test('post-battle destination readiness waits for POST_RENDER and is not emitted during UI construction', () => {
+  for (const path of ['src/scenes/FactionSelectScene.js', 'src/scenes/CampaignEnemySelectScene.js', 'src/scenes/GameMenuScene.js']) {
+    const source = read(path);
+    const createStart = source.indexOf('  create() {');
+    const readyMethod = source.indexOf('  scheduleTransitionReadyAfterFirstRender()', createStart);
+    const createBody = source.slice(createStart, readyMethod);
+    assert.match(createBody, /this\.scheduleTransitionReadyAfterFirstRender\(\);/);
+    assert.doesNotMatch(createBody, /this\.emitTransitionReadyIfNeeded\(\);/);
+    assert.match(source, /const postRenderEvent = Phaser\.Core\?\.Events\?\.POST_RENDER \?\? 'postrender';/);
+    assert.match(source, /this\.game\?\.events\?\.once\?\.\(postRenderEvent, runOnce\)/);
+    assert.match(source, /this\.transitionReadyFallbackEvent = this\.time\?\.delayedCall\?\.\(120, runOnce\) \?\? null;/);
+    assert.match(source, /if \(typeof transitionId !== 'string' \|\| !transitionId \|\| this\.transitionReadyEmitted\) return;/);
+  }
+});
+
+test('invalid campaign redirect forwards transition metadata without orphaning original transition', () => {
+  const campaign = read('src/scenes/CampaignEnemySelectScene.js');
+  assert.match(campaign, /this\.scene\.start\('GameMenuScene', \{ sceneTransitionOverlay: this\.sceneTransitionOverlay \}\);/);
+  assert.doesNotMatch(campaign, /createSceneTransitionId|beginSceneTransitionOverlay\(this, 'GameMenuScene'/);
+});
+
+test('fullscreen restart preserves active transition metadata for post-battle destinations', () => {
+  assert.match(read('src/scenes/FactionSelectScene.js'), /sceneTransitionOverlay: this\.sceneTransitionOverlay/);
+  assert.match(read('src/scenes/CampaignEnemySelectScene.js'), /sceneTransitionOverlay: this\.sceneTransitionOverlay/);
+  assert.match(read('src/scenes/GameMenuScene.js'), /sceneTransitionOverlay: this\.sceneTransitionOverlay/);
+});
+
+test('post-battle destination cleanup removes readiness listener and fallback timer', () => {
+  for (const path of ['src/scenes/FactionSelectScene.js', 'src/scenes/CampaignEnemySelectScene.js', 'src/scenes/GameMenuScene.js']) {
+    const source = read(path);
+    assert.match(source, /this\.game\?\.events\?\.off\?\.\(postRenderEvent, this\.transitionReadyPostRenderCallback\)/);
+    assert.match(source, /this\.transitionReadyFallbackEvent\?\.remove\?\.\(false\)/);
+    assert.match(source, /this\.clearPendingTransitionReadyCallbacks\(\);/);
+  }
+  assert.match(overlay, /this\.destroyInputBlocker\(\);/);
+  assert.match(overlay, /if \(this\.clearRegistryOnCleanup\) clearSceneTransitionState\(this\.game, this\.transitionId\);/);
 });

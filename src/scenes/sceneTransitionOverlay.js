@@ -1,3 +1,4 @@
+import Phaser from 'phaser';
 export const SCENE_TRANSITION_OVERLAY_SCENE_KEY = 'SceneTransitionOverlayScene';
 export const SCENE_TRANSITION_VISUALLY_READY_EVENT = 'scene-transition:visually-ready';
 export const SCENE_TRANSITION_REGISTRY_KEY = 'gridfall.sceneTransitionOverlay.state';
@@ -73,10 +74,25 @@ export function emitSceneTransitionVisuallyReady(scene, { transitionId, payload 
   return true;
 }
 
-export function bringSceneTransitionOverlayToTop(scenePlugin) {
+export function bringSceneTransitionOverlayToTop(scenePlugin, { transitionId = null, destinationSceneKey = null } = {}) {
   if (!scenePlugin?.isActive?.(SCENE_TRANSITION_OVERLAY_SCENE_KEY)) return false;
+  const overlay = scenePlugin.get?.(SCENE_TRANSITION_OVERLAY_SCENE_KEY);
+  if (transitionId && overlay?.transitionId && overlay.transitionId !== transitionId) return false;
+  if (destinationSceneKey && overlay?.destinationSceneKey && overlay.destinationSceneKey !== destinationSceneKey) return false;
   scenePlugin.bringToTop?.(SCENE_TRANSITION_OVERLAY_SCENE_KEY);
   return true;
+}
+
+export function reconcileSceneTransitionOverlayOrdering(scenePlugin, { transitionId = null, destinationSceneKey = null } = {}) {
+  if (!scenePlugin) return false;
+  const tryBringToTop = () => bringSceneTransitionOverlayToTop(scenePlugin, { transitionId, destinationSceneKey });
+  if (tryBringToTop()) return true;
+
+  const managerEvents = scenePlugin.systems?.game?.events ?? scenePlugin.game?.events;
+  const deferred = () => tryBringToTop();
+  managerEvents?.once?.(Phaser.Core?.Events?.POST_STEP ?? 'poststep', deferred);
+  managerEvents?.once?.(Phaser.Core?.Events?.POST_RENDER ?? 'postrender', deferred);
+  return false;
 }
 
 export function beginSceneTransitionOverlay(sourceScene, targetSceneKey, options = {}) {
@@ -123,6 +139,6 @@ export function startSceneWithTransitionOverlay(sourceScene, targetSceneKey, tar
       sourceSceneKey: sourceScene.scene.key ?? null,
     },
   });
-  bringSceneTransitionOverlayToTop(sourceScene.scene);
+  reconcileSceneTransitionOverlayOrdering(sourceScene.scene, { transitionId: transition.transitionId, destinationSceneKey: targetSceneKey });
   return transition;
 }
