@@ -92,9 +92,39 @@ test('battle-launched settings resumes the existing paused battle while menu-lau
   const battleSource = read('src/scenes/BattleScene.js');
   const settingsSource = read('src/scenes/SettingsScene.js');
 
-  assert.match(battleSource, /openSettingsScene\(\) \{[\s\S]*this\.prepareUtilityMenuNavigation\(\{ preserveBattleFlow: true \}\)[\s\S]*this\.scene\.launch\('SettingsScene', \{ returnSceneKey: 'BattleScene' \}\);[\s\S]*this\.scene\.pause\(\);/);
+  assert.match(battleSource, /openSettingsScene\(\) \{[\s\S]*this\.prepareUtilityMenuNavigation\(\{ preserveBattleFlow: true \}\)[\s\S]*this\.scene\.launch\('SettingsScene', \{ returnSceneKey: 'BattleScene' \}\);[\s\S]*this\.scene\.bringToTop\('SettingsScene'\);[\s\S]*this\.scene\.pause\(\);/);
   assert.match(battleSource, /resumeFromSettings\(\) \{[\s\S]*this\.scene\.resume\(\);[\s\S]*this\.recoverFromLifecycle\('settings-return'\);/);
   assert.match(settingsSource, /this\.returnSceneKey = typeof data\?\.returnSceneKey === 'string'/);
   assert.match(settingsSource, /returnToMainMenu\(\) \{[\s\S]*const returnSceneKey = this\.returnSceneKey;[\s\S]*this\.scene\.stop\(\);[\s\S]*returnScene\?\.resumeFromSettings[\s\S]*this\.scene\.start\('MainMenuScene'\);/);
   assert.match(settingsSource, /this\.scene\.restart\(\{ returnSceneKey: this\.returnSceneKey \}\);/);
+});
+
+
+test('battle-launched settings is promoted above the paused BattleScene without changing global scene registration', () => {
+  const battleSource = read('src/scenes/BattleScene.js');
+  const mainSource = read('src/main.js');
+  const openSettingsSource = battleSource.slice(
+    battleSource.indexOf('  openSettingsScene() {'),
+    battleSource.indexOf('  exitBattleToMainMenu() {'),
+  );
+
+  assert.match(openSettingsSource, /this\.prepareUtilityMenuNavigation\(\{ preserveBattleFlow: true \}\)/);
+  assert.match(openSettingsSource, /this\.scene\.launch\('SettingsScene', \{ returnSceneKey: 'BattleScene' \}\);/);
+  assert.match(openSettingsSource, /this\.scene\.bringToTop\('SettingsScene'\);/);
+  assert.match(openSettingsSource, /this\.scene\.pause\(\);/);
+  assert.ok(
+    openSettingsSource.indexOf("this.scene.launch('SettingsScene', { returnSceneKey: 'BattleScene' });")
+      < openSettingsSource.indexOf("this.scene.bringToTop('SettingsScene');"),
+    'SettingsScene must be brought to top after it is launched',
+  );
+  assert.ok(
+    openSettingsSource.indexOf("this.scene.bringToTop('SettingsScene');")
+      < openSettingsSource.indexOf('this.scene.pause();'),
+    'SettingsScene must be above BattleScene before BattleScene is paused',
+  );
+  assert.doesNotMatch(openSettingsSource, /scene\.start\('SettingsScene'\)|scene\.stop\('BattleScene'\)|restartBattleScene/);
+  assert.match(
+    mainSource,
+    /scene: \[StartScene, MainMenuScene, GameMenuScene, FactionSelectScene, CampaignEnemySelectScene, CollectionScene, AchievementsScene, SettingsScene, TutorialScene, SceneTransitionOverlayScene, BattleTransitionScene, BattleScene, BattleMenuScene, RulesPanelScene/,
+  );
 });

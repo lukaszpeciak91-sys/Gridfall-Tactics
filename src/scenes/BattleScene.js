@@ -4009,6 +4009,7 @@ export default class BattleScene extends Phaser.Scene {
   openSettingsScene() {
     if (!this.prepareUtilityMenuNavigation({ preserveBattleFlow: true })) return;
     this.scene.launch('SettingsScene', { returnSceneKey: 'BattleScene' });
+    this.scene.bringToTop('SettingsScene');
     this.scene.pause();
   }
 
