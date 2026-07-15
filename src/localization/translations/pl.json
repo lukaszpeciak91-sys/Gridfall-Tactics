@@ -445,7 +445,10 @@
     },
     "collection": {
       "title": "KOLEKCJA",
-      "subtitle": "Przytrzymaj kartę, aby ją obejrzeć"
+      "subtitle": "Przytrzymaj kartę, aby ją obejrzeć",
+      "factionDossier": {
+        "title": "Akta frakcji"
+      }
     },
     "battleMenu": {
       "title": "MENU",
