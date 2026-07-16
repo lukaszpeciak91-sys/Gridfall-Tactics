@@ -52,7 +52,7 @@ function enCopy(progression) {
 
 test('AchievementsScene derives progression through the pure progression module without duplicating progression constants', () => {
   const scene = sceneSource();
-  assert.match(scene, /import \{ calculateAchievementProgression \} from '..\/systems\/achievementProgression\.js';/);
+  assert.match(scene, /import \{ calculateAchievementProgression(?:, getAchievementDefinitionPointValue)? \} from '..\/systems\/achievementProgression\.js';/);
   assert.match(scene, /const progression = calculateAchievementProgression\(definitions, achievementState\);/);
   assert.match(scene, /return \{ definitions, achievementState, playerStats, progression \};/);
   assert.doesNotMatch(scene, /ACHIEVEMENT_POINT_VALUES_BY_DIFFICULTY|ACHIEVEMENT_LEVEL_THRESHOLDS|ACHIEVEMENT_MAX_LEVEL/);

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import { ACHIEVEMENT_CATEGORY_GROUPS, getAchievementDefinitions } from '../src/systems/achievements.js';
+import { getAchievementDefinitionPointValue } from '../src/systems/achievementProgression.js';
 import { createDefaultPlayerStats } from '../src/systems/playerStats.js';
 import { getFactionKeys } from '../src/data/factions/index.js';
 
@@ -70,6 +71,76 @@ test('achievement cards render reusable difficulty stars with reserved right-ali
   assert.match(scene, /titleWidth: Math\.max\(96, titleRight - textLeft - 10\)/);
   assert.match(scene, /starAreaX: titleRight/);
   assert.match(scene, /difficultyStarColor: unlocked \? '#facc15' : '#94a3b8'/);
+});
+
+
+test('achievement card point values derive from progression helper without duplicating point mapping', () => {
+  const scene = source();
+  assert.match(scene, /calculateAchievementProgression, getAchievementDefinitionPointValue/);
+  assert.match(scene, /const points = getAchievementDefinitionPointValue\(definition\)/);
+  assert.doesNotMatch(scene, /ACHIEVEMENT_POINT_VALUES_BY_DIFFICULTY|difficulty\s*===\s*1|difficulty\s*===\s*2|difficulty\s*===\s*3|difficulty\s*===\s*4/);
+});
+
+test('locked achievement cards present plus-prefixed point rewards for all valid difficulties', () => {
+  const scene = source();
+  assert.match(scene, /if \(!unlocked\) return `\+\$\{points\}`/);
+
+  const lockedLabel = (definition) => {
+    const points = getAchievementDefinitionPointValue(definition);
+    return Number.isFinite(points) && points > 0 ? `+${points}` : '';
+  };
+  assert.equal(lockedLabel({ difficulty: 1 }), '+25');
+  assert.equal(lockedLabel({ difficulty: 2 }), '+50');
+  assert.equal(lockedLabel({ difficulty: 3 }), '+100');
+  assert.equal(lockedLabel({ difficulty: 4 }), '+200');
+});
+
+test('unlocked achievement cards keep localized earned point values visible', () => {
+  const scene = source();
+  assert.match(scene, /return `\$\{points\} \$\{translateActive\('ui\.achievements\.progression\.pointsAbbreviation', 'PTS'\)\}`/);
+  assert.match(scene, /this\.drawAchievementPointLabel\(content, definition, layout, theme, unlocked\)/);
+
+  const unlockedLabel = (definition, suffix) => {
+    const points = getAchievementDefinitionPointValue(definition);
+    return Number.isFinite(points) && points > 0 ? `${points} ${suffix}` : '';
+  };
+  assert.equal(unlockedLabel({ difficulty: 1 }, 'PTS'), '25 PTS');
+  assert.equal(unlockedLabel({ difficulty: 2 }, 'PTS'), '50 PTS');
+  assert.equal(unlockedLabel({ difficulty: 3 }, 'PKT'), '100 PKT');
+  assert.equal(unlockedLabel({ difficulty: 4 }, 'PKT'), '200 PKT');
+});
+
+test('malformed zero point achievements omit card point labels without throwing', () => {
+  const scene = source();
+  assert.match(scene, /if \(!Number\.isFinite\(points\) \|\| points <= 0\) return ''/);
+  assert.match(scene, /if \(!label\) return null/);
+
+  assert.doesNotThrow(() => getAchievementDefinitionPointValue({ difficulty: 0 }));
+  assert.equal(getAchievementDefinitionPointValue({ difficulty: 0 }), 0);
+  const invalidLabel = (definition) => {
+    const points = getAchievementDefinitionPointValue(definition);
+    return Number.isFinite(points) && points > 0 ? `+${points}` : '';
+  };
+  assert.equal(invalidLabel({ difficulty: 0 }), '');
+});
+
+test('achievement point chip uses the right-side metadata lane while preserving title and badge zones', () => {
+  const scene = source();
+  assert.match(scene, /chipX = layout\.starAreaX \+ layout\.starAreaWidth - chipWidth/);
+  assert.match(scene, /chipY = layout\.starAreaY \+ 24/);
+  assert.match(scene, /drawAchievementDifficultyStars\(content, definition, layout, theme\);\n    this\.drawAchievementPointLabel/);
+  assert.match(scene, /badgeY: y \+ 68/);
+  assert.match(scene, /titleWidth: Math\.max\(96, titleRight - textLeft - 10\)/);
+  assert.match(scene, /maxLines: 2/);
+  assert.match(scene, /const cardHeight = 102/);
+});
+
+test('dynamic faction achievement cards inherit point labels through shared card rendering', () => {
+  const scene = source();
+  assert.match(scene, /drawFactionAchievementGroups/);
+  assert.match(scene, /cursorY = this\.drawAchievementRows\(content, factionAchievements/);
+  assert.match(scene, /drawAchievementRows\(content, achievements/);
+  assert.match(scene, /this\.drawAchievementPointLabel\(content, definition, layout, theme, unlocked\)/);
 });
 
 test('achievement progress badges clamp completed progress for display only', () => {
