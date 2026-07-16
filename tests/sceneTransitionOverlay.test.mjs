@@ -90,11 +90,16 @@ test('resize and fullscreen reflow uses current game dimensions without restarti
   assert.match(overlay, /if \(this\.ringTween \|\| !this\.ring\) return;/);
 });
 
-test('failsafe cleanup is bounded and does not restart navigation or return to source', () => {
+test('failsafe threshold waits instead of completing when registry readiness is false', () => {
   assert.match(overlay, /const FAILSAFE_ACTIVE_MS = 8000;/);
   assert.match(overlay, /document\.hidden === true/);
-  assert.match(overlay, /failsafe readiness resolution/);
-  assert.match(overlay, /destinationActive, destinationVisible/);
+  assert.match(overlay, /handleFailsafeThresholdReached\(\)/);
+  assert.match(overlay, /registryReady && this\.reconcileReadiness\('failsafe-threshold'\)/);
+  assert.match(overlay, /traceSceneTransition\(this, 'failsafe threshold reached'/);
+  assert.match(overlay, /traceSceneTransition\(this, 'registry still not ready'/);
+  assert.match(overlay, /traceSceneTransition\(this, 'overlay remains waiting'/);
+  assert.match(overlay, /console\.warn\('Scene transition failsafe threshold reached without readiness; overlay remains waiting\.'/);
+  assert.doesNotMatch(overlay, /failsafe readiness resolution/);
   assert.doesNotMatch(overlay, /returnToSource|sourceSceneKey[\s\S]{0,120}scene\.start/);
 });
 
@@ -104,9 +109,55 @@ test('delayed show cannot flash after readiness cleanup starts', () => {
   assert.match(overlay, /if \(this\.cleaningUp \|\| this\.completed \|\| !this\.isCurrentTransitionState\(\)\) \{\n        return;\n      \}/);
 });
 
-test('failsafe treats visible inactive destinations as renderable before cleanup', () => {
+test('failsafe keeps overlay visible and preserves waiting guard before readiness', () => {
+  const start = overlay.indexOf('  handleFailsafeThresholdReached() {');
+  const end = overlay.indexOf('  handleHardEmergencyTimeout() {', start);
+  const body = overlay.slice(start, end);
   assert.match(overlay, /isDestinationRenderable\(\) \{[\s\S]*return this\.scene\.isActive\(this\.destinationSceneKey\) \|\| this\.scene\.isVisible\(this\.destinationSceneKey\);/);
-  assert.match(overlay, /if \(!this\.hasShown && !this\.isDestinationRenderable\(\)\) this\.showOverlay\(\);/);
+  assert.match(body, /if \(!this\.hasShown\) this\.showOverlay\(\);/);
+  assert.match(body, /this\.ensureOverlayTopWhileWaiting\('failsafe threshold waiting'\)/);
+  assert.doesNotMatch(body, /fadeOutAndStop\(\)/);
+  assert.doesNotMatch(body, /cleanupAndStop\(/);
+});
+
+
+test('failsafe cannot mark readiness, fade, clean up, stop, or remove guard before matching readiness', () => {
+  const start = overlay.indexOf('  handleFailsafeThresholdReached() {');
+  const end = overlay.indexOf('  handleHardEmergencyTimeout() {', start);
+  const body = overlay.slice(start, end);
+  assert.match(body, /overlayPending = !this\.completed && !this\.readyRecorded/);
+  assert.match(body, /overlayActive && overlayPending && !this\.cleaningUp/);
+  assert.match(body, /this\.ensureOverlayTopWhileWaiting\('failsafe threshold waiting'\)/);
+  assert.doesNotMatch(body, /markSceneTransitionReady|ready:\s*true|finishWhenStable\(|fadeOutAndStop\(|cleanupAndStop\(|scene\.stop\(|removeWaitingFrameOrderGuard\(/);
+});
+
+test('later matching readiness remains the only normal completion path and stale readiness is ignored', () => {
+  assert.match(overlay, /handleReadyEvent\(event = \{\}\) \{[\s\S]*event\?\.transitionId !== this\.transitionId \|\| event\?\.destinationSceneKey !== this\.destinationSceneKey/);
+  assert.match(overlay, /markSceneTransitionReady\(this\.game, \{ destinationSceneKey: this\.destinationSceneKey, transitionId: this\.transitionId, payload: event \}\);/);
+  assert.match(overlay, /this\.finishWhenStable\('ready-event'\);/);
+  assert.match(overlay, /if \(state\?\.ready === true && state\.destinationSceneKey === this\.destinationSceneKey\) \{/);
+  assert.match(overlay, /if \(this\.completed \|\| this\.cleaningUp\) return;/);
+});
+
+test('slow Collection and post-battle transitions can exceed old failsafe without normal completion', () => {
+  assert.match(read('src/scenes/MainMenuScene.js'), /beginSceneTransitionOverlay\(this, 'CollectionScene'\)/);
+  assert.match(read('src/scenes/BattleScene.js'), /this\.startPostBattleDestinationWithOverlay\('FactionSelectScene'\)/);
+  assert.match(read('src/scenes/BattleScene.js'), /this\.startPostBattleDestinationWithOverlay\('CampaignEnemySelectScene'\)/);
+  assert.match(read('src/scenes/BattleScene.js'), /this\.startPostBattleDestinationWithOverlay\('GameMenuScene'\)/);
+  assert.match(overlay, /if \(this\.activeElapsedMs >= FAILSAFE_ACTIVE_MS\) \{[\s\S]*this\.handleFailsafeThresholdReached\(\);[\s\S]*\}/);
+  assert.doesNotMatch(overlay, /this\.activeElapsedMs >= FAILSAFE_ACTIVE_MS[\s\S]{0,240}fadeOutAndStop\(\)/);
+});
+
+test('hard emergency timeout is separate from readiness and keeps recoverable overlay fallback', () => {
+  assert.match(overlay, /const HARD_EMERGENCY_ACTIVE_MS = 60000;/);
+  assert.match(overlay, /handleHardEmergencyTimeout\(\)/);
+  assert.match(overlay, /traceSceneTransition\(this, 'hard emergency transition timeout'/);
+  assert.match(overlay, /console\.error\('hard emergency transition timeout'/);
+  assert.match(overlay, /hardEmergencyAt/);
+  const start = overlay.indexOf('  handleHardEmergencyTimeout() {');
+  const end = overlay.indexOf('  handleLifecycleSignal()', start);
+  const body = overlay.slice(start, end);
+  assert.doesNotMatch(body, /markSceneTransitionReady|ready:\s*true|finishWhenStable\(|fadeOutAndStop\(|cleanupAndStop\(/);
 });
 
 test('overlay is integrated only in approved production navigation paths', () => {

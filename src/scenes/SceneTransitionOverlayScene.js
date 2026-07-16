@@ -19,6 +19,7 @@ const FADE_OUT_MS = 220;
 const READY_STABLE_FRAME_MS = 32;
 const RESUME_STABILIZE_MS = 96;
 const FAILSAFE_ACTIVE_MS = 8000;
+const HARD_EMERGENCY_ACTIVE_MS = 60000;
 const ROOT_DEPTH = 10000;
 const BLOCKER_DEPTH = ROOT_DEPTH + 10;
 
@@ -56,6 +57,8 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
     this.clearRegistryOnCleanup = true;
     this.cleanupReason = null;
     this.waitingFrameOrderListener = null;
+    this.failsafeWarningEmitted = false;
+    this.hardEmergencyTimeoutEmitted = false;
   }
 
   init(data = {}) {
@@ -266,19 +269,74 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
     const hidden = typeof document !== 'undefined' && document.hidden === true;
     if (!hidden) this.activeElapsedMs += Math.max(0, now - this.lastActiveTick);
     this.lastActiveTick = now;
-    if (this.activeElapsedMs < FAILSAFE_ACTIVE_MS || this.cleaningUp) return;
-    if (this.reconcileReadiness('failsafe')) return;
+    if (this.cleaningUp) return;
+
+    if (this.activeElapsedMs >= FAILSAFE_ACTIVE_MS) {
+      this.handleFailsafeThresholdReached();
+    }
+
+    if (this.activeElapsedMs >= HARD_EMERGENCY_ACTIVE_MS) {
+      this.handleHardEmergencyTimeout();
+    }
+  }
+
+  handleFailsafeThresholdReached() {
     const destinationActive = this.scene.isActive(this.destinationSceneKey);
     const destinationVisible = this.scene.isVisible(this.destinationSceneKey);
-    this.cleanupReason = 'failsafe';
-    traceSceneTransition(this, 'failsafe readiness resolution', {
+    const overlayActive = this.scene.isActive(this.scene.key);
+    const overlayPending = !this.completed && !this.readyRecorded;
+    const registryState = getSceneTransitionState(this.game, this.transitionId);
+    const registryReady = registryState?.ready === true && registryState?.transitionId === this.transitionId && registryState?.destinationSceneKey === this.destinationSceneKey;
+
+    if (registryReady && this.reconcileReadiness('failsafe-threshold')) return;
+
+    const details = {
       destinationActive,
       destinationVisible,
       destinationRenderable: this.isDestinationRenderable(),
-    });
-    setSceneTransitionState(this.game, this.transitionId, { failed: true, failsafeAt: Date.now(), destinationActive, destinationVisible });
-    if (!this.hasShown && !this.isDestinationRenderable()) this.showOverlay();
-    this.fadeOutAndStop();
+      overlayActive,
+      overlayPending,
+      cleanupStarted: this.cleaningUp,
+      registryReady: false,
+      registryState: registryState ? { transitionId: registryState.transitionId, destinationSceneKey: registryState.destinationSceneKey, ready: registryState.ready, failed: registryState.failed } : null,
+      elapsedMs: this.activeElapsedMs,
+    };
+
+    if (!this.failsafeWarningEmitted && overlayActive && overlayPending && !this.cleaningUp) {
+      this.failsafeWarningEmitted = true;
+      traceSceneTransition(this, 'failsafe threshold reached', details);
+      traceSceneTransition(this, 'registry still not ready', details);
+      traceSceneTransition(this, 'overlay remains waiting', details);
+      console.warn('Scene transition failsafe threshold reached without readiness; overlay remains waiting.', {
+        transitionId: this.transitionId,
+        destinationSceneKey: this.destinationSceneKey,
+        ...details,
+      });
+    }
+
+    if (!this.hasShown) this.showOverlay();
+    this.ensureOverlayTopWhileWaiting('failsafe threshold waiting');
+  }
+
+  handleHardEmergencyTimeout() {
+    if (this.hardEmergencyTimeoutEmitted || this.cleaningUp || this.completed) return;
+    this.hardEmergencyTimeoutEmitted = true;
+    const registryState = getSceneTransitionState(this.game, this.transitionId);
+    const details = {
+      elapsedMs: this.activeElapsedMs,
+      sceneState: {
+        overlayActive: this.scene.isActive(this.scene.key),
+        overlayVisible: this.scene.isVisible(this.scene.key),
+        destinationActive: this.scene.isActive(this.destinationSceneKey),
+        destinationVisible: this.scene.isVisible(this.destinationSceneKey),
+      },
+      registryState: registryState ? { transitionId: registryState.transitionId, destinationSceneKey: registryState.destinationSceneKey, ready: registryState.ready, failed: registryState.failed } : null,
+    };
+    traceSceneTransition(this, 'hard emergency transition timeout', details);
+    console.error('hard emergency transition timeout', { transitionId: this.transitionId, destinationSceneKey: this.destinationSceneKey, ...details });
+    setSceneTransitionState(this.game, this.transitionId, { failed: true, hardEmergencyAt: Date.now(), hardEmergencyElapsedMs: this.activeElapsedMs });
+    if (!this.hasShown) this.showOverlay();
+    this.ensureOverlayTopWhileWaiting('hard emergency timeout waiting');
   }
 
   handleLifecycleSignal() {
