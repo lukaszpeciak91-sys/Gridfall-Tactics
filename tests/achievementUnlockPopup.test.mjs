@@ -12,7 +12,7 @@ function chainObject(extra = {}) {
   return {
     destroyed: false,
     alpha: 1,
-    setDepth() { return this; }, setPosition(x, y) { this.x = x; this.y = y; return this; }, setBlendMode() { return this; },
+    setDepth(depth) { this.depth = depth; return this; }, setPosition(x, y) { this.x = x; this.y = y; return this; }, setBlendMode() { return this; },
     fillStyle() { return this; }, fillEllipse() { return this; }, fillRoundedRect() { return this; }, lineStyle() { return this; }, strokeRoundedRect() { return this; }, lineBetween() { return this; },
     setOrigin() { return this; }, setAlpha(value) { this.alpha = value; return this; }, removeAllListeners() { this.listenersRemoved = true; return this; }, destroy() { this.destroyed = true; return this; },
     ...extra,
@@ -80,6 +80,23 @@ test('popup renderer creates compact content and explicit cleanup ownership', ()
   assert.ok(scene.created.some((item) => item.text === '1 / 2'));
   popup.destroy();
   assert.ok(scene.created.every((item) => item.destroyed));
+});
+
+test('popup renderer preserves default non-interactive depth layers', () => {
+  const scene = createMockScene();
+  createAchievementUnlockPopup(scene, definition, { index: 1, total: 1, locale: 'en' });
+  assert.equal(scene.created[0].depth, 926);
+  assert.equal(scene.created[1].depth, 927);
+  assert.ok(scene.created.slice(2).every((item) => item.depth === 928));
+  assert.ok(scene.created.every((item) => typeof item.setInteractive !== 'function'));
+});
+
+test('popup renderer maps custom baseDepth to glow, background, and content layers', () => {
+  const scene = createMockScene();
+  createAchievementUnlockPopup(scene, definition, { index: 1, total: 1, locale: 'en', baseDepth: 1212 });
+  assert.equal(scene.created[0].depth, 1212);
+  assert.equal(scene.created[1].depth, 1213);
+  assert.ok(scene.created.slice(2).every((item) => item.depth === 1214));
 });
 
 test('cleanup cancels timers and tweens and destroys all popup objects', () => {

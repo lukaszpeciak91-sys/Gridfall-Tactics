@@ -175,6 +175,7 @@ const TUTORIAL_LIFECYCLE_DIAG_PREFIX = '[TUTORIAL_LIFECYCLE_DIAG]';
 const CAMPAIGN_COMPLETION_OVERLAY_DEPTH = 1200;
 const CAMPAIGN_COMPLETION_CONTENT_DEPTH = CAMPAIGN_COMPLETION_OVERLAY_DEPTH + 1;
 const CAMPAIGN_COMPLETION_BUTTON_DEPTH = CAMPAIGN_COMPLETION_OVERLAY_DEPTH + 2;
+const CAMPAIGN_COMPLETION_ACHIEVEMENT_POPUP_DEPTH = CAMPAIGN_COMPLETION_BUTTON_DEPTH + 10;
 const CAMPAIGN_COMPLETION_OVERLAY_ALPHA = 0.84;
 const CAMPAIGN_COMPLETION_TITLE_MAX_WIDTH_RATIO = 0.9;
 const CAMPAIGN_COMPLETION_TITLE_MIN_FONT_SIZE = 28;
@@ -2647,6 +2648,9 @@ export default class BattleScene extends Phaser.Scene {
         });
       if (!batch.length) return;
       const layout = calculateAchievementUnlockPopupLayout(this, this.battleResultModal);
+      const popupBaseDepth = this.resultOverlayState?.kind === 'campaign-completion' && this.resultOverlayState.phase === 'interactive'
+        ? CAMPAIGN_COMPLETION_ACHIEVEMENT_POPUP_DEPTH
+        : undefined;
       let activeIncomingPopup = null;
       let activeOutgoingPopup = null;
       let initialDelayTimer = null;
@@ -2679,6 +2683,7 @@ export default class BattleScene extends Phaser.Scene {
           total: batch.length,
           layout,
           modal: this.battleResultModal,
+          baseDepth: popupBaseDepth,
           timing: ACHIEVEMENT_UNLOCK_POPUP_TIMING,
         });
         activeIncomingPopup = popup;
