@@ -6,26 +6,37 @@ export const BATTLE_TRANSITION_TUTORIAL_POOL_KEY = 'tutorial';
 
 export const BATTLE_TRANSITION_ILLUSTRATION_ALLOWLIST = Object.freeze({
   aggro: Object.freeze([
+    Object.freeze({ artAssetId: 'aggro_01', cardId: 'aggro_runner_1' }),
     Object.freeze({ artAssetId: 'aggro_02', cardId: 'aggro_berserker_1' }),
     Object.freeze({ artAssetId: 'aggro_09', cardId: 'aggro_adrenaline_1' }),
   ]),
   'attrition-swarm': Object.freeze([
+    Object.freeze({ artAssetId: 'attrition-swarm_02', cardId: 'attrition_swarm_carrier_1' }),
     Object.freeze({ artAssetId: 'attrition-swarm_03', cardId: 'attrition_swarm_leech_1' }),
     Object.freeze({ artAssetId: 'attrition-swarm_09', cardId: 'attrition_swarm_rise_again_1' }),
   ]),
   control: Object.freeze([
     Object.freeze({ artAssetId: 'control_02', cardId: 'control_disruptor_1' }),
+    Object.freeze({ artAssetId: 'control_03', cardId: 'control_sniper_1' }),
     Object.freeze({ artAssetId: 'control_05', cardId: 'control_drone_1' }),
   ]),
+  overclock: Object.freeze([
+    Object.freeze({ artAssetId: 'overclock_01', cardId: 'overclock_hot_runner_1' }),
+    Object.freeze({ artAssetId: 'overclock_05', cardId: 'overclock_mob_champion_1' }),
+    Object.freeze({ artAssetId: 'overclock_06', cardId: 'overclock_redline_1' }),
+  ]),
   swarm: Object.freeze([
+    Object.freeze({ artAssetId: 'swarm_02', cardId: 'swarm_spitter_1' }),
     Object.freeze({ artAssetId: 'swarm_04', cardId: 'swarm_rusher_1' }),
     Object.freeze({ artAssetId: 'swarm_05', cardId: 'swarm_alpha_1' }),
   ]),
   tank: Object.freeze([
     Object.freeze({ artAssetId: 'tank_01', cardId: 'tank_shieldbearer_1' }),
+    Object.freeze({ artAssetId: 'tank_04', cardId: 'tank_wall_1' }),
     Object.freeze({ artAssetId: 'tank_07', cardId: 'tank_stability_1' }),
   ]),
   wardens: Object.freeze([
+    Object.freeze({ artAssetId: 'wardens_02', cardId: 'wardens_spearwall_1' }),
     Object.freeze({ artAssetId: 'wardens_05', cardId: 'wardens_watch_captain_1' }),
     Object.freeze({ artAssetId: 'wardens_10', cardId: 'wardens_hold_the_line_1' }),
   ]),
@@ -33,6 +44,7 @@ export const BATTLE_TRANSITION_ILLUSTRATION_ALLOWLIST = Object.freeze({
   [BATTLE_TRANSITION_TUTORIAL_POOL_KEY]: Object.freeze([
     Object.freeze({ factionId: 'tutorial', artAssetId: 'ally_01', cardId: 'tutorial_unit_a_1' }),
     Object.freeze({ factionId: 'tutorial', artAssetId: 'ally_03', cardId: 'tutorial_unit_c_1' }),
+    Object.freeze({ factionId: 'tutorial', artAssetId: 'effect_01', cardId: 'tutorial_all_attack_1' }),
   ]),
 });
 
