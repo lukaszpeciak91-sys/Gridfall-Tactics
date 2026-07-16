@@ -4,6 +4,7 @@ import { getFactionKeys } from '../src/data/factions/index.js';
 import {
   PLAYER_STATS_STORAGE_KEY,
   PLAYER_STATS_VERSION,
+  addActiveBattleTime,
   clonePlayerStats,
   createDefaultPlayerStats,
   incrementBattleStat,
@@ -58,6 +59,7 @@ test('createDefaultPlayerStats creates versioned zeroed stats for every faction 
   assert.equal(stats.battlesWon, 0);
   assert.equal(stats.battlesLost, 0);
   assert.equal(stats.battlesDrawn, 0);
+  assert.equal(stats.activeBattleTimeMs, 0);
   assert.equal(stats.arenaBattlesPlayed, 0);
   assert.equal(stats.campaignsStarted, 0);
   assert.equal(stats.campaignBattlesDrawn, 0);
@@ -85,6 +87,7 @@ test('normalizePlayerStats keeps safe counters, fills missing fields, and drops 
     version: 99,
     battlesPlayed: 2.8,
     battlesWon: -4,
+    activeBattleTimeMs: 12345.9,
     arenaBattlesWon: '7',
     campaignBattlesLost: 3,
     tutorialCompleted: 'yes',
@@ -117,6 +120,7 @@ test('normalizePlayerStats keeps safe counters, fills missing fields, and drops 
   assert.equal(normalized.version, PLAYER_STATS_VERSION);
   assert.equal(normalized.battlesPlayed, 2);
   assert.equal(normalized.battlesWon, 0);
+  assert.equal(normalized.activeBattleTimeMs, 12345);
   assert.equal(normalized.arenaBattlesWon, 0);
   assert.equal(normalized.campaignBattlesLost, 3);
   assert.equal(normalized.tutorialCompleted, false);
@@ -129,6 +133,19 @@ test('normalizePlayerStats keeps safe counters, fills missing fields, and drops 
   assert.equal(normalized.enemies.defeatedTotals.Missing, undefined);
   assert.equal(normalized.enemies.defeatedByPlayerFactionPair.Aggro.Tank, 3);
   assert.equal(normalized.enemies.defeatedByPlayerFactionPair.Missing, undefined);
+});
+
+test('normalizePlayerStats safely migrates legacy and invalid active battle time values', () => {
+  assert.equal(normalizePlayerStats({}).activeBattleTimeMs, 0);
+  assert.equal(normalizePlayerStats({ activeBattleTimeMs: null }).activeBattleTimeMs, 0);
+  assert.equal(normalizePlayerStats({ activeBattleTimeMs: undefined }).activeBattleTimeMs, 0);
+  assert.equal(normalizePlayerStats({ activeBattleTimeMs: '1000' }).activeBattleTimeMs, 0);
+  assert.equal(normalizePlayerStats({ activeBattleTimeMs: -1 }).activeBattleTimeMs, 0);
+  assert.equal(normalizePlayerStats({ activeBattleTimeMs: Number.NaN }).activeBattleTimeMs, 0);
+  assert.equal(normalizePlayerStats({ activeBattleTimeMs: Number.POSITIVE_INFINITY }).activeBattleTimeMs, 0);
+  assert.equal(normalizePlayerStats({ activeBattleTimeMs: Number.NEGATIVE_INFINITY }).activeBattleTimeMs, 0);
+  assert.equal(normalizePlayerStats({ activeBattleTimeMs: 10.9 }).activeBattleTimeMs, 10);
+  assert.equal(normalizePlayerStats({ activeBattleTimeMs: 1000 }).activeBattleTimeMs, 1000);
 });
 
 test('loadPlayerStats returns defaults when localStorage is missing', () => {
@@ -273,6 +290,82 @@ test('incrementCampaignStarted increments campaign starts immutably only once pe
   assert.equal(stats.campaignsStarted, 0);
   assert.equal(nextStats.campaignsStarted, 1);
   assert.equal(nextStats.campaignsCompleted, 0);
+});
+
+test('addActiveBattleTime adds only safe non-negative integer durations monotonically', () => {
+  const stats = createDefaultPlayerStats();
+  const afterFirst = addActiveBattleTime(stats, 1000);
+  const afterSecond = addActiveBattleTime(afterFirst, 2500);
+  const afterNegative = addActiveBattleTime(afterSecond, -500);
+  const afterNaN = addActiveBattleTime(afterNegative, Number.NaN);
+  const afterFraction = addActiveBattleTime(afterNaN, 10.9);
+
+  assert.equal(stats.activeBattleTimeMs, 0);
+  assert.equal(afterFirst.activeBattleTimeMs, 1000);
+  assert.equal(afterSecond.activeBattleTimeMs, 3500);
+  assert.equal(afterNegative.activeBattleTimeMs, 3500);
+  assert.equal(afterNaN.activeBattleTimeMs, 3500);
+  assert.equal(afterFraction.activeBattleTimeMs, 3510);
+});
+
+test('addActiveBattleTime is pure and preserves unrelated player stats', () => {
+  const stats = normalizePlayerStats({
+    battlesPlayed: 4,
+    battlesWon: 2,
+    arenaBattlesPlayed: 3,
+    arenaBattlesWon: 1,
+    campaignsStarted: 5,
+    campaignsCompleted: 2,
+    campaignBattlesPlayed: 6,
+    tutorialCompleted: true,
+    unitsPlayed: 7,
+    effectsPlayed: 8,
+    activeBattleTimeMs: 1000,
+    factions: {
+      Aggro: {
+        battlesPlayed: 4,
+        arenaBattlesWon: 1,
+        campaignBattlesPlayed: 2,
+        unitsPlayed: 3,
+        effectsPlayed: 4,
+      },
+    },
+    enemies: {
+      defeatedTotals: {
+        Tank: 2,
+      },
+      defeatedByPlayerFactionPair: {
+        Aggro: {
+          Tank: 2,
+        },
+      },
+    },
+    arenaBattlegroundVisits: {
+      casino: 2,
+    },
+    arenaBattlegroundRevisitCount: 1,
+  });
+
+  const beforeSnapshot = JSON.parse(JSON.stringify(stats));
+  const nextStats = addActiveBattleTime(stats, 2000);
+
+  assert.deepEqual(stats, beforeSnapshot);
+  assert.notEqual(nextStats, stats);
+  assert.equal(nextStats.activeBattleTimeMs, 3000);
+  assert.equal(nextStats.battlesPlayed, stats.battlesPlayed);
+  assert.equal(nextStats.battlesWon, stats.battlesWon);
+  assert.equal(nextStats.arenaBattlesPlayed, stats.arenaBattlesPlayed);
+  assert.equal(nextStats.arenaBattlesWon, stats.arenaBattlesWon);
+  assert.equal(nextStats.campaignsStarted, stats.campaignsStarted);
+  assert.equal(nextStats.campaignsCompleted, stats.campaignsCompleted);
+  assert.equal(nextStats.campaignBattlesPlayed, stats.campaignBattlesPlayed);
+  assert.equal(nextStats.tutorialCompleted, stats.tutorialCompleted);
+  assert.equal(nextStats.unitsPlayed, stats.unitsPlayed);
+  assert.equal(nextStats.effectsPlayed, stats.effectsPlayed);
+  assert.deepEqual(nextStats.factions, stats.factions);
+  assert.deepEqual(nextStats.enemies, stats.enemies);
+  assert.deepEqual(nextStats.arenaBattlegroundVisits, stats.arenaBattlegroundVisits);
+  assert.equal(nextStats.arenaBattlegroundRevisitCount, stats.arenaBattlegroundRevisitCount);
 });
 
 test('incrementCampaignCompletedStat increments campaign win lifecycle and player faction win counter', () => {
