@@ -4,20 +4,6 @@ import { SETTINGS_CHANGED_EVENT, loadSettings, toggleMuted } from '../systems/se
 
 const PREMIUM_GOLD_ACCENT = 0xfacc15;
 const BOTTOM_CONTROL_CORNER_RADIUS_RATIO = 0.16;
-export const NAVIGATION_RING_MOTION = Object.freeze({
-  color: 0x38bdf8,
-  highlightColor: 0x7dd3fc,
-  radiusRatio: 0.55,
-  muteRadiusRatio: 0.58,
-  strokeRatio: 0.042,
-  primaryAlpha: 0.54,
-  trailAlpha: 0.2,
-  primaryArc: Math.PI * 0.34,
-  trailArc: Math.PI * 0.2,
-  trailGap: Math.PI * 0.08,
-  duration: 5200,
-  depth: 198.35,
-});
 export const NAVIGATION_ICON_TYPES = Object.freeze({
   BACK: 'back',
   HELP: 'help',
@@ -154,80 +140,22 @@ export function drawNavigationIcon(icon, size, iconType, color = NAVIGATION_ICON
   return false;
 }
 
-
-function prefersReducedNavigationMotion() {
-  return Boolean(globalThis.window?.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches);
-}
-
-export function getNavigationRingPhaseOffset(x, y, size) {
-  const seed = Math.round(x * 3 + y * 5 + size * 7);
-  return ((seed % 360) / 360) * Math.PI * 2;
-}
-
-export function drawNavigationRingSegment(arc, radius, size) {
-  const strokeWidth = Math.max(1.4, size * NAVIGATION_RING_MOTION.strokeRatio);
-  const primaryStart = -Math.PI * 0.5;
-  const primaryEnd = primaryStart + NAVIGATION_RING_MOTION.primaryArc;
-  const trailEnd = primaryStart - NAVIGATION_RING_MOTION.trailGap;
-  const trailStart = trailEnd - NAVIGATION_RING_MOTION.trailArc;
-
-  arc.clear();
-  arc.lineStyle(strokeWidth, NAVIGATION_RING_MOTION.color, NAVIGATION_RING_MOTION.trailAlpha);
-  arc.beginPath();
-  arc.arc(0, 0, radius, trailStart, trailEnd, false);
-  arc.strokePath();
-  arc.lineStyle(strokeWidth, NAVIGATION_RING_MOTION.highlightColor, NAVIGATION_RING_MOTION.primaryAlpha);
-  arc.beginPath();
-  arc.arc(0, 0, radius, primaryStart, primaryEnd, false);
-  arc.strokePath();
-}
-
-export function createNavigationRingMotion(scene, x, y, size, { radiusRatio = NAVIGATION_RING_MOTION.radiusRatio, depth = NAVIGATION_RING_MOTION.depth } = {}) {
-  const radius = size * radiusRatio;
-  const arc = scene.add.graphics().setPosition(x, y).setDepth(depth);
-  drawNavigationRingSegment(arc, radius, size);
-  arc.rotation = getNavigationRingPhaseOffset(x, y, size);
-
-  const tween = prefersReducedNavigationMotion() ? null : (scene.tweens?.add?.({
-    targets: arc,
-    rotation: arc.rotation + Math.PI * 2,
-    duration: NAVIGATION_RING_MOTION.duration,
-    ease: 'Linear',
-    repeat: -1,
-  }) ?? null);
-
-  let cleaned = false;
-  const cleanup = () => {
-    if (cleaned) return;
-    cleaned = true;
-    scene.events?.off?.('shutdown', cleanup);
-    tween?.remove?.();
-    arc.destroy?.();
-  };
-  scene.events?.once?.('shutdown', cleanup);
-  arc.once?.('destroy', () => {
-    tween?.remove?.();
-  });
-
-  return { arc, tween, radius, duration: NAVIGATION_RING_MOTION.duration, phaseOffset: arc.rotation, cleanup };
-}
-
 export function createFloatingControl(scene, x, y, size, label, onPointerUp, { fontScale = 0.5 } = {}) {
-  const iconType = resolveNavigationIconType(label);
-  if (!iconType) {
-    throw new Error(`Unsupported floating navigation icon: ${label}`);
-  }
-
-  const halo = scene.add.circle(x, y, size * NAVIGATION_RING_MOTION.radiusRatio, 0x38bdf8, 0.08)
+  const halo = scene.add.circle(x, y, size * 0.55, 0x38bdf8, 0.08)
     .setStrokeStyle(1, 0x7dd3fc, 0.18)
     .setDepth(198);
-  const ringMotion = createNavigationRingMotion(scene, x, y, size);
   const backing = scene.add.rectangle(x, y, size, size, 0x020617, 0.62)
     .setRounded(getBottomControlCornerRadius(size))
     .setStrokeStyle(1, PREMIUM_GOLD_ACCENT, 0.58)
     .setDepth(199);
+  const iconType = resolveNavigationIconType(label);
   const icon = scene.add.graphics().setPosition(x, y).setDepth(200);
   drawNavigationIcon(icon, size, iconType);
+
+  if (!iconType) {
+    icon.destroy?.();
+    throw new Error(`Unsupported floating navigation icon: ${label}`);
+  }
 
   if (onPointerUp) {
     backing.setInteractive({ useHandCursor: true });
@@ -248,14 +176,7 @@ export function createFloatingControl(scene, x, y, size, label, onPointerUp, { f
     backing.on('pointerup', handlePointerUp);
   }
 
-  const destroy = () => {
-    ringMotion.cleanup();
-    halo.destroy?.();
-    backing.destroy?.();
-    icon.destroy?.();
-  };
-
-  return { halo, ringArc: ringMotion.arc, ringTween: ringMotion.tween, ringMotion, backing, icon, text: icon, iconType, destroy };
+  return { halo, backing, icon, text: icon, iconType };
 }
 
 export function drawSpeakerIcon(icon, size, isMuted) {
@@ -299,15 +220,14 @@ export function drawSpeakerIcon(icon, size, isMuted) {
 
 export function createMuteToggleControl(scene, x, y, size, { onToggle = null, depth = 198 } = {}) {
   const button = scene.add.container(x, y).setDepth(depth);
-  const halo = scene.add.circle(0, 0, size * NAVIGATION_RING_MOTION.muteRadiusRatio, 0x38bdf8, 0.08).setStrokeStyle(1, 0x7dd3fc, 0.18);
-  const ringMotion = createNavigationRingMotion(scene, 0, 0, size, { radiusRatio: NAVIGATION_RING_MOTION.muteRadiusRatio });
+  const halo = scene.add.circle(0, 0, size * 0.58, 0x38bdf8, 0.08).setStrokeStyle(1, 0x7dd3fc, 0.18);
   const backing = scene.add.rectangle(0, 0, size, size, 0x020617, 0.66)
     .setRounded(getBottomControlCornerRadius(size))
     .setStrokeStyle(1, PREMIUM_GOLD_ACCENT, 0.58);
   const icon = scene.add.graphics();
   let hovering = false;
 
-  button.add([halo, ringMotion.arc, backing, icon]);
+  button.add([halo, backing, icon]);
   button.setSize(size, size);
   button.setInteractive({ useHandCursor: true });
 
@@ -344,10 +264,9 @@ export function createMuteToggleControl(scene, x, y, size, { onToggle = null, de
   refreshButton();
   const destroy = () => {
     scene.game?.events?.off?.(SETTINGS_CHANGED_EVENT, handleSettingsChanged);
-    ringMotion.cleanup();
     button.destroy();
   };
-  return { halo, ringArc: ringMotion.arc, ringTween: ringMotion.tween, ringMotion, backing, icon, button, text: icon, destroy };
+  return { halo, backing, icon, button, text: icon, destroy };
 }
 
 export function createBottomNavigationControls(scene, {
