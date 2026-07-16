@@ -768,7 +768,14 @@
     },
     "achievements": {
       "title": "ACHIEVEMENTS",
-      "comingSoon": "Coming soon."
+      "comingSoon": "Coming soon.",
+      "progression": {
+        "level": "LEVEL",
+        "maxLevel": "MAX LEVEL",
+        "pointsAbbreviation": "PTS",
+        "toLevel": "TO LEVEL",
+        "allLevelsComplete": "ALL LEVELS COMPLETE"
+      }
     }
   },
   "diagnostics": {
