@@ -13,6 +13,7 @@ import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
 import { getFactionPresentationName } from '../data/presentation/factionPresentation.js';
 import { FACTION_CARD_DETAILS } from '../ui/factionCards.js';
 import { getAchievementDefinitions, loadAchievementState, normalizeAchievementState, ACHIEVEMENT_CATEGORY_GROUPS, ACHIEVEMENT_CATEGORY_LABELS, normalizeAchievementDifficulty } from '../systems/achievements.js';
+import { calculateAchievementProgression } from '../systems/achievementProgression.js';
 import { loadPlayerStats, normalizePlayerStats } from '../systems/playerStats.js';
 import { preloadAudioAssets } from '../audio/audioAssets.js';
 import { playMenuMusic } from '../audio/menuMusic.js';
@@ -100,7 +101,9 @@ export default class AchievementsScene extends Phaser.Scene {
       playerStats = normalizePlayerStats();
     }
 
-    return { definitions, achievementState, playerStats };
+    const progression = calculateAchievementProgression(definitions, achievementState);
+
+    return { definitions, achievementState, playerStats, progression };
   }
 
   drawAchievementsPanel(width, height) {
@@ -144,6 +147,7 @@ export default class AchievementsScene extends Phaser.Scene {
     this.destroyAchievementContentElements();
     const margin = 16;
     let y = 8;
+    y = this.drawProgressionBanner(this.scrollState.content, this.achievementData?.progression, { x: margin, y, width: width - margin * 2 }) + 16;
     for (const section of this.getAchievementSections()) {
       y = this.drawSectionBanner(this.scrollState.content, section, { x: margin, y, width: width - margin * 2 });
       if (this.expandedSectionKeys.has(section.key)) {
@@ -181,6 +185,80 @@ export default class AchievementsScene extends Phaser.Scene {
 
   isAchievementUnlocked(id) {
     return Object.prototype.hasOwnProperty.call(this.achievementData?.achievementState?.unlocked ?? {}, id);
+  }
+
+  getProgressionBannerCopy(progression = {}) {
+    const level = progression.level ?? 1;
+    const maxLevel = progression.maxLevel ?? level;
+    if (progression.isMaxLevel) {
+      return {
+        levelText: `${translateActive('ui.achievements.progression.maxLevel', 'MAX LEVEL')} ${maxLevel}`,
+        earnedPointsText: `${progression.earnedPoints ?? 0} ${translateActive('ui.achievements.progression.pointsAbbreviation', 'PTS')}`,
+        bottomText: translateActive('ui.achievements.progression.allLevelsComplete', 'ALL LEVELS COMPLETE'),
+      };
+    }
+
+    return {
+      levelText: `${translateActive('ui.achievements.progression.level', 'LEVEL')} ${level}`,
+      earnedPointsText: `${progression.earnedPoints ?? 0} ${translateActive('ui.achievements.progression.pointsAbbreviation', 'PTS')}`,
+      bottomText: `${progression.pointsIntoLevel ?? 0} / ${progression.pointsForLevel ?? 0} ${translateActive('ui.achievements.progression.toLevel', 'TO LEVEL')} ${level + 1}`,
+    };
+  }
+
+  drawProgressionBanner(content, progression = {}, { x, y, width }) {
+    const height = 80;
+    const radius = 16;
+    const accent = 0xfacc15;
+    const progressRatio = Phaser.Math.Clamp(Number.isFinite(progression.progressRatio) ? progression.progressRatio : 0, 0, 1);
+    const copy = this.getProgressionBannerCopy(progression);
+    const paddingX = 16;
+    const barX = x + paddingX;
+    const barY = y + 43;
+    const barWidth = Math.max(0, width - paddingX * 2);
+    const barHeight = 9;
+    const fillWidth = Math.max(0, Math.min(barWidth, barWidth * progressRatio));
+
+    const bg = this.add.graphics();
+    bg.fillStyle(0x020817, 0.86); bg.fillRoundedRect(x, y, width, height, radius);
+    bg.fillStyle(accent, 0.09); bg.fillRoundedRect(x + 3, y + 3, width - 6, height - 6, 13);
+    bg.fillStyle(0x0f172a, 0.78); bg.fillRoundedRect(x + 7, y + 8, width - 14, height - 15, 10);
+    bg.fillStyle(accent, 0.38); bg.fillRoundedRect(x + 12, y + 8, width - 24, 3, 2);
+    bg.lineStyle(2.1, accent, 0.64); bg.strokeRoundedRect(x, y, width, height, radius);
+    bg.lineStyle(1.1, accent, 0.24); bg.strokeRoundedRect(x + 5, y + 5, width - 10, height - 10, 12);
+    bg.fillStyle(0x020817, 0.9); bg.fillRoundedRect(barX, barY, barWidth, barHeight, 5);
+    bg.lineStyle(1, 0x475569, 0.58); bg.strokeRoundedRect(barX, barY, barWidth, barHeight, 5);
+    if (fillWidth > 0) {
+      bg.fillStyle(accent, 0.92); bg.fillRoundedRect(barX, barY, fillWidth, barHeight, 5);
+    }
+    content.add(bg); this.trackAchievementContentElement(bg);
+
+    const topFontSize = width < 360 ? '15px' : '17px';
+    const bottomFontSize = width < 360 ? '12px' : '13px';
+    const levelText = this.add.text(x + paddingX, y + 18, copy.levelText, {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: topFontSize,
+      color: '#fff7d6',
+      fontStyle: 'bold',
+    }).setOrigin(0, 0.5);
+    const earnedPointsText = this.add.text(x + width - paddingX, y + 18, copy.earnedPointsText, {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: topFontSize,
+      color: '#fef3c7',
+      fontStyle: 'bold',
+      align: 'right',
+    }).setOrigin(1, 0.5);
+    const bottomText = this.add.text(x + width / 2, y + 64, copy.bottomText, {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: bottomFontSize,
+      color: '#cbd5e1',
+      fontStyle: 'bold',
+      align: 'center',
+      wordWrap: { width: Math.max(120, width - paddingX * 2) },
+    }).setOrigin(0.5, 0.5);
+    content.add([levelText, earnedPointsText, bottomText]);
+    this.trackAchievementContentElement(levelText); this.trackAchievementContentElement(earnedPointsText); this.trackAchievementContentElement(bottomText);
+
+    return y + height;
   }
 
   drawSectionBanner(content, section, { x, y, width }) {

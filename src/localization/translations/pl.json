@@ -768,7 +768,14 @@
     },
     "achievements": {
       "title": "OSIĄGNIĘCIA",
-      "comingSoon": "Wkrótce."
+      "comingSoon": "Wkrótce.",
+      "progression": {
+        "level": "POZIOM",
+        "maxLevel": "MAKS. POZIOM",
+        "pointsAbbreviation": "PKT",
+        "toLevel": "DO POZIOMU",
+        "allLevelsComplete": "WSZYSTKIE POZIOMY UKOŃCZONE"
+      }
     }
   }
 }
