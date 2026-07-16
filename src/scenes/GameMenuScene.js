@@ -26,7 +26,7 @@ import {
 import { preloadAudioAssets } from '../audio/audioAssets.js';
 import { playMenuMusic } from '../audio/menuMusic.js';
 import { enterBattleScene } from './battleEntryRouter.js';
-import { emitSceneTransitionVisuallyReady, reconcileSceneTransitionOverlayOrdering, traceSceneTransition, traceSceneTransitionReadiness } from './sceneTransitionOverlay.js';
+import { emitSceneTransitionVisuallyReady, reconcileSceneTransitionOverlayOrdering } from './sceneTransitionOverlay.js';
 
 const GAME_MENU_TITLE_DEPTH = 5;
 const GAME_MENU_BUTTON_WIDTH_RATIO = 0.72;
@@ -55,18 +55,15 @@ export default class GameMenuScene extends Phaser.Scene {
   }
 
   preload() {
-    traceSceneTransition(this, 'preload start');
     preloadMenuBackgroundArt(this);
     preloadImageAsset(this, GRIDFALL_LOGO_ASSET, {
       onError: (asset) => console.warn(`Game menu logo failed to load: ${asset.path}`),
     });
     preloadSecondaryButtonAsset(this);
     preloadAudioAssets(this);
-    traceSceneTransition(this, 'preload complete where observable');
   }
 
   create() {
-    traceSceneTransition(this, 'create start');
     this.reconcileTransitionOverlayOrdering('destination create start');
     this.resetGameMenuDisplayList();
     playMenuMusic(this);
@@ -121,7 +118,6 @@ export default class GameMenuScene extends Phaser.Scene {
     this.updateContinueAvailability();
     this.scale.on('resize', this.layoutGameMenuScene, this);
     this.drawNavigationControls();
-    traceSceneTransition(this, 'initial UI setup complete');
     this.scheduleTransitionReadyAfterFirstRender();
   }
 
@@ -290,7 +286,6 @@ export default class GameMenuScene extends Phaser.Scene {
     }
 
     if (this.scene.isActive('GameMenuScene')) {
-      traceSceneTransitionReadiness(this, 'fullscreen/restart recovery readiness reconciliation', { source: 'resume', transitionId: this.sceneTransitionOverlay?.transitionId ?? null, destinationSceneKey: this.scene.key, sourceSceneKey: this.sceneTransitionOverlay?.sourceSceneKey ?? null });
       this.scene.restart({ sceneTransitionOverlay: this.sceneTransitionOverlay });
     }
   }
@@ -299,17 +294,14 @@ export default class GameMenuScene extends Phaser.Scene {
   reconcileTransitionOverlayOrdering(reason = 'destination ordering checkpoint') {
     const transitionId = this.sceneTransitionOverlay?.transitionId;
     if (typeof transitionId !== 'string' || !transitionId) return false;
-    traceSceneTransition(this, reason, { transitionId, destinationSceneKey: this.scene.key, sourceSceneKey: this.sceneTransitionOverlay?.sourceSceneKey ?? null });
     return reconcileSceneTransitionOverlayOrdering(this.scene, { transitionId, destinationSceneKey: this.scene.key, reason });
   }
 
   scheduleTransitionReadyAfterFirstRender() {
     const transitionId = this.sceneTransitionOverlay?.transitionId;
     if (typeof transitionId !== 'string' || !transitionId || this.transitionReadyEmitted || this.transitionReadyPostRenderCallback) return;
-    traceSceneTransitionReadiness(this, 'post-render readiness scheduled', { source: 'post-render', transitionId, destinationSceneKey: this.scene.key, sourceSceneKey: this.sceneTransitionOverlay?.sourceSceneKey ?? null });
 
     const runOnce = (readinessSource = 'post-render') => {
-      traceSceneTransitionReadiness(this, 'POST_RENDER callback fired', { source: 'post-render', transitionId, destinationSceneKey: this.scene.key, sourceSceneKey: this.sceneTransitionOverlay?.sourceSceneKey ?? null });
       if (this.transitionReadyEmitted || (!this.scene?.isActive?.(this.scene.key) && !this.scene?.isVisible?.(this.scene.key))) return;
       this.clearPendingTransitionReadyCallbacks();
       this.transitionReadySource = readinessSource;
@@ -320,7 +312,6 @@ export default class GameMenuScene extends Phaser.Scene {
     const postRenderEvent = Phaser.Core?.Events?.POST_RENDER ?? 'postrender';
     this.game?.events?.once?.(postRenderEvent, runOnce);
     const fallbackRunOnce = () => {
-      traceSceneTransitionReadiness(this, 'fallback readiness callback fired', { source: 'fallback', transitionId, destinationSceneKey: this.scene.key, sourceSceneKey: this.sceneTransitionOverlay?.sourceSceneKey ?? null });
       runOnce('fallback');
     };
     this.transitionReadyFallbackEvent = this.time?.delayedCall?.(120, fallbackRunOnce) ?? null;
@@ -341,12 +332,10 @@ export default class GameMenuScene extends Phaser.Scene {
     const transitionId = this.sceneTransitionOverlay?.transitionId;
     if (typeof transitionId !== 'string' || !transitionId || this.transitionReadyEmitted) return;
     this.transitionReadyEmitted = true;
-    traceSceneTransitionReadiness(this, 'readiness emitted immediately before emit', { source: this.transitionReadySource ?? 'other', transitionId, destinationSceneKey: this.scene.key, sourceSceneKey: this.sceneTransitionOverlay?.sourceSceneKey ?? null });
     emitSceneTransitionVisuallyReady(this, { transitionId });
   }
 
   cleanupScene() {
-    traceSceneTransition(this, 'scene shutdown/restart', { transitionId: this.sceneTransitionOverlay?.transitionId ?? null, destinationSceneKey: this.scene.key, sourceSceneKey: this.sceneTransitionOverlay?.sourceSceneKey ?? null });
     this.clearPendingTransitionReadyCallbacks();
     this.tweens?.killTweensOf?.(this.menuButtonViews.flat());
     if (this.title) this.tweens?.killTweensOf?.(this.title);

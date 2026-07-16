@@ -48,9 +48,6 @@ const config = {
 };
 
 const game = new Phaser.Game(config);
-if (typeof window !== 'undefined') {
-  window.__GRIDFALL_GAME__ = game;
-}
 installHighDpiCanvas(game);
 installSessionLifecycle(game);
 installFullscreenPortraitFit(game);
