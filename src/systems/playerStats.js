@@ -9,6 +9,7 @@ const GLOBAL_BATTLE_STATS = Object.freeze([
   'battlesWon',
   'battlesLost',
   'battlesDrawn',
+  'activeBattleTimeMs',
 ]);
 
 const ARENA_BATTLE_STATS = Object.freeze([
@@ -311,6 +312,12 @@ export function recordArenaBattlegroundVisit(stats = {}, battlegroundId = DEFAUL
 export function incrementCampaignStarted(stats, amount = 1) {
   const nextStats = clonePlayerStats(stats);
   nextStats.campaignsStarted = incrementCounter(nextStats.campaignsStarted, amount);
+  return nextStats;
+}
+
+export function addActiveBattleTime(stats = {}, durationMs = 0) {
+  const nextStats = clonePlayerStats(stats);
+  nextStats.activeBattleTimeMs = incrementCounter(nextStats.activeBattleTimeMs, durationMs);
   return nextStats;
 }
 
