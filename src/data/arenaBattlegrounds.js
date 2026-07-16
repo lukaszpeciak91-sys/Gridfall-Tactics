@@ -44,6 +44,19 @@ export function getArenaBattlegrounds() {
   return ARENA_BATTLEGROUNDS;
 }
 
+export function getEnabledArenaBattlegroundIds({ pool = ARENA_BATTLEGROUNDS } = {}) {
+  if (!Array.isArray(pool)) return [];
+  const seen = new Set();
+  return pool
+    .filter((battleground) => battleground?.enabled !== false && battleground?.id && battleground?.key && battleground?.path)
+    .map((battleground) => battleground.id)
+    .filter((battlegroundId) => {
+      if (!battlegroundId || seen.has(battlegroundId)) return false;
+      seen.add(battlegroundId);
+      return true;
+    });
+}
+
 export function getArenaBattlegroundById(battlegroundId) {
   return ARENA_BATTLEGROUNDS.find((battleground) => battleground.id === battlegroundId) ?? null;
 }
@@ -58,7 +71,7 @@ export function getArenaBattlegroundAsset(battlegroundId) {
 
 export function selectArenaBattlegroundId({ pool = ARENA_BATTLEGROUNDS, randomFn = Math.random } = {}) {
   const candidates = Array.isArray(pool)
-    ? pool.filter((battleground) => battleground?.id && battleground?.key && battleground?.path)
+    ? pool.filter((battleground) => battleground?.enabled !== false && battleground?.id && battleground?.key && battleground?.path)
     : [];
 
   if (candidates.length === 0) {

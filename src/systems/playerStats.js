@@ -1,3 +1,4 @@
+import { DEFAULT_ARENA_BATTLEGROUND_ID, isNumberedArenaBattlegroundId, resolveArenaBattlegroundId } from '../data/arenaBattlegrounds.js';
 import { getFactionKeys } from '../data/factions/index.js';
 
 export const PLAYER_STATS_STORAGE_KEY = 'gridfall:tactics:player-stats:v1';
@@ -122,6 +123,24 @@ function normalizeTutorialCompleted(value) {
   return value === true;
 }
 
+function normalizeArenaBattlegroundVisitId(battlegroundId) {
+  if (battlegroundId === DEFAULT_ARENA_BATTLEGROUND_ID || isNumberedArenaBattlegroundId(battlegroundId)) return battlegroundId;
+  return resolveArenaBattlegroundId(battlegroundId);
+}
+
+function normalizeArenaBattlegroundVisits(source = {}) {
+  if (!source || typeof source !== 'object' || Array.isArray(source)) return {};
+  const visits = {};
+  for (const [rawId, rawCount] of Object.entries(source)) {
+    if (typeof rawId !== 'string' || rawId.length === 0) continue;
+    const count = getSafeCounter(rawCount);
+    if (count <= 0) continue;
+    const normalizedId = normalizeArenaBattlegroundVisitId(rawId);
+    visits[normalizedId] = incrementCounter(visits[normalizedId], count);
+  }
+  return Object.fromEntries(Object.entries(visits).sort(([a], [b]) => a.localeCompare(b)));
+}
+
 function incrementCounter(value, amount = 1) {
   return getSafeCounter(value) + getSafeCounter(amount);
 }
@@ -167,6 +186,8 @@ export function createDefaultPlayerStats() {
     ...createCounterFields(CARD_STATS),
     factions: normalizeFactionStatsByFaction(),
     enemies: normalizeEnemyStats(),
+    arenaBattlegroundVisits: {},
+    arenaBattlegroundRevisitCount: 0,
   };
 }
 
@@ -181,6 +202,8 @@ export function normalizePlayerStats(stats = {}) {
     ...createCounterFields(CARD_STATS, stats),
     factions: normalizeFactionStatsByFaction(stats?.factions),
     enemies: normalizeEnemyStats(stats?.enemies),
+    arenaBattlegroundVisits: normalizeArenaBattlegroundVisits(stats?.arenaBattlegroundVisits),
+    arenaBattlegroundRevisitCount: getSafeCounter(stats?.arenaBattlegroundRevisitCount),
   };
 }
 
@@ -265,6 +288,24 @@ export function incrementEnemyDefeatedStat(stats, playerFactionKey, enemyFaction
     incrementAmount,
   );
   return nextStats;
+}
+
+export function recordArenaBattlegroundVisit(stats = {}, battlegroundId = DEFAULT_ARENA_BATTLEGROUND_ID) {
+  const nextStats = clonePlayerStats(stats);
+  const normalizedId = normalizeArenaBattlegroundVisitId(battlegroundId);
+  const previousVisits = getSafeCounter(nextStats.arenaBattlegroundVisits?.[normalizedId]);
+  nextStats.arenaBattlegroundVisits = normalizeArenaBattlegroundVisits({
+    ...nextStats.arenaBattlegroundVisits,
+    [normalizedId]: previousVisits + 1,
+  });
+  if (previousVisits > 0) {
+    nextStats.arenaBattlegroundRevisitCount = incrementCounter(nextStats.arenaBattlegroundRevisitCount);
+  }
+  return {
+    stats: nextStats,
+    battlegroundId: normalizedId,
+    wasRevisit: previousVisits > 0,
+  };
 }
 
 export function incrementCampaignStarted(stats, amount = 1) {
