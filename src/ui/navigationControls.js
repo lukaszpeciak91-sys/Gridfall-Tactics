@@ -62,14 +62,15 @@ export function getNavigationIconGeometry(size, iconType) {
       unit,
       strokeWidth,
       hook: {
-        start: { x: -7.8 * unit, y: -8.7 * unit },
-        upper: { cx: -3.8 * unit, cy: -14.2 * unit, x: 3.6 * unit, y: -12 * unit },
-        shoulder: { cx: 10.1 * unit, cy: -10 * unit, x: 8.4 * unit, y: -4.1 * unit },
-        turn: { cx: 7.5 * unit, cy: -0.8 * unit, x: 3.3 * unit, y: 1.8 * unit },
+        centerX: 0,
+        centerY: -5 * unit,
+        radius: 8 * unit,
+        startAngle: Math.PI * 1.08,
+        endAngle: Math.PI * 2.1,
       },
-      stem: { x1: 3.3 * unit, y1: 1.8 * unit, x2: 0.2 * unit, y2: 4.3 * unit },
-      dot: { x: 0, y: 13 * unit, radius: Math.max(2.25 * unit, strokeWidth * 0.54) },
-      bounds: { left: -8 * unit, right: 9.4 * unit, top: -13.4 * unit, bottom: 15.5 * unit },
+      stem: { x1: 6.3 * unit, y1: -1 * unit, x2: 0, y2: 6.5 * unit },
+      dot: { x: 0, y: 13 * unit, radius: Math.max(2.1 * unit, strokeWidth * 0.52) },
+      bounds: { left: -8 * unit, right: 8 * unit, top: -13 * unit, bottom: 15.5 * unit },
     };
   }
 
@@ -115,10 +116,13 @@ export function drawNavigationIcon(icon, size, iconType, color = NAVIGATION_ICON
 
   if (iconType === NAVIGATION_ICON_TYPES.HELP) {
     icon.beginPath();
-    icon.moveTo(geometry.hook.start.x, geometry.hook.start.y);
-    icon.quadraticCurveTo(geometry.hook.upper.cx, geometry.hook.upper.cy, geometry.hook.upper.x, geometry.hook.upper.y);
-    icon.quadraticCurveTo(geometry.hook.shoulder.cx, geometry.hook.shoulder.cy, geometry.hook.shoulder.x, geometry.hook.shoulder.y);
-    icon.quadraticCurveTo(geometry.hook.turn.cx, geometry.hook.turn.cy, geometry.hook.turn.x, geometry.hook.turn.y);
+    icon.arc(
+      geometry.hook.centerX,
+      geometry.hook.centerY,
+      geometry.hook.radius,
+      geometry.hook.startAngle,
+      geometry.hook.endAngle,
+    );
     icon.lineTo(geometry.stem.x2, geometry.stem.y2);
     icon.strokePath();
     icon.fillStyle(color, 1);
