@@ -139,6 +139,7 @@ export function calculateAchievementUnlockPopupLayout(scene, modal = {}) {
 
 export function createAchievementUnlockPopup(scene, definition, options = {}) {
   const timing = { ...ACHIEVEMENT_UNLOCK_POPUP_TIMING, ...(options.timing ?? {}) };
+  const resolvedBaseDepth = Number.isFinite(options.baseDepth) ? options.baseDepth : 926;
   const layout = options.layout ?? calculateAchievementUnlockPopupLayout(scene, options.modal);
   const view = getAchievementUnlockPopupViewModel(definition, options);
   const theme = getAchievementUnlockPopupTheme(definition);
@@ -153,7 +154,7 @@ export function createAchievementUnlockPopup(scene, definition, options = {}) {
   const y = layout.y - layout.height * 0.5;
   const addItem = (item) => { items.push(item); return item; };
 
-  const glow = addItem(scene.add.graphics().setDepth(926).setPosition(layout.x, layout.y));
+  const glow = addItem(scene.add.graphics().setDepth(resolvedBaseDepth).setPosition(layout.x, layout.y));
   glow.setBlendMode?.('ADD');
   for (let i = 10; i >= 1; i -= 1) {
     const p = i / 10;
@@ -161,7 +162,7 @@ export function createAchievementUnlockPopup(scene, definition, options = {}) {
     glow.fillEllipse(0, 0, layout.width * (0.92 + p * 0.34), layout.height * (0.82 + p * 0.8));
   }
 
-  const bg = addItem(scene.add.graphics().setDepth(927));
+  const bg = addItem(scene.add.graphics().setDepth(resolvedBaseDepth + 1));
   bg.fillStyle(0x020817, 0.94); bg.fillRoundedRect(x, y, layout.width, layout.height, layout.radius);
   bg.fillStyle(theme.accent, 0.18); bg.fillRoundedRect(x + 3, y + 3, layout.width - 6, layout.height - 6, layout.radius - 2);
   bg.fillStyle(0x0f172a, 0.88); bg.fillRoundedRect(x + 7, y + 8, layout.width - 14, layout.height - 14, layout.radius - 4);
@@ -174,19 +175,19 @@ export function createAchievementUnlockPopup(scene, definition, options = {}) {
 
   addItem(scene.add.text(x + 15, y + 12, view.title, {
     fontFamily: 'Arial, sans-serif', fontSize: titleLayout.fontSize, color: theme.titleColor, fontStyle: 'bold', lineSpacing: 0, wordWrap: { width: titleLayout.titleWidth }, maxLines: titleLayout.maxLines,
-  }).setDepth(928));
+  }).setDepth(resolvedBaseDepth + 2));
   addItem(scene.add.text(x + layout.width - 15, y + 15, view.stars, {
     fontFamily: 'Arial, sans-serif', fontSize: '15px', color: theme.starColor, fontStyle: 'bold', align: 'right', fixedWidth: 68,
-  }).setOrigin(1, 0).setDepth(928));
+  }).setOrigin(1, 0).setDepth(resolvedBaseDepth + 2));
   addItem(scene.add.text(x + 15, y + titleLayout.descriptionY, view.description, {
     fontFamily: 'Arial, sans-serif', fontSize: '13px', color: theme.descriptionColor, wordWrap: { width: layout.width - 126 }, maxLines: 2,
-  }).setDepth(928));
+  }).setDepth(resolvedBaseDepth + 2));
   addItem(scene.add.text(x + layout.width - 55, y + layout.height - 16, view.badge, {
     fontFamily: 'Arial, sans-serif', fontSize: view.badge.length > 8 ? '11px' : '12px', color: theme.badgeColor, fontStyle: 'bold', align: 'center', fixedWidth: 78,
-  }).setOrigin(0.5).setDepth(928));
+  }).setOrigin(0.5).setDepth(resolvedBaseDepth + 2));
   addItem(scene.add.text(x + layout.width - 16, y + layout.height - 43, view.queuePosition, {
     fontFamily: 'Arial, sans-serif', fontSize: '11px', color: theme.counterColor, align: 'right', fixedWidth: 60,
-  }).setOrigin(1, 0.5).setDepth(928));
+  }).setOrigin(1, 0.5).setDepth(resolvedBaseDepth + 2));
 
   items.forEach((item) => item?.setAlpha?.(0));
   const killTweens = () => items.forEach((item) => scene.tweens?.killTweensOf?.(item));

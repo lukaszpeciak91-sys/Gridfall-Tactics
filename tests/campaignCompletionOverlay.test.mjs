@@ -9,6 +9,9 @@ const completionSource = source.slice(showStart, showEnd);
 const buttonStart = source.indexOf('  createResultModalButton(');
 const buttonEnd = source.indexOf('  destroyBattleResultModal()', buttonStart);
 const buttonSource = source.slice(buttonStart, buttonEnd);
+const popupStart = source.indexOf('  startAchievementUnlockPopupsForResultModal() {');
+const popupEnd = source.indexOf('  createResultModalButton(', popupStart);
+const popupSource = source.slice(popupStart, popupEnd);
 
 test('BattleScene preloads campaign trophy asset with the required key and runtime path', () => {
   assert.match(source, /const CAMPAIGN_TROPHY_ASSET = Object\.freeze\(\{[\s\S]*key: 'ui\.campaign\.victoryArtefact',[\s\S]*path: resolvePublicAssetPath\('assets\/ui\/campaign-trophy\.webp'\)/);
@@ -104,8 +107,18 @@ test('campaign completion stats use accumulated completed battle duration only',
 test('completion button is created above BattleScene UI depth', () => {
   assert.match(source, /CAMPAIGN_COMPLETION_OVERLAY_DEPTH = 1200/);
   assert.match(source, /CAMPAIGN_COMPLETION_BUTTON_DEPTH = CAMPAIGN_COMPLETION_OVERLAY_DEPTH \+ 2/);
+  assert.match(source, /CAMPAIGN_COMPLETION_ACHIEVEMENT_POPUP_DEPTH = CAMPAIGN_COMPLETION_BUTTON_DEPTH \+ 10/);
   assert.match(buttonSource, /depth: options\.depth \?\? 902/);
   assert.match(completionSource, /\{ depth: CAMPAIGN_COMPLETION_BUTTON_DEPTH \}/);
+});
+
+test('campaign completion achievement popup depth is applied only after interactive summary', () => {
+  assert.match(popupSource, /if \(this\.resultOverlayState\?\.kind === 'campaign-completion' && \(this\.resultOverlayState\.phase !== 'interactive' \|\| this\.resultOverlayState\.preview === true\)\) return/);
+  assert.match(popupSource, /const popupBaseDepth = this\.resultOverlayState\?\.kind === 'campaign-completion' && this\.resultOverlayState\.phase === 'interactive'[\s\S]*\? CAMPAIGN_COMPLETION_ACHIEVEMENT_POPUP_DEPTH[\s\S]*: undefined/);
+  assert.match(popupSource, /baseDepth: popupBaseDepth/);
+  assert.match(completionSource, /button\.items\.forEach\(\(item\) => item\?\.setVisible\?\.\(true\)\?\.setAlpha\?\.\(1\)\);[\s\S]*this\.resultOverlayState = \{ kind: 'campaign-completion', status, phase: 'interactive'/);
+  assert.match(completionSource, /phase: restoreAsInteractive \? 'interactive' : 'cinematic'/);
+  assert.match(completionSource, /if \(restoreAsInteractive\) this\.startAchievementUnlockPopupsForResultModal\(\)/);
 });
 
 test('completion overlay blocks underlying input before transition', () => {
@@ -123,7 +136,7 @@ test('MAIN MENU button clears completed campaign while preview returns to config
 
 test('arena result modal behavior remains unchanged', () => {
   const showBattleStart = source.indexOf('  showBattleResultModal() {');
-  const showBattleEnd = source.indexOf('  createResultModalButton(', showBattleStart);
+  const showBattleEnd = source.indexOf('  destroyAchievementUnlockPopupController()', showBattleStart);
   const battleResultSource = source.slice(showBattleStart, showBattleEnd);
   assert.match(battleResultSource, /const overlay = this\.add\.rectangle\(centerX, height \* 0\.5, width, height, 0x000000, presentation\.overlayAlpha\)[\s\S]*\.setDepth\(900\)/);
   assert.match(battleResultSource, /const modalButtons = this\.getBattleResultModalButtons\(\{/);
