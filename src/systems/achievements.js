@@ -1,3 +1,4 @@
+import { getEnabledArenaBattlegroundIds } from '../data/arenaBattlegrounds.js';
 import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
 import { getFactionPresentationName } from '../data/presentation/factionPresentation.js';
 import { normalizePlayerStats } from './playerStats.js';
@@ -66,7 +67,7 @@ export function normalizeAchievementDifficulty(difficulty) {
   return Number.isInteger(difficulty) && difficulty >= 1 && difficulty <= 4 ? difficulty : 1;
 }
 
-function createThresholdDefinition({ id, category, title, description, display, statPath, target, getCurrent, difficulty = 1, ...metadata }) {
+function createThresholdDefinition({ id, category, title, description, display, statPath, target, getCurrent, check: customCheck, getProgress: customGetProgress, difficulty = 1, ...metadata }) {
   const localizedDisplay = display ?? createLocalizedDisplay({ en: title, pl: title }, { en: description, pl: description });
   return {
     id,
@@ -78,10 +79,10 @@ function createThresholdDefinition({ id, category, title, description, display, 
     target,
     ...metadata,
     getCurrent: getCurrent ?? ((stats) => getNestedCounter(stats, statPath)),
-    check(stats) {
+    check: customCheck ?? function check(stats) {
       return this.getCurrent(stats) >= this.target;
     },
-    getProgress(stats) {
+    getProgress: customGetProgress ?? function getProgress(stats) {
       const current = this.getCurrent(stats);
       return {
         current,
@@ -274,6 +275,21 @@ function getEveryFactionArenaWinCount(stats) {
   return factionKeys.filter((factionKey) => getNestedCounter(stats, ['factions', factionKey, 'arenaBattlesWon']) >= 1).length;
 }
 
+function getVisitedArenaBattlegroundIds(stats) {
+  const visits = isObject(stats?.arenaBattlegroundVisits) ? stats.arenaBattlegroundVisits : {};
+  return Object.entries(visits)
+    .filter(([, count]) => getSafeCounter(count) > 0)
+    .map(([battlegroundId]) => battlegroundId);
+}
+
+function getEnabledArenaBattlegroundVisitProgress(stats, options = {}) {
+  const enabledIds = getEnabledArenaBattlegroundIds(options);
+  if (enabledIds.length === 0) return { current: 0, target: 0, completed: false };
+  const visited = new Set(getVisitedArenaBattlegroundIds(stats));
+  const current = enabledIds.filter((battlegroundId) => visited.has(battlegroundId)).length;
+  return { current, target: enabledIds.length, completed: current >= enabledIds.length };
+}
+
 export function getAchievementDefinitions() {
   const factionCount = getFactionKeys().length;
   const definitions = [
@@ -325,6 +341,8 @@ export function getAchievementDefinitions() {
     createThresholdDefinition({ id: 'arena.win_9_battles', category: 'arena', display: localized('Regular Customer', 'Win 9 Arena battles.', 'Stały klient', 'Wygraj 9 walk w Arenie.'), statPath: ['arenaBattlesWon'], difficulty: 3, target: 9 }),
     createThresholdDefinition({ id: 'arena.win_25_battles', category: 'arena', display: localized('The House Knows You', 'Win 25 Arena battles.', 'Kasyno cię zna', 'Wygraj 25 walk w Arenie.'), statPath: ['arenaBattlesWon'], difficulty: 4, target: 25 }),
     createThresholdDefinition({ id: 'arena.win_every_faction', category: 'arena', display: localized('All In', 'Win an Arena battle with every faction.', 'All in', 'Wygraj walkę w Arenie każdą frakcją.'), getCurrent: getEveryFactionArenaWinCount, difficulty: 3, target: factionCount }),
+    createThresholdDefinition({ id: 'arena.visit_all_battlegrounds', category: 'arena', display: localized('Every Familiar Ground', 'Visit every Arena battleground.', 'Każdy skrawek Areny', 'Odwiedź każde pole bitwy Areny.'), getCurrent: (stats) => getEnabledArenaBattlegroundVisitProgress(stats).current, getProgress: (stats, options) => getEnabledArenaBattlegroundVisitProgress(stats, options), check: (stats, options) => getEnabledArenaBattlegroundVisitProgress(stats, options).completed, difficulty: 3, target: 1 }),
+    createThresholdDefinition({ id: 'arena.revisit_battleground', category: 'arena', display: localized('Back to Familiar Ground', 'Start an Arena battle somewhere you have visited before.', 'Lubię wracać tam, gdzie byłem już', 'Rozpocznij walkę w Arenie na polu bitwy odwiedzonym wcześniej.'), statPath: ['arenaBattlegroundRevisitCount'], difficulty: 1, target: 1 }),
     createThresholdDefinition({ id: 'arena.lose_first_battle', category: 'arena', display: localized('Arena Setback', 'Lose your first Arena battle.', 'Porażka w Arenie', 'Przegraj pierwszą walkę w Arenie.'), statPath: ['arenaBattlesLost'], difficulty: 1, target: 1 }),
     createThresholdDefinition({ id: 'campaign.start_first_campaign', category: 'campaign', display: localized('Campaign Begins', 'Start your first campaign.', 'Początek kampanii', 'Rozpocznij pierwszą kampanię.'), statPath: ['campaignsStarted'], difficulty: 1, target: 1 }),
   ];
@@ -349,14 +367,14 @@ export function evaluateAchievements(playerStats = {}, achievementState = {}, op
 
   for (const definition of getAchievementDefinitions()) {
     const isUnlocked = Object.prototype.hasOwnProperty.call(unlocked, definition.id);
-    const definitionProgress = definition.getProgress(stats);
+    const definitionProgress = definition.getProgress(stats, options);
     progress[definition.id] = {
       ...definitionProgress,
       completed: isUnlocked || definitionProgress.completed,
       unlocked: isUnlocked,
     };
 
-    if (!isUnlocked && definition.check(stats)) {
+    if (!isUnlocked && definition.check(stats, options)) {
       const unlockedAt = getTimestamp(options);
       unlocked[definition.id] = { unlockedAt };
       newlyUnlocked.push({

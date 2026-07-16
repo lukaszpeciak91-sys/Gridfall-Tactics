@@ -27,6 +27,7 @@ import { getCardDisplayName, getCardTextShort } from '../localization/cardDispla
 import { getActiveLocale, translateActive, translateActiveList } from '../localization/localeService.js';
 import { applyCampaignBattleResult, clearCampaign, createNewCampaign, isValidCampaignState, loadCampaign, saveCampaign } from '../systems/campaignState.js';
 import { incrementBattleStat, incrementCardPlayedStat, loadPlayerStats, markTutorialCompleted, savePlayerStats } from '../systems/playerStats.js';
+import { recordArenaBattlegroundVisit } from '../systems/playerStats.js';
 import { incrementCampaignCompletedStat } from '../systems/playerStats.js';
 import { evaluateAndPersistAchievementUnlocks } from '../systems/runtimeAchievements.js';
 import { getAchievementDefinitions } from '../systems/achievements.js';
@@ -447,6 +448,7 @@ export default class BattleScene extends Phaser.Scene {
     this.activeOutcomeStinger = null;
     this.battleAmbienceStopping = false;
     this.battleStatsTracked = false;
+    this.arenaBattlegroundVisitTracked = false;
     this.achievementUnlockPopupController = null;
     this.achievementUnlockSfxPlayedIds = new Set();
     this.tutorialCompletionTracked = false;
@@ -492,6 +494,7 @@ export default class BattleScene extends Phaser.Scene {
       return {
         mode: 'arena',
         battlegroundId: resolveArenaBattlegroundId(context?.battlegroundId),
+        arenaBattlegroundVisitRecorded: context?.arenaBattlegroundVisitRecorded === true,
       };
     }
     return {
@@ -699,6 +702,7 @@ export default class BattleScene extends Phaser.Scene {
     this.campaignOutcomeSfxPlayed = false;
     this.activeOutcomeStinger = null;
     this.battleStatsTracked = false;
+    this.arenaBattlegroundVisitTracked = false;
     this.achievementUnlockPopupController = null;
     this.achievementUnlockSfxPlayedIds = new Set();
     this.battleVisuallyReadyEmitted = false;
@@ -812,6 +816,7 @@ export default class BattleScene extends Phaser.Scene {
     this.terminalTextBootComplete = false;
     this.gameState.player.factionKey = playerFactionKey;
     this.gameState.enemy.factionKey = enemyFactionKey;
+    this.trackArenaBattlegroundVisitOnce();
     if (isTutorialBattle) {
       this.tutorialEnemyActionCursor = 0;
       applyTutorialOpeningSetup(this.gameState, tutorialOpeningConfig);
@@ -1884,6 +1889,27 @@ export default class BattleScene extends Phaser.Scene {
       return true;
     } catch (error) {
       console.warn('Campaign lifecycle player stats tracking failed; campaign flow will continue.', error);
+      return false;
+    }
+  }
+
+  trackArenaBattlegroundVisitOnce() {
+    if (this.arenaBattlegroundVisitTracked || this.battleContext?.arenaBattlegroundVisitRecorded === true || this.battleContext?.mode !== 'arena') return false;
+
+    this.arenaBattlegroundVisitTracked = true;
+    this.battleContext = {
+      ...this.battleContext,
+      battlegroundId: resolveArenaBattlegroundId(this.battleContext?.battlegroundId),
+      arenaBattlegroundVisitRecorded: true,
+    };
+
+    try {
+      const visitResult = recordArenaBattlegroundVisit(loadPlayerStats(), this.battleContext.battlegroundId);
+      savePlayerStats(visitResult.stats);
+      evaluateAndPersistAchievementUnlocks();
+      return true;
+    } catch (error) {
+      console.warn('Arena battleground visit tracking failed; battle flow will continue.', error);
       return false;
     }
   }
