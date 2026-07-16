@@ -33,6 +33,17 @@ test('faction select title copy is localized for English and Polish', () => {
   assert.equal(getPath(pl, 'ui.factionSelect.title'), 'WYBIERZ DRUŻYNĘ');
 });
 
+test('arena faction select helper describes random opponents and arenas', () => {
+  assert.equal(
+    getPath(en, 'ui.factionSelect.arenaHelper'),
+    'Fight random opponents across randomly selected arenas from different dimensions.',
+  );
+  assert.equal(
+    getPath(pl, 'ui.factionSelect.arenaHelper'),
+    'Walcz z losowymi przeciwnikami na losowo wybieranych arenach z różnych wymiarów.',
+  );
+});
+
 
 test('faction select descriptions cover every runtime faction key in English and Polish', () => {
   for (const factionKey of getFactionKeys()) {

@@ -330,7 +330,7 @@
     },
     "factionSelect": {
       "title": "SELECT YOUR TEAM",
-      "arenaHelper": "Choose a faction and test your deck against random enemies.",
+      "arenaHelper": "Fight random opponents across randomly selected arenas from different dimensions.",
       "descriptions": {
         "Aggro": "Fast pressure.",
         "Tank": "Armor and sustain.",
