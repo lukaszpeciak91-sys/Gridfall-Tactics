@@ -13,7 +13,7 @@ import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
 import { getFactionPresentationName } from '../data/presentation/factionPresentation.js';
 import { FACTION_CARD_DETAILS } from '../ui/factionCards.js';
 import { getAchievementDefinitions, loadAchievementState, normalizeAchievementState, ACHIEVEMENT_CATEGORY_GROUPS, ACHIEVEMENT_CATEGORY_LABELS, normalizeAchievementDifficulty } from '../systems/achievements.js';
-import { calculateAchievementProgression } from '../systems/achievementProgression.js';
+import { calculateAchievementProgression, getAchievementDefinitionPointValue } from '../systems/achievementProgression.js';
 import { loadPlayerStats, normalizePlayerStats } from '../systems/playerStats.js';
 import { preloadAudioAssets } from '../audio/audioAssets.js';
 import { playMenuMusic } from '../audio/menuMusic.js';
@@ -382,6 +382,10 @@ export default class AchievementsScene extends Phaser.Scene {
       titleColor: unlocked ? '#fff7d6' : titleTint,
       descriptionColor: unlocked ? '#e2e8f0' : '#b8c2d0',
       progressTextColor: unlocked ? '#fef3c7' : '#dbeafe',
+      pointTextColor: unlocked ? '#fde68a' : '#facc15',
+      pointChipFill: unlocked ? 0x1e293b : 0x422006,
+      pointChipAlpha: unlocked ? 0.62 : 0.7,
+      pointChipStrokeAlpha: unlocked ? 0.34 : 0.52,
       difficultyStarColor: unlocked ? '#facc15' : '#94a3b8',
       badgeFill: unlocked ? 0x451a03 : 0x020817,
       badgeAlpha: unlocked ? 0.94 : 0.74,
@@ -390,6 +394,36 @@ export default class AchievementsScene extends Phaser.Scene {
     };
   }
 
+  getAchievementPointLabel(definition, unlocked) {
+    const points = getAchievementDefinitionPointValue(definition);
+    if (!Number.isFinite(points) || points <= 0) return '';
+    if (!unlocked) return `+${points}`;
+    return `${points} ${translateActive('ui.achievements.progression.pointsAbbreviation', 'PTS')}`;
+  }
+
+  drawAchievementPointLabel(content, definition, layout, theme, unlocked) {
+    const label = this.getAchievementPointLabel(definition, unlocked);
+    if (!label) return null;
+
+    const chipWidth = unlocked ? 62 : 42;
+    const chipHeight = 20;
+    const chipX = layout.starAreaX + layout.starAreaWidth - chipWidth;
+    const chipY = layout.starAreaY + 24;
+    const bg = this.add.graphics();
+    bg.fillStyle(theme.pointChipFill, theme.pointChipAlpha); bg.fillRoundedRect(chipX, chipY, chipWidth, chipHeight, 7);
+    bg.lineStyle(1, unlocked ? 0xfacc15 : theme.accent, theme.pointChipStrokeAlpha); bg.strokeRoundedRect(chipX, chipY, chipWidth, chipHeight, 7);
+    const text = this.add.text(chipX + chipWidth / 2, chipY + chipHeight / 2, label, {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: '11px',
+      color: theme.pointTextColor,
+      fontStyle: 'bold',
+      align: 'center',
+      fixedWidth: chipWidth,
+    }).setOrigin(0.5, 0.5);
+    content.add([bg, text]);
+    this.trackAchievementContentElement(bg); this.trackAchievementContentElement(text);
+    return text;
+  }
 
   getAchievementDifficultyStars(definition) {
     const difficulty = normalizeAchievementDifficulty(definition?.difficulty);
@@ -442,6 +476,7 @@ export default class AchievementsScene extends Phaser.Scene {
       maxLines: 2,
     });
     this.drawAchievementDifficultyStars(content, definition, layout, theme);
+    this.drawAchievementPointLabel(content, definition, layout, theme, unlocked);
 
     const descriptionText = this.add.text(layout.textLeft, layout.descriptionTop, description, {
       fontFamily: 'Arial, sans-serif',
