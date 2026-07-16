@@ -54,6 +54,7 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
     this.resizeHandler = null;
     this.ringTween = null;
     this.clearRegistryOnCleanup = true;
+    this.cleanupReason = null;
   }
 
   init(data = {}) {
@@ -201,7 +202,8 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
 
   handleReadyEvent(event = {}) {
     if (this.cleaningUp || event?.transitionId !== this.transitionId || event?.destinationSceneKey !== this.destinationSceneKey) return;
-    this.traceVisualState('ready event received');
+    this.cleanupReason = 'destination ready event';
+    this.traceVisualState('matching ready event received');
     markSceneTransitionReady(this.game, { destinationSceneKey: this.destinationSceneKey, transitionId: this.transitionId, payload: event });
     this.readyRecorded = true;
     this.finishWhenStable('ready-event');
@@ -211,7 +213,8 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
     if (this.cleaningUp) return false;
     const state = getSceneTransitionState(this.game, this.transitionId);
     if (state?.ready === true && state.destinationSceneKey === this.destinationSceneKey) {
-      this.traceVisualState('ready found through registry');
+      this.cleanupReason = `registry reconciliation:${reason}`;
+      this.traceVisualState('registry readiness detected');
       this.readyRecorded = true;
       this.finishWhenStable(reason);
       traceSceneTransition(this, 'registry reconciliation result', { reason, result: true });
@@ -223,13 +226,14 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
 
   finishWhenStable(reason = 'ready') {
     if (this.completed || this.cleaningUp) return;
+    traceSceneTransition(this, 'finishWhenStable() called', { reason, cleanupCause: this.cleanupReason ?? reason });
     this.completed = true;
     this.showTimer?.remove?.(false);
     this.showTimer = null;
     this.time.delayedCall(READY_STABLE_FRAME_MS, () => {
       if (this.cleaningUp) return;
       if (!this.hasShown) {
-        this.cleanupAndStop();
+        this.cleanupAndStop({ reason: this.cleanupReason ?? reason });
         return;
       }
       this.fadeOutAndStop();
@@ -238,14 +242,14 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
 
   fadeOutAndStop() {
     if (this.cleaningUp) return;
-    this.traceVisualState('fade-out started');
+    this.traceVisualState('fade-out start');
     this.destroyInputBlocker();
     this.tweens.add({
       targets: this.root,
       alpha: 0,
       duration: FADE_OUT_MS,
       ease: 'Sine.easeInOut',
-      onComplete: () => this.cleanupAndStop(),
+      onComplete: () => this.cleanupAndStop({ reason: this.cleanupReason ?? 'fade-out-complete' }),
     });
   }
 
@@ -262,6 +266,7 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
     if (this.reconcileReadiness('failsafe')) return;
     const destinationActive = this.scene.isActive(this.destinationSceneKey);
     const destinationVisible = this.scene.isVisible(this.destinationSceneKey);
+    this.cleanupReason = 'failsafe';
     traceSceneTransition(this, 'failsafe readiness resolution', {
       destinationActive,
       destinationVisible,
@@ -318,9 +323,10 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
     this.ring?.setPosition(width / 2, Math.min(height * 0.69, logoY + Math.max(118, height * 0.18)));
   }
 
-  cleanupAndStop({ clearRegistry = true } = {}) {
+  cleanupAndStop({ clearRegistry = true, reason = null } = {}) {
     if (this.cleaningUp) return;
-    this.traceVisualState('scene stopped');
+    this.cleanupReason = reason ?? this.cleanupReason ?? (clearRegistry ? 'shutdown' : 'invalid-startup');
+    this.traceVisualState('overlay stop');
     this.cleaningUp = true;
     this.clearRegistryOnCleanup = clearRegistry;
     this.cleanup();
@@ -330,6 +336,7 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
 
   traceVisualState(event) {
     traceSceneTransition(this, event, {
+      cleanupCause: this.cleanupReason,
       visualState: {
         camera: { visible: this.cameras?.main?.visible ?? null, alpha: this.cameras?.main?.alpha ?? null },
         root: { visible: this.root?.visible ?? null, alpha: this.root?.alpha ?? null },
@@ -343,7 +350,7 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
   }
 
   cleanup() {
-    this.traceVisualState('cleanup started');
+    this.traceVisualState('cleanup start');
     const state = getSceneTransitionState(this.game, this.transitionId);
     if (state?.readyListener && state?.destinationScene) {
       state.destinationScene.events?.off?.(SCENE_TRANSITION_VISUALLY_READY_EVENT, state.readyListener);
