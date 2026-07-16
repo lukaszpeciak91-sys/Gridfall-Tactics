@@ -16,7 +16,7 @@ import { FACTION_CARD_DETAILS } from '../ui/factionCards.js';
 import { getFactionDossierViewModel } from '../ui/factionDossier.js';
 import { preloadAudioAssets } from '../audio/audioAssets.js';
 import { playMenuMusic } from '../audio/menuMusic.js';
-import { emitSceneTransitionVisuallyReady, traceSceneTransition, traceSceneTransitionReadiness } from './sceneTransitionOverlay.js';
+import { emitSceneTransitionVisuallyReady, reconcileSceneTransitionOverlayOrdering, traceSceneTransition, traceSceneTransitionReadiness } from './sceneTransitionOverlay.js';
 import { CARD_COLORS, createCardPreviewView, getDefaultCardAccentColor, resolveCardSurfaceTheme } from '../rendering/cardVisualLayout.js';
 import { HAND_CARD_ASPECT_RATIO } from '../ui/handLayout.js';
 import { getCollectionInspectCardTransform, getCollectionViewportBounds } from '../ui/collectionInspectTransform.js';
@@ -101,6 +101,7 @@ export default class CollectionScene extends Phaser.Scene {
 
   create() {
     traceSceneTransition(this, 'create start');
+    this.reconcileTransitionOverlayOrdering('destination create start');
     this.cleanupScene();
     playMenuMusic(this);
 
@@ -113,6 +114,7 @@ export default class CollectionScene extends Phaser.Scene {
       height,
       lightSweep: false,
     });
+    this.reconcileTransitionOverlayOrdering('destination background creation');
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.cleanupScene, this);
 
@@ -751,6 +753,14 @@ export default class CollectionScene extends Phaser.Scene {
     }
 
     state.content.y = Phaser.Math.Clamp(nextY, state.minY, state.maxY);
+  }
+
+
+  reconcileTransitionOverlayOrdering(reason = 'destination ordering checkpoint') {
+    const transitionId = this.sceneTransitionOverlay?.transitionId;
+    if (typeof transitionId !== 'string' || !transitionId) return false;
+    traceSceneTransition(this, reason, { transitionId, destinationSceneKey: this.scene.key, sourceSceneKey: this.sceneTransitionOverlay?.sourceSceneKey ?? null });
+    return reconcileSceneTransitionOverlayOrdering(this.scene, { transitionId, destinationSceneKey: this.scene.key, reason });
   }
 
   scheduleTransitionReadyAfterFirstRender() {

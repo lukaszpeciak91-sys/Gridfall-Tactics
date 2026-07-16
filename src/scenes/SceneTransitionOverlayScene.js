@@ -55,6 +55,7 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
     this.ringTween = null;
     this.clearRegistryOnCleanup = true;
     this.cleanupReason = null;
+    this.waitingFrameOrderListener = null;
   }
 
   init(data = {}) {
@@ -171,6 +172,8 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
     this.visibleSince = this.time.now;
     reconcileSceneTransitionOverlayOrdering(this.scene, { transitionId: this.transitionId, destinationSceneKey: this.destinationSceneKey });
     this.root.setVisible(true);
+    this.ensureOverlayTopWhileWaiting('showOverlay visible start');
+    this.installWaitingFrameOrderGuard();
     this.createInputBlocker();
     this.startRingTween();
     this.traceVisualState('root visibility/alpha');
@@ -242,6 +245,7 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
 
   fadeOutAndStop() {
     if (this.cleaningUp) return;
+    this.removeWaitingFrameOrderGuard();
     this.traceVisualState('fade-out start');
     this.destroyInputBlocker();
     this.tweens.add({
@@ -281,6 +285,7 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
     if (this.cleaningUp) return;
     this.lastActiveTick = this.time.now;
     this.reflow();
+    this.ensureOverlayTopWhileWaiting('lifecycle signal');
     this.resumeTimer?.remove?.(false);
     this.resumeTimer = this.time.delayedCall(RESUME_STABILIZE_MS, () => {
       this.resumeTimer = null;
@@ -292,6 +297,7 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
   handleResizeOrFullscreen() {
     if (this.cleaningUp) return;
     this.reflow();
+    this.ensureOverlayTopWhileWaiting('resize/fullscreen');
     this.reconcileReadiness('resize-fullscreen');
   }
 
@@ -323,6 +329,29 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
     this.ring?.setPosition(width / 2, Math.min(height * 0.69, logoY + Math.max(118, height * 0.18)));
   }
 
+  installWaitingFrameOrderGuard() {
+    if (this.waitingFrameOrderListener || !this.game?.events) return;
+    const preRenderEvent = Phaser.Core?.Events?.PRE_RENDER ?? 'prerender';
+    this.waitingFrameOrderListener = () => this.ensureOverlayTopWhileWaiting('waiting frame pre-render');
+    this.game.events.on(preRenderEvent, this.waitingFrameOrderListener);
+    this.ensureOverlayTopWhileWaiting('waiting frame guard installed');
+  }
+
+  removeWaitingFrameOrderGuard() {
+    if (!this.waitingFrameOrderListener || !this.game?.events) {
+      this.waitingFrameOrderListener = null;
+      return;
+    }
+    const preRenderEvent = Phaser.Core?.Events?.PRE_RENDER ?? 'prerender';
+    this.game.events.off(preRenderEvent, this.waitingFrameOrderListener);
+    this.waitingFrameOrderListener = null;
+  }
+
+  ensureOverlayTopWhileWaiting(reason) {
+    if (this.cleaningUp || this.completed || !this.hasShown || !this.root?.visible || !this.isCurrentTransitionState()) return false;
+    return reconcileSceneTransitionOverlayOrdering(this.scene, { transitionId: this.transitionId, destinationSceneKey: this.destinationSceneKey, reason });
+  }
+
   cleanupAndStop({ clearRegistry = true, reason = null } = {}) {
     if (this.cleaningUp) return;
     this.cleanupReason = reason ?? this.cleanupReason ?? (clearRegistry ? 'shutdown' : 'invalid-startup');
@@ -345,6 +374,14 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
         ring: { visible: this.ring?.visible ?? null, alpha: this.ring?.alpha ?? null },
         ringTweenActive: this.ringTween?.isPlaying?.() ?? Boolean(this.ringTween),
         inputBlockerActive: Boolean(this.inputBlocker?.active),
+        rootDepth: this.root?.depth ?? null,
+        backdropDepth: this.backdrop?.depth ?? null,
+        logoDepth: this.logo?.depth ?? null,
+        ringDepth: this.ring?.depth ?? null,
+        destinationCamera: {
+          visible: this.destinationSceneKey ? this.scene.get(this.destinationSceneKey)?.cameras?.main?.visible ?? null : null,
+          alpha: this.destinationSceneKey ? this.scene.get(this.destinationSceneKey)?.cameras?.main?.alpha ?? null : null,
+        },
       },
     });
   }
@@ -358,6 +395,7 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
     const destination = this.destinationSceneKey ? this.scene.get(this.destinationSceneKey) : null;
     if (this.readyListener) destination?.events?.off?.(SCENE_TRANSITION_VISUALLY_READY_EVENT, this.readyListener);
     this.readyListener = null;
+    this.removeWaitingFrameOrderGuard();
     this.showTimer?.remove?.(false); this.showTimer = null;
     this.failsafeTimer?.remove?.(false); this.failsafeTimer = null;
     this.resumeTimer?.remove?.(false); this.resumeTimer = null;

@@ -7,7 +7,7 @@ import { applyAudioSettings, loadSettings } from '../systems/settingsState.js';
 import { AUDIO_KEYS, preloadAudioAssets } from '../audio/audioAssets.js';
 import { playSfx } from '../audio/audioPlayback.js';
 import { playMenuMusic } from '../audio/menuMusic.js';
-import { emitSceneTransitionVisuallyReady, traceSceneTransition, traceSceneTransitionReadiness } from './sceneTransitionOverlay.js';
+import { emitSceneTransitionVisuallyReady, reconcileSceneTransitionOverlayOrdering, traceSceneTransition, traceSceneTransitionReadiness } from './sceneTransitionOverlay.js';
 import { isValidCampaignState, loadCampaign, saveCampaign, selectCampaignEnemy } from '../systems/campaignState.js';
 import { getCampaignEnemyViewModels } from '../systems/campaignEnemySelection.js';
 import { MENU_BACKGROUND_FALLBACK_COLOR, MENU_BACKGROUND_FALLBACK_COLOR_HEX, createAnimatedMenuBackground, preloadMenuBackgroundArt } from '../rendering/backgroundArt.js';
@@ -52,6 +52,7 @@ export default class CampaignEnemySelectScene extends Phaser.Scene {
 
   create() {
     traceSceneTransition(this, 'create start');
+    this.reconcileTransitionOverlayOrdering('destination create start');
     this.cleanupScene();
     if (!isValidCampaignState(this.campaign) || this.campaign.status !== 'active') {
       this.scene.start('GameMenuScene', { sceneTransitionOverlay: this.sceneTransitionOverlay });
@@ -63,6 +64,7 @@ export default class CampaignEnemySelectScene extends Phaser.Scene {
     playMenuMusic(this);
     this.cameras.main.setBackgroundColor(MENU_BACKGROUND_FALLBACK_COLOR_HEX);
     this.menuBackground = createAnimatedMenuBackground(this, { fallbackColor: MENU_BACKGROUND_FALLBACK_COLOR, width, height, lightSweepOptions: { opacity: 0.075, y: height * 0.24 } });
+    this.reconcileTransitionOverlayOrdering('destination background creation');
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.cleanupScene, this);
     this.scale.on('enterfullscreen', this.onFullscreenChanged, this);
@@ -188,6 +190,14 @@ export default class CampaignEnemySelectScene extends Phaser.Scene {
   resumeFromRulesPanel() { this.scene.resume(); }
   toggleFullscreen() { toggleSceneFullscreen(this); }
   onFullscreenChanged() { if (this.scale.isFullscreen) requestPortraitOrientationLock(); if (this.scene.isActive('CampaignEnemySelectScene')) { traceSceneTransitionReadiness(this, 'fullscreen/restart recovery readiness reconciliation', { source: 'resume', transitionId: this.sceneTransitionOverlay?.transitionId ?? null, destinationSceneKey: this.scene.key, sourceSceneKey: this.sceneTransitionOverlay?.sourceSceneKey ?? null }); this.scene.restart({ campaign: this.campaign, sceneTransitionOverlay: this.sceneTransitionOverlay }); } }
+
+  reconcileTransitionOverlayOrdering(reason = 'destination ordering checkpoint') {
+    const transitionId = this.sceneTransitionOverlay?.transitionId;
+    if (typeof transitionId !== 'string' || !transitionId) return false;
+    traceSceneTransition(this, reason, { transitionId, destinationSceneKey: this.scene.key, sourceSceneKey: this.sceneTransitionOverlay?.sourceSceneKey ?? null });
+    return reconcileSceneTransitionOverlayOrdering(this.scene, { transitionId, destinationSceneKey: this.scene.key, reason });
+  }
+
   scheduleTransitionReadyAfterFirstRender() {
     const transitionId = this.sceneTransitionOverlay?.transitionId;
     if (typeof transitionId !== 'string' || !transitionId || this.transitionReadyEmitted || this.transitionReadyPostRenderCallback) return;
