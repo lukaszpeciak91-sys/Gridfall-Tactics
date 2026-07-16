@@ -8,6 +8,7 @@ import {
   factionPresentation,
   getCardPresentationName,
   getFactionPresentation,
+  getFactionPresentationLore,
   getFactionPresentationLoreBlurb,
   getFactionPresentationName,
 } from '../src/data/presentation/factionPresentation.js';
@@ -96,17 +97,48 @@ test('faction presentation names resolve by locale with safe fallbacks', () => {
 });
 
 test('faction lore blurbs resolve by locale and hide missing lore', () => {
+  assert.deepEqual(getFactionPresentationLore('aggro', 'en'), {
+    dimension: 'Dimension C-69',
+    body: factionPresentation.aggro.loreEn.body,
+  });
+  assert.deepEqual(getFactionPresentationLore('aggro', 'pl'), {
+    dimension: 'Wymiar C-69',
+    body: factionPresentation.aggro.lorePl.body,
+  });
   assert.match(getFactionPresentationLoreBlurb('aggro', 'en'), /^Dimension C-69:/);
   assert.match(getFactionPresentationLoreBlurb('aggro', 'pl'), /^Wymiar C-69:/);
+  assert.equal(getFactionPresentationLore('missing-faction', 'pl'), null);
   assert.equal(getFactionPresentationLoreBlurb('missing-faction', 'pl'), '');
 });
 
-test('Collection faction dossier view model exposes only localized lore text for every runtime faction', () => {
+
+
+test('updated Collection lore copy is split by dimension and body without markdown', () => {
+  assert.deepEqual(getFactionPresentationLore('attrition-swarm', 'pl'), {
+    dimension: 'Wymiar Y-2',
+    body: 'w sylwestra roku 2000 komputery jednak zakończyły świat. Uruchomiona w wyniku awarii broń masowego rażenia zabiła ludzi, choć większość z nich zwyczajnie tego nie zauważyła; dziś gniją nie tylko ich ciała, ale ich człowieczeństwo, a pamięć ustępuje miejsca bezmyślnej masie.',
+  });
+  assert.deepEqual(getFactionPresentationLore('attrition-swarm', 'en'), {
+    dimension: 'Dimension Y-2',
+    body: 'on New Year’s Eve 2000, the computers did end the world after all. A weapon of mass destruction triggered by the failure killed humanity, though most people simply failed to notice; now it is not only their bodies that rot, but their humanity, as memory gives way to mindless mass.',
+  });
+  assert.equal(getFactionPresentationLore('overclock', 'pl').body.includes('Program Adaptacyjnej Syntezy Zwierząt Agresywnych'), true);
+  assert.equal(getFactionPresentationLore('overclock', 'en').body.includes('Hostile Engineered Rural Directive'), true);
+  assert.equal(getFactionPresentationLore('swarm', 'pl').body.includes('z braku laku'), true);
+
   for (const faction of loadFactions()) {
-    assert.deepEqual(getFactionDossierViewModel(faction.id, 'en'), {
-      description: getFactionPresentationLoreBlurb(faction.id, 'en'),
-    }, faction.id);
-    assert.deepEqual(Object.keys(getFactionDossierViewModel(faction.id, 'pl')), ['description'], faction.id);
+    for (const locale of ['en', 'pl']) {
+      const lore = getFactionPresentationLore(faction.id, locale);
+      assert.equal(lore.dimension.includes('**'), false, `${faction.id} ${locale} dimension should not contain markdown`);
+      assert.equal(lore.body.includes('**'), false, `${faction.id} ${locale} body should not contain markdown`);
+    }
+  }
+});
+
+test('Collection faction dossier view model exposes only structured localized lore text for every runtime faction', () => {
+  for (const faction of loadFactions()) {
+    assert.deepEqual(getFactionDossierViewModel(faction.id, 'en'), getFactionPresentationLore(faction.id, 'en'), faction.id);
+    assert.deepEqual(Object.keys(getFactionDossierViewModel(faction.id, 'pl')), ['dimension', 'body'], faction.id);
   }
   assert.equal(getFactionDossierViewModel('missing-faction', 'en'), null);
 });

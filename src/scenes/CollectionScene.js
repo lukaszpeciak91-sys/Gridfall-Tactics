@@ -57,10 +57,12 @@ const COLLECTION_DOSSIER_TOP_GAP = 8;
 const COLLECTION_DOSSIER_BOTTOM_GAP = 10;
 const COLLECTION_DOSSIER_PADDING_X = 13;
 const COLLECTION_DOSSIER_PADDING_Y = 10;
-const COLLECTION_DOSSIER_MIN_HEIGHT = 78;
-const COLLECTION_DOSSIER_TEXT_FONT_SIZE = 12;
-const COLLECTION_DOSSIER_TEXT_LINE_SPACING = 3;
-const COLLECTION_DOSSIER_TEXT_MAX_LINES = 6;
+const COLLECTION_DOSSIER_MIN_HEIGHT = 96;
+const COLLECTION_DOSSIER_DIMENSION_FONT_SIZE = 13;
+const COLLECTION_DOSSIER_BODY_FONT_SIZE = 13;
+const COLLECTION_DOSSIER_BODY_LINE_SPACING = 4;
+const COLLECTION_DOSSIER_TEXT_GAP = 5;
+const COLLECTION_DOSSIER_BODY_MAX_LINES = 7;
 const COLLECTION_ACCORDION_TOP_OFFSET = 8;
 
 export default class CollectionScene extends Phaser.Scene {
@@ -291,21 +293,31 @@ export default class CollectionScene extends Phaser.Scene {
     }
 
     const panelWidth = width;
-    const bodyY = y + COLLECTION_DOSSIER_PADDING_Y;
+    const textX = x + COLLECTION_DOSSIER_PADDING_X;
+    const dimensionY = y + COLLECTION_DOSSIER_PADDING_Y;
     const bodyMaxWidth = panelWidth - COLLECTION_DOSSIER_PADDING_X * 2;
-    const body = this.add.text(x + COLLECTION_DOSSIER_PADDING_X, bodyY, dossier.description, {
+    const dimension = this.add.text(textX, dimensionY, dossier.dimension, {
       fontFamily: 'Arial, sans-serif',
-      fontSize: `${COLLECTION_DOSSIER_TEXT_FONT_SIZE}px`,
+      fontSize: `${COLLECTION_DOSSIER_DIMENSION_FONT_SIZE}px`,
+      color: '#bfdbfe',
+      fontStyle: 'bold',
+      align: 'left',
+      wordWrap: { width: bodyMaxWidth, useAdvancedWrap: true },
+    }).setOrigin(0, 0);
+    const bodyY = dimensionY + dimension.height + COLLECTION_DOSSIER_TEXT_GAP;
+    const body = this.add.text(textX, bodyY, dossier.body, {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: `${COLLECTION_DOSSIER_BODY_FONT_SIZE}px`,
       color: '#dbeafe',
       align: 'left',
-      lineSpacing: COLLECTION_DOSSIER_TEXT_LINE_SPACING,
+      lineSpacing: COLLECTION_DOSSIER_BODY_LINE_SPACING,
       wordWrap: { width: bodyMaxWidth, useAdvancedWrap: true },
-      maxLines: COLLECTION_DOSSIER_TEXT_MAX_LINES,
+      maxLines: COLLECTION_DOSSIER_BODY_MAX_LINES,
     }).setOrigin(0, 0);
-    const bodyHeight = body.height;
+    const contentBottom = Math.max(dimensionY + dimension.height, bodyY + body.height);
     const panelHeight = Math.max(
       COLLECTION_DOSSIER_MIN_HEIGHT,
-      bodyY + bodyHeight - y + COLLECTION_DOSSIER_PADDING_Y,
+      contentBottom - y + COLLECTION_DOSSIER_PADDING_Y,
     );
 
     const panel = this.add.graphics();
@@ -316,7 +328,9 @@ export default class CollectionScene extends Phaser.Scene {
     content.add(panel);
     this.trackCollectionContentElement(panel);
 
+    content.add(dimension);
     content.add(body);
+    this.trackCollectionContentElement(dimension);
     this.trackCollectionContentElement(body);
     content.sendToBack(panel);
     return y + panelHeight + COLLECTION_DOSSIER_BOTTOM_GAP;
