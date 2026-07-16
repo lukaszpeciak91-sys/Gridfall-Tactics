@@ -39,6 +39,69 @@ function withWindowStorage(storage, callback) {
 }
 
 
+const ADDED_ACHIEVEMENT_EXPECTATIONS = Object.freeze([
+  {
+    id: 'general.active_battle_time_15_minutes',
+    category: 'general',
+    statPath: ['activeBattleTimeMs'],
+    target: 900000,
+    difficulty: 1,
+    title: { en: 'Quarter Hour On Air', pl: 'Kwadrans na antenie' },
+    description: { en: 'Spend 15 minutes in active battles.', pl: 'Spędź 15 minut w aktywnych bitwach.' },
+  },
+  {
+    id: 'general.active_battle_time_30_minutes',
+    category: 'general',
+    statPath: ['activeBattleTimeMs'],
+    target: 1800000,
+    difficulty: 2,
+    title: { en: 'Half-Hour Show', pl: 'Pół godziny programu' },
+    description: { en: 'Spend 30 minutes in active battles.', pl: 'Spędź 30 minut w aktywnych bitwach.' },
+  },
+  {
+    id: 'general.active_battle_time_60_minutes',
+    category: 'general',
+    statPath: ['activeBattleTimeMs'],
+    target: 3600000,
+    difficulty: 3,
+    title: { en: 'Broadcast Hour', pl: 'Godzina antenowa' },
+    description: { en: 'Spend 60 minutes in active battles.', pl: 'Spędź 60 minut w aktywnych bitwach.' },
+  },
+  {
+    id: 'general.play_25_battles',
+    category: 'general',
+    statPath: ['battlesPlayed'],
+    target: 25,
+    difficulty: 2,
+    title: { en: 'Regular Feature', pl: 'Stały punkt programu' },
+    description: { en: 'Play 25 battles.', pl: 'Rozegraj 25 bitew.' },
+  },
+  {
+    id: 'cards.play_100_units',
+    category: 'cards',
+    statPath: ['unitsPlayed'],
+    target: 100,
+    difficulty: 3,
+    title: { en: 'Mass Casting', pl: 'Masowa obsada' },
+    description: { en: 'Play 100 units.', pl: 'Zagraj 100 jednostek.' },
+  },
+  {
+    id: 'cards.play_100_effects',
+    category: 'cards',
+    statPath: ['effectsPlayed'],
+    target: 100,
+    difficulty: 3,
+    title: { en: 'Special Effects', pl: 'Efekty specjalne' },
+    description: { en: 'Play 100 effects.', pl: 'Zagraj 100 efektów.' },
+  },
+]);
+
+const FUTURE_POINTS_BY_DIFFICULTY = Object.freeze({ 1: 25, 2: 50, 3: 100, 4: 200 });
+
+function getUnlockedIds(stats, state = createDefaultAchievementState()) {
+  return evaluateAchievements(stats, state, { now: 1 }).newlyUnlocked.map((entry) => entry.id);
+}
+
 
 test('achievement definitions expose Polish and English localized display data', () => {
   const definitions = getAchievementDefinitions();
@@ -175,6 +238,36 @@ test('achievement balance thresholds and localized descriptions match current ta
   }
 });
 
+
+
+test('approved achievement expansion definitions and localization match the catalogue specification', () => {
+  const definitions = getAchievementDefinitions();
+  const ids = definitions.map((definition) => definition.id);
+  const byId = Object.fromEntries(definitions.map((definition) => [definition.id, definition]));
+
+  for (const expected of ADDED_ACHIEVEMENT_EXPECTATIONS) {
+    assert.equal(ids.filter((id) => id === expected.id).length, 1, `${expected.id} should exist exactly once`);
+    const definition = byId[expected.id];
+    assert.equal(definition.category, expected.category);
+    assert.deepEqual(definition.statPath, expected.statPath);
+    assert.equal(definition.target, expected.target);
+    assert.equal(definition.difficulty, expected.difficulty);
+    assert.deepEqual(definition.display.title, expected.title);
+    assert.deepEqual(definition.display.description, expected.description);
+  }
+});
+
+test('approved achievement expansion keeps intended catalogue ordering', () => {
+  const ids = getAchievementDefinitions().map((definition) => definition.id);
+
+  assert(ids.indexOf('general.complete_first_battle') < ids.indexOf('general.play_25_battles'));
+  assert(ids.indexOf('general.play_25_battles') < ids.indexOf('general.play_100_battles'));
+  assert(ids.indexOf('general.active_battle_time_15_minutes') < ids.indexOf('general.active_battle_time_30_minutes'));
+  assert(ids.indexOf('general.active_battle_time_30_minutes') < ids.indexOf('general.active_battle_time_60_minutes'));
+  assert(ids.indexOf('cards.play_25_units') < ids.indexOf('cards.play_100_units'));
+  assert(ids.indexOf('cards.play_25_effects') < ids.indexOf('cards.play_100_effects'));
+});
+
 test('createDefaultAchievementState creates a versioned empty unlock map', () => {
   assert.deepEqual(createDefaultAchievementState(), {
     version: ACHIEVEMENTS_VERSION,
@@ -296,6 +389,50 @@ test('evaluateAchievements gates prestige achievements below and exactly at thre
   assert(result.newlyUnlocked.some((entry) => entry.id === 'general.play_100_battles'));
   assert(result.newlyUnlocked.some((entry) => entry.id === 'general.win_50_battles'));
   assert(result.newlyUnlocked.some((entry) => entry.id === 'arena.win_25_battles'));
+});
+
+
+
+test('approved achievement expansion gates exact below-threshold and at-threshold cases', () => {
+  assert(!getUnlockedIds({ activeBattleTimeMs: 899999 }).includes('general.active_battle_time_15_minutes'));
+  assert(getUnlockedIds({ activeBattleTimeMs: 900000 }).includes('general.active_battle_time_15_minutes'));
+  assert(!getUnlockedIds({ activeBattleTimeMs: 1799999 }).includes('general.active_battle_time_30_minutes'));
+  assert(getUnlockedIds({ activeBattleTimeMs: 1800000 }).includes('general.active_battle_time_30_minutes'));
+  assert(!getUnlockedIds({ activeBattleTimeMs: 3599999 }).includes('general.active_battle_time_60_minutes'));
+  assert(getUnlockedIds({ activeBattleTimeMs: 3600000 }).includes('general.active_battle_time_60_minutes'));
+
+  assert(!getUnlockedIds({ battlesPlayed: 24 }).includes('general.play_25_battles'));
+  assert(getUnlockedIds({ battlesPlayed: 25 }).includes('general.play_25_battles'));
+  assert(!getUnlockedIds({ unitsPlayed: 99 }).includes('cards.play_100_units'));
+  assert(getUnlockedIds({ unitsPlayed: 100 }).includes('cards.play_100_units'));
+  assert(!getUnlockedIds({ effectsPlayed: 99 }).includes('cards.play_100_effects'));
+  assert(getUnlockedIds({ effectsPlayed: 100 }).includes('cards.play_100_effects'));
+});
+
+test('approved achievement expansion backfills from stored stats without duplicating existing unlocks', () => {
+  const state = { unlocked: { 'general.active_battle_time_15_minutes': { unlockedAt: 123 } } };
+  const result = evaluateAchievements({ activeBattleTimeMs: 3600000, battlesPlayed: 25, unitsPlayed: 100, effectsPlayed: 100 }, state, { now: 456 });
+  const unlockedIds = result.newlyUnlocked.map((entry) => entry.id);
+
+  assert(!unlockedIds.includes('general.active_battle_time_15_minutes'));
+  assert(unlockedIds.includes('general.active_battle_time_30_minutes'));
+  assert(unlockedIds.includes('general.active_battle_time_60_minutes'));
+  assert(unlockedIds.includes('general.play_25_battles'));
+  assert(unlockedIds.includes('cards.play_100_units'));
+  assert(unlockedIds.includes('cards.play_100_effects'));
+  assert.deepEqual(result.achievementState.unlocked['general.active_battle_time_15_minutes'], { unlockedAt: 123 });
+});
+
+test('approved achievement expansion catalogue totals and future point pool match expectations', () => {
+  const definitions = getAchievementDefinitions();
+  const factionDefinitions = definitions.filter((definition) => definition.category === 'faction');
+  const addedIds = new Set(ADDED_ACHIEVEMENT_EXPECTATIONS.map((expected) => expected.id));
+  const pointValue = (definition) => FUTURE_POINTS_BY_DIFFICULTY[definition.difficulty];
+
+  assert.equal(definitions.length, 69);
+  assert.equal(factionDefinitions.length, getFactionKeys().length * FACTION_ACHIEVEMENT_TEMPLATES.length);
+  assert.equal(definitions.reduce((total, definition) => total + pointValue(definition), 0), 3825);
+  assert.equal(definitions.filter((definition) => addedIds.has(definition.id)).reduce((total, definition) => total + pointValue(definition), 0), 425);
 });
 
 test('previously unlocked achievements remain unlocked when updated thresholds are not met', () => {
