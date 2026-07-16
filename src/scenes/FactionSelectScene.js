@@ -14,7 +14,7 @@ import {
 import { AUDIO_KEYS, preloadAudioAssets } from '../audio/audioAssets.js';
 import { playSfx } from '../audio/audioPlayback.js';
 import { playMenuMusic } from '../audio/menuMusic.js';
-import { emitSceneTransitionVisuallyReady, traceSceneTransition, traceSceneTransitionReadiness } from './sceneTransitionOverlay.js';
+import { emitSceneTransitionVisuallyReady, reconcileSceneTransitionOverlayOrdering, traceSceneTransition, traceSceneTransitionReadiness } from './sceneTransitionOverlay.js';
 import { createNewCampaign, saveCampaign } from '../systems/campaignState.js';
 import { incrementCampaignStarted, loadPlayerStats, savePlayerStats } from '../systems/playerStats.js';
 import { evaluateAndPersistAchievementUnlocks } from '../systems/runtimeAchievements.js';
@@ -116,6 +116,7 @@ export default class FactionSelectScene extends Phaser.Scene {
 
   create() {
     traceSceneTransition(this, 'create start');
+    this.reconcileTransitionOverlayOrdering('destination create start');
     this.cleanupScene();
 
     if (this.children) {
@@ -137,6 +138,7 @@ export default class FactionSelectScene extends Phaser.Scene {
         y: height * 0.24,
       },
     });
+    this.reconcileTransitionOverlayOrdering('destination background creation');
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.cleanupScene, this);
     this.scale.on('enterfullscreen', this.onFullscreenChanged, this);
@@ -727,6 +729,14 @@ export default class FactionSelectScene extends Phaser.Scene {
         element.setInteractive?.({ useHandCursor: true });
       }
     });
+  }
+
+
+  reconcileTransitionOverlayOrdering(reason = 'destination ordering checkpoint') {
+    const transitionId = this.sceneTransitionOverlay?.transitionId;
+    if (typeof transitionId !== 'string' || !transitionId) return false;
+    traceSceneTransition(this, reason, { transitionId, destinationSceneKey: this.scene.key, sourceSceneKey: this.sceneTransitionOverlay?.sourceSceneKey ?? null });
+    return reconcileSceneTransitionOverlayOrdering(this.scene, { transitionId, destinationSceneKey: this.scene.key, reason });
   }
 
   scheduleTransitionReadyAfterFirstRender() {

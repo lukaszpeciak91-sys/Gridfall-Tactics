@@ -34,6 +34,8 @@ export function getSceneTransitionTraceSnapshot(sceneOrPlugin, { transitionId = 
       index: destinationIndex,
       active: typeof destinationSceneKey === 'string' ? sceneOrPlugin?.isActive?.(destinationSceneKey) ?? false : false,
       visible: typeof destinationSceneKey === 'string' ? sceneOrPlugin?.isVisible?.(destinationSceneKey) ?? false : false,
+      cameraVisible: scenes[destinationIndex]?.cameras?.main?.visible ?? null,
+      cameraAlpha: scenes[destinationIndex]?.cameras?.main?.alpha ?? null,
     },
     overlayAboveDestination: overlayIndex >= 0 && destinationIndex >= 0 && overlayIndex > destinationIndex,
     registryReady: registryState?.ready === true,
@@ -178,9 +180,10 @@ export function bringSceneTransitionOverlayToTop(scenePlugin, { transitionId = n
   const overlay = scenePlugin.get?.(SCENE_TRANSITION_OVERLAY_SCENE_KEY);
   if (transitionId && overlay?.transitionId && overlay.transitionId !== transitionId) { traceSceneTransition(scenePlugin, 'result of ordering attempt', { transitionId, destinationSceneKey, result: false, reason: 'transition mismatch' }); return false; }
   if (destinationSceneKey && overlay?.destinationSceneKey && overlay.destinationSceneKey !== destinationSceneKey) { traceSceneTransition(scenePlugin, 'result of ordering attempt', { transitionId, destinationSceneKey, result: false, reason: 'destination mismatch' }); return false; }
+  if (overlay?.cleaningUp === true) { traceSceneTransition(scenePlugin, 'result of ordering attempt', { transitionId, destinationSceneKey, result: false, reason: 'overlay cleanup started' }); return false; }
   scenePlugin.bringToTop?.(SCENE_TRANSITION_OVERLAY_SCENE_KEY);
   traceSceneTransition(scenePlugin, 'result of ordering attempt', { transitionId, destinationSceneKey, result: true });
-  traceSceneTransition(scenePlugin, 'current scene order after each attempt', { transitionId, destinationSceneKey });
+  traceSceneTransition(scenePlugin, 'immediately after successful bringToTop', { transitionId, destinationSceneKey });
   return true;
 }
 

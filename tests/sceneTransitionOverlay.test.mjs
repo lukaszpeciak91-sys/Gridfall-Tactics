@@ -202,3 +202,43 @@ test('post-battle destination cleanup removes readiness listener and fallback ti
   assert.match(overlay, /this\.destroyInputBlocker\(\);/);
   assert.match(overlay, /if \(this\.clearRegistryOnCleanup\) clearSceneTransitionState\(this\.game, this\.transitionId\);/);
 });
+
+test('overlay waiting frame guard keeps it topmost while readiness is false', () => {
+  assert.match(overlay, /installWaitingFrameOrderGuard\(\) \{[\s\S]*PRE_RENDER[\s\S]*ensureOverlayTopWhileWaiting\('waiting frame pre-render'\)/);
+  assert.match(overlay, /ensureOverlayTopWhileWaiting\(reason\) \{[\s\S]*this\.cleaningUp \|\| this\.completed \|\| !this\.hasShown \|\| !this\.root\?\.visible \|\| !this\.isCurrentTransitionState\(\)/);
+  assert.match(overlay, /fadeOutAndStop\(\) \{[\s\S]*this\.removeWaitingFrameOrderGuard\(\);[\s\S]*this\.traceVisualState\('fade-out start'\)/);
+});
+
+test('destination preload and create checkpoints cannot permanently cover the overlay', () => {
+  for (const path of ['src/scenes/CollectionScene.js', 'src/scenes/FactionSelectScene.js', 'src/scenes/CampaignEnemySelectScene.js', 'src/scenes/GameMenuScene.js']) {
+    const source = read(path);
+    assert.match(source, /traceSceneTransition\(this, 'preload start'\)/, path);
+    assert.match(source, /traceSceneTransition\(this, 'create start'\);\s*this\.reconcileTransitionOverlayOrdering\('destination create start'\)/, path);
+    assert.match(source, /createAnimatedMenuBackground[\s\S]*this\.reconcileTransitionOverlayOrdering\('destination background creation'\)/, path);
+    assert.match(source, /reconcileSceneTransitionOverlayOrdering\(this\.scene, \{ transitionId, destinationSceneKey: this\.scene\.key, reason \}\)/, path);
+  }
+});
+
+test('scene-order diagnostics report required ordering moments and camera state', () => {
+  assert.match(overlay, /traceSceneTransition\(this, 'create'\)/);
+  assert.match(overlay, /traceSceneTransition\(this, 'showOverlay\(\)'\)/);
+  assert.match(helper, /traceSceneTransition\(scenePlugin, 'immediately after successful bringToTop'/);
+  assert.match(helper, /overlayAboveDestination/);
+  assert.match(helper, /cameraVisible: scenes\[destinationIndex\]\?\.cameras\?\.main\?\.visible/);
+  assert.match(overlay, /this\.traceVisualState\('fade-out start'\)/);
+});
+
+test('logo and loading ring visual diagnostics stay visible during simulated slow transition', () => {
+  assert.match(overlay, /this\.root\.setVisible\(true\);[\s\S]*this\.installWaitingFrameOrderGuard\(\);[\s\S]*this\.startRingTween\(\);/);
+  assert.match(overlay, /targets: this\.root,[\s\S]*alpha: 1,[\s\S]*duration: FADE_IN_MS/);
+  assert.match(overlay, /logo: \{ visible: this\.logo\?\.visible \?\? null, alpha: this\.logo\?\.alpha \?\? null \}/);
+  assert.match(overlay, /ring: \{ visible: this\.ring\?\.visible \?\? null, alpha: this\.ring\?\.alpha \?\? null \}/);
+  assert.match(overlay, /destinationCamera: \{[\s\S]*visible:[\s\S]*alpha:[\s\S]*\}/);
+});
+
+test('fast transitions still do not install the visible waiting guard or duplicate navigation', () => {
+  assert.match(overlay, /if \(this\.reconcileReadiness\('delayed-show'\)\) \{[\s\S]*return;[\s\S]*this\.showOverlay\(\);/);
+  assert.match(overlay, /showOverlay\(\) \{[\s\S]*if \(this\.hasShown \|\| this\.cleaningUp \|\| !this\.root\) return;/);
+  assert.doesNotMatch(overlay, /scene\.launch\(|scene\.start\(/);
+  assert.doesNotMatch(helper, /SCENE_TRANSITION_OVERLAY_SCENE_KEY[\s\S]{0,120}SCENE_TRANSITION_OVERLAY_SCENE_KEY[\s\S]{0,120}scene\.launch/);
+});

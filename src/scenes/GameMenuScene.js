@@ -26,7 +26,7 @@ import {
 import { preloadAudioAssets } from '../audio/audioAssets.js';
 import { playMenuMusic } from '../audio/menuMusic.js';
 import { enterBattleScene } from './battleEntryRouter.js';
-import { emitSceneTransitionVisuallyReady, traceSceneTransition, traceSceneTransitionReadiness } from './sceneTransitionOverlay.js';
+import { emitSceneTransitionVisuallyReady, reconcileSceneTransitionOverlayOrdering, traceSceneTransition, traceSceneTransitionReadiness } from './sceneTransitionOverlay.js';
 
 const GAME_MENU_TITLE_DEPTH = 5;
 const GAME_MENU_BUTTON_WIDTH_RATIO = 0.72;
@@ -67,6 +67,7 @@ export default class GameMenuScene extends Phaser.Scene {
 
   create() {
     traceSceneTransition(this, 'create start');
+    this.reconcileTransitionOverlayOrdering('destination create start');
     this.resetGameMenuDisplayList();
     playMenuMusic(this);
 
@@ -77,6 +78,7 @@ export default class GameMenuScene extends Phaser.Scene {
       width,
       height,
     });
+    this.reconcileTransitionOverlayOrdering('destination background creation');
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.cleanupScene, this);
     this.events.on(Phaser.Scenes.Events.RESUME, this.restoreGameMenuInteractivity, this);
@@ -291,6 +293,14 @@ export default class GameMenuScene extends Phaser.Scene {
       traceSceneTransitionReadiness(this, 'fullscreen/restart recovery readiness reconciliation', { source: 'resume', transitionId: this.sceneTransitionOverlay?.transitionId ?? null, destinationSceneKey: this.scene.key, sourceSceneKey: this.sceneTransitionOverlay?.sourceSceneKey ?? null });
       this.scene.restart({ sceneTransitionOverlay: this.sceneTransitionOverlay });
     }
+  }
+
+
+  reconcileTransitionOverlayOrdering(reason = 'destination ordering checkpoint') {
+    const transitionId = this.sceneTransitionOverlay?.transitionId;
+    if (typeof transitionId !== 'string' || !transitionId) return false;
+    traceSceneTransition(this, reason, { transitionId, destinationSceneKey: this.scene.key, sourceSceneKey: this.sceneTransitionOverlay?.sourceSceneKey ?? null });
+    return reconcileSceneTransitionOverlayOrdering(this.scene, { transitionId, destinationSceneKey: this.scene.key, reason });
   }
 
   scheduleTransitionReadyAfterFirstRender() {
