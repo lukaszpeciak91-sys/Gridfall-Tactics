@@ -13,7 +13,7 @@ import {
 
 const BACKGROUND_COLOR = 0x020617;
 const BACKGROUND_ALPHA = 0.96;
-const DELAYED_SHOW_MS = 300;
+const DELAYED_SHOW_MS = 120;
 const FADE_IN_MS = 0;
 const FADE_OUT_MS = 220;
 const READY_STABLE_FRAME_MS = 32;
@@ -153,7 +153,10 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
     this.showTimer = this.time.delayedCall(DELAYED_SHOW_MS, () => {
       this.showTimer = null;
       this.traceVisualState('delayed-show callback fired');
-      if (this.cleaningUp || this.readyRecorded || this.reconcileReadiness('delayed-show')) {
+      if (this.cleaningUp || this.completed || !this.isCurrentTransitionState()) {
+        return;
+      }
+      if (this.reconcileReadiness('delayed-show')) {
         return;
       }
       this.showOverlay();
@@ -218,7 +221,7 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
     return false;
   }
 
-  finishWhenStable() {
+  finishWhenStable(reason = 'ready') {
     if (this.completed || this.cleaningUp) return;
     this.completed = true;
     this.showTimer?.remove?.(false);
@@ -258,15 +261,14 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
     if (this.activeElapsedMs < FAILSAFE_ACTIVE_MS || this.cleaningUp) return;
     if (this.reconcileReadiness('failsafe')) return;
     const destinationActive = this.scene.isActive(this.destinationSceneKey);
-    console.warn(destinationActive
-      ? 'Scene transition overlay failsafe cleanup: destination active but readiness was not observed.'
-      : 'Scene transition overlay failsafe cleanup: destination readiness was not observed.', {
-      transitionId: this.transitionId,
-      destinationSceneKey: this.destinationSceneKey,
-      destinationActive: this.scene.isActive(this.destinationSceneKey),
-      destinationVisible: this.scene.isVisible(this.destinationSceneKey),
+    const destinationVisible = this.scene.isVisible(this.destinationSceneKey);
+    traceSceneTransition(this, 'failsafe readiness resolution', {
+      destinationActive,
+      destinationVisible,
+      destinationRenderable: this.isDestinationRenderable(),
     });
-    setSceneTransitionState(this.game, this.transitionId, { failed: true, failsafeAt: Date.now() });
+    setSceneTransitionState(this.game, this.transitionId, { failed: true, failsafeAt: Date.now(), destinationActive, destinationVisible });
+    if (!this.hasShown && !this.isDestinationRenderable()) this.showOverlay();
     this.fadeOutAndStop();
   }
 
@@ -286,6 +288,16 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
     if (this.cleaningUp) return;
     this.reflow();
     this.reconcileReadiness('resize-fullscreen');
+  }
+
+  isCurrentTransitionState() {
+    const state = getSceneTransitionState(this.game, this.transitionId);
+    return state?.transitionId === this.transitionId && state?.destinationSceneKey === this.destinationSceneKey;
+  }
+
+  isDestinationRenderable() {
+    if (!this.destinationSceneKey) return false;
+    return this.scene.isActive(this.destinationSceneKey) || this.scene.isVisible(this.destinationSceneKey);
   }
 
   getCurrentSize() {

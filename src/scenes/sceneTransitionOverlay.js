@@ -3,7 +3,7 @@ export const SCENE_TRANSITION_OVERLAY_SCENE_KEY = 'SceneTransitionOverlayScene';
 export const SCENE_TRANSITION_VISUALLY_READY_EVENT = 'scene-transition:visually-ready';
 export const SCENE_TRANSITION_REGISTRY_KEY = 'gridfall.sceneTransitionOverlay.state';
 
-export const ENABLE_SCENE_TRANSITION_TRACE = true;
+export const ENABLE_SCENE_TRANSITION_TRACE = typeof globalThis !== 'undefined' && globalThis.localStorage?.getItem?.('gridfall:scene-transition-trace') === '1';
 export const SCENE_TRANSITION_TRACE_PREFIX = '[scene-transition-trace]';
 
 function getSceneManagerScenes(sceneOrPlugin) {

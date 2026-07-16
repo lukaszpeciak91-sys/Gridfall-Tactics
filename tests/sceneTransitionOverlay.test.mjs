@@ -50,9 +50,9 @@ test('overlay remains topmost until fade begins', () => {
 });
 
 test('fast readiness before delayed threshold stops silently without logo flash', () => {
-  assert.match(overlay, /const DELAYED_SHOW_MS = 300;/);
-  assert.match(overlay, /this\.reconcileReadiness\('delayed-show'\)/);
-  assert.match(overlay, /if \(!this\.hasShown\) \{[\s\S]*this\.cleanupAndStop\(\);/);
+  assert.match(overlay, /const DELAYED_SHOW_MS = 120;/);
+  assert.match(overlay, /if \(this\.reconcileReadiness\('delayed-show'\)\) \{[\s\S]*return;[\s\S]*this\.showOverlay\(\);/);
+  assert.match(overlay, /if \(this\.cleaningUp \|\| this\.completed \|\| !this\.isCurrentTransitionState\(\)\) \{[\s\S]*return;/);
 });
 
 test('slow readiness shows only logo and loading ring and fades out', () => {
@@ -93,8 +93,20 @@ test('resize and fullscreen reflow uses current game dimensions without restarti
 test('failsafe cleanup is bounded and does not restart navigation or return to source', () => {
   assert.match(overlay, /const FAILSAFE_ACTIVE_MS = 8000;/);
   assert.match(overlay, /document\.hidden === true/);
-  assert.match(overlay, /Scene transition overlay failsafe cleanup/);
+  assert.match(overlay, /failsafe readiness resolution/);
+  assert.match(overlay, /destinationActive, destinationVisible/);
   assert.doesNotMatch(overlay, /returnToSource|sourceSceneKey[\s\S]{0,120}scene\.start/);
+});
+
+
+test('delayed show cannot flash after readiness cleanup starts', () => {
+  assert.match(overlay, /this\.showTimer\?\.remove\?\.\(false\);\n    this\.showTimer = null;/);
+  assert.match(overlay, /if \(this\.cleaningUp \|\| this\.completed \|\| !this\.isCurrentTransitionState\(\)\) \{\n        return;\n      \}/);
+});
+
+test('failsafe treats visible inactive destinations as renderable before cleanup', () => {
+  assert.match(overlay, /isDestinationRenderable\(\) \{[\s\S]*return this\.scene\.isActive\(this\.destinationSceneKey\) \|\| this\.scene\.isVisible\(this\.destinationSceneKey\);/);
+  assert.match(overlay, /if \(!this\.hasShown && !this\.isDestinationRenderable\(\)\) this\.showOverlay\(\);/);
 });
 
 test('overlay is integrated only in approved production navigation paths', () => {
@@ -130,7 +142,8 @@ test('Collection post-render readiness is one-shot and cleans late callbacks on 
 });
 
 test('overlay visible lifecycle remains delayed, full-root faded, and blocker cleaned before fade', () => {
-  assert.match(overlay, /const DELAYED_SHOW_MS = 300;/);
+  assert.match(overlay, /const DELAYED_SHOW_MS = 120;/);
+  assert.doesNotMatch(overlay, /this\.createInputBlocker\(\);\n    this\.scheduleDelayedShow\(\);/);
   assert.match(overlay, /this\.root\.setVisible\(true\);[\s\S]*this\.createInputBlocker\(\);[\s\S]*this\.startRingTween\(\);/);
   assert.match(overlay, /targets: this\.root,[\s\S]*duration: FADE_OUT_MS/);
   assert.match(overlay, /fadeOutAndStop\(\) \{[\s\S]*this\.destroyInputBlocker\(\);[\s\S]*this\.tweens\.add/);
