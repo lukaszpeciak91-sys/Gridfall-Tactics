@@ -8,7 +8,6 @@ import {
   markSceneTransitionReady,
   setSceneTransitionState,
   reconcileSceneTransitionOverlayOrdering,
-  traceSceneTransition,
 } from './sceneTransitionOverlay.js';
 
 const BACKGROUND_COLOR = 0x020617;
@@ -66,18 +65,15 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
     this.transitionId = typeof data.transitionId === 'string' ? data.transitionId : null;
     this.destinationSceneKey = typeof data.destinationSceneKey === 'string' ? data.destinationSceneKey : null;
     this.sourceSceneKey = typeof data.sourceSceneKey === 'string' ? data.sourceSceneKey : null;
-    traceSceneTransition(this, 'init');
   }
 
   preload() {
-    traceSceneTransition(this, 'preload');
     preloadImageAsset(this, GRIDFALL_LOGO_ASSET, {
       onError: (asset) => console.warn(`Scene transition logo failed to load: ${asset.path}`),
     });
   }
 
   create() {
-    traceSceneTransition(this, 'create');
     if (!this.transitionId || !this.destinationSceneKey) {
       this.cleanupAndStop({ clearRegistry: false });
       return;
@@ -111,10 +107,6 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
 
     this.ring = this.createLoadingRing(width / 2, Math.min(height * 0.69, logoY + Math.max(118, height * 0.18)), Math.max(22, Math.min(34, width * 0.07)));
     this.root.add(this.ring);
-    this.traceVisualState('root visibility/alpha');
-    this.traceVisualState('backdrop visibility/alpha');
-    this.traceVisualState('logo visibility/alpha');
-    this.traceVisualState('ring visibility/alpha');
 
   }
 
@@ -154,10 +146,8 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
   }
 
   scheduleDelayedShow() {
-    traceSceneTransition(this, 'delayed-show timer scheduled');
     this.showTimer = this.time.delayedCall(DELAYED_SHOW_MS, () => {
       this.showTimer = null;
-      this.traceVisualState('delayed-show callback fired');
       if (this.cleaningUp || this.completed || !this.isCurrentTransitionState()) {
         return;
       }
@@ -169,7 +159,6 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
   }
 
   showOverlay() {
-    traceSceneTransition(this, 'showOverlay()');
     if (this.hasShown || this.cleaningUp || !this.root) return;
     this.hasShown = true;
     this.visibleSince = this.time.now;
@@ -179,11 +168,6 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
     this.installWaitingFrameOrderGuard();
     this.createInputBlocker();
     this.startRingTween();
-    this.traceVisualState('root visibility/alpha');
-    this.traceVisualState('backdrop visibility/alpha');
-    this.traceVisualState('logo visibility/alpha');
-    this.traceVisualState('ring visibility/alpha');
-    this.traceVisualState('ring tween active state');
     this.tweens.add({ targets: this.root, alpha: 1, duration: FADE_IN_MS, ease: 'Sine.easeOut' });
   }
 
@@ -191,14 +175,12 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
     if (this.inputBlocker) return;
     const { width, height } = this.getCurrentSize();
     this.inputBlocker = this.add.zone(width / 2, height / 2, width, height).setDepth(BLOCKER_DEPTH).setInteractive();
-    this.traceVisualState('input blocker created');
   }
 
   destroyInputBlocker() {
     this.inputBlocker?.disableInteractive?.();
     this.inputBlocker?.destroy?.();
     this.inputBlocker = null;
-    this.traceVisualState('input blocker destroyed');
   }
 
   startRingTween() {
@@ -209,7 +191,6 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
   handleReadyEvent(event = {}) {
     if (this.cleaningUp || event?.transitionId !== this.transitionId || event?.destinationSceneKey !== this.destinationSceneKey) return;
     this.cleanupReason = 'destination ready event';
-    this.traceVisualState('matching ready event received');
     markSceneTransitionReady(this.game, { destinationSceneKey: this.destinationSceneKey, transitionId: this.transitionId, payload: event });
     this.readyRecorded = true;
     this.finishWhenStable('ready-event');
@@ -220,19 +201,15 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
     const state = getSceneTransitionState(this.game, this.transitionId);
     if (state?.ready === true && state.destinationSceneKey === this.destinationSceneKey) {
       this.cleanupReason = `registry reconciliation:${reason}`;
-      this.traceVisualState('registry readiness detected');
       this.readyRecorded = true;
       this.finishWhenStable(reason);
-      traceSceneTransition(this, 'registry reconciliation result', { reason, result: true });
       return true;
     }
-    traceSceneTransition(this, 'registry reconciliation result', { reason, result: false });
     return false;
   }
 
   finishWhenStable(reason = 'ready') {
     if (this.completed || this.cleaningUp) return;
-    traceSceneTransition(this, 'finishWhenStable() called', { reason, cleanupCause: this.cleanupReason ?? reason });
     this.completed = true;
     this.showTimer?.remove?.(false);
     this.showTimer = null;
@@ -249,7 +226,6 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
   fadeOutAndStop() {
     if (this.cleaningUp) return;
     this.removeWaitingFrameOrderGuard();
-    this.traceVisualState('fade-out start');
     this.destroyInputBlocker();
     this.tweens.add({
       targets: this.root,
@@ -304,9 +280,6 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
 
     if (!this.failsafeWarningEmitted && overlayActive && overlayPending && !this.cleaningUp) {
       this.failsafeWarningEmitted = true;
-      traceSceneTransition(this, 'failsafe threshold reached', details);
-      traceSceneTransition(this, 'registry still not ready', details);
-      traceSceneTransition(this, 'overlay remains waiting', details);
       console.warn('Scene transition failsafe threshold reached without readiness; overlay remains waiting.', {
         transitionId: this.transitionId,
         destinationSceneKey: this.destinationSceneKey,
@@ -332,7 +305,6 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
       },
       registryState: registryState ? { transitionId: registryState.transitionId, destinationSceneKey: registryState.destinationSceneKey, ready: registryState.ready, failed: registryState.failed } : null,
     };
-    traceSceneTransition(this, 'hard emergency transition timeout', details);
     console.error('hard emergency transition timeout', { transitionId: this.transitionId, destinationSceneKey: this.destinationSceneKey, ...details });
     setSceneTransitionState(this.game, this.transitionId, { failed: true, hardEmergencyAt: Date.now(), hardEmergencyElapsedMs: this.activeElapsedMs });
     if (!this.hasShown) this.showOverlay();
@@ -413,7 +385,6 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
   cleanupAndStop({ clearRegistry = true, reason = null } = {}) {
     if (this.cleaningUp) return;
     this.cleanupReason = reason ?? this.cleanupReason ?? (clearRegistry ? 'shutdown' : 'invalid-startup');
-    this.traceVisualState('overlay stop');
     this.cleaningUp = true;
     this.clearRegistryOnCleanup = clearRegistry;
     this.cleanup();
@@ -421,31 +392,7 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
   }
 
 
-  traceVisualState(event) {
-    traceSceneTransition(this, event, {
-      cleanupCause: this.cleanupReason,
-      visualState: {
-        camera: { visible: this.cameras?.main?.visible ?? null, alpha: this.cameras?.main?.alpha ?? null },
-        root: { visible: this.root?.visible ?? null, alpha: this.root?.alpha ?? null },
-        backdrop: { visible: this.backdrop?.visible ?? null, alpha: this.backdrop?.alpha ?? null },
-        logo: { visible: this.logo?.visible ?? null, alpha: this.logo?.alpha ?? null },
-        ring: { visible: this.ring?.visible ?? null, alpha: this.ring?.alpha ?? null },
-        ringTweenActive: this.ringTween?.isPlaying?.() ?? Boolean(this.ringTween),
-        inputBlockerActive: Boolean(this.inputBlocker?.active),
-        rootDepth: this.root?.depth ?? null,
-        backdropDepth: this.backdrop?.depth ?? null,
-        logoDepth: this.logo?.depth ?? null,
-        ringDepth: this.ring?.depth ?? null,
-        destinationCamera: {
-          visible: this.destinationSceneKey ? this.scene.get(this.destinationSceneKey)?.cameras?.main?.visible ?? null : null,
-          alpha: this.destinationSceneKey ? this.scene.get(this.destinationSceneKey)?.cameras?.main?.alpha ?? null : null,
-        },
-      },
-    });
-  }
-
   cleanup() {
-    this.traceVisualState('cleanup start');
     const state = getSceneTransitionState(this.game, this.transitionId);
     if (state?.readyListener && state?.destinationScene) {
       state.destinationScene.events?.off?.(SCENE_TRANSITION_VISUALLY_READY_EVENT, state.readyListener);

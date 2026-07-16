@@ -21,7 +21,7 @@ import { NAVIGATION_ICON_TYPES, createFloatingControl, createMuteToggleControl, 
 import { createModalBackButton } from '../ui/modalControls.js';
 import { PREMIUM_BROADCAST_FONT_STACK, createImageButton, preloadSecondaryButtonAsset } from '../ui/imageButton.js';
 import { formatDeckSummaryEntry } from '../rendering/cardRenderModes.js';
-import { beginSceneTransitionOverlay, reconcileSceneTransitionOverlayOrdering, traceSceneTransition } from './sceneTransitionOverlay.js';
+import { beginSceneTransitionOverlay, reconcileSceneTransitionOverlayOrdering } from './sceneTransitionOverlay.js';
 import { CARD_COLORS, createCardArtwork, createCardPreviewView, getBaseCardSurfaceTheme, getDefaultCardAccentColor, resolveCardSurfaceTheme, createStatBadges } from '../rendering/cardVisualLayout.js';
 import { getCardDisplayName, getCardTextShort } from '../localization/cardDisplay.js';
 import { getActiveLocale, translateActive, translateActiveList } from '../localization/localeService.js';
@@ -3547,7 +3547,6 @@ export default class BattleScene extends Phaser.Scene {
 
   startPostBattleDestinationWithOverlay(destinationSceneKey, data = {}) {
     const transition = beginSceneTransitionOverlay(this, destinationSceneKey);
-    traceSceneTransition(this, 'destination start requested', { transitionId: transition?.transitionId ?? null, sourceSceneKey: this.scene.key, destinationSceneKey });
     this.scene.start(destinationSceneKey, {
       ...(data && typeof data === 'object' ? data : {}),
       sceneTransitionOverlay: transition ? { transitionId: transition.transitionId, sourceSceneKey: this.scene.key } : null,

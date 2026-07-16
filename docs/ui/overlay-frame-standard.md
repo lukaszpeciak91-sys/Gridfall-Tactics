@@ -68,3 +68,60 @@ This prevents battle-only patches from masking shared overlay problems, and prev
 - When touching shared overlays, verify all entry points that can launch them.
 - When debugging translucent overlays, inspect both the foreground panel and underlying scene objects.
 - Prefer additive documentation updates when standards evolve: mark older conflicting notes as historical or superseded rather than deleting useful context.
+
+## Shared scene transition overlay
+
+`SceneTransitionOverlayScene` is the shared production loading cover for scene-to-scene transitions where the destination may need a real creation/render boundary before its UI is safe to reveal. It owns only the visual cover, input blocker, readiness listener, ordering protection, fade-out, and cleanup. Navigation remains owned by the launching scene/helper so the overlay cannot duplicate destination starts.
+
+Current production users are:
+
+- the Main Menu → `CollectionScene` route;
+- post-battle routes to `FactionSelectScene`, `CampaignEnemySelectScene`, and `GameMenuScene`.
+
+The overlay starts hidden and uses a short delayed-show threshold. Fast transitions that emit readiness before that threshold complete without a visible loader flash. Slow transitions show the Gridfall logo and loading ring and keep them visible during the real destination loading period. Completion is controlled by destination readiness, not elapsed time.
+
+### Readiness contract
+
+A destination scene using the shared overlay must:
+
+1. finish its initial UI setup;
+2. wait for the required render boundary, currently the `POST_RENDER` path with a guarded fallback callback for lifecycle resilience;
+3. emit `SCENE_TRANSITION_VISUALLY_READY_EVENT` through `emitSceneTransitionVisuallyReady()` with the matching transition ID;
+4. never rely on a timeout as proof of readiness.
+
+Normal completion requires both a matching transition ID and the expected destination scene key. The overlay also reconciles the registry state so a ready event emitted before the overlay listener path observes it can still complete exactly once. Mismatched transition IDs or destination keys are ignored.
+
+Currently integrated destination scenes are:
+
+- `CollectionScene`;
+- `FactionSelectScene`;
+- `CampaignEnemySelectScene`;
+- `GameMenuScene`.
+
+The normal lifecycle is: the source creates a transition ID and registry entry, subscribes to the destination readiness event, launches the overlay, starts the destination with `sceneTransitionOverlay` metadata, reconciles overlay ordering after queued scene operations, the destination builds its initial UI and emits matching readiness after the render boundary, the overlay marks readiness/registry reconciliation, removes the waiting-frame ordering guard before fade-out, fades once, cleans listeners/timers/input blocker/tweens, clears registry state, and stops itself.
+
+### Failsafe lesson
+
+The confirmed production bug was caused by treating elapsed time as readiness. The old failsafe could fade and stop the overlay while registry readiness was still false. If destination creation was slow, that premature cleanup exposed a long plain dark screen before the destination UI became renderable.
+
+The corrected behavior keeps the overlay active and visible when the failsafe threshold is reached but matching readiness is still absent. The hard emergency timeout is explicitly separate from normal readiness and marks an emergency failure state without fabricating readiness or taking the normal fade-out path.
+
+**A timeout is not destination readiness.**
+
+### Render-order protection
+
+The overlay reasserts top ordering because Phaser scene operations may be queued and destination startup can temporarily alter scene order. While the overlay is visible and pending, it must remain above the destination. The bounded waiting-frame ordering guard exists only during the waiting phase and is removed before fade-out so cleanup follows a single normal path.
+
+Destination create/background ordering checkpoints should remain in integrated destination scenes. They are production ordering recovery points, not temporary trace labels.
+
+### Maintenance troubleshooting
+
+If the loader flashes and disappears before destination UI appears, inspect in this order:
+
+1. matching readiness event transition ID and destination key;
+2. registry readiness for the active transition;
+3. failsafe or hard emergency timeout behavior;
+4. overlay active/visible state;
+5. scene render order.
+
+Do not immediately add arbitrary delays or repeated `bringToTop` calls without runtime evidence. Preserve the delayed-show behavior, matching readiness validation, registry reconciliation, corrected failsafe behavior, bounded waiting-frame ordering guard, lifecycle/fullscreen/resize/resume recovery, and single fade-out/cleanup path when maintaining this overlay.

@@ -95,9 +95,6 @@ test('failsafe threshold waits instead of completing when registry readiness is 
   assert.match(overlay, /document\.hidden === true/);
   assert.match(overlay, /handleFailsafeThresholdReached\(\)/);
   assert.match(overlay, /registryReady && this\.reconcileReadiness\('failsafe-threshold'\)/);
-  assert.match(overlay, /traceSceneTransition\(this, 'failsafe threshold reached'/);
-  assert.match(overlay, /traceSceneTransition\(this, 'registry still not ready'/);
-  assert.match(overlay, /traceSceneTransition\(this, 'overlay remains waiting'/);
   assert.match(overlay, /console\.warn\('Scene transition failsafe threshold reached without readiness; overlay remains waiting\.'/);
   assert.doesNotMatch(overlay, /failsafe readiness resolution/);
   assert.doesNotMatch(overlay, /returnToSource|sourceSceneKey[\s\S]{0,120}scene\.start/);
@@ -151,7 +148,6 @@ test('slow Collection and post-battle transitions can exceed old failsafe withou
 test('hard emergency timeout is separate from readiness and keeps recoverable overlay fallback', () => {
   assert.match(overlay, /const HARD_EMERGENCY_ACTIVE_MS = 60000;/);
   assert.match(overlay, /handleHardEmergencyTimeout\(\)/);
-  assert.match(overlay, /traceSceneTransition\(this, 'hard emergency transition timeout'/);
   assert.match(overlay, /console\.error\('hard emergency transition timeout'/);
   assert.match(overlay, /hardEmergencyAt/);
   const start = overlay.indexOf('  handleHardEmergencyTimeout() {');
@@ -257,34 +253,28 @@ test('post-battle destination cleanup removes readiness listener and fallback ti
 test('overlay waiting frame guard keeps it topmost while readiness is false', () => {
   assert.match(overlay, /installWaitingFrameOrderGuard\(\) \{[\s\S]*PRE_RENDER[\s\S]*ensureOverlayTopWhileWaiting\('waiting frame pre-render'\)/);
   assert.match(overlay, /ensureOverlayTopWhileWaiting\(reason\) \{[\s\S]*this\.cleaningUp \|\| this\.completed \|\| !this\.hasShown \|\| !this\.root\?\.visible \|\| !this\.isCurrentTransitionState\(\)/);
-  assert.match(overlay, /fadeOutAndStop\(\) \{[\s\S]*this\.removeWaitingFrameOrderGuard\(\);[\s\S]*this\.traceVisualState\('fade-out start'\)/);
+  assert.match(overlay, /fadeOutAndStop\(\) \{[\s\S]*this\.removeWaitingFrameOrderGuard\(\);[\s\S]*this\.destroyInputBlocker\(\);/);
 });
 
-test('destination preload and create checkpoints cannot permanently cover the overlay', () => {
+test('destination create and background checkpoints cannot permanently cover the overlay', () => {
   for (const path of ['src/scenes/CollectionScene.js', 'src/scenes/FactionSelectScene.js', 'src/scenes/CampaignEnemySelectScene.js', 'src/scenes/GameMenuScene.js']) {
     const source = read(path);
-    assert.match(source, /traceSceneTransition\(this, 'preload start'\)/, path);
-    assert.match(source, /traceSceneTransition\(this, 'create start'\);\s*this\.reconcileTransitionOverlayOrdering\('destination create start'\)/, path);
+    assert.match(source, /this\.reconcileTransitionOverlayOrdering\('destination create start'\)/, path);
     assert.match(source, /createAnimatedMenuBackground[\s\S]*this\.reconcileTransitionOverlayOrdering\('destination background creation'\)/, path);
     assert.match(source, /reconcileSceneTransitionOverlayOrdering\(this\.scene, \{ transitionId, destinationSceneKey: this\.scene\.key, reason \}\)/, path);
   }
 });
 
-test('scene-order diagnostics report required ordering moments and camera state', () => {
-  assert.match(overlay, /traceSceneTransition\(this, 'create'\)/);
-  assert.match(overlay, /traceSceneTransition\(this, 'showOverlay\(\)'\)/);
-  assert.match(helper, /traceSceneTransition\(scenePlugin, 'immediately after successful bringToTop'/);
-  assert.match(helper, /overlayAboveDestination/);
-  assert.match(helper, /cameraVisible: scenes\[destinationIndex\]\?\.cameras\?\.main\?\.visible/);
-  assert.match(overlay, /this\.traceVisualState\('fade-out start'\)/);
+test('temporary transition trace diagnostics are not shipped', () => {
+  assert.doesNotMatch(helper + overlay, /transition-completion-trace|traceSceneTransition|traceVisualState|getSceneTransitionTraceSnapshot|getSceneTransitionCompletionProbe/);
+  assert.doesNotMatch(main, /__GRIDFALL_GAME__/);
 });
 
-test('logo and loading ring visual diagnostics stay visible during simulated slow transition', () => {
+test('logo and loading ring presentation stays visible during simulated slow transition', () => {
   assert.match(overlay, /this\.root\.setVisible\(true\);[\s\S]*this\.installWaitingFrameOrderGuard\(\);[\s\S]*this\.startRingTween\(\);/);
   assert.match(overlay, /targets: this\.root,[\s\S]*alpha: 1,[\s\S]*duration: FADE_IN_MS/);
-  assert.match(overlay, /logo: \{ visible: this\.logo\?\.visible \?\? null, alpha: this\.logo\?\.alpha \?\? null \}/);
-  assert.match(overlay, /ring: \{ visible: this\.ring\?\.visible \?\? null, alpha: this\.ring\?\.alpha \?\? null \}/);
-  assert.match(overlay, /destinationCamera: \{[\s\S]*visible:[\s\S]*alpha:[\s\S]*\}/);
+  assert.match(overlay, /this\.root\.add\(this\.logo\);/);
+  assert.match(overlay, /this\.root\.add\(this\.ring\);/);
 });
 
 test('fast transitions still do not install the visible waiting guard or duplicate navigation', () => {
