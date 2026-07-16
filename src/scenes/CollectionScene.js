@@ -261,7 +261,7 @@ export default class CollectionScene extends Phaser.Scene {
     const deck = faction?.deck ?? [];
     const rowsPerColumn = Math.max(COLLECTION_CARDS_PER_COLUMN, Math.ceil(deck.length / 2));
     const gridTop = headerBottom + COLLECTION_SECTION_CARD_TOP_GAP;
-    const dossierBottom = this.drawFactionDossierPanel(content, factionKey, {
+    const dossierBottom = this.drawFactionDossierPanel(content, faction?.id ?? factionKey, {
       x,
       y: headerBottom + COLLECTION_DOSSIER_TOP_GAP,
       width: stripWidth,
