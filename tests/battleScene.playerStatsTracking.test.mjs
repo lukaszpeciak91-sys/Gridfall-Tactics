@@ -13,12 +13,12 @@ function extractMethodBody(methodName, nextMethodName) {
 
 
 test('BattleScene imports and uses Player Stats public API at scheduleBattleResultModal hook point', () => {
-  assert.match(source, /import \{ incrementBattleStat, incrementCardPlayedStat, loadPlayerStats, markTutorialCompleted, savePlayerStats \} from '\.\.\/systems\/playerStats\.js';/);
+  assert.match(source, /import \{ addActiveBattleTime, incrementBattleStat, incrementCardPlayedStat, loadPlayerStats, markTutorialCompleted, savePlayerStats \} from '\.\.\/systems\/playerStats\.js';/);
   assert.match(source, /import \{ incrementCampaignCompletedStat \} from '\.\.\/systems\/playerStats\.js';/);
   const scheduleBody = extractMethodBody('scheduleBattleResultModal', 'disableResultPendingOverlayInteractions');
   assert.match(scheduleBody, /if \(!this\.gameState\?\.winner \|\| this\.battleResultModalShown \|\| this\.battleResultModalPending\) return;/);
   assert.ok(
-    scheduleBody.indexOf('this.stopCampaignBattleTimer();') < scheduleBody.indexOf('this.trackCompletedBattleStatsOnce();'),
+    scheduleBody.indexOf('this.finalizeActiveBattleTimeOnce();') < scheduleBody.indexOf('this.trackCompletedBattleStatsOnce();'),
     'stats should be tracked after the battle timer stops',
   );
   assert.ok(

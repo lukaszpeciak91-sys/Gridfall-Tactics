@@ -26,7 +26,7 @@ import { CARD_COLORS, createCardArtwork, createCardPreviewView, getBaseCardSurfa
 import { getCardDisplayName, getCardTextShort } from '../localization/cardDisplay.js';
 import { getActiveLocale, translateActive, translateActiveList } from '../localization/localeService.js';
 import { applyCampaignBattleResult, clearCampaign, createNewCampaign, isValidCampaignState, loadCampaign, saveCampaign } from '../systems/campaignState.js';
-import { incrementBattleStat, incrementCardPlayedStat, loadPlayerStats, markTutorialCompleted, savePlayerStats } from '../systems/playerStats.js';
+import { addActiveBattleTime, incrementBattleStat, incrementCardPlayedStat, loadPlayerStats, markTutorialCompleted, savePlayerStats } from '../systems/playerStats.js';
 import { recordArenaBattlegroundVisit } from '../systems/playerStats.js';
 import { incrementCampaignCompletedStat } from '../systems/playerStats.js';
 import { evaluateAndPersistAchievementUnlocks } from '../systems/runtimeAchievements.js';
@@ -374,6 +374,7 @@ export default class BattleScene extends Phaser.Scene {
     this.battleEndedAt = null;
     this.activeBattleDurationMs = 0;
     this.activeBattleTimerStartedAt = null;
+    this.activeBattleTimeCommitted = false;
     this.backgroundArtAsset = null;
     this.backgroundLayer = null;
     this.baseFrameViews = { player: null, enemy: null };
@@ -619,6 +620,7 @@ export default class BattleScene extends Phaser.Scene {
     this.battleEndedAt = null;
     this.activeBattleDurationMs = 0;
     this.activeBattleTimerStartedAt = null;
+    this.activeBattleTimeCommitted = false;
     this.battleAmbienceStopping = false;
     this.gameState = null;
     this.factionKey = null;
@@ -811,6 +813,7 @@ export default class BattleScene extends Phaser.Scene {
     this.battleEndedAt = null;
     this.activeBattleDurationMs = 0;
     this.activeBattleTimerStartedAt = null;
+    this.activeBattleTimeCommitted = false;
     this.terminalShatterTriggeredSides = new Set();
     this.terminalFailedSides = new Set();
     this.terminalTextBootComplete = false;
@@ -865,7 +868,6 @@ export default class BattleScene extends Phaser.Scene {
     this.events.on(Phaser.Scenes.Events.WAKE, this.onSceneWake, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this);
 
-    this.startCampaignBattleTimer();
     this.emitBattleVisuallyReady();
     this.time.delayedCall(560, () => this.startBattleAmbience());
 
@@ -1373,6 +1375,7 @@ export default class BattleScene extends Phaser.Scene {
 
     this.closeInspectPreview({ animate: false, clearSelection: true });
     this.destroyUtilityMenuPanel();
+    this.pauseActiveBattleTimer();
 
     const { width, height, margin } = this.layout;
     const { x: triggerX, y: triggerY, width: triggerWidth, height: triggerHeight } = this.getPlayerBaseUtilityControlMetrics('menu');
@@ -1489,6 +1492,7 @@ export default class BattleScene extends Phaser.Scene {
   showSurrenderConfirmation() {
     if (this.surrenderConfirmationModal || this.gameState?.winner || this.battleResultModalShown) return;
     this.surrenderConfirmationResolving = false;
+    this.pauseActiveBattleTimer();
 
     const { width, height } = this.scale.gameSize;
     const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x020617, 0.72)
@@ -1557,6 +1561,7 @@ export default class BattleScene extends Phaser.Scene {
       item?.removeAllListeners?.();
       item?.destroy?.();
     });
+    this.resumeActiveBattleTimer();
   }
 
   confirmPlayerMenuSurrender() {
@@ -1590,6 +1595,7 @@ export default class BattleScene extends Phaser.Scene {
     this.navigationInProgress = false;
     this.gameState.winner = 'enemy';
     this.gameState.endingReason = 'player_menu_surrender';
+    this.pauseActiveBattleTimer();
     this.completeBattleFlow(500);
     this.game?.loop?.wake?.();
   }
@@ -1671,6 +1677,7 @@ export default class BattleScene extends Phaser.Scene {
     });
     this.utilityMenuPanel = null;
     this.handleTutorialEvent?.('battle_menu_closed');
+    if (!this.navigationInProgress) this.resumeActiveBattleTimer();
     this.updatePlayerBaseActionState();
     this.updateTutorialBanner?.();
   }
@@ -1829,29 +1836,64 @@ export default class BattleScene extends Phaser.Scene {
     return Date.now();
   }
 
-  startCampaignBattleTimer() {
-    if (this.battleStartedAt !== null || this.gameState?.winner) return;
+  isDocumentHiddenForActiveBattleTime() {
+    return Boolean(globalThis.document?.hidden);
+  }
+
+  isActiveBattleTimerPlayable() {
+    // Tutorial battles are excluded in this PR because their instruction gates can block
+    // normal interaction after the shared mulligan checkpoint.
+    if (this.isTutorialBattle?.()) return false;
+    if (!this.gameState || this.gameState.winner) return false;
+    if (this.openingMulliganPending || this.openingMulliganRevealPending) return false;
+    if (this.battleResultModalShown || this.battleResultModalPending || this.isFlowResolving) return false;
+    if (this.utilityMenuPanel || this.surrenderConfirmationModal || this.navigationInProgress) return false;
+    if (this.isDocumentHiddenForActiveBattleTime()) return false;
+    if (this.scene?.isPaused?.() || this.scene?.isSleeping?.()) return false;
+    if (this.scene?.isActive && !this.scene.isActive()) return false;
+    return true;
+  }
+
+  startActiveBattleTimer() {
+    if (this.battleStartedAt !== null || !this.isActiveBattleTimerPlayable()) return;
     const now = this.getActiveBattleTimestamp();
     this.battleStartedAt = now;
     this.activeBattleTimerStartedAt = now;
   }
 
-  pauseCampaignBattleTimer() {
+  pauseActiveBattleTimer() {
     if (!Number.isFinite(this.activeBattleTimerStartedAt)) return;
     const now = this.getActiveBattleTimestamp();
     this.activeBattleDurationMs += Math.max(0, now - this.activeBattleTimerStartedAt);
     this.activeBattleTimerStartedAt = null;
   }
 
-  resumeCampaignBattleTimer() {
+  resumeActiveBattleTimer() {
     if (this.gameState?.winner || !Number.isFinite(this.battleStartedAt) || Number.isFinite(this.activeBattleTimerStartedAt)) return;
+    if (!this.isActiveBattleTimerPlayable()) return;
     this.activeBattleTimerStartedAt = this.getActiveBattleTimestamp();
   }
 
-  stopCampaignBattleTimer() {
-    this.pauseCampaignBattleTimer();
+  stopActiveBattleTimer() {
+    this.pauseActiveBattleTimer();
     this.battleEndedAt ??= this.getActiveBattleTimestamp();
     return this.getActiveBattleDurationMs();
+  }
+
+  startCampaignBattleTimer() {
+    return this.startActiveBattleTimer();
+  }
+
+  pauseCampaignBattleTimer() {
+    return this.pauseActiveBattleTimer();
+  }
+
+  resumeCampaignBattleTimer() {
+    return this.resumeActiveBattleTimer();
+  }
+
+  stopCampaignBattleTimer() {
+    return this.stopActiveBattleTimer();
   }
 
   getActiveBattleDurationMs() {
@@ -1931,6 +1973,22 @@ export default class BattleScene extends Phaser.Scene {
   }
 
 
+  finalizeActiveBattleTimeOnce() {
+    if (this.activeBattleTimeCommitted || !this.gameState?.winner) return false;
+    this.activeBattleTimeCommitted = true;
+    const durationMs = this.stopCampaignBattleTimer();
+    if (this.isTutorialBattle?.() || durationMs <= 0) return false;
+
+    try {
+      const nextStats = addActiveBattleTime(loadPlayerStats(), durationMs);
+      savePlayerStats(nextStats);
+      return true;
+    } catch (error) {
+      console.warn('Active battle time player stats tracking failed; battle flow will continue.', error);
+      return false;
+    }
+  }
+
   trackTutorialCompletionOnce() {
     if (this.tutorialCompletionTracked || !this.isTutorialBattle() || this.gameState?.winner !== 'player') return false;
 
@@ -1975,10 +2033,10 @@ export default class BattleScene extends Phaser.Scene {
 
   scheduleBattleResultModal(delayMs = 500) {
     if (!this.gameState?.winner || this.battleResultModalShown || this.battleResultModalPending) return;
-    this.stopCampaignBattleTimer();
+    const activeBattleTimeTracked = this.finalizeActiveBattleTimeOnce();
     const tutorialStatsTracked = this.trackTutorialCompletionOnce();
     const battleStatsTracked = this.trackCompletedBattleStatsOnce();
-    if (tutorialStatsTracked || battleStatsTracked) {
+    if (activeBattleTimeTracked || tutorialStatsTracked || battleStatsTracked) {
       evaluateAndPersistAchievementUnlocks();
     }
     const hasLethalTerminalFailure = Boolean(this.getLethalTerminalFailureSides().length);
@@ -4151,6 +4209,11 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   recoverFromLifecycle(reason = 'unknown', diagnostics = null) {
+    const lifecyclePauseReasons = new Set(['visibilitychange', 'pagehide', 'blur', 'phaser-pause', 'webglcontextlost']);
+    if (this.isDocumentHiddenForActiveBattleTime() || lifecyclePauseReasons.has(reason)) {
+      this.pauseActiveBattleTimer();
+    }
+
     this.tutorialLifecycleDiagnostics.lastLifecycleReason = reason;
     this.tutorialLifecycleDiagnostics.lastRecoveryReason = reason;
     const recoveryDiagnostics = this.getLifecycleDiagnostics(reason, diagnostics);
@@ -4189,7 +4252,8 @@ export default class BattleScene extends Phaser.Scene {
     this.ensureBattleResultModalVisible(`lifecycle:${reason}`);
 
     if (!this.gameState?.winner && !this.battleAmbienceStopping) {
-      this.startCampaignBattleTimer();
+      if (this.battleStartedAt === null) this.startCampaignBattleTimer();
+      else this.resumeCampaignBattleTimer();
       this.time.delayedCall(560, () => this.startBattleAmbience());
     }
 
@@ -7170,6 +7234,7 @@ export default class BattleScene extends Phaser.Scene {
     this.resetCardHighlights();
     await this.showOpeningTurnStartBanner();
     this.startTurn();
+    this.startCampaignBattleTimer();
   }
 
   resetOpeningMulliganInputState() {
@@ -7276,6 +7341,7 @@ export default class BattleScene extends Phaser.Scene {
     if (!this.gameState || this.gameState.winner || this.battleResultModalShown || !this.passHoldToSurrenderEnabled || !this.playerSurrenderArmed) return;
     this.gameState.winner = 'enemy';
     this.gameState.endingReason = 'player_hold_surrender';
+    this.pauseActiveBattleTimer();
     this.cancelPassHoldToSurrender();
     this.playerSurrenderArmed = false;
     this.completeBattleFlow(0);
@@ -8146,6 +8212,7 @@ export default class BattleScene extends Phaser.Scene {
     if (action.type === 'surrender') {
       this.gameState.winner = 'player';
       this.gameState.endingReason = 'ai_safe_surrender';
+      this.pauseActiveBattleTimer();
       return { ok: true, type: 'surrender' };
     }
 

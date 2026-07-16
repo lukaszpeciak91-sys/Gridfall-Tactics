@@ -19,7 +19,7 @@ test('BattleScene visually-ready event is named, reset per runtime state, and em
   assert.match(source, /import \{ BATTLE_SCENE_VISUALLY_READY_EVENT, restartBattleScene \} from '\.\/battleEntryRouter\.js';/);
   assert.match(source, /this\.battleVisuallyReadyEmitted = false;/);
   assert.match(source, /emitBattleVisuallyReady\(\) \{\s*if \(this\.battleVisuallyReadyEmitted\) return false;\s*this\.battleVisuallyReadyEmitted = true;[\s\S]*this\.events\.emit\(BATTLE_SCENE_VISUALLY_READY_EVENT/);
-  assert.match(source, /this\.input\.on\('pointerup', this\.onScenePointerUp, this\);[\s\S]*this\.events\.once\(Phaser\.Scenes\.Events\.SHUTDOWN, this\.shutdown, this\);[\s\S]*this\.startCampaignBattleTimer\(\);\s*this\.emitBattleVisuallyReady\(\);\s*this\.time\.delayedCall\(560, \(\) => this\.startBattleAmbience\(\)\);/);
+  assert.match(source, /this\.input\.on\('pointerup', this\.onScenePointerUp, this\);[\s\S]*this\.events\.once\(Phaser\.Scenes\.Events\.SHUTDOWN, this\.shutdown, this\);[\s\S]*this\.emitBattleVisuallyReady\(\);\s*this\.time\.delayedCall\(560, \(\) => this\.startBattleAmbience\(\)\);/);
 });
 
 
