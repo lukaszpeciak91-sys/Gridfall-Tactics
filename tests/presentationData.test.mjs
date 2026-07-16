@@ -101,12 +101,20 @@ test('faction lore blurbs resolve by locale and hide missing lore', () => {
   assert.equal(getFactionPresentationLoreBlurb('missing-faction', 'pl'), '');
 });
 
-test('Collection faction dossier view model exposes only localized lore text', () => {
-  assert.deepEqual(getFactionDossierViewModel('tank', 'en'), {
-    description: getFactionPresentationLoreBlurb('tank', 'en'),
-  });
-  assert.deepEqual(Object.keys(getFactionDossierViewModel('tank', 'pl')), ['description']);
+test('Collection faction dossier view model exposes only localized lore text for every runtime faction', () => {
+  for (const faction of loadFactions()) {
+    assert.deepEqual(getFactionDossierViewModel(faction.id, 'en'), {
+      description: getFactionPresentationLoreBlurb(faction.id, 'en'),
+    }, faction.id);
+    assert.deepEqual(Object.keys(getFactionDossierViewModel(faction.id, 'pl')), ['description'], faction.id);
+  }
   assert.equal(getFactionDossierViewModel('missing-faction', 'en'), null);
+});
+
+test('Collection wires faction dossier lookup to runtime faction ids instead of registry keys', () => {
+  const source = fs.readFileSync('src/scenes/CollectionScene.js', 'utf8');
+  assert.match(source, /drawFactionDossierPanel\(content, faction\?\.id \?\? factionKey,/);
+  assert.doesNotMatch(source, /const dossierBottom = this\.drawFactionDossierPanel\(content, factionKey,/);
 });
 
 test('Gravehearts Polish presentation names match the short-name localization pass', () => {
