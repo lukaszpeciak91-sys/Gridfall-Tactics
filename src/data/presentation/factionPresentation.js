@@ -14,6 +14,8 @@ const presentation = {
   aggro: {
     displayNameEn: 'Porcelain Court',
     displayNamePl: 'Porcelanowy Dwór',
+    loreBlurbEn: 'Dimension C-69: the aristocracy discovered immortality and, as tradition demands, sent the bill to everyone below them. When even serum ran short of people, the porcelain nobles began dueling over the last scraps of life with all the grace of a class that missed its own funeral.',
+    loreBlurbPl: 'Wymiar C-69: arystokracja odkryła nieśmiertelność i, zgodnie z tradycją, wystawiła rachunek poddanym. Gdy ludzi zabrakło nawet na serum, porcelanowi możni zaczęli pojedynkować się o resztki życia z elegancją klasy, która przegapiła własny pogrzeb.',
     shortConcept: 'A decadent immortal aristocracy of cracked porcelain automata sustains itself through televised ballroom violence, perfumed chemicals, and ceremonial brutality.',
     tone: 'Decadent, theatrical, elegant, sadistic, chemically unstable, and darkly comic.',
     styleTags: [
@@ -79,6 +81,8 @@ const presentation = {
   control: {
     displayNameEn: 'Orden der Glasköpfe',
     displayNamePl: 'Orden der Glasköpfe',
+    loreBlurbEn: 'Dimension G-44: they tried to win the last war with a signal from the bottom of reality, and knocked the world out of tune like a cheap receiver. For decades, the glass heads have tried to restore the old order, though the future master race has already gone moldy in the incubators.',
+    loreBlurbPl: 'Wymiar G-44: chcieli wygrać ostatnią wojnę sygnałem z samego dna rzeczywistości, lecz rozstroili świat jak tani odbiornik. Od dekad szklane głowy próbują odtworzyć dawny porządek, choć przyszła rasa panów zdążyła już spleśnieć w inkubatorach.',
     shortConcept: 'A techno-occult order of glass-brained commanders, signal machinery, and neural warfare turns free will into a broadcast variable.',
     tone: 'Cold, authoritarian, cerebral, paranoid, and occult-industrial.',
     styleTags: [
@@ -123,6 +127,8 @@ const presentation = {
   swarm: {
     displayNameEn: 'Spore Choir',
     displayNamePl: 'Chór Zarodników',
+    loreBlurbEn: 'Dimension M-10: it began with a sock no reasonable person wanted to touch. The mold took this as an invitation to adventure, ate the planet down to the crust, and then, for lack of a world, moved on to itself.',
+    loreBlurbPl: 'Wymiar M-10: zaczęło się od skarpety, której nikt rozsądny nie chciał dotknąć. Pleśń uznała to za zaproszenie do przygody, zjadła planetę do gołej skorupy, a potem z braku świata zabrała się za samą siebie.',
     shortConcept: 'A psychedelic mycelial collective blooms into beautiful bio-horror as one organism learns to sing through many doomed bodies.',
     tone: 'Lush, hallucinogenic, organic, eerie, and strangely transcendent.',
     styleTags: [
@@ -173,6 +179,8 @@ const presentation = {
   'attrition-swarm': {
     displayNameEn: 'Gravehearts',
     displayNamePl: 'Gravehearts',
+    loreBlurbEn: 'Dimension Y-2: on New Year’s Eve 2000, the computers finally kept their promise and ended the world. The pathogen and the radiation killed humanity, though most people simply failed to notice; now they rot through the old rituals of daily life, as memory gives way to mindless mass.',
+    loreBlurbPl: 'Wymiar Y-2: w sylwestra roku 2000 komputery wreszcie spełniły obietnicę i zakończyły świat. Patogen i promieniowanie zabiły ludzi, choć większość z nich zwyczajnie tego nie zauważyła; dziś gniją w dawnych rytuałach codzienności, a pamięć ustępuje miejsca bezmyślnej masie.',
     shortConcept: 'A tragicomic funerary society of undead lovers, coffin bearers, and graveyard dancers turns mourning into repeatable value.',
     tone: 'Romantic, melancholic, gothic, funny-sad, and grotesquely devoted.',
     styleTags: [
@@ -223,6 +231,8 @@ const presentation = {
   overclock: {
     displayNameEn: 'Project H.E.R.D.',
     displayNamePl: 'Program P.A.S.Z.A.',
+    loreBlurbEn: 'Dimension B-80: the government of a certain Eastern European people’s republic decided that livestock was gravely underused in military affairs. Project H.E.R.D. exceeded the plan: it scrubbed Earth clean of life, then began tidying up its own ranks.',
+    loreBlurbPl: 'Wymiar B-80: rząd pewnego wschodnioeuropejskiego demoludu uznał, że zwierzęta hodowlane są stanowczo za mało wykorzystywane militarnie. Program P.A.S.Z.A. wykonał plan z nadwyżką: wyczyścił Ziemię z życia, a potem zaczął porządkować własne szeregi.',
     shortConcept: 'An unattended late-1980s state agricultural and military breeding program keeps producing hostile engineered livestock after humanity disappears.',
     tone: 'Bureaucratic, agricultural, absurd, official, dirty, conditioned, and quietly horrific.',
     styleTags: [
@@ -276,6 +286,8 @@ const presentation = {
   tank: {
     displayNameEn: 'Empire of the Golden Sun',
     displayNamePl: 'Imperium Złotego Słońca',
+    loreBlurbEn: 'Dimension S-12: the Emperor declared that females were the source of all misfortune, and that the Sun would reward the faithful for removing them. The crusade succeeded, the promised maidens never arrived, and the long-lived empire was left alone with its gold, its orders, and the silence.',
+    loreBlurbPl: 'Wymiar S-12: Imperator ogłosił, że źródłem wszystkich nieszczęść są samice, a Słońce wynagrodzi wiernym ich usunięcie. Krucjata zakończyła się sukcesem, obiecane dziewice nie dotarły, a długowieczne imperium zostało samo ze złotem, rozkazami i ciszą.',
     shortConcept: 'A solar reptilian imperium in decline advances under gold armor, obsidian weapons, and the unbearable weight of extinct glory.',
     tone: 'Monumental, ceremonial, ancient, proud, heavy, and doomed.',
     styleTags: [
@@ -329,6 +341,8 @@ const presentation = {
   wardens: {
     displayNameEn: 'Mammoth Clans',
     displayNamePl: 'Klany Mamutów',
+    loreBlurbEn: 'Dimension N-7: Homo sapiens died out without making much of a historical contribution, so the Neanderthal clans inherited a freezing Earth. Now they cross the equatorial tundra, hunted by the Frost, which came down from the poles carrying something worse than cold.',
+    loreBlurbPl: 'Wymiar N-7: Homo sapiens wymarł bez większego wkładu w historię, więc neandertalskie klany odziedziczyły zamarzającą Ziemię. Teraz idą przez równikową tundrę, ścigane przez Mróz, który z biegunów przyniósł coś gorszego niż zimno.',
     shortConcept: 'A snowbound mammoth civilization holds glacial passes with fur-armored phalanxes, heavy spears, and primal fortifications.',
     tone: 'Stoic, cold, grounded, prehistoric, defensive, and survivalist.',
     styleTags: [
@@ -406,6 +420,23 @@ export function getFactionPresentationName(factionId, locale = 'en', fallbackNam
   }
 
   return safeFallback;
+}
+
+export function getFactionPresentationLoreBlurb(factionId, locale = 'en') {
+  const presentation = getFactionPresentation(factionId);
+  if (!presentation) {
+    return '';
+  }
+
+  if (locale === 'pl' && isNonEmptyString(presentation.loreBlurbPl)) {
+    return presentation.loreBlurbPl;
+  }
+
+  if (isNonEmptyString(presentation.loreBlurbEn)) {
+    return presentation.loreBlurbEn;
+  }
+
+  return '';
 }
 
 export function getCardPresentationName(card, locale = 'en') {

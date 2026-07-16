@@ -8,8 +8,10 @@ import {
   factionPresentation,
   getCardPresentationName,
   getFactionPresentation,
+  getFactionPresentationLoreBlurb,
   getFactionPresentationName,
 } from '../src/data/presentation/factionPresentation.js';
+import { getFactionDossierViewModel } from '../src/ui/factionDossier.js';
 
 function loadFactions() {
   return getFactionKeys().map((factionKey) => getFactionByKey(factionKey));
@@ -91,6 +93,20 @@ test('faction presentation names resolve by locale with safe fallbacks', () => {
   assert.equal(getFactionPresentationName('aggro', 'de'), 'Porcelain Court');
   assert.equal(getFactionPresentationName('missing-faction', 'pl'), 'missing-faction');
   assert.equal(getFactionPresentationName('missing-faction', 'pl', 'Raw Faction Name'), 'Raw Faction Name');
+});
+
+test('faction lore blurbs resolve by locale and hide missing lore', () => {
+  assert.match(getFactionPresentationLoreBlurb('aggro', 'en'), /^Dimension C-69:/);
+  assert.match(getFactionPresentationLoreBlurb('aggro', 'pl'), /^Wymiar C-69:/);
+  assert.equal(getFactionPresentationLoreBlurb('missing-faction', 'pl'), '');
+});
+
+test('Collection faction dossier view model exposes only localized lore text', () => {
+  assert.deepEqual(getFactionDossierViewModel('tank', 'en'), {
+    description: getFactionPresentationLoreBlurb('tank', 'en'),
+  });
+  assert.deepEqual(Object.keys(getFactionDossierViewModel('tank', 'pl')), ['description']);
+  assert.equal(getFactionDossierViewModel('missing-faction', 'en'), null);
 });
 
 test('Gravehearts Polish presentation names match the short-name localization pass', () => {

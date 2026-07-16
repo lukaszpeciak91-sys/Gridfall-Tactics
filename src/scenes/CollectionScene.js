@@ -55,11 +55,12 @@ const COLLECTION_SECTION_HEADER_TOP_INSET = 6;
 const COLLECTION_SECTION_CARD_TOP_GAP = 8;
 const COLLECTION_DOSSIER_TOP_GAP = 8;
 const COLLECTION_DOSSIER_BOTTOM_GAP = 10;
-const COLLECTION_DOSSIER_PADDING_X = 12;
-const COLLECTION_DOSSIER_PADDING_Y = 8;
-const COLLECTION_DOSSIER_MIN_HEIGHT = 52;
-const COLLECTION_DOSSIER_CHIP_HEIGHT = 20;
-const COLLECTION_DOSSIER_CHIP_GAP = 5;
+const COLLECTION_DOSSIER_PADDING_X = 13;
+const COLLECTION_DOSSIER_PADDING_Y = 10;
+const COLLECTION_DOSSIER_MIN_HEIGHT = 78;
+const COLLECTION_DOSSIER_TEXT_FONT_SIZE = 12;
+const COLLECTION_DOSSIER_TEXT_LINE_SPACING = 3;
+const COLLECTION_DOSSIER_TEXT_MAX_LINES = 6;
 const COLLECTION_ACCORDION_TOP_OFFSET = 8;
 
 export default class CollectionScene extends Phaser.Scene {
@@ -290,32 +291,21 @@ export default class CollectionScene extends Phaser.Scene {
     }
 
     const panelWidth = width;
-    const chipMaxRight = x + panelWidth - COLLECTION_DOSSIER_PADDING_X;
-    const titleY = y + COLLECTION_DOSSIER_PADDING_Y;
-    const bodyY = titleY + 17;
+    const bodyY = y + COLLECTION_DOSSIER_PADDING_Y;
     const bodyMaxWidth = panelWidth - COLLECTION_DOSSIER_PADDING_X * 2;
-    const body = dossier.description
-      ? this.add.text(x + COLLECTION_DOSSIER_PADDING_X, bodyY, dossier.description, {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '12px',
-        color: '#dbeafe',
-        align: 'left',
-        wordWrap: { width: bodyMaxWidth, useAdvancedWrap: true },
-        maxLines: 2,
-      }).setOrigin(0, 0)
-      : null;
-    const bodyHeight = body ? Math.min(body.height, 32) : 0;
-    const chipY = body ? bodyY + bodyHeight + 6 : bodyY;
-    const chipItems = this.drawFactionDossierChips(content, dossier.tags, {
-      rightX: chipMaxRight,
-      y: chipY,
-      accentColor,
-      maxWidth: bodyMaxWidth,
-    });
-    const hasChips = chipItems.length > 0;
+    const body = this.add.text(x + COLLECTION_DOSSIER_PADDING_X, bodyY, dossier.description, {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: `${COLLECTION_DOSSIER_TEXT_FONT_SIZE}px`,
+      color: '#dbeafe',
+      align: 'left',
+      lineSpacing: COLLECTION_DOSSIER_TEXT_LINE_SPACING,
+      wordWrap: { width: bodyMaxWidth, useAdvancedWrap: true },
+      maxLines: COLLECTION_DOSSIER_TEXT_MAX_LINES,
+    }).setOrigin(0, 0);
+    const bodyHeight = body.height;
     const panelHeight = Math.max(
       COLLECTION_DOSSIER_MIN_HEIGHT,
-      (hasChips ? chipY + COLLECTION_DOSSIER_CHIP_HEIGHT : bodyY + bodyHeight) - y + COLLECTION_DOSSIER_PADDING_Y,
+      bodyY + bodyHeight - y + COLLECTION_DOSSIER_PADDING_Y,
     );
 
     const panel = this.add.graphics();
@@ -326,66 +316,10 @@ export default class CollectionScene extends Phaser.Scene {
     content.add(panel);
     this.trackCollectionContentElement(panel);
 
-    const title = this.add.text(x + COLLECTION_DOSSIER_PADDING_X, titleY, dossier.title, {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: '11px',
-      color: '#93c5fd',
-      fontStyle: 'bold',
-      letterSpacing: 0.8,
-    }).setOrigin(0, 0);
-    content.add(title);
-    this.trackCollectionContentElement(title);
-
-    if (body) {
-      content.add(body);
-      this.trackCollectionContentElement(body);
-    }
-    chipItems.forEach((item) => this.trackCollectionContentElement(item));
+    content.add(body);
+    this.trackCollectionContentElement(body);
     content.sendToBack(panel);
     return y + panelHeight + COLLECTION_DOSSIER_BOTTOM_GAP;
-  }
-
-  drawFactionDossierChips(content, tags, { rightX, y, accentColor, maxWidth }) {
-    if (!Array.isArray(tags) || tags.length === 0) {
-      return [];
-    }
-
-    const chips = [];
-    let totalWidth = 0;
-    for (const tag of tags) {
-      const label = translateActive(`ui.factionSelect.tags.${tag}`, tag);
-      const text = this.add.text(0, y + 4, label, {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '10px',
-        color: '#f8fafc',
-        stroke: '#020617',
-        strokeThickness: 2,
-      }).setOrigin(0, 0);
-      const width = Math.ceil(text.width + 14);
-      const nextTotal = totalWidth + width + (chips.length ? COLLECTION_DOSSIER_CHIP_GAP : 0);
-      if (nextTotal > maxWidth) {
-        text.destroy();
-        break;
-      }
-      chips.push({ text, width });
-      totalWidth = nextTotal;
-    }
-
-    let currentX = rightX - totalWidth;
-    const items = [];
-    chips.forEach(({ text, width }) => {
-      const pill = this.add.graphics();
-      pill.fillStyle(0x020617, 0.62);
-      pill.fillRoundedRect(currentX, y, width, COLLECTION_DOSSIER_CHIP_HEIGHT, 10);
-      pill.lineStyle(1, accentColor, 0.75);
-      pill.strokeRoundedRect(currentX + 0.5, y + 0.5, width - 1, COLLECTION_DOSSIER_CHIP_HEIGHT - 1, 9);
-      text.setPosition(currentX + 7, y + 4);
-      content.add(pill);
-      content.add(text);
-      items.push(pill, text);
-      currentX += width + COLLECTION_DOSSIER_CHIP_GAP;
-    });
-    return items;
   }
 
   toggleFactionSection(factionKey) {
