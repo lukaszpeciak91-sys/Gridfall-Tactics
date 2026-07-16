@@ -4,6 +4,13 @@ import { SETTINGS_CHANGED_EVENT, loadSettings, toggleMuted } from '../systems/se
 
 const PREMIUM_GOLD_ACCENT = 0xfacc15;
 const BOTTOM_CONTROL_CORNER_RADIUS_RATIO = 0.16;
+export const NAVIGATION_ICON_TYPES = Object.freeze({
+  BACK: 'back',
+  HELP: 'help',
+  FULLSCREEN: 'fullscreen',
+});
+export const NAVIGATION_ICON_COLOR = 0xf8fafc;
+
 
 function getBottomControlCornerRadius(size) {
   return Math.max(6, Math.round(size * BOTTOM_CONTROL_CORNER_RADIUS_RATIO));
@@ -26,6 +33,117 @@ export function getBottomNavigationMetrics(scene, { centerY = null, touchSize = 
   };
 }
 
+function resolveNavigationIconType(label) {
+  if (label === '←' || label === NAVIGATION_ICON_TYPES.BACK) return NAVIGATION_ICON_TYPES.BACK;
+  if (label === '?' || label === NAVIGATION_ICON_TYPES.HELP) return NAVIGATION_ICON_TYPES.HELP;
+  if (label === '⛶' || label === NAVIGATION_ICON_TYPES.FULLSCREEN) return NAVIGATION_ICON_TYPES.FULLSCREEN;
+  return null;
+}
+
+export function getNavigationIconGeometry(size, iconType) {
+  const unit = size / 44;
+  const strokeWidth = Math.max(3, size * 0.076);
+
+  if (iconType === NAVIGATION_ICON_TYPES.BACK) {
+    return {
+      unit,
+      strokeWidth,
+      shaft: { x1: 11 * unit, y1: 0, x2: -9 * unit, y2: 0 },
+      head: [
+        { x1: -8 * unit, y1: 0, x2: 3 * unit, y2: -11 * unit },
+        { x1: -8 * unit, y1: 0, x2: 3 * unit, y2: 11 * unit },
+      ],
+      bounds: { left: -9 * unit, right: 11 * unit, top: -11 * unit, bottom: 11 * unit },
+    };
+  }
+
+  if (iconType === NAVIGATION_ICON_TYPES.HELP) {
+    return {
+      unit,
+      strokeWidth,
+      hook: {
+        centerX: 0,
+        centerY: -5 * unit,
+        radius: 8 * unit,
+        startAngle: Math.PI * 1.08,
+        endAngle: Math.PI * 2.1,
+      },
+      stem: { x1: 6.3 * unit, y1: -1 * unit, x2: 0, y2: 6.5 * unit },
+      dot: { x: 0, y: 13 * unit, radius: Math.max(2.1 * unit, strokeWidth * 0.52) },
+      bounds: { left: -8 * unit, right: 8 * unit, top: -13 * unit, bottom: 15.5 * unit },
+    };
+  }
+
+  if (iconType === NAVIGATION_ICON_TYPES.FULLSCREEN) {
+    const inset = 12 * unit;
+    const corner = 8 * unit;
+    return {
+      unit,
+      strokeWidth,
+      corners: [
+        [[-inset, -inset + corner], [-inset, -inset], [-inset + corner, -inset]],
+        [[inset - corner, -inset], [inset, -inset], [inset, -inset + corner]],
+        [[inset, inset - corner], [inset, inset], [inset - corner, inset]],
+        [[-inset + corner, inset], [-inset, inset], [-inset, inset - corner]],
+      ],
+      bounds: { left: -inset, right: inset, top: -inset, bottom: inset },
+    };
+  }
+
+  return null;
+}
+
+export function drawNavigationIcon(icon, size, iconType, color = NAVIGATION_ICON_COLOR) {
+  const geometry = getNavigationIconGeometry(size, iconType);
+  if (!geometry) return false;
+
+  icon.clear();
+  icon.lineStyle(geometry.strokeWidth, color, 1);
+  if (icon.lineCap) icon.lineCap = 'round';
+  if (icon.lineJoin) icon.lineJoin = 'round';
+
+  if (iconType === NAVIGATION_ICON_TYPES.BACK) {
+    icon.beginPath();
+    icon.moveTo(geometry.shaft.x1, geometry.shaft.y1);
+    icon.lineTo(geometry.shaft.x2, geometry.shaft.y2);
+    geometry.head.forEach((segment) => {
+      icon.moveTo(segment.x1, segment.y1);
+      icon.lineTo(segment.x2, segment.y2);
+    });
+    icon.strokePath();
+    return true;
+  }
+
+  if (iconType === NAVIGATION_ICON_TYPES.HELP) {
+    icon.beginPath();
+    icon.arc(
+      geometry.hook.centerX,
+      geometry.hook.centerY,
+      geometry.hook.radius,
+      geometry.hook.startAngle,
+      geometry.hook.endAngle,
+    );
+    icon.lineTo(geometry.stem.x2, geometry.stem.y2);
+    icon.strokePath();
+    icon.fillStyle(color, 1);
+    icon.fillCircle(geometry.dot.x, geometry.dot.y, geometry.dot.radius);
+    return true;
+  }
+
+  if (iconType === NAVIGATION_ICON_TYPES.FULLSCREEN) {
+    geometry.corners.forEach((corner) => {
+      icon.beginPath();
+      icon.moveTo(corner[0][0], corner[0][1]);
+      icon.lineTo(corner[1][0], corner[1][1]);
+      icon.lineTo(corner[2][0], corner[2][1]);
+      icon.strokePath();
+    });
+    return true;
+  }
+
+  return false;
+}
+
 export function createFloatingControl(scene, x, y, size, label, onPointerUp, { fontScale = 0.5 } = {}) {
   const halo = scene.add.circle(x, y, size * 0.55, 0x38bdf8, 0.08)
     .setStrokeStyle(1, 0x7dd3fc, 0.18)
@@ -34,18 +152,17 @@ export function createFloatingControl(scene, x, y, size, label, onPointerUp, { f
     .setRounded(getBottomControlCornerRadius(size))
     .setStrokeStyle(1, PREMIUM_GOLD_ACCENT, 0.58)
     .setDepth(199);
-  const text = scene.add.text(x, y, label, {
-    fontFamily: 'Arial, sans-serif',
-    fontSize: `${Math.max(16, Math.floor(size * fontScale))}px`,
-    color: '#f5f1e6',
-    fontStyle: 'bold',
-    align: 'center',
-  }).setOrigin(0.5).setDepth(200)
-    .setShadow(0, 1, 'rgba(3, 17, 40, 0.62)', 1, true, true);
+  const iconType = resolveNavigationIconType(label);
+  const icon = scene.add.graphics().setPosition(x, y).setDepth(200);
+  drawNavigationIcon(icon, size, iconType);
+
+  if (!iconType) {
+    icon.destroy?.();
+    throw new Error(`Unsupported floating navigation icon: ${label}`);
+  }
 
   if (onPointerUp) {
     backing.setInteractive({ useHandCursor: true });
-    text.setInteractive({ useHandCursor: true });
     backing.on('pointerover', () => {
       backing.setFillStyle(0x0f172a, 0.72);
       backing.setStrokeStyle(1, PREMIUM_GOLD_ACCENT, 0.82);
@@ -61,10 +178,9 @@ export function createFloatingControl(scene, x, y, size, label, onPointerUp, { f
       onPointerUp(...args);
     };
     backing.on('pointerup', handlePointerUp);
-    text.on('pointerup', handlePointerUp);
   }
 
-  return { halo, backing, text };
+  return { halo, backing, icon, text: icon, iconType };
 }
 
 export function drawSpeakerIcon(icon, size, isMuted) {
@@ -174,11 +290,11 @@ export function createBottomNavigationControls(scene, {
   const middleAction = onRules ?? onMenu;
 
   const controls = {
-    back: onBack ? createFloatingControl(scene, backX, metrics.centerY, metrics.touchSize, '←', onBack) : null,
+    back: onBack ? createFloatingControl(scene, backX, metrics.centerY, metrics.touchSize, NAVIGATION_ICON_TYPES.BACK, onBack) : null,
     mute: onMute ? createMuteToggleControl(scene, backX, metrics.centerY, metrics.touchSize, { onToggle: onMute }) : null,
-    rules: middleAction ? createFloatingControl(scene, metrics.width * 0.5, metrics.centerY, metrics.touchSize, '?', middleAction, { fontScale: 0.52 }) : null,
+    rules: middleAction ? createFloatingControl(scene, metrics.width * 0.5, metrics.centerY, metrics.touchSize, NAVIGATION_ICON_TYPES.HELP, middleAction) : null,
     menu: null,
-    fullscreen: onFullscreen ? createFloatingControl(scene, fullscreenX, metrics.centerY, metrics.touchSize, '⛶', onFullscreen) : null,
+    fullscreen: onFullscreen ? createFloatingControl(scene, fullscreenX, metrics.centerY, metrics.touchSize, NAVIGATION_ICON_TYPES.FULLSCREEN, onFullscreen) : null,
     metrics,
   };
 

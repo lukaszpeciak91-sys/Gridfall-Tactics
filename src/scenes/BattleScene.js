@@ -17,7 +17,7 @@ import { calculateHandCardFocusBounds, calculateTutorialBannerLayout, getLiveHan
 import { calculateHandBackCardCoverCrop, calculateHandBackCardDepth, shouldRenderHandBackCard } from '../ui/handBackCardPresentation.js';
 import { ACHIEVEMENT_UNLOCK_POPUP_TIMING, calculateAchievementUnlockPopupLayout, createAchievementUnlockPopup } from '../ui/achievementUnlockPopup.js';
 import { HAND_CARD_FLIP_REVEAL_DURATION, findHandCardFlipRevealSlots, shouldSkipHandCardFlipReveal, startHandCardFlipReveal } from '../ui/handCardFlipReveal.js';
-import { createFloatingControl, createMuteToggleControl, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
+import { NAVIGATION_ICON_TYPES, createFloatingControl, createMuteToggleControl, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
 import { createModalBackButton } from '../ui/modalControls.js';
 import { PREMIUM_BROADCAST_FONT_STACK, createImageButton, preloadSecondaryButtonAsset } from '../ui/imageButton.js';
 import { formatDeckSummaryEntry } from '../rendering/cardRenderModes.js';
@@ -1445,7 +1445,7 @@ export default class BattleScene extends Phaser.Scene {
       this.guardPointerEvent(pointer);
     });
     const muteToggle = createMuteToggleControl(this, panelX - 28, rowY, 42, { depth: depth + 3 });
-    const fullscreenToggle = createFloatingControl(this, panelX + 28, rowY, 42, '⛶', () => {
+    const fullscreenToggle = createFloatingControl(this, panelX + 28, rowY, 42, NAVIGATION_ICON_TYPES.FULLSCREEN, () => {
       this.toggleFullscreen();
     }, { fontScale: 0.48 });
 

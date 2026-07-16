@@ -122,11 +122,11 @@ test('battle utility menu opens panel actions and rules resume the existing scen
   const helperSource = readScene('src/ui/navigationControls.js');
   const mainSource = readScene('src/main.js');
 
-  assert.match(helperSource, /rules: middleAction \? createFloatingControl\(scene, metrics\.width \* 0\.5, metrics\.centerY, metrics\.touchSize, '\?', middleAction/);
+  assert.match(helperSource, /rules: middleAction \? createFloatingControl\(scene, metrics\.width \* 0\.5, metrics\.centerY, metrics\.touchSize, NAVIGATION_ICON_TYPES\.HELP, middleAction/);
   assert.match(battleSource, /drawPlayerBaseUtilityMenuTrigger\(\) \{[\s\S]*'☰',[\s\S]*this\.guardPointerEvent\(pointer\);[\s\S]*this\.toggleUtilityMenuPanel\(\);[\s\S]*this\.bottomControlViews = \[menu\];[\s\S]*\}/);
   assert.match(battleSource, /const panelLeft = triggerX \+ triggerWidth \/ 2;[\s\S]*const menuScale = 1\.1;[\s\S]*const basePanelContentWidth = 208;[\s\S]*const basePanelHeight = 186;[\s\S]*const panelContentWidth = Math\.round\(basePanelContentWidth \* menuScale\);[\s\S]*const panelHorizontalPadding = Math\.round\(4 \* menuScale\);[\s\S]*const panelWidth = Math\.min\(panelContentWidth \+ panelHorizontalPadding \* 2, width - margin - panelLeft\);[\s\S]*const panelHeight = Math\.round\(basePanelHeight \* menuScale\);[\s\S]*const panelTop = triggerY - triggerHeight \/ 2 - \(panelHeight - basePanelHeight\) \/ 2;[\s\S]*const panelX = Math\.min\(width - margin - panelWidth \/ 2, panelLeft \+ basePanelContentWidth \/ 2 \+ 14\);[\s\S]*const panelY = panelTop \+ panelHeight \/ 2;[\s\S]*const rowY = panelTop \+ Math\.round\(28 \* menuScale\);/);
   assert.doesNotMatch(battleSource, /utilityMenuTitle|TACTICAL MENU/);
-  assert.match(battleSource, /const muteToggle = createMuteToggleControl\(this, panelX - 28, rowY, 42, \{ depth: depth \+ 3 \}\);[\s\S]*const fullscreenToggle = createFloatingControl\(this, panelX \+ 28, rowY, 42, '⛶'/);
+  assert.match(battleSource, /const muteToggle = createMuteToggleControl\(this, panelX - 28, rowY, 42, \{ depth: depth \+ 3 \}\);[\s\S]*const fullscreenToggle = createFloatingControl\(this, panelX \+ 28, rowY, 42, NAVIGATION_ICON_TYPES\.FULLSCREEN/);
   assert.match(battleSource, /showUtilityMenuPanel\(\) \{[\s\S]*this\.closeInspectPreview\(\{ animate: false, clearSelection: true \}\);[\s\S]*outsideCatcher\.on\('pointerup',[\s\S]*this\.guardPointerEvent\(pointer\);[\s\S]*this\.destroyUtilityMenuPanel\(\);[\s\S]*createMuteToggleControl\(this,[\s\S]*translateActive\('ui\.battle\.utilityMenuRules', 'Rules'\), \(\) => this\.openRulesPanel\(\)\),[\s\S]*translateActive\('ui\.battle\.utilityMenuSettings', 'Settings'\), \(\) => this\.openSettingsScene\(\)\),[\s\S]*translateActive\('ui\.battle\.utilityMenuSurrender', 'Surrender'\), \(\) => this\.openSurrenderConfirmationFromUtilityMenu\(\)\),[\s\S]*\}/);
   assert.match(battleSource, /openSurrenderConfirmationFromUtilityMenu\(\) \{[\s\S]*this\.destroyUtilityMenuPanel\(\);[\s\S]*this\.utilityMenuPanel = null;[\s\S]*this\.showSurrenderConfirmation\(\);[\s\S]*\}/);
   assert.doesNotMatch(battleSource, /translateActive\('ui\.battle\.utilityMenuReturn', 'Return'\)[\s\S]*createUtilityMenuButton/);
@@ -310,7 +310,7 @@ test('FactionSelectScene uses shared bottom navigation controls for back, rules,
   const menuSource = readScene('src/scenes/BattleMenuScene.js');
 
   assert.match(factionSource, /import \{ createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen \} from '\.\.\/ui\/navigationControls\.js';/);
-  assert.match(battleSource, /import \{ createFloatingControl, createMuteToggleControl, requestPortraitOrientationLock, toggleSceneFullscreen \} from '\.\.\/ui\/navigationControls\.js';/);
+  assert.match(battleSource, /import \{ NAVIGATION_ICON_TYPES, createFloatingControl, createMuteToggleControl, requestPortraitOrientationLock, toggleSceneFullscreen \} from '\.\.\/ui\/navigationControls\.js';/);
   assert.match(helperSource, /export function createBottomNavigationControls/);
   assert.match(helperSource, /export function createFloatingControl/);
   assert.match(helperSource, /export function requestPortraitOrientationLock/);
