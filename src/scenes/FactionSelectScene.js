@@ -14,7 +14,7 @@ import {
 import { AUDIO_KEYS, preloadAudioAssets } from '../audio/audioAssets.js';
 import { playSfx } from '../audio/audioPlayback.js';
 import { playMenuMusic } from '../audio/menuMusic.js';
-import { emitSceneTransitionVisuallyReady, traceSceneTransition } from './sceneTransitionOverlay.js';
+import { emitSceneTransitionVisuallyReady, traceSceneTransition, traceSceneTransitionReadiness } from './sceneTransitionOverlay.js';
 import { createNewCampaign, saveCampaign } from '../systems/campaignState.js';
 import { incrementCampaignStarted, loadPlayerStats, savePlayerStats } from '../systems/playerStats.js';
 import { evaluateAndPersistAchievementUnlocks } from '../systems/runtimeAchievements.js';
@@ -618,7 +618,7 @@ export default class FactionSelectScene extends Phaser.Scene {
     }
 
     if (this.scene.isActive('FactionSelectScene')) {
-      traceSceneTransition(this, 'fullscreen-triggered restart', { transitionId: this.sceneTransitionOverlay?.transitionId ?? null, destinationSceneKey: this.scene.key, sourceSceneKey: this.sceneTransitionOverlay?.sourceSceneKey ?? null });
+      traceSceneTransitionReadiness(this, 'fullscreen/restart recovery readiness reconciliation', { source: 'resume', transitionId: this.sceneTransitionOverlay?.transitionId ?? null, destinationSceneKey: this.scene.key, sourceSceneKey: this.sceneTransitionOverlay?.sourceSceneKey ?? null });
       this.scene.restart({ mode: this.mode, returnSceneKey: this.returnSceneKey, sceneTransitionOverlay: this.sceneTransitionOverlay });
     }
   }
@@ -732,12 +732,13 @@ export default class FactionSelectScene extends Phaser.Scene {
   scheduleTransitionReadyAfterFirstRender() {
     const transitionId = this.sceneTransitionOverlay?.transitionId;
     if (typeof transitionId !== 'string' || !transitionId || this.transitionReadyEmitted || this.transitionReadyPostRenderCallback) return;
-    traceSceneTransition(this, 'post-render readiness scheduled', { transitionId, destinationSceneKey: this.scene.key, sourceSceneKey: this.sceneTransitionOverlay?.sourceSceneKey ?? null });
+    traceSceneTransitionReadiness(this, 'post-render readiness scheduled', { source: 'post-render', transitionId, destinationSceneKey: this.scene.key, sourceSceneKey: this.sceneTransitionOverlay?.sourceSceneKey ?? null });
 
-    const runOnce = () => {
-      traceSceneTransition(this, 'POST_RENDER callback fired', { transitionId, destinationSceneKey: this.scene.key, sourceSceneKey: this.sceneTransitionOverlay?.sourceSceneKey ?? null });
+    const runOnce = (readinessSource = 'post-render') => {
+      traceSceneTransitionReadiness(this, 'POST_RENDER callback fired', { source: 'post-render', transitionId, destinationSceneKey: this.scene.key, sourceSceneKey: this.sceneTransitionOverlay?.sourceSceneKey ?? null });
       if (this.transitionReadyEmitted || (!this.scene?.isActive?.(this.scene.key) && !this.scene?.isVisible?.(this.scene.key))) return;
       this.clearPendingTransitionReadyCallbacks();
+      this.transitionReadySource = readinessSource;
       this.emitTransitionReadyIfNeeded();
     };
 
@@ -745,8 +746,8 @@ export default class FactionSelectScene extends Phaser.Scene {
     const postRenderEvent = Phaser.Core?.Events?.POST_RENDER ?? 'postrender';
     this.game?.events?.once?.(postRenderEvent, runOnce);
     const fallbackRunOnce = () => {
-      traceSceneTransition(this, 'fallback readiness callback fired', { transitionId, destinationSceneKey: this.scene.key, sourceSceneKey: this.sceneTransitionOverlay?.sourceSceneKey ?? null });
-      runOnce();
+      traceSceneTransitionReadiness(this, 'fallback readiness callback fired', { source: 'fallback', transitionId, destinationSceneKey: this.scene.key, sourceSceneKey: this.sceneTransitionOverlay?.sourceSceneKey ?? null });
+      runOnce('fallback');
     };
     this.transitionReadyFallbackEvent = this.time?.delayedCall?.(120, fallbackRunOnce) ?? null;
     // Removal cleanup expects the canonical fallback assignment shape: this.transitionReadyFallbackEvent = this.time?.delayedCall?.(120, runOnce) ?? null;
@@ -766,7 +767,7 @@ export default class FactionSelectScene extends Phaser.Scene {
     const transitionId = this.sceneTransitionOverlay?.transitionId;
     if (typeof transitionId !== 'string' || !transitionId || this.transitionReadyEmitted) return;
     this.transitionReadyEmitted = true;
-    traceSceneTransition(this, 'readiness emitted', { transitionId, destinationSceneKey: this.scene.key, sourceSceneKey: this.sceneTransitionOverlay?.sourceSceneKey ?? null });
+    traceSceneTransitionReadiness(this, 'readiness emitted immediately before emit', { source: this.transitionReadySource ?? 'other', transitionId, destinationSceneKey: this.scene.key, sourceSceneKey: this.sceneTransitionOverlay?.sourceSceneKey ?? null });
     emitSceneTransitionVisuallyReady(this, { transitionId });
   }
 

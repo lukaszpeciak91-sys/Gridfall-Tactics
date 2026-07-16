@@ -4,7 +4,7 @@ export const SCENE_TRANSITION_VISUALLY_READY_EVENT = 'scene-transition:visually-
 export const SCENE_TRANSITION_REGISTRY_KEY = 'gridfall.sceneTransitionOverlay.state';
 
 export const ENABLE_SCENE_TRANSITION_TRACE = typeof globalThis !== 'undefined' && globalThis.localStorage?.getItem?.('gridfall:scene-transition-trace') === '1';
-export const SCENE_TRANSITION_TRACE_PREFIX = '[scene-transition-trace]';
+export const SCENE_TRANSITION_TRACE_PREFIX = '[transition-completion-trace]';
 
 function getSceneManagerScenes(sceneOrPlugin) {
   return sceneOrPlugin?.manager?.scenes ?? sceneOrPlugin?.scene?.manager?.scenes ?? sceneOrPlugin?.sys?.game?.scene?.scenes ?? sceneOrPlugin?.game?.scene?.scenes ?? [];
@@ -42,7 +42,6 @@ export function getSceneTransitionTraceSnapshot(sceneOrPlugin, { transitionId = 
 }
 
 export function traceSceneTransition(sceneOrPlugin, event, details = {}) {
-  if (!ENABLE_SCENE_TRANSITION_TRACE) return;
   const transitionId = details.transitionId ?? sceneOrPlugin?.sceneTransitionOverlay?.transitionId ?? sceneOrPlugin?.transitionId ?? null;
   const destinationSceneKey = details.destinationSceneKey ?? sceneOrPlugin?.destinationSceneKey ?? null;
   const sourceSceneKey = details.sourceSceneKey ?? sceneOrPlugin?.sourceSceneKey ?? sceneOrPlugin?.scene?.key ?? null;
@@ -50,6 +49,54 @@ export function traceSceneTransition(sceneOrPlugin, event, details = {}) {
     event,
     timestamp: performance.now(),
     ...getSceneTransitionTraceSnapshot(sceneOrPlugin?.scene ?? sceneOrPlugin, { transitionId, sourceSceneKey, destinationSceneKey }),
+    ...details,
+  });
+}
+
+export function getSceneTransitionCompletionProbe(scene) {
+  const destinationSceneKey = scene?.scene?.key ?? scene?.sys?.settings?.key ?? null;
+  const textureKeys = [
+    scene?.menuBackground?.key,
+    scene?.menuBackground?.texture?.key,
+    scene?.background?.key,
+    scene?.background?.texture?.key,
+    'menu-background',
+    'main-menu-background',
+  ].filter((key) => typeof key === 'string' && key);
+  const backgroundTextureExists = textureKeys.some((key) => scene?.textures?.exists?.(key));
+  const mainUiCandidates = {
+    menuBackground: scene?.menuBackground,
+    scrollContent: scene?.scrollState?.content,
+    scrollState: scene?.scrollState,
+    menuButtons: scene?.menuButtons,
+    menuButtonViews: scene?.menuButtonViews,
+    uiElements: scene?.uiElements,
+    title: scene?.title,
+    header: scene?.header,
+  };
+  const mainUiExists = Object.entries(mainUiCandidates).some(([, value]) => {
+    if (Array.isArray(value)) return value.length > 0;
+    return Boolean(value);
+  });
+  return {
+    readinessProbe: {
+      source: null,
+      backgroundTextureExists,
+      mainUiExists,
+      mainUiCandidates: Object.fromEntries(Object.entries(mainUiCandidates).map(([key, value]) => [key, Array.isArray(value) ? value.length : Boolean(value)])),
+      destinationCameraRendering: Boolean(scene?.cameras?.main?.visible) && (scene?.cameras?.main?.alpha ?? 1) > 0,
+      currentSceneOrder: getSceneManagerScenes(scene).map((entry) => entry?.scene?.key ?? entry?.sys?.settings?.key ?? 'unknown'),
+    },
+  };
+}
+
+export function traceSceneTransitionReadiness(scene, event, { source = 'other', transitionId = null, destinationSceneKey = null, sourceSceneKey = null, ...details } = {}) {
+  traceSceneTransition(scene, event, {
+    transitionId: transitionId ?? scene?.sceneTransitionOverlay?.transitionId ?? null,
+    destinationSceneKey: destinationSceneKey ?? scene?.scene?.key ?? scene?.destinationSceneKey ?? null,
+    sourceSceneKey: sourceSceneKey ?? scene?.sceneTransitionOverlay?.sourceSceneKey ?? scene?.sourceSceneKey ?? null,
+    readinessSource: source,
+    ...getSceneTransitionCompletionProbe(scene),
     ...details,
   });
 }
