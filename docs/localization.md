@@ -57,7 +57,13 @@ The current dictionaries cover and the routed UI includes:
 - Rules / How To Play title, sections, bullets, scroll hints, and back button.
 - Battle menu title, “coming soon” text, and How To Play button.
 - Battle UI labels including hero labels, action badges, PASS, mulligan/keep hand, deck counter, Deck Info panel headings, empty-group labels, result modal win/lose/draw/retry/exit text, enemy action banners, effect summaries, block text, card type labels, and stat labels.
-- Achievements panel copy including category labels, achievement titles/descriptions, locked/unlocked/progress display, achievement unlock popup copy, popup queue counter text, and PL/EN support.
+- Achievements panel copy including category labels, achievement titles/descriptions, locked/unlocked/progress display, progression banner labels, max-level copy, point values on cards, PKT / PTS abbreviations, compact minute formatting for time achievements, achievement unlock popup copy, popup queue counter text, and PL/EN support.
+
+## Achievement wording conventions
+
+- Do not copy the full achievement catalogue into this document; keep catalogue copy in the localization dictionaries.
+- Progression labels include the AchievementsScene banner, max-level text, point abbreviations (`PTS` / `PKT`), point values on achievement cards, and compact minute formatting for active battle-time achievements.
+- Arena achievement copy should stay consistent: Polish uses `na Arenie`, Polish descriptions prefer the natural `bitwa` / `bitwy` / `bitew` forms, and English uses `Arena battle` / `Arena battleground`.
 
 ## Card text
 

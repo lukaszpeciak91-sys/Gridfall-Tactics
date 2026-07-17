@@ -173,6 +173,15 @@ canonical_ref: docs/rules/mvp-battle-rules.md
 - Confirmed full Achievements access is intentionally not added to the in-battle hamburger menu.
 - Achievements V1 is complete; future work should be limited to adding individual achievements, adjusting thresholds, copy/localization changes, minor visual/audio polish, and support for future modes and factions.
 
+## Achievement Progression V1 Complete (2026-07-17)
+- Closed achievement-derived progression as a completed V1 milestone: the catalogue is finalized at 69 definitions, including active battle-time achievements alongside global, Arena, Campaign, Tutorial, card-play, and dynamic faction achievements.
+- Confirmed persistent Player Stats, persistent Achievement State, and persistent achievement presentation state as the recovery layers for progress, unlock truth, and result-popup presentation.
+- Locked the V1 achievement point mapping at 1★ = 25, 2★ = 50, 3★ = 100, and 4★ = 200, for a current total catalogue pool of 3825 points.
+- Completed derived Level 1–15 progression: Level 15 begins at 2875 points, points and levels are not separately persisted, and maximum level intentionally does not require 100% catalogue completion.
+- Completed the AchievementsScene progression banner, point values on achievement cards, corrected active battle-time display, no point display on compact unlock popups, and no level-up popup for V1.
+- Confirmed contextual achievement popup behavior, including Campaign completion achievement popups displayed above the interactive summary, lifecycle-safe result presentation, and same-origin browser persistence across refresh/reopen/redeploy.
+- Future work is limited to additional achievements, threshold/copy/difficulty tuning, future faction or mode support, minor UI polish, and deliberate progression-economy review whenever catalogue size changes.
+
 ## Overclock / Project H.E.R.D. Production Faction Registration (2026-07-12)
 - Added Overclock v14 as production faction `overclock` with runtime key `Overclock` and player-facing presentation Project H.E.R.D. / Program P.A.S.Z.A.
 - Registered the accepted v14 checkpoint: 49.3% global non-draw WR, 31.6% worst matchup vs Aggro, 64.5% best matchup vs Swarm, 37.3% campaign estimate, 0 crashes, and 0 invalid actions.
