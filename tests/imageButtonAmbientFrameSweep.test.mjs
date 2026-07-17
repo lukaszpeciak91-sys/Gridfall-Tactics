@@ -54,11 +54,37 @@ test('sweep timing is intermittent deterministic and within intended ranges', ()
   assert.match(imageButtonSource, /const AMBIENT_FRAME_SWEEP_SEGMENT_RATIO = 0\.15/);
   assert.match(imageButtonSource, /const AMBIENT_FRAME_SWEEP_VISIBLE_MS = 1900/);
   assert.match(imageButtonSource, /const AMBIENT_FRAME_SWEEP_CYCLE_MS = 6400/);
-  assert.match(imageButtonSource, /const AMBIENT_FRAME_SWEEP_PHASE_STEP_MS = 730/);
-  assert.match(imageButtonSource, /const phaseOffsetMs = \(ambientFrameSweepSequence % 7\) \* AMBIENT_FRAME_SWEEP_PHASE_STEP_MS/);
+  assert.match(imageButtonSource, /const AMBIENT_FRAME_SWEEP_PHASE_STEP_MS = 2700/);
+  assert.match(imageButtonSource, /const AMBIENT_FRAME_SWEEP_FADE_START_RATIO = 0\.82/);
+  assert.match(imageButtonSource, /const phaseOffsetMs = \(ambientFrameSweepSequence \* AMBIENT_FRAME_SWEEP_PHASE_STEP_MS\) % AMBIENT_FRAME_SWEEP_CYCLE_MS/);
   assert.match(imageButtonSource, /scene\.time\?\.delayedCall\?\.\(phaseOffsetMs/);
   assert.match(imageButtonSource, /scene\.time\?\.delayedCall\?\.\(AMBIENT_FRAME_SWEEP_CYCLE_MS/);
-  assert.doesNotMatch(imageButtonSource, /Math\.random|repeat:\s*-1|yoyo:\s*true/);
+  assert.match(imageButtonSource, /pauseMs: AMBIENT_FRAME_SWEEP_CYCLE_MS - AMBIENT_FRAME_SWEEP_VISIBLE_MS/);
+  assert.doesNotMatch(imageButtonSource, /Math\.random|Date\.now|performance\.now|repeat:\s*-1|yoyo:\s*true/);
+});
+
+
+test('ambient sweep is one forward traversal with fade-out and no end flourish', () => {
+  const ambientImplementation = bodyBetween(imageButtonSource, 'function createAmbientFrameSweep', 'export function calculateSecondaryButtonHeight');
+
+  assert.match(ambientImplementation, /state\.offset = 0;[\s\S]*state\.alpha = AMBIENT_FRAME_SWEEP_ALPHA/);
+  assert.match(ambientImplementation, /offset: geometry\.perimeter,[\s\S]*duration: AMBIENT_FRAME_SWEEP_VISIBLE_MS/);
+  assert.match(ambientImplementation, /fadeProgress = Math\.max\(0, \(state\.offset \/ geometry\.perimeter - AMBIENT_FRAME_SWEEP_FADE_START_RATIO\)/);
+  assert.match(ambientImplementation, /state\.alpha = AMBIENT_FRAME_SWEEP_ALPHA \* \(1 - Math\.min\(1, fadeProgress\)\)/);
+  assert.match(ambientImplementation, /if \(distance > geometry\.perimeter\) break;/);
+  assert.match(ambientImplementation, /if \(state\.offset >= geometry\.perimeter \|\| state\.alpha <= 0\) return;/);
+  assert.match(ambientImplementation, /onComplete: \(\) => \{\s*graphics\.clear\(\);\s*graphics\.setVisible\(false\);\s*\}/);
+  assert.doesNotMatch(ambientImplementation, /yoyo|reverse|turnaround|spiral|overshoot|returnPhase|secondaryReturn|offset:\s*0\s*,\s*duration/);
+});
+
+test('ambient sweep cycles are independent and phase-distributed without a shared queue', () => {
+  const ambientImplementation = bodyBetween(imageButtonSource, 'function createAmbientFrameSweep', 'export function calculateSecondaryButtonHeight');
+
+  assert.match(ambientImplementation, /const phaseOffsetMs = \(ambientFrameSweepSequence \* AMBIENT_FRAME_SWEEP_PHASE_STEP_MS\) % AMBIENT_FRAME_SWEEP_CYCLE_MS/);
+  assert.match(ambientImplementation, /ambientFrameSweepSequence \+= 1/);
+  assert.match(ambientImplementation, /sweepTimer = scene\.time\?\.delayedCall\?\.\(phaseOffsetMs/);
+  assert.match(ambientImplementation, /sweepTimer = scene\.time\?\.delayedCall\?\.\(AMBIENT_FRAME_SWEEP_CYCLE_MS/);
+  assert.doesNotMatch(ambientImplementation, /shared|queue|coordinator|await|Promise|Math\.random|Date\.now|performance\.now/);
 });
 
 test('existing hover pressed feedback hit zones and callbacks remain on their current paths', () => {
