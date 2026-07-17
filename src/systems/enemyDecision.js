@@ -129,6 +129,82 @@ const UTILITY_EFFECT_IDS = new Set([
   'lane_tempo_mod_until_combat',
 ]);
 
+
+const ADJACENCY_DEPENDENT_UNIT_EFFECT_IDS = new Set([
+  'adjacent_allies_atk_plus_1_ignore_armor_1',
+  'warden_defensive_friction_adjacent',
+  'rotcaller_adjacent_death_atk_1',
+  'empty_adjacent_bonus_atk',
+]);
+
+const ADJACENCY_FORMATION_OCCUPIED_ALLY_VALUE = 180;
+const ADJACENCY_FORMATION_EMPTY_CAPACITY_VALUE = 18;
+
+export function isAdjacencyDependentUnitCard(card) {
+  return Boolean(card?.type === 'unit' && ADJACENCY_DEPENDENT_UNIT_EFFECT_IDS.has(card.effectId ?? null));
+}
+
+function getAdjacencyFormationScore(state, owner, slotIndex, card) {
+  if (!isAdjacencyDependentUnitCard(card)) {
+    return {
+      adjacencyFormationValue: 0,
+      occupiedAdjacencyValue: 0,
+      futureAdjacencyCapacityValue: 0,
+      occupiedAdjacentFriendlySlots: [],
+      emptyAdjacentFriendlySlots: [],
+      possibleAdjacentPositions: 0,
+    };
+  }
+  const { friendly } = getRowsForOwner(owner);
+  const lane = friendly.indexOf(slotIndex);
+  const adjacentSlots = [friendly[lane - 1], friendly[lane + 1]].filter(Number.isInteger);
+  const occupiedAdjacentFriendlySlots = adjacentSlots.filter((index) => state.board?.[index]?.owner === owner);
+  const emptyAdjacentFriendlySlots = adjacentSlots.filter((index) => !state.board?.[index]);
+  const occupiedAdjacencyValue = occupiedAdjacentFriendlySlots.length * ADJACENCY_FORMATION_OCCUPIED_ALLY_VALUE;
+  const futureAdjacencyCapacityValue = emptyAdjacentFriendlySlots.length * ADJACENCY_FORMATION_EMPTY_CAPACITY_VALUE;
+  return {
+    adjacencyFormationValue: occupiedAdjacencyValue + futureAdjacencyCapacityValue,
+    occupiedAdjacencyValue,
+    futureAdjacencyCapacityValue,
+    occupiedAdjacentFriendlySlots,
+    emptyAdjacentFriendlySlots,
+    possibleAdjacentPositions: adjacentSlots.length,
+  };
+}
+
+function stableStringify(value) {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`;
+  return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`).join(',')}}`;
+}
+
+function hashTieBreakInput(input) {
+  const text = stableStringify(input);
+  let hash = 2166136261;
+  for (let i = 0; i < text.length; i += 1) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 16777619) >>> 0;
+  }
+  return hash >>> 0;
+}
+
+function getSeededTieBreakRoll(state, owner, tiedBest, options) {
+  if (typeof options.randomFn === 'function') {
+    return { value: options.randomFn(), source: 'options.randomFn' };
+  }
+  const hash = hashTieBreakInput({
+    owner,
+    firstActor: state?.firstActor ?? null,
+    turnsCompleted: state?.turnsCompleted ?? 0,
+    playerFactionId: state?.player?.factionId ?? null,
+    enemyFactionId: state?.enemy?.factionId ?? null,
+    board: state?.board ?? [],
+    hand: (owner === 'enemy' ? state?.enemy?.hand : state?.player?.hand)?.map((card) => card?.id ?? null) ?? [],
+    tiedBest,
+  });
+  return { value: hash / 0x100000000, source: 'state-hash' };
+}
+
 const DELAYED_VALUE_EFFECT_IDS = new Set([
   'draw_1',
   'return_friendly_draw_1',
@@ -951,6 +1027,8 @@ export function scoreAction(state, owner, action) {
   const currentBoardPressure = getBoardPressureValue(state, owner);
   const currentOpenLaneStats = getOpenLaneStats(state, owner);
 
+  const actionCard = getActionCard(state, owner, action);
+
   if (action.type === 'play-unit') {
     const result = playOrRedeployUnit(nextState, owner, action.cardId, action.slotIndex);
     if (!result.ok) return Number.NEGATIVE_INFINITY;
@@ -1012,6 +1090,19 @@ export function scoreAction(state, owner, action) {
       }
     }
     const placedUnit = nextState.board[action.slotIndex];
+    const adjacencyFormation = getAdjacencyFormationScore(state, owner, action.slotIndex, actionCard);
+    if (adjacencyFormation.adjacencyFormationValue > 0) {
+      score += adjacencyFormation.adjacencyFormationValue;
+      action.aiEvaluation = {
+        ...(action.aiEvaluation ?? {}),
+        adjacencyFormationValue: adjacencyFormation.adjacencyFormationValue,
+        occupiedAdjacencyValue: adjacencyFormation.occupiedAdjacencyValue,
+        futureAdjacencyCapacityValue: adjacencyFormation.futureAdjacencyCapacityValue,
+        occupiedAdjacentFriendlySlots: adjacencyFormation.occupiedAdjacentFriendlySlots,
+        emptyAdjacentFriendlySlots: adjacencyFormation.emptyAdjacentFriendlySlots,
+        possibleAdjacentPositions: adjacencyFormation.possibleAdjacentPositions,
+      };
+    }
     if (placedUnit?.owner === owner && placedUnit.effectId === 'enemy_lane_atk_minus_1' && lane >= 0) {
       score += evaluateLaneCombatSwing(state, nextState, owner, lane);
     }
@@ -1577,13 +1668,31 @@ export function chooseBattleAction(state, owner = 'enemy', options = {}) {
     return tiedBest[0];
   }
 
-  const randomFn = typeof options.randomFn === 'function' ? options.randomFn : null;
-  const tieBreakPolicy = options.tieBreakPolicy ?? 'first';
+  const tieBreakPolicy = options.tieBreakPolicy ?? 'seeded-random';
 
-  if (tieBreakPolicy === 'seeded-random' && randomFn) {
-    const index = Math.floor(randomFn() * tiedBest.length);
-    const picked = tiedBest[Math.max(0, Math.min(tiedBest.length - 1, index))];
-    picked.aiEvaluation = { ...(picked.aiEvaluation ?? {}), chosenAction: true, utilityChosenReason: picked.aiEvaluation?.utilityReason ?? picked.aiEvaluation?.reason ?? 'seeded random tie break' };
+  if (tieBreakPolicy === 'seeded-random') {
+    const tiedCandidateIndices = scoredActions
+      .map((entry, index) => (entry.score === bestScore ? index : -1))
+      .filter((index) => index >= 0);
+    const tieBreakRoll = getSeededTieBreakRoll(state, owner, tiedBest, options);
+    const index = Math.floor(tieBreakRoll.value * tiedBest.length);
+    const selectedTiedCandidateIndex = Math.max(0, Math.min(tiedBest.length - 1, index));
+    const picked = tiedBest[selectedTiedCandidateIndex];
+    picked.aiEvaluation = {
+      ...(picked.aiEvaluation ?? {}),
+      chosenAction: true,
+      utilityChosenReason: picked.aiEvaluation?.utilityReason ?? picked.aiEvaluation?.reason ?? 'seeded exact-score tie-break',
+      tieBreak: {
+        policy: 'seeded-random',
+        reason: 'seeded exact-score tie-break',
+        tieCount: tiedBest.length,
+        tiedCandidateIndices,
+        seedDerivedTieBreakValue: tieBreakRoll.value,
+        tieBreakSource: tieBreakRoll.source,
+        selectedTiedCandidateIndex,
+        selectedCandidateIndex: tiedCandidateIndices[selectedTiedCandidateIndex] ?? selectedTiedCandidateIndex,
+      },
+    };
     if (owner === 'enemy' && picked?.type !== 'pass') updateSafeSurrenderPassCounter(state, owner, false);
     return picked;
   }
