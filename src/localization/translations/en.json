@@ -639,11 +639,9 @@
           ]
         },
         {
-          "heading": "Combat Flow",
+          "heading": "Alternating Initiative",
           "lines": [
-            "The starting player may differ; initiative alternates.",
-            "Each side performs one action or PASS.",
-            "After both sides act or pass, combat resolves automatically.",
+            "Each turn, both sides take one action or PASS. Combat then resolves automatically. In the next turn, the side that acted second goes first.",
             "Units attack enemies directly opposite.",
             "An open lane hits the enemy base.",
             "After combat, both sides draw a card.",
@@ -727,7 +725,7 @@
         "Pick a faction for Arena.",
         "Play units into lines to pressure the enemy base.",
         "Use effect cards and swaps to control combat timing.",
-        "End your turn after spending your action.",
+        "End your action after making your move.",
         "Reduce the enemy base to 0 HP to win."
       ]
     },
