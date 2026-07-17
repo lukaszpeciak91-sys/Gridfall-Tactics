@@ -388,6 +388,7 @@ export default class FactionSelectScene extends Phaser.Scene {
       downScale: 0.98,
       preserveImageAspect: false,
       minTouchHeight: CAMPAIGN_ACCORDION_SELECT_BUTTON_MIN_TOUCH_HEIGHT,
+      ambientFrameSweep: true,
     });
 
     selectButton.hitZone.on('pointerdown', (pointer) => {

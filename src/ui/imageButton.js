@@ -31,6 +31,15 @@ const SECONDARY_BUTTON_VISIBLE_FRAME = Object.freeze({
 const SECONDARY_BUTTON_ASPECT_RATIO = SECONDARY_BUTTON_VISIBLE_FRAME.width / SECONDARY_BUTTON_VISIBLE_FRAME.height;
 const SECONDARY_BUTTON_DISPLAY_HEIGHT_SCALE = 1.09;
 const DEFAULT_MIN_TOUCH_HEIGHT = 54;
+const AMBIENT_FRAME_SWEEP_COLOR = 0x38d5ff;
+const AMBIENT_FRAME_SWEEP_ALPHA = 0.42;
+const AMBIENT_FRAME_SWEEP_SEGMENT_RATIO = 0.15;
+const AMBIENT_FRAME_SWEEP_VISIBLE_MS = 1900;
+const AMBIENT_FRAME_SWEEP_CYCLE_MS = 6400;
+const AMBIENT_FRAME_SWEEP_PHASE_STEP_MS = 730;
+const AMBIENT_FRAME_SWEEP_POINT_COUNT = 96;
+
+let ambientFrameSweepSequence = 0;
 
 function isLiveGameObject(target) {
   return Boolean(target && target.scene && target.active !== false);
@@ -59,6 +68,202 @@ function setTargetScaleFromBase(target, stateScale = 1) {
 
   const baseScale = getBaseScale(target);
   target.setScale(baseScale.x * stateScale, baseScale.y * stateScale);
+}
+
+function normalizeAmbientFrameSweepGeometry({ width, visualHeight }) {
+  const shortestSide = Math.max(1, Math.min(width, visualHeight));
+  const inset = Math.max(3, Math.round(shortestSide * 0.075));
+  const strokeWidth = Math.max(1.25, Math.min(2.5, shortestSide * 0.035));
+  const pathWidth = Math.max(1, width - inset * 2);
+  const pathHeight = Math.max(1, visualHeight - inset * 2);
+  const radius = Math.max(4, Math.min(pathHeight * 0.42, pathWidth * 0.18, shortestSide * 0.24));
+  const straightWidth = Math.max(0, pathWidth - radius * 2);
+  const straightHeight = Math.max(0, pathHeight - radius * 2);
+  const perimeter = Math.max(1, 2 * (straightWidth + straightHeight) + 2 * Math.PI * radius);
+  const segmentLength = perimeter * AMBIENT_FRAME_SWEEP_SEGMENT_RATIO;
+
+  return {
+    inset,
+    radius,
+    strokeWidth,
+    width: pathWidth,
+    height: pathHeight,
+    perimeter,
+    segmentLength,
+    pointCount: AMBIENT_FRAME_SWEEP_POINT_COUNT,
+  };
+}
+
+function sampleRoundedRectPoint(target, x, y, geometry, distance) {
+  const left = x - geometry.width / 2;
+  const right = x + geometry.width / 2;
+  const top = y - geometry.height / 2;
+  const bottom = y + geometry.height / 2;
+  const radius = geometry.radius;
+  let remaining = ((distance % geometry.perimeter) + geometry.perimeter) % geometry.perimeter;
+  const topLength = geometry.width - radius * 2;
+  const sideLength = geometry.height - radius * 2;
+  const arcLength = Math.PI * radius * 0.5;
+
+  if (remaining <= topLength) {
+    target.x = left + radius + remaining;
+    target.y = top;
+    return target;
+  }
+  remaining -= topLength;
+
+  if (remaining <= arcLength) {
+    const angle = -Math.PI / 2 + (remaining / arcLength) * (Math.PI / 2);
+    target.x = right - radius + Math.cos(angle) * radius;
+    target.y = top + radius + Math.sin(angle) * radius;
+    return target;
+  }
+  remaining -= arcLength;
+
+  if (remaining <= sideLength) {
+    target.x = right;
+    target.y = top + radius + remaining;
+    return target;
+  }
+  remaining -= sideLength;
+
+  if (remaining <= arcLength) {
+    const angle = (remaining / arcLength) * (Math.PI / 2);
+    target.x = right - radius + Math.cos(angle) * radius;
+    target.y = bottom - radius + Math.sin(angle) * radius;
+    return target;
+  }
+  remaining -= arcLength;
+
+  if (remaining <= topLength) {
+    target.x = right - radius - remaining;
+    target.y = bottom;
+    return target;
+  }
+  remaining -= topLength;
+
+  if (remaining <= arcLength) {
+    const angle = Math.PI / 2 + (remaining / arcLength) * (Math.PI / 2);
+    target.x = left + radius + Math.cos(angle) * radius;
+    target.y = bottom - radius + Math.sin(angle) * radius;
+    return target;
+  }
+  remaining -= arcLength;
+
+  if (remaining <= sideLength) {
+    target.x = left;
+    target.y = bottom - radius - remaining;
+    return target;
+  }
+
+  const angle = Math.PI + (remaining / arcLength) * (Math.PI / 2);
+  target.x = left + radius + Math.cos(angle) * radius;
+  target.y = top + radius + Math.sin(angle) * radius;
+  return target;
+}
+
+function createAmbientFrameSweep(scene, { x, y, width, visualHeight, depth }) {
+  const geometry = normalizeAmbientFrameSweepGeometry({ width, visualHeight });
+  const pathPoints = Array.from({ length: geometry.pointCount + 1 }, () => ({ x: 0, y: 0 }));
+  const graphics = scene.add.graphics()
+    .setDepth(depth + 0.75)
+    .setVisible(false);
+  graphics.setData?.('imageButtonAmbientFrameSweep', true);
+  graphics.setData?.('imageButtonAmbientFrameSweepGeometry', geometry);
+  graphics.setData?.('imageButtonAmbientFrameSweepPathPoints', pathPoints);
+  graphics.disableInteractive?.();
+
+  const state = { offset: 0 };
+  let sweepTween = null;
+  let sweepTimer = null;
+  let destroyed = false;
+  const phaseOffsetMs = (ambientFrameSweepSequence % 7) * AMBIENT_FRAME_SWEEP_PHASE_STEP_MS;
+  ambientFrameSweepSequence += 1;
+
+  const redrawSweep = () => {
+    if (destroyed || !isLiveGameObject(graphics)) return;
+    graphics.clear();
+    graphics.lineStyle(geometry.strokeWidth, AMBIENT_FRAME_SWEEP_COLOR, AMBIENT_FRAME_SWEEP_ALPHA);
+    graphics.beginPath();
+    for (let index = 0; index < pathPoints.length; index += 1) {
+      const point = pathPoints[index];
+      sampleRoundedRectPoint(point, x, y, geometry, (index / geometry.pointCount) * geometry.segmentLength + state.offset);
+      if (index === 0) {
+        graphics.moveTo(point.x, point.y);
+      } else {
+        graphics.lineTo(point.x, point.y);
+      }
+    }
+    graphics.strokePath();
+  };
+
+  const stopSweep = () => {
+    sweepTween?.stop?.();
+    sweepTween?.remove?.();
+    sweepTween = null;
+    sweepTimer?.remove?.(false);
+    sweepTimer = null;
+    graphics.clear();
+    graphics.setVisible(false);
+  };
+
+  const playSweep = () => {
+    if (destroyed || !isLiveGameObject(graphics)) return;
+    state.offset = 0;
+    graphics.setVisible(true);
+    redrawSweep();
+    sweepTween = scene.tweens?.add?.({
+      targets: state,
+      offset: geometry.perimeter,
+      duration: AMBIENT_FRAME_SWEEP_VISIBLE_MS,
+      ease: 'Sine.easeInOut',
+      onUpdate: redrawSweep,
+      onComplete: () => {
+        graphics.clear();
+        graphics.setVisible(false);
+      },
+    }) ?? null;
+  };
+
+  const schedule = () => {
+    if (destroyed) return;
+    sweepTimer = scene.time?.delayedCall?.(AMBIENT_FRAME_SWEEP_CYCLE_MS, () => {
+      playSweep();
+      schedule();
+    }) ?? null;
+  };
+
+  sweepTimer = scene.time?.delayedCall?.(phaseOffsetMs, () => {
+    playSweep();
+    schedule();
+  }) ?? null;
+
+  const cleanup = () => {
+    destroyed = true;
+    stopSweep();
+  };
+
+  graphics.setData?.('imageButtonAmbientFrameSweepCleanup', cleanup);
+  graphics.setData?.('imageButtonAmbientFrameSweepTiming', {
+    visibleMs: AMBIENT_FRAME_SWEEP_VISIBLE_MS,
+    cycleMs: AMBIENT_FRAME_SWEEP_CYCLE_MS,
+    phaseOffsetMs,
+    phaseStepMs: AMBIENT_FRAME_SWEEP_PHASE_STEP_MS,
+    segmentRatio: AMBIENT_FRAME_SWEEP_SEGMENT_RATIO,
+  });
+
+  return {
+    graphics,
+    cleanup,
+    geometry,
+    timing: {
+      visibleMs: AMBIENT_FRAME_SWEEP_VISIBLE_MS,
+      cycleMs: AMBIENT_FRAME_SWEEP_CYCLE_MS,
+      phaseOffsetMs,
+      phaseStepMs: AMBIENT_FRAME_SWEEP_PHASE_STEP_MS,
+      segmentRatio: AMBIENT_FRAME_SWEEP_SEGMENT_RATIO,
+    },
+  };
 }
 
 export function calculateSecondaryButtonHeight(width) {
@@ -110,6 +315,7 @@ export function createImageButton(scene, {
   downScale = 0.975,
   preserveImageAspect = true,
   minTouchHeight = DEFAULT_MIN_TOUCH_HEIGHT,
+  ambientFrameSweep = false,
 } = {}) {
   const normalizedLabel = String(label ?? '').toLocaleUpperCase();
   const buttonFrame = getSecondaryButtonFrame(scene);
@@ -133,6 +339,10 @@ export function createImageButton(scene, {
     .setOrigin(0.5)
     .setDepth(depth + 0.5));
   centerGlow.setBlendMode?.('ADD');
+
+  const ambientSweep = ambientFrameSweep
+    ? createAmbientFrameSweep(scene, { x, y, width, visualHeight, depth })
+    : null;
 
   const text = scene.add.text(x, y + textOffsetY, normalizedLabel, {
     ...DEFAULT_TEXT_STYLE,
@@ -289,7 +499,7 @@ export function createImageButton(scene, {
     cancelPress();
   };
 
-  const cleanupFeedback = () => {
+  const resetFeedback = () => {
     feedbackState.destroyed = true;
     feedbackState.pressed = false;
     feedbackState.hovering = false;
@@ -298,9 +508,14 @@ export function createImageButton(scene, {
     killFeedbackTweens();
   };
 
+  const cleanupFeedback = () => {
+    resetFeedback();
+    ambientSweep?.cleanup?.();
+  };
+
   hitZone.setData?.('imageButtonFeedbackCleanup', cleanupFeedback);
   hitZone.setData?.('imageButtonFeedbackReset', ({ interactive = true } = {}) => {
-    cleanupFeedback();
+    resetFeedback();
     feedbackState.destroyed = false;
     setVisualState({ scale: 1, alpha: 1, textAlpha: 1 });
     if (interactive) {
@@ -357,11 +572,19 @@ export function createImageButton(scene, {
   return {
     shadow,
     backing,
+    ambientFrameSweep: ambientSweep?.graphics ?? null,
     text,
     hitZone,
     centerGlow,
-    items: [shadow, backing, centerGlow, text, hitZone].filter(Boolean),
+    items: [shadow, backing, centerGlow, ambientSweep?.graphics, text, hitZone].filter(Boolean),
     usesImage: hasButtonTexture,
+    geometry: {
+      width,
+      visualHeight,
+      hitHeight,
+    },
+    ambientFrameSweepGeometry: ambientSweep?.geometry ?? null,
+    ambientFrameSweepTiming: ambientSweep?.timing ?? null,
   };
 }
 

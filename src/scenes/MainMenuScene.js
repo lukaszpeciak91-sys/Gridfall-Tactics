@@ -488,6 +488,7 @@ export default class MainMenuScene extends Phaser.Scene {
       shadowAlpha: 0.24,
       hoverScale: 1.03,
       downScale: 0.98,
+      ambientFrameSweep: true,
     });
 
     button.items.forEach((item) => {
