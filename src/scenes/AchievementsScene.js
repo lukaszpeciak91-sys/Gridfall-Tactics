@@ -323,13 +323,18 @@ export default class AchievementsScene extends Phaser.Scene {
     return cursorY;
   }
 
-  getAchievementCardLayout(x, y, width) {
+  getAchievementCardLayout(x, y, width, pointLabel = '') {
     const cardHeight = 102;
     const paddingX = 16;
     const rightPadding = 12;
     const badgeWidth = 82;
     const badgeHeight = 26;
-    const starAreaWidth = 76;
+    const starAreaWidth = 62;
+    const metadataGap = pointLabel ? 7 : 0;
+    const pointLabelWidth = pointLabel ? Math.max(42, Math.min(64, pointLabel.length * 8 + 10)) : 0;
+    const metadataWidth = starAreaWidth + metadataGap + pointLabelWidth;
+    const metadataRight = x + width - rightPadding;
+    const metadataX = metadataRight - metadataWidth;
     const badgeX = x + width - rightPadding - badgeWidth;
     const titleTop = y + 11;
     const titleHeight = 31;
@@ -337,7 +342,7 @@ export default class AchievementsScene extends Phaser.Scene {
     const descriptionTop = y + 52;
     const textLeft = x + paddingX;
     const textRight = badgeX - 14;
-    const titleRight = x + width - rightPadding - starAreaWidth;
+    const titleRight = metadataX;
 
     return {
       cardHeight,
@@ -346,9 +351,16 @@ export default class AchievementsScene extends Phaser.Scene {
       titleTop,
       titleHeight,
       titleWidth: Math.max(96, titleRight - textLeft - 10),
-      starAreaX: titleRight,
+      metadataX,
+      metadataY: titleTop + 1,
+      metadataWidth,
+      metadataRight,
+      metadataGap,
+      starAreaX: metadataX,
       starAreaY: titleTop + 1,
       starAreaWidth,
+      pointLabelX: metadataX + starAreaWidth + metadataGap,
+      pointLabelWidth,
       separatorY,
       separatorX: textLeft,
       separatorWidth: Math.max(80, width - paddingX * 2),
@@ -383,9 +395,6 @@ export default class AchievementsScene extends Phaser.Scene {
       descriptionColor: unlocked ? '#e2e8f0' : '#b8c2d0',
       progressTextColor: unlocked ? '#fef3c7' : '#dbeafe',
       pointTextColor: unlocked ? '#fde68a' : '#facc15',
-      pointChipFill: unlocked ? 0x1e293b : 0x422006,
-      pointChipAlpha: unlocked ? 0.62 : 0.7,
-      pointChipStrokeAlpha: unlocked ? 0.34 : 0.52,
       difficultyStarColor: unlocked ? '#facc15' : '#94a3b8',
       badgeFill: unlocked ? 0x451a03 : 0x020817,
       badgeAlpha: unlocked ? 0.94 : 0.74,
@@ -401,27 +410,20 @@ export default class AchievementsScene extends Phaser.Scene {
     return `${points} ${translateActive('ui.achievements.progression.pointsAbbreviation', 'PTS')}`;
   }
 
-  drawAchievementPointLabel(content, definition, layout, theme, unlocked) {
-    const label = this.getAchievementPointLabel(definition, unlocked);
+  drawAchievementPointLabel(content, label, layout, theme) {
     if (!label) return null;
 
-    const chipWidth = unlocked ? 62 : 42;
-    const chipHeight = 20;
-    const chipX = layout.starAreaX + layout.starAreaWidth - chipWidth;
-    const chipY = layout.starAreaY + 24;
-    const bg = this.add.graphics();
-    bg.fillStyle(theme.pointChipFill, theme.pointChipAlpha); bg.fillRoundedRect(chipX, chipY, chipWidth, chipHeight, 7);
-    bg.lineStyle(1, unlocked ? 0xfacc15 : theme.accent, theme.pointChipStrokeAlpha); bg.strokeRoundedRect(chipX, chipY, chipWidth, chipHeight, 7);
-    const text = this.add.text(chipX + chipWidth / 2, chipY + chipHeight / 2, label, {
+    const text = this.add.text(layout.pointLabelX, layout.metadataY, label, {
       fontFamily: 'Arial, sans-serif',
-      fontSize: '11px',
+      fontSize: '15px',
       color: theme.pointTextColor,
       fontStyle: 'bold',
-      align: 'center',
-      fixedWidth: chipWidth,
-    }).setOrigin(0.5, 0.5);
-    content.add([bg, text]);
-    this.trackAchievementContentElement(bg); this.trackAchievementContentElement(text);
+      align: 'right',
+      fixedWidth: layout.pointLabelWidth,
+      shadow: { offsetX: 0, offsetY: 1, color: '#020817', blur: 2, fill: true },
+    }).setOrigin(0, 0);
+    content.add(text);
+    this.trackAchievementContentElement(text);
     return text;
   }
 
@@ -431,14 +433,14 @@ export default class AchievementsScene extends Phaser.Scene {
   }
 
   drawAchievementDifficultyStars(content, definition, layout, theme) {
-    const starsText = this.add.text(layout.starAreaX + layout.starAreaWidth, layout.starAreaY, this.getAchievementDifficultyStars(definition), {
+    const starsText = this.add.text(layout.starAreaX, layout.starAreaY, this.getAchievementDifficultyStars(definition), {
       fontFamily: 'Arial, sans-serif',
       fontSize: '16px',
       color: theme.difficultyStarColor,
       fontStyle: 'bold',
       align: 'right',
       fixedWidth: layout.starAreaWidth,
-    }).setOrigin(1, 0);
+    }).setOrigin(0, 0);
     content.add(starsText); this.trackAchievementContentElement(starsText);
     return starsText;
   }
@@ -449,7 +451,8 @@ export default class AchievementsScene extends Phaser.Scene {
     const locale = getActiveLocale();
     const title = definition.display?.title?.[locale] ?? definition.title ?? definition.id;
     const description = definition.display?.description?.[locale] ?? definition.description ?? '';
-    const layout = this.getAchievementCardLayout(x, y, width);
+    const pointLabel = this.getAchievementPointLabel(definition, unlocked);
+    const layout = this.getAchievementCardLayout(x, y, width, pointLabel);
     const theme = this.getAchievementCardTheme(definition, unlocked);
 
     const bg = this.add.graphics();
@@ -476,7 +479,7 @@ export default class AchievementsScene extends Phaser.Scene {
       maxLines: 2,
     });
     this.drawAchievementDifficultyStars(content, definition, layout, theme);
-    this.drawAchievementPointLabel(content, definition, layout, theme, unlocked);
+    this.drawAchievementPointLabel(content, pointLabel, layout, theme);
 
     const descriptionText = this.add.text(layout.textLeft, layout.descriptionTop, description, {
       fontFamily: 'Arial, sans-serif',

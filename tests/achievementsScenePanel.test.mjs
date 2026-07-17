@@ -65,11 +65,11 @@ test('achievement cards render reusable difficulty stars with reserved right-ali
   assert.match(scene, /return '★'\.repeat\(difficulty\)/);
   assert.match(scene, /drawAchievementDifficultyStars\(content, definition, layout, theme\)/);
   assert.match(scene, /fixedWidth: layout\.starAreaWidth/);
-  assert.match(scene, /\.setOrigin\(1, 0\)/);
-  assert.match(scene, /const starAreaWidth = 76/);
+  assert.match(scene, /\.setOrigin\(0, 0\)/);
+  assert.match(scene, /const starAreaWidth = 62/);
   assert.match(scene, /normalizeAchievementDifficulty\(definition\?\.difficulty\)/);
   assert.match(scene, /titleWidth: Math\.max\(96, titleRight - textLeft - 10\)/);
-  assert.match(scene, /starAreaX: titleRight/);
+  assert.match(scene, /starAreaX: metadataX/);
   assert.match(scene, /difficultyStarColor: unlocked \? '#facc15' : '#94a3b8'/);
 });
 
@@ -98,7 +98,8 @@ test('locked achievement cards present plus-prefixed point rewards for all valid
 test('unlocked achievement cards keep localized earned point values visible', () => {
   const scene = source();
   assert.match(scene, /return `\$\{points\} \$\{translateActive\('ui\.achievements\.progression\.pointsAbbreviation', 'PTS'\)\}`/);
-  assert.match(scene, /this\.drawAchievementPointLabel\(content, definition, layout, theme, unlocked\)/);
+  assert.match(scene, /const pointLabel = this\.getAchievementPointLabel\(definition, unlocked\)/);
+  assert.match(scene, /this\.drawAchievementPointLabel\(content, pointLabel, layout, theme\)/);
 
   const unlockedLabel = (definition, suffix) => {
     const points = getAchievementDefinitionPointValue(definition);
@@ -124,15 +125,56 @@ test('malformed zero point achievements omit card point labels without throwing'
   assert.equal(invalidLabel({ difficulty: 0 }), '');
 });
 
-test('achievement point chip uses the right-side metadata lane while preserving title and badge zones', () => {
+test('achievement header metadata keeps stars and points in one compact top row without a point pill', () => {
   const scene = source();
-  assert.match(scene, /chipX = layout\.starAreaX \+ layout\.starAreaWidth - chipWidth/);
-  assert.match(scene, /chipY = layout\.starAreaY \+ 24/);
-  assert.match(scene, /drawAchievementDifficultyStars\(content, definition, layout, theme\);\n    this\.drawAchievementPointLabel/);
+  assert.match(scene, /const pointLabel = this\.getAchievementPointLabel\(definition, unlocked\)/);
+  assert.match(scene, /const layout = this\.getAchievementCardLayout\(x, y, width, pointLabel\)/);
+  assert.match(scene, /const starAreaWidth = 62/);
+  assert.match(scene, /const metadataGap = pointLabel \? 7 : 0/);
+  assert.match(scene, /const pointLabelWidth = pointLabel \? Math\.max\(42, Math\.min\(64, pointLabel\.length \* 8 \+ 10\)\) : 0/);
+  assert.match(scene, /const metadataWidth = starAreaWidth \+ metadataGap \+ pointLabelWidth/);
+  assert.match(scene, /const metadataRight = x \+ width - rightPadding/);
+  assert.match(scene, /const metadataX = metadataRight - metadataWidth/);
+  assert.match(scene, /starAreaX: metadataX/);
+  assert.match(scene, /pointLabelX: metadataX \+ starAreaWidth \+ metadataGap/);
+  assert.match(scene, /fontSize: '15px'/);
+  assert.match(scene, /shadow: \{ offsetX: 0, offsetY: 1, color: '#020817', blur: 2, fill: true \}/);
+  assert.match(scene, /drawAchievementDifficultyStars\(content, definition, layout, theme\);\n    this\.drawAchievementPointLabel\(content, pointLabel, layout, theme\)/);
+  assert.doesNotMatch(scene, /pointChip|chipX|chipY|chipWidth|chipHeight|fillRoundedRect\(chip/);
   assert.match(scene, /badgeY: y \+ 68/);
   assert.match(scene, /titleWidth: Math\.max\(96, titleRight - textLeft - 10\)/);
   assert.match(scene, /maxLines: 2/);
   assert.match(scene, /const cardHeight = 102/);
+});
+
+
+test('achievement header metadata sizing supports 1-4 stars and max localized point labels inside mobile cards', () => {
+  const scene = source();
+  assert.match(scene, /getAchievementTitleFontSize\(title, layout\)/);
+  assert.match(scene, /layout\.titleWidth < 280\) return '18px'/);
+  assert.match(scene, /separatorY = y \+ 45/);
+
+  const card = { x: 0, width: 320, paddingX: 16, rightPadding: 12 };
+  const starAreaWidth = 62;
+  const metadataGap = 7;
+  const pointLabelWidth = (label) => Math.max(42, Math.min(64, label.length * 8 + 10));
+
+  for (const stars of ['★', '★★', '★★★', '★★★★']) {
+    assert.ok(stars.length >= 1 && stars.length <= 4);
+  }
+
+  for (const label of ['+25', '+50', '+100', '+200', '200 PKT', '200 PTS']) {
+    const width = starAreaWidth + metadataGap + pointLabelWidth(label);
+    const metadataRight = card.x + card.width - card.rightPadding;
+    const metadataX = metadataRight - width;
+    const pointRight = metadataX + starAreaWidth + metadataGap + pointLabelWidth(label);
+    const titleWidth = Math.max(96, metadataX - (card.x + card.paddingX) - 10);
+
+    assert.equal(pointRight, metadataRight);
+    assert.ok(pointRight <= card.width - card.rightPadding);
+    assert.ok(metadataX > card.x + card.paddingX);
+    assert.ok(titleWidth >= 96);
+  }
 });
 
 test('dynamic faction achievement cards inherit point labels through shared card rendering', () => {
@@ -140,7 +182,8 @@ test('dynamic faction achievement cards inherit point labels through shared card
   assert.match(scene, /drawFactionAchievementGroups/);
   assert.match(scene, /cursorY = this\.drawAchievementRows\(content, factionAchievements/);
   assert.match(scene, /drawAchievementRows\(content, achievements/);
-  assert.match(scene, /this\.drawAchievementPointLabel\(content, definition, layout, theme, unlocked\)/);
+  assert.match(scene, /const pointLabel = this\.getAchievementPointLabel\(definition, unlocked\)/);
+  assert.match(scene, /this\.drawAchievementPointLabel\(content, pointLabel, layout, theme\)/);
 });
 
 test('achievement progress badges clamp completed progress for display only', () => {
@@ -187,7 +230,7 @@ test('achievement card theme uses group and faction accent colors for reusable c
 
 test('achievement card layout reserves fixed title, description, and progress badge zones', () => {
   const scene = source();
-  assert.match(scene, /getAchievementCardLayout\(x, y, width\)/);
+  assert.match(scene, /getAchievementCardLayout\(x, y, width, pointLabel = ''\)/);
   assert.match(scene, /const cardHeight = 102/);
   assert.match(scene, /const titleTop = y \+ 11/);
   assert.match(scene, /const separatorY = y \+ 45/);
