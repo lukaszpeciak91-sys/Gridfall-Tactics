@@ -240,6 +240,21 @@ canonical_ref: docs/rules/mvp-battle-rules.md
 - Full Achievements access is intentionally not added to the in-battle hamburger menu.
 - Future V1 work is limited to scoped content additions, thresholds, copy/localization, minor polish, and future mode/faction support.
 
+## Achievement-Derived Progression V1 (2026-07-17)
+- Player Stats and Achievement State remain separate persistent layers; Achievement presentation state is presentation-only and does not determine unlock truth.
+- Achievement unlocks are monotonic: once an achievement ID is unlocked, it must not be relocked by runtime evaluation or panel presentation.
+- Player points, level, progress ratio, and max-level state are derived from current achievement definitions plus unlocked achievement IDs; no XP, points, level, progress ratio, or max-level state is separately persisted.
+- V1 point mapping is fixed: 1★ = 25, 2★ = 50, 3★ = 100, and 4★ = 200.
+- Level thresholds are explicit and manually versioned; maximum V1 level is 15, Level 15 begins at 2875 points, the current catalogue total is 3825 points, and maximum level intentionally does not require 100% completion.
+- Catalogue additions/removals or difficulty changes may change derived points and must trigger a progression-economy review before merge.
+- Achievement IDs and persistence keys must not be renamed without a migration; unknown or stale achievement IDs remain harmless in persisted state and contribute 0 derived points.
+- Current project-owned persistent keys are `gridfall:tactics:campaign:v1`, `gridfall:tactics:player-stats:v1`, `gridfall:tactics:achievements:v1`, `gridfall:tactics:achievement-presentation:v1`, and `gridfall:tactics:settings:v1`.
+- Same exact browser origin preserves these values across refresh, browser restart, device restart, and same-origin redeploy; different browser, device, private/incognito session, domain/subdomain, scheme, or port uses separate storage, and clearing site data removes persistence.
+- AchievementsScene remains read-only: it loads definitions, Player Stats, and Achievement State for display but does not evaluate or persist unlocks.
+- Compact achievement unlock popups remain celebratory and do not display point values; no level-up popup or gameplay rewards exist in V1.
+- Campaign completion achievement popups are shown only above the interactive completion summary, not during the trophy/tap-anywhere phase.
+- New Campaign resets Campaign state only; it must not reset Player Stats, Achievement State, achievement-derived points, or achievement-derived level.
+
 ## Overclock v14 Production Acceptance (2026-07-12)
 - Accepted Overclock v14 as the seventh base gameplay faction under stable internal id `overclock` and runtime key `Overclock`; player-facing presentation is Project H.E.R.D. / Program P.A.S.Z.A., not the internal id.
 - Project H.E.R.D. / Program P.A.S.Z.A. is a late-1980s unattended state agricultural/military breeding program that weaponizes biological livestock; it is explicitly not cyberpunk, robotic, religious, or a civilization faction.

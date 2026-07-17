@@ -14,6 +14,11 @@
 - Update `docs/project/workflow.md` when collaboration rules evolve.
 - **Codex must update these files when making significant changes.**
 
+
+## Achievement Progression Economy Guardrail
+- Run a progression-economy review when adding or removing an achievement, changing achievement difficulty, changing point mapping, adding a faction, changing faction achievement templates, adding a mode-specific achievement family, renaming an achievement ID, or renaming a persistence key.
+- Checklist: recalculate the total catalogue point pool; review the Level 15 completion percentage; confirm the fixed threshold table still makes sense; verify dynamic faction contribution; update catalogue invariant tests; update PL/EN localization; verify long-title/mobile card layout; verify persistence/backfill; add a migration before renaming IDs or storage keys.
+
 ## Gameplay Specification Rule
 - Codex must read `docs/battle_mvp_v1.md` before implementing gameplay systems.
 
