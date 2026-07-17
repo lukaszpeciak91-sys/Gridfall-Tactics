@@ -48,14 +48,14 @@ const definition = {
   difficulty: 4,
   display: {
     title: { en: 'First Roar', pl: 'Pierwszy ryk' },
-    description: { en: 'Win an Arena battle.', pl: 'Wygraj bitwę Areny.' },
+    description: { en: 'Win an Arena battle.', pl: 'Wygraj bitwę na Arenie.' },
   },
 };
 
 test('popup view model localizes title, description, unlock badge, stars, and queue position without progress', () => {
   const view = getAchievementUnlockPopupViewModel(definition, { index: 2, total: 3, locale: 'pl' });
   assert.equal(view.title, 'Pierwszy ryk');
-  assert.equal(view.description, 'Wygraj bitwę Areny.');
+  assert.equal(view.description, 'Wygraj bitwę na Arenie.');
   assert.equal(view.badge, 'ODBLOKOWANE');
   assert.equal(view.stars, '★★★★');
   assert.equal(view.queuePosition, '2 / 3');

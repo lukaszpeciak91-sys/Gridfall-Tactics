@@ -13,7 +13,7 @@ import { preloadAudioAssets } from '../audio/audioAssets.js';
 import { playMenuMusic } from '../audio/menuMusic.js';
 
 const TUTORIAL_STEPS = Object.freeze([
-  'Pick a faction in Arena.',
+  'Pick a faction for Arena.',
   'Play units into lines to pressure the enemy base.',
   'Use effect cards and swaps to control combat timing.',
   'End your turn after spending your action.',
