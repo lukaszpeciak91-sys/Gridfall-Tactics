@@ -4,6 +4,20 @@ import { SETTINGS_CHANGED_EVENT, loadSettings, toggleMuted } from '../systems/se
 
 const PREMIUM_GOLD_ACCENT = 0xfacc15;
 const BOTTOM_CONTROL_CORNER_RADIUS_RATIO = 0.16;
+export const NAVIGATION_GOLD_SWEEP = Object.freeze({
+  color: PREMIUM_GOLD_ACCENT,
+  highlightColor: 0xfde68a,
+  strokeRatio: 0.035,
+  primaryAlpha: 0.46,
+  trailAlpha: 0.18,
+  primaryLengthRatio: 0.16,
+  trailLengthRatio: 0.08,
+  trailGapRatio: 0.025,
+  duration: 1600,
+  pauseDuration: 4400,
+  fadeOutStart: 0.78,
+  depth: 199.35,
+});
 export const NAVIGATION_RING_MOTION = Object.freeze({
   color: 0x38bdf8,
   highlightColor: 0x7dd3fc,
@@ -216,6 +230,130 @@ export function createNavigationRingMotion(scene, x, y, size, { radiusRatio = NA
   return { arc, tween, radius, duration: NAVIGATION_RING_MOTION.duration, phaseOffset: arc.rotation, cleanup };
 }
 
+
+export function getNavigationGoldSweepPhaseOffset(x, y, size) {
+  const seed = Math.round(x * 11 + y * 7 + size * 13);
+  return seed % (NAVIGATION_GOLD_SWEEP.duration + NAVIGATION_GOLD_SWEEP.pauseDuration);
+}
+
+export function getNavigationGoldSweepGeometry(size, cornerRadius = getBottomControlCornerRadius(size)) {
+  const half = size / 2;
+  const radius = Math.min(cornerRadius, half);
+  const straight = Math.max(0, size - radius * 2);
+  const perimeter = straight * 4 + Math.PI * 2 * radius;
+  return { size, cornerRadius: radius, half, straight, perimeter, sweepPoint: { x: 0, y: 0 } };
+}
+
+function pointOnGoldSweepPerimeter(distance, geometry, out = { x: 0, y: 0 }) {
+  const { half, cornerRadius: r, straight, perimeter } = geometry;
+  let d = ((distance % perimeter) + perimeter) % perimeter;
+  const right = half;
+  const left = -half;
+  const top = -half;
+  const bottom = half;
+  const arc = Math.PI * 0.5 * r;
+
+  if (d <= straight) { out.x = -half + r + d; out.y = top; return out; }
+  d -= straight;
+  if (d <= arc) {
+    const angle = -Math.PI * 0.5 + d / r;
+    out.x = right - r + Math.cos(angle) * r; out.y = top + r + Math.sin(angle) * r; return out;
+  }
+  d -= arc;
+  if (d <= straight) { out.x = right; out.y = -half + r + d; return out; }
+  d -= straight;
+  if (d <= arc) {
+    const angle = d / r;
+    out.x = right - r + Math.cos(angle) * r; out.y = bottom - r + Math.sin(angle) * r; return out;
+  }
+  d -= arc;
+  if (d <= straight) { out.x = half - r - d; out.y = bottom; return out; }
+  d -= straight;
+  if (d <= arc) {
+    const angle = Math.PI * 0.5 + d / r;
+    out.x = left + r + Math.cos(angle) * r; out.y = bottom - r + Math.sin(angle) * r; return out;
+  }
+  d -= arc;
+  if (d <= straight) { out.x = left; out.y = half - r - d; return out; }
+  d -= straight;
+  const angle = Math.PI + d / r;
+  out.x = left + r + Math.cos(angle) * r; out.y = top + r + Math.sin(angle) * r; return out;
+}
+
+function strokeGoldSweepSegment(graphics, geometry, startDistance, length, color, alpha, strokeWidth) {
+  const steps = Math.max(5, Math.ceil(length / Math.max(4, geometry.size * 0.09)));
+  const point = geometry.sweepPoint;
+  pointOnGoldSweepPerimeter(startDistance, geometry, point);
+  graphics.lineStyle(strokeWidth, color, alpha);
+  graphics.beginPath();
+  graphics.moveTo(point.x, point.y);
+  for (let i = 1; i <= steps; i += 1) {
+    pointOnGoldSweepPerimeter(startDistance + (length * i) / steps, geometry, point);
+    graphics.lineTo(point.x, point.y);
+  }
+  graphics.strokePath();
+}
+
+export function drawNavigationGoldSweep(sweep, geometry, progress) {
+  const clamped = Math.max(0, Math.min(1, progress));
+  const strokeWidth = Math.max(1.2, geometry.size * NAVIGATION_GOLD_SWEEP.strokeRatio);
+  const primaryLength = geometry.perimeter * NAVIGATION_GOLD_SWEEP.primaryLengthRatio;
+  const trailLength = geometry.perimeter * NAVIGATION_GOLD_SWEEP.trailLengthRatio;
+  const trailGap = geometry.perimeter * NAVIGATION_GOLD_SWEEP.trailGapRatio;
+  const fadeMultiplier = clamped < NAVIGATION_GOLD_SWEEP.fadeOutStart
+    ? 1
+    : Math.max(0, 1 - ((clamped - NAVIGATION_GOLD_SWEEP.fadeOutStart) / (1 - NAVIGATION_GOLD_SWEEP.fadeOutStart)));
+  const head = geometry.perimeter * clamped;
+
+  sweep.clear();
+  if (fadeMultiplier <= 0) return;
+  strokeGoldSweepSegment(sweep, geometry, head - primaryLength - trailGap - trailLength, trailLength, NAVIGATION_GOLD_SWEEP.color, NAVIGATION_GOLD_SWEEP.trailAlpha * fadeMultiplier, strokeWidth);
+  strokeGoldSweepSegment(sweep, geometry, head - primaryLength, primaryLength, NAVIGATION_GOLD_SWEEP.highlightColor, NAVIGATION_GOLD_SWEEP.primaryAlpha * fadeMultiplier, strokeWidth);
+}
+
+export function createNavigationGoldSweep(scene, x, y, size, { depth = NAVIGATION_GOLD_SWEEP.depth } = {}) {
+  const geometry = getNavigationGoldSweepGeometry(size);
+  const sweep = scene.add.graphics().setPosition(x, y).setDepth(depth);
+  sweep.alpha = 0;
+  drawNavigationGoldSweep(sweep, geometry, 0);
+
+  const state = { progress: 0 };
+  const delay = getNavigationGoldSweepPhaseOffset(x, y, size);
+  const tween = prefersReducedNavigationMotion() ? null : (scene.tweens?.add?.({
+    targets: state,
+    progress: 1,
+    duration: NAVIGATION_GOLD_SWEEP.duration,
+    hold: NAVIGATION_GOLD_SWEEP.pauseDuration,
+    delay,
+    ease: 'Sine.easeInOut',
+    repeat: -1,
+    onStart: () => { sweep.alpha = 1; },
+    onRepeat: () => { state.progress = 0; sweep.alpha = 1; },
+    onUpdate: () => {
+      const fadeMultiplier = state.progress < NAVIGATION_GOLD_SWEEP.fadeOutStart
+        ? 1
+        : Math.max(0, 1 - ((state.progress - NAVIGATION_GOLD_SWEEP.fadeOutStart) / (1 - NAVIGATION_GOLD_SWEEP.fadeOutStart)));
+      sweep.alpha = fadeMultiplier;
+      drawNavigationGoldSweep(sweep, geometry, state.progress);
+    },
+  }) ?? null);
+
+  let cleaned = false;
+  const cleanup = () => {
+    if (cleaned) return;
+    cleaned = true;
+    scene.events?.off?.('shutdown', cleanup);
+    tween?.remove?.();
+    sweep.destroy?.();
+  };
+  scene.events?.once?.('shutdown', cleanup);
+  sweep.once?.('destroy', () => {
+    tween?.remove?.();
+  });
+
+  return { sweep, tween, geometry, duration: NAVIGATION_GOLD_SWEEP.duration, pauseDuration: NAVIGATION_GOLD_SWEEP.pauseDuration, phaseOffset: delay, cleanup };
+}
+
 export function createFloatingControl(scene, x, y, size, label, onPointerUp, { fontScale = 0.5 } = {}) {
   const iconType = resolveNavigationIconType(label);
   if (!iconType) {
@@ -226,6 +364,7 @@ export function createFloatingControl(scene, x, y, size, label, onPointerUp, { f
     .setStrokeStyle(1, 0x7dd3fc, 0.18)
     .setDepth(198);
   const ringMotion = createNavigationRingMotion(scene, x, y, size);
+  const goldSweep = createNavigationGoldSweep(scene, x, y, size);
   const backing = scene.add.rectangle(x, y, size, size, 0x020617, 0.62)
     .setRounded(getBottomControlCornerRadius(size))
     .setStrokeStyle(1, PREMIUM_GOLD_ACCENT, 0.58)
@@ -254,12 +393,13 @@ export function createFloatingControl(scene, x, y, size, label, onPointerUp, { f
 
   const destroy = () => {
     ringMotion.cleanup();
+    goldSweep.cleanup();
     halo.destroy?.();
     backing.destroy?.();
     icon.destroy?.();
   };
 
-  return { halo, ringArc: ringMotion.arc, ringTween: ringMotion.tween, ringMotion, backing, icon, text: icon, iconType, destroy };
+  return { halo, ringArc: ringMotion.arc, ringTween: ringMotion.tween, ringMotion, goldSweep: goldSweep.sweep, goldSweepTween: goldSweep.tween, goldSweepMotion: goldSweep, backing, icon, text: icon, iconType, destroy };
 }
 
 export function drawSpeakerIcon(icon, size, isMuted) {
@@ -305,13 +445,14 @@ export function createMuteToggleControl(scene, x, y, size, { onToggle = null, de
   const button = scene.add.container(x, y).setDepth(depth);
   const halo = scene.add.circle(0, 0, size * NAVIGATION_RING_MOTION.muteRadiusRatio, 0x38bdf8, 0.08).setStrokeStyle(1, 0x7dd3fc, 0.18);
   const ringMotion = createNavigationRingMotion(scene, 0, 0, size, { radiusRatio: NAVIGATION_RING_MOTION.muteRadiusRatio });
+  const goldSweep = createNavigationGoldSweep(scene, 0, 0, size);
   const backing = scene.add.rectangle(0, 0, size, size, 0x020617, 0.66)
     .setRounded(getBottomControlCornerRadius(size))
     .setStrokeStyle(1, PREMIUM_GOLD_ACCENT, 0.58);
   const icon = scene.add.graphics();
   let hovering = false;
 
-  button.add([halo, ringMotion.arc, backing, icon]);
+  button.add([halo, ringMotion.arc, backing, goldSweep.sweep, icon]);
   button.setSize(size, size);
   button.setInteractive({ useHandCursor: true });
 
@@ -349,9 +490,10 @@ export function createMuteToggleControl(scene, x, y, size, { onToggle = null, de
   const destroy = () => {
     scene.game?.events?.off?.(SETTINGS_CHANGED_EVENT, handleSettingsChanged);
     ringMotion.cleanup();
+    goldSweep.cleanup();
     button.destroy();
   };
-  return { halo, ringArc: ringMotion.arc, ringTween: ringMotion.tween, ringMotion, backing, icon, button, text: icon, destroy };
+  return { halo, ringArc: ringMotion.arc, ringTween: ringMotion.tween, ringMotion, goldSweep: goldSweep.sweep, goldSweepTween: goldSweep.tween, goldSweepMotion: goldSweep, backing, icon, button, text: icon, destroy };
 }
 
 export function createBottomNavigationControls(scene, {

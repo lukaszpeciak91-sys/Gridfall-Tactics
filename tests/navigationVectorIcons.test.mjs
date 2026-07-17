@@ -4,8 +4,11 @@ import test from 'node:test';
 import {
   createBottomNavigationControls,
   createFloatingControl,
+  getNavigationGoldSweepGeometry,
+  getNavigationGoldSweepPhaseOffset,
   getNavigationIconGeometry,
   getNavigationRingPhaseOffset,
+  NAVIGATION_GOLD_SWEEP,
   NAVIGATION_ICON_TYPES,
   NAVIGATION_RING_MOTION,
 } from '../src/ui/navigationControls.js';
@@ -183,8 +186,9 @@ test('bottom navigation ring motion creates one centered non-interactive Graphic
     assert.equal(control.ringArc.y, control.backing.y);
     assert.equal(control.ringMotion.radius, control.backing.width * NAVIGATION_RING_MOTION.radiusRatio);
   }
-  assert.equal(scene.__created.tweens.length, 3);
-  assert.equal(new Set(scene.__created.tweens.map((tween) => tween.config.targets)).size, 3);
+  assert.equal(scene.__created.tweens.length, 6);
+  const ringTweens = scene.__created.tweens.filter((tween) => tween.config.duration === NAVIGATION_RING_MOTION.duration);
+  assert.equal(new Set(ringTweens.map((tween) => tween.config.targets)).size, 3);
 });
 
 test('bottom navigation ring motion is slow, deterministic, and keeps hitboxes and callbacks on backing objects', () => {
@@ -211,16 +215,19 @@ test('bottom navigation ring cleanup removes tween on control destroy and scene 
   const scene = makeScene();
   const control = createFloatingControl(scene, 32, 810, 52, NAVIGATION_ICON_TYPES.BACK, () => {});
 
-  assert.equal(scene.__created.tweens.length, 1);
-  assert.equal(scene.__created.shutdownHandlers.length, 1);
+  assert.equal(scene.__created.tweens.length, 2);
+  assert.equal(scene.__created.shutdownHandlers.length, 2);
   control.destroy();
   assert.equal(control.ringTween.removed, true);
+  assert.equal(control.goldSweepTween.removed, true);
   assert.equal(control.ringArc.destroyed, true);
+  assert.equal(control.goldSweep.destroyed, true);
   scene.__created.shutdownHandlers[0]();
-  assert.equal(scene.__created.tweens.length, 1);
+  scene.__created.shutdownHandlers[1]();
+  assert.equal(scene.__created.tweens.length, 2);
 
   createFloatingControl(scene, 32, 810, 52, NAVIGATION_ICON_TYPES.BACK, () => {});
-  assert.equal(scene.__created.tweens.length, 2);
+  assert.equal(scene.__created.tweens.length, 4);
 });
 
 test('mute control shares the animated ring without changing mute hitbox or callback wiring', () => {
@@ -234,5 +241,80 @@ test('mute control shares the animated ring without changing mute hitbox or call
   assert.equal(controls.mute.button.width, controls.metrics.touchSize);
   assert.equal(controls.mute.button.height, controls.metrics.touchSize);
   assert.equal(controls.mute.button.listeners.pointerup instanceof Function, true);
-  assert.equal(scene.__created.tweens.length, 1);
+  assert.equal(scene.__created.tweens.length, 2);
+});
+
+test('bottom navigation gold sweep creates one non-interactive Graphics object per shared control', () => {
+  const scene = makeScene();
+  const controls = createBottomNavigationControls(scene, {
+    onBack() {},
+    onRules() {},
+    onFullscreen() {},
+  });
+
+  for (const control of [controls.back, controls.rules, controls.fullscreen]) {
+    assert.equal(control.goldSweep.type, 'Graphics');
+    assert.equal(control.goldSweep.interactive, false);
+    assert.equal(control.goldSweep.x, control.backing.x);
+    assert.equal(control.goldSweep.y, control.backing.y);
+    assert.equal(control.goldSweepMotion.geometry.size, control.backing.width);
+    assert.equal(control.goldSweepMotion.geometry.cornerRadius, control.backing.rounded);
+  }
+
+  const goldTweens = scene.__created.tweens.filter((tween) => tween.config.duration === NAVIGATION_GOLD_SWEEP.duration);
+  assert.equal(goldTweens.length, 3);
+  assert.equal(new Set(goldTweens.map((tween) => tween.config.targets)).size, 3);
+});
+
+test('gold sweep preserves permanent gold frame and derives restrained rounded-rectangle geometry', () => {
+  const scene = makeScene();
+  const control = createFloatingControl(scene, 32, 810, 52, NAVIGATION_ICON_TYPES.HELP, () => {});
+  const geometry = getNavigationGoldSweepGeometry(52, control.backing.rounded);
+
+  assert.deepEqual(control.backing.strokeStyle, [1, 0xfacc15, 0.58]);
+  assert.equal(control.backing.rounded, Math.max(6, Math.round(52 * 0.16)));
+  assert.equal(control.goldSweepMotion.geometry.perimeter, geometry.perimeter);
+  assert.ok(NAVIGATION_GOLD_SWEEP.primaryLengthRatio < 0.2);
+  assert.ok(NAVIGATION_GOLD_SWEEP.trailLengthRatio < NAVIGATION_GOLD_SWEEP.primaryLengthRatio);
+  assert.ok(control.goldSweep.commands.some((command) => command[0] === 'lineTo'));
+});
+
+test('gold sweep cycle is intermittent, deterministic, and independent from blue ring motion', () => {
+  const scene = makeScene();
+  const control = createFloatingControl(scene, 32, 810, 52, NAVIGATION_ICON_TYPES.FULLSCREEN, () => {});
+  const otherPhase = getNavigationGoldSweepPhaseOffset(195, 810, 52);
+
+  assert.equal(control.goldSweepTween.config.duration, NAVIGATION_GOLD_SWEEP.duration);
+  assert.ok(control.goldSweepTween.config.duration >= 1200 && control.goldSweepTween.config.duration <= 2000);
+  assert.equal(control.goldSweepTween.config.hold, NAVIGATION_GOLD_SWEEP.pauseDuration);
+  assert.ok(control.goldSweepTween.config.hold >= 3000 && control.goldSweepTween.config.hold <= 6000);
+  assert.equal(control.goldSweepTween.config.repeat, -1);
+  assert.equal(control.goldSweepTween.config.delay, getNavigationGoldSweepPhaseOffset(32, 810, 52));
+  assert.notEqual(control.goldSweepTween.config.delay, otherPhase);
+  assert.notEqual(control.goldSweepTween.config.duration + control.goldSweepTween.config.hold, NAVIGATION_RING_MOTION.duration);
+  assert.doesNotMatch(helperSource(), /Math\.random|Phaser\.Math\.Between|setTimeout\(/);
+});
+
+test('gold sweep cleanup removes tween and rebuilding navigation does not duplicate cycles', () => {
+  const scene = makeScene();
+  const controls = createBottomNavigationControls(scene, {
+    onBack() {},
+    onRules() {},
+    onFullscreen() {},
+  });
+  const goldTweens = scene.__created.tweens.filter((tween) => tween.config.duration === NAVIGATION_GOLD_SWEEP.duration);
+
+  assert.equal(goldTweens.length, 3);
+  controls.back.destroy();
+  controls.rules.destroy();
+  controls.fullscreen.destroy();
+  assert.equal(goldTweens.every((tween) => tween.removed), true);
+
+  createBottomNavigationControls(scene, {
+    onBack() {},
+    onRules() {},
+    onFullscreen() {},
+  });
+  assert.equal(scene.__created.tweens.filter((tween) => tween.config.duration === NAVIGATION_GOLD_SWEEP.duration).length, 6);
+  assert.equal(scene.__created.tweens.filter((tween) => tween.config.duration === NAVIGATION_GOLD_SWEEP.duration && !tween.removed).length, 3);
 });
