@@ -117,3 +117,23 @@ Manual sanity checks can override panic caused by AI-only campaign results:
 - Aggro vs Control was won manually on the second attempt; the first attempt was close and affected by player decision-making.
 
 These checks suggest the current 3-attempt player campaign remains plausible/fair despite harsh AI-only campaign smoke. The project should not convert player campaign attempts from 3 to 4 unless manual testing also shows that 3 attempts is unfair.
+
+## AI placement baseline update (2026-07-17)
+
+The current AI placement behavior is accepted. Exact-score placement ties no longer fall through to the first generated slot; they use deterministic seeded selection. Ally-adjacency formation units now receive positional formation scoring, so Swarm Alpha prefers the middle slot on an otherwise equal empty board because it has two adjacency opportunities. Gap Hunter (`empty_adjacent_bonus_atk`) is excluded from ally-formation scoring and uses normal tactical scoring plus seeded tie-breaking. No generic center preference was added, and slot mapping remains unchanged: enemy `[0,1,2]`, player `[6,7,8]`.
+
+Diagnostics and regression coverage were added for opening placement, tie-breaking, Alpha, Gap Hunter, and slot mapping. The current implementation was validated with 0 invalid actions, 0 crashes, stable pacing, and no first-slot-only behavior.
+
+Accepted 100-match seed-1337 AI baseline for future balance comparisons:
+
+| Faction | Non-draw WR |
+|---|---:|
+| Aggro | 53.3% |
+| Tank | 47.0% |
+| Control | 50.7% |
+| Swarm | 43.4% |
+| Wardens | 50.9% |
+| Attrition Swarm | 50.4% |
+| Overclock | 54.4% |
+
+All factions remain within the accepted global 40–60% band. This run becomes the new baseline for future balance comparisons; older balance reports from before the placement/tie-break change should not be treated as directly comparable.
