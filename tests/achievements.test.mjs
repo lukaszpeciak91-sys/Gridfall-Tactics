@@ -208,7 +208,7 @@ test('achievement balance thresholds and localized descriptions match current ta
   assert.equal(byId['arena.win_25_battles'].target, 25);
   assert.equal(byId['arena.win_25_battles'].difficulty, 4);
   assert.deepEqual(byId['arena.win_25_battles'].display.title, { en: 'The House Knows You', pl: 'Kasyno cię zna' });
-  assert.deepEqual(byId['arena.win_25_battles'].display.description, { en: 'Win 25 Arena battles.', pl: 'Wygraj 25 walk w Arenie.' });
+  assert.deepEqual(byId['arena.win_25_battles'].display.description, { en: 'Win 25 Arena battles.', pl: 'Wygraj 25 bitew na Arenie.' });
 
   const dominator = byId['campaign.win_campaign_every_faction'];
   assert.equal(dominator.target, getFactionKeys().length);
