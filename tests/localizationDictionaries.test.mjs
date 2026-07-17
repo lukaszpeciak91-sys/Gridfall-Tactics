@@ -33,14 +33,19 @@ test('faction select title copy is localized for English and Polish', () => {
   assert.equal(getPath(pl, 'ui.factionSelect.title'), 'WYBIERZ DRUŻYNĘ');
 });
 
+test('arena faction select title copy is localized for English and Polish', () => {
+  assert.equal(getPath(en, 'ui.factionSelect.arenaTitle'), 'ARENA');
+  assert.equal(getPath(pl, 'ui.factionSelect.arenaTitle'), 'ARENA');
+});
+
 test('arena faction select helper describes random opponents and arenas', () => {
   assert.equal(
     getPath(en, 'ui.factionSelect.arenaHelper'),
-    'Fight random opponents across randomly selected arenas from different dimensions.',
+    'Choose your team. Your opponent and an arena from another dimension will be selected at random.',
   );
   assert.equal(
     getPath(pl, 'ui.factionSelect.arenaHelper'),
-    'Walcz z losowymi przeciwnikami na losowo wybieranych arenach z różnych wymiarów.',
+    'Wybierz drużynę. Przeciwnik i arena z innego wymiaru zostaną wybrani losowo.',
   );
 });
 

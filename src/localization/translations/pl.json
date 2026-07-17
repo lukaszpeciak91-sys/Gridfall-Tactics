@@ -330,7 +330,8 @@
     },
     "factionSelect": {
       "title": "WYBIERZ DRUŻYNĘ",
-      "arenaHelper": "Walcz z losowymi przeciwnikami na losowo wybieranych arenach z różnych wymiarów.",
+      "arenaTitle": "ARENA",
+      "arenaHelper": "Wybierz drużynę. Przeciwnik i arena z innego wymiaru zostaną wybrani losowo.",
       "descriptions": {
         "Aggro": "Szybka presja.",
         "Tank": "Pancerz i wytrzymałość.",

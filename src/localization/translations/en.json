@@ -330,7 +330,8 @@
     },
     "factionSelect": {
       "title": "SELECT YOUR TEAM",
-      "arenaHelper": "Fight random opponents across randomly selected arenas from different dimensions.",
+      "arenaTitle": "ARENA",
+      "arenaHelper": "Choose your team. Your opponent and an arena from another dimension will be selected at random.",
       "descriptions": {
         "Aggro": "Fast pressure.",
         "Tank": "Armor and sustain.",

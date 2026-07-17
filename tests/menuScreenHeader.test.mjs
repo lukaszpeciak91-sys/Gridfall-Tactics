@@ -5,7 +5,7 @@ import test from 'node:test';
 const read = (path) => fs.readFileSync(path, 'utf8');
 
 const MENU_SCREENS = Object.freeze([
-  { path: 'src/scenes/FactionSelectScene.js', titleKey: 'ui.factionSelect.title' },
+  { path: 'src/scenes/FactionSelectScene.js', titleKey: 'ui.factionSelect.title', alternateTitleKey: 'ui.factionSelect.arenaTitle' },
   { path: 'src/scenes/CollectionScene.js', titleKey: 'ui.collection.title' },
   { path: 'src/scenes/AchievementsScene.js', titleKey: 'ui.achievements.title' },
   { path: 'src/scenes/TutorialScene.js', titleKey: 'ui.tutorial.title' },
@@ -25,10 +25,13 @@ test('non-battle menu screens use the shared premium broadcast screen header', (
   assert.doesNotMatch(helper, /scene\.add\.line/);
   assert.match(helper, /items: \[glow, titleObject\]/);
 
-  MENU_SCREENS.forEach(({ path, titleKey }) => {
+  MENU_SCREENS.forEach(({ path, titleKey, alternateTitleKey }) => {
     const source = read(path);
     assert.match(source, /import \{ createMenuScreenHeader \} from '\.\.\/ui\/screenHeader\.js';/);
-    assert.match(source, new RegExp(`createMenuScreenHeader\\(this, \\{[\\s\\S]*title: translateActive\\('${titleKey}'`));
+    assert.match(source, new RegExp(`createMenuScreenHeader\\(this, \\{[\\s\\S]*translateActive\\('${titleKey}'`));
+    if (alternateTitleKey) {
+      assert.match(source, new RegExp(`createMenuScreenHeader\\(this, \\{[\\s\\S]*translateActive\\('${alternateTitleKey}'`));
+    }
   });
 });
 
