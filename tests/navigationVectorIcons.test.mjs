@@ -4,6 +4,7 @@ import test from 'node:test';
 import {
   createBottomNavigationControls,
   createFloatingControl,
+  createMuteToggleControl,
   getNavigationGoldSweepGeometry,
   getNavigationGoldSweepPhaseOffset,
   getNavigationIconGeometry,
@@ -242,6 +243,43 @@ test('mute control shares the animated ring without changing mute hitbox or call
   assert.equal(controls.mute.button.height, controls.metrics.touchSize);
   assert.equal(controls.mute.button.listeners.pointerup instanceof Function, true);
   assert.equal(scene.__created.tweens.length, 2);
+});
+
+
+test('Battle Menu utility icons opt out of ambient edge sweeps without losing interaction or state refresh', () => {
+  const battleSource = read('src/scenes/BattleScene.js');
+  const menuSource = battleSource.slice(
+    battleSource.indexOf('const muteToggle = createMuteToggleControl'),
+    battleSource.indexOf('[triggerControl, fullscreenToggle, muteToggle]'),
+  );
+  assert.match(menuSource, /createMuteToggleControl\(this, panelX - 28, rowY, 42, \{ depth: depth \+ 3, ambientFrameSweep: false \}\)/);
+  assert.match(menuSource, /createFloatingControl\(this, panelX \+ 28, rowY, 42, NAVIGATION_ICON_TYPES\.FULLSCREEN[\s\S]*\{ fontScale: 0\.48, ambientFrameSweep: false \}\)/);
+
+  let fullscreenCalls = 0;
+  let muteUpdates = 0;
+  const fullscreenScene = makeScene();
+  const fullscreen = createFloatingControl(fullscreenScene, 223, 406, 42, NAVIGATION_ICON_TYPES.FULLSCREEN, () => { fullscreenCalls += 1; }, { fontScale: 0.48, ambientFrameSweep: false });
+  assert.equal(fullscreen.goldSweep, null);
+  assert.equal(fullscreen.goldSweepTween, null);
+  assert.equal(fullscreen.goldSweepMotion, null);
+  assert.equal(fullscreen.backing.interactive, true);
+  fullscreen.backing.listeners.pointerup();
+  assert.equal(fullscreenCalls, 1);
+  assert.equal(fullscreenScene.__created.tweens.filter((tween) => tween.config.duration === NAVIGATION_GOLD_SWEEP.duration).length, 0);
+
+  const muteScene = makeScene();
+  const mute = createMuteToggleControl(muteScene, 167, 406, 42, { depth: 723, ambientFrameSweep: false, onToggle() { muteUpdates += 1; } });
+  assert.equal(mute.goldSweep, null);
+  assert.equal(mute.goldSweepTween, null);
+  assert.equal(mute.goldSweepMotion, null);
+  assert.equal(mute.button.interactive, true);
+  assert.ok(mute.button.children.includes(mute.backing));
+  mute.button.listeners.pointerover();
+  assert.deepEqual(mute.backing.fillStyle.slice(0, 2), [0x0f172a, 0.72]);
+  mute.button.listeners.pointerup();
+  assert.equal(muteUpdates, 1);
+  assert.ok(mute.icon.commands.length > 0);
+  assert.equal(muteScene.__created.tweens.filter((tween) => tween.config.duration === NAVIGATION_GOLD_SWEEP.duration).length, 0);
 });
 
 test('bottom navigation gold sweep creates one non-interactive Graphics object per shared control', () => {
