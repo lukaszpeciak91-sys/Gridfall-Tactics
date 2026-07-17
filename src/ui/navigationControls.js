@@ -354,7 +354,7 @@ export function createNavigationGoldSweep(scene, x, y, size, { depth = NAVIGATIO
   return { sweep, tween, geometry, duration: NAVIGATION_GOLD_SWEEP.duration, pauseDuration: NAVIGATION_GOLD_SWEEP.pauseDuration, phaseOffset: delay, cleanup };
 }
 
-export function createFloatingControl(scene, x, y, size, label, onPointerUp, { fontScale = 0.5 } = {}) {
+export function createFloatingControl(scene, x, y, size, label, onPointerUp, { fontScale = 0.5, ambientFrameSweep = true } = {}) {
   const iconType = resolveNavigationIconType(label);
   if (!iconType) {
     throw new Error(`Unsupported floating navigation icon: ${label}`);
@@ -364,7 +364,7 @@ export function createFloatingControl(scene, x, y, size, label, onPointerUp, { f
     .setStrokeStyle(1, 0x7dd3fc, 0.18)
     .setDepth(198);
   const ringMotion = createNavigationRingMotion(scene, x, y, size);
-  const goldSweep = createNavigationGoldSweep(scene, x, y, size);
+  const goldSweep = ambientFrameSweep ? createNavigationGoldSweep(scene, x, y, size) : null;
   const backing = scene.add.rectangle(x, y, size, size, 0x020617, 0.62)
     .setRounded(getBottomControlCornerRadius(size))
     .setStrokeStyle(1, PREMIUM_GOLD_ACCENT, 0.58)
@@ -393,13 +393,13 @@ export function createFloatingControl(scene, x, y, size, label, onPointerUp, { f
 
   const destroy = () => {
     ringMotion.cleanup();
-    goldSweep.cleanup();
+    goldSweep?.cleanup?.();
     halo.destroy?.();
     backing.destroy?.();
     icon.destroy?.();
   };
 
-  return { halo, ringArc: ringMotion.arc, ringTween: ringMotion.tween, ringMotion, goldSweep: goldSweep.sweep, goldSweepTween: goldSweep.tween, goldSweepMotion: goldSweep, backing, icon, text: icon, iconType, destroy };
+  return { halo, ringArc: ringMotion.arc, ringTween: ringMotion.tween, ringMotion, goldSweep: goldSweep?.sweep ?? null, goldSweepTween: goldSweep?.tween ?? null, goldSweepMotion: goldSweep, backing, icon, text: icon, iconType, destroy };
 }
 
 export function drawSpeakerIcon(icon, size, isMuted) {
@@ -441,18 +441,18 @@ export function drawSpeakerIcon(icon, size, isMuted) {
   icon.strokePath();
 }
 
-export function createMuteToggleControl(scene, x, y, size, { onToggle = null, depth = 198 } = {}) {
+export function createMuteToggleControl(scene, x, y, size, { onToggle = null, depth = 198, ambientFrameSweep = true } = {}) {
   const button = scene.add.container(x, y).setDepth(depth);
   const halo = scene.add.circle(0, 0, size * NAVIGATION_RING_MOTION.muteRadiusRatio, 0x38bdf8, 0.08).setStrokeStyle(1, 0x7dd3fc, 0.18);
   const ringMotion = createNavigationRingMotion(scene, 0, 0, size, { radiusRatio: NAVIGATION_RING_MOTION.muteRadiusRatio });
-  const goldSweep = createNavigationGoldSweep(scene, 0, 0, size);
+  const goldSweep = ambientFrameSweep ? createNavigationGoldSweep(scene, 0, 0, size) : null;
   const backing = scene.add.rectangle(0, 0, size, size, 0x020617, 0.66)
     .setRounded(getBottomControlCornerRadius(size))
     .setStrokeStyle(1, PREMIUM_GOLD_ACCENT, 0.58);
   const icon = scene.add.graphics();
   let hovering = false;
 
-  button.add([halo, ringMotion.arc, backing, goldSweep.sweep, icon]);
+  button.add([halo, ringMotion.arc, backing, goldSweep?.sweep, icon].filter(Boolean));
   button.setSize(size, size);
   button.setInteractive({ useHandCursor: true });
 
@@ -490,10 +490,10 @@ export function createMuteToggleControl(scene, x, y, size, { onToggle = null, de
   const destroy = () => {
     scene.game?.events?.off?.(SETTINGS_CHANGED_EVENT, handleSettingsChanged);
     ringMotion.cleanup();
-    goldSweep.cleanup();
+    goldSweep?.cleanup?.();
     button.destroy();
   };
-  return { halo, ringArc: ringMotion.arc, ringTween: ringMotion.tween, ringMotion, goldSweep: goldSweep.sweep, goldSweepTween: goldSweep.tween, goldSweepMotion: goldSweep, backing, icon, button, text: icon, destroy };
+  return { halo, ringArc: ringMotion.arc, ringTween: ringMotion.tween, ringMotion, goldSweep: goldSweep?.sweep ?? null, goldSweepTween: goldSweep?.tween ?? null, goldSweepMotion: goldSweep, backing, icon, button, text: icon, destroy };
 }
 
 export function createBottomNavigationControls(scene, {
