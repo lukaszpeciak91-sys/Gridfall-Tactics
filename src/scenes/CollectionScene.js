@@ -59,7 +59,7 @@ const COLLECTION_DOSSIER_PADDING_X = 13;
 const COLLECTION_DOSSIER_PADDING_Y = 10;
 const COLLECTION_DOSSIER_MIN_HEIGHT = 96;
 const COLLECTION_DOSSIER_DIMENSION_FONT_SIZE = 13;
-const COLLECTION_DOSSIER_BODY_FONT_SIZE = 13;
+const COLLECTION_DOSSIER_BODY_FONT_SIZE = 14;
 const COLLECTION_DOSSIER_BODY_LINE_SPACING = 4;
 const COLLECTION_DOSSIER_TEXT_GAP = 5;
 const COLLECTION_DOSSIER_BODY_MAX_LINES = 7;
@@ -319,7 +319,7 @@ export default class CollectionScene extends Phaser.Scene {
     );
 
     const panel = this.add.graphics();
-    panel.fillStyle(0x020817, 0.46);
+    panel.fillStyle(0x020817, 0.56);
     panel.fillRoundedRect(x, y, panelWidth, panelHeight, 10);
     panel.lineStyle(1, accentColor, 0.28);
     panel.strokeRoundedRect(x + 0.5, y + 0.5, panelWidth - 1, panelHeight - 1, 9);
