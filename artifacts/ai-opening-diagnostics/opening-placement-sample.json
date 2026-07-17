@@ -6,7 +6,7 @@
       "slot0": 1,
       "middle": 5,
       "oppositeEdge": 4,
-      "ties": 9,
+      "ties": 10,
       "firstGeneratedTieWins": 0,
       "cardsSlot0": {
         "aggro_runner_1": 1
@@ -15,13 +15,14 @@
     "Aggro|enemy|acts-first": {
       "total": 10,
       "unitPlacements": 10,
-      "slot0": 2,
-      "middle": 5,
+      "slot0": 3,
+      "middle": 4,
       "oppositeEdge": 3,
-      "ties": 7,
+      "ties": 10,
       "firstGeneratedTieWins": 0,
       "cardsSlot0": {
-        "aggro_runner_1": 2
+        "aggro_runner_1": 2,
+        "aggro_flanker_1": 1
       }
     },
     "Aggro|player|acts-second": {
@@ -30,7 +31,7 @@
       "slot0": 1,
       "middle": 4,
       "oppositeEdge": 5,
-      "ties": 9,
+      "ties": 10,
       "firstGeneratedTieWins": 0,
       "cardsSlot0": {
         "aggro_runner_1": 1
@@ -297,34 +298,36 @@
     "Overclock|enemy|acts-second": {
       "total": 10,
       "unitPlacements": 10,
-      "slot0": 1,
-      "middle": 8,
-      "oppositeEdge": 1,
-      "ties": 4,
+      "slot0": 2,
+      "middle": 5,
+      "oppositeEdge": 3,
+      "ties": 10,
       "firstGeneratedTieWins": 0,
       "cardsSlot0": {
-        "overclock_pain_engine_1": 1
+        "overclock_pain_engine_1": 1,
+        "overclock_gap_hunter_1": 1
       }
     },
     "Overclock|enemy|acts-first": {
       "total": 10,
       "unitPlacements": 10,
-      "slot0": 1,
-      "middle": 9,
-      "oppositeEdge": 0,
-      "ties": 3,
+      "slot0": 3,
+      "middle": 4,
+      "oppositeEdge": 3,
+      "ties": 10,
       "firstGeneratedTieWins": 0,
       "cardsSlot0": {
-        "overclock_mob_champion_1": 1
+        "overclock_mob_champion_1": 1,
+        "overclock_gap_hunter_1": 2
       }
     },
     "Overclock|player|acts-second": {
       "total": 10,
       "unitPlacements": 10,
       "slot0": 1,
-      "middle": 7,
-      "oppositeEdge": 2,
-      "ties": 6,
+      "middle": 5,
+      "oppositeEdge": 4,
+      "ties": 10,
       "firstGeneratedTieWins": 0,
       "cardsSlot0": {
         "overclock_golem_1": 1
@@ -333,12 +336,13 @@
     "Overclock|player|acts-first": {
       "total": 10,
       "unitPlacements": 10,
-      "slot0": 2,
-      "middle": 7,
-      "oppositeEdge": 1,
-      "ties": 3,
+      "slot0": 3,
+      "middle": 2,
+      "oppositeEdge": 5,
+      "ties": 10,
       "firstGeneratedTieWins": 0,
       "cardsSlot0": {
+        "overclock_gap_hunter_1": 1,
         "overclock_golem_1": 1,
         "overclock_mob_champion_1": 1
       }
@@ -429,6 +433,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -500,6 +507,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -567,6 +577,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -662,6 +675,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -733,6 +749,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -800,6 +819,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -900,6 +922,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -971,6 +996,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -1038,6 +1066,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -1138,6 +1169,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -1209,6 +1243,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -1276,6 +1313,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -1371,6 +1411,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -1442,6 +1485,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -1509,6 +1555,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -1604,6 +1653,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -1675,6 +1727,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -1742,6 +1797,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -1874,6 +1932,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -1945,6 +2006,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -2012,6 +2076,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -2112,6 +2179,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -2183,6 +2253,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -2250,6 +2323,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -2345,6 +2421,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -2416,6 +2495,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -2483,6 +2565,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -2615,6 +2700,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -2686,6 +2774,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -2753,6 +2844,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -2848,6 +2942,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -2919,6 +3016,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -2986,6 +3086,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -3086,6 +3189,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -3157,6 +3263,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -3224,6 +3333,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -3319,6 +3431,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -3390,6 +3505,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -3457,6 +3575,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -3589,6 +3710,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -3660,6 +3784,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -3727,6 +3854,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -3827,6 +3957,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -3898,6 +4031,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -3965,6 +4101,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -4060,6 +4199,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -4131,6 +4273,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -4198,6 +4343,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -4325,6 +4473,9 @@
             "opposingIndex": 0,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -4396,6 +4547,9 @@
             "opposingIndex": 1,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -4463,6 +4617,9 @@
             "opposingIndex": 2,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -4627,6 +4784,9 @@
             "opposingIndex": 0,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -4698,6 +4858,9 @@
             "opposingIndex": 1,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -4765,6 +4928,9 @@
             "opposingIndex": 2,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -4860,6 +5026,9 @@
             "opposingIndex": 0,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -4931,6 +5100,9 @@
             "opposingIndex": 1,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -4998,6 +5170,9 @@
             "opposingIndex": 2,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -5125,6 +5300,9 @@
             "opposingIndex": 0,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -5196,6 +5374,9 @@
             "opposingIndex": 1,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -5263,6 +5444,9 @@
             "opposingIndex": 2,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -5363,6 +5547,9 @@
             "opposingIndex": 0,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -5434,6 +5621,9 @@
             "opposingIndex": 1,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -5501,6 +5691,9 @@
             "opposingIndex": 2,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -5601,6 +5794,9 @@
             "opposingIndex": 0,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -5672,6 +5868,9 @@
             "opposingIndex": 1,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -5739,6 +5938,9 @@
             "opposingIndex": 2,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -5834,6 +6036,9 @@
             "opposingIndex": 0,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -5905,6 +6110,9 @@
             "opposingIndex": 1,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -5972,6 +6180,9 @@
             "opposingIndex": 2,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -6072,6 +6283,9 @@
             "opposingIndex": 0,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -6143,6 +6357,9 @@
             "opposingIndex": 1,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -6210,6 +6427,9 @@
             "opposingIndex": 2,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -6310,6 +6530,9 @@
             "opposingIndex": 0,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -6381,6 +6604,9 @@
             "opposingIndex": 1,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -6448,6 +6674,9 @@
             "opposingIndex": 2,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -6543,6 +6772,9 @@
             "opposingIndex": 0,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -6614,6 +6846,9 @@
             "opposingIndex": 1,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -6681,6 +6916,9 @@
             "opposingIndex": 2,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -6808,6 +7046,9 @@
             "opposingIndex": 0,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -6879,6 +7120,9 @@
             "opposingIndex": 1,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -6946,6 +7190,9 @@
             "opposingIndex": 2,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -7041,6 +7288,9 @@
             "opposingIndex": 0,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -7112,6 +7362,9 @@
             "opposingIndex": 1,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -7179,6 +7432,9 @@
             "opposingIndex": 2,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -7306,6 +7562,9 @@
             "opposingIndex": 0,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -7377,6 +7636,9 @@
             "opposingIndex": 1,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -7444,6 +7706,9 @@
             "opposingIndex": 2,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -7576,6 +7841,9 @@
             "opposingIndex": 0,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -7647,6 +7915,9 @@
             "opposingIndex": 1,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -7714,6 +7985,9 @@
             "opposingIndex": 2,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": true,
+            "allyAdjacencyFormationEffect": true,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -7978,6 +8252,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -8028,6 +8305,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -8076,6 +8356,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -8151,6 +8434,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -8201,6 +8487,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -8249,6 +8538,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -8578,6 +8870,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -8628,6 +8923,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -8676,6 +8974,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -8724,6 +9025,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -8774,6 +9078,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -8822,6 +9129,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -8870,6 +9180,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -8920,6 +9233,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -8968,6 +9284,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -9201,17 +9520,7 @@
             "type": "play-unit",
             "cardId": "aggro_flanker_1",
             "slotIndex": 0,
-            "placementType": "play",
-            "aiEvaluation": {
-              "adjacencyFormationValue": 18,
-              "occupiedAdjacencyValue": 0,
-              "futureAdjacencyCapacityValue": 18,
-              "occupiedAdjacentFriendlySlots": [],
-              "emptyAdjacentFriendlySlots": [
-                1
-              ],
-              "possibleAdjacentPositions": 1
-            }
+            "placementType": "play"
           }
         },
         {
@@ -9220,18 +9529,7 @@
             "type": "play-unit",
             "cardId": "aggro_flanker_1",
             "slotIndex": 1,
-            "placementType": "play",
-            "aiEvaluation": {
-              "adjacencyFormationValue": 36,
-              "occupiedAdjacencyValue": 0,
-              "futureAdjacencyCapacityValue": 36,
-              "occupiedAdjacentFriendlySlots": [],
-              "emptyAdjacentFriendlySlots": [
-                0,
-                2
-              ],
-              "possibleAdjacentPositions": 2
-            }
+            "placementType": "play"
           }
         },
         {
@@ -9240,17 +9538,7 @@
             "type": "play-unit",
             "cardId": "aggro_flanker_1",
             "slotIndex": 2,
-            "placementType": "play",
-            "aiEvaluation": {
-              "adjacencyFormationValue": 18,
-              "occupiedAdjacencyValue": 0,
-              "futureAdjacencyCapacityValue": 18,
-              "occupiedAdjacentFriendlySlots": [],
-              "emptyAdjacentFriendlySlots": [
-                1
-              ],
-              "possibleAdjacentPositions": 1
-            }
+            "placementType": "play"
           }
         }
       ],
@@ -9329,6 +9617,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -9379,6 +9670,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -9427,6 +9721,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -9475,6 +9772,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -9525,6 +9825,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -9573,6 +9876,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -9588,17 +9894,7 @@
             "type": "play-unit",
             "cardId": "aggro_flanker_1",
             "slotIndex": 0,
-            "placementType": "play",
-            "aiEvaluation": {
-              "adjacencyFormationValue": 18,
-              "occupiedAdjacencyValue": 0,
-              "futureAdjacencyCapacityValue": 18,
-              "occupiedAdjacentFriendlySlots": [],
-              "emptyAdjacentFriendlySlots": [
-                1
-              ],
-              "possibleAdjacentPositions": 1
-            }
+            "placementType": "play"
           },
           "cardId": "aggro_flanker_1",
           "cardName": "Flanker",
@@ -9612,21 +9908,12 @@
             "lane": 0,
             "laneMeaning": "left/top edge"
           },
-          "score": 4772,
-          "scoreComponents": {
-            "adjacencyFormationValue": 18,
-            "occupiedAdjacencyValue": 0,
-            "futureAdjacencyCapacityValue": 18,
-            "occupiedAdjacentFriendlySlots": [],
-            "emptyAdjacentFriendlySlots": [
-              1
-            ],
-            "possibleAdjacentPositions": 1
-          },
-          "adjacencyFormationValue": 18,
+          "score": 4754,
+          "scoreComponents": {},
+          "adjacencyFormationValue": 0,
           "occupiedAdjacencyValue": 0,
-          "futureAdjacencyCapacityValue": 18,
-          "positionalScore": 18,
+          "futureAdjacencyCapacityValue": 0,
+          "positionalScore": 0,
           "cardSpecificScore": "empty_adjacent_bonus_atk",
           "adjacencyValue": {
             "adjacentSlots": [
@@ -9640,6 +9927,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": true,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -9647,7 +9937,7 @@
           "futureBoardValue": null,
           "penalties": [],
           "bonuses": [],
-          "tiedWithAnotherCandidate": false
+          "tiedWithAnotherCandidate": true
         },
         {
           "generationOrder": 8,
@@ -9655,18 +9945,7 @@
             "type": "play-unit",
             "cardId": "aggro_flanker_1",
             "slotIndex": 1,
-            "placementType": "play",
-            "aiEvaluation": {
-              "adjacencyFormationValue": 36,
-              "occupiedAdjacencyValue": 0,
-              "futureAdjacencyCapacityValue": 36,
-              "occupiedAdjacentFriendlySlots": [],
-              "emptyAdjacentFriendlySlots": [
-                0,
-                2
-              ],
-              "possibleAdjacentPositions": 2
-            }
+            "placementType": "play"
           },
           "cardId": "aggro_flanker_1",
           "cardName": "Flanker",
@@ -9680,22 +9959,12 @@
             "lane": 1,
             "laneMeaning": "middle"
           },
-          "score": 4790,
-          "scoreComponents": {
-            "adjacencyFormationValue": 36,
-            "occupiedAdjacencyValue": 0,
-            "futureAdjacencyCapacityValue": 36,
-            "occupiedAdjacentFriendlySlots": [],
-            "emptyAdjacentFriendlySlots": [
-              0,
-              2
-            ],
-            "possibleAdjacentPositions": 2
-          },
-          "adjacencyFormationValue": 36,
+          "score": 4754,
+          "scoreComponents": {},
+          "adjacencyFormationValue": 0,
           "occupiedAdjacencyValue": 0,
-          "futureAdjacencyCapacityValue": 36,
-          "positionalScore": 36,
+          "futureAdjacencyCapacityValue": 0,
+          "positionalScore": 0,
           "cardSpecificScore": "empty_adjacent_bonus_atk",
           "adjacencyValue": {
             "adjacentSlots": [
@@ -9711,6 +9980,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": true,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -9718,7 +9990,7 @@
           "futureBoardValue": null,
           "penalties": [],
           "bonuses": [],
-          "tiedWithAnotherCandidate": false
+          "tiedWithAnotherCandidate": true
         },
         {
           "generationOrder": 9,
@@ -9726,17 +9998,7 @@
             "type": "play-unit",
             "cardId": "aggro_flanker_1",
             "slotIndex": 2,
-            "placementType": "play",
-            "aiEvaluation": {
-              "adjacencyFormationValue": 18,
-              "occupiedAdjacencyValue": 0,
-              "futureAdjacencyCapacityValue": 18,
-              "occupiedAdjacentFriendlySlots": [],
-              "emptyAdjacentFriendlySlots": [
-                1
-              ],
-              "possibleAdjacentPositions": 1
-            }
+            "placementType": "play"
           },
           "cardId": "aggro_flanker_1",
           "cardName": "Flanker",
@@ -9750,21 +10012,12 @@
             "lane": 2,
             "laneMeaning": "right/bottom edge"
           },
-          "score": 4772,
-          "scoreComponents": {
-            "adjacencyFormationValue": 18,
-            "occupiedAdjacencyValue": 0,
-            "futureAdjacencyCapacityValue": 18,
-            "occupiedAdjacentFriendlySlots": [],
-            "emptyAdjacentFriendlySlots": [
-              1
-            ],
-            "possibleAdjacentPositions": 1
-          },
-          "adjacencyFormationValue": 18,
+          "score": 4754,
+          "scoreComponents": {},
+          "adjacencyFormationValue": 0,
           "occupiedAdjacencyValue": 0,
-          "futureAdjacencyCapacityValue": 18,
-          "positionalScore": 18,
+          "futureAdjacencyCapacityValue": 0,
+          "positionalScore": 0,
           "cardSpecificScore": "empty_adjacent_bonus_atk",
           "adjacencyValue": {
             "adjacentSlots": [
@@ -9778,6 +10031,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": true,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -9785,38 +10041,58 @@
           "futureBoardValue": null,
           "penalties": [],
           "bonuses": [],
-          "tiedWithAnotherCandidate": false
+          "tiedWithAnotherCandidate": true
         }
       ],
-      "exactTieCandidateCount": 1,
+      "exactTieCandidateCount": 3,
       "exactTieCandidateGenerationOrders": [
-        8
+        7,
+        8,
+        9
       ],
-      "tieBreakingRuleUsed": "single highest score",
-      "tieBreakDetails": null,
+      "tieBreakingRuleUsed": "seeded exact-score tie-break",
+      "tieBreakDetails": {
+        "policy": "seeded-random",
+        "reason": "seeded exact-score tie-break",
+        "tieCount": 3,
+        "tiedCandidateIndices": [
+          7,
+          8,
+          9
+        ],
+        "seedDerivedTieBreakValue": 0.4019554362166673,
+        "tieBreakSource": "options.randomFn",
+        "selectedTiedCandidateIndex": 1,
+        "selectedCandidateIndex": 8
+      },
       "selectedAction": {
         "type": "play-unit",
         "cardId": "aggro_flanker_1",
         "slotIndex": 1,
         "placementType": "play",
         "aiEvaluation": {
-          "adjacencyFormationValue": 36,
-          "occupiedAdjacencyValue": 0,
-          "futureAdjacencyCapacityValue": 36,
-          "occupiedAdjacentFriendlySlots": [],
-          "emptyAdjacentFriendlySlots": [
-            0,
-            2
-          ],
-          "possibleAdjacentPositions": 2,
           "holdScore": 0,
-          "marginOverHold": 4790,
+          "marginOverHold": 4754,
           "chosenAction": true,
-          "utilityChosenReason": "highest scored legal action"
+          "utilityChosenReason": "seeded exact-score tie-break",
+          "tieBreak": {
+            "policy": "seeded-random",
+            "reason": "seeded exact-score tie-break",
+            "tieCount": 3,
+            "tiedCandidateIndices": [
+              7,
+              8,
+              9
+            ],
+            "seedDerivedTieBreakValue": 0.4019554362166673,
+            "tieBreakSource": "options.randomFn",
+            "selectedTiedCandidateIndex": 1,
+            "selectedCandidateIndex": 8
+          }
         }
       },
       "selectedCandidateGenerationOrder": -1,
-      "exactReason": "highest scored legal action"
+      "exactReason": "seeded exact-score tie-break"
     },
     {
       "faction": "Aggro",
@@ -9998,17 +10274,7 @@
             "type": "play-unit",
             "cardId": "aggro_flanker_1",
             "slotIndex": 0,
-            "placementType": "play",
-            "aiEvaluation": {
-              "adjacencyFormationValue": 18,
-              "occupiedAdjacencyValue": 0,
-              "futureAdjacencyCapacityValue": 18,
-              "occupiedAdjacentFriendlySlots": [],
-              "emptyAdjacentFriendlySlots": [
-                1
-              ],
-              "possibleAdjacentPositions": 1
-            }
+            "placementType": "play"
           }
         },
         {
@@ -10017,18 +10283,7 @@
             "type": "play-unit",
             "cardId": "aggro_flanker_1",
             "slotIndex": 1,
-            "placementType": "play",
-            "aiEvaluation": {
-              "adjacencyFormationValue": 36,
-              "occupiedAdjacencyValue": 0,
-              "futureAdjacencyCapacityValue": 36,
-              "occupiedAdjacentFriendlySlots": [],
-              "emptyAdjacentFriendlySlots": [
-                0,
-                2
-              ],
-              "possibleAdjacentPositions": 2
-            }
+            "placementType": "play"
           }
         },
         {
@@ -10037,17 +10292,7 @@
             "type": "play-unit",
             "cardId": "aggro_flanker_1",
             "slotIndex": 2,
-            "placementType": "play",
-            "aiEvaluation": {
-              "adjacencyFormationValue": 18,
-              "occupiedAdjacencyValue": 0,
-              "futureAdjacencyCapacityValue": 18,
-              "occupiedAdjacentFriendlySlots": [],
-              "emptyAdjacentFriendlySlots": [
-                1
-              ],
-              "possibleAdjacentPositions": 1
-            }
+            "placementType": "play"
           }
         }
       ],
@@ -10126,6 +10371,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -10176,6 +10424,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -10224,6 +10475,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -10299,6 +10553,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -10349,6 +10606,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -10397,6 +10657,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -10412,17 +10675,7 @@
             "type": "play-unit",
             "cardId": "aggro_flanker_1",
             "slotIndex": 0,
-            "placementType": "play",
-            "aiEvaluation": {
-              "adjacencyFormationValue": 18,
-              "occupiedAdjacencyValue": 0,
-              "futureAdjacencyCapacityValue": 18,
-              "occupiedAdjacentFriendlySlots": [],
-              "emptyAdjacentFriendlySlots": [
-                1
-              ],
-              "possibleAdjacentPositions": 1
-            }
+            "placementType": "play"
           },
           "cardId": "aggro_flanker_1",
           "cardName": "Flanker",
@@ -10436,21 +10689,12 @@
             "lane": 0,
             "laneMeaning": "left/top edge"
           },
-          "score": 4772,
-          "scoreComponents": {
-            "adjacencyFormationValue": 18,
-            "occupiedAdjacencyValue": 0,
-            "futureAdjacencyCapacityValue": 18,
-            "occupiedAdjacentFriendlySlots": [],
-            "emptyAdjacentFriendlySlots": [
-              1
-            ],
-            "possibleAdjacentPositions": 1
-          },
-          "adjacencyFormationValue": 18,
+          "score": 4754,
+          "scoreComponents": {},
+          "adjacencyFormationValue": 0,
           "occupiedAdjacencyValue": 0,
-          "futureAdjacencyCapacityValue": 18,
-          "positionalScore": 18,
+          "futureAdjacencyCapacityValue": 0,
+          "positionalScore": 0,
           "cardSpecificScore": "empty_adjacent_bonus_atk",
           "adjacencyValue": {
             "adjacentSlots": [
@@ -10464,6 +10708,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": true,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -10479,18 +10726,7 @@
             "type": "play-unit",
             "cardId": "aggro_flanker_1",
             "slotIndex": 1,
-            "placementType": "play",
-            "aiEvaluation": {
-              "adjacencyFormationValue": 36,
-              "occupiedAdjacencyValue": 0,
-              "futureAdjacencyCapacityValue": 36,
-              "occupiedAdjacentFriendlySlots": [],
-              "emptyAdjacentFriendlySlots": [
-                0,
-                2
-              ],
-              "possibleAdjacentPositions": 2
-            }
+            "placementType": "play"
           },
           "cardId": "aggro_flanker_1",
           "cardName": "Flanker",
@@ -10504,22 +10740,12 @@
             "lane": 1,
             "laneMeaning": "middle"
           },
-          "score": 4790,
-          "scoreComponents": {
-            "adjacencyFormationValue": 36,
-            "occupiedAdjacencyValue": 0,
-            "futureAdjacencyCapacityValue": 36,
-            "occupiedAdjacentFriendlySlots": [],
-            "emptyAdjacentFriendlySlots": [
-              0,
-              2
-            ],
-            "possibleAdjacentPositions": 2
-          },
-          "adjacencyFormationValue": 36,
+          "score": 4754,
+          "scoreComponents": {},
+          "adjacencyFormationValue": 0,
           "occupiedAdjacencyValue": 0,
-          "futureAdjacencyCapacityValue": 36,
-          "positionalScore": 36,
+          "futureAdjacencyCapacityValue": 0,
+          "positionalScore": 0,
           "cardSpecificScore": "empty_adjacent_bonus_atk",
           "adjacencyValue": {
             "adjacentSlots": [
@@ -10535,6 +10761,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": true,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -10550,17 +10779,7 @@
             "type": "play-unit",
             "cardId": "aggro_flanker_1",
             "slotIndex": 2,
-            "placementType": "play",
-            "aiEvaluation": {
-              "adjacencyFormationValue": 18,
-              "occupiedAdjacencyValue": 0,
-              "futureAdjacencyCapacityValue": 18,
-              "occupiedAdjacentFriendlySlots": [],
-              "emptyAdjacentFriendlySlots": [
-                1
-              ],
-              "possibleAdjacentPositions": 1
-            }
+            "placementType": "play"
           },
           "cardId": "aggro_flanker_1",
           "cardName": "Flanker",
@@ -10574,21 +10793,12 @@
             "lane": 2,
             "laneMeaning": "right/bottom edge"
           },
-          "score": 4772,
-          "scoreComponents": {
-            "adjacencyFormationValue": 18,
-            "occupiedAdjacencyValue": 0,
-            "futureAdjacencyCapacityValue": 18,
-            "occupiedAdjacentFriendlySlots": [],
-            "emptyAdjacentFriendlySlots": [
-              1
-            ],
-            "possibleAdjacentPositions": 1
-          },
-          "adjacencyFormationValue": 18,
+          "score": 4754,
+          "scoreComponents": {},
+          "adjacencyFormationValue": 0,
           "occupiedAdjacencyValue": 0,
-          "futureAdjacencyCapacityValue": 18,
-          "positionalScore": 18,
+          "futureAdjacencyCapacityValue": 0,
+          "positionalScore": 0,
           "cardSpecificScore": "empty_adjacent_bonus_atk",
           "adjacencyValue": {
             "adjacentSlots": [
@@ -10602,6 +10812,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": true,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -10931,6 +11144,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -10981,6 +11197,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -11029,6 +11248,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -11077,6 +11299,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -11127,6 +11352,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -11175,6 +11403,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -11223,6 +11454,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -11273,6 +11507,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -11321,6 +11558,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -11650,6 +11890,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -11700,6 +11943,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -11748,6 +11994,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -11796,6 +12045,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -11846,6 +12098,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -11894,6 +12149,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -11942,6 +12200,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -11992,6 +12253,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -12040,6 +12304,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -12278,17 +12545,7 @@
             "type": "play-unit",
             "cardId": "aggro_flanker_1",
             "slotIndex": 0,
-            "placementType": "play",
-            "aiEvaluation": {
-              "adjacencyFormationValue": 18,
-              "occupiedAdjacencyValue": 0,
-              "futureAdjacencyCapacityValue": 18,
-              "occupiedAdjacentFriendlySlots": [],
-              "emptyAdjacentFriendlySlots": [
-                1
-              ],
-              "possibleAdjacentPositions": 1
-            }
+            "placementType": "play"
           }
         },
         {
@@ -12297,18 +12554,7 @@
             "type": "play-unit",
             "cardId": "aggro_flanker_1",
             "slotIndex": 1,
-            "placementType": "play",
-            "aiEvaluation": {
-              "adjacencyFormationValue": 36,
-              "occupiedAdjacencyValue": 0,
-              "futureAdjacencyCapacityValue": 36,
-              "occupiedAdjacentFriendlySlots": [],
-              "emptyAdjacentFriendlySlots": [
-                0,
-                2
-              ],
-              "possibleAdjacentPositions": 2
-            }
+            "placementType": "play"
           }
         },
         {
@@ -12317,17 +12563,7 @@
             "type": "play-unit",
             "cardId": "aggro_flanker_1",
             "slotIndex": 2,
-            "placementType": "play",
-            "aiEvaluation": {
-              "adjacencyFormationValue": 18,
-              "occupiedAdjacencyValue": 0,
-              "futureAdjacencyCapacityValue": 18,
-              "occupiedAdjacentFriendlySlots": [],
-              "emptyAdjacentFriendlySlots": [
-                1
-              ],
-              "possibleAdjacentPositions": 1
-            }
+            "placementType": "play"
           }
         }
       ],
@@ -12406,6 +12642,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -12456,6 +12695,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -12504,6 +12746,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -12552,6 +12797,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -12602,6 +12850,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -12650,6 +12901,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -12692,17 +12946,7 @@
             "type": "play-unit",
             "cardId": "aggro_flanker_1",
             "slotIndex": 0,
-            "placementType": "play",
-            "aiEvaluation": {
-              "adjacencyFormationValue": 18,
-              "occupiedAdjacencyValue": 0,
-              "futureAdjacencyCapacityValue": 18,
-              "occupiedAdjacentFriendlySlots": [],
-              "emptyAdjacentFriendlySlots": [
-                1
-              ],
-              "possibleAdjacentPositions": 1
-            }
+            "placementType": "play"
           },
           "cardId": "aggro_flanker_1",
           "cardName": "Flanker",
@@ -12716,21 +12960,12 @@
             "lane": 0,
             "laneMeaning": "left/top edge"
           },
-          "score": 4772,
-          "scoreComponents": {
-            "adjacencyFormationValue": 18,
-            "occupiedAdjacencyValue": 0,
-            "futureAdjacencyCapacityValue": 18,
-            "occupiedAdjacentFriendlySlots": [],
-            "emptyAdjacentFriendlySlots": [
-              1
-            ],
-            "possibleAdjacentPositions": 1
-          },
-          "adjacencyFormationValue": 18,
+          "score": 4754,
+          "scoreComponents": {},
+          "adjacencyFormationValue": 0,
           "occupiedAdjacencyValue": 0,
-          "futureAdjacencyCapacityValue": 18,
-          "positionalScore": 18,
+          "futureAdjacencyCapacityValue": 0,
+          "positionalScore": 0,
           "cardSpecificScore": "empty_adjacent_bonus_atk",
           "adjacencyValue": {
             "adjacentSlots": [
@@ -12744,6 +12979,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": true,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -12759,18 +12997,7 @@
             "type": "play-unit",
             "cardId": "aggro_flanker_1",
             "slotIndex": 1,
-            "placementType": "play",
-            "aiEvaluation": {
-              "adjacencyFormationValue": 36,
-              "occupiedAdjacencyValue": 0,
-              "futureAdjacencyCapacityValue": 36,
-              "occupiedAdjacentFriendlySlots": [],
-              "emptyAdjacentFriendlySlots": [
-                0,
-                2
-              ],
-              "possibleAdjacentPositions": 2
-            }
+            "placementType": "play"
           },
           "cardId": "aggro_flanker_1",
           "cardName": "Flanker",
@@ -12784,22 +13011,12 @@
             "lane": 1,
             "laneMeaning": "middle"
           },
-          "score": 4790,
-          "scoreComponents": {
-            "adjacencyFormationValue": 36,
-            "occupiedAdjacencyValue": 0,
-            "futureAdjacencyCapacityValue": 36,
-            "occupiedAdjacentFriendlySlots": [],
-            "emptyAdjacentFriendlySlots": [
-              0,
-              2
-            ],
-            "possibleAdjacentPositions": 2
-          },
-          "adjacencyFormationValue": 36,
+          "score": 4754,
+          "scoreComponents": {},
+          "adjacencyFormationValue": 0,
           "occupiedAdjacencyValue": 0,
-          "futureAdjacencyCapacityValue": 36,
-          "positionalScore": 36,
+          "futureAdjacencyCapacityValue": 0,
+          "positionalScore": 0,
           "cardSpecificScore": "empty_adjacent_bonus_atk",
           "adjacencyValue": {
             "adjacentSlots": [
@@ -12815,6 +13032,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": true,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -12830,17 +13050,7 @@
             "type": "play-unit",
             "cardId": "aggro_flanker_1",
             "slotIndex": 2,
-            "placementType": "play",
-            "aiEvaluation": {
-              "adjacencyFormationValue": 18,
-              "occupiedAdjacencyValue": 0,
-              "futureAdjacencyCapacityValue": 18,
-              "occupiedAdjacentFriendlySlots": [],
-              "emptyAdjacentFriendlySlots": [
-                1
-              ],
-              "possibleAdjacentPositions": 1
-            }
+            "placementType": "play"
           },
           "cardId": "aggro_flanker_1",
           "cardName": "Flanker",
@@ -12854,21 +13064,12 @@
             "lane": 2,
             "laneMeaning": "right/bottom edge"
           },
-          "score": 4772,
-          "scoreComponents": {
-            "adjacencyFormationValue": 18,
-            "occupiedAdjacencyValue": 0,
-            "futureAdjacencyCapacityValue": 18,
-            "occupiedAdjacentFriendlySlots": [],
-            "emptyAdjacentFriendlySlots": [
-              1
-            ],
-            "possibleAdjacentPositions": 1
-          },
-          "adjacencyFormationValue": 18,
+          "score": 4754,
+          "scoreComponents": {},
+          "adjacencyFormationValue": 0,
           "occupiedAdjacencyValue": 0,
-          "futureAdjacencyCapacityValue": 18,
-          "positionalScore": 18,
+          "futureAdjacencyCapacityValue": 0,
+          "positionalScore": 0,
           "cardSpecificScore": "empty_adjacent_bonus_atk",
           "adjacencyValue": {
             "adjacentSlots": [
@@ -12882,6 +13083,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": true,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -13061,17 +13265,7 @@
             "type": "play-unit",
             "cardId": "aggro_flanker_1",
             "slotIndex": 0,
-            "placementType": "play",
-            "aiEvaluation": {
-              "adjacencyFormationValue": 18,
-              "occupiedAdjacencyValue": 0,
-              "futureAdjacencyCapacityValue": 18,
-              "occupiedAdjacentFriendlySlots": [],
-              "emptyAdjacentFriendlySlots": [
-                1
-              ],
-              "possibleAdjacentPositions": 1
-            }
+            "placementType": "play"
           }
         },
         {
@@ -13080,18 +13274,7 @@
             "type": "play-unit",
             "cardId": "aggro_flanker_1",
             "slotIndex": 1,
-            "placementType": "play",
-            "aiEvaluation": {
-              "adjacencyFormationValue": 36,
-              "occupiedAdjacencyValue": 0,
-              "futureAdjacencyCapacityValue": 36,
-              "occupiedAdjacentFriendlySlots": [],
-              "emptyAdjacentFriendlySlots": [
-                0,
-                2
-              ],
-              "possibleAdjacentPositions": 2
-            }
+            "placementType": "play"
           }
         },
         {
@@ -13100,17 +13283,7 @@
             "type": "play-unit",
             "cardId": "aggro_flanker_1",
             "slotIndex": 2,
-            "placementType": "play",
-            "aiEvaluation": {
-              "adjacencyFormationValue": 18,
-              "occupiedAdjacencyValue": 0,
-              "futureAdjacencyCapacityValue": 18,
-              "occupiedAdjacentFriendlySlots": [],
-              "emptyAdjacentFriendlySlots": [
-                1
-              ],
-              "possibleAdjacentPositions": 1
-            }
+            "placementType": "play"
           }
         },
         {
@@ -13183,17 +13356,7 @@
             "type": "play-unit",
             "cardId": "aggro_flanker_1",
             "slotIndex": 0,
-            "placementType": "play",
-            "aiEvaluation": {
-              "adjacencyFormationValue": 18,
-              "occupiedAdjacencyValue": 0,
-              "futureAdjacencyCapacityValue": 18,
-              "occupiedAdjacentFriendlySlots": [],
-              "emptyAdjacentFriendlySlots": [
-                1
-              ],
-              "possibleAdjacentPositions": 1
-            }
+            "placementType": "play"
           },
           "cardId": "aggro_flanker_1",
           "cardName": "Flanker",
@@ -13207,21 +13370,12 @@
             "lane": 0,
             "laneMeaning": "left/top edge"
           },
-          "score": 4772,
-          "scoreComponents": {
-            "adjacencyFormationValue": 18,
-            "occupiedAdjacencyValue": 0,
-            "futureAdjacencyCapacityValue": 18,
-            "occupiedAdjacentFriendlySlots": [],
-            "emptyAdjacentFriendlySlots": [
-              1
-            ],
-            "possibleAdjacentPositions": 1
-          },
-          "adjacencyFormationValue": 18,
+          "score": 4754,
+          "scoreComponents": {},
+          "adjacencyFormationValue": 0,
           "occupiedAdjacencyValue": 0,
-          "futureAdjacencyCapacityValue": 18,
-          "positionalScore": 18,
+          "futureAdjacencyCapacityValue": 0,
+          "positionalScore": 0,
           "cardSpecificScore": "empty_adjacent_bonus_atk",
           "adjacencyValue": {
             "adjacentSlots": [
@@ -13235,6 +13389,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": true,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -13242,7 +13399,7 @@
           "futureBoardValue": null,
           "penalties": [],
           "bonuses": [],
-          "tiedWithAnotherCandidate": false
+          "tiedWithAnotherCandidate": true
         },
         {
           "generationOrder": 2,
@@ -13250,18 +13407,7 @@
             "type": "play-unit",
             "cardId": "aggro_flanker_1",
             "slotIndex": 1,
-            "placementType": "play",
-            "aiEvaluation": {
-              "adjacencyFormationValue": 36,
-              "occupiedAdjacencyValue": 0,
-              "futureAdjacencyCapacityValue": 36,
-              "occupiedAdjacentFriendlySlots": [],
-              "emptyAdjacentFriendlySlots": [
-                0,
-                2
-              ],
-              "possibleAdjacentPositions": 2
-            }
+            "placementType": "play"
           },
           "cardId": "aggro_flanker_1",
           "cardName": "Flanker",
@@ -13275,22 +13421,12 @@
             "lane": 1,
             "laneMeaning": "middle"
           },
-          "score": 4790,
-          "scoreComponents": {
-            "adjacencyFormationValue": 36,
-            "occupiedAdjacencyValue": 0,
-            "futureAdjacencyCapacityValue": 36,
-            "occupiedAdjacentFriendlySlots": [],
-            "emptyAdjacentFriendlySlots": [
-              0,
-              2
-            ],
-            "possibleAdjacentPositions": 2
-          },
-          "adjacencyFormationValue": 36,
+          "score": 4754,
+          "scoreComponents": {},
+          "adjacencyFormationValue": 0,
           "occupiedAdjacencyValue": 0,
-          "futureAdjacencyCapacityValue": 36,
-          "positionalScore": 36,
+          "futureAdjacencyCapacityValue": 0,
+          "positionalScore": 0,
           "cardSpecificScore": "empty_adjacent_bonus_atk",
           "adjacencyValue": {
             "adjacentSlots": [
@@ -13306,6 +13442,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": true,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -13313,7 +13452,7 @@
           "futureBoardValue": null,
           "penalties": [],
           "bonuses": [],
-          "tiedWithAnotherCandidate": false
+          "tiedWithAnotherCandidate": true
         },
         {
           "generationOrder": 3,
@@ -13321,17 +13460,7 @@
             "type": "play-unit",
             "cardId": "aggro_flanker_1",
             "slotIndex": 2,
-            "placementType": "play",
-            "aiEvaluation": {
-              "adjacencyFormationValue": 18,
-              "occupiedAdjacencyValue": 0,
-              "futureAdjacencyCapacityValue": 18,
-              "occupiedAdjacentFriendlySlots": [],
-              "emptyAdjacentFriendlySlots": [
-                1
-              ],
-              "possibleAdjacentPositions": 1
-            }
+            "placementType": "play"
           },
           "cardId": "aggro_flanker_1",
           "cardName": "Flanker",
@@ -13345,21 +13474,12 @@
             "lane": 2,
             "laneMeaning": "right/bottom edge"
           },
-          "score": 4772,
-          "scoreComponents": {
-            "adjacencyFormationValue": 18,
-            "occupiedAdjacencyValue": 0,
-            "futureAdjacencyCapacityValue": 18,
-            "occupiedAdjacentFriendlySlots": [],
-            "emptyAdjacentFriendlySlots": [
-              1
-            ],
-            "possibleAdjacentPositions": 1
-          },
-          "adjacencyFormationValue": 18,
+          "score": 4754,
+          "scoreComponents": {},
+          "adjacencyFormationValue": 0,
           "occupiedAdjacencyValue": 0,
-          "futureAdjacencyCapacityValue": 18,
-          "positionalScore": 18,
+          "futureAdjacencyCapacityValue": 0,
+          "positionalScore": 0,
           "cardSpecificScore": "empty_adjacent_bonus_atk",
           "adjacencyValue": {
             "adjacentSlots": [
@@ -13373,6 +13493,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": true,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -13380,7 +13503,7 @@
           "futureBoardValue": null,
           "penalties": [],
           "bonuses": [],
-          "tiedWithAnotherCandidate": false
+          "tiedWithAnotherCandidate": true
         },
         {
           "generationOrder": 4,
@@ -13421,6 +13544,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -13471,6 +13597,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -13519,6 +13648,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -13529,35 +13661,55 @@
           "tiedWithAnotherCandidate": false
         }
       ],
-      "exactTieCandidateCount": 1,
+      "exactTieCandidateCount": 3,
       "exactTieCandidateGenerationOrders": [
-        2
+        1,
+        2,
+        3
       ],
-      "tieBreakingRuleUsed": "single highest score",
-      "tieBreakDetails": null,
+      "tieBreakingRuleUsed": "seeded exact-score tie-break",
+      "tieBreakDetails": {
+        "policy": "seeded-random",
+        "reason": "seeded exact-score tie-break",
+        "tieCount": 3,
+        "tiedCandidateIndices": [
+          1,
+          2,
+          3
+        ],
+        "seedDerivedTieBreakValue": 0.6110108704306185,
+        "tieBreakSource": "options.randomFn",
+        "selectedTiedCandidateIndex": 1,
+        "selectedCandidateIndex": 2
+      },
       "selectedAction": {
         "type": "play-unit",
         "cardId": "aggro_flanker_1",
         "slotIndex": 1,
         "placementType": "play",
         "aiEvaluation": {
-          "adjacencyFormationValue": 36,
-          "occupiedAdjacencyValue": 0,
-          "futureAdjacencyCapacityValue": 36,
-          "occupiedAdjacentFriendlySlots": [],
-          "emptyAdjacentFriendlySlots": [
-            0,
-            2
-          ],
-          "possibleAdjacentPositions": 2,
           "holdScore": 0,
-          "marginOverHold": 4790,
+          "marginOverHold": 4754,
           "chosenAction": true,
-          "utilityChosenReason": "highest scored legal action"
+          "utilityChosenReason": "seeded exact-score tie-break",
+          "tieBreak": {
+            "policy": "seeded-random",
+            "reason": "seeded exact-score tie-break",
+            "tieCount": 3,
+            "tiedCandidateIndices": [
+              1,
+              2,
+              3
+            ],
+            "seedDerivedTieBreakValue": 0.6110108704306185,
+            "tieBreakSource": "options.randomFn",
+            "selectedTiedCandidateIndex": 1,
+            "selectedCandidateIndex": 2
+          }
         }
       },
       "selectedCandidateGenerationOrder": -1,
-      "exactReason": "highest scored legal action"
+      "exactReason": "seeded exact-score tie-break"
     },
     {
       "faction": "Aggro",
@@ -13756,17 +13908,7 @@
             "type": "play-unit",
             "cardId": "aggro_flanker_1",
             "slotIndex": 0,
-            "placementType": "play",
-            "aiEvaluation": {
-              "adjacencyFormationValue": 18,
-              "occupiedAdjacencyValue": 0,
-              "futureAdjacencyCapacityValue": 18,
-              "occupiedAdjacentFriendlySlots": [],
-              "emptyAdjacentFriendlySlots": [
-                1
-              ],
-              "possibleAdjacentPositions": 1
-            }
+            "placementType": "play"
           }
         },
         {
@@ -13775,18 +13917,7 @@
             "type": "play-unit",
             "cardId": "aggro_flanker_1",
             "slotIndex": 1,
-            "placementType": "play",
-            "aiEvaluation": {
-              "adjacencyFormationValue": 36,
-              "occupiedAdjacencyValue": 0,
-              "futureAdjacencyCapacityValue": 36,
-              "occupiedAdjacentFriendlySlots": [],
-              "emptyAdjacentFriendlySlots": [
-                0,
-                2
-              ],
-              "possibleAdjacentPositions": 2
-            }
+            "placementType": "play"
           }
         },
         {
@@ -13795,17 +13926,7 @@
             "type": "play-unit",
             "cardId": "aggro_flanker_1",
             "slotIndex": 2,
-            "placementType": "play",
-            "aiEvaluation": {
-              "adjacencyFormationValue": 18,
-              "occupiedAdjacencyValue": 0,
-              "futureAdjacencyCapacityValue": 18,
-              "occupiedAdjacentFriendlySlots": [],
-              "emptyAdjacentFriendlySlots": [
-                1
-              ],
-              "possibleAdjacentPositions": 1
-            }
+            "placementType": "play"
           }
         }
       ],
@@ -13884,6 +14005,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -13934,6 +14058,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -13982,6 +14109,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -14030,6 +14160,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -14080,6 +14213,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -14128,6 +14264,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -14176,6 +14315,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -14226,6 +14368,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -14274,6 +14419,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -14289,17 +14437,7 @@
             "type": "play-unit",
             "cardId": "aggro_flanker_1",
             "slotIndex": 0,
-            "placementType": "play",
-            "aiEvaluation": {
-              "adjacencyFormationValue": 18,
-              "occupiedAdjacencyValue": 0,
-              "futureAdjacencyCapacityValue": 18,
-              "occupiedAdjacentFriendlySlots": [],
-              "emptyAdjacentFriendlySlots": [
-                1
-              ],
-              "possibleAdjacentPositions": 1
-            }
+            "placementType": "play"
           },
           "cardId": "aggro_flanker_1",
           "cardName": "Flanker",
@@ -14313,21 +14451,12 @@
             "lane": 0,
             "laneMeaning": "left/top edge"
           },
-          "score": 4772,
-          "scoreComponents": {
-            "adjacencyFormationValue": 18,
-            "occupiedAdjacencyValue": 0,
-            "futureAdjacencyCapacityValue": 18,
-            "occupiedAdjacentFriendlySlots": [],
-            "emptyAdjacentFriendlySlots": [
-              1
-            ],
-            "possibleAdjacentPositions": 1
-          },
-          "adjacencyFormationValue": 18,
+          "score": 4754,
+          "scoreComponents": {},
+          "adjacencyFormationValue": 0,
           "occupiedAdjacencyValue": 0,
-          "futureAdjacencyCapacityValue": 18,
-          "positionalScore": 18,
+          "futureAdjacencyCapacityValue": 0,
+          "positionalScore": 0,
           "cardSpecificScore": "empty_adjacent_bonus_atk",
           "adjacencyValue": {
             "adjacentSlots": [
@@ -14341,6 +14470,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": true,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -14356,18 +14488,7 @@
             "type": "play-unit",
             "cardId": "aggro_flanker_1",
             "slotIndex": 1,
-            "placementType": "play",
-            "aiEvaluation": {
-              "adjacencyFormationValue": 36,
-              "occupiedAdjacencyValue": 0,
-              "futureAdjacencyCapacityValue": 36,
-              "occupiedAdjacentFriendlySlots": [],
-              "emptyAdjacentFriendlySlots": [
-                0,
-                2
-              ],
-              "possibleAdjacentPositions": 2
-            }
+            "placementType": "play"
           },
           "cardId": "aggro_flanker_1",
           "cardName": "Flanker",
@@ -14381,22 +14502,12 @@
             "lane": 1,
             "laneMeaning": "middle"
           },
-          "score": 4790,
-          "scoreComponents": {
-            "adjacencyFormationValue": 36,
-            "occupiedAdjacencyValue": 0,
-            "futureAdjacencyCapacityValue": 36,
-            "occupiedAdjacentFriendlySlots": [],
-            "emptyAdjacentFriendlySlots": [
-              0,
-              2
-            ],
-            "possibleAdjacentPositions": 2
-          },
-          "adjacencyFormationValue": 36,
+          "score": 4754,
+          "scoreComponents": {},
+          "adjacencyFormationValue": 0,
           "occupiedAdjacencyValue": 0,
-          "futureAdjacencyCapacityValue": 36,
-          "positionalScore": 36,
+          "futureAdjacencyCapacityValue": 0,
+          "positionalScore": 0,
           "cardSpecificScore": "empty_adjacent_bonus_atk",
           "adjacencyValue": {
             "adjacentSlots": [
@@ -14412,6 +14523,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": true,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -14427,17 +14541,7 @@
             "type": "play-unit",
             "cardId": "aggro_flanker_1",
             "slotIndex": 2,
-            "placementType": "play",
-            "aiEvaluation": {
-              "adjacencyFormationValue": 18,
-              "occupiedAdjacencyValue": 0,
-              "futureAdjacencyCapacityValue": 18,
-              "occupiedAdjacentFriendlySlots": [],
-              "emptyAdjacentFriendlySlots": [
-                1
-              ],
-              "possibleAdjacentPositions": 1
-            }
+            "placementType": "play"
           },
           "cardId": "aggro_flanker_1",
           "cardName": "Flanker",
@@ -14451,21 +14555,12 @@
             "lane": 2,
             "laneMeaning": "right/bottom edge"
           },
-          "score": 4772,
-          "scoreComponents": {
-            "adjacencyFormationValue": 18,
-            "occupiedAdjacencyValue": 0,
-            "futureAdjacencyCapacityValue": 18,
-            "occupiedAdjacentFriendlySlots": [],
-            "emptyAdjacentFriendlySlots": [
-              1
-            ],
-            "possibleAdjacentPositions": 1
-          },
-          "adjacencyFormationValue": 18,
+          "score": 4754,
+          "scoreComponents": {},
+          "adjacencyFormationValue": 0,
           "occupiedAdjacencyValue": 0,
-          "futureAdjacencyCapacityValue": 18,
-          "positionalScore": 18,
+          "futureAdjacencyCapacityValue": 0,
+          "positionalScore": 0,
           "cardSpecificScore": "empty_adjacent_bonus_atk",
           "adjacencyValue": {
             "adjacentSlots": [
@@ -14479,6 +14574,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": true,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -14789,6 +14887,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -14839,6 +14940,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -14887,6 +14991,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -14935,6 +15042,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -14985,6 +15095,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -15033,6 +15146,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -15238,17 +15354,7 @@
             "type": "play-unit",
             "cardId": "aggro_flanker_1",
             "slotIndex": 0,
-            "placementType": "play",
-            "aiEvaluation": {
-              "adjacencyFormationValue": 18,
-              "occupiedAdjacencyValue": 0,
-              "futureAdjacencyCapacityValue": 18,
-              "occupiedAdjacentFriendlySlots": [],
-              "emptyAdjacentFriendlySlots": [
-                1
-              ],
-              "possibleAdjacentPositions": 1
-            }
+            "placementType": "play"
           }
         },
         {
@@ -15257,18 +15363,7 @@
             "type": "play-unit",
             "cardId": "aggro_flanker_1",
             "slotIndex": 1,
-            "placementType": "play",
-            "aiEvaluation": {
-              "adjacencyFormationValue": 36,
-              "occupiedAdjacencyValue": 0,
-              "futureAdjacencyCapacityValue": 36,
-              "occupiedAdjacentFriendlySlots": [],
-              "emptyAdjacentFriendlySlots": [
-                0,
-                2
-              ],
-              "possibleAdjacentPositions": 2
-            }
+            "placementType": "play"
           }
         },
         {
@@ -15277,17 +15372,7 @@
             "type": "play-unit",
             "cardId": "aggro_flanker_1",
             "slotIndex": 2,
-            "placementType": "play",
-            "aiEvaluation": {
-              "adjacencyFormationValue": 18,
-              "occupiedAdjacencyValue": 0,
-              "futureAdjacencyCapacityValue": 18,
-              "occupiedAdjacentFriendlySlots": [],
-              "emptyAdjacentFriendlySlots": [
-                1
-              ],
-              "possibleAdjacentPositions": 1
-            }
+            "placementType": "play"
           }
         },
         {
@@ -15395,17 +15480,7 @@
             "type": "play-unit",
             "cardId": "aggro_flanker_1",
             "slotIndex": 0,
-            "placementType": "play",
-            "aiEvaluation": {
-              "adjacencyFormationValue": 18,
-              "occupiedAdjacencyValue": 0,
-              "futureAdjacencyCapacityValue": 18,
-              "occupiedAdjacentFriendlySlots": [],
-              "emptyAdjacentFriendlySlots": [
-                1
-              ],
-              "possibleAdjacentPositions": 1
-            }
+            "placementType": "play"
           },
           "cardId": "aggro_flanker_1",
           "cardName": "Flanker",
@@ -15419,21 +15494,12 @@
             "lane": 0,
             "laneMeaning": "left/top edge"
           },
-          "score": 4772,
-          "scoreComponents": {
-            "adjacencyFormationValue": 18,
-            "occupiedAdjacencyValue": 0,
-            "futureAdjacencyCapacityValue": 18,
-            "occupiedAdjacentFriendlySlots": [],
-            "emptyAdjacentFriendlySlots": [
-              1
-            ],
-            "possibleAdjacentPositions": 1
-          },
-          "adjacencyFormationValue": 18,
+          "score": 4754,
+          "scoreComponents": {},
+          "adjacencyFormationValue": 0,
           "occupiedAdjacencyValue": 0,
-          "futureAdjacencyCapacityValue": 18,
-          "positionalScore": 18,
+          "futureAdjacencyCapacityValue": 0,
+          "positionalScore": 0,
           "cardSpecificScore": "empty_adjacent_bonus_atk",
           "adjacencyValue": {
             "adjacentSlots": [
@@ -15447,6 +15513,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": true,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -15462,18 +15531,7 @@
             "type": "play-unit",
             "cardId": "aggro_flanker_1",
             "slotIndex": 1,
-            "placementType": "play",
-            "aiEvaluation": {
-              "adjacencyFormationValue": 36,
-              "occupiedAdjacencyValue": 0,
-              "futureAdjacencyCapacityValue": 36,
-              "occupiedAdjacentFriendlySlots": [],
-              "emptyAdjacentFriendlySlots": [
-                0,
-                2
-              ],
-              "possibleAdjacentPositions": 2
-            }
+            "placementType": "play"
           },
           "cardId": "aggro_flanker_1",
           "cardName": "Flanker",
@@ -15487,22 +15545,12 @@
             "lane": 1,
             "laneMeaning": "middle"
           },
-          "score": 4790,
-          "scoreComponents": {
-            "adjacencyFormationValue": 36,
-            "occupiedAdjacencyValue": 0,
-            "futureAdjacencyCapacityValue": 36,
-            "occupiedAdjacentFriendlySlots": [],
-            "emptyAdjacentFriendlySlots": [
-              0,
-              2
-            ],
-            "possibleAdjacentPositions": 2
-          },
-          "adjacencyFormationValue": 36,
+          "score": 4754,
+          "scoreComponents": {},
+          "adjacencyFormationValue": 0,
           "occupiedAdjacencyValue": 0,
-          "futureAdjacencyCapacityValue": 36,
-          "positionalScore": 36,
+          "futureAdjacencyCapacityValue": 0,
+          "positionalScore": 0,
           "cardSpecificScore": "empty_adjacent_bonus_atk",
           "adjacencyValue": {
             "adjacentSlots": [
@@ -15518,6 +15566,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": true,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -15533,17 +15584,7 @@
             "type": "play-unit",
             "cardId": "aggro_flanker_1",
             "slotIndex": 2,
-            "placementType": "play",
-            "aiEvaluation": {
-              "adjacencyFormationValue": 18,
-              "occupiedAdjacencyValue": 0,
-              "futureAdjacencyCapacityValue": 18,
-              "occupiedAdjacentFriendlySlots": [],
-              "emptyAdjacentFriendlySlots": [
-                1
-              ],
-              "possibleAdjacentPositions": 1
-            }
+            "placementType": "play"
           },
           "cardId": "aggro_flanker_1",
           "cardName": "Flanker",
@@ -15557,21 +15598,12 @@
             "lane": 2,
             "laneMeaning": "right/bottom edge"
           },
-          "score": 4772,
-          "scoreComponents": {
-            "adjacencyFormationValue": 18,
-            "occupiedAdjacencyValue": 0,
-            "futureAdjacencyCapacityValue": 18,
-            "occupiedAdjacentFriendlySlots": [],
-            "emptyAdjacentFriendlySlots": [
-              1
-            ],
-            "possibleAdjacentPositions": 1
-          },
-          "adjacencyFormationValue": 18,
+          "score": 4754,
+          "scoreComponents": {},
+          "adjacencyFormationValue": 0,
           "occupiedAdjacencyValue": 0,
-          "futureAdjacencyCapacityValue": 18,
-          "positionalScore": 18,
+          "futureAdjacencyCapacityValue": 0,
+          "positionalScore": 0,
           "cardSpecificScore": "empty_adjacent_bonus_atk",
           "adjacencyValue": {
             "adjacentSlots": [
@@ -15585,6 +15617,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": true,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -15660,6 +15695,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -15710,6 +15748,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -15758,6 +15799,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -15806,6 +15850,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -15856,6 +15903,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -15904,6 +15954,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -16082,17 +16135,7 @@
             "type": "play-unit",
             "cardId": "aggro_flanker_1",
             "slotIndex": 0,
-            "placementType": "play",
-            "aiEvaluation": {
-              "adjacencyFormationValue": 18,
-              "occupiedAdjacencyValue": 0,
-              "futureAdjacencyCapacityValue": 18,
-              "occupiedAdjacentFriendlySlots": [],
-              "emptyAdjacentFriendlySlots": [
-                1
-              ],
-              "possibleAdjacentPositions": 1
-            }
+            "placementType": "play"
           }
         },
         {
@@ -16101,18 +16144,7 @@
             "type": "play-unit",
             "cardId": "aggro_flanker_1",
             "slotIndex": 1,
-            "placementType": "play",
-            "aiEvaluation": {
-              "adjacencyFormationValue": 36,
-              "occupiedAdjacencyValue": 0,
-              "futureAdjacencyCapacityValue": 36,
-              "occupiedAdjacentFriendlySlots": [],
-              "emptyAdjacentFriendlySlots": [
-                0,
-                2
-              ],
-              "possibleAdjacentPositions": 2
-            }
+            "placementType": "play"
           }
         },
         {
@@ -16121,17 +16153,7 @@
             "type": "play-unit",
             "cardId": "aggro_flanker_1",
             "slotIndex": 2,
-            "placementType": "play",
-            "aiEvaluation": {
-              "adjacencyFormationValue": 18,
-              "occupiedAdjacencyValue": 0,
-              "futureAdjacencyCapacityValue": 18,
-              "occupiedAdjacentFriendlySlots": [],
-              "emptyAdjacentFriendlySlots": [
-                1
-              ],
-              "possibleAdjacentPositions": 1
-            }
+            "placementType": "play"
           }
         },
         {
@@ -16231,17 +16253,7 @@
             "type": "play-unit",
             "cardId": "aggro_flanker_1",
             "slotIndex": 0,
-            "placementType": "play",
-            "aiEvaluation": {
-              "adjacencyFormationValue": 18,
-              "occupiedAdjacencyValue": 0,
-              "futureAdjacencyCapacityValue": 18,
-              "occupiedAdjacentFriendlySlots": [],
-              "emptyAdjacentFriendlySlots": [
-                1
-              ],
-              "possibleAdjacentPositions": 1
-            }
+            "placementType": "play"
           },
           "cardId": "aggro_flanker_1",
           "cardName": "Flanker",
@@ -16255,21 +16267,12 @@
             "lane": 0,
             "laneMeaning": "left/top edge"
           },
-          "score": 4772,
-          "scoreComponents": {
-            "adjacencyFormationValue": 18,
-            "occupiedAdjacencyValue": 0,
-            "futureAdjacencyCapacityValue": 18,
-            "occupiedAdjacentFriendlySlots": [],
-            "emptyAdjacentFriendlySlots": [
-              1
-            ],
-            "possibleAdjacentPositions": 1
-          },
-          "adjacencyFormationValue": 18,
+          "score": 4754,
+          "scoreComponents": {},
+          "adjacencyFormationValue": 0,
           "occupiedAdjacencyValue": 0,
-          "futureAdjacencyCapacityValue": 18,
-          "positionalScore": 18,
+          "futureAdjacencyCapacityValue": 0,
+          "positionalScore": 0,
           "cardSpecificScore": "empty_adjacent_bonus_atk",
           "adjacencyValue": {
             "adjacentSlots": [
@@ -16283,6 +16286,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": true,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -16298,18 +16304,7 @@
             "type": "play-unit",
             "cardId": "aggro_flanker_1",
             "slotIndex": 1,
-            "placementType": "play",
-            "aiEvaluation": {
-              "adjacencyFormationValue": 36,
-              "occupiedAdjacencyValue": 0,
-              "futureAdjacencyCapacityValue": 36,
-              "occupiedAdjacentFriendlySlots": [],
-              "emptyAdjacentFriendlySlots": [
-                0,
-                2
-              ],
-              "possibleAdjacentPositions": 2
-            }
+            "placementType": "play"
           },
           "cardId": "aggro_flanker_1",
           "cardName": "Flanker",
@@ -16323,22 +16318,12 @@
             "lane": 1,
             "laneMeaning": "middle"
           },
-          "score": 4790,
-          "scoreComponents": {
-            "adjacencyFormationValue": 36,
-            "occupiedAdjacencyValue": 0,
-            "futureAdjacencyCapacityValue": 36,
-            "occupiedAdjacentFriendlySlots": [],
-            "emptyAdjacentFriendlySlots": [
-              0,
-              2
-            ],
-            "possibleAdjacentPositions": 2
-          },
-          "adjacencyFormationValue": 36,
+          "score": 4754,
+          "scoreComponents": {},
+          "adjacencyFormationValue": 0,
           "occupiedAdjacencyValue": 0,
-          "futureAdjacencyCapacityValue": 36,
-          "positionalScore": 36,
+          "futureAdjacencyCapacityValue": 0,
+          "positionalScore": 0,
           "cardSpecificScore": "empty_adjacent_bonus_atk",
           "adjacencyValue": {
             "adjacentSlots": [
@@ -16354,6 +16339,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": true,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -16369,17 +16357,7 @@
             "type": "play-unit",
             "cardId": "aggro_flanker_1",
             "slotIndex": 2,
-            "placementType": "play",
-            "aiEvaluation": {
-              "adjacencyFormationValue": 18,
-              "occupiedAdjacencyValue": 0,
-              "futureAdjacencyCapacityValue": 18,
-              "occupiedAdjacentFriendlySlots": [],
-              "emptyAdjacentFriendlySlots": [
-                1
-              ],
-              "possibleAdjacentPositions": 1
-            }
+            "placementType": "play"
           },
           "cardId": "aggro_flanker_1",
           "cardName": "Flanker",
@@ -16393,21 +16371,12 @@
             "lane": 2,
             "laneMeaning": "right/bottom edge"
           },
-          "score": 4772,
-          "scoreComponents": {
-            "adjacencyFormationValue": 18,
-            "occupiedAdjacencyValue": 0,
-            "futureAdjacencyCapacityValue": 18,
-            "occupiedAdjacentFriendlySlots": [],
-            "emptyAdjacentFriendlySlots": [
-              1
-            ],
-            "possibleAdjacentPositions": 1
-          },
-          "adjacencyFormationValue": 18,
+          "score": 4754,
+          "scoreComponents": {},
+          "adjacencyFormationValue": 0,
           "occupiedAdjacencyValue": 0,
-          "futureAdjacencyCapacityValue": 18,
-          "positionalScore": 18,
+          "futureAdjacencyCapacityValue": 0,
+          "positionalScore": 0,
           "cardSpecificScore": "empty_adjacent_bonus_atk",
           "adjacencyValue": {
             "adjacentSlots": [
@@ -16421,6 +16390,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": true,
             "hasAdjacencyDependentMechanics": true
           },
           "immediateCombatValue": "open lane",
@@ -16469,6 +16441,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -16519,6 +16494,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -16567,6 +16545,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -16615,6 +16596,9 @@
             "opposingIndex": 6,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -16665,6 +16649,9 @@
             "opposingIndex": 7,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",
@@ -16713,6 +16700,9 @@
             "opposingIndex": 8,
             "opposingEnemyPresent": false,
             "predictedImmediateCombatResult": "open lane",
+            "adjacencyDependent": false,
+            "allyAdjacencyFormationEffect": false,
+            "emptyAdjacencyBonusEffect": false,
             "hasAdjacencyDependentMechanics": false
           },
           "immediateCombatValue": "open lane",

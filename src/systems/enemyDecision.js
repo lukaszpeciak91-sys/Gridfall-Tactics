@@ -130,10 +130,13 @@ const UTILITY_EFFECT_IDS = new Set([
 ]);
 
 
-const ADJACENCY_DEPENDENT_UNIT_EFFECT_IDS = new Set([
+const ADJACENCY_FORMATION_UNIT_EFFECT_IDS = new Set([
   'adjacent_allies_atk_plus_1_ignore_armor_1',
   'warden_defensive_friction_adjacent',
   'rotcaller_adjacent_death_atk_1',
+]);
+
+const EMPTY_ADJACENCY_BONUS_UNIT_EFFECT_IDS = new Set([
   'empty_adjacent_bonus_atk',
 ]);
 
@@ -141,7 +144,11 @@ const ADJACENCY_FORMATION_OCCUPIED_ALLY_VALUE = 180;
 const ADJACENCY_FORMATION_EMPTY_CAPACITY_VALUE = 18;
 
 export function isAdjacencyDependentUnitCard(card) {
-  return Boolean(card?.type === 'unit' && ADJACENCY_DEPENDENT_UNIT_EFFECT_IDS.has(card.effectId ?? null));
+  return Boolean(card?.type === 'unit' && ADJACENCY_FORMATION_UNIT_EFFECT_IDS.has(card.effectId ?? null));
+}
+
+export function isEmptyAdjacencyBonusUnitCard(card) {
+  return Boolean(card?.type === 'unit' && EMPTY_ADJACENCY_BONUS_UNIT_EFFECT_IDS.has(card.effectId ?? null));
 }
 
 function getAdjacencyFormationScore(state, owner, slotIndex, card) {

@@ -1,5 +1,5 @@
 import { createInitialBattleState, drawCards, performOpeningMulligan, shuffleDeck, STARTING_HAND_SIZE, getUnitAttack } from './GameState.js';
-import { buildActionCandidates, chooseBattleAction, scoreAction, selectOpeningMulliganCardIds, isAdjacencyDependentUnitCard } from './enemyDecision.js';
+import { buildActionCandidates, chooseBattleAction, scoreAction, selectOpeningMulliganCardIds, isAdjacencyDependentUnitCard, isEmptyAdjacencyBonusUnitCard } from './enemyDecision.js';
 
 export const BOARD_SLOT_VISUAL_MAP = Object.freeze([
   { index: 0, row: 0, col: 0, rowMeaning: 'enemy', lane: 0, laneMeaning: 'left/top edge' },
@@ -51,12 +51,15 @@ export function getAdjacentSlotDiagnostics(state, owner, slotIndex, card = null)
     predictedImmediateCombatResult: opposingEnemy
       ? `opposed by ${opposingEnemy.name ?? opposingEnemy.cardId ?? opposingEnemy.id} for ${getUnitAttack(opposingEnemy)} ATK`
       : 'open lane',
+    adjacencyDependent: isAdjacencyDependentUnitCard(card),
+    allyAdjacencyFormationEffect: isAdjacencyDependentUnitCard(card),
+    emptyAdjacencyBonusEffect: isEmptyAdjacencyBonusUnitCard(card),
     hasAdjacencyDependentMechanics: cardHasAdjacencyDependentMechanics(card),
   };
 }
 
 export function cardHasAdjacencyDependentMechanics(card) {
-  return isAdjacencyDependentUnitCard(card);
+  return isAdjacencyDependentUnitCard(card) || isEmptyAdjacencyBonusUnitCard(card);
 }
 
 function scoreCandidate(state, owner, action, generationOrder) {
