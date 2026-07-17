@@ -7237,8 +7237,8 @@ export default class BattleScene extends Phaser.Scene {
     this.refreshDeckCounter();
     this.resetCardHighlights();
     await this.showOpeningTurnStartBanner();
-    this.startTurn();
     this.startCampaignBattleTimer();
+    this.startTurn();
   }
 
   resetOpeningMulliganInputState() {

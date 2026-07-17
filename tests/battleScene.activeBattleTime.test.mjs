@@ -16,8 +16,17 @@ test('active battle time does not start during create and starts after mulligan 
   const createBody = extractMethodBody('create', 'beginOpeningBattlePresentation');
   assert.doesNotMatch(createBody, /startCampaignBattleTimer\(\)|startActiveBattleTimer\(\)/);
   const mulliganBody = extractMethodBody('confirmOpeningMulligan', 'resetOpeningMulliganInputState');
-  assert.ok(mulliganBody.indexOf('this.openingMulliganPending = false;') < mulliganBody.indexOf('this.startTurn();'));
-  assert.ok(mulliganBody.indexOf('this.startTurn();') < mulliganBody.indexOf('this.startCampaignBattleTimer();'));
+  assert.ok(mulliganBody.indexOf('this.openingMulliganPending = false;') < mulliganBody.indexOf('this.startCampaignBattleTimer();'));
+  assert.ok(mulliganBody.indexOf('this.startCampaignBattleTimer();') < mulliganBody.indexOf('this.startTurn();'));
+});
+
+test('active battle timer starts before first turn can enter flow resolution', () => {
+  const mulliganBody = extractMethodBody('confirmOpeningMulligan', 'resetOpeningMulliganInputState');
+  assert.ok(
+    mulliganBody.indexOf('this.startCampaignBattleTimer();') < mulliganBody.indexOf('this.startTurn();'),
+    'timer must be running before enemy-first startTurn sets isFlowResolving',
+  );
+  assert.match(extractMethodBody('startTurn', 'evaluateAndShowPlayerConcedableInfoBanner'), /if \(this\.gameState\.firstActor === 'enemy'\) \{\s*this\.resolveEnemyFirstTurnOpening\(\);\s*\}/);
 });
 
 test('segmented active timer is idempotent and excludes closed intervals', () => {
