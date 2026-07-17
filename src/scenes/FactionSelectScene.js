@@ -142,7 +142,9 @@ export default class FactionSelectScene extends Phaser.Scene {
     this.scale.on('leavefullscreen', this.onFullscreenChanged, this);
 
     const header = createMenuScreenHeader(this, {
-      title: translateActive('ui.factionSelect.title', 'SELECT YOUR TEAM'),
+      title: this.mode === 'campaign'
+        ? translateActive('ui.factionSelect.title', 'SELECT YOUR TEAM')
+        : translateActive('ui.factionSelect.arenaTitle', 'ARENA'),
       width,
       height,
     });
