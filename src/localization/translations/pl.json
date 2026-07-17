@@ -775,6 +775,9 @@
         "pointsAbbreviation": "PKT",
         "toLevel": "DO POZIOMU",
         "allLevelsComplete": "WSZYSTKIE POZIOMY UKOŃCZONE"
+      },
+      "progressUnits": {
+        "minutes": "min"
       }
     }
   }
