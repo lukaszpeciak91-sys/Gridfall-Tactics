@@ -36,7 +36,8 @@ const AMBIENT_FRAME_SWEEP_ALPHA = 0.42;
 const AMBIENT_FRAME_SWEEP_SEGMENT_RATIO = 0.15;
 const AMBIENT_FRAME_SWEEP_VISIBLE_MS = 1900;
 const AMBIENT_FRAME_SWEEP_CYCLE_MS = 6400;
-const AMBIENT_FRAME_SWEEP_PHASE_STEP_MS = 730;
+const AMBIENT_FRAME_SWEEP_PHASE_STEP_MS = 2700;
+const AMBIENT_FRAME_SWEEP_FADE_START_RATIO = 0.82;
 const AMBIENT_FRAME_SWEEP_POINT_COUNT = 96;
 
 let ambientFrameSweepSequence = 0;
@@ -173,28 +174,35 @@ function createAmbientFrameSweep(scene, { x, y, width, visualHeight, depth }) {
   graphics.setData?.('imageButtonAmbientFrameSweepPathPoints', pathPoints);
   graphics.disableInteractive?.();
 
-  const state = { offset: 0 };
+  const state = { offset: 0, alpha: AMBIENT_FRAME_SWEEP_ALPHA };
   let sweepTween = null;
   let sweepTimer = null;
   let destroyed = false;
-  const phaseOffsetMs = (ambientFrameSweepSequence % 7) * AMBIENT_FRAME_SWEEP_PHASE_STEP_MS;
+  const phaseOffsetMs = (ambientFrameSweepSequence * AMBIENT_FRAME_SWEEP_PHASE_STEP_MS) % AMBIENT_FRAME_SWEEP_CYCLE_MS;
   ambientFrameSweepSequence += 1;
 
   const redrawSweep = () => {
     if (destroyed || !isLiveGameObject(graphics)) return;
     graphics.clear();
-    graphics.lineStyle(geometry.strokeWidth, AMBIENT_FRAME_SWEEP_COLOR, AMBIENT_FRAME_SWEEP_ALPHA);
+    const fadeProgress = Math.max(0, (state.offset / geometry.perimeter - AMBIENT_FRAME_SWEEP_FADE_START_RATIO) / (1 - AMBIENT_FRAME_SWEEP_FADE_START_RATIO));
+    state.alpha = AMBIENT_FRAME_SWEEP_ALPHA * (1 - Math.min(1, fadeProgress));
+    if (state.offset >= geometry.perimeter || state.alpha <= 0) return;
+    graphics.lineStyle(geometry.strokeWidth, AMBIENT_FRAME_SWEEP_COLOR, state.alpha);
     graphics.beginPath();
+    let hasStartedPath = false;
     for (let index = 0; index < pathPoints.length; index += 1) {
+      const distance = state.offset + (index / geometry.pointCount) * geometry.segmentLength;
+      if (distance > geometry.perimeter) break;
       const point = pathPoints[index];
-      sampleRoundedRectPoint(point, x, y, geometry, (index / geometry.pointCount) * geometry.segmentLength + state.offset);
-      if (index === 0) {
+      sampleRoundedRectPoint(point, x, y, geometry, distance);
+      if (!hasStartedPath) {
         graphics.moveTo(point.x, point.y);
+        hasStartedPath = true;
       } else {
         graphics.lineTo(point.x, point.y);
       }
     }
-    graphics.strokePath();
+    if (hasStartedPath) graphics.strokePath();
   };
 
   const stopSweep = () => {
@@ -210,6 +218,7 @@ function createAmbientFrameSweep(scene, { x, y, width, visualHeight, depth }) {
   const playSweep = () => {
     if (destroyed || !isLiveGameObject(graphics)) return;
     state.offset = 0;
+    state.alpha = AMBIENT_FRAME_SWEEP_ALPHA;
     graphics.setVisible(true);
     redrawSweep();
     sweepTween = scene.tweens?.add?.({
@@ -249,6 +258,7 @@ function createAmbientFrameSweep(scene, { x, y, width, visualHeight, depth }) {
     cycleMs: AMBIENT_FRAME_SWEEP_CYCLE_MS,
     phaseOffsetMs,
     phaseStepMs: AMBIENT_FRAME_SWEEP_PHASE_STEP_MS,
+    pauseMs: AMBIENT_FRAME_SWEEP_CYCLE_MS - AMBIENT_FRAME_SWEEP_VISIBLE_MS,
     segmentRatio: AMBIENT_FRAME_SWEEP_SEGMENT_RATIO,
   });
 
@@ -261,6 +271,7 @@ function createAmbientFrameSweep(scene, { x, y, width, visualHeight, depth }) {
       cycleMs: AMBIENT_FRAME_SWEEP_CYCLE_MS,
       phaseOffsetMs,
       phaseStepMs: AMBIENT_FRAME_SWEEP_PHASE_STEP_MS,
+      pauseMs: AMBIENT_FRAME_SWEEP_CYCLE_MS - AMBIENT_FRAME_SWEEP_VISIBLE_MS,
       segmentRatio: AMBIENT_FRAME_SWEEP_SEGMENT_RATIO,
     },
   };
