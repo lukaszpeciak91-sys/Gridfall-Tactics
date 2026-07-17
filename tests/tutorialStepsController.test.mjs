@@ -75,8 +75,8 @@ test('flavor intro and battle menu tutorial copy matches approved PL and EN text
   assert.equal(byId.intro_04.text.en, 'Before we begin, the arena cleaners will clear away what remains of the previous season.');
   assert.equal(byId.adjacent_swap.text.pl, 'Zamień sąsiednie jednostki miejscami.\n\n(kliknij jednostkę na planszy, potem wybierz sąsiada)');
   assert.equal(byId.adjacent_swap.text.en, 'Swap adjacent units.\n\n(tap a unit on the board, then choose its neighbor)');
-  assert.equal(byId.play_unit_a.text.pl, 'Zagraj jednostkę na planszę.\n\nMasz 1 akcję na turę albo PASS.\nW następnej turze przeciwnik ruszy pierwszy.');
-  assert.equal(byId.play_unit_a.text.en, 'Play a unit onto the board.\n\nYou get 1 action per turn, or PASS.\nNext turn, the enemy acts first.');
+  assert.equal(byId.play_unit_a.text.pl, 'Zagraj jednostkę na planszę.\n\nW każdej turze każda strona wykonuje jedną akcję lub PASS.\nPo walce w kolejnej turze zaczyna strona, która poprzednio działała jako druga.');
+  assert.equal(byId.play_unit_a.text.en, 'Play a unit onto the board.\n\nEach side gets one action or PASS per turn.\nAfter combat, the side that acted second goes first in the next turn.');
   assert.equal(byId.battle_menu_contents.text.pl, 'Tu są zasady, ustawienia i poddanie.\n\nMożesz się poddać, jeśli jesteś leszczem.');
   assert.equal(byId.battle_menu_contents.text.en, "Rules, settings, and surrender are here.\n\nYou can surrender if you're lame.");
 });

@@ -37,11 +37,9 @@ const RULE_SECTIONS = Object.freeze([
     ],
   },
   {
-    heading: 'Combat Flow',
+    heading: 'Alternating Initiative',
     lines: [
-      'The starting player may differ; initiative alternates.',
-      'Each side performs one action or PASS.',
-      'After both sides act or pass, combat resolves automatically.',
+      'Each turn, both sides take one action or PASS. Combat then resolves automatically. In the next turn, the side that acted second goes first.',
       'Units fight directly opposite units.',
       'If a lane is open, that attack hits the enemy Base.',
       'After combat, both sides draw 1 card.',

@@ -638,11 +638,9 @@
           ]
         },
         {
-          "heading": "Przebieg walki",
+          "heading": "Naprzemienna inicjatywa",
           "lines": [
-            "Pierwszy gracz może się zmieniać; inicjatywa jest naprzemienna.",
-            "Każda strona wykonuje jedną akcję albo PASS.",
-            "Po akcjach lub PASS obu stron walka rozstrzyga się automatycznie.",
+            "W każdej turze obie strony wykonują po jednej akcji lub PASS. Następnie walka rozstrzyga się automatycznie. W kolejnej turze pierwszy ruch wykonuje strona, która poprzednio działała jako druga.",
             "Jednostki atakują przeciwników naprzeciwko.",
             "Otwarta linia atakuje bazę przeciwnika.",
             "Po walce obie strony dobierają kartę.",
@@ -726,7 +724,7 @@
         "Wybierz frakcję na Arenie.",
         "Zagrywaj jednostki na linie, aby naciskać bazę wroga.",
         "Używaj kart efektów i zamian, aby kontrolować tempo walki.",
-        "Zakończ turę po wykorzystaniu akcji.",
+        "Zakończ swoją akcję po wykonaniu ruchu.",
         "Obniż PŻ bazy wroga do 0, aby wygrać."
       ]
     },
