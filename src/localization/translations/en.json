@@ -775,6 +775,9 @@
         "pointsAbbreviation": "PTS",
         "toLevel": "TO LEVEL",
         "allLevelsComplete": "ALL LEVELS COMPLETE"
+      },
+      "progressUnits": {
+        "minutes": "min"
       }
     }
   },

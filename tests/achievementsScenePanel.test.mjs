@@ -51,8 +51,9 @@ test('achievement cards expose localized title, description, and text-only progr
   assert.match(scene, /drawAchievementCard\(content, definition/);
   assert.match(scene, /definition\.display\?\.title\?\.\[locale\]/);
   assert.match(scene, /definition\.display\?\.description\?\.\[locale\]/);
-  assert.match(scene, /`\$\{progress\.current\} \/ \$\{progress\.target\}`/);
-  assert.match(scene, /badgeWidth = 82/);
+  assert.match(scene, /formatAchievementProgressText\(/);
+  assert.match(scene, /translateActive\('ui\.achievements\.progressUnits\.minutes', 'min'\)/);
+  assert.match(scene, /badgeWidth = ACHIEVEMENT_PROGRESS_BADGE_WIDTH/);
   assert.match(scene, /getAchievementCardTheme\(definition, unlocked\)/);
   assert.match(scene, /titleColor: unlocked \? '#fff7d6' : titleTint/);
   assert.match(scene, /descriptionColor: unlocked \? '#e2e8f0' : '#b8c2d0'/);

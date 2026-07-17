@@ -16,6 +16,7 @@ import { getAchievementDefinitions, loadAchievementState, normalizeAchievementSt
 import { calculateAchievementProgression, getAchievementDefinitionPointValue } from '../systems/achievementProgression.js';
 import { loadPlayerStats, normalizePlayerStats } from '../systems/playerStats.js';
 import { preloadAudioAssets } from '../audio/audioAssets.js';
+import { ACHIEVEMENT_PROGRESS_BADGE_WIDTH, formatAchievementProgressText } from '../ui/achievementProgressFormatting.js';
 import { playMenuMusic } from '../audio/menuMusic.js';
 
 export default class AchievementsScene extends Phaser.Scene {
@@ -327,7 +328,7 @@ export default class AchievementsScene extends Phaser.Scene {
     const cardHeight = 102;
     const paddingX = 16;
     const rightPadding = 12;
-    const badgeWidth = 82;
+    const badgeWidth = ACHIEVEMENT_PROGRESS_BADGE_WIDTH;
     const badgeHeight = 26;
     const starAreaWidth = 62;
     const metadataGap = pointLabel ? 7 : 0;
@@ -489,7 +490,12 @@ export default class AchievementsScene extends Phaser.Scene {
       wordWrap: { width: layout.descriptionWidth },
       maxLines: 2,
     });
-    const progressText = this.add.text(layout.badgeX + layout.badgeWidth / 2, layout.badgeY + layout.badgeHeight / 2, `${progress.current} / ${progress.target}`, {
+    const progressLabel = formatAchievementProgressText(
+      definition,
+      progress,
+      translateActive('ui.achievements.progressUnits.minutes', 'min'),
+    );
+    const progressText = this.add.text(layout.badgeX + layout.badgeWidth / 2, layout.badgeY + layout.badgeHeight / 2, progressLabel, {
       fontFamily: 'Arial, sans-serif',
       fontSize: '12px',
       color: theme.progressTextColor,
