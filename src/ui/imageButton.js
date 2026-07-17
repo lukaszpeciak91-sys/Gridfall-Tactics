@@ -177,6 +177,7 @@ function createAmbientFrameSweep(scene, { x, y, width, visualHeight, depth }) {
   const state = { offset: 0, alpha: AMBIENT_FRAME_SWEEP_ALPHA };
   let sweepTween = null;
   let sweepTimer = null;
+  let schedulerActive = false;
   let destroyed = false;
   const phaseOffsetMs = (ambientFrameSweepSequence * AMBIENT_FRAME_SWEEP_PHASE_STEP_MS) % AMBIENT_FRAME_SWEEP_CYCLE_MS;
   ambientFrameSweepSequence += 1;
@@ -205,18 +206,21 @@ function createAmbientFrameSweep(scene, { x, y, width, visualHeight, depth }) {
     if (hasStartedPath) graphics.strokePath();
   };
 
-  const stopSweep = () => {
+  const stopSweep = ({ clear = true } = {}) => {
+    schedulerActive = false;
     sweepTween?.stop?.();
     sweepTween?.remove?.();
     sweepTween = null;
     sweepTimer?.remove?.(false);
     sweepTimer = null;
-    graphics.clear();
-    graphics.setVisible(false);
+    if (clear) {
+      graphics.clear();
+      graphics.setVisible(false);
+    }
   };
 
   const playSweep = () => {
-    if (destroyed || !isLiveGameObject(graphics)) return;
+    if (destroyed || !schedulerActive || !isLiveGameObject(graphics)) return;
     state.offset = 0;
     state.alpha = AMBIENT_FRAME_SWEEP_ALPHA;
     graphics.setVisible(true);
@@ -228,29 +232,48 @@ function createAmbientFrameSweep(scene, { x, y, width, visualHeight, depth }) {
       ease: 'Sine.easeInOut',
       onUpdate: redrawSweep,
       onComplete: () => {
+        sweepTween = null;
         graphics.clear();
         graphics.setVisible(false);
       },
     }) ?? null;
   };
 
-  const schedule = () => {
-    if (destroyed) return;
-    sweepTimer = scene.time?.delayedCall?.(AMBIENT_FRAME_SWEEP_CYCLE_MS, () => {
+  const schedule = (delayMs = AMBIENT_FRAME_SWEEP_CYCLE_MS) => {
+    if (destroyed || !schedulerActive || !isLiveGameObject(graphics)) return;
+    sweepTimer = scene.time?.delayedCall?.(delayMs, () => {
+      sweepTimer = null;
       playSweep();
       schedule();
     }) ?? null;
   };
 
-  sweepTimer = scene.time?.delayedCall?.(phaseOffsetMs, () => {
+  const ensureRunning = () => {
+    if (destroyed || !isLiveGameObject(graphics)) return false;
+    if (schedulerActive && (sweepTimer || sweepTween)) return true;
+    stopSweep();
+    schedulerActive = true;
+    schedule(phaseOffsetMs);
+    return Boolean(sweepTimer || sweepTween || typeof scene.time?.delayedCall !== 'function');
+  };
+
+  const restart = () => {
+    if (destroyed || !isLiveGameObject(graphics)) return false;
+    stopSweep();
+    schedulerActive = true;
     playSweep();
     schedule();
-  }) ?? null;
+    return true;
+  };
 
   const cleanup = () => {
+    if (destroyed) return;
     destroyed = true;
     stopSweep();
+    graphics.destroy?.();
   };
+
+  ensureRunning();
 
   graphics.setData?.('imageButtonAmbientFrameSweepCleanup', cleanup);
   graphics.setData?.('imageButtonAmbientFrameSweepTiming', {
@@ -264,6 +287,9 @@ function createAmbientFrameSweep(scene, { x, y, width, visualHeight, depth }) {
 
   return {
     graphics,
+    ensureRunning,
+    restart,
+    stop: stopSweep,
     cleanup,
     geometry,
     timing: {
@@ -525,10 +551,12 @@ export function createImageButton(scene, {
   };
 
   hitZone.setData?.('imageButtonFeedbackCleanup', cleanupFeedback);
+  hitZone.setData?.('imageButtonAmbientFrameSweepLifecycle', ambientSweep ?? null);
   hitZone.setData?.('imageButtonFeedbackReset', ({ interactive = true } = {}) => {
     resetFeedback();
     feedbackState.destroyed = false;
     setVisualState({ scale: 1, alpha: 1, textAlpha: 1 });
+    ambientSweep?.ensureRunning?.();
     if (interactive) {
       hitZone?.setInteractive?.({ useHandCursor: true });
     } else {
