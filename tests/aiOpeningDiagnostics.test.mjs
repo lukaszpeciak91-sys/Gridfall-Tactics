@@ -112,3 +112,73 @@ test('non-tied best action and explicit alternative tie-break policies are prese
   const rotated = chooseBattleAction(rotation, 'enemy', { aiSafeSurrenderEnabled: false, tieBreakPolicy: 'rotation', tieBreakIndex: 2, randomFn: createSeededRandom(1) });
   assert.equal(rotated.slotIndex, 2);
 });
+
+const spearwall = { id: 'wardens_spearwall_1', name: 'Spearwall', type: 'unit', targeting: 'lane', effectId: 'warden_defensive_friction_adjacent', attack: 0, hp: 3, armor: 0 };
+const rotcaller = { id: 'attrition_swarm_rotcaller_1', name: 'Rotcaller', type: 'unit', targeting: 'lane', effectId: 'rotcaller_adjacent_death_atk_1', attack: 1, hp: 2, armor: 0 };
+const gapHunter = { id: 'overclock_gap_hunter_1', name: 'Breach Ram', type: 'unit', targeting: 'lane', effectId: 'empty_adjacent_bonus_atk', attack: 2, hp: 2, armor: 0 };
+
+function slotScoresFor(card) {
+  const state = stateWithEnemyHand([card]);
+  const actions = unitActionsFor(state);
+  return actions.map((action) => {
+    const score = scoreAction(state, 'enemy', action);
+    return {
+      slotIndex: action.slotIndex,
+      score,
+      adjacencyFormationValue: action.aiEvaluation?.adjacencyFormationValue ?? 0,
+      occupiedAdjacencyValue: action.aiEvaluation?.occupiedAdjacencyValue ?? 0,
+      futureAdjacencyCapacityValue: action.aiEvaluation?.futureAdjacencyCapacityValue ?? 0,
+    };
+  });
+}
+
+test('approved adjacency effects remain classified for formation scoring', () => {
+  for (const card of [alpha, spearwall, rotcaller]) {
+    assert.deepEqual(slotScoresFor(card).map((entry) => entry.adjacencyFormationValue), [18, 36, 18]);
+  }
+});
+
+test('empty adjacency bonus is excluded from formation scoring', () => {
+  const scores = slotScoresFor(gapHunter);
+  assert.deepEqual(scores.map((entry) => entry.adjacencyFormationValue), [0, 0, 0]);
+  assert.deepEqual(scores.map((entry) => entry.occupiedAdjacencyValue), [0, 0, 0]);
+  assert.deepEqual(scores.map((entry) => entry.futureAdjacencyCapacityValue), [0, 0, 0]);
+});
+
+test('Gap Hunter receives no artificial middle preference and uses seeded exact ties', () => {
+  const scores = slotScoresFor(gapHunter);
+  assert.deepEqual(scores.map((entry) => entry.score), [4754, 4754, 4754]);
+
+  const stateA = stateWithEnemyHand([gapHunter]);
+  const selectedA = chooseBattleAction(stateA, 'enemy', { aiSafeSurrenderEnabled: false, randomFn: () => 0.6 });
+  const stateB = stateWithEnemyHand([gapHunter]);
+  const selectedB = chooseBattleAction(stateB, 'enemy', { aiSafeSurrenderEnabled: false, randomFn: () => 0.6 });
+  assert.equal(selectedA.slotIndex, selectedB.slotIndex);
+  assert.equal(selectedA.aiEvaluation.tieBreak.reason, 'seeded exact-score tie-break');
+  assert.equal(selectedA.aiEvaluation.tieBreak.tieCount, 3);
+
+  const slots = new Set();
+  for (const value of [0.1, 0.4, 0.8]) {
+    const state = stateWithEnemyHand([gapHunter]);
+    slots.add(chooseBattleAction(state, 'enemy', { aiSafeSurrenderEnabled: false, randomFn: () => value }).slotIndex);
+  }
+  assert.ok(slots.size > 1);
+});
+
+test('Gap Hunter diagnostic classifies empty-adjacent bonus separately from formation scoring', () => {
+  const state = stateWithEnemyHand([gapHunter]);
+  for (const slot of [0, 1, 2]) {
+    const diagnostic = getAdjacentSlotDiagnostics(state, 'enemy', slot, gapHunter);
+    assert.equal(diagnostic.adjacencyDependent, false);
+    assert.equal(diagnostic.allyAdjacencyFormationEffect, false);
+    assert.equal(diagnostic.emptyAdjacencyBonusEffect, true);
+    assert.equal(diagnostic.hasAdjacencyDependentMechanics, true);
+  }
+});
+
+test('slot mapping remains enemy 0-2 and player 6-8', () => {
+  assert.deepEqual(BOARD_SLOT_VISUAL_MAP.slice(0, 3).map((slot) => slot.rowMeaning), ['enemy', 'enemy', 'enemy']);
+  assert.deepEqual(BOARD_SLOT_VISUAL_MAP.slice(0, 3).map((slot) => slot.index), [0, 1, 2]);
+  assert.deepEqual(BOARD_SLOT_VISUAL_MAP.slice(6, 9).map((slot) => slot.rowMeaning), ['player', 'player', 'player']);
+  assert.deepEqual(BOARD_SLOT_VISUAL_MAP.slice(6, 9).map((slot) => slot.index), [6, 7, 8]);
+});
