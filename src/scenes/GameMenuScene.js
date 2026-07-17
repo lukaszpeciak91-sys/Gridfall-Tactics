@@ -93,12 +93,12 @@ export default class GameMenuScene extends Phaser.Scene {
 
     this.continueButton = this.createMenuButton(width / 2, startY, buttonWidth, translateActive('ui.gameMenu.continue', 'CONTINUE'), () => {
       this.continueCampaign();
-    });
+    }, { ambientFrameSweep: true });
     this.updateContinueAvailability();
 
     this.createMenuButton(width / 2, startY + buttonGap, buttonWidth, translateActive('ui.gameMenu.newGame', 'NEW GAME'), () => {
       this.startNewCampaignFlow();
-    });
+    }, { ambientFrameSweep: true });
 
     this.createMenuButton(width / 2, startY + buttonGap * 2, buttonWidth, translateActive('ui.gameMenu.tutorial', 'TUTORIAL'), () => {
       enterBattleScene(this, {
@@ -108,11 +108,11 @@ export default class GameMenuScene extends Phaser.Scene {
           returnSceneKey: 'GameMenuScene',
         },
       });
-    });
+    }, { ambientFrameSweep: true });
 
     this.createMenuButton(width / 2, startY + buttonGap * 3, buttonWidth, translateActive('ui.gameMenu.arena', 'ARENA'), () => {
       this.scene.start('FactionSelectScene', { returnSceneKey: 'GameMenuScene' });
-    });
+    }, { ambientFrameSweep: true });
 
     this.restoreGameMenuInteractivity();
     this.updateContinueAvailability();
@@ -360,7 +360,7 @@ export default class GameMenuScene extends Phaser.Scene {
     this.transitionReadyFallbackEvent = null;
   }
 
-  createMenuButton(x, y, width, label, onPointerUp) {
+  createMenuButton(x, y, width, label, onPointerUp, { ambientFrameSweep = false } = {}) {
     const button = createImageButton(this, {
       x,
       y,
@@ -382,6 +382,7 @@ export default class GameMenuScene extends Phaser.Scene {
       shadowAlpha: 0.24,
       hoverScale: 1.03,
       downScale: 0.98,
+      ambientFrameSweep,
     });
 
     this.menuButtonViews.push(button.items);
