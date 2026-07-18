@@ -516,6 +516,12 @@
       "swapPromptSelectAdjacent": "SWAP: select adjacent unit",
       "effect": "Effect",
       "block": "BLOCK",
+
+      "protectionFeedback": {
+        "stability": "STABLE",
+        "lastStand": "LAST STAND",
+        "immovable": "IMMOVABLE"
+      },
       "effectSummaries": {
         "aggro_buff_all_atk_2": "All allies +2 ATK",
         "swap_adjacent_then_resolve": "Swap ally, fight line",

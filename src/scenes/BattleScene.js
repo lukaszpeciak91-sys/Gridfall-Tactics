@@ -6824,7 +6824,7 @@ export default class BattleScene extends Phaser.Scene {
       };
       this.completePlayerAction(
         beforeStats,
-        [...(result.feedback ?? []), ...this.buildActionFeedback(beforeStats, result)],
+        [...(result.feedback ?? []), ...this.buildActionFeedback(beforeStats, result, 'player')],
         movementFeedback,
         this.getImmediateCombatFeedback?.(result) ?? null,
       );
@@ -6877,7 +6877,7 @@ export default class BattleScene extends Phaser.Scene {
       eventName: result.type === 'redeploy' ? 'redeploy_completed' : 'unit_played',
       payload: { cardId: result.card?.id ?? this.selectedCardId, slotIndex: boardIndex },
     };
-    this.completePlayerAction(beforeStats, this.buildActionFeedback(beforeStats, result));
+    this.completePlayerAction(beforeStats, this.buildActionFeedback(beforeStats, result, 'player'));
   }
 
 
@@ -7005,7 +7005,7 @@ export default class BattleScene extends Phaser.Scene {
     this.queueBattleHistoryAction?.('player', { type: 'play_effect', card: this.createCardRef?.(result.card ?? card, 'player') ?? { name: (result.card ?? card)?.name ?? 'Card', side: 'player' } });
     this.pendingTutorialEvent = { eventName: 'effect_played', payload: { cardId: (result.card ?? card)?.id } };
     this.effectCastState = null;
-    this.completePlayerAction(beforeStats, this.buildActionFeedback(beforeStats, result), movementFeedback);
+    this.completePlayerAction(beforeStats, this.buildActionFeedback(beforeStats, result, 'player'), movementFeedback);
   }
 
 
@@ -8212,7 +8212,7 @@ export default class BattleScene extends Phaser.Scene {
       }
     }
     const movementFeedback = this.buildEnemyMovementFeedback(action, beforeStats, result);
-    const actionFeedback = this.buildActionFeedback(beforeStats, result);
+    const actionFeedback = this.buildActionFeedback(beforeStats, result, 'enemy');
     const immediateCombatFeedback = this.getImmediateCombatFeedback(result);
     await this.playMovementFeedback(movementFeedback, beforeStats);
     await this.playPreRefreshActionFeedback(actionFeedback);
@@ -9444,11 +9444,43 @@ export default class BattleScene extends Phaser.Scene {
     return feedback;
   }
 
-  buildActionFeedback(beforeSnapshot, result = null) {
+  getProtectionArmedFeedbackLabel(effectId) {
+    switch (effectId) {
+      case 'immune_move_disable_this_turn':
+        return translateActive('ui.battle.protectionFeedback.stability', 'ui.battle.protectionFeedback.stability');
+      case 'cannot_drop_below_1_this_turn':
+        return translateActive('ui.battle.protectionFeedback.lastStand', 'ui.battle.protectionFeedback.lastStand');
+      case 'friendly_immovable_this_turn':
+        return translateActive('ui.battle.protectionFeedback.immovable', 'ui.battle.protectionFeedback.immovable');
+      default:
+        return null;
+    }
+  }
+
+  buildProtectionArmedFeedback(beforeSnapshot, effectId, owner) {
+    const label = this.getProtectionArmedFeedbackLabel(effectId);
+    if (!label) return [];
+
+    return beforeSnapshot
+      .map((unit, index) => ({ unit, index }))
+      .filter(({ unit }) => unit?.owner === owner)
+      .map(({ index }, order) => ({
+        type: 'slot-text',
+        index,
+        label,
+        kind: 'prevention',
+        phase: 'pre',
+        order: 5,
+        staggerMs: order === 0 ? 0 : 25,
+      }));
+  }
+
+  buildActionFeedback(beforeSnapshot, result = null, owner = 'player') {
     if (!result?.ok || !Array.isArray(beforeSnapshot)) return [];
     const effectId = result.card?.effectId ?? result.effectId ?? null;
     const feedback = [];
 
+    feedback.push(...this.buildProtectionArmedFeedback(beforeSnapshot, effectId, owner));
     feedback.push(...this.buildEffectDeltaFeedback(beforeSnapshot, result, effectId));
 
     if (effectId === 'summon_grunt_empty_slot' || effectId === 'grave_call' || effectId === 'fill_empty_slots_0_1') {
