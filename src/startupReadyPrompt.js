@@ -1,38 +1,13 @@
-import { DEFAULT_LOCALE, SETTINGS_STORAGE_KEY, normalizeLocale } from './localization/localeConfig.js';
+import { translateActive } from './localization/localeService.js';
 
-export const STARTUP_READY_PROMPTS = Object.freeze({
-  en: 'TAP ANYWHERE',
-  pl: 'DOTKNIJ GDZIEKOLWIEK',
-});
-
-function getLocalStorage() {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-
-  try {
-    return window.localStorage;
-  } catch (error) {
-    console.warn('Startup prompt localStorage is unavailable; English prompt will be used.', error);
-    return null;
-  }
-}
+export const STARTUP_READY_PROMPT_KEY = 'ui.startup.tapAnywhere';
+export const STARTUP_READY_PROMPT_FALLBACK = 'TAP ANYWHERE';
 
 export function getStartupReadyPrompt() {
-  const storage = getLocalStorage();
-  if (!storage) {
-    return STARTUP_READY_PROMPTS[DEFAULT_LOCALE];
-  }
-
-  try {
-    const rawSettings = storage.getItem(SETTINGS_STORAGE_KEY);
-    const settings = rawSettings ? JSON.parse(rawSettings) : {};
-    const locale = normalizeLocale(settings?.language);
-    return STARTUP_READY_PROMPTS[locale] ?? STARTUP_READY_PROMPTS[DEFAULT_LOCALE];
-  } catch (error) {
-    console.warn('Startup prompt settings read failed; English prompt will be used.', error);
-    return STARTUP_READY_PROMPTS[DEFAULT_LOCALE];
-  }
+  const prompt = translateActive(STARTUP_READY_PROMPT_KEY, STARTUP_READY_PROMPT_FALLBACK);
+  return typeof prompt === 'string' && prompt.trim().length > 0
+    ? prompt
+    : STARTUP_READY_PROMPT_FALLBACK;
 }
 
 export function applyStartupReadyPrompt(documentRef = globalThis.document) {
@@ -41,7 +16,13 @@ export function applyStartupReadyPrompt(documentRef = globalThis.document) {
     return;
   }
 
-  splash.dataset.readyPrompt = getStartupReadyPrompt();
+  const prompt = getStartupReadyPrompt();
+  splash.dataset.readyPrompt = prompt;
+
+  const readyPromptTarget = splash.querySelector?.('.startup-splash__copy');
+  if (readyPromptTarget) {
+    readyPromptTarget.dataset.readyPrompt = prompt;
+  }
 }
 
 applyStartupReadyPrompt();
