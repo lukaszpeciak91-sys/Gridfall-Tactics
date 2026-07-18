@@ -214,7 +214,7 @@
       }
 
       #startup-splash.is-ready .startup-splash__copy::before {
-        content: "TAP ANYWHERE";
+        content: attr(data-ready-prompt);
         position: absolute;
         inset: 0;
         color: rgba(245, 241, 230, 0.78);
@@ -308,7 +308,7 @@
   </head>
   <body>
     <div id="app"></div>
-    <div id="startup-splash" aria-live="polite" aria-label="Preparing broadcast">
+    <div id="startup-splash" data-ready-prompt="TAP ANYWHERE" aria-live="polite" aria-label="Preparing broadcast">
       <div class="startup-splash__stage">
         <img class="startup-splash__logo" src="assets/ui/gridfall-logo.png" alt="Gridfall Tactics" decoding="async" />
         <div class="startup-splash__meta">
@@ -318,6 +318,7 @@
       </div>
     </div>
     <div id="orientation-message" aria-live="polite">Rotate device to portrait</div>
+    <script type="module" src="/src/startupReadyPrompt.js"></script>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>
