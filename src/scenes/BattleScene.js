@@ -9,7 +9,7 @@ import { createInitialBattleState, drawCards, shuffleDeck, canPass, canPlayOrRed
 import { chooseEnemyAction, isVerySafeConcedableState, recordBattleActionUse, selectOpeningMulliganCardIds } from '../systems/enemyDecision.js';
 import { getTargetingStateForEffect } from '../systems/cardTargeting.js';
 import { COMBAT_ATTACK_PRESENTATIONS, getCombatAttackPresentation, getCombatEventAttackerIndex, getCombatEventInterceptOriginalTargetIndex, getCombatEventTargetIndex, getLaneLethalTargetIndexes, getLaneSimultaneousUnitClash, shouldAnimateCombatAttacker, shouldUseControlledHeroStrikePresentation } from '../systems/combatAnimation.js';
-import { BATTLE_BACKGROUND_ASSETS, BATTLE_BACKGROUND_FALLBACK_COLOR, BATTLE_BACKGROUND_FALLBACK_COLOR_HEX, createCoverBackground, getBattleBackgroundAsset, hasLoadedImageAsset, preloadBattleBackgroundArt, preloadImageAsset, resolvePublicAssetPath } from '../rendering/backgroundArt.js';
+import { BATTLE_BACKGROUND_ASSETS, BATTLE_BACKGROUND_FALLBACK_COLOR, BATTLE_BACKGROUND_FALLBACK_COLOR_HEX, BATTLEFIELD_BACKGROUND_OVERSCAN, applyCoverBackgroundLayout, createCoverBackground, getBattleBackgroundAsset, hasLoadedImageAsset, preloadBattleBackgroundArt, preloadImageAsset, resolvePublicAssetPath } from '../rendering/backgroundArt.js';
 import { getArenaBattlegroundAsset, getArenaBattlegrounds, resolveArenaBattlegroundId } from '../data/arenaBattlegrounds.js';
 import { preloadAllCardIllustrations, preloadCardIllustrationsForFaction } from '../rendering/cardIllustrationAssets.js';
 import { calculateBattleLayoutMetrics } from '../ui/battleLayout.js';
@@ -779,7 +779,7 @@ export default class BattleScene extends Phaser.Scene {
     this.installResultModalDiagnostics();
     this.installTutorialLifecycleDiagnostics();
 
-    const { width, height } = this.scale;
+    const { width, height } = this.getResolvedBattleViewportSize();
     this.battleContext = this.normalizeBattleContext(data?.battleContext);
     this.battleTransitionLaunchId = typeof data?.battleTransitionLaunchId === 'string' ? data.battleTransitionLaunchId : null;
     this.waitForBattleTransitionPresentation = data?.waitForBattleTransitionPresentation === true && Boolean(this.battleTransitionLaunchId);
@@ -1199,6 +1199,15 @@ export default class BattleScene extends Phaser.Scene {
     });
   }
 
+  getResolvedBattleViewportSize() {
+    const camera = this.cameras?.main;
+    const gameSize = this.scale?.gameSize;
+    return {
+      width: Math.max(1, gameSize?.width ?? camera?.width ?? this.scale?.width ?? 1),
+      height: Math.max(1, gameSize?.height ?? camera?.height ?? this.scale?.height ?? 1),
+    };
+  }
+
   drawBattleBackground() {
     const { width, height } = this.layout;
 
@@ -1208,6 +1217,16 @@ export default class BattleScene extends Phaser.Scene {
       depth: -1000,
       width,
       height,
+      overscan: BATTLEFIELD_BACKGROUND_OVERSCAN,
+    });
+    this.layoutBattleBackground(width, height);
+  }
+
+  layoutBattleBackground(width = this.layout?.width, height = this.layout?.height) {
+    return applyCoverBackgroundLayout(this.backgroundLayer, {
+      width: Math.max(1, width ?? this.getResolvedBattleViewportSize().width),
+      height: Math.max(1, height ?? this.getResolvedBattleViewportSize().height),
+      overscan: BATTLEFIELD_BACKGROUND_OVERSCAN,
     });
   }
 
@@ -4567,8 +4586,7 @@ export default class BattleScene extends Phaser.Scene {
   rebuildBattleView(reason = 'unknown') {
     this.tutorialLifecycleDiagnostics.lastRebuildReason = reason;
     this.logTutorialLifecycleDiagnostic('rebuildBattleView start', { reason });
-    const width = this.scale.gameSize.width;
-    const height = this.scale.gameSize.height;
+    const { width, height } = this.getResolvedBattleViewportSize();
 
     const resultOverlaySnapshot = this.captureResultOverlayState();
     this.cleanupSceneObjects({ preserveTimers: true });
