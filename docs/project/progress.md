@@ -179,6 +179,7 @@ canonical_ref: docs/rules/mvp-battle-rules.md
 - Locked the V1 achievement point mapping at 1★ = 25, 2★ = 50, 3★ = 100, and 4★ = 200, for a current total catalogue pool of 3825 points.
 - Completed derived Level 1–15 progression: Level 15 begins at 2875 points, points and levels are not separately persisted, and maximum level intentionally does not require 100% catalogue completion.
 - Completed the AchievementsScene progression banner, point values on achievement cards, corrected active battle-time display, no point display on compact unlock popups, and no level-up popup for V1.
+- Tutorial active time now starts after Tutorial setup/UI is ready; Tutorial instruction/action time uses the active battle timer for result duration and `activeBattleTimeMs`, excludes loading, pause, sleep, background, and external blocking overlays, contributes to the 15/30/60-minute active battle-time achievements, and still does not increment normal battle played/win/loss/draw counters.
 - Confirmed contextual achievement popup behavior, including Campaign completion achievement popups displayed above the interactive summary, lifecycle-safe result presentation, and same-origin browser persistence across refresh/reopen/redeploy.
 - Future work is limited to additional achievements, threshold/copy/difficulty tuning, future faction or mode support, minor UI polish, and deliberate progression-economy review whenever catalogue size changes.
 
