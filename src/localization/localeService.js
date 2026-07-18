@@ -1,10 +1,7 @@
 import enTranslations from './translations/en.json' with { type: 'json' };
 import plTranslations from './translations/pl.json' with { type: 'json' };
-
-export const DEFAULT_LOCALE = 'en';
-export const SETTINGS_STORAGE_KEY = 'gridfall:tactics:settings:v1';
-
-const SUPPORTED_LOCALES = Object.freeze(['en', 'pl']);
+import { DEFAULT_LOCALE, SETTINGS_STORAGE_KEY, getSupportedLocales, normalizeLocale } from './localeConfig.js';
+export { DEFAULT_LOCALE, SETTINGS_STORAGE_KEY, getSupportedLocales, normalizeLocale };
 const TRANSLATIONS = Object.freeze({
   en: enTranslations,
   pl: plTranslations,
@@ -66,13 +63,6 @@ function lookupTranslation(dictionary, key) {
   }, dictionary);
 }
 
-export function normalizeLocale(locale) {
-  return SUPPORTED_LOCALES.includes(locale) ? locale : DEFAULT_LOCALE;
-}
-
-export function getSupportedLocales() {
-  return [...SUPPORTED_LOCALES];
-}
 
 export function getActiveLocale() {
   const storedLocale = readStoredSettings().language;
