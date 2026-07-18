@@ -218,6 +218,7 @@ const HAND_CARD_LONG_PRESS_MS = 425;
 const OPENING_MULLIGAN_REVEAL_CARD_MS = HAND_CARD_FLIP_REVEAL_DURATION;
 const OPENING_MULLIGAN_REVEAL_STAGGER_MS = 120;
 const OPENING_MULLIGAN_REVEAL_POST_HOLD_MS = 150;
+const OPENING_MULLIGAN_REVEAL_WATCHDOG_MS = 1500;
 const CARD_INSPECT_LONG_PRESS_MS = 350;
 const BOARD_INSPECT_LONG_PRESS_MS = 350;
 const PASS_HOLD_TO_SURRENDER_MS = 425;
@@ -346,6 +347,8 @@ export default class BattleScene extends Phaser.Scene {
     this.openingMulliganRevealVisibleCount = 0;
     this.openingMulliganRevealControllers = [];
     this.openingMulliganRevealGeneration = 0;
+    this.openingMulliganRevealWatchdogWarnedGeneration = null;
+    this.isBattleSceneShuttingDown = false;
     this.selectedMulliganCardIds = [];
     this.previewedMulliganCardId = null;
     this.openingBattlePresentationStarted = false;
@@ -593,6 +596,8 @@ export default class BattleScene extends Phaser.Scene {
     this.openingMulliganRevealVisibleCount = 0;
     this.openingMulliganRevealControllers = [];
     this.openingMulliganRevealGeneration = 0;
+    this.openingMulliganRevealWatchdogWarnedGeneration = null;
+    this.isBattleSceneShuttingDown = false;
     this.selectedMulliganCardIds = [];
     this.previewedMulliganCardId = null;
     this.openingBattlePresentationStarted = false;
@@ -775,6 +780,7 @@ export default class BattleScene extends Phaser.Scene {
 
   create(data) {
     this.cleanupSceneObjects();
+    this.isBattleSceneShuttingDown = false;
     // Menu music is faded by BattleTransitionScene after visual readiness.
     this.installResultModalDiagnostics();
     this.installTutorialLifecycleDiagnostics();
@@ -4630,6 +4636,7 @@ export default class BattleScene extends Phaser.Scene {
   shutdown() {
     this.cleanupSceneObjects();
     this.stopBattleAmbience({ fadeMs: 0 });
+    this.isBattleSceneShuttingDown = true;
     this.scale.off('enterfullscreen', this.onFullscreenChanged, this);
     this.scale.off('leavefullscreen', this.onFullscreenChanged, this);
     this.scale.off('resize', this.onViewportChanged, this);
@@ -5555,6 +5562,47 @@ export default class BattleScene extends Phaser.Scene {
         cleanup: () => timer.remove?.(false),
       });
     }
+    this.scheduleOpeningMulliganRevealWatchdog({ generation, revealCount });
+  }
+
+  scheduleOpeningMulliganRevealWatchdog({ generation, revealCount } = {}) {
+    if (!this.time || !this.openingMulliganRevealPending || revealCount <= 0) return;
+    const watchdogTimer = this.time.delayedCall(OPENING_MULLIGAN_REVEAL_WATCHDOG_MS, () => {
+      this.handleOpeningMulliganRevealWatchdog({ generation });
+    });
+    this.openingMulliganRevealControllers.push({
+      type: 'opening-reveal-watchdog',
+      timer: watchdogTimer,
+      cleanup: () => watchdogTimer.remove?.(false),
+    });
+  }
+
+  handleOpeningMulliganRevealWatchdog({ generation } = {}) {
+    if (this.isBattleSceneShuttingDown) return;
+    if (!this.scene?.isActive?.() && !this.scene?.isPaused?.()) return;
+    if (this.openingMulliganPending !== true) return;
+    if (this.openingMulliganRevealPending !== true) return;
+    if (generation !== this.openingMulliganRevealGeneration) return;
+    const revealCount = this.getOpeningMulliganRevealCardCount();
+    if (revealCount <= 0) return;
+
+    if (this.openingMulliganRevealWatchdogWarnedGeneration !== generation) {
+      this.openingMulliganRevealWatchdogWarnedGeneration = generation;
+      const controllerTypes = (this.openingMulliganRevealControllers ?? [])
+        .map((controller) => controller?.type)
+        .filter(Boolean);
+      console.warn('Opening mulligan reveal watchdog completed pending reveal', {
+        generation,
+        revealCount,
+        visibleRevealCount: this.openingMulliganRevealVisibleCount,
+        controllerCount: controllerTypes.length,
+        controllerTypes,
+        sceneActive: this.scene?.isActive?.() ?? false,
+        scenePaused: this.scene?.isPaused?.() ?? false,
+      });
+    }
+
+    this.completeOpeningMulliganReveal({ skipAnimation: true, redraw: false });
   }
 
   revealOpeningMulliganCardSlot(index, { generation, isLast = false } = {}) {

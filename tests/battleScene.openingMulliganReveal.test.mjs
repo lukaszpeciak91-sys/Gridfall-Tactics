@@ -8,6 +8,7 @@ test('opening mulligan reveal timing matches global hand flip pacing with a post
   assert.match(source, /OPENING_MULLIGAN_REVEAL_CARD_MS = HAND_CARD_FLIP_REVEAL_DURATION/);
   assert.match(source, /OPENING_MULLIGAN_REVEAL_STAGGER_MS = 120/);
   assert.match(source, /OPENING_MULLIGAN_REVEAL_POST_HOLD_MS = 150/);
+  assert.match(source, /OPENING_MULLIGAN_REVEAL_WATCHDOG_MS = 1500/);
 });
 
 function extractMethodBody(name, nextName) {
@@ -86,6 +87,10 @@ test('opening mulligan reveal uses hand backs, sequential timing, and reduced-mo
   assert.match(startReveal, /this\.completeOpeningMulliganReveal\(\{ skipAnimation: true \}\);/);
   assert.match(startReveal, /index \* OPENING_MULLIGAN_REVEAL_STAGGER_MS/);
   assert.match(startReveal, /this\.time\.delayedCall\(delay/);
+  assert.ok(
+    startReveal.indexOf('this.time.delayedCall(delay') < startReveal.indexOf('this.scheduleOpeningMulliganRevealWatchdog({ generation, revealCount });'),
+    'watchdog should be scheduled only after normal per-card reveal timers',
+  );
 
   const revealSlot = extractMethodBody('revealOpeningMulliganCardSlot', 'completeOpeningMulliganReveal');
   assert.match(revealSlot, /Math\.round\(OPENING_MULLIGAN_REVEAL_CARD_MS \/ 2\)/);
@@ -100,4 +105,51 @@ test('lifecycle recovery completes opening reveal before mulligan redraw/rebuild
   const recover = extractMethodBody('recoverFromLifecycle', 'shouldRebuildBattleView');
   assert.match(recover, /if \(this\.openingMulliganRevealPending\) \{\s*this\.completeOpeningMulliganReveal\(\{ skipAnimation: true, redraw: false \}\);\s*\}\s*this\.normalizeLifecycleUiState\(reason\);/);
   assert.doesNotMatch(recover, /performOpeningMulligan\(this\.gameState, 'player'/);
+});
+
+test('opening mulligan reveal watchdog is generation-scoped and owned by reveal cleanup', () => {
+  const startReveal = extractMethodBody('startOpeningMulliganReveal', 'scheduleOpeningMulliganRevealWatchdog');
+  const scheduleWatchdog = extractMethodBody('scheduleOpeningMulliganRevealWatchdog', 'handleOpeningMulliganRevealWatchdog');
+  const cleanup = extractMethodBody('cleanupOpeningMulliganRevealControllers', 'clearOpeningMulliganRevealBackCards');
+  const confirmOpeningMulligan = extractMethodBody('confirmOpeningMulligan', 'resetOpeningMulliganInputState');
+  const shutdown = extractMethodBody('shutdown', 'onScenePointerUpOutside');
+
+  assert.match(startReveal, /const generation = this\.openingMulliganRevealGeneration;/);
+  assert.match(startReveal, /this\.scheduleOpeningMulliganRevealWatchdog\(\{ generation, revealCount \}\);/);
+  assert.match(scheduleWatchdog, /this\.time\.delayedCall\(OPENING_MULLIGAN_REVEAL_WATCHDOG_MS/);
+  assert.match(scheduleWatchdog, /this\.handleOpeningMulliganRevealWatchdog\(\{ generation \}\);/);
+  assert.match(scheduleWatchdog, /type: 'opening-reveal-watchdog'/);
+  assert.match(scheduleWatchdog, /cleanup: \(\) => watchdogTimer\.remove\?\.\(false\)/);
+  assert.match(cleanup, /controller\?\.cleanup\?\.\(\);/);
+  assert.match(confirmOpeningMulligan, /this\.cleanupOpeningMulliganRevealControllers\(\);/);
+  assert.match(shutdown, /this\.cleanupSceneObjects\(\);[\s\S]*this\.isBattleSceneShuttingDown = true;/);
+});
+
+test('opening mulligan reveal watchdog only completes genuinely pending active reveals', () => {
+  const watchdog = extractMethodBody('handleOpeningMulliganRevealWatchdog', 'revealOpeningMulliganCardSlot');
+
+  assert.match(watchdog, /if \(this\.isBattleSceneShuttingDown\) return;/);
+  assert.match(watchdog, /if \(!this\.scene\?\.isActive\?\.\(\) && !this\.scene\?\.isPaused\?\.\(\)\) return;/);
+  assert.match(watchdog, /if \(this\.openingMulliganPending !== true\) return;/);
+  assert.match(watchdog, /if \(this\.openingMulliganRevealPending !== true\) return;/);
+  assert.match(watchdog, /if \(generation !== this\.openingMulliganRevealGeneration\) return;/);
+  assert.match(watchdog, /const revealCount = this\.getOpeningMulliganRevealCardCount\(\);[\s\S]*if \(revealCount <= 0\) return;/);
+  assert.match(watchdog, /this\.openingMulliganRevealWatchdogWarnedGeneration !== generation/);
+  assert.match(watchdog, /controllerTypes = \(this\.openingMulliganRevealControllers \?\? \[\]\)/);
+  assert.match(watchdog, /console\.warn\('Opening mulligan reveal watchdog completed pending reveal'/);
+  assert.match(watchdog, /this\.completeOpeningMulliganReveal\(\{ skipAnimation: true, redraw: false \}\);/);
+  assert.doesNotMatch(watchdog, /redrawHand\(|createInitialBattleState|drawCards|applyEnemyOpeningMulligan|performOpeningMulligan|restartBattleScene|scene\.restart/);
+});
+
+test('watchdog completion reuses immediate finalizer without mutating mulligan selection or battle state', () => {
+  const complete = extractMethodBody('completeOpeningMulliganReveal', 'clearHandPanelViews');
+
+  assert.match(complete, /if \(!this\.openingMulliganRevealPending && !this\.openingMulliganRevealControllers\?\.length\) return;/);
+  assert.match(complete, /this\.cleanupOpeningMulliganRevealControllers\(\);/);
+  assert.match(complete, /this\.openingMulliganRevealPending = false;/);
+  assert.match(complete, /cardView\.root\?\.setAlpha\?\.\(1\);/);
+  assert.match(complete, /cardView\.root\?\.setScale\?\.\(1\);/);
+  assert.match(complete, /cardView\.background\?\.setInteractive\?\.\(\{ useHandCursor: true \}\);/);
+  assert.match(complete, /if \(redraw && !skipAnimation\) this\.redrawHand\(\);/);
+  assert.doesNotMatch(complete, /openingMulliganPending = false|selectedMulliganCardIds|performOpeningMulligan|applyEnemyOpeningMulligan|createInitialBattleState|drawCards|restartBattleScene|startTurn\(/);
 });
