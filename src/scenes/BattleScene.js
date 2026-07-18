@@ -6700,6 +6700,11 @@ export default class BattleScene extends Phaser.Scene {
       }
 
       if (!this.isValidTarget(boardIndex, this.targetingState.targetType, this.targetingState.targetIndexes, this.targetingState.targetConstraint)) {
+        const isControllerUnitOnPlayTargeting = this.effectCastState?.source === 'unit-on-play'
+          && selectedCard?.effectId === 'swap_two_enemy_units';
+        if (isControllerUnitOnPlayTargeting) {
+          this.cancelEffectTargeting();
+        }
         return;
       }
 
@@ -8529,11 +8534,17 @@ export default class BattleScene extends Phaser.Scene {
     if (state.targetType === 'enemy-and-friendly-unit' && selectedCount === 1) {
       return translateActive('ui.battle.targeting.selectAlly', 'SELECT ALLY');
     }
+    const isControllerUnitOnPlayTargeting = this.effectCastState?.source === 'unit-on-play'
+      && this.effectCastState?.card?.effectId === 'swap_two_enemy_units';
     if (state.requiredTargets > 1 && selectedCount === 0 && state.targetType === 'enemy-unit') {
-      return translateActive('ui.battle.targeting.selectFirstEnemy', 'SELECT FIRST ENEMY');
+      return isControllerUnitOnPlayTargeting
+        ? translateActive('ui.battle.targeting.controllerSelectFirstEnemy', translateActive('ui.battle.targeting.selectFirstEnemy', 'SELECT FIRST ENEMY'))
+        : translateActive('ui.battle.targeting.selectFirstEnemy', 'SELECT FIRST ENEMY');
     }
     if (state.requiredTargets > 1 && selectedCount === 1 && state.targetType === 'enemy-unit') {
-      return translateActive('ui.battle.targeting.selectSecondEnemy', 'SELECT SECOND ENEMY');
+      return isControllerUnitOnPlayTargeting
+        ? translateActive('ui.battle.targeting.controllerSelectSecondEnemy', translateActive('ui.battle.targeting.selectSecondEnemy', 'SELECT SECOND ENEMY'))
+        : translateActive('ui.battle.targeting.selectSecondEnemy', 'SELECT SECOND ENEMY');
     }
     if (state.targetType === 'enemy-unit') return translateActive('ui.battle.targeting.selectEnemy', 'SELECT ENEMY');
     if (state.targetType === 'friendly-unit') return translateActive('ui.battle.targeting.selectAlly', 'SELECT ALLY');

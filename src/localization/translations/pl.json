@@ -560,10 +560,12 @@
       "targeting": {
         "selectEnemy": "WYBIERZ WROGA",
         "selectFirstEnemy": "WYBIERZ PIERWSZEGO WROGA",
+        "controllerSelectFirstEnemy": "WYBIERZ PIERWSZEGO WROGA\nDOTKNIJ POZA WROGIEM, ABY ANULOWAĆ",
         "selectAdjacentEnemy": "WYBIERZ SĄSIADUJĄCYCH WROGÓW",
         "selectAlly": "WYBIERZ SOJUSZNIKA",
         "selectUnit": "WYBIERZ JEDNOSTKĘ",
-        "selectSecondEnemy": "WYBIERZ DRUGIEGO WROGA"
+        "selectSecondEnemy": "WYBIERZ DRUGIEGO WROGA",
+        "controllerSelectSecondEnemy": "WYBIERZ DRUGIEGO WROGA\nDOTKNIJ POZA WROGIEM, ABY ANULOWAĆ"
       },
       "playerStarts": "Ty zaczynasz",
       "enemyStarts": "Wróg zaczyna",

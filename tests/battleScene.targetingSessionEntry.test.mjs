@@ -219,6 +219,121 @@ test('Controller utility navigation click cancels and finalizes targeting before
   assert.deepEqual(calls, ['cancel-targeting']);
 });
 
+
+test('Controller invalid board-cell taps cancel unit-on-play targeting in one tap', () => {
+  const onBoardCellTapWithResolvers = compileMethod('onBoardCellTap', 'getActivePlayerEffectCard', [
+    'boardIndex',
+    'playOrRedeployUnit',
+    'resolveTargetedUnitOnPlayEffect',
+    'resolveTargetedEffectCard',
+  ]);
+  const controller = { id: 'control_controller_1', type: 'unit', effectId: 'swap_two_enemy_units' };
+  const calls = [];
+  const scene = {
+    openingMulliganPending: false,
+    utilityMenuPanel: null,
+    navigationInProgress: false,
+    pointerInputGuardActive: false,
+    battleResultModalShown: false,
+    isFlowResolving: false,
+    isEffectCastResolving: false,
+    playerActionUsed: false,
+    selectedCardId: null,
+    targetingState: { cardId: controller.id, targetType: 'enemy-unit', requiredTargets: 2, targetIndexes: [] },
+    effectCastState: { source: 'unit-on-play', card: controller, cardId: controller.id, boardIndex: 6, beforeStats: { marker: true } },
+    pendingSwapIndex: null,
+    gameState: { player: { hand: [] }, board: [{ owner: 'enemy' }, null, null, null, null, null, { owner: 'player' }] },
+    getActivePlayerEffectCard: () => controller,
+    isValidTarget(index) { return this.gameState.board[index]?.owner === 'enemy'; },
+    cancelEffectTargeting() { calls.push('cancel-targeting'); this.targetingState = null; this.effectCastState = null; this.playerActionUsed = true; },
+  };
+
+  onBoardCellTapWithResolvers.call(scene, 1, () => { throw new Error('unit placement must not run'); }, () => { throw new Error('unit-on-play resolver must not run'); }, () => {});
+  assert.deepEqual(calls, ['cancel-targeting']);
+  assert.equal(scene.targetingState, null);
+  assert.equal(scene.effectCastState, null);
+  assert.equal(scene.playerActionUsed, true);
+
+  calls.length = 0;
+  scene.targetingState = { cardId: controller.id, targetType: 'enemy-unit', requiredTargets: 2, targetIndexes: [] };
+  scene.effectCastState = { source: 'unit-on-play', card: controller, cardId: controller.id, boardIndex: 6, beforeStats: { marker: true } };
+  scene.playerActionUsed = false;
+  onBoardCellTapWithResolvers.call(scene, 6, () => { throw new Error('unit placement must not run'); }, () => { throw new Error('unit-on-play resolver must not run'); }, () => {});
+  assert.deepEqual(calls, ['cancel-targeting']);
+});
+
+test('Controller selected enemy board tap still deselects instead of canceling', () => {
+  const onBoardCellTapWithResolvers = compileMethod('onBoardCellTap', 'getActivePlayerEffectCard', [
+    'boardIndex',
+    'playOrRedeployUnit',
+    'resolveTargetedUnitOnPlayEffect',
+    'resolveTargetedEffectCard',
+  ]);
+  const controller = { id: 'control_controller_1', type: 'unit', effectId: 'swap_two_enemy_units' };
+  const calls = [];
+  const scene = {
+    openingMulliganPending: false,
+    utilityMenuPanel: null,
+    navigationInProgress: false,
+    pointerInputGuardActive: false,
+    battleResultModalShown: false,
+    isFlowResolving: false,
+    isEffectCastResolving: false,
+    playerActionUsed: false,
+    selectedCardId: null,
+    targetingState: { cardId: controller.id, targetType: 'enemy-unit', requiredTargets: 2, targetIndexes: [0] },
+    effectCastState: { source: 'unit-on-play', card: controller, cardId: controller.id, boardIndex: 6 },
+    pendingSwapIndex: null,
+    gameState: { player: { hand: [] }, board: [{ owner: 'enemy' }, { owner: 'enemy' }] },
+    getActivePlayerEffectCard: () => controller,
+    isValidTarget: () => true,
+    resetCardHighlights(options) { calls.push(['highlights', options]); },
+    updatePlayerBaseActionState() { calls.push('button'); },
+    showTargetingInstruction() { calls.push(['instruction', [...this.targetingState.targetIndexes]]); },
+    cancelEffectTargeting() { calls.push('cancel-targeting'); },
+  };
+
+  onBoardCellTapWithResolvers.call(scene, 0, () => {}, () => {}, () => {});
+
+  assert.deepEqual(scene.targetingState.targetIndexes, []);
+  assert.deepEqual(calls, [['highlights', { showPreview: false }], 'button', ['instruction', []]]);
+});
+
+test('other targeted effects keep invalid board-cell taps ignored', () => {
+  const onBoardCellTapWithResolvers = compileMethod('onBoardCellTap', 'getActivePlayerEffectCard', [
+    'boardIndex',
+    'playOrRedeployUnit',
+    'resolveTargetedUnitOnPlayEffect',
+    'resolveTargetedEffectCard',
+  ]);
+  const signalShift = { id: 'control_swap_1', type: 'order', effectId: 'swap_any_two_units' };
+  const calls = [];
+  const scene = {
+    openingMulliganPending: false,
+    utilityMenuPanel: null,
+    navigationInProgress: false,
+    pointerInputGuardActive: false,
+    battleResultModalShown: false,
+    isFlowResolving: false,
+    isEffectCastResolving: false,
+    playerActionUsed: false,
+    selectedCardId: signalShift.id,
+    targetingState: { cardId: signalShift.id, targetType: 'any-unit', requiredTargets: 2, targetIndexes: [] },
+    effectCastState: null,
+    pendingSwapIndex: null,
+    gameState: { player: { hand: [signalShift] }, board: [null] },
+    getActivePlayerEffectCard: () => null,
+    isValidTarget: () => false,
+    cancelEffectTargeting() { calls.push('cancel-targeting'); },
+  };
+
+  onBoardCellTapWithResolvers.call(scene, 0, () => { throw new Error('unit placement must not run'); }, () => {}, () => { throw new Error('effect resolver must not run'); });
+
+  assert.deepEqual(calls, []);
+  assert.deepEqual(scene.targetingState.targetIndexes, []);
+});
+
+
 test('selected targeted card pointerdown keeps its session available for long-press inspect', () => {
   const onCardPointerDown = compileMethod('onCardPointerDown', 'startHandCardLongPress', ['cardId']);
   const targetingState = { cardId: 'control_swap_1', targetType: 'any-unit', requiredTargets: 2, targetIndexes: [0] };
