@@ -3,13 +3,11 @@ import { resolveBattleTransitionIllustration } from '../data/battleTransitionIll
 import { preloadCardIllustrationAsset, getLoadedCardIllustrationTextureKey } from '../rendering/cardIllustrationAssets.js';
 import { stopMusic } from '../audio/audioPlayback.js';
 import { calculateCardArtworkCoverPosition } from '../rendering/cardVisualLayout.js';
+import { calculateBattleTransitionArtworkLayout } from '../rendering/battleTransitionArtworkLayout.js';
 import { BATTLE_SCENE_KEY, BATTLE_SCENE_VISUALLY_READY_EVENT, normalizeBattlePayload } from './battleEntryRouter.js';
 
 const BACKGROUND_COLOR = '#020617';
-const MOTION_ZOOM_TO = 1.08;
 const MOTION_DURATION_MS = 11000;
-const DRIFT_X = 3;
-const DRIFT_Y = -48;
 const VEIL_ALPHA = 0.34;
 const EXIT_DIM_VEIL_ALPHA = 0.48;
 const FOG_ALPHA = 0.08;
@@ -19,7 +17,6 @@ const EXIT_CROSSFADE_MS = 560;
 const MENU_MUSIC_FADE_OUT_MS = 560;
 const FRAME_SAFE_MIN_MS = 80;
 const FAILSAFE_REVEAL_MS = 8000;
-
 export default class BattleTransitionScene extends Phaser.Scene {
   constructor() {
     super('BattleTransitionScene');
@@ -64,6 +61,8 @@ export default class BattleTransitionScene extends Phaser.Scene {
     this.installInputBlocker();
     this.resizeHandler = () => this.rebuildPresentation();
     this.scale.on('resize', this.resizeHandler);
+    this.scale.on('enterfullscreen', this.resizeHandler);
+    this.scale.on('leavefullscreen', this.resizeHandler);
     this.lifecycleHandler = (event = {}) => this.handleLifecycleSignal(event);
     this.phaserPauseHandler = () => this.handleLifecycleSignal({ reason: 'phaser-pause' });
     this.phaserResumeHandler = () => this.handleLifecycleSignal({ reason: 'phaser-resume' });
@@ -74,8 +73,16 @@ export default class BattleTransitionScene extends Phaser.Scene {
     this.launchBattleSceneBelow();
   }
 
+  getResolvedViewportDimensions() {
+    const camera = this.cameras?.main;
+    const scale = this.scale;
+    const width = camera?.width || scale?.gameSize?.width || scale?.width || 1;
+    const height = camera?.height || scale?.gameSize?.height || scale?.height || 1;
+    return { width, height };
+  }
+
   renderPresentation() {
-    const { width, height } = this.scale;
+    const { width, height } = this.getResolvedViewportDimensions();
     this.root = this.add.container(0, 0).setDepth(1000);
     this.root.setSize(width, height);
     const textureKey = getLoadedCardIllustrationTextureKey(this, this.selection?.card, { factionId: this.selection?.factionId });
@@ -91,18 +98,25 @@ export default class BattleTransitionScene extends Phaser.Scene {
   }
 
   createIllustration(textureKey) {
-    const { width, height } = this.scale;
+    const { width, height } = this.getResolvedViewportDimensions();
     const image = this.add.image(width / 2, height / 2, textureKey);
     const source = image.texture?.getSourceImage?.();
     const sourceWidth = source?.width ?? image.width;
     const sourceHeight = source?.height ?? image.height;
     const crop = calculateCardArtworkCoverPosition({ width, height }, sourceWidth, sourceHeight, { artPositionY: 0.5 });
-    const startScale = crop.scale;
-    const endScale = crop.scale * MOTION_ZOOM_TO;
-    image.setOrigin((crop.cropX + crop.cropWidth / 2) / Math.max(1, sourceWidth), (crop.cropY + crop.cropHeight / 2) / Math.max(1, sourceHeight));
-    image.setDisplaySize(sourceWidth * startScale, sourceHeight * startScale);
-    image.setPosition(width / 2 - DRIFT_X / 2, height / 2 - DRIFT_Y / 2);
-    this.tweens.add({ targets: image, displayWidth: sourceWidth * endScale, displayHeight: sourceHeight * endScale, x: width / 2 + DRIFT_X / 2, y: height / 2 + DRIFT_Y / 2, duration: MOTION_DURATION_MS, ease: 'Sine.easeInOut' });
+    const layout = calculateBattleTransitionArtworkLayout({
+      viewportWidth: width,
+      viewportHeight: height,
+      sourceWidth,
+      sourceHeight,
+      coverScale: crop.scale,
+      originX: (crop.cropX + crop.cropWidth / 2) / Math.max(1, sourceWidth),
+      originY: (crop.cropY + crop.cropHeight / 2) / Math.max(1, sourceHeight),
+    });
+    image.setOrigin(layout.originX, layout.originY);
+    image.setDisplaySize(layout.start.displayWidth, layout.start.displayHeight);
+    image.setPosition(layout.start.x, layout.start.y);
+    this.tweens.add({ targets: image, displayWidth: layout.end.displayWidth, displayHeight: layout.end.displayHeight, x: layout.end.x, y: layout.end.y, duration: MOTION_DURATION_MS, ease: 'Sine.easeInOut' });
     return image;
   }
 
@@ -118,7 +132,7 @@ export default class BattleTransitionScene extends Phaser.Scene {
   }
 
   installInputBlocker() {
-    const { width, height } = this.scale;
+    const { width, height } = this.getResolvedViewportDimensions();
     this.inputBlocker = this.add.zone(width / 2, height / 2, width, height).setInteractive().setDepth(2000);
   }
 
@@ -195,7 +209,9 @@ export default class BattleTransitionScene extends Phaser.Scene {
     if (this.isCancelled && (reason === 'phaser-resume' || reason === 'pageshow' || reason === 'focus' || !isHidden)) {
       this.returnPendingUntilActive = false;
       this.returnToSourceWhenVisible();
+      return;
     }
+    if (!this.isCancelled) this.rebuildPresentation();
   }
 
   cancelTransition({ deferReturn = false } = {}) {
@@ -259,6 +275,8 @@ export default class BattleTransitionScene extends Phaser.Scene {
   cleanup() {
     this.detachBattleReadyListeners();
     this.scale?.off?.('resize', this.resizeHandler);
+    this.scale?.off?.('enterfullscreen', this.resizeHandler);
+    this.scale?.off?.('leavefullscreen', this.resizeHandler);
     if (this.lifecycleHandler) {
       this.game?.events?.off?.('session-lifecycle:signal', this.lifecycleHandler);
       this.game?.events?.off?.(Phaser.Core.Events.PAUSE, this.phaserPauseHandler);
