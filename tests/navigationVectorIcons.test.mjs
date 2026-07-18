@@ -69,6 +69,7 @@ function makeScene() {
   const rectangles = [];
   const containers = [];
   const shutdownHandlers = [];
+  const gameEventListeners = new Map();
   const scene = {
     scale: { width: 390, height: 844, gameSize: { width: 390, height: 844 } },
     add: {
@@ -89,8 +90,19 @@ function makeScene() {
     events: {
       once(event, handler) { if (event === 'shutdown') shutdownHandlers.push(handler); },
     },
-    game: { events: { on() {}, off() {} } },
-    __created: { tweens, graphics, circles, rectangles, containers, shutdownHandlers },
+    game: {
+      events: {
+        on(event, handler) {
+          const listeners = gameEventListeners.get(event) ?? new Set();
+          listeners.add(handler);
+          gameEventListeners.set(event, listeners);
+        },
+        off(event, handler) {
+          gameEventListeners.get(event)?.delete(handler);
+        },
+      },
+    },
+    __created: { tweens, graphics, circles, rectangles, containers, shutdownHandlers, gameEventListeners },
   };
   return scene;
 }
@@ -246,29 +258,89 @@ test('mute control shares the animated ring without changing mute hitbox or call
 });
 
 
-test('Battle Menu utility icons opt out of ambient edge sweeps without losing interaction or state refresh', () => {
+test('floating and mute controls default to blue ring motion and gold sweep motion', () => {
+  const floatingScene = makeScene();
+  const floating = createFloatingControl(floatingScene, 32, 810, 52, NAVIGATION_ICON_TYPES.FULLSCREEN, () => {});
+
+  assert.equal(floating.ringArc.type, 'Graphics');
+  assert.equal(floating.ringTween.config.duration, NAVIGATION_RING_MOTION.duration);
+  assert.equal(floating.ringMotion.arc, floating.ringArc);
+  assert.equal(floating.goldSweep.type, 'Graphics');
+  assert.equal(floating.goldSweepTween.config.duration, NAVIGATION_GOLD_SWEEP.duration);
+
+  const muteScene = makeScene();
+  const mute = createMuteToggleControl(muteScene, 32, 810, 52, { onToggle() {} });
+
+  assert.equal(mute.ringArc.type, 'Graphics');
+  assert.equal(mute.ringTween.config.duration, NAVIGATION_RING_MOTION.duration);
+  assert.equal(mute.ringMotion.arc, mute.ringArc);
+  assert.equal(mute.goldSweep.type, 'Graphics');
+  assert.equal(mute.goldSweepTween.config.duration, NAVIGATION_GOLD_SWEEP.duration);
+});
+
+test('ambient ring motion opt-out preserves safe null handles without creating ring Graphics or tween', () => {
+  const floatingScene = makeScene();
+  const floating = createFloatingControl(floatingScene, 223, 406, 42, NAVIGATION_ICON_TYPES.FULLSCREEN, () => {}, { ambientRingMotion: false });
+
+  assert.equal(floating.ringArc, null);
+  assert.equal(floating.ringTween, null);
+  assert.equal(floating.ringMotion, null);
+  assert.equal(floatingScene.__created.tweens.filter((tween) => tween.config.duration === NAVIGATION_RING_MOTION.duration).length, 0);
+  assert.equal(floatingScene.__created.graphics.length, 2, 'icon and gold sweep are still created when only ring is disabled');
+  assert.equal(floating.backing.interactive, true);
+  assert.equal(floating.icon.type, 'Graphics');
+  floating.destroy();
+
+  const muteScene = makeScene();
+  const mute = createMuteToggleControl(muteScene, 167, 406, 42, { ambientRingMotion: false, onToggle() {} });
+
+  assert.equal(mute.ringArc, null);
+  assert.equal(mute.ringTween, null);
+  assert.equal(mute.ringMotion, null);
+  assert.equal(muteScene.__created.tweens.filter((tween) => tween.config.duration === NAVIGATION_RING_MOTION.duration).length, 0);
+  assert.equal(muteScene.__created.graphics.length, 2, 'icon and gold sweep are still created when only ring is disabled');
+  assert.equal(mute.button.interactive, true);
+  assert.ok(mute.button.children.includes(mute.backing));
+  mute.destroy();
+});
+
+test('Battle Menu utility icons opt out of ambient edge motion without losing interaction or state refresh', () => {
   const battleSource = read('src/scenes/BattleScene.js');
   const menuSource = battleSource.slice(
     battleSource.indexOf('const muteToggle = createMuteToggleControl'),
     battleSource.indexOf('[triggerControl, fullscreenToggle, muteToggle]'),
   );
-  assert.match(menuSource, /createMuteToggleControl\(this, panelX - 28, rowY, 42, \{ depth: depth \+ 3, ambientFrameSweep: false \}\)/);
-  assert.match(menuSource, /createFloatingControl\(this, panelX \+ 28, rowY, 42, NAVIGATION_ICON_TYPES\.FULLSCREEN[\s\S]*\{ fontScale: 0\.48, ambientFrameSweep: false \}\)/);
+  const destroySource = battleSource.slice(
+    battleSource.indexOf('  destroyUtilityMenuPanel()'),
+    battleSource.indexOf('  guardPointerEvent(', battleSource.indexOf('  destroyUtilityMenuPanel()')),
+  );
+  assert.match(menuSource, /createMuteToggleControl\(this, panelX - 28, rowY, 42, \{ depth: depth \+ 3, ambientFrameSweep: false, ambientRingMotion: false \}\)/);
+  assert.match(menuSource, /createFloatingControl\(this, panelX \+ 28, rowY, 42, NAVIGATION_ICON_TYPES\.FULLSCREEN[\s\S]*\{ fontScale: 0\.48, ambientFrameSweep: false, ambientRingMotion: false \}\)/);
+  assert.match(destroySource, /fullscreenToggle\?\.destroy\?\.\(\)/);
+  assert.doesNotMatch(destroySource, /fullscreenToggle\?\.ringArc|fullscreenToggle\?\.ringTween|fullscreenToggle\?\.halo,[\s\S]*fullscreenToggle\?\.backing,[\s\S]*fullscreenToggle\?\.text/);
 
   let fullscreenCalls = 0;
   let muteUpdates = 0;
   const fullscreenScene = makeScene();
-  const fullscreen = createFloatingControl(fullscreenScene, 223, 406, 42, NAVIGATION_ICON_TYPES.FULLSCREEN, () => { fullscreenCalls += 1; }, { fontScale: 0.48, ambientFrameSweep: false });
+  const fullscreen = createFloatingControl(fullscreenScene, 223, 406, 42, NAVIGATION_ICON_TYPES.FULLSCREEN, () => { fullscreenCalls += 1; }, { fontScale: 0.48, ambientFrameSweep: false, ambientRingMotion: false });
+  assert.equal(fullscreen.ringArc, null);
+  assert.equal(fullscreen.ringTween, null);
+  assert.equal(fullscreen.ringMotion, null);
   assert.equal(fullscreen.goldSweep, null);
   assert.equal(fullscreen.goldSweepTween, null);
   assert.equal(fullscreen.goldSweepMotion, null);
   assert.equal(fullscreen.backing.interactive, true);
   fullscreen.backing.listeners.pointerup();
   assert.equal(fullscreenCalls, 1);
+  assert.equal(fullscreenScene.__created.tweens.filter((tween) => tween.config.duration === NAVIGATION_RING_MOTION.duration).length, 0);
   assert.equal(fullscreenScene.__created.tweens.filter((tween) => tween.config.duration === NAVIGATION_GOLD_SWEEP.duration).length, 0);
+  fullscreen.destroy();
 
   const muteScene = makeScene();
-  const mute = createMuteToggleControl(muteScene, 167, 406, 42, { depth: 723, ambientFrameSweep: false, onToggle() { muteUpdates += 1; } });
+  const mute = createMuteToggleControl(muteScene, 167, 406, 42, { depth: 723, ambientFrameSweep: false, ambientRingMotion: false, onToggle() { muteUpdates += 1; } });
+  assert.equal(mute.ringArc, null);
+  assert.equal(mute.ringTween, null);
+  assert.equal(mute.ringMotion, null);
   assert.equal(mute.goldSweep, null);
   assert.equal(mute.goldSweepTween, null);
   assert.equal(mute.goldSweepMotion, null);
@@ -279,7 +351,11 @@ test('Battle Menu utility icons opt out of ambient edge sweeps without losing in
   mute.button.listeners.pointerup();
   assert.equal(muteUpdates, 1);
   assert.ok(mute.icon.commands.length > 0);
+  assert.equal(muteScene.__created.tweens.filter((tween) => tween.config.duration === NAVIGATION_RING_MOTION.duration).length, 0);
   assert.equal(muteScene.__created.tweens.filter((tween) => tween.config.duration === NAVIGATION_GOLD_SWEEP.duration).length, 0);
+  assert.equal([...muteScene.__created.gameEventListeners.values()].reduce((count, listeners) => count + listeners.size, 0), 1);
+  mute.destroy();
+  assert.equal([...muteScene.__created.gameEventListeners.values()].reduce((count, listeners) => count + listeners.size, 0), 0);
 });
 
 test('bottom navigation gold sweep creates one non-interactive Graphics object per shared control', () => {
