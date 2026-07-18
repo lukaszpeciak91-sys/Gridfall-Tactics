@@ -1448,10 +1448,10 @@ export default class BattleScene extends Phaser.Scene {
       event?.stopPropagation?.();
       this.guardPointerEvent(pointer);
     });
-    const muteToggle = createMuteToggleControl(this, panelX - 28, rowY, 42, { depth: depth + 3, ambientFrameSweep: false });
+    const muteToggle = createMuteToggleControl(this, panelX - 28, rowY, 42, { depth: depth + 3, ambientFrameSweep: false, ambientRingMotion: false });
     const fullscreenToggle = createFloatingControl(this, panelX + 28, rowY, 42, NAVIGATION_ICON_TYPES.FULLSCREEN, () => {
       this.toggleFullscreen();
-    }, { fontScale: 0.48, ambientFrameSweep: false });
+    }, { fontScale: 0.48, ambientFrameSweep: false, ambientRingMotion: false });
 
     [triggerControl, fullscreenToggle, muteToggle].forEach((control) => {
       [control.halo, control.backing, control.text, control.button, control.icon].filter(Boolean).forEach((item) => {
@@ -1665,12 +1665,10 @@ export default class BattleScene extends Phaser.Scene {
       triggerControl?.halo,
       triggerControl?.backing,
       triggerControl?.text,
-      fullscreenToggle?.halo,
-      fullscreenToggle?.backing,
-      fullscreenToggle?.text,
       ...buttons.flatMap((button) => [button.background, button.text]),
     ];
 
+    fullscreenToggle?.destroy?.();
     muteToggle?.destroy?.();
     items.forEach((item) => {
       item?.removeAllListeners?.();
