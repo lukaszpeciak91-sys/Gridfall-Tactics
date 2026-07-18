@@ -376,6 +376,7 @@ export default class BattleScene extends Phaser.Scene {
     this.activeBattleDurationMs = 0;
     this.activeBattleTimerStartedAt = null;
     this.activeBattleTimeCommitted = false;
+    this.tutorialActiveBattleTimerReady = false;
     this.backgroundArtAsset = null;
     this.backgroundLayer = null;
     this.baseFrameViews = { player: null, enemy: null };
@@ -622,6 +623,7 @@ export default class BattleScene extends Phaser.Scene {
     this.activeBattleDurationMs = 0;
     this.activeBattleTimerStartedAt = null;
     this.activeBattleTimeCommitted = false;
+    this.tutorialActiveBattleTimerReady = false;
     this.battleAmbienceStopping = false;
     this.gameState = null;
     this.factionKey = null;
@@ -815,6 +817,7 @@ export default class BattleScene extends Phaser.Scene {
     this.activeBattleDurationMs = 0;
     this.activeBattleTimerStartedAt = null;
     this.activeBattleTimeCommitted = false;
+    this.tutorialActiveBattleTimerReady = false;
     this.terminalShatterTriggeredSides = new Set();
     this.terminalFailedSides = new Set();
     this.terminalTextBootComplete = false;
@@ -1842,16 +1845,27 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   isActiveBattleTimerPlayable() {
-    // Tutorial battles are excluded in this PR because their instruction gates can block
-    // normal interaction after the shared mulligan checkpoint.
-    if (this.isTutorialBattle?.()) return false;
     if (!this.gameState || this.gameState.winner) return false;
-    if (this.openingMulliganPending || this.openingMulliganRevealPending) return false;
+    const isTutorial = this.isTutorialBattle?.() === true;
+    if (isTutorial) {
+      if (!this.tutorialActiveBattleTimerReady) return false;
+    } else if (this.openingMulliganPending || this.openingMulliganRevealPending) {
+      return false;
+    }
     if (this.battleResultModalShown || this.battleResultModalPending || this.isFlowResolving) return false;
     if (this.utilityMenuPanel || this.surrenderConfirmationModal || this.navigationInProgress) return false;
     if (this.isDocumentHiddenForActiveBattleTime()) return false;
     if (this.scene?.isPaused?.() || this.scene?.isSleeping?.()) return false;
     if (this.scene?.isActive && !this.scene.isActive()) return false;
+    return true;
+  }
+
+
+  markTutorialActiveBattleTimerReady() {
+    if (!this.isTutorialBattle?.() || this.tutorialActiveBattleTimerReady) return false;
+    if (!this.tutorialControllerState || !this.layout || !this.tutorialBanner?.active) return false;
+    this.tutorialActiveBattleTimerReady = true;
+    this.startCampaignBattleTimer();
     return true;
   }
 
@@ -1978,7 +1992,7 @@ export default class BattleScene extends Phaser.Scene {
     if (this.activeBattleTimeCommitted || !this.gameState?.winner) return false;
     this.activeBattleTimeCommitted = true;
     const durationMs = this.stopCampaignBattleTimer();
-    if (this.isTutorialBattle?.() || durationMs <= 0) return false;
+    if (durationMs <= 0) return false;
 
     try {
       const nextStats = addActiveBattleTime(loadPlayerStats(), durationMs);
@@ -5627,6 +5641,8 @@ export default class BattleScene extends Phaser.Scene {
     this.updatePlayerBaseActionState();
     this.resetCardHighlights({ showPreview: false });
     this.updateTutorialFocus?.();
+    this.updateTutorialBanner?.();
+    this.markTutorialActiveBattleTimerReady?.();
   }
 
   clearHandPanelViews() {

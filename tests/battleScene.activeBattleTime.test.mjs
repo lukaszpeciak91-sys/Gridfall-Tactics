@@ -41,11 +41,12 @@ test('segmented active timer is idempotent and excludes closed intervals', () =>
   assert.match(resumeBody, /if \(!this\.isActiveBattleTimerPlayable\(\)\) return;/);
 });
 
-test('playability gate excludes tutorial, mulligan, results, blocked overlays, hidden documents, paused scenes, and winners', () => {
-  const playableBody = extractMethodBody('isActiveBattleTimerPlayable', 'startActiveBattleTimer');
-  assert.match(playableBody, /isTutorialBattle\?\.\(\)/);
+test('playability gate allows tutorial after ready checkpoint while preserving normal mulligan and global blockers', () => {
+  const playableBody = extractMethodBody('isActiveBattleTimerPlayable', 'markTutorialActiveBattleTimerReady');
+  assert.match(playableBody, /const isTutorial = this\.isTutorialBattle\?\.\(\) === true;/);
+  assert.match(playableBody, /if \(isTutorial\) \{\s*if \(!this\.tutorialActiveBattleTimerReady\) return false;\s*\} else if \(this\.openingMulliganPending \|\| this\.openingMulliganRevealPending\) \{/);
+  assert.doesNotMatch(playableBody, /if \(this\.isTutorialBattle\?\.\(\)\) return false;/);
   assert.match(playableBody, /this\.gameState\.winner/);
-  assert.match(playableBody, /this\.openingMulliganPending \|\| this\.openingMulliganRevealPending/);
   assert.match(playableBody, /this\.battleResultModalShown \|\| this\.battleResultModalPending \|\| this\.isFlowResolving/);
   assert.match(playableBody, /this\.utilityMenuPanel \|\| this\.surrenderConfirmationModal \|\| this\.navigationInProgress/);
   assert.match(playableBody, /this\.isDocumentHiddenForActiveBattleTime\(\)/);
@@ -65,16 +66,155 @@ test('pause, sleep, lifecycle, fullscreen recovery, and blocking overlays use ce
   assert.match(extractMethodBody('showSurrenderConfirmation', 'createSurrenderConfirmationButton'), /this\.pauseActiveBattleTimer\(\);/);
 });
 
-test('finalization commits active duration exactly once before achievement evaluation and excludes tutorial battles', () => {
+test('finalization commits active duration exactly once before achievement evaluation including tutorial battles', () => {
   const finalizerBody = extractMethodBody('finalizeActiveBattleTimeOnce', 'trackTutorialCompletionOnce');
   const scheduleBody = extractMethodBody('scheduleBattleResultModal', 'disableResultPendingOverlayInteractions');
   assert.match(finalizerBody, /if \(this\.activeBattleTimeCommitted \|\| !this\.gameState\?\.winner\) return false;/);
   assert.match(finalizerBody, /this\.activeBattleTimeCommitted = true;/);
   assert.match(finalizerBody, /const durationMs = this\.stopCampaignBattleTimer\(\);/);
-  assert.match(finalizerBody, /if \(this\.isTutorialBattle\?\.\(\) \|\| durationMs <= 0\) return false;/);
+  assert.match(finalizerBody, /if \(durationMs <= 0\) return false;/);
+  assert.doesNotMatch(finalizerBody, /isTutorialBattle/);
   assert.match(finalizerBody, /addActiveBattleTime\(loadPlayerStats\(\), durationMs\)/);
   assert.ok(scheduleBody.indexOf('const activeBattleTimeTracked = this.finalizeActiveBattleTimeOnce();') < scheduleBody.indexOf('const tutorialStatsTracked = this.trackTutorialCompletionOnce();'));
   assert.ok(scheduleBody.indexOf('const battleStatsTracked = this.trackCompletedBattleStatsOnce();') < scheduleBody.indexOf('evaluateAndPersistAchievementUnlocks();'));
   assert.doesNotMatch(extractMethodBody('showBattleResultModal', 'createResultModalButton'), /finalizeActiveBattleTimeOnce|addActiveBattleTime/);
   assert.match(source, /resetRuntimeState\(\) \{[\s\S]*this\.activeBattleTimeCommitted = false;[\s\S]*\n  \}/);
+});
+
+
+test('tutorial active timer starts at completed reveal with tutorial UI ready, not during early create', () => {
+  const createBody = extractMethodBody('create', 'beginOpeningBattlePresentation');
+  const completeRevealBody = extractMethodBody('completeOpeningMulliganReveal', 'clearHandPanelViews');
+  const readyBody = extractMethodBody('markTutorialActiveBattleTimerReady', 'startActiveBattleTimer');
+
+  assert.match(createBody, /this\.tutorialActiveBattleTimerReady = false;/);
+  assert.doesNotMatch(createBody, /markTutorialActiveBattleTimerReady\?\.\(\)|markTutorialActiveBattleTimerReady\(\)/);
+  assert.ok(
+    completeRevealBody.indexOf('this.openingMulliganRevealPending = false;') < completeRevealBody.indexOf('this.updateTutorialBanner?.();'),
+    'tutorial banner refresh happens after reveal/setup is complete',
+  );
+  assert.ok(
+    completeRevealBody.indexOf('this.updateTutorialBanner?.();') < completeRevealBody.indexOf('this.markTutorialActiveBattleTimerReady?.();'),
+    'timer checkpoint runs after the first ready instruction banner can exist',
+  );
+  assert.match(readyBody, /!this\.tutorialControllerState \|\| !this\.layout \|\| !this\.tutorialBanner\?\.active/);
+  assert.match(readyBody, /this\.tutorialActiveBattleTimerReady = true;[\s\S]*this\.startCampaignBattleTimer\(\);/);
+});
+
+test('tutorial active-time source preserves counters isolation and result rebuild safety', () => {
+  const statsBody = extractMethodBody('trackCompletedBattleStatsOnce', 'scheduleBattleResultModal');
+  const resultRestoreBody = extractMethodBody('restoreResultOverlayFromSnapshot', 'rebuildBattleView');
+  const resultModalBody = extractMethodBody('showBattleResultModal', 'createResultModalButton');
+  assert.match(statsBody, /this\.isTutorialBattle\(\) \? null : 'arena'/);
+  assert.doesNotMatch(resultRestoreBody, /finalizeActiveBattleTimeOnce|addActiveBattleTime/);
+  assert.doesNotMatch(resultModalBody, /finalizeActiveBattleTimeOnce|addActiveBattleTime/);
+});
+
+function extractMethodFunction(methodName, nextMethodName) {
+  const methodSource = extractMethodBody(methodName, nextMethodName);
+  const bodyStart = methodSource.indexOf('{');
+  const bodyEnd = methodSource.lastIndexOf('}');
+  assert.ok(bodyStart > 0 && bodyEnd > bodyStart, `${methodName} function body should parse`);
+  return Function(methodSource.slice(bodyStart + 1, bodyEnd));
+}
+
+function createActiveTimerHarness({ tutorial = true } = {}) {
+  let now = 0;
+  const harness = {
+    gameState: { winner: null },
+    battleStartedAt: null,
+    battleEndedAt: null,
+    activeBattleDurationMs: 0,
+    activeBattleTimerStartedAt: null,
+    activeBattleTimeCommitted: false,
+    tutorialActiveBattleTimerReady: false,
+    openingMulliganPending: true,
+    openingMulliganRevealPending: true,
+    battleResultModalShown: false,
+    battleResultModalPending: false,
+    isFlowResolving: false,
+    utilityMenuPanel: null,
+    surrenderConfirmationModal: null,
+    navigationInProgress: false,
+    scene: {
+      isPaused: () => false,
+      isSleeping: () => false,
+      isActive: () => true,
+    },
+    isTutorialBattle: () => tutorial,
+    getActiveBattleTimestamp: () => now,
+    isDocumentHiddenForActiveBattleTime: () => Boolean(globalThis.document?.hidden),
+  };
+  harness.isActiveBattleTimerPlayable = extractMethodFunction('isActiveBattleTimerPlayable', 'markTutorialActiveBattleTimerReady').bind(harness);
+  harness.startActiveBattleTimer = extractMethodFunction('startActiveBattleTimer', 'pauseActiveBattleTimer').bind(harness);
+  harness.pauseActiveBattleTimer = extractMethodFunction('pauseActiveBattleTimer', 'resumeActiveBattleTimer').bind(harness);
+  harness.resumeActiveBattleTimer = extractMethodFunction('resumeActiveBattleTimer', 'stopActiveBattleTimer').bind(harness);
+  harness.stopActiveBattleTimer = extractMethodFunction('stopActiveBattleTimer', 'startCampaignBattleTimer').bind(harness);
+  harness.getActiveBattleDurationMs = extractMethodFunction('getActiveBattleDurationMs', 'formatBattleDuration').bind(harness);
+  return { harness, setNow: (value) => { now = value; } };
+}
+
+test('deterministic tutorial active timer counts instruction gate time and excludes pause/background/overlay segments', () => {
+  const originalDocument = globalThis.document;
+  const documentState = { hidden: false };
+  globalThis.document = documentState;
+  try {
+    const { harness, setNow } = createActiveTimerHarness({ tutorial: true });
+    setNow(1000);
+    harness.startActiveBattleTimer();
+    assert.equal(harness.battleStartedAt, null, 'tutorial timer must not start before ready checkpoint');
+
+    harness.tutorialActiveBattleTimerReady = true;
+    harness.openingMulliganRevealPending = false;
+    harness.startActiveBattleTimer();
+    assert.equal(harness.battleStartedAt, 1000);
+
+    setNow(11000);
+    assert.equal(harness.getActiveBattleDurationMs(), 10000, 'instructional gate time is active tutorial time');
+
+    harness.pauseActiveBattleTimer();
+    setNow(21000);
+    assert.equal(harness.getActiveBattleDurationMs(), 10000, 'scene pause/sleep interval stays excluded while segment is closed');
+    harness.resumeActiveBattleTimer();
+    setNow(26000);
+    assert.equal(harness.getActiveBattleDurationMs(), 15000);
+
+    documentState.hidden = true;
+    harness.pauseActiveBattleTimer();
+    setNow(36000);
+    assert.equal(harness.isActiveBattleTimerPlayable(), false);
+    assert.equal(harness.getActiveBattleDurationMs(), 15000, 'background hidden interval is excluded');
+    documentState.hidden = false;
+    harness.resumeActiveBattleTimer();
+
+    setNow(41000);
+    harness.utilityMenuPanel = {};
+    harness.pauseActiveBattleTimer();
+    setNow(51000);
+    assert.equal(harness.isActiveBattleTimerPlayable(), false);
+    assert.equal(harness.getActiveBattleDurationMs(), 20000, 'external menu/settings overlay interval is excluded');
+    harness.utilityMenuPanel = null;
+    harness.resumeActiveBattleTimer();
+
+    setNow(56000);
+    harness.gameState.winner = 'player';
+    const duration = harness.stopActiveBattleTimer();
+    assert.equal(duration, 25000, 'result finalization closes the last active segment');
+    setNow(66000);
+    assert.equal(harness.getActiveBattleDurationMs(), 25000, 'result modal waiting time is excluded after stop');
+  } finally {
+    globalThis.document = originalDocument;
+  }
+});
+
+test('deterministic normal battle timer still waits for post-mulligan checkpoint', () => {
+  const { harness, setNow } = createActiveTimerHarness({ tutorial: false });
+  setNow(500);
+  harness.startActiveBattleTimer();
+  assert.equal(harness.battleStartedAt, null);
+  harness.openingMulliganPending = false;
+  harness.openingMulliganRevealPending = false;
+  setNow(1500);
+  harness.startActiveBattleTimer();
+  assert.equal(harness.battleStartedAt, 1500);
 });
