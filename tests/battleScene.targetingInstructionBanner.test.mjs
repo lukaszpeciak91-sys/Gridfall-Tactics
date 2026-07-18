@@ -171,7 +171,7 @@ test('all central banner variants use the shared midpoint helper and increased v
 });
 
 test('targeting instruction messages still resolve through existing English and Polish localization keys', () => {
-  for (const key of ['selectFirstEnemy', 'selectSecondEnemy', 'selectAdjacentEnemy', 'selectEnemy', 'selectAlly', 'selectUnit']) {
+  for (const key of ['selectFirstEnemy', 'selectSecondEnemy', 'controllerSelectFirstEnemy', 'controllerSelectSecondEnemy', 'selectAdjacentEnemy', 'selectEnemy', 'selectAlly', 'selectUnit']) {
     assert.equal(typeof getPath(en, `ui.battle.targeting.${key}`), 'string', `missing English targeting key ${key}`);
     assert.equal(typeof getPath(pl, `ui.battle.targeting.${key}`), 'string', `missing Polish targeting key ${key}`);
   }
@@ -199,6 +199,27 @@ test('multi-target enemy wording updates for first, second, and adjacent enemy s
   scene.targetingState.targetConstraint = 'adjacent-pair';
   assert.equal(getTargetingInstructionMessage.call(scene, translate), 'ui.battle.targeting.selectAdjacentEnemy');
 });
+
+
+test('Controller unit-on-play targeting uses localized cancel hint copy', () => {
+  const controller = { id: 'control_controller_1', effectId: 'swap_two_enemy_units' };
+  const scene = makeScene({ targetType: 'enemy-unit', requiredTargets: 2, targetIndexes: [] });
+  scene.effectCastState = { source: 'unit-on-play', card: controller };
+
+  assert.equal(getTargetingInstructionMessage.call(scene, (key) => getPath(en, key)), 'SELECT FIRST ENEMY\nTAP OUTSIDE AN ENEMY TO CANCEL');
+  assert.equal(getTargetingInstructionMessage.call(scene, (key) => getPath(pl, key)), 'WYBIERZ PIERWSZEGO WROGA\nDOTKNIJ POZA WROGIEM, ABY ANULOWAĆ');
+
+  scene.targetingState.targetIndexes = [0];
+  assert.equal(getTargetingInstructionMessage.call(scene, (key) => getPath(en, key)), 'SELECT SECOND ENEMY\nTAP OUTSIDE AN ENEMY TO CANCEL');
+  assert.equal(getTargetingInstructionMessage.call(scene, (key) => getPath(pl, key)), 'WYBIERZ DRUGIEGO WROGA\nDOTKNIJ POZA WROGIEM, ABY ANULOWAĆ');
+});
+
+test('BattleScene does not hardcode Controller cancel hint copy', () => {
+  assert.doesNotMatch(source, /TAP OUTSIDE AN ENEMY TO CANCEL|DOTKNIJ POZA WROGIEM/);
+  assert.match(source, /ui\.battle\.targeting\.controllerSelectFirstEnemy/);
+  assert.match(source, /ui\.battle\.targeting\.controllerSelectSecondEnemy/);
+});
+
 
 test('single enemy, ally, and any-unit prompts display the correct targeting messages', () => {
   const translate = (key) => key;

@@ -560,10 +560,12 @@
       "targeting": {
         "selectEnemy": "SELECT ENEMY",
         "selectFirstEnemy": "SELECT FIRST ENEMY",
+        "controllerSelectFirstEnemy": "SELECT FIRST ENEMY\nTAP OUTSIDE AN ENEMY TO CANCEL",
         "selectAdjacentEnemy": "SELECT ADJACENT ENEMIES",
         "selectAlly": "SELECT ALLY",
         "selectUnit": "SELECT UNIT",
-        "selectSecondEnemy": "SELECT SECOND ENEMY"
+        "selectSecondEnemy": "SELECT SECOND ENEMY",
+        "controllerSelectSecondEnemy": "SELECT SECOND ENEMY\nTAP OUTSIDE AN ENEMY TO CANCEL"
       },
       "playerStarts": "YOU START",
       "enemyStarts": "ENEMY STARTS",
