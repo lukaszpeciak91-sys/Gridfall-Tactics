@@ -18,6 +18,7 @@ import {
   MAX_TURNS,
   getUnitAttack,
   canPlayEffectCard,
+  isBattleExhaustedEligible,
 } from '../src/systems/GameState.js';
 import { readFileSync } from 'node:fs';
 import { getFactionByKey, getFactionKeys } from '../src/data/factions/index.js';
@@ -28,7 +29,6 @@ const DEFAULT_BASE_SEED = 1337;
 const SHUFFLE_DECKS = true;
 const FIRST_ACTOR_POLICY = 'random-initial-then-alternating';
 const TIE_BREAK_POLICY = 'seeded-random';
-
 
 function cloneCardData(value) {
   return JSON.parse(JSON.stringify(value));
@@ -1338,7 +1338,7 @@ function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, simTel
 
   while (!state.winner && turns < MAX_TURNS) {
     resolveImmediateResourceExhaustionWinner(state);
-    resolveImmediateNoProgressWinner(state);
+    if (!isBattleExhaustedEligible(state)) resolveImmediateNoProgressWinner(state);
     if (state.winner) break;
 
     const decisionContext = `${playerKey}|${enemyKey}|${gameIndex}|${turns}`;
@@ -1361,14 +1361,14 @@ function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, simTel
     turns += 1;
     state.turnsCompleted = turns;
     resolveImmediateResourceExhaustionWinner(state);
-    resolveImmediateNoProgressWinner(state);
+    if (!isBattleExhaustedEligible(state)) resolveImmediateNoProgressWinner(state);
     if (state.winner) break;
     const playerDeckBeforeTurnDraw = [...state.player.deck];
     const enemyDeckBeforeTurnDraw = [...state.enemy.deck];
     drawCards(state.player, 1);
     drawCards(state.enemy, 1);
     resolveImmediateResourceExhaustionWinner(state);
-    resolveImmediateNoProgressWinner(state);
+    if (!isBattleExhaustedEligible(state)) resolveImmediateNoProgressWinner(state);
     resolveTurnCapWinner(state, turns);
     recordDrawTelemetry(simTelemetry, state.player, playerDeckBeforeTurnDraw, cardGameTelemetry.player);
     recordDrawTelemetry(simTelemetry, state.enemy, enemyDeckBeforeTurnDraw, cardGameTelemetry.enemy);
