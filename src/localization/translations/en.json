@@ -778,6 +778,9 @@
       "progressUnits": {
         "minutes": "min"
       }
+    },
+    "startup": {
+      "tapAnywhere": "TAP ANYWHERE"
     }
   },
   "diagnostics": {

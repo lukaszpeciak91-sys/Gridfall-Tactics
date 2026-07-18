@@ -50,7 +50,7 @@ function writeStoredLocale(locale) {
   }
 }
 
-function lookupTranslation(dictionary, key) {
+export function lookupTranslation(dictionary, key) {
   if (!dictionary || typeof key !== 'string' || key.length === 0) {
     return undefined;
   }
@@ -63,6 +63,25 @@ function lookupTranslation(dictionary, key) {
   }, dictionary);
 }
 
+
+export function createLocalizationResolver({ translations = TRANSLATIONS, defaultLocale = DEFAULT_LOCALE, normalize = normalizeLocale } = {}) {
+  return function resolveTranslation(key, locale = defaultLocale, fallbackValue, replacements = {}) {
+    const normalizedLocale = normalize(locale);
+    const localizedValue = lookupTranslation(translations[normalizedLocale], key);
+    if (typeof localizedValue === 'string') {
+      return formatTranslation(localizedValue, replacements);
+    }
+
+    const fallbackLocaleValue = lookupTranslation(translations[defaultLocale], key);
+    if (typeof fallbackLocaleValue === 'string') {
+      return formatTranslation(fallbackLocaleValue, replacements);
+    }
+
+    return formatTranslation(fallbackValue ?? key, replacements);
+  };
+}
+
+const resolveSharedTranslation = createLocalizationResolver();
 
 export function getActiveLocale() {
   const storedLocale = readStoredSettings().language;
@@ -88,18 +107,7 @@ export function formatTranslation(template, replacements = {}) {
 }
 
 export function translate(key, locale = DEFAULT_LOCALE, fallbackValue, replacements = {}) {
-  const normalizedLocale = normalizeLocale(locale);
-  const localizedValue = lookupTranslation(TRANSLATIONS[normalizedLocale], key);
-  if (typeof localizedValue === 'string') {
-    return formatTranslation(localizedValue, replacements);
-  }
-
-  const englishValue = lookupTranslation(TRANSLATIONS[DEFAULT_LOCALE], key);
-  if (typeof englishValue === 'string') {
-    return formatTranslation(englishValue, replacements);
-  }
-
-  return formatTranslation(fallbackValue ?? key, replacements);
+  return resolveSharedTranslation(key, locale, fallbackValue, replacements);
 }
 
 export function translateActive(key, fallbackValue, replacements = {}) {
