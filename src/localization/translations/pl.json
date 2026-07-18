@@ -516,6 +516,12 @@
       "swapPromptSelectAdjacent": "ZAMIEŃ: wybierz sąsiada",
       "effect": "Efekt",
       "block": "BLOK",
+
+      "protectionFeedback": {
+        "stability": "STABILNOŚĆ",
+        "lastStand": "OSTATNI BASTION",
+        "immovable": "NIEWZRUSZONY"
+      },
       "effectSummaries": {
         "aggro_buff_all_atk_2": "Wszyscy sojusznicy +2 ATK",
         "swap_adjacent_then_resolve": "Zamień sojusznika, walcz w linii",

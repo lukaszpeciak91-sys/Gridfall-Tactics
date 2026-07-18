@@ -280,7 +280,7 @@ test('BattleScene renders Last Stand prevention as distinct combat feedback', ()
   const battleSource = read('src/scenes/BattleScene.js');
 
   assert.match(battleSource, /showLastStandPreventionFeedback\(targetIndex, event\.prevention\)/);
-  assert.match(battleSource, /LAST STAND\\n\$\{finalHp\} HP/);
+  assert.match(battleSource, /showFloatingTextAtSlot\(index, `LAST STAND\\n\$\{finalHp\} HP`, 'prevention'\)/);
   assert.match(battleSource, /event\.prevention\?\.prevented \? 0x06b6d4/);
   assert.match(battleSource, /getUnitCombatTextLabel\(event\)/);
 });
