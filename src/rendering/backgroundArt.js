@@ -14,6 +14,11 @@ const DEFAULT_BATTLE_BACKGROUND_PUBLIC_PATH = 'assets/backgrounds/default/battle
 const ARENA_LIGHT_SWEEP_TEXTURE_KEY = 'effect.arena-light-sweep.soft-gradient';
 const ARENA_LIGHT_SWEEP_TEXTURE_SIZE = 512;
 
+// Battle backgrounds are intentionally static, but they still need a tiny
+// deterministic overscan so subpixel canvas/camera changes during scene
+// transitions cannot expose the camera clear color at an edge.
+export const BATTLEFIELD_BACKGROUND_OVERSCAN = 1.01;
+
 const MENU_BACKGROUND_MOTION_EPOCH_KEY = 'gridfall.menuBackgroundAmbientMotionEpoch';
 const MENU_LIGHT_SWEEP_MOTION_EPOCH_KEY = 'gridfall.menuLightSweepMotionEpoch';
 
@@ -204,6 +209,87 @@ function ensureArenaLightSweepTexture(scene) {
   texture.refresh();
 }
 
+export function calculateCoverBackgroundLayout({
+  viewportWidth,
+  viewportHeight,
+  textureWidth,
+  textureHeight,
+  overscan = 1,
+  artPositionX = 0.5,
+  artPositionY = 0.5,
+} = {}) {
+  const safeViewportWidth = Math.max(1, Number(viewportWidth) || 0);
+  const safeViewportHeight = Math.max(1, Number(viewportHeight) || 0);
+  const safeTextureWidth = Math.max(1, Number(textureWidth) || 0);
+  const safeTextureHeight = Math.max(1, Number(textureHeight) || 0);
+  const safeOverscan = Number.isFinite(overscan) && overscan > 0 ? overscan : 1;
+  const normalizedX = Number.isFinite(artPositionX) ? Math.min(1, Math.max(0, artPositionX)) : 0.5;
+  const normalizedY = Number.isFinite(artPositionY) ? Math.min(1, Math.max(0, artPositionY)) : 0.5;
+  const coverScale = Math.max(
+    safeViewportWidth / safeTextureWidth,
+    safeViewportHeight / safeTextureHeight,
+  );
+  const scale = coverScale * safeOverscan;
+  const displayWidth = safeTextureWidth * scale;
+  const displayHeight = safeTextureHeight * scale;
+  const extraWidth = Math.max(0, displayWidth - safeViewportWidth);
+  const extraHeight = Math.max(0, displayHeight - safeViewportHeight);
+  const x = safeViewportWidth * 0.5 + (0.5 - normalizedX) * extraWidth;
+  const y = safeViewportHeight * 0.5 + (0.5 - normalizedY) * extraHeight;
+  const bounds = {
+    left: x - displayWidth * 0.5,
+    right: x + displayWidth * 0.5,
+    top: y - displayHeight * 0.5,
+    bottom: y + displayHeight * 0.5,
+  };
+
+  return {
+    x,
+    y,
+    scale,
+    coverScale,
+    displayWidth,
+    displayHeight,
+    bounds,
+    coversViewport: bounds.left <= 0 && bounds.top <= 0
+      && bounds.right >= safeViewportWidth && bounds.bottom >= safeViewportHeight,
+  };
+}
+
+export function applyCoverBackgroundLayout(background, {
+  width,
+  height,
+  overscan = 1,
+  artPositionX = 0.5,
+  artPositionY = 0.5,
+} = {}) {
+  if (!background?.active) return null;
+
+  if (!isImageBackground(background)) {
+    background
+      .setPosition(width * 0.5, height * 0.5)
+      .setSize?.(width, height);
+    return { x: width * 0.5, y: height * 0.5, scale: 1, coversViewport: true };
+  }
+
+  const layout = calculateCoverBackgroundLayout({
+    viewportWidth: width,
+    viewportHeight: height,
+    textureWidth: background.width,
+    textureHeight: background.height,
+    overscan,
+    artPositionX,
+    artPositionY,
+  });
+
+  background
+    .setOrigin(0.5)
+    .setPosition(layout.x, layout.y)
+    .setScale(layout.scale);
+
+  return layout;
+}
+
 export function createCoverBackground(scene, {
   asset,
   fallbackColor,
@@ -211,6 +297,9 @@ export function createCoverBackground(scene, {
   depth = -1000,
   width = scene.scale.width,
   height = scene.scale.height,
+  overscan = 1,
+  artPositionX = 0.5,
+  artPositionY = 0.5,
 } = {}) {
   const centerX = width * 0.5;
   const centerY = height * 0.5;
@@ -219,8 +308,7 @@ export function createCoverBackground(scene, {
     const background = scene.add.image(centerX, centerY, asset.key)
       .setOrigin(0.5)
       .setDepth(depth);
-    const coverScale = Math.max(width / background.width, height / background.height);
-    background.setScale(coverScale);
+    applyCoverBackgroundLayout(background, { width, height, overscan, artPositionX, artPositionY });
     return background;
   }
 
