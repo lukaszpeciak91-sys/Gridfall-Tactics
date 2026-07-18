@@ -212,6 +212,19 @@ test('AI plays Recall when it saves a key unit and replaces the card', () => {
   assert.equal(action.aiEvaluation.utilityReason, 'saves a key unit');
 });
 
+test('AI does not select Controller as a meaningful swap into active Stability', () => {
+  const state = createInitialBattleState(emptyFaction, emptyFaction, { firstActor: 'enemy' });
+  state.enemy.hand.push(factionCard('Control', 'control_controller_1'));
+  state.immuneMoveDisableThisTurn = { player: true, enemy: false };
+  state.board[6] = unit({ owner: 'player', id: 'left-runner', attack: 3, hp: 1, effectId: 'lane_empty_bonus_damage' });
+  state.board[7] = unit({ owner: 'player', id: 'mid-guard', attack: 0, hp: 3 });
+
+  const action = chooseBattleAction(state, 'enemy');
+
+  assert.notEqual(action.effectId, 'swap_two_enemy_units');
+  assert.equal(action.targetIndexes, undefined);
+});
+
 test('AI Controller diagnostics expose useful control utility over HOLD', () => {
   const state = createInitialBattleState(emptyFaction, emptyFaction, { firstActor: 'enemy' });
   state.enemy.hand.push(factionCard('Control', 'control_controller_1'));

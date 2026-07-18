@@ -2,17 +2,24 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import control from '../src/data/factions/control.json' with { type: 'json' };
+import tank from '../src/data/factions/tank.json' with { type: 'json' };
 import aggro from '../src/data/factions/aggro.json' with { type: 'json' };
 import { getTargetingStateForEffect } from '../src/systems/cardTargeting.js';
 import {
   createInitialBattleState,
+  playEffectCard,
   playOrRedeployUnit,
+  resolveCombat,
   resolveTargetedUnitOnPlayEffect,
 } from '../src/systems/GameState.js';
 import { chooseBattleAction } from '../src/systems/enemyDecision.js';
 
 function controllerCard() {
   return control.deck.find((card) => card.id === 'control_controller_1');
+}
+
+function tankCard(cardId) {
+  return tank.deck.find((card) => card.id === cardId);
 }
 
 function unit({ id, owner, attack = 2, hp = 3, armor = 0, effectId = null }) {
@@ -122,6 +129,60 @@ test('Controller rejects duplicate, friendly, and empty targets without removing
   const emptyResult = resolveTargetedUnitOnPlayEffect(empty, 'player', 6, [0, 1]);
   assert.equal(emptyResult.ok, false);
   assert.equal(empty.board[6].cardId, 'control_controller_1');
+});
+
+
+
+test('Stability blocks Controller on-play swap while preserving normal unit play', () => {
+  const state = createInitialBattleState(tank, control, { firstActor: 'enemy' });
+  state.player.hand = [{ ...tankCard('tank_stability_1') }];
+  state.enemy.hand = [{ ...controllerCard() }];
+  state.board = Array(9).fill(null);
+  state.board[6] = unit({ id: 'tank-left', owner: 'player', attack: 0, hp: 4 });
+  state.board[8] = unit({ id: 'tank-right', owner: 'player', attack: 4, hp: 2 });
+
+  assert.equal(playEffectCard(state, 'player', 'tank_stability_1').ok, true);
+
+  const playResult = playOrRedeployUnit(state, 'enemy', 'control_controller_1', 0);
+  const directResult = resolveTargetedUnitOnPlayEffect(state, 'enemy', 0, [6, 8]);
+
+  assert.equal(playResult.ok, true);
+  assert.equal(playResult.type, 'play');
+  assert.equal(playResult.unitOnPlayEffectBlocked, true);
+  assert.equal(playResult.unitOnPlayEffectType, 'unit-on-play-targeted-effect-blocked');
+  assert.equal(state.board[0].cardId, 'control_controller_1');
+  assert.equal(state.enemy.hand.some((card) => card.id === 'control_controller_1'), false);
+  assert.equal(state.enemy.discard[0].id, 'control_controller_1');
+  assert.equal(state.board[6].id, 'tank-left');
+  assert.equal(state.board[8].id, 'tank-right');
+  assert.equal(directResult.ok, true);
+  assert.equal(directResult.type, 'unit-on-play-targeted-effect-blocked');
+  assert.equal(state.board[6].id, 'tank-left');
+  assert.equal(state.board[8].id, 'tank-right');
+  assert.equal(state.immuneMoveDisableThisTurn.player, true);
+});
+
+test('Controller can target and swap again after Stability expires', () => {
+  const state = createInitialBattleState(tank, control, { firstActor: 'enemy' });
+  state.player.hand = [{ ...tankCard('tank_stability_1') }];
+  state.enemy.hand = [{ ...controllerCard() }];
+  state.board = Array(9).fill(null);
+  state.board[6] = unit({ id: 'tank-left', owner: 'player', attack: 0, hp: 4 });
+  state.board[8] = unit({ id: 'tank-right', owner: 'player', attack: 4, hp: 2 });
+
+  playEffectCard(state, 'player', 'tank_stability_1');
+  resolveCombat(state);
+  assert.equal(state.immuneMoveDisableThisTurn.player, false);
+
+  const playResult = playOrRedeployUnit(state, 'enemy', 'control_controller_1', 0);
+  const swapResult = resolveTargetedUnitOnPlayEffect(state, 'enemy', 0, [6, 8]);
+
+  assert.equal(playResult.ok, true);
+  assert.equal(playResult.unitOnPlayEffectBlocked, undefined);
+  assert.equal(swapResult.ok, true);
+  assert.equal(swapResult.type, 'unit-on-play-targeted-effect');
+  assert.equal(state.board[6].id, 'tank-right');
+  assert.equal(state.board[8].id, 'tank-left');
 });
 
 test('AI plays Controller only with meaningful enemy swap targets', () => {

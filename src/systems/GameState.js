@@ -1206,6 +1206,11 @@ function areSameRowAdjacentIndexes(firstIndex, secondIndex) {
     && Math.abs((firstIndex % 3) - (secondIndex % 3)) === 1;
 }
 
+function isTargetedUnitOnPlayEffectBlocked(state, owner, effectId) {
+  if (effectId !== 'swap_two_enemy_units') return false;
+  return hasMoveDisableImmunity(state, getOpponentOwner(owner), owner, effectId);
+}
+
 function applyLeftmostAdjacentEnemySwap(state, owner) {
   const pair = findLeftmostAdjacentEnemyPair(state, owner);
   if (!pair) return false;
@@ -2968,6 +2973,10 @@ export function resolveTargetedUnitOnPlayEffect(state, owner, sourceBoardIndex, 
     return { ok: false, reason: 'Unit on-play effect does not support targeted resolution' };
   }
 
+  if (isTargetedUnitOnPlayEffectBlocked(state, owner, sourceUnit.effectId)) {
+    return { ok: true, type: 'unit-on-play-targeted-effect-blocked', sourceUnit };
+  }
+
   const selectedTargets = Array.isArray(targetIndexes) ? targetIndexes : [];
   if (selectedTargets.length < 2) {
     const firstTarget = state.board[selectedTargets[0]];
@@ -3077,12 +3086,18 @@ export function playOrRedeployUnit(state, owner, handCardId, boardIndex) {
   }
 
   state.board[boardIndex] = createBoardUnitFromCard(card, owner);
+  const unitOnPlayEffectBlocked = isTargetedUnitOnPlayEffectBlocked(state, owner, card.effectId ?? null);
   resolveUnitOnPlayEffect(state, owner, boardIndex, card);
 
   side.discard.push(card);
   recordProgressAction(state, owner, validation.type);
   completeActionOpportunity(state, owner);
-  return { ok: true, type: validation.type, card };
+  return {
+    ok: true,
+    type: validation.type,
+    card,
+    ...(unitOnPlayEffectBlocked ? { unitOnPlayEffectBlocked: true, unitOnPlayEffectType: 'unit-on-play-targeted-effect-blocked' } : {}),
+  };
 }
 
 export function performSwap(state, owner, fromIndex, toIndex) {
