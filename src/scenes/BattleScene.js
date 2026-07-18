@@ -6809,7 +6809,7 @@ export default class BattleScene extends Phaser.Scene {
 
     // Controller play/redeploy explicitly enters manual unit-on-play targeting. Hacker lane behavior
     // remains automatic because it does not use the swap_two_enemy_units effect.
-    if ((result.type === 'play' || result.type === 'redeploy') && result.card?.effectId === 'swap_two_enemy_units') {
+    if ((result.type === 'play' || result.type === 'redeploy') && result.card?.effectId === 'swap_two_enemy_units' && !result.unitOnPlayEffectBlocked) {
       this.startPlayerUnitOnPlayTargeting(result.card, boardIndex, beforeStats);
       return;
     }
