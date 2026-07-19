@@ -173,9 +173,9 @@ The no-progress detector still exists and uses the stricter "meaningful for outc
 
 ## 6.1) Effect Duration Taxonomy (MVP)
 
-- **Until combat window**: Expires during the nearest standard combat cleanup window.
+- **Until combat window**: Expires during the nearest standard end-of-turn combat cleanup.
   - Use “until combat” / “do walki” for temporary ATK/ARM modifiers, movement immunity, disable immunity, Last Stand-style prevention, and Disruptor's effect-card play block that clear there.
-  - Immediate lane combat from Adrenaline/Rush does not consume this window or clear these effects.
+  - Immediate lane combat from Adrenaline/Rush does not consume this window or clear these effects. Temporary values remain active through the standard combat resolution and are cleared after its presentation completes.
 - **This turn window**: Expires after PASS/combat resolution cleanup for effects that are not best described as combat-window modifiers.
 - **Until consumed**: Lasts until a one-time trigger is used, then clears.
   - Example: `ignore_armor_next_attack`.
