@@ -5,7 +5,7 @@ export const SETTINGS_CHANGED_EVENT = 'gridfall:settings:changed';
 export const DEFAULT_SETTINGS = {
   language: 'en',
   musicVolume: 20,
-  sfxVolume: 50,
+  sfxVolume: 40,
   muted: false,
 };
 
