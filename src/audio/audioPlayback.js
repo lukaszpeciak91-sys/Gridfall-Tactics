@@ -2,8 +2,8 @@ import { SETTINGS_CHANGED_EVENT, loadSettings } from '../systems/settingsState.j
 import { getAudioAsset, hasCachedAudioAsset } from './audioAssets.js';
 import { isLiveSound, safeApplySoundManagerSettings, safeDestroy, safePlay, safeSetVolume, safeStop } from './audioSafety.js';
 
-export const MUSIC_BUS_VOLUME = 0.20;
-export const SFX_BUS_VOLUME = 0.60;
+export const MUSIC_BUS_VOLUME = 0.14;
+export const SFX_BUS_VOLUME = 0.54;
 
 const lastPlayedAtByKey = new Map();
 let activeMusic = null;
