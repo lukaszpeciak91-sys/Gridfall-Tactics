@@ -320,6 +320,10 @@ const ENEMY_EFFECT_SUMMARY_OVERRIDES = Object.freeze({
 });
 const BASE_CARD_SURFACE_THEME = getBaseCardSurfaceTheme();
 const RESULT_MODAL_DIAG_PREFIX = '[RESULT_MODAL_DIAG]';
+const OPENING_REVEAL_DIAG_STORAGE_KEY = 'gridfall:tactics:debug:opening-reveal:last-failure:v1';
+const OPENING_REVEAL_DIAG_BUFFER_LIMIT = 64;
+const OPENING_REVEAL_DIAG_FAILURE_DELAY_MS = 2800;
+let battleSceneSessionSequence = 0;
 
 export default class BattleScene extends Phaser.Scene {
   constructor() {
@@ -355,6 +359,16 @@ export default class BattleScene extends Phaser.Scene {
     this.openingBattlePresentationStarted = false;
     this.waitForBattleTransitionPresentation = false;
     this.battleTransitionLaunchId = null;
+    this.openingRevealDiagEvents = [];
+    this.openingRevealDiagStartedAt = 0;
+    this.openingRevealDiagFailureSnapshot = null;
+    this.openingRevealDiagFailureCaptured = false;
+    this.openingRevealDiagFailureTimer = null;
+    this.openingRevealDiagButton = null;
+    this.openingRevealDiagOverlay = null;
+    this.openingRevealDiagLifecycleHandlers = null;
+    this.openingRevealDiagLatestLifecycleReason = null;
+    this.sessionBattleSequenceNumber = 0;
     this.deckCounterView = null;
     this.deckInfoPanel = null;
     this.battleModalScrollHintObjects = [];
@@ -608,6 +622,16 @@ export default class BattleScene extends Phaser.Scene {
     this.openingBattlePresentationStarted = false;
     this.waitForBattleTransitionPresentation = false;
     this.battleTransitionLaunchId = null;
+    this.openingRevealDiagEvents = [];
+    this.openingRevealDiagStartedAt = 0;
+    this.openingRevealDiagFailureSnapshot = null;
+    this.openingRevealDiagFailureCaptured = false;
+    this.openingRevealDiagFailureTimer = null;
+    this.openingRevealDiagButton = null;
+    this.openingRevealDiagOverlay = null;
+    this.openingRevealDiagLifecycleHandlers = null;
+    this.openingRevealDiagLatestLifecycleReason = null;
+    this.sessionBattleSequenceNumber = 0;
     this.deckCounterView = null;
     this.deckInfoPanel = null;
     this.battleModalScrollHintObjects = [];
@@ -793,12 +817,14 @@ export default class BattleScene extends Phaser.Scene {
     // Menu music is faded by BattleTransitionScene after visual readiness.
     this.installResultModalDiagnostics();
     this.installTutorialLifecycleDiagnostics();
+    this.initializeOpeningRevealDiagnostics(data);
 
     const { width, height } = this.getResolvedBattleViewportSize();
     this.battleContext = this.normalizeBattleContext(data?.battleContext);
     this.battleTransitionLaunchId = typeof data?.battleTransitionLaunchId === 'string' ? data.battleTransitionLaunchId : null;
     this.waitForBattleTransitionPresentation = data?.waitForBattleTransitionPresentation === true && Boolean(this.battleTransitionLaunchId);
     this.openingBattlePresentationStarted = false;
+    this.logOpeningRevealDiag('create-state', { mode: this.battleContext?.mode, transitionLaunchId: this.battleTransitionLaunchId, waitForTransition: this.waitForBattleTransitionPresentation });
     const isTutorialBattle = this.battleContext?.mode === 'tutorial';
     this.initializeTutorialController();
     const tutorialBattleData = isTutorialBattle ? getTutorialBattleData() : null;
@@ -854,6 +880,7 @@ export default class BattleScene extends Phaser.Scene {
     this.openingMulliganRevealPending = true;
     this.openingMulliganRevealVisibleCount = 0;
     this.openingMulliganRevealGeneration += 1;
+    this.logOpeningRevealDiag('opening-hand-created', { handCount: this.gameState.player.hand.length, generation: this.openingMulliganRevealGeneration });
 
     this.cameras.main.setBackgroundColor(BATTLE_BACKGROUND_FALLBACK_COLOR_HEX);
     this.layout = this.getLayoutMetrics(width, height);
@@ -870,6 +897,7 @@ export default class BattleScene extends Phaser.Scene {
     this.drawPlayerBaseUtilityMenuTrigger();
     this.updatePlayerBaseActionState();
     this.applyOpeningMulliganRevealPresentation();
+    this.logOpeningRevealDiag('face-down-presentation-applied', { handCount: this.gameState.player.hand.length, cardViewCount: this.cardViews.length, retainedBackCount: this.getOpeningMulliganRetainedBackControllers?.().length ?? 0 });
 
     this.scale.on('enterfullscreen', this.onFullscreenChanged, this);
     this.scale.on('leavefullscreen', this.onFullscreenChanged, this);
@@ -887,6 +915,7 @@ export default class BattleScene extends Phaser.Scene {
     this.events.on(Phaser.Scenes.Events.WAKE, this.onSceneWake, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this);
 
+    this.logOpeningRevealDiag('visually-ready-emitting');
     this.emitBattleVisuallyReady();
     this.time.delayedCall(560, () => this.startBattleAmbience());
 
@@ -908,13 +937,188 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   beginOpeningBattlePresentation({ battleTransitionLaunchId = null } = {}) {
+    this.logOpeningRevealDiag('beginOpeningBattlePresentation-attempt', { receivedLaunchId: battleTransitionLaunchId });
     if (this.openingBattlePresentationStarted) return false;
-    if (this.waitForBattleTransitionPresentation && battleTransitionLaunchId !== this.battleTransitionLaunchId) return false;
+    if (this.waitForBattleTransitionPresentation && battleTransitionLaunchId !== this.battleTransitionLaunchId) {
+      this.logOpeningRevealDiag('presentation-start-result', { status: 'transition-launch-mismatch', receivedLaunchId: battleTransitionLaunchId });
+      return false;
+    }
     this.openingBattlePresentationStarted = true;
     this.waitForBattleTransitionPresentation = false;
     this.startOpeningMulliganReveal();
     this.updateTutorialBanner();
+    this.scheduleOpeningRevealDiagnosticFailureCheck();
+    this.logOpeningRevealDiag('presentation-start-result', { status: 'started' });
     return true;
+  }
+
+
+  initializeOpeningRevealDiagnostics(data = {}) {
+    this.destroyOpeningRevealDiagnosticObjects();
+    this.openingRevealDiagEvents = [];
+    this.openingRevealDiagStartedAt = Date.now();
+    this.openingRevealDiagFailureSnapshot = null;
+    this.openingRevealDiagFailureCaptured = false;
+    this.sessionBattleSequenceNumber = battleSceneSessionSequence += 1;
+    this.installOpeningRevealDiagnosticLifecycleListeners();
+    this.logOpeningRevealDiag('create-start', {
+      mode: data?.battleContext?.mode ?? 'arena',
+      sessionBattleSequenceNumber: this.sessionBattleSequenceNumber,
+      transitionLaunchId: data?.battleTransitionLaunchId ?? null,
+      waitForTransition: data?.waitForBattleTransitionPresentation === true,
+    });
+  }
+
+  installOpeningRevealDiagnosticLifecycleListeners() {
+    const win = globalThis.window;
+    const doc = globalThis.document;
+    const canvas = this.game?.canvas;
+    const handlers = [];
+    const add = (target, name, fn) => { target?.addEventListener?.(name, fn); handlers.push([target, name, fn]); };
+    add(doc, 'visibilitychange', () => this.logOpeningRevealDiag(doc?.hidden ? 'visibility-hidden' : 'visibility-visible'));
+    add(win, 'blur', () => this.logOpeningRevealDiag('blur'));
+    add(win, 'focus', () => this.logOpeningRevealDiag('focus'));
+    add(win, 'pagehide', () => this.logOpeningRevealDiag('pagehide'));
+    add(win, 'pageshow', () => this.logOpeningRevealDiag('pageshow'));
+    add(canvas, 'webglcontextlost', () => this.logOpeningRevealDiag('webgl-context-lost'));
+    add(canvas, 'webglcontextrestored', () => this.logOpeningRevealDiag('webgl-context-restored'));
+    this.openingRevealDiagLifecycleHandlers = handlers;
+  }
+
+  getOpeningRevealDiagnosticSnapshotFields() {
+    const fronts = this.getOpeningMulliganFrontState?.() ?? [];
+    const controllerTypes = this.getOpeningMulliganRevealControllerSummary?.() ?? [];
+    const retainedBacks = this.getOpeningMulliganRetainedBackControllers?.() ?? [];
+    return {
+      openingBattlePresentationStarted: Boolean(this.openingBattlePresentationStarted),
+      openingMulliganPending: Boolean(this.openingMulliganPending),
+      openingMulliganRevealPending: Boolean(this.openingMulliganRevealPending),
+      openingMulliganRevealGeneration: this.openingMulliganRevealGeneration ?? 0,
+      openingMulliganRevealVisibleCount: this.openingMulliganRevealVisibleCount ?? 0,
+      controllerCount: controllerTypes.length,
+      controllerTypes,
+      retainedBackCount: retainedBacks.length,
+      handCount: this.gameState?.player?.hand?.length ?? 0,
+      cardViewCount: this.cardViews?.length ?? 0,
+      invalidFrontCount: fronts.filter((front) => !this.isOpeningMulliganFrontNormalized?.(front)).length,
+      sceneActive: Boolean(this.scene?.isActive?.()),
+      scenePaused: Boolean(this.scene?.isPaused?.()),
+      hasTime: Boolean(this.time),
+      hasTweens: Boolean(this.tweens),
+    };
+  }
+
+  logOpeningRevealDiag(name, fields = {}) {
+    if (!this.openingRevealDiagEvents) this.openingRevealDiagEvents = [];
+    if (/(visibility|blur|focus|pagehide|pageshow|fullscreen|resize|pause|resume|context|recovery)/.test(name)) {
+      this.openingRevealDiagLatestLifecycleReason = name;
+    }
+    const entry = {
+      t: Math.max(0, Date.now() - (this.openingRevealDiagStartedAt || Date.now())),
+      name,
+      ...this.getOpeningRevealDiagnosticSnapshotFields?.(),
+      ...fields,
+    };
+    this.openingRevealDiagEvents.push(entry);
+    while (this.openingRevealDiagEvents.length > OPENING_REVEAL_DIAG_BUFFER_LIMIT) this.openingRevealDiagEvents.shift();
+  }
+
+  scheduleOpeningRevealDiagnosticFailureCheck() {
+    if (!this.time?.delayedCall || this.openingRevealDiagFailureTimer) return;
+    this.openingRevealDiagFailureTimer = this.time.delayedCall(OPENING_REVEAL_DIAG_FAILURE_DELAY_MS, () => {
+      this.openingRevealDiagFailureTimer = null;
+      this.checkOpeningRevealDiagnosticFailure('post-presentation-delay');
+    });
+  }
+
+  isOpeningRevealDiagnosticFailureState() {
+    if (this.openingMulliganPending !== true) return false;
+    const revealCount = this.getOpeningMulliganRevealCardCount();
+    const fronts = this.getOpeningMulliganFrontState(revealCount);
+    const retainedBacks = this.getOpeningMulliganRetainedBackControllers();
+    const controllerTypes = this.getOpeningMulliganRevealControllerSummary();
+    if (this.isOpeningMulliganActiveRevealPresentationValid({ fronts, retainedBacks, controllerTypes, revealCount })) return false;
+    if (this.isOpeningMulliganCompletedRevealPresentationValid({ fronts, retainedBacks, controllerTypes, revealCount })) return false;
+    return revealCount <= 0 || fronts.some((front) => !this.isOpeningMulliganFrontNormalized(front)) || retainedBacks.length > 0 || controllerTypes.length > 0;
+  }
+
+  checkOpeningRevealDiagnosticFailure(reason = 'unknown') {
+    this.logOpeningRevealDiag('failure-check', { reason });
+    if (this.openingRevealDiagFailureCaptured || !this.isOpeningRevealDiagnosticFailureState()) return false;
+    const snapshot = this.createOpeningRevealFailureSnapshot(reason);
+    this.openingRevealDiagFailureSnapshot = snapshot;
+    this.openingRevealDiagFailureCaptured = true;
+    try { globalThis.localStorage?.setItem?.(OPENING_REVEAL_DIAG_STORAGE_KEY, JSON.stringify(snapshot)); } catch (_) {}
+    console.warn('Opening reveal diagnostic captured', snapshot.summary);
+    this.showOpeningRevealDiagnosticControl();
+    return true;
+  }
+
+  createOpeningRevealFailureSnapshot(reason) {
+    const fronts = this.getOpeningMulliganFrontState();
+    return {
+      version: 1,
+      capturedAt: new Date().toISOString(),
+      reason,
+      summary: {
+        buildVersion: import.meta.env?.VITE_APP_VERSION ?? null,
+        mode: this.battleContext?.mode ?? 'arena',
+        sessionBattleSequenceNumber: this.sessionBattleSequenceNumber,
+        transitionLaunchId: this.battleTransitionLaunchId,
+        flags: this.getOpeningRevealDiagnosticSnapshotFields(),
+        generation: this.openingMulliganRevealGeneration,
+        latestLifecycleReason: this.openingRevealDiagLatestLifecycleReason,
+      },
+      slots: fronts.map((front) => ({
+        slotIndex: front.slotIndex,
+        cardId: front.expectedCard?.id ?? null,
+        visible: front.visible,
+        alpha: front.alpha,
+        scaleX: front.scaleX,
+        interactive: front.interactive,
+      })),
+      events: [...(this.openingRevealDiagEvents ?? [])],
+    };
+  }
+
+  readLastOpeningRevealDiagnosticSnapshot() {
+    try { return JSON.parse(globalThis.localStorage?.getItem?.(OPENING_REVEAL_DIAG_STORAGE_KEY) ?? 'null'); } catch (_) { return null; }
+  }
+
+  showOpeningRevealDiagnosticControl() {
+    if (this.openingRevealDiagButton || !globalThis.document?.createElement) return;
+    const button = document.createElement('button');
+    button.textContent = 'REVEAL DIAG';
+    button.style.cssText = 'position:fixed;right:8px;top:48px;z-index:9998;font:12px sans-serif;padding:6px 8px;border-radius:8px;background:#111;color:#fff;border:1px solid #fff;opacity:.88;';
+    button.addEventListener('click', () => this.openOpeningRevealDiagnosticOverlay());
+    document.body?.appendChild?.(button);
+    this.openingRevealDiagButton = button;
+  }
+
+  openOpeningRevealDiagnosticOverlay() {
+    this.closeOpeningRevealDiagnosticOverlay();
+    if (!globalThis.document?.createElement) return;
+    const snapshot = this.openingRevealDiagFailureSnapshot ?? this.readLastOpeningRevealDiagnosticSnapshot();
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;left:8px;right:8px;top:84px;max-height:55vh;overflow:auto;z-index:9999;background:rgba(0,0,0,.9);color:#fff;border:1px solid #fff;border-radius:10px;padding:8px;font:12px monospace;';
+    const bar = document.createElement('div');
+    const close = document.createElement('button'); close.textContent = 'CLOSE';
+    const copy = document.createElement('button'); copy.textContent = 'COPY';
+    const force = document.createElement('button'); force.textContent = 'FORCE REVEAL';
+    const pre = document.createElement('pre'); pre.textContent = JSON.stringify({ summary: snapshot?.summary, events: snapshot?.events, currentSlots: this.createOpeningRevealFailureSnapshot('current').slots }, null, 2); pre.style.whiteSpace = 'pre-wrap'; pre.style.userSelect = 'text';
+    close.onclick = () => this.closeOpeningRevealDiagnosticOverlay();
+    copy.onclick = async () => { try { await globalThis.navigator?.clipboard?.writeText?.(pre.textContent); } catch (_) {} };
+    force.onclick = () => { this.reconcileOpeningMulliganPresentation({ reason: 'diagnostic-force-reveal' }); this.closeOpeningRevealDiagnosticOverlay(); };
+    bar.append(close, copy, force); overlay.append(bar, pre); document.body?.appendChild?.(overlay); this.openingRevealDiagOverlay = overlay;
+  }
+
+  closeOpeningRevealDiagnosticOverlay() { this.openingRevealDiagOverlay?.remove?.(); this.openingRevealDiagOverlay = null; }
+
+  destroyOpeningRevealDiagnosticObjects() {
+    this.openingRevealDiagFailureTimer?.remove?.(false); this.openingRevealDiagFailureTimer = null;
+    this.closeOpeningRevealDiagnosticOverlay?.(); this.openingRevealDiagButton?.remove?.(); this.openingRevealDiagButton = null;
+    (this.openingRevealDiagLifecycleHandlers ?? []).forEach(([target, name, fn]) => target?.removeEventListener?.(name, fn));
+    this.openingRevealDiagLifecycleHandlers = null;
   }
 
   isResultModalDiagnosticsEnabled() {
@@ -4174,6 +4378,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   retryBattle() {
+    this.destroyOpeningRevealDiagnosticObjects();
     const factionKey = this.factionKey;
     const enemyFactionKey = this.enemyFactionKey;
     const battleContext = this.battleContext;
@@ -4217,6 +4422,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   onFullscreenChanged() {
+    this.logOpeningRevealDiag?.('fullscreen-change');
     this.tutorialLifecycleDiagnostics.lastFullscreenChangeAt = Date.now();
     if (this.scale.isFullscreen) {
       requestPortraitOrientationLock();
@@ -4237,6 +4443,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   onViewportChanged() {
+    this.logOpeningRevealDiag?.('resize', { width: this.scale?.gameSize?.width, height: this.scale?.gameSize?.height });
     if (!this.gameState) return;
     this.tutorialLifecycleDiagnostics.lastViewportChangeAt = Date.now();
     this.logTutorialLifecycleDiagnostic('viewport-change', {
@@ -4259,6 +4466,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   recoverFromLifecycle(reason = 'unknown', diagnostics = null) {
+    this.logOpeningRevealDiag('recovery-start', { reason });
     const lifecyclePauseReasons = new Set(['visibilitychange', 'pagehide', 'blur', 'phaser-pause', 'webglcontextlost']);
     if (this.isDocumentHiddenForActiveBattleTime() || lifecyclePauseReasons.has(reason)) {
       this.pauseActiveBattleTimer();
@@ -4301,6 +4509,7 @@ export default class BattleScene extends Phaser.Scene {
     this.refreshLifecycleBanners(reason);
     this.scheduleTutorialUiRecovery(reason);
     this.ensureBattleResultModalVisible(`lifecycle:${reason}`);
+    this.logOpeningRevealDiag('recovery-end', { reason });
 
     if (!this.gameState?.winner && !this.battleAmbienceStopping) {
       if (this.battleStartedAt === null) this.startCampaignBattleTimer();
@@ -4647,6 +4856,7 @@ export default class BattleScene extends Phaser.Scene {
   shutdown() {
     this.cleanupSceneObjects();
     this.stopBattleAmbience({ fadeMs: 0 });
+    this.destroyOpeningRevealDiagnosticObjects();
     this.isBattleSceneShuttingDown = true;
     this.scale.off('enterfullscreen', this.onFullscreenChanged, this);
     this.scale.off('leavefullscreen', this.onFullscreenChanged, this);
@@ -5486,7 +5696,8 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   cleanupOpeningMulliganRevealControllers({ advanceGeneration = true } = {}) {
-    if (advanceGeneration) this.openingMulliganRevealGeneration += 1;
+    this.logOpeningRevealDiag('reveal-cleanup', { advanceGeneration, controllerTypes: this.getOpeningMulliganRevealControllerSummary?.() ?? [] });
+    if (advanceGeneration) { this.openingMulliganRevealGeneration += 1; this.logOpeningRevealDiag('generation-change', { generation: this.openingMulliganRevealGeneration }); }
     (this.openingMulliganRevealControllers ?? []).forEach((controller) => {
       controller?.cleanup?.();
     });
@@ -5611,8 +5822,9 @@ export default class BattleScene extends Phaser.Scene {
     const fronts = this.getOpeningMulliganFrontState(revealCount);
     const invalidFrontCount = fronts.filter((front) => !this.isOpeningMulliganFrontNormalized(front)).length;
 
-    if (this.isOpeningMulliganActiveRevealPresentationValid({ fronts, retainedBacks, controllerTypes, revealCount })) return false;
-    if (this.isOpeningMulliganCompletedRevealPresentationValid({ fronts, retainedBacks, controllerTypes, revealCount })) return false;
+    this.logOpeningRevealDiag('reconciliation-attempted', { reason, invalidFrontCount, retainedBackCount: retainedBacks.length, controllerTypes });
+    if (this.isOpeningMulliganActiveRevealPresentationValid({ fronts, retainedBacks, controllerTypes, revealCount })) { this.logOpeningRevealDiag('reconciliation-result', { status: 'active-valid' }); return false; }
+    if (this.isOpeningMulliganCompletedRevealPresentationValid({ fronts, retainedBacks, controllerTypes, revealCount })) { this.logOpeningRevealDiag('reconciliation-result', { status: 'completed-valid' }); return false; }
 
     if (!this.openingMulliganReconciliationWarned) {
       this.openingMulliganReconciliationWarned = true;
@@ -5649,11 +5861,13 @@ export default class BattleScene extends Phaser.Scene {
     this.resetCardHighlights({ showPreview: false });
     this.updateTutorialFocus?.();
     this.updateTutorialBanner?.();
+    this.logOpeningRevealDiag('reconciliation-result', { status: 'reconciled' });
     return true;
   }
 
   applyOpeningMulliganRevealPresentation() {
     if (!this.openingMulliganRevealPending || !this.layout?.hand || !hasLoadedImageAsset(this, HAND_BACK_CARD_ASSET)) return;
+    this.logOpeningRevealDiag('face-down-presentation-attempt');
 
     const revealCount = this.getOpeningMulliganRevealCardCount();
     const visibleCount = Math.min(this.openingMulliganRevealVisibleCount, revealCount);
@@ -5683,6 +5897,7 @@ export default class BattleScene extends Phaser.Scene {
           depth: (cardView.baseDepth ?? cardView.root?.depth ?? 20) + 1,
         });
         backCard.slotIndex = cardView.slotIndex;
+        this.logOpeningRevealDiag('retained-back-created', { slotIndex: cardView.slotIndex });
         this.openingMulliganRevealControllers.push({
           type: 'opening-reveal-back',
           backCard,
@@ -5692,6 +5907,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   startOpeningMulliganReveal() {
+    this.logOpeningRevealDiag('reveal-scheduling-attempted');
     if (!this.openingMulliganRevealPending || !this.time || !this.tweens) return;
     const revealCount = this.getOpeningMulliganRevealCardCount();
     if (revealCount <= 0 || shouldSkipHandCardFlipReveal()) {
@@ -5714,6 +5930,7 @@ export default class BattleScene extends Phaser.Scene {
           isLast: index === revealCount - 1,
         });
       });
+      this.logOpeningRevealDiag('reveal-timer-created', { slotIndex: index, delay });
       this.openingMulliganRevealControllers.push({
         type: 'opening-reveal-timer',
         timer,
@@ -5728,6 +5945,7 @@ export default class BattleScene extends Phaser.Scene {
     const watchdogTimer = this.time.delayedCall(OPENING_MULLIGAN_REVEAL_WATCHDOG_MS, () => {
       this.handleOpeningMulliganRevealWatchdog({ generation });
     });
+    this.logOpeningRevealDiag('watchdog-created', { generation, revealCount });
     this.openingMulliganRevealControllers.push({
       type: 'opening-reveal-watchdog',
       timer: watchdogTimer,
@@ -5773,6 +5991,7 @@ export default class BattleScene extends Phaser.Scene {
       cardView.root?.setScale?.(1);
       cardView.background?.disableInteractive?.();
       this.openingMulliganRevealVisibleCount = Math.max(this.openingMulliganRevealVisibleCount, index + 1);
+      this.logOpeningRevealDiag('slot-reveal-completion', { slotIndex: index });
       if (!isLast) return;
 
       if (!this.time || OPENING_MULLIGAN_REVEAL_POST_HOLD_MS <= 0) {
@@ -5808,6 +6027,7 @@ export default class BattleScene extends Phaser.Scene {
       ease: 'Quad.easeIn',
       onComplete: () => {
         if (generation !== this.openingMulliganRevealGeneration || !this.openingMulliganRevealPending) return;
+        this.logOpeningRevealDiag('slot-reveal-midpoint', { slotIndex: index });
         playRevealSfx();
         backCard.destroy?.();
         const expandTween = this.tweens.add({
@@ -5836,6 +6056,7 @@ export default class BattleScene extends Phaser.Scene {
     this.cleanupOpeningMulliganRevealControllers();
     this.openingMulliganRevealVisibleCount = this.getOpeningMulliganRevealCardCount();
     this.openingMulliganRevealPending = false;
+    this.logOpeningRevealDiag('reveal-logical-completion', { visibleCount: this.openingMulliganRevealVisibleCount });
     this.previewedMulliganCardId = null;
     this.hoverInspectCardId = null;
     this.boardInspectIndex = null;
@@ -5873,6 +6094,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   drawHand() {
+    this.logOpeningRevealDiag('drawHand-start', { handCount: this.gameState?.player?.hand?.length ?? 0, cardViewCount: this.cardViews?.length ?? 0 });
     this.clearOpeningMulliganRevealBackCards();
     this.clearHandPanelViews();
     this.clearHandCardViews();
