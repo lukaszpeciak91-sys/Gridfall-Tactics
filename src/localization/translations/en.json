@@ -788,7 +788,8 @@
       }
     },
     "startup": {
-      "tapAnywhere": "TAP ANYWHERE"
+      "tapAnywhere": "TAP ANYWHERE",
+      "preparingBroadcast": "PREPARING BROADCAST"
     }
   },
   "diagnostics": {

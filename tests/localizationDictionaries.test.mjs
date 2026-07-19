@@ -28,6 +28,14 @@ test('major UI-facing localization groups exist in English and Polish dictionari
   }
 });
 
+
+test('startup copy is localized for English and Polish', () => {
+  assert.equal(getPath(en, 'ui.startup.preparingBroadcast'), 'PREPARING BROADCAST');
+  assert.equal(getPath(en, 'ui.startup.tapAnywhere'), 'TAP ANYWHERE');
+  assert.equal(getPath(pl, 'ui.startup.preparingBroadcast'), 'PRZYGOTOWYWANIE TRANSMISJI');
+  assert.equal(getPath(pl, 'ui.startup.tapAnywhere'), 'DOTKNIJ GDZIEKOLWIEK');
+});
+
 test('faction select title copy is localized for English and Polish', () => {
   assert.equal(getPath(en, 'ui.factionSelect.title'), 'SELECT YOUR TEAM');
   assert.equal(getPath(pl, 'ui.factionSelect.title'), 'WYBIERZ DRUŻYNĘ');
