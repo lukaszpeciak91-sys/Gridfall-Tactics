@@ -134,7 +134,7 @@ Preferred Polish canonical equivalents:
 
 ## 10. Rules clarity notes
 
-- `until combat` / `do walki` means the effect lasts until the nearest standard combat cleanup window. It should not imply cleanup after an immediate lane-combat slice.
+- `until combat` / `do walki` means the effect lasts until the nearest standard end-of-turn combat cleanup. Immediate fights do not consume these effects. Temporary values remain active through the standard combat resolution and are cleared after its presentation completes.
 - `immediately fights` / `natychmiast walczy` means an additional immediate lane combat. It does not replace normal combat later in the turn.
 - `immediately attacks its own base` for System Override is immediate effect damage, not delayed standard-combat timing.
 - `first empty slot` / `pierwszy pusty slot` names deterministic summon placement.
