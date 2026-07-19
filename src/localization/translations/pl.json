@@ -788,7 +788,8 @@
       }
     },
     "startup": {
-      "tapAnywhere": "DOTKNIJ GDZIEKOLWIEK"
+      "tapAnywhere": "DOTKNIJ GDZIEKOLWIEK",
+      "preparingBroadcast": "PRZYGOTOWYWANIE TRANSMISJI"
     }
   }
 }

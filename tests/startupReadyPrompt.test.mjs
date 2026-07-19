@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import test from 'node:test';
 import { SETTINGS_STORAGE_KEY } from '../src/localization/localeConfig.js';
 import { createLocalizationResolver, translate } from '../src/localization/localeService.js';
-import { STARTUP_READY_PROMPT_KEY } from '../src/startupReadyPrompt.js';
+import { STARTUP_LOADING_STATUS_KEY, STARTUP_READY_PROMPT_KEY } from '../src/startupReadyPrompt.js';
 
 function createMemoryStorage(initialValues = {}) {
   const values = new Map(Object.entries(initialValues));
@@ -43,11 +43,13 @@ async function withWindowStorage(storage, callback) {
   }
 }
 
-test('shared startup ready key resolves English', () => {
+test('shared startup keys resolve English', () => {
+  assert.equal(translate(STARTUP_LOADING_STATUS_KEY, 'en'), 'PREPARING BROADCAST');
   assert.equal(translate(STARTUP_READY_PROMPT_KEY, 'en'), 'TAP ANYWHERE');
 });
 
-test('shared startup ready key resolves Polish', () => {
+test('shared startup keys resolve Polish', () => {
+  assert.equal(translate(STARTUP_LOADING_STATUS_KEY, 'pl'), 'PRZYGOTOWYWANIE TRANSMISJI');
   assert.equal(translate(STARTUP_READY_PROMPT_KEY, 'pl'), 'DOTKNIJ GDZIEKOLWIEK');
 });
 
@@ -79,7 +81,8 @@ test('saved Polish language produces localized startup ready prompt', async () =
   await withWindowStorage(createMemoryStorage({
     [SETTINGS_STORAGE_KEY]: JSON.stringify({ language: 'pl' }),
   }), async () => {
-    const { getStartupReadyPrompt } = await loadFreshStartupPromptModule();
+    const { getStartupLoadingStatus, getStartupReadyPrompt } = await loadFreshStartupPromptModule();
+    assert.equal(getStartupLoadingStatus(), 'PRZYGOTOWYWANIE TRANSMISJI');
     assert.equal(getStartupReadyPrompt(), 'DOTKNIJ GDZIEKOLWIEK');
   });
 });
@@ -88,14 +91,16 @@ test('saved English language produces English startup ready prompt', async () =>
   await withWindowStorage(createMemoryStorage({
     [SETTINGS_STORAGE_KEY]: JSON.stringify({ language: 'en' }),
   }), async () => {
-    const { getStartupReadyPrompt } = await loadFreshStartupPromptModule();
+    const { getStartupLoadingStatus, getStartupReadyPrompt } = await loadFreshStartupPromptModule();
+    assert.equal(getStartupLoadingStatus(), 'PREPARING BROADCAST');
     assert.equal(getStartupReadyPrompt(), 'TAP ANYWHERE');
   });
 });
 
 test('malformed startup settings JSON defaults ready prompt to English', async () => {
   await withWindowStorage(createMemoryStorage({ [SETTINGS_STORAGE_KEY]: '{bad json' }), async () => {
-    const { getStartupReadyPrompt } = await loadFreshStartupPromptModule();
+    const { getStartupLoadingStatus, getStartupReadyPrompt } = await loadFreshStartupPromptModule();
+    assert.equal(getStartupLoadingStatus(), 'PREPARING BROADCAST');
     assert.equal(getStartupReadyPrompt(), 'TAP ANYWHERE');
   });
 });
@@ -104,7 +109,8 @@ test('unsupported saved language defaults startup ready prompt to English', asyn
   await withWindowStorage(createMemoryStorage({
     [SETTINGS_STORAGE_KEY]: JSON.stringify({ language: 'de' }),
   }), async () => {
-    const { getStartupReadyPrompt } = await loadFreshStartupPromptModule();
+    const { getStartupLoadingStatus, getStartupReadyPrompt } = await loadFreshStartupPromptModule();
+    assert.equal(getStartupLoadingStatus(), 'PREPARING BROADCAST');
     assert.equal(getStartupReadyPrompt(), 'TAP ANYWHERE');
   });
 });
@@ -121,7 +127,8 @@ test('storage access failure defaults startup ready prompt to English', async ()
   delete globalThis.document;
 
   try {
-    const { getStartupReadyPrompt } = await loadFreshStartupPromptModule();
+    const { getStartupLoadingStatus, getStartupReadyPrompt } = await loadFreshStartupPromptModule();
+    assert.equal(getStartupLoadingStatus(), 'PREPARING BROADCAST');
     assert.equal(getStartupReadyPrompt(), 'TAP ANYWHERE');
   } finally {
     if (originalWindow === undefined) {
@@ -161,6 +168,7 @@ test('ready prompt DOM element receives non-empty localized text', async () => {
 
   assert.equal(splash.dataset.readyPrompt, 'DOTKNIJ GDZIEKOLWIEK');
   assert.equal(copy.dataset.readyPrompt, 'DOTKNIJ GDZIEKOLWIEK');
+  assert.equal(copy.textContent, 'PRZYGOTOWYWANIE TRANSMISJI');
   assert.notEqual(copy.dataset.readyPrompt, '');
 });
 
@@ -176,6 +184,11 @@ test('loading-status hiding does not hide or destroy the ready prompt element', 
   assert.match(html, /<div class="startup-splash__copy">PREPARING BROADCAST<\/div>/);
   assert.doesNotMatch(html, /is-loading-complete \.startup-splash__copy\s*\{[\s\S]*display:\s*none/);
   assert.doesNotMatch(html, /is-loading-complete \.startup-splash__copy\s*\{[\s\S]*visibility:\s*hidden/);
+});
+
+test('Polish ready prompt is prevented from wrapping', () => {
+  const html = fs.readFileSync('index.html', 'utf8');
+  assert.match(html, /\.startup-splash__copy \{[\s\S]*white-space:\s*nowrap;/);
 });
 
 test('startup prompt uses existing settings storage key without introducing a new key or startup translation map', () => {
