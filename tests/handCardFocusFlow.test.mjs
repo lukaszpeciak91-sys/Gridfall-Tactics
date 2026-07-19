@@ -184,7 +184,7 @@ test('board unit inspect opens from occupied slots and reuses the full hand-card
   assert.match(inspectMethod, /this\.createHandCardView\(\{/);
   assert.match(source, /cell\.label\.add\(this\.createBoardUnitView\(cell, unit\)\);/);
   const boardUnitViewSource = source.slice(source.indexOf('  createBoardUnitView(cell, unit) {'), source.indexOf('  refreshBoardLabels() {'));
-  assert.match(boardUnitViewSource, /const unitStats = this\.currentBoardRenderStats\?\.\[cell\.index\] \?\? this\.getBoardUnitStats\(unit\);/);
+  assert.match(boardUnitViewSource, /const unitStats = options\.statValues \?\? this\.currentBoardRenderStats\?\.\[cell\.index\] \?\? this\.getBoardUnitStats\(unit, cell\.index\);/);
   assert.match(boardUnitViewSource, /baseStats: this\.getBoardUnitBaseStats\(unit\),/);
   assert.doesNotMatch(boardUnitViewSource, /getCardTextShort|getCardDisplayContent|createInlineStatText|bodyText|textPanel|setInteractive/);
 });

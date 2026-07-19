@@ -753,8 +753,23 @@ function resolveCombatWithRawHeroDamage(state, callback) {
   }
 }
 
+export function getCombatPresentationStatsForBoardIndex(state, boardIndex) {
+  const unit = state?.board?.[boardIndex];
+  if (!unit) return { attack: null, armor: null, health: null, maxHp: null };
+
+  return {
+    attack: getEffectiveBoardAttack(state, boardIndex),
+    armor: getEffectiveBoardArmor(state, boardIndex),
+    health: Number.isFinite(unit.hp) ? unit.hp : 0,
+    maxHp: Number.isFinite(unit.maxHp) ? unit.maxHp : (Number.isFinite(unit.hp) ? unit.hp : 0),
+  };
+}
+
 function cloneBoardForCombatPresentation(state) {
-  return state.board.map((unit) => (unit ? { ...unit } : null));
+  return state.board.map((unit, index) => (unit ? {
+    ...unit,
+    __presentationStats: getCombatPresentationStatsForBoardIndex(state, index),
+  } : null));
 }
 
 function cloneFuneralPyreForCombatPresentation(state) {

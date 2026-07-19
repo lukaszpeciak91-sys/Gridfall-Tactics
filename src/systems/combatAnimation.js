@@ -33,6 +33,12 @@ export function getCombatAttackPresentation(event, preCombatBoardSnapshot) {
   );
 }
 
+function getCombatSnapshotPresentationAttack(unit) {
+  return Number.isFinite(unit?.__presentationStats?.attack)
+    ? unit.__presentationStats.attack
+    : getUnitAttack(unit);
+}
+
 export function shouldAnimateCombatAttacker(event, preCombatBoardSnapshot) {
   if (event?.targetType !== 'unit' && event?.targetType !== 'hero') return false;
 
@@ -45,7 +51,7 @@ export function shouldAnimateCombatAttacker(event, preCombatBoardSnapshot) {
   const expectedLane = attackerIndex % 3;
   if (Number.isInteger(event.lane) && event.lane !== expectedLane) return false;
 
-  return getUnitAttack(attacker) > 0;
+  return getCombatSnapshotPresentationAttack(attacker) > 0;
 }
 
 export function shouldUseControlledHeroStrikePresentation(event) {
