@@ -208,13 +208,23 @@ test('MainMenuScene keeps primary buttons and uses shared bottom navigation cont
 });
 
 
-test('main menu debug gear opens central debug menu with isolated art debug mode selection flow', () => {
+test('main menu debug trigger is hidden by a centralized flag while preserving debug tools', () => {
   const mainSource = readScene('src/main.js');
   const menuSource = readScene('src/scenes/MainMenuScene.js');
+  const debugFlagSource = readScene('src/config/debugFlags.js');
   const debugMenuSource = readScene('src/scenes/DebugMenuScene.js');
   const campaignEndDebugSource = readScene('src/scenes/CampaignEndScreenDebugScene.js');
   const modeSelectSource = readScene('src/scenes/ArtDebugModeSelectScene.js');
   const boardDebugSource = readScene('src/scenes/BoardUnitArtViewportDebugScene.js');
+
+  assert.match(debugFlagSource, /export const SHOW_DEBUG_MENU_TRIGGER = false;/);
+  assert.match(menuSource, /import \{ SHOW_DEBUG_MENU_TRIGGER \} from '\.\.\/config\/debugFlags\.js';/);
+  assert.match(menuSource, /drawDebugEntry\(width = this\.scale\.width\) \{\s*if \(!SHOW_DEBUG_MENU_TRIGGER\) \{[\s\S]*this\.debugEntryIcon = null;[\s\S]*this\.debugEntryLabel = null;[\s\S]*return;[\s\S]*const icon = this\.add\.circle/);
+  assert.match(menuSource, /this\.drawDebugEntry\(width, height\);[\s\S]*this\.drawNavigationControls\(\);/);
+  assert.match(menuSource, /const x = MAIN_MENU_DEBUG_ICON_MARGIN \+ size \* 0\.5;[\s\S]*const y = MAIN_MENU_DEBUG_ICON_MARGIN \+ size \* 0\.5;/);
+  assert.match(menuSource, /\.setInteractive\(\{ useHandCursor: true \}\);[\s\S]*icon\.on\('pointerup', \(\) => \{[\s\S]*this\.scene\.start\('DebugMenuScene'\)/);
+  assert.match(menuSource, /layoutDebugEntry\(\) \{[\s\S]*if \(!this\.debugEntryIcon\?\.active \|\| !this\.debugEntryLabel\?\.active\) return;/);
+  assert.match(menuSource, /resetMainMenuDisplayList\(\) \{[\s\S]*this\.children\?\.removeAll\?\.\(true\)[\s\S]*this\.debugEntryIcon = null;[\s\S]*this\.debugEntryLabel = null;/);
 
   assert.match(mainSource, /import DebugMenuScene from '\.\/scenes\/DebugMenuScene\.js';/);
   assert.match(mainSource, /import CampaignEndScreenDebugScene from '\.\/scenes\/CampaignEndScreenDebugScene\.js';/);
@@ -222,7 +232,6 @@ test('main menu debug gear opens central debug menu with isolated art debug mode
   assert.match(mainSource, /import ArtViewportDebugScene from '\.\/scenes\/ArtViewportDebugScene\.js';/);
   assert.match(mainSource, /import BoardUnitArtViewportDebugScene from '\.\/scenes\/BoardUnitArtViewportDebugScene\.js';/);
   assert.match(mainSource, /RulesPanelScene, DebugMenuScene, CampaignEndScreenDebugScene, ArtDebugModeSelectScene, ArtViewportDebugScene, BoardUnitArtViewportDebugScene/);
-  assert.match(menuSource, /icon\.on\('pointerup', \(\) => \{[\s\S]*this\.scene\.start\('DebugMenuScene'\)/);
   assert.match(debugMenuSource, /super\('DebugMenuScene'\)/);
   assert.match(debugMenuSource, /'ART DEBUG'/);
   assert.match(debugMenuSource, /this\.scene\.start\('ArtDebugModeSelectScene', \{ returnSceneKey: 'DebugMenuScene' \}\)/);
