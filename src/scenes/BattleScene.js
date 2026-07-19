@@ -323,6 +323,7 @@ const RESULT_MODAL_DIAG_PREFIX = '[RESULT_MODAL_DIAG]';
 const OPENING_REVEAL_DIAG_STORAGE_KEY = 'gridfall:tactics:debug:opening-reveal:last-failure:v1';
 const OPENING_REVEAL_DIAG_BUFFER_LIMIT = 64;
 const OPENING_REVEAL_DIAG_FAILURE_DELAY_MS = 2800;
+const OPENING_REVEAL_DIAG_FALLBACK_DELAY_MS = 3800;
 let battleSceneSessionSequence = 0;
 
 export default class BattleScene extends Phaser.Scene {
@@ -363,6 +364,7 @@ export default class BattleScene extends Phaser.Scene {
     this.openingRevealDiagStartedAt = 0;
     this.openingRevealDiagFailureSnapshot = null;
     this.openingRevealDiagFailureCaptured = false;
+    this.openingRevealDiagFirstSfxRequestedAt = null;
     this.openingRevealDiagFailureTimer = null;
     this.openingRevealDiagButton = null;
     this.openingRevealDiagOverlay = null;
@@ -626,6 +628,7 @@ export default class BattleScene extends Phaser.Scene {
     this.openingRevealDiagStartedAt = 0;
     this.openingRevealDiagFailureSnapshot = null;
     this.openingRevealDiagFailureCaptured = false;
+    this.openingRevealDiagFirstSfxRequestedAt = null;
     this.openingRevealDiagFailureTimer = null;
     this.openingRevealDiagButton = null;
     this.openingRevealDiagOverlay = null;
@@ -898,6 +901,7 @@ export default class BattleScene extends Phaser.Scene {
     this.updatePlayerBaseActionState();
     this.applyOpeningMulliganRevealPresentation();
     this.logOpeningRevealDiag('face-down-presentation-applied', { handCount: this.gameState.player.hand.length, cardViewCount: this.cardViews.length, retainedBackCount: this.getOpeningMulliganRetainedBackControllers?.().length ?? 0 });
+    this.scheduleOpeningRevealDiagnosticFallbackCheck('opening-hand-visuals-ready');
 
     this.scale.on('enterfullscreen', this.onFullscreenChanged, this);
     this.scale.on('leavefullscreen', this.onFullscreenChanged, this);
@@ -959,6 +963,7 @@ export default class BattleScene extends Phaser.Scene {
     this.openingRevealDiagStartedAt = Date.now();
     this.openingRevealDiagFailureSnapshot = null;
     this.openingRevealDiagFailureCaptured = false;
+    this.openingRevealDiagFirstSfxRequestedAt = null;
     this.sessionBattleSequenceNumber = battleSceneSessionSequence += 1;
     this.installOpeningRevealDiagnosticLifecycleListeners();
     this.logOpeningRevealDiag('create-start', {
@@ -1005,6 +1010,9 @@ export default class BattleScene extends Phaser.Scene {
       scenePaused: Boolean(this.scene?.isPaused?.()),
       hasTime: Boolean(this.time),
       hasTweens: Boolean(this.tweens),
+      revealSfxPathReached: this.hasOpeningRevealDiagEvent?.('first-reveal-sfx-requested') ?? false,
+      revealSfxDispatchCalled: this.hasOpeningRevealDiagEvent?.('reveal-sfx-dispatched') ?? false,
+      firstRevealSfxRequestedAt: this.openingRevealDiagFirstSfxRequestedAt ?? null,
     };
   }
 
@@ -1023,6 +1031,15 @@ export default class BattleScene extends Phaser.Scene {
     while (this.openingRevealDiagEvents.length > OPENING_REVEAL_DIAG_BUFFER_LIMIT) this.openingRevealDiagEvents.shift();
   }
 
+  scheduleOpeningRevealDiagnosticFallbackCheck(reason = 'opening-hand-visuals-ready') {
+    if (!this.time?.delayedCall || this.openingRevealDiagFallbackTimer) return;
+    this.logOpeningRevealDiag('fallback-check-scheduled', { reason, delay: OPENING_REVEAL_DIAG_FALLBACK_DELAY_MS });
+    this.openingRevealDiagFallbackTimer = this.time.delayedCall(OPENING_REVEAL_DIAG_FALLBACK_DELAY_MS, () => {
+      this.openingRevealDiagFallbackTimer = null;
+      this.checkOpeningRevealDiagnosticFailure('opening-hand-fallback-delay', { visualStateWins: true });
+    });
+  }
+
   scheduleOpeningRevealDiagnosticFailureCheck() {
     if (!this.time?.delayedCall || this.openingRevealDiagFailureTimer) return;
     this.openingRevealDiagFailureTimer = this.time.delayedCall(OPENING_REVEAL_DIAG_FAILURE_DELAY_MS, () => {
@@ -1031,20 +1048,36 @@ export default class BattleScene extends Phaser.Scene {
     });
   }
 
-  isOpeningRevealDiagnosticFailureState() {
+  hasOpeningRevealDiagEvent(name) {
+    return (this.openingRevealDiagEvents ?? []).some((event) => event?.name === name);
+  }
+
+  isOpeningRevealDiagnosticFailureState({ visualStateWins = false } = {}) {
     if (this.openingMulliganPending !== true) return false;
     const revealCount = this.getOpeningMulliganRevealCardCount();
     const fronts = this.getOpeningMulliganFrontState(revealCount);
     const retainedBacks = this.getOpeningMulliganRetainedBackControllers();
     const controllerTypes = this.getOpeningMulliganRevealControllerSummary();
+    const invalidFrontCount = fronts.filter((front) => !this.isOpeningMulliganFrontNormalized(front)).length;
+    const revealNeverScheduled = !this.hasOpeningRevealDiagEvent('reveal-scheduling-succeeded');
+    const revealNeverStarted = !this.hasOpeningRevealDiagEvent('first-reveal-callback-executed');
+    const visibleCountNeverAdvanced = (this.openingMulliganRevealVisibleCount ?? 0) <= 0;
+    const visualFailure = revealCount <= 0 || invalidFrontCount > 0 || retainedBacks.length > 0;
+    if (visualStateWins) {
+      return visualFailure
+        || visibleCountNeverAdvanced
+        || revealNeverScheduled
+        || revealNeverStarted
+        || (controllerTypes.length > 0 && !this.hasOpeningRevealDiagEvent('first-reveal-visible-count-increment'));
+    }
     if (this.isOpeningMulliganActiveRevealPresentationValid({ fronts, retainedBacks, controllerTypes, revealCount })) return false;
     if (this.isOpeningMulliganCompletedRevealPresentationValid({ fronts, retainedBacks, controllerTypes, revealCount })) return false;
-    return revealCount <= 0 || fronts.some((front) => !this.isOpeningMulliganFrontNormalized(front)) || retainedBacks.length > 0 || controllerTypes.length > 0;
+    return visualFailure || controllerTypes.length > 0 || revealNeverScheduled || revealNeverStarted;
   }
 
-  checkOpeningRevealDiagnosticFailure(reason = 'unknown') {
-    this.logOpeningRevealDiag('failure-check', { reason });
-    if (this.openingRevealDiagFailureCaptured || !this.isOpeningRevealDiagnosticFailureState()) return false;
+  checkOpeningRevealDiagnosticFailure(reason = 'unknown', options = {}) {
+    this.logOpeningRevealDiag('failure-check', { reason, ...options });
+    if (this.openingRevealDiagFailureCaptured || !this.isOpeningRevealDiagnosticFailureState(options)) return false;
     const snapshot = this.createOpeningRevealFailureSnapshot(reason);
     this.openingRevealDiagFailureSnapshot = snapshot;
     this.openingRevealDiagFailureCaptured = true;
@@ -1116,6 +1149,7 @@ export default class BattleScene extends Phaser.Scene {
 
   destroyOpeningRevealDiagnosticObjects() {
     this.openingRevealDiagFailureTimer?.remove?.(false); this.openingRevealDiagFailureTimer = null;
+    this.openingRevealDiagFallbackTimer?.remove?.(false); this.openingRevealDiagFallbackTimer = null;
     this.closeOpeningRevealDiagnosticOverlay?.(); this.openingRevealDiagButton?.remove?.(); this.openingRevealDiagButton = null;
     (this.openingRevealDiagLifecycleHandlers ?? []).forEach(([target, name, fn]) => target?.removeEventListener?.(name, fn));
     this.openingRevealDiagLifecycleHandlers = null;
@@ -5696,7 +5730,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   cleanupOpeningMulliganRevealControllers({ advanceGeneration = true } = {}) {
-    this.logOpeningRevealDiag('reveal-cleanup', { advanceGeneration, controllerTypes: this.getOpeningMulliganRevealControllerSummary?.() ?? [] });
+    this.logOpeningRevealDiag(advanceGeneration ? 'reveal-cancelled' : 'reveal-cleanup', { advanceGeneration, controllerTypes: this.getOpeningMulliganRevealControllerSummary?.() ?? [] });
     if (advanceGeneration) { this.openingMulliganRevealGeneration += 1; this.logOpeningRevealDiag('generation-change', { generation: this.openingMulliganRevealGeneration }); }
     (this.openingMulliganRevealControllers ?? []).forEach((controller) => {
       controller?.cleanup?.();
@@ -5908,9 +5942,10 @@ export default class BattleScene extends Phaser.Scene {
 
   startOpeningMulliganReveal() {
     this.logOpeningRevealDiag('reveal-scheduling-attempted');
-    if (!this.openingMulliganRevealPending || !this.time || !this.tweens) return;
+    if (!this.openingMulliganRevealPending || !this.time || !this.tweens) { this.logOpeningRevealDiag('reveal-skipped', { reason: 'missing-prerequisite' }); return; }
     const revealCount = this.getOpeningMulliganRevealCardCount();
     if (revealCount <= 0 || shouldSkipHandCardFlipReveal()) {
+      this.logOpeningRevealDiag('reveal-skipped', { reason: revealCount <= 0 ? 'no-cards' : 'reduced-motion' });
       this.completeOpeningMulliganReveal({ skipAnimation: true });
       return;
     }
@@ -5920,17 +5955,19 @@ export default class BattleScene extends Phaser.Scene {
     this.applyOpeningMulliganRevealPresentation();
     this.updateTutorialFocus?.();
     const generation = this.openingMulliganRevealGeneration;
+    this.logOpeningRevealDiag('reveal-scheduling-succeeded', { generation, revealCount });
 
     for (let index = this.openingMulliganRevealVisibleCount; index < revealCount; index += 1) {
       const delay = index * OPENING_MULLIGAN_REVEAL_STAGGER_MS;
       const timer = this.time.delayedCall(delay, () => {
         if (generation !== this.openingMulliganRevealGeneration || !this.openingMulliganRevealPending) return;
+        this.logOpeningRevealDiag(index === 0 ? 'first-reveal-callback-executed' : 'reveal-callback-executed', { slotIndex: index });
         this.revealOpeningMulliganCardSlot(index, {
           generation,
           isLast: index === revealCount - 1,
         });
       });
-      this.logOpeningRevealDiag('reveal-timer-created', { slotIndex: index, delay });
+      this.logOpeningRevealDiag(index === 0 ? 'first-reveal-timer-created' : 'reveal-timer-created', { slotIndex: index, delay });
       this.openingMulliganRevealControllers.push({
         type: 'opening-reveal-timer',
         timer,
@@ -5982,7 +6019,12 @@ export default class BattleScene extends Phaser.Scene {
     ));
     const backCard = backController?.backCard;
     const playRevealSfx = () => {
-      this.playBattleSfx?.(AUDIO_KEYS.CARD_DRAW, { cooldownMs: 0 });
+      this.logOpeningRevealDiag(index === 0 ? 'first-reveal-sfx-requested' : 'reveal-sfx-requested', { slotIndex: index });
+      this.openingRevealDiagFirstSfxRequestedAt ??= Date.now();
+      if (typeof this.playBattleSfx === 'function') {
+        this.playBattleSfx(AUDIO_KEYS.CARD_DRAW, { cooldownMs: 0 });
+        this.logOpeningRevealDiag('reveal-sfx-dispatched', { slotIndex: index });
+      }
     };
     const finishSlot = () => {
       if (generation !== this.openingMulliganRevealGeneration || !this.openingMulliganRevealPending) return;
@@ -5990,8 +6032,10 @@ export default class BattleScene extends Phaser.Scene {
       cardView.root?.setAlpha?.(1);
       cardView.root?.setScale?.(1);
       cardView.background?.disableInteractive?.();
+      const previousVisibleCount = this.openingMulliganRevealVisibleCount;
       this.openingMulliganRevealVisibleCount = Math.max(this.openingMulliganRevealVisibleCount, index + 1);
-      this.logOpeningRevealDiag('slot-reveal-completion', { slotIndex: index });
+      if (index === 0 && this.openingMulliganRevealVisibleCount > previousVisibleCount) this.logOpeningRevealDiag('first-reveal-visible-count-increment', { slotIndex: index });
+      this.logOpeningRevealDiag(index === 0 ? 'first-reveal-completion-reached' : 'slot-reveal-completion', { slotIndex: index });
       if (!isLast) return;
 
       if (!this.time || OPENING_MULLIGAN_REVEAL_POST_HOLD_MS <= 0) {
@@ -6027,7 +6071,7 @@ export default class BattleScene extends Phaser.Scene {
       ease: 'Quad.easeIn',
       onComplete: () => {
         if (generation !== this.openingMulliganRevealGeneration || !this.openingMulliganRevealPending) return;
-        this.logOpeningRevealDiag('slot-reveal-midpoint', { slotIndex: index });
+        this.logOpeningRevealDiag(index === 0 ? 'first-reveal-midpoint-reached' : 'slot-reveal-midpoint', { slotIndex: index });
         playRevealSfx();
         backCard.destroy?.();
         const expandTween = this.tweens.add({
@@ -6056,7 +6100,7 @@ export default class BattleScene extends Phaser.Scene {
     this.cleanupOpeningMulliganRevealControllers();
     this.openingMulliganRevealVisibleCount = this.getOpeningMulliganRevealCardCount();
     this.openingMulliganRevealPending = false;
-    this.logOpeningRevealDiag('reveal-logical-completion', { visibleCount: this.openingMulliganRevealVisibleCount });
+    this.logOpeningRevealDiag('reveal-completed', { visibleCount: this.openingMulliganRevealVisibleCount });
     this.previewedMulliganCardId = null;
     this.hoverInspectCardId = null;
     this.boardInspectIndex = null;
