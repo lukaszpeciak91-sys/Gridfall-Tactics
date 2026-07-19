@@ -5,7 +5,7 @@ import { applyTutorialOpeningSetup, isTutorialBattleContext, performTutorialOpen
 import { selectNextTutorialEnemyAction } from '../systems/tutorialEnemyActions.js';
 import { checkTutorialInputGate } from '../systems/tutorialInputGate.js';
 import { advanceTutorialStep as advanceTutorialControllerStep, createTutorialControllerState, getCurrentTutorialStep as getCurrentTutorialControllerStep, handleTutorialEvent as handleTutorialControllerEvent, isTutorialComplete } from '../systems/tutorialController.js';
-import { createInitialBattleState, drawCards, shuffleDeck, canPass, canPlayOrRedeploy, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, resolveTargetedUnitOnPlayEffect, getUnitAttack, getUnitArmor, toggleFirstActor, resolveTurnCapWinner, resolveImmediateResourceExhaustionWinner, resolveImmediateNoProgressWinner, recordPassAction, completeActionOpportunity, performOpeningMulligan, STARTING_HAND_SIZE, MAX_OPENING_MULLIGAN_CARDS, getEffectiveBoardAttack, getEffectiveBoardArmor, canPlayEffectCard, isEffectCardBlockedForOwner, isBattleExhaustedEligible, isBoardUnitOffline, normalizeOfflineReservations } from '../systems/GameState.js';
+import { createInitialBattleState, drawCards, shuffleDeck, canPass, canPlayOrRedeploy, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, resolveTargetedUnitOnPlayEffect, getUnitAttack, getUnitArmor, toggleFirstActor, resolveTurnCapWinner, resolveImmediateResourceExhaustionWinner, resolveImmediateNoProgressWinner, recordPassAction, completeActionOpportunity, performOpeningMulligan, STARTING_HAND_SIZE, MAX_OPENING_MULLIGAN_CARDS, getEffectiveBoardAttack, getEffectiveBoardArmor, getCombatPresentationStatsForBoardIndex, canPlayEffectCard, isEffectCardBlockedForOwner, isBattleExhaustedEligible, isBoardUnitOffline, normalizeOfflineReservations } from '../systems/GameState.js';
 import { chooseEnemyAction, isVerySafeConcedableState, recordBattleActionUse, selectOpeningMulliganCardIds } from '../systems/enemyDecision.js';
 import { getTargetingStateForEffect } from '../systems/cardTargeting.js';
 import { COMBAT_ATTACK_PRESENTATIONS, getCombatAttackPresentation, getCombatEventAttackerIndex, getCombatEventInterceptOriginalTargetIndex, getCombatEventTargetIndex, getLaneLethalTargetIndexes, getLaneSimultaneousUnitClash, shouldAnimateCombatAttacker, shouldUseControlledHeroStrikePresentation } from '../systems/combatAnimation.js';
@@ -8988,7 +8988,10 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   captureBoardSnapshot() {
-    return this.gameState.board.map((unit) => (unit ? { ...unit } : null));
+    return this.gameState.board.map((unit, index) => (unit ? {
+      ...unit,
+      __presentationStats: getCombatPresentationStatsForBoardIndex(this.gameState, index),
+    } : null));
   }
 
   captureOfflineReservationsSnapshot() {
@@ -9031,6 +9034,7 @@ export default class BattleScene extends Phaser.Scene {
       if (unit && unit.offlineReservedSlot !== true) {
         cell.label.add(this.createBoardUnitView(cell, unit, {
           offline: this.isBoardIndexOffline(cell.index, boardSnapshot, offlineReservations),
+          statValues: unit.__presentationStats ?? null,
         }));
       }
     });
@@ -11099,8 +11103,18 @@ export default class BattleScene extends Phaser.Scene {
     if (this.openingMulliganRevealPending) this.startOpeningMulliganReveal();
   }
 
-  getBoardUnitStats(unit, boardIndex = null) {
-    if (!unit) return { attack: null, armor: null, health: null };
+  getBoardUnitStats(unit, boardIndex = null, statOverride = null) {
+    if (!unit) return { attack: null, armor: null, health: null, maxHp: null };
+
+    const presentationStats = statOverride ?? unit.__presentationStats ?? null;
+    if (presentationStats) {
+      return {
+        attack: Number.isFinite(presentationStats.attack) ? presentationStats.attack : 0,
+        armor: Number.isFinite(presentationStats.armor) ? presentationStats.armor : 0,
+        health: Number.isFinite(presentationStats.health) ? presentationStats.health : 0,
+        maxHp: Number.isFinite(presentationStats.maxHp) ? presentationStats.maxHp : (Number.isFinite(presentationStats.health) ? presentationStats.health : 0),
+      };
+    }
 
     const effectiveBoardIndex = Number.isInteger(boardIndex)
       ? boardIndex
@@ -11114,6 +11128,7 @@ export default class BattleScene extends Phaser.Scene {
         ? getEffectiveBoardArmor(this.gameState, effectiveBoardIndex)
         : getUnitArmor(unit),
       health: Number.isFinite(unit.hp) ? unit.hp : 0,
+      maxHp: Number.isFinite(unit.maxHp) ? unit.maxHp : (Number.isFinite(unit.hp) ? unit.hp : 0),
     };
   }
 
@@ -11124,6 +11139,7 @@ export default class BattleScene extends Phaser.Scene {
       attack: Number.isFinite(unit.attack) ? unit.attack : 0,
       armor: Number.isFinite(unit.armor) ? unit.armor : 0,
       health: Number.isFinite(unit.hp) ? unit.hp : 0,
+      maxHp: Number.isFinite(unit.maxHp) ? unit.maxHp : (Number.isFinite(unit.hp) ? unit.hp : 0),
     };
   }
 
@@ -11135,6 +11151,7 @@ export default class BattleScene extends Phaser.Scene {
       attack: getEffectiveBoardAttack(this.gameState, index),
       armor: getEffectiveBoardArmor(this.gameState, index),
       health: Number.isFinite(unit.hp) ? unit.hp : 0,
+      maxHp: Number.isFinite(unit.maxHp) ? unit.maxHp : (Number.isFinite(unit.hp) ? unit.hp : 0),
     } : null));
   }
 
@@ -11207,7 +11224,7 @@ export default class BattleScene extends Phaser.Scene {
     const boardInnerPanelColor = BASE_CARD_SURFACE_THEME.innerPanelFill;
     const inner = this.add.rectangle(0, 0, unitWidth - horizontalPad, unitHeight - verticalPad, boardInnerPanelColor, 0.32)
       .setStrokeStyle(1, boardSurfaceTheme.innerPanelEdgeStroke, 0.18);
-    const unitStats = this.currentBoardRenderStats?.[cell.index] ?? this.getBoardUnitStats(unit);
+    const unitStats = options.statValues ?? this.currentBoardRenderStats?.[cell.index] ?? this.getBoardUnitStats(unit, cell.index);
     const changedStats = this.getChangedBoardUnitStatKeys(cell.index, unit, unitStats);
     const stats = createStatBadges(this, 0, finalStatY, artWidth, statHeight, unitStats, 0, {
       baseStats: this.getBoardUnitBaseStats(unit),

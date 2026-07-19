@@ -46,10 +46,12 @@ test('combat attack animation ignores empty lane fallback and side mismatches', 
   assert.equal(shouldAnimateCombatAttacker(event({ lane: 1 }), snapshot()), false);
 });
 
-test('combat attack animation blocks 0 ATK units but allows blocked positive-ATK attacks', () => {
+test('combat attack animation uses snapshot presentation attack when available', () => {
   assert.equal(shouldAnimateCombatAttacker(event({ damage: 0 }), snapshot(unit('player', { attack: 1 }))), true);
   assert.equal(shouldAnimateCombatAttacker(event(), snapshot(unit('player', { attack: 0 }))), false);
   assert.equal(shouldAnimateCombatAttacker(event(), snapshot(unit('player', { attack: 3 }))), true);
+  assert.equal(shouldAnimateCombatAttacker(event(), snapshot(unit('player', { attack: 0, __presentationStats: { attack: 2 } }))), true);
+  assert.equal(shouldAnimateCombatAttacker(event(), snapshot(unit('player', { attack: 3, __presentationStats: { attack: 0 } }))), false);
 });
 
 const eventWithHiddenIndexes = (overrides = {}) => {

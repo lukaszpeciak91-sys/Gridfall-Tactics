@@ -409,7 +409,7 @@ test('visible UI surfaces route names through active-locale presentation helpers
   const inspectZoomSource = battleSource.slice(battleSource.indexOf('  showSelectedHandCardZoom() {'), battleSource.indexOf('  applyInspectDimming(activeCardId) {'));
 
   assert.match(enemyActionMessageSource, /const cardName = getCardDisplayName\(card, getActiveLocale\(\)\) \?\? translateActive\('ui\.common\.unknownCard', 'Unknown Card'\);/);
-  assert.match(boardUnitViewSource, /const unitStats = this\.currentBoardRenderStats\?\.\[cell\.index\] \?\? this\.getBoardUnitStats\(unit\);/);
+  assert.match(boardUnitViewSource, /const unitStats = options\.statValues \?\? this\.currentBoardRenderStats\?\.\[cell\.index\] \?\? this\.getBoardUnitStats\(unit, cell\.index\);/);
   assert.match(boardUnitViewSource, /baseStats: this\.getBoardUnitBaseStats\(unit\),/);
   assert.doesNotMatch(battleSource, /getBoardUnitLabel\(unit\)/);
   assert.match(createHandCardViewSource, /createCardPreviewView\(this, \{/);
@@ -510,7 +510,7 @@ test('board unit compact view removes names, expands artwork, and mirrors stat p
   assert.match(boardUnitViewSource, /const isEnemyUnit = unit\.owner === 'enemy';/);
   assert.match(boardUnitViewSource, /const finalArtY = isEnemyUnit \? topArtY : bottomArtY;/);
   assert.match(boardUnitViewSource, /const finalStatY = isEnemyUnit \? bottomStatY : topStatY;/);
-  assert.match(boardUnitViewSource, /const unitStats = this\.currentBoardRenderStats\?\.\[cell\.index\] \?\? this\.getBoardUnitStats\(unit\);/);
+  assert.match(boardUnitViewSource, /const unitStats = options\.statValues \?\? this\.currentBoardRenderStats\?\.\[cell\.index\] \?\? this\.getBoardUnitStats\(unit, cell\.index\);/);
   assert.match(boardUnitViewSource, /const stats = createStatBadges\(this, 0, finalStatY, artWidth, statHeight, unitStats, 0, \{/);
   assert.match(boardUnitViewSource, /baseStats: this\.getBoardUnitBaseStats\(unit\),/);
   assert.match(boardUnitViewSource, /const artLocalContrast = this\.add\.rectangle\(0, finalArtY, artRect\.width, artRect\.height, 0x000000, 0\.03\);/);
