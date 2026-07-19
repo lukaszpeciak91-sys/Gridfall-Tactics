@@ -348,7 +348,7 @@ export default class BattleScene extends Phaser.Scene {
     this.openingMulliganRevealVisibleCount = 0;
     this.openingMulliganRevealControllers = [];
     this.openingMulliganRevealGeneration = 0;
-    this.openingMulliganRevealWatchdogWarnedGeneration = null;
+    this.openingMulliganReconciliationWarned = false;
     this.isBattleSceneShuttingDown = false;
     this.selectedMulliganCardIds = [];
     this.previewedMulliganCardId = null;
@@ -601,7 +601,7 @@ export default class BattleScene extends Phaser.Scene {
     this.openingMulliganRevealVisibleCount = 0;
     this.openingMulliganRevealControllers = [];
     this.openingMulliganRevealGeneration = 0;
-    this.openingMulliganRevealWatchdogWarnedGeneration = null;
+    this.openingMulliganReconciliationWarned = false;
     this.isBattleSceneShuttingDown = false;
     this.selectedMulliganCardIds = [];
     this.previewedMulliganCardId = null;
@@ -4286,6 +4286,7 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     this.normalizeLifecycleUiState(reason);
+    this.reconcileOpeningMulliganPresentation({ reason: `lifecycle:${reason}` });
 
     if (this.shouldRebuildBattleView(reason, recoveryDiagnostics)) {
       this.rebuildBattleView(reason);
@@ -5504,6 +5505,153 @@ export default class BattleScene extends Phaser.Scene {
     this.openingMulliganRevealControllers = retainedControllers;
   }
 
+  getOpeningMulliganRevealControllerSummary() {
+    return (this.openingMulliganRevealControllers ?? [])
+      .map((controller) => controller?.type)
+      .filter(Boolean);
+  }
+
+  getOpeningMulliganRetainedBackControllers() {
+    return (this.openingMulliganRevealControllers ?? []).filter((controller) => (
+      controller?.type === 'opening-reveal-back' && controller.backCard?.active !== false && controller.backCard?.scene != null
+    ));
+  }
+
+  getOpeningMulliganFrontState(revealCount = this.getOpeningMulliganRevealCardCount()) {
+    const handCards = this.gameState?.player?.hand ?? [];
+    return Array.from({ length: revealCount }, (_, slotIndex) => {
+      const expectedCard = handCards[slotIndex] ?? null;
+      const view = this.cardViews.find((cardView) => cardView?.slotIndex === slotIndex && cardView?.cardId === expectedCard?.id);
+      const root = view?.root ?? null;
+      const background = view?.background ?? null;
+      const visible = root ? root.visible !== false && root.active !== false && root.scene != null : false;
+      const alpha = Number.isFinite(root?.alpha) ? root.alpha : 1;
+      const scaleX = Number.isFinite(root?.scaleX) ? root.scaleX : 1;
+      const scaleY = Number.isFinite(root?.scaleY) ? root.scaleY : 1;
+      const interactive = Boolean(background?.input?.enabled ?? background?.input);
+      return {
+        slotIndex,
+        expectedCard,
+        view,
+        root,
+        background,
+        exists: Boolean(view && root && background),
+        visible,
+        alpha,
+        scaleX,
+        scaleY,
+        interactive,
+      };
+    });
+  }
+
+  isOpeningMulliganFrontNormalized(front) {
+    return Boolean(
+      front?.exists
+      && front.visible
+      && front.alpha === 1
+      && front.scaleX === 1
+      && front.scaleY === 1
+      && front.interactive,
+    );
+  }
+
+  isOpeningMulliganActiveRevealPresentationValid({ fronts, retainedBacks, controllerTypes, revealCount }) {
+    if (this.openingMulliganRevealPending !== true) return false;
+    if (revealCount <= 0) return false;
+    const hasRevealMachinery = controllerTypes.some((type) => (
+      type === 'opening-reveal-watchdog'
+      || type === 'opening-reveal-timer'
+      || type === 'opening-reveal-tween'
+      || type === 'opening-reveal-post-hold'
+    ));
+    if (!hasRevealMachinery) return false;
+    const visibleCount = Math.min(this.openingMulliganRevealVisibleCount, revealCount);
+    return fronts.every((front) => {
+      if (!front.exists) return false;
+      if (front.slotIndex < visibleCount) {
+        return front.visible && front.alpha === 1;
+      }
+      return front.alpha === 0
+        && !front.interactive
+        && retainedBacks.some((controller) => controller.backCard?.slotIndex === front.slotIndex);
+    });
+  }
+
+  isOpeningMulliganCompletedRevealPresentationValid({ fronts, retainedBacks, controllerTypes, revealCount }) {
+    if (this.openingMulliganRevealPending === true) return false;
+    if (retainedBacks.length > 0 || controllerTypes.length > 0) return false;
+    if (fronts.length !== revealCount) return false;
+    return fronts.every((front) => this.isOpeningMulliganFrontNormalized(front));
+  }
+
+  normalizeOpeningMulliganFronts() {
+    this.cardViews.forEach((cardView) => {
+      if (!Number.isInteger(cardView?.slotIndex) || cardView.slotIndex >= this.getOpeningMulliganRevealCardCount()) return;
+      cardView.root?.setVisible?.(true);
+      cardView.root?.setAlpha?.(1);
+      if (typeof cardView.root?.setScale === 'function') cardView.root.setScale(1);
+      else {
+        cardView.root.scaleX = 1;
+        cardView.root.scaleY = 1;
+      }
+      cardView.root?.setPosition?.(cardView.baseX, cardView.baseY);
+      cardView.root?.setDepth?.(cardView.baseDepth ?? cardView.root?.depth ?? 20);
+      cardView.background?.setInteractive?.({ useHandCursor: true });
+    });
+  }
+
+  reconcileOpeningMulliganPresentation({ reason = 'unknown' } = {}) {
+    if (this.openingMulliganPending !== true) return false;
+
+    const hand = this.gameState?.player?.hand ?? [];
+    const revealCount = this.getOpeningMulliganRevealCardCount();
+    const controllerTypes = this.getOpeningMulliganRevealControllerSummary();
+    const retainedBacks = this.getOpeningMulliganRetainedBackControllers();
+    const fronts = this.getOpeningMulliganFrontState(revealCount);
+    const invalidFrontCount = fronts.filter((front) => !this.isOpeningMulliganFrontNormalized(front)).length;
+
+    if (this.isOpeningMulliganActiveRevealPresentationValid({ fronts, retainedBacks, controllerTypes, revealCount })) return false;
+    if (this.isOpeningMulliganCompletedRevealPresentationValid({ fronts, retainedBacks, controllerTypes, revealCount })) return false;
+
+    if (!this.openingMulliganReconciliationWarned) {
+      this.openingMulliganReconciliationWarned = true;
+      console.warn('Opening mulligan presentation reconciled', {
+        reason,
+        revealPending: this.openingMulliganRevealPending,
+        generation: this.openingMulliganRevealGeneration,
+        handCount: hand.length,
+        cardViewCount: this.cardViews.length,
+        controllerCount: controllerTypes.length,
+        controllerTypes,
+        retainedBackCount: retainedBacks.length,
+        invalidFrontCount,
+        sceneActive: this.scene?.isActive?.() ?? false,
+        scenePaused: this.scene?.isPaused?.() ?? false,
+      });
+    }
+
+    this.cleanupOpeningMulliganRevealControllers();
+    const liveHandIds = new Set(hand.map((card) => card.id));
+    this.selectedMulliganCardIds = this.selectedMulliganCardIds.filter((cardId) => liveHandIds.has(cardId));
+
+    const currentFronts = this.getOpeningMulliganFrontState(revealCount);
+    const needsRedraw = currentFronts.length !== revealCount || currentFronts.some((front) => !front.exists);
+    if (needsRedraw) {
+      this.openingMulliganRevealPending = false;
+      this.drawHand();
+    }
+
+    this.openingMulliganRevealPending = false;
+    this.openingMulliganRevealVisibleCount = revealCount;
+    this.normalizeOpeningMulliganFronts();
+    this.updatePlayerBaseActionState();
+    this.resetCardHighlights({ showPreview: false });
+    this.updateTutorialFocus?.();
+    this.updateTutorialBanner?.();
+    return true;
+  }
+
   applyOpeningMulliganRevealPresentation() {
     if (!this.openingMulliganRevealPending || !this.layout?.hand || !hasLoadedImageAsset(this, HAND_BACK_CARD_ASSET)) return;
 
@@ -5591,28 +5739,17 @@ export default class BattleScene extends Phaser.Scene {
     if (this.isBattleSceneShuttingDown) return;
     if (!this.scene?.isActive?.() && !this.scene?.isPaused?.()) return;
     if (this.openingMulliganPending !== true) return;
-    if (this.openingMulliganRevealPending !== true) return;
-    if (generation !== this.openingMulliganRevealGeneration) return;
-    const revealCount = this.getOpeningMulliganRevealCardCount();
-    if (revealCount <= 0) return;
+    if (
+      generation !== this.openingMulliganRevealGeneration
+      && this.isOpeningMulliganActiveRevealPresentationValid({
+        fronts: this.getOpeningMulliganFrontState(),
+        retainedBacks: this.getOpeningMulliganRetainedBackControllers(),
+        controllerTypes: this.getOpeningMulliganRevealControllerSummary(),
+        revealCount: this.getOpeningMulliganRevealCardCount(),
+      })
+    ) return;
 
-    if (this.openingMulliganRevealWatchdogWarnedGeneration !== generation) {
-      this.openingMulliganRevealWatchdogWarnedGeneration = generation;
-      const controllerTypes = (this.openingMulliganRevealControllers ?? [])
-        .map((controller) => controller?.type)
-        .filter(Boolean);
-      console.warn('Opening mulligan reveal watchdog completed pending reveal', {
-        generation,
-        revealCount,
-        visibleRevealCount: this.openingMulliganRevealVisibleCount,
-        controllerCount: controllerTypes.length,
-        controllerTypes,
-        sceneActive: this.scene?.isActive?.() ?? false,
-        scenePaused: this.scene?.isPaused?.() ?? false,
-      });
-    }
-
-    this.completeOpeningMulliganReveal({ skipAnimation: true, redraw: false });
+    this.reconcileOpeningMulliganPresentation({ reason: 'watchdog' });
   }
 
   revealOpeningMulliganCardSlot(index, { generation, isLast = false } = {}) {

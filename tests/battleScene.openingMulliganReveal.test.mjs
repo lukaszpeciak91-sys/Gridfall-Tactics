@@ -101,10 +101,55 @@ test('opening mulligan reveal uses hand backs, sequential timing, and reduced-mo
   assert.match(revealSlot, /type: 'opening-reveal-post-hold'/);
 });
 
-test('lifecycle recovery completes opening reveal before mulligan redraw/rebuild', () => {
+test('lifecycle recovery completes then reconciles opening reveal before mulligan redraw/rebuild', () => {
   const recover = extractMethodBody('recoverFromLifecycle', 'shouldRebuildBattleView');
-  assert.match(recover, /if \(this\.openingMulliganRevealPending\) \{\s*this\.completeOpeningMulliganReveal\(\{ skipAnimation: true, redraw: false \}\);\s*\}\s*this\.normalizeLifecycleUiState\(reason\);/);
+  assert.match(recover, /if \(this\.openingMulliganRevealPending\) \{\s*this\.completeOpeningMulliganReveal\(\{ skipAnimation: true, redraw: false \}\);\s*\}\s*this\.normalizeLifecycleUiState\(reason\);\s*this\.reconcileOpeningMulliganPresentation\(\{ reason: `lifecycle:\$\{reason\}` \}\);/);
   assert.doesNotMatch(recover, /performOpeningMulligan\(this\.gameState, 'player'/);
+});
+
+
+test('opening mulligan reconciliation helper repairs only visual presentation state', () => {
+  const reconcile = extractMethodBody('reconcileOpeningMulliganPresentation', 'applyOpeningMulliganRevealPresentation');
+
+  assert.match(reconcile, /if \(this\.openingMulliganPending !== true\) return false;/);
+  assert.match(reconcile, /const hand = this\.gameState\?\.player\?\.hand \?\? \[\];/);
+  assert.match(reconcile, /const revealCount = this\.getOpeningMulliganRevealCardCount\(\);/);
+  assert.match(reconcile, /const controllerTypes = this\.getOpeningMulliganRevealControllerSummary\(\);/);
+  assert.match(reconcile, /const retainedBacks = this\.getOpeningMulliganRetainedBackControllers\(\);/);
+  assert.match(reconcile, /const fronts = this\.getOpeningMulliganFrontState\(revealCount\);/);
+  assert.match(reconcile, /this\.cleanupOpeningMulliganRevealControllers\(\);/);
+  assert.match(reconcile, /this\.selectedMulliganCardIds = this\.selectedMulliganCardIds\.filter\(\(cardId\) => liveHandIds\.has\(cardId\)\);/);
+  assert.match(reconcile, /this\.drawHand\(\);/);
+  assert.match(reconcile, /this\.openingMulliganRevealPending = false;/);
+  assert.match(reconcile, /this\.openingMulliganRevealVisibleCount = revealCount;/);
+  assert.match(reconcile, /this\.normalizeOpeningMulliganFronts\(\);/);
+  assert.match(reconcile, /this\.updatePlayerBaseActionState\(\);/);
+  assert.match(reconcile, /this\.resetCardHighlights\(\{ showPreview: false \}\);/);
+  assert.match(reconcile, /console\.warn\('Opening mulligan presentation reconciled', \{[\s\S]*reason,[\s\S]*revealPending:[\s\S]*generation:[\s\S]*handCount:[\s\S]*cardViewCount:[\s\S]*controllerCount:[\s\S]*controllerTypes,[\s\S]*retainedBackCount:[\s\S]*invalidFrontCount,[\s\S]*sceneActive:[\s\S]*scenePaused:/);
+  assert.doesNotMatch(reconcile, /openingMulliganPending = false|createInitialBattleState|drawCards|shuffleDeck|applyEnemyOpeningMulligan|performOpeningMulligan|startTurn\(|restartBattleScene|scene\.restart/);
+});
+
+test('opening mulligan reconciliation validates active and completed visual states', () => {
+  const activeValid = extractMethodBody('isOpeningMulliganActiveRevealPresentationValid', 'isOpeningMulliganCompletedRevealPresentationValid');
+  const completedValid = extractMethodBody('isOpeningMulliganCompletedRevealPresentationValid', 'normalizeOpeningMulliganFronts');
+  const normalizeFronts = extractMethodBody('normalizeOpeningMulliganFronts', 'reconcileOpeningMulliganPresentation');
+
+  assert.match(activeValid, /this\.openingMulliganRevealPending !== true/);
+  assert.match(activeValid, /type === 'opening-reveal-watchdog'/);
+  assert.match(activeValid, /type === 'opening-reveal-timer'/);
+  assert.match(activeValid, /type === 'opening-reveal-tween'/);
+  assert.match(activeValid, /type === 'opening-reveal-post-hold'/);
+  assert.match(activeValid, /front\.alpha === 0[\s\S]*!front\.interactive[\s\S]*retainedBacks\.some/);
+
+  assert.match(completedValid, /this\.openingMulliganRevealPending === true/);
+  assert.match(completedValid, /retainedBacks\.length > 0 \|\| controllerTypes\.length > 0/);
+  assert.match(completedValid, /fronts\.every\(\(front\) => this\.isOpeningMulliganFrontNormalized\(front\)\)/);
+
+  assert.match(normalizeFronts, /cardView\.root\?\.setVisible\?\.\(true\);/);
+  assert.match(normalizeFronts, /cardView\.root\?\.setAlpha\?\.\(1\);/);
+  assert.match(normalizeFronts, /cardView\.root\.setScale\(1\);/);
+  assert.match(normalizeFronts, /cardView\.root\?\.setDepth\?\.\(cardView\.baseDepth/);
+  assert.match(normalizeFronts, /cardView\.background\?\.setInteractive\?\.\(\{ useHandCursor: true \}\);/);
 });
 
 test('opening mulligan reveal watchdog is generation-scoped and owned by reveal cleanup', () => {
@@ -125,20 +170,43 @@ test('opening mulligan reveal watchdog is generation-scoped and owned by reveal 
   assert.match(shutdown, /this\.cleanupSceneObjects\(\);[\s\S]*this\.isBattleSceneShuttingDown = true;/);
 });
 
-test('opening mulligan reveal watchdog only completes genuinely pending active reveals', () => {
+test('opening mulligan reveal watchdog reconciles invalid visual states without requiring reveal pending', () => {
   const watchdog = extractMethodBody('handleOpeningMulliganRevealWatchdog', 'revealOpeningMulliganCardSlot');
 
   assert.match(watchdog, /if \(this\.isBattleSceneShuttingDown\) return;/);
   assert.match(watchdog, /if \(!this\.scene\?\.isActive\?\.\(\) && !this\.scene\?\.isPaused\?\.\(\)\) return;/);
   assert.match(watchdog, /if \(this\.openingMulliganPending !== true\) return;/);
-  assert.match(watchdog, /if \(this\.openingMulliganRevealPending !== true\) return;/);
-  assert.match(watchdog, /if \(generation !== this\.openingMulliganRevealGeneration\) return;/);
-  assert.match(watchdog, /const revealCount = this\.getOpeningMulliganRevealCardCount\(\);[\s\S]*if \(revealCount <= 0\) return;/);
-  assert.match(watchdog, /this\.openingMulliganRevealWatchdogWarnedGeneration !== generation/);
-  assert.match(watchdog, /controllerTypes = \(this\.openingMulliganRevealControllers \?\? \[\]\)/);
-  assert.match(watchdog, /console\.warn\('Opening mulligan reveal watchdog completed pending reveal'/);
-  assert.match(watchdog, /this\.completeOpeningMulliganReveal\(\{ skipAnimation: true, redraw: false \}\);/);
+  assert.doesNotMatch(watchdog, /if \(this\.openingMulliganRevealPending !== true\) return;/);
+  assert.match(watchdog, /generation !== this\.openingMulliganRevealGeneration[\s\S]*this\.isOpeningMulliganActiveRevealPresentationValid/);
+  assert.doesNotMatch(watchdog, /console\.warn\('Opening mulligan reveal watchdog completed pending reveal'/);
+  assert.match(watchdog, /this\.reconcileOpeningMulliganPresentation\(\{ reason: 'watchdog' \}\);/);
   assert.doesNotMatch(watchdog, /redrawHand\(|createInitialBattleState|drawCards|applyEnemyOpeningMulligan|performOpeningMulligan|restartBattleScene|scene\.restart/);
+});
+
+test('opening mulligan reconciliation covers blocker stuck-state matrix', () => {
+  const sourceSlice = [
+    extractMethodBody('getOpeningMulliganFrontState', 'isOpeningMulliganFrontNormalized'),
+    extractMethodBody('isOpeningMulliganFrontNormalized', 'isOpeningMulliganActiveRevealPresentationValid'),
+    extractMethodBody('isOpeningMulliganActiveRevealPresentationValid', 'isOpeningMulliganCompletedRevealPresentationValid'),
+    extractMethodBody('isOpeningMulliganCompletedRevealPresentationValid', 'normalizeOpeningMulliganFronts'),
+    extractMethodBody('normalizeOpeningMulliganFronts', 'reconcileOpeningMulliganPresentation'),
+    extractMethodBody('reconcileOpeningMulliganPresentation', 'applyOpeningMulliganRevealPresentation'),
+    extractMethodBody('handleOpeningMulliganRevealWatchdog', 'revealOpeningMulliganCardSlot'),
+  ].join('\n');
+
+  assert.match(sourceSlice, /if \(this\.openingMulliganPending !== true\) return false;/, 'runs only during active opening mulligan');
+  assert.match(sourceSlice, /!hasRevealMachinery\) return false;/, 'pending reveal with missing controllers is invalid');
+  assert.match(sourceSlice, /generation !== this\.openingMulliganRevealGeneration[\s\S]*isOpeningMulliganActiveRevealPresentationValid/, 'stale generation checks current visual validity before returning');
+  assert.match(sourceSlice, /if \(this\.openingMulliganRevealPending === true\) return false;/, 'completed reveal validation handles reveal-pending false separately');
+  assert.match(sourceSlice, /retainedBacks\.length > 0 \|\| controllerTypes\.length > 0/, 'retained backs and stale controllers invalidate completed presentation');
+  assert.match(sourceSlice, /currentFronts\.some\(\(front\) => !front\.exists\)/, 'missing or stale fronts trigger redraw');
+  assert.match(sourceSlice, /this\.openingMulliganRevealPending = false;\s*this\.drawHand\(\);/, 'safe redraw avoids replaying face-down reveal presentation');
+  assert.match(sourceSlice, /cardView\.root\?\.setVisible\?\.\(true\);[\s\S]*cardView\.root\?\.setAlpha\?\.\(1\);[\s\S]*cardView\.root\.setScale\(1\);[\s\S]*cardView\.background\?\.setInteractive/, 'normalizes visibility, alpha, scale, and interactivity');
+  assert.match(sourceSlice, /this\.openingMulliganRevealVisibleCount = revealCount;/, 'visible reveal count follows current hand reveal count');
+  assert.match(sourceSlice, /this\.selectedMulliganCardIds = this\.selectedMulliganCardIds\.filter/, 'valid mulligan selections are preserved and stale ids are pruned');
+  assert.match(sourceSlice, /if \(this\.isOpeningMulliganActiveRevealPresentationValid/, 'valid active reveal is not interrupted');
+  assert.match(sourceSlice, /if \(this\.isOpeningMulliganCompletedRevealPresentationValid/, 'valid completed reveal is idempotent');
+  assert.doesNotMatch(sourceSlice, /drawCards|shuffleDeck|applyEnemyOpeningMulligan|performOpeningMulligan|startTurn\(|restartBattleScene|BattleTransitionScene/);
 });
 
 test('watchdog completion reuses immediate finalizer without mutating mulligan selection or battle state', () => {
