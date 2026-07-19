@@ -20,6 +20,7 @@ import { preloadAudioAssets } from '../audio/audioAssets.js';
 import { playMenuMusic } from '../audio/menuMusic.js';
 import { beginSceneTransitionOverlay, reconcileSceneTransitionOverlayOrdering } from './sceneTransitionOverlay.js';
 import { applyAudioSettings, loadSettings } from '../systems/settingsState.js';
+import { SHOW_DEBUG_MENU_TRIGGER } from '../config/debugFlags.js';
 import {
   GRIDFALL_LOGO_ASSET,
   MAIN_MENU_FIRST_BUTTON_Y_RATIO,
@@ -150,6 +151,12 @@ export default class MainMenuScene extends Phaser.Scene {
 
 
   drawDebugEntry(width = this.scale.width) {
+    if (!SHOW_DEBUG_MENU_TRIGGER) {
+      this.debugEntryIcon = null;
+      this.debugEntryLabel = null;
+      return;
+    }
+
     const size = MAIN_MENU_DEBUG_ICON_SIZE;
     const x = MAIN_MENU_DEBUG_ICON_MARGIN + size * 0.5;
     const y = MAIN_MENU_DEBUG_ICON_MARGIN + size * 0.5;
