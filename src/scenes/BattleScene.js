@@ -716,6 +716,8 @@ export default class BattleScene extends Phaser.Scene {
     this.achievementUnlockPopupController = null;
     this.achievementUnlockSfxPlayedIds = new Set();
     this.battleVisuallyReadyEmitted = false;
+    this.wunderwaffeWaveTransients = new Set();
+    this.wunderwaffeWaveWarningLogged = false;
   }
 
   cleanupSceneObjects({ preserveTimers = false, preserveTweens = false } = {}) {
@@ -745,6 +747,7 @@ export default class BattleScene extends Phaser.Scene {
     this.cancelPassHoldToSurrender();
     this.cleanupHandCardFlipReveals();
     this.cleanupOpeningMulliganRevealControllers();
+    this.cleanupWunderwaffeWaveTransients();
     this.clearHandPanelViews();
     this.clearHandCardViews();
     if (!preserveTweens) {
@@ -9301,7 +9304,7 @@ export default class BattleScene extends Phaser.Scene {
   getDirectEffectLabel(effectId, baseLabel) {
     switch (effectId) {
       case 'damage_all_enemies_1_ignore_armor':
-        return `${baseLabel}\nPULSE`;
+        return `${baseLabel}\nIGNORE ARM`;
       case 'infect_damage_1_opposite_ally_atk_1':
         return `${baseLabel}\nINFECT`;
       case 'ignore_armor_next_attack':
@@ -9347,6 +9350,22 @@ export default class BattleScene extends Phaser.Scene {
     const debuffEffects = new Set(['enemy_lane_atk_minus_1', 'enemy_up_to_2_atk_minus_1', 'lane_tempo_mod_until_combat']);
     const healEffects = new Set(['heal_all_1', 'heal_1', 'heal_1_atk_1_draw_on_kill_this_turn', 'heal_2', 'heal_3']);
 
+    if (effectId === 'damage_all_enemies_1_ignore_armor') {
+      const occupiedTargetIndexes = beforeSnapshot
+        .map((before, index) => ({ before, index }))
+        .filter(({ before }) => before?.owner && before.owner !== owner)
+        .map(({ index }) => index);
+      feedback.push({
+        type: 'wunderwaffe-wave',
+        phase: 'pre',
+        effectId,
+        owner,
+        label: result?.card?.name ?? '',
+        targetIndexes: occupiedTargetIndexes,
+        order: -10,
+      });
+    }
+
     if (directDamageEffects.has(effectId)) {
       beforeSnapshot.forEach((before, index) => {
         if (!before) return;
@@ -9360,8 +9379,8 @@ export default class BattleScene extends Phaser.Scene {
           label: this.getDirectEffectLabel(effectId, `-${damage}`),
           kind: effectId === 'ignore_armor_next_attack' || effectId === 'damage_all_enemies_1_ignore_armor' ? 'pierce' : 'damage',
           phase: 'pre',
-          order: effectId === 'damage_all_enemies_1_ignore_armor' ? index : 10,
-          staggerMs: effectId === 'damage_all_enemies_1_ignore_armor' ? 85 : 0,
+          order: effectId === 'damage_all_enemies_1_ignore_armor' ? 10 + index : 10,
+          staggerMs: effectId === 'damage_all_enemies_1_ignore_armor' ? 18 : 0,
         });
       });
     }
@@ -9627,6 +9646,7 @@ export default class BattleScene extends Phaser.Scene {
   async playVisualFeedbackEvents(events = []) {
     if (!Array.isArray(events) || events.length === 0) return;
     await Promise.all(events.map((event) => {
+      if (event.type === 'wunderwaffe-wave') return this.playWunderwaffeDirectionalWave(event);
       if (event.type === 'spawn') return this.showSpawnFeedback(event.index, event.label, event.kind);
       if (event.type === 'remove') return this.showRemoveFeedback(event.index, event.label, event.kind);
       if (event.type === 'slot-text') {
@@ -9696,6 +9716,143 @@ export default class BattleScene extends Phaser.Scene {
 
   isPreRefreshFeedback(feedback) {
     return feedback?.phase === 'pre' || feedback?.type === 'slot-text' || feedback?.type === 'hero-text';
+  }
+
+  cleanupWunderwaffeWaveTransients() {
+    const transients = this.wunderwaffeWaveTransients;
+    if (!transients?.size) return;
+    transients.forEach((item) => {
+      try {
+        item?.stop?.();
+        item?.destroy?.();
+      } catch {
+        // Best-effort presentation cleanup must never interrupt battle recovery.
+      }
+    });
+    transients.clear();
+  }
+
+  trackWunderwaffeWaveTransient(item) {
+    if (!item) return item;
+    if (!this.wunderwaffeWaveTransients) this.wunderwaffeWaveTransients = new Set();
+    this.wunderwaffeWaveTransients.add(item);
+    return item;
+  }
+
+  untrackWunderwaffeWaveTransient(item) {
+    this.wunderwaffeWaveTransients?.delete?.(item);
+  }
+
+  logWunderwaffeWavePresentationError(error) {
+    if (this.wunderwaffeWaveWarningLogged) return;
+    this.wunderwaffeWaveWarningLogged = true;
+    console.warn('Wunderwaffe directional wave presentation failed; using target feedback fallback.', { error });
+  }
+
+  getWunderwaffeWaveOrigin(owner = 'player') {
+    const casterRowIndexes = owner === 'enemy' ? [0, 1, 2] : [6, 7, 8];
+    const centers = casterRowIndexes.map((index) => this.getBoardCellCenter(index)).filter(Boolean);
+    if (centers.length > 0) {
+      return {
+        x: centers.reduce((sum, center) => sum + center.x, 0) / centers.length,
+        y: owner === 'enemy'
+          ? Math.max(...centers.map((center) => center.y)) + this.layout.board.cellHeight * 0.18
+          : Math.min(...centers.map((center) => center.y)) - this.layout.board.cellHeight * 0.18,
+      };
+    }
+    return {
+      x: this.scale?.width ? this.scale.width / 2 : 0,
+      y: owner === 'enemy' ? this.layout.board.y + this.layout.board.cellHeight : this.layout.board.y + this.layout.board.height - this.layout.board.cellHeight,
+    };
+  }
+
+  createWunderwaffeRadioArc({ owner, radius, alpha }) {
+    if (!this.add?.graphics || !this.layout?.board) return null;
+    const origin = this.getWunderwaffeWaveOrigin(owner);
+    const direction = owner === 'enemy' ? 1 : -1;
+    const arc = this.add.graphics().setDepth(FLOATING_FEEDBACK_DEPTH - 2).setAlpha(alpha);
+    const width = Math.max(1.5, Math.round(this.layout.board.cellWidth * 0.025));
+    arc.lineStyle(width, 0x93c5fd, alpha);
+    arc.beginPath();
+    // Semi-circular directional radio waves: player broadcasts upward, enemy mirrors downward.
+    arc.arc(origin.x, origin.y, radius, owner === 'enemy' ? 0 : Math.PI, owner === 'enemy' ? Math.PI : Math.PI * 2, false);
+    arc.strokePath();
+    arc.y += direction * radius * 0.08;
+    arc.setData?.('wunderwaffeWaveDirection', owner === 'enemy' ? 'down' : 'up');
+    arc.setData?.('wunderwaffeWaveShape', 'semi-circular-radio-arc');
+    return this.trackWunderwaffeWaveTransient(arc);
+  }
+
+  tweenWunderwaffeArc(arc, owner, order) {
+    return new Promise((resolve) => {
+      let settled = false;
+      let tween = null;
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        this.untrackWunderwaffeWaveTransient(tween);
+        this.untrackWunderwaffeWaveTransient(arc);
+        arc?.destroy?.();
+        resolve();
+      };
+      if (!arc?.active || !this.tweens?.add) {
+        finish();
+        return;
+      }
+      const direction = owner === 'enemy' ? 1 : -1;
+      tween = this.tweens.add({
+        targets: arc,
+        y: arc.y + direction * this.layout.board.cellHeight * 1.35,
+        scaleX: 1.48,
+        scaleY: 1.12,
+        alpha: 0,
+        delay: order * 42,
+        duration: 330,
+        ease: 'Sine.easeOut',
+        onComplete: finish,
+        onStop: finish,
+      });
+      this.trackWunderwaffeWaveTransient(tween);
+      if (!tween) finish();
+    });
+  }
+
+  async playWunderwaffeDirectionalWave(event = {}) {
+    try {
+      if (!this.add?.graphics || !this.tweens?.add || !this.layout?.board) return;
+      const owner = event.owner === 'enemy' ? 'enemy' : 'player';
+      const label = event.label || 'WUNDERWAFFE';
+      const origin = this.getWunderwaffeWaveOrigin(owner);
+      const title = this.add.text(origin.x, origin.y + (owner === 'enemy' ? 18 : -18), label, {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: `${Math.max(14, Math.floor(this.layout.board.cellWidth * 0.13))}px`,
+        color: '#bfdbfe',
+        fontStyle: 'bold',
+        align: 'center',
+      }).setOrigin(0.5).setDepth(FLOATING_FEEDBACK_DEPTH);
+      this.trackWunderwaffeWaveTransient(title);
+      const arcs = [0, 1, 2, 3]
+        .map((order) => this.createWunderwaffeRadioArc({
+          owner,
+          radius: this.layout.board.cellWidth * (0.28 + order * 0.22),
+          alpha: 0.72 - order * 0.08,
+        }))
+        .filter(Boolean);
+      if (arcs.length === 0) return;
+      await Promise.all([
+        this.tweenToPromise({ targets: title, y: title.y + (owner === 'enemy' ? 16 : -16), alpha: 0, duration: 430, ease: 'Cubic.easeOut' })
+          .catch(() => undefined)
+          .finally(() => {
+            this.untrackWunderwaffeWaveTransient(title);
+            title.destroy?.();
+          }),
+        ...arcs.map((arc, order) => this.tweenWunderwaffeArc(arc, owner, order)),
+      ]);
+    } catch (error) {
+      this.logWunderwaffeWavePresentationError(error);
+    } finally {
+      this.cleanupWunderwaffeWaveTransients();
+    }
   }
 
   async playPreRefreshActionFeedback(actionFeedback = []) {
