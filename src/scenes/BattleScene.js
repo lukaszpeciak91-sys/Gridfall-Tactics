@@ -236,6 +236,7 @@ const INVALID_ACTION_BANNER_HOLD_MS = 760;
 const TURN_START_BANNER_FADE_IN_MS = 110;
 const TURN_START_BANNER_HOLD_MS = 820;
 const TURN_START_BANNER_FADE_OUT_MS = 140;
+const TURN_START_BANNER_FAIL_SAFE_EXTRA_MS = 260;
 const BATTLE_EXHAUSTED_BANNER_DEPTH = 222;
 const PLAYER_EFFECT_CAST_BEAT_MS = 620;
 const PLAYER_EFFECT_CAST_SWEEP_STEP_MS = 70;
@@ -408,6 +409,10 @@ export default class BattleScene extends Phaser.Scene {
     this.offlineBoardVisualIndexes = new Set();
     this.turnStartBanner = null;
     this.turnStartBannerFadeOutEvent = null;
+    this.turnStartBannerFailSafeEvent = null;
+    this.turnStartBannerFailSafeToken = null;
+    this.turnStartBannerCompletion = null;
+    this.isDestroyingTurnStartBanner = false;
     this.tutorialBanner = null;
     this.tutorialBannerOverlay = null;
     this.tutorialFocusLayer = null;
@@ -672,6 +677,10 @@ export default class BattleScene extends Phaser.Scene {
     this.currentBoardRenderStats = null;
     this.turnStartBanner = null;
     this.turnStartBannerFadeOutEvent = null;
+    this.turnStartBannerFailSafeEvent = null;
+    this.turnStartBannerFailSafeToken = null;
+    this.turnStartBannerCompletion = null;
+    this.isDestroyingTurnStartBanner = false;
     this.tutorialBanner = null;
     this.tutorialBannerOverlay = null;
     this.tutorialFocusLayer = null;
@@ -4322,6 +4331,7 @@ export default class BattleScene extends Phaser.Scene {
       }
       this.redrawHand();
     } else if (this.turnStartBanner?.active) {
+      this.destroyTurnStartBanner();
       this.destroyEnemyActionBanner();
       this.destroyPlayerActionBanner();
       this.destroyInvalidActionBanner();
@@ -7886,6 +7896,7 @@ export default class BattleScene extends Phaser.Scene {
     const fontSize = Math.min(20, Math.max(15, Math.floor(Math.max(board.cellWidth * 0.14, height * 0.018))));
     const { message, textColor, backgroundColor } = this.getOpeningTurnStartBannerConfig();
     const { x, targetY } = bannerLayout;
+    this.destroyTurnStartBanner();
     this.turnStartBanner = this.add.text(x, bannerLayout.startY, message, {
       fontFamily: 'Arial, sans-serif',
       fontSize: `${fontSize}px`,
@@ -7898,6 +7909,22 @@ export default class BattleScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(221).setAlpha(0).setScale(0.98);
 
     const banner = this.turnStartBanner;
+    const failSafeToken = { banner };
+    this.turnStartBannerFailSafeToken = failSafeToken;
+    this.turnStartBannerCompletion = null;
+    this.scheduleTurnStartBannerFailSafe(banner, failSafeToken);
+    const handleInterruptedTween = () => {
+      if (this.isDestroyingTurnStartBanner || this.turnStartBanner !== banner || this.turnStartBannerFailSafeToken !== failSafeToken) return;
+      this.destroyTurnStartBanner();
+    };
+    const interruptedPresentation = new Promise((resolve) => {
+      const finish = () => {
+        if (this.turnStartBannerCompletion === finish) this.turnStartBannerCompletion = null;
+        resolve();
+      };
+      this.turnStartBannerCompletion = finish;
+    });
+
     this.tweens.add({
       targets: banner,
       alpha: 1,
@@ -7906,13 +7933,22 @@ export default class BattleScene extends Phaser.Scene {
       scaleY: 1,
       duration: TURN_START_BANNER_FADE_IN_MS,
       ease: 'Quad.easeOut',
+      onStop: handleInterruptedTween,
     });
 
-    await this.delay(TURN_START_BANNER_FADE_IN_MS + TURN_START_BANNER_HOLD_MS);
+    await Promise.race([
+      this.delay(TURN_START_BANNER_FADE_IN_MS + TURN_START_BANNER_HOLD_MS),
+      interruptedPresentation,
+    ]);
 
     await new Promise((resolve) => {
-      if (this.turnStartBanner !== banner || !banner.active) {
+      const finish = () => {
+        if (this.turnStartBannerCompletion === finish) this.turnStartBannerCompletion = null;
         resolve();
+      };
+      this.turnStartBannerCompletion = finish;
+      if (this.turnStartBanner !== banner || !banner.active) {
+        finish();
         return;
       }
       this.turnStartBannerFadeOutEvent = null;
@@ -7927,21 +7963,53 @@ export default class BattleScene extends Phaser.Scene {
         onComplete: () => {
           if (this.turnStartBanner === banner) this.destroyTurnStartBanner();
           this.flushDeferredTransientBattleBanner();
-          resolve();
+          finish();
+        },
+        onStop: () => {
+          handleInterruptedTween();
+          finish();
         },
       });
     });
   }
 
+  scheduleTurnStartBannerFailSafe(banner, token) {
+    this.turnStartBannerFailSafeEvent?.remove?.(false);
+    this.turnStartBannerFailSafeEvent = null;
+    const failSafeMs = TURN_START_BANNER_FADE_IN_MS
+      + TURN_START_BANNER_HOLD_MS
+      + TURN_START_BANNER_FADE_OUT_MS
+      + TURN_START_BANNER_FAIL_SAFE_EXTRA_MS;
+    if (typeof this.time?.delayedCall !== 'function') return null;
+    this.turnStartBannerFailSafeEvent = this.time.delayedCall(failSafeMs, () => {
+      if (this.turnStartBanner !== banner || this.turnStartBannerFailSafeToken !== token) return;
+      this.turnStartBannerFailSafeEvent = null;
+      this.destroyTurnStartBanner();
+    });
+    return this.turnStartBannerFailSafeEvent;
+  }
+
   destroyTurnStartBanner() {
+    const completion = this.turnStartBannerCompletion;
+    this.turnStartBannerCompletion = null;
     if (this.turnStartBannerFadeOutEvent) {
       this.turnStartBannerFadeOutEvent.remove(false);
       this.turnStartBannerFadeOutEvent = null;
     }
-    if (!this.turnStartBanner) return;
-    this.tweens?.killTweensOf?.(this.turnStartBanner);
-    this.turnStartBanner.destroy();
-    this.turnStartBanner = null;
+    if (this.turnStartBannerFailSafeEvent) {
+      this.turnStartBannerFailSafeEvent.remove(false);
+      this.turnStartBannerFailSafeEvent = null;
+    }
+    this.turnStartBannerFailSafeToken = null;
+    const banner = this.turnStartBanner;
+    if (banner) {
+      this.turnStartBanner = null;
+      this.isDestroyingTurnStartBanner = true;
+      this.tweens?.killTweensOf?.(banner);
+      this.isDestroyingTurnStartBanner = false;
+      banner.destroy?.();
+    }
+    completion?.();
   }
 
 

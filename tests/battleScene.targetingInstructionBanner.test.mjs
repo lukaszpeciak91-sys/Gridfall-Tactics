@@ -7,8 +7,10 @@ import pl from '../src/localization/translations/pl.json' with { type: 'json' };
 const source = readFileSync(new URL('../src/scenes/BattleScene.js', import.meta.url), 'utf8');
 
 function extractMethodBody(name, nextName) {
-  const start = source.indexOf(`\n  ${name}(`);
-  const end = source.indexOf(`\n  ${nextName}(`, start + 1);
+  let start = source.indexOf(`\n  ${name}(`);
+  if (start < 0) start = source.indexOf(`\n  async ${name}(`);
+  let end = source.indexOf(`\n  ${nextName}(`, start + 1);
+  if (end < 0) end = source.indexOf(`\n  async ${nextName}(`, start + 1);
   if (start < 0 || end < 0) throw new Error(`Failed to extract ${name}`);
   return source.slice(start, end);
 }
@@ -461,4 +463,181 @@ test('target completion flushes deferred confirmation immediately after clearing
   );
 
   assert.match(completePlayerAction, /this\.destroyActiveSelectionMessage\(\);\s*this\.flushDeferredTransientBattleBanner\(\);/);
+});
+
+const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+function compileAsyncMethod(name, nextName, params, prelude = '') {
+  const block = extractMethodBody(name, nextName);
+  const bodyStart = block.indexOf(') {') + 3;
+  const bodyEnd = block.lastIndexOf('}');
+  const body = block.slice(bodyStart, bodyEnd);
+  return new AsyncFunction(...params, `${prelude}${body}`);
+}
+
+const turnStartPrelude = `
+const TURN_START_BANNER_FADE_IN_MS = 110;
+const TURN_START_BANNER_HOLD_MS = 820;
+const TURN_START_BANNER_FADE_OUT_MS = 140;
+const TURN_START_BANNER_FAIL_SAFE_EXTRA_MS = 260;
+const translateActive = (key, fallback) => fallback;
+`;
+const showOpeningTurnStartBannerMethod = compileAsyncMethod('showOpeningTurnStartBanner', 'scheduleTurnStartBannerFailSafe', [], turnStartPrelude);
+const scheduleTurnStartBannerFailSafeMethod = compileMethod('scheduleTurnStartBannerFailSafe', 'destroyTurnStartBanner', ['banner', 'token'], turnStartPrelude);
+const destroyTurnStartBannerMethod = compileMethod('destroyTurnStartBanner', 'startTurn', []);
+const normalizeLifecycleUiStateMethod = compileMethod('normalizeLifecycleUiState', 'refreshLifecycleBanners', ['reason']);
+
+function makeTurnStartScene({ delayMode = 'immediate' } = {}) {
+  const scene = makeScene();
+  scene.gameState = { firstActor: 'player', currentTurn: 'player' };
+  scene.hasShownOpeningTurnStartBanner = false;
+  scene.turnStartBanner = null;
+  scene.turnStartBannerFadeOutEvent = null;
+  scene.turnStartBannerFailSafeEvent = null;
+  scene.turnStartBannerFailSafeToken = null;
+  scene.turnStartBannerCompletion = null;
+  scene.isDestroyingTurnStartBanner = false;
+  scene.openingMulliganPending = false;
+  scene.playerActionUsed = false;
+  scene.openingMulliganRevealPending = false;
+  scene.selectedMulliganCardIds = ['keep'];
+  scene.cardViews = [];
+  scene.startTurnCalls = 0;
+  scene.playBattleStartPresentationSfx = () => { scene.sfxCalls = (scene.sfxCalls ?? 0) + 1; };
+  scene.getOpeningTurnStartBannerConfig = () => ({ message: 'YOU START', textColor: '#e0f2fe', backgroundColor: '#0c4a6e' });
+  scene.scheduleTurnStartBannerFailSafe = function (banner, token) { return scheduleTurnStartBannerFailSafeMethod.call(this, banner, token); };
+  scene.destroyTurnStartBanner = function () { return destroyTurnStartBannerMethod.call(this); };
+  scene.prepareTransientBattleBanner = () => true;
+  scene.delay = () => (delayMode === 'pending' ? new Promise(() => {}) : Promise.resolve());
+  scene.startTurn = () => { scene.startTurnCalls += 1; };
+  scene.timeEvents = [];
+  scene.time = {
+    delayedCall(ms, callback) {
+      const event = { ms, callback, removed: false, remove(arg) { this.removed = true; this.removeArg = arg; } };
+      scene.timeEvents.push(event);
+      return event;
+    },
+  };
+  scene.tweens = {
+    add(config) { scene.tweenCalls.push(config); return { config }; },
+    killTweensOf(target) { scene.killedTweenTargets = [...(scene.killedTweenTargets ?? []), target]; },
+  };
+  scene.destroyEnemyActionBanner = () => { scene.destroyedEnemy = true; };
+  scene.destroyPlayerActionBanner = () => { scene.destroyedPlayer = true; };
+  scene.destroyInvalidActionBanner = () => { scene.destroyedInvalid = true; };
+  scene.destroyTransientBattleBanners = function () { this.destroyTurnStartBanner(); this.destroyEnemyActionBanner(); this.destroyPlayerActionBanner(); this.destroyInvalidActionBanner(); };
+  scene.restorePersistentBattleBanner = () => false;
+  scene.clearPointerInputGuard = () => {};
+  scene.cancelInterruptedPointerGesture = () => {};
+  scene.refreshHeroHP = () => {};
+  scene.updatePlayerBaseActionState = () => {};
+  scene.updateInitiativeIndicator = () => {};
+  scene.resetCardHighlights = () => {};
+  return scene;
+}
+
+test('turn-start banner normal presentation creates fail-safe and normal tween completion removes it', async () => {
+  const scene = makeTurnStartScene();
+
+  const promise = showOpeningTurnStartBannerMethod.call(scene);
+  assert.equal(scene.turnStartBanner.text, 'YOU START');
+  assert.equal(scene.turnStartBanner.depth, 221);
+  assert.equal(scene.timeEvents.length, 1);
+  assert.equal(scene.timeEvents[0].ms, 110 + 820 + 140 + 260);
+  assert.equal(scene.tweenCalls.length, 1, 'fade-in tween should be unchanged');
+  await Promise.resolve();
+  await Promise.resolve();
+  assert.equal(scene.tweenCalls.length, 2, 'fade-out tween should be scheduled after the normal hold');
+
+  const banner = scene.addCalls.at(-1);
+  scene.tweenCalls[1].onComplete();
+  await promise;
+
+  assert.equal(banner.destroyed, true);
+  assert.equal(scene.turnStartBanner, null);
+  assert.equal(scene.turnStartBannerFailSafeEvent, null);
+  assert.equal(scene.timeEvents[0].removed, true);
+  assert.equal(scene.startTurnCalls, 0, 'banner presentation cleanup must not call startTurn directly');
+});
+
+test('turn-start fail-safe expiry removes stale banner when tween completion never fires', async () => {
+  const scene = makeTurnStartScene({ delayMode: 'pending' });
+  showOpeningTurnStartBannerMethod.call(scene);
+  const banner = scene.turnStartBanner;
+  const event = scene.turnStartBannerFailSafeEvent;
+
+  event.callback();
+  await Promise.resolve();
+
+  assert.equal(banner.destroyed, true);
+  assert.equal(scene.turnStartBanner, null);
+  assert.equal(scene.turnStartBannerFailSafeEvent, null);
+  assert.equal(scene.turnStartBannerFailSafeToken, null);
+  assert.deepEqual(scene.gameState, { firstActor: 'player', currentTurn: 'player' });
+  assert.equal(scene.playerActionUsed, false);
+  assert.equal(scene.openingMulliganPending, false);
+  assert.equal(scene.startTurnCalls, 0);
+});
+
+test('stopped turn-start tweens clean up and stale fail-safe token cannot destroy a newer banner', async () => {
+  const scene = makeTurnStartScene({ delayMode: 'pending' });
+  showOpeningTurnStartBannerMethod.call(scene);
+  const oldBanner = scene.turnStartBanner;
+  const oldEvent = scene.turnStartBannerFailSafeEvent;
+
+  scene.tweenCalls[0].onStop();
+  assert.equal(oldBanner.destroyed, true);
+  assert.equal(scene.turnStartBanner, null);
+
+  const newerBanner = makeTextObject(1, 2, 'NEW START', {});
+  const newerToken = { banner: newerBanner };
+  scene.turnStartBanner = newerBanner;
+  scene.turnStartBannerFailSafeToken = newerToken;
+  scene.turnStartBannerFailSafeEvent = { remove() { this.removed = true; } };
+  oldEvent.callback();
+
+  assert.equal(newerBanner.destroyed, false);
+  assert.equal(scene.turnStartBanner, newerBanner);
+});
+
+test('destroyTurnStartBanner is idempotent and removes tween, timer, reference, and completion', () => {
+  const scene = makeTurnStartScene();
+  const banner = makeTextObject(1, 2, 'YOU START', {});
+  const timer = { removed: false, remove(arg) { this.removed = true; this.arg = arg; } };
+  let completed = 0;
+  scene.turnStartBanner = banner;
+  scene.turnStartBannerFailSafeEvent = timer;
+  scene.turnStartBannerFadeOutEvent = { removed: false, remove(arg) { this.removed = true; this.arg = arg; } };
+  scene.turnStartBannerCompletion = () => { completed += 1; };
+
+  destroyTurnStartBannerMethod.call(scene);
+  destroyTurnStartBannerMethod.call(scene);
+
+  assert.equal(banner.destroyed, true);
+  assert.deepEqual(scene.killedTweenTargets, [banner]);
+  assert.equal(timer.removed, true);
+  assert.equal(scene.turnStartBanner, null);
+  assert.equal(scene.turnStartBannerFailSafeEvent, null);
+  assert.equal(scene.turnStartBannerFailSafeToken, null);
+  assert.equal(scene.turnStartBannerCompletion, null);
+  assert.equal(completed, 1);
+  assert.equal(scene.startTurnCalls, 0);
+});
+
+test('lifecycle normalization destroys active turn-start banner without replaying presentation or changing gameplay state', () => {
+  const scene = makeTurnStartScene();
+  const banner = makeTextObject(1, 2, 'YOU START', {});
+  scene.turnStartBanner = banner;
+  scene.gameState = { firstActor: 'enemy', currentTurn: 'enemy' };
+  scene.playerActionUsed = true;
+  scene.openingMulliganPending = false;
+
+  normalizeLifecycleUiStateMethod.call(scene, 'resume');
+
+  assert.equal(banner.destroyed, true);
+  assert.equal(scene.turnStartBanner, null);
+  assert.equal(scene.sfxCalls ?? 0, 0);
+  assert.deepEqual(scene.gameState, { firstActor: 'enemy', currentTurn: 'enemy' });
+  assert.equal(scene.playerActionUsed, true);
+  assert.equal(scene.openingMulliganPending, false);
+  assert.equal(scene.startTurnCalls, 0);
 });
