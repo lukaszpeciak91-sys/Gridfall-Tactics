@@ -18,11 +18,9 @@ If any other document conflicts with this file, this file wins.
   - If only the enemy base is at **0 or lower HP** when base defeat is finalized, the **player wins**.
   - Base HP is clamped to 0 after winner assignment for display.
 - Simultaneous lethal / base-defeat draw:
-  - If both bases are at **0 or lower HP during the same combat/finalization window**, resolve the combat winner from the raw final base HP values before clamping.
-  - Higher raw player base HP -> **player wins** (for example, player at -1 beats enemy at -4).
-  - Higher raw enemy base HP -> **enemy wins**.
-  - Equal raw base HP -> **draw** (for example, -3 vs -3 remains a draw).
-  - This tiebreak changes only winner assignment after simultaneous lethal; combat order, lane order, damage timing, attack timing, and damage events are unchanged.
+  - If both bases are at **0 or lower HP during the same combat/finalization window**, the battle ends in a **draw**.
+  - Raw negative HP, overkill depth, lane count, first actor, lane order, and total damage dealt do not break the tie.
+  - Combat order, lane order, damage timing, attack timing, and damage events are unchanged.
 - MVP turn cap: **24 completed full turns**.
 - At the turn cap, if no winner already exists, the winner is decided by remaining base HP:
   - Higher player base HP -> **player wins**.
@@ -56,7 +54,7 @@ Not meaningful for this detector includes:
 - Purely defensive/no-op effects in a locked board state, such as armor, heal, cannot-drop-below-1, lane play block, move immunity, or cancel-order effects when they cannot create future base-pressure changes.
 - A draw/recall/recycle effect whose available deck cards are themselves not meaningful.
 
-Runner-only edge cases follow these same rules: an unblocked Runner in combat can change base HP because an open enemy lane adds +2 base damage, so the game continues until base defeat, another no-progress state, or the turn cap. If both sides deliver lethal Runner/open-lane damage in the same combat pass, the simultaneous-lethal raw-HP tiebreak above decides the result.
+Runner-only edge cases follow these same rules: an unblocked Runner in combat can change base HP because an open enemy lane adds +2 base damage, so the game continues until base defeat, another no-progress state, or the turn cap. If both sides deliver lethal Runner/open-lane damage in the same combat pass, the simultaneous-lethal base-defeat draw rule above decides the result.
 
 ## 2) Board Model
 

@@ -516,7 +516,6 @@
       "swapPromptSelectAdjacent": "SWAP: select adjacent unit",
       "effect": "Effect",
       "block": "BLOCK",
-
       "protectionFeedback": {
         "stability": "STABLE",
         "lastStand": "LAST STAND",
@@ -633,7 +632,8 @@
         {
           "heading": "Goal",
           "lines": [
-            "Destroy the enemy base before they destroy yours."
+            "Destroy the enemy base before they destroy yours.",
+            "If both Bases are destroyed during the same combat resolution, the battle ends in a draw."
           ]
         },
         {
