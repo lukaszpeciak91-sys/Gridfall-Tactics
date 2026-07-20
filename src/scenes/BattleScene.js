@@ -1790,7 +1790,7 @@ export default class BattleScene extends Phaser.Scene {
       { id: 'rules', labelKey: 'ui.battle.utilityMenuRules', fallback: 'Rules', onClick: () => this.openRulesPanel() },
       { id: 'settings', labelKey: 'ui.battle.utilityMenuSettings', fallback: 'Settings', onClick: () => this.openSettingsScene() },
       { id: 'surrender', labelKey: 'ui.battle.utilityMenuSurrender', fallback: 'Surrender', onClick: () => this.openSurrenderConfirmationFromUtilityMenu() },
-      ...(SHOW_BATTLE_REPORT_TOOL ? [{ id: 'battleReport', labelKey: 'ui.battleMenu.battleReport', fallback: 'BATTLE REPORT', onClick: () => this.openBattleMenu() }] : []),
+      ...(SHOW_BATTLE_REPORT_TOOL ? [{ id: 'battleReport', labelKey: 'ui.battleMenu.battleReport', fallback: 'BATTLE REPORT', onClick: () => this.openBattleReportFromUtilityMenu() }] : []),
     ];
     const {
       panelLeft,
@@ -4546,6 +4546,20 @@ export default class BattleScene extends Phaser.Scene {
     this.scene.pause();
   }
 
+  openBattleReportFromUtilityMenu() {
+    if (!this.prepareUtilityMenuNavigation({ preserveBattleFlow: true })) return;
+    this.handleTutorialEvent?.('battle_menu_opened');
+    this.scene.launch('BattleMenuScene', {
+      factionKey: this.factionKey,
+      enemyFactionKey: this.enemyFactionKey,
+      battleContext: this.battleContext,
+      returnSceneKey: 'BattleScene',
+      openBattleReportPanel: true,
+      reportOnly: true,
+    });
+    this.scene.pause();
+  }
+
   resumeFromRulesPanel() {
     this.restoreRulesPanelBackgroundHelpers();
     this.navigationInProgress = false;
@@ -4560,6 +4574,13 @@ export default class BattleScene extends Phaser.Scene {
     this.scene.resume();
     this.handleTutorialEvent?.('battle_menu_closed');
     this.recoverFromLifecycle('battle-menu-return');
+  }
+
+  resumeFromBattleReport() {
+    this.navigationInProgress = false;
+    this.clearPointerInputGuard();
+    this.scene.resume();
+    this.handleTutorialEvent?.('battle_menu_closed');
   }
 
   resumeFromSettings() {

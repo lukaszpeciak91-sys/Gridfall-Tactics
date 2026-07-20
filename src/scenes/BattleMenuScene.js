@@ -35,6 +35,13 @@ export default class BattleMenuScene extends Phaser.Scene {
       : 'BattleScene';
     this.returnSceneKey = returnSceneKey;
     this.returnBattleLaunchData = { factionKey, enemyFactionKey, battleContext };
+    this.reportOnly = data?.reportOnly === true;
+
+    if (data?.openBattleReportPanel === true && this.reportOnly) {
+      this.openBattleReportPanel();
+      this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.destroyBattleReportPanel());
+      return;
+    }
 
     this.cameras.main.setBackgroundColor('#05080f');
 
@@ -115,6 +122,10 @@ export default class BattleMenuScene extends Phaser.Scene {
     const returnScene = this.scene.get(this.returnSceneKey);
     this.destroyBattleReportPanel();
     this.scene.stop();
+    if (this.reportOnly && returnScene?.resumeFromBattleReport) {
+      returnScene.resumeFromBattleReport();
+      return;
+    }
     if (returnScene?.resumeFromBattleMenu) {
       returnScene.resumeFromBattleMenu();
       return;
@@ -168,10 +179,15 @@ export default class BattleMenuScene extends Phaser.Scene {
         status.textContent = translateActive('ui.battleMenu.copyFailure', 'Copy failed. Select text manually.');
       }
     }));
-    controls.appendChild(makeButton('ui.battleMenu.closeReport', 'CLOSE', () => { this.playBattleMenuClickSfx(); this.destroyBattleReportPanel(); }));
+    controls.appendChild(makeButton('ui.battleMenu.closeReport', 'CLOSE', () => { this.playBattleMenuClickSfx(); this.closeBattleReportPanel(); }));
     panel.append(title, summary, report, status, controls);
     document.body?.appendChild?.(panel);
     this.battleReportPanel = panel;
+  }
+
+  closeBattleReportPanel() {
+    this.destroyBattleReportPanel();
+    if (this.reportOnly) this.leaveBattleMenu();
   }
 
   destroyBattleReportPanel() {
