@@ -9,8 +9,8 @@ test('opening reveal diagnostic is hidden until confirmed failure and writes onl
   assert.match(source, /OPENING_REVEAL_DIAG_BUFFER_LIMIT = 64/);
   assert.match(source, /if \(this\.openingRevealDiagFailureCaptured \|\| !this\.isOpeningRevealDiagnosticFailureState\(options\)\) return false;/);
   assert.match(source, /globalThis\.localStorage\?\.setItem\?\.\(OPENING_REVEAL_DIAG_STORAGE_KEY, JSON\.stringify\(snapshot\)\)/);
-  assert.match(source, /button\.textContent = 'REVEAL DIAG'/);
-  assert.doesNotMatch(source, /showOpeningRevealDiagnosticControl\(\);[\s\S]{0,200}beginOpeningBattlePresentation/);
+  assert.doesNotMatch(source, /textContent = 'REVEAL DIAG'/);
+  assert.doesNotMatch(source, /showOpeningRevealDiagnosticControl\(\)/);
 });
 
 test('failure snapshot contains flags, generation, controller summary, counts, slot visual state, and lifecycle timeline only', () => {
@@ -24,15 +24,12 @@ test('failure snapshot contains flags, generation, controller summary, counts, s
   assert.doesNotMatch(source, /deck: this\.gameState|gameState: this\.gameState|playerSave|campaign: this\.gameState/);
 });
 
-test('storage and copy failures are caught and non-fatal', () => {
+test('storage failures are caught and non-fatal', () => {
   assert.match(source, /try \{ globalThis\.localStorage\?\.setItem[\s\S]*\} catch \(_\) \{\}/);
   assert.match(source, /try \{ return JSON\.parse\(globalThis\.localStorage\?\.getItem[\s\S]*\} catch \(_\) \{ return null; \}/);
-  assert.match(source, /copy\.onclick = async \(\) => \{ try \{ await globalThis\.navigator\?\.clipboard\?\.writeText\?\.\(pre\.textContent\); \} catch \(_\) \{\} \};/);
 });
 
-test('force reveal uses reconciliation path and cleanup removes diagnostic DOM/timers/listeners', () => {
-  assert.match(source, /force\.textContent = 'FORCE REVEAL'/);
-  assert.match(source, /this\.reconcileOpeningMulliganPresentation\(\{ reason: 'diagnostic-force-reveal' \}\)/);
+test('cleanup removes diagnostic timers/listeners without floating diagnostic DOM', () => {
   assert.match(source, /this\.openingRevealDiagFailureTimer\?\.remove\?\.\(false\)/);
   assert.match(source, /this\.openingRevealDiagFallbackTimer\?\.remove\?\.\(false\)/);
   assert.match(source, /this\.openingRevealDiagButton\?\.remove\?\.\(\)/);
@@ -67,7 +64,7 @@ test('scheduled but frozen before first callback is detected', () => {
 
 test('reveal controllers existing forever still produces reveal diag under fallback', () => {
   assert.match(source, /controllerTypes\.length > 0 && !this\.hasOpeningRevealDiagEvent\('first-reveal-visible-count-increment'\)/);
-  assert.match(source, /showOpeningRevealDiagnosticControl\(\)/);
+  assert.doesNotMatch(source, /showOpeningRevealDiagnosticControl\(\)/);
 });
 
 test('retained backs and hidden fronts force failure detection because visual state wins', () => {

@@ -454,7 +454,13 @@
     "battleMenu": {
       "title": "MENU",
       "comingSoon": "Menu options coming soon.",
-      "howToPlay": "HOW TO PLAY"
+      "howToPlay": "HOW TO PLAY",
+      "battleReport": "BATTLE REPORT",
+      "copyReport": "COPY REPORT",
+      "closeReport": "CLOSE",
+      "forceReveal": "FORCE REVEAL",
+      "copySuccess": "Report copied.",
+      "copyFailure": "Copy failed. Select text manually."
     },
     "battle": {
       "utilityMenuRules": "Rules",
