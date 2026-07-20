@@ -192,6 +192,43 @@ function buildBoard(scene) {
   });
 }
 
+
+function compactEventDetails(details) {
+  if (!details || typeof details !== 'object' || Array.isArray(details)) return {};
+  const out = {};
+  Object.entries(details).forEach(([key, value]) => {
+    if (value === null || typeof value === 'string' || typeof value === 'boolean') out[key] = typeof value === 'string' && value.length > 96 ? value.slice(0, 96) : value;
+    else if (typeof value === 'number' && Number.isFinite(value)) out[key] = value;
+    else if (Array.isArray(value)) {
+      const compact = value.slice(0, 8).map((item) => {
+        if (item === null || typeof item === 'string' || typeof item === 'boolean') return item;
+        if (typeof item === 'number' && Number.isFinite(item)) return item;
+        if (item && typeof item === 'object') {
+          const child = {};
+          Object.entries(item).slice(0, 6).forEach(([childKey, childValue]) => {
+            if (childValue === null || typeof childValue === 'string' || typeof childValue === 'boolean') child[childKey] = childValue;
+            else if (typeof childValue === 'number' && Number.isFinite(childValue)) child[childKey] = childValue;
+          });
+          return Object.keys(child).length ? child : null;
+        }
+        return null;
+      }).filter((item) => item !== null && item !== undefined);
+      if (compact.length) out[key] = compact;
+    }
+  });
+  return out;
+}
+
+function buildEvents(scene) {
+  const limit = Number.isFinite(scene?.getBattleReportEventLimit?.()) ? scene.getBattleReportEventLimit() : 32;
+  const events = Array.isArray(scene?.battleReportEvents) ? scene.battleReportEvents : [];
+  return events.slice(Math.max(0, events.length - limit), events.length).map((event) => ({
+    t: finite(event?.t) ?? 0,
+    name: compactString(event?.name),
+    details: compactEventDetails(event?.details),
+  })).filter((event) => event.name);
+}
+
 function generateWarnings(scene, { environment, battle, flow, reveal, board }) {
   const warnings = [];
   const transient = flow.isFlowResolving || flow.isEffectCastResolving || reveal.revealPending || flow.openingMulliganActive;
@@ -222,5 +259,6 @@ export function buildBattleReportSnapshot(scene = null) {
   const flow = buildFlow(scene, battle);
   const reveal = buildReveal(scene);
   const board = buildBoard(scene);
-  return { version: REPORT_VERSION, capturedAt, environment, battle: { ...battle, passSurrender }, flow, reveal, board, warnings: generateWarnings(scene, { environment, battle, flow, reveal, board }) };
+  const events = buildEvents(scene);
+  return { version: REPORT_VERSION, capturedAt, environment, battle: { ...battle, passSurrender }, flow, reveal, board, events, warnings: generateWarnings(scene, { environment, battle, flow, reveal, board }) };
 }
