@@ -326,6 +326,7 @@ const OPENING_REVEAL_DIAG_BUFFER_LIMIT = 64;
 const OPENING_REVEAL_DIAG_FAILURE_DELAY_MS = 2800;
 const OPENING_REVEAL_DIAG_FALLBACK_DELAY_MS = 3800;
 const BATTLE_REPORT_EVENT_BUFFER_LIMIT = 32;
+const BATTLE_REPORT_AUDIO_EVENT_BUFFER_LIMIT = 12;
 const BATTLE_REPORT_EVENT_DEDUPE_WINDOW_MS = 200;
 let battleSceneSessionSequence = 0;
 
@@ -365,8 +366,11 @@ export default class BattleScene extends Phaser.Scene {
     this.battleTransitionLaunchId = null;
     this.openingRevealDiagEvents = [];
     this.battleReportEvents = [];
+    this.battleReportAudioEvents = [];
+    this.battleReportAudioState = {};
     this.battleReportStartedAt = Date.now();
     this.battleReportLastEvent = null;
+    this.battleReportLastAudioEvent = null;
     this.openingRevealDiagStartedAt = 0;
     this.openingRevealDiagFailureSnapshot = null;
     this.openingRevealDiagFailureCaptured = false;
@@ -632,8 +636,11 @@ export default class BattleScene extends Phaser.Scene {
     this.battleTransitionLaunchId = null;
     this.openingRevealDiagEvents = [];
     this.battleReportEvents = [];
+    this.battleReportAudioEvents = [];
+    this.battleReportAudioState = {};
     this.battleReportStartedAt = Date.now();
     this.battleReportLastEvent = null;
+    this.battleReportLastAudioEvent = null;
     this.openingRevealDiagStartedAt = 0;
     this.openingRevealDiagFailureSnapshot = null;
     this.openingRevealDiagFailureCaptured = false;
@@ -1009,6 +1016,34 @@ export default class BattleScene extends Phaser.Scene {
 
   recordLifecycleBattleReportEvent(reason) {
     this.recordBattleReportEvent?.('lifecycle-event', { reason });
+  }
+
+  recordAudioDiagnosticEvent(name, details = {}) {
+    const recorded = this.recordBattleReportEvent?.(name, details);
+    try {
+      if (typeof name !== 'string' || !name) return recorded;
+      if (!this.battleReportAudioEvents) this.battleReportAudioEvents = [];
+      if (!this.battleReportAudioState) this.battleReportAudioState = {};
+      const t = this.getBattleReportElapsedMs();
+      const safeDetails = this.normalizeBattleReportEventDetails(details);
+      const dedupeKey = `${name}:${safeDetails.key ?? ''}:${safeDetails.source ?? ''}:${safeDetails.reason ?? ''}:${safeDetails.state ?? ''}`;
+      if (this.battleReportLastAudioEvent?.key === dedupeKey && t - this.battleReportLastAudioEvent.t <= BATTLE_REPORT_EVENT_DEDUPE_WINDOW_MS) return recorded;
+      const entry = { t, name, details: safeDetails };
+      this.battleReportAudioEvents.push(entry);
+      while (this.battleReportAudioEvents.length > BATTLE_REPORT_AUDIO_EVENT_BUFFER_LIMIT) this.battleReportAudioEvents.shift();
+      this.battleReportLastAudioEvent = { key: dedupeKey, t };
+      const state = this.battleReportAudioState;
+      if (name === 'audio-sfx-requested') state.lastRequestedSfxKey = safeDetails.key ?? null;
+      if (name === 'audio-sfx-dispatched') state.lastDispatchedSfxKey = safeDetails.key ?? null;
+      if (name === 'audio-sfx-skipped') { state.lastSkippedSfxKey = safeDetails.key ?? null; state.lastSkipReason = safeDetails.reason ?? 'UNKNOWN'; }
+      if (name === 'audio-outcome-stinger-started') { state.outcomeStingerActive = true; state.outcomeStingerKey = safeDetails.key ?? null; }
+      if (name === 'audio-outcome-stinger-stopped') { state.outcomeStingerActive = false; state.outcomeStingerKey = safeDetails.key ?? state.outcomeStingerKey ?? null; }
+      if (name === 'audio-music-started' && safeDetails.context === 'battle-ambience') state.battleAmbienceActive = true;
+      if (name === 'audio-music-stopped' && safeDetails.context === 'battle-ambience') state.battleAmbienceActive = false;
+      if (name === 'audio-context-state') state.audioContextState = safeDetails.state ?? 'unknown';
+      state.lastAudioEventAtMs = t;
+      return recorded;
+    } catch (_) { return recorded; }
   }
 
 
@@ -2119,8 +2154,23 @@ export default class BattleScene extends Phaser.Scene {
     return translateActive('ui.battle.draw', 'DRAW');
   }
 
+  getBattleSfxSourceLabel(key) {
+    if (key === AUDIO_KEYS.CARD_DRAW) return 'card-draw';
+    if (key === AUDIO_KEYS.UI_CLICK) return 'ui-click';
+    if (key === AUDIO_KEYS.UI_INVALID) return 'invalid-action';
+    if (key === AUDIO_KEYS.SPELL_GENERIC) return 'effect-cast';
+    if (key === AUDIO_KEYS.UNIT_DEATH) return 'unit-destroy';
+    if (key === AUDIO_KEYS.ATTACK_IMPACT) return 'attack-hit';
+    if (key === AUDIO_KEYS.BATTLE_START) return 'battle-start';
+    if (key === AUDIO_KEYS.BATTLE_VICTORY) return 'battle-victory';
+    if (key === AUDIO_KEYS.BATTLE_DEFEAT) return 'battle-defeat';
+    return 'unknown';
+  }
+
   playBattleSfx(key, options = {}) {
-    return playSfx(this, key, options);
+    const source = options.source ?? this.battleReportNextSfxSource ?? this.getBattleSfxSourceLabel?.(key);
+    this.battleReportNextSfxSource = null;
+    return playSfx(this, key, { source, ...options });
   }
 
   startBattleAmbience() {
@@ -2131,19 +2181,23 @@ export default class BattleScene extends Phaser.Scene {
 
   stopBattleAmbience({ fadeMs = 350 } = {}) {
     this.battleAmbienceStopping = true;
-    return stopMusic(this, { fadeMs });
+    const stopped = stopMusic(this, { fadeMs });
+    this.recordAudioDiagnosticEvent?.('audio-music-stopped', { key: AUDIO_KEYS.BATTLE_AMBIENCE, context: 'battle-ambience' });
+    return stopped;
   }
 
   playOutcomeStinger(key) {
     if (![AUDIO_KEYS.BATTLE_VICTORY, AUDIO_KEYS.BATTLE_DEFEAT].includes(key)) return false;
     this.stopBattleAmbience({ fadeMs: 0 });
+    this.recordAudioDiagnosticEvent?.('audio-outcome-stinger-requested', { key });
     if (this.activeOutcomeStinger?.key === key && this.activeOutcomeStinger.sound?.isPlaying) return true;
 
     this.stopOutcomeStinger({ fadeMs: 0 });
-    const sound = playManagedSfx(this, key, { cooldownMs: 0 });
+    const sound = playManagedSfx(this, key, { cooldownMs: 0, source: key === AUDIO_KEYS.BATTLE_VICTORY ? 'battle-victory' : 'battle-defeat' });
     if (!sound) return false;
 
     this.activeOutcomeStinger = { key, sound };
+    this.recordAudioDiagnosticEvent?.('audio-outcome-stinger-started', { key });
     sound.once?.('complete', () => {
       if (this.activeOutcomeStinger?.sound === sound) {
         this.activeOutcomeStinger = null;
@@ -2155,7 +2209,9 @@ export default class BattleScene extends Phaser.Scene {
   stopOutcomeStinger(options = {}) {
     const activeStinger = this.activeOutcomeStinger;
     this.activeOutcomeStinger = null;
-    return stopManagedSfx(this, activeStinger?.sound, options);
+    const stopped = stopManagedSfx(this, activeStinger?.sound, options);
+    if (activeStinger?.key) this.recordAudioDiagnosticEvent?.('audio-outcome-stinger-stopped', { key: activeStinger.key });
+    return stopped;
   }
 
   isBaseDestructionResult() {
@@ -6121,6 +6177,7 @@ export default class BattleScene extends Phaser.Scene {
       this.logOpeningRevealDiag(index === 0 ? 'first-reveal-sfx-requested' : 'reveal-sfx-requested', { slotIndex: index });
       this.openingRevealDiagFirstSfxRequestedAt ??= Date.now();
       if (typeof this.playBattleSfx === 'function') {
+        this.battleReportNextSfxSource = 'opening-reveal';
         this.playBattleSfx(AUDIO_KEYS.CARD_DRAW, { cooldownMs: 0 });
         this.logOpeningRevealDiag('reveal-sfx-dispatched', { slotIndex: index });
       }
