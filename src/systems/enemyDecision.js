@@ -1,5 +1,6 @@
 import { canPlayOrRedeploy, canSwap, performSwap, playEffectCard, playOrRedeployUnit, resolveTargetedEffectCard, resolveTargetedUnitOnPlayEffect, getUnitAttack, getUnitArmor, getEffectiveBoardAttack, RUNNER_OPEN_LANE_ATK_BONUS, resolveImmediateNoProgressWinner, battleCanRealisticallyChangeOutcome, canPlayEffectCard } from './GameState.js';
 import { ACTIVE_EFFECT_VARIANTS } from './effectVariantRegistry.generated.js';
+import { getMaterialBattleStateSignature } from './materialBattleStateSignature.js';
 
 const ENEMY_ROW_INDEXES = [0, 1, 2];
 const PLAYER_ROW_INDEXES = [6, 7, 8];
@@ -294,39 +295,6 @@ export function selectOpeningMulliganCardIds(sideState, options = {}) {
 
 function cloneState(state) {
   return JSON.parse(JSON.stringify(state));
-}
-
-function getImmediateBattleImpactSignature(state) {
-  if (!state) return null;
-  return JSON.stringify({
-    playerHP: state.playerHP,
-    enemyHP: state.enemyHP,
-    board: state.board?.map((unit) => unit ? {
-      owner: unit.owner,
-      id: unit.cardId ?? unit.id,
-      attack: unit.attack,
-      hp: unit.hp,
-      maxHp: unit.maxHp,
-      armor: unit.armor,
-      tempAttackMod: unit.tempAttackMod ?? 0,
-      tempAttackSetToZeroUntilCombat: unit.tempAttackSetToZeroUntilCombat ?? false,
-      tempAttackMaxUntilCombat: unit.tempAttackMaxUntilCombat ?? null,
-      tempArmorMod: unit.tempArmorMod ?? 0,
-      tempHpMod: unit.tempHpMod ?? 0,
-      ignoreArmorNext: unit.ignoreArmorNext ?? false,
-      quickFixDrawTriggers: unit.quickFixDrawTriggers?.map((trigger) => ({
-        owner: trigger?.owner ?? null,
-        triggered: trigger?.triggered ?? false,
-      })) ?? [],
-    } : null),
-    cannotDropBelowOneThisTurn: state.cannotDropBelowOneThisTurn ?? null,
-    effectCardsBlockedUntilCombat: state.effectCardsBlockedUntilCombat ?? null,
-    immuneMoveDisableThisTurn: state.immuneMoveDisableThisTurn ?? null,
-    immovableThisTurn: state.immovableThisTurn ?? null,
-    enemyLanePlayBlockedThisTurn: state.enemyLanePlayBlockedThisTurn ?? null,
-    playerLanePlayBlockedThisTurn: state.playerLanePlayBlockedThisTurn ?? null,
-    funeralPyreThisCombat: state.funeralPyreThisCombat ?? null,
-  });
 }
 
 function getRowsForOwner(owner) {
@@ -1079,7 +1047,7 @@ export function scoreAction(state, owner, action) {
   const currentOpponentPressure = getGuaranteedHeroDamage(state, owner === 'enemy' ? 'player' : 'enemy');
   const currentBoardPressure = getBoardPressureValue(state, owner);
   const currentOpenLaneStats = getOpenLaneStats(state, owner);
-  const immediateBattleImpactBefore = getImmediateBattleImpactSignature(state);
+  const immediateBattleImpactBefore = getMaterialBattleStateSignature(state);
 
   const actionCard = getActionCard(state, owner, action);
 
@@ -1105,7 +1073,7 @@ export function scoreAction(state, owner, action) {
     }
   }
 
-  const immediateBattleImpactAfter = getImmediateBattleImpactSignature(nextState);
+  const immediateBattleImpactAfter = getMaterialBattleStateSignature(nextState);
   const hasImmediateBattleImpact = immediateBattleImpactBefore !== immediateBattleImpactAfter;
 
   const nextOpponentHp = nextState?.[getOpponentHpKey(owner)] ?? 0;

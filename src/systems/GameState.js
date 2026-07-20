@@ -1,5 +1,6 @@
 import { GENERATED_UNIT_ART, getGeneratedGruntArtForSource } from '../data/generatedUnitArt.js';
 import { ACTIVE_EFFECT_VARIANTS } from './effectVariantRegistry.generated.js';
+import { getMaterialBattleStateSignature } from './materialBattleStateSignature.js';
 
 const BOARD_SIZE = 9;
 const ENEMY_ROW = [0, 1, 2];
@@ -118,39 +119,6 @@ export function resolveBattleExhaustedWinner(state) {
 function recordProgressAction(state = null) {
   resetBattleExhaustedTracker(state);
   // Meaningful-action tracking is no longer counter-based.
-}
-
-function getBattleProgressSignature(state) {
-  if (!state) return null;
-  return JSON.stringify({
-    playerHP: state.playerHP,
-    enemyHP: state.enemyHP,
-    board: state.board?.map((unit) => unit ? {
-      owner: unit.owner,
-      id: unit.cardId ?? unit.id,
-      attack: unit.attack,
-      hp: unit.hp,
-      maxHp: unit.maxHp,
-      armor: unit.armor,
-      tempAttackMod: unit.tempAttackMod ?? 0,
-      tempAttackSetToZeroUntilCombat: unit.tempAttackSetToZeroUntilCombat ?? false,
-      tempAttackMaxUntilCombat: unit.tempAttackMaxUntilCombat ?? null,
-      tempArmorMod: unit.tempArmorMod ?? 0,
-      tempHpMod: unit.tempHpMod ?? 0,
-      ignoreArmorNext: unit.ignoreArmorNext ?? false,
-      quickFixDrawTriggers: unit.quickFixDrawTriggers?.map((trigger) => ({
-        owner: trigger?.owner ?? null,
-        triggered: trigger?.triggered ?? false,
-      })) ?? [],
-    } : null),
-    cannotDropBelowOneThisTurn: state.cannotDropBelowOneThisTurn ?? null,
-    effectCardsBlockedUntilCombat: state.effectCardsBlockedUntilCombat ?? null,
-    immuneMoveDisableThisTurn: state.immuneMoveDisableThisTurn ?? null,
-    immovableThisTurn: state.immovableThisTurn ?? null,
-    enemyLanePlayBlockedThisTurn: state.enemyLanePlayBlockedThisTurn ?? null,
-    playerLanePlayBlockedThisTurn: state.playerLanePlayBlockedThisTurn ?? null,
-    funeralPyreThisCombat: state.funeralPyreThisCombat ?? null,
-  });
 }
 
 function ownerHasReachableEmptySlot(state, owner) {
@@ -2602,7 +2570,7 @@ export function playEffectCard(state, owner, handCardId) {
     return { ok: false, reason: 'Effect has no legal deterministic resolution' };
   }
 
-  const battleProgressBefore = getBattleProgressSignature(state);
+  const battleProgressBefore = getMaterialBattleStateSignature(state);
   const [playedCard] = side.hand.splice(handIndex, 1);
   if (playedCard.type === 'unit') {
     side.hand.splice(handIndex, 0, playedCard);
@@ -2617,7 +2585,7 @@ export function playEffectCard(state, owner, handCardId) {
   } else if (!blockedByImmunity) {
     executeEffectVariantOperations(state, owner, playedCard, playedCard.effectId ?? null);
   }
-  const battleProgressAfter = getBattleProgressSignature(state);
+  const battleProgressAfter = getMaterialBattleStateSignature(state);
   if (battleProgressBefore !== battleProgressAfter) {
     recordProgressAction(state, owner, blockedByImmunity ? 'effect-blocked' : 'effect');
   }
