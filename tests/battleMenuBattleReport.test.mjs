@@ -10,11 +10,44 @@ const source = readFileSync(new URL('../src/scenes/BattleMenuScene.js', import.m
 const helperSource = readFileSync(new URL('../src/ui/battleMenuReport.js', import.meta.url), 'utf8');
 const battleSource = readFileSync(new URL('../src/scenes/BattleScene.js', import.meta.url), 'utf8');
 
+function methodBody(sourceText, methodName) {
+  const match = sourceText.match(new RegExp(`\n  ${methodName}\\(\\) \{([\\s\\S]*?)\n  \}`));
+  assert.ok(match, `${methodName} method exists`);
+  return match[0];
+}
+
 test('battle report feature flag defaults on and appends final battle menu action', () => {
   assert.equal(SHOW_BATTLE_REPORT_TOOL, true);
   assert.equal(getBattleMenuActionDescriptors().at(-1).id, 'battleReport');
   assert.equal(getBattleMenuActionDescriptors({ showBattleReportTool: false }).some((a) => a.id === 'battleReport'), false);
 });
+
+test('BattleScene utility menu keeps four distinct actions with battle report last', () => {
+  assert.match(battleSource, /const utilityMenuActions = \[[\s\S]*id: 'rules'[\s\S]*onClick: \(\) => this\.openRulesPanel\(\)[\s\S]*id: 'settings'[\s\S]*onClick: \(\) => this\.openSettingsScene\(\)[\s\S]*id: 'surrender'[\s\S]*onClick: \(\) => this\.openSurrenderConfirmationFromUtilityMenu\(\)[\s\S]*id: 'battleReport'[\s\S]*onClick: \(\) => this\.openBattleReportFromUtilityMenu\(\)[\s\S]*\];/);
+  assert.doesNotMatch(battleSource, /id: 'battleReport'[\s\S]{0,240}openBattleMenu\(\)/);
+  assert.doesNotMatch(battleSource, /id: 'battleReport'[\s\S]{0,240}openRulesPanel\(\)/);
+  assert.doesNotMatch(battleSource, /id: 'battleReport'[\s\S]{0,240}openSettingsScene\(\)/);
+  assert.doesNotMatch(battleSource, /id: 'battleReport'[\s\S]{0,240}openSurrenderConfirmationFromUtilityMenu\(\)/);
+});
+
+test('battle report utility route opens report-only panel without placeholder navigation', () => {
+  assert.match(battleSource, /openBattleReportFromUtilityMenu\(\) \{[\s\S]*prepareUtilityMenuNavigation\(\{ preserveBattleFlow: true \}\)[\s\S]*this\.scene\.launch\('BattleMenuScene', \{[\s\S]*openBattleReportPanel: true,[\s\S]*reportOnly: true,[\s\S]*\}\);[\s\S]*this\.scene\.pause\(\);[\s\S]*\}/);
+  const route = methodBody(battleSource, 'openBattleReportFromUtilityMenu');
+  assert.doesNotMatch(route, /scene\.start\(/);
+  assert.doesNotMatch(route, /RulesPanelScene/);
+  assert.doesNotMatch(route, /SettingsScene/);
+  assert.doesNotMatch(route, /showSurrenderConfirmation/);
+});
+
+test('report-only BattleMenuScene immediately opens panel and skips placeholder menu chrome', () => {
+  assert.match(source, /if \(data\?\.openBattleReportPanel === true && this\.reportOnly\) \{\n\s*this\.openBattleReportPanel\(\);\n\s*this\.events\.once\(Phaser\.Scenes\.Events\.SHUTDOWN, \(\) => this\.destroyBattleReportPanel\(\)\);\n\s*return;\n\s*\}\n\n\s*this\.cameras\.main\.setBackgroundColor/);
+  assert.match(source, /closeBattleReportPanel\(\) \{[\s\S]*if \(this\.reportOnly\) this\.leaveBattleMenu\(\);[\s\S]*\}/);
+  assert.match(source, /if \(this\.reportOnly && returnScene\?\.resumeFromBattleReport\) \{[\s\S]*returnScene\.resumeFromBattleReport\(\);[\s\S]*return;[\s\S]*\}/);
+  assert.match(battleSource, /resumeFromBattleReport\(\) \{[\s\S]*this\.scene\.resume\(\);[\s\S]*this\.handleTutorialEvent\?\.\('battle_menu_closed'\);[\s\S]*\}/);
+  assert.doesNotMatch(methodBody(battleSource, 'resumeFromBattleReport'), /recoverFromLifecycle/);
+  assert.doesNotMatch(methodBody(source, 'leaveBattleMenu').split('if (returnScene?.resumeFromBattleMenu)')[0], /enterBattleScene/);
+});
+
 
 test('battle report uses localization keys and the shared battle menu button builder path', () => {
   assert.equal(en.ui.battleMenu.battleReport, 'BATTLE REPORT');
@@ -53,7 +86,7 @@ test('report text is selectable scrollable and bottom controls are force copy cl
 
 test('copy failure is non fatal and close only destroys report panel', () => {
   assert.match(source, /catch \(_\) \{[\s\S]*Copy failed/);
-  assert.match(source, /destroyBattleReportPanel\(\); \}/);
+  assert.match(source, /closeBattleReportPanel\(\) \{\n\s*this\.destroyBattleReportPanel\(\);/);
   assert.doesNotMatch(source, /closeReport[\s\S]{0,200}resumeFromBattleMenu/);
 });
 
