@@ -75,7 +75,7 @@ test('summary is compact and full displayed/copy text share same snapshot serial
   assert.match(summary, /Top scene: BattleMenuScene/);
   assert.doesNotMatch(summary, /"warnings"/);
   assert.match(source, /report\.textContent = reportText/);
-  assert.match(source, /writeText\?\.\(this\.battleReportText\)/);
+  assert.match(source, /writeText\?\.\(report\.textContent \?\? ''\)/);
 });
 
 test('report text is selectable scrollable and bottom controls are force copy close', () => {
@@ -96,6 +96,45 @@ test('force reveal is conditional and uses existing reconciliation before refres
   const suspicious = { openingMulliganPending: true, gameState: {}, reconcileOpeningMulliganPresentation() {} };
   assert.equal(canShowBattleReportForceReveal(suspicious, { reveal: { invalidHiddenFrontCount: 1 } }), true);
   assert.match(source, /reconcileOpeningMulliganPresentation\(\{ reason: 'diagnostic-force-reveal' \}\);\n\s*this\.openBattleReportPanel\(\)/);
+});
+
+
+test('battle report mounts inside fullscreen-capable game root instead of document body', () => {
+  assert.match(source, /getBattleReportGameRoot\(\)[\s\S]*this\.scale\?\.fullscreenTarget[\s\S]*getElementById\?\.\(configuredId\)[\s\S]*getElementById\?\.\('app'\)/);
+  assert.match(source, /resolveBattleReportMountRoot\(\)[\s\S]*fullscreenElement[\s\S]*return fullscreenElement[\s\S]*return gameRoot \?\? globalThis\.document\?\.body/);
+  assert.match(source, /mountBattleReportPanel\(panel\) \{[\s\S]*const mountRoot = this\.resolveBattleReportMountRoot\(\)[\s\S]*mountRoot\?\.appendChild\?\.\(panel\)/);
+  assert.doesNotMatch(source, /document\.body\?\.appendChild\?\.\(panel\)/);
+});
+
+test('battle report fullscreen changes remount one preserved report instance without exiting fullscreen', () => {
+  assert.match(source, /installBattleReportLifecycleHandlers\(\)[\s\S]*fullscreenchange[\s\S]*webkitfullscreenchange[\s\S]*remountBattleReportPanel/);
+  assert.match(source, /this\.scale\?\.on\?\.\('enterfullscreen', remount, this\)/);
+  assert.match(source, /this\.scale\?\.on\?\.\('leavefullscreen', remount, this\)/);
+  assert.match(source, /remountBattleReportPanel\(\) \{[\s\S]*this\.battleReportPanel\.remove\?\.\(\);[\s\S]*this\.mountBattleReportPanel\(this\.createBattleReportPanel\(\{[\s\S]*reportText: this\.battleReportText/);
+  assert.doesNotMatch(methodBody(source, 'openBattleReportPanel'), /stopFullscreen|exitFullscreen|leaveFullscreen/);
+});
+
+test('battle report cleanup is idempotent and structural lifecycle closes report-only flow safely', () => {
+  assert.match(source, /removeBattleReportLifecycleHandlers\(\) \{[\s\S]*this\.battleReportCleanupHandlers\.splice\(0\)/);
+  assert.match(source, /destroyBattleReportPanel\(\) \{[\s\S]*this\.removeBattleReportLifecycleHandlers\(\);[\s\S]*this\.battleReportPanel\?\.remove\?\.\(\);[\s\S]*this\.battleReportPanel = null/);
+  assert.match(source, /closeBattleReportForStructuralRecovery\(\) \{[\s\S]*this\.destroyBattleReportPanel\(\);[\s\S]*this\.scene\.stop\(\);[\s\S]*returnScene\?\.resumeFromBattleReport\?\.\(\)/);
+  assert.match(source, /pagehide[\s\S]*structuralClose/);
+  assert.match(source, /visibilityState === 'hidden'[\s\S]*structuralClose\(\)/);
+  assert.match(source, /webglcontextrestored[\s\S]*structuralClose/);
+});
+
+test('battle report mobile layout keeps bottom controls accessible in viewport', () => {
+  assert.match(source, /max-height:calc\(100dvh - 20px\)/);
+  assert.match(source, /width:calc\(100dvw - 20px\)/);
+  assert.match(source, /flex:1 1 auto;min-height:0;overflow:auto/);
+  assert.match(source, /controls\.style\.cssText = 'flex:0 0 auto/);
+  assert.match(source, /overscroll-behavior:contain/);
+});
+
+test('normal report open close avoids recovery, reveal reconciliation, and gameplay mutation paths', () => {
+  assert.doesNotMatch(methodBody(source, 'openBattleReportPanel'), /recoverFromLifecycle|reconcileOpeningMulliganPresentation|completeOpeningMulliganReveal|gameState|mulligan/i);
+  assert.doesNotMatch(methodBody(source, 'closeBattleReportPanel'), /recoverFromLifecycle|reconcileOpeningMulliganPresentation|completeOpeningMulliganReveal|gameState|mulligan/i);
+  assert.doesNotMatch(methodBody(source, 'destroyBattleReportPanel'), /recoverFromLifecycle|reconcileOpeningMulliganPresentation|completeOpeningMulliganReveal|gameState|mulligan/i);
 });
 
 test('floating reveal diagnostic button and automatic overlay creation are removed from BattleScene', () => {
