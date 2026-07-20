@@ -6,6 +6,7 @@ import {
   isBattleExhaustedEligible,
 } from './GameState.js';
 import { getActiveLocale } from '../localization/localeService.js';
+import { loadSettings } from './settingsState.js';
 
 const REPORT_VERSION = 1;
 const REPORT_BOARD_INDEXES = Object.freeze([0, 1, 2, 6, 7, 8]);
@@ -192,6 +193,47 @@ function buildBoard(scene) {
   });
 }
 
+function readAudioContextState(scene) {
+  const state = safe(() => scene?.sound?.context?.state ?? scene?.game?.sound?.context?.state, null);
+  return ['running', 'suspended', 'closed'].includes(state) ? state : 'unknown';
+}
+
+function buildAudio(scene) {
+  const settings = safe(() => loadSettings(), { muted: false, musicVolume: null, sfxVolume: null });
+  const sound = scene?.sound ?? scene?.game?.sound ?? null;
+  const rawEvents = Array.isArray(scene?.battleReportAudioEvents) ? scene.battleReportAudioEvents : [];
+  const recentEvents = rawEvents.slice(Math.max(0, rawEvents.length - 12)).map((event) => ({
+    t: finite(event?.t) ?? 0,
+    name: compactString(event?.name),
+    details: compactEventDetails(event?.details),
+  })).filter((event) => event.name);
+  const diagState = scene?.battleReportAudioState ?? {};
+  return {
+    settings: {
+      muted: bool(settings.muted),
+      musicVolume: finite(settings.musicVolume),
+      sfxVolume: finite(settings.sfxVolume),
+      masterClamp: finite(sound?.volume),
+      loaded: Boolean(settings),
+    },
+    state: {
+      soundSystemAvailable: bool(scene?.sound?.play || scene?.sound?.add || scene?.game?.sound),
+      audioContextState: compactString(diagState.audioContextState) ?? readAudioContextState(scene),
+      gameSoundMuted: typeof sound?.mute === 'boolean' ? sound.mute : null,
+      battleAmbienceActive: bool(scene?.battleReportAudioState?.battleAmbienceActive),
+      battleAmbienceStopping: bool(scene?.battleAmbienceStopping),
+      menuMusicActive: bool(scene?.menuMusic?.isPlaying ?? scene?.activeMenuMusic?.isPlaying),
+      outcomeStingerActive: bool(scene?.activeOutcomeStinger?.sound?.isPlaying ?? diagState.outcomeStingerActive),
+      outcomeStingerKey: compactString(scene?.activeOutcomeStinger?.key ?? diagState.outcomeStingerKey),
+      lastRequestedSfxKey: compactString(diagState.lastRequestedSfxKey),
+      lastSuccessfullyDispatchedSfxKey: compactString(diagState.lastDispatchedSfxKey),
+      lastBlockedOrSkippedSfxKey: compactString(diagState.lastSkippedSfxKey),
+      lastBlockOrSkipReason: compactString(diagState.lastSkipReason),
+      lastAudioEventAtMs: finite(diagState.lastAudioEventAtMs),
+    },
+    recentEvents,
+  };
+}
 
 function compactEventDetails(details) {
   if (!details || typeof details !== 'object' || Array.isArray(details)) return {};
@@ -229,7 +271,7 @@ function buildEvents(scene) {
   })).filter((event) => event.name);
 }
 
-function generateWarnings(scene, { environment, battle, flow, reveal, board }) {
+function generateWarnings(scene, { environment, battle, flow, reveal, board, audio }) {
   const warnings = [];
   const transient = flow.isFlowResolving || flow.isEffectCastResolving || reveal.revealPending || flow.openingMulliganActive;
   if (reveal.retainedRevealBackCount > 0) warnings.push('OPENING_REVEAL_BACKS_REMAIN');
@@ -248,6 +290,12 @@ function generateWarnings(scene, { environment, battle, flow, reveal, board }) {
   if (environment.scenePaused && !(flow.utilityMenuOpen || flow.settingsOverlayOpen || flow.rulesOverlayOpen || flow.battleMenuOverlayOpen || battle.resultModalShown)) warnings.push('BATTLESCENE_PAUSED_WITHOUT_OVERLAY');
   if (battle.playerBaseHp <= 0 && battle.enemyBaseHp <= 0 && battle.winner && battle.winner !== 'draw') warnings.push('SIMULTANEOUS_LETHAL_NOT_DRAW');
   if (scene?.zeroTargetGlobalDamageActionObserved === true) warnings.push('ZERO_TARGET_GLOBAL_DAMAGE_ACTION_OBSERVED');
+  if (reveal.revealSfxPathReached && !reveal.revealSfxDispatchCalled) warnings.push('REVEAL_SFX_REQUESTED_NOT_DISPATCHED');
+  if (audio?.state?.audioContextState === 'suspended' && environment.sceneActive) warnings.push('AUDIO_CONTEXT_SUSPENDED_WHILE_ACTIVE');
+  if (audio?.recentEvents?.some?.((event) => event.name === 'audio-sfx-skipped' && event.details?.reason === 'COOLDOWN_ACTIVE')) warnings.push('SFX_BLOCKED_BY_COOLDOWN');
+  if (audio?.recentEvents?.some?.((event) => event.name === 'audio-sfx-skipped' && event.details?.reason === 'KEY_MISSING')) warnings.push('SFX_KEY_MISSING');
+  if (audio?.recentEvents?.some?.((event) => event.name === 'audio-sfx-skipped' && event.details?.reason === 'ASSET_NOT_LOADED')) warnings.push('SFX_ASSET_NOT_LOADED');
+  if (!battle.resultModalShown && audio?.state?.outcomeStingerActive) warnings.push('OUTCOME_STINGER_ACTIVE_AFTER_RESULT_EXIT');
   return unique(warnings);
 }
 
@@ -260,5 +308,6 @@ export function buildBattleReportSnapshot(scene = null) {
   const reveal = buildReveal(scene);
   const board = buildBoard(scene);
   const events = buildEvents(scene);
-  return { version: REPORT_VERSION, capturedAt, environment, battle: { ...battle, passSurrender }, flow, reveal, board, events, warnings: generateWarnings(scene, { environment, battle, flow, reveal, board }) };
+  const audio = buildAudio(scene);
+  return { version: REPORT_VERSION, capturedAt, environment, battle: { ...battle, passSurrender }, flow, reveal, board, audio, events, warnings: generateWarnings(scene, { environment, battle, flow, reveal, board, audio }) };
 }

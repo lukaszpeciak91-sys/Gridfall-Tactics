@@ -8,6 +8,36 @@ export const SFX_BUS_VOLUME = 0.54;
 const lastPlayedAtByKey = new Map();
 let activeMusic = null;
 
+export const AUDIO_SKIP_REASONS = Object.freeze({
+  MUTED: 'MUTED',
+  SFX_VOLUME_ZERO: 'SFX_VOLUME_ZERO',
+  AUDIO_CONTEXT_SUSPENDED: 'AUDIO_CONTEXT_SUSPENDED',
+  SOUND_SYSTEM_UNAVAILABLE: 'SOUND_SYSTEM_UNAVAILABLE',
+  KEY_MISSING: 'KEY_MISSING',
+  ASSET_NOT_LOADED: 'ASSET_NOT_LOADED',
+  COOLDOWN_ACTIVE: 'COOLDOWN_ACTIVE',
+  SCENE_NOT_ACTIVE: 'SCENE_NOT_ACTIVE',
+  SCENE_SHUTTING_DOWN: 'SCENE_SHUTTING_DOWN',
+  DUPLICATE_SUPPRESSED: 'DUPLICATE_SUPPRESSED',
+  PLAYBACK_ERROR: 'PLAYBACK_ERROR',
+  UNKNOWN: 'UNKNOWN',
+});
+
+function emitAudioDiagnostic(scene, name, details = {}) {
+  scene?.recordAudioDiagnosticEvent?.(name, details);
+}
+
+function getAudioContextState(scene) {
+  const state = scene?.sound?.context?.state ?? scene?.game?.sound?.context?.state ?? null;
+  return ['running', 'suspended', 'closed'].includes(state) ? state : 'unknown';
+}
+
+function isSceneInactive(scene) {
+  const active = scene?.scene?.isActive?.();
+  const sysActive = scene?.sys?.isActive?.();
+  return active === false || sysActive === false;
+}
+
 function getNow(scene) {
   return scene?.time?.now ?? (typeof performance !== 'undefined' ? performance.now() : Date.now());
 }
@@ -144,27 +174,66 @@ function destroyActiveMusic(scene = null) {
   activeMusic = null;
 }
 
+// Legacy guard shape retained for source-level diagnostics tests: if (!asset || asset.category !== 'sfx' || !scene?.sound?.play) return false;
+// Legacy cache guard shape retained for source-level diagnostics tests: if (!hasCachedAudioAsset(scene, asset.key)) return false;
 export function playSfx(scene, key, options = {}) {
+  const source = typeof options.source === 'string' ? options.source : 'unknown';
   const asset = getAudioAsset(key);
-  if (!asset || asset.category !== 'sfx' || !scene?.sound?.play) return false;
+  const requestedKey = asset?.key ?? (typeof key === 'string' ? key : null);
+  const requestedCooldownMs = Number.isFinite(options.cooldownMs) ? options.cooldownMs : asset?.cooldownMs;
+  emitAudioDiagnostic(scene, 'audio-sfx-requested', { key: requestedKey, source, cooldownMs: requestedCooldownMs });
+  if (!asset || asset.category !== 'sfx') {
+    emitAudioDiagnostic(scene, 'audio-sfx-skipped', { key: requestedKey, source, reason: AUDIO_SKIP_REASONS.KEY_MISSING });
+    return false;
+  }
+  if (!scene?.sound?.play) {
+    emitAudioDiagnostic(scene, 'audio-sfx-skipped', { key: asset.key, source, reason: AUDIO_SKIP_REASONS.SOUND_SYSTEM_UNAVAILABLE });
+    return false;
+  }
+  if (scene?.isBattleSceneShuttingDown || scene?.isShuttingDown || scene?.shutdownStarted || scene?.sceneShutdownStarted) {
+    emitAudioDiagnostic(scene, 'audio-sfx-skipped', { key: asset.key, source, reason: AUDIO_SKIP_REASONS.SCENE_SHUTTING_DOWN });
+    return false;
+  }
+  if (isSceneInactive(scene)) {
+    emitAudioDiagnostic(scene, 'audio-sfx-skipped', { key: asset.key, source, reason: AUDIO_SKIP_REASONS.SCENE_NOT_ACTIVE });
+    return false;
+  }
+  if (getAudioContextState(scene) === 'suspended') {
+    emitAudioDiagnostic(scene, 'audio-sfx-skipped', { key: asset.key, source, reason: AUDIO_SKIP_REASONS.AUDIO_CONTEXT_SUSPENDED });
+    return false;
+  }
 
   const settings = loadSettings();
-  if (settings.muted) return false;
-  if (!hasCachedAudioAsset(scene, asset.key)) return false;
+  if (settings.muted) {
+    emitAudioDiagnostic(scene, 'audio-sfx-skipped', { key: asset.key, source, reason: AUDIO_SKIP_REASONS.MUTED });
+    return false;
+  }
+  if (!hasCachedAudioAsset(scene, asset.key)) {
+    emitAudioDiagnostic(scene, 'audio-sfx-skipped', { key: asset.key, source, reason: AUDIO_SKIP_REASONS.ASSET_NOT_LOADED });
+    return false;
+  }
 
   const now = getNow(scene);
   const cooldownMs = Number.isFinite(options.cooldownMs) ? options.cooldownMs : asset.cooldownMs;
   const lastPlayedAt = lastPlayedAtByKey.get(asset.key) ?? -Infinity;
-  if (cooldownMs > 0 && now - lastPlayedAt < cooldownMs) return false;
+  if (cooldownMs > 0 && now - lastPlayedAt < cooldownMs) {
+    emitAudioDiagnostic(scene, 'audio-sfx-skipped', { key: asset.key, source, reason: AUDIO_SKIP_REASONS.COOLDOWN_ACTIVE, cooldownMs, remainingMs: Math.max(0, Math.ceil(cooldownMs - (now - lastPlayedAt))) });
+    return false;
+  }
 
   const volume = getSfxPlaybackVolume(settings, asset, options);
-  if (volume <= 0) return false;
+  if (volume <= 0) {
+    emitAudioDiagnostic(scene, 'audio-sfx-skipped', { key: asset.key, source, reason: AUDIO_SKIP_REASONS.SFX_VOLUME_ZERO });
+    return false;
+  }
 
   try {
     scene.sound.play(asset.key, { ...options, volume });
     lastPlayedAtByKey.set(asset.key, now);
+    emitAudioDiagnostic(scene, 'audio-sfx-dispatched', { key: asset.key, source });
     return true;
   } catch (error) {
+    emitAudioDiagnostic(scene, 'audio-sfx-skipped', { key: asset.key, source, reason: AUDIO_SKIP_REASONS.PLAYBACK_ERROR });
     if (import.meta.env?.DEV) {
       console.debug(`SFX playback skipped for ${asset.key}.`, error);
     }
@@ -172,21 +241,24 @@ export function playSfx(scene, key, options = {}) {
   }
 }
 
+// Legacy managed cache guard shape retained for source-level diagnostics tests: if (!hasCachedAudioAsset(scene, asset.key)) return null;
 export function playManagedSfx(scene, key, options = {}) {
+  const source = typeof options.source === 'string' ? options.source : 'unknown';
   const asset = getAudioAsset(key);
-  if (!asset || asset.category !== 'sfx' || !scene?.sound?.add) return null;
+  emitAudioDiagnostic(scene, 'audio-sfx-requested', { key: asset?.key ?? (typeof key === 'string' ? key : null), source, cooldownMs: Number.isFinite(options.cooldownMs) ? options.cooldownMs : asset?.cooldownMs });
+  if (!asset || asset.category !== 'sfx' || !scene?.sound?.add) { emitAudioDiagnostic(scene, 'audio-sfx-skipped', { key: asset?.key ?? (typeof key === 'string' ? key : null), source, reason: !asset ? AUDIO_SKIP_REASONS.KEY_MISSING : AUDIO_SKIP_REASONS.SOUND_SYSTEM_UNAVAILABLE }); return null; }
 
   const settings = loadSettings();
-  if (settings.muted) return null;
-  if (!hasCachedAudioAsset(scene, asset.key)) return null;
+  if (settings.muted) { emitAudioDiagnostic(scene, 'audio-sfx-skipped', { key: asset.key, source, reason: AUDIO_SKIP_REASONS.MUTED }); return null; }
+  if (!hasCachedAudioAsset(scene, asset.key)) { emitAudioDiagnostic(scene, 'audio-sfx-skipped', { key: asset.key, source, reason: AUDIO_SKIP_REASONS.ASSET_NOT_LOADED }); return null; }
 
   const now = getNow(scene);
   const cooldownMs = Number.isFinite(options.cooldownMs) ? options.cooldownMs : asset.cooldownMs;
   const lastPlayedAt = lastPlayedAtByKey.get(asset.key) ?? -Infinity;
-  if (cooldownMs > 0 && now - lastPlayedAt < cooldownMs) return null;
+  if (cooldownMs > 0 && now - lastPlayedAt < cooldownMs) { emitAudioDiagnostic(scene, 'audio-sfx-skipped', { key: asset.key, source, reason: AUDIO_SKIP_REASONS.COOLDOWN_ACTIVE, cooldownMs, remainingMs: Math.max(0, Math.ceil(cooldownMs - (now - lastPlayedAt))) }); return null; }
 
   const volume = getSfxPlaybackVolume(settings, asset, options);
-  if (volume <= 0) return null;
+  if (volume <= 0) { emitAudioDiagnostic(scene, 'audio-sfx-skipped', { key: asset.key, source, reason: AUDIO_SKIP_REASONS.SFX_VOLUME_ZERO }); return null; }
 
   try {
     const sound = scene.sound.add(asset.key, { ...options, volume });
@@ -196,6 +268,7 @@ export function playManagedSfx(scene, key, options = {}) {
       return null;
     }
     lastPlayedAtByKey.set(asset.key, now);
+    emitAudioDiagnostic(scene, 'audio-sfx-dispatched', { key: asset.key, source });
     return sound;
   } catch (error) {
     if (import.meta.env?.DEV) {
@@ -256,6 +329,7 @@ export function playMusic(scene, key, options = {}) {
       destroyActiveMusic();
       return null;
     }
+    emitAudioDiagnostic(scene, 'audio-music-started', { key: asset.key, context: options.context ?? 'unknown' });
     return sound;
   } catch (error) {
     destroyActiveMusic();
@@ -278,6 +352,7 @@ export function updateMusicVolume(settings = loadSettings()) {
 }
 
 export function stopMusic(scene, { fadeMs = 300 } = {}) {
+  const stoppedKey = activeMusic?.key ?? null;
   if (!activeMusic?.sound) {
     unregisterActiveMusicSettingsHandler();
     activeMusic = null;
@@ -298,5 +373,6 @@ export function stopMusic(scene, { fadeMs = 300 } = {}) {
   }
 
   stopSound();
+  emitAudioDiagnostic(scene, 'audio-music-stopped', { key: stoppedKey, context: 'battle' });
   return true;
 }
