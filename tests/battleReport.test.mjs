@@ -18,7 +18,7 @@ const makeScene = () => ({
 test('BattleScene exposes a thin public battle report snapshot wrapper', () => {
   const source = readFileSync('src/scenes/BattleScene.js', 'utf8');
   assert.match(source, /import \{ buildBattleReportSnapshot \} from '\.\.\/systems\/battleReport\.js';/);
-  assert.match(source, /buildBattleReportSnapshot\(\) \{\s*return buildBattleReportSnapshot\(this\);\s*\}/);
+  assert.match(source, /buildBattleReportSnapshot\(options = \{\}\) \{\s*return buildBattleReportSnapshot\(this, options\);\s*\}/);
 });
 
 test('collector returns stable JSON-serializable shape without mutating scene or GameState', () => {
@@ -33,7 +33,7 @@ test('collector returns stable JSON-serializable shape without mutating scene or
   const snapshot = buildBattleReportSnapshot(scene);
   assert.equal(snapshot.version, 1);
   assert.match(snapshot.capturedAt, /^\d{4}-\d{2}-\d{2}T/);
-  assert.deepEqual(Object.keys(snapshot).sort(), ['audio', 'battle', 'board', 'capturedAt', 'environment', 'events', 'flow', 'reveal', 'version', 'warnings'].sort());
+  assert.deepEqual(Object.keys(snapshot).sort(), ['assets', 'audio', 'battle', 'board', 'capture', 'capturedAt', 'environment', 'events', 'flow', 'reveal', 'scenes', 'summary', 'version', 'warnings'].sort());
   assert.doesNotThrow(() => JSON.stringify(snapshot));
   assert.equal(JSON.stringify(scene.gameState), beforeState);
   assert.deepEqual(Object.keys(scene).sort(), beforeSceneKeys);
@@ -167,4 +167,82 @@ test('BattleScene owns bounded event tracing helpers and high-value instrumentat
   assert.match(source, /recordBattleReportEvent\?\.\('winner-resolved'/);
   assert.match(source, /recordBattleReportEvent\?\.\('result-modal-shown'/);
   assert.doesNotMatch(source, /localStorage\?\.setItem\?\.\([^)]*battleReport/);
+});
+
+test('scene summary is serializable, compact, status-aware, and leaks no scene objects', () => {
+  const scene = makeScene();
+  const mk = (key) => ({ sys: { settings: { key }, isActive: () => ['BattleScene', 'BattleMenuScene', 'SettingsScene', 'RulesPanelScene'].includes(key), isPaused: () => key === 'BattleScene', isSleeping: () => key === 'RulesPanelScene' }, secretObject: { leak: true } });
+  const managerScenes = [mk('BootScene'), mk('BattleScene'), mk('BattleMenuScene'), mk('SettingsScene'), mk('RulesPanelScene')];
+  scene.scene = {
+    manager: {
+      scenes: managerScenes,
+      getScenes: (active) => (active ? managerScenes.slice(1, 4) : managerScenes),
+      isActive: (key) => ['BattleScene', 'BattleMenuScene', 'SettingsScene', 'RulesPanelScene'].includes(key),
+      isPaused: (key) => key === 'BattleScene',
+      isSleeping: (key) => key === 'RulesPanelScene',
+    },
+    isActive: (key) => key ? ['BattleMenuScene', 'SettingsScene', 'RulesPanelScene'].includes(key) : true,
+    isPaused: () => true,
+  };
+  const snapshot = buildBattleReportSnapshot(scene);
+  assert.equal(snapshot.scenes.topSceneKey, 'SettingsScene');
+  assert.deepEqual(snapshot.scenes.pausedSceneKeys, ['BattleScene']);
+  assert.ok(snapshot.scenes.activeSceneKeys.includes('BattleMenuScene'));
+  assert.ok(snapshot.scenes.sleepingSceneKeys.includes('RulesPanelScene'));
+  assert.deepEqual(snapshot.scenes.overlays, { battleMenu: true, settings: true, rules: true });
+  assert.deepEqual(snapshot.scenes.battleScene, { active: true, paused: true, sleeping: false });
+  assert.doesNotThrow(() => JSON.stringify(snapshot.scenes));
+  assert.equal(JSON.stringify(snapshot).includes('secretObject'), false);
+});
+
+test('missing scene manager does not throw and no-argument collector call still works', () => {
+  assert.doesNotThrow(() => buildBattleReportSnapshot());
+  const snapshot = buildBattleReportSnapshot({ scene: null, gameState: { player: {}, enemy: {}, board: [] } });
+  assert.equal(snapshot.scenes.topSceneKey, null);
+  assert.deepEqual(snapshot.scenes.activeSceneKeys, []);
+  assert.equal(snapshot.capture.captureSource, 'unknown');
+});
+
+test('battle identity, capture metadata, phases, and summary fields are compact and aligned', () => {
+  const scene = makeScene();
+  scene.sessionBattleSequenceNumber = 7;
+  scene.battleTransitionLaunchId = 'launch-abc';
+  scene.battleContext = { mode: 'arena', battlegroundId: 'b03', seed: 'seed-1' };
+  scene.battleReportStartedAt = Date.now() - 25;
+  scene.battleSceneCreatedAt = new Date(scene.battleReportStartedAt).toISOString();
+  scene.currentActionableSide = 'player';
+  let snapshot = buildBattleReportSnapshot(scene, { captureSource: 'battle-menu-manual' });
+  assert.equal(snapshot.battle.sessionBattleSequenceNumber, 7);
+  assert.equal(snapshot.battle.battleTransitionLaunchId, 'launch-abc');
+  assert.equal(snapshot.battle.battlegroundId, 'b03');
+  assert.equal(Number.isFinite(snapshot.battle.sceneElapsedMs), true);
+  assert.ok(snapshot.battle.sceneElapsedMs >= 0);
+  assert.equal(snapshot.capture.captureSource, 'battle-menu-manual');
+  assert.equal(snapshot.capture.phases.playerAction, true);
+  assert.equal(snapshot.summary.battleSequence, snapshot.battle.sessionBattleSequenceNumber);
+  assert.equal(snapshot.summary.battlegroundId, snapshot.battle.battlegroundId);
+  assert.deepEqual(snapshot.summary.battleSceneStatus, snapshot.scenes.battleScene);
+
+  scene.openingMulliganPending = true;
+  assert.equal(buildBattleReportSnapshot(scene).capture.phases.openingMulligan, true);
+  scene.openingMulliganPending = false; scene.combatInProgress = true;
+  assert.equal(buildBattleReportSnapshot(scene).capture.phases.combat, true);
+  scene.combatInProgress = false; scene.gameState.winner = 'player';
+  assert.equal(buildBattleReportSnapshot(scene).capture.phases.resultFlow, true);
+  scene.scene = { isActive: () => true, isPaused: () => true };
+  assert.equal(buildBattleReportSnapshot(scene).capture.phases.pausedOverlay, true);
+});
+
+test('asset failures are confirmed, bounded, include card-art fallback, and reuse audio diagnostics without scanning', () => {
+  const scene = makeScene();
+  scene.textureScanWouldThrow = () => { throw new Error('scan'); };
+  scene.battleReportAssetFailures = Array.from({ length: 10 }, (_, i) => ({ t: i, type: 'card-art', cardId: `c${i}`, key: `k${i}`, reason: 'STANDARDIZED_CARD_ART_MISSING', object: { leak: true } }));
+  scene.battleReportAudioEvents = [{ t: 12, name: 'audio-sfx-skipped', details: { key: 'sfx.missing', reason: 'ASSET_NOT_LOADED', fullObject: { leak: true } } }];
+  const snapshot = buildBattleReportSnapshot(scene);
+  assert.equal(snapshot.assets.recentFailures.length, 8);
+  assert.ok(snapshot.assets.recentFailures.some((failure) => failure.type === 'audio' && failure.key === 'sfx.missing'));
+  assert.ok(snapshot.assets.recentFailures.some((failure) => failure.cardId === 'c9'));
+  assert.equal(JSON.stringify(snapshot.assets).includes('fullObject'), false);
+  assert.equal(JSON.stringify(snapshot.assets).includes('object'), false);
+  assert.ok(JSON.stringify(snapshot).length < 15_000);
 });

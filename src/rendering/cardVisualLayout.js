@@ -1020,9 +1020,20 @@ export function createArtPlaceholder(scene, zone) {
 
 function getCardArtTextureKey(scene, card, { enableCardIllustration = false } = {}) {
   const explicitTextureKey = card?.artTextureKey ?? card?.artKey ?? card?.art?.textureKey ?? null;
-  if (explicitTextureKey) return explicitTextureKey;
+  if (explicitTextureKey) {
+    if (!scene?.textures?.exists?.(explicitTextureKey)) {
+      scene?.recordAssetFailureDiagnostic?.({ type: 'card-art', cardId: card?.id ?? card?.cardId, key: explicitTextureKey, reason: 'TEXTURE_NOT_LOADED' });
+    }
+    return explicitTextureKey;
+  }
 
-  return enableCardIllustration ? getLoadedCardIllustrationTextureKey(scene, card) : null;
+  if (!enableCardIllustration) return null;
+  const asset = getCardIllustrationAsset(card);
+  const loadedKey = getLoadedCardIllustrationTextureKey(scene, card);
+  if (!loadedKey && asset?.key) {
+    scene?.recordAssetFailureDiagnostic?.({ type: 'card-art', cardId: asset.cardId ?? card?.id ?? card?.cardId, key: asset.key, reason: 'STANDARDIZED_CARD_ART_MISSING' });
+  }
+  return loadedKey;
 }
 
 export function calculateCardArtworkCoverPosition(zone, sourceWidth = 512, sourceHeight = 768, options = {}) {

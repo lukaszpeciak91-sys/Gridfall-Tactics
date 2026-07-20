@@ -43,6 +43,48 @@ export function readDisplayedBoardStats(scene, boardIndex) {
   };
 }
 
+function readSceneKey(scene) {
+  return compactString(scene?.sys?.settings?.key ?? scene?.scene?.key ?? scene?.key);
+}
+
+function readSceneManager(scene) {
+  return safe(() => scene?.scene?.manager ?? scene?.sys?.game?.scene ?? scene?.game?.scene, null);
+}
+
+function sceneStatus(manager, key, methodName, propName) {
+  return bool(safe(() => manager?.[methodName]?.(key), false) || safe(() => manager?.getScene?.(key)?.sys?.[propName]?.(), false));
+}
+
+function buildScenes(scene) {
+  const manager = readSceneManager(scene);
+  const allScenes = Array.isArray(manager?.scenes) ? manager.scenes : [];
+  const entries = allScenes.map((entry) => readSceneKey(entry)).filter(Boolean).slice(-12);
+  const activeSceneKeys = entries.filter((key) => sceneStatus(manager, key, 'isActive', 'isActive'));
+  const pausedSceneKeys = entries.filter((key) => sceneStatus(manager, key, 'isPaused', 'isPaused'));
+  const sleepingSceneKeys = entries.filter((key) => sceneStatus(manager, key, 'isSleeping', 'isSleeping'));
+  const topSceneKey = compactString(safe(() => manager?.getScenes?.(true)?.at?.(-1)?.sys?.settings?.key, null))
+    ?? activeSceneKeys.at(-1)
+    ?? entries.at(-1)
+    ?? null;
+  const battleKey = 'BattleScene';
+  return {
+    topSceneKey,
+    activeSceneKeys,
+    pausedSceneKeys,
+    sleepingSceneKeys,
+    battleScene: {
+      active: activeSceneKeys.includes(battleKey) || bool(safe(() => scene?.scene?.isActive?.(), scene?.sys?.isActive?.() ?? false)),
+      paused: pausedSceneKeys.includes(battleKey) || bool(safe(() => scene?.scene?.isPaused?.(), scene?.sys?.isPaused?.() ?? false)),
+      sleeping: sleepingSceneKeys.includes(battleKey),
+    },
+    overlays: {
+      battleMenu: activeSceneKeys.includes('BattleMenuScene') || bool(safe(() => scene?.scene?.isActive?.('BattleMenuScene'), false)),
+      settings: activeSceneKeys.includes('SettingsScene') || bool(safe(() => scene?.scene?.isActive?.('SettingsScene'), false)),
+      rules: activeSceneKeys.includes('RulesPanelScene') || bool(safe(() => scene?.scene?.isActive?.('RulesPanelScene'), false)),
+    },
+  };
+}
+
 function buildEnvironment(scene, capturedAt) {
   const win = safe(() => globalThis.window, null);
   const doc = safe(() => globalThis.document, null);
@@ -61,7 +103,7 @@ function buildEnvironment(scene, capturedAt) {
     sceneActive: bool(safe(() => scene?.scene?.isActive?.(), scene?.sys?.isActive?.() ?? false)),
     scenePaused: bool(safe(() => scene?.scene?.isPaused?.(), scene?.sys?.isPaused?.() ?? false)),
     sceneShutdown: bool(scene?.isShuttingDown ?? scene?.shutdownStarted ?? scene?.sceneShutdownStarted),
-    battleSequence: finite(scene?.battleSequence ?? scene?.sessionBattleSequence ?? scene?.battleSessionSequence),
+    battleSequence: finite(scene?.battleSequence ?? scene?.sessionBattleSequence ?? scene?.battleSessionSequence ?? scene?.sessionBattleSequenceNumber),
     latestLifecycleReason: compactString(scene?.openingRevealDiagLatestLifecycleReason ?? scene?.latestLifecycleRecoveryReason ?? scene?.lifecycleRecoveryReason),
   };
 }
@@ -71,6 +113,14 @@ function buildBattle(scene) {
   const mode = ['campaign', 'arena', 'tutorial'].includes(scene?.battleContext?.mode) ? scene.battleContext.mode : (scene?.battleContext?.mode ? 'other' : null);
   return {
     mode,
+    sessionBattleSequenceNumber: finite(scene?.sessionBattleSequenceNumber),
+    battleTransitionLaunchId: compactString(scene?.battleTransitionLaunchId ?? scene?.transitionLaunchId),
+    battlegroundId: compactString(scene?.battleContext?.battlegroundId ?? scene?.battlegroundId),
+    battleSceneCreatedAt: compactString(scene?.battleSceneCreatedAt ?? scene?.createdAt),
+    sceneElapsedMs: finite(safe(() => scene?.getBattleReportElapsedMs?.(), null)) ?? finite(Date.now() - (scene?.battleReportStartedAt ?? scene?.battleSceneCreatedAtMs)),
+    battleStartedAt: compactString(scene?.battleStartedAt),
+    activeBattleElapsedMs: finite(scene?.activeBattleElapsedMs ?? safe(() => scene?.getActiveBattleElapsedMs?.(), null)),
+    deterministicSeed: compactString(scene?.runtimeSeed ?? scene?.battleContext?.seed ?? scene?.gameState?.seed),
     playerFactionKey: compactString(state?.player?.factionKey ?? scene?.factionKey),
     enemyFactionKey: compactString(state?.enemy?.factionKey ?? scene?.enemyFactionKey),
     turnNumber: finite(state?.turn ?? state?.turnNumber),
@@ -271,6 +321,59 @@ function buildEvents(scene) {
   })).filter((event) => event.name);
 }
 
+
+function buildCapture(scene, capturedAt, options = {}, flow = {}) {
+  const source = compactString(options?.captureSource) ?? 'unknown';
+  const inCombat = bool(scene?.combatInProgress ?? scene?.isCombatResolving ?? scene?.currentCombatAnimation ?? flow.isFlowResolving);
+  const duringResult = bool(scene?.battleResultModalPending ?? scene?.battleResultModalShown ?? scene?.gameState?.winner);
+  const duringAi = bool(scene?.aiActionInProgress ?? scene?.enemyActionResolving ?? scene?.currentActionableSide === 'enemy' ?? scene?.gameState?.currentActor === 'enemy');
+  const duringOpening = bool(scene?.openingMulliganPending || scene?.openingMulliganRevealPending);
+  const pausedOverlay = bool(flow.utilityMenuOpen || flow.settingsOverlayOpen || flow.rulesOverlayOpen || flow.battleMenuOverlayOpen || scene?.scene?.isPaused?.());
+  return {
+    captureSource: source,
+    capturedAt,
+    sceneElapsedMs: finite(safe(() => scene?.getBattleReportElapsedMs?.(), null)) ?? finite(Date.now() - (scene?.battleReportStartedAt ?? Date.now())),
+    phases: {
+      openingMulligan: duringOpening,
+      playerAction: bool(!duringOpening && !duringAi && !inCombat && !duringResult && (scene?.currentActionableSide === 'player' || scene?.gameState?.currentActor === 'player')),
+      aiAction: duringAi,
+      combat: inCombat,
+      resultFlow: duringResult,
+      pausedOverlay,
+    },
+  };
+}
+
+function buildAssets(scene, audio) {
+  const recorded = Array.isArray(scene?.battleReportAssetFailures) ? scene.battleReportAssetFailures : [];
+  const recentRecorded = recorded.slice(-8).map((item) => ({
+    t: finite(item?.t) ?? 0,
+    type: compactString(item?.type),
+    cardId: compactString(item?.cardId),
+    key: compactString(item?.key),
+    reason: compactString(item?.reason),
+  })).filter((item) => item.type && item.reason);
+  const audioFailures = (audio?.recentEvents ?? [])
+    .filter((event) => event.name === 'audio-sfx-skipped' && ['KEY_MISSING', 'ASSET_NOT_LOADED'].includes(event.details?.reason))
+    .map((event) => ({ t: finite(event.t) ?? 0, type: 'audio', key: compactString(event.details?.key), reason: compactString(event.details?.reason) }))
+    .filter((item) => item.key);
+  return { recentFailures: [...recentRecorded, ...audioFailures].slice(-8) };
+}
+
+function buildSummary({ warnings, battle, scenes }) {
+  return {
+    warningCount: count(warnings),
+    mode: battle.mode,
+    battleSequence: battle.sessionBattleSequenceNumber,
+    turn: battle.turnNumber,
+    playerFaction: battle.playerFactionKey,
+    enemyFaction: battle.enemyFactionKey,
+    battlegroundId: battle.battlegroundId,
+    topSceneKey: scenes.topSceneKey,
+    battleSceneStatus: { ...scenes.battleScene },
+  };
+}
+
 function generateWarnings(scene, { environment, battle, flow, reveal, board, audio }) {
   const warnings = [];
   const transient = flow.isFlowResolving || flow.isEffectCastResolving || reveal.revealPending || flow.openingMulliganActive;
@@ -299,7 +402,7 @@ function generateWarnings(scene, { environment, battle, flow, reveal, board, aud
   return unique(warnings);
 }
 
-export function buildBattleReportSnapshot(scene = null) {
+export function buildBattleReportSnapshot(scene = null, options = {}) {
   const capturedAt = new Date().toISOString();
   const environment = buildEnvironment(scene, capturedAt);
   const battle = buildBattle(scene);
@@ -309,5 +412,11 @@ export function buildBattleReportSnapshot(scene = null) {
   const board = buildBoard(scene);
   const events = buildEvents(scene);
   const audio = buildAudio(scene);
-  return { version: REPORT_VERSION, capturedAt, environment, battle: { ...battle, passSurrender }, flow, reveal, board, audio, events, warnings: generateWarnings(scene, { environment, battle, flow, reveal, board, audio }) };
+  const scenes = buildScenes(scene);
+  const capture = buildCapture(scene, capturedAt, options, flow);
+  const assets = buildAssets(scene, audio);
+  const battleWithPass = { ...battle, passSurrender };
+  const warnings = generateWarnings(scene, { environment, battle, flow, reveal, board, audio });
+  const summary = buildSummary({ warnings, battle: battleWithPass, scenes });
+  return { version: REPORT_VERSION, capturedAt, environment, battle: battleWithPass, flow, reveal, board, audio, scenes, capture, assets, events, warnings, summary };
 }
