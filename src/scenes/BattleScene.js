@@ -36,6 +36,7 @@ import { getCardBoardArtPositionY } from '../data/presentation/cardArtCropOverri
 import { AUDIO_KEYS, preloadAudioAssets } from '../audio/audioAssets.js';
 import { playManagedSfx, playMusic, playSfx, stopManagedSfx, stopMusic } from '../audio/audioPlayback.js';
 import { BATTLE_SCENE_VISUALLY_READY_EVENT, restartBattleScene } from './battleEntryRouter.js';
+import { buildBattleReportSnapshot } from '../systems/battleReport.js';
 
 const HAND_BACK_CARD_ASSET = Object.freeze({
   key: 'ui.card.back',
@@ -11504,6 +11505,10 @@ export default class BattleScene extends Phaser.Scene {
     this.drawHand();
     this.startHandCardFlipReveals(revealBackCards);
     if (this.openingMulliganRevealPending) this.startOpeningMulliganReveal();
+  }
+
+  buildBattleReportSnapshot() {
+    return buildBattleReportSnapshot(this);
   }
 
   getBoardUnitStats(unit, boardIndex = null, statOverride = null) {
