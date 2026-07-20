@@ -67,13 +67,29 @@ test('transition-deferred opening reveal has a launch-id scoped lost-handoff gua
 
   assert.match(create, /this\.emitBattleVisuallyReady\(\);\s*this\.scheduleOpeningRevealTransitionHandoffGuard\(\);\s*this\.time\.delayedCall\(560, \(\) => this\.startBattleAmbience\(\)\);/);
   assert.match(scheduleGuard, /if \(!this\.waitForBattleTransitionPresentation \|\| !this\.battleTransitionLaunchId \|\| !this\.time\?\.delayedCall\) return false;/, 'guard exists only for transition-deferred battles');
-  assert.match(scheduleGuard, /const launchId = this\.battleTransitionLaunchId;[\s\S]*OPENING_REVEAL_TRANSITION_HANDOFF_GUARD_MS[\s\S]*this\.runOpeningRevealTransitionHandoffGuard\(\{ battleTransitionLaunchId: launchId \}\);/, 'guard is one-shot and launch-id scoped');
-  assert.match(scheduleGuard, /if \(battleTransitionLaunchId !== this\.battleTransitionLaunchId\) return false;/, 'guard validates current launch id');
-  assert.match(scheduleGuard, /if \(this\.openingMulliganPending !== true \|\| this\.openingMulliganRevealPending !== true\) return false;/, 'guard requires pending opening reveal');
-  assert.match(scheduleGuard, /if \(this\.openingBattlePresentationStarted\) return false;/, 'guard cannot schedule twice after normal handoff');
-  assert.match(scheduleGuard, /if \(this\.hasOpeningMulliganRevealMachinery\(\)\) return false;/, 'guard does not run while reveal machinery exists');
-  assert.match(scheduleGuard, /return this\.beginOpeningBattlePresentation\(\{ battleTransitionLaunchId \}\);/, 'guard uses the validated public opening entry point');
+  assert.match(scheduleGuard, /const launchId = this\.battleTransitionLaunchId;[\s\S]*transition-handoff-failsafe-scheduled[\s\S]*OPENING_REVEAL_TRANSITION_HANDOFF_GUARD_MS[\s\S]*this\.runOpeningRevealTransitionHandoffGuard\(\{ battleTransitionLaunchId: launchId \}\);/, 'guard is one-shot and launch-id scoped');
+  assert.match(scheduleGuard, /if \(battleTransitionLaunchId !== this\.battleTransitionLaunchId\) return 'LAUNCH_ID_MISMATCH';/, 'guard validates current launch id');
+  assert.match(scheduleGuard, /this\.waitForBattleTransitionPresentation !== true \|\| this\.openingMulliganPending !== true \|\| this\.openingMulliganRevealPending !== true[\s\S]*return 'OPENING_STATE_ENDED';/, 'guard requires pending opening reveal');
+  assert.match(scheduleGuard, /if \(this\.openingBattlePresentationStarted\) return 'ALREADY_STARTED';/, 'guard cannot schedule twice after normal handoff');
+  assert.match(scheduleGuard, /if \(this\.hasOpeningMulliganRevealMachinery\(\)\) return 'REVEAL_ALREADY_SCHEDULED';/, 'guard does not run while reveal machinery exists');
+  assert.match(scheduleGuard, /transition-handoff-failsafe-fired[\s\S]*this\.openingRevealTransitionHandoffGuardFiredLaunchId = battleTransitionLaunchId;[\s\S]*return this\.beginOpeningBattlePresentation\(\{ battleTransitionLaunchId \}\);/, 'guard records and uses the validated public opening entry point');
   assert.match(beginPresentation, /this\.waitForBattleTransitionPresentation && battleTransitionLaunchId !== this\.battleTransitionLaunchId[\s\S]*return false;[\s\S]*this\.clearOpeningRevealTransitionHandoffGuard\(\);[\s\S]*this\.openingBattlePresentationStarted = true;/, 'normal launch-id validation remains authoritative before clearing guard');
+});
+
+
+
+test('transition handoff fail-safe documents exact guard matrix and non-recovery behavior', () => {
+  const scheduleGuard = extractMethodBody('scheduleOpeningRevealTransitionHandoffGuard', 'scheduleOpeningRevealDiagnosticFallbackCheck');
+  assert.match(source, /OPENING_REVEAL_TRANSITION_HANDOFF_GUARD_MS = 1200;/, 'handoff boundary stays just above normal 810ms transition completion');
+  assert.match(scheduleGuard, /return 'SCENE_INVALID'/);
+  assert.match(scheduleGuard, /return 'LAUNCH_ID_MISMATCH'/);
+  assert.match(scheduleGuard, /openingRevealTransitionHandoffGuardFiredLaunchId === battleTransitionLaunchId[\s\S]*return 'ALREADY_STARTED'/);
+  assert.match(scheduleGuard, /return 'OPENING_STATE_ENDED'/);
+  assert.match(scheduleGuard, /gameState\?\.winner \|\| this\.battleResultModalPending \|\| this\.battleResultModalShown \|\| this\.isFlowResolving[\s\S]*return 'RESULT_ACTIVE'/);
+  assert.match(scheduleGuard, /return 'REVEAL_ALREADY_SCHEDULED'/);
+  assert.match(scheduleGuard, /transition-handoff-failsafe-skipped/);
+  assert.doesNotMatch(scheduleGuard, /startOpeningMulliganReveal\(/);
+  assert.doesNotMatch(scheduleGuard, /reconcileOpeningMulliganPresentation|recoverFromLifecycle|completeOpeningMulliganReveal/);
 });
 
 test('opening mulligan reveal blocks selection, inspect, and confirm input', () => {
