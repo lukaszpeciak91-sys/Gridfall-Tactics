@@ -545,42 +545,60 @@ test('System Override self-damage fires death triggers when it kills the target'
   assert.equal(state.enemy.fallen[0].reason, 'combat-death');
 });
 
-test('simultaneous lethal uses raw overkill depth so -1 HP beats -4 HP', () => {
-  const state = makeState();
-  state.playerHP = 5;
-  state.enemyHP = 1;
-  state.board[6] = unit('player', { attack: 5 });
-  state.board[1] = unit('enemy', { attack: 6 });
-
-  const events = resolveCombat(state);
-
-  assert.deepEqual(events.map((event) => [event.lane, event.attackerSide, event.targetSide, event.damage]), [
-    [0, 'player', 'enemy', 5],
-    [1, 'enemy', 'player', 6],
-  ]);
+const assertSimultaneousBaseDestructionDraw = (state, expectedRawPlayerHP, expectedRawEnemyHP) => {
   assert.equal(state.heroDeathResolution.simultaneousLethal, true);
-  assert.equal(state.heroDeathResolution.rawPlayerHP, -1);
-  assert.equal(state.heroDeathResolution.rawEnemyHP, -4);
-  assert.equal(state.heroDeathResolution.resolvedBy, 'higher-raw-hero-hp');
+  assert.equal(state.heroDeathResolution.rawPlayerHP, expectedRawPlayerHP);
+  assert.equal(state.heroDeathResolution.rawEnemyHP, expectedRawEnemyHP);
+  assert.equal(state.heroDeathResolution.resolvedBy, 'simultaneous-base-destruction-draw');
   assert.equal(state.playerHP, 0);
   assert.equal(state.enemyHP, 0);
-  assert.equal(state.winner, 'player');
+  assert.equal(state.winner, 'draw');
+};
+
+test('simultaneous base destruction is always a draw regardless of raw overkill depth', () => {
+  const cases = [
+    { name: 'player 0 enemy -1', playerHP: 2, enemyHP: 3, playerAttack: 4, enemyAttack: 2, rawPlayerHP: 0, rawEnemyHP: -1 },
+    { name: 'player -1 enemy 0', playerHP: 3, enemyHP: 2, playerAttack: 2, enemyAttack: 4, rawPlayerHP: -1, rawEnemyHP: 0 },
+    { name: 'both exactly 0', playerHP: 2, enemyHP: 4, playerAttack: 4, enemyAttack: 2, rawPlayerHP: 0, rawEnemyHP: 0 },
+    { name: 'both equal negative', playerHP: 2, enemyHP: 2, playerAttack: 4, enemyAttack: 4, rawPlayerHP: -2, rawEnemyHP: -2 },
+    { name: 'both unequal negative', playerHP: 5, enemyHP: 1, playerAttack: 5, enemyAttack: 6, rawPlayerHP: -1, rawEnemyHP: -4 },
+  ];
+
+  for (const scenario of cases) {
+    const state = makeState();
+    state.playerHP = scenario.playerHP;
+    state.enemyHP = scenario.enemyHP;
+    state.board[6] = unit('player', { attack: scenario.playerAttack });
+    state.board[1] = unit('enemy', { attack: scenario.enemyAttack });
+
+    resolveCombat(state);
+
+    assertSimultaneousBaseDestructionDraw(state, scenario.rawPlayerHP, scenario.rawEnemyHP, scenario.name);
+  }
 });
 
-test('simultaneous lethal with equal raw overkill depth remains a draw', () => {
-  const state = makeState();
-  state.playerHP = 2;
-  state.enemyHP = 2;
-  state.board[6] = unit('player', { attack: 4 });
-  state.board[1] = unit('enemy', { attack: 4 });
+test('simultaneous base destruction draw is not affected by first actor or lane relocation', () => {
+  const firstActorState = makeState();
+  firstActorState.firstActor = 'enemy';
+  firstActorState.playerHP = 2;
+  firstActorState.enemyHP = 3;
+  firstActorState.board[6] = unit('player', { attack: 4 });
+  firstActorState.board[1] = unit('enemy', { attack: 2 });
 
-  resolveCombat(state);
+  resolveCombat(firstActorState);
 
-  assert.equal(state.heroDeathResolution.simultaneousLethal, true);
-  assert.equal(state.heroDeathResolution.rawPlayerHP, -2);
-  assert.equal(state.heroDeathResolution.rawEnemyHP, -2);
-  assert.equal(state.heroDeathResolution.resolvedBy, 'equal-raw-hero-hp');
-  assert.equal(state.winner, 'draw');
+  assertSimultaneousBaseDestructionDraw(firstActorState, 0, -1);
+
+  const laneRelocationState = makeState();
+  laneRelocationState.playerHP = 2;
+  laneRelocationState.enemyHP = 3;
+  laneRelocationState.board[8] = unit('player', { attack: 4 });
+  laneRelocationState.board[0] = unit('enemy', { attack: 1 });
+  laneRelocationState.board[1] = unit('enemy', { attack: 1 });
+
+  resolveCombat(laneRelocationState);
+
+  assertSimultaneousBaseDestructionDraw(laneRelocationState, 0, -1);
 });
 
 test('single-hero combat lethal is unchanged', () => {
@@ -628,7 +646,47 @@ test('simultaneous lethal still applies both hero attacks before winner resoluti
   ]);
   assert.equal(state.heroDeathResolution.rawPlayerHP, -1);
   assert.equal(state.heroDeathResolution.rawEnemyHP, -2);
-  assert.equal(state.winner, 'player');
+  assert.equal(state.heroDeathResolution.resolvedBy, 'simultaneous-base-destruction-draw');
+  assert.equal(state.winner, 'draw');
+});
+
+test('immediate combat simultaneous base destruction is a draw', () => {
+  const state = makeState();
+  const quickStrike = {
+    id: 'quick-strike-double-lethal',
+    name: 'Quick Strike',
+    type: 'special',
+    targeting: 'friendly_unit',
+    effectId: 'quick_strike',
+  };
+  state.player.hand.push(quickStrike);
+  state.playerHP = 1;
+  state.enemyHP = 1;
+  state.board[7] = unit('player', { id: 'trigger-ally', attack: 1, hp: 1, maxHp: 1, effectId: 'combat_death_damage_both_heroes_1' });
+  state.board[1] = unit('enemy', { id: 'trigger-enemy', attack: 1, hp: 1, maxHp: 1 });
+
+  const result = resolveTargetedEffectCard(state, 'player', quickStrike.id, 7);
+
+  assert.equal(result.ok, true);
+  assert.equal(state.heroDeathResolution.rawPlayerHP, 0);
+  assert.equal(state.heroDeathResolution.rawEnemyHP, 0);
+  assert.equal(state.heroDeathResolution.resolvedBy, 'simultaneous-base-destruction-draw');
+  assert.equal(state.winner, 'draw');
+});
+
+test('death-trigger-assisted simultaneous base destruction is a draw', () => {
+  const state = makeState();
+  state.playerHP = 1;
+  state.enemyHP = 1;
+  state.board[6] = unit('player', { id: 'abomination', attack: 0, hp: 1, maxHp: 1, effectId: 'combat_death_damage_both_heroes_1' });
+  state.board[0] = unit('enemy', { id: 'killer', attack: 1, hp: 2, maxHp: 2 });
+
+  resolveCombat(state);
+
+  assert.equal(state.heroDeathResolution.rawPlayerHP, 0);
+  assert.equal(state.heroDeathResolution.rawEnemyHP, 0);
+  assert.equal(state.heroDeathResolution.resolvedBy, 'simultaneous-base-destruction-draw');
+  assert.equal(state.winner, 'draw');
 });
 
 test('Last Stand combat prevention payload explains lethal damage clamped to 1 HP', () => {

@@ -516,7 +516,6 @@
       "swapPromptSelectAdjacent": "ZAMIEŃ: wybierz sąsiada",
       "effect": "Efekt",
       "block": "BLOK",
-
       "protectionFeedback": {
         "stability": "STABILNOŚĆ",
         "lastStand": "OSTATNI BASTION",
@@ -633,7 +632,8 @@
         {
           "heading": "Cel gry",
           "lines": [
-            "Zniszcz bazę przeciwnika, zanim przeciwnik zniszczy twoją."
+            "Zniszcz bazę przeciwnika, zanim przeciwnik zniszczy twoją.",
+            "Jeśli obie Bazy zostaną zniszczone podczas tego samego rozliczenia walki, bitwa kończy się remisem."
           ]
         },
         {

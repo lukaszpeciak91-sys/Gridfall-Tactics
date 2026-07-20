@@ -573,12 +573,8 @@ function clampHeroHpAndResolveWinner(state) {
 
   if (playerDead || enemyDead) {
     if (playerDead && enemyDead) {
-      if (rawPlayerHP > rawEnemyHP) state.winner = 'player';
-      else if (rawEnemyHP > rawPlayerHP) state.winner = 'enemy';
-      else state.winner = 'draw';
-      state.heroDeathResolution.resolvedBy = state.winner === 'draw'
-        ? 'equal-raw-hero-hp'
-        : 'higher-raw-hero-hp';
+      state.winner = 'draw';
+      state.heroDeathResolution.resolvedBy = 'simultaneous-base-destruction-draw';
     } else {
       state.winner = playerDead ? 'enemy' : 'player';
       state.heroDeathResolution.resolvedBy = 'single-hero-lethal';
