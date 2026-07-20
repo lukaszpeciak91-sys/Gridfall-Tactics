@@ -38,5 +38,5 @@ test('BattleTransitionScene exits with a cinematic crossfade instead of CRT band
 
 test('BattleTransitionScene records transition handoff immediately before opening presentation start', () => {
   const source = read('src/scenes/BattleTransitionScene.js');
-  assert.match(source, /const battleScene = this\.scene\.get\(BATTLE_SCENE_KEY\);\s*battleScene\?\.recordBattleReportEvent\?\.\('transition-handoff-received', \{ transitionLaunchId: launchId \}\);\s*battleScene\?\.beginOpeningBattlePresentation\?\.\(\{ battleTransitionLaunchId: launchId \}\);/);
+  assert.match(source, /const battleScene = this\.scene\.get\(BATTLE_SCENE_KEY\);\s*battleScene\?\.recordBattleReportEvent\?\.\('transition-handoff-received', \{ transitionLaunchId: launchId, source: 'battle-transition' \}\);\s*battleScene\?\.beginOpeningBattlePresentation\?\.\(\{ battleTransitionLaunchId: launchId \}\);/);
 });

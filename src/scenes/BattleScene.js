@@ -327,7 +327,7 @@ const OPENING_REVEAL_DIAG_STORAGE_KEY = 'gridfall:tactics:debug:opening-reveal:l
 const OPENING_REVEAL_DIAG_BUFFER_LIMIT = 64;
 const OPENING_REVEAL_DIAG_FAILURE_DELAY_MS = 2800;
 const OPENING_REVEAL_DIAG_FALLBACK_DELAY_MS = 3800;
-const OPENING_REVEAL_TRANSITION_HANDOFF_GUARD_MS = 9000;
+const OPENING_REVEAL_TRANSITION_HANDOFF_GUARD_MS = 1200;
 const BATTLE_REPORT_EVENT_BUFFER_LIMIT = 32;
 const BATTLE_REPORT_AUDIO_EVENT_BUFFER_LIMIT = 12;
 const BATTLE_REPORT_EVENT_DEDUPE_WINDOW_MS = 200;
@@ -383,6 +383,7 @@ export default class BattleScene extends Phaser.Scene {
     this.openingRevealDiagFailureTimer = null;
     this.openingRevealTransitionHandoffGuardTimer = null;
     this.openingRevealTransitionHandoffGuardLaunchId = null;
+    this.openingRevealTransitionHandoffGuardFiredLaunchId = null;
     this.openingRevealDiagButton = null;
     this.openingRevealDiagOverlay = null;
     this.openingRevealDiagLifecycleHandlers = null;
@@ -1193,7 +1194,8 @@ export default class BattleScene extends Phaser.Scene {
     if (this.openingRevealTransitionHandoffGuardTimer) return false;
     const launchId = this.battleTransitionLaunchId;
     this.openingRevealTransitionHandoffGuardLaunchId = launchId;
-    this.logOpeningRevealDiag('transition-handoff-guard-scheduled', { transitionLaunchId: launchId, delay: OPENING_REVEAL_TRANSITION_HANDOFF_GUARD_MS });
+    this.recordBattleReportEvent?.('transition-handoff-failsafe-scheduled', { transitionLaunchId: launchId, delay: OPENING_REVEAL_TRANSITION_HANDOFF_GUARD_MS });
+    this.logOpeningRevealDiag('transition-handoff-failsafe-scheduled', { transitionLaunchId: launchId, delay: OPENING_REVEAL_TRANSITION_HANDOFF_GUARD_MS });
     this.openingRevealTransitionHandoffGuardTimer = this.time.delayedCall(OPENING_REVEAL_TRANSITION_HANDOFF_GUARD_MS, () => {
       this.openingRevealTransitionHandoffGuardTimer = null;
       this.runOpeningRevealTransitionHandoffGuard({ battleTransitionLaunchId: launchId });
@@ -1216,14 +1218,37 @@ export default class BattleScene extends Phaser.Scene {
     ));
   }
 
+  getOpeningRevealTransitionHandoffFailsafeSkipReason(battleTransitionLaunchId = null) {
+    if (this.isBattleSceneShuttingDown || (!this.scene?.isActive?.() && !this.scene?.isPaused?.())) return 'SCENE_INVALID';
+    if (battleTransitionLaunchId !== this.battleTransitionLaunchId) return 'LAUNCH_ID_MISMATCH';
+    if (this.openingRevealTransitionHandoffGuardFiredLaunchId === battleTransitionLaunchId) return 'ALREADY_STARTED';
+    if (this.waitForBattleTransitionPresentation !== true || this.openingMulliganPending !== true || this.openingMulliganRevealPending !== true) return 'OPENING_STATE_ENDED';
+    if (this.openingBattlePresentationStarted) return 'ALREADY_STARTED';
+    if (this.gameState?.winner || this.battleResultModalPending || this.battleResultModalShown || this.isFlowResolving) return 'RESULT_ACTIVE';
+    if (this.hasOpeningMulliganRevealMachinery()) return 'REVEAL_ALREADY_SCHEDULED';
+    return null;
+  }
+
   runOpeningRevealTransitionHandoffGuard({ battleTransitionLaunchId = null } = {}) {
-    this.logOpeningRevealDiag('transition-handoff-guard-fired', { transitionLaunchId: this.battleTransitionLaunchId, receivedLaunchId: battleTransitionLaunchId });
-    if (this.isBattleSceneShuttingDown) return false;
-    if (!this.scene?.isActive?.() && !this.scene?.isPaused?.()) return false;
-    if (battleTransitionLaunchId !== this.battleTransitionLaunchId) return false;
-    if (this.openingMulliganPending !== true || this.openingMulliganRevealPending !== true) return false;
-    if (this.openingBattlePresentationStarted) return false;
-    if (this.hasOpeningMulliganRevealMachinery()) return false;
+    const guardState = {
+      transitionLaunchId: this.battleTransitionLaunchId,
+      receivedLaunchId: battleTransitionLaunchId,
+      waitForTransition: Boolean(this.waitForBattleTransitionPresentation),
+      openingStarted: Boolean(this.openingBattlePresentationStarted),
+      mulliganPending: Boolean(this.openingMulliganPending),
+      revealPending: Boolean(this.openingMulliganRevealPending),
+      hasWinner: Boolean(this.gameState?.winner),
+      resultPending: Boolean(this.battleResultModalPending || this.battleResultModalShown || this.isFlowResolving),
+      revealMachineryPresent: this.hasOpeningMulliganRevealMachinery(),
+    };
+    this.recordBattleReportEvent?.('transition-handoff-failsafe-fired', guardState);
+    this.logOpeningRevealDiag('transition-handoff-failsafe-fired', guardState);
+    const skipReason = this.getOpeningRevealTransitionHandoffFailsafeSkipReason(battleTransitionLaunchId);
+    if (skipReason) {
+      this.recordBattleReportEvent?.('transition-handoff-failsafe-skipped', { transitionLaunchId: this.battleTransitionLaunchId, receivedLaunchId: battleTransitionLaunchId, reason: skipReason });
+      return false;
+    }
+    this.openingRevealTransitionHandoffGuardFiredLaunchId = battleTransitionLaunchId;
     return this.beginOpeningBattlePresentation({ battleTransitionLaunchId });
   }
 
