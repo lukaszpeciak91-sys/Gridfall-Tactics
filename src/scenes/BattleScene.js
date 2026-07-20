@@ -37,6 +37,8 @@ import { AUDIO_KEYS, preloadAudioAssets } from '../audio/audioAssets.js';
 import { playManagedSfx, playMusic, playSfx, stopManagedSfx, stopMusic } from '../audio/audioPlayback.js';
 import { BATTLE_SCENE_VISUALLY_READY_EVENT, restartBattleScene } from './battleEntryRouter.js';
 import { buildBattleReportSnapshot } from '../systems/battleReport.js';
+import { SHOW_BATTLE_REPORT_TOOL } from '../config/debugTools.js';
+import { calculateBattleUtilityMenuLayout } from '../ui/battleMenuLayout.js';
 
 const HAND_BACK_CARD_ASSET = Object.freeze({
   key: 'ui.card.back',
@@ -1784,23 +1786,29 @@ export default class BattleScene extends Phaser.Scene {
 
     const { width, height, margin } = this.layout;
     const { x: triggerX, y: triggerY, width: triggerWidth, height: triggerHeight } = this.getPlayerBaseUtilityControlMetrics('menu');
-    const panelLeft = triggerX + triggerWidth / 2;
-    const menuScale = 1.1;
-    const basePanelContentWidth = 208;
-    const basePanelHeight = 186;
-    const panelContentWidth = Math.round(basePanelContentWidth * menuScale);
-    const panelHorizontalPadding = Math.round(4 * menuScale);
-    const panelWidth = Math.min(panelContentWidth + panelHorizontalPadding * 2, width - margin - panelLeft);
-    const panelHeight = Math.round(basePanelHeight * menuScale);
-    const panelTop = triggerY - triggerHeight / 2 - (panelHeight - basePanelHeight) / 2;
-    const panelX = Math.min(width - margin - panelWidth / 2, panelLeft + basePanelContentWidth / 2 + 14);
-    const panelY = panelTop + panelHeight / 2;
-    const rowY = panelTop + Math.round(28 * menuScale);
-    const buttonWidth = Math.max(0, panelWidth - panelHorizontalPadding * 2);
-    const buttonHeight = Math.round(36 * menuScale);
-    const buttonX = panelX;
-    const firstButtonY = rowY + Math.round(50 * menuScale);
-    const buttonGap = Math.round(42 * menuScale);
+    const utilityMenuActions = [
+      { id: 'rules', labelKey: 'ui.battle.utilityMenuRules', fallback: 'Rules', onClick: () => this.openRulesPanel() },
+      { id: 'settings', labelKey: 'ui.battle.utilityMenuSettings', fallback: 'Settings', onClick: () => this.openSettingsScene() },
+      { id: 'surrender', labelKey: 'ui.battle.utilityMenuSurrender', fallback: 'Surrender', onClick: () => this.openSurrenderConfirmationFromUtilityMenu() },
+      ...(SHOW_BATTLE_REPORT_TOOL ? [{ id: 'battleReport', labelKey: 'ui.battleMenu.battleReport', fallback: 'BATTLE REPORT', onClick: () => this.openBattleMenu() }] : []),
+    ];
+    const {
+      panelLeft,
+      menuScale,
+      basePanelContentWidth,
+      panelHorizontalPadding,
+      panelWidth,
+      panelHeight,
+      panelTop,
+      panelX,
+      panelY,
+      rowY,
+      buttonWidth,
+      buttonHeight,
+      buttonX,
+      firstButtonY,
+      buttonGap,
+    } = calculateBattleUtilityMenuLayout({ width, height, margin, triggerX, triggerY, triggerWidth, triggerHeight, actionCount: utilityMenuActions.length });
     const depth = 720;
 
     const outsideCatcher = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.001)
@@ -1863,11 +1871,14 @@ export default class BattleScene extends Phaser.Scene {
       });
     });
 
-    const buttons = [
-      this.createUtilityMenuButton(buttonX, firstButtonY, buttonWidth, buttonHeight, translateActive('ui.battle.utilityMenuRules', 'Rules'), () => this.openRulesPanel()),
-      this.createUtilityMenuButton(buttonX, firstButtonY + buttonGap, buttonWidth, buttonHeight, translateActive('ui.battle.utilityMenuSettings', 'Settings'), () => this.openSettingsScene()),
-      this.createUtilityMenuButton(buttonX, firstButtonY + buttonGap * 2, buttonWidth, buttonHeight, translateActive('ui.battle.utilityMenuSurrender', 'Surrender'), () => this.openSurrenderConfirmationFromUtilityMenu()),
-    ];
+    const buttons = utilityMenuActions.map((action, index) => this.createUtilityMenuButton(
+      buttonX,
+      firstButtonY + buttonGap * index,
+      buttonWidth,
+      buttonHeight,
+      translateActive(action.labelKey, action.fallback),
+      action.onClick,
+    ));
 
     buttons.forEach((button) => {
       [button.background, button.text].forEach((item) => item.setDepth(depth + 3));
