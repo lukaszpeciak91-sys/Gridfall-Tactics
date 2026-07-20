@@ -1223,7 +1223,6 @@ export default class BattleScene extends Phaser.Scene {
     this.openingRevealDiagFailureCaptured = true;
     try { globalThis.localStorage?.setItem?.(OPENING_REVEAL_DIAG_STORAGE_KEY, JSON.stringify(snapshot)); } catch (_) {}
     console.warn('Opening reveal diagnostic captured', snapshot.summary);
-    this.showOpeningRevealDiagnosticControl();
     return true;
   }
 
@@ -1256,16 +1255,6 @@ export default class BattleScene extends Phaser.Scene {
 
   readLastOpeningRevealDiagnosticSnapshot() {
     try { return JSON.parse(globalThis.localStorage?.getItem?.(OPENING_REVEAL_DIAG_STORAGE_KEY) ?? 'null'); } catch (_) { return null; }
-  }
-
-  showOpeningRevealDiagnosticControl() {
-    if (this.openingRevealDiagButton || !globalThis.document?.createElement) return;
-    const button = document.createElement('button');
-    button.textContent = 'REVEAL DIAG';
-    button.style.cssText = 'position:fixed;right:8px;top:48px;z-index:9998;font:12px sans-serif;padding:6px 8px;border-radius:8px;background:#111;color:#fff;border:1px solid #fff;opacity:.88;';
-    button.addEventListener('click', () => this.openOpeningRevealDiagnosticOverlay());
-    document.body?.appendChild?.(button);
-    this.openingRevealDiagButton = button;
   }
 
   openOpeningRevealDiagnosticOverlay() {

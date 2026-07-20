@@ -454,7 +454,13 @@
     "battleMenu": {
       "title": "MENU",
       "comingSoon": "Opcje menu wkrótce.",
-      "howToPlay": "JAK GRAĆ"
+      "howToPlay": "JAK GRAĆ",
+      "battleReport": "RAPORT BITWY",
+      "copyReport": "KOPIUJ RAPORT",
+      "closeReport": "ZAMKNIJ",
+      "forceReveal": "WYMUŚ ODKRYCIE",
+      "copySuccess": "Raport skopiowany.",
+      "copyFailure": "Kopiowanie nie powiodło się. Zaznacz tekst ręcznie."
     },
     "battle": {
       "utilityMenuRules": "Zasady",
