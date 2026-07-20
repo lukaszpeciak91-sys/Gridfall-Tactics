@@ -33,7 +33,7 @@ test('collector returns stable JSON-serializable shape without mutating scene or
   const snapshot = buildBattleReportSnapshot(scene);
   assert.equal(snapshot.version, 1);
   assert.match(snapshot.capturedAt, /^\d{4}-\d{2}-\d{2}T/);
-  assert.deepEqual(Object.keys(snapshot).sort(), ['battle', 'board', 'capturedAt', 'environment', 'flow', 'reveal', 'version', 'warnings'].sort());
+  assert.deepEqual(Object.keys(snapshot).sort(), ['battle', 'board', 'capturedAt', 'environment', 'events', 'flow', 'reveal', 'version', 'warnings'].sort());
   assert.doesNotThrow(() => JSON.stringify(snapshot));
   assert.equal(JSON.stringify(scene.gameState), beforeState);
   assert.deepEqual(Object.keys(scene).sort(), beforeSceneKeys);
@@ -130,4 +130,41 @@ test('simultaneous lethal draw is accepted, impossible non-draw emits warning, a
   assert.ok(serialized.length < 15_000, `snapshot too large: ${serialized.length}`);
   assert.equal(serialized.includes('campaignSave'), false);
   assert.equal(serialized.includes('texture'), false);
+});
+
+test('collector includes compact chronological battle report events without reveal diagnostic timeline', () => {
+  const scene = makeScene();
+  scene.battleReportEvents = [
+    { t: 1, name: 'battle-created', details: { mode: 'arena' } },
+    { t: 5, name: 'ai-action-selected', details: { type: 'play-effect', cardId: 'control_pulse_wave_1', effectId: 'damage_all_enemies_1_ignore_armor', targetCount: 0, displayObject: { texture: 'secret' } } },
+    { t: 9, name: 'combat-resolved', details: { eventCount: 2, playerBaseDamage: 1, enemyBaseDamage: 1, simultaneousLethal: true } },
+  ];
+  scene.openingRevealDiagEvents = [{ t: 2, name: 'first-reveal-timer-created', slotIndex: 0 }];
+  scene.getBattleReportEventLimit = () => 2;
+  const snapshot = buildBattleReportSnapshot(scene);
+  assert.deepEqual(snapshot.events.map((event) => event.name), ['ai-action-selected', 'combat-resolved']);
+  assert.equal(snapshot.events[0].details.targetCount, 0);
+  assert.equal(JSON.stringify(snapshot).includes('first-reveal-timer-created'), false);
+  assert.doesNotThrow(() => JSON.stringify(snapshot));
+  assert.ok(JSON.stringify(snapshot).length < 15_000);
+});
+
+test('BattleScene owns bounded event tracing helpers and high-value instrumentation only', () => {
+  const source = readFileSync('src/scenes/BattleScene.js', 'utf8');
+  assert.match(source, /battleReportEvents = \[\]/);
+  assert.match(source, /recordBattleReportEvent\(name, details = \{\}\)/);
+  assert.match(source, /BATTLE_REPORT_EVENT_BUFFER_LIMIT = 32/);
+  assert.match(source, /BATTLE_REPORT_EVENT_DEDUPE_WINDOW_MS = 200/);
+  assert.match(source, /normalizeBattleReportEventDetails[\s\S]*typeof details === 'function'/);
+  assert.match(source, /recordBattleReportEvent\?\.\('battle-created'/);
+  assert.match(source, /recordBattleReportEvent\?\.\('opening-reveal-scheduled'/);
+  assert.match(source, /recordBattleReportEvent\?\.\('player-action'/);
+  assert.match(source, /recordBattleReportEvent\?\.\('ai-action-selected'[\s\S]*targetCount/);
+  assert.match(source, /recordBattleReportEvent\?\.\('ai-action-resolved'/);
+  assert.match(source, /recordBattleReportEvent\?\.\('combat-start'/);
+  assert.match(source, /recordBattleReportEvent\?\.\('combat-resolved'[\s\S]*simultaneousLethal/);
+  assert.match(source, /recordBattleReportEvent\?\.\('pass-recorded'/);
+  assert.match(source, /recordBattleReportEvent\?\.\('winner-resolved'/);
+  assert.match(source, /recordBattleReportEvent\?\.\('result-modal-shown'/);
+  assert.doesNotMatch(source, /localStorage\?\.setItem\?\.\([^)]*battleReport/);
 });

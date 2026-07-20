@@ -325,6 +325,8 @@ const OPENING_REVEAL_DIAG_STORAGE_KEY = 'gridfall:tactics:debug:opening-reveal:l
 const OPENING_REVEAL_DIAG_BUFFER_LIMIT = 64;
 const OPENING_REVEAL_DIAG_FAILURE_DELAY_MS = 2800;
 const OPENING_REVEAL_DIAG_FALLBACK_DELAY_MS = 3800;
+const BATTLE_REPORT_EVENT_BUFFER_LIMIT = 32;
+const BATTLE_REPORT_EVENT_DEDUPE_WINDOW_MS = 200;
 let battleSceneSessionSequence = 0;
 
 export default class BattleScene extends Phaser.Scene {
@@ -362,6 +364,9 @@ export default class BattleScene extends Phaser.Scene {
     this.waitForBattleTransitionPresentation = false;
     this.battleTransitionLaunchId = null;
     this.openingRevealDiagEvents = [];
+    this.battleReportEvents = [];
+    this.battleReportStartedAt = Date.now();
+    this.battleReportLastEvent = null;
     this.openingRevealDiagStartedAt = 0;
     this.openingRevealDiagFailureSnapshot = null;
     this.openingRevealDiagFailureCaptured = false;
@@ -626,6 +631,9 @@ export default class BattleScene extends Phaser.Scene {
     this.waitForBattleTransitionPresentation = false;
     this.battleTransitionLaunchId = null;
     this.openingRevealDiagEvents = [];
+    this.battleReportEvents = [];
+    this.battleReportStartedAt = Date.now();
+    this.battleReportLastEvent = null;
     this.openingRevealDiagStartedAt = 0;
     this.openingRevealDiagFailureSnapshot = null;
     this.openingRevealDiagFailureCaptured = false;
@@ -804,6 +812,7 @@ export default class BattleScene extends Phaser.Scene {
   emitBattleVisuallyReady() {
     if (this.battleVisuallyReadyEmitted) return false;
     this.battleVisuallyReadyEmitted = true;
+    this.recordBattleReportEvent?.('battle-visually-ready', { transitionLaunchId: this.battleTransitionLaunchId, waitForTransition: this.waitForBattleTransitionPresentation });
     this.events.emit(BATTLE_SCENE_VISUALLY_READY_EVENT, {
       scene: this,
       factionKey: this.factionKey,
@@ -841,6 +850,7 @@ export default class BattleScene extends Phaser.Scene {
       ? tutorialBattleData.enemyFaction.id
       : (requestedEnemyFactionKey ?? this.selectEnemyFactionKey(playerFactionKey));
     this.enemyFactionKey = enemyFactionKey;
+    this.recordBattleReportEvent?.('battle-created', { mode: this.battleContext?.mode, playerFaction: playerFactionKey, enemyFaction: enemyFactionKey, sessionBattleSequenceNumber: this.sessionBattleSequenceNumber, transitionLaunchId: this.battleTransitionLaunchId, waitForTransition: this.waitForBattleTransitionPresentation });
 
     const playerFactionData = isTutorialBattle
       ? tutorialBattleData.playerFaction
@@ -885,6 +895,7 @@ export default class BattleScene extends Phaser.Scene {
     this.openingMulliganRevealVisibleCount = 0;
     this.openingMulliganRevealGeneration += 1;
     this.logOpeningRevealDiag('opening-hand-created', { handCount: this.gameState.player.hand.length, generation: this.openingMulliganRevealGeneration });
+    this.recordBattleReportEvent?.('opening-hand-created', { handCount: this.gameState.player.hand.length });
 
     this.cameras.main.setBackgroundColor(BATTLE_BACKGROUND_FALLBACK_COLOR_HEX);
     this.layout = this.getLayoutMetrics(width, height);
@@ -941,11 +952,73 @@ export default class BattleScene extends Phaser.Scene {
 
   }
 
+  getBattleReportEventLimit() { return BATTLE_REPORT_EVENT_BUFFER_LIMIT; }
+
+  getBattleReportElapsedMs() {
+    return Math.max(0, Date.now() - (this.battleReportStartedAt || Date.now()));
+  }
+
+  normalizeBattleReportEventDetails(details = {}) {
+    const normalized = {};
+    if (typeof details === 'function') return normalized;
+    if (!details || typeof details !== 'object' || Array.isArray(details)) return normalized;
+    Object.entries(details).forEach(([key, value]) => {
+      if (typeof key !== 'string' || key.length > 40) return;
+      if (value === null || typeof value === 'string' || typeof value === 'boolean') {
+        normalized[key] = typeof value === 'string' && value.length > 96 ? value.slice(0, 96) : value;
+      } else if (typeof value === 'number') {
+        if (Number.isFinite(value)) normalized[key] = value;
+      } else if (Array.isArray(value)) {
+        const compact = value.slice(0, 8).map((item) => {
+          if (item === null || typeof item === 'string' || typeof item === 'boolean') return item;
+          if (typeof item === 'number' && Number.isFinite(item)) return item;
+          if (item && typeof item === 'object' && !item.scene && !item.parentContainer && !item.displayList) {
+            const out = {};
+            Object.entries(item).slice(0, 6).forEach(([childKey, childValue]) => {
+              if (childValue === null || typeof childValue === 'string' || typeof childValue === 'boolean') out[childKey] = childValue;
+              else if (typeof childValue === 'number' && Number.isFinite(childValue)) out[childKey] = childValue;
+            });
+            return Object.keys(out).length ? out : null;
+          }
+          return null;
+        }).filter((item) => item !== null && item !== undefined);
+        if (compact.length) normalized[key] = compact;
+      }
+    });
+    return normalized;
+  }
+
+  recordBattleReportEvent(name, details = {}) {
+    try {
+      if (typeof name !== 'string' || !name) return false;
+      if (!this.battleReportEvents) this.battleReportEvents = [];
+      if (!this.battleReportStartedAt) this.battleReportStartedAt = Date.now();
+      const t = this.getBattleReportElapsedMs();
+      const safeDetails = this.normalizeBattleReportEventDetails(details);
+      const reason = safeDetails.reason ?? safeDetails.status ?? null;
+      const dedupeKey = `${name}:${reason ?? ''}`;
+      const last = this.battleReportLastEvent;
+      if (last?.key === dedupeKey && t - last.t <= BATTLE_REPORT_EVENT_DEDUPE_WINDOW_MS) return false;
+      const entry = { t, name, details: safeDetails };
+      this.battleReportEvents.push(entry);
+      while (this.battleReportEvents.length > BATTLE_REPORT_EVENT_BUFFER_LIMIT) this.battleReportEvents.shift();
+      this.battleReportLastEvent = { key: dedupeKey, t };
+      return true;
+    } catch (_) { return false; }
+  }
+
+  recordLifecycleBattleReportEvent(reason) {
+    this.recordBattleReportEvent?.('lifecycle-event', { reason });
+  }
+
+
   beginOpeningBattlePresentation({ battleTransitionLaunchId = null } = {}) {
     this.logOpeningRevealDiag('beginOpeningBattlePresentation-attempt', { receivedLaunchId: battleTransitionLaunchId });
+    this.recordBattleReportEvent?.('opening-presentation-start-attempt', { transitionLaunchId: this.battleTransitionLaunchId, receivedLaunchId: battleTransitionLaunchId });
     if (this.openingBattlePresentationStarted) return false;
     if (this.waitForBattleTransitionPresentation && battleTransitionLaunchId !== this.battleTransitionLaunchId) {
       this.logOpeningRevealDiag('presentation-start-result', { status: 'transition-launch-mismatch', receivedLaunchId: battleTransitionLaunchId });
+      this.recordBattleReportEvent?.('opening-presentation-start-result', { status: 'mismatch', receivedLaunchId: battleTransitionLaunchId });
       return false;
     }
     this.openingBattlePresentationStarted = true;
@@ -954,6 +1027,7 @@ export default class BattleScene extends Phaser.Scene {
     this.updateTutorialBanner();
     this.scheduleOpeningRevealDiagnosticFailureCheck();
     this.logOpeningRevealDiag('presentation-start-result', { status: 'started' });
+    this.recordBattleReportEvent?.('opening-presentation-start-result', { status: 'started' });
     return true;
   }
 
@@ -1022,6 +1096,15 @@ export default class BattleScene extends Phaser.Scene {
     if (/(visibility|blur|focus|pagehide|pageshow|fullscreen|resize|pause|resume|context|recovery)/.test(name)) {
       this.openingRevealDiagLatestLifecycleReason = name;
     }
+    const bridgeNames = {
+      'first-reveal-callback-executed': 'opening-reveal-first-card-started',
+      'first-reveal-sfx-requested': 'opening-reveal-first-sfx-requested',
+      'reveal-completed': 'opening-reveal-completed',
+      'reconciliation-completed': 'opening-reveal-reconciled',
+    };
+    if (/^(visibility|blur|focus|pagehide|pageshow|fullscreen|resize|phaser|webgl|battle-recovery)/.test(name)) this.recordLifecycleBattleReportEvent?.(name);
+    if (bridgeNames[name]) this.recordBattleReportEvent?.(bridgeNames[name], fields);
+
     const entry = {
       t: Math.max(0, Date.now() - (this.openingRevealDiagStartedAt || Date.now())),
       name,
@@ -1801,6 +1884,7 @@ export default class BattleScene extends Phaser.Scene {
     cancel.items.forEach((item) => item.setDepth?.(762));
     confirm.items.forEach((item) => item.setDepth?.(762));
     this.surrenderConfirmationModal = { items: [overlay, panel, title, message, ...cancel.items, ...confirm.items], buttons: [cancel, confirm] };
+    this.recordBattleReportEvent?.('surrender-armed', { source: 'menu' });
   }
 
   createSurrenderConfirmationButton(x, y, width, label, onPointerUp) {
@@ -1831,6 +1915,7 @@ export default class BattleScene extends Phaser.Scene {
 
   closeSurrenderConfirmation() {
     const modal = this.surrenderConfirmationModal;
+    if (modal && !this.surrenderConfirmationResolving) this.recordBattleReportEvent?.('surrender-cancelled', { source: 'menu', reason: 'close' });
     this.surrenderConfirmationModal = null;
 
     const items = modal?.items ?? [];
@@ -1845,6 +1930,7 @@ export default class BattleScene extends Phaser.Scene {
     if (!this.gameState || this.gameState.winner || this.battleResultModalShown || this.surrenderConfirmationResolving) return;
 
     this.surrenderConfirmationResolving = true;
+    this.recordBattleReportEvent?.('surrender-confirmed', { source: 'menu' });
     this.schedulePlayerMenuSurrenderResolution();
   }
 
@@ -1872,6 +1958,7 @@ export default class BattleScene extends Phaser.Scene {
     this.navigationInProgress = false;
     this.gameState.winner = 'enemy';
     this.gameState.endingReason = 'player_menu_surrender';
+    this.recordBattleReportEvent?.('surrender-resolved', { endingReason: this.gameState.endingReason });
     this.pauseActiveBattleTimer();
     this.completeBattleFlow(500);
     this.game?.loop?.wake?.();
@@ -2404,9 +2491,14 @@ export default class BattleScene extends Phaser.Scene {
     this.playBaseBreakSfxOnce();
     this.updateInitiativeIndicator();
     if (this.gameState.endingReason === 'battle_exhausted') {
+      this.recordBattleReportEvent?.('battle-exhausted-resolved', { winner: this.gameState?.winner, resolvedBy: this.gameState?.battleExhaustedResolvedBy, playerHP: this.gameState?.playerHP, enemyHP: this.gameState?.enemyHP });
+      this.recordBattleReportEvent?.('winner-resolved', { winner: this.gameState?.winner, endingReason: this.gameState?.endingReason, resolvedBy: this.gameState?.battleExhaustedResolvedBy });
+      this.recordBattleReportEvent?.('result-flow-scheduled', { delay: delayMs });
       this.showBattleExhaustedBannerThenScheduleResult(delayMs);
       return true;
     }
+    this.recordBattleReportEvent?.('winner-resolved', { winner: this.gameState?.winner, endingReason: this.gameState?.endingReason, resolvedBy: this.gameState?.heroDeathResolvedBy ?? this.gameState?.battleExhaustedResolvedBy ?? this.gameState?.turnCapResolvedBy ?? this.gameState?.noProgressResolvedBy });
+    this.recordBattleReportEvent?.('result-flow-scheduled', { delay: delayMs });
     this.scheduleBattleResultModal(delayMs);
     this.ensureBattleResultModalVisible('complete-battle-flow');
     return true;
@@ -2698,6 +2790,7 @@ export default class BattleScene extends Phaser.Scene {
     const options = arguments[0] ?? {};
     const skipReveal = options.skipReveal === true;
     this.logResultModalDiagnostic('showBattleResultModal:entered', { skipReveal });
+    this.recordBattleReportEvent?.('result-modal-shown', { winner: this.gameState?.winner });
     this.disableCardHoverInteractions();
     if (!this.gameState?.winner || this.battleResultModalShown) {
       this.battleResultModalPending = false;
@@ -4457,6 +4550,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   onFullscreenChanged() {
+    this.recordLifecycleBattleReportEvent(this.scale?.isFullscreen ? 'fullscreen-enter' : 'fullscreen-exit');
     this.logOpeningRevealDiag?.('fullscreen-change');
     this.tutorialLifecycleDiagnostics.lastFullscreenChangeAt = Date.now();
     if (this.scale.isFullscreen) {
@@ -4478,6 +4572,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   onViewportChanged() {
+    this.recordLifecycleBattleReportEvent('resize');
     this.logOpeningRevealDiag?.('resize', { width: this.scale?.gameSize?.width, height: this.scale?.gameSize?.height });
     if (!this.gameState) return;
     this.tutorialLifecycleDiagnostics.lastViewportChangeAt = Date.now();
@@ -4501,6 +4596,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   recoverFromLifecycle(reason = 'unknown', diagnostics = null) {
+    this.recordBattleReportEvent?.('battle-recovery-start', { reason });
     this.logOpeningRevealDiag('recovery-start', { reason });
     const lifecyclePauseReasons = new Set(['visibilitychange', 'pagehide', 'blur', 'phaser-pause', 'webglcontextlost']);
     if (this.isDocumentHiddenForActiveBattleTime() || lifecyclePauseReasons.has(reason)) {
@@ -4545,6 +4641,7 @@ export default class BattleScene extends Phaser.Scene {
     this.scheduleTutorialUiRecovery(reason);
     this.ensureBattleResultModalVisible(`lifecycle:${reason}`);
     this.logOpeningRevealDiag('recovery-end', { reason });
+    this.recordBattleReportEvent?.('battle-recovery-end', { reason, rebuildPerformed: this.shouldRebuildBattleView(reason, recoveryDiagnostics), revealPending: this.openingMulliganRevealPending, resultPending: this.battleResultModalPending });
 
     if (!this.gameState?.winner && !this.battleAmbienceStopping) {
       if (this.battleStartedAt === null) this.startCampaignBattleTimer();
@@ -5957,6 +6054,7 @@ export default class BattleScene extends Phaser.Scene {
     this.updateTutorialFocus?.();
     const generation = this.openingMulliganRevealGeneration;
     this.logOpeningRevealDiag('reveal-scheduling-succeeded', { generation, revealCount });
+    this.recordBattleReportEvent?.('opening-reveal-scheduled', { generation, revealCount });
 
     for (let index = this.openingMulliganRevealVisibleCount; index < revealCount; index += 1) {
       const delay = index * OPENING_MULLIGAN_REVEAL_STAGGER_MS;
@@ -7125,6 +7223,7 @@ export default class BattleScene extends Phaser.Scene {
         this.queueBattleHistoryAction?.('player', { type: 'swap_positions', cardA: swapA, cardB: swapB });
         this.clearSwapPrompt();
         this.pendingTutorialEvent = { eventName: 'adjacent_swap_completed', payload: { fromIndex, toIndex: boardIndex } };
+        this.recordBattleReportEvent?.('player-action', { type: 'swap', fromIndex, toIndex: boardIndex, resultType: result.type, impact: true });
         this.completePlayerAction(beforeStats, [], [{ type: 'swap', fromIndex, toIndex: boardIndex, label: 'SWAP', kind: 'swap' }]);
         return;
       }
@@ -7236,6 +7335,8 @@ export default class BattleScene extends Phaser.Scene {
         eventName: this.effectCastState?.source === 'unit-on-play' ? 'unit_played' : 'effect_played',
         payload: { cardId: (result.card ?? selectedCard)?.id, slotIndex: this.effectCastState?.boardIndex },
       };
+      this.recordBattleReportEvent?.('player-targeting-completed', { source: this.effectCastState?.source ?? 'effect-card', cardId: effectCardId, targetIndexes });
+      this.recordBattleReportEvent?.('player-action', { type: this.effectCastState?.source === 'unit-on-play' ? 'targeted-unit-on-play' : 'targeted-effect', cardId: effectCardId, effectId: selectedCard.effectId, targetIndexes, targetCount: targetIndexes.length, resultType: result.type, impact: true });
       this.completePlayerAction(
         beforeStats,
         [...(result.feedback ?? []), ...this.buildActionFeedback(beforeStats, result, 'player')],
@@ -7291,6 +7392,7 @@ export default class BattleScene extends Phaser.Scene {
       eventName: result.type === 'redeploy' ? 'redeploy_completed' : 'unit_played',
       payload: { cardId: result.card?.id ?? this.selectedCardId, slotIndex: boardIndex },
     };
+    this.recordBattleReportEvent?.('player-action', { type: result.type === 'redeploy' ? 'redeploy' : 'play-unit', cardId: result.card?.id ?? this.selectedCardId, effectId: result.card?.effectId, targetIndex: boardIndex, resultType: result.type, impact: true });
     this.completePlayerAction(beforeStats, this.buildActionFeedback(beforeStats, result, 'player'));
   }
 
@@ -7419,6 +7521,7 @@ export default class BattleScene extends Phaser.Scene {
     this.queueBattleHistoryAction?.('player', { type: 'play_effect', card: this.createCardRef?.(result.card ?? card, 'player') ?? { name: (result.card ?? card)?.name ?? 'Card', side: 'player' } });
     this.pendingTutorialEvent = { eventName: 'effect_played', payload: { cardId: (result.card ?? card)?.id } };
     this.effectCastState = null;
+    this.recordBattleReportEvent?.('player-action', { type: 'play-effect', cardId: card.id, effectId: card.effectId, resultType: result.type, impact: true });
     this.completePlayerAction(beforeStats, this.buildActionFeedback(beforeStats, result, 'player'), movementFeedback);
   }
 
@@ -7436,6 +7539,7 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
     this.targetingState = { ...targetingState, targetIndexes: [...(targetingState.targetIndexes ?? [])] };
+    this.recordBattleReportEvent?.('player-targeting-started', { source: this.effectCastState?.source ?? 'effect-card', cardId: targetingState.cardId, effectId: targetingState.effectId, requiredTargets: targetingState.requiredTargets });
     this.resetCardHighlights({ showPreview: false });
     this.updatePlayerBaseActionState();
     this.showTargetingInstruction();
@@ -7526,8 +7630,10 @@ export default class BattleScene extends Phaser.Scene {
 
   cancelEffectTargeting() {
     if (!this.targetingState && !this.effectCastState) return;
+    const cancelledState = this.targetingState;
     const canceledUnitOnPlay = this.effectCastState?.source === 'unit-on-play';
     const beforeStats = this.effectCastState?.beforeStats;
+    this.recordBattleReportEvent?.('player-targeting-cancelled', { source: this.effectCastState?.source ?? cancelledState?.source ?? 'effect-card', cardId: cancelledState?.cardId ?? this.effectCastState?.cardId, selectedTargetCount: cancelledState?.targetIndexes?.length ?? 0 });
     this.targetingState = null;
     this.effectCastState = null;
     this.pendingSwapIndex = null;
@@ -7822,11 +7928,13 @@ export default class BattleScene extends Phaser.Scene {
   armPlayerSurrender() {
     if (!this.canPlayerBaseHoldToSurrender()) return;
     this.playerSurrenderArmed = true;
+    this.recordBattleReportEvent?.('surrender-armed', { source: 'hold' });
     this.updatePlayerBaseActionState();
   }
 
   disarmPlayerSurrender() {
     if (!this.playerSurrenderArmed) return;
+    this.recordBattleReportEvent?.('surrender-cancelled', { source: 'hold', reason: 'disarm' });
     this.playerSurrenderArmed = false;
     this.updatePlayerBaseActionState();
   }
@@ -7844,6 +7952,8 @@ export default class BattleScene extends Phaser.Scene {
     if (!this.gameState || this.gameState.winner || this.battleResultModalShown || !this.passHoldToSurrenderEnabled || !this.playerSurrenderArmed) return;
     this.gameState.winner = 'enemy';
     this.gameState.endingReason = 'player_hold_surrender';
+    this.recordBattleReportEvent?.('surrender-confirmed', { source: 'hold' });
+    this.recordBattleReportEvent?.('surrender-resolved', { endingReason: this.gameState.endingReason });
     this.pauseActiveBattleTimer();
     this.cancelPassHoldToSurrender();
     this.playerSurrenderArmed = false;
@@ -7858,6 +7968,8 @@ export default class BattleScene extends Phaser.Scene {
     if (this.gameState.winner || !canPass(this.gameState) || this.playerActionUsed) return;
     if (!(this.isTutorialInputAllowed?.({ type: 'pass', target: 'player_base_button' }) ?? true)) return;
     recordPassAction(this.gameState, 'player');
+    this.recordBattleReportEvent?.('pass-recorded', { owner: 'player', pendingPassOwner: this.gameState?.battleExhausted?.pendingPassOwner, fullPassRounds: this.gameState?.battleExhausted?.fullPassRounds ?? 0, battleExhaustedEligible: isBattleExhaustedEligible(this.gameState) });
+    this.recordBattleReportEvent?.('player-action', { type: 'pass', resultType: 'pass', impact: false });
     this.pendingTutorialEvent = { eventName: 'pass_completed' };
     this.pendingSwapIndex = null;
     this.destroyActiveSelectionMessage();
@@ -8556,7 +8668,11 @@ export default class BattleScene extends Phaser.Scene {
 
     await this.delay(enemyActionPacing?.preCombatDelayMs ?? ENEMY_ACTION_PRE_COMBAT_DELAY_MS);
     const preCombatFeedbackSnapshot = this.captureCombatFeedbackSnapshot();
+    this.recordBattleReportEvent?.('combat-start', { turn: this.gameState?.turnsCompleted ?? this.gameState?.turn, playerHP: this.gameState?.playerHP, enemyHP: this.gameState?.enemyHP, occupiedPlayerSlots: this.gameState?.board?.filter?.((u) => u?.owner === 'player')?.length ?? 0, occupiedEnemySlots: this.gameState?.board?.filter?.((u) => u?.owner === 'enemy')?.length ?? 0 });
+    const playerHPBeforeCombat = this.gameState?.playerHP;
+    const enemyHPBeforeCombat = this.gameState?.enemyHP;
     const combatEvents = resolveCombat(this.gameState);
+    this.recordBattleReportEvent?.('combat-resolved', { playerHPBefore: playerHPBeforeCombat, enemyHPBefore: enemyHPBeforeCombat, playerHPAfter: this.gameState?.playerHP, enemyHPAfter: this.gameState?.enemyHP, eventCount: combatEvents.length, playerBaseDamage: Math.max(0, (playerHPBeforeCombat ?? 0) - (this.gameState?.playerHP ?? 0)), enemyBaseDamage: Math.max(0, (enemyHPBeforeCombat ?? 0) - (this.gameState?.enemyHP ?? 0)), defeatedUnitCount: combatEvents.filter((event) => event?.defeated || event?.type === 'unit-defeated').length, winner: this.gameState?.winner, simultaneousLethal: (this.gameState?.playerHP ?? 1) <= 0 && (this.gameState?.enemyHP ?? 1) <= 0 });
     this.handleTutorialEvent?.('combat_completed', { combatEvents });
     this.commitBattleHistoryTurn(combatEvents, preCombatFeedbackSnapshot);
     this.lastCombatEvents = combatEvents;
@@ -8652,6 +8768,7 @@ export default class BattleScene extends Phaser.Scene {
 
   async revealAndApplyEnemyAction() {
     const action = this.selectEnemyAction();
+    this.recordBattleReportEvent?.('ai-action-selected', { type: action?.type, cardId: action?.cardId, effectId: action?.effectId, targetIndex: action?.targetIndex, targetIndexes: action?.targetIndexes, targetCount: action?.targetIndexes?.length ?? (Number.isInteger(action?.targetIndex) ? 1 : 0), score: action?.score, hasImmediateBattleImpact: action?.hasImmediateBattleImpact, handCycling: action?.handCycling, reason: action?.reason ?? action?.fallbackReason ?? action?.zeroImpactReason });
     const card = action.cardId ? this.gameState.enemy.hand.find((item) => item.id === action.cardId) : null;
     const pacing = this.getEnemyActionPacing(action);
     this.showEnemyActionBanner(this.getEnemyActionMessage(action, card), pacing);
@@ -8662,6 +8779,7 @@ export default class BattleScene extends Phaser.Scene {
 
     const beforeStats = this.captureBoardStats();
     const result = this.enemyTakeAction(action);
+    this.recordBattleReportEvent?.('ai-action-resolved', { type: action?.type, cardId: action?.cardId, ok: result?.ok, resultType: result?.type, targetCount: action?.targetIndexes?.length ?? (Number.isInteger(action?.targetIndex) ? 1 : 0) });
     this.enemyActionUsed = true;
     this.handleTutorialEvent?.('enemy_action_completed', { actionType: action?.type, cardId: action?.cardId, slotIndex: action?.slotIndex });
     if (result?.ok && action.type !== 'pass' && action.type !== 'surrender') {
@@ -8809,6 +8927,7 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     recordPassAction(this.gameState, 'enemy');
+    this.recordBattleReportEvent?.('pass-recorded', { owner: 'enemy', pendingPassOwner: this.gameState?.battleExhausted?.pendingPassOwner, fullPassRounds: this.gameState?.battleExhausted?.fullPassRounds ?? 0, battleExhaustedEligible: isBattleExhaustedEligible(this.gameState) });
     return { ok: true, type: 'pass' };
   }
 
@@ -11711,6 +11830,26 @@ export default class BattleScene extends Phaser.Scene {
     }
   }
 
+
+  recordBoardStatMismatchIfIdle() {
+    try {
+      if (this.isFlowResolving || this.isEffectCastResolving || this.openingMulliganRevealPending || this.openingMulliganPending) return false;
+      const slots = [];
+      [0, 1, 2, 6, 7, 8].forEach((index) => {
+        const unit = this.gameState?.board?.[index];
+        const displayed = this.displayedBoardStats?.[index] ?? this.boardDisplayedStats?.[index];
+        if (!unit || !displayed) return;
+        const liveAttack = getEffectiveBoardAttack(this.gameState, index);
+        const liveArmor = getEffectiveBoardArmor(this.gameState, index);
+        if ((Number.isFinite(displayed.attack) && displayed.attack !== liveAttack) || (Number.isFinite(displayed.armor) && displayed.armor !== liveArmor)) {
+          slots.push({ index, cardId: unit.cardId ?? unit.id, displayedAttack: displayed.attack, liveAttack, displayedArmor: displayed.armor, liveArmor });
+        }
+      });
+      if (slots.length <= 0) return false;
+      return this.recordBattleReportEvent?.('board-stat-mismatch-detected', { slots });
+    } catch (_) { return false; }
+  }
+
   refreshBoardLabels() {
     normalizeOfflineReservations(this.gameState);
     if (this.boardInspectIndex !== null && !this.gameState.board[this.boardInspectIndex]) {
@@ -11753,6 +11892,7 @@ export default class BattleScene extends Phaser.Scene {
       .filter((cell) => this.isBoardIndexOffline(cell.index))
       .map((cell) => cell.index));
     this.lastRenderedBoardStats = currentRenderStats;
+    this.recordBoardStatMismatchIfIdle?.();
     this.currentBoardRenderStats = null;
     this.turnStartBanner = null;
     this.turnStartBannerFadeOutEvent = null;
