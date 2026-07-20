@@ -369,6 +369,8 @@ export default class BattleScene extends Phaser.Scene {
     this.battleReportAudioEvents = [];
     this.battleReportAudioState = {};
     this.battleReportStartedAt = Date.now();
+    this.battleSceneCreatedAt = new Date(this.battleReportStartedAt).toISOString();
+    this.battleReportAssetFailures = [];
     this.battleReportLastEvent = null;
     this.battleReportLastAudioEvent = null;
     this.openingRevealDiagStartedAt = 0;
@@ -639,6 +641,8 @@ export default class BattleScene extends Phaser.Scene {
     this.battleReportAudioEvents = [];
     this.battleReportAudioState = {};
     this.battleReportStartedAt = Date.now();
+    this.battleSceneCreatedAt = new Date(this.battleReportStartedAt).toISOString();
+    this.battleReportAssetFailures = [];
     this.battleReportLastEvent = null;
     this.battleReportLastAudioEvent = null;
     this.openingRevealDiagStartedAt = 0;
@@ -1012,6 +1016,23 @@ export default class BattleScene extends Phaser.Scene {
       this.battleReportLastEvent = { key: dedupeKey, t };
       return true;
     } catch (_) { return false; }
+  }
+
+  recordAssetFailureDiagnostic(details = {}) {
+    const event = {
+      t: this.getBattleReportElapsedMs?.() ?? 0,
+      type: typeof details.type === 'string' ? details.type : null,
+      cardId: typeof details.cardId === 'string' ? details.cardId : null,
+      key: typeof details.key === 'string' ? details.key : null,
+      reason: typeof details.reason === 'string' ? details.reason : null,
+    };
+    if (!event.type || !event.reason) return false;
+    this.battleReportAssetFailures ??= [];
+    const last = this.battleReportAssetFailures.at(-1);
+    if (last?.type === event.type && last?.key === event.key && last?.cardId === event.cardId && last?.reason === event.reason) return false;
+    this.battleReportAssetFailures.push(event);
+    while (this.battleReportAssetFailures.length > 8) this.battleReportAssetFailures.shift();
+    return true;
   }
 
   recordLifecycleBattleReportEvent(reason) {
@@ -11683,8 +11704,8 @@ export default class BattleScene extends Phaser.Scene {
     if (this.openingMulliganRevealPending) this.startOpeningMulliganReveal();
   }
 
-  buildBattleReportSnapshot() {
-    return buildBattleReportSnapshot(this);
+  buildBattleReportSnapshot(options = {}) {
+    return buildBattleReportSnapshot(this, options);
   }
 
   getBoardUnitStats(unit, boardIndex = null, statOverride = null) {
