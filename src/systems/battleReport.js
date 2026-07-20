@@ -198,7 +198,7 @@ function buildReveal(scene) {
   const failure = scene?.openingRevealDiagFailureSnapshot ?? null;
   return {
     openingBattlePresentationStarted: bool(scene?.openingBattlePresentationStarted),
-    waitingForTransitionPresentation: bool(scene?.waitingForTransitionPresentation),
+    waitingForTransitionPresentation: bool(scene?.waitForBattleTransitionPresentation),
     transitionLaunchId: compactString(scene?.transitionLaunchId ?? scene?.battleTransitionLaunchId),
     openingMulliganPending: bool(scene?.openingMulliganPending),
     revealPending: bool(scene?.openingMulliganRevealPending),

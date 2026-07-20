@@ -26,7 +26,8 @@ function extractMethodBody(name, nextName) {
 test('opening mulligan reveal initializes before mulligan input is exposed', () => {
   const create = extractMethodBody('create', 'selectEnemyFactionKey');
   assert.match(create, /this\.applyEnemyOpeningMulligan\(\);\s*this\.openingMulliganPending = true;\s*this\.openingMulliganRevealPending = true;\s*this\.openingMulliganRevealVisibleCount = 0;/);
-  assert.match(create, /this\.drawHand\(\);[\s\S]*this\.updatePlayerBaseActionState\(\);\s*this\.applyOpeningMulliganRevealPresentation\(\);/);
+  assert.match(create, /this\.drawHand\(\);[\s\S]*this\.updatePlayerBaseActionState\(\);/);
+  assert.doesNotMatch(create, /this\.updatePlayerBaseActionState\(\);\s*this\.applyOpeningMulliganRevealPresentation\(\);/);
   assert.match(create, /this\.emitBattleVisuallyReady\(\);[\s\S]*if \(!this\.waitForBattleTransitionPresentation\) \{\s*this\.beginOpeningBattlePresentation\(\);\s*\}/);
   assert.doesNotMatch(create, /performOpeningMulligan\(this\.gameState, 'player'/);
 
@@ -41,6 +42,38 @@ test('opening mulligan reveal initializes before mulligan input is exposed', () 
   const getPlayerBaseMode = extractMethodBody('getPlayerBaseMode', 'getPlayerBaseActionLabel');
   assert.match(getPlayerBaseMode, /if \(\(this\.isOpeningMulliganInputLocked\?\.\(\) \?\? false\)\) return null;/);
   assert.match(getPlayerBaseMode, /if \(this\.openingMulliganPending\) return 'mulligan';/);
+});
+
+
+test('opening face-down presentation is idempotent by current generation and slot', () => {
+  const create = extractMethodBody('create', 'selectEnemyFactionKey');
+  const drawHand = extractMethodBody('drawHand', 'buildBattleReportSnapshot');
+  const applyPresentation = extractMethodBody('applyOpeningMulliganRevealPresentation', 'startOpeningMulliganReveal');
+  const startReveal = extractMethodBody('startOpeningMulliganReveal', 'scheduleOpeningMulliganRevealWatchdog');
+
+  assert.doesNotMatch(create, /this\.updatePlayerBaseActionState\(\);\s*this\.applyOpeningMulliganRevealPresentation\(\);/, 'create must not apply face-down presentation a second time after drawHand');
+  assert.match(drawHand, /this\.clearOpeningMulliganRevealBackCards\(\);[\s\S]*this\.applyOpeningMulliganRevealPresentation\(\);/, 'drawHand owns initial face-down presentation');
+  assert.match(applyPresentation, /const retainedBackSlots = new Set\([\s\S]*controller\?\.generation === this\.openingMulliganRevealGeneration[\s\S]*controller\.backCard\?\.slotIndex/, 'dedupe is scoped to live backs from the current generation');
+  assert.match(applyPresentation, /&& !retainedBackSlots\.has\(cardView\.slotIndex\)/, 'existing retained back slots are skipped');
+  assert.match(applyPresentation, /retainedBackSlots\.add\(cardView\.slotIndex\);[\s\S]*type: 'opening-reveal-back',[\s\S]*generation: this\.openingMulliganRevealGeneration/, 'new back controllers record current generation');
+  assert.doesNotMatch(applyPresentation, /openingMulliganRevealGeneration \+= 1/, 'idempotent presentation must not advance generation');
+  assert.match(startReveal, /this\.cleanupOpeningMulliganRevealControllers\(\{ advanceGeneration: false \}\);[\s\S]*this\.applyOpeningMulliganRevealPresentation\(\);[\s\S]*this\.recordBattleReportEvent\?\.\('opening-reveal-scheduled'/, 'successful scheduling still cleans duplicates, reapplies one back per slot, and records scheduling');
+});
+
+test('transition-deferred opening reveal has a launch-id scoped lost-handoff guard', () => {
+  const create = extractMethodBody('create', 'selectEnemyFactionKey');
+  const beginPresentation = extractMethodBody('beginOpeningBattlePresentation', 'isResultModalDiagnosticsEnabled');
+  const scheduleGuard = extractMethodBody('scheduleOpeningRevealTransitionHandoffGuard', 'scheduleOpeningRevealDiagnosticFallbackCheck');
+
+  assert.match(create, /this\.emitBattleVisuallyReady\(\);\s*this\.scheduleOpeningRevealTransitionHandoffGuard\(\);\s*this\.time\.delayedCall\(560, \(\) => this\.startBattleAmbience\(\)\);/);
+  assert.match(scheduleGuard, /if \(!this\.waitForBattleTransitionPresentation \|\| !this\.battleTransitionLaunchId \|\| !this\.time\?\.delayedCall\) return false;/, 'guard exists only for transition-deferred battles');
+  assert.match(scheduleGuard, /const launchId = this\.battleTransitionLaunchId;[\s\S]*OPENING_REVEAL_TRANSITION_HANDOFF_GUARD_MS[\s\S]*this\.runOpeningRevealTransitionHandoffGuard\(\{ battleTransitionLaunchId: launchId \}\);/, 'guard is one-shot and launch-id scoped');
+  assert.match(scheduleGuard, /if \(battleTransitionLaunchId !== this\.battleTransitionLaunchId\) return false;/, 'guard validates current launch id');
+  assert.match(scheduleGuard, /if \(this\.openingMulliganPending !== true \|\| this\.openingMulliganRevealPending !== true\) return false;/, 'guard requires pending opening reveal');
+  assert.match(scheduleGuard, /if \(this\.openingBattlePresentationStarted\) return false;/, 'guard cannot schedule twice after normal handoff');
+  assert.match(scheduleGuard, /if \(this\.hasOpeningMulliganRevealMachinery\(\)\) return false;/, 'guard does not run while reveal machinery exists');
+  assert.match(scheduleGuard, /return this\.beginOpeningBattlePresentation\(\{ battleTransitionLaunchId \}\);/, 'guard uses the validated public opening entry point');
+  assert.match(beginPresentation, /this\.waitForBattleTransitionPresentation && battleTransitionLaunchId !== this\.battleTransitionLaunchId[\s\S]*return false;[\s\S]*this\.clearOpeningRevealTransitionHandoffGuard\(\);[\s\S]*this\.openingBattlePresentationStarted = true;/, 'normal launch-id validation remains authoritative before clearing guard');
 });
 
 test('opening mulligan reveal blocks selection, inspect, and confirm input', () => {

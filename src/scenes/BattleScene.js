@@ -327,6 +327,7 @@ const OPENING_REVEAL_DIAG_STORAGE_KEY = 'gridfall:tactics:debug:opening-reveal:l
 const OPENING_REVEAL_DIAG_BUFFER_LIMIT = 64;
 const OPENING_REVEAL_DIAG_FAILURE_DELAY_MS = 2800;
 const OPENING_REVEAL_DIAG_FALLBACK_DELAY_MS = 3800;
+const OPENING_REVEAL_TRANSITION_HANDOFF_GUARD_MS = 9000;
 const BATTLE_REPORT_EVENT_BUFFER_LIMIT = 32;
 const BATTLE_REPORT_AUDIO_EVENT_BUFFER_LIMIT = 12;
 const BATTLE_REPORT_EVENT_DEDUPE_WINDOW_MS = 200;
@@ -380,6 +381,8 @@ export default class BattleScene extends Phaser.Scene {
     this.openingRevealDiagFailureCaptured = false;
     this.openingRevealDiagFirstSfxRequestedAt = null;
     this.openingRevealDiagFailureTimer = null;
+    this.openingRevealTransitionHandoffGuardTimer = null;
+    this.openingRevealTransitionHandoffGuardLaunchId = null;
     this.openingRevealDiagButton = null;
     this.openingRevealDiagOverlay = null;
     this.openingRevealDiagLifecycleHandlers = null;
@@ -652,6 +655,8 @@ export default class BattleScene extends Phaser.Scene {
     this.openingRevealDiagFailureCaptured = false;
     this.openingRevealDiagFirstSfxRequestedAt = null;
     this.openingRevealDiagFailureTimer = null;
+    this.openingRevealTransitionHandoffGuardTimer = null;
+    this.openingRevealTransitionHandoffGuardLaunchId = null;
     this.openingRevealDiagButton = null;
     this.openingRevealDiagOverlay = null;
     this.openingRevealDiagLifecycleHandlers = null;
@@ -839,6 +844,7 @@ export default class BattleScene extends Phaser.Scene {
 
   create(data) {
     this.cleanupSceneObjects();
+    this.resetBattleReportTracing();
     this.isBattleSceneShuttingDown = false;
     // Menu music is faded by BattleTransitionScene after visual readiness.
     this.installResultModalDiagnostics();
@@ -924,7 +930,6 @@ export default class BattleScene extends Phaser.Scene {
     this.drawHand();
     this.drawPlayerBaseUtilityMenuTrigger();
     this.updatePlayerBaseActionState();
-    this.applyOpeningMulliganRevealPresentation();
     this.logOpeningRevealDiag('face-down-presentation-applied', { handCount: this.gameState.player.hand.length, cardViewCount: this.cardViews.length, retainedBackCount: this.getOpeningMulliganRetainedBackControllers?.().length ?? 0 });
     this.scheduleOpeningRevealDiagnosticFallbackCheck('opening-hand-visuals-ready');
 
@@ -946,6 +951,7 @@ export default class BattleScene extends Phaser.Scene {
 
     this.logOpeningRevealDiag('visually-ready-emitting');
     this.emitBattleVisuallyReady();
+    this.scheduleOpeningRevealTransitionHandoffGuard();
     this.time.delayedCall(560, () => this.startBattleAmbience());
 
     if (this.isCampaignCompletionPreview()) {
@@ -966,6 +972,14 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   getBattleReportEventLimit() { return BATTLE_REPORT_EVENT_BUFFER_LIMIT; }
+
+  resetBattleReportTracing() {
+    this.battleReportEvents = [];
+    this.battleReportStartedAt = Date.now();
+    this.battleSceneCreatedAt = new Date(this.battleReportStartedAt).toISOString();
+    this.battleReportLastEvent = null;
+    this.battleReportLastAudioEvent = null;
+  }
 
   getBattleReportElapsedMs() {
     return Math.max(0, Date.now() - (this.battleReportStartedAt || Date.now()));
@@ -1079,6 +1093,7 @@ export default class BattleScene extends Phaser.Scene {
       this.recordBattleReportEvent?.('opening-presentation-start-result', { status: 'mismatch', receivedLaunchId: battleTransitionLaunchId });
       return false;
     }
+    this.clearOpeningRevealTransitionHandoffGuard();
     this.openingBattlePresentationStarted = true;
     this.waitForBattleTransitionPresentation = false;
     this.startOpeningMulliganReveal();
@@ -1171,6 +1186,45 @@ export default class BattleScene extends Phaser.Scene {
     };
     this.openingRevealDiagEvents.push(entry);
     while (this.openingRevealDiagEvents.length > OPENING_REVEAL_DIAG_BUFFER_LIMIT) this.openingRevealDiagEvents.shift();
+  }
+
+  scheduleOpeningRevealTransitionHandoffGuard() {
+    if (!this.waitForBattleTransitionPresentation || !this.battleTransitionLaunchId || !this.time?.delayedCall) return false;
+    if (this.openingRevealTransitionHandoffGuardTimer) return false;
+    const launchId = this.battleTransitionLaunchId;
+    this.openingRevealTransitionHandoffGuardLaunchId = launchId;
+    this.logOpeningRevealDiag('transition-handoff-guard-scheduled', { transitionLaunchId: launchId, delay: OPENING_REVEAL_TRANSITION_HANDOFF_GUARD_MS });
+    this.openingRevealTransitionHandoffGuardTimer = this.time.delayedCall(OPENING_REVEAL_TRANSITION_HANDOFF_GUARD_MS, () => {
+      this.openingRevealTransitionHandoffGuardTimer = null;
+      this.runOpeningRevealTransitionHandoffGuard({ battleTransitionLaunchId: launchId });
+    });
+    return true;
+  }
+
+  clearOpeningRevealTransitionHandoffGuard() {
+    this.openingRevealTransitionHandoffGuardTimer?.remove?.(false);
+    this.openingRevealTransitionHandoffGuardTimer = null;
+    this.openingRevealTransitionHandoffGuardLaunchId = null;
+  }
+
+  hasOpeningMulliganRevealMachinery() {
+    return (this.openingMulliganRevealControllers ?? []).some((controller) => (
+      controller?.type === 'opening-reveal-timer'
+      || controller?.type === 'opening-reveal-watchdog'
+      || controller?.type === 'opening-reveal-tween'
+      || controller?.type === 'opening-reveal-post-hold'
+    ));
+  }
+
+  runOpeningRevealTransitionHandoffGuard({ battleTransitionLaunchId = null } = {}) {
+    this.logOpeningRevealDiag('transition-handoff-guard-fired', { transitionLaunchId: this.battleTransitionLaunchId, receivedLaunchId: battleTransitionLaunchId });
+    if (this.isBattleSceneShuttingDown) return false;
+    if (!this.scene?.isActive?.() && !this.scene?.isPaused?.()) return false;
+    if (battleTransitionLaunchId !== this.battleTransitionLaunchId) return false;
+    if (this.openingMulliganPending !== true || this.openingMulliganRevealPending !== true) return false;
+    if (this.openingBattlePresentationStarted) return false;
+    if (this.hasOpeningMulliganRevealMachinery()) return false;
+    return this.beginOpeningBattlePresentation({ battleTransitionLaunchId });
   }
 
   scheduleOpeningRevealDiagnosticFallbackCheck(reason = 'opening-hand-visuals-ready') {
@@ -1281,6 +1335,7 @@ export default class BattleScene extends Phaser.Scene {
   destroyOpeningRevealDiagnosticObjects() {
     this.openingRevealDiagFailureTimer?.remove?.(false); this.openingRevealDiagFailureTimer = null;
     this.openingRevealDiagFallbackTimer?.remove?.(false); this.openingRevealDiagFallbackTimer = null;
+    this.clearOpeningRevealTransitionHandoffGuard?.();
     this.closeOpeningRevealDiagnosticOverlay?.(); this.openingRevealDiagButton?.remove?.(); this.openingRevealDiagButton = null;
     (this.openingRevealDiagLifecycleHandlers ?? []).forEach(([target, name, fn]) => target?.removeEventListener?.(name, fn));
     this.openingRevealDiagLifecycleHandlers = null;
@@ -6114,10 +6169,17 @@ export default class BattleScene extends Phaser.Scene {
     });
 
     const { hand } = this.layout;
+    const retainedBackSlots = new Set(
+      this.getOpeningMulliganRetainedBackControllers()
+        .filter((controller) => controller?.generation === this.openingMulliganRevealGeneration)
+        .map((controller) => controller.backCard?.slotIndex)
+        .filter(Number.isInteger),
+    );
     this.cardViews
       .filter((cardView) => Number.isInteger(cardView.slotIndex)
         && cardView.slotIndex >= visibleCount
-        && cardView.slotIndex < revealCount)
+        && cardView.slotIndex < revealCount
+        && !retainedBackSlots.has(cardView.slotIndex))
       .forEach((cardView) => {
         const backCard = this.createHandBackCardView({
           x: cardView.baseX,
@@ -6127,9 +6189,11 @@ export default class BattleScene extends Phaser.Scene {
           depth: (cardView.baseDepth ?? cardView.root?.depth ?? 20) + 1,
         });
         backCard.slotIndex = cardView.slotIndex;
+        retainedBackSlots.add(cardView.slotIndex);
         this.logOpeningRevealDiag('retained-back-created', { slotIndex: cardView.slotIndex });
         this.openingMulliganRevealControllers.push({
           type: 'opening-reveal-back',
+          generation: this.openingMulliganRevealGeneration,
           backCard,
           cleanup: () => backCard.destroy?.(),
         });
