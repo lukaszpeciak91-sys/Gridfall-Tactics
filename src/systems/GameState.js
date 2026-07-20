@@ -120,6 +120,39 @@ function recordProgressAction(state = null) {
   // Meaningful-action tracking is no longer counter-based.
 }
 
+function getBattleProgressSignature(state) {
+  if (!state) return null;
+  return JSON.stringify({
+    playerHP: state.playerHP,
+    enemyHP: state.enemyHP,
+    board: state.board?.map((unit) => unit ? {
+      owner: unit.owner,
+      id: unit.cardId ?? unit.id,
+      attack: unit.attack,
+      hp: unit.hp,
+      maxHp: unit.maxHp,
+      armor: unit.armor,
+      tempAttackMod: unit.tempAttackMod ?? 0,
+      tempAttackSetToZeroUntilCombat: unit.tempAttackSetToZeroUntilCombat ?? false,
+      tempAttackMaxUntilCombat: unit.tempAttackMaxUntilCombat ?? null,
+      tempArmorMod: unit.tempArmorMod ?? 0,
+      tempHpMod: unit.tempHpMod ?? 0,
+      ignoreArmorNext: unit.ignoreArmorNext ?? false,
+      quickFixDrawTriggers: unit.quickFixDrawTriggers?.map((trigger) => ({
+        owner: trigger?.owner ?? null,
+        triggered: trigger?.triggered ?? false,
+      })) ?? [],
+    } : null),
+    cannotDropBelowOneThisTurn: state.cannotDropBelowOneThisTurn ?? null,
+    effectCardsBlockedUntilCombat: state.effectCardsBlockedUntilCombat ?? null,
+    immuneMoveDisableThisTurn: state.immuneMoveDisableThisTurn ?? null,
+    immovableThisTurn: state.immovableThisTurn ?? null,
+    enemyLanePlayBlockedThisTurn: state.enemyLanePlayBlockedThisTurn ?? null,
+    playerLanePlayBlockedThisTurn: state.playerLanePlayBlockedThisTurn ?? null,
+    funeralPyreThisCombat: state.funeralPyreThisCombat ?? null,
+  });
+}
+
 function ownerHasReachableEmptySlot(state, owner) {
   const row = getRowForOwner(owner);
   if (row.some((index) => state.board[index] === null)) return true;
@@ -2573,6 +2606,7 @@ export function playEffectCard(state, owner, handCardId) {
     return { ok: false, reason: 'Effect has no legal deterministic resolution' };
   }
 
+  const battleProgressBefore = getBattleProgressSignature(state);
   const [playedCard] = side.hand.splice(handIndex, 1);
   if (playedCard.type === 'unit') {
     side.hand.splice(handIndex, 0, playedCard);
@@ -2587,7 +2621,10 @@ export function playEffectCard(state, owner, handCardId) {
   } else if (!blockedByImmunity) {
     executeEffectVariantOperations(state, owner, playedCard, playedCard.effectId ?? null);
   }
-  recordProgressAction(state, owner, blockedByImmunity ? 'effect-blocked' : 'effect');
+  const battleProgressAfter = getBattleProgressSignature(state);
+  if (battleProgressBefore !== battleProgressAfter) {
+    recordProgressAction(state, owner, blockedByImmunity ? 'effect-blocked' : 'effect');
+  }
   completeActionOpportunity(state, owner);
   return { ok: true, type: blockedByImmunity ? 'effect-blocked' : 'effect', card: playedCard };
 }

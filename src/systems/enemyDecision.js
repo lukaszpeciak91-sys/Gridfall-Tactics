@@ -296,6 +296,39 @@ function cloneState(state) {
   return JSON.parse(JSON.stringify(state));
 }
 
+function getImmediateBattleImpactSignature(state) {
+  if (!state) return null;
+  return JSON.stringify({
+    playerHP: state.playerHP,
+    enemyHP: state.enemyHP,
+    board: state.board?.map((unit) => unit ? {
+      owner: unit.owner,
+      id: unit.cardId ?? unit.id,
+      attack: unit.attack,
+      hp: unit.hp,
+      maxHp: unit.maxHp,
+      armor: unit.armor,
+      tempAttackMod: unit.tempAttackMod ?? 0,
+      tempAttackSetToZeroUntilCombat: unit.tempAttackSetToZeroUntilCombat ?? false,
+      tempAttackMaxUntilCombat: unit.tempAttackMaxUntilCombat ?? null,
+      tempArmorMod: unit.tempArmorMod ?? 0,
+      tempHpMod: unit.tempHpMod ?? 0,
+      ignoreArmorNext: unit.ignoreArmorNext ?? false,
+      quickFixDrawTriggers: unit.quickFixDrawTriggers?.map((trigger) => ({
+        owner: trigger?.owner ?? null,
+        triggered: trigger?.triggered ?? false,
+      })) ?? [],
+    } : null),
+    cannotDropBelowOneThisTurn: state.cannotDropBelowOneThisTurn ?? null,
+    effectCardsBlockedUntilCombat: state.effectCardsBlockedUntilCombat ?? null,
+    immuneMoveDisableThisTurn: state.immuneMoveDisableThisTurn ?? null,
+    immovableThisTurn: state.immovableThisTurn ?? null,
+    enemyLanePlayBlockedThisTurn: state.enemyLanePlayBlockedThisTurn ?? null,
+    playerLanePlayBlockedThisTurn: state.playerLanePlayBlockedThisTurn ?? null,
+    funeralPyreThisCombat: state.funeralPyreThisCombat ?? null,
+  });
+}
+
 function getRowsForOwner(owner) {
   return owner === 'enemy'
     ? { friendly: ENEMY_ROW_INDEXES, opposing: PLAYER_ROW_INDEXES }
@@ -1020,6 +1053,19 @@ function getUtilityCategory(action) {
   return effectId ? 'utility' : null;
 }
 
+function getHandCyclingValue(state, owner, action, hasImmediateBattleImpact) {
+  if (hasImmediateBattleImpact || action?.type !== 'play-effect') return 0;
+  const side = owner === 'enemy' ? state?.enemy : state?.player;
+  const hand = Array.isArray(side?.hand) ? side.hand : [];
+  const deck = Array.isArray(side?.deck) ? side.deck : [];
+  const maxHandSize = Number.isFinite(side?.maxHandSize) ? side.maxHandSize : 5;
+  const handAtEffectiveLimit = hand.length >= maxHandSize;
+  const cardsRemainToDraw = deck.length > 0;
+  const createsDrawSlot = handAtEffectiveLimit && hand.length - 1 < maxHandSize;
+  if (!handAtEffectiveLimit || !cardsRemainToDraw || !createsDrawSlot) return 0;
+  return 140;
+}
+
 export function scoreAction(state, owner, action) {
   if (action?.type === 'pass') {
     action.aiEvaluation = { kind: 'hold', holdScore: 0, reason: 'do not spend this action/card now' };
@@ -1033,6 +1079,7 @@ export function scoreAction(state, owner, action) {
   const currentOpponentPressure = getGuaranteedHeroDamage(state, owner === 'enemy' ? 'player' : 'enemy');
   const currentBoardPressure = getBoardPressureValue(state, owner);
   const currentOpenLaneStats = getOpenLaneStats(state, owner);
+  const immediateBattleImpactBefore = getImmediateBattleImpactSignature(state);
 
   const actionCard = getActionCard(state, owner, action);
 
@@ -1057,6 +1104,9 @@ export function scoreAction(state, owner, action) {
       return Number.NEGATIVE_INFINITY;
     }
   }
+
+  const immediateBattleImpactAfter = getImmediateBattleImpactSignature(nextState);
+  const hasImmediateBattleImpact = immediateBattleImpactBefore !== immediateBattleImpactAfter;
 
   const nextOpponentHp = nextState?.[getOpponentHpKey(owner)] ?? 0;
   const nextOwnHp = nextState?.[getHeroHpKey(owner)] ?? 0;
@@ -1562,7 +1612,34 @@ export function scoreAction(state, owner, action) {
     };
   }
 
-  score += 20;
+  const handCyclingValue = getHandCyclingValue(state, owner, action, hasImmediateBattleImpact);
+  if (handCyclingValue > 0) {
+    score += handCyclingValue;
+    action.aiEvaluation = {
+      ...(action.aiEvaluation ?? {}),
+      handCycling: true,
+      handCyclingValue,
+      handAtEffectiveLimit: true,
+      cardsRemainToDraw: true,
+      createsDrawSlot: true,
+      reason: 'dead card cycling creates a future draw slot',
+    };
+  }
+
+  if (!hasImmediateBattleImpact && handCyclingValue <= 0 && score <= 0) {
+    action.aiEvaluation = {
+      ...(action.aiEvaluation ?? {}),
+      hasImmediateBattleImpact: false,
+      zeroImpactRejectedReason: 'no immediate battle impact and no meaningful hand-cycling value',
+    };
+    return -1;
+  }
+
+  action.aiEvaluation = {
+    ...(action.aiEvaluation ?? {}),
+    hasImmediateBattleImpact,
+  };
+  score += hasImmediateBattleImpact ? 20 : 0;
   return score;
 }
 
