@@ -246,3 +246,21 @@ test('asset failures are confirmed, bounded, include card-art fallback, and reus
   assert.equal(JSON.stringify(snapshot.assets).includes('object'), false);
   assert.ok(JSON.stringify(snapshot).length < 15_000);
 });
+
+
+test('Battle Report reveal reads transition wait from the BattleScene runtime field', () => {
+  const scene = makeScene();
+  scene.waitForBattleTransitionPresentation = true;
+  scene.waitingForTransitionPresentation = false;
+  const snapshot = buildBattleReportSnapshot(scene);
+  assert.equal(snapshot.reveal.waitingForTransitionPresentation, true);
+});
+
+test('BattleScene create resets battle report event ownership before current battle-created', () => {
+  const source = readFileSync('src/scenes/BattleScene.js', 'utf8');
+  assert.match(source, /create\(data\) \{\s*this\.cleanupSceneObjects\(\);\s*this\.resetBattleReportTracing\(\);/);
+  assert.match(source, /resetBattleReportTracing\(\) \{\s*this\.battleReportEvents = \[\];\s*this\.battleReportStartedAt = Date\.now\(\);\s*this\.battleSceneCreatedAt = new Date\(this\.battleReportStartedAt\)\.toISOString\(\);\s*this\.battleReportLastEvent = null;\s*this\.battleReportLastAudioEvent = null;\s*\}/);
+  const createStart = source.indexOf('this.resetBattleReportTracing();');
+  const battleCreated = source.indexOf("this.recordBattleReportEvent?.('battle-created'");
+  assert.ok(createStart >= 0 && battleCreated > createStart, 'current create resets event buffer before battle-created is recorded');
+});

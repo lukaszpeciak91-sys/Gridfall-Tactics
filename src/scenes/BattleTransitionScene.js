@@ -194,6 +194,7 @@ export default class BattleTransitionScene extends Phaser.Scene {
     this.root?.destroy?.(true);
     this.root = null;
     const battleScene = this.scene.get(BATTLE_SCENE_KEY);
+    battleScene?.recordBattleReportEvent?.('transition-handoff-received', { transitionLaunchId: launchId });
     battleScene?.beginOpeningBattlePresentation?.({ battleTransitionLaunchId: launchId });
     this.scene.stop();
   }
