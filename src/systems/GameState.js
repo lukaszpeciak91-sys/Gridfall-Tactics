@@ -233,6 +233,8 @@ function cardCanRealisticallyAffectOutcome(card, state, owner, visitedCardIds = 
       && cardCanRealisticallyAffectOutcome(entry.card, state, owner, visitedCardIds));
 
   switch (card.effectId) {
+    case 'summon_grunt_empty_slot':
+      return friendlyEmptySlotIsReachable;
     case 'aggro_buff_all_atk_2':
     case 'buff_all_atk_1':
       return effectCanEnableOutcome(state, owner, card.effectId);
@@ -496,8 +498,15 @@ function isLanePlayBlockedForOwner(state, owner, boardIndex) {
   return false;
 }
 
-function isOwnerSlotAvailableForUnitPlacement(state, owner, index) {
+export function isOwnerSlotAvailableForUnitPlacement(state, owner, index) {
   return state.board[index] === null && !isLanePlayBlockedForOwner(state, owner, index);
+}
+
+export function isLegalEmptyFriendlySlotForUnitPlacement(state, owner, index) {
+  if (!state || state.winner) return false;
+  if (!Number.isInteger(index)) return false;
+  if (!getRowForOwner(owner).includes(index)) return false;
+  return isOwnerSlotAvailableForUnitPlacement(state, owner, index);
 }
 
 function nextGameplayRandom(state) {
@@ -1303,6 +1312,7 @@ function canApplyEffectById(state, owner, effectId) {
         && !hasMoveDisableImmunity(state, getOpponentOwner(owner), owner, effectId);
     case 'adjacent_allies_temp_armor_1':
       return getAdjacentFriendlyFormationIndexes(state, owner).length > 0;
+    case 'summon_grunt_empty_slot':
     case 'grave_call':
       return getRowForOwner(owner).some((index) => isOwnerSlotAvailableForUnitPlacement(state, owner, index));
     case 'revive_friendly_1hp': {
@@ -2647,6 +2657,10 @@ function validateTargetedEffectResolution(state, owner, card, boardIndex, target
   const opponentOwner = getOpponentOwner(owner);
 
   switch (card.effectId) {
+    case 'summon_grunt_empty_slot':
+      return isLegalEmptyFriendlySlotForUnitPlacement(state, owner, boardIndex)
+        ? { ok: true }
+        : { ok: false, reason: 'Target must be an empty friendly slot' };
     case 'return_friendly_draw_1':
     case 'destroy_friendly_draw_1':
     case 'destroy_friendly_damage_enemy_base_1':
@@ -2752,12 +2766,13 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
     return { ok: false, reason: 'Only effect cards can use targeted resolution' };
   }
 
-  const targetUnit = state.board[boardIndex];
-  if (!targetUnit) return { ok: false, reason: 'No target at selected slot' };
   const selectedTargets = Array.isArray(targetIndexes) ? targetIndexes : [boardIndex];
+  const allowsEmptyTarget = card.effectId === 'summon_grunt_empty_slot';
+  const targetUnit = state.board[boardIndex];
+  if (!targetUnit && !allowsEmptyTarget) return { ok: false, reason: 'No target at selected slot' };
   const effectVariantSelectedTargets = captureSelectedUnitIdentities(state, selectedTargets);
 
-  const protectedOwner = targetUnit.owner;
+  const protectedOwner = targetUnit?.owner ?? getOpponentOwner(owner);
   const blockedByImmunity = hasMoveDisableImmunity(state, protectedOwner, owner, card.effectId);
   if (blockedByImmunity) {
     const [playedCard] = side.hand.splice(handIndex, 1);
@@ -2778,6 +2793,13 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
 
   if (baseEffectWillRun) {
     switch (card.effectId) {
+    case 'summon_grunt_empty_slot': {
+      if (!isLegalEmptyFriendlySlotForUnitPlacement(state, owner, boardIndex)) {
+        return { ok: false, reason: 'Target must be an empty friendly slot' };
+      }
+      summonGruntAt(state, boardIndex, owner, 'summoned_grunt', getGeneratedGruntArtForSource(card));
+      break;
+    }
     case 'return_friendly_draw_1': {
       if (targetUnit.owner !== owner) return { ok: false, reason: 'Target must be friendly' };
       returnBoardUnitToHand(side, targetUnit);

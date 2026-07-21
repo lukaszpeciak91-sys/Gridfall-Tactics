@@ -23,7 +23,7 @@ const expectedTextShort = new Map(Object.entries({
   swarm_spitter_1: 'On play: deal 1 to opposed [ENEMY]',
   swarm_brood_1: 'On death: summon 1/1 here',
   swarm_alpha_1: 'Adjacent [ALLY] in combat: +1 ATK and ignores 1 ARM',
-  swarm_spawn_1: 'Summon a 1/1 in the first empty slot',
+  swarm_spawn_1: 'Summon a Grunt in a chosen free slot',
   swarm_regrow_1: 'Revive the newest fallen unit with 1 HP',
   swarm_flood_1: 'Fill up to 2 empty slots with 1/1s. They vanish after combat',
   swarm_recycle_1: '[ENEMIES]: -1 ARM until combat',
@@ -200,7 +200,6 @@ test('Reactive Plating wording avoids immediate-lane-combat cleanup language', (
 
 test('deterministic effects remain outside manual targeting metadata', () => {
   for (const [effectId, cardId] of [
-    ['summon_grunt_empty_slot', 'swarm_spawn_1'],
     ['revive_friendly_1hp', 'swarm_regrow_1'],
     ['fill_empty_slots_0_1', 'swarm_flood_1'],
     ['can_hit_any_lane', 'control_sniper_1'],

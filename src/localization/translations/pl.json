@@ -142,7 +142,7 @@
     },
     "swarm_spawn_1": {
       "name": "Pomiot",
-      "textShort": "Przywołaj 1/1 w pierwszym pustym slocie"
+      "textShort": "Przyzwij Grunta na wybranym wolnym polu"
     },
     "swarm_swarm_attack_1": {
       "name": "Atak Roju",
@@ -574,6 +574,7 @@
         "controllerSelectFirstEnemy": "WYBIERZ PIERWSZEGO WROGA\nDOTKNIJ POZA WROGIEM, ABY ANULOWAĆ",
         "selectAdjacentEnemy": "WYBIERZ SĄSIADUJĄCYCH WROGÓW",
         "selectAlly": "WYBIERZ SOJUSZNIKA",
+        "selectFreeSlot": "WYBIERZ WOLNE POLE",
         "selectUnit": "WYBIERZ JEDNOSTKĘ",
         "selectSecondEnemy": "WYBIERZ DRUGIEGO WROGA",
         "controllerSelectSecondEnemy": "WYBIERZ DRUGIEGO WROGA\nDOTKNIJ POZA WROGIEM, ABY ANULOWAĆ"

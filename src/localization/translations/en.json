@@ -142,7 +142,7 @@
     },
     "swarm_spawn_1": {
       "name": "Spawn",
-      "textShort": "Summon a 1/1 in the first empty slot"
+      "textShort": "Summon a Grunt in a chosen free slot"
     },
     "swarm_swarm_attack_1": {
       "name": "Swarm Attack",
@@ -574,6 +574,7 @@
         "controllerSelectFirstEnemy": "SELECT FIRST ENEMY\nTAP OUTSIDE AN ENEMY TO CANCEL",
         "selectAdjacentEnemy": "SELECT ADJACENT ENEMIES",
         "selectAlly": "SELECT ALLY",
+        "selectFreeSlot": "CHOOSE A FREE SLOT",
         "selectUnit": "SELECT UNIT",
         "selectSecondEnemy": "SELECT SECOND ENEMY",
         "controllerSelectSecondEnemy": "SELECT SECOND ENEMY\nTAP OUTSIDE AN ENEMY TO CANCEL"
