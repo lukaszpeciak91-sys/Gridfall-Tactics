@@ -35,8 +35,8 @@ test('Resize, fullscreen, rules, settings, deck info, and retry do not reroll ba
   assert.match(retry, /const battleContext = this\.battleContext;[\s\S]*restartBattleScene\(this, \{ factionKey, enemyFactionKey, battleContext \}\)/);
 });
 
-test('BattleScene preloads configured Arena battlegrounds while retaining fallback behavior', () => {
+test('BattleScene preloads only active Arena battleground while retaining fallback behavior', () => {
   const source = battleSource();
-  assert.match(source, /preloadBattleBackgroundArt\(this, getArenaBattlegrounds\(\)\)/);
+  assert.match(source, /preloadBattleBackgroundArt\(this, \[this\.resolveBattleBackgroundAsset\(\)\]\)/);
   assert.match(source, /this\.cameras\.main\.setBackgroundColor\(BATTLE_BACKGROUND_FALLBACK_COLOR_HEX\)/);
 });

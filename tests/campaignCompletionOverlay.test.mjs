@@ -13,9 +13,11 @@ const popupStart = source.indexOf('  startAchievementUnlockPopupsForResultModal(
 const popupEnd = source.indexOf('  createResultModalButton(', popupStart);
 const popupSource = source.slice(popupStart, popupEnd);
 
-test('BattleScene preloads campaign trophy asset with the required key and runtime path', () => {
+test('BattleScene keeps campaign trophy asset keyed but out of cold preload', () => {
   assert.match(source, /const CAMPAIGN_TROPHY_ASSET = Object\.freeze\(\{[\s\S]*key: 'ui\.campaign\.victoryArtefact',[\s\S]*path: resolvePublicAssetPath\('assets\/ui\/campaign-trophy\.webp'\)/);
-  assert.match(source, /preloadImageAsset\(this, CAMPAIGN_TROPHY_ASSET,[\s\S]*Campaign trophy failed to load/);
+  const preloadBlock = source.slice(source.indexOf('  preload() {'), source.indexOf('  init(data = {})'));
+  assert.doesNotMatch(preloadBlock, /CAMPAIGN_TROPHY_ASSET/);
+  assert.match(source, /loadCampaignTrophyAssetForCompletion\(status, options\)/);
 });
 
 test('campaign won uses trophy texture when loaded and safely falls back to emblem flow when missing', () => {
