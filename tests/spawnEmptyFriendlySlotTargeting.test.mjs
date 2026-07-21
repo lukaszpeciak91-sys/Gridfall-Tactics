@@ -224,3 +224,104 @@ test('AI Spawn equal scores use existing seeded deterministic tie-break', () => 
   assert.equal(selectedA.aiEvaluation.tieBreak.reason, 'seeded exact-score tie-break');
   assert.equal(selectedA.aiEvaluation.tieBreak.tieCount, 3);
 });
+
+const regrowCard = () => ({ ...swarm.deck.find((card) => card.id === 'swarm_regrow_1') });
+const riseAgainCard = () => ({ id: 'attrition_swarm_rise_again_1', name: 'Rise Again', type: 'order', effectId: 'revive_friendly_1hp', targeting: 'none' });
+const fallenEntry = (id, extra = {}) => ({ card: { id, cardId: id, name: id, type: 'unit', attack: 2, hp: 3, armor: 0, effectId: null, ...extra }, sequence: extra.sequence ?? 1, reason: 'combat-death', combat: true });
+
+function stateWithRevive(card = regrowCard(), owner = 'player') {
+  const state = createInitialBattleState(emptyFaction, emptyFaction, { skipInitialDraw: true, firstActor: owner });
+  state[owner].hand.push(card);
+  state[owner].fallen.push(fallenEntry('older'), fallenEntry('newest'));
+  return state;
+}
+
+test('Regrow and Rise Again enter empty-friendly-slot targeting only with fallen and legal slots', () => {
+  for (const card of [regrowCard(), riseAgainCard()]) {
+    const ready = stateWithRevive(card);
+    const scene = { gameState: ready, isUnitCard: (item) => item?.type === 'unit' };
+    assert.equal(getTargetingStateForCard.call(scene, card, getTargetingStateForEffect, () => ({ ok: true })).targetType, 'empty-friendly-slot');
+
+    const noFallen = stateWithRevive(card);
+    noFallen.player.fallen = [];
+    assert.equal(getTargetingStateForCard.call({ ...scene, gameState: noFallen }, card, getTargetingStateForEffect, () => ({ ok: false })), null);
+
+    const full = stateWithRevive(card);
+    full.board[6] = unit('player', 'left');
+    full.board[7] = unit('player', 'mid');
+    full.board[8] = unit('player', 'right');
+    assert.equal(getTargetingStateForCard.call({ ...scene, gameState: full }, card, getTargetingStateForEffect, () => ({ ok: false })), null);
+  }
+});
+
+test('Revive empty-friendly-slot legality highlights only legal empty friendly fields', () => {
+  const state = stateWithRevive();
+  state.board[7] = unit('player', 'occupied');
+  state.board[0] = null;
+  state.playerLanePlayBlockedThisTurn = [false, false, true];
+
+  assert.deepEqual([6, 7, 8, 0].map((index) => isLegalEmptyFriendlySlotForUnitPlacement(state, 'player', index)), [true, false, false, false]);
+});
+
+test('Revive targeted resolution preserves Fallen LIFO, excludes temporary Flood tokens, and uses selected destination at 1 HP', () => {
+  const state = stateWithRevive();
+  state.player.fallen.push(fallenEntry('temporary-token', { temporaryFloodToken: true }), fallenEntry('actual-newest'));
+  state.board[6] = unit('player', 'occupied');
+
+  const result = resolveTargetedEffectCard(state, 'player', 'swarm_regrow_1', 8, [8]);
+
+  assert.equal(result.ok, true);
+  assert.equal(state.board[8]?.id, 'actual-newest');
+  assert.equal(state.board[8]?.hp, 1);
+  assert.deepEqual(state.player.fallen.map((entry) => entry.card.id), ['older', 'newest', 'temporary-token']);
+  assert.equal(state.player.discard[0].id, 'swarm_regrow_1');
+});
+
+test('Revive invalid stale target leaves Fallen, hand, discard, and action opportunity unchanged', () => {
+  const state = stateWithRevive();
+  state.board[8] = unit('player', 'stale-occupant');
+  const beforeFallen = structuredClone(state.player.fallen);
+
+  const result = resolveTargetedEffectCard(state, 'player', 'swarm_regrow_1', 8, [8]);
+
+  assert.equal(result.ok, false);
+  assert.deepEqual(state.player.fallen, beforeFallen);
+  assert.equal(state.player.hand.length, 1);
+  assert.equal(state.player.discard.length, 0);
+});
+
+test('AI Revive generates exact target payloads, simulates each destination, and uses seeded tie-breaks reproducibly', () => {
+  const state = createInitialBattleState(emptyFaction, emptyFaction, { skipInitialDraw: true, firstActor: 'enemy' });
+  state.enemy.hand.push(riseAgainCard());
+  state.enemy.fallen.push(fallenEntry('revived-threat', { attack: 3, hp: 4 }));
+
+  const actions = buildActionCandidates(state, 'enemy', state.enemy.hand).filter((action) => action.cardId === 'attrition_swarm_rise_again_1');
+
+  assert.deepEqual(actions.map((action) => action.targetIndex), [0, 1, 2]);
+  assert.deepEqual(actions.map((action) => action.targetIndexes), [[0], [1], [2]]);
+  actions.forEach((action) => {
+    const probe = structuredClone(state);
+    assert.equal(resolveTargetedEffectCard(probe, 'enemy', action.cardId, action.targetIndex, action.targetIndexes).ok, true);
+    assert.equal(probe.board[action.targetIndex]?.id, 'revived-threat');
+  });
+  const first = chooseBattleAction(state, 'enemy', { aiSafeSurrenderEnabled: false, randomFn: () => 0.1 });
+  const second = chooseBattleAction(state, 'enemy', { aiSafeSurrenderEnabled: false, randomFn: () => 0.1 });
+  assert.deepEqual(first, second);
+});
+
+test('AI Revive can choose a tactically superior non-center and non-lowest destination through scoring', () => {
+  const state = createInitialBattleState(emptyFaction, emptyFaction, { skipInitialDraw: true, firstActor: 'enemy' });
+  state.enemy.hand.push(riseAgainCard());
+  state.enemy.fallen.push(fallenEntry('revived-attacker', { attack: 8, hp: 5 }));
+  state.board[6] = unit('player', 'left-blocker');
+  state.board[7] = unit('player', 'center-blocker');
+
+  const scores = Object.fromEntries(buildActionCandidates(state, 'enemy', state.enemy.hand)
+    .filter((action) => action.cardId === 'attrition_swarm_rise_again_1')
+    .map((action) => [action.targetIndex, scoreAction(state, 'enemy', action)]));
+  const action = chooseBattleAction(state, 'enemy', { aiSafeSurrenderEnabled: false, randomFn: () => 0.5 });
+
+  assert.ok(scores[2] > scores[0]);
+  assert.ok(scores[2] > scores[1]);
+  assert.equal(action.targetIndex, 2);
+});

@@ -230,6 +230,7 @@ function cardCanRealisticallyAffectOutcome(card, state, owner, visitedCardIds = 
   const friendlyAttackerIsReachable = ownerCanReachAttackingUnit(state, owner);
   const friendlyFallenUnits = (owner === 'player' ? state.player.fallen : state.enemy.fallen)
     .some((entry) => entry?.card?.type === 'unit'
+      && !entry?.card?.temporaryFloodToken
       && cardCanRealisticallyAffectOutcome(entry.card, state, owner, visitedCardIds));
 
   switch (card.effectId) {
@@ -590,7 +591,7 @@ function recordFallenUnit(state, unit, reason = 'damage-death') {
 
 function findNewestReviveableFallenIndex(side) {
   for (let index = side.fallen.length - 1; index >= 0; index -= 1) {
-    if (side.fallen[index]?.card?.type === 'unit') return index;
+    if (side.fallen[index]?.card?.type === 'unit' && !side.fallen[index]?.card?.temporaryFloodToken) return index;
   }
   return -1;
 }
@@ -2295,10 +2296,11 @@ function applyEffectById(state, owner, effectId, sourceCard = null) {
       });
       break;
     }
-    // Quick Strike, Quick Fix, Jam Signal, and Control Override are targeted and handled via resolveTargetedEffectCard.
+    // Quick Strike, Quick Fix, Jam Signal, Control Override, and revive placement are targeted and handled via resolveTargetedEffectCard.
     case 'quick_strike':
     case 'enemy_up_to_2_atk_minus_1':
     case 'control_enemy_unit_this_turn':
+    case 'revive_friendly_1hp':
       break;
     case 'cannot_drop_below_1_this_turn': {
       if (!state.cannotDropBelowOneThisTurn) {
@@ -2328,20 +2330,6 @@ function applyEffectById(state, owner, effectId, sourceCard = null) {
     }
     case 'swap_leftmost_adjacent_enemies': {
       applyLeftmostAdjacentEnemySwap(state, owner);
-      break;
-    }
-    case 'revive_friendly_1hp': {
-      const friendlyIndexes = getRowForOwner(owner);
-      const emptySlot = friendlyIndexes.find((index) => isOwnerSlotAvailableForUnitPlacement(state, owner, index));
-      if (emptySlot === undefined) break;
-      const side = owner === 'player' ? state.player : state.enemy;
-      const reviveIndex = findNewestReviveableFallenIndex(side);
-      if (reviveIndex < 0) break;
-      const [{ card: reviveCard }] = side.fallen.splice(reviveIndex, 1);
-      const revivedUnit = createBoardUnitFromCard(reviveCard, owner);
-      revivedUnit.hp = 1;
-      revivedUnit.maxHp = Number.isFinite(revivedUnit.maxHp) ? revivedUnit.maxHp : reviveCard.hp;
-      state.board[emptySlot] = revivedUnit;
       break;
     }
 
@@ -2626,6 +2614,9 @@ export function playEffectCard(state, owner, handCardId) {
   if (!canApplyEffectById(state, owner, card.effectId ?? null)) {
     return { ok: false, reason: 'Effect has no legal deterministic resolution' };
   }
+  if (card.effectId === 'revive_friendly_1hp') {
+    return { ok: false, reason: 'Effect requires target selection' };
+  }
 
   const battleProgressBefore = getMaterialBattleStateSignature(state);
   const [playedCard] = side.hand.splice(handIndex, 1);
@@ -2661,6 +2652,13 @@ function validateTargetedEffectResolution(state, owner, card, boardIndex, target
       return isLegalEmptyFriendlySlotForUnitPlacement(state, owner, boardIndex)
         ? { ok: true }
         : { ok: false, reason: 'Target must be an empty friendly slot' };
+    case 'revive_friendly_1hp': {
+      const side = owner === 'player' ? state.player : state.enemy;
+      if (findNewestReviveableFallenIndex(side) < 0) return { ok: false, reason: 'No fallen unit' };
+      return isLegalEmptyFriendlySlotForUnitPlacement(state, owner, boardIndex)
+        ? { ok: true }
+        : { ok: false, reason: 'Target must be an empty friendly slot' };
+    }
     case 'return_friendly_draw_1':
     case 'destroy_friendly_draw_1':
     case 'destroy_friendly_damage_enemy_base_1':
@@ -2767,7 +2765,7 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
   }
 
   const selectedTargets = Array.isArray(targetIndexes) ? targetIndexes : [boardIndex];
-  const allowsEmptyTarget = card.effectId === 'summon_grunt_empty_slot';
+  const allowsEmptyTarget = card.effectId === 'summon_grunt_empty_slot' || card.effectId === 'revive_friendly_1hp';
   const targetUnit = state.board[boardIndex];
   if (!targetUnit && !allowsEmptyTarget) return { ok: false, reason: 'No target at selected slot' };
   const effectVariantSelectedTargets = captureSelectedUnitIdentities(state, selectedTargets);
@@ -2798,6 +2796,19 @@ export function resolveTargetedEffectCard(state, owner, handCardId, boardIndex, 
         return { ok: false, reason: 'Target must be an empty friendly slot' };
       }
       summonGruntAt(state, boardIndex, owner, 'summoned_grunt', getGeneratedGruntArtForSource(card));
+      break;
+    }
+    case 'revive_friendly_1hp': {
+      if (!isLegalEmptyFriendlySlotForUnitPlacement(state, owner, boardIndex)) {
+        return { ok: false, reason: 'Target must be an empty friendly slot' };
+      }
+      const reviveIndex = findNewestReviveableFallenIndex(side);
+      if (reviveIndex < 0) return { ok: false, reason: 'No fallen unit' };
+      const [{ card: reviveCard }] = side.fallen.splice(reviveIndex, 1);
+      const revivedUnit = createBoardUnitFromCard(reviveCard, owner);
+      revivedUnit.hp = 1;
+      revivedUnit.maxHp = Number.isFinite(revivedUnit.maxHp) ? revivedUnit.maxHp : reviveCard.hp;
+      state.board[boardIndex] = revivedUnit;
       break;
     }
     case 'return_friendly_draw_1': {

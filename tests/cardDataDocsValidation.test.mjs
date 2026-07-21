@@ -24,7 +24,7 @@ const expectedTextShort = new Map(Object.entries({
   swarm_brood_1: 'On death: summon 1/1 here',
   swarm_alpha_1: 'Adjacent [ALLY] in combat: +1 ATK and ignores 1 ARM',
   swarm_spawn_1: 'Summon a Grunt in a chosen free slot',
-  swarm_regrow_1: 'Revive the newest fallen unit with 1 HP',
+  swarm_regrow_1: 'Revive the newest Fallen [ALLY] with 1 HP in a chosen free slot',
   swarm_flood_1: 'Fill up to 2 empty slots with 1/1s. They vanish after combat',
   swarm_recycle_1: '[ENEMIES]: -1 ARM until combat',
   tank_shieldbearer_1: 'Adjacent [ALLY] +1 ARM until combat',
@@ -50,7 +50,7 @@ const expectedTextShort = new Map(Object.entries({
   attrition_swarm_funeral_pyre_1: 'First 2 [ALLY] combat deaths:\n-1 [HP] to opposed [ENEMY]',
   attrition_swarm_infect_1: 'Deal 1 to [ENEMY].\nOpposed [ALLY] gains +1 [ATK]',
   attrition_swarm_feast_1: 'Draw 1',
-  attrition_swarm_rise_again_1: 'Revive the newest fallen unit with 1 HP',
+  attrition_swarm_rise_again_1: 'Revive the newest Fallen [ALLY] with 1 HP in a chosen free slot',
   attrition_swarm_grave_call_1: 'Summon a 1/1. If you have no [ALLY], summon up to 2',
   overclock_hot_runner_1: 'Opposed [ENEMY] offline for next combat',
   overclock_pain_engine_1: 'Opposed [ENEMY]: -1 ATK until combat',
@@ -200,7 +200,6 @@ test('Reactive Plating wording avoids immediate-lane-combat cleanup language', (
 
 test('deterministic effects remain outside manual targeting metadata', () => {
   for (const [effectId, cardId] of [
-    ['revive_friendly_1hp', 'swarm_regrow_1'],
     ['fill_empty_slots_0_1', 'swarm_flood_1'],
     ['can_hit_any_lane', 'control_sniper_1'],
     ['damage_all_enemies_1_ignore_armor', 'control_pulse_wave_1'],
@@ -208,7 +207,6 @@ test('deterministic effects remain outside manual targeting metadata', () => {
     ['friendly_immovable_this_turn', 'wardens_stand_firm_1'],
     ['adjacent_allies_temp_armor_1', 'wardens_hold_the_line_1'],
     ['funeral_pyre', 'attrition_swarm_funeral_pyre_1'],
-    ['revive_friendly_1hp', 'attrition_swarm_rise_again_1'],
     ['grave_call', 'attrition_swarm_grave_call_1'],
   ]) {
     assert.equal(getTargetingStateForEffect(effectId, cardId), null, `${cardId} should not open manual targeting`);

@@ -21,7 +21,7 @@ const ENEMY_SINGLE_TARGET_EFFECTS = new Set([
 ]);
 
 export function getTargetingStateForEffect(effectId, cardId, targeting = null) {
-  if (effectId === 'summon_grunt_empty_slot' || targeting === 'empty_friendly_slot') {
+  if (effectId === 'summon_grunt_empty_slot' || effectId === 'revive_friendly_1hp' || targeting === 'empty_friendly_slot') {
     return { cardId, targetType: 'empty-friendly-slot', requiredTargets: 1, targetIndexes: [] };
   }
   // Parametric lane tempo may be friendly- or enemy-targeted. The caller can

@@ -453,7 +453,7 @@ test('Rise Again and Grave Call are deterministic and preserve owner integrity',
     combat: true,
   });
   addHand(revive, 'player', card('attrition_swarm_rise_again_1'));
-  const reviveResult = playEffectCard(revive, 'player', 'attrition_swarm_rise_again_1');
+  const reviveResult = resolveTargetedEffectCard(revive, 'player', 'attrition_swarm_rise_again_1', 6, [6]);
   assert.equal(reviveResult.ok, true);
   assert.equal(revive.board[6].name, 'Abomination');
   assert.equal(revive.board[6].hp, 1);
@@ -481,7 +481,12 @@ test('Rise Again and Grave Call are deterministic and preserve owner integrity',
 
 test('Attrition Swarm UI targeting metadata matches resolver expectations', () => {
   assert.equal(getTargetingStateForEffect('funeral_pyre', 'attrition_swarm_funeral_pyre_1'), null);
-  assert.equal(getTargetingStateForEffect('revive_friendly_1hp', 'attrition_swarm_rise_again_1'), null);
+  assert.deepEqual(getTargetingStateForEffect('revive_friendly_1hp', 'attrition_swarm_rise_again_1'), {
+    cardId: 'attrition_swarm_rise_again_1',
+    targetType: 'empty-friendly-slot',
+    requiredTargets: 1,
+    targetIndexes: [],
+  });
   assert.equal(getTargetingStateForEffect('grave_call', 'attrition_swarm_grave_call_1'), null);
   assert.deepEqual(getTargetingStateForEffect('infect_damage_1_opposite_ally_atk_1', 'attrition_swarm_infect_1'), {
     cardId: 'attrition_swarm_infect_1',

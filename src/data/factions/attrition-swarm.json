@@ -106,7 +106,7 @@
       "type": "order",
       "targeting": "none",
       "effectId": "revive_friendly_1hp",
-      "textShort": "Revive the newest fallen unit with 1 HP"
+      "textShort": "Revive the newest Fallen [ALLY] with 1 HP in a chosen free slot"
     },
     {
       "id": "attrition_swarm_grave_call_1",

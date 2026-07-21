@@ -213,7 +213,7 @@ test('returned-to-hand generated units preserve faction-local art through recall
   resolveCombat(state);
   assert.equal(state.player.fallen.at(-1)?.card.id, displacedToken.id);
   state.player.hand.push(getCard(swarm, 'swarm_regrow_1'));
-  assert.equal(playEffectCard(state, 'player', 'swarm_regrow_1').ok, true);
+  assert.equal(resolveTargetedEffectCard(state, 'player', 'swarm_regrow_1', 7, [7]).ok, true);
   assertTokenArt(state.board[7], swarmGruntArt);
 });
 
