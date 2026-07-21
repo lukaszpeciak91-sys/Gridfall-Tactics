@@ -36,7 +36,7 @@ If any other document conflicts with this file, this file wins.
   - Equal base HP -> **draw**.
 - A board state with no realistic outcome-changing path is a no-progress deadlock and ends immediately by remaining base HP. The centralized check distinguishes cards merely remaining in hand/deck from legally reachable plays and from plays that can realistically affect base HP or the final winner.
 - Future draws and reachable summon, redeploy, revive, swap, or combat sequences keep the battle active when they can still create outcome-changing pressure. Situational cards do not keep a locked battle alive when their required target, board condition, or follow-up resource cannot exist in any reachable state.
-- There is no repeated-PASS or 3-pass stall counter; dead games end as soon as the locked outcome is detected.
+- Battle Exhausted PASS tiebreak: once at least one base is at **3 HP or less**, two complete PASS rounds (**both sides PASS, then both sides PASS again**) end the battle by remaining base HP. Higher base HP wins; equal base HP is a **draw**. Any meaningful gameplay progress resets the Battle Exhausted PASS count.
 
 ### 1.1) Meaningful Actions for No-Progress Detection
 

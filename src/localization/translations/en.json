@@ -627,7 +627,7 @@
           "heading": "Icon Glossary",
           "lines": [
             "ATK — Combat damage dealt in combat.",
-            "HP — Health of a unit or base.",
+            "HP — Health of a unit or Base.",
             "ARM — Armor that reduces combat damage.",
             "ALLY — One of your units.",
             "ALLIES — All your units.",
@@ -638,43 +638,50 @@
         {
           "heading": "Goal",
           "lines": [
-            "Destroy the enemy base before they destroy yours.",
+            "Both Bases begin with 12 HP.",
+            "Destroy the enemy Base to win.",
+            "If only one Base is destroyed, the other side wins.",
             "If both Bases are destroyed during the same combat resolution, the battle ends in a draw."
           ]
         },
         {
           "heading": "Deck",
           "lines": [
-            "Your deck has 10 cards.",
-            "Maximum hand size is 5 cards.",
-            "Cards are split into: units and effects.",
-            "At battle start, draw 4 cards.",
-            "Before battle begins, you may mulligan up to 2 cards."
+            "Each faction uses a 10-card deck.",
+            "At battle start, draw a 4-card opening hand.",
+            "Before battle, you may replace up to 2 cards.",
+            "Replaced cards are shuffled back, then you draw the same number of new cards.",
+            "Replacing cards does not use your first battle action."
           ]
         },
         {
           "heading": "Alternating Initiative",
           "lines": [
-            "Each turn, both sides take one action or PASS. Combat then resolves automatically. In the next turn, the side that acted second goes first.",
-            "Units attack enemies directly opposite.",
-            "An open lane hits the enemy base.",
-            "After combat, both sides draw a card.",
-            "If your deck is empty, you simply do not draw."
+            "At battle start, one side is chosen to act first.",
+            "Each side takes one action: play a unit or effect, replace a unit, swap units, or choose PASS.",
+            "Some actions require selecting a slot or target.",
+            "After both sides act or PASS, all lanes resolve combat.",
+            "Next turn, the side that acted second goes first."
           ]
         },
         {
           "heading": "Board",
           "lines": [
-            "Only the top and bottom rows contain units.",
-            "The middle row is visual/effect space and cannot hold units."
+            "There are three combat lanes.",
+            "Each side has one unit slot in each lane.",
+            "Use only your friendly slots.",
+            "Opposing units fight; an open lane damages the Base.",
+            "Units at 0 HP leave the board."
           ]
         },
         {
           "heading": "Playing Cards",
           "lines": [
-            "Play units to your side of the board.",
-            "Cast effects from your hand.",
-            "Some effects require targets; others resolve automatically."
+            "Play units into empty friendly slots.",
+            "Effect cards use your action and may require a target.",
+            "You can replace your board unit by playing a unit from hand onto its slot.",
+            "The replaced unit returns to your hand.",
+            "Replacement is unavailable when there is no room in hand."
           ]
         },
         {
@@ -688,14 +695,19 @@
         {
           "heading": "PASS",
           "lines": [
-            "PASS ends your action."
+            "PASS uses your action.",
+            "After both sides act or PASS, combat resolves.",
+            "Surrender from the battle menu ends the battle as a loss."
           ]
         },
         {
           "heading": "Battle Exhausted",
           "lines": [
-            "Exhausted late battles may be decided by remaining Base HP.",
-            "Equal Base HP results in a draw."
+            "Can happen only when at least one Base has 3 HP or less.",
+            "It requires two full PASS rounds — both sides must choose PASS twice.",
+            "Playing a card, swapping units, or other battle progress resets this count.",
+            "The side with more remaining Base HP wins.",
+            "At equal Base HP, the battle ends in a draw."
           ]
         }
       ],
