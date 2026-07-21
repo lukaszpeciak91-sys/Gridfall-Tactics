@@ -11,6 +11,7 @@ import {
 const read = (path) => fs.readFileSync(path, 'utf8');
 const startSource = read('src/scenes/StartScene.js');
 const preloadBody = startSource.match(/  preload\(\) \{[\s\S]*?\n  \}/)?.[0] ?? '';
+const initialAssetsSource = read('src/ui/mainMenuInitialAssets.js');
 
 function createAudioScene({ cached = [], withAudioLoader = true } = {}) {
   const cachedKeys = new Set(cached);
@@ -31,15 +32,26 @@ function createAudioScene({ cached = [], withAudioLoader = true } = {}) {
 }
 
 test('StartScene preload keeps startup/menu visuals and uses the narrow menu audio boundary', () => {
-  assert.match(preloadBody, /preloadMenuBackgroundArt\(this\)/);
-  assert.match(preloadBody, /preloadImageAsset\(this, GRIDFALL_LOGO_ASSET/);
-  assert.match(preloadBody, /preloadSecondaryButtonAsset\(this\)/);
+  assert.match(preloadBody, /preloadMainMenuFirstFrameVisualAssets\(this\)/);
 
+  assert.match(startSource, /import \{ preloadMainMenuFirstFrameVisualAssets \} from '\.\.\/ui\/mainMenuInitialAssets\.js';/);
   assert.match(startSource, /import \{ preloadMenuAudioAssets \} from '\.\.\/audio\/audioAssets\.js';/);
   assert.match(preloadBody, /preloadMenuAudioAssets\(this\)/);
   assert.doesNotMatch(preloadBody, /preloadAudioAssets\(this\)/);
 });
 
+test('StartScene first-frame visual helper queues menu background, logo, and button art', () => {
+  assert.match(initialAssetsSource, /preloadMenuBackgroundArt\(scene\)/);
+  assert.match(initialAssetsSource, /preloadImageAsset\(scene, GRIDFALL_LOGO_ASSET/);
+  assert.match(initialAssetsSource, /preloadSecondaryButtonAsset\(scene\)/);
+  assert.match(initialAssetsSource, /Main menu logo failed to load: \${asset\.path}/);
+});
+
+test('StartScene first-frame visual helper relies on cache-safe fallback asset helpers', () => {
+  assert.match(read('src/rendering/backgroundArt.js'), /if \(!asset\?\.path \|\| !asset\?\.key \|\| scene\.textures\.exists\(asset\.key\)\) \{[\s\S]*?return;/);
+  assert.match(read('src/ui/imageButton.js'), /export function preloadSecondaryButtonAsset\(scene\) \{[\s\S]*preloadImageAsset\(scene, SECONDARY_BUTTON_ASSET/);
+  assert.match(read('src/audio/audioAssets.js'), /if \(!asset\?\.key \|\| !asset\?\.path \|\| hasCachedAudioAsset\(scene, asset\.key\)\) return;/);
+});
 test('StartScene menu audio helper queues menu music and UI click only', () => {
   assert.deepEqual(MENU_AUDIO_PRELOAD_KEYS, [AUDIO_KEYS.MENU_MUSIC, AUDIO_KEYS.UI_CLICK]);
 
@@ -75,6 +87,15 @@ test('StartScene menu audio helper skips cached menu audio and is null-safe with
 
   assert.doesNotThrow(() => preloadMenuAudioAssets(createAudioScene({ withAudioLoader: false })));
   assert.doesNotThrow(() => preloadMenuAudioAssets(null));
+});
+
+test('MainMenu first render reuses bootstrap helpers instead of starting unrelated asset loads', () => {
+  const mainMenuSource = read('src/scenes/MainMenuScene.js');
+  const mainMenuPreloadBody = mainMenuSource.match(/  preload\(\) \{[\s\S]*?\n  \}/)?.[0] ?? '';
+
+  assert.match(mainMenuPreloadBody, /preloadMainMenuFirstFrameVisualAssets\(this\)/);
+  assert.match(mainMenuPreloadBody, /preloadMenuAudioAssets\(this\)/);
+  assert.doesNotMatch(mainMenuPreloadBody, /preloadAudioAssets\(this\)/);
 });
 
 test('StartScene handoff remains independent of audio preload failure and timing constants are unchanged', () => {

@@ -106,8 +106,8 @@ test('StartScene uses optional logo art as the primary CTA with shared responsiv
 
   assert.match(logoLayoutSource, /GRIDFALL_LOGO_PUBLIC_PATH = 'assets\/ui\/gridfall-logo\.png'/);
   assert.match(logoLayoutSource, /path: resolvePublicAssetPath\(GRIDFALL_LOGO_PUBLIC_PATH\)/);
-  assert.match(startSource, /preloadImageAsset\(this, GRIDFALL_LOGO_ASSET/);
-  assert.match(startSource, /Start logo failed to load: \$\{asset\.path}/);
+  assert.match(startSource, /preloadMainMenuFirstFrameVisualAssets\(this\)/);
+  assert.match(read('src/ui/mainMenuInitialAssets.js'), /preloadImageAsset\(scene, GRIDFALL_LOGO_ASSET/);
   assert.match(startSource, /this\.textures\.exists\(GRIDFALL_LOGO_ASSET\.key\)/);
   assert.match(startSource, /this\.title = this\.createTitle\(width, height\)/);
   assert.match(startSource, /this\.configureLogoActivation\(\)/);
@@ -144,8 +144,8 @@ test('StartScene uses optional logo art as the primary CTA with shared responsiv
   assert.match(startSource, /this\.scene\.bringToTop\('StartScene'\)/);
   assert.match(startSource, /completeStartLogoTransition/);
 
-  assert.match(mainMenuSource, /preloadImageAsset\(this, GRIDFALL_LOGO_ASSET/);
-  assert.match(mainMenuSource, /Main menu logo failed to load: \$\{asset\.path}/);
+  assert.match(mainMenuSource, /preloadMainMenuFirstFrameVisualAssets\(this\)/);
+  assert.match(read('src/ui/mainMenuInitialAssets.js'), /Main menu logo failed to load: \$\{asset\.path}/);
   assert.match(mainMenuSource, /this\.textures\.exists\(GRIDFALL_LOGO_ASSET\.key\)/);
   assert.match(mainMenuSource, /this\.title = this\.createTitle\(width, height\)/);
   assert.match(mainMenuSource, /create\(data = \{\}\)/);
