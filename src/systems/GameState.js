@@ -10,7 +10,7 @@ const SWARM_ALPHA_AURA_EFFECT_ID = 'adjacent_allies_atk_plus_1_ignore_armor_1';
 const WARDEN_SELF_FRICTION_EFFECT_ID = 'warden_defensive_friction_self';
 const WARDEN_SPEARWALL_EFFECT_ID = 'warden_defensive_friction_adjacent';
 const WARDEN_FRICTION_CAP = 1;
-const FUNERAL_PYRE_TRIGGER_CAP = 2;
+const FUNERAL_PYRE_TRIGGER_CAP = 1;
 const COMBAT_KEYWORD_OVERFLOW = 'overflow';
 const DECAY_ATTACK_AFTER_COMBAT_EFFECT_ID = 'decay_attack_after_combat';
 const DECAY_HP_AFTER_COMBAT_EFFECT_ID = 'decay_hp_after_combat';
@@ -644,8 +644,6 @@ function clampHeroHpAndResolveWinner(state) {
 
 function finalizeImmediateLaneCombat(state) {
   cleanupAllDefeatedUnitsWithTriggers(state, { combat: true });
-  delete state.funeralPyreThisCombat;
-
   clampHeroHpAndResolveWinner(state);
 }
 
@@ -971,11 +969,16 @@ function triggerAdjacentRotcallers(state, deadIndex, deadOwner, options = {}) {
     const rotcaller = state.board[index];
     if (!rotcaller || rotcaller.owner !== deadOwner || rotcaller.hp <= 0) return;
     if (rotcaller.effectId !== 'rotcaller_adjacent_death_atk_1') return;
-    if (rotcaller.rotcallerTriggeredThisCombat) return;
-    rotcaller.rotcallerTriggeredThisCombat = true;
-    rotcaller.tempAttackMod = (rotcaller.tempAttackMod ?? 0) + 1;
+    state.rotcallerAdjacentDeathOpportunities = (state.rotcallerAdjacentDeathOpportunities ?? 0) + 1;
+    if (rotcaller.rotcallerPermanentTriggerConsumed) {
+      state.rotcallerAlreadyConsumedSkips = (state.rotcallerAlreadyConsumedSkips ?? 0) + 1;
+      return;
+    }
+    rotcaller.rotcallerPermanentTriggerConsumed = true;
+    rotcaller.attack = (rotcaller.attack ?? 0) + 1;
     const resultingAttack = getUnitAttack(rotcaller, { excludeCombatId: state.activeCombatId });
     state.rotcallerCombatTriggers = (state.rotcallerCombatTriggers ?? 0) + 1;
+    state.rotcallerPermanentAttackGained = (state.rotcallerPermanentAttackGained ?? 0) + 1;
     state.rotcallerCombatFeedbackEvents ??= [];
     state.rotcallerCombatFeedbackEvents.push({
       type: 'slot-text',
@@ -1017,12 +1020,32 @@ function dealCombatDeathLaneDamage(state, deadIndex, deadOwner, telemetryKey, op
   return true;
 }
 
-function triggerFuneralPyre(state, deadIndex, deadOwner) {
+function triggerFuneralPyre(state, deadIndex, deadOwner, options = {}) {
   const funeralState = ensureFuneralPyreState(state)[deadOwner];
-  if (!funeralState?.active || funeralState.triggers >= FUNERAL_PYRE_TRIGGER_CAP) return;
-  funeralState.triggers += 1;
-  state.funeralPyreCombatTriggers = (state.funeralPyreCombatTriggers ?? 0) + 1;
-  dealCombatDeathLaneDamage(state, deadIndex, deadOwner, 'funeralPyreLaneDamageTriggers');
+  if (!funeralState?.active) return;
+  funeralState.opportunities = (funeralState.opportunities ?? 0) + 1;
+  state.funeralPyreAlliedDeathOpportunities = (state.funeralPyreAlliedDeathOpportunities ?? 0) + 1;
+  if ((funeralState.triggers ?? 0) >= (funeralState.instances ?? 1) * FUNERAL_PYRE_TRIGGER_CAP) {
+    funeralState.skips = (funeralState.skips ?? 0) + 1;
+    state.funeralPyreAlreadyUsedSkips = (state.funeralPyreAlreadyUsedSkips ?? 0) + 1;
+    return;
+  }
+  const remainingTriggers = Math.max(0, (funeralState.instances ?? 1) * FUNERAL_PYRE_TRIGGER_CAP - (funeralState.triggers ?? 0));
+  for (let i = 0; i < remainingTriggers; i += 1) {
+    funeralState.triggers = (funeralState.triggers ?? 0) + 1;
+    state.funeralPyreCombatTriggers = (state.funeralPyreCombatTriggers ?? 0) + 1;
+    damageHero(state, getOpponentOwner(deadOwner), 1);
+    state.funeralPyreBaseDamage = (state.funeralPyreBaseDamage ?? 0) + 1;
+  }
+  if (remainingTriggers > 1) state.funeralPyreMultiStosEvents = (state.funeralPyreMultiStosEvents ?? 0) + 1;
+  appendDeathTriggerPresentationEvent(options.events, {
+    type: 'death-trigger-hero-damage',
+    lane: Number.isInteger(options.lane) ? options.lane : deadIndex % 3,
+    source: 'funeral_pyre',
+    sourceDeathIndex: deadIndex,
+    targetSide: getOpponentOwner(deadOwner),
+    damage: remainingTriggers,
+  });
 }
 
 function triggerUnitDeathEffects(state, index, unit, options = {}) {
@@ -1033,7 +1056,7 @@ function triggerUnitDeathEffects(state, index, unit, options = {}) {
 
   if (isCombatDeath) {
     triggerAdjacentRotcallers(state, index, owner, options);
-    triggerFuneralPyre(state, index, owner);
+    triggerFuneralPyre(state, index, owner, options);
   }
 
   if (unit.effectId === 'death_damage_enemy_hero_1') {
@@ -2273,7 +2296,8 @@ function applyEffectById(state, owner, effectId, sourceCard = null) {
     case 'funeral_pyre': {
       const funeralState = ensureFuneralPyreState(state)[owner];
       funeralState.active = true;
-      funeralState.triggers = Math.min(funeralState.triggers ?? 0, FUNERAL_PYRE_TRIGGER_CAP);
+      funeralState.instances = (funeralState.instances ?? 0) + 1;
+      funeralState.triggers = funeralState.triggers ?? 0;
       state.funeralPyreUses = (state.funeralPyreUses ?? 0) + 1;
       break;
     }
@@ -2348,6 +2372,11 @@ export function getRandomFirstActor(randomFn = Math.random) {
 export function toggleFirstActor(state) {
   if (!state) return null;
   state.firstActor = state.firstActor === 'player' ? 'enemy' : 'player';
+  if (state.funeralPyreThisCombat) {
+    Object.values(state.funeralPyreThisCombat).forEach((entry) => {
+      if (entry?.active) entry.triggers = 0;
+    });
+  }
   return state.firstActor;
 }
 
@@ -3733,12 +3762,7 @@ export function resolveCombat(state) {
     if (unit?.quickFixDrawTriggers) {
       delete unit.quickFixDrawTriggers;
     }
-    if (unit?.rotcallerTriggeredThisCombat) {
-      delete unit.rotcallerTriggeredThisCombat;
-    }
   });
-
-  delete state.funeralPyreThisCombat;
 
   clampHeroHpAndResolveWinner(state);
   const battleExhaustedProgressAfter = state ? JSON.stringify({

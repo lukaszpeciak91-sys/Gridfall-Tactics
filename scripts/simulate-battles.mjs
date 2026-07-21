@@ -1393,11 +1393,18 @@ function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, simTel
     defensiveFrictionApplications: state.wardenDefensiveFrictionApplications ?? 0,
     funeralPyreCombatTriggers: state.funeralPyreCombatTriggers ?? 0,
     funeralPyreLaneDamageTriggers: state.funeralPyreLaneDamageTriggers ?? 0,
+    funeralPyreAlreadyUsedSkips: state.funeralPyreAlreadyUsedSkips ?? 0,
+    funeralPyreBaseDamage: state.funeralPyreBaseDamage ?? 0,
+    funeralPyreMultiStosEvents: state.funeralPyreMultiStosEvents ?? 0,
+    funeralPyreAlliedDeathOpportunities: state.funeralPyreAlliedDeathOpportunities ?? 0,
     combatOnlyDeathHeroTriggers: state.combatOnlyDeathHeroTriggers ?? 0,
     combatOnlyDeathLaneDamageTriggers: state.combatOnlyDeathLaneDamageTriggers ?? 0,
     combatOnlyDeathSummons: state.combatOnlyDeathSummons ?? 0,
     leechCombatHeals: state.leechCombatHeals ?? 0,
     rotcallerCombatTriggers: state.rotcallerCombatTriggers ?? 0,
+    rotcallerAdjacentDeathOpportunities: state.rotcallerAdjacentDeathOpportunities ?? 0,
+    rotcallerAlreadyConsumedSkips: state.rotcallerAlreadyConsumedSkips ?? 0,
+    rotcallerPermanentAttackGained: state.rotcallerPermanentAttackGained ?? 0,
     overflowCombatTriggers: state.overflowCombatTriggers ?? 0,
     overflowCombatDamage: state.overflowCombatDamage ?? 0,
     overflowCombatTriggersByCardId: { ...(state.overflowCombatTriggersByCardId ?? {}) },
@@ -1970,7 +1977,7 @@ function main() {
   const combinedPairs = new Map();
   const orderedMatchups = new Map();
   const passStats = { pass: 0, cancelled: 0 };
-  const telemetry = { replaceUsed: 0, repositionUsed: 0, meaningfulGameplayActions: 0, pointlessGameplayActions: 0, openLaneImprovements: 0, repeatedLoopPreventions: 0, invalidActions: 0, crashes: 0, quickFixUses: 0, quickFixTriggers: 0, shieldPushUses: 0, defensiveFrictionApplications: 0, funeralPyreUses: 0, systemOverrideUses: 0, funeralPyreTriggers: 0, funeralPyreLaneDamageTriggers: 0, combatOnlyDeathHeroTriggers: 0, combatOnlyDeathLaneDamageTriggers: 0, combatOnlyDeathSummons: 0, leechCombatHeals: 0, rotcallerCombatTriggers: 0, overflowCombatTriggers: 0, overflowCombatDamage: 0, overflowCombatTriggersByCardId: {}, overflowCombatDamageByCardId: {}, hotRunnerOffline: { plays: 0, withEnemy: 0, noEnemy: 0, takenOffline: 0, returned: 0, baseHits: 0, baseDamage: 0, leaks: 0, duplicateReturns: 0 }, mulliganByFaction: {} };
+  const telemetry = { replaceUsed: 0, repositionUsed: 0, meaningfulGameplayActions: 0, pointlessGameplayActions: 0, openLaneImprovements: 0, repeatedLoopPreventions: 0, invalidActions: 0, crashes: 0, quickFixUses: 0, quickFixTriggers: 0, shieldPushUses: 0, defensiveFrictionApplications: 0, funeralPyreUses: 0, systemOverrideUses: 0, funeralPyreTriggers: 0, funeralPyreLaneDamageTriggers: 0, combatOnlyDeathHeroTriggers: 0, combatOnlyDeathLaneDamageTriggers: 0, combatOnlyDeathSummons: 0, leechCombatHeals: 0, rotcallerCombatTriggers: 0, rotcallerAdjacentDeathOpportunities: 0, rotcallerAlreadyConsumedSkips: 0, rotcallerPermanentAttackGained: 0, funeralPyreAlreadyUsedSkips: 0, funeralPyreBaseDamage: 0, funeralPyreMultiStosEvents: 0, funeralPyreAlliedDeathOpportunities: 0, overflowCombatTriggers: 0, overflowCombatDamage: 0, overflowCombatTriggersByCardId: {}, overflowCombatDamageByCardId: {}, hotRunnerOffline: { plays: 0, withEnemy: 0, noEnemy: 0, takenOffline: 0, returned: 0, baseHits: 0, baseDamage: 0, leaks: 0, duplicateReturns: 0 }, mulliganByFaction: {} };
   const audit = { games: 0, draws: 0, turnCaps: 0, aggroTurnCapWins: 0, aggroGames: 0, nonSwarmGames: 0, nonSwarmDraws: 0, nonSwarmTurnCaps: 0, swarmMirrorGames: 0, swarmMirrorDraws: 0, simultaneousLethals: 0, simultaneousLethalDrawsAfter: 0 };
   const handLockAnalysis = createHandLockAnalysis();
 
@@ -1993,11 +2000,18 @@ function main() {
       telemetry.defensiveFrictionApplications += result.defensiveFrictionApplications ?? 0;
       telemetry.funeralPyreTriggers += result.funeralPyreCombatTriggers ?? 0;
       telemetry.funeralPyreLaneDamageTriggers += result.funeralPyreLaneDamageTriggers ?? 0;
+      telemetry.funeralPyreAlreadyUsedSkips += result.funeralPyreAlreadyUsedSkips ?? 0;
+      telemetry.funeralPyreBaseDamage += result.funeralPyreBaseDamage ?? 0;
+      telemetry.funeralPyreMultiStosEvents += result.funeralPyreMultiStosEvents ?? 0;
+      telemetry.funeralPyreAlliedDeathOpportunities += result.funeralPyreAlliedDeathOpportunities ?? 0;
       telemetry.combatOnlyDeathHeroTriggers += result.combatOnlyDeathHeroTriggers ?? 0;
       telemetry.combatOnlyDeathLaneDamageTriggers += result.combatOnlyDeathLaneDamageTriggers ?? 0;
       telemetry.combatOnlyDeathSummons += result.combatOnlyDeathSummons ?? 0;
       telemetry.leechCombatHeals += result.leechCombatHeals ?? 0;
       telemetry.rotcallerCombatTriggers += result.rotcallerCombatTriggers ?? 0;
+      telemetry.rotcallerAdjacentDeathOpportunities += result.rotcallerAdjacentDeathOpportunities ?? 0;
+      telemetry.rotcallerAlreadyConsumedSkips += result.rotcallerAlreadyConsumedSkips ?? 0;
+      telemetry.rotcallerPermanentAttackGained += result.rotcallerPermanentAttackGained ?? 0;
       telemetry.overflowCombatTriggers += result.overflowCombatTriggers ?? 0;
       telemetry.overflowCombatDamage += result.overflowCombatDamage ?? 0;
       Object.entries(result.hotRunnerOfflineTelemetry ?? {}).forEach(([key, value]) => {
@@ -2259,12 +2273,19 @@ Battle simulation complete (${effectiveMatchCount} games per matchup${filterSumm
     { metric: 'System Override uses', count: telemetry.systemOverrideUses },
     { metric: 'Funeral Pyre combat triggers', count: telemetry.funeralPyreTriggers },
     { metric: 'Funeral Pyre trigger rate', count: `${percent(telemetry.funeralPyreTriggers, telemetry.funeralPyreUses)}%` },
-    { metric: 'Funeral Pyre lane-damage triggers', count: telemetry.funeralPyreLaneDamageTriggers },
+    { metric: 'Funeral Pyre allied-death opportunities', count: telemetry.funeralPyreAlliedDeathOpportunities },
+    { metric: 'Funeral Pyre base-damage triggers', count: telemetry.funeralPyreTriggers },
+    { metric: 'Funeral Pyre total enemy-base damage', count: telemetry.funeralPyreBaseDamage },
+    { metric: 'Funeral Pyre once-per-turn skips', count: telemetry.funeralPyreAlreadyUsedSkips },
+    { metric: 'Funeral Pyre multi-Stos events', count: telemetry.funeralPyreMultiStosEvents },
     { metric: 'combat-only death hero triggers', count: telemetry.combatOnlyDeathHeroTriggers },
     { metric: 'combat-only death lane-damage triggers', count: telemetry.combatOnlyDeathLaneDamageTriggers },
     { metric: 'combat-only death summons', count: telemetry.combatOnlyDeathSummons },
     { metric: 'Leech combat heals', count: telemetry.leechCombatHeals },
-    { metric: 'Rotcaller combat triggers', count: telemetry.rotcallerCombatTriggers },
+    { metric: 'Rotcaller valid adjacent-death opportunities', count: telemetry.rotcallerAdjacentDeathOpportunities },
+    { metric: 'Rotcaller permanent triggers executed', count: telemetry.rotcallerCombatTriggers },
+    { metric: 'Rotcaller already-consumed skips', count: telemetry.rotcallerAlreadyConsumedSkips },
+    { metric: 'Rotcaller total permanent ATK gained', count: telemetry.rotcallerPermanentAttackGained },
     { metric: 'overflow combat triggers', count: telemetry.overflowCombatTriggers },
     { metric: 'overflow base damage total', count: telemetry.overflowCombatDamage },
   ]);
