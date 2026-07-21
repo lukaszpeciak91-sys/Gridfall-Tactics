@@ -77,7 +77,7 @@ test('BattleScene lifecycle destroys stale interactive objects, overlays, timers
     'repeat navigation loop 5x',
   ];
 
-  assert.match(source, /init\(\) \{\s*this\.cleanupSceneObjects\(\);\s*this\.resetRuntimeState\(\);\s*\}/);
+  assert.match(source, /init\(data = \{\}\) \{\s*this\.cleanupSceneObjects\(\);\s*this\.resetRuntimeState\(\);\s*this\.preparePreloadContext\(data\);\s*\}/);
   assert.match(source, /create\(data\) \{\s*this\.cleanupSceneObjects\(\);/);
   assert.match(source, /shutdown\(\) \{\s*this\.cleanupSceneObjects\(\);/);
   assert.match(source, /cleanupSceneObjects\(\{ preserveTimers = false, preserveTweens = false \} = \{\}\) \{[\s\S]*this\.destroyBattleResultModal\(\);[\s\S]*this\.destroyUtilityMenuPanel\(\);[\s\S]*if \(!preserveTweens\) \{[\s\S]*this\.tweens\?\.killAll\?\.\(\);[\s\S]*if \(!preserveTimers\) \{[\s\S]*this\.time\?\.removeAllEvents\?\.\(\);[\s\S]*this\.children\.removeAll\(true\);[\s\S]*\}/);

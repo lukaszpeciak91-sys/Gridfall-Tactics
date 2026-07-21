@@ -10,8 +10,8 @@ import { chooseEnemyAction, isVerySafeConcedableState, recordBattleActionUse, se
 import { getTargetingStateForEffect } from '../systems/cardTargeting.js';
 import { COMBAT_ATTACK_PRESENTATIONS, getCombatAttackPresentation, getCombatEventAttackerIndex, getCombatEventInterceptOriginalTargetIndex, getCombatEventTargetIndex, getLaneLethalTargetIndexes, getLaneSimultaneousUnitClash, shouldAnimateCombatAttacker, shouldUseControlledHeroStrikePresentation } from '../systems/combatAnimation.js';
 import { BATTLE_BACKGROUND_ASSETS, BATTLE_BACKGROUND_FALLBACK_COLOR, BATTLE_BACKGROUND_FALLBACK_COLOR_HEX, BATTLEFIELD_BACKGROUND_OVERSCAN, applyCoverBackgroundLayout, createCoverBackground, getBattleBackgroundAsset, hasLoadedImageAsset, preloadBattleBackgroundArt, preloadImageAsset, resolvePublicAssetPath } from '../rendering/backgroundArt.js';
-import { getArenaBattlegroundAsset, getArenaBattlegrounds, resolveArenaBattlegroundId } from '../data/arenaBattlegrounds.js';
-import { preloadAllCardIllustrations, preloadCardIllustrationsForFaction } from '../rendering/cardIllustrationAssets.js';
+import { getArenaBattlegroundAsset, resolveArenaBattlegroundId } from '../data/arenaBattlegrounds.js';
+import { getCardIllustrationAssetsForFaction, preloadCardIllustrationAsset } from '../rendering/cardIllustrationAssets.js';
 import { calculateBattleLayoutMetrics } from '../ui/battleLayout.js';
 import { calculateHandCardFocusBounds, calculateTutorialBannerLayout, getLiveHandCardViewById } from '../ui/tutorialUxLayout.js';
 import { calculateHandBackCardCoverCrop, calculateHandBackCardDepth, shouldRenderHandBackCard } from '../ui/handBackCardPresentation.js';
@@ -33,12 +33,40 @@ import { evaluateAndPersistAchievementUnlocks } from '../systems/runtimeAchievem
 import { getAchievementDefinitions } from '../systems/achievements.js';
 import { clearPresentedQueue, markAchievementPresented, peekAchievementPresentation } from '../systems/achievementPresentationQueue.js';
 import { getCardBoardArtPositionY } from '../data/presentation/cardArtCropOverrides.js';
-import { AUDIO_KEYS, preloadAudioAssets } from '../audio/audioAssets.js';
+import { AUDIO_KEYS, preloadAudioAssetsByKey } from '../audio/audioAssets.js';
 import { playManagedSfx, playMusic, playSfx, stopManagedSfx, stopMusic } from '../audio/audioPlayback.js';
 import { BATTLE_SCENE_VISUALLY_READY_EVENT, restartBattleScene } from './battleEntryRouter.js';
 import { buildBattleReportSnapshot } from '../systems/battleReport.js';
 import { SHOW_BATTLE_REPORT_TOOL } from '../config/debugTools.js';
 import { calculateBattleUtilityMenuLayout } from '../ui/battleMenuLayout.js';
+
+
+export const BATTLE_SCENE_PRELOAD_AUDIO_KEYS = Object.freeze([
+  AUDIO_KEYS.UI_CLICK,
+  AUDIO_KEYS.UI_INVALID,
+  AUDIO_KEYS.CARD_DRAW,
+  AUDIO_KEYS.CARD_DEPLOY,
+  AUDIO_KEYS.SPELL_GENERIC,
+  AUDIO_KEYS.ATTACK_IMPACT,
+  AUDIO_KEYS.UNIT_DEATH,
+  AUDIO_KEYS.BASE_BREAK,
+  AUDIO_KEYS.BATTLE_VICTORY,
+  AUDIO_KEYS.BATTLE_DEFEAT,
+  AUDIO_KEYS.BATTLE_START,
+  AUDIO_KEYS.ACHIEVEMENT_UNLOCK,
+  AUDIO_KEYS.BATTLE_AMBIENCE,
+]);
+
+export function getUniqueCardIllustrationAssetsForBattleFactions(playerFaction, enemyFaction) {
+  const assetsByKey = new Map();
+  [playerFaction, enemyFaction].forEach((faction) => {
+    getCardIllustrationAssetsForFaction(faction, { includeGeneratedUnitArt: true })
+      .forEach((asset) => {
+        if (asset?.key && !assetsByKey.has(asset.key)) assetsByKey.set(asset.key, asset);
+      });
+  });
+  return [...assetsByKey.values()];
+}
 
 const HAND_BACK_CARD_ASSET = Object.freeze({
   key: 'ui.card.back',
@@ -497,26 +525,46 @@ export default class BattleScene extends Phaser.Scene {
     this.achievementUnlockPopupController = null;
     this.achievementUnlockSfxPlayedIds = new Set();
     this.tutorialCompletionTracked = false;
+    this.campaignTrophyAssetLoading = false;
   }
 
   preload() {
-    preloadBattleBackgroundArt(this, getArenaBattlegrounds());
+    preloadBattleBackgroundArt(this, [this.resolveBattleBackgroundAsset()]);
     preloadImageAsset(this, HAND_BACK_CARD_ASSET, {
       onError: (asset) => console.warn(`Hand back card failed to load: ${asset.path}`),
     });
-    preloadImageAsset(this, CAMPAIGN_TROPHY_ASSET, {
-      onError: (asset) => console.warn(`Campaign trophy failed to load: ${asset.path}`),
-    });
     preloadSecondaryButtonAsset(this);
-    preloadAllCardIllustrations(this);
-    preloadCardIllustrationsForFaction(this, tutorialPlayerFaction);
-    preloadCardIllustrationsForFaction(this, tutorialEnemyFaction);
-    preloadAudioAssets(this);
+    this.preloadCurrentBattleCardIllustrations();
+    preloadAudioAssetsByKey(this, BATTLE_SCENE_PRELOAD_AUDIO_KEYS);
   }
 
-  init() {
+  init(data = {}) {
     this.cleanupSceneObjects();
     this.resetRuntimeState();
+    this.preparePreloadContext(data);
+  }
+
+  preparePreloadContext(data = {}) {
+    this.battleContext = this.normalizeBattleContext(data?.battleContext);
+    const isTutorialBattle = this.battleContext?.mode === 'tutorial';
+    const tutorialBattleData = isTutorialBattle ? getTutorialBattleData() : null;
+    this.factionKey = isTutorialBattle
+      ? tutorialBattleData.playerFaction.id
+      : (typeof data?.factionKey === 'string' && data.factionKey ? data.factionKey : 'Aggro');
+    const requestedEnemyFactionKey = typeof data?.enemyFactionKey === 'string' && data.enemyFactionKey ? data.enemyFactionKey : null;
+    this.enemyFactionKey = isTutorialBattle
+      ? tutorialBattleData.enemyFaction.id
+      : (requestedEnemyFactionKey ?? this.selectEnemyFactionKey(this.factionKey));
+  }
+
+  preloadCurrentBattleCardIllustrations() {
+    const isTutorialBattle = this.isTutorialBattle();
+    const tutorialBattleData = isTutorialBattle ? getTutorialBattleData() : null;
+    const playerFaction = isTutorialBattle ? tutorialBattleData.playerFaction : this.factionKey;
+    const enemyFaction = isTutorialBattle ? tutorialBattleData.enemyFaction : this.enemyFactionKey;
+    return getUniqueCardIllustrationAssetsForBattleFactions(playerFaction, enemyFaction)
+      .map((asset) => preloadCardIllustrationAsset(this, asset))
+      .filter(Boolean).length;
   }
 
   normalizeBattleContext(context = {}) {
@@ -4197,9 +4245,27 @@ export default class BattleScene extends Phaser.Scene {
     };
   }
 
+  loadCampaignTrophyAssetForCompletion(status, options = {}) {
+    if (status !== 'won' || options?.restorePhase || hasLoadedImageAsset(this, CAMPAIGN_TROPHY_ASSET) || this.campaignTrophyAssetLoading || !this.load?.image) {
+      return false;
+    }
+
+    this.campaignTrophyAssetLoading = true;
+    this.load.once?.('complete', () => {
+      this.campaignTrophyAssetLoading = false;
+      this.showCampaignCompleteModal(status, { ...options, restorePhase: 'cinematic' });
+    });
+    preloadImageAsset(this, CAMPAIGN_TROPHY_ASSET, {
+      onError: (asset) => console.warn(`Campaign trophy failed to load: ${asset.path}`),
+    });
+    this.load.start?.();
+    return true;
+  }
+
   showCampaignCompleteModal(status) {
     const restoreOptions = arguments[1] ?? null;
     const options = restoreOptions ?? this.campaignCompletionModalOptions ?? {};
+    if (this.loadCampaignTrophyAssetForCompletion(status, options)) return;
     this.campaignCompletionModalOptions = null;
     this.destroyBattleResultModal();
     this.playCampaignOutcomeSfxOnce(status);

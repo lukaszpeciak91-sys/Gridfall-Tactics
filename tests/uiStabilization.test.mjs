@@ -248,7 +248,7 @@ test('BattleScene renders clean base transmission screens without decorative emi
   assert.match(baseDocs, /ui\.baseBackdrop\.base/);
 });
 
-test('BattleScene preloads and renders the default battlefield background with dark fallback', () => {
+test('BattleScene preloads active battlefield background and renders dark fallback', () => {
   const backgroundSource = read('src/rendering/backgroundArt.js');
   const battleSource = read('src/scenes/BattleScene.js');
   const backgroundDocs = read('public/assets/backgrounds/README.md');
@@ -258,7 +258,7 @@ test('BattleScene preloads and renders the default battlefield background with d
   assert.match(backgroundSource, /key: 'background\.default\.battlefield'/);
   assert.match(backgroundSource, /path: resolvePublicAssetPath\(DEFAULT_BATTLE_BACKGROUND_PUBLIC_PATH\)/);
   assert.match(backgroundSource, /Battle background failed to load: \$\{failedAsset\.path}/);
-  assert.match(battleSource, /preloadBattleBackgroundArt\(this, getArenaBattlegrounds\(\)\)/);
+  assert.match(battleSource, /preloadBattleBackgroundArt\(this, \[this\.resolveBattleBackgroundAsset\(\)\]\)/);
   assert.match(battleSource, /createCoverBackground\(this, \{/);
   assert.match(battleSource, /asset: this\.backgroundArtAsset/);
   assert.match(battleSource, /resolveBattleBackgroundAsset\(\)/);
