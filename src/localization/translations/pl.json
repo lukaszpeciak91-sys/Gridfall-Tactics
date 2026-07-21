@@ -74,7 +74,7 @@
     },
     "attrition_swarm_rise_again_1": {
       "name": "Powstań Znowu",
-      "textShort": "Przywróć najnowszą poległą jednostkę z 1 HP"
+      "textShort": "Przywróć najnowszą poległą [ALLY] z 1 HP na wybranym wolnym polu"
     },
     "attrition_swarm_grave_call_1": {
       "name": "Zew Grobu",
@@ -150,7 +150,7 @@
     },
     "swarm_regrow_1": {
       "name": "Odrost",
-      "textShort": "Przywróć najnowszą poległą jednostkę z 1 HP"
+      "textShort": "Przywróć najnowszą poległą [ALLY] z 1 HP na wybranym wolnym polu"
     },
     "swarm_flood_1": {
       "name": "Zalew",

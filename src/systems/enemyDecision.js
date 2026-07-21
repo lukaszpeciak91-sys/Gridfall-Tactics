@@ -682,6 +682,7 @@ function areAdjacentTargetIndexes(firstIndex, secondIndex) {
 
 function isTargetedOnlyEffect(effectId) {
   return effectId === 'summon_grunt_empty_slot'
+    || effectId === 'revive_friendly_1hp'
     || isTwoTargetSwapEffect(effectId)
     || effectId === 'return_friendly_draw_1'
     || effectId === 'destroy_friendly_draw_1'
@@ -864,7 +865,7 @@ function getLegalEmptyFriendlySlotIndexes(state, owner) {
   return friendly.filter((index) => isLegalEmptyFriendlySlotForUnitPlacement(state, owner, index));
 }
 
-function addSpawnTargetCandidates(actions, state, owner, card) {
+function addEmptyFriendlySlotTargetCandidates(actions, state, owner, card) {
   getLegalEmptyFriendlySlotIndexes(state, owner).forEach((targetIndex) => {
     const targetIndexes = [targetIndex];
     const targetedProbe = resolveTargetedEffectCard(cloneState(state), owner, card.id, targetIndex, targetIndexes);
@@ -929,8 +930,8 @@ export function buildActionCandidates(state, owner, hand, telemetry = null) {
       return;
     }
 
-    if (card.effectId === 'summon_grunt_empty_slot') {
-      addSpawnTargetCandidates(actions, state, owner, card);
+    if (card.effectId === 'summon_grunt_empty_slot' || card.effectId === 'revive_friendly_1hp') {
+      addEmptyFriendlySlotTargetCandidates(actions, state, owner, card);
       return;
     }
 
@@ -1314,7 +1315,7 @@ export function scoreAction(state, owner, action) {
     const { friendly } = getRowsForOwner(owner);
     const side = owner === 'enemy' ? state.enemy : state.player;
     const hasEmpty = friendly.some((index) => !state.board[index]);
-    const hasFallenUnit = side.fallen?.some((entry) => entry?.card?.type === 'unit');
+    const hasFallenUnit = side.fallen?.some((entry) => entry?.card?.type === 'unit' && !entry?.card?.temporaryFloodToken);
     if (!hasEmpty || !hasFallenUnit) score -= 5000;
     else score += 500;
   }

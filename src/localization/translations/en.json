@@ -74,7 +74,7 @@
     },
     "attrition_swarm_rise_again_1": {
       "name": "Rise Again",
-      "textShort": "Revive the newest fallen unit with 1 HP"
+      "textShort": "Revive the newest Fallen [ALLY] with 1 HP in a chosen free slot"
     },
     "attrition_swarm_grave_call_1": {
       "name": "Grave Call",
@@ -150,7 +150,7 @@
     },
     "swarm_regrow_1": {
       "name": "Regrow",
-      "textShort": "Revive the newest fallen unit with 1 HP"
+      "textShort": "Revive the newest Fallen [ALLY] with 1 HP in a chosen free slot"
     },
     "swarm_flood_1": {
       "name": "Flood",

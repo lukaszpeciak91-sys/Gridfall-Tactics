@@ -234,11 +234,15 @@ test('Tea Courier lane block can reduce Flood to zero tokens when every empty sl
   assert.deepEqual(state.board.slice(6, 9), [null, null, null]);
 });
 
-test('Tea Courier lane block makes revive_friendly_1hp use the next available placement slot', () => {
+test('Tea Courier lane block invalidates blocked revive_friendly_1hp target and allows selected legal slot', () => {
   const state = makeBlockedPlacementState(placementEffectCard('revive', 'revive_friendly_1hp'));
   state.player.fallen.push({ card: fallenUnit('revived-unit') });
 
-  const result = playEffectCard(state, 'player', 'revive');
+  const blockedResult = resolveTargetedEffectCard(state, 'player', 'revive', 6, [6]);
+  assert.equal(blockedResult.ok, false);
+  assert.equal(state.player.fallen.length, 1);
+
+  const result = resolveTargetedEffectCard(state, 'player', 'revive', 7, [7]);
 
   assert.equal(result.ok, true);
   assert.equal(state.board[6], null);

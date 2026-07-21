@@ -83,14 +83,14 @@ test('combat death enters fallen and resurrection consumes only that death event
 
   const archiveBefore = s.player.discard.map((card) => card.id);
   addHand(s, 'player', factionCard(attrition, 'attrition_swarm_rise_again_1'));
-  assert.equal(playEffectCard(s, 'player', 'attrition_swarm_rise_again_1').ok, true);
+  assert.equal(resolveTargetedEffectCard(s, 'player', 'attrition_swarm_rise_again_1', 6, [6]).ok, true);
   assert.equal(s.board[6].id, 'dead-ally');
   assert.equal(s.board[6].hp, 1);
   assert.deepEqual(s.player.fallen, []);
   assert.deepEqual(s.player.discard.map((card) => card.id), [...archiveBefore, 'attrition_swarm_rise_again_1']);
 
   addHand(s, 'player', factionCard(attrition, 'attrition_swarm_rise_again_1'));
-  assert.equal(playEffectCard(s, 'player', 'attrition_swarm_rise_again_1').ok, false);
+  assert.equal(resolveTargetedEffectCard(s, 'player', 'attrition_swarm_rise_again_1', 6, [6]).ok, false);
 });
 
 test('resurrection is LIFO and consumes only the newest valid fallen entry', () => {
@@ -102,12 +102,12 @@ test('resurrection is LIFO and consumes only the newest valid fallen entry', () 
   assert.deepEqual(s.player.fallen.map((entry) => entry.card.id), ['fallen-a', 'fallen-b']);
 
   addHand(s, 'player', factionCard(attrition, 'attrition_swarm_rise_again_1'));
-  assert.equal(playEffectCard(s, 'player', 'attrition_swarm_rise_again_1').ok, true);
+  assert.equal(resolveTargetedEffectCard(s, 'player', 'attrition_swarm_rise_again_1', 6, [6]).ok, true);
   assert.equal(s.board[6].id, 'fallen-b');
   assert.deepEqual(s.player.fallen.map((entry) => entry.card.id), ['fallen-a']);
 
   addHand(s, 'player', factionCard(attrition, 'attrition_swarm_rise_again_1'));
-  assert.equal(playEffectCard(s, 'player', 'attrition_swarm_rise_again_1').ok, true);
+  assert.equal(resolveTargetedEffectCard(s, 'player', 'attrition_swarm_rise_again_1', 7, [7]).ok, true);
   assert.equal(s.board[7].id, 'fallen-a');
   assert.deepEqual(s.player.fallen, []);
 });
@@ -182,7 +182,7 @@ test('generated persistent Grunts preserve generated identity and art metadata t
   assert.equal(s.player.fallen[0].card.id, generated.id);
   assert.equal(s.player.fallen[0].card.artAssetId, generated.artAssetId);
   addHand(s, 'player', factionCard(swarm, 'swarm_regrow_1'));
-  assert.equal(playEffectCard(s, 'player', 'swarm_regrow_1').ok, true);
+  assert.equal(resolveTargetedEffectCard(s, 'player', 'swarm_regrow_1', 6, [6]).ok, true);
   assert.equal(s.board[6].id, generated.id);
   assert.equal(s.board[6].artAssetId, generated.artAssetId);
   assert.equal(s.board[6].tokenType, generated.tokenType);
