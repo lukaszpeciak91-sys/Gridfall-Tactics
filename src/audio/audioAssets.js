@@ -20,6 +20,8 @@ export const AUDIO_KEYS = Object.freeze({
 const sfxPath = (filename) => resolvePublicAssetPath(`assets/audio/sfx/${filename}`);
 const musicPath = (filename) => resolvePublicAssetPath(`assets/audio/music/${filename}`);
 
+export const MENU_AUDIO_PRELOAD_KEYS = Object.freeze([AUDIO_KEYS.MENU_MUSIC, AUDIO_KEYS.UI_CLICK]);
+
 export const AUDIO_ASSETS = Object.freeze({
   [AUDIO_KEYS.UI_CLICK]: Object.freeze({ key: AUDIO_KEYS.UI_CLICK, path: sfxPath('ui-click.mp3'), category: 'sfx', cooldownMs: 45 }),
   [AUDIO_KEYS.UI_INVALID]: Object.freeze({ key: AUDIO_KEYS.UI_INVALID, path: sfxPath('ui-invalid.mp3'), category: 'sfx', cooldownMs: 160 }),
@@ -54,6 +56,10 @@ export function preloadAudioAssetsByKey(scene, keys = []) {
     if (!asset?.key || !asset?.path || hasCachedAudioAsset(scene, asset.key)) return;
     scene.load.audio(asset.key, asset.path);
   });
+}
+
+export function preloadMenuAudioAssets(scene) {
+  preloadAudioAssetsByKey(scene, MENU_AUDIO_PRELOAD_KEYS);
 }
 
 export function preloadAudioAssets(scene) {
