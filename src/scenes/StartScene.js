@@ -3,8 +3,6 @@ import {
   MENU_BACKGROUND_FALLBACK_COLOR,
   MENU_BACKGROUND_FALLBACK_COLOR_HEX,
   createAnimatedMenuBackground,
-  preloadImageAsset,
-  preloadMenuBackgroundArt,
 } from '../rendering/backgroundArt.js';
 import {
   GRIDFALL_LOGO_ASSET,
@@ -14,8 +12,8 @@ import {
   getStartHeroLogoPosition,
   setStartHeroLogoDisplaySize,
 } from '../ui/menuLogoLayout.js';
-import { preloadSecondaryButtonAsset } from '../ui/imageButton.js';
 import { createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
+import { preloadMainMenuFirstFrameVisualAssets } from '../ui/mainMenuInitialAssets.js';
 import { preloadMenuAudioAssets } from '../audio/audioAssets.js';
 import { playMenuMusic } from '../audio/menuMusic.js';
 import { applyAudioSettings, loadSettings } from '../systems/settingsState.js';
@@ -67,11 +65,7 @@ export default class StartScene extends Phaser.Scene {
   }
 
   preload() {
-    preloadMenuBackgroundArt(this);
-    preloadImageAsset(this, GRIDFALL_LOGO_ASSET, {
-      onError: (asset) => console.warn(`Start logo failed to load: ${asset.path}`),
-    });
-    preloadSecondaryButtonAsset(this);
+    preloadMainMenuFirstFrameVisualAssets(this);
     preloadMenuAudioAssets(this);
   }
 

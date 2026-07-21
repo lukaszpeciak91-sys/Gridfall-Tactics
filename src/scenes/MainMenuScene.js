@@ -3,20 +3,17 @@ import {
   MENU_BACKGROUND_FALLBACK_COLOR,
   MENU_BACKGROUND_FALLBACK_COLOR_HEX,
   createAnimatedMenuBackground,
-  preloadImageAsset,
-  preloadMenuBackgroundArt,
 } from '../rendering/backgroundArt.js';
 import { createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
 import {
   PREMIUM_BROADCAST_FONT_STACK,
   calculateSecondaryButtonHeight,
   createImageButton,
-  preloadSecondaryButtonAsset,
   resetImageButtonState,
 } from '../ui/imageButton.js';
 import { translateActive } from '../localization/localeService.js';
 import { createBuildMarker } from '../ui/buildMarker.js';
-import { preloadAudioAssets } from '../audio/audioAssets.js';
+import { preloadMenuAudioAssets } from '../audio/audioAssets.js';
 import { playMenuMusic } from '../audio/menuMusic.js';
 import { beginSceneTransitionOverlay, reconcileSceneTransitionOverlayOrdering } from './sceneTransitionOverlay.js';
 import { applyAudioSettings, loadSettings } from '../systems/settingsState.js';
@@ -28,6 +25,7 @@ import {
   getMainMenuLogoPosition,
   setMainMenuLogoDisplaySize,
 } from '../ui/menuLogoLayout.js';
+import { preloadMainMenuFirstFrameVisualAssets } from '../ui/mainMenuInitialAssets.js';
 
 const MAIN_MENU_TITLE_DEPTH = 5;
 const MAIN_MENU_REVEAL_DELAY_MS = 80;
@@ -63,12 +61,8 @@ export default class MainMenuScene extends Phaser.Scene {
   }
 
   preload() {
-    preloadMenuBackgroundArt(this);
-    preloadImageAsset(this, GRIDFALL_LOGO_ASSET, {
-      onError: (asset) => console.warn(`Main menu logo failed to load: ${asset.path}`),
-    });
-    preloadSecondaryButtonAsset(this);
-    preloadAudioAssets(this);
+    preloadMainMenuFirstFrameVisualAssets(this);
+    preloadMenuAudioAssets(this);
   }
 
   create(data = {}) {
