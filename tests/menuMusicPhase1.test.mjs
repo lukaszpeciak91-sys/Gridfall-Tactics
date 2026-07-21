@@ -49,7 +49,11 @@ test('whitelisted menu-flow scenes start or continue the managed menu loop', () 
   ].forEach((path) => {
     const source = read(path);
     assert.match(source, /playMenuMusic\(this\);/);
-    assert.match(source, /preloadAudioAssets\(this\);/);
+    if (path === 'src/scenes/CollectionScene.js') {
+      assert.match(source, /preloadAudioAssetsByKey\(this, \[AUDIO_KEYS\.MENU_MUSIC, AUDIO_KEYS\.UI_CLICK\]\);/);
+    } else {
+      assert.match(source, /preloadAudioAssets\(this\);/);
+    }
   });
 });
 

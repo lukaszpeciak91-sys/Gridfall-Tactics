@@ -7,14 +7,14 @@ import {
   createAnimatedMenuBackground,
   preloadMenuBackgroundArt,
 } from '../rendering/backgroundArt.js';
-import { preloadAllCardIllustrations } from '../rendering/cardIllustrationAssets.js';
+import { getCardIllustrationAssetsForFaction, preloadCardIllustrationAsset } from '../rendering/cardIllustrationAssets.js';
 import { getActiveLocale, translateActive } from '../localization/localeService.js';
 import { createModalBackButton } from '../ui/modalControls.js';
 import { createMenuScreenHeader } from '../ui/screenHeader.js';
 import { preloadSecondaryButtonAsset } from '../ui/imageButton.js';
 import { FACTION_CARD_DETAILS } from '../ui/factionCards.js';
 import { getFactionDossierViewModel } from '../ui/factionDossier.js';
-import { preloadAudioAssets } from '../audio/audioAssets.js';
+import { AUDIO_KEYS, preloadAudioAssetsByKey } from '../audio/audioAssets.js';
 import { playMenuMusic } from '../audio/menuMusic.js';
 import { emitSceneTransitionVisuallyReady, reconcileSceneTransitionOverlayOrdering } from './sceneTransitionOverlay.js';
 import { CARD_COLORS, createCardPreviewView, getDefaultCardAccentColor, resolveCardSurfaceTheme } from '../rendering/cardVisualLayout.js';
@@ -82,24 +82,28 @@ export default class CollectionScene extends Phaser.Scene {
     this.transitionReadyEmitted = false;
     this.transitionReadyPostRenderCallback = null;
     this.transitionReadyFallbackEvent = null;
+    this.factionArtLoadState = new Map();
+    this.isCollectionSceneActive = false;
   }
 
   preload() {
     preloadMenuBackgroundArt(this);
     preloadSecondaryButtonAsset(this);
-    preloadAllCardIllustrations(this);
-    preloadAudioAssets(this);
+    preloadAudioAssetsByKey(this, [AUDIO_KEYS.MENU_MUSIC, AUDIO_KEYS.UI_CLICK]);
   }
 
   init(data = {}) {
     this.cleanupScene();
     this.sceneTransitionOverlay = data?.sceneTransitionOverlay ?? null;
     this.transitionReadyEmitted = false;
+    this.factionArtLoadState = new Map();
+    this.isCollectionSceneActive = false;
   }
 
   create() {
     this.reconcileTransitionOverlayOrdering('destination create start');
     this.cleanupScene();
+    this.isCollectionSceneActive = true;
     playMenuMusic(this);
 
     const { width, height } = this.scale;
@@ -341,11 +345,72 @@ export default class CollectionScene extends Phaser.Scene {
 
     if (this.expandedFactionKeys.has(factionKey)) {
       this.expandedFactionKeys.delete(factionKey);
-    } else {
-      this.expandedFactionKeys.add(factionKey);
+      this.markFactionArtRefreshInvalid(factionKey);
+      this.rebuildCollectionContent({ width: this.scale.width });
+      return;
     }
 
+    this.expandedFactionKeys.add(factionKey);
+    this.ensureFactionArtLoadedForExpansion(factionKey);
     this.rebuildCollectionContent({ width: this.scale.width });
+  }
+
+  getFactionArtLoadState(factionKey) {
+    const existing = this.factionArtLoadState.get(factionKey);
+    if (existing) return existing;
+    const state = { loading: false, loaded: false, refreshValid: false };
+    this.factionArtLoadState.set(factionKey, state);
+    return state;
+  }
+
+  markFactionArtRefreshInvalid(factionKey) {
+    const state = this.factionArtLoadState.get(factionKey);
+    if (state) state.refreshValid = false;
+  }
+
+  getMissingFactionArtAssets(factionKey) {
+    return getCardIllustrationAssetsForFaction(factionKey, { includeGeneratedUnitArt: true })
+      .filter((asset) => asset?.key && !this.textures?.exists?.(asset.key));
+  }
+
+  ensureFactionArtLoadedForExpansion(factionKey) {
+    const state = this.getFactionArtLoadState(factionKey);
+    state.refreshValid = true;
+    const missingAssets = this.getMissingFactionArtAssets(factionKey);
+    if (missingAssets.length === 0) {
+      state.loaded = true;
+      state.loading = false;
+      return false;
+    }
+    state.loaded = false;
+    if (state.loading) return false;
+
+    state.loading = true;
+    let queuedCount = 0;
+    missingAssets.forEach((asset) => {
+      if (preloadCardIllustrationAsset(this, asset)) queuedCount += 1;
+    });
+    if (queuedCount === 0) {
+      state.loading = false;
+      state.loaded = this.getMissingFactionArtAssets(factionKey).length === 0;
+      return false;
+    }
+
+    const complete = () => {
+      this.load?.off?.('complete', complete);
+      this.load?.off?.('loaderror', fail);
+      state.loading = false;
+      state.loaded = this.getMissingFactionArtAssets(factionKey).length === 0;
+      if (!this.isCollectionSceneActive || !this.scene?.isActive?.(this.scene.key) || !state.refreshValid || !this.expandedFactionKeys.has(factionKey)) return;
+      this.rebuildCollectionContent({ width: this.scale.width });
+    };
+    const fail = () => {
+      state.loaded = false;
+    };
+    this.load?.once?.('complete', complete);
+    this.load?.on?.('loaderror', fail);
+    if (!this.load?.isLoading?.()) this.load?.start?.();
+    return true;
   }
 
   onFactionHeaderPointerDown(factionKey, pointer) {
@@ -797,6 +862,10 @@ export default class CollectionScene extends Phaser.Scene {
   }
 
   cleanupScene() {
+    this.isCollectionSceneActive = false;
+    this.factionArtLoadState?.forEach?.((state) => {
+      state.refreshValid = false;
+    });
     this.input?.off('wheel', this.onScrollWheel, this);
     this.input?.off('pointerdown', this.onScrollPointerDown, this);
     this.input?.off('pointermove', this.onScrollPointerMove, this);
