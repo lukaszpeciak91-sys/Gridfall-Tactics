@@ -36,8 +36,10 @@ test('AI values Spawn when behind on board with empty friendly slots', () => {
 
   const action = chooseBattleAction(state, 'enemy');
 
-  assert.equal(action.type, 'play-effect');
+  assert.equal(action.type, 'play-targeted-effect');
   assert.equal(action.cardId, 'swarm_spawn_1');
+  assert.equal(Number.isInteger(action.targetIndex), true);
+  assert.deepEqual(action.targetIndexes, [action.targetIndex]);
 });
 
 test('AI does not choose Spawn over a strong immediate removal action', () => {

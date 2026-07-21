@@ -5,7 +5,7 @@ import { applyTutorialOpeningSetup, isTutorialBattleContext, performTutorialOpen
 import { selectNextTutorialEnemyAction } from '../systems/tutorialEnemyActions.js';
 import { checkTutorialInputGate } from '../systems/tutorialInputGate.js';
 import { advanceTutorialStep as advanceTutorialControllerStep, createTutorialControllerState, getCurrentTutorialStep as getCurrentTutorialControllerStep, handleTutorialEvent as handleTutorialControllerEvent, isTutorialComplete } from '../systems/tutorialController.js';
-import { createInitialBattleState, drawCards, shuffleDeck, canPass, canPlayOrRedeploy, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, resolveTargetedUnitOnPlayEffect, getUnitAttack, getUnitArmor, toggleFirstActor, resolveTurnCapWinner, resolveImmediateResourceExhaustionWinner, resolveImmediateNoProgressWinner, recordPassAction, completeActionOpportunity, performOpeningMulligan, STARTING_HAND_SIZE, MAX_OPENING_MULLIGAN_CARDS, getEffectiveBoardAttack, getEffectiveBoardArmor, getCombatPresentationStatsForBoardIndex, canPlayEffectCard, isEffectCardBlockedForOwner, isBattleExhaustedEligible, isBoardUnitOffline, normalizeOfflineReservations } from '../systems/GameState.js';
+import { createInitialBattleState, drawCards, shuffleDeck, canPass, canPlayOrRedeploy, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, resolveTargetedUnitOnPlayEffect, getUnitAttack, getUnitArmor, toggleFirstActor, resolveTurnCapWinner, resolveImmediateResourceExhaustionWinner, resolveImmediateNoProgressWinner, recordPassAction, completeActionOpportunity, performOpeningMulligan, STARTING_HAND_SIZE, MAX_OPENING_MULLIGAN_CARDS, getEffectiveBoardAttack, getEffectiveBoardArmor, getCombatPresentationStatsForBoardIndex, canPlayEffectCard, isEffectCardBlockedForOwner, isBattleExhaustedEligible, isBoardUnitOffline, normalizeOfflineReservations, isLegalEmptyFriendlySlotForUnitPlacement } from '../systems/GameState.js';
 import { chooseEnemyAction, isVerySafeConcedableState, recordBattleActionUse, selectOpeningMulliganCardIds } from '../systems/enemyDecision.js';
 import { getTargetingStateForEffect } from '../systems/cardTargeting.js';
 import { COMBAT_ATTACK_PRESENTATIONS, getCombatAttackPresentation, getCombatEventAttackerIndex, getCombatEventInterceptOriginalTargetIndex, getCombatEventTargetIndex, getLaneLethalTargetIndexes, getLaneSimultaneousUnitClash, shouldAnimateCombatAttacker, shouldUseControlledHeroStrikePresentation } from '../systems/combatAnimation.js';
@@ -9375,6 +9375,7 @@ export default class BattleScene extends Phaser.Scene {
     }
     if (state.targetType === 'enemy-unit') return translateActive('ui.battle.targeting.selectEnemy', 'SELECT ENEMY');
     if (state.targetType === 'friendly-unit') return translateActive('ui.battle.targeting.selectAlly', 'SELECT ALLY');
+    if (state.targetType === 'empty-friendly-slot') return translateActive('ui.battle.targeting.selectFreeSlot', 'CHOOSE A FREE SLOT');
     if (state.targetType === 'any-unit') return translateActive('ui.battle.targeting.selectUnit', 'SELECT UNIT');
     return translateActive('ui.battle.targeting.selectUnit', 'SELECT UNIT');
   }
@@ -12409,6 +12410,7 @@ export default class BattleScene extends Phaser.Scene {
       const isValidFriendlyTarget = this.isValidTarget(cell.index, 'friendly-unit', selectedTargetIndexes, targetConstraint);
       const isValidEnemyTarget = this.isValidTarget(cell.index, 'enemy-unit', selectedTargetIndexes, targetConstraint);
       const isValidAnyTarget = this.isValidTarget(cell.index, 'any-unit', selectedTargetIndexes, targetConstraint);
+      const isValidEmptyFriendlySlotTarget = this.isValidTarget(cell.index, 'empty-friendly-slot', selectedTargetIndexes, targetConstraint);
       const isSelectedTarget = selectedTargetIndexes.includes(cell.index);
       const swapSourceIndex = this.pendingSwapIndex;
       const swapSourceUnit = swapSourceIndex !== null ? this.gameState.board[swapSourceIndex] : null;
@@ -12441,6 +12443,9 @@ export default class BattleScene extends Phaser.Scene {
         strokeAlpha = BOARD_TARGET_STROKE_ALPHA;
       } else if (this.targetingState?.targetType === 'any-unit' && isValidAnyTarget) {
         strokeColor = 0xa855f7;
+        strokeAlpha = BOARD_TARGET_STROKE_ALPHA;
+      } else if (this.targetingState?.targetType === 'empty-friendly-slot' && isValidEmptyFriendlySlotTarget) {
+        strokeColor = 0x22c55e;
         strokeAlpha = BOARD_TARGET_STROKE_ALPHA;
       } else if (this.targetingState?.targetType === 'enemy-and-friendly-unit'
         && this.isValidTarget(cell.index, 'enemy-and-friendly-unit', selectedTargetIndexes, targetConstraint)) {
@@ -12475,6 +12480,9 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   isValidTarget(boardIndex, targetType, selectedTargetIndexes = [], targetConstraint = null) {
+    if (targetType === 'empty-friendly-slot') {
+      return isLegalEmptyFriendlySlotForUnitPlacement(this.gameState, 'player', boardIndex);
+    }
     const unit = this.gameState.board[boardIndex];
     if (!unit) return false;
     if (selectedTargetIndexes.includes(boardIndex)) return false;

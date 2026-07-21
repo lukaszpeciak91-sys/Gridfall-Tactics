@@ -6,6 +6,7 @@ import {
   createInitialBattleState,
   getUnitAttack,
   playEffectCard,
+  isOwnerSlotAvailableForUnitPlacement,
   playOrRedeployUnit,
   recordPassAction,
   resolveCombat,
@@ -256,14 +257,27 @@ test('Tea Courier lane block makes Grave Call skip blocked placement slots', () 
   assert.match(state.board[8]?.id, /grave_call_grunt/);
 });
 
-test('Tea Courier lane block makes summon_grunt_empty_slot skip blocked placement slots', () => {
+test('summon_grunt_empty_slot targeted resolution uses selected legal slot instead of first free', () => {
   const state = makeBlockedPlacementState(placementEffectCard('spawn', 'summon_grunt_empty_slot'));
 
-  const result = playEffectCard(state, 'player', 'spawn');
+  assert.equal(isOwnerSlotAvailableForUnitPlacement(state, 'player', 7), true);
+  const result = resolveTargetedEffectCard(state, 'player', 'spawn', 8, [8]);
 
   assert.equal(result.ok, true);
   assert.equal(state.board[6], null);
-  assert.match(state.board[7]?.id, /summoned_grunt/);
+  assert.equal(state.board[7], null);
+  assert.match(state.board[8]?.id, /summoned_grunt/);
+});
+
+test('summon_grunt_empty_slot targeted resolution rejects blocked selected slots without consumption', () => {
+  const state = makeBlockedPlacementState(placementEffectCard('spawn', 'summon_grunt_empty_slot'));
+
+  const result = resolveTargetedEffectCard(state, 'player', 'spawn', 6, [6]);
+
+  assert.equal(result.ok, false);
+  assert.equal(state.player.hand.length, 1);
+  assert.equal(state.player.discard.length, 0);
+  assert.equal(state.board[6], null);
 });
 
 test('Tea Courier lane block makes effectVariant summonToken skip blocked placement slots', () => {
@@ -358,11 +372,11 @@ test('effectVariant summonToken rejects unknown token IDs without summoning', ()
   assert.equal(state.effectVariantOperationTelemetry, undefined);
 });
 
-test('Tea Courier lane block expiration lets placement effects use the formerly blocked slot again', () => {
+test('Tea Courier lane block expiration lets targeted Spawn use the formerly blocked slot again', () => {
   const state = makeBlockedPlacementState(placementEffectCard('spawn', 'summon_grunt_empty_slot'));
 
   recordPassAction(state, 'player');
-  const result = playEffectCard(state, 'player', 'spawn');
+  const result = resolveTargetedEffectCard(state, 'player', 'spawn', 6, [6]);
 
   assert.equal(result.ok, true);
   assert.match(state.board[6]?.id, /summoned_grunt/);

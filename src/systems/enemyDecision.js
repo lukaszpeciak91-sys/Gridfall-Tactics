@@ -1,4 +1,4 @@
-import { canPlayOrRedeploy, canSwap, performSwap, playEffectCard, playOrRedeployUnit, resolveTargetedEffectCard, resolveTargetedUnitOnPlayEffect, getUnitAttack, getUnitArmor, getEffectiveBoardAttack, RUNNER_OPEN_LANE_ATK_BONUS, resolveImmediateNoProgressWinner, battleCanRealisticallyChangeOutcome, canPlayEffectCard } from './GameState.js';
+import { canPlayOrRedeploy, canSwap, performSwap, playEffectCard, playOrRedeployUnit, resolveTargetedEffectCard, resolveTargetedUnitOnPlayEffect, getUnitAttack, getUnitArmor, getEffectiveBoardAttack, RUNNER_OPEN_LANE_ATK_BONUS, resolveImmediateNoProgressWinner, battleCanRealisticallyChangeOutcome, canPlayEffectCard, isLegalEmptyFriendlySlotForUnitPlacement } from './GameState.js';
 import { ACTIVE_EFFECT_VARIANTS } from './effectVariantRegistry.generated.js';
 import { getMaterialBattleStateSignature } from './materialBattleStateSignature.js';
 
@@ -681,7 +681,8 @@ function areAdjacentTargetIndexes(firstIndex, secondIndex) {
 }
 
 function isTargetedOnlyEffect(effectId) {
-  return isTwoTargetSwapEffect(effectId)
+  return effectId === 'summon_grunt_empty_slot'
+    || isTwoTargetSwapEffect(effectId)
     || effectId === 'return_friendly_draw_1'
     || effectId === 'destroy_friendly_draw_1'
     || effectId === 'destroy_friendly_damage_enemy_base_1'
@@ -857,6 +858,27 @@ function addControllerUnitCandidates(actions, state, owner, card, slotIndex, pla
   }
 }
 
+
+function getLegalEmptyFriendlySlotIndexes(state, owner) {
+  const { friendly } = getRowsForOwner(owner);
+  return friendly.filter((index) => isLegalEmptyFriendlySlotForUnitPlacement(state, owner, index));
+}
+
+function addSpawnTargetCandidates(actions, state, owner, card) {
+  getLegalEmptyFriendlySlotIndexes(state, owner).forEach((targetIndex) => {
+    const targetIndexes = [targetIndex];
+    const targetedProbe = resolveTargetedEffectCard(cloneState(state), owner, card.id, targetIndex, targetIndexes);
+    if (!targetedProbe.ok || targetedProbe.type === 'targeted-effect-pending' || targetedProbe.type === 'targeted-effect-blocked') return;
+    actions.push({
+      type: 'play-targeted-effect',
+      cardId: card.id,
+      targetIndex,
+      targetIndexes,
+      effectId: card.effectId ?? null,
+    });
+  });
+}
+
 function addRepositionCandidates(actions, state, owner, telemetry = null) {
   const { friendly } = getRowsForOwner(owner);
   for (let lane = 0; lane < friendly.length - 1; lane += 1) {
@@ -904,6 +926,11 @@ export function buildActionCandidates(state, owner, hand, telemetry = null) {
 
     if (isTwoTargetSwapEffect(card.effectId ?? null)) {
       addTwoTargetCandidates(actions, state, owner, card);
+      return;
+    }
+
+    if (card.effectId === 'summon_grunt_empty_slot') {
+      addSpawnTargetCandidates(actions, state, owner, card);
       return;
     }
 
