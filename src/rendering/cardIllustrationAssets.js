@@ -121,7 +121,10 @@ export function preloadCardIllustrationAsset(scene, asset) {
 
   queuedTextureKeys.add(asset.key);
   preloadImageAsset(scene, asset, {
-    onError: (failedAsset) => warnMissingCardIllustration({ ...asset, ...failedAsset }),
+    onError: (failedAsset) => {
+      queuedTextureKeys.delete(asset.key);
+      warnMissingCardIllustration({ ...asset, ...failedAsset });
+    },
   });
   return true;
 }
@@ -131,11 +134,31 @@ export function preloadCardIllustration(scene, card, options = {}) {
   return preloadCardIllustrationAsset(scene, asset);
 }
 
-export function preloadCardIllustrationsForFaction(scene, factionKeyOrData) {
+export function getCardIllustrationAssetsForFaction(factionKeyOrData, { includeGeneratedUnitArt = false } = {}) {
   const faction = typeof factionKeyOrData === 'string' ? getFactionByKey(factionKeyOrData) : factionKeyOrData;
   const fallbackFactionId = getCardIllustrationFactionId({ factionId: faction?.id }, faction?.id);
-  return (faction?.deck ?? [])
-    .map((card) => preloadCardIllustration(scene, card, { factionId: getCardIllustrationFactionId(card) || fallbackFactionId }))
+  const assetsByKey = new Map();
+
+  (faction?.deck ?? []).forEach((card) => {
+    const asset = getCardIllustrationAsset(card, { factionId: getCardIllustrationFactionId(card) || fallbackFactionId });
+    if (asset?.key) assetsByKey.set(asset.key, asset);
+  });
+
+  if (includeGeneratedUnitArt) {
+    GENERATED_UNIT_ART_ASSETS
+      .filter((generatedUnitArt) => getCardIllustrationFactionId(generatedUnitArt) === fallbackFactionId)
+      .forEach((generatedUnitArt) => {
+        const asset = getCardIllustrationAsset(generatedUnitArt, { factionId: fallbackFactionId });
+        if (asset?.key) assetsByKey.set(asset.key, asset);
+      });
+  }
+
+  return [...assetsByKey.values()];
+}
+
+export function preloadCardIllustrationsForFaction(scene, factionKeyOrData) {
+  return getCardIllustrationAssetsForFaction(factionKeyOrData)
+    .map((asset) => preloadCardIllustrationAsset(scene, asset))
     .filter(Boolean).length;
 }
 

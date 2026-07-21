@@ -46,11 +46,16 @@ export function hasCachedAudioAsset(scene, key) {
   return Boolean(scene.cache.audio.exists?.(key) ?? scene.cache.audio.has?.(key));
 }
 
-export function preloadAudioAssets(scene) {
+export function preloadAudioAssetsByKey(scene, keys = []) {
   if (!scene?.load?.audio) return;
 
-  Object.values(AUDIO_ASSETS).forEach((asset) => {
+  [...new Set(keys)].forEach((key) => {
+    const asset = getAudioAsset(key);
     if (!asset?.key || !asset?.path || hasCachedAudioAsset(scene, asset.key)) return;
     scene.load.audio(asset.key, asset.path);
   });
+}
+
+export function preloadAudioAssets(scene) {
+  preloadAudioAssetsByKey(scene, Object.keys(AUDIO_ASSETS));
 }
