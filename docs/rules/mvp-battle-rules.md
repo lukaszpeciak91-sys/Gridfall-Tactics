@@ -196,7 +196,7 @@ The no-progress detector still exists and uses the stricter "meaningful for outc
 - Some cards resolve deterministically instead of opening manual targeting UI. Deterministic effects must remain deterministic: Spawn, Regrow, Flood, Sniper, Controller and Pulse Wave do not get added manual targeting in MVP; Jam Signal uses direct max-target enemy targeting.
 - Manual targeting is only used where the UI/logic currently supports targeted effect resolution.
 - Deterministic simplifications currently in code:
-  - **Sniper (`can_hit_any_lane`)** targets the lowest-HP enemy unit; ties break to lower board index.
+  - **Sniper (`can_hit_any_lane`)** targets the lowest-HP enemy unit; ties break by highest current effective ATK, then lower board index.
   - **Controller (`swap_two_enemy_units`)** on-play picks first two enemy units by lane/index order.
   - **Shield Push (`swap_adjacent_enemy_units`)** is a manual two-target order: select an enemy, then select an adjacent enemy in the same row. The selected enemies swap positions and get -1 ATK until the nearest combat cleanup; the effect never crosses sides and never changes ownership. Invalid, empty, friendly, duplicate, or non-adjacent targets are rejected rather than discarded.
   - **Reinforce Line / Hold The Line (`adjacent_allies_temp_armor_1`)** give +1 temporary ARM to friendly units with same-row adjacent allies; isolated friendly units have no legal deterministic resolution and the order is rejected rather than discarded.
@@ -261,7 +261,7 @@ Candidate audit for the same rule:
 | Aggro | Quick Fix | utility | - | heal_1_atk_1_draw_on_kill_this_turn | Heal [ALLY] 1. +1 ATK until combat. Kills in combat: draw 1 | Targeted friendly | Heal is capped by max HP; draw uses one-shot combat kill tracking and temporary trigger cleanup after combat. |
 | Control | Hacker | unit | 1/2/0 | enemy_lane_atk_minus_1 | Opposed [ENEMY]: -1 ATK until combat | Lane on-play | Also available as targeted effectId path. |
 | Control | Disruptor | unit | 1/2/0 | block_enemy_effect_cards_until_combat | Until combat, opponent cannot play effect cards | On-play action-availability restriction | Blocks the opponent from playing non-targeted and targeted effect cards until combat cleanup; units, swaps, PASS, mulligan, and automatic combat/death triggers remain legal; this is not a delayed counterspell and does not consume itself on a blocked attempt. |
-| Control | Sniper | unit | 2/1/0 | can_hit_any_lane | Attacks the lowest-HP [ENEMY] | Deterministic auto-target | Tie-break: lowest index; no manual target UI. |
+| Control | Sniper | unit | 2/1/0 | can_hit_any_lane | Attacks the lowest-HP [ENEMY] | Deterministic auto-target | Priority: lowest HP → highest current effective ATK → lowest index; no manual target UI. |
 | Control | Controller | unit | 1/2/0 | swap_two_enemy_units | On play: swap two [ENEMIES] | Staged two-enemy on-play targeting | Unit remains played; after cast feedback, select two distinct enemy units to swap. Cancel only cancels the swap effect. |
 | Control | Drone | unit | 1/1/0 | death_damage_enemy_hero_1 | On death: enemy base loses 1 HP | Death trigger | Applies after unit removed. |
 | Control | Swap | order | - | swap_any_two_units | Swap 2 [ALLY] or 2 [ENEMIES] | Two-target targeted effect | Requires two distinct occupied slots with the same owner; cannot trade units between sides. |

@@ -3141,7 +3141,13 @@ function resolveCombatLane(state, col, combatContext = null) {
       const unit = state.board[index];
       if (!unit || unit.hp <= 0) return;
       const hp = Number.isFinite(unit.hp) ? unit.hp : 0;
-      if (hp < bestHp || (hp === bestHp && (bestIndex === null || index < bestIndex))) {
+      const attack = getEffectiveBoardAttack(state, index);
+      const bestAttack = bestIndex === null ? Number.NEGATIVE_INFINITY : getEffectiveBoardAttack(state, bestIndex);
+      if (
+        hp < bestHp
+        || (hp === bestHp && attack > bestAttack)
+        || (hp === bestHp && attack === bestAttack && (bestIndex === null || index < bestIndex))
+      ) {
         bestHp = hp;
         bestIndex = index;
       }
