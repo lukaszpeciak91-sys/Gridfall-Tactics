@@ -114,6 +114,44 @@ test('Sniper targeting ignores non-positive HP units already present on the boar
   assert.equal(state.playerHP, 12);
 });
 
+test('Sniper HP ties target the highest effective ATK enemy before board index', () => {
+  const state = makeState();
+  state.board[6] = unit('player', { id: 'sniper', attack: 1, hp: 2, maxHp: 2, effectId: 'can_hit_any_lane' });
+  state.board[0] = unit('enemy', { id: 'lower-index-low-attack', attack: 1, hp: 2, maxHp: 2 });
+  state.board[1] = unit('enemy', { id: 'higher-attack', attack: 3, hp: 2, maxHp: 2 });
+
+  const sniperHit = resolveCombat(state).find((event) => event.attackerIndex === 6);
+
+  assert.equal(sniperHit.targetIndex, 1);
+});
+
+test('Sniper ATK ties still target the lower board index deterministically', () => {
+  const makeTieState = () => {
+    const state = makeState();
+    state.board[6] = unit('player', { id: 'sniper', attack: 1, hp: 2, maxHp: 2, effectId: 'can_hit_any_lane' });
+    state.board[0] = unit('enemy', { id: 'lower-index-tie', attack: 3, hp: 2, maxHp: 2 });
+    state.board[1] = unit('enemy', { id: 'higher-index-tie', attack: 3, hp: 2, maxHp: 2 });
+    return state;
+  };
+
+  const firstHit = resolveCombat(makeTieState()).find((event) => event.attackerIndex === 6);
+  const secondHit = resolveCombat(makeTieState()).find((event) => event.attackerIndex === 6);
+
+  assert.equal(firstHit.targetIndex, 0);
+  assert.equal(secondHit.targetIndex, 0);
+});
+
+test('Sniper HP tie uses active effective ATK buffs and debuffs', () => {
+  const state = makeState();
+  state.board[6] = unit('player', { id: 'sniper', attack: 1, hp: 2, maxHp: 2, effectId: 'can_hit_any_lane' });
+  state.board[0] = unit('enemy', { id: 'printed-high-debuffed', attack: 4, hp: 2, maxHp: 2, tempAttackMod: -3 });
+  state.board[1] = unit('enemy', { id: 'printed-low-buffed', attack: 1, hp: 2, maxHp: 2, tempAttackMod: 2 });
+
+  const sniperHit = resolveCombat(state).find((event) => event.attackerIndex === 6);
+
+  assert.equal(sniperHit.targetIndex, 1);
+});
+
 test('Sniper off-lane cleanup records fallen units and fires death triggers exactly once', () => {
   const state = makeState();
   state.board[6] = unit('player', { id: 'sniper', attack: 2, hp: 1, maxHp: 1, effectId: 'can_hit_any_lane' });
