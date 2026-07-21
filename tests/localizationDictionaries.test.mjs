@@ -272,7 +272,7 @@ test('selected localized card texts use enemy board-unit markers without changin
       attrition_swarm_funeral_pyre_1: 'Zgony 2 [ALLIES]: -1 HP ich [ENEMIES] naprzeciw',
       attrition_swarm_infect_1: 'Zadaj 1 [ENEMY].\n[ALLY] naprzeciwko +1 [ATK]',
       control_hacker_1: '[ENEMY] naprzeciwko: -1 ATK do walki',
-      control_sniper_1: 'Atakuje [ENEMY] z najniższym HP. Remisy: najwyższy ATK',
+      control_sniper_1: 'Atakuje [ENEMY] z najniższym [HP] i najwyższym [ATK]',
       control_controller_1: 'Po zagraniu: zamień dwóch [ENEMIES]',
       control_swap_1: 'Zamień miejscami 2 [ALLY] lub 2 [ENEMIES]',
       control_jam_signal_1: 'Do 2 [ENEMIES]: -1 ATK do walki',
