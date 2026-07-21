@@ -15,7 +15,7 @@ import { FACTION_CARD_DETAILS } from '../ui/factionCards.js';
 import { getAchievementDefinitions, loadAchievementState, normalizeAchievementState, ACHIEVEMENT_CATEGORY_GROUPS, ACHIEVEMENT_CATEGORY_LABELS, normalizeAchievementDifficulty } from '../systems/achievements.js';
 import { calculateAchievementProgression, getAchievementDefinitionPointValue } from '../systems/achievementProgression.js';
 import { loadPlayerStats, normalizePlayerStats } from '../systems/playerStats.js';
-import { preloadAudioAssets } from '../audio/audioAssets.js';
+import { preloadMenuAudioAssets } from '../audio/audioAssets.js';
 import { ACHIEVEMENT_PROGRESS_BADGE_WIDTH, formatAchievementProgressText } from '../ui/achievementProgressFormatting.js';
 import { playMenuMusic } from '../audio/menuMusic.js';
 
@@ -38,7 +38,7 @@ export default class AchievementsScene extends Phaser.Scene {
 
   preload() {
     preloadMenuBackgroundArt(this);
-    preloadAudioAssets(this);
+    preloadMenuAudioAssets(this);
   }
 
   create() {

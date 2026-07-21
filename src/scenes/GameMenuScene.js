@@ -23,7 +23,7 @@ import {
   getMainMenuLogoPosition,
   setMainMenuLogoDisplaySize,
 } from '../ui/menuLogoLayout.js';
-import { preloadAudioAssets } from '../audio/audioAssets.js';
+import { preloadMenuAudioAssets } from '../audio/audioAssets.js';
 import { playMenuMusic } from '../audio/menuMusic.js';
 import { enterBattleScene } from './battleEntryRouter.js';
 import { emitSceneTransitionVisuallyReady, reconcileSceneTransitionOverlayOrdering } from './sceneTransitionOverlay.js';
@@ -60,7 +60,7 @@ export default class GameMenuScene extends Phaser.Scene {
       onError: (asset) => console.warn(`Game menu logo failed to load: ${asset.path}`),
     });
     preloadSecondaryButtonAsset(this);
-    preloadAudioAssets(this);
+    preloadMenuAudioAssets(this);
   }
 
   create() {

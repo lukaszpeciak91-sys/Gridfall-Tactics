@@ -11,7 +11,7 @@ import {
   createAnimatedMenuBackground,
   preloadMenuBackgroundArt,
 } from '../rendering/backgroundArt.js';
-import { AUDIO_KEYS, preloadAudioAssets } from '../audio/audioAssets.js';
+import { AUDIO_KEYS, preloadMenuAudioAssets } from '../audio/audioAssets.js';
 import { playSfx } from '../audio/audioPlayback.js';
 import { playMenuMusic } from '../audio/menuMusic.js';
 import { emitSceneTransitionVisuallyReady, reconcileSceneTransitionOverlayOrdering } from './sceneTransitionOverlay.js';
@@ -100,7 +100,7 @@ export default class FactionSelectScene extends Phaser.Scene {
     preloadMenuBackgroundArt(this);
     preloadFactionPreviewArt(this);
     preloadSecondaryButtonAsset(this);
-    preloadAudioAssets(this);
+    preloadMenuAudioAssets(this);
   }
 
   init(data = {}) {

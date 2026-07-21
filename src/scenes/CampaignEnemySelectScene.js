@@ -4,7 +4,7 @@ import { createMenuScreenHeader } from '../ui/screenHeader.js';
 import { createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
 import { translateActive } from '../localization/localeService.js';
 import { applyAudioSettings, loadSettings } from '../systems/settingsState.js';
-import { AUDIO_KEYS, preloadAudioAssets } from '../audio/audioAssets.js';
+import { AUDIO_KEYS, preloadMenuAudioAssets } from '../audio/audioAssets.js';
 import { playSfx } from '../audio/audioPlayback.js';
 import { playMenuMusic } from '../audio/menuMusic.js';
 import { emitSceneTransitionVisuallyReady, reconcileSceneTransitionOverlayOrdering } from './sceneTransitionOverlay.js';
@@ -38,7 +38,7 @@ export default class CampaignEnemySelectScene extends Phaser.Scene {
   preload() {
     preloadMenuBackgroundArt(this);
     preloadFactionPreviewArt(this);
-    preloadAudioAssets(this);
+    preloadMenuAudioAssets(this);
   }
 
   init(data = {}) {
