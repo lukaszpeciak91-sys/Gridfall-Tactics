@@ -50,7 +50,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": "rotcaller_adjacent_death_atk_1",
-      "textShort": "First adjacent [ALLY] death in combat: +1 ATK until combat",
+      "textShort": "First adjacent [ALLY] death: +1 ATK permanently",
       "attack": 1,
       "hp": 2,
       "armor": 0
@@ -76,7 +76,7 @@
       "type": "order",
       "targeting": "none",
       "effectId": "funeral_pyre",
-      "textShort": "First 2 [ALLY] combat deaths:\n-1 [HP] to opposed [ENEMY]"
+      "textShort": "First [ALLY] death each turn:\nenemy base loses 1 HP"
     },
     {
       "id": "attrition_swarm_infect_1",

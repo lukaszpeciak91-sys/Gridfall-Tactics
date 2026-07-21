@@ -54,7 +54,7 @@
     },
     "attrition_swarm_rotcaller_1": {
       "name": "Wodzirej",
-      "textShort": "Zgon pierwszego sąsiedniego [ALLY]:\n+1 [ATK] do walki"
+      "textShort": "Zgon pierwszego sąsiedniego [ALLY]:\n+1 [ATK] na stałe"
     },
     "attrition_swarm_abomination_1": {
       "name": "Abominacja",
@@ -62,7 +62,7 @@
     },
     "attrition_swarm_funeral_pyre_1": {
       "name": "Stos",
-      "textShort": "Zgony 2 [ALLIES]: -1 HP ich [ENEMIES] naprzeciw"
+      "textShort": "Pierwszy zgon [ALLY] w turze:\nbaza wroga traci 1 HP"
     },
     "attrition_swarm_infect_1": {
       "name": "Zgniły Upominek",
@@ -555,7 +555,7 @@
         "draw_1": "Dobierz 1",
         "enemy_all_armor_minus_1": "Wrogowie -1 ARM",
         "friendly_immovable_this_turn": "Sojusznicy nie mogą być przesuwani",
-        "funeral_pyre": "Pierwsze 2 śmierci sojuszników zadają 1",
+        "funeral_pyre": "Pierwsza śmierć sojusznika w turze zadaje 1",
         "grave_call": "Przyzwij 1/1; 2, jeśli jesteś sam",
         "infect_damage_1_opposite_ally_atk_1": "Zadaj 1, wzmocnij przeciwnego sojusznika",
         "adjacent_allies_temp_armor_1": "Sąsiedni sojusznicy +1 ARM",

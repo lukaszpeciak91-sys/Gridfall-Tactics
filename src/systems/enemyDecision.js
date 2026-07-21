@@ -502,7 +502,7 @@ function getBoardPressureValue(state, owner) {
       if (friendlyUnit.effectId === 'combat_death_damage_enemy_lane_1') value += 20;
       if (friendlyUnit.effectId === 'combat_death_summon_grunt') value += 35;
       if (friendlyUnit.effectId === 'leech_heal_hero_on_attack') value += 30;
-      if (friendlyUnit.effectId === 'rotcaller_adjacent_death_atk_1') value += 25;
+      if (friendlyUnit.effectId === 'rotcaller_adjacent_death_atk_1' && !friendlyUnit.rotcallerPermanentTriggerConsumed) value += 25;
       if (friendlyUnit.effectId === 'combat_death_damage_both_heroes_1') value += 35;
       if (friendlyUnit.effectId === 'warden_defensive_friction_self') value += 35;
       if (friendlyUnit.effectId === 'warden_defensive_friction_adjacent') value += 30;
@@ -526,7 +526,7 @@ function getBoardPressureValue(state, owner) {
       if (friendlyUnit.effectId === 'combat_death_damage_enemy_lane_1') value += enemyCanKill ? 35 : 10;
       if (friendlyUnit.effectId === 'combat_death_summon_grunt') value += enemyCanKill ? 45 : 15;
       if (friendlyUnit.effectId === 'leech_heal_hero_on_attack') value += 35;
-      if (friendlyUnit.effectId === 'rotcaller_adjacent_death_atk_1') value += 20;
+      if (friendlyUnit.effectId === 'rotcaller_adjacent_death_atk_1' && !friendlyUnit.rotcallerPermanentTriggerConsumed) value += 20;
       if (friendlyUnit.effectId === 'combat_death_damage_both_heroes_1') value += enemyCanKill ? 35 : 15;
     }
   });
@@ -1258,7 +1258,7 @@ export function scoreAction(state, owner, action) {
   }
 
   if (action.effectId === 'funeral_pyre') {
-    const likelyDeaths = Math.min(2, getLikelyFriendlyCombatDeaths(state, owner));
+    const likelyDeaths = Math.min(1, getLikelyFriendlyCombatDeaths(state, owner));
     action.aiEvaluation = { kind: 'funeral-pyre', likelyDeaths };
     if (likelyDeaths <= 0) score -= 2600;
     else score += 300 + likelyDeaths * 450;
