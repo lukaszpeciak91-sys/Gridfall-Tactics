@@ -627,7 +627,7 @@
           "heading": "Słownik ikon",
           "lines": [
             "ATK — Obrażenia zadawane w walce.",
-            "HP — Życie jednostki lub bazy.",
+            "HP — Życie jednostki lub Bazy.",
             "ARM — Pancerz zmniejszający obrażenia bojowe.",
             "ALLY — Jedna twoja jednostka.",
             "ALLIES — Wszystkie twoje jednostki.",
@@ -638,43 +638,50 @@
         {
           "heading": "Cel gry",
           "lines": [
-            "Zniszcz bazę przeciwnika, zanim przeciwnik zniszczy twoją.",
+            "Obie Bazy zaczynają z 12 HP.",
+            "Zniszcz Bazę przeciwnika, aby wygrać.",
+            "Jeśli zniszczona zostanie tylko jedna Baza, wygrywa druga strona.",
             "Jeśli obie Bazy zostaną zniszczone podczas tego samego rozliczenia walki, bitwa kończy się remisem."
           ]
         },
         {
           "heading": "Talia",
           "lines": [
-            "Talia składa się z 10 kart.",
-            "Maksymalna wielkość ręki to 5 kart.",
-            "Karty dzielą się na: jednostki i efekty.",
-            "Na początku bitwy dobierasz 4 karty.",
-            "Przed bitwą możesz wymienić do 2 kart."
+            "Każda frakcja używa talii 10 kart.",
+            "Na początku bitwy dobierasz 4 karty startowe.",
+            "Przed bitwą możesz wymienić do 2 kart.",
+            "Wymienione karty wracają do talii, a następnie dobierasz tyle samo nowych.",
+            "Wymiana kart nie zużywa pierwszej akcji w bitwie."
           ]
         },
         {
           "heading": "Naprzemienna inicjatywa",
           "lines": [
-            "W każdej turze obie strony wykonują po jednej akcji lub PASS. Następnie walka rozstrzyga się automatycznie. W kolejnej turze pierwszy ruch wykonuje strona, która poprzednio działała jako druga.",
-            "Jednostki atakują przeciwników naprzeciwko.",
-            "Otwarta linia atakuje bazę przeciwnika.",
-            "Po walce obie strony dobierają kartę.",
-            "Jeśli twoja talia jest pusta, po prostu nie dobierasz."
+            "Na początku bitwy jedna ze stron zostaje wybrana do pierwszej akcji.",
+            "Każda strona wykonuje jedną akcję: zagrywa jednostkę lub efekt, zastępuje jednostkę, zamienia jednostki albo wybiera PASS.",
+            "Niektóre akcje wymagają wyboru pola lub celu.",
+            "Po akcji lub PASS obu stron wszystkie linie rozstrzygają walkę.",
+            "W następnej turze zaczyna strona, która wcześniej działała jako druga."
           ]
         },
         {
           "heading": "Plansza",
           "lines": [
-            "Jednostki zajmują tylko górny i dolny rząd.",
-            "Środkowy rząd to przestrzeń wizualna/efektów i nie mieści jednostek."
+            "Są trzy linie walki.",
+            "Każda strona ma po jednym polu jednostki w każdej linii.",
+            "Możesz używać tylko własnych pól.",
+            "Jednostki naprzeciwko walczą; otwarta linia zadaje obrażenia Bazie.",
+            "Jednostki z 0 HP opuszczają planszę."
           ]
         },
         {
           "heading": "Zagrywanie kart",
           "lines": [
-            "Jednostki zagrywasz na własne pola.",
-            "Efekty zagrywasz z ręki.",
-            "Niektóre efekty wymagają celu, inne rozstrzygają się automatycznie."
+            "Jednostki zagrywasz na puste własne pola.",
+            "Karty efektów zużywają akcję i mogą wymagać wyboru celu.",
+            "Możesz zastąpić własną jednostkę, zagrywając na jej pole jednostkę z ręki.",
+            "Zastąpiona jednostka wraca do twojej ręki.",
+            "Nie możesz zastąpić jednostki, jeśli w ręce nie ma na nią miejsca."
           ]
         },
         {
@@ -688,14 +695,19 @@
         {
           "heading": "PASS",
           "lines": [
-            "PASS kończy twoją akcję."
+            "PASS zużywa twoją akcję.",
+            "Po akcji lub PASS obu stron rozstrzyga się walka.",
+            "Poddanie z menu bitwy kończy bitwę porażką."
           ]
         },
         {
           "heading": "Wyczerpana bitwa",
           "lines": [
-            "Wyczerpane końcówki bitew mogą rozstrzygać się według pozostałego HP baz.",
-            "Równe HP baz oznacza remis."
+            "Może nastąpić tylko wtedy, gdy co najmniej jedna Baza ma 3 HP lub mniej.",
+            "Wymaga dwóch pełnych rund PASS — obie strony muszą wybrać PASS dwa razy.",
+            "Zagranie karty, zamiana jednostek lub inny postęp w walce zeruje ten licznik.",
+            "Wygrywa strona z większą liczbą pozostałych HP Bazy.",
+            "Przy równym HP Baz bitwa kończy się remisem."
           ]
         }
       ],

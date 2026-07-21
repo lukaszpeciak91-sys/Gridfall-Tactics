@@ -247,7 +247,8 @@ test('battle-end documentation names current stall, mulligan, retry, and tiebrea
   const combined = [readme, rules, historicalSpec, decisions].join('\n');
 
   assert.match(readme, /Battles end by base defeat, no-progress deadlock, or the 24-completed-turn fallback cap/);
-  assert.match(rules, /There is no repeated-PASS or 3-pass stall counter/);
+  assert.match(rules, /Battle Exhausted PASS tiebreak/);
+  assert.match(rules, /two complete PASS rounds/);
   assert.match(rules, /Meaningful Actions for No-Progress Detection/);
   assert.match(rules, /A board state with no realistic outcome-changing path is a no-progress deadlock/);
   assert.match(rules, /Runner-only edge cases follow these same rules/);

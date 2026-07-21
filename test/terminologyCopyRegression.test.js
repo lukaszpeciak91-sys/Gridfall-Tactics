@@ -13,9 +13,9 @@ const achievementsSource = await readFile(new URL('../src/systems/achievements.j
 const playerStatsSource = await readFile(new URL('../src/systems/playerStats.js', import.meta.url), 'utf8');
 
 const CANONICAL_RULES_EN_HEADING = 'Alternating Initiative';
-const CANONICAL_RULES_EN_BODY = 'Each turn, both sides take one action or PASS. Combat then resolves automatically. In the next turn, the side that acted second goes first.';
+const CANONICAL_RULES_EN_BODY = 'At battle start, one side is chosen to act first.';
 const CANONICAL_RULES_PL_HEADING = 'Naprzemienna inicjatywa';
-const CANONICAL_RULES_PL_BODY = 'W każdej turze obie strony wykonują po jednej akcji lub PASS. Następnie walka rozstrzyga się automatycznie. W kolejnej turze pierwszy ruch wykonuje strona, która poprzednio działała jako druga.';
+const CANONICAL_RULES_PL_BODY = 'Na początku bitwy jedna ze stron zostaje wybrana do pierwszej akcji.';
 const CANONICAL_TUTORIAL_EN = 'Each side gets one action or PASS per turn.\nAfter combat, the side that acted second goes first in the next turn.';
 const CANONICAL_TUTORIAL_PL = 'W każdej turze każda strona wykonuje jedną akcję lub PASS.\nPo walce w kolejnej turze zaczyna strona, która poprzednio działała jako druga.';
 
@@ -29,7 +29,7 @@ test('Rules initiative entry uses canonical English wording', () => {
   assert.equal(section.heading, CANONICAL_RULES_EN_HEADING);
   assert.equal(section.lines[0], CANONICAL_RULES_EN_BODY);
   assert.match(rulesPanelSource, new RegExp(CANONICAL_RULES_EN_HEADING));
-  assert.match(rulesPanelSource, /Each turn, both sides take one action or PASS\. Combat then resolves automatically\. In the next turn, the side that acted second goes first\./);
+  assert.match(rulesPanelSource, /Each side takes one action: play a unit or effect, replace a unit, swap units, or choose PASS/);
 });
 
 test('Rules initiative entry uses canonical Polish wording', () => {
