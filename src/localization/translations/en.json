@@ -54,7 +54,7 @@
     },
     "attrition_swarm_rotcaller_1": {
       "name": "Party Host",
-      "textShort": "First adjacent [ALLY] death in combat: +1 ATK until combat"
+      "textShort": "First adjacent [ALLY] death: +1 ATK permanently"
     },
     "attrition_swarm_abomination_1": {
       "name": "Abomination",
@@ -62,7 +62,7 @@
     },
     "attrition_swarm_funeral_pyre_1": {
       "name": "Funeral Pyre",
-      "textShort": "First 2 [ALLY] combat deaths:\n-1 [HP] to opposed [ENEMY]"
+      "textShort": "First [ALLY] death each turn:\nenemy base loses 1 HP"
     },
     "attrition_swarm_infect_1": {
       "name": "Rotten Gift",
@@ -555,7 +555,7 @@
         "draw_1": "Draw 1",
         "enemy_all_armor_minus_1": "Enemies -1 ARM",
         "friendly_immovable_this_turn": "Allies cannot be moved",
-        "funeral_pyre": "First 2 ally deaths deal 1",
+        "funeral_pyre": "First ally death each turn deals 1",
         "grave_call": "Summon 1/1; 2 if alone",
         "infect_damage_1_opposite_ally_atk_1": "Deal 1, empower opposite ally",
         "adjacent_allies_temp_armor_1": "Adjacent allies +1 ARM",

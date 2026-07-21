@@ -207,7 +207,7 @@ test('Gravehearts ordered presentation covers no-Rotcaller, two Rotcallers, Husk
   assert.equal(lethal.winner, 'player');
 });
 
-test('Funeral Pyre deals capped lane-only damage, cleans defeated units, does not stack, and clears', () => {
+test('Funeral Pyre deals capped base damage once per turn and persists', () => {
   const noDeath = state();
   addHand(noDeath, 'player', card('attrition_swarm_funeral_pyre_1'));
   assert.equal(playEffectCard(noDeath, 'player', 'attrition_swarm_funeral_pyre_1').ok, true);
@@ -220,8 +220,8 @@ test('Funeral Pyre deals capped lane-only damage, cleans defeated units, does no
   addHand(oneDeath, 'player', card('attrition_swarm_funeral_pyre_1'));
   playEffectCard(oneDeath, 'player', 'attrition_swarm_funeral_pyre_1');
   resolveCombat(oneDeath);
-  assert.equal(oneDeath.enemyHP, 12);
-  assert.equal(oneDeath.board[0]?.hp, 1);
+  assert.equal(oneDeath.enemyHP, 11);
+  assert.equal(oneDeath.board[0]?.hp, 2);
 
   const cleanup = state();
   cleanup.board[6] = unit({ id: 'cleanup-victim', attack: 0 });
@@ -229,15 +229,15 @@ test('Funeral Pyre deals capped lane-only damage, cleans defeated units, does no
   addHand(cleanup, 'player', card('attrition_swarm_funeral_pyre_1'));
   playEffectCard(cleanup, 'player', 'attrition_swarm_funeral_pyre_1');
   resolveCombat(cleanup);
-  assert.equal(cleanup.board[0], null, 'Funeral Pyre lane damage uses normal defeated-unit cleanup');
-  assert.equal(cleanup.enemyHP, 12);
+  assert.equal(cleanup.board[0]?.hp, 1);
+  assert.equal(cleanup.enemyHP, 11);
 
   const emptyLane = state();
   emptyLane.board[6] = unit({ id: 'empty-lane-victim', attack: 0, hp: 0 });
   addHand(emptyLane, 'player', card('attrition_swarm_funeral_pyre_1'));
   playEffectCard(emptyLane, 'player', 'attrition_swarm_funeral_pyre_1');
   resolveCombat(emptyLane);
-  assert.equal(emptyLane.enemyHP, 12, 'Funeral Pyre has no empty-lane hero fallback');
+  assert.equal(emptyLane.enemyHP, 11, 'Funeral Pyre damages enemy base from normal allied deaths');
 
   const capped = state();
   [6, 7, 8].forEach((index, lane) => {
@@ -248,11 +248,11 @@ test('Funeral Pyre deals capped lane-only damage, cleans defeated units, does no
   playEffectCard(capped, 'player', 'attrition_swarm_funeral_pyre_1');
   playEffectCard(capped, 'player', 'attrition_swarm_funeral_pyre_1');
   resolveCombat(capped);
-  assert.equal(capped.enemyHP, 12);
-  assert.equal(capped.board[0]?.hp, 2);
-  assert.equal(capped.board[1]?.hp, 2);
-  assert.equal(capped.board[2]?.hp, 3, 'third allied death is above the cap');
-  assert.equal(capped.funeralPyreThisCombat, undefined);
+  assert.equal(capped.enemyHP, 10);
+  assert.equal(capped.board[0]?.hp, 3);
+  assert.equal(capped.board[1]?.hp, 3);
+  assert.equal(capped.board[2]?.hp, 3, 'later allied deaths are above the per-turn cap');
+  assert.equal(capped.funeralPyreThisCombat.player.instances, 2);
 
   capped.board[6] = unit({ id: 'later', attack: 0 });
   capped.board[0] = unit({ owner: 'enemy', id: 'later-killer', attack: 1, hp: 2 });
@@ -287,7 +287,7 @@ test('Feast is draw-only utility with no target, sacrifice, base damage, or deat
   assert.equal(infect.playerHP, 12);
 });
 
-test('Funeral Pyre lane damage does not count as hero damage for simultaneous lethal', () => {
+test('Funeral Pyre base damage counts for lethal resolution', () => {
   const s = state();
   s.playerHP = 1;
   s.enemyHP = 1;
@@ -297,10 +297,10 @@ test('Funeral Pyre lane damage does not count as hero damage for simultaneous le
   addHand(s, 'player', card('attrition_swarm_funeral_pyre_1'));
   playEffectCard(s, 'player', 'attrition_swarm_funeral_pyre_1');
   resolveCombat(s);
-  assert.equal(s.enemyHP, 1);
-  assert.equal(s.board[0]?.hp, 1);
-  assert.equal(s.heroDeathResolution.simultaneousLethal, false);
-  assert.equal(s.winner, 'enemy');
+  assert.equal(s.enemyHP, 0);
+  assert.equal(s.board[0]?.hp, 2);
+  assert.equal(s.heroDeathResolution.simultaneousLethal, true);
+  assert.equal(s.winner, 'draw');
 });
 
 test('Leech heals owner hero on every combat attack, capped by max HP', () => {
@@ -530,7 +530,7 @@ test('AI handles Attrition Swarm legal action constraints and Funeral Pyre valua
   twoDeaths.board[7] = unit({ owner: 'player', id: 'kb', attack: 1, hp: 2 });
   const pyreAction = chooseBattleAction(twoDeaths, 'enemy');
   assert.equal(pyreAction.cardId, 'attrition_swarm_funeral_pyre_1');
-  assert.equal(pyreAction.aiEvaluation.likelyDeaths, 2);
+  assert.equal(pyreAction.aiEvaluation.likelyDeaths, 1);
 
   const noGrave = createInitialBattleState(emptyFaction, faction, { firstActor: 'enemy' });
   noGrave.enemy.hand.push(card('attrition_swarm_grave_call_1'));
