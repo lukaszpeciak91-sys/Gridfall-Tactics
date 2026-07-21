@@ -500,6 +500,52 @@ function isOwnerSlotAvailableForUnitPlacement(state, owner, index) {
   return state.board[index] === null && !isLanePlayBlockedForOwner(state, owner, index);
 }
 
+function nextGameplayRandom(state) {
+  const current = Number.isInteger(state?.gameplayRandomState) ? state.gameplayRandomState >>> 0 : 1;
+  const next = (Math.imul(current, 1664525) + 1013904223) >>> 0;
+  if (state) state.gameplayRandomState = next;
+  return current / 4294967296;
+}
+
+function chooseRandomIndex(state, length) {
+  if (!Number.isInteger(length) || length <= 0) return -1;
+  return Math.floor(nextGameplayRandom(state) * length);
+}
+
+export function chooseRandomLegalOwnerSlots(state, legalIndexes, count = 1) {
+  if (!Array.isArray(legalIndexes)) return [];
+  const stableLegalIndexes = legalIndexes.filter((index) => Number.isInteger(index));
+  if (count <= 0 || stableLegalIndexes.length <= 0) return [];
+  if (count >= stableLegalIndexes.length) return [...stableLegalIndexes];
+  if (count === 1) {
+    const selectedIndex = chooseRandomIndex(state, stableLegalIndexes.length);
+    return selectedIndex >= 0 ? [stableLegalIndexes[selectedIndex]] : [];
+  }
+  if (count === 2) {
+    const combinations = [];
+    for (let first = 0; first < stableLegalIndexes.length - 1; first += 1) {
+      for (let second = first + 1; second < stableLegalIndexes.length; second += 1) {
+        combinations.push([stableLegalIndexes[first], stableLegalIndexes[second]]);
+      }
+    }
+    const selectedIndex = chooseRandomIndex(state, combinations.length);
+    return selectedIndex >= 0 ? [...combinations[selectedIndex]] : [];
+  }
+  const remaining = [...stableLegalIndexes];
+  const selected = [];
+  while (selected.length < count && remaining.length > 0) {
+    const selectedIndex = chooseRandomIndex(state, remaining.length);
+    selected.push(remaining.splice(selectedIndex, 1)[0]);
+  }
+  return selected.sort((a, b) => stableLegalIndexes.indexOf(a) - stableLegalIndexes.indexOf(b));
+}
+
+function chooseRandomAvailableOwnerSlots(state, owner, count = 1) {
+  const legalIndexes = getRowForOwner(owner)
+    .filter((index) => isOwnerSlotAvailableForUnitPlacement(state, owner, index));
+  return chooseRandomLegalOwnerSlots(state, legalIndexes, count);
+}
+
 function createBoardUnitFromCard(card, owner, cardIdOverride = null) {
   const boardUnit = {
     ...card,
@@ -1585,7 +1631,7 @@ function resolveEffectVariantEmptyOwnerSlots(state, owner, selector) {
   const emptyIndexes = getRowForOwner(owner)
     .filter((index) => isOwnerSlotAvailableForUnitPlacement(state, owner, index));
   if (selector === 'firstEmptyOwnerSlot') return emptyIndexes.slice(0, 1);
-  if (selector === 'upToTwoEmptyOwnerSlots') return emptyIndexes.slice(0, 2);
+  if (selector === 'upToTwoEmptyOwnerSlots') return chooseRandomLegalOwnerSlots(state, emptyIndexes, 2);
   if (selector === 'allEmptyOwnerSlots') return emptyIndexes;
   return [];
 }
@@ -2207,10 +2253,9 @@ function applyEffectById(state, owner, effectId, sourceCard = null) {
       const friendlyIndexes = getRowForOwner(owner);
       const hasAlly = friendlyIndexes.some((index) => state.board[index]?.owner === owner);
       const summonLimit = hasAlly ? 1 : 2;
-      let summoned = 0;
-      friendlyIndexes.forEach((index) => {
-        if (summoned >= summonLimit || !isOwnerSlotAvailableForUnitPlacement(state, owner, index)) return;
-        if (summonGruntAt(state, index, owner, 'grave_call_grunt', getGeneratedGruntArtForSource(sourceCard))) summoned += 1;
+      const selectedIndexes = chooseRandomAvailableOwnerSlots(state, owner, summonLimit);
+      selectedIndexes.forEach((index) => {
+        summonGruntAt(state, index, owner, 'grave_call_grunt', getGeneratedGruntArtForSource(sourceCard));
       });
       break;
     }
@@ -2222,10 +2267,9 @@ function applyEffectById(state, owner, effectId, sourceCard = null) {
       break;
     }
     case 'fill_empty_slots_0_1': {
-      const friendlyIndexes = getRowForOwner(owner);
+      const selectedIndexes = chooseRandomAvailableOwnerSlots(state, owner, 2);
       let summoned = 0;
-      friendlyIndexes.forEach((index) => {
-        if (summoned >= 2 || !isOwnerSlotAvailableForUnitPlacement(state, owner, index)) return;
+      selectedIndexes.forEach((index) => {
         state.board[index] = createBoardUnitFromCard({
           id: `${owner}_flood_token_${index}_${summoned}`,
           name: 'Token',
@@ -2331,6 +2375,9 @@ export function createInitialBattleState(playerFactionData, enemyFactionData = p
     turnsCompleted: 0,
     nextFallenSequence: 0,
     firstActor,
+    gameplayRandomState: Number.isInteger(options.gameplayRandomState)
+      ? options.gameplayRandomState >>> 0
+      : (typeof options.randomFn === 'function' ? Math.floor(options.randomFn() * 4294967296) >>> 0 : 1),
     battleStartPresentationSfxPlayed: false,
     player: {
       factionId: playerFactionData?.id ?? 'unknown',
