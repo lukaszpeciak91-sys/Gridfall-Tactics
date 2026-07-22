@@ -27,6 +27,7 @@ Use these status labels in docs when relevant:
 - **Overlay / panel frame standard (CANONICAL):** `docs/ui/overlay-frame-standard.md`
 - **Animation vocabulary (CANONICAL for animation terminology):** `docs/ui/animation-vocabulary.md`
 - **Tutorial V1 architecture (CANONICAL for planned Tutorial V1):** `docs/tutorial-v1-architecture.md`
+- **Asset loading and scene ownership (CANONICAL):** `docs/architecture/asset-loading-policy.md`
 
 If any gameplay-rule conflict appears, `docs/rules/mvp-battle-rules.md` wins.
 
