@@ -9,7 +9,10 @@ test('Arena launch stores battlegroundId and new Arena battle performs a fresh s
   const source = factionSource();
   const start = source.slice(source.indexOf('  startBattle(factionKey) {'), source.indexOf('  resetStartBattleGuard()'));
   assert.match(start, /const selectedBattlegroundId = selectArenaBattlegroundId\(\);/);
+  assert.match(start, /const enemyFactionKey = selectArenaEnemyFactionKey\(factionKey\);/);
+  assert.match(start, /enterBattleScene\(this, \{[\s\S]*factionKey,[\s\S]*enemyFactionKey,/);
   assert.match(start, /battleContext:[\s\S]*mode: 'arena',[\s\S]*battlegroundId: selectedBattlegroundId/);
+  assert.match(start, /battleContext:[\s\S]*playerFactionKey: factionKey,[\s\S]*enemyFactionKey,/);
 });
 
 test('BattleScene preserves and resolves Arena battleground from battleContext', () => {

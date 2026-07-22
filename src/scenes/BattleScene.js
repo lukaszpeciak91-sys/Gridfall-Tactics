@@ -555,9 +555,12 @@ export default class BattleScene extends Phaser.Scene {
       ? tutorialBattleData.playerFaction.id
       : (typeof data?.factionKey === 'string' && data.factionKey ? data.factionKey : 'Aggro');
     const requestedEnemyFactionKey = typeof data?.enemyFactionKey === 'string' && data.enemyFactionKey ? data.enemyFactionKey : null;
+    const arenaEnemyFactionKey = this.battleContext?.mode === 'arena' && typeof this.battleContext?.enemyFactionKey === 'string' && this.battleContext.enemyFactionKey
+      ? this.battleContext.enemyFactionKey
+      : null;
     this.enemyFactionKey = isTutorialBattle
       ? tutorialBattleData.enemyFaction.id
-      : (requestedEnemyFactionKey ?? this.selectEnemyFactionKey(this.factionKey));
+      : (requestedEnemyFactionKey ?? arenaEnemyFactionKey ?? this.selectEnemyFactionKey(this.factionKey));
   }
 
   preloadCurrentBattleCardIllustrations() {
@@ -565,9 +568,86 @@ export default class BattleScene extends Phaser.Scene {
     const tutorialBattleData = isTutorialBattle ? getTutorialBattleData() : null;
     const playerFaction = isTutorialBattle ? tutorialBattleData.playerFaction : this.factionKey;
     const enemyFaction = isTutorialBattle ? tutorialBattleData.enemyFaction : this.enemyFactionKey;
+    if (this.battleContext?.mode === 'arena') {
+      const enemyAssets = getCardIllustrationAssetsForFaction(enemyFaction, { includeGeneratedUnitArt: true });
+      this.recordBattleReportEvent?.('arena-card-art-preload-plan', {
+        playerFactionKey: this.factionKey,
+        enemyFactionKey: this.enemyFactionKey,
+        requiredEnemyTextureCount: enemyAssets.length,
+      });
+    }
     return getUniqueCardIllustrationAssetsForBattleFactions(playerFaction, enemyFaction)
       .map((asset) => preloadCardIllustrationAsset(this, asset))
       .filter(Boolean).length;
+  }
+
+  getArenaEnemyCardIllustrationAssets() {
+    if (this.battleContext?.mode !== 'arena') return [];
+    return getCardIllustrationAssetsForFaction(this.enemyFactionKey, { includeGeneratedUnitArt: true });
+  }
+
+  getMissingArenaEnemyCardIllustrationAssets() {
+    return this.getArenaEnemyCardIllustrationAssets()
+      .filter((asset) => asset?.key && !this.textures?.exists?.(asset.key) && !this.arenaCardArtLoadFailures?.has?.(asset.key));
+  }
+
+  recordArenaCardArtLoadFailure(asset) {
+    if (!asset?.key) return;
+    this.arenaCardArtLoadFailures ??= new Set();
+    this.arenaCardArtLoadFailures.add(asset.key);
+    this.recordAssetFailureDiagnostic?.({
+      type: 'arena-enemy-card-art',
+      key: asset.key,
+      cardId: asset.cardId,
+      reason: 'LOAD_FAILED',
+    });
+  }
+
+  ensureArenaCardArtReadyBeforeVisualReady(onReady) {
+    if (this.battleContext?.mode !== 'arena') {
+      onReady?.();
+      return false;
+    }
+
+    const missingAssets = this.getMissingArenaEnemyCardIllustrationAssets();
+    this.recordBattleReportEvent?.('arena-card-art-readiness-check', {
+      playerFactionKey: this.factionKey,
+      enemyFactionKey: this.enemyFactionKey,
+      requiredEnemyTextureCount: this.getArenaEnemyCardIllustrationAssets().length,
+      missingEnemyTextureKeys: missingAssets.map((asset) => asset.key).slice(0, 12),
+      repairAttemptCount: this.arenaCardArtRepairAttemptCount ?? 0,
+      unresolvedFailureCount: this.arenaCardArtLoadFailures?.size ?? 0,
+    });
+
+    if (missingAssets.length === 0 || !this.load?.image || !this.load?.start) {
+      onReady?.();
+      return false;
+    }
+
+    this.arenaCardArtRepairAttemptCount = (this.arenaCardArtRepairAttemptCount ?? 0) + missingAssets.length;
+    this.pendingArenaVisualReadyCallback = onReady;
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      this.load?.off?.('complete', finish);
+      this.pendingArenaVisualReadyCallback = null;
+      this.recordBattleReportEvent?.('arena-card-art-repair-complete', {
+        enemyFactionKey: this.enemyFactionKey,
+        repairAttemptCount: this.arenaCardArtRepairAttemptCount,
+        missingEnemyTextureKeys: this.getMissingArenaEnemyCardIllustrationAssets().map((asset) => asset.key).slice(0, 12),
+        unresolvedFailureCount: this.arenaCardArtLoadFailures?.size ?? 0,
+      });
+      onReady?.();
+    };
+    this.load.once?.('complete', finish);
+    missingAssets.forEach((asset) => {
+      preloadImageAsset(this, asset, {
+        onError: () => this.recordArenaCardArtLoadFailure(asset),
+      });
+    });
+    this.load.start();
+    return true;
   }
 
   normalizeBattleContext(context = {}) {
@@ -589,6 +669,8 @@ export default class BattleScene extends Phaser.Scene {
     if (mode !== 'campaign') {
       return {
         mode: 'arena',
+        playerFactionKey: typeof context?.playerFactionKey === 'string' ? context.playerFactionKey : null,
+        enemyFactionKey: typeof context?.enemyFactionKey === 'string' ? context.enemyFactionKey : null,
         battlegroundId: resolveArenaBattlegroundId(context?.battlegroundId),
         arenaBattlegroundVisitRecorded: context?.arenaBattlegroundVisitRecorded === true,
       };
@@ -834,6 +916,9 @@ export default class BattleScene extends Phaser.Scene {
     this.achievementUnlockPopupController = null;
     this.achievementUnlockSfxPlayedIds = new Set();
     this.battleVisuallyReadyEmitted = false;
+    this.arenaCardArtLoadFailures = new Set();
+    this.arenaCardArtRepairAttemptCount = 0;
+    this.pendingArenaVisualReadyCallback = null;
   }
 
   cleanupSceneObjects({ preserveTimers = false, preserveTweens = false } = {}) {
@@ -920,9 +1005,12 @@ export default class BattleScene extends Phaser.Scene {
       : (typeof data?.factionKey === 'string' && data.factionKey ? data.factionKey : 'Aggro');
     this.factionKey = playerFactionKey;
     const requestedEnemyFactionKey = typeof data?.enemyFactionKey === 'string' && data.enemyFactionKey ? data.enemyFactionKey : null;
+    const arenaEnemyFactionKey = this.battleContext?.mode === 'arena' && typeof this.battleContext?.enemyFactionKey === 'string' && this.battleContext.enemyFactionKey
+      ? this.battleContext.enemyFactionKey
+      : null;
     const enemyFactionKey = isTutorialBattle
       ? tutorialBattleData.enemyFaction.id
-      : (requestedEnemyFactionKey ?? this.selectEnemyFactionKey(playerFactionKey));
+      : (requestedEnemyFactionKey ?? arenaEnemyFactionKey ?? this.selectEnemyFactionKey(playerFactionKey));
     this.enemyFactionKey = enemyFactionKey;
     this.recordBattleReportEvent?.('battle-created', { mode: this.battleContext?.mode, playerFaction: playerFactionKey, enemyFaction: enemyFactionKey, sessionBattleSequenceNumber: this.sessionBattleSequenceNumber, transitionLaunchId: this.battleTransitionLaunchId, waitForTransition: this.waitForBattleTransitionPresentation });
 
@@ -1006,9 +1094,11 @@ export default class BattleScene extends Phaser.Scene {
     this.installBoardCardArtTextureReadyListener();
 
     this.logOpeningRevealDiag('visually-ready-emitting');
-    this.emitBattleVisuallyReady();
-    this.scheduleOpeningRevealTransitionHandoffGuard();
-    this.time.delayedCall(560, () => this.startBattleAmbience());
+    this.ensureArenaCardArtReadyBeforeVisualReady(() => {
+      this.emitBattleVisuallyReady();
+      this.scheduleOpeningRevealTransitionHandoffGuard();
+      this.time.delayedCall(560, () => this.startBattleAmbience());
+    });
 
     if (this.isCampaignCompletionPreview()) {
       const previewStatus = this.battleContext.previewStatus;

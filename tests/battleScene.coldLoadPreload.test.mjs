@@ -73,3 +73,31 @@ test('BattleScene card preloader uses existing cache-aware asset helper', () => 
   assert.match(cardAssetsSource, /scene\.textures\?\.exists\?\.\(asset\.key\)/);
   assert.match(cardAssetsSource, /queuedTextureKeys\.has\(asset\.key\)/);
 });
+
+test('Arena preload uses explicit enemy key and does not reroll when payload is complete', () => {
+  assert.match(battleSceneSource, /playerFactionKey: typeof context\?\.playerFactionKey === 'string'/);
+  assert.match(battleSceneSource, /enemyFactionKey: typeof context\?\.enemyFactionKey === 'string'/);
+  const preloadContext = battleSceneSource.slice(battleSceneSource.indexOf('  preparePreloadContext(data = {})'), battleSceneSource.indexOf('  preloadCurrentBattleCardIllustrations()'));
+  assert.match(preloadContext, /const arenaEnemyFactionKey = this\.battleContext\?\.mode === 'arena'[\s\S]*this\.battleContext\.enemyFactionKey/);
+  assert.match(preloadContext, /requestedEnemyFactionKey \?\? arenaEnemyFactionKey \?\? this\.selectEnemyFactionKey\(this\.factionKey\)/);
+});
+
+test('Arena-only current enemy card-art readiness repairs exact missing selected enemy textures', () => {
+  assert.match(battleSceneSource, /getArenaEnemyCardIllustrationAssets\(\) \{[\s\S]*this\.battleContext\?\.mode !== 'arena'[\s\S]*getCardIllustrationAssetsForFaction\(this\.enemyFactionKey, \{ includeGeneratedUnitArt: true \}\)/);
+  assert.match(battleSceneSource, /getMissingArenaEnemyCardIllustrationAssets\(\)[\s\S]*!this\.textures\?\.exists\?\.\(asset\.key\)[\s\S]*!this\.arenaCardArtLoadFailures\?\.has\?\.\(asset\.key\)/);
+  assert.match(battleSceneSource, /ensureArenaCardArtReadyBeforeVisualReady\(onReady\)[\s\S]*this\.battleContext\?\.mode !== 'arena'[\s\S]*onReady\?\.\(\)/);
+  assert.match(battleSceneSource, /missingAssets\.forEach\(\(asset\) => \{[\s\S]*preloadImageAsset\(this, asset/);
+  assert.doesNotMatch(battleSceneSource, /preloadAllCardIllustrations\(this\)/);
+});
+
+test('Arena visual-ready waits for Arena repair while failed assets do not hang', () => {
+  const createSource = battleSceneSource.slice(battleSceneSource.indexOf('  create(data) {'), battleSceneSource.indexOf('    if (this.isCampaignCompletionPreview())'));
+  assert.match(createSource, /this\.ensureArenaCardArtReadyBeforeVisualReady\(\(\) => \{[\s\S]*this\.emitBattleVisuallyReady\(\);[\s\S]*this\.scheduleOpeningRevealTransitionHandoffGuard\(\);/);
+  assert.match(battleSceneSource, /recordArenaCardArtLoadFailure\(asset\)[\s\S]*this\.arenaCardArtLoadFailures\.add\(asset\.key\)/);
+  assert.match(battleSceneSource, /this\.load\.once\?\.\('complete', finish\)/);
+});
+
+test('card.aggro.aggro_01 is part of the repairable normal enemy deck asset set', () => {
+  const aggroAssets = getCardIllustrationAssetsForFaction('Aggro', { includeGeneratedUnitArt: true });
+  assert.ok(aggroAssets.some((asset) => asset.key === 'card.aggro.aggro_01'));
+});
