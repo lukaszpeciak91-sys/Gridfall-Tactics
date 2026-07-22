@@ -22,7 +22,7 @@ import {
 } from '../src/systems/GameState.js';
 import { readFileSync } from 'node:fs';
 import { getFactionByKey, getFactionKeys } from '../src/data/factions/index.js';
-import { buildActionCandidates, chooseBattleAction, recordBattleActionUse, scoreAction, selectOpeningMulliganCardIds } from '../src/systems/enemyDecision.js';
+import { buildActionCandidates, chooseBattleAction, getAiScoreDiagnosticRecord, recordBattleActionUse, scoreAction, selectOpeningMulliganCardIds } from '../src/systems/enemyDecision.js';
 
 const DEFAULT_MATCH_COUNT = 100;
 const DEFAULT_BASE_SEED = 1337;
@@ -415,6 +415,273 @@ function createSimulatorTelemetry() {
 function parsePositiveIntegerOption(value) {
   const parsed = Number.parseInt(value ?? '0', 10);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : 0;
+}
+
+
+function parseAiDiagnosticsMode(value) {
+  if (value === 'summary' || value === 'diagnostic-summary') return 'summary';
+  if (value === 'sample' || value === 'diagnostic-sample') return 'sample';
+  return 'normal';
+}
+
+function createAiScoreDiagnostics(mode = 'normal', sampleLimit = 100) {
+  const enabled = mode === 'summary' || mode === 'sample';
+  return {
+    enabled,
+    mode,
+    sampleLimit: Math.max(0, Number.isInteger(sampleLimit) ? sampleLimit : 100),
+    totalDecisions: 0,
+    selectedActionTypes: {},
+    passCount: 0,
+    exactTieCount: 0,
+    utilityRejectionCount: 0,
+    zeroImpactRejectionCount: 0,
+    handCyclingCount: 0,
+    selectedSlotDistribution: { left: 0, middle: 0, right: 0 },
+    selectedTargetSlotDistribution: { left: 0, middle: 0, right: 0 },
+    marginsOverSecond: [],
+    marginsOverPass: [],
+    components: {},
+    componentsByFaction: {},
+    componentsByMatchup: {},
+    decisionFlips: {},
+    placementByFaction: {},
+    placementByCardEffect: {},
+    exactTieSlotSelections: { left: 0, middle: 0, right: 0 },
+    adjacencyDependentPlacement: { left: 0, middle: 0, right: 0 },
+    wardensMiddleSelections: { middle: 0, total: 0 },
+    genericNonAdjacencyUnitPlacement: { left: 0, middle: 0, right: 0 },
+    samples: [],
+  };
+}
+
+function incrementCounter(object, key, amount = 1) {
+  object[key] = (object[key] ?? 0) + amount;
+}
+
+function laneName(index) {
+  const lane = Number.isInteger(index) ? index % 3 : null;
+  return lane === 0 ? 'left' : lane === 1 ? 'middle' : lane === 2 ? 'right' : null;
+}
+
+function median(values) {
+  if (!values.length) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+function recordComponentContribution(bucket, name, value) {
+  bucket[name] ??= { occurrences: 0, totalContribution: 0, positiveOccurrences: 0, negativeOccurrences: 0 };
+  bucket[name].occurrences += 1;
+  bucket[name].totalContribution += value;
+  if (value > 0) bucket[name].positiveOccurrences += 1;
+  if (value < 0) bucket[name].negativeOccurrences += 1;
+}
+
+function scoreCandidatesForDiagnostics(state, owner) {
+  const side = owner === 'player' ? state?.player : state?.enemy;
+  const hand = Array.isArray(side?.hand) ? side.hand : [];
+  return buildActionCandidates(state, owner, hand, null).map((action, generationOrder) => {
+    const candidate = cloneAuditValue(action);
+    const score = scoreAction(state, owner, candidate);
+    const diagnostic = getAiScoreDiagnosticRecord(candidate, score);
+    return {
+      action: candidate,
+      key: getAuditActionKey(candidate),
+      generationOrder,
+      score,
+      finite: Number.isFinite(score),
+      diagnostic,
+      eligible: Number.isFinite(score) && !(diagnostic.utilityThreshold > 0 && score < diagnostic.utilityThreshold),
+    };
+  });
+}
+
+function beginAiScoreDiagnostics(aiScoreDiagnostics, state, owner, opportunityContext) {
+  if (!aiScoreDiagnostics?.enabled) return null;
+  const side = owner === 'player' ? state?.player : state?.enemy;
+  const scored = scoreCandidatesForDiagnostics(state, owner);
+  const eligible = scored.filter((entry) => entry.eligible);
+  const finite = scored.filter((entry) => entry.finite);
+  const sortedEligible = [...eligible].sort((a, b) => (b.score - a.score) || (a.generationOrder - b.generationOrder));
+  const bestScore = sortedEligible[0]?.score ?? null;
+  const ties = bestScore === null ? [] : sortedEligible.filter((entry) => entry.score === bestScore);
+  return {
+    matchup: `${opportunityContext?.playerFaction ?? '?'} vs ${opportunityContext?.enemyFaction ?? '?'}`,
+    actingFaction: side?.factionName ?? 'Unknown',
+    opponentFaction: state?.[owner === 'player' ? 'enemy' : 'player']?.factionName ?? 'Unknown',
+    owner,
+    hand: summarizeAuditHand(side),
+    board: summarizeAuditBoard(state),
+    scored,
+    eligible: sortedEligible,
+    finite,
+    exactTie: ties.length > 1,
+  };
+}
+
+function compactDiagnosticAction(state, owner, entry) {
+  return {
+    summary: summarizeAuditAction(state, owner, entry.action),
+    action: {
+      type: entry.action?.type ?? null,
+      cardId: entry.action?.cardId ?? null,
+      effectId: entry.action?.effectId ?? null,
+      slotIndex: entry.action?.slotIndex ?? null,
+      targetIndex: entry.action?.targetIndex ?? null,
+      targetIndexes: entry.action?.targetIndexes ?? null,
+    },
+    score: entry.score,
+    components: entry.diagnostic.components,
+    utilityThreshold: entry.diagnostic.utilityThreshold,
+    utilityOpportunityCost: entry.diagnostic.utilityOpportunityCost,
+    rejectionReason: entry.diagnostic.rejectionReason,
+  };
+}
+
+function finishAiScoreDiagnostics(aiScoreDiagnostics, pending, state, owner, chosenAction) {
+  if (!aiScoreDiagnostics?.enabled || !pending) return;
+  const chosenKey = getAuditActionKey(chosenAction);
+  const chosenEntry = pending.scored.find((entry) => entry.key === chosenKey) ?? null;
+  const eligible = pending.eligible;
+  const selectedScore = chosenEntry?.score ?? null;
+  const competitors = eligible.filter((entry) => entry.key !== chosenKey);
+  const bestCompetitorScore = competitors[0]?.score ?? Number.NEGATIVE_INFINITY;
+  const marginOverSecond = Number.isFinite(selectedScore) && Number.isFinite(bestCompetitorScore) ? selectedScore - bestCompetitorScore : null;
+  const passEntry = pending.scored.find((entry) => entry.action.type === 'pass') ?? null;
+  const marginOverPass = Number.isFinite(selectedScore) && passEntry ? selectedScore - passEntry.score : null;
+
+  aiScoreDiagnostics.totalDecisions += 1;
+  incrementCounter(aiScoreDiagnostics.selectedActionTypes, chosenAction?.type ?? 'unknown');
+  if (chosenAction?.type === 'pass') aiScoreDiagnostics.passCount += 1;
+  if (pending.exactTie) aiScoreDiagnostics.exactTieCount += 1;
+  aiScoreDiagnostics.utilityRejectionCount += pending.scored.filter((entry) => entry.finite && !entry.eligible).length;
+  aiScoreDiagnostics.zeroImpactRejectionCount += pending.scored.filter((entry) => entry.diagnostic.rejectionReason === 'no immediate battle impact and no meaningful hand-cycling value').length;
+  if (chosenEntry?.diagnostic.handCycling) aiScoreDiagnostics.handCyclingCount += 1;
+  if (marginOverSecond !== null) aiScoreDiagnostics.marginsOverSecond.push(marginOverSecond);
+  if (marginOverPass !== null) aiScoreDiagnostics.marginsOverPass.push(marginOverPass);
+
+  const selectedLane = laneName(chosenAction?.slotIndex);
+  if (selectedLane) {
+    incrementCounter(aiScoreDiagnostics.selectedSlotDistribution, selectedLane);
+    aiScoreDiagnostics.placementByFaction[pending.actingFaction] ??= { left: 0, middle: 0, right: 0 };
+    incrementCounter(aiScoreDiagnostics.placementByFaction[pending.actingFaction], selectedLane);
+    const selectedCard = getAuditActionCard(state, owner, chosenAction);
+    const cardEffectKey = `${chosenAction.cardId ?? 'no-card'}::${chosenAction.effectId ?? selectedCard?.effectId ?? 'no-effect'}`;
+    aiScoreDiagnostics.placementByCardEffect[cardEffectKey] ??= { left: 0, middle: 0, right: 0 };
+    incrementCounter(aiScoreDiagnostics.placementByCardEffect[cardEffectKey], selectedLane);
+    if (pending.exactTie) incrementCounter(aiScoreDiagnostics.exactTieSlotSelections, selectedLane);
+    const components = chosenEntry?.diagnostic.components ?? {};
+    if (components.adjacencyFormation) incrementCounter(aiScoreDiagnostics.adjacencyDependentPlacement, selectedLane);
+    else if (chosenAction?.type === 'play-unit') incrementCounter(aiScoreDiagnostics.genericNonAdjacencyUnitPlacement, selectedLane);
+    if (String(chosenAction?.cardId ?? '').startsWith('wardens_')) {
+      aiScoreDiagnostics.wardensMiddleSelections.total += 1;
+      if (selectedLane === 'middle') aiScoreDiagnostics.wardensMiddleSelections.middle += 1;
+    }
+  }
+  const targetLanes = (chosenAction?.targetIndexes ?? [chosenAction?.targetIndex]).map(laneName).filter(Boolean);
+  targetLanes.forEach((lane) => incrementCounter(aiScoreDiagnostics.selectedTargetSlotDistribution, lane));
+
+  const components = chosenEntry?.diagnostic.components ?? {};
+  Object.entries(components).forEach(([name, value]) => {
+    recordComponentContribution(aiScoreDiagnostics.components, name, value);
+    aiScoreDiagnostics.componentsByFaction[pending.actingFaction] ??= {};
+    recordComponentContribution(aiScoreDiagnostics.componentsByFaction[pending.actingFaction], name, value);
+    aiScoreDiagnostics.componentsByMatchup[pending.matchup] ??= {};
+    recordComponentContribution(aiScoreDiagnostics.componentsByMatchup[pending.matchup], name, value);
+    aiScoreDiagnostics.decisionFlips[name] ??= { selectedOccurrences: 0, decisionFlipCount: 0 };
+    aiScoreDiagnostics.decisionFlips[name].selectedOccurrences += 1;
+    if (Number.isFinite(selectedScore) && selectedScore - value <= bestCompetitorScore) {
+      aiScoreDiagnostics.decisionFlips[name].decisionFlipCount += 1;
+    }
+  });
+
+  if (aiScoreDiagnostics.mode === 'sample' && aiScoreDiagnostics.samples.length < aiScoreDiagnostics.sampleLimit) {
+    const top = [...pending.eligible].slice(0, 3);
+    aiScoreDiagnostics.samples.push({
+      matchup: pending.matchup,
+      actingFaction: pending.actingFaction,
+      opponentFaction: pending.opponentFaction,
+      owner,
+      board: pending.board,
+      hand: pending.hand,
+      selected: chosenEntry ? compactDiagnosticAction(state, owner, chosenEntry) : { summary: summarizeAuditAction(state, owner, chosenAction), score: null, components: {} },
+      topCandidates: top.map((entry) => compactDiagnosticAction(state, owner, entry)),
+      marginFirstSecond: top.length > 1 ? top[0].score - top[1].score : null,
+      passScore: passEntry?.score ?? null,
+      utilityRejections: pending.scored.filter((entry) => entry.finite && !entry.eligible).map((entry) => compactDiagnosticAction(state, owner, entry)).slice(0, 3),
+      tieBreak: chosenAction?.aiEvaluation?.tieBreak ?? null,
+    });
+  }
+}
+
+function summarizeComponentRows(components) {
+  return Object.entries(components).sort(([a], [b]) => a.localeCompare(b)).map(([component, row]) => ({
+    component,
+    occurrences: row.occurrences,
+    total: Math.round(row.totalContribution * 100) / 100,
+    averageWhenPresent: row.occurrences ? Math.round((row.totalContribution / row.occurrences) * 100) / 100 : 0,
+    positive: row.positiveOccurrences,
+    negative: row.negativeOccurrences,
+  }));
+}
+
+function printAiScoreDiagnostics(aiScoreDiagnostics) {
+  if (!aiScoreDiagnostics?.enabled) return;
+  const total = aiScoreDiagnostics.totalDecisions || 1;
+  console.log('\nAI score-component diagnostics:');
+  console.table([
+    { metric: 'total AI decisions', value: aiScoreDiagnostics.totalDecisions },
+    { metric: 'PASS count', value: aiScoreDiagnostics.passCount, rate: `${((aiScoreDiagnostics.passCount / total) * 100).toFixed(2)}%` },
+    { metric: 'exact tie count', value: aiScoreDiagnostics.exactTieCount, rate: `${((aiScoreDiagnostics.exactTieCount / total) * 100).toFixed(2)}%` },
+    { metric: 'utility rejection count', value: aiScoreDiagnostics.utilityRejectionCount },
+    { metric: 'zero-impact rejection count', value: aiScoreDiagnostics.zeroImpactRejectionCount },
+    { metric: 'hand-cycling selected count', value: aiScoreDiagnostics.handCyclingCount },
+    { metric: 'avg winning margin over second', value: avg(aiScoreDiagnostics.marginsOverSecond.reduce((a, b) => a + b, 0), aiScoreDiagnostics.marginsOverSecond.length) },
+    { metric: 'median winning margin over second', value: median(aiScoreDiagnostics.marginsOverSecond) },
+    { metric: 'avg margin over PASS', value: avg(aiScoreDiagnostics.marginsOverPass.reduce((a, b) => a + b, 0), aiScoreDiagnostics.marginsOverPass.length) },
+    { metric: 'median margin over PASS', value: median(aiScoreDiagnostics.marginsOverPass) },
+  ]);
+  console.log('\nSelected action count by type:');
+  console.table(Object.entries(aiScoreDiagnostics.selectedActionTypes).map(([type, count]) => ({ type, count })));
+  console.log('\nSelected placement slot distribution:');
+  console.table([aiScoreDiagnostics.selectedSlotDistribution]);
+  console.log('\nSelected target-slot distribution:');
+  console.table([aiScoreDiagnostics.selectedTargetSlotDistribution]);
+  console.log('\nSelected component contribution:');
+  console.table(summarizeComponentRows(aiScoreDiagnostics.components));
+  console.log('\nDecision-flip contribution (tie after subtraction counts as flip):');
+  console.table(Object.entries(aiScoreDiagnostics.decisionFlips).sort(([a], [b]) => a.localeCompare(b)).map(([component, row]) => ({
+    component,
+    selectedOccurrences: row.selectedOccurrences,
+    decisionFlipCount: row.decisionFlipCount,
+    decisionFlipRate: `${((row.decisionFlipCount / Math.max(1, row.selectedOccurrences)) * 100).toFixed(2)}%`,
+  })));
+  console.log('\nPlacement by faction:');
+  console.table(Object.entries(aiScoreDiagnostics.placementByFaction).map(([faction, row]) => ({ faction, ...row })));
+  console.log('\nPlacement by card/effect:');
+  console.table(Object.entries(aiScoreDiagnostics.placementByCardEffect).slice(0, 30).map(([cardEffect, row]) => ({ cardEffect, ...row })));
+  console.log('\nAdjacency/Wardens positional diagnostics:');
+  console.table([
+    { metric: 'exact-tie slot selections', ...aiScoreDiagnostics.exactTieSlotSelections },
+    { metric: 'adjacency-dependent placement', ...aiScoreDiagnostics.adjacencyDependentPlacement },
+    { metric: 'generic non-adjacency unit placement', ...aiScoreDiagnostics.genericNonAdjacencyUnitPlacement },
+    { metric: 'Wardens middle selections', middle: aiScoreDiagnostics.wardensMiddleSelections.middle, total: aiScoreDiagnostics.wardensMiddleSelections.total, rate: `${((aiScoreDiagnostics.wardensMiddleSelections.middle / Math.max(1, aiScoreDiagnostics.wardensMiddleSelections.total)) * 100).toFixed(2)}%` },
+  ]);
+  if (aiScoreDiagnostics.mode === 'sample') {
+    console.log(`\nAI score-component diagnostic samples (${aiScoreDiagnostics.samples.length}/${aiScoreDiagnostics.sampleLimit}):`);
+    aiScoreDiagnostics.samples.forEach((sample, index) => {
+      console.log(`\n#${index + 1} ${sample.matchup} | ${sample.actingFaction} vs ${sample.opponentFaction} | ${sample.owner}`);
+      console.log(`Board: ${sample.board}`);
+      console.log(`Hand: ${sample.hand}`);
+      console.log(`Selected: ${sample.selected.summary} @ ${formatAuditNumber(sample.selected.score)} ${JSON.stringify(sample.selected.components)}`);
+      console.log(`Top 3: ${sample.topCandidates.map((entry) => `${entry.summary}@${formatAuditNumber(entry.score)} ${JSON.stringify(entry.components)}`).join(' ; ')}`);
+      console.log(`Margin first-second: ${formatAuditNumber(sample.marginFirstSecond)} | PASS score: ${formatAuditNumber(sample.passScore)}`);
+      if (sample.utilityRejections.length) console.log(`Utility rejections: ${sample.utilityRejections.map((entry) => `${entry.summary}@${formatAuditNumber(entry.score)}`).join(' ; ')}`);
+      if (sample.tieBreak) console.log(`Tie-break: ${JSON.stringify(sample.tieBreak)}`);
+    });
+  }
 }
 
 function createAiDecisionAudit(limit = 0) {
@@ -1211,11 +1478,13 @@ function applyAiOpeningMulligan(state, owner, randomFn, telemetry, simTelemetry 
   recordMulliganTelemetry(telemetry, side.factionName ?? 'Unknown', result.replaced);
 }
 
-function applyAction(state, owner, passStats, decisionOptions, telemetry, simTelemetry, gameCardTelemetry = null, handLockAnalysis = null, opportunityContext = null, aiDecisionAudit = null) {
+function applyAction(state, owner, passStats, decisionOptions, telemetry, simTelemetry, gameCardTelemetry = null, handLockAnalysis = null, opportunityContext = null, aiDecisionAudit = null, aiScoreDiagnostics = null) {
   recordHandLockOpportunity(handLockAnalysis, state, owner, opportunityContext);
   const pendingAiDecisionAuditSample = beginAiDecisionAuditSample(aiDecisionAudit, state, owner, opportunityContext);
+  const pendingAiScoreDiagnostics = beginAiScoreDiagnostics(aiScoreDiagnostics, state, owner, opportunityContext);
   const action = chooseBattleAction(state, owner, { ...decisionOptions, telemetry });
   finishAiDecisionAuditSample(aiDecisionAudit, pendingAiDecisionAuditSample, state, owner, action);
+  finishAiScoreDiagnostics(aiScoreDiagnostics, pendingAiScoreDiagnostics, state, owner, action);
   if (action?.effectId === MERCY_EFFECT_ID) {
     const targetIndex = action.targetIndex;
     const hand = state?.[owner]?.hand ?? [];
@@ -1312,7 +1581,7 @@ function applyAction(state, owner, passStats, decisionOptions, telemetry, simTel
 }
 
 
-function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, simTelemetry, gameSeed, gameIndex, playerKey, enemyKey, effectVariantRegistry = null, handLockAnalysis = null, aiDecisionAudit = null) {
+function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, simTelemetry, gameSeed, gameIndex, playerKey, enemyKey, effectVariantRegistry = null, handLockAnalysis = null, aiDecisionAudit = null, aiScoreDiagnostics = null) {
   const gameRng = createSeededRng(gameSeed);
   const state = createInitialBattleState(playerFaction, enemyFaction, { randomFn: gameRng });
   if (effectVariantRegistry) state.effectVariantRegistry = effectVariantRegistry;
@@ -1350,8 +1619,8 @@ function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, simTel
     const firstActor = state.firstActor;
     const secondActor = firstActor === 'player' ? 'enemy' : 'player';
 
-    applyAction(state, firstActor, passStats, firstDecisionOptions, telemetry, simTelemetry, cardGameTelemetry, handLockAnalysis, { turn: turns + 1, actingOrder: 'first', playerFaction: playerKey, enemyFaction: enemyKey, gameIndex }, aiDecisionAudit);
-    applyAction(state, secondActor, passStats, secondDecisionOptions, telemetry, simTelemetry, cardGameTelemetry, handLockAnalysis, { turn: turns + 1, actingOrder: 'second', playerFaction: playerKey, enemyFaction: enemyKey, gameIndex }, aiDecisionAudit);
+    applyAction(state, firstActor, passStats, firstDecisionOptions, telemetry, simTelemetry, cardGameTelemetry, handLockAnalysis, { turn: turns + 1, actingOrder: 'first', playerFaction: playerKey, enemyFaction: enemyKey, gameIndex }, aiDecisionAudit, aiScoreDiagnostics);
+    applyAction(state, secondActor, passStats, secondDecisionOptions, telemetry, simTelemetry, cardGameTelemetry, handLockAnalysis, { turn: turns + 1, actingOrder: 'second', playerFaction: playerKey, enemyFaction: enemyKey, gameIndex }, aiDecisionAudit, aiScoreDiagnostics);
     const playerDeckBeforeCombat = [...state.player.deck];
     const enemyDeckBeforeCombat = [...state.enemy.deck];
     const combatEvents = resolveCombat(state);
@@ -1950,6 +2219,10 @@ function main() {
   const simTelemetry = telemetryModes.size > 0 ? createSimulatorTelemetry() : null;
   const aiAuditArg = process.argv.find((arg) => arg.startsWith('--ai-audit='));
   const aiDecisionAudit = createAiDecisionAudit(parsePositiveIntegerOption(aiAuditArg?.split('=')[1]));
+  const aiDiagnosticsArg = process.argv.find((arg) => arg.startsWith('--ai-diagnostics='));
+  const aiDiagnosticsMode = parseAiDiagnosticsMode(aiDiagnosticsArg?.split('=')[1] ?? experiment?.aiDiagnostics ?? 'normal');
+  const aiDiagnosticSampleLimitArg = process.argv.find((arg) => arg.startsWith('--ai-diagnostic-sample-limit='));
+  const aiScoreDiagnostics = createAiScoreDiagnostics(aiDiagnosticsMode, parsePositiveIntegerOption(aiDiagnosticSampleLimitArg?.split('=')[1]) || 100);
   const onlyArg = process.argv.find((arg) => arg.startsWith('--only='));
   const onlyOrderedMatchups = onlyArg
     ? new Set(onlyArg.split('=')[1]
@@ -1993,7 +2266,7 @@ function main() {
 
     for (let i = 0; i < gamesForMatchup; i += 1) {
       const gameSeed = buildGameSeed(effectiveBaseSeed, playerKey, enemyKey, i);
-      const result = runSingleGame(factions[playerKey], factions[enemyKey], passStats, telemetry, simTelemetry, gameSeed, i, playerKey, enemyKey, effectVariantRegistry, handLockAnalysis, aiDecisionAudit);
+      const result = runSingleGame(factions[playerKey], factions[enemyKey], passStats, telemetry, simTelemetry, gameSeed, i, playerKey, enemyKey, effectVariantRegistry, handLockAnalysis, aiDecisionAudit, aiScoreDiagnostics);
       recordGameEndTelemetry(simTelemetry, result);
       recordEffectVariantOperationTelemetry(simTelemetry, result.effectVariantOperationTelemetry);
       telemetry.quickFixTriggers += result.quickFixTempoDraws ?? 0;
@@ -2341,6 +2614,7 @@ Battle simulation complete (${effectiveMatchCount} games per matchup${filterSumm
     printEffectVariantOperationSimulatorTelemetry(simTelemetry);
   }
   printAiDecisionAudit(aiDecisionAudit);
+  printAiScoreDiagnostics(aiScoreDiagnostics);
 
   console.log('\nSimulation parity and validity notes:');
   console.log(`- baseSeed: ${effectiveBaseSeed}`);
