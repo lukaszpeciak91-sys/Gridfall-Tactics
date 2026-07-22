@@ -606,8 +606,16 @@ function removeDefeatedUnits(state, boardIndexes) {
   cleanupDefeatedUnitsWithTriggers(state, boardIndexes);
 }
 
+const DEATH_WAVE_BOARD_ORDER = [...ENEMY_ROW, ...PLAYER_ROW];
+const DEATH_WAVE_SAFETY_LIMIT = 128;
+
+function getStableDeathWaveIndexes(boardIndexes = DEATH_WAVE_BOARD_ORDER) {
+  const candidates = new Set(boardIndexes.filter(Number.isInteger));
+  return DEATH_WAVE_BOARD_ORDER.filter((index) => candidates.has(index));
+}
+
 function cleanupAllDefeatedUnitsWithTriggers(state, options = {}) {
-  cleanupDefeatedUnitsWithTriggers(state, [...ENEMY_ROW, ...PLAYER_ROW], options);
+  cleanupDefeatedUnitsWithTriggers(state, DEATH_WAVE_BOARD_ORDER, options);
 }
 
 export function resolveTurnCapWinner(state, turnsCompleted, maxTurns = MAX_TURNS) {
@@ -1194,7 +1202,7 @@ function dealCombatDeathLaneDamage(state, deadIndex, deadOwner, telemetryKey, op
     affectedIndexes: [opposingIndex],
     damage: 1,
   });
-  cleanupDefeatedUnitsWithTriggers(state, [opposingIndex], { combat: true, events: options.events, lane: options.lane });
+  if (!options.deferDeathCleanup) cleanupDefeatedUnitsWithTriggers(state, [opposingIndex], { combat: true, events: options.events, lane: options.lane });
   return true;
 }
 
@@ -1232,7 +1240,7 @@ function triggerUnitDeathEffects(state, index, unit, options = {}) {
   const enemyOwner = getOpponentOwner(owner);
   const isCombatDeath = Boolean(options.combat);
 
-  if (isCombatDeath) {
+  if (isCombatDeath && !options.suppressAlliedDeathObservers) {
     triggerAdjacentRotcallers(state, index, owner, options);
     triggerFuneralPyre(state, index, owner, options);
   }
@@ -1283,18 +1291,58 @@ function triggerUnitDeathEffects(state, index, unit, options = {}) {
   }
 }
 
-function cleanupDefeatedUnitsWithTriggers(state, boardIndexes, options = {}) {
-  boardIndexes.forEach((index) => {
-    const unit = state.board[index];
-    if (!unit || unit.hp > 0) return;
-    if (unit.offlineReservedSlot) return;
-    state.board[index] = null;
-    if (!unit.temporaryFloodToken) {
-      recordFallenUnit(state, unit, options.combat ? 'combat-death' : 'damage-death');
-      if (!options.suppressEffectVariantOnDeath) executeOnDeathEffectVariantOperations(state, index, unit);
-      triggerUnitDeathEffects(state, index, unit, options);
+function cleanupDefeatedUnitsWithTriggers(state, boardIndexes = DEATH_WAVE_BOARD_ORDER, options = {}) {
+  let iterations = 0;
+  let pendingIndexes = getStableDeathWaveIndexes(boardIndexes);
+  state.deathWaveDiagnostics ??= [];
+
+  while (pendingIndexes.length > 0) {
+    iterations += 1;
+    if (iterations > DEATH_WAVE_SAFETY_LIMIT) {
+      state.deathWaveSafetyGuardHit = { limit: DEATH_WAVE_SAFETY_LIMIT, pendingIndexes };
+      throw new Error(`Death wave safety limit exceeded (${DEATH_WAVE_SAFETY_LIMIT})`);
     }
-  });
+
+    const waveId = (state.nextDeathWaveId ?? 0) + 1;
+    state.nextDeathWaveId = waveId;
+    const wave = pendingIndexes
+      .map((index) => ({ index, unit: state.board[index] }))
+      .filter(({ unit }) => unit && unit.hp <= 0 && !unit.offlineReservedSlot);
+    if (wave.length === 0) break;
+
+    wave.forEach(({ index }) => { state.board[index] = null; });
+    const fallenIndexes = [];
+    wave.forEach(({ unit }) => {
+      if (recordFallenUnit(state, unit, options.combat ? 'combat-death' : 'damage-death')) fallenIndexes.push(unit.owner === 'enemy' ? 'enemy' : 'player');
+    });
+    state.deathWaveDiagnostics.push({
+      type: 'death-wave',
+      waveId,
+      indexes: wave.map(({ index }) => index),
+      fallenCount: fallenIndexes.length,
+    });
+
+    const triggerOptions = { ...options, suppressAlliedDeathObservers: true, deferDeathCleanup: true };
+    wave.forEach(({ index, unit }) => {
+      if (!unit || unit.temporaryFloodToken) return;
+      if (!options.suppressEffectVariantOnDeath) executeOnDeathEffectVariantOperations(state, index, unit);
+      triggerUnitDeathEffects(state, index, unit, triggerOptions);
+    });
+
+    if (options.combat) {
+      wave.forEach(({ index, unit }) => {
+        if (!unit || unit.temporaryFloodToken) return;
+        triggerAdjacentRotcallers(state, index, unit.owner, { ...options, waveId, lane: Number.isInteger(options.lane) ? options.lane : index % 3 });
+      });
+      const owners = [...new Set(wave.filter(({ unit }) => unit && !unit.temporaryFloodToken).map(({ unit }) => unit.owner))];
+      owners.forEach((owner) => {
+        const firstDeath = wave.find(({ unit }) => unit?.owner === owner && !unit.temporaryFloodToken);
+        if (firstDeath) triggerFuneralPyre(state, firstDeath.index, owner, { ...options, waveId, lane: Number.isInteger(options.lane) ? options.lane : firstDeath.index % 3 });
+      });
+    }
+
+    pendingIndexes = getStableDeathWaveIndexes(DEATH_WAVE_BOARD_ORDER);
+  }
 }
 
 function applyDamageToUnit(state, index, amount) {
@@ -3808,10 +3856,6 @@ function resolveCombatLane(state, col, combatContext = null) {
     triggerLeechHealsFromAttackEvents(state, context.events);
     triggerQuickFixDrawsFromCombatEvents(state, context.events);
 
-    const laneIndexes = new Set([enemyIndex, playerIndex]);
-    const offLaneDamageIndexes = [...pendingUnitDamage.keys()].filter((index) => !laneIndexes.has(index));
-    cleanupDefeatedUnitsWithTriggers(state, offLaneDamageIndexes, { combat: true, events: context.events, lane: col });
-    cleanupDefeatedUnitsWithTriggers(state, [enemyIndex, playerIndex], { combat: true, events: context.events, lane: col });
     offlineReservations.forEach((entry) => returnOfflineReservation(state, entry));
     if (Array.isArray(state.offlineReservations)) {
       state.offlineReservations = state.offlineReservations.filter((entry) => !entry.returned);
@@ -3964,7 +4008,7 @@ export function resolveCombat(state) {
     resolveCombatLane(state, col, combatContext);
   }
 
-  cleanupDefeatedUnitsWithTriggers(state, [...ENEMY_ROW, ...PLAYER_ROW], { combat: true, events: combatContext.events });
+  cleanupDefeatedUnitsWithTriggers(state, DEATH_WAVE_BOARD_ORDER, { combat: true, events: combatContext.events });
   applyHpDecayAfterCombat(state, combatContext.participatedIndexes);
 
   if (state.cannotDropBelowOneThisTurn) {

@@ -162,12 +162,12 @@ test('Sniper off-lane cleanup records fallen units and fires death triggers exac
   const events = resolveCombat(state);
 
   assert.equal(events.length, 3);
-  assert.equal(events[1].type, 'death-trigger-hero-damage');
-  assert.equal(events[1].sourceDeathIndex, 2);
-  assert.equal(events[1].targetSide, 'player');
-  assert.equal(events[1].damage, 1);
-  assert.equal(events[2].attackerIndex, 2);
-  assert.equal(events[2].targetType, 'hero');
+  assert.equal(events[1].attackerIndex, 2);
+  assert.equal(events[1].targetType, 'hero');
+  assert.equal(events[2].type, 'death-trigger-hero-damage');
+  assert.equal(events[2].sourceDeathIndex, 2);
+  assert.equal(events[2].targetSide, 'player');
+  assert.equal(events[2].damage, 1);
   assert.equal(state.playerHP, 8);
   assert.equal(state.board[2], null);
   assert.equal(state.enemy.fallen.length, 1);
@@ -360,11 +360,11 @@ test('Quick Strike immediate combat emits ordered death-trigger presentation eve
   assert.deepEqual(result.combatEvents.map((event) => event.type ?? `${event.attackerSide}:${event.targetType}:${event.damage}`), [
     'player:unit:0',
     'enemy:unit:1',
-    'death-trigger-rotcaller-buff',
     'death-trigger-hero-damage',
+    'death-trigger-rotcaller-buff',
   ]);
-  assert.equal(result.combatEvents[2].targetIndex, 7);
-  assert.equal(result.combatEvents[3].targetSide, 'enemy');
+  assert.equal(result.combatEvents[3].targetIndex, 7);
+  assert.equal(result.combatEvents[2].targetSide, 'enemy');
 });
 
 test('Runner gains +2 ATK through an empty opposing lane', () => {

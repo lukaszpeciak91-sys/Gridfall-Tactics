@@ -131,19 +131,19 @@ test('Gravehearts death triggers emit ordered presentation events during combat'
   assert.deepEqual(playerEvents.map((event) => event.type ?? `${event.attackerSide}:${event.targetType}:${event.damage}`), [
     'player:unit:0',
     'enemy:unit:1',
-    'death-trigger-rotcaller-buff',
-    'death-trigger-hero-damage',
     'player:unit:1',
     'enemy:unit:0',
+    'death-trigger-hero-damage',
+    'death-trigger-rotcaller-buff',
   ]);
-  assert.equal(playerEvents[2].sourceDeathIndex, 6);
-  assert.equal(playerEvents[2].targetIndex, 7);
-  assert.equal(playerEvents[2].attackAdded, 1);
-  assert.equal(playerEvents[2].resultingAttack, 2);
-  assert.equal(playerEvents[3].sourceDeathIndex, 6);
-  assert.equal(playerEvents[3].targetSide, 'enemy');
-  assert.equal(playerEvents[3].damage, 1);
-  assert.equal(playerEvents[4].damage, 1, 'later lane attack uses the frozen pre-trigger Rotcaller ATK');
+  assert.equal(playerEvents[5].sourceDeathIndex, 6);
+  assert.equal(playerEvents[5].targetIndex, 7);
+  assert.equal(playerEvents[5].attackAdded, 1);
+  assert.equal(playerEvents[5].resultingAttack, 2);
+  assert.equal(playerEvents[4].sourceDeathIndex, 6);
+  assert.equal(playerEvents[4].targetSide, 'enemy');
+  assert.equal(playerEvents[4].damage, 1);
+  assert.equal(playerEvents[2].damage, 1, 'later lane attack uses the frozen pre-trigger Rotcaller ATK');
 
   const enemyChain = state();
   enemyChain.board[0] = unit({ owner: 'enemy', id: 'enemy-party-host', attack: 0, hp: 1, effectId: 'death_damage_enemy_hero_1' });
@@ -155,15 +155,15 @@ test('Gravehearts death triggers emit ordered presentation events during combat'
   assert.deepEqual(enemyEvents.map((event) => event.type ?? `${event.attackerSide}:${event.targetType}:${event.damage}`), [
     'player:unit:1',
     'enemy:unit:0',
-    'death-trigger-rotcaller-buff',
-    'death-trigger-hero-damage',
     'player:unit:0',
     'enemy:unit:1',
+    'death-trigger-hero-damage',
+    'death-trigger-rotcaller-buff',
   ]);
-  assert.equal(enemyEvents[2].sourceDeathIndex, 0);
-  assert.equal(enemyEvents[2].targetIndex, 1);
-  assert.equal(enemyEvents[3].targetSide, 'player');
-  assert.equal(enemyEvents[5].damage, 1);
+  assert.equal(enemyEvents[5].sourceDeathIndex, 0);
+  assert.equal(enemyEvents[5].targetIndex, 1);
+  assert.equal(enemyEvents[4].targetSide, 'player');
+  assert.equal(enemyEvents[3].damage, 1);
 });
 
 test('Gravehearts ordered presentation covers no-Rotcaller, two Rotcallers, Husk, Abomination, and lethal triggers', () => {

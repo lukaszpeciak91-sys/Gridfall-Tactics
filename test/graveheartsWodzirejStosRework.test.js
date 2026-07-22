@@ -70,7 +70,7 @@ test('Stos first allied death each turn damages enemy base once and resets next 
   resolveCombat(s);
   assert.equal(s.enemyHP, 11);
   assert.equal(s.funeralPyreCombatTriggers, 1);
-  assert.equal(s.funeralPyreAlreadyUsedSkips, 1);
+  assert.equal(s.funeralPyreAlreadyUsedSkips ?? 0, 0);
   toggleFirstActor(s);
   s.board[6] = unit('a3', 'player', 0, 1);
   s.board[0] = unit('k3', 'enemy', 1, 3);
