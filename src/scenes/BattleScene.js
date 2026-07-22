@@ -11,7 +11,7 @@ import { getTargetingStateForEffect } from '../systems/cardTargeting.js';
 import { COMBAT_ATTACK_PRESENTATIONS, getCombatAttackPresentation, getCombatEventAttackerIndex, getCombatEventInterceptOriginalTargetIndex, getCombatEventTargetIndex, getLaneLethalTargetIndexes, getLaneSimultaneousUnitClash, shouldAnimateCombatAttacker, shouldUseControlledHeroStrikePresentation } from '../systems/combatAnimation.js';
 import { BATTLE_BACKGROUND_ASSETS, BATTLE_BACKGROUND_FALLBACK_COLOR, BATTLE_BACKGROUND_FALLBACK_COLOR_HEX, BATTLEFIELD_BACKGROUND_OVERSCAN, applyCoverBackgroundLayout, createCoverBackground, getBattleBackgroundAsset, hasLoadedImageAsset, preloadBattleBackgroundArt, preloadImageAsset, resolvePublicAssetPath } from '../rendering/backgroundArt.js';
 import { getArenaBattlegroundAsset, resolveArenaBattlegroundId } from '../data/arenaBattlegrounds.js';
-import { getCardIllustrationAssetsForFaction, preloadCardIllustrationAsset } from '../rendering/cardIllustrationAssets.js';
+import { getCardIllustrationAsset, getCardIllustrationAssetsForFaction, preloadCardIllustrationAsset } from '../rendering/cardIllustrationAssets.js';
 import { calculateBattleLayoutMetrics } from '../ui/battleLayout.js';
 import { calculateHandCardFocusBounds, calculateTutorialBannerLayout, getLiveHandCardViewById } from '../ui/tutorialUxLayout.js';
 import { calculateHandBackCardCoverCrop, calculateHandBackCardDepth, shouldRenderHandBackCard } from '../ui/handBackCardPresentation.js';
@@ -468,6 +468,9 @@ export default class BattleScene extends Phaser.Scene {
     this.heroHitShakeBySide = null;
     this.lastRenderedBoardStats = null;
     this.currentBoardRenderStats = null;
+    this.missingBoardCardArt = new Map();
+    this.pendingBoardCardArtRefreshKeys = new Set();
+    this.boundBoardCardTextureReadyHandler = null;
     this.offlineBoardVisualIndexes = new Set();
     this.turnStartBanner = null;
     this.turnStartBannerFadeOutEvent = null;
@@ -778,6 +781,9 @@ export default class BattleScene extends Phaser.Scene {
     this.heroHitShakeBySide = { player: { lastAt: 0 }, enemy: { lastAt: 0 } };
     this.lastRenderedBoardStats = null;
     this.currentBoardRenderStats = null;
+    this.missingBoardCardArt = new Map();
+    this.pendingBoardCardArtRefreshKeys = new Set();
+    this.boundBoardCardTextureReadyHandler = null;
     this.turnStartBanner = null;
     this.turnStartBannerFadeOutEvent = null;
     this.turnStartBannerFailSafeEvent = null;
@@ -997,6 +1003,7 @@ export default class BattleScene extends Phaser.Scene {
     this.events.on(Phaser.Scenes.Events.RESUME, this.onSceneResume, this);
     this.events.on(Phaser.Scenes.Events.WAKE, this.onSceneWake, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this);
+    this.installBoardCardArtTextureReadyListener();
 
     this.logOpeningRevealDiag('visually-ready-emitting');
     this.emitBattleVisuallyReady();
@@ -5234,6 +5241,8 @@ export default class BattleScene extends Phaser.Scene {
     this.stopBattleAmbience({ fadeMs: 0 });
     this.destroyOpeningRevealDiagnosticObjects();
     this.isBattleSceneShuttingDown = true;
+    this.removeBoardCardArtTextureReadyListener();
+    this.clearMissingBoardCardArtTracking();
     this.scale.off('enterfullscreen', this.onFullscreenChanged, this);
     this.scale.off('leavefullscreen', this.onFullscreenChanged, this);
     this.scale.off('resize', this.onViewportChanged, this);
@@ -12013,6 +12022,12 @@ export default class BattleScene extends Phaser.Scene {
       changedStats,
       pulseChangedStats: changedStats.length > 0,
     });
+    const expectedArtAsset = getCardIllustrationAsset(unit);
+    if (expectedArtAsset?.key && !this.textures?.exists?.(expectedArtAsset.key)) {
+      this.trackMissingBoardCardArt(cell.index, unit, expectedArtAsset);
+    } else if (expectedArtAsset?.key) {
+      this.clearResolvedBoardCardArt(cell.index, expectedArtAsset.key);
+    }
     const art = createCardArtwork(this, {
       ...artRect,
       centerX: 0,
@@ -12086,6 +12101,164 @@ export default class BattleScene extends Phaser.Scene {
   }
 
 
+
+  getBoardCardArtTrackingKey(boardIndex, textureKey) {
+    if (!Number.isInteger(boardIndex) || typeof textureKey !== 'string' || !textureKey) return null;
+    return `${boardIndex}:${textureKey}`;
+  }
+
+  getBoardUnitCardId(unit) {
+    return typeof unit?.cardId === 'string' && unit.cardId ? unit.cardId : (typeof unit?.id === 'string' ? unit.id : null);
+  }
+
+  isBoardCardArtRefreshSafe() {
+    return Boolean(
+      !this.isBattleSceneShuttingDown
+      && this.scene?.isActive?.()
+      && !this.isFlowResolving
+      && !this.isEffectCastResolving
+      && !this.battleResultModalPending
+      && !this.battleResultModalShown
+      && !this.targetingState
+      && !this.effectCastState
+      && this.boardInspectIndex === null
+      && !this.selectedHandCardZoom
+    );
+  }
+
+  installBoardCardArtTextureReadyListener() {
+    if (!this.textures?.on || this.boundBoardCardTextureReadyHandler) return false;
+    this.boundBoardCardTextureReadyHandler = (textureKey) => this.handleBoardCardTextureReady(textureKey);
+    this.textures.on('addtexture', this.boundBoardCardTextureReadyHandler);
+    return true;
+  }
+
+  removeBoardCardArtTextureReadyListener() {
+    if (this.boundBoardCardTextureReadyHandler && this.textures?.off) {
+      this.textures.off('addtexture', this.boundBoardCardTextureReadyHandler);
+    }
+    this.boundBoardCardTextureReadyHandler = null;
+  }
+
+  clearMissingBoardCardArtTracking() {
+    this.missingBoardCardArt?.clear?.();
+    this.pendingBoardCardArtRefreshKeys?.clear?.();
+  }
+
+  clearMissingBoardCardArtForIndex(boardIndex, exceptTextureKey = null) {
+    if (!this.missingBoardCardArt) return;
+    [...this.missingBoardCardArt.keys()].forEach((key) => {
+      const entry = this.missingBoardCardArt.get(key);
+      if (entry?.boardIndex === boardIndex && entry.textureKey !== exceptTextureKey) {
+        this.missingBoardCardArt.delete(key);
+        this.pendingBoardCardArtRefreshKeys?.delete?.(key);
+      }
+    });
+  }
+
+  trackMissingBoardCardArt(boardIndex, unit, asset) {
+    const cardId = this.getBoardUnitCardId(unit);
+    const textureKey = asset?.key;
+    const trackingKey = this.getBoardCardArtTrackingKey(boardIndex, textureKey);
+    if (!trackingKey || !cardId || this.textures?.exists?.(textureKey)) {
+      this.clearMissingBoardCardArtForIndex(boardIndex, textureKey ?? null);
+      return false;
+    }
+
+    this.clearMissingBoardCardArtForIndex(boardIndex, textureKey);
+    if (!this.missingBoardCardArt) this.missingBoardCardArt = new Map();
+    if (this.missingBoardCardArt.has(trackingKey)) return false;
+
+    this.missingBoardCardArt.set(trackingKey, {
+      boardIndex,
+      cardId,
+      owner: unit?.owner ?? null,
+      textureKey,
+      assetPath: asset?.publicPath ?? asset?.path ?? null,
+      battleTransitionLaunchId: this.battleTransitionLaunchId ?? null,
+      sessionBattleSequenceNumber: this.sessionBattleSequenceNumber ?? 0,
+    });
+    this.recordBattleReportEvent?.('board-card-art-placeholder-created', { boardIndex, cardId, key: textureKey });
+    return true;
+  }
+
+  clearResolvedBoardCardArt(boardIndex, textureKey) {
+    const trackingKey = this.getBoardCardArtTrackingKey(boardIndex, textureKey);
+    if (!trackingKey) return false;
+    this.missingBoardCardArt?.delete?.(trackingKey);
+    this.pendingBoardCardArtRefreshKeys?.delete?.(trackingKey);
+    return true;
+  }
+
+  handleBoardCardTextureReady(textureKey) {
+    if (typeof textureKey !== 'string' || !textureKey || !this.missingBoardCardArt?.size) return false;
+    let matched = false;
+    this.missingBoardCardArt.forEach((entry, trackingKey) => {
+      if (entry?.textureKey !== textureKey) return;
+      matched = true;
+      this.pendingBoardCardArtRefreshKeys ??= new Set();
+      this.pendingBoardCardArtRefreshKeys.add(trackingKey);
+      this.recordBattleReportEvent?.('board-card-art-texture-ready', { boardIndex: entry.boardIndex, cardId: entry.cardId, key: textureKey });
+    });
+    if (matched) this.flushPendingBoardCardArtRefreshes();
+    return matched;
+  }
+
+  isTrackedBoardCardArtEntryCurrent(entry) {
+    const unit = this.gameState?.board?.[entry?.boardIndex];
+    if (!unit || unit.offlineReservedSlot === true) return false;
+    return this.getBoardUnitCardId(unit) === entry.cardId && unit.owner === entry.owner;
+  }
+
+  flushPendingBoardCardArtRefreshes() {
+    if (!this.pendingBoardCardArtRefreshKeys?.size) return false;
+    if (!this.isBoardCardArtRefreshSafe()) return false;
+
+    let refreshed = false;
+    [...this.pendingBoardCardArtRefreshKeys].forEach((trackingKey) => {
+      const entry = this.missingBoardCardArt?.get?.(trackingKey);
+      this.pendingBoardCardArtRefreshKeys.delete(trackingKey);
+      if (!entry) return;
+      if (!this.isTrackedBoardCardArtEntryCurrent(entry)) {
+        this.missingBoardCardArt.delete(trackingKey);
+        this.recordBattleReportEvent?.('board-card-art-refresh-skipped', { boardIndex: entry.boardIndex, cardId: entry.cardId, key: entry.textureKey, reason: 'stale-slot' });
+        return;
+      }
+      if (!this.textures?.exists?.(entry.textureKey)) {
+        this.recordBattleReportEvent?.('board-card-art-refresh-skipped', { boardIndex: entry.boardIndex, cardId: entry.cardId, key: entry.textureKey, reason: 'texture-missing' });
+        return;
+      }
+      if (this.refreshBoardSlotView(entry.boardIndex, { expectedTextureKey: entry.textureKey })) {
+        this.missingBoardCardArt.delete(trackingKey);
+        refreshed = true;
+        this.recordBattleReportEvent?.('board-card-art-refreshed', { boardIndex: entry.boardIndex, cardId: entry.cardId, key: entry.textureKey });
+      }
+    });
+    return refreshed;
+  }
+
+  refreshBoardSlotView(boardIndex, options = {}) {
+    if (!Number.isInteger(boardIndex) || !this.boardCells?.length || !this.gameState?.board) return false;
+    const cell = this.boardCells.find((candidate) => candidate?.index === boardIndex);
+    const unit = this.gameState.board[boardIndex];
+    if (!cell || !unit || unit.offlineReservedSlot === true) return false;
+
+    const expectedTextureKey = options.expectedTextureKey ?? getCardIllustrationAsset(unit)?.key ?? null;
+    if (expectedTextureKey && !this.textures?.exists?.(expectedTextureKey)) return false;
+
+    const currentRenderStats = this.createBoardRenderStatSnapshot();
+    this.currentBoardRenderStats = currentRenderStats;
+    const offline = this.isBoardIndexOffline(boardIndex);
+    const wasOffline = this.offlineBoardVisualIndexes?.has(boardIndex) ?? false;
+    cell.label.removeAll(true);
+    cell.label.setAlpha(wasOffline ? OFFLINE_UNIT_ALPHA : 1).setScale(1);
+    cell.label.add(this.createBoardUnitView(cell, unit, offline || wasOffline ? { offline: offline || wasOffline } : {}));
+    this.applyOfflineBoardUnitVisual(cell, offline, wasOffline);
+    this.lastRenderedBoardStats = currentRenderStats;
+    this.currentBoardRenderStats = null;
+    return true;
+  }
+
   recordBoardStatMismatchIfIdle() {
     try {
       if (this.isFlowResolving || this.isEffectCastResolving || this.openingMulliganRevealPending || this.openingMulliganPending) return false;
@@ -12128,6 +12301,7 @@ export default class BattleScene extends Phaser.Scene {
         }
         this.applyOfflineBoardUnitVisual(cell, offline, wasOffline);
       } else {
+        this.clearMissingBoardCardArtForIndex(cell.index);
         cell.label.setAlpha(1);
       }
       const lane = cell.index % 3;
@@ -12149,6 +12323,7 @@ export default class BattleScene extends Phaser.Scene {
     this.lastRenderedBoardStats = currentRenderStats;
     this.recordBoardStatMismatchIfIdle?.();
     this.currentBoardRenderStats = null;
+    this.flushPendingBoardCardArtRefreshes();
     this.turnStartBanner = null;
     this.turnStartBannerFadeOutEvent = null;
     this.hasShownOpeningTurnStartBanner = false;
