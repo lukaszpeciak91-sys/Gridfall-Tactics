@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-import { AUDIO_KEYS, preloadMenuAudioAssets } from '../src/audio/audioAssets.js';
+import { AUDIO_KEYS, preloadAudioAssetsByKey, preloadMenuAudioAssets } from '../src/audio/audioAssets.js';
 
 const read = (path) => fs.readFileSync(path, 'utf8');
 const preloadBody = (source) => source.match(/  preload\(\) \{[\s\S]*?\n  \}/)?.[0] ?? '';
@@ -71,12 +71,41 @@ test('AchievementsScene displays achievement state without awarding unlock audio
 });
 
 test('explicitly excluded scenes and established scene ownership boundaries remain unchanged', () => {
-  assert.match(preloadBody(read('src/scenes/SettingsScene.js')), /preloadAudioAssets\(this\);/);
+  assert.match(preloadBody(read('src/scenes/SettingsScene.js')), /preloadAudioAssetsByKey\(this, \[AUDIO_KEYS\.UI_CLICK\]\);/);
   assert.match(preloadBody(read('src/scenes/TutorialScene.js')), /preloadAudioAssets\(this\);/);
   assert.match(preloadBody(read('src/scenes/StartScene.js')), /preloadMenuAudioAssets\(this\);/);
   assert.match(preloadBody(read('src/scenes/MainMenuScene.js')), /preloadMenuAudioAssets\(this\);/);
   assert.match(preloadBody(read('src/scenes/CollectionScene.js')), /preloadAudioAssetsByKey\(this, \[AUDIO_KEYS\.MENU_MUSIC, AUDIO_KEYS\.UI_CLICK\]\);/);
   assert.match(preloadBody(read('src/scenes/BattleScene.js')), /preloadAudioAssetsByKey\(this, BATTLE_SCENE_PRELOAD_AUDIO_KEYS\);/);
+});
+
+test('SettingsScene queues only owned click audio and excludes music, invalid, battle, result, and achievement audio', () => {
+  const source = read('src/scenes/SettingsScene.js');
+  const body = preloadBody(source);
+
+  assert.match(source, /import \{ AUDIO_KEYS, preloadAudioAssetsByKey \} from '\.\.\/audio\/audioAssets\.js';/);
+  assert.doesNotMatch(body, /preloadAudioAssets\(this\)/);
+  assert.match(body, /preloadAudioAssetsByKey\(this, \[AUDIO_KEYS\.UI_CLICK\]\);/);
+  assert.doesNotMatch(body, /AUDIO_KEYS\.UI_INVALID/);
+  assert.doesNotMatch(body, /AUDIO_KEYS\.MENU_MUSIC/);
+  assert.doesNotMatch(body, /AUDIO_KEYS\.BATTLE_AMBIENCE/);
+  assert.doesNotMatch(body, /AUDIO_KEYS\.ACHIEVEMENT_UNLOCK/);
+  BATTLE_AUDIO_KEY_NAMES.forEach((keyName) => {
+    assert.doesNotMatch(body, new RegExp(`AUDIO_KEYS\\.${keyName}`), `SettingsScene excludes ${keyName}`);
+  });
+});
+
+test('SettingsScene click preload reuses audio cache checks and stays null-safe without loader support', () => {
+  const scene = makeAudioScene();
+  preloadAudioAssetsByKey(scene, [AUDIO_KEYS.UI_CLICK]);
+  assert.deepEqual(scene.audioCalls.map((call) => call.key), [AUDIO_KEYS.UI_CLICK]);
+
+  const cachedScene = makeAudioScene({ cached: [AUDIO_KEYS.UI_CLICK] });
+  preloadAudioAssetsByKey(cachedScene, [AUDIO_KEYS.UI_CLICK]);
+  assert.deepEqual(cachedScene.audioCalls, []);
+
+  assert.doesNotThrow(() => preloadAudioAssetsByKey(makeAudioScene({ withAudioLoader: false }), [AUDIO_KEYS.UI_CLICK]));
+  assert.doesNotThrow(() => preloadAudioAssetsByKey(null, [AUDIO_KEYS.UI_CLICK]));
 });
 
 test('shared menu audio helper still queues only menu music and click, skips cache, and is null-safe', () => {

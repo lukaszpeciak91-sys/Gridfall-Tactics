@@ -10,7 +10,7 @@ import { createMenuScreenHeader } from '../ui/screenHeader.js';
 import { createBottomNavigationControls, createMuteToggleControl, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
 import { getSupportedLocales, setActiveLocale, translateActive, translate } from '../localization/localeService.js';
 import { DEFAULT_SETTINGS, applyAudioSettings, loadSettings, saveSettings, updateSettings } from '../systems/settingsState.js';
-import { preloadAudioAssets } from '../audio/audioAssets.js';
+import { AUDIO_KEYS, preloadAudioAssetsByKey } from '../audio/audioAssets.js';
 import { playMenuMusicForReturnScene } from '../audio/menuMusic.js';
 function getLanguageOptions(displayLocale) {
   return getSupportedLocales().map((locale) => ({
@@ -53,7 +53,7 @@ export default class SettingsScene extends Phaser.Scene {
 
   preload() {
     preloadMenuBackgroundArt(this);
-    preloadAudioAssets(this);
+    preloadAudioAssetsByKey(this, [AUDIO_KEYS.UI_CLICK]);
   }
 
   create() {
