@@ -11,6 +11,14 @@ canonical_ref: docs/rules/mvp-battle-rules.md
 > Canonical MVP battle rules live in:
 > - `docs/rules/mvp-battle-rules.md`
 
+
+## Asset Loading and Preload Milestone (2026-07-22)
+- Completed the asset-loading milestone by replacing broad cold preloads with scene-owned preload boundaries that preserve complete first presentation, immediate audio readiness, reliable transitions, and cache reuse.
+- Original problem: Collection and BattleScene carried broad card/audio/background payloads, cold entries were slow, and warm repeat visits hid the issue through cached textures/audio.
+- Final decisions: StartScene owns the complete first MainMenu handoff; lightweight menu scenes use narrow menu audio ownership; Settings preserves its launching audio context; Collection intentionally preloads displayed collectible art behind its full loading panel instead of per-faction lazy loading; BattleScene loads only active battle factions, generated art for those factions, selected battleground/fallback, battle UI, and battle-owned audio; Arena resolves and verifies its selected enemy before visual-ready; Tutorial remains conservative pending a separate audit.
+- Historical regressions retained as lessons: logo-only/dark MainMenu handoff, frozen-looking Collection first expansion, and Arena cold-entry enemy art readiness.
+- Canonical policy: `docs/architecture/asset-loading-policy.md`.
+
 ## Initial MVP Scope
 - Focus on **battle gameplay only** for the first playable milestone.
 - Use a **3x3 visual board framing** to keep systems and balancing simple.
