@@ -46,6 +46,15 @@ const CAMPAIGN_ACCORDION_SELECT_BUTTON_WIDTH = 198;
 const CAMPAIGN_ACCORDION_SELECT_BUTTON_HEIGHT = 47;
 const CAMPAIGN_ACCORDION_SELECT_BUTTON_MIN_TOUCH_HEIGHT = 48;
 
+export function selectArenaEnemyFactionKey(playerFactionKey, randomBetween = Phaser.Math.Between) {
+  const factionKeys = getFactionKeys();
+  const enemyOptions = factionKeys.length > 1
+    ? factionKeys.filter((key) => key !== playerFactionKey)
+    : factionKeys;
+  if (enemyOptions.length === 0) return playerFactionKey;
+  return enemyOptions[randomBetween(0, enemyOptions.length - 1)];
+}
+
 function measureTextBlockHeight(introText, bodyText, sectionGap = CAMPAIGN_ACCORDION_DESCRIPTION_SECTION_GAP) {
   const introHeight = introText?.height ?? 0;
   const bodyHeight = bodyText?.text ? (bodyText.height ?? 0) : 0;
@@ -647,11 +656,15 @@ export default class FactionSelectScene extends Phaser.Scene {
 
     try {
       const selectedBattlegroundId = selectArenaBattlegroundId();
+      const enemyFactionKey = selectArenaEnemyFactionKey(factionKey);
       // Menu music intentionally continues through BattleTransitionScene until visual handoff.
       enterBattleScene(this, {
         factionKey,
+        enemyFactionKey,
         battleContext: {
           mode: 'arena',
+          playerFactionKey: factionKey,
+          enemyFactionKey,
           battlegroundId: selectedBattlegroundId,
         },
       });
@@ -802,4 +815,3 @@ export default class FactionSelectScene extends Phaser.Scene {
     this.interactiveElements = [];
   }
 }
-

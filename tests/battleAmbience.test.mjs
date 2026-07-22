@@ -20,7 +20,7 @@ test('BattleScene starts ambience after transition-ready handoff and stops it be
   const source = read('src/scenes/BattleScene.js');
   assert.match(source, /import \{ playManagedSfx, playMusic, playSfx, stopManagedSfx, stopMusic \} from '\.\.\/audio\/audioPlayback\.js';/);
   assert.match(source, /startBattleAmbience\(\) \{\s*if \(this\.isCampaignCompletionPreview\(\) \|\| this\.gameState\?\.winner\) return null;[\s\S]*return playMusic\(this, AUDIO_KEYS\.BATTLE_AMBIENCE\);/);
-  assert.match(source, /this\.emitBattleVisuallyReady\(\);\s*this\.scheduleOpeningRevealTransitionHandoffGuard\(\);\s*this\.time\.delayedCall\(560, \(\) => this\.startBattleAmbience\(\)\);\s*if \(this\.isCampaignCompletionPreview\(\)\)/);
+  assert.match(source, /this\.ensureArenaCardArtReadyBeforeVisualReady\(\(\) => \{\s*this\.emitBattleVisuallyReady\(\);\s*this\.scheduleOpeningRevealTransitionHandoffGuard\(\);\s*this\.time\.delayedCall\(560, \(\) => this\.startBattleAmbience\(\)\);\s*\}\);\s*if \(this\.isCampaignCompletionPreview\(\)\)/);
   assert.match(source, /this\.stopBattleAmbience\(\{ fadeMs: 350 \}\);\s*this\.updateActionSlotBadge\(\);/);
   assert.match(source, /playOutcomeStinger\(key\) \{\s*if \(!\[AUDIO_KEYS\.BATTLE_VICTORY, AUDIO_KEYS\.BATTLE_DEFEAT\]\.includes\(key\)\) return false;\s*this\.stopBattleAmbience\(\{ fadeMs: 0 \}\);/);
   assert.match(source, /shutdown\(\) \{\s*this\.cleanupSceneObjects\(\);\s*this\.stopBattleAmbience\(\{ fadeMs: 0 \}\);/);
