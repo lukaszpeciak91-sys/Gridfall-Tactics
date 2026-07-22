@@ -86,10 +86,49 @@ test('CollectionScene preloads collection card art and keeps audio boundary to m
 test('Faction expansion no longer starts lazy loading and renders synchronously after preload', () => {
   const source = read('src/scenes/CollectionScene.js');
   const toggleBody = source.match(/  toggleFactionSection\(factionKey\) \{[\s\S]*?\n  \}/)?.[0] ?? '';
-  assert.match(source, /this\.expandedFactionKeys = new Set\(getFactionKeys\(\)\);/);
   assert.match(toggleBody, /this\.expandedFactionKeys\.add\(factionKey\);\s*this\.rebuildCollectionContent\(\{ width: this\.scale\.width \}\);/);
   assert.doesNotMatch(source, /factionArtLoadState|ensureFactionArtLoadedForExpansion|getMissingFactionArtAssets|getFactionArtLoadState|markFactionArtRefreshInvalid/);
   assert.doesNotMatch(toggleBody, /load\?\.start|preloadCardIllustration|ensureFactionArtLoadedForExpansion/);
+});
+
+
+test('CollectionScene initializes and enters with every faction collapsed', () => {
+  const source = read('src/scenes/CollectionScene.js');
+  const constructorBody = source.match(/  constructor\(\) \{[\s\S]*?\n  \}/)?.[0] ?? '';
+  const createBody = source.match(/  create\(\) \{[\s\S]*?\n  \}/)?.[0] ?? '';
+
+  assert.match(constructorBody, /this\.expandedFactionKeys = new Set\(\);/);
+  assert.match(createBody, /this\.expandedFactionKeys = new Set\(\);\s*this\.drawCollectionList\(\{ width, height \}\);/);
+  assert.doesNotMatch(source, /this\.expandedFactionKeys = new Set\(getFactionKeys\(\)\);/);
+});
+
+test('Collection collapsed entry is independent from preloaded texture readiness', () => {
+  const source = read('src/scenes/CollectionScene.js');
+  const createBody = source.match(/  create\(\) \{[\s\S]*?\n  \}/)?.[0] ?? '';
+  const preloadBody = source.match(/  preload\(\) \{[\s\S]*?\n  \}/)?.[0] ?? '';
+
+  assert.match(preloadBody, /preloadCollectionCardIllustrations\(this\);/);
+  assert.match(createBody, /this\.expandedFactionKeys = new Set\(\);/);
+  assert.doesNotMatch(createBody, /textures\.exists|getLoadedCardIllustrationTextureKey|load\.(?:once|on)\(['"]complete|expandedFactionKeys\.add/);
+});
+
+test('Completing preload cannot mutate Collection faction expansion state', () => {
+  const source = read('src/scenes/CollectionScene.js');
+  const preloadBody = source.match(/  preload\(\) \{[\s\S]*?\n  \}/)?.[0] ?? '';
+
+  assert.doesNotMatch(preloadBody, /expandedFactionKeys|drawCollectionList|rebuildCollectionContent|toggleFactionSection/);
+  assert.doesNotMatch(source, /load\.(?:once|on)\(['"]complete['"][\s\S]*?expandedFactionKeys/);
+});
+
+test('Tapping one faction expands only that faction and fresh re-entry resets collapsed default', () => {
+  const source = read('src/scenes/CollectionScene.js');
+  const toggleBody = source.match(/  toggleFactionSection\(factionKey\) \{[\s\S]*?\n  \}/)?.[0] ?? '';
+  const createBody = source.match(/  create\(\) \{[\s\S]*?\n  \}/)?.[0] ?? '';
+
+  assert.match(toggleBody, /if \(this\.expandedFactionKeys\.has\(factionKey\)\) \{[\s\S]*?this\.expandedFactionKeys\.delete\(factionKey\);[\s\S]*?return;[\s\S]*?\}/);
+  assert.match(toggleBody, /this\.expandedFactionKeys\.add\(factionKey\);\s*this\.rebuildCollectionContent\(\{ width: this\.scale\.width \}\);/);
+  assert.doesNotMatch(toggleBody, /getFactionKeys\(\)\.forEach|new Set\(getFactionKeys\(\)\)|expandedFactionKeys\.clear\(\)/);
+  assert.match(createBody, /this\.cleanupScene\(\);[\s\S]*?this\.expandedFactionKeys = new Set\(\);\s*this\.drawCollectionList\(\{ width, height \}\);/);
 });
 
 test('Collection preload skips cached textures and duplicate queue entries', () => {
