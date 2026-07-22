@@ -1062,6 +1062,96 @@ function getHandCyclingValue(state, owner, action, hasImmediateBattleImpact) {
   return 140;
 }
 
+
+function createScoreComponentRecorder() {
+  let total = 0;
+  const components = {};
+  const componentDetails = {};
+  function add(name, value, metadata = null) {
+    const amount = Number(value);
+    total += amount;
+    if (amount !== 0 || metadata) {
+      components[name] = (components[name] ?? 0) + amount;
+      if (metadata) {
+        componentDetails[name] ??= [];
+        componentDetails[name].push(metadata);
+      }
+    }
+    return amount;
+  }
+  return {
+    add,
+    get total() { return total; },
+    components,
+    componentDetails,
+  };
+}
+
+function attachScoreDiagnostics(action, recorder, extra = {}) {
+  if (!action || !recorder) return;
+  action.aiEvaluation = {
+    ...(action.aiEvaluation ?? {}),
+    ...extra,
+  };
+  const scoreDiagnostics = {
+    totalScore: recorder.total,
+    components: { ...recorder.components },
+    componentDetails: Object.keys(recorder.componentDetails).length > 0 ? recorder.componentDetails : undefined,
+  };
+  Object.defineProperty(action.aiEvaluation, 'scoreDiagnostics', {
+    value: scoreDiagnostics,
+    enumerable: false,
+    configurable: true,
+    writable: true,
+  });
+  Object.defineProperty(action.aiEvaluation, 'scoreComponents', {
+    value: scoreDiagnostics.components,
+    enumerable: false,
+    configurable: true,
+    writable: true,
+  });
+}
+
+function preserveScoreDiagnostics(action, nextEvaluation) {
+  const diagnostics = action?.aiEvaluation?.scoreDiagnostics;
+  const components = action?.aiEvaluation?.scoreComponents;
+  action.aiEvaluation = nextEvaluation;
+  if (diagnostics) {
+    Object.defineProperty(action.aiEvaluation, 'scoreDiagnostics', { value: diagnostics, enumerable: false, configurable: true, writable: true });
+  }
+  if (components) {
+    Object.defineProperty(action.aiEvaluation, 'scoreComponents', { value: components, enumerable: false, configurable: true, writable: true });
+  }
+}
+
+export function getAiScoreDiagnosticRecord(action, score = null) {
+  const evaluation = action?.aiEvaluation ?? {};
+  const diagnostics = evaluation.scoreDiagnostics ?? {};
+  return {
+    actionType: action?.type ?? null,
+    cardId: action?.cardId ?? null,
+    effectId: action?.effectId ?? null,
+    slotIndex: action?.slotIndex ?? null,
+    targetIndex: action?.targetIndex ?? null,
+    targetIndexes: Array.isArray(action?.targetIndexes) ? [...action.targetIndexes] : null,
+    totalScore: Number.isFinite(score) ? score : diagnostics.totalScore ?? score,
+    components: { ...(diagnostics.components ?? evaluation.scoreComponents ?? {}) },
+    utilityOpportunityCost: evaluation.utilityOpportunityCost ?? 0,
+    utilityThreshold: evaluation.utilityThreshold ?? 0,
+    utilityScoreBeforeCost: evaluation.utilityScoreBeforeCost ?? null,
+    utilityScoreAfterCost: evaluation.utilityScoreAfterCost ?? null,
+    holdScore: evaluation.holdScore ?? null,
+    marginOverPass: evaluation.marginOverHold ?? null,
+    hasImmediateBattleImpact: evaluation.hasImmediateBattleImpact ?? null,
+    handCycling: Boolean(evaluation.handCycling),
+    handCyclingValue: evaluation.handCyclingValue ?? 0,
+    meaningful: evaluation.meaningful ?? null,
+    rejectionReason: evaluation.utilityRejectedReason ?? evaluation.zeroImpactRejectedReason ?? null,
+    tieBreak: evaluation.tieBreak ?? null,
+    selected: Boolean(evaluation.chosenAction),
+  };
+}
+
 export function scoreAction(state, owner, action) {
   if (action?.type === 'pass') {
     action.aiEvaluation = { kind: 'hold', holdScore: 0, reason: 'do not spend this action/card now' };
@@ -1117,17 +1207,18 @@ export function scoreAction(state, owner, action) {
   const openLaneImprovement = (nextOpenLaneStats.damage - currentOpenLaneStats.damage)
     + Math.max(0, nextOpenLaneStats.lanes - currentOpenLaneStats.lanes);
 
-  let score = 0;
+  const scoreRecorder = createScoreComponentRecorder();
+  const addScoreComponent = scoreRecorder.add;
 
-  if (nextOpponentHp <= 0) score += 100000;
-  if (immediateHeroDamage > 0) score += 30000 + immediateHeroDamage * 300;
-  if (heroPressureGain > 0) score += 800 + heroPressureGain * 80;
-  if (opponentPressureReduced > 0) score += 700 + opponentPressureReduced * 70;
+  if (nextOpponentHp <= 0) addScoreComponent('lethal', 100000);
+  if (immediateHeroDamage > 0) addScoreComponent('immediateHeroDamage', 30000 + immediateHeroDamage * 300, { immediateHeroDamage });
+  if (heroPressureGain > 0) addScoreComponent('heroPressureGain', 800 + heroPressureGain * 80, { heroPressureGain });
+  if (opponentPressureReduced > 0) addScoreComponent('opponentPressureReduction', 700 + opponentPressureReduced * 70, { opponentPressureReduced });
 
   const hpSaved = Math.max(0, nextOwnHp - currentOwnHp);
-  if (hpSaved > 0) score += 700 + hpSaved * 120;
-  if (boardPressureGain > 0) score += 220 + boardPressureGain;
-  if (openLaneImprovement > 0) score += 650 + openLaneImprovement * 120;
+  if (hpSaved > 0) addScoreComponent('ownHpGain', 700 + hpSaved * 120, { hpSaved });
+  if (boardPressureGain > 0) addScoreComponent('boardPressureGain', 220 + boardPressureGain, { boardPressureGain });
+  if (openLaneImprovement > 0) addScoreComponent('openLaneImprovement', 650 + openLaneImprovement * 120, { openLaneImprovement });
 
   if (action.type === 'play-unit') {
     const { friendly, opposing } = getRowsForOwner(owner);
@@ -1136,16 +1227,16 @@ export function scoreAction(state, owner, action) {
       const opposingIndex = opposing[lane];
       const enemyUnit = state.board[opposingIndex];
       if (!enemyUnit) {
-        score += 1200;
+        addScoreComponent('openLanePlacement', 1200);
       } else {
         const incomingDamage = getUnitAttack(enemyUnit);
-        if (incomingDamage > 0) score += 1000 + incomingDamage * 120;
+        if (incomingDamage > 0) addScoreComponent('laneBlocking', 1000 + incomingDamage * 120, { incomingDamage });
       }
     }
     const placedUnit = nextState.board[action.slotIndex];
     const adjacencyFormation = getAdjacencyFormationScore(state, owner, action.slotIndex, actionCard);
     if (adjacencyFormation.adjacencyFormationValue > 0) {
-      score += adjacencyFormation.adjacencyFormationValue;
+      addScoreComponent('adjacencyFormation', adjacencyFormation.adjacencyFormationValue, adjacencyFormation);
       action.aiEvaluation = {
         ...(action.aiEvaluation ?? {}),
         adjacencyFormationValue: adjacencyFormation.adjacencyFormationValue,
@@ -1157,13 +1248,13 @@ export function scoreAction(state, owner, action) {
       };
     }
     if (placedUnit?.owner === owner && placedUnit.effectId === 'enemy_lane_atk_minus_1' && lane >= 0) {
-      score += evaluateLaneCombatSwing(state, nextState, owner, lane);
+      addScoreComponent('combatSwing', evaluateLaneCombatSwing(state, nextState, owner, lane), { effectId: placedUnit.effectId, lane });
     }
     if (placedUnit?.owner === owner && String(placedUnit.cardId ?? placedUnit.id ?? '').startsWith('wardens_')) {
       const adjacentAllyCount = [friendly[lane - 1], friendly[lane + 1]]
         .filter((index) => nextState.board[index]?.owner === owner).length;
-      if (adjacentAllyCount > 0) score += 120 + adjacentAllyCount * 80;
-      if (lane === 1 && adjacentAllyCount > 0) score += 80;
+      if (adjacentAllyCount > 0) addScoreComponent('wardensAdjacency', 120 + adjacentAllyCount * 80, { adjacentAllyCount });
+      if (lane === 1 && adjacentAllyCount > 0) addScoreComponent('wardensMiddleFormation', 80);
     }
 
     if (action.placementType === 'redeploy') {
@@ -1177,9 +1268,9 @@ export function scoreAction(state, owner, action) {
         loopKey: getActionLoopKey(state, owner, action),
       };
       if (!meaningful) return Number.NEGATIVE_INFINITY;
-      score += 450;
+      addScoreComponent('redeploy', 450);
     } else {
-      score += 150;
+      addScoreComponent('playUnitBase', 150);
     }
   }
 
@@ -1194,28 +1285,28 @@ export function scoreAction(state, owner, action) {
       loopKey: getActionLoopKey(state, owner, action),
     };
     if (!meaningful) return Number.NEGATIVE_INFINITY;
-    score += 380;
+    addScoreComponent('reposition', 380);
   }
 
   const enemyBoardBefore = state.board.filter((unit) => unit && unit.owner !== owner).length;
   const enemyBoardAfter = nextState.board.filter((unit) => unit && unit.owner !== owner).length;
   const kills = Math.max(0, enemyBoardBefore - enemyBoardAfter);
-  if (kills > 0) score += 1400 + kills * 350;
+  if (kills > 0) addScoreComponent('kills', 1400 + kills * 350, { kills });
 
   if (isTwoTargetSwapEffect(action.effectId ?? null)) {
-    score += 900;
+    addScoreComponent('twoTargetSwap', 900);
   }
 
   if (action.effectId === 'draw_1') {
     const side = owner === 'enemy' ? state.enemy : state.player;
     const hasDeck = (side?.deck?.length ?? 0) > 0;
     const handAfterSpend = Math.max(0, (side?.hand?.length ?? 0) - 1);
-    score += hasDeck ? 620 : -1200;
-    if (hasDeck && handAfterSpend <= 2) score += 260;
+    addScoreComponent('drawValue', hasDeck ? 620 : -1200, { hasDeck });
+    if (hasDeck && handAfterSpend <= 2) addScoreComponent('drawValue', 260, { lowHand: true, handAfterSpend });
   }
 
   if (isSkipBaseEffectVariantAction(state, owner, action)) {
-    score += 1100;
+    addScoreComponent('effectVariant', 1100);
   }
 
   if (action.effectId === 'swap_two_enemy_units') {
@@ -1228,7 +1319,7 @@ export function scoreAction(state, owner, action) {
       openLaneImprovement,
     };
     if (!meaningful) return Number.NEGATIVE_INFINITY;
-    score += action.type === 'play-unit' ? 720 : 760;
+    addScoreComponent(action.type === 'play-unit' ? 'controller' : 'shieldPush', action.type === 'play-unit' ? 720 : 760);
   }
 
   if (action.effectId === 'swap_leftmost_adjacent_enemies' || action.effectId === 'swap_adjacent_enemy_units') {
@@ -1241,7 +1332,7 @@ export function scoreAction(state, owner, action) {
       openLaneImprovement,
     };
     if (!meaningful) return Number.NEGATIVE_INFINITY;
-    score += 760;
+    addScoreComponent('shieldPush', 760);
   }
 
   if (action.effectId === 'adjacent_allies_temp_armor_1') {
@@ -1254,22 +1345,22 @@ export function scoreAction(state, owner, action) {
     const armorGain = targetIndexes.reduce((total, index) => (
       total + Math.max(0, getUnitArmor(nextState.board[index]) - getUnitArmor(state.board[index]))
     ), 0);
-    score += armorGain > 0 ? 620 + armorGain * 120 : -2000;
+    addScoreComponent('armor', armorGain > 0 ? 620 + armorGain * 120 : -2000, { armorGain, adjacent: true });
   }
 
   if (action.effectId === 'funeral_pyre') {
     const likelyDeaths = Math.min(1, getLikelyFriendlyCombatDeaths(state, owner));
     action.aiEvaluation = { kind: 'funeral-pyre', likelyDeaths };
-    if (likelyDeaths <= 0) score -= 2600;
-    else score += 300 + likelyDeaths * 450;
+    if (likelyDeaths <= 0) addScoreComponent('funeralPyre', -2600, { likelyDeaths });
+    else addScoreComponent('funeralPyre', 300 + likelyDeaths * 450, { likelyDeaths });
   }
 
   if (action.effectId === 'grave_call') {
     const { friendly } = getRowsForOwner(owner);
     const emptySlots = friendly.filter((index) => !state.board[index]).length;
     const friendlyUnits = friendly.filter((index) => state.board[index]?.owner === owner).length;
-    if (emptySlots <= 0) score -= 5000;
-    else score += (friendlyUnits === 0 ? 900 : 450) + Math.min(emptySlots, friendlyUnits === 0 ? 2 : 1) * 160;
+    if (emptySlots <= 0) addScoreComponent('graveCall', -5000, { emptySlots });
+    else addScoreComponent('graveCall', (friendlyUnits === 0 ? 900 : 450) + Math.min(emptySlots, friendlyUnits === 0 ? 2 : 1) * 160, { friendlyUnits, emptySlots });
   }
 
   if (action.effectId === 'fill_empty_slots_0_1') {
@@ -1288,7 +1379,7 @@ export function scoreAction(state, owner, action) {
     const preventsImmediateLethal = currentOpponentPressure >= currentOwnHp
       && getGuaranteedHeroDamage(nextState, owner === 'enemy' ? 'player' : 'enemy') < currentOwnHp;
 
-    if (laneGain <= 0) score -= 5000;
+    if (laneGain <= 0) addScoreComponent('floodLanePreservation', -5000, { laneGain });
     else {
       const isBehindOnLanes = occupiedBefore < opponentOccupiedBefore;
       const preservesContestedWidth = isBehindOnLanes && opponentPressureReduced > 0;
@@ -1296,8 +1387,8 @@ export function scoreAction(state, owner, action) {
       const openLaneDefenseBonus = opponentPressureReduced > 0
         ? opponentPressureReduced * 180 + preventedImmediateHeroDamage * 100
         : 0;
-      score += lanePreservationBonus + openLaneDefenseBonus;
-      if (preventsImmediateLethal) score += 900;
+      addScoreComponent('floodLanePreservation', lanePreservationBonus + openLaneDefenseBonus, { lanePreservationBonus, openLaneDefenseBonus });
+      if (preventsImmediateLethal) addScoreComponent('floodLanePreservation', 900, { preventsImmediateLethal });
       action.aiEvaluation = {
         kind: 'flood-lane-preservation',
         laneGain,
@@ -1316,14 +1407,14 @@ export function scoreAction(state, owner, action) {
     const side = owner === 'enemy' ? state.enemy : state.player;
     const hasEmpty = friendly.some((index) => !state.board[index]);
     const hasFallenUnit = side.fallen?.some((entry) => entry?.card?.type === 'unit' && !entry?.card?.temporaryFloodToken);
-    if (!hasEmpty || !hasFallenUnit) score -= 5000;
-    else score += 500;
+    if (!hasEmpty || !hasFallenUnit) addScoreComponent('revive', -5000, { hasEmpty, hasFallenUnit });
+    else addScoreComponent('revive', 500);
   }
 
   if (action.effectId === 'summon_grunt_empty_slot') {
     const openLaneBlocked = Math.max(0, currentOpponentPressure - getGuaranteedHeroDamage(nextState, owner === 'enemy' ? 'player' : 'enemy'));
     const preventsLethalLane = currentOpponentPressure >= currentOwnHp && openLaneBlocked > 0;
-    if (preventsLethalLane) score += 1600 + openLaneBlocked * 160;
+    if (preventsLethalLane) addScoreComponent('summonDefense', 1600 + openLaneBlocked * 160, { openLaneBlocked });
   }
 
   if (action.effectId === 'infect_damage_1_opposite_ally_atk_1') {
@@ -1332,7 +1423,7 @@ export function scoreAction(state, owner, action) {
     const { opposing } = getRowsForOwner(owner);
     const lane = opposing.indexOf(action.targetIndex);
     const oppositeAlly = lane >= 0 ? state.board[getRowsForOwner(owner).friendly[lane]] : null;
-    score += lethal ? 650 : (oppositeAlly?.owner === owner ? 780 : 120);
+    addScoreComponent('infect', lethal ? 650 : (oppositeAlly?.owner === owner ? 780 : 120), { lethal, hasOppositeAlly: oppositeAlly?.owner === owner });
   }
 
   if (action.effectId === 'enemy_up_to_2_atk_minus_1') {
@@ -1352,7 +1443,7 @@ export function scoreAction(state, owner, action) {
       combatSwingValue,
     };
     if (!meaningful) return Number.NEGATIVE_INFINITY;
-    score += 360 + targetValue + targetIndexes.length * 90 + combatSwingValue;
+    addScoreComponent('jamSignal', 360 + targetValue + targetIndexes.length * 90 + combatSwingValue, { targetValue, targetCount: targetIndexes.length, combatSwingValue });
   }
 
   if (action.effectId === 'enemy_lane_atk_minus_1') {
@@ -1361,7 +1452,7 @@ export function scoreAction(state, owner, action) {
     const combatSwingValue = lane >= 0 ? evaluateLaneCombatSwing(state, nextState, owner, lane) : 0;
     if (combatSwingValue > 0) {
       action.aiEvaluation = { ...(action.aiEvaluation ?? {}), kind: 'enemy-lane-atk-minus-1', combatSwingValue };
-      score += combatSwingValue;
+      addScoreComponent('combatSwing', combatSwingValue);
     }
   }
 
@@ -1387,10 +1478,11 @@ export function scoreAction(state, owner, action) {
       action.aiEvaluation = { kind: 'enemy-lane-tempo-transfer', meaningful, targetAttack, allyAttack, targetEnemyAtk, targetEnemyMaxAtk, cappedAttackReduction, opposingAllyAtk, hasOpposingAlly };
       if (!meaningful) return Number.NEGATIVE_INFINITY;
       const combatSwingValue = lane >= 0 ? evaluateLaneCombatSwing(state, nextState, owner, lane) : 0;
-      score += 420 + Math.max(0, -targetEnemyAtk) * 220 + cappedAttackReduction * 260 + targetAttack * 120 + combatSwingValue;
+      addScoreComponent('laneTempoTransfer', 420 + Math.max(0, -targetEnemyAtk) * 220 + cappedAttackReduction * 260 + targetAttack * 120 + combatSwingValue, { targetEnemyAtk, cappedAttackReduction, targetAttack, combatSwingValue });
       action.aiEvaluation.combatSwingValue = combatSwingValue;
-      if (hasOpposingAlly) score += 260 + Math.max(0, opposingAllyAtk) * 160 + allyAttack * 60;
-      return score;
+      if (hasOpposingAlly) addScoreComponent('laneTempoTransfer', 260 + Math.max(0, opposingAllyAtk) * 160 + allyAttack * 60, { opposingAllyAtk, allyAttack, hasOpposingAlly });
+      attachScoreDiagnostics(action, scoreRecorder, { hasImmediateBattleImpact });
+      return scoreRecorder.total;
     }
     const lane = friendly.indexOf(action.targetIndex);
     const opposed = lane >= 0 ? state.board[opposing[lane]] : null;
@@ -1406,9 +1498,9 @@ export function scoreAction(state, owner, action) {
     action.aiEvaluation = { kind: 'ally-lane-tempo-transfer', meaningful, targetAttack, opposedAttack, allyAtk, opposingEnemyAtk, hasOpposingEnemy };
     if (!meaningful) return Number.NEGATIVE_INFINITY;
     const combatSwingValue = lane >= 0 ? evaluateLaneCombatSwing(state, nextState, owner, lane) : 0;
-    score += 360 + Math.max(0, allyAtk) * 120 + targetAttack * 80;
-    score += hasOpposingEnemy ? 320 + Math.max(0, -opposingEnemyAtk) * 180 + opposedAttack * 120 : Math.max(0, allyAtk) * 80;
-    score += combatSwingValue;
+    addScoreComponent('laneTempoTransfer', 360 + Math.max(0, allyAtk) * 120 + targetAttack * 80, { allyAtk, targetAttack });
+    addScoreComponent('laneTempoTransfer', hasOpposingEnemy ? 320 + Math.max(0, -opposingEnemyAtk) * 180 + opposedAttack * 120 : Math.max(0, allyAtk) * 80, { hasOpposingEnemy, opposingEnemyAtk, opposedAttack, allyAtk });
+    addScoreComponent('combatSwing', combatSwingValue);
     action.aiEvaluation.combatSwingValue = combatSwingValue;
   }
 
@@ -1424,7 +1516,7 @@ export function scoreAction(state, owner, action) {
     const meaningful = totalReduction > 0 || opponentPressureReduced > 0;
     action.aiEvaluation = { kind: 'all-enemies-atk-cap', meaningful, cappedTargetCount: cappedTargets.length, totalReduction, opponentPressureReduced };
     if (!meaningful) return Number.NEGATIVE_INFINITY;
-    score += 380 + cappedTargets.length * 140 + totalReduction * 220 + Math.max(0, opponentPressureReduced) * 90;
+    addScoreComponent('attackCap', 380 + cappedTargets.length * 140 + totalReduction * 220 + Math.max(0, opponentPressureReduced) * 90, { cappedTargetCount: cappedTargets.length, totalReduction, opponentPressureReduced });
   }
 
   if (action.effectId === 'enemy_atk_to_0_until_combat') {
@@ -1435,14 +1527,14 @@ export function scoreAction(state, owner, action) {
     const combatSwingValue = lane >= 0 ? evaluateLaneCombatSwing(state, nextState, owner, lane) : 0;
     action.aiEvaluation = { kind: 'enemy-atk-to-0', meaningful, targetAttack, opponentPressureReduced, combatSwingValue };
     if (!meaningful) return Number.NEGATIVE_INFINITY;
-    score += 420 + targetAttack * 180 + Math.max(0, opponentPressureReduced) * 90 + combatSwingValue;
+    addScoreComponent('enemyAttackSetToZero', 420 + targetAttack * 180 + Math.max(0, opponentPressureReduced) * 90 + combatSwingValue, { targetAttack, opponentPressureReduced, combatSwingValue });
   }
 
   if (action.effectId === 'control_enemy_unit_this_turn') {
     const target = state.board[action.targetIndex];
     const targetAttack = getUnitAttack(target);
-    score += 900 + targetAttack * 220;
-    if ((target?.hp ?? 0) <= 1) score += 650;
+    addScoreComponent('controlEnemy', 900 + targetAttack * 220, { targetAttack });
+    if ((target?.hp ?? 0) <= 1) addScoreComponent('controlEnemy', 650, { lowHpTarget: true });
   }
 
   if ((action.effectId === 'destroy_friendly_draw_1' || action.effectId === 'destroy_friendly_damage_enemy_base_1') && !isSkipBaseEffectVariantAction(state, owner, action)) {
@@ -1451,11 +1543,11 @@ export function scoreAction(state, owner, action) {
     const side = owner === 'enemy' ? state.enemy : state.player;
     const lowHandBonus = action.effectId === 'destroy_friendly_draw_1' && (side?.hand?.length ?? 0) <= 2 ? 420 : 0;
     const baseDamageBonus = action.effectId === 'destroy_friendly_damage_enemy_base_1' ? 360 : 0;
-    score += 520 + targetValue + lowHandBonus + baseDamageBonus;
+    addScoreComponent('sacrifice', 520 + targetValue + lowHandBonus + baseDamageBonus, { targetValue, lowHandBonus, baseDamageBonus });
   }
 
   if (action.effectId === 'quick_strike') {
-    score += immediateHeroDamage > 0 || kills > 0 ? 2000 : -2500;
+    addScoreComponent('quickStrike', immediateHeroDamage > 0 || kills > 0 ? 2000 : -2500, { immediateHeroDamage, kills });
   }
 
   if (action.effectId === 'heal_1' || action.effectId === 'heal_2' || action.effectId === 'heal_3') {
@@ -1464,8 +1556,8 @@ export function scoreAction(state, owner, action) {
     const unitHpRestored = beforeTarget?.owner === owner && afterTarget?.owner === owner
       ? Math.max(0, (afterTarget.hp ?? 0) - (beforeTarget.hp ?? 0))
       : 0;
-    if (unitHpRestored <= 0) score -= 2000;
-    else score += 1800 + unitHpRestored * 260;
+    if (unitHpRestored <= 0) addScoreComponent('healing', -2000, { unitHpRestored });
+    else addScoreComponent('healing', 1800 + unitHpRestored * 260, { unitHpRestored });
   }
 
   if (action.effectId === 'heal_all_1') {
@@ -1475,21 +1567,21 @@ export function scoreAction(state, owner, action) {
       const after = nextState.board[index];
       return before?.owner === owner && after?.owner === owner && (after.hp ?? 0) > (before.hp ?? 0);
     });
-    if (healedUnits.length <= 0) score -= 2200;
+    if (healedUnits.length <= 0) addScoreComponent('healing', -2200, { healedUnits: 0 });
     else {
       const threatenedHealedUnits = healedUnits.filter((index) => {
         const lane = friendly.indexOf(index);
         const enemyUnit = state.board[getRowsForOwner(owner).opposing[lane]];
         return enemyUnit && getUnitAttack(enemyUnit) >= getEffectiveHp(state.board[index]);
       }).length;
-      score += 500 + healedUnits.length * 180 + threatenedHealedUnits * 420;
+      addScoreComponent('healing', 500 + healedUnits.length * 180 + threatenedHealedUnits * 420, { healedUnits: healedUnits.length, threatenedHealedUnits });
     }
   }
 
   if (action.effectId === 'temp_armor_1') {
     const targetUnit = nextState.board[action.targetIndex];
     const armorGain = Math.max(0, getUnitArmor(targetUnit) - getUnitArmor(state.board[action.targetIndex]));
-    score += armorGain > 0 ? 700 + armorGain * 140 : -2000;
+    addScoreComponent('armor', armorGain > 0 ? 700 + armorGain * 140 : -2000, { armorGain });
   }
 
   if (action.effectId === 'heal_1_atk_1_draw_on_kill_this_turn') {
@@ -1500,8 +1592,8 @@ export function scoreAction(state, owner, action) {
       && targetUnit.owner === owner
       && lane >= 0
       && !nextState.board[opposing[lane]];
-    score += 250;
-    if (targetCanPressureHero) score += 500;
+    addScoreComponent('quickFix', 250);
+    if (targetCanPressureHero) addScoreComponent('quickFix', 500, { targetCanPressureHero });
   }
 
   if (action.effectId === 'return_friendly_draw_1') {
@@ -1512,15 +1604,15 @@ export function scoreAction(state, owner, action) {
     const targetAttack = getUnitAttack(target);
     const targetWouldDie = Boolean(target?.owner === owner && enemyUnit && getUnitAttack(enemyUnit) >= getEffectiveHp(target));
     const hasDeck = (owner === 'enemy' ? state.enemy?.deck : state.player?.deck)?.length > 0;
-    if (targetWouldDie) score += 720 + targetAttack * 160;
-    if (hasDeck) score += 240;
-    if (!targetWouldDie && targetAttack <= 1) score -= 360;
+    if (targetWouldDie) addScoreComponent('recall', 720 + targetAttack * 160, { targetWouldDie, targetAttack });
+    if (hasDeck) addScoreComponent('recall', 240, { hasDeck });
+    if (!targetWouldDie && targetAttack <= 1) addScoreComponent('recall', -360, { targetWouldDie, targetAttack });
   }
 
   if (action.effectId === 'buff_all_atk_1' || action.effectId === 'aggro_buff_all_atk_2' || action.effectId === 'buff_all_armor_1' || action.effectId === 'enemy_all_armor_minus_1') {
     const friendlyUnits = nextState.board.filter((unit) => unit && unit.owner === owner).length;
-    if (friendlyUnits <= 1) score -= 1200;
-    else score += friendlyUnits * 120;
+    if (friendlyUnits <= 1) addScoreComponent('massBuff', -1200, { friendlyUnits });
+    else addScoreComponent('massBuff', friendlyUnits * 120, { friendlyUnits });
   }
 
   if (action.effectId === 'cannot_drop_below_1_this_turn') {
@@ -1530,7 +1622,7 @@ export function scoreAction(state, owner, action) {
     const importantThreatenedAttack = threatenedIndexes.reduce((total, index) => total + Math.max(0, getUnitAttack(state.board[index])), 0);
     const lethalPrevention = getImmediateOpenLaneThreat(state, owner) >= currentOwnHp ? 900 : 0;
     const contestedBoardBonus = friendlyStats.count >= 2 ? 240 : 0;
-    score += 560 + threatenedIndexes.length * 300 + importantThreatenedAttack * 90 + lethalPrevention + contestedBoardBonus;
+    addScoreComponent('lastStand', 560 + threatenedIndexes.length * 300 + importantThreatenedAttack * 90 + lethalPrevention + contestedBoardBonus, { threatenedCount: threatenedIndexes.length, importantThreatenedAttack, lethalPrevention, contestedBoardBonus });
   }
 
   if (action.effectId === 'immune_move_disable_this_turn') {
@@ -1540,7 +1632,7 @@ export function scoreAction(state, owner, action) {
     const importantBoardBonus = friendlyStats.attack * 80 + friendlyStats.count * 120;
     const openLaneBonus = friendlyStats.openLaneAttack > 0 ? 320 : 0;
     if (!opponentHasMovementArchetype && (friendlyStats.count < 2 || friendlyStats.attack < 3)) return Number.NEGATIVE_INFINITY;
-    score += (opponentHasMovementArchetype ? 360 : 280) + importantBoardBonus + openLaneBonus;
+    addScoreComponent('stability', (opponentHasMovementArchetype ? 360 : 280) + importantBoardBonus + openLaneBonus, { opponentHasMovementArchetype, importantBoardBonus, openLaneBonus });
   }
 
   if (action.effectId === 'friendly_immovable_this_turn') {
@@ -1553,12 +1645,12 @@ export function scoreAction(state, owner, action) {
     ));
     const friendlyStats = getFriendlyBoardStats(state, owner);
     const importantBoardBonus = friendlyStats.attack * 70 + friendlyStats.count * 90 + (friendlyStats.openLaneAttack > 0 ? 260 : 0);
-    score += hasEnemyMoveCard ? 260 + importantBoardBonus : -600;
+    addScoreComponent('immovable', hasEnemyMoveCard ? 260 + importantBoardBonus : -600, { hasEnemyMoveCard, importantBoardBonus });
   }
 
   const savedThreatenedUnits = Math.max(0, getLikelyFriendlyCombatDeaths(state, owner) - getLikelyFriendlyCombatDeaths(nextState, owner));
   const utilityOpportunityCost = getUtilityOpportunityCost(state, owner, action);
-  const utilityScoreBeforeCost = score;
+  const utilityScoreBeforeCost = scoreRecorder.total;
   const side = owner === 'enemy' ? state.enemy : state.player;
   const preventedMeaningfulBaseDamage = opponentPressureReduced >= 2;
   const cardAdvantageWithoutTempoLoss = action.effectId === 'draw_1'
@@ -1593,7 +1685,7 @@ export function scoreAction(state, owner, action) {
     protectsImportantBoard,
   }) : null;
   if (utilityOpportunityCost > 0) {
-    score -= utilityOpportunityCost;
+    addScoreComponent('utilityOpportunityCost', -utilityOpportunityCost, { utilityOpportunityCost });
     action.aiEvaluation = {
       ...(action.aiEvaluation ?? {}),
       utility: true,
@@ -1602,7 +1694,7 @@ export function scoreAction(state, owner, action) {
       utilityScoreBeforeCost,
       utilityOpportunityCost,
       utilityCostApplied: utilityOpportunityCost,
-      utilityScoreAfterCost: score,
+      utilityScoreAfterCost: scoreRecorder.total,
       utilityReason,
       utilityThreshold: getUtilityThreshold(action, utilityReason),
     };
@@ -1610,7 +1702,7 @@ export function scoreAction(state, owner, action) {
 
   const handCyclingValue = getHandCyclingValue(state, owner, action, hasImmediateBattleImpact);
   if (handCyclingValue > 0) {
-    score += handCyclingValue;
+    addScoreComponent('handCycling', handCyclingValue);
     action.aiEvaluation = {
       ...(action.aiEvaluation ?? {}),
       handCycling: true,
@@ -1622,21 +1714,19 @@ export function scoreAction(state, owner, action) {
     };
   }
 
-  if (!hasImmediateBattleImpact && handCyclingValue <= 0 && score <= 0) {
+  if (!hasImmediateBattleImpact && handCyclingValue <= 0 && scoreRecorder.total <= 0) {
     action.aiEvaluation = {
       ...(action.aiEvaluation ?? {}),
       hasImmediateBattleImpact: false,
       zeroImpactRejectedReason: 'no immediate battle impact and no meaningful hand-cycling value',
     };
+    attachScoreDiagnostics(action, scoreRecorder, { hasImmediateBattleImpact });
     return -1;
   }
 
-  action.aiEvaluation = {
-    ...(action.aiEvaluation ?? {}),
-    hasImmediateBattleImpact,
-  };
-  score += hasImmediateBattleImpact ? 20 : 0;
-  return score;
+  addScoreComponent('immediateBattleImpact', hasImmediateBattleImpact ? 20 : 0);
+  attachScoreDiagnostics(action, scoreRecorder, { hasImmediateBattleImpact });
+  return scoreRecorder.total;
 }
 
 function getOwnerRowIndexes(owner) {
@@ -1730,10 +1820,10 @@ export function chooseBattleAction(state, owner = 'enemy', options = {}) {
       if (!Number.isFinite(score)) return false;
       const threshold = action?.aiEvaluation?.utilityThreshold ?? 0;
       if (threshold > 0 && score < holdScore + threshold) {
-        action.aiEvaluation = { ...(action.aiEvaluation ?? {}), holdScore, marginOverHold: score - holdScore, chosenAction: false, utilityRejectedReason: 'below utility usefulness threshold' };
+        preserveScoreDiagnostics(action, { ...(action.aiEvaluation ?? {}), holdScore, marginOverHold: score - holdScore, chosenAction: false, utilityRejectedReason: 'below utility usefulness threshold' });
         return false;
       }
-      action.aiEvaluation = { ...(action.aiEvaluation ?? {}), holdScore, marginOverHold: score - holdScore, chosenAction: false };
+      preserveScoreDiagnostics(action, { ...(action.aiEvaluation ?? {}), holdScore, marginOverHold: score - holdScore, chosenAction: false });
       return true;
     });
 
@@ -1743,7 +1833,7 @@ export function chooseBattleAction(state, owner = 'enemy', options = {}) {
   const tiedBest = scoredActions.filter((entry) => entry.score === bestScore).map((entry) => entry.action);
 
   if (tiedBest.length === 1) {
-    tiedBest[0].aiEvaluation = { ...(tiedBest[0].aiEvaluation ?? {}), chosenAction: true, utilityChosenReason: tiedBest[0].aiEvaluation?.utilityReason ?? tiedBest[0].aiEvaluation?.reason ?? 'highest scored legal action' };
+    preserveScoreDiagnostics(tiedBest[0], { ...(tiedBest[0].aiEvaluation ?? {}), chosenAction: true, utilityChosenReason: tiedBest[0].aiEvaluation?.utilityReason ?? tiedBest[0].aiEvaluation?.reason ?? 'highest scored legal action' });
     if (owner === 'enemy' && tiedBest[0]?.type !== 'pass') updateSafeSurrenderPassCounter(state, owner, false);
     return tiedBest[0];
   }
@@ -1758,7 +1848,7 @@ export function chooseBattleAction(state, owner = 'enemy', options = {}) {
     const index = Math.floor(tieBreakRoll.value * tiedBest.length);
     const selectedTiedCandidateIndex = Math.max(0, Math.min(tiedBest.length - 1, index));
     const picked = tiedBest[selectedTiedCandidateIndex];
-    picked.aiEvaluation = {
+    preserveScoreDiagnostics(picked, {
       ...(picked.aiEvaluation ?? {}),
       chosenAction: true,
       utilityChosenReason: picked.aiEvaluation?.utilityReason ?? picked.aiEvaluation?.reason ?? 'seeded exact-score tie-break',
@@ -1772,7 +1862,7 @@ export function chooseBattleAction(state, owner = 'enemy', options = {}) {
         selectedTiedCandidateIndex,
         selectedCandidateIndex: tiedCandidateIndices[selectedTiedCandidateIndex] ?? selectedTiedCandidateIndex,
       },
-    };
+    });
     if (owner === 'enemy' && picked?.type !== 'pass') updateSafeSurrenderPassCounter(state, owner, false);
     return picked;
   }
@@ -1781,12 +1871,12 @@ export function chooseBattleAction(state, owner = 'enemy', options = {}) {
     const rotationIndex = Number.isInteger(options.tieBreakIndex) ? options.tieBreakIndex : 0;
     const normalized = ((rotationIndex % tiedBest.length) + tiedBest.length) % tiedBest.length;
     const picked = tiedBest[normalized];
-    picked.aiEvaluation = { ...(picked.aiEvaluation ?? {}), chosenAction: true, utilityChosenReason: picked.aiEvaluation?.utilityReason ?? picked.aiEvaluation?.reason ?? 'rotation tie break' };
+    preserveScoreDiagnostics(picked, { ...(picked.aiEvaluation ?? {}), chosenAction: true, utilityChosenReason: picked.aiEvaluation?.utilityReason ?? picked.aiEvaluation?.reason ?? 'rotation tie break' });
     if (owner === 'enemy' && picked?.type !== 'pass') updateSafeSurrenderPassCounter(state, owner, false);
     return picked;
   }
 
-  tiedBest[0].aiEvaluation = { ...(tiedBest[0].aiEvaluation ?? {}), chosenAction: true, utilityChosenReason: tiedBest[0].aiEvaluation?.utilityReason ?? tiedBest[0].aiEvaluation?.reason ?? 'first best action' };
+  preserveScoreDiagnostics(tiedBest[0], { ...(tiedBest[0].aiEvaluation ?? {}), chosenAction: true, utilityChosenReason: tiedBest[0].aiEvaluation?.utilityReason ?? tiedBest[0].aiEvaluation?.reason ?? 'first best action' });
   if (owner === 'enemy' && tiedBest[0]?.type !== 'pass') updateSafeSurrenderPassCounter(state, owner, false);
   return tiedBest[0];
 }
