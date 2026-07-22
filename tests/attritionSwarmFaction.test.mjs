@@ -133,7 +133,7 @@ test('Gravehearts death triggers emit ordered presentation events during combat'
     'enemy:unit:1',
     'death-trigger-rotcaller-buff',
     'death-trigger-hero-damage',
-    'player:unit:2',
+    'player:unit:1',
     'enemy:unit:0',
   ]);
   assert.equal(playerEvents[2].sourceDeathIndex, 6);
@@ -143,7 +143,7 @@ test('Gravehearts death triggers emit ordered presentation events during combat'
   assert.equal(playerEvents[3].sourceDeathIndex, 6);
   assert.equal(playerEvents[3].targetSide, 'enemy');
   assert.equal(playerEvents[3].damage, 1);
-  assert.equal(playerEvents[4].damage, 2, 'later lane attack uses the ordered Rotcaller buff');
+  assert.equal(playerEvents[4].damage, 1, 'later lane attack uses the frozen pre-trigger Rotcaller ATK');
 
   const enemyChain = state();
   enemyChain.board[0] = unit({ owner: 'enemy', id: 'enemy-party-host', attack: 0, hp: 1, effectId: 'death_damage_enemy_hero_1' });
@@ -158,12 +158,12 @@ test('Gravehearts death triggers emit ordered presentation events during combat'
     'death-trigger-rotcaller-buff',
     'death-trigger-hero-damage',
     'player:unit:0',
-    'enemy:unit:2',
+    'enemy:unit:1',
   ]);
   assert.equal(enemyEvents[2].sourceDeathIndex, 0);
   assert.equal(enemyEvents[2].targetIndex, 1);
   assert.equal(enemyEvents[3].targetSide, 'player');
-  assert.equal(enemyEvents[5].damage, 2);
+  assert.equal(enemyEvents[5].damage, 1);
 });
 
 test('Gravehearts ordered presentation covers no-Rotcaller, two Rotcallers, Husk, Abomination, and lethal triggers', () => {
@@ -346,7 +346,7 @@ test('Rotcaller gets capped temporary attack from first adjacent ally combat dea
   adjacent.board[0] = unit({ owner: 'enemy', id: 'left-killer', attack: 1, hp: 2 });
   adjacent.board[1] = unit({ owner: 'enemy', id: 'rot-prey', attack: 0, hp: 2 });
   resolveCombat(adjacent);
-  assert.equal(adjacent.board[1], null, 'Rotcaller used +1 ATK before its lane resolved');
+  assert.equal(adjacent.board[1]?.hp, 1, 'Rotcaller uses its frozen pre-trigger ATK in this combat');
   assert.equal(adjacent.board[7]?.tempAttackMod, undefined, 'temporary ATK clears after combat');
   assert.deepEqual(adjacent.rotcallerCombatFeedbackEvents, [{
     type: 'slot-text',
@@ -373,7 +373,7 @@ test('Rotcaller gets capped temporary attack from first adjacent ally combat dea
   capped.board[1] = unit({ owner: 'enemy', id: 'rot-blocker', attack: 0, hp: 3 });
   capped.board[2] = unit({ owner: 'enemy', id: 'right-killer', attack: 1, hp: 2 });
   resolveCombat(capped);
-  assert.equal(capped.board[1]?.hp, 1, 'Rotcaller gained exactly +1 ATK, not +2');
+  assert.equal(capped.board[1]?.hp, 2, 'Rotcaller gained ATK for future combat only, not the frozen attack');
   assert.equal(capped.rotcallerCombatFeedbackEvents.length, 1, 'Rotcaller emits one +1 ATK feedback payload per combat');
 });
 
