@@ -11,6 +11,8 @@ test('SettingsScene exposes future-ready language, audio, and persistence contro
 
   assert.match(source, /import \{ getSupportedLocales, setActiveLocale, translateActive, translate \} from '\.\.\/localization\/localeService\.js';/);
   assert.match(source, /import \{ DEFAULT_SETTINGS, applyAudioSettings, loadSettings, saveSettings, updateSettings \} from '\.\.\/systems\/settingsState\.js';/);
+  assert.match(source, /import \{ AUDIO_KEYS, preloadAudioAssetsByKey \} from '\.\.\/audio\/audioAssets\.js';/);
+  assert.doesNotMatch(source, /import \{ preloadAudioAssets \} from '\.\.\/audio\/audioAssets\.js';/);
   assert.match(source, /function getLanguageOptions\(displayLocale\)/);
   assert.match(source, /translate\(`ui\.settings\.languages\.\$\{locale\}`/);
   assert.match(source, /import \{ createMenuScreenHeader \} from '\.\.\/ui\/screenHeader\.js';/);
@@ -35,6 +37,8 @@ test('SettingsScene exposes future-ready language, audio, and persistence contro
   assert.match(navigationControls, /drawSpeakerIcon\(icon, size, isMuted\)/);
   assert.match(settingsState, /setMuted\(scene, muted\)/);
   assert.match(settingsState, /toggleMuted\(scene\)/);
+  assert.match(source, /createMuteToggleControl\(this, width \/ 2, muteToggleY, 44,[\s\S]*onToggle: \(settings\) => \{[\s\S]*this\.settings = settings;/);
+  assert.match(source, /this\.settings = updateSettings\(this, \{ \.\.\.this\.settings, \[settingKey\]: percent \}\);/);
   assert.match(source, /this\.settings\.language = setActiveLocale\(option\.value\)/);
   assert.match(settingsState, /normalizeLocale\(settings\.language\)/);
   assert.match(source, /this\.saveSettings\(\)/);
@@ -97,6 +101,20 @@ test('battle-launched settings resumes the existing paused battle while menu-lau
   assert.match(settingsSource, /this\.returnSceneKey = typeof data\?\.returnSceneKey === 'string'/);
   assert.match(settingsSource, /returnToMainMenu\(\) \{[\s\S]*const returnSceneKey = this\.returnSceneKey;[\s\S]*this\.scene\.stop\(\);[\s\S]*returnScene\?\.resumeFromSettings[\s\S]*this\.scene\.start\('MainMenuScene'\);/);
   assert.match(settingsSource, /this\.scene\.restart\(\{ returnSceneKey: this\.returnSceneKey \}\);/);
+});
+
+
+test('SettingsScene preserves menu and battle audio ownership boundaries', () => {
+  const source = read('src/scenes/SettingsScene.js');
+  const battleSource = read('src/scenes/BattleScene.js');
+  const audioPlaybackSource = read('src/audio/audioPlayback.js');
+
+  assert.match(source, /playMenuMusicForReturnScene\(this, this\.musicReturnSceneKey\);/);
+  assert.doesNotMatch(source, /stopMusic|startBattleAmbience|stopBattleAmbience|AUDIO_KEYS\.MENU_MUSIC|AUDIO_KEYS\.BATTLE_AMBIENCE/);
+  assert.match(battleSource, /this\.scene\.launch\('SettingsScene', \{ returnSceneKey: 'BattleScene' \}\);/);
+  assert.doesNotMatch(source, /playMenuMusic\(this\);/);
+  assert.match(audioPlaybackSource, /if \(activeMusic\?\.key === asset\.key && isLiveSound\(activeMusic\.sound\)\) \{[\s\S]*return activeMusic\.sound;/);
+  assert.match(source, /returnScene\?\.resumeFromSettings/);
 });
 
 
