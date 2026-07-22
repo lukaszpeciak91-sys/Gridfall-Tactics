@@ -3,7 +3,17 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const { AUDIO_KEYS } = await import('../src/audio/audioAssets.js');
-const { getCardIllustrationAssetsForFaction, preloadCardIllustrationAsset } = await import('../src/rendering/cardIllustrationAssets.js');
+const { getFactionByKey, getFactionKeys } = await import('../src/data/factions/index.js');
+const { GENERATED_UNIT_ART_ASSETS } = await import('../src/data/generatedUnitArt.js');
+const { tutorialPlayerFaction, tutorialEnemyFaction } = await import('../src/data/tutorial/tutorialDecks.js');
+const { BATTLE_TRANSITION_ILLUSTRATION_ALLOWLIST, BATTLE_TRANSITION_TUTORIAL_POOL_KEY } = await import('../src/data/battleTransitionIllustrations.js');
+const {
+  getCardIllustrationAsset,
+  getCardIllustrationAssetsForFaction,
+  getCollectionCardIllustrationAssets,
+  getLoadedCardIllustrationTextureKey,
+  preloadCollectionCardIllustrations,
+} = await import('../src/rendering/cardIllustrationAssets.js');
 
 const read = (path) => fs.readFileSync(path, 'utf8');
 
@@ -17,55 +27,95 @@ function createFakeScene({ cached = [] } = {}) {
   };
 }
 
-test('CollectionScene initial preload avoids global card art and battle audio', () => {
+function collectionKeys() {
+  return getCollectionCardIllustrationAssets().map((asset) => asset.key).sort();
+}
+
+test('Collection preload queues all normal collectible card art from visible factions', () => {
+  const expected = getFactionKeys().flatMap((factionKey) => getCardIllustrationAssetsForFaction(factionKey).map((asset) => asset.key)).sort();
+  const actual = collectionKeys();
+  assert.deepEqual(actual, [...new Set(expected)].sort());
+});
+
+test('Collection card art excludes generated Grunts and Flood tokens', () => {
+  const keys = new Set(collectionKeys());
+  for (const generatedArt of GENERATED_UNIT_ART_ASSETS) {
+    const asset = getCardIllustrationAsset(generatedArt, { factionId: generatedArt.factionId });
+    assert.equal(keys.has(asset.key), false, `${asset.key} should not be collection-preloaded`);
+  }
+});
+
+test('Collection card art excludes tutorial-only cards', () => {
+  const keys = new Set(collectionKeys());
+  for (const faction of [tutorialPlayerFaction, tutorialEnemyFaction]) {
+    for (const card of faction.deck) {
+      const asset = getCardIllustrationAsset(card, { factionId: card.factionId ?? faction.id });
+      assert.equal(keys.has(asset.key), false, `${asset.key} should not be collection-preloaded`);
+    }
+  }
+});
+
+test('Collection card art excludes hidden/runtime-only variants and battle-only transition art', () => {
+  const keys = new Set(collectionKeys());
+  assert.equal([...keys].some((key) => key.includes('hidden') || key.includes('runtime') || key.includes('transformed')), false);
+  for (const entry of BATTLE_TRANSITION_ILLUSTRATION_ALLOWLIST[BATTLE_TRANSITION_TUTORIAL_POOL_KEY]) {
+    const asset = getCardIllustrationAsset(entry, { factionId: entry.factionId });
+    assert.equal(keys.has(asset.key), false, `${asset.key} should not be collection-preloaded`);
+  }
+});
+
+test('Collection preload excludes unrelated faction previews, backgrounds, battlegrounds, and result assets', () => {
+  const scene = createFakeScene();
+  preloadCollectionCardIllustrations(scene);
+  assert.ok(scene.loadCalls.length > 0);
+  assert.equal(scene.loadCalls.every((call) => call.path.includes('assets/cards/')), true);
+  assert.equal(scene.loadCalls.some((call) => /assets\/(factions|backgrounds|battlegrounds|trophies|results)\//.test(call.path)), false);
+});
+
+test('CollectionScene preloads collection card art and keeps audio boundary to menu music plus click', () => {
   const source = read('src/scenes/CollectionScene.js');
   const preloadBody = source.match(/  preload\(\) \{[\s\S]*?\n  \}/)?.[0] ?? '';
+  assert.match(preloadBody, /preloadCollectionCardIllustrations\(this\);/);
+  assert.match(preloadBody, /preloadAudioAssetsByKey\(this, \[AUDIO_KEYS\.MENU_MUSIC, AUDIO_KEYS\.UI_CLICK\]\)/);
   assert.doesNotMatch(preloadBody, /preloadAllCardIllustrations\(/);
   assert.doesNotMatch(preloadBody, /preloadAudioAssets\(this\)/);
-  assert.match(preloadBody, /preloadAudioAssetsByKey\(this, \[AUDIO_KEYS\.MENU_MUSIC, AUDIO_KEYS\.UI_CLICK\]\)/);
-  assert.doesNotMatch(preloadBody, /BATTLE_AMBIENCE|BATTLE_VICTORY|BATTLE_DEFEAT|BATTLE_START|CARD_DEPLOY|ATTACK_IMPACT|UNIT_DEATH|BASE_BREAK/);
+  assert.doesNotMatch(preloadBody, /BATTLE_AMBIENCE|BATTLE_VICTORY|BATTLE_DEFEAT|BATTLE_START|CARD_DEPLOY|ATTACK_IMPACT|UNIT_DEATH|BASE_BREAK|ACHIEVEMENT_UNLOCK/);
+  assert.ok(AUDIO_KEYS.MENU_MUSIC && AUDIO_KEYS.UI_CLICK);
 });
 
-test('initial Collection UI starts collapsed and create can draw with zero cached art', () => {
+test('Faction expansion no longer starts lazy loading and renders synchronously after preload', () => {
   const source = read('src/scenes/CollectionScene.js');
-  const createBody = source.match(/  create\(\) \{[\s\S]*?this\.scheduleTransitionReadyAfterFirstRender\(\);\n  \}/)?.[0] ?? '';
-  assert.match(createBody, /this\.expandedFactionKeys = new Set\(\);/);
-  assert.match(createBody, /this\.drawCollectionList\(\{ width, height \}\);/);
-  assert.doesNotMatch(createBody, /ensureFactionArtLoadedForExpansion|preloadCardIllustration/);
+  const toggleBody = source.match(/  toggleFactionSection\(factionKey\) \{[\s\S]*?\n  \}/)?.[0] ?? '';
+  assert.match(source, /this\.expandedFactionKeys = new Set\(getFactionKeys\(\)\);/);
+  assert.match(toggleBody, /this\.expandedFactionKeys\.add\(factionKey\);\s*this\.rebuildCollectionContent\(\{ width: this\.scale\.width \}\);/);
+  assert.doesNotMatch(source, /factionArtLoadState|ensureFactionArtLoadedForExpansion|getMissingFactionArtAssets|getFactionArtLoadState|markFactionArtRefreshInvalid/);
+  assert.doesNotMatch(toggleBody, /load\?\.start|preloadCardIllustration|ensureFactionArtLoadedForExpansion/);
 });
 
-test('faction asset planning includes only that faction card art and generated unit art', () => {
-  const swarmKeys = getCardIllustrationAssetsForFaction('Swarm', { includeGeneratedUnitArt: true }).map((asset) => asset.key);
-  assert.ok(swarmKeys.every((key) => key.startsWith('card.swarm.')));
-  assert.ok(swarmKeys.includes('card.swarm.token_grunt_01'));
-  assert.ok(swarmKeys.includes('card.swarm.token_flood_01'));
-  assert.ok(!swarmKeys.some((key) => key.startsWith('card.aggro.') || key.startsWith('card.control.') || key.startsWith('card.attrition-swarm.')));
-});
-
-test('queued faction assets skip cached textures and duplicate requests', () => {
-  const aggroAssets = getCardIllustrationAssetsForFaction('Aggro', { includeGeneratedUnitArt: true });
-  const cachedKey = aggroAssets[0].key;
+test('Collection preload skips cached textures and duplicate queue entries', () => {
+  const assets = getCollectionCardIllustrationAssets();
+  const cachedKey = assets[0].key;
   const scene = createFakeScene({ cached: [cachedKey] });
-  const firstQueued = aggroAssets.map((asset) => preloadCardIllustrationAsset(scene, asset)).filter(Boolean).length;
-  const secondQueued = aggroAssets.map((asset) => preloadCardIllustrationAsset(scene, asset)).filter(Boolean).length;
-  assert.equal(firstQueued, aggroAssets.length - 1);
+  const firstQueued = preloadCollectionCardIllustrations(scene);
+  const secondQueued = preloadCollectionCardIllustrations(scene);
+  assert.equal(firstQueued, assets.length - 1);
   assert.equal(secondQueued, 0);
   assert.ok(!scene.loadCalls.some((call) => call.key === cachedKey));
+  assert.equal(new Set(scene.loadCalls.map((call) => call.key)).size, scene.loadCalls.length);
 });
 
-test('CollectionScene tracks per-faction loading state, guards stale completions, and clears failed loads', () => {
-  const source = read('src/scenes/CollectionScene.js');
-  assert.match(source, /this\.factionArtLoadState = new Map\(\);/);
-  assert.match(source, /state = \{ loading: false, loaded: false, refreshValid: false \}/);
-  assert.match(source, /if \(state\.loading\) return false;/);
-  assert.match(source, /state\.loading = false;[\s\S]*state\.loaded = this\.getMissingFactionArtAssets\(factionKey\)\.length === 0;/);
-  assert.match(source, /if \(!this\.isCollectionSceneActive \|\| !this\.scene\?\.isActive\?\.\(this\.scene\.key\) \|\| !state\.refreshValid/);
-  assert.match(source, /this\.load\?\.on\?\.\('loaderror', fail\);/);
-});
-
-test('Collection audio preload boundary is menu music plus click only', () => {
-  const source = read('src/scenes/CollectionScene.js');
-  assert.match(source, new RegExp(`AUDIO_KEYS\\.${Object.keys(AUDIO_KEYS).find((key) => AUDIO_KEYS[key] === AUDIO_KEYS.MENU_MUSIC) ?? 'MENU_MUSIC'}`));
-  assert.match(source, /AUDIO_KEYS\.UI_CLICK/);
-  assert.doesNotMatch(source.match(/  preload\(\) \{[\s\S]*?\n  \}/)?.[0] ?? '', /AUDIO_KEYS\.BATTLE_AMBIENCE/);
+test('Missing card art falls back without blocking scene creation', () => {
+  const firstFaction = getFactionByKey(getFactionKeys()[0]);
+  const card = firstFaction.deck[0];
+  const scene = createFakeScene();
+  const originalWarn = console.warn;
+  const warnings = [];
+  console.warn = (message) => warnings.push(message);
+  try {
+    assert.equal(getLoadedCardIllustrationTextureKey(scene, card, { factionId: firstFaction.id }), null);
+  } finally {
+    console.warn = originalWarn;
+  }
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0], /Card illustration missing:/);
 });

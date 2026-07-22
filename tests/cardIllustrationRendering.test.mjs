@@ -334,7 +334,7 @@ test('collection scene enables standardized illustrations through the shared pre
   const previewSource = source.slice(source.indexOf('  drawCardPreview('), source.indexOf('  createBackButton('));
 
   assert.doesNotMatch(source.match(/  preload\(\) \{[\s\S]*?\n  \}/)?.[0] ?? '', /preloadAllCardIllustrations\(this\)/);
-  assert.match(source, /ensureFactionArtLoadedForExpansion\(factionKey\)/);
+  assert.match(source, /preloadCollectionCardIllustrations\(this\)/);
   assert.match(previewSource, /createCardPreviewView\(this, \{/);
   assert.match(previewSource, /enableCardIllustration: true/);
   assert.doesNotMatch(previewSource, /createCardArtwork\(/);

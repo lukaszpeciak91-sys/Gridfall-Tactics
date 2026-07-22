@@ -162,6 +162,22 @@ export function preloadCardIllustrationsForFaction(scene, factionKeyOrData) {
     .filter(Boolean).length;
 }
 
+export function getCollectionCardIllustrationAssets() {
+  const assetsByKey = new Map();
+  getFactionKeys().forEach((factionKey) => {
+    getCardIllustrationAssetsForFaction(factionKey).forEach((asset) => {
+      if (asset?.key) assetsByKey.set(asset.key, asset);
+    });
+  });
+  return [...assetsByKey.values()];
+}
+
+export function preloadCollectionCardIllustrations(scene) {
+  return getCollectionCardIllustrationAssets()
+    .map((asset) => preloadCardIllustrationAsset(scene, asset))
+    .filter(Boolean).length;
+}
+
 export function preloadGeneratedUnitIllustrations(scene) {
   return GENERATED_UNIT_ART_ASSETS
     .map((generatedUnitArt) => preloadCardIllustration(scene, generatedUnitArt))
