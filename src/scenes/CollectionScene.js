@@ -76,7 +76,7 @@ export default class CollectionScene extends Phaser.Scene {
     this.cardTapHandled = false;
     this.cardLongPressEvent = null;
     this.longPressTriggeredCard = null;
-    this.expandedFactionKeys = new Set(getFactionKeys());
+    this.expandedFactionKeys = new Set();
     this.collectionContentElements = [];
     this.headerPress = null;
     this.transitionReadyEmitted = false;
@@ -125,7 +125,7 @@ export default class CollectionScene extends Phaser.Scene {
     });
     this.uiElements.push(...header.items);
 
-    this.expandedFactionKeys = new Set(getFactionKeys());
+    this.expandedFactionKeys = new Set();
     this.drawCollectionList({ width, height });
     this.createBackButton(width, height);
     this.scheduleTransitionReadyAfterFirstRender();
