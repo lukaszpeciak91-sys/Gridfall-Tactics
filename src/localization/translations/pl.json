@@ -42,11 +42,11 @@
     },
     "attrition_swarm_husk_1": {
       "name": "Łupina",
-      "textShort": "Śmierć w walce:\n-1 [HP] [ENEMY] naprzeciw"
+      "textShort": "Gdy ginie:\n-1 [HP] [ENEMY] naprzeciw"
     },
     "attrition_swarm_carrier_1": {
       "name": "Nosiciel",
-      "textShort": "Śmierć w walce: przywołaj tu 1/1"
+      "textShort": "Gdy ginie, przywołaj tu 1/1"
     },
     "attrition_swarm_leech_1": {
       "name": "Pijawka",
@@ -58,7 +58,7 @@
     },
     "attrition_swarm_abomination_1": {
       "name": "Abominacja",
-      "textShort": "Śmierć w walce: obie bazy tracą 1 HP"
+      "textShort": "Gdy ginie, obie bazy tracą 1 HP"
     },
     "attrition_swarm_funeral_pyre_1": {
       "name": "Stos",

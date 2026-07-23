@@ -42,11 +42,11 @@
     },
     "attrition_swarm_husk_1": {
       "name": "Husk",
-      "textShort": "Combat death:\n-1 [HP] to opposed [ENEMY]"
+      "textShort": "When this dies:\n-1 [HP] to opposed [ENEMY]"
     },
     "attrition_swarm_carrier_1": {
       "name": "Carrier",
-      "textShort": "Combat death: summon 1/1 here"
+      "textShort": "When this dies, summon 1/1 here"
     },
     "attrition_swarm_leech_1": {
       "name": "Leech",
@@ -58,7 +58,7 @@
     },
     "attrition_swarm_abomination_1": {
       "name": "Abomination",
-      "textShort": "Combat death: both bases lose 1 HP"
+      "textShort": "When this dies, both bases lose 1 HP"
     },
     "attrition_swarm_funeral_pyre_1": {
       "name": "Funeral Pyre",

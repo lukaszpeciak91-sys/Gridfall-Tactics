@@ -254,7 +254,7 @@ test('selected Control cards keep their intended German-themed names in both dic
 test('selected localized card texts use enemy board-unit markers without changing base, effect, or UI copy', () => {
   const migrated = {
     en: {
-      attrition_swarm_husk_1: 'Combat death:\n-1 [HP] to opposed [ENEMY]',
+      attrition_swarm_husk_1: 'When this dies:\n-1 [HP] to opposed [ENEMY]',
       attrition_swarm_funeral_pyre_1: 'First [ALLY] death each turn:\nenemy base loses 1 HP',
       attrition_swarm_infect_1: 'Deal 1 to [ENEMY].\nOpposed [ALLY] gains +1 [ATK]',
       control_hacker_1: 'Opposed [ENEMY]: -1 ATK until combat',
@@ -268,7 +268,7 @@ test('selected localized card texts use enemy board-unit markers without changin
       wardens_shield_push_1: 'Swap two adjacent [ENEMIES].\n-1 ATK this combat',
     },
     pl: {
-      attrition_swarm_husk_1: 'Śmierć w walce:\n-1 [HP] [ENEMY] naprzeciw',
+      attrition_swarm_husk_1: 'Gdy ginie:\n-1 [HP] [ENEMY] naprzeciw',
       attrition_swarm_funeral_pyre_1: 'Pierwszy zgon [ALLY] w turze:\nbaza wroga traci 1 HP',
       attrition_swarm_infect_1: 'Zadaj 1 [ENEMY].\n[ALLY] naprzeciwko +1 [ATK]',
       control_hacker_1: '[ENEMY] naprzeciwko: -1 ATK do walki',
@@ -300,7 +300,7 @@ test('selected localized card texts use enemy board-unit markers without changin
   assert.doesNotMatch(JSON.stringify(pl.ui), /\[(?:ENEMY|ENEMIES)\]/u);
 });
 
-test('Party Host Polish text states first adjacent ally combat death and keeps temporary ATK wording', () => {
+test('Party Host Polish text states first adjacent ally death and keeps permanent ATK wording', () => {
   assert.equal(
     pl.cards.attrition_swarm_rotcaller_1.textShort,
     'Zgon pierwszego sąsiedniego [ALLY]:\n+1 [ATK] na stałe',

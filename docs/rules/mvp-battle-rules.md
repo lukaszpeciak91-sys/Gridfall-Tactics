@@ -45,8 +45,8 @@ For the no-progress/dead-game detector, a remaining action is meaningful only if
 Meaningful for this detector includes:
 - Combat that can ever change either base's HP from the current board, including open-lane attackers.
 - A hand/deck unit with attack greater than 0.
-- A hand/deck unit with an outcome-affecting special such as Runner open-lane bonus damage, Spitter lane damage, Brood death summon, Alpha aura, Attrition Swarm combat-only death pressure, Bruiser/Berserker attack growth, or Sniper lane flexibility.
-- A non-unit effect that currently has useful targets and can create pressure or damage, such as attack buffs with friendly units, Quick Strike/Rush with attacking friendly units, Pierce/Pulse/System Override with enemy units, Spawn/Regrow/Grave Call with an empty friendly slot and valid source, Funeral Pyre when allied combat deaths are plausible, Rotten Gift with enemy units, or draw effects that can reach a future meaningful card.
+- A hand/deck unit with an outcome-affecting special such as Runner open-lane bonus damage, Spitter lane damage, Brood death summon, Alpha aura, Attrition Swarm universal HP-death pressure, Bruiser/Berserker attack growth, or Sniper lane flexibility.
+- A non-unit effect that currently has useful targets and can create pressure or damage, such as attack buffs with friendly units, Quick Strike/Rush with attacking friendly units, Pierce/Pulse/System Override with enemy units, Spawn/Regrow/Grave Call with an empty friendly slot and valid source, Funeral Pyre when allied HP deaths are plausible, Rotten Gift with enemy units, or draw effects that can reach a future meaningful card.
 - A friendly swap only if simulating that swap allows combat to eventually change base HP.
 
 Not meaningful for this detector includes:
@@ -224,14 +224,15 @@ Candidate audit for the same rule:
 - **Opening mulligan** mentions "up to 2" but is not a battle targeting effect; choosing fewer replacements is strategically meaningful, so it should not follow this rule.
 - **Swap / Shield Push / Controller swap effects** should not follow this rule because the chosen pair and/or choosing a legal pair has strategic movement implications; exact two-target selection remains correct.
 
-### 7.2) Attrition Swarm Combat-Only Death Effects
+### 7.2) Attrition Swarm Universal HP-Death Effects
 
 - Attrition Swarm is a second Swarm-style faction focused on attrition, death value, sticky trades, and controlled bad-trade payoff. The no-cost MVP rules still apply: Attrition Swarm cards have no cost/mana/energy fields and use the same 10-card deck size.
-- Combat-only death effects trigger only from defeated-unit cleanup during combat resolution. Non-combat destruction, redeploy replacement, return-to-hand effects, and targeted non-combat damage do not count as combat deaths.
+- Universal HP-death rule: when a unit dies because its HP reaches 0, its valid death effects and allied-death effects trigger regardless of damage source. Supported sources include standard combat, immediate combat, direct effect damage, self-damage, HP decay, and trigger-created damage.
+- Return to hand is not death, redeploy displacement is not death, transform/replacement is not death, temporary Flood expiry is not death, and explicit destroy remains a separate existing category unchanged by Combat Engine v2 Stage 3B. These distinctions do not change Fallen eligibility.
 - Feast is a draw-only utility: it draws 1 card and does not target, destroy allies, damage bases, summon, revive, or trigger fallen/death interactions.
-- Funeral Pyre is a deterministic non-targeted order. It is active for the nearest standard combat cleanup window, counts only allied combat deaths, and is capped at 2 total lane-damage triggers per owner per combat. Multiple Funeral Pyres do not raise that cap.
-- Abomination combat-death base damage is applied before final base HP clamping, so the raw-HP simultaneous lethal tiebreak in section 1 applies normally. Husk and Funeral Pyre combat-death damage is board-only and has no base fallback.
-- Rotcaller uses same-row adjacency only and can gain at most +1 temporary ATK per combat; the temporary ATK clears after combat with other temporary unit modifiers.
+- Funeral Pyre / Stos is a deterministic non-targeted order. Each active instance reacts to the first allied HP-death each turn, is once per turn per active instance, suppresses dead observers, damages the enemy base, and resets next turn.
+- Abomination death base damage is applied to both bases before final base HP clamping, so the raw-HP simultaneous lethal tiebreak in section 1 applies normally; its death also preserves simultaneous-lethal draw behavior. Husk death damage is board-only, has no base fallback, and deaths it creates resolve through child death waves. Carrier summons a same-owner 1/1 generated unit in the same slot only if the slot is empty.
+- Rotcaller / Wodzirej uses same-row adjacency only, gains +1 permanent ATK from the first adjacent allied HP-death, and cannot use that new ATK in the already-frozen current standard-combat attack plan from Stage 1.
 
 ### 7.3) Immediate Combat Effects
 
@@ -278,13 +279,13 @@ Candidate audit for the same rule:
 | Swarm | Swarm Attack | order | - | buff_all_atk_1 | All [ALLY] +1 ATK until combat | Non-targeted effect | Swarm-specific behavior remains unchanged. |
 | Swarm | Regrow | order | - | revive_friendly_1hp | Revive the newest fallen unit with 1 HP | Non-targeted deterministic effect | First empty slot + newest fallen unit; no manual target UI. |
 | Swarm | Flood | special | - | fill_empty_slots_0_1 | Fill up to 2 empty slots with 1/1s. They vanish after combat | Non-targeted deterministic effect | Fills up to 2 empty ally slots left-to-right with temporary board-only 1/1 Tokens; they vanish after combat or instead of returning to hand, do not enter hand or discard, and do not trigger death effects. |
-| Attrition Swarm | Husk | unit | 1/1/0 | combat_death_damage_enemy_lane_1 | Combat death:<br>-1 [HP] to opposed [ENEMY]. | Combat-only death trigger | Damages only an opposing enemy unit in the same lane; no base fallback; does not trigger from Feast, redeploy, return, or non-combat damage cleanup. |
+| Attrition Swarm | Husk | unit | 1/1/0 | combat_death_damage_enemy_lane_1 | When this dies:<br>-1 [HP] to opposed [ENEMY] | Universal HP-death trigger | Damages only an opposing enemy unit in the same lane; no base fallback; deaths it creates resolve through child death waves; legacy `combat_death_*` effectId is compatibility/internal naming only. |
 | Swarm | Substrate | utility | - | enemy_all_armor_minus_1 | [ENEMIES]: -1 ARM until combat | Deterministic enemy board debuff | Applies temporary -1 ARM to all current enemy units; no damage, draw, summon, or permanent HP/armor reduction. |
-| Attrition Swarm | Carrier | unit | 1/2/0 | combat_death_summon_grunt | Combat death: summon 1/1 here | Combat-only death trigger | Summons a same-owner 1/1 in the same slot only after combat death and only if the slot is empty. |
+| Attrition Swarm | Carrier | unit | 1/2/0 | combat_death_summon_grunt | When this dies, summon 1/1 here | Universal HP-death trigger | Summons a same-owner 1/1 generated unit in the same slot only if the slot is empty; legacy `combat_death_*` effectId is compatibility/internal naming only. |
 | Attrition Swarm | Leech | unit | 2/1/0 | leech_heal_hero_on_attack | On attack: heal your base 1 | On-attack combat trigger | Heals its owner base by 1 whenever it attacks a unit or base during combat; base heal is capped by max HP and does not require killing or surviving. |
-| Attrition Swarm | Rotcaller | unit | 1/2/0 | rotcaller_adjacent_death_atk_1 | First adjacent [ALLY] death in combat: +1 ATK until combat | Combat-only same-row adjacency trigger | Capped at +1 per Rotcaller per combat and clears after combat. |
-| Attrition Swarm | Abomination | unit | 2/2/0 | combat_death_damage_both_heroes_1 | Combat death: both bases lose 1 HP | Combat-only death trigger | Both-base damage participates in raw-HP simultaneous lethal resolution. |
-| Attrition Swarm | Funeral Pyre | order | - | funeral_pyre | First 2 [ALLY] combat deaths:<br>-1 [HP] to opposed [ENEMY]. | Non-targeted deterministic effect | Active for combat cleanup; cap 2 per owner per combat; damages only opposing enemy units in the dying allies’ lanes; no base fallback; multiple plays do not stack above cap. |
+| Attrition Swarm | Rotcaller | unit | 1/2/0 | rotcaller_adjacent_death_atk_1 | First adjacent [ALLY] death: +1 ATK permanently | Universal adjacent allied HP-death trigger | Same-row adjacency only; +1 ATK is permanent, triggers once, and Stage 1 frozen current-combat attacks do not use the new ATK until future combat. |
+| Attrition Swarm | Abomination | unit | 2/2/0 | combat_death_damage_both_heroes_1 | When this dies, both bases lose 1 HP | Universal HP-death trigger | Both-Base damage participates in raw-HP simultaneous lethal resolution and preserves simultaneous-lethal draw behavior; legacy `combat_death_*` effectId is compatibility/internal naming only. |
+| Attrition Swarm | Funeral Pyre | order | - | funeral_pyre | First [ALLY] death each turn:<br>enemy base loses 1 HP | Non-targeted deterministic allied HP-death effect | Once per turn per active instance; multiple Stos instances each trigger independently; dead observers are suppressed; resets next turn. |
 | Attrition Swarm | Rotten Gift | order | - | infect_damage_1_opposite_ally_atk_1 | Deal 1 to [ENEMY].\nOpposed [ALLY] gains +1 [ATK]. | Targeted enemy | Non-combat damage; if the target survives, the caster-owned unit directly opposite it gets +1 ATK until combat cleanup; if the target dies or no opposite ally exists, no buff or base damage occurs. |
 | Attrition Swarm | Feast | utility | - | draw_1 | Draw 1 | No target | Draw-only cycle utility; does not destroy allies, damage bases, summon, revive, or interact with fallen units. |
 | Attrition Swarm | Rise Again | order | - | revive_friendly_1hp | Revive the newest fallen unit with 1 HP | Non-targeted deterministic effect | First empty friendly slot + newest unit in fallen; no manual target UI. |
@@ -331,7 +332,7 @@ Implemented now:
 - Manual staged Controller on-play enemy swap.
 - Flood capped at up to 2 temporary 1/1 Tokens that vanish after combat and do not trigger death effects.
 - Wardens defensive friction, Halberdier opposing-lane bonus, Shield Push, Stand Firm, and Reinforce Line.
-- Attrition Swarm combat-only death triggers, Funeral Pyre cap-2 death pressure, Rotten Gift, Feast, Rise Again, and Grave Call.
+- Attrition Swarm universal HP-death triggers, Funeral Pyre once-per-turn death pressure, Rotten Gift, Feast, Rise Again, and Grave Call.
 - Overclock / Project H.E.R.D. opposed-offline windows, HP decay, per-ally ATK scaling, quick forced fights, armor breach setup, and parameterized lane tempo shift.
 - One-time opening mulligan with up to 2 replacements before game start.
 

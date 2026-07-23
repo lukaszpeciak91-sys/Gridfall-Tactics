@@ -11,7 +11,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": "combat_death_damage_enemy_lane_1",
-      "textShort": "Combat death:\n-1 [HP] to opposed [ENEMY]",
+      "textShort": "When this dies:\n-1 [HP] to opposed [ENEMY]",
       "attack": 1,
       "hp": 1,
       "armor": 0
@@ -24,7 +24,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": "combat_death_summon_grunt",
-      "textShort": "Combat death: summon 1/1 here",
+      "textShort": "When this dies, summon 1/1 here",
       "attack": 1,
       "hp": 2,
       "armor": 0
@@ -63,7 +63,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": "combat_death_damage_both_heroes_1",
-      "textShort": "Combat death: both bases lose 1 HP",
+      "textShort": "When this dies, both bases lose 1 HP",
       "attack": 2,
       "hp": 2,
       "armor": 0
