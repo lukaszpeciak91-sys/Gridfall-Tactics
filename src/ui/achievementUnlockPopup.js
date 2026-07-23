@@ -100,7 +100,26 @@ export function getAchievementUnlockPopupTheme(definition) {
     descriptionColor: '#dbe4f0',
     starColor: '#facc15',
     badgeColor: '#fef3c7',
-    counterColor: '#94a3b8',
+    pointColor: '#ffefb0',
+    pointStrokeColor: '#5f3b06',
+    counterColor: '#7f8da3',
+  };
+}
+
+export function getAchievementUnlockPopupMetadataLayout(layout) {
+  const narrow = layout.width < 330;
+  return {
+    stars: { x: layout.width - 15, y: 15, fontSize: '15px', fixedWidth: 68 },
+    points: {
+      x: layout.width - 16,
+      y: layout.height - 56,
+      fontSize: narrow ? '13px' : '14px',
+      fixedWidth: 84,
+      fontStyle: 'bold',
+      strokeThickness: narrow ? 1.4 : 1.6,
+    },
+    counter: { x: layout.width - 16, y: layout.height - 42, fontSize: '10.5px', fixedWidth: 58 },
+    badge: { x: layout.width - 55, y: layout.height - 16, fixedWidth: 78 },
   };
 }
 
@@ -150,6 +169,7 @@ export function createAchievementUnlockPopup(scene, definition, options = {}) {
   const view = getAchievementUnlockPopupViewModel(definition, options);
   const theme = getAchievementUnlockPopupTheme(definition);
   const titleLayout = getAchievementUnlockPopupTitleLayout(view.title, layout);
+  const metadataLayout = getAchievementUnlockPopupMetadataLayout(layout);
   const items = [];
   const tweens = [];
   const timers = [];
@@ -182,22 +202,30 @@ export function createAchievementUnlockPopup(scene, definition, options = {}) {
   addItem(scene.add.text(x + 15, y + 12, view.title, {
     fontFamily: 'Arial, sans-serif', fontSize: titleLayout.fontSize, color: theme.titleColor, fontStyle: 'bold', lineSpacing: 0, wordWrap: { width: titleLayout.titleWidth }, maxLines: titleLayout.maxLines,
   }).setDepth(resolvedBaseDepth + 2));
-  addItem(scene.add.text(x + layout.width - 15, y + 15, view.stars, {
-    fontFamily: 'Arial, sans-serif', fontSize: '15px', color: theme.starColor, fontStyle: 'bold', align: 'right', fixedWidth: 68,
+  addItem(scene.add.text(x + metadataLayout.stars.x, y + metadataLayout.stars.y, view.stars, {
+    fontFamily: 'Arial, sans-serif', fontSize: metadataLayout.stars.fontSize, color: theme.starColor, fontStyle: 'bold', align: 'right', fixedWidth: metadataLayout.stars.fixedWidth,
   }).setOrigin(1, 0).setDepth(resolvedBaseDepth + 2));
   if (view.pointLabel) {
-    addItem(scene.add.text(x + layout.width - 16, y + layout.height - 56, view.pointLabel, {
-      fontFamily: 'Arial, sans-serif', fontSize: layout.width < 330 ? '13px' : '14px', color: theme.badgeColor, fontStyle: 'bold', align: 'right', fixedWidth: 82,
+    addItem(scene.add.text(x + metadataLayout.points.x, y + metadataLayout.points.y, view.pointLabel, {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: metadataLayout.points.fontSize,
+      color: theme.pointColor,
+      fontStyle: metadataLayout.points.fontStyle,
+      align: 'right',
+      fixedWidth: metadataLayout.points.fixedWidth,
+      stroke: theme.pointStrokeColor,
+      strokeThickness: metadataLayout.points.strokeThickness,
+      shadow: { offsetX: 0, offsetY: 0, color: '#facc15', blur: 6, fill: true },
     }).setOrigin(1, 0.5).setDepth(resolvedBaseDepth + 2));
   }
   addItem(scene.add.text(x + 15, y + titleLayout.descriptionY, view.description, {
     fontFamily: 'Arial, sans-serif', fontSize: '13px', color: theme.descriptionColor, wordWrap: { width: layout.width - 126 }, maxLines: 2,
   }).setDepth(resolvedBaseDepth + 2));
-  addItem(scene.add.text(x + layout.width - 55, y + layout.height - 16, view.badge, {
-    fontFamily: 'Arial, sans-serif', fontSize: view.badge.length > 8 ? '11px' : '12px', color: theme.badgeColor, fontStyle: 'bold', align: 'center', fixedWidth: 78,
+  addItem(scene.add.text(x + metadataLayout.badge.x, y + metadataLayout.badge.y, view.badge, {
+    fontFamily: 'Arial, sans-serif', fontSize: view.badge.length > 8 ? '11px' : '12px', color: theme.badgeColor, fontStyle: 'bold', align: 'center', fixedWidth: metadataLayout.badge.fixedWidth,
   }).setOrigin(0.5).setDepth(resolvedBaseDepth + 2));
-  addItem(scene.add.text(x + layout.width - 16, y + layout.height - 43, view.queuePosition, {
-    fontFamily: 'Arial, sans-serif', fontSize: '11px', color: theme.counterColor, align: 'right', fixedWidth: 60,
+  addItem(scene.add.text(x + metadataLayout.counter.x, y + metadataLayout.counter.y, view.queuePosition, {
+    fontFamily: 'Arial, sans-serif', fontSize: metadataLayout.counter.fontSize, color: theme.counterColor, align: 'right', fixedWidth: metadataLayout.counter.fixedWidth,
   }).setOrigin(1, 0.5).setDepth(resolvedBaseDepth + 2));
 
   items.forEach((item) => item?.setAlpha?.(0));
