@@ -407,8 +407,7 @@ export default class AchievementsScene extends Phaser.Scene {
   getAchievementPointLabel(definition, unlocked) {
     const points = getAchievementDefinitionPointValue(definition);
     if (!Number.isFinite(points) || points <= 0) return '';
-    if (!unlocked) return `+${points}`;
-    return `${points} ${translateActive('ui.achievements.progression.pointsAbbreviation', 'PTS')}`;
+    return `+${points}`;
   }
 
   drawAchievementPointLabel(content, label, layout, theme) {
