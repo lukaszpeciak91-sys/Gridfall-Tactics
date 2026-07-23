@@ -13,6 +13,7 @@ export const AUDIO_KEYS = Object.freeze({
   BATTLE_DEFEAT: 'battle.defeat',
   BATTLE_START: 'battle.start',
   ACHIEVEMENT_UNLOCK: 'achievement.unlock',
+  LEVEL_UP: 'level_up',
   BATTLE_AMBIENCE: 'music.battleAmbience',
   MENU_MUSIC: 'music.menu',
 });
@@ -35,6 +36,7 @@ export const AUDIO_ASSETS = Object.freeze({
   [AUDIO_KEYS.BATTLE_DEFEAT]: Object.freeze({ key: AUDIO_KEYS.BATTLE_DEFEAT, path: sfxPath('battle-defeat.mp3'), category: 'sfx', cooldownMs: 1000, volume: 0.45 }),
   [AUDIO_KEYS.BATTLE_START]: Object.freeze({ key: AUDIO_KEYS.BATTLE_START, path: sfxPath('battle-start.mp3'), category: 'sfx', cooldownMs: 1000, volume: 0.5 }),
   [AUDIO_KEYS.ACHIEVEMENT_UNLOCK]: Object.freeze({ key: AUDIO_KEYS.ACHIEVEMENT_UNLOCK, path: sfxPath('achievement-unlock.mp3'), category: 'sfx', cooldownMs: 0 }),
+  [AUDIO_KEYS.LEVEL_UP]: Object.freeze({ key: AUDIO_KEYS.LEVEL_UP, path: sfxPath('level_up.mp3'), category: 'sfx', cooldownMs: 0 }),
   [AUDIO_KEYS.BATTLE_AMBIENCE]: Object.freeze({ key: AUDIO_KEYS.BATTLE_AMBIENCE, path: musicPath('battle-ambience.mp3'), category: 'music', loop: true, volume: 0.08, busVolume: 1 }),
   [AUDIO_KEYS.MENU_MUSIC]: Object.freeze({ key: AUDIO_KEYS.MENU_MUSIC, path: musicPath('menu-music.mp3'), category: 'music', loop: true }),
 });
