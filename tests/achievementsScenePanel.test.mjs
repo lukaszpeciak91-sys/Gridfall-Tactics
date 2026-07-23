@@ -82,9 +82,10 @@ test('achievement card point values derive from progression helper without dupli
   assert.doesNotMatch(scene, /ACHIEVEMENT_POINT_VALUES_BY_DIFFICULTY|difficulty\s*===\s*1|difficulty\s*===\s*2|difficulty\s*===\s*3|difficulty\s*===\s*4/);
 });
 
-test('locked achievement cards present plus-prefixed point rewards for all valid difficulties', () => {
+test('achievement cards present plus-prefixed point rewards for all valid difficulties', () => {
   const scene = source();
-  assert.match(scene, /if \(!unlocked\) return `\+\$\{points\}`/);
+  assert.match(scene, /return `\+\$\{points\}`/);
+  assert.doesNotMatch(scene, /return `\$\{points\} \$\{translateActive\('ui\.achievements\.progression\.pointsAbbreviation', 'PTS'\)\}`/);
 
   const lockedLabel = (definition) => {
     const points = getAchievementDefinitionPointValue(definition);
@@ -96,20 +97,20 @@ test('locked achievement cards present plus-prefixed point rewards for all valid
   assert.equal(lockedLabel({ difficulty: 4 }), '+200');
 });
 
-test('unlocked achievement cards keep localized earned point values visible', () => {
+test('unlocked achievement cards use the same compact signed reward values without locale suffixes', () => {
   const scene = source();
-  assert.match(scene, /return `\$\{points\} \$\{translateActive\('ui\.achievements\.progression\.pointsAbbreviation', 'PTS'\)\}`/);
   assert.match(scene, /const pointLabel = this\.getAchievementPointLabel\(definition, unlocked\)/);
   assert.match(scene, /this\.drawAchievementPointLabel\(content, pointLabel, layout, theme\)/);
+  assert.doesNotMatch(scene, /return `\$\{points\} \$\{translateActive\('ui\.achievements\.progression\.pointsAbbreviation', 'PTS'\)\}`/);
 
-  const unlockedLabel = (definition, suffix) => {
+  const unlockedLabel = (definition) => {
     const points = getAchievementDefinitionPointValue(definition);
-    return Number.isFinite(points) && points > 0 ? `${points} ${suffix}` : '';
+    return Number.isFinite(points) && points > 0 ? `+${points}` : '';
   };
-  assert.equal(unlockedLabel({ difficulty: 1 }, 'PTS'), '25 PTS');
-  assert.equal(unlockedLabel({ difficulty: 2 }, 'PTS'), '50 PTS');
-  assert.equal(unlockedLabel({ difficulty: 3 }, 'PKT'), '100 PKT');
-  assert.equal(unlockedLabel({ difficulty: 4 }, 'PKT'), '200 PKT');
+  assert.equal(unlockedLabel({ difficulty: 1 }), '+25');
+  assert.equal(unlockedLabel({ difficulty: 2 }), '+50');
+  assert.equal(unlockedLabel({ difficulty: 3 }), '+100');
+  assert.equal(unlockedLabel({ difficulty: 4 }), '+200');
 });
 
 test('malformed zero point achievements omit card point labels without throwing', () => {
@@ -164,7 +165,7 @@ test('achievement header metadata sizing supports 1-4 stars and max localized po
     assert.ok(stars.length >= 1 && stars.length <= 4);
   }
 
-  for (const label of ['+25', '+50', '+100', '+200', '200 PKT', '200 PTS']) {
+  for (const label of ['+25', '+50', '+100', '+200']) {
     const width = starAreaWidth + metadataGap + pointLabelWidth(label);
     const metadataRight = card.x + card.width - card.rightPadding;
     const metadataX = metadataRight - width;
