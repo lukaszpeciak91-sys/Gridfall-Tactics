@@ -67,18 +67,18 @@ test('formats localized Polish stat terms while preserving surrounding text', ()
 
 test('formats HP-related healing and damage language without replacing unrelated numbers', () => {
   assert.equal(formatCardEffectTextShort('On attack: heal your base 1', 'en'), 'On attack: heal your base +1 ●');
-  assert.equal(formatCardEffectTextShort('Combat death: both bases lose 1 HP', 'en'), 'Combat death: both bases lose 1 ●');
+  assert.equal(formatCardEffectTextShort('When this dies, both bases lose 1 HP', 'en'), 'When this dies, both bases lose 1 ●');
   assert.equal(formatCardEffectTextShort('On death: enemy base loses 1 HP', 'en'), 'On death: enemy base loses 1 ●');
   assert.equal(formatCardEffectTextShort('Heal all [ALLY] by 1', 'en'), 'Heal all ♙♙ by +1 ●');
   assert.equal(formatCardEffectTextShort('First [ALLY] death each turn:\nenemy base loses 1 HP', 'en'), 'First ♙ death each turn:\nenemy base loses 1 ●');
   assert.equal(formatCardEffectTextShort('Destroy [ALLY]. Draw 1', 'en'), 'Destroy ♙. Draw 1');
-  assert.equal(formatCardEffectTextShort('Combat death: summon 1/1 here', 'en'), 'Combat death: summon 1/1 here');
-  assert.equal(formatCardEffectTextShort('Śmierć w walce: obie bazy otrzymują 1', 'pl'), 'Śmierć w walce: obie bazy otrzymują 1 ●');
+  assert.equal(formatCardEffectTextShort('When this dies, summon 1/1 here', 'en'), 'When this dies, summon 1/1 here');
+  assert.equal(formatCardEffectTextShort('Gdy ginie, obie bazy otrzymują 1', 'pl'), 'Gdy ginie, obie bazy otrzymują 1 ●');
   assert.equal(formatCardEffectTextShort('Po śmierci: wroga baza otrzymuje 1', 'pl'), 'Po śmierci: wroga baza otrzymuje 1 ●');
   assert.equal(formatCardEffectTextShort('Celowany wróg atakuje własną bazę w następnej walce, potem otrzymuje 1 obrażenie', 'pl'), 'Celowany wróg atakuje własną bazę w następnej walce, potem otrzymuje 1 ●');
   assert.equal(formatCardEffectTextShort('Pierwszy zgon [ALLY] w turze:\nbaza wroga traci 1 HP', 'pl'), 'Pierwszy zgon ♙ w turze:\nbaza wroga traci 1 ●');
   assert.equal(formatCardEffectTextShort('Zniszcz [ALLY]. Dobierz 1', 'pl'), 'Zniszcz ♙. Dobierz 1');
-  assert.equal(formatCardEffectTextShort('Śmierć w walce: przyzwij tutaj 1/1', 'pl'), 'Śmierć w walce: przyzwij tutaj 1/1');
+  assert.equal(formatCardEffectTextShort('Gdy ginie, przywołaj tu 1/1', 'pl'), 'Gdy ginie, przywołaj tu 1/1');
 });
 
 
@@ -88,8 +88,8 @@ test('formats HP symbols for localized Attrition Swarm card effect display text'
 
   assert.equal(getCardDisplayContent(cardById('attrition_swarm_leech_1'), 'en').body, 'On attack: heal your base +1 ●');
   assert.equal(getCardDisplayContent(cardById('attrition_swarm_leech_1'), 'pl').body, 'Przy ataku: ulecz swoją bazę o +1 ●');
-  assert.equal(getCardDisplayContent(cardById('attrition_swarm_abomination_1'), 'en').body, 'Combat death: both bases lose 1 ●');
-  assert.equal(getCardDisplayContent(cardById('attrition_swarm_abomination_1'), 'pl').body, 'Śmierć w walce: obie bazy tracą 1 ●');
+  assert.equal(getCardDisplayContent(cardById('attrition_swarm_abomination_1'), 'en').body, 'When this dies, both bases lose 1 ●');
+  assert.equal(getCardDisplayContent(cardById('attrition_swarm_abomination_1'), 'pl').body, 'Gdy ginie, obie bazy tracą 1 ●');
   assert.equal(getCardDisplayContent(cardById('attrition_swarm_funeral_pyre_1'), 'en').body, 'First ♙ death each turn:\nenemy base loses 1 ●');
   assert.equal(getCardDisplayContent(cardById('attrition_swarm_funeral_pyre_1'), 'pl').body, 'Pierwszy zgon ♙ w turze:\nbaza wroga traci 1 ●');
 });

@@ -42,11 +42,11 @@ const expectedTextShort = new Map(Object.entries({
   swarm_rusher_1: 'This unit ignores [ARM]',
   wardens_reinforce_line_1: 'Until combat, [ALLIES] cannot be moved',
   wardens_hold_the_line_1: 'Adjacent [ALLY] +1 ARM until combat',
-  attrition_swarm_husk_1: 'Combat death:\n-1 [HP] to opposed [ENEMY]',
-  attrition_swarm_carrier_1: 'Combat death: summon 1/1 here',
+  attrition_swarm_husk_1: 'When this dies:\n-1 [HP] to opposed [ENEMY]',
+  attrition_swarm_carrier_1: 'When this dies, summon 1/1 here',
   attrition_swarm_leech_1: 'On attack: heal your base 1',
   attrition_swarm_rotcaller_1: 'First adjacent [ALLY] death: +1 ATK permanently',
-  attrition_swarm_abomination_1: 'Combat death: both bases lose 1 HP',
+  attrition_swarm_abomination_1: 'When this dies, both bases lose 1 HP',
   attrition_swarm_funeral_pyre_1: 'First [ALLY] death each turn:\nenemy base loses 1 HP',
   attrition_swarm_infect_1: 'Deal 1 to [ENEMY].\nOpposed [ALLY] gains +1 [ATK]',
   attrition_swarm_feast_1: 'Draw 1',
@@ -121,6 +121,55 @@ test('visible textShort values match the MVP wording pass', () => {
   for (const [id, textShort] of expectedTextShort) {
     assert.equal(cardsById.get(id)?.textShort, textShort, id);
   }
+});
+
+test('Attrition Swarm active copy uses universal death wording without rewriting Rotcaller or Stos', () => {
+  const cardsById = new Map(allCards().map(({ card }) => [card.id, card]));
+  const en = JSON.parse(fs.readFileSync('src/localization/translations/en.json', 'utf8')).cards;
+  const pl = JSON.parse(fs.readFileSync('src/localization/translations/pl.json', 'utf8')).cards;
+
+  assert.equal(en.attrition_swarm_husk_1.textShort, 'When this dies:\n-1 [HP] to opposed [ENEMY]');
+  assert.equal(pl.attrition_swarm_husk_1.textShort, 'Gdy ginie:\n-1 [HP] [ENEMY] naprzeciw');
+  assert.equal(en.attrition_swarm_carrier_1.textShort, 'When this dies, summon 1/1 here');
+  assert.equal(pl.attrition_swarm_carrier_1.textShort, 'Gdy ginie, przywołaj tu 1/1');
+  assert.doesNotMatch(en.attrition_swarm_carrier_1.textShort, /Grunt/u);
+  assert.doesNotMatch(pl.attrition_swarm_carrier_1.textShort, /Grunt|Grunta|Rekrut/u);
+  assert.equal(en.attrition_swarm_abomination_1.textShort, 'When this dies, both bases lose 1 HP');
+  assert.equal(pl.attrition_swarm_abomination_1.textShort, 'Gdy ginie, obie bazy tracą 1 HP');
+
+  assert.equal(cardsById.get('attrition_swarm_rotcaller_1').textShort, 'First adjacent [ALLY] death: +1 ATK permanently');
+  assert.equal(cardsById.get('attrition_swarm_funeral_pyre_1').textShort, 'First [ALLY] death each turn:\nenemy base loses 1 HP');
+  assert.equal(en.attrition_swarm_rotcaller_1.textShort, 'First adjacent [ALLY] death: +1 ATK permanently');
+  assert.equal(pl.attrition_swarm_rotcaller_1.textShort, 'Zgon pierwszego sąsiedniego [ALLY]:\n+1 [ATK] na stałe');
+  assert.equal(en.attrition_swarm_funeral_pyre_1.textShort, 'First [ALLY] death each turn:\nenemy base loses 1 HP');
+  assert.equal(pl.attrition_swarm_funeral_pyre_1.textShort, 'Pierwszy zgon [ALLY] w turze:\nbaza wroga traci 1 HP');
+
+  for (const localized of [en, pl]) {
+    for (const cardId of ['attrition_swarm_husk_1', 'attrition_swarm_carrier_1', 'attrition_swarm_abomination_1']) {
+      assert.doesNotMatch(localized[cardId].textShort, /Combat death|Śmierć w walce/u);
+      assert.ok(localized[cardId].textShort.length <= 48, `${cardId} copy should remain mobile-safe`);
+    }
+  }
+});
+
+test('canonical docs state universal HP-death semantics and preserve exclusions', () => {
+  const rules = fs.readFileSync('docs/rules/mvp-battle-rules.md', 'utf8');
+  const attritionSection = rules.slice(
+    rules.indexOf('### 7.2) Attrition Swarm Universal HP-Death Effects'),
+    rules.indexOf('### 7.3) Immediate Combat Effects'),
+  );
+  const attritionRows = rules.split('\n').filter((line) => /^\| Attrition Swarm \| (Husk|Carrier|Rotcaller|Abomination|Funeral Pyre) \|/.test(line)).join('\n');
+
+  assert.match(attritionSection, /when a unit dies because its HP reaches 0/);
+  assert.match(attritionSection, /standard combat, immediate combat, direct effect damage, self-damage, HP decay, and trigger-created damage/);
+  assert.match(attritionSection, /Return to hand is not death/);
+  assert.match(attritionSection, /redeploy displacement is not death/);
+  assert.match(attritionSection, /transform\/replacement is not death/);
+  assert.match(attritionSection, /temporary Flood expiry is not death/);
+  assert.match(attritionSection, /explicit destroy remains a separate existing category/);
+  assert.match(attritionSection, /do not change Fallen eligibility/);
+  assert.match(attritionRows, /compatibility\/internal naming only/);
+  assert.doesNotMatch(attritionSection + attritionRows, /Combat-only|combat-only|combat death|Combat death|combat deaths/);
 });
 
 

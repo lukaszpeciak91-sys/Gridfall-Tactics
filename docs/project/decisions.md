@@ -284,3 +284,7 @@ canonical_ref: docs/rules/mvp-battle-rules.md
 - Render-order protection is production behavior: queued Phaser scene operations and destination startup can alter scene order, so the visible pending overlay reasserts top ordering with a bounded waiting-frame guard that is removed before fade-out.
 - Current shared-overlay destinations are `CollectionScene`, `FactionSelectScene`, `CampaignEnemySelectScene`, and `GameMenuScene`. Future destinations must finish initial UI setup, wait for the render boundary, emit matching readiness, and avoid timeout-based readiness.
 - Maintenance rule: if the loader flashes/disappears before destination UI, inspect matching readiness, registry readiness, failsafe/emergency timeout state, overlay active/visible state, and scene order before adding delays or extra `bringToTop` calls.
+
+## Combat Engine v2 Universal HP-Death Copy Alignment (2026-07-23)
+- Combat Engine v2 Stage 3A finalized universal HP-death semantics: HP-reaching-0 deaths use valid death and allied-death effects regardless of damage source; Stage 3B aligned active card copy and canonical rules documentation, removing combat-only death wording from active Husk, Carrier, and Abomination text.
+- Explicit destroy and non-death removals remain outside this alignment scope; canonical behavior is maintained in `docs/rules/mvp-battle-rules.md`.
