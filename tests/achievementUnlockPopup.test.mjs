@@ -167,13 +167,17 @@ test('sequential popups share the same final Y and entrance offset', () => {
   assert.equal(scene.createdTweens[1].config.y, `-=${ACHIEVEMENT_UNLOCK_POPUP_ENTRANCE_OFFSET}`);
 });
 
-test('popup view model formats localized earned point labels from shared progression values', () => {
-  assert.equal(getAchievementUnlockPopupViewModel({ ...definition, difficulty: 1 }, { locale: 'en' }).pointLabel, '+25 PTS');
-  assert.equal(getAchievementUnlockPopupViewModel({ ...definition, difficulty: 1 }, { locale: 'pl' }).pointLabel, '+25 PKT');
-  assert.equal(getAchievementUnlockPopupViewModel({ ...definition, difficulty: 2 }, { locale: 'en' }).pointLabel, '+50 PTS');
-  assert.equal(getAchievementUnlockPopupViewModel({ ...definition, difficulty: 3 }, { locale: 'pl' }).pointLabel, '+100 PKT');
-  assert.equal(getAchievementUnlockPopupViewModel({ ...definition, difficulty: 4 }, { locale: 'en' }).pointLabel, '+200 PTS');
-  assert.equal(getAchievementUnlockPopupViewModel({ ...definition, difficulty: 4 }, { locale: 'pl' }).pointLabel, '+200 PKT');
+test('popup view model formats compact signed point labels from shared progression values without locale suffixes', () => {
+  assert.equal(getAchievementUnlockPopupViewModel({ ...definition, difficulty: 1 }, { locale: 'pl' }).pointLabel, '+25');
+  assert.notEqual(getAchievementUnlockPopupViewModel({ ...definition, difficulty: 1 }, { locale: 'pl' }).pointLabel, '+25 PKT');
+  assert.equal(getAchievementUnlockPopupViewModel({ ...definition, difficulty: 4 }, { locale: 'pl' }).pointLabel, '+200');
+  assert.notEqual(getAchievementUnlockPopupViewModel({ ...definition, difficulty: 4 }, { locale: 'pl' }).pointLabel, '+200 PKT');
+  assert.equal(getAchievementUnlockPopupViewModel({ ...definition, difficulty: 1 }, { locale: 'en' }).pointLabel, '+25');
+  assert.notEqual(getAchievementUnlockPopupViewModel({ ...definition, difficulty: 1 }, { locale: 'en' }).pointLabel, '+25 PTS');
+  assert.equal(getAchievementUnlockPopupViewModel({ ...definition, difficulty: 4 }, { locale: 'en' }).pointLabel, '+200');
+  assert.notEqual(getAchievementUnlockPopupViewModel({ ...definition, difficulty: 4 }, { locale: 'en' }).pointLabel, '+200 PTS');
+  assert.equal(getAchievementUnlockPopupViewModel({ ...definition, difficulty: 2 }, { locale: 'en' }).pointLabel, '+50');
+  assert.equal(getAchievementUnlockPopupViewModel({ ...definition, difficulty: 3 }, { locale: 'pl' }).pointLabel, '+100');
 });
 
 test('popup renderer keeps points in the middle of the right metadata rail at narrow width', () => {
@@ -188,7 +192,7 @@ test('popup renderer keeps points in the middle of the right metadata rail at na
     },
   };
   const popup = createAchievementUnlockPopup(scene, longDefinition, { index: 3, total: 6, locale: 'pl' });
-  const pointText = scene.created.find((item) => item.text === '+200 PKT');
+  const pointText = scene.created.find((item) => item.text === '+200');
   const starsText = scene.created.find((item) => item.text === '★★★★');
   const counterText = scene.created.find((item) => item.text === '3 / 6');
   const badgeText = scene.created.find((item) => item.text === 'ODBLOKOWANE');
@@ -250,12 +254,12 @@ test('long two-line titles keep original width and description below the title a
   assert.ok(titleLayout.descriptionY > titleLayout.separatorY);
 });
 
-test('right rail point rewards fit localized larger values without changing popup dimensions', () => {
+test('right rail point rewards fit compact signed values without changing popup dimensions', () => {
   for (const [difficulty, locale, expected] of [
-    [1, 'pl', '+25 PKT'],
-    [3, 'pl', '+100 PKT'],
-    [4, 'pl', '+200 PKT'],
-    [4, 'en', '+200 PTS'],
+    [1, 'pl', '+25'],
+    [3, 'pl', '+100'],
+    [4, 'pl', '+200'],
+    [4, 'en', '+200'],
   ]) {
     const scene = createMockScene();
     scene.scale.gameSize = { width: 360, height: 640 };

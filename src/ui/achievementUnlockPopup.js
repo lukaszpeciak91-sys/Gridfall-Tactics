@@ -1,4 +1,4 @@
-import { getActiveLocale, translate } from '../localization/localeService.js';
+import { getActiveLocale } from '../localization/localeService.js';
 import { ACHIEVEMENT_CATEGORY_GROUPS, normalizeAchievementDifficulty } from '../systems/achievements.js';
 import { getAchievementDefinitionPointValue } from '../systems/achievementProgression.js';
 
@@ -12,7 +12,6 @@ export const ACHIEVEMENT_UNLOCK_POPUP_TIMING = Object.freeze({
 
 
 const BADGE_TEXT = Object.freeze({ en: 'UNLOCKED', pl: 'ODBLOKOWANE' });
-const POINT_SUFFIX_FALLBACK = Object.freeze({ en: 'PTS', pl: 'PKT' });
 export const ACHIEVEMENT_UNLOCK_POPUP_ENTRANCE_OFFSET = 22;
 
 const ACHIEVEMENT_UNLOCK_POPUP_HEIGHT = 94;
@@ -72,7 +71,6 @@ export function getAchievementUnlockPopupViewModel(definition, { index = 1, tota
   const safeTotal = Math.max(safeIndex, Math.floor(total));
   const difficulty = normalizeAchievementDifficulty(definition?.difficulty);
   const points = getAchievementDefinitionPointValue(definition);
-  const pointSuffix = translate('ui.achievements.progression.pointsAbbreviation', locale, POINT_SUFFIX_FALLBACK[locale] ?? POINT_SUFFIX_FALLBACK.en);
   return {
     id: typeof definition?.id === 'string' ? definition.id : '',
     title: resolveLocaleText(definition, 'title', locale),
@@ -80,7 +78,7 @@ export function getAchievementUnlockPopupViewModel(definition, { index = 1, tota
     badge: BADGE_TEXT[locale] ?? BADGE_TEXT.en,
     stars: '★'.repeat(difficulty),
     queuePosition: `${safeIndex} / ${safeTotal}`,
-    pointLabel: Number.isFinite(points) && points > 0 ? `+${points} ${pointSuffix}` : '',
+    pointLabel: Number.isFinite(points) && points > 0 ? `+${points}` : '',
     points,
     difficulty,
   };
