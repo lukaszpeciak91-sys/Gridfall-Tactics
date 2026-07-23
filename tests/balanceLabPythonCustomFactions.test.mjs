@@ -83,6 +83,93 @@ test('Balance Lab comparison report handles experiment-only custom faction rows'
   assert.match(output.trim(), /ok$/);
 });
 
+
+test('Balance Lab streams child stdout and stderr while preserving captured output and exit code', () => {
+  const output = runPython(`${pyPrelude}
+import contextlib, io, sys, threading, time
+with tempfile.TemporaryDirectory() as tmp:
+  tmp_path = Path(tmp)
+  marker = tmp_path / 'marker.txt'
+  child = tmp_path / 'fake_child.py'
+  child.write_text("""
+import sys, time
+from pathlib import Path
+marker = Path(sys.argv[1])
+print('stdout-before-exit', flush=True)
+print('stderr-before-exit', file=sys.stderr, flush=True)
+marker.write_text('ready')
+time.sleep(0.4)
+print('stdout-after-sleep', flush=True)
+print('stderr-after-sleep', file=sys.stderr, flush=True)
+raise SystemExit(0)
+""")
+  stdout_buffer = io.StringIO()
+  stderr_buffer = io.StringIO()
+  holder = {}
+  def run_child():
+    with contextlib.redirect_stdout(stdout_buffer), contextlib.redirect_stderr(stderr_buffer):
+      holder['result'] = bl.run_simulation(root, [sys.executable, str(child), str(marker)])
+  thread = threading.Thread(target=run_child)
+  thread.start()
+  deadline = time.time() + 3
+  while not marker.exists() and time.time() < deadline:
+    time.sleep(0.02)
+  assert marker.exists(), 'child did not reach pre-exit marker'
+  assert thread.is_alive(), 'child exited before streaming assertion'
+  assert 'stdout-before-exit' in stdout_buffer.getvalue()
+  assert 'stderr-before-exit' in stderr_buffer.getvalue()
+  thread.join(5)
+  assert not thread.is_alive(), 'streaming runner did not finish'
+  result = holder['result']
+  assert result.returncode == 0
+  assert result.stdout == 'stdout-before-exit\\nstdout-after-sleep\\n'
+  assert result.stderr == 'stderr-before-exit\\nstderr-after-sleep\\n'
+print('ok')
+`);
+  assert.match(output.trim(), /ok$/);
+});
+
+test('Balance Lab streaming runner preserves non-zero exit code and stderr capture', () => {
+  const output = runPython(`${pyPrelude}
+import contextlib, io, sys
+with tempfile.TemporaryDirectory() as tmp:
+  child = Path(tmp) / 'fake_fail.py'
+  child.write_text("""
+import sys
+print('stdout-fail', flush=True)
+print('stderr-fail', file=sys.stderr, flush=True)
+raise SystemExit(7)
+""")
+  stdout_buffer = io.StringIO()
+  stderr_buffer = io.StringIO()
+  with contextlib.redirect_stdout(stdout_buffer), contextlib.redirect_stderr(stderr_buffer):
+    result = bl.run_simulation(root, [sys.executable, str(child)])
+  assert result.returncode == 7
+  assert result.stdout == 'stdout-fail\\n'
+  assert result.stderr == 'stderr-fail\\n'
+  assert 'stdout-fail' in stdout_buffer.getvalue()
+  assert 'stderr-fail' in stderr_buffer.getvalue()
+print('ok')
+`);
+  assert.match(output.trim(), /ok$/);
+});
+
+test('Current State preflight derives seven-faction run size dynamically', () => {
+  const output = runPython(`${pyPrelude}
+import contextlib, io
+buffer = io.StringIO()
+data = bl.current_snapshot_config()
+assert data['matchCount'] == 100
+with contextlib.redirect_stdout(buffer):
+  bl.print_current_state_preflight(root, data)
+text = buffer.getvalue()
+assert 'Current State: 7 factions, 49 ordered matchups, 100 games per matchup, 4900 games total.' in text
+assert len(bl.load_runtime_faction_keys(root)) == 7
+print('ok')
+`);
+  assert.match(output.trim(), /ok$/);
+});
+
 test('Balance Lab simulator output validation rejects empty stdout, non-zero exit, missing marker, and missing telemetry', () => {
   const output = runPython(`${pyPrelude}
 from subprocess import CompletedProcess

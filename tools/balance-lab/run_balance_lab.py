@@ -15,6 +15,7 @@ import re
 import shutil
 import subprocess
 import sys
+import threading
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -1306,9 +1307,52 @@ def print_intro(root: Path, experiment_path: Path, data: dict[str, Any], command
     print("", flush=True)
 
 
+def stream_pipe(pipe: Any, target: Any, captured: list[str]) -> None:
+    try:
+        for line in pipe:
+            captured.append(line)
+            target.write(line)
+            target.flush()
+    finally:
+        pipe.close()
+
+
 def run_simulation(root: Path, command: list[str]) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
+    process = subprocess.Popen(
         command,
+        cwd=root,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        env=utf8_subprocess_env(),
+    )
+    stdout_chunks: list[str] = []
+    stderr_chunks: list[str] = []
+    threads: list[threading.Thread] = []
+    if process.stdout is not None:
+        threads.append(threading.Thread(target=stream_pipe, args=(process.stdout, sys.stdout, stdout_chunks)))
+    if process.stderr is not None:
+        threads.append(threading.Thread(target=stream_pipe, args=(process.stderr, sys.stderr, stderr_chunks)))
+    for thread in threads:
+        thread.start()
+    returncode = process.wait()
+    for thread in threads:
+        thread.join()
+    return subprocess.CompletedProcess(command, returncode, "".join(stdout_chunks), "".join(stderr_chunks))
+
+
+def load_runtime_faction_keys(root: Path) -> list[str]:
+    node_command = shutil.which("node")
+    if node_command is None:
+        raise BalanceLabError("Could not find node executable for runtime faction metadata.")
+    metadata_script = (
+        "import { getFactionKeys } from './src/data/factions/index.js';"
+        "console.log(JSON.stringify(getFactionKeys()));"
+    )
+    result = subprocess.run(
+        [node_command, "--input-type=module", "-e", metadata_script],
         cwd=root,
         text=True,
         encoding="utf-8",
@@ -1316,6 +1360,30 @@ def run_simulation(root: Path, command: list[str]) -> subprocess.CompletedProces
         capture_output=True,
         check=False,
         env=utf8_subprocess_env(),
+    )
+    if result.returncode != 0:
+        raise BalanceLabError(
+            "Could not load runtime faction metadata for Current State preflight.\n"
+            f"Node exit code: {result.returncode}\n"
+            f"stderr: {(result.stderr or '').strip()}"
+        )
+    try:
+        faction_keys = json.loads(result.stdout)
+    except json.JSONDecodeError as error:
+        raise BalanceLabError(f"Runtime faction metadata was not valid JSON: {error}") from error
+    if not isinstance(faction_keys, list) or any(not isinstance(key, str) for key in faction_keys):
+        raise BalanceLabError("Runtime faction metadata must be a JSON array of faction keys.")
+    return faction_keys
+
+
+def print_current_state_preflight(root: Path, data: dict[str, Any]) -> None:
+    faction_count = len(load_runtime_faction_keys(root))
+    ordered_matchups = faction_count * faction_count
+    total_games = ordered_matchups * data["matchCount"]
+    print(
+        f"Current State: {faction_count} factions, {ordered_matchups} ordered matchups, "
+        f"{data['matchCount']} games per matchup, {total_games} games total.",
+        flush=True,
     )
 
 
@@ -4119,6 +4187,7 @@ def run_current_state_snapshot(root: Path, data: dict[str, Any] | None = None, *
         print("Balance Lab current-state runner", flush=True)
         print(f"Report folder: {report_dir}", flush=True)
         print("No experiment changes were applied. This report describes the current repo state only.", flush=True)
+        print_current_state_preflight(root, data)
         print("", flush=True)
         print("Simulator command:", flush=True)
         print(f"  {format_command(command)}", flush=True)
