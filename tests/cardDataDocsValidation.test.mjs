@@ -142,7 +142,7 @@ test('Attrition Swarm active copy uses universal death wording without rewriting
   assert.equal(en.attrition_swarm_rotcaller_1.textShort, 'First adjacent [ALLY] death: +1 ATK permanently');
   assert.equal(pl.attrition_swarm_rotcaller_1.textShort, 'Zgon pierwszego sąsiedniego [ALLY]:\n+1 [ATK] na stałe');
   assert.equal(en.attrition_swarm_funeral_pyre_1.textShort, 'First [ALLY] death each turn:\nenemy base loses 1 HP');
-  assert.equal(pl.attrition_swarm_funeral_pyre_1.textShort, 'Pierwszy zgon [ALLY] w turze:\nbaza wroga traci 1 HP');
+  assert.equal(pl.attrition_swarm_funeral_pyre_1.textShort, 'Pierwszy zgon [ALLY] w turze:\n-1 [HP] bazie wroga');
 
   for (const localized of [en, pl]) {
     for (const cardId of ['attrition_swarm_husk_1', 'attrition_swarm_carrier_1', 'attrition_swarm_abomination_1']) {

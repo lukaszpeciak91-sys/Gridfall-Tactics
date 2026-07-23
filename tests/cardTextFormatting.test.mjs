@@ -77,7 +77,7 @@ test('formats HP-related healing and damage language without replacing unrelated
   assert.equal(formatCardEffectTextShort('Gdy ginie, obie bazy otrzymują 1', 'pl'), 'Gdy ginie, obie bazy otrzymują 1 ●');
   assert.equal(formatCardEffectTextShort('Po śmierci: wroga baza otrzymuje 1', 'pl'), 'Po śmierci: wroga baza otrzymuje 1 ●');
   assert.equal(formatCardEffectTextShort('Celowany wróg atakuje własną bazę w następnej walce, potem otrzymuje 1 obrażenie', 'pl'), 'Celowany wróg atakuje własną bazę w następnej walce, potem otrzymuje 1 ●');
-  assert.equal(formatCardEffectTextShort('Pierwszy zgon [ALLY] w turze:\nbaza wroga traci 1 HP', 'pl'), 'Pierwszy zgon ♙ w turze:\nbaza wroga traci 1 ●');
+  assert.equal(formatCardEffectTextShort('Pierwszy zgon [ALLY] w turze:\n-1 [HP] bazie wroga', 'pl'), 'Pierwszy zgon ♙ w turze:\n-1 ● bazie wroga');
   assert.equal(formatCardEffectTextShort('Zniszcz [ALLY]. Dobierz 1', 'pl'), 'Zniszcz ♙. Dobierz 1');
   assert.equal(formatCardEffectTextShort('Gdy ginie: przywołaj tu 1/1', 'pl'), 'Gdy ginie: przywołaj tu 1/1');
 });
@@ -92,7 +92,7 @@ test('formats HP symbols for localized Attrition Swarm card effect display text'
   assert.equal(getCardDisplayContent(cardById('attrition_swarm_abomination_1'), 'en').body, 'When this dies: both bases lose 1 ●');
   assert.equal(getCardDisplayContent(cardById('attrition_swarm_abomination_1'), 'pl').body, 'Gdy ginie: obie bazy tracą 1 ●');
   assert.equal(getCardDisplayContent(cardById('attrition_swarm_funeral_pyre_1'), 'en').body, 'First ♙ death each turn:\nenemy base loses 1 ●');
-  assert.equal(getCardDisplayContent(cardById('attrition_swarm_funeral_pyre_1'), 'pl').body, 'Pierwszy zgon ♙ w turze:\nbaza wroga traci 1 ●');
+  assert.equal(getCardDisplayContent(cardById('attrition_swarm_funeral_pyre_1'), 'pl').body, 'Pierwszy zgon ♙ w turze:\n-1 ● bazie wroga');
 });
 
 
@@ -110,7 +110,7 @@ test('polished card text stays within mobile collection and inspect rules panels
     { factionKey: "Attrition Swarm", cardId: "attrition_swarm_abomination_1", locale: "en", expectedBody: "When this dies: both bases lose 1 ●" },
     { factionKey: "Attrition Swarm", cardId: "attrition_swarm_abomination_1", locale: "pl", expectedBody: "Gdy ginie: obie bazy tracą 1 ●" },
     { factionKey: "Attrition Swarm", cardId: "attrition_swarm_funeral_pyre_1", locale: "en", expectedBody: "First ♙ death each turn:\nenemy base loses 1 ●" },
-    { factionKey: "Attrition Swarm", cardId: "attrition_swarm_funeral_pyre_1", locale: "pl", expectedBody: "Pierwszy zgon ♙ w turze:\nbaza wroga traci 1 ●" },
+    { factionKey: "Attrition Swarm", cardId: "attrition_swarm_funeral_pyre_1", locale: "pl", expectedBody: "Pierwszy zgon ♙ w turze:\n-1 ● bazie wroga" },
     { factionKey: "Attrition Swarm", cardId: "attrition_swarm_infect_1", locale: "en", expectedBody: "Deal 1 to ♟\nOpposed ♙ gains +1 ▲" },
     { factionKey: "Attrition Swarm", cardId: "attrition_swarm_infect_1", locale: "pl", expectedBody: "Zadaj 1 ♟\n♙ naprzeciwko +1 ▲" },
     { factionKey: "Attrition Swarm", cardId: "attrition_swarm_grave_call_1", locale: "en", expectedBody: "Summon a 1/1\nNo ♙: summon up to 2" },
