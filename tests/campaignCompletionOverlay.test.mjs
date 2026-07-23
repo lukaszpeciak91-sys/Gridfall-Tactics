@@ -146,3 +146,9 @@ test('arena result modal behavior remains unchanged', () => {
   assert.match(source, /translateActive\('ui\.common\.retry', 'RETRY'\)/);
   assert.doesNotMatch(battleResultSource, /CAMPAIGN_COMPLETION_/);
 });
+
+test('campaign completion level-up popup reuses achievement popup depth after interactive summary only', () => {
+  assert.match(popupSource, /createLevelUpPopup\(this, \{[\s\S]*baseDepth: popupBaseDepth/);
+  assert.match(popupSource, /if \(this\.resultOverlayState\?\.kind === 'campaign-completion' && \(this\.resultOverlayState\.phase !== 'interactive' \|\| this\.resultOverlayState\.preview === true\)\) return/);
+  assert.match(popupSource, /const popupBaseDepth = this\.resultOverlayState\?\.kind === 'campaign-completion' && this\.resultOverlayState\.phase === 'interactive'[\s\S]*\? CAMPAIGN_COMPLETION_ACHIEVEMENT_POPUP_DEPTH[\s\S]*: undefined/);
+});

@@ -115,3 +115,94 @@ test('runtime helper backfills historical stats at the next evaluation', () => {
   assert.ok(unlockedIds.includes('general.win_first_battle'));
   assert.ok(unlockedIds.includes('general.win_5_battles'));
 });
+
+test('runtime helper returns progression metadata for no-unlock evaluations without saving level state', () => {
+  const definition = { id: 'easy', difficulty: 1 };
+  const harness = createHarness({ state: { version: 1, unlocked: { easy: { unlockedAt: 'old' } } } });
+  const result = harness.run({
+    getDefinitions: () => [definition],
+    evaluate: (_stats, achievementState) => ({ achievementState, newlyUnlocked: [], progress: {} }),
+  });
+
+  assert.deepEqual(result.presentation, {
+    achievementIds: [],
+    progression: {
+      previousPoints: 25,
+      newPoints: 25,
+      previousLevel: 2,
+      newLevel: 2,
+      levelIncreased: false,
+    },
+  });
+  assert.equal(harness.saves.length, 0);
+});
+
+test('runtime helper reports unlocks without level gain separately from level increases', () => {
+  const definitions = [
+    { id: 'easy-a', difficulty: 1 },
+    { id: 'easy-b', difficulty: 1 },
+  ];
+  const state = { version: 1, unlocked: { 'easy-a': { unlockedAt: 'old' } } };
+  const harness = createHarness({ state });
+  const result = harness.run({
+    getDefinitions: () => definitions,
+    evaluate: (_stats, achievementState) => ({
+      achievementState: { version: 1, unlocked: { ...achievementState.unlocked, 'easy-b': { unlockedAt: 'now' } } },
+      newlyUnlocked: [{ id: 'easy-b', definition: definitions[1], unlockedAt: 'now' }],
+      progress: {},
+    }),
+  });
+
+  assert.deepEqual(result.presentation.achievementIds, ['easy-b']);
+  assert.equal(result.presentation.progression.previousPoints, 25);
+  assert.equal(result.presentation.progression.newPoints, 50);
+  assert.equal(result.presentation.progression.previousLevel, 2);
+  assert.equal(result.presentation.progression.newLevel, 2);
+  assert.equal(result.presentation.progression.levelIncreased, false);
+  assert.equal(harness.saves.length, 1);
+});
+
+test('runtime helper calculates one-level gain from persisted pre-state and post-evaluation state', () => {
+  const definitions = [
+    { id: 'easy-a', difficulty: 1 },
+    { id: 'easy-b', difficulty: 1 },
+  ];
+  const harness = createHarness();
+  const result = harness.run({
+    getDefinitions: () => definitions,
+    evaluate: () => ({
+      achievementState: { version: 1, unlocked: { 'easy-a': { unlockedAt: 'now' } } },
+      newlyUnlocked: [{ id: 'easy-a', definition: definitions[0], unlockedAt: 'now' }],
+      progress: {},
+    }),
+  });
+
+  assert.equal(result.presentation.progression.previousPoints, 0);
+  assert.equal(result.presentation.progression.newPoints, 25);
+  assert.equal(result.presentation.progression.previousLevel, 1);
+  assert.equal(result.presentation.progression.newLevel, 2);
+  assert.equal(result.presentation.progression.levelIncreased, true);
+});
+
+test('runtime helper uses full current batch for multi-level progression delta', () => {
+  const definitions = [
+    { id: 'hard-a', difficulty: 4 },
+    { id: 'hard-b', difficulty: 4 },
+  ];
+  const harness = createHarness();
+  const result = harness.run({
+    getDefinitions: () => definitions,
+    evaluate: () => ({
+      achievementState: { version: 1, unlocked: { 'hard-a': { unlockedAt: 'now' }, 'hard-b': { unlockedAt: 'now' } } },
+      newlyUnlocked: definitions.map((definition) => ({ id: definition.id, definition, unlockedAt: 'now' })),
+      progress: {},
+    }),
+  });
+
+  assert.deepEqual(result.presentation.achievementIds, ['hard-a', 'hard-b']);
+  assert.equal(result.presentation.progression.previousPoints, 0);
+  assert.equal(result.presentation.progression.newPoints, 400);
+  assert.equal(result.presentation.progression.previousLevel, 1);
+  assert.equal(result.presentation.progression.newLevel, 6);
+  assert.equal(result.presentation.progression.levelIncreased, true);
+});

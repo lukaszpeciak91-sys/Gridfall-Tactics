@@ -210,3 +210,25 @@ test('result recovery preserves tutorial overlay priority and tutorial result ro
   assert.match(buttons, /translateActive\('ui\.common\.exit', 'EXIT'\)/);
   assert.match(buttons, /\(\) => this\.exitTutorialBattleToGameMenu\(\)/);
 });
+
+test('achievement level-up popup remains runtime-only and finalizes after achievement batch completion', () => {
+  const popup = extractMethodBody('startAchievementUnlockPopupsForResultModal', 'createResultModalButton');
+  const destroy = extractMethodBody('destroyBattleResultModal', 'createBaseBroadcastFrame');
+  assert.match(source, /pendingAchievementProgressionDelta = null/);
+  assert.match(source, /captureAchievementPresentationResult\(result\) \{/);
+  assert.match(popup, /const pendingDelta = this\.pendingAchievementProgressionDelta/);
+  assert.match(popup, /pendingDelta\.achievementIds\.every\(\(achievementId\) => validBatchIds\.includes\(achievementId\)\)/);
+  assert.match(popup, /if \(cursor >= batch\.length && !activeIncomingPopup && !activeOutgoingPopup\) showLevelUpIfNeeded\(\)/);
+  assert.match(popup, /controller\.levelUpStarted = true/);
+  assert.match(popup, /controller\.levelUpCompleted = true/);
+  assert.match(popup, /finishBatch\(\)/);
+  assert.match(destroy, /this\.clearPendingAchievementProgressionDelta\(\)/);
+});
+
+test('plain presentation queue recovery cannot create level-up popup without current runtime delta', () => {
+  const popup = extractMethodBody('startAchievementUnlockPopupsForResultModal', 'createResultModalButton');
+  assert.match(popup, /const batchCanShowLevelUp = Boolean\([\s\S]*pendingDelta\?\.progression\?\.levelIncreased === true/);
+  assert.match(popup, /if \(!batchCanShowLevelUp && pendingDelta\) this\.clearPendingAchievementProgressionDelta\(\)/);
+  assert.match(popup, /if \(!pendingIds\.length\) \{[\s\S]*this\.clearPendingAchievementProgressionDelta\(\);[\s\S]*return;[\s\S]*\}/);
+  assert.match(popup, /if \(!batch\.length\) \{[\s\S]*this\.clearPendingAchievementProgressionDelta\(\);[\s\S]*return;[\s\S]*\}/);
+});
