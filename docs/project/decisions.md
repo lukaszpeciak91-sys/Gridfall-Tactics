@@ -12,6 +12,13 @@ canonical_ref: docs/rules/mvp-battle-rules.md
 > - `docs/rules/mvp-battle-rules.md`
 
 
+## Combat Engine v2 Completion (2026-07-23)
+- Completed Combat Engine v2 through Stage 1 full-board standard-combat attack snapshots; Stage 2 deterministic death waves and trigger queues; Stage 2 verification follow-up; Stage 3A universal HP-death trigger semantics; Stage 3B player copy and canonical rules alignment; and the final normalization audit.
+- Final behavioral model: standard combat freezes a full-board attack plan, resolves planned attacks mechanically, batches deaths into deterministic waves, removes and records wave members before trigger queues, routes later lethal HP damage into child waves, and finalizes Base lethal only after the complete combat/trigger window.
+- Special paths are normalized around the same hierarchy: immediate lane combat uses live state for its small window, System Override self-damage enters universal HP-death cleanup, direct unit damage remains non-combat damage while lethal HP loss still enters death waves, and presentation order does not redefine mechanics.
+- Final normalization verdict: `COMBAT ENGINE V2 COMPLETE — NO RUNTIME PR NEEDED`; the audit found no active runtime gaps requiring PR4 code changes.
+- Canonical specification: `docs/architecture/combat-engine-v2.md`.
+
 ## Asset Loading and Preload Milestone (2026-07-22)
 - Completed the asset-loading milestone by replacing broad cold preloads with scene-owned preload boundaries that preserve complete first presentation, immediate audio readiness, reliable transitions, and cache reuse.
 - Original problem: Collection and BattleScene carried broad card/audio/background payloads, cold entries were slow, and warm repeat visits hid the issue through cached textures/audio.
