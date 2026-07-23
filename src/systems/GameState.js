@@ -14,6 +14,18 @@ const FUNERAL_PYRE_TRIGGER_CAP = 1;
 const COMBAT_KEYWORD_OVERFLOW = 'overflow';
 const DECAY_ATTACK_AFTER_COMBAT_EFFECT_ID = 'decay_attack_after_combat';
 const DECAY_HP_AFTER_COMBAT_EFFECT_ID = 'decay_hp_after_combat';
+const DEATH_DAMAGE_ENEMY_LANE_EFFECT_IDS = new Set([
+  'death_damage_enemy_lane_1',
+  'combat_death_damage_enemy_lane_1',
+]);
+const DEATH_SUMMON_GRUNT_EFFECT_IDS = new Set([
+  'death_summon_grunt',
+  'combat_death_summon_grunt',
+]);
+const DEATH_DAMAGE_BOTH_HEROES_EFFECT_IDS = new Set([
+  'death_damage_both_heroes_1',
+  'combat_death_damage_both_heroes_1',
+]);
 const ATK_PLUS_PER_OTHER_ALLY_EFFECT_ID = 'atk_plus_per_other_ally';
 const FRIENDLY_SWAP_EFFECT_ID = 'swap_any_two_friendly_units';
 const FRIENDLY_SWAP_BUFF_EFFECT_ID = 'swap_any_two_friendly_units_buff_both_atk_1';
@@ -204,11 +216,14 @@ function cardCanRealisticallyAffectOutcome(card, state, owner, visitedCardIds = 
       'lane_empty_bonus_damage_1',
       'on_play_lane_damage_1',
       'death_damage_enemy_hero_1',
+      'death_damage_enemy_lane_1',
       'combat_death_damage_enemy_lane_1',
       'on_death_summon_grunt',
+      'death_summon_grunt',
       'combat_death_summon_grunt',
       'leech_heal_hero_on_attack',
       'rotcaller_adjacent_death_atk_1',
+      'death_damage_both_heroes_1',
       'combat_death_damage_both_heroes_1',
       'adjacent_allies_atk_plus_1_ignore_armor_1',
       'gain_atk_when_damaged',
@@ -360,7 +375,7 @@ function applyHpDecayAfterCombat(state, participatedIndexes = new Set()) {
   const cleanupIndexes = [];
   participatedIndexes.forEach((index) => {
     const unit = state?.board?.[index];
-    if (unit?.effectId !== DECAY_HP_AFTER_COMBAT_EFFECT_ID) return;
+    if (unit?.effectId !== DECAY_HP_AFTER_COMBAT_EFFECT_ID && unit?.decayHpAfterCombat !== true) return;
     // HP decay is post-combat direct damage, not combat damage; death cleanup uses the normal non-combat damage pipeline.
     applyDamageToUnit(state, index, 1);
     cleanupIndexes.push(index);
@@ -1192,6 +1207,9 @@ function dealCombatDeathLaneDamage(state, deadIndex, deadOwner, telemetryKey, op
   const opposingUnit = state.board[opposingIndex];
   if (opposingUnit?.owner !== enemyOwner) return false;
   state[telemetryKey] = (state[telemetryKey] ?? 0) + 1;
+  if (telemetryKey === 'deathLaneDamageTriggers') {
+    state.combatOnlyDeathLaneDamageTriggers = state.deathLaneDamageTriggers;
+  }
   applyDamageToUnit(state, opposingIndex, 1);
   appendDeathTriggerPresentationEvent(options.events, {
     type: 'death-trigger-lane-damage',
@@ -1238,9 +1256,8 @@ function triggerUnitDeathEffects(state, index, unit, options = {}) {
   if (!unit || unit.temporaryFloodToken) return;
   const owner = unit.owner;
   const enemyOwner = getOpponentOwner(owner);
-  const isCombatDeath = Boolean(options.combat);
 
-  if (isCombatDeath && !options.suppressAlliedDeathObservers) {
+  if (!options.suppressAlliedDeathObservers) {
     triggerAdjacentRotcallers(state, index, owner, options);
     triggerFuneralPyre(state, index, owner, options);
   }
@@ -1258,22 +1275,23 @@ function triggerUnitDeathEffects(state, index, unit, options = {}) {
     });
   }
 
-  if (isCombatDeath && unit.effectId === 'combat_death_damage_enemy_lane_1') {
-    dealCombatDeathLaneDamage(state, index, owner, 'combatOnlyDeathLaneDamageTriggers', {
+  if (DEATH_DAMAGE_ENEMY_LANE_EFFECT_IDS.has(unit.effectId)) {
+    dealCombatDeathLaneDamage(state, index, owner, 'deathLaneDamageTriggers', {
       ...options,
-      source: 'combat_death_damage_enemy_lane_1',
+      source: unit.effectId,
       sourceUnit: unit,
     });
   }
 
-  if (isCombatDeath && unit.effectId === 'combat_death_damage_both_heroes_1') {
-    state.combatOnlyDeathHeroTriggers = (state.combatOnlyDeathHeroTriggers ?? 0) + 1;
+  if (DEATH_DAMAGE_BOTH_HEROES_EFFECT_IDS.has(unit.effectId)) {
+    state.deathHeroTriggers = (state.deathHeroTriggers ?? 0) + 1;
+    state.combatOnlyDeathHeroTriggers = state.deathHeroTriggers;
     damageHero(state, 'player', 1);
     damageHero(state, 'enemy', 1);
     appendDeathTriggerPresentationEvent(options.events, {
       type: 'death-trigger-both-hero-damage',
       lane: Number.isInteger(options.lane) ? options.lane : index % 3,
-      source: 'combat_death_damage_both_heroes_1',
+      source: unit.effectId,
       sourceUnit: createDeathTriggerSource(unit, index),
       sourceDeathIndex: index,
       affectedHeroes: ['player', 'enemy'],
@@ -1285,8 +1303,9 @@ function triggerUnitDeathEffects(state, index, unit, options = {}) {
     summonGruntAt(state, index, owner, 'death_grunt', getGeneratedGruntArtForSource(unit));
   }
 
-  if (isCombatDeath && unit.effectId === 'combat_death_summon_grunt' && state.board[index] === null) {
-    state.combatOnlyDeathSummons = (state.combatOnlyDeathSummons ?? 0) + 1;
+  if (DEATH_SUMMON_GRUNT_EFFECT_IDS.has(unit.effectId) && state.board[index] === null) {
+    state.deathSummons = (state.deathSummons ?? 0) + 1;
+    state.combatOnlyDeathSummons = state.deathSummons;
     summonGruntAt(state, index, owner, 'combat_death_grunt', getGeneratedGruntArtForSource(unit));
   }
 }
@@ -1329,19 +1348,20 @@ function cleanupDefeatedUnitsWithTriggers(state, boardIndexes = DEATH_WAVE_BOARD
       triggerUnitDeathEffects(state, index, unit, triggerOptions);
     });
 
-    if (options.combat) {
-      wave.forEach(({ index, unit }) => {
-        if (!unit || unit.temporaryFloodToken) return;
-        triggerAdjacentRotcallers(state, index, unit.owner, { ...options, waveId, lane: Number.isInteger(options.lane) ? options.lane : index % 3 });
-      });
-      const owners = [...new Set(wave.filter(({ unit }) => unit && !unit.temporaryFloodToken).map(({ unit }) => unit.owner))];
-      owners.forEach((owner) => {
-        const firstDeath = wave.find(({ unit }) => unit?.owner === owner && !unit.temporaryFloodToken);
-        if (firstDeath) triggerFuneralPyre(state, firstDeath.index, owner, { ...options, waveId, lane: Number.isInteger(options.lane) ? options.lane : firstDeath.index % 3 });
-      });
-    }
+    wave.forEach(({ index, unit }) => {
+      if (!unit || unit.temporaryFloodToken) return;
+      triggerAdjacentRotcallers(state, index, unit.owner, { ...options, waveId, lane: Number.isInteger(options.lane) ? options.lane : index % 3 });
+    });
+    const owners = [...new Set(wave.filter(({ unit }) => unit && !unit.temporaryFloodToken).map(({ unit }) => unit.owner))];
+    owners.forEach((owner) => {
+      const firstDeath = wave.find(({ unit }) => unit?.owner === owner && !unit.temporaryFloodToken);
+      if (firstDeath) triggerFuneralPyre(state, firstDeath.index, owner, { ...options, waveId, lane: Number.isInteger(options.lane) ? options.lane : firstDeath.index % 3 });
+    });
 
     pendingIndexes = getStableDeathWaveIndexes(DEATH_WAVE_BOARD_ORDER);
+  }
+  if (!state.preserveRawHeroHPUntilCombatFinalization) {
+    clampHeroHpAndResolveWinner(state);
   }
 }
 
