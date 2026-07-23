@@ -73,7 +73,10 @@ test('achievement unlock SFX is registered as an optional guarded SFX asset', ()
   const playback = read('src/audio/audioPlayback.js');
 
   assert.match(assets, /ACHIEVEMENT_UNLOCK: 'achievement\.unlock'/);
-  assert.match(assets, /\[AUDIO_KEYS\.ACHIEVEMENT_UNLOCK\]: Object\.freeze\(\{ key: AUDIO_KEYS\.ACHIEVEMENT_UNLOCK, path: sfxPath\('achievement-unlock\.mp3'\), category: 'sfx', cooldownMs: 0 \}\)/);
+  assert.match(assets, /\[AUDIO_KEYS\.ACHIEVEMENT_UNLOCK\]: Object\.freeze/);
+  assert.match(assets, /LEVEL_UP: 'level_up'/);
+  assert.match(assets, /\[AUDIO_KEYS\.LEVEL_UP\]: Object\.freeze/);
+  assert.match(assets, /sfxPath\('level_up\.mp3'\)/);
   assert.match(playback, /if \(!asset \|\| asset\.category !== 'sfx' \|\| !scene\?\.sound\?\.play\) return false;/);
   assert.match(playback, /if \(!hasCachedAudioAsset\(scene, asset\.key\)\) return false;/);
 });

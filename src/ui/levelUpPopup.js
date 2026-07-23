@@ -1,33 +1,66 @@
+import { AUDIO_KEYS } from '../audio/audioAssets.js';
+import { playSfx } from '../audio/audioPlayback.js';
 import { translate } from '../localization/localeService.js';
-import { ACHIEVEMENT_UNLOCK_POPUP_ENTRANCE_OFFSET, ACHIEVEMENT_UNLOCK_POPUP_TIMING, calculateAchievementUnlockPopupLayout } from './achievementUnlockPopup.js';
+import { calculateAchievementUnlockPopupLayout } from './achievementUnlockPopup.js';
 
 export const LEVEL_UP_POPUP_TIMING = Object.freeze({
-  ...ACHIEVEMENT_UNLOCK_POPUP_TIMING,
-  visibleMs: 2650,
+  initialDelayMs: 0,
+  entryMs: 480,
+  visibleMs: 1300,
+  exitMs: 320,
 });
 
-const LEVEL_LABEL_FALLBACK = Object.freeze({ en: 'LEVEL', pl: 'POZIOM' });
+const LEVEL_UP_LABEL_FALLBACK = Object.freeze({ en: 'LEVEL UP', pl: 'AWANS' });
+const LEVEL_UP_SFX_SOURCE = 'level-up-popup';
 
 function normalizeLevel(value, fallback = 1) {
   return Number.isFinite(value) ? Math.max(1, Math.floor(value)) : fallback;
 }
 
+function invokeOnce(callback) {
+  let invoked = false;
+  return (...args) => {
+    if (invoked) return;
+    invoked = true;
+    callback?.(...args);
+  };
+}
+
 export function getLevelUpPopupViewModel({ previousLevel = 1, newLevel = 1, locale = 'en' } = {}) {
   const safePreviousLevel = normalizeLevel(previousLevel, 1);
   const safeNewLevel = normalizeLevel(newLevel, safePreviousLevel);
-  const label = translate('ui.achievements.progression.level', locale, LEVEL_LABEL_FALLBACK[locale] ?? LEVEL_LABEL_FALLBACK.en);
+  const label = translate('ui.achievements.progression.levelUp', locale, LEVEL_UP_LABEL_FALLBACK[locale] ?? LEVEL_UP_LABEL_FALLBACK.en);
   return {
     previousLevel: safePreviousLevel,
     newLevel: safeNewLevel,
     label,
-    transitionText: `${label} ${safePreviousLevel} → ${safeNewLevel}`,
+    finalLevelText: `${safeNewLevel}`,
+    transitionText: `${safePreviousLevel} → ${safeNewLevel}`,
+  };
+}
+
+export function calculateLevelUpPopupLayout(scene, modal, sourceLayout = null) {
+  const base = sourceLayout ?? calculateAchievementUnlockPopupLayout(scene, modal);
+  const width = Math.max(276, Math.min(base.width * 0.92, 390));
+  const height = Math.max(118, Math.min(base.height + 38, 142));
+  const gameHeight = scene?.scale?.gameSize?.height ?? 720;
+  const bottomSafeGap = Number.isFinite(base.bottomSafeGap) ? base.bottomSafeGap : 18;
+  const y = Math.min(base.y, gameHeight - bottomSafeGap - height * 0.5);
+  return {
+    ...base,
+    x: base.x,
+    y,
+    width,
+    height,
+    radius: Math.max(16, Math.min(22, height * 0.16)),
+    entranceOffset: 0,
   };
 }
 
 export function createLevelUpPopup(scene, options = {}) {
   const timing = { ...LEVEL_UP_POPUP_TIMING, ...(options.timing ?? {}) };
   const resolvedBaseDepth = Number.isFinite(options.baseDepth) ? options.baseDepth : 926;
-  const layout = options.layout ?? calculateAchievementUnlockPopupLayout(scene, options.modal);
+  const layout = calculateLevelUpPopupLayout(scene, options.modal, options.layout);
   const view = getLevelUpPopupViewModel(options);
   const items = [];
   const tweens = [];
@@ -37,41 +70,68 @@ export function createLevelUpPopup(scene, options = {}) {
 
   const x = layout.x - layout.width * 0.5;
   const y = layout.y - layout.height * 0.5;
-  const addItem = (item) => { items.push(item); return item; };
+  const cx = layout.x;
+  const cy = layout.y;
+  const addItem = (item, role) => {
+    if (role) item.levelUpRole = role;
+    items.push(item);
+    return item;
+  };
 
-  const glow = addItem(scene.add.graphics().setDepth(resolvedBaseDepth).setPosition(layout.x, layout.y));
-  glow.setBlendMode?.('ADD');
-  for (let i = 12; i >= 1; i -= 1) {
-    const p = i / 12;
-    glow.fillStyle(i % 3 === 0 ? 0xffffff : 0xfacc15, 0.018 + (1 - p) * 0.05);
-    glow.fillEllipse(0, 0, layout.width * (0.88 + p * 0.42), layout.height * (0.78 + p * 0.9));
+  const aura = addItem(scene.add.graphics().setDepth(resolvedBaseDepth).setPosition(cx, cy), 'broadcast-aura');
+  aura.setBlendMode?.('ADD');
+  for (let i = 10; i >= 1; i -= 1) {
+    const p = i / 10;
+    aura.fillStyle(i % 2 === 0 ? 0x7c3aed : 0x38bdf8, 0.012 + (1 - p) * 0.035);
+    aura.fillEllipse(0, 0, layout.width * (0.44 + p * 0.54), layout.height * (0.36 + p * 0.55));
   }
 
-  const bg = addItem(scene.add.graphics().setDepth(resolvedBaseDepth + 1));
-  bg.fillStyle(0x020817, 0.95); bg.fillRoundedRect(x, y, layout.width, layout.height, layout.radius);
-  bg.fillStyle(0xfacc15, 0.2); bg.fillRoundedRect(x + 3, y + 3, layout.width - 6, layout.height - 6, layout.radius - 2);
-  bg.fillStyle(0x111827, 0.9); bg.fillRoundedRect(x + 8, y + 8, layout.width - 16, layout.height - 16, layout.radius - 4);
-  bg.fillStyle(0xfacc15, 0.9); bg.fillRoundedRect(x + 14, y + 7, layout.width - 28, 6, 2);
-  bg.lineStyle(2.6, 0xfacc15, 0.96); bg.strokeRoundedRect(x, y, layout.width, layout.height, layout.radius);
-  bg.lineStyle(1.1, 0xfef3c7, 0.38); bg.strokeRoundedRect(x + 5, y + 5, layout.width - 10, layout.height - 10, layout.radius - 3);
+  const centerPoint = addItem(scene.add.graphics().setDepth(resolvedBaseDepth + 5).setPosition(cx, cy), 'center-point');
+  centerPoint.setBlendMode?.('ADD');
+  centerPoint.fillStyle(0xfef3c7, 0.98).fillEllipse(0, 0, 10, 10);
+  centerPoint.fillStyle(0xf59e0b, 0.42).fillEllipse(0, 0, 24, 24);
 
-  addItem(scene.add.text(layout.x, y + layout.height * 0.5, view.transitionText, {
-    fontFamily: 'Arial, sans-serif',
-    fontSize: layout.width < 330 ? '22px' : '25px',
-    color: '#fef3c7',
-    fontStyle: 'bold',
-    align: 'center',
-    fixedWidth: layout.width - 32,
-  }).setOrigin(0.5).setDepth(resolvedBaseDepth + 2));
+  const streak = addItem(scene.add.graphics().setDepth(resolvedBaseDepth + 4).setPosition(cx, cy), 'horizontal-streak');
+  streak.setBlendMode?.('ADD');
+  streak.fillStyle(0xfef3c7, 0.9).fillRoundedRect(-layout.width * 0.34, -2, layout.width * 0.68, 4, 2);
+  streak.fillStyle(0x60a5fa, 0.22).fillRoundedRect(-layout.width * 0.43, -8, layout.width * 0.86, 16, 8);
 
-  addItem(scene.add.text(layout.x, y + layout.height - 18, '◆', {
-    fontFamily: 'Arial, sans-serif',
-    fontSize: '13px',
-    color: '#facc15',
-    align: 'center',
-  }).setOrigin(0.5).setDepth(resolvedBaseDepth + 2));
+  const frame = addItem(scene.add.graphics().setDepth(resolvedBaseDepth + 2), 'premium-frame');
+  frame.fillStyle(0x071225, 0.96).fillRoundedRect(x, y, layout.width, layout.height, layout.radius);
+  frame.lineStyle(3, 0x0f2a4d, 0.96).strokeRoundedRect(x + 1, y + 1, layout.width - 2, layout.height - 2, layout.radius);
+  frame.lineStyle(1.6, 0xf6c453, 0.68).strokeRoundedRect(x + 5, y + 5, layout.width - 10, layout.height - 10, layout.radius - 4);
+  frame.lineStyle(1, 0x93c5fd, 0.22).strokeRoundedRect(x + 11, y + 11, layout.width - 22, layout.height - 22, layout.radius - 8);
+  frame.fillStyle(0xf6c453, 0.78).fillRoundedRect(cx - layout.width * 0.21, y + 5, layout.width * 0.42, 3, 1.5);
+  frame.fillStyle(0x60a5fa, 0.16).fillRoundedRect(cx - layout.width * 0.36, cy - 1, layout.width * 0.72, 2, 1);
+
+  const glass = addItem(scene.add.graphics().setDepth(resolvedBaseDepth + 1), 'dark-glass');
+  glass.fillStyle(0x020817, 0.88).fillRoundedRect(x + 10, y + 10, layout.width - 20, layout.height - 20, layout.radius - 8);
+  glass.fillStyle(0x172554, 0.28).fillRoundedRect(x + 14, y + 15, layout.width - 28, layout.height * 0.34, layout.radius - 10);
+  glass.fillStyle(0xffffff, 0.08).fillRoundedRect(x + 24, y + 18, layout.width - 48, 12, 6);
+  glass.fillStyle(0xf59e0b, 0.08).fillEllipse(cx, cy + 8, layout.width * 0.46, layout.height * 0.56);
+
+  const labelText = addItem(scene.add.text(cx, y + 28, view.label, {
+    fontFamily: 'Arial, sans-serif', fontSize: layout.width < 320 ? '15px' : '17px', color: '#c7d2fe', fontStyle: 'bold', align: 'center', fixedWidth: layout.width - 40,
+  }).setOrigin(0.5).setDepth(resolvedBaseDepth + 6), 'label');
+  const finalText = addItem(scene.add.text(cx, cy + 6, view.finalLevelText, {
+    fontFamily: 'Arial Black, Arial, sans-serif', fontSize: layout.width < 320 ? '54px' : '62px', color: '#fff7cc', stroke: '#8a4f0f', strokeThickness: 3, fontStyle: 'bold', align: 'center', fixedWidth: layout.width - 48,
+  }).setOrigin(0.5).setDepth(resolvedBaseDepth + 7), 'final-level');
+  finalText.setShadow?.(0, 0, '#f6c453', 10, true, true);
+  const transitionText = addItem(scene.add.text(cx, y + layout.height - 24, view.transitionText, {
+    fontFamily: 'Arial, sans-serif', fontSize: '18px', color: '#fde68a', fontStyle: 'bold', align: 'center', fixedWidth: layout.width - 46,
+  }).setOrigin(0.5).setDepth(resolvedBaseDepth + 6), 'transition');
+
+  const shimmer = addItem(scene.add.graphics().setDepth(resolvedBaseDepth + 8).setPosition(cx - layout.width * 0.42, cy), 'gold-shimmer');
+  shimmer.setBlendMode?.('ADD');
+  shimmer.fillStyle(0xfef3c7, 0.34).fillRoundedRect(-8, -layout.height * 0.34, 16, layout.height * 0.68, 8);
 
   items.forEach((item) => item?.setAlpha?.(0));
+  frame.scaleX = 0.05;
+  glass.scaleY = 0.18;
+  centerPoint.scaleX = centerPoint.scaleY = 0.35;
+  streak.scaleX = 0.1;
+  shimmer.scaleX = 0.4;
+
   const killTweens = () => items.forEach((item) => scene.tweens?.killTweensOf?.(item));
   const destroy = () => {
     if (destroyed) return;
@@ -82,22 +142,33 @@ export function createLevelUpPopup(scene, options = {}) {
     items.splice(0).forEach((item) => { item?.removeAllListeners?.(); item?.destroy?.(); });
   };
   const play = ({ onExitStart, onComplete } = {}) => {
-    const travel = Number.isFinite(layout.entranceOffset) ? layout.entranceOffset : ACHIEVEMENT_UNLOCK_POPUP_ENTRANCE_OFFSET;
-    items.forEach((item) => { if (Number.isFinite(item?.y)) item.y += travel; });
-    const entryTween = scene.tweens.add({ targets: items, alpha: 1, y: `-=${travel}`, duration: timing.entryMs, ease: 'Sine.easeOut' });
-    tweens.push(entryTween);
+    if (destroyed) return;
+    playSfx(scene, AUDIO_KEYS.LEVEL_UP, { source: LEVEL_UP_SFX_SOURCE, cooldownMs: 0 });
+    const finish = invokeOnce(() => { complete = true; destroy(); onComplete?.(); });
+    const exitStart = invokeOnce(() => onExitStart?.());
+    const addTween = (config) => { const tween = scene.tweens.add(config); tweens.push(tween); return tween; };
+    addTween({ targets: centerPoint, alpha: 1, scaleX: 1, scaleY: 1, duration: 90, ease: 'Sine.easeOut' });
+    addTween({ targets: streak, alpha: 1, scaleX: 1, duration: 170, delay: 70, ease: 'Sine.easeOut' });
+    addTween({ targets: frame, alpha: 1, scaleX: 1, duration: 210, delay: 160, ease: 'Cubic.easeOut' });
+    addTween({ targets: [glass, aura], alpha: 1, scaleY: 1, duration: 220, delay: 240, ease: 'Sine.easeOut' });
+    addTween({ targets: labelText, alpha: 1, duration: 150, delay: 330, ease: 'Sine.easeOut' });
+    addTween({ targets: finalText, alpha: 1, scaleX: 1.035, scaleY: 1.035, duration: 170, delay: 430, ease: 'Back.easeOut' });
+    addTween({ targets: finalText, scaleX: 1, scaleY: 1, duration: 160, delay: 600, ease: 'Sine.easeInOut' });
+    addTween({ targets: transitionText, alpha: 1, duration: 140, delay: 520, ease: 'Sine.easeOut' });
+    addTween({ targets: shimmer, alpha: 1, x: cx + layout.width * 0.42, duration: 360, delay: 610, ease: 'Sine.easeInOut' });
+
     const visibleTimer = scene.time.delayedCall(timing.entryMs + timing.visibleMs, () => {
       if (destroyed) return;
-      onExitStart?.();
-      const exitTween = scene.tweens.add({
-        targets: items,
-        alpha: 0,
-        y: `+=${Math.max(4, Math.min(8, layout.height * 0.07))}`,
-        duration: timing.exitMs,
-        ease: 'Sine.easeInOut',
-        onComplete: () => { complete = true; destroy(); onComplete?.(); },
+      exitStart();
+      addTween({
+        targets: [labelText, finalText, transitionText, glass, aura, shimmer], alpha: 0, duration: timing.exitMs * 0.72, ease: 'Sine.easeInOut',
       });
-      tweens.push(exitTween);
+      addTween({
+        targets: frame, alpha: 0, scaleX: 0.08, duration: timing.exitMs, ease: 'Sine.easeInOut',
+      });
+      addTween({
+        targets: [streak, centerPoint], alpha: 0, scaleX: 0.18, scaleY: 0.45, duration: timing.exitMs, ease: 'Sine.easeInOut', onComplete: finish,
+      });
     });
     timers.push(visibleTimer);
   };

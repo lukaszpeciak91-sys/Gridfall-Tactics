@@ -75,6 +75,7 @@ test('StartScene menu audio helper excludes battle and progression-only audio', 
     AUDIO_KEYS.UNIT_DEATH,
     AUDIO_KEYS.BASE_BREAK,
     AUDIO_KEYS.ACHIEVEMENT_UNLOCK,
+    AUDIO_KEYS.LEVEL_UP,
   ];
 
   excludedKeys.forEach((key) => assert.equal(MENU_AUDIO_PRELOAD_KEYS.includes(key), false, key));
