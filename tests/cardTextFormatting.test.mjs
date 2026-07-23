@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 
 import { CARD_EFFECT_GAMEPLAY_SYMBOLS, formatCardEffectTextShort } from '../src/localization/cardTextFormatting.js';
 import { formatCardDetailLines } from '../src/rendering/cardRenderModes.js';
@@ -114,7 +115,7 @@ test('polished card text stays within mobile collection and inspect rules panels
     { factionKey: "Attrition Swarm", cardId: "attrition_swarm_infect_1", locale: "en", expectedBody: "Deal 1 to ♟\nOpposed ♙ gains +1 ▲" },
     { factionKey: "Attrition Swarm", cardId: "attrition_swarm_infect_1", locale: "pl", expectedBody: "Zadaj 1 ♟\n♙ naprzeciwko +1 ▲" },
     { factionKey: "Attrition Swarm", cardId: "attrition_swarm_grave_call_1", locale: "en", expectedBody: "Summon a 1/1\nNo ♙: summon up to 2" },
-    { factionKey: "Attrition Swarm", cardId: "attrition_swarm_grave_call_1", locale: "pl", expectedBody: "Przywołaj 1/1\nBrak ♙: przywołaj do 2" },
+    { factionKey: "Attrition Swarm", cardId: "attrition_swarm_grave_call_1", locale: "pl", expectedBody: "Przywołaj 1/1\nBrak ♙ przywołaj do 2" },
     { factionKey: "Attrition Swarm", cardId: "attrition_swarm_rise_again_1", locale: "en", expectedBody: "Revive the newest Fallen ♙ with 1 ● in a chosen free slot" },
     { factionKey: "Attrition Swarm", cardId: "attrition_swarm_rise_again_1", locale: "pl", expectedBody: "Przywróć najnowszą poległą ♙ z 1 ● na wybranym polu" },
     { factionKey: "Control", cardId: "control_sniper_1", locale: "en", expectedBody: "Attacks the lowest-● ♟\nTies: highest ▲" },
@@ -434,7 +435,7 @@ test('inline effect icon typography uses glyph-sized symbols, centered baseline,
   assert.equal(INLINE_ATTACK_ICON_OPTICAL_OFFSET_X, -1);
   assert.equal(INLINE_GAMEPLAY_ICON_BASELINE_OFFSET_RATIO, -0.06);
   assert.equal(INLINE_GAMEPLAY_ICON_LEADING_SPACE_SCALE, 1);
-  assert.equal(INLINE_GAMEPLAY_ICON_TRAILING_SPACE_SCALE, 1);
+  assert.equal(INLINE_GAMEPLAY_ICON_TRAILING_SPACE_SCALE, 1.15);
 
   const lines = layoutInlineStatText('+1 ▲ until combat', {
     maxWidth: 100,
@@ -455,7 +456,7 @@ test('inline gameplay icons keep natural leading spacing and normalized trailing
   assert.equal(allyLine.segments[1].text, '♙');
   assert.equal(allyLine.segments[1].x, 80);
   assert.equal(allyLine.segments[2].text, 'z');
-  assert.equal(allyLine.segments[2].x, 100);
+  assert.equal(allyLine.segments[2].x, 102);
   assert.deepEqual(enemyLine.segments, allyLine.segments.map((segment) => ({
     ...segment,
     text: segment.text === '♙' ? '♟' : segment.text,
@@ -475,10 +476,15 @@ test('inline icon layout applies word spacing and compact stat-number spacing ac
   };
 
   assert.equal(gapBetween(line('Atakuje ♟ z').at(0).segments, 'Atakuje', '♟'), 10);
-  assert.equal(gapBetween(line('Atakuje ♙ text').at(0).segments, '♙', 'text'), 10);
-  assert.equal(gapBetween(line('Atakuje ♙♙ text').at(0).segments, '♙♙', 'text'), 10);
-  assert.equal(gapBetween(line('Atakuje ♟ text').at(0).segments, '♟', 'text'), 10);
-  assert.equal(gapBetween(line('Atakuje ♟♟ text').at(0).segments, '♟♟', 'text'), 10);
+  const gameplayTrailingCases = [
+    ['Atakuje ♙ text', '♙', 'text'],
+    ['Atakuje ♙♙ text', '♙♙', 'text'],
+    ['Atakuje ♟ text', '♟', 'text'],
+    ['Atakuje ♟♟ text', '♟♟', 'text'],
+  ];
+  for (const [text, icon, next] of gameplayTrailingCases) {
+    assert.equal(gapBetween(line(text).at(0).segments, icon, next), 12, `${icon} trailing spacing uses 1.15 scale`);
+  }
   assert.equal(gapBetween(line('word ▲ next').at(0).segments, 'word', '▲'), 10);
   assert.equal(gapBetween(line('word ▲ next').at(0).segments, '▲', 'next'), 10);
   assert.equal(gapBetween(line('+1 ▲ next').at(0).segments, '+1', '▲'), 4);
@@ -494,9 +500,9 @@ test('inline icon layout applies word spacing and compact stat-number spacing ac
   const consecutive = line('A ♙ B ♟ C').at(0).segments;
   assert.deepEqual(consecutive.map((segment) => segment.text), ['A', '♙', 'B', '♟', 'C']);
   assert.equal(gapBetween(consecutive, 'A', '♙'), 10);
-  assert.equal(gapBetween(consecutive, '♙', 'B'), 10);
+  assert.equal(gapBetween(consecutive, '♙', 'B'), 12);
   assert.equal(gapBetween(consecutive, 'B', '♟'), 10);
-  assert.equal(gapBetween(consecutive, '♟', 'C'), 10);
+  assert.equal(gapBetween(consecutive, '♟', 'C'), 12);
 });
 
 
@@ -523,12 +529,20 @@ test('gameplay icon trailing spacing is normalized for validation card patterns 
     assert.notEqual(iconIndex, -1, `${cardId} renders ${icon}`);
     const nextSegment = segments[iconIndex + 1];
     assert.equal(nextSegment?.text, next, `${cardId} next text after icon`);
-    assert.equal(nextSegment.x - (segments[iconIndex].x + segments[iconIndex].width), 10, `${cardId} normalized icon trailing gap`);
+    assert.equal(nextSegment.x - (segments[iconIndex].x + segments[iconIndex].width), 12, `${cardId} normalized icon trailing gap`);
 
     const markerPattern = /\[(?:ALLY|ALLIES|ENEMY|ENEMIES)\]\s{2,}/u;
     if (markerPattern.test(sourceCard.textShort ?? '')) cardsWithPaddedMarkers.push(cardId);
   }
   assert.deepEqual(cardsWithPaddedMarkers, []);
+});
+
+
+test('Wezwanie Grobu Polish source copy has no colon after the ally icon marker', () => {
+  const pl = JSON.parse(readFileSync(new URL('../src/localization/translations/pl.json', import.meta.url), 'utf8'));
+  const graveCallText = pl.cards.attrition_swarm_grave_call_1.textShort;
+  assert.equal(graveCallText, 'Przywołaj 1/1\nBrak [ALLY] przywołaj do 2');
+  assert.doesNotMatch(graveCallText, /\[ALLY\]:/u);
 });
 
 test('inline ATK icon renderer applies only a subtle visual optical x-offset', () => {
