@@ -1,5 +1,6 @@
-import { getActiveLocale } from '../localization/localeService.js';
+import { getActiveLocale, translate } from '../localization/localeService.js';
 import { ACHIEVEMENT_CATEGORY_GROUPS, normalizeAchievementDifficulty } from '../systems/achievements.js';
+import { getAchievementDefinitionPointValue } from '../systems/achievementProgression.js';
 
 export const ACHIEVEMENT_UNLOCK_POPUP_TIMING = Object.freeze({
   initialDelayMs: 420,
@@ -11,6 +12,7 @@ export const ACHIEVEMENT_UNLOCK_POPUP_TIMING = Object.freeze({
 
 
 const BADGE_TEXT = Object.freeze({ en: 'UNLOCKED', pl: 'ODBLOKOWANE' });
+const POINT_SUFFIX_FALLBACK = Object.freeze({ en: 'PTS', pl: 'PKT' });
 export const ACHIEVEMENT_UNLOCK_POPUP_ENTRANCE_OFFSET = 22;
 
 const ACHIEVEMENT_UNLOCK_POPUP_HEIGHT = 94;
@@ -69,6 +71,8 @@ export function getAchievementUnlockPopupViewModel(definition, { index = 1, tota
   const safeIndex = Math.max(1, Math.floor(index));
   const safeTotal = Math.max(safeIndex, Math.floor(total));
   const difficulty = normalizeAchievementDifficulty(definition?.difficulty);
+  const points = getAchievementDefinitionPointValue(definition);
+  const pointSuffix = translate('ui.achievements.progression.pointsAbbreviation', locale, POINT_SUFFIX_FALLBACK[locale] ?? POINT_SUFFIX_FALLBACK.en);
   return {
     id: typeof definition?.id === 'string' ? definition.id : '',
     title: resolveLocaleText(definition, 'title', locale),
@@ -76,6 +80,8 @@ export function getAchievementUnlockPopupViewModel(definition, { index = 1, tota
     badge: BADGE_TEXT[locale] ?? BADGE_TEXT.en,
     stars: '★'.repeat(difficulty),
     queuePosition: `${safeIndex} / ${safeTotal}`,
+    pointLabel: Number.isFinite(points) && points > 0 ? `+${points} ${pointSuffix}` : '',
+    points,
     difficulty,
   };
 }
@@ -179,6 +185,11 @@ export function createAchievementUnlockPopup(scene, definition, options = {}) {
   addItem(scene.add.text(x + layout.width - 15, y + 15, view.stars, {
     fontFamily: 'Arial, sans-serif', fontSize: '15px', color: theme.starColor, fontStyle: 'bold', align: 'right', fixedWidth: 68,
   }).setOrigin(1, 0).setDepth(resolvedBaseDepth + 2));
+  if (view.pointLabel) {
+    addItem(scene.add.text(x + layout.width - 16, y + layout.height - 56, view.pointLabel, {
+      fontFamily: 'Arial, sans-serif', fontSize: layout.width < 330 ? '13px' : '14px', color: theme.badgeColor, fontStyle: 'bold', align: 'right', fixedWidth: 82,
+    }).setOrigin(1, 0.5).setDepth(resolvedBaseDepth + 2));
+  }
   addItem(scene.add.text(x + 15, y + titleLayout.descriptionY, view.description, {
     fontFamily: 'Arial, sans-serif', fontSize: '13px', color: theme.descriptionColor, wordWrap: { width: layout.width - 126 }, maxLines: 2,
   }).setDepth(resolvedBaseDepth + 2));

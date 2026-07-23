@@ -16,6 +16,7 @@ import { calculateBattleLayoutMetrics } from '../ui/battleLayout.js';
 import { calculateHandCardFocusBounds, calculateTutorialBannerLayout, getLiveHandCardViewById } from '../ui/tutorialUxLayout.js';
 import { calculateHandBackCardCoverCrop, calculateHandBackCardDepth, shouldRenderHandBackCard } from '../ui/handBackCardPresentation.js';
 import { ACHIEVEMENT_UNLOCK_POPUP_TIMING, calculateAchievementUnlockPopupLayout, createAchievementUnlockPopup } from '../ui/achievementUnlockPopup.js';
+import { createLevelUpPopup } from '../ui/levelUpPopup.js';
 import { HAND_CARD_FLIP_REVEAL_DURATION, findHandCardFlipRevealSlots, shouldSkipHandCardFlipReveal, startHandCardFlipReveal } from '../ui/handCardFlipReveal.js';
 import { NAVIGATION_ICON_TYPES, createFloatingControl, createMuteToggleControl, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
 import { createModalBackButton } from '../ui/modalControls.js';
@@ -526,6 +527,7 @@ export default class BattleScene extends Phaser.Scene {
     this.battleStatsTracked = false;
     this.arenaBattlegroundVisitTracked = false;
     this.achievementUnlockPopupController = null;
+    this.pendingAchievementProgressionDelta = null;
     this.achievementUnlockSfxPlayedIds = new Set();
     this.tutorialCompletionTracked = false;
     this.campaignTrophyAssetLoading = false;
@@ -914,6 +916,7 @@ export default class BattleScene extends Phaser.Scene {
     this.battleStatsTracked = false;
     this.arenaBattlegroundVisitTracked = false;
     this.achievementUnlockPopupController = null;
+    this.pendingAchievementProgressionDelta = null;
     this.achievementUnlockSfxPlayedIds = new Set();
     this.battleVisuallyReadyEmitted = false;
     this.arenaCardArtLoadFailures = new Set();
@@ -2602,7 +2605,8 @@ export default class BattleScene extends Phaser.Scene {
         playerFactionKey: updatedCampaign.playerFactionKey,
       });
       savePlayerStats(nextStats);
-      evaluateAndPersistAchievementUnlocks();
+      const achievementResult = evaluateAndPersistAchievementUnlocks();
+      this.captureAchievementPresentationResult(achievementResult);
       return true;
     } catch (error) {
       console.warn('Campaign lifecycle player stats tracking failed; campaign flow will continue.', error);
@@ -2623,7 +2627,8 @@ export default class BattleScene extends Phaser.Scene {
     try {
       const visitResult = recordArenaBattlegroundVisit(loadPlayerStats(), this.battleContext.battlegroundId);
       savePlayerStats(visitResult.stats);
-      evaluateAndPersistAchievementUnlocks();
+      const achievementResult = evaluateAndPersistAchievementUnlocks();
+      this.captureAchievementPresentationResult(achievementResult);
       return true;
     } catch (error) {
       console.warn('Arena battleground visit tracking failed; battle flow will continue.', error);
@@ -2712,7 +2717,8 @@ export default class BattleScene extends Phaser.Scene {
     const tutorialStatsTracked = this.trackTutorialCompletionOnce();
     const battleStatsTracked = this.trackCompletedBattleStatsOnce();
     if (activeBattleTimeTracked || tutorialStatsTracked || battleStatsTracked) {
-      evaluateAndPersistAchievementUnlocks();
+      const achievementResult = evaluateAndPersistAchievementUnlocks();
+      this.captureAchievementPresentationResult(achievementResult);
     }
     const hasLethalTerminalFailure = Boolean(this.getLethalTerminalFailureSides().length);
     if (hasLethalTerminalFailure) {
@@ -3289,6 +3295,21 @@ export default class BattleScene extends Phaser.Scene {
   }
 
 
+  captureAchievementPresentationResult(result) {
+    const achievementIds = Array.isArray(result?.presentation?.achievementIds)
+      ? result.presentation.achievementIds.filter((id) => typeof id === 'string' && id.length > 0)
+      : [];
+    const progression = result?.presentation?.progression;
+    this.pendingAchievementProgressionDelta = achievementIds.length > 0 && progression?.levelIncreased === true
+      ? { achievementIds, progression }
+      : null;
+    return result;
+  }
+
+  clearPendingAchievementProgressionDelta() {
+    this.pendingAchievementProgressionDelta = null;
+  }
+
   destroyAchievementUnlockPopupController() {
     this.achievementUnlockPopupController?.destroy?.();
     this.achievementUnlockPopupController = null;
@@ -3297,6 +3318,7 @@ export default class BattleScene extends Phaser.Scene {
   clearAchievementPopupPresentationBatch() {
     try {
       clearPresentedQueue();
+      this.clearPendingAchievementProgressionDelta();
     } catch (error) {
       console.warn('Achievement presentation batch clear failed; continuing navigation.', error);
     }
@@ -3316,7 +3338,10 @@ export default class BattleScene extends Phaser.Scene {
     this.destroyAchievementUnlockPopupController();
     try {
       const pendingIds = peekAchievementPresentation();
-      if (!pendingIds.length) return;
+      if (!pendingIds.length) {
+        this.clearPendingAchievementProgressionDelta();
+        return;
+      }
       const definitionsById = new Map(getAchievementDefinitions().map((definition) => [definition.id, definition]));
       const batch = pendingIds
         .map((achievementId) => ({ achievementId, definition: definitionsById.get(achievementId) }))
@@ -3326,13 +3351,17 @@ export default class BattleScene extends Phaser.Scene {
           markAchievementPresented(entry.achievementId);
           return false;
         });
-      if (!batch.length) return;
+      if (!batch.length) {
+        this.clearPendingAchievementProgressionDelta();
+        return;
+      }
       const layout = calculateAchievementUnlockPopupLayout(this, this.battleResultModal);
       const popupBaseDepth = this.resultOverlayState?.kind === 'campaign-completion' && this.resultOverlayState.phase === 'interactive'
         ? CAMPAIGN_COMPLETION_ACHIEVEMENT_POPUP_DEPTH
         : undefined;
       let activeIncomingPopup = null;
       let activeOutgoingPopup = null;
+      let activeLevelUpPopup = null;
       let initialDelayTimer = null;
       let destroyed = false;
       let cursor = 0;
@@ -3341,6 +3370,8 @@ export default class BattleScene extends Phaser.Scene {
         activeIncomingPopup = null;
         activeOutgoingPopup?.destroy?.();
         activeOutgoingPopup = null;
+        activeLevelUpPopup?.destroy?.();
+        activeLevelUpPopup = null;
         initialDelayTimer?.remove?.(false);
         initialDelayTimer = null;
       };
@@ -3353,6 +3384,43 @@ export default class BattleScene extends Phaser.Scene {
         getActivePopup: () => activeIncomingPopup ?? activeOutgoingPopup,
         getIncomingPopup: () => activeIncomingPopup,
         getOutgoingPopup: () => activeOutgoingPopup,
+        getLevelUpPopup: () => activeLevelUpPopup,
+        levelUpStarted: false,
+        levelUpCompleted: false,
+      };
+      const validBatchIds = batch.map((entry) => entry.achievementId);
+      const pendingDelta = this.pendingAchievementProgressionDelta;
+      const batchCanShowLevelUp = Boolean(
+        pendingDelta?.progression?.levelIncreased === true
+        && pendingDelta.achievementIds?.length > 0
+        && pendingDelta.achievementIds.every((achievementId) => validBatchIds.includes(achievementId))
+      );
+      if (!batchCanShowLevelUp && pendingDelta) this.clearPendingAchievementProgressionDelta();
+      const finishBatch = () => {
+        this.clearPendingAchievementProgressionDelta();
+        if (this.achievementUnlockPopupController === controller) this.achievementUnlockPopupController = null;
+      };
+      const showLevelUpIfNeeded = () => {
+        if (destroyed || !this.battleResultModalShown || !this.battleResultModal) return finishBatch();
+        if (!batchCanShowLevelUp || controller.levelUpStarted || controller.levelUpCompleted) return finishBatch();
+        controller.levelUpStarted = true;
+        const popup = createLevelUpPopup(this, {
+          previousLevel: pendingDelta.progression.previousLevel,
+          newLevel: pendingDelta.progression.newLevel,
+          locale: getActiveLocale(),
+          layout,
+          modal: this.battleResultModal,
+          baseDepth: popupBaseDepth,
+        });
+        activeLevelUpPopup = popup;
+        popup.play({
+          onComplete: () => {
+            if (destroyed) return;
+            controller.levelUpCompleted = true;
+            if (activeLevelUpPopup === popup) activeLevelUpPopup = null;
+            finishBatch();
+          },
+        });
       };
       const showNext = () => {
         if (destroyed || cursor >= batch.length || !this.battleResultModalShown || !this.battleResultModal) return;
@@ -3381,6 +3449,7 @@ export default class BattleScene extends Phaser.Scene {
             markAchievementPresented(entry.achievementId);
             if (activeOutgoingPopup === popup) activeOutgoingPopup = null;
             if (activeIncomingPopup === popup) activeIncomingPopup = null;
+            if (cursor >= batch.length && !activeIncomingPopup && !activeOutgoingPopup) showLevelUpIfNeeded();
           },
         });
       };
@@ -3434,6 +3503,7 @@ export default class BattleScene extends Phaser.Scene {
       this.resultOverlayState = null;
       this.isFlowResolving = false;
       this.achievementUnlockSfxPlayedIds = new Set();
+      this.clearPendingAchievementProgressionDelta();
       this.updateActionSlotBadge();
       return;
     }
@@ -3460,6 +3530,7 @@ export default class BattleScene extends Phaser.Scene {
     this.battleResultModalPending = false;
     this.resultOverlayState = null;
     this.achievementUnlockSfxPlayedIds = new Set();
+    this.clearPendingAchievementProgressionDelta();
     this.updateActionSlotBadge();
   }
 

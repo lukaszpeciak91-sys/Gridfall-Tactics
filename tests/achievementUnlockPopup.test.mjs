@@ -5,6 +5,7 @@ import {
   ACHIEVEMENT_UNLOCK_POPUP_TIMING,
   calculateAchievementUnlockPopupLayout,
   createAchievementUnlockPopup,
+  getAchievementUnlockPopupTitleLayout,
   getAchievementUnlockPopupViewModel,
 } from '../src/ui/achievementUnlockPopup.js';
 
@@ -163,4 +164,83 @@ test('sequential popups share the same final Y and entrance offset', () => {
   assert.equal(first.layout.y, second.layout.y);
   assert.equal(scene.createdTweens[0].config.y, `-=${ACHIEVEMENT_UNLOCK_POPUP_ENTRANCE_OFFSET}`);
   assert.equal(scene.createdTweens[1].config.y, `-=${ACHIEVEMENT_UNLOCK_POPUP_ENTRANCE_OFFSET}`);
+});
+
+test('popup view model formats localized earned point labels from shared progression values', () => {
+  assert.equal(getAchievementUnlockPopupViewModel({ ...definition, difficulty: 1 }, { locale: 'en' }).pointLabel, '+25 PTS');
+  assert.equal(getAchievementUnlockPopupViewModel({ ...definition, difficulty: 1 }, { locale: 'pl' }).pointLabel, '+25 PKT');
+  assert.equal(getAchievementUnlockPopupViewModel({ ...definition, difficulty: 2 }, { locale: 'en' }).pointLabel, '+50 PTS');
+  assert.equal(getAchievementUnlockPopupViewModel({ ...definition, difficulty: 3 }, { locale: 'pl' }).pointLabel, '+100 PKT');
+  assert.equal(getAchievementUnlockPopupViewModel({ ...definition, difficulty: 4 }, { locale: 'en' }).pointLabel, '+200 PTS');
+  assert.equal(getAchievementUnlockPopupViewModel({ ...definition, difficulty: 4 }, { locale: 'pl' }).pointLabel, '+200 PKT');
+});
+
+test('popup renderer keeps points in the middle of the right metadata rail at narrow width', () => {
+  const scene = createMockScene();
+  scene.scale.gameSize = { width: 360, height: 640 };
+  const longDefinition = {
+    ...definition,
+    difficulty: 4,
+    display: {
+      title: { en: 'Very Long Broadcast Achievement Title', pl: 'Bardzo długi tytuł osiągnięcia' },
+      description: { en: 'Win a match with a long descriptive condition.', pl: 'Wygraj mecz z długim opisowym warunkiem.' },
+    },
+  };
+  const popup = createAchievementUnlockPopup(scene, longDefinition, { index: 3, total: 6, locale: 'pl' });
+  const pointText = scene.created.find((item) => item.text === '+200 PKT');
+  const starsText = scene.created.find((item) => item.text === '★★★★');
+  const counterText = scene.created.find((item) => item.text === '3 / 6');
+  const badgeText = scene.created.find((item) => item.text === 'ODBLOKOWANE');
+  assert.ok(pointText);
+  assert.ok(starsText);
+  assert.ok(counterText);
+  assert.ok(badgeText);
+  assert.equal(pointText.style.fontSize, '13px');
+  assert.equal(counterText.style.fontSize, '11px');
+  assert.ok(starsText.y < pointText.y, 'points should render below the top-right stars');
+  assert.ok(pointText.y < counterText.y, 'points should render above the batch counter');
+  assert.ok(counterText.y < badgeText.y, 'counter should remain above the unlock badge');
+  assert.notEqual(starsText.y, pointText.y, 'points must not share the title/header row');
+  assert.equal(starsText.x, popup.layout.x + popup.layout.width * 0.5 - 15);
+  assert.equal(pointText.x, popup.layout.x + popup.layout.width * 0.5 - 16);
+  assert.equal(counterText.x, popup.layout.x + popup.layout.width * 0.5 - 16);
+  assert.ok(pointText.x <= popup.layout.x + popup.layout.width * 0.5 - 15, 'point reward stays inside the frame');
+  assert.ok(scene.created.every((item) => typeof item.setInteractive !== 'function'));
+});
+
+test('title layout remains the original stars-only content zone with unchanged divider inputs', () => {
+  const layout = { width: 330 };
+  const titleLayout = getAchievementUnlockPopupTitleLayout('First Roar', layout);
+  assert.equal(titleLayout.titleWidth, 208);
+  assert.equal(titleLayout.mode, 'one-line');
+  assert.equal(titleLayout.separatorY, 38);
+  assert.equal(titleLayout.descriptionY, 44);
+  assert.equal('metadataWidth' in titleLayout, false);
+});
+
+test('long two-line titles keep original width and description below the title area', () => {
+  const layout = { width: 280 };
+  const titleLayout = getAchievementUnlockPopupTitleLayout('Bardzo długi tytuł osiągnięcia', layout);
+  assert.equal(titleLayout.titleWidth, 158);
+  assert.equal(titleLayout.mode, 'two-line');
+  assert.equal(titleLayout.maxLines, 2);
+  assert.ok(titleLayout.descriptionY > titleLayout.separatorY);
+});
+
+test('right rail point rewards fit localized larger values without changing popup dimensions', () => {
+  for (const [difficulty, locale, expected] of [
+    [1, 'pl', '+25 PKT'],
+    [3, 'pl', '+100 PKT'],
+    [4, 'pl', '+200 PKT'],
+    [4, 'en', '+200 PTS'],
+  ]) {
+    const scene = createMockScene();
+    scene.scale.gameSize = { width: 360, height: 640 };
+    const popup = createAchievementUnlockPopup(scene, { ...definition, difficulty }, { index: 6, total: 6, locale });
+    const pointText = scene.created.find((item) => item.text === expected);
+    assert.ok(pointText, `${expected} should render`);
+    assert.equal(popup.layout.width, calculateAchievementUnlockPopupLayout(scene).width);
+    assert.equal(popup.layout.height, 94);
+    assert.ok(pointText.style.fixedWidth >= expected.length * 7, `${expected} should fit within the right rail`);
+  }
 });
