@@ -16,6 +16,18 @@ export const START_HERO_LOGO_LAYOUT = {
   maxDisplayHeight: 920,
 };
 
+export const STARTUP_LOADING_VISUAL_LAYOUT = {
+  logoCenterYRatio: START_HERO_LOGO_LAYOUT.centerYRatio,
+  ringDiameter: 34,
+  ringBaseStroke: 1,
+  ringAccentStroke: 1,
+  ringOuterInset: 2,
+  ringInnerInset: 5,
+  logoToRingCenterGap: 25,
+  outerRingDurationMs: 1450,
+  innerRingDurationMs: 2100,
+};
+
 export const MAIN_MENU_FIRST_BUTTON_Y_RATIO = 0.31;
 export const MAIN_MENU_BUTTON_HALF_HEIGHT = 42;
 export const MAIN_MENU_LOGO_LAYOUT = {

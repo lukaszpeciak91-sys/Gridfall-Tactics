@@ -1,6 +1,12 @@
 import Phaser from 'phaser';
 import { preloadImageAsset } from '../rendering/backgroundArt.js';
-import { GRIDFALL_LOGO_ASSET, setMainMenuLogoDisplaySize, createLogoFallbackText } from '../ui/menuLogoLayout.js';
+import {
+  GRIDFALL_LOGO_ASSET,
+  STARTUP_LOADING_VISUAL_LAYOUT,
+  getStartHeroLogoPosition,
+  setStartHeroLogoDisplaySize,
+  createLogoFallbackText,
+} from '../ui/menuLogoLayout.js';
 import {
   SCENE_TRANSITION_VISUALLY_READY_EVENT,
   clearSceneTransitionState,
@@ -36,6 +42,8 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
     this.backdrop = null;
     this.logo = null;
     this.ring = null;
+    this.outerRing = null;
+    this.innerRing = null;
     this.inputBlocker = null;
     this.visibleSince = 0;
     this.hasShown = false;
@@ -53,6 +61,7 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
     this.phaserResumeListener = null;
     this.resizeHandler = null;
     this.ringTween = null;
+    this.innerRingTween = null;
     this.clearRegistryOnCleanup = true;
     this.cleanupReason = null;
     this.waitingFrameOrderListener = null;
@@ -95,35 +104,57 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
     this.backdrop = this.add.rectangle(width / 2, height / 2, width, height, BACKGROUND_COLOR, BACKGROUND_ALPHA);
     this.root.add(this.backdrop);
 
-    const logoY = height * 0.39;
+    const logoPosition = getStartHeroLogoPosition(width, height);
     if (this.textures.exists(GRIDFALL_LOGO_ASSET.key)) {
-      this.logo = this.add.image(width / 2, logoY, GRIDFALL_LOGO_ASSET.key).setOrigin(0.5);
-      setMainMenuLogoDisplaySize(this, this.logo, width, height);
-      this.logo.setScale(this.logo.scaleX * 1.28, this.logo.scaleY * 1.28);
+      this.logo = this.add.image(logoPosition.x, logoPosition.y, GRIDFALL_LOGO_ASSET.key).setOrigin(0.5);
+      setStartHeroLogoDisplaySize(this, this.logo, width, height);
     } else {
-      this.logo = createLogoFallbackText(this, width / 2, logoY, 'ui.start.title', '42px', width * 0.86);
+      this.logo = createLogoFallbackText(this, logoPosition.x, logoPosition.y, 'ui.start.title', '48px', width * 0.9);
     }
     this.root.add(this.logo);
 
-    this.ring = this.createLoadingRing(width / 2, Math.min(height * 0.69, logoY + Math.max(118, height * 0.18)), Math.max(22, Math.min(34, width * 0.07)));
+    this.ring = this.createLoadingRing(width / 2, this.getRingY(logoPosition.y));
     this.root.add(this.ring);
 
   }
 
-  createLoadingRing(x, y, radius) {
-    const ring = this.add.graphics({ x, y });
-    ring.lineStyle(2, 0x93c5fd, 0.2);
-    ring.beginPath();
-    ring.arc(0, 0, radius, 0, Math.PI * 2, false);
-    ring.strokePath();
-    ring.lineStyle(2.4, 0xf8fafc, 0.82);
-    ring.beginPath();
-    ring.arc(0, 0, radius, -Math.PI * 0.45, Math.PI * 0.38, false);
-    ring.strokePath();
-    ring.lineStyle(1.5, 0xfacc15, 0.48);
-    ring.beginPath();
-    ring.arc(0, 0, radius + 5, Math.PI * 0.66, Math.PI * 0.9, false);
-    ring.strokePath();
+  getRingY(logoY) {
+    const logoHalfHeight = this.logo?.displayHeight ? this.logo.displayHeight / 2 : 0;
+    return logoY + logoHalfHeight + STARTUP_LOADING_VISUAL_LAYOUT.logoToRingCenterGap;
+  }
+
+  createLoadingRing(x, y) {
+    const ring = this.add.container(x, y);
+    const radius = STARTUP_LOADING_VISUAL_LAYOUT.ringDiameter / 2;
+
+    const baseRing = this.add.graphics();
+    baseRing.lineStyle(STARTUP_LOADING_VISUAL_LAYOUT.ringBaseStroke, 0x7dd3fc, 0.16);
+    baseRing.beginPath();
+    baseRing.arc(0, 0, radius, 0, Math.PI * 2, false);
+    baseRing.strokePath();
+
+    this.outerRing = this.add.graphics();
+    this.outerRing.lineStyle(STARTUP_LOADING_VISUAL_LAYOUT.ringAccentStroke, 0xf5c65e, 0.86);
+    this.outerRing.beginPath();
+    this.outerRing.arc(0, 0, radius + STARTUP_LOADING_VISUAL_LAYOUT.ringOuterInset, -Math.PI * 0.5, 0, false);
+    this.outerRing.strokePath();
+    this.outerRing.lineStyle(STARTUP_LOADING_VISUAL_LAYOUT.ringAccentStroke, 0xf5c65e, 0.2);
+    this.outerRing.beginPath();
+    this.outerRing.arc(0, 0, radius + STARTUP_LOADING_VISUAL_LAYOUT.ringOuterInset, 0, Math.PI * 0.5, false);
+    this.outerRing.strokePath();
+
+    this.innerRing = this.add.graphics();
+    const innerRadius = radius - STARTUP_LOADING_VISUAL_LAYOUT.ringInnerInset;
+    this.innerRing.lineStyle(STARTUP_LOADING_VISUAL_LAYOUT.ringAccentStroke, 0x7dd3fc, 0.72);
+    this.innerRing.beginPath();
+    this.innerRing.arc(0, 0, innerRadius, Math.PI * 0.5, Math.PI, false);
+    this.innerRing.strokePath();
+    this.innerRing.lineStyle(STARTUP_LOADING_VISUAL_LAYOUT.ringAccentStroke, 0x7dd3fc, 0.16);
+    this.innerRing.beginPath();
+    this.innerRing.arc(0, 0, innerRadius, Math.PI, Math.PI * 1.5, false);
+    this.innerRing.strokePath();
+
+    ring.add([baseRing, this.outerRing, this.innerRing]);
     return ring;
   }
 
@@ -184,8 +215,9 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
   }
 
   startRingTween() {
-    if (this.ringTween || !this.ring) return;
-    this.ringTween = this.tweens.add({ targets: this.ring, rotation: Math.PI * 2, duration: 1250, repeat: -1, ease: 'Linear' });
+    if (this.ringTween || !this.outerRing || !this.innerRing) return;
+    this.ringTween = this.tweens.add({ targets: this.outerRing, rotation: Math.PI * 2, duration: STARTUP_LOADING_VISUAL_LAYOUT.outerRingDurationMs, repeat: -1, ease: 'Linear' });
+    this.innerRingTween = this.tweens.add({ targets: this.innerRing, rotation: -Math.PI * 2, duration: STARTUP_LOADING_VISUAL_LAYOUT.innerRingDurationMs, repeat: -1, ease: 'Linear' });
   }
 
   handleReadyEvent(event = {}) {
@@ -350,13 +382,12 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
     const { width, height } = this.getCurrentSize();
     this.backdrop?.setPosition(width / 2, height / 2)?.setSize(width, height);
     this.inputBlocker?.setPosition(width / 2, height / 2)?.setSize(width, height);
-    const logoY = height * 0.39;
-    this.logo?.setPosition(width / 2, logoY);
+    const logoPosition = getStartHeroLogoPosition(width, height);
+    this.logo?.setPosition(logoPosition.x, logoPosition.y);
     if (this.logo?.type === 'Image') {
-      setMainMenuLogoDisplaySize(this, this.logo, width, height);
-      this.logo.setScale(this.logo.scaleX * 1.28, this.logo.scaleY * 1.28);
+      setStartHeroLogoDisplaySize(this, this.logo, width, height);
     }
-    this.ring?.setPosition(width / 2, Math.min(height * 0.69, logoY + Math.max(118, height * 0.18)));
+    this.ring?.setPosition(width / 2, this.getRingY(logoPosition.y));
   }
 
   installWaitingFrameOrderGuard() {
@@ -411,7 +442,8 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
     this.game?.events?.off?.(Phaser.Core.Events.PAUSE, this.phaserPauseListener);
     this.game?.events?.off?.(Phaser.Core.Events.RESUME, this.phaserResumeListener);
     this.ringTween?.remove?.(); this.ringTween = null;
-    this.tweens?.killTweensOf?.([this.root, this.ring].filter(Boolean));
+    this.innerRingTween?.remove?.(); this.innerRingTween = null;
+    this.tweens?.killTweensOf?.([this.root, this.ring, this.outerRing, this.innerRing].filter(Boolean));
     this.destroyInputBlocker();
     this.root?.destroy?.(true); this.root = null;
     if (this.clearRegistryOnCleanup) clearSceneTransitionState(this.game, this.transitionId);
