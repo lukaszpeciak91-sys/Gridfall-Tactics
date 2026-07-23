@@ -5,6 +5,7 @@ import {
   ACHIEVEMENT_UNLOCK_POPUP_TIMING,
   calculateAchievementUnlockPopupLayout,
   createAchievementUnlockPopup,
+  getAchievementUnlockPopupMetadataLayout,
   getAchievementUnlockPopupTitleLayout,
   getAchievementUnlockPopupViewModel,
 } from '../src/ui/achievementUnlockPopup.js';
@@ -196,7 +197,11 @@ test('popup renderer keeps points in the middle of the right metadata rail at na
   assert.ok(counterText);
   assert.ok(badgeText);
   assert.equal(pointText.style.fontSize, '13px');
-  assert.equal(counterText.style.fontSize, '11px');
+  assert.equal(counterText.style.fontSize, '10.5px');
+  assert.equal(pointText.style.color, '#ffefb0');
+  assert.equal(pointText.style.fontStyle, 'bold');
+  assert.ok(pointText.style.strokeThickness > 0, 'point reward should get a restrained reward stroke/glow');
+  assert.equal(counterText.style.color, '#7f8da3');
   assert.ok(starsText.y < pointText.y, 'points should render below the top-right stars');
   assert.ok(pointText.y < counterText.y, 'points should render above the batch counter');
   assert.ok(counterText.y < badgeText.y, 'counter should remain above the unlock badge');
@@ -206,6 +211,24 @@ test('popup renderer keeps points in the middle of the right metadata rail at na
   assert.equal(counterText.x, popup.layout.x + popup.layout.width * 0.5 - 16);
   assert.ok(pointText.x <= popup.layout.x + popup.layout.width * 0.5 - 15, 'point reward stays inside the frame');
   assert.ok(scene.created.every((item) => typeof item.setInteractive !== 'function'));
+});
+
+
+test('right metadata rail layout preserves ordering and original title reservation', () => {
+  const layout = { width: 280, height: 94 };
+  const titleLayout = getAchievementUnlockPopupTitleLayout('Bardzo długi tytuł osiągnięcia', layout);
+  const metadata = getAchievementUnlockPopupMetadataLayout(layout);
+
+  assert.equal(titleLayout.titleWidth, 158);
+  assert.equal(metadata.stars.y, 15);
+  assert.ok(metadata.stars.y < metadata.points.y, 'stars stay at the top of the rail');
+  assert.ok(metadata.points.y < metadata.counter.y, 'points stay above quieter queue counter');
+  assert.ok(metadata.counter.y < metadata.badge.y, 'queue counter stays above unlock badge');
+  assert.notEqual(metadata.points.y, 12, 'points do not share the title row');
+  assert.equal(metadata.points.fixedWidth, 84);
+  assert.equal(metadata.counter.fixedWidth, 58);
+  assert.ok(Number.parseFloat(metadata.points.fontSize) > Number.parseFloat(metadata.counter.fontSize));
+  assert.ok(metadata.points.strokeThickness > 0);
 });
 
 test('title layout remains the original stars-only content zone with unchanged divider inputs', () => {
@@ -241,6 +264,7 @@ test('right rail point rewards fit localized larger values without changing popu
     assert.ok(pointText, `${expected} should render`);
     assert.equal(popup.layout.width, calculateAchievementUnlockPopupLayout(scene).width);
     assert.equal(popup.layout.height, 94);
+    assert.equal(pointText.style.fixedWidth, 84);
     assert.ok(pointText.style.fixedWidth >= expected.length * 7, `${expected} should fit within the right rail`);
   }
 });
