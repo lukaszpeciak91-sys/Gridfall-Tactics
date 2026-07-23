@@ -12,9 +12,9 @@ The guide is documentation only. It does not define gameplay changes, balance ch
 - Prefer consistency over clever wording.
 - Optimize for mobile readability: short lines, predictable phrases, and minimal visual noise.
 - Card rules text must fit in Collection, Hand, and Inspect views.
-- Card rules do not end with a trailing period. Use punctuation only when needed inside the text; the final character of a card description should not be a period.
+- Active card rules do not end with a trailing period. Use punctuation only when needed inside the text; the final character of an active card description should not be a period. Commas and semicolons should appear only when they are genuinely necessary for meaning or readability; prefer a line break or established short construction when it preserves the same meaning. Trigger colons such as `On play:` and deterministic tie notation such as `Ties:` are allowed structural punctuation.
 - Do not create gameplay changes through wording. If wording and behavior disagree, fix the implementation or data in a dedicated gameplay/content task, not through silent text drift.
-- Card text should describe player-facing behavior, not code internals.
+- Card text should describe player-facing behavior, not code internals. Active repository precedent outranks creative rewriting; choose the closest mechanically analogous active wording before inventing a new phrase.
 
 ## 3. Canonical terms
 
@@ -44,6 +44,7 @@ Avoid these forms in canonical card text.
 
 - `nearby` → use `adjacent`.
 - `friendly` → use `ally`, unless a UI context specifically requires `friendly`.
+- Internal generated-unit names for unnamed summons, such as generated Grunts, in player-facing descriptions → use visible stats such as `1/1` and preserve placement wording such as `here` or `in a chosen free slot`.
 - Vague flavor-only text on vanilla units.
 - Inconsistent verbs. For example, do not alternate between `gets` and `gains` if `gains` is the chosen canonical verb.
 - Implementation-detail wording unless required for gameplay clarity, including:
@@ -79,9 +80,9 @@ Use short, repeatable sentence patterns. These examples are canonical style refe
 
 - `On play: deal 1 to opposed [ENEMY]`
 - `On death: summon 1/1 here`
-- `Combat death:\n-1 [HP] to opposed [ENEMY].`
-- `Adjacent allies gain +1 ARM until combat.`
-- `Target ally gains +1 ARM until combat.`
+- `Combat death:\n-1 [HP] to opposed [ENEMY]`
+- `Adjacent allies gain +1 ARM until combat`
+- `Target ally gains +1 ARM until combat`
 - `If opposed: +1 ATK`
 - `Attackers: -1 ATK`
 
@@ -98,7 +99,7 @@ Current convention:
 - `[ENEMY]` / `[ENEMIES]` must not replace references to the enemy base, enemy player, or UI labels.
 - The enemy/enemies icon is rose-red `#fb7185`, visually distinct from the yellow ally icon.
 - The formatter renders gameplay-icon markers consistently in collection, hand, and inspect card previews through the shared card preview renderer.
-- Treat gameplay and stat icons as words. Use one space before and after unit/stat icons when adjacent text exists, such as `[ALLY] +1 [ATK]`, `-1 [HP] to opposed [ENEMY]`, `Atakuje [ENEMY] z najniższym [HP]`, and `[ENEMY] naprzeciw`.
+- Treat gameplay icons as words. Use one normal word-space before and after unit icons when adjacent text exists, such as `Atakuje [ENEMY] z najniższym [HP]` and `[ENEMY] naprzeciw`. Stat icons also need readable spacing around adjacent prose, while number/stat pairs such as `+1 [ATK]` or `1 [HP]` may render with compact spacing.
 - Do not remove icon-adjacent spaces to save width unless a very specific UI exception is documented.
 - Do not introduce icons for `adjacent`, `combat`, `until combat`, or `on play` yet.
 - Avoid emoji in production UI; use game-consistent glyphs or icons.
@@ -153,7 +154,7 @@ Use these rules when wording is precise but too long:
 - Do not create “icon soup”; keep text readable at card size.
 - If a precise wording overflows, shorten the text while preserving player-understandable meaning.
 - Do not solve text overflow by changing global layout or font size unless the issue is systemic across many cards.
-- Manual line breaks are acceptable only when they protect localized readability or fit in the shared card views.
+- Manual line breaks are acceptable when they protect localized readability, fit in the shared card views, or replace unnecessary sentence punctuation between short rule clauses.
 
 ## 12. MVP scope
 

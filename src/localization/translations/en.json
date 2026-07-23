@@ -26,11 +26,11 @@
     },
     "aggro_rush_1": {
       "name": "Rush",
-      "textShort": "Swap with adjacent [ALLY], then that lane immediately fights"
+      "textShort": "Swap with adjacent [ALLY]\nThat lane immediately fights"
     },
     "aggro_pierce_strike_1": {
       "name": "Pierce Strike",
-      "textShort": "Deal 1 to [ENEMY].\nNext hit ignores [ARM]"
+      "textShort": "Deal 1 to [ENEMY]\nNext hit ignores [ARM]"
     },
     "aggro_adrenaline_1": {
       "name": "Adrenaline",
@@ -38,7 +38,7 @@
     },
     "aggro_quick_fix_1": {
       "name": "Quick Fix",
-      "textShort": "Heal [ALLY] 1. +1 ATK until combat. Kills in combat: draw 1"
+      "textShort": "Heal [ALLY] 1\n+1 ATK until combat\nCombat kill: draw 1"
     },
     "attrition_swarm_husk_1": {
       "name": "Husk",
@@ -46,7 +46,7 @@
     },
     "attrition_swarm_carrier_1": {
       "name": "Carrier",
-      "textShort": "When this dies, summon 1/1 here"
+      "textShort": "When this dies: summon 1/1 here"
     },
     "attrition_swarm_leech_1": {
       "name": "Leech",
@@ -58,7 +58,7 @@
     },
     "attrition_swarm_abomination_1": {
       "name": "Abomination",
-      "textShort": "When this dies, both bases lose 1 HP"
+      "textShort": "When this dies: both bases lose 1 HP"
     },
     "attrition_swarm_funeral_pyre_1": {
       "name": "Funeral Pyre",
@@ -66,7 +66,7 @@
     },
     "attrition_swarm_infect_1": {
       "name": "Rotten Gift",
-      "textShort": "Deal 1 to [ENEMY].\nOpposed [ALLY] gains +1 [ATK]"
+      "textShort": "Deal 1 to [ENEMY]\nOpposed [ALLY] gains +1 [ATK]"
     },
     "attrition_swarm_feast_1": {
       "name": "Feast",
@@ -78,7 +78,7 @@
     },
     "attrition_swarm_grave_call_1": {
       "name": "Grave Call",
-      "textShort": "Summon a 1/1. If you have no [ALLY], summon up to 2"
+      "textShort": "Summon a 1/1\nNo [ALLY]: summon up to 2"
     },
     "control_hacker_1": {
       "name": "Signalegel",
@@ -86,11 +86,11 @@
     },
     "control_disruptor_1": {
       "name": "Störführer",
-      "textShort": "Until combat, opponent cannot play effect cards"
+      "textShort": "Until combat opponent cannot play effect cards"
     },
     "control_sniper_1": {
       "name": "Rotes Auge",
-      "textShort": "Attacks the lowest-HP [ENEMY]. Ties: highest ATK"
+      "textShort": "Attacks the lowest-HP [ENEMY]\nTies: highest ATK"
     },
     "control_controller_1": {
       "name": "Kommandant",
@@ -110,15 +110,15 @@
     },
     "control_pulse_wave_1": {
       "name": "Wunderwaffe",
-      "textShort": "Deal 1 to all [ENEMIES], ignoring ARM"
+      "textShort": "Deal 1 to all [ENEMIES] ignoring ARM"
     },
     "control_system_override_1": {
       "name": "System Override",
-      "textShort": "Selected [ENEMY] attacks its own base, then loses 1 HP"
+      "textShort": "Selected [ENEMY] attacks its own base\nThen loses 1 HP"
     },
     "control_recall_1": {
       "name": "Extraction",
-      "textShort": "Return [ALLY] to hand. Draw 1"
+      "textShort": "Return [ALLY] to hand\nDraw 1"
     },
     "swarm_grunt_1": {
       "name": "Grunt",
@@ -142,7 +142,7 @@
     },
     "swarm_spawn_1": {
       "name": "Spawn",
-      "textShort": "Summon a Grunt in a chosen free slot"
+      "textShort": "Summon a 1/1 in a chosen free slot"
     },
     "swarm_swarm_attack_1": {
       "name": "Swarm Attack",
@@ -154,7 +154,7 @@
     },
     "swarm_flood_1": {
       "name": "Flood",
-      "textShort": "Fill up to 2 empty slots with 1/1s. They vanish after combat"
+      "textShort": "Fill up to 2 empty slots with 1/1s\nVanish after combat"
     },
     "swarm_recycle_1": {
       "name": "Substrate",
@@ -186,7 +186,7 @@
     },
     "tank_stability_1": {
       "name": "Stability",
-      "textShort": "Until combat, [ALLIES] cannot be moved"
+      "textShort": "Until combat [ALLIES] cannot be moved"
     },
     "tank_reinforce_1": {
       "name": "Reinforce",
@@ -194,7 +194,7 @@
     },
     "tank_last_stand_1": {
       "name": "Last Stand",
-      "textShort": "Until combat, [ALLIES] cannot drop below 1 HP"
+      "textShort": "Until combat [ALLIES] cannot drop below 1 HP"
     },
     "tank_repair_kit_1": {
       "name": "Reactive Plating",
@@ -226,7 +226,7 @@
     },
     "wardens_shield_push_1": {
       "name": "Mammoth Stampede",
-      "textShort": "Swap two adjacent [ENEMIES].\n-1 ATK this combat"
+      "textShort": "Swap two adjacent [ENEMIES]\n-1 ATK this combat"
     },
     "wardens_stand_firm_1": {
       "name": "Endure the Cold",
@@ -234,7 +234,7 @@
     },
     "wardens_reinforce_line_1": {
       "name": "Lock the Line",
-      "textShort": "Until combat, [ALLIES] cannot be moved"
+      "textShort": "Until combat [ALLIES] cannot be moved"
     },
     "wardens_hold_the_line_1": {
       "name": "Hold the Ice Pass",
@@ -266,11 +266,11 @@
     },
     "overclock_forced_march_1": {
       "name": "Operational Reroute",
-      "textShort": "Swap with adjacent [ALLY], then that lane immediately fights"
+      "textShort": "Swap with adjacent [ALLY]\nThat lane immediately fights"
     },
     "overclock_crack_strike_1": {
       "name": "Breach Test",
-      "textShort": "Deal 1 to [ENEMY].\nNext hit ignores [ARM]"
+      "textShort": "Deal 1 to [ENEMY]\nNext hit ignores [ARM]"
     },
     "overclock_ignition_1": {
       "name": "Conditioned Reflex",
@@ -278,7 +278,7 @@
     },
     "overclock_mercy_1": {
       "name": "Temper Shift",
-      "textShort": "[ENEMY] -1 ATK; opposed [ALLY] +2 ATK until combat"
+      "textShort": "[ENEMY] -1 ATK\nOpposed [ALLY] +2 ATK until combat"
     }
   },
   "cardTypes": {

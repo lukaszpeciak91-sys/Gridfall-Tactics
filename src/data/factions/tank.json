@@ -86,7 +86,7 @@
       "type": "order",
       "targeting": "all_friendly_units",
       "effectId": "immune_move_disable_this_turn",
-      "textShort": "Until combat, [ALLIES] cannot be moved"
+      "textShort": "Until combat [ALLIES] cannot be moved"
     },
     {
       "id": "tank_reinforce_1",
@@ -106,7 +106,7 @@
       "type": "special",
       "targeting": "all_friendly_units",
       "effectId": "cannot_drop_below_1_this_turn",
-      "textShort": "Until combat, [ALLIES] cannot drop below 1 HP"
+      "textShort": "Until combat [ALLIES] cannot drop below 1 HP"
     },
     {
       "id": "tank_repair_kit_1",

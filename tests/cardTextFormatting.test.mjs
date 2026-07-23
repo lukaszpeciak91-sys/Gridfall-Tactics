@@ -15,8 +15,8 @@ import {
   INLINE_EFFECT_ICON_BASELINE_OFFSET_RATIO,
   INLINE_EFFECT_ICON_MIN_FONT_SIZE,
   INLINE_EFFECT_ICON_STAT_FONT_SCALE,
-  INLINE_STAT_ICON_LEADING_SPACE_SCALE,
-  INLINE_STAT_ICON_TRAILING_SPACE_SCALE,
+  INLINE_STAT_ICON_NUMERIC_SPACE_SCALE,
+  INLINE_STAT_ICON_WORD_SPACE_SCALE,
   INLINE_ATTACK_ICON_OPTICAL_OFFSET_X,
   INLINE_GAMEPLAY_ICON_BASELINE_OFFSET_RATIO,
   INLINE_GAMEPLAY_ICON_SPACE_SCALE,
@@ -72,13 +72,13 @@ test('formats HP-related healing and damage language without replacing unrelated
   assert.equal(formatCardEffectTextShort('Heal all [ALLY] by 1', 'en'), 'Heal all ♙♙ by +1 ●');
   assert.equal(formatCardEffectTextShort('First [ALLY] death each turn:\nenemy base loses 1 HP', 'en'), 'First ♙ death each turn:\nenemy base loses 1 ●');
   assert.equal(formatCardEffectTextShort('Destroy [ALLY]. Draw 1', 'en'), 'Destroy ♙. Draw 1');
-  assert.equal(formatCardEffectTextShort('When this dies, summon 1/1 here', 'en'), 'When this dies, summon 1/1 here');
+  assert.equal(formatCardEffectTextShort('When this dies: summon 1/1 here', 'en'), 'When this dies: summon 1/1 here');
   assert.equal(formatCardEffectTextShort('Gdy ginie, obie bazy otrzymują 1', 'pl'), 'Gdy ginie, obie bazy otrzymują 1 ●');
   assert.equal(formatCardEffectTextShort('Po śmierci: wroga baza otrzymuje 1', 'pl'), 'Po śmierci: wroga baza otrzymuje 1 ●');
   assert.equal(formatCardEffectTextShort('Celowany wróg atakuje własną bazę w następnej walce, potem otrzymuje 1 obrażenie', 'pl'), 'Celowany wróg atakuje własną bazę w następnej walce, potem otrzymuje 1 ●');
   assert.equal(formatCardEffectTextShort('Pierwszy zgon [ALLY] w turze:\nbaza wroga traci 1 HP', 'pl'), 'Pierwszy zgon ♙ w turze:\nbaza wroga traci 1 ●');
   assert.equal(formatCardEffectTextShort('Zniszcz [ALLY]. Dobierz 1', 'pl'), 'Zniszcz ♙. Dobierz 1');
-  assert.equal(formatCardEffectTextShort('Gdy ginie, przywołaj tu 1/1', 'pl'), 'Gdy ginie, przywołaj tu 1/1');
+  assert.equal(formatCardEffectTextShort('Gdy ginie: przywołaj tu 1/1', 'pl'), 'Gdy ginie: przywołaj tu 1/1');
 });
 
 
@@ -88,26 +88,62 @@ test('formats HP symbols for localized Attrition Swarm card effect display text'
 
   assert.equal(getCardDisplayContent(cardById('attrition_swarm_leech_1'), 'en').body, 'On attack: heal your base +1 ●');
   assert.equal(getCardDisplayContent(cardById('attrition_swarm_leech_1'), 'pl').body, 'Przy ataku: ulecz swoją bazę o +1 ●');
-  assert.equal(getCardDisplayContent(cardById('attrition_swarm_abomination_1'), 'en').body, 'When this dies, both bases lose 1 ●');
-  assert.equal(getCardDisplayContent(cardById('attrition_swarm_abomination_1'), 'pl').body, 'Gdy ginie, obie bazy tracą 1 ●');
+  assert.equal(getCardDisplayContent(cardById('attrition_swarm_abomination_1'), 'en').body, 'When this dies: both bases lose 1 ●');
+  assert.equal(getCardDisplayContent(cardById('attrition_swarm_abomination_1'), 'pl').body, 'Gdy ginie: obie bazy tracą 1 ●');
   assert.equal(getCardDisplayContent(cardById('attrition_swarm_funeral_pyre_1'), 'en').body, 'First ♙ death each turn:\nenemy base loses 1 ●');
-  assert.equal(getCardDisplayContent(cardById('attrition_swarm_funeral_pyre_1'), 'pl').body, 'Pierwszy zgon ♙ w turze:\nbaza wroga traci 1 ●');
+  assert.equal(getCardDisplayContent(cardById('attrition_swarm_funeral_pyre_1'), 'pl').body, 'Pierwszy zgon ♙ w turze:\nwroga baza traci 1 ●');
 });
 
 
 
 test('polished card text stays within mobile collection and inspect rules panels', () => {
   const cardCases = [
-    { factionKey: 'Aggro', cardId: 'aggro_pierce_strike_1', locale: 'en', expectedBody: 'Deal 1 to ♟.\nNext hit ignores ◆' },
-    { factionKey: 'Aggro', cardId: 'aggro_pierce_strike_1', locale: 'pl', expectedBody: 'Zadaj 1 ♟.\nNastępny cios ignoruje ◆' },
-    { factionKey: 'Attrition Swarm', cardId: 'attrition_swarm_funeral_pyre_1', locale: 'en', expectedBody: 'First ♙ death each turn:\nenemy base loses 1 ●' },
-    { factionKey: 'Attrition Swarm', cardId: 'attrition_swarm_funeral_pyre_1', locale: 'pl', expectedBody: 'Pierwszy zgon ♙ w turze:\nbaza wroga traci 1 ●' },
-    { factionKey: 'Attrition Swarm', cardId: 'attrition_swarm_infect_1', locale: 'en', expectedBody: 'Deal 1 to ♟.\nOpposed ♙ gains +1 ▲' },
-    { factionKey: 'Attrition Swarm', cardId: 'attrition_swarm_infect_1', locale: 'pl', expectedBody: 'Zadaj 1 ♟.\n♙ naprzeciwko +1 ▲' },
-    { factionKey: 'Tank', cardId: 'tank_stability_1', locale: 'en', expectedBody: "Until combat, ♙♙ cannot be moved" },
-    { factionKey: 'Tank', cardId: 'tank_stability_1', locale: 'pl', expectedBody: 'Do walki ♙♙ nie można przesuwać' },
-    { factionKey: 'Wardens', cardId: 'wardens_shield_push_1', locale: 'en', expectedBody: 'Swap two adjacent ♟♟.\n-1 ▲ this combat' },
-    { factionKey: 'Wardens', cardId: 'wardens_shield_push_1', locale: 'pl', expectedBody: 'Zamień dwóch sąsiednich ♟♟.\n-1 ▲ do walki' },
+    { factionKey: "Aggro", cardId: "aggro_rush_1", locale: "en", expectedBody: "Swap with adjacent ♙\nThat lane immediately fights" },
+    { factionKey: "Aggro", cardId: "aggro_rush_1", locale: "pl", expectedBody: "Zamień z sąsiednim ♙\nTa linia natychmiast walczy" },
+    { factionKey: "Aggro", cardId: "aggro_pierce_strike_1", locale: "en", expectedBody: "Deal 1 to ♟\nNext hit ignores ◆" },
+    { factionKey: "Aggro", cardId: "aggro_pierce_strike_1", locale: "pl", expectedBody: "Zadaj 1 ♟\nNastępny cios ignoruje ◆" },
+    { factionKey: "Aggro", cardId: "aggro_quick_fix_1", locale: "en", expectedBody: "Heal ♙ 1\n+1 ▲ until combat\nCombat kill: draw 1" },
+    { factionKey: "Aggro", cardId: "aggro_quick_fix_1", locale: "pl", expectedBody: "+1 ● i +1 ▲ do walki\nZabije w walce: dobierz 1" },
+    { factionKey: "Attrition Swarm", cardId: "attrition_swarm_carrier_1", locale: "en", expectedBody: "When this dies: summon 1/1 here" },
+    { factionKey: "Attrition Swarm", cardId: "attrition_swarm_carrier_1", locale: "pl", expectedBody: "Gdy ginie: przywołaj tu 1/1" },
+    { factionKey: "Attrition Swarm", cardId: "attrition_swarm_abomination_1", locale: "en", expectedBody: "When this dies: both bases lose 1 ●" },
+    { factionKey: "Attrition Swarm", cardId: "attrition_swarm_abomination_1", locale: "pl", expectedBody: "Gdy ginie: obie bazy tracą 1 ●" },
+    { factionKey: "Attrition Swarm", cardId: "attrition_swarm_funeral_pyre_1", locale: "en", expectedBody: "First ♙ death each turn:\nenemy base loses 1 ●" },
+    { factionKey: "Attrition Swarm", cardId: "attrition_swarm_funeral_pyre_1", locale: "pl", expectedBody: "Pierwszy zgon ♙ w turze:\nwroga baza traci 1 ●" },
+    { factionKey: "Attrition Swarm", cardId: "attrition_swarm_infect_1", locale: "en", expectedBody: "Deal 1 to ♟\nOpposed ♙ gains +1 ▲" },
+    { factionKey: "Attrition Swarm", cardId: "attrition_swarm_infect_1", locale: "pl", expectedBody: "Zadaj 1 ♟\n♙ naprzeciwko +1 ▲" },
+    { factionKey: "Attrition Swarm", cardId: "attrition_swarm_grave_call_1", locale: "en", expectedBody: "Summon a 1/1\nNo ♙: summon up to 2" },
+    { factionKey: "Attrition Swarm", cardId: "attrition_swarm_grave_call_1", locale: "pl", expectedBody: "Przywołaj 1/1\nBrak ♙: przywołaj do 2" },
+    { factionKey: "Attrition Swarm", cardId: "attrition_swarm_rise_again_1", locale: "en", expectedBody: "Revive the newest Fallen ♙ with 1 ● in a chosen free slot" },
+    { factionKey: "Attrition Swarm", cardId: "attrition_swarm_rise_again_1", locale: "pl", expectedBody: "Przywróć najnowszą poległą ♙ z 1 ● na wybranym polu" },
+    { factionKey: "Control", cardId: "control_sniper_1", locale: "en", expectedBody: "Attacks the lowest-● ♟\nTies: highest ▲" },
+    { factionKey: "Control", cardId: "control_sniper_1", locale: "pl", expectedBody: "Atakuje ♟ z najniższym ● i najwyższym ▲" },
+    { factionKey: "Control", cardId: "control_pulse_wave_1", locale: "en", expectedBody: "Deal 1 to all ♟♟ ignoring ◆" },
+    { factionKey: "Control", cardId: "control_pulse_wave_1", locale: "pl", expectedBody: "Zadaj 1 wszystkim ♟♟ ignorując ◆" },
+    { factionKey: "Control", cardId: "control_system_override_1", locale: "en", expectedBody: "Selected ♟ attacks its own base\nThen loses 1 ●" },
+    { factionKey: "Control", cardId: "control_system_override_1", locale: "pl", expectedBody: "Wybrany ♟ atakuje własną bazę\nPotem traci 1 ●" },
+    { factionKey: "Control", cardId: "control_recall_1", locale: "en", expectedBody: "Return ♙ to hand\nDraw 1" },
+    { factionKey: "Control", cardId: "control_recall_1", locale: "pl", expectedBody: "Przywróć ♙ na rękę\nDobierz 1" },
+    { factionKey: "Swarm", cardId: "swarm_spawn_1", locale: "en", expectedBody: "Summon a 1/1 in a chosen free slot" },
+    { factionKey: "Swarm", cardId: "swarm_spawn_1", locale: "pl", expectedBody: "Przywołaj 1/1 na wybranym polu" },
+    { factionKey: "Swarm", cardId: "swarm_regrow_1", locale: "en", expectedBody: "Revive the newest Fallen ♙ with 1 ● in a chosen free slot" },
+    { factionKey: "Swarm", cardId: "swarm_regrow_1", locale: "pl", expectedBody: "Przywróć najnowszą poległą ♙ z 1 ● na wybranym polu" },
+    { factionKey: "Swarm", cardId: "swarm_flood_1", locale: "en", expectedBody: "Fill up to 2 empty slots with 1/1s\nVanish after combat" },
+    { factionKey: "Swarm", cardId: "swarm_flood_1", locale: "pl", expectedBody: "Wypełnij do 2 pustych slotów jednostkami 1/1\nZnikają po walce" },
+    { factionKey: "Tank", cardId: "tank_stability_1", locale: "en", expectedBody: "Until combat ♙♙ cannot be moved" },
+    { factionKey: "Tank", cardId: "tank_stability_1", locale: "pl", expectedBody: "Do walki ♙♙ nie można przesuwać" },
+    { factionKey: "Tank", cardId: "tank_last_stand_1", locale: "en", expectedBody: "Until combat ♙♙ cannot drop below 1 ●" },
+    { factionKey: "Tank", cardId: "tank_last_stand_1", locale: "pl", expectedBody: "Do walki ♙♙ nie mogą spaść poniżej 1 ●" },
+    { factionKey: "Wardens", cardId: "wardens_shield_push_1", locale: "en", expectedBody: "Swap two adjacent ♟♟\n-1 ▲ this combat" },
+    { factionKey: "Wardens", cardId: "wardens_shield_push_1", locale: "pl", expectedBody: "Zamień dwóch sąsiednich ♟♟\n-1 ▲ do walki" },
+    { factionKey: "Wardens", cardId: "wardens_reinforce_line_1", locale: "en", expectedBody: "Until combat ♙♙ cannot be moved" },
+    { factionKey: "Wardens", cardId: "wardens_reinforce_line_1", locale: "pl", expectedBody: "Do walki ♙♙ nie można przesuwać" },
+    { factionKey: "Overclock", cardId: "overclock_forced_march_1", locale: "en", expectedBody: "Swap with adjacent ♙\nThat lane immediately fights" },
+    { factionKey: "Overclock", cardId: "overclock_forced_march_1", locale: "pl", expectedBody: "Zamień z sąsiednim ♙\nTa linia natychmiast walczy" },
+    { factionKey: "Overclock", cardId: "overclock_crack_strike_1", locale: "en", expectedBody: "Deal 1 to ♟\nNext hit ignores ◆" },
+    { factionKey: "Overclock", cardId: "overclock_crack_strike_1", locale: "pl", expectedBody: "Zadaj 1 ♟\nNastępny cios ignoruje ◆" },
+    { factionKey: "Overclock", cardId: "overclock_mercy_1", locale: "en", expectedBody: "♟ -1 ▲\nOpposed ♙ +2 ▲ until combat" },
+    { factionKey: "Overclock", cardId: "overclock_mercy_1", locale: "pl", expectedBody: "♟ -1 ▲\n♙ naprzeciwko +2 ▲ do walki" },
   ];
 
   const measureFits = ({ body, width, height, typographyScale, lineSpacing }) => {
@@ -183,11 +219,11 @@ test('Polish Mercy uses established inline ally, HP, and ATK icons with readable
 
   assert.equal(
     getCardDisplayContent(mercy, 'pl').body,
-    '+1 ●, +1 ▲ do walki.\nZabije: dobierz 1',
+    '+1 ● i +1 ▲ do walki\nZabije w walce: dobierz 1',
   );
   assert.equal(
     getCardDisplayContent(mercy, 'en').body,
-    'Heal ♙ 1. +1 ▲ until combat. Kills in combat: draw 1',
+    'Heal ♙ 1\n+1 ▲ until combat\nCombat kill: draw 1',
   );
 });
 
@@ -200,7 +236,7 @@ test('pilot card display content renders ally icon markers', () => {
 
   assert.equal(getCardDisplayContent(cardById(aggro, 'aggro_full_attack_1'), 'en').body, 'All ♙♙ +2 ▲ until combat');
   assert.equal(getCardDisplayContent(cardById(aggro, 'aggro_scout_1'), 'en').body, "Until opponent\'s next action: no unit in this lane");
-  assert.equal(getCardDisplayContent(cardById(aggro, 'aggro_rush_1'), 'en').body, 'Swap with adjacent ♙, then that lane immediately fights');
+  assert.equal(getCardDisplayContent(cardById(aggro, 'aggro_rush_1'), 'en').body, 'Swap with adjacent ♙\nThat lane immediately fights');
   assert.equal(getCardDisplayContent(cardById(aggro, 'aggro_adrenaline_1'), 'en').body, 'Selected ♙ immediately fights in its lane');
   assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_grunt_1'), 'en').body, '');
   assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_rusher_1'), 'en').body, 'This unit ignores ◆');
@@ -210,22 +246,22 @@ test('pilot card display content renders ally icon markers', () => {
   assert.equal(getCardDisplayContent(cardById(tank, 'tank_repair_kit_1'), 'en').body, 'Target ♙ +1 ◆ until combat');
   assert.equal(getCardDisplayContent(cardById(tank, 'tank_shieldbearer_1'), 'en').body, 'Adjacent ♙♙ +1 ◆ until combat');
   assert.equal(getCardDisplayContent(cardById(tank, 'tank_fortify_1'), 'en').body, 'All ♙♙ +1 ◆ until combat');
-  assert.equal(getCardDisplayContent(cardById(tank, 'tank_stability_1'), 'en').body, "Until combat, ♙♙ cannot be moved");
+  assert.equal(getCardDisplayContent(cardById(tank, 'tank_stability_1'), 'en').body, "Until combat ♙♙ cannot be moved");
   assert.equal(getCardDisplayContent(cardById(tank, 'tank_wall_1'), 'en').body, '');
   assert.equal(getCardDisplayContent(cardById(tank, 'tank_reinforce_1'), 'en').body, 'Heal all ♙♙ by +1 ●');
   assert.equal(getCardDisplayContent(cardById(tank, 'tank_heavy_1'), 'en').body, '');
-  assert.equal(getCardDisplayContent(cardById(control, 'control_recall_1'), 'en').body, 'Return ♙ to hand. Draw 1');
-  assert.equal(getCardDisplayContent(cardById(control, 'control_disruptor_1'), 'en').body, "Until combat, opponent cannot play effect cards");
+  assert.equal(getCardDisplayContent(cardById(control, 'control_recall_1'), 'en').body, 'Return ♙ to hand\nDraw 1');
+  assert.equal(getCardDisplayContent(cardById(control, 'control_disruptor_1'), 'en').body, "Until combat opponent cannot play effect cards");
   assert.equal(getCardDisplayContent(cardById(control, 'control_swap_1'), 'en').body, 'Swap 2 ♙♙ or 2 ♟♟');
-  assert.equal(getCardDisplayContent(cardById(control, 'control_pulse_wave_1'), 'en').body, 'Deal 1 to all ♟♟, ignoring ◆');
+  assert.equal(getCardDisplayContent(cardById(control, 'control_pulse_wave_1'), 'en').body, 'Deal 1 to all ♟♟ ignoring ◆');
   assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_spitter_1'), 'en').body, 'On play: deal 1 to opposed ♟');
   const attritionSwarm = getFactionByKey('Attrition Swarm');
-  assert.equal(getCardDisplayContent(cardById(attritionSwarm, 'attrition_swarm_infect_1'), 'en').body, 'Deal 1 to ♟.\nOpposed ♙ gains +1 ▲');
+  assert.equal(getCardDisplayContent(cardById(attritionSwarm, 'attrition_swarm_infect_1'), 'en').body, 'Deal 1 to ♟\nOpposed ♙ gains +1 ▲');
   const wardens = getFactionByKey('Wardens');
 
   assert.equal(getCardDisplayContent(cardById(aggro, 'aggro_full_attack_1'), 'pl').body, '♙♙ +2 ▲ do walki');
   assert.equal(getCardDisplayContent(cardById(aggro, 'aggro_scout_1'), 'pl').body, 'Do akcji przeciwnika: nie może zagrać jednostki w tej linii');
-  assert.equal(getCardDisplayContent(cardById(aggro, 'aggro_rush_1'), 'pl').body, 'Zamień z sąsiednim ♙, potem ta linia natychmiast walczy');
+  assert.equal(getCardDisplayContent(cardById(aggro, 'aggro_rush_1'), 'pl').body, 'Zamień z sąsiednim ♙\nTa linia natychmiast walczy');
   assert.equal(getCardDisplayContent(cardById(aggro, 'aggro_adrenaline_1'), 'pl').body, 'Wybrany ♙ natychmiast walczy w swojej linii');
   assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_grunt_1'), 'pl').body, '');
   assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_rusher_1'), 'pl').body, 'Ignoruje ◆');
@@ -244,15 +280,15 @@ test('pilot card display content renders ally icon markers', () => {
   assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_stand_firm_1'), 'en').body, "Heal ♙ +1 ●");
   assert.equal(getCardDisplayContent(cardById(control, 'control_disruptor_1'), 'pl').body, 'Do walki przeciwnik nie może zagrać kart efektu');
   assert.equal(getCardDisplayContent(cardById(control, 'control_swap_1'), 'pl').body, 'Zamień miejscami 2 ♙♙ lub 2 ♟♟');
-  assert.equal(getCardDisplayContent(cardById(control, 'control_system_override_1'), 'pl').body, 'Wybrany ♟ atakuje własną bazę, potem traci 1 ●');
-  assert.equal(getCardDisplayContent(cardById(control, 'control_pulse_wave_1'), 'pl').body, 'Zadaj 1 wszystkim ♟♟, ignorując ◆');
+  assert.equal(getCardDisplayContent(cardById(control, 'control_system_override_1'), 'pl').body, 'Wybrany ♟ atakuje własną bazę\nPotem traci 1 ●');
+  assert.equal(getCardDisplayContent(cardById(control, 'control_pulse_wave_1'), 'pl').body, 'Zadaj 1 wszystkim ♟♟ ignorując ◆');
   assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_spitter_1'), 'pl').body, 'Po zagraniu: zadaj 1 ♟ naprzeciw');
   assert.equal(getCardDisplayContent(cardById(attritionSwarm, 'attrition_swarm_rotcaller_1'), 'pl').body, 'Zgon pierwszego sąsiedniego ♙:\n+1 ▲ na stałe');
-  assert.equal(getCardDisplayContent(cardById(attritionSwarm, 'attrition_swarm_infect_1'), 'pl').body, 'Zadaj 1 ♟.\n♙ naprzeciwko +1 ▲');
+  assert.equal(getCardDisplayContent(cardById(attritionSwarm, 'attrition_swarm_infect_1'), 'pl').body, 'Zadaj 1 ♟\n♙ naprzeciwko +1 ▲');
   assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_halberdier_1'), 'pl').body, 'Jeśli naprzeciw: +1 ▲');
   assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_spearwall_1'), 'pl').body, '♟♟ atakujący\nsąsiednich ♙♙: -1 ▲');
   assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_stand_firm_1'), 'pl').body, 'Ulecz ♙ +1 ●');
-  assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_reinforce_line_1'), 'en').body, 'Until combat, ♙♙ cannot be moved');
+  assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_reinforce_line_1'), 'en').body, 'Until combat ♙♙ cannot be moved');
   assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_reinforce_line_1'), 'pl').body, 'Do walki ♙♙ nie można przesuwać');
 });
 
@@ -392,8 +428,8 @@ test('inline effect icon typography uses glyph-sized symbols, centered baseline,
   assert.equal(INLINE_EFFECT_ICON_STAT_FONT_SCALE, 1.38);
   assert.equal(INLINE_EFFECT_ICON_MIN_FONT_SIZE, 15);
   assert.equal(INLINE_EFFECT_ICON_BASELINE_OFFSET_RATIO, -0.16);
-  assert.equal(INLINE_STAT_ICON_LEADING_SPACE_SCALE, 0.4);
-  assert.equal(INLINE_STAT_ICON_TRAILING_SPACE_SCALE, 0.72);
+  assert.equal(INLINE_STAT_ICON_NUMERIC_SPACE_SCALE, 0.4);
+  assert.equal(INLINE_STAT_ICON_WORD_SPACE_SCALE, 1);
   assert.equal(INLINE_ATTACK_ICON_OPTICAL_OFFSET_X, -1);
   assert.equal(INLINE_GAMEPLAY_ICON_BASELINE_OFFSET_RATIO, -0.06);
   assert.equal(INLINE_GAMEPLAY_ICON_SPACE_SCALE, 1);
@@ -406,10 +442,10 @@ test('inline effect icon typography uses glyph-sized symbols, centered baseline,
   assert.equal(lines[0].segments[1].text, '▲');
   assert.equal(lines[0].segments[1].x, 24);
   assert.equal(lines[0].segments[2].text, 'until');
-  assert.equal(lines[0].segments[2].x, 42);
+  assert.equal(lines[0].segments[2].x, 44);
 });
 
-test('inline gameplay icons keep full word spacing while stat icons retain compact spacing', () => {
+test('inline gameplay icons keep full word spacing while stat icons retain compact numeric spacing', () => {
   const measureTokenWidth = (token) => (token === ' ' ? 10 : token.length * 10);
   const allyLine = layoutInlineStatText('Atakuje ♙ z najniższym HP.', { maxWidth: 500, measureTokenWidth })[0];
   const enemyLine = layoutInlineStatText('Atakuje ♟ z najniższym HP.', { maxWidth: 500, measureTokenWidth })[0];
@@ -422,6 +458,40 @@ test('inline gameplay icons keep full word spacing while stat icons retain compa
     ...segment,
     text: segment.text === '♙' ? '♟' : segment.text,
   })));
+});
+
+
+test('inline icon layout applies word spacing and compact stat-number spacing across edge cases', () => {
+  const measureTokenWidth = (token) => (token === ' ' ? 10 : token.length * 10);
+  const line = (text, maxWidth = 500) => layoutInlineStatText(text, { maxWidth, measureTokenWidth });
+  const gapBetween = (segments, leftText, rightText) => {
+    const left = segments.find((segment) => segment.text === leftText);
+    const right = segments.find((segment) => segment.text === rightText);
+    assert.ok(left, `${leftText} segment exists`);
+    assert.ok(right, `${rightText} segment exists`);
+    return right.x - (left.x + left.width);
+  };
+
+  assert.equal(gapBetween(line('Atakuje ♟ z').at(0).segments, 'Atakuje', '♟'), 10);
+  assert.equal(gapBetween(line('Atakuje ♟ z').at(0).segments, '♟', 'z'), 10);
+  assert.equal(gapBetween(line('word ▲ next').at(0).segments, 'word', '▲'), 10);
+  assert.equal(gapBetween(line('word ▲ next').at(0).segments, '▲', 'next'), 10);
+  assert.equal(gapBetween(line('+1 ▲ next').at(0).segments, '+1', '▲'), 4);
+  assert.equal(gapBetween(line('▲ 1 next').at(0).segments, '▲', '1'), 4);
+
+  assert.equal(line('♙ starts').at(0).segments.at(0).x, 0);
+  assert.equal(line('ends ♟').at(0).segments.at(-1).text, '♟');
+
+  const wrapped = line('Alpha ♙ omega', 80);
+  assert.equal(wrapped.length, 2);
+  assert.equal(wrapped.at(1).segments.at(0).text, 'omega');
+
+  const consecutive = line('A ♙ B ♟ C').at(0).segments;
+  assert.deepEqual(consecutive.map((segment) => segment.text), ['A', '♙', 'B', '♟', 'C']);
+  assert.equal(gapBetween(consecutive, 'A', '♙'), 10);
+  assert.equal(gapBetween(consecutive, '♙', 'B'), 10);
+  assert.equal(gapBetween(consecutive, 'B', '♟'), 10);
+  assert.equal(gapBetween(consecutive, '♟', 'C'), 10);
 });
 
 test('inline ATK icon renderer applies only a subtle visual optical x-offset', () => {
@@ -492,7 +562,7 @@ test('inline stat text layout keeps number-stat modifiers compact while giving f
   const statSegment = measuredLine.segments.find((segment) => segment.text === '▲');
   const followingWord = measuredLine.segments.find((segment) => segment.text === 'do');
   assert.equal(statSegment.x, 24);
-  assert.equal(followingWord.x - (statSegment.x + statSegment.width), 8);
+  assert.equal(followingWord.x - (statSegment.x + statSegment.width), 10);
 });
 
 test('inline stat text layout wraps by measured token width and keeps symbols inline', () => {

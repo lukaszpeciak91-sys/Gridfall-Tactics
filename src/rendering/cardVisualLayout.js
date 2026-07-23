@@ -277,8 +277,8 @@ const CARD_STAT_SYMBOL_KEYS = Object.freeze({
 export const INLINE_EFFECT_ICON_STAT_FONT_SCALE = 1.38;
 export const INLINE_EFFECT_ICON_MIN_FONT_SIZE = 15;
 export const INLINE_EFFECT_ICON_BASELINE_OFFSET_RATIO = -0.16;
-export const INLINE_STAT_ICON_LEADING_SPACE_SCALE = 0.4;
-export const INLINE_STAT_ICON_TRAILING_SPACE_SCALE = 0.72;
+export const INLINE_STAT_ICON_NUMERIC_SPACE_SCALE = 0.4;
+export const INLINE_STAT_ICON_WORD_SPACE_SCALE = 1;
 export const INLINE_ATTACK_ICON_OPTICAL_OFFSET_X = -1;
 export const INLINE_GAMEPLAY_ICON_BASELINE_OFFSET_RATIO = -0.06;
 export const INLINE_GAMEPLAY_ICON_SPACE_SCALE = 1;
@@ -394,6 +394,10 @@ function isInlineSymbolToken(token) {
   return token?.type === 'statSymbol' || token?.type === 'gameplaySymbol';
 }
 
+function isInlineNumericTextToken(token) {
+  return token?.type === 'text' && /^[-+]?\d+$/u.test(token.text);
+}
+
 function getInlineSpaceWidth(spaceWidth, previousToken, nextToken) {
   if (spaceWidth <= 0 || (!isInlineSymbolToken(previousToken) && !isInlineSymbolToken(nextToken))) {
     return spaceWidth;
@@ -403,9 +407,11 @@ function getInlineSpaceWidth(spaceWidth, previousToken, nextToken) {
     return Math.max(1, Math.ceil(spaceWidth * INLINE_GAMEPLAY_ICON_SPACE_SCALE));
   }
 
-  const spaceScale = previousToken?.type === 'statSymbol'
-    ? INLINE_STAT_ICON_TRAILING_SPACE_SCALE
-    : INLINE_STAT_ICON_LEADING_SPACE_SCALE;
+  const isStatNumberPair = (previousToken?.type === 'statSymbol' && isInlineNumericTextToken(nextToken))
+    || (nextToken?.type === 'statSymbol' && isInlineNumericTextToken(previousToken));
+  const spaceScale = isStatNumberPair
+    ? INLINE_STAT_ICON_NUMERIC_SPACE_SCALE
+    : INLINE_STAT_ICON_WORD_SPACE_SCALE;
   return Math.max(1, Math.ceil(spaceWidth * spaceScale));
 }
 

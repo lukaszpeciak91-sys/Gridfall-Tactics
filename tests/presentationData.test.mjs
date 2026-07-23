@@ -210,9 +210,9 @@ test('Empire of the Golden Sun flavor pass preserves gameplay-critical card data
     ['tank_wall_1', 4, 'tank_04', 'cannot_attack', '', 0, 2, 0],
     ['tank_bruiser_1', 5, 'tank_05', 'gain_atk_when_damaged', 'After surviving damage: +1 ATK until next combat', 2, 3, 0],
     ['tank_fortify_1', 6, 'tank_06', 'buff_all_armor_1', 'All [ALLY] +1 ARM until combat', undefined, undefined, undefined],
-    ['tank_stability_1', 7, 'tank_07', 'immune_move_disable_this_turn', "Until combat, [ALLIES] cannot be moved", undefined, undefined, undefined],
+    ['tank_stability_1', 7, 'tank_07', 'immune_move_disable_this_turn', "Until combat [ALLIES] cannot be moved", undefined, undefined, undefined],
     ['tank_reinforce_1', 8, 'tank_08', 'heal_all_1', 'Heal all [ALLY] by 1', undefined, undefined, undefined],
-    ['tank_last_stand_1', 9, 'tank_09', 'cannot_drop_below_1_this_turn', "Until combat, [ALLIES] cannot drop below 1 HP", undefined, undefined, undefined],
+    ['tank_last_stand_1', 9, 'tank_09', 'cannot_drop_below_1_this_turn', "Until combat [ALLIES] cannot drop below 1 HP", undefined, undefined, undefined],
     ['tank_repair_kit_1', 10, 'tank_10', 'temp_armor_1', 'Target [ALLY] +1 ARM until combat', undefined, undefined, undefined],
   ];
 

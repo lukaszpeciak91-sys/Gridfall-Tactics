@@ -24,7 +24,7 @@
       "type": "unit",
       "targeting": "enemy",
       "effectId": "block_enemy_effect_cards_until_combat",
-      "textShort": "Until combat, opponent cannot play effect cards",
+      "textShort": "Until combat opponent cannot play effect cards",
       "attack": 1,
       "hp": 2,
       "armor": 0
@@ -37,7 +37,7 @@
       "type": "unit",
       "targeting": "any_enemy_unit",
       "effectId": "can_hit_any_lane",
-      "textShort": "Attacks the lowest-HP [ENEMY]",
+      "textShort": "Attacks the lowest-HP [ENEMY]\nTies: highest ATK",
       "attack": 2,
       "hp": 1,
       "armor": 0,
@@ -97,7 +97,7 @@
       "type": "order",
       "targeting": "all_enemy_units",
       "effectId": "damage_all_enemies_1_ignore_armor",
-      "textShort": "Deal 1 to all [ENEMIES], ignoring ARM"
+      "textShort": "Deal 1 to all [ENEMIES] ignoring ARM"
     },
     {
       "id": "control_system_override_1",
@@ -107,7 +107,7 @@
       "type": "special",
       "targeting": "enemy_unit",
       "effectId": "control_enemy_unit_this_turn",
-      "textShort": "Selected [ENEMY] attacks its own base, then loses 1 HP"
+      "textShort": "Selected [ENEMY] attacks its own base\nThen loses 1 HP"
     },
     {
       "id": "control_recall_1",
@@ -117,7 +117,7 @@
       "type": "utility",
       "targeting": "friendly_unit",
       "effectId": "return_friendly_draw_1",
-      "textShort": "Return [ALLY] to hand. Draw 1"
+      "textShort": "Return [ALLY] to hand\nDraw 1"
     }
   ]
 }
