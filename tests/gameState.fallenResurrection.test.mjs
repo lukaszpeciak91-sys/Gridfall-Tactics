@@ -140,7 +140,7 @@ test('non-combat destroy records fallen without firing combat-death-only effects
   assert.equal(s.combatOnlyDeathSummons ?? 0, 0);
 });
 
-test('non-combat lethal damage records fallen without firing combat-death-only effects', () => {
+test('non-combat lethal HP damage records fallen and fires universal death effects', () => {
   const s = state();
   s.board[0] = unit('husk', { owner: 'enemy', effectId: 'combat_death_damage_enemy_lane_1' });
   s.board[6] = unit('opposite-ally', { hp: 3 });
@@ -148,12 +148,13 @@ test('non-combat lethal damage records fallen without firing combat-death-only e
   assert.equal(resolveTargetedEffectCard(s, 'player', 'attrition_swarm_infect_1', 0).ok, true);
 
   assert.equal(s.board[0], null);
-  assert.equal(s.board[6].hp, 3);
+  assert.equal(s.board[6].hp, 2);
   assert.equal(s.enemy.fallen.length, 1);
   assert.equal(s.enemy.fallen[0].card.id, 'husk');
   assert.equal(s.enemy.fallen[0].reason, 'damage-death');
   assert.equal(s.enemy.fallen[0].combat, false);
-  assert.equal(s.combatOnlyDeathLaneDamageTriggers ?? 0, 0);
+  assert.equal(s.deathLaneDamageTriggers, 1);
+  assert.equal(s.combatOnlyDeathLaneDamageTriggers, 1);
 });
 
 test('temporary Flood Tokens never enter fallen when killed or expired', () => {

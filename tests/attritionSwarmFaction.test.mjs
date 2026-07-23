@@ -54,7 +54,7 @@ test('Attrition Swarm faction exists, is selectable, has exactly 10 no-cost card
   });
 });
 
-test('Husk deals combat-only lane damage with no hero fallback, and not from draw-only Feast', () => {
+test('Husk deals death lane damage with no hero fallback, and not from draw-only Feast', () => {
   const combat = state();
   combat.board[6] = unit({ id: 'husk', effectId: 'combat_death_damage_enemy_lane_1' });
   combat.board[0] = unit({ owner: 'enemy', id: 'killer', attack: 1, hp: 3 });
@@ -86,7 +86,7 @@ test('Husk deals combat-only lane damage with no hero fallback, and not from dra
   assert.equal(feast.player.deck.length, 1);
 });
 
-test('Carrier summons only on combat death and preserves owner', () => {
+test('Carrier summons on HP death and preserves owner', () => {
   const combat = state();
   combat.board[6] = unit({ id: 'carrier', hp: 1, effectId: 'combat_death_summon_grunt' });
   combat.board[0] = unit({ owner: 'enemy', id: 'killer', attack: 1, hp: 2 });
@@ -103,7 +103,7 @@ test('Carrier summons only on combat death and preserves owner', () => {
   assert.equal(feast.board[6]?.id, 'carrier');
 });
 
-test('Abomination damages both heroes only on combat death', () => {
+test('Abomination damages both heroes on HP death', () => {
   const combat = state();
   combat.board[6] = unit({ id: 'abomination', hp: 1, effectId: 'combat_death_damage_both_heroes_1' });
   combat.board[0] = unit({ owner: 'enemy', id: 'killer', attack: 1, hp: 4 });
@@ -260,7 +260,7 @@ test('Funeral Pyre deals capped base damage once per turn and persists', () => {
   assert.equal(capped.board[0]?.hp, 2, 'pyre cleared before the next combat');
 });
 
-test('Feast is draw-only utility with no target, sacrifice, base damage, or death trigger', () => {
+test('Feast is draw-only utility with no target or sacrifice while direct HP deaths trigger Stos', () => {
   const feast = state();
   feast.board[6] = unit({ id: 'victim' });
   feast.board[0] = unit({ owner: 'enemy', id: 'enemy-unit' });
@@ -284,7 +284,8 @@ test('Feast is draw-only utility with no target, sacrifice, base damage, or deat
   addHand(infect, 'player', card('attrition_swarm_infect_1'));
   playEffectCard(infect, 'enemy', 'attrition_swarm_funeral_pyre_1');
   resolveTargetedEffectCard(infect, 'player', 'attrition_swarm_infect_1', 0);
-  assert.equal(infect.playerHP, 12);
+  assert.equal(infect.playerHP, 11);
+  assert.equal(infect.funeralPyreCombatTriggers, 1);
 });
 
 test('Funeral Pyre base damage counts for lethal resolution', () => {
@@ -339,7 +340,7 @@ test('Leech heals owner hero on every combat attack, capped by max HP', () => {
   assert.equal(cappedEvents.some((event) => event.healFeedback), false);
 });
 
-test('Rotcaller gets capped temporary attack from first adjacent ally combat death only', () => {
+test('Rotcaller gets capped permanent attack from first adjacent ally HP death', () => {
   const adjacent = state();
   adjacent.board[6] = unit({ id: 'left-victim', attack: 0 });
   adjacent.board[7] = unit({ id: 'rotcaller', attack: 1, hp: 2, effectId: 'rotcaller_adjacent_death_atk_1' });
@@ -377,7 +378,7 @@ test('Rotcaller gets capped temporary attack from first adjacent ally combat dea
   assert.equal(capped.rotcallerCombatFeedbackEvents.length, 1, 'Rotcaller emits one +1 ATK feedback payload per combat');
 });
 
-test('Rotcaller does not trigger from adjacent ally non-combat death', () => {
+test('Rotcaller triggers from adjacent ally lethal HP death outside combat', () => {
   const nonCombat = state();
   nonCombat.board[6] = unit({ id: 'non-combat-victim', hp: 1 });
   nonCombat.board[7] = unit({ id: 'rotcaller', attack: 1, hp: 2, effectId: 'rotcaller_adjacent_death_atk_1' });
@@ -386,9 +387,9 @@ test('Rotcaller does not trigger from adjacent ally non-combat death', () => {
   const result = resolveTargetedEffectCard(nonCombat, 'enemy', 'attrition_swarm_infect_1', 6);
   assert.equal(result.ok, true);
   assert.equal(nonCombat.board[6], null);
-  assert.equal(nonCombat.board[7]?.tempAttackMod, undefined);
-  assert.equal(nonCombat.rotcallerCombatTriggers, undefined);
-  assert.equal(nonCombat.rotcallerCombatFeedbackEvents, undefined);
+  assert.equal(nonCombat.board[7]?.attack, 2);
+  assert.equal(nonCombat.rotcallerCombatTriggers, 1);
+  assert.equal(nonCombat.rotcallerCombatFeedbackEvents.length, 1);
 });
 
 test('Infect targets enemies, deals 1, buffs opposite ally on survivor, and never damages heroes', () => {
@@ -429,7 +430,8 @@ test('Infect targets enemies, deals 1, buffs opposite ally on survivor, and neve
   assert.equal(kill.board[0], null, 'dead Infect targets are cleaned up without an ATK buff');
   assert.equal(kill.board[6].tempAttackMod, undefined);
   assert.equal(kill.enemyHP, 12);
-  assert.equal(kill.playerHP, 12);
+  assert.equal(kill.playerHP, 11);
+  assert.equal(kill.funeralPyreCombatTriggers, 1);
 
   const enemyCast = state();
   enemyCast.board[0] = unit({ owner: 'enemy', id: 'enemy-friendly', attack: 1 });

@@ -198,11 +198,15 @@ function simulateGame(playerFaction, enemyFaction, gameIndex, playerKey, enemyKe
     winner: state.winner ?? 'draw',
     turns,
     endingType,
+    funeralPyreDeathTriggers: state.funeralPyreCombatTriggers ?? 0,
     funeralPyreCombatTriggers: state.funeralPyreCombatTriggers ?? 0,
     funeralPyreLaneDamageTriggers: state.funeralPyreLaneDamageTriggers ?? 0,
-    combatOnlyDeathHeroTriggers: state.combatOnlyDeathHeroTriggers ?? 0,
-    combatOnlyDeathLaneDamageTriggers: state.combatOnlyDeathLaneDamageTriggers ?? 0,
-    combatOnlyDeathSummons: state.combatOnlyDeathSummons ?? 0,
+    deathHeroTriggers: state.deathHeroTriggers ?? state.combatOnlyDeathHeroTriggers ?? 0,
+    deathLaneDamageTriggers: state.deathLaneDamageTriggers ?? state.combatOnlyDeathLaneDamageTriggers ?? 0,
+    deathSummons: state.deathSummons ?? state.combatOnlyDeathSummons ?? 0,
+    combatOnlyDeathHeroTriggers: state.combatOnlyDeathHeroTriggers ?? state.deathHeroTriggers ?? 0,
+    combatOnlyDeathLaneDamageTriggers: state.combatOnlyDeathLaneDamageTriggers ?? state.deathLaneDamageTriggers ?? 0,
+    combatOnlyDeathSummons: state.combatOnlyDeathSummons ?? state.deathSummons ?? 0,
   };
 }
 
