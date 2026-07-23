@@ -19,7 +19,8 @@ import {
   INLINE_STAT_ICON_WORD_SPACE_SCALE,
   INLINE_ATTACK_ICON_OPTICAL_OFFSET_X,
   INLINE_GAMEPLAY_ICON_BASELINE_OFFSET_RATIO,
-  INLINE_GAMEPLAY_ICON_SPACE_SCALE,
+  INLINE_GAMEPLAY_ICON_LEADING_SPACE_SCALE,
+  INLINE_GAMEPLAY_ICON_TRAILING_SPACE_SCALE,
   layoutInlineStatText,
   tokenizeInlineStatText,
 } from '../src/rendering/cardVisualLayout.js';
@@ -76,7 +77,7 @@ test('formats HP-related healing and damage language without replacing unrelated
   assert.equal(formatCardEffectTextShort('Gdy ginie, obie bazy otrzymują 1', 'pl'), 'Gdy ginie, obie bazy otrzymują 1 ●');
   assert.equal(formatCardEffectTextShort('Po śmierci: wroga baza otrzymuje 1', 'pl'), 'Po śmierci: wroga baza otrzymuje 1 ●');
   assert.equal(formatCardEffectTextShort('Celowany wróg atakuje własną bazę w następnej walce, potem otrzymuje 1 obrażenie', 'pl'), 'Celowany wróg atakuje własną bazę w następnej walce, potem otrzymuje 1 ●');
-  assert.equal(formatCardEffectTextShort('Pierwszy zgon [ALLY] w turze:\nbaza wroga traci 1 HP', 'pl'), 'Pierwszy zgon ♙ w turze:\nbaza wroga traci 1 ●');
+  assert.equal(formatCardEffectTextShort('Pierwszy zgon [ALLY] w turze:\n-1 [HP] bazie wroga', 'pl'), 'Pierwszy zgon ♙ w turze:\n-1 ● bazie wroga');
   assert.equal(formatCardEffectTextShort('Zniszcz [ALLY]. Dobierz 1', 'pl'), 'Zniszcz ♙. Dobierz 1');
   assert.equal(formatCardEffectTextShort('Gdy ginie: przywołaj tu 1/1', 'pl'), 'Gdy ginie: przywołaj tu 1/1');
 });
@@ -91,7 +92,7 @@ test('formats HP symbols for localized Attrition Swarm card effect display text'
   assert.equal(getCardDisplayContent(cardById('attrition_swarm_abomination_1'), 'en').body, 'When this dies: both bases lose 1 ●');
   assert.equal(getCardDisplayContent(cardById('attrition_swarm_abomination_1'), 'pl').body, 'Gdy ginie: obie bazy tracą 1 ●');
   assert.equal(getCardDisplayContent(cardById('attrition_swarm_funeral_pyre_1'), 'en').body, 'First ♙ death each turn:\nenemy base loses 1 ●');
-  assert.equal(getCardDisplayContent(cardById('attrition_swarm_funeral_pyre_1'), 'pl').body, 'Pierwszy zgon ♙ w turze:\nwroga baza traci 1 ●');
+  assert.equal(getCardDisplayContent(cardById('attrition_swarm_funeral_pyre_1'), 'pl').body, 'Pierwszy zgon ♙ w turze:\n-1 ● bazie wroga');
 });
 
 
@@ -109,7 +110,7 @@ test('polished card text stays within mobile collection and inspect rules panels
     { factionKey: "Attrition Swarm", cardId: "attrition_swarm_abomination_1", locale: "en", expectedBody: "When this dies: both bases lose 1 ●" },
     { factionKey: "Attrition Swarm", cardId: "attrition_swarm_abomination_1", locale: "pl", expectedBody: "Gdy ginie: obie bazy tracą 1 ●" },
     { factionKey: "Attrition Swarm", cardId: "attrition_swarm_funeral_pyre_1", locale: "en", expectedBody: "First ♙ death each turn:\nenemy base loses 1 ●" },
-    { factionKey: "Attrition Swarm", cardId: "attrition_swarm_funeral_pyre_1", locale: "pl", expectedBody: "Pierwszy zgon ♙ w turze:\nwroga baza traci 1 ●" },
+    { factionKey: "Attrition Swarm", cardId: "attrition_swarm_funeral_pyre_1", locale: "pl", expectedBody: "Pierwszy zgon ♙ w turze:\n-1 ● bazie wroga" },
     { factionKey: "Attrition Swarm", cardId: "attrition_swarm_infect_1", locale: "en", expectedBody: "Deal 1 to ♟\nOpposed ♙ gains +1 ▲" },
     { factionKey: "Attrition Swarm", cardId: "attrition_swarm_infect_1", locale: "pl", expectedBody: "Zadaj 1 ♟\n♙ naprzeciwko +1 ▲" },
     { factionKey: "Attrition Swarm", cardId: "attrition_swarm_grave_call_1", locale: "en", expectedBody: "Summon a 1/1\nNo ♙: summon up to 2" },
@@ -432,7 +433,8 @@ test('inline effect icon typography uses glyph-sized symbols, centered baseline,
   assert.equal(INLINE_STAT_ICON_WORD_SPACE_SCALE, 1);
   assert.equal(INLINE_ATTACK_ICON_OPTICAL_OFFSET_X, -1);
   assert.equal(INLINE_GAMEPLAY_ICON_BASELINE_OFFSET_RATIO, -0.06);
-  assert.equal(INLINE_GAMEPLAY_ICON_SPACE_SCALE, 1);
+  assert.equal(INLINE_GAMEPLAY_ICON_LEADING_SPACE_SCALE, 1);
+  assert.equal(INLINE_GAMEPLAY_ICON_TRAILING_SPACE_SCALE, 0.72);
 
   const lines = layoutInlineStatText('+1 ▲ until combat', {
     maxWidth: 100,
@@ -445,7 +447,7 @@ test('inline effect icon typography uses glyph-sized symbols, centered baseline,
   assert.equal(lines[0].segments[2].x, 44);
 });
 
-test('inline gameplay icons keep full word spacing while stat icons retain compact numeric spacing', () => {
+test('inline gameplay icons keep natural leading spacing and normalized trailing spacing while stat icons retain compact numeric spacing', () => {
   const measureTokenWidth = (token) => (token === ' ' ? 10 : token.length * 10);
   const allyLine = layoutInlineStatText('Atakuje ♙ z najniższym HP.', { maxWidth: 500, measureTokenWidth })[0];
   const enemyLine = layoutInlineStatText('Atakuje ♟ z najniższym HP.', { maxWidth: 500, measureTokenWidth })[0];
@@ -453,7 +455,7 @@ test('inline gameplay icons keep full word spacing while stat icons retain compa
   assert.equal(allyLine.segments[1].text, '♙');
   assert.equal(allyLine.segments[1].x, 80);
   assert.equal(allyLine.segments[2].text, 'z');
-  assert.equal(allyLine.segments[2].x, 100);
+  assert.equal(allyLine.segments[2].x, 98);
   assert.deepEqual(enemyLine.segments, allyLine.segments.map((segment) => ({
     ...segment,
     text: segment.text === '♙' ? '♟' : segment.text,
@@ -473,7 +475,7 @@ test('inline icon layout applies word spacing and compact stat-number spacing ac
   };
 
   assert.equal(gapBetween(line('Atakuje ♟ z').at(0).segments, 'Atakuje', '♟'), 10);
-  assert.equal(gapBetween(line('Atakuje ♟ z').at(0).segments, '♟', 'z'), 10);
+  assert.equal(gapBetween(line('Atakuje ♟ z').at(0).segments, '♟', 'z'), 8);
   assert.equal(gapBetween(line('word ▲ next').at(0).segments, 'word', '▲'), 10);
   assert.equal(gapBetween(line('word ▲ next').at(0).segments, '▲', 'next'), 10);
   assert.equal(gapBetween(line('+1 ▲ next').at(0).segments, '+1', '▲'), 4);
@@ -489,9 +491,41 @@ test('inline icon layout applies word spacing and compact stat-number spacing ac
   const consecutive = line('A ♙ B ♟ C').at(0).segments;
   assert.deepEqual(consecutive.map((segment) => segment.text), ['A', '♙', 'B', '♟', 'C']);
   assert.equal(gapBetween(consecutive, 'A', '♙'), 10);
-  assert.equal(gapBetween(consecutive, '♙', 'B'), 10);
+  assert.equal(gapBetween(consecutive, '♙', 'B'), 8);
   assert.equal(gapBetween(consecutive, 'B', '♟'), 10);
-  assert.equal(gapBetween(consecutive, '♟', 'C'), 10);
+  assert.equal(gapBetween(consecutive, '♟', 'C'), 8);
+});
+
+
+test('gameplay icon trailing spacing is normalized for validation card patterns without source-string padding', () => {
+  const measureTokenWidth = (token) => (token === ' ' ? 10 : token.length * 10);
+  const validationCases = [
+    { factionKey: 'Attrition Swarm', cardId: 'attrition_swarm_funeral_pyre_1', locale: 'pl', icon: '♙', next: 'w' },
+    { factionKey: 'Swarm', cardId: 'swarm_regrow_1', locale: 'en', icon: '♙', next: 'with' },
+    { factionKey: 'Control', cardId: 'control_system_override_1', locale: 'pl', icon: '♟', next: 'atakuje' },
+    { factionKey: 'Attrition Swarm', cardId: 'attrition_swarm_rotcaller_1', locale: 'en', icon: '♙', next: 'death:' },
+    { factionKey: 'Overclock', cardId: 'overclock_mercy_1', locale: 'en', icon: '♟', next: '-1' },
+    { factionKey: 'Control', cardId: 'control_pulse_wave_1', locale: 'en', icon: '♟♟', next: 'ignoring' },
+    { factionKey: 'Tank', cardId: 'tank_shieldbearer_1', locale: 'en', icon: '♙♙', next: '+1' },
+  ];
+
+  const cardsWithPaddedMarkers = [];
+  for (const { factionKey, cardId, locale, icon, next } of validationCases) {
+    const { deck } = getFactionByKey(factionKey);
+    const sourceCard = deck.find((candidate) => candidate.id === cardId);
+    const localizedBody = getCardDisplayContent(sourceCard, locale).body;
+    const lines = layoutInlineStatText(localizedBody, { maxWidth: 500, measureTokenWidth });
+    const segments = lines.flatMap((line) => line.segments);
+    const iconIndex = segments.findIndex((segment) => segment.text === icon);
+    assert.notEqual(iconIndex, -1, `${cardId} renders ${icon}`);
+    const nextSegment = segments[iconIndex + 1];
+    assert.equal(nextSegment?.text, next, `${cardId} next text after icon`);
+    assert.equal(nextSegment.x - (segments[iconIndex].x + segments[iconIndex].width), 8, `${cardId} normalized icon trailing gap`);
+
+    const markerPattern = /\[(?:ALLY|ALLIES|ENEMY|ENEMIES)\]\s{2,}/u;
+    if (markerPattern.test(sourceCard.textShort ?? '')) cardsWithPaddedMarkers.push(cardId);
+  }
+  assert.deepEqual(cardsWithPaddedMarkers, []);
 });
 
 test('inline ATK icon renderer applies only a subtle visual optical x-offset', () => {
