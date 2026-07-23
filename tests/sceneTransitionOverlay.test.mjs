@@ -62,6 +62,23 @@ test('slow readiness shows only logo and loading ring and fades out', () => {
   assert.doesNotMatch(overlay, /PREPARING BROADCAST|progress|percentage|tips|flavor/i);
 });
 
+
+test('shared transition overlay reuses startup loading visual metrics without startup text', () => {
+  const menuLogoLayout = read('src/ui/menuLogoLayout.js');
+  assert.match(menuLogoLayout, /export const STARTUP_LOADING_VISUAL_LAYOUT = \{/);
+  assert.match(menuLogoLayout, /ringDiameter: 34/);
+  assert.match(menuLogoLayout, /logoToRingCenterGap: 25/);
+  assert.match(menuLogoLayout, /outerRingDurationMs: 1450/);
+  assert.match(menuLogoLayout, /innerRingDurationMs: 2100/);
+  assert.match(overlay, /getStartHeroLogoPosition\(width, height\)/);
+  assert.match(overlay, /setStartHeroLogoDisplaySize\(this, this\.logo, width, height\)/);
+  assert.doesNotMatch(overlay, /setMainMenuLogoDisplaySize|scaleX \* 1\.28|height \* 0\.69/);
+  assert.match(overlay, /STARTUP_LOADING_VISUAL_LAYOUT\.ringDiameter \/ 2/);
+  assert.match(overlay, /targets: this\.outerRing[\s\S]*STARTUP_LOADING_VISUAL_LAYOUT\.outerRingDurationMs/);
+  assert.match(overlay, /targets: this\.innerRing[\s\S]*STARTUP_LOADING_VISUAL_LAYOUT\.innerRingDurationMs/);
+  assert.doesNotMatch(overlay, /PREPARING BROADCAST|startup-splash__copy|createLoadingText/i);
+});
+
 test('unique transition ids validate and stale ready events are ignored', () => {
   assert.match(helper, /return `scene-transition-\$\{transitionSequence\}`;/);
   assert.match(overlay, /event\?\.transitionId !== this\.transitionId \|\| event\?\.destinationSceneKey !== this\.destinationSceneKey/);
@@ -87,7 +104,7 @@ test('resize and fullscreen reflow uses current game dimensions without restarti
   assert.match(overlay, /this\.scale\.on\('enterfullscreen', this\.resizeHandler, this\)/);
   assert.match(overlay, /this\.scale\.on\('leavefullscreen', this\.resizeHandler, this\)/);
   assert.match(overlay, /const gameSize = this\.scale\?\.gameSize;/);
-  assert.match(overlay, /if \(this\.ringTween \|\| !this\.ring\) return;/);
+  assert.match(overlay, /if \(this\.ringTween \|\| !this\.outerRing \|\| !this\.innerRing\) return;/);
 });
 
 test('failsafe threshold waits instead of completing when registry readiness is false', () => {
