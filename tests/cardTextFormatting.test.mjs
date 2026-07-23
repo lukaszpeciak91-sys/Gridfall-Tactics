@@ -434,7 +434,7 @@ test('inline effect icon typography uses glyph-sized symbols, centered baseline,
   assert.equal(INLINE_ATTACK_ICON_OPTICAL_OFFSET_X, -1);
   assert.equal(INLINE_GAMEPLAY_ICON_BASELINE_OFFSET_RATIO, -0.06);
   assert.equal(INLINE_GAMEPLAY_ICON_LEADING_SPACE_SCALE, 1);
-  assert.equal(INLINE_GAMEPLAY_ICON_TRAILING_SPACE_SCALE, 0.72);
+  assert.equal(INLINE_GAMEPLAY_ICON_TRAILING_SPACE_SCALE, 1);
 
   const lines = layoutInlineStatText('+1 ▲ until combat', {
     maxWidth: 100,
@@ -455,7 +455,7 @@ test('inline gameplay icons keep natural leading spacing and normalized trailing
   assert.equal(allyLine.segments[1].text, '♙');
   assert.equal(allyLine.segments[1].x, 80);
   assert.equal(allyLine.segments[2].text, 'z');
-  assert.equal(allyLine.segments[2].x, 98);
+  assert.equal(allyLine.segments[2].x, 100);
   assert.deepEqual(enemyLine.segments, allyLine.segments.map((segment) => ({
     ...segment,
     text: segment.text === '♙' ? '♟' : segment.text,
@@ -475,7 +475,10 @@ test('inline icon layout applies word spacing and compact stat-number spacing ac
   };
 
   assert.equal(gapBetween(line('Atakuje ♟ z').at(0).segments, 'Atakuje', '♟'), 10);
-  assert.equal(gapBetween(line('Atakuje ♟ z').at(0).segments, '♟', 'z'), 8);
+  assert.equal(gapBetween(line('Atakuje ♙ text').at(0).segments, '♙', 'text'), 10);
+  assert.equal(gapBetween(line('Atakuje ♙♙ text').at(0).segments, '♙♙', 'text'), 10);
+  assert.equal(gapBetween(line('Atakuje ♟ text').at(0).segments, '♟', 'text'), 10);
+  assert.equal(gapBetween(line('Atakuje ♟♟ text').at(0).segments, '♟♟', 'text'), 10);
   assert.equal(gapBetween(line('word ▲ next').at(0).segments, 'word', '▲'), 10);
   assert.equal(gapBetween(line('word ▲ next').at(0).segments, '▲', 'next'), 10);
   assert.equal(gapBetween(line('+1 ▲ next').at(0).segments, '+1', '▲'), 4);
@@ -491,9 +494,9 @@ test('inline icon layout applies word spacing and compact stat-number spacing ac
   const consecutive = line('A ♙ B ♟ C').at(0).segments;
   assert.deepEqual(consecutive.map((segment) => segment.text), ['A', '♙', 'B', '♟', 'C']);
   assert.equal(gapBetween(consecutive, 'A', '♙'), 10);
-  assert.equal(gapBetween(consecutive, '♙', 'B'), 8);
+  assert.equal(gapBetween(consecutive, '♙', 'B'), 10);
   assert.equal(gapBetween(consecutive, 'B', '♟'), 10);
-  assert.equal(gapBetween(consecutive, '♟', 'C'), 8);
+  assert.equal(gapBetween(consecutive, '♟', 'C'), 10);
 });
 
 
@@ -520,7 +523,7 @@ test('gameplay icon trailing spacing is normalized for validation card patterns 
     assert.notEqual(iconIndex, -1, `${cardId} renders ${icon}`);
     const nextSegment = segments[iconIndex + 1];
     assert.equal(nextSegment?.text, next, `${cardId} next text after icon`);
-    assert.equal(nextSegment.x - (segments[iconIndex].x + segments[iconIndex].width), 8, `${cardId} normalized icon trailing gap`);
+    assert.equal(nextSegment.x - (segments[iconIndex].x + segments[iconIndex].width), 10, `${cardId} normalized icon trailing gap`);
 
     const markerPattern = /\[(?:ALLY|ALLIES|ENEMY|ENEMIES)\]\s{2,}/u;
     if (markerPattern.test(sourceCard.textShort ?? '')) cardsWithPaddedMarkers.push(cardId);
