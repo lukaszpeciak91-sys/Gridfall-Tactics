@@ -11,57 +11,57 @@ const expectedTextShort = new Map(Object.entries({
   aggro_runner_1: 'Open lane: +2 ATK',
   aggro_flanker_1: 'If adjacent slot empty: +1 ATK',
   aggro_scout_1: "Until opponent\'s next action: no unit in this lane",
-  aggro_rush_1: 'Swap with adjacent [ALLY], then that lane immediately fights',
-  aggro_pierce_strike_1: 'Deal 1 to [ENEMY].\nNext hit ignores [ARM]',
-  aggro_quick_fix_1: 'Heal [ALLY] 1. +1 ATK until combat. Kills in combat: draw 1',
-  control_disruptor_1: "Until combat, opponent cannot play effect cards",
-  control_sniper_1: 'Attacks the lowest-HP [ENEMY]',
+  aggro_rush_1: 'Swap with adjacent [ALLY]\nThat lane immediately fights',
+  aggro_pierce_strike_1: 'Deal 1 to [ENEMY]\nNext hit ignores [ARM]',
+  aggro_quick_fix_1: 'Heal [ALLY] 1\n+1 ATK until combat\nCombat kill: draw 1',
+  control_disruptor_1: "Until combat opponent cannot play effect cards",
+  control_sniper_1: 'Attacks the lowest-HP [ENEMY]\nTies: highest ATK',
   control_controller_1: 'On play: swap two [ENEMIES]',
   control_jam_signal_1: 'Up to 2 [ENEMIES]: -1 ATK until combat',
-  control_pulse_wave_1: 'Deal 1 to all [ENEMIES], ignoring ARM',
-  control_system_override_1: 'Selected [ENEMY] attacks its own base, then loses 1 HP',
+  control_pulse_wave_1: 'Deal 1 to all [ENEMIES] ignoring ARM',
+  control_system_override_1: 'Selected [ENEMY] attacks its own base\nThen loses 1 HP',
   swarm_spitter_1: 'On play: deal 1 to opposed [ENEMY]',
   swarm_brood_1: 'On death: summon 1/1 here',
   swarm_alpha_1: 'Adjacent [ALLY] in combat: +1 ATK and ignores 1 ARM',
-  swarm_spawn_1: 'Summon a Grunt in a chosen free slot',
+  swarm_spawn_1: 'Summon a 1/1 in a chosen free slot',
   swarm_regrow_1: 'Revive the newest Fallen [ALLY] with 1 HP in a chosen free slot',
-  swarm_flood_1: 'Fill up to 2 empty slots with 1/1s. They vanish after combat',
+  swarm_flood_1: 'Fill up to 2 empty slots with 1/1s\nVanish after combat',
   swarm_recycle_1: '[ENEMIES]: -1 ARM until combat',
   tank_shieldbearer_1: 'Adjacent [ALLY] +1 ARM until combat',
   tank_guardian_1: 'Takes combat damage for adjacent [ALLY]',
   tank_bruiser_1: 'After surviving damage: +1 ATK until next combat',
-  tank_stability_1: "Until combat, [ALLIES] cannot be moved",
-  tank_last_stand_1: "Until combat, [ALLIES] cannot drop below 1 HP",
+  tank_stability_1: "Until combat [ALLIES] cannot be moved",
+  tank_last_stand_1: "Until combat [ALLIES] cannot drop below 1 HP",
   tank_repair_kit_1: 'Target [ALLY] +1 ARM until combat',
   wardens_sentinel_1: 'Attackers: -1 ATK',
   wardens_spearwall_1: 'Attackers of adjacent [ALLIES]: -1 ATK',
   wardens_halberdier_1: 'If opposed: +1 ATK',
   wardens_brace_1: 'Target [ALLY] +1 ARM until combat',
-  wardens_shield_push_1: 'Swap two adjacent [ENEMIES].\n-1 ATK this combat',
+  wardens_shield_push_1: 'Swap two adjacent [ENEMIES]\n-1 ATK this combat',
   wardens_stand_firm_1: "Heal [ALLY] +1 [HP]",
   swarm_rusher_1: 'This unit ignores [ARM]',
-  wardens_reinforce_line_1: 'Until combat, [ALLIES] cannot be moved',
+  wardens_reinforce_line_1: 'Until combat [ALLIES] cannot be moved',
   wardens_hold_the_line_1: 'Adjacent [ALLY] +1 ARM until combat',
   attrition_swarm_husk_1: 'When this dies:\n-1 [HP] to opposed [ENEMY]',
-  attrition_swarm_carrier_1: 'When this dies, summon 1/1 here',
+  attrition_swarm_carrier_1: 'When this dies: summon 1/1 here',
   attrition_swarm_leech_1: 'On attack: heal your base 1',
   attrition_swarm_rotcaller_1: 'First adjacent [ALLY] death: +1 ATK permanently',
-  attrition_swarm_abomination_1: 'When this dies, both bases lose 1 HP',
+  attrition_swarm_abomination_1: 'When this dies: both bases lose 1 HP',
   attrition_swarm_funeral_pyre_1: 'First [ALLY] death each turn:\nenemy base loses 1 HP',
-  attrition_swarm_infect_1: 'Deal 1 to [ENEMY].\nOpposed [ALLY] gains +1 [ATK]',
+  attrition_swarm_infect_1: 'Deal 1 to [ENEMY]\nOpposed [ALLY] gains +1 [ATK]',
   attrition_swarm_feast_1: 'Draw 1',
   attrition_swarm_rise_again_1: 'Revive the newest Fallen [ALLY] with 1 HP in a chosen free slot',
-  attrition_swarm_grave_call_1: 'Summon a 1/1. If you have no [ALLY], summon up to 2',
+  attrition_swarm_grave_call_1: 'Summon a 1/1\nNo [ALLY]: summon up to 2',
   overclock_hot_runner_1: 'Opposed [ENEMY] offline for next combat',
   overclock_pain_engine_1: 'Opposed [ENEMY]: -1 ATK until combat',
   overclock_golem_1: 'After combat: lose 1 HP',
   overclock_gap_hunter_1: 'If adjacent slot empty: +1 ATK',
   overclock_mob_champion_1: '+1 ATK per other [ALLY]',
   overclock_redline_1: 'All [ALLY] +1 ATK until combat',
-  overclock_forced_march_1: 'Swap with adjacent [ALLY], then that lane immediately fights',
-  overclock_crack_strike_1: 'Deal 1 to [ENEMY].\nNext hit ignores [ARM]',
+  overclock_forced_march_1: 'Swap with adjacent [ALLY]\nThat lane immediately fights',
+  overclock_crack_strike_1: 'Deal 1 to [ENEMY]\nNext hit ignores [ARM]',
   overclock_ignition_1: 'Selected [ALLY] immediately fights in its lane',
-  overclock_mercy_1: '[ENEMY] -1 ATK; opposed [ALLY] +2 ATK until combat',
+  overclock_mercy_1: '[ENEMY] -1 ATK\nOpposed [ALLY] +2 ATK until combat',
 }));
 
 function loadFactions() {
@@ -130,19 +130,19 @@ test('Attrition Swarm active copy uses universal death wording without rewriting
 
   assert.equal(en.attrition_swarm_husk_1.textShort, 'When this dies:\n-1 [HP] to opposed [ENEMY]');
   assert.equal(pl.attrition_swarm_husk_1.textShort, 'Gdy ginie:\n-1 [HP] [ENEMY] naprzeciw');
-  assert.equal(en.attrition_swarm_carrier_1.textShort, 'When this dies, summon 1/1 here');
-  assert.equal(pl.attrition_swarm_carrier_1.textShort, 'Gdy ginie, przywołaj tu 1/1');
+  assert.equal(en.attrition_swarm_carrier_1.textShort, 'When this dies: summon 1/1 here');
+  assert.equal(pl.attrition_swarm_carrier_1.textShort, 'Gdy ginie: przywołaj tu 1/1');
   assert.doesNotMatch(en.attrition_swarm_carrier_1.textShort, /Grunt/u);
   assert.doesNotMatch(pl.attrition_swarm_carrier_1.textShort, /Grunt|Grunta|Rekrut/u);
-  assert.equal(en.attrition_swarm_abomination_1.textShort, 'When this dies, both bases lose 1 HP');
-  assert.equal(pl.attrition_swarm_abomination_1.textShort, 'Gdy ginie, obie bazy tracą 1 HP');
+  assert.equal(en.attrition_swarm_abomination_1.textShort, 'When this dies: both bases lose 1 HP');
+  assert.equal(pl.attrition_swarm_abomination_1.textShort, 'Gdy ginie: obie bazy tracą 1 HP');
 
   assert.equal(cardsById.get('attrition_swarm_rotcaller_1').textShort, 'First adjacent [ALLY] death: +1 ATK permanently');
   assert.equal(cardsById.get('attrition_swarm_funeral_pyre_1').textShort, 'First [ALLY] death each turn:\nenemy base loses 1 HP');
   assert.equal(en.attrition_swarm_rotcaller_1.textShort, 'First adjacent [ALLY] death: +1 ATK permanently');
   assert.equal(pl.attrition_swarm_rotcaller_1.textShort, 'Zgon pierwszego sąsiedniego [ALLY]:\n+1 [ATK] na stałe');
   assert.equal(en.attrition_swarm_funeral_pyre_1.textShort, 'First [ALLY] death each turn:\nenemy base loses 1 HP');
-  assert.equal(pl.attrition_swarm_funeral_pyre_1.textShort, 'Pierwszy zgon [ALLY] w turze:\nbaza wroga traci 1 HP');
+  assert.equal(pl.attrition_swarm_funeral_pyre_1.textShort, 'Pierwszy zgon [ALLY] w turze:\nwroga baza traci 1 HP');
 
   for (const localized of [en, pl]) {
     for (const cardId of ['attrition_swarm_husk_1', 'attrition_swarm_carrier_1', 'attrition_swarm_abomination_1']) {
@@ -184,6 +184,22 @@ test('card descriptions do not end with trailing periods', () => {
       assert.doesNotMatch(cardText.textShort, /\.$/, `${locale} ${cardId} textShort`);
     }
   }
+});
+
+
+test('active card descriptions avoid unapproved semicolons and generated-unit internals', () => {
+  for (const locale of ['en', 'pl']) {
+    const translations = JSON.parse(fs.readFileSync(`src/localization/translations/${locale}.json`, 'utf8'));
+    for (const [cardId, cardText] of Object.entries(translations.cards ?? {})) {
+      assert.doesNotMatch(cardText.textShort, /;/u, `${locale} ${cardId} textShort semicolon`);
+      assert.doesNotMatch(cardText.textShort, /\b(?:Grunt|Grunta)\b/u, `${locale} ${cardId} generated unit wording`);
+    }
+  }
+
+  const cardsById = new Map(allCards().map(({ card }) => [card.id, card]));
+  assert.equal(cardsById.get('attrition_swarm_carrier_1').textShort, 'When this dies: summon 1/1 here');
+  assert.equal(cardsById.get('swarm_brood_1').textShort, 'On death: summon 1/1 here');
+  assert.equal(cardsById.get('swarm_spawn_1').textShort, 'Summon a 1/1 in a chosen free slot');
 });
 
 test('all source cards have exactly one English and Polish localization entry', () => {

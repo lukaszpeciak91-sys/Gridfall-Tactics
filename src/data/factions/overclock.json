@@ -86,7 +86,7 @@
       "type": "order",
       "targeting": "friendly_unit",
       "effectId": "swap_adjacent_then_resolve",
-      "textShort": "Swap with adjacent [ALLY], then that lane immediately fights"
+      "textShort": "Swap with adjacent [ALLY]\nThat lane immediately fights"
     },
     {
       "id": "overclock_crack_strike_1",
@@ -96,7 +96,7 @@
       "type": "order",
       "targeting": "enemy_unit",
       "effectId": "ignore_armor_next_attack",
-      "textShort": "Deal 1 to [ENEMY].\nNext hit ignores [ARM]"
+      "textShort": "Deal 1 to [ENEMY]\nNext hit ignores [ARM]"
     },
     {
       "id": "overclock_ignition_1",
@@ -120,7 +120,7 @@
         "targetEnemyAtk": -1,
         "opposingAllyAtk": 2
       },
-      "textShort": "[ENEMY] -1 ATK; opposed [ALLY] +2 ATK until combat"
+      "textShort": "[ENEMY] -1 ATK\nOpposed [ALLY] +2 ATK until combat"
     }
   ]
 }

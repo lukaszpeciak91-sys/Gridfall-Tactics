@@ -26,11 +26,11 @@
     },
     "aggro_rush_1": {
       "name": "Szarża",
-      "textShort": "Zamień z sąsiednim [ALLY], potem ta linia natychmiast walczy"
+      "textShort": "Zamień z sąsiednim [ALLY]\nTa linia natychmiast walczy"
     },
     "aggro_pierce_strike_1": {
       "name": "Przebijające Uderzenie",
-      "textShort": "Zadaj 1 [ENEMY].\nNastępny cios ignoruje [ARM]"
+      "textShort": "Zadaj 1 [ENEMY]\nNastępny cios ignoruje [ARM]"
     },
     "aggro_adrenaline_1": {
       "name": "Adrenalina",
@@ -38,7 +38,7 @@
     },
     "aggro_quick_fix_1": {
       "name": "Szybka Naprawa",
-      "textShort": "+1 [HP], +1 [ATK] do walki.\nZabije: dobierz 1"
+      "textShort": "+1 [HP] i +1 [ATK] do walki\nZabije w walce: dobierz 1"
     },
     "attrition_swarm_husk_1": {
       "name": "Łupina",
@@ -46,7 +46,7 @@
     },
     "attrition_swarm_carrier_1": {
       "name": "Nosiciel",
-      "textShort": "Gdy ginie, przywołaj tu 1/1"
+      "textShort": "Gdy ginie: przywołaj tu 1/1"
     },
     "attrition_swarm_leech_1": {
       "name": "Pijawka",
@@ -58,15 +58,15 @@
     },
     "attrition_swarm_abomination_1": {
       "name": "Abominacja",
-      "textShort": "Gdy ginie, obie bazy tracą 1 HP"
+      "textShort": "Gdy ginie: obie bazy tracą 1 HP"
     },
     "attrition_swarm_funeral_pyre_1": {
       "name": "Stos",
-      "textShort": "Pierwszy zgon [ALLY] w turze:\nbaza wroga traci 1 HP"
+      "textShort": "Pierwszy zgon [ALLY] w turze:\nwroga baza traci 1 HP"
     },
     "attrition_swarm_infect_1": {
       "name": "Zgniły Upominek",
-      "textShort": "Zadaj 1 [ENEMY].\n[ALLY] naprzeciwko +1 [ATK]"
+      "textShort": "Zadaj 1 [ENEMY]\n[ALLY] naprzeciwko +1 [ATK]"
     },
     "attrition_swarm_feast_1": {
       "name": "Ostatnia Wieczerza",
@@ -78,7 +78,7 @@
     },
     "attrition_swarm_grave_call_1": {
       "name": "Zew Grobu",
-      "textShort": "Przywołaj 1/1. Jeśli nie masz [ALLY], przywołaj do 2"
+      "textShort": "Przywołaj 1/1\nBrak [ALLY]: przywołaj do 2"
     },
     "control_hacker_1": {
       "name": "Signalegel",
@@ -110,15 +110,15 @@
     },
     "control_pulse_wave_1": {
       "name": "Wunderwaffe",
-      "textShort": "Zadaj 1 wszystkim [ENEMIES], ignorując ARM"
+      "textShort": "Zadaj 1 wszystkim [ENEMIES] ignorując ARM"
     },
     "control_system_override_1": {
       "name": "Przejęcie Systemu",
-      "textShort": "Wybrany [ENEMY] atakuje własną bazę, potem traci 1 HP"
+      "textShort": "Wybrany [ENEMY] atakuje własną bazę\nPotem traci 1 HP"
     },
     "control_recall_1": {
       "name": "Ekstrakcja",
-      "textShort": "Przywróć [ALLY] na rękę. Dobierz 1"
+      "textShort": "Przywróć [ALLY] na rękę\nDobierz 1"
     },
     "swarm_grunt_1": {
       "name": "Rekrut",
@@ -142,7 +142,7 @@
     },
     "swarm_spawn_1": {
       "name": "Pomiot",
-      "textShort": "Przyzwij Grunta na wybranym polu"
+      "textShort": "Przywołaj 1/1 na wybranym polu"
     },
     "swarm_swarm_attack_1": {
       "name": "Atak Roju",
@@ -154,7 +154,7 @@
     },
     "swarm_flood_1": {
       "name": "Zalew",
-      "textShort": "Wypełnij do 2 pustych slotów jednostkami 1/1. Znikają po walce"
+      "textShort": "Wypełnij do 2 pustych slotów jednostkami 1/1\nZnikają po walce"
     },
     "swarm_recycle_1": {
       "name": "Pożywka",
@@ -226,7 +226,7 @@
     },
     "wardens_shield_push_1": {
       "name": "Mamuci Napór",
-      "textShort": "Zamień dwóch sąsiednich [ENEMIES].\n-1 ATK do walki"
+      "textShort": "Zamień dwóch sąsiednich [ENEMIES]\n-1 ATK do walki"
     },
     "wardens_stand_firm_1": {
       "name": "Przetrwać Mróz",
@@ -266,11 +266,11 @@
     },
     "overclock_forced_march_1": {
       "name": "Przekierowanie Operacyjne",
-      "textShort": "Zamień z sąsiednim [ALLY], potem ta linia natychmiast walczy"
+      "textShort": "Zamień z sąsiednim [ALLY]\nTa linia natychmiast walczy"
     },
     "overclock_crack_strike_1": {
       "name": "Test Przebicia",
-      "textShort": "Zadaj 1 [ENEMY].\nNastępny cios ignoruje [ARM]"
+      "textShort": "Zadaj 1 [ENEMY]\nNastępny cios ignoruje [ARM]"
     },
     "overclock_ignition_1": {
       "name": "Odruch Warunkowy",
@@ -278,7 +278,7 @@
     },
     "overclock_mercy_1": {
       "name": "Korekta Temperamentu",
-      "textShort": "[ENEMY] -1 ATK; [ALLY] naprzeciwko +2 ATK do walki"
+      "textShort": "[ENEMY] -1 ATK\n[ALLY] naprzeciwko +2 ATK do walki"
     }
   },
   "cardTypes": {

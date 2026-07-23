@@ -218,7 +218,7 @@ test('Disruptor is a 1/2 Control unit with the same effect-card-block role', () 
   assert.equal(disruptor.armor, 0);
   assert.equal(disruptor.effectId, 'block_enemy_effect_cards_until_combat');
   assert.equal(disruptor.targeting, 'enemy');
-  assert.equal(disruptor.textShort, "Until combat, opponent cannot play effect cards");
+  assert.equal(disruptor.textShort, "Until combat opponent cannot play effect cards");
 });
 
 test('Scout is a 2/1 Aggro unit with the same lane-block role', () => {
@@ -290,7 +290,7 @@ test('Quick Fix heals a friendly unit by 1 and grants +1 temporary attack for co
   assert.equal(getUnitAttack(state.board[6]), 3);
   assert.equal(quickFix.effectId, 'heal_1_atk_1_draw_on_kill_this_turn');
   assert.equal(quickFix.targeting, 'friendly_unit');
-  assert.equal(quickFix.textShort, 'Heal [ALLY] 1. +1 ATK until combat. Kills in combat: draw 1');
+  assert.equal(quickFix.textShort, 'Heal [ALLY] 1\n+1 ATK until combat\nCombat kill: draw 1');
 
   resolveCombat(state);
 
@@ -439,7 +439,7 @@ test('Pulse Wave damages all occupied enemy lanes and ignores armor without hitt
   assert.equal(state.enemyHP, 5);
   assert.equal(pulseWave.targeting, 'all_enemy_units');
   assert.equal(pulseWave.effectId, 'damage_all_enemies_1_ignore_armor');
-  assert.equal(pulseWave.textShort, 'Deal 1 to all [ENEMIES], ignoring ARM');
+  assert.equal(pulseWave.textShort, 'Deal 1 to all [ENEMIES] ignoring ARM');
 });
 
 test('Pulse Wave skips empty lanes and damages a single enemy if only one exists', () => {
@@ -500,7 +500,7 @@ test('Flood creates temporary 1/1 Tokens that attack and vanish after combat', (
   assert.equal(state.board[6], null);
   assert.equal(state.board[7], null);
   assert.deepEqual(state.player.discard.map((card) => card.id), [flood.id]);
-  assert.equal(flood.textShort, 'Fill up to 2 empty slots with 1/1s. They vanish after combat');
+  assert.equal(flood.textShort, 'Fill up to 2 empty slots with 1/1s\nVanish after combat');
 });
 
 test('Flood temporary Tokens skip combat death trigger paths', () => {

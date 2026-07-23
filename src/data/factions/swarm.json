@@ -79,7 +79,7 @@
       "type": "order",
       "targeting": "empty_friendly_slot",
       "effectId": "summon_grunt_empty_slot",
-      "textShort": "Summon a Grunt in a chosen free slot"
+      "textShort": "Summon a 1/1 in a chosen free slot"
     },
     {
       "id": "swarm_swarm_attack_1",
@@ -109,7 +109,7 @@
       "type": "special",
       "targeting": "empty_friendly_slots",
       "effectId": "fill_empty_slots_0_1",
-      "textShort": "Fill up to 2 empty slots with 1/1s. They vanish after combat"
+      "textShort": "Fill up to 2 empty slots with 1/1s\nVanish after combat"
     },
     {
       "id": "swarm_recycle_1",
