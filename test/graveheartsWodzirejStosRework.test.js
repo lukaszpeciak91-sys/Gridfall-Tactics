@@ -100,5 +100,5 @@ test('copy source contains only approved Wodzirej and Stos descriptions', () => 
   assert.equal(pl.cards.attrition_swarm_rotcaller_1.textShort, 'Zgon pierwszego sąsiedniego [ALLY]:\n+1 [ATK] na stałe');
   assert.equal(attrition.deck.find((c) => c.id === 'attrition_swarm_funeral_pyre_1').textShort, 'First [ALLY] death each turn:\nenemy base loses 1 HP');
   assert.equal(en.cards.attrition_swarm_funeral_pyre_1.textShort, 'First [ALLY] death each turn:\nenemy base loses 1 HP');
-  assert.equal(pl.cards.attrition_swarm_funeral_pyre_1.textShort, 'Pierwszy zgon [ALLY] w turze:\nwroga baza traci 1 HP');
+  assert.equal(pl.cards.attrition_swarm_funeral_pyre_1.textShort, 'Pierwszy zgon [ALLY] w turze:\nbaza wroga traci 1 HP');
 });
