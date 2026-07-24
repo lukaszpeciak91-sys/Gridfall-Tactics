@@ -100,12 +100,14 @@ test('formats HP symbols for localized Attrition Swarm card effect display text'
 
 test('polished card text stays within mobile collection and inspect rules panels', () => {
   const cardCases = [
-    { factionKey: "Aggro", cardId: "aggro_rush_1", locale: "en", expectedBody: "Swap with adjacent ♙\nThat lane immediately fights" },
-    { factionKey: "Aggro", cardId: "aggro_rush_1", locale: "pl", expectedBody: "Zamień z sąsiednim ♙\nTa linia natychmiast walczy" },
+    { factionKey: "Aggro", cardId: "aggro_rush_1", locale: "en", expectedBody: "Swap with adjacent ♙\nThat lane fights now" },
+    { factionKey: "Aggro", cardId: "aggro_rush_1", locale: "pl", expectedBody: "Zamień z ♙ obok\nTa linia od razu walczy" },
     { factionKey: "Aggro", cardId: "aggro_pierce_strike_1", locale: "en", expectedBody: "Deal 1 to ♟\nNext hit ignores ◆" },
     { factionKey: "Aggro", cardId: "aggro_pierce_strike_1", locale: "pl", expectedBody: "Zadaj 1 ♟\nNastępny cios ignoruje ◆" },
     { factionKey: "Aggro", cardId: "aggro_quick_fix_1", locale: "en", expectedBody: "Heal ♙ 1\n+1 ▲ until combat\nCombat kill: draw 1" },
-    { factionKey: "Aggro", cardId: "aggro_quick_fix_1", locale: "pl", expectedBody: "+1 ● i +1 ▲ do walki\nZabije w walce: dobierz 1" },
+    { factionKey: "Aggro", cardId: "aggro_quick_fix_1", locale: "pl", expectedBody: "Ulecz ♙ o +1 ●\n+1 ▲ do walki\nZabije: dobierz 1" },
+    { factionKey: "Attrition Swarm", cardId: "attrition_swarm_rotcaller_1", locale: "en", expectedBody: "First adjacent ♙ death\n+1 ▲ permanently" },
+    { factionKey: "Attrition Swarm", cardId: "attrition_swarm_rotcaller_1", locale: "pl", expectedBody: "Pierwszy sąsiedni zgon ♙\n+1 ▲ na stałe" },
     { factionKey: "Attrition Swarm", cardId: "attrition_swarm_carrier_1", locale: "en", expectedBody: "When this dies: summon 1/1 here" },
     { factionKey: "Attrition Swarm", cardId: "attrition_swarm_carrier_1", locale: "pl", expectedBody: "Gdy ginie: przywołaj tu 1/1" },
     { factionKey: "Attrition Swarm", cardId: "attrition_swarm_abomination_1", locale: "en", expectedBody: "When this dies: both bases lose 1 ●" },
@@ -140,8 +142,8 @@ test('polished card text stays within mobile collection and inspect rules panels
     { factionKey: "Wardens", cardId: "wardens_shield_push_1", locale: "pl", expectedBody: "Zamień dwóch sąsiednich ♟♟\n-1 ▲ do walki" },
     { factionKey: "Wardens", cardId: "wardens_reinforce_line_1", locale: "en", expectedBody: "Until combat ♙♙ cannot be moved" },
     { factionKey: "Wardens", cardId: "wardens_reinforce_line_1", locale: "pl", expectedBody: "Do walki ♙♙ nie można przesuwać" },
-    { factionKey: "Overclock", cardId: "overclock_forced_march_1", locale: "en", expectedBody: "Swap with adjacent ♙\nThat lane immediately fights" },
-    { factionKey: "Overclock", cardId: "overclock_forced_march_1", locale: "pl", expectedBody: "Zamień z sąsiednim ♙\nTa linia natychmiast walczy" },
+    { factionKey: "Overclock", cardId: "overclock_forced_march_1", locale: "en", expectedBody: "Swap with adjacent ♙\nThat lane fights now" },
+    { factionKey: "Overclock", cardId: "overclock_forced_march_1", locale: "pl", expectedBody: "Zamień z ♙ obok\nTa linia od razu walczy" },
     { factionKey: "Overclock", cardId: "overclock_crack_strike_1", locale: "en", expectedBody: "Deal 1 to ♟\nNext hit ignores ◆" },
     { factionKey: "Overclock", cardId: "overclock_crack_strike_1", locale: "pl", expectedBody: "Zadaj 1 ♟\nNastępny cios ignoruje ◆" },
     { factionKey: "Overclock", cardId: "overclock_mercy_1", locale: "en", expectedBody: "♟ -1 ▲\nOpposed ♙ +2 ▲ until combat" },
@@ -221,7 +223,7 @@ test('Polish Mercy uses established inline ally, HP, and ATK icons with readable
 
   assert.equal(
     getCardDisplayContent(mercy, 'pl').body,
-    '+1 ● i +1 ▲ do walki\nZabije w walce: dobierz 1',
+    'Ulecz ♙ o +1 ●\n+1 ▲ do walki\nZabije: dobierz 1',
   );
   assert.equal(
     getCardDisplayContent(mercy, 'en').body,
@@ -238,7 +240,7 @@ test('pilot card display content renders ally icon markers', () => {
 
   assert.equal(getCardDisplayContent(cardById(aggro, 'aggro_full_attack_1'), 'en').body, 'All ♙♙ +2 ▲ until combat');
   assert.equal(getCardDisplayContent(cardById(aggro, 'aggro_scout_1'), 'en').body, "Until opponent\'s next action: no unit in this lane");
-  assert.equal(getCardDisplayContent(cardById(aggro, 'aggro_rush_1'), 'en').body, 'Swap with adjacent ♙\nThat lane immediately fights');
+  assert.equal(getCardDisplayContent(cardById(aggro, 'aggro_rush_1'), 'en').body, 'Swap with adjacent ♙\nThat lane fights now');
   assert.equal(getCardDisplayContent(cardById(aggro, 'aggro_adrenaline_1'), 'en').body, 'Selected ♙ immediately fights in its lane');
   assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_grunt_1'), 'en').body, '');
   assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_rusher_1'), 'en').body, 'This unit ignores ◆');
@@ -263,7 +265,7 @@ test('pilot card display content renders ally icon markers', () => {
 
   assert.equal(getCardDisplayContent(cardById(aggro, 'aggro_full_attack_1'), 'pl').body, '♙♙ +2 ▲ do walki');
   assert.equal(getCardDisplayContent(cardById(aggro, 'aggro_scout_1'), 'pl').body, 'Do akcji przeciwnika: nie może zagrać jednostki w tej linii');
-  assert.equal(getCardDisplayContent(cardById(aggro, 'aggro_rush_1'), 'pl').body, 'Zamień z sąsiednim ♙\nTa linia natychmiast walczy');
+  assert.equal(getCardDisplayContent(cardById(aggro, 'aggro_rush_1'), 'pl').body, 'Zamień z ♙ obok\nTa linia od razu walczy');
   assert.equal(getCardDisplayContent(cardById(aggro, 'aggro_adrenaline_1'), 'pl').body, 'Wybrany ♙ natychmiast walczy w swojej linii');
   assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_grunt_1'), 'pl').body, '');
   assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_rusher_1'), 'pl').body, 'Ignoruje ◆');
@@ -285,7 +287,7 @@ test('pilot card display content renders ally icon markers', () => {
   assert.equal(getCardDisplayContent(cardById(control, 'control_system_override_1'), 'pl').body, 'Wybrany ♟ atakuje własną bazę\nPotem traci 1 ●');
   assert.equal(getCardDisplayContent(cardById(control, 'control_pulse_wave_1'), 'pl').body, 'Zadaj 1 wszystkim ♟♟ ignorując ◆');
   assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_spitter_1'), 'pl').body, 'Po zagraniu: zadaj 1 ♟ naprzeciw');
-  assert.equal(getCardDisplayContent(cardById(attritionSwarm, 'attrition_swarm_rotcaller_1'), 'pl').body, 'Zgon pierwszego sąsiedniego ♙:\n+1 ▲ na stałe');
+  assert.equal(getCardDisplayContent(cardById(attritionSwarm, 'attrition_swarm_rotcaller_1'), 'pl').body, 'Pierwszy sąsiedni zgon ♙\n+1 ▲ na stałe');
   assert.equal(getCardDisplayContent(cardById(attritionSwarm, 'attrition_swarm_infect_1'), 'pl').body, 'Zadaj 1 ♟\n♙ naprzeciwko +1 ▲');
   assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_halberdier_1'), 'pl').body, 'Jeśli naprzeciw: +1 ▲');
   assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_spearwall_1'), 'pl').body, '♟♟ atakujący\nsąsiednich ♙♙: -1 ▲');
@@ -512,7 +514,7 @@ test('gameplay icon trailing spacing is normalized for validation card patterns 
     { factionKey: 'Attrition Swarm', cardId: 'attrition_swarm_funeral_pyre_1', locale: 'pl', icon: '♙', next: 'w' },
     { factionKey: 'Swarm', cardId: 'swarm_regrow_1', locale: 'en', icon: '♙', next: 'with' },
     { factionKey: 'Control', cardId: 'control_system_override_1', locale: 'pl', icon: '♟', next: 'atakuje' },
-    { factionKey: 'Attrition Swarm', cardId: 'attrition_swarm_rotcaller_1', locale: 'en', icon: '♙', next: 'death:' },
+    { factionKey: 'Attrition Swarm', cardId: 'attrition_swarm_rotcaller_1', locale: 'en', icon: '♙', next: 'death' },
     { factionKey: 'Overclock', cardId: 'overclock_mercy_1', locale: 'en', icon: '♟', next: '-1' },
     { factionKey: 'Control', cardId: 'control_pulse_wave_1', locale: 'en', icon: '♟♟', next: 'ignoring' },
     { factionKey: 'Tank', cardId: 'tank_shieldbearer_1', locale: 'en', icon: '♙♙', next: '+1' },

@@ -86,7 +86,7 @@
       "type": "order",
       "targeting": "friendly_unit",
       "effectId": "swap_adjacent_then_resolve",
-      "textShort": "Swap with adjacent [ALLY]\nThat lane immediately fights"
+      "textShort": "Swap with adjacent [ALLY]\nThat lane fights now"
     },
     {
       "id": "aggro_pierce_strike_1",
