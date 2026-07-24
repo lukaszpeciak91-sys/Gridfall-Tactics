@@ -269,6 +269,8 @@ const TURN_START_BANNER_FADE_IN_MS = 110;
 const TURN_START_BANNER_HOLD_MS = 820;
 const TURN_START_BANNER_FADE_OUT_MS = 140;
 const TURN_START_BANNER_FAIL_SAFE_EXTRA_MS = 260;
+const ACTION_TURN_BANNER_PRE_DELAY_MS = 200;
+const ENEMY_ACTION_POST_TURN_BANNER_DELAY_MS = 650;
 const BATTLE_EXHAUSTED_BANNER_DEPTH = 222;
 const PLAYER_EFFECT_CAST_BEAT_MS = 620;
 const PLAYER_EFFECT_CAST_SWEEP_STEP_MS = 70;
@@ -9163,6 +9165,12 @@ export default class BattleScene extends Phaser.Scene {
     if (showBanner) {
       this.isActionTurnBannerResolving = true;
       this.updatePlayerBaseActionState();
+      await this.delay(ACTION_TURN_BANNER_PRE_DELAY_MS);
+      if (!this.isActionTurnTransitionValid(side, transitionId)) {
+        this.isActionTurnBannerResolving = false;
+        this.updatePlayerBaseActionState();
+        return false;
+      }
       const completed = await this.showActionTurnBanner(side, transitionId);
       this.isActionTurnBannerResolving = false;
       if (!completed || !this.isActionTurnTransitionValid(side, transitionId)) {
@@ -9284,7 +9292,7 @@ export default class BattleScene extends Phaser.Scene {
 
     this.isFlowResolving = true;
     this.updateTutorialBanner?.();
-    await this.delay(650);
+    await this.delay(ENEMY_ACTION_POST_TURN_BANNER_DELAY_MS);
     await this.revealAndApplyEnemyAction();
     if (this.gameState.winner) {
       this.completeBattleFlow(500);
@@ -9311,7 +9319,7 @@ export default class BattleScene extends Phaser.Scene {
       if (!ready || side !== 'enemy') return;
       this.isFlowResolving = true;
       this.updateTutorialBanner?.();
-      await this.delay(650);
+      await this.delay(ENEMY_ACTION_POST_TURN_BANNER_DELAY_MS);
       enemyActionPacing = await this.revealAndApplyEnemyAction();
       if (this.gameState.winner) {
         this.completeBattleFlow(500);

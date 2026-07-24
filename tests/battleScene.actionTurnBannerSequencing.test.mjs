@@ -22,6 +22,7 @@ test('opening banner remains one-shot, localized, and awaited before the first a
   assert.match(opening, /this\.hasShownOpeningTurnStartBanner \|\| !this\.layout \|\| !this\.gameState/);
   assert.match(opening, /this\.hasShownOpeningTurnStartBanner = true;/);
   assert.match(opening, /getOpeningTurnStartBannerConfig\(\)/);
+  assert.doesNotMatch(opening, /ACTION_TURN_BANNER_PRE_DELAY_MS|ENEMY_ACTION_POST_TURN_BANNER_DELAY_MS/);
   assert.match(source, /translateActive\('ui\.battle\.playerStarts', 'YOU START'\)/);
   assert.match(source, /translateActive\('ui\.battle\.enemyStarts', 'ENEMY STARTS'\)/);
   assert.match(mulligan, /await this\.showOpeningTurnStartBanner\(\);\s*this\.startCampaignBattleTimer\(\);\s*this\.skipNextActionTurnBanner = true;\s*await this\.startTurn\(\);/);
@@ -36,7 +37,8 @@ test('recurring action banners are separate from opening guard and use explicit 
   assert.match(actionBanner, /getActionTurnBannerConfig\(side\)/);
   assert.doesNotMatch(actionBanner, /hasShownOpeningTurnStartBanner/);
   assert.match(gate, /const transitionId = \+\+this\.actionTurnBannerTransitionId;/);
-  assert.match(gate, /this\.isActionTurnBannerResolving = true;\s*this\.updatePlayerBaseActionState\(\);\s*const completed = await this\.showActionTurnBanner\(side, transitionId\);/);
+  assert.match(source, /const ACTION_TURN_BANNER_PRE_DELAY_MS = 200;/);
+  assert.match(gate, /this\.isActionTurnBannerResolving = true;\s*this\.updatePlayerBaseActionState\(\);\s*await this\.delay\(ACTION_TURN_BANNER_PRE_DELAY_MS\);\s*if \(!this\.isActionTurnTransitionValid\(side, transitionId\)\) \{[\s\S]*?return false;\s*\}\s*const completed = await this\.showActionTurnBanner\(side, transitionId\);/);
   assert.match(gate, /this\.isActionTurnBannerResolving = false;/);
 });
 
@@ -45,7 +47,7 @@ test('player input is blocked during action-turn banner and enabled only after v
   const gate = methodBlock('gateActionOpportunity', 'startTurn');
 
   assert.match(actionable, /if \(!ignoreActionTurnBannerGate && this\.isActionTurnBannerResolving\) return null;/);
-  assert.match(gate, /this\.updatePlayerBaseActionState\(\);[\s\S]*const completed = await this\.showActionTurnBanner/);
+  assert.match(gate, /this\.updatePlayerBaseActionState\(\);\s*await this\.delay\(ACTION_TURN_BANNER_PRE_DELAY_MS\);[\s\S]*const completed = await this\.showActionTurnBanner/);
   assert.match(gate, /if \(!completed \|\| !this\.isActionTurnTransitionValid\(side, transitionId\)\) \{\s*this\.updatePlayerBaseActionState\(\);\s*return false;/);
   assert.match(gate, /this\.updateInitiativeIndicator\(\);\s*this\.updatePlayerBaseActionState\(\);/);
 });
@@ -57,8 +59,10 @@ test('AI execution is gated by ENEMY TURN before the existing AI delay and revea
 
   assert.match(startTurn, /const ready = await this\.gateActionOpportunity\(side, \{ showBanner: !skipActionBanner \}\);/);
   assert.match(startTurn, /if \(side === 'enemy'\) \{\s*await this\.resolveEnemyFirstTurnOpening\(\);/);
-  assert.match(finish, /const ready = await this\.gateActionOpportunity\(side\);\s*if \(!ready \|\| side !== 'enemy'\) return;\s*this\.isFlowResolving = true;[\s\S]*await this\.delay\(650\);\s*enemyActionPacing = await this\.revealAndApplyEnemyAction\(\);/);
-  assert.match(enemyOpening, /await this\.revealAndApplyEnemyAction\(\);[\s\S]*const side = this\.getCurrentActionableSide\(\{ ignoreActionTurnBannerGate: true \}\);\s*await this\.gateActionOpportunity\(side\);/);
+  assert.match(source, /const ENEMY_ACTION_POST_TURN_BANNER_DELAY_MS = 650;/);
+  assert.match(finish, /const ready = await this\.gateActionOpportunity\(side\);\s*if \(!ready \|\| side !== 'enemy'\) return;\s*this\.isFlowResolving = true;[\s\S]*await this\.delay\(ENEMY_ACTION_POST_TURN_BANNER_DELAY_MS\);\s*enemyActionPacing = await this\.revealAndApplyEnemyAction\(\);/);
+  assert.equal((finish.match(/ENEMY_ACTION_POST_TURN_BANNER_DELAY_MS/g) ?? []).length, 1);
+  assert.match(enemyOpening, /await this\.delay\(ENEMY_ACTION_POST_TURN_BANNER_DELAY_MS\);\s*await this\.revealAndApplyEnemyAction\(\);[\s\S]*const side = this\.getCurrentActionableSide\(\{ ignoreActionTurnBannerGate: true \}\);\s*await this\.gateActionOpportunity\(side\);/);
 });
 
 test('post-combat initiative flip uses startTurn gate and does not alter firstActor semantics', () => {
