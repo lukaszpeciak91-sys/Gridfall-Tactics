@@ -516,6 +516,7 @@ export default class BattleScene extends Phaser.Scene {
     this.playerSurrenderArmed = false;
     this.battleHistory = [];
     this.pendingBattleHistoryEntries = [];
+    this.currentBattleHistoryTurnNumber = null;
     this.playerInitialDeckTypeCounts = null;
     this.baseBreakSfxPlayed = false;
     this.battleExhaustedBanner = null;
@@ -5595,6 +5596,7 @@ export default class BattleScene extends Phaser.Scene {
     };
     this.battleHistory = [];
     this.pendingBattleHistoryEntries = [];
+    this.currentBattleHistoryTurnNumber = null;
   }
 
   getDeckSummaryCounters() {
@@ -5628,13 +5630,60 @@ export default class BattleScene extends Phaser.Scene {
     return unit ? this.createCardRef(unit, unit.owner) : null;
   }
 
+  getCurrentBattleHistoryTurnNumber() {
+    return (this.gameState?.turnsCompleted ?? 0) + 1;
+  }
+
+  refreshBattleHistoryPanelIfOpen() {
+    if (this.deckInfoPanel) this.refreshDeckInfoPanelContent();
+  }
+
+  getOrCreateCurrentBattleHistoryTurn() {
+    const turnNumber = this.getCurrentBattleHistoryTurnNumber();
+    this.battleHistory ??= [];
+    const existing = this.battleHistory.find((entry) => entry?.turnNumber === turnNumber && !entry.completed);
+    if (existing) {
+      this.currentBattleHistoryTurnNumber = turnNumber;
+      existing.actions ??= [];
+      existing.resolution ??= [];
+      return existing;
+    }
+
+    const turnEntry = { turnNumber, actions: [], resolution: [], completed: false };
+    this.battleHistory = [...this.battleHistory, turnEntry];
+    this.currentBattleHistoryTurnNumber = turnNumber;
+    return turnEntry;
+  }
+
+  appendBattleHistoryAction(side, action) {
+    if (!this.gameState || !action) return null;
+    const turnEntry = this.getOrCreateCurrentBattleHistoryTurn();
+    const actionEntry = { actingSide: side, action };
+    turnEntry.actions = [...(turnEntry.actions ?? []), actionEntry];
+    this.pendingBattleHistoryEntries = [];
+    this.refreshBattleHistoryPanelIfOpen();
+    return actionEntry;
+  }
+
   queueBattleHistoryAction(side, action) {
-    if (!this.gameState || !action || action.type === 'pass') return;
-    this.pendingBattleHistoryEntries ??= [];
-    this.pendingBattleHistoryEntries.push({
-      actingSide: side,
-      action,
-    });
+    return this.appendBattleHistoryAction(side, action);
+  }
+
+  appendBattleHistoryResolution(combatEvents, snapshot) {
+    if (!this.gameState || !Array.isArray(combatEvents) || combatEvents.length === 0) return [];
+    const resolution = this.buildResolutionFromCombatEvents(combatEvents, snapshot);
+    if (resolution.length === 0) return [];
+    const turnEntry = this.getOrCreateCurrentBattleHistoryTurn();
+    turnEntry.resolution = [...(turnEntry.resolution ?? []), ...resolution];
+    this.refreshBattleHistoryPanelIfOpen();
+    return resolution;
+  }
+
+  appendImmediateBattleHistoryResolution(immediateCombatFeedback = null) {
+    return this.appendBattleHistoryResolution(
+      immediateCombatFeedback?.combatEvents,
+      immediateCombatFeedback?.combatSnapshot,
+    );
   }
 
   buildResolutionFromCombatEvents(combatEvents, snapshot) {
@@ -5668,16 +5717,32 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   commitBattleHistoryTurn(combatEvents, snapshot) {
-    const actions = [...(this.pendingBattleHistoryEntries ?? [])];
-    if (actions.length === 0) return;
-    const resolution = this.buildResolutionFromCombatEvents(combatEvents, snapshot);
-    const turnEntry = {
-      turnNumber: (this.gameState?.turnsCompleted ?? 0) + 1,
-      actions,
-      resolution,
-    };
-    this.battleHistory = [...(this.battleHistory ?? []), turnEntry];
+    const pendingActions = [...(this.pendingBattleHistoryEntries ?? [])];
+    const hasCombatEvents = Array.isArray(combatEvents) && combatEvents.length > 0;
+    const turnNumber = this.getCurrentBattleHistoryTurnNumber();
+    let turnEntry = (this.battleHistory ?? []).find((entry) => entry?.turnNumber === turnNumber && !entry.completed) ?? null;
+
+    if (!turnEntry && pendingActions.length > 0) {
+      turnEntry = this.getOrCreateCurrentBattleHistoryTurn();
+      turnEntry.actions = [...(turnEntry.actions ?? []), ...pendingActions];
+    }
+
+    if (!turnEntry) {
+      this.pendingBattleHistoryEntries = [];
+      return;
+    }
+
+    if (hasCombatEvents) {
+      const resolution = this.buildResolutionFromCombatEvents(combatEvents, snapshot);
+      if (resolution.length > 0) {
+        turnEntry.resolution = [...(turnEntry.resolution ?? []), ...resolution];
+      }
+    }
+
+    turnEntry.completed = true;
+    this.currentBattleHistoryTurnNumber = null;
     this.pendingBattleHistoryEntries = [];
+    this.refreshBattleHistoryPanelIfOpen();
   }
 
   openDeckInfoPanel() {
@@ -6168,6 +6233,11 @@ export default class BattleScene extends Phaser.Scene {
     if (action.type === 'play_effect') return [who, { text: translateActive('ui.battle.deckInfo.history.playsEffect', ' plays effect '), color: 'neutral' }, this.cardHistoryToken(action.card)];
     if (action.type === 'replace_from_hand') return [who, { text: translateActive('ui.battle.deckInfo.history.replaces', ' replaces '), color: 'neutral' }, this.cardHistoryToken(action.oldCard), { text: translateActive('ui.battle.deckInfo.history.withFromHand', ' with '), color: 'neutral' }, this.cardHistoryToken(action.card), { text: translateActive('ui.battle.deckInfo.history.fromHand', ' from hand'), color: 'neutral' }];
     if (action.type === 'swap_positions') return [who, { text: translateActive('ui.battle.deckInfo.history.swaps', ' swaps '), color: 'neutral' }, this.cardHistoryToken(action.cardA), { text: translateActive('ui.battle.deckInfo.history.and', ' and '), color: 'neutral' }, this.cardHistoryToken(action.cardB)];
+    if (action.type === 'pass') {
+      const key = entry.actingSide === 'enemy' ? 'ui.battle.deckInfo.history.enemyPass' : 'ui.battle.deckInfo.history.playerPass';
+      const fallback = entry.actingSide === 'enemy' ? ' chooses PASS' : ' chooses PASS';
+      return [who, { text: translateActive(key, fallback), color: 'neutral' }];
+    }
     return [who, { text: translateActive('ui.battle.deckInfo.history.acts', ' acts'), color: 'neutral' }];
   }
 
@@ -7743,6 +7813,8 @@ export default class BattleScene extends Phaser.Scene {
         type: this.effectCastState?.source === 'unit-on-play' ? 'play_unit' : 'play_effect',
         card: this.createCardRef?.(result.card ?? selectedCard, 'player') ?? { name: (result.card ?? selectedCard)?.name ?? 'Card', side: 'player' },
       });
+      const immediateCombatFeedback = this.getImmediateCombatFeedback?.(result) ?? null;
+      this.appendImmediateBattleHistoryResolution?.(immediateCombatFeedback);
       const movementFeedback = this.buildMovementFeedbackForAction({
         effectId: selectedCard.effectId,
         owner: 'player',
@@ -7765,7 +7837,7 @@ export default class BattleScene extends Phaser.Scene {
         beforeStats,
         [...(result.feedback ?? []), ...this.buildActionFeedback(beforeStats, result, 'player')],
         movementFeedback,
-        this.getImmediateCombatFeedback?.(result) ?? null,
+        immediateCombatFeedback,
       );
       return;
     }
@@ -8392,6 +8464,7 @@ export default class BattleScene extends Phaser.Scene {
     if (this.gameState.winner || !canPass(this.gameState) || this.playerActionUsed) return;
     if (!(this.isTutorialInputAllowed?.({ type: 'pass', target: 'player_base_button' }) ?? true)) return;
     recordPassAction(this.gameState, 'player');
+    this.queueBattleHistoryAction?.('player', { type: 'pass' });
     this.recordBattleReportEvent?.('pass-recorded', { owner: 'player', pendingPassOwner: this.gameState?.battleExhausted?.pendingPassOwner, fullPassRounds: this.gameState?.battleExhausted?.fullPassRounds ?? 0, battleExhaustedEligible: isBattleExhaustedEligible(this.gameState) });
     this.recordBattleReportEvent?.('player-action', { type: 'pass', resultType: 'pass', impact: false });
     this.pendingTutorialEvent = { eventName: 'pass_completed' };
@@ -9224,10 +9297,13 @@ export default class BattleScene extends Phaser.Scene {
       } else if (action.type === 'play-effect' || action.type === 'play-targeted-effect') {
         this.queueBattleHistoryAction?.('enemy', { type: 'play_effect', card: cardRef });
       }
+    } else if (result?.ok && action.type === 'pass') {
+      this.queueBattleHistoryAction?.('enemy', { type: 'pass' });
     }
     const movementFeedback = this.buildEnemyMovementFeedback(action, beforeStats, result);
     const actionFeedback = this.buildActionFeedback(beforeStats, result, 'enemy');
     const immediateCombatFeedback = this.getImmediateCombatFeedback(result);
+    this.appendImmediateBattleHistoryResolution?.(immediateCombatFeedback);
     await this.playMovementFeedback(movementFeedback, beforeStats);
     await this.playPreRefreshActionFeedback(actionFeedback);
     await this.playImmediateCombatFeedback(immediateCombatFeedback);

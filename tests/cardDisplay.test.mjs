@@ -378,10 +378,11 @@ test('deck info battle history groups one logical cycle into one chronological t
   const commitBlock = source.slice(source.indexOf('  commitBattleHistoryTurn(combatEvents, snapshot) {'), source.indexOf('  openDeckInfoPanel() {'));
   const renderBlock = source.slice(source.indexOf('  renderDeckInfoHistoryContent(container, x, y, width, panelHeight) {'), source.indexOf('  getBattleHistorySideLabel(side) {'));
 
-  assert.match(queueBlock, /pendingBattleHistoryEntries\.push\(\{\s*actingSide: side,\s*action,\s*\}\);/);
-  assert.doesNotMatch(queueBlock, /turnNumber:/);
-  assert.match(commitBlock, /const turnEntry = \{\s*turnNumber: \(this\.gameState\?\.turnsCompleted \?\? 0\) \+ 1,\s*actions,\s*resolution,/);
-  assert.match(commitBlock, /this\.battleHistory = \[\.\.\.\(this\.battleHistory \?\? \[\]\), turnEntry\];/);
+  assert.match(source, /appendBattleHistoryAction\(side, action\) \{/);
+  assert.match(source, /turnEntry\.actions = \[\.\.\.\(turnEntry\.actions \?\? \[\]\), actionEntry\];/);
+  assert.match(queueBlock, /return this\.appendBattleHistoryAction\(side, action\);/);
+  assert.match(commitBlock, /let turnEntry = \(this\.battleHistory \?\? \[\]\)\.find\(\(entry\) => entry\?\.turnNumber === turnNumber && !entry\.completed\)/);
+  assert.match(commitBlock, /turnEntry\.resolution = \[\.\.\.\(turnEntry\.resolution \?\? \[\]\), \.\.\.resolution\];/);
   assert.match(renderBlock, /this\.getBattleHistoryActions\(entry\)\.forEach\(\(actionEntry\) => \{/);
   assert.doesNotMatch(renderBlock, /\.reverse\(\)/);
 });

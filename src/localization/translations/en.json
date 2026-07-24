@@ -493,6 +493,8 @@
           "replaces": " replaces ",
           "withFromHand": " with ",
           "fromHand": " from hand",
+          "playerPass": " chooses PASS",
+          "enemyPass": " chooses PASS",
           "swaps": " swaps ",
           "and": " and ",
           "acts": " acts",

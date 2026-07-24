@@ -493,6 +493,8 @@
           "replaces": " zastępuje ",
           "withFromHand": " kartą ",
           "fromHand": " z ręki",
+          "playerPass": " wybiera PASS",
+          "enemyPass": " wybiera PASS",
           "swaps": " zamienia miejscami ",
           "and": " i ",
           "acts": " wykonuje akcję",
