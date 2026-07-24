@@ -290,7 +290,8 @@ test('temporary transition trace diagnostics are not shipped', () => {
 test('logo and loading ring presentation stays visible during simulated slow transition', () => {
   assert.match(overlay, /this\.root\.setVisible\(true\);[\s\S]*this\.installWaitingFrameOrderGuard\(\);[\s\S]*this\.startRingTween\(\);/);
   assert.match(overlay, /targets: this\.root,[\s\S]*alpha: 1,[\s\S]*duration: FADE_IN_MS/);
-  assert.match(overlay, /this\.root\.add\(this\.logo\);/);
+  assert.match(overlay, /this\.logoGlow = this\.createLogoGlow\(logoPosition\.x, logoPosition\.y\);/);
+  assert.match(overlay, /this\.root\.add\(\[this\.logoGlow, this\.logo\]\.filter\(Boolean\)\);/);
   assert.match(overlay, /this\.root\.add\(this\.ring\);/);
 });
 

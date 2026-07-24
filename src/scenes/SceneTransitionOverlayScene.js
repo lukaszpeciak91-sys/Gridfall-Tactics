@@ -27,6 +27,11 @@ const FAILSAFE_ACTIVE_MS = 8000;
 const HARD_EMERGENCY_ACTIVE_MS = 60000;
 const ROOT_DEPTH = 10000;
 const BLOCKER_DEPTH = ROOT_DEPTH + 10;
+const LOGO_GLOW_COLOR = 0x93c5fd;
+const LOGO_GLOW_LAYER_COUNT = 18;
+const LOGO_GLOW_BASE_ALPHA = 0.055;
+const LOGO_GLOW_WIDTH_RATIO = 0.82;
+const LOGO_GLOW_HEIGHT_RATIO = 0.62;
 
 export default class SceneTransitionOverlayScene extends Phaser.Scene {
   constructor() {
@@ -41,6 +46,7 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
     this.root = null;
     this.backdrop = null;
     this.logo = null;
+    this.logoGlow = null;
     this.ring = null;
     this.outerRing = null;
     this.innerRing = null;
@@ -111,11 +117,39 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
     } else {
       this.logo = createLogoFallbackText(this, logoPosition.x, logoPosition.y, 'ui.start.title', '48px', width * 0.9);
     }
-    this.root.add(this.logo);
+    this.logoGlow = this.createLogoGlow(logoPosition.x, logoPosition.y);
+    this.root.add([this.logoGlow, this.logo].filter(Boolean));
 
     this.ring = this.createLoadingRing(width / 2, this.getRingY(logoPosition.y));
     this.root.add(this.ring);
 
+  }
+
+  createLogoGlow(x, y) {
+    if (!this.logo?.displayWidth || !this.logo?.displayHeight) {
+      return null;
+    }
+
+    const glow = this.add.graphics().setPosition(x, y);
+    glow.setBlendMode?.('ADD');
+    this.drawLogoGlow(glow);
+    return glow;
+  }
+
+  drawLogoGlow(glow = this.logoGlow) {
+    if (!glow || !this.logo?.displayWidth || !this.logo?.displayHeight) {
+      return;
+    }
+
+    glow.clear();
+    const maxWidth = this.logo.displayWidth * LOGO_GLOW_WIDTH_RATIO;
+    const maxHeight = this.logo.displayHeight * LOGO_GLOW_HEIGHT_RATIO;
+    for (let layer = LOGO_GLOW_LAYER_COUNT; layer >= 1; layer -= 1) {
+      const layerRatio = layer / LOGO_GLOW_LAYER_COUNT;
+      const alpha = LOGO_GLOW_BASE_ALPHA * (1 - layerRatio) ** 1.35;
+      glow.fillStyle(LOGO_GLOW_COLOR, alpha);
+      glow.fillEllipse(0, 0, maxWidth * (0.44 + layerRatio * 0.56), maxHeight * (0.34 + layerRatio * 0.66));
+    }
   }
 
   getRingY(logoY) {
@@ -387,6 +421,8 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
     if (this.logo?.type === 'Image') {
       setStartHeroLogoDisplaySize(this, this.logo, width, height);
     }
+    this.logoGlow?.setPosition(logoPosition.x, logoPosition.y);
+    this.drawLogoGlow();
     this.ring?.setPosition(width / 2, this.getRingY(logoPosition.y));
   }
 
