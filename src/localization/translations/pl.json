@@ -621,7 +621,9 @@
         "effectCardPlayBlocked": "Nie możesz zagrać karty efektu."
       },
       "confirmSurrender": "PODDAJ SIĘ",
-      "battleExhausted": "BITWA WYCZERPANA"
+      "battleExhausted": "BITWA WYCZERPANA",
+      "yourTurn": "TWÓJ RUCH",
+      "enemyTurn": "RUCH WROGA"
     },
     "rules": {
       "title": "ZASADY",
