@@ -86,7 +86,7 @@
       "type": "order",
       "targeting": "friendly_unit",
       "effectId": "swap_adjacent_then_resolve",
-      "textShort": "Swap with adjacent [ALLY]\nThat lane immediately fights"
+      "textShort": "Swap with adjacent [ALLY]\nThat lane fights now"
     },
     {
       "id": "overclock_crack_strike_1",

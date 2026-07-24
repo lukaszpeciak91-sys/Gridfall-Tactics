@@ -303,7 +303,7 @@ test('selected localized card texts use enemy board-unit markers without changin
 test('Party Host Polish text states first adjacent ally death and keeps permanent ATK wording', () => {
   assert.equal(
     pl.cards.attrition_swarm_rotcaller_1.textShort,
-    'Zgon pierwszego sąsiedniego [ALLY]:\n+1 [ATK] na stałe',
+    'Pierwszy sąsiedni zgon [ALLY]\n+1 [ATK] na stałe',
   );
 });
 

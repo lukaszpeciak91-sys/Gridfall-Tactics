@@ -26,7 +26,7 @@
     },
     "aggro_rush_1": {
       "name": "Rush",
-      "textShort": "Swap with adjacent [ALLY]\nThat lane immediately fights"
+      "textShort": "Swap with adjacent [ALLY]\nThat lane fights now"
     },
     "aggro_pierce_strike_1": {
       "name": "Pierce Strike",
@@ -54,7 +54,7 @@
     },
     "attrition_swarm_rotcaller_1": {
       "name": "Party Host",
-      "textShort": "First adjacent [ALLY] death: +1 ATK permanently"
+      "textShort": "First adjacent [ALLY] death\n+1 [ATK] permanently"
     },
     "attrition_swarm_abomination_1": {
       "name": "Abomination",
@@ -266,7 +266,7 @@
     },
     "overclock_forced_march_1": {
       "name": "Operational Reroute",
-      "textShort": "Swap with adjacent [ALLY]\nThat lane immediately fights"
+      "textShort": "Swap with adjacent [ALLY]\nThat lane fights now"
     },
     "overclock_crack_strike_1": {
       "name": "Breach Test",

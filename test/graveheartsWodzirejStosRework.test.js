@@ -95,9 +95,9 @@ test('two Stos instances each trigger from same allied death and base damage can
 });
 
 test('copy source contains only approved Wodzirej and Stos descriptions', () => {
-  assert.equal(attrition.deck.find((c) => c.id === 'attrition_swarm_rotcaller_1').textShort, 'First adjacent [ALLY] death: +1 ATK permanently');
-  assert.equal(en.cards.attrition_swarm_rotcaller_1.textShort, 'First adjacent [ALLY] death: +1 ATK permanently');
-  assert.equal(pl.cards.attrition_swarm_rotcaller_1.textShort, 'Zgon pierwszego sąsiedniego [ALLY]:\n+1 [ATK] na stałe');
+  assert.equal(attrition.deck.find((c) => c.id === 'attrition_swarm_rotcaller_1').textShort, 'First adjacent [ALLY] death\n+1 [ATK] permanently');
+  assert.equal(en.cards.attrition_swarm_rotcaller_1.textShort, 'First adjacent [ALLY] death\n+1 [ATK] permanently');
+  assert.equal(pl.cards.attrition_swarm_rotcaller_1.textShort, 'Pierwszy sąsiedni zgon [ALLY]\n+1 [ATK] na stałe');
   assert.equal(attrition.deck.find((c) => c.id === 'attrition_swarm_funeral_pyre_1').textShort, 'First [ALLY] death each turn:\nenemy base loses 1 HP');
   assert.equal(en.cards.attrition_swarm_funeral_pyre_1.textShort, 'First [ALLY] death each turn:\nenemy base loses 1 HP');
   assert.equal(pl.cards.attrition_swarm_funeral_pyre_1.textShort, 'Pierwszy zgon [ALLY] w turze:\n-1 [HP] bazie wroga');

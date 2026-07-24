@@ -50,7 +50,7 @@
       "type": "unit",
       "targeting": "lane",
       "effectId": "rotcaller_adjacent_death_atk_1",
-      "textShort": "First adjacent [ALLY] death: +1 ATK permanently",
+      "textShort": "First adjacent [ALLY] death\n+1 [ATK] permanently",
       "attack": 1,
       "hp": 2,
       "armor": 0

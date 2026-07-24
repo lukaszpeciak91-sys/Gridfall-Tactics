@@ -11,7 +11,7 @@ const expectedTextShort = new Map(Object.entries({
   aggro_runner_1: 'Open lane: +2 ATK',
   aggro_flanker_1: 'If adjacent slot empty: +1 ATK',
   aggro_scout_1: "Until opponent\'s next action: no unit in this lane",
-  aggro_rush_1: 'Swap with adjacent [ALLY]\nThat lane immediately fights',
+  aggro_rush_1: 'Swap with adjacent [ALLY]\nThat lane fights now',
   aggro_pierce_strike_1: 'Deal 1 to [ENEMY]\nNext hit ignores [ARM]',
   aggro_quick_fix_1: 'Heal [ALLY] 1\n+1 ATK until combat\nCombat kill: draw 1',
   control_disruptor_1: "Until combat opponent cannot play effect cards",
@@ -45,7 +45,7 @@ const expectedTextShort = new Map(Object.entries({
   attrition_swarm_husk_1: 'When this dies:\n-1 [HP] to opposed [ENEMY]',
   attrition_swarm_carrier_1: 'When this dies: summon 1/1 here',
   attrition_swarm_leech_1: 'On attack: heal your base 1',
-  attrition_swarm_rotcaller_1: 'First adjacent [ALLY] death: +1 ATK permanently',
+  attrition_swarm_rotcaller_1: 'First adjacent [ALLY] death\n+1 [ATK] permanently',
   attrition_swarm_abomination_1: 'When this dies: both bases lose 1 HP',
   attrition_swarm_funeral_pyre_1: 'First [ALLY] death each turn:\nenemy base loses 1 HP',
   attrition_swarm_infect_1: 'Deal 1 to [ENEMY]\nOpposed [ALLY] gains +1 [ATK]',
@@ -58,7 +58,7 @@ const expectedTextShort = new Map(Object.entries({
   overclock_gap_hunter_1: 'If adjacent slot empty: +1 ATK',
   overclock_mob_champion_1: '+1 ATK per other [ALLY]',
   overclock_redline_1: 'All [ALLY] +1 ATK until combat',
-  overclock_forced_march_1: 'Swap with adjacent [ALLY]\nThat lane immediately fights',
+  overclock_forced_march_1: 'Swap with adjacent [ALLY]\nThat lane fights now',
   overclock_crack_strike_1: 'Deal 1 to [ENEMY]\nNext hit ignores [ARM]',
   overclock_ignition_1: 'Selected [ALLY] immediately fights in its lane',
   overclock_mercy_1: '[ENEMY] -1 ATK\nOpposed [ALLY] +2 ATK until combat',
@@ -123,6 +123,40 @@ test('visible textShort values match the MVP wording pass', () => {
   }
 });
 
+test('surgical card copy polish keeps paired active descriptions in sync', () => {
+  const cardsById = new Map(allCards().map(({ card }) => [card.id, card]));
+  const en = JSON.parse(fs.readFileSync('src/localization/translations/en.json', 'utf8')).cards;
+  const pl = JSON.parse(fs.readFileSync('src/localization/translations/pl.json', 'utf8')).cards;
+
+  assert.equal(cardsById.get('attrition_swarm_rotcaller_1').textShort, 'First adjacent [ALLY] death\n+1 [ATK] permanently');
+  assert.doesNotMatch(cardsById.get('attrition_swarm_rotcaller_1').textShort, /death:/u);
+  assert.doesNotMatch(pl.attrition_swarm_rotcaller_1.textShort, /zgon.*:/iu);
+
+  assert.equal(cardsById.get('overclock_forced_march_1').textShort, cardsById.get('aggro_rush_1').textShort);
+  assert.equal(en.overclock_forced_march_1.textShort, en.aggro_rush_1.textShort);
+  assert.equal(pl.overclock_forced_march_1.textShort, pl.aggro_rush_1.textShort);
+
+  assert.equal(en.aggro_quick_fix_1.textShort, 'Heal [ALLY] 1\n+1 ATK until combat\nCombat kill: draw 1');
+  assert.equal(pl.aggro_quick_fix_1.textShort, 'Ulecz [ALLY] o 1\n+1 [ATK] do walki\nZabije: dobierz 1');
+});
+
+test('surgical card copy polish preserves mechanics stats effect IDs and targeting', () => {
+  const cardsById = new Map(allCards().map(({ card }) => [card.id, card]));
+
+  assert.deepEqual(
+    ['attrition_swarm_rotcaller_1', 'overclock_forced_march_1', 'aggro_rush_1', 'aggro_quick_fix_1'].map((id) => {
+      const { type, targeting, effectId, attack = null, hp = null, armor = null } = cardsById.get(id);
+      return { id, type, targeting, effectId, attack, hp, armor };
+    }),
+    [
+      { id: 'attrition_swarm_rotcaller_1', type: 'unit', targeting: 'lane', effectId: 'rotcaller_adjacent_death_atk_1', attack: 1, hp: 2, armor: 0 },
+      { id: 'overclock_forced_march_1', type: 'order', targeting: 'friendly_unit', effectId: 'swap_adjacent_then_resolve', attack: null, hp: null, armor: null },
+      { id: 'aggro_rush_1', type: 'order', targeting: 'friendly_unit', effectId: 'swap_adjacent_then_resolve', attack: null, hp: null, armor: null },
+      { id: 'aggro_quick_fix_1', type: 'utility', targeting: 'friendly_unit', effectId: 'heal_1_atk_1_draw_on_kill_this_turn', attack: null, hp: null, armor: null },
+    ],
+  );
+});
+
 test('Attrition Swarm active copy uses universal death wording without rewriting Rotcaller or Stos', () => {
   const cardsById = new Map(allCards().map(({ card }) => [card.id, card]));
   const en = JSON.parse(fs.readFileSync('src/localization/translations/en.json', 'utf8')).cards;
@@ -137,10 +171,10 @@ test('Attrition Swarm active copy uses universal death wording without rewriting
   assert.equal(en.attrition_swarm_abomination_1.textShort, 'When this dies: both bases lose 1 HP');
   assert.equal(pl.attrition_swarm_abomination_1.textShort, 'Gdy ginie: obie bazy tracą 1 HP');
 
-  assert.equal(cardsById.get('attrition_swarm_rotcaller_1').textShort, 'First adjacent [ALLY] death: +1 ATK permanently');
+  assert.equal(cardsById.get('attrition_swarm_rotcaller_1').textShort, 'First adjacent [ALLY] death\n+1 [ATK] permanently');
   assert.equal(cardsById.get('attrition_swarm_funeral_pyre_1').textShort, 'First [ALLY] death each turn:\nenemy base loses 1 HP');
-  assert.equal(en.attrition_swarm_rotcaller_1.textShort, 'First adjacent [ALLY] death: +1 ATK permanently');
-  assert.equal(pl.attrition_swarm_rotcaller_1.textShort, 'Zgon pierwszego sąsiedniego [ALLY]:\n+1 [ATK] na stałe');
+  assert.equal(en.attrition_swarm_rotcaller_1.textShort, 'First adjacent [ALLY] death\n+1 [ATK] permanently');
+  assert.equal(pl.attrition_swarm_rotcaller_1.textShort, 'Pierwszy sąsiedni zgon [ALLY]\n+1 [ATK] na stałe');
   assert.equal(en.attrition_swarm_funeral_pyre_1.textShort, 'First [ALLY] death each turn:\nenemy base loses 1 HP');
   assert.equal(pl.attrition_swarm_funeral_pyre_1.textShort, 'Pierwszy zgon [ALLY] w turze:\n-1 [HP] bazie wroga');
 
