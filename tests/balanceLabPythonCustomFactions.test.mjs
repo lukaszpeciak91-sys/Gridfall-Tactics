@@ -84,7 +84,7 @@ test('Balance Lab comparison report handles experiment-only custom faction rows'
 });
 
 
-test('Balance Lab streams child stdout and stderr while preserving captured output and exit code', () => {
+test('Balance Lab streams merged child output while preserving capture order and exit code', () => {
   const output = runPython(`${pyPrelude}
 import contextlib, io, sys, threading, time
 with tempfile.TemporaryDirectory() as tmp:
@@ -104,10 +104,9 @@ print('stderr-after-sleep', file=sys.stderr, flush=True)
 raise SystemExit(0)
 """)
   stdout_buffer = io.StringIO()
-  stderr_buffer = io.StringIO()
   holder = {}
   def run_child():
-    with contextlib.redirect_stdout(stdout_buffer), contextlib.redirect_stderr(stderr_buffer):
+    with contextlib.redirect_stdout(stdout_buffer):
       holder['result'] = bl.run_simulation(root, [sys.executable, str(child), str(marker)])
   thread = threading.Thread(target=run_child)
   thread.start()
@@ -117,19 +116,19 @@ raise SystemExit(0)
   assert marker.exists(), 'child did not reach pre-exit marker'
   assert thread.is_alive(), 'child exited before streaming assertion'
   assert 'stdout-before-exit' in stdout_buffer.getvalue()
-  assert 'stderr-before-exit' in stderr_buffer.getvalue()
+  assert 'stderr-before-exit' in stdout_buffer.getvalue()
   thread.join(5)
   assert not thread.is_alive(), 'streaming runner did not finish'
   result = holder['result']
   assert result.returncode == 0
-  assert result.stdout == 'stdout-before-exit\\nstdout-after-sleep\\n'
-  assert result.stderr == 'stderr-before-exit\\nstderr-after-sleep\\n'
+  assert result.stdout == 'stdout-before-exit\\nstderr-before-exit\\nstdout-after-sleep\\nstderr-after-sleep\\n'
+  assert result.stderr == ''
 print('ok')
 `);
   assert.match(output.trim(), /ok$/);
 });
 
-test('Balance Lab streaming runner preserves non-zero exit code and stderr capture', () => {
+test('Balance Lab streaming runner preserves non-zero exit code and merged stderr capture', () => {
   const output = runPython(`${pyPrelude}
 import contextlib, io, sys
 with tempfile.TemporaryDirectory() as tmp:
@@ -141,14 +140,13 @@ print('stderr-fail', file=sys.stderr, flush=True)
 raise SystemExit(7)
 """)
   stdout_buffer = io.StringIO()
-  stderr_buffer = io.StringIO()
-  with contextlib.redirect_stdout(stdout_buffer), contextlib.redirect_stderr(stderr_buffer):
+  with contextlib.redirect_stdout(stdout_buffer):
     result = bl.run_simulation(root, [sys.executable, str(child)])
   assert result.returncode == 7
-  assert result.stdout == 'stdout-fail\\n'
-  assert result.stderr == 'stderr-fail\\n'
+  assert result.stdout == 'stdout-fail\\nstderr-fail\\n'
+  assert result.stderr == ''
   assert 'stdout-fail' in stdout_buffer.getvalue()
-  assert 'stderr-fail' in stderr_buffer.getvalue()
+  assert 'stderr-fail' in stdout_buffer.getvalue()
 print('ok')
 `);
   assert.match(output.trim(), /ok$/);
@@ -178,6 +176,31 @@ assert 'simulator stdout was empty' in bl.simulator_output_validation_errors(Com
 assert 'simulator exited with code 7' in bl.simulator_output_validation_errors(CompletedProcess(['node'], 7, ok_table, 'boom'), ok_table, telemetry='all')
 assert 'missing Battle simulation complete marker' in bl.simulator_output_validation_errors(CompletedProcess(['node'], 0, ok_table.replace('Battle simulation complete', 'done'), ''), ok_table.replace('Battle simulation complete', 'done'), telemetry='all')
 assert any('effectVariant runtime telemetry' in item for item in bl.simulator_output_validation_errors(CompletedProcess(['node'], 0, ok_table.replace('Simulator telemetry: effectVariant operations', ''), ''), ok_table.replace('Simulator telemetry: effectVariant operations', ''), telemetry='all'))
+print('ok')
+`);
+  assert.match(output.trim(), /ok$/);
+});
+
+test('Balance Lab current state reduced run captures full simulator output for parser and raw output file', () => {
+  const output = runPython(`${pyPrelude}
+from subprocess import CompletedProcess
+with tempfile.TemporaryDirectory() as tmp:
+  report = Path(tmp) / 'report'; report.mkdir()
+  command = ['node', 'scripts/simulate-battles.mjs', '1', '12345', '--telemetry=cards']
+  result = bl.run_simulation(root, command)
+  path, stats = bl.build_current_state_report(report, {'name':'Current State reduced test','matchCount':1,'seed':12345,'telemetry':'cards'}, command, result)
+  raw = (report / bl.CURRENT_OUTPUT_FILENAME).read_text(encoding='utf-8')
+  aggregate_columns = ['faction','games','win %','non-draw win %','draw %','turn-cap %','avg turns','avg remaining hero HP']
+  matchup_columns = ['faction A','faction B','games','faction A wins','faction B wins','draws','faction A all-games WR','faction A non-draw WR','draw %','turn-cap %','avg turns']
+  factions = bl.parse_console_table_section(raw, 'Balance audit: aggregate faction table', aggregate_columns)
+  matchups = bl.parse_console_table_section(raw, 'Balance audit: combined matchup table across both seats', matchup_columns)
+  assert result.returncode == 0
+  assert raw == result.stdout
+  assert len(factions) == 7
+  assert len(matchups) == 21
+  assert 'Simulator telemetry: per-card summary' in raw
+  assert stats['factionRows'] == 7
+  assert stats['matchupRows'] == 21
 print('ok')
 `);
   assert.match(output.trim(), /ok$/);

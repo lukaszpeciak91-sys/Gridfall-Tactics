@@ -15,7 +15,6 @@ import re
 import shutil
 import subprocess
 import sys
-import threading
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -1307,40 +1306,30 @@ def print_intro(root: Path, experiment_path: Path, data: dict[str, Any], command
     print("", flush=True)
 
 
-def stream_pipe(pipe: Any, target: Any, captured: list[str]) -> None:
-    try:
-        for line in pipe:
-            captured.append(line)
-            target.write(line)
-            target.flush()
-    finally:
-        pipe.close()
-
-
 def run_simulation(root: Path, command: list[str]) -> subprocess.CompletedProcess[str]:
     process = subprocess.Popen(
         command,
         cwd=root,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
         text=True,
         encoding="utf-8",
         errors="replace",
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        bufsize=1,
+        universal_newlines=True,
         env=utf8_subprocess_env(),
     )
-    stdout_chunks: list[str] = []
-    stderr_chunks: list[str] = []
-    threads: list[threading.Thread] = []
+    output_chunks: list[str] = []
     if process.stdout is not None:
-        threads.append(threading.Thread(target=stream_pipe, args=(process.stdout, sys.stdout, stdout_chunks)))
-    if process.stderr is not None:
-        threads.append(threading.Thread(target=stream_pipe, args=(process.stderr, sys.stderr, stderr_chunks)))
-    for thread in threads:
-        thread.start()
+        try:
+            for line in process.stdout:
+                output_chunks.append(line)
+                sys.stdout.write(line)
+                sys.stdout.flush()
+        finally:
+            process.stdout.close()
     returncode = process.wait()
-    for thread in threads:
-        thread.join()
-    return subprocess.CompletedProcess(command, returncode, "".join(stdout_chunks), "".join(stderr_chunks))
+    return subprocess.CompletedProcess(command, returncode, "".join(output_chunks), "")
 
 
 def load_runtime_faction_keys(root: Path) -> list[str]:
