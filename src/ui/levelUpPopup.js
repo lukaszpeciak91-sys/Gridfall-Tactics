@@ -5,9 +5,9 @@ import { calculateAchievementUnlockPopupLayout } from './achievementUnlockPopup.
 
 export const LEVEL_UP_POPUP_TIMING = Object.freeze({
   initialDelayMs: 0,
-  entryMs: 480,
-  visibleMs: 1300,
-  exitMs: 320,
+  entryMs: 850,
+  visibleMs: 2400,
+  exitMs: 600,
 });
 
 const LEVEL_UP_LABEL_FALLBACK = Object.freeze({ en: 'LEVEL UP', pl: 'AWANS' });
@@ -147,15 +147,15 @@ export function createLevelUpPopup(scene, options = {}) {
     const finish = invokeOnce(() => { complete = true; destroy(); onComplete?.(); });
     const exitStart = invokeOnce(() => onExitStart?.());
     const addTween = (config) => { const tween = scene.tweens.add(config); tweens.push(tween); return tween; };
-    addTween({ targets: centerPoint, alpha: 1, scaleX: 1, scaleY: 1, duration: 90, ease: 'Sine.easeOut' });
-    addTween({ targets: streak, alpha: 1, scaleX: 1, duration: 170, delay: 70, ease: 'Sine.easeOut' });
-    addTween({ targets: frame, alpha: 1, scaleX: 1, duration: 210, delay: 160, ease: 'Cubic.easeOut' });
-    addTween({ targets: [glass, aura], alpha: 1, scaleY: 1, duration: 220, delay: 240, ease: 'Sine.easeOut' });
-    addTween({ targets: labelText, alpha: 1, duration: 150, delay: 330, ease: 'Sine.easeOut' });
-    addTween({ targets: finalText, alpha: 1, scaleX: 1.035, scaleY: 1.035, duration: 170, delay: 430, ease: 'Back.easeOut' });
-    addTween({ targets: finalText, scaleX: 1, scaleY: 1, duration: 160, delay: 600, ease: 'Sine.easeInOut' });
-    addTween({ targets: transitionText, alpha: 1, duration: 140, delay: 520, ease: 'Sine.easeOut' });
-    addTween({ targets: shimmer, alpha: 1, x: cx + layout.width * 0.42, duration: 360, delay: 610, ease: 'Sine.easeInOut' });
+    addTween({ targets: centerPoint, alpha: 1, scaleX: 1, scaleY: 1, duration: 120, ease: 'Sine.easeOut' });
+    addTween({ targets: streak, alpha: 1, scaleX: 1, duration: 210, delay: 95, ease: 'Sine.easeOut' });
+    addTween({ targets: frame, alpha: 1, scaleX: 1, duration: 260, delay: 220, ease: 'Cubic.easeOut' });
+    addTween({ targets: [glass, aura], alpha: 1, scaleY: 1, duration: 260, delay: 330, ease: 'Sine.easeOut' });
+    addTween({ targets: labelText, alpha: 1, duration: 190, delay: 460, ease: 'Sine.easeOut' });
+    addTween({ targets: finalText, alpha: 1, scaleX: 1.035, scaleY: 1.035, duration: 210, delay: 570, ease: 'Back.easeOut' });
+    addTween({ targets: finalText, scaleX: 1, scaleY: 1, duration: 160, delay: 680, ease: 'Sine.easeInOut' });
+    addTween({ targets: transitionText, alpha: 1, duration: 170, delay: 650, ease: 'Sine.easeOut' });
+    addTween({ targets: shimmer, alpha: 1, x: cx + layout.width * 0.42, duration: 160, delay: 690, ease: 'Sine.easeInOut' });
 
     const visibleTimer = scene.time.delayedCall(timing.entryMs + timing.visibleMs, () => {
       if (destroyed) return;

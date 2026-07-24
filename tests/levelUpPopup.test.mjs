@@ -73,6 +73,17 @@ test('level-up popup creates premium centered panel with no side badge modules',
   assert.equal(popup.layout.entranceOffset, 0);
 });
 
+test('level-up popup timing uses deliberate reveal, readable hold, and smooth exit windows', () => {
+  assert.equal(LEVEL_UP_POPUP_TIMING.entryMs, 850);
+  assert.ok(LEVEL_UP_POPUP_TIMING.entryMs >= 700 && LEVEL_UP_POPUP_TIMING.entryMs <= 900);
+  assert.equal(LEVEL_UP_POPUP_TIMING.visibleMs, 2400);
+  assert.ok(LEVEL_UP_POPUP_TIMING.visibleMs >= 2200);
+  assert.equal(LEVEL_UP_POPUP_TIMING.exitMs, 600);
+  assert.ok(LEVEL_UP_POPUP_TIMING.exitMs >= 500 && LEVEL_UP_POPUP_TIMING.exitMs <= 700);
+  const totalMs = LEVEL_UP_POPUP_TIMING.entryMs + LEVEL_UP_POPUP_TIMING.visibleMs + LEVEL_UP_POPUP_TIMING.exitMs;
+  assert.ok(totalMs >= 3500 && totalMs <= 4000);
+});
+
 test('level-up popup materializes by point/streak/frame sequence instead of achievement slide-in', () => {
   const scene = createMockScene();
   const popup = createLevelUpPopup(scene, { previousLevel: 3, newLevel: 4, locale: 'en', timing: { ...LEVEL_UP_POPUP_TIMING, visibleMs: 1 } });
@@ -92,7 +103,12 @@ test('level-up popup materializes by point/streak/frame sequence instead of achi
   assert.ok(findDelay('dark-glass') > findDelay('premium-frame'));
   assert.ok(findDelay('label') > findDelay('dark-glass'));
   assert.ok(findDelay('final-level') > findDelay('label'));
-  assert.ok(findDelay('transition') > findDelay('label'));
+  assert.ok(findDelay('transition') > findDelay('final-level'));
+  assert.ok(findDelay('gold-shimmer') > findDelay('transition'));
+  const latestRevealEnd = Math.max(...scene.createdTweens
+    .filter((tween) => tween.config.targets && !tween.config.onComplete)
+    .map((tween) => (tween.config.delay ?? 0) + (tween.config.duration ?? 0)));
+  assert.ok(latestRevealEnd >= 700 && latestRevealEnd <= 900, 'full reveal should finish in the target inspection window');
 });
 
 test('level-up popup exit completes once and destroy cancels pending timers/tweens', () => {
@@ -101,8 +117,10 @@ test('level-up popup exit completes once and destroy cancels pending timers/twee
   let exitStarts = 0;
   let completes = 0;
   popup.play({ onExitStart: () => { exitStarts += 1; }, onComplete: () => { completes += 1; } });
+  assert.equal(scene.createdTimers[0].delay, LEVEL_UP_POPUP_TIMING.entryMs + 1);
   scene.createdTimers[0].callback();
   const exitTween = scene.createdTweens.at(-1);
+  assert.equal(exitTween.config.duration, LEVEL_UP_POPUP_TIMING.exitMs);
   exitTween.config.onComplete();
   exitTween.config.onComplete();
   assert.equal(exitStarts, 1);
@@ -124,6 +142,8 @@ test('level_up audio key/path is registered and missing audio does not block ren
   const scene = createMockScene({ audioCached: false });
   const popup = createLevelUpPopup(scene, { previousLevel: 2, newLevel: 3, locale: 'en' });
   popup.play();
+  assert.equal(scene.createdTimers[0].delay, LEVEL_UP_POPUP_TIMING.entryMs + LEVEL_UP_POPUP_TIMING.visibleMs);
+  assert.ok(scene.createdTimers[0].delay >= 3050);
   assert.equal(scene.playedSfx.length, 0);
   assert.ok(scene.created.some((item) => item.levelUpRole === 'premium-frame'));
   assert.equal(popup.isDestroyed(), false);
