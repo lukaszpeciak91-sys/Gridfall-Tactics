@@ -481,8 +481,6 @@ export default class BattleScene extends Phaser.Scene {
     this.isDestroyingTurnStartBanner = false;
     this.actionTurnBannerTransitionId = 0;
     this.isActionTurnBannerResolving = false;
-    this.enemyActionHandoffInProgress = false;
-    this.enemyActionHandoffRecoveryRetries = 0;
     this.skipNextActionTurnBanner = false;
     this.tutorialBanner = null;
     this.tutorialBannerOverlay = null;
@@ -882,8 +880,6 @@ export default class BattleScene extends Phaser.Scene {
     this.isDestroyingTurnStartBanner = false;
     this.actionTurnBannerTransitionId = 0;
     this.isActionTurnBannerResolving = false;
-    this.enemyActionHandoffInProgress = false;
-    this.enemyActionHandoffRecoveryRetries = 0;
     this.skipNextActionTurnBanner = false;
     this.tutorialBanner = null;
     this.tutorialBannerOverlay = null;
@@ -9182,93 +9178,6 @@ export default class BattleScene extends Phaser.Scene {
   }
 
 
-  getActionTurnHandoffDiagnostics(requestedSide, retryCount = 0, rejectionSource = 'unknown') {
-    return {
-      requestedSide,
-      playerActionUsed: this.playerActionUsed,
-      enemyActionUsed: this.enemyActionUsed,
-      actionTurnBannerTransitionId: this.actionTurnBannerTransitionId,
-      isActionTurnBannerResolving: this.isActionTurnBannerResolving,
-      currentActionableSide: this.getCurrentActionableSide(),
-      actionableSideIgnoringBannerGate: this.getCurrentActionableSide({ ignoreActionTurnBannerGate: true }),
-      retryCount,
-      aiSchedulingAlreadyPending: this.enemyActionHandoffInProgress,
-      battleActive: Boolean(this.scene?.isActive?.() ?? true),
-      winner: this.gameState?.winner ?? null,
-      rejectionSource,
-    };
-  }
-
-  recordActionTurnHandoffDiagnostic(name, requestedSide, retryCount = 0, rejectionSource = 'unknown') {
-    this.recordBattleReportEvent?.(name, this.getActionTurnHandoffDiagnostics(requestedSide, retryCount, rejectionSource));
-  }
-
-  canExecuteEnemyActionHandoff() {
-    return Boolean(
-      this.gameState
-      && !this.gameState.winner
-      && !this.battleResultModalShown
-      && !this.battleResultModalPending
-      && this.playerActionUsed
-      && !this.enemyActionUsed
-      && (this.scene?.isActive?.() ?? true)
-      && this.getCurrentActionableSide({ ignoreActionTurnBannerGate: true }) === 'enemy',
-    );
-  }
-
-  canContinueEnemyActionExecution() {
-    return Boolean(
-      this.gameState
-      && !this.gameState.winner
-      && !this.battleResultModalShown
-      && !this.battleResultModalPending
-      && this.playerActionUsed
-      && !this.enemyActionUsed
-      && (this.scene?.isActive?.() ?? true),
-    );
-  }
-
-  shouldRecoverRejectedEnemyActionHandoff(requestedSide) {
-    return requestedSide === 'enemy' && this.canExecuteEnemyActionHandoff();
-  }
-
-  async recoverRejectedEnemyActionHandoff({ requestedSide = 'enemy', rejectedTransitionId = this.actionTurnBannerTransitionId } = {}) {
-    const maxRetries = 2;
-    for (let retryCount = 1; retryCount <= maxRetries; retryCount += 1) {
-      this.enemyActionHandoffRecoveryRetries = retryCount;
-      this.recordActionTurnHandoffDiagnostic('action-turn-gate-rejected-after-player-action', requestedSide, retryCount, 'gate-rejected');
-      await this.delay(50);
-      if (!this.canExecuteEnemyActionHandoff()) {
-        this.recordActionTurnHandoffDiagnostic('action-turn-gate-recovery-exhausted', requestedSide, retryCount, 'handoff-no-longer-valid');
-        return false;
-      }
-      if (this.isActionTurnBannerResolving) {
-        this.recordActionTurnHandoffDiagnostic('action-turn-gate-recovery-exhausted', requestedSide, retryCount, 'newer-transition-active');
-        return false;
-      }
-      const side = this.getCurrentActionableSide({ ignoreActionTurnBannerGate: true });
-      if (side !== 'enemy') {
-        this.recordActionTurnHandoffDiagnostic('action-turn-gate-recovery-exhausted', requestedSide, retryCount, 'side-changed');
-        return false;
-      }
-      const ready = await this.gateActionOpportunity('enemy');
-      if (ready && this.canExecuteEnemyActionHandoff()) {
-        this.recordBattleReportEvent?.('action-turn-gate-recovery-succeeded', {
-          ...this.getActionTurnHandoffDiagnostics('enemy', retryCount, 'retry-succeeded'),
-          rejectedTransitionId,
-        });
-        return true;
-      }
-    }
-
-    this.recordBattleReportEvent?.('action-turn-gate-recovery-exhausted', {
-      ...this.getActionTurnHandoffDiagnostics(requestedSide, maxRetries, 'retry-limit'),
-      rejectedTransitionId,
-    });
-    return false;
-  }
-
-
   async startTurn() {
     const { skipActionBanner = this.skipNextActionTurnBanner === true } = arguments[0] ?? {};
     this.skipNextActionTurnBanner = false;
@@ -9397,28 +9306,16 @@ export default class BattleScene extends Phaser.Scene {
 
     let enemyActionPacing = null;
     if (!this.enemyActionUsed) {
-      if (this.enemyActionHandoffInProgress) return;
-      this.enemyActionHandoffInProgress = true;
-      try {
-        let side = this.getCurrentActionableSide({ ignoreActionTurnBannerGate: true });
-        let ready = await this.gateActionOpportunity(side);
-        if ((!ready || side !== 'enemy') && this.shouldRecoverRejectedEnemyActionHandoff(side)) {
-          ready = await this.recoverRejectedEnemyActionHandoff({ requestedSide: side, rejectedTransitionId: this.actionTurnBannerTransitionId });
-          side = this.getCurrentActionableSide({ ignoreActionTurnBannerGate: true });
-        }
-        if (!ready || side !== 'enemy' || !this.canExecuteEnemyActionHandoff()) return;
-        this.isFlowResolving = true;
-        this.updateTutorialBanner?.();
-        await this.delay(650);
-        if (!this.canContinueEnemyActionExecution()) return;
-        enemyActionPacing = await this.revealAndApplyEnemyAction();
-        if (this.gameState.winner) {
-          this.completeBattleFlow(500);
-          return;
-        }
-      } finally {
-        this.enemyActionHandoffInProgress = false;
-        this.enemyActionHandoffRecoveryRetries = 0;
+      const side = this.getCurrentActionableSide({ ignoreActionTurnBannerGate: true });
+      const ready = await this.gateActionOpportunity(side);
+      if (!ready || side !== 'enemy') return;
+      this.isFlowResolving = true;
+      this.updateTutorialBanner?.();
+      await this.delay(650);
+      enemyActionPacing = await this.revealAndApplyEnemyAction();
+      if (this.gameState.winner) {
+        this.completeBattleFlow(500);
+        return;
       }
     } else {
       this.isFlowResolving = true;
