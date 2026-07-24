@@ -55,8 +55,8 @@ test('tutorial banner suppresses during resolving flows and restores after flow 
   assert.match(source, /isTutorialBannerSuppressed\(\) \{[\s\S]*this\.isFlowResolving[\s\S]*this\.isEffectCastResolving[\s\S]*this\.gameState\?\.winner/);
   assert.match(source, /if \(this\.isTutorialBannerSuppressed\(\)\) \{[\s\S]*this\.tutorialBanner\?\.setVisible\?\.\(false\)[\s\S]*this\.tutorialBannerOverlay\?\.setVisible\?\.\(false\)[\s\S]*this\.tutorialBannerOverlay\.input\.enabled = false/);
   assert.match(source, /this\.isFlowResolving = true;\s*this\.updateTutorialBanner\?\.\(\);\s*this\.destroyActiveSelectionMessage\(\);/);
-  assert.match(source, /this\.isFlowResolving = true;\s*this\.updateTutorialBanner\?\.\(\);\s*let enemyActionPacing = null;/);
-  assert.match(source, /this\.isFlowResolving = false;\s*this\.updateTutorialBanner\?\.\(\);\s*await this\.showOpeningTurnStartBanner\(\);/);
+  assert.match(source, /let enemyActionPacing = null;[\s\S]*this\.isFlowResolving = true;\s*this\.updateTutorialBanner\?\.\(\);/);
+  assert.match(source, /this\.isFlowResolving = false;\s*this\.updateTutorialBanner\?\.\(\);\s*await this\.startTurn\(\);/);
 });
 
 test('tutorial banner uses localized tutorial step text', () => {

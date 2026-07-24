@@ -621,7 +621,9 @@
         "effectCardPlayBlocked": "You cannot play effect cards."
       },
       "confirmSurrender": "SURRENDER",
-      "battleExhausted": "BATTLE EXHAUSTED"
+      "battleExhausted": "BATTLE EXHAUSTED",
+      "yourTurn": "YOUR TURN",
+      "enemyTurn": "ENEMY TURN"
     },
     "rules": {
       "title": "RULES",

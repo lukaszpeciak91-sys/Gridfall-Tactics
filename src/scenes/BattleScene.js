@@ -479,6 +479,9 @@ export default class BattleScene extends Phaser.Scene {
     this.turnStartBannerFailSafeToken = null;
     this.turnStartBannerCompletion = null;
     this.isDestroyingTurnStartBanner = false;
+    this.actionTurnBannerTransitionId = 0;
+    this.isActionTurnBannerResolving = false;
+    this.skipNextActionTurnBanner = false;
     this.tutorialBanner = null;
     this.tutorialBannerOverlay = null;
     this.tutorialFocusLayer = null;
@@ -875,6 +878,9 @@ export default class BattleScene extends Phaser.Scene {
     this.turnStartBannerFailSafeToken = null;
     this.turnStartBannerCompletion = null;
     this.isDestroyingTurnStartBanner = false;
+    this.actionTurnBannerTransitionId = 0;
+    this.isActionTurnBannerResolving = false;
+    this.skipNextActionTurnBanner = false;
     this.tutorialBanner = null;
     this.tutorialBannerOverlay = null;
     this.tutorialFocusLayer = null;
@@ -8187,7 +8193,9 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   getCurrentActionableSide() {
+    const { ignoreActionTurnBannerGate = false } = arguments[0] ?? {};
     if (!this.gameState || this.gameState.winner || this.battleResultModalShown) return null;
+    if (!ignoreActionTurnBannerGate && this.isActionTurnBannerResolving) return null;
     if (this.isFlowResolving || this.isEffectCastResolving) return null;
     if (this.openingMulliganPending || this.deckInfoPanel || this.utilityMenuPanel) return null;
 
@@ -8339,7 +8347,8 @@ export default class BattleScene extends Phaser.Scene {
     this.resetCardHighlights();
     await this.showOpeningTurnStartBanner();
     this.startCampaignBattleTimer();
-    this.startTurn();
+    this.skipNextActionTurnBanner = true;
+    await this.startTurn();
   }
 
   resetOpeningMulliganInputState() {
@@ -9026,7 +9035,152 @@ export default class BattleScene extends Phaser.Scene {
   }
 
 
-  startTurn() {
+  getActionTurnBannerConfig(side) {
+    if (side === 'enemy') {
+      return {
+        message: translateActive('ui.battle.enemyTurn', 'ENEMY TURN'),
+        textColor: '#fee2e2',
+        backgroundColor: '#7f1d1d',
+      };
+    }
+
+    return {
+      message: translateActive('ui.battle.yourTurn', 'YOUR TURN'),
+      textColor: '#e0f2fe',
+      backgroundColor: '#0c4a6e',
+    };
+  }
+
+
+  isActionTurnTransitionValid(side, transitionId) {
+    return Boolean(
+      side
+      && this.gameState
+      && !this.gameState.winner
+      && !this.battleResultModalShown
+      && !this.battleResultModalPending
+      && this.actionTurnBannerTransitionId === transitionId
+      && this.getCurrentActionableSide({ ignoreActionTurnBannerGate: true }) === side,
+    );
+  }
+
+
+  async showActionTurnBanner(side, transitionId = this.actionTurnBannerTransitionId) {
+    if (side !== 'player' && side !== 'enemy') return false;
+    if (!this.layout || !this.isActionTurnTransitionValid(side, transitionId)) return false;
+    if (!this.prepareTransientBattleBanner('turn-start')) return false;
+
+    const { height, board } = this.layout;
+    const bannerLayout = this.getCentralBattleBannerLayout({ baseWidthRatio: 0.88, horizontalPadding: 16 });
+    const fontSize = Math.min(20, Math.max(15, Math.floor(Math.max(board.cellWidth * 0.14, height * 0.018))));
+    const { message, textColor, backgroundColor } = this.getActionTurnBannerConfig(side);
+    const { x, targetY } = bannerLayout;
+    this.destroyTurnStartBanner();
+    this.turnStartBanner = this.add.text(x, bannerLayout.startY, message, {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: `${fontSize}px`,
+      color: textColor,
+      backgroundColor,
+      align: 'center',
+      padding: { x: 16, y: 12 },
+      wordWrap: { width: bannerLayout.maxTextWidth },
+      fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(221).setAlpha(0).setScale(0.98);
+
+    const banner = this.turnStartBanner;
+    const failSafeToken = { banner, transitionId, side };
+    this.turnStartBannerFailSafeToken = failSafeToken;
+    this.turnStartBannerCompletion = null;
+    this.scheduleTurnStartBannerFailSafe(banner, failSafeToken);
+    const handleInterruptedTween = () => {
+      if (this.isDestroyingTurnStartBanner || this.turnStartBanner !== banner || this.turnStartBannerFailSafeToken !== failSafeToken) return;
+      this.destroyTurnStartBanner();
+    };
+    const interruptedPresentation = new Promise((resolve) => {
+      const finish = () => {
+        if (this.turnStartBannerCompletion === finish) this.turnStartBannerCompletion = null;
+        resolve();
+      };
+      this.turnStartBannerCompletion = finish;
+    });
+
+    this.tweens.add({
+      targets: banner,
+      alpha: 1,
+      y: targetY,
+      scaleX: 1,
+      scaleY: 1,
+      duration: TURN_START_BANNER_FADE_IN_MS,
+      ease: 'Quad.easeOut',
+      onStop: handleInterruptedTween,
+    });
+
+    await Promise.race([
+      this.delay(TURN_START_BANNER_FADE_IN_MS + TURN_START_BANNER_HOLD_MS),
+      interruptedPresentation,
+    ]);
+
+    await new Promise((resolve) => {
+      const finish = () => {
+        if (this.turnStartBannerCompletion === finish) this.turnStartBannerCompletion = null;
+        resolve();
+      };
+      this.turnStartBannerCompletion = finish;
+      if (this.turnStartBanner !== banner || !banner.active) {
+        finish();
+        return;
+      }
+      this.turnStartBannerFadeOutEvent = null;
+      this.tweens.add({
+        targets: banner,
+        alpha: 0,
+        y: targetY - 6,
+        scaleX: 0.98,
+        scaleY: 0.98,
+        duration: TURN_START_BANNER_FADE_OUT_MS,
+        ease: 'Quad.easeIn',
+        onComplete: () => {
+          if (this.turnStartBanner === banner) this.destroyTurnStartBanner();
+          this.flushDeferredTransientBattleBanner();
+          finish();
+        },
+        onStop: () => {
+          handleInterruptedTween();
+          finish();
+        },
+      });
+    });
+
+    return this.isActionTurnTransitionValid(side, transitionId);
+  }
+
+
+  async gateActionOpportunity(side, { showBanner = true } = {}) {
+    if (side !== 'player' && side !== 'enemy') return false;
+    const transitionId = ++this.actionTurnBannerTransitionId;
+    if (!this.isActionTurnTransitionValid(side, transitionId)) return false;
+
+    if (showBanner) {
+      this.isActionTurnBannerResolving = true;
+      this.updatePlayerBaseActionState();
+      const completed = await this.showActionTurnBanner(side, transitionId);
+      this.isActionTurnBannerResolving = false;
+      if (!completed || !this.isActionTurnTransitionValid(side, transitionId)) {
+        this.updatePlayerBaseActionState();
+        return false;
+      }
+    }
+
+    this.updateInitiativeIndicator();
+    this.updatePlayerBaseActionState();
+    this.evaluateAndShowPlayerConcedableInfoBanner();
+    return this.isActionTurnTransitionValid(side, transitionId);
+  }
+
+
+  async startTurn() {
+    const { skipActionBanner = this.skipNextActionTurnBanner === true } = arguments[0] ?? {};
+    this.skipNextActionTurnBanner = false;
     if (!this.gameState || this.gameState.winner) {
       this.updateInitiativeIndicator();
       this.scheduleBattleResultModal();
@@ -9053,12 +9207,16 @@ export default class BattleScene extends Phaser.Scene {
     this.boardInspectIndex = null;
     this.destroyActiveSelectionMessage();
     this.destroySelectedHandCardZoom({ animate: true });
+    this.actionTurnBannerTransitionId += 1;
     this.updateInitiativeIndicator();
     this.updatePlayerBaseActionState();
-    this.evaluateAndShowPlayerConcedableInfoBanner();
 
-    if (this.gameState.firstActor === 'enemy') {
-      this.resolveEnemyFirstTurnOpening();
+    const side = this.getCurrentActionableSide({ ignoreActionTurnBannerGate: true });
+    const ready = await this.gateActionOpportunity(side, { showBanner: !skipActionBanner });
+    if (!ready) return;
+
+    if (side === 'enemy') {
+      await this.resolveEnemyFirstTurnOpening();
     }
   }
 
@@ -9118,7 +9276,7 @@ export default class BattleScene extends Phaser.Scene {
     }
     await this.playActionFeedback(actionFeedback);
     this.isFlowResolving = false;
-    this.finishTurnAfterBothActions();
+    await this.finishTurnAfterBothActions();
   }
 
   async resolveEnemyFirstTurnOpening() {
@@ -9134,7 +9292,8 @@ export default class BattleScene extends Phaser.Scene {
     }
     this.isFlowResolving = false;
     this.updateTutorialBanner?.();
-    this.updateInitiativeIndicator();
+    const side = this.getCurrentActionableSide({ ignoreActionTurnBannerGate: true });
+    await this.gateActionOpportunity(side);
     this.resetCardHighlights();
   }
 
@@ -9145,17 +9304,22 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
-    this.isFlowResolving = true;
-    this.updateTutorialBanner?.();
-
     let enemyActionPacing = null;
     if (!this.enemyActionUsed) {
+      const side = this.getCurrentActionableSide({ ignoreActionTurnBannerGate: true });
+      const ready = await this.gateActionOpportunity(side);
+      if (!ready || side !== 'enemy') return;
+      this.isFlowResolving = true;
+      this.updateTutorialBanner?.();
       await this.delay(650);
       enemyActionPacing = await this.revealAndApplyEnemyAction();
       if (this.gameState.winner) {
         this.completeBattleFlow(500);
         return;
       }
+    } else {
+      this.isFlowResolving = true;
+      this.updateTutorialBanner?.();
     }
 
     if (this.gameState?.winner) {
@@ -9218,8 +9382,7 @@ export default class BattleScene extends Phaser.Scene {
     toggleFirstActor(this.gameState);
     this.isFlowResolving = false;
     this.updateTutorialBanner?.();
-    await this.showOpeningTurnStartBanner();
-    this.startTurn();
+    await this.startTurn();
   }
 
   updateActionableSideVisualState() {
@@ -9991,10 +10154,6 @@ export default class BattleScene extends Phaser.Scene {
     }
     if (deferred.owner === 'invalid-action') {
       this.showInvalidActionBanner(deferred.payload.message);
-      return true;
-    }
-    if (deferred.owner === 'turn-start') {
-      this.showOpeningTurnStartBanner();
       return true;
     }
     return false;

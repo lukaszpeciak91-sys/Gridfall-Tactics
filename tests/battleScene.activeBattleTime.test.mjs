@@ -26,7 +26,7 @@ test('active battle timer starts before first turn can enter flow resolution', (
     mulliganBody.indexOf('this.startCampaignBattleTimer();') < mulliganBody.indexOf('this.startTurn();'),
     'timer must be running before enemy-first startTurn sets isFlowResolving',
   );
-  assert.match(extractMethodBody('startTurn', 'evaluateAndShowPlayerConcedableInfoBanner'), /if \(this\.gameState\.firstActor === 'enemy'\) \{\s*this\.resolveEnemyFirstTurnOpening\(\);\s*\}/);
+  assert.match(extractMethodBody('startTurn', 'evaluateAndShowPlayerConcedableInfoBanner'), /const ready = await this\.gateActionOpportunity\(side, \{ showBanner: !skipActionBanner \}\);[\s\S]*if \(side === 'enemy'\) \{\s*await this\.resolveEnemyFirstTurnOpening\(\);\s*\}/);
 });
 
 test('segmented active timer is idempotent and excludes closed intervals', () => {

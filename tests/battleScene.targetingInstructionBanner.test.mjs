@@ -483,7 +483,7 @@ const translateActive = (key, fallback) => fallback;
 `;
 const showOpeningTurnStartBannerMethod = compileAsyncMethod('showOpeningTurnStartBanner', 'scheduleTurnStartBannerFailSafe', [], turnStartPrelude);
 const scheduleTurnStartBannerFailSafeMethod = compileMethod('scheduleTurnStartBannerFailSafe', 'destroyTurnStartBanner', ['banner', 'token'], turnStartPrelude);
-const destroyTurnStartBannerMethod = compileMethod('destroyTurnStartBanner', 'startTurn', []);
+const destroyTurnStartBannerMethod = compileMethod('destroyTurnStartBanner', 'getActionTurnBannerConfig', []);
 const normalizeLifecycleUiStateMethod = compileMethod('normalizeLifecycleUiState', 'refreshLifecycleBanners', ['reason']);
 
 function makeTurnStartScene({ delayMode = 'immediate' } = {}) {
