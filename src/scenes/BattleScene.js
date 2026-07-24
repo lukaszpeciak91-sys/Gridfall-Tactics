@@ -264,6 +264,7 @@ const ENEMY_ACTION_PRE_COMBAT_DELAY_MS = 400;
 const PLAYER_EFFECT_CONFIRMATION_FADE_IN_MS = 90;
 const PLAYER_EFFECT_CONFIRMATION_HOLD_MS = 840;
 const PLAYER_EFFECT_CONFIRMATION_FADE_OUT_MS = 120;
+const INFORMATIONAL_ACTION_BANNER_TOTAL_MS = PLAYER_EFFECT_CONFIRMATION_FADE_IN_MS + PLAYER_EFFECT_CONFIRMATION_HOLD_MS + PLAYER_EFFECT_CONFIRMATION_FADE_OUT_MS;
 const INVALID_ACTION_BANNER_HOLD_MS = 760;
 const TURN_START_BANNER_FADE_IN_MS = 110;
 const TURN_START_BANNER_HOLD_MS = 820;
@@ -2741,6 +2742,7 @@ export default class BattleScene extends Phaser.Scene {
     this.closeSurrenderConfirmation?.();
     this.destroyDeckInfoPanel?.();
     this.destroyTargetingInstruction?.();
+    this.destroyInformationalActionBanner?.();
     this.destroyActiveSelectionMessage?.();
     this.cancelPassHoldToSurrender?.();
     this.disarmPlayerSurrender?.();
@@ -3113,6 +3115,7 @@ export default class BattleScene extends Phaser.Scene {
       this.pendingSwapIndex = null;
       this.targetingState = null;
       this.destroyActiveSelectionMessage();
+      this.destroyInformationalActionBanner();
       this.destroyTutorialBanner();
       this.destroyTutorialFocus();
       this.resetCardHighlights({ showPreview: false });
@@ -4934,6 +4937,7 @@ export default class BattleScene extends Phaser.Scene {
     this.effectCastState = null;
     this.isEffectCastResolving = false;
     this.destroyActiveSelectionMessage();
+    this.destroyInformationalActionBanner();
     this.openingMulliganPending = false;
     // Preserve arena retry shape for compatibility: this.scene.restart({ factionKey, enemyFactionKey })
     this.clearAchievementPopupPresentationBatch();
@@ -9117,6 +9121,7 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
     await this.playActionFeedback(actionFeedback);
+    this.showSecondActionBannerAfterPlayerAction();
     this.isFlowResolving = false;
     this.finishTurnAfterBothActions();
   }
@@ -9132,6 +9137,7 @@ export default class BattleScene extends Phaser.Scene {
       this.completeBattleFlow(500);
       return;
     }
+    this.showSecondActionBannerAfterEnemyAction();
     this.isFlowResolving = false;
     this.updateTutorialBanner?.();
     this.updateInitiativeIndicator();
@@ -9150,7 +9156,7 @@ export default class BattleScene extends Phaser.Scene {
 
     let enemyActionPacing = null;
     if (!this.enemyActionUsed) {
-      await this.delay(650);
+      await this.delay(INFORMATIONAL_ACTION_BANNER_TOTAL_MS);
       enemyActionPacing = await this.revealAndApplyEnemyAction();
       if (this.gameState.winner) {
         this.completeBattleFlow(500);
@@ -9164,6 +9170,7 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     await this.delay(enemyActionPacing?.preCombatDelayMs ?? ENEMY_ACTION_PRE_COMBAT_DELAY_MS);
+    this.destroyInformationalActionBanner();
     const preCombatFeedbackSnapshot = this.captureCombatFeedbackSnapshot();
     this.recordBattleReportEvent?.('combat-start', { turn: this.gameState?.turnsCompleted ?? this.gameState?.turn, playerHP: this.gameState?.playerHP, enemyHP: this.gameState?.enemyHP, occupiedPlayerSlots: this.gameState?.board?.filter?.((u) => u?.owner === 'player')?.length ?? 0, occupiedEnemySlots: this.gameState?.board?.filter?.((u) => u?.owner === 'enemy')?.length ?? 0 });
     const playerHPBeforeCombat = this.gameState?.playerHP;
@@ -9603,6 +9610,90 @@ export default class BattleScene extends Phaser.Scene {
     );
   }
 
+  getInformationalActionBannerConfig(side) {
+    if (side === 'enemy') {
+      return {
+        message: translateActive('ui.battle.enemyTurn', 'ENEMY TURN'),
+        textColor: '#fee2e2',
+        backgroundColor: '#7f1d1d',
+        strokeColor: '#450a0a',
+      };
+    }
+
+    return {
+      message: translateActive('ui.battle.yourTurn', 'YOUR TURN'),
+      textColor: '#dcfce7',
+      backgroundColor: '#14532d',
+      strokeColor: '#052e16',
+    };
+  }
+
+  showSecondActionBannerAfterPlayerAction() {
+    if (this.gameState?.firstActor !== 'player') return;
+    if (!this.playerActionUsed || this.enemyActionUsed) return;
+    this.showInformationalActionBanner('enemy');
+  }
+
+  showSecondActionBannerAfterEnemyAction() {
+    if (this.gameState?.firstActor !== 'enemy') return;
+    if (!this.enemyActionUsed || this.playerActionUsed) return;
+    this.showInformationalActionBanner('player');
+  }
+
+  showInformationalActionBanner(side) {
+    if (side !== 'player' && side !== 'enemy') return null;
+    if (!this.prepareTransientBattleBanner('informational-action')) return null;
+
+    const { height, board } = this.layout;
+    const bannerLayout = this.getCentralBattleBannerLayout({ baseWidthRatio: 0.88, horizontalPadding: 14, startOffset: 5 });
+    const fontSize = Math.min(18, Math.max(14, Math.floor(Math.max(board.cellWidth * 0.125, height * 0.016))));
+    const { message, textColor, backgroundColor, strokeColor } = this.getInformationalActionBannerConfig(side);
+    const { targetY } = bannerLayout;
+    this.informationalActionBanner = this.add.text(bannerLayout.x, bannerLayout.startY, message, {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: `${fontSize}px`,
+      color: textColor,
+      backgroundColor,
+      align: 'center',
+      padding: { x: 14, y: 11 },
+      wordWrap: { width: bannerLayout.maxTextWidth },
+      fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(219).setAlpha(0).setScale(0.98).setStroke(strokeColor, 1);
+
+    const banner = this.informationalActionBanner;
+    this.tweens.add({
+      targets: banner,
+      alpha: 1,
+      y: targetY,
+      scaleX: 1,
+      scaleY: 1,
+      duration: PLAYER_EFFECT_CONFIRMATION_FADE_IN_MS,
+      ease: 'Quad.easeOut',
+    });
+
+    this.informationalActionBannerFadeOutEvent = this.time.delayedCall(
+      PLAYER_EFFECT_CONFIRMATION_FADE_IN_MS + PLAYER_EFFECT_CONFIRMATION_HOLD_MS,
+      () => {
+        if (this.informationalActionBanner !== banner) return;
+        this.informationalActionBannerFadeOutEvent = null;
+        this.tweens.add({
+          targets: banner,
+          alpha: 0,
+          y: targetY - 5,
+          scaleX: 0.98,
+          scaleY: 0.98,
+          duration: PLAYER_EFFECT_CONFIRMATION_FADE_OUT_MS,
+          ease: 'Quad.easeIn',
+          onComplete: () => {
+            if (this.informationalActionBanner === banner) this.destroyInformationalActionBanner();
+            this.flushDeferredTransientBattleBanner();
+          },
+        });
+      },
+    );
+    return banner;
+  }
+
   showPlayerActionBanner(message) {
     if (!message) return;
     if (!this.prepareTransientBattleBanner('player-action')) {
@@ -9843,6 +9934,18 @@ export default class BattleScene extends Phaser.Scene {
   }
 
 
+  destroyInformationalActionBanner() {
+    if (this.informationalActionBannerFadeOutEvent) {
+      this.informationalActionBannerFadeOutEvent.remove(false);
+      this.informationalActionBannerFadeOutEvent = null;
+    }
+    if (!this.informationalActionBanner) return;
+    this.tweens?.killTweensOf?.(this.informationalActionBanner);
+    this.informationalActionBanner.destroy();
+    this.informationalActionBanner = null;
+  }
+
+
   destroyPlayerActionBanner() {
     if (this.playerActionBannerFadeOutEvent) {
       this.playerActionBannerFadeOutEvent.remove(false);
@@ -9920,11 +10023,13 @@ export default class BattleScene extends Phaser.Scene {
       'invalid-action': 3,
       'player-action': 2,
       'turn-start': 1,
+      'informational-action': 0,
     }[owner] ?? 0;
   }
 
   getRenderedTransientBattleBannerOwner() {
     if (this.enemyActionBanner?.active) return 'enemy-action';
+    if (this.informationalActionBanner?.active) return 'informational-action';
     if (this.invalidActionBanner?.active) return 'invalid-action';
     if (this.playerActionBanner?.active) return 'player-action';
     if (this.turnStartBanner?.active) return 'turn-start';
@@ -9946,6 +10051,7 @@ export default class BattleScene extends Phaser.Scene {
     this.destroyTurnStartBanner();
     this.destroyEnemyActionBanner();
     this.destroyPlayerActionBanner();
+    this.destroyInformationalActionBanner();
     this.destroyInvalidActionBanner();
   }
 
@@ -9987,6 +10093,10 @@ export default class BattleScene extends Phaser.Scene {
     }
     if (deferred.owner === 'player-action') {
       this.showPlayerActionBanner(deferred.payload.message);
+      return true;
+    }
+    if (deferred.owner === 'informational-action') {
+      this.showInformationalActionBanner(deferred.payload.side);
       return true;
     }
     if (deferred.owner === 'invalid-action') {
