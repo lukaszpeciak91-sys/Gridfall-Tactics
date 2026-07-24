@@ -29,7 +29,7 @@ test('opening banner remains one-shot, localized, and awaited before the first a
 
 test('recurring action banners are separate from opening guard and use explicit actionable side', () => {
   const actionBanner = methodBlock('showActionTurnBanner', 'gateActionOpportunity');
-  const gate = methodBlock('gateActionOpportunity', 'startTurn');
+  const gate = methodBlock('gateActionOpportunity', 'getActionTurnHandoffDiagnostics');
 
   assert.match(actionBanner, /async showActionTurnBanner\(side, transitionId = this\.actionTurnBannerTransitionId\)/);
   assert.match(actionBanner, /side !== 'player' && side !== 'enemy'/);
@@ -42,7 +42,7 @@ test('recurring action banners are separate from opening guard and use explicit 
 
 test('player input is blocked during action-turn banner and enabled only after validation', () => {
   const actionable = methodBlock('getCurrentActionableSide', 'updatePlayerBaseActionState');
-  const gate = methodBlock('gateActionOpportunity', 'startTurn');
+  const gate = methodBlock('gateActionOpportunity', 'getActionTurnHandoffDiagnostics');
 
   assert.match(actionable, /if \(!ignoreActionTurnBannerGate && this\.isActionTurnBannerResolving\) return null;/);
   assert.match(gate, /this\.updatePlayerBaseActionState\(\);[\s\S]*const completed = await this\.showActionTurnBanner/);
@@ -57,8 +57,27 @@ test('AI execution is gated by ENEMY TURN before the existing AI delay and revea
 
   assert.match(startTurn, /const ready = await this\.gateActionOpportunity\(side, \{ showBanner: !skipActionBanner \}\);/);
   assert.match(startTurn, /if \(side === 'enemy'\) \{\s*await this\.resolveEnemyFirstTurnOpening\(\);/);
-  assert.match(finish, /const ready = await this\.gateActionOpportunity\(side\);\s*if \(!ready \|\| side !== 'enemy'\) return;\s*this\.isFlowResolving = true;[\s\S]*await this\.delay\(650\);\s*enemyActionPacing = await this\.revealAndApplyEnemyAction\(\);/);
+  assert.match(finish, /let ready = await this\.gateActionOpportunity\(side\);[\s\S]*recoverRejectedEnemyActionHandoff[\s\S]*if \(!ready \|\| side !== 'enemy' \|\| !this\.canExecuteEnemyActionHandoff\(\)\) return;\s*this\.isFlowResolving = true;[\s\S]*await this\.delay\(650\);\s*if \(!this\.canContinueEnemyActionExecution\(\)\) return;\s*enemyActionPacing = await this\.revealAndApplyEnemyAction\(\);/);
   assert.match(enemyOpening, /await this\.revealAndApplyEnemyAction\(\);[\s\S]*const side = this\.getCurrentActionableSide\(\{ ignoreActionTurnBannerGate: true \}\);\s*await this\.gateActionOpportunity\(side\);/);
+});
+
+
+test('rejected enemy handoff is diagnostically recovered with bounded retry and duplicate AI guard', () => {
+  const finish = methodBlock('finishTurnAfterBothActions', 'updateActionableSideVisualState');
+  const recover = methodBlock('recoverRejectedEnemyActionHandoff', 'startTurn');
+  const diagnostics = methodBlock('getActionTurnHandoffDiagnostics', 'recordActionTurnHandoffDiagnostic');
+
+  assert.match(finish, /if \(this\.enemyActionHandoffInProgress\) return;/);
+  assert.match(finish, /this\.enemyActionHandoffInProgress = true;[\s\S]*finally \{\s*this\.enemyActionHandoffInProgress = false;/);
+  assert.match(finish, /shouldRecoverRejectedEnemyActionHandoff\(side\)/);
+  assert.match(recover, /const maxRetries = 2;/);
+  assert.match(recover, /await this\.delay\(50\);/);
+  assert.match(recover, /const side = this\.getCurrentActionableSide\(\{ ignoreActionTurnBannerGate: true \}\);\s*if \(side !== 'enemy'\)/);
+  assert.match(recover, /const ready = await this\.gateActionOpportunity\('enemy'\);/);
+  assert.match(recover, /action-turn-gate-rejected-after-player-action/);
+  assert.match(recover, /action-turn-gate-recovery-succeeded/);
+  assert.match(recover, /action-turn-gate-recovery-exhausted/);
+  assert.match(diagnostics, /requestedSide[\s\S]*playerActionUsed[\s\S]*enemyActionUsed[\s\S]*actionTurnBannerTransitionId[\s\S]*isActionTurnBannerResolving[\s\S]*currentActionableSide[\s\S]*actionableSideIgnoringBannerGate[\s\S]*retryCount[\s\S]*aiSchedulingAlreadyPending[\s\S]*battleActive[\s\S]*winner[\s\S]*rejectionSource/);
 });
 
 test('post-combat initiative flip uses startTurn gate and does not alter firstActor semantics', () => {
