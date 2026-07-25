@@ -12,6 +12,7 @@ const WARDEN_SPEARWALL_EFFECT_ID = 'warden_defensive_friction_adjacent';
 const WARDEN_FRICTION_CAP = 1;
 const FUNERAL_PYRE_TRIGGER_CAP = 1;
 const COMBAT_KEYWORD_OVERFLOW = 'overflow';
+const COMBAT_KEYWORD_IGNORE_ARMOR = 'ignoreArmor';
 const DECAY_ATTACK_AFTER_COMBAT_EFFECT_ID = 'decay_attack_after_combat';
 const DECAY_HP_AFTER_COMBAT_EFFECT_ID = 'decay_hp_after_combat';
 const DEATH_DAMAGE_ENEMY_LANE_EFFECT_IDS = new Set([
@@ -961,6 +962,10 @@ function getStandardCombatMitigatedDamageResult(state, board, attacker, defender
   if (defender?.ignoreArmorNext) {
     combatModifiers.push(createCombatModifier({ type: 'armor-ignore', source: 'ignore_armor_next_attack', label: 'IGNORE ARM' }));
     return { damage: Math.max(0, attackDamage), combatModifiers, consumedIgnoreArmorTargetIndex: defenderIndex };
+  }
+  if (hasCombatKeyword(attacker, COMBAT_KEYWORD_IGNORE_ARMOR)) {
+    combatModifiers.push(createCombatModifier({ type: 'armor-ignore', source: COMBAT_KEYWORD_IGNORE_ARMOR, label: 'IGNORE ARM' }));
+    return { damage: Math.max(0, attackDamage), combatModifiers };
   }
   const { armor, combatModifiers: armorCombatModifiers } = getStandardCombatArmorWithAura(board, defender, defenderIndex);
   combatModifiers.push(...armorCombatModifiers);
@@ -3726,6 +3731,14 @@ function resolveCombatLane(state, col, combatContext = null) {
         combatModifiers.push(createCombatModifier({
           type: 'armor-ignore',
           source: 'ignore_armor_next_attack',
+          label: 'IGNORE ARM',
+        }));
+        return Math.max(0, attackDamage);
+      }
+      if (hasCombatKeyword(attacker, COMBAT_KEYWORD_IGNORE_ARMOR)) {
+        combatModifiers.push(createCombatModifier({
+          type: 'armor-ignore',
+          source: COMBAT_KEYWORD_IGNORE_ARMOR,
           label: 'IGNORE ARM',
         }));
         return Math.max(0, attackDamage);

@@ -71,7 +71,7 @@ test('tutorial player data exports a tutorial-only 10-card deck with required ca
     [
       { id: 'tutorial_unit_a_1', type: 'unit', targeting: 'lane', effectId: null, textKey: null, textShort: '', attack: 1, hp: 4, armor: 0 },
       { id: 'tutorial_unit_b_1', type: 'unit', targeting: 'lane', effectId: null, textKey: null, textShort: '', attack: 1, hp: 3, armor: 0 },
-      { id: 'tutorial_unit_c_1', type: 'unit', targeting: 'lane', effectId: 'lane_armor_aura_1', textKey: 'cards.tank_shieldbearer_1.textShort', textShort: 'Adjacent [ALLY] +1 ARM until combat', attack: 2, hp: 2, armor: 0 },
+      { id: 'tutorial_unit_c_1', type: 'unit', targeting: 'lane', effectId: 'lane_armor_aura_1', textKey: 'cards.tank_shieldbearer_1.textShort', textShort: 'Adjacent [ALLY] have +1 ARM.', attack: 2, hp: 2, armor: 0 },
     ],
   );
 

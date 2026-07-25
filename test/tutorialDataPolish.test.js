@@ -58,5 +58,5 @@ test('tutorial visible rules text omits prototype filler while preserving real e
   assert.equal(getCardTextShort(effectCard, 'en'), 'All [ALLY] +1 ATK until combat');
   assert.equal(getCardTextShort(effectCard, 'pl'), '[ALLIES] +1 ATK do walki');
   assert.equal(effectCard.effectId, 'buff_all_atk_1');
-  assert.equal(playerById.tutorial_unit_c_1.textShort, 'Adjacent [ALLY] +1 ARM until combat');
+  assert.equal(playerById.tutorial_unit_c_1.textShort, 'Adjacent [ALLY] have +1 ARM.');
 });

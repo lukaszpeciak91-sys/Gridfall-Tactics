@@ -114,8 +114,8 @@ test('polished card text stays within mobile collection and inspect rules panels
     { factionKey: "Attrition Swarm", cardId: "attrition_swarm_abomination_1", locale: "pl", expectedBody: "Gdy ginie: obie bazy tracą 1 ●" },
     { factionKey: "Attrition Swarm", cardId: "attrition_swarm_funeral_pyre_1", locale: "en", expectedBody: "First ♙ death each turn:\nenemy base loses 1 ●" },
     { factionKey: "Attrition Swarm", cardId: "attrition_swarm_funeral_pyre_1", locale: "pl", expectedBody: "Pierwszy zgon ♙ w turze:\n-1 ● bazie wroga" },
-    { factionKey: "Attrition Swarm", cardId: "attrition_swarm_infect_1", locale: "en", expectedBody: "Deal 1 to ♟\nOpposed ♙ gains +1 ▲" },
-    { factionKey: "Attrition Swarm", cardId: "attrition_swarm_infect_1", locale: "pl", expectedBody: "Zadaj 1 ♟\n♙ naprzeciwko +1 ▲" },
+    { factionKey: "Attrition Swarm", cardId: "attrition_swarm_infect_1", locale: "en", expectedBody: "Deal 1 damage to an ♟.\nOpposed ♙ +1 ▲ until combat" },
+    { factionKey: "Attrition Swarm", cardId: "attrition_swarm_infect_1", locale: "pl", expectedBody: "Zadaj 1 ● ♟.\n♙ naprzeciwko +1 ▲ do walki" },
     { factionKey: "Attrition Swarm", cardId: "attrition_swarm_grave_call_1", locale: "en", expectedBody: "Summon a 1/1\nNo ♙: summon up to 2" },
     { factionKey: "Attrition Swarm", cardId: "attrition_swarm_grave_call_1", locale: "pl", expectedBody: "Przywołaj 1/1\nBrak ♙ przywołaj do 2" },
     { factionKey: "Attrition Swarm", cardId: "attrition_swarm_rise_again_1", locale: "en", expectedBody: "Revive the newest Fallen ♙ with 1 ● in a chosen free slot" },
@@ -260,7 +260,7 @@ test('pilot card display content renders ally icon markers', () => {
   assert.equal(getCardDisplayContent(cardById(control, 'control_pulse_wave_1'), 'en').body, 'Deal 1 to all ♟♟ ignoring ◆');
   assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_spitter_1'), 'en').body, 'On play: deal 1 to opposed ♟');
   const attritionSwarm = getFactionByKey('Attrition Swarm');
-  assert.equal(getCardDisplayContent(cardById(attritionSwarm, 'attrition_swarm_infect_1'), 'en').body, 'Deal 1 to ♟\nOpposed ♙ gains +1 ▲');
+  assert.equal(getCardDisplayContent(cardById(attritionSwarm, 'attrition_swarm_infect_1'), 'en').body, 'Deal 1 damage to an ♟.\nOpposed ♙ +1 ▲ until combat');
   const wardens = getFactionByKey('Wardens');
 
   assert.equal(getCardDisplayContent(cardById(aggro, 'aggro_full_attack_1'), 'pl').body, '♙♙ +2 ▲ do walki');
@@ -288,7 +288,7 @@ test('pilot card display content renders ally icon markers', () => {
   assert.equal(getCardDisplayContent(cardById(control, 'control_pulse_wave_1'), 'pl').body, 'Zadaj 1 wszystkim ♟♟ ignorując ◆');
   assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_spitter_1'), 'pl').body, 'Po zagraniu: zadaj 1 ♟ naprzeciw');
   assert.equal(getCardDisplayContent(cardById(attritionSwarm, 'attrition_swarm_rotcaller_1'), 'pl').body, 'Pierwszy sąsiedni zgon ♙\n+1 ▲ na stałe');
-  assert.equal(getCardDisplayContent(cardById(attritionSwarm, 'attrition_swarm_infect_1'), 'pl').body, 'Zadaj 1 ♟\n♙ naprzeciwko +1 ▲');
+  assert.equal(getCardDisplayContent(cardById(attritionSwarm, 'attrition_swarm_infect_1'), 'pl').body, 'Zadaj 1 ● ♟.\n♙ naprzeciwko +1 ▲ do walki');
   assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_halberdier_1'), 'pl').body, 'Jeśli naprzeciw: +1 ▲');
   assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_spearwall_1'), 'pl').body, '♟♟ atakujący\nsąsiednich ♙♙: -1 ▲');
   assert.equal(getCardDisplayContent(cardById(wardens, 'wardens_stand_firm_1'), 'pl').body, 'Ulecz ♙ +1 ●');
