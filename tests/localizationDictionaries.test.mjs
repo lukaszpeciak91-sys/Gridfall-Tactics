@@ -256,7 +256,7 @@ test('selected localized card texts use enemy board-unit markers without changin
     en: {
       attrition_swarm_husk_1: 'When this dies:\n-1 [HP] to opposed [ENEMY]',
       attrition_swarm_funeral_pyre_1: 'First [ALLY] death each turn:\nenemy base loses 1 HP',
-      attrition_swarm_infect_1: 'Deal 1 damage to an [ENEMY].\nOpposed [ALLY] +1 [ATK] until combat',
+      attrition_swarm_infect_1: 'Deal 1 damage to [ENEMY].\nOpposed [ALLY] +1 [ATK] until combat',
       control_hacker_1: 'Opposed [ENEMY]: -1 ATK until combat',
       control_sniper_1: 'Attacks the lowest-HP [ENEMY]\nTies: highest ATK',
       control_controller_1: 'On play: swap two [ENEMIES]',
