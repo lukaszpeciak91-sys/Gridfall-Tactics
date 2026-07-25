@@ -33,7 +33,7 @@ test('collector returns stable JSON-serializable shape without mutating scene or
   const snapshot = buildBattleReportSnapshot(scene);
   assert.equal(snapshot.version, 1);
   assert.match(snapshot.capturedAt, /^\d{4}-\d{2}-\d{2}T/);
-  assert.deepEqual(Object.keys(snapshot).sort(), ['assets', 'audio', 'battle', 'board', 'capture', 'capturedAt', 'environment', 'events', 'flow', 'reveal', 'scenes', 'summary', 'version', 'warnings'].sort());
+  assert.deepEqual(Object.keys(snapshot).sort(), ['assets', 'audio', 'battle', 'board', 'capture', 'capturedAt', 'combatPresentation', 'environment', 'events', 'flow', 'reveal', 'scenes', 'summary', 'version', 'warnings'].sort());
   assert.doesNotThrow(() => JSON.stringify(snapshot));
   assert.equal(JSON.stringify(scene.gameState), beforeState);
   assert.deepEqual(Object.keys(scene).sort(), beforeSceneKeys);
@@ -49,6 +49,24 @@ test('collector tolerates missing browser globals, partial scenes, and completed
   scene.gameState.endingReason = 'hero_death';
   assert.doesNotThrow(() => buildBattleReportSnapshot(scene));
   assert.equal(buildBattleReportSnapshot(scene).battle.winner, 'player');
+});
+
+test('collector includes only the newest bounded combat-presentation trace', () => {
+  const scene = makeScene();
+  scene.latestCombatPresentationTrace = {
+    startedAt: 20,
+    completedAt: 80,
+    eventCount: 1,
+    events: [{ ordinal: 1, lane: 1, attackerCardId: 'control_sniper_1', attackPresentation: 'beam', beamCueCreated: true }],
+    lifecycle: [{ t: 21, eventOrdinal: 1, name: 'beam-route-selected' }],
+    removedCombatants: [{ boardIndex: 7, cardId: 'control_sniper_1', owner: 'player', mechanicalRemovalTimestamp: 20 }],
+  };
+  const snapshot = buildBattleReportSnapshot(scene);
+  assert.equal(snapshot.combatPresentation.events[0].attackerCardId, 'control_sniper_1');
+  assert.equal(snapshot.combatPresentation.lifecycle[0].name, 'beam-route-selected');
+  assert.notStrictEqual(snapshot.combatPresentation, scene.latestCombatPresentationTrace);
+  scene.latestCombatPresentationTrace.events[0].attackerCardId = 'mutated-after-capture';
+  assert.equal(snapshot.combatPresentation.events[0].attackerCardId, 'control_sniper_1');
 });
 
 test('board always returns six ordered compact slots and reports effective aura/modifier stats', () => {
