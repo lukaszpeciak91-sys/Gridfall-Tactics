@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { getCombatAttackPresentation, getCombatEventInterceptOriginalTargetIndex, getLaneLethalTargetIndexes, getLaneSimultaneousUnitClash, shouldAnimateCombatAttacker, shouldUseControlledHeroStrikePresentation } from '../src/systems/combatAnimation.js';
+import { getCombatAttackPresentation, getCombatEventInterceptOriginalTargetIndex, getLaneLethalTargetIndexes, getLaneSimultaneousUnitClash, shouldAnimateCombatAttacker, shouldPreservePlannedNonMeleePresentation, shouldUseControlledHeroStrikePresentation } from '../src/systems/combatAnimation.js';
 
 const unit = (owner, overrides = {}) => ({
   id: `${owner}-unit`,
@@ -149,4 +149,27 @@ test('normal non-controlled beam attacks remain beam-presented and do not use ov
 
   assert.equal(getCombatAttackPresentation(normalBeamEvent, beamBoard), 'beam');
   assert.equal(shouldUseControlledHeroStrikePresentation(normalBeamEvent), false);
+});
+
+test('valid planned beam presentation survives lane defeat for either owner', () => {
+  const playerBoard = snapshot(unit('player', { attackPresentation: 'beam' }));
+  const enemyBoard = Array(9).fill(null);
+  enemyBoard[0] = unit('enemy', { attackPresentation: 'beam' });
+
+  assert.equal(shouldPreservePlannedNonMeleePresentation(event(), playerBoard), true);
+  assert.equal(shouldPreservePlannedNonMeleePresentation(event({
+    attackerSide: 'enemy', attackerIndex: 0, targetSide: 'player', targetIndex: 6,
+  }), enemyBoard), true);
+});
+
+test('planned non-melee preservation rejects missing or mismatched snapshot attackers', () => {
+  const beamBoard = snapshot(unit('player', { attackPresentation: 'beam' }));
+
+  assert.equal(shouldPreservePlannedNonMeleePresentation(event(), snapshot(null)), false);
+  assert.equal(shouldPreservePlannedNonMeleePresentation(event({ attackerSide: 'enemy' }), beamBoard), false);
+  assert.equal(shouldPreservePlannedNonMeleePresentation(event({ lane: 1 }), beamBoard), false);
+});
+
+test('ordinary melee attacks do not opt out of defeated-attacker suppression', () => {
+  assert.equal(shouldPreservePlannedNonMeleePresentation(event(), snapshot()), false);
 });

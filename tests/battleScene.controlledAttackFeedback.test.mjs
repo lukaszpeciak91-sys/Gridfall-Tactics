@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 const source = readFileSync(new URL('../src/scenes/BattleScene.js', import.meta.url), 'utf8');
 
 test('controlled self-base attacks have priority over beam presentation routing', () => {
-  assert.match(source, /if \(shouldUseControlledHeroStrikePresentation\(event\)\) \{\s*await this\.animateControlledHeroStrike\(event, preCombatBoardSnapshot\);\s*\} else if \(attackerWasDefeatedInThisLane\) \{[\s\S]*?\} else if \(getCombatAttackPresentation\(event, preCombatBoardSnapshot\) === COMBAT_ATTACK_PRESENTATIONS\.beam\)/);
+  assert.match(source, /if \(shouldUseControlledHeroStrikePresentation\(event\)\) \{\s*await this\.animateControlledHeroStrike\(event, preCombatBoardSnapshot\);\s*\} else if \(suppressDefeatedAttackerPresentation\) \{[\s\S]*?\} else if \(attackPresentation === COMBAT_ATTACK_PRESENTATIONS\.beam\)/);
 });
 
 test('controlled self-base attacks show override text and movement without any targeting line', () => {
