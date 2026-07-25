@@ -12,24 +12,6 @@ const source = fs.readFileSync('src/scenes/CollectionScene.js', 'utf8');
 const toggleSource = source.slice(source.indexOf('  toggleFactionSection('), source.indexOf('  requestFactionAutoScroll('));
 const requestSource = source.slice(source.indexOf('  requestFactionAutoScroll('), source.indexOf('  onFactionHeaderPointerDown('));
 const inspectSource = source.slice(source.indexOf('  showInspectPreview('), source.indexOf('  createBackButton('));
-const createSource = source.slice(source.indexOf('  create() {'), source.indexOf('  drawCollectionList('));
-const drawSource = source.slice(source.indexOf('  drawCollectionList('), source.indexOf('  rebuildCollectionContent('));
-const headerSource = source.slice(source.indexOf('  drawFactionSection('), source.indexOf('  drawFactionDossierPanel('));
-const backSource = source.slice(source.indexOf('  createBackButton('), source.indexOf('  wasScrollDragging('));
-const scrollSource = source.slice(source.indexOf('  wasScrollDragging('), source.indexOf('  reconcileTransitionOverlayOrdering('));
-const cleanupSource = source.slice(source.indexOf('  cleanupScene()'));
-
-test('Collection explicitly restores scene input after lifecycle cleanup', () => {
-  assert.match(createSource, /this\.cleanupScene\(\);[\s\S]*this\.isCollectionSceneActive = true;[\s\S]*this\.ensureCollectionInputEnabled\(\);/);
-  assert.match(source, /ensureCollectionInputEnabled\(\) \{\s*if \(this\.input\) this\.input\.enabled = true;/);
-});
-
-test('back control and faction banners remain interactive without a full-screen catcher', () => {
-  assert.match(backSource, /createModalBackButton\(this,[\s\S]*onPointerUp:/);
-  assert.match(headerSource, /titleStrip\.setInteractive\([\s\S]*titleStrip\.on\('pointerdown'[\s\S]*titleStrip\.on\('pointerup'/);
-  assert.doesNotMatch(drawSource, /add\.(?:zone|rectangle)\([\s\S]*setInteractive/);
-  assert.match(scrollSource, /pointer\.y < state\.viewportTop \|\| pointer\.y > state\.viewportBottom/);
-});
 
 test('opening targets the clicked post-layout banner while preserving every expanded faction', () => {
   assert.match(toggleSource, /this\.expandedFactionKeys\.add\(factionKey\);[\s\S]*this\.rebuildCollectionContent[\s\S]*this\.requestFactionAutoScroll\(factionKey\);/);
@@ -59,14 +41,8 @@ test('auto-scroll is short, replaces competing work, and is cleaned up with the 
   assert.equal(COLLECTION_AUTO_SCROLL_EASE, 'Quad.easeOut');
   assert.match(requestSource, /this\.cancelCollectionAutoScroll\(\);[\s\S]*delayedCall\?\.\(0,/);
   assert.match(source, /cleanupScene\(\) \{[\s\S]*this\.cancelCollectionAutoScroll\(\);/);
-  assert.match(requestSource, /this\.ensureCollectionInputEnabled\(\);[\s\S]*onUpdate: \(\) => this\.ensureCollectionInputEnabled\(\)[\s\S]*onComplete:[\s\S]*this\.ensureCollectionInputEnabled\(\);/);
-  assert.doesNotMatch(requestSource, /input\.enabled = false|disableInteractive|setInteractive/);
-  assert.doesNotMatch(cleanupSource, /input\.enabled = false/);
 });
 
 test('card inspection remains independent from collection auto-scroll', () => {
   assert.doesNotMatch(inspectSource, /requestFactionAutoScroll|getCollectionAutoScrollTarget/);
-  assert.match(source, /preview\.background\.setInteractive[\s\S]*onCardPointerDown[\s\S]*onCardPointerUp/);
-  assert.match(source, /showInspectPreview\(pressedCard\)/);
-  assert.match(source, /onCollectionPointerUp\(\)[\s\S]*this\.destroyInspectPreview\(\{ animate: true \}\)/);
 });

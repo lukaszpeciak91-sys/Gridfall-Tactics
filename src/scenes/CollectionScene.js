@@ -112,7 +112,6 @@ export default class CollectionScene extends Phaser.Scene {
     this.reconcileTransitionOverlayOrdering('destination create start');
     this.cleanupScene();
     this.isCollectionSceneActive = true;
-    this.ensureCollectionInputEnabled();
     playMenuMusic(this);
 
     const { width, height } = this.scale;
@@ -367,7 +366,6 @@ export default class CollectionScene extends Phaser.Scene {
 
   requestFactionAutoScroll(factionKey) {
     this.cancelCollectionAutoScroll();
-    this.ensureCollectionInputEnabled();
     this.collectionAutoScrollEvent = this.time?.delayedCall?.(0, () => {
       this.collectionAutoScrollEvent = null;
       const state = this.scrollState;
@@ -388,10 +386,8 @@ export default class CollectionScene extends Phaser.Scene {
         y: targetY,
         duration: COLLECTION_AUTO_SCROLL_DURATION_MS,
         ease: COLLECTION_AUTO_SCROLL_EASE,
-        onUpdate: () => this.ensureCollectionInputEnabled(),
         onComplete: () => {
           this.collectionAutoScrollTween = null;
-          this.ensureCollectionInputEnabled();
         },
       });
     }) ?? null;
@@ -402,10 +398,6 @@ export default class CollectionScene extends Phaser.Scene {
     this.collectionAutoScrollEvent = null;
     this.collectionAutoScrollTween?.stop?.();
     this.collectionAutoScrollTween = null;
-  }
-
-  ensureCollectionInputEnabled() {
-    if (this.input) this.input.enabled = true;
   }
 
   onFactionHeaderPointerDown(factionKey, pointer) {
