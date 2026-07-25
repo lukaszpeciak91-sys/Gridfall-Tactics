@@ -78,6 +78,7 @@ export default class CollectionScene extends Phaser.Scene {
     this.longPressTriggeredCard = null;
     this.expandedFactionKeys = new Set();
     this.collectionContentElements = [];
+    this.factionBannerLayoutY = new Map();
     this.headerPress = null;
     this.transitionReadyEmitted = false;
     this.transitionReadyPostRenderCallback = null;
@@ -178,6 +179,7 @@ export default class CollectionScene extends Phaser.Scene {
     }
 
     this.destroyCollectionContentElements();
+    this.factionBannerLayoutY.clear();
 
     const sideMargin = 14;
     const columnGap = COLLECTION_GRID_GAP_X;
@@ -224,6 +226,7 @@ export default class CollectionScene extends Phaser.Scene {
   drawFactionSection(content, factionKey, faction, { x, y, cardWidth, cardHeight, columnGap, expanded = true }) {
     const stripWidth = this.scale.width - x * 2;
     const stripY = y - 2;
+    this.factionBannerLayoutY.set(factionKey, stripY);
     const factionAccentColor = FACTION_CARD_DETAILS[factionKey]?.accentColor ?? 0x38bdf8;
     const titleStrip = this.add.graphics();
     titleStrip.fillStyle(0x020817, COLLECTION_SECTION_TITLE_STRIP_ALPHA);
@@ -350,6 +353,17 @@ export default class CollectionScene extends Phaser.Scene {
 
     this.expandedFactionKeys.add(factionKey);
     this.rebuildCollectionContent({ width: this.scale.width });
+
+    const state = this.scrollState;
+    const bannerLocalTop = this.factionBannerLayoutY.get(factionKey);
+    if (!state || !Number.isFinite(bannerLocalTop)) {
+      return;
+    }
+
+    const topGap = COLLECTION_ACCORDION_TOP_OFFSET - 2;
+    const desiredBannerWorldTop = state.viewportTop + topGap;
+    const targetContentY = desiredBannerWorldTop - bannerLocalTop;
+    this.setCollectionScrollY(targetContentY);
   }
 
   onFactionHeaderPointerDown(factionKey, pointer) {
@@ -816,6 +830,7 @@ export default class CollectionScene extends Phaser.Scene {
     this.cancelCardLongPress();
     this.destroyInspectPreview();
     this.destroyCollectionContentElements();
+    this.factionBannerLayoutY.clear();
     this.scrollMask?.destroy?.();
     this.scrollMask = null;
     this.scrollState = null;
