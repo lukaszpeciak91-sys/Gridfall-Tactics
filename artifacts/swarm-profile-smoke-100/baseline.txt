@@ -1,0 +1,463 @@
+
+Battle simulation complete (100 games per matchup, max 24 turns).
+Base seed: 1337
+Simulated faction matrix: 7 factions, 49 ordered matchups.
+
+Balance audit: aggregate faction table
+┌─────────┬───────────────────┬───────┬────────┬────────────────┬────────┬────────────┬───────────┬───────────────────────┐
+│ (index) │ faction           │ games │ win %  │ non-draw win % │ draw % │ turn-cap % │ avg turns │ avg remaining hero HP │
+├─────────┼───────────────────┼───────┼────────┼────────────────┼────────┼────────────┼───────────┼───────────────────────┤
+│ 0       │ 'Aggro'           │ 1400  │ '41.9' │ '51.3'         │ '18.4' │ '0.0'      │ '4.22'    │ '1.69'                │
+│ 1       │ 'Tank'            │ 1400  │ '47.8' │ '51.9'         │ '7.9'  │ '0.0'      │ '6.63'    │ '2.48'                │
+│ 2       │ 'Control'         │ 1400  │ '42.6' │ '44.9'         │ '5.2'  │ '0.4'      │ '7.92'    │ '1.92'                │
+│ 3       │ 'Swarm'           │ 1400  │ '40.6' │ '44.5'         │ '8.9'  │ '0.0'      │ '7.09'    │ '1.51'                │
+│ 4       │ 'Wardens'         │ 1400  │ '44.6' │ '50.1'         │ '10.9' │ '0.0'      │ '6.15'    │ '2.06'                │
+│ 5       │ 'Attrition Swarm' │ 1400  │ '46.9' │ '51.2'         │ '8.6'  │ '0.0'      │ '6.66'    │ '1.99'                │
+│ 6       │ 'Overclock'       │ 1400  │ '49.3' │ '56.6'         │ '12.9' │ '0.0'      │ '5.17'    │ '2.01'                │
+└─────────┴───────────────────┴───────┴────────┴────────────────┴────────┴────────────┴───────────┴───────────────────────┘
+
+Balance audit: combined matchup table across both seats
+┌─────────┬───────────────────┬───────────────────┬───────┬────────────────┬────────────────┬───────┬────────────────────────┬───────────────────────┬────────┬────────────┬───────────┐
+│ (index) │ faction A         │ faction B         │ games │ faction A wins │ faction B wins │ draws │ faction A all-games WR │ faction A non-draw WR │ draw % │ turn-cap % │ avg turns │
+├─────────┼───────────────────┼───────────────────┼───────┼────────────────┼────────────────┼───────┼────────────────────────┼───────────────────────┼────────┼────────────┼───────────┤
+│ 0       │ 'Aggro'           │ 'Tank'            │ 200   │ 109            │ 66             │ 25    │ '54.5'                 │ '62.3'                │ '12.5' │ '0.0'      │ '4.19'    │
+│ 1       │ 'Aggro'           │ 'Control'         │ 200   │ 83             │ 97             │ 20    │ '41.5'                 │ '46.1'                │ '10.0' │ '0.0'      │ '5.87'    │
+│ 2       │ 'Aggro'           │ 'Swarm'           │ 200   │ 70             │ 100            │ 30    │ '35.0'                 │ '41.2'                │ '15.0' │ '0.0'      │ '4.79'    │
+│ 3       │ 'Aggro'           │ 'Wardens'         │ 200   │ 103            │ 63             │ 34    │ '51.5'                 │ '62.0'                │ '17.0' │ '0.0'      │ '3.81'    │
+│ 4       │ 'Aggro'           │ 'Attrition Swarm' │ 200   │ 88             │ 86             │ 26    │ '44.0'                 │ '50.6'                │ '13.0' │ '0.0'      │ '4.46'    │
+│ 5       │ 'Aggro'           │ 'Overclock'       │ 200   │ 69             │ 80             │ 51    │ '34.5'                 │ '46.3'                │ '25.5' │ '0.0'      │ '3.56'    │
+│ 6       │ 'Tank'            │ 'Control'         │ 200   │ 119            │ 74             │ 7     │ '59.5'                 │ '61.7'                │ '3.5'  │ '0.0'      │ '7.91'    │
+│ 7       │ 'Tank'            │ 'Swarm'           │ 200   │ 122            │ 67             │ 11    │ '61.0'                 │ '64.6'                │ '5.5'  │ '0.0'      │ '7.37'    │
+│ 8       │ 'Tank'            │ 'Wardens'         │ 200   │ 89             │ 87             │ 24    │ '44.5'                 │ '50.6'                │ '12.0' │ '0.0'      │ '6.75'    │
+│ 9       │ 'Tank'            │ 'Attrition Swarm' │ 200   │ 99             │ 92             │ 9     │ '49.5'                 │ '51.8'                │ '4.5'  │ '0.0'      │ '7.21'    │
+│ 10      │ 'Tank'            │ 'Overclock'       │ 200   │ 82             │ 99             │ 19    │ '41.0'                 │ '45.3'                │ '9.5'  │ '0.0'      │ '5.45'    │
+│ 11      │ 'Control'         │ 'Swarm'           │ 200   │ 74             │ 113            │ 13    │ '37.0'                 │ '39.6'                │ '6.5'  │ '0.0'      │ '8.60'    │
+│ 12      │ 'Control'         │ 'Wardens'         │ 200   │ 113            │ 82             │ 5     │ '56.5'                 │ '57.9'                │ '2.5'  │ '0.0'      │ '7.57'    │
+│ 13      │ 'Control'         │ 'Attrition Swarm' │ 200   │ 92             │ 101            │ 7     │ '46.0'                 │ '47.7'                │ '3.5'  │ '0.0'      │ '7.90'    │
+│ 14      │ 'Control'         │ 'Overclock'       │ 200   │ 53             │ 140            │ 7     │ '26.5'                 │ '27.5'                │ '3.5'  │ '0.0'      │ '6.57'    │
+│ 15      │ 'Swarm'           │ 'Wardens'         │ 200   │ 53             │ 126            │ 21    │ '26.5'                 │ '29.6'                │ '10.5' │ '0.0'      │ '6.89'    │
+│ 16      │ 'Swarm'           │ 'Attrition Swarm' │ 200   │ 79             │ 109            │ 12    │ '39.5'                 │ '42.0'                │ '6.0'  │ '0.0'      │ '7.75'    │
+│ 17      │ 'Swarm'           │ 'Overclock'       │ 200   │ 65             │ 115            │ 20    │ '32.5'                 │ '36.1'                │ '10.0' │ '0.0'      │ '5.72'    │
+│ 18      │ 'Wardens'         │ 'Attrition Swarm' │ 200   │ 97             │ 85             │ 18    │ '48.5'                 │ '53.3'                │ '9.0'  │ '0.0'      │ '6.83'    │
+│ 19      │ 'Wardens'         │ 'Overclock'       │ 200   │ 82             │ 91             │ 27    │ '41.0'                 │ '47.4'                │ '13.5' │ '0.0'      │ '5.01'    │
+│ 20      │ 'Attrition Swarm' │ 'Overclock'       │ 200   │ 97             │ 83             │ 20    │ '48.5'                 │ '53.9'                │ '10.0' │ '0.0'      │ '5.50'    │
+└─────────┴───────────────────┴───────────────────┴───────┴────────────────┴────────────────┴───────┴────────────────────────┴───────────────────────┴────────┴────────────┴───────────┘
+
+Balance audit: seat bias table
+┌─────────┬───────────────────┬───────────────────┬───────┬──────────────┬─────────────┬────────┬───────────────┐
+│ (index) │ player faction    │ enemy faction     │ games │ player win % │ enemy win % │ draw % │ average turns │
+├─────────┼───────────────────┼───────────────────┼───────┼──────────────┼─────────────┼────────┼───────────────┤
+│ 0       │ 'Aggro'           │ 'Aggro'           │ 100   │ '33.0'       │ '31.0'      │ '36.0' │ '2.86'        │
+│ 1       │ 'Aggro'           │ 'Tank'            │ 100   │ '53.0'       │ '37.0'      │ '10.0' │ '4.15'        │
+│ 2       │ 'Aggro'           │ 'Control'         │ 100   │ '41.0'       │ '53.0'      │ '6.0'  │ '5.89'        │
+│ 3       │ 'Aggro'           │ 'Swarm'           │ 100   │ '38.0'       │ '45.0'      │ '17.0' │ '4.76'        │
+│ 4       │ 'Aggro'           │ 'Wardens'         │ 100   │ '46.0'       │ '35.0'      │ '19.0' │ '3.90'        │
+│ 5       │ 'Aggro'           │ 'Attrition Swarm' │ 100   │ '42.0'       │ '45.0'      │ '13.0' │ '4.48'        │
+│ 6       │ 'Aggro'           │ 'Overclock'       │ 100   │ '35.0'       │ '41.0'      │ '24.0' │ '3.59'        │
+│ 7       │ 'Tank'            │ 'Aggro'           │ 100   │ '29.0'       │ '56.0'      │ '15.0' │ '4.23'        │
+│ 8       │ 'Tank'            │ 'Tank'            │ 100   │ '48.0'       │ '44.0'      │ '8.0'  │ '7.51'        │
+│ 9       │ 'Tank'            │ 'Control'         │ 100   │ '56.0'       │ '40.0'      │ '4.0'  │ '7.94'        │
+│ 10      │ 'Tank'            │ 'Swarm'           │ 100   │ '60.0'       │ '35.0'      │ '5.0'  │ '7.35'        │
+│ 11      │ 'Tank'            │ 'Wardens'         │ 100   │ '51.0'       │ '36.0'      │ '13.0' │ '6.78'        │
+│ 12      │ 'Tank'            │ 'Attrition Swarm' │ 100   │ '49.0'       │ '46.0'      │ '5.0'  │ '7.16'        │
+│ 13      │ 'Tank'            │ 'Overclock'       │ 100   │ '48.0'       │ '45.0'      │ '7.0'  │ '5.65'        │
+│ 14      │ 'Control'         │ 'Aggro'           │ 100   │ '44.0'       │ '42.0'      │ '14.0' │ '5.85'        │
+│ 15      │ 'Control'         │ 'Tank'            │ 100   │ '34.0'       │ '63.0'      │ '3.0'  │ '7.88'        │
+│ 16      │ 'Control'         │ 'Control'         │ 100   │ '47.0'       │ '46.0'      │ '7.0'  │ '11.00'       │
+│ 17      │ 'Control'         │ 'Swarm'           │ 100   │ '35.0'       │ '59.0'      │ '6.0'  │ '8.81'        │
+│ 18      │ 'Control'         │ 'Wardens'         │ 100   │ '59.0'       │ '38.0'      │ '3.0'  │ '7.61'        │
+│ 19      │ 'Control'         │ 'Attrition Swarm' │ 100   │ '49.0'       │ '46.0'      │ '5.0'  │ '8.17'        │
+│ 20      │ 'Control'         │ 'Overclock'       │ 100   │ '29.0'       │ '70.0'      │ '1.0'  │ '6.29'        │
+│ 21      │ 'Swarm'           │ 'Aggro'           │ 100   │ '55.0'       │ '32.0'      │ '13.0' │ '4.83'        │
+│ 22      │ 'Swarm'           │ 'Tank'            │ 100   │ '32.0'       │ '62.0'      │ '6.0'  │ '7.39'        │
+│ 23      │ 'Swarm'           │ 'Control'         │ 100   │ '54.0'       │ '39.0'      │ '7.0'  │ '8.38'        │
+│ 24      │ 'Swarm'           │ 'Swarm'           │ 100   │ '40.0'       │ '51.0'      │ '9.0'  │ '8.50'        │
+│ 25      │ 'Swarm'           │ 'Wardens'         │ 100   │ '24.0'       │ '63.0'      │ '13.0' │ '6.88'        │
+│ 26      │ 'Swarm'           │ 'Attrition Swarm' │ 100   │ '34.0'       │ '61.0'      │ '5.0'  │ '7.62'        │
+│ 27      │ 'Swarm'           │ 'Overclock'       │ 100   │ '32.0'       │ '61.0'      │ '7.0'  │ '5.70'        │
+│ 28      │ 'Wardens'         │ 'Aggro'           │ 100   │ '28.0'       │ '57.0'      │ '15.0' │ '3.73'        │
+│ 29      │ 'Wardens'         │ 'Tank'            │ 100   │ '51.0'       │ '38.0'      │ '11.0' │ '6.72'        │
+│ 30      │ 'Wardens'         │ 'Control'         │ 100   │ '44.0'       │ '54.0'      │ '2.0'  │ '7.53'        │
+│ 31      │ 'Wardens'         │ 'Swarm'           │ 100   │ '63.0'       │ '29.0'      │ '8.0'  │ '6.91'        │
+│ 32      │ 'Wardens'         │ 'Wardens'         │ 100   │ '49.0'       │ '39.0'      │ '12.0' │ '6.16'        │
+│ 33      │ 'Wardens'         │ 'Attrition Swarm' │ 100   │ '47.0'       │ '45.0'      │ '8.0'  │ '6.78'        │
+│ 34      │ 'Wardens'         │ 'Overclock'       │ 100   │ '44.0'       │ '43.0'      │ '13.0' │ '5.12'        │
+│ 35      │ 'Attrition Swarm' │ 'Aggro'           │ 100   │ '41.0'       │ '46.0'      │ '13.0' │ '4.44'        │
+│ 36      │ 'Attrition Swarm' │ 'Tank'            │ 100   │ '46.0'       │ '50.0'      │ '4.0'  │ '7.25'        │
+│ 37      │ 'Attrition Swarm' │ 'Control'         │ 100   │ '55.0'       │ '43.0'      │ '2.0'  │ '7.63'        │
+│ 38      │ 'Attrition Swarm' │ 'Swarm'           │ 100   │ '48.0'       │ '45.0'      │ '7.0'  │ '7.87'        │
+│ 39      │ 'Attrition Swarm' │ 'Wardens'         │ 100   │ '40.0'       │ '50.0'      │ '10.0' │ '6.87'        │
+│ 40      │ 'Attrition Swarm' │ 'Attrition Swarm' │ 100   │ '40.0'       │ '46.0'      │ '14.0' │ '7.01'        │
+│ 41      │ 'Attrition Swarm' │ 'Overclock'       │ 100   │ '47.0'       │ '45.0'      │ '8.0'  │ '5.48'        │
+│ 42      │ 'Overclock'       │ 'Aggro'           │ 100   │ '39.0'       │ '34.0'      │ '27.0' │ '3.52'        │
+│ 43      │ 'Overclock'       │ 'Tank'            │ 100   │ '54.0'       │ '34.0'      │ '12.0' │ '5.25'        │
+│ 44      │ 'Overclock'       │ 'Control'         │ 100   │ '70.0'       │ '24.0'      │ '6.0'  │ '6.85'        │
+│ 45      │ 'Overclock'       │ 'Swarm'           │ 100   │ '54.0'       │ '33.0'      │ '13.0' │ '5.75'        │
+│ 46      │ 'Overclock'       │ 'Wardens'         │ 100   │ '48.0'       │ '38.0'      │ '14.0' │ '4.90'        │
+│ 47      │ 'Overclock'       │ 'Attrition Swarm' │ 100   │ '38.0'       │ '50.0'      │ '12.0' │ '5.51'        │
+│ 48      │ 'Overclock'       │ 'Overclock'       │ 100   │ '41.0'       │ '41.0'      │ '18.0' │ '4.40'        │
+└─────────┴───────────────────┴───────────────────┴───────┴──────────────┴─────────────┴────────┴───────────────┘
+
+Balance audit: mirror pacing table
+┌─────────┬──────────────────────────────────────┬───────┬────────┬────────────┬───────────────┬──────────────────────┐
+│ (index) │ mirror                               │ games │ draw % │ turn-cap % │ average turns │ average remaining HP │
+├─────────┼──────────────────────────────────────┼───────┼────────┼────────────┼───────────────┼──────────────────────┤
+│ 0       │ 'Aggro vs Aggro'                     │ 100   │ '36.0' │ '0.0'      │ '2.86'        │ '1.01'               │
+│ 1       │ 'Tank vs Tank'                       │ 100   │ '8.0'  │ '0.0'      │ '7.51'        │ '2.57'               │
+│ 2       │ 'Control vs Control'                 │ 100   │ '7.0'  │ '3.0'      │ '11.00'       │ '2.19'               │
+│ 3       │ 'Swarm vs Swarm'                     │ 100   │ '9.0'  │ '0.0'      │ '8.50'        │ '1.68'               │
+│ 4       │ 'Wardens vs Wardens'                 │ 100   │ '12.0' │ '0.0'      │ '6.16'        │ '2.10'               │
+│ 5       │ 'Attrition Swarm vs Attrition Swarm' │ 100   │ '14.0' │ '0.0'      │ '7.01'        │ '1.43'               │
+│ 6       │ 'Overclock vs Overclock'             │ 100   │ '18.0' │ '0.0'      │ '4.40'        │ '1.56'               │
+└─────────┴──────────────────────────────────────┴───────┴────────┴────────────┴───────────────┴──────────────────────┘
+
+Balance audit: health flags
+WARN Aggro aggregate draw rate 18.4% above 10.0%
+WARN Wardens aggregate draw rate 10.9% above 10.0%
+WARN Overclock aggregate draw rate 12.9% above 10.0%
+WARN Aggro vs Tank draw rate 12.5% above 10.0%
+WARN Aggro vs Swarm draw rate 15.0% above 10.0%
+WARN Aggro vs Wardens draw rate 17.0% above 10.0%
+WARN Aggro vs Attrition Swarm draw rate 13.0% above 10.0%
+WARN Aggro vs Overclock draw rate 25.5% above 10.0%
+WARN Tank vs Wardens draw rate 12.0% above 10.0%
+WARN Control vs Overclock Control non-draw matchup WR 27.5% below 30.0%
+WARN Swarm vs Wardens Swarm non-draw matchup WR 29.6% below 30.0%
+WARN Swarm vs Wardens draw rate 10.5% above 10.0%
+WARN Wardens vs Overclock draw rate 13.5% above 10.0%
+WARN Aggro mirror draw rate 36.0% above 10.0%
+WARN Aggro mirror average turns 2.86 below 4.00
+WARN Wardens mirror draw rate 12.0% above 10.0%
+WARN Attrition Swarm mirror draw rate 14.0% above 10.0%
+WARN Overclock mirror draw rate 18.0% above 10.0%
+
+Final recommendation summary:
+┌─────────┬────────────────────────────────┬──────────────────────────────┐
+│ (index) │ subject                        │ classification               │
+├─────────┼────────────────────────────────┼──────────────────────────────┤
+│ 0       │ 'Aggro'                        │ 'draw risk'                  │
+│ 1       │ 'Tank'                         │ 'healthy'                    │
+│ 2       │ 'Control'                      │ 'healthy'                    │
+│ 3       │ 'Swarm'                        │ 'healthy'                    │
+│ 4       │ 'Wardens'                      │ 'draw risk'                  │
+│ 5       │ 'Attrition Swarm'              │ 'healthy'                    │
+│ 6       │ 'Overclock'                    │ 'draw risk'                  │
+│ 7       │ 'Aggro vs Tank'                │ 'draw risk'                  │
+│ 8       │ 'Aggro vs Control'             │ 'healthy'                    │
+│ 9       │ 'Aggro vs Swarm'               │ 'draw risk'                  │
+│ 10      │ 'Aggro vs Wardens'             │ 'draw risk'                  │
+│ 11      │ 'Aggro vs Attrition Swarm'     │ 'draw risk'                  │
+│ 12      │ 'Aggro vs Overclock'           │ 'draw risk'                  │
+│ 13      │ 'Tank vs Control'              │ 'healthy'                    │
+│ 14      │ 'Tank vs Swarm'                │ 'healthy'                    │
+│ 15      │ 'Tank vs Wardens'              │ 'draw risk'                  │
+│ 16      │ 'Tank vs Attrition Swarm'      │ 'healthy'                    │
+│ 17      │ 'Tank vs Overclock'            │ 'healthy'                    │
+│ 18      │ 'Control vs Swarm'             │ 'healthy'                    │
+│ 19      │ 'Control vs Wardens'           │ 'healthy'                    │
+│ 20      │ 'Control vs Attrition Swarm'   │ 'healthy'                    │
+│ 21      │ 'Control vs Overclock'         │ 'underperforming'            │
+│ 22      │ 'Swarm vs Wardens'             │ 'draw risk, underperforming' │
+│ 23      │ 'Swarm vs Attrition Swarm'     │ 'healthy'                    │
+│ 24      │ 'Swarm vs Overclock'           │ 'healthy'                    │
+│ 25      │ 'Wardens vs Attrition Swarm'   │ 'healthy'                    │
+│ 26      │ 'Wardens vs Overclock'         │ 'draw risk'                  │
+│ 27      │ 'Attrition Swarm vs Overclock' │ 'healthy'                    │
+│ 28      │ 'Aggro mirror'                 │ 'draw risk, pacing risk'     │
+│ 29      │ 'Tank mirror'                  │ 'healthy'                    │
+│ 30      │ 'Control mirror'               │ 'healthy'                    │
+│ 31      │ 'Swarm mirror'                 │ 'healthy'                    │
+│ 32      │ 'Wardens mirror'               │ 'draw risk'                  │
+│ 33      │ 'Attrition Swarm mirror'       │ 'draw risk'                  │
+│ 34      │ 'Overclock mirror'             │ 'draw risk'                  │
+└─────────┴────────────────────────────────┴──────────────────────────────┘
+
+Audit pacing summary:
+┌─────────┬─────────────────────────────────────────┬────────┬────────────┐
+│ (index) │ metric                                  │ value  │ count      │
+├─────────┼─────────────────────────────────────────┼────────┼────────────┤
+│ 0       │ 'total draw %'                          │ '10.4' │ '510/4900' │
+│ 1       │ 'Swarm vs Swarm draw %'                 │ '9.0'  │ '9/100'    │
+│ 2       │ 'turn-cap %'                            │ '0.1'  │ '3/4900'   │
+│ 3       │ 'non-Swarm draw %'                      │ '10.9' │ '394/3600' │
+│ 4       │ 'non-Swarm turn-cap %'                  │ '0.1'  │ '3/3600'   │
+│ 5       │ 'Aggro chip timeout win %'              │ '0.0'  │ '0/1400'   │
+│ 6       │ 'simultaneous lethal count'             │ 510    │ '510/4900' │
+│ 7       │ 'simultaneous lethal draws before rule' │ 510    │ '510/510'  │
+│ 8       │ 'simultaneous lethal draws after rule'  │ 510    │ '510/510'  │
+└─────────┴─────────────────────────────────────────┴────────┴────────────┘
+
+====================================
+HAND LOCK ANALYSIS
+====================================
+
+Full hand events:
+┌─────────┬──────────┬────────┬───────────────┬────────────┐
+│ (index) │ side     │ events │ opportunities │ percentage │
+├─────────┼──────────┼────────┼───────────────┼────────────┤
+│ 0       │ 'player' │ 3224   │ 30575         │ '10.5%'    │
+│ 1       │ 'enemy'  │ 3324   │ 30605         │ '10.9%'    │
+│ 2       │ 'total'  │ 6548   │ 61180         │ '10.7%'    │
+└─────────┴──────────┴────────┴───────────────┴────────────┘
+
+Burn-eligible opportunities:
+┌─────────┬──────────┬────────┬───────────────┬────────────┐
+│ (index) │ side     │ events │ opportunities │ percentage │
+├─────────┼──────────┼────────┼───────────────┼────────────┤
+│ 0       │ 'player' │ 2379   │ 30575         │ '7.8%'     │
+│ 1       │ 'enemy'  │ 2446   │ 30605         │ '8.0%'     │
+│ 2       │ 'total'  │ 4825   │ 61180         │ '7.9%'     │
+└─────────┴──────────┴────────┴───────────────┴────────────┘
+
+True hand-lock events:
+┌─────────┬──────────┬────────┬───────────────┬────────────┐
+│ (index) │ side     │ events │ opportunities │ percentage │
+├─────────┼──────────┼────────┼───────────────┼────────────┤
+│ 0       │ 'player' │ 1      │ 30575         │ '0.0%'     │
+│ 1       │ 'enemy'  │ 6      │ 30605         │ '0.0%'     │
+│ 2       │ 'total'  │ 7      │ 61180         │ '0.0%'     │
+└─────────┴──────────┴────────┴───────────────┴────────────┘
+
+Lock streaks:
+┌─────────┬──────────┬─────────┬────────────────┬────────────────┐
+│ (index) │ side     │ streaks │ average streak │ longest streak │
+├─────────┼──────────┼─────────┼────────────────┼────────────────┤
+│ 0       │ 'player' │ 1       │ '1.00'         │ 1              │
+│ 1       │ 'enemy'  │ 4       │ '1.50'         │ 3              │
+└─────────┴──────────┴─────────┴────────────────┴────────────────┘
+
+Remaining deck during burn-eligible states:
+┌─────────┬─────────┬─────────┬─────────┬─────────┐
+│ (index) │ samples │ average │ minimum │ maximum │
+├─────────┼─────────┼─────────┼─────────┼─────────┤
+│ 0       │ 4825    │ '1.94'  │ 1       │ 5       │
+└─────────┴─────────┴─────────┴─────────┴─────────┘
+
+Faction hand-lock statistics:
+┌─────────┬───────────────────┬───────────────┬────────────────┬────────────────────┬─────────────────────┬────────────┐
+│ (index) │ faction           │ opportunities │ full hand rate │ burn eligible rate │ true hand lock rate │ true locks │
+├─────────┼───────────────────┼───────────────┼────────────────┼────────────────────┼─────────────────────┼────────────┤
+│ 0       │ 'Control'         │ 11057         │ '12.7%'        │ '8.2%'             │ '0.0%'              │ 4          │
+│ 1       │ 'Wardens'         │ 8580          │ '11.0%'        │ '8.2%'             │ '0.0%'              │ 1          │
+│ 2       │ 'Tank'            │ 9249          │ '16.1%'        │ '11.8%'            │ '0.0%'              │ 1          │
+│ 3       │ 'Swarm'           │ 9897          │ '10.5%'        │ '7.9%'             │ '0.0%'              │ 1          │
+│ 4       │ 'Attrition Swarm' │ 9286          │ '9.9%'         │ '7.3%'             │ '0.0%'              │ 0          │
+│ 5       │ 'Overclock'       │ 7223          │ '6.4%'         │ '5.5%'             │ '0.0%'              │ 0          │
+│ 6       │ 'Aggro'           │ 5888          │ '5.2%'         │ '4.4%'             │ '0.0%'              │ 0          │
+└─────────┴───────────────────┴───────────────┴────────────────┴────────────────────┴─────────────────────┴────────────┘
+
+Cards most frequently present during true hand-lock states:
+┌─────────┬───────────┬───────────────────┬─────────────────────────────┬────────────────────────────┐
+│ (index) │ faction   │ card              │ id                          │ true-lock hand appearances │
+├─────────┼───────────┼───────────────────┼─────────────────────────────┼────────────────────────────┤
+│ 0       │ 'Control' │ 'Jam Signal'      │ 'control_jam_signal_1'      │ 4                          │
+│ 1       │ 'Control' │ 'Recall'          │ 'control_recall_1'          │ 4                          │
+│ 2       │ 'Control' │ 'Swap'            │ 'control_swap_1'            │ 4                          │
+│ 3       │ 'Control' │ 'System Override' │ 'control_system_override_1' │ 4                          │
+│ 4       │ 'Control' │ 'Controller'      │ 'control_controller_1'      │ 3                          │
+│ 5       │ 'Control' │ 'Pulse Wave'      │ 'control_pulse_wave_1'      │ 1                          │
+│ 6       │ 'Swarm'   │ 'Flood'           │ 'swarm_flood_1'             │ 1                          │
+│ 7       │ 'Swarm'   │ 'Regrow'          │ 'swarm_regrow_1'            │ 1                          │
+│ 8       │ 'Swarm'   │ 'Spawn'           │ 'swarm_spawn_1'             │ 1                          │
+│ 9       │ 'Swarm'   │ 'Substrate'       │ 'swarm_recycle_1'           │ 1                          │
+└─────────┴───────────┴───────────────────┴─────────────────────────────┴────────────────────────────┘
+
+Example traces:
+
+Example 1: Tank vs Control, Tank player, Turn 7
+Hand: 5
+Deck: 1
+Legal actions
+Play ❌
+Redeploy ❌
+Swap ❌
+PASS ✅
+This would have been Burn eligible.
+
+Example 2: Control vs Control, Control enemy, Turn 5
+Hand: 5
+Deck: 2
+Legal actions
+Play ❌
+Redeploy ❌
+Swap ❌
+PASS ✅
+This would have been Burn eligible.
+
+Example 3: Control vs Control, Control enemy, Turn 3
+Hand: 5
+Deck: 4
+Legal actions
+Play ❌
+Redeploy ❌
+Swap ❌
+PASS ✅
+This would have been Burn eligible.
+
+Example 4: Control vs Control, Control enemy, Turn 4
+Hand: 5
+Deck: 4
+Legal actions
+Play ❌
+Redeploy ❌
+Swap ❌
+PASS ✅
+This would have been Burn eligible.
+
+Example 5: Control vs Control, Control enemy, Turn 5
+Hand: 5
+Deck: 4
+Legal actions
+Play ❌
+Redeploy ❌
+Swap ❌
+PASS ✅
+This would have been Burn eligible.
+
+Recommendation
+True hand-lock situations were observed 7 time(s) across 61180 action opportunities (0.0%). Burn-eligible states occurred 4825 time(s) (7.9%).
+Observed true locks were most concentrated in: Control, Wardens, Tank.
+Use these measured rates to decide whether a Burn mechanic is worth prototyping.
+
+Opening mulligan usage by faction:
+┌─────────┬───────────────────┬───────┬─────────┬────────────────────┐
+│ (index) │ faction           │ games │ usage % │ avg cards replaced │
+├─────────┼───────────────────┼───────┼─────────┼────────────────────┤
+│ 0       │ 'Aggro'           │ 1400  │ '93.7'  │ '1.47'             │
+│ 1       │ 'Tank'            │ 1400  │ '99.4'  │ '1.87'             │
+│ 2       │ 'Control'         │ 1400  │ '97.4'  │ '1.71'             │
+│ 3       │ 'Swarm'           │ 1400  │ '86.2'  │ '1.30'             │
+│ 4       │ 'Wardens'         │ 1400  │ '97.3'  │ '1.72'             │
+│ 5       │ 'Attrition Swarm' │ 1400  │ '93.0'  │ '1.50'             │
+│ 6       │ 'Overclock'       │ 1400  │ '97.9'  │ '1.72'             │
+└─────────┴───────────────────┴───────┴─────────┴────────────────────┘
+
+AI gameplay-action telemetry:
+┌─────────┬────────────────────────────────────────────────┬────────────────────────┐
+│ (index) │ metric                                         │ count                  │
+├─────────┼────────────────────────────────────────────────┼────────────────────────┤
+│ 0       │ 'replace actions used'                         │ 2587                   │
+│ 1       │ 'reposition actions used'                      │ 635                    │
+│ 2       │ 'meaningful replace/reposition uses'           │ 3222                   │
+│ 3       │ 'pointless replace/reposition uses'            │ 0                      │
+│ 4       │ 'open-lane improvements'                       │ 3078                   │
+│ 5       │ 'repeated-loop preventions'                    │ 334                    │
+│ 6       │ 'invalid actions'                              │ 0                      │
+│ 7       │ 'crashes'                                      │ 0                      │
+│ 8       │ 'Quick Fix uses'                               │ 223                    │
+│ 9       │ 'Berserker uses'                               │ 746                    │
+│ 10      │ 'Berserker usage frequency'                    │ '53.3% of Aggro seats' │
+│ 11      │ 'Quick Fix triggered draws'                    │ 56                     │
+│ 12      │ 'Quick Fix trigger rate'                       │ '25.1%'                │
+│ 13      │ 'Shield Push uses'                             │ 463                    │
+│ 14      │ 'Reinforce Line uses'                          │ 142                    │
+│ 15      │ 'friendly immovable uses'                      │ undefined              │
+│ 16      │ 'Jam Signal uses'                              │ 936                    │
+│ 17      │ 'Controller uses'                              │ 767                    │
+│ 18      │ 'defensive friction applications'              │ 6                      │
+│ 19      │ 'Funeral Pyre uses'                            │ 27                     │
+│ 20      │ 'System Override uses'                         │ 1313                   │
+│ 21      │ 'Funeral Pyre death triggers'                  │ 34                     │
+│ 22      │ 'Funeral Pyre trigger rate'                    │ '125.9%'               │
+│ 23      │ 'Funeral Pyre allied-death opportunities'      │ 38                     │
+│ 24      │ 'Funeral Pyre base-damage triggers'            │ 34                     │
+│ 25      │ 'Funeral Pyre total enemy-base damage'         │ 34                     │
+│ 26      │ 'Funeral Pyre once-per-turn skips'             │ 4                      │
+│ 27      │ 'Funeral Pyre multi-Stos events'               │ 0                      │
+│ 28      │ 'death hero triggers'                          │ 971                    │
+│ 29      │ 'death lane-damage triggers'                   │ 627                    │
+│ 30      │ 'death summons'                                │ 873                    │
+│ 31      │ 'Leech combat heals'                           │ 2051                   │
+│ 32      │ 'Rotcaller valid adjacent-death opportunities' │ 945                    │
+│ 33      │ 'Rotcaller permanent triggers executed'        │ 521                    │
+│ 34      │ 'Rotcaller already-consumed skips'             │ 424                    │
+│ 35      │ 'Rotcaller total permanent ATK gained'         │ 521                    │
+│ 36      │ 'overflow combat triggers'                     │ 0                      │
+│ 37      │ 'overflow base damage total'                   │ 0                      │
+└─────────┴────────────────────────────────────────────────┴────────────────────────┘
+
+Immediate-attack threat-awareness telemetry:
+┌─────────┬──────────────────────────────────┬──────────┐
+│ (index) │ metric                           │ count    │
+├─────────┼──────────────────────────────────┼──────────┤
+│ 0       │ 'opportunities'                  │ 2335     │
+│ 1       │ 'ordinary threats'               │ 1178     │
+│ 2       │ 'possible-lethal threats'        │ 1157     │
+│ 3       │ 'opportunities with protection'  │ 1335     │
+│ 4       │ 'base winner already protective' │ 780      │
+│ 5       │ 'decisions changed'              │ 285      │
+│ 6       │ 'change rate'                    │ '12.2%'  │
+│ 7       │ 'standard-window changes'        │ 7        │
+│ 8       │ 'lethal-window changes'          │ 278      │
+│ 9       │ 'average score delta'            │ '741.77' │
+│ 10      │ 'median score delta'             │ '833.00' │
+│ 11      │ 'maximum score delta'            │ 1194     │
+│ 12      │ 'predicted damage prevented'     │ 1395     │
+└─────────┴──────────────────────────────────┴──────────┘
+Protection types: {"remove-or-disable":268,"reduce":5,"block-or-reposition":12}
+Suppressions: {"weak-or-no-open-lane-threat":3455,"opponent-has-no-action-before-combat":30492,"outside-policy-window":1050,"no-protective-candidate":149,"board-infeasible-swap":694,"ai-own-immediate-lethal":16,"only-one-useful-candidate":55,"no-qualifying-enabler":24145,"base-winner-already-protective":780,"publicly-exhausted":51}
+
+Swarm profile telemetry (off, window 80):
+┌─────────┬───────────────────────────────────┬───────────────────┐
+│ (index) │ metric                            │ count             │
+├─────────┼───────────────────────────────────┼───────────────────┤
+│ 0       │ 'Swarm decisions'                 │ 9893              │
+│ 1       │ 'profile opportunities'           │ 0                 │
+│ 2       │ 'shortlist opportunities'         │ 0                 │
+│ 3       │ 'decisions changed'               │ 0                 │
+│ 4       │ 'all-decision change rate'        │ '0.0%'            │
+│ 5       │ 'opportunity change rate'         │ '0.0%'            │
+│ 6       │ 'average / median / max delta'    │ '0.00 / 0.00 / 0' │
+│ 7       │ 'Alpha-preservation changes'      │ 0                 │
+│ 8       │ 'Alpha survival rate'             │ '88.8%'           │
+│ 9       │ 'width increases / preservations' │ '0 / 9893'        │
+└─────────┴───────────────────────────────────┴───────────────────┘
+Profile reasons: {"no-meaningful-profile-difference":9893}
+Profile slot distribution: {"0":2067,"1":2491,"2":2192}
+
+Hot Runner offline diagnostics:
+┌─────────┬─────────────────────────────────────────────────────────────────┬───────┐
+│ (index) │ metric                                                          │ count │
+├─────────┼─────────────────────────────────────────────────────────────────┼───────┤
+│ 0       │ 'total Hot Runner offline plays'                                │ 418   │
+│ 1       │ 'plays with opposing enemy present'                             │ 175   │
+│ 2       │ 'plays with no opposing enemy'                                  │ 243   │
+│ 3       │ 'enemies taken offline'                                         │ 175   │
+│ 4       │ 'Hot Runner base hits due to offline'                           │ 144   │
+│ 5       │ 'base damage due to offline'                                    │ 144   │
+│ 6       │ 'reserved enemies returned'                                     │ 165   │
+│ 7       │ 'reserved enemy leaks after games'                              │ 0     │
+│ 8       │ 'duplicate/blocked returns'                                     │ 10    │
+│ 9       │ 'Attrition death triggers skipped because offline is not death' │ 175   │
+└─────────┴─────────────────────────────────────────────────────────────────┴───────┘
+
+Overflow combat telemetry by card id:
+No overflow combat telemetry recorded.
+
+PASS reason counts:
+┌─────────┬─────────────┬───────┐
+│ (index) │ reason      │ count │
+├─────────┼─────────────┼───────┤
+│ 0       │ 'pass'      │ 3126  │
+│ 1       │ 'cancelled' │ 0     │
+└─────────┴─────────────┴───────┘
+
+PASS counts by faction:
+┌─────────┬───────────────────┬───────┐
+│ (index) │ faction           │ count │
+├─────────┼───────────────────┼───────┤
+│ 0       │ 'Aggro'           │ 155   │
+│ 1       │ 'Attrition Swarm' │ 277   │
+│ 2       │ 'Control'         │ 1492  │
+│ 3       │ 'Overclock'       │ 76    │
+│ 4       │ 'Swarm'           │ 221   │
+│ 5       │ 'Tank'            │ 551   │
+│ 6       │ 'Wardens'         │ 354   │
+└─────────┴───────────────────┴───────┘
+
+Simulation parity and validity notes:
+- baseSeed: 1337
+- decks shuffled: yes (seeded Fisher-Yates per game)
+- first actor policy: random-initial-then-alternating (seeded random at battle start, toggles after each full turn)
+- tie-break policy: seeded-random
+- previous deterministic reports are invalid because fixed deck order and fixed first actor introduced structural bias.
