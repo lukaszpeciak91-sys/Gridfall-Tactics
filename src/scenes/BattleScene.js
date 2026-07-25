@@ -364,6 +364,7 @@ const OPENING_REVEAL_DIAG_FALLBACK_DELAY_MS = 3800;
 const OPENING_REVEAL_TRANSITION_HANDOFF_GUARD_MS = 1200;
 const BATTLE_REPORT_EVENT_BUFFER_LIMIT = 32;
 const BATTLE_REPORT_AUDIO_EVENT_BUFFER_LIMIT = 12;
+const COMBAT_PRESENTATION_LIFECYCLE_LIMIT = 24;
 const BATTLE_REPORT_EVENT_DEDUPE_WINDOW_MS = 200;
 let battleSceneSessionSequence = 0;
 
@@ -410,6 +411,8 @@ export default class BattleScene extends Phaser.Scene {
     this.battleReportAssetFailures = [];
     this.battleReportLastEvent = null;
     this.battleReportLastAudioEvent = null;
+    this.latestCombatPresentationTrace = null;
+    this.combatPresentationTraceRuntime = null;
     this.openingRevealDiagStartedAt = 0;
     this.openingRevealDiagFailureSnapshot = null;
     this.openingRevealDiagFailureCaptured = false;
@@ -998,6 +1001,8 @@ export default class BattleScene extends Phaser.Scene {
   create(data) {
     this.cleanupSceneObjects();
     this.resetBattleReportTracing();
+    this.latestCombatPresentationTrace = null;
+    this.combatPresentationTraceRuntime = null;
     this.isBattleSceneShuttingDown = false;
     // Menu music is faded by BattleTransitionScene after visual readiness.
     this.installResultModalDiagnostics();
@@ -1138,6 +1143,54 @@ export default class BattleScene extends Phaser.Scene {
     this.battleSceneCreatedAt = new Date(this.battleReportStartedAt).toISOString();
     this.battleReportLastEvent = null;
     this.battleReportLastAudioEvent = null;
+  }
+
+  beginCombatPresentationTrace(combatEvents, preCombatBoardSnapshot, removedCandidates = []) {
+    const startedAt = this.getBattleReportElapsedMs();
+    const runtime = new Map();
+    const entries = combatEvents.map((event, ordinal) => {
+      const attackerIndex = getCombatEventAttackerIndex(event);
+      const attacker = Number.isInteger(attackerIndex) ? preCombatBoardSnapshot?.[attackerIndex] : null;
+      const entry = {
+        ordinal: ordinal + 1, lane: Number.isInteger(event?.lane) ? event.lane : null,
+        attackerSide: event?.attackerSide ?? null, attackerIndex,
+        attackerCardId: attacker?.cardId ?? attacker?.id ?? null,
+        attackerEffectId: attacker?.effectId ?? null,
+        targetType: event?.targetType ?? null, targetIndex: getCombatEventTargetIndex(event),
+        targetSide: event?.targetSide ?? null, damage: Number.isFinite(event?.damage) ? event.damage : null,
+        lethal: Boolean(event?.lethal),
+        combatModifiers: (event?.combatModifiers ?? []).slice(0, 6).map((modifier) => ({ id: modifier?.source ?? modifier?.type ?? null, label: modifier?.label ?? null })),
+        attackPresentation: 'none', animationHelper: null,
+        snapshotAttackerExists: Boolean(attacker), liveAttackerBoardViewExists: null,
+        liveTargetBoardViewExists: null, beamCueCreated: null, fallbackReason: null,
+        animationStartTimestamp: null, feedbackStartTimestamp: null,
+        animationCompletionTimestamp: null, cancellationErrorReason: null,
+        nextLaneStartTimestamp: null,
+      };
+      runtime.set(event, entry);
+      return entry;
+    });
+    this.latestCombatPresentationTrace = {
+      startedAt, completedAt: null, eventCount: entries.length, events: entries,
+      lifecycle: [],
+      removedCombatants: removedCandidates.slice(0, 6).map(({ unit, index }) => ({
+        boardIndex: index, cardId: unit?.cardId ?? unit?.id ?? null, owner: unit?.owner ?? null,
+        mechanicalRemovalTimestamp: startedAt, mechanicalRemovalPhase: 'combat-resolved',
+        boardViewDestructionTimestamp: null, boardViewDestructionPhase: null,
+        deathOverlayStartTimestamp: null, deathOverlayCompletionTimestamp: null,
+      })),
+    };
+    this.combatPresentationTraceRuntime = runtime;
+  }
+
+  getCombatPresentationEntry(event) { return this.combatPresentationTraceRuntime?.get(event) ?? null; }
+
+  recordCombatPresentationLifecycle(event, name, details = {}) {
+    const trace = this.latestCombatPresentationTrace;
+    const entry = this.getCombatPresentationEntry(event);
+    if (!trace || !entry) return;
+    trace.lifecycle.push({ t: this.getBattleReportElapsedMs(), eventOrdinal: entry.ordinal, name, ...details });
+    if (trace.lifecycle.length > COMBAT_PRESENTATION_LIFECYCLE_LIMIT) trace.lifecycle.shift();
   }
 
   getBattleReportElapsedMs() {
@@ -9192,6 +9245,11 @@ export default class BattleScene extends Phaser.Scene {
       console.debug('Combat feedback events', combatEvents);
     }
     const deathOverlayCandidates = this.getCombatDeathOverlayCandidates(preCombatFeedbackSnapshot.board);
+    this.beginCombatPresentationTrace(combatEvents, preCombatFeedbackSnapshot.board, deathOverlayCandidates);
+    await this.withSuppressedLethalFadeIndexes(deathOverlayCandidates.map((candidate) => candidate.index), async () => {
+      await this.playCombatAnimations(combatEvents, preCombatFeedbackSnapshot.board);
+    });
+    await this.playCombatDeathTriggerFeedback(preCombatFeedbackSnapshot);
     this.combatPresentationStatusState = preCombatFeedbackSnapshot;
     try {
       await this.withSuppressedLethalFadeIndexes(deathOverlayCandidates.map((candidate) => candidate.index), async () => {
@@ -9203,7 +9261,12 @@ export default class BattleScene extends Phaser.Scene {
     }
     const deathOverlays = this.createCombatDeathOverlays(deathOverlayCandidates);
     this.refreshBoardLabels();
+    this.latestCombatPresentationTrace?.removedCombatants?.forEach((removed) => {
+      removed.boardViewDestructionTimestamp = this.getBattleReportElapsedMs();
+      removed.boardViewDestructionPhase = 'post-combat-board-refresh';
+    });
     await this.playCombatDeathOverlays(deathOverlays);
+    if (this.latestCombatPresentationTrace) this.latestCombatPresentationTrace.completedAt = this.getBattleReportElapsedMs();
     await this.playCombatCreationFeedback(preCombatFeedbackSnapshot);
     this.refreshHeroHP();
 
@@ -10442,6 +10505,7 @@ export default class BattleScene extends Phaser.Scene {
           .setAlpha(1)
           .setScale(1);
         overlay.disableInteractive?.();
+        overlay.setData('combatBoardIndex', index);
         overlay.add(this.createBoardUnitView(cell, unit));
         this.addDeathOverlayFailureCues(overlay, cell);
         return overlay;
@@ -10500,6 +10564,8 @@ export default class BattleScene extends Phaser.Scene {
 
   playCombatDeathOverlay(overlay) {
     if (!overlay?.active) return Promise.resolve();
+    const removal = this.latestCombatPresentationTrace?.removedCombatants?.find((item) => item.boardIndex === overlay.getData('combatBoardIndex'));
+    if (removal) removal.deathOverlayStartTimestamp = this.getBattleReportElapsedMs();
     const baseX = overlay.x;
     const flash = overlay.getData('deathFlash');
     const fracture = overlay.getData('deathFracture');
@@ -10542,7 +10608,10 @@ export default class BattleScene extends Phaser.Scene {
           ease: 'Quad.easeOut',
         })),
       ]))
-      .finally(() => overlay.destroy());
+      .finally(() => {
+        if (removal) removal.deathOverlayCompletionTimestamp = this.getBattleReportElapsedMs();
+        overlay.destroy();
+      });
   }
 
   getHeroHpFromSnapshot(snapshot, side) {
@@ -11383,6 +11452,9 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   async playLaneCombatAnimation(lane, laneEvents, preCombatBoardSnapshot = null) {
+    const laneStartedAt = this.getBattleReportElapsedMs();
+    this.latestCombatPresentationTrace?.events?.filter((entry) => entry.lane !== lane && entry.nextLaneStartTimestamp === null && entry.animationStartTimestamp !== null)
+      .forEach((entry) => { entry.nextLaneStartTimestamp = laneStartedAt; });
     const laneHighlight = this.highlightActiveLane(lane);
     const simultaneousClash = getLaneSimultaneousUnitClash(lane, laneEvents, preCombatBoardSnapshot);
     const clashEvents = new Set(simultaneousClash?.events ?? []);
@@ -11390,30 +11462,57 @@ export default class BattleScene extends Phaser.Scene {
 
     try {
       if (simultaneousClash) {
+        simultaneousClash.events.forEach((event) => {
+          const entry = this.getCombatPresentationEntry(event);
+          if (entry) Object.assign(entry, { attackPresentation: 'melee', animationHelper: 'animateSimultaneousUnitClash', animationStartTimestamp: laneStartedAt, liveAttackerBoardViewExists: Boolean(this.getCombatAttackerVisual(event, preCombatBoardSnapshot)), liveTargetBoardViewExists: Boolean(this.getCombatTargetVisual(event)) });
+        });
         await this.animateSimultaneousUnitClash(simultaneousClash);
+        simultaneousClash.events.forEach((event) => { const entry = this.getCombatPresentationEntry(event); if (entry) entry.animationCompletionTimestamp = this.getBattleReportElapsedMs(); });
       }
 
       for (const event of laneEvents) {
         if (clashEvents.has(event)) continue;
 
         if (this.isDeathTriggerPresentationEvent(event)) {
+          const entry = this.getCombatPresentationEntry(event);
+          if (entry) Object.assign(entry, {
+            attackPresentation: 'none',
+            animationHelper: 'playDeathTriggerPresentationEvent',
+            animationStartTimestamp: this.getBattleReportElapsedMs(),
+            liveAttackerBoardViewExists: false,
+            liveTargetBoardViewExists: Boolean(this.getCombatTargetVisual(event)),
+          });
           await this.playDeathTriggerPresentationEvent(event, preCombatBoardSnapshot);
+          if (entry) entry.animationCompletionTimestamp = this.getBattleReportElapsedMs();
           continue;
         }
 
         const attackerIndex = getCombatEventAttackerIndex(event);
         const attackerWasDefeatedInThisLane = Number.isInteger(attackerIndex) && lethalTargetIndexes.has(attackerIndex);
+        const entry = this.getCombatPresentationEntry(event);
+        const attackerVisual = this.getCombatAttackerVisual(event, preCombatBoardSnapshot);
+        const targetVisual = this.getCombatTargetVisual(event);
+        if (entry) Object.assign(entry, { animationStartTimestamp: this.getBattleReportElapsedMs(), liveAttackerBoardViewExists: Boolean(attackerVisual), liveTargetBoardViewExists: Boolean(targetVisual) });
+        if (entry) {
+          if (shouldUseControlledHeroStrikePresentation(event)) Object.assign(entry, { attackPresentation: 'controlled', animationHelper: 'animateControlledHeroStrike' });
+          else if (attackerWasDefeatedInThisLane) Object.assign(entry, { attackPresentation: 'feedback-only', animationHelper: 'playCombatEventFeedback', fallbackReason: 'attacker-defeated-in-lane' });
+          else if (getCombatAttackPresentation(event, preCombatBoardSnapshot) === COMBAT_ATTACK_PRESENTATIONS.beam) Object.assign(entry, { attackPresentation: 'beam', animationHelper: 'animateBeamAttack' });
+          else if (event.targetType === 'hero') Object.assign(entry, { attackPresentation: 'melee', animationHelper: 'animateHeroStrike' });
+          else Object.assign(entry, { attackPresentation: 'melee', animationHelper: 'animateUnitAttackOnlyIfEventExists' });
+        }
         if (shouldUseControlledHeroStrikePresentation(event)) {
           await this.animateControlledHeroStrike(event, preCombatBoardSnapshot);
         } else if (attackerWasDefeatedInThisLane) {
           await this.playCombatEventFeedback([event]);
         } else if (getCombatAttackPresentation(event, preCombatBoardSnapshot) === COMBAT_ATTACK_PRESENTATIONS.beam) {
+          this.recordCombatPresentationLifecycle(event, 'beam-route-selected');
           await this.animateBeamAttack(event, preCombatBoardSnapshot);
         } else if (event.targetType === 'hero') {
           await this.animateHeroStrike(event, preCombatBoardSnapshot);
         } else {
           await this.animateUnitAttackOnlyIfEventExists(event, preCombatBoardSnapshot);
         }
+        if (entry) entry.animationCompletionTimestamp = this.getBattleReportElapsedMs();
       }
     } finally {
       await laneHighlight?.clear?.();
@@ -11637,23 +11736,38 @@ export default class BattleScene extends Phaser.Scene {
   async animateBeamAttack(event, preCombatBoardSnapshot = null) {
     const attacker = this.getCombatAttackerVisual(event, preCombatBoardSnapshot);
     const target = this.getCombatTargetVisual(event);
+    this.recordCombatPresentationLifecycle(event, 'beam-source-resolved', { attackerView: Boolean(attacker), targetView: Boolean(target) });
     if (!attacker || !target) {
+      const entry = this.getCombatPresentationEntry(event);
+      if (entry) Object.assign(entry, { attackPresentation: 'feedback-only', fallbackReason: !attacker ? 'attacker-view-unavailable' : 'target-view-unavailable', beamCueCreated: false });
+      this.recordCombatPresentationLifecycle(event, 'beam-fallback-used', { reason: entry?.fallbackReason ?? 'view-unavailable' });
       await this.playCombatEventFeedback([event]);
       return;
     }
 
     const cue = this.createBeamAttackCue(attacker.cell, target, event);
     if (!cue) {
+      const entry = this.getCombatPresentationEntry(event);
+      if (entry) Object.assign(entry, { attackPresentation: 'feedback-only', fallbackReason: 'beam-cue-creation-failed', beamCueCreated: false });
+      this.recordCombatPresentationLifecycle(event, 'beam-fallback-used', { reason: 'beam-cue-creation-failed' });
       await this.playCombatEventFeedback([event]);
       return;
     }
+    const entry = this.getCombatPresentationEntry(event);
+    if (entry) entry.beamCueCreated = true;
+    this.recordCombatPresentationLifecycle(event, 'beam-cue-created');
 
     try {
       await cue.flashAttacker();
       await cue.revealBeam();
+      this.recordCombatPresentationLifecycle(event, 'beam-impact-feedback-started');
       await this.playCombatEventFeedback([event]);
       await this.delay(110);
       await cue.fadeOut();
+      this.recordCombatPresentationLifecycle(event, 'beam-cue-completed');
+    } catch (error) {
+      if (entry) entry.cancellationErrorReason = error?.message ?? 'beam-helper-error';
+      throw error;
     } finally {
       cue.destroy();
     }
@@ -11922,6 +12036,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   async playCombatEventFeedback(events) {
+    events.forEach((event) => { const entry = this.getCombatPresentationEntry(event); if (entry && entry.feedbackStartTimestamp === null) entry.feedbackStartTimestamp = this.getBattleReportElapsedMs(); });
     if (Array.isArray(events) && events.some((event) => (event?.damage ?? 0) > 0 || (event?.selfDamageFeedback?.amount ?? 0) > 0)) {
       this.playBattleSfx?.(AUDIO_KEYS.ATTACK_IMPACT);
     }

@@ -360,6 +360,12 @@ function buildAssets(scene, audio) {
   return { recentFailures: [...recentRecorded, ...audioFailures].slice(-8) };
 }
 
+function buildCombatPresentation(scene) {
+  const trace = scene?.latestCombatPresentationTrace;
+  if (!trace || typeof trace !== 'object') return null;
+  return safe(() => JSON.parse(JSON.stringify(trace)), null);
+}
+
 function buildSummary({ warnings, battle, scenes }) {
   return {
     warningCount: count(warnings),
@@ -415,8 +421,9 @@ export function buildBattleReportSnapshot(scene = null, options = {}) {
   const scenes = buildScenes(scene);
   const capture = buildCapture(scene, capturedAt, options, flow);
   const assets = buildAssets(scene, audio);
+  const combatPresentation = buildCombatPresentation(scene);
   const battleWithPass = { ...battle, passSurrender };
   const warnings = generateWarnings(scene, { environment, battle, flow, reveal, board, audio });
   const summary = buildSummary({ warnings, battle: battleWithPass, scenes });
-  return { version: REPORT_VERSION, capturedAt, environment, battle: battleWithPass, flow, reveal, board, audio, scenes, capture, assets, events, warnings, summary };
+  return { version: REPORT_VERSION, capturedAt, environment, battle: battleWithPass, flow, reveal, board, audio, scenes, capture, assets, events, combatPresentation, warnings, summary };
 }
