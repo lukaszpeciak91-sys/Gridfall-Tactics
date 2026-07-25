@@ -89,7 +89,10 @@ function buildEnvironment(scene, capturedAt) {
   const win = safe(() => globalThis.window, null);
   const doc = safe(() => globalThis.document, null);
   return {
-    appVersion: compactString(safe(() => import.meta.env?.VITE_APP_VERSION, null)) ?? compactString(safe(() => globalThis.__APP_VERSION__, null)) ?? null,
+    appVersion: compactString(safe(() => import.meta.env?.VITE_APP_VERSION, null)) ?? compactString(typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : null) ?? compactString(safe(() => globalThis.__APP_VERSION__, null)),
+    commitSha: compactString(typeof __GIT_COMMIT__ !== 'undefined' ? __GIT_COMMIT__ : null) ?? compactString(safe(() => globalThis.__GIT_COMMIT__, null)),
+    buildTimestamp: compactString(typeof __BUILD_TIMESTAMP__ !== 'undefined' ? __BUILD_TIMESTAMP__ : null),
+    buildId: compactString(typeof __BUILD_ID__ !== 'undefined' ? __BUILD_ID__ : null),
     capturedAt,
     userAgent: compactString(safe(() => globalThis.navigator?.userAgent, null)),
     viewportWidth: finite(safe(() => win?.innerWidth, null)),
@@ -321,6 +324,28 @@ function buildEvents(scene) {
   })).filter((event) => event.name);
 }
 
+function buildEventCoverage(scene, events) {
+  const timestamps = events.map((event) => finite(event.t)).filter(Number.isFinite);
+  const turns = events.map((event) => finite(event.details?.turn ?? event.details?.turnNumber)).filter(Number.isFinite);
+  const countNamed = (pattern) => events.filter((event) => pattern.test(event.name)).length;
+  const dropped = finite(scene?.battleReportEventsDropped) ?? 0;
+  return {
+    bufferLimit: Number.isFinite(scene?.getBattleReportEventLimit?.()) ? scene.getBattleReportEventLimit() : 32,
+    eventsIncluded: events.length, eventsDropped: dropped,
+    oldestIncludedTimestamp: timestamps[0] ?? null, newestIncludedTimestamp: timestamps.at(-1) ?? null,
+    coveredDurationMs: timestamps.length ? timestamps.at(-1) - timestamps[0] : 0,
+    playerActionsIncluded: countNamed(/player-action/), aiActionsIncluded: countNamed(/ai-action-selected/), combatsIncluded: countNamed(/combat/),
+    earliestIncludedTurn: turns.length ? Math.min(...turns) : null, latestIncludedTurn: turns.length ? Math.max(...turns) : null,
+    historyTruncated: dropped > 0,
+  };
+}
+
+function buildAiDecisionCoverage(scene, decisions) {
+  const dropped = finite(scene?.aiDecisionsDropped) ?? 0;
+  return { bufferLimit: 10, decisionsIncluded: decisions.length, decisionsDropped: dropped,
+    firstIncludedOrdinal: finite(decisions[0]?.ordinal), lastIncludedOrdinal: finite(decisions.at(-1)?.ordinal), historyTruncated: dropped > 0 };
+}
+
 
 function buildCapture(scene, capturedAt, options = {}, flow = {}) {
   const source = compactString(options?.captureSource) ?? 'unknown';
@@ -417,6 +442,9 @@ export function buildBattleReportSnapshot(scene = null, options = {}) {
   const reveal = buildReveal(scene);
   const board = buildBoard(scene);
   const events = buildEvents(scene);
+  const recentAiDecisions = safe(() => JSON.parse(JSON.stringify(scene?.recentAiDecisions ?? [])), []);
+  const eventHistoryCoverage = buildEventCoverage(scene, events);
+  const aiDecisionHistoryCoverage = buildAiDecisionCoverage(scene, recentAiDecisions);
   const audio = buildAudio(scene);
   const scenes = buildScenes(scene);
   const capture = buildCapture(scene, capturedAt, options, flow);
@@ -425,5 +453,5 @@ export function buildBattleReportSnapshot(scene = null, options = {}) {
   const battleWithPass = { ...battle, passSurrender };
   const warnings = generateWarnings(scene, { environment, battle, flow, reveal, board, audio });
   const summary = buildSummary({ warnings, battle: battleWithPass, scenes });
-  return { version: REPORT_VERSION, capturedAt, environment, battle: battleWithPass, flow, reveal, board, audio, scenes, capture, assets, events, combatPresentation, warnings, summary };
+  return { version: REPORT_VERSION, capturedAt, environment, build: { appVersion: environment.appVersion, commitSha: environment.commitSha, buildTimestamp: environment.buildTimestamp, buildId: environment.buildId }, battle: battleWithPass, flow, reveal, board, audio, scenes, capture, assets, events, recentAiDecisions, eventHistoryCoverage, aiDecisionHistoryCoverage, combatPresentation, warnings, summary };
 }

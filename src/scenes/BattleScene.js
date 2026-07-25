@@ -39,6 +39,7 @@ import { AUDIO_KEYS, preloadAudioAssetsByKey } from '../audio/audioAssets.js';
 import { playManagedSfx, playMusic, playSfx, stopManagedSfx, stopMusic } from '../audio/audioPlayback.js';
 import { BATTLE_SCENE_VISUALLY_READY_EVENT, restartBattleScene } from './battleEntryRouter.js';
 import { buildBattleReportSnapshot } from '../systems/battleReport.js';
+import { recordAiDecision, resetAiDecisionHistory, resolveAiDecision } from '../systems/aiDecisionHistory.js';
 import { SHOW_BATTLE_REPORT_TOOL } from '../config/debugTools.js';
 import { calculateBattleUtilityMenuLayout } from '../ui/battleMenuLayout.js';
 import { playStandardCombatLanePresentation } from '../ui/combatLanePresentation.js';
@@ -411,6 +412,8 @@ export default class BattleScene extends Phaser.Scene {
     this.battleReportAssetFailures = [];
     this.battleReportLastEvent = null;
     this.battleReportLastAudioEvent = null;
+    this.battleReportEventsDropped = 0;
+    resetAiDecisionHistory(this);
     this.latestCombatPresentationTrace = null;
     this.combatPresentationTraceRuntime = null;
     this.openingRevealDiagStartedAt = 0;
@@ -1001,6 +1004,8 @@ export default class BattleScene extends Phaser.Scene {
   create(data) {
     this.cleanupSceneObjects();
     this.resetBattleReportTracing();
+    this.battleReportEventsDropped = 0;
+    resetAiDecisionHistory(this);
     this.latestCombatPresentationTrace = null;
     this.combatPresentationTraceRuntime = null;
     this.isBattleSceneShuttingDown = false;
@@ -1240,7 +1245,7 @@ export default class BattleScene extends Phaser.Scene {
       if (last?.key === dedupeKey && t - last.t <= BATTLE_REPORT_EVENT_DEDUPE_WINDOW_MS) return false;
       const entry = { t, name, details: safeDetails };
       this.battleReportEvents.push(entry);
-      while (this.battleReportEvents.length > BATTLE_REPORT_EVENT_BUFFER_LIMIT) this.battleReportEvents.shift();
+      while (this.battleReportEvents.length > BATTLE_REPORT_EVENT_BUFFER_LIMIT) { this.battleReportEvents.shift(); this.battleReportEventsDropped = (this.battleReportEventsDropped ?? 0) + 1; }
       this.battleReportLastEvent = { key: dedupeKey, t };
       return true;
     } catch (_) { return false; }
@@ -9344,6 +9349,7 @@ export default class BattleScene extends Phaser.Scene {
 
   async revealAndApplyEnemyAction() {
     const action = this.selectEnemyAction();
+    recordAiDecision(this, action, this.gameState, 'enemy');
     this.recordBattleReportEvent?.('ai-action-selected', { type: action?.type, cardId: action?.cardId, effectId: action?.effectId, targetIndex: action?.targetIndex, targetIndexes: action?.targetIndexes, targetCount: action?.targetIndexes?.length ?? (Number.isInteger(action?.targetIndex) ? 1 : 0), score: action?.score, hasImmediateBattleImpact: action?.hasImmediateBattleImpact, handCycling: action?.handCycling, reason: action?.reason ?? action?.fallbackReason ?? action?.zeroImpactReason });
     const card = action.cardId ? this.gameState.enemy.hand.find((item) => item.id === action.cardId) : null;
     const pacing = this.getEnemyActionPacing(action);
@@ -9355,6 +9361,7 @@ export default class BattleScene extends Phaser.Scene {
 
     const beforeStats = this.captureBoardStats();
     const result = this.enemyTakeAction(action);
+    resolveAiDecision(this, result, this.gameState, action);
     this.recordBattleReportEvent?.('ai-action-resolved', { type: action?.type, cardId: action?.cardId, ok: result?.ok, resultType: result?.type, targetCount: action?.targetIndexes?.length ?? (Number.isInteger(action?.targetIndex) ? 1 : 0) });
     this.enemyActionUsed = true;
     this.handleTutorialEvent?.('enemy_action_completed', { actionType: action?.type, cardId: action?.cardId, slotIndex: action?.slotIndex });

@@ -4,6 +4,7 @@ import { ACTIVE_EFFECT_VARIANTS } from './effectVariantRegistry.generated.js';
 import { getMaterialBattleStateSignature } from './materialBattleStateSignature.js';
 import { DEFAULT_IMMEDIATE_ATTACK_POLICY, resolveImmediateAttackPolicyConfig, detectImmediateAttackThreat, predictedThreatAfterCandidate, describeProtection } from './immediateAttackThreatPolicy.js';
 import { getFactionByKey } from '../data/factions/index.js';
+import { createAiScoringSnapshot } from './aiDecisionHistory.js';
 
 const ENEMY_ROW_INDEXES = [0, 1, 2];
 const PLAYER_ROW_INDEXES = [6, 7, 8];
@@ -2085,6 +2086,37 @@ function applySwarmProfileSelectionPolicy(state, owner, scoredActions, baseWinne
   return finish(winner);
 }
 
+function attachDecisionScoring(action, scoredActions, score, rejectedCandidates = {}, state = null, owner = 'enemy') {
+  const before = state ? summarizeStandardCombatThreat(state) : null;
+  const afterState = state ? applyActionForProfile(state, owner, action) : null;
+  const after = afterState ? summarizeStandardCombatThreat(afterState) : before;
+  const opposing = owner === 'enemy' ? 'player' : 'enemy';
+  const sniper = after?.sniperDiagnostics?.[0] ?? before?.sniperDiagnostics?.[0];
+  const compact = (summary) => ({
+    predictedDeaths: [...(summary?.predictedDeadUnitIndexes ?? [])],
+    baseDamageToAi: summary?.baseDamageByOwner?.[owner] ?? 0,
+    baseDamageToOpponent: summary?.baseDamageByOwner?.[opposing] ?? 0,
+    sniperTargetIndex: summary?.selectedSniperTargetIndexes?.[0] ?? null,
+  });
+  const policyEvaluated = Boolean(action?.aiEvaluation?.immediateAttackThreatPolicy);
+  const selectedDiffers = Boolean(action?.aiEvaluation?.immediateAttackThreatPolicy?.decisionChanged || action?.aiEvaluation?.swarmProfile?.decisionChanged);
+  const defensive = /heal|armor|debuff|destroy|damage|control|return/.test(action?.effectId ?? '');
+  if (before && after && (sniper || policyEvaluated || selectedDiffers || defensive
+    || JSON.stringify(compact(before)) !== JSON.stringify(compact(after)))) {
+    action.aiEvaluation.canonicalCombatPrediction = {
+      before: compact(before), after: compact(after),
+      ...(sniper ? { sniperSourceIndex: sniper.sourceIndex, sniperTargetIndex: sniper.selectedTargetIndex,
+        sniperTargetCardId: sniper.selectedTargetId, sniperPlannedDamage: sniper.plannedSniperDamage } : {}),
+    };
+  }
+  Object.defineProperty(action, '__aiDecisionScoring', { value: {
+    selectedScore: score,
+    topCandidates: createAiScoringSnapshot(scoredActions, action, score),
+    rejectedCandidates: { illegal: 0, utilityThreshold: rejectedCandidates.utilityThreshold ?? 0, zeroImpact: rejectedCandidates.zeroImpact ?? 0, meaningless: rejectedCandidates.meaningless ?? 0 },
+  }, enumerable: false, configurable: true });
+  return action;
+}
+
 export function chooseBattleAction(state, owner = 'enemy', options = {}) {
   const safeSurrenderEnabled = options.aiSafeSurrenderEnabled ?? AI_SAFE_SURRENDER_ENABLED;
   if (owner === 'enemy' && safeSurrenderEnabled) {
@@ -2105,12 +2137,14 @@ export function chooseBattleAction(state, owner = 'enemy', options = {}) {
 
   const holdAction = actions.find((action) => action.type === 'pass') ?? { type: 'pass', reason: 'hold-card-action' };
   const holdScore = scoreAction(state, owner, holdAction);
+  const rejectedCandidates = { utilityThreshold: 0, zeroImpact: 0, meaningless: 0 };
   const scoredActions = actions
     .map((action) => ({ action, score: action === holdAction ? holdScore : scoreAction(state, owner, action) }))
     .filter(({ action, score }) => {
       if (!Number.isFinite(score)) return false;
       const threshold = action?.aiEvaluation?.utilityThreshold ?? 0;
       if (threshold > 0 && score < holdScore + threshold) {
+        rejectedCandidates.utilityThreshold += 1;
         preserveScoreDiagnostics(action, { ...(action.aiEvaluation ?? {}), holdScore, marginOverHold: score - holdScore, chosenAction: false, utilityRejectedReason: 'below utility usefulness threshold' });
         return false;
       }
@@ -2129,7 +2163,7 @@ export function chooseBattleAction(state, owner = 'enemy', options = {}) {
     const selected = applySwarmProfileSelectionPolicy(state, owner, scoredActions, critical, options, critical.action !== base.action);
     preserveScoreDiagnostics(selected.action, { ...(selected.action.aiEvaluation ?? {}), chosenAction: true, utilityChosenReason: selected.action.aiEvaluation?.utilityReason ?? selected.action.aiEvaluation?.reason ?? (selected.action === tiedBest[0] ? 'highest scored legal action' : 'immediate-attack threat policy') });
     if (owner === 'enemy' && selected.action?.type !== 'pass') updateSafeSurrenderPassCounter(state, owner, false);
-    return selected.action;
+    return attachDecisionScoring(selected.action, scoredActions, selected.score, rejectedCandidates, state, owner);
   }
 
   const tieBreakPolicy = options.tieBreakPolicy ?? 'seeded-random';
@@ -2162,7 +2196,7 @@ export function chooseBattleAction(state, owner = 'enemy', options = {}) {
       },
     });
     if (owner === 'enemy' && finalPicked?.type !== 'pass') updateSafeSurrenderPassCounter(state, owner, false);
-    return finalPicked;
+    return attachDecisionScoring(finalPicked, scoredActions, selected.score, rejectedCandidates, state, owner);
   }
 
   if (tieBreakPolicy === 'rotation') {
@@ -2174,7 +2208,7 @@ export function chooseBattleAction(state, owner = 'enemy', options = {}) {
     const selected = applySwarmProfileSelectionPolicy(state, owner, scoredActions, critical, options, critical.action !== base.action).action;
     preserveScoreDiagnostics(selected, { ...(selected.aiEvaluation ?? {}), chosenAction: true, utilityChosenReason: selected === picked ? (picked.aiEvaluation?.utilityReason ?? picked.aiEvaluation?.reason ?? 'rotation tie break') : 'immediate-attack threat policy' });
     if (owner === 'enemy' && selected?.type !== 'pass') updateSafeSurrenderPassCounter(state, owner, false);
-    return selected;
+    return attachDecisionScoring(selected, scoredActions, scoredActions.find((entry) => entry.action === selected)?.score, rejectedCandidates, state, owner);
   }
 
   const base = scoredActions.find((entry) => entry.action === tiedBest[0]);
@@ -2182,5 +2216,5 @@ export function chooseBattleAction(state, owner = 'enemy', options = {}) {
   const selected = applySwarmProfileSelectionPolicy(state, owner, scoredActions, critical, options, critical.action !== base.action).action;
   preserveScoreDiagnostics(selected, { ...(selected.aiEvaluation ?? {}), chosenAction: true, utilityChosenReason: selected === tiedBest[0] ? (selected.aiEvaluation?.utilityReason ?? selected.aiEvaluation?.reason ?? 'first best action') : 'immediate-attack threat policy' });
   if (owner === 'enemy' && selected?.type !== 'pass') updateSafeSurrenderPassCounter(state, owner, false);
-  return selected;
+  return attachDecisionScoring(selected, scoredActions, scoredActions.find((entry) => entry.action === selected)?.score, rejectedCandidates, state, owner);
 }

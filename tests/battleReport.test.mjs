@@ -33,7 +33,7 @@ test('collector returns stable JSON-serializable shape without mutating scene or
   const snapshot = buildBattleReportSnapshot(scene);
   assert.equal(snapshot.version, 1);
   assert.match(snapshot.capturedAt, /^\d{4}-\d{2}-\d{2}T/);
-  assert.deepEqual(Object.keys(snapshot).sort(), ['assets', 'audio', 'battle', 'board', 'capture', 'capturedAt', 'combatPresentation', 'environment', 'events', 'flow', 'reveal', 'scenes', 'summary', 'version', 'warnings'].sort());
+  assert.deepEqual(Object.keys(snapshot).sort(), ['aiDecisionHistoryCoverage', 'assets', 'audio', 'battle', 'board', 'build', 'capture', 'capturedAt', 'combatPresentation', 'environment', 'eventHistoryCoverage', 'events', 'flow', 'recentAiDecisions', 'reveal', 'scenes', 'summary', 'version', 'warnings'].sort());
   assert.doesNotThrow(() => JSON.stringify(snapshot));
   assert.equal(JSON.stringify(scene.gameState), beforeState);
   assert.deepEqual(Object.keys(scene).sort(), beforeSceneKeys);
