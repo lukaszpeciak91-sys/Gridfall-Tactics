@@ -48,7 +48,7 @@ const expectedTextShort = new Map(Object.entries({
   attrition_swarm_rotcaller_1: 'First adjacent [ALLY] death\n+1 [ATK] permanently',
   attrition_swarm_abomination_1: 'When this dies: both bases lose 1 HP',
   attrition_swarm_funeral_pyre_1: 'First [ALLY] death each turn:\nenemy base loses 1 HP',
-  attrition_swarm_infect_1: 'Deal 1 to [ENEMY]\nOpposed [ALLY] gains +1 [ATK]',
+  attrition_swarm_infect_1: 'Deal 1 damage to an [ENEMY].\nOpposed [ALLY] +1 [ATK] until combat',
   attrition_swarm_feast_1: 'Draw 1',
   attrition_swarm_rise_again_1: 'Revive the newest Fallen [ALLY] with 1 HP in a chosen free slot',
   attrition_swarm_grave_call_1: 'Summon a 1/1\nNo [ALLY]: summon up to 2',
