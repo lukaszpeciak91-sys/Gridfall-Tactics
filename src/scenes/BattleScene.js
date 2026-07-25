@@ -24,6 +24,7 @@ import { PREMIUM_BROADCAST_FONT_STACK, createImageButton, preloadSecondaryButton
 import { formatDeckSummaryEntry } from '../rendering/cardRenderModes.js';
 import { beginSceneTransitionOverlay, reconcileSceneTransitionOverlayOrdering } from './sceneTransitionOverlay.js';
 import { CARD_COLORS, createCardArtwork, createCardPreviewView, getBaseCardSurfaceTheme, getDefaultCardAccentColor, resolveCardSurfaceTheme, createStatBadges } from '../rendering/cardVisualLayout.js';
+import { createBoardUnitStatusMarker, getBoardUnitStatusPresentation } from '../rendering/boardUnitStatusPresentation.js';
 import { getCardDisplayName, getCardTextShort } from '../localization/cardDisplay.js';
 import { getActiveLocale, translateActive, translateActiveList } from '../localization/localeService.js';
 import { applyCampaignBattleResult, clearCampaign, createNewCampaign, isValidCampaignState, loadCampaign, saveCampaign } from '../systems/campaignState.js';
@@ -9191,10 +9192,15 @@ export default class BattleScene extends Phaser.Scene {
       console.debug('Combat feedback events', combatEvents);
     }
     const deathOverlayCandidates = this.getCombatDeathOverlayCandidates(preCombatFeedbackSnapshot.board);
-    await this.withSuppressedLethalFadeIndexes(deathOverlayCandidates.map((candidate) => candidate.index), async () => {
-      await this.playCombatAnimations(combatEvents, preCombatFeedbackSnapshot.board);
-    });
-    await this.playCombatDeathTriggerFeedback(preCombatFeedbackSnapshot);
+    this.combatPresentationStatusState = preCombatFeedbackSnapshot;
+    try {
+      await this.withSuppressedLethalFadeIndexes(deathOverlayCandidates.map((candidate) => candidate.index), async () => {
+        await this.playCombatAnimations(combatEvents, preCombatFeedbackSnapshot.board);
+      });
+      await this.playCombatDeathTriggerFeedback(preCombatFeedbackSnapshot);
+    } finally {
+      this.combatPresentationStatusState = null;
+    }
     const deathOverlays = this.createCombatDeathOverlays(deathOverlayCandidates);
     this.refreshBoardLabels();
     await this.playCombatDeathOverlays(deathOverlays);
@@ -10179,6 +10185,8 @@ export default class BattleScene extends Phaser.Scene {
     return {
       board: this.captureBoardSnapshot(),
       offlineReservations: this.captureOfflineReservationsSnapshot(),
+      cannotDropBelowOneThisTurn: { ...(this.gameState?.cannotDropBelowOneThisTurn ?? {}) },
+      immuneMoveDisableThisTurn: { ...(this.gameState?.immuneMoveDisableThisTurn ?? {}) },
       playerHP: this.gameState?.playerHP ?? 0,
       enemyHP: this.gameState?.enemyHP ?? 0,
       funeralPyreThisCombat: this.gameState?.funeralPyreThisCombat
@@ -10195,7 +10203,7 @@ export default class BattleScene extends Phaser.Scene {
     };
   }
 
-  refreshBoardLabelsFromSnapshot(boardSnapshot, offlineReservations = null) {
+  refreshBoardLabelsFromSnapshot(boardSnapshot, offlineReservations = null, statusState = this.gameState) {
     if (!Array.isArray(boardSnapshot)) return;
     this.boardCells.forEach((cell) => {
       const unit = boardSnapshot[cell.index];
@@ -10205,6 +10213,7 @@ export default class BattleScene extends Phaser.Scene {
         cell.label.add(this.createBoardUnitView(cell, unit, {
           offline: this.isBoardIndexOffline(cell.index, boardSnapshot, offlineReservations),
           statValues: unit.__presentationStats ?? null,
+          statusState,
         }));
       }
     });
@@ -10222,7 +10231,7 @@ export default class BattleScene extends Phaser.Scene {
     this.suppressedLethalFadeIndexes = new Set(deathOverlayCandidates.map((candidate) => candidate.index));
     this.lastCombatEvents = combatEvents;
     try {
-      this.refreshBoardLabelsFromSnapshot(combatSnapshot.board);
+      this.refreshBoardLabelsFromSnapshot(combatSnapshot.board, combatSnapshot.offlineReservations, combatSnapshot);
       await this.playCombatAnimations(combatEvents, combatSnapshot.board);
     } finally {
       this.suppressedLethalFadeIndexes = previousSuppressedLethalFadeIndexes;
@@ -12423,10 +12432,15 @@ export default class BattleScene extends Phaser.Scene {
     const artBottomDim = this.add.rectangle(0, finalArtY + artRect.height * 0.29, artRect.width, artRect.height * 0.42, BASE_CARD_SURFACE_THEME.artBackdropFill, 0.14);
     const offlineDim = this.add.rectangle(0, 0, unitWidth, unitHeight, 0x020617, options.offline ? OFFLINE_UNIT_DIM_ALPHA : 0);
     offlineDim.name = 'offlineDim';
+    const statusPresentation = getBoardUnitStatusPresentation(
+      unit,
+      options.statusState ?? this.combatPresentationStatusState ?? this.gameState,
+    );
+    const statusMarker = createBoardUnitStatusMarker(this, unitWidth, unitHeight, statusPresentation);
 
-    if (options.offline) return [cardBack, inner, artBackdrop, art, artStroke, artLocalContrast, artShade, artBottomDim, offlineDim, stats];
+    if (options.offline) return [cardBack, inner, artBackdrop, art, artStroke, artLocalContrast, artShade, artBottomDim, offlineDim, stats, statusMarker].filter(Boolean);
     offlineDim.destroy?.();
-    return [cardBack, inner, artBackdrop, art, artStroke, artLocalContrast, artShade, artBottomDim, stats];
+    return [cardBack, inner, artBackdrop, art, artStroke, artLocalContrast, artShade, artBottomDim, stats, statusMarker].filter(Boolean);
   }
 
   applyOfflineBoardUnitVisual(cell, offline, wasOffline) {
@@ -12865,6 +12879,7 @@ export default class BattleScene extends Phaser.Scene {
           showCardNumber: false,
           statValues: this.getBoardUnitStats(unit),
           baseStatValues: this.getBoardUnitBaseStats(unit),
+          boardStatusPresentation: getBoardUnitStatusPresentation(unit, this.gameState),
           factionThemeId: unit.owner === 'enemy'
             ? (this.gameState?.enemy?.factionKey ?? this.enemyFactionKey)
             : (this.gameState?.player?.factionKey ?? this.factionKey),
@@ -12909,6 +12924,14 @@ export default class BattleScene extends Phaser.Scene {
       factionThemeId: inspectRequest.factionThemeId ?? '',
       surfaceThemeMode: 'inspect',
     });
+    if (inspectRequest.boardStatusPresentation) {
+      const statusMarker = createBoardUnitStatusMarker(this, transform.width, transform.height, inspectRequest.boardStatusPresentation, { inspect: true });
+      if (statusMarker) {
+        previewView.root.add(statusMarker);
+        previewView.statusMarker = statusMarker;
+        previewView.items?.push(statusMarker);
+      }
+    }
     const inspectSurfaceTheme = resolveCardSurfaceTheme({ factionId: inspectRequest.factionThemeId ?? '', mode: 'inspect' });
 
     this.applyInspectDimming(inspectRequest.cardId);
