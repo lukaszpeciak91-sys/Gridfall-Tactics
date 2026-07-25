@@ -265,6 +265,8 @@ const PLAYER_EFFECT_CONFIRMATION_FADE_IN_MS = 90;
 const PLAYER_EFFECT_CONFIRMATION_HOLD_MS = 840;
 const PLAYER_EFFECT_CONFIRMATION_FADE_OUT_MS = 120;
 const INFORMATIONAL_ACTION_BANNER_TOTAL_MS = PLAYER_EFFECT_CONFIRMATION_FADE_IN_MS + PLAYER_EFFECT_CONFIRMATION_HOLD_MS + PLAYER_EFFECT_CONFIRMATION_FADE_OUT_MS;
+const INFORMATIONAL_ACTION_BANNER_PRE_BEAT_MS = 120;
+const ENEMY_SECOND_ACTION_HANDOFF_DELAY_MS = INFORMATIONAL_ACTION_BANNER_PRE_BEAT_MS + INFORMATIONAL_ACTION_BANNER_TOTAL_MS;
 const INVALID_ACTION_BANNER_HOLD_MS = 760;
 const TURN_START_BANNER_FADE_IN_MS = 110;
 const TURN_START_BANNER_HOLD_MS = 820;
@@ -480,6 +482,9 @@ export default class BattleScene extends Phaser.Scene {
     this.turnStartBannerFailSafeToken = null;
     this.turnStartBannerCompletion = null;
     this.isDestroyingTurnStartBanner = false;
+    this.informationalActionBanner = null;
+    this.informationalActionBannerLaunchEvent = null;
+    this.informationalActionBannerFadeOutEvent = null;
     this.tutorialBanner = null;
     this.tutorialBannerOverlay = null;
     this.tutorialFocusLayer = null;
@@ -936,6 +941,7 @@ export default class BattleScene extends Phaser.Scene {
     this.destroyEnemyActionBanner();
     this.destroyTurnStartBanner();
     this.destroyPlayerActionBanner();
+    this.destroyInformationalActionBanner();
     this.cancelTutorialUiRecovery();
     this.destroyTutorialBanner();
     this.destroyTutorialFocus();
@@ -9156,7 +9162,7 @@ export default class BattleScene extends Phaser.Scene {
 
     let enemyActionPacing = null;
     if (!this.enemyActionUsed) {
-      await this.delay(INFORMATIONAL_ACTION_BANNER_TOTAL_MS);
+      await this.delay(ENEMY_SECOND_ACTION_HANDOFF_DELAY_MS);
       enemyActionPacing = await this.revealAndApplyEnemyAction();
       if (this.gameState.winner) {
         this.completeBattleFlow(500);
@@ -9311,6 +9317,9 @@ export default class BattleScene extends Phaser.Scene {
     const actionFeedback = this.buildActionFeedback(beforeStats, result, 'enemy');
     const immediateCombatFeedback = this.getImmediateCombatFeedback(result);
     this.appendImmediateBattleHistoryResolution?.(immediateCombatFeedback);
+    if (this.enemyActionHasVisibleResultFeedback({ action, result, movementFeedback, actionFeedback, immediateCombatFeedback, beforeStats })) {
+      this.destroyEnemyActionBanner();
+    }
     await this.playMovementFeedback(movementFeedback, beforeStats);
     await this.playPreRefreshActionFeedback(actionFeedback);
     await this.playImmediateCombatFeedback(immediateCombatFeedback);
@@ -9352,6 +9361,16 @@ export default class BattleScene extends Phaser.Scene {
       targetIndexes: action.targetIndexes ?? (Number.isInteger(action.targetIndex) ? [action.targetIndex] : []),
       beforeSnapshot: beforeStats,
       result,
+    });
+  }
+
+  enemyActionHasVisibleResultFeedback({ action, result, movementFeedback, actionFeedback, immediateCombatFeedback, beforeStats }) {
+    if (!result?.ok || action?.type === 'pass' || action?.type === 'surrender') return false;
+    if (movementFeedback?.length || actionFeedback?.length || immediateCombatFeedback) return true;
+    if (action?.type === 'play-unit') return true;
+    return this.captureBoardStats().some((unit, index) => {
+      const before = beforeStats?.[index];
+      return unit?.id !== before?.id || unit?.attack !== before?.attack || unit?.armor !== before?.armor || unit?.health !== before?.health;
     });
   }
 
@@ -9642,6 +9661,18 @@ export default class BattleScene extends Phaser.Scene {
 
   showInformationalActionBanner(side) {
     if (side !== 'player' && side !== 'enemy') return null;
+    this.destroyInformationalActionBanner();
+    this.informationalActionBannerLaunchEvent = this.time.delayedCall(
+      INFORMATIONAL_ACTION_BANNER_PRE_BEAT_MS,
+      () => {
+        this.informationalActionBannerLaunchEvent = null;
+        this.launchInformationalActionBanner(side);
+      },
+    );
+    return this.informationalActionBannerLaunchEvent;
+  }
+
+  launchInformationalActionBanner(side) {
     if (!this.prepareTransientBattleBanner('informational-action')) return null;
 
     const { height, board } = this.layout;
@@ -9935,6 +9966,10 @@ export default class BattleScene extends Phaser.Scene {
 
 
   destroyInformationalActionBanner() {
+    if (this.informationalActionBannerLaunchEvent) {
+      this.informationalActionBannerLaunchEvent.remove(false);
+      this.informationalActionBannerLaunchEvent = null;
+    }
     if (this.informationalActionBannerFadeOutEvent) {
       this.informationalActionBannerFadeOutEvent.remove(false);
       this.informationalActionBannerFadeOutEvent = null;

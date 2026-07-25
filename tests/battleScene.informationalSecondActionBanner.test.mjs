@@ -68,6 +68,7 @@ test('enemy-first accepted action or PASS fires your turn banner after existing 
 test('informational action banner is low-priority presentation only with automatic cleanup', () => {
   const helper = methodBody('showInformationalActionBanner', 'showPlayerActionBanner');
   assert.match(helper, /if \(side !== 'player' && side !== 'enemy'\) return null;/);
+  assert.match(helper, /this\.time\.delayedCall\(\s*INFORMATIONAL_ACTION_BANNER_PRE_BEAT_MS,[\s\S]*this\.launchInformationalActionBanner\(side\)/);
   assert.match(helper, /prepareTransientBattleBanner\('informational-action'\)/);
   assert.match(helper, /this\.time\.delayedCall\(\s*PLAYER_EFFECT_CONFIRMATION_FADE_IN_MS \+ PLAYER_EFFECT_CONFIRMATION_HOLD_MS/);
   assert.match(helper, /onComplete: \(\) => \{\s*if \(this\.informationalActionBanner === banner\) this\.destroyInformationalActionBanner\(\);/);
@@ -84,9 +85,11 @@ test('informational action banner is low-priority presentation only with automat
 
 test('AI second-action scheduling remains independent and uses fixed pacing that covers the banner', () => {
   const finish = methodBody('finishTurnAfterBothActions', 'updateActionableSideVisualState');
-  assert.match(finish, /if \(!this\.enemyActionUsed\) \{\s*await this\.delay\(INFORMATIONAL_ACTION_BANNER_TOTAL_MS\);\s*enemyActionPacing = await this\.revealAndApplyEnemyAction\(\);/);
+  assert.match(finish, /if \(!this\.enemyActionUsed\) \{\s*await this\.delay\(ENEMY_SECOND_ACTION_HANDOFF_DELAY_MS\);\s*enemyActionPacing = await this\.revealAndApplyEnemyAction\(\);/);
   assert.doesNotMatch(finish, /showInformationalActionBanner[\s\S]*revealAndApplyEnemyAction|destroyInformationalActionBanner[\s\S]*revealAndApplyEnemyAction/);
   assert.match(source, /const INFORMATIONAL_ACTION_BANNER_TOTAL_MS = PLAYER_EFFECT_CONFIRMATION_FADE_IN_MS \+ PLAYER_EFFECT_CONFIRMATION_HOLD_MS \+ PLAYER_EFFECT_CONFIRMATION_FADE_OUT_MS;/);
+  assert.match(source, /const INFORMATIONAL_ACTION_BANNER_PRE_BEAT_MS = 120;/);
+  assert.match(source, /const ENEMY_SECOND_ACTION_HANDOFF_DELAY_MS = INFORMATIONAL_ACTION_BANNER_PRE_BEAT_MS \+ INFORMATIONAL_ACTION_BANNER_TOTAL_MS;/);
 });
 
 test('combat, targeting, results, shutdown, and new turn clear informational banners', () => {
@@ -105,8 +108,24 @@ test('combat, targeting, results, shutdown, and new turn clear informational ban
   const destroyTransient = methodBody('destroyTransientBattleBanners', 'shouldSuppressTransientBattleBannerForTutorial');
   assert.match(destroyTransient, /this\.destroyInformationalActionBanner\(\);/);
 
+  const destroyInformational = methodBody('destroyInformationalActionBanner', 'destroyPlayerActionBanner');
+  assert.match(destroyInformational, /this\.informationalActionBannerLaunchEvent\.remove\(false\);\s*this\.informationalActionBannerLaunchEvent = null;/);
+
   const shutdown = methodBody('shutdown', 'onScenePointerUpOutside');
   assert.match(shutdown, /this\.resetRuntimeState\(\);/);
+});
+
+test('enemy result feedback clears only the low-priority enemy action banner before presentation', () => {
+  const enemyAction = methodBody('revealAndApplyEnemyAction', 'getNextTutorialEnemyAction');
+  assert.match(enemyAction, /const movementFeedback = this\.buildEnemyMovementFeedback[\s\S]*const actionFeedback = this\.buildActionFeedback[\s\S]*const immediateCombatFeedback = this\.getImmediateCombatFeedback/);
+  assert.match(enemyAction, /if \(this\.enemyActionHasVisibleResultFeedback\([\s\S]*\)\) \{\s*this\.destroyEnemyActionBanner\(\);\s*\}\s*await this\.playMovementFeedback/);
+  assert.doesNotMatch(enemyAction, /destroyActiveSelectionMessage|destroyTargetingInstruction/);
+
+  const visibleResult = methodBody('enemyActionHasVisibleResultFeedback', 'getEnemyActionPacing');
+  assert.match(visibleResult, /action\?\.type === 'pass' \|\| action\?\.type === 'surrender'/);
+  assert.match(visibleResult, /movementFeedback\?\.length \|\| actionFeedback\?\.length \|\| immediateCombatFeedback/);
+  assert.match(visibleResult, /action\?\.type === 'play-unit'/);
+  assert.match(visibleResult, /unit\?\.id !== before\?\.id[\s\S]*unit\?\.attack !== before\?\.attack[\s\S]*unit\?\.armor !== before\?\.armor[\s\S]*unit\?\.health !== before\?\.health/);
 });
 
 test('no transition token, retry, AI pending state, action counter, initiative, or combat ownership is introduced', () => {
