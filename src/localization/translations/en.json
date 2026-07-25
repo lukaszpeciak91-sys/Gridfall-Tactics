@@ -162,7 +162,7 @@
     },
     "tank_shieldbearer_1": {
       "name": "Shieldbearer",
-      "textShort": "Adjacent [ALLY] +1 ARM until combat"
+      "textShort": "Adjacent [ALLY] have +1 ARM."
     },
     "tank_heavy_1": {
       "name": "Heavy",

@@ -248,7 +248,7 @@ test('pilot card display content renders ally icon markers', () => {
   assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_swarm_attack_1'), 'en').body, 'All ♙♙ +1 ▲ until combat');
   assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_recycle_1'), 'en').body, '♟♟: -1 ◆ until combat');
   assert.equal(getCardDisplayContent(cardById(tank, 'tank_repair_kit_1'), 'en').body, 'Target ♙ +1 ◆ until combat');
-  assert.equal(getCardDisplayContent(cardById(tank, 'tank_shieldbearer_1'), 'en').body, 'Adjacent ♙♙ +1 ◆ until combat');
+  assert.equal(getCardDisplayContent(cardById(tank, 'tank_shieldbearer_1'), 'en').body, 'Adjacent ♙♙ have +1 ◆.');
   assert.equal(getCardDisplayContent(cardById(tank, 'tank_fortify_1'), 'en').body, 'All ♙♙ +1 ◆ until combat');
   assert.equal(getCardDisplayContent(cardById(tank, 'tank_stability_1'), 'en').body, "Until combat ♙♙ cannot be moved");
   assert.equal(getCardDisplayContent(cardById(tank, 'tank_wall_1'), 'en').body, '');
@@ -273,7 +273,7 @@ test('pilot card display content renders ally icon markers', () => {
   assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_swarm_attack_1'), 'pl').body, '♙♙ +1 ▲ do walki');
   assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_recycle_1'), 'pl').body, '♟♟: -1 ◆ do walki');
   assert.equal(getCardDisplayContent(cardById(tank, 'tank_repair_kit_1'), 'pl').body, 'Wybrany ♙ +1 ◆ do walki');
-  assert.equal(getCardDisplayContent(cardById(tank, 'tank_shieldbearer_1'), 'pl').body, 'Sąsiedni ♙♙ +1 ◆ do walki');
+  assert.equal(getCardDisplayContent(cardById(tank, 'tank_shieldbearer_1'), 'pl').body, 'Sąsiedni ♙♙ mają +1 ◆.');
   assert.equal(getCardDisplayContent(cardById(tank, 'tank_fortify_1'), 'pl').body, '♙♙ +1 ◆ do walki');
   assert.equal(getCardDisplayContent(cardById(tank, 'tank_stability_1'), 'pl').body, 'Do walki ♙♙ nie można przesuwać');
   assert.equal(getCardDisplayContent(cardById(tank, 'tank_wall_1'), 'pl').body, '');
@@ -517,7 +517,7 @@ test('gameplay icon trailing spacing is normalized for validation card patterns 
     { factionKey: 'Attrition Swarm', cardId: 'attrition_swarm_rotcaller_1', locale: 'en', icon: '♙', next: 'death' },
     { factionKey: 'Overclock', cardId: 'overclock_mercy_1', locale: 'en', icon: '♟', next: '-1' },
     { factionKey: 'Control', cardId: 'control_pulse_wave_1', locale: 'en', icon: '♟♟', next: 'ignoring' },
-    { factionKey: 'Tank', cardId: 'tank_shieldbearer_1', locale: 'en', icon: '♙♙', next: '+1' },
+    { factionKey: 'Tank', cardId: 'tank_shieldbearer_1', locale: 'en', icon: '♙♙', next: 'have' },
   ];
 
   const cardsWithPaddedMarkers = [];
