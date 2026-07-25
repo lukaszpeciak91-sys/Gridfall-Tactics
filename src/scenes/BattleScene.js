@@ -9246,10 +9246,6 @@ export default class BattleScene extends Phaser.Scene {
     }
     const deathOverlayCandidates = this.getCombatDeathOverlayCandidates(preCombatFeedbackSnapshot.board);
     this.beginCombatPresentationTrace(combatEvents, preCombatFeedbackSnapshot.board, deathOverlayCandidates);
-    await this.withSuppressedLethalFadeIndexes(deathOverlayCandidates.map((candidate) => candidate.index), async () => {
-      await this.playCombatAnimations(combatEvents, preCombatFeedbackSnapshot.board);
-    });
-    await this.playCombatDeathTriggerFeedback(preCombatFeedbackSnapshot);
     this.combatPresentationStatusState = preCombatFeedbackSnapshot;
     try {
       await this.withSuppressedLethalFadeIndexes(deathOverlayCandidates.map((candidate) => candidate.index), async () => {
