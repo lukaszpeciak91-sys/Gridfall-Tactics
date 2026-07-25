@@ -5,7 +5,7 @@ import { applyTutorialOpeningSetup, isTutorialBattleContext, performTutorialOpen
 import { selectNextTutorialEnemyAction } from '../systems/tutorialEnemyActions.js';
 import { checkTutorialInputGate } from '../systems/tutorialInputGate.js';
 import { advanceTutorialStep as advanceTutorialControllerStep, createTutorialControllerState, getCurrentTutorialStep as getCurrentTutorialControllerStep, handleTutorialEvent as handleTutorialControllerEvent, isTutorialComplete } from '../systems/tutorialController.js';
-import { createInitialBattleState, drawCards, shuffleDeck, canPass, canPlayOrRedeploy, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, resolveTargetedUnitOnPlayEffect, getUnitAttack, getUnitArmor, toggleFirstActor, resolveTurnCapWinner, resolveImmediateResourceExhaustionWinner, resolveImmediateNoProgressWinner, recordPassAction, completeActionOpportunity, performOpeningMulligan, STARTING_HAND_SIZE, MAX_OPENING_MULLIGAN_CARDS, getEffectiveBoardAttack, getEffectiveBoardArmor, getCombatPresentationStatsForBoardIndex, canPlayEffectCard, isEffectCardBlockedForOwner, isBattleExhaustedEligible, isBoardUnitOffline, normalizeOfflineReservations, isLegalEmptyFriendlySlotForUnitPlacement } from '../systems/GameState.js';
+import { createInitialBattleState, drawCards, shuffleDeck, canPass, canPlayOrRedeploy, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, resolveTargetedUnitOnPlayEffect, getUnitAttack, getUnitArmor, getUnitOriginalStats, toggleFirstActor, resolveTurnCapWinner, resolveImmediateResourceExhaustionWinner, resolveImmediateNoProgressWinner, recordPassAction, completeActionOpportunity, performOpeningMulligan, STARTING_HAND_SIZE, MAX_OPENING_MULLIGAN_CARDS, getEffectiveBoardAttack, getEffectiveBoardArmor, getCombatPresentationStatsForBoardIndex, canPlayEffectCard, isEffectCardBlockedForOwner, isBattleExhaustedEligible, isBoardUnitOffline, normalizeOfflineReservations, isLegalEmptyFriendlySlotForUnitPlacement } from '../systems/GameState.js';
 import { chooseEnemyAction, isVerySafeConcedableState, recordBattleActionUse, selectOpeningMulliganCardIds } from '../systems/enemyDecision.js';
 import { getTargetingStateForEffect } from '../systems/cardTargeting.js';
 import { COMBAT_ATTACK_PRESENTATIONS, getCombatAttackPresentation, getCombatEventAttackerIndex, getCombatEventInterceptOriginalTargetIndex, getCombatEventTargetIndex, getLaneLethalTargetIndexes, getLaneSimultaneousUnitClash, shouldAnimateCombatAttacker, shouldUseControlledHeroStrikePresentation } from '../systems/combatAnimation.js';
@@ -12271,14 +12271,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   getBoardUnitBaseStats(unit) {
-    if (!unit) return { attack: null, armor: null, health: null };
-
-    return {
-      attack: Number.isFinite(unit.attack) ? unit.attack : 0,
-      armor: Number.isFinite(unit.armor) ? unit.armor : 0,
-      health: Number.isFinite(unit.hp) ? unit.hp : 0,
-      maxHp: Number.isFinite(unit.maxHp) ? unit.maxHp : (Number.isFinite(unit.hp) ? unit.hp : 0),
-    };
+    return getUnitOriginalStats(unit);
   }
 
   createBoardRenderStatSnapshot() {
