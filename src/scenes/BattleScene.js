@@ -40,6 +40,7 @@ import { BATTLE_SCENE_VISUALLY_READY_EVENT, restartBattleScene } from './battleE
 import { buildBattleReportSnapshot } from '../systems/battleReport.js';
 import { SHOW_BATTLE_REPORT_TOOL } from '../config/debugTools.js';
 import { calculateBattleUtilityMenuLayout } from '../ui/battleMenuLayout.js';
+import { playStandardCombatLanePresentation } from '../ui/combatLanePresentation.js';
 
 
 export const BATTLE_SCENE_PRELOAD_AUDIO_KEYS = Object.freeze([
@@ -11366,18 +11367,10 @@ export default class BattleScene extends Phaser.Scene {
   async playCombatAnimations(combatEvents, preCombatBoardSnapshot = null) {
     if (!Array.isArray(combatEvents) || combatEvents.length === 0) return;
 
-    const eventsByLane = new Map();
-    combatEvents.forEach((event) => {
-      if (!eventsByLane.has(event.lane)) eventsByLane.set(event.lane, []);
-      eventsByLane.get(event.lane).push(event);
+    await playStandardCombatLanePresentation(combatEvents, {
+      presentLane: (lane, laneEvents) => this.playLaneCombatAnimation(lane, laneEvents, preCombatBoardSnapshot),
+      delay: (duration) => this.delay(duration),
     });
-
-    for (const lane of [0, 1, 2]) {
-      const laneEvents = eventsByLane.get(lane) ?? [];
-      if (laneEvents.length === 0) continue;
-      await this.playLaneCombatAnimation(lane, laneEvents, preCombatBoardSnapshot);
-      await this.delay(320);
-    }
   }
 
   async playLaneCombatAnimation(lane, laneEvents, preCombatBoardSnapshot = null) {
