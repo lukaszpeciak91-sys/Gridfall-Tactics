@@ -1581,7 +1581,7 @@ function applyAction(state, owner, passStats, decisionOptions, telemetry, simTel
 }
 
 
-function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, simTelemetry, gameSeed, gameIndex, playerKey, enemyKey, effectVariantRegistry = null, handLockAnalysis = null, aiDecisionAudit = null, aiScoreDiagnostics = null, immediateAttackThreatPolicy = undefined) {
+function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, simTelemetry, gameSeed, gameIndex, playerKey, enemyKey, effectVariantRegistry = null, handLockAnalysis = null, aiDecisionAudit = null, aiScoreDiagnostics = null, immediateAttackThreatPolicy = undefined, swarmProfile = 'off', swarmProfileWindow = 80) {
   const gameRng = createSeededRng(gameSeed);
   const state = createInitialBattleState(playerFaction, enemyFaction, { randomFn: gameRng });
   if (effectVariantRegistry) state.effectVariantRegistry = effectVariantRegistry;
@@ -1613,8 +1613,8 @@ function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, simTel
     const decisionContext = `${playerKey}|${enemyKey}|${gameIndex}|${turns}`;
     const decisionSeed = buildGameSeed(gameSeed, decisionContext, state.firstActor, turns + 7);
     const turnRng = createSeededRng(decisionSeed);
-    const firstDecisionOptions = { randomFn: turnRng, tieBreakPolicy: TIE_BREAK_POLICY, immediateAttackThreatPolicy };
-    const secondDecisionOptions = { randomFn: turnRng, tieBreakPolicy: TIE_BREAK_POLICY, immediateAttackThreatPolicy };
+    const firstDecisionOptions = { randomFn: turnRng, tieBreakPolicy: TIE_BREAK_POLICY, immediateAttackThreatPolicy, swarmProfile, swarmProfileWindow };
+    const secondDecisionOptions = { randomFn: turnRng, tieBreakPolicy: TIE_BREAK_POLICY, immediateAttackThreatPolicy, swarmProfile, swarmProfileWindow };
 
     const firstActor = state.firstActor;
     const secondActor = firstActor === 'player' ? 'enemy' : 'player';
@@ -2225,6 +2225,12 @@ function main() {
   if (!['off', 'standard-80-lethal-1200', 'standard-80-lethal-1600'].includes(immediateAttackThreatPolicy)) {
     throw new Error(`Unknown --immediate-attack-policy mode: ${immediateAttackThreatPolicy}`);
   }
+  const swarmProfileArg = process.argv.find((arg) => arg.startsWith('--swarm-profile='));
+  const swarmProfile = swarmProfileArg?.split('=')[1] ?? experiment?.swarmProfile ?? 'off';
+  if (!['off', 'alpha-width-v1'].includes(swarmProfile)) throw new Error(`Unknown --swarm-profile mode: ${swarmProfile}`);
+  const swarmWindowArg = process.argv.find((arg) => arg.startsWith('--swarm-profile-window='));
+  const swarmProfileWindow = Number.parseInt(swarmWindowArg?.split('=')[1] ?? experiment?.swarmProfileWindow ?? '80', 10);
+  if (![40, 80, 120].includes(swarmProfileWindow)) throw new Error(`Unsupported --swarm-profile-window: ${swarmProfileWindow}`);
   const aiAuditArg = process.argv.find((arg) => arg.startsWith('--ai-audit='));
   const aiDecisionAudit = createAiDecisionAudit(parsePositiveIntegerOption(aiAuditArg?.split('=')[1]));
   const aiDiagnosticsArg = process.argv.find((arg) => arg.startsWith('--ai-diagnostics='));
@@ -2274,7 +2280,7 @@ function main() {
 
     for (let i = 0; i < gamesForMatchup; i += 1) {
       const gameSeed = buildGameSeed(effectiveBaseSeed, playerKey, enemyKey, i);
-      const result = runSingleGame(factions[playerKey], factions[enemyKey], passStats, telemetry, simTelemetry, gameSeed, i, playerKey, enemyKey, effectVariantRegistry, handLockAnalysis, aiDecisionAudit, aiScoreDiagnostics, immediateAttackThreatPolicy);
+      const result = runSingleGame(factions[playerKey], factions[enemyKey], passStats, telemetry, simTelemetry, gameSeed, i, playerKey, enemyKey, effectVariantRegistry, handLockAnalysis, aiDecisionAudit, aiScoreDiagnostics, immediateAttackThreatPolicy, swarmProfile, swarmProfileWindow);
       recordGameEndTelemetry(simTelemetry, result);
       recordEffectVariantOperationTelemetry(simTelemetry, result.effectVariantOperationTelemetry);
       telemetry.quickFixTriggers += result.quickFixTempoDraws ?? 0;
@@ -2595,6 +2601,25 @@ Battle simulation complete (${effectiveMatchCount} games per matchup${filterSumm
   ]);
   console.log('Protection types:', JSON.stringify(awareness.protectionTypes ?? {}));
   console.log('Suppressions:', JSON.stringify(awareness.suppressions ?? {}));
+  const profile = telemetry.swarmProfile ?? {};
+  const profileDeltas = [...(profile.scoreDeltas ?? [])].sort((a, b) => a - b);
+  const profileAverage = profileDeltas.length ? profileDeltas.reduce((sum, value) => sum + value, 0) / profileDeltas.length : 0;
+  const profileMedian = profileDeltas.length ? (profileDeltas[Math.floor((profileDeltas.length - 1) / 2)] + profileDeltas[Math.ceil((profileDeltas.length - 1) / 2)]) / 2 : 0;
+  console.log(`\nSwarm profile telemetry (${swarmProfile}, window ${swarmProfileWindow}):`);
+  console.table([
+    { metric: 'Swarm decisions', count: profile.decisions ?? 0 },
+    { metric: 'profile opportunities', count: profile.opportunities ?? 0 },
+    { metric: 'shortlist opportunities', count: profile.shortlistOpportunities ?? 0 },
+    { metric: 'decisions changed', count: profile.decisionsChanged ?? 0 },
+    { metric: 'all-decision change rate', count: `${percent(profile.decisionsChanged ?? 0, profile.decisions ?? 0)}%` },
+    { metric: 'opportunity change rate', count: `${percent(profile.decisionsChanged ?? 0, profile.opportunities ?? 0)}%` },
+    { metric: 'average / median / max delta', count: `${profileAverage.toFixed(2)} / ${profileMedian.toFixed(2)} / ${profileDeltas.at(-1) ?? 0}` },
+    { metric: 'Alpha-preservation changes', count: profile.alphaPreservationChanges ?? 0 },
+    { metric: 'Alpha survival rate', count: `${percent(profile.alphaSurvivedAfter ?? 0, profile.alphaPresentAfter ?? 0)}%` },
+    { metric: 'width increases / preservations', count: `${profile.widthIncreases ?? 0} / ${profile.widthPreservations ?? 0}` },
+  ]);
+  console.log('Profile reasons:', JSON.stringify(profile.reasons ?? {}));
+  console.log('Profile slot distribution:', JSON.stringify(profile.slotDistribution ?? {}));
   console.log('\nHot Runner offline diagnostics:');
   console.table([
     { metric: 'total Hot Runner offline plays', count: telemetry.hotRunnerOffline.plays ?? 0 },

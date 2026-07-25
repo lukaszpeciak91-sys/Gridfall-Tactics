@@ -2,11 +2,15 @@ import { canPlayOrRedeploy, canSwap, performSwap, playEffectCard, playOrRedeploy
 import { ACTIVE_EFFECT_VARIANTS } from './effectVariantRegistry.generated.js';
 import { getMaterialBattleStateSignature } from './materialBattleStateSignature.js';
 import { DEFAULT_IMMEDIATE_ATTACK_POLICY, resolveImmediateAttackPolicyConfig, detectImmediateAttackThreat, predictedThreatAfterCandidate, describeProtection } from './immediateAttackThreatPolicy.js';
+import { getFactionByKey } from '../data/factions/index.js';
 
 const ENEMY_ROW_INDEXES = [0, 1, 2];
 const PLAYER_ROW_INDEXES = [6, 7, 8];
 export const AI_SAFE_SURRENDER_ENABLED = true;
 export { DEFAULT_IMMEDIATE_ATTACK_POLICY } from './immediateAttackThreatPolicy.js';
+export const DEFAULT_SWARM_PROFILE = 'off';
+export const SWARM_PROFILE_MODES = Object.freeze(['off', 'alpha-width-v1']);
+export const SWARM_PROFILE_WINDOWS = Object.freeze([40, 80, 120]);
 const AI_SAFE_SURRENDER_CONFIRMATION_PASSES = 2;
 
 const SAFE_SURRENDER_MEANINGFUL_EFFECT_IDS = new Set([
@@ -1870,6 +1874,141 @@ function applyImmediateThreatSelectionPolicy(state, owner, scoredActions, baseWi
   return finish(candidate);
 }
 
+function applyActionForProfile(state, owner, action) {
+  const next = cloneState(state);
+  let result = null;
+  if (action.type === 'pass') return next;
+  if (action.type === 'play-unit') {
+    result = playOrRedeployUnit(next, owner, action.cardId, action.slotIndex);
+    if (result.ok && Array.isArray(action.targetIndexes) && action.effectId === 'swap_two_enemy_units') {
+      result = resolveTargetedUnitOnPlayEffect(next, owner, action.slotIndex, action.targetIndexes);
+    }
+  } else if (action.type === 'swap-units') result = performSwap(next, owner, action.fromIndex, action.toIndex);
+  else if (action.type === 'play-effect') result = playEffectCard(next, owner, action.cardId);
+  else if (action.type === 'play-targeted-effect') result = resolveTargetedEffectCard(next, owner, action.cardId, action.targetIndex, getActionTargetIndexes(action));
+  return result?.ok ? next : null;
+}
+
+function isSwarmFaction(side) {
+  const faction = getFactionByKey(side?.factionName) ?? getFactionByKey(side?.factionId);
+  return faction?.id === 'swarm';
+}
+
+function profileBoardMetrics(state, owner) {
+  const { friendly, opposing } = getRowsForOwner(owner);
+  const alphaIndex = friendly.find((index) => {
+    const unit = state?.board?.[index];
+    return unit?.owner === owner && ((unit.cardId ?? unit.id) === 'swarm_alpha_1' || unit.effectId === 'adjacent_allies_atk_plus_1_ignore_armor_1');
+  });
+  const alpha = Number.isInteger(alphaIndex) ? state.board[alphaIndex] : null;
+  const lane = Number.isInteger(alphaIndex) ? friendly.indexOf(alphaIndex) : -1;
+  const adjacent = lane >= 0 ? [friendly[lane - 1], friendly[lane + 1]].filter(Number.isInteger) : [];
+  const adjacentAllies = adjacent.filter((index) => state.board?.[index]?.owner === owner);
+  const futureCapacity = adjacent.filter((index) => !state.board?.[index]).length;
+  const survives = alpha ? (() => {
+    const enemy = state.board?.[opposing[lane]];
+    return !enemy || getEffectiveBoardAttack(state, opposing[lane]) < getEffectiveHp(alpha);
+  })() : false;
+  const meaningful = friendly.filter((index, i) => {
+    const unit = state.board?.[index];
+    if (unit?.owner !== owner) return false;
+    const enemy = state.board?.[opposing[i]];
+    if (!enemy) return true;
+    const dies = getEffectiveBoardAttack(state, opposing[i]) >= getEffectiveHp(unit);
+    return !dies || getEffectiveBoardAttack(state, index) > 0;
+  }).length;
+  return {
+    alphaPresent: Boolean(alpha), alphaLikelySurvival: survives,
+    alphaAdjacentAllies: adjacentAllies.length, alphaFutureAdjacentCapacity: futureCapacity,
+    boardWidth: friendly.filter((index) => state.board?.[index]?.owner === owner).length,
+    expectedPostCombatWidth: meaningful,
+  };
+}
+
+function profileRank(metrics) {
+  return [Number(metrics.alphaLikelySurvival), metrics.alphaAdjacentAllies, metrics.alphaFutureAdjacentCapacity,
+    metrics.expectedPostCombatWidth, metrics.boardWidth];
+}
+
+function compareRanks(a, b) {
+  for (let i = 0; i < a.length; i += 1) if (a[i] !== b[i]) return a[i] - b[i];
+  return 0;
+}
+
+function applySwarmProfileSelectionPolicy(state, owner, scoredActions, baseWinner, options, criticalPolicyChanged = false) {
+  const mode = options.swarmProfile ?? DEFAULT_SWARM_PROFILE;
+  const window = Number.isFinite(options.swarmProfileWindow) ? Math.max(0, options.swarmProfileWindow) : 80;
+  if (!SWARM_PROFILE_MODES.includes(mode)) throw new Error(`Unknown Swarm profile mode: ${mode}`);
+  const before = profileBoardMetrics(state, owner);
+  const diagnostic = {
+    mode, window, opportunityDetected: false, shortlistSize: 0,
+    baseWinnerAction: actionDiagnostic(baseWinner.action), baseWinnerScore: baseWinner.score,
+    profileWinnerAction: actionDiagnostic(baseWinner.action), profileWinnerBaseScore: baseWinner.score,
+    baseScoreDelta: 0, decisionChanged: false, reason: 'no-meaningful-profile-difference',
+    alphaPresentBefore: before.alphaPresent, alphaPresentAfter: before.alphaPresent,
+    alphaLikelySurvivalBefore: before.alphaLikelySurvival, alphaLikelySurvivalAfter: before.alphaLikelySurvival,
+    alphaAdjacentAlliesBefore: before.alphaAdjacentAllies, alphaAdjacentAlliesAfter: before.alphaAdjacentAllies,
+    alphaFutureAdjacentCapacityBefore: before.alphaFutureAdjacentCapacity, alphaFutureAdjacentCapacityAfter: before.alphaFutureAdjacentCapacity,
+    boardWidthBefore: before.boardWidth, boardWidthAfter: before.boardWidth,
+    expectedPostCombatWidth: before.expectedPostCombatWidth, threatAwarenessPrecedence: criticalPolicyChanged,
+    candidates: [],
+  };
+  const finish = (winner) => {
+    preserveScoreDiagnostics(winner.action, { ...(winner.action.aiEvaluation ?? {}), swarmProfile: diagnostic });
+    const t = options.telemetry;
+    if (t && isSwarmFaction(state?.[owner])) {
+      t.swarmProfile ??= { decisions: 0, opportunities: 0, shortlistOpportunities: 0, decisionsChanged: 0, scoreDeltas: [], reasons: {}, alphaPreservationChanges: 0, alphaSurvivedAfter: 0, alphaPresentAfter: 0, alphaAdjacentAllies: [], alphaFutureCapacity: [], widthIncreases: 0, widthPreservations: 0, slotDistribution: {} };
+      const s = t.swarmProfile; s.decisions += 1;
+      if (diagnostic.opportunityDetected) s.opportunities += 1;
+      if (diagnostic.shortlistSize > 1) s.shortlistOpportunities += 1;
+      if (diagnostic.decisionChanged) { s.decisionsChanged += 1; s.scoreDeltas.push(diagnostic.baseScoreDelta); }
+      s.reasons[diagnostic.reason] = (s.reasons[diagnostic.reason] ?? 0) + 1;
+      if (!diagnostic.alphaLikelySurvivalBefore && diagnostic.alphaLikelySurvivalAfter && diagnostic.decisionChanged) s.alphaPreservationChanges += 1;
+      if (diagnostic.alphaPresentAfter) { s.alphaPresentAfter += 1; if (diagnostic.alphaLikelySurvivalAfter) s.alphaSurvivedAfter += 1; s.alphaAdjacentAllies.push(diagnostic.alphaAdjacentAlliesAfter); s.alphaFutureCapacity.push(diagnostic.alphaFutureAdjacentCapacityAfter); }
+      if (diagnostic.boardWidthAfter > diagnostic.boardWidthBefore) s.widthIncreases += 1;
+      if (diagnostic.boardWidthAfter >= diagnostic.boardWidthBefore) s.widthPreservations += 1;
+      const slot = winner.action.slotIndex ?? winner.action.toIndex; if (Number.isInteger(slot)) s.slotDistribution[slot % 3] = (s.slotDistribution[slot % 3] ?? 0) + 1;
+    }
+    return winner;
+  };
+  if (mode === 'off' || !isSwarmFaction(state?.[owner])) return finish(baseWinner);
+  if (criticalPolicyChanged || baseWinner.score >= 100000) { diagnostic.reason = 'critical-policy-precedence'; return finish(baseWinner); }
+  const useful = scoredActions.filter((entry) => entry.action.type !== 'pass');
+  if (useful.length <= 1 || baseWinner.action.type === 'pass') return finish(baseWinner);
+  const shortlist = scoredActions.filter((entry) => baseWinner.score - entry.score <= window);
+  diagnostic.shortlistSize = shortlist.length;
+  if (shortlist.length <= 1) { diagnostic.reason = 'outside-window'; return finish(baseWinner); }
+  const evaluated = shortlist.map((entry) => {
+    const next = applyActionForProfile(state, owner, entry.action);
+    const metrics = next ? profileBoardMetrics(next, owner) : before;
+    const rank = profileRank(metrics);
+    diagnostic.candidates.push({ action: actionDiagnostic(entry.action), baseScore: entry.score, rank, ...metrics });
+    return { ...entry, metrics, rank };
+  });
+  const base = evaluated.find((entry) => entry.action === baseWinner.action) ?? evaluated[0];
+  evaluated.sort((a, b) => compareRanks(b.rank, a.rank) || b.score - a.score);
+  const best = evaluated[0];
+  diagnostic.opportunityDetected = compareRanks(best.rank, base.rank) > 0;
+  if (!diagnostic.opportunityDetected) { diagnostic.reason = 'base-winner-already-preferred'; return finish(baseWinner); }
+  const exact = evaluated.filter((entry) => compareRanks(entry.rank, best.rank) === 0 && entry.score === best.score);
+  let winner = best;
+  if (exact.length > 1) {
+    const roll = getSeededTieBreakRoll(state, owner, exact.map((entry) => entry.action), options);
+    winner = exact[Math.min(exact.length - 1, Math.floor(roll.value * exact.length))];
+  }
+  const after = winner.metrics;
+  Object.assign(diagnostic, {
+    profileWinnerAction: actionDiagnostic(winner.action), profileWinnerBaseScore: winner.score,
+    baseScoreDelta: baseWinner.score - winner.score, decisionChanged: winner.action !== baseWinner.action,
+    reason: (!base.metrics.alphaLikelySurvival && after.alphaLikelySurvival) ? 'preserve-alpha'
+      : ((after.alphaAdjacentAllies !== base.metrics.alphaAdjacentAllies || after.alphaFutureAdjacentCapacity !== base.metrics.alphaFutureAdjacentCapacity) ? 'improve-alpha-formation' : 'preserve-or-expand-width'),
+    alphaPresentAfter: after.alphaPresent, alphaLikelySurvivalAfter: after.alphaLikelySurvival,
+    alphaAdjacentAlliesAfter: after.alphaAdjacentAllies, alphaFutureAdjacentCapacityAfter: after.alphaFutureAdjacentCapacity,
+    boardWidthAfter: after.boardWidth, expectedPostCombatWidth: after.expectedPostCombatWidth,
+  });
+  return finish(winner);
+}
+
 export function chooseBattleAction(state, owner = 'enemy', options = {}) {
   const safeSurrenderEnabled = options.aiSafeSurrenderEnabled ?? AI_SAFE_SURRENDER_ENABLED;
   if (owner === 'enemy' && safeSurrenderEnabled) {
@@ -1909,7 +2048,9 @@ export function chooseBattleAction(state, owner = 'enemy', options = {}) {
   const tiedBest = scoredActions.filter((entry) => entry.score === bestScore).map((entry) => entry.action);
 
   if (tiedBest.length === 1) {
-    const selected = applyImmediateThreatSelectionPolicy(state, owner, scoredActions, scoredActions.find((entry) => entry.action === tiedBest[0]), options);
+    const base = scoredActions.find((entry) => entry.action === tiedBest[0]);
+    const critical = applyImmediateThreatSelectionPolicy(state, owner, scoredActions, base, options);
+    const selected = applySwarmProfileSelectionPolicy(state, owner, scoredActions, critical, options, critical.action !== base.action);
     preserveScoreDiagnostics(selected.action, { ...(selected.action.aiEvaluation ?? {}), chosenAction: true, utilityChosenReason: selected.action.aiEvaluation?.utilityReason ?? selected.action.aiEvaluation?.reason ?? (selected.action === tiedBest[0] ? 'highest scored legal action' : 'immediate-attack threat policy') });
     if (owner === 'enemy' && selected.action?.type !== 'pass') updateSafeSurrenderPassCounter(state, owner, false);
     return selected.action;
@@ -1925,7 +2066,9 @@ export function chooseBattleAction(state, owner = 'enemy', options = {}) {
     const index = Math.floor(tieBreakRoll.value * tiedBest.length);
     const selectedTiedCandidateIndex = Math.max(0, Math.min(tiedBest.length - 1, index));
     const picked = tiedBest[selectedTiedCandidateIndex];
-    const selected = applyImmediateThreatSelectionPolicy(state, owner, scoredActions, scoredActions.find((entry) => entry.action === picked), options);
+    const base = scoredActions.find((entry) => entry.action === picked);
+    const critical = applyImmediateThreatSelectionPolicy(state, owner, scoredActions, base, options);
+    const selected = applySwarmProfileSelectionPolicy(state, owner, scoredActions, critical, options, critical.action !== base.action);
     const finalPicked = selected.action;
     preserveScoreDiagnostics(finalPicked, {
       ...(finalPicked.aiEvaluation ?? {}),
@@ -1950,13 +2093,17 @@ export function chooseBattleAction(state, owner = 'enemy', options = {}) {
     const rotationIndex = Number.isInteger(options.tieBreakIndex) ? options.tieBreakIndex : 0;
     const normalized = ((rotationIndex % tiedBest.length) + tiedBest.length) % tiedBest.length;
     const picked = tiedBest[normalized];
-    const selected = applyImmediateThreatSelectionPolicy(state, owner, scoredActions, scoredActions.find((entry) => entry.action === picked), options).action;
+    const base = scoredActions.find((entry) => entry.action === picked);
+    const critical = applyImmediateThreatSelectionPolicy(state, owner, scoredActions, base, options);
+    const selected = applySwarmProfileSelectionPolicy(state, owner, scoredActions, critical, options, critical.action !== base.action).action;
     preserveScoreDiagnostics(selected, { ...(selected.aiEvaluation ?? {}), chosenAction: true, utilityChosenReason: selected === picked ? (picked.aiEvaluation?.utilityReason ?? picked.aiEvaluation?.reason ?? 'rotation tie break') : 'immediate-attack threat policy' });
     if (owner === 'enemy' && selected?.type !== 'pass') updateSafeSurrenderPassCounter(state, owner, false);
     return selected;
   }
 
-  const selected = applyImmediateThreatSelectionPolicy(state, owner, scoredActions, scoredActions.find((entry) => entry.action === tiedBest[0]), options).action;
+  const base = scoredActions.find((entry) => entry.action === tiedBest[0]);
+  const critical = applyImmediateThreatSelectionPolicy(state, owner, scoredActions, base, options);
+  const selected = applySwarmProfileSelectionPolicy(state, owner, scoredActions, critical, options, critical.action !== base.action).action;
   preserveScoreDiagnostics(selected, { ...(selected.aiEvaluation ?? {}), chosenAction: true, utilityChosenReason: selected === tiedBest[0] ? (selected.aiEvaluation?.utilityReason ?? selected.aiEvaluation?.reason ?? 'first best action') : 'immediate-attack threat policy' });
   if (owner === 'enemy' && selected?.type !== 'pass') updateSafeSurrenderPassCounter(state, owner, false);
   return selected;
