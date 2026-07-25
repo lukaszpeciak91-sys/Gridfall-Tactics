@@ -1,10 +1,12 @@
 import { canPlayOrRedeploy, canSwap, performSwap, playEffectCard, playOrRedeployUnit, resolveTargetedEffectCard, resolveTargetedUnitOnPlayEffect, getUnitAttack, getUnitArmor, getEffectiveBoardAttack, RUNNER_OPEN_LANE_ATK_BONUS, resolveImmediateNoProgressWinner, battleCanRealisticallyChangeOutcome, canPlayEffectCard, isLegalEmptyFriendlySlotForUnitPlacement } from './GameState.js';
 import { ACTIVE_EFFECT_VARIANTS } from './effectVariantRegistry.generated.js';
 import { getMaterialBattleStateSignature } from './materialBattleStateSignature.js';
+import { DEFAULT_IMMEDIATE_ATTACK_POLICY, resolveImmediateAttackPolicyConfig, detectImmediateAttackThreat, predictedThreatAfterCandidate, describeProtection } from './immediateAttackThreatPolicy.js';
 
 const ENEMY_ROW_INDEXES = [0, 1, 2];
 const PLAYER_ROW_INDEXES = [6, 7, 8];
 export const AI_SAFE_SURRENDER_ENABLED = true;
+export { DEFAULT_IMMEDIATE_ATTACK_POLICY } from './immediateAttackThreatPolicy.js';
 const AI_SAFE_SURRENDER_CONFIRMATION_PASSES = 2;
 
 const SAFE_SURRENDER_MEANINGFUL_EFFECT_IDS = new Set([
@@ -1794,6 +1796,80 @@ export function chooseEnemyAction(state) {
   return chooseBattleAction(state, 'enemy');
 }
 
+function actionDiagnostic(action) {
+  if (!action) return null;
+  return { type: action.type, cardId: action.cardId ?? null, slotIndex: action.slotIndex ?? null, targetIndex: action.targetIndex ?? null, targetIndexes: action.targetIndexes ?? null };
+}
+
+function applyImmediateThreatSelectionPolicy(state, owner, scoredActions, baseWinner, options) {
+  const config = resolveImmediateAttackPolicyConfig(options.immediateAttackThreatPolicy ?? DEFAULT_IMMEDIATE_ATTACK_POLICY);
+  const threat = config.enabled ? detectImmediateAttackThreat(state, owner) : null;
+  const diagnostic = {
+    enabled: config.enabled, mode: config.mode, opportunityDetected: Boolean(threat?.opportunityDetected),
+    opponentFaction: threat?.context?.opponentFaction ?? null,
+    threateningUnitId: threat?.unit?.instanceId ?? threat?.unit?.id ?? null,
+    threateningCardId: threat?.unit?.cardId ?? threat?.unit?.id ?? null,
+    threateningLane: Number.isInteger(threat?.threatIndex) ? threat.threatIndex % 3 : null,
+    effectiveAttack: threat?.effectiveAttack ?? null,
+    qualifyingEnablerEffectIds: [...new Set((threat?.capabilities ?? []).map((entry) => entry.card.effectId))],
+    publicAvailability: threat?.publicAvailability ?? null,
+    predictedImmediateDamage: threat?.prediction?.immediateDamage ?? 0,
+    predictedStandardDamage: threat?.prediction?.standardDamage ?? 0,
+    predictedCombinedDamage: threat?.prediction?.combinedDamage ?? 0,
+    aiBaseHP: threat?.context?.aiBaseHP ?? state?.[getHeroHpKey(owner)] ?? 0,
+    possibleLethal: Boolean(threat?.possibleLethal), baseWinnerAction: actionDiagnostic(baseWinner.action), baseWinnerScore: baseWinner.score,
+    protectiveCandidateAction: null, protectiveCandidateScore: null, baseScoreDelta: null, selectedWindow: null,
+    decisionChanged: false, protectionType: null, predictedThreatBefore: threat?.prediction?.combinedDamage ?? 0,
+    predictedThreatAfter: threat?.prediction?.combinedDamage ?? 0, threatReduction: 0,
+    bypassReason: config.enabled ? (threat?.suppressionReason ?? null) : 'policy-disabled', policyReason: null,
+  };
+  const telemetry = options.telemetry;
+  const finish = (winner) => {
+    preserveScoreDiagnostics(winner.action, { ...(winner.action.aiEvaluation ?? {}), immediateAttackThreatPolicy: diagnostic });
+    if (telemetry) {
+      telemetry.immediateAttackThreatAwareness ??= { opportunities: 0, ordinaryThreats: 0, possibleLethalThreats: 0, protectiveCandidates: 0, baseWinnerAlreadyProtective: 0, decisionsChanged: 0, standardWindowChanges: 0, lethalWindowChanges: 0, scoreDeltas: [], protectionTypes: {}, predictedDamagePrevented: 0, suppressions: {} };
+      const t = telemetry.immediateAttackThreatAwareness;
+      if (diagnostic.opportunityDetected) { t.opportunities += 1; diagnostic.possibleLethal ? t.possibleLethalThreats += 1 : t.ordinaryThreats += 1; }
+      if (diagnostic.protectiveCandidateAction) t.protectiveCandidates += 1;
+      if (diagnostic.bypassReason === 'base-winner-already-protective') t.baseWinnerAlreadyProtective += 1;
+      if (diagnostic.decisionChanged) { t.decisionsChanged += 1; (diagnostic.possibleLethal ? t.lethalWindowChanges += 1 : t.standardWindowChanges += 1); t.scoreDeltas.push(diagnostic.baseScoreDelta); t.protectionTypes[diagnostic.protectionType] = (t.protectionTypes[diagnostic.protectionType] ?? 0) + 1; t.predictedDamagePrevented += diagnostic.threatReduction; }
+      if (diagnostic.bypassReason) t.suppressions[diagnostic.bypassReason] = (t.suppressions[diagnostic.bypassReason] ?? 0) + 1;
+    }
+    return winner;
+  };
+  if (!config.enabled || !threat?.opportunityDetected) return finish(baseWinner);
+  const useful = scoredActions.filter((entry) => entry.action.type !== 'pass');
+  if (useful.length <= 1) { diagnostic.bypassReason = 'only-one-useful-candidate'; return finish(baseWinner); }
+  if (baseWinner.score >= 100000) { diagnostic.bypassReason = 'ai-own-immediate-lethal'; return finish(baseWinner); }
+  const baseAfter = predictedThreatAfterCandidate(state, owner, baseWinner.action);
+  const baseProtection = describeProtection(threat, baseAfter);
+  if (baseProtection) { diagnostic.bypassReason = 'base-winner-already-protective'; diagnostic.predictedThreatAfter = baseProtection.afterDamage; diagnostic.threatReduction = baseProtection.reduction; return finish(baseWinner); }
+
+  const protective = scoredActions.map((entry) => {
+    if (entry === baseWinner) return null;
+    const after = predictedThreatAfterCandidate(state, owner, entry.action);
+    const protection = describeProtection(threat, after);
+    return protection ? { ...entry, protection } : null;
+  }).filter(Boolean).sort((a, b) => b.score - a.score);
+  if (!protective.length) { diagnostic.bypassReason = 'no-protective-candidate'; return finish(baseWinner); }
+  const bestScore = protective[0].score;
+  const tied = protective.filter((entry) => entry.score === bestScore);
+  let candidate = tied[0];
+  if (tied.length > 1) {
+    const roll = getSeededTieBreakRoll(state, owner, tied.map((entry) => entry.action), options);
+    candidate = tied[Math.min(tied.length - 1, Math.floor(roll.value * tied.length))];
+  }
+  const window = threat.possibleLethal ? config.possibleLethalWindow : config.standardWindow;
+  const delta = baseWinner.score - candidate.score;
+  Object.assign(diagnostic, { protectiveCandidateAction: actionDiagnostic(candidate.action), protectiveCandidateScore: candidate.score, baseScoreDelta: delta, selectedWindow: window, protectionType: candidate.protection.protectionType, predictedThreatAfter: candidate.protection.afterDamage, threatReduction: candidate.protection.reduction });
+  if (delta < 0) { diagnostic.bypassReason = 'protective-candidate-higher-than-base'; return finish(baseWinner); }
+  if (delta > window) { diagnostic.bypassReason = 'outside-policy-window'; return finish(baseWinner); }
+  diagnostic.decisionChanged = true;
+  diagnostic.bypassReason = null;
+  diagnostic.policyReason = threat.possibleLethal ? 'possible-lethal protection within window' : 'ordinary-threat protection within window';
+  return finish(candidate);
+}
+
 export function chooseBattleAction(state, owner = 'enemy', options = {}) {
   const safeSurrenderEnabled = options.aiSafeSurrenderEnabled ?? AI_SAFE_SURRENDER_ENABLED;
   if (owner === 'enemy' && safeSurrenderEnabled) {
@@ -1833,9 +1909,10 @@ export function chooseBattleAction(state, owner = 'enemy', options = {}) {
   const tiedBest = scoredActions.filter((entry) => entry.score === bestScore).map((entry) => entry.action);
 
   if (tiedBest.length === 1) {
-    preserveScoreDiagnostics(tiedBest[0], { ...(tiedBest[0].aiEvaluation ?? {}), chosenAction: true, utilityChosenReason: tiedBest[0].aiEvaluation?.utilityReason ?? tiedBest[0].aiEvaluation?.reason ?? 'highest scored legal action' });
-    if (owner === 'enemy' && tiedBest[0]?.type !== 'pass') updateSafeSurrenderPassCounter(state, owner, false);
-    return tiedBest[0];
+    const selected = applyImmediateThreatSelectionPolicy(state, owner, scoredActions, scoredActions.find((entry) => entry.action === tiedBest[0]), options);
+    preserveScoreDiagnostics(selected.action, { ...(selected.action.aiEvaluation ?? {}), chosenAction: true, utilityChosenReason: selected.action.aiEvaluation?.utilityReason ?? selected.action.aiEvaluation?.reason ?? (selected.action === tiedBest[0] ? 'highest scored legal action' : 'immediate-attack threat policy') });
+    if (owner === 'enemy' && selected.action?.type !== 'pass') updateSafeSurrenderPassCounter(state, owner, false);
+    return selected.action;
   }
 
   const tieBreakPolicy = options.tieBreakPolicy ?? 'seeded-random';
@@ -1848,8 +1925,10 @@ export function chooseBattleAction(state, owner = 'enemy', options = {}) {
     const index = Math.floor(tieBreakRoll.value * tiedBest.length);
     const selectedTiedCandidateIndex = Math.max(0, Math.min(tiedBest.length - 1, index));
     const picked = tiedBest[selectedTiedCandidateIndex];
-    preserveScoreDiagnostics(picked, {
-      ...(picked.aiEvaluation ?? {}),
+    const selected = applyImmediateThreatSelectionPolicy(state, owner, scoredActions, scoredActions.find((entry) => entry.action === picked), options);
+    const finalPicked = selected.action;
+    preserveScoreDiagnostics(finalPicked, {
+      ...(finalPicked.aiEvaluation ?? {}),
       chosenAction: true,
       utilityChosenReason: picked.aiEvaluation?.utilityReason ?? picked.aiEvaluation?.reason ?? 'seeded exact-score tie-break',
       tieBreak: {
@@ -1863,20 +1942,22 @@ export function chooseBattleAction(state, owner = 'enemy', options = {}) {
         selectedCandidateIndex: tiedCandidateIndices[selectedTiedCandidateIndex] ?? selectedTiedCandidateIndex,
       },
     });
-    if (owner === 'enemy' && picked?.type !== 'pass') updateSafeSurrenderPassCounter(state, owner, false);
-    return picked;
+    if (owner === 'enemy' && finalPicked?.type !== 'pass') updateSafeSurrenderPassCounter(state, owner, false);
+    return finalPicked;
   }
 
   if (tieBreakPolicy === 'rotation') {
     const rotationIndex = Number.isInteger(options.tieBreakIndex) ? options.tieBreakIndex : 0;
     const normalized = ((rotationIndex % tiedBest.length) + tiedBest.length) % tiedBest.length;
     const picked = tiedBest[normalized];
-    preserveScoreDiagnostics(picked, { ...(picked.aiEvaluation ?? {}), chosenAction: true, utilityChosenReason: picked.aiEvaluation?.utilityReason ?? picked.aiEvaluation?.reason ?? 'rotation tie break' });
-    if (owner === 'enemy' && picked?.type !== 'pass') updateSafeSurrenderPassCounter(state, owner, false);
-    return picked;
+    const selected = applyImmediateThreatSelectionPolicy(state, owner, scoredActions, scoredActions.find((entry) => entry.action === picked), options).action;
+    preserveScoreDiagnostics(selected, { ...(selected.aiEvaluation ?? {}), chosenAction: true, utilityChosenReason: selected === picked ? (picked.aiEvaluation?.utilityReason ?? picked.aiEvaluation?.reason ?? 'rotation tie break') : 'immediate-attack threat policy' });
+    if (owner === 'enemy' && selected?.type !== 'pass') updateSafeSurrenderPassCounter(state, owner, false);
+    return selected;
   }
 
-  preserveScoreDiagnostics(tiedBest[0], { ...(tiedBest[0].aiEvaluation ?? {}), chosenAction: true, utilityChosenReason: tiedBest[0].aiEvaluation?.utilityReason ?? tiedBest[0].aiEvaluation?.reason ?? 'first best action' });
-  if (owner === 'enemy' && tiedBest[0]?.type !== 'pass') updateSafeSurrenderPassCounter(state, owner, false);
-  return tiedBest[0];
+  const selected = applyImmediateThreatSelectionPolicy(state, owner, scoredActions, scoredActions.find((entry) => entry.action === tiedBest[0]), options).action;
+  preserveScoreDiagnostics(selected, { ...(selected.aiEvaluation ?? {}), chosenAction: true, utilityChosenReason: selected === tiedBest[0] ? (selected.aiEvaluation?.utilityReason ?? selected.aiEvaluation?.reason ?? 'first best action') : 'immediate-attack threat policy' });
+  if (owner === 'enemy' && selected?.type !== 'pass') updateSafeSurrenderPassCounter(state, owner, false);
+  return selected;
 }

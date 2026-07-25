@@ -1581,7 +1581,7 @@ function applyAction(state, owner, passStats, decisionOptions, telemetry, simTel
 }
 
 
-function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, simTelemetry, gameSeed, gameIndex, playerKey, enemyKey, effectVariantRegistry = null, handLockAnalysis = null, aiDecisionAudit = null, aiScoreDiagnostics = null) {
+function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, simTelemetry, gameSeed, gameIndex, playerKey, enemyKey, effectVariantRegistry = null, handLockAnalysis = null, aiDecisionAudit = null, aiScoreDiagnostics = null, immediateAttackThreatPolicy = undefined) {
   const gameRng = createSeededRng(gameSeed);
   const state = createInitialBattleState(playerFaction, enemyFaction, { randomFn: gameRng });
   if (effectVariantRegistry) state.effectVariantRegistry = effectVariantRegistry;
@@ -1613,8 +1613,8 @@ function runSingleGame(playerFaction, enemyFaction, passStats, telemetry, simTel
     const decisionContext = `${playerKey}|${enemyKey}|${gameIndex}|${turns}`;
     const decisionSeed = buildGameSeed(gameSeed, decisionContext, state.firstActor, turns + 7);
     const turnRng = createSeededRng(decisionSeed);
-    const firstDecisionOptions = { randomFn: turnRng, tieBreakPolicy: TIE_BREAK_POLICY };
-    const secondDecisionOptions = { randomFn: turnRng, tieBreakPolicy: TIE_BREAK_POLICY };
+    const firstDecisionOptions = { randomFn: turnRng, tieBreakPolicy: TIE_BREAK_POLICY, immediateAttackThreatPolicy };
+    const secondDecisionOptions = { randomFn: turnRng, tieBreakPolicy: TIE_BREAK_POLICY, immediateAttackThreatPolicy };
 
     const firstActor = state.firstActor;
     const secondActor = firstActor === 'player' ? 'enemy' : 'player';
@@ -2220,6 +2220,11 @@ function main() {
   const telemetryArg = process.argv.find((arg) => arg.startsWith('--telemetry='));
   const telemetryModes = parseTelemetryModes(telemetryArg?.split('=')[1] ?? experiment?.telemetry ?? '');
   const simTelemetry = telemetryModes.size > 0 ? createSimulatorTelemetry() : null;
+  const threatPolicyArg = process.argv.find((arg) => arg.startsWith('--immediate-attack-policy='));
+  const immediateAttackThreatPolicy = threatPolicyArg?.split('=')[1] ?? experiment?.immediateAttackThreatPolicy ?? 'standard-80-lethal-1200';
+  if (!['off', 'standard-80-lethal-1200', 'standard-80-lethal-1600'].includes(immediateAttackThreatPolicy)) {
+    throw new Error(`Unknown --immediate-attack-policy mode: ${immediateAttackThreatPolicy}`);
+  }
   const aiAuditArg = process.argv.find((arg) => arg.startsWith('--ai-audit='));
   const aiDecisionAudit = createAiDecisionAudit(parsePositiveIntegerOption(aiAuditArg?.split('=')[1]));
   const aiDiagnosticsArg = process.argv.find((arg) => arg.startsWith('--ai-diagnostics='));
@@ -2269,7 +2274,7 @@ function main() {
 
     for (let i = 0; i < gamesForMatchup; i += 1) {
       const gameSeed = buildGameSeed(effectiveBaseSeed, playerKey, enemyKey, i);
-      const result = runSingleGame(factions[playerKey], factions[enemyKey], passStats, telemetry, simTelemetry, gameSeed, i, playerKey, enemyKey, effectVariantRegistry, handLockAnalysis, aiDecisionAudit, aiScoreDiagnostics);
+      const result = runSingleGame(factions[playerKey], factions[enemyKey], passStats, telemetry, simTelemetry, gameSeed, i, playerKey, enemyKey, effectVariantRegistry, handLockAnalysis, aiDecisionAudit, aiScoreDiagnostics, immediateAttackThreatPolicy);
       recordGameEndTelemetry(simTelemetry, result);
       recordEffectVariantOperationTelemetry(simTelemetry, result.effectVariantOperationTelemetry);
       telemetry.quickFixTriggers += result.quickFixTempoDraws ?? 0;
@@ -2568,6 +2573,28 @@ Battle simulation complete (${effectiveMatchCount} games per matchup${filterSumm
     { metric: 'overflow combat triggers', count: telemetry.overflowCombatTriggers },
     { metric: 'overflow base damage total', count: telemetry.overflowCombatDamage },
   ]);
+  const awareness = telemetry.immediateAttackThreatAwareness ?? {};
+  const deltas = [...(awareness.scoreDeltas ?? [])].sort((a, b) => a - b);
+  const deltaAverage = deltas.length ? deltas.reduce((sum, value) => sum + value, 0) / deltas.length : 0;
+  const deltaMedian = deltas.length ? (deltas[Math.floor((deltas.length - 1) / 2)] + deltas[Math.ceil((deltas.length - 1) / 2)]) / 2 : 0;
+  console.log('\nImmediate-attack threat-awareness telemetry:');
+  console.table([
+    { metric: 'opportunities', count: awareness.opportunities ?? 0 },
+    { metric: 'ordinary threats', count: awareness.ordinaryThreats ?? 0 },
+    { metric: 'possible-lethal threats', count: awareness.possibleLethalThreats ?? 0 },
+    { metric: 'opportunities with protection', count: awareness.protectiveCandidates ?? 0 },
+    { metric: 'base winner already protective', count: awareness.baseWinnerAlreadyProtective ?? 0 },
+    { metric: 'decisions changed', count: awareness.decisionsChanged ?? 0 },
+    { metric: 'change rate', count: `${percent(awareness.decisionsChanged ?? 0, awareness.opportunities ?? 0)}%` },
+    { metric: 'standard-window changes', count: awareness.standardWindowChanges ?? 0 },
+    { metric: 'lethal-window changes', count: awareness.lethalWindowChanges ?? 0 },
+    { metric: 'average score delta', count: deltaAverage.toFixed(2) },
+    { metric: 'median score delta', count: deltaMedian.toFixed(2) },
+    { metric: 'maximum score delta', count: deltas.at(-1) ?? 0 },
+    { metric: 'predicted damage prevented', count: awareness.predictedDamagePrevented ?? 0 },
+  ]);
+  console.log('Protection types:', JSON.stringify(awareness.protectionTypes ?? {}));
+  console.log('Suppressions:', JSON.stringify(awareness.suppressions ?? {}));
   console.log('\nHot Runner offline diagnostics:');
   console.table([
     { metric: 'total Hot Runner offline plays', count: telemetry.hotRunnerOffline.plays ?? 0 },
