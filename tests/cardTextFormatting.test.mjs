@@ -114,7 +114,7 @@ test('polished card text stays within mobile collection and inspect rules panels
     { factionKey: "Attrition Swarm", cardId: "attrition_swarm_abomination_1", locale: "pl", expectedBody: "Gdy ginie: obie bazy tracą 1 ●" },
     { factionKey: "Attrition Swarm", cardId: "attrition_swarm_funeral_pyre_1", locale: "en", expectedBody: "First ♙ death each turn:\nenemy base loses 1 ●" },
     { factionKey: "Attrition Swarm", cardId: "attrition_swarm_funeral_pyre_1", locale: "pl", expectedBody: "Pierwszy zgon ♙ w turze:\n-1 ● bazie wroga" },
-    { factionKey: "Attrition Swarm", cardId: "attrition_swarm_infect_1", locale: "en", expectedBody: "Deal 1 damage to an ♟.\nOpposed ♙ +1 ▲ until combat" },
+    { factionKey: "Attrition Swarm", cardId: "attrition_swarm_infect_1", locale: "en", expectedBody: "Deal 1 damage to ♟.\nOpposed ♙ +1 ▲ until combat" },
     { factionKey: "Attrition Swarm", cardId: "attrition_swarm_infect_1", locale: "pl", expectedBody: "Zadaj 1 ● ♟.\n♙ naprzeciwko +1 ▲ do walki" },
     { factionKey: "Attrition Swarm", cardId: "attrition_swarm_grave_call_1", locale: "en", expectedBody: "Summon a 1/1\nNo ♙: summon up to 2" },
     { factionKey: "Attrition Swarm", cardId: "attrition_swarm_grave_call_1", locale: "pl", expectedBody: "Przywołaj 1/1\nBrak ♙ przywołaj do 2" },
@@ -260,7 +260,7 @@ test('pilot card display content renders ally icon markers', () => {
   assert.equal(getCardDisplayContent(cardById(control, 'control_pulse_wave_1'), 'en').body, 'Deal 1 to all ♟♟ ignoring ◆');
   assert.equal(getCardDisplayContent(cardById(swarm, 'swarm_spitter_1'), 'en').body, 'On play: deal 1 to opposed ♟');
   const attritionSwarm = getFactionByKey('Attrition Swarm');
-  assert.equal(getCardDisplayContent(cardById(attritionSwarm, 'attrition_swarm_infect_1'), 'en').body, 'Deal 1 damage to an ♟.\nOpposed ♙ +1 ▲ until combat');
+  assert.equal(getCardDisplayContent(cardById(attritionSwarm, 'attrition_swarm_infect_1'), 'en').body, 'Deal 1 damage to ♟.\nOpposed ♙ +1 ▲ until combat');
   const wardens = getFactionByKey('Wardens');
 
   assert.equal(getCardDisplayContent(cardById(aggro, 'aggro_full_attack_1'), 'pl').body, '♙♙ +2 ▲ do walki');
