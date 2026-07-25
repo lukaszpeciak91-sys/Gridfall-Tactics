@@ -8,7 +8,7 @@ import { advanceTutorialStep as advanceTutorialControllerStep, createTutorialCon
 import { createInitialBattleState, drawCards, shuffleDeck, canPass, canPlayOrRedeploy, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, resolveTargetedUnitOnPlayEffect, getUnitAttack, getUnitArmor, getUnitOriginalStats, toggleFirstActor, resolveTurnCapWinner, resolveImmediateResourceExhaustionWinner, resolveImmediateNoProgressWinner, recordPassAction, completeActionOpportunity, performOpeningMulligan, STARTING_HAND_SIZE, MAX_OPENING_MULLIGAN_CARDS, getEffectiveBoardAttack, getEffectiveBoardArmor, getCombatPresentationStatsForBoardIndex, canPlayEffectCard, isEffectCardBlockedForOwner, isBattleExhaustedEligible, isBoardUnitOffline, normalizeOfflineReservations, isLegalEmptyFriendlySlotForUnitPlacement } from '../systems/GameState.js';
 import { chooseEnemyAction, isVerySafeConcedableState, recordBattleActionUse, selectOpeningMulliganCardIds } from '../systems/enemyDecision.js';
 import { getTargetingStateForEffect } from '../systems/cardTargeting.js';
-import { COMBAT_ATTACK_PRESENTATIONS, getCombatAttackPresentation, getCombatEventAttackerIndex, getCombatEventInterceptOriginalTargetIndex, getCombatEventTargetIndex, getLaneLethalTargetIndexes, getLaneSimultaneousUnitClash, shouldAnimateCombatAttacker, shouldUseControlledHeroStrikePresentation } from '../systems/combatAnimation.js';
+import { COMBAT_ATTACK_PRESENTATIONS, getCombatAttackPresentation, getCombatEventAttackerIndex, getCombatEventInterceptOriginalTargetIndex, getCombatEventTargetIndex, getLaneLethalTargetIndexes, getLaneSimultaneousUnitClash, shouldAnimateCombatAttacker, shouldPreservePlannedNonMeleePresentation, shouldUseControlledHeroStrikePresentation } from '../systems/combatAnimation.js';
 import { BATTLE_BACKGROUND_ASSETS, BATTLE_BACKGROUND_FALLBACK_COLOR, BATTLE_BACKGROUND_FALLBACK_COLOR_HEX, BATTLEFIELD_BACKGROUND_OVERSCAN, applyCoverBackgroundLayout, createCoverBackground, getBattleBackgroundAsset, hasLoadedImageAsset, preloadBattleBackgroundArt, preloadImageAsset, resolvePublicAssetPath } from '../rendering/backgroundArt.js';
 import { getArenaBattlegroundAsset, resolveArenaBattlegroundId } from '../data/arenaBattlegrounds.js';
 import { getCardIllustrationAsset, getCardIllustrationAssetsForFaction, preloadCardIllustrationAsset } from '../rendering/cardIllustrationAssets.js';
@@ -11485,22 +11485,25 @@ export default class BattleScene extends Phaser.Scene {
 
         const attackerIndex = getCombatEventAttackerIndex(event);
         const attackerWasDefeatedInThisLane = Number.isInteger(attackerIndex) && lethalTargetIndexes.has(attackerIndex);
+        const attackPresentation = getCombatAttackPresentation(event, preCombatBoardSnapshot);
+        const preservePlannedNonMeleePresentation = shouldPreservePlannedNonMeleePresentation(event, preCombatBoardSnapshot);
+        const suppressDefeatedAttackerPresentation = attackerWasDefeatedInThisLane && !preservePlannedNonMeleePresentation;
         const entry = this.getCombatPresentationEntry(event);
         const attackerVisual = this.getCombatAttackerVisual(event, preCombatBoardSnapshot);
         const targetVisual = this.getCombatTargetVisual(event);
         if (entry) Object.assign(entry, { animationStartTimestamp: this.getBattleReportElapsedMs(), liveAttackerBoardViewExists: Boolean(attackerVisual), liveTargetBoardViewExists: Boolean(targetVisual) });
         if (entry) {
           if (shouldUseControlledHeroStrikePresentation(event)) Object.assign(entry, { attackPresentation: 'controlled', animationHelper: 'animateControlledHeroStrike' });
-          else if (attackerWasDefeatedInThisLane) Object.assign(entry, { attackPresentation: 'feedback-only', animationHelper: 'playCombatEventFeedback', fallbackReason: 'attacker-defeated-in-lane' });
-          else if (getCombatAttackPresentation(event, preCombatBoardSnapshot) === COMBAT_ATTACK_PRESENTATIONS.beam) Object.assign(entry, { attackPresentation: 'beam', animationHelper: 'animateBeamAttack' });
+          else if (suppressDefeatedAttackerPresentation) Object.assign(entry, { attackPresentation: 'feedback-only', animationHelper: 'playCombatEventFeedback', fallbackReason: 'attacker-defeated-in-lane' });
+          else if (attackPresentation === COMBAT_ATTACK_PRESENTATIONS.beam) Object.assign(entry, { attackPresentation: 'beam', animationHelper: 'animateBeamAttack' });
           else if (event.targetType === 'hero') Object.assign(entry, { attackPresentation: 'melee', animationHelper: 'animateHeroStrike' });
           else Object.assign(entry, { attackPresentation: 'melee', animationHelper: 'animateUnitAttackOnlyIfEventExists' });
         }
         if (shouldUseControlledHeroStrikePresentation(event)) {
           await this.animateControlledHeroStrike(event, preCombatBoardSnapshot);
-        } else if (attackerWasDefeatedInThisLane) {
+        } else if (suppressDefeatedAttackerPresentation) {
           await this.playCombatEventFeedback([event]);
-        } else if (getCombatAttackPresentation(event, preCombatBoardSnapshot) === COMBAT_ATTACK_PRESENTATIONS.beam) {
+        } else if (attackPresentation === COMBAT_ATTACK_PRESENTATIONS.beam) {
           this.recordCombatPresentationLifecycle(event, 'beam-route-selected');
           await this.animateBeamAttack(event, preCombatBoardSnapshot);
         } else if (event.targetType === 'hero') {

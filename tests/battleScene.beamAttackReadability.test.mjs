@@ -55,8 +55,19 @@ test('full-board off-lane beam routing is generic for player and enemy ownership
 });
 
 test('beam cue is awaited through impact, hold, and fade before lane sequencing continues', () => {
-  assert.match(battleSource, /await cue\.flashAttacker\(\);\s*await cue\.revealBeam\(\);\s*await this\.playCombatEventFeedback\(\[event\]\);\s*await this\.delay\(110\);\s*await cue\.fadeOut\(\);/);
+  assert.match(battleSource, /await cue\.flashAttacker\(\);\s*await cue\.revealBeam\(\);[\s\S]*?await this\.playCombatEventFeedback\(\[event\]\);\s*await this\.delay\(110\);\s*await cue\.fadeOut\(\);/);
   assert.match(battleSource, /flashAttacker:[\s\S]*duration: 80[\s\S]*revealBeam:[\s\S]*duration: 125[\s\S]*fadeOut:[\s\S]*duration: 75/);
-  assert.match(battleSource, /await this\.playLaneCombatAnimation\(lane, laneEvents, preCombatBoardSnapshot\);\s*await this\.delay\(320\);/);
+  assert.match(battleSource, /await playStandardCombatLanePresentation\(combatEvents, \{\s*presentLane: \(lane, laneEvents\) => this\.playLaneCombatAnimation\(lane, laneEvents, preCombatBoardSnapshot\),\s*delay: \(duration\) => this\.delay\(duration\),\s*\}\);/);
   assert.match(battleSource, /finally \{\s*cue\.destroy\(\);\s*\}/);
+});
+
+test('same-lane defeat suppresses melee but preserves the frozen beam route', () => {
+  assert.match(battleSource, /const suppressDefeatedAttackerPresentation = attackerWasDefeatedInThisLane && !preservePlannedNonMeleePresentation;/);
+  assert.match(battleSource, /else if \(suppressDefeatedAttackerPresentation\)[\s\S]*fallbackReason: 'attacker-defeated-in-lane'[\s\S]*else if \(attackPresentation === COMBAT_ATTACK_PRESENTATIONS\.beam\)[\s\S]*animationHelper: 'animateBeamAttack'/);
+  assert.match(battleSource, /else if \(attackPresentation === COMBAT_ATTACK_PRESENTATIONS\.beam\) \{\s*this\.recordCombatPresentationLifecycle\(event, 'beam-route-selected'\);\s*await this\.animateBeamAttack\(event, preCombatBoardSnapshot\);/);
+});
+
+test('beam endpoint failures retain feedback-only fallback', () => {
+  assert.match(battleSource, /if \(!attacker \|\| !target\)[\s\S]*attackPresentation: 'feedback-only'[\s\S]*'attacker-view-unavailable'[\s\S]*'target-view-unavailable'/);
+  assert.match(battleSource, /if \(!cue\)[\s\S]*attackPresentation: 'feedback-only'[\s\S]*fallbackReason: 'beam-cue-creation-failed'/);
 });
