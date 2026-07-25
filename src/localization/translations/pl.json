@@ -162,7 +162,7 @@
     },
     "tank_shieldbearer_1": {
       "name": "Tarczownik",
-      "textShort": "Sąsiedni [ALLY] +1 ARM do walki"
+      "textShort": "Sąsiedni [ALLY] mają +1 ARM."
     },
     "tank_heavy_1": {
       "name": "Ciężki",

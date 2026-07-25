@@ -300,7 +300,7 @@ Candidate audit for the same rule:
 | Overclock | Breach Test | order | - | ignore_armor_next_attack | Deal 1 to [ENEMY].\nNext hit ignores [ARM] | Targeted enemy | If the target survives, consumes ignore flag on first mitigated hit. |
 | Overclock | Conditioned Reflex | special | - | quick_strike | Selected [ALLY] immediately fights in its lane | Targeted friendly | Additional lane-only immediate combat slice; surviving units may still fight in standard combat. |
 | Overclock | Temper Shift | utility | - | lane_tempo_mod_until_combat | [ENEMY] -1 ATK; opposed [ALLY] +2 ATK until combat | Targeted enemy | Uses enemy-unit lane tempo params `targetEnemyAtk: -1` and `opposingAllyAtk: 2`; expires after combat cleanup. |
-| Tank | Shieldbearer | unit | 1/2/0 | lane_armor_aura_1 | Adjacent [ALLY] +1 ARM until combat | Passive adjacency aura | Calculated during damage mitigation. |
+| Tank | Shieldbearer | unit | 1/2/0 | lane_armor_aura_1 | Adjacent [ALLY] have +1 ARM. | Passive adjacency aura | Calculated during damage mitigation. |
 | Tank | Heavy | unit | 2/3/0 | null |  | Lane combat | Vanilla unit with empty rules text. |
 | Tank | Guardian | unit | 1/3/0 | intercept_lane_damage | Takes combat damage for adjacent [ALLY] | Deterministic adjacency intercept | One guardian intercept per index per resolve pass. |
 | Tank | Wall | unit | 0/2/0 | cannot_attack |  | Lane combat | Still can receive buffs/debuffs. |

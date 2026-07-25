@@ -204,7 +204,7 @@ test('Empire of the Golden Sun presentation names match the current flavor pass'
 test('Empire of the Golden Sun flavor pass preserves gameplay-critical card data', () => {
   const tank = getFactionByKey('Tank');
   const expectedGameplayData = [
-    ['tank_shieldbearer_1', 1, 'tank_01', 'lane_armor_aura_1', 'Adjacent [ALLY] +1 ARM until combat', 1, 2, 0],
+    ['tank_shieldbearer_1', 1, 'tank_01', 'lane_armor_aura_1', 'Adjacent [ALLY] have +1 ARM.', 1, 2, 0],
     ['tank_heavy_1', 2, 'tank_02', null, '', 2, 3, 0],
     ['tank_guardian_1', 3, 'tank_03', 'intercept_lane_damage', 'Takes combat damage for adjacent [ALLY]', 1, 3, 0],
     ['tank_wall_1', 4, 'tank_04', 'cannot_attack', '', 0, 2, 0],
