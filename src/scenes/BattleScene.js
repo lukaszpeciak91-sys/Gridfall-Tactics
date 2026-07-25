@@ -11650,7 +11650,8 @@ export default class BattleScene extends Phaser.Scene {
       await cue.flashAttacker();
       await cue.revealBeam();
       await this.playCombatEventFeedback([event]);
-      await this.delay(45);
+      await this.delay(110);
+      await cue.fadeOut();
     } finally {
       cue.destroy();
     }
@@ -11691,13 +11692,18 @@ export default class BattleScene extends Phaser.Scene {
 
     return {
       flashAttacker: () => Promise.all([
-        this.tweenToPromise({ targets: eyeFlash, alpha: 1, duration: 35, ease: 'Quad.easeOut' }),
-        this.tweenToPromise({ targets: attackerCell.background, scaleX: 1.025, scaleY: 1.025, duration: 35, yoyo: true, ease: 'Quad.easeOut' }),
+        this.tweenToPromise({ targets: eyeFlash, alpha: 1, duration: 80, ease: 'Quad.easeOut' }),
+        this.tweenToPromise({ targets: attackerCell.background, scaleX: 1.025, scaleY: 1.025, duration: 80, yoyo: true, ease: 'Quad.easeOut' }),
       ]),
       revealBeam: () => Promise.all([
-        this.tweenToPromise({ targets: beam, alpha: 1, duration: 45, ease: 'Quad.easeOut' }),
-        this.tweenToPromise({ targets: eyeFlash, alpha: 0.72, duration: 45, ease: 'Quad.easeInOut' }),
-        this.tweenToPromise({ targets: targetFlash, alpha: 1, duration: 45, ease: 'Quad.easeOut' }),
+        this.tweenToPromise({ targets: beam, alpha: 1, duration: 125, ease: 'Quad.easeOut' }),
+        this.tweenToPromise({ targets: eyeFlash, alpha: 0.72, duration: 125, ease: 'Quad.easeInOut' }),
+        this.tweenToPromise({ targets: targetFlash, alpha: 1, duration: 125, ease: 'Quad.easeOut' }),
+      ]),
+      fadeOut: () => Promise.all([
+        this.tweenToPromise({ targets: beam, alpha: 0, duration: 75, ease: 'Quad.easeIn' }),
+        this.tweenToPromise({ targets: eyeFlash, alpha: 0, duration: 75, ease: 'Quad.easeIn' }),
+        this.tweenToPromise({ targets: targetFlash, alpha: 0, duration: 75, ease: 'Quad.easeIn' }),
       ]),
       destroy: () => {
         beam.destroy();
