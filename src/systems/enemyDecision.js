@@ -1,4 +1,5 @@
 import { canPlayOrRedeploy, canSwap, performSwap, playEffectCard, playOrRedeployUnit, resolveTargetedEffectCard, resolveTargetedUnitOnPlayEffect, getUnitAttack, getUnitArmor, getEffectiveBoardAttack, RUNNER_OPEN_LANE_ATK_BONUS, resolveImmediateNoProgressWinner, battleCanRealisticallyChangeOutcome, canPlayEffectCard, isLegalEmptyFriendlySlotForUnitPlacement } from './GameState.js';
+import { summarizeStandardCombatThreat } from './standardCombatThreat.js';
 import { ACTIVE_EFFECT_VARIANTS } from './effectVariantRegistry.generated.js';
 import { getMaterialBattleStateSignature } from './materialBattleStateSignature.js';
 import { DEFAULT_IMMEDIATE_ATTACK_POLICY, resolveImmediateAttackPolicyConfig, detectImmediateAttackThreat, predictedThreatAfterCandidate, describeProtection } from './immediateAttackThreatPolicy.js';
@@ -12,6 +13,9 @@ export const DEFAULT_SWARM_PROFILE = 'off';
 export const SWARM_PROFILE_MODES = Object.freeze(['off', 'alpha-width-v1']);
 export const SWARM_PROFILE_WINDOWS = Object.freeze([40, 80, 120]);
 const AI_SAFE_SURRENDER_CONFIRMATION_PASSES = 2;
+function getStandardCombatThreat(state) {
+  return summarizeStandardCombatThreat(state);
+}
 
 const SAFE_SURRENDER_MEANINGFUL_EFFECT_IDS = new Set([
   'lane_empty_bonus_damage',
@@ -317,16 +321,22 @@ function getOpponentHpKey(owner) {
   return owner === 'enemy' ? 'playerHP' : 'enemyHP';
 }
 
+function hasCanonicalGlobalAttacker(state) {
+  return state?.board?.some((unit) => unit?.effectId === 'can_hit_any_lane') ?? false;
+}
+
 function getGuaranteedHeroDamage(state, owner) {
-  const { friendly, opposing } = getRowsForOwner(owner);
-  let total = 0;
-  friendly.forEach((friendlyIndex, lane) => {
-    const attacker = state?.board?.[friendlyIndex];
-    const blocker = state?.board?.[opposing[lane]];
-    if (!attacker || blocker) return;
-    total += getEffectiveBoardAttack(state, friendlyIndex);
-  });
-  return total;
+  if (!hasCanonicalGlobalAttacker(state)) {
+    const { friendly, opposing } = getRowsForOwner(owner);
+    return friendly.reduce((total, friendlyIndex, lane) => {
+      if (!state?.board?.[friendlyIndex] || state?.board?.[opposing[lane]]) return total;
+      return total + getEffectiveBoardAttack(state, friendlyIndex);
+    }, 0);
+  }
+  const targetOwner = owner === 'enemy' ? 'player' : 'enemy';
+  return getStandardCombatThreat(state).plannedAttacks
+    .filter((attack) => attack.sourceOwner === owner && attack.targetType === 'hero' && attack.targetOwner === targetOwner)
+    .reduce((total, attack) => total + attack.damage, 0);
 }
 
 
@@ -346,6 +356,10 @@ function getOpenLaneStats(state, owner) {
   friendly.forEach((friendlyIndex, lane) => {
     const unit = state?.board?.[friendlyIndex];
     if (!unit || state?.board?.[opposing[lane]]) return;
+    if (unit.effectId === 'can_hit_any_lane') {
+      const planned = getStandardCombatThreat(state).plannedAttacks.find((attack) => attack.sourceIndex === friendlyIndex);
+      if (planned?.targetType !== 'hero') return;
+    }
     lanes += 1;
     damage += getEffectiveBoardAttack(state, friendlyIndex);
   });
@@ -353,28 +367,34 @@ function getOpenLaneStats(state, owner) {
 }
 
 function getLikelyFriendlyCombatDeaths(state, owner) {
-  const { friendly, opposing } = getRowsForOwner(owner);
-  let deaths = 0;
-  friendly.forEach((friendlyIndex, lane) => {
-    const friendlyUnit = state?.board?.[friendlyIndex];
-    const enemyUnit = state?.board?.[opposing[lane]];
-    if (!friendlyUnit || !enemyUnit) return;
-    if (getEffectiveBoardAttack(state, opposing[lane]) >= getEffectiveHp(friendlyUnit)) deaths += 1;
-  });
-  return deaths;
+  if (!hasCanonicalGlobalAttacker(state)) {
+    const { friendly, opposing } = getRowsForOwner(owner);
+    return friendly.filter((friendlyIndex, lane) => {
+      const friendlyUnit = state?.board?.[friendlyIndex];
+      const enemyUnit = state?.board?.[opposing[lane]];
+      return friendlyUnit && enemyUnit && getEffectiveBoardAttack(state, opposing[lane]) >= getEffectiveHp(friendlyUnit);
+    }).length;
+  }
+  return getStandardCombatThreat(state).predictedDeadUnitIndexes
+    .filter((index) => state.board?.[index]?.owner === owner).length;
 }
 
 function getLikelyThreatenedFriendlyIndexes(state, owner) {
-  const { friendly, opposing } = getRowsForOwner(owner);
-  return friendly.filter((friendlyIndex, lane) => {
-    const friendlyUnit = state?.board?.[friendlyIndex];
-    const enemyUnit = state?.board?.[opposing[lane]];
-    return Boolean(friendlyUnit && enemyUnit && getEffectiveBoardAttack(state, opposing[lane]) >= getEffectiveHp(friendlyUnit));
-  });
+  if (!hasCanonicalGlobalAttacker(state)) {
+    const { friendly, opposing } = getRowsForOwner(owner);
+    return friendly.filter((friendlyIndex, lane) => {
+      const friendlyUnit = state?.board?.[friendlyIndex];
+      const enemyUnit = state?.board?.[opposing[lane]];
+      return Boolean(friendlyUnit && enemyUnit && getEffectiveBoardAttack(state, opposing[lane]) >= getEffectiveHp(friendlyUnit));
+    });
+  }
+  return getStandardCombatThreat(state).threatenedUnitIndexes
+    .filter((index) => state.board?.[index]?.owner === owner);
 }
 
 function getFriendlyBoardStats(state, owner) {
   const { friendly, opposing } = getRowsForOwner(owner);
+  const threatenedIndexes = new Set(getLikelyThreatenedFriendlyIndexes(state, owner));
   let count = 0;
   let attack = 0;
   let openLaneAttack = 0;
@@ -391,7 +411,7 @@ function getFriendlyBoardStats(state, owner) {
     count += 1;
     attack += unitAttack;
     if (!enemyUnit) openLaneAttack += unitAttack;
-    if (enemyUnit && getEffectiveBoardAttack(state, opposing[lane]) >= getEffectiveHp(friendlyUnit)) threatened += 1;
+    if (threatenedIndexes.has(friendlyIndex)) threatened += 1;
   });
   return { count, attack, openLaneAttack, emptySlots, threatened };
 }
@@ -422,6 +442,27 @@ function getLaneCombatSnapshot(state, owner, lane) {
 }
 
 function evaluateLaneCombatSwing(beforeState, afterState, owner, lane) {
+  const hasGlobalAttacker = [...(beforeState.board ?? []), ...(afterState.board ?? [])]
+    .some((unit) => unit?.effectId === 'can_hit_any_lane');
+  if (hasGlobalAttacker) {
+    const opponent = owner === 'enemy' ? 'player' : 'enemy';
+    const before = getStandardCombatThreat(beforeState);
+    const after = getStandardCombatThreat(afterState);
+    const beforeFriendlyDeaths = before.predictedDeadUnitIndexes.filter((index) => beforeState.board[index]?.owner === owner);
+    const afterFriendlyDeaths = after.predictedDeadUnitIndexes.filter((index) => afterState.board[index]?.owner === owner);
+    const beforeEnemyDeaths = before.predictedDeadUnitIndexes.filter((index) => beforeState.board[index]?.owner === opponent);
+    const afterEnemyDeaths = after.predictedDeadUnitIndexes.filter((index) => afterState.board[index]?.owner === opponent);
+    const unitsSaved = beforeFriendlyDeaths.filter((index) => !afterFriendlyDeaths.includes(index)).length;
+    const newKills = afterEnemyDeaths.filter((index) => !beforeEnemyDeaths.includes(index)).length;
+    const preventedBaseDamage = Math.max(0, before.baseDamageByOwner[owner] - after.baseDamageByOwner[owner]);
+    const preventedUnitDamage = Math.max(0,
+      Object.entries(before.damageByUnitIndex).reduce((sum, [index, damage]) => sum + (beforeState.board[index]?.owner === owner ? damage : 0), 0)
+      - Object.entries(after.damageByUnitIndex).reduce((sum, [index, damage]) => sum + (afterState.board[index]?.owner === owner ? damage : 0), 0));
+    return (preventedBaseDamage > 0 ? 500 + preventedBaseDamage * 250 : 0)
+      + unitsSaved * 900
+      + newKills * 800
+      + preventedUnitDamage * 120;
+  }
   const before = getLaneCombatSnapshot(beforeState, owner, lane);
   const after = getLaneCombatSnapshot(afterState, owner, lane);
   if (!before || !after) return 0;
@@ -1233,13 +1274,23 @@ export function scoreAction(state, owner, action) {
       const opposingIndex = opposing[lane];
       const enemyUnit = state.board[opposingIndex];
       if (!enemyUnit) {
-        addScoreComponent('openLanePlacement', 1200);
+        const placedAttack = getStandardCombatThreat(nextState).plannedAttacks
+          .find((attack) => attack.sourceIndex === action.slotIndex);
+        if (placedAttack?.targetType === 'hero') addScoreComponent('openLanePlacement', 1200);
       } else {
         const incomingDamage = getUnitAttack(enemyUnit);
-        if (incomingDamage > 0) addScoreComponent('laneBlocking', 1000 + incomingDamage * 120, { incomingDamage });
+        const sniperFalseBlock = enemyUnit.effectId === 'can_hit_any_lane'
+          && getStandardCombatThreat(nextState).sniperAttacks.some((attack) => (
+            attack.sourceIndex === opposingIndex && attack.targetIndex !== action.slotIndex
+          ));
+        if (incomingDamage > 0 && !sniperFalseBlock) addScoreComponent('laneBlocking', 1000 + incomingDamage * 120, { incomingDamage });
+        if (sniperFalseBlock) action.aiEvaluation = { ...(action.aiEvaluation ?? {}), falseLaneBlockingCorrectionApplied: true };
       }
     }
     const placedUnit = nextState.board[action.slotIndex];
+    if (placedUnit?.owner === owner && placedUnit.effectId === 'can_hit_any_lane') {
+      addScoreComponent('combatSwing', evaluateLaneCombatSwing(state, nextState, owner, lane), { effectId: placedUnit.effectId, lane });
+    }
     const adjacencyFormation = getAdjacencyFormationScore(state, owner, action.slotIndex, actionCard);
     if (adjacencyFormation.adjacencyFormationValue > 0) {
       addScoreComponent('adjacencyFormation', adjacencyFormation.adjacencyFormationValue, adjacencyFormation);
@@ -1655,6 +1706,31 @@ export function scoreAction(state, owner, action) {
   }
 
   const savedThreatenedUnits = Math.max(0, getLikelyFriendlyCombatDeaths(state, owner) - getLikelyFriendlyCombatDeaths(nextState, owner));
+  const beforeCombatPrediction = getStandardCombatThreat(state);
+  const afterCombatPrediction = getStandardCombatThreat(nextState);
+  if (beforeCombatPrediction.sniperAttacks.length || afterCombatPrediction.sniperAttacks.length) {
+    action.aiEvaluation = {
+      ...(action.aiEvaluation ?? {}),
+      canonicalCombatPredictionUsed: true,
+      canonicalCombatPrediction: {
+        sniperPresentByOwner: {
+          player: afterCombatPrediction.sniperAttacks.some((attack) => attack.sourceOwner === 'player'),
+          enemy: afterCombatPrediction.sniperAttacks.some((attack) => attack.sourceOwner === 'enemy'),
+        },
+        sniper: afterCombatPrediction.sniperDiagnostics,
+        beforeSniperTargets: beforeCombatPrediction.selectedSniperTargetIndexes,
+        afterSniperTargets: afterCombatPrediction.selectedSniperTargetIndexes,
+        beforePredictedDeaths: beforeCombatPrediction.predictedDeadUnitIndexes,
+        afterPredictedDeaths: afterCombatPrediction.predictedDeadUnitIndexes,
+        beforePlannedBaseDamage: beforeCombatPrediction.baseDamageByOwner,
+        afterPlannedBaseDamage: afterCombatPrediction.baseDamageByOwner,
+        falseLaneBlockingCorrectionApplied: Boolean(action.aiEvaluation?.falseLaneBlockingCorrectionApplied),
+        falseOpenLanePressureCorrectionApplied: action.type === 'play-unit'
+          && nextState.board[action.slotIndex]?.effectId === 'can_hit_any_lane'
+          && afterCombatPrediction.sniperAttacks.some((attack) => attack.sourceIndex === action.slotIndex && attack.targetType === 'unit'),
+      },
+    };
+  }
   const utilityOpportunityCost = getUtilityOpportunityCost(state, owner, action);
   const utilityScoreBeforeCost = scoreRecorder.total;
   const side = owner === 'enemy' ? state.enemy : state.player;
