@@ -1084,6 +1084,8 @@ function captureImmediateCombatPresentationSnapshot(state) {
   return {
     board: cloneBoardForCombatPresentation(state),
     offlineReservations: cloneOfflineReservationsForCombatPresentation(state),
+    cannotDropBelowOneThisTurn: { ...(state.cannotDropBelowOneThisTurn ?? {}) },
+    immuneMoveDisableThisTurn: { ...(state.immuneMoveDisableThisTurn ?? {}) },
     playerHP: state.playerHP,
     enemyHP: state.enemyHP,
     funeralPyreThisCombat: cloneFuneralPyreForCombatPresentation(state),

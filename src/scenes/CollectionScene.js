@@ -21,6 +21,11 @@ import { CARD_COLORS, createCardPreviewView, getDefaultCardAccentColor, resolveC
 import { HAND_CARD_ASPECT_RATIO } from '../ui/handLayout.js';
 import { getCollectionInspectCardTransform, getCollectionViewportBounds } from '../ui/collectionInspectTransform.js';
 import {
+  COLLECTION_AUTO_SCROLL_DURATION_MS,
+  COLLECTION_AUTO_SCROLL_EASE,
+  getCollectionAutoScrollTarget,
+} from '../ui/collectionAutoScroll.js';
+import {
   HAND_CARD_BODY_LINE_SPACING,
   HAND_CARD_LONG_PRESS_MS,
   HAND_CARD_STAT_BADGE_SCALE,
@@ -64,6 +69,7 @@ const COLLECTION_DOSSIER_BODY_LINE_SPACING = 4;
 const COLLECTION_DOSSIER_TEXT_GAP = 5;
 const COLLECTION_DOSSIER_BODY_MAX_LINES = 7;
 const COLLECTION_ACCORDION_TOP_OFFSET = 8;
+const COLLECTION_BANNER_TOP_SPACING = COLLECTION_ACCORDION_TOP_OFFSET - 2;
 
 export default class CollectionScene extends Phaser.Scene {
   constructor() {
@@ -78,6 +84,9 @@ export default class CollectionScene extends Phaser.Scene {
     this.longPressTriggeredCard = null;
     this.expandedFactionKeys = new Set();
     this.collectionContentElements = [];
+    this.factionBannerTargets = new Map();
+    this.collectionAutoScrollEvent = null;
+    this.collectionAutoScrollTween = null;
     this.headerPress = null;
     this.transitionReadyEmitted = false;
     this.transitionReadyPostRenderCallback = null;
@@ -178,6 +187,7 @@ export default class CollectionScene extends Phaser.Scene {
     }
 
     this.destroyCollectionContentElements();
+    this.factionBannerTargets.clear();
 
     const sideMargin = 14;
     const columnGap = COLLECTION_GRID_GAP_X;
@@ -240,6 +250,7 @@ export default class CollectionScene extends Phaser.Scene {
     titleStrip.on('pointerup', (pointer) => this.onFactionHeaderPointerUp(factionKey, pointer));
     content.add(titleStrip);
     this.trackCollectionContentElement(titleStrip);
+    this.factionBannerTargets.set(factionKey, titleStrip);
 
     const header = this.add
       .text(this.scale.width / 2, stripY + COLLECTION_SECTION_TITLE_STRIP_HEIGHT / 2, getFactionPresentationName(faction?.id, getActiveLocale(), faction?.name ?? factionKey), {
@@ -350,6 +361,43 @@ export default class CollectionScene extends Phaser.Scene {
 
     this.expandedFactionKeys.add(factionKey);
     this.rebuildCollectionContent({ width: this.scale.width });
+    this.requestFactionAutoScroll(factionKey);
+  }
+
+  requestFactionAutoScroll(factionKey) {
+    this.cancelCollectionAutoScroll();
+    this.collectionAutoScrollEvent = this.time?.delayedCall?.(0, () => {
+      this.collectionAutoScrollEvent = null;
+      const state = this.scrollState;
+      const banner = this.factionBannerTargets.get(factionKey);
+      if (!this.isCollectionSceneActive || !state || !banner?.active) return;
+
+      const bannerTop = banner.getBounds().top;
+      const targetY = getCollectionAutoScrollTarget({
+        contentY: state.content.y,
+        bannerTop,
+        viewportTop: state.viewportTop,
+        topSpacing: COLLECTION_BANNER_TOP_SPACING,
+        minY: state.minY,
+        maxY: state.maxY,
+      });
+      this.collectionAutoScrollTween = this.tweens.add({
+        targets: state.content,
+        y: targetY,
+        duration: COLLECTION_AUTO_SCROLL_DURATION_MS,
+        ease: COLLECTION_AUTO_SCROLL_EASE,
+        onComplete: () => {
+          this.collectionAutoScrollTween = null;
+        },
+      });
+    }) ?? null;
+  }
+
+  cancelCollectionAutoScroll() {
+    this.collectionAutoScrollEvent?.remove?.(false);
+    this.collectionAutoScrollEvent = null;
+    this.collectionAutoScrollTween?.stop?.();
+    this.collectionAutoScrollTween = null;
   }
 
   onFactionHeaderPointerDown(factionKey, pointer) {
@@ -675,6 +723,7 @@ export default class CollectionScene extends Phaser.Scene {
       return;
     }
 
+    this.cancelCollectionAutoScroll();
     this.setCollectionScrollY(state.content.y - deltaY * 0.45);
   }
 
@@ -684,6 +733,7 @@ export default class CollectionScene extends Phaser.Scene {
       return;
     }
 
+    this.cancelCollectionAutoScroll();
     state.pointerId = pointer.id;
     state.pointerStartY = pointer.y;
     state.contentStartY = state.content.y;
@@ -802,6 +852,7 @@ export default class CollectionScene extends Phaser.Scene {
 
   cleanupScene() {
     this.isCollectionSceneActive = false;
+    this.cancelCollectionAutoScroll();
     this.input?.off('wheel', this.onScrollWheel, this);
     this.input?.off('pointerdown', this.onScrollPointerDown, this);
     this.input?.off('pointermove', this.onScrollPointerMove, this);
@@ -816,6 +867,7 @@ export default class CollectionScene extends Phaser.Scene {
     this.cancelCardLongPress();
     this.destroyInspectPreview();
     this.destroyCollectionContentElements();
+    this.factionBannerTargets.clear();
     this.scrollMask?.destroy?.();
     this.scrollMask = null;
     this.scrollState = null;
