@@ -64,9 +64,10 @@ test('level-up popup creates premium centered panel with no side badge modules',
   assert.deepEqual(texts.map((item) => item.text), ['AWANS', '7', '3 → 7']);
   assert.ok(scene.created.some((item) => item.levelUpRole === 'premium-frame'));
   assert.ok(scene.created.some((item) => item.levelUpRole === 'dark-glass'));
-  assert.ok(scene.created.some((item) => item.levelUpRole === 'horizontal-streak'));
-  assert.ok(scene.created.some((item) => item.levelUpRole === 'center-point'));
+  assert.ok(scene.created.some((item) => item.levelUpRole === 'central-flash'));
   assert.ok(scene.created.some((item) => item.levelUpRole === 'gold-shimmer'));
+  assert.ok(scene.created.some((item) => item.levelUpRole === 'closing-flash'));
+  assert.ok(scene.created.every((item) => item.levelUpRole !== 'horizontal-streak'));
   assert.ok(scene.created.every((item) => !/badge|module|side/i.test(item.levelUpRole ?? '')));
   assert.ok(scene.created.every((item) => typeof item.setInteractive !== 'function'));
   assert.equal(scene.created[0].depth, 1212);
@@ -84,23 +85,22 @@ test('level-up popup timing uses deliberate reveal, readable hold, and smooth ex
   assert.ok(totalMs >= 3500 && totalMs <= 4000);
 });
 
-test('level-up popup materializes by point/streak/frame sequence instead of achievement slide-in', () => {
+test('level-up popup materializes by central flash and unified plaque reveal instead of directional assembly', () => {
   const scene = createMockScene();
   const popup = createLevelUpPopup(scene, { previousLevel: 3, newLevel: 4, locale: 'en', timing: { ...LEVEL_UP_POPUP_TIMING, visibleMs: 1 } });
   popup.play();
   assert.equal(scene.playedSfx.length, 1);
   assert.equal(scene.playedSfx[0].key, AUDIO_KEYS.LEVEL_UP);
   assert.notEqual(scene.playedSfx[0].key, AUDIO_KEYS.ACHIEVEMENT_UNLOCK);
-  assert.ok(scene.createdTweens.length >= 9);
+  assert.ok(scene.createdTweens.length >= 8);
   assert.ok(scene.createdTweens.every((tween) => tween.config.y === undefined), 'level-up must not use slide/fly y tween');
   const findDelay = (role) => scene.createdTweens.find((tween) => {
     const targets = Array.isArray(tween.config.targets) ? tween.config.targets : [tween.config.targets];
     return targets.some((target) => target?.levelUpRole === role);
   })?.config.delay ?? 0;
-  assert.equal(findDelay('center-point'), 0);
-  assert.ok(findDelay('horizontal-streak') > findDelay('center-point'));
-  assert.ok(findDelay('premium-frame') > findDelay('horizontal-streak'));
-  assert.ok(findDelay('dark-glass') > findDelay('premium-frame'));
+  assert.equal(findDelay('central-flash'), 0);
+  assert.ok(findDelay('premium-frame') > findDelay('central-flash'));
+  assert.equal(findDelay('dark-glass'), findDelay('premium-frame'));
   assert.ok(findDelay('label') > findDelay('dark-glass'));
   assert.ok(findDelay('final-level') > findDelay('label'));
   assert.ok(findDelay('transition') > findDelay('final-level'));
@@ -120,7 +120,8 @@ test('level-up popup exit completes once and destroy cancels pending timers/twee
   assert.equal(scene.createdTimers[0].delay, LEVEL_UP_POPUP_TIMING.entryMs + 1);
   scene.createdTimers[0].callback();
   const exitTween = scene.createdTweens.at(-1);
-  assert.equal(exitTween.config.duration, LEVEL_UP_POPUP_TIMING.exitMs);
+  assert.equal(exitTween.config.delay + exitTween.config.duration, LEVEL_UP_POPUP_TIMING.exitMs);
+  assert.equal(exitTween.config.targets.levelUpRole, 'closing-flash');
   exitTween.config.onComplete();
   exitTween.config.onComplete();
   assert.equal(exitStarts, 1);

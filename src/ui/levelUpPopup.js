@@ -68,7 +68,6 @@ export function createLevelUpPopup(scene, options = {}) {
   let destroyed = false;
   let complete = false;
 
-  const x = layout.x - layout.width * 0.5;
   const y = layout.y - layout.height * 0.5;
   const cx = layout.x;
   const cy = layout.y;
@@ -86,29 +85,25 @@ export function createLevelUpPopup(scene, options = {}) {
     aura.fillEllipse(0, 0, layout.width * (0.44 + p * 0.54), layout.height * (0.36 + p * 0.55));
   }
 
-  const centerPoint = addItem(scene.add.graphics().setDepth(resolvedBaseDepth + 5).setPosition(cx, cy), 'center-point');
-  centerPoint.setBlendMode?.('ADD');
-  centerPoint.fillStyle(0xfef3c7, 0.98).fillEllipse(0, 0, 10, 10);
-  centerPoint.fillStyle(0xf59e0b, 0.42).fillEllipse(0, 0, 24, 24);
+  const centralFlash = addItem(scene.add.graphics().setDepth(resolvedBaseDepth + 5).setPosition(cx, cy), 'central-flash');
+  centralFlash.setBlendMode?.('ADD');
+  centralFlash.fillStyle(0xfffbeb, 0.96).fillEllipse(0, 0, 22, 22);
+  centralFlash.fillStyle(0xf6c453, 0.32).fillEllipse(0, 0, layout.width * 0.42, layout.height * 0.72);
+  centralFlash.fillStyle(0x60a5fa, 0.18).fillEllipse(0, 0, layout.width * 0.68, layout.height * 0.94);
 
-  const streak = addItem(scene.add.graphics().setDepth(resolvedBaseDepth + 4).setPosition(cx, cy), 'horizontal-streak');
-  streak.setBlendMode?.('ADD');
-  streak.fillStyle(0xfef3c7, 0.9).fillRoundedRect(-layout.width * 0.34, -2, layout.width * 0.68, 4, 2);
-  streak.fillStyle(0x60a5fa, 0.22).fillRoundedRect(-layout.width * 0.43, -8, layout.width * 0.86, 16, 8);
+  // Draw the plaque around its own origin so its reveal is one calm materialization,
+  // rather than a collection of rails arriving from unrelated directions.
+  const frame = addItem(scene.add.graphics().setDepth(resolvedBaseDepth + 2).setPosition(cx, cy), 'premium-frame');
+  frame.fillStyle(0x071225, 0.96).fillRoundedRect(-layout.width * 0.5, -layout.height * 0.5, layout.width, layout.height, layout.radius);
+  frame.lineStyle(3, 0x0f2a4d, 0.96).strokeRoundedRect(-layout.width * 0.5 + 1, -layout.height * 0.5 + 1, layout.width - 2, layout.height - 2, layout.radius);
+  frame.lineStyle(1.6, 0xf6c453, 0.72).strokeRoundedRect(-layout.width * 0.5 + 5, -layout.height * 0.5 + 5, layout.width - 10, layout.height - 10, layout.radius - 4);
+  frame.lineStyle(1, 0x93c5fd, 0.2).strokeRoundedRect(-layout.width * 0.5 + 11, -layout.height * 0.5 + 11, layout.width - 22, layout.height - 22, layout.radius - 8);
 
-  const frame = addItem(scene.add.graphics().setDepth(resolvedBaseDepth + 2), 'premium-frame');
-  frame.fillStyle(0x071225, 0.96).fillRoundedRect(x, y, layout.width, layout.height, layout.radius);
-  frame.lineStyle(3, 0x0f2a4d, 0.96).strokeRoundedRect(x + 1, y + 1, layout.width - 2, layout.height - 2, layout.radius);
-  frame.lineStyle(1.6, 0xf6c453, 0.68).strokeRoundedRect(x + 5, y + 5, layout.width - 10, layout.height - 10, layout.radius - 4);
-  frame.lineStyle(1, 0x93c5fd, 0.22).strokeRoundedRect(x + 11, y + 11, layout.width - 22, layout.height - 22, layout.radius - 8);
-  frame.fillStyle(0xf6c453, 0.78).fillRoundedRect(cx - layout.width * 0.21, y + 5, layout.width * 0.42, 3, 1.5);
-  frame.fillStyle(0x60a5fa, 0.16).fillRoundedRect(cx - layout.width * 0.36, cy - 1, layout.width * 0.72, 2, 1);
-
-  const glass = addItem(scene.add.graphics().setDepth(resolvedBaseDepth + 1), 'dark-glass');
-  glass.fillStyle(0x020817, 0.88).fillRoundedRect(x + 10, y + 10, layout.width - 20, layout.height - 20, layout.radius - 8);
-  glass.fillStyle(0x172554, 0.28).fillRoundedRect(x + 14, y + 15, layout.width - 28, layout.height * 0.34, layout.radius - 10);
-  glass.fillStyle(0xffffff, 0.08).fillRoundedRect(x + 24, y + 18, layout.width - 48, 12, 6);
-  glass.fillStyle(0xf59e0b, 0.08).fillEllipse(cx, cy + 8, layout.width * 0.46, layout.height * 0.56);
+  const glass = addItem(scene.add.graphics().setDepth(resolvedBaseDepth + 1).setPosition(cx, cy), 'dark-glass');
+  glass.fillStyle(0x020817, 0.88).fillRoundedRect(-layout.width * 0.5 + 10, -layout.height * 0.5 + 10, layout.width - 20, layout.height - 20, layout.radius - 8);
+  glass.fillStyle(0x172554, 0.3).fillRoundedRect(-layout.width * 0.5 + 14, -layout.height * 0.5 + 15, layout.width - 28, layout.height * 0.34, layout.radius - 10);
+  glass.fillStyle(0xffffff, 0.07).fillRoundedRect(-layout.width * 0.5 + 24, -layout.height * 0.5 + 18, layout.width - 48, 12, 6);
+  glass.fillStyle(0xf59e0b, 0.09).fillEllipse(0, 8, layout.width * 0.46, layout.height * 0.56);
 
   const labelText = addItem(scene.add.text(cx, y + 28, view.label, {
     fontFamily: 'Arial, sans-serif', fontSize: layout.width < 320 ? '15px' : '17px', color: '#c7d2fe', fontStyle: 'bold', align: 'center', fixedWidth: layout.width - 40,
@@ -125,12 +120,17 @@ export function createLevelUpPopup(scene, options = {}) {
   shimmer.setBlendMode?.('ADD');
   shimmer.fillStyle(0xfef3c7, 0.34).fillRoundedRect(-8, -layout.height * 0.34, 16, layout.height * 0.68, 8);
 
+  const closingFlash = addItem(scene.add.graphics().setDepth(resolvedBaseDepth + 9).setPosition(cx, cy), 'closing-flash');
+  closingFlash.setBlendMode?.('ADD');
+  closingFlash.fillStyle(0xfffbeb, 0.94).fillEllipse(0, 0, layout.width * 0.64, 18);
+  closingFlash.fillStyle(0xf6c453, 0.3).fillEllipse(0, 0, layout.width * 0.84, 36);
+
   items.forEach((item) => item?.setAlpha?.(0));
-  frame.scaleX = 0.05;
-  glass.scaleY = 0.18;
-  centerPoint.scaleX = centerPoint.scaleY = 0.35;
-  streak.scaleX = 0.1;
+  frame.scaleX = frame.scaleY = 0.94;
+  glass.scaleX = glass.scaleY = 0.94;
+  centralFlash.scaleX = centralFlash.scaleY = 0.3;
   shimmer.scaleX = 0.4;
+  closingFlash.scaleX = 0.35;
 
   const killTweens = () => items.forEach((item) => scene.tweens?.killTweensOf?.(item));
   const destroy = () => {
@@ -147,27 +147,29 @@ export function createLevelUpPopup(scene, options = {}) {
     const finish = invokeOnce(() => { complete = true; destroy(); onComplete?.(); });
     const exitStart = invokeOnce(() => onExitStart?.());
     const addTween = (config) => { const tween = scene.tweens.add(config); tweens.push(tween); return tween; };
-    addTween({ targets: centerPoint, alpha: 1, scaleX: 1, scaleY: 1, duration: 120, ease: 'Sine.easeOut' });
-    addTween({ targets: streak, alpha: 1, scaleX: 1, duration: 210, delay: 95, ease: 'Sine.easeOut' });
-    addTween({ targets: frame, alpha: 1, scaleX: 1, duration: 260, delay: 220, ease: 'Cubic.easeOut' });
-    addTween({ targets: [glass, aura], alpha: 1, scaleY: 1, duration: 260, delay: 330, ease: 'Sine.easeOut' });
-    addTween({ targets: labelText, alpha: 1, duration: 190, delay: 460, ease: 'Sine.easeOut' });
-    addTween({ targets: finalText, alpha: 1, scaleX: 1.035, scaleY: 1.035, duration: 210, delay: 570, ease: 'Back.easeOut' });
-    addTween({ targets: finalText, scaleX: 1, scaleY: 1, duration: 160, delay: 680, ease: 'Sine.easeInOut' });
-    addTween({ targets: transitionText, alpha: 1, duration: 170, delay: 650, ease: 'Sine.easeOut' });
-    addTween({ targets: shimmer, alpha: 1, x: cx + layout.width * 0.42, duration: 160, delay: 690, ease: 'Sine.easeInOut' });
+    addTween({ targets: centralFlash, alpha: 1, scaleX: 1, scaleY: 1, duration: 110, ease: 'Sine.easeOut' });
+    addTween({ targets: centralFlash, alpha: 0, scaleX: 1.2, scaleY: 1.2, duration: 180, delay: 110, ease: 'Sine.easeIn' });
+    addTween({ targets: [frame, glass, aura], alpha: 1, scaleX: 1, scaleY: 1, duration: 270, delay: 120, ease: 'Cubic.easeOut' });
+    addTween({ targets: labelText, alpha: 1, duration: 170, delay: 350, ease: 'Sine.easeOut' });
+    addTween({ targets: finalText, alpha: 1, scaleX: 1.035, scaleY: 1.035, duration: 210, delay: 440, ease: 'Back.easeOut' });
+    addTween({ targets: finalText, scaleX: 1, scaleY: 1, duration: 160, delay: 600, ease: 'Sine.easeInOut' });
+    addTween({ targets: transitionText, alpha: 1, duration: 170, delay: 560, ease: 'Sine.easeOut' });
+    addTween({ targets: shimmer, alpha: 0.72, x: cx + layout.width * 0.42, duration: 230, delay: 610, ease: 'Sine.easeInOut' });
 
     const visibleTimer = scene.time.delayedCall(timing.entryMs + timing.visibleMs, () => {
       if (destroyed) return;
       exitStart();
       addTween({
-        targets: [labelText, finalText, transitionText, glass, aura, shimmer], alpha: 0, duration: timing.exitMs * 0.72, ease: 'Sine.easeInOut',
+        targets: [labelText, finalText, transitionText, aura, shimmer], alpha: 0, duration: timing.exitMs * 0.58, ease: 'Sine.easeInOut',
       });
       addTween({
-        targets: frame, alpha: 0, scaleX: 0.08, duration: timing.exitMs, ease: 'Sine.easeInOut',
+        targets: [frame, glass], alpha: 0, scaleY: 0.08, duration: timing.exitMs * 0.82, ease: 'Sine.easeInOut',
       });
       addTween({
-        targets: [streak, centerPoint], alpha: 0, scaleX: 0.18, scaleY: 0.45, duration: timing.exitMs, ease: 'Sine.easeInOut', onComplete: finish,
+        targets: closingFlash, alpha: 0.92, scaleX: 1, scaleY: 0.4, duration: timing.exitMs * 0.5, ease: 'Sine.easeOut',
+      });
+      addTween({
+        targets: closingFlash, alpha: 0, scaleX: 1.3, scaleY: 0.12, duration: timing.exitMs * 0.5, delay: timing.exitMs * 0.5, ease: 'Sine.easeIn', onComplete: finish,
       });
     });
     timers.push(visibleTimer);
