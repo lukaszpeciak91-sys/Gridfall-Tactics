@@ -572,13 +572,47 @@ function chooseRandomAvailableOwnerSlots(state, owner, count = 1) {
 }
 
 function createBoardUnitFromCard(card, owner, cardIdOverride = null) {
+  const originalMaxHp = Number.isFinite(card.originalMaxHp)
+    ? card.originalMaxHp
+    : (Number.isFinite(card.maxHp) ? card.maxHp : card.hp);
   const boardUnit = {
     ...card,
     cardId: cardIdOverride ?? card.id,
     owner,
     maxHp: card.hp,
+    originalAttack: Number.isFinite(card.originalAttack) ? card.originalAttack : card.attack,
+    originalArmor: Number.isFinite(card.originalArmor) ? card.originalArmor : card.armor,
+    originalMaxHp,
   };
   return boardUnit;
+}
+
+/**
+ * Preserve the immutable instance-creation stats used by presentation. Runtime
+ * attack/armor/maxHp fields are intentionally mutable and cannot be a baseline.
+ */
+export function ensureUnitOriginalStats(unit) {
+  if (!unit) return unit;
+  if (!Number.isFinite(unit.originalAttack)) unit.originalAttack = Number.isFinite(unit.attack) ? unit.attack : 0;
+  if (!Number.isFinite(unit.originalArmor)) unit.originalArmor = Number.isFinite(unit.armor) ? unit.armor : 0;
+  if (!Number.isFinite(unit.originalMaxHp)) {
+    unit.originalMaxHp = Number.isFinite(unit.maxHp) ? unit.maxHp : (Number.isFinite(unit.hp) ? unit.hp : 0);
+  }
+  return unit;
+}
+
+export function getUnitOriginalStats(unit) {
+  if (!unit) return { attack: null, armor: null, health: null, maxHp: null };
+  ensureUnitOriginalStats(unit);
+  return {
+    attack: unit.originalAttack,
+    armor: unit.originalArmor,
+    // Current HP is retained as the health baseline so ordinary damage keeps
+    // its established presentation. maxHp metadata is available if HP styling
+    // is supported by the renderer in the future.
+    health: Number.isFinite(unit.hp) ? unit.hp : 0,
+    maxHp: unit.originalMaxHp,
+  };
 }
 
 function createCardFromBoardUnit(unit) {
@@ -1175,6 +1209,7 @@ function triggerAdjacentRotcallers(state, deadIndex, deadOwner, options = {}) {
       state.rotcallerAlreadyConsumedSkips = (state.rotcallerAlreadyConsumedSkips ?? 0) + 1;
       return;
     }
+    ensureUnitOriginalStats(rotcaller);
     rotcaller.rotcallerPermanentTriggerConsumed = true;
     rotcaller.attack = (rotcaller.attack ?? 0) + 1;
     const resultingAttack = getUnitAttack(rotcaller, { excludeCombatId: state.activeCombatId });
