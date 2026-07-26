@@ -440,7 +440,7 @@ test('GameMenuScene provides campaign choices and preserves Arena routing', () =
   assert.match(source, /translateActive\('ui\.gameMenu\.continue', 'CONTINUE'\)/);
   assert.match(source, /translateActive\('ui\.gameMenu\.newGame', 'NEW GAME'\)/);
   assert.match(source, /translateActive\('ui\.gameMenu\.tutorial', 'TUTORIAL'\), \(\) => \{[\s\S]*enterBattleScene\(this, \{[\s\S]*battleContext:[\s\S]*mode:\s*'tutorial'[\s\S]*tutorialId:\s*'tutorial_v1'[\s\S]*returnSceneKey:\s*'GameMenuScene'/);
-  assert.match(source, /translateActive\('ui\.gameMenu\.arena', 'ARENA'\), \(\) => \{[\s\S]*this\.scene\.start\('FactionSelectScene', \{ returnSceneKey: 'GameMenuScene' \}\)/);
+  assert.match(source, /translateActive\('ui\.gameMenu\.arena', 'ARENA'\), \(\) => \{[\s\S]*this\.startFactionSelect\(\{ returnSceneKey: 'GameMenuScene' \}\)/);
   assert.match(source, /import \{ clearCampaign, hasActiveCampaign \} from '\.\.\/systems\/campaignState\.js';/);
   assert.match(source, /if \(hasActiveCampaign\(\)\) \{[\s\S]*resetImageButtonState\(this\.continueButton, \{ interactive: true \}\)/);
   assert.match(source, /resetImageButtonState\(this\.continueButton, \{ interactive: false \}\)/);

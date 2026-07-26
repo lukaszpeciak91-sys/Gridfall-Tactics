@@ -37,8 +37,8 @@ test('FactionSelectScene back route can return arena and campaign launches to ga
   const gameMenu = read('src/scenes/GameMenuScene.js');
   assert.match(faction, /this\.returnSceneKey = data\?\.returnSceneKey === 'GameMenuScene' \? 'GameMenuScene' : 'MainMenuScene'/);
   assert.match(faction, /returnToMainMenu\(\) \{[\s\S]*this\.scene\.start\(this\.returnSceneKey\)/);
-  assert.match(gameMenu, /this\.scene\.start\('FactionSelectScene', \{ returnSceneKey: 'GameMenuScene' \}\)/);
-  assert.match(gameMenu, /this\.scene\.start\('FactionSelectScene', \{ mode: 'campaign', returnSceneKey: 'GameMenuScene' \}\)/);
+  assert.match(gameMenu, /this\.startFactionSelect\(\{ returnSceneKey: 'GameMenuScene' \}\)/);
+  assert.match(gameMenu, /this\.startFactionSelect\(\{ mode: 'campaign', returnSceneKey: 'GameMenuScene' \}\)/);
 });
 
 test('new game confirmation modal uses short localized labels and preserves actions', () => {
