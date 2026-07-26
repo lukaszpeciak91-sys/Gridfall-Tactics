@@ -40,15 +40,15 @@ test('embedded localization maps only reference supported locales', () => {
 test('generic localized values use the requested locale and English fallback', () => {
   assert.equal(resolveLocalizedValue({ en: 'English', pl: 'Polski' }, 'pl'), 'Polski');
   assert.equal(resolveLocalizedValue({ en: 'English', pl: 'Polski' }, 'uk'), 'English');
-  assert.equal(getFactionPresentationName('aggro', 'uk'), getFactionPresentationName('aggro', 'en'));
-  assert.deepEqual(getFactionPresentationLore('aggro', 'uk'), getFactionPresentationLore('aggro', 'en'));
-  assert.equal(resolveLocalizedValue(TUTORIAL_STEPS[0].text, 'uk'), TUTORIAL_STEPS[0].text.en);
+  assert.equal(getFactionPresentationName('aggro', 'uk'), 'Порцеляновий двір');
+  assert.equal(getFactionPresentationLore('aggro', 'uk').dimension, 'Вимір C-69');
+  assert.match(resolveLocalizedValue(TUTORIAL_STEPS[0].text, 'uk'), /Ласкаво просимо/);
 });
 
 test('tutorial cards and canonical card markers fall back without locale branches', () => {
   const tutorialCard = tutorialPlayerFaction.deck[0];
   assert.equal(getCardDisplayName(tutorialCard, 'pl'), tutorialCard.localizedName.pl);
-  assert.equal(getCardDisplayName(tutorialCard, 'uk'), tutorialCard.localizedName.en);
+  assert.equal(getCardDisplayName(tutorialCard, 'uk'), tutorialCard.localizedName.uk);
   const card = { id: 'canonical', name: 'Canonical', type: 'order', textShort: '[ALLIES] +1 [ATK]\n[ENEMY] loses 1 [HP]' };
   assert.equal(getCardDisplayContent(card, 'uk').body, '♙♙ +1 ▲\n♟ loses 1 ●');
 });

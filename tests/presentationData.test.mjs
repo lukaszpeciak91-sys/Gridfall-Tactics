@@ -75,7 +75,7 @@ test('presentation helper resolves English and Polish override names without rep
 test('presentation helper falls back from missing Polish names to English overrides', async () => {
   const source = asStandalonePresentationModule(fs
     .readFileSync('src/data/presentation/factionPresentation.js', 'utf8')
-    .replace("aggro_runner_1: { name: { en: 'Ballroom Duelist', pl: 'Balowy Pojedynkowicz' } }", "aggro_runner_1: { name: { en: 'Ballroom Duelist' } }"));
+    .replace("aggro_runner_1: { name: { en: 'Ballroom Duelist', pl: 'Balowy Pojedynkowicz', uk: 'Балетний дуелянт' } }", "aggro_runner_1: { name: { en: 'Ballroom Duelist' } }"));
   const moduleUrl = `data:text/javascript;charset=utf-8,${encodeURIComponent(source)}`;
   const { getCardPresentationName: getFixtureCardPresentationName } = await import(moduleUrl);
 
@@ -85,7 +85,7 @@ test('presentation helper falls back from missing Polish names to English overri
 test('presentation helper falls back from missing English override to original card name', async () => {
   const source = asStandalonePresentationModule(fs
     .readFileSync('src/data/presentation/factionPresentation.js', 'utf8')
-    .replace("aggro_runner_1: { name: { en: 'Ballroom Duelist', pl: 'Balowy Pojedynkowicz' } }", "aggro_runner_1: { name: { pl: 'Balowy Pojedynkowicz' } }"));
+    .replace("aggro_runner_1: { name: { en: 'Ballroom Duelist', pl: 'Balowy Pojedynkowicz', uk: 'Балетний дуелянт' } }", "aggro_runner_1: { name: { pl: 'Balowy Pojedynkowicz' } }"));
   const moduleUrl = `data:text/javascript;charset=utf-8,${encodeURIComponent(source)}`;
   const { getCardPresentationName: getFixtureCardPresentationName } = await import(moduleUrl);
 
@@ -167,7 +167,7 @@ test('Gravehearts Polish presentation names match the short-name localization pa
     [5, 'attrition_swarm_abomination_1', 'Mourning Giant', 'Żałobny Olbrzym'],
     [6, 'attrition_swarm_funeral_pyre_1', 'Funeral Pyre', 'Stos'],
     [7, 'attrition_swarm_infect_1', 'Rotten Gift', 'Zgniły Upominek'],
-    [8, 'attrition_swarm_feast_1', 'Feast', 'Ostatnia Wieczerza'],
+    [8, 'attrition_swarm_feast_1', 'Last Supper', 'Ostatnia Wieczerza'],
     [9, 'attrition_swarm_rise_again_1', 'Dance Again', 'Zatańcz Raz Jeszcze'],
     [10, 'attrition_swarm_grave_call_1', 'Grave Call', 'Wezwanie Grobu'],
   ];
@@ -280,7 +280,7 @@ test('faction select metadata covers every faction with two updated chip tags', 
 test('faction presentation helper falls back safely when display metadata is incomplete', async () => {
   const source = asStandalonePresentationModule(fs
     .readFileSync('src/data/presentation/factionPresentation.js', 'utf8')
-    .replace("displayName: { en: 'Porcelain Court', pl: 'Porcelanowy Dwór' },", ""));
+    .replace("displayName: { en: 'Porcelain Court', pl: 'Porcelanowy Dwór', uk: 'Порцеляновий двір' },", ""));
   const moduleUrl = `data:text/javascript;charset=utf-8,${encodeURIComponent(source)}`;
   const { getFactionPresentationName: getFixtureFactionPresentationName } = await import(moduleUrl);
 

@@ -107,19 +107,22 @@ test('achievement definitions expose Polish and English localized display data',
   const definitions = getAchievementDefinitions();
   const byId = Object.fromEntries(definitions.map((definition) => [definition.id, definition]));
 
-  assert.deepEqual(byId['general.win_first_battle'].display.title, {
+  assert.deepEqual({ en: byId['general.win_first_battle'].display.title.en, pl: byId['general.win_first_battle'].display.title.pl }, {
     en: 'The Crowd Liked That',
     pl: 'Publiczności się podobało',
   });
-  assert.deepEqual(byId['general.win_first_battle'].display.description, {
+  assert.deepEqual({ en: byId['general.win_first_battle'].display.description.en, pl: byId['general.win_first_battle'].display.description.pl }, {
     en: 'Win your first battle.',
     pl: 'Wygraj pierwszą bitwę.',
   });
   assert.equal(byId['arena.win_first_battle'].display.title.en, 'Beginner’s Luck');
   assert.equal(byId['arena.win_first_battle'].display.title.pl, 'Szczęście debiutanta');
+  assert.equal(byId['arena.win_first_battle'].display.title.uk, 'Новачкам щастить');
 
   for (const definition of definitions) {
     assert.equal(typeof definition.display.title.en, 'string', `${definition.id} should expose an English title`);
+    assert.equal(typeof definition.display.title.uk, 'string', `${definition.id} should expose a Ukrainian title`);
+    assert.equal(typeof definition.display.description.uk, 'string', `${definition.id} should expose a Ukrainian description`);
     assert.equal(typeof definition.display.title.pl, 'string', `${definition.id} should expose a Polish title`);
     assert.equal(typeof definition.display.description.en, 'string', `${definition.id} should expose an English description`);
     assert.equal(typeof definition.display.description.pl, 'string', `${definition.id} should expose a Polish description`);
@@ -152,9 +155,9 @@ test('achievement definitions expose difficulty metadata and normalize missing o
 });
 
 test('achievement category label and UI grouping data exists for localized panel sections', () => {
-  assert.deepEqual(ACHIEVEMENT_CATEGORY_LABELS.general, { en: 'General', pl: 'Ogólne' });
-  assert.deepEqual(ACHIEVEMENT_CATEGORY_LABELS.arena, { en: 'Arena', pl: 'Arena' });
-  assert.deepEqual(ACHIEVEMENT_CATEGORY_LABELS.factions, { en: 'Factions', pl: 'Frakcje' });
+  assert.deepEqual({ en: ACHIEVEMENT_CATEGORY_LABELS.general.en, pl: ACHIEVEMENT_CATEGORY_LABELS.general.pl }, { en: 'General', pl: 'Ogólne' });
+  assert.deepEqual({ en: ACHIEVEMENT_CATEGORY_LABELS.arena.en, pl: ACHIEVEMENT_CATEGORY_LABELS.arena.pl }, { en: 'Arena', pl: 'Arena' });
+  assert.deepEqual({ en: ACHIEVEMENT_CATEGORY_LABELS.factions.en, pl: ACHIEVEMENT_CATEGORY_LABELS.factions.pl }, { en: 'Factions', pl: 'Frakcje' });
   assert.equal(ACHIEVEMENT_CATEGORY_GROUPS.general, 'general');
   assert.equal(ACHIEVEMENT_CATEGORY_GROUPS.campaign, 'general');
   assert.equal(ACHIEVEMENT_CATEGORY_GROUPS.cards, 'general');
@@ -189,32 +192,32 @@ test('achievement balance thresholds and localized descriptions match current ta
   const byId = Object.fromEntries(definitions.map((definition) => [definition.id, definition]));
 
   assert.equal(byId['general.complete_first_battle'].target, 3);
-  assert.deepEqual(byId['general.complete_first_battle'].display.description, { en: 'Play 3 battles.', pl: 'Rozegraj 3 bitwy.' });
+  assert.deepEqual({ en: byId['general.complete_first_battle'].display.description.en, pl: byId['general.complete_first_battle'].display.description.pl }, { en: 'Play 3 battles.', pl: 'Rozegraj 3 bitwy.' });
   assert.equal(byId['general.win_10_battles'].target, 12);
-  assert.deepEqual(byId['general.win_10_battles'].display.description, { en: 'Win 12 battles.', pl: 'Wygraj 12 bitew.' });
+  assert.deepEqual({ en: byId['general.win_10_battles'].display.description.en, pl: byId['general.win_10_battles'].display.description.pl }, { en: 'Win 12 battles.', pl: 'Wygraj 12 bitew.' });
   assert.equal(byId['cards.play_25_units'].target, 30);
-  assert.deepEqual(byId['cards.play_25_units'].display.description, { en: 'Play 30 units.', pl: 'Zagraj 30 jednostek.' });
+  assert.deepEqual({ en: byId['cards.play_25_units'].display.description.en, pl: byId['cards.play_25_units'].display.description.pl }, { en: 'Play 30 units.', pl: 'Zagraj 30 jednostek.' });
   assert.equal(byId['cards.play_25_effects'].target, 30);
-  assert.deepEqual(byId['cards.play_25_effects'].display.description, { en: 'Play 30 effects.', pl: 'Zagraj 30 efektów.' });
+  assert.deepEqual({ en: byId['cards.play_25_effects'].display.description.en, pl: byId['cards.play_25_effects'].display.description.pl }, { en: 'Play 30 effects.', pl: 'Zagraj 30 efektów.' });
 
   assert.equal(byId['general.play_100_battles'].target, 100);
   assert.equal(byId['general.play_100_battles'].difficulty, 4);
-  assert.deepEqual(byId['general.play_100_battles'].display.title, { en: 'Still Broadcasting', pl: 'Jeszcze nadajemy' });
-  assert.deepEqual(byId['general.play_100_battles'].display.description, { en: 'Play 100 battles.', pl: 'Rozegraj 100 bitew.' });
+  assert.deepEqual({ en: byId['general.play_100_battles'].display.title.en, pl: byId['general.play_100_battles'].display.title.pl }, { en: 'Still Broadcasting', pl: 'Jeszcze nadajemy' });
+  assert.deepEqual({ en: byId['general.play_100_battles'].display.description.en, pl: byId['general.play_100_battles'].display.description.pl }, { en: 'Play 100 battles.', pl: 'Rozegraj 100 bitew.' });
   assert.equal(byId['general.win_50_battles'].target, 50);
   assert.equal(byId['general.win_50_battles'].difficulty, 4);
-  assert.deepEqual(byId['general.win_50_battles'].display.title, { en: 'Prime-Time Star', pl: 'Gwiazda ramówki' });
-  assert.deepEqual(byId['general.win_50_battles'].display.description, { en: 'Win 50 battles.', pl: 'Wygraj 50 bitew.' });
+  assert.deepEqual({ en: byId['general.win_50_battles'].display.title.en, pl: byId['general.win_50_battles'].display.title.pl }, { en: 'Prime-Time Star', pl: 'Gwiazda ramówki' });
+  assert.deepEqual({ en: byId['general.win_50_battles'].display.description.en, pl: byId['general.win_50_battles'].display.description.pl }, { en: 'Win 50 battles.', pl: 'Wygraj 50 bitew.' });
   assert.equal(byId['arena.win_25_battles'].target, 25);
   assert.equal(byId['arena.win_25_battles'].difficulty, 4);
-  assert.deepEqual(byId['arena.win_25_battles'].display.title, { en: 'The House Knows You', pl: 'Kasyno cię zna' });
-  assert.deepEqual(byId['arena.win_25_battles'].display.description, { en: 'Win 25 Arena battles.', pl: 'Wygraj 25 bitew na Arenie.' });
+  assert.deepEqual({ en: byId['arena.win_25_battles'].display.title.en, pl: byId['arena.win_25_battles'].display.title.pl }, { en: 'The House Knows You', pl: 'Kasyno cię zna' });
+  assert.deepEqual({ en: byId['arena.win_25_battles'].display.description.en, pl: byId['arena.win_25_battles'].display.description.pl }, { en: 'Win 25 Arena battles.', pl: 'Wygraj 25 bitew na Arenie.' });
 
   const dominator = byId['campaign.win_campaign_every_faction'];
   assert.equal(dominator.target, getFactionKeys().length);
   assert.equal(dominator.difficulty, 4);
-  assert.deepEqual(dominator.display.title, { en: 'Dominator', pl: 'Dominator' });
-  assert.deepEqual(dominator.display.description, { en: 'Win a campaign with every faction.', pl: 'Wygraj kampanię każdą frakcją.' });
+  assert.deepEqual({ en: dominator.display.title.en, pl: dominator.display.title.pl }, { en: 'Dominator', pl: 'Dominator' });
+  assert.deepEqual({ en: dominator.display.description.en, pl: dominator.display.description.pl }, { en: 'Win a campaign with every faction.', pl: 'Wygraj kampanię każdą frakcją.' });
 
   for (const factionKey of getFactionKeys()) {
     const firstWin = byId[`faction.win_first_battle.${factionKey}`];
@@ -252,8 +255,8 @@ test('approved achievement expansion definitions and localization match the cata
     assert.deepEqual(definition.statPath, expected.statPath);
     assert.equal(definition.target, expected.target);
     assert.equal(definition.difficulty, expected.difficulty);
-    assert.deepEqual(definition.display.title, expected.title);
-    assert.deepEqual(definition.display.description, expected.description);
+    assert.deepEqual({ en: definition.display.title.en, pl: definition.display.title.pl }, expected.title);
+    assert.deepEqual({ en: definition.display.description.en, pl: definition.display.description.pl }, expected.description);
   }
 });
 
@@ -474,7 +477,9 @@ test('faction achievement generation creates every template for every runtime fa
       assert.equal(definition.sortOrder, factionIndex * 100 + template.sortOrder);
       assert.equal(definition.factionSortOrder, factionIndex);
       assert.equal(typeof definition.display.title.en, 'string');
-      assert.equal(typeof definition.display.title.pl, 'string');
+      assert.equal(typeof definition.display.title.uk, 'string', `${definition.id} should expose a Ukrainian title`);
+    assert.equal(typeof definition.display.description.uk, 'string', `${definition.id} should expose a Ukrainian description`);
+    assert.equal(typeof definition.display.title.pl, 'string');
     }
   }
 });
@@ -559,8 +564,8 @@ test('known faction achievements use custom localized copy', () => {
   assert.equal(porcelain.display.title.pl, 'Pierwsza rysa');
   assert.equal(goldenSun.display.title.en, 'Order from Above');
   assert.equal(goldenSun.display.title.pl, 'Rozkaz z góry');
-  assert.deepEqual(overclock.display.title, { en: 'Inspection Passed', pl: 'Pozytywny Wynik Kontroli' });
-  assert.deepEqual(overclock.display.description, { en: 'Win your first battle with Project H.E.R.D.', pl: 'Wygraj pierwszą bitwę Programem P.A.S.Z.A.' });
+  assert.deepEqual({ en: overclock.display.title.en, pl: overclock.display.title.pl }, { en: 'Inspection Passed', pl: 'Pozytywny Wynik Kontroli' });
+  assert.deepEqual({ en: overclock.display.description.en, pl: overclock.display.description.pl }, { en: 'Win your first battle with Project H.E.R.D.', pl: 'Wygraj pierwszą bitwę Programem P.A.S.Z.A.' });
 });
 
 test('unknown faction achievement generation falls back to safe localized templates', () => {

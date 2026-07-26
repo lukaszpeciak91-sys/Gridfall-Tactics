@@ -37,7 +37,7 @@
       "textShort": "Wybrany [ALLY] natychmiast walczy w swojej linii"
     },
     "aggro_quick_fix_1": {
-      "name": "Szybka Naprawa",
+      "name": "Miłosierdzie",
       "textShort": "Ulecz [ALLY] o +1 [HP]\n+1 [ATK] do walki\nZabije: dobierz 1"
     },
     "attrition_swarm_husk_1": {
@@ -73,7 +73,7 @@
       "textShort": "Dobierz kartę"
     },
     "attrition_swarm_rise_again_1": {
-      "name": "Powstań Znowu",
+      "name": "Zatańcz Raz Jeszcze",
       "textShort": "Przywróć najnowszą poległą [ALLY] z 1 [HP] na wybranym polu"
     },
     "attrition_swarm_grave_call_1": {

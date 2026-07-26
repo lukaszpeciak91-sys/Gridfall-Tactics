@@ -50,9 +50,9 @@ function createLocalizedDisplay(title, description) {
 }
 
 export const ACHIEVEMENT_CATEGORY_LABELS = Object.freeze({
-  general: Object.freeze({ en: 'General', pl: 'Ogólne' }),
-  arena: Object.freeze({ en: 'Arena', pl: 'Arena' }),
-  factions: Object.freeze({ en: 'Factions', pl: 'Frakcje' }),
+  general: Object.freeze({ en: 'General', pl: 'Ogólne', uk: 'Загальні' }),
+  arena: Object.freeze({ en: 'Arena', pl: 'Arena', uk: 'Арена' }),
+  factions: Object.freeze({ en: 'Factions', pl: 'Frakcje', uk: 'Фракції' }),
 });
 
 export const ACHIEVEMENT_CATEGORY_GROUPS = Object.freeze({
@@ -94,10 +94,49 @@ function createThresholdDefinition({ id, category, title, description, display, 
   };
 }
 
+const UK_ACHIEVEMENT_TITLES = Object.freeze({
+  'First Crack': 'Перша тріщина', 'Porcelain Prince': 'Порцеляновий принц', 'Crown of Cracks': 'Корона з тріщин', 'Dinner Service': 'Столовий сервіз', 'Courtly Tricks': 'Придворні хитрощі',
+  'First Salute': 'Перший салют', 'Golden Child': 'Золота дитина', 'Pillar of the Empire': 'Опора імперії', 'Fanatic Draft': 'Фанатичний призов', 'Order from Above': 'Наказ згори',
+  'Signal Received': 'Сигнал прийнято', 'Glasführer': 'Ґласфюрер', 'Experiment Successful': 'Експеримент вдалий', 'Research Staff': 'Дослідний персонал', 'Dirty Procedure': 'Брудна процедура',
+  'First Spore': 'Перша спора', 'Mushroom Hunt': 'Грибне полювання', 'The Choir Grows': 'Хор росте', 'Fresh Bloom': 'Свіжий розквіт', 'Spores on Air': 'Спори в ефірі',
+  'First Footprint': 'Перший слід', 'Old Mammoth Hand': 'Старий мамонтяр', 'Through the Frost': 'Крізь мороз', 'Caravan Moves': 'Караван рушає', 'Snow Ritual': 'Сніговий обряд',
+  'Still Dancing': 'Іще танцює', 'King of the Floor': 'Король танцмайданчика', 'Last Ball': 'Останній бал', 'Guests from Beyond': 'Гості з потойбіччя', 'Toast After the End': 'Тост після кінця',
+  'Inspection Passed': 'Перевірку пройдено', 'Quota Met': 'Норму виконано', 'Directive Fulfilled': 'Директиву виконано', 'Production Cycle': 'Виробничий цикл', 'By Procedure': 'За процедурою',
+  'Still Alive!': 'А ви ще живі!', 'On Air Debut': 'Дебют в ефірі', 'The Crowd Liked That': 'Публіці сподобалося', 'At Least You Tried': 'Принаймні ви спробували', 'Old Hand': 'Старий боєць', 'Crowd Favorite': 'Улюбленець публіки', 'Regular Feature': 'Постійний номер', 'Still Broadcasting': 'Ми ще в ефірі', 'Prime-Time Star': 'Зірка прайм-тайму',
+  'Quarter Hour On Air': 'Чверть години в ефірі', 'Half-Hour Show': 'Пів години шоу', 'Broadcast Hour': 'Година ефіру', 'Trophy Claimer': 'Володар кубка', 'Dominator': 'Домінатор', 'Next, Please!': 'Наступний, будь ласка!',
+  'First Unit': 'Перший боєць', 'Cannon Fodder': 'Гарматне м’ясо', 'Full Cast': 'Повний склад', 'Mass Casting': 'Масовка', 'First Effect': 'Перший ефект', 'Dirty Tricks': 'Брудні трюки', 'Anything for Ratings!': 'Усе заради рейтингів!', 'Special Effects': 'Спецефекти',
+  'Beginner’s Luck': 'Новачкам щастить', 'Arena Debut': 'Дебют на арені', 'One More Spin': 'Ще один оберт', 'Hot Streak': 'Смуга удачі', 'Regular Customer': 'Постійний клієнт', 'The House Knows You': 'Казино вас знає', 'All In': 'Ва-банк', 'Every Familiar Battleground': 'Кожна знайома арена', 'Back to Familiar Ground': 'Назад на знайому арену', 'Arena Setback': 'Невдача на арені', 'Campaign Begins': 'Кампанія починається'
+});
+
+function ukrainianAchievementDescription(description) {
+  const factionNames = { 'Porcelain Court': 'Порцеляновим двором', 'Golden Sun': 'Імперією Золотого Сонця', 'Glasköpfe': 'Орденом дер Гласкьопфе', 'Spore Choir': 'Хором спор', 'Mammoth Clans': 'Кланами мамонтів', 'Gravehearts': 'Ґрейвгартс', 'Project H.E.R.D.': 'Проєктом С.Т.А.Д.О.' };
+  for (const [source, name] of Object.entries(factionNames)) {
+    if (description === `Win your first battle with ${source}.`) return `Виграйте перший бій за ${name}.`;
+    if (description === `Win 7 battles with ${source}.`) return `Виграйте 7 боїв за ${name}.`;
+    if (description === `Win a campaign with ${source}.` || description === `Win a Campaign with ${source}.`) return `Виграйте кампанію за ${name}.`;
+    if (description.includes(source) && description.startsWith('Play 20')) return `Зіграйте 20 бійців за ${name}.`;
+    if (description.includes(source) && description.startsWith('Play 10')) return `Зіграйте 10 ефектів за ${name}.`;
+  }
+  return description
+    .replace('Complete the tutorial.', 'Пройдіть навчання.')
+    .replace(/^Play (\d+) battles\.$/, 'Зіграйте $1 боїв.')
+    .replace(/^Win (\d+|your first) battles?\.$/, (_, count) => `Виграйте ${count === 'your first' ? 'перший' : count} ${count === 'your first' ? 'бій' : 'боїв'}.`)
+    .replace(/^Lose your first battle\.$/, 'Програйте перший бій.')
+    .replace(/^Spend (\d+) minutes in active battles\.$/, 'Проведіть $1 хв у активних боях.')
+    .replace(/^Play (\d+|your first) units?\.$/, (_, count) => `Зіграйте ${count === 'your first' ? 'першого бійця' : `${count} бійців`}.`)
+    .replace(/^Play (\d+|your first) effects?\.$/, (_, count) => `Зіграйте ${count === 'your first' ? 'перший ефект' : `${count} ефектів`}.`)
+    .replace('Win a campaign.', 'Виграйте кампанію.').replace('Lose a campaign.', 'Програйте кампанію.').replace('Start your first campaign.', 'Почніть першу кампанію.')
+    .replace('Win a campaign with every faction.', 'Виграйте кампанію кожною фракцією.')
+    .replace(/^Win your first Arena battle\.$/, 'Виграйте перший бій на арені.').replace(/^Play your first Arena battle\.$/, 'Зіграйте перший бій на арені.')
+    .replace(/^Play (\d+) Arena battles\.$/, 'Зіграйте $1 боїв на арені.').replace(/^Win (\d+) Arena battles\.$/, 'Виграйте $1 боїв на арені.')
+    .replace('Win an Arena battle with every faction.', 'Виграйте на арені кожною фракцією.').replace('Visit every Arena battleground.', 'Відвідайте всі поля арени.').replace('Revisit an Arena battleground.', 'Поверніться на відвідане поле арени.').replace('Lose your first Arena battle.', 'Програйте перший бій на арені.');
+}
+
 function localized(entries) {
+  const completeEntries = entries.uk ? entries : { ...entries, uk: { title: UK_ACHIEVEMENT_TITLES[entries.en.title] ?? 'Досягнення', description: ukrainianAchievementDescription(entries.en.description) } };
   const title = {};
   const description = {};
-  for (const [locale, copy] of Object.entries(entries)) {
+  for (const [locale, copy] of Object.entries(completeEntries)) {
     title[locale] = copy.title;
     description[locale] = copy.description;
   }
@@ -184,6 +223,7 @@ function getFactionDisplayContext(factionKey) {
     factionNames: Object.freeze({
       en: getFactionPresentationName(factionId, 'en', factionKey),
       pl: getFactionPresentationName(factionId, 'pl', factionKey),
+      uk: getFactionPresentationName(factionId, 'uk', factionKey),
     }),
   };
 }
