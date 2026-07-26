@@ -37,7 +37,7 @@
       "type": "unit",
       "targeting": "any_enemy_unit",
       "effectId": "on_deploy_damage_enemy_unit_2",
-      "textShort": "On deploy: choose any [ENEMY] and deal 2 damage",
+      "textShort": "On deploy choose any [ENEMY] and deal damage",
       "attack": 2,
       "hp": 1,
       "armor": 0,
