@@ -307,7 +307,7 @@ test('effectVariant summonToken can create temporary Bone Shields and clean them
   const token = state.board[6];
   assert.match(token.id, /bone_shields_token/);
   assert.equal(token.name, 'Bone Shields');
-  assert.equal(token.namePl, 'Kościane Tarcze');
+  assert.equal(token.localizedName.pl, 'Kościane Tarcze');
   assert.equal(token.attack, 0);
   assert.equal(token.armor, 1);
   assert.equal(token.hp, 1);

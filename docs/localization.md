@@ -6,6 +6,7 @@ Gridfall Tactics routes player-facing UI copy through the localization service i
 
 - English (`en`) — base and required fallback language.
 - Polish (`pl`) — full UI dictionary for the current player-facing surfaces.
+- Ukrainian (`uk`) — registered placeholder dictionary pending translation.
 
 The active language is selected in Settings and stored in the existing settings object at `gridfall:tactics:settings:v1` under the `language` field.
 
@@ -67,7 +68,7 @@ The current dictionaries cover and the routed UI includes:
 
 ## Card text
 
-Card names still prefer presentation metadata for the visible card name so existing English/Polish presentation names continue to render without mutating gameplay card data. Card `textShort` copy now resolves through `cards.<cardId>.textShort` when a card id is present, while preserving support for future `textKey` fields and falling back to the card’s source `textShort` if a dictionary key is missing.
+Card names still prefer locale-keyed presentation metadata for the visible card name without mutating gameplay card data. Card `textShort` copy resolves through `cards.<cardId>.textShort` when a card id is present, while preserving support for future `textKey` fields and falling back to locale-keyed or source card text if a dictionary key is missing.
 
 Gameplay card JSON remains the source for ids, stats, `effectId`, targeting, and behavior. Do not change card ids, faction ids, stats, or rules as part of localization-only work.
 

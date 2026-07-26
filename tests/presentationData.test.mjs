@@ -22,6 +22,13 @@ function allCards() {
   return loadFactions().flatMap((faction) => faction.deck.map((card) => ({ faction, card })));
 }
 
+function asStandalonePresentationModule(source) {
+  return source.replace(
+    "import { resolveLocalizedValue } from '../../localization/localeService.js';",
+    "const resolveLocalizedValue = (values, locale, fallback) => values?.[locale] ?? values?.en ?? fallback;",
+  );
+}
+
 test('presentation metadata exists for every current faction id', () => {
   const missingPresentation = loadFactions()
     .map((faction) => faction.id)
@@ -66,9 +73,9 @@ test('presentation helper resolves English and Polish override names without rep
 });
 
 test('presentation helper falls back from missing Polish names to English overrides', async () => {
-  const source = fs
+  const source = asStandalonePresentationModule(fs
     .readFileSync('src/data/presentation/factionPresentation.js', 'utf8')
-    .replace("aggro_runner_1: { nameEn: 'Ballroom Duelist', namePl: 'Balowy Pojedynkowicz' }", "aggro_runner_1: { nameEn: 'Ballroom Duelist' }");
+    .replace("aggro_runner_1: { name: { en: 'Ballroom Duelist', pl: 'Balowy Pojedynkowicz' } }", "aggro_runner_1: { name: { en: 'Ballroom Duelist' } }"));
   const moduleUrl = `data:text/javascript;charset=utf-8,${encodeURIComponent(source)}`;
   const { getCardPresentationName: getFixtureCardPresentationName } = await import(moduleUrl);
 
@@ -76,9 +83,9 @@ test('presentation helper falls back from missing Polish names to English overri
 });
 
 test('presentation helper falls back from missing English override to original card name', async () => {
-  const source = fs
+  const source = asStandalonePresentationModule(fs
     .readFileSync('src/data/presentation/factionPresentation.js', 'utf8')
-    .replace("aggro_runner_1: { nameEn: 'Ballroom Duelist', namePl: 'Balowy Pojedynkowicz' }", "aggro_runner_1: { namePl: 'Balowy Pojedynkowicz' }");
+    .replace("aggro_runner_1: { name: { en: 'Ballroom Duelist', pl: 'Balowy Pojedynkowicz' } }", "aggro_runner_1: { name: { pl: 'Balowy Pojedynkowicz' } }"));
   const moduleUrl = `data:text/javascript;charset=utf-8,${encodeURIComponent(source)}`;
   const { getCardPresentationName: getFixtureCardPresentationName } = await import(moduleUrl);
 
@@ -99,11 +106,11 @@ test('faction presentation names resolve by locale with safe fallbacks', () => {
 test('faction lore blurbs resolve by locale and hide missing lore', () => {
   assert.deepEqual(getFactionPresentationLore('aggro', 'en'), {
     dimension: 'Dimension C-69',
-    body: factionPresentation.aggro.loreEn.body,
+    body: factionPresentation.aggro.lore.en.body,
   });
   assert.deepEqual(getFactionPresentationLore('aggro', 'pl'), {
     dimension: 'Wymiar C-69',
-    body: factionPresentation.aggro.lorePl.body,
+    body: factionPresentation.aggro.lore.pl.body,
   });
   assert.match(getFactionPresentationLoreBlurb('aggro', 'en'), /^Dimension C-69:/);
   assert.match(getFactionPresentationLoreBlurb('aggro', 'pl'), /^Wymiar C-69:/);
@@ -271,10 +278,9 @@ test('faction select metadata covers every faction with two updated chip tags', 
 });
 
 test('faction presentation helper falls back safely when display metadata is incomplete', async () => {
-  const source = fs
+  const source = asStandalonePresentationModule(fs
     .readFileSync('src/data/presentation/factionPresentation.js', 'utf8')
-    .replace("displayNameEn: 'Porcelain Court',", "")
-    .replace("displayNamePl: 'Porcelanowy Dwór',", "");
+    .replace("displayName: { en: 'Porcelain Court', pl: 'Porcelanowy Dwór' },", ""));
   const moduleUrl = `data:text/javascript;charset=utf-8,${encodeURIComponent(source)}`;
   const { getFactionPresentationName: getFixtureFactionPresentationName } = await import(moduleUrl);
 

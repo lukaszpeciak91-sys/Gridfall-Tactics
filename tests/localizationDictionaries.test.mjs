@@ -255,32 +255,32 @@ test('selected localized card texts use enemy board-unit markers without changin
   const migrated = {
     en: {
       attrition_swarm_husk_1: 'When this dies:\n-1 [HP] to opposed [ENEMY]',
-      attrition_swarm_funeral_pyre_1: 'First [ALLY] death each turn:\nenemy base loses 1 HP',
+      attrition_swarm_funeral_pyre_1: 'First [ALLY] death each turn:\nenemy base loses 1 [HP]',
       attrition_swarm_infect_1: 'Deal 1 damage to [ENEMY].\nOpposed [ALLY] +1 [ATK] until combat',
-      control_hacker_1: 'Opposed [ENEMY]: -1 ATK until combat',
+      control_hacker_1: 'Opposed [ENEMY]: -1 [ATK] until combat',
       control_sniper_1: 'On deploy choose any [ENEMY] and deal damage',
       control_controller_1: 'On play: swap two [ENEMIES]',
-      control_swap_1: 'Swap 2 [ALLY] or 2 [ENEMIES]',
-      control_jam_signal_1: 'Up to 2 [ENEMIES]: -1 ATK until combat',
-      control_pulse_wave_1: 'Deal 1 to all [ENEMIES] ignoring ARM',
-      control_system_override_1: 'Selected [ENEMY] attacks its own base\nThen loses 1 HP',
+      control_swap_1: 'Swap 2 [ALLIES] or 2 [ENEMIES]',
+      control_jam_signal_1: 'Up to 2 [ENEMIES]: -1 [ATK] until combat',
+      control_pulse_wave_1: 'Deal 1 to all [ENEMIES] ignoring [ARM]',
+      control_system_override_1: 'Selected [ENEMY] attacks its own base\nThen loses 1 [HP]',
       swarm_spitter_1: 'On play: deal 1 to opposed [ENEMY]',
-      wardens_shield_push_1: 'Swap two adjacent [ENEMIES]\n-1 ATK this combat',
+      wardens_shield_push_1: 'Swap two adjacent [ENEMIES]\n-1 [ATK] this combat',
     },
     pl: {
       attrition_swarm_husk_1: 'Gdy ginie:\n-1 [HP] [ENEMY] naprzeciw',
       attrition_swarm_funeral_pyre_1: 'Pierwszy zgon [ALLY] w turze:\n-1 [HP] bazie wroga',
-      attrition_swarm_infect_1: 'Zadaj 1 obrażenie [ENEMY].\n[ALLY] naprzeciwko +1 [ATK] do walki',
-      control_hacker_1: '[ENEMY] naprzeciwko: -1 ATK do walki',
+      attrition_swarm_infect_1: 'Zadaj 1 [HP] [ENEMY].\n[ALLY] naprzeciwko +1 [ATK] do walki',
+      control_hacker_1: '[ENEMY] naprzeciwko: -1 [ATK] do walki',
       control_sniper_1: 'Po wystawieniu wybierz dowolnego [ENEMY] i zadaj obrażenia',
       control_controller_1: 'Po zagraniu: zamień dwóch [ENEMIES]',
-      control_swap_1: 'Zamień miejscami 2 [ALLY] lub 2 [ENEMIES]',
-      control_jam_signal_1: 'Do 2 [ENEMIES]: -1 ATK do walki',
-      control_pulse_wave_1: 'Zadaj 1 wszystkim [ENEMIES] ignorując ARM',
-      control_system_override_1: 'Wybrany [ENEMY] atakuje własną bazę\nPotem traci 1 HP',
+      control_swap_1: 'Zamień miejscami 2 [ALLIES] lub 2 [ENEMIES]',
+      control_jam_signal_1: 'Do 2 [ENEMIES]: -1 [ATK] do walki',
+      control_pulse_wave_1: 'Zadaj 1 wszystkim [ENEMIES] ignorując [ARM]',
+      control_system_override_1: 'Wybrany [ENEMY] atakuje własną bazę\nPotem traci 1 [HP]',
       swarm_spitter_1: 'Po zagraniu: zadaj 1 [ENEMY] naprzeciw',
-      wardens_spearwall_1: '[ENEMIES] atakujący\nsąsiednich [ALLIES]: -1 ATK',
-      wardens_shield_push_1: 'Zamień dwóch sąsiednich [ENEMIES]\n-1 ATK do walki',
+      wardens_spearwall_1: '[ENEMIES] atakujący\nsąsiednich [ALLIES]: -1 [ATK]',
+      wardens_shield_push_1: 'Zamień dwóch sąsiednich [ENEMIES]\n-1 [ATK] do walki',
     },
   };
 
@@ -290,11 +290,11 @@ test('selected localized card texts use enemy board-unit markers without changin
     }
   }
 
-  assert.equal(en.cards.aggro_runner_1.textShort, 'Open lane: +2 ATK');
-  assert.equal(en.cards.control_drone_1.textShort, 'On death: enemy base loses 1 HP');
+  assert.equal(en.cards.aggro_runner_1.textShort, 'Open lane: +2 [ATK]');
+  assert.equal(en.cards.control_drone_1.textShort, 'On death: enemy base loses 1 [HP]');
   assert.equal(en.cards.control_disruptor_1.textShort, "Until combat opponent cannot play effect cards");
-  assert.equal(pl.cards.aggro_runner_1.textShort, 'Pusta linia: +2 ATK');
-  assert.equal(pl.cards.control_drone_1.textShort, 'Po śmierci: baza wroga traci 1 HP');
+  assert.equal(pl.cards.aggro_runner_1.textShort, 'Pusta linia: +2 [ATK]');
+  assert.equal(pl.cards.control_drone_1.textShort, 'Po śmierci: baza wroga traci 1 [HP]');
   assert.equal(pl.cards.control_disruptor_1.textShort, 'Do walki przeciwnik nie może zagrać kart efektu');
   assert.doesNotMatch(JSON.stringify(en.ui), /\[(?:ENEMY|ENEMIES)\]/u);
   assert.doesNotMatch(JSON.stringify(pl.ui), /\[(?:ENEMY|ENEMIES)\]/u);

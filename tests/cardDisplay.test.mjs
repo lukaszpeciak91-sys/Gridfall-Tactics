@@ -67,9 +67,9 @@ test('tutorial all-attack effect card text resolves in English and Polish', () =
 
   assert.ok(effectCard, 'tutorial all-attack card should exist');
   assert.equal(effectCard.effectId, 'buff_all_atk_1');
-  assert.equal(effectCard.textShort, 'All [ALLY] +1 ATK until combat');
-  assert.equal(effectCard.textShortPl, '[ALLIES] +1 ATK do walki');
-  assert.equal(getCardTextShort(effectCard, 'en'), 'All [ALLY] +1 ATK until combat');
+  assert.equal(effectCard.textShort, 'All [ALLIES] +1 ATK until combat');
+  assert.equal(effectCard.localizedTextShort.pl, '[ALLIES] +1 ATK do walki');
+  assert.equal(getCardTextShort(effectCard, 'en'), 'All [ALLIES] +1 ATK until combat');
   assert.equal(getCardTextShort(effectCard, 'pl'), '[ALLIES] +1 ATK do walki');
   assert.equal(formatHandCardLabel(effectCard, 'en'), 'Alarm Siren\nAll ♙♙ +1 ▲ until combat');
   assert.equal(formatHandCardLabel(effectCard, 'pl'), 'Syrena Alarmowa\n♙♙ +1 ▲ do walki');
@@ -84,8 +84,8 @@ test('card display helper falls back to current card name fields when card keys 
 
 
 test('card display helper falls back to current textShort fields when card keys are absent', () => {
-  assert.equal(getCardTextShort({ textShort: 'Target ally +1 ARM until combat.' }), 'Target ally +1 ARM until combat.');
-  assert.equal(getCardTextShort({ textShort: 'Target ally +1 ARM until combat.' }, 'pl'), 'Target ally +1 ARM until combat.');
+  assert.equal(getCardTextShort({ textShort: 'Target ally +1 [ARM] until combat.' }), 'Target ally +1 [ARM] until combat.');
+  assert.equal(getCardTextShort({ textShort: 'Target ally +1 [ARM] until combat.' }, 'pl'), 'Target ally +1 [ARM] until combat.');
   assert.equal(getCardTextShort({}), undefined);
 });
 
@@ -99,9 +99,9 @@ test('card display helper can resolve future nameKey and textKey fields through 
   };
 
   assert.equal(getCardDisplayName(keyedCard, 'en'), 'Ballroom Duelist');
-  assert.equal(getCardTextShort(keyedCard, 'en'), 'Open lane: +2 ATK');
+  assert.equal(getCardTextShort(keyedCard, 'en'), 'Open lane: +2 [ATK]');
   assert.equal(getCardDisplayName(keyedCard, 'pl'), 'Balowy Pojedynkowicz');
-  assert.equal(getCardTextShort(keyedCard, 'pl'), 'Pusta linia: +2 ATK');
+  assert.equal(getCardTextShort(keyedCard, 'pl'), 'Pusta linia: +2 [ATK]');
 });
 
 test('Swarm Substrate display name resolves in English and Polish', () => {
@@ -198,7 +198,7 @@ test('hand/full formatter includes effect card textShort without unit stats', ()
     attack: 99,
     hp: 99,
     armor: 99,
-    textShort: 'Heal 3',
+    textShort: 'Heal +3 [HP]',
   };
 
   assert.equal(formatHandCardLabel(card), 'Repair Kit\nHeal +3 ●');
@@ -275,7 +275,7 @@ test('battle hand cards route content through card visual layout helpers and pre
   const effectCard = {
     name: 'Repair Kit',
     type: 'effect',
-    textShort: 'Heal 3',
+    textShort: 'Heal +3 [HP]',
   };
 
   assert.match(source, /import \{ formatDeckSummaryEntry \} from '\.\.\/rendering\/cardRenderModes\.js';/);
@@ -338,7 +338,7 @@ test('shared card preview stat row classification separates units, non-units, an
 });
 
 test('card render mode helpers preserve English fallback behavior for future locales', () => {
-  const card = { name: 'Shield Drone', type: 'effect', textShort: 'Target ally +1 ARM until combat.' };
+  const card = { name: 'Shield Drone', type: 'effect', textShort: 'Target ally +1 [ARM] until combat.' };
 
   assert.equal(formatHandCardLabel(card, 'pl'), 'Shield Drone\nTarget ally +1 ◆ until combat.');
   assert.deepEqual(formatDeckSummaryEntry(card, 'pl'), { name: 'Shield Drone', typeLabel: 'Efekt', count: 1 });
@@ -518,7 +518,7 @@ test('board unit compact view removes names, expands artwork, and mirrors stat p
   assert.match(boardUnitViewSource, /const artLocalContrast = this\.add\.rectangle\(0, finalArtY, artRect\.width, artRect\.height, 0x000000, 0\.03\);/);
   assert.match(boardUnitViewSource, /const artShade = this\.add\.rectangle\(0, finalArtY - artRect\.height \* 0\.17, artRect\.width, artRect\.height \* 0\.52, CARD_COLORS\.artTop, 0\.18\);/);
   assert.match(boardUnitViewSource, /const artBottomDim = this\.add\.rectangle\(0, finalArtY \+ artRect\.height \* 0\.29, artRect\.width, artRect\.height \* 0\.42, BASE_CARD_SURFACE_THEME\.artBackdropFill, 0\.14\);/);
-  assert.match(boardUnitViewSource, /return \[cardBack, inner, artBackdrop, art, artStroke, artLocalContrast, artShade, artBottomDim, stats, statusMarker\]\.filter\(Boolean\);/);
+  assert.match(boardUnitViewSource, /return \[cardBack, inner, artBackdrop, art, artStroke, artLocalContrast, artShade, artBottomDim, stats, \.\.\.statusMarkers\]\.filter\(Boolean\);/);
   assert.doesNotMatch(boardUnitViewSource, /createBoardUnitNameText|namePanel|nameText|displayName|getCardDisplayName\(unit, getActiveLocale\(\)\)/);
   assert.doesNotMatch(boardUnitViewSource, /getCardTextShort|getCardDisplayContent|createInlineStatText|bodyText|textPanel/);
 });

@@ -2,19 +2,19 @@
   "cards": {
     "aggro_runner_1": {
       "name": "Biegacz",
-      "textShort": "Pusta linia: +2 ATK"
+      "textShort": "Pusta linia: +2 [ATK]"
     },
     "aggro_berserker_1": {
       "name": "Berserker",
-      "textShort": "Gdy ranny: +1 ATK"
+      "textShort": "Gdy ranny: +1 [ATK]"
     },
     "aggro_glass_cannon_1": {
       "name": "Szklane Działo",
-      "textShort": "Po ataku: strać 1 HP"
+      "textShort": "Po ataku: strać 1 [HP]"
     },
     "aggro_flanker_1": {
       "name": "Flanker",
-      "textShort": "Jeśli sąsiedni slot pusty: +1 ATK"
+      "textShort": "Jeśli sąsiedni slot pusty: +1 [ATK]"
     },
     "aggro_scout_1": {
       "name": "Zwiadowca",
@@ -22,7 +22,7 @@
     },
     "aggro_full_attack_1": {
       "name": "Pełny Atak",
-      "textShort": "[ALLIES] +2 ATK do walki"
+      "textShort": "[ALLIES] +2 [ATK] do walki"
     },
     "aggro_rush_1": {
       "name": "Szarża",
@@ -38,7 +38,7 @@
     },
     "aggro_quick_fix_1": {
       "name": "Szybka Naprawa",
-      "textShort": "Ulecz [ALLY] o 1\n+1 [ATK] do walki\nZabije: dobierz 1"
+      "textShort": "Ulecz [ALLY] o +1 [HP]\n+1 [ATK] do walki\nZabije: dobierz 1"
     },
     "attrition_swarm_husk_1": {
       "name": "Łupina",
@@ -50,7 +50,7 @@
     },
     "attrition_swarm_leech_1": {
       "name": "Pijawka",
-      "textShort": "Przy ataku: ulecz swoją bazę o 1"
+      "textShort": "Przy ataku: ulecz swoją bazę o +1 [HP]"
     },
     "attrition_swarm_rotcaller_1": {
       "name": "Wodzirej",
@@ -58,7 +58,7 @@
     },
     "attrition_swarm_abomination_1": {
       "name": "Abominacja",
-      "textShort": "Gdy ginie: obie bazy tracą 1 HP"
+      "textShort": "Gdy ginie: obie bazy tracą 1 [HP]"
     },
     "attrition_swarm_funeral_pyre_1": {
       "name": "Stos",
@@ -66,7 +66,7 @@
     },
     "attrition_swarm_infect_1": {
       "name": "Zgniły Upominek",
-      "textShort": "Zadaj 1 obrażenie [ENEMY].\n[ALLY] naprzeciwko +1 [ATK] do walki"
+      "textShort": "Zadaj 1 [HP] [ENEMY].\n[ALLY] naprzeciwko +1 [ATK] do walki"
     },
     "attrition_swarm_feast_1": {
       "name": "Ostatnia Wieczerza",
@@ -74,7 +74,7 @@
     },
     "attrition_swarm_rise_again_1": {
       "name": "Powstań Znowu",
-      "textShort": "Przywróć najnowszą poległą [ALLY] z 1 HP na wybranym polu"
+      "textShort": "Przywróć najnowszą poległą [ALLY] z 1 [HP] na wybranym polu"
     },
     "attrition_swarm_grave_call_1": {
       "name": "Zew Grobu",
@@ -82,7 +82,7 @@
     },
     "control_hacker_1": {
       "name": "Signalegel",
-      "textShort": "[ENEMY] naprzeciwko: -1 ATK do walki"
+      "textShort": "[ENEMY] naprzeciwko: -1 [ATK] do walki"
     },
     "control_disruptor_1": {
       "name": "Störführer",
@@ -98,23 +98,23 @@
     },
     "control_drone_1": {
       "name": "Przekaźnik",
-      "textShort": "Po śmierci: baza wroga traci 1 HP"
+      "textShort": "Po śmierci: baza wroga traci 1 [HP]"
     },
     "control_swap_1": {
       "name": "Przesunięcie Sygnału",
-      "textShort": "Zamień miejscami 2 [ALLY] lub 2 [ENEMIES]"
+      "textShort": "Zamień miejscami 2 [ALLIES] lub 2 [ENEMIES]"
     },
     "control_jam_signal_1": {
       "name": "Zakłócenie Sygnału",
-      "textShort": "Do 2 [ENEMIES]: -1 ATK do walki"
+      "textShort": "Do 2 [ENEMIES]: -1 [ATK] do walki"
     },
     "control_pulse_wave_1": {
       "name": "Wunderwaffe",
-      "textShort": "Zadaj 1 wszystkim [ENEMIES] ignorując ARM"
+      "textShort": "Zadaj 1 wszystkim [ENEMIES] ignorując [ARM]"
     },
     "control_system_override_1": {
       "name": "Przejęcie Systemu",
-      "textShort": "Wybrany [ENEMY] atakuje własną bazę\nPotem traci 1 HP"
+      "textShort": "Wybrany [ENEMY] atakuje własną bazę\nPotem traci 1 [HP]"
     },
     "control_recall_1": {
       "name": "Ekstrakcja",
@@ -138,7 +138,7 @@
     },
     "swarm_alpha_1": {
       "name": "Alfa",
-      "textShort": "Sąsiedni [ALLY] w walce: +1 ATK i ignoruje 1 ARM"
+      "textShort": "Sąsiedni [ALLIES] w walce: +1 [ATK] i ignoruje 1 [ARM]"
     },
     "swarm_spawn_1": {
       "name": "Pomiot",
@@ -146,11 +146,11 @@
     },
     "swarm_swarm_attack_1": {
       "name": "Atak Roju",
-      "textShort": "[ALLIES] +1 ATK do walki"
+      "textShort": "[ALLIES] +1 [ATK] do walki"
     },
     "swarm_regrow_1": {
       "name": "Odrost",
-      "textShort": "Przywróć najnowszą poległą [ALLY] z 1 HP na wybranym polu"
+      "textShort": "Przywróć najnowszą poległą [ALLY] z 1 [HP] na wybranym polu"
     },
     "swarm_flood_1": {
       "name": "Zalew",
@@ -158,11 +158,11 @@
     },
     "swarm_recycle_1": {
       "name": "Pożywka",
-      "textShort": "[ENEMIES]: -1 ARM do walki"
+      "textShort": "[ENEMIES]: -1 [ARM] do walki"
     },
     "tank_shieldbearer_1": {
       "name": "Tarczownik",
-      "textShort": "Sąsiedni [ALLY] mają +1 ARM."
+      "textShort": "Sąsiedni [ALLIES] mają +1 [ARM]."
     },
     "tank_heavy_1": {
       "name": "Ciężki",
@@ -178,11 +178,11 @@
     },
     "tank_bruiser_1": {
       "name": "Weteran Kła",
-      "textShort": "Po przetrwaniu obrażeń: +1 ATK do następnej walki"
+      "textShort": "Po przetrwaniu obrażeń: +1 [ATK] do następnej walki"
     },
     "tank_fortify_1": {
       "name": "Fortyfikacja",
-      "textShort": "[ALLIES] +1 ARM do walki"
+      "textShort": "[ALLIES] +1 [ARM] do walki"
     },
     "tank_stability_1": {
       "name": "Stabilność",
@@ -190,27 +190,27 @@
     },
     "tank_reinforce_1": {
       "name": "Wzmocnienie",
-      "textShort": "Ulecz wszystkich [ALLY] o 1"
+      "textShort": "Ulecz wszystkich [ALLIES] o +1 [HP]"
     },
     "tank_last_stand_1": {
       "name": "Ostatni Bastion",
-      "textShort": "Do walki [ALLIES] nie mogą spaść poniżej 1 HP"
+      "textShort": "Do walki [ALLIES] nie mogą spaść poniżej 1 [HP]"
     },
     "tank_repair_kit_1": {
       "name": "Reaktywne Opancerzenie",
-      "textShort": "Wybrany [ALLY] +1 ARM do walki"
+      "textShort": "Wybrany [ALLY] +1 [ARM] do walki"
     },
     "wardens_sentinel_1": {
       "name": "Strażnik Kłów",
-      "textShort": "Atakujący: -1 ATK"
+      "textShort": "Atakujący: -1 [ATK]"
     },
     "wardens_spearwall_1": {
       "name": "Łowca Tundry",
-      "textShort": "[ENEMIES] atakujący\nsąsiednich [ALLIES]: -1 ATK"
+      "textShort": "[ENEMIES] atakujący\nsąsiednich [ALLIES]: -1 [ATK]"
     },
     "wardens_halberdier_1": {
       "name": "Lodowa Pika",
-      "textShort": "Jeśli naprzeciw: +1 ATK"
+      "textShort": "Jeśli naprzeciw: +1 [ATK]"
     },
     "wardens_bastion_guard_1": {
       "name": "Tururuk",
@@ -222,11 +222,11 @@
     },
     "wardens_brace_1": {
       "name": "Kościane Tarcze",
-      "textShort": "Wybrany [ALLY] +1 ARM do walki"
+      "textShort": "Wybrany [ALLY] +1 [ARM] do walki"
     },
     "wardens_shield_push_1": {
       "name": "Mamuci Napór",
-      "textShort": "Zamień dwóch sąsiednich [ENEMIES]\n-1 ATK do walki"
+      "textShort": "Zamień dwóch sąsiednich [ENEMIES]\n-1 [ATK] do walki"
     },
     "wardens_stand_firm_1": {
       "name": "Przetrwać Mróz",
@@ -238,7 +238,7 @@
     },
     "wardens_hold_the_line_1": {
       "name": "Utrzymać Przełęcz",
-      "textShort": "Sąsiedni [ALLY] +1 ARM do walki"
+      "textShort": "Sąsiedni [ALLIES] +1 [ARM] do walki"
     },
     "overclock_hot_runner_1": {
       "name": "Zając Wabik",
@@ -246,23 +246,23 @@
     },
     "overclock_pain_engine_1": {
       "name": "Wieprz Tłumiący",
-      "textShort": "[ENEMY] naprzeciwko: -1 ATK do walki"
+      "textShort": "[ENEMY] naprzeciwko: -1 [ATK] do walki"
     },
     "overclock_golem_1": {
       "name": "Wół Jednorazowy",
-      "textShort": "Po walce: strać 1 HP"
+      "textShort": "Po walce: strać 1 [HP]"
     },
     "overclock_gap_hunter_1": {
       "name": "Baran Wyłomowy",
-      "textShort": "Jeśli sąsiedni slot pusty: +1 ATK"
+      "textShort": "Jeśli sąsiedni slot pusty: +1 [ATK]"
     },
     "overclock_mob_champion_1": {
       "name": "Kwoka Dowodząca",
-      "textShort": "+1 ATK za każdego innego [ALLY]"
+      "textShort": "+1 [ATK] za każdego innego [ALLY]"
     },
     "overclock_redline_1": {
       "name": "Norma Przekroczona",
-      "textShort": "[ALLIES] +1 ATK do walki"
+      "textShort": "[ALLIES] +1 [ATK] do walki"
     },
     "overclock_forced_march_1": {
       "name": "Przekierowanie Operacyjne",
@@ -278,7 +278,7 @@
     },
     "overclock_mercy_1": {
       "name": "Korekta Temperamentu",
-      "textShort": "[ENEMY] -1 ATK\n[ALLY] naprzeciwko +2 ATK do walki"
+      "textShort": "[ENEMY] -1 [ATK]\n[ALLY] naprzeciwko +2 [ATK] do walki"
     }
   },
   "cardTypes": {
@@ -441,7 +441,8 @@
       "sfxVolume": "Głośność efektów",
       "languages": {
         "en": "Angielski",
-        "pl": "Polski"
+        "pl": "Polski",
+        "uk": "Ukrainian"
       }
     },
     "collection": {
@@ -809,7 +810,8 @@
       },
       "progressUnits": {
         "minutes": "min"
-      }
+      },
+      "unlockedBadge": "ODBLOKOWANE"
     },
     "startup": {
       "tapAnywhere": "DOTKNIJ GDZIEKOLWIEK",

@@ -83,17 +83,27 @@ test('persisted language setting is read from existing settings storage', () => 
   });
 });
 
-test('supported locale list returns en and pl as a safe copy', () => {
+test('supported locale list returns every registered locale as a safe copy', () => {
   const locales = getSupportedLocales();
-  assert.deepEqual(locales, ['en', 'pl']);
+  assert.deepEqual(locales, ['en', 'pl', 'uk']);
 
   locales.push('de');
-  assert.deepEqual(getSupportedLocales(), ['en', 'pl']);
+  assert.deepEqual(getSupportedLocales(), ['en', 'pl', 'uk']);
+});
+
+test('uk is accepted, persisted, and falls back to English values', () => {
+  const storage = createMemoryStorage();
+  withWindowStorage(storage, () => {
+    assert.equal(setActiveLocale('uk'), 'uk');
+    assert.equal(getActiveLocale(), 'uk');
+    assert.equal(JSON.parse(storage.getItem(SETTINGS_STORAGE_KEY)).language, 'uk');
+    assert.equal(translate('ui.mainMenu.collection', 'uk'), 'COLLECTION');
+  });
 });
 
 test('English translation lookup returns base dictionary values', () => {
   assert.equal(translate('cards.aggro_runner_1.name', 'en'), 'Runner');
-  assert.equal(translate('cards.aggro_runner_1.textShort', 'en'), 'Open lane: +2 ATK');
+  assert.equal(translate('cards.aggro_runner_1.textShort', 'en'), 'Open lane: +2 [ATK]');
   assert.equal(translate('stats.armor', 'en'), 'ARM');
 });
 
@@ -103,7 +113,7 @@ test('translation lookup falls back to English for invalid locales', () => {
 
 test('Polish translation lookup returns Polish dictionary values', () => {
   assert.equal(translate('cards.aggro_runner_1.name', 'pl'), 'Biegacz');
-  assert.equal(translate('cards.aggro_runner_1.textShort', 'pl'), 'Pusta linia: +2 ATK');
+  assert.equal(translate('cards.aggro_runner_1.textShort', 'pl'), 'Pusta linia: +2 [ATK]');
   assert.equal(translate('ui.mainMenu.collection', 'pl'), 'KOLEKCJA');
 });
 
@@ -116,4 +126,3 @@ test('missing translation keys fall back safely to provided fallback or key', ()
   assert.equal(translate('cards.missing.name', 'en'), 'cards.missing.name');
   assert.equal(translate(undefined, 'en', 'Existing Field'), 'Existing Field');
 });
-

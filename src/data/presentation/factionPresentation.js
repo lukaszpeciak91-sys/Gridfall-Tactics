@@ -1,3 +1,5 @@
+import { resolveLocalizedValue } from '../../localization/localeService.js';
+
 function deepFreeze(value) {
   if (!value || typeof value !== 'object' || Object.isFrozen(value)) {
     return value;
@@ -12,15 +14,16 @@ function deepFreeze(value) {
 
 const presentation = {
   aggro: {
-    displayNameEn: 'Porcelain Court',
-    displayNamePl: 'Porcelanowy Dwór',
-    loreEn: {
+    displayName: { en: 'Porcelain Court', pl: 'Porcelanowy Dwór' },
+    lore: {
+      en: {
       dimension: 'Dimension C-69',
       body: 'the aristocracy discovered immortality and, as tradition demands, sent the bill to everyone below them. When even serum ran short of people, the porcelain nobles began dueling over the last scraps of life with all the grace of a class that missed its own funeral.',
     },
-    lorePl: {
+      pl: {
       dimension: 'Wymiar C-69',
       body: 'arystokracja odkryła nieśmiertelność i, zgodnie z tradycją, wystawiła rachunek poddanym. Gdy ludzi zabrakło nawet na serum, porcelanowi możni zaczęli pojedynkować się o resztki życia z elegancją klasy, która przegapiła własny pogrzeb.',
+    },
     },
     shortConcept: 'A decadent immortal aristocracy of cracked porcelain automata sustains itself through televised ballroom violence, perfumed chemicals, and ceremonial brutality.',
     tone: 'Decadent, theatrical, elegant, sadistic, chemically unstable, and darkly comic.',
@@ -65,16 +68,16 @@ const presentation = {
     gameplayFeel: 'Fast tempo, burst aggression, theatrical attacks, stylish violence, chaotic pressure.',
     colorNotes: 'Pastel cream, blush pink, powder blue, porcelain white, antique gold, candle amber, and sharp blood-red accents.',
     cardNameOverrides: {
-      aggro_runner_1: { nameEn: 'Ballroom Duelist', namePl: 'Balowy Pojedynkowicz' },
-      aggro_berserker_1: { nameEn: 'Mad Countess', namePl: 'Obłąkana Hrabina' },
-      aggro_glass_cannon_1: { nameEn: 'Porcelain Golem', namePl: 'Porcelanowy Golem' },
-      aggro_flanker_1: { nameEn: 'Sadistic Marquis', namePl: 'Sadystyczny Markiz' },
-      aggro_scout_1: { nameEn: 'Tea Courier', namePl: 'Herbaciany Kurier' },
-      aggro_full_attack_1: { nameEn: 'Velvet Serum', namePl: 'Aksamitne Serum' },
-      aggro_rush_1: { nameEn: 'Crimson Waltz', namePl: 'Karmazynowy Walc' },
-      aggro_pierce_strike_1: { nameEn: 'Crystal Rapier', namePl: 'Kryształowy Rapier' },
-      aggro_adrenaline_1: { nameEn: 'Maniacal Masquerade', namePl: 'Maniakalna Maskarada' },
-      aggro_quick_fix_1: { nameEn: 'Mercy', namePl: 'Miłosierdzie' },
+      aggro_runner_1: { name: { en: 'Ballroom Duelist', pl: 'Balowy Pojedynkowicz' } },
+      aggro_berserker_1: { name: { en: 'Mad Countess', pl: 'Obłąkana Hrabina' } },
+      aggro_glass_cannon_1: { name: { en: 'Porcelain Golem', pl: 'Porcelanowy Golem' } },
+      aggro_flanker_1: { name: { en: 'Sadistic Marquis', pl: 'Sadystyczny Markiz' } },
+      aggro_scout_1: { name: { en: 'Tea Courier', pl: 'Herbaciany Kurier' } },
+      aggro_full_attack_1: { name: { en: 'Velvet Serum', pl: 'Aksamitne Serum' } },
+      aggro_rush_1: { name: { en: 'Crimson Waltz', pl: 'Karmazynowy Walc' } },
+      aggro_pierce_strike_1: { name: { en: 'Crystal Rapier', pl: 'Kryształowy Rapier' } },
+      aggro_adrenaline_1: { name: { en: 'Maniacal Masquerade', pl: 'Maniakalna Maskarada' } },
+      aggro_quick_fix_1: { name: { en: 'Mercy', pl: 'Miłosierdzie' } },
     },
     cardArtDirections: {
       aggro_berserker_1: 'A decadent aristocratic court lady with cracked porcelain beauty and a massive ballroom dress silhouette, emotionally collapsing under elegance as her body and composure fracture into escalating danger; avoid generic berserker, armored warrior, or masculine noble reads.',
@@ -85,15 +88,16 @@ const presentation = {
     },
   },
   control: {
-    displayNameEn: 'Orden der Glasköpfe',
-    displayNamePl: 'Orden der Glasköpfe',
-    loreEn: {
+    displayName: { en: 'Orden der Glasköpfe', pl: 'Orden der Glasköpfe' },
+    lore: {
+      en: {
       dimension: 'Dimension G-44',
       body: 'they tried to win the last war with a signal from the bottom of reality, and knocked the world out of tune like a cheap receiver. For decades, the glass heads have tried to restore the old order, though the future master race has already gone moldy in the incubators.',
     },
-    lorePl: {
+      pl: {
       dimension: 'Wymiar G-44',
       body: 'chcieli wygrać ostatnią wojnę sygnałem z samego dna rzeczywistości, lecz rozstroili świat jak tani odbiornik. Od dekad szklane głowy próbują odtworzyć dawny porządek, choć przyszła rasa panów zdążyła już spleśnieć w inkubatorach.',
+    },
     },
     shortConcept: 'A techno-occult order of glass-brained commanders, signal machinery, and neural warfare turns free will into a broadcast variable.',
     tone: 'Cold, authoritarian, cerebral, paranoid, and occult-industrial.',
@@ -129,23 +133,24 @@ const presentation = {
     gameplayFeel: 'Manipulation, disruption, tactical control, debuffs, forced positioning, system interference.',
     colorNotes: 'Cold glass green, surgical white, gunmetal, black rubber, oxidized steel, warning red optics, and sickly lab-fluid highlights.',
     cardNameOverrides: {
-      control_drone_1: { nameEn: 'Relay', namePl: 'Przekaźnik' },
-      control_swap_1: { nameEn: 'Signal Shift', namePl: 'Przesunięcie Sygnału' },
-      control_jam_signal_1: { nameEn: 'Signal Jam', namePl: 'Zakłócenie Sygnału' },
-      control_system_override_1: { nameEn: 'System Override', namePl: 'Przejęcie Systemu' },
-      control_recall_1: { nameEn: 'Extraction', namePl: 'Ekstrakcja' },
+      control_drone_1: { name: { en: 'Relay', pl: 'Przekaźnik' } },
+      control_swap_1: { name: { en: 'Signal Shift', pl: 'Przesunięcie Sygnału' } },
+      control_jam_signal_1: { name: { en: 'Signal Jam', pl: 'Zakłócenie Sygnału' } },
+      control_system_override_1: { name: { en: 'System Override', pl: 'Przejęcie Systemu' } },
+      control_recall_1: { name: { en: 'Extraction', pl: 'Ekstrakcja' } },
     },
   },
   swarm: {
-    displayNameEn: 'Spore Choir',
-    displayNamePl: 'Chór Zarodników',
-    loreEn: {
+    displayName: { en: 'Spore Choir', pl: 'Chór Zarodników' },
+    lore: {
+      en: {
       dimension: 'Dimension M-10',
       body: 'it began with a sock no reasonable person wanted to touch. The mold took this as an invitation to adventure, ate the planet down to the crust, and then, for lack of anything better, moved on to itself.',
     },
-    lorePl: {
+      pl: {
       dimension: 'Wymiar M-10',
       body: 'zaczęło się od skarpety, której nikt rozsądny nie chciał dotknąć. Pleśń uznała to za zaproszenie do przygody, zjadła planetę do gołej skorupy, a potem z braku laku zabrała się za samą siebie.',
+    },
     },
     shortConcept: 'A psychedelic mycelial collective blooms into beautiful bio-horror as one organism learns to sing through many doomed bodies.',
     tone: 'Lush, hallucinogenic, organic, eerie, and strangely transcendent.',
@@ -182,28 +187,29 @@ const presentation = {
     gameplayFeel: 'Expansion, multiplication, collective growth, spreading organism, organic pressure, swarm saturation.',
     colorNotes: 'Bioluminescent cyan, ultraviolet violet, fungal orange, wet moss green, coral pink, and luminous spore haze.',
     cardNameOverrides: {
-      swarm_grunt_1: { nameEn: 'Bloomling', namePl: 'Rozkwitnik' },
-      swarm_spitter_1: { nameEn: 'Spore Spitter', namePl: 'Zarodnikowy Plwacz' },
-      swarm_brood_1: { nameEn: 'Mycelial Brood', namePl: 'Miot Grzybni' },
-      swarm_rusher_1: { nameEn: 'Lichencrawler', namePl: 'Porostowy Pełzacz' },
-      swarm_alpha_1: { nameEn: 'Choir Alpha', namePl: 'Alfa Chóru' },
-      swarm_spawn_1: { nameEn: 'Sudden Bloom', namePl: 'Nagły Rozkwit' },
-      swarm_swarm_attack_1: { nameEn: 'Shared Frenzy', namePl: 'Wspólna Gorączka' },
-      swarm_regrow_1: { nameEn: 'Regrowth Cycle', namePl: 'Cykl Odrostu' },
-      swarm_flood_1: { nameEn: 'Spore Flood', namePl: 'Powódź Zarodników' },
-      swarm_recycle_1: { nameEn: 'Substrate', namePl: 'Pożywka' },
+      swarm_grunt_1: { name: { en: 'Bloomling', pl: 'Rozkwitnik' } },
+      swarm_spitter_1: { name: { en: 'Spore Spitter', pl: 'Zarodnikowy Plwacz' } },
+      swarm_brood_1: { name: { en: 'Mycelial Brood', pl: 'Miot Grzybni' } },
+      swarm_rusher_1: { name: { en: 'Lichencrawler', pl: 'Porostowy Pełzacz' } },
+      swarm_alpha_1: { name: { en: 'Choir Alpha', pl: 'Alfa Chóru' } },
+      swarm_spawn_1: { name: { en: 'Sudden Bloom', pl: 'Nagły Rozkwit' } },
+      swarm_swarm_attack_1: { name: { en: 'Shared Frenzy', pl: 'Wspólna Gorączka' } },
+      swarm_regrow_1: { name: { en: 'Regrowth Cycle', pl: 'Cykl Odrostu' } },
+      swarm_flood_1: { name: { en: 'Spore Flood', pl: 'Powódź Zarodników' } },
+      swarm_recycle_1: { name: { en: 'Substrate', pl: 'Pożywka' } },
     },
   },
   'attrition-swarm': {
-    displayNameEn: 'Gravehearts',
-    displayNamePl: 'Gravehearts',
-    loreEn: {
+    displayName: { en: 'Gravehearts', pl: 'Gravehearts' },
+    lore: {
+      en: {
       dimension: 'Dimension Y-2',
       body: 'on New Year’s Eve 2000, the computers did end the world after all. A weapon of mass destruction triggered by the failure killed humanity, though most people simply failed to notice; now it is not only their bodies that rot, but their humanity, as memory gives way to mindless mass.',
     },
-    lorePl: {
+      pl: {
       dimension: 'Wymiar Y-2',
       body: 'w sylwestra roku 2000 komputery jednak zakończyły świat. Uruchomiona w wyniku awarii broń masowego rażenia zabiła ludzi, choć większość z nich zwyczajnie tego nie zauważyła; dziś gniją nie tylko ich ciała, ale ich człowieczeństwo, a pamięć ustępuje miejsca bezmyślnej masie.',
+    },
     },
     shortConcept: 'A tragicomic funerary society of undead lovers, coffin bearers, and graveyard dancers turns mourning into repeatable value.',
     tone: 'Romantic, melancholic, gothic, funny-sad, and grotesquely devoted.',
@@ -240,28 +246,29 @@ const presentation = {
     gameplayFeel: 'Death value, recurring units, sacrificial advantage, lingering pressure, emotional attrition, undead persistence.',
     colorNotes: 'Moonlit blue, funeral black, velvet burgundy, bone white, wilted rose pink, graveyard green, and neon cemetery accents.',
     cardNameOverrides: {
-      attrition_swarm_husk_1: { nameEn: 'Hollow Groom', namePl: 'Pusty Pan Młody' },
-      attrition_swarm_carrier_1: { nameEn: 'Coffin Bearer', namePl: 'Trumniarz' },
-      attrition_swarm_leech_1: { nameEn: 'Grave Leech', namePl: 'Pijawka' },
-      attrition_swarm_rotcaller_1: { nameEn: 'Party Host', namePl: 'Wodzirej' },
-      attrition_swarm_abomination_1: { nameEn: 'Mourning Giant', namePl: 'Żałobny Olbrzym' },
-      attrition_swarm_funeral_pyre_1: { nameEn: 'Funeral Pyre', namePl: 'Stos' },
-      attrition_swarm_infect_1: { nameEn: 'Rotten Gift', namePl: 'Zgniły Upominek' },
-      attrition_swarm_feast_1: { nameEn: 'Feast', namePl: 'Ostatnia Wieczerza' },
-      attrition_swarm_rise_again_1: { nameEn: 'Dance Again', namePl: 'Zatańcz Raz Jeszcze' },
-      attrition_swarm_grave_call_1: { nameEn: 'Grave Call', namePl: 'Wezwanie Grobu' },
+      attrition_swarm_husk_1: { name: { en: 'Hollow Groom', pl: 'Pusty Pan Młody' } },
+      attrition_swarm_carrier_1: { name: { en: 'Coffin Bearer', pl: 'Trumniarz' } },
+      attrition_swarm_leech_1: { name: { en: 'Grave Leech', pl: 'Pijawka' } },
+      attrition_swarm_rotcaller_1: { name: { en: 'Party Host', pl: 'Wodzirej' } },
+      attrition_swarm_abomination_1: { name: { en: 'Mourning Giant', pl: 'Żałobny Olbrzym' } },
+      attrition_swarm_funeral_pyre_1: { name: { en: 'Funeral Pyre', pl: 'Stos' } },
+      attrition_swarm_infect_1: { name: { en: 'Rotten Gift', pl: 'Zgniły Upominek' } },
+      attrition_swarm_feast_1: { name: { en: 'Feast', pl: 'Ostatnia Wieczerza' } },
+      attrition_swarm_rise_again_1: { name: { en: 'Dance Again', pl: 'Zatańcz Raz Jeszcze' } },
+      attrition_swarm_grave_call_1: { name: { en: 'Grave Call', pl: 'Wezwanie Grobu' } },
     },
   },
   overclock: {
-    displayNameEn: 'Project H.E.R.D.',
-    displayNamePl: 'Program P.A.S.Z.A.',
-    loreEn: {
+    displayName: { en: 'Project H.E.R.D.', pl: 'Program P.A.S.Z.A.' },
+    lore: {
+      en: {
       dimension: 'Dimension B-80',
       body: 'the party secretary of a certain people’s republic decided that livestock was gravely underused in military affairs. Hostile Engineered Rural Directive exceeded the plan: it scrubbed Earth clean of life, then began tidying up its own ranks.',
     },
-    lorePl: {
+      pl: {
       dimension: 'Wymiar B-80',
       body: 'sekretarz partii pewnego demoludu uznał, że zwierzęta hodowlane są stanowczo za mało wykorzystywane militarnie. Program Adaptacyjnej Syntezy Zwierząt Agresywnych wykonał plan z nadwyżką: wyczyścił Ziemię z życia, a potem zaczął porządkować własne szeregi.',
+    },
     },
     shortConcept: 'An unattended late-1980s state agricultural and military breeding program keeps producing hostile engineered livestock after humanity disappears.',
     tone: 'Bureaucratic, agricultural, absurd, official, dirty, conditioned, and quietly horrific.',
@@ -296,16 +303,16 @@ const presentation = {
     gameplayFeel: 'Tempo disruption, forced engagements, conditioned bursts, temporary advantage, unstable specialization, and expendable biological pressure.',
     colorNotes: 'Feed yellow, warm milk white, dirty cream, straw, industrial orange, weathered concrete, black rubber, and chipped enamel; avoid cyberpunk neon, cold blue glow, glass, and signal-tech colors.',
     cardNameOverrides: {
-      overclock_hot_runner_1: { nameEn: 'Decoy Hare', namePl: 'Zając Wabik' },
-      overclock_pain_engine_1: { nameEn: 'Suppressor Hog', namePl: 'Wieprz Tłumiący' },
-      overclock_golem_1: { nameEn: 'Single-Use Ox', namePl: 'Wół Jednorazowy' },
-      overclock_gap_hunter_1: { nameEn: 'Breach Ram', namePl: 'Baran Wyłomowy' },
-      overclock_mob_champion_1: { nameEn: 'Command Hen', namePl: 'Kwoka Dowodząca' },
-      overclock_redline_1: { nameEn: 'Quota Exceeded', namePl: 'Norma Przekroczona' },
-      overclock_forced_march_1: { nameEn: 'Stock Reassignment', namePl: 'Korekta Obsady' },
-      overclock_crack_strike_1: { nameEn: 'Breach Test', namePl: 'Test Przebicia' },
-      overclock_ignition_1: { nameEn: 'Conditioned Reflex', namePl: 'Odruch Warunkowy' },
-      overclock_mercy_1: { nameEn: 'Temper Shift', namePl: 'Korekta Temperamentu' },
+      overclock_hot_runner_1: { name: { en: 'Decoy Hare', pl: 'Zając Wabik' } },
+      overclock_pain_engine_1: { name: { en: 'Suppressor Hog', pl: 'Wieprz Tłumiący' } },
+      overclock_golem_1: { name: { en: 'Single-Use Ox', pl: 'Wół Jednorazowy' } },
+      overclock_gap_hunter_1: { name: { en: 'Breach Ram', pl: 'Baran Wyłomowy' } },
+      overclock_mob_champion_1: { name: { en: 'Command Hen', pl: 'Kwoka Dowodząca' } },
+      overclock_redline_1: { name: { en: 'Quota Exceeded', pl: 'Norma Przekroczona' } },
+      overclock_forced_march_1: { name: { en: 'Stock Reassignment', pl: 'Korekta Obsady' } },
+      overclock_crack_strike_1: { name: { en: 'Breach Test', pl: 'Test Przebicia' } },
+      overclock_ignition_1: { name: { en: 'Conditioned Reflex', pl: 'Odruch Warunkowy' } },
+      overclock_mercy_1: { name: { en: 'Temper Shift', pl: 'Korekta Temperamentu' } },
     },
     cardArtDirections: {
       overclock_hot_runner_1: 'A tagged decoy hare in a concrete state breeding corridor, wired with crude veterinary restraints and official livestock markings; biological, rural, and bureaucratic, not robotic or cyberpunk.',
@@ -314,15 +321,16 @@ const presentation = {
     },
   },
   tank: {
-    displayNameEn: 'Empire of the Golden Sun',
-    displayNamePl: 'Imperium Złotego Słońca',
-    loreEn: {
+    displayName: { en: 'Empire of the Golden Sun', pl: 'Imperium Złotego Słońca' },
+    lore: {
+      en: {
       dimension: 'Dimension S-12',
       body: 'the Emperor declared that females were the source of all misfortune, and that the Sun would reward the faithful for removing them. The crusade succeeded, the promised maidens never arrived, and the long-lived empire was left alone with its gold, its orders, and the silence.',
     },
-    lorePl: {
+      pl: {
       dimension: 'Wymiar S-12',
       body: 'Imperator ogłosił, że źródłem wszystkich nieszczęść są samice, a Słońce wynagrodzi wiernym ich usunięcie. Krucjata zakończyła się sukcesem, obiecane dziewice nie dotarły, a długowieczne imperium zostało samo ze złotem, rozkazami i ciszą.',
+    },
     },
     shortConcept: 'A solar reptilian imperium in decline advances under gold armor, obsidian weapons, and the unbearable weight of extinct glory.',
     tone: 'Monumental, ceremonial, ancient, proud, heavy, and doomed.',
@@ -362,28 +370,29 @@ const presentation = {
       tank_wall_1: 'Ancient armored sauropod lying across the path as an immovable sacred barricade, with a massive old body, ceremonial gold armor, and imperial dignity; not an obsidian fortress or object.',
     },
     cardNameOverrides: {
-      tank_shieldbearer_1: { nameEn: 'Throne Guardian', namePl: 'Strażnik Tronu' },
-      tank_heavy_1: { nameEn: 'Imperial Colossus', namePl: 'Imperialny Kolos' },
-      tank_guardian_1: { nameEn: 'Goldscale', namePl: 'Złotołuski' },
-      tank_wall_1: { nameEn: 'Elder Tam-Tam', namePl: 'Stary Tam-Tam' },
-      tank_bruiser_1: { nameEn: 'Fang Veteran', namePl: 'Weteran Kła' },
-      tank_fortify_1: { nameEn: 'Solar Fortification', namePl: 'Solarne Umocnienie' },
-      tank_stability_1: { nameEn: "Emperor's Will", namePl: 'Wola Imperatora' },
-      tank_reinforce_1: { nameEn: 'Rite of Renewal', namePl: 'Rytuał Odnowy' },
-      tank_last_stand_1: { nameEn: 'Last Legion', namePl: 'Ostatni Legion' },
-      tank_repair_kit_1: { nameEn: 'Golden Carapace', namePl: 'Złoty Karapaks' },
+      tank_shieldbearer_1: { name: { en: 'Throne Guardian', pl: 'Strażnik Tronu' } },
+      tank_heavy_1: { name: { en: 'Imperial Colossus', pl: 'Imperialny Kolos' } },
+      tank_guardian_1: { name: { en: 'Goldscale', pl: 'Złotołuski' } },
+      tank_wall_1: { name: { en: 'Elder Tam-Tam', pl: 'Stary Tam-Tam' } },
+      tank_bruiser_1: { name: { en: 'Fang Veteran', pl: 'Weteran Kła' } },
+      tank_fortify_1: { name: { en: 'Solar Fortification', pl: 'Solarne Umocnienie' } },
+      tank_stability_1: { name: { en: "Emperor's Will", pl: 'Wola Imperatora' } },
+      tank_reinforce_1: { name: { en: 'Rite of Renewal', pl: 'Rytuał Odnowy' } },
+      tank_last_stand_1: { name: { en: 'Last Legion', pl: 'Ostatni Legion' } },
+      tank_repair_kit_1: { name: { en: 'Golden Carapace', pl: 'Złoty Karapaks' } },
     },
   },
   wardens: {
-    displayNameEn: 'Mammoth Clans',
-    displayNamePl: 'Klany Mamutów',
-    loreEn: {
+    displayName: { en: 'Mammoth Clans', pl: 'Klany Mamutów' },
+    lore: {
+      en: {
       dimension: 'Dimension N-7',
       body: 'Homo sapiens died out without making much of a historical contribution, so the Neanderthal clans inherited a freezing Earth. Now they cross the equatorial tundra, hunted by the Frost, which came down from the poles carrying something worse than cold.',
     },
-    lorePl: {
+      pl: {
       dimension: 'Wymiar N-7',
       body: 'Homo sapiens wymarł bez większego wkładu w historię, więc neandertalskie klany odziedziczyły zamarzającą Ziemię. Teraz idą przez równikową tundrę, ścigane przez Mróz, który z biegunów przyniósł coś gorszego niż zimno.',
+    },
     },
     shortConcept: 'A snowbound mammoth civilization holds glacial passes with fur-armored phalanxes, heavy spears, and primal fortifications.',
     tone: 'Stoic, cold, grounded, prehistoric, defensive, and survivalist.',
@@ -418,16 +427,16 @@ const presentation = {
     gameplayFeel: 'Defensive line, endurance, fortified positions, holding ground, defensive friction, line denial.',
     colorNotes: 'Glacier blue, snow white, mammoth brown, leather tan, bone ivory, storm gray, and cold banner red.',
     cardNameOverrides: {
-      wardens_sentinel_1: { nameEn: 'Tusk Guard', namePl: 'Strażnik Kłów' },
-      wardens_spearwall_1: { nameEn: 'Tundra Hunter', namePl: 'Łowca Tundry' },
-      wardens_halberdier_1: { nameEn: 'Ice Pike', namePl: 'Lodowa Pika' },
-      wardens_bastion_guard_1: { nameEn: 'Tururuk', namePl: 'Tururuk' },
-      wardens_watch_captain_1: { nameEn: 'Tererek', namePl: 'Tererek' },
-      wardens_brace_1: { nameEn: 'Bone Shields', namePl: 'Kościane Tarcze' },
-      wardens_shield_push_1: { nameEn: 'Mammoth Stampede', namePl: 'Mamuci Napór' },
-      wardens_stand_firm_1: { nameEn: 'Endure the Cold', namePl: 'Przetrwać Mróz' },
-      wardens_reinforce_line_1: { nameEn: 'Lock the Line', namePl: 'Zewrzeć Szereg' },
-      wardens_hold_the_line_1: { nameEn: 'Hold the Ice Pass', namePl: 'Utrzymać Przełęcz' },
+      wardens_sentinel_1: { name: { en: 'Tusk Guard', pl: 'Strażnik Kłów' } },
+      wardens_spearwall_1: { name: { en: 'Tundra Hunter', pl: 'Łowca Tundry' } },
+      wardens_halberdier_1: { name: { en: 'Ice Pike', pl: 'Lodowa Pika' } },
+      wardens_bastion_guard_1: { name: { en: 'Tururuk', pl: 'Tururuk' } },
+      wardens_watch_captain_1: { name: { en: 'Tererek', pl: 'Tererek' } },
+      wardens_brace_1: { name: { en: 'Bone Shields', pl: 'Kościane Tarcze' } },
+      wardens_shield_push_1: { name: { en: 'Mammoth Stampede', pl: 'Mamuci Napór' } },
+      wardens_stand_firm_1: { name: { en: 'Endure the Cold', pl: 'Przetrwać Mróz' } },
+      wardens_reinforce_line_1: { name: { en: 'Lock the Line', pl: 'Zewrzeć Szereg' } },
+      wardens_hold_the_line_1: { name: { en: 'Hold the Ice Pass', pl: 'Utrzymać Przełęcz' } },
     },
   },
 };
@@ -453,15 +462,7 @@ export function getFactionPresentationName(factionId, locale = 'en', fallbackNam
     return safeFallback;
   }
 
-  if (locale === 'pl' && isNonEmptyString(presentation.displayNamePl)) {
-    return presentation.displayNamePl;
-  }
-
-  if (isNonEmptyString(presentation.displayNameEn)) {
-    return presentation.displayNameEn;
-  }
-
-  return safeFallback;
+  return resolveLocalizedValue(presentation.displayName, locale, safeFallback);
 }
 
 function isLoreEntry(value) {
@@ -477,15 +478,8 @@ export function getFactionPresentationLore(factionId, locale = 'en') {
     return null;
   }
 
-  if (locale === 'pl' && isLoreEntry(presentation.lorePl)) {
-    return presentation.lorePl;
-  }
-
-  if (isLoreEntry(presentation.loreEn)) {
-    return presentation.loreEn;
-  }
-
-  return null;
+  const lore = resolveLocalizedValue(presentation.lore, locale, null);
+  return isLoreEntry(lore) ? lore : null;
 }
 
 export function getFactionPresentationLoreBlurb(factionId, locale = 'en') {
@@ -506,15 +500,7 @@ export function getCardPresentationName(card, locale = 'en') {
   for (const faction of Object.values(factionPresentation)) {
     const override = faction.cardNameOverrides[cardId];
     if (override) {
-      if (locale === 'pl' && isNonEmptyString(override.namePl)) {
-        return override.namePl;
-      }
-
-      if (isNonEmptyString(override.nameEn)) {
-        return override.nameEn;
-      }
-
-      return card?.name;
+      return resolveLocalizedValue(override.name, locale, card?.name);
     }
   }
 

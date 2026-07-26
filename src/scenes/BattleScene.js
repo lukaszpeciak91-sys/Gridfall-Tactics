@@ -26,7 +26,7 @@ import { beginSceneTransitionOverlay, reconcileSceneTransitionOverlayOrdering } 
 import { CARD_COLORS, createCardArtwork, createCardPreviewView, getBaseCardSurfaceTheme, getDefaultCardAccentColor, resolveCardSurfaceTheme, createStatBadges } from '../rendering/cardVisualLayout.js';
 import { createBoardUnitStatusMarker, getBoardUnitStatusPresentation, getBoardUnitStatusPresentations } from '../rendering/boardUnitStatusPresentation.js';
 import { getCardDisplayName, getCardTextShort } from '../localization/cardDisplay.js';
-import { getActiveLocale, translateActive, translateActiveList } from '../localization/localeService.js';
+import { getActiveLocale, resolveLocalizedValue, translateActive, translateActiveList } from '../localization/localeService.js';
 import { applyCampaignBattleResult, clearCampaign, createNewCampaign, isValidCampaignState, loadCampaign, saveCampaign } from '../systems/campaignState.js';
 import { addActiveBattleTime, incrementBattleStat, incrementCardPlayedStat, loadPlayerStats, markTutorialCompleted, savePlayerStats } from '../systems/playerStats.js';
 import { recordArenaBattlegroundVisit } from '../systems/playerStats.js';
@@ -8572,7 +8572,7 @@ export default class BattleScene extends Phaser.Scene {
   getTutorialStepText(step = this.getCurrentTutorialStep()) {
     if (!step?.text) return '';
     const locale = getActiveLocale();
-    return step.text[locale] ?? step.text.en ?? Object.values(step.text)[0] ?? '';
+    return resolveLocalizedValue(step.text, locale, '');
   }
 
   isCurrentTutorialStepTapContinue() {

@@ -34,7 +34,7 @@ test('achievement category mapping sends general, campaign, and cards to General
 
 test('AchievementsScene renders localized section labels and generates faction groups from runtime faction keys', () => {
   const scene = source();
-  assert.match(scene, /ACHIEVEMENT_CATEGORY_LABELS\[key\]\?\.\[getActiveLocale\(\)\]/);
+  assert.match(scene, /resolveLocalizedValue\(ACHIEVEMENT_CATEGORY_LABELS\[key\], getActiveLocale\(\), key\)/);
   assert.match(scene, /for \(const factionKey of getFactionKeys\(\)\)/);
   assert.match(scene, /getFactionPresentationName\(faction\?\.id, getActiveLocale\(\), faction\?\.name \?\? factionKey\)/);
   assert.match(scene, /FACTION_CARD_DETAILS\[factionKey\]\?\.accentColor/);
@@ -49,8 +49,8 @@ test('unlocked achievements sort above locked achievements while preserving defi
 test('achievement cards expose localized title, description, and text-only progress badges', () => {
   const scene = source();
   assert.match(scene, /drawAchievementCard\(content, definition/);
-  assert.match(scene, /definition\.display\?\.title\?\.\[locale\]/);
-  assert.match(scene, /definition\.display\?\.description\?\.\[locale\]/);
+  assert.match(scene, /resolveLocalizedValue\(definition\.display\?\.title, locale/);
+  assert.match(scene, /resolveLocalizedValue\(definition\.display\?\.description, locale/);
   assert.match(scene, /formatAchievementProgressText\(/);
   assert.match(scene, /translateActive\('ui\.achievements\.progressUnits\.minutes', 'min'\)/);
   assert.match(scene, /badgeWidth = ACHIEVEMENT_PROGRESS_BADGE_WIDTH/);

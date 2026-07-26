@@ -42,7 +42,7 @@ test('tutorial Stray Fan data is tutorial-only and has 4 HP without changing oth
   assert.ok(strayFan, 'tutorial Stray Fan should exist');
   assert.equal(enemyFaction.id, 'tutorial-enemy');
   assert.equal(strayFan.name, 'Stray Fan');
-  assert.equal(strayFan.namePl, 'Zbłąkany Kibic');
+  assert.equal(strayFan.localizedName.pl, 'Zbłąkany Kibic');
   assert.equal(strayFan.attack, 1);
   assert.equal(strayFan.hp, 4);
   assert.equal(strayFan.armor, 0);

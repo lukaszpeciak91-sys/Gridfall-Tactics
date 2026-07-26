@@ -2070,7 +2070,7 @@ function createEffectVariantBoneShieldsTokenCard(id, temporary) {
   return {
     id,
     name: 'Bone Shields',
-    namePl: 'Kościane Tarcze',
+    localizedName: { en: 'Bone Shields', pl: 'Kościane Tarcze' },
     type: 'unit',
     attack: 0,
     hp: 1,

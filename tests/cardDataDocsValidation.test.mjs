@@ -136,8 +136,8 @@ test('surgical card copy polish keeps paired active descriptions in sync', () =>
   assert.equal(en.overclock_forced_march_1.textShort, en.aggro_rush_1.textShort);
   assert.equal(pl.overclock_forced_march_1.textShort, pl.aggro_rush_1.textShort);
 
-  assert.equal(en.aggro_quick_fix_1.textShort, 'Heal [ALLY] 1\n+1 ATK until combat\nCombat kill: draw 1');
-  assert.equal(pl.aggro_quick_fix_1.textShort, 'Ulecz [ALLY] o 1\n+1 [ATK] do walki\nZabije: dobierz 1');
+  assert.equal(en.aggro_quick_fix_1.textShort, 'Heal [ALLY] 1\n+1 [ATK] until combat\nCombat kill: draw 1');
+  assert.equal(pl.aggro_quick_fix_1.textShort, 'Ulecz [ALLY] o +1 [HP]\n+1 [ATK] do walki\nZabije: dobierz 1');
 });
 
 test('surgical card copy polish preserves mechanics stats effect IDs and targeting', () => {
@@ -168,14 +168,14 @@ test('Attrition Swarm active copy uses universal death wording without rewriting
   assert.equal(pl.attrition_swarm_carrier_1.textShort, 'Gdy ginie: przywołaj tu 1/1');
   assert.doesNotMatch(en.attrition_swarm_carrier_1.textShort, /Grunt/u);
   assert.doesNotMatch(pl.attrition_swarm_carrier_1.textShort, /Grunt|Grunta|Rekrut/u);
-  assert.equal(en.attrition_swarm_abomination_1.textShort, 'When this dies: both bases lose 1 HP');
-  assert.equal(pl.attrition_swarm_abomination_1.textShort, 'Gdy ginie: obie bazy tracą 1 HP');
+  assert.equal(en.attrition_swarm_abomination_1.textShort, 'When this dies: both bases lose 1 [HP]');
+  assert.equal(pl.attrition_swarm_abomination_1.textShort, 'Gdy ginie: obie bazy tracą 1 [HP]');
 
   assert.equal(cardsById.get('attrition_swarm_rotcaller_1').textShort, 'First adjacent [ALLY] death\n+1 [ATK] permanently');
   assert.equal(cardsById.get('attrition_swarm_funeral_pyre_1').textShort, 'First [ALLY] death each turn:\nenemy base loses 1 HP');
   assert.equal(en.attrition_swarm_rotcaller_1.textShort, 'First adjacent [ALLY] death\n+1 [ATK] permanently');
   assert.equal(pl.attrition_swarm_rotcaller_1.textShort, 'Pierwszy sąsiedni zgon [ALLY]\n+1 [ATK] na stałe');
-  assert.equal(en.attrition_swarm_funeral_pyre_1.textShort, 'First [ALLY] death each turn:\nenemy base loses 1 HP');
+  assert.equal(en.attrition_swarm_funeral_pyre_1.textShort, 'First [ALLY] death each turn:\nenemy base loses 1 [HP]');
   assert.equal(pl.attrition_swarm_funeral_pyre_1.textShort, 'Pierwszy zgon [ALLY] w turze:\n-1 [HP] bazie wroga');
 
   for (const localized of [en, pl]) {
