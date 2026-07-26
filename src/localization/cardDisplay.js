@@ -1,5 +1,5 @@
 import { getCardPresentationName } from '../data/presentation/factionPresentation.js';
-import { translate } from './localeService.js';
+import { resolveLocalizedValue, translate } from './localeService.js';
 
 const STAT_LABELS_EN = Object.freeze({
   attack: 'ATK',
@@ -23,9 +23,7 @@ function translateCardField(key, locale, fallbackValue) {
 
 export function getCardDisplayName(card, locale = 'en') {
   const idNameKey = typeof card?.id === 'string' ? `cards.${card.id}.name` : null;
-  const localizedFallbackName = locale === 'pl' && typeof card?.namePl === 'string' && card.namePl.length > 0
-    ? card.namePl
-    : card?.name;
+  const localizedFallbackName = resolveLocalizedValue(card?.localizedName, locale, card?.name);
   const keyedName = translateCardField(card?.nameKey, locale, undefined);
   const localizedName = keyedName ?? translateCardField(idNameKey, locale, localizedFallbackName);
   return getCardPresentationName({ ...card, name: localizedName }, locale);
@@ -33,9 +31,7 @@ export function getCardDisplayName(card, locale = 'en') {
 
 export function getCardTextShort(card, locale = 'en') {
   const idTextKey = typeof card?.id === 'string' ? `cards.${card.id}.textShort` : null;
-  const localizedFallbackText = locale === 'pl' && typeof card?.textShortPl === 'string'
-    ? card.textShortPl
-    : card?.textShort;
+  const localizedFallbackText = resolveLocalizedValue(card?.localizedTextShort, locale, card?.textShort);
   const keyedText = translateCardField(card?.textKey, locale, undefined);
   return keyedText ?? translateCardField(idTextKey, locale, localizedFallbackText);
 }

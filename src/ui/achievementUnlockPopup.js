@@ -1,4 +1,4 @@
-import { getActiveLocale } from '../localization/localeService.js';
+import { getActiveLocale, resolveLocalizedValue, translate } from '../localization/localeService.js';
 import { ACHIEVEMENT_CATEGORY_GROUPS, normalizeAchievementDifficulty } from '../systems/achievements.js';
 import { getAchievementDefinitionPointValue } from '../systems/achievementProgression.js';
 
@@ -11,7 +11,6 @@ export const ACHIEVEMENT_UNLOCK_POPUP_TIMING = Object.freeze({
 });
 
 
-const BADGE_TEXT = Object.freeze({ en: 'UNLOCKED', pl: 'ODBLOKOWANE' });
 export const ACHIEVEMENT_UNLOCK_POPUP_ENTRANCE_OFFSET = 22;
 
 const ACHIEVEMENT_UNLOCK_POPUP_HEIGHT = 94;
@@ -59,8 +58,7 @@ export function getAchievementUnlockPopupTitleLayout(title, layout) {
 }
 
 function resolveLocaleText(definition, key, locale) {
-  return definition?.display?.[key]?.[locale]
-    ?? definition?.display?.[key]?.en
+  return resolveLocalizedValue(definition?.display?.[key], locale)
     ?? definition?.[key]
     ?? definition?.id
     ?? '';
@@ -75,7 +73,7 @@ export function getAchievementUnlockPopupViewModel(definition, { index = 1, tota
     id: typeof definition?.id === 'string' ? definition.id : '',
     title: resolveLocaleText(definition, 'title', locale),
     description: resolveLocaleText(definition, 'description', locale),
-    badge: BADGE_TEXT[locale] ?? BADGE_TEXT.en,
+    badge: translate('ui.achievements.unlockedBadge', locale, 'UNLOCKED'),
     stars: '★'.repeat(difficulty),
     queuePosition: `${safeIndex} / ${safeTotal}`,
     pointLabel: Number.isFinite(points) && points > 0 ? `+${points}` : '',

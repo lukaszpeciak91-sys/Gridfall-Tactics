@@ -10,7 +10,6 @@ export const LEVEL_UP_POPUP_TIMING = Object.freeze({
   exitMs: 600,
 });
 
-const LEVEL_UP_LABEL_FALLBACK = Object.freeze({ en: 'LEVEL UP', pl: 'AWANS' });
 const LEVEL_UP_SFX_SOURCE = 'level-up-popup';
 
 function normalizeLevel(value, fallback = 1) {
@@ -29,7 +28,7 @@ function invokeOnce(callback) {
 export function getLevelUpPopupViewModel({ previousLevel = 1, newLevel = 1, locale = 'en' } = {}) {
   const safePreviousLevel = normalizeLevel(previousLevel, 1);
   const safeNewLevel = normalizeLevel(newLevel, safePreviousLevel);
-  const label = translate('ui.achievements.progression.levelUp', locale, LEVEL_UP_LABEL_FALLBACK[locale] ?? LEVEL_UP_LABEL_FALLBACK.en);
+  const label = translate('ui.achievements.progression.levelUp', locale, 'LEVEL UP');
   return {
     previousLevel: safePreviousLevel,
     newLevel: safeNewLevel,

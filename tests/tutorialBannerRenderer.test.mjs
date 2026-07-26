@@ -62,7 +62,7 @@ test('tutorial banner suppresses during resolving flows and restores after flow 
 test('tutorial banner uses localized tutorial step text', () => {
   const source = battleSource();
 
-  assert.match(source, /getTutorialStepText\(step = this\.getCurrentTutorialStep\(\)\) \{[\s\S]*const locale = getActiveLocale\(\);[\s\S]*step\.text\[locale\] \?\? step\.text\.en/);
+  assert.match(source, /getTutorialStepText\(step = this\.getCurrentTutorialStep\(\)\) \{[\s\S]*const locale = getActiveLocale\(\);[\s\S]*resolveLocalizedValue\(step\.text, locale, ''\)/);
 });
 
 test('tap_continue tutorial banner advances and updates text without global battle click consumption', () => {

@@ -8,7 +8,7 @@ import {
 import { createBuildMarker } from '../ui/buildMarker.js';
 import { createMenuScreenHeader } from '../ui/screenHeader.js';
 import { createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
-import { getActiveLocale, translateActive } from '../localization/localeService.js';
+import { getActiveLocale, resolveLocalizedValue, translateActive } from '../localization/localeService.js';
 import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
 import { getFactionPresentationName } from '../data/presentation/factionPresentation.js';
 import { FACTION_CARD_DETAILS } from '../ui/factionCards.js';
@@ -172,7 +172,7 @@ export default class AchievementsScene extends Phaser.Scene {
     }
     return ['general', 'arena', 'factions'].map((key) => ({
       key,
-      title: ACHIEVEMENT_CATEGORY_LABELS[key]?.[getActiveLocale()] ?? ACHIEVEMENT_CATEGORY_LABELS[key]?.en ?? key,
+      title: resolveLocalizedValue(ACHIEVEMENT_CATEGORY_LABELS[key], getActiveLocale(), key),
       achievements: this.sortAchievements(groups[key] ?? []),
     }));
   }
@@ -449,8 +449,8 @@ export default class AchievementsScene extends Phaser.Scene {
     const unlocked = this.isAchievementUnlocked(definition.id);
     const progress = this.getAchievementProgress(definition);
     const locale = getActiveLocale();
-    const title = definition.display?.title?.[locale] ?? definition.title ?? definition.id;
-    const description = definition.display?.description?.[locale] ?? definition.description ?? '';
+    const title = resolveLocalizedValue(definition.display?.title, locale, definition.title ?? definition.id);
+    const description = resolveLocalizedValue(definition.display?.description, locale, definition.description ?? '');
     const pointLabel = this.getAchievementPointLabel(definition, unlocked);
     const layout = this.getAchievementCardLayout(x, y, width, pointLabel);
     const theme = this.getAchievementCardTheme(definition, unlocked);

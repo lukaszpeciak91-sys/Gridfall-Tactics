@@ -1,10 +1,12 @@
 import enTranslations from './translations/en.json' with { type: 'json' };
 import plTranslations from './translations/pl.json' with { type: 'json' };
+import ukTranslations from './translations/uk.json' with { type: 'json' };
 import { DEFAULT_LOCALE, SETTINGS_STORAGE_KEY, getSupportedLocales, normalizeLocale } from './localeConfig.js';
 export { DEFAULT_LOCALE, SETTINGS_STORAGE_KEY, getSupportedLocales, normalizeLocale };
 const TRANSLATIONS = Object.freeze({
   en: enTranslations,
   pl: plTranslations,
+  uk: ukTranslations,
 });
 let activeLocale = DEFAULT_LOCALE;
 
@@ -106,6 +108,12 @@ export function formatTranslation(template, replacements = {}) {
   });
 }
 
+export function resolveLocalizedValue(values, locale = DEFAULT_LOCALE, fallbackValue) {
+  if (!values || typeof values !== 'object' || Array.isArray(values)) return fallbackValue;
+  const normalizedLocale = normalizeLocale(locale);
+  return values[normalizedLocale] ?? values[DEFAULT_LOCALE] ?? fallbackValue;
+}
+
 export function translate(key, locale = DEFAULT_LOCALE, fallbackValue, replacements = {}) {
   return resolveSharedTranslation(key, locale, fallbackValue, replacements);
 }
@@ -132,4 +140,3 @@ export function translateList(key, locale = DEFAULT_LOCALE, fallbackValue = []) 
 export function translateActiveList(key, fallbackValue = []) {
   return translateList(key, getActiveLocale(), fallbackValue);
 }
-

@@ -1,5 +1,6 @@
 import { getCardDisplayName, getCardTextShort } from '../localization/cardDisplay.js';
 import { CARD_EFFECT_GAMEPLAY_SYMBOLS, formatCardEffectTextShort } from '../localization/cardTextFormatting.js';
+import { resolveLocalizedValue } from '../localization/localeService.js';
 import { getCardArtPositionY } from '../data/presentation/cardArtCropOverrides.js';
 import { getCardIllustrationAsset, getLoadedCardIllustrationTextureKey } from './cardIllustrationAssets.js';
 
@@ -1181,19 +1182,11 @@ export function getCardDisplayContent(card, locale = 'en') {
 }
 
 function getCardBodyTextException(card, locale = 'en') {
-  if (locale === 'en' && card?.id === 'attrition_swarm_funeral_pyre_1') {
-    // Surgical one-card EN exception so the three-line rules text fits the
-    // existing panel without changing card or modal dimensions.
-    return { fontSizeDelta: -2, lineSpacingDelta: -8 };
-  }
-
-  if (locale !== 'pl') return { fontSizeDelta: 0, lineSpacingDelta: 0 };
-  if ((getCardDisplayName(card, locale) ?? '').trim() !== 'Miłosierdzie') {
-    return { fontSizeDelta: 0, lineSpacingDelta: 0 };
-  }
-
-  // Surgical one-card PL exception to avoid minor overflow.
-  return { fontSizeDelta: 0, lineSpacingDelta: -1 };
+  const exceptions = {
+    attrition_swarm_funeral_pyre_1: { en: { fontSizeDelta: -2, lineSpacingDelta: -8 } },
+    aggro_quick_fix_1: { pl: { fontSizeDelta: 0, lineSpacingDelta: -1 } },
+  };
+  return resolveLocalizedValue(exceptions[card?.id], locale, { fontSizeDelta: 0, lineSpacingDelta: 0 });
 }
 
 export function createCardPreviewView(scene, {

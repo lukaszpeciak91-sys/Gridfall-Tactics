@@ -50,7 +50,7 @@ test('formats pilot ally icon markers without globally replacing ally terms', ()
   assert.equal(CARD_EFFECT_GAMEPLAY_SYMBOLS.enemy, '♟');
   assert.equal(CARD_EFFECT_GAMEPLAY_SYMBOLS.enemies, '♟♟');
   assert.equal(formatCardEffectTextShort('Target [ALLY] +1 ARM until combat', 'en'), 'Target ♙ +1 ◆ until combat');
-  assert.equal(formatCardEffectTextShort('All [ALLY] +1 ATK until combat', 'en'), 'All ♙♙ +1 ▲ until combat');
+  assert.equal(formatCardEffectTextShort('All [ALLIES] +1 [ATK] until combat', 'en'), 'All ♙♙ +1 ▲ until combat');
   assert.equal(formatCardEffectTextShort('Return [ALLY] to hand. Draw 1', 'en'), 'Return ♙ to hand. Draw 1');
   assert.equal(formatCardEffectTextShort('Wybrany [ALLY] +1 ARM do walki', 'pl'), 'Wybrany ♙ +1 ◆ do walki');
   assert.equal(formatCardEffectTextShort('Target ally +1 ARM until combat', 'en'), 'Target ally +1 ◆ until combat');
@@ -60,24 +60,24 @@ test('formats pilot ally icon markers without globally replacing ally terms', ()
 
 test('formats localized Polish stat terms while preserving surrounding text', () => {
   assert.equal(formatCardEffectTextShort('Gdy uszkodzony: +1 ATK', 'pl'), 'Gdy uszkodzony: +1 ▲');
-  assert.equal(formatCardEffectTextShort('Sojusznik +1 PANC do walki', 'pl'), 'Sojusznik +1 ◆ do walki');
+  assert.equal(formatCardEffectTextShort('Sojusznik +1 [ARM] do walki', 'pl'), 'Sojusznik +1 ◆ do walki');
   assert.equal(formatCardEffectTextShort('Wskrześ jednostkę z 1 HP', 'pl'), 'Wskrześ jednostkę z 1 ●');
   assert.equal(formatCardEffectTextShort('Po ataku: traci 1 HP', 'pl'), 'Po ataku: traci 1 ●');
-  assert.equal(formatCardEffectTextShort('Zabójstwo w walce i przetrwanie: ulecz swoją bazę o 1', 'pl'), 'Zabójstwo w walce i przetrwanie: ulecz swoją bazę o +1 ●');
+  assert.equal(formatCardEffectTextShort('Zabójstwo w walce i przetrwanie: ulecz swoją bazę o +1 [HP]', 'pl'), 'Zabójstwo w walce i przetrwanie: ulecz swoją bazę o +1 ●');
 });
 
 
 test('formats HP-related healing and damage language without replacing unrelated numbers', () => {
-  assert.equal(formatCardEffectTextShort('On attack: heal your base 1', 'en'), 'On attack: heal your base +1 ●');
+  assert.equal(formatCardEffectTextShort('On attack: heal your base +1 [HP]', 'en'), 'On attack: heal your base +1 ●');
   assert.equal(formatCardEffectTextShort('When this dies, both bases lose 1 HP', 'en'), 'When this dies, both bases lose 1 ●');
   assert.equal(formatCardEffectTextShort('On death: enemy base loses 1 HP', 'en'), 'On death: enemy base loses 1 ●');
-  assert.equal(formatCardEffectTextShort('Heal all [ALLY] by 1', 'en'), 'Heal all ♙♙ by +1 ●');
+  assert.equal(formatCardEffectTextShort('Heal all [ALLIES] by +1 [HP]', 'en'), 'Heal all ♙♙ by +1 ●');
   assert.equal(formatCardEffectTextShort('First [ALLY] death each turn:\nenemy base loses 1 HP', 'en'), 'First ♙ death each turn:\nenemy base loses 1 ●');
   assert.equal(formatCardEffectTextShort('Destroy [ALLY]. Draw 1', 'en'), 'Destroy ♙. Draw 1');
   assert.equal(formatCardEffectTextShort('When this dies: summon 1/1 here', 'en'), 'When this dies: summon 1/1 here');
-  assert.equal(formatCardEffectTextShort('Gdy ginie, obie bazy otrzymują 1', 'pl'), 'Gdy ginie, obie bazy otrzymują 1 ●');
-  assert.equal(formatCardEffectTextShort('Po śmierci: wroga baza otrzymuje 1', 'pl'), 'Po śmierci: wroga baza otrzymuje 1 ●');
-  assert.equal(formatCardEffectTextShort('Celowany wróg atakuje własną bazę w następnej walce, potem otrzymuje 1 obrażenie', 'pl'), 'Celowany wróg atakuje własną bazę w następnej walce, potem otrzymuje 1 ●');
+  assert.equal(formatCardEffectTextShort('Gdy ginie, obie bazy otrzymują 1 [HP]', 'pl'), 'Gdy ginie, obie bazy otrzymują 1 ●');
+  assert.equal(formatCardEffectTextShort('Po śmierci: wroga baza otrzymuje 1 [HP]', 'pl'), 'Po śmierci: wroga baza otrzymuje 1 ●');
+  assert.equal(formatCardEffectTextShort('Celowany wróg atakuje własną bazę w następnej walce, potem otrzymuje 1 [HP]', 'pl'), 'Celowany wróg atakuje własną bazę w następnej walce, potem otrzymuje 1 ●');
   assert.equal(formatCardEffectTextShort('Pierwszy zgon [ALLY] w turze:\n-1 [HP] bazie wroga', 'pl'), 'Pierwszy zgon ♙ w turze:\n-1 ● bazie wroga');
   assert.equal(formatCardEffectTextShort('Zniszcz [ALLY]. Dobierz 1', 'pl'), 'Zniszcz ♙. Dobierz 1');
   assert.equal(formatCardEffectTextShort('Gdy ginie: przywołaj tu 1/1', 'pl'), 'Gdy ginie: przywołaj tu 1/1');
@@ -332,13 +332,13 @@ test('does not mutate source card data when formatting visual card content', () 
     id: 'example_card',
     name: 'Example',
     type: 'order',
-    textShort: 'Target ally +1 ARM until combat',
+    textShort: 'Target ally +1 [ARM] until combat',
   };
 
   const content = getCardDisplayContent(card, 'en');
 
   assert.equal(content.body, 'Target ally +1 ◆ until combat');
-  assert.equal(card.textShort, 'Target ally +1 ARM until combat');
+  assert.equal(card.textShort, 'Target ally +1 [ARM] until combat');
 });
 
 test('detail text uses the same compact formatter as card textShort display', () => {
@@ -347,7 +347,7 @@ test('detail text uses the same compact formatter as card textShort display', ()
     name: 'Detail',
     type: 'order',
     targeting: 'friendly-unit',
-    textShort: 'Heal [ALLY] 1. +1 ATK until combat',
+    textShort: 'Heal [ALLY] 1. +1 [ATK] until combat',
   };
 
   assert.equal(formatCardDetailLines(card, 'en').at(-1), 'Heal ♙ 1. +1 ▲ until combat');
