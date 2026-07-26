@@ -4505,7 +4505,9 @@ export default class BattleScene extends Phaser.Scene {
     const options = restoreOptions ?? this.campaignCompletionModalOptions ?? {};
     if (this.loadCampaignTrophyAssetForCompletion(status, options)) return;
     this.campaignCompletionModalOptions = null;
+    const pendingProgressionDelta = this.pendingAchievementProgressionDelta;
     this.destroyBattleResultModal();
+    this.pendingAchievementProgressionDelta = pendingProgressionDelta;
     this.playCampaignOutcomeSfxOnce(status);
     const campaign = options.campaign ?? loadCampaign();
     const restorePhase = options.restorePhase === 'cinematic' ? 'cinematic' : (options.restorePhase ? 'interactive' : 'cinematic');

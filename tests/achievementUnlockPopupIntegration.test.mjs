@@ -99,6 +99,31 @@ test('campaign completion modal starts achievement popups only after interactive
   assert.match(battle, /continueCampaignBattleResult\(\)[\s\S]*this\.showCampaignCompleteModal\(updatedCampaign\.status\);[\s\S]*(?:this\.scene\.start\('CampaignEnemySelectScene'|this\.startPostBattleDestinationWithOverlay\('CampaignEnemySelectScene')/);
 });
 
+test('terminal campaign modal replacement preserves only its runtime level-up delta', () => {
+  const campaign = method('showCampaignCompleteModal', 'getCampaignCompletionStatsText');
+  const destroy = method('destroyBattleResultModal', 'createBaseBroadcastFrame');
+  const captureDelta = campaign.indexOf('const pendingProgressionDelta = this.pendingAchievementProgressionDelta;');
+  const destroyModal = campaign.indexOf('this.destroyBattleResultModal();', captureDelta);
+  const restoreDelta = campaign.indexOf('this.pendingAchievementProgressionDelta = pendingProgressionDelta;', destroyModal);
+  const cinematicState = campaign.indexOf("phase: restoreAsInteractive ? 'interactive' : 'cinematic'", restoreDelta);
+
+  assert.ok(captureDelta >= 0 && destroyModal > captureDelta && restoreDelta > destroyModal && cinematicState > restoreDelta);
+  assert.match(destroy, /this\.clearPendingAchievementProgressionDelta\(\)/);
+  assert.equal((battle.match(/this\.pendingAchievementProgressionDelta = pendingProgressionDelta;/g) ?? []).length, 1);
+});
+
+test('terminal campaign level-up remains shared, singular, interactive-only, and uses campaign depth', () => {
+  const popup = method('startAchievementUnlockPopupsForResultModal', 'createResultModalButton');
+  const campaign = method('showCampaignCompleteModal', 'getCampaignCompletionStatsText');
+
+  assert.match(battle, /updatedCampaign\.status === 'won' \|\| updatedCampaign\.status === 'lost'[\s\S]*this\.showCampaignCompleteModal\(updatedCampaign\.status\)/);
+  assert.match(popup, /phase !== 'interactive' \|\| this\.resultOverlayState\.preview === true/);
+  assert.equal((popup.match(/createLevelUpPopup\(this,/g) ?? []).length, 1);
+  assert.match(popup, /if \(cursor >= batch\.length && !activeIncomingPopup && !activeOutgoingPopup\) showLevelUpIfNeeded\(\)/);
+  assert.match(popup, /createLevelUpPopup\(this, \{[\s\S]*baseDepth: popupBaseDepth/);
+  assert.match(campaign, /button\.items\.forEach\(\(item\) => item\?\.setVisible\?\.\(true\)\?\.setAlpha\?\.\(1\)\);[\s\S]*phase: 'interactive'[\s\S]*this\.startAchievementUnlockPopupsForResultModal\(\)/);
+});
+
 test('navigation clears remaining current checkpoint popup batch while preserving lifecycle rebuild recovery', () => {
   const clear = method('clearAchievementPopupPresentationBatch', 'playAchievementUnlockPopupSfx');
   const retry = method('retryBattle', 'toggleFullscreen');
