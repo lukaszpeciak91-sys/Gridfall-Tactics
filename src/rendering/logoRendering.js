@@ -18,7 +18,39 @@ function getSourceDimensions(sourceImage) {
   };
 }
 
+function isPositiveFiniteDimension(value) {
+  return Number.isFinite(value) && value > 0;
+}
+
+export function isCrispLogoTextureValid(textureManager, textureKey) {
+  if (!textureManager?.exists?.(textureKey)) {
+    return false;
+  }
+
+  const texture = textureManager.get?.(textureKey);
+  const sourceEntry = texture?.source?.[0];
+  const sourceImage = sourceEntry?.image ?? texture?.getSourceImage?.();
+  const sourceDimensions = getSourceDimensions(sourceImage);
+  const frame = texture?.get?.();
+
+  // Phaser exposes no renderer-independent public API for checking a texture's
+  // GPU allocation, so validate the portable source and frame render inputs.
+  return Boolean(
+    texture
+      && sourceEntry
+      && sourceImage
+      && isPositiveFiniteDimension(sourceDimensions.width)
+      && isPositiveFiniteDimension(sourceDimensions.height)
+      && isPositiveFiniteDimension(frame?.width)
+      && isPositiveFiniteDimension(frame?.height),
+  );
+}
+
 function createCrispLogoTexture(scene, sourceKey, targetPixelWidth, targetPixelHeight, cacheKey) {
+  if (!scene.textures.exists(sourceKey)) {
+    return null;
+  }
+
   const sourceTexture = scene.textures.get(sourceKey);
   const sourceImage = sourceTexture?.getSourceImage?.();
   const sourceDimensions = getSourceDimensions(sourceImage);
@@ -61,7 +93,11 @@ export function setCrispLogoDisplaySize(scene, logo, sourceKey, displayWidth, di
   const targetPixelHeight = Math.max(1, Math.round(displayHeight * dpr));
   const cacheKey = `${LOGO_TEXTURE_PREFIX}.${variantKey}.${targetPixelWidth}x${targetPixelHeight}`;
 
-  if (scene.textures.exists(cacheKey) || createCrispLogoTexture(scene, sourceKey, targetPixelWidth, targetPixelHeight, cacheKey)) {
+  if (scene.textures.exists(cacheKey) && !isCrispLogoTextureValid(scene.textures, cacheKey)) {
+    scene.textures.remove(cacheKey);
+  }
+
+  if (isCrispLogoTextureValid(scene.textures, cacheKey) || createCrispLogoTexture(scene, sourceKey, targetPixelWidth, targetPixelHeight, cacheKey)) {
     logo.setTexture(cacheKey);
   }
 
