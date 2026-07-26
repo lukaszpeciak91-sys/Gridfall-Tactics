@@ -17,24 +17,58 @@ const STATUS_PRESENTATIONS = Object.freeze({
 });
 
 export function getBoardUnitStatusPresentation(unit, state) {
-  if (!unit?.owner || !state) return null;
-  if (state.cannotDropBelowOneThisTurn?.[unit.owner] === true) {
-    return STATUS_PRESENTATIONS[BOARD_UNIT_STATUS_KIND.HP_FLOOR];
-  }
-  if (state.immuneMoveDisableThisTurn?.[unit.owner] === true) {
-    return STATUS_PRESENTATIONS[BOARD_UNIT_STATUS_KIND.MOVE_DISABLE_IMMUNITY];
-  }
-  return null;
+  return getBoardUnitStatusPresentations(unit, state)[0] ?? null;
 }
 
-export function createBoardUnitStatusMarker(scene, width, height, presentation, { inspect = false } = {}) {
+export function getBoardUnitStatusPresentations(unit, state) {
+  if (!unit?.owner || !state) return [];
+  return [
+    state.cannotDropBelowOneThisTurn?.[unit.owner] === true
+      ? STATUS_PRESENTATIONS[BOARD_UNIT_STATUS_KIND.HP_FLOOR]
+      : null,
+    state.immuneMoveDisableThisTurn?.[unit.owner] === true
+      ? STATUS_PRESENTATIONS[BOARD_UNIT_STATUS_KIND.MOVE_DISABLE_IMMUNITY]
+      : null,
+  ].filter(Boolean);
+}
+
+export function getBoardUnitStatusMarkerGeometry(width, height, {
+  artRect = null,
+  owner = null,
+  markerIndex = 0,
+  inspect = false,
+} = {}) {
+  const inset = Math.max(4, Math.round(Math.min(width, height) * (inspect ? 0.026 : 0.035)));
+  const cornerSize = Math.max(12, Math.round(Math.min(width, height) * (inspect ? 0.11 : 0.15)));
+  if (!artRect || (owner !== 'player' && owner !== 'enemy')) {
+    return {
+      inset,
+      cornerSize,
+      x: width * 0.5 - inset - cornerSize * 0.5,
+      y: -height * 0.5 + inset + cornerSize * 0.5,
+    };
+  }
+
+  const artInset = Math.max(5, Math.min(8, Math.round(Math.min(width, height) * 0.04)));
+  const gap = Math.max(3, Math.round(cornerSize * 0.2));
+  return {
+    inset,
+    cornerSize,
+    gap,
+    x: artRect.x + artRect.width - artInset - cornerSize * 0.5
+      - markerIndex * (cornerSize + gap),
+    y: owner === 'enemy'
+      ? artRect.y + artRect.height - artInset - cornerSize * 0.5
+      : artRect.y + artInset + cornerSize * 0.5,
+  };
+}
+
+export function createBoardUnitStatusMarker(scene, width, height, presentation, options = {}) {
   if (!scene?.add || !presentation || width <= 0 || height <= 0) return null;
 
-  const inset = Math.max(4, Math.round(Math.min(width, height) * (inspect ? 0.026 : 0.035)));
+  const { inspect = false } = options;
+  const { inset, cornerSize, x, y } = getBoardUnitStatusMarkerGeometry(width, height, options);
   const lineWidth = Math.max(1, Math.round(Math.min(width, height) * (inspect ? 0.009 : 0.012)));
-  const cornerSize = Math.max(12, Math.round(Math.min(width, height) * (inspect ? 0.11 : 0.15)));
-  const x = width * 0.5 - inset - cornerSize * 0.5;
-  const y = -height * 0.5 + inset + cornerSize * 0.5;
   const marker = scene.add.container(0, 0);
   marker.name = `boardStatusMarker:${presentation.kind}`;
 
@@ -69,5 +103,11 @@ export function createBoardUnitStatusMarker(scene, width, height, presentation, 
 
   marker.add([innerEdge, badge, icon]);
   marker.statusKind = presentation.kind;
+  marker.markerBounds = {
+    x: x - cornerSize * 0.5,
+    y: y - cornerSize * 0.5,
+    width: cornerSize,
+    height: cornerSize,
+  };
   return marker;
 }
