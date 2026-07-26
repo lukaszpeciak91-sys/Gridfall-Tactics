@@ -39,18 +39,18 @@ function runFullBoardProbe({ owner, attackerIndex, targetIndex, target = {} }) {
   return { state, snapshot, events, beamEvent };
 }
 
-test('full-board off-lane beam routing is generic for player and enemy ownership', () => {
-  const player = runFullBoardProbe({ owner: 'player', attackerIndex: 6, targetIndex: 1, target: { hp: 1, maxHp: 1 } });
-  const enemy = runFullBoardProbe({ owner: 'enemy', attackerIndex: 0, targetIndex: 7, target: { armor: 1 } });
+test('full-board beam presentation follows ordinary opposing-lane routing for both owners', () => {
+  const player = runFullBoardProbe({ owner: 'player', attackerIndex: 6, targetIndex: 0, target: { hp: 1, maxHp: 1 } });
+  const enemy = runFullBoardProbe({ owner: 'enemy', attackerIndex: 0, targetIndex: 6, target: { armor: 1 } });
 
-  assert.equal(player.beamEvent.targetIndex, 1);
+  assert.equal(player.beamEvent.targetIndex, 0);
   assert.equal(player.beamEvent.lethal, true);
-  assert.equal(player.state.board[1], null);
+  assert.equal(player.state.board[0], null);
   assert.equal(getCombatAttackPresentation(player.beamEvent, player.snapshot), COMBAT_ATTACK_PRESENTATIONS.beam);
 
-  assert.equal(enemy.beamEvent.targetIndex, 7);
+  assert.equal(enemy.beamEvent.targetIndex, 6);
   assert.equal(enemy.beamEvent.damage, 1);
-  assert.equal(enemy.state.board[7].hp, 2);
+  assert.equal(enemy.state.board[6].hp, 2);
   assert.equal(getCombatAttackPresentation(enemy.beamEvent, enemy.snapshot), COMBAT_ATTACK_PRESENTATIONS.beam);
 });
 

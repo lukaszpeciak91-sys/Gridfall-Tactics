@@ -31,7 +31,7 @@ const SAFE_SURRENDER_MEANINGFUL_EFFECT_IDS = new Set([
   'adjacent_allies_atk_plus_1_ignore_armor_1',
   'gain_atk_when_damaged',
   'wounded_atk_plus_1',
-  'can_hit_any_lane',
+  'on_deploy_damage_enemy_unit_2',
   'opposing_lane_atk_plus_1',
   'aggro_buff_all_atk_2',
   'buff_all_atk_1',
@@ -322,24 +322,13 @@ function getOpponentHpKey(owner) {
   return owner === 'enemy' ? 'playerHP' : 'enemyHP';
 }
 
-function hasCanonicalGlobalAttacker(state) {
-  return state?.board?.some((unit) => unit?.effectId === 'can_hit_any_lane') ?? false;
-}
-
 function getGuaranteedHeroDamage(state, owner) {
-  if (!hasCanonicalGlobalAttacker(state)) {
-    const { friendly, opposing } = getRowsForOwner(owner);
-    return friendly.reduce((total, friendlyIndex, lane) => {
-      if (!state?.board?.[friendlyIndex] || state?.board?.[opposing[lane]]) return total;
-      return total + getEffectiveBoardAttack(state, friendlyIndex);
-    }, 0);
-  }
-  const targetOwner = owner === 'enemy' ? 'player' : 'enemy';
-  return getStandardCombatThreat(state).plannedAttacks
-    .filter((attack) => attack.sourceOwner === owner && attack.targetType === 'hero' && attack.targetOwner === targetOwner)
-    .reduce((total, attack) => total + attack.damage, 0);
+  const { friendly, opposing } = getRowsForOwner(owner);
+  return friendly.reduce((total, friendlyIndex, lane) => {
+    if (!state?.board?.[friendlyIndex] || state?.board?.[opposing[lane]]) return total;
+    return total + getEffectiveBoardAttack(state, friendlyIndex);
+  }, 0);
 }
-
 
 function getUnitId(unit) {
   return unit?.cardId ?? unit?.id ?? unit?.name ?? 'unit';
@@ -357,10 +346,6 @@ function getOpenLaneStats(state, owner) {
   friendly.forEach((friendlyIndex, lane) => {
     const unit = state?.board?.[friendlyIndex];
     if (!unit || state?.board?.[opposing[lane]]) return;
-    if (unit.effectId === 'can_hit_any_lane') {
-      const planned = getStandardCombatThreat(state).plannedAttacks.find((attack) => attack.sourceIndex === friendlyIndex);
-      if (planned?.targetType !== 'hero') return;
-    }
     lanes += 1;
     damage += getEffectiveBoardAttack(state, friendlyIndex);
   });
@@ -368,29 +353,21 @@ function getOpenLaneStats(state, owner) {
 }
 
 function getLikelyFriendlyCombatDeaths(state, owner) {
-  if (!hasCanonicalGlobalAttacker(state)) {
-    const { friendly, opposing } = getRowsForOwner(owner);
-    return friendly.filter((friendlyIndex, lane) => {
-      const friendlyUnit = state?.board?.[friendlyIndex];
-      const enemyUnit = state?.board?.[opposing[lane]];
-      return friendlyUnit && enemyUnit && getEffectiveBoardAttack(state, opposing[lane]) >= getEffectiveHp(friendlyUnit);
-    }).length;
-  }
-  return getStandardCombatThreat(state).predictedDeadUnitIndexes
-    .filter((index) => state.board?.[index]?.owner === owner).length;
+  const { friendly, opposing } = getRowsForOwner(owner);
+  return friendly.filter((friendlyIndex, lane) => {
+    const friendlyUnit = state?.board?.[friendlyIndex];
+    const enemyUnit = state?.board?.[opposing[lane]];
+    return friendlyUnit && enemyUnit && getEffectiveBoardAttack(state, opposing[lane]) >= getEffectiveHp(friendlyUnit);
+  }).length;
 }
 
 function getLikelyThreatenedFriendlyIndexes(state, owner) {
-  if (!hasCanonicalGlobalAttacker(state)) {
-    const { friendly, opposing } = getRowsForOwner(owner);
-    return friendly.filter((friendlyIndex, lane) => {
-      const friendlyUnit = state?.board?.[friendlyIndex];
-      const enemyUnit = state?.board?.[opposing[lane]];
-      return Boolean(friendlyUnit && enemyUnit && getEffectiveBoardAttack(state, opposing[lane]) >= getEffectiveHp(friendlyUnit));
-    });
-  }
-  return getStandardCombatThreat(state).threatenedUnitIndexes
-    .filter((index) => state.board?.[index]?.owner === owner);
+  const { friendly, opposing } = getRowsForOwner(owner);
+  return friendly.filter((friendlyIndex, lane) => {
+    const friendlyUnit = state?.board?.[friendlyIndex];
+    const enemyUnit = state?.board?.[opposing[lane]];
+    return Boolean(friendlyUnit && enemyUnit && getEffectiveBoardAttack(state, opposing[lane]) >= getEffectiveHp(friendlyUnit));
+  });
 }
 
 function getFriendlyBoardStats(state, owner) {
@@ -443,27 +420,6 @@ function getLaneCombatSnapshot(state, owner, lane) {
 }
 
 function evaluateLaneCombatSwing(beforeState, afterState, owner, lane) {
-  const hasGlobalAttacker = [...(beforeState.board ?? []), ...(afterState.board ?? [])]
-    .some((unit) => unit?.effectId === 'can_hit_any_lane');
-  if (hasGlobalAttacker) {
-    const opponent = owner === 'enemy' ? 'player' : 'enemy';
-    const before = getStandardCombatThreat(beforeState);
-    const after = getStandardCombatThreat(afterState);
-    const beforeFriendlyDeaths = before.predictedDeadUnitIndexes.filter((index) => beforeState.board[index]?.owner === owner);
-    const afterFriendlyDeaths = after.predictedDeadUnitIndexes.filter((index) => afterState.board[index]?.owner === owner);
-    const beforeEnemyDeaths = before.predictedDeadUnitIndexes.filter((index) => beforeState.board[index]?.owner === opponent);
-    const afterEnemyDeaths = after.predictedDeadUnitIndexes.filter((index) => afterState.board[index]?.owner === opponent);
-    const unitsSaved = beforeFriendlyDeaths.filter((index) => !afterFriendlyDeaths.includes(index)).length;
-    const newKills = afterEnemyDeaths.filter((index) => !beforeEnemyDeaths.includes(index)).length;
-    const preventedBaseDamage = Math.max(0, before.baseDamageByOwner[owner] - after.baseDamageByOwner[owner]);
-    const preventedUnitDamage = Math.max(0,
-      Object.entries(before.damageByUnitIndex).reduce((sum, [index, damage]) => sum + (beforeState.board[index]?.owner === owner ? damage : 0), 0)
-      - Object.entries(after.damageByUnitIndex).reduce((sum, [index, damage]) => sum + (afterState.board[index]?.owner === owner ? damage : 0), 0));
-    return (preventedBaseDamage > 0 ? 500 + preventedBaseDamage * 250 : 0)
-      + unitsSaved * 900
-      + newKills * 800
-      + preventedUnitDamage * 120;
-  }
   const before = getLaneCombatSnapshot(beforeState, owner, lane);
   const after = getLaneCombatSnapshot(afterState, owner, lane);
   if (!before || !after) return 0;
@@ -680,6 +636,7 @@ function getCandidateTargetIndexes(state, owner, effectId, card = null) {
     case 'enemy_atk_to_0_ally_atk_plus_1_until_combat':
     case 'enemy_up_to_2_atk_minus_1':
     case 'swap_two_enemy_units':
+    case 'on_deploy_damage_enemy_unit_2':
     case 'swap_adjacent_enemy_units':
       return board.map((unit, index) => (unit?.owner === opponentOwner ? index : -1)).filter((index) => index >= 0);
     case 'swap_any_two_friendly_units':
@@ -908,6 +865,19 @@ function addControllerUnitCandidates(actions, state, owner, card, slotIndex, pla
 }
 
 
+function addPrecisionShotUnitCandidates(actions, state, owner, card, slotIndex, placementType) {
+  const targets = getCandidateTargetIndexes(state, owner, card.effectId, card);
+  targets.forEach((targetIndex) => {
+    const placementState = cloneState(state);
+    const playProbe = playOrRedeployUnit(placementState, owner, card.id, slotIndex);
+    if (!playProbe.ok) return;
+    const targetedProbe = resolveTargetedUnitOnPlayEffect(placementState, owner, slotIndex, [targetIndex]);
+    if (!targetedProbe.ok || targetedProbe.type === 'unit-on-play-targeted-effect-pending') return;
+    actions.push({ type: 'play-unit', cardId: card.id, slotIndex, placementType, effectId: card.effectId, targetIndex, targetIndexes: [targetIndex] });
+  });
+}
+
+
 function getLegalEmptyFriendlySlotIndexes(state, owner) {
   const { friendly } = getRowsForOwner(owner);
   return friendly.filter((index) => isLegalEmptyFriendlySlotForUnitPlacement(state, owner, index));
@@ -962,6 +932,12 @@ export function buildActionCandidates(state, owner, hand, telemetry = null) {
           }
           if (card.effectId === 'swap_two_enemy_units') {
             addControllerUnitCandidates(actions, state, owner, card, slotIndex, canPlay.type);
+            return;
+          }
+          if (card.effectId === 'on_deploy_damage_enemy_unit_2') {
+            const targets = getCandidateTargetIndexes(state, owner, card.effectId, card);
+            if (targets.length > 0) addPrecisionShotUnitCandidates(actions, state, owner, card, slotIndex, canPlay.type);
+            else actions.push(action);
             return;
           }
           actions.push(action);
@@ -1221,7 +1197,7 @@ export function scoreAction(state, owner, action) {
     const result = playOrRedeployUnit(nextState, owner, action.cardId, action.slotIndex);
     if (!result.ok) return Number.NEGATIVE_INFINITY;
     action.placementType = result.type;
-    if (Array.isArray(action.targetIndexes) && action.effectId === 'swap_two_enemy_units') {
+    if (Array.isArray(action.targetIndexes) && ['swap_two_enemy_units', 'on_deploy_damage_enemy_unit_2'].includes(action.effectId)) {
       const targetedResult = resolveTargetedUnitOnPlayEffect(nextState, owner, action.slotIndex, action.targetIndexes);
       if (!targetedResult.ok || targetedResult.type === 'unit-on-play-targeted-effect-pending') return Number.NEGATIVE_INFINITY;
     }
@@ -1280,18 +1256,10 @@ export function scoreAction(state, owner, action) {
         if (placedAttack?.targetType === 'hero') addScoreComponent('openLanePlacement', 1200);
       } else {
         const incomingDamage = getUnitAttack(enemyUnit);
-        const sniperFalseBlock = enemyUnit.effectId === 'can_hit_any_lane'
-          && getStandardCombatThreat(nextState).sniperAttacks.some((attack) => (
-            attack.sourceIndex === opposingIndex && attack.targetIndex !== action.slotIndex
-          ));
-        if (incomingDamage > 0 && !sniperFalseBlock) addScoreComponent('laneBlocking', 1000 + incomingDamage * 120, { incomingDamage });
-        if (sniperFalseBlock) action.aiEvaluation = { ...(action.aiEvaluation ?? {}), falseLaneBlockingCorrectionApplied: true };
+        if (incomingDamage > 0) addScoreComponent('laneBlocking', 1000 + incomingDamage * 120, { incomingDamage });
       }
     }
     const placedUnit = nextState.board[action.slotIndex];
-    if (placedUnit?.owner === owner && placedUnit.effectId === 'can_hit_any_lane') {
-      addScoreComponent('combatSwing', evaluateLaneCombatSwing(state, nextState, owner, lane), { effectId: placedUnit.effectId, lane });
-    }
     const adjacencyFormation = getAdjacencyFormationScore(state, owner, action.slotIndex, actionCard);
     if (adjacencyFormation.adjacencyFormationValue > 0) {
       addScoreComponent('adjacencyFormation', adjacencyFormation.adjacencyFormationValue, adjacencyFormation);
@@ -1473,6 +1441,18 @@ export function scoreAction(state, owner, action) {
     const openLaneBlocked = Math.max(0, currentOpponentPressure - getGuaranteedHeroDamage(nextState, owner === 'enemy' ? 'player' : 'enemy'));
     const preventsLethalLane = currentOpponentPressure >= currentOwnHp && openLaneBlocked > 0;
     if (preventsLethalLane) addScoreComponent('summonDefense', 1600 + openLaneBlocked * 160, { openLaneBlocked });
+  }
+
+  if (action.effectId === 'on_deploy_damage_enemy_unit_2' && Number.isInteger(action.targetIndex)) {
+    const target = state.board[action.targetIndex];
+    const resolvedTarget = nextState.board[action.targetIndex];
+    const sameTargetSurvives = target && resolvedTarget
+      && getUnitId(target) === getUnitId(resolvedTarget)
+      && target.owner === resolvedTarget.owner;
+    const targetAttack = target ? getEffectiveBoardAttack(state, action.targetIndex) : 0;
+    const damageDealt = target ? Math.max(0, target.hp - (sameTargetSurvives ? resolvedTarget.hp : 0)) : 0;
+    const targetValue = targetAttack * 350 + damageDealt * 100;
+    addScoreComponent('precisionShotTargetValue', targetValue, { targetIndex: action.targetIndex, targetAttack, damageDealt });
   }
 
   if (action.effectId === 'infect_damage_1_opposite_ally_atk_1') {
@@ -1709,29 +1689,6 @@ export function scoreAction(state, owner, action) {
   const savedThreatenedUnits = Math.max(0, getLikelyFriendlyCombatDeaths(state, owner) - getLikelyFriendlyCombatDeaths(nextState, owner));
   const beforeCombatPrediction = getStandardCombatThreat(state);
   const afterCombatPrediction = getStandardCombatThreat(nextState);
-  if (beforeCombatPrediction.sniperAttacks.length || afterCombatPrediction.sniperAttacks.length) {
-    action.aiEvaluation = {
-      ...(action.aiEvaluation ?? {}),
-      canonicalCombatPredictionUsed: true,
-      canonicalCombatPrediction: {
-        sniperPresentByOwner: {
-          player: afterCombatPrediction.sniperAttacks.some((attack) => attack.sourceOwner === 'player'),
-          enemy: afterCombatPrediction.sniperAttacks.some((attack) => attack.sourceOwner === 'enemy'),
-        },
-        sniper: afterCombatPrediction.sniperDiagnostics,
-        beforeSniperTargets: beforeCombatPrediction.selectedSniperTargetIndexes,
-        afterSniperTargets: afterCombatPrediction.selectedSniperTargetIndexes,
-        beforePredictedDeaths: beforeCombatPrediction.predictedDeadUnitIndexes,
-        afterPredictedDeaths: afterCombatPrediction.predictedDeadUnitIndexes,
-        beforePlannedBaseDamage: beforeCombatPrediction.baseDamageByOwner,
-        afterPlannedBaseDamage: afterCombatPrediction.baseDamageByOwner,
-        falseLaneBlockingCorrectionApplied: Boolean(action.aiEvaluation?.falseLaneBlockingCorrectionApplied),
-        falseOpenLanePressureCorrectionApplied: action.type === 'play-unit'
-          && nextState.board[action.slotIndex]?.effectId === 'can_hit_any_lane'
-          && afterCombatPrediction.sniperAttacks.some((attack) => attack.sourceIndex === action.slotIndex && attack.targetType === 'unit'),
-      },
-    };
-  }
   const utilityOpportunityCost = getUtilityOpportunityCost(state, owner, action);
   const utilityScoreBeforeCost = scoreRecorder.total;
   const side = owner === 'enemy' ? state.enemy : state.player;
@@ -1957,7 +1914,7 @@ function applyActionForProfile(state, owner, action) {
   if (action.type === 'pass') return next;
   if (action.type === 'play-unit') {
     result = playOrRedeployUnit(next, owner, action.cardId, action.slotIndex);
-    if (result.ok && Array.isArray(action.targetIndexes) && action.effectId === 'swap_two_enemy_units') {
+    if (result.ok && Array.isArray(action.targetIndexes) && ['swap_two_enemy_units', 'on_deploy_damage_enemy_unit_2'].includes(action.effectId)) {
       result = resolveTargetedUnitOnPlayEffect(next, owner, action.slotIndex, action.targetIndexes);
     }
   } else if (action.type === 'swap-units') result = performSwap(next, owner, action.fromIndex, action.toIndex);
@@ -2091,22 +2048,18 @@ function attachDecisionScoring(action, scoredActions, score, rejectedCandidates 
   const afterState = state ? applyActionForProfile(state, owner, action) : null;
   const after = afterState ? summarizeStandardCombatThreat(afterState) : before;
   const opposing = owner === 'enemy' ? 'player' : 'enemy';
-  const sniper = after?.sniperDiagnostics?.[0] ?? before?.sniperDiagnostics?.[0];
   const compact = (summary) => ({
     predictedDeaths: [...(summary?.predictedDeadUnitIndexes ?? [])],
     baseDamageToAi: summary?.baseDamageByOwner?.[owner] ?? 0,
     baseDamageToOpponent: summary?.baseDamageByOwner?.[opposing] ?? 0,
-    sniperTargetIndex: summary?.selectedSniperTargetIndexes?.[0] ?? null,
   });
   const policyEvaluated = Boolean(action?.aiEvaluation?.immediateAttackThreatPolicy);
   const selectedDiffers = Boolean(action?.aiEvaluation?.immediateAttackThreatPolicy?.decisionChanged || action?.aiEvaluation?.swarmProfile?.decisionChanged);
   const defensive = /heal|armor|debuff|destroy|damage|control|return/.test(action?.effectId ?? '');
-  if (before && after && (sniper || policyEvaluated || selectedDiffers || defensive
+  if (before && after && (policyEvaluated || selectedDiffers || defensive
     || JSON.stringify(compact(before)) !== JSON.stringify(compact(after)))) {
     action.aiEvaluation.canonicalCombatPrediction = {
       before: compact(before), after: compact(after),
-      ...(sniper ? { sniperSourceIndex: sniper.sourceIndex, sniperTargetIndex: sniper.selectedTargetIndex,
-        sniperTargetCardId: sniper.selectedTargetId, sniperPlannedDamage: sniper.plannedSniperDamage } : {}),
     };
   }
   Object.defineProperty(action, '__aiDecisionScoring', { value: {

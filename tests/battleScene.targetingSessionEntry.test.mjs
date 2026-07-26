@@ -75,7 +75,7 @@ test('effect-card cancel clears scene targeting without mutating the card hand',
 });
 
 test('Controller play and redeploy use the explicit safe manual-targeting path without making Hacker generic', () => {
-  assert.match(source, /if \(\(result\.type === 'play' \|\| result\.type === 'redeploy'\) && result\.card\?\.effectId === 'swap_two_enemy_units' && !result\.unitOnPlayEffectBlocked\) \{\s*this\.startPlayerUnitOnPlayTargeting\(result\.card, boardIndex, beforeStats\);/);
+  assert.match(source, /\['swap_two_enemy_units', 'on_deploy_damage_enemy_unit_2'\]\.includes\(result\.card\?\.effectId\)[\s\S]*this\.startPlayerUnitOnPlayTargeting\(result\.card, boardIndex, beforeStats\);/);
   assert.doesNotMatch(source, /result\.card\?\.effectId === 'enemy_lane_atk_minus_1'[\s\S]*startPlayerUnitOnPlayTargeting/);
   assert.doesNotMatch(source, /getTargetingStateForEffect\(result\.card/);
 });

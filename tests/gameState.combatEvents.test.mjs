@@ -50,152 +50,6 @@ test('resolveCombat returns unit-vs-unit combat events and preserves winner reso
   assert.equal(state.winner, null);
 });
 
-test('Sniper off-lane lethal target still makes its snapshotted later-lane attack', () => {
-  const state = makeState();
-  state.board[6] = unit('player', { id: 'sniper', attack: 2, hp: 1, maxHp: 1, effectId: 'can_hit_any_lane' });
-  state.board[1] = unit('enemy', { id: 'later-lane-victim', attack: 3, hp: 1, maxHp: 1 });
-
-  const events = resolveCombat(state);
-
-  assert.equal(events.length, 2);
-  assert.equal(events[0].attackerIndex, 6);
-  assert.equal(events[0].targetIndex, 1);
-  assert.equal(events[0].lethal, true);
-  assert.equal(events[1].attackerIndex, 1);
-  assert.equal(events[1].targetType, 'hero');
-  assert.equal(state.board[1], null);
-  assert.equal(state.playerHP, 9);
-});
-
-test('Sniper immediately cleans an off-lane lethal target in an already-resolved lane', () => {
-  const state = makeState();
-  state.board[8] = unit('player', { id: 'late-sniper', attack: 2, hp: 1, maxHp: 1, effectId: 'can_hit_any_lane' });
-  state.board[0] = unit('enemy', { id: 'earlier-lane-victim', attack: 0, hp: 1, maxHp: 1 });
-
-  const events = resolveCombat(state);
-
-  assert.equal(events.length, 2);
-  assert.equal(events[0].attackerIndex, 0);
-  assert.equal(events[0].targetType, 'hero');
-  assert.equal(events[1].attackerIndex, 8);
-  assert.equal(events[1].targetIndex, 0);
-  assert.equal(state.board[0], null);
-});
-
-test('multiple Snipers preserve snapshotted target choice even when targeting the same unit', () => {
-  const state = makeState();
-  state.board[6] = unit('player', { id: 'first-sniper', attack: 2, hp: 1, maxHp: 1, effectId: 'can_hit_any_lane' });
-  state.board[7] = unit('player', { id: 'second-sniper', attack: 2, hp: 1, maxHp: 1, effectId: 'can_hit_any_lane' });
-  state.board[2] = unit('enemy', { id: 'lowest-hp-victim', attack: 4, hp: 1, maxHp: 1 });
-  state.board[0] = unit('enemy', { id: 'next-living-target', attack: 0, hp: 3, maxHp: 3 });
-
-  const events = resolveCombat(state);
-  const sniperEvents = events.filter((event) => event.attackerSide === 'player');
-
-  assert.deepEqual(sniperEvents.map((event) => [event.attackerIndex, event.targetIndex]), [
-    [6, 2],
-    [7, 2],
-  ]);
-  assert.equal(state.board[2], null);
-  assert.equal(state.board[0].hp, 3);
-  assert.equal(state.playerHP, 8);
-});
-
-test('Sniper targeting ignores non-positive HP units already present on the board', () => {
-  const state = makeState();
-  state.board[6] = unit('player', { id: 'sniper', attack: 2, hp: 1, maxHp: 1, effectId: 'can_hit_any_lane' });
-  state.board[0] = unit('enemy', { id: 'stale-corpse', attack: 5, hp: 0, maxHp: 1 });
-  state.board[1] = unit('enemy', { id: 'living-target', attack: 0, hp: 2, maxHp: 2 });
-
-  const events = resolveCombat(state);
-
-  assert.equal(events[0].attackerIndex, 6);
-  assert.equal(events[0].targetIndex, 1);
-  assert.equal(state.board[0], null);
-  assert.equal(state.board[1], null);
-  assert.equal(state.playerHP, 12);
-});
-
-test('Sniper HP ties target the highest effective ATK enemy before board index', () => {
-  const state = makeState();
-  state.board[6] = unit('player', { id: 'sniper', attack: 1, hp: 2, maxHp: 2, effectId: 'can_hit_any_lane' });
-  state.board[0] = unit('enemy', { id: 'lower-index-low-attack', attack: 1, hp: 2, maxHp: 2 });
-  state.board[1] = unit('enemy', { id: 'higher-attack', attack: 3, hp: 2, maxHp: 2 });
-
-  const sniperHit = resolveCombat(state).find((event) => event.attackerIndex === 6);
-
-  assert.equal(sniperHit.targetIndex, 1);
-});
-
-test('Sniper ATK ties still target the lower board index deterministically', () => {
-  const makeTieState = () => {
-    const state = makeState();
-    state.board[6] = unit('player', { id: 'sniper', attack: 1, hp: 2, maxHp: 2, effectId: 'can_hit_any_lane' });
-    state.board[0] = unit('enemy', { id: 'lower-index-tie', attack: 3, hp: 2, maxHp: 2 });
-    state.board[1] = unit('enemy', { id: 'higher-index-tie', attack: 3, hp: 2, maxHp: 2 });
-    return state;
-  };
-
-  const firstHit = resolveCombat(makeTieState()).find((event) => event.attackerIndex === 6);
-  const secondHit = resolveCombat(makeTieState()).find((event) => event.attackerIndex === 6);
-
-  assert.equal(firstHit.targetIndex, 0);
-  assert.equal(secondHit.targetIndex, 0);
-});
-
-test('Sniper HP tie uses active effective ATK buffs and debuffs', () => {
-  const state = makeState();
-  state.board[6] = unit('player', { id: 'sniper', attack: 1, hp: 2, maxHp: 2, effectId: 'can_hit_any_lane' });
-  state.board[0] = unit('enemy', { id: 'printed-high-debuffed', attack: 4, hp: 2, maxHp: 2, tempAttackMod: -3 });
-  state.board[1] = unit('enemy', { id: 'printed-low-buffed', attack: 1, hp: 2, maxHp: 2, tempAttackMod: 2 });
-
-  const sniperHit = resolveCombat(state).find((event) => event.attackerIndex === 6);
-
-  assert.equal(sniperHit.targetIndex, 1);
-});
-
-test('Sniper off-lane cleanup records fallen units and fires death triggers exactly once', () => {
-  const state = makeState();
-  state.board[6] = unit('player', { id: 'sniper', attack: 2, hp: 1, maxHp: 1, effectId: 'can_hit_any_lane' });
-  state.board[2] = unit('enemy', { id: 'trigger-victim', attack: 3, hp: 1, maxHp: 1, effectId: 'death_damage_enemy_hero_1' });
-
-  const events = resolveCombat(state);
-
-  assert.equal(events.length, 3);
-  assert.equal(events[1].attackerIndex, 2);
-  assert.equal(events[1].targetType, 'hero');
-  assert.equal(events[2].type, 'death-trigger-hero-damage');
-  assert.equal(events[2].sourceDeathIndex, 2);
-  assert.equal(events[2].targetSide, 'player');
-  assert.equal(events[2].damage, 1);
-  assert.equal(state.playerHP, 8);
-  assert.equal(state.board[2], null);
-  assert.equal(state.enemy.fallen.length, 1);
-  assert.equal(state.enemy.fallen[0].card.id, 'trigger-victim');
-  assert.equal(state.enemy.fallen[0].reason, 'combat-death');
-});
-
-test('Sniper off-lane cleanup preserves combat-death summon handling without duplicates', () => {
-  const state = makeState();
-  state.board[6] = unit('player', { id: 'sniper', attack: 2, hp: 1, maxHp: 1, effectId: 'can_hit_any_lane' });
-  state.board[2] = unit('enemy', { id: 'carrier-victim', attack: 3, hp: 1, maxHp: 1, effectId: 'combat_death_summon_grunt' });
-
-  const events = resolveCombat(state);
-
-  assert.equal(events.length, 2);
-  assert.equal(events[0].attackerIndex, 6);
-  assert.equal(events[0].targetIndex, 2);
-  assert.equal(events[1].attackerIndex, 2);
-  assert.equal(events[1].targetType, 'hero');
-  assert.equal(events[1].damage, 3);
-  assert.equal(state.playerHP, 9);
-  assert.equal(state.board[2].effectId, null);
-  assert.equal(state.board[2].attack, 1);
-  assert.equal(state.enemy.fallen.length, 1);
-  assert.equal(state.enemy.fallen[0].card.id, 'carrier-victim');
-  assert.equal(state.combatOnlyDeathSummons, 1);
-});
-
 test('resolveCombat returns a player open-lane hero attack event and sets winner', () => {
   const state = makeState();
   state.enemyHP = 2;
@@ -978,7 +832,7 @@ test('combat-only attack and armor modifiers emit feedback metadata only when ac
   assert.equal(inactiveHit.combatModifiers, undefined);
 });
 
-test('Halberdier, Flanker, Runner, Pierce, Guardian, and Sniper emit combat feedback only on real application', () => {
+test('Halberdier, Flanker, Runner, Pierce, and Guardian emit combat feedback only on real application', () => {
   const halberdierState = makeState();
   halberdierState.board[6] = unit('player', { id: 'halberdier', attack: 2, hp: 3, maxHp: 3, effectId: 'opposing_lane_atk_plus_1' });
   halberdierState.board[0] = unit('enemy', { id: 'opposed', attack: 0, hp: 4, maxHp: 4 });
@@ -1047,15 +901,7 @@ test('Halberdier, Flanker, Runner, Pierce, Guardian, and Sniper emit combat feed
     { type: 'intercept', amount: 0, source: 'intercept_lane_damage', label: 'INTERCEPT', feedback: 'target' },
   ]);
 
-  const sniperState = makeState();
-  sniperState.board[6] = unit('player', { id: 'sniper', attack: 1, hp: 2, maxHp: 2, effectId: 'can_hit_any_lane' });
-  sniperState.board[0] = unit('enemy', { id: 'tough', attack: 0, hp: 5, maxHp: 5 });
-  sniperState.board[1] = unit('enemy', { id: 'weak', attack: 0, hp: 2, maxHp: 2 });
-  const sniperHit = resolveCombat(sniperState).find((event) => event.attackerIndex === 6);
-  assert.equal(sniperHit.targetIndex, 1);
-  assert.deepEqual(sniperHit.combatModifiers, [
-    { type: 'retarget', amount: 0, source: 'can_hit_any_lane', label: 'LOWEST HP' },
-  ]);
+
 });
 
 test('overflow keyword deals only excess armor-mitigated combat damage to defender base', () => {

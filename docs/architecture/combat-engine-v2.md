@@ -31,17 +31,11 @@ At standard-combat start, all living, eligible, non-offline units present on the
 
 Targets are not retargeted after snapshot creation. A planned unit attack does not convert into Base damage if the original target dies earlier. A planned open-lane Base attack remains Base damage even if the lane is filled later. Snapshot construction does not mutate live state.
 
-The frozen attack profile includes relevant current values, including base/permanent ATK, temporary ATK modifiers, ATK caps or attack-set-to-zero effects, auras, adjacency/formation bonuses, ally-count bonuses, debuffs, open-lane bonuses, ignore-armor state, Sniper target selection, and offline eligibility.
+The frozen attack profile includes relevant current values, including base/permanent ATK, temporary ATK modifiers, ATK caps or attack-set-to-zero effects, auras, adjacency/formation bonuses, ally-count bonuses, debuffs, open-lane bonuses, ignore-armor state, and offline eligibility.
 
 ## Sniper
 
-Sniper target priority is:
-
-1. Lowest current HP.
-2. Highest current effective ATK.
-3. Lowest board index.
-
-Target selection occurs during the full-board snapshot. Sniper does not have hidden first strike. A target killed by Sniper still performs its already-planned standard-combat attack. Multiple Snipers retain their independently snapshotted targets and do not retarget after earlier kills.
+Sniper has no special standard-combat routing. Its deploy ability is resolved through the normal targeted unit-on-play path: choose any enemy unit and deal 2 damage. Afterward, Sniper remains on the board and its standard attack is frozen and resolved against its opposing lane like any other ranged unit. Its `beam` presentation may still be used for that lane attack, but presentation does not alter targeting.
 
 ## Aura and contextual effects
 
@@ -183,7 +177,7 @@ Final normalization audit result:
 Representative executable coverage currently includes:
 
 - Standard snapshot behavior: `tests/gameState.combatEvents.test.mjs`.
-- Sniper: `tests/gameState.combatEvents.test.mjs`.
+- Sniper deploy targeting and normal lane combat: `tests/controlSniperRework.test.mjs`.
 - Aura freeze: `tests/gameState.combatEvents.test.mjs`.
 - Rotcaller timing: `test/combatDeathWaves.test.js`, `test/graveheartsWodzirejStosRework.test.js`, `tests/universalHpDeathSemantics.test.mjs`.
 - Death waves: `test/combatDeathWaves.test.js`.

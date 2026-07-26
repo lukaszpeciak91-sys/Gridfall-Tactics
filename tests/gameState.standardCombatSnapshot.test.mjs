@@ -71,7 +71,7 @@ test('Kwoka contextual attack freezes combat-start ally count', () => {
 
 test('combat-death summon before a future lane does not create a current-window attacker', () => {
   const state = makeState();
-  state.board[6] = unit('player', { id: 'sniper', attack: 2, hp: 2, maxHp: 2, effectId: 'can_hit_any_lane' });
+  state.board[8] = unit('player', { id: 'lane-attacker', attack: 2, hp: 2, maxHp: 2 });
   state.board[2] = unit('enemy', { id: 'carrier', attack: 0, hp: 1, maxHp: 1, effectId: 'combat_death_summon_grunt' });
 
   const events = resolveCombat(state);
@@ -83,18 +83,18 @@ test('combat-death summon before a future lane does not create a current-window 
 
 test('open-lane and unit-target choices do not retarget after earlier mutations', () => {
   const state = makeState();
-  state.board[6] = unit('player', { id: 'sniper', attack: 2, hp: 2, maxHp: 2, effectId: 'can_hit_any_lane' });
+  state.board[8] = unit('player', { id: 'lane-attacker', attack: 2, hp: 2, maxHp: 2 });
   state.board[7] = unit('player', { id: 'open-lane-attacker', attack: 2, hp: 2, maxHp: 2 });
   state.board[1] = null;
   state.board[2] = unit('enemy', { id: 'target', attack: 0, hp: 1, maxHp: 1, effectId: 'combat_death_summon_grunt' });
 
   const events = resolveCombat(state);
   const openAttack = events.find((event) => event.attackerIndex === 7);
-  const sniperAttack = events.find((event) => event.attackerIndex === 6);
+  const laneAttack = events.find((event) => event.attackerIndex === 8);
 
   assert.equal(openAttack.targetType, 'hero');
-  assert.equal(sniperAttack.targetType, 'unit');
-  assert.equal(sniperAttack.targetIndex, 2);
+  assert.equal(laneAttack.targetType, 'unit');
+  assert.equal(laneAttack.targetIndex, 2);
 });
 
 test('same-lane mutual attacks and simultaneous base lethal survive snapshot planning', () => {

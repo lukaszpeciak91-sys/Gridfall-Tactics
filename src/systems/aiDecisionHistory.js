@@ -64,11 +64,8 @@ function compactPrediction(action) {
     predictedDeaths: (value.predictedDeaths ?? []).filter(Number.isInteger).slice(0, 6),
     baseDamageToAi: finite(value.baseDamageToAi) ?? 0,
     baseDamageToOpponent: finite(value.baseDamageToOpponent) ?? 0,
-    sniperTargetIndex: Number.isInteger(value.sniperTargetIndex) ? value.sniperTargetIndex : null,
   });
   const result = { used: true, before: side(raw.before), after: side(raw.after) };
-  for (const key of ['sniperSourceIndex', 'sniperTargetIndex', 'sniperPlannedDamage']) if (Number.isFinite(raw[key])) result[key] = raw[key];
-  if (string(raw.sniperTargetCardId)) result.sniperTargetCardId = raw.sniperTargetCardId;
   return result;
 }
 
