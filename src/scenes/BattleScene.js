@@ -24,7 +24,7 @@ import { PREMIUM_BROADCAST_FONT_STACK, createImageButton, preloadSecondaryButton
 import { formatDeckSummaryEntry } from '../rendering/cardRenderModes.js';
 import { beginSceneTransitionOverlay, reconcileSceneTransitionOverlayOrdering } from './sceneTransitionOverlay.js';
 import { CARD_COLORS, createCardArtwork, createCardPreviewView, getBaseCardSurfaceTheme, getDefaultCardAccentColor, resolveCardSurfaceTheme, createStatBadges } from '../rendering/cardVisualLayout.js';
-import { createBoardUnitStatusMarker, getBoardUnitStatusPresentation } from '../rendering/boardUnitStatusPresentation.js';
+import { createBoardUnitStatusMarker, getBoardUnitStatusPresentation, getBoardUnitStatusPresentations } from '../rendering/boardUnitStatusPresentation.js';
 import { getCardDisplayName, getCardTextShort } from '../localization/cardDisplay.js';
 import { getActiveLocale, translateActive, translateActiveList } from '../localization/localeService.js';
 import { applyCampaignBattleResult, clearCampaign, createNewCampaign, isValidCampaignState, loadCampaign, saveCampaign } from '../systems/campaignState.js';
@@ -12565,15 +12565,21 @@ export default class BattleScene extends Phaser.Scene {
     const artBottomDim = this.add.rectangle(0, finalArtY + artRect.height * 0.29, artRect.width, artRect.height * 0.42, BASE_CARD_SURFACE_THEME.artBackdropFill, 0.14);
     const offlineDim = this.add.rectangle(0, 0, unitWidth, unitHeight, 0x020617, options.offline ? OFFLINE_UNIT_DIM_ALPHA : 0);
     offlineDim.name = 'offlineDim';
-    const statusPresentation = getBoardUnitStatusPresentation(
+    const statusPresentations = getBoardUnitStatusPresentations(
       unit,
       options.statusState ?? this.combatPresentationStatusState ?? this.gameState,
     );
-    const statusMarker = createBoardUnitStatusMarker(this, unitWidth, unitHeight, statusPresentation);
+    const statusMarkers = statusPresentations.map((presentation, markerIndex) => createBoardUnitStatusMarker(
+      this,
+      unitWidth,
+      unitHeight,
+      presentation,
+      { artRect, owner: unit.owner, markerIndex },
+    ));
 
-    if (options.offline) return [cardBack, inner, artBackdrop, art, artStroke, artLocalContrast, artShade, artBottomDim, offlineDim, stats, statusMarker].filter(Boolean);
+    if (options.offline) return [cardBack, inner, artBackdrop, art, artStroke, artLocalContrast, artShade, artBottomDim, offlineDim, stats, ...statusMarkers].filter(Boolean);
     offlineDim.destroy?.();
-    return [cardBack, inner, artBackdrop, art, artStroke, artLocalContrast, artShade, artBottomDim, stats, statusMarker].filter(Boolean);
+    return [cardBack, inner, artBackdrop, art, artStroke, artLocalContrast, artShade, artBottomDim, stats, ...statusMarkers].filter(Boolean);
   }
 
   applyOfflineBoardUnitVisual(cell, offline, wasOffline) {

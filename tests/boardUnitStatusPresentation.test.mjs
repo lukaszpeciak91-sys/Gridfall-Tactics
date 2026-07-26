@@ -7,7 +7,9 @@ import wardens from '../src/data/factions/wardens.json' with { type: 'json' };
 import {
   BOARD_UNIT_STATUS_KIND,
   createBoardUnitStatusMarker,
+  getBoardUnitStatusMarkerGeometry,
   getBoardUnitStatusPresentation,
+  getBoardUnitStatusPresentations,
 } from '../src/rendering/boardUnitStatusPresentation.js';
 import {
   createInitialBattleState,
@@ -103,6 +105,83 @@ test('marker geometry keeps owner frame external and gives statuses different no
   assert.equal(created[0].statusKind, BOARD_UNIT_STATUS_KIND.HP_FLOOR);
   assert.equal(created[1].statusKind, BOARD_UNIT_STATUS_KIND.MOVE_DISABLE_IMMUNITY);
   assert.notDeepEqual(created[0].children[2].operations, created[1].children[2].operations);
+});
+
+const rectsIntersect = (a, b) => !(
+  a.x + a.width <= b.x || b.x + b.width <= a.x
+  || a.y + a.height <= b.y || b.y + b.height <= a.y
+);
+
+const markerBounds = (geometry) => ({
+  x: geometry.x - geometry.cornerSize / 2,
+  y: geometry.y - geometry.cornerSize / 2,
+  width: geometry.cornerSize,
+  height: geometry.cornerSize,
+});
+
+test('audited board markers mirror by canonical owner and stay inside art away from stats', () => {
+  const width = 112;
+  const height = 154;
+  const enemyArt = { x: -52, y: -73, width: 104, height: 105 };
+  const enemyStats = { x: -48, y: 37, width: 96, height: 22 };
+  const playerStats = { x: -48, y: -70, width: 96, height: 22 };
+  const playerArt = { x: -52, y: -43, width: 104, height: 105 };
+
+  for (const [owner, artRect, statsRect] of [
+    ['enemy', enemyArt, enemyStats],
+    ['player', playerArt, playerStats],
+  ]) {
+    for (const markerIndex of [0, 1]) {
+      const geometry = getBoardUnitStatusMarkerGeometry(width, height, { artRect, owner, markerIndex });
+      const bounds = markerBounds(geometry);
+      assert.ok(bounds.x >= artRect.x && bounds.x + bounds.width <= artRect.x + artRect.width);
+      assert.ok(bounds.y >= artRect.y && bounds.y + bounds.height <= artRect.y + artRect.height);
+      assert.equal(rectsIntersect(bounds, statsRect), false);
+      const edgeInset = owner === 'enemy'
+        ? artRect.y + artRect.height - (bounds.y + bounds.height)
+        : bounds.y - artRect.y;
+      assert.equal(owner === 'enemy'
+        ? geometry.y > artRect.y + artRect.height / 2
+        : geometry.y < artRect.y + artRect.height / 2, true);
+      assert.ok(edgeInset >= 5 && edgeInset <= 8);
+    }
+  }
+});
+
+test('simultaneous audited markers stack right-to-left without collision', () => {
+  const state = {
+    cannotDropBelowOneThisTurn: { player: true },
+    immuneMoveDisableThisTurn: { player: true },
+  };
+  const presentations = getBoardUnitStatusPresentations(unit('player', 'any-faction-card'), state);
+  assert.deepEqual(presentations.map(({ kind }) => kind), [
+    BOARD_UNIT_STATUS_KIND.HP_FLOOR,
+    BOARD_UNIT_STATUS_KIND.MOVE_DISABLE_IMMUNITY,
+  ]);
+
+  const artRect = { x: -52, y: -43, width: 104, height: 105 };
+  const right = markerBounds(getBoardUnitStatusMarkerGeometry(112, 154, { artRect, owner: 'player', markerIndex: 0 }));
+  const left = markerBounds(getBoardUnitStatusMarkerGeometry(112, 154, { artRect, owner: 'player', markerIndex: 1 }));
+  assert.ok(left.x + left.width < right.x);
+  assert.equal(rectsIntersect(left, right), false);
+});
+
+test('board placement is driven by owner while legacy inspect geometry is unchanged', () => {
+  const artRect = { x: -52, y: -43, width: 104, height: 105 };
+  const player = getBoardUnitStatusMarkerGeometry(112, 154, { artRect, owner: 'player' });
+  const enemy = getBoardUnitStatusMarkerGeometry(112, 154, { artRect, owner: 'enemy' });
+  assert.equal(player.x, enemy.x);
+  assert.ok(player.y < enemy.y);
+
+  const legacy = getBoardUnitStatusMarkerGeometry(112, 154, { inspect: true });
+  const expectedInset = Math.max(4, Math.round(112 * 0.026));
+  const expectedSize = Math.max(12, Math.round(112 * 0.11));
+  assert.deepEqual(legacy, {
+    inset: expectedInset,
+    cornerSize: expectedSize,
+    x: 56 - expectedInset - expectedSize / 2,
+    y: -77 + expectedInset + expectedSize / 2,
+  });
 });
 
 test('production effect flow retains the one-action guard before either status can be played again', () => {
