@@ -282,37 +282,37 @@
     }
   },
   "cardTypes": {
-    "effect": "Efekt",
-    "unit": "Jednostka"
+    "effect": "Ефект",
+    "unit": "Боєць"
   },
   "stats": {
     "attack": "ATK",
     "atk": "ATK",
     "hp": "HP",
     "health": "HP",
-    "armor": "PANC",
-    "arm": "PANC"
+    "armor": "ARM",
+    "arm": "ARM"
   },
   "ui": {
     "common": {
-      "back": "WRÓĆ",
-      "exit": "WYJDŹ",
-      "retry": "PONÓW",
-      "pass": "PAS",
-      "confirm": "POTWIERDŹ",
-      "cancel": "ANULUJ",
-      "fullscreen": "Pełny ekran",
-      "help": "Pomoc",
+      "back": "НАЗАД",
+      "exit": "ВИЙТИ",
+      "retry": "ПОВТОРИТИ",
+      "pass": "ПАС",
+      "confirm": "ПІДТВЕРДИТИ",
+      "cancel": "СКАСУВАТИ",
+      "fullscreen": "Повний екран",
+      "help": "Допомога",
       "menu": "Меню",
-      "comingSoon": "Wkrótce",
-      "swipeScroll": "Przesuń lub użyj kółka myszy, aby przewijać",
-      "noScroll": "Przewijanie niepotrzebne",
-      "none": "Brak",
-      "empty": "Pusto",
-      "unknownCard": "Nieznana karta",
-      "unit": "Jednostka",
-      "continue": "KONTYNUUJ",
-      "mainMenu": "MENU GŁÓWNE"
+      "comingSoon": "Незабаром",
+      "swipeScroll": "Проведіть пальцем або прокрутіть коліщатко миші",
+      "noScroll": "Прокручування не потрібне",
+      "none": "Немає",
+      "empty": "Порожньо",
+      "unknownCard": "Невідома карта",
+      "unit": "Боєць",
+      "continue": "ПРОДОВЖИТИ",
+      "mainMenu": "ГОЛОВНЕ МЕНЮ"
     },
     "start": {
       "title": "GRIDFALL TACTICS",
@@ -333,71 +333,71 @@
       "arenaTitle": "АРЕНА",
       "arenaHelper": "Оберіть команду. Суперника й арену з іншого виміру буде визначено навмання.",
       "descriptions": {
-        "Aggro": "Szybka presja.",
-        "Tank": "Pancerz i wytrzymałość.",
-        "Control": "Zakłócenia i przestawianie.",
-        "Swarm": "Taktyka roju na planszy.",
-        "Wardens": "Obrona i kontrola stref.",
-        "Attrition Swarm": "Wartość ze śmierci i powroty.",
-        "Overclock": "Wymuszone walki i niestabilne tempo."
+        "Aggro": "Швидкий тиск.",
+        "Tank": "Броня й витривалість.",
+        "Control": "Перешкоди й переміщення.",
+        "Swarm": "Ройова тактика на полі.",
+        "Wardens": "Захист і контроль зон.",
+        "Attrition Swarm": "Вигода від загибелі й повернення.",
+        "Overclock": "Примусові бої та нестабільний темп."
       },
       "tags": {
-        "Rush": "Szarża",
-        "Burst": "Presja",
-        "Armor": "Pancerz",
-        "Sustain": "Utrzymanie",
-        "Support": "Wsparcie",
-        "Disrupt": "Zakłócenia",
-        "Move": "Ruch",
-        "Swarm": "Rój",
-        "Growth": "Wzrost",
-        "Attrition": "Wyniszczenie",
-        "Return": "Powrót",
-        "Formation": "Formacja",
-        "Tempo": "Tempo",
-        "Overload": "Przeciążenie"
+        "Rush": "Натиск",
+        "Burst": "Тиск",
+        "Armor": "Броня",
+        "Sustain": "Витривалість",
+        "Support": "Підтримка",
+        "Disrupt": "Перешкоди",
+        "Move": "Рух",
+        "Swarm": "Рій",
+        "Growth": "Зростання",
+        "Attrition": "Виснаження",
+        "Return": "Повернення",
+        "Formation": "Стрій",
+        "Tempo": "Темп",
+        "Overload": "Перевантаження"
       },
       "campaignAccordion": {
         "lore": {
           "Aggro": [
-            "Nieśmiertelni arystokraci zamknięci w porcelanowych ciałach.",
-            "Zachowują piękno, etykietę i władzę przez okrutne rytuały oraz serum z cudzego życia."
+            "Безсмертні аристократи, замкнені в порцелянових тілах.",
+            "Вони зберігають красу, етикет і владу завдяки жорстоким ритуалам та сироватці з чужих життів."
           ],
           "Tank": [
-            "Gadzi solarni imperialiści maszerują ku zagładzie po wyroku proroctwa.",
-            "Ich chwała trwa długo po śmierci nadziei."
+            "Рептилоїдні сонячні імперіалісти крокують до загибелі, визначеної пророцтвом.",
+            "Їхня слава живе ще довго після смерті надії."
           ],
           "Control": [
-            "Ocalali z techno-okultystycznej katastrofy przechowują głowy w szklanych naczyniach.",
-            "Szukają sygnału zdolnego przywrócić samą rzeczywistość."
+            "Уцілілі після техноокультної катастрофи зберігають голови у скляних посудинах.",
+            "Вони шукають сигнал, здатний відновити саму реальність."
           ],
           "Swarm": [
-            "Planetarny superorganizm wchłonął całą biosferę w jedną świadomość.",
-            "Każde stworzenie, narośl i instynkt śpiewa tę samą nieskończoną pieśń."
+            "Планетарний суперорганізм поглинув усю біосферу в єдину свідомість.",
+            "Кожна істота, кожен наріст та інстинкт співають одну нескінченну пісню."
           ],
           "Wardens": [
-            "Klany potomków neandertalczyków przemierzają zamarzniętą równikową tundrę na kolosalnych mamutach.",
-            "Trwają między gasnącym ciepłem a kosmicznym Mrozem."
+            "Клани нащадків неандертальців мандрують замерзлою екваторіальною тундрою на велетенських мамонтах.",
+            "Вони тримаються між згаслим теплом і космічним Морозом."
           ],
           "Attrition Swarm": [
-            "Świat skończył się w sylwestra 1999 roku, lecz nikt tego nie zauważył.",
-            "Dekady później martwi powtarzają zapomniane rutyny, których już nie rozumieją."
+            "Світ скінчився в новорічну ніч 1999 року, але ніхто цього не помітив.",
+            "Десятиліття потому мертві повторюють забуті звички, яких уже не розуміють."
           ],
           "Overclock": [
-            "Państwowy program uzbrajania inwentarza działał dalej po zniknięciu ludzkości.",
-            "Dokumenty są urzędowe. Zwierzęta nie są bezpieczne."
+            "Державна програма озброєння худоби тривала після зникнення людства.",
+            "Документи офіційні. Тварини небезпечні."
           ]
         },
         "gameplay": {
-          "Aggro": "Wybuchowa agresja i bezlitosna presja.",
-          "Tank": "Przetrwaj, umocnij się i zmiażdż wroga przewagą wytrzymałości.",
-          "Control": "Kontroluj pole bitwy przez zakłócenia i manipulację.",
-          "Swarm": "Rozrastaj się nieustannie, aż pole bitwy będzie twoje.",
-          "Wardens": "Wspieraj linię, trzymaj szyk i przetrwaj przeciwnika.",
-          "Attrition Swarm": "Czerp wartość ze strat, rozkładu i nieuniknionego powrotu.",
-          "Overclock": "Wymuszaj walki, zakłócaj linie i wykorzystuj krótkie przeciążenia."
+          "Aggro": "Вибухова агресія та нещадний тиск.",
+          "Tank": "Вистійте, укріпіться й розчавіть ворога перевагою у витривалості.",
+          "Control": "Керуйте полем битви за допомогою перешкод і маніпуляцій.",
+          "Swarm": "Невпинно розростайтеся, доки поле битви не стане вашим.",
+          "Wardens": "Підтримуйте лінію, тримайте стрій і переживіть суперника.",
+          "Attrition Swarm": "Здобувайте вигоду з втрат, розпаду й неминучого повернення.",
+          "Overclock": "Нав’язуйте бої, руйнуйте лінії та використовуйте короткі перевантаження."
         },
-        "select": "WYBIERZ",
+        "select": "ОБРАТИ",
         "descriptions": {
           "Aggro": [
             "Перед вами Порцеляновий двір!",
@@ -432,13 +432,13 @@
     },
     "settings": {
       "title": "НАЛАШТУВАННЯ",
-      "subtitle": "Preferencje są zapisywane lokalnie",
-      "languagePanel": "JĘZYK",
-      "audioPanel": "DŹWIĘK",
-      "languageHelp": "Wybierz język wyświetlania nazw kart i frakcji",
-      "languageStatus": "Język: {language}",
-      "musicVolume": "Głośność muzyki",
-      "sfxVolume": "Głośność efektów",
+      "subtitle": "Налаштування зберігаються локально",
+      "languagePanel": "МОВА",
+      "audioPanel": "ЗВУК",
+      "languageHelp": "Оберіть мову назв карт і фракцій",
+      "languageStatus": "Мова: {language}",
+      "musicVolume": "Гучність музики",
+      "sfxVolume": "Гучність ефектів",
       "languages": {
         "en": "Англійська",
         "pl": "Польська",
@@ -447,375 +447,375 @@
     },
     "collection": {
       "title": "КОЛЕКЦІЯ",
-      "subtitle": "Przytrzymaj kartę, aby ją obejrzeć",
+      "subtitle": "Затисніть карту, щоб оглянути її",
       "factionDossier": {
-        "title": "Akta frakcji"
+        "title": "Досьє фракції"
       }
     },
     "battleMenu": {
-      "title": "MENU",
-      "comingSoon": "Opcje menu wkrótce.",
-      "howToPlay": "JAK GRAĆ",
-      "battleReport": "RAPORT BITWY",
-      "copyReport": "KOPIUJ RAPORT",
-      "closeReport": "ZAMKNIJ",
-      "forceReveal": "WYMUŚ ODKRYCIE",
-      "copySuccess": "Raport skopiowany.",
-      "copyFailure": "Kopiowanie nie powiodło się. Zaznacz tekst ręcznie."
+      "title": "МЕНЮ",
+      "comingSoon": "Пункти меню з’являться незабаром.",
+      "howToPlay": "ЯК ГРАТИ",
+      "battleReport": "ЗВІТ ПРО БИТВУ",
+      "copyReport": "КОПІЮВАТИ ЗВІТ",
+      "closeReport": "ЗАКРИТИ",
+      "forceReveal": "ПРИМУСОВО ВІДКРИТИ",
+      "copySuccess": "Звіт скопійовано.",
+      "copyFailure": "Не вдалося скопіювати. Виділіть текст вручну."
     },
     "battle": {
-      "utilityMenuRules": "Zasady",
-      "utilityMenuSettings": "Ustawienia",
-      "utilityMenuSurrender": "Poddaj",
-      "surrenderConfirmTitle": "PODDAĆ BITWĘ?",
-      "surrenderConfirmBody": "To zostanie uznane za porażkę.",
-      "surrenderConfirm": "Poddaj",
-      "surrenderCancel": "Anuluj",
-      "enemyHero": "BAZA WROGA",
-      "playerHero": "TWOJA BAZA",
-      "actOne": "AKCJA 1/2",
-      "actTwo": "AKCJA 2/2",
-      "deckCounter": "TALIA {count}",
+      "utilityMenuRules": "Правила",
+      "utilityMenuSettings": "Налаштування",
+      "utilityMenuSurrender": "Здатися",
+      "surrenderConfirmTitle": "ЗДАТИСЯ?",
+      "surrenderConfirmBody": "Це буде зараховано як поразку.",
+      "surrenderConfirm": "Здатися",
+      "surrenderCancel": "Скасувати",
+      "enemyHero": "БАЗА ВОРОГА",
+      "playerHero": "ВАША БАЗА",
+      "actOne": "ДІЯ 1/2",
+      "actTwo": "ДІЯ 2/2",
+      "deckCounter": "КОЛОДА {count}",
       "deckInfo": {
-        "title": "Informacje o talii",
-        "inDeck": "W talii",
-        "inHand": "Na ręce",
-        "playedDiscarded": "Zagrane / odrzucone",
-        "onBoard": "Na planszy",
-        "historyLabel": "Historia tur",
-        "noHistory": "Brak historii bitwy.",
-        "resolution": "Rozliczenie:",
-        "turnHeader": "Tura {turn}",
-        "player": "Gracz",
-        "enemy": "Wróg",
+        "title": "Відомості про колоду",
+        "inDeck": "У колоді",
+        "inHand": "У руці",
+        "playedDiscarded": "Зіграні / скинуті",
+        "onBoard": "На полі",
+        "historyLabel": "Історія битви",
+        "noHistory": "Історія битви порожня.",
+        "resolution": "Розв’язання:",
+        "turnHeader": "Хід {turn}",
+        "player": "Гравець",
+        "enemy": "Ворог",
         "history": {
-          "playsUnit": " zagrywa jednostkę ",
-          "playsEffect": " zagrywa efekt ",
-          "replaces": " zastępuje ",
-          "withFromHand": " kartą ",
-          "fromHand": " z ręki",
-          "playerPass": " wybiera PASS",
-          "enemyPass": " wybiera PASS",
-          "swaps": " zamienia miejscami ",
-          "and": " i ",
-          "acts": " wykonuje akcję",
-          "killed": " zabija ",
-          "killedEachOther": " zabijają się nawzajem",
-          "dealtDamageTo": " zadaje {amount} obr. jednostce ",
-          "dealtDamageToBasePrefix": " zadaje {amount} obr. bazie ",
+          "playsUnit": " розігрує бійця ",
+          "playsEffect": " розігрує ефект ",
+          "replaces": " замінює ",
+          "withFromHand": " на ",
+          "fromHand": " з руки",
+          "playerPass": " обирає ПАС",
+          "enemyPass": " обирає ПАС",
+          "swaps": " міняє місцями ",
+          "and": " і ",
+          "acts": " виконує дію",
+          "killed": " знищує ",
+          "killedEachOther": " знищують одне одного",
+          "dealtDamageTo": " завдає {amount} шкоди бійцю ",
+          "dealtDamageToBasePrefix": " завдає {amount} шкоди базі ",
           "baseSuffix": ""
         },
-        "playerBaseSide": "gracza",
-        "enemyBaseSide": "wroga"
+        "playerBaseSide": "гравця",
+        "enemyBaseSide": "ворога"
       },
-      "mulligan": "WYMIANA {count}",
-      "keepHand": "ZOSTAW RĘKĘ",
-      "youWin": "WYGRANA",
-      "youLose": "PORAŻKA",
-      "draw": "REMIS",
-      "enemyPass": "WRÓG PASUJE",
-      "enemySurrenders": "WRÓG PODDAJE MECZ",
-      "playerNoMeaningfulActionsDetected": "Nie wykryto sensownych akcji.",
-      "holdPassToSurrender": "Przytrzymaj PASS, aby się poddać",
-      "playerPlayed": "ZAGRANO",
-      "enemyPlays": "WRÓG GRA",
-      "enemyRepositions": "WRÓG ZMIENIA POZYCJE",
-      "enemyAction": "AKCJA WROGA",
-      "swapPromptSelectUnit": "ZAMIEŃ: wybierz jednostkę",
-      "swapPromptSelectAdjacent": "ZAMIEŃ: wybierz sąsiada",
-      "effect": "Efekt",
-      "block": "BLOK",
+      "mulligan": "ЗАМІНА {count}",
+      "keepHand": "ЗАЛИШИТИ РУКУ",
+      "youWin": "ПЕРЕМОГА",
+      "youLose": "ПОРАЗКА",
+      "draw": "НІЧИЯ",
+      "enemyPass": "ВОРОГ ПАСУЄ",
+      "enemySurrenders": "ВОРОГ ЗДАЄТЬСЯ",
+      "playerNoMeaningfulActionsDetected": "Доступних суттєвих дій не виявлено.",
+      "holdPassToSurrender": "Затисніть ПАС, щоб здатися",
+      "playerPlayed": "ВИ ЗІГРАЛИ",
+      "enemyPlays": "ВОРОГ ГРАЄ",
+      "enemyRepositions": "ВОРОГ ЗМІНЮЄ ПОЗИЦІЇ",
+      "enemyAction": "ДІЯ ВОРОГА",
+      "swapPromptSelectUnit": "ОБМІН: оберіть бійця",
+      "swapPromptSelectAdjacent": "ОБМІН: оберіть сусіднього бійця",
+      "effect": "Ефект",
+      "block": "БЛОК",
       "protectionFeedback": {
-        "stability": "STABILNOŚĆ",
-        "lastStand": "OSTATNI BASTION",
-        "immovable": "NIEWZRUSZONY"
+        "stability": "СТІЙКІСТЬ",
+        "lastStand": "ОСТАННІЙ РУБІЖ",
+        "immovable": "НЕПОРУШНИЙ"
       },
       "effectSummaries": {
-        "aggro_buff_all_atk_2": "Wszyscy sojusznicy +2 ATK",
-        "swap_adjacent_then_resolve": "Zamień sojusznika, walcz w linii",
-        "ignore_armor_next_attack": "Obrażenia i przebicie pancerza",
-        "quick_strike": "Rozegraj walkę w linii teraz",
-        "heal_1_atk_1_draw_on_kill_this_turn": "Ulecz, +1 ATK, dobierz po zabiciu",
-        "swap_any_two_units": "Zamień dwie jednostki",
-        "enemy_all_atk_minus_1": "Najbardziej lewi wrogowie -1 ATK",
-        "enemy_up_to_2_atk_minus_1": "Wybrani wrogowie -1 ATK",
-        "damage_all_enemies_1_ignore_armor": "Obrażenia wszystkim wrogom",
-        "control_enemy_unit_this_turn": "Wróg atakuje własną bazę i dostaje 1",
-        "damage_up_to_2_enemies_1": "Obrażenia najbardziej lewym wrogom",
-        "return_friendly_draw_1": "Cofnij sojusznika, dobierz 1",
-        "buff_all_armor_1": "Wszyscy sojusznicy +1 PANC",
-        "immune_move_disable_this_turn": "Blokuje efekty ruchu",
-        "heal_all_1": "Ulecz wszystkich sojuszników o 1",
-        "heal_1": "Ulecz sojusznika o 1",
-        "cannot_drop_below_1_this_turn": "Sojusznicy przetrwają z 1 HP",
-        "temp_armor_1": "Wybrany sojusznik +1 PANC",
-        "summon_grunt_empty_slot": "Przyzwij Rekruta",
-        "buff_all_atk_1": "Wszyscy sojusznicy +1 ATK",
-        "revive_friendly_1hp": "Wskrześ jednostkę z 1 HP",
-        "fill_empty_slots_0_1": "Wypełnij sloty Tokenami",
-        "destroy_friendly_draw_1": "Zniszcz sojusznika, dobierz 1",
-        "destroy_friendly_damage_enemy_base_1": "Zniszcz sojusznika, uszkodź bazę",
-        "draw_1": "Dobierz 1",
-        "enemy_all_armor_minus_1": "Wrogowie -1 ARM",
-        "friendly_immovable_this_turn": "Sojusznicy nie mogą być przesuwani",
-        "funeral_pyre": "Pierwsza śmierć sojusznika w turze zadaje 1",
-        "grave_call": "Przyzwij 1/1; 2, jeśli jesteś sam",
-        "infect_damage_1_opposite_ally_atk_1": "Zadaj 1, wzmocnij przeciwnego sojusznika",
-        "adjacent_allies_temp_armor_1": "Sąsiedni sojusznicy +1 ARM",
-        "swap_leftmost_adjacent_enemies": "Zamień dwóch sąsiadujących wrogów",
-        "swap_adjacent_enemy_units": "Zamień sąsiednich wrogów, -1 ATK",
-        "enemy_atk_to_0_until_combat": "Wybrany wróg 0 ATK",
-        "ally_atk_plus_1_opposing_enemy_atk_minus_1_until_combat": "Wybrany sojusznik +1 ATK, przeciwnik -1 ATK",
-        "opposed_enemy_offline_next_combat": "Wróg naprzeciw wyłączony na następną walkę",
-        "decay_hp_after_combat": "Traci 1 HP po walce",
-        "atk_plus_per_other_ally": "+1 ATK za innego sojusznika",
-        "lane_tempo_mod_until_combat": "Zmień tempo linii do walki"
+        "aggro_buff_all_atk_2": "Усі союзники +2 ATK",
+        "swap_adjacent_then_resolve": "Поміняти союзника й провести бій у лінії",
+        "ignore_armor_next_attack": "Шкода й пробиття броні",
+        "quick_strike": "Негайно провести бій у лінії",
+        "heal_1_atk_1_draw_on_kill_this_turn": "Вилікувати, +1 ATK, добрати після знищення",
+        "swap_any_two_units": "Поміняти двох бійців",
+        "enemy_all_atk_minus_1": "Крайні ліві вороги -1 ATK",
+        "enemy_up_to_2_atk_minus_1": "Обрані вороги -1 ATK",
+        "damage_all_enemies_1_ignore_armor": "Завдати шкоди всім ворогам",
+        "control_enemy_unit_this_turn": "Ворог атакує власну базу й отримує 1 шкоди",
+        "damage_up_to_2_enemies_1": "Завдати шкоди крайнім лівим ворогам",
+        "return_friendly_draw_1": "Повернути союзника, добрати 1",
+        "buff_all_armor_1": "Усі союзники +1 ARM",
+        "immune_move_disable_this_turn": "Блокує ефекти переміщення",
+        "heal_all_1": "Вилікувати всіх союзників на 1",
+        "heal_1": "Вилікувати союзника на 1",
+        "cannot_drop_below_1_this_turn": "Союзники виживають із 1 HP",
+        "temp_armor_1": "Обраний союзник +1 ARM",
+        "summon_grunt_empty_slot": "Прикликати новобранця",
+        "buff_all_atk_1": "Усі союзники +1 ATK",
+        "revive_friendly_1hp": "Воскресити бійця з 1 HP",
+        "fill_empty_slots_0_1": "Заповнити поля жетонами",
+        "destroy_friendly_draw_1": "Знищити союзника, добрати 1",
+        "destroy_friendly_damage_enemy_base_1": "Знищити союзника, пошкодити базу",
+        "draw_1": "Добрати 1",
+        "enemy_all_armor_minus_1": "Вороги -1 ARM",
+        "friendly_immovable_this_turn": "Союзників не можна переміщати",
+        "funeral_pyre": "Перша смерть союзника за хід завдає 1 шкоди",
+        "grave_call": "Прикликати 1/1; 2, якщо нікого немає",
+        "infect_damage_1_opposite_ally_atk_1": "Завдати 1 шкоди, посилити союзника навпроти",
+        "adjacent_allies_temp_armor_1": "Сусідні союзники +1 ARM",
+        "swap_leftmost_adjacent_enemies": "Поміняти двох сусідніх ворогів",
+        "swap_adjacent_enemy_units": "Поміняти сусідніх ворогів, -1 ATK",
+        "enemy_atk_to_0_until_combat": "Обраний ворог має 0 ATK",
+        "ally_atk_plus_1_opposing_enemy_atk_minus_1_until_combat": "Обраний союзник +1 ATK, ворог навпроти -1 ATK",
+        "opposed_enemy_offline_next_combat": "Ворог навпроти не діє в наступному бою",
+        "decay_hp_after_combat": "Втрачає 1 HP після бою",
+        "atk_plus_per_other_ally": "+1 ATK за кожного іншого союзника",
+        "lane_tempo_mod_until_combat": "Змінити темп лінії до бою"
       },
       "targeting": {
-        "selectEnemy": "WYBIERZ WROGA",
-        "selectFirstEnemy": "WYBIERZ PIERWSZEGO WROGA",
-        "controllerSelectFirstEnemy": "WYBIERZ PIERWSZEGO WROGA\nDOTKNIJ POZA WROGIEM, ABY ANULOWAĆ",
-        "selectAdjacentEnemy": "WYBIERZ SĄSIADUJĄCYCH WROGÓW",
-        "selectAlly": "WYBIERZ SOJUSZNIKA",
-        "selectFreeSlot": "WYBIERZ WOLNE POLE",
-        "selectUnit": "WYBIERZ JEDNOSTKĘ",
-        "selectSecondEnemy": "WYBIERZ DRUGIEGO WROGA",
-        "controllerSelectSecondEnemy": "WYBIERZ DRUGIEGO WROGA\nDOTKNIJ POZA WROGIEM, ABY ANULOWAĆ"
+        "selectEnemy": "ОБЕРІТЬ ВОРОГА",
+        "selectFirstEnemy": "ОБЕРІТЬ ПЕРШОГО ВОРОГА",
+        "controllerSelectFirstEnemy": "ОБЕРІТЬ ПЕРШОГО ВОРОГА\nТОРКНІТЬСЯ ПОЗА ВОРОГОМ, ЩОБ СКАСУВАТИ",
+        "selectAdjacentEnemy": "ОБЕРІТЬ СУСІДНІХ ВОРОГІВ",
+        "selectAlly": "ОБЕРІТЬ СОЮЗНИКА",
+        "selectFreeSlot": "ОБЕРІТЬ ВІЛЬНЕ ПОЛЕ",
+        "selectUnit": "ОБЕРІТЬ БІЙЦЯ",
+        "selectSecondEnemy": "ОБЕРІТЬ ДРУГОГО ВОРОГА",
+        "controllerSelectSecondEnemy": "ОБЕРІТЬ ДРУГОГО ВОРОГА\nТОРКНІТЬСЯ ПОЗА ВОРОГОМ, ЩОБ СКАСУВАТИ"
       },
-      "playerStarts": "Ty zaczynasz",
-      "enemyStarts": "Wróg zaczyna",
+      "playerStarts": "ВИ ПОЧИНАЄТЕ",
+      "enemyStarts": "ВОРОГ ПОЧИНАЄ",
       "resultSubtitles": {
         "victory": [
-          "Publiczność zachwycona.",
-          "Co za wspaniałe widowisko!",
-          "Totalna dominacja!",
-          "Widzowie oszaleli z zachwytu!"
+          "Публіка в захваті.",
+          "Оце видовище!",
+          "Цілковите панування!",
+          "Натовп шаленіє!"
         ],
         "defeat": [
-          "Publiczność domaga się więcej.",
-          "Widzowie liczyli na coś więcej.",
-          "Tym razem to nie wystarczyło.",
-          "Nie każdy schodzi ze sceny w chwale."
+          "Публіка вимагає більшого.",
+          "Натовп очікував більшого.",
+          "Цього разу цього було замало.",
+          "Не кожен залишає сцену зі славою."
         ],
-        "draw": "Produkcja zarządziła dogrywkę."
+        "draw": "Продюсери призначили матч-реванш."
       },
       "resultStats": {
-        "turns": "Tury",
-        "time": "Czas"
+        "turns": "Ходи",
+        "time": "Час"
       },
       "invalidAction": {
-        "handFull": "Ręka pełna",
-        "noValidTarget": "Brak prawidłowego celu",
-        "noValidAlly": "Brak prawidłowego sojusznika",
-        "noValidEnemy": "Brak prawidłowego wroga",
-        "noEmptySlot": "Brak wolnego pola",
-        "deckEmpty": "Talia pusta",
-        "fullHp": "Pełne HP",
-        "moveBlocked": "Ruch zablokowany",
-        "effectBlocked": "Efekt zablokowany",
-        "immune": "Odporność",
-        "noAdjacentAlly": "Brak sąsiedniego sojusznika",
-        "noFallenUnit": "Brak poległej jednostki",
-        "laneBlocked": "Linia zablokowana",
-        "occupied": "Pole zajęte",
-        "invalidSwap": "Nieprawidłowa zamiana",
-        "effectCardPlayBlocked": "Nie możesz zagrać karty efektu."
+        "handFull": "Рука заповнена",
+        "noValidTarget": "Немає належної цілі",
+        "noValidAlly": "Немає належного союзника",
+        "noValidEnemy": "Немає належного ворога",
+        "noEmptySlot": "Немає вільного поля",
+        "deckEmpty": "Колода порожня",
+        "fullHp": "HP уже повне",
+        "moveBlocked": "Переміщення заблоковано",
+        "effectBlocked": "Ефект заблоковано",
+        "immune": "Несприйнятливість",
+        "noAdjacentAlly": "Немає сусіднього союзника",
+        "noFallenUnit": "Немає полеглого бійця",
+        "laneBlocked": "Лінію заблоковано",
+        "occupied": "Поле зайняте",
+        "invalidSwap": "Неможливий обмін",
+        "effectCardPlayBlocked": "Ви не можете грати карти ефектів."
       },
-      "confirmSurrender": "PODDAJ SIĘ",
-      "battleExhausted": "BITWA WYCZERPANA",
-      "yourTurn": "TWÓJ RUCH",
-      "enemyTurn": "RUCH WROGA"
+      "confirmSurrender": "ЗДАТИСЯ",
+      "battleExhausted": "БИТВУ ВИЧЕРПАНО",
+      "yourTurn": "ВАШ ХІД",
+      "enemyTurn": "ХІД ВОРОГА"
     },
     "rules": {
-      "title": "ZASADY",
+      "title": "ПРАВИЛА",
       "sections": [
         {
-          "heading": "Słownik ikon",
+          "heading": "Позначки",
           "lines": [
-            "ATK — Obrażenia zadawane w walce.",
-            "HP — Życie jednostki lub Bazy.",
-            "ARM — Pancerz zmniejszający obrażenia bojowe.",
-            "ALLY — Jedna twoja jednostka.",
-            "ALLIES — Wszystkie twoje jednostki.",
-            "ENEMY — Jedna jednostka przeciwnika.",
-            "ENEMIES — Jednostki przeciwnika."
+            "ATK — шкода, яку завдає боєць у бою.",
+            "HP — здоров’я бійця або бази.",
+            "ARM — броня, що зменшує бойову шкоду.",
+            "ALLY — один ваш боєць.",
+            "ALLIES — усі ваші бійці.",
+            "ENEMY — один боєць суперника.",
+            "ENEMIES — бійці суперника."
           ]
         },
         {
-          "heading": "Cel gry",
+          "heading": "Мета гри",
           "lines": [
-            "Obie Bazy zaczynają z 12 HP.",
-            "Zniszcz Bazę przeciwnika, aby wygrać.",
-            "Jeśli zniszczona zostanie tylko jedna Baza, wygrywa druga strona.",
-            "Jeśli obie Bazy zostaną zniszczone podczas tego samego rozliczenia walki, bitwa kończy się remisem."
+            "Обидві бази починають із 12 HP.",
+            "Знищте базу суперника, щоб перемогти.",
+            "Якщо знищено лише одну базу, перемагає інша сторона.",
+            "Якщо обидві бази знищено під час одного розв’язання бою, битва завершується нічиєю."
           ]
         },
         {
-          "heading": "Talia",
+          "heading": "Колода",
           "lines": [
-            "Każda frakcja używa talii 10 kart.",
-            "Na początku bitwy dobierasz 4 karty startowe.",
-            "Przed bitwą możesz wymienić do 2 kart.",
-            "Wymienione karty wracają do talii, a następnie dobierasz tyle samo nowych.",
-            "Wymiana kart nie zużywa pierwszej akcji w bitwie."
+            "Кожна фракція використовує колоду з 10 карт.",
+            "На початку битви ви добираєте стартову руку з 4 карт.",
+            "Перед битвою можна замінити до 2 карт.",
+            "Замінені карти повертаються в колоду, після чого ви добираєте стільки ж нових.",
+            "Заміна карт не витрачає вашу першу дію в битві."
           ]
         },
         {
-          "heading": "Naprzemienna inicjatywa",
+          "heading": "Почергова ініціатива",
           "lines": [
-            "Na początku bitwy jedna ze stron zostaje wybrana do pierwszej akcji.",
-            "Każda strona wykonuje jedną akcję: zagrywa jednostkę lub efekt, zastępuje jednostkę, zamienia jednostki albo wybiera PASS.",
-            "Niektóre akcje wymagają wyboru pola lub celu.",
-            "Po akcji lub PASS obu stron wszystkie linie rozstrzygają walkę.",
-            "W następnej turze zaczyna strona, która wcześniej działała jako druga."
+            "На початку битви випадково визначається сторона, що діє першою.",
+            "Кожна сторона виконує одну дію: грає бійця або ефект, замінює чи міняє бійців або обирає ПАС.",
+            "Деякі дії потребують вибору поля або цілі.",
+            "Після дій або ПАСУ обох сторін у всіх лініях відбувається бій.",
+            "Наступного ходу першою діє сторона, яка перед цим діяла другою."
           ]
         },
         {
-          "heading": "Plansza",
+          "heading": "Поле",
           "lines": [
-            "Są trzy linie walki.",
-            "Każda strona ma po jednym polu jednostki w każdej linii.",
-            "Możesz używać tylko własnych pól.",
-            "Jednostki naprzeciwko walczą; otwarta linia zadaje obrażenia Bazie.",
-            "Jednostki z 0 HP opuszczają planszę."
+            "Є три бойові лінії.",
+            "Кожна сторона має по одному полю для бійця в кожній лінії.",
+            "Використовуйте лише власні поля.",
+            "Бійці навпроти б’ються; відкрита лінія завдає шкоди базі.",
+            "Бійці з 0 HP залишають поле."
           ]
         },
         {
-          "heading": "Zagrywanie kart",
+          "heading": "Розігрування карт",
           "lines": [
-            "Jednostki zagrywasz na puste własne pola.",
-            "Karty efektów zużywają akcję i mogą wymagać wyboru celu.",
-            "Możesz zastąpić własną jednostkę, zagrywając na jej pole jednostkę z ręki.",
-            "Zastąpiona jednostka wraca do twojej ręki.",
-            "Nie możesz zastąpić jednostki, jeśli w ręce nie ma na nią miejsca."
+            "Грайте бійців на порожні власні поля.",
+            "Карти ефектів витрачають дію й можуть потребувати вибору цілі.",
+            "Ви можете замінити свого бійця на полі, зігравши на його місце бійця з руки.",
+            "Замінений боєць повертається у вашу руку.",
+            "Заміна недоступна, якщо в руці немає місця."
           ]
         },
         {
-          "heading": "Zamiana jednostek",
+          "heading": "Обмін бійців",
           "lines": [
-            "Dotknij swojej jednostki.",
-            "Dotknij sąsiedniej sojuszniczej jednostki.",
-            "Jednostki zamienią się miejscami."
+            "Торкніться одного зі своїх бійців.",
+            "Торкніться сусіднього союзного бійця.",
+            "Ці бійці поміняються місцями."
           ]
         },
         {
-          "heading": "PASS",
+          "heading": "ПАС",
           "lines": [
-            "PASS zużywa twoją akcję.",
-            "Po akcji lub PASS obu stron rozstrzyga się walka.",
-            "Poddanie z menu bitwy kończy bitwę porażką."
+            "ПАС витрачає вашу дію.",
+            "Після дій або ПАСУ обох сторін відбувається бій.",
+            "Здача через меню битви завершує її поразкою."
           ]
         },
         {
-          "heading": "Wyczerpana bitwa",
+          "heading": "Вичерпана битва",
           "lines": [
-            "Może nastąpić tylko wtedy, gdy co najmniej jedna Baza ma 3 HP lub mniej.",
-            "Wymaga dwóch pełnych rund PASS — obie strony muszą wybrać PASS dwa razy.",
-            "Zagranie karty, zamiana jednostek lub inny postęp w walce zeruje ten licznik.",
-            "Wygrywa strona z większą liczbą pozostałych HP Bazy.",
-            "Przy równym HP Baz bitwa kończy się remisem."
+            "Це можливо, лише коли принаймні одна база має не більше 3 HP.",
+            "Потрібні два повні раунди ПАСУ — обидві сторони мають двічі обрати ПАС.",
+            "Розігрування карти, обмін бійців або інший поступ у битві скидає цей лічильник.",
+            "Перемагає сторона, у бази якої залишилося більше HP.",
+            "За однакової кількості HP баз битва завершується нічиєю."
           ]
         }
       ],
       "glossaryDescriptions": {
-        "ATK": "Obrażenia zadawane w walce.",
-        "HP": "Życie jednostki lub bazy.",
-        "ARM": "Pancerz zmniejszający obrażenia bojowe.",
-        "effectCard": "Karta efektu — nie jest jednostką i nie ma ATK / ARM / HP.",
-        "ALLY": "Jedna twoja jednostka.",
-        "ALLIES": "Wszystkie twoje jednostki.",
-        "ENEMY": "Jedna jednostka przeciwnika.",
-        "ENEMIES": "Jednostki przeciwnika."
+        "ATK": "Шкода, яку завдає боєць у бою.",
+        "HP": "Здоров’я бійця або бази.",
+        "ARM": "Броня, що зменшує бойову шкоду.",
+        "effectCard": "Карта ефекту — не боєць і не має ATK / ARM / HP.",
+        "ALLY": "Один ваш боєць.",
+        "ALLIES": "Усі ваші бійці.",
+        "ENEMY": "Один боєць суперника.",
+        "ENEMIES": "Бійці суперника."
       }
     },
     "cardDetails": {
-      "type": "Typ",
+      "type": "Тип",
       "atkHp": "ATK/HP",
-      "targeting": "Cel",
-      "effectId": "Identyfikator efektu",
-      "none": "brak",
+      "targeting": "Ціль",
+      "effectId": "Ідентифікатор ефекту",
+      "none": "немає",
       "targetingLabels": {
-        "all_enemy_units": "Wszystkie wrogie jednostki",
-        "all_friendly_units": "Wszystkie sojusznicze jednostki",
-        "any_enemy_unit": "Dowolna wroga jednostka",
-        "any_units": "Dowolna jednostka",
-        "empty_friendly_slot": "Pusty slot sojusznika",
-        "empty_friendly_slots": "Puste sloty sojuszników",
-        "enemy": "Wróg",
-        "enemy_unit": "Wroga jednostka",
-        "enemy_units": "Wrogie jednostki",
-        "friendly_fallen": "Polegli sojusznicy",
-        "friendly_unit": "Sojusznicza jednostka",
-        "lane": "Linia",
-        "none": "Brak"
+        "all_enemy_units": "Усі ворожі бійці",
+        "all_friendly_units": "Усі союзні бійці",
+        "any_enemy_unit": "Будь-який ворожий боєць",
+        "any_units": "Будь-який боєць",
+        "empty_friendly_slot": "Порожнє союзне поле",
+        "empty_friendly_slots": "Порожні союзні поля",
+        "enemy": "Ворог",
+        "enemy_unit": "Ворожий боєць",
+        "enemy_units": "Ворожі бійці",
+        "friendly_fallen": "Полеглі союзники",
+        "friendly_unit": "Союзний боєць",
+        "lane": "Лінія",
+        "none": "Немає"
       }
     },
     "tutorial": {
       "title": "НАВЧАННЯ",
-      "subtitle": "Podstawy bitwy",
+      "subtitle": "Основи битви",
       "steps": [
-        "Wybierz frakcję na Arenie.",
-        "Zagrywaj jednostki na linie, aby naciskać bazę wroga.",
-        "Używaj kart efektów i zamian, aby kontrolować tempo walki.",
-        "Zakończ swoją akcję po wykonaniu ruchu.",
-        "Obniż PŻ bazy wroga do 0, aby wygrać."
+        "Оберіть фракцію на Арені.",
+        "Грайте бійців у лінії, щоб тиснути на базу ворога.",
+        "Використовуйте карти ефектів та обміни, щоб контролювати темп бою.",
+        "Завершіть свою дію після ходу.",
+        "Зменште HP бази ворога до 0, щоб перемогти."
       ]
     },
     "gameMenu": {
-      "continue": "KONTYNUUJ",
-      "newGame": "NOWA GRA",
+      "continue": "ПРОДОВЖИТИ",
+      "newGame": "НОВА ГРА",
       "arena": "АРЕНА",
-      "newGameConfirmTitle": "ROZPOCZĄĆ NOWĄ GRĘ?",
-      "newGameConfirmBody": "To nadpisze obecny postęp kampanii.",
+      "newGameConfirmTitle": "ПОЧАТИ НОВУ ГРУ?",
+      "newGameConfirmBody": "Це перезапише поточний поступ кампанії.",
       "confirmNewGame": "СТАРТ",
-      "cancelNewGame": "POWRÓT",
-      "tutorial": "SAMOUCZEK"
+      "cancelNewGame": "НАЗАД",
+      "tutorial": "НАВЧАННЯ"
     },
     "campaignEnemySelect": {
-      "title": "WYBIERZ WROGA",
-      "battleComingSoon": "Trasa walki zostanie dodana później.",
-      "invalidEnemy": "Wróg niedostępny."
+      "title": "ОБЕРІТЬ ВОРОГА",
+      "battleComingSoon": "Бойовий маршрут буде додано пізніше.",
+      "invalidEnemy": "Ворог недоступний."
     },
     "campaignResult": {
-      "won": "KAMPANIA WYGRANA",
-      "lost": "KAMPANIA PRZEGRANA",
-      "victorySplash": "WYGRANA",
-      "tapToContinue": "DOTKNIJ, ABY KONTYNUOWAĆ",
-      "wonBattles": "Wygrane bitwy",
-      "lostBattles": "Przegrane bitwy",
-      "campaignTime": "Czas kampanii",
+      "won": "КАМПАНІЮ ВИГРАНО",
+      "lost": "КАМПАНІЮ ПРОГРАНО",
+      "victorySplash": "ПЕРЕМОГА",
+      "tapToContinue": "ТОРКНІТЬСЯ, ЩОБ ПРОДОВЖИТИ",
+      "wonBattles": "Перемоги",
+      "lostBattles": "Поразки",
+      "campaignTime": "Час кампанії",
       "wonFlavors": [
-        "Gratulacje. Puchar należy do was.\nA teraz wracajcie do domu, zanim wszystko skończy się tam na dobre.",
-        "Doskonały występ. W pełni zasłużone trofeum.\nA teraz do domu, żebyście zdążyli na apokalipsę.",
-        "Publiczność zachwycona. Puchar jest wasz.\nNie trzymamy was dłużej — wasz koniec świata raczej sam się nie opóźni.",
-        "Wspaniałe widowisko! Co prawda nie zmienia to waszej sytuacji…\nale przynajmniej wracacie do domu z pucharem."
+        "Вітаємо. Кубок ваш.\nА тепер додому, доки там усе не скінчилося назавжди.",
+        "Блискучий виступ. Цілком заслужений трофей.\nА тепер додому, щоб устигнути на апокаліпсис.",
+        "Публіка в захваті. Кубок ваш.\nНе затримуватимемо — ваш кінець світу сам себе не відкладе.",
+        "Неймовірне видовище! Вашої ситуації це, щоправда, не змінює…\nале принаймні додому ви повертаєтеся з кубком."
       ],
       "lostFlavors": [
-        "To już wszystko na dziś. Dziękujemy za udział w widowisku.",
-        "Tym razem to nie był wasz wieczór, ale publiczność i tak dziękuje za występ.",
-        "Dziękujemy za udział i życzymy powodzenia przy kolejnych katastrofach.",
-        "Szkoda. Jedni wracają z pucharem, inni po prostu wracają."
+        "На сьогодні це все. Дякуємо за участь у виставі.",
+        "Цього разу вечір був не ваш, але публіка все одно дякує за виступ.",
+        "Дякуємо за участь і бажаємо успіхів у наступних катастрофах.",
+        "Шкода. Одні повертаються з кубком, інші — просто повертаються."
       ]
     },
     "achievements": {
       "title": "ДОСЯГНЕННЯ",
-      "comingSoon": "Wkrótce.",
+      "comingSoon": "Незабаром.",
       "progression": {
-        "level": "POZIOM",
-        "levelUp": "AWANS",
-        "maxLevel": "MAKS. POZIOM",
-        "pointsAbbreviation": "PKT",
-        "toLevel": "DO POZIOMU",
-        "allLevelsComplete": "WSZYSTKIE POZIOMY UKOŃCZONE"
+        "level": "РІВЕНЬ",
+        "levelUp": "НОВИЙ РІВЕНЬ",
+        "maxLevel": "МАКС. РІВЕНЬ",
+        "pointsAbbreviation": "БАЛ.",
+        "toLevel": "ДО РІВНЯ",
+        "allLevelsComplete": "УСІ РІВНІ ПРОЙДЕНО"
       },
       "progressUnits": {
-        "minutes": "min"
+        "minutes": "хв"
       },
-      "unlockedBadge": "ODBLOKOWANE"
+      "unlockedBadge": "ВІДКРИТО"
     },
     "startup": {
-      "tapAnywhere": "DOTKNIJ GDZIEKOLWIEK",
-      "preparingBroadcast": "PRZYGOTOWYWANIE TRANSMISJI"
+      "tapAnywhere": "ТОРКНІТЬСЯ БУДЬ-ДЕ",
+      "preparingBroadcast": "ПІДГОТОВКА ТРАНСЛЯЦІЇ"
     }
   },
   "diagnostics": {
