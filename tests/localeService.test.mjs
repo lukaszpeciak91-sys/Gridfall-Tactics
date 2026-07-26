@@ -91,13 +91,13 @@ test('supported locale list returns every registered locale as a safe copy', () 
   assert.deepEqual(getSupportedLocales(), ['en', 'pl', 'uk']);
 });
 
-test('uk is accepted, persisted, and falls back to English values', () => {
+test('uk is accepted, persisted, and resolves Ukrainian values', () => {
   const storage = createMemoryStorage();
   withWindowStorage(storage, () => {
     assert.equal(setActiveLocale('uk'), 'uk');
     assert.equal(getActiveLocale(), 'uk');
     assert.equal(JSON.parse(storage.getItem(SETTINGS_STORAGE_KEY)).language, 'uk');
-    assert.equal(translate('ui.mainMenu.collection', 'uk'), 'COLLECTION');
+    assert.equal(translate('ui.mainMenu.collection', 'uk'), 'КОЛЕКЦІЯ');
   });
 });
 

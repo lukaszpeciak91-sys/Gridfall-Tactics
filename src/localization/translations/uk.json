@@ -1,824 +1,824 @@
 {
   "cards": {
     "aggro_runner_1": {
-      "name": "Runner",
-      "textShort": "Open lane: +2 [ATK]"
+      "name": "Балетний дуелянт",
+      "textShort": "Вільна лінія +2 [ATK]"
     },
     "aggro_berserker_1": {
-      "name": "Berserker",
-      "textShort": "While damaged: +1 [ATK]"
+      "name": "Божевільна графиня",
+      "textShort": "Якщо поранена +1 [ATK]"
     },
     "aggro_glass_cannon_1": {
-      "name": "Glass Cannon",
-      "textShort": "After attack: lose 1 [HP]"
+      "name": "Порцеляновий голем",
+      "textShort": "Після атаки втрачає 1 [HP]"
     },
     "aggro_flanker_1": {
-      "name": "Flanker",
-      "textShort": "If adjacent slot empty: +1 [ATK]"
+      "name": "Маркіз-садист",
+      "textShort": "Якщо сусіднє поле вільне +1 [ATK]"
     },
     "aggro_scout_1": {
-      "name": "Scout",
-      "textShort": "Until opponent's next action: no unit in this lane"
+      "name": "Чайний кур’єр",
+      "textShort": "До наступної дії ворога в цій лінії немає бійця"
     },
     "aggro_full_attack_1": {
-      "name": "Full Attack",
-      "textShort": "All [ALLIES] +2 [ATK] until combat"
+      "name": "Оксамитова сироватка",
+      "textShort": "Усі [ALLIES] +2 [ATK] до бою"
     },
     "aggro_rush_1": {
-      "name": "Rush",
-      "textShort": "Swap with adjacent [ALLY]\nThat lane fights now"
+      "name": "Багряний вальс",
+      "textShort": "Помінятися із сусіднім [ALLY]\nЦя лінія б’ється зараз"
     },
     "aggro_pierce_strike_1": {
-      "name": "Pierce Strike",
-      "textShort": "Deal 1 to [ENEMY]\nNext hit ignores [ARM]"
+      "name": "Кришталева рапіра",
+      "textShort": "Завдати 1 [ENEMY]\nНаступний удар ігнорує [ARM]"
     },
     "aggro_adrenaline_1": {
-      "name": "Adrenaline",
-      "textShort": "Selected [ALLY] immediately fights in its lane"
+      "name": "Маніакальний маскарад",
+      "textShort": "Обраний [ALLY] негайно б’ється у своїй лінії"
     },
     "aggro_quick_fix_1": {
-      "name": "Quick Fix",
-      "textShort": "Heal [ALLY] 1\n+1 [ATK] until combat\nCombat kill: draw 1"
+      "name": "Милосердя",
+      "textShort": "Вилікувати [ALLY] на 1\n+1 [ATK] до бою\nВбивство в бою добрати 1"
     },
     "attrition_swarm_husk_1": {
-      "name": "Husk",
-      "textShort": "When this dies:\n-1 [HP] to opposed [ENEMY]"
+      "name": "Порожній наречений",
+      "textShort": "Після смерті\n[ENEMY] навпроти -1 [HP]"
     },
     "attrition_swarm_carrier_1": {
-      "name": "Carrier",
-      "textShort": "When this dies: summon 1/1 here"
+      "name": "Трунар",
+      "textShort": "Після смерті прикликати тут 1/1"
     },
     "attrition_swarm_leech_1": {
-      "name": "Leech",
-      "textShort": "On attack: heal your base +1 [HP]"
+      "name": "Могильна п’явка",
+      "textShort": "Під час атаки ваша база +1 [HP]"
     },
     "attrition_swarm_rotcaller_1": {
-      "name": "Party Host",
-      "textShort": "First adjacent [ALLY] death\n+1 [ATK] permanently"
+      "name": "Тамада",
+      "textShort": "Перша смерть сусіднього [ALLY]\nНазавжди +1 [ATK]"
     },
     "attrition_swarm_abomination_1": {
-      "name": "Abomination",
-      "textShort": "When this dies: both bases lose 1 [HP]"
+      "name": "Жалобний велетень",
+      "textShort": "Після смерті обидві бази втрачають 1 [HP]"
     },
     "attrition_swarm_funeral_pyre_1": {
-      "name": "Funeral Pyre",
-      "textShort": "First [ALLY] death each turn:\nenemy base loses 1 [HP]"
+      "name": "Поховальне вогнище",
+      "textShort": "Перша смерть [ALLY] за хід\nБаза ворога втрачає 1 [HP]"
     },
     "attrition_swarm_infect_1": {
-      "name": "Rotten Gift",
-      "textShort": "Deal 1 damage to [ENEMY].\nOpposed [ALLY] +1 [ATK] until combat"
+      "name": "Гнилий гостинець",
+      "textShort": "Завдати 1 [ENEMY]\n[ALLY] навпроти +1 [ATK] до бою"
     },
     "attrition_swarm_feast_1": {
-      "name": "Feast",
-      "textShort": "Draw 1"
+      "name": "Таємна вечеря",
+      "textShort": "Добрати 1"
     },
     "attrition_swarm_rise_again_1": {
-      "name": "Rise Again",
-      "textShort": "Revive the newest Fallen [ALLY] with 1 [HP] in a chosen free slot"
+      "name": "Затанцюй іще раз",
+      "textShort": "Повернути останнього полеглого [ALLY] з 1 [HP] на вільне поле"
     },
     "attrition_swarm_grave_call_1": {
-      "name": "Grave Call",
-      "textShort": "Summon a 1/1\nNo [ALLY]: summon up to 2"
+      "name": "Поклик могили",
+      "textShort": "Прикликати 1/1\nБез [ALLY] прикликати до 2"
     },
     "control_hacker_1": {
-      "name": "Signalegel",
-      "textShort": "Opposed [ENEMY]: -1 [ATK] until combat"
+      "name": "Зігналегель",
+      "textShort": "[ENEMY] навпроти -1 [ATK] до бою"
     },
     "control_disruptor_1": {
-      "name": "Störführer",
-      "textShort": "Until combat opponent cannot play effect cards"
+      "name": "Штьорфюрер",
+      "textShort": "До бою ворог не може грати карти ефектів"
     },
     "control_sniper_1": {
-      "name": "Rotes Auge",
-      "textShort": "On deploy choose any [ENEMY] and deal damage"
+      "name": "Ротес Ауге",
+      "textShort": "Після розгортання обрати будь-якого [ENEMY] і завдати шкоди"
     },
     "control_controller_1": {
-      "name": "Kommandant",
-      "textShort": "On play: swap two [ENEMIES]"
+      "name": "Командант",
+      "textShort": "Після розіграшу поміняти місцями двох [ENEMIES]"
     },
     "control_drone_1": {
-      "name": "Relay",
-      "textShort": "On death: enemy base loses 1 [HP]"
+      "name": "Ретранслятор",
+      "textShort": "Після смерті база ворога втрачає 1 [HP]"
     },
     "control_swap_1": {
-      "name": "Signal Shift",
-      "textShort": "Swap 2 [ALLIES] or 2 [ENEMIES]"
+      "name": "Зсув сигналу",
+      "textShort": "Поміняти місцями 2 [ALLIES] або 2 [ENEMIES]"
     },
     "control_jam_signal_1": {
-      "name": "Signal Jam",
-      "textShort": "Up to 2 [ENEMIES]: -1 [ATK] until combat"
+      "name": "Глушіння сигналу",
+      "textShort": "До 2 [ENEMIES] -1 [ATK] до бою"
     },
     "control_pulse_wave_1": {
-      "name": "Wunderwaffe",
-      "textShort": "Deal 1 to all [ENEMIES] ignoring [ARM]"
+      "name": "Вундерваффе",
+      "textShort": "Завдати 1 усім [ENEMIES] ігноруючи [ARM]"
     },
     "control_system_override_1": {
-      "name": "System Override",
-      "textShort": "Selected [ENEMY] attacks its own base\nThen loses 1 [HP]"
+      "name": "Перехоплення системи",
+      "textShort": "Обраний [ENEMY] атакує свою базу\nПотім втрачає 1 [HP]"
     },
     "control_recall_1": {
-      "name": "Extraction",
-      "textShort": "Return [ALLY] to hand\nDraw 1"
+      "name": "Екстракція",
+      "textShort": "Повернути [ALLY] у руку\nДобрати 1"
     },
     "swarm_grunt_1": {
-      "name": "Grunt",
+      "name": "Квітник",
       "textShort": ""
     },
     "swarm_spitter_1": {
-      "name": "Spitter",
-      "textShort": "On play: deal 1 to opposed [ENEMY]"
+      "name": "Плювач спорами",
+      "textShort": "Після розіграшу завдати 1 [ENEMY] навпроти"
     },
     "swarm_brood_1": {
-      "name": "Brood",
-      "textShort": "On death: summon 1/1 here"
+      "name": "Виводок грибниці",
+      "textShort": "Після смерті прикликати тут 1/1"
     },
     "swarm_rusher_1": {
-      "name": "Rusher",
-      "textShort": "This unit ignores [ARM]"
+      "name": "Лишайний повзун",
+      "textShort": "Цей боєць ігнорує [ARM]"
     },
     "swarm_alpha_1": {
-      "name": "Alpha",
-      "textShort": "Adjacent [ALLIES] in combat: +1 [ATK] and ignores 1 [ARM]"
+      "name": "Альфа хору",
+      "textShort": "Сусідні [ALLIES] у бою +1 [ATK] та ігнорують 1 [ARM]"
     },
     "swarm_spawn_1": {
-      "name": "Spawn",
-      "textShort": "Summon a 1/1 in a chosen free slot"
+      "name": "Раптовий розквіт",
+      "textShort": "Прикликати 1/1 на обране вільне поле"
     },
     "swarm_swarm_attack_1": {
-      "name": "Swarm Attack",
-      "textShort": "All [ALLIES] +1 [ATK] until combat"
+      "name": "Спільна гарячка",
+      "textShort": "Усі [ALLIES] +1 [ATK] до бою"
     },
     "swarm_regrow_1": {
-      "name": "Regrow",
-      "textShort": "Revive the newest Fallen [ALLY] with 1 [HP] in a chosen free slot"
+      "name": "Цикл відростання",
+      "textShort": "Повернути останнього полеглого [ALLY] з 1 [HP] на вільне поле"
     },
     "swarm_flood_1": {
-      "name": "Flood",
-      "textShort": "Fill up to 2 empty slots with 1/1s\nVanish after combat"
+      "name": "Повінь спор",
+      "textShort": "Заповнити до 2 вільних полів бійцями 1/1\nЗникають після бою"
     },
     "swarm_recycle_1": {
-      "name": "Substrate",
-      "textShort": "[ENEMIES]: -1 [ARM] until combat"
+      "name": "Субстрат",
+      "textShort": "[ENEMIES] -1 [ARM] до бою"
     },
     "tank_shieldbearer_1": {
-      "name": "Shieldbearer",
-      "textShort": "Adjacent [ALLIES] have +1 [ARM]."
+      "name": "Вартовий трону",
+      "textShort": "Сусідні [ALLIES] мають +1 [ARM]"
     },
     "tank_heavy_1": {
-      "name": "Heavy",
+      "name": "Імперський колос",
       "textShort": ""
     },
     "tank_guardian_1": {
-      "name": "Guardian",
-      "textShort": "Takes combat damage for adjacent [ALLIES]"
+      "name": "Золотолуский",
+      "textShort": "Приймає бойову шкоду за сусідніх [ALLIES]"
     },
     "tank_wall_1": {
-      "name": "Wall",
+      "name": "Старий Там-Там",
       "textShort": ""
     },
     "tank_bruiser_1": {
-      "name": "Fang Veteran",
-      "textShort": "After surviving damage: +1 [ATK] until next combat"
+      "name": "Ветеран ікла",
+      "textShort": "Після пережитої шкоди +1 [ATK] до наступного бою"
     },
     "tank_fortify_1": {
-      "name": "Fortify",
-      "textShort": "All [ALLIES] +1 [ARM] until combat"
+      "name": "Сонячне укріплення",
+      "textShort": "Усі [ALLIES] +1 [ARM] до бою"
     },
     "tank_stability_1": {
-      "name": "Stability",
-      "textShort": "Until combat [ALLIES] cannot be moved"
+      "name": "Воля імператора",
+      "textShort": "До бою [ALLIES] не можна переміщати"
     },
     "tank_reinforce_1": {
-      "name": "Reinforce",
-      "textShort": "Heal all [ALLIES] by +1 [HP]"
+      "name": "Обряд оновлення",
+      "textShort": "Усі [ALLIES] відновлюють 1 [HP]"
     },
     "tank_last_stand_1": {
-      "name": "Last Stand",
-      "textShort": "Until combat [ALLIES] cannot drop below 1 [HP]"
+      "name": "Останній легіон",
+      "textShort": "До бою [ALLIES] не можуть мати менше 1 [HP]"
     },
     "tank_repair_kit_1": {
-      "name": "Reactive Plating",
-      "textShort": "Target [ALLY] +1 [ARM] until combat"
+      "name": "Золотий панцир",
+      "textShort": "Обраний [ALLY] +1 [ARM] до бою"
     },
     "wardens_sentinel_1": {
-      "name": "Tusk Guard",
-      "textShort": "Attackers: -1 [ATK]"
+      "name": "Вартовий бивнів",
+      "textShort": "Нападники -1 [ATK]"
     },
     "wardens_spearwall_1": {
-      "name": "Tundra Hunter",
-      "textShort": "Attackers of adjacent [ALLIES]: -1 [ATK]"
+      "name": "Мисливець тундри",
+      "textShort": "Нападники на сусідніх [ALLIES] -1 [ATK]"
     },
     "wardens_halberdier_1": {
-      "name": "Ice Pike",
-      "textShort": "If opposed: +1 [ATK]"
+      "name": "Крижана піка",
+      "textShort": "Якщо є ворог навпроти +1 [ATK]"
     },
     "wardens_bastion_guard_1": {
-      "name": "Tururuk",
+      "name": "Турурук",
       "textShort": ""
     },
     "wardens_watch_captain_1": {
-      "name": "Tererek",
+      "name": "Теререк",
       "textShort": ""
     },
     "wardens_brace_1": {
-      "name": "Bone Shields",
-      "textShort": "Target [ALLY] +1 [ARM] until combat"
+      "name": "Кістяні щити",
+      "textShort": "Обраний [ALLY] +1 [ARM] до бою"
     },
     "wardens_shield_push_1": {
-      "name": "Mammoth Stampede",
-      "textShort": "Swap two adjacent [ENEMIES]\n-1 [ATK] this combat"
+      "name": "Навала мамонтів",
+      "textShort": "Поміняти двох сусідніх [ENEMIES]\n-1 [ATK] у цьому бою"
     },
     "wardens_stand_firm_1": {
-      "name": "Endure the Cold",
-      "textShort": "Heal [ALLY] +1 [HP]"
+      "name": "Витримати мороз",
+      "textShort": "Вилікувати [ALLY] на 1 [HP]"
     },
     "wardens_reinforce_line_1": {
-      "name": "Lock the Line",
-      "textShort": "Until combat [ALLIES] cannot be moved"
+      "name": "Зімкнути стрій",
+      "textShort": "До бою [ALLIES] не можна переміщати"
     },
     "wardens_hold_the_line_1": {
-      "name": "Hold the Ice Pass",
+      "name": "Втримати крижаний перевал",
       "textShort": "Сусідній [ALLY] +1 [ARM] до бою"
     },
     "overclock_hot_runner_1": {
-      "name": "Decoy Hare",
-      "textShort": "Opposed [ENEMY] offline for next combat"
+      "name": "Заєць-приманка",
+      "textShort": "[ENEMY] навпроти вимкнений у наступному бою"
     },
     "overclock_pain_engine_1": {
-      "name": "Suppressor Hog",
-      "textShort": "Opposed [ENEMY]: -1 [ATK] until combat"
+      "name": "Кабан-глушник",
+      "textShort": "[ENEMY] навпроти -1 [ATK] до бою"
     },
     "overclock_golem_1": {
-      "name": "Single-Use Ox",
-      "textShort": "After combat: lose 1 [HP]"
+      "name": "Віл одноразовий",
+      "textShort": "Після бою втрачає 1 [HP]"
     },
     "overclock_gap_hunter_1": {
-      "name": "Breach Ram",
-      "textShort": "If adjacent slot empty: +1 [ATK]"
+      "name": "Таран-проломник",
+      "textShort": "Якщо сусіднє поле вільне +1 [ATK]"
     },
     "overclock_mob_champion_1": {
-      "name": "Command Hen",
-      "textShort": "+1 [ATK] per other [ALLY]"
+      "name": "Курка-командирка",
+      "textShort": "+1 [ATK] за кожного іншого [ALLY]"
     },
     "overclock_redline_1": {
-      "name": "Quota Exceeded",
-      "textShort": "All [ALLIES] +1 [ATK] until combat"
+      "name": "Норму перевиконано",
+      "textShort": "Усі [ALLIES] +1 [ATK] до бою"
     },
     "overclock_forced_march_1": {
-      "name": "Operational Reroute",
-      "textShort": "Swap with adjacent [ALLY]\nThat lane fights now"
+      "name": "Перерозподіл поголів’я",
+      "textShort": "Помінятися із сусіднім [ALLY]\nЦя лінія б’ється зараз"
     },
     "overclock_crack_strike_1": {
-      "name": "Breach Test",
-      "textShort": "Deal 1 to [ENEMY]\nNext hit ignores [ARM]"
+      "name": "Випробування на пробій",
+      "textShort": "Завдати 1 [ENEMY]\nНаступний удар ігнорує [ARM]"
     },
     "overclock_ignition_1": {
-      "name": "Conditioned Reflex",
-      "textShort": "Selected [ALLY] immediately fights in its lane"
+      "name": "Умовний рефлекс",
+      "textShort": "Обраний [ALLY] негайно б’ється у своїй лінії"
     },
     "overclock_mercy_1": {
-      "name": "Temper Shift",
-      "textShort": "[ENEMY] -1 [ATK]\nOpposed [ALLY] +2 [ATK] until combat"
+      "name": "Корекція норову",
+      "textShort": "[ENEMY] -1 [ATK]\n[ALLY] навпроти +2 [ATK] до бою"
     }
   },
   "cardTypes": {
-    "effect": "Effect",
-    "unit": "Unit"
+    "effect": "Efekt",
+    "unit": "Jednostka"
   },
   "stats": {
     "attack": "ATK",
     "atk": "ATK",
     "hp": "HP",
     "health": "HP",
-    "armor": "ARM",
-    "arm": "ARM"
+    "armor": "PANC",
+    "arm": "PANC"
   },
   "ui": {
     "common": {
-      "back": "BACK",
-      "exit": "EXIT",
-      "retry": "RETRY",
-      "pass": "PASS",
-      "confirm": "CONFIRM",
-      "cancel": "CANCEL",
-      "fullscreen": "Fullscreen",
-      "help": "Help",
-      "menu": "Menu",
-      "comingSoon": "Coming soon",
-      "swipeScroll": "Swipe or mouse wheel to scroll",
-      "noScroll": "No scrolling needed",
-      "none": "None",
-      "empty": "Empty",
-      "unknownCard": "Unknown Card",
-      "unit": "Unit",
-      "continue": "CONTINUE",
-      "mainMenu": "MAIN MENU"
+      "back": "WRÓĆ",
+      "exit": "WYJDŹ",
+      "retry": "PONÓW",
+      "pass": "PAS",
+      "confirm": "POTWIERDŹ",
+      "cancel": "ANULUJ",
+      "fullscreen": "Pełny ekran",
+      "help": "Pomoc",
+      "menu": "Меню",
+      "comingSoon": "Wkrótce",
+      "swipeScroll": "Przesuń lub użyj kółka myszy, aby przewijać",
+      "noScroll": "Przewijanie niepotrzebne",
+      "none": "Brak",
+      "empty": "Pusto",
+      "unknownCard": "Nieznana karta",
+      "unit": "Jednostka",
+      "continue": "KONTYNUUJ",
+      "mainMenu": "MENU GŁÓWNE"
     },
     "start": {
       "title": "GRIDFALL TACTICS",
-      "start": "START"
+      "start": "СТАРТ"
     },
     "mainMenu": {
       "title": "GRIDFALL TACTICS",
-      "arena": "ARENA",
-      "tutorial": "TUTORIAL",
-      "collection": "COLLECTION",
-      "settings": "SETTINGS",
-      "tutorialComingSoon": "Tutorial coming soon",
-      "game": "GAME",
-      "achievements": "ACHIEVEMENTS"
+      "arena": "АРЕНА",
+      "tutorial": "НАВЧАННЯ",
+      "collection": "КОЛЕКЦІЯ",
+      "settings": "НАЛАШТУВАННЯ",
+      "tutorialComingSoon": "Навчання незабаром",
+      "game": "ГРА",
+      "achievements": "ДОСЯГНЕННЯ"
     },
     "factionSelect": {
-      "title": "SELECT YOUR TEAM",
-      "arenaTitle": "ARENA",
-      "arenaHelper": "Choose your team. Your opponent and an arena from another dimension will be selected at random.",
+      "title": "ОБЕРІТЬ КОМАНДУ",
+      "arenaTitle": "АРЕНА",
+      "arenaHelper": "Оберіть команду. Суперника й арену з іншого виміру буде визначено навмання.",
       "descriptions": {
-        "Aggro": "Fast pressure.",
-        "Tank": "Armor and sustain.",
-        "Control": "Disrupt and reposition.",
-        "Swarm": "Board swarm tactics.",
-        "Wardens": "Defensive friction and zone control.",
-        "Attrition Swarm": "Death value and recursion.",
-        "Overclock": "Forced fights and unstable tempo."
+        "Aggro": "Szybka presja.",
+        "Tank": "Pancerz i wytrzymałość.",
+        "Control": "Zakłócenia i przestawianie.",
+        "Swarm": "Taktyka roju na planszy.",
+        "Wardens": "Obrona i kontrola stref.",
+        "Attrition Swarm": "Wartość ze śmierci i powroty.",
+        "Overclock": "Wymuszone walki i niestabilne tempo."
       },
       "tags": {
-        "Rush": "Rush",
-        "Burst": "Pressure",
-        "Armor": "Armor",
-        "Sustain": "Sustain",
-        "Support": "Support",
-        "Disrupt": "Disrupt",
-        "Move": "Move",
-        "Swarm": "Swarm",
-        "Growth": "Growth",
-        "Attrition": "Attrition",
-        "Return": "Return",
-        "Formation": "Formation",
+        "Rush": "Szarża",
+        "Burst": "Presja",
+        "Armor": "Pancerz",
+        "Sustain": "Utrzymanie",
+        "Support": "Wsparcie",
+        "Disrupt": "Zakłócenia",
+        "Move": "Ruch",
+        "Swarm": "Rój",
+        "Growth": "Wzrost",
+        "Attrition": "Wyniszczenie",
+        "Return": "Powrót",
+        "Formation": "Formacja",
         "Tempo": "Tempo",
-        "Overload": "Overload"
+        "Overload": "Przeciążenie"
       },
       "campaignAccordion": {
         "lore": {
           "Aggro": [
-            "Immortal aristocrats sealed inside porcelain bodies.",
-            "They preserve beauty, etiquette, and power through cruel rituals and harvested life-serums."
+            "Nieśmiertelni arystokraci zamknięci w porcelanowych ciałach.",
+            "Zachowują piękno, etykietę i władzę przez okrutne rytuały oraz serum z cudzego życia."
           ],
           "Tank": [
-            "A reptilian solar empire marches toward extinction after a doomed prophecy.",
-            "Its glory survives long after hope has faded."
+            "Gadzi solarni imperialiści maszerują ku zagładzie po wyroku proroctwa.",
+            "Ich chwała trwa długo po śmierci nadziei."
           ],
           "Control": [
-            "Survivors of a techno-occult catastrophe preserve their heads in glass vessels.",
-            "They search for a signal capable of restoring reality itself."
+            "Ocalali z techno-okultystycznej katastrofy przechowują głowy w szklanych naczyniach.",
+            "Szukają sygnału zdolnego przywrócić samą rzeczywistość."
           ],
           "Swarm": [
-            "A planetary superorganism absorbed an entire biosphere into one consciousness.",
-            "Every creature, growth, and instinct sings the same endless song."
+            "Planetarny superorganizm wchłonął całą biosferę w jedną świadomość.",
+            "Każde stworzenie, narośl i instynkt śpiewa tę samą nieskończoną pieśń."
           ],
           "Wardens": [
-            "Neanderthal-descended clans cross the frozen equatorial tundra atop colossal mammoths.",
-            "They endure between dying warmth and the cosmic Frost."
+            "Klany potomków neandertalczyków przemierzają zamarzniętą równikową tundrę na kolosalnych mamutach.",
+            "Trwają między gasnącym ciepłem a kosmicznym Mrozem."
           ],
           "Attrition Swarm": [
-            "The world ended on New Year's Eve 1999, but nobody realized.",
-            "Decades later, the dead repeat forgotten routines they no longer understand."
+            "Świat skończył się w sylwestra 1999 roku, lecz nikt tego nie zauważył.",
+            "Dekady później martwi powtarzają zapomniane rutyny, których już nie rozumieją."
           ],
           "Overclock": [
-            "A state livestock weaponization program kept running after humanity vanished.",
-            "Its files are official. Its animals are not safe."
+            "Państwowy program uzbrajania inwentarza działał dalej po zniknięciu ludzkości.",
+            "Dokumenty są urzędowe. Zwierzęta nie są bezpieczne."
           ]
         },
         "gameplay": {
-          "Aggro": "Explosive aggression and ruthless pressure.",
-          "Tank": "Endure, fortify, and crush through superior staying power.",
-          "Control": "Control the battlefield through disruption and manipulation.",
-          "Swarm": "Expand relentlessly until the battlefield belongs to you.",
-          "Wardens": "Support your line, hold formation, and outlast the enemy.",
-          "Attrition Swarm": "Gain value from loss, decay, and inevitable return.",
-          "Overclock": "Force fights, disrupt lanes, and spend short overload windows."
+          "Aggro": "Wybuchowa agresja i bezlitosna presja.",
+          "Tank": "Przetrwaj, umocnij się i zmiażdż wroga przewagą wytrzymałości.",
+          "Control": "Kontroluj pole bitwy przez zakłócenia i manipulację.",
+          "Swarm": "Rozrastaj się nieustannie, aż pole bitwy będzie twoje.",
+          "Wardens": "Wspieraj linię, trzymaj szyk i przetrwaj przeciwnika.",
+          "Attrition Swarm": "Czerp wartość ze strat, rozkładu i nieuniknionego powrotu.",
+          "Overclock": "Wymuszaj walki, zakłócaj linie i wykorzystuj krótkie przeciążenia."
         },
-        "select": "SELECT",
+        "select": "WYBIERZ",
         "descriptions": {
           "Aggro": [
-            "Ladies and gentlemen, the Porcelain Court!",
-            "They defeated death three centuries ago. Everyone else has regretted it ever since."
+            "Перед вами Порцеляновий двір!",
+            "Триста років тому вони перемогли смерть. Відтоді всі інші шкодують."
           ],
           "Tank": [
-            "And here are the remnants of a proud civilization!",
-            "Their Emperor promised them solar maidens. The delivery never arrived."
+            "А ось рештки гордої цивілізації!",
+            "Імператор обіцяв їм сонячних дів. Доставка не прибула."
           ],
           "Control": [
-            "Please welcome the Order of the Glass Head!",
-            "They saved their heads. Reality was less fortunate."
+            "Вітайте Орден дер Гласкьопфе!",
+            "Голови вони врятували. Реальності пощастило менше."
           ],
           "Swarm": [
-            "A big round of applause for the Spore Choir!",
-            "Mom said to throw it away. It controls a planet now."
+            "Гучні оплески Хору спор!",
+            "Мама казала це викинути. Тепер воно керує планетою."
           ],
           "Wardens": [
-            "A warm welcome to the Neanderthal Clans!",
-            "In their world, you'll need a fur coat even at the equator."
+            "Гаряче привітаймо Клани мамонтів!",
+            "У їхньому світі навіть на екваторі потрібна шуба."
           ],
           "Attrition Swarm": [
-            "And here come the tireless partygoers!",
-            "The world ended on New Year's Eve '99. They still haven't noticed."
+            "А ось і невтомні гуляки!",
+            "Світ скінчився в новорічну ніч 1999-го. Вони досі не помітили."
           ],
           "Overclock": [
-            "Please welcome Project H.E.R.D.!",
-            "The government office is closed. The breeding directive is still active."
+            "Вітайте Проєкт С.Т.А.Д.О.!",
+            "Канцелярію зачинено. Директива з розведення досі чинна."
           ]
         }
       }
     },
     "settings": {
-      "title": "SETTINGS",
-      "subtitle": "Preferences are saved locally",
-      "languagePanel": "LANGUAGE",
-      "audioPanel": "AUDIO",
-      "languageHelp": "Select display language for card and faction names",
-      "languageStatus": "Language: {language}",
-      "musicVolume": "Music Volume",
-      "sfxVolume": "SFX Volume",
+      "title": "НАЛАШТУВАННЯ",
+      "subtitle": "Preferencje są zapisywane lokalnie",
+      "languagePanel": "JĘZYK",
+      "audioPanel": "DŹWIĘK",
+      "languageHelp": "Wybierz język wyświetlania nazw kart i frakcji",
+      "languageStatus": "Język: {language}",
+      "musicVolume": "Głośność muzyki",
+      "sfxVolume": "Głośność efektów",
       "languages": {
-        "en": "English",
-        "pl": "Polish",
-        "uk": "Ukrainian"
+        "en": "Англійська",
+        "pl": "Польська",
+        "uk": "Українська"
       }
     },
     "collection": {
-      "title": "COLLECTION",
-      "subtitle": "Long-press a card to inspect",
+      "title": "КОЛЕКЦІЯ",
+      "subtitle": "Przytrzymaj kartę, aby ją obejrzeć",
       "factionDossier": {
-        "title": "Faction dossier"
+        "title": "Akta frakcji"
       }
     },
     "battleMenu": {
       "title": "MENU",
-      "comingSoon": "Menu options coming soon.",
-      "howToPlay": "HOW TO PLAY",
-      "battleReport": "BATTLE REPORT",
-      "copyReport": "COPY REPORT",
-      "closeReport": "CLOSE",
-      "forceReveal": "FORCE REVEAL",
-      "copySuccess": "Report copied.",
-      "copyFailure": "Copy failed. Select text manually."
+      "comingSoon": "Opcje menu wkrótce.",
+      "howToPlay": "JAK GRAĆ",
+      "battleReport": "RAPORT BITWY",
+      "copyReport": "KOPIUJ RAPORT",
+      "closeReport": "ZAMKNIJ",
+      "forceReveal": "WYMUŚ ODKRYCIE",
+      "copySuccess": "Raport skopiowany.",
+      "copyFailure": "Kopiowanie nie powiodło się. Zaznacz tekst ręcznie."
     },
     "battle": {
-      "utilityMenuRules": "Rules",
-      "utilityMenuSettings": "Settings",
-      "utilityMenuSurrender": "Surrender",
-      "surrenderConfirmTitle": "SURRENDER?",
-      "surrenderConfirmBody": "This counts as a defeat.",
-      "surrenderConfirm": "Surrender",
-      "surrenderCancel": "Cancel",
-      "enemyHero": "ENEMY BASE",
-      "playerHero": "PLAYER BASE",
-      "actOne": "ACT 1/2",
-      "actTwo": "ACT 2/2",
-      "deckCounter": "DECK {count}",
+      "utilityMenuRules": "Zasady",
+      "utilityMenuSettings": "Ustawienia",
+      "utilityMenuSurrender": "Poddaj",
+      "surrenderConfirmTitle": "PODDAĆ BITWĘ?",
+      "surrenderConfirmBody": "To zostanie uznane za porażkę.",
+      "surrenderConfirm": "Poddaj",
+      "surrenderCancel": "Anuluj",
+      "enemyHero": "BAZA WROGA",
+      "playerHero": "TWOJA BAZA",
+      "actOne": "AKCJA 1/2",
+      "actTwo": "AKCJA 2/2",
+      "deckCounter": "TALIA {count}",
       "deckInfo": {
-        "title": "Deck Info",
-        "inDeck": "In Deck",
-        "inHand": "In Hand",
-        "playedDiscarded": "Played / Discarded",
-        "onBoard": "On Board",
-        "historyLabel": "Battle History",
-        "noHistory": "No battle history yet.",
-        "resolution": "Resolution:",
-        "turnHeader": "Turn {turn}",
-        "player": "Player",
-        "enemy": "Enemy",
+        "title": "Informacje o talii",
+        "inDeck": "W talii",
+        "inHand": "Na ręce",
+        "playedDiscarded": "Zagrane / odrzucone",
+        "onBoard": "Na planszy",
+        "historyLabel": "Historia tur",
+        "noHistory": "Brak historii bitwy.",
+        "resolution": "Rozliczenie:",
+        "turnHeader": "Tura {turn}",
+        "player": "Gracz",
+        "enemy": "Wróg",
         "history": {
-          "playsUnit": " plays unit ",
-          "playsEffect": " plays effect ",
-          "replaces": " replaces ",
-          "withFromHand": " with ",
-          "fromHand": " from hand",
-          "playerPass": " chooses PASS",
-          "enemyPass": " chooses PASS",
-          "swaps": " swaps ",
-          "and": " and ",
-          "acts": " acts",
-          "killed": " killed ",
-          "killedEachOther": " killed each other",
-          "dealtDamageTo": " dealt {amount} damage to ",
-          "dealtDamageToBasePrefix": " dealt {amount} damage to ",
-          "baseSuffix": " base"
+          "playsUnit": " zagrywa jednostkę ",
+          "playsEffect": " zagrywa efekt ",
+          "replaces": " zastępuje ",
+          "withFromHand": " kartą ",
+          "fromHand": " z ręki",
+          "playerPass": " wybiera PASS",
+          "enemyPass": " wybiera PASS",
+          "swaps": " zamienia miejscami ",
+          "and": " i ",
+          "acts": " wykonuje akcję",
+          "killed": " zabija ",
+          "killedEachOther": " zabijają się nawzajem",
+          "dealtDamageTo": " zadaje {amount} obr. jednostce ",
+          "dealtDamageToBasePrefix": " zadaje {amount} obr. bazie ",
+          "baseSuffix": ""
         },
-        "playerBaseSide": "player",
-        "enemyBaseSide": "enemy"
+        "playerBaseSide": "gracza",
+        "enemyBaseSide": "wroga"
       },
-      "mulligan": "MULLIGAN {count}",
-      "keepHand": "KEEP HAND",
-      "youWin": "YOU WIN",
-      "youLose": "YOU LOSE",
-      "draw": "DRAW",
-      "enemyPass": "ENEMY PASS",
-      "enemySurrenders": "ENEMY SURRENDERS",
-      "playerNoMeaningfulActionsDetected": "No meaningful actions detected.",
-      "holdPassToSurrender": "Hold PASS to surrender",
-      "playerPlayed": "YOU PLAYED",
-      "enemyPlays": "ENEMY PLAYS",
-      "enemyRepositions": "ENEMY REPOSITIONS",
-      "enemyAction": "ENEMY ACTION",
-      "swapPromptSelectUnit": "SWAP: select unit",
-      "swapPromptSelectAdjacent": "SWAP: select adjacent unit",
-      "effect": "Effect",
-      "block": "BLOCK",
+      "mulligan": "WYMIANA {count}",
+      "keepHand": "ZOSTAW RĘKĘ",
+      "youWin": "WYGRANA",
+      "youLose": "PORAŻKA",
+      "draw": "REMIS",
+      "enemyPass": "WRÓG PASUJE",
+      "enemySurrenders": "WRÓG PODDAJE MECZ",
+      "playerNoMeaningfulActionsDetected": "Nie wykryto sensownych akcji.",
+      "holdPassToSurrender": "Przytrzymaj PASS, aby się poddać",
+      "playerPlayed": "ZAGRANO",
+      "enemyPlays": "WRÓG GRA",
+      "enemyRepositions": "WRÓG ZMIENIA POZYCJE",
+      "enemyAction": "AKCJA WROGA",
+      "swapPromptSelectUnit": "ZAMIEŃ: wybierz jednostkę",
+      "swapPromptSelectAdjacent": "ZAMIEŃ: wybierz sąsiada",
+      "effect": "Efekt",
+      "block": "BLOK",
       "protectionFeedback": {
-        "stability": "STABLE",
-        "lastStand": "LAST STAND",
-        "immovable": "IMMOVABLE"
+        "stability": "STABILNOŚĆ",
+        "lastStand": "OSTATNI BASTION",
+        "immovable": "NIEWZRUSZONY"
       },
       "effectSummaries": {
-        "aggro_buff_all_atk_2": "All allies +2 ATK",
-        "swap_adjacent_then_resolve": "Swap ally, fight line",
-        "ignore_armor_next_attack": "Damage and pierce armor",
-        "quick_strike": "Resolve line combat now",
-        "heal_1_atk_1_draw_on_kill_this_turn": "Heal, +1 ATK, draw on kill",
-        "swap_any_two_units": "Swap two units",
-        "enemy_all_atk_minus_1": "Leftmost enemies -1 ATK",
-        "enemy_up_to_2_atk_minus_1": "Chosen enemies -1 ATK",
-        "damage_all_enemies_1_ignore_armor": "Damage all enemies",
-        "control_enemy_unit_this_turn": "Enemy attacks own base, takes 1",
-        "damage_up_to_2_enemies_1": "Damage leftmost enemies",
-        "return_friendly_draw_1": "Return ally, draw 1",
-        "buff_all_armor_1": "All allies +1 ARM",
-        "immune_move_disable_this_turn": "Block move effects",
-        "heal_all_1": "Heal all allies 1",
-        "heal_1": "Heal ally 1",
-        "cannot_drop_below_1_this_turn": "Allies survive at 1 HP",
-        "temp_armor_1": "Target ally +1 ARM",
-        "summon_grunt_empty_slot": "Summon a Grunt",
-        "buff_all_atk_1": "All allies +1 ATK",
-        "revive_friendly_1hp": "Revive a unit at 1 HP",
-        "fill_empty_slots_0_1": "Fill slots with Tokens",
-        "destroy_friendly_draw_1": "Destroy ally, draw 1",
-        "destroy_friendly_damage_enemy_base_1": "Destroy ally, damage base",
-        "draw_1": "Draw 1",
-        "enemy_all_armor_minus_1": "Enemies -1 ARM",
-        "friendly_immovable_this_turn": "Allies cannot be moved",
-        "funeral_pyre": "First ally death each turn deals 1",
-        "grave_call": "Summon 1/1; 2 if alone",
-        "infect_damage_1_opposite_ally_atk_1": "Deal 1, empower opposite ally",
-        "adjacent_allies_temp_armor_1": "Adjacent allies +1 ARM",
-        "swap_leftmost_adjacent_enemies": "Swap two adjacent enemies",
-        "swap_adjacent_enemy_units": "Swap adjacent enemies, -1 ATK",
-        "enemy_atk_to_0_until_combat": "Selected enemy 0 ATK",
-        "ally_atk_plus_1_opposing_enemy_atk_minus_1_until_combat": "Selected ally +1 ATK, opposite enemy -1 ATK",
-        "opposed_enemy_offline_next_combat": "Opposed enemy offline next combat",
-        "decay_hp_after_combat": "Loses 1 HP after combat",
-        "atk_plus_per_other_ally": "+1 ATK per other ally",
-        "lane_tempo_mod_until_combat": "Shift lane tempo until combat"
+        "aggro_buff_all_atk_2": "Wszyscy sojusznicy +2 ATK",
+        "swap_adjacent_then_resolve": "Zamień sojusznika, walcz w linii",
+        "ignore_armor_next_attack": "Obrażenia i przebicie pancerza",
+        "quick_strike": "Rozegraj walkę w linii teraz",
+        "heal_1_atk_1_draw_on_kill_this_turn": "Ulecz, +1 ATK, dobierz po zabiciu",
+        "swap_any_two_units": "Zamień dwie jednostki",
+        "enemy_all_atk_minus_1": "Najbardziej lewi wrogowie -1 ATK",
+        "enemy_up_to_2_atk_minus_1": "Wybrani wrogowie -1 ATK",
+        "damage_all_enemies_1_ignore_armor": "Obrażenia wszystkim wrogom",
+        "control_enemy_unit_this_turn": "Wróg atakuje własną bazę i dostaje 1",
+        "damage_up_to_2_enemies_1": "Obrażenia najbardziej lewym wrogom",
+        "return_friendly_draw_1": "Cofnij sojusznika, dobierz 1",
+        "buff_all_armor_1": "Wszyscy sojusznicy +1 PANC",
+        "immune_move_disable_this_turn": "Blokuje efekty ruchu",
+        "heal_all_1": "Ulecz wszystkich sojuszników o 1",
+        "heal_1": "Ulecz sojusznika o 1",
+        "cannot_drop_below_1_this_turn": "Sojusznicy przetrwają z 1 HP",
+        "temp_armor_1": "Wybrany sojusznik +1 PANC",
+        "summon_grunt_empty_slot": "Przyzwij Rekruta",
+        "buff_all_atk_1": "Wszyscy sojusznicy +1 ATK",
+        "revive_friendly_1hp": "Wskrześ jednostkę z 1 HP",
+        "fill_empty_slots_0_1": "Wypełnij sloty Tokenami",
+        "destroy_friendly_draw_1": "Zniszcz sojusznika, dobierz 1",
+        "destroy_friendly_damage_enemy_base_1": "Zniszcz sojusznika, uszkodź bazę",
+        "draw_1": "Dobierz 1",
+        "enemy_all_armor_minus_1": "Wrogowie -1 ARM",
+        "friendly_immovable_this_turn": "Sojusznicy nie mogą być przesuwani",
+        "funeral_pyre": "Pierwsza śmierć sojusznika w turze zadaje 1",
+        "grave_call": "Przyzwij 1/1; 2, jeśli jesteś sam",
+        "infect_damage_1_opposite_ally_atk_1": "Zadaj 1, wzmocnij przeciwnego sojusznika",
+        "adjacent_allies_temp_armor_1": "Sąsiedni sojusznicy +1 ARM",
+        "swap_leftmost_adjacent_enemies": "Zamień dwóch sąsiadujących wrogów",
+        "swap_adjacent_enemy_units": "Zamień sąsiednich wrogów, -1 ATK",
+        "enemy_atk_to_0_until_combat": "Wybrany wróg 0 ATK",
+        "ally_atk_plus_1_opposing_enemy_atk_minus_1_until_combat": "Wybrany sojusznik +1 ATK, przeciwnik -1 ATK",
+        "opposed_enemy_offline_next_combat": "Wróg naprzeciw wyłączony na następną walkę",
+        "decay_hp_after_combat": "Traci 1 HP po walce",
+        "atk_plus_per_other_ally": "+1 ATK za innego sojusznika",
+        "lane_tempo_mod_until_combat": "Zmień tempo linii do walki"
       },
       "targeting": {
-        "selectEnemy": "SELECT ENEMY",
-        "selectFirstEnemy": "SELECT FIRST ENEMY",
-        "controllerSelectFirstEnemy": "SELECT FIRST ENEMY\nTAP OUTSIDE AN ENEMY TO CANCEL",
-        "selectAdjacentEnemy": "SELECT ADJACENT ENEMIES",
-        "selectAlly": "SELECT ALLY",
-        "selectFreeSlot": "CHOOSE A FREE SLOT",
-        "selectUnit": "SELECT UNIT",
-        "selectSecondEnemy": "SELECT SECOND ENEMY",
-        "controllerSelectSecondEnemy": "SELECT SECOND ENEMY\nTAP OUTSIDE AN ENEMY TO CANCEL"
+        "selectEnemy": "WYBIERZ WROGA",
+        "selectFirstEnemy": "WYBIERZ PIERWSZEGO WROGA",
+        "controllerSelectFirstEnemy": "WYBIERZ PIERWSZEGO WROGA\nDOTKNIJ POZA WROGIEM, ABY ANULOWAĆ",
+        "selectAdjacentEnemy": "WYBIERZ SĄSIADUJĄCYCH WROGÓW",
+        "selectAlly": "WYBIERZ SOJUSZNIKA",
+        "selectFreeSlot": "WYBIERZ WOLNE POLE",
+        "selectUnit": "WYBIERZ JEDNOSTKĘ",
+        "selectSecondEnemy": "WYBIERZ DRUGIEGO WROGA",
+        "controllerSelectSecondEnemy": "WYBIERZ DRUGIEGO WROGA\nDOTKNIJ POZA WROGIEM, ABY ANULOWAĆ"
       },
-      "playerStarts": "YOU START",
-      "enemyStarts": "ENEMY STARTS",
+      "playerStarts": "Ty zaczynasz",
+      "enemyStarts": "Wróg zaczyna",
       "resultSubtitles": {
         "victory": [
-          "The audience is delighted.",
-          "What a spectacle!",
-          "Total domination!",
-          "The crowd is going wild!"
+          "Publiczność zachwycona.",
+          "Co za wspaniałe widowisko!",
+          "Totalna dominacja!",
+          "Widzowie oszaleli z zachwytu!"
         ],
         "defeat": [
-          "The audience demands more.",
-          "The crowd expected more.",
-          "It wasn’t enough this time.",
-          "Not everyone gets to leave the stage in glory."
+          "Publiczność domaga się więcej.",
+          "Widzowie liczyli na coś więcej.",
+          "Tym razem to nie wystarczyło.",
+          "Nie każdy schodzi ze sceny w chwale."
         ],
-        "draw": "Production ordered a rematch."
+        "draw": "Produkcja zarządziła dogrywkę."
       },
       "resultStats": {
-        "turns": "Turns",
-        "time": "Time"
+        "turns": "Tury",
+        "time": "Czas"
       },
       "invalidAction": {
-        "handFull": "Hand full",
-        "noValidTarget": "No valid target",
-        "noValidAlly": "No valid ally",
-        "noValidEnemy": "No valid enemy",
-        "noEmptySlot": "No empty slot",
-        "deckEmpty": "Deck empty",
-        "fullHp": "Already full HP",
-        "moveBlocked": "Move blocked",
-        "effectBlocked": "Effect blocked",
-        "immune": "Immune",
-        "noAdjacentAlly": "No adjacent ally",
-        "noFallenUnit": "No fallen unit",
-        "laneBlocked": "Lane blocked",
-        "occupied": "Slot occupied",
-        "invalidSwap": "Invalid swap",
-        "effectCardPlayBlocked": "You cannot play effect cards."
+        "handFull": "Ręka pełna",
+        "noValidTarget": "Brak prawidłowego celu",
+        "noValidAlly": "Brak prawidłowego sojusznika",
+        "noValidEnemy": "Brak prawidłowego wroga",
+        "noEmptySlot": "Brak wolnego pola",
+        "deckEmpty": "Talia pusta",
+        "fullHp": "Pełne HP",
+        "moveBlocked": "Ruch zablokowany",
+        "effectBlocked": "Efekt zablokowany",
+        "immune": "Odporność",
+        "noAdjacentAlly": "Brak sąsiedniego sojusznika",
+        "noFallenUnit": "Brak poległej jednostki",
+        "laneBlocked": "Linia zablokowana",
+        "occupied": "Pole zajęte",
+        "invalidSwap": "Nieprawidłowa zamiana",
+        "effectCardPlayBlocked": "Nie możesz zagrać karty efektu."
       },
-      "confirmSurrender": "SURRENDER",
-      "battleExhausted": "BATTLE EXHAUSTED",
-      "yourTurn": "YOUR TURN",
-      "enemyTurn": "ENEMY TURN"
+      "confirmSurrender": "PODDAJ SIĘ",
+      "battleExhausted": "BITWA WYCZERPANA",
+      "yourTurn": "TWÓJ RUCH",
+      "enemyTurn": "RUCH WROGA"
     },
     "rules": {
-      "title": "RULES",
+      "title": "ZASADY",
       "sections": [
         {
-          "heading": "Icon Glossary",
+          "heading": "Słownik ikon",
           "lines": [
-            "ATK — Combat damage dealt in combat.",
-            "HP — Health of a unit or Base.",
-            "ARM — Armor that reduces combat damage.",
-            "ALLY — One of your units.",
-            "ALLIES — All your units.",
-            "ENEMY — One opposing unit.",
-            "ENEMIES — Opposing units."
+            "ATK — Obrażenia zadawane w walce.",
+            "HP — Życie jednostki lub Bazy.",
+            "ARM — Pancerz zmniejszający obrażenia bojowe.",
+            "ALLY — Jedna twoja jednostka.",
+            "ALLIES — Wszystkie twoje jednostki.",
+            "ENEMY — Jedna jednostka przeciwnika.",
+            "ENEMIES — Jednostki przeciwnika."
           ]
         },
         {
-          "heading": "Goal",
+          "heading": "Cel gry",
           "lines": [
-            "Both Bases begin with 12 HP.",
-            "Destroy the enemy Base to win.",
-            "If only one Base is destroyed, the other side wins.",
-            "If both Bases are destroyed during the same combat resolution, the battle ends in a draw."
+            "Obie Bazy zaczynają z 12 HP.",
+            "Zniszcz Bazę przeciwnika, aby wygrać.",
+            "Jeśli zniszczona zostanie tylko jedna Baza, wygrywa druga strona.",
+            "Jeśli obie Bazy zostaną zniszczone podczas tego samego rozliczenia walki, bitwa kończy się remisem."
           ]
         },
         {
-          "heading": "Deck",
+          "heading": "Talia",
           "lines": [
-            "Each faction uses a 10-card deck.",
-            "At battle start, draw a 4-card opening hand.",
-            "Before battle, you may replace up to 2 cards.",
-            "Replaced cards are shuffled back, then you draw the same number of new cards.",
-            "Replacing cards does not use your first battle action."
+            "Każda frakcja używa talii 10 kart.",
+            "Na początku bitwy dobierasz 4 karty startowe.",
+            "Przed bitwą możesz wymienić do 2 kart.",
+            "Wymienione karty wracają do talii, a następnie dobierasz tyle samo nowych.",
+            "Wymiana kart nie zużywa pierwszej akcji w bitwie."
           ]
         },
         {
-          "heading": "Alternating Initiative",
+          "heading": "Naprzemienna inicjatywa",
           "lines": [
-            "At battle start, one side is chosen to act first.",
-            "Each side takes one action: play a unit or effect, replace a unit, swap units, or choose PASS.",
-            "Some actions require selecting a slot or target.",
-            "After both sides act or PASS, all lanes resolve combat.",
-            "Next turn, the side that acted second goes first."
+            "Na początku bitwy jedna ze stron zostaje wybrana do pierwszej akcji.",
+            "Każda strona wykonuje jedną akcję: zagrywa jednostkę lub efekt, zastępuje jednostkę, zamienia jednostki albo wybiera PASS.",
+            "Niektóre akcje wymagają wyboru pola lub celu.",
+            "Po akcji lub PASS obu stron wszystkie linie rozstrzygają walkę.",
+            "W następnej turze zaczyna strona, która wcześniej działała jako druga."
           ]
         },
         {
-          "heading": "Board",
+          "heading": "Plansza",
           "lines": [
-            "There are three combat lanes.",
-            "Each side has one unit slot in each lane.",
-            "Use only your friendly slots.",
-            "Opposing units fight; an open lane damages the Base.",
-            "Units at 0 HP leave the board."
+            "Są trzy linie walki.",
+            "Każda strona ma po jednym polu jednostki w każdej linii.",
+            "Możesz używać tylko własnych pól.",
+            "Jednostki naprzeciwko walczą; otwarta linia zadaje obrażenia Bazie.",
+            "Jednostki z 0 HP opuszczają planszę."
           ]
         },
         {
-          "heading": "Playing Cards",
+          "heading": "Zagrywanie kart",
           "lines": [
-            "Play units into empty friendly slots.",
-            "Effect cards use your action and may require a target.",
-            "You can replace your board unit by playing a unit from hand onto its slot.",
-            "The replaced unit returns to your hand.",
-            "Replacement is unavailable when there is no room in hand."
+            "Jednostki zagrywasz na puste własne pola.",
+            "Karty efektów zużywają akcję i mogą wymagać wyboru celu.",
+            "Możesz zastąpić własną jednostkę, zagrywając na jej pole jednostkę z ręki.",
+            "Zastąpiona jednostka wraca do twojej ręki.",
+            "Nie możesz zastąpić jednostki, jeśli w ręce nie ma na nią miejsca."
           ]
         },
         {
-          "heading": "Unit Swap",
+          "heading": "Zamiana jednostek",
           "lines": [
-            "Tap one of your units.",
-            "Tap an adjacent allied unit.",
-            "Those units swap positions."
+            "Dotknij swojej jednostki.",
+            "Dotknij sąsiedniej sojuszniczej jednostki.",
+            "Jednostki zamienią się miejscami."
           ]
         },
         {
           "heading": "PASS",
           "lines": [
-            "PASS uses your action.",
-            "After both sides act or PASS, combat resolves.",
-            "Surrender from the battle menu ends the battle as a loss."
+            "PASS zużywa twoją akcję.",
+            "Po akcji lub PASS obu stron rozstrzyga się walka.",
+            "Poddanie z menu bitwy kończy bitwę porażką."
           ]
         },
         {
-          "heading": "Battle Exhausted",
+          "heading": "Wyczerpana bitwa",
           "lines": [
-            "Can happen only when at least one Base has 3 HP or less.",
-            "It requires two full PASS rounds — both sides must choose PASS twice.",
-            "Playing a card, swapping units, or other battle progress resets this count.",
-            "The side with more remaining Base HP wins.",
-            "At equal Base HP, the battle ends in a draw."
+            "Może nastąpić tylko wtedy, gdy co najmniej jedna Baza ma 3 HP lub mniej.",
+            "Wymaga dwóch pełnych rund PASS — obie strony muszą wybrać PASS dwa razy.",
+            "Zagranie karty, zamiana jednostek lub inny postęp w walce zeruje ten licznik.",
+            "Wygrywa strona z większą liczbą pozostałych HP Bazy.",
+            "Przy równym HP Baz bitwa kończy się remisem."
           ]
         }
       ],
       "glossaryDescriptions": {
-        "ATK": "Damage dealt in combat.",
-        "HP": "Unit health.",
-        "ARM": "Reduces incoming combat damage.",
-        "effectCard": "Effect card — not a unit and has no ATK / ARM / HP.",
-        "ALLY": "One of your units.",
-        "ALLIES": "All your units.",
-        "ENEMY": "One opposing unit.",
-        "ENEMIES": "Opposing units."
+        "ATK": "Obrażenia zadawane w walce.",
+        "HP": "Życie jednostki lub bazy.",
+        "ARM": "Pancerz zmniejszający obrażenia bojowe.",
+        "effectCard": "Karta efektu — nie jest jednostką i nie ma ATK / ARM / HP.",
+        "ALLY": "Jedna twoja jednostka.",
+        "ALLIES": "Wszystkie twoje jednostki.",
+        "ENEMY": "Jedna jednostka przeciwnika.",
+        "ENEMIES": "Jednostki przeciwnika."
       }
     },
     "cardDetails": {
-      "type": "Type",
+      "type": "Typ",
       "atkHp": "ATK/HP",
-      "targeting": "Target",
-      "effectId": "effectId",
-      "none": "none",
+      "targeting": "Cel",
+      "effectId": "Identyfikator efektu",
+      "none": "brak",
       "targetingLabels": {
-        "all_enemy_units": "All enemy units",
-        "all_friendly_units": "All friendly units",
-        "any_enemy_unit": "Any enemy unit",
-        "any_units": "Any unit",
-        "empty_friendly_slot": "Empty friendly slot",
-        "empty_friendly_slots": "Empty friendly slots",
-        "enemy": "Enemy",
-        "enemy_unit": "Enemy unit",
-        "enemy_units": "Enemy units",
-        "friendly_fallen": "Friendly fallen",
-        "friendly_unit": "Friendly unit",
-        "lane": "Line",
-        "none": "None"
+        "all_enemy_units": "Wszystkie wrogie jednostki",
+        "all_friendly_units": "Wszystkie sojusznicze jednostki",
+        "any_enemy_unit": "Dowolna wroga jednostka",
+        "any_units": "Dowolna jednostka",
+        "empty_friendly_slot": "Pusty slot sojusznika",
+        "empty_friendly_slots": "Puste sloty sojuszników",
+        "enemy": "Wróg",
+        "enemy_unit": "Wroga jednostka",
+        "enemy_units": "Wrogie jednostki",
+        "friendly_fallen": "Polegli sojusznicy",
+        "friendly_unit": "Sojusznicza jednostka",
+        "lane": "Linia",
+        "none": "Brak"
       }
     },
     "tutorial": {
-      "title": "TUTORIAL",
-      "subtitle": "Battle basics",
+      "title": "НАВЧАННЯ",
+      "subtitle": "Podstawy bitwy",
       "steps": [
-        "Pick a faction for Arena.",
-        "Play units into lines to pressure the enemy base.",
-        "Use effect cards and swaps to control combat timing.",
-        "End your action after making your move.",
-        "Reduce the enemy base to 0 HP to win."
+        "Wybierz frakcję na Arenie.",
+        "Zagrywaj jednostki na linie, aby naciskać bazę wroga.",
+        "Używaj kart efektów i zamian, aby kontrolować tempo walki.",
+        "Zakończ swoją akcję po wykonaniu ruchu.",
+        "Obniż PŻ bazy wroga do 0, aby wygrać."
       ]
     },
     "gameMenu": {
-      "continue": "CONTINUE",
-      "newGame": "NEW GAME",
-      "arena": "ARENA",
-      "newGameConfirmTitle": "START NEW GAME?",
-      "newGameConfirmBody": "This will overwrite your current campaign progress.",
-      "confirmNewGame": "START",
-      "cancelNewGame": "BACK",
-      "tutorial": "TUTORIAL"
+      "continue": "KONTYNUUJ",
+      "newGame": "NOWA GRA",
+      "arena": "АРЕНА",
+      "newGameConfirmTitle": "ROZPOCZĄĆ NOWĄ GRĘ?",
+      "newGameConfirmBody": "To nadpisze obecny postęp kampanii.",
+      "confirmNewGame": "СТАРТ",
+      "cancelNewGame": "POWRÓT",
+      "tutorial": "SAMOUCZEK"
     },
     "campaignEnemySelect": {
-      "title": "SELECT ENEMY",
-      "battleComingSoon": "Battle routing coming soon.",
-      "invalidEnemy": "Enemy unavailable."
+      "title": "WYBIERZ WROGA",
+      "battleComingSoon": "Trasa walki zostanie dodana później.",
+      "invalidEnemy": "Wróg niedostępny."
     },
     "campaignResult": {
-      "won": "CAMPAIGN WON",
-      "lost": "CAMPAIGN LOST",
-      "victorySplash": "VICTORY",
-      "tapToContinue": "TAP TO CONTINUE",
-      "wonBattles": "Won battles",
-      "lostBattles": "Lost battles",
-      "campaignTime": "Campaign time",
+      "won": "KAMPANIA WYGRANA",
+      "lost": "KAMPANIA PRZEGRANA",
+      "victorySplash": "WYGRANA",
+      "tapToContinue": "DOTKNIJ, ABY KONTYNUOWAĆ",
+      "wonBattles": "Wygrane bitwy",
+      "lostBattles": "Przegrane bitwy",
+      "campaignTime": "Czas kampanii",
       "wonFlavors": [
-        "Congratulations. The trophy is yours.\nNow hurry home before everything ends there for good.",
-        "A magnificent performance. A well-earned trophy.\nNow run along — you might still catch the apocalypse.",
-        "The audience is delighted. The trophy is yours.\nWe won’t keep you any longer — your apocalypse is probably still right on schedule.",
-        "A marvelous spectacle! It may not improve your situation…\nbut at least you’re going home with a trophy."
+        "Gratulacje. Puchar należy do was.\nA teraz wracajcie do domu, zanim wszystko skończy się tam na dobre.",
+        "Doskonały występ. W pełni zasłużone trofeum.\nA teraz do domu, żebyście zdążyli na apokalipsę.",
+        "Publiczność zachwycona. Puchar jest wasz.\nNie trzymamy was dłużej — wasz koniec świata raczej sam się nie opóźni.",
+        "Wspaniałe widowisko! Co prawda nie zmienia to waszej sytuacji…\nale przynajmniej wracacie do domu z pucharem."
       ],
       "lostFlavors": [
-        "That’s all for tonight. Thank you for taking part in the show.",
-        "It wasn’t your night, but the audience appreciates the performance all the same.",
-        "Thank you for participating, and best of luck with your next catastrophe.",
-        "A pity. Some return with a trophy. Others simply return."
+        "To już wszystko na dziś. Dziękujemy za udział w widowisku.",
+        "Tym razem to nie był wasz wieczór, ale publiczność i tak dziękuje za występ.",
+        "Dziękujemy za udział i życzymy powodzenia przy kolejnych katastrofach.",
+        "Szkoda. Jedni wracają z pucharem, inni po prostu wracają."
       ]
     },
     "achievements": {
-      "title": "ACHIEVEMENTS",
-      "comingSoon": "Coming soon.",
+      "title": "ДОСЯГНЕННЯ",
+      "comingSoon": "Wkrótce.",
       "progression": {
-        "level": "LEVEL",
-        "levelUp": "LEVEL UP",
-        "maxLevel": "MAX LEVEL",
-        "pointsAbbreviation": "PTS",
-        "toLevel": "TO LEVEL",
-        "allLevelsComplete": "ALL LEVELS COMPLETE"
+        "level": "POZIOM",
+        "levelUp": "AWANS",
+        "maxLevel": "MAKS. POZIOM",
+        "pointsAbbreviation": "PKT",
+        "toLevel": "DO POZIOMU",
+        "allLevelsComplete": "WSZYSTKIE POZIOMY UKOŃCZONE"
       },
       "progressUnits": {
         "minutes": "min"
       },
-      "unlockedBadge": "UNLOCKED"
+      "unlockedBadge": "ODBLOKOWANE"
     },
     "startup": {
-      "tapAnywhere": "TAP ANYWHERE",
-      "preparingBroadcast": "PREPARING BROADCAST"
+      "tapAnywhere": "DOTKNIJ GDZIEKOLWIEK",
+      "preparingBroadcast": "PRZYGOTOWYWANIE TRANSMISJI"
     }
   },
   "diagnostics": {
-    "englishFallbackOnly": "English fallback only"
+    "englishFallbackOnly": "Лише для перевірки резервного перекладу"
   }
 }

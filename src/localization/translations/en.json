@@ -37,7 +37,7 @@
       "textShort": "Selected [ALLY] immediately fights in its lane"
     },
     "aggro_quick_fix_1": {
-      "name": "Quick Fix",
+      "name": "Mercy",
       "textShort": "Heal [ALLY] 1\n+1 [ATK] until combat\nCombat kill: draw 1"
     },
     "attrition_swarm_husk_1": {
@@ -69,11 +69,11 @@
       "textShort": "Deal 1 damage to [ENEMY].\nOpposed [ALLY] +1 [ATK] until combat"
     },
     "attrition_swarm_feast_1": {
-      "name": "Feast",
+      "name": "Last Supper",
       "textShort": "Draw 1"
     },
     "attrition_swarm_rise_again_1": {
-      "name": "Rise Again",
+      "name": "Dance Again",
       "textShort": "Revive the newest Fallen [ALLY] with 1 [HP] in a chosen free slot"
     },
     "attrition_swarm_grave_call_1": {
