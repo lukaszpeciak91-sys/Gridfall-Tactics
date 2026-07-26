@@ -16,8 +16,13 @@ import {
   reconcileSceneTransitionOverlayOrdering,
 } from './sceneTransitionOverlay.js';
 
-const BACKGROUND_COLOR = 0x020617;
-const BACKGROUND_ALPHA = 0.96;
+const BACKGROUND_TOP_COLOR = 0x111827;
+const BACKGROUND_BOTTOM_COLOR = 0x0b1220;
+const BACKGROUND_RADIAL_COLOR = 0x2563eb;
+const BACKGROUND_RADIAL_ALPHA = 0.14;
+const BACKGROUND_RADIAL_LAYER_COUNT = 32;
+const BACKGROUND_RADIAL_WIDTH_RATIO = 1.36;
+const BACKGROUND_RADIAL_HEIGHT_RATIO = 0.68;
 const DELAYED_SHOW_MS = 120;
 const FADE_IN_MS = 0;
 const FADE_OUT_MS = 220;
@@ -28,10 +33,24 @@ const HARD_EMERGENCY_ACTIVE_MS = 60000;
 const ROOT_DEPTH = 10000;
 const BLOCKER_DEPTH = ROOT_DEPTH + 10;
 const LOGO_GLOW_COLOR = 0x93c5fd;
-const LOGO_GLOW_LAYER_COUNT = 18;
-const LOGO_GLOW_BASE_ALPHA = 0.055;
-const LOGO_GLOW_WIDTH_RATIO = 0.82;
-const LOGO_GLOW_HEIGHT_RATIO = 0.62;
+const LOGO_GLOW_LAYER_COUNT = 28;
+const LOGO_GLOW_TOTAL_ALPHA = 0.16;
+export const SCENE_TRANSITION_LOGO_GLOW_WIDTH_RATIO = 1.28;
+const LOGO_GLOW_HEIGHT_RATIO = 0.88;
+
+export function calculateLoadingCompositionLayout({
+  height,
+  logoHeight,
+  spinnerDiameter = STARTUP_LOADING_VISUAL_LAYOUT.ringDiameter,
+  logoToSpinnerGap = STARTUP_LOADING_VISUAL_LAYOUT.logoToRingCenterGap,
+} = {}) {
+  const compositionCenterY = height * STARTUP_LOADING_VISUAL_LAYOUT.logoCenterYRatio;
+  const spinnerRadius = spinnerDiameter / 2;
+  const logoY = compositionCenterY - (logoToSpinnerGap + spinnerRadius) / 2;
+  const spinnerY = logoY + logoHeight / 2 + logoToSpinnerGap;
+
+  return { compositionCenterY, logoY, spinnerY };
+}
 
 export default class SceneTransitionOverlayScene extends Phaser.Scene {
   constructor() {
@@ -107,7 +126,8 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
   createHiddenPresentation() {
     const { width, height } = this.getCurrentSize();
     this.root = this.add.container(0, 0).setDepth(ROOT_DEPTH).setAlpha(0).setVisible(false);
-    this.backdrop = this.add.rectangle(width / 2, height / 2, width, height, BACKGROUND_COLOR, BACKGROUND_ALPHA);
+    this.backdrop = this.add.graphics();
+    this.drawBackdrop(width, height);
     this.root.add(this.backdrop);
 
     const logoPosition = getStartHeroLogoPosition(width, height);
@@ -117,12 +137,54 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
     } else {
       this.logo = createLogoFallbackText(this, logoPosition.x, logoPosition.y, 'ui.start.title', '48px', width * 0.9);
     }
-    this.logoGlow = this.createLogoGlow(logoPosition.x, logoPosition.y);
+    const layout = this.getLoadingCompositionLayout(height);
+    this.logo.setPosition(logoPosition.x, layout.logoY);
+    this.logoGlow = this.createLogoGlow(logoPosition.x, layout.logoY);
     this.root.add([this.logoGlow, this.logo].filter(Boolean));
 
-    this.ring = this.createLoadingRing(width / 2, this.getRingY(logoPosition.y));
+    this.ring = this.createLoadingRing(width / 2, layout.spinnerY);
     this.root.add(this.ring);
 
+  }
+
+  drawBackdrop(width, height) {
+    if (!this.backdrop) return;
+
+    this.backdrop.clear();
+    this.backdrop.fillGradientStyle(
+      BACKGROUND_TOP_COLOR,
+      BACKGROUND_TOP_COLOR,
+      BACKGROUND_BOTTOM_COLOR,
+      BACKGROUND_BOTTOM_COLOR,
+      1,
+    );
+    this.backdrop.fillRect(0, 0, width, height);
+
+    const centerX = width * 0.5;
+    const centerY = height * STARTUP_LOADING_VISUAL_LAYOUT.logoCenterYRatio;
+    const maxWidth = Math.max(width * BACKGROUND_RADIAL_WIDTH_RATIO, height * 0.62);
+    const maxHeight = height * BACKGROUND_RADIAL_HEIGHT_RATIO;
+    const totalWeight = Array.from({ length: BACKGROUND_RADIAL_LAYER_COUNT }, (_, index) => (
+      (1 - (index + 1) / BACKGROUND_RADIAL_LAYER_COUNT) ** 1.8
+    )).reduce((sum, weight) => sum + weight, 0);
+    for (let layer = BACKGROUND_RADIAL_LAYER_COUNT; layer >= 1; layer -= 1) {
+      const layerRatio = layer / BACKGROUND_RADIAL_LAYER_COUNT;
+      const alpha = BACKGROUND_RADIAL_ALPHA * ((1 - layerRatio) ** 1.8) / totalWeight;
+      this.backdrop.fillStyle(BACKGROUND_RADIAL_COLOR, alpha);
+      this.backdrop.fillEllipse(
+        centerX,
+        centerY,
+        maxWidth * (0.2 + layerRatio * 0.8),
+        maxHeight * (0.16 + layerRatio * 0.84),
+      );
+    }
+  }
+
+  getLoadingCompositionLayout(height) {
+    return calculateLoadingCompositionLayout({
+      height,
+      logoHeight: this.logo?.displayHeight ?? 0,
+    });
   }
 
   createLogoGlow(x, y) {
@@ -142,19 +204,17 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
     }
 
     glow.clear();
-    const maxWidth = this.logo.displayWidth * LOGO_GLOW_WIDTH_RATIO;
+    const maxWidth = this.logo.displayWidth * SCENE_TRANSITION_LOGO_GLOW_WIDTH_RATIO;
     const maxHeight = this.logo.displayHeight * LOGO_GLOW_HEIGHT_RATIO;
+    const totalWeight = Array.from({ length: LOGO_GLOW_LAYER_COUNT }, (_, index) => (
+      (1 - (index + 1) / LOGO_GLOW_LAYER_COUNT) ** 1.55
+    )).reduce((sum, weight) => sum + weight, 0);
     for (let layer = LOGO_GLOW_LAYER_COUNT; layer >= 1; layer -= 1) {
       const layerRatio = layer / LOGO_GLOW_LAYER_COUNT;
-      const alpha = LOGO_GLOW_BASE_ALPHA * (1 - layerRatio) ** 1.35;
+      const alpha = LOGO_GLOW_TOTAL_ALPHA * ((1 - layerRatio) ** 1.55) / totalWeight;
       glow.fillStyle(LOGO_GLOW_COLOR, alpha);
-      glow.fillEllipse(0, 0, maxWidth * (0.44 + layerRatio * 0.56), maxHeight * (0.34 + layerRatio * 0.66));
+      glow.fillEllipse(0, 0, maxWidth * (0.28 + layerRatio * 0.72), maxHeight * (0.24 + layerRatio * 0.76));
     }
-  }
-
-  getRingY(logoY) {
-    const logoHalfHeight = this.logo?.displayHeight ? this.logo.displayHeight / 2 : 0;
-    return logoY + logoHalfHeight + STARTUP_LOADING_VISUAL_LAYOUT.logoToRingCenterGap;
   }
 
   createLoadingRing(x, y) {
@@ -414,16 +474,17 @@ export default class SceneTransitionOverlayScene extends Phaser.Scene {
 
   reflow() {
     const { width, height } = this.getCurrentSize();
-    this.backdrop?.setPosition(width / 2, height / 2)?.setSize(width, height);
+    this.drawBackdrop(width, height);
     this.inputBlocker?.setPosition(width / 2, height / 2)?.setSize(width, height);
     const logoPosition = getStartHeroLogoPosition(width, height);
-    this.logo?.setPosition(logoPosition.x, logoPosition.y);
     if (this.logo?.type === 'Image') {
       setStartHeroLogoDisplaySize(this, this.logo, width, height);
     }
-    this.logoGlow?.setPosition(logoPosition.x, logoPosition.y);
+    const layout = this.getLoadingCompositionLayout(height);
+    this.logo?.setPosition(logoPosition.x, layout.logoY);
+    this.logoGlow?.setPosition(logoPosition.x, layout.logoY);
     this.drawLogoGlow();
-    this.ring?.setPosition(width / 2, this.getRingY(logoPosition.y));
+    this.ring?.setPosition(width / 2, layout.spinnerY);
   }
 
   installWaitingFrameOrderGuard() {
