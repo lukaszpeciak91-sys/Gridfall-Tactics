@@ -8,7 +8,7 @@ test('BattleScene routes targeted immediate combat events through normal combat 
   assert.match(source, /this\.getImmediateCombatFeedback\(result\)/);
   assert.match(source, /await this\.playImmediateCombatFeedback\(immediateCombatFeedback\);\n\s*this\.refreshAfterPlayerAction\(\);/);
   assert.match(source, /await this\.playImmediateCombatFeedback\(immediateCombatFeedback\);\n\s*this\.refreshBoardLabels\(\);/);
-  assert.match(source, /this\.refreshBoardLabelsFromSnapshot\(combatSnapshot\.board, combatSnapshot\.offlineReservations, combatSnapshot\);\n\s*await this\.playCombatAnimations\(combatEvents, combatSnapshot\.board\);/);
+  assert.match(source, /this\.refreshBoardLabelsFromSnapshot\(combatSnapshot\.board, combatSnapshot\.offlineReservations, combatSnapshot\);[\s\S]*?if \(onDeployBeamEvent\)[\s\S]*?await this\.animateBeamAttack\([\s\S]*?else \{\s*await this\.playCombatAnimations\(combatEvents, combatSnapshot\.board\);/);
   assert.match(source, /statValues: unit\.__presentationStats \?\? null/);
 });
 
