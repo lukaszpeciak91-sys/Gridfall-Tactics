@@ -1,4 +1,4 @@
-import { buildStandardCombatAttackPlan, getEffectiveBoardAttack } from './GameState.js';
+import { buildStandardCombatAttackPlan } from './GameState.js';
 
 /**
  * Describe the frozen next standard-combat attack plan without resolving combat.
@@ -31,14 +31,11 @@ export function summarizeStandardCombatThreat(state) {
     ...attack,
     snapshottedAttack: attack.attack,
     mitigatedDamage: attack.damage,
-    globalSniperRoute: attack.sourceEffectId === 'can_hit_any_lane',
     attackEntitled: true,
     overkill: attack.targetType === 'unit'
       ? Math.max(0, (damageByUnitIndex[attack.targetIndex] ?? 0) - (state.board?.[attack.targetIndex]?.hp ?? 0))
       : 0,
   }));
-  const sniperAttacks = attacks.filter((attack) => attack.globalSniperRoute);
-
   return {
     kind: 'next-standard-attack-plan-outcome',
     windowId: attackPlan.windowId,
@@ -48,24 +45,5 @@ export function summarizeStandardCombatThreat(state) {
     damagedUnitIndexes,
     threatenedUnitIndexes: [...predictedDeadUnitIndexes],
     predictedDeadUnitIndexes,
-    selectedSniperTargetIndexes: sniperAttacks
-      .filter((attack) => attack.targetType === 'unit')
-      .map((attack) => attack.targetIndex),
-    sniperAttacks,
-    sniperDiagnostics: sniperAttacks.map((attack) => {
-      const target = Number.isInteger(attack.targetIndex) ? state.board?.[attack.targetIndex] : null;
-      return {
-        sourceOwner: attack.sourceOwner,
-        sourceIndex: attack.sourceIndex,
-        selectedTargetIndex: attack.targetIndex,
-        selectedTargetId: target?.cardId ?? target?.id ?? null,
-        targetCurrentHp: target?.hp ?? null,
-        targetEffectiveAttack: target ? getEffectiveBoardAttack(state, attack.targetIndex) : null,
-        plannedSniperDamage: attack.damage,
-        plannedTotalDamageToTarget: Number.isInteger(attack.targetIndex) ? damageByUnitIndex[attack.targetIndex] : null,
-        predictedTargetDeath: predictedDeadUnitIndexes.includes(attack.targetIndex),
-        plannedBaseDamage: attack.targetType === 'hero' ? attack.damage : 0,
-      };
-    }),
   };
 }

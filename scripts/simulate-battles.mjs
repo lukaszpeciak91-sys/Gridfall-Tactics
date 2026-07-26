@@ -1530,7 +1530,7 @@ function applyAction(state, owner, passStats, decisionOptions, telemetry, simTel
   let result = { ok: true };
   if (action.type === 'play-unit') {
     result = playOrRedeployUnit(state, owner, action.cardId, action.slotIndex);
-    if (result.ok && Array.isArray(action.targetIndexes) && action.effectId === 'swap_two_enemy_units') {
+    if (result.ok && Array.isArray(action.targetIndexes) && ['swap_two_enemy_units', 'on_deploy_damage_enemy_unit_2'].includes(action.effectId)) {
       const playResult = result;
       result = resolveTargetedUnitOnPlayEffect(state, owner, action.slotIndex, action.targetIndexes);
       if (result.ok && !result.card) result.card = playResult.card;

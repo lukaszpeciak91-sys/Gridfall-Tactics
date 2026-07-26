@@ -18,6 +18,7 @@ const ENEMY_SINGLE_TARGET_EFFECTS = new Set([
   'ignore_armor_next_attack',
   'control_enemy_unit_this_turn',
   'infect_damage_1_opposite_ally_atk_1',
+  'on_deploy_damage_enemy_unit_2',
 ]);
 
 export function getTargetingStateForEffect(effectId, cardId, targeting = null) {

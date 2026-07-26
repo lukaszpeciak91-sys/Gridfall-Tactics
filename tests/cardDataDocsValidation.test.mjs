@@ -15,7 +15,7 @@ const expectedTextShort = new Map(Object.entries({
   aggro_pierce_strike_1: 'Deal 1 to [ENEMY]\nNext hit ignores [ARM]',
   aggro_quick_fix_1: 'Heal [ALLY] 1\n+1 ATK until combat\nCombat kill: draw 1',
   control_disruptor_1: "Until combat opponent cannot play effect cards",
-  control_sniper_1: 'Attacks the lowest-HP [ENEMY]\nTies: highest ATK',
+  control_sniper_1: 'On deploy: choose any [ENEMY] and deal 2 damage',
   control_controller_1: 'On play: swap two [ENEMIES]',
   control_jam_signal_1: 'Up to 2 [ENEMIES]: -1 ATK until combat',
   control_pulse_wave_1: 'Deal 1 to all [ENEMIES] ignoring ARM',
@@ -302,7 +302,6 @@ test('Reactive Plating wording avoids immediate-lane-combat cleanup language', (
 test('deterministic effects remain outside manual targeting metadata', () => {
   for (const [effectId, cardId] of [
     ['fill_empty_slots_0_1', 'swarm_flood_1'],
-    ['can_hit_any_lane', 'control_sniper_1'],
     ['damage_all_enemies_1_ignore_armor', 'control_pulse_wave_1'],
     ['immune_move_disable_this_turn', 'wardens_reinforce_line_1'],
     ['friendly_immovable_this_turn', 'wardens_stand_firm_1'],

@@ -40,19 +40,19 @@ test('candidate summaries keep top three scores and five non-zero components wit
   assert.equal('effectId' in summary[0], false);
 });
 
-test('Sniper prediction and compact policies survive resolution on the original record', () => {
+test('generic combat prediction and compact policies survive resolution on the original record', () => {
   const s = scene(); resetAiDecisionHistory(s);
   const action = { type: 'play-unit', cardId: 'aggro_raider', slotIndex: 0, aiEvaluation: {
     immediateAttackThreatPolicy: { opportunityDetected: true, possibleLethal: false, baseWinnerAction: { type: 'play-unit' }, protectiveCandidateAction: { type: 'play-effect' }, baseScoreDelta: 12, selectedWindow: 40, decisionChanged: false, bypassReason: 'outside-policy-window', enormousTelemetry: ['omitted'] },
     swarmProfile: { opportunityDetected: true, shortlistSize: 3, baseScoreDelta: 4, decisionChanged: false, reason: 'base-winner-already-preferred', candidates: ['omitted'] },
-    canonicalCombatPrediction: { before: { predictedDeaths: [], baseDamageToAi: 0, baseDamageToOpponent: 2, sniperTargetIndex: 0 }, after: { predictedDeaths: [0], baseDamageToAi: 0, baseDamageToOpponent: 2, sniperTargetIndex: 0 }, sniperSourceIndex: 6, sniperTargetIndex: 0, sniperTargetCardId: 'aggro_raider', sniperPlannedDamage: 3 },
+    canonicalCombatPrediction: { before: { predictedDeaths: [], baseDamageToAi: 0, baseDamageToOpponent: 2 }, after: { predictedDeaths: [0], baseDamageToAi: 0, baseDamageToOpponent: 2 } },
   }};
   const record = recordAiDecision(s, action, s.gameState);
-  resolveAiDecision(s, { ok: true, type: 'played', impact: 'accepted-sniper-trade' }, s.gameState, action);
+  resolveAiDecision(s, { ok: true, type: 'played', impact: 'accepted-trade' }, s.gameState, action);
   assert.equal(s.recentAiDecisions.length, 1);
   assert.equal(record.resolved, true);
   assert.deepEqual(record.combatPrediction.after.predictedDeaths, [0]);
-  assert.equal(record.combatPrediction.sniperTargetCardId, 'aggro_raider');
+  assert.equal(Object.keys(record.combatPrediction).some((key) => key.toLowerCase().includes('sniper')), false);
   assert.deepEqual(Object.keys(record.immediateThreatPolicy), ['opportunity', 'possibleLethal', 'baseWinnerType', 'protectiveCandidateType', 'baseScoreDelta', 'selectedWindow', 'changedDecision', 'bypassReason']);
   assert.equal('candidates' in record.swarmProfile, false);
 });

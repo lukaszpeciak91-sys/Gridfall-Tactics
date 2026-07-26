@@ -7943,7 +7943,7 @@ export default class BattleScene extends Phaser.Scene {
 
     // Controller play/redeploy explicitly enters manual unit-on-play targeting. Hacker lane behavior
     // remains automatic because it does not use the swap_two_enemy_units effect.
-    if ((result.type === 'play' || result.type === 'redeploy') && result.card?.effectId === 'swap_two_enemy_units' && !result.unitOnPlayEffectBlocked) {
+    if ((result.type === 'play' || result.type === 'redeploy') && ['swap_two_enemy_units', 'on_deploy_damage_enemy_unit_2'].includes(result.card?.effectId) && !result.unitOnPlayEffectBlocked && (result.card.effectId !== 'on_deploy_damage_enemy_unit_2' || this.gameState.board.some((unit) => unit?.owner === 'enemy'))) {
       this.startPlayerUnitOnPlayTargeting(result.card, boardIndex, beforeStats);
       return;
     }
@@ -9497,7 +9497,7 @@ export default class BattleScene extends Phaser.Scene {
 
     if (action.type === 'play-unit') {
       let result = playOrRedeployUnit(this.gameState, 'enemy', action.cardId, action.slotIndex);
-      if (result.ok && Array.isArray(action.targetIndexes) && action.effectId === 'swap_two_enemy_units') {
+      if (result.ok && Array.isArray(action.targetIndexes) && ['swap_two_enemy_units', 'on_deploy_damage_enemy_unit_2'].includes(action.effectId)) {
         result = resolveTargetedUnitOnPlayEffect(this.gameState, 'enemy', action.slotIndex, action.targetIndexes);
       }
       if (result.ok) recordBattleActionUse(this.gameState, 'enemy', action);

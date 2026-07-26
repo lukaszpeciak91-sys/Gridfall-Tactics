@@ -229,7 +229,7 @@ function cardCanRealisticallyAffectOutcome(card, state, owner, visitedCardIds = 
       'adjacent_allies_atk_plus_1_ignore_armor_1',
       'gain_atk_when_damaged',
       'wounded_atk_plus_1',
-      'can_hit_any_lane',
+      'on_deploy_damage_enemy_unit_2',
       'opposing_lane_atk_plus_1',
       DECAY_ATTACK_AFTER_COMBAT_EFFECT_ID,
       DECAY_HP_AFTER_COMBAT_EFFECT_ID,
@@ -977,21 +977,6 @@ function getStandardCombatMitigatedDamageResult(state, board, attacker, defender
 export function buildStandardCombatAttackPlan(state) {
   const board = state.board.map((unit, index) => (unit && unit.hp > 0 && !isBoardUnitOffline(state, index) ? { ...unit, __index: index } : null));
   const plans = [];
-  const findSniperTargetIndex = (attackerOwner) => {
-    let bestIndex = null;
-    let bestHp = Infinity;
-    let bestAttack = Number.NEGATIVE_INFINITY;
-    getRowForOwner(getOpponentOwner(attackerOwner)).forEach((index) => {
-      const unit = board[index];
-      if (!unit || unit.hp <= 0) return;
-      const hp = Number.isFinite(unit.hp) ? unit.hp : 0;
-      const attack = getStandardCombatAttackProfile(state, board, unit, index).attack;
-      if (hp < bestHp || (hp === bestHp && attack > bestAttack) || (hp === bestHp && attack === bestAttack && (bestIndex === null || index < bestIndex))) {
-        bestHp = hp; bestAttack = attack; bestIndex = index;
-      }
-    });
-    return bestIndex;
-  };
   const guardiansUsed = new Set();
   const findGuardianInterceptIndex = (defenderIndex) => {
     const defender = board[defenderIndex];
@@ -1010,16 +995,13 @@ export function buildStandardCombatAttackPlan(state) {
     const lane = sourceIndex % 3;
     const { attack, combatModifiers } = getStandardCombatAttackProfile(state, board, attacker, sourceIndex);
     const opposingIndex = attacker.owner === 'player' ? sourceIndex - 6 : sourceIndex + 6;
-    const sniperTargetIndex = attacker.effectId === 'can_hit_any_lane' ? findSniperTargetIndex(attacker.owner) : null;
-    const naturalTargetIndex = sniperTargetIndex ?? (board[opposingIndex] ? opposingIndex : null);
-    const interceptIndex = sniperTargetIndex === null && naturalTargetIndex !== null ? findGuardianInterceptIndex(naturalTargetIndex) : null;
+    const naturalTargetIndex = board[opposingIndex] ? opposingIndex : null;
+    const interceptIndex = naturalTargetIndex !== null ? findGuardianInterceptIndex(naturalTargetIndex) : null;
     const targetIndex = interceptIndex ?? naturalTargetIndex;
     if (targetIndex !== null) {
       const target = board[targetIndex];
       if (interceptIndex !== null) guardiansUsed.add(interceptIndex);
-      const extraModifiers = sniperTargetIndex !== null
-        ? [createCombatModifier({ type: 'retarget', source: 'can_hit_any_lane', label: 'LOWEST HP' })]
-        : (interceptIndex !== null ? [createCombatModifier({ type: 'intercept', source: 'intercept_lane_damage', label: 'INTERCEPT', feedback: 'target' })] : []);
+      const extraModifiers = interceptIndex !== null ? [createCombatModifier({ type: 'intercept', source: 'intercept_lane_damage', label: 'INTERCEPT', feedback: 'target' })] : [];
       const result = getStandardCombatMitigatedDamageResult(state, board, { ...attacker, attack }, target, targetIndex, [...combatModifiers, ...extraModifiers]);
       plans.push({ lane, sourceIndex, sourceOwner: attacker.owner, sourceId: attacker.cardId ?? attacker.id ?? null, sourceEffectId: attacker.effectId ?? null, combatKeywords: [...(attacker.combatKeywords ?? [])], targetType: 'unit', targetIndex, targetOwner: target.owner, targetHp: target.hp, attack, damage: result.damage, openLane: false, combatModifiers: result.combatModifiers, consumedIgnoreArmorTargetIndex: result.consumedIgnoreArmorTargetIndex ?? null, interceptOriginalTargetIndex: interceptIndex !== null ? naturalTargetIndex : null, selfDamage: attacker.effectId === 'self_damage_after_attack' ? 1 : 0 });
     } else {
@@ -3382,7 +3364,7 @@ export function resolveTargetedUnitOnPlayEffect(state, owner, sourceBoardIndex, 
     return { ok: false, reason: 'Source unit must be friendly' };
   }
 
-  if (sourceUnit.effectId !== 'swap_two_enemy_units') {
+  if (sourceUnit.effectId !== 'swap_two_enemy_units' && sourceUnit.effectId !== 'on_deploy_damage_enemy_unit_2') {
     return { ok: false, reason: 'Unit on-play effect does not support targeted resolution' };
   }
 
@@ -3391,6 +3373,39 @@ export function resolveTargetedUnitOnPlayEffect(state, owner, sourceBoardIndex, 
   }
 
   const selectedTargets = Array.isArray(targetIndexes) ? targetIndexes : [];
+  if (sourceUnit.effectId === 'on_deploy_damage_enemy_unit_2') {
+    if (selectedTargets.length < 1) return { ok: true, type: 'unit-on-play-targeted-effect-pending' };
+    const targetIndex = selectedTargets[0];
+    const targetUnit = state.board[targetIndex];
+    if (!targetUnit || targetUnit.owner !== getOpponentOwner(owner)) {
+      return { ok: false, reason: 'Target must be enemy' };
+    }
+    const combatSnapshot = captureImmediateCombatPresentationSnapshot(state);
+    const hpBefore = targetUnit.hp;
+    applyDamageToUnit(state, targetIndex, 2);
+    const damageDealt = Math.max(0, hpBefore - targetUnit.hp);
+    cleanupDefeatedUnitsWithTriggers(state, [targetIndex]);
+    return {
+      ok: true,
+      type: 'unit-on-play-targeted-effect',
+      sourceUnit,
+      targetedEffect: { effectId: sourceUnit.effectId, sourceBoardIndex, targetIndex, amount: 2, damageDealt, lethal: !state.board[targetIndex] },
+      combatSnapshot,
+      combatEvents: [{
+        attackerSide: owner,
+        attackerIndex: sourceBoardIndex,
+        targetType: 'unit',
+        targetSide: getOpponentOwner(owner),
+        targetIndex,
+        damage: damageDealt,
+        openLane: false,
+        lethal: !state.board[targetIndex],
+        effectId: sourceUnit.effectId,
+      }],
+      feedback: [{ type: 'damage', index: targetIndex, amount: damageDealt, label: 'PRECISION SHOT', attackPresentation: 'beam', sourceIndex: sourceBoardIndex }],
+    };
+  }
+
   if (selectedTargets.length < 2) {
     const firstTarget = state.board[selectedTargets[0]];
     if (selectedTargets.length > 0 && firstTarget?.owner !== getOpponentOwner(owner)) {
@@ -3529,28 +3544,6 @@ function resolveCombatLane(state, col, combatContext = null) {
 
   const context = combatContext ?? { guardiansUsed: new Set(), events: [] };
   if (!Array.isArray(context.events)) context.events = [];
-
-  const findSniperTargetIndex = (attackerOwner) => {
-    const enemyIndexes = getRowForOwner(getOpponentOwner(attackerOwner));
-    let bestIndex = null;
-    let bestHp = Infinity;
-    enemyIndexes.forEach((index) => {
-      const unit = state.board[index];
-      if (!unit || unit.hp <= 0) return;
-      const hp = Number.isFinite(unit.hp) ? unit.hp : 0;
-      const attack = getEffectiveBoardAttack(state, index);
-      const bestAttack = bestIndex === null ? Number.NEGATIVE_INFINITY : getEffectiveBoardAttack(state, bestIndex);
-      if (
-        hp < bestHp
-        || (hp === bestHp && attack > bestAttack)
-        || (hp === bestHp && attack === bestAttack && (bestIndex === null || index < bestIndex))
-      ) {
-        bestHp = hp;
-        bestIndex = index;
-      }
-    });
-    return bestIndex;
-  };
 
   const findGuardianInterceptIndex = (defenderIndex) => {
     const defender = state.board[defenderIndex];
@@ -3945,24 +3938,7 @@ function resolveCombatLane(state, col, combatContext = null) {
 
   if (player) {
     const { attack: playerAttack, combatModifiers: playerAttackModifiers } = getCombatAttackProfile(player, playerIndex);
-    const canHitAnyLane = player.effectId === 'can_hit_any_lane';
-    const sniperTargetIndex = canHitAnyLane ? findSniperTargetIndex(player.owner) : null;
-    if (sniperTargetIndex !== null) {
-      const sniperTarget = state.board[sniperTargetIndex];
-      if (sniperTarget) {
-        const { damage, combatModifiers } = getMitigatedDamageResult(
-          { ...player, attack: playerAttack },
-          sniperTarget,
-          sniperTargetIndex,
-          [
-            ...playerAttackModifiers,
-            createCombatModifier({ type: 'retarget', source: 'can_hit_any_lane', label: 'LOWEST HP' }),
-          ],
-        );
-        recordUnitAttack('player', playerIndex, sniperTargetIndex, damage, combatModifiers);
-        addPendingUnitDamage(sniperTargetIndex, damage);
-      }
-    } else if (enemy) {
+    if (enemy) {
       const { damage, combatModifiers } = getMitigatedDamageResult({ ...player, attack: playerAttack }, enemy, enemyIndex, playerAttackModifiers);
       const interceptIndex = findGuardianInterceptIndex(enemyIndex);
       if (interceptIndex !== null) {
@@ -3990,24 +3966,7 @@ function resolveCombatLane(state, col, combatContext = null) {
 
   if (enemy) {
     const { attack: enemyAttack, combatModifiers: enemyAttackModifiers } = getCombatAttackProfile(enemy, enemyIndex);
-    const canHitAnyLane = enemy.effectId === 'can_hit_any_lane';
-    const sniperTargetIndex = canHitAnyLane ? findSniperTargetIndex(enemy.owner) : null;
-    if (sniperTargetIndex !== null) {
-      const sniperTarget = state.board[sniperTargetIndex];
-      if (sniperTarget) {
-        const { damage, combatModifiers } = getMitigatedDamageResult(
-          { ...enemy, attack: enemyAttack },
-          sniperTarget,
-          sniperTargetIndex,
-          [
-            ...enemyAttackModifiers,
-            createCombatModifier({ type: 'retarget', source: 'can_hit_any_lane', label: 'LOWEST HP' }),
-          ],
-        );
-        recordUnitAttack('enemy', enemyIndex, sniperTargetIndex, damage, combatModifiers);
-        addPendingUnitDamage(sniperTargetIndex, damage);
-      }
-    } else if (player) {
+    if (player) {
       const { damage, combatModifiers } = getMitigatedDamageResult({ ...enemy, attack: enemyAttack }, player, playerIndex, enemyAttackModifiers);
       const interceptIndex = findGuardianInterceptIndex(playerIndex);
       if (interceptIndex !== null) {
