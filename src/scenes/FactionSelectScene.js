@@ -44,6 +44,18 @@ const CAMPAIGN_ACCORDION_TEXT_TO_BUTTON_GAP = 10;
 const CAMPAIGN_ACCORDION_SELECT_BUTTON_WIDTH = 198;
 const CAMPAIGN_ACCORDION_SELECT_BUTTON_HEIGHT = 47;
 const CAMPAIGN_ACCORDION_SELECT_BUTTON_MIN_TOUCH_HEIGHT = 48;
+const COMPLETED_CAMPAIGN_GLOW_OUTER_EXPANSION = 4;
+const COMPLETED_CAMPAIGN_GLOW_OUTER_ALPHA = 0.035;
+const COMPLETED_CAMPAIGN_GLOW_INNER_EXPANSION = 2;
+const COMPLETED_CAMPAIGN_GLOW_INNER_ALPHA = 0.07;
+
+export function getCompletedCampaignFactionKeys(factionKeys, stats) {
+  if (!Array.isArray(factionKeys) || !stats || typeof stats !== 'object') return new Set();
+  return new Set(factionKeys.filter((factionKey) => (
+    Number.isFinite(stats?.factions?.[factionKey]?.campaignsWon)
+    && stats.factions[factionKey].campaignsWon > 0
+  )));
+}
 
 export function selectArenaEnemyFactionKey(playerFactionKey, randomBetween = Phaser.Math.Between) {
   const factionKeys = getFactionKeys();
@@ -96,6 +108,7 @@ export default class FactionSelectScene extends Phaser.Scene {
     this.scrollMask = null;
     this.scrollState = null;
     this.factionCardViews = [];
+    this.completedCampaignFactionKeys = new Set();
     this.openFactionKey = null;
     this.isStartingBattle = false;
     this.tapVsDrag = createTapVsDragInteraction();
@@ -132,6 +145,9 @@ export default class FactionSelectScene extends Phaser.Scene {
     applyAudioSettings(this, loadSettings());
     playMenuMusic(this);
     const factionKeys = getFactionKeys();
+    this.completedCampaignFactionKeys = this.mode === 'campaign'
+      ? getCompletedCampaignFactionKeys(factionKeys, loadPlayerStats())
+      : new Set();
 
     this.cameras.main.setBackgroundColor(MENU_BACKGROUND_FALLBACK_COLOR_HEX);
     this.menuBackground = createAnimatedMenuBackground(this, {
@@ -245,6 +261,11 @@ export default class FactionSelectScene extends Phaser.Scene {
     this.uiElements.push(root);
 
     const { items, details } = drawFactionCardVisual(this, root, factionKey, { y: 0, cardWidth, cardHeight });
+    const completionGlow = this.createCompletedCampaignGlow(root, factionKey, {
+      cardWidth,
+      cardHeight,
+      accentColor: details.accentColor,
+    });
 
     const panel = this.createCampaignAccordionPanel(root, factionKey, { cardWidth, cardHeight, details });
 
@@ -283,12 +304,38 @@ export default class FactionSelectScene extends Phaser.Scene {
       panelProgress: 0,
       isOpen: false,
       bannerTapZone: button,
+      completionGlow,
       tween: null,
-      items: [...items, ...panel.items, pressOverlay, button],
+      items: [completionGlow, ...items, ...panel.items, pressOverlay, button].filter(Boolean),
     };
 
     this.interactiveElements.push(button);
     return view;
+  }
+
+  createCompletedCampaignGlow(root, factionKey, { cardWidth, cardHeight, accentColor }) {
+    if (this.mode !== 'campaign' || !this.completedCampaignFactionKeys.has(factionKey)) return null;
+
+    const x = -cardWidth / 2;
+    const glow = this.add.graphics();
+    glow.fillStyle(accentColor, COMPLETED_CAMPAIGN_GLOW_OUTER_ALPHA);
+    glow.fillRoundedRect(
+      x - COMPLETED_CAMPAIGN_GLOW_OUTER_EXPANSION,
+      -COMPLETED_CAMPAIGN_GLOW_OUTER_EXPANSION,
+      cardWidth + COMPLETED_CAMPAIGN_GLOW_OUTER_EXPANSION * 2,
+      cardHeight + COMPLETED_CAMPAIGN_GLOW_OUTER_EXPANSION * 2,
+      20 + COMPLETED_CAMPAIGN_GLOW_OUTER_EXPANSION,
+    );
+    glow.fillStyle(accentColor, COMPLETED_CAMPAIGN_GLOW_INNER_ALPHA);
+    glow.fillRoundedRect(
+      x - COMPLETED_CAMPAIGN_GLOW_INNER_EXPANSION,
+      -COMPLETED_CAMPAIGN_GLOW_INNER_EXPANSION,
+      cardWidth + COMPLETED_CAMPAIGN_GLOW_INNER_EXPANSION * 2,
+      cardHeight + COMPLETED_CAMPAIGN_GLOW_INNER_EXPANSION * 2,
+      20 + COMPLETED_CAMPAIGN_GLOW_INNER_EXPANSION,
+    );
+    root.addAt(glow, 0);
+    return glow;
   }
 
   createCampaignAccordionPanel(root, factionKey, { cardWidth, cardHeight, details }) {
@@ -795,6 +842,7 @@ export default class FactionSelectScene extends Phaser.Scene {
     this.tapVsDrag?.cancel?.();
     this.factionCardViews.forEach((view) => view.tween?.stop?.());
     this.factionCardViews = [];
+    this.completedCampaignFactionKeys = new Set();
     this.openFactionKey = null;
 
     this.scrollMask?.destroy?.();
