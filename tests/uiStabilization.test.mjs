@@ -43,6 +43,7 @@ test('hand layout keeps cards above the control row with readable spacing on por
 test('shared build marker helper is used by scene UI outside BattleScene gameplay', () => {
   const battleSource = read('src/scenes/BattleScene.js');
   const factionSource = read('src/scenes/FactionSelectScene.js');
+  const campaignEnemySource = read('src/scenes/CampaignEnemySelectScene.js');
   const mainMenuSource = read('src/scenes/MainMenuScene.js');
   const helperSource = read('src/ui/buildMarker.js');
 
@@ -52,8 +53,8 @@ test('shared build marker helper is used by scene UI outside BattleScene gamepla
   assert.match(mainMenuSource, /import \{ createBuildMarker \} from '\.\.\/ui\/buildMarker\.js';/);
   assert.match(mainMenuSource, /corner: 'top-right'/);
   assert.match(mainMenuSource, /alpha: 0\.42/);
-  assert.match(factionSource, /import \{ createBuildMarker \} from '\.\.\/ui\/buildMarker\.js';/);
-  assert.match(factionSource, /const buildMarker = createBuildMarker\(this, \{ width, height \}\);/);
+  assert.doesNotMatch(factionSource, /createBuildMarker/);
+  assert.doesNotMatch(campaignEnemySource, /createBuildMarker/);
   assert.doesNotMatch(battleSource, /createBuildMarker/);
 });
 

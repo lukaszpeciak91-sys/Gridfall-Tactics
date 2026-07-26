@@ -1,5 +1,4 @@
 import Phaser from 'phaser';
-import { createBuildMarker } from '../ui/buildMarker.js';
 import { createMenuScreenHeader } from '../ui/screenHeader.js';
 import { createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
 import { translateActive } from '../localization/localeService.js';
@@ -69,7 +68,6 @@ export default class CampaignEnemySelectScene extends Phaser.Scene {
 
     const header = createMenuScreenHeader(this, { title: translateActive('ui.campaignEnemySelect.title', 'SELECT ENEMY'), width, height });
     this.uiElements.push(...header.items);
-    this.uiElements.push(createBuildMarker(this, { width, height }));
     this.drawNavigationControls();
     this.drawEnemyCards({ width, height, headerBottomY: header.bottomY });
     this.scheduleTransitionReadyAfterFirstRender();

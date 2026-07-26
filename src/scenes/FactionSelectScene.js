@@ -1,6 +1,5 @@
 import Phaser from 'phaser';
 import { getFactionKeys } from '../data/factions/index.js';
-import { createBuildMarker } from '../ui/buildMarker.js';
 import { createMenuScreenHeader } from '../ui/screenHeader.js';
 import { createBottomNavigationControls, requestPortraitOrientationLock, toggleSceneFullscreen } from '../ui/navigationControls.js';
 import { translateActive, translateActiveList } from '../localization/localeService.js';
@@ -160,9 +159,6 @@ export default class FactionSelectScene extends Phaser.Scene {
     this.uiElements.push(...header.items);
 
     const arenaHelper = this.createArenaHelperText({ width, headerBottomY: header.bottomY });
-
-    const buildMarker = createBuildMarker(this, { width, height });
-    this.uiElements.push(buildMarker);
 
     this.drawNavigationControls();
     this.drawFactionCards(factionKeys, {
