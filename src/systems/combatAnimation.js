@@ -33,6 +33,17 @@ export function getCombatAttackPresentation(event, preCombatBoardSnapshot) {
   );
 }
 
+export function isRotesAugeOnDeployBeamPresentation(event, preCombatBoardSnapshot) {
+  if (event?.effectId !== 'on_deploy_damage_enemy_unit_2' || event?.targetType !== 'unit') return false;
+  if (!Number.isInteger(event?.attackerIndex) || !Number.isInteger(event?.targetIndex)) return false;
+
+  const source = getCombatEventAttackerSnapshot(event, preCombatBoardSnapshot);
+  const target = preCombatBoardSnapshot?.[event.targetIndex];
+  return source?.cardId === 'control_sniper_1'
+    && target?.owner === event.targetSide
+    && target.owner !== source.owner;
+}
+
 function getCombatSnapshotPresentationAttack(unit) {
   return Number.isFinite(unit?.__presentationStats?.attack)
     ? unit.__presentationStats.attack

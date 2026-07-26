@@ -8,7 +8,7 @@ import { advanceTutorialStep as advanceTutorialControllerStep, createTutorialCon
 import { createInitialBattleState, drawCards, shuffleDeck, canPass, canPlayOrRedeploy, playEffectCard, playOrRedeployUnit, performSwap, resolveCombat, resolveTargetedEffectCard, resolveTargetedUnitOnPlayEffect, getUnitAttack, getUnitArmor, getUnitOriginalStats, toggleFirstActor, resolveTurnCapWinner, resolveImmediateResourceExhaustionWinner, resolveImmediateNoProgressWinner, recordPassAction, completeActionOpportunity, performOpeningMulligan, STARTING_HAND_SIZE, MAX_OPENING_MULLIGAN_CARDS, getEffectiveBoardAttack, getEffectiveBoardArmor, getCombatPresentationStatsForBoardIndex, canPlayEffectCard, isEffectCardBlockedForOwner, isBattleExhaustedEligible, isBoardUnitOffline, normalizeOfflineReservations, isLegalEmptyFriendlySlotForUnitPlacement } from '../systems/GameState.js';
 import { chooseEnemyAction, isVerySafeConcedableState, recordBattleActionUse, selectOpeningMulliganCardIds } from '../systems/enemyDecision.js';
 import { getTargetingStateForEffect } from '../systems/cardTargeting.js';
-import { COMBAT_ATTACK_PRESENTATIONS, getCombatAttackPresentation, getCombatEventAttackerIndex, getCombatEventInterceptOriginalTargetIndex, getCombatEventTargetIndex, getLaneLethalTargetIndexes, getLaneSimultaneousUnitClash, shouldAnimateCombatAttacker, shouldPreservePlannedNonMeleePresentation, shouldUseControlledHeroStrikePresentation } from '../systems/combatAnimation.js';
+import { COMBAT_ATTACK_PRESENTATIONS, getCombatAttackPresentation, getCombatEventAttackerIndex, getCombatEventInterceptOriginalTargetIndex, getCombatEventTargetIndex, getLaneLethalTargetIndexes, getLaneSimultaneousUnitClash, isRotesAugeOnDeployBeamPresentation, shouldAnimateCombatAttacker, shouldPreservePlannedNonMeleePresentation, shouldUseControlledHeroStrikePresentation } from '../systems/combatAnimation.js';
 import { BATTLE_BACKGROUND_ASSETS, BATTLE_BACKGROUND_FALLBACK_COLOR, BATTLE_BACKGROUND_FALLBACK_COLOR_HEX, BATTLEFIELD_BACKGROUND_OVERSCAN, applyCoverBackgroundLayout, createCoverBackground, getBattleBackgroundAsset, hasLoadedImageAsset, preloadBattleBackgroundArt, preloadImageAsset, resolvePublicAssetPath } from '../rendering/backgroundArt.js';
 import { getArenaBattlegroundAsset, resolveArenaBattlegroundId } from '../data/arenaBattlegrounds.js';
 import { getCardIllustrationAsset, getCardIllustrationAssetsForFaction, preloadCardIllustrationAsset } from '../rendering/cardIllustrationAssets.js';
@@ -10300,7 +10300,17 @@ export default class BattleScene extends Phaser.Scene {
     this.lastCombatEvents = combatEvents;
     try {
       this.refreshBoardLabelsFromSnapshot(combatSnapshot.board, combatSnapshot.offlineReservations, combatSnapshot);
-      await this.playCombatAnimations(combatEvents, combatSnapshot.board);
+      const onDeployBeamEvent = combatEvents.find((event) => (
+        isRotesAugeOnDeployBeamPresentation(event, combatSnapshot.board)
+      ));
+      if (onDeployBeamEvent) {
+        await this.animateBeamAttack({
+          ...onDeployBeamEvent,
+          lane: onDeployBeamEvent.attackerIndex % 3,
+        }, combatSnapshot.board);
+      } else {
+        await this.playCombatAnimations(combatEvents, combatSnapshot.board);
+      }
     } finally {
       this.suppressedLethalFadeIndexes = previousSuppressedLethalFadeIndexes;
     }
