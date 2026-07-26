@@ -21,6 +21,11 @@ const POSTER_TITLE_WIDTH_RATIO = 0.92;
 const POSTER_TITLE_MAX_FONT_SIZE = 29;
 const POSTER_TITLE_WRAP_FONT_SIZE = 24;
 const POSTER_TITLE_MIN_SINGLE_LINE_FONT_SIZE = 20;
+export const FACTION_CARD_BORDER_LINE_WIDTH = 1;
+export const FACTION_CARD_BORDER_ALPHA = 0.72;
+export const COMPLETED_CAMPAIGN_BORDER_LINE_WIDTH = 2;
+export const COMPLETED_CAMPAIGN_GLOW_LINE_WIDTH = 6;
+export const COMPLETED_CAMPAIGN_GLOW_ALPHA = 0.12;
 
 export function getFactionAssetSlug(factionKey) {
   const faction = getFactionByKey(factionKey);
@@ -119,7 +124,14 @@ export function drawFactionTags(scene, content, tags, { rightX, y, accentColor, 
   return items;
 }
 
-export function drawFactionCardVisual(scene, content, factionKey, { y, cardWidth, cardHeight, alpha = 1, completed = false } = {}) {
+export function drawFactionCardVisual(scene, content, factionKey, {
+  y,
+  cardWidth,
+  cardHeight,
+  alpha = 1,
+  completed = false,
+  completedCampaignPresentation = false,
+} = {}) {
   const { details, displayName } = getFactionCardPresentation(factionKey);
   const x = -cardWidth / 2;
   const posterInset = 4;
@@ -132,7 +144,18 @@ export function drawFactionCardVisual(scene, content, factionKey, { y, cardWidth
   shadow.fillStyle(0x020617, 0.42 * alpha); shadow.fillRoundedRect(x + 2, y + 5, cardWidth, cardHeight, 20); content.add(shadow); items.push(shadow);
   const card = scene.add.graphics();
   card.fillStyle(completed ? 0x111827 : 0x020617, (completed ? 0.72 : 0.94) * alpha); card.fillRoundedRect(x, y, cardWidth, cardHeight, 20);
-  card.lineStyle(1, completed ? 0x94a3b8 : details.accentColor, (completed ? 0.5 : 0.72) * alpha); card.strokeRoundedRect(x + 1, y + 1, cardWidth - 2, cardHeight - 2, 19); content.add(card); items.push(card);
+  const borderColor = completed ? 0x94a3b8 : details.accentColor;
+  const borderAlpha = (completed ? 0.5 : FACTION_CARD_BORDER_ALPHA) * alpha;
+  if (completedCampaignPresentation) {
+    card.lineStyle(COMPLETED_CAMPAIGN_GLOW_LINE_WIDTH, details.accentColor, COMPLETED_CAMPAIGN_GLOW_ALPHA * alpha);
+    card.strokeRoundedRect(x + 1, y + 1, cardWidth - 2, cardHeight - 2, 19);
+  }
+  card.lineStyle(
+    completedCampaignPresentation ? COMPLETED_CAMPAIGN_BORDER_LINE_WIDTH : FACTION_CARD_BORDER_LINE_WIDTH,
+    borderColor,
+    borderAlpha,
+  );
+  card.strokeRoundedRect(x + 1, y + 1, cardWidth - 2, cardHeight - 2, 19); content.add(card); items.push(card);
   items.push(...drawFactionPreview(scene, content, factionKey, details, { x: posterX, y: posterY, width: posterWidth, height: posterHeight, alpha: completed ? alpha * 0.45 : alpha }));
   const titleScrimHeight = Math.min(POSTER_TITLE_SCRIM_HEIGHT, posterHeight - 24);
   const titleScrimY = posterY + posterHeight - titleScrimHeight;
