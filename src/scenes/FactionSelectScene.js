@@ -44,9 +44,11 @@ const CAMPAIGN_ACCORDION_TEXT_TO_BUTTON_GAP = 10;
 const CAMPAIGN_ACCORDION_SELECT_BUTTON_WIDTH = 198;
 const CAMPAIGN_ACCORDION_SELECT_BUTTON_HEIGHT = 47;
 const CAMPAIGN_ACCORDION_SELECT_BUTTON_MIN_TOUCH_HEIGHT = 48;
-const COMPLETED_CAMPAIGN_GLOW_OUTER_EXPANSION = 4;
+const FACTION_CARD_SHADOW_X_OFFSET = 2;
+const FACTION_CARD_SHADOW_Y_OFFSET = 5;
+const COMPLETED_CAMPAIGN_GLOW_OUTER_EXPANSION = 6;
 const COMPLETED_CAMPAIGN_GLOW_OUTER_ALPHA = 0.035;
-const COMPLETED_CAMPAIGN_GLOW_INNER_EXPANSION = 2;
+const COMPLETED_CAMPAIGN_GLOW_INNER_EXPANSION = 3;
 const COMPLETED_CAMPAIGN_GLOW_INNER_ALPHA = 0.07;
 
 export function getCompletedCampaignFactionKeys(factionKeys, stats) {
@@ -316,22 +318,26 @@ export default class FactionSelectScene extends Phaser.Scene {
   createCompletedCampaignGlow(root, factionKey, { cardWidth, cardHeight, accentColor }) {
     if (this.mode !== 'campaign' || !this.completedCampaignFactionKeys.has(factionKey)) return null;
 
-    const x = -cardWidth / 2;
+    const bannerX = -cardWidth / 2;
+    const unionLeft = bannerX;
+    const unionTop = 0;
+    const unionWidth = cardWidth + FACTION_CARD_SHADOW_X_OFFSET;
+    const unionHeight = cardHeight + FACTION_CARD_SHADOW_Y_OFFSET;
     const glow = this.add.graphics();
     glow.fillStyle(accentColor, COMPLETED_CAMPAIGN_GLOW_OUTER_ALPHA);
     glow.fillRoundedRect(
-      x - COMPLETED_CAMPAIGN_GLOW_OUTER_EXPANSION,
-      -COMPLETED_CAMPAIGN_GLOW_OUTER_EXPANSION,
-      cardWidth + COMPLETED_CAMPAIGN_GLOW_OUTER_EXPANSION * 2,
-      cardHeight + COMPLETED_CAMPAIGN_GLOW_OUTER_EXPANSION * 2,
+      unionLeft - COMPLETED_CAMPAIGN_GLOW_OUTER_EXPANSION,
+      unionTop - COMPLETED_CAMPAIGN_GLOW_OUTER_EXPANSION,
+      unionWidth + COMPLETED_CAMPAIGN_GLOW_OUTER_EXPANSION * 2,
+      unionHeight + COMPLETED_CAMPAIGN_GLOW_OUTER_EXPANSION * 2,
       20 + COMPLETED_CAMPAIGN_GLOW_OUTER_EXPANSION,
     );
     glow.fillStyle(accentColor, COMPLETED_CAMPAIGN_GLOW_INNER_ALPHA);
     glow.fillRoundedRect(
-      x - COMPLETED_CAMPAIGN_GLOW_INNER_EXPANSION,
-      -COMPLETED_CAMPAIGN_GLOW_INNER_EXPANSION,
-      cardWidth + COMPLETED_CAMPAIGN_GLOW_INNER_EXPANSION * 2,
-      cardHeight + COMPLETED_CAMPAIGN_GLOW_INNER_EXPANSION * 2,
+      unionLeft - COMPLETED_CAMPAIGN_GLOW_INNER_EXPANSION,
+      unionTop - COMPLETED_CAMPAIGN_GLOW_INNER_EXPANSION,
+      unionWidth + COMPLETED_CAMPAIGN_GLOW_INNER_EXPANSION * 2,
+      unionHeight + COMPLETED_CAMPAIGN_GLOW_INNER_EXPANSION * 2,
       20 + COMPLETED_CAMPAIGN_GLOW_INNER_EXPANSION,
     );
     root.addAt(glow, 0);

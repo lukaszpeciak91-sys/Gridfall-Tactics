@@ -58,11 +58,40 @@ test('qualifying Campaign cards create one static accent-colored Graphics glow b
   assert.doesNotMatch(glowBlock, /lineStyle|strokeRoundedRect|setInteractive|setTint|setAlpha|setScale|setBlendMode|tweens|time\.|update/);
 });
 
-test('completion glow geometry is faint, static, and limited to four pixels beyond the banner', () => {
-  assert.match(source, /COMPLETED_CAMPAIGN_GLOW_OUTER_EXPANSION = 4;/);
+test('completion glow geometry clears the union of the banner and offset shadow on every side', () => {
+  assert.match(source, /FACTION_CARD_SHADOW_X_OFFSET = 2;/);
+  assert.match(source, /FACTION_CARD_SHADOW_Y_OFFSET = 5;/);
+  assert.match(source, /COMPLETED_CAMPAIGN_GLOW_OUTER_EXPANSION = 6;/);
   assert.match(source, /COMPLETED_CAMPAIGN_GLOW_OUTER_ALPHA = 0\.035;/);
-  assert.match(source, /COMPLETED_CAMPAIGN_GLOW_INNER_EXPANSION = 2;/);
+  assert.match(source, /COMPLETED_CAMPAIGN_GLOW_INNER_EXPANSION = 3;/);
   assert.match(source, /COMPLETED_CAMPAIGN_GLOW_INNER_ALPHA = 0\.07;/);
+
+  const glowBlock = source.slice(source.indexOf('  createCompletedCampaignGlow('), source.indexOf('  createCampaignAccordionPanel('));
+  assert.match(glowBlock, /const unionLeft = bannerX;/);
+  assert.match(glowBlock, /const unionTop = 0;/);
+  assert.match(glowBlock, /const unionWidth = cardWidth \+ FACTION_CARD_SHADOW_X_OFFSET;/);
+  assert.match(glowBlock, /const unionHeight = cardHeight \+ FACTION_CARD_SHADOW_Y_OFFSET;/);
+
+  const union = { left: -191, top: 0, right: 193, bottom: 201 };
+  const boundsFor = (expansion) => ({
+    left: union.left - expansion,
+    top: union.top - expansion,
+    right: union.right + expansion,
+    bottom: union.bottom + expansion,
+  });
+  const outer = boundsFor(6);
+  const inner = boundsFor(3);
+  for (const bounds of [outer, inner]) {
+    assert.ok(bounds.left < union.left);
+    assert.ok(bounds.top < union.top);
+    assert.ok(bounds.right > union.right);
+    assert.ok(bounds.bottom > union.bottom);
+  }
+  assert.equal(outer.right - union.right, 6);
+  assert.equal(outer.bottom - union.bottom, 6);
+  assert.ok(outer.right - union.right > 2);
+  assert.equal(inner.right - union.right, 3);
+  assert.equal(inner.bottom - union.bottom, 3);
 });
 
 test('completion glow leaves banner interaction and accordion behavior unchanged', () => {
