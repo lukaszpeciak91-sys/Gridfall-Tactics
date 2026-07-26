@@ -29,6 +29,7 @@ Use these status labels in docs when relevant:
 - **Tutorial V1 architecture (CANONICAL for planned Tutorial V1):** `docs/tutorial-v1-architecture.md`
 - **Asset loading and scene ownership (CANONICAL):** `docs/architecture/asset-loading-policy.md`
 - **Combat Engine v2 resolution and triggers (CANONICAL):** `docs/architecture/combat-engine-v2.md`
+- **Battle and state presentation (CANONICAL):** `docs/architecture/battle-presentation.md`
 
 If any gameplay-rule conflict appears, `docs/rules/mvp-battle-rules.md` wins.
 
