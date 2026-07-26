@@ -258,7 +258,7 @@ export default class FactionSelectScene extends Phaser.Scene {
 
     const completedCampaignPresentation = this.mode === 'campaign'
       && this.completedCampaignFactionKeys.has(factionKey);
-    const { items, details } = drawFactionCardVisual(this, root, factionKey, {
+    const { items, details, completedCampaign } = drawFactionCardVisual(this, root, factionKey, {
       y: 0,
       cardWidth,
       cardHeight,
@@ -303,6 +303,8 @@ export default class FactionSelectScene extends Phaser.Scene {
       isOpen: false,
       bannerTapZone: button,
       completedCampaignPresentation,
+      completionStar: completedCampaign?.star ?? null,
+      completionSweepController: completedCampaign?.sweepController ?? null,
       tween: null,
       items: [...items, ...panel.items, pressOverlay, button].filter(Boolean),
     };
@@ -813,7 +815,12 @@ export default class FactionSelectScene extends Phaser.Scene {
     this.clearPendingTransitionReadyCallbacks();
 
     this.tapVsDrag?.cancel?.();
-    this.factionCardViews.forEach((view) => view.tween?.stop?.());
+    this.factionCardViews.forEach((view) => {
+      view.tween?.stop?.();
+      view.completionSweepController?.destroy?.();
+      view.completionSweepController = null;
+      view.completionStar = null;
+    });
     this.factionCardViews = [];
     this.completedCampaignFactionKeys = new Set();
     this.openFactionKey = null;

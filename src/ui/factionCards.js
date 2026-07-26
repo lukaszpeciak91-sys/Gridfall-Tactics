@@ -2,6 +2,7 @@ import { getFactionByKey, getFactionKeys } from '../data/factions/index.js';
 import { getFactionPresentationName } from '../data/presentation/factionPresentation.js';
 import { getActiveLocale, translateActive } from '../localization/localeService.js';
 import { resolvePublicAssetPath } from '../rendering/backgroundArt.js';
+import { drawNonUnitEffectStarIcon } from '../rendering/cardVisualLayout.js';
 
 export const FACTION_CARD_DETAILS = {
   Aggro: { description: 'Fast pressure.', tags: ['Rush', 'Burst'], accentColor: 0xf97316, fallbackTopColor: 0x7c2d12, fallbackBottomColor: 0x0f172a },
@@ -23,9 +24,112 @@ const POSTER_TITLE_WRAP_FONT_SIZE = 24;
 const POSTER_TITLE_MIN_SINGLE_LINE_FONT_SIZE = 20;
 export const FACTION_CARD_BORDER_LINE_WIDTH = 1;
 export const FACTION_CARD_BORDER_ALPHA = 0.72;
-export const COMPLETED_CAMPAIGN_BORDER_LINE_WIDTH = 2;
-export const COMPLETED_CAMPAIGN_GLOW_LINE_WIDTH = 6;
-export const COMPLETED_CAMPAIGN_GLOW_ALPHA = 0.12;
+export const COMPLETED_CAMPAIGN_STAR_SIZE = 24;
+export const COMPLETED_CAMPAIGN_STAR_INSET = 22;
+export const COMPLETED_CAMPAIGN_SWEEP_DURATION_MS = 1900;
+export const COMPLETED_CAMPAIGN_SWEEP_IDLE_MS = 9000;
+export const COMPLETED_CAMPAIGN_SWEEP_INITIAL_DELAY_MS = 2200;
+
+export function getCompletedCampaignMarkerLayout({ x, y, cardWidth, cardHeight }) {
+  return {
+    star: { x: x + COMPLETED_CAMPAIGN_STAR_INSET, y: y + COMPLETED_CAMPAIGN_STAR_INSET, size: COMPLETED_CAMPAIGN_STAR_SIZE },
+    border: { x: x + 1, y: y + 1, width: cardWidth - 2, height: cardHeight - 2, radius: 19 },
+  };
+}
+
+function roundedRectPerimeterPoint(geometry, progress) {
+  const { x, y, width, height } = geometry;
+  const radius = Math.min(geometry.radius, width / 2, height / 2);
+  const horizontal = width - radius * 2;
+  const vertical = height - radius * 2;
+  const arc = Math.PI * radius / 2;
+  const perimeter = horizontal * 2 + vertical * 2 + arc * 4;
+  let distance = (((progress % 1) + 1) % 1) * perimeter;
+  const sections = [
+    [horizontal, (t) => ({ x: x + radius + horizontal * t, y })],
+    [arc, (t) => ({ x: x + width - radius + Math.cos(-Math.PI / 2 + t * Math.PI / 2) * radius, y: y + radius + Math.sin(-Math.PI / 2 + t * Math.PI / 2) * radius })],
+    [vertical, (t) => ({ x: x + width, y: y + radius + vertical * t })],
+    [arc, (t) => ({ x: x + width - radius + Math.cos(t * Math.PI / 2) * radius, y: y + height - radius + Math.sin(t * Math.PI / 2) * radius })],
+    [horizontal, (t) => ({ x: x + width - radius - horizontal * t, y: y + height })],
+    [arc, (t) => ({ x: x + radius + Math.cos(Math.PI / 2 + t * Math.PI / 2) * radius, y: y + height - radius + Math.sin(Math.PI / 2 + t * Math.PI / 2) * radius })],
+    [vertical, (t) => ({ x, y: y + height - radius - vertical * t })],
+    [arc, (t) => ({ x: x + radius + Math.cos(Math.PI + t * Math.PI / 2) * radius, y: y + radius + Math.sin(Math.PI + t * Math.PI / 2) * radius })],
+  ];
+  for (const [length, pointAt] of sections) {
+    if (distance <= length) return pointAt(length ? distance / length : 0);
+    distance -= length;
+  }
+  return { x: x + radius, y };
+}
+
+export function createCompletedCampaignSweepController(scene, content, geometry, accentColor) {
+  const highlight = scene.add.graphics();
+  content.add(highlight);
+  let timer = null;
+  let tween = null;
+  let destroyed = false;
+  const state = { progress: 0 };
+
+  const draw = () => {
+    highlight.clear();
+    const segmentProgress = 0.105;
+    const steps = 18;
+    for (let index = 0; index < steps; index += 1) {
+      const centerDistance = Math.abs((index + 0.5) / steps - 0.5) * 2;
+      const alpha = 0.08 + (1 - centerDistance) * 0.5;
+      const from = roundedRectPerimeterPoint(geometry, state.progress + segmentProgress * index / steps);
+      const to = roundedRectPerimeterPoint(geometry, state.progress + segmentProgress * (index + 1) / steps);
+      highlight.lineStyle(2, accentColor, alpha);
+      highlight.lineBetween(from.x, from.y, to.x, to.y);
+    }
+  };
+  const schedule = (delay) => {
+    if (destroyed || !scene.time?.delayedCall) return;
+    timer = scene.time.delayedCall(delay, start);
+  };
+  const start = () => {
+    timer = null;
+    if (destroyed || !scene.tweens?.add) return;
+    state.progress = 0;
+    tween = scene.tweens.add({
+      targets: state,
+      progress: 1,
+      duration: COMPLETED_CAMPAIGN_SWEEP_DURATION_MS,
+      ease: 'Sine.easeInOut',
+      onUpdate: draw,
+      onComplete: () => {
+        tween = null;
+        highlight.clear();
+        schedule(COMPLETED_CAMPAIGN_SWEEP_IDLE_MS);
+      },
+    });
+  };
+  schedule(COMPLETED_CAMPAIGN_SWEEP_INITIAL_DELAY_MS);
+
+  return {
+    highlight,
+    geometry,
+    get timer() { return timer; },
+    get tween() { return tween; },
+    destroy() {
+      destroyed = true;
+      timer?.remove?.(false);
+      tween?.stop?.();
+      timer = null;
+      tween = null;
+      highlight.clear?.();
+      highlight.destroy?.();
+    },
+  };
+}
+
+export function createCompletedCampaignCardPresentation(scene, content, { x, y, cardWidth, cardHeight, accentColor }) {
+  const layout = getCompletedCampaignMarkerLayout({ x, y, cardWidth, cardHeight });
+  const sweepController = createCompletedCampaignSweepController(scene, content, layout.border, accentColor);
+  const star = drawNonUnitEffectStarIcon(scene, layout.star.x, layout.star.y, layout.star.size);
+  content.add(star);
+  return { star, sweepController, layout };
+}
 
 export function getFactionAssetSlug(factionKey) {
   const faction = getFactionByKey(factionKey);
@@ -146,17 +250,13 @@ export function drawFactionCardVisual(scene, content, factionKey, {
   card.fillStyle(completed ? 0x111827 : 0x020617, (completed ? 0.72 : 0.94) * alpha); card.fillRoundedRect(x, y, cardWidth, cardHeight, 20);
   const borderColor = completed ? 0x94a3b8 : details.accentColor;
   const borderAlpha = (completed ? 0.5 : FACTION_CARD_BORDER_ALPHA) * alpha;
-  if (completedCampaignPresentation) {
-    card.lineStyle(COMPLETED_CAMPAIGN_GLOW_LINE_WIDTH, details.accentColor, COMPLETED_CAMPAIGN_GLOW_ALPHA * alpha);
-    card.strokeRoundedRect(x + 1, y + 1, cardWidth - 2, cardHeight - 2, 19);
-  }
-  card.lineStyle(
-    completedCampaignPresentation ? COMPLETED_CAMPAIGN_BORDER_LINE_WIDTH : FACTION_CARD_BORDER_LINE_WIDTH,
-    borderColor,
-    borderAlpha,
-  );
+  card.lineStyle(FACTION_CARD_BORDER_LINE_WIDTH, borderColor, borderAlpha);
   card.strokeRoundedRect(x + 1, y + 1, cardWidth - 2, cardHeight - 2, 19); content.add(card); items.push(card);
   items.push(...drawFactionPreview(scene, content, factionKey, details, { x: posterX, y: posterY, width: posterWidth, height: posterHeight, alpha: completed ? alpha * 0.45 : alpha }));
+  const completedCampaign = completedCampaignPresentation
+    ? createCompletedCampaignCardPresentation(scene, content, { x, y, cardWidth, cardHeight, accentColor: details.accentColor })
+    : null;
+  if (completedCampaign) items.push(completedCampaign.sweepController.highlight, completedCampaign.star);
   const titleScrimHeight = Math.min(POSTER_TITLE_SCRIM_HEIGHT, posterHeight - 24);
   const titleScrimY = posterY + posterHeight - titleScrimHeight;
   const titleScrim = scene.add.graphics(); titleScrim.fillGradientStyle(0x020617, 0x020617, 0x020617, 0x020617, 0, 0, 0.78 * alpha, 0.58 * alpha); titleScrim.fillRect(posterX, titleScrimY, posterWidth, titleScrimHeight); content.add(titleScrim); items.push(titleScrim);
@@ -166,5 +266,5 @@ export function drawFactionCardVisual(scene, content, factionKey, {
     fontFamily: 'Arial, sans-serif', fontSize: `${POSTER_TITLE_MAX_FONT_SIZE}px`, color: completed ? '#cbd5e1' : '#f8fafc', fontStyle: 'bold', stroke: '#020617', strokeThickness: 4,
   }).setOrigin(0, 1).setAlpha(alpha);
   fitFactionTitleText(name, titleMaxWidth); content.add(name); items.push(name);
-  return { items, details, displayName, x };
+  return { items, details, displayName, x, completedCampaign };
 }
