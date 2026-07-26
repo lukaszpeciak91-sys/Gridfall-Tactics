@@ -195,3 +195,8 @@ canonical_ref: docs/rules/mvp-battle-rules.md
 - Kept player campaign attempts at 3; 4-attempt campaign simulations remain diagnostic only unless manual testing also shows 3 attempts is unfair.
 - Captured manual sanity checks: Swarm cleared campaign on the first full human run under current 3-attempt rules, Tank vs Aggro was manually won on the third attempt after two close losses, and Aggro vs Control was manually won on the second attempt after a close first loss affected by player decisions.
 - Noted that Swarm and Attrition Swarm may be underplayed by AI due to setup/hold/sequencing requirements, so they should not be rebalanced purely from AI-only campaign or smoke results.
+
+## AI Improvement Milestone Complete (2026-07-26)
+- Closed AI v1 after completing scoring consolidation, open-lane evaluation improvements, adjacency/formation awareness, seeded tie-breaks, immediate-threat policy, the Swarm profile, combat prediction, the Sniper redesign, targeted deploy evaluation, removal of Sniper-specific combat routing, paired balance validation, and production validation.
+- Confirmed the final outcome: decisions are consistently explainable, diagnostics show no recurring strategic failures, the Control redesign removed special-case complexity, faction spread is substantially healthier, and smoke validation passed.
+- No additional heuristic tuning is justified without repeated evidence from real gameplay or diagnostics. Future AI work is bug fixing or feature support unless that evidence warrants renewed heuristic work; speculative tuning should be avoided.

@@ -284,6 +284,13 @@ canonical_ref: docs/rules/mvp-battle-rules.md
 - Manual sanity can override panic from AI-only campaign failures: Swarm cleared campaign on the first full human run under current 3-attempt rules; Tank vs Aggro was won manually on the third attempt after two close losses; Aggro vs Control was won manually on the second attempt after a close, decision-affected first loss.
 - Do not rebalance Swarm or Attrition Swarm purely from AI-vs-AI campaign/smoke results without manual sanity, because the current AI may underplay setup-heavy hold/sequencing patterns.
 
+## AI Improvement Milestone Closeout (2026-07-26)
+- AI v1 is complete after scoring consolidation, open-lane evaluation improvements, adjacency/formation awareness, seeded tie-breaks, immediate-threat policy, the Swarm profile, combat prediction, the Sniper redesign, targeted deploy evaluation, removal of Sniper-specific combat routing, paired balance validation, and production validation.
+- Final evidence: gameplay decisions are consistently explainable; battle diagnostics no longer expose recurring strategic failures; the Control redesign removed a special-case subsystem rather than adding complexity; faction spread became substantially healthier; and smoke validation completed successfully.
+- No further heuristic tuning is currently justified. Future AI heuristic changes require repeated evidence from real gameplay or diagnostics; avoid speculative tuning.
+- Treat future AI work as bug fixing or feature support, not ongoing heuristic expansion, unless new evidence justifies reopening the milestone.
+- Reference closeout: `docs/project/balance-audit-june-2026.md`.
+
 ## Shared Scene Transition Overlay Failsafe Fix (2026-07-16)
 - Confirmed production issue: the shared transition overlay could disappear during slow destination creation because the old failsafe treated elapsed time as readiness. It faded and stopped the overlay while registry readiness was still false, exposing a plain dark gap until the destination scene finished rendering.
 - Final decision: `SceneTransitionOverlayScene` completion must require real matching destination readiness: matching transition ID, matching destination key, and registry/event reconciliation. A timeout is not destination readiness.
