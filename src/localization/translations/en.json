@@ -238,7 +238,7 @@
     },
     "wardens_hold_the_line_1": {
       "name": "Hold the Ice Pass",
-      "textShort": "Adjacent [ALLIES] +1 [ARM] until combat"
+      "textShort": "Neighboring [ALLY] +1 [ARM] until combat"
     },
     "overclock_hot_runner_1": {
       "name": "Decoy Hare",
