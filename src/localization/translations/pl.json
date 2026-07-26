@@ -238,7 +238,7 @@
     },
     "wardens_hold_the_line_1": {
       "name": "Utrzymać Przełęcz",
-      "textShort": "Sąsiedni [ALLIES] +1 [ARM] do walki"
+      "textShort": "Sąsiadujący [ALLY] +1 [ARM] do walki"
     },
     "overclock_hot_runner_1": {
       "name": "Zając Wabik",
