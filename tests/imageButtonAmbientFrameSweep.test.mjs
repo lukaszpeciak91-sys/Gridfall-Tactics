@@ -109,7 +109,7 @@ test('approved Phase 1 call sites opt in explicitly', () => {
   assert.match(mainMenuSource, /createMenuButton\([\s\S]*createImageButton\(this, \{[\s\S]*ambientFrameSweep: true/);
   assert.match(gameMenuSource, /continueButton = this\.createMenuButton\([\s\S]*\}, \{ ambientFrameSweep: true \}\)/);
   assert.match(gameMenuSource, /ui\.gameMenu\.arena[\s\S]*\}, \{ ambientFrameSweep: true \}\)/);
-  assert.match(gameMenuSource, /createMenuButton\(x, y, width, label, onPointerUp, \{ ambientFrameSweep = false \} = \{\}\)/);
+  assert.match(gameMenuSource, /createMenuButton\(x, y, width, label, onPointerUp, \{ ambientFrameSweep = false, trackAsPrimary = true \} = \{\}\)/);
   assert.match(gameMenuSource, /ambientFrameSweep,\s*\}\);/);
   assert.match(factionSource, /label: translateActive\('ui\.factionSelect\.campaignAccordion\.select', 'SELECT'\)[\s\S]*ambientFrameSweep: true/);
 });

@@ -192,7 +192,7 @@ export default class GameMenuScene extends Phaser.Scene {
 
   restoreGameMenuInteractivity() {
     this.ensureTitleExistsAndVisible();
-    this.menuButtons.forEach((button) => resetImageButtonState(button, { interactive: true }));
+    this.setPrimaryMenuButtonsInteractive(true);
     this.updateContinueAvailability();
   }
 
@@ -222,17 +222,43 @@ export default class GameMenuScene extends Phaser.Scene {
     this.openCampaignFactionSelect();
   }
 
-  openCampaignFactionSelect() {
-    this.startFactionSelect({ mode: 'campaign', returnSceneKey: 'GameMenuScene' });
+  openCampaignFactionSelect({ replaceActiveCampaign = false } = {}) {
+    return this.startFactionSelect(
+      { mode: 'campaign', returnSceneKey: 'GameMenuScene' },
+      { replaceActiveCampaign },
+    );
   }
 
-  startFactionSelect(data) {
+  isLivePrimaryMenuButton(button) {
+    const hitZone = button?.hitZone;
+    return Boolean(hitZone?.active && hitZone.scene === this);
+  }
+
+  setPrimaryMenuButtonsInteractive(interactive) {
+    this.menuButtons
+      .filter((button) => this.isLivePrimaryMenuButton(button))
+      .forEach((button) => resetImageButtonState(button, { interactive }));
+  }
+
+  startFactionSelect(data, { replaceActiveCampaign = false } = {}) {
     if (this.factionSelectNavigationInProgress) return false;
 
     this.factionSelectNavigationInProgress = true;
-    this.menuButtons.forEach((button) => resetImageButtonState(button, { interactive: false }));
-    const transition = startSceneWithTransitionOverlay(this, 'FactionSelectScene', data);
-    if (transition) return true;
+    this.setPrimaryMenuButtonsInteractive(false);
+
+    try {
+      const transition = startSceneWithTransitionOverlay(this, 'FactionSelectScene', data);
+      if (transition) {
+        // scene.start() has committed the destination before the helper returns.
+        // Only then is replacement of an existing Campaign irreversible.
+        if (replaceActiveCampaign) clearCampaign();
+        return true;
+      }
+    } catch (error) {
+      this.factionSelectNavigationInProgress = false;
+      this.restoreGameMenuInteractivity();
+      throw error;
+    }
 
     this.factionSelectNavigationInProgress = false;
     this.restoreGameMenuInteractivity();
@@ -253,12 +279,11 @@ export default class GameMenuScene extends Phaser.Scene {
     panel.strokeRoundedRect(width / 2 - panelWidth / 2, height / 2 - panelHeight / 2, panelWidth, panelHeight, 22);
     const title = this.add.text(width / 2, height / 2 - 78, translateActive('ui.gameMenu.newGameConfirmTitle', 'START NEW GAME?'), { fontFamily: PREMIUM_BROADCAST_FONT_STACK, fontSize: '22px', color: '#f8fafc', fontStyle: '700', align: 'center' }).setOrigin(0.5).setDepth(42);
     const message = this.add.text(width / 2, height / 2 - 26, translateActive('ui.gameMenu.newGameConfirmBody', 'This will overwrite your current campaign progress.'), { fontFamily: 'Arial, sans-serif', fontSize: '15px', color: '#cbd5e1', align: 'center', wordWrap: { width: panelWidth - 42 } }).setOrigin(0.5).setDepth(42);
-    const cancel = this.createMenuButton(width / 2 - panelWidth * 0.24, height / 2 + 72, panelWidth * 0.42, translateActive('ui.gameMenu.cancelNewGame', 'BACK'), () => this.closeNewGameConfirmation());
+    const cancel = this.createMenuButton(width / 2 - panelWidth * 0.24, height / 2 + 72, panelWidth * 0.42, translateActive('ui.gameMenu.cancelNewGame', 'BACK'), () => this.closeNewGameConfirmation(), { trackAsPrimary: false });
     const confirm = this.createMenuButton(width / 2 + panelWidth * 0.24, height / 2 + 72, panelWidth * 0.42, translateActive('ui.gameMenu.confirmNewGame', 'START'), () => {
-      clearCampaign();
       this.closeNewGameConfirmation();
-      this.openCampaignFactionSelect();
-    });
+      this.openCampaignFactionSelect({ replaceActiveCampaign: true });
+    }, { trackAsPrimary: false });
     cancel.items.forEach((item) => item.setDepth?.(42));
     confirm.items.forEach((item) => item.setDepth?.(42));
     this.confirmNewGameModal = { items: [overlay, panel, title, message, ...cancel.items, ...confirm.items], buttons: [cancel, confirm] };
@@ -376,7 +401,7 @@ export default class GameMenuScene extends Phaser.Scene {
     this.transitionReadyFallbackEvent = null;
   }
 
-  createMenuButton(x, y, width, label, onPointerUp, { ambientFrameSweep = false } = {}) {
+  createMenuButton(x, y, width, label, onPointerUp, { ambientFrameSweep = false, trackAsPrimary = true } = {}) {
     const button = createImageButton(this, {
       x,
       y,
@@ -401,8 +426,10 @@ export default class GameMenuScene extends Phaser.Scene {
       ambientFrameSweep,
     });
 
-    this.menuButtonViews.push(button.items);
-    this.menuButtons.push(button);
+    if (trackAsPrimary) {
+      this.menuButtonViews.push(button.items);
+      this.menuButtons.push(button);
+    }
     return button;
   }
 }

@@ -12,13 +12,13 @@ const mainMenu = read('src/scenes/MainMenuScene.js');
 test('Arena and Campaign faction selection share the existing transition helper with exact destination data', () => {
   assert.match(gameMenu, /import \{[^}]*startSceneWithTransitionOverlay[^}]*\} from '\.\/sceneTransitionOverlay\.js';/);
   assert.match(gameMenu, /translateActive\('ui\.gameMenu\.arena', 'ARENA'\), \(\) => \{\s*this\.startFactionSelect\(\{ returnSceneKey: 'GameMenuScene' \}\);/);
-  assert.match(gameMenu, /openCampaignFactionSelect\(\) \{\s*this\.startFactionSelect\(\{ mode: 'campaign', returnSceneKey: 'GameMenuScene' \}\);\s*\}/);
-  assert.match(gameMenu, /startFactionSelect\(data\) \{[\s\S]*startSceneWithTransitionOverlay\(this, 'FactionSelectScene', data\)/);
+  assert.match(gameMenu, /openCampaignFactionSelect\(\{ replaceActiveCampaign = false \} = \{\}\) \{[\s\S]*\{ mode: 'campaign', returnSceneKey: 'GameMenuScene' \},[\s\S]*\{ replaceActiveCampaign \}/);
+  assert.match(gameMenu, /startFactionSelect\(data, \{ replaceActiveCampaign = false \} = \{\}\) \{[\s\S]*startSceneWithTransitionOverlay\(this, 'FactionSelectScene', data\)/);
   assert.equal((gameMenu.match(/startSceneWithTransitionOverlay\(this, 'FactionSelectScene', data\)/g) ?? []).length, 1);
 });
 
 test('one shared guard makes the first Arena, Campaign, or cross-tap navigation win', () => {
-  assert.match(gameMenu, /startFactionSelect\(data\) \{\s*if \(this\.factionSelectNavigationInProgress\) return false;\s*this\.factionSelectNavigationInProgress = true;/);
+  assert.match(gameMenu, /startFactionSelect\(data, \{ replaceActiveCampaign = false \} = \{\}\) \{\s*if \(this\.factionSelectNavigationInProgress\) return false;\s*this\.factionSelectNavigationInProgress = true;/);
   assert.match(gameMenu, /this\.factionSelectNavigationInProgress = true;[\s\S]*startSceneWithTransitionOverlay\(this, 'FactionSelectScene', data\)/);
   assert.equal((gameMenu.match(/startSceneWithTransitionOverlay\(this, 'FactionSelectScene', data\)/g) ?? []).length, 1);
   assert.match(gameMenu, /init\(data = \{\}\) \{[\s\S]*this\.factionSelectNavigationInProgress = false;/);
@@ -26,8 +26,10 @@ test('one shared guard makes the first Arena, Campaign, or cross-tap navigation 
   assert.doesNotMatch(gameMenu, /this\.input\.enabled\s*=/);
 });
 
-test('Campaign replacement clears and closes before beginning the guarded transition, while cancel only closes', () => {
-  assert.match(gameMenu, /confirmNewGame[\s\S]*\(\) => \{\s*clearCampaign\(\);\s*this\.closeNewGameConfirmation\(\);\s*this\.openCampaignFactionSelect\(\);\s*\}/);
+test('Campaign replacement closes before guarded navigation and clears only after transition commit', () => {
+  assert.match(gameMenu, /confirmNewGame[\s\S]*\(\) => \{\s*this\.closeNewGameConfirmation\(\);\s*this\.openCampaignFactionSelect\(\{ replaceActiveCampaign: true \}\);\s*\}/);
+  assert.match(gameMenu, /const transition = startSceneWithTransitionOverlay[\s\S]*if \(transition\) \{[\s\S]*if \(replaceActiveCampaign\) clearCampaign\(\)/);
+  assert.match(gameMenu, /trackAsPrimary: false/);
   assert.match(gameMenu, /cancelNewGame[\s\S]*\(\) => this\.closeNewGameConfirmation\(\)/);
   const closeMethod = gameMenu.slice(gameMenu.indexOf('  closeNewGameConfirmation()'), gameMenu.indexOf('  drawNavigationControls()'));
   assert.doesNotMatch(closeMethod, /startFactionSelect|startSceneWithTransitionOverlay/);
