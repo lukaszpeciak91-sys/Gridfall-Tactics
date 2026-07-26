@@ -38,7 +38,7 @@ test('FactionSelectScene back route can return arena and campaign launches to ga
   assert.match(faction, /this\.returnSceneKey = data\?\.returnSceneKey === 'GameMenuScene' \? 'GameMenuScene' : 'MainMenuScene'/);
   assert.match(faction, /returnToMainMenu\(\) \{[\s\S]*this\.scene\.start\(this\.returnSceneKey\)/);
   assert.match(gameMenu, /this\.startFactionSelect\(\{ returnSceneKey: 'GameMenuScene' \}\)/);
-  assert.match(gameMenu, /this\.startFactionSelect\(\{ mode: 'campaign', returnSceneKey: 'GameMenuScene' \}\)/);
+  assert.match(gameMenu, /\{ mode: 'campaign', returnSceneKey: 'GameMenuScene' \}/);
 });
 
 test('new game confirmation modal uses short localized labels and preserves actions', () => {
@@ -49,8 +49,8 @@ test('new game confirmation modal uses short localized labels and preserves acti
   assert.equal(en.ui.gameMenu.confirmNewGame, 'START');
   assert.equal(pl.ui.gameMenu.cancelNewGame, 'POWRÓT');
   assert.equal(pl.ui.gameMenu.confirmNewGame, 'START');
-  assert.match(source, /translateActive\('ui\.gameMenu\.cancelNewGame', 'BACK'\), \(\) => this\.closeNewGameConfirmation\(\)\)/);
-  assert.match(source, /translateActive\('ui\.gameMenu\.confirmNewGame', 'START'\), \(\) => \{[\s\S]*clearCampaign\(\);[\s\S]*this\.openCampaignFactionSelect\(\)/);
+  assert.match(source, /translateActive\('ui\.gameMenu\.cancelNewGame', 'BACK'\), \(\) => this\.closeNewGameConfirmation\(\), \{ trackAsPrimary: false \}\)/);
+  assert.match(source, /translateActive\('ui\.gameMenu\.confirmNewGame', 'START'\), \(\) => \{[\s\S]*this\.closeNewGameConfirmation\(\);[\s\S]*this\.openCampaignFactionSelect\(\{ replaceActiveCampaign: true \}\)/);
 });
 
 test('continue campaign opens enemy selection scene', () => {

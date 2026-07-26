@@ -120,12 +120,18 @@ export function beginSceneTransitionOverlay(sourceScene, targetSceneKey, options
 
   destinationScene?.events?.on?.(SCENE_TRANSITION_VISUALLY_READY_EVENT, onDestinationReady);
 
-  sourceScene.scene.launch(SCENE_TRANSITION_OVERLAY_SCENE_KEY, {
-    ...options,
-    transitionId,
-    destinationSceneKey: targetSceneKey,
-    sourceSceneKey: sourceScene.scene.key ?? null,
-  });
+  try {
+    sourceScene.scene.launch(SCENE_TRANSITION_OVERLAY_SCENE_KEY, {
+      ...options,
+      transitionId,
+      destinationSceneKey: targetSceneKey,
+      sourceSceneKey: sourceScene.scene.key ?? null,
+    });
+  } catch (error) {
+    destinationScene?.events?.off?.(SCENE_TRANSITION_VISUALLY_READY_EVENT, onDestinationReady);
+    clearSceneTransitionState(sourceScene.game, transitionId);
+    throw error;
+  }
 
   return { transitionId, destinationSceneKey: targetSceneKey, destinationScene, onDestinationReady };
 }
@@ -134,13 +140,21 @@ export function startSceneWithTransitionOverlay(sourceScene, targetSceneKey, tar
   const transition = beginSceneTransitionOverlay(sourceScene, targetSceneKey, options);
   if (!transition) return null;
   const safeTargetData = targetData && typeof targetData === 'object' ? targetData : {};
-  sourceScene.scene.start(targetSceneKey, {
-    ...safeTargetData,
-    sceneTransitionOverlay: {
-      transitionId: transition.transitionId,
-      sourceSceneKey: sourceScene.scene.key ?? null,
-    },
-  });
-  reconcileSceneTransitionOverlayOrdering(sourceScene.scene, { transitionId: transition.transitionId, destinationSceneKey: targetSceneKey });
+  try {
+    sourceScene.scene.start(targetSceneKey, {
+      ...safeTargetData,
+      sceneTransitionOverlay: {
+        transitionId: transition.transitionId,
+        sourceSceneKey: sourceScene.scene.key ?? null,
+      },
+    });
+    reconcileSceneTransitionOverlayOrdering(sourceScene.scene, { transitionId: transition.transitionId, destinationSceneKey: targetSceneKey });
+  } catch (error) {
+    transition.destinationScene?.events?.off?.(SCENE_TRANSITION_VISUALLY_READY_EVENT, transition.onDestinationReady);
+    const overlay = sourceScene.scene.get?.(SCENE_TRANSITION_OVERLAY_SCENE_KEY);
+    if (overlay?.transitionId === transition.transitionId) sourceScene.scene.stop?.(SCENE_TRANSITION_OVERLAY_SCENE_KEY);
+    clearSceneTransitionState(sourceScene.game, transition.transitionId);
+    throw error;
+  }
   return transition;
 }
