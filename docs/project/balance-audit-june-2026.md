@@ -137,3 +137,35 @@ Accepted 100-match seed-1337 AI baseline for future balance comparisons:
 | Overclock | 54.4% |
 
 All factions remain within the accepted global 40–60% band. This run becomes the new baseline for future balance comparisons; older balance reports from before the placement/tie-break change should not be treated as directly comparable.
+
+## AI Improvement Milestone — Closed (2026-07-26)
+
+AI v1 is complete. The milestone delivered:
+
+- scoring consolidation;
+- open-lane evaluation improvements;
+- adjacency and formation awareness;
+- seeded tie-breaks;
+- an immediate-threat policy;
+- the Swarm profile;
+- combat prediction;
+- the Sniper redesign;
+- targeted deploy evaluation;
+- removal of Sniper-specific combat routing;
+- paired balance validation; and
+- production validation.
+
+### Final conclusions
+
+- Gameplay decisions are consistently explainable.
+- Battle diagnostics no longer expose recurring strategic failures.
+- The Control redesign removed a special-case subsystem instead of adding complexity.
+- The overall faction spread became substantially healthier.
+- Smoke validation completed successfully.
+- No further heuristic tuning is currently justified.
+
+### Engineering rule and future scope
+
+Future AI heuristic changes should only be introduced when supported by repeated evidence from real gameplay or diagnostics. Avoid speculative tuning.
+
+This AI milestone is complete. Future AI work should be treated as bug fixing or feature support rather than ongoing heuristic expansion, unless new evidence justifies reopening heuristic work.
