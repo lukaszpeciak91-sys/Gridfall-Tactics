@@ -26,7 +26,7 @@ import {
 import { preloadMenuAudioAssets } from '../audio/audioAssets.js';
 import { playMenuMusic } from '../audio/menuMusic.js';
 import { enterBattleScene } from './battleEntryRouter.js';
-import { emitSceneTransitionVisuallyReady, reconcileSceneTransitionOverlayOrdering } from './sceneTransitionOverlay.js';
+import { emitSceneTransitionVisuallyReady, reconcileSceneTransitionOverlayOrdering, startSceneWithTransitionOverlay } from './sceneTransitionOverlay.js';
 
 const GAME_MENU_TITLE_DEPTH = 5;
 const GAME_MENU_BUTTON_WIDTH_RATIO = 0.72;
@@ -45,12 +45,14 @@ export default class GameMenuScene extends Phaser.Scene {
     this.transitionReadyEmitted = false;
     this.transitionReadyPostRenderCallback = null;
     this.transitionReadyFallbackEvent = null;
+    this.factionSelectNavigationInProgress = false;
   }
 
   init(data = {}) {
     this.sceneTransitionOverlay = data?.sceneTransitionOverlay ?? null;
     this.transitionReadyEmitted = false;
     this.cleanupScene();
+    this.factionSelectNavigationInProgress = false;
     this.resetGameMenuDisplayList();
   }
 
@@ -111,7 +113,7 @@ export default class GameMenuScene extends Phaser.Scene {
     }, { ambientFrameSweep: true });
 
     this.createMenuButton(width / 2, startY + buttonGap * 3, buttonWidth, translateActive('ui.gameMenu.arena', 'ARENA'), () => {
-      this.scene.start('FactionSelectScene', { returnSceneKey: 'GameMenuScene' });
+      this.startFactionSelect({ returnSceneKey: 'GameMenuScene' });
     }, { ambientFrameSweep: true });
 
     this.restoreGameMenuInteractivity();
@@ -221,7 +223,20 @@ export default class GameMenuScene extends Phaser.Scene {
   }
 
   openCampaignFactionSelect() {
-    this.scene.start('FactionSelectScene', { mode: 'campaign', returnSceneKey: 'GameMenuScene' });
+    this.startFactionSelect({ mode: 'campaign', returnSceneKey: 'GameMenuScene' });
+  }
+
+  startFactionSelect(data) {
+    if (this.factionSelectNavigationInProgress) return false;
+
+    this.factionSelectNavigationInProgress = true;
+    this.menuButtons.forEach((button) => resetImageButtonState(button, { interactive: false }));
+    const transition = startSceneWithTransitionOverlay(this, 'FactionSelectScene', data);
+    if (transition) return true;
+
+    this.factionSelectNavigationInProgress = false;
+    this.restoreGameMenuInteractivity();
+    return false;
   }
 
   showNewGameConfirmation() {
@@ -336,6 +351,7 @@ export default class GameMenuScene extends Phaser.Scene {
   }
 
   cleanupScene() {
+    this.factionSelectNavigationInProgress = false;
     this.clearPendingTransitionReadyCallbacks();
     this.tweens?.killTweensOf?.(this.menuButtonViews.flat());
     if (this.title) this.tweens?.killTweensOf?.(this.title);
