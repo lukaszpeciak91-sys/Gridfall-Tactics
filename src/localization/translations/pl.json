@@ -624,7 +624,23 @@
       "confirmSurrender": "PODDAJ SIĘ",
       "battleExhausted": "BITWA WYCZERPANA",
       "yourTurn": "TWÓJ RUCH",
-      "enemyTurn": "RUCH WROGA"
+      "enemyTurn": "RUCH WROGA",
+      "effectFeedback": {
+        "pulse": "PULSE",
+        "infect": "INFECT",
+        "pierce": "PIERCE",
+        "spit": "SPIT",
+        "override": "OVERRIDE",
+        "ignoreArm": "IGNORE ARM",
+        "death": "DEATH",
+        "summon": "SUMMON",
+        "revive": "REVIVE",
+        "destroyed": "DESTROYED",
+        "return": "RETURN",
+        "brood": "BROOD",
+        "controlled": "CONTROLLED",
+        "controlledOverride": "CONTROLLED\nOVERRIDE"
+      }
     },
     "rules": {
       "title": "ZASADY",
@@ -795,7 +811,11 @@
         "Tym razem to nie był wasz wieczór, ale publiczność i tak dziękuje za występ.",
         "Dziękujemy za udział i życzymy powodzenia przy kolejnych katastrofach.",
         "Szkoda. Jedni wracają z pucharem, inni po prostu wracają."
-      ]
+      ],
+      "duration": {
+        "minutes": "m",
+        "hours": "h"
+      }
     },
     "achievements": {
       "title": "OSIĄGNIĘCIA",

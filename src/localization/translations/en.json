@@ -624,7 +624,23 @@
       "confirmSurrender": "SURRENDER",
       "battleExhausted": "BATTLE EXHAUSTED",
       "yourTurn": "YOUR TURN",
-      "enemyTurn": "ENEMY TURN"
+      "enemyTurn": "ENEMY TURN",
+      "effectFeedback": {
+        "pulse": "PULSE",
+        "infect": "INFECT",
+        "pierce": "PIERCE",
+        "spit": "SPIT",
+        "override": "OVERRIDE",
+        "ignoreArm": "IGNORE ARM",
+        "death": "DEATH",
+        "summon": "SUMMON",
+        "revive": "REVIVE",
+        "destroyed": "DESTROYED",
+        "return": "RETURN",
+        "brood": "BROOD",
+        "controlled": "CONTROLLED",
+        "controlledOverride": "CONTROLLED\nOVERRIDE"
+      }
     },
     "rules": {
       "title": "RULES",
@@ -795,7 +811,11 @@
         "It wasn’t your night, but the audience appreciates the performance all the same.",
         "Thank you for participating, and best of luck with your next catastrophe.",
         "A pity. Some return with a trophy. Others simply return."
-      ]
+      ],
+      "duration": {
+        "minutes": "m",
+        "hours": "h"
+      }
     },
     "achievements": {
       "title": "ACHIEVEMENTS",
