@@ -33,13 +33,74 @@ test('collector returns stable JSON-serializable shape without mutating scene or
   const snapshot = buildBattleReportSnapshot(scene);
   assert.equal(snapshot.version, 1);
   assert.match(snapshot.capturedAt, /^\d{4}-\d{2}-\d{2}T/);
-  assert.deepEqual(Object.keys(snapshot).sort(), ['aiDecisionHistoryCoverage', 'assets', 'audio', 'battle', 'board', 'build', 'capture', 'capturedAt', 'combatPresentation', 'environment', 'eventHistoryCoverage', 'events', 'flow', 'recentAiDecisions', 'reveal', 'scenes', 'summary', 'version', 'warnings'].sort());
+  assert.deepEqual(Object.keys(snapshot).sort(), ['aiDecisionHistoryCoverage', 'assets', 'audio', 'battle', 'board', 'build', 'capture', 'capturedAt', 'combatPresentation', 'environment', 'eventHistoryCoverage', 'events', 'flow', 'recentAiDecisions', 'reveal', 'scenes', 'summary', 'tutorial', 'version', 'warnings'].sort());
   assert.doesNotThrow(() => JSON.stringify(snapshot));
   assert.equal(JSON.stringify(scene.gameState), beforeState);
   assert.deepEqual(Object.keys(scene).sort(), beforeSceneKeys);
   assert.equal(snapshot.battle.playerHandCount, 1);
   assert.equal(JSON.stringify(snapshot).includes('secret-card'), false);
   assert.equal(JSON.stringify(snapshot).includes('deck-card'), false);
+});
+
+test('tutorial Battle Menu diagnostics include inspect-card presentation, action-window, and input state', () => {
+  const scene = makeScene();
+  const step = { id: 'inspect_card', expected: { type: 'inspect_card', cardId: 'required-card' }, highlightTarget: { type: 'mulligan_card', cardId: 'required-card' } };
+  const displayObject = {
+    active: true, visible: true, alpha: 0.98, depth: 30, x: 100, y: 200, width: 80, height: 30,
+    displayWidth: 80, displayHeight: 30, input: { enabled: true }, scene: { children: { exists: () => true, getIndex: () => 4 } },
+    listenerCount: (event) => event === 'pointerdown' ? 1 : 0,
+    getBounds: () => ({ x: 60, y: 185, width: 80, height: 30 }),
+  };
+  scene.battleContext.mode = 'tutorial';
+  scene.tutorialControllerState = { steps: [step], currentStepIndex: 0, completed: false, lastEvent: { eventName: 'tap_continue' } };
+  scene.getCurrentTutorialStep = () => step;
+  scene.getTutorialStepText = () => 'Długi tap powiększa kartę.';
+  scene.tutorialBanner = { ...displayObject, text: 'Długi tap powiększa kartę.' };
+  scene.tutorialBannerOverlay = displayObject;
+  scene.tutorialFocusLayer = displayObject;
+  scene.tutorialFocusGraphics = [];
+  scene.currentTutorialFocusKey = null;
+  scene.getTutorialLifecycleDiagnosticSnapshot = () => ({
+    tutorial: { isTutorialBattle: true },
+    focusResolution: {
+      target: step.highlightTarget, targetType: 'mulligan_card', focusTargetResolved: true,
+      focusTargetReason: null, mechanicallyPossible: true, focusBounds: { x: 100, y: 200, width: 90, height: 40 },
+      targetDisplayObject: { exists: true, active: true, visible: true, displayListExists: true, displayListIndex: 4 },
+    },
+  });
+  scene.tutorialLifecycleDiagnostics = { lastTutorialFocusSkipReason: 'bounds_not_resolved', lastTutorialBannerSkipReason: null };
+  scene.openingMulliganPending = true;
+  scene.pressedHandCardId = 'required-card';
+  scene.pressedBoardCellIndex = 6;
+  scene.pointerInputGuardActive = false;
+  scene.navigationInProgress = false;
+
+  const before = JSON.stringify(scene.tutorialControllerState);
+  const snapshot = buildBattleReportSnapshot(scene, { captureSource: 'battle-menu-manual' });
+  assert.equal(snapshot.tutorial.active, true);
+  assert.equal(snapshot.tutorial.currentStepId, 'inspect_card');
+  assert.deepEqual(snapshot.tutorial.expected, { type: 'inspect_card', cardId: 'required-card' });
+  assert.equal(snapshot.tutorial.banner.text, 'Długi tap powiększa kartę.');
+  assert.equal(snapshot.tutorial.focus.target.cardId, 'required-card');
+  assert.equal(snapshot.tutorial.focus.targetDisplayObject.displayListExists, true);
+  assert.equal(snapshot.tutorial.focus.focusGraphicsCount, 0);
+  assert.equal(snapshot.tutorial.actionWindow.hasBasePassBlockerResult, true);
+  assert.equal(snapshot.tutorial.inputState.pressedHandCardId, 'required-card');
+  assert.equal(JSON.stringify(scene.tutorialControllerState), before);
+});
+
+test('tutorial diagnostics remain safe when controller and presentation objects are missing or fragile', () => {
+  const scene = makeScene();
+  scene.battleContext.mode = 'tutorial';
+  scene.getTutorialLifecycleDiagnosticSnapshot = () => { throw new Error('stale Phaser object'); };
+  Object.defineProperty(scene, 'tutorialBanner', { get: () => { throw new Error('destroyed'); } });
+  let snapshot;
+  assert.doesNotThrow(() => { snapshot = buildBattleReportSnapshot(scene); });
+  assert.equal(snapshot.tutorial.active, true);
+  assert.equal(snapshot.tutorial.currentStepId, null);
+  assert.deepEqual(snapshot.tutorial.banner, { exists: false, text: null });
+  assert.equal(snapshot.tutorial.focus.targetDisplayObject.exists, false);
+  assert.doesNotThrow(() => JSON.stringify(snapshot));
 });
 
 test('collector tolerates missing browser globals, partial scenes, and completed winner states', () => {
