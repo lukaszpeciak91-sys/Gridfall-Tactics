@@ -4928,7 +4928,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   openBattleMenu() {
-    if (!this.prepareUtilityMenuNavigation()) return;
+    if (!this.prepareUtilityMenuNavigation({ preserveBattleFlow: this.isTutorialBattle?.() ?? false })) return;
     this.handleTutorialEvent?.('battle_menu_opened');
     this.scene.launch('BattleMenuScene', { factionKey: this.factionKey, enemyFactionKey: this.enemyFactionKey, battleContext: this.battleContext, returnSceneKey: 'BattleScene' });
     this.scene.pause();
