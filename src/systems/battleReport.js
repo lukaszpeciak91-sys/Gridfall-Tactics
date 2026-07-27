@@ -22,6 +22,50 @@ const sideCount = (side, key) => count(side?.[key]);
 const unique = (items) => [...new Set(items.filter(Boolean))];
 const isVisibleObject = (object) => Boolean(object && object.active !== false && object.visible !== false);
 
+function safePlainValue(value, depth = 0) {
+  if (value === null || typeof value === 'string' || typeof value === 'boolean') return value;
+  if (typeof value === 'number') return finite(value);
+  if (depth >= 3) return null;
+  if (Array.isArray(value)) return value.slice(0, 12).map((item) => safePlainValue(item, depth + 1));
+  if (!value || typeof value !== 'object') return null;
+  const result = {};
+  safe(() => Object.entries(value), []).slice(0, 16).forEach(([key, item]) => {
+    if (typeof item !== 'function' && typeof item !== 'symbol') result[key] = safePlainValue(item, depth + 1);
+  });
+  return result;
+}
+
+export function summarizeDisplayObject(object) {
+  if (!object) return { exists: false };
+  const bounds = safe(() => {
+    const value = object.getBounds?.();
+    if (!value) return null;
+    return { x: finite(value.x), y: finite(value.y), width: finite(value.width), height: finite(value.height) };
+  }, null);
+  return {
+    exists: true,
+    active: bool(safe(() => object.active, false)),
+    visible: bool(safe(() => object.visible, false)),
+    alpha: finite(safe(() => object.alpha, null)),
+    depth: finite(safe(() => object.depth, null)),
+    x: finite(safe(() => object.x, null)),
+    y: finite(safe(() => object.y, null)),
+    width: finite(safe(() => object.width, null)),
+    height: finite(safe(() => object.height, null)),
+    displayWidth: finite(safe(() => object.displayWidth, null)),
+    displayHeight: finite(safe(() => object.displayHeight, null)),
+    sceneExists: bool(safe(() => object.scene, false)),
+    parentContainerExists: bool(safe(() => object.parentContainer, false)),
+    displayListExists: bool(safe(() => object.scene?.children?.exists?.(object), false)),
+    displayListIndex: finite(safe(() => object.scene?.children?.getIndex?.(object), null)),
+    inputEnabled: typeof safe(() => object.input?.enabled, null) === 'boolean' ? safe(() => object.input.enabled, null) : null,
+    interactive: bool(safe(() => object.input, false)),
+    pointerdownListeners: finite(safe(() => object.listenerCount?.('pointerdown'), null)),
+    pointerupListeners: finite(safe(() => object.listenerCount?.('pointerup'), null)),
+    bounds,
+  };
+}
+
 function readTextNumber(ref) {
   const raw = typeof ref?.text === 'string' ? ref.text : (typeof ref?.getText === 'function' ? safe(() => ref.getText(), null) : null);
   if (typeof raw !== 'string') return null;
@@ -391,6 +435,100 @@ function buildCombatPresentation(scene) {
   return safe(() => JSON.parse(JSON.stringify(trace)), null);
 }
 
+function summarizeTargetingState(state) {
+  if (!state) return null;
+  return {
+    source: compactString(safe(() => state.source, null)),
+    cardId: compactString(safe(() => state.cardId ?? state.card?.id, null)),
+    effectId: compactString(safe(() => state.effectId ?? state.card?.effectId, null)),
+    selectedTargetIndexes: safe(() => (state.targetIndexes ?? []).filter(Number.isInteger).slice(0, 8), []),
+    validTargetIndexes: safe(() => (state.validTargetIndexes ?? state.availableTargetIndexes ?? []).filter(Number.isInteger).slice(0, 8), []),
+  };
+}
+
+function buildTutorial(scene, battle, flow, scenes) {
+  const lifecycleSnapshot = safe(() => scene?.getTutorialLifecycleDiagnosticSnapshot?.(), null);
+  const lifecycleTutorial = lifecycleSnapshot?.tutorial ?? null;
+  const controller = safe(() => scene?.tutorialControllerState, null);
+  const step = safe(() => scene?.getCurrentTutorialStep?.(), null)
+    ?? safe(() => controller?.steps?.[controller?.currentStepIndex ?? controller?.stepIndex], null);
+  const focusResolution = lifecycleSnapshot?.focusResolution
+    ?? safe(() => scene?.getTutorialFocusResolutionDiagnostic?.(step), null)
+    ?? {};
+  const diagnostics = safe(() => scene?.tutorialLifecycleDiagnostics, null) ?? {};
+  const bannerObject = safe(() => scene?.tutorialBanner, null);
+  const overlayObject = safe(() => scene?.tutorialBannerOverlay, null);
+  const focusLayerObject = safe(() => scene?.tutorialFocusLayer, null);
+  const focusGraphics = safe(() => scene?.tutorialFocusGraphics, null);
+  const basePassBlockers = [
+    [safe(() => scene?.openingMulliganPending, false), 'opening_mulligan'],
+    [safe(() => scene?.deckInfoPanel, false), 'deck_panel'],
+    [safe(() => scene?.utilityMenuPanel, false), 'utility_menu'],
+    [safe(() => scene?.gameState?.winner, false), 'winner'],
+    [safe(() => scene?.playerActionUsed, false), 'player_action_used'],
+  ].filter(([blocked]) => Boolean(blocked)).map(([, reason]) => reason);
+  const basePassAvailable = bool(safe(() => canPass(scene?.gameState), false) && !safe(() => scene?.playerActionUsed, false));
+
+  return {
+    active: battle.mode === 'tutorial' || bool(lifecycleTutorial?.isTutorialBattle),
+    currentStepIndex: finite(safe(() => controller?.currentStepIndex ?? controller?.stepIndex, null)) ?? finite(lifecycleTutorial?.currentTutorialStepIndex),
+    currentStepId: compactString(safe(() => step?.id ?? step?.key ?? step?.name, null)) ?? compactString(lifecycleTutorial?.currentTutorialStepId),
+    expected: safePlainValue(safe(() => step?.expected, null) ?? lifecycleTutorial?.expected),
+    bannerText: compactString(safe(() => bannerObject?.text, null))
+      ?? compactString(safe(() => scene?.getTutorialStepText?.(step), null))
+      ?? compactString(lifecycleTutorial?.bannerText),
+    isComplete: bool(safe(() => controller?.completed, false) || safe(() => controller?.currentStepIndex >= controller?.steps?.length, false)),
+    pendingTutorialEvent: safePlainValue(safe(() => scene?.pendingTutorialEvent, null)),
+    lastConsumedTutorialEvent: safePlainValue(safe(() => controller?.lastEvent, null)),
+    lastTutorialGateRejectReason: compactString(safe(() => scene?.lastTutorialGateRejectReason ?? diagnostics.lastTutorialGateRejectReason, null)),
+    lastTutorialFocusSkipReason: compactString(safe(() => diagnostics.lastTutorialFocusSkipReason, null)),
+    lastTutorialBannerSkipReason: compactString(safe(() => diagnostics.lastTutorialBannerSkipReason, null)),
+    banner: {
+      ...summarizeDisplayObject(bannerObject),
+      text: compactString(safe(() => bannerObject?.text, null)),
+    },
+    focus: {
+      currentFocusKey: compactString(safe(() => scene?.currentTutorialFocusKey, null)),
+      target: safePlainValue(focusResolution?.target ?? safe(() => scene?.getTutorialFocusTarget?.(step), null) ?? lifecycleTutorial?.focusTarget),
+      targetType: compactString(focusResolution?.targetType),
+      focusTargetResolved: bool(focusResolution?.focusTargetResolved),
+      focusTargetReason: compactString(focusResolution?.focusTargetReason),
+      mechanicallyPossible: bool(focusResolution?.mechanicallyPossible),
+      focusBounds: safePlainValue(focusResolution?.focusBounds),
+      focusGraphicsCount: Array.isArray(focusGraphics) ? focusGraphics.length : finite(lifecycleSnapshot?.focus?.tutorialFocusGraphicsCount) ?? 0,
+      focusLayer: summarizeDisplayObject(focusLayerObject),
+      targetDisplayObject: safePlainValue(focusResolution?.targetDisplayObject) ?? { exists: false },
+    },
+    tapContinueOverlay: summarizeDisplayObject(overlayObject),
+    actionWindow: {
+      playerActionUsed: battle.playerActionUsed,
+      enemyActionUsed: battle.enemyActionUsed,
+      actionableSide: battle.actionableSide,
+      canPassResult: bool(safe(() => canPass(scene?.gameState), false)),
+      isBasePassAvailable: basePassAvailable,
+      hasBasePassBlockerResult: basePassBlockers.length > 0,
+      basePassBlockers,
+    },
+    inputState: {
+      selectedCardId: flow.selectedCardId,
+      pressedHandCardId: compactString(safe(() => scene?.pressedHandCardId, null)),
+      pressedBoardIndex: finite(safe(() => scene?.pressedBoardCellIndex ?? scene?.pressedBoardIndex, null)),
+      pendingSwapIndex: flow.pendingSwapIndex,
+      targetingState: summarizeTargetingState(safe(() => scene?.targetingState, null)),
+      effectCastState: summarizeTargetingState(safe(() => scene?.effectCastState, null)),
+      boardInspectIndex: flow.boardInspectIndex,
+      handInspectActive: flow.handInspectActive,
+      selectedHandCardZoomExists: bool(safe(() => scene?.selectedHandCardZoom, false)),
+      deckPanelOpen: flow.deckPanelOpen,
+      utilityMenuOpen: flow.utilityMenuOpen,
+      rulesOverlayOpen: flow.rulesOverlayOpen || bool(scenes?.overlays?.rules),
+      battleMenuOverlayOpen: flow.battleMenuOverlayOpen || bool(scenes?.overlays?.battleMenu),
+      pointerInputGuardActive: typeof safe(() => scene?.pointerInputGuardActive, null) === 'boolean' ? safe(() => scene.pointerInputGuardActive, null) : null,
+      navigationInProgress: typeof safe(() => scene?.navigationInProgress, null) === 'boolean' ? safe(() => scene.navigationInProgress, null) : null,
+    },
+  };
+}
+
 function buildSummary({ warnings, battle, scenes }) {
   return {
     warningCount: count(warnings),
@@ -447,11 +585,12 @@ export function buildBattleReportSnapshot(scene = null, options = {}) {
   const aiDecisionHistoryCoverage = buildAiDecisionCoverage(scene, recentAiDecisions);
   const audio = buildAudio(scene);
   const scenes = buildScenes(scene);
+  const tutorial = buildTutorial(scene, battle, flow, scenes);
   const capture = buildCapture(scene, capturedAt, options, flow);
   const assets = buildAssets(scene, audio);
   const combatPresentation = buildCombatPresentation(scene);
   const battleWithPass = { ...battle, passSurrender };
   const warnings = generateWarnings(scene, { environment, battle, flow, reveal, board, audio });
   const summary = buildSummary({ warnings, battle: battleWithPass, scenes });
-  return { version: REPORT_VERSION, capturedAt, environment, build: { appVersion: environment.appVersion, commitSha: environment.commitSha, buildTimestamp: environment.buildTimestamp, buildId: environment.buildId }, battle: battleWithPass, flow, reveal, board, audio, scenes, capture, assets, events, recentAiDecisions, eventHistoryCoverage, aiDecisionHistoryCoverage, combatPresentation, warnings, summary };
+  return { version: REPORT_VERSION, capturedAt, environment, build: { appVersion: environment.appVersion, commitSha: environment.commitSha, buildTimestamp: environment.buildTimestamp, buildId: environment.buildId }, battle: battleWithPass, tutorial, flow, reveal, board, audio, scenes, capture, assets, events, recentAiDecisions, eventHistoryCoverage, aiDecisionHistoryCoverage, combatPresentation, warnings, summary };
 }
