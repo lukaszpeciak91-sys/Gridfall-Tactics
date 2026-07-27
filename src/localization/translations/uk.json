@@ -18,7 +18,7 @@
     },
     "aggro_scout_1": {
       "name": "Чайний кур’єр",
-      "textShort": "До наступної дії ворога в цій лінії немає бійця"
+      "textShort": "До наступної дії ворога ця лінія без бійця"
     },
     "aggro_full_attack_1": {
       "name": "Оксамитова сироватка",
@@ -26,7 +26,7 @@
     },
     "aggro_rush_1": {
       "name": "Багряний вальс",
-      "textShort": "Помінятися із сусіднім [ALLY]\nЦя лінія б’ється зараз"
+      "textShort": "Обмін із сусіднім [ALLY]\nЛінія б’ється зараз"
     },
     "aggro_pierce_strike_1": {
       "name": "Кришталева рапіра",
@@ -34,11 +34,11 @@
     },
     "aggro_adrenaline_1": {
       "name": "Маніакальний маскарад",
-      "textShort": "Обраний [ALLY] негайно б’ється у своїй лінії"
+      "textShort": "Обраний [ALLY] одразу б’ється у своїй лінії"
     },
     "aggro_quick_fix_1": {
       "name": "Милосердя",
-      "textShort": "Вилікувати [ALLY] на 1\n+1 [ATK] до бою\nВбивство в бою добрати 1"
+      "textShort": "Зцілити [ALLY] на 1\n+1 [ATK] до бою\nВб’є в бою: добрати 1"
     },
     "attrition_swarm_husk_1": {
       "name": "Порожній наречений",
@@ -62,19 +62,19 @@
     },
     "attrition_swarm_funeral_pyre_1": {
       "name": "Поховальне вогнище",
-      "textShort": "Перша смерть [ALLY] за хід\nБаза ворога втрачає 1 [HP]"
+      "textShort": "Перша смерть [ALLY] за хід\nБаза ворога -1 [HP]"
     },
     "attrition_swarm_infect_1": {
       "name": "Гнилий гостинець",
-      "textShort": "Завдати 1 [ENEMY]\n[ALLY] навпроти +1 [ATK] до бою"
+      "textShort": "1 шкоди [ENEMY]\n[ALLY] навпроти +1 [ATK] до бою"
     },
     "attrition_swarm_feast_1": {
       "name": "Таємна вечеря",
       "textShort": "Добрати 1"
     },
     "attrition_swarm_rise_again_1": {
-      "name": "Затанцюй іще раз",
-      "textShort": "Повернути останнього полеглого [ALLY] з 1 [HP] на вільне поле"
+      "name": "Затанцюй знову",
+      "textShort": "Останнього полеглого [ALLY] повернути\nз 1 [HP] на вільне поле"
     },
     "attrition_swarm_grave_call_1": {
       "name": "Поклик могили",
@@ -90,11 +90,11 @@
     },
     "control_sniper_1": {
       "name": "Ротес Ауге",
-      "textShort": "Після розгортання обрати будь-якого [ENEMY] і завдати шкоди"
+      "textShort": "Розгорнувши, завдати шкоди\nбудь-якому [ENEMY]"
     },
     "control_controller_1": {
       "name": "Командант",
-      "textShort": "Після розіграшу поміняти місцями двох [ENEMIES]"
+      "textShort": "Після розіграшу поміняти двох [ENEMIES]"
     },
     "control_drone_1": {
       "name": "Ретранслятор",
@@ -114,7 +114,7 @@
     },
     "control_system_override_1": {
       "name": "Перехоплення системи",
-      "textShort": "Обраний [ENEMY] атакує свою базу\nПотім втрачає 1 [HP]"
+      "textShort": "Обраний [ENEMY] атакує свою базу\nПотім -1 [HP]"
     },
     "control_recall_1": {
       "name": "Екстракція",
@@ -138,7 +138,7 @@
     },
     "swarm_alpha_1": {
       "name": "Альфа хору",
-      "textShort": "Сусідні [ALLIES] у бою +1 [ATK] та ігнорують 1 [ARM]"
+      "textShort": "Сусідні [ALLIES]: +1 [ATK] у бою\nІгнорують 1 [ARM]"
     },
     "swarm_spawn_1": {
       "name": "Раптовий розквіт",
@@ -150,11 +150,11 @@
     },
     "swarm_regrow_1": {
       "name": "Цикл відростання",
-      "textShort": "Повернути останнього полеглого [ALLY] з 1 [HP] на вільне поле"
+      "textShort": "Останнього полеглого [ALLY] повернути\nз 1 [HP] на вільне поле"
     },
     "swarm_flood_1": {
       "name": "Повінь спор",
-      "textShort": "Заповнити до 2 вільних полів бійцями 1/1\nЗникають після бою"
+      "textShort": "Заповнити до 2 вільних полів 1/1\nЗникають після бою"
     },
     "swarm_recycle_1": {
       "name": "Субстрат",
@@ -178,7 +178,7 @@
     },
     "tank_bruiser_1": {
       "name": "Ветеран ікла",
-      "textShort": "Після пережитої шкоди +1 [ATK] до наступного бою"
+      "textShort": "Переживши шкоду: +1 [ATK] до наступного бою"
     },
     "tank_fortify_1": {
       "name": "Сонячне укріплення",
@@ -226,7 +226,7 @@
     },
     "wardens_shield_push_1": {
       "name": "Навала мамонтів",
-      "textShort": "Поміняти двох сусідніх [ENEMIES]\n-1 [ATK] у цьому бою"
+      "textShort": "Поміняти сусідніх [ENEMIES]\n-1 [ATK] у цьому бою"
     },
     "wardens_stand_firm_1": {
       "name": "Витримати мороз",
@@ -265,8 +265,8 @@
       "textShort": "Усі [ALLIES] +1 [ATK] до бою"
     },
     "overclock_forced_march_1": {
-      "name": "Перерозподіл поголів’я",
-      "textShort": "Помінятися із сусіднім [ALLY]\nЦя лінія б’ється зараз"
+      "name": "Перерозподіл стада",
+      "textShort": "Обмін із сусіднім [ALLY]\nЛінія б’ється зараз"
     },
     "overclock_crack_strike_1": {
       "name": "Випробування на пробій",
@@ -274,7 +274,7 @@
     },
     "overclock_ignition_1": {
       "name": "Умовний рефлекс",
-      "textShort": "Обраний [ALLY] негайно б’ється у своїй лінії"
+      "textShort": "Обраний [ALLY] одразу б’ється у своїй лінії"
     },
     "overclock_mercy_1": {
       "name": "Корекція норову",
