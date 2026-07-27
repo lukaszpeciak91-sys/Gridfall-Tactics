@@ -20,9 +20,36 @@ const LEGACY_PARITY_EXCEPTIONS = [
   'cards.wardens_spearwall_1.textShort',
 ];
 
+const UK_NEWLINE_PARITY_EXCEPTIONS = [
+  'cards.attrition_swarm_rise_again_1.textShort',
+  'cards.control_sniper_1.textShort',
+  'cards.swarm_alpha_1.textShort',
+  'cards.swarm_regrow_1.textShort',
+];
+
 test('registered dictionaries preserve keys, placeholders, markers, and explicit newlines', () => {
-  assert.deepEqual(validateLocalizationDictionary(en, uk), []);
+  assert.deepEqual(validateLocalizationDictionary(en, uk, { ignoredPaths: UK_NEWLINE_PARITY_EXCEPTIONS }), []);
   assert.deepEqual(validateLocalizationDictionary(en, pl, { ignoredPaths: LEGACY_PARITY_EXCEPTIONS }), []);
+});
+
+test('Ukrainian card copy keeps polished short names and compact priority rules', () => {
+  assert.equal(uk.cards.overclock_gap_hunter_1.name, 'Баран-таран');
+  assert.equal(uk.cards.overclock_mob_champion_1.name, 'Командна квочка');
+  assert.equal(factionPresentation.overclock.cardNameOverrides.overclock_gap_hunter_1.name.uk, 'Баран-таран');
+  assert.equal(factionPresentation.overclock.cardNameOverrides.overclock_mob_champion_1.name.uk, 'Командна квочка');
+
+  const expectedRules = {
+    overclock_gap_hunter_1: 'Якщо сусіднє поле вільне +1 [ATK]',
+    overclock_mob_champion_1: '+1 [ATK] за кожного іншого [ALLY]',
+    overclock_forced_march_1: 'Обмін із сусіднім [ALLY]\nЛінія б’ється зараз',
+    attrition_swarm_rise_again_1: 'Повернути останнього полеглого [ALLY]\nз 1 [HP] у вільне поле',
+    aggro_quick_fix_1: 'Зцілити [ALLY] на 1\n+1 [ATK] до бою\nВбив у бою добери 1',
+    aggro_rush_1: 'Обмін із сусіднім [ALLY]\nЛінія б’ється зараз',
+  };
+  for (const [cardId, rules] of Object.entries(expectedRules)) {
+    assert.equal(uk.cards[cardId].textShort, rules, cardId);
+    assert.doesNotMatch(rules, /[,:;.!?]\[|\][,:;.!?]/u, `${cardId} must not put punctuation beside an icon marker`);
+  }
 });
 
 test('embedded localization maps only reference supported locales', () => {

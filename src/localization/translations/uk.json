@@ -38,7 +38,7 @@
     },
     "aggro_quick_fix_1": {
       "name": "Милосердя",
-      "textShort": "Зцілити [ALLY] на 1\n+1 [ATK] до бою\nВб’є в бою: добрати 1"
+      "textShort": "Зцілити [ALLY] на 1\n+1 [ATK] до бою\nВбив у бою добери 1"
     },
     "attrition_swarm_husk_1": {
       "name": "Порожній наречений",
@@ -74,7 +74,7 @@
     },
     "attrition_swarm_rise_again_1": {
       "name": "Затанцюй знову",
-      "textShort": "Останнього полеглого [ALLY] повернути\nз 1 [HP] на вільне поле"
+      "textShort": "Повернути останнього полеглого [ALLY]\nз 1 [HP] у вільне поле"
     },
     "attrition_swarm_grave_call_1": {
       "name": "Поклик могили",
@@ -253,11 +253,11 @@
       "textShort": "Після бою втрачає 1 [HP]"
     },
     "overclock_gap_hunter_1": {
-      "name": "Таран-проломник",
+      "name": "Баран-таран",
       "textShort": "Якщо сусіднє поле вільне +1 [ATK]"
     },
     "overclock_mob_champion_1": {
-      "name": "Курка-командирка",
+      "name": "Командна квочка",
       "textShort": "+1 [ATK] за кожного іншого [ALLY]"
     },
     "overclock_redline_1": {
