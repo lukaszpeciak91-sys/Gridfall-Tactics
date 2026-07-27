@@ -4901,12 +4901,14 @@ export default class BattleScene extends Phaser.Scene {
 
   formatCampaignDuration(durationMs) {
     const totalMinutes = Math.max(0, Math.round(durationMs / 60000));
+    const minuteSuffix = translateActive('ui.campaignResult.duration.minutes', 'm');
+    const hourSuffix = translateActive('ui.campaignResult.duration.hours', 'h');
     if (totalMinutes < 60) {
-      return `${totalMinutes}m`;
+      return `${totalMinutes}${minuteSuffix}`;
     }
     const hours = Math.floor(totalMinutes / 60);
     const minutes = totalMinutes % 60;
-    return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+    return minutes > 0 ? `${hours}${hourSuffix} ${minutes}${minuteSuffix}` : `${hours}${hourSuffix}`;
   }
 
   getBattleRulesPanelLaunchData() {
@@ -10633,18 +10635,22 @@ export default class BattleScene extends Phaser.Scene {
     return side === 'player' ? snapshot?.playerHP : snapshot?.enemyHP;
   }
 
+  getEffectFeedbackLabel(key, fallback) {
+    return translateActive(`ui.battle.effectFeedback.${key}`, fallback);
+  }
+
   getDirectEffectLabel(effectId, baseLabel) {
     switch (effectId) {
       case 'damage_all_enemies_1_ignore_armor':
-        return `${baseLabel}\nPULSE`;
+        return `${baseLabel}\n${this.getEffectFeedbackLabel('pulse', 'PULSE')}`;
       case 'infect_damage_1_opposite_ally_atk_1':
-        return `${baseLabel}\nINFECT`;
+        return `${baseLabel}\n${this.getEffectFeedbackLabel('infect', 'INFECT')}`;
       case 'ignore_armor_next_attack':
-        return `${baseLabel}\nPIERCE`;
+        return `${baseLabel}\n${this.getEffectFeedbackLabel('pierce', 'PIERCE')}`;
       case 'on_play_lane_damage_1':
-        return `${baseLabel}\nSPIT`;
+        return `${baseLabel}\n${this.getEffectFeedbackLabel('spit', 'SPIT')}`;
       case 'control_enemy_unit_this_turn':
-        return 'OVERRIDE';
+        return this.getEffectFeedbackLabel('override', 'OVERRIDE');
       default:
         return baseLabel;
     }
@@ -10665,7 +10671,7 @@ export default class BattleScene extends Phaser.Scene {
       if (!unit || unit.effectId !== 'death_damage_enemy_hero_1') return;
       const targetSide = this.getOpponentSide(unit.owner);
       if (heroDamageBySide[targetSide] <= 0) return;
-      feedback.push({ type: 'slot-text', index, label: 'DEATH', kind: 'death', phase: 'pre', order: 30 });
+      feedback.push({ type: 'slot-text', index, label: this.getEffectFeedbackLabel('death', 'DEATH'), kind: 'death', phase: 'pre', order: 30 });
       feedback.push({ type: 'hero-text', side: targetSide, label: '-1', kind: 'damage', phase: 'pre', order: 31 });
       heroDamageBySide[targetSide] -= 1;
     });
@@ -10706,7 +10712,7 @@ export default class BattleScene extends Phaser.Scene {
         const after = this.gameState.board[index];
         if (!before || !this.isSameBoardUnit(before, after)) return;
         if (!before.ignoreArmorNext && after.ignoreArmorNext) {
-          feedback.push({ type: 'slot-text', index, label: 'IGNORE ARM', kind: 'pierce', phase: 'pre', order: 12 });
+          feedback.push({ type: 'slot-text', index, label: this.getEffectFeedbackLabel('ignoreArm', 'IGNORE ARM'), kind: 'pierce', phase: 'pre', order: 12 });
         }
       });
     }
@@ -10714,7 +10720,7 @@ export default class BattleScene extends Phaser.Scene {
     if (effectId === 'control_enemy_unit_this_turn') {
       const overrideIndex = result?.combatEvents?.find((event) => Number.isInteger(event?.attackerIndex))?.attackerIndex;
       if (Number.isInteger(overrideIndex)) {
-        feedback.push({ type: 'slot-text', index: overrideIndex, label: 'OVERRIDE', kind: 'debuff', phase: 'pre', order: 10 });
+        feedback.push({ type: 'slot-text', index: overrideIndex, label: this.getEffectFeedbackLabel('override', 'OVERRIDE'), kind: 'debuff', phase: 'pre', order: 10 });
       }
     }
 
@@ -10820,25 +10826,25 @@ export default class BattleScene extends Phaser.Scene {
 
     if (effectId === 'summon_grunt_empty_slot' || effectId === 'grave_call' || effectId === 'fill_empty_slots_0_1') {
       this.findCreatedUnitIndexes(beforeSnapshot).forEach((index) => {
-        feedback.push({ type: 'spawn', index, label: 'SUMMON' });
+        feedback.push({ type: 'spawn', index, label: this.getEffectFeedbackLabel('summon', 'SUMMON') });
       });
     }
 
     if (effectId === 'revive_friendly_1hp') {
       this.findCreatedUnitIndexes(beforeSnapshot).forEach((index) => {
-        feedback.push({ type: 'spawn', index, label: 'REVIVE', kind: 'revive' });
+        feedback.push({ type: 'spawn', index, label: this.getEffectFeedbackLabel('revive', 'REVIVE'), kind: 'revive' });
       });
     }
 
     if (effectId === 'destroy_friendly_draw_1' || effectId === 'destroy_friendly_damage_enemy_base_1') {
       this.findRemovedUnitIndexes(beforeSnapshot).forEach((index) => {
-        feedback.push({ type: 'remove', index, label: 'DESTROYED', kind: 'damage' });
+        feedback.push({ type: 'remove', index, label: this.getEffectFeedbackLabel('destroyed', 'DESTROYED'), kind: 'damage' });
       });
     }
 
     if (effectId === 'return_friendly_draw_1') {
       this.findRemovedUnitIndexes(beforeSnapshot).forEach((index) => {
-        feedback.push({ type: 'remove', index, label: 'RETURN', kind: 'return' });
+        feedback.push({ type: 'remove', index, label: this.getEffectFeedbackLabel('return', 'RETURN'), kind: 'return' });
       });
     }
 
@@ -10873,7 +10879,7 @@ export default class BattleScene extends Phaser.Scene {
     const addSourceDeath = (index) => {
       if (!Number.isInteger(index) || sourceLabels.has(index)) return;
       sourceLabels.add(index);
-      beforeRefresh.push({ type: 'slot-text', index, label: 'DEATH', kind: 'death' });
+      beforeRefresh.push({ type: 'slot-text', index, label: this.getEffectFeedbackLabel('death', 'DEATH'), kind: 'death' });
     };
     const addUnitDamage = (index, amount = 1) => {
       if (!Number.isInteger(index)) return;
@@ -10920,7 +10926,9 @@ export default class BattleScene extends Phaser.Scene {
       if (unit.effectId === 'on_death_summon_grunt' || unit.effectId === 'combat_death_summon_grunt') {
         addSourceDeath(index);
         if (this.gameState.board[index]) {
-          afterRefresh.push({ type: 'spawn', index, label: unit.effectId === 'on_death_summon_grunt' ? 'BROOD' : 'SUMMON', kind: 'spawn' });
+          const labelKey = unit.effectId === 'on_death_summon_grunt' ? 'brood' : 'summon';
+          const fallback = unit.effectId === 'on_death_summon_grunt' ? 'BROOD' : 'SUMMON';
+          afterRefresh.push({ type: 'spawn', index, label: this.getEffectFeedbackLabel(labelKey, fallback), kind: 'spawn' });
         }
       }
 
@@ -11202,18 +11210,20 @@ export default class BattleScene extends Phaser.Scene {
       .then(() => floating.destroy());
   }
 
-  showSpawnFeedback(index, label = 'SUMMON', kind = 'spawn') {
+  showSpawnFeedback(index, label = null, kind = 'spawn') {
+    const resolvedLabel = label ?? this.getEffectFeedbackLabel('summon', 'SUMMON');
     return Promise.all([
       this.showSlotPulse(index, kind),
-      this.showFloatingTextAtSlot(index, label, kind),
+      this.showFloatingTextAtSlot(index, resolvedLabel, kind),
     ]);
   }
 
-  showRemoveFeedback(index, label = 'DESTROYED', kind = 'damage') {
+  showRemoveFeedback(index, label = null, kind = 'damage') {
+    const resolvedLabel = label ?? this.getEffectFeedbackLabel('destroyed', 'DESTROYED');
     this.playBattleSfx?.(AUDIO_KEYS.UNIT_DEATH);
     return Promise.all([
       this.showSlotPulse(index, kind),
-      this.showFloatingTextAtSlot(index, label, kind),
+      this.showFloatingTextAtSlot(index, resolvedLabel, kind),
     ]);
   }
 
@@ -11325,10 +11335,11 @@ export default class BattleScene extends Phaser.Scene {
     ]));
   }
 
-  showDeathTriggerFeedback(sourceIndex, targetIndexOrHero, label = 'DEATH') {
+  showDeathTriggerFeedback(sourceIndex, targetIndexOrHero, label = null) {
+    const resolvedLabel = label ?? this.getEffectFeedbackLabel('death', 'DEATH');
     const animations = [
       this.showSlotPulse(sourceIndex, 'death'),
-      this.showFloatingTextAtSlot(sourceIndex, label, 'death'),
+      this.showFloatingTextAtSlot(sourceIndex, resolvedLabel, 'death'),
     ];
     if (targetIndexOrHero?.targetType === 'hero') {
       animations.push(this.showHeroPulse(targetIndexOrHero.side, 'damage'));
@@ -11553,7 +11564,7 @@ export default class BattleScene extends Phaser.Scene {
     if (!cell) return;
     await Promise.all([
       this.showSlotPulse(sourceIndex, 'death'),
-      this.showFloatingTextAtSlot(sourceIndex, 'DEATH', 'death'),
+      this.showFloatingTextAtSlot(sourceIndex, this.getEffectFeedbackLabel('death', 'DEATH'), 'death'),
     ]);
   }
 
@@ -11954,11 +11965,12 @@ export default class BattleScene extends Phaser.Scene {
 
     const startX = attackerCell.background.x;
     const startY = attackerCell.background.y;
+    const controlledOverrideFallback = event.controlledAttackFeedback.label ?? 'CONTROLLED\nOVERRIDE';
 
     const label = this.add.text(
       startX,
       startY - this.layout.board.cellHeight * 0.4,
-      event.controlledAttackFeedback.label ?? 'CONTROLLED\nOVERRIDE',
+      this.getEffectFeedbackLabel('controlledOverride', controlledOverrideFallback),
       {
         fontFamily: 'Arial, sans-serif',
         fontSize: `${Math.max(12, Math.floor(this.layout.board.cellWidth * 0.11))}px`,
