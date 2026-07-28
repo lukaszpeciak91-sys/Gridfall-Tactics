@@ -2083,8 +2083,8 @@ export default class BattleScene extends Phaser.Scene {
     const { width, height, margin } = this.layout;
     const { x: triggerX, y: triggerY, width: triggerWidth, height: triggerHeight } = this.getPlayerBaseUtilityControlMetrics('menu');
     const utilityMenuActions = [
-      { id: 'rules', labelKey: 'ui.battle.utilityMenuRules', fallback: 'Rules', onClick: () => this.openRulesPanel() },
-      { id: 'settings', labelKey: 'ui.battle.utilityMenuSettings', fallback: 'Settings', onClick: () => this.openSettingsScene() },
+      { id: 'rules', labelKey: 'ui.battle.utilityMenuRules', fallback: 'Rules', onClick: () => this.openRulesPanel(), rejectBeforePointerGuard: () => this.rejectTutorialMulliganUtilityNavigation() },
+      { id: 'settings', labelKey: 'ui.battle.utilityMenuSettings', fallback: 'Settings', onClick: () => this.openSettingsScene(), rejectBeforePointerGuard: () => this.rejectTutorialMulliganUtilityNavigation() },
       { id: 'surrender', labelKey: 'ui.battle.utilityMenuSurrender', fallback: 'Surrender', onClick: () => this.openSurrenderConfirmationFromUtilityMenu() },
       ...(SHOW_BATTLE_REPORT_TOOL ? [{ id: 'battleReport', labelKey: 'ui.battleMenu.battleReport', fallback: 'BATTLE REPORT', onClick: () => this.openBattleReportFromUtilityMenu() }] : []),
     ];
@@ -2174,6 +2174,7 @@ export default class BattleScene extends Phaser.Scene {
       buttonHeight,
       translateActive(action.labelKey, action.fallback),
       action.onClick,
+      { rejectBeforePointerGuard: action.rejectBeforePointerGuard },
     ));
 
     buttons.forEach((button) => {
@@ -2316,7 +2317,7 @@ export default class BattleScene extends Phaser.Scene {
     this.game?.loop?.wake?.();
   }
 
-  createUtilityMenuButton(x, y, width, height, label, onClick) {
+  createUtilityMenuButton(x, y, width, height, label, onClick, { rejectBeforePointerGuard = null } = {}) {
     const radius = 10;
     const left = x - width / 2;
     const top = y - height / 2;
@@ -2351,6 +2352,7 @@ export default class BattleScene extends Phaser.Scene {
     };
     const handlePointerUp = (pointer, localX, localY, event) => {
       event?.stopPropagation?.();
+      if (rejectBeforePointerGuard?.()) return;
       this.guardPointerEvent(pointer);
       if (this.navigationInProgress) return;
       this.playBattleSfx?.(AUDIO_KEYS.UI_CLICK);
@@ -4915,6 +4917,16 @@ export default class BattleScene extends Phaser.Scene {
     return { returnSceneKey: 'BattleScene', hideScrollHint: true, battleModalPresentation: true };
   }
 
+  isTutorialOpeningMulliganUtilityNavigationLocked() {
+    return this.isTutorialBattle?.() === true && this.openingMulliganPending === true;
+  }
+
+  rejectTutorialMulliganUtilityNavigation() {
+    if (!this.isTutorialOpeningMulliganUtilityNavigationLocked()) return false;
+    this.showInvalidActionFeedback?.({ reason: 'Finish the mulligan first.', scope: 'global' });
+    return true;
+  }
+
   launchBattleRulesPanel({ prepareNavigation = true } = {}) {
     if (prepareNavigation && !this.prepareUtilityMenuNavigation()) return false;
     this.hideRulesPanelBackgroundHelpers();
@@ -4924,6 +4936,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   openRulesPanel() {
+    if (this.rejectTutorialMulliganUtilityNavigation()) return false;
     return this.launchBattleRulesPanel();
   }
 
@@ -4979,6 +4992,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   openSettingsScene() {
+    if (this.rejectTutorialMulliganUtilityNavigation()) return false;
     if (!this.prepareUtilityMenuNavigation({ preserveBattleFlow: true })) return;
     this.scene.launch('SettingsScene', { returnSceneKey: 'BattleScene' });
     this.scene.bringToTop('SettingsScene');
@@ -9553,6 +9567,7 @@ export default class BattleScene extends Phaser.Scene {
 
   getInvalidActionReasonKey(reason, card = null) {
     const normalized = String(reason ?? '').toLowerCase();
+    if (normalized.includes('finish the mulligan first')) return 'finishMulliganFirst';
     if (normalized.includes('cannot play effect cards')) return 'effectCardPlayBlocked';
     if (normalized.includes('hand') && normalized.includes('full')) return 'handFull';
     if (normalized.includes('deck') && normalized.includes('empty')) return 'deckEmpty';
@@ -9605,6 +9620,7 @@ export default class BattleScene extends Phaser.Scene {
       laneBlocked: 'Lane blocked',
       occupied: 'Slot occupied',
       invalidSwap: 'Invalid swap',
+      finishMulliganFirst: 'Finish the mulligan first.',
     };
     return translateActive(`ui.battle.invalidAction.${key}`, fallbackByKey[key] ?? fallbackByKey.effectBlocked);
   }
@@ -9623,7 +9639,8 @@ export default class BattleScene extends Phaser.Scene {
       this.showSlotPulse(boardIndex, 'damage');
       this.showFloatingTextAtSlot(boardIndex, message, 'damage');
     } else {
-      this.showInvalidActionBanner(message);
+      if (reasonKey === 'finishMulliganFirst') this.showInvalidActionBanner(message, { allowDuringTutorial: true });
+      else this.showInvalidActionBanner(message);
     }
     if (cardId) this.pulseInvalidCard(cardId);
     return { message, reasonKey, scope: isSlotSpecific ? 'slot' : 'global' };
@@ -9652,8 +9669,9 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   showInvalidActionBanner(message) {
+    const allowDuringTutorial = arguments[1]?.allowDuringTutorial === true;
     if (!message) return;
-    if (!this.prepareTransientBattleBanner('invalid-action')) {
+    if (!this.prepareTransientBattleBanner('invalid-action', { allowDuringTutorial })) {
       if (!this.shouldSuppressTransientBattleBannerForTutorial()) this.deferTransientBattleBanner('invalid-action', { message });
       return;
     }
@@ -9671,7 +9689,7 @@ export default class BattleScene extends Phaser.Scene {
       padding: { x: 14, y: 11 },
       wordWrap: { width: bannerLayout.maxTextWidth },
       fontStyle: 'bold',
-    }).setOrigin(0.5).setDepth(222).setAlpha(0).setScale(0.98).setStroke('#450a0a', 1);
+    }).setOrigin(0.5).setDepth(allowDuringTutorial ? 730 : 222).setAlpha(0).setScale(0.98).setStroke('#450a0a', 1);
 
     const banner = this.invalidActionBanner;
     this.tweens.add({
@@ -10224,7 +10242,8 @@ export default class BattleScene extends Phaser.Scene {
 
 
   prepareTransientBattleBanner(owner) {
-    if (this.recoverTutorialBannerAfterSuppressedBattleBanner?.()) return false;
+    const allowDuringTutorial = arguments[1]?.allowDuringTutorial === true;
+    if (!allowDuringTutorial && this.recoverTutorialBannerAfterSuppressedBattleBanner?.()) return false;
     if (this.restorePersistentBattleBanner()) return false;
     const renderedOwner = this.getRenderedTransientBattleBannerOwner();
     if (this.getBattleBannerPriority(renderedOwner) > this.getBattleBannerPriority(owner)) return false;

@@ -619,7 +619,8 @@
         "laneBlocked": "Лінію заблоковано",
         "occupied": "Поле зайняте",
         "invalidSwap": "Неможливий обмін",
-        "effectCardPlayBlocked": "Ви не можете грати карти ефектів."
+        "effectCardPlayBlocked": "Ви не можете грати карти ефектів.",
+        "finishMulliganFirst": "Спочатку завершіть муліган."
       },
       "confirmSurrender": "ЗДАТИСЯ",
       "battleExhausted": "БИТВУ ВИЧЕРПАНО",

@@ -17,7 +17,7 @@ test('BattleScene exposes coordinated invalid action feedback helpers', () => {
   const feedbackBlock = methodBlock('showInvalidActionFeedback', 'pulseInvalidCard');
   assert.match(feedbackBlock, /this\.showSlotPulse\(boardIndex, 'damage'\);/);
   assert.match(feedbackBlock, /this\.showFloatingTextAtSlot\(boardIndex, message, 'damage'\);/);
-  assert.match(feedbackBlock, /this\.showInvalidActionBanner\(message\);/);
+  assert.match(feedbackBlock, /else this\.showInvalidActionBanner\(message\);/);
   assert.match(feedbackBlock, /if \(cardId\) this\.pulseInvalidCard\(cardId\);/);
 });
 

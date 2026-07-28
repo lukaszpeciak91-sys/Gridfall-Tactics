@@ -619,7 +619,8 @@
         "laneBlocked": "Linia zablokowana",
         "occupied": "Pole zajęte",
         "invalidSwap": "Nieprawidłowa zamiana",
-        "effectCardPlayBlocked": "Nie możesz zagrać karty efektu."
+        "effectCardPlayBlocked": "Nie możesz zagrać karty efektu.",
+        "finishMulliganFirst": "Najpierw dokończ mulligan."
       },
       "confirmSurrender": "PODDAJ SIĘ",
       "battleExhausted": "BITWA WYCZERPANA",

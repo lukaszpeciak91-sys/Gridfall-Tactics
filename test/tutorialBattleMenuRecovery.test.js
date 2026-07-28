@@ -144,12 +144,14 @@ test('real Rules return callback preserves tutorial mulligan and restores accept
 });
 
 for (const stepId of ['inspect_card', 'mulligan_confirm']) {
-  test(`real Settings open/return callbacks clear guards and preserve ${stepId}`, () => {
+  test(`real post-mulligan Settings open/return callbacks clear guards and preserve ${stepId}`, () => {
     const prepare = compileMethod(battleSceneSource, 'prepareUtilityMenuNavigation', 'getBattleResultText', ['{ includeBattleResultModal = false, preserveBattleFlow = false } = {}']);
     const openSettings = compileMethod(battleSceneSource, 'openSettingsScene', 'exitBattleToMainMenu');
     const resumeSettings = compileMethod(battleSceneSource, 'resumeFromSettings', 'openSettingsScene');
     const returnFromSettings = compileMethod(settingsSource, 'returnToMainMenu', 'getBattleReturnScene');
     const battle = createBattleHarness(stepId);
+    battle.openingMulliganPending = false;
+    battle.rejectTutorialMulliganUtilityNavigation = () => false;
     const trace = [];
     battle.prepareUtilityMenuNavigation = (options) => prepare.call(battle, options);
     battle.resumeFromSettings = () => { trace.push('resume'); resumeSettings.call(battle); };
@@ -168,7 +170,7 @@ for (const stepId of ['inspect_card', 'mulligan_confirm']) {
     };
 
     openSettings.call(battle);
-    assert.equal(battle.openingMulliganPending, true);
+    assert.equal(battle.openingMulliganPending, false);
     returnFromSettings.call(settings);
     assert.deepEqual(trace, ['resume', 'stop']);
     assert.equal(battle.navigationInProgress, false);
