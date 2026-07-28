@@ -202,7 +202,7 @@ test('invalid action feedback copy is localized for English and Polish', () => {
     moveBlocked: 'Ruch zablokowany',
     effectBlocked: 'Efekt zablokowany',
     effectCardPlayBlocked: 'Nie możesz zagrać karty efektu.',
-    finishMulliganFirst: 'Najpierw dokończ mulligan.',
+    finishMulliganFirst: 'Najpierw dokończ wymianę.',
     immune: 'Odporność',
     noAdjacentAlly: 'Brak sąsiedniego sojusznika',
     noFallenUnit: 'Brak poległej jednostki',

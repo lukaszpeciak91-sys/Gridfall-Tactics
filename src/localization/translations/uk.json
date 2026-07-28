@@ -620,7 +620,7 @@
         "occupied": "Поле зайняте",
         "invalidSwap": "Неможливий обмін",
         "effectCardPlayBlocked": "Ви не можете грати карти ефектів.",
-        "finishMulliganFirst": "Спочатку завершіть муліган."
+        "finishMulliganFirst": "Спочатку завершіть заміну."
       },
       "confirmSurrender": "ЗДАТИСЯ",
       "battleExhausted": "БИТВУ ВИЧЕРПАНО",

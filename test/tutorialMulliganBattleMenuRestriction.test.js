@@ -193,9 +193,9 @@ test('Rules and Settings remain available during a non-tutorial mulligan', () =>
 });
 
 test('dedicated feedback is localized in every supported language', () => {
-  assert.equal(pl.ui.battle.invalidAction.finishMulliganFirst, 'Najpierw dokończ mulligan.');
+  assert.equal(pl.ui.battle.invalidAction.finishMulliganFirst, 'Najpierw dokończ wymianę.');
   assert.equal(en.ui.battle.invalidAction.finishMulliganFirst, 'Finish the mulligan first.');
-  assert.equal(uk.ui.battle.invalidAction.finishMulliganFirst, 'Спочатку завершіть муліган.');
+  assert.equal(uk.ui.battle.invalidAction.finishMulliganFirst, 'Спочатку завершіть заміну.');
 });
 
 test('restriction is checked before the pointer guard and uses the visible invalid-action banner', () => {
