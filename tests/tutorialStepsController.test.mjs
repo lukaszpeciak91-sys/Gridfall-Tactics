@@ -103,8 +103,9 @@ test('inspect lesson sits between mulligan intro and selection with exact text a
   const step = TUTORIAL_STEPS.find((item) => item.id === 'inspect_card');
   assert.deepEqual(step.expected, { type: 'inspect_card', cardId: 'tutorial_mulligan_bait_1' });
   assert.deepEqual(step.highlightTarget, { type: 'mulligan_card', cardId: 'tutorial_mulligan_bait_1' });
-  assert.equal(step.text.pl, 'Długi tap powiększa kartę.');
-  assert.equal(step.text.en, 'Long tap enlarges a card.');
+  assert.equal(step.text.pl, 'Kliknij i przytrzymaj, aby powiększyć kartę.');
+  assert.equal(step.text.en, 'Tap and hold to enlarge the card.');
+  assert.equal(step.text.uk, 'Торкніться й утримуйте, щоб збільшити картку.');
 });
 
 test('inspect advances only to mulligan selection and real confirm is required to leave confirm step', () => {
