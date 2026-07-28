@@ -99,7 +99,7 @@ test('battle-launched settings resumes the existing paused battle while menu-lau
   assert.match(battleSource, /openSettingsScene\(\) \{[\s\S]*this\.prepareUtilityMenuNavigation\(\{ preserveBattleFlow: true \}\)[\s\S]*this\.scene\.launch\('SettingsScene', \{ returnSceneKey: 'BattleScene' \}\);[\s\S]*this\.scene\.bringToTop\('SettingsScene'\);[\s\S]*this\.scene\.pause\(\);/);
   assert.match(battleSource, /resumeFromSettings\(\) \{[\s\S]*this\.scene\.resume\(\);[\s\S]*this\.recoverFromLifecycle\('settings-return'\);/);
   assert.match(settingsSource, /this\.returnSceneKey = typeof data\?\.returnSceneKey === 'string'/);
-  assert.match(settingsSource, /returnToMainMenu\(\) \{[\s\S]*const returnSceneKey = this\.returnSceneKey;[\s\S]*this\.scene\.stop\(\);[\s\S]*returnScene\?\.resumeFromSettings[\s\S]*this\.scene\.start\('MainMenuScene'\);/);
+  assert.match(settingsSource, /returnToMainMenu\(\) \{[\s\S]*const returnSceneKey = this\.returnSceneKey;[\s\S]*returnScene\?\.resumeFromSettings[\s\S]*returnScene\.resumeFromSettings\(\);[\s\S]*this\.scene\.stop\(\);[\s\S]*this\.scene\.start\('MainMenuScene'\);/);
   assert.match(settingsSource, /this\.scene\.restart\(\{ returnSceneKey: this\.returnSceneKey \}\);/);
 });
 
