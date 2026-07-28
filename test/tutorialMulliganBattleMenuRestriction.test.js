@@ -24,10 +24,8 @@ function compileMethod(name, nextName, params = []) {
   return new Function(...params, block.slice(bodyStart, block.lastIndexOf('}')));
 }
 
-const isLocked = compileMethod('isTutorialOpeningMulliganUtilityNavigationLocked', 'isTutorialOpeningMulliganDeckNavigationLocked');
-const isDeckLocked = compileMethod('isTutorialOpeningMulliganDeckNavigationLocked', 'rejectTutorialMulliganUtilityNavigation');
-const reject = compileMethod('rejectTutorialMulliganUtilityNavigation', 'rejectTutorialMulliganDeckNavigation');
-const rejectDeck = compileMethod('rejectTutorialMulliganDeckNavigation', 'launchBattleRulesPanel');
+const isBlocked = compileMethod('isTutorialMulliganUtilityActionBlocked', 'rejectTutorialMulliganUtilityAction', ['actionId']);
+const rejectAction = compileMethod('rejectTutorialMulliganUtilityAction', 'launchBattleRulesPanel', ['actionId']);
 const openRules = compileMethod('openRulesPanel', 'openBattleMenu');
 const openSettings = compileMethod('openSettingsScene', 'exitBattleToMainMenu');
 const openDeck = compileMethod('openDeckInfoPanel', 'bindDeckInfoScrollHandlers');
@@ -40,6 +38,11 @@ function harness({ tutorial = true, pending = true, stepId = 'mulligan_confirm' 
     openingMulliganPending: pending,
     openingMulliganActive: pending,
     selectedMulliganCardIds: ['card-a', 'card-b'],
+    expectedTutorialInput: { type: stepId },
+    tutorialFocusedTarget: { type: 'mulligan_card', cardId: 'card-a' },
+    tutorialFocusGraphics: { active: true },
+    cardViews: [{ cardId: 'card-a', root: { active: true } }],
+    inspectPreview: { cardId: 'card-a' },
     tutorialControllerState: {
       steps: TUTORIAL_STEPS,
       currentStepIndex: TUTORIAL_STEPS.findIndex((step) => step.id === stepId),
@@ -50,10 +53,8 @@ function harness({ tutorial = true, pending = true, stepId = 'mulligan_confirm' 
     deckInfoPanel: null,
     utilityMenuPanel: { active: true },
     isTutorialBattle() { return this.battleContext.mode === 'tutorial'; },
-    isTutorialOpeningMulliganUtilityNavigationLocked() { return isLocked.call(this); },
-    isTutorialOpeningMulliganDeckNavigationLocked() { return isDeckLocked.call(this); },
-    rejectTutorialMulliganUtilityNavigation() { return reject.call(this); },
-    rejectTutorialMulliganDeckNavigation() { return rejectDeck.call(this); },
+    isTutorialMulliganUtilityActionBlocked(actionId) { return isBlocked.call(this, actionId); },
+    rejectTutorialMulliganUtilityAction(actionId) { return rejectAction.call(this, actionId); },
     showInvalidActionFeedback(payload) { trace.push(['feedback', payload]); },
     launchBattleRulesPanel() { trace.push(['launch', 'RulesPanelScene']); return true; },
     prepareUtilityMenuNavigation() { this.navigationInProgress = true; this.pointerInputGuardActive = true; trace.push(['prepare']); return true; },
@@ -77,6 +78,11 @@ function snapshot(scene) {
     pointer: scene.pointerInputGuardActive,
     deck: scene.deckInfoPanel,
     menu: scene.utilityMenuPanel,
+    expected: structuredClone(scene.expectedTutorialInput),
+    focus: structuredClone(scene.tutorialFocusedTarget),
+    focusActive: scene.tutorialFocusGraphics.active,
+    cardViews: structuredClone(scene.cardViews),
+    inspect: structuredClone(scene.inspectPreview),
   };
 }
 
@@ -118,10 +124,10 @@ test('closing Battle History advances beyond the required sequence before Deck/T
     scene.tutorialControllerState.currentStepIndex += 1;
   };
 
-  assert.equal(scene.isTutorialOpeningMulliganDeckNavigationLocked(), false);
+  assert.equal(scene.isTutorialMulliganUtilityActionBlocked('deck'), false);
   closeDeck.call(scene);
   assert.equal(scene.deckInfoPanel, null);
-  assert.equal(scene.isTutorialOpeningMulliganDeckNavigationLocked(), true);
+  assert.equal(scene.isTutorialMulliganUtilityActionBlocked('deck'), true);
 });
 
 test('Deck/TALIA uses its normal action immediately after tutorial mulligan completion', () => {
@@ -155,6 +161,23 @@ for (const [action, invoke] of [['Rules', openRules], ['Settings', openSettings]
   });
 }
 
+test('Deck, Rules, and Settings tap spam preserves every protected mulligan step', () => {
+  for (const stepId of ['inspect_card', 'mulligan_select', 'mulligan_confirm']) {
+    const { scene, trace } = harness({ stepId });
+    scene.gameState = { player: { deck: [] } };
+    const before = snapshot(scene);
+    for (let tap = 0; tap < 4; tap += 1) {
+      assert.equal(openDeck.call(scene), false);
+      assert.equal(openRules.call(scene), false);
+      assert.equal(openSettings.call(scene), false);
+    }
+    assert.deepEqual(snapshot(scene), before);
+    assert.equal(trace.length, 12);
+    assert.ok(trace.every(([event, payload]) => event === 'feedback'
+      && payload.reason === 'Finish the mulligan first.' && payload.scope === 'global'));
+  }
+});
+
 test('Rules and Settings are immediately available after tutorial mulligan completion', () => {
   const { scene, trace } = harness({ pending: false });
   assert.equal(openRules.call(scene), true);
@@ -181,8 +204,9 @@ test('restriction is checked before the pointer guard and uses the visible inval
   assert.match(source, /showInvalidActionBanner\(message, \{ allowDuringTutorial: true \}\)/);
   assert.match(source, /setDepth\(allowDuringTutorial \? 730 : 222\)/);
   const deckCounter = methodBody('drawDeckCounter', 'refreshDeckCounter');
-  assert.ok(deckCounter.indexOf('rejectTutorialMulliganDeckNavigation?.()') < deckCounter.indexOf('isTutorialInputAllowed?.'));
-  assert.match(methodBody('openDeckInfoPanel', 'bindDeckInfoScrollHandlers'), /^  openDeckInfoPanel\(\) \{\n    if \(this\.rejectTutorialMulliganDeckNavigation\?\.\(\)\) return false;/);
+  assert.ok(deckCounter.indexOf("rejectTutorialMulliganUtilityAction?.('deck')") < deckCounter.indexOf('isTutorialInputAllowed?.'));
+  assert.match(methodBody('openDeckInfoPanel', 'bindDeckInfoScrollHandlers'), /^  openDeckInfoPanel\(\) \{\n    if \(this\.rejectTutorialMulliganUtilityAction\?\.\('deck'\)\) return false;/);
+  assert.match(battleMenuSource, /openRulesPanel\(\) \{[\s\S]*rejectTutorialMulliganUtilityAction\?\.\('rules'\)[\s\S]*this\.scene\.stop\(\)/);
 });
 
 test('copy report, surrender, confirmation, and close actions remain outside the restriction', () => {

@@ -114,6 +114,7 @@ export default class BattleMenuScene extends Phaser.Scene {
   openRulesPanel() {
     const returnSceneKey = this.returnSceneKey;
     const returnScene = this.scene.get(returnSceneKey);
+    if (returnScene?.rejectTutorialMulliganUtilityAction?.('rules')) return false;
     this.scene.stop();
     if (returnScene?.launchBattleRulesPanel) {
       returnScene.launchBattleRulesPanel({ prepareNavigation: false });

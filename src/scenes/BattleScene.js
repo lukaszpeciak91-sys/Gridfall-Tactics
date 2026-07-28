@@ -2083,8 +2083,8 @@ export default class BattleScene extends Phaser.Scene {
     const { width, height, margin } = this.layout;
     const { x: triggerX, y: triggerY, width: triggerWidth, height: triggerHeight } = this.getPlayerBaseUtilityControlMetrics('menu');
     const utilityMenuActions = [
-      { id: 'rules', labelKey: 'ui.battle.utilityMenuRules', fallback: 'Rules', onClick: () => this.openRulesPanel(), rejectBeforePointerGuard: () => this.rejectTutorialMulliganUtilityNavigation() },
-      { id: 'settings', labelKey: 'ui.battle.utilityMenuSettings', fallback: 'Settings', onClick: () => this.openSettingsScene(), rejectBeforePointerGuard: () => this.rejectTutorialMulliganUtilityNavigation() },
+      { id: 'rules', labelKey: 'ui.battle.utilityMenuRules', fallback: 'Rules', onClick: () => this.openRulesPanel(), rejectBeforePointerGuard: () => this.rejectTutorialMulliganUtilityAction('rules') },
+      { id: 'settings', labelKey: 'ui.battle.utilityMenuSettings', fallback: 'Settings', onClick: () => this.openSettingsScene(), rejectBeforePointerGuard: () => this.rejectTutorialMulliganUtilityAction('settings') },
       { id: 'surrender', labelKey: 'ui.battle.utilityMenuSurrender', fallback: 'Surrender', onClick: () => this.openSurrenderConfirmationFromUtilityMenu() },
       ...(SHOW_BATTLE_REPORT_TOOL ? [{ id: 'battleReport', labelKey: 'ui.battleMenu.battleReport', fallback: 'BATTLE REPORT', onClick: () => this.openBattleReportFromUtilityMenu() }] : []),
     ];
@@ -4917,11 +4917,8 @@ export default class BattleScene extends Phaser.Scene {
     return { returnSceneKey: 'BattleScene', hideScrollHint: true, battleModalPresentation: true };
   }
 
-  isTutorialOpeningMulliganUtilityNavigationLocked() {
-    return this.isTutorialBattle?.() === true && this.openingMulliganPending === true;
-  }
-
-  isTutorialOpeningMulliganDeckNavigationLocked() {
+  isTutorialMulliganUtilityActionBlocked(actionId) {
+    if (!['deck', 'rules', 'settings'].includes(actionId)) return false;
     if (this.isTutorialBattle?.() !== true) return false;
     if (this.openingMulliganPending !== true && this.openingMulliganActive !== true) return false;
 
@@ -4939,14 +4936,8 @@ export default class BattleScene extends Phaser.Scene {
     return deckTutorialSequenceCompleted;
   }
 
-  rejectTutorialMulliganUtilityNavigation() {
-    if (!this.isTutorialOpeningMulliganUtilityNavigationLocked()) return false;
-    this.showInvalidActionFeedback?.({ reason: 'Finish the mulligan first.', scope: 'global' });
-    return true;
-  }
-
-  rejectTutorialMulliganDeckNavigation() {
-    if (!this.isTutorialOpeningMulliganDeckNavigationLocked()) return false;
+  rejectTutorialMulliganUtilityAction(actionId) {
+    if (!this.isTutorialMulliganUtilityActionBlocked(actionId)) return false;
     this.showInvalidActionFeedback?.({ reason: 'Finish the mulligan first.', scope: 'global' });
     return true;
   }
@@ -4960,7 +4951,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   openRulesPanel() {
-    if (this.rejectTutorialMulliganUtilityNavigation()) return false;
+    if (this.rejectTutorialMulliganUtilityAction?.('rules')) return false;
     return this.launchBattleRulesPanel();
   }
 
@@ -5016,7 +5007,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   openSettingsScene() {
-    if (this.rejectTutorialMulliganUtilityNavigation()) return false;
+    if (this.rejectTutorialMulliganUtilityAction?.('settings')) return false;
     if (!this.prepareUtilityMenuNavigation({ preserveBattleFlow: true })) return;
     this.scene.launch('SettingsScene', { returnSceneKey: 'BattleScene' });
     this.scene.bringToTop('SettingsScene');
@@ -5675,7 +5666,7 @@ export default class BattleScene extends Phaser.Scene {
       height,
       deckLabel,
       () => {
-        if (this.rejectTutorialMulliganDeckNavigation?.()) return;
+        if (this.rejectTutorialMulliganUtilityAction?.('deck')) return;
         if (!(this.isTutorialInputAllowed?.({ type: 'click_deck', target: 'deck_counter' }) ?? true)) return;
         this.openDeckInfoPanel();
       },
@@ -5859,7 +5850,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   openDeckInfoPanel() {
-    if (this.rejectTutorialMulliganDeckNavigation?.()) return false;
+    if (this.rejectTutorialMulliganUtilityAction?.('deck')) return false;
     if (!this.gameState?.player || this.battleResultModalShown || this.isFlowResolving) return;
     if (this.effectCastState?.source === 'unit-on-play') {
       this.cancelEffectTargeting();
