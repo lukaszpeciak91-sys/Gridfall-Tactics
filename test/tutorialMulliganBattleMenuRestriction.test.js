@@ -27,6 +27,7 @@ const isLocked = compileMethod('isTutorialOpeningMulliganUtilityNavigationLocked
 const reject = compileMethod('rejectTutorialMulliganUtilityNavigation', 'launchBattleRulesPanel');
 const openRules = compileMethod('openRulesPanel', 'openBattleMenu');
 const openSettings = compileMethod('openSettingsScene', 'exitBattleToMainMenu');
+const openDeck = compileMethod('openDeckInfoPanel', 'bindDeckInfoScrollHandlers');
 
 function harness({ tutorial = true, pending = true } = {}) {
   const trace = [];
@@ -38,6 +39,7 @@ function harness({ tutorial = true, pending = true } = {}) {
     tutorialControllerState: { currentStepIndex: 4, expected: { type: 'confirm_mulligan' } },
     navigationInProgress: false,
     pointerInputGuardActive: false,
+    deckInfoPanel: null,
     utilityMenuPanel: { active: true },
     isTutorialBattle() { return this.battleContext.mode === 'tutorial'; },
     isTutorialOpeningMulliganUtilityNavigationLocked() { return isLocked.call(this); },
@@ -45,6 +47,7 @@ function harness({ tutorial = true, pending = true } = {}) {
     showInvalidActionFeedback(payload) { trace.push(['feedback', payload]); },
     launchBattleRulesPanel() { trace.push(['launch', 'RulesPanelScene']); return true; },
     prepareUtilityMenuNavigation() { this.navigationInProgress = true; this.pointerInputGuardActive = true; trace.push(['prepare']); return true; },
+    cancelEffectTargeting() { trace.push(['cancel-targeting']); },
     scene: {
       launch(key) { trace.push(['launch', key]); },
       bringToTop(key) { trace.push(['top', key]); },
@@ -62,9 +65,43 @@ function snapshot(scene) {
     tutorial: structuredClone(scene.tutorialControllerState),
     navigation: scene.navigationInProgress,
     pointer: scene.pointerInputGuardActive,
+    deck: scene.deckInfoPanel,
     menu: scene.utilityMenuPanel,
   };
 }
+
+test('Deck/TALIA is rejected at the panel boundary without state mutation during the playable-tutorial mulligan', () => {
+  const { scene, trace } = harness();
+  scene.gameState = { player: { deck: [] } };
+  scene.effectCastState = { source: 'unit-on-play' };
+  const before = snapshot(scene);
+
+  assert.equal(openDeck.call(scene), false);
+
+  assert.deepEqual(snapshot(scene), before);
+  assert.deepEqual(trace, [['feedback', { reason: 'Finish the mulligan first.', scope: 'global' }]]);
+  assert.equal(trace.some(([event]) => event === 'cancel-targeting' || event === 'prepare' || event === 'pause'), false);
+});
+
+test('Deck/TALIA uses its normal action immediately after tutorial mulligan completion', () => {
+  const { scene, trace } = harness({ pending: false });
+  scene.gameState = { player: { deck: [] } };
+  scene.effectCastState = { source: 'unit-on-play' };
+
+  openDeck.call(scene);
+
+  assert.deepEqual(trace, [['cancel-targeting']]);
+});
+
+test('Deck/TALIA remains available during a non-tutorial mulligan', () => {
+  const { scene, trace } = harness({ tutorial: false, pending: true });
+  scene.gameState = { player: { deck: [] } };
+  scene.effectCastState = { source: 'unit-on-play' };
+
+  openDeck.call(scene);
+
+  assert.deepEqual(trace, [['cancel-targeting']]);
+});
 
 for (const [action, invoke] of [['Rules', openRules], ['Settings', openSettings]]) {
   test(`${action} is rejected without state mutation during the playable-tutorial mulligan`, () => {
@@ -102,6 +139,9 @@ test('restriction is checked before the pointer guard and uses the visible inval
   assert.ok(button.indexOf('rejectBeforePointerGuard?.()') < button.indexOf('this.guardPointerEvent(pointer)'));
   assert.match(source, /showInvalidActionBanner\(message, \{ allowDuringTutorial: true \}\)/);
   assert.match(source, /setDepth\(allowDuringTutorial \? 730 : 222\)/);
+  const deckCounter = methodBody('drawDeckCounter', 'refreshDeckCounter');
+  assert.ok(deckCounter.indexOf('rejectTutorialMulliganUtilityNavigation()') < deckCounter.indexOf('isTutorialInputAllowed?.'));
+  assert.match(methodBody('openDeckInfoPanel', 'bindDeckInfoScrollHandlers'), /^  openDeckInfoPanel\(\) \{\n    if \(this\.rejectTutorialMulliganUtilityNavigation\?\.\(\)\) return false;/);
 });
 
 test('copy report, surrender, confirmation, and close actions remain outside the restriction', () => {

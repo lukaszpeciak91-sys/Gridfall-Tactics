@@ -5651,6 +5651,7 @@ export default class BattleScene extends Phaser.Scene {
       height,
       deckLabel,
       () => {
+        if (this.rejectTutorialMulliganUtilityNavigation?.()) return;
         if (!(this.isTutorialInputAllowed?.({ type: 'click_deck', target: 'deck_counter' }) ?? true)) return;
         this.openDeckInfoPanel();
       },
@@ -5834,6 +5835,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   openDeckInfoPanel() {
+    if (this.rejectTutorialMulliganUtilityNavigation?.()) return false;
     if (!this.gameState?.player || this.battleResultModalShown || this.isFlowResolving) return;
     if (this.effectCastState?.source === 'unit-on-play') {
       this.cancelEffectTargeting();
