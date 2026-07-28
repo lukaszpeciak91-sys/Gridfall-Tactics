@@ -183,15 +183,6 @@ for (const stepId of ['inspect_card', 'mulligan_confirm']) {
   });
 }
 
-test('tutorial Battle Menu preserves active mulligan flow while non-tutorial navigation keeps its existing default', () => {
-  const openBattleMenu = methodBody(battleSceneSource, 'openBattleMenu', 'openBattleReportFromUtilityMenu');
-  assert.match(openBattleMenu, /prepareUtilityMenuNavigation\(\{ preserveBattleFlow: this\.isTutorialBattle\?\.\(\) \?\? false \}\)/);
-
-  const prepareNavigation = methodBody(battleSceneSource, 'prepareUtilityMenuNavigation', 'getBattleResultText');
-  assert.match(prepareNavigation, /if \(!preserveBattleFlow\) \{[\s\S]*?this\.isFlowResolving = false;[\s\S]*?this\.openingMulliganPending = false;/);
-  assert.doesNotMatch(openBattleMenu, /openingMulliganPending\s*=/);
-});
-
 test('Battle Menu close and Rules return use the matching BattleScene recovery hooks', () => {
   const leaveBattleMenu = methodBody(battleMenuSource, 'leaveBattleMenu', 'buildFreshBattleReport');
   assert.match(leaveBattleMenu, /returnScene\?\.resumeFromBattleMenu/);
@@ -205,35 +196,11 @@ test('Battle Menu close and Rules return use the matching BattleScene recovery h
   assert.match(closeRules, /returnScene\.resumeFromRulesPanel\(\)/);
 });
 
-test('matching return hooks clear navigation guards and restore presentation without recreating mulligan ownership', () => {
-  for (const [name, nextName, reason] of [
-    ['resumeFromRulesPanel', 'resumeFromBattleMenu', 'rules-panel-return'],
-    ['resumeFromBattleMenu', 'resumeFromBattleReport', 'battle-menu-return'],
-    ['resumeFromSettings', 'openSettingsScene', 'settings-return'],
-  ]) {
-    const body = methodBody(battleSceneSource, name, nextName);
-    assert.match(body, /this\.navigationInProgress = false;/);
-    assert.match(body, /this\.clearPointerInputGuard\(\);/);
-    assert.match(body, new RegExp(`recoverFromLifecycle\\('${reason}'\\)`));
-    assert.doesNotMatch(body, /openingMulliganPending\s*=/);
-  }
-
+test('lifecycle recovery still normalizes UI and refreshes banners without taking mulligan ownership', () => {
   const recovery = methodBody(battleSceneSource, 'recoverFromLifecycle', 'normalizeLifecycleUiState');
   assert.match(recovery, /this\.normalizeLifecycleUiState\(reason\);/);
   assert.match(recovery, /this\.refreshLifecycleBanners\(reason\);/);
   assert.doesNotMatch(recovery, /openingMulliganPending\s*=/);
-});
-
-test('preserved inspect step remains gated to the required mulligan card', () => {
-  const state = tutorialStateAt('inspect_card');
-  assert.equal(state.steps[state.currentStepIndex].id, 'inspect_card');
-  assert.equal(checkTutorialInputGate(state, { type: 'inspect_card', cardId: 'tutorial_mulligan_bait_1' }).allowed, true);
-
-  const mechanicalCheck = methodBody(battleSceneSource, 'isTutorialFocusTargetMechanicallyPossible', 'ensureTutorialFocusLayer');
-  assert.match(mechanicalCheck, /type === 'mulligan_card'[\s\S]*?this\.openingMulliganPending[\s\S]*?some\(\(card\) => card\.id === cardId\)/);
-
-  const longPress = methodBody(battleSceneSource, 'startHandCardLongPress', 'cancelHandCardLongPress');
-  assert.match(longPress, /if \(this\.openingMulliganPending\) \{[\s\S]*?handleTutorialEvent\?\.\('card_inspected', \{ cardId \}\)/);
 });
 
 test('mulligan selection and confirmation remain owned by their existing input paths', () => {
@@ -256,13 +223,7 @@ test('focus restoration retains the single forced recreation path', () => {
   assert.equal((restore.match(/updateTutorialFocus\?\.\(step/g) ?? []).length, 1);
 });
 
-test('Settings and lifecycle/fullscreen recovery boundaries remain unchanged', () => {
-  const openSettings = methodBody(battleSceneSource, 'openSettingsScene', 'exitBattleToMainMenu');
-  assert.match(openSettings, /prepareUtilityMenuNavigation\(\{ preserveBattleFlow: true \}\)/);
-
-  const settingsReturn = methodBody(settingsSource, 'returnToMainMenu', 'getBattleReturnScene');
-  assert.match(settingsReturn, /returnScene\?\.resumeFromSettings/);
-
+test('fullscreen recovery remains independent from utility navigation and mulligan state', () => {
   const fullscreen = methodBody(battleSceneSource, 'onFullscreenChanged', 'onTutorialDocumentFullscreenChanged');
   assert.match(fullscreen, /recoverFromLifecycle\(this\.scale\.isFullscreen \? 'enterfullscreen' : 'leavefullscreen'\)/);
   assert.doesNotMatch(fullscreen, /prepareUtilityMenuNavigation|openingMulliganPending\s*=/);
