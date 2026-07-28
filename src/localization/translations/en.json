@@ -619,7 +619,8 @@
         "laneBlocked": "Lane blocked",
         "occupied": "Slot occupied",
         "invalidSwap": "Invalid swap",
-        "effectCardPlayBlocked": "You cannot play effect cards."
+        "effectCardPlayBlocked": "You cannot play effect cards.",
+        "finishMulliganFirst": "Finish the mulligan first."
       },
       "confirmSurrender": "SURRENDER",
       "battleExhausted": "BATTLE EXHAUSTED",
