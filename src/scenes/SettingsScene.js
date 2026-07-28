@@ -351,11 +351,12 @@ export default class SettingsScene extends Phaser.Scene {
     const returnScene = returnSceneKey ? this.scene.get(returnSceneKey) : null;
 
     if (returnSceneKey) {
-      this.scene.stop();
       if (returnScene?.resumeFromSettings) {
         returnScene.resumeFromSettings();
+        this.scene.stop();
         return;
       }
+      this.scene.stop();
       if (this.scene.isPaused(returnSceneKey)) {
         this.scene.resume(returnSceneKey);
         return;

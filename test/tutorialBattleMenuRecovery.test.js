@@ -4,6 +4,7 @@ import test from 'node:test';
 
 import { TUTORIAL_STEPS } from '../src/data/tutorial/tutorialSteps.js';
 import { checkTutorialInputGate } from '../src/systems/tutorialInputGate.js';
+import { handleTutorialEvent } from '../src/systems/tutorialController.js';
 
 const battleSceneSource = await readFile(new URL('../src/scenes/BattleScene.js', import.meta.url), 'utf8');
 const battleMenuSource = await readFile(new URL('../src/scenes/BattleMenuScene.js', import.meta.url), 'utf8');
@@ -23,6 +24,163 @@ function tutorialStateAt(stepId) {
   const currentStepIndex = TUTORIAL_STEPS.findIndex((step) => step.id === stepId);
   assert.notEqual(currentStepIndex, -1);
   return { steps: TUTORIAL_STEPS, currentStepIndex, completed: false, lastEvent: null };
+}
+
+function compileMethod(source, name, nextName, params = []) {
+  const block = methodBody(source, name, nextName);
+  const bodyStart = block.indexOf(') {') + 3;
+  const bodyEnd = block.lastIndexOf('}');
+  return new Function(...params, block.slice(bodyStart, bodyEnd));
+}
+
+function createBattleHarness(stepId = 'inspect_card') {
+  const requiredCard = { id: 'tutorial_mulligan_bait_1' };
+  const scene = {
+    battleContext: { mode: 'tutorial' },
+    factionKey: 'tutorial-player',
+    enemyFactionKey: 'tutorial-enemy',
+    gameState: { player: { hand: [requiredCard] } },
+    tutorialControllerState: tutorialStateAt(stepId),
+    openingMulliganPending: true,
+    openingMulliganActive: true,
+    selectedMulliganCardIds: ['kept-selection'],
+    navigationInProgress: false,
+    pointerInputGuardActive: false,
+    isFlowResolving: true,
+    isTutorialBattle: () => true,
+    handleTutorialEvent(eventName, payload) {
+      return handleTutorialEvent(this.tutorialControllerState, eventName, payload);
+    },
+    guardPointerEvent() {
+      this.pointerInputGuardActive = true;
+    },
+    clearPointerInputGuard() {
+      this.pointerInputGuardActive = false;
+    },
+    closeInspectPreview() {},
+    destroyUtilityMenuPanel() {},
+    destroyDeckInfoPanel() {},
+    restoreRulesPanelBackgroundHelpers() {},
+    recoverFromLifecycle(reason) {
+      this.lastRecoveryReason = reason;
+    },
+    scene: {
+      launch() {},
+      pause() {},
+      resume() {},
+    },
+  };
+  return scene;
+}
+
+test('real BattleScene Battle Menu open and return callbacks preserve tutorial mulligan state', () => {
+  const prepare = compileMethod(battleSceneSource, 'prepareUtilityMenuNavigation', 'getBattleResultText', ['{ includeBattleResultModal = false, preserveBattleFlow = false } = {}']);
+  const open = compileMethod(battleSceneSource, 'openBattleMenu', 'openBattleReportFromUtilityMenu');
+  const resume = compileMethod(battleSceneSource, 'resumeFromBattleMenu', 'resumeFromBattleReport');
+  const scene = createBattleHarness();
+  scene.prepareUtilityMenuNavigation = (options) => prepare.call(scene, options);
+
+  open.call(scene);
+  assert.equal(scene.openingMulliganPending, true);
+  assert.equal(scene.tutorialControllerState.steps[scene.tutorialControllerState.currentStepIndex].id, 'inspect_card');
+  assert.deepEqual(scene.selectedMulliganCardIds, ['kept-selection']);
+  assert.equal(scene.navigationInProgress, true);
+
+  resume.call(scene);
+  assert.equal(scene.navigationInProgress, false);
+  assert.equal(scene.pointerInputGuardActive, false);
+  assert.equal(scene.openingMulliganPending, true);
+  assert.equal(scene.lastRecoveryReason, 'battle-menu-return');
+});
+
+test('real Battle Menu callback does not recreate mulligan after completion and keeps non-tutorial defaults', () => {
+  const prepare = compileMethod(battleSceneSource, 'prepareUtilityMenuNavigation', 'getBattleResultText', ['{ includeBattleResultModal = false, preserveBattleFlow = false } = {}']);
+  const open = compileMethod(battleSceneSource, 'openBattleMenu', 'openBattleReportFromUtilityMenu');
+
+  const completedTutorial = createBattleHarness();
+  completedTutorial.openingMulliganPending = false;
+  completedTutorial.prepareUtilityMenuNavigation = (options) => prepare.call(completedTutorial, options);
+  open.call(completedTutorial);
+  assert.equal(completedTutorial.openingMulliganPending, false);
+
+  const normalBattle = createBattleHarness();
+  normalBattle.isTutorialBattle = () => false;
+  normalBattle.isFlowResolving = true;
+  normalBattle.openingMulliganPending = true;
+  normalBattle.prepareUtilityMenuNavigation = (options) => prepare.call(normalBattle, options);
+  open.call(normalBattle);
+  assert.equal(normalBattle.openingMulliganPending, false);
+  assert.equal(normalBattle.isFlowResolving, false);
+});
+
+test('real Rules return callback preserves tutorial mulligan and restores accepted long press', () => {
+  const resume = compileMethod(battleSceneSource, 'resumeFromRulesPanel', 'resumeFromBattleMenu');
+  const mechanical = compileMethod(battleSceneSource, 'isTutorialFocusTargetMechanicallyPossible', 'ensureTutorialFocusLayer', ['target', 'step = this.getCurrentTutorialStep()', 'getTutorialBattleData', 'canPlayEffectCard']);
+  const startLongPress = compileMethod(battleSceneSource, 'startHandCardLongPress', 'cancelHandCardLongPress', ['cardId', 'CARD_INSPECT_LONG_PRESS_MS']);
+  const scene = createBattleHarness();
+  scene.navigationInProgress = true;
+  scene.pointerInputGuardActive = true;
+  scene.getCurrentTutorialStep = () => scene.tutorialControllerState.steps[scene.tutorialControllerState.currentStepIndex];
+  scene.isOpeningMulliganInputLocked = () => false;
+  scene.isTutorialInputAllowed = (proposal) => checkTutorialInputGate(scene.tutorialControllerState, proposal).allowed;
+  scene.utilityMenuPanel = null;
+  scene.battleResultModalShown = false;
+  scene.playerActionUsed = false;
+  scene.isFlowResolving = false;
+  scene.pressedHandCardId = 'tutorial_mulligan_bait_1';
+  scene.cancelHandCardLongPress = () => {};
+  scene.resetCardHighlights = () => {};
+  scene.updateTutorialFocus = () => { scene.focusRestoreCount = (scene.focusRestoreCount ?? 0) + 1; };
+  scene.time = { delayedCall(_delay, callback) { scene.longPressCallback = callback; return {}; } };
+
+  resume.call(scene);
+  const step = scene.getCurrentTutorialStep();
+  assert.equal(mechanical.call(scene, step.highlightTarget, step, () => ({ openingConfig: { requiredPlayerMulliganCardId: 'tutorial_mulligan_bait_1' } }), () => ({ ok: true })), true);
+
+  startLongPress.call(scene, 'tutorial_mulligan_bait_1', 425);
+  scene.longPressCallback();
+  assert.equal(scene.tutorialControllerState.steps[scene.tutorialControllerState.currentStepIndex].id, 'mulligan_select');
+  assert.equal(scene.focusRestoreCount, 1);
+});
+
+for (const stepId of ['inspect_card', 'mulligan_confirm']) {
+  test(`real Settings open/return callbacks clear guards and preserve ${stepId}`, () => {
+    const prepare = compileMethod(battleSceneSource, 'prepareUtilityMenuNavigation', 'getBattleResultText', ['{ includeBattleResultModal = false, preserveBattleFlow = false } = {}']);
+    const openSettings = compileMethod(battleSceneSource, 'openSettingsScene', 'exitBattleToMainMenu');
+    const resumeSettings = compileMethod(battleSceneSource, 'resumeFromSettings', 'openSettingsScene');
+    const returnFromSettings = compileMethod(settingsSource, 'returnToMainMenu', 'getBattleReturnScene');
+    const battle = createBattleHarness(stepId);
+    const trace = [];
+    battle.prepareUtilityMenuNavigation = (options) => prepare.call(battle, options);
+    battle.resumeFromSettings = () => { trace.push('resume'); resumeSettings.call(battle); };
+    battle.scene.launch = () => {};
+    battle.scene.bringToTop = () => {};
+    battle.scene.pause = () => {};
+    const settings = {
+      returnSceneKey: 'BattleScene',
+      scene: {
+        get: () => battle,
+        stop: () => trace.push('stop'),
+        isPaused: () => true,
+        resume: () => { throw new Error('fallback resume must not bypass BattleScene cleanup'); },
+        start: () => { throw new Error('battle Settings return must not start MainMenuScene'); },
+      },
+    };
+
+    openSettings.call(battle);
+    assert.equal(battle.openingMulliganPending, true);
+    returnFromSettings.call(settings);
+    assert.deepEqual(trace, ['resume', 'stop']);
+    assert.equal(battle.navigationInProgress, false);
+    assert.equal(battle.pointerInputGuardActive, false);
+    assert.equal(battle.tutorialControllerState.steps[battle.tutorialControllerState.currentStepIndex].id, stepId);
+    assert.deepEqual(battle.selectedMulliganCardIds, ['kept-selection']);
+    assert.equal(battle.lastRecoveryReason, 'settings-return');
+    assert.equal(checkTutorialInputGate(battle.tutorialControllerState, {
+      type: stepId === 'mulligan_confirm' ? 'confirm_mulligan' : 'inspect_card',
+      ...(stepId === 'mulligan_confirm' ? { target: 'player_base_button' } : { cardId: 'tutorial_mulligan_bait_1' }),
+    }).allowed, true);
+  });
 }
 
 test('tutorial Battle Menu preserves active mulligan flow while non-tutorial navigation keeps its existing default', () => {
