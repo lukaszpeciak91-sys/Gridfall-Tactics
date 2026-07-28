@@ -620,7 +620,7 @@
         "occupied": "Pole zajęte",
         "invalidSwap": "Nieprawidłowa zamiana",
         "effectCardPlayBlocked": "Nie możesz zagrać karty efektu.",
-        "finishMulliganFirst": "Najpierw dokończ mulligan."
+        "finishMulliganFirst": "Najpierw dokończ wymianę."
       },
       "confirmSurrender": "PODDAJ SIĘ",
       "battleExhausted": "BITWA WYCZERPANA",
