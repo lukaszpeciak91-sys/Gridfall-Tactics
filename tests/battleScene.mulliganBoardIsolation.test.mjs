@@ -5,7 +5,8 @@ import { readFileSync } from 'node:fs';
 const source = readFileSync(new URL('../src/scenes/BattleScene.js', import.meta.url), 'utf8');
 
 function extractMethodBody(name, nextName) {
-  const start = source.indexOf(`\n  ${name}(`);
+  let start = source.indexOf(`\n  ${name}(`);
+  if (start < 0) start = source.indexOf(`\n  async ${name}(`);
   let end = source.indexOf(`\n  ${nextName}(`, start + 1);
   if (end < 0) end = source.indexOf(`\n  async ${nextName}(`, start + 1);
   if (start < 0 || end < 0) throw new Error(`Failed to extract ${name}`);
@@ -16,7 +17,10 @@ function compileMethod(name, nextName, params = []) {
   const block = extractMethodBody(name, nextName);
   const bodyStart = block.indexOf(') {') + 3;
   const bodyEnd = block.lastIndexOf('}');
-  return new Function(...params, block.slice(bodyStart, bodyEnd));
+  const MethodConstructor = block.includes(`async ${name}(`)
+    ? Object.getPrototypeOf(async function () {}).constructor
+    : Function;
+  return new MethodConstructor(...params, block.slice(bodyStart, bodyEnd));
 }
 
 test('mulligan hand taps still mark and unmark cards for exchange', () => {
@@ -243,4 +247,115 @@ test('closing mulligan inspect preview preserves selected exchange cards and con
   assert.equal(scene.pressedHandCardId, null);
   assert.equal(scene.updatePlayerBaseActionStateCalled, true);
   assert.deepEqual(scene.resetCardHighlightsCalledWith, { showPreview: false });
+});
+
+test('tutorial mulligan confirmation preserves selection through outside-tap spam and remains immediately confirmable', async () => {
+  const clearOutsideTap = compileMethod('clearOpeningMulliganPreviewFromOutsideTap', 'isPointerInsidePlayerBaseAction', ['pointer', 'currentlyOver']);
+  const getActionLabel = compileMethod('getOpeningMulliganActionLabel', 'getPlayerBaseMode', ['translateActive']);
+  const confirmMulligan = compileMethod('confirmOpeningMulligan', 'resetOpeningMulliganInputState', [
+    'isTutorialBattleContext',
+    'performTutorialOpeningMulligan',
+    'getTutorialBattleData',
+    'performOpeningMulligan',
+    'AUDIO_KEYS',
+  ]);
+  const selectedId = 'unit-a';
+  const scene = {
+    battleContext: { mode: 'tutorial' },
+    openingMulliganPending: true,
+    openingMulliganActive: true,
+    selectedMulliganCardIds: [selectedId],
+    previewedMulliganCardId: null,
+    selectedHandCardZoom: null,
+    hoverInspectCardId: null,
+    boardInspectIndex: null,
+    pressedHandCardId: null,
+    tutorialStep: { id: 'mulligan_confirm' },
+    tutorialFocusedTarget: { type: 'player_base_button' },
+    gameState: { player: { hand: [{ id: selectedId }] } },
+    isTutorialBattle() { return true; },
+    getCurrentTutorialStep() { return this.tutorialStep; },
+    isPointerInsideMulliganHandOrPreview() { return false; },
+    isPointerInsidePlayerBaseAction() { return false; },
+    updatePlayerBaseActionState() {},
+    resetCardHighlights() {},
+    cancelPassHoldToSurrender() {},
+    isFlowResolving: false,
+    isTutorialInputAllowed() { return true; },
+    playBattleSfx() {},
+    handleTutorialEvent(event, payload) { this.confirmEvent = { event, payload }; },
+    resetOpeningMulliganInputState() { this.selectedMulliganCardIds = []; },
+    cleanupOpeningMulliganRevealControllers() {},
+    redrawHand() {},
+    refreshDeckCounter() {},
+    async showOpeningTurnStartBanner() {},
+    startCampaignBattleTimer() {},
+    startTurn() { this.started = true; },
+  };
+
+  for (const target of ['board background', 'empty slot', 'blank hand space']) {
+    clearOutsideTap.call(scene, { target }, []);
+    assert.deepEqual(scene.selectedMulliganCardIds, [selectedId], target);
+    assert.equal(scene.tutorialStep.id, 'mulligan_confirm', target);
+    assert.deepEqual(scene.tutorialFocusedTarget, { type: 'player_base_button' }, target);
+    assert.equal(getActionLabel.call(scene, (_key, fallback, values) => fallback.replace('{count}', values?.count)), 'MULLIGAN 1', target);
+  }
+  for (let tap = 0; tap < 5; tap += 1) clearOutsideTap.call(scene, {}, []);
+  assert.deepEqual(scene.selectedMulliganCardIds, [selectedId]);
+
+  await confirmMulligan.call(
+    scene,
+    () => true,
+    (_state, selectedIds) => ({ ok: selectedIds[0] === selectedId }),
+    () => ({ openingConfig: {} }),
+    () => { throw new Error('tutorial confirmation must use the tutorial mulligan'); },
+    { UI_CLICK: 'ui-click' },
+  );
+  assert.deepEqual(scene.confirmEvent, { event: 'mulligan_confirmed', payload: { selectedIds: [selectedId] } });
+  assert.equal(scene.started, true);
+});
+
+test('tutorial confirmation inspect dismissal closes preview while retaining selection and visual source state', () => {
+  const clearOutsideTap = compileMethod('clearOpeningMulliganPreviewFromOutsideTap', 'isPointerInsidePlayerBaseAction', ['pointer', 'currentlyOver']);
+  const scene = {
+    openingMulliganPending: true,
+    selectedMulliganCardIds: ['unit-a'],
+    previewedMulliganCardId: 'unit-a',
+    selectedHandCardZoom: { root: {} },
+    hoverInspectCardId: 'unit-a',
+    boardInspectIndex: null,
+    pressedHandCardId: 'unit-a',
+    isTutorialBattle() { return true; },
+    getCurrentTutorialStep() { return { id: 'mulligan_confirm' }; },
+    isPointerInsideMulliganHandOrPreview() { return false; },
+    isPointerInsidePlayerBaseAction() { return false; },
+    updatePlayerBaseActionState() {},
+    resetCardHighlights(options) { this.highlightOptions = options; },
+  };
+  clearOutsideTap.call(scene, {}, []);
+  assert.equal(scene.previewedMulliganCardId, null);
+  assert.deepEqual(scene.selectedMulliganCardIds, ['unit-a']);
+  assert.equal(scene.selectedMulliganCardIds.includes('unit-a'), true);
+  assert.deepEqual(scene.highlightOptions, { showPreview: false });
+});
+
+test('outside taps retain ordinary mulligan and tutorial selection-step deselection behavior', () => {
+  const clearOutsideTap = compileMethod('clearOpeningMulliganPreviewFromOutsideTap', 'isPointerInsidePlayerBaseAction', ['pointer', 'currentlyOver']);
+  const makeScene = ({ tutorial, stepId }) => ({
+    openingMulliganPending: true,
+    selectedMulliganCardIds: ['unit-a'],
+    previewedMulliganCardId: null,
+    selectedHandCardZoom: null,
+    isTutorialBattle() { return tutorial; },
+    getCurrentTutorialStep() { return { id: stepId }; },
+    isPointerInsideMulliganHandOrPreview() { return false; },
+    isPointerInsidePlayerBaseAction() { return false; },
+    updatePlayerBaseActionState() {},
+    resetCardHighlights() {},
+  });
+  for (const config of [{ tutorial: false, stepId: null }, { tutorial: true, stepId: 'mulligan_select' }]) {
+    const scene = makeScene(config);
+    clearOutsideTap.call(scene, {}, []);
+    assert.deepEqual(scene.selectedMulliganCardIds, []);
+  }
 });

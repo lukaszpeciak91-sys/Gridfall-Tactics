@@ -7624,7 +7624,10 @@ export default class BattleScene extends Phaser.Scene {
     this.hoverInspectCardId = null;
     this.boardInspectIndex = null;
     this.pressedHandCardId = null;
-    if (!hasPreview) this.selectedMulliganCardIds = [];
+    const preserveTutorialConfirmationSelection = (this.isTutorialBattle?.() ?? false)
+      && (this.openingMulliganPending === true || this.openingMulliganActive === true)
+      && this.getCurrentTutorialStep?.()?.id === 'mulligan_confirm';
+    if (!hasPreview && !preserveTutorialConfirmationSelection) this.selectedMulliganCardIds = [];
     this.updatePlayerBaseActionState();
     this.resetCardHighlights({ showPreview: false });
   }
