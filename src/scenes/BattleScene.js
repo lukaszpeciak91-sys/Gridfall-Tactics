@@ -4921,8 +4921,32 @@ export default class BattleScene extends Phaser.Scene {
     return this.isTutorialBattle?.() === true && this.openingMulliganPending === true;
   }
 
+  isTutorialOpeningMulliganDeckNavigationLocked() {
+    if (this.isTutorialBattle?.() !== true) return false;
+    if (this.openingMulliganPending !== true && this.openingMulliganActive !== true) return false;
+
+    const deckTutorialStepIds = new Set(['deck_counter_open', 'battle_history']);
+    const currentStep = this.getCurrentTutorialStep?.()
+      ?? this.tutorialControllerState?.steps?.[this.tutorialControllerState.currentStepIndex]
+      ?? null;
+    if (deckTutorialStepIds.has(currentStep?.id)) return false;
+
+    const steps = this.tutorialControllerState?.steps ?? [];
+    const battleHistoryStepIndex = steps.findIndex((step) => step?.id === 'battle_history');
+    const deckTutorialSequenceCompleted = battleHistoryStepIndex >= 0
+      && (this.tutorialControllerState?.completed === true
+        || this.tutorialControllerState?.currentStepIndex > battleHistoryStepIndex);
+    return deckTutorialSequenceCompleted;
+  }
+
   rejectTutorialMulliganUtilityNavigation() {
     if (!this.isTutorialOpeningMulliganUtilityNavigationLocked()) return false;
+    this.showInvalidActionFeedback?.({ reason: 'Finish the mulligan first.', scope: 'global' });
+    return true;
+  }
+
+  rejectTutorialMulliganDeckNavigation() {
+    if (!this.isTutorialOpeningMulliganDeckNavigationLocked()) return false;
     this.showInvalidActionFeedback?.({ reason: 'Finish the mulligan first.', scope: 'global' });
     return true;
   }
@@ -5651,7 +5675,7 @@ export default class BattleScene extends Phaser.Scene {
       height,
       deckLabel,
       () => {
-        if (this.rejectTutorialMulliganUtilityNavigation?.()) return;
+        if (this.rejectTutorialMulliganDeckNavigation?.()) return;
         if (!(this.isTutorialInputAllowed?.({ type: 'click_deck', target: 'deck_counter' }) ?? true)) return;
         this.openDeckInfoPanel();
       },
@@ -5835,7 +5859,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   openDeckInfoPanel() {
-    if (this.rejectTutorialMulliganUtilityNavigation?.()) return false;
+    if (this.rejectTutorialMulliganDeckNavigation?.()) return false;
     if (!this.gameState?.player || this.battleResultModalShown || this.isFlowResolving) return;
     if (this.effectCastState?.source === 'unit-on-play') {
       this.cancelEffectTargeting();

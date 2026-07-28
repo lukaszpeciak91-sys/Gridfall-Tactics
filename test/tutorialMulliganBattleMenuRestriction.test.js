@@ -5,6 +5,7 @@ import test from 'node:test';
 import en from '../src/localization/translations/en.json' with { type: 'json' };
 import pl from '../src/localization/translations/pl.json' with { type: 'json' };
 import uk from '../src/localization/translations/uk.json' with { type: 'json' };
+import { TUTORIAL_STEPS } from '../src/data/tutorial/tutorialSteps.js';
 
 const source = await readFile(new URL('../src/scenes/BattleScene.js', import.meta.url), 'utf8');
 const battleMenuSource = await readFile(new URL('../src/scenes/BattleMenuScene.js', import.meta.url), 'utf8');
@@ -23,27 +24,36 @@ function compileMethod(name, nextName, params = []) {
   return new Function(...params, block.slice(bodyStart, block.lastIndexOf('}')));
 }
 
-const isLocked = compileMethod('isTutorialOpeningMulliganUtilityNavigationLocked', 'rejectTutorialMulliganUtilityNavigation');
-const reject = compileMethod('rejectTutorialMulliganUtilityNavigation', 'launchBattleRulesPanel');
+const isLocked = compileMethod('isTutorialOpeningMulliganUtilityNavigationLocked', 'isTutorialOpeningMulliganDeckNavigationLocked');
+const isDeckLocked = compileMethod('isTutorialOpeningMulliganDeckNavigationLocked', 'rejectTutorialMulliganUtilityNavigation');
+const reject = compileMethod('rejectTutorialMulliganUtilityNavigation', 'rejectTutorialMulliganDeckNavigation');
+const rejectDeck = compileMethod('rejectTutorialMulliganDeckNavigation', 'launchBattleRulesPanel');
 const openRules = compileMethod('openRulesPanel', 'openBattleMenu');
 const openSettings = compileMethod('openSettingsScene', 'exitBattleToMainMenu');
 const openDeck = compileMethod('openDeckInfoPanel', 'bindDeckInfoScrollHandlers');
+const closeDeck = compileMethod('destroyDeckInfoPanel', 'addDeckInfoGlassPanel');
 
-function harness({ tutorial = true, pending = true } = {}) {
+function harness({ tutorial = true, pending = true, stepId = 'mulligan_confirm' } = {}) {
   const trace = [];
   const scene = {
     battleContext: { mode: tutorial ? 'tutorial' : 'arena' },
     openingMulliganPending: pending,
     openingMulliganActive: pending,
     selectedMulliganCardIds: ['card-a', 'card-b'],
-    tutorialControllerState: { currentStepIndex: 4, expected: { type: 'confirm_mulligan' } },
+    tutorialControllerState: {
+      steps: TUTORIAL_STEPS,
+      currentStepIndex: TUTORIAL_STEPS.findIndex((step) => step.id === stepId),
+      completed: false,
+    },
     navigationInProgress: false,
     pointerInputGuardActive: false,
     deckInfoPanel: null,
     utilityMenuPanel: { active: true },
     isTutorialBattle() { return this.battleContext.mode === 'tutorial'; },
     isTutorialOpeningMulliganUtilityNavigationLocked() { return isLocked.call(this); },
+    isTutorialOpeningMulliganDeckNavigationLocked() { return isDeckLocked.call(this); },
     rejectTutorialMulliganUtilityNavigation() { return reject.call(this); },
+    rejectTutorialMulliganDeckNavigation() { return rejectDeck.call(this); },
     showInvalidActionFeedback(payload) { trace.push(['feedback', payload]); },
     launchBattleRulesPanel() { trace.push(['launch', 'RulesPanelScene']); return true; },
     prepareUtilityMenuNavigation() { this.navigationInProgress = true; this.pointerInputGuardActive = true; trace.push(['prepare']); return true; },
@@ -81,6 +91,37 @@ test('Deck/TALIA is rejected at the panel boundary without state mutation during
   assert.deepEqual(snapshot(scene), before);
   assert.deepEqual(trace, [['feedback', { reason: 'Finish the mulligan first.', scope: 'global' }]]);
   assert.equal(trace.some(([event]) => event === 'cancel-targeting' || event === 'prepare' || event === 'pause'), false);
+});
+
+test('Deck/TALIA remains available for the required deck and Battle History tutorial steps', () => {
+  for (const stepId of ['deck_counter_open', 'battle_history']) {
+    const { scene, trace } = harness({ stepId });
+    scene.gameState = { player: { deck: [] } };
+    scene.effectCastState = { source: 'unit-on-play' };
+
+    assert.equal(openDeck.call(scene), undefined);
+    assert.deepEqual(trace, [['cancel-targeting']]);
+  }
+});
+
+test('closing Battle History advances beyond the required sequence before Deck/TALIA locks', () => {
+  const { scene } = harness({ stepId: 'battle_history' });
+  scene.deckInfoPanel = {};
+  scene.input = { off() {}, keyboard: { off() {} } };
+  scene.isTutorialInputAllowed = () => true;
+  scene.unregisterBattleModalScrollHint = () => {};
+  scene.restoreDeckInfoBackgroundHelpers = () => {};
+  scene.updatePlayerBaseActionState = () => {};
+  scene.updateTutorialBanner = () => {};
+  scene.handleTutorialEvent = (eventName) => {
+    assert.equal(eventName, 'deck_closed');
+    scene.tutorialControllerState.currentStepIndex += 1;
+  };
+
+  assert.equal(scene.isTutorialOpeningMulliganDeckNavigationLocked(), false);
+  closeDeck.call(scene);
+  assert.equal(scene.deckInfoPanel, null);
+  assert.equal(scene.isTutorialOpeningMulliganDeckNavigationLocked(), true);
 });
 
 test('Deck/TALIA uses its normal action immediately after tutorial mulligan completion', () => {
@@ -140,8 +181,8 @@ test('restriction is checked before the pointer guard and uses the visible inval
   assert.match(source, /showInvalidActionBanner\(message, \{ allowDuringTutorial: true \}\)/);
   assert.match(source, /setDepth\(allowDuringTutorial \? 730 : 222\)/);
   const deckCounter = methodBody('drawDeckCounter', 'refreshDeckCounter');
-  assert.ok(deckCounter.indexOf('rejectTutorialMulliganUtilityNavigation()') < deckCounter.indexOf('isTutorialInputAllowed?.'));
-  assert.match(methodBody('openDeckInfoPanel', 'bindDeckInfoScrollHandlers'), /^  openDeckInfoPanel\(\) \{\n    if \(this\.rejectTutorialMulliganUtilityNavigation\?\.\(\)\) return false;/);
+  assert.ok(deckCounter.indexOf('rejectTutorialMulliganDeckNavigation?.()') < deckCounter.indexOf('isTutorialInputAllowed?.'));
+  assert.match(methodBody('openDeckInfoPanel', 'bindDeckInfoScrollHandlers'), /^  openDeckInfoPanel\(\) \{\n    if \(this\.rejectTutorialMulliganDeckNavigation\?\.\(\)\) return false;/);
 });
 
 test('copy report, surrender, confirmation, and close actions remain outside the restriction', () => {
